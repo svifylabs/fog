@@ -28,4 +28,4 @@
 #include <Fog/UI/Window.h>
 
 // [Guard]
-#endif // _FOG_UI
+#endif // _FOG_UI_H

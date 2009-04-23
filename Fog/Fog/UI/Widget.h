@@ -22,7 +22,6 @@
 #include <Fog/Graphics/Painter.h>
 #include <Fog/UI/Event.h>
 #include <Fog/UI/LayoutItem.h>
-#include <Fog/UI/WidgetBackingStore.h>
 
 namespace Fog {
 

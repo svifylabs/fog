@@ -18,7 +18,6 @@
 #include <Fog/UI/LayoutItem.h>
 #include <Fog/UI/UISystem.h>
 #include <Fog/UI/Widget.h>
-#include <Fog/UI/WidgetBackingStore.h>
 
 FOG_IMPLEMENT_OBJECT(Fog::Widget)
 
