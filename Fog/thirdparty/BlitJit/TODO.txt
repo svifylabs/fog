@@ -1,0 +1,24 @@
+TODOs (BlitJit):
+[ ] Converting images from one pixel format to another
+    This is likely blitting one image to another using CompositeSrc operation, but
+    converting can be also better optimized for some pixel formats.
+[ ] Alpha Premultiply / Demultiply (should be used together with converting images)
+    This is likely blitting one image to another using CompositeSrc operation
+[w] Currently alpha position in ARGB32_SSE2 generator is hardcoded, fix it.
+[w] Fill span / rect
+[ ] Fill span / rect with Mask
+[w] Composite span / rect
+[ ] Composite span / rect with Mask
+[ ] Colors interpolation
+    [ ] Between two colors
+    [ ] Need to define structure to be able to interpolate between more colors
+        in one function call
+[ ] Linear gradient fill with pad / repeat / reflect modes
+[ ] Radial gradient fill with pad / repeat / reflect modes
+[ ] Conical gradient fill with pad / repeat / reflect modes
+
+[ ] Fresh ideas
+    [ ] Optimize CompositeOver operator much more. It should be possible to mix
+        SSE2 code with x86 code and detect behavior of next 16 pixels. Code can
+        check if pixels are fully opaque or fully transparent. I don't know if
+        there are another possibilities, but this would be good starting point.
