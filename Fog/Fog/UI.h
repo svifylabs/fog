@@ -24,7 +24,6 @@
 #include <Fog/UI/Layout.h>
 #include <Fog/UI/LayoutItem.h>
 #include <Fog/UI/Widget.h>
-#include <Fog/UI/WidgetBackingStore.h>
 #include <Fog/UI/Window.h>
 
 // [Guard]
