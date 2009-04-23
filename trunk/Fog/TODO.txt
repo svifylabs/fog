@@ -1,0 +1,9 @@
+TODO
+====
+
+[ ] Remove allocPolicy and AllocPolicy enums, all detach functions must return err_t
+    instead
+[ ] Fog::RegExp - use TRex
+[ ] Fog::String - not completed yet, add Locale support to group separators
+[ ] Fog::BitArray - fix
+[ ] Temporary...<N>::free sometimes not frees the memory ?

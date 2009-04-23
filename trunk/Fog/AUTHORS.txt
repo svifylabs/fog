@@ -1,0 +1,21 @@
+Fog Library
+===========
+
+Petr Kobalicek <kobalicek.petr@gmail.com>
+
+Contributors
+============
+
+Jaroslav Smid <jardasmid@gmail.com>
+
+Other Libraries and Sources Used in Fog
+=======================================
+
+Ultimate++ <http://www.ultimatepp.com> - Small unicode support, inspiration
+FastDelegate <http://www.codeproject.com/cpp/FastDelegate.asp> - Delegates
+Chromium <http://code.google.com/p/chromium/> - Threading, Event Loop, Event Pump, ...
+
+XOrg <http://www.x.org> - Region
+Evas <http://www.enlightenment.org> - Dithering
+AGG version 2.4 <http://www.antigrain.com> - Vector painting, antialiased filling of primitives
+GifLib <http://sourceforge.net/projects/libungif> - ImageIO GIF support

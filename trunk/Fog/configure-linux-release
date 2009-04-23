@@ -1,0 +1,5 @@
+#!/bin/sh
+mkdir build
+cd build
+cmake . -DCMAKE_INSTALL_PREFIX:PATH=/usr/wde -DCMAKE_BUILD_TYPE=release -DDEBUG_VALGRIND=1 -GKDevelop3
+cd ..

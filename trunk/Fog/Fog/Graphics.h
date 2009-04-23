@@ -1,0 +1,34 @@
+// [Fog/Graphics Library - C++ API]
+//
+// [Licence] 
+// MIT, See COPYING file in package
+
+#if defined(_MSVC)
+#pragma once
+#endif // _MSVC
+
+// [Guard]
+#ifndef _FOG_GRAPHICS_GRAPHICS_H
+#define _FOG_GRAPHICS_GRAPHICS_H
+
+// [Fog/Graphics Include Files]
+#include <Fog/Build/Build.h>
+
+#include <Fog/Graphics/Constants.h>
+#include <Fog/Graphics/Converter.h>
+#include <Fog/Graphics/Dither.h>
+#include <Fog/Graphics/Fixed.h>
+#include <Fog/Graphics/Font.h>
+#include <Fog/Graphics/Image.h>
+#include <Fog/Graphics/ImageFormat.h>
+#include <Fog/Graphics/ImageIO.h>
+#include <Fog/Graphics/ImageScale.h>
+#include <Fog/Graphics/Painter.h>
+#include <Fog/Graphics/Palette.h>
+#include <Fog/Graphics/Path.h>
+#include <Fog/Graphics/Region.h>
+#include <Fog/Graphics/Rgba.h>
+#include <Fog/Graphics/RgbaAnalyzer.h>
+
+// [Guard]
+#endif // _FOG_GRAPHICS_GRAPHICS_H
