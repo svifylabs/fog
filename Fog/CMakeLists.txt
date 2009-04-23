@@ -7,10 +7,10 @@ CMake_Minimum_Required(VERSION 2.6)
 Set(FOG_DIR ${CMAKE_SOURCE_DIR})
 Set(FOG_AGG_DIR "${FOG_DIR}/thirdparty/agg")
 
-Set(ASMJIT_DIR "${FOG_DIR}/../AsmJit")
+Set(ASMJIT_DIR "${FOG_DIR}/thirdparty/AsmJit")
 Set(ASMJIT_BUILD_LIBRARY TRUE)
 
-Set(BLITJIT_DIR "${FOG_DIR}/../BlitJit")
+Set(BLITJIT_DIR "${FOG_DIR}/thirdparty/BlitJit")
 Set(BLITJIT_BUILD_LIBRARY TRUE)
 
 Set(TEST_BUILD TRUE)
