@@ -200,24 +200,45 @@ void Widget::setRect(const Rect& rect)
 {
   if (_rect == rect) return;
 
-  Application::instance()->uiSystem()->dispatchConfigure(this,
-    rect, false);
+  if (_uiWindow)
+  {
+    _uiWindow->reconfigure(rect);
+  }
+  else
+  {
+    Application::instance()->uiSystem()->dispatchConfigure(this,
+      rect, false);
+  }
 }
 
 void Widget::setPosition(const Point& pt)
 {
   if (_rect.point() == pt) return;
 
-  Application::instance()->uiSystem()->dispatchConfigure(this,
-    Rect(pt.x(), pt.y(), width(), height()), false);
+  if (_uiWindow)
+  {
+    _uiWindow->move(pt);
+  }
+  else
+  {
+    Application::instance()->uiSystem()->dispatchConfigure(this,
+      Rect(pt.x(), pt.y(), width(), height()), false);
+  }
 }
 
 void Widget::setSize(const Size& sz)
 {
   if (_rect.size() == sz) return;
 
-  Application::instance()->uiSystem()->dispatchConfigure(this,
-    Rect(x1(), y1(), sz.width(), sz.height()), false);
+  if (_uiWindow)
+  {
+    _uiWindow->resize(sz);
+  }
+  else
+  {
+    Application::instance()->uiSystem()->dispatchConfigure(this,
+      Rect(x1(), y1(), sz.width(), sz.height()), false);
+  }
 }
 
 void Widget::setOrigin(const Point& pt)
