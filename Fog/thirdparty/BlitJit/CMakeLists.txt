@@ -2,7 +2,7 @@
 CMake_Minimum_Required(VERSION 2.6)
 
 # AsmJit project - Need to use both C and C++
-Project(BlitJit C CXX)
+# Project(BlitJit C CXX)
 
 # If BLITJIT_DIR is not specified, assume that we are building it from here
 If(NOT BLITJIT_DIR)
@@ -28,7 +28,7 @@ Set(BLITJIT_HEADERS
   ${BLITJIT_DIR}/BlitJit/GeneratorPrivate.h
 )
 
-# Include AsmJit to be able to use #include <AsmJit/...>
+# Include BlitJit to be able to use #include <BlitJit/...>
 Include_Directories(${BLITJIT_DIR})
 
 # pthread library is needed for non-windows OSes.

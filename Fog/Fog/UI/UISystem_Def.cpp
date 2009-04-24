@@ -601,7 +601,8 @@ void UISystemDefault::doUpdate()
     Vector<UIWindowDefault*>::ConstIterator it(dirty);
     for (it.toStart(); it.isValid(); it.toNext())
     {
-      doUpdateWindow(it.value());
+      UIWindow* uiWindow = it.value();
+      if (uiWindow) doUpdateWindow(uiWindow);
     }
   }
 
@@ -610,16 +611,22 @@ void UISystemDefault::doUpdate()
 
 void UISystemDefault::doUpdateWindow(UIWindow* window)
 {
+  window->_dirty = false;
+
   // Hidden windows won't be updated.
   if (!window->_visible) return;
+
+  // =======================================================
+  // Local variables and initialization.
+  // =======================================================
 
   // 10 seconds is extra buffer timeout
   TimeTicks now = TimeTicks::now() - TimeDelta::fromSeconds(10);
 
-  // actual top level widget
-  Widget* top;
+  // UIWindow widget.
+  Widget* top = window->_widget;
 
-  // painting
+  // Painting.
   Painter painter;
   PaintEvent e;
   e._painter = &painter;
@@ -632,12 +639,6 @@ void UISystemDefault::doUpdateWindow(UIWindow* window)
   TemporaryRegion<32> rtmp2;
   TemporaryRegion<32> rtmp3;
   TemporaryRegion<64> blitRegion;
-
-  // =======================================================
-  // Local variables and initialization for updating
-  // =======================================================
-
-  top = window->_widget;
 
   // Some temporary data.
   Size topSize(top->size());
@@ -674,7 +675,7 @@ void UISystemDefault::doUpdateWindow(UIWindow* window)
   topBytesPerPixel = window->_backingStore->format().depth() >> 3;
 
   // =======================================================
-  // Update system widget
+  // Update top level widget.
   // =======================================================
 
   // if there is nothing to do, continue. It's checked here,
@@ -716,8 +717,11 @@ void UISystemDefault::doUpdateWindow(UIWindow* window)
     e._receiver = top;
     e._parentPainted = 0;
 
-    TemporaryRegion<1> mr(Rect(0, 0, top->width(), top->height()));
-    painter.setMetaVariables(Point(top->x1(), top->y1()), mr, true);
+    painter.setMetaVariables(
+      Point(0, 0),
+      TemporaryRegion<1>(Rect(0, 0, top->width(), top->height())),
+      true,
+      true);
     top->onEvent(&e);
 
     uflags |=
@@ -731,7 +735,7 @@ void UISystemDefault::doUpdateWindow(UIWindow* window)
   }
 
   // =======================================================
-  // Update child widgets
+  // Update children.
   // =======================================================
 
   if (top->hasChildren() && (uflags & Widget::UFlagUpdateChild) != 0)
@@ -853,8 +857,12 @@ __pushed:
 #if 0
           }
 #endif
-          painter.setMetaVariables(Point(childRec.bounds.x1(), childRec.bounds.y1()), rtmp1, true);
-          
+          painter.setMetaVariables(
+            Point(childRec.bounds.x1(), childRec.bounds.y1()),
+            rtmp1,
+            true,
+            true);
+
           // FIXME: Repaint caret repaints whole control
           if ((childRec.uflags & (Widget::UFlagRepaintWidget | Widget::UFlagRepaintCaret)) != 0)
           {
@@ -862,6 +870,7 @@ __pushed:
             //blitFull = true;
             if (!parentRec.painted) blitRegion.unite(rtmp1);
           }
+
           /*
           if (Application::caretStatus().widget == child &&
             (childRec.uflags & (Widget::UFlagRepaintWidget | Widget::UFlagRepaintCaret)) != 0)
@@ -1013,11 +1022,16 @@ UIWindowDefault::~UIWindowDefault()
 {
   UISystemDefault* uiSystem = UI_SYSTEM();
 
+  // Remove UIWindow from system mouse status
   if (uiSystem->_systemMouseStatus.uiWindow == this)
   {
     uiSystem->clearSystemMouseStatus();
     uiSystem->clearButtonRepeat();
   }
+
+  // Remove UIWindow from dirty list
+  sysuint_t i = uiSystem->_dirtyList.indexOf(this);
+  if (i != InvalidIndex) uiSystem->_dirtyList[i] = NULL;
 }
 
 // ============================================================================
@@ -1033,6 +1047,7 @@ void UIWindowDefault::onEnabled(bool enabled)
 void UIWindowDefault::onVisibility(bool visible)
 {
   _visible = visible;
+
   UI_SYSTEM()->dispatchVisibility(_widget, visible);
 }
 
@@ -1342,6 +1357,7 @@ void UIWindowDefault::setDirty()
 
   UISystemDefault* uiSystem = UI_SYSTEM();
   uiSystem->_dirtyList.append(this);
+  uiSystem->update();
 }
 
 } // Fog namespace

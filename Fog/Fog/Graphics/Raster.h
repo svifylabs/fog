@@ -177,29 +177,32 @@ static FOG_INLINE void set32(uint8_t* dest, uint64_t pattern)
 // [Fog::Raster - Mul]
 // ============================================================================
 
-template<class T>
+template<typename T>
 static FOG_INLINE T mul1(T i)
 {
   return i;
 }
 
-template<class T>
+template<typename T>
 static FOG_INLINE T mul2(T i)
 {
   return i << 1;
 }
 
-template<class T>
+template<typename T>
 static FOG_INLINE T mul3(T i)
 {
   return (i << 1) + i;
 }
 
-template<class T>
+template<typename T>
 static FOG_INLINE T mul4(T i)
 {
   return i << 2;
 }
+
+template<typename T, int Mul>
+static FOG_INLINE T mul(T i) { return i * Mul; }
 
 // ============================================================================
 // [Fog::Raster - Div255/256]
@@ -208,14 +211,14 @@ static FOG_INLINE T mul4(T i)
 //! @brief Accurate division of 255. The result is equal to <code>(val / 255)</code>.
 //!
 //! @note This template is used for accure alpha blends.
-template<class T>
+template<typename T>
 static FOG_INLINE T Div255(T i)
 {
     return (T)( (((uint32_t)i << 8U) + ((uint32_t)i + 256U)) >> 16U );
 }
 
 //! @brief Accurate division of 255. The result is equal to <code>(val / 256)</code>.
-template<class T>
+template<typename T>
 static FOG_INLINE T Div256(T i)
 {
     return (T)(i >> 8U);

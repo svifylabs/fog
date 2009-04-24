@@ -39,6 +39,7 @@ namespace BlitJit {
 
 // forward declarations
 struct Module;
+struct FilterModule;
 struct FillModule;
 struct CompositeModule;
 
@@ -76,7 +77,7 @@ struct BLITJIT_API Generator : public GeneratorBase
   // --------------------------------------------------------------------------
 
   // We are not using AsmJit namespace in header files, this is convenience for
-  // code readibility. These types are used many times in Generator.
+  // code readibility. These types are used a lot in Generator.
 
   typedef AsmJit::MMData MMData;
   typedef AsmJit::XMMData XMMData;
@@ -152,20 +153,46 @@ struct BLITJIT_API Generator : public GeneratorBase
   // --------------------------------------------------------------------------
 
   //! @brief Generate fill span function.
-  void genFillSpan(const PixelFormat& pfDst, const PixelFormat& pfSrc, const Operator& op);
+  void genFillSpan(
+    const PixelFormat& pfDst,
+    const PixelFormat& pfSrc, 
+    const Operator& op);
+
+  //! @brief Generate fill span with mask function.
+  void genFillSpanWithMask(
+    const PixelFormat& pfDst,
+    const PixelFormat& pfSrc,
+    const PixelFormat& pfMask,
+    const Operator& op);
 
   //! @brief Generate fill rect function.
-  void genFillRect(const PixelFormat& pfDst, const PixelFormat& pfSrc, const Operator& op);
+  void genFillRect(
+    const PixelFormat& pfDst,
+    const PixelFormat& pfSrc,
+    const Operator& op);
+
+  //! @brief Generate fill rect with mask function.
+  void genFillRectWithMask(
+    const PixelFormat& pfDst,
+    const PixelFormat& pfSrc,
+    const PixelFormat& pfMask,
+    const Operator& op);
 
   // --------------------------------------------------------------------------
   // [BlitSpan / BlitRect]
   // --------------------------------------------------------------------------
 
   //! @brief Generate blit span function.
-  void genBlitSpan(const PixelFormat& pfDst, const PixelFormat& pdSrc, const Operator& op);
+  void genBlitSpan(
+    const PixelFormat& pfDst,
+    const PixelFormat& pdSrc,
+    const Operator& op);
 
   //! @brief Generate blit rect function.
-  void genBlitRect(const PixelFormat& pfDst, const PixelFormat& pdSrc, const Operator& op);
+  void genBlitRect(
+    const PixelFormat& pfDst,
+    const PixelFormat& pdSrc,
+    const Operator& op);
 
   // --------------------------------------------------------------------------
   // [Loops]
@@ -176,10 +203,10 @@ struct BLITJIT_API Generator : public GeneratorBase
     bool finalizePointers;
   };
 
-  void _GenFillLoop(
+  void _GenFilterLoop(
     PtrRef& dst,
     SysIntRef& cnt,
-    FillModule* module,
+    FilterModule* module,
     UInt32 kind,
     const Loop& loop);
 
@@ -271,8 +298,12 @@ struct BLITJIT_API Generator : public GeneratorBase
     const XMMRegister& t1,
     bool moveToT0T1);
 
-  void _Premultiply_1(
-    const XMMRef& pix0);
+  void _Premultiply(
+    const XMMRef& pix0, int alphaPos0, bool two);
+
+  void _Premultiply_4(
+    const XMMRef& pix0, int alphaPos0,
+    const XMMRef& pix1, int alphaPos1);
 
   // --------------------------------------------------------------------------
   // [Constants Management]

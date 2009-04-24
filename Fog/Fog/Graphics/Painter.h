@@ -10,6 +10,7 @@
 // [Dependencies]
 #include <Fog/Core/Atomic.h>
 #include <Fog/Core/Vector.h>
+#include <Fog/Graphics/AffineMatrix.h>
 #include <Fog/Graphics/Font.h>
 #include <Fog/Graphics/Geometry.h>
 #include <Fog/Graphics/Image.h>
@@ -31,23 +32,36 @@ struct FOG_API PainterDevice
 
   // [Meta]
 
-  virtual uint width() const = 0;
-  virtual uint height() const = 0;
+  virtual int width() const = 0;
+  virtual int height() const = 0;
   virtual ImageFormat format() const = 0;
 
-  virtual void setMetaVariables(const Point& pt, const Region& r, bool begin) = 0;
+  virtual void setMetaVariables(
+    const Point& metaOrigin, 
+    const Region& metaRegion,
+    bool useMetaRegion,
+    bool reset) = 0;
 
   virtual void setMetaOrigin(const Point& pt) = 0;
   virtual void setUserOrigin(const Point& pt) = 0;
+
   virtual void translateMetaOrigin(const Point& pt) = 0;
   virtual void translateUserOrigin(const Point& pt) = 0;
+
   virtual void setUserRegion(const Rect& r) = 0;
   virtual void setUserRegion(const Region& r) = 0;
 
+  virtual void resetMetaVars() = 0;
+  virtual void resetUserVars() = 0;
+
   virtual Point metaOrigin() const = 0;
   virtual Point userOrigin() const = 0;
+
   virtual Region metaRegion() const = 0;
   virtual Region userRegion() const = 0;
+
+  virtual bool usedMetaRegion() const = 0;
+  virtual bool usedUserRegion() const = 0;
 
   // [Operator]
 
@@ -73,7 +87,7 @@ struct FOG_API PainterDevice
   virtual void setLineJoin(uint32_t lineJoin) = 0;
   virtual uint32_t lineJoin() const = 0;
 
-  virtual void setLineDash(const double* dashes, uint32_t count) = 0;
+  virtual void setLineDash(const double* dashes, sysuint_t count) = 0;
   virtual void setLineDash(const Vector<double>& dashes) = 0;
   virtual Vector<double> lineDash() const = 0;
 
@@ -82,6 +96,23 @@ struct FOG_API PainterDevice
 
   virtual void setMiterLimit(double miterLimit) = 0;
   virtual double miterLimit() const = 0;
+
+  // [Transformations]
+
+  virtual void setMatrix(const AffineMatrix& m) = 0;
+  virtual void resetMatrix() = 0;
+  virtual AffineMatrix matrix() const = 0;
+
+  virtual void rotate(double angle) = 0;
+  virtual void scale(double sx, double sy) = 0;
+  virtual void skew(double sx, double sy) = 0;
+  virtual void translate(double x, double y) = 0;
+  virtual void affine(const AffineMatrix& m) = 0;
+  virtual void parallelogram(double x1, double y1, double x2, double y2, const double* para) = 0;
+  virtual void viewport(
+    double worldX1,  double worldY1,  double worldX2,  double worldY2,
+    double screenX1, double screenY1, double screenX2, double screenY2,
+    uint32_t viewportOption) = 0;
 
   // [Raster drawing]
 
@@ -94,7 +125,6 @@ struct FOG_API PainterDevice
   virtual void fillRects(const Rect* r, sysuint_t count) = 0;
   virtual void fillRound(const Rect& r, const Point& radius) = 0;
   virtual void fillRegion(const Region& region) = 0;
-  //virtual void fillRegion(const Rect* r, sysuint_t count, const Rect* extents) = 0;
 
   // [Vector drawing]
 
@@ -117,7 +147,7 @@ struct FOG_API PainterDevice
   virtual void fillRound(const RectF& r,
     const PointF& tlr, const PointF& trr,
     const PointF& blr, const PointF& brr) = 0;
-  virtual void fillPath(const Path* path) = 0;
+  virtual void fillPath(const Path& path) = 0;
 
   // [Glyph drawing]
 
@@ -153,29 +183,43 @@ struct FOG_API Painter
 
   // [Begin / End]
 
-  void begin(uint8_t* pixels, int width, int height, sysint_t stride, const ImageFormat& format);
-  void begin(Image& image);
+  err_t begin(uint8_t* pixels, int width, int height, sysint_t stride, const ImageFormat& format);
+  err_t begin(Image& image);
   void end();
 
   // [Meta]
 
-  FOG_INLINE uint width() const { return _d->width(); }
-  FOG_INLINE uint height() const { return _d->height(); }
+  FOG_INLINE int width() const { return _d->width(); }
+  FOG_INLINE int height() const { return _d->height(); }
   FOG_INLINE ImageFormat format() const { return _d->format(); }
 
-  FOG_INLINE void setMetaVariables(const Point& p, const Region& r, bool begin) { _d->setMetaVariables(p, r, begin); }
+  FOG_INLINE void setMetaVariables(
+    const Point& metaOrigin,
+    const Region& metaRegion, 
+    bool useMetaRegion,
+    bool reset)
+  { _d->setMetaVariables(metaOrigin, metaRegion, useMetaRegion, reset); }
 
   FOG_INLINE void setMetaOrigin(const Point& p) { _d->setMetaOrigin(p); }
   FOG_INLINE void setUserOrigin(const Point& p) { _d->setUserOrigin(p); }
+
   FOG_INLINE void translateMetaOrigin(const Point& p) { _d->translateMetaOrigin(p); }
   FOG_INLINE void translateUserOrigin(const Point& p) { _d->translateUserOrigin(p); }
+
   FOG_INLINE void setUserRegion(const Rect& r) { _d->setUserRegion(r); }
   FOG_INLINE void setUserRegion(const Region& r) { _d->setUserRegion(r); }
 
+  FOG_INLINE void resetMetaVars() { _d->resetMetaVars(); }
+  FOG_INLINE void resetUserVars() { _d->resetUserVars(); }
+
   FOG_INLINE Point metaOrigin() const { return _d->metaOrigin(); }
   FOG_INLINE Point userOrigin() const { return _d->userOrigin(); }
+
   FOG_INLINE Region metaRegion() const { return _d->metaRegion(); }
   FOG_INLINE Region userRegion() const { return _d->userRegion(); }
+
+  FOG_INLINE bool usedMetaRegion() const { return _d->usedMetaRegion(); }
+  FOG_INLINE bool usedUserRegion() const { return _d->usedUserRegion(); }
 
   // [Operator]
 
@@ -201,7 +245,7 @@ struct FOG_API Painter
   FOG_INLINE void setLineJoin(uint32_t lineJoin) { _d->setLineJoin(lineJoin); }
   FOG_INLINE uint32_t lineJoin() const { return _d->lineJoin(); }
 
-  FOG_INLINE void setLineDash(const double* dashes, uint32_t count) { _d->setLineDash(dashes, count); }
+  FOG_INLINE void setLineDash(const double* dashes, sysuint_t count) { _d->setLineDash(dashes, count); }
   FOG_INLINE void setLineDash(const Vector<double>& dashes) { _d->setLineDash(dashes); }
   FOG_INLINE Vector<double> lineDash() const { return _d->lineDash(); }
 
@@ -210,6 +254,32 @@ struct FOG_API Painter
 
   FOG_INLINE void setMiterLimit(double miterLimit) { _d->setMiterLimit(miterLimit); }
   FOG_INLINE double miterLimit() const { return _d->miterLimit(); }
+
+  // [Transformations]
+
+  FOG_INLINE void setMatrix(const AffineMatrix& m) { _d->setMatrix(m); }
+  FOG_INLINE void resetMatrix() { _d->resetMatrix(); }
+  FOG_INLINE AffineMatrix matrix() const { return _d->matrix(); }
+
+  FOG_INLINE void rotate(double angle) { _d->rotate(angle); }
+  FOG_INLINE void scale(double sx, double sy) { _d->scale(sx, sy); }
+  FOG_INLINE void skew(double sx, double sy) { _d->skew(sx, sy); }
+  FOG_INLINE void translate(double x, double y) { _d->translate(x, y); }
+  FOG_INLINE void affine(const AffineMatrix& m) { _d->affine(m); }
+
+  FOG_INLINE void parallelogram(double x1, double y1, double x2, double y2, const double* para)
+  { _d->parallelogram(x1, y1, x2, y2, para); }
+
+  FOG_INLINE void viewport(
+    double worldX1,  double worldY1,  double worldX2,  double worldY2,
+    double screenX1, double screenY1, double screenX2, double screenY2,
+    uint32_t viewportOption = ViewXMidYMid)
+  {
+    _d->viewport(
+      worldX1, worldY1, worldX2, worldY2,
+      screenX1, screenY1, screenX2, screenY2,
+      viewportOption);
+  }
 
   // [Raster drawing]
 
@@ -244,7 +314,7 @@ struct FOG_API Painter
   FOG_INLINE void fillRound(const RectF& r,
     const PointF& tlr, const PointF& trr,
     const PointF& blr, const PointF& brr) { _d->fillRound(r, tlr, trr, blr, brr); }
-  FOG_INLINE void fillPath(const Path* path) { _d->fillPath(path); }
+  FOG_INLINE void fillPath(const Path& path) { _d->fillPath(path); }
 
   // [Glyph drawing]
 

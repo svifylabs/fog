@@ -102,24 +102,29 @@ Application::Application(const String32& type) :
 
 Application::~Application()
 {
+  // We will unload library here, not by UISystem destructor, because 
+  // EventLoop may be also created by UISystem.
+  Library uiToClose;
+
+  // Delete UISystem if associated.
+  if (_uiSystem)
+  {
+    uiToClose = _uiSystem->_library;
+
+    delete _uiSystem;
+    _uiSystem = NULL;
+  }
+
   // Delete EventLoop if associated.
   if (_eventLoop)
   {
     delete _eventLoop;
     _eventLoop = NULL;
+
+    // Unset main thread event loop (this is safe, we will destroy it later if it
+    // exists).
     Thread::_mainThread->_eventLoop = NULL;
   }
-
-  // Delete UISystem if associated.
-  if (_uiSystem)
-  {
-    delete _uiSystem;
-    _uiSystem = NULL;
-  }
-
-  // Unset main thread event loop (this is safe, we will destroy it later if it
-  // exists).
-  Thread::mainThread()->_eventLoop = NULL;
 
   // Clear global application instance (singleton).
   if (_instance == this) _instance = NULL;

@@ -11,7 +11,7 @@
 #ifndef _FOG_UI_H
 #define _FOG_UI_H
 
-//! @mainpage Gui Library Documentation
+//! @mainpage UI Library Documentation
 //!
 //! @section Main_Page_Intro Introduction
 //!

@@ -169,6 +169,20 @@ enum LineJoin
   LineJoinBevel
 };
 
+enum ViewportOption
+{
+  ViewAnisotropic,
+  ViewXMinYMin,
+  ViewXMidYMin,
+  ViewXMaxYMin,
+  ViewXMinYMid,
+  ViewXMidYMid,
+  ViewXMaxYMid,
+  ViewXMinYMax,
+  ViewXMidYMax,
+  ViewXMaxYMax
+};
+
 } // Fog namespace
 
 // [Guard]

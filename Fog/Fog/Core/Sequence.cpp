@@ -141,10 +141,12 @@ void SequenceAPI_Base::_clear_p(void* self)
 
 void SequenceAPI_Base::_free_p(void* self)
 {
+  ((SequenceUntyped::Data*)Core_Sequence_sharedNull)->refCount.inc();
+
   SequenceAPI_Base_deref_p(
     AtomicBase::ptr_setXchg(
       &((SequenceUntyped*)self)->_d, 
-      (SequenceUntyped::Data*)Core_Sequence_sharedNull));
+      ((SequenceUntyped::Data*)Core_Sequence_sharedNull)));
 }
 
 void SequenceAPI_Base::_swap_p(void* self, sysuint_t sizeOfT, sysuint_t index1, sysuint_t index2)
@@ -254,6 +256,8 @@ void SequenceAPI_Base::_clear_c(void* self, const SequenceInfoVTable* vtable)
 
 void SequenceAPI_Base::_free_c(void* self, const SequenceInfoVTable* vtable)
 {
+  ((SequenceUntyped::Data*)Core_Sequence_sharedNull)->refCount.inc();
+
   SequenceAPI_Base_deref_c(
     AtomicBase::ptr_setXchg(
       &((SequenceUntyped*)self)->_d, 
@@ -373,8 +377,8 @@ FOG_INIT_DECLARE err_t fog_sequence_init(void)
   Core_Sequence_sharedNull = (void*)d;
 
   memset(d, 0, sizeof(UntypedData));
-  d->flags.init(Fog::SequenceUntyped::Data::IsNull);
   d->refCount.init(1);
+  d->flags.init(Fog::SequenceUntyped::Data::IsNull);
 
   return Error::Ok;
 }

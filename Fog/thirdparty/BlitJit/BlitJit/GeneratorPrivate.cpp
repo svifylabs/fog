@@ -107,9 +107,8 @@ AsmJit::Label* Module::getKindLabel(UInt32 kind) const
 
 FilterModule::FilterModule(
   Generator* g,
-  const PixelFormat* pf,
-  const Operator* op) :
-    Module(g), pf(pf), op(op)
+  const PixelFormat* pf) :
+    Module(g), pf(pf)
 {
 }
 
@@ -133,7 +132,7 @@ FillModule::FillModule(
   Generator* g,
   const PixelFormat* pf,
   const Operator* op) :
-    Module(g), pf(pf), op(op)
+    FilterModule(g, pf), op(op)
 {
 }
 
