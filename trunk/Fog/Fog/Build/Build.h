@@ -448,9 +448,24 @@
 
 //! @}
 
-// ---------------------------------------------------------------------------
+// ============================================================================
+// [Compiler Intrinsics]
+// ============================================================================
+
+#define FOG_MMX_INTRIN_H <mmintrin.h>
+#define FOG_3DNOW_INTRIN_H <mm3dnow.h>
+#define FOG_SSE_INTRIN_H <xmmintrin.h>
+#define FOG_SSE2_INTRIN_H <emmintrin.h>
+
+#if defined(_MSC_VER)
+#define FOG_SSE3_INTRIN_H <intrin.h>
+#else
+#define FOG_SSE3_INTRIN_H <pmmintrin.h>
+#endif
+
+// ============================================================================
 // [Headers]
-// ---------------------------------------------------------------------------
+// ============================================================================
 
 #if defined(FOG_OS_WINDOWS)
 # define WIN32_LEAN_AND_MEAN
@@ -474,9 +489,9 @@
 # include <limits.h>
 #endif // FOG_HAVE_LIMITS_H
 
-// ---------------------------------------------------------------------------
+// ============================================================================
 // [System Integer Types]
-// ---------------------------------------------------------------------------
+// ============================================================================
 
 // Standard C/C++ defs
 #if !defined(FOG_HAVE_STDINT_H)
@@ -639,9 +654,9 @@ typedef uint64_t sysuint_t;
 # define ULLONG_MAX UINT64_MAX
 #endif
 
-// ---------------------------------------------------------------------------
+// ============================================================================
 // [Core C++ Macros]
-// ---------------------------------------------------------------------------
+// ============================================================================
 
 //! @brief Creates @c __selftype__ typedef in class thats for callbacks and references
 //!
@@ -751,11 +766,15 @@ struct fog_if { typedef _Then ret; };
 template <class _Then, class _Else>
 struct fog_if<false, _Then, _Else> { typedef _Else ret; };
 
-// ---------------------------------------------------------------------------
+// ============================================================================
 // [Noop]
-// ---------------------------------------------------------------------------
+// ============================================================================
 
 #define FOG_NOOP ((void)0)
+
+// ============================================================================
+// [strcasecmp / strncasecmp]
+// ============================================================================
 
 // porting to windows...
 //
@@ -769,16 +788,16 @@ struct fog_if<false, _Then, _Else> { typedef _Else ret; };
 
 #if defined(FOG_HARDCODE_SSE)
 #include FOG_SSE_INTRIN_H
-#endif
+#endif // FOG_HARDCODE_SSE
 
 #if defined(FOG_HARDCODE_SSE2)
 #include FOG_SSE2_INTRIN_H
-#endif
+#endif // FOG_HARDCODE_SSE2
 
 #if defined(FOG_ARCH_X86) && FOG_ARCH_BITS == 32
 # define FOG_OPTIMIZEDCALL FOG_FASTCALL
 #else
-# define FOG_OPTIMIZEDCALL FOG_FASTCALL
+# define FOG_OPTIMIZEDCALL
 #endif
 
 //! Usage:

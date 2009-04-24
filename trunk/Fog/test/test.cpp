@@ -13,20 +13,31 @@ struct MyWindow : public Window
   {
     Painter* p = e->painter();
 
-    p->setSource(Rgba(255, 255, 255, 255));
-    p->fillRect(Rect(0, 0, 100, 100));
+    p->setSource(Rgba(0x00000000));
+    p->clear();
 
-    //Painter* p = e->painter();
-    //p->fillRect(Fog::Rect(0, 0, clientWidth(), clientHeight()), Fog::Rgba(0xFF0000FF));
-    //p->fillHGradient(Fog::Rect(0, 0, 100, 100), Fog::Rgba(0xFFFFFFFF), Fog::Rgba(0xFF000000));
+    p->setSource(Rgba(0xFFFFFFFF));
+    p->setLineWidth(5);
 
-    //for (sysuint_t i = 0; i < 100; i++)
-      //p->fillRect(Fog::Rect(0, 0, clientWidth(), clientHeight()), Fog::Rgba(0xFF000000));
+    Path path;
+    int w = width();
+    int h = height();
+    for (sysuint_t i = 0; i < 10; i++)
+    {
+      path.clear();
+      path.moveTo(rand() % w, rand() % h);
+      for (sysuint_t j = 0; j < 100; j++)
+      {
+        path.cubicCurveTo(
+          rand() % w, rand() % h,
+          rand() % w, rand() % h,
+          rand() % w, rand() % h);
+      }
+      path.closePolygon();
 
-    //p->fillRect(Fog::Rect(40, 40, 40, 40), Fog::Rgba(0x800000FF));
-    //p->fillRect(Fog::Rect(40, clientHeight() - 80, 40, 40), Fog::Rgba(0x8000FF00));
-    //p->fillRect(Fog::Rect(clientWidth() - 80, 40, 40, 40), Fog::Rgba(0x80FF0000));
-    //p->fillRect(Fog::Rect(clientWidth() - 80, clientHeight() - 80, 40, 40), Fog::Rgba(0x80FFFFFF));
+      p->setSource(Rgba(rand() + (rand() << 16)));
+      p->fillPath(path);
+    }
   }
 };
 

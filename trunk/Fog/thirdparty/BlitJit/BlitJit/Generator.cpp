@@ -644,6 +644,90 @@ void PremultiplyModule_32_SSE2::processPixelsPtr(
 }
 
 // ============================================================================
+// [BlitJit::DemultiplyModule_32_SSE2]
+// ============================================================================
+
+struct DemultiplyModule_32_SSE2 : public FilterModule
+{
+  DemultiplyModule_32_SSE2(
+    Generator* g,
+    const PixelFormat* pf);
+  virtual ~DemultiplyModule_32_SSE2();
+
+  virtual void init();
+  virtual void free();
+
+  virtual void processPixelsPtr(
+    const AsmJit::PtrRef& dst,
+    SysInt count,
+    SysInt displacement,
+    UInt32 kind,
+    UInt32 flags);
+
+  UInt32 dstAlphaPos;
+};
+
+DemultiplyModule_32_SSE2::DemultiplyModule_32_SSE2(
+  Generator* g,
+  const PixelFormat* pf) : FilterModule(g, pf)
+{
+  _maxPixelsPerLoop = 1;
+  _complexity = Complex;
+
+  dstAlphaPos = getARGB32AlphaPos(pf);
+}
+
+DemultiplyModule_32_SSE2::~DemultiplyModule_32_SSE2()
+{
+}
+
+void DemultiplyModule_32_SSE2::init()
+{
+}
+
+void DemultiplyModule_32_SSE2::free()
+{
+}
+
+void DemultiplyModule_32_SSE2::processPixelsPtr(
+  const AsmJit::PtrRef& dst,
+  SysInt count,
+  SysInt displacement,
+  UInt32 kind,
+  UInt32 flags)
+{
+  // TODO: Verify
+  UInt32 alphaMask = (0xFF << (dstAlphaPos * 8));
+  SysUInt i = count;
+  
+  do {
+    Label* skip = c->newLabel();
+
+    Int32Ref tmp0(c->newVariable(VARIABLE_TYPE_INT32));
+    XMMRef dst0(c->newVariable(VARIABLE_TYPE_XMM));
+
+    // Skip if alpha is 0x00 or 0xFF
+    c->mov(tmp0.x(), ptr(dst.c(), displacement));
+    c->and_(tmp0.r(), imm(alphaMask));
+    c->jz(skip);
+    c->cmp(tmp0.r(), imm(alphaMask));
+    c->je(skip);
+
+    c->shr(tmp0.r(), imm(dstAlphaPos * 8));
+    // TODO
+
+    c->movd(dst0.x(), ptr(dst.c(), displacement));
+    g->_Premultiply(dst0, dstAlphaPos, false);
+    c->movd(ptr(dst.c(), displacement), dst0.r());
+
+    c->bind(skip);
+
+    displacement += 4;
+    i -= 1;
+  } while (i > 0);
+}
+
+// ============================================================================
 // [BlitJit::FillModule_32_SSE2]
 // ============================================================================
 

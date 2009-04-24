@@ -453,20 +453,9 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
   FOG_INLINE void _updateLineWidth()
   { _lineIsSimple = (_lineWidth == 1.0 && _lineDash.length() == 0); }
 
-  // [AntiGrain Typedefs]
-
-  typedef agg::conv_curve<AggPath>              ConvCurve;
-  typedef agg::conv_stroke<ConvCurve>           ConvStroke;
-  typedef agg::conv_transform<ConvCurve>        PathTransform;
-  typedef agg::conv_transform<ConvStroke>       StrokeTransform;
-
-  typedef agg::rasterizer_scanline_aa<>         Rasterizer;
-  typedef agg::scanline_p8                      ScanlineP8;
-  typedef agg::scanline_u8                      ScanlineU8;
-
   // [AntiGrain Renderers]
 
-  void _drawPathPrivate(const Path& path);
+  void _aggDrawPath(const Path& path, bool stroke);
 
   // [Members]
 
@@ -514,6 +503,16 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
   Path _workPath;
 
   // [AntiGrain Members]
+  typedef agg::conv_curve<AggPath>              ConvCurve;
+  typedef agg::conv_stroke<ConvCurve>           ConvStroke;
+
+  typedef agg::conv_transform<ConvCurve>        ConvCurveTransform;
+  typedef agg::conv_transform<ConvStroke>       ConvStrokeTransform;
+
+  typedef agg::rasterizer_scanline_aa<>         Rasterizer;
+  typedef agg::scanline_p8                      ScanlineP8;
+  typedef agg::scanline_u8                      ScanlineU8;
+
   Rasterizer _ras;
   ScanlineP8 _slP8;
   ScanlineU8 _slU8;
@@ -1083,6 +1082,7 @@ void RasterPainterDevice::drawRound(const RectF& r,
 void RasterPainterDevice::drawPath(const Path& path)
 {
   // TODO
+  _aggDrawPath(path, true);
 }
 
 void RasterPainterDevice::fillPolygon(const PointF* pts, sysuint_t count)
@@ -1149,6 +1149,7 @@ void RasterPainterDevice::fillRound(const RectF& r,
 void RasterPainterDevice::fillPath(const Path& path)
 {
   // TODO
+  _aggDrawPath(path, false);
 }
 
 // ============================================================================
@@ -1571,6 +1572,8 @@ static void FOG_OPTIMIZEDCALL AggRenderScanlines(RasterPainterDevice* d, Rasteri
         else
         {
           len = -len;
+          FOG_ASSERT(len > 0);
+
           uint32_t cover = (uint32_t)*(span->covers);
           if (cover == 0xFF)
           {
@@ -1589,13 +1592,59 @@ static void FOG_OPTIMIZEDCALL AggRenderScanlines(RasterPainterDevice* d, Rasteri
   }
 }
 
-void RasterPainterDevice::_drawPathPrivate(const Path& path)
+void RasterPainterDevice::_aggDrawPath(const Path& path, bool stroke)
 {
-  AggPath apath(path);
-  ConvCurve c(apath);
+  AggPath aggPath(path);
+  ConvCurve curvesPath(aggPath);
 
   _ras.reset();
-  _ras.add_path(apath);
+  _ras.clip_box(_clipBox.x1(), _clipBox.y1(), _clipBox.x2(), _clipBox.y2());
+
+  // This can be a bit messy, but it's here to increase performance. We will
+  // not calculate using transformations if they are not used. Also we add
+  // stroke and line dash pipeline if it's needed.
+  if (_transformationsUsed)
+  {
+    if (stroke)
+    {
+      ConvStroke strokePath(curvesPath);
+      ConvStrokeTransform strokeTransform(
+        strokePath, *((agg::trans_affine *)&_transformations));
+
+      strokePath.width(_lineWidth);
+      strokePath.line_join(static_cast<agg::line_join_e>(_lineJoin));
+      strokePath.line_cap(static_cast<agg::line_cap_e>(_lineCap));
+      strokePath.miter_limit(_miterLimit);
+
+      _ras.add_path(strokeTransform);
+    }
+    else
+    {
+      ConvCurveTransform curvesTransform(
+        curvesPath, *((agg::trans_affine *)&_transformations));
+
+      _ras.add_path(curvesTransform);
+    }
+  }
+  else
+  {
+    if (stroke)
+    {
+      ConvStroke strokePath(curvesPath);
+
+      strokePath.width(_lineWidth);
+      strokePath.line_join(static_cast<agg::line_join_e>(_lineJoin));
+      strokePath.line_cap(static_cast<agg::line_cap_e>(_lineCap));
+      strokePath.miter_limit(_miterLimit);
+
+      _ras.add_path(strokePath);
+    }
+    else
+    {
+      _ras.add_path(curvesPath);
+    }
+  }
+
   AggRenderScanlines<4, Rasterizer, ScanlineP8>(this, _ras, _slP8);
 }
 
