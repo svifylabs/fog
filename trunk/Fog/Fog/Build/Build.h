@@ -775,7 +775,11 @@ struct fog_if<false, _Then, _Else> { typedef _Else ret; };
 #include FOG_SSE2_INTRIN_H
 #endif
 
-#define FOG_OPTIMIZEDCALL FOG_FASTCALL
+#if defined(FOG_ARCH_X86) && FOG_ARCH_BITS == 32
+# define FOG_OPTIMIZEDCALL FOG_FASTCALL
+#else
+# define FOG_OPTIMIZEDCALL FOG_FASTCALL
+#endif
 
 //! Usage:
 //!

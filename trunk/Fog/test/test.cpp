@@ -6,11 +6,16 @@ using namespace Fog;
 
 struct MyWindow : public Window
 {
-  MyWindow(uint32_t createFlags = 0) : Fog::Window(createFlags) {}
+  MyWindow(uint32_t createFlags = 0) : Window(createFlags) {}
   virtual ~MyWindow() {}
 
   virtual void onPaint(PaintEvent* e)
   {
+    Painter* p = e->painter();
+
+    p->setSource(Rgba(255, 255, 255, 255));
+    p->fillRect(Rect(0, 0, 100, 100));
+
     //Painter* p = e->painter();
     //p->fillRect(Fog::Rect(0, 0, clientWidth(), clientHeight()), Fog::Rgba(0xFF0000FF));
     //p->fillHGradient(Fog::Rect(0, 0, 100, 100), Fog::Rgba(0xFFFFFFFF), Fog::Rgba(0xFF000000));

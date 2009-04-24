@@ -546,6 +546,104 @@ void MemCpyModule_32::processPixelsPtr(
 }
 
 // ============================================================================
+// [BlitJit::PremultiplyModule_32_SSE2]
+// ============================================================================
+
+struct PremultiplyModule_32_SSE2 : public FilterModule
+{
+  PremultiplyModule_32_SSE2(
+    Generator* g,
+    const PixelFormat* pf);
+  virtual ~PremultiplyModule_32_SSE2();
+
+  virtual void init();
+  virtual void free();
+
+  virtual void processPixelsPtr(
+    const AsmJit::PtrRef& dst,
+    SysInt count,
+    SysInt displacement,
+    UInt32 kind,
+    UInt32 flags);
+
+  UInt32 dstAlphaPos;
+};
+
+PremultiplyModule_32_SSE2::PremultiplyModule_32_SSE2(
+  Generator* g,
+  const PixelFormat* pf) : FilterModule(g, pf)
+{
+  _maxPixelsPerLoop = 4;
+  _complexity = Complex;
+
+  dstAlphaPos = getARGB32AlphaPos(pf);
+}
+
+PremultiplyModule_32_SSE2::~PremultiplyModule_32_SSE2()
+{
+}
+
+void PremultiplyModule_32_SSE2::init()
+{
+}
+
+void PremultiplyModule_32_SSE2::free()
+{
+}
+
+void PremultiplyModule_32_SSE2::processPixelsPtr(
+  const AsmJit::PtrRef& dst,
+  SysInt count,
+  SysInt displacement,
+  UInt32 kind,
+  UInt32 flags)
+{
+  SysUInt i = count;
+  
+  do {
+    if (i >= 4 && c->numFreeXmm() >= 4)
+    {
+      XMMRef dst0(c->newVariable(VARIABLE_TYPE_XMM));
+      XMMRef dst1(c->newVariable(VARIABLE_TYPE_XMM));
+
+      c->movq(dst0.x(), ptr(dst.c(), displacement));
+      c->movq(dst1.x(), ptr(dst.c(), displacement + 8));
+
+      g->_Premultiply_4(
+        dst0, dstAlphaPos, 
+        dst1, dstAlphaPos);
+
+      g->_StoreMovDQ(ptr(dst.c(), displacement), dst0.r(), false, (flags & DstAligned) != 0);
+
+      displacement += 16;
+      i -= 4;
+    }
+    else if (i >= 2)
+    {
+      XMMRef dst0(c->newVariable(VARIABLE_TYPE_XMM));
+
+      c->movq(dst0.x(), ptr(dst.c(), displacement));
+      g->_Premultiply(dst0, dstAlphaPos, true);
+      c->movq(ptr(dst.c(), displacement), dst0.r());
+
+      displacement += 8;
+      i -= 2;
+    }
+    else if (i >= 1)
+    {
+      XMMRef dst0(c->newVariable(VARIABLE_TYPE_XMM));
+
+      c->movd(dst0.x(), ptr(dst.c(), displacement));
+      g->_Premultiply(dst0, dstAlphaPos, false);
+      c->movd(ptr(dst.c(), displacement), dst0.r());
+
+      displacement += 4;
+      i -= 1;
+    }
+  } while (i > 0);
+}
+
+// ============================================================================
 // [BlitJit::FillModule_32_SSE2]
 // ============================================================================
 
@@ -632,7 +730,7 @@ void FillModule_32_SSE2::beginSwitch()
   // Alpha is not 0xFF, premultiply and prepare for compositing
   c->punpcklbw(srcxmm.r(), g->xmmZero().r());
   c->punpcklqdq(srcxmm.r(), srcxmm.r());
-  g->_Premultiply_1(srcxmm);
+  g->_Premultiply(srcxmm, dstAlphaPos, true);
   g->_ExtractAlpha(alphaxmm.r(), srcxmm.r(), dstAlphaPos, true, true);
 }
 
@@ -1522,6 +1620,21 @@ void CompositeModule_32_SSE2::processPixelsUnpacked_4(
 // [BlitJit::CreateModule Wrappers]
 // ============================================================================
 
+static FilterModule* createPremultiplyModule(
+  Generator* g,
+  const PixelFormat* pf)
+{
+  return new PremultiplyModule_32_SSE2(g, pf);
+}
+
+static FillModule* createDemultiplyModule(
+  Generator* g,
+  const PixelFormat* pf)
+{
+  // TODO
+  return NULL;
+}
+
 static FillModule* createFillModule(
   Generator* g,
   const PixelFormat* pf,
@@ -1684,9 +1797,13 @@ void Generator::genDemultiply(const PixelFormat& pfDst)
 // [BlitJit::Generator - Fill Span / Rect]
 // ============================================================================
 
-void Generator::genFillSpan(const PixelFormat& pfDst, const PixelFormat& pfSrc, const Operator& op)
+void Generator::genFillSpan(
+  const PixelFormat& pfDst,
+  const PixelFormat& pfSrc,
+  const Operator& op)
 {
-  c->comment("BlitJit::Generator::genFillSpan() - %s <- %s : %s", pfDst.name(), pfSrc.name(), op.name());
+  c->comment("BlitJit::Generator::genFillSpan() - %s <- %s : %s",
+    pfDst.name(), pfSrc.name(), op.name());
 
   f = c->newFunction(CConv, BuildFunction3<void*, const void*, SysUInt>());
   f->setNaked(true);
@@ -1717,7 +1834,59 @@ void Generator::genFillSpan(const PixelFormat& pfDst, const PixelFormat& pfSrc, 
     for (UInt32 kind = 0; kind < module->numKinds(); kind++)
     {
       module->beginKind(kind);
-      _GenFillLoop(dst, cnt, module, kind, loop);
+      _GenFilterLoop(dst, cnt, module, kind, loop);
+      module->endKind(kind);
+    }
+
+    module->endSwitch();
+    module->free();
+  }
+
+  c->endFunction();
+
+  // Cleanup
+  delete module;
+}
+
+void Generator::genFillSpanWithMask(
+  const PixelFormat& pfDst,
+  const PixelFormat& pfSrc,
+  const PixelFormat& pfMask,
+  const Operator& op)
+{
+  c->comment("BlitJit::Generator::genFillSpan() - %s <- %s * %s : %s",
+    pfDst.name(), pfSrc.name(), pfMask.name(), op.name());
+
+  f = c->newFunction(CConv, BuildFunction3<void*, const void*, SysUInt>());
+  f->setNaked(true);
+  f->setAllocableEbp(true);
+
+  // Filter module
+  FillModule* module = createFillModule(this, &pfDst, &op);
+
+  if (!module->isNop())
+  {
+    // Destination and source
+    PtrRef dst(c->argument(0));
+    PtrRef src(c->argument(1));
+    SysIntRef cnt(c->argument(2));
+
+    cnt.alloc();
+    dst.alloc();
+    src.alloc();
+
+    // Loop properties
+    Loop loop;
+    loop.finalizePointers = false;
+
+    module->init(src, &pfSrc);
+    src.unuse();
+    module->beginSwitch();
+
+    for (UInt32 kind = 0; kind < module->numKinds(); kind++)
+    {
+      module->beginKind(kind);
+      _GenFilterLoop(dst, cnt, module, kind, loop);
       module->endKind(kind);
     }
 
@@ -1733,7 +1902,8 @@ void Generator::genFillSpan(const PixelFormat& pfDst, const PixelFormat& pfSrc, 
 
 void Generator::genFillRect(const PixelFormat& pfDst, const PixelFormat& pfSrc, const Operator& op)
 {
-  c->comment("BlitJit::Generator::genFillRect() - %s <- %s : %s", pfDst.name(), pfSrc.name(), op.name());
+  c->comment("BlitJit::Generator::genFillRect() - %s <- %s : %s",
+    pfDst.name(), pfSrc.name(), op.name());
 
   f = c->newFunction(CConv, BuildFunction5<void*, const void*, SysInt, SysUInt, SysUInt>());
   f->setNaked(true);
@@ -1783,7 +1953,7 @@ void Generator::genFillRect(const PixelFormat& pfDst, const PixelFormat& pfSrc, 
       c->bind(L_Loop);
       c->mov(cnt.r(), width);
 
-      _GenFillLoop(dst, cnt, module, kind, loop);
+      _GenFilterLoop(dst, cnt, module, kind, loop);
 
       c->add(dst.r(), dstStride);
       c->sub(height, imm(1));
@@ -1802,13 +1972,26 @@ void Generator::genFillRect(const PixelFormat& pfDst, const PixelFormat& pfSrc, 
   delete module;
 }
 
+void Generator::genFillRectWithMask(
+  const PixelFormat& pfDst,
+  const PixelFormat& pfSrc,
+  const PixelFormat& pfMask,
+  const Operator& op)
+{
+  // TODO
+}
+
 // ============================================================================
 // [BlitJit::Generator - Blit Span / Rect]
 // ============================================================================
 
-void Generator::genBlitSpan(const PixelFormat& pfDst, const PixelFormat& pfSrc, const Operator& op)
+void Generator::genBlitSpan(
+  const PixelFormat& pfDst,
+  const PixelFormat& pfSrc,
+  const Operator& op)
 {
-  c->comment("BlitJit::Generator::genBlitSpan() - %s <- %s : %s", pfDst.name(), pfSrc.name(), op.name());
+  c->comment("BlitJit::Generator::genBlitSpan() - %s <- %s : %s",
+    pfDst.name(), pfSrc.name(), op.name());
 
   f = c->newFunction(CConv, BuildFunction3<void*, void*, SysUInt>());
   f->setNaked(true);
@@ -1852,9 +2035,13 @@ void Generator::genBlitSpan(const PixelFormat& pfDst, const PixelFormat& pfSrc, 
   delete module;
 }
 
-void Generator::genBlitRect(const PixelFormat& pfDst, const PixelFormat& pfSrc, const Operator& op)
+void Generator::genBlitRect(
+  const PixelFormat& pfDst,
+  const PixelFormat& pfSrc,
+  const Operator& op)
 {
-  c->comment("BlitJit::Generator::genBlitRect() - %s <- %s : %s", pfDst.name(), pfSrc.name(), op.name());
+  c->comment("BlitJit::Generator::genBlitRect() - %s <- %s : %s",
+    pfDst.name(), pfSrc.name(), op.name());
 
   f = c->newFunction(CConv, BuildFunction6<void*, void*, SysInt, SysInt, SysUInt, SysUInt>());
   f->setNaked(true);
@@ -1962,10 +2149,10 @@ static SysInt getAlignment(SysInt dstSize, SysInt perLoop)
   return align;
 }
 
-void Generator::_GenFillLoop(
+void Generator::_GenFilterLoop(
   PtrRef& dst,
   SysIntRef& cnt,
-  FillModule* module,
+  FilterModule* module,
   UInt32 kind,
   const Loop& loop)
 {
@@ -2926,17 +3113,35 @@ void Generator::_PackedMultiplyAdd_4(
   }
 }
 
-void Generator::_Premultiply_1(
-  const XMMRef& pix0)
+void Generator::_Premultiply(
+  const XMMRef& pix0, int alphaPos0, bool two)
 {
-  int alphaPos0 = 3;
   XMMRef a0(c->newVariable(VARIABLE_TYPE_XMM));
 
   c->pshuflw(a0.r(), pix0.r(), mm_shuffle(alphaPos0, alphaPos0, alphaPos0, alphaPos0));
   c->pshufhw(a0.r(), a0.r()  , mm_shuffle(alphaPos0, alphaPos0, alphaPos0, alphaPos0));
-  c->por(a0.r(), BLITJIT_GETCONST(this, Cx00FF00000000000000FF000000000000));
+  c->por(a0.r(), BLITJIT_GETCONST_WITH_DISPLACEMENT(this, Cx00FF00000000000000FF000000000000, alphaPos0 * 16));
 
   _PackedMultiply(pix0.r(), a0.r(), a0.r());
+}
+
+void Generator::_Premultiply_4(
+  const XMMRef& pix0, int alphaPos0,
+  const XMMRef& pix1, int alphaPos1)
+{
+  XMMRef a0(c->newVariable(VARIABLE_TYPE_XMM));
+  XMMRef a1(c->newVariable(VARIABLE_TYPE_XMM));
+
+  c->pshuflw(a0.r(), pix0.r(), mm_shuffle(alphaPos0, alphaPos0, alphaPos0, alphaPos0));
+  c->pshuflw(a1.r(), pix1.r(), mm_shuffle(alphaPos1, alphaPos1, alphaPos1, alphaPos1));
+  c->pshufhw(a0.r(), a0.r()  , mm_shuffle(alphaPos0, alphaPos0, alphaPos0, alphaPos0));
+  c->pshufhw(a1.r(), a1.r()  , mm_shuffle(alphaPos1, alphaPos1, alphaPos1, alphaPos1));
+  c->por(a0.r(), BLITJIT_GETCONST_WITH_DISPLACEMENT(this, Cx00FF00000000000000FF000000000000, alphaPos0 * 16));
+  c->por(a1.r(), BLITJIT_GETCONST_WITH_DISPLACEMENT(this, Cx00FF00000000000000FF000000000000, alphaPos1 * 16));
+
+  _PackedMultiply_4(
+    pix0.r(), a0.r(), a0.r(),
+    pix1.r(), a1.r(), a1.r());
 }
 
 } // BlitJit namespace

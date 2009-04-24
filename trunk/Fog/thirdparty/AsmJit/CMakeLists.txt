@@ -2,7 +2,7 @@
 CMake_Minimum_Required(VERSION 2.6)
 
 # AsmJit project - Need to use both C and C++
-Project(AsmJit C CXX)
+# Project(AsmJit C CXX)
 
 # If ASMJIT_DIR is not specified, assume that we are building it from here
 If(NOT ASMJIT_DIR)

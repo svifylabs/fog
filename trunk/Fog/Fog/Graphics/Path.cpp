@@ -155,6 +155,26 @@ static void aggJoinPath(Path* self, VertexStorage& a)
   }
 }
 
+Path::Path()
+{
+  _d = sharedNull->refAlways();
+}
+
+Path::Path(Data* d)
+{
+  _d = d;
+}
+
+Path::Path(const Path& other)
+{
+  _d = other._d->ref();
+}
+
+Path::~Path()
+{
+  _d->deref();
+}
+
 err_t Path::reserve(sysuint_t capacity)
 {
   if (_d->refCount.get() == 1 && _d->capacity >= capacity) return Error::Ok;
@@ -391,7 +411,7 @@ err_t Path::arcToRel(
   return arcTo(rx, ry, angle, largeArcFlag, sweepFlag, dx, dy);
 }
 
-err_t Path::curve3To(
+err_t Path::quadraticCurveTo(
   double x_ctrl, double y_ctrl, 
   double x_to,   double y_to)
 {
@@ -408,16 +428,16 @@ err_t Path::curve3To(
   return Error::Ok;
 }
 
-err_t Path::curve3ToRel(
+err_t Path::quadraticCurveToRel(
   double dx_ctrl, double dy_ctrl, 
   double dx_to,   double dy_to)
 {
   relToAbsInline(_d, &dx_ctrl, &dy_ctrl);
   relToAbsInline(_d, &dx_to,   &dy_to);
-  return curve3To(dx_ctrl, dy_ctrl, dx_to, dy_to);
+  return quadraticCurveTo(dx_ctrl, dy_ctrl, dx_to, dy_to);
 }
 
-err_t Path::curve3To(
+err_t Path::quadraticCurveTo(
   double x_to,    double y_to)
 {
   Vertex* endv = _d->data + _d->length;
@@ -433,20 +453,20 @@ err_t Path::curve3To(
       y_ctrl += endv[-1].y - endv[-2].y;
     }
 
-    return curve3To(x_ctrl, y_ctrl, x_to, y_to);
+    return quadraticCurveTo(x_ctrl, y_ctrl, x_to, y_to);
   }
   else
     return Error::Ok;
 }
 
-err_t Path::curve3ToRel(
+err_t Path::quadraticCurveToRel(
   double dx_to,   double dy_to)
 {
   relToAbsInline(_d, &dx_to, &dy_to);
-  return curve3To(dx_to, dy_to);
+  return quadraticCurveTo(dx_to, dy_to);
 }
 
-err_t Path::curve4To(
+err_t Path::cubicCurveTo(
   double x_ctrl1, double y_ctrl1,
   double x_ctrl2, double y_ctrl2,
   double x_to,    double y_to)
@@ -467,7 +487,7 @@ err_t Path::curve4To(
   return Error::Ok;
 }
 
-err_t Path::curve4ToRel(
+err_t Path::cubicCurveToRel(
   double dx_ctrl1, double dy_ctrl1, 
   double dx_ctrl2, double dy_ctrl2, 
   double dx_to,    double dy_to)
@@ -476,10 +496,10 @@ err_t Path::curve4ToRel(
   relToAbsInline(_d, &dx_ctrl2, &dy_ctrl2);
   relToAbsInline(_d, &dx_to,    &dy_to);
 
-  return curve4To(dx_ctrl1, dy_ctrl1, dx_ctrl2, dy_ctrl2, dx_to, dy_to);
+  return cubicCurveTo(dx_ctrl1, dy_ctrl1, dx_ctrl2, dy_ctrl2, dx_to, dy_to);
 }
 
-err_t Path::curve4To(
+err_t Path::cubicCurveTo(
   double x_ctrl2, double y_ctrl2, 
   double x_to,    double y_to)
 {
@@ -496,20 +516,20 @@ err_t Path::curve4To(
       y_ctrl1 += endv[-1].y - endv[-2].y;
     }
 
-    return curve4To(x_ctrl1, y_ctrl1, x_ctrl2, y_ctrl2, x_to, y_to);
+    return cubicCurveTo(x_ctrl1, y_ctrl1, x_ctrl2, y_ctrl2, x_to, y_to);
   }
   else
     return Error::Ok;
 }
 
-err_t Path::curve4ToRel(
+err_t Path::cubicCurveToRel(
   double dx_ctrl2, double dy_ctrl2, 
   double dx_to,    double dy_to)
 {
   relToAbsInline(_d, &dx_ctrl2, &dy_ctrl2);
   relToAbsInline(_d, &dx_to,    &dy_to);
 
-  return curve4To(dx_ctrl2, dy_ctrl2, dx_to, dy_to);
+  return cubicCurveTo(dx_ctrl2, dy_ctrl2, dx_to, dy_to);
 }
 
 err_t Path::endPoly(uint32_t cmdflags)
@@ -608,6 +628,45 @@ err_t Path::translate(double dx, double dy, sysuint_t pathId)
       v[i].x += dx;
       v[i].y += dy;
     }
+  }
+
+  return Error::Ok;
+}
+
+err_t Path::addRect(const RectF& r)
+{
+  Vertex* v = _add(5);
+  if (!v) return Error::OutOfMemory;
+
+  v[0].cmd = CmdMoveTo;
+  v[0].x = r.x1();
+  v[0].y = r.y1();
+  v[1].cmd = CmdLineTo;
+  v[1].x = r.x2();
+  v[1].y = r.y1();
+  v[2].cmd = CmdLineTo;
+  v[2].x = r.x2();
+  v[2].y = r.y2();
+  v[3].cmd = CmdLineTo;
+  v[3].x = r.x1();
+  v[3].y = r.y2();
+  v[4].cmd = CmdEndPoly | CFlagClose;
+  v[4].x = 0.0;
+  v[4].y = 0.0;
+
+  return Error::Ok;
+}
+
+err_t Path::addLineTo(const PointF* pts, sysuint_t count)
+{
+  Vertex* v = _add(count);
+  if (!v) return Error::OutOfMemory;
+
+  for (sysuint_t i = 0; i < count; i++)
+  {
+    v[i].cmd = CmdLineTo;
+    v[i].x = pts[i].x();
+    v[i].y = pts[i].y();
   }
 
   return Error::Ok;

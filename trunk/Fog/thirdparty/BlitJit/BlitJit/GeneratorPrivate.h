@@ -47,6 +47,9 @@ namespace BlitJit {
 #define BLITJIT_GETCONST(__generator__, __name__) \
   __generator__->getConstantsOperand(BLITJIT_DISPCONST(__name__))
 
+#define BLITJIT_GETCONST_WITH_DISPLACEMENT(__generator__, __name__, __disp__) \
+  __generator__->getConstantsOperand(BLITJIT_DISPCONST(__name__) + __disp__)
+
 // ============================================================================
 // [BlitJit::BaseModule]
 // ============================================================================
@@ -144,8 +147,7 @@ struct BLITJIT_API FilterModule : public Module
 {
   FilterModule(
     Generator* g,
-    const PixelFormat* pf,
-    const Operator* op);
+    const PixelFormat* pf);
   virtual ~FilterModule();
 
   virtual void init();
@@ -159,14 +161,13 @@ struct BLITJIT_API FilterModule : public Module
     UInt32 flags) = 0;
 
   const PixelFormat* pf;
-  const Operator* op;
 };
 
 // ============================================================================
 // [BlitJit::FillModule]
 // ============================================================================
 
-struct BLITJIT_API FillModule : public Module
+struct BLITJIT_API FillModule : public FilterModule
 {
   FillModule(
     Generator* g,
@@ -177,14 +178,6 @@ struct BLITJIT_API FillModule : public Module
   virtual void init(AsmJit::PtrRef& _src, const PixelFormat* pfSrc);
   virtual void free();
 
-  virtual void processPixelsPtr(
-    const AsmJit::PtrRef& dst,
-    SysInt count,
-    SysInt displacement,
-    UInt32 kind,
-    UInt32 flags) = 0;
-
-  const PixelFormat* pf;
   const Operator* op;
 };
 

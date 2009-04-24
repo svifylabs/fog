@@ -10,7 +10,7 @@
 // [Library Directories]
 
 //! @brief Install prefix specified by configure parameters.
-#define FOG_INSTALL_PREFIX "C:/Program Files/AsmJit"
+#define FOG_INSTALL_PREFIX "C:/Program Files/Fog"
 
 // [Debugging]
 

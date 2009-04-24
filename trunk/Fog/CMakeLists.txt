@@ -1,5 +1,7 @@
 CMake_Minimum_Required(VERSION 2.6)
 
+Project(Fog C CXX)
+
 # =============================================================================
 # [Configuration]
 # =============================================================================
@@ -8,10 +10,10 @@ Set(FOG_DIR ${CMAKE_SOURCE_DIR})
 Set(FOG_AGG_DIR "${FOG_DIR}/thirdparty/agg")
 
 Set(ASMJIT_DIR "${FOG_DIR}/thirdparty/AsmJit")
-Set(ASMJIT_BUILD_LIBRARY TRUE)
+#Set(ASMJIT_BUILD_LIBRARY TRUE)
 
 Set(BLITJIT_DIR "${FOG_DIR}/thirdparty/BlitJit")
-Set(BLITJIT_BUILD_LIBRARY TRUE)
+#Set(BLITJIT_BUILD_LIBRARY TRUE)
 
 Set(TEST_BUILD TRUE)
 
@@ -19,19 +21,20 @@ Set(TEST_BUILD TRUE)
 # [Thirdparty Libraries]
 # =============================================================================
 
-If(ASMJIT_BUILD_LIBRARY)
-  Include(${ASMJIT_DIR}/CMakeLists.txt NO_POLICY_SCOPE)
-EndIf(ASMJIT_BUILD_LIBRARY)
+Add_Definitions(-DASMJIT_API= -DASMJIT_HIDDEN=)
+Add_Definitions(-DBLITJIT_API= -DBLITJIT_HIDDEN=)
 
-If(BLITJIT_BUILD_LIBRARY)
+#If(ASMJIT_BUILD_LIBRARY)
+  Include(${ASMJIT_DIR}/CMakeLists.txt NO_POLICY_SCOPE)
+#EndIf(ASMJIT_BUILD_LIBRARY)
+
+#If(BLITJIT_BUILD_LIBRARY)
   Include(${BLITJIT_DIR}/CMakeLists.txt NO_POLICY_SCOPE)
-EndIf(BLITJIT_BUILD_LIBRARY)
+#EndIf(BLITJIT_BUILD_LIBRARY)
 
 # =============================================================================
 # [Fog]
 # =============================================================================
-
-Project(Fog C CXX)
 
 # Include cmake helpers we need
 Include(CheckIncludeFiles)
@@ -60,6 +63,10 @@ Set(FOG_BUILD_HEADERS
 SOURCE_GROUP(Build FILES
   ${FOG_BUILD_SOURCES}
   ${FOG_BUILD_HEADERS})
+  
+# Static linking
+SOURCE_GROUP(3rdparty_AsmJit FILES ${ASMJIT_SOURCES} ${ASMJIT_HEADERS})
+SOURCE_GROUP(3rdparty_BlitJit FILES ${BLITJIT_SOURCES} ${BLITJIT_HEADERS})
 
 # =============================================================================
 # [Fog/Core] Part
@@ -271,6 +278,7 @@ Endif(NOT WIN32)
 
 # Fog/Graphics Sources
 Set(FOG_GRAPHICS_SOURCES
+  ${FOG_DIR}/Fog/Graphics/AffineMatrix.cpp
   ${FOG_DIR}/Fog/Graphics/Converter.cpp
   ${FOG_DIR}/Fog/Graphics/Dither.cpp
   ${FOG_DIR}/Fog/Graphics/Font.cpp
@@ -303,6 +311,7 @@ Set(FOG_GRAPHICS_SOURCES
 # Fog/Graphics Sources
 Set(FOG_GRAPHICS_HEADERS
   ${FOG_DIR}/Fog/Graphics.h
+  ${FOG_DIR}/Fog/Graphics/AffineMatrix.h
   ${FOG_DIR}/Fog/Graphics/Constants.h
   ${FOG_DIR}/Fog/Graphics/Converter.h
   ${FOG_DIR}/Fog/Graphics/Dither.h
@@ -598,7 +607,12 @@ Add_Library(Fog SHARED
   ${FOG_SOURCES}
   ${FOG_HEADERS}
   ${FOG_AGG_SOURCES}
-  ${FOG_AGG_HEADERS})
+  ${FOG_AGG_HEADERS}
+  ${ASMJIT_SOURCES}
+  ${ASMJIT_HEADERS}
+  ${BLITJIT_SOURCES}
+  ${BLITJIT_HEADERS}
+)
 Target_Link_Libraries(Fog ${FOG_LIBRARIES})
 
 # Install
