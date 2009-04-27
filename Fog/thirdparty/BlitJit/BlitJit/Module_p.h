@@ -24,39 +24,36 @@
 // OTHER DEALINGS IN THE SOFTWARE.
 
 // [Guard]
-#ifndef _BLITJIT_GENERATORPRIVATE_H
-#define _BLITJIT_GENERATORPRIVATE_H
+#ifndef _BLITJIT_MODULE_H
+#define _BLITJIT_MODULE_H
 
 // [Dependencies]
 #include <AsmJit/Compiler.h>
 
-#include "Generator.h"
+#include "Build.h"
 
 namespace BlitJit {
 
-//! @addtogroup BlitJit_Generator
+//! @addtogroup BlitJit_Private
 //! @{
 
 // ============================================================================
-// [BlitJit::Macros]
+// [Forward Declarations]
 // ============================================================================
 
-#define BLITJIT_DISPCONST(__cname__) \
-  (SysInt)( (UInt8 *)&Api::constants->__cname__ - (UInt8 *)Api::constants )
-
-#define BLITJIT_GETCONST(__generator__, __name__) \
-  __generator__->getConstantsOperand(BLITJIT_DISPCONST(__name__))
-
-#define BLITJIT_GETCONST_WITH_DISPLACEMENT(__generator__, __name__, __disp__) \
-  __generator__->getConstantsOperand(BLITJIT_DISPCONST(__name__) + __disp__)
+struct Generator;
 
 // ============================================================================
-// [BlitJit::BaseModule]
+// [BlitJit::Module]
 // ============================================================================
 
-struct BLITJIT_API Module
+struct BLITJIT_HIDDEN Module
 {
-  Module(Generator* g);
+  Module(Generator* g, 
+    const PixelFormat* dstPf,
+    const PixelFormat* srcPf,
+    const PixelFormat* mskPf,
+    const Operator* op);
   virtual ~Module();
 
   virtual void beginSwitch();
@@ -68,6 +65,19 @@ struct BLITJIT_API Module
   void setNumKinds(UInt32 kinds);
   UInt32 numKinds() const;
   AsmJit::Label* getKindLabel(UInt32 kind) const;
+
+  //! @brief General function to process array of pixels.
+  //! @param dst Destination buffer (can't be NULL).
+  //! @brief src Source buffer (can be NULL).
+  //! @brief msk Mask buffer (can be NULL).
+  virtual void processPixelsPtr(
+    const AsmJit::PtrRef* dst,
+    const AsmJit::PtrRef* src,
+    const AsmJit::PtrRef* msk,
+    SysInt count,
+    SysInt offset,
+    UInt32 kind,
+    UInt32 flags) = 0;
 
   inline UInt32 maxPixelsPerLoop() const
   { return _maxPixelsPerLoop; }
@@ -108,6 +118,12 @@ struct BLITJIT_API Module
   //! @brief Compiler instance.
   AsmJit::Compiler* c;
 
+  const PixelFormat* dstPf;
+  const PixelFormat* srcPf;
+  const PixelFormat* mskPf;
+
+  const Operator* op;
+
   //! @brief Maximum pixels in loop that should be used by loop generator.
   //!
   //! Default: @c 1.
@@ -140,74 +156,54 @@ struct BLITJIT_API Module
 };
 
 // ============================================================================
-// [BlitJit::FilterModule]
+// [BlitJit::Module_Filter]
 // ============================================================================
 
-struct BLITJIT_API FilterModule : public Module
+struct BLITJIT_HIDDEN Module_Filter : public Module
 {
-  FilterModule(
+  Module_Filter(
     Generator* g,
     const PixelFormat* pf);
-  virtual ~FilterModule();
+  virtual ~Module_Filter();
 
   virtual void init();
   virtual void free();
-
-  virtual void processPixelsPtr(
-    const AsmJit::PtrRef& dst,
-    SysInt count,
-    SysInt displacement,
-    UInt32 kind,
-    UInt32 flags) = 0;
-
-  const PixelFormat* pf;
 };
 
 // ============================================================================
-// [BlitJit::FillModule]
+// [BlitJit::Module_Fill]
 // ============================================================================
 
-struct BLITJIT_API FillModule : public FilterModule
+struct BLITJIT_HIDDEN Module_Fill : public Module
 {
-  FillModule(
+  Module_Fill(
     Generator* g,
-    const PixelFormat* pf,
+    const PixelFormat* dstPf,
+    const PixelFormat* srcPf,
+    const PixelFormat* mskPf,
     const Operator* op);
-  virtual ~FillModule();
+  virtual ~Module_Fill();
 
-  virtual void init(AsmJit::PtrRef& _src, const PixelFormat* pfSrc);
+  virtual void init(AsmJit::PtrRef& _src);
   virtual void free();
-
-  const Operator* op;
 };
 
 // ============================================================================
-// [BlitJit::CompositeModule]
+// [BlitJit::Module_Blit]
 // ============================================================================
 
-struct BLITJIT_API CompositeModule : public Module
+struct BLITJIT_HIDDEN Module_Blit : public Module
 {
-  CompositeModule(
+  Module_Blit(
     Generator* g,
-    const PixelFormat* pfDst,
-    const PixelFormat* pfSrc,
+    const PixelFormat* dstPf,
+    const PixelFormat* srcPf,
+    const PixelFormat* mskPf,
     const Operator* op);
-  virtual ~CompositeModule();
+  virtual ~Module_Blit();
 
   virtual void init();
   virtual void free();
-
-  virtual void processPixelsPtr(
-    const AsmJit::PtrRef& dst,
-    const AsmJit::PtrRef& src,
-    SysInt count,
-    SysInt displacement,
-    UInt32 kind,
-    UInt32 flags) = 0;
-
-  const PixelFormat* pfDst;
-  const PixelFormat* pfSrc;
-  const Operator* op;
 };
 
 //! @}
@@ -215,4 +211,4 @@ struct BLITJIT_API CompositeModule : public Module
 } // BlitJit namespace
 
 // [Guard]
-#endif // _BLITJIT_GENERATORPRIVATE_H
+#endif // _BLITJIT_MODULE_H

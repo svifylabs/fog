@@ -1171,7 +1171,7 @@ void Region::setSharable(bool val)
   }
 }
 
-void Region::setWeakAssignPrevented(bool val)
+void Region::setStrong(bool val)
 {
   if (isSharable() != val)
   {

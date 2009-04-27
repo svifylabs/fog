@@ -285,6 +285,9 @@ Set(FOG_GRAPHICS_SOURCES
   ${FOG_DIR}/Fog/Graphics/Font_FreeType.cpp
   ${FOG_DIR}/Fog/Graphics/Font_Win.cpp
   ${FOG_DIR}/Fog/Graphics/Geometry.cpp
+  ${FOG_DIR}/Fog/Graphics/Glyph.cpp
+  ${FOG_DIR}/Fog/Graphics/GlyphCache.cpp
+  ${FOG_DIR}/Fog/Graphics/GlyphSet.cpp
   ${FOG_DIR}/Fog/Graphics/Image.cpp
   ${FOG_DIR}/Fog/Graphics/ImageFormat.cpp
   ${FOG_DIR}/Fog/Graphics/ImageIO.cpp
@@ -320,6 +323,9 @@ Set(FOG_GRAPHICS_HEADERS
   ${FOG_DIR}/Fog/Graphics/Font_Win.h
   ${FOG_DIR}/Fog/Graphics/Font_FreeType.h
   ${FOG_DIR}/Fog/Graphics/Geometry.h
+  ${FOG_DIR}/Fog/Graphics/Glyph.h
+  ${FOG_DIR}/Fog/Graphics/GlyphCache.h
+  ${FOG_DIR}/Fog/Graphics/GlyphSet.h
   ${FOG_DIR}/Fog/Graphics/Image.h
   ${FOG_DIR}/Fog/Graphics/ImageFormat.h
   ${FOG_DIR}/Fog/Graphics/ImageIO.h

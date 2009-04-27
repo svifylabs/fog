@@ -52,6 +52,8 @@ FOG_INIT_FUNC(fog_region);
 FOG_INIT_FUNC(fog_imageformat);
 FOG_INIT_FUNC(fog_image);
 FOG_INIT_FUNC(fog_imageio);
+FOG_INIT_FUNC(fog_glyph);
+FOG_INIT_FUNC(fog_glyphset);
 FOG_INIT_FUNC(fog_converter);
 FOG_INIT_FUNC(fog_font);
 FOG_INIT_FUNC(fog_painter);
@@ -110,6 +112,8 @@ static const FogInitEntry fog_init_entries[] =
   INIT_ENTRY(fog_imageformat),
   INIT_ENTRY(fog_image),
   INIT_ENTRY(fog_imageio),
+  INIT_ENTRY(fog_glyph),
+  INIT_ENTRY(fog_glyphset),
   INIT_ENTRY(fog_converter),
   INIT_ENTRY(fog_font),
   INIT_ENTRY(fog_painter)

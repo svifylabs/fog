@@ -298,8 +298,7 @@ bool Image::swapRgb()
   if (isEmpty()) return true;
 
   // These formats have only alpha values
-  if (format().id() == ImageFormat::A1 || 
-      format().id() == ImageFormat::A8)
+  if (format().id() == ImageFormat::A8)
   {
     return true;
   }
@@ -365,8 +364,7 @@ bool Image::swapRgba()
   if (isEmpty()) return true;
 
   // these formats have only alpha values
-  if (format().id() == ImageFormat::A1 || 
-      format().id() == ImageFormat::A8)
+  if (format().id() == ImageFormat::A8)
   {
     return true;
   }
@@ -425,8 +423,7 @@ bool Image::invert(Image& dest, const Image& src, uint32_t invertMode)
 
   if (src.isEmpty() || (invertMode == 0) || src.isEmpty() ||
      (!(invertMode & Image::InvertAlpha) && 
-       (format.id() == ImageFormat::A8 || 
-        format.id() == ImageFormat::A1)) ||
+       (format.id() == ImageFormat::A8)) ||
      (!(invertMode & (Image::InvertRgb)) && 
        (format.id() == ImageFormat::XRGB32 || 
         format.id() == ImageFormat::RGB24)) )
@@ -523,9 +520,6 @@ bool Image::invert(Image& dest, const Image& src, uint32_t invertMode)
       break;
     }
 
-    case ImageFormat::A1:
-      w = (w + 7) >> 3;
-      // go through
     case ImageFormat::A8:
     {
       // should be guaranted that alpha invert is set
@@ -1393,12 +1387,6 @@ bool Image::blur(Image& dest, const Image& src, uint32_t blurMode)
 {
   ImageFormat format = src.format();
 
-  if (format.id() == ImageFormat::A1)
-  {
-    Image t(src);
-    return (t.convert(ImageFormat::A8) && blur(dest, t, blurMode));
-  }
-
   if (blurMode > 2) blurMode = 2;
 
   // no blur for that small images
@@ -1918,7 +1906,7 @@ Image::Data* Image::Data::create(uint32_t w, uint32_t h, const ImageFormat& form
   if ((stride = calcStride(w, format.depth())) == 0) return 0;
 
   // Try to alloc data
-  d = create((sysuint_t)(w * stride), allocPolicy);
+  d = create((sysuint_t)(h * stride), allocPolicy);
 
   if (d)
   {

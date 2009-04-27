@@ -23,7 +23,8 @@
 #include <Fog/Graphics/Font.h>
 #include <Fog/Graphics/Font_FreeType.h>
 #include <Fog/Graphics/Font_Win.h>
-#include <Fog/Graphics/Image.h>
+#include <Fog/Graphics/Glyph.h>
+#include <Fog/Graphics/GlyphCache.h>
 #include <Fog/Graphics/Rgba.h>
 
 namespace Fog {
@@ -43,101 +44,14 @@ struct Font_Local
 static Static<Font_Local> font_local;
 
 // ============================================================================
-// [Fog::Glyph]
-// ============================================================================
-
-Fog::Static<Glyph::Data> Glyph::sharedNull;
-
-// ============================================================================
-// [Fog::Glyph::Data]
-// ============================================================================
-
-Glyph::Data::Data() :
-  offsetX(0),
-  offsetY(0),
-  beginWidth(0),
-  endWidth(0),
-  advance(0)
-{
-  refCount.init(1);
-}
-
-Glyph::Data::~Data()
-{
-}
-
-// ============================================================================
-// [Fog::GlyphCache]
-// ============================================================================
-
-GlyphCache::GlyphCache() :
-  _rows(0),
-  _count(0)
-{
-}
-
-GlyphCache::~GlyphCache()
-{
-  free();
-}
-
-bool GlyphCache::set(uint32_t uc, Entity data)
-{
-  // First reject too high character
-  if (uc > 65535) return false;
-
-  uint32_t ucRow = uc >> 8;
-  uint32_t ucCol = uc & 0xFF;
-
-  // realloc ROWS array if needed
-  if (FOG_UNLIKELY(ucRow >= _count))
-  {
-    _rows = (Entity**)Fog::Memory::xrealloc(_rows, (ucRow + 1) * sizeof(Entity));
-    Fog::Memory::zero(_rows + _count, (ucRow - _count + 1) * sizeof(Entity));
-    _count = ucRow + 1;
-  }
-
-  // alloc COL array if needed
-  if (FOG_UNLIKELY(_rows[ucRow] == NULL))
-  {
-    _rows[ucRow] = (Entity*)Fog::Memory::xcalloc(256 * sizeof(Entity));
-  }
-
-  _rows[ucRow][ucCol] = data->ref();
-  return true;
-}
-
-void GlyphCache::free()
-{
-  sysuint_t i, j;
-  sysuint_t count = _count;
-  Entity** rows = _rows;
-  Entity* row;
-
-  for (i = 0; i != count; i++, rows++)
-  {
-    if ((row = *rows) != NULL)
-    {
-      for (j = 0; j != 256; j++)
-      {
-        if (row[j]) row[j]->deref();
-      }
-      Fog::Memory::free(row);
-    }
-  }
-  Fog::Memory::free(_rows);
-
-  _rows = 0;
-  _count = 0;
-}
-
-// ============================================================================
 // [Fog::FontFace]
 // ============================================================================
 
 FontFace::FontFace()
 {
+  refCount.init(1);
   memset(&metrics, 0, sizeof(FontMetrics));
+  memset(&attributes, 0, sizeof(FontAttributes));
 }
 
 FontFace::~FontFace()
@@ -163,7 +77,7 @@ static bool _setFace(Font* self, FontFace* face)
   if (self->_d->face == face) return true;
 
   self->detach();
-  self->_d->face->deref();
+  if (self->_d->face) self->_d->face->deref();
   self->_d->face = face;
 
   return true;
@@ -191,7 +105,8 @@ Font::~Font()
 
 void Font::_detach()
 {
-  AtomicBase::ptr_setXchg(&_d, Data::copy(_d))->deref();
+  if (_d->refCount.get() > 1)
+    AtomicBase::ptr_setXchg(&_d, Data::copy(_d))->deref();
 }
 
 void Font::free()
@@ -265,25 +180,19 @@ const Font& Font::set(const Font& other)
   return *this;
 }
 
-void Font::getTextWidth(
-  const String32& text, 
-  TextWidth* textWidth) const
+err_t Font::getTextWidth(const String32& str, TextWidth* textWidth) const
 {
-  _d->face->getTextWidth(text.cData(), text.length(), textWidth);
+  return _d->face->getTextWidth(str.cData(), str.length(), textWidth);
 }
 
-void Font::getTextWidth(
-  const Char32* text, sysuint_t length, 
-  TextWidth* textWidth) const
+err_t Font::getTextWidth(const Char32* str, sysuint_t length, TextWidth* textWidth) const
 {
-  _d->face->getTextWidth(text, length, textWidth);
+  return _d->face->getTextWidth(str, length, textWidth);
 }
 
-void Font::getGlyphs(
-  const Char32* str, sysuint_t length,
-  Glyph* glyphs, TextWidth* textWidth) const
+err_t Font::getGlyphs(const Char32* str, sysuint_t length, GlyphSet& glyphSet) const
 {
-  _d->face->getGlyphs(str, length, glyphs, textWidth);
+  return _d->face->getGlyphs(str, length, glyphSet);
 }
 
 bool Font::addFontPath(const String32& path)
@@ -356,7 +265,7 @@ Vector<String32> Font::fontList()
 // ============================================================================
 
 Font::Data::Data() :
-  face(0)
+  face(NULL)
 {
   refCount.init(1);
 }
@@ -402,10 +311,6 @@ FOG_INIT_DECLARE err_t fog_font_init(void)
   Fog::font_local.instance().listInitialized = false;
 
   uint initResult = Error::Ok;
-
-  // [Glyph Shared Null]
-
-  Fog::Glyph::sharedNull.init();
 
   // [Font Shared Null]
 
@@ -464,11 +369,6 @@ FOG_INIT_DECLARE void fog_font_shutdown(void)
   // [Font Shared Null]
   delete Fog::Font::sharedNull;
   Fog::Font::sharedNull = NULL;
-
-  // [Glyph Shared Null]
-
-  Fog::Glyph::sharedNull.instancep()->refCount.dec();
-  Fog::Glyph::sharedNull.destroy();
 
   // [Font Face Cache]
 

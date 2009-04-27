@@ -34,9 +34,8 @@ static const ImageFormat::Data formats_storage[] =
   { __MAKE_FMT(RGB24)        , 24, 0x00FF0000, 0x0000FF00, 0x000000FF, 0x00000000, 16, 8 , 0 , 0 , 0 , 1 , 2 , 0 , false  , false },
   { __MAKE_FMT(BGR24)        , 24, 0x000000FF, 0x0000FF00, 0x00FF0000, 0x00000000, 16, 8 , 0 , 0 , 2 , 1 , 0 , 0 , false  , false },
 #endif // FOG_BYTE_ORDER
-  { __MAKE_FMT(I8)           , 8 , 0x00000000, 0x00000000, 0x00000000, 0x000000FF, 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , false  , true  },
   { __MAKE_FMT(A8)           , 8 , 0x00000000, 0x00000000, 0x00000000, 0x000000FF, 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , false  , false },
-  { __MAKE_FMT(A1)           , 1 , 0x00000000, 0x00000000, 0x00000000, 0x00000001, 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , false  , false },
+  { __MAKE_FMT(I8)           , 8 , 0x00000000, 0x00000000, 0x00000000, 0x000000FF, 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , false  , true  },
   { __MAKE_FMT(Invalid)      , 0 , 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , false  , false }
 };
 

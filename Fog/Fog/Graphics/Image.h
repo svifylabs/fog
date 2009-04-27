@@ -65,7 +65,7 @@ struct FOG_API Image
     void deref();
 
     FOG_INLINE void destroy() { this->~Data(); }
-    FOG_INLINE void free() { Fog::Memory::free(this); }
+    FOG_INLINE void free() { Memory::free(this); }
 
     static Data* create(sysuint_t size, uint allocPolicy);
     static Data* create(uint32_t w, uint32_t h, const ImageFormat& format, uint allocPolicy);
@@ -92,7 +92,7 @@ struct FOG_API Image
   // [Construction / Destruction]
 
   Image();
-  Image(Data* d);
+  explicit Image(Data* d);
   Image(const Image& other);
   Image(uint32_t w, uint32_t h, const ImageFormat& format);
   ~Image();

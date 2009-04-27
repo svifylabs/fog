@@ -4,6 +4,10 @@
 // MIT, See COPYING file in package
 
 // [Precompiled headers]
+#if defined(_MSC_VER) && !defined(_CRT_SECURE_NO_WARNINGS)
+#define _CRT_SECURE_NO_WARNINGS
+#endif // _MSC_VER
+
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP

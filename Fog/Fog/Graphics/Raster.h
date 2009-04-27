@@ -342,32 +342,63 @@ static FOG_INLINE uint8_t toGrey(uint32_t c)
 // [Fog::Raster - Premultiply / Demultiply]
 // ============================================================================
 
+static FOG_INLINE uint32_t alphamul(uint32_t x, uint32_t by)
+{
+  uint32_t a = (x >> 24) * by;
+  a = ((a + (a >> 8) + 0x80) >> 8);
+  return (x & 0x00FFFFFF) | (a << 24);
+}
+
+static FOG_INLINE uint32_t bytemul(uint32_t x, uint32_t by)
+{
+  uint32_t t0 = ((x & 0x00FF00FF)     ) * by;
+  uint32_t t1 = ((x & 0xFF00FF00) >> 8) * by;
+
+  t0 = ((t0 + ((t0 >> 8) & 0x00FF00FF) + 0x00800080) >> 8) & 0x00FF00FF;
+  t1 = ((t1 + ((t1 >> 8) & 0x00FF00FF) + 0x00800080)     ) & 0xFF00FF00;
+
+  return t0 | t1;
+}
+
 static FOG_INLINE uint32_t premultiply(uint32_t x)
 {
-  uint32_t a = getAlpha(x);
-  uint32_t t = (x & 0x00FF00FF) * a;
+  uint32_t a = x >> 24;
+  uint32_t t0 = (x & 0x00FF00FF) * a;
+  uint32_t t1 = (x & 0x0000FF00) * a;
 
-  t = (t + ((t >> 8) & 0x00FF00FF) + 0x00800080) >> 8;
-  t &= 0x00FF00FF;
+  t0 = ((t0 + ((t0 >> 8) & 0x00FF00FF) + 0x00800080) >> 8) & 0x00FF00FF;
+  t1 = ((t1 + ((t1 >> 8) & 0x0000FF00) + 0x00008000) >> 8) & 0x0000FF00;
 
-  x = ((x >> 8) & 0x000000FF) * a;
-  x = (x + ((x >> 8) & 0x000000FF) + 0x00000080);
-  x &= 0x0000FF00;
-  x |= t | (a << 24);
-
-  return x;
+  return t0 | t1 | (a << 24);
 }
 
 static FOG_INLINE uint32_t demultiply(uint32_t x)
 {
-  uint32_t a = getAlpha(x);
+  // This function is designed to be pipelined by pentium processor. It 
+  // contains only one division unit and we are trying to compute something
+  // while this unit is busy. Performance will not be too much better than
+  // other demultiply routines based on division.
+  //
+  // The function is doing something like this:
+  // return (a) 
+  //   ? (((((x & 0x00FF0000) >> 16) * 255) / a) << 16) |
+  //     (((((x & 0x0000FF00) >>  8) * 255) / a) <<  8) |
+  //     (((((x & 0x000000FF)      ) * 255) / a)      ) |
+  //     (a << 24)
+  //   : 0;
+  uint32_t a = x >> 24;
+  if (!a) return 0;
 
-  return (a) 
-    ? (((((x & 0x00FF0000) >> 16) * 255) / a) << 16) |
-      (((((x & 0x0000FF00) >>  8) * 255) / a) <<  8) |
-      (((((x & 0x000000FF)      ) * 255) / a)      ) |
-      (a << 24)
-    : 0;
+  uint32_t t0 = (x  & 0x00FF00FF) * 255;
+  uint32_t x0 = (t0 & 0xFFFF0000) / a;
+
+  uint32_t t1 = (x  & 0x0000FF00) * 255;
+  uint32_t x1 = (t0 & 0x0000FFFF) / a;
+
+  uint32_t x2 = (t1             ) / a;
+  // This should be computed while other unit are dividing 't1/a'
+  uint32_t r0 = (x0 & 0x00FF0000) | (x1 & 0x000000FF) | (a << 24);
+  return r0 | (x2 & 0x0000FF00);
 }
 
 // ============================================================================

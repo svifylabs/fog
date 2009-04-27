@@ -145,14 +145,14 @@ enum ErrorCode
   EFreeTypeInitFailed
 };
 
-//! @brief Fill rule
-enum FillRule
+//! @brief Fill mode.
+enum FillMode
 {
-  FillRuleWinding = 0,
-  FillRuleEvenOdd = 1
+  FillNonZero = 0,
+  FillEvenOdd = 1
 };
 
-//! @brief Line cap
+//! @brief Line cap.
 enum LineCap
 {
   LineCapButt = 0,
@@ -160,7 +160,7 @@ enum LineCap
   LineCapRound
 };
 
-//! @brief Line join
+//! @brief Line join.
 enum LineJoin
 {
   LineJoinMiter = 0,
