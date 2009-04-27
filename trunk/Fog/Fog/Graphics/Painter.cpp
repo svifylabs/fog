@@ -11,11 +11,15 @@
 // [Dependencies]
 #include <Fog/Core/Cpu.h>
 #include <Fog/Core/Error.h>
+#include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Thread.h>
 #include <Fog/Graphics/AffineMatrix.h>
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Font.h>
+#include <Fog/Graphics/Glyph.h>
+#include <Fog/Graphics/GlyphSet.h>
+#include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/Painter.h>
 #include <Fog/Graphics/Raster.h>
 #include <Fog/Graphics/Rgba.h>
@@ -57,12 +61,56 @@ namespace Fog {
 // [Fog::PainterLocal]
 // ============================================================================
 
+typedef BlitJit::FillSpanFn FillSpan;
+typedef BlitJit::FillSpanWithMaskFn FillSpanM;
+
+typedef BlitJit::BlitSpanFn BlitSpan;
+typedef BlitJit::BlitSpanWithMaskFn BlitSpanM;
+
+struct FillFuncs
+{
+  FillSpan  fillSpan;
+  FillSpanM fillSpanM_A8;
+  FillSpanM fillSpanM_RGB32;
+};
+
 struct FOG_HIDDEN PainterLocal
 {
-  PainterLocal() {}
-  ~PainterLocal() {}
+  PainterLocal() : _init(false)
+  {
+    BlitJit::Api::init();
+  }
 
-  BlitJit::CodeManager codemgr;
+  ~PainterLocal()
+  {
+  }
+
+  void getFillFuncs(FillFuncs* dst)
+  {
+    if (!_init) createFillFuncs();
+    memcpy(dst, &_fillFuncs, sizeof(FillFuncs));
+  }
+
+  void createFillFuncs()
+  {
+    _fillFuncs.fillSpan = BlitJit::Api::genFillSpan(
+      &BlitJit::Api::pixelFormats[BlitJit::PixelFormat::PRGB32],
+      &BlitJit::Api::pixelFormats[BlitJit::PixelFormat::PRGB32],
+      &BlitJit::Api::operators[BlitJit::Operator::CompositeOver]);
+
+    _fillFuncs.fillSpanM_A8 = BlitJit::Api::genFillSpanWithMask(
+      &BlitJit::Api::pixelFormats[BlitJit::PixelFormat::PRGB32],
+      &BlitJit::Api::pixelFormats[BlitJit::PixelFormat::PRGB32],
+      &BlitJit::Api::pixelFormats[BlitJit::PixelFormat::A8],
+      &BlitJit::Api::operators[BlitJit::Operator::CompositeOver]);
+
+    _fillFuncs.fillSpanM_RGB32 = NULL;
+
+    _init = true;
+  }
+
+  bool _init;
+  FillFuncs _fillFuncs;
 };
 
 static Static<PainterLocal> painter_local;
@@ -151,6 +199,9 @@ struct FOG_HIDDEN NullPainterDevice : public PainterDevice
   virtual void setMiterLimit(double miterLimit) {}
   virtual double miterLimit() const { return 0.0; }
 
+  virtual void setFillMode(uint32_t mode) {}
+  virtual uint32_t fillMode() { return FillNonZero; }
+
   // [Transformations]
 
   virtual void setMatrix(const AffineMatrix& m) {}
@@ -168,7 +219,7 @@ struct FOG_HIDDEN NullPainterDevice : public PainterDevice
     double screenX1, double screenY1, double screenX2, double screenY2,
     uint32_t viewportOption) {}
 
-  // [Raster drawing]
+  // [Raster Drawing]
 
   virtual void clear() {}
   virtual void drawPixel(const Point& p) {}
@@ -180,7 +231,7 @@ struct FOG_HIDDEN NullPainterDevice : public PainterDevice
   virtual void fillRound(const Rect& r, const Point& radius) {}
   virtual void fillRegion(const Region& region) {}
 
-  // [Vector drawing]
+  // [Vector Drawing]
 
   virtual void drawPoint(const PointF& p) {}
   virtual void drawLine(const PointF& start, const PointF& end) {}
@@ -192,6 +243,8 @@ struct FOG_HIDDEN NullPainterDevice : public PainterDevice
   virtual void drawRound(const RectF& r, 
     const PointF& tlr, const PointF& trr,
     const PointF& blr, const PointF& brr) {}
+  virtual void drawEllipse(const PointF& cp, const PointF& r) {}
+  virtual void drawArc(const PointF& cp, const PointF& r, double start, double sweep) {}
   virtual void drawPath(const Path& path) {}
 
   virtual void fillPolygon(const PointF* pts, sysuint_t count) {}
@@ -201,14 +254,14 @@ struct FOG_HIDDEN NullPainterDevice : public PainterDevice
   virtual void fillRound(const RectF& r,
     const PointF& tlr, const PointF& trr,
     const PointF& blr, const PointF& brr) {}
+  virtual void fillEllipse(const PointF& cp, const PointF& r) {}
+  virtual void fillArc(const PointF& cp, const PointF& r, double start, double sweep) {}
   virtual void fillPath(const Path& path) {}
 
-  // [Glyph drawing]
+  // [Glyph / Text Drawing]
 
-  virtual void drawGlyph(const Point& p, const Image& glyph, const Rect* clip) {}
-  virtual void drawGlyphs(const Point* pts, const Image* glyphs, sysuint_t count, const Rect* clip) {}
-
-  // [Text drawing]
+  virtual void drawGlyph(const Point& pt, const Glyph& glyph, const Rect* clip) {}
+  virtual void drawGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip) {}
 
   virtual void drawText(const Point& p, const String32& text, const Font& font, const Rect* clip) {}
   virtual void drawText(const Rect& r, const String32& text, const Font& font, uint32_t align, const Rect* clip) {}
@@ -379,6 +432,9 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
   virtual void setMiterLimit(double miterLimit);
   virtual double miterLimit() const;
 
+  virtual void setFillMode(uint32_t mode);
+  virtual uint32_t fillMode();
+
   // [Transformations]
 
   virtual void setMatrix(const AffineMatrix& m);
@@ -396,7 +452,7 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
     double screenX1, double screenY1, double screenX2, double screenY2,
     uint32_t viewportOption);
 
-  // [Raster drawing]
+  // [Raster Drawing]
 
   virtual void clear();
   virtual void drawPixel(const Point& p);
@@ -408,7 +464,7 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
   virtual void fillRound(const Rect& r, const Point& radius);
   virtual void fillRegion(const Region& region);
 
-  // [Vector drawing]
+  // [Vector Drawing]
 
   virtual void drawPoint(const PointF& p);
   virtual void drawLine(const PointF& start, const PointF& end);
@@ -420,6 +476,8 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
   virtual void drawRound(const RectF& r, 
     const PointF& tlr, const PointF& trr,
     const PointF& blr, const PointF& brr);
+  virtual void drawEllipse(const PointF& cp, const PointF& r);
+  virtual void drawArc(const PointF& cp, const PointF& r, double start, double sweep);
   virtual void drawPath(const Path& path);
 
   virtual void fillPolygon(const PointF* pts, sysuint_t count);
@@ -429,14 +487,14 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
   virtual void fillRound(const RectF& r,
     const PointF& tlr, const PointF& trr,
     const PointF& blr, const PointF& brr);
+  virtual void fillEllipse(const PointF& cp, const PointF& r);
+  virtual void fillArc(const PointF& cp, const PointF& r, double start, double sweep);
   virtual void fillPath(const Path& path);
 
-  // [Glyph drawing]
+  // [Glyph / Text Drawing]
 
-  virtual void drawGlyph(const Point& p, const Image& glyph, const Rect* clip);
-  virtual void drawGlyphs(const Point* pts, const Image* glyphs, sysuint_t count, const Rect* clip);
-
-  // [Text drawing]
+  virtual void drawGlyph(const Point& pt, const Glyph& glyph, const Rect* clip);
+  virtual void drawGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip);
 
   virtual void drawText(const Point& p, const String32& text, const Font& font, const Rect* clip);
   virtual void drawText(const Rect& r, const String32& text, const Font& font, uint32_t align, const Rect* clip);
@@ -453,9 +511,14 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
   FOG_INLINE void _updateLineWidth()
   { _lineIsSimple = (_lineWidth == 1.0 && _lineDash.length() == 0); }
 
-  // [AntiGrain Renderers]
+  // [Renderers]
+  //
+  // Renderers are designed as virtual methods, because they are reimplemented
+  // by MTRasterPainterDevice class to be able to use multiple threads.
 
-  void _aggDrawPath(const Path& path, bool stroke);
+  virtual void _renderGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip);
+  virtual void _renderBoxes(const Box* box, sysuint_t count);
+  virtual void _renderPath(const Path& path, bool stroke);
 
   // [Members]
 
@@ -496,6 +559,8 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
   double _lineDashOffset;
   double _miterLimit;
 
+  uint32_t _fillMode;
+
   AffineMatrix _transformations;
   bool _transformationsUsed;
 
@@ -517,8 +582,7 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
   ScanlineP8 _slP8;
   ScanlineU8 _slU8;
 
-  // [BlitJit Members]
-  BlitJit::FillSpanFn _fillSpan;
+  FillFuncs _fillFuncs;
 };
 
 // ============================================================================
@@ -551,10 +615,7 @@ RasterPainterDevice::RasterPainterDevice(uint8_t* pixels, int width, int height,
   _op = OpCombine;
   _source = Rgba(255, 255, 255, 255);
 
-  _fillSpan = painter_local->codemgr.getFillSpan(
-    BlitJit::PixelFormat::ARGB32, 
-    BlitJit::PixelFormat::ARGB32,
-    BlitJit::Operator::CompositeOver);
+  painter_local->getFillFuncs(&_fillFuncs);
 
   _setDeviceDefaults();
 }
@@ -800,6 +861,16 @@ double RasterPainterDevice::miterLimit() const
   return _miterLimit;
 }
 
+void RasterPainterDevice::setFillMode(uint32_t mode)
+{
+  _fillMode = mode;
+}
+
+uint32_t RasterPainterDevice::fillMode()
+{
+  return _fillMode;
+}
+
 // ============================================================================
 // [Fog::RasterPainterDevice - Transformations]
 // ============================================================================
@@ -893,7 +964,10 @@ void RasterPainterDevice::viewport(
 
 void RasterPainterDevice::clear()
 {
-  // TODO
+  if (_clipSimple)
+    _renderBoxes(&_clipBox, 1);
+  else
+    _renderBoxes(_workRegion.cData(), _workRegion.count());
 }
 
 void RasterPainterDevice::drawPixel(const Point& p)
@@ -911,6 +985,8 @@ void RasterPainterDevice::drawLine(const Point& start, const Point& end)
 
 void RasterPainterDevice::drawRect(const Rect& r)
 {
+  if (!r.isValid()) return;
+
   if (_transformationsUsed || !_lineIsSimple)
   {
     RasterPainterDevice::drawRect(
@@ -922,7 +998,41 @@ void RasterPainterDevice::drawRect(const Rect& r)
     return;
   }
 
-  // TODO
+  Box box[4];
+  sysuint_t count = 4;
+
+  if (r.width() <= 2 || r.height() <= 2)
+  {
+    box[0].set(r.x1(), r.y1(), r.x2(), r.y2());
+    count = 1;
+  }
+  else
+  {
+    box[0].set(r.x1()  , r.y1()  , r.x2()  , r.y1()+1);
+    box[1].set(r.x1()  , r.y1()+1, r.x1()+1, r.y1()-1);
+    box[2].set(r.x2()-1, r.y1()+1, r.x2()  , r.y1()-1);
+    box[3].set(r.x1()  , r.y2()-1, r.x2()  , r.y2()  );
+  }
+
+  if (_clipSimple)
+  {
+    if (!_clipBox.subsumes(r))
+    {
+      for (sysuint_t i = 0; i < count; i++) Box::intersect(box[0], box[0], _clipBox);
+    }
+    RasterPainterDevice::_renderBoxes(box, count);
+  }
+  else
+  {
+    TemporaryRegion<4> regionBox;
+    TemporaryRegion<16> regionISect;
+    regionBox.set(box, count);
+
+    Region::intersect(regionISect, regionBox, _workRegion);
+    if (!regionISect.count()) return;
+
+    RasterPainterDevice::_renderBoxes(regionISect.cData(), regionISect.count());
+  }
 }
 
 void RasterPainterDevice::drawRound(const Rect& r, const Point& radius)
@@ -947,7 +1057,26 @@ void RasterPainterDevice::fillRect(const Rect& r)
     return;
   }
 
-  // TODO
+  Box box(r.x1(), r.y1(), r.x2(), r.y2());
+
+  if (_clipSimple)
+  {
+    _clipBox.intersect(box, box, _clipBox);
+    if (!box.isValid()) return;
+
+    RasterPainterDevice::_renderBoxes(&box, 1);
+  }
+  else
+  {
+    TemporaryRegion<1> regionBox;
+    TemporaryRegion<16> regionISect;
+    regionBox.set(&box, 1);
+
+    Region::intersect(regionISect, regionBox, _workRegion);
+    if (!regionISect.count()) return;
+
+    RasterPainterDevice::_renderBoxes(regionISect.cData(), regionISect.count());
+  }
 }
 
 void RasterPainterDevice::fillRects(const Rect* r, sysuint_t count)
@@ -970,7 +1099,30 @@ void RasterPainterDevice::fillRects(const Rect* r, sysuint_t count)
     return;
   }
 
-  // TODO
+  Region region;
+  region.set(r, count);
+  if (!region.count()) return;
+
+  if (_clipSimple)
+  {
+    if (_clipBox.subsumes(region.extents()))
+    {
+      _renderBoxes(region.cData(), region.count());
+      return;
+    }
+    region.intersect(_clipBox);
+    if (!region.count()) return;
+
+    _renderBoxes(region.cData(), region.count());
+  }
+  else
+  {
+    Region regionISect;
+    Region::intersect(regionISect, _workRegion, region);
+    if (!regionISect.count()) return;
+
+    _renderBoxes(regionISect.cData(), regionISect.count());
+  }
 }
 
 void RasterPainterDevice::fillRound(const Rect& r, const Point& radius)
@@ -982,7 +1134,18 @@ void RasterPainterDevice::fillRound(const Rect& r, const Point& radius)
 
 void RasterPainterDevice::fillRegion(const Region& region)
 {
-  // TODO
+  if (_clipSimple && _clipBox.subsumes(region.extents()))
+  {
+    _renderBoxes(region.cData(), region.count());
+  }
+  else
+  {
+    TemporaryRegion<16> dst;
+    Region::intersect(dst, _workRegion, region);
+    if (!dst.count()) return;
+
+    _renderBoxes(dst.cData(), dst.count());
+  }
 }
 
 // ============================================================================
@@ -1072,17 +1235,31 @@ void RasterPainterDevice::drawRound(const RectF& r,
     tlr.x(), tlr.y(), trr.x(), trr.y(),
     blr.x(), blr.y(), brr.x(), brr.y());
   rc.normalize_radius();
-  //rc.approximation_scale(worldToScreen(1.0) * g_approxScale);
+  // TODO:
+  // rc.approximation_scale(worldToScreen(1.0) * g_approxScale);
 
   _workPath.clear();
   concatToPath(_workPath, rc, 0);
   drawPath(_workPath);
 }
 
+void RasterPainterDevice::drawEllipse(const PointF& cp, const PointF& r)
+{
+  RasterPainterDevice::drawArc(cp, r, 0.0, 2 * M_PI);
+}
+
+void RasterPainterDevice::drawArc(const PointF& cp, const PointF& r, double start, double sweep)
+{
+  agg::bezier_arc arc(cp.x(), cp.y(), r.x(), r.y(), start, sweep);
+
+  _workPath.clear();
+  concatToPath(_workPath, arc, 0);
+  drawPath(_workPath);
+}
+
 void RasterPainterDevice::drawPath(const Path& path)
 {
-  // TODO
-  _aggDrawPath(path, true);
+  _renderPath(path, true);
 }
 
 void RasterPainterDevice::fillPolygon(const PointF* pts, sysuint_t count)
@@ -1139,40 +1316,60 @@ void RasterPainterDevice::fillRound(const RectF& r,
     tlr.x(), tlr.y(), trr.x(), trr.y(),
     blr.x(), blr.y(), brr.x(), brr.y());
   rc.normalize_radius();
-  //rc.approximation_scale(worldToScreen(1.0) * g_approxScale);
+  // TODO:
+  // rc.approximation_scale(worldToScreen(1.0) * g_approxScale);
 
   _workPath.clear();
   concatToPath(_workPath, rc, 0);
   fillPath(_workPath);
 }
 
+void RasterPainterDevice::fillEllipse(const PointF& cp, const PointF& r)
+{
+  RasterPainterDevice::fillArc(cp, r, 0.0, 2 * M_PI);
+}
+
+void RasterPainterDevice::fillArc(const PointF& cp, const PointF& r, double start, double sweep)
+{
+  agg::bezier_arc arc(cp.x(), cp.y(), r.x(), r.y(), start, sweep);
+
+  _workPath.clear();
+  concatToPath(_workPath, arc, 0);
+  fillPath(_workPath);
+}
+
 void RasterPainterDevice::fillPath(const Path& path)
 {
-  // TODO
-  _aggDrawPath(path, false);
+  _renderPath(path, false);
 }
 
 // ============================================================================
-// [Fog::RasterPainterDevice - Glyph drawing]
+// [Fog::RasterPainterDevice - Glyph / Text Drawing]
 // ============================================================================
 
-void RasterPainterDevice::drawGlyph(const Point& p, const Image& glyph, const Rect* clip)
+void RasterPainterDevice::drawGlyph(const Point& pt, const Glyph& glyph, const Rect* clip)
 {
-  // TODO
+  TemporaryGlyphSet<128> glyphSet;
+  err_t err;
+
+  if ( (err = glyphSet.begin()) ) return;
+  glyphSet._add(glyph._d->ref());
+  if ( (err = glyphSet.end()) ) return;
+
+  _renderGlyphSet(pt, glyphSet, clip);
 }
 
-void RasterPainterDevice::drawGlyphs(const Point* pts, const Image* glyphs, sysuint_t count, const Rect* clip)
+void RasterPainterDevice::drawGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip)
 {
-  // TODO
+  _renderGlyphSet(pt, glyphSet, clip);
 }
 
-// ============================================================================
-// [Fog::RasterPainterDevice - Text drawing]
-// ============================================================================
-
-void RasterPainterDevice::drawText(const Point& p, const String32& text, const Font& font, const Rect* clip)
+void RasterPainterDevice::drawText(const Point& pt, const String32& text, const Font& font, const Rect* clip)
 {
-  // TODO
+  TemporaryGlyphSet<128> glyphSet;
+  if (font.getGlyphs(text.cData(), text.length(), glyphSet)) return;
+
+  _renderGlyphSet(pt, glyphSet, clip);
 }
 
 void RasterPainterDevice::drawText(const Rect& r, const String32& text, const Font& font, uint32_t align, const Rect* clip)
@@ -1272,6 +1469,8 @@ void RasterPainterDevice::_setDeviceDefaults()
   _lineDashOffset = 0.0;
 
   _miterLimit = 1.0;
+
+  _fillMode = FillNonZero;
 
   _transformations = AffineMatrix();
   _transformationsUsed = false;
@@ -1540,12 +1739,12 @@ static void FOG_OPTIMIZEDCALL AggRenderScanlines(RasterPainterDevice* d, Rasteri
   int exty2 = d->_clipBox.y2();
 
   // const PainterSoftwareDrawFuncs* funcs = D_DRAW(painter_d);
+  FillSpan fillSpan = d->_fillFuncs.fillSpan;
+  FillSpanM fillSpanM_A8 = d->_fillFuncs.fillSpanM_A8;
 
   // solid source
   if (1)
   {
-    uint32_t src = d->_source.i;
-
     while (ras.sweep_scanline(sl))
     {
       unsigned num_spans = sl.num_spans();
@@ -1567,7 +1766,7 @@ static void FOG_OPTIMIZEDCALL AggRenderScanlines(RasterPainterDevice* d, Rasteri
 
         if (len > 0)
         {
-          //funcs->solidSpanMaskA8(pCur, src, span->covers, 0, (unsigned)len);
+          fillSpanM_A8(pCur, &d->_source, span->covers, (unsigned)len);
         }
         else
         {
@@ -1577,11 +1776,12 @@ static void FOG_OPTIMIZEDCALL AggRenderScanlines(RasterPainterDevice* d, Rasteri
           uint32_t cover = (uint32_t)*(span->covers);
           if (cover == 0xFF)
           {
-            d->_fillSpan(pCur, &d->_source, len);
+            fillSpan(pCur, &d->_source, len);
           }
           else
           {
-            //funcs->solidSpanConstMaskA8(pCur, src, cover, (unsigned)len);
+            uint32_t t = Raster::bytemul(d->_source.i, cover);
+            fillSpan(pCur, &t, len);
           }
         }
 
@@ -1592,17 +1792,107 @@ static void FOG_OPTIMIZEDCALL AggRenderScanlines(RasterPainterDevice* d, Rasteri
   }
 }
 
-void RasterPainterDevice::_aggDrawPath(const Path& path, bool stroke)
+void RasterPainterDevice::_renderGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip)
+{
+  // TODO: Hardcoded to A8 glyph format
+  // TODO: Clipping
+
+  Box clipBox = _clipBox;
+  if (clip) Box::intersect(clipBox, clipBox, Box(*clip));
+
+  if (!clipBox.isValid()) return;
+  if (!glyphSet.length()) return;
+
+  const Glyph* glyphs = glyphSet.glyphs();
+  sysuint_t count = glyphSet.length();
+
+  int px = pt.x();
+  int py = pt.y();
+
+  uint8_t* pBuf = _workRaster;
+  sysint_t stride = _stride;
+
+  FillSpanM fillSpanM = _fillFuncs.fillSpanM_A8;
+
+  for (sysuint_t i = 0; i < count; i++)
+  {
+    Glyph::Data* glyphd = glyphs[i]._d;
+
+    int px1 = px + glyphd->offsetX;
+    int py1 = py + glyphd->offsetY;
+    int px2 = px1 + glyphd->image.width();
+    int py2 = py1 + glyphd->image.height();
+
+    px += glyphd->advance;
+
+    int x1 = px1; if (x1 < clipBox.x1()) x1 = clipBox.x1();
+    int y1 = py1; if (y1 < clipBox.y1()) y1 = clipBox.y1();
+    int x2 = px2; if (x2 > clipBox.x2()) x2 = clipBox.x2();
+    int y2 = py2; if (y2 > clipBox.y2()) y2 = clipBox.y2();
+
+    int w = x2 - x1; if (w <= 0) continue;
+    int h = y2 - y1; if (h <= 0) continue;
+
+    // TODO: Hardcoded
+    uint8_t* pCur = pBuf;
+    pCur += (sysint_t)y1 * stride;
+    pCur += (sysint_t)x1 * 4;
+
+    // TODO: Hardcoded
+    sysint_t glyphStride = glyphd->image.stride();
+    const uint8_t* pGlyph = glyphd->image.cData();
+
+    pGlyph += (sysint_t)(y1 - py1) * glyphStride;
+    pGlyph += (sysint_t)(x1 - px1);
+
+    do {
+      fillSpanM(pCur, &_source, pGlyph, (sysuint_t)w);
+      pCur += stride;
+      pGlyph += glyphStride;
+    } while (--h);
+  }
+}
+
+void RasterPainterDevice::_renderBoxes(const Box* box, sysuint_t count)
+{
+  if (!count) return;
+
+  uint8_t* pBuf = _workRaster;
+  sysint_t stride = _stride;
+
+  FillSpan fillSpan = _fillFuncs.fillSpan;
+
+  for (sysuint_t i = 0; i < count; i++)
+  {
+    int x = box[i].x1();
+    int y = box[i].y1();
+    int w = box[i].width();
+    int h = box[i].height();
+    if (!w || !h) continue;
+
+    // TODO: Hardcoded
+    uint8_t* pCur = pBuf + (sysint_t)y * stride + (sysint_t)x * 4;
+
+    do {
+      fillSpan(pCur, &_source, (sysuint_t)w);
+      pCur += stride;
+    } while (--h);
+  }
+}
+
+void RasterPainterDevice::_renderPath(const Path& path, bool stroke)
 {
   AggPath aggPath(path);
   ConvCurve curvesPath(aggPath);
 
   _ras.reset();
+  _ras.filling_rule(static_cast<agg::filling_rule_e>(_fillMode));
   _ras.clip_box(_clipBox.x1(), _clipBox.y1(), _clipBox.x2(), _clipBox.y2());
 
   // This can be a bit messy, but it's here to increase performance. We will
   // not calculate using transformations if they are not used. Also we add
-  // stroke and line dash pipeline if it's needed.
+  // stroke and line dash pipeline only if it's needed. This is goal of 
+  // AntiGrain to be able to setup only pipelines what are really need.
   if (_transformationsUsed)
   {
     if (stroke)

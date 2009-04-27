@@ -78,48 +78,48 @@ struct FOG_API Converter
     //! @brief 8 bit alpha channel.
     A8                  = ImageFormat::A8,
     //! @brief 1 bit alpha channel (mask).
-    A1                  = ImageFormat::A1,
+    A1                  = ImageFormat::Count + 0,
 
     // Extended formats
 
     //! Similar to @c Fog::Converter::ARGB32, but byteswapped.
-    BGRA32              = ImageFormat::Count + 0,
+    BGRA32              = ImageFormat::Count + 1,
     //! Similar to @c Fog::Converter::PRGB32, but byteswapped.
-    BGRP32              = ImageFormat::Count + 1,
+    BGRP32              = ImageFormat::Count + 2,
     //! Similar to @c Fog::Converter::XRGB32, but byteswapped.
-    BGRX32              = ImageFormat::Count + 2,
+    BGRX32              = ImageFormat::Count + 3,
 
     //! 16 bit pixel format. 5 values for red, 6 for green and 5 for blue.
-    RGB16_5650          = ImageFormat::Count + 3,
+    RGB16_5650          = ImageFormat::Count + 4,
     //! 16 bit pixel format. 5 values for red, 5 for green and 5 for blue.
-    RGB16_5550          = ImageFormat::Count + 4,
+    RGB16_5550          = ImageFormat::Count + 5,
     //! 16 bit pixel format. 5 values for red, 5 for green, 5 for blue and 1 for alpha channel (mask).
-    RGB16_5551          = ImageFormat::Count + 5,
+    RGB16_5551          = ImageFormat::Count + 6,
 
     //! Similar to @c Fog::Converter::RGB16_5650, but byteswapped.
-    RGB16_5650_ByteSwap = ImageFormat::Count + 6,
+    RGB16_5650_ByteSwap = ImageFormat::Count + 7,
     //! Similar to @c Fog::Converter::RGB16_5550, but byteswapped.
-    RGB16_5550_ByteSwap = ImageFormat::Count + 7,
+    RGB16_5550_ByteSwap = ImageFormat::Count + 8,
     //! Similar to @c Fog::Converter::RGB16_5551, but byteswapped.
-    RGB16_5551_ByteSwap = ImageFormat::Count + 8,
+    RGB16_5551_ByteSwap = ImageFormat::Count + 9,
 
     //! 4 bit indexed format.
-    I4                  = ImageFormat::Count + 9,
+    I4                  = ImageFormat::Count + 10,
     //! 1 bit indexed format.
-    I1                  = ImageFormat::Count + 10,
+    I1                  = ImageFormat::Count + 11,
 
     //! 8 bit indexed format with rgb 2x3x2 color cube.
-    I8_RGB232           = ImageFormat::Count + 11,
+    I8_RGB232           = ImageFormat::Count + 12,
     //! 8 bit indexed format with rgb 2x2x2 color cube.
-    I8_RGB222           = ImageFormat::Count + 12,
+    I8_RGB222           = ImageFormat::Count + 13,
     //! 8 bit indexed format with rgb 1x1x1 color cube.
-    I8_RGB111           = ImageFormat::Count + 13,
+    I8_RGB111           = ImageFormat::Count + 14,
 
     //! @brief 4 bit alpha channel.
-    A4                  = ImageFormat::Count + 14,
+    A4                  = ImageFormat::Count + 15,
 
     //! @brief Count of image converter built-in formats.
-    Count               = ImageFormat::Count + 15,
+    Count               = ImageFormat::Count + 16,
 
     //! @brief Uninitialized pixel converter.
     Invalid             = 0xFFFFFFFE,

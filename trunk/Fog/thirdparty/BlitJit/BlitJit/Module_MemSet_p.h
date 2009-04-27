@@ -10,10 +10,10 @@
 // copies of the Software, and to permit persons to whom the
 // Software is furnished to do so, subject to the following
 // conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be
 // included in all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 // EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
 // OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -24,63 +24,46 @@
 // OTHER DEALINGS IN THE SOFTWARE.
 
 // [Guard]
-#ifndef _BLITJIT_CODEMANAGER_H
-#define _BLITJIT_CODEMANAGER_H
+#ifndef _BLITJIT_MODULE_MEMSET_H
+#define _BLITJIT_MODULE_MEMSET_H
 
 // [Dependencies]
 #include <AsmJit/Compiler.h>
-#include <AsmJit/Lock.h>
-#include <AsmJit/Logger.h>
-#include <AsmJit/MemoryManager.h>
 
-#include "Api.h"
-#include "Generator.h"
+#include "Module_p.h"
 
 namespace BlitJit {
 
-//! @addtogroup BlitJit_Api
+//! @addtogroup BlitJit_Private
 //! @{
 
-struct BLITJIT_API CodeManager
+// ============================================================================
+// [BlitJit::Module_MemSet32]
+// ============================================================================
+
+struct BLITJIT_HIDDEN Module_MemSet32 : public Module_Fill
 {
-  CodeManager();
-  ~CodeManager();
+  Module_MemSet32(
+    Generator* g,
+    const PixelFormat* pf,
+    const Operator* op);
+  virtual ~Module_MemSet32();
 
-  void configureCompiler(AsmJit::Compiler* c);
+  virtual void init(AsmJit::PtrRef& _src);
+  virtual void free();
 
-  FillSpanFn getFillSpan(UInt32 dId, UInt32 sId, UInt32 oId);
-  FillRectFn getFillRect(UInt32 dId, UInt32 sId, UInt32 oId);
+  virtual void processPixelsPtr(
+    const AsmJit::PtrRef* dst,
+    const AsmJit::PtrRef* src,
+    const AsmJit::PtrRef* msk,
+    SysInt count,
+    SysInt offset,
+    UInt32 kind,
+    UInt32 flags);
 
-  BlitSpanFn getBlitSpan(UInt32 dId, UInt32 sId, UInt32 oId);
-  BlitRectFn getBlitRect(UInt32 dId, UInt32 sId, UInt32 oId);
-
-  inline AsmJit::MemoryManager* memmgr() { return _memmgr; }
-
-  // Logger
-  AsmJit::FileLogger _logger;
-
-  // Functions
-  enum
-  {
-    FillSpanFnCount = PixelFormat::Count * PixelFormat::Count * Operator::Count,
-    FillRectFnCount = PixelFormat::Count * PixelFormat::Count * Operator::Count,
-
-    BlitSpanFnCount = PixelFormat::Count * PixelFormat::Count * Operator::Count,
-    BlitRectFnCount = PixelFormat::Count * PixelFormat::Count * Operator::Count 
-  };
-
-  // Cache
-  FillSpanFn _fillSpan[FillSpanFnCount];
-  FillRectFn _fillRect[FillSpanFnCount];
-
-  BlitSpanFn _blitSpan[BlitSpanFnCount];
-  BlitRectFn _blitRect[BlitRectFnCount];
-
-  // Memory manager
-  AsmJit::MemoryManager* _memmgr;
-
-  // Lock
-  AsmJit::Lock _lock;
+  AsmJit::SysIntRef srcgp;
+  AsmJit::MMRef srcmm;
+  AsmJit::XMMRef srcxmm;
 };
 
 //! @}
@@ -88,4 +71,4 @@ struct BLITJIT_API CodeManager
 } // BlitJit namespace
 
 // [Guard]
-#endif // _BLITJIT_CODEMANAGER_H
+#endif // _BLITJIT_MODULE_MEMSET_H

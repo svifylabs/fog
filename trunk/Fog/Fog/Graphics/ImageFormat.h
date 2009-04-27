@@ -45,18 +45,19 @@ struct FOG_API ImageFormat
   //! @c BGR24 format:
   //! - Little endian: RRGGBB
   //! - Big endian   : BBGGRR
-  //! @c I8 format:
-  //! - no difference, 1 BYTE per pixel (index to palette)
   //! @c A8 format:
   //! - no difference, 1 BYTE per pixel
-  //! @c A1 format:
-  //! - no difference, 1 BIT per pixel
+  //! @c I8 format:
+  //! - no difference, 1 BYTE per pixel (index to palette)
   enum Format
   {
     // NOTE: 
     // - ARGB32 format is expected to be 0 !
     // - PRGB32 format is expected to be 1 !
     // - XRGB32 format is expected to be 2 !
+    // - RGB24  format is expected to be 3 !
+    // - BGR24  format is expected to be 4 !
+    // - A8     format is expected to be 5 !
 
     //! @brief 32 bit RGBA (equivalent for @c Rgba).
     ARGB32 = 0,
@@ -70,15 +71,13 @@ struct FOG_API ImageFormat
     //! @brief 24 bit BGR.
     BGR24 = 4,
 
-    //! @brief 8 bit indexed pixel format.
-    I8 = 5,
     //! @brief 8 bit alpha channel.
-    A8 = 6,
-    //! @brief 1 bit alpha channel (mask).
-    A1 = 7,
+    A8 = 5,
+    //! @brief 8 bit indexed pixel format.
+    I8 = 6,
 
-    //! @brief Count of Fog pixel formats.
-    Count = 8,
+    //! @brief Count of image formats.
+    Count = 7,
 
     //! @brief Invalid pixel format.
     Invalid = 0xFFFFFFFF
@@ -166,7 +165,7 @@ struct FOG_API ImageFormat
 
   static Data* _formats;
   static Data* _getById(uint32_t id);
-  static Data* _getByName(const Fog::String32& name);
+  static Data* _getByName(const String32& name);
 
   // [Construction / Destruction]
 
@@ -190,7 +189,7 @@ struct FOG_API ImageFormat
   {
   }
 
-  FOG_INLINE ImageFormat(const Fog::String32& name)
+  FOG_INLINE ImageFormat(const String32& name)
     : _d(_getByName(name))
   {
   }
@@ -272,7 +271,7 @@ struct FOG_API ImageFormat
   FOG_INLINE ImageFormat& set(uint32_t id)
   { _d = _getById(id); return *this; }
 
-  FOG_INLINE ImageFormat& set(const Fog::String32& name)
+  FOG_INLINE ImageFormat& set(const String32& name)
   { _d = _getByName(name); return *this; }
 
   // [Overloaded Operators]
@@ -283,7 +282,7 @@ struct FOG_API ImageFormat
   FOG_INLINE ImageFormat& operator=(uint32_t id)
   { return set(id); }
 
-  FOG_INLINE ImageFormat& operator=(const Fog::String32& name)
+  FOG_INLINE ImageFormat& operator=(const String32& name)
   { return set(name); }
 
   // [Static]
@@ -291,7 +290,7 @@ struct FOG_API ImageFormat
   static FOG_INLINE ImageFormat getById(uint32_t id)
   { return ImageFormat(_getById(id)); }
 
-  static FOG_INLINE ImageFormat getByName(const Fog::String32& name)
+  static FOG_INLINE ImageFormat getByName(const String32& name)
   { return ImageFormat(_getByName(name)); }
 
   static FOG_INLINE ImageFormat argb32()  { return ImageFormat(&_formats[ARGB32]); }
@@ -301,7 +300,6 @@ struct FOG_API ImageFormat
   static FOG_INLINE ImageFormat bgr24()   { return ImageFormat(&_formats[BGR24 ]); }
   static FOG_INLINE ImageFormat i8()      { return ImageFormat(&_formats[I8    ]); }
   static FOG_INLINE ImageFormat a8()      { return ImageFormat(&_formats[A8    ]); }
-  static FOG_INLINE ImageFormat a1()      { return ImageFormat(&_formats[A1    ]); }
   static FOG_INLINE ImageFormat invalid() { return ImageFormat(&_formats[Count ]); }
 
   // [Members]

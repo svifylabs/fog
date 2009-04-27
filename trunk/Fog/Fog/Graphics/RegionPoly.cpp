@@ -748,7 +748,7 @@ Region& Region::polyPolygon(const Point* src, const sysuint_t *count, sysuint_t 
   pSLL = ET.scanlines.next;
   curPtBlock = &firstPtBlock;
 
-  if (fillRule != FillRuleWinding)
+  if (fillRule != FillNonZero)
   {
     /* for each scanline */
     for (y = ET.ymin; y < ET.ymax; y++)
@@ -787,7 +787,7 @@ Region& Region::polyPolygon(const Point* src, const sysuint_t *count, sysuint_t 
       insertionSort(&AET);
     }
   }
-  else /* fillRule == Wde_FillRuleWinding */
+  else /* fillRule == FillNonZero */
   {
     /* for each scanline */
     for (y = ET.ymin; y < ET.ymax; y++)

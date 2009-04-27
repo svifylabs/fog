@@ -13,20 +13,42 @@ struct MyWindow : public Window
   {
     Painter* p = e->painter();
 
-    p->setSource(Rgba(0x00000000));
-    p->clear();
-
-    p->setSource(Rgba(0xFFFFFFFF));
-    p->setLineWidth(5);
-
-    Path path;
     int w = width();
     int h = height();
-    for (sysuint_t i = 0; i < 10; i++)
+
+    p->setSource(Rgba(0xFF000000));
+    p->clear();
+/*
+    p->setSource(Rgba(0xFFFFFFFF));
+    p->setLineWidth(20);
+
+    p->drawLine(PointF(20, 20), PointF(520, 24));
+*/
+    //p->setSource(0xFFFFFFFF);
+    //p->fillRect(Rect(10, 10, 200, 200));
+
+    Font font;
+    font.setFamily(StubAscii8("Arial"));
+
+    p->setSource(0xFFFFFFFF);
+    //p->drawText(Point(10, 10), StubAscii8("Test"), font);
+/*
+    for (sysuint_t i = 0; i < 1000; i++)
+    {
+      p->drawText(Point(rand() % w, rand() % h), StubAscii8("ABCDEFGHIJKLMOPQRSTUVWXYZ"), font);
+    }*/
+
+    for (sysuint_t i = 0; i < 70; i++)
+    {
+      p->drawText(Point(50, i * 14), StubAscii8("ABCDEFGHIJKLMOPQRSTUVWXYZ"), font);
+    }
+/*
+    Path path;
+    for (sysuint_t i = 0; i < 1; i++)
     {
       path.clear();
       path.moveTo(rand() % w, rand() % h);
-      for (sysuint_t j = 0; j < 100; j++)
+      for (sysuint_t j = 0; j < 30; j++)
       {
         path.cubicCurveTo(
           rand() % w, rand() % h,
@@ -35,8 +57,20 @@ struct MyWindow : public Window
       }
       path.closePolygon();
 
-      p->setSource(Rgba(rand() + (rand() << 16)));
-      p->fillPath(path);
+      p->setSource(Rgba(0xFF000000 | (rand() + (rand() << 16))));
+      //p->setSource(0xFFFFFFFF);
+      p->setLineWidth(4);
+      p->setFillMode(FillNonZero);
+      p->drawPath(path);
+    }
+*/
+  }
+  
+  virtual void onKey(KeyEvent* e)
+  {
+    if (e->code() == EvKeyPress && e->key() == KeyEnter)
+    {
+      repaint(RepaintWidget);
     }
   }
 };

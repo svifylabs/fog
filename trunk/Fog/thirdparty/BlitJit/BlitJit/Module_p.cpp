@@ -27,9 +27,9 @@
 #include <AsmJit/Compiler.h>
 #include <AsmJit/CpuInfo.h>
 
-#include "Api.h"
-#include "Generator.h"
-#include "GeneratorPrivate.h"
+#include "BlitJit.h"
+#include "Generator_p.h"
+#include "Module_p.h"
 
 namespace BlitJit {
 
@@ -37,15 +37,23 @@ namespace BlitJit {
 // [BlitJit::Module]
 // ============================================================================
 
-Module::Module(Generator* g) :
-  g(g),
-  c(g->c),
-  _maxPixelsPerLoop(1),
-  _complexity(Simple),
-  _isNop(false),
-  _prefetchDst(true),
-  _prefetchSrc(true),
-  _oldKindPos(NULL)
+Module::Module(Generator* g, 
+  const PixelFormat* dstPf,
+  const PixelFormat* srcPf,
+  const PixelFormat* mskPf,
+  const Operator* op) :
+    g(g),
+    c(g->c),
+    dstPf(dstPf),
+    srcPf(srcPf),
+    mskPf(mskPf),
+    op(op),
+    _maxPixelsPerLoop(1),
+    _complexity(Simple),
+    _isNop(false),
+    _prefetchDst(true),
+    _prefetchSrc(true),
+    _oldKindPos(NULL)
 {
   setNumKinds(1);
   _bail = c->newLabel();
@@ -102,76 +110,77 @@ AsmJit::Label* Module::getKindLabel(UInt32 kind) const
 }
 
 // ============================================================================
-// [BlitJit::FilterModule]
+// [BlitJit::Module_Filter]
 // ============================================================================
 
-FilterModule::FilterModule(
+Module_Filter::Module_Filter(
   Generator* g,
-  const PixelFormat* pf) :
-    Module(g), pf(pf)
+  const PixelFormat* dstPf) :
+    Module(g, dstPf, NULL, NULL, NULL)
 {
 }
 
-FilterModule::~FilterModule()
+Module_Filter::~Module_Filter()
 {
 }
 
-void FilterModule::init()
+void Module_Filter::init()
 {
 }
 
-void FilterModule::free()
+void Module_Filter::free()
 {
 }
 
 // ============================================================================
-// [BlitJit::FillModule]
+// [BlitJit::Module_Fill]
 // ============================================================================
 
-FillModule::FillModule(
+Module_Fill::Module_Fill(
   Generator* g,
-  const PixelFormat* pf,
+  const PixelFormat* dstPf,
+  const PixelFormat* srcPf,
+  const PixelFormat* mskPf,
   const Operator* op) :
-    FilterModule(g, pf), op(op)
+    Module(g, dstPf, srcPf, mskPf, op)
 {
 }
 
-FillModule::~FillModule()
+Module_Fill::~Module_Fill()
 {
 }
 
-void FillModule::init(AsmJit::PtrRef& _src, const PixelFormat* pfSrc)
+void Module_Fill::init(AsmJit::PtrRef& _src)
 {
-  BLITJIT_USE(_src);
-  BLITJIT_USE(pfSrc);
 }
 
-void FillModule::free()
+void Module_Fill::free()
 {
 }
 
 // ============================================================================
-// [BlitJit::CompositeModule]
+// [BlitJit::Module_Blit]
 // ============================================================================
 
-CompositeModule::CompositeModule(
+Module_Blit::Module_Blit(
   Generator* g,
-  const PixelFormat* pfDst,
-  const PixelFormat* pfSrc,
+  const PixelFormat* dstPf,
+  const PixelFormat* srcPf,
+  const PixelFormat* mskPf,
   const Operator* op) :
-    Module(g), pfDst(pfDst), pfSrc(pfSrc), op(op)
+    Module(g, dstPf, srcPf, mskPf, op)
 {
 }
 
-CompositeModule::~CompositeModule()
+Module_Blit::~Module_Blit()
 {
 }
 
-void CompositeModule::init()
+void Module_Blit::init()
 {
 }
 
-void CompositeModule::free()
+void Module_Blit::free()
 {
 }
 

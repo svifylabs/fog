@@ -69,7 +69,7 @@ struct AtomicOperation<T, 4>
       #error "Fog::AtomicOperation<T, 4>::setXchg() - missing xchg implementation"
     #endif
   }
-  
+
   static FOG_INLINE bool cmpXchg(T* atomic, T compar, T value)
   {
     #if defined(FOG_CC_GNU) && (defined(FOG_ARCH_X86) || defined(FOG_ARCH_X86_64))

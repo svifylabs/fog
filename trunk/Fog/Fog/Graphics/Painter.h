@@ -97,6 +97,9 @@ struct FOG_API PainterDevice
   virtual void setMiterLimit(double miterLimit) = 0;
   virtual double miterLimit() const = 0;
 
+  virtual void setFillMode(uint32_t mode) = 0;
+  virtual uint32_t fillMode() = 0;
+
   // [Transformations]
 
   virtual void setMatrix(const AffineMatrix& m) = 0;
@@ -114,7 +117,7 @@ struct FOG_API PainterDevice
     double screenX1, double screenY1, double screenX2, double screenY2,
     uint32_t viewportOption) = 0;
 
-  // [Raster drawing]
+  // [Raster Drawing]
 
   virtual void clear() = 0;
   virtual void drawPixel(const Point& p) = 0;
@@ -126,7 +129,7 @@ struct FOG_API PainterDevice
   virtual void fillRound(const Rect& r, const Point& radius) = 0;
   virtual void fillRegion(const Region& region) = 0;
 
-  // [Vector drawing]
+  // [Vector Drawing]
 
   virtual void drawPoint(const PointF& p) = 0;
   virtual void drawLine(const PointF& start, const PointF& end) = 0;
@@ -138,6 +141,8 @@ struct FOG_API PainterDevice
   virtual void drawRound(const RectF& r, 
     const PointF& tlr, const PointF& trr,
     const PointF& blr, const PointF& brr) = 0;
+  virtual void drawEllipse(const PointF& cp, const PointF& r) = 0;
+  virtual void drawArc(const PointF& cp, const PointF& r, double start, double sweep) = 0;
   virtual void drawPath(const Path& path) = 0;
 
   virtual void fillPolygon(const PointF* pts, sysuint_t count) = 0;
@@ -147,19 +152,19 @@ struct FOG_API PainterDevice
   virtual void fillRound(const RectF& r,
     const PointF& tlr, const PointF& trr,
     const PointF& blr, const PointF& brr) = 0;
+  virtual void fillEllipse(const PointF& cp, const PointF& r) = 0;
+  virtual void fillArc(const PointF& cp, const PointF& r, double start, double sweep) = 0;
   virtual void fillPath(const Path& path) = 0;
 
-  // [Glyph drawing]
+  // [Glyph / Text Drawing]
 
-  virtual void drawGlyph(const Point& p, const Image& glyph, const Rect* clip) = 0;
-  virtual void drawGlyphs(const Point* pts, const Image* glyphs, sysuint_t count, const Rect* clip) = 0;
-
-  // [Text drawing]
+  virtual void drawGlyph(const Point& pt, const Glyph& glyph, const Rect* clip) = 0;
+  virtual void drawGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip) = 0;
 
   virtual void drawText(const Point& p, const String32& text, const Font& font, const Rect* clip) = 0;
   virtual void drawText(const Rect& r, const String32& text, const Font& font, uint32_t align, const Rect* clip) = 0;
 
-  // [Image drawing]
+  // [Image Drawing]
 
   virtual void drawImage(const Point& p, const Image& image, const Rect* irect) = 0;
 
@@ -255,6 +260,9 @@ struct FOG_API Painter
   FOG_INLINE void setMiterLimit(double miterLimit) { _d->setMiterLimit(miterLimit); }
   FOG_INLINE double miterLimit() const { return _d->miterLimit(); }
 
+  FOG_INLINE void setFillMode(uint32_t mode) { _d->setFillMode(mode); }
+  FOG_INLINE uint32_t fillMode() { return _d->fillMode(); }
+
   // [Transformations]
 
   FOG_INLINE void setMatrix(const AffineMatrix& m) { _d->setMatrix(m); }
@@ -281,7 +289,7 @@ struct FOG_API Painter
       viewportOption);
   }
 
-  // [Raster drawing]
+  // [Raster Drawing]
 
   FOG_INLINE void clear() { _d->clear(); }
   FOG_INLINE void drawPixel(const Point& p) { _d->drawPixel(p); }
@@ -293,7 +301,7 @@ struct FOG_API Painter
   FOG_INLINE void fillRound(const Rect& r, const Point& radius) { _d->fillRound(r, radius); }
   FOG_INLINE void fillRegion(const Region& region) { _d->fillRegion(region); }
 
-  // [Vector drawing]
+  // [Vector Drawing]
 
   FOG_INLINE void drawPoint(const PointF& p) { _d->drawPoint(p); }
   FOG_INLINE void drawLine(const PointF& start, const PointF& end) { _d->drawLine(start, end); }
@@ -305,6 +313,8 @@ struct FOG_API Painter
   FOG_INLINE void drawRound(const RectF& r, 
     const PointF& tlr, const PointF& trr,
     const PointF& blr, const PointF& brr) { _d->drawRound(r, tlr, trr, blr, brr); }
+  FOG_INLINE void drawEllipse(const PointF& cp, const PointF& r) { _d->drawEllipse(cp, r); }
+  FOG_INLINE void drawArc(const PointF& cp, const PointF& r, double start, double sweep) { _d->drawArc(cp, r, start, sweep); }
   FOG_INLINE void drawPath(const Path& path) { _d->drawPath(path); }
 
   FOG_INLINE void fillPolygon(const PointF* pts, sysuint_t count) { _d->fillPolygon(pts, count); }
@@ -314,19 +324,31 @@ struct FOG_API Painter
   FOG_INLINE void fillRound(const RectF& r,
     const PointF& tlr, const PointF& trr,
     const PointF& blr, const PointF& brr) { _d->fillRound(r, tlr, trr, blr, brr); }
+  FOG_INLINE void fillEllipse(const PointF& cp, const PointF& r) { _d->fillEllipse(cp, r); }
+  FOG_INLINE void fillArc(const PointF& cp, const PointF& r, double start, double sweep) { _d->fillArc(cp, r, start, sweep); }
   FOG_INLINE void fillPath(const Path& path) { _d->fillPath(path); }
 
-  // [Glyph drawing]
+  // [Glyph / Text Drawing]
 
-  FOG_INLINE void drawGlyph(const Point& p, const Image& glyph, const Rect* clip = 0) { _d->drawGlyph(p, glyph, clip); }
-  FOG_INLINE void drawGlyphs(const Point* pts, const Image* glyphs, sysuint_t count, const Rect* clip = 0) { _d->drawGlyphs(pts, glyphs, count, clip); }
+  FOG_INLINE void drawGlyph(
+    const Point& pt, const Glyph& glyph, const Rect* clip = 0)
+  { _d->drawGlyph(pt, glyph, clip); }
+
+  FOG_INLINE void drawGlyphSet(
+    const Point& pt, const GlyphSet& glyphSet, const Rect* clip = 0)
+  { _d->drawGlyphSet(pt, glyphSet, clip); }
 
   // [Text drawing]
 
-  FOG_INLINE void drawText(const Point& p, const String32& text, const Font& font, const Rect* clip = 0) { _d->drawText(p, text, font, clip); }
-  FOG_INLINE void drawText(const Rect& r, const String32& text, const Font& font, uint32_t align, const Rect* clip = 0) { _d->drawText(r, text, font, align, clip); }
+  FOG_INLINE void drawText(
+    const Point& p, const String32& text, const Font& font, const Rect* clip = 0)
+  { _d->drawText(p, text, font, clip); }
 
-  // [Image drawing]
+  FOG_INLINE void drawText(
+    const Rect& r, const String32& text, const Font& font, uint32_t align, const Rect* clip = 0)
+  { _d->drawText(r, text, font, align, clip); }
+
+  // [Image Drawing]
 
   FOG_INLINE void drawImage(const Point& p, const Image& image, const Rect* irect = 0) { _d->drawImage(p, image, irect); }
 

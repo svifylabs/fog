@@ -98,7 +98,7 @@ struct FOG_API Region
   FOG_INLINE bool isStrong() const { return _d->flags.anyOf(Data::IsStrong); }
 
   void setSharable(bool val);
-  void setWeakAssignPrevented(bool val);
+  void setStrong(bool val);
 
   // [Data]
 

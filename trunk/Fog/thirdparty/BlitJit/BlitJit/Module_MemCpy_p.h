@@ -10,10 +10,10 @@
 // copies of the Software, and to permit persons to whom the
 // Software is furnished to do so, subject to the following
 // conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be
 // included in all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 // EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
 // OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -23,41 +23,46 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 // OTHER DEALINGS IN THE SOFTWARE.
 
-// This file is designed to be changeable. Platform specific changes
-// should be applied to this file and this guarantes and never versions
-// of BlitJit library will never overwrite generated config files.
-//
-// So modify this will by your build system or hand.
+// [Guard]
+#ifndef _BLITJIT_MODULE_MEMCPY_H
+#define _BLITJIT_MODULE_MEMCPY_H
+
+// [Dependencies]
+#include <AsmJit/Compiler.h>
+
+#include "Module_p.h"
+
+namespace BlitJit {
+
+//! @addtogroup BlitJit_Private
+//! @{
+
+// ============================================================================
+// [BlitJit::Module_MemCpy32]
+// ============================================================================
+
+struct BLITJIT_HIDDEN Module_MemCpy32 : public Module_Blit
+{
+  Module_MemCpy32(
+    Generator* g,
+    const PixelFormat* dstPf,
+    const PixelFormat* srcPf,
+    const Operator* op);
+  virtual ~Module_MemCpy32();
+
+  virtual void processPixelsPtr(
+    const AsmJit::PtrRef* dst,
+    const AsmJit::PtrRef* src,
+    const AsmJit::PtrRef* msk,
+    SysInt count,
+    SysInt offset,
+    UInt32 kind,
+    UInt32 flags);
+};
+
+//! @}
+
+} // BlitJit namespace
 
 // [Guard]
-#ifndef _BLITJIT_CONFIG_H
-#define _BLITJIT_CONFIG_H
-
-// [BlitJit - OS]
-// #define BLITJIT_WINDOWS
-// #define BLITJIT_POSIX
-
-// [BlitJit - Architecture]
-// #define BLITJIT_X86
-// #define BLITJIT_X64
-
-// [BlitJit - Calling Convention]
-//#define BLITJIT_USE_CDECL
-//#define BLITJIT_USE_STDCALL
-#define BLITJIT_USE_FASTCALL
-
-// [BlitJit - API]
-// #define BLITJIT_API
-
-// [BlitJit - Memory Management]
-// #define BLITJIT_MALLOC ::malloc
-// #define BLITJIT_REALLOC ::realloc
-// #define BLITJIT_FREE ::free
-
-
-// [BlitJit - Debug]
-// #define BLITJIT_CRASH() crash()
-// #define BLITJIT_ASSERT(exp) do { if (!(exp)) BLITJIT_CRASH(); } while(0)
-
-// [Guard]
-#endif // _BLITJIT_CONFIG_H
+#endif // _BLITJIT_MODULE_MEMCPY_H

@@ -42,18 +42,18 @@ static int CALLBACK enumFontCb(CONST LOGFONTW* lplf, CONST TEXTMETRICW* lpntm, D
   EnumFontStruct* efs = (EnumFontStruct*)lParam;
   const WCHAR* lfFaceName = lplf->lfFaceName; 
 
-  // some rejects, I dislike '@'
-  if (lfFaceName[0] == TEXT('@')) return 1;
+  // Some rejects, I dislike '@'.
+  if (lfFaceName[0] == L'@') return 1;
   
   // Windows will send us more fonts that we want, but usually
   // equal fonts are sent together, so we will simply copy this
   // font to buffer and compare it with previous. If this will
   // match - reject it now to save cpu cycles.
   if (wcscmp(efs->buffer, lfFaceName) == 0) return 1;
-  // font not match, so copy it to buffer
+  // Font not match, so copy it to buffer.
   wcscpy_s(efs->buffer, 256, lfFaceName);
 
-  // many of the fonts are the same family, so temporary string
+  // Many of the fonts are the same family, so temporary string
   // is here better
   TemporaryString32<TemporaryLength> name;
 
@@ -61,7 +61,7 @@ static int CALLBACK enumFontCb(CONST LOGFONTW* lplf, CONST TEXTMETRICW* lpntm, D
 
   if (!efs->fonts->contains(name)) efs->fonts->append(name);
   
-  // we return 1 to continue listing...
+  // We return 1 to continue listing...
   return 1;
 }
 
@@ -126,7 +126,7 @@ FontFace* FontEngineWin::getFace(
   SelectObject(hdc, (HGDIOBJ)hOldFont);
   DeleteDC(hdc);
 
-  // everything should be OK, create new font face
+  // Everything should be OK, create new font face.
   face = new FontFaceWin();
   face->family = family;
   face->family.squeeze();
@@ -172,50 +172,55 @@ void FontFaceWin::deref()
   if (refCount.deref()) delete this;
 }
 
-void FontFaceWin::getTextWidth(
-  // in
-  const Char32* str, sysuint_t length,
-  // out
-  TextWidth* textWidth)
+err_t FontFaceWin::getGlyphs(const Char32* str, sysuint_t length, GlyphSet& glyphSet)
 {
-  getGlyphs(str, length, NULL, textWidth);
-}
+  err_t err;
+  if ( (err = glyphSet.begin(length)) ) return err;
 
-void FontFaceWin::getGlyphs(
-  // in
-  const Char32* str, sysuint_t length,
-  // out
-  Glyph* target,
-  TextWidth* textWidth)
-{
   AutoLock locked(lock);
 
   Glyph::Data* glyphd;
-  TextWidth tw;
-  ZeroMemory(&tw, sizeof(TextWidth));
-
-  sysuint_t i;
   bool renderUsed = false;
 
-  for (i = 0; i != length; i++)
+  for (sysuint_t i = 0; i != length; i++)
   {
     uint32_t uc = str[i].ch();
 
-    // First try cache
+    // First try cache.
     glyphd = glyphCache.get(uc);
     if (FOG_UNLIKELY(!glyphd))
     {
       if (!renderUsed) renderUsed = renderBegin();
       glyphd = renderGlyph(uc);
-      if (!glyphd) glyphCache.set(uc, glyphd->ref());
+      if (glyphd) glyphCache.set(uc, glyphd);
     }
 
-    target[i]._d = glyphd;
-    tw.advance += glyphd->advance;
+    if (FOG_LIKELY(glyphd)) glyphSet._add(glyphd->ref());
   }
 
-  if (textWidth) memcpy(textWidth, &tw, sizeof(TextWidth));
   if (renderUsed) renderEnd();
+
+  if ( (err = glyphSet.end()) ) return err;
+  return Error::Ok;
+}
+
+err_t FontFaceWin::getTextWidth(const Char32* str, sysuint_t length, TextWidth* textWidth)
+{
+  GlyphSet glyphSet;
+  err_t err = getGlyphs(str, length, glyphSet);
+
+  if (err)
+  {
+    ZeroMemory(textWidth, sizeof(TextWidth));
+    return err;
+  }
+  else
+  {
+    textWidth->advance = glyphSet.advance();
+    textWidth->beginWidth = 0;
+    textWidth->endWidth = 0;
+    return Error::Ok;
+  }
 }
 
 bool FontFaceWin::renderBegin()
@@ -256,9 +261,14 @@ Glyph::Data* FontFaceWin::renderGlyph(uint32_t uc)
   SetBkMode(hdc, TRANSPARENT);
 
   GLYPHMETRICS gm;
+
+  // Identity matrix. It seems that this matrix must be passed to 
+  // GetGlyphOutlineW function.
+  MAT2 m2 = {{0, 1}, {0, 0}, {0, 0}, {0, 1}};
+
   ZeroMemory(&gm, sizeof(gm));
 
-  uint32_t dataSize = GetGlyphOutlineW(hdc, uc, GGO_GRAY8_BITMAP, &gm, 0, NULL, NULL);
+  uint32_t dataSize = GetGlyphOutlineW(hdc, uc, GGO_GRAY8_BITMAP, &gm, 0, NULL, &m2);
 
   if (dataSize == GDI_ERROR) return NULL;
 
@@ -292,7 +302,7 @@ Glyph::Data* FontFaceWin::renderGlyph(uint32_t uc)
   // This should be also equal
   FOG_ASSERT(dataSize == imaged->stride * imaged->height);
 
-  dataSize = GetGlyphOutlineW(hdc, uc, GGO_GRAY8_BITMAP, &gm, dataSize, imaged->data, NULL);
+  dataSize = GetGlyphOutlineW(hdc, uc, GGO_GRAY8_BITMAP, &gm, dataSize, imaged->data, &m2);
   FOG_ASSERT(dataSize != GDI_ERROR);
 
   uint32_t x, y;
@@ -308,7 +318,8 @@ Glyph::Data* FontFaceWin::renderGlyph(uint32_t uc)
   }
 
   // Windows uses bottom-to-top images while we are using top-to-bottom
-  glyphd->image.mirror(Image::MirrorVertical);
+  // glyphd->image.mirror(Image::MirrorVertical);
+
   return glyphd;
 }
 

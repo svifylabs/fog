@@ -24,15 +24,15 @@
 // OTHER DEALINGS IN THE SOFTWARE.
 
 // [Dependencies]
-#include "Api.h"
+#include <AsmJit/Assembler.h>
+#include <AsmJit/Compiler.h>
+#include <AsmJit/Logger.h>
+
+#include "BlitJit.h"
+#include "Constants_p.h"
+#include "Generator_p.h"
 
 namespace BlitJit {
-
-// ============================================================================
-// [Internal prototypes]
-// ============================================================================
-
-static Api::Constants* initConstants();
 
 // ============================================================================
 // [BlitJit::Api - Initialization / Deinitialization]
@@ -40,7 +40,7 @@ static Api::Constants* initConstants();
 
 void Api::init()
 {
-  if (constants == NULL) constants = initConstants();
+  if (Constants::instance == NULL) Constants::init();
 }
 
 // ============================================================================
@@ -55,14 +55,16 @@ const PixelFormat Api::pixelFormats[PixelFormat::Count] =
   { "XRGB32", PixelFormat::XRGB32, 32,  8,  8,  8,  0, 16,  8 ,  0 ,  0, false  , false },
 
   { "RGB24" , PixelFormat::RGB24 , 24,  8,  8,  8,  0, 16,  8 ,  0 ,  0, false  , false },
-  { "BGR24" , PixelFormat::BGR24 , 24,  8,  8,  8,  0,  0,  8 , 16 ,  0, false  , false }
+  { "BGR24" , PixelFormat::BGR24 , 24,  8,  8,  8,  0,  0,  8 , 16 ,  0, false  , false },
+
+  { "A8"    , PixelFormat::A8    ,  8,  0,  0,  0,  8,  0,  0 ,  0 ,  0, false  , false }
 };
 
 // ============================================================================
 // [BlitJit::Api - Operators]
 // ============================================================================
 
-const Operator Api::operations[Operator::Count] = 
+const Operator Api::operators[Operator::Count] = 
 {
   // Name                 | Id                             | S, D Pixel  | S, D Alpha
   { "CompositeSrc"        , Operator::CompositeSrc        , true , true , false, false  },
@@ -90,40 +92,107 @@ const Operator Api::operations[Operator::Count] =
 };
 
 // ============================================================================
-// [BlitJit::Api - Constants]
+// [BlitJit::Api - Generator]
 // ============================================================================
 
-Api::Constants* Api::constants = NULL;
-
-static Api::Constants* initConstants()
+void configureCompiler(AsmJit::Compiler* c)
 {
-  static UInt8 constantsStorage[sizeof(Api::Constants) + 16];
+  static AsmJit::FileLogger logger(stderr);
+  c->setLogger(&logger);
+}
 
-  // Align to 16 bytes (default SSE alignment)
-  Api::Constants* c = (Api::Constants*)(void*)(((SysUInt)constantsStorage + 15) & ~(SysUInt)15);
+PremultiplyFn Api::genPremultiply(
+  const PixelFormat* dstPf)
+{
+  Generator gen;
+  configureCompiler(gen.c);
 
-  c->Cx00800080008000800080008000800080.set_uw(0x0080, 0x0080, 0x0080, 0x0080, 0x0080, 0x0080, 0x0080, 0x0080);
-  c->Cx00FF00FF00FF00FF00FF00FF00FF00FF.set_uw(0x00FF, 0x00FF, 0x00FF, 0x00FF, 0x00FF, 0x00FF, 0x00FF, 0x00FF);
+  gen.genPremultiply(dstPf);
+  return AsmJit::function_cast<PremultiplyFn>(gen.c->make());
+}
 
-  c->Cx000000FF00FF00FF000000FF00FF00FF.set_uw(0x00FF, 0x00FF, 0x00FF, 0x0000, 0x00FF, 0x00FF, 0x00FF, 0x0000);
-  c->Cx00FF000000FF00FF00FF000000FF00FF.set_uw(0x00FF, 0x00FF, 0x0000, 0x00FF, 0x00FF, 0x00FF, 0x0000, 0x00FF);
-  c->Cx00FF00FF000000FF00FF00FF000000FF.set_uw(0x00FF, 0x0000, 0x00FF, 0x00FF, 0x00FF, 0x0000, 0x00FF, 0x00FF);
-  c->Cx00FF00FF00FF000000FF00FF00FF0000.set_uw(0x0000, 0x00FF, 0x00FF, 0x00FF, 0x0000, 0x00FF, 0x00FF, 0x00FF);
+DemultiplyFn Api::genDemultiply(
+  const PixelFormat* dstPf)
+{
+  Generator gen;
+  configureCompiler(gen.c);
 
-  c->Cx00FF00000000000000FF000000000000.set_uw(0x0000, 0x0000, 0x0000, 0x00FF, 0x0000, 0x0000, 0x0000, 0x00FF);
-  c->Cx000000FF00000000000000FF00000000.set_uw(0x0000, 0x0000, 0x00FF, 0x0000, 0x0000, 0x0000, 0x00FF, 0x0000);
-  c->Cx0000000000FF00000000000000FF0000.set_uw(0x0000, 0x00FF, 0x0000, 0x0000, 0x0000, 0x00FF, 0x0000, 0x0000);
-  c->Cx00000000000000FF00000000000000FF.set_uw(0x00FF, 0x0000, 0x0000, 0x0000, 0x00FF, 0x0000, 0x0000, 0x0000);
+  gen.genDemultiply(dstPf);
+  return AsmJit::function_cast<DemultiplyFn>(gen.c->make());
+}
 
-  SysInt i;
+FillSpanFn Api::genFillSpan(
+  const PixelFormat* dstPf,
+  const PixelFormat* srcPf, 
+  const Operator* op)
+{
+  Generator gen;
+  configureCompiler(gen.c);
 
-  for (i = 0; i < 256; i++)
-  {
-    UInt16 x = i > 0 ? (int)((256.0 * 255.0) / (float)i + 0.5) : 0;
-    c->CxDemultiply[i].set_uw(i, i, i, i, i, i, i, i);
-  }
+  gen.genFillSpan(dstPf, srcPf, op);
+  return AsmJit::function_cast<FillSpanFn>(gen.c->make());
+}
 
-  return c;
+FillSpanWithMaskFn Api::genFillSpanWithMask(
+  const PixelFormat* dstPf,
+  const PixelFormat* srcPf,
+  const PixelFormat* mskPf,
+  const Operator* op)
+{
+  Generator gen;
+  configureCompiler(gen.c);
+
+  gen.genFillSpanWithMask(dstPf, srcPf, mskPf, op);
+  return AsmJit::function_cast<FillSpanWithMaskFn>(gen.c->make());
+}
+
+FillRectFn Api::genFillRect(
+  const PixelFormat* dstPf,
+  const PixelFormat* srcPf,
+  const Operator* op)
+{
+  Generator gen;
+  configureCompiler(gen.c);
+
+  gen.genFillRect(dstPf, srcPf, op);
+  return AsmJit::function_cast<FillRectFn>(gen.c->make());
+}
+
+FillRectWithMaskFn Api::genFillRectWithMask(
+  const PixelFormat* dstPf,
+  const PixelFormat* srcPf,
+  const PixelFormat* mskPf,
+  const Operator* op)
+{
+  Generator gen;
+  configureCompiler(gen.c);
+
+  gen.genFillRectWithMask(dstPf, srcPf, mskPf, op);
+  return AsmJit::function_cast<FillRectWithMaskFn>(gen.c->make());
+}
+
+BlitSpanFn Api::genBlitSpan(
+  const PixelFormat* dstPf,
+  const PixelFormat* srcPf,
+  const Operator* op)
+{
+  Generator gen;
+  configureCompiler(gen.c);
+
+  gen.genBlitSpan(dstPf, srcPf, op);
+  return AsmJit::function_cast<BlitSpanFn>(gen.c->make());
+}
+
+BlitRectFn Api::genBlitRect(
+  const PixelFormat* dstPf,
+  const PixelFormat* srcPf,
+  const Operator* op)
+{
+  Generator gen;
+  configureCompiler(gen.c);
+
+  gen.genBlitRect(dstPf, srcPf, op);
+  return AsmJit::function_cast<BlitRectFn>(gen.c->make());
 }
 
 } // BlitJit namespace
