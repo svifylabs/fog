@@ -7,3 +7,12 @@ TODO
 [ ] Fog::String - not completed yet, add Locale support to group separators
 [ ] Fog::BitArray - fix
 [ ] Temporary...<N>::free sometimes not frees the memory ?
+
+[ ] Converters - connect with BlitJit
+[ ] Font - Ability to render to 'Path'
+[ ] Painter
+    [ ] Text transform
+    [ ] Patterns support
+    [ ] Patterns transform
+    [ ] Text in path support
+    [ ] Line dashes

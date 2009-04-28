@@ -190,7 +190,8 @@ struct FOG_API Widget : public LayoutItem
   FOG_INLINE Layout* layout() const { return _layout; }
 
   void setLayout(Layout* layout);
-  void removeLayout();
+  void deleteLayout();
+  Layout* takeLayout();
 
   // [Layout Item]
 
@@ -399,6 +400,9 @@ struct FOG_API Widget : public LayoutItem
   //! @brief Close event handler.
   virtual void onClose(CloseEvent* e);
 
+  //! @brief Theme changed event handler.
+  virtual void onThemeChange(ThemeEvent* e);
+
   // [Event Map]
 
   fog_event_begin()
@@ -429,6 +433,7 @@ struct FOG_API Widget : public LayoutItem
     fog_event(EvSelectionRequired, onSelection       , SelectionEvent , Override)
     fog_event(EvPaint            , onPaint           , PaintEvent     , Override)
     fog_event(EvClose            , onClose           , CloseEvent     , Override)
+    fog_event(EvThemeChange      , onThemeChange     , ThemeEvent     , Override)
   fog_event_end()
 
   // [Imaging]

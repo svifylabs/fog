@@ -33,8 +33,22 @@ struct FOG_API Layout : public LayoutItem
   Layout();
   virtual ~Layout();
 
-private:
-  FOG_DISABLE_COPY(Layout)
+  LayoutItem* parentItem() const;
+  Widget* parentWidget() const;
+
+  virtual void reparent();
+
+  // [Event Map]
+
+  fog_event_begin()
+    fog_event(EvLayoutItemAdd    , onLayout          , LayoutEvent    , Override)
+    fog_event(EvLayoutItemRemove , onLayout          , LayoutEvent    , Override)
+  fog_event_end()
+
+protected:
+  LayoutItem* _parentItem;
+
+  friend struct Widget;
 };
 
 } // Fog namespace

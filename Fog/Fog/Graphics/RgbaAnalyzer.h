@@ -9,11 +9,15 @@
 
 // [Dependencies]
 #include <Fog/Core/Sequence.h>
+#include <Fog/Graphics/Gradient.h>
 #include <Fog/Graphics/Rgba.h>
 
 namespace Fog {
 
+// ============================================================================
 // [Fog::RgbaAnalyzer]
+// ============================================================================
+
 struct FOG_API RgbaAnalyzer
 {
   static int analyzeAlpha(const uint8_t* data, sysuint_t count, sysuint_t alphapos, sysuint_t _inc);
@@ -43,20 +47,20 @@ struct FOG_API RgbaAnalyzer
   }
 
   static FOG_INLINE int analyzeAlpha(
-    const RgbaStop* data,
+    const GradientStop* data,
     sysuint_t count)
   {
     return analyzeAlpha(
       (const uint8_t*)data,
       count, 
-      FOG_OFFSET_OF(RgbaStop, rgba) + Rgba::AlphaBytePos, 
+      FOG_OFFSET_OF(GradientStop, rgba) + Rgba::AlphaBytePos, 
       sizeof(Rgba));
   }
 
-  static FOG_INLINE int analyzeAlpha(const Fog::Sequence<RgbaStop>& stops)
+  static FOG_INLINE int analyzeAlpha(const Fog::Sequence<GradientStop>& stops)
   { return analyzeAlpha(stops.cData(), stops.length()); }
 
-  static FOG_INLINE int analyzeAlpha(const Fog::Vector<RgbaStop>& stops)
+  static FOG_INLINE int analyzeAlpha(const Fog::Vector<GradientStop>& stops)
   { return analyzeAlpha(stops.cData(), stops.length()); }
 };
 

@@ -103,7 +103,7 @@ FontFace* FontEngineWin::getFace(
   HFONT hFont;
   HDC hdc;
 
-  // get LOGFONT
+  // Get LOGFONT.
   ZeroMemory(&logFont, sizeof(LOGFONT));
 
   _tfamily.set(family);
@@ -115,10 +115,10 @@ FontFace* FontEngineWin::getFace(
   logFont.lfWeight = (attributes.bold  ) ? FW_BOLD : FW_NORMAL;
   logFont.lfItalic = (attributes.italic) != 0;
 
-  // create HFONT
+  // Create HFONT.
   if ((hFont = CreateFontIndirectW(&logFont)) == NULL) goto fail;
 
-  // get text metrics (need to create temporary HDC)
+  // Get text metrics (need to create temporary HDC).
   if ((hdc = CreateCompatibleDC(NULL)) == NULL) goto failFreeHFONT;
   if ((hOldFont = (HFONT)SelectObject(hdc, (HGDIOBJ)hFont)) == (HFONT)GDI_ERROR) goto failFreeHFONTandHDC;
 
@@ -278,7 +278,7 @@ Glyph::Data* FontFaceWin::renderGlyph(uint32_t uc)
   if (dataSize == 0) gm.gmBlackBoxX = gm.gmBlackBoxY = 0;
 
   glyphd->offsetX = gm.gmptGlyphOrigin.x;
-  glyphd->offsetY = gm.gmptGlyphOrigin.y - gm.gmBlackBoxY;
+  glyphd->offsetY = metrics.height - gm.gmptGlyphOrigin.y;
 
   glyphd->beginWidth = 0;
   glyphd->endWidth = 0;

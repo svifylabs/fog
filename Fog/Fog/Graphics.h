@@ -22,6 +22,7 @@
 #include <Fog/Graphics/Glyph.h>
 #include <Fog/Graphics/GlyphCache.h>
 #include <Fog/Graphics/GlyphSet.h>
+#include <Fog/Graphics/Gradient.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/ImageFormat.h>
 #include <Fog/Graphics/ImageIO.h>
@@ -29,6 +30,7 @@
 #include <Fog/Graphics/Painter.h>
 #include <Fog/Graphics/Palette.h>
 #include <Fog/Graphics/Path.h>
+#include <Fog/Graphics/Pattern.h>
 #include <Fog/Graphics/Reduce.h>
 #include <Fog/Graphics/Region.h>
 #include <Fog/Graphics/Rgba.h>

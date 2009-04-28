@@ -192,17 +192,32 @@ void UISystemDefault::changeMouseStatus(Widget* w, const Point& pos)
     _buttonTime[1].clear();
     _buttonTime[2].clear();
 
+    Widget* before = _mouseStatus.widget;
+
     _mouseStatus.widget = w;
     _mouseStatus.position = pos;
     _mouseStatus.hover = true;
     _mouseStatus.buttons = 0;
     _mouseStatus.valid = true;
 
-    MouseEvent e(EvMouseIn);
-    e._button = ButtonInvalid;
-    e._modifiers = getKeyboardModifiers();
-    e._position = pos;
-    w->sendEvent(&e);
+    // Send MouseOut to widget where mouse was before
+    if (before)
+    {
+      MouseEvent e(EvMouseOut);
+      e._button = ButtonInvalid;
+      e._modifiers = getKeyboardModifiers();
+      e._position = pos;
+      Widget::translateCoordinates(before, w, &e._position);
+      before->sendEvent(&e);
+    }
+
+    {
+      MouseEvent e(EvMouseIn);
+      e._button = ButtonInvalid;
+      e._modifiers = getKeyboardModifiers();
+      e._position = pos;
+      w->sendEvent(&e);
+    }
   }
   else if (!(_mouseStatus.position != pos))
   {
