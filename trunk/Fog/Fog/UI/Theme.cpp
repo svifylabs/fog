@@ -10,22 +10,23 @@
 
 // [Dependencies]
 #include <Fog/Graphics/Painter.h>
-#include <Fog/UI/Composite.h>
+#include <Fog/UI/Theme.h>
 
-FOG_IMPLEMENT_OBJECT(Fog::Composite)
+FOG_IMPLEMENT_OBJECT(Fog::Theme)
 
 namespace Fog {
 
 // ============================================================================
-// [Fog::Composite]
+// [Fog::Theme]
 // ============================================================================
 
-Composite::Composite(uint32_t createFlags) : 
-  Widget(createFlags)
+Theme* Theme::_instance;
+
+Theme::Theme()
 {
 }
 
-Composite::~Composite()
+Theme::~Theme()
 {
 }
 

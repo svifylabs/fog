@@ -1009,8 +1009,8 @@ void RasterPainterDevice::drawRect(const Rect& r)
   else
   {
     box[0].set(r.x1()  , r.y1()  , r.x2()  , r.y1()+1);
-    box[1].set(r.x1()  , r.y1()+1, r.x1()+1, r.y1()-1);
-    box[2].set(r.x2()-1, r.y1()+1, r.x2()  , r.y1()-1);
+    box[1].set(r.x1()  , r.y1()+1, r.x1()+1, r.y2()-1);
+    box[2].set(r.x2()-1, r.y1()+1, r.x2()  , r.y2()-1);
     box[3].set(r.x1()  , r.y2()-1, r.x2()  , r.y2()  );
   }
 
@@ -1245,7 +1245,7 @@ void RasterPainterDevice::drawRound(const RectF& r,
 
 void RasterPainterDevice::drawEllipse(const PointF& cp, const PointF& r)
 {
-  RasterPainterDevice::drawArc(cp, r, 0.0, 2 * M_PI);
+  RasterPainterDevice::drawArc(cp, r, 0.0, 2.0 * M_PI);
 }
 
 void RasterPainterDevice::drawArc(const PointF& cp, const PointF& r, double start, double sweep)
@@ -1326,7 +1326,7 @@ void RasterPainterDevice::fillRound(const RectF& r,
 
 void RasterPainterDevice::fillEllipse(const PointF& cp, const PointF& r)
 {
-  RasterPainterDevice::fillArc(cp, r, 0.0, 2 * M_PI);
+  RasterPainterDevice::fillArc(cp, r, 0.0, 2.0 * M_PI);
 }
 
 void RasterPainterDevice::fillArc(const PointF& cp, const PointF& r, double start, double sweep)
@@ -1349,10 +1349,10 @@ void RasterPainterDevice::fillPath(const Path& path)
 
 void RasterPainterDevice::drawGlyph(const Point& pt, const Glyph& glyph, const Rect* clip)
 {
-  TemporaryGlyphSet<128> glyphSet;
+  TemporaryGlyphSet<1> glyphSet;
   err_t err;
 
-  if ( (err = glyphSet.begin()) ) return;
+  if ( (err = glyphSet.begin(1)) ) return;
   glyphSet._add(glyph._d->ref());
   if ( (err = glyphSet.end()) ) return;
 
@@ -1733,12 +1733,12 @@ static void FOG_OPTIMIZEDCALL AggRenderScanlines(RasterPainterDevice* d, Rasteri
 
   sl.reset(ras.min_x(), ras.max_x());
 
-  //int extx1 = painter_d->_realRegion.extents().x1();
-  int exty1 = d->_clipBox.y1();
-  //int extx2 = painter_d->_realRegion.extents().x2();
-  int exty2 = d->_clipBox.y2();
+  // Not needed.
+  // int extx1 = painter_d->_realRegion.extents().x1();
+  // int exty1 = d->_clipBox.y1();
+  // int extx2 = painter_d->_realRegion.extents().x2();
+  // int exty2 = d->_clipBox.y2();
 
-  // const PainterSoftwareDrawFuncs* funcs = D_DRAW(painter_d);
   FillSpan fillSpan = d->_fillFuncs.fillSpan;
   FillSpanM fillSpanM_A8 = d->_fillFuncs.fillSpanM_A8;
 
@@ -1750,10 +1750,11 @@ static void FOG_OPTIMIZEDCALL AggRenderScanlines(RasterPainterDevice* d, Rasteri
       unsigned num_spans = sl.num_spans();
       typename Scanline::const_iterator span = sl.begin();
 
-      // vertical clipping to extents
       int y = sl.y();
-      if (y < exty1) continue;
-      if (y >= exty2) break;
+
+      // Vertical clipping to extents.
+      // if (y < exty1) continue;
+      // if (y >= exty2) break;
 
       pRas = pBase + y * stride;
 

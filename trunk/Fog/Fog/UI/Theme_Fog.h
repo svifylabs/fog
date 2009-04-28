@@ -4,29 +4,33 @@
 // MIT, See COPYING file in package
 
 // [Guard]
-#ifndef _FOG_UI_COMPOSITE_H
-#define _FOG_UI_COMPOSITE_H
+#ifndef _FOG_UI_THEME_FOG_H
+#define _FOG_UI_THEME_FOG_H
 
 // [Dependencies]
-#include <Fog/UI/Widget.h>
+#include <Fog/UI/Theme.h>
 
 namespace Fog {
 
 // ============================================================================
-// [Fog::Composite]
+// [Fog::Button]
 // ============================================================================
 
-struct FOG_API Composite : public Widget
+struct FOG_API Theme_Fog : public Theme
 {
-  FOG_DECLARE_OBJECT(Composite, Widget)
+  FOG_DECLARE_OBJECT(Theme_Fog, Theme)
 
   // [Construction / Destruction]
 
-  Composite(uint32_t createFlags = 0);
-  virtual ~Composite();
+  Theme_Fog();
+  virtual ~Theme_Fog();
+
+  // [Properties]
+
+  // [Rendering]
 };
 
 } // Fog namespace
 
 // [Guard]
-#endif // _FOG_UI_COMPOSITE_H
+#endif // _FOG_UI_THEME_FOG_H

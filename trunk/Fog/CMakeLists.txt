@@ -288,6 +288,7 @@ Set(FOG_GRAPHICS_SOURCES
   ${FOG_DIR}/Fog/Graphics/Glyph.cpp
   ${FOG_DIR}/Fog/Graphics/GlyphCache.cpp
   ${FOG_DIR}/Fog/Graphics/GlyphSet.cpp
+  ${FOG_DIR}/Fog/Graphics/Gradient.cpp
   ${FOG_DIR}/Fog/Graphics/Image.cpp
   ${FOG_DIR}/Fog/Graphics/ImageFormat.cpp
   ${FOG_DIR}/Fog/Graphics/ImageIO.cpp
@@ -298,8 +299,10 @@ Set(FOG_GRAPHICS_SOURCES
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_PNG.cpp
   ${FOG_DIR}/Fog/Graphics/ImageScale.cpp
   ${FOG_DIR}/Fog/Graphics/Painter.cpp
+  ${FOG_DIR}/Fog/Graphics/PainterUtil.cpp
   ${FOG_DIR}/Fog/Graphics/Palette.cpp
   ${FOG_DIR}/Fog/Graphics/Path.cpp
+  ${FOG_DIR}/Fog/Graphics/Pattern.cpp
   ${FOG_DIR}/Fog/Graphics/Raster.cpp
   ${FOG_DIR}/Fog/Graphics/Raster_MMX.cpp
   ${FOG_DIR}/Fog/Graphics/Raster_SSE2.cpp
@@ -326,6 +329,7 @@ Set(FOG_GRAPHICS_HEADERS
   ${FOG_DIR}/Fog/Graphics/Glyph.h
   ${FOG_DIR}/Fog/Graphics/GlyphCache.h
   ${FOG_DIR}/Fog/Graphics/GlyphSet.h
+  ${FOG_DIR}/Fog/Graphics/Gradient.h
   ${FOG_DIR}/Fog/Graphics/Image.h
   ${FOG_DIR}/Fog/Graphics/ImageFormat.h
   ${FOG_DIR}/Fog/Graphics/ImageIO.h
@@ -336,8 +340,10 @@ Set(FOG_GRAPHICS_HEADERS
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_PNG.h
   ${FOG_DIR}/Fog/Graphics/ImageScale.h
   ${FOG_DIR}/Fog/Graphics/Painter.h
+  ${FOG_DIR}/Fog/Graphics/PainterUtil.h
   ${FOG_DIR}/Fog/Graphics/Palette.h
   ${FOG_DIR}/Fog/Graphics/Path.h
+  ${FOG_DIR}/Fog/Graphics/Pattern.h
   ${FOG_DIR}/Fog/Graphics/Raster.h
   ${FOG_DIR}/Fog/Graphics/Raster_MMX.h
   ${FOG_DIR}/Fog/Graphics/Raster_SSE2.h
@@ -544,10 +550,16 @@ EndIf(NOT FOG_HAVE_PNG_H)
 
 # Fog/UI Sources
 Set(FOG_UI_SOURCES
+  ${FOG_DIR}/Fog/UI/BoxLayout.cpp
+  ${FOG_DIR}/Fog/UI/Button.cpp
+  ${FOG_DIR}/Fog/UI/ButtonBase.cpp
+  ${FOG_DIR}/Fog/UI/CheckBox.cpp
   ${FOG_DIR}/Fog/UI/Composite.cpp
   ${FOG_DIR}/Fog/UI/Event.cpp
   ${FOG_DIR}/Fog/UI/Layout.cpp
   ${FOG_DIR}/Fog/UI/LayoutItem.cpp
+  ${FOG_DIR}/Fog/UI/Theme.cpp
+  ${FOG_DIR}/Fog/UI/Theme_Fog.cpp
   ${FOG_DIR}/Fog/UI/UISystem.cpp
   ${FOG_DIR}/Fog/UI/UISystem_Def.cpp
   ${FOG_DIR}/Fog/UI/UISystem_Win.cpp
@@ -557,11 +569,17 @@ Set(FOG_UI_SOURCES
 
 Set(FOG_UI_HEADERS
   ${FOG_DIR}/Fog/UI.h
+  ${FOG_DIR}/Fog/UI/BoxLayout.h
+  ${FOG_DIR}/Fog/UI/Button.h
+  ${FOG_DIR}/Fog/UI/ButtonBase.h
+  ${FOG_DIR}/Fog/UI/CheckBox.h
   ${FOG_DIR}/Fog/UI/Composite.h
   ${FOG_DIR}/Fog/UI/Constants.h
   ${FOG_DIR}/Fog/UI/Event.h
   ${FOG_DIR}/Fog/UI/Layout.h
   ${FOG_DIR}/Fog/UI/LayoutItem.h
+  ${FOG_DIR}/Fog/UI/Theme.h
+  ${FOG_DIR}/Fog/UI/Theme_Fog.h
   ${FOG_DIR}/Fog/UI/UISystem.h
   ${FOG_DIR}/Fog/UI/UISystem_Def.h
   ${FOG_DIR}/Fog/UI/UISystem_Win.h

@@ -24,11 +24,23 @@ namespace Fog {
 struct Widget;
 struct Painter;
 
+// ============================================================================
+// [Fog::Event IDs]
+// ============================================================================
+
 enum EvGui
 {
   // [ChildEvent]
-  EvChildAdd,
+  EvChildAdd = 100,
   EvChildRemove,
+
+  // [LayoutEvent]
+
+  EvLayoutSet,
+  EvLayoutRemove,
+
+  EvLayoutItemAdd,
+  EvLayoutItemRemove,
 
   // [StateEvent]
   EvEnable,
@@ -76,10 +88,14 @@ enum EvGui
   // [CloseEvent]
   EvClose,
 
-  // Here is space for events that can be registered by other
-  // applications or libraries in future.
-  EvReservedBegin = 1024,
-  EvReservedEnd = 65535,
+  // [CheckEvent]
+
+  EvCheck,
+  EvUncheck,
+
+  // [ThemeEvent]
+
+  EvThemeChange,
 
   // Custom events, each application or library can use this space
   // for their internal events.
@@ -94,6 +110,11 @@ struct FOG_API ChildEvent : public Event
   { return _child; }
 
   Widget* _child;
+};
+
+struct FOG_API LayoutEvent : public Event
+{
+  LayoutEvent(uint32_t code = 0);
 };
 
 struct FOG_API StateEvent : public Event
@@ -242,6 +263,21 @@ struct FOG_API PaintEvent : public Event
 struct FOG_API CloseEvent : public Event
 {
   CloseEvent();
+};
+
+struct FOG_API CheckEvent : public Event
+{
+  CheckEvent(uint32_t code = EvCheck);
+
+  FOG_INLINE uint checked() const
+  { return _checked; }
+
+  uint _checked;
+};
+
+struct FOG_API ThemeEvent : public Event
+{
+  ThemeEvent(uint32_t code);
 };
 
 } // Fog namespace

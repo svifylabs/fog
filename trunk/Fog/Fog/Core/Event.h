@@ -25,6 +25,33 @@ struct Object;
 struct Timer;
 
 // ============================================================================
+// [Fog::Event IDs]
+// ============================================================================
+
+//! @brief Core event IDs.
+enum EvCore
+{
+  // [0 is reserved]
+
+  // [Object events]
+
+  EvCreate = 1,
+  EvDestroy,
+  EvDelete,
+  EvTimer,
+  EvPropertyChanged = 10,
+
+  //! @brief First user event.
+  EvUser = 65536,
+
+  //! @brief Last event that can be used by all libraries.
+  //!
+  //! This number is first retrieved by Fog::Event::uid() and incremented
+  //! each time that function is called.
+  EvUID = 10000000
+};
+
+// ============================================================================
 // [Fog::Event]
 // ============================================================================
 

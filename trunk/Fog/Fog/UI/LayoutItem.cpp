@@ -16,15 +16,39 @@ FOG_IMPLEMENT_OBJECT(Fog::LayoutItem)
 namespace Fog {
 
 LayoutItem::LayoutItem() :
-  _sizeHint(0, 0),
-  _minimumSize(0, 0),
-  _maximumSize(65535, 65535),
-  _dirtyLayout(true),
-  _hasHeightForWidth(false)
+  _sizeHint(-1, -1),
+  _minimumSize(-1, -1),
+  _maximumSize(-1, -1),
+  _hasHeightForWidth(false),
+  _isLayoutDirty(true)
 {
 }
 
 LayoutItem::~LayoutItem() 
+{
+}
+
+Size LayoutItem::sizeHint() const
+{
+  return _sizeHint;
+}
+
+Size LayoutItem::minimumSize() const
+{
+  return _minimumSize;
+}
+
+Size LayoutItem::maximumSize() const
+{
+  return _maximumSize;
+}
+
+bool LayoutItem::hasHeightForWidth() const
+{
+  return _hasHeightForWidth;
+}
+
+void LayoutItem::onLayout(LayoutEvent* e)
 {
 }
 

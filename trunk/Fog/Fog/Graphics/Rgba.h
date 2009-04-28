@@ -13,7 +13,9 @@
 
 namespace Fog {
 
+// ============================================================================
 // [Fog::Rgba]
+// ============================================================================
 
 #include <Fog/Core/Pack.h>
 struct FOG_PACKED Rgba
@@ -200,6 +202,10 @@ struct FOG_PACKED Rgba
 };
 #include <Fog/Core/Unpack.h>
 
+// ============================================================================
+// [Fog::Rgba64]
+// ============================================================================
+
 #include <Fog/Core/Pack.h>
 struct Rgba64
 {
@@ -365,43 +371,10 @@ struct Rgba64
 };
 #include <Fog/Core/Unpack.h>
 
-struct RgbaStop
-{
-  double offset;
-  Rgba rgba;
-
-  FOG_INLINE RgbaStop() {}
-  FOG_INLINE RgbaStop(double offset, Rgba rgba) : 
-    offset(offset), rgba(rgba) {}
-  FOG_INLINE RgbaStop(double offset, uint8_t r, uint8_t g, uint8_t b, uint8_t a = 0xFF) : 
-    offset(offset), rgba(Rgba(r, g, b, a)) {}
-  FOG_INLINE RgbaStop(const RgbaStop& other) :
-    offset(other.offset), rgba(other.rgba) {}
-
-  FOG_INLINE RgbaStop& operator=(const RgbaStop& other)
-  { offset = other.offset; rgba = other.rgba; return *this; }
-};
-
 } // Fog namespace
 
 FOG_DECLARE_TYPEINFO(Fog::Rgba, Fog::PrimitiveType)
 FOG_DECLARE_TYPEINFO(Fog::Rgba64, Fog::PrimitiveType)
-FOG_DECLARE_TYPEINFO(Fog::RgbaStop, Fog::PrimitiveType)
-
-static FOG_INLINE bool operator==(const Fog::RgbaStop& a, const Fog::RgbaStop& b) { return a.offset == b.offset && a.rgba == b.rgba; }
-static FOG_INLINE bool operator!=(const Fog::RgbaStop& a, const Fog::RgbaStop& b) { return a.offset != b.offset || a.rgba != b.rgba; }
-
-static FOG_INLINE bool operator< (const Fog::RgbaStop& a, const Fog::RgbaStop& b) { return a.offset <  b.offset || (a.offset == b.offset && a.rgba <  b.rgba); }
-static FOG_INLINE bool operator<=(const Fog::RgbaStop& a, const Fog::RgbaStop& b) { return a.offset <  b.offset || (a.offset == b.offset && a.rgba <= b.rgba); }
-static FOG_INLINE bool operator> (const Fog::RgbaStop& a, const Fog::RgbaStop& b) { return a.offset >  b.offset || (a.offset == b.offset && a.rgba >  b.rgba); }
-static FOG_INLINE bool operator>=(const Fog::RgbaStop& a, const Fog::RgbaStop& b) { return a.offset >  b.offset || (a.offset == b.offset && a.rgba >= b.rgba); }
-
-namespace Fog {
-
-// [Typedefs]
-typedef Vector<RgbaStop> RgbaStops;
-
-} // Fog namespace
 
 // [Guard]
 #endif // _FOG_GRAPHICS_RGBA_H

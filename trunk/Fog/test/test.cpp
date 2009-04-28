@@ -6,7 +6,17 @@ using namespace Fog;
 
 struct MyWindow : public Window
 {
-  MyWindow(uint32_t createFlags = 0) : Window(createFlags) {}
+  MyWindow(uint32_t createFlags = 0) : 
+    Window(createFlags) 
+  {
+    setWindowTitle(StubAscii8("Fog Application"));
+
+    button.setRect(Rect(10, 10, 100, 20));
+    button.show();
+    button.setText(StubAscii8("Test"));
+    add(&button);
+  }
+
   virtual ~MyWindow() {}
 
   virtual void onPaint(PaintEvent* e)
@@ -38,9 +48,9 @@ struct MyWindow : public Window
       p->drawText(Point(rand() % w, rand() % h), StubAscii8("ABCDEFGHIJKLMOPQRSTUVWXYZ"), font);
     }*/
 
-    for (sysuint_t i = 0; i < 70; i++)
+    for (sysuint_t i = 0; i < 40; i++)
     {
-      p->drawText(Point(50, i * 14), StubAscii8("ABCDEFGHIJKLMOPQRSTUVWXYZ"), font);
+      p->drawText(Point(50, i * 14), StubAscii8("abcdefghijklmopqrstuvwxyz"), font);
     }
 /*
     Path path;
@@ -73,6 +83,8 @@ struct MyWindow : public Window
       repaint(RepaintWidget);
     }
   }
+
+  Button button;
 };
 
 FOG_UI_MAIN()

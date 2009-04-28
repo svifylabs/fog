@@ -57,6 +57,7 @@ Widget::Widget(uint32_t createFlags) :
 
 Widget::~Widget()
 {
+  deleteLayout();
   if (_uiWindow) destroyWindow();
 }
 
@@ -358,12 +359,50 @@ Widget* Widget::hitTest(const Point& pt) const
 // [Fog::Widget - Layout]
 // ============================================================================
 
-void Widget::setLayout(Layout* layout)
+void Widget::setLayout(Layout* lay)
 {
+  if (lay->_parentItem == this) return;
+  if (lay->_parentItem)
+  {
+    fog_stderr_msg(
+      "Fog::Widget", "setLayout", "Can't set layout that has already parent");
+    return;
+  }
+
+  deleteLayout();
+
+  if (lay)
+  {
+    _layout = lay;
+    lay->_parentItem = this;
+
+    LayoutEvent e(EvLayoutSet);
+    this->sendEvent(&e);
+    lay->sendEvent(&e);
+  }
 }
 
-void Widget::removeLayout()
+void Widget::deleteLayout()
 {
+  Layout* lay = takeLayout();
+  if (lay && lay->isDynamic()) delete lay;
+}
+
+Layout* Widget::takeLayout()
+{
+  Layout* lay = _layout;
+
+  if (lay)
+  {
+    LayoutEvent e(EvLayoutRemove);
+    lay->sendEvent(&e);
+    this->sendEvent(&e);
+
+    lay->_parentItem = NULL;
+    _layout = NULL;
+  }
+
+  return lay;
 }
 
 // ============================================================================
@@ -617,6 +656,10 @@ void Widget::onPaint(PaintEvent* e)
 }
 
 void Widget::onClose(CloseEvent* e)
+{
+}
+
+void Widget::onThemeChange(ThemeEvent* e)
 {
 }
 

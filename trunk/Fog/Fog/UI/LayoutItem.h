@@ -10,6 +10,7 @@
 // [Dependencies]
 #include <Fog/Core/Object.h>
 #include <Fog/Graphics/Geometry.h>
+#include <Fog/UI/Event.h>
 #include <Fog/UI/Constants.h>
 
 namespace Fog {
@@ -29,24 +30,36 @@ struct FOG_API LayoutItem : public Object
   LayoutItem();
   virtual ~LayoutItem();
 
-  FOG_INLINE Size sizeHint() const { return _sizeHint; }
-  FOG_INLINE Size minimumSize() const { return _minimumSize; }
-  FOG_INLINE Size maximumSize() const { return _maximumSize; }
-  FOG_INLINE bool hasHeightForWidth() const { return _hasHeightForWidth; }
-  FOG_INLINE bool dirtyLayout() const { return _dirtyLayout; }
+  virtual Size sizeHint() const;
+  virtual Size minimumSize() const;
+  virtual Size maximumSize() const;
+  virtual bool hasHeightForWidth() const;
 
   virtual void invalidateLayout() const = 0;
   virtual void setSizeHint(const Size& sizeHint) = 0;
-  virtual void setMinimumSize(const Size& sizeHint) = 0;
-  virtual void setMaximumSize(const Size& sizeHint) = 0;
+  virtual void setMinimumSize(const Size& minSize) = 0;
+  virtual void setMaximumSize(const Size& maxSize) = 0;
   virtual int heightForWidth(int width) const = 0;
+
+  FOG_INLINE bool isLayoutDirty() const { return _isLayoutDirty; }
+
+  // [Events]
+
+  virtual void onLayout(LayoutEvent* e);
+
+  // [Event Map]
+
+  fog_event_begin()
+    fog_event(EvLayoutSet        , onLayout          , LayoutEvent    , Override)
+    fog_event(EvLayoutRemove     , onLayout          , LayoutEvent    , Override)
+  fog_event_end()
 
 protected:
   Size _sizeHint;
   Size _minimumSize;
   Size _maximumSize;
   bool _hasHeightForWidth;
-  bool _dirtyLayout;
+  bool _isLayoutDirty;
   uint8_t _widthPolicy;
   uint8_t _heightPolicy;
 };

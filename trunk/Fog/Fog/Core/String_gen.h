@@ -296,7 +296,7 @@ struct FOG_API __G_STRING
       __G_STRING_NAME "::xFinalize() - Non detached data.");
 
     _d->hashCode = 0;
-    _d->length = end - _d->data;
+    _d->length = (sysuint_t)(end - _d->data);
     *end = 0;
 
     FOG_ASSERT_X(_d->length <= _d->capacity,
