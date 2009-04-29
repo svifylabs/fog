@@ -1733,7 +1733,7 @@ static void FOG_OPTIMIZEDCALL AggRenderScanlines(RasterPainterDevice* d, Rasteri
 
   sl.reset(ras.min_x(), ras.max_x());
 
-  // Not needed.
+  // TODO: Not needed ?
   // int extx1 = painter_d->_realRegion.extents().x1();
   // int exty1 = d->_clipBox.y1();
   // int extx2 = painter_d->_realRegion.extents().x2();
@@ -1750,8 +1750,9 @@ static void FOG_OPTIMIZEDCALL AggRenderScanlines(RasterPainterDevice* d, Rasteri
       unsigned num_spans = sl.num_spans();
       typename Scanline::const_iterator span = sl.begin();
 
-      int y = sl.y();
+      sysint_t y = sl.y();
 
+      // TODO: Not needed ?
       // Vertical clipping to extents.
       // if (y < exty1) continue;
       // if (y >= exty2) break;
