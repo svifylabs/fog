@@ -1,5 +1,5 @@
 #!/bin/sh
 mkdir build
 cd build
-cmake . -DCMAKE_INSTALL_PREFIX:PATH=/usr/wde -DCMAKE_BUILD_TYPE=debug -DDEBUG=1 -DDEBUG_MEMORY=1 -DDEBUG_VALGRIND=1 -GKDevelop3
+cmake .. -DCMAKE_BUILD_TYPE=Debug -DDEBUG=1 -DDEBUG_MEMORY=1 -DDEBUG_VALGRIND=1 -G"Unix Makefiles"
 cd ..

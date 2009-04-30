@@ -115,7 +115,7 @@ namespace BlitJit {
 #  define BLITJIT_CDECL      __cdecl
 # endif
 #else
-# define BLITJIT_FASTCALL_2
+# define BLITJIT_FASTCALL
 # define BLITJIT_STDCALL
 # define BLITJIT_CDECL
 #endif // BLITJIT_X86

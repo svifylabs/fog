@@ -259,8 +259,8 @@ struct FOG_API __G_STRING
   FOG_INLINE const __G_FRIEND* cStr() const 
   { return (const __G_FRIEND*)cData(); }
 
-  FOG_INLINE const __G_FRIEND* mStr() 
-  { return (const __G_FRIEND*)mData(); }
+  FOG_INLINE __G_FRIEND* mStr() 
+  { return (__G_FRIEND*)mData(); }
 
   FOG_INLINE __G_FRIEND* xStr()
   {
@@ -902,7 +902,7 @@ struct __G_TEMPORARYSTRING : public __G_STRING
   FOG_INLINE __G_TEMPORARYSTRING(_CreateSharable) :
     __G_STRING(Data::adopt((void*)&_storage, N))
   {
-    _d->flags.set(Data::IsSharable);
+    _d->flags |= Data::IsSharable;
   }
 
   // --------------------------------------------------------------------------

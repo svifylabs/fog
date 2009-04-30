@@ -15,6 +15,7 @@
 // [Dependencies]
 #include <Fog/Core/Application.h>
 #include <Fog/Core/Assert.h>
+#include <Fog/Core/AutoLock.h>
 #include <Fog/Core/Error.h>
 #include <Fog/Core/EventLoop.h>
 #include <Fog/Core/EventLoop_Def.h>
@@ -31,8 +32,9 @@
 #include <Fog/UI/UISystem_Win.h>
 #endif // FOG_OS_WINDOWS
 
+// TODO: Only temporary
 #if defined(FOG_OS_POSIX)
-#include <Fog/Core/EventLoop_Libevent.h>
+#include <Fog/UI/UISystem_X11.h>
 #endif // FOG_OS_POSIX
 
 namespace Fog {
@@ -43,32 +45,15 @@ namespace Fog {
 
 struct FOG_HIDDEN Application_Local
 {
-  typedef EventLoop* (*NewEventLoopFn)(void);
-  typedef Hash<String32, NewEventLoopFn> ELHash;
+  typedef Hash<String32, Application::EventLoopConstructor> ELHash;
 
   Lock lock;
   ELHash elHash;
 
-  template<typename EventLoopT>
-  struct CtorHelper
-  {
-    static EventLoop* ctor() { return new EventLoopT(); }
-  };
-
-  template<typename EventLoopT>
-  void addEventLoopType(const String32& type)
-  {
-    elHash.put(type, CtorHelper<EventLoopT>::ctor);
-  }
-
-  void removeEventLoopType(const String32& type)
-  {
-    elHash.remove(type);
-  }
-
   EventLoop* createEventLoop(const String32& type)
   {
-    NewEventLoopFn ctor = elHash.value(type, NULL);
+    AutoLock locked(lock);
+    Application::EventLoopConstructor ctor = elHash.value(type, NULL);
     return ctor ? ctor() : NULL;
   }
 };
@@ -145,6 +130,18 @@ void Application::quit()
   _eventLoop->quit();
 }
 
+bool Application::_addEventLoopType(const String32& type, EventLoopConstructor ctor)
+{
+  AutoLock locked(application_local->lock);
+  return application_local->elHash.put(type, ctor);
+}
+
+bool Application::removeEventLoopType(const String32& type)
+{
+  AutoLock locked(application_local->lock);
+  return application_local->elHash.remove(type);
+}
+
 String32 Application::detectUI()
 {
 #if defined(FOG_OS_WINDOWS)
@@ -171,11 +168,17 @@ UISystem* Application::createUISystem(const String32& _type)
     return new UISystemWin();
 #endif // FOG_OS_WINDOWS
 
+  // TODO: Only temporary
+#if defined(FOG_OS_POSIX)
+  if (type == StubAscii8("UI::X11"))
+    return new UISystemX11();
+#endif // FOG_OS_X11
+
   // All other UI systems are dynamic linked libraries
   if (!type.startsWith(StubAscii8("UI::"))) return NULL;
   {
     Library lib;
-    err_t err = lib.openPlugin(StubAscii8("UI"), type.substring(Range(4)));
+    err_t err = lib.openPlugin(StubAscii8("FogUI"), type.substring(Range(4)));
     if (err) return NULL;
 
     UISystemConstructor ctor = 
@@ -211,19 +214,15 @@ FOG_INIT_DECLARE err_t fog_application_init(void)
 {
   Fog::application_local.init();
 
-  Fog::application_local->addEventLoopType
-    <Fog::EventLoopDefault>(Fog::StubAscii8("Default"));
+  Fog::Application::addEventLoopType<Fog::EventLoopDefault>(Fog::StubAscii8("Default"));
 
 #if defined(FOG_OS_WINDOWS)
-  Fog::application_local->addEventLoopType
-    <Fog::EventLoopWinUI>(Fog::StubAscii8("UI::Windows"));
-  Fog::application_local->addEventLoopType
-    <Fog::EventLoopWinIO>(Fog::StubAscii8("IO::Windows"));
+  Fog::Application::addEventLoopType<Fog::EventLoopWinUI>(Fog::StubAscii8("UI::Windows"));
+  Fog::Application::addEventLoopType<Fog::EventLoopWinIO>(Fog::StubAscii8("IO::Windows"));
 #endif // FOG_OS_WINDOWS
 
 #if defined(FOG_OS_POSIX)
-  Fog::application_local->addEventLoopType
-    <Fog::EventLoopLibevent>(Fog::StubAscii8("IO::LibEvent"));
+//  Fog::Application->addEventLoopType<Fog::EventLoopLibevent>(Fog::StubAscii8("IO::LibEvent"));
 #endif // FOG_OS_POSIX
 
   return Error::Ok;

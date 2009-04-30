@@ -154,7 +154,7 @@ static bool xdgLookupDir(const char *type, String32& result)
   {
     if (strcmp(type, "DESKTOP") == 0)
     {
-      result += "/Desktop";
+      result.append(StubAscii8("/Desktop"));
     }
     return false;
   }
@@ -254,7 +254,7 @@ static bool homeDirectory(String32& to)
     }
     else
     {
-      to.set("/tmp");
+      to.set(StubAscii8("/tmp"));
       return false;
     }
   }

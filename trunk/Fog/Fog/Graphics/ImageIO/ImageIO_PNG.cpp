@@ -141,7 +141,7 @@ struct PngLibrary
       "png_get_bit_depth\0"
       "png_get_IHDR\0";
 
-    if (dll.open("png", Fog::Library::OpenSystemPrefix | Fog::Library::OpenSystemSuffix).ok() &&
+    if (dll.open(StubAscii8("png"), Fog::Library::OpenSystemPrefix | Fog::Library::OpenSystemSuffix) == Error::Ok &&
         dll.symbols(addr, symbols, FOG_ARRAY_SIZE(symbols), SymbolsCount, (char**)NULL) == SymbolsCount)
     {
       ok = 1;
@@ -169,11 +169,11 @@ PngProvider::PngProvider()
 
 
   // name
-  _name = graphics_strings->get(Fog::STR_GRAPHICS_PNG);
+  _name = fog_strings->get(STR_GRAPHICS_PNG);
 
   // extensions
   _extensions.reserve(1);
-  _extensions.append(graphics_strings->get(Fog::STR_GRAPHICS_png));
+  _extensions.append(fog_strings->get(STR_GRAPHICS_png));
 }
 
 PngProvider::~PngProvider()
@@ -256,9 +256,12 @@ void PngDecoderDevice::reset()
 
 uint32_t PngDecoderDevice::readHeader()
 {
+  // Don't read header more than once.
+  if (headerDone()) return headerResult();
+
   // Png library pointer
   PngLibrary* lib = _png.get();
-  if (!lib->ok) return EImageIOPngLibraryNotFound;
+  if (!lib->ok) return Error::ImageIO_PngLibraryNotFound;
 
   // don't read header more than once
   if (headerDone()) return headerResult();
@@ -275,7 +278,7 @@ uint32_t PngDecoderDevice::readHeader()
 
   if (setjmp(((png_structp)_png_ptr)->jmpbuf))
   {
-    return (_headerResult = EImageIOPngError);
+    return (_headerResult = Error::ImageIO_PngError);
   }
 
   lib->png_read_info((png_structp)_png_ptr, (png_infop)_png_info_ptr);
@@ -294,13 +297,13 @@ uint32_t PngDecoderDevice::readHeader()
   // check for zero dimensions
   if (areDimensionsZero())
   {
-    return (_headerResult = EImageSizeIsZero);
+    return (_headerResult = Error::ImageSizeIsZero);
   }
 
   // check for too large dimensions
   if (areDimensionsTooLarge())
   {
-    return (_headerResult = EImageSizeTooLarge);
+    return (_headerResult = Error::ImageSizeIsTooLarge);
   }
 
   // png contains only one image
@@ -317,13 +320,13 @@ uint32_t PngDecoderDevice::readImage(Fog::Image& image)
 {
   // Png library pointer
   PngLibrary* lib = _png.get();
-  if (!lib->ok) return EImageIOPngLibraryNotFound;
+  if (!lib->ok) return Error::ImageIO_PngLibraryNotFound;
 
   // read png header
   if (readHeader() != Error::Ok) return headerResult();
 
   // don't read image more than once
-  if (readerDone()) return (_readerResult = EImageIONotAnimationFormat);
+  if (readerDone()) return (_readerResult = Error::ImageIO_NotAnimationFormat);
 
   // error code (default is success)
   uint32_t error = Error::Ok;
@@ -340,7 +343,7 @@ uint32_t PngDecoderDevice::readImage(Fog::Image& image)
 
   if (setjmp(png_ptr->jmpbuf))
   {
-    return EImageIOPngError;
+    return Error::ImageIO_PngError;
   }
 
   if (info_ptr->color_type == PNG_COLOR_TYPE_PALETTE)
@@ -453,7 +456,7 @@ uint32_t PngDecoderDevice::_createPngStream()
   // create png structure
   if ((_png_ptr = lib->png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL)) == NULL)
   {
-    return EImageIOPngError;
+    return Error::ImageIO_PngError;
   }
 
   // create info structure
@@ -470,7 +473,7 @@ uint32_t PngDecoderDevice::_createPngStream()
 
 fail:
   _deletePngStream();
-  return EImageIOPngError;
+  return Error::ImageIO_PngError;
 }
 
 void PngDecoderDevice::_deletePngStream()
@@ -500,7 +503,7 @@ uint32_t PngEncoderDevice::writeImage(const Fog::Image& image_)
 {
   // Png library pointer
   PngLibrary* lib = _png.get();
-  if (!lib->ok) return EImageIOPngLibraryNotFound;
+  if (!lib->ok) return Error::ImageIO_PngLibraryNotFound;
 
   uint32_t error = Error::Ok;
 
@@ -523,25 +526,25 @@ uint32_t PngEncoderDevice::writeImage(const Fog::Image& image_)
   // Step 0: Simple reject
   if (!width || !height)
   {
-    error = EImageSizeInvalid;
+    error = Error::ImageSizeIsInvalid;
     goto end;
   }
 
   if ((png_ptr = lib->png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL)) == NULL)
   {
-    error = EImageIOPngError;
+    error = Error::ImageIO_PngError;
     goto end;
   }
 
   if ((info_ptr = lib->png_create_info_struct(png_ptr)) == NULL)
   {
-    error = EImageIOPngError;
+    error = Error::ImageIO_PngError;
     goto end_destroy_write_struct;
   }
 
   if (setjmp(png_ptr->jmpbuf))
   {
-    error = EImageIOPngError;
+    error = Error::ImageIO_PngError;
     goto end_destroy_write_struct;
   }
 
@@ -574,7 +577,7 @@ uint32_t PngEncoderDevice::writeImage(const Fog::Image& image_)
     {
       if (!converter.setup(Fog::ImageFormat::ARGB32, format.id()))
       {
-        error = EImageIOConverterNotAvailable;
+        error = Error::ImageIO_ConverterNotAvailable;
         goto end_destroy_write_struct;
       }
       buffer = (uint8_t*)bufferStorage.alloc(width * 4);
@@ -588,7 +591,7 @@ uint32_t PngEncoderDevice::writeImage(const Fog::Image& image_)
 
     if (!converter.setup(Fog::Converter::BGR24, format.id()))
     {
-      error = EImageIOConverterNotAvailable;
+      error = Error::ImageIO_ConverterNotAvailable;
       goto end_destroy_write_struct;
     }
     buffer = (uint8_t*)bufferStorage.alloc(width * 3);
@@ -642,7 +645,7 @@ end:
 
 Fog::ImageIO::Provider* fog_imageio_getPngProvider(void)
 {
-  return Fog::ImageIO::_png.get()->ok ? new Fog::ImageIO::PngProvider() : NULL;
+  return Fog::ImageIO::_png.get()->ok ? new(std::nothrow) Fog::ImageIO::PngProvider() : NULL;
 }
 
 #else

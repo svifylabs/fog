@@ -1262,7 +1262,7 @@ void Generator::usingConstants()
   // 64-bit mode: Allocate register and set custom alloc/spill functions.
   // TODO:
   _rConstantsAddress.use(c->newVariable(VARIABLE_TYPE_PTR, 0));
-  c->mov(_rConstantsAddress.x(), imm((SysInt)Api::constants));
+  c->mov(_rConstantsAddress.x(), imm((SysInt)Constants::instance));
 #endif
 
   // Initialized, this will prevent us to do initialization more times

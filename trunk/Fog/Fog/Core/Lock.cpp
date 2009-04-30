@@ -7,13 +7,9 @@
 #include <Fog/Core/Error.h>
 #include <Fog/Core/Lock.h>
 
-namespace Fog {
-
 #if defined(FOG_OS_POSIX)
-FOG_CVAR_DECLARE pthread_mutexattr lock_recursive_attrs;
+FOG_CVAR_DECLARE pthread_mutexattr_t lock_recursive_attrs;
 #endif // FOG_OS_POSIX
-
-} // Fog namespace
 
 // ============================================================================
 // [Library Initializers]

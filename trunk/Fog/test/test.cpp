@@ -52,9 +52,13 @@ struct MyWindow : public Window
     {
       p->drawText(Point(50, i * 14), StubAscii8("abcdefghijklmopqrstuvwxyz"), font);
     }
+
+    p->setSource(Rgba(0xFFFFFFFF));
+    p->fillArc(PointF(100, 100), PointF(200, 200), 0.5, 3.14);
+
 /*
     Path path;
-    for (sysuint_t i = 0; i < 1; i++)
+    for (sysuint_t i = 0; i < 100; i++)
     {
       path.clear();
       path.moveTo(rand() % w, rand() % h);

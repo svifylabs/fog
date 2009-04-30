@@ -3,11 +3,11 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Dependencies]
 #include <Fog/Build/Build.h>
 
 #if defined(FOG_UI_WINDOWS)
 
+// [Dependencies]
 #include <Fog/Core/Application.h>
 #include <Fog/UI/Constants.h>
 #include <Fog/UI/UISystem_Win.h>
@@ -728,7 +728,7 @@ err_t UIWindowWin::getTitle(String32& title)
 {
   if (!_handle) return Error::InvalidHandle;
 
-  _title = title;
+  title = _title;
   return Error::Ok;
 }
 
@@ -765,8 +765,8 @@ err_t UIWindowWin::worldToClient(Point* coords)
   if (!_handle) return Error::InvalidHandle;
 
   return ScreenToClient((HWND)_handle, (POINT *)coords)
-    ? Error::Ok
-    : Error::FailedToTranslateCoordinates;
+    ? (err_t)Error::Ok
+    : (err_t)Error::FailedToTranslateCoordinates;
 }
 
 err_t UIWindowWin::clientToWorld(Point* coords)
@@ -774,8 +774,8 @@ err_t UIWindowWin::clientToWorld(Point* coords)
   if (!_handle) return Error::InvalidHandle;
 
   return ClientToScreen((HWND)_handle, (POINT *)coords) 
-    ? Error::Ok
-    : Error::FailedToTranslateCoordinates;
+    ? (err_t)Error::Ok
+    : (err_t)Error::FailedToTranslateCoordinates;
 }
 
 void UIWindowWin::onMousePress(uint32_t button, bool repeated)

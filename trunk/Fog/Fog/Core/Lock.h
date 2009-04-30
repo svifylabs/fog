@@ -26,6 +26,10 @@
 //! @addtogroup Fog_Core
 //! @{
 
+#if defined(FOG_OS_POSIX)
+FOG_CVAR_EXTERN pthread_mutexattr_t lock_recursive_attrs;
+#endif // FOG_OS_POSIX
+
 namespace Fog {
 
 // ============================================================================
@@ -37,10 +41,6 @@ struct ThreadCondition;
 // ============================================================================
 // [Fog::Lock]
 // ============================================================================
-
-#if defined(FOG_OS_POSIX)
-FOG_CVAR_EXTERN pthread_mutexattr lock_recursive_attrs;
-#endif // FOG_OS_POSIX
 
 struct FOG_HIDDEN Lock
 {

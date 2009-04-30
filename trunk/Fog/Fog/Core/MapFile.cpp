@@ -14,6 +14,7 @@
 #include <Fog/Core/MapFile.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/String.h>
+#include <Fog/Core/TextCodec.h>
 
 #if defined(FOG_OS_POSIX)
 #include <errno.h>

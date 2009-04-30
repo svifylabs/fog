@@ -50,27 +50,38 @@ inline uint32_t toHashCode(const T& key)
   return key.toHashCode();
 }
 
-inline uint32_t toHashCode(const char*&    key) { return hashString(reinterpret_cast<const Char8*>(key), DetectLength); }
-inline uint32_t toHashCode(const uint8_t*& key) { return hashString(reinterpret_cast<const Char8*>(key), DetectLength); }
-inline uint32_t toHashCode(const Char8*&   key) { return hashString(key, DetectLength); }
-inline uint32_t toHashCode(const Char16*&  key) { return hashString(key, DetectLength); }
-inline uint32_t toHashCode(const Char32*&  key) { return hashString(key, DetectLength); }
+#define FOG_DECLARE_HASHABLE(__type__, __execute__) \
+template<> \
+inline uint32_t toHashCode<__type__>(const __type__& key) __execute__
 
-inline uint32_t toHashCode(const char&     key) { return (uint8_t)key; }
-inline uint32_t toHashCode(const uint8_t&  key) { return (uint8_t)key; }
-inline uint32_t toHashCode(const int16_t&  key) { return (uint16_t)key; }
-inline uint32_t toHashCode(const uint16_t& key) { return (uint16_t)key; }
-inline uint32_t toHashCode(const int32_t&  key) { return (uint32_t)key; }
-inline uint32_t toHashCode(const uint32_t& key) { return (uint32_t)key; }
-inline uint32_t toHashCode(const int64_t&  key) { return ((uint32_t)((uint64_t)(key) >> 31)) ^ (uint32_t)(key); }
-inline uint32_t toHashCode(const uint64_t& key) { return ((uint32_t)((uint64_t)(key) >> 31)) ^ (uint32_t)(key); }
+#define FOG_DECLARE_HASHABLE_PTR(__type__, __execute__) \
+template<> \
+inline uint32_t toHashCode<__type__ &>(__type__& key) __execute__ \
+\
+template<> \
+inline uint32_t toHashCode<const __type__ &>(const __type__& key) __execute__
+
+FOG_DECLARE_HASHABLE(char, { return (uint8_t)key; })
+FOG_DECLARE_HASHABLE(uint8_t, { return (uint8_t)key; })
+FOG_DECLARE_HASHABLE(int16_t, { return (uint16_t)key; })
+FOG_DECLARE_HASHABLE(uint16_t, { return (uint16_t)key; })
+FOG_DECLARE_HASHABLE(int32_t, { return (uint32_t)key; })
+FOG_DECLARE_HASHABLE(uint32_t, { return (uint32_t)key; })
+FOG_DECLARE_HASHABLE(int64_t, { return ((uint32_t)((uint64_t)(key) >> 31)) ^ (uint32_t)(key); })
+FOG_DECLARE_HASHABLE(uint64_t, { return ((uint32_t)((uint64_t)(key) >> 31)) ^ (uint32_t)(key); })
+
+FOG_DECLARE_HASHABLE_PTR(char*, { return hashString(reinterpret_cast<const Char8*>(key), DetectLength); })
+FOG_DECLARE_HASHABLE_PTR(uint8_t*, { return hashString(reinterpret_cast<const Char8*>(key), DetectLength); })
+FOG_DECLARE_HASHABLE_PTR(Char8*, { return hashString(key, DetectLength); })
+FOG_DECLARE_HASHABLE_PTR(Char16*, { return hashString(key, DetectLength); })
+FOG_DECLARE_HASHABLE_PTR(Char32*, { return hashString(key, DetectLength); })
 
 #if FOG_ARCH_BITS == 32
 template<typename T>
-inline uint32_t toHashCode<>(T* key) { return (uint32_t)key; }
+inline uint32_t toHashCode(T* key) { return (uint32_t)key; }
 #else
 template<typename T>
-inline uint32_t toHashCode<>(T* key) { return ((uint32_t)((uint64_t)(key) >> 31)) ^ (uint32_t)(key); }
+inline uint32_t toHashCode(T* key) { return ((uint32_t)((uint64_t)(key) >> 31)) ^ (uint32_t)(uint64_t)(key); }
 #endif // FOG_ARCH_BITS
 
 // ============================================================================
@@ -245,7 +256,7 @@ struct Hash : public Hash_Abstract
   err_t put(const KeyT& key, const ValueT& value, bool replace = true);
   bool remove(const KeyT& key);
 
-  const ValueT* get(const KeyT& key) const;
+  ValueT* get(const KeyT& key) const;
   ValueT* mod(const KeyT& key);
 
   ValueT value(const KeyT& key) const;
@@ -379,7 +390,7 @@ bool Hash<KeyT, ValueT>::contains(const KeyT& key) const
 }
 
 template<typename KeyT, typename ValueT>
-err_t Hash<KeyT, ValueT>::put(const KeyT& key, const ValueT& value, bool replace = true)
+err_t Hash<KeyT, ValueT>::put(const KeyT& key, const ValueT& value, bool replace)
 {
   if (!_d->length && !_rehash(32)) return Error::OutOfMemory;
 
@@ -451,7 +462,7 @@ bool Hash<KeyT, ValueT>::remove(const KeyT& key)
 }
 
 template<typename KeyT, typename ValueT>
-const ValueT* Hash<KeyT, ValueT>::get(const KeyT& key) const
+ValueT* Hash<KeyT, ValueT>::get(const KeyT& key) const
 {
   if (!_d->length) return NULL;
 

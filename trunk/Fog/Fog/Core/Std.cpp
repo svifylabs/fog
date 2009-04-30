@@ -26,6 +26,8 @@
 #include <unistd.h>
 #endif // FOG_OS_POSIX
 
+#include <stdarg.h>
+
 // private
 static FILE* fog_stdfile;
 

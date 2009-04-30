@@ -44,13 +44,34 @@ struct FOG_API Application : public Object
   virtual err_t run();
   virtual void quit();
 
-  static FOG_INLINE Application* instance() { return _instance; }
-
   //! @brief Return application event loop (can be NULL).
   FOG_INLINE EventLoop* eventLoop() const { return _eventLoop; }
 
   //! @brief Return application UI system (can be NULL).
   FOG_INLINE UISystem* uiSystem() const { return _uiSystem; }
+
+  // [Add / remove event loop type]
+
+  typedef EventLoop* (*EventLoopConstructor)();
+
+  template<typename EventLoopT>
+  struct CtorHelper
+  {
+    static EventLoop* ctor() { return new EventLoopT(); }
+  };
+
+  template<typename EventLoopT>
+  static void addEventLoopType(const String32& type)
+  {
+    _addEventLoopType(type, CtorHelper<EventLoopT>::ctor);
+  }
+
+  static bool _addEventLoopType(const String32& type, EventLoopConstructor ctor);
+  static bool removeEventLoopType(const String32& type);
+
+  // [Statics]
+
+  static FOG_INLINE Application* instance() { return _instance; }
 
   static String32 detectUI();
   static UISystem* createUISystem(const String32& type);

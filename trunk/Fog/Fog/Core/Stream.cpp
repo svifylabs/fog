@@ -14,6 +14,7 @@
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Stream.h>
 #include <Fog/Core/String.h>
+#include <Fog/Core/TextCodec.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -405,9 +406,11 @@ struct FOG_HIDDEN StreamDeviceFd : public StreamDevice
   virtual sysuint_t write(const void* buffer, sysuint_t size);
   virtual err_t truncate(int64_t offset);
   virtual void close();
+
+  int fd;
 };
 
-StreamDeviceFd::StreamDeviceFd(int fd) : 
+StreamDeviceFd::StreamDeviceFd(int fd, uint32_t fflags) :
   fd(fd)
 {
   flags |= Stream::IsFD | Stream::IsOpen | fflags;
@@ -433,7 +436,7 @@ err_t StreamDeviceFd::openFile(const String32& fileName, uint32_t openFlags, Str
   err_t err;
   TemporaryString8<TemporaryLength> fileName8;
 
-  if ((err = fileName8.set(fileName, TextCodec::local()))) return err;
+  if ((err = fileName8.set(fileName, TextCodec::local8()))) return err;
 
   // Read / Write
   if ((openFlags & Stream::OpenReadWrite) == Stream::OpenReadWrite)
@@ -458,12 +461,12 @@ err_t StreamDeviceFd::openFile(const String32& fileName, uint32_t openFlags, Str
   }
 
   // Open file
-  fd = open64(fileName8.cStr(), fdFlags | O_LARGEFILE);
+  fd = ::open64(fileName8.cStr(), fdFlags | O_LARGEFILE);
 
   // Try to create file if open failed (or create it if OpenCreate flag was set)
   if (fd < 0 && (errno == ENOENT) && (openFlags & Stream::OpenCreate) != 0)
   {
-    fd = open64(t.cStr(), fdFlags | O_CREAT | O_LARGEFILE, 0644);
+    fd = ::open64(fileName8.cStr(), fdFlags | O_CREAT | O_LARGEFILE, 0644);
   }
 
   if (fd < 0)
@@ -481,7 +484,7 @@ err_t StreamDeviceFd::openFile(const String32& fileName, uint32_t openFlags, Str
 
 int64_t StreamDeviceFd::seek(int64_t offset, int whence)
 {
-  int64_t result = lseek64(fd, offset, whence);
+  int64_t result = ::lseek64(fd, offset, whence);
 
   if (result < 0)
     return -1;
@@ -491,7 +494,7 @@ int64_t StreamDeviceFd::seek(int64_t offset, int whence)
 
 int64_t StreamDeviceFd::tell() const
 {
-  int64_t result = lseek64(fd, 0, SEEK_SET);
+  int64_t result = ::lseek64(fd, 0, SEEK_SET);
 
   if (result < 0)
     return -1;
@@ -501,7 +504,7 @@ int64_t StreamDeviceFd::tell() const
 
 sysuint_t StreamDeviceFd::read(void* buffer, sysuint_t size)
 {
-  sysint_t n = read(fd, buffer, size);
+  sysint_t n = ::read(fd, buffer, size);
 
   if (n < 0)
     return (sysuint_t)-1;
@@ -511,7 +514,7 @@ sysuint_t StreamDeviceFd::read(void* buffer, sysuint_t size)
 
 sysuint_t StreamDeviceFd::write(const void* buffer, sysuint_t size)
 {
-  sysint_t n = write(fd, buffer, size);
+  sysint_t n = ::write(fd, buffer, size);
 
   if (n < 0)
     return (sysuint_t)-1;
@@ -521,13 +524,13 @@ sysuint_t StreamDeviceFd::write(const void* buffer, sysuint_t size)
 
 err_t StreamDeviceFd::truncate(int64_t offset)
 {
-  int result = ftruncate64(fd, offset);
-  return result != 0 ? Error::TruncateFailed : Error::Ok;
+  int result = ::ftruncate64(fd, offset);
+  return result != 0 ? (err_t)Error::TruncateFailed : (err_t)Error::Ok;
 }
 
 void StreamDeviceFd::close()
 {
-  if ((flags & Stream::CanClose) != 0) close(fd);
+  if ((flags & Stream::CanClose) != 0) ::close(fd);
 }
 #endif // FOR_OS_POSIX
 

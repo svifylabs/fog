@@ -17,7 +17,7 @@
 #if defined(FOG_OS_POSIX)
 
 // [Dependencies]
-#include <Fog/Core/EventPump.h>
+#include <Fog/Core/EventLoop.h>
 #include <Fog/Core/ThreadEvent.h>
 
 #include <event.h>

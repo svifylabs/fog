@@ -1316,7 +1316,7 @@ __ret:
     }
   }
   return err;
-#endif __G_SIZE
+#endif // __G_SIZE
 }
 
 err_t __G_STRING::appendFormat(const char* fmt, ...)
@@ -1529,7 +1529,7 @@ err_t __G_STRING::insert(sysuint_t index, const void* str, sysuint_t size, const
   err_t err = tc.appendToUtf16(t, Stub8((const char*)str, size));
 #else
   err_t err = tc.appendToUtf32(t, Stub8((const char*)str, size));
-#endif __G_SIZE
+#endif // __G_SIZE
   if (err) return err;
   return insert(index, t);
 }
@@ -3425,7 +3425,7 @@ __G_STRING::Data* __G_STRING::Data::adopt(
     Data* d = adopt(address, capacity);
     d->length = length;
     StringUtil::copy(d->data, str, length);
-    d->data[length] = __G_CHAR(0);
+    d->data[length] = 0;
     return d;
   }
   else

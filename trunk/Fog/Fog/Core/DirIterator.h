@@ -148,6 +148,7 @@ private:
 
 #if defined(FOG_OS_POSIX)
   Fog::String8 _pathCache;
+  sysuint_t _pathCacheBaseLength;
 #endif // FOG_OS_POSIX
 
   bool _skipDots;

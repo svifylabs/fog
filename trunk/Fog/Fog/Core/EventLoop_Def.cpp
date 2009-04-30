@@ -32,14 +32,12 @@ EventPumpDefault::~EventPumpDefault()
 {
 }
 
-void EventPumpDefault::run(EventPumpDefault::Delegate* delegate)
+void EventPumpDefault::run(EventPump::Delegate* delegate)
 {
   FOG_ASSERT(_keepRunning);
 
   for (;;)
   {
-    // ScopedNSAutoreleasePool autorelease_pool;
-
     bool didWork = delegate->doWork();
     if (!_keepRunning) break;
 

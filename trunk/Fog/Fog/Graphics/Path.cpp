@@ -117,7 +117,7 @@ static FOG_INLINE double calcDistance(double x1, double y1, double x2, double y2
 static FOG_INLINE Path::Cmd lastCmd(Path::Data* d)
 {
   return Path::Cmd(d->length
-    ? d->data[d->length-1].cmd.cmd()
+    ? Path::Cmd(d->data[d->length-1].cmd)
     : Path::Cmd(Path::CmdEndPoly));
 }
 

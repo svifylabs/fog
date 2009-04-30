@@ -282,10 +282,10 @@ struct List : public Sequence<T>
   }
 
   T takeFirst() { return takeAt(0); }
-  T takeLast() { return takeAt(length()-1); }
-  T top() const { return cAt(length()-1); }
+  T takeLast() { return takeAt(Sequence<T>::length()-1); }
+  T top() const { return cAt(Sequence<T>::length()-1); }
 
-  void pop() { removeAt(length()-1, 1); }
+  void pop() { removeAt(Sequence<T>::length()-1, 1); }
 
   // [Operator Overload]
 

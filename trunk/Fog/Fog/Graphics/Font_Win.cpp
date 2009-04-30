@@ -191,8 +191,7 @@ err_t FontFaceWin::getGlyphs(const Char32* str, sysuint_t length, GlyphSet& glyp
     if (FOG_UNLIKELY(!glyphd))
     {
       if (!renderUsed) renderUsed = renderBegin();
-      glyphd = renderGlyph(uc);
-      if (glyphd) glyphCache.set(uc, glyphd);
+      if ((glyphd = renderGlyph(uc))) glyphCache.set(uc, glyphd);
     }
 
     if (FOG_LIKELY(glyphd)) glyphSet._add(glyphd->ref());
@@ -206,7 +205,7 @@ err_t FontFaceWin::getGlyphs(const Char32* str, sysuint_t length, GlyphSet& glyp
 
 err_t FontFaceWin::getTextWidth(const Char32* str, sysuint_t length, TextWidth* textWidth)
 {
-  GlyphSet glyphSet;
+  TemporaryGlyphSet<128> glyphSet;
   err_t err = getGlyphs(str, length, glyphSet);
 
   if (err)

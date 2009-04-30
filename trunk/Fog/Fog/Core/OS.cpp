@@ -165,7 +165,7 @@ String32 OS::version()
 
 #if defined(FOG_OS_POSIX)
   utsname info;
-  if (uname(&info) >= 0) result.set(info.release);
+  if (uname(&info) >= 0) result.set(StubLocal8(info.release));
 #endif // FOG_OS_POSIX
 
   return result;

@@ -86,7 +86,7 @@ static err_t platformOpenLibrary(const String32& fileName, void** handle)
 
   if ((*handle = (void*)dlopen(fileName8.cStr(), RTLD_NOW)) == NULL)
   {
-    return Error::LibraryOpenFailed
+    return Error::LibraryOpenFailed;
   }
   else
   {
@@ -328,15 +328,17 @@ FOG_INIT_DECLARE err_t fog_library_init(void)
   // Windows, but we will add it also for posix OSes.
 
   // TODO: Get application directory instead of working directory
-  // Fog::library_local.instance().paths.append(Fog::Directory::getWorking());
+  Fog::String32 workingDirectory;
+  Fog::FileSystem::getWorkingDirectory(workingDirectory);
+  Fog::library_local.instance().paths.append(workingDirectory);
 
 #if defined(FOG_OS_POSIX)
 #if FOG_ARCH_BITS == 32
-  Fog::library_local.instance().paths.append(StubAscii8("/usr/lib"));
-  Fog::library_local.instance().paths.append(StubAscii8("/usr/local/lib"));
+  Fog::library_local.instance().paths.append(Fog::StubAscii8("/usr/lib"));
+  Fog::library_local.instance().paths.append(Fog::StubAscii8("/usr/local/lib"));
 #else
-  Fog::library_local.instance().paths.append(StubAscii8("/usr/lib64"));
-  Fog::library_local.instance().paths.append(StubAscii8("/usr/local/lib64"));
+  Fog::library_local.instance().paths.append(Fog::StubAscii8("/usr/lib64"));
+  Fog::library_local.instance().paths.append(Fog::StubAscii8("/usr/local/lib64"));
 #endif // FOG_ARCH_BITS
 #endif // FOG_OS_POSIX
 

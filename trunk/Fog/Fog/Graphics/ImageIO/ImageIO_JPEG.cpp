@@ -34,11 +34,12 @@
 #include <jerror.h>
 
 namespace Fog {
-
-// [Fog::ImageIO::]
 namespace ImageIO {
 
+// ===========================================================================
 // [Fog::ImageIO::JpegProvider]
+// ===========================================================================
+
 struct JpegProvider : public Provider
 {
   JpegProvider();
@@ -77,7 +78,7 @@ struct JpegLibrary
     void *addr[SymbolsCount];
   };
 
-  Fog::Library dll;
+  Library dll;
   uint32_t ok;
 
   JpegLibrary() : ok(false)
@@ -100,7 +101,7 @@ struct JpegLibrary
       "jpeg_destroy_compress\0"
       "jpeg_destroy_decompress\0";
 
-    if (dll.open("jpeg", Fog::Library::OpenSystemPrefix | Fog::Library::OpenSystemSuffix).ok() &&
+    if (dll.open(StubAscii8("jpeg"), Library::OpenSystemPrefix | Library::OpenSystemSuffix) == Error::Ok &&
         dll.symbols(addr, symbols, FOG_ARRAY_SIZE(symbols), SymbolsCount, (char**)NULL) == SymbolsCount)
     {
       ok = 1;
@@ -117,14 +118,14 @@ JpegProvider::JpegProvider()
   _features.rgb24 = true;
 
   // name
-  _name = graphics_strings->get(STR_GRAPHICS_JPEG);
+  _name = fog_strings->get(STR_GRAPHICS_JPEG);
 
   // extensions
   _extensions.reserve(4);
-  _extensions.append(graphics_strings->get(STR_GRAPHICS_jpg));
-  _extensions.append(graphics_strings->get(STR_GRAPHICS_jpeg));
-  _extensions.append(graphics_strings->get(STR_GRAPHICS_jfi));
-  _extensions.append(graphics_strings->get(STR_GRAPHICS_jfif));
+  _extensions.append(fog_strings->get(STR_GRAPHICS_jpg));
+  _extensions.append(fog_strings->get(STR_GRAPHICS_jpeg));
+  _extensions.append(fog_strings->get(STR_GRAPHICS_jfi));
+  _extensions.append(fog_strings->get(STR_GRAPHICS_jfif));
 }
 
 JpegProvider::~JpegProvider()
@@ -155,9 +156,11 @@ DecoderDevice* JpegProvider::createDecoder()
   return new JpegDecoderDevice();
 }
 
-static Fog::Lazy<JpegLibrary> _jpeg;
+static Lazy<JpegLibrary> _jpeg;
 
+// ===========================================================================
 // [Fog::ImageIO::JpegDecoderDevice]
+// ===========================================================================
 
 #define INPUT_BUFFER_SIZE 4096
 
@@ -218,7 +221,7 @@ static FOG_CDECL void MyJpegSkipInputData(j_decompress_ptr cinfo, long num_bytes
   }
   else
   {
-    src->stream->seek(num_bytes - remain, Fog::Stream::Seek_Cur);
+    src->stream->seek(num_bytes - remain, Stream::SeekCur);
 
     sysuint_t nbytes = src->stream->read(src->buffer, INPUT_BUFFER_SIZE);
     src->pub.next_input_byte = src->buffer;
@@ -264,20 +267,28 @@ JpegDecoderDevice::~JpegDecoderDevice()
   if (!jpeg->ok) return;
 }
 
+// ===========================================================================
 // [Fog::ImageIO::JpegDecoderDevice::reset]
+// ===========================================================================
 
 void JpegDecoderDevice::reset()
 {
   DecoderDevice::reset();
 }
 
+// ===========================================================================
 // [Fog::ImageIO::JpegDecoderDevice::readHeader]
+// ===========================================================================
 
 uint32_t JpegDecoderDevice::readHeader()
 {
-  if (_jpeg == NULL)
+  // Don't read header more than once.
+  if (headerDone()) return headerResult();
+
+  JpegLibrary* jpeg = _jpeg.get();
+  if (jpeg == NULL)
   {
-    return Fog_ImageError_LibjpegMissing;
+    return (_headerResult = Error::ImageIO_JpegLibraryNotFound);
   }
 
   struct jpeg_decompress_struct cinfo;
@@ -285,116 +296,119 @@ uint32_t JpegDecoderDevice::readHeader()
   MyJpegErrorMgr jerr;
 
   // create a decompression structure and load the header
-  cinfo.err = _jpeg->jpeg_std_error(&jerr.errmgr);
+  cinfo.err = jpeg->jpeg_std_error(&jerr.errmgr);
   jerr.errmgr.error_exit = MyJpegErrorExit;
   jerr.errmgr.output_message = MyJpegMessage;
 
   if (setjmp(jerr.escape))
   {
     // error
-    _jpeg->jpeg_destroy_decompress(&cinfo);
-    return Fog_ImageError_Libjpeg;
+    jpeg->jpeg_destroy_decompress(&cinfo);
+    return (_headerResult = Error::ImageIO_JpegError);
   }
 
-  _jpeg->jpegCreateDecompress(&cinfo, /* version */ 62, sizeof(struct jpeg_decompress_struct));
+  jpeg->jpegCreateDecompress(&cinfo, /* version */ 62, sizeof(struct jpeg_decompress_struct));
 
   cinfo.src = (struct jpeg_source_mgr *)&srcmgr;
   srcmgr.pub.init_source = MyJpegInitSource;
   srcmgr.pub.fill_input_buffer = MyJpegFillInputBuffer;
   srcmgr.pub.skip_input_data = MyJpegSkipInputData;
-  srcmgr.pub.resync_to_restart = _jpeg->jpeg_resync_to_restart;
+  srcmgr.pub.resync_to_restart = jpeg->jpeg_resync_to_restart;
   srcmgr.pub.term_source = MyJpegTermSource;
   srcmgr.pub.next_input_byte = srcmgr.buffer;
   srcmgr.pub.bytes_in_buffer = 0;
-  srcmgr.stream = &self->stream;
+  srcmgr.stream = &_stream;
 
-  _jpeg->jpeg_read_header(&cinfo, true);
-  _jpeg->jpeg_calc_output_dimensions(&cinfo);
+  jpeg->jpeg_read_header(&cinfo, true);
+  jpeg->jpeg_calc_output_dimensions(&cinfo);
 
-  self->data.headerRead = true;
-  self->data.width = cinfo.output_width;
-  self->data.height = cinfo.output_height;
-  self->data.planes = 1;
-  self->data.actualFrame = 0;
-  self->data.framesCount = 1;
+  _headerDone = true;
+  _width = cinfo.output_width;
+  _height = cinfo.output_height;
+  _planes = 1;
+  _actualFrame = 0;
+  _framesCount = 1;
 
   switch (cinfo.out_color_space)
   {
     case JCS_GRAYSCALE:
-      self->data.depth = 8;
+      _depth = 8;
       break;
     case JCS_RGB:
-      self->data.depth = 24;
+      _depth = 24;
       break;
     default:
-      _jpeg->jpeg_destroy_decompress(&cinfo);
-      return Fog_ImageError_UnsupportedFormat;
+      jpeg->jpeg_destroy_decompress(&cinfo);
+      return (_headerResult = Error::ImageIO_FormatNotSupported);
   }
 
-  _jpeg->jpeg_destroy_decompress(&cinfo);
-  return Fog_ImageError_Success;
+  jpeg->jpeg_destroy_decompress(&cinfo);
+  return (_headerResult = Error::Ok);
 }
 
+// ===========================================================================
 // [Fog::ImageIO::JpegDecoderDevice::readImage]
+// ===========================================================================
 
-uint32_t JpegDecoderDevice::readImage(Fog::Image& image)
+uint32_t JpegDecoderDevice::readImage(Image& image)
 {
-  if (_jpeg == NULL)
+  JpegLibrary* jpeg = _jpeg.get();
+  if (jpeg == NULL)
   {
-    return Fog_ImageError_LibjpegMissing;
+    return Error::ImageIO_JpegLibraryNotFound;
   }
 
   struct jpeg_decompress_struct cinfo;
   MyJpegSourceMgr srcmgr;
   MyJpegErrorMgr jerr;
   JSAMPROW rowptr[1];
-  Fog::ImageData* image_d;
-  uint error = Fog_ImageError_Success;
-  uint format = Fog::ImageFormat::RGB24;
+  Image::Data* image_d;
+  err_t error = Error::Ok;
+  uint format = ImageFormat::RGB24;
 
-  // create a decompression structure and load the header
-  cinfo.err = _jpeg->jpeg_std_error(&jerr.errmgr);
+  // Create a decompression structure and load the header.
+  cinfo.err = jpeg->jpeg_std_error(&jerr.errmgr);
   jerr.errmgr.error_exit = MyJpegErrorExit;
   jerr.errmgr.output_message = MyJpegMessage;
 
   if (setjmp(jerr.escape))
   {
     // error
-    _jpeg->jpeg_destroy_decompress(&cinfo);
-    return Fog_ImageError_Libjpeg;
+    jpeg->jpeg_destroy_decompress(&cinfo);
+    return Error::ImageIO_JpegError;
   }
 
-  _jpeg->jpegCreateDecompress(&cinfo, /* version */ 62, sizeof(struct jpeg_decompress_struct));
+  jpeg->jpegCreateDecompress(&cinfo, /* version */ 62, sizeof(struct jpeg_decompress_struct));
 
   cinfo.src = (struct jpeg_source_mgr *)&srcmgr;
   srcmgr.pub.init_source = MyJpegInitSource;
   srcmgr.pub.fill_input_buffer = MyJpegFillInputBuffer;
   srcmgr.pub.skip_input_data = MyJpegSkipInputData;
-  srcmgr.pub.resync_to_restart = _jpeg->jpeg_resync_to_restart;
+  srcmgr.pub.resync_to_restart = jpeg->jpeg_resync_to_restart;
   srcmgr.pub.term_source = MyJpegTermSource;
   srcmgr.pub.next_input_byte = srcmgr.buffer;
   srcmgr.pub.bytes_in_buffer = 0;
-  srcmgr.stream = &self->stream;
+  srcmgr.stream = &_stream;
 
-  _jpeg->jpeg_read_header(&cinfo, true);
-  _jpeg->jpeg_calc_output_dimensions(&cinfo);
-  _jpeg->jpeg_start_decompress(&cinfo);
+  jpeg->jpeg_read_header(&cinfo, true);
+  jpeg->jpeg_calc_output_dimensions(&cinfo);
+  jpeg->jpeg_start_decompress(&cinfo);
 
   // set 8 or 24-bit output
   if (cinfo.out_color_space == JCS_GRAYSCALE)
   {
     if (cinfo.output_components != 1)
     {
-      error = Fog_ImageError_UnsupportedFormat;
+      error = Error::ImageIO_FormatNotSupported;
       goto end;
     }
-    format = Fog::ImageFormat::A8;
+    format = ImageFormat::A8;
   }
   else if (cinfo.out_color_space == JCS_RGB)
   {
     if (cinfo.output_components != 3)
     {
-      error = Fog_ImageError_UnsupportedFormat;
+      error = Error::ImageIO_FormatNotSupported;
       goto end;
     }
   }
@@ -405,18 +419,18 @@ uint32_t JpegDecoderDevice::readImage(Fog::Image& image)
   }
 
   // resize our image to jpeg size
-  if (!image->resize(cinfo.output_width, cinfo.output_height, format))
+  if (!image.create(cinfo.output_width, cinfo.output_height, format))
   {
-    _jpeg->jpeg_destroy_decompress(&cinfo);
-    error = Fog_ImageError_OutOfMemory;
+    jpeg->jpeg_destroy_decompress(&cinfo);
+    error = Error::OutOfMemory;
     goto end;
   }
-  image_d = image->_d;
+  image_d = image._d;
 
   while (cinfo.output_scanline < cinfo.output_height)
   {
-    rowptr[0] = (JSAMPROW)(uint8_t *)image_d->_base + cinfo.output_scanline * image_d->_stride;
-    _jpeg->jpeg_read_scanlines(&cinfo, rowptr, (JDIMENSION)1);
+    rowptr[0] = (JSAMPROW)(uint8_t *)image_d->first + cinfo.output_scanline * image_d->stride;
+    jpeg->jpeg_read_scanlines(&cinfo, rowptr, (JDIMENSION)1);
 
     // Need to swap R and B values for little endian architecture
 #if FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
@@ -430,17 +444,20 @@ uint32_t JpegDecoderDevice::readImage(Fog::Image& image)
     }
 #endif // FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
 
-    CALL_HANDLER(cinfo.output_scanline, cinfo.output_height)
+    if ((cinfo.output_scanline & 15) == 0)
+      updateProgress(cinfo.output_scanline, cinfo.output_height);
   }
-  _jpeg->jpeg_finish_decompress(&cinfo);
+  jpeg->jpeg_finish_decompress(&cinfo);
 
 end:
   // Success
-  _jpeg->jpeg_destroy_decompress(&cinfo);
+  jpeg->jpeg_destroy_decompress(&cinfo);
   return error;
 }
 
+// ===========================================================================
 // [Fog::ImageIO::JpegEncoder]
+// ===========================================================================
 
 #define OUTPUT_BUF_SIZE 4096
 
@@ -448,7 +465,7 @@ struct MyJpegDestMgr
 {
   struct jpeg_destination_mgr pub;
 
-  Fog::Stream* stream;
+  Stream* stream;
   uint8_t buffer[OUTPUT_BUF_SIZE * sizeof(JOCTET)];
 };
 
@@ -496,23 +513,24 @@ JpegEncoderDevice::~JpegEncoderDevice()
 {
 }
 
-uint32_t JpegEncoderDevice::writeImage(const Fog::Image& image_)
+uint32_t JpegEncoderDevice::writeImage(const Image& image_)
 {
-  if (_jpeg == NULL)
+  JpegLibrary* jpeg = _jpeg.get();
+  if (jpeg == NULL)
   {
-    return Fog_ImageError_LibjpegMissing;
+    return Error::ImageIO_JpegLibraryNotFound;
   }
 
-  Fog::MemoryBuffer<4096> bufferLocal;
+  MemoryBuffer<4096> bufferLocal;
   uint8_t* buffer;
   long bufferStride;
 
-  uint error = Fog_ImageError_Success;
+  uint error = Error::Ok;
 
-  Fog::ImageData* d = image->_d;
-  uint width = d->_width;
-  uint height = d->_height;
-  uint formatId = d->_formatId;
+  Image::Data* d = image_._d;
+  uint width = d->width;
+  uint height = d->height;
+  uint formatId = d->format.id();
 
   // This struct contains the JPEG compression parameters and pointers to
   // working space (which is allocated as needed by the JPEG library).
@@ -539,20 +557,19 @@ uint32_t JpegEncoderDevice::writeImage(const Fog::Image& image_)
   JSAMPROW row[1];
 
   // Converter
-  Fog::Converter converter;
-  converter.dither = 1;
+  Converter converter;
 
   if (setjmp(jerr.escape))
   {
     // error
-    _jpeg->jpeg_destroy_compress(&cinfo);
-    return Fog_ImageError_Libjpeg;
+    jpeg->jpeg_destroy_compress(&cinfo);
+    return Error::ImageIO_JpegError;
   }
 
   // Step 0: Simple reject
   if (!width || !height)
   {
-    error = Fog_ImageError_InvalidBounds;
+    error = Error::ImageSizeIsInvalid;
     goto end;
   }
 
@@ -562,9 +579,9 @@ uint32_t JpegEncoderDevice::writeImage(const Fog::Image& image_)
   // step fails.  (Unlikely, but it could happen if you are out of memory.)
   // This routine fills in the contents of struct jerr, and returns jerr's
   // address which we place into the link field in cinfo.
-  cinfo.err = _jpeg->jpeg_std_error((jpeg_error_mgr *)&jerr);
+  cinfo.err = jpeg->jpeg_std_error((jpeg_error_mgr *)&jerr);
   // Now we can initialize the JPEG compression object.
-  _jpeg->jpegCreateCompress(&cinfo, 62, sizeof(cinfo));
+  jpeg->jpegCreateCompress(&cinfo, 62, sizeof(cinfo));
 
   // Step 2: specify data destination (eg, a file)
   cinfo.dest = (jpeg_destination_mgr*)&destmgr;
@@ -573,7 +590,7 @@ uint32_t JpegEncoderDevice::writeImage(const Fog::Image& image_)
   destmgr.pub.init_destination = MyJpegInitDestination;
   destmgr.pub.empty_output_buffer = MyJpegEmptyOutputBuffer;
   destmgr.pub.term_destination = MyJpegTermDestination;
-  destmgr.stream = &self->stream;
+  destmgr.stream = &_stream;
 
   // Step 3: set parameters for compression
 
@@ -583,12 +600,12 @@ uint32_t JpegEncoderDevice::writeImage(const Fog::Image& image_)
   cinfo.image_height = height;         // image height in pixels
 
   // JSAMPLEs per row in image_buffer
-  if (formatId == Fog::ImageFormat::A1 || formatId == Fog::ImageFormat::A8)
+  if (formatId == ImageFormat::A8)
   {
     cinfo.input_components = 1;          // # of color components per pixel
     cinfo.in_color_space = JCS_GRAYSCALE;// colorspace of input image
 
-    converter.init(Fog::ImageFormat::A8, formatId);
+    converter.setup(ImageFormat::A8, formatId);
 
     bufferStride = width;
     buffer = (uint8_t*)bufferLocal.alloc(bufferStride);
@@ -599,9 +616,9 @@ uint32_t JpegEncoderDevice::writeImage(const Fog::Image& image_)
     cinfo.in_color_space = JCS_RGB;      // colorspace of input image
 
 #if FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
-    converter.init(Fog::Converter::BGR24, formatId);
+    converter.setup(Converter::BGR24, formatId);
 #else // FOG_BIG_ENDIAN
-    converter.init(Fog::Converter::RGB24, formatId);
+    converter.setup(Converter::RGB24, formatId);
 #endif // FOG_BYTE_ORDER
 
     bufferStride = width * 3;
@@ -611,17 +628,18 @@ uint32_t JpegEncoderDevice::writeImage(const Fog::Image& image_)
   // Now use the library's routine to set default compression parameters.
   // (You must set at least cinfo.in_color_space before calling this,
   // since the defaults depend on the source color space.)
-  _jpeg->jpeg_set_defaults(&cinfo);
+  jpeg->jpeg_set_defaults(&cinfo);
 
   // Now you can set any non-default parameters you wish to.
   // Here we just illustrate the use of quality (quantization table) scaling:
-  _jpeg->jpeg_set_quality(&cinfo, self->options.quality, true /* limit to baseline-JPEG values */);
+  // TODO: Quality settings, hardcoded to 10.
+  jpeg->jpeg_set_quality(&cinfo, 10, true /* limit to baseline-JPEG values */);
 
   // Step 4: Start compressor
 
   // true ensures that we will write a complete interchange-JPEG file.
   // Pass true unless you are very sure of what you're doing.
-  _jpeg->jpeg_start_compress(&cinfo, true);
+  jpeg->jpeg_start_compress(&cinfo, true);
 
   // Step 5: while (scan lines remain to be written)
 
@@ -637,19 +655,18 @@ uint32_t JpegEncoderDevice::writeImage(const Fog::Image& image_)
 
   while (cinfo.next_scanline < cinfo.image_height)
   {
-    converter.ditherOrigin.set(0, cinfo.next_scanline);
-    converter.convertSpan(buffer, 0, d->_base + cinfo.next_scanline * d->_stride, 0, width);
-    _jpeg->jpeg_write_scanlines(&cinfo, row, 1);
+    converter.convertSpan(buffer, 0, d->first + cinfo.next_scanline * d->stride, 0, width, Point(0, cinfo.next_scanline));
+    jpeg->jpeg_write_scanlines(&cinfo, row, 1);
   }
 
   // Step 6: Finish compression
 
-  _jpeg->jpeg_finish_compress(&cinfo);
+  jpeg->jpeg_finish_compress(&cinfo);
 
   // Step 7: release JPEG compression object
 
   // This is an important step since it will release a good deal of memory.
-  _jpeg->jpeg_destroy_compress(&cinfo);
+  jpeg->jpeg_destroy_compress(&cinfo);
 
   // And we're done!
 
@@ -657,15 +674,16 @@ end:
   return error;
 }
 
-// [Fog::ImageIO::]
-}
-
+} // ImageIO namespace
 } // Fog namespace
 
+// ===========================================================================
 // [CAPI]
+// ===========================================================================
+
 FOG_CAPI_DECLARE Fog::ImageIO::Provider* fog_imageio_getJpegProvider(void)
 {
-  return _jpeg.get()->ok ? new Fog::ImageIO::JpegProvider() : NULL;
+  return Fog::ImageIO::_jpeg.get()->ok ? new(std::nothrow) Fog::ImageIO::JpegProvider() : NULL;
 }
 
 #else

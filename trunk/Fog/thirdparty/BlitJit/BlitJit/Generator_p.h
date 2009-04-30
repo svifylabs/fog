@@ -254,13 +254,12 @@ struct BLITJIT_API Generator : public GeneratorBase
   // --------------------------------------------------------------------------
   // [Generator Helpers]
   // --------------------------------------------------------------------------
-
-  void Generator::_CompositePixels(
+  void _CompositePixels(
     const XMMRef& dst0, const XMMRef& src0, int alphaPos0,
     const Operator* op,
     bool two);
 
-  void Generator::_CompositePixels_4(
+  void _CompositePixels_4(
     const XMMRef& dst0, const XMMRef& src0, int alphaPos0,
     const XMMRef& dst1, const XMMRef& src1, int alphaPos1,
     const Operator* op);
