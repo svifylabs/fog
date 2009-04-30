@@ -131,7 +131,7 @@ static uint PCX_decodeScanline(
 {
   const uint8_t* cur = *src;
   sysuint_t left = length;
-  sysuint_t error = EImageIOTruncated;
+  sysuint_t error = Error::ImageIO_Truncated;
 
   // Decode RLE scanline and write it to 'dest'
   while (left) 
@@ -171,7 +171,7 @@ static uint PCX_decodeScanline(
         else
         {
           ignore = 0;
-          error = EImageIORleError;
+          error = Error::ImageIO_RleError;
 
           if (PCX_Strict) goto fail;
         }
@@ -201,7 +201,7 @@ static uint PCX_decodeScanline(
       if (ignore < count)
       {
         ignore = 0;
-        error = EImageIORleError;
+        error = Error::ImageIO_RleError;
         if (PCX_Strict) goto fail;
       }
       else
@@ -384,7 +384,7 @@ uint32_t PcxDecoderDevice::readHeader()
   // read pcx header
   if (stream().read(&_pcxFileHeader, sizeof(PcxHeader)) != sizeof(PcxHeader))
   {
-    return EImageIOTruncated;
+    return Error::ImageIO_Truncated;
   }
 
   // check for correct mime
@@ -392,7 +392,7 @@ uint32_t PcxDecoderDevice::readHeader()
     pcxFileHeader().version != 5 ||
     pcxFileHeader().encoding != 1)
   {
-    return EImageIOMimeNotMatch;
+    return Error::ImageIO_MimeNotMatch;
   }
 
   // byteswap header
@@ -404,7 +404,7 @@ uint32_t PcxDecoderDevice::readHeader()
   int16_t yMax = pcxFileHeader().yMax;
 
   // size reject 
-  if (xMin > xMax || yMin > yMax) return EImageSizeInvalid;
+  if (xMin > xMax || yMin > yMax) return Error::ImageSizeIsInvalid;
 
   // decode header
   _width  = (uint)(xMax - xMin) + 1;
@@ -415,13 +415,13 @@ uint32_t PcxDecoderDevice::readHeader()
   // check for zero dimensions
   if (areDimensionsZero())
   {
-    return (_headerResult = EImageSizeIsZero);
+    return (_headerResult = Error::ImageSizeIsZero);
   }
 
   // check for too large dimensions
   if (areDimensionsTooLarge())
   {
-    return (_headerResult = EImageSizeTooLarge);
+    return (_headerResult = Error::ImageSizeIsTooLarge);
   }
 
   // pcx contains only one image
@@ -433,10 +433,10 @@ uint32_t PcxDecoderDevice::readHeader()
   {
     case 1:
       if (planes() >= 1 && planes() <= 4) break;
-      return (_headerResult = EImageIOFormatNotSupported);
+      return (_headerResult = Error::ImageIO_FormatNotSupported);
     case 4:
       if (planes() == 1) break;
-      return (_headerResult = EImageIOFormatNotSupported);
+      return (_headerResult = Error::ImageIO_FormatNotSupported);
     case 8:
       if ((planes() == 1 || 
          planes() == 3 || 
@@ -444,7 +444,7 @@ uint32_t PcxDecoderDevice::readHeader()
         pcxFileHeader().version >= 4) break;
       // Go through
     default:
-      return (_headerResult = EImageIOFormatNotSupported);
+      return (_headerResult = Error::ImageIO_FormatNotSupported);
   }
 
   _format.set(ImageFormat::I8);
@@ -480,7 +480,7 @@ uint32_t PcxDecoderDevice::readImage(Image& image)
   }
 
   // don't read image more than once
-  if (readerDone()) return (_readerResult = EImageIONotAnimationFormat);
+  if (readerDone()) return (_readerResult = Error::ImageIO_NotAnimationFormat);
 
   // error code (default is success)
   uint32_t error = Error::Ok;
@@ -687,7 +687,7 @@ uint32_t PcxDecoderDevice::readImage(Image& image)
       dataCur = pcxFileHeader().colorMap;
       if (nColors > 16)
       {
-        error = EImageIOFormatNotSupported;
+        error = Error::ImageIO_FormatNotSupported;
         goto end;
       }
     }
@@ -748,7 +748,7 @@ uint32_t PcxEncoderDevice::writeImage(const Image& image_)
 
   const uint8_t* pixels;
 
-  if (!width || !height) return EImageSizeIsZero;
+  if (!width || !height) return Error::ImageSizeIsZero;
 
   version = 5;
   bitsPerPixel = 8;
@@ -924,7 +924,7 @@ uint32_t PcxEncoderDevice::writeImage(const Image& image_)
   return Error::Ok;
 fail:
   updateProgress(1.0);
-  return EImageIOWriteError;
+  return Error::ImageIO_WriteFailure;
 }
 
 } // ImageIO namespace

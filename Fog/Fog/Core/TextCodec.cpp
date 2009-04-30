@@ -2905,13 +2905,13 @@ err_t TextCodec::setCode(uint32_t code)
 err_t TextCodec::setMime(const char* mime)
 {
   *this = TextCodec::fromMime(mime);
-  return code() == None ? Error::InvalidCodec : Error::Ok;
+  return code() == None ? (err_t)Error::InvalidCodec : (err_t)Error::Ok;
 }
 
 err_t TextCodec::setMime(const String32& mime)
 {
   *this = TextCodec::fromMime(mime);
-  return code() == None ? Error::InvalidCodec : Error::Ok;
+  return code() == None ? (err_t)Error::InvalidCodec : (err_t)Error::Ok;
 }
 
 // FromUtf16/32

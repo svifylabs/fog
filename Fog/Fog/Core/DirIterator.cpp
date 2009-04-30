@@ -11,6 +11,7 @@
 // [Dependencies]
 #include <Fog/Core/DirIterator.h>
 #include <Fog/Core/Error.h>
+#include <Fog/Core/FileSystem.h>
 #include <Fog/Core/FileUtil.h>
 #include <Fog/Core/String.h>
 #include <Fog/Core/StringUtil.h>
@@ -78,31 +79,24 @@ DirIterator::Entry& DirIterator::Entry::operator=(const Entry& other)
 // [Fog::DirIterator]
 // ============================================================================
 
+#if defined(FOG_OS_WINDOWS)
+
 DirIterator::DirIterator() :
-  _handle(NULL)
-#if defined(FOG_OS_WINDOWS)
-  , _position(-1)
-  , _fileInEntry(false)
-#endif // FOG_OS_WINDOWS
-  , _skipDots(true)
+  _handle(NULL),
+  _position(-1),
+  _fileInEntry(false),
+  _skipDots(true)
 {
-#if defined(FOG_OS_WINDOWS)
   memset(&_winFindData, 0, sizeof(WIN32_FIND_DATAW));
-#endif // FOG_OS_WINDOWS
 }
 
 DirIterator::DirIterator(const String32& path) :
-  _handle(NULL)
-#if defined(FOG_OS_WINDOWS)
-  , _position(-1)
-  , _fileInEntry(false)
-#endif // FOG_OS_WINDOWS
-  , _skipDots(true)
+  _handle(NULL),
+  _position(-1),
+  _fileInEntry(false),
+  _skipDots(true)
 {
-#if defined(FOG_OS_WINDOWS)
   memset(&_winFindData, 0, sizeof(WIN32_FIND_DATAW));
-#endif // FOG_OS_WINDOWS
-
   open(path);
 }
 
@@ -111,7 +105,6 @@ DirIterator::~DirIterator()
   if (_handle) close();
 }
 
-#if defined(FOG_OS_WINDOWS)
 err_t DirIterator::open(const String32& path)
 {
   if (_handle) close();
@@ -239,6 +232,27 @@ int64_t DirIterator::tell()
 #endif // FOG_OS_WINDOWS
 
 #if defined(FOG_OS_POSIX)
+
+DirIterator::DirIterator() :
+  _handle(NULL),
+  _skipDots(true),
+  _pathCacheBaseLength(0)
+{
+}
+
+DirIterator::DirIterator(const String32& path) :
+  _handle(NULL),
+  _skipDots(true),
+  _pathCacheBaseLength(0)
+{
+  open(path);
+}
+
+DirIterator::~DirIterator()
+{
+  if (_handle) close();
+}
+
 err_t DirIterator::open(const String32& path)
 {
   close();
@@ -246,13 +260,14 @@ err_t DirIterator::open(const String32& path)
   TemporaryString32<TemporaryLength> pathAbs;
   TemporaryString8<TemporaryLength> t;
 
-  FileSystem::toAbsolutePath(pathAbs, path);
+  FileUtil::toAbsolutePath(pathAbs, String32(), path);
   t.set(pathAbs, TextCodec::local8());
 
   if ((_handle = (void*)::opendir(t.cStr())) != NULL)
   {
     _path = pathAbs;
     _pathCache = t;
+    _pathCacheBaseLength = _pathCache.length();
     return Error::Ok;
   }
   else
@@ -268,6 +283,8 @@ void DirIterator::close()
   ::closedir((DIR*)(_handle));
   _handle = NULL;
   _path.clear();
+  _pathCache.clear();
+  _pathCacheBaseLength = 0;
 }
 
 bool DirIterator::read(Entry& to)
@@ -291,23 +308,13 @@ bool DirIterator::read(Entry& to)
     // translate entry name to unicode
     to._name.set(name, nameLength, TextCodec::local8());
 
-    // build path for stat() call and maximize speed of building string,
-    // code below means something like:
-
-    // _pathCache.append('/');
-    // _pathCache.append(name, name_length);
-    // _pathCache.xNullTerminate();
-
-    char* namep = _pathCache._grow(nameLength + 1);
-    *namep++ = '/';
-    memcpy(namep, name, nameLength + 1); // copy with null terminator
-
-    // We will not update _pathCache length, because we don't need it. It's
-    // used just now to call stat() and every read call will rewrite it
+    _pathCache.resize(_pathCacheBaseLength);
+    _pathCache.append(Char8('/'));
+    _pathCache.append(Stub8(name, nameLength));
 
     uint type = 0;
 
-    if (::stat(_pathCache.cData(), &to._statInfo) != 0)
+    if (::stat(_pathCache.cStr(), &to._statInfo) != 0)
     {
       // This is situation that's bad symbolic link (I was experienced
       // this) and there is no reason to write an error message...

@@ -24,7 +24,7 @@ struct FtFile;
 struct FOG_API FontFaceFT : public FontFace
 {
   // Lock
-  mutable Fog::Lock lock;
+  mutable Lock lock;
   // Glyph cache:
   GlyphCache glyphCache;
   // FtFile
@@ -34,18 +34,8 @@ struct FOG_API FontFaceFT : public FontFace
   virtual ~FontFaceFT();
   virtual void deref();
 
-  virtual void getTextWidth(
-    // in
-    const Fog::Char32* str, sysuint_t length,
-    // out
-    TextWidth* textWidth);
-
-  virtual void getGlyphs(
-    // in
-    const Fog::Char32* str, sysuint_t length,
-    // out
-    Glyph* target,
-    TextWidth* textWidth);
+  virtual err_t getGlyphs(const Char32* str, sysuint_t length, GlyphSet& glyphSet);
+  virtual err_t getTextWidth(const Char32* str, sysuint_t length, TextWidth* textWidth);
 
 private:
   Glyph::Data* renderGlyph(uint32_t uc);
@@ -60,12 +50,12 @@ struct FOG_API FontEngineFT : public FontEngine
   FontEngineFT();
   virtual ~FontEngineFT();
 
-  virtual Fog::Vector<Fog::String32> getFonts();
+  virtual Vector<String32> getFonts();
 
   virtual FontFace* getDefaultFace();
 
   virtual FontFace* getFace(
-    const Fog::String32& family, uint32_t size, 
+    const String32& family, uint32_t size, 
     const FontAttributes& attributes);
 };
 

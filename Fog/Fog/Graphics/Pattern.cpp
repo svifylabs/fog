@@ -284,15 +284,15 @@ err_t Pattern::addGradientStop(const GradientStop& stop)
   GradientStops::MutableIterator it(_d->obj.gradientStops.instance());
   for (it.toStart(); it.isValid(); it.toEnd())
   {
-		if (it.value().offset == s.offset)
-		{
-			it.value().rgba = s.rgba;
+    if (it.value().offset == s.offset)
+    {
+      it.value().rgba = s.rgba;
       return Error::Ok;
-		}
-		else if (it.value().offset > s.offset)
-		{
-			break;
-		}
+    }
+    else if (it.value().offset > s.offset)
+    {
+      break;
+    }
   }
   _d->obj.gradientStops->insert(it.index(), s);
 

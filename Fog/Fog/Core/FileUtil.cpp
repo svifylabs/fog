@@ -430,8 +430,8 @@ bool FileUtil::testLocalName(const String32& path)
 #else
   if (TextCodec::local8().isUnicode()) return true;
 
-  Temporary<TemporaryLength> path8;
-  return (path8.set(path, TextCodec::local8()) == Error::Ok)
+  TemporaryString8<TemporaryLength> path8;
+  return (path8.set(path, TextCodec::local8()) == Error::Ok);
 #endif
 }
 

@@ -263,50 +263,51 @@ int FileSystem::stat(const String32& fileName, struct stat* s)
 
 static uint32_t test_stat(struct stat *s, uint32_t flags)
 {
-  uint result = 0;
+  uint32_t result = FileSystem::Exists;
 
-  if (flags & File::Exists) result |= File::Exists;
+  if (S_ISREG(s->st_mode)) result |= FileSystem::IsFile;
+  if (S_ISDIR(s->st_mode)) result |= FileSystem::IsDirectory;
+  if (S_ISLNK(s->st_mode)) result |= FileSystem::IsLink;
 
-  if ((flags & File::IsFile)      && S_ISREG(s->st_mode)) result |= File::IsFile;
-  if ((flags & File::IsDirectory) && S_ISDIR(s->st_mode)) result |= File::IsDirectory;
-  if ((flags & File::IsLink)      && S_ISLNK(s->st_mode)) result |= File::IsLink;
-
-  if ((flags  & File::IsExecutable) &&
-     ((s->st_mode & S_IXUSR) ||
-    (s->st_mode & S_IXGRP) ||
-    (s->st_mode & S_IXOTH) ))
+  if ((s->st_mode & S_IXUSR) ||
+      (s->st_mode & S_IXGRP) ||
+      (s->st_mode & S_IXOTH) )
   {
-    result |= File::IsExecutable;
+    result |= FileSystem::IsExecutable;
   }
 
-  if ((flags & (File::CanRead | File::CanWrite | File::CanExecute)) != 0)
+  if ((flags & (FileSystem::CanRead   |
+                FileSystem::CanWrite  |
+                FileSystem::CanExecute)) != 0)
   {
     uid_t uid = UserInfo::uid();
     gid_t gid = UserInfo::gid();
 
     if (s->st_uid == uid && (s->st_mode & S_IRWXU)) {
-      if ((flags & File::CanRead)    && (s->st_mode & S_IRUSR)) result |= File::CanRead;
-      if ((flags & File::CanWrite)   && (s->st_mode & S_IWUSR)) result |= File::CanWrite;
-      if ((flags & File::CanExecute) && (s->st_mode & S_IXUSR)) result |= File::CanExecute;
+      if (s->st_mode & S_IRUSR) result |= FileSystem::CanRead;
+      if (s->st_mode & S_IWUSR) result |= FileSystem::CanWrite;
+      if (s->st_mode & S_IXUSR) result |= FileSystem::CanExecute;
     }
     else if (s->st_gid == gid && (s->st_mode & S_IRWXG)) {
-      if ((flags & File::CanRead)    && (s->st_mode & S_IRGRP)) result |= File::CanRead;
-      if ((flags & File::CanWrite)   && (s->st_mode & S_IWGRP)) result |= File::CanWrite;
-      if ((flags & File::CanExecute) && (s->st_mode & S_IXGRP)) result |= File::CanExecute;
+      if (s->st_mode & S_IRGRP) result |= FileSystem::CanRead;
+      if (s->st_mode & S_IWGRP) result |= FileSystem::CanWrite;
+      if (s->st_mode & S_IXGRP) result |= FileSystem::CanExecute;
     }
     else if (s->st_mode & S_IRWXO) {
-      if ((flags & File::CanRead)    && (s->st_mode & S_IROTH)) result |= File::CanRead;
-      if ((flags & File::CanWrite)   && (s->st_mode & S_IWOTH)) result |= File::CanWrite;
-      if ((flags & File::CanExecute) && (s->st_mode & S_IXOTH)) result |= File::CanExecute;
+      if (s->st_mode & S_IROTH) result |= FileSystem::CanRead;
+      if (s->st_mode & S_IWOTH) result |= FileSystem::CanWrite;
+      if (s->st_mode & S_IXOTH) result |= FileSystem::CanExecute;
     }
     // TODO: How to handle this...?
-    else {
-      if (flags & File::CanRead)    result |= File::CanRead;
-      if (flags & File::CanWrite)   result |= File::CanWrite;
-      if (flags & File::CanExecute) result |= File::CanExecute;
+    else
+    {
+      result |= FileSystem::CanRead;
+      result |= FileSystem::CanWrite;
+      result |= FileSystem::CanExecute;
     }
   }
 
+  // Return and clear up flags that wasn't specified to return.
   return result & flags;
 }
 
@@ -333,21 +334,22 @@ bool FileSystem::findFile(const Sequence<String32>& paths, const String32& fileN
   for (it.toStart(); it.isValid(); it.toNext())
   {
     // Append path
-    path8.setLocal(it.value());
+    path8.set(it.value(), TextCodec::local8());
 
     // Append directory separator if needed
-    if (path8.length() && !path8.endsWith("/", 1))
+    if (path8.length() && !path8.endsWith(Stub8("/", 1)))
     {
-      path8.append('/');
+      path8.append(Char8('/'));
     }
 
     // Append file
     path8.append(fileName8);
 
     // Test
+    printf("Find File:%s\n", path8.cStr());
     if (::stat(path8.cStr(), &s) == 0 && S_ISREG(s.st_mode))
     {
-      return FileSystem::joinPath(it.value(), fileName, dst) == Error::Ok;
+      return FileUtil::joinPath(dst, it.value(), fileName) == Error::Ok;
     }
   }
   return false;
@@ -355,21 +357,22 @@ bool FileSystem::findFile(const Sequence<String32>& paths, const String32& fileN
 
 err_t FileSystem::getWorkingDirectory(String32& dst)
 {
+  err_t err;
   TemporaryString8<TemporaryLength> dir8;
 
   dst.clear();
   for (;;)
   {
-    char* ptr = ::getcwd(dir8.mStr(), dir8.capacity()+1);
+    const char* ptr = ::getcwd(dir8.mStr(), dir8.capacity()+1);
     if (ptr)
     {
-      dst.set(StubLocal(ptr));
+      dst.set(StubLocal8(ptr));
       return Error::Ok;
     }
     if (errno != ERANGE) return errno;
 
     // Alloc more...
-    if ((err = t.reserve(t.capacity() + 4096))) return err;
+    if ((err = dir8.reserve(dir8.capacity() + 4096))) return err;
   }
 }
 
@@ -396,7 +399,7 @@ static err_t createDirectoryHelper(const Char32* path, sysuint_t len)
 
   if ( (err = path8.set(StubUtf32(path, len), TextCodec::local8())) ) return err;
 
-  if (mkdir(t.cStr(), S_IRWXU | S_IXGRP | S_IXOTH) == 0) return Error::Ok;
+  if (mkdir(path8.cStr(), S_IRWXU | S_IXGRP | S_IXOTH) == 0) return Error::Ok;
 
   if (errno == EEXIST) 
     return Error::DirectoryAlreadyExists;
@@ -411,7 +414,7 @@ err_t FileSystem::createDirectory(const String32& dir, bool recursive)
 
   err_t err;
   TemporaryString32<TemporaryLength> dirAbs;
-  if ( (err = FileSystem::toAbsolutePath(dirAbs, String32(), dir)) ) return err;
+  if ( (err = FileUtil::toAbsolutePath(dirAbs, String32(), dir)) ) return err;
 
   // FileSystem::toAbsolutePath() always normalize dir to '/', we can imagine
   // that dirAbs is absolute dir, so we need to find first two occurences
@@ -426,7 +429,7 @@ err_t FileSystem::createDirectory(const String32& dir, bool recursive)
 
   do {
     i++;
-    i = dirAbs.indexOf(Char32('/'), Range(i, length - i));
+    i = dirAbs.indexOf(Char32('/'), CaseSensitive, Range(i, length - i));
 
     err = createDirectoryHelper(dirAbs.cData(), (i == InvalidIndex) ? length : i);
     if (err != Error::Ok && err != Error::DirectoryAlreadyExists) return err;

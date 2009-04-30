@@ -1661,10 +1661,10 @@ err_t Image::readStream(Stream& stream)
   ImageIO::DecoderDevice* decoder;
 
   provider = ImageIO::getProviderByMemory(mime, readn);
-  if (!provider) return EImageIOProviderNotAvailable;
+  if (!provider) return Error::ImageIO_ProviderNotAvailable;
 
   decoder = provider->createDecoder();
-  if (!decoder) return EImageIODecoderNotAvailable;
+  if (!decoder) return Error::ImageIO_DecoderNotAvailable;
 
   err_t err = decoder->readImage(*this);
   delete decoder;
@@ -1677,7 +1677,7 @@ err_t Image::readStream(Stream& stream)
 
 err_t Image::readStream(Stream& stream, const String32& extension)
 {
-  if (!stream.isSeekable()) return EImageIONotSeekableStream;
+  if (!stream.isSeekable()) return Error::ImageIO_NotSeekableStream;
 
   // First try to use extension, if fail, fallback to readStream(Stream)
   if (!extension.isEmpty())
@@ -1706,7 +1706,7 @@ err_t Image::readStream(Stream& stream, const String32& extension)
           // Seek to begin if fail
           if (stream.seek(pos, Stream::SeekSet) == -1)
           {
-            return EImageIOSeekError;
+            return Error::ImageIO_SeekFailure;
           }
         }
       }

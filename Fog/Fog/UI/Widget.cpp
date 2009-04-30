@@ -137,7 +137,10 @@ err_t Widget::createWindow(uint32_t createFlags)
 {
   if (_uiWindow) return Error::UIWindowAlreadyExists;
 
-  _uiWindow = Application::instance()->uiSystem()->createUIWindow(this);
+  UISystem* uiSystem = Application::instance()->uiSystem();
+  if (uiSystem == NULL) return Error::UISystemNotExists;
+
+  _uiWindow = uiSystem->createUIWindow(this);
 
   err_t err = _uiWindow->create(createFlags);
   if (err) destroyWindow();
@@ -207,7 +210,10 @@ void Widget::setRect(const Rect& rect)
   }
   else
   {
-    Application::instance()->uiSystem()->dispatchConfigure(this,
+    UISystem* uiSystem = Application::instance()->uiSystem();
+    if (!uiSystem) return;
+
+    uiSystem->dispatchConfigure(this,
       rect, false);
   }
 }
@@ -222,7 +228,10 @@ void Widget::setPosition(const Point& pt)
   }
   else
   {
-    Application::instance()->uiSystem()->dispatchConfigure(this,
+    UISystem* uiSystem = Application::instance()->uiSystem();
+    if (!uiSystem) return;
+
+    uiSystem->dispatchConfigure(this,
       Rect(pt.x(), pt.y(), width(), height()), false);
   }
 }
@@ -237,7 +246,10 @@ void Widget::setSize(const Size& sz)
   }
   else
   {
-    Application::instance()->uiSystem()->dispatchConfigure(this,
+    UISystem* uiSystem = Application::instance()->uiSystem();
+    if (!uiSystem) return;
+
+    uiSystem->dispatchConfigure(this,
       Rect(x1(), y1(), sz.width(), sz.height()), false);
   }
 }
@@ -448,7 +460,10 @@ void Widget::setEnabled(bool val)
   }
   else
   {
-    Application::instance()->uiSystem()->dispatchEnabled(this, val);
+    UISystem* uiSystem = Application::instance()->uiSystem();
+    if (!uiSystem) return;
+
+    uiSystem->dispatchEnabled(this, val);
   }
 }
 
@@ -470,7 +485,10 @@ void Widget::setVisible(bool val)
   }
   else
   {
-    Application::instance()->uiSystem()->dispatchVisibility(this, val);
+    UISystem* uiSystem = Application::instance()->uiSystem();
+    if (!uiSystem) return;
+
+    uiSystem->dispatchVisibility(this, val);
   }
 }
 
@@ -483,7 +501,10 @@ void Widget::setOrientation(uint32_t val)
   if (orientation() == val) return;
 
   _orientation = val;
-  Application::instance()->uiSystem()->dispatchConfigure(this, _rect, true);
+
+  UISystem* uiSystem = Application::instance()->uiSystem();
+  if (!uiSystem) return;
+  uiSystem->dispatchConfigure(this, _rect, true);
 }
 
 // ============================================================================

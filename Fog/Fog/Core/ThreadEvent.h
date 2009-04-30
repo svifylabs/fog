@@ -20,6 +20,8 @@
 #endif // FOG_OS_WINDOWS
 
 #if defined(FOG_OS_POSIX)
+#include <Fog/Core/Lock.h>
+#include <Fog/Core/ThreadCondition.h>
 #include <pthread.h>
 #endif // FOG_OS_POSIX
 

@@ -2529,7 +2529,7 @@ uint32_t GifDecoderDevice::readHeader()
   // mark header as done
   _headerDone = true;
 
-  if (!openGif()) return (_headerResult = EImageIOInternal);
+  if (!openGif()) return (_headerResult = Error::ImageIO_Internal);
 
   GifFileType* gif = (GifFileType*)_context;
 

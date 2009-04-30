@@ -84,7 +84,7 @@ Set(FOG_CORE_SOURCES
   ${FOG_DIR}/Fog/Core/Event.cpp
   ${FOG_DIR}/Fog/Core/EventLoop.cpp
   ${FOG_DIR}/Fog/Core/EventLoop_Def.cpp
-  ${FOG_DIR}/Fog/Core/EventLoop_libevent.cpp
+# ${FOG_DIR}/Fog/Core/EventLoop_libevent.cpp
   ${FOG_DIR}/Fog/Core/EventLoop_Win.cpp
   ${FOG_DIR}/Fog/Core/FileSystem.cpp
   ${FOG_DIR}/Fog/Core/FileUtil.cpp
@@ -146,7 +146,7 @@ Set(FOG_CORE_HEADERS
   ${FOG_DIR}/Fog/Core/Event.h
   ${FOG_DIR}/Fog/Core/EventLoop.h
   ${FOG_DIR}/Fog/Core/EventLoop_Def.h
-  ${FOG_DIR}/Fog/Core/EventLoop_libevent.h
+# ${FOG_DIR}/Fog/Core/EventLoop_libevent.h
   ${FOG_DIR}/Fog/Core/EventLoop_Win.h
   ${FOG_DIR}/Fog/Core/FileSystem.h
   ${FOG_DIR}/Fog/Core/FileUtil.h
@@ -262,15 +262,20 @@ If(CMAKE_THREAD_LIBS_INIT)
   Set(FOG_LIBRARIES "${FOG_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}")
 EndIf(CMAKE_THREAD_LIBS_INIT)
 
-# libevent support for unix platforms
+# Include rt library under linux
 If(NOT WIN32)
-  Check_Library_Exists(event event_base_new "" FOG_LIBRARY_EVENT_EXISTS)
-  If(FOG_LIBRARY_EVENT_EXISTS)
-    Set(FOG_LIBRARIES "${FOG_LIBRARIES} -levent")
-  Else(FOG_LIBRARY_EVENT_EXISTS)
-    Message("Libevent not found!")
-  EndIf(FOG_LIBRARY_EVENT_EXISTS)
-Endif(NOT WIN32)
+  Set(FOG_LIBRARIES "${FOG_LIBRARIES} -lrt")
+EndIf(NOT WIN32)
+
+# libevent support for unix platforms
+#If(NOT WIN32)
+#  Check_Library_Exists(event event_base_new "" FOG_LIBRARY_EVENT_EXISTS)
+#  If(FOG_LIBRARY_EVENT_EXISTS)
+#    Set(FOG_LIBRARIES "${FOG_LIBRARIES} -levent")
+#  Else(FOG_LIBRARY_EVENT_EXISTS)
+#    Message("Libevent not found!")
+#  EndIf(FOG_LIBRARY_EVENT_EXISTS)
+#Endif(NOT WIN32)
 
 # =============================================================================
 # [Fog/Graphics] Part
@@ -526,7 +531,7 @@ Else(WIN32)
   If(HAVE_FREETYPE)
     Exec_Program(freetype-config ARGS --cflags OUTPUT_VARIABLE FREETYPE_CONFIG_OUT RETURN_VALUE FREETYPE_CONFIG_RET)
     Set(FOG_FONT_FREETYPE TRUE)
-    Set_Source_Files_Properties({$FOG_DIR}/Fog/Graphics/Font_FreeType.cpp PROPERTIES COMPILE_FLAGS "${FREETYPE_CONFIG_OUT}")
+    Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Font_FreeType.cpp PROPERTIES COMPILE_FLAGS "${FREETYPE_CONFIG_OUT}")
   EndIf(HAVE_FREETYPE)
 
   If(NOT FOG_HAVE_FONTCONFIG)
@@ -563,6 +568,7 @@ Set(FOG_UI_SOURCES
   ${FOG_DIR}/Fog/UI/UISystem.cpp
   ${FOG_DIR}/Fog/UI/UISystem_Def.cpp
   ${FOG_DIR}/Fog/UI/UISystem_Win.cpp
+  ${FOG_DIR}/Fog/UI/UISystem_X11.cpp
   ${FOG_DIR}/Fog/UI/Widget.cpp
   ${FOG_DIR}/Fog/UI/Window.cpp
 )
@@ -583,6 +589,7 @@ Set(FOG_UI_HEADERS
   ${FOG_DIR}/Fog/UI/UISystem.h
   ${FOG_DIR}/Fog/UI/UISystem_Def.h
   ${FOG_DIR}/Fog/UI/UISystem_Win.h
+  ${FOG_DIR}/Fog/UI/UISystem_X11.h
   ${FOG_DIR}/Fog/UI/Widget.h
   ${FOG_DIR}/Fog/UI/Window.h
   ${FOG_DIR}/Fog/UI/Xlib.h
@@ -638,6 +645,11 @@ Add_Library(Fog SHARED
   ${BLITJIT_HEADERS}
 )
 Target_Link_Libraries(Fog ${FOG_LIBRARIES})
+
+#If(NOT WIN32)
+#  Add_Library(FogUI_X11 SHARED ${FOG_DIR}/Fog/UI/UISystem_X11.cpp)
+#  Target_Link_Libraries(FogUI_X11 Fog ${FOG_LIBRARIES})
+#EndIf(NOT WIN32)
 
 # Install
 ForEach(i ${FOG_HEADERS})

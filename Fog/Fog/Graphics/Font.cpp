@@ -353,7 +353,7 @@ FOG_INIT_DECLARE err_t fog_font_init(void)
 
   if (Fog::Font::sharedNull->face == NULL)
   {
-    initResult = Fog::EFontCantLoadDefaultFace;
+    initResult = Error::FontCantLoadDefaultFace;
     goto __fail;
   }
 

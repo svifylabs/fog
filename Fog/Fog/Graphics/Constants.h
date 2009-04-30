@@ -10,6 +10,52 @@
 // [Dependencies]
 #include <Fog/Build/Build.h>
 
+namespace Error {
+
+// [Error codes]
+
+//! @brief Fog library error codes.
+enum GraphicsError
+{
+  ImageSizeIsZero,
+  ImageSizeIsInvalid,
+  ImageSizeIsTooLarge,
+
+  ImageIO_ProviderNotAvailable,
+  ImageIO_DecoderNotAvailable,
+  ImageIO_EncoderNotAvailable,
+  ImageIO_ConverterNotAvailable,
+  ImageIO_FormatNotSupported,
+  ImageIO_Terminated,
+  ImageIO_Truncated,
+  ImageIO_ReadFailure,
+  ImageIO_WriteFailure,
+  ImageIO_SeekFailure,
+  ImageIO_NotSeekableStream,
+  ImageIO_MimeNotMatch,
+  ImageIO_RleError,
+  ImageIO_Internal,
+  ImageIO_NotAnimationFormat,
+
+  ImageIO_JpegLibraryNotFound,
+  ImageIO_JpegError,
+
+  ImageIO_PngLibraryNotFound,
+  ImageIO_PngError,
+
+  FontCantLoadDefaultFace,
+
+  FontConfigLibraryNotFound,
+  FontConfigSymbolNotFound,
+  FontConfigInitFailed,
+
+  FreeTypeLibraryNotFound,
+  FreeTypeSymbolNotFound,
+  FreeTypeInitFailed
+};
+
+} // Error namespace
+
 namespace Fog {
 
 //! @brief Image operators.
@@ -102,47 +148,6 @@ enum ImageFile
   ImageFileXPM,
 
   ImageFileOther = 65536
-};
-
-// [Error codes]
-
-//! @brief Fog library error codes.
-enum ErrorCode
-{
-  EImageSizeIsZero,
-  EImageSizeInvalid,
-  EImageSizeTooLarge,
-
-  EImageIOProviderNotAvailable,
-  EImageIODecoderNotAvailable,
-  EImageIOEncoderNotAvailable,
-  EImageIOConverterNotAvailable,
-  EImageIOFormatNotSupported,
-  EImageIOTerminated,
-  EImageIOTruncated,
-  EImageIOReadError,
-  EImageIOWriteError,
-  EImageIOSeekError,
-  EImageIONotSeekableStream,
-  EImageIOMimeNotMatch,
-  EImageIORleError,
-  EImageIOInternal,
-  EImageIONotAnimationFormat,
-
-  EImageIOJpegLibraryNotFound,
-  EImageIOJpegError,
-  EImageIOPngLibraryNotFound,
-  EImageIOPngError,
-
-  EFontCantLoadDefaultFace,
-
-  EFontConfigLibraryNotFound,
-  EFontConfigSymbolNotFound,
-  EFontConfigInitFailed,
-
-  EFreeTypeLibraryNotFound,
-  EFreeTypeSymbolNotFound,
-  EFreeTypeInitFailed
 };
 
 //! @brief Fill mode.

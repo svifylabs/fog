@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-#include <Fog/Graphics/Font.h>
+#include <Fog/Build/Build.h>
 
 #if defined(FOG_FONT_FREETYPE)
 
@@ -15,11 +15,13 @@
 #include <Fog/Core/MapFile.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/OS.h>
-#include <Fog/Core/Path.h>
+#include <Fog/Core/FileSystem.h>
+#include <Fog/Core/FileUtil.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/StringCache.h>
+#include <Fog/Core/TextCodec.h>
 #include <Fog/Core/UserInfo.h>
-#include <Fog/Core/Xml.h>
+#include <Fog/Graphics/Font.h>
 #include <Fog/Graphics/Font_FreeType.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/Rgba.h>
@@ -68,7 +70,7 @@ struct FontEngineFTTranslator
   {
   }
 
-  FontEngineFTTranslator(const Fog::String32 &family, const Fog::String32& file)
+  FontEngineFTTranslator(const String32 &family, const String32& file)
     : family(family), file(file)
   {
   }
@@ -77,33 +79,37 @@ struct FontEngineFTTranslator
   {
   }
 
-  Fog::String32 family;
-  Fog::String32 file;
+  String32 family;
+  String32 file;
 
   bool operator==(const FontEngineFTTranslator& other)
   { return family == other.family && file == other.file; }
 };
 
 }
+
 FOG_DECLARE_TYPEINFO(Fog::FontEngineFTTranslator, Fog::PrimitiveType)
+
 namespace Fog {
 
+// ============================================================================
 // [Fog::FtFile]
+// ============================================================================
 
 // FtFile represends one freetype file and it's face object. It's allowed to
 // load and uload faces on-the-fly.
 struct FtFile
 {
   /*! @brief Reference count. */
-  Fog::Atomic<sysuint_t> refCount;
+  Atomic<sysuint_t> refCount;
   /*! @brief Use count. */
-  Fog::Atomic<sysuint_t> used;
+  Atomic<sysuint_t> used;
   /*! @brief Absolute file path. */
-  Fog::String32 fileName;
+  String32 fileName;
   /*! @brief Family. */
-  Fog::String32 family;
+  String32 family;
   /*! @brief Map file object. */
-  Fog::MapFile mapFile;
+  MapFile mapFile;
   /*! @brief Freetype face. */
   FT_Face ftFace;
   /*! @brief Loading error. */
@@ -113,7 +119,7 @@ struct FtFile
   /*! @brief Fixed width index. */
   uint32_t fixedWidthIndex;
 
-  FtFile(const Fog::String32& fileName, const Fog::String32& family);
+  FtFile(const String32& fileName, const String32& family);
   ~FtFile();
   FtFile* ref();
   void deref();
@@ -126,9 +132,14 @@ struct FtFile
   bool setupSize(uint32_t size);
 
   FontFace* createFace(uint32_t size, const FontAttributes& attributes);
+
+private:
+  FOG_DISABLE_COPY(FtFile)
 };
 
+// ============================================================================
 // [Fog::FontEngineFTPrivate]
+// ============================================================================
 
 struct FontEngineFTPrivate
 {
@@ -139,7 +150,7 @@ struct FontEngineFTPrivate
     fcInitialized(false),
     ftInitialized(false)
   {
-    Fog::Vector<Fog::String32> paths;
+    Vector<String32> paths;
 
 #if defined(FOG_HAVE_FONTCONFIG)
     uint32_t fcStatus = fcLoad();
@@ -179,9 +190,9 @@ struct FontEngineFTPrivate
 #endif // FOG_HAVE_FONTCONFIG
   }
 
-  Fog::String32 resolveFontPath(const Fog::String32& family, uint32_t size, const FontAttributes& attributes)
+  String32 resolveFontPath(const String32& family, uint32_t size, const FontAttributes& attributes)
   {
-    Fog::String32 result;
+    String32 result;
 
 #if defined(FOG_HAVE_FONTCONFIG)
     if (fcInitialized)
@@ -199,7 +210,7 @@ struct FontEngineFTPrivate
   // --------------------------------------------------------------------------
 
 #if defined(FOG_HAVE_FONTCONFIG)
-  Fog::Library fcDll;
+  Library fcDll;
   enum { FcSymbolsCount = 25 };
 
   union
@@ -270,23 +281,23 @@ struct FontEngineFTPrivate
     };
 
     // Load fontconfig library
-    if (!fcDll.open("fontconfig", Fog::Library::OpenSystemPrefix | Fog::Library::OpenSystemSuffix).ok())
+    if (fcDll.open(StubAscii8("fontconfig"), Library::OpenSystemPrefix | Library::OpenSystemSuffix))
     {
-      return EFontConfigLibraryNotFound;
+      return Error::FontConfigLibraryNotFound;
     }
 
     // Load symbols
     if (fcDll.symbols(fcAddr, symbols, FOG_ARRAY_SIZE(symbols), FcSymbolsCount, (char**)NULL) != FcSymbolsCount)
     {
       fcDll.close();
-      return EFontConfigSymbolNotFound;
+      return Error::FontConfigSymbolNotFound;
     }
 
     // Initialize fontconfig library
     if (!pFcInit())
     {
       fcDll.close();
-      return EFontConfigInitFailed;
+      return Error::FontConfigInitFailed;
     }
 
     fcInitialized = true;
@@ -304,18 +315,18 @@ struct FontEngineFTPrivate
   }
 
   // adds font directories into font paths using fontconfig functions.
-  Fog::Vector<Fog::String32> fcGetFontDirectories()
+  Vector<String32> fcGetFontDirectories()
   {
     FOG_ASSERT(fcInitialized);
 
-    Fog::Vector<Fog::String32> result;
+    Vector<String32> result;
     FcStrList* list = pFcConfigGetFontDirs(NULL);
     char* localDirName;
-    Fog::String32 uniDirName;
+    String32 uniDirName;
 
     while ((localDirName = (char*)pFcStrListNext(list)) != NULL)
     {
-      uniDirName.set(localDirName, Fog::DetectLength, Fog::TextCodec::local8());
+      uniDirName.set(StubLocal8(localDirName, DetectLength));
       if (!result.contains(uniDirName)) result.append(uniDirName);
     }
 
@@ -323,20 +334,20 @@ struct FontEngineFTPrivate
     return result;
   }
 
-  Fog::String32 fcResolveFontPath(const Fog::String32& family, uint32_t size, const FontAttributes& attributes)
+  String32 fcResolveFontPath(const String32& family, uint32_t size, const FontAttributes& attributes)
   {
     FOG_ASSERT(fcInitialized);
 
-    Fog::TemporaryByteArray<Fog::TemporaryLength> familyLocal;
-    familyLocal.setLocal(family);
+    TemporaryString8<TemporaryLength> family8;
+    family8.set(family, TextCodec::local8());
 
     FcPattern* p1;
     FcPattern* p2;
     FcValue filename;
     FcResult res;
-    Fog::String32 result;
+    String32 result;
 
-    p1 = pFcNameParse((FcChar8 *)familyLocal.cDataz());
+    p1 = pFcNameParse((FcChar8 *)family8.cStr());
     pFcPatternAddDouble(p1, FC_SIZE, (double)size);
     pFcConfigSubstitute(NULL, p1, FcMatchPattern);
     pFcDefaultSubstitute(p1);
@@ -344,7 +355,7 @@ struct FontEngineFTPrivate
     if ((p2 = pFcFontMatch(NULL, p1, &res)))
     {
       pFcPatternGet(p2, FC_FILE, 0, &filename);
-      result.set((const char*)filename.u.s, Fog::DetectLength, Fog::TextCodec::local8());
+      result.set((const char*)filename.u.s, DetectLength, TextCodec::local8());
       pFcPatternDestroy(p2);
     }
 
@@ -353,11 +364,11 @@ struct FontEngineFTPrivate
     return result;
   }
 
-  Fog::Vector<Fog::String32> fcFontsList()
+  Vector<String32> fcFontsList()
   {
     FOG_ASSERT(fcInitialized);
 
-    Fog::Vector<Fog::String32> result;
+    Vector<String32> result;
 
     FcPattern* p;
     FcFontSet* set = NULL;
@@ -373,12 +384,12 @@ struct FontEngineFTPrivate
 
     if (set)
     {
-      Fog::String32 t;
+      String32 t;
 
       for (i = 0; i < set->nfont; i++)
       {
         pFcPatternGet(set->fonts[i], FC_FAMILY, 0, &val);
-        t.set((const char*)val.u.s, Fog::DetectLength, Fog::TextCodec::local8());
+        t.set((const char*)val.u.s, DetectLength, TextCodec::local8());
         if (!result.contains(t)) result.append(t);
       }
 
@@ -396,7 +407,7 @@ struct FontEngineFTPrivate
   // [FreeType Support]
   // --------------------------------------------------------------------------
 
-  Fog::Library ftDll;
+  Library ftDll;
   enum { FtSymbolsCount = 12 };
 
   FT_Library ftLibrary;
@@ -422,8 +433,8 @@ struct FontEngineFTPrivate
   };
 
   // Hash table that contains mapping path into FtFile* object.
-  Fog::Hash<Fog::String32, FtFile*> ftFileCache;
-  Fog::Vector<FontEngineFTTranslator> ftTranslator;
+  Hash<String32, FtFile*> ftFileCache;
+  Vector<FontEngineFTTranslator> ftTranslator;
 
   uint32_t ftLoad()
   {
@@ -444,23 +455,23 @@ struct FontEngineFTPrivate
     FT_Error error;
 
     // Load freetype library
-    if (!ftDll.open("freetype", Fog::Library::OpenSystemPrefix | Fog::Library::OpenSystemSuffix).ok())
+    if (!ftDll.open(StubAscii8("freetype"), Library::OpenSystemPrefix | Library::OpenSystemSuffix) == Error::Ok)
     {
-      return EFreeTypeLibraryNotFound;
+      return Error::FreeTypeLibraryNotFound;
     }
 
     // Load symbols
     if (ftDll.symbols(ftAddr, symbols, FOG_ARRAY_SIZE(symbols), FtSymbolsCount, (char**)NULL) != FtSymbolsCount)
     {
       ftDll.close();
-      return EFreeTypeSymbolNotFound;
+      return Error::FreeTypeSymbolNotFound;
     }
 
     // Initialize Freetype library
     if ((error = pFT_Init_FreeType(&ftLibrary)) != 0)
     {
       ftDll.close();
-      return EFreeTypeInitFailed;
+      return Error::FreeTypeInitFailed;
     }
 
     ftInitialized = true;
@@ -469,18 +480,16 @@ struct FontEngineFTPrivate
 
   void ftClose()
   {
-    Fog::Hash<Fog::String32, FtFile*>::MutableIterator iterator(ftFileCache);
-    iterator.begin();
-    while (iterator.exist())
+    Hash<String32, FtFile*>::MutableIterator it(ftFileCache);
+    for (it.toBegin(); it.isValid(); it.remove())
     {
-      FtFile* ftFile = iterator.value();
+      FtFile* ftFile = it.value();
       if (ftFile->refCount.get())
       {
-        fog_stderr_msg("Fog::FontEngineFTPrivate", "~ftClose", "FtFile not dereferenced (refCount %lu)", (ulong)ftFile->refCount.get());
+        fog_stderr_msg("Fog::FontEngineFTPrivate", "ftClose", "FtFile not dereferenced (refCount %lu)", (ulong)ftFile->refCount.get());
       }
 
       delete ftFile;
-      iterator.removeAndNext();
     }
 
     if (ftInitialized)
@@ -518,11 +527,11 @@ struct FontEngineFTPrivate
 
       "Tahoma\0" "tahoma.ttf\0";
 
-    Fog::StringCache* cache = Fog::StringCache::create(
+    StringCache* cache = StringCache::create(
       translatorDef,
       sizeof(translatorDef),
-      Fog::DetectLength,
-      Fog::String32("fog_freetype_translators"));
+      DetectLength,
+      String32(StubAscii8("fog_freetype_translators")));
 
     sysuint_t i, count = cache->count();
 
@@ -532,40 +541,40 @@ struct FontEngineFTPrivate
     }
   }
 
-  Fog::Vector<Fog::String32> ftGetFontDirectories()
+  Vector<String32> ftGetFontDirectories()
   {
-    Fog::Vector<Fog::String32> list;
+    Vector<String32> list;
 
     // Gentoo default font paths
-    list.append("/usr/share/fonts");
-    list.append("/usr/share/fonts/TTF");
-    list.append("/usr/share/fonts/corefonts");
-    list.append("/usr/share/fonts/local");
-    list.append("/usr/share/fonts/ttf-bitstream-vera");
-    list.append("/usr/local/share/fonts");
-    list.append("/usr/local/share/fonts/TTF");
-    list.append("/usr/local/share/fonts/corefonts");
-    list.append("/usr/local/share/fonts/local");
-    list.append("/usr/local/share/fonts/ttf-bitstream-vera");
+    list.append(StubAscii8("/usr/share/fonts"));
+    list.append(StubAscii8("/usr/share/fonts/TTF"));
+    list.append(StubAscii8("/usr/share/fonts/corefonts"));
+    list.append(StubAscii8("/usr/share/fonts/local"));
+    list.append(StubAscii8("/usr/share/fonts/ttf-bitstream-vera"));
+    list.append(StubAscii8("/usr/local/share/fonts"));
+    list.append(StubAscii8("/usr/local/share/fonts/TTF"));
+    list.append(StubAscii8("/usr/local/share/fonts/corefonts"));
+    list.append(StubAscii8("/usr/local/share/fonts/local"));
+    list.append(StubAscii8("/usr/local/share/fonts/ttf-bitstream-vera"));
 
     // Ubuntu default truetype font paths:
-    list.append("/usr/share/fonts/truetype/msttcorefonts");
+    list.append(StubAscii8("/usr/share/fonts/truetype/msttcorefonts"));
 
     // Please add more paths
 
     return list;
   }
 
-  Fog::String32 ftResolveFontPath(const Fog::String32& family, uint32_t size, const FontAttributes& attributes)
+  String32 ftResolveFontPath(const String32& family, uint32_t size, const FontAttributes& attributes)
   {
-    Fog::Vector<FontEngineFTTranslator>::ConstIterator it(ftTranslator);
-    Fog::String32 result;
-    Fog::Vector<Fog::String32> fontPaths = Font::fontPaths();
+    Vector<FontEngineFTTranslator>::ConstIterator it(ftTranslator);
+    String32 result;
+    Vector<String32> fontPaths = Font::fontPaths();
 
     for (; it.isValid(); it.toNext())
     {
-      if (it.value().family.ieq(family) &&
-          Fog::File::find(fontPaths, it.value().file, result))
+      if (it.value().family.eq(family, CaseInsensitive) &&
+          FileSystem::findFile(fontPaths, it.value().file, result))
       {
         break;
       }
@@ -581,10 +590,12 @@ struct FontEngineFTPrivate
   }
 };
 
+// ============================================================================
 // [Fog::FontEngineFT]
+// ============================================================================
 
 FontEngineFT::FontEngineFT() :
-  FontEngine("FreeType")
+  FontEngine(StubAscii8("FreeType"))
 {
   p = fepriv = new FontEngineFTPrivate();
 }
@@ -594,7 +605,7 @@ FontEngineFT::~FontEngineFT()
   delete p;
 }
 
-Fog::Vector<Fog::String32> FontEngineFT::getFonts()
+Vector<String32> FontEngineFT::getFonts()
 {
 }
 
@@ -602,48 +613,50 @@ FontFace* FontEngineFT::getDefaultFace()
 {
   FontAttributes a;
   memset(&a, 0, sizeof(FontAttributes));
-  return getFace(Fog::String32(StubAscii8("arial")), 12, a);
+  return getFace(String32(StubAscii8("arial")), 12, a);
 }
 
 FontFace* FontEngineFT::getFace(
-  const Fog::String32& family, uint32_t size,
+  const String32& family, uint32_t size,
   const FontAttributes& attributes)
 {
-  Fog::String32 fileName = p->resolveFontPath(family, size, attributes);
+  String32 fileName = p->resolveFontPath(family, size, attributes);
 
   if (!fileName.isEmpty())
   {
-    // first look if this file is in cache
-    Fog::Hash<Fog::String32, FtFile*>::Node* hashNode = p->ftFileCache.get(fileName);
-    FtFile* ftFile;
+    // first look if this file is in cache.
+    FtFile* ftFile = p->ftFileCache.value(fileName, NULL);
 
-    if (hashNode)
+    if (!ftFile)
     {
-      ftFile = hashNode->value();
-    }
-    else
-    {
-      ftFile = new FtFile(fileName, family);
+      ftFile = new(std::nothrow) FtFile(fileName, family);
+
+      // Ensure that ftFile is OK.
+      if (!ftFile) return NULL;
+
       if (ftFile->loadError)
       {
         delete ftFile;
         return NULL;
       }
-      // put to cache, reference count is now 1 thats correct
-      fepriv->ftFileCache.put(fileName, ftFile);
+
+      // Put to cache, reference count is now 1 thats correct.
+      fepriv->ftFileCache.put(fileName, ftFile->ref());
     }
 
-    // if face was created, reference count is increased too
+    // If face was created, reference count is increased too.
     return ftFile->createFace(size, attributes);
   }
 
   return NULL;
 }
 
+// ============================================================================
 // [Fog::FontFaceFT]
+// ============================================================================
 
 FontFaceFT::FontFaceFT() :
-  ftFile(0)
+  ftFile(NULL)
 {
 }
 
@@ -656,23 +669,9 @@ void FontFaceFT::deref()
   if (refCount.deref()) delete this;
 }
 
-void FontFaceFT::getTextWidth(
-  // in
-  const Fog::Char32* str, sysuint_t length,
-  // out
-  TextWidth* textWidth)
+err_t FontFaceFT::getGlyphs(const Char32* str, sysuint_t length, GlyphSet& glyphSet)
 {
-  getGlyphs(str, length, NULL, textWidth);
-}
-
-void FontFaceFT::getGlyphs(
-  // in
-  const Fog::Char32* str, sysuint_t length,
-  // out
-  Glyph* target,
-  TextWidth* textWidth)
-{
-  Fog::AutoLock locked(lock);
+  AutoLock locked(lock);
 
   Glyph::Data* glyphd;
   TextWidth tw;
@@ -688,21 +687,16 @@ void FontFaceFT::getGlyphs(
     glyphd = glyphCache.get(uc);
     if (FOG_UNLIKELY(!glyphd))
     {
-      glyphd = renderGlyph(uc);
-      if (!glyphd) glyphCache.set(uc, glyphd->ref());
+      if ((glyphd = renderGlyph(uc))) glyphCache.set(uc, glyphd);
     }
 
-    target[i]._d = glyphd;
-    tw.advance += glyphd->advance;
+    if (FOG_LIKELY(glyphd)) glyphSet._add(glyphd->ref());
   }
-
-  if (textWidth) memcpy(textWidth, &tw, sizeof(TextWidth));
 }
 
 Glyph::Data* FontFaceFT::renderGlyph(uint32_t uc)
 {
   Glyph::Data* glyphd = NULL;
-  Image::Data* imaged = NULL;
 
   // if glyph is not in cache, it's needed to render it
   FT_Face ftFace;
@@ -753,7 +747,7 @@ Glyph::Data* FontFaceFT::renderGlyph(uint32_t uc)
     // we can italize normal font if italic variant is not present.
     /*
     if ((ftFace->style_flags & FT_STYLE_FLAG_ITALIC) == 0 &&
-      (attributes & Fog::Font::Attribute_Italic) != 0)
+      (attributes & Font::Attribute_Italic) != 0)
     {
       FT_Matrix shear;
 
@@ -776,7 +770,7 @@ Glyph::Data* FontFaceFT::renderGlyph(uint32_t uc)
     ftBitmap = &ftGlyphSlot->bitmap;
     width += ftBitmap->width;
 
-    glyphd = new Glyph::Data();
+    glyphd = new(std::nothrow) Glyph::Data();
     if (!glyphd->image.create(width, ftGlyphSlot->bitmap.rows, ImageFormat::a8()))
     {
       goto fail;
@@ -789,13 +783,11 @@ Glyph::Data* FontFaceFT::renderGlyph(uint32_t uc)
     glyphd->advance = advance;
   }
 
-  imaged = glyphd->image._d;
-
   {
     // copy FT_Bitmap to our image and clean bytes over width
-    sysuint_t p, pCount = imaged->stride - ftBitmap->width;
+    sysuint_t p, pCount = glyphd->image.stride() - ftBitmap->width;
 
-    uint8_t *dataDest = imaged->first;
+    uint8_t *dataDest = glyphd->image._d->first;
     const uint8_t *dataSrc = ftBitmap->buffer;
 
     for (y = 0; y != (uint)ftBitmap->rows; y++)
@@ -856,28 +848,6 @@ Glyph::Data* FontFaceFT::renderGlyph(uint32_t uc)
   */
 
 #if 0
-  /*
-   * HACK: Heh, here is an optional (runtime) hack that can best render
-   *       some glyphs for me.
-   *
-   *       These characters will be corrected Y offset to render it
-   *       to fit to ascent, this is only when we need underlining of
-   *       these characters, but I like it this way.
-   *
-   *       -PKob
-   */
-  if (uc == '[' || uc == ']' ||
-      uc == '(' || uc == ')' ||
-      uc == '{' || uc == '}' ||
-      uc == '|')
-  {
-    if (g.Data()->YOffset + int(g.Height()) >= m->Ascent) {
-      g.Data()->YOffset = (m->Ascent - 1) - int(g.Height());
-    }
-  }
-#endif
-
-#if 0
   // debug
   {
     fprintf(stderr, "GLYPH: '%lc' (width=%u, height=%u, stride=%ld, advance=%d, offx=%d, offy=%d)\n",
@@ -904,9 +874,30 @@ fail:
   return glyphd;
 }
 
-// [Fog::FtFile]
+err_t FontFaceFT::getTextWidth(const Char32* str, sysuint_t length, TextWidth* textWidth)
+{
+  TemporaryGlyphSet<128> glyphSet;
+  err_t err = getGlyphs(str, length, glyphSet);
 
-FtFile::FtFile(const Fog::String32& fileName, const Fog::String32& family) :
+  if (err)
+  {
+    memset(textWidth, 0, sizeof(TextWidth));
+    return err;
+  }
+  else
+  {
+    textWidth->advance = glyphSet.advance();
+    textWidth->beginWidth = 0;
+    textWidth->endWidth = 0;
+    return Error::Ok;
+  }
+}
+
+// ============================================================================
+// [Fog::FtFile]
+// ============================================================================
+
+FtFile::FtFile(const String32& fileName, const String32& family) :
   fileName(fileName),
   family(family),
   ftFace(NULL),
@@ -915,7 +906,7 @@ FtFile::FtFile(const Fog::String32& fileName, const Fog::String32& family) :
   fixedWidthIndex(0)
 {
   refCount.init(0);
-  used.init(0),
+  used.init(0);
   load();
 }
 
@@ -958,9 +949,9 @@ bool FtFile::load()
 {
   if (ftFace) return true;
 
-  // try to mmap file, if operation fail, use FT_New_Face function that
-  // will try to open it probabbly by FILE* subsystem.
-  if (mapFile.map(fileName, false).ok())
+  // Try to mmap file, if this fail, use FT_New_Face function that will
+  // to open it manually.
+  if (mapFile.map(fileName, false) == Error::Ok)
   {
     FT_Open_Args ftArgs;
 
@@ -973,10 +964,10 @@ bool FtFile::load()
   }
   else
   {
-    Fog::TemporaryByteArray<Fog::TemporaryLength> t;
-    t.setLocal(fileName);
+    TemporaryString8<TemporaryLength> fileName8;
+    fileName8.set(fileName, TextCodec::local8());
 
-    loadError = fepriv->pFT_New_Face(fepriv->ftLibrary, t.cDataz(), 0, &ftFace);
+    loadError = fepriv->pFT_New_Face(fepriv->ftLibrary, fileName8.cStr(), 0, &ftFace);
   }
 
   return loadError == 0;
@@ -1104,7 +1095,7 @@ FontFace* FtFile::createFace(uint32_t size, const FontAttributes& attributes)
 // freetype font list
 // ---------------------------------------------------------------------------
 /*
-static void Fog_Font_ftAppendFontsToList(Fog::Vector<Fog::String32>* list)
+static void Fog_Font_ftAppendFontsToList(Vector<String32>* list)
 {
   if (Fog_FontConfig)
   {
@@ -1116,8 +1107,8 @@ static void Fog_Font_ftAppendFontsToList(Fog::Vector<Fog::String32>* list)
     // this is not preferred case and this is only small workaround.
 
     // Make common fonts list, but check if they are available
-    Fog::Hash<Fog::String32, Fog::String32>::ConstIterator iterator(Fog_Ft->ftTranslator);
-    Fog::String32 path;
+    Hash<String32, String32>::ConstIterator iterator(Fog_Ft->ftTranslator);
+    String32 path;
 
     for (iterator.begin(); iterator.exist(); iterator.next())
     {

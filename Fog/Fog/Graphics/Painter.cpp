@@ -822,7 +822,7 @@ uint32_t RasterPainterDevice::lineJoin() const
   return _lineJoin;
 }
 
-void RasterPainterDevice::setLineDash(const double* dashes, uint32_t count)
+void RasterPainterDevice::setLineDash(const double* dashes, sysuint_t count)
 {
   _lineDash.clear();
   for (sysuint_t i = 0; i < count; i++) _lineDash.append(*dashes);

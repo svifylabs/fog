@@ -138,13 +138,13 @@ uint32_t BmpDecoderDevice::readHeader()
   // read bmp header
   if (stream().read(_bmpFileHeader, 14+4) != 14+4) 
   {
-    return (_headerResult = EImageIOTruncated);
+    return (_headerResult = Error::ImageIO_Truncated);
   }
 
   // try to match bmp mime "BM"
   if (*(uint16_t*)(_bmpFileHeader) != FOG_MAKE_UINT16_SEQ('B', 'M')) 
   { 
-    return (_headerResult = EImageIOMimeNotMatch);
+    return (_headerResult = Error::ImageIO_MimeNotMatch);
   }
 
   // File header structure looks like this (extracted from bmp header):
@@ -167,7 +167,7 @@ uint32_t BmpDecoderDevice::readHeader()
 
     if (stream().read(_bmpDataHeader, 12-4) != 12-4) 
     {
-      return (_headerResult = EImageIOTruncated);
+      return (_headerResult = Error::ImageIO_Truncated);
     }
 
     _width          = Memory::bswap16le( *(const uint16_t *)(_bmpDataHeader + 4  - 4) );
@@ -185,7 +185,7 @@ uint32_t BmpDecoderDevice::readHeader()
 
     if (stream().read(_bmpDataHeader, 40-4) != 40-4) 
     {
-      return (_headerResult = EImageIOTruncated);
+      return (_headerResult = Error::ImageIO_Truncated);
     }
 
     _width          = Memory::bswap32le( *(const uint32_t *)(_bmpDataHeader +  4 - 4) );
@@ -200,7 +200,7 @@ uint32_t BmpDecoderDevice::readHeader()
   // Malformed or invalid header size
   else
   {
-    return (_headerResult = EImageIOFormatNotSupported);
+    return (_headerResult = Error::ImageIO_FormatNotSupported);
   }
 
   // check for correct depth
@@ -214,19 +214,19 @@ uint32_t BmpDecoderDevice::readHeader()
     case 32:
       break;
     default:
-      return (_headerResult = EImageIOFormatNotSupported);
+      return (_headerResult = Error::ImageIO_FormatNotSupported);
   }
 
   // check for zero dimensions
   if (areDimensionsZero())
   {
-    return (_headerResult = EImageSizeIsZero);
+    return (_headerResult = Error::ImageSizeIsZero);
   }
 
   // check for too large dimensions
   if (areDimensionsTooLarge())
   {
-    return (_headerResult = EImageSizeTooLarge);
+    return (_headerResult = Error::ImageSizeIsTooLarge);
   }
 
   // bmp contains only one image
@@ -258,7 +258,7 @@ uint32_t BmpDecoderDevice::readHeader()
 
         if (stream().read(psrc24, nColors*3) != nColors*3)
         {
-          return EImageIOTruncated;
+          return Error::ImageIO_Truncated;
         }
 
         for (i = nColors; i; i--, pdestCur++, psrc24Cur += 3)
@@ -273,7 +273,7 @@ uint32_t BmpDecoderDevice::readHeader()
 
         if (stream().read(pdestCur, nColors*4) != nColors*4) 
         {
-          return EImageIOTruncated;
+          return Error::ImageIO_Truncated;
         }
 
 #if FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
@@ -339,7 +339,7 @@ uint32_t BmpDecoderDevice::readHeader()
 
     if (stream().read(masks, 12) != 12) 
     {
-      return (_headerResult = EImageIOTruncated);
+      return (_headerResult = Error::ImageIO_Truncated);
     }
 
     _rMask = Memory::bswap32le( *((const uint32_t *)(masks + 0)) );
@@ -375,7 +375,7 @@ uint32_t BmpDecoderDevice::readImage(Image& image)
   }
 
   // don't read image more than once
-  if (readerDone()) return (_readerResult = EImageIONotAnimationFormat);
+  if (readerDone()) return (_readerResult = Error::ImageIO_NotAnimationFormat);
 
   // error code (default is success)
   uint32_t error = Error::Ok;
@@ -693,7 +693,7 @@ BI_RLE_8_BEGIN:
 
     if (!converter.setup(destFormat, srcFormat))
     {
-      error = EImageIOConverterNotAvailable;
+      error = Error::ImageIO_ConverterNotAvailable;
       goto end;
     }
 
@@ -711,10 +711,10 @@ BI_RLE_8_BEGIN:
   goto end;
 
 truncated:
-  error = EImageIOTruncated;
+  error = Error::ImageIO_Truncated;
   goto end;
 rleError:
-  error = EImageIORleError;
+  error = Error::ImageIO_RleError;
   goto end;
 outOfMemory:
   error = Error::OutOfMemory;

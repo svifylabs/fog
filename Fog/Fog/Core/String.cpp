@@ -14,6 +14,8 @@
 #include <Fog/Core/Thread.h>
 #include <Fog/Core/Vector.h>
 
+#include <stdarg.h>
+
 #define __G_GENERATE
 
 #define __G_SIZE 1
