@@ -151,7 +151,6 @@ struct Implicit
 #include <Fog/Core/Char.h>
 #include <Fog/Core/Class.h>
 #include <Fog/Core/Constants.h>
-#include <Fog/Core/Cpu.h>
 #include <Fog/Core/Delegate.h>
 #include <Fog/Core/DirIterator.h>
 #include <Fog/Core/Event.h>

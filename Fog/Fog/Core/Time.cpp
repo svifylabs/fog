@@ -10,10 +10,10 @@
 // [Dependencies]
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/AutoLock.h>
-#include <Fog/Core/Cpu.h>
 #include <Fog/Core/Lazy.h>
 #include <Fog/Core/Lock.h>
 #include <Fog/Core/Time.h>
+#include <Fog/Cpu/CpuInfo.h>
 
 #if defined(FOG_OS_WINDOWS)
 // TODO: Add this library to cmake

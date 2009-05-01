@@ -8,13 +8,13 @@
 // found in the LICENSE file.
 
 // [Guard]
-#ifndef _FOG_CORE_CPU_H
-#define _FOG_CORE_CPU_H
+#ifndef _FOG_CPU_CPUINFO_H
+#define _FOG_CPU_CPUINFO_H
 
 // [Dependencies]
 #include <Fog/Build/Build.h>
 
-//! @addtogroup Fog_Core
+//! @addtogroup Fog_Cpu
 //! @{
 
 namespace Fog {
@@ -170,4 +170,4 @@ FOG_API void detectCpuInfo(CpuInfo* i);
 //! @}
 
 // [Guard]
-#endif // _FOG_CORE_CPU_H
+#endif // _FOG_CPU_CPUINFO_H

@@ -30,7 +30,7 @@ struct FOG_API Image
 {
   // [Data]
 
-  struct FOG_API Data : public Fog::RefData<Data>
+  struct FOG_API Data : public RefData<Data>
   {
     enum
     {
@@ -72,11 +72,11 @@ struct FOG_API Image
     static Data* copy(const Data* other, uint allocPolicy);
   };
 
-  static Fog::Static<Data> sharedNull;
+  static Static<Data> sharedNull;
 
   // [Constants]
 
-  /*! @brief Image adopt flags. */
+  //! @brief Image adopt flags.
   enum AdoptFlags
   {
     AdoptReadOnly = 0x1,
@@ -85,7 +85,7 @@ struct FOG_API Image
 
   enum
   {
-    /*! @brief Maximum image size (in pixels) */
+    //! @brief Maximum image size (in pixels)
     MaxSize = 16384*16384
   };
 
@@ -253,7 +253,7 @@ struct FOG_API Image
 
   // [Mirror]
 
-  /*! @brief Invert modes used together with @c Image::mirror() and @c Image::mirrored() methods. */
+  //! @brief Invert modes used together with @c Image::mirror() and @c Image::mirrored() methods.
   enum MirrorMode
   {
     MirrorNone       = 0x0,
@@ -272,7 +272,7 @@ struct FOG_API Image
 
   // [Rotate]
 
-  /*! @brief Invert modes used together with @c Image::rotate() and @c Image::rotated() methods. */
+  //! @brief Invert modes used together with @c Image::rotate() and @c Image::rotated() methods.
   enum RotateMode
   {
     Rotate0,
@@ -288,55 +288,6 @@ struct FOG_API Image
   }
 
   static bool rotate(Image& dest, const Image& src, uint32_t rotateMode);
-
-  // [Blur]
-
-  /*! @brief Blur modes used together with @c Image::blur() and @c @c Image::blured() methods. */
-  enum BlurMode
-  {
-    /*! @brief Fastest, but very low quality blur that can produce incorrect
-      results for some special images.
-
-      This blur mode can be used to blur glyphs.
-
-      The blur matrix is:
-        0 1 0
-        1 0 1 
-        0 1 0
-    */
-    Blur0x4,
-
-    /*! @brief Slower blur with not so good results.
-
-      This blur mode can be used to blur glyphs.
-
-      The blur matrix is:
-        0 1 0
-        1 1 1 
-        0 1 0
-    */
-    Blur1x4,
-    /*! @brief Slower blur, but with optimal results. Edges are blured better,
-      because center point is like two points with same color. 
-
-      This method is slower than @c Blur0x4 and @c Blur1x4, but produces
-      best results.
-
-      The blur matrix is:
-        0 1 0
-        1 2 1 
-        0 1 0
-    */
-    Blur2x4
-  };
-
-  FOG_INLINE Image& blur(uint32_t blurMode)
-  {
-    blur(*this, *this, blurMode);
-    return *this;
-  }
-
-  static bool blur(Image& dest, const Image& src, uint32_t blurMode);
 
   // [Alpha channel related]
 
@@ -369,16 +320,16 @@ struct FOG_API Image
 
   // [Read]
 
-  err_t readFile(const Fog::String32& fileName);
-  err_t readStream(Fog::Stream& stream);
-  err_t readStream(Fog::Stream& stream, const Fog::String32& extension);
+  err_t readFile(const String32& fileName);
+  err_t readStream(Stream& stream);
+  err_t readStream(Stream& stream, const String32& extension);
   err_t readMemory(const uint8_t* data, sysuint_t size);
-  err_t readMemory(const uint8_t* data, sysuint_t size, const Fog::String32& extension);
+  err_t readMemory(const uint8_t* data, sysuint_t size, const String32& extension);
 
   // [Write]
 
-  err_t writeFile(const Fog::String32& fileName);
-  err_t writeStream(Fog::Stream& stream, const Fog::String32& extension);
+  err_t writeFile(const String32& fileName);
+  err_t writeStream(Stream& stream, const String32& extension);
 
   // [Overloaded Operators]
 

@@ -9,9 +9,9 @@
 
 // [Dependencies]
 #include <Fog/Core/Atomic.h>
-#include <Fog/Core/Cpu.h>
 #include <Fog/Core/RefData.h>
 #include <Fog/Core/Static.h>
+#include <Fog/Cpu/CpuInfo.h>
 #include <Fog/Graphics/Geometry.h>
 #include <Fog/Graphics/ImageFormat.h>
 

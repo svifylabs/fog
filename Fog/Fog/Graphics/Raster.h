@@ -478,6 +478,21 @@ static FOG_INLINE void writeBGR24(uint8_t* p, uint32_t s0)
     Rgba::blue(s0));
 }
 
+// ============================================================================
+// [Fog::Raster - Ops]
+// ============================================================================
+
+struct Ops
+{
+  typedef void (*GradientSpanFn)(uint8_t* dst, uint32_t c0, uint32_t c1, sysint_t w, sysint_t x1, sysint_t x2);
+
+  GradientSpanFn gradientSpanA8;
+  GradientSpanFn gradientSpanARGB32;
+  GradientSpanFn gradientSpanARGB32_Premultiply;
+};
+
+extern FOG_API Ops* ops;
+
 } // Raster namespace
 } // Fog namespace
 

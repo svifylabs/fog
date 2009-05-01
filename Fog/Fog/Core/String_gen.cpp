@@ -3579,7 +3579,7 @@ __G_STRING::Data* __G_STRING::Data::copy(
 
 void __G_STRING::Data::free(Data* d)
 {
-  Fog::Memory::free((void*)d);
+  Memory::free((void*)d);
 }
 
 Static<__G_STRING::Data> __G_STRING::sharedNull;

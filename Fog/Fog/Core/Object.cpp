@@ -104,7 +104,10 @@ Object::Object() :
 
 Object::~Object()
 {
-  // remove all posted events
+  // Delete all connections
+  if (!_connection.isEmpty()) removeAllListeners();
+
+  // Demove all posted events.
   if (_events)
   {
     AutoLock locked(*fog_object_lock);

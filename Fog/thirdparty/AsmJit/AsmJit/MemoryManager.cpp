@@ -235,6 +235,8 @@ struct ASMJIT_HIDDEN MemoryManagerPrivate
   MemoryManagerPrivate();
   ~MemoryManagerPrivate();
 
+  void reset();
+
   // [Allocation]
 
   static M_Node* createNode(SysUInt size, SysUInt density);
@@ -242,6 +244,7 @@ struct ASMJIT_HIDDEN MemoryManagerPrivate
   void* allocPernament(SysUInt vsize);
   void* allocFreeable(SysUInt vsize);
   bool free(void* address);
+  void freeAll();
 
   // [NodeList LLRB-Tree]
 
@@ -287,21 +290,27 @@ struct ASMJIT_HIDDEN MemoryManagerPrivate
 // [AsmJit::MemoryManagerPrivate - Construction / Destruction]
 // ============================================================================
 
-MemoryManagerPrivate::MemoryManagerPrivate() :
-  _newChunkSize(65536),
-  _newChunkDensity(64),
-  _allocated(0),
-  _used(0),
-  _root(NULL),
-  _first(NULL),
-  _last(NULL),
-  _optimal(NULL),
-  _pernament(NULL)
+MemoryManagerPrivate::MemoryManagerPrivate()
 {
+  reset();
 }
 
 MemoryManagerPrivate::~MemoryManagerPrivate()
 {
+  freeAll();
+}
+
+void MemoryManagerPrivate::reset()
+{
+  _newChunkSize = 65536;
+  _newChunkDensity = 64;
+  _allocated = 0;
+  _used = 0;
+  _root = NULL;
+  _first = NULL;
+  _last = NULL;
+  _optimal = NULL;
+  _pernament = NULL;
 }
 
 // ============================================================================
@@ -617,6 +626,36 @@ bool MemoryManagerPrivate::free(void* address)
   }
 
   return true;
+}
+
+void MemoryManagerPrivate::freeAll()
+{
+  // Freeable memory.
+  M_Node* n = _last;
+  while (n)
+  {
+    M_Node* next = n->prev;
+
+    VirtualMemory::free(n->mem, n->size);
+    ASMJIT_FREE(n);
+
+    n = next;
+  }
+
+  // Pernament memory.
+  M_PernamentNode* pn = _pernament;
+  while (pn)
+  {
+    M_PernamentNode* next = pn->prev;
+
+    VirtualMemory::free(pn->mem, pn->size);
+    ASMJIT_FREE(pn);
+
+    pn = next;
+  }
+
+  // Purge everything.
+  reset();
 }
 
 // ============================================================================

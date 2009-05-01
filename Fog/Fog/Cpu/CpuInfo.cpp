@@ -15,8 +15,8 @@
 // [Dependencies]
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/Constants.h>
-#include <Fog/Core/Cpu.h>
 #include <Fog/Core/Error.h>
+#include <Fog/Cpu/CpuInfo.h>
 
 #if defined(FOG_OS_WINDOWS)
 # include <windows.h>
@@ -235,7 +235,7 @@ void detectCpuInfo(CpuInfo* i)
 // [Library Initializers]
 // ============================================================================
 
-FOG_INIT_DECLARE err_t fog_cpu_init(void)
+FOG_INIT_DECLARE err_t fog_cpuinfo_init(void)
 {
   static Fog::CpuInfo staticCpuInfo;
 
@@ -245,6 +245,6 @@ FOG_INIT_DECLARE err_t fog_cpu_init(void)
   return Error::Ok;
 }
 
-FOG_INIT_DECLARE void fog_cpu_shutdown(void)
+FOG_INIT_DECLARE void fog_cpuinfo_shutdown(void)
 {
 }

@@ -16,13 +16,20 @@ namespace Fog {
 
 void PainterUtil::draw3dRect(Painter* p, const Rect& r, Rgba color1, Rgba color2, bool checked)
 {
+  if (!r.isValid()) return;
+
+  int x1 = r.x1();
+  int y1 = r.y1();
+  int x2 = r.x2()-1;
+  int y2 = r.y2()-1;
+
   p->setSource(checked ? color2 : color1);
-  p->drawLine(Point(r.x1()  , r.y1()  ), Point(r.x2()-1, r.y1()  ));
-  p->drawLine(Point(r.x1()  , r.y1()+1), Point(r.x1()  , r.y2()-1));
+  p->drawLine(Point(x1  , y1  ), Point(x2  , y1  ));
+  p->drawLine(Point(x1  , y1+1), Point(x1  , y2-1));
 
   p->setSource(checked ? color1 : color2);
-  p->drawLine(Point(r.x2()-1, r.y1()+1), Point(r.x2()-1, r.y2()-1));
-  p->drawLine(Point(r.x1()  , r.y2()-1), Point(r.x2()-1, r.y2()-1));
+  p->drawLine(Point(x2  , y1+1), Point(x2  , y2-1));
+  p->drawLine(Point(x1  , y2  ), Point(x2  , y2  ));
 }
 
 } // Fog namespace
