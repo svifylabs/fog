@@ -26,21 +26,13 @@ struct MyWindow : public Window
     int w = width();
     int h = height();
 
-    p->setSource(Rgba(0xFF000000));
-    p->clear();
-/*
     p->setSource(Rgba(0xFFFFFFFF));
-    p->setLineWidth(20);
+    p->clear();
 
-    p->drawLine(PointF(20, 20), PointF(520, 24));
-*/
-    //p->setSource(0xFFFFFFFF);
-    //p->fillRect(Rect(10, 10, 200, 200));
+    //Font font;
+    //font.setFamily(StubAscii8("Arial"));
 
-    Font font;
-    font.setFamily(StubAscii8("Arial"));
-
-    p->setSource(0xFFFFFFFF);
+    p->setSource(0xFF000000);
     //p->drawText(Point(10, 10), StubAscii8("Test"), font);
 /*
     for (sysuint_t i = 0; i < 1000; i++)
@@ -48,21 +40,28 @@ struct MyWindow : public Window
       p->drawText(Point(rand() % w, rand() % h), StubAscii8("ABCDEFGHIJKLMOPQRSTUVWXYZ"), font);
     }*/
 
-    for (sysuint_t i = 0; i < 40; i++)
+    //for (sysuint_t i = 0; i < 40; i++)
+    //{
+    //  p->drawText(Point(50, i * 14), StubAscii8("abcdefghijklmopqrstuvwxyz"), font);
+    //}
+
+    //p->setSource(Rgba(0xFFFFFF00));
+    //p->fillArc(PointF(0, 0), PointF(50, 50), 0.5, 3.14);
+    //p->fillArc(PointF(width(), height()), PointF(50, 50), 0.5, 3.14);
+/*
+    for (sysuint_t i = 0; i < 100; i++)
     {
-      p->drawText(Point(50, i * 14), StubAscii8("abcdefghijklmopqrstuvwxyz"), font);
+      p->setSource(Rgba((rand() + (rand() << 16))));
+      p->fillRect(Rect(rand() % width(), rand() % height(), rand() % width(), rand() % height()));
     }
-
-    p->setSource(Rgba(0xFFFFFFFF));
-    p->fillArc(PointF(100, 100), PointF(200, 200), 0.5, 3.14);
-
+*/
 /*
     Path path;
     for (sysuint_t i = 0; i < 100; i++)
     {
       path.clear();
       path.moveTo(rand() % w, rand() % h);
-      for (sysuint_t j = 0; j < 30; j++)
+      for (sysuint_t j = 0; j < 10; j++)
       {
         path.cubicCurveTo(
           rand() % w, rand() % h,

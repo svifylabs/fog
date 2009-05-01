@@ -198,7 +198,7 @@ void Module_Fill_32_SSE2::processPixelsPtr(
         }
         else if (i >= 1)
         {
-          c->mov(ptr(dst->c(), dstDisp), srcgp.r());
+          c->mov(ptr(dst->c(), dstDisp), srcgp.r32());
 
           offset++;
           i--;

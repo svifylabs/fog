@@ -20,9 +20,11 @@
 // [Fog/UI Include Files]
 #include <Fog/Build/Build.h>
 
+#include <Fog/UI/BoxLayout.h>
 #include <Fog/UI/Button.h>
 #include <Fog/UI/ButtonBase.h>
 #include <Fog/UI/CheckBox.h>
+#include <Fog/UI/Composite.h>
 #include <Fog/UI/Constants.h>
 #include <Fog/UI/Layout.h>
 #include <Fog/UI/LayoutItem.h>

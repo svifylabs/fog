@@ -486,7 +486,7 @@ struct FontEngineFTPrivate
       FtFile* ftFile = it.value();
       if (ftFile->refCount.get())
       {
-        fog_stderr_msg("Fog::FontEngineFTPrivate", "ftClose", "FtFile not dereferenced (refCount %lu)", (ulong)ftFile->refCount.get());
+        fog_stderr_msg("Fog::FontEngineFTPrivate", "ftClose", "FtFile not dereferenced (refCount %ld)", (long)ftFile->refCount.get());
       }
 
       delete ftFile;
@@ -662,6 +662,7 @@ FontFaceFT::FontFaceFT() :
 
 FontFaceFT::~FontFaceFT()
 {
+  if (ftFile) ftFile->deref();
 }
 
 void FontFaceFT::deref()
@@ -787,8 +788,8 @@ Glyph::Data* FontFaceFT::renderGlyph(uint32_t uc)
     // copy FT_Bitmap to our image and clean bytes over width
     sysuint_t p, pCount = glyphd->image.stride() - ftBitmap->width;
 
-    uint8_t *dataDest = glyphd->image._d->first;
-    const uint8_t *dataSrc = ftBitmap->buffer;
+    uint8_t *dstPtr = glyphd->image._d->first;
+    const uint8_t *srcPtr = ftBitmap->buffer;
 
     for (y = 0; y != (uint)ftBitmap->rows; y++)
     {
@@ -799,26 +800,26 @@ Glyph::Data* FontFaceFT::renderGlyph(uint32_t uc)
         uint x;
         uint pix8;
 
-        uint8_t* dataDestCur = dataDest;
-        const uint8_t* dataSrcCur = dataSrc;
+        uint8_t* dstCur = dstPtr;
+        const uint8_t* srcCur = srcPtr;
 
         for (x = 0; x != (uint)ftBitmap->width; x++)
         {
-          if ((x & 7) == 0) pix8 = *dataSrcCur++;
-          *dataDestCur++ = (pix8 & 0x80) ? 0xFF : 0x00;
+          if ((x & 7) == 0) pix8 = *srcCur++;
+          *dstCur++ = (pix8 & 0x80) ? 0xFF : 0x00;
           pix8 <<= 1;
         }
       }
       else
       {
-        memcpy(dataDest, dataSrc, ftBitmap->width);
+        memcpy(dstPtr, srcPtr, ftBitmap->width);
       }
 
-      dataDest += ftBitmap->width;
-      dataSrc += ftBitmap->pitch;
+      dstPtr += ftBitmap->width;
+      srcPtr += ftBitmap->pitch;
 
       p = pCount;
-      while (p--) *dataDest++ = 0;
+      while (p--) *dstPtr++ = 0;
     }
   }
 
@@ -905,6 +906,7 @@ FtFile::FtFile(const String32& fileName, const String32& family) :
   unloadAfterUse(false),
   fixedWidthIndex(0)
 {
+  //fog_debug("FtFile::new()");
   refCount.init(0);
   used.init(0);
   load();
@@ -912,24 +914,28 @@ FtFile::FtFile(const String32& fileName, const String32& family) :
 
 FtFile::~FtFile()
 {
+  //fog_debug("FtFile::delete()");
   FOG_ASSERT((refCount.get() == 0 && used.get() == 0));
   unload();
 }
 
 FtFile* FtFile::ref()
 {
+  //fog_debug("FtFile::ref() - RefCount=%lld", (long long)refCount.get());
   refCount.inc();;
   return this;
 }
 
 void FtFile::deref()
 {
+  //fog_debug("FtFile::deref() - RefCount=%lld", (long long)refCount.get());
   refCount.dec();
 }
 
 // use() and unuse() are public methods that's used by engine.
 bool FtFile::use()
 {
+  //fog_debug("FtFile::use()");
   used.inc();
   if (used.get() == 1 && !loaded() && !load())
   {
@@ -942,6 +948,7 @@ bool FtFile::use()
 
 void FtFile::unuse()
 {
+  //fog_debug("FtFile::unuse()");
   if (used.deref() && unloadAfterUse) unload();
 }
 

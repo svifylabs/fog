@@ -112,8 +112,8 @@ FOG_CAPI_DECLARE void FOG_NO_RETURN fog_assertion(const char* file, int line, co
   fog_stderr_msg(NULL, NULL, "Assertion failed at %s, line %d\n", file, line);
   if (msg) fog_stderr_msg(NULL, NULL, "%s\n", msg);
 
-  fog_failed = 1;
-  exit(EXIT_FAILURE);
+  //fog_failed = 1;
+  //exit(EXIT_FAILURE);
 }
 
 FOG_CAPI_DECLARE void FOG_NO_RETURN fog_fail(const char* format, ...)

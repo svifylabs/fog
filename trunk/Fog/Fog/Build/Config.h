@@ -10,7 +10,7 @@
 // [Library Directories]
 
 //! @brief Install prefix specified by configure parameters.
-#define FOG_INSTALL_PREFIX "/usr/local"
+#define FOG_INSTALL_PREFIX "C:/Program Files/Fog"
 
 // [Debugging]
 
@@ -26,38 +26,38 @@
 
 // [Size of Types]
 
-#define FOG_SIZEOF_VOID 8
+#define FOG_SIZEOF_VOID 4
 #define FOG_SIZEOF_SHORT 2
 #define FOG_SIZEOF_INT 4
-#define FOG_SIZEOF_LONG 8
-#define FOG_SIZEOF_WCHAR_T 4
+#define FOG_SIZEOF_LONG 4
+#define FOG_SIZEOF_WCHAR_T 2
 
 // [Dynamic Loadable Library Support]
 
 //! @brief Defined if we are using Windows dynamic library loader.
-/* #undef FOG_LIBRARY_WINDOWS */
+#define FOG_LIBRARY_WINDOWS
 //! @brief Defined if we are using Linux @c dlopen() dynamic library loader.
-#define FOG_LIBRARY_DL
+/* #undef FOG_LIBRARY_DL */
 
 // [Header files]
 
 //! @brief Defined if we have fenv.h
-#define FOG_HAVE_FENV_H
+/* #undef FOG_HAVE_FENV_H */
 //! @brief Defined if we have float.h
 #define FOG_HAVE_FLOAT_H
 //! @brief Defined if we have limits.h
 #define FOG_HAVE_LIMITS_H
 //! @brief Defined if we have stdint.h
-#define FOG_HAVE_STDINT_H
+/* #undef FOG_HAVE_STDINT_H */
 //! @brief Defined if we have unistd.h
-#define FOG_HAVE_UNISTD_H
+/* #undef FOG_HAVE_UNISTD_H */
 
 //! @brief Defined if we have jpeglib.h
-#define FOG_HAVE_JPEGLIB_H
+/* #undef FOG_HAVE_JPEGLIB_H */
 //! @brief Defined if we have png.h
-#define FOG_HAVE_PNG_H
+/* #undef FOG_HAVE_PNG_H */
 //! @brief Have fontconfig header files.
-#define FOG_HAVE_FONTCONFIG
+/* #undef FOG_HAVE_FONTCONFIG */
 
 // [MMX/SSE support]
 
@@ -73,16 +73,16 @@
 // [Graphics]
 
 //! @brief Used if freetype library is located (can be used together with windows font subsystem).
-#define FOG_FONT_FREETYPE
+/* #undef FOG_FONT_FREETYPE */
 //! @brief Used for windows font subsystem.
-/* #undef FOG_FONT_WINDOWS */
+#define FOG_FONT_WINDOWS
 
 // [UI]
 
 //! @brief Defined if we are using Windows GUI.
-/* #undef FOG_UI_WINDOWS */
+#define FOG_UI_WINDOWS
 //! @brief Defined if we are using X Window System.
-#define FOG_UI_X11
+/* #undef FOG_UI_X11 */
 
 // [Guard]
 #endif // _FOG_BUILD_CONFIG_H

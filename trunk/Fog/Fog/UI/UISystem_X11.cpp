@@ -391,7 +391,7 @@ UISystemX11::~UISystemX11()
   // Close display and free X resources.
   if (display())
   {
-    if (xim()) pXCloseIM(xim());
+    if (_xim) pXCloseIM(_xim);
     pXFreeGC(display(), gc());
     if (xPrivateColormap()) pXFreeColormap(display(), colormap());
 
@@ -1909,14 +1909,14 @@ void EventPumpX11::doRunLoop()
 
     if (moreWorkIsPlausible) continue;
 
+    // Call XSync, this is round-trip operation and can generate events.
+    moreWorkIsPlausible = xsync();
+    if (moreWorkIsPlausible) continue;
+
     // If quit is received in nestedLoop or through runAllPending(), we will
     // quit here, because we don't want to do XSync().
     moreWorkIsPlausible = _state->delegate->doIdleWork();
     if (_state->shouldQuit) break;
-
-    // Call XSync, this is round-trip operation and can generate events.
-    moreWorkIsPlausible = xsync();
-    if (moreWorkIsPlausible) continue;
 
     waitForWork();
   }

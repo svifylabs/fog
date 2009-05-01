@@ -9,11 +9,11 @@
 #endif
 
 // [Dependencies]
-#include <Fog/Core/Cpu.h>
 #include <Fog/Core/Error.h>
 #include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Thread.h>
+#include <Fog/Cpu/CpuInfo.h>
 #include <Fog/Graphics/AffineMatrix.h>
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Font.h>
@@ -599,7 +599,7 @@ RasterPainterDevice::RasterPainterDevice(uint8_t* pixels, int width, int height,
   _metaHeight = height;
 
   _format = format;
-  _bpp = format.depth() / 8;
+  _bpp = format.depth() >> 3;
 
   _metaOrigin.set(0, 0);
   _userOrigin.set(0, 0);
@@ -1397,6 +1397,10 @@ void RasterPainterDevice::_updateWorkRegion()
   int negx = -_workOrigin.x();
   int negy = -_workOrigin.y();
 
+  // This is maximal clip box that can be used by painter.
+  _clipBox.set(negx, negy, negx + _metaWidth, negy + _metaHeight);
+  _clipSimple = true;
+
   // Do region calculations only if they are really used.
   if (_metaRegionUsed || _userRegionUsed)
   {
@@ -1411,7 +1415,7 @@ void RasterPainterDevice::_updateWorkRegion()
 
     if (_userRegionUsed)
     {
-      // Optimize!
+      // Optimized!
       if (_metaOrigin.x() || _metaOrigin.y())
       {
         TemporaryRegion<64> _userTmp;
@@ -1427,7 +1431,6 @@ void RasterPainterDevice::_updateWorkRegion()
     // Switch to box clip implementation if resulting region is simple.
     if (_workRegion.count() == 1)
     {
-      _clipSimple = true;
       _clipBox.set(_workRegion.extents());
 
       _workRegion.clear();
@@ -1443,9 +1446,8 @@ void RasterPainterDevice::_updateWorkRegion()
   }
   else
   {
-    _clipSimple = true;
-    _clipBox.set(negx, negy, negx + _metaWidth, negy + _metaHeight);
-
+    // There is no clip box, we will use painter bounds that was in _clipBox
+    // already
     _workRegion.clear();
     _workRegionUsed = false;
   }
@@ -1861,19 +1863,22 @@ void RasterPainterDevice::_renderBoxes(const Box* box, sysuint_t count)
 
   uint8_t* pBuf = _workRaster;
   sysint_t stride = _stride;
+  sysint_t bpp = _bpp;
 
   FillSpan fillSpan = _fillFuncs.fillSpan;
 
   for (sysuint_t i = 0; i < count; i++)
   {
-    int x = box[i].x1();
-    int y = box[i].y1();
-    int w = box[i].width();
-    int h = box[i].height();
-    if (!w || !h) continue;
+    sysint_t x = box[i].x1();
+    sysint_t y = box[i].y1();
+
+    sysint_t w = box[i].width();
+    if (w <= 0) continue;
+    sysint_t h = box[i].height();
+    if (h <= 0) continue;
 
     // TODO: Hardcoded
-    uint8_t* pCur = pBuf + (sysint_t)y * stride + (sysint_t)x * 4;
+    uint8_t* pCur = pBuf + y * stride + x * bpp;
 
     do {
       fillSpan(pCur, &_source, (sysuint_t)w);
@@ -1889,7 +1894,11 @@ void RasterPainterDevice::_renderPath(const Path& path, bool stroke)
 
   _ras.reset();
   _ras.filling_rule(static_cast<agg::filling_rule_e>(_fillMode));
-  _ras.clip_box(_clipBox.x1(), _clipBox.y1(), _clipBox.x2(), _clipBox.y2());
+  _ras.clip_box(
+    (double)_clipBox.x1(),
+    (double)_clipBox.y1(),
+    (double)_clipBox.x2()-0.000001,
+    (double)_clipBox.y2()-0.000001);
 
   // This can be a bit messy, but it's here to increase performance. We will
   // not calculate using transformations if they are not used. Also we add

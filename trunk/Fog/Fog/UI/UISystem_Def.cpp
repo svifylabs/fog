@@ -628,8 +628,15 @@ void UISystemDefault::doUpdateWindow(UIWindow* window)
 {
   window->_dirty = false;
 
+  // UIWindow widget.
+  Widget* top = window->_widget;
+
   // Hidden windows won't be updated.
-  if (!window->_visible) return;
+  if (!window->_visible) 
+  {
+    top->_uflags = 0;
+    return;
+  }
 
   // =======================================================
   // Local variables and initialization.
@@ -637,9 +644,6 @@ void UISystemDefault::doUpdateWindow(UIWindow* window)
 
   // 10 seconds is extra buffer timeout
   TimeTicks now = TimeTicks::now() - TimeDelta::fromSeconds(10);
-
-  // UIWindow widget.
-  Widget* top = window->_widget;
 
   // Painting.
   Painter painter;

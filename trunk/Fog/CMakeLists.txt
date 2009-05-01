@@ -7,6 +7,7 @@ Project(Fog C CXX)
 # =============================================================================
 
 Set(FOG_DIR ${CMAKE_SOURCE_DIR})
+Set(FOG_LIBRARIES "")
 Set(FOG_AGG_DIR "${FOG_DIR}/thirdparty/agg")
 
 Set(ASMJIT_DIR "${FOG_DIR}/thirdparty/AsmJit")
@@ -18,7 +19,7 @@ Set(BLITJIT_DIR "${FOG_DIR}/thirdparty/BlitJit")
 Set(TEST_BUILD TRUE)
 
 # =============================================================================
-# [Thirdparty Libraries]
+# [3rdparty Libraries]
 # =============================================================================
 
 Add_Definitions(-DASMJIT_API= -DASMJIT_HIDDEN=)
@@ -32,23 +33,159 @@ Add_Definitions(-DBLITJIT_API= -DBLITJIT_HIDDEN=)
   Include(${BLITJIT_DIR}/CMakeLists.txt NO_POLICY_SCOPE)
 #EndIf(BLITJIT_BUILD_LIBRARY)
 
+SOURCE_GROUP(3rdparty_AsmJit FILES ${ASMJIT_SOURCES} ${ASMJIT_HEADERS})
+SOURCE_GROUP(3rdparty_BlitJit FILES ${BLITJIT_SOURCES} ${BLITJIT_HEADERS})
 # =============================================================================
-# [Fog]
+# [Include cmake helpers we need]
 # =============================================================================
 
-# Include cmake helpers we need
 Include(CheckIncludeFiles)
 Include(CheckLibraryExists)
 Include(CheckTypeSize)
 Include(FindThreads)
-Include(TestBigEndian)
 
-# Directories
+# =============================================================================
+# [Include Directories]
+# =============================================================================
+
 Include_Directories(${FOG_DIR})
 Include_Directories(${FOG_AGG_DIR}/include)
 
-# Dependency
-Set(FOG_LIBRARIES "")
+# =============================================================================
+# [CFlags]
+# =============================================================================
+
+Set(FOG_OPTIMIZED_CFLAGS "")
+
+If(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+  Set(FOG_OPTIMIZED_CFLAGS -O3)
+EndIf(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+
+# =============================================================================
+# [Endianness]
+# =============================================================================
+
+Include(TestBigEndian)
+Test_Big_Endian(WORDS_BIGENDIAN)
+
+If(WORDS_BIGENDIAN)
+  Set(FOG_BYTE_ORDER 0)
+Else(WORDS_BIGENDIAN)
+  Set(FOG_BYTE_ORDER 1)
+EndIf(WORDS_BIGENDIAN)
+
+# =============================================================================
+# [Size of POD types]
+# =============================================================================
+
+Check_Type_Size("void*" FOG_SIZEOF_VOID)
+Check_Type_Size("short" FOG_SIZEOF_SHORT)
+Check_Type_Size("int" FOG_SIZEOF_INT)
+Check_Type_Size("long" FOG_SIZEOF_LONG)
+Set(CMAKE_EXTRA_INCLUDE_FILES wchar.h)
+Check_Type_Size("wchar_t" FOG_SIZEOF_WCHAR_T)
+Set(CMAKE_EXTRA_INCLUDE_FILES)
+
+# =============================================================================
+# [Presence of headers]
+# =============================================================================
+
+If(NOT FOG_HAVE_FLOAT_H)
+  Check_Include_Files(float.h FOG_HAVE_FLOAT_H)
+EndIf(NOT FOG_HAVE_FLOAT_H)
+
+If(NOT FOG_HAVE_LIMITS_H)
+  Check_Include_Files(limits.h FOG_HAVE_LIMITS_H)
+EndIf(NOT FOG_HAVE_LIMITS_H)
+
+If(NOT FOG_HAVE_STDINT_H)
+  Check_Include_Files(stdint.h FOG_HAVE_STDINT_H)
+EndIf(NOT FOG_HAVE_STDINT_H)
+
+If(UNIX)
+  If(NOT FOG_HAVE_UNISTD_H)
+  Check_Include_Files(unistd.h FOG_HAVE_UNISTD_H)
+  EndIf(NOT FOG_HAVE_UNISTD_H)
+  
+  If(NOT FOG_HAVE_FENV_H)
+  Check_Include_Files(fenv.h FOG_HAVE_FENV_H)
+  EndIf(NOT FOG_HAVE_FENV_H)
+EndIf(UNIX)
+
+
+# =============================================================================
+# [Dynamic loadable library support]
+# =============================================================================
+
+If(WIN32)
+  # Windows dll support
+  Set(FOG_LIBRARY_WINDOWS 1)
+Else(WIN32)
+  # Unix libdl 
+  Check_Include_Files(dlfcn.h FOG_HAVE_DLFCN_H)
+  If(FOG_HAVE_DLFCN_H)
+    Check_Library_Exists(dl dlopen "" FOG_LIBRARY_DL_EXISTS)
+    If(FOG_LIBRARY_DL_EXISTS)
+      Set(FOG_LIBRARY_DL 1)
+      Set(FOG_LIBRARIES "${FOG_LIBRARIES} -ldl")
+    EndIf(FOG_LIBRARY_DL_EXISTS)
+  EndIf(FOG_HAVE_DLFCN_H)
+EndIf(WIN32)
+
+# =============================================================================
+# [Threads support]
+# =============================================================================
+
+If(CMAKE_THREAD_LIBS_INIT)
+  Set(FOG_LIBRARIES "${FOG_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}")
+EndIf(CMAKE_THREAD_LIBS_INIT)
+
+# =============================================================================
+# [Include rt library under linux]
+# =============================================================================
+
+If(NOT WIN32)
+  Set(FOG_LIBRARIES "${FOG_LIBRARIES} -lrt")
+EndIf(NOT WIN32)
+
+# =============================================================================
+# [Fontconfig and Freetype2 support]
+# =============================================================================
+
+If(WIN32)
+  Set(FOG_FONT_WINDOWS TRUE)
+Else(WIN32)
+  Find_File(HAVE_FREETYPE freetype-config)
+  If(HAVE_FREETYPE)
+    Exec_Program(freetype-config ARGS --cflags OUTPUT_VARIABLE FREETYPE_CONFIG_OUT RETURN_VALUE FREETYPE_CONFIG_RET)
+    Set(FOG_FONT_FREETYPE TRUE)
+    Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Font_FreeType.cpp PROPERTIES COMPILE_FLAGS "${FREETYPE_CONFIG_OUT}")
+  EndIf(HAVE_FREETYPE)
+
+  If(NOT FOG_HAVE_FONTCONFIG)
+    Check_Include_Files(fontconfig/fontconfig.h FOG_HAVE_FONTCONFIG)
+  EndIf(NOT FOG_HAVE_FONTCONFIG)
+EndIf(WIN32)
+
+# =============================================================================
+# [JPEG support]
+# =============================================================================
+
+If(NOT FOG_HAVE_JPEGLIB_H)
+  Check_Include_Files(jconfig.h FOG_HAVE_JPEGLIB_H)
+EndIf(NOT FOG_HAVE_JPEGLIB_H)
+
+# =============================================================================
+# [PNG support]
+# =============================================================================
+
+If(NOT FOG_HAVE_PNG_H)
+  Check_Include_Files(png.h FOG_HAVE_PNG_H)
+EndIf(NOT FOG_HAVE_PNG_H)
+
+# =============================================================================
+# [Fog/Build part]
+# =============================================================================
 
 Set(FOG_BUILD_SOURCES
   ${FOG_DIR}/Fog/Build/Init.cpp
@@ -63,10 +200,6 @@ Set(FOG_BUILD_HEADERS
 SOURCE_GROUP(Build FILES
   ${FOG_BUILD_SOURCES}
   ${FOG_BUILD_HEADERS})
-  
-# Static linking
-SOURCE_GROUP(3rdparty_AsmJit FILES ${ASMJIT_SOURCES} ${ASMJIT_HEADERS})
-SOURCE_GROUP(3rdparty_BlitJit FILES ${BLITJIT_SOURCES} ${BLITJIT_HEADERS})
 
 # =============================================================================
 # [Fog/Core] Part
@@ -79,7 +212,6 @@ Set(FOG_CORE_SOURCES
   ${FOG_DIR}/Fog/Core/BitArray.cpp
   ${FOG_DIR}/Fog/Core/Char.cpp
   ${FOG_DIR}/Fog/Core/Class.cpp
-  ${FOG_DIR}/Fog/Core/Cpu.cpp
   ${FOG_DIR}/Fog/Core/DirIterator.cpp
   ${FOG_DIR}/Fog/Core/Event.cpp
   ${FOG_DIR}/Fog/Core/EventLoop.cpp
@@ -139,7 +271,6 @@ Set(FOG_CORE_HEADERS
   ${FOG_DIR}/Fog/Core/Char.h
   ${FOG_DIR}/Fog/Core/Class.h
   ${FOG_DIR}/Fog/Core/Constants.h
-  ${FOG_DIR}/Fog/Core/Cpu.h
   ${FOG_DIR}/Fog/Core/Delegate.h
   ${FOG_DIR}/Fog/Core/DirIterator.h
   ${FOG_DIR}/Fog/Core/Error.h
@@ -200,82 +331,26 @@ SOURCE_GROUP(Core FILES
   ${FOG_CORE_SOURCES}
   ${FOG_CORE_HEADERS})
 
-# Endianness
-Test_Big_Endian(WORDS_BIGENDIAN)
+# =============================================================================
+# [Fog/Cpu] Part
+# =============================================================================
 
-If(WORDS_BIGENDIAN)
-  Set(FOG_BYTE_ORDER 0)
-Else(WORDS_BIGENDIAN)
-  Set(FOG_BYTE_ORDER 1)
-EndIf(WORDS_BIGENDIAN)
+# Fog/Core Sources
+Set(FOG_CPU_SOURCES
+  ${FOG_DIR}/Fog/Cpu/CpuInfo.cpp
+)
 
-# Size of POD types
-Check_Type_Size("void*" FOG_SIZEOF_VOID)
-Check_Type_Size("short" FOG_SIZEOF_SHORT)
-Check_Type_Size("int" FOG_SIZEOF_INT)
-Check_Type_Size("long" FOG_SIZEOF_LONG)
-Set(CMAKE_EXTRA_INCLUDE_FILES wchar.h)
-Check_Type_Size("wchar_t" FOG_SIZEOF_WCHAR_T)
-Set(CMAKE_EXTRA_INCLUDE_FILES)
+Set(FOG_CPU_HEADERS
+  ${FOG_DIR}/Fog/Cpu/CpuInfo.h
+  ${FOG_DIR}/Fog/Cpu/Intrin_MMX.h
+  ${FOG_DIR}/Fog/Cpu/Intrin_SSE.h
+  ${FOG_DIR}/Fog/Cpu/Intrin_SSE2.h
+  ${FOG_DIR}/Fog/Cpu/Intrin_SSE3.h
+)
 
-# Presence of headers
-If(NOT FOG_HAVE_FLOAT_H)
-  Check_Include_Files(float.h FOG_HAVE_FLOAT_H)
-EndIf(NOT FOG_HAVE_FLOAT_H)
-
-If(NOT FOG_HAVE_LIMITS_H)
-  Check_Include_Files(limits.h FOG_HAVE_LIMITS_H)
-EndIf(NOT FOG_HAVE_LIMITS_H)
-
-If(NOT FOG_HAVE_STDINT_H)
-  Check_Include_Files(stdint.h FOG_HAVE_STDINT_H)
-EndIf(NOT FOG_HAVE_STDINT_H)
-
-If(UNIX)
-  If(NOT FOG_HAVE_UNISTD_H)
-  Check_Include_Files(unistd.h FOG_HAVE_UNISTD_H)
-  EndIf(NOT FOG_HAVE_UNISTD_H)
-  
-  If(NOT FOG_HAVE_FENV_H)
-  Check_Include_Files(fenv.h FOG_HAVE_FENV_H)
-  EndIf(NOT FOG_HAVE_FENV_H)
-EndIf(UNIX)
-
-# Dynamic loadable library support
-If(WIN32)
-  # Windows dll support
-  Set(FOG_LIBRARY_WINDOWS 1)
-Else(WIN32)
-  # Unix libdl 
-  Check_Include_Files(dlfcn.h FOG_HAVE_DLFCN_H)
-  If(FOG_HAVE_DLFCN_H)
-    Check_Library_Exists(dl dlopen "" FOG_LIBRARY_DL_EXISTS)
-    If(FOG_LIBRARY_DL_EXISTS)
-      Set(FOG_LIBRARY_DL 1)
-      Set(FOG_LIBRARIES "${FOG_LIBRARIES} -ldl")
-    EndIf(FOG_LIBRARY_DL_EXISTS)
-  EndIf(FOG_HAVE_DLFCN_H)
-EndIf(WIN32)
-
-# Threads support
-If(CMAKE_THREAD_LIBS_INIT)
-  Set(FOG_LIBRARIES "${FOG_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}")
-EndIf(CMAKE_THREAD_LIBS_INIT)
-
-# Include rt library under linux
-If(NOT WIN32)
-  Set(FOG_LIBRARIES "${FOG_LIBRARIES} -lrt")
-EndIf(NOT WIN32)
-
-# libevent support for unix platforms
-#If(NOT WIN32)
-#  Check_Library_Exists(event event_base_new "" FOG_LIBRARY_EVENT_EXISTS)
-#  If(FOG_LIBRARY_EVENT_EXISTS)
-#    Set(FOG_LIBRARIES "${FOG_LIBRARIES} -levent")
-#  Else(FOG_LIBRARY_EVENT_EXISTS)
-#    Message("Libevent not found!")
-#  EndIf(FOG_LIBRARY_EVENT_EXISTS)
-#Endif(NOT WIN32)
+SOURCE_GROUP(Cpu FILES
+  ${FOG_CPU_SOURCES}
+  ${FOG_CPU_HEADERS})
 
 # =============================================================================
 # [Fog/Graphics] Part
@@ -523,31 +598,13 @@ SOURCE_GROUP(3rdparty_agg FILES
   ${FOG_AGG_SOURCES}
   ${FOG_AGG_HEADERS})
 
-# Fontconfig and Freetype2 Support
-If(WIN32)
-  Set(FOG_FONT_WINDOWS TRUE)
-Else(WIN32)
-  Find_File(HAVE_FREETYPE freetype-config)
-  If(HAVE_FREETYPE)
-    Exec_Program(freetype-config ARGS --cflags OUTPUT_VARIABLE FREETYPE_CONFIG_OUT RETURN_VALUE FREETYPE_CONFIG_RET)
-    Set(FOG_FONT_FREETYPE TRUE)
-    Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Font_FreeType.cpp PROPERTIES COMPILE_FLAGS "${FREETYPE_CONFIG_OUT}")
-  EndIf(HAVE_FREETYPE)
-
-  If(NOT FOG_HAVE_FONTCONFIG)
-    Check_Include_Files(fontconfig/fontconfig.h FOG_HAVE_FONTCONFIG)
-  EndIf(NOT FOG_HAVE_FONTCONFIG)
-EndIf(WIN32)
-
-# JPEG Support
-If(NOT FOG_HAVE_JPEGLIB_H)
-  Check_Include_Files(jconfig.h FOG_HAVE_JPEGLIB_H)
-EndIf(NOT FOG_HAVE_JPEGLIB_H)
-
-# PNG Support
-If(NOT FOG_HAVE_PNG_H)
-  Check_Include_Files(png.h FOG_HAVE_PNG_H)
-EndIf(NOT FOG_HAVE_PNG_H)
+# Optimize specific files for speed
+Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Converter.cpp PROPERTIES COMPILE_FLAGS ${FOG_OPTIMIZED_CFLAGS})
+Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Painter.cpp PROPERTIES COMPILE_FLAGS ${FOG_OPTIMIZED_CFLAGS})
+Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Raster.cpp PROPERTIES COMPILE_FLAGS ${FOG_OPTIMIZED_CFLAGS})
+Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Raster_MMX.cpp PROPERTIES COMPILE_FLAGS ${FOG_OPTIMIZED_CFLAGS})
+Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Raster_SSE2.cpp PROPERTIES COMPILE_FLAGS ${FOG_OPTIMIZED_CFLAGS})
+Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Region.cpp PROPERTIES COMPILE_FLAGS ${FOG_OPTIMIZED_CFLAGS})
 
 # =============================================================================
 # [Fog/UI] Part
@@ -616,6 +673,7 @@ EndIf(WIN32)
 Set(FOG_SOURCES 
   ${FOG_BUILD_SOURCES}
   ${FOG_CORE_SOURCES}
+  ${FOG_CPU_SOURCES}
   ${FOG_GRAPHICS_SOURCES}
   ${FOG_UI_SOURCES}
 )
@@ -623,6 +681,7 @@ Set(FOG_SOURCES
 Set(FOG_HEADERS
   ${FOG_BUILD_HEADERS}
   ${FOG_CORE_HEADERS}
+  ${FOG_CPU_HEADERS}
   ${FOG_GRAPHICS_HEADERS}
   ${FOG_UI_HEADERS}
 )

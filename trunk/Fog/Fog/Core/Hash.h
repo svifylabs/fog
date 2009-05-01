@@ -135,7 +135,7 @@ struct FOG_API Hash_Abstract
 
   FOG_INLINE sysuint_t capacity() const { return _d->capacity; }
   FOG_INLINE sysuint_t length() const { return _d->length; }
-  FOG_INLINE bool isEmpty() const { return _d->capacity = 0; }
+  FOG_INLINE bool isEmpty() const { return _d->length == 0; }
 
   FOG_INLINE bool isDetached() const { return _d->refCount.get() == 1; }
   FOG_INLINE sysuint_t refCount() const { return _d->refCount.get(); }

@@ -16,3 +16,15 @@ TODO
     [ ] Patterns transform
     [ ] Text in path support
     [ ] Line dashes
+[ ] Image
+    [ ] Remove Image::blur()
+    [ ] Add some effects from qimageblitz
+    [ ] Line, DOT line and WU-Antialiased line
+    [ ] Fill rectangle
+    [ ] Fill trapezoid, using rasterizer from pixman with ability to set color for each corner
+    [ ] Render basic types of gradients + Quad
+    [ ] Render text using Font::getGlyphs
+    [ ] Premultiply / Demultiply
+    [ ] extractColorChannel
+    [ ] ColorMatrix transformations
+    [ ] Scaling
