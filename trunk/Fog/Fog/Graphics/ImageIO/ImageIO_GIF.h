@@ -11,13 +11,13 @@
 #include <Fog/Graphics/ImageIO.h>
 
 namespace Fog {
-
-// [Fog::ImageIO::]
 namespace ImageIO {
 
+// ============================================================================
 // [Fog::ImageIO::GifDecoderDevice]
+// ============================================================================
 
-struct FOG_API GifDecoderDevice : public Fog::ImageIO::DecoderDevice
+struct FOG_API GifDecoderDevice : public DecoderDevice
 {
 private:
   void* _context;
@@ -31,22 +31,22 @@ public:
 
   virtual void reset();
   virtual uint32_t readHeader();
-  virtual uint32_t readImage(Fog::Image& image);
+  virtual uint32_t readImage(Image& image);
 };
 
+// ============================================================================
 // [Fog::ImageIO::GifEncoderDevice]
+// ============================================================================
 
-struct FOG_API GifEncoderDevice : public Fog::ImageIO::EncoderDevice
+struct FOG_API GifEncoderDevice : public EncoderDevice
 {
   GifEncoderDevice();
   virtual ~GifEncoderDevice();
 
-  virtual uint32_t writeImage(const Fog::Image& image);
+  virtual uint32_t writeImage(const Image& image);
 };
 
-// [Fog::ImageIO::]
-}
-
+} // ImageIO namespace
 } // Fog namespace
 
 // [Guard]

@@ -1027,10 +1027,10 @@ UIBackingStoreWin::~UIBackingStoreWin()
   destroy();
 }
 
-bool UIBackingStoreWin::resize(uint width, uint height, bool cache)
+bool UIBackingStoreWin::resize(int width, int height, bool cache)
 {
-  uint32_t targetWidth = width;
-  uint32_t targetHeight = height;
+  int targetWidth = width;
+  int targetHeight = height;
   sysint_t targetSize;
   sysint_t targetStride;
 
@@ -1087,7 +1087,7 @@ bool UIBackingStoreWin::resize(uint width, uint height, bool cache)
   // Create image buffer.
   if (createImage)
   {
-    uint targetBPP = 32;
+    int targetBPP = 32;
 
     // Define bitmap attributes.
     BITMAPINFO bmi;
@@ -1129,9 +1129,9 @@ bool UIBackingStoreWin::resize(uint width, uint height, bool cache)
     if (_type != TypeNone)
     {
       _created = TimeTicks::now();
-      _expire = _created + TimeDelta::fromSeconds(15);
+      _expires = _created + TimeDelta::fromSeconds(15);
 
-      _format.set(ImageFormat::XRGB32);
+      _format = Image::FormatRGB32;
 
       _stridePrimary = targetStride;
       _widthOrig = targetWidth;
@@ -1141,7 +1141,8 @@ bool UIBackingStoreWin::resize(uint width, uint height, bool cache)
       _pixelsSecondary = NULL;
       _strideSecondary = 0;
 
-      _usingConverter = false;
+      _convertFunc = NULL;
+      _convertDepth = 0;
 
       _pixels = _pixelsPrimary;
       _width = width;

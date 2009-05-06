@@ -23,11 +23,10 @@ struct FOG_API Task
 
   virtual void run() = 0;
 
-  FOG_INLINE uint32_t deleteOnFinish() const
-  { return _deleteOnFinish; }
+  FOG_INLINE bool deleteOnFinish() const { return _deleteOnFinish; }
 
 protected:
-  uint32_t _deleteOnFinish;
+  bool _deleteOnFinish;
 
 private:
   FOG_DISABLE_COPY(Task)

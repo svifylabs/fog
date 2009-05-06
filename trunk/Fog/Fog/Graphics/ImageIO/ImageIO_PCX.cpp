@@ -15,9 +15,9 @@
 #include <Fog/Core/String.h>
 #include <Fog/Core/StringCache.h>
 #include <Fog/Core/Strings.h>
-#include <Fog/Graphics/Converter.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/ImageIO/ImageIO_PCX.h>
+#include <Fog/Graphics/Raster_p.h>
 
 namespace Fog {
 namespace ImageIO {
@@ -447,20 +447,20 @@ uint32_t PcxDecoderDevice::readHeader()
       return (_headerResult = Error::ImageIO_FormatNotSupported);
   }
 
-  _format.set(ImageFormat::I8);
+  _format = Image::FormatI8;
 
   // standardize output for Fog::ImageIO
   if (depth() == 8 && planes() == 4)
   {
     _depth = 32;
     _planes = 1;
-    _format.set(ImageFormat::ARGB32);
+    _format = Image::FormatARGB32;
   }
   else if (depth() == 8 && planes() == 3)
   {
     _depth = 24;
     _planes = 1;
-    _format.set(ImageFormat::RGB24);
+    _format = Image::FormatRGB24;
   }
 
   // success
@@ -520,11 +520,7 @@ uint32_t PcxDecoderDevice::readImage(Image& image)
   dataCur = (const uint8_t*)dataArray.cData();
   dataEnd = dataCur + dataArray.length();
 
-  if (!image.create(width(), height(), format()))
-  {
-    error = Error::OutOfMemory;
-    goto end;
-  }
+  if ((error = image.create(width(), height(), format()))) goto end;
 
   // BitsPP: 1
   // Planes: 1, 2, 3, 4
@@ -585,7 +581,7 @@ uint32_t PcxDecoderDevice::readImage(Image& image)
         pixelsCur[0] = (!(x & 1)) ? ((*mem & 0xF0) >> 4) : (*mem++ & 0xF);
       }
 
-      if (y % 15) updateProgress(y, height());
+      if (y & 15) updateProgress(y, height());
     }
   }
 
@@ -605,15 +601,15 @@ uint32_t PcxDecoderDevice::readImage(Image& image)
         increment = 1;
         break;
       case 24:
-        pos[0] = ImageFormat::RGB24_RBytePos;
-        pos[1] = ImageFormat::RGB24_GBytePos;
-        pos[2] = ImageFormat::RGB24_BBytePos;
+        pos[0] = Raster::RGB24_RByte;
+        pos[1] = Raster::RGB24_GByte;
+        pos[2] = Raster::RGB24_BByte;
         increment = 3;
       case 32:
-        pos[0] = ImageFormat::ARGB32_RBytePos;
-        pos[1] = ImageFormat::ARGB32_GBytePos;
-        pos[2] = ImageFormat::ARGB32_BBytePos;
-        pos[3] = ImageFormat::ARGB32_ABytePos;
+        pos[0] = Raster::RGB32_RByte;
+        pos[1] = Raster::RGB32_GByte;
+        pos[2] = Raster::RGB32_BByte;
+        pos[3] = Raster::RGB32_AByte;
         increment = 4;
         break;
       default:
@@ -628,7 +624,7 @@ uint32_t PcxDecoderDevice::readImage(Image& image)
         if ((error = PCX_decodeScanline(pixelsCur + pos[plane], &dataCur, dataEnd, width(), ignore, increment)) != Error::Ok) goto end;
       }
 
-      if (y % 15) updateProgress(y, height());
+      if (y & 15) updateProgress(y, height());
     }
   }
 
@@ -639,9 +635,8 @@ uint32_t PcxDecoderDevice::readImage(Image& image)
     uint nColors = 1 << (depth() * planes());
     bool read = true;
 
-    // Setup basic palette settings if something will be wrong
-    // or image not contains the palette. 
-    Memory::zero(pdest, sizeof(Rgba) * 4);
+    // Setup basic palette settings.
+    Memory::zero(pdest, 256 * sizeof(Rgba));
 
     if (depth() == 1 && planes() == 1)
     {
@@ -677,8 +672,8 @@ uint32_t PcxDecoderDevice::readImage(Image& image)
       }
       else
       {
-        ulong n = (ulong)(dataEnd - dataCur) / 3;
-        if (n < nColors) nColors = n;
+        sysuint_t n = (sysuint_t)(dataEnd - dataCur) / 3;
+        if (n < nColors) nColors = (uint)n;
       }
       info_secPaletteColors = nColors;
     }
@@ -727,24 +722,22 @@ PcxEncoderDevice::~PcxEncoderDevice()
 {
 }
 
-uint32_t PcxEncoderDevice::writeImage(const Image& image_)
+uint32_t PcxEncoderDevice::writeImage(const Image& image)
 {
-  Image image = image_;
-
   PcxHeader pcx;
   Memory::zero((void*)&pcx, sizeof(pcx));
 
-  uint width = image.width();
-  uint height = image.height();
-  uint version;
-  uint bitsPerPixel;
-  uint nPlanes;
-  uint bpl;
-  uint alignment;
-  uint y;
+  int width = image.width();
+  int height = image.height();
+  int format = image.format();
+  int version;
+  int bitsPerPixel;
+  int nPlanes;
+  int bpl;
+  int alignment;
+  int y;
 
   MemoryBuffer<1024> rleenc;
-  MemoryBuffer<1024> row;
 
   const uint8_t* pixels;
 
@@ -755,34 +748,23 @@ uint32_t PcxEncoderDevice::writeImage(const Image& image_)
   nPlanes = 1;
   bpl = width;
 
-  if (image.format().isIndexed())
+  switch (format)
   {
-    image.convert(ImageFormat::i8());
-#if 0
-    if (nColors <= 2)
-    {
-      bitsPerPixel = 1;
-      bpl = (width + 7) >> 3;
-      PCX_convPaletteToPcx(pcxFileHeader().colorMap, (const uint8_t*)&reduce.entities[0].rgba, 2, sizeof(Reduce::Color));
-    }
-    else if (nColors <= 16)
-    {
-      bitsPerPixel = 1;
+    case Image::FormatARGB32:
+    case Image::FormatPRGB32:
       nPlanes = 4;
-      bpl = (width + 7) >> 3;
-      PCX_convPaletteToPcx(pcxFileHeader().colorMap, (const uint8_t *)&reduce.entities[0].rgba, 16, sizeof(Reduce::Color));
-    }
-#endif
-  }
-  else if (!image.format().hasAlpha())
-  {
-    image.convert(ImageFormat::rgb24());
-    nPlanes = 3;
-  }
-  else if (image.format().hasAlpha())
-  {
-    image.convert(ImageFormat::argb32());
-    nPlanes = 4;
+      break;
+    case Image::FormatRGB32:
+    case Image::FormatRGB24:
+      nPlanes = 3;
+      break;
+    case Image::FormatA8:
+    case Image::FormatI8:
+      nPlanes = 1;
+      break;
+    default:
+      FOG_ASSERT_NOT_REACHED();
+      break;
   }
 
   // align bpl to 16 bits
@@ -792,12 +774,12 @@ uint32_t PcxEncoderDevice::writeImage(const Image& image_)
   pcx.version = version;
   pcx.encoding = 1;
   pcx.bitsPerPixel = bitsPerPixel;
-  pcx.xMax = width - 1;
-  pcx.yMax = height - 1;
-  pcx.hScreenSize = width;
-  pcx.vScreenSize = height;
-  pcx.nPlanes = nPlanes;
-  pcx.bytesPerLine = bpl + alignment;
+  pcx.xMax = (uint)width - 1;
+  pcx.yMax = (uint)height - 1;
+  pcx.hScreenSize = (uint)width;
+  pcx.vScreenSize = (uint)height;
+  pcx.nPlanes = (uint)nPlanes;
+  pcx.bytesPerLine = (uint)bpl + (uint)alignment;
   // color or mono
   pcx.paletteInfo = 1;
 
@@ -815,104 +797,65 @@ uint32_t PcxEncoderDevice::writeImage(const Image& image_)
   if (stream().write((const char *)(&pcx), sizeof(PcxHeader)) != sizeof(PcxHeader)) goto fail;
 
   // Alloc buffers
-  if (!rleenc.alloc((width << 1) + 2) || !row.alloc(bpl)) return Error::OutOfMemory;
+  if (!rleenc.alloc((width << 1) + 2)) return Error::OutOfMemory;
 
-  // Write 8 bit image
-  if (image.format().isIndexed())
+  // Write 8 bit image.
+  if (image.depth() == 8)
   {
-#if 0
-    // Write 1 bit MONO image
-    if (nColors <= 2)
+    for (y = 0; y != height; y++)
     {
-      for (y = 0; y != height; y++)
-      {
-        pixels = image.cScanLine(y);
+      pixels = image.cScanline(y);
+      if (!PCX_encodeScanline(stream(), (uint8_t*)rleenc.mem(), pixels, bpl, alignment, 1)) goto fail;
 
-        memset(row.mem(), 0, bpl);
-        for (x = 0; x != width; x++, pixels += 4)
-        {
-          if (reduce.index[*(uint32_t *)pixels] == 1)
-            row.mem()[x >> 3] |= 0x80 >> (x & 7);
-        }
-
-        if (!PCX_encodeScanline(device, rleenc.mem(), row.mem(), bpl, alignment, 1)) goto fail;
-      }
-    }
-    // Write 4 bit COLOR image
-    else if (nColors <= 16)
-    {
-      // this is quite unusual, but we needs 4 row buffers 
-      // (for each plane)
-      MemoryBuffer<1024> rows[4];
-      uint plane;
-
-      for (plane = 0; plane != 4; plane++) 
-      {
-        if (!rows[plane].alloc(bpl))
-        {
-          return Error::OutOfMemory;
-        }
-      }
-
-      for (y = 0; y != height; y++)
-      {
-        pixels = (uint8_t *)image.scanLine(y);
-
-        for (plane = 0; plane != 4; plane++) memset(rows[plane].mem(), 0, bpl);
-
-        for (x = 0; x != width; x++, pixels += 4)
-        {
-          uint8_t c = reduce.index[*(uint32_t *)pixels];
-          for (plane = 0; plane != 4; plane++)
-          {
-            if (c & (1 << plane))
-              ((uint8_t *)rows[plane].mem())[x >> 3] |= 0x80 >> (x & 7);
-          }
-        }
-
-        for (plane = 0; plane != 4; plane++)
-        {
-          PCX_encodeScanline(device, rleenc.mem(), rows[plane].mem(), bpl, alignment, 1);
-        }
-      }
-    }
-    // Write 8 bit COLOR image
-    else
-#endif
-    {
-      for (y = 0; y != height; y++)
-      {
-        pixels = image.cScanline(y);
-        if (!PCX_encodeScanline(stream(), (uint8_t*)rleenc.mem(), pixels, bpl, alignment, 1)) goto fail;
-      }
-
-      // Write secondary palette
-      {
-        uint8_t palette[768+1];
-        palette[0] = 0xC;
-        PCX_convPaletteToPcx(palette + 1, (uint8_t*)image.palette().cData(), 256, sizeof(Rgba));
-        if (stream().write((const char*)palette, 768+1) != 768+1) goto fail;
-      }
       if ((y & 15) == 0) updateProgress(y, height);
+    }
+
+    // Write secondary palette
+    {
+      uint8_t palette[768+1];
+      palette[0] = 0xC;
+
+      // A8 will be saved as greyscale
+      if (format == Image::FormatA8)
+      {
+        uint8_t* p = palette;
+        for (y = 0; y < 256; y++, p += 3) { p[0] = p[1] = p[2] = (uint8_t)y; }
+      }
+      // Standard indexed image.
+      else
+      {
+        PCX_convPaletteToPcx(palette + 1, (uint8_t*)image.palette().cData(), 256, sizeof(Rgba));
+      }
+
+      if (stream().write((const char*)palette, 768+1) != 768+1) goto fail;
     }
   }
   // Write 24 or 32 bit RGB image
   else
   {
-    sysuint_t pos[4];
-    sysuint_t plane;
-    sysuint_t planes = 3 + image.format().hasAlpha();
-    sysuint_t increment = image.format().depth() >> 3;
+    sysint_t pos[4];
+    sysint_t plane;
+    sysint_t increment = image.bytesPerPixel();
 
-    pos[0] = image.format().rBytePos();
-    pos[1] = image.format().gBytePos();
-    pos[2] = image.format().bBytePos();
-    pos[3] = image.format().aBytePos();
+    if (image.depth() == 32)
+    {
+      pos[0] = Raster::RGB32_RByte;
+      pos[1] = Raster::RGB32_GByte;
+      pos[2] = Raster::RGB32_BByte;
+      pos[3] = Raster::RGB32_AByte;
+    }
+    else
+    {
+      pos[0] = Raster::RGB24_RByte;
+      pos[1] = Raster::RGB24_GByte;
+      pos[2] = Raster::RGB24_BByte;
+      pos[3] = 0;
+    }
 
     for (y = 0; y != height; y++)
     {
       pixels = image.cScanline(y);
-      for (plane = 0; plane != planes; plane++)
+      for (plane = 0; plane != nPlanes; plane++)
       {
         if (!PCX_encodeScanline(stream(), (uint8_t*)rleenc.mem(), pixels + pos[plane], bpl, alignment, increment)) goto fail;
       }

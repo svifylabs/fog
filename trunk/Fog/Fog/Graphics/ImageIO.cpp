@@ -30,10 +30,18 @@
 #include <Fog/Graphics/ImageIO/ImageIO_PCX.h>
 #include <Fog/Graphics/ImageIO/ImageIO_PNG.h>
 
-// [Fog::hidden functions (non exported)]
+// [Provider Ininializers]
 FOG_CAPI_EXTERN Fog::ImageIO::Provider* fog_imageio_getBmpProvider(void);
 FOG_CAPI_EXTERN Fog::ImageIO::Provider* fog_imageio_getPcxProvider(void);
 FOG_CAPI_EXTERN Fog::ImageIO::Provider* fog_imageio_getGifProvider(void);
+
+#if defined(FOG_HAVE_PNG_H)
+FOG_CAPI_EXTERN Fog::ImageIO::Provider* fog_imageio_getPngProvider(void);
+#endif // FOG_HAVE_PNG_H
+
+#if defined(FOG_HAVE_JPEGLIB_H)
+FOG_CAPI_EXTERN Fog::ImageIO::Provider* fog_imageio_getJpegProvider(void);
+#endif // FOG_HAVE_JPEGLIB_H
 
 namespace Fog {
 
@@ -47,9 +55,15 @@ static GetProviderFn getProviderFns[] =
 {
   fog_imageio_getBmpProvider,
   fog_imageio_getPcxProvider,
-  fog_imageio_getGifProvider//,
-  //Fog_ImageIO_getJpegProvider,
-  //Fog_ImageIO_getPngProvider
+  fog_imageio_getGifProvider
+
+#if defined(FOG_HAVE_PNG_H)
+  ,fog_imageio_getPngProvider
+#endif // FOG_HAVE_PNG_H
+
+#if defined(FOG_HAVE_JPEGLIB_H)
+  ,fog_imageio_getJpegProvider
+#endif // FOG_HAVE_JPEGLIB_H
 };
 
 struct ImageIO_Local
@@ -74,9 +88,9 @@ namespace ImageIO {
 
 FOG_API bool addProvider(Provider* provider)
 {
-  Fog::AutoLock locked(imageio_local->lock);
+  AutoLock locked(imageio_local->lock);
 
-  if (imageio_local->providers.indexOf(provider) == Fog::InvalidIndex)
+  if (imageio_local->providers.indexOf(provider) == InvalidIndex)
   {
     imageio_local->providers.append(provider);
     return true;
@@ -87,10 +101,10 @@ FOG_API bool addProvider(Provider* provider)
 
 FOG_API bool removeProvider(Provider* provider)
 {
-  Fog::AutoLock locked(imageio_local->lock);
+  AutoLock locked(imageio_local->lock);
   sysuint_t index = imageio_local->providers.indexOf(provider);
 
-  if (index != Fog::InvalidIndex)
+  if (index != InvalidIndex)
   {
     imageio_local->providers.removeAt(index);
     return true;
@@ -101,19 +115,19 @@ FOG_API bool removeProvider(Provider* provider)
 
 FOG_API bool hasProvider(Provider* provider)
 {
-  Fog::AutoLock locked(imageio_local->lock);
-  return imageio_local->providers.indexOf(provider) != Fog::InvalidIndex;
+  AutoLock locked(imageio_local->lock);
+  return imageio_local->providers.indexOf(provider) != InvalidIndex;
 }
 
-FOG_API Fog::Vector<Provider*> getProviders()
+FOG_API Vector<Provider*> getProviders()
 {
-  Fog::AutoLock locked(imageio_local->lock);
+  AutoLock locked(imageio_local->lock);
   return imageio_local->providers;
 }
 
-FOG_API Provider* getProviderByName(const Fog::String32& name)
+FOG_API Provider* getProviderByName(const String32& name)
 {
-  Fog::AutoLock locked(imageio_local->lock);
+  AutoLock locked(imageio_local->lock);
   ImageIO_Local::Providers::ConstIterator it(imageio_local->providers);
 
   for (; it.isValid(); it.toNext())
@@ -124,19 +138,19 @@ FOG_API Provider* getProviderByName(const Fog::String32& name)
   return 0;
 }
 
-FOG_API Provider* getProviderByExtension(const Fog::String32& extension)
+FOG_API Provider* getProviderByExtension(const String32& extension)
 {
-  Fog::AutoLock locked(imageio_local->lock);
+  AutoLock locked(imageio_local->lock);
   ImageIO_Local::Providers::ConstIterator it(imageio_local->providers);
 
   // Convert extension to lower case
-  Fog::TemporaryString32<16> e;
+  TemporaryString32<16> e;
   e.set(extension);
   e.lower();
 
-  for (; it.isValid(); it.toNext())
+  for (it.toStart(); it.isValid(); it.toNext())
   {
-    if (it.value()->extensions().indexOf(e)) return it.value();
+    if (it.value()->extensions().indexOf(e) != InvalidIndex) return it.value();
   }
 
   return 0;
@@ -146,13 +160,13 @@ FOG_API Provider* getProviderByMemory(void* mem, sysuint_t len)
 {
   if (!mem || len == 0) return 0;
 
-  Fog::AutoLock locked(imageio_local->lock);
+  AutoLock locked(imageio_local->lock);
   ImageIO_Local::Providers::ConstIterator it(imageio_local->providers);
 
   Provider* bestProvider = NULL;
   uint32_t bestScore = 0;
 
-  for (; it.isValid(); it.toNext())
+  for (it.toStart(); it.isValid(); it.toNext())
   {
     uint32_t score = it.value()->check(mem, len);
     if (score > bestScore)
@@ -172,7 +186,7 @@ FOG_API Provider* getProviderByMemory(void* mem, sysuint_t len)
 Provider::Provider()
 {
   memset(&_features, 0, sizeof(_features));
-  _id = Fog::ImageFileNone;
+  _id = ImageFileNone;
 }
 
 Provider::~Provider()
@@ -194,11 +208,10 @@ DecoderDevice* Provider::createDecoder()
 // ============================================================================
 
 BaseDevice::BaseDevice() :
-  Fog::Class(&_flags),
   _provider(NULL),
   _deviceType(BaseDevice::None),
   _attachedOffset(FOG_UINT64_C(0)),
-  _stream(NULL),
+  _stream(),
   _width(0),
   _height(0),
   _depth(0),
@@ -242,7 +255,7 @@ bool BaseDevice::areDimensionsTooLarge() const
   return false;
 }
 
-void BaseDevice::attachStream(Fog::Stream& stream)
+void BaseDevice::attachStream(Stream& stream)
 {
   // detach current stream first
   if (_stream.isOpen()) detachStream();
@@ -260,14 +273,14 @@ void BaseDevice::detachStream()
   }
 }
 
-Fog::Value BaseDevice::getParam(const Fog::String32& name)
+Value BaseDevice::getParam(const String32& name)
 {
-  return Fog::Value();
+  return Value();
 }
 
-Fog::Value BaseDevice::setParam(const Fog::String32& name)
+Value BaseDevice::setParam(const String32& name)
 {
-  return Fog::Value();
+  return Value();
 }
 
 void BaseDevice::reset()
@@ -281,7 +294,7 @@ void BaseDevice::reset()
   _framesCount = 0;
   _progress = 0.0f;
 
-  _format.set(Fog::ImageFormat::Invalid);
+  _format = Image::FormatNull;
   _palette.free();
   _comment.free();
 }
@@ -386,7 +399,7 @@ FOG_INIT_DECLARE void fog_imageio_shutdown(void)
     Fog::imageio_local->providers);
 
   // Remove (and delete) all providers
-  for (; it.isValid(); it.toNext()) delete it.value();
+  for (it.toStart(); it.isValid(); it.toNext()) delete it.value();
 
   Fog::imageio_local.destroy();
 }

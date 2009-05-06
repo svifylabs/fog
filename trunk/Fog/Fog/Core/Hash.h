@@ -69,13 +69,13 @@ FOG_DECLARE_HASHABLE(int32_t, { return (uint32_t)key; })
 FOG_DECLARE_HASHABLE(uint32_t, { return (uint32_t)key; })
 FOG_DECLARE_HASHABLE(int64_t, { return ((uint32_t)((uint64_t)(key) >> 31)) ^ (uint32_t)(key); })
 FOG_DECLARE_HASHABLE(uint64_t, { return ((uint32_t)((uint64_t)(key) >> 31)) ^ (uint32_t)(key); })
-
+/*
 FOG_DECLARE_HASHABLE_PTR(char*, { return hashString(reinterpret_cast<const Char8*>(key), DetectLength); })
 FOG_DECLARE_HASHABLE_PTR(uint8_t*, { return hashString(reinterpret_cast<const Char8*>(key), DetectLength); })
 FOG_DECLARE_HASHABLE_PTR(Char8*, { return hashString(key, DetectLength); })
 FOG_DECLARE_HASHABLE_PTR(Char16*, { return hashString(key, DetectLength); })
 FOG_DECLARE_HASHABLE_PTR(Char32*, { return hashString(key, DetectLength); })
-
+*/
 #if FOG_ARCH_BITS == 32
 template<typename T>
 inline uint32_t toHashCode(T* key) { return (uint32_t)key; }

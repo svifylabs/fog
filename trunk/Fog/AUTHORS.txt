@@ -8,14 +8,15 @@ Contributors
 
 Jaroslav Smid <jardasmid@gmail.com>
 
-Other Libraries and Sources Used in Fog
-=======================================
+Other libraries and source code used in Fog (always BSD/MIT/Public Domain)
+==========================================================================
 
+Chromium <http://code.google.com/p/chromium/> - Threading and Event loop related.
 Ultimate++ <http://www.ultimatepp.com> - Small unicode support, inspiration
 FastDelegate <http://www.codeproject.com/cpp/FastDelegate.asp> - Delegates
-Chromium <http://code.google.com/p/chromium/> - Threading, Event Loop, Event Pump, ...
 
 XOrg <http://www.x.org> - Region
-Evas <http://www.enlightenment.org> - Dithering
+Pixman <http://cgit.freedesktop.org/pixman/> - Raster compositing
+Evas <http://www.enlightenment.org> - Dithering to 8bpp, dithering tables.
 AGG version 2.4 <http://www.antigrain.com> - Vector painting, antialiased filling of primitives
 GifLib <http://sourceforge.net/projects/libungif> - ImageIO GIF support

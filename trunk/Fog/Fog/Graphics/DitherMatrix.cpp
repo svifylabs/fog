@@ -9,11 +9,13 @@
 #endif
 
 // [Dependencies]
-#include <Fog/Graphics/Dither.h>
+#include <Fog/Graphics/DitherMatrix.h>
+
+namespace Fog {
 
 // Dithering tables were stolen from EVAS - High performance rendering library,
 // BSD licence, main developer: Rasterman <www.rasterman.com>
-const uint8_t Fog::Dither::table[Fog::Dither::Size][Fog::Dither::Size] =
+const uint8_t DitherMatrix::matrix[DitherMatrix::Size][DitherMatrix::Size] =
 {
 #ifdef FOG_SMALL_DITHER
   { 0, 12,  3, 15},
@@ -151,3 +153,5 @@ const uint8_t Fog::Dither::table[Fog::Dither::Size][Fog::Dither::Size] =
   { 62, 39, 46, 7, 33, 12, 41, 57, 9, 55, 23, 37, 16, 57, 3, 29, 47, 35, 13, 21, 51, 23, 17, 57, 19, 30, 41, 16, 35, 20, 52, 28, 56, 33, 11, 53, 21, 41, 49, 8, 43, 50, 18, 35, 54, 14, 63, 45, 24, 39, 33, 22, 26, 54, 17, 44, 57, 10, 24, 7, 29, 40, 47, 26, 59, 20, 51, 33, 48, 2, 45, 29, 13, 61, 16, 11, 59, 23, 29, 42, 26, 45, 54, 11, 52, 31, 57, 17, 44, 51, 30, 60, 17, 53, 35, 19, 46, 13, 37, 17, 7, 31, 57, 10, 49, 41, 14, 22, 54, 47, 17, 57, 19, 59, 30, 46, 9, 34, 48, 17, 51, 0, 23, 47, 29, 17, 5, 35 }
 #endif // FOG_SMALL_DITHER
 };
+
+} // Fog namespace

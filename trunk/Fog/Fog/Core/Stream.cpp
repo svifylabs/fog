@@ -117,6 +117,8 @@ void StreamDeviceNull::close()
 {
 }
 
+static Static<StreamDeviceNull> streamdevice_null;
+
 // ============================================================================
 // [Fog::StreamDeviceFILE]
 // ============================================================================
@@ -866,12 +868,13 @@ Stream& Stream::operator=(const Stream& other)
 
 FOG_INIT_DECLARE err_t fog_stream_init(void)
 {
-  static Fog::StreamDeviceNull dnull;
-  Fog::Stream::sharedNull = &dnull;
+  Fog::streamdevice_null.init();
+  Fog::Stream::sharedNull = Fog::streamdevice_null.instancep();
 
   return Error::Ok;
 }
 
 FOG_INIT_DECLARE void fog_stream_shutdown(void)
 {
+  Fog::streamdevice_null.destroy();
 }

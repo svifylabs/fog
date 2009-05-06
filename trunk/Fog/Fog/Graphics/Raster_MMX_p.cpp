@@ -10,20 +10,18 @@
 
 // [Dependencies]
 #include <Fog/Cpu/Intrin_MMX.h>
-#include <Fog/Graphics/Raster.h>
-#include <Fog/Graphics/Raster_MMX.h>
+#include <Fog/Graphics/Raster_p.h>
+#include <Fog/Graphics/Raster_MMX_p.h>
 
 namespace Fog {
 namespace Raster {
 
 // ============================================================================
-// [Fog::Raster - Ops - GradientSpan]
+// [Fog::Raster - Gradient - gradient]
 // ============================================================================
 
-static void Ops_GradientSpan_ARGB32_MMX(uint8_t* dst, uint32_t c0, uint32_t c1, sysint_t w, sysint_t x1, sysint_t x2)
+static void FOG_FASTCALL gradient_gradient_argb32_MMX(uint8_t* dst, uint32_t c0, uint32_t c1, sysint_t w, sysint_t x1, sysint_t x2)
 {
-  // This function is using fixed point 9.23 calculation to interpolate between
-  // packed 8 bit integers. 9 bits are needed to extend 8 bit value with sign.
   uint8_t* dstCur = dst;
 
   // Sanity checks.
@@ -186,8 +184,7 @@ end:
 
 FOG_INIT_DECLARE void fog_raster_init_mmx(void)
 {
-  using namespace Fog;
+  Fog::Raster::FunctionMap* m = Fog::Raster::functionMap;
 
-  Raster::Ops* o = Raster::ops;
-  o->gradientSpanARGB32 = Raster::Ops_GradientSpan_ARGB32_MMX;
+  m->gradient.gradient_argb32 = Fog::Raster::gradient_gradient_argb32_MMX;
 }

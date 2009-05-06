@@ -11,7 +11,6 @@
 #include <Fog/Core/Atomic.h>
 #include <Fog/Core/Flags.h>
 #include <Fog/Core/Memory.h>
-#include <Fog/Core/RefData.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Graphics/Rgba.h>
 
@@ -25,22 +24,33 @@ struct FOG_API Palette
 {
   // [Data]
 
-  struct FOG_API Data : Fog::RefData<Data>
+  struct FOG_API Data
   {
-    Rgba data[256];
+    // [Ref / Deref]
 
-    Data* ref();
+    Data* ref() const;
     void deref();
 
-    FOG_INLINE void destroy() {}
-    FOG_INLINE void free() { Fog::Memory::free(this); }
+    FOG_INLINE Data* refAlways() const
+    {
+      refCount.inc();
+      return const_cast<Data*>(this);
+    }
 
-    static Data* create(uint allocPolicy);
-    static Data* copy(const Data* other, uint allocPolicy);
+    // [Create]
+
+    static Data* create();
+    static Data* copy(const Data* other);
+
+    // [Members]
+
+    mutable Atomic<sysuint_t> refCount;
+
+    Rgba data[256];
   };
 
-  static Fog::Static<Data> sharedNull;
-  static Fog::Static<Data> sharedGrey;
+  static Static<Data> sharedNull;
+  static Static<Data> sharedGrey;
 
   // [Members]
 
@@ -50,93 +60,83 @@ struct FOG_API Palette
 
   Palette();
   Palette(const Palette& other);
-  Palette(Data* d);
+  explicit Palette(Data* d);
   ~Palette();
 
   // [Implicit Sharing]
 
-  /*! @copydoc Doxygen::Implicit::refCount(). */
+  //! @copydoc Doxygen::Implicit::refCount().
   FOG_INLINE sysuint_t refCount() const { return _d->refCount.get(); }
-  /*! @copydoc Doxygen::Implicit::isDetached(). */
+  //! @copydoc Doxygen::Implicit::isDetached().
   FOG_INLINE bool isDetached() const { return refCount() == 1; }
-  /*! @copydoc Doxygen::Implicit::detach(). */
-  FOG_INLINE void detach() { if (!isDetached()) _detach(); }
-  /*! @copydoc Doxygen::Implicit::tryDetach(). */
-  FOG_INLINE bool tryDetach() { return (!isDetached()) ? _tryDetach() : true; }
-  /*! @copydoc Doxygen::Implicit::_detach(). */
-  void _detach();
-  /*! @copydoc Doxygen::Implicit::_tryDetach(). */
-  bool _tryDetach();
-  /*! @copydoc Doxygen::Implicit::free(). */
+  //! @copydoc Doxygen::Implicit::detach().
+  FOG_INLINE err_t detach() { return (!isDetached()) ? _detach() : Error::Ok; }
+  //! @copydoc Doxygen::Implicit::_detach().
+  err_t _detach();
+  //! @copydoc Doxygen::Implicit::free().
   void free();
-
-  // [Flags]
-
-  /*! @copydoc Doxygen::Implicit::flags(). */
-  FOG_INLINE uint32_t flags() const { return _d->flags; }
-  /*! @copydoc Doxygen::Implicit::isDynamic(). */
-  FOG_INLINE bool isDynamic() const { return _d->flags.anyOf(Data::IsDynamic); }
-  /*! @copydoc Doxygen::Implicit::isSharable(). */
-  FOG_INLINE bool isSharable() const { return _d->flags.anyOf(Data::IsSharable); }
-  /*! @copydoc Doxygen::Implicit::isNull(). */
-  FOG_INLINE bool isNull() const { return _d->flags.anyOf(Data::IsNull); }
-  /*! @copydoc Doxygen::Implicit::isStrong(). */
-  FOG_INLINE bool isStrong() const { return _d->flags.anyOf(Data::IsStrong); }
 
   // [Data]
 
-  /*! @brief Returns const pointer to palette data. */
-  FOG_INLINE const Fog::Rgba* cData() const
+  //! @brief Returns const pointer to palette data.
+  FOG_INLINE const Rgba* cData() const
   {
     return _d->data;
   }
 
-  /*! @brief Returns mutable pointer to palette data. */
-  FOG_INLINE Fog::Rgba* mData()
+  //! @brief Returns mutable pointer to palette data.
+  FOG_INLINE Rgba* mData()
   {
     detach();
     return _d->data;
   }
 
-  /*! @brief Returns mutable pointer to palette data and not calls detach(). */
-  FOG_INLINE Fog::Rgba* xData()
+  //! @brief Returns mutable pointer to palette data and not calls detach().
+  FOG_INLINE Rgba* xData()
   {
     FOG_ASSERT_X(isDetached(), "Fog::Palette::xData() - Non detached data.");
     return _d->data;
   }
 
-  FOG_INLINE const Fog::Rgba& cAt(sysuint_t index) const
+  FOG_INLINE const Rgba& cAt(sysuint_t index) const
   { 
     FOG_ASSERT_X(index < 256, "Fog::Palette::cAt() - Index out of range.");
     return _d->data[index];
   }
 
-  FOG_INLINE Fog::Rgba& mAt(sysuint_t index)
+  FOG_INLINE Rgba& mAt(sysuint_t index)
   { 
     FOG_ASSERT_X(index < 256, "Fog::Palette::mAt() - Index out of range.");
     detach();
     return _d->data[index];
   }
 
-  FOG_INLINE Fog::Rgba& xAt(sysuint_t index)
+  FOG_INLINE Rgba& xAt(sysuint_t index)
   { 
     FOG_ASSERT_X(index < 256, "Fog::Palette::xAt() - Index out of range.");
     FOG_ASSERT_X(isDetached(), "Fog::Palette::xAt() - Non detached data.");
     return _d->data[index];
   }
 
-  // [Set]
+  // [Operations]
 
-  Palette& set(const Fog::Palette& other);
-  Palette& set(sysuint_t index, sysuint_t count, const Rgba* rgba);
+  void clear();
 
-  Palette& greyscale();
+  err_t set(const Palette& other);
+  err_t setDeep(const Palette& other);
+  err_t set(sysuint_t index, sysuint_t count, const Rgba* rgba);
+
+  uint8_t findColor(uint8_t r, uint8_t g, uint8_t b) const;
+
+  static Palette greyscale();
+  static Palette colorCube(int r, int g, int b);
 
   // [Overloaded Operators]
 
-  FOG_INLINE const Fog::Palette& operator=(const Fog::Palette& other)
+  FOG_INLINE const Palette& operator=(const Palette& other)
   {
-    return set(other);
+    set(other);
+    return *this;
   }
 
   // [Statics]

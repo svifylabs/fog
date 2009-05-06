@@ -691,7 +691,7 @@ void UISystemDefault::doUpdateWindow(UIWindow* window)
     uflags |= Widget::UFlagUpdateAll;
   }
 
-  topBytesPerPixel = window->_backingStore->format().depth() >> 3;
+  topBytesPerPixel = window->_backingStore->depth() >> 3;
 
   // =======================================================
   // Update top level widget.

@@ -5,6 +5,8 @@ TODO
     instead
 [ ] Fog::RegExp - use TRex
 [ ] Fog::String - not completed yet, add Locale support to group separators
+[ ] Fog::TextCodec - not completed yet
+[ ] StringUtil::some utf functions not completed yet
 [ ] Fog::BitArray - fix
 [ ] Temporary...<N>::free sometimes not frees the memory ?
 
@@ -16,15 +18,19 @@ TODO
     [ ] Patterns transform
     [ ] Text in path support
     [ ] Line dashes
+    [ ] Image transform
 [ ] Image
-    [ ] Remove Image::blur()
+    [x] Remove Image::blur()
     [ ] Add some effects from qimageblitz
-    [ ] Line, DOT line and WU-Antialiased line
-    [ ] Fill rectangle
+    [x] Bresenham Line
+    [ ] DOT line
+    [ ] WU-Antialiased line
+    [x] Fill rectangle
     [ ] Fill trapezoid, using rasterizer from pixman with ability to set color for each corner
-    [ ] Render basic types of gradients + Quad
+    [x] Render basic types of gradients + Quad (VGradient, HGradient, QGradient)
     [ ] Render text using Font::getGlyphs
     [ ] Premultiply / Demultiply
-    [ ] extractColorChannel
+    [x] extractChannel()
     [ ] ColorMatrix transformations
     [ ] Scaling
+    [ ] Delete Pixel Format class, use only Format in Fog::Image

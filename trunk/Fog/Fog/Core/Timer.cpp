@@ -35,14 +35,22 @@ struct FOG_HIDDEN TimerTask : public Task
   {
     if (timer)
     {
-      // First send event
+      // First send events.
       TimerEvent e(timer);
       timer->sendEvent(&e);
       
-      // Repeat it
+      // Repeat?
       if (timer)
       {
-        timer->_task = NULL;
+        timer->thread()->eventLoop()->postDelayedTask(
+          this,
+          static_cast<int>(timer->_interval.inMilliseconds()));
+        _deleteOnFinish = false;
+      }
+      else
+      {
+        // We must be sure, it can be set to false.
+        _deleteOnFinish = true;
       }
     }
   }

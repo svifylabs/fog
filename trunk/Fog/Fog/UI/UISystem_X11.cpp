@@ -13,6 +13,7 @@
 
 // [Dependencies]
 #include <Fog/Core/Application.h>
+#include <Fog/Graphics/Raster_p.h>
 #include <Fog/UI/Constants.h>
 #include <Fog/UI/UISystem_X11.h>
 #include <Fog/UI/Widget.h>
@@ -21,6 +22,7 @@
 
 // [Shared memory and IPC]
 #include <errno.h>
+#include <fcntl.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 
@@ -304,6 +306,8 @@ UISystemX11::UISystemX11()
   _xPrivateColormap = false;
   _xim = false;
   _xButtons = 0;
+  _wakeUpPipe[0] = -1;
+  _wakeUpPipe[1] = -1;
 
   // Open X11, Xext and Xrender libraries.
   if ( (err = loadLibraries()) )
@@ -342,6 +346,14 @@ UISystemX11::UISystemX11()
   _root             = pXRootWindow     (display(), screen());
   _gc               = pXCreateGC       (display(), root(), 0, NULL);
   _xPrivateColormap = false;
+
+  // Create wakeup pipe.
+  if (pipe(_wakeUpPipe) < 0)
+  {
+    err = Error::UISystemX11_CantCreatePipe;
+    fog_debug("Fog::UISystemX11::UISystemX11() - Can't create wakeup pipe (errno=%d).", errno);
+    goto fail;
+  }
 
   // Now we can setup display info. We must do it here, because we must setup
   // colormap if depth is too low (8 bit or less)
@@ -397,6 +409,9 @@ UISystemX11::~UISystemX11()
 
     pXCloseDisplay(display());
   }
+
+  if (_wakeUpPipe[0]) close(_wakeUpPipe[0]);
+  if (_wakeUpPipe[1]) close(_wakeUpPipe[1]);
 }
 
 // ============================================================================
@@ -571,19 +586,19 @@ uint32_t UISystemX11::translateXSym(KeySym xsym) const
 #endif
       break;
 
-    case 0x00: /* Latin 1 */
-    case 0x01: /* Latin 2 */
-    case 0x02: /* Latin 3 */
-    case 0x03: /* Latin 4 */
-    case 0x04: /* Katakana */
-    case 0x05: /* Arabic */
-    case 0x06: /* Cyrillic */
-    case 0x07: /* Greek */
-    case 0x08: /* Technical */
-    case 0x0A: /* Publishing */
-    case 0x0C: /* Hebrew */
-    case 0x0D: /* Thai */
-      key = Char8((uint8_t)(xsym & 0xFF)).toLower().ch();
+    case 0x00: // Latin 1
+    case 0x01: // Latin 2
+    case 0x02: // Latin 3
+    case 0x03: // Latin 4
+    case 0x04: // Katakana
+    case 0x05: // Arabic
+    case 0x06: // Cyrillic
+    case 0x07: // Greek
+    case 0x08: // Technical
+    case 0x0A: // Publishing
+    case 0x0C: // Hebrew
+    case 0x0D: // Thai
+      key = Char8((uint8_t)(xsym & 0xFF)).toAsciiLower().ch();
       break;
     case 0xFE:
       key = _xKeymap.odd[xsym & 0xFF];
@@ -591,7 +606,9 @@ uint32_t UISystemX11::translateXSym(KeySym xsym) const
     case 0xFF:
       key = _xKeymap.misc[xsym & 0xFF];
       break;
-    default: /* Unknown key */
+
+    // Unknown key
+    default:
       break;
   }
 
@@ -1478,12 +1495,12 @@ UIBackingStoreX11::~UIBackingStoreX11()
   destroy();
 }
 
-bool UIBackingStoreX11::resize(uint width, uint height, bool cache)
+bool UIBackingStoreX11::resize(int width, int height, bool cache)
 {
   UISystemX11* uiSystem = UI_SYSTEM();
 
-  uint32_t targetWidth = width;
-  uint32_t targetHeight = height;
+  int targetWidth = width;
+  int targetHeight = height;
   sysint_t targetSize;
   sysint_t targetStride;
 
@@ -1564,12 +1581,12 @@ bool UIBackingStoreX11::resize(uint width, uint height, bool cache)
   if (createImage)
   {
     // correct target BPP, some X server settings can be amazing:-)
-    uint targetBPP = uiSystem->_displayInfo.depth;
-    if (targetBPP > 4 && targetBPP < 8) targetBPP = 8;
-    else if (targetBPP == 15) targetBPP = 16;
-    else if (targetBPP == 24) targetBPP = 32;
+    uint targetDepth = uiSystem->_displayInfo.depth;
+    if (targetDepth > 4 && targetDepth < 8) targetDepth = 8;
+    else if (targetDepth == 15) targetDepth = 16;
+    else if (targetDepth == 24) targetDepth = 32;
 
-    targetStride = Image::calcStride(targetWidth, targetBPP);
+    targetStride = Image::calcStride(targetWidth, targetDepth);
     targetSize = targetStride * targetHeight;
 
     // TypeXShmPixmap
@@ -1652,9 +1669,9 @@ __tryImage:
     if (_type != TypeNone)
     {
       _created = TimeTicks::now();
-      _expire = _created + TimeDelta::fromSeconds(15);
+      _expires = _created + TimeDelta::fromSeconds(15);
 
-      _format.set(ImageFormat::XRGB32);
+      _format = Image::FormatRGB32;
 
       _stridePrimary = targetStride;
       _widthOrig = targetWidth;
@@ -1667,55 +1684,76 @@ __tryImage:
 
       if (targetStride != secondaryStride)
       {
-        Converter::Format fTarget;
-        Converter::Format fSource;
-
-        fTarget.depth = targetBPP;
-        fTarget.rMask = uiSystem->_displayInfo.rMask;
-        fTarget.gMask = uiSystem->_displayInfo.gMask;
-        fTarget.bMask = uiSystem->_displayInfo.bMask;
-        fTarget.aMask = 0x00000000;
-        fTarget.flags = 0;
-        if (uiSystem->_displayInfo.is16BitSwapped) fTarget.flags |= Converter::ByteSwap;
-
-        fSource.depth = 32;
-        fSource.rMask = 0x00FF0000;
-        fSource.gMask = 0x0000FF00;
-        fSource.bMask = 0x000000FF;
-        fSource.aMask = 0x00000000;
-        fSource.flags = 0;
-
         // Alloc extra buffer.
         _pixelsSecondary = (uint8_t*)Memory::alloc(secondaryStride * targetHeight);
-        if (!_pixelsSecondary)
-        {
-          fog_stderr_msg("Fog::UIBackingStoreX11", "resize", "Can't create secondary buffer for converting");
-        }
-
         _strideSecondary = secondaryStride;
 
-        _usingConverter = true;
-        _converter.setup(fTarget, fSource);
+        if (!_pixelsSecondary)
+        {
+          fog_stderr_msg("Fog::UIBackingStoreX11", "resize",
+            "Can't create secondary backing store buffer");
+        }
+
+        _convertFunc = NULL;
+        _convertDepth = targetDepth;
+
+        uint32_t rMask = uiSystem->_displayInfo.rMask;
+        uint32_t gMask = uiSystem->_displayInfo.gMask;
+        uint32_t bMask = uiSystem->_displayInfo.bMask;
+
+        switch (targetDepth)
+        {
+          // 8-bit dithering
+          case 8:
+            if (rMask == 0x60 && gMask == 0x1C && bMask == 0x03)
+              _convertFunc = (void*)Raster::functionMap->convert.i8rgb232_from_rgb32_dither;
+            else if (rMask == 0x30 && gMask == 0x0C && bMask == 0x03)
+              _convertFunc = (void*)Raster::functionMap->convert.i8rgb222_from_rgb32_dither;
+            else if (rMask == 0x04 && gMask == 0x02 && bMask == 0x01)
+              _convertFunc = (void*)Raster::functionMap->convert.i8rgb111_from_rgb32_dither;
+            break;
+          // 16-bit dithering
+          case 16:
+            if (rMask == 0x7C00 && gMask == 0x03E0 && bMask == 0x001F)
+              _convertFunc = (void*)Raster::functionMap->convert.rgb16_5550_from_rgb32_dither;
+            else if (rMask == 0xF800 && gMask == 0x07E0 && bMask == 0x001F)
+              _convertFunc = (void*)Raster::functionMap->convert.rgb16_5650_from_rgb32_dither;
+            break;
+          case 24:
+            _convertFunc = (void*)Raster::functionMap->convert.rgb24_from_rgb32;
+            break;
+          case 32:
+            _convertFunc = (void*)Raster::functionMap->convert.memcpy32;
+            break;
+        }
+
+        if (_convertFunc)
+        {
+          fog_stderr_msg("Fog::UIBackingStoreX11", "resize",
+            "Not available converter for %d bit depth", targetDepth);
+        }
 
         _pixels = _pixelsSecondary;
         _width = width;
         _height = height;
         _stride = _strideSecondary;
+        return true;
       }
       else
       {
-        // Extra buffer not needed.
+        // Extra buffer not used.
         _pixelsSecondary = NULL;
         _strideSecondary = 0;
 
-        _usingConverter = false;
+        _convertFunc = NULL;
 
         _pixels = _pixelsPrimary;
         _width = width;
         _height = height;
         _stride = _stridePrimary;
+
+        return true;
       }
-      return true;
     }
   }
 
@@ -1737,12 +1775,25 @@ void UIBackingStoreX11::updateRects(const Box* rects, sysuint_t count)
 
   // If there is secondary buffer, we need to convert it to primary
   // one that has same depth and pixel format as X display.
-  if (_pixelsSecondary && _usingConverter)
+  if (_pixelsSecondary && _convertFunc)
   {
-    // TODO: Palconv & Converter
-    // _converter.palConv = uiSystem->_paletteInfo.palConv;
+    sysuint_t i;
 
-    for (sysuint_t i = 0; i != count; i++)
+    int bufw = width();
+    int bufh = height();
+
+    sysint_t dstStride = _stridePrimary;
+    sysint_t srcStride = _strideSecondary;
+
+    uint8_t* dstBase = _pixelsPrimary;
+    uint8_t* srcBase = _pixelsSecondary;
+
+    const uint8_t* palConv = uiSystem->_paletteInfo.palConv;
+
+    sysint_t dstxmul = _convertDepth >> 3;
+    sysint_t srcxmul = 4;
+
+    for (i = 0; i != count; i++)
     {
       int x1 = rects[i].x1();
       int y1 = rects[i].y1();
@@ -1753,18 +1804,39 @@ void UIBackingStoreX11::updateRects(const Box* rects, sysuint_t count)
       // coordinates that buffers are (reason can be resizing).
       if (x1 < 0) x1 = 0;
       if (y1 < 0) y1 = 0;
-      if (x2 > (int)width()) x2 = (int)width();
-      if (y2 > (int)height()) y2 = (int)height();
+      if (x2 > bufw) x2 = bufw;
+      if (y2 > bufh) y2 = bufh;
 
       if (x1 >= x2 || y1 >= y2) continue;
 
-      uint w = uint(x2 - x1);
-      uint h = uint(y2 - y1);
+      int w = x2 - x1;
+      int h = y2 - y1;
 
-      _converter.convertRect(
-        _pixelsPrimary + (y1 * _stridePrimary), _stridePrimary, x1,
-        _pixelsSecondary + (y1 * _strideSecondary), _strideSecondary, x1,
-        w, h, Point(x1, y1));
+      uint8_t* dstCur = dstBase + (sysint_t)y1 * dstStride + (sysint_t)x1 * dstxmul;
+      uint8_t* srcCur = srcBase + (sysint_t)y1 * srcStride + (sysint_t)x1 * srcxmul;
+
+      switch (_convertDepth)
+      {
+        case 8:
+          while (y1 < y2)
+          {
+            ((Raster::ConvertDither8Fn)_convertFunc)(dstCur, srcCur, w, Point(x1, y1), palConv);
+          }
+          break;
+        case 16:
+          while (y1 < y2)
+          {
+            ((Raster::ConvertDither16Fn)_convertFunc)(dstCur, srcCur, w, Point(x1, y1));
+          }
+          break;
+        case 24:
+        case 32:
+          while (y1 < y2)
+          {
+            ((Raster::ConvertPlainFn)_convertFunc)(dstCur, srcCur, w);
+          }
+          break;
+      }
     }
   }
 
@@ -1852,6 +1924,7 @@ EventPumpX11::EventPumpX11() :
   EventPump(StubAscii8("UI::X11")),
   _state(NULL)
 {
+  _wakeUpSent.init(0);
 }
 
 EventPumpX11::~EventPumpX11()
@@ -1882,7 +1955,7 @@ void EventPumpX11::quit()
 
 void EventPumpX11::scheduleWork()
 {
-  // TODO: Wake up
+  sendWakeUp();
 }
 
 void EventPumpX11::scheduleDelayedWork(const Time& delayedWorkTime)
@@ -1891,6 +1964,7 @@ void EventPumpX11::scheduleDelayedWork(const Time& delayedWorkTime)
   // only be called on the same thread as Run, so we only need to update our
   // record of how long to sleep when we do sleep.
   _delayedWorkTime = delayedWorkTime;
+  sendWakeUp();
 }
 
 void EventPumpX11::doRunLoop()
@@ -1925,6 +1999,67 @@ void EventPumpX11::doRunLoop()
 void EventPumpX11::waitForWork()
 {
   UISystemX11* uiSystem = UI_SYSTEM();
+
+  int fd = uiSystem->_fd;
+  int fdSize = fog_max(fd, uiSystem->_wakeUpPipe[0]) + 1;
+  fd_set fdSet;
+
+  struct timeval tval;
+  struct timeval* ptval = NULL;
+  FD_ZERO(&fdSet);
+  FD_SET(fd, &fdSet);
+  FD_SET(uiSystem->_wakeUpPipe[0], &fdSet);
+
+  if (_delayedWorkTime.isNull())
+  {
+    // There are no scheduled tasks, so ptval is NULL and this tells to select()
+    // that it should wait infitine time.
+  }
+  else
+  {
+    TimeDelta delay = _delayedWorkTime - Time::now();
+
+    if (delay > TimeDelta())
+    {
+      // Go to sleep. X11 will wake us to process X events and we also set
+      // interval to wake up to run planned tasks (usually Timers).
+      int64_t udelay = delay.inMicroseconds();
+      tval.tv_sec = (int)(udelay / 1000000);
+      tval.tv_usec = (int)(udelay % 1000000);
+      if (tval.tv_usec <= 100) tval.tv_usec = 100;
+      ptval = &tval;
+    }
+    else
+    {
+      // It looks like delayedWorkTime indicates a time in the past, so we
+      // need to call doDelayedWork now.
+      _delayedWorkTime = Time();
+      return;
+    }
+  }
+
+  int ret = ::select(fdSize, &fdSet, NULL, NULL, ptval);
+
+  if (ret < 0)
+  {
+    fog_debug("Fog::EventPumpX11::waitForWork() - select() failed (errno=%d).", errno);
+  }
+
+  if (ret > 0)
+  {
+    if (FD_ISSET(uiSystem->_wakeUpPipe[0], &fdSet))
+    {
+      // Dummy c, the actual value is out of our interest.
+      uint8_t c;
+
+      if (read(uiSystem->_wakeUpPipe[0], &c, 1) != 1)
+      {
+        fog_debug("Fog::EventPumpX11::waitForWork() - Can't read from weak-up pipe");
+      }
+
+      _wakeUpSent.cmpXchg(1, 0);
+    }
+  }
 }
 
 bool EventPumpX11::xsync()
@@ -1946,6 +2081,22 @@ bool EventPumpX11::processNextXEvent()
   if (uiWindow) uiWindow->onX11Event(&xe);
 
   return true;
+}
+
+void EventPumpX11::sendWakeUp()
+{
+  if (_wakeUpSent.cmpXchg(0, 1))
+  {
+    UISystemX11* uiSystem = UI_SYSTEM();
+    uint8_t c = 'W';
+
+    if (write(uiSystem->_wakeUpPipe[1], &c, 1) != 1)
+    {
+      {
+        fog_debug("Fog::EventPumpX11::sendWakeUp() - Can't write to weak-up pipe");
+      }
+    }
+  }
 }
 
 // ============================================================================

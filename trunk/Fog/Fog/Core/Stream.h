@@ -63,7 +63,7 @@ struct FOG_API Stream
 
   Stream();
   Stream(const Stream& stream);
-  Stream(StreamDevice* d);
+  explicit Stream(StreamDevice* d);
   ~Stream();
 
   // [Implicit Sharing]

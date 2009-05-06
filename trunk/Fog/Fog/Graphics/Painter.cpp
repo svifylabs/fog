@@ -10,6 +10,7 @@
 
 // [Dependencies]
 #include <Fog/Core/Error.h>
+
 #include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Thread.h>
@@ -21,7 +22,8 @@
 #include <Fog/Graphics/GlyphSet.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/Painter.h>
-#include <Fog/Graphics/Raster.h>
+#include <Fog/Graphics/Raster_p.h>
+//#include <Fog/Graphics/Raster_BlitJit_p.h>
 #include <Fog/Graphics/Rgba.h>
 
 // [AntiGrain]
@@ -58,64 +60,6 @@
 namespace Fog {
 
 // ============================================================================
-// [Fog::PainterLocal]
-// ============================================================================
-
-typedef BlitJit::FillSpanFn FillSpan;
-typedef BlitJit::FillSpanWithMaskFn FillSpanM;
-
-typedef BlitJit::BlitSpanFn BlitSpan;
-typedef BlitJit::BlitSpanWithMaskFn BlitSpanM;
-
-struct FillFuncs
-{
-  FillSpan  fillSpan;
-  FillSpanM fillSpanM_A8;
-  FillSpanM fillSpanM_RGB32;
-};
-
-struct FOG_HIDDEN PainterLocal
-{
-  PainterLocal() : _init(false)
-  {
-    BlitJit::Api::init();
-  }
-
-  ~PainterLocal()
-  {
-  }
-
-  void getFillFuncs(FillFuncs* dst)
-  {
-    if (!_init) createFillFuncs();
-    memcpy(dst, &_fillFuncs, sizeof(FillFuncs));
-  }
-
-  void createFillFuncs()
-  {
-    _fillFuncs.fillSpan = BlitJit::Api::genFillSpan(
-      &BlitJit::Api::pixelFormats[BlitJit::PixelFormat::PRGB32],
-      &BlitJit::Api::pixelFormats[BlitJit::PixelFormat::PRGB32],
-      &BlitJit::Api::operators[BlitJit::Operator::CompositeOver]);
-
-    _fillFuncs.fillSpanM_A8 = BlitJit::Api::genFillSpanWithMask(
-      &BlitJit::Api::pixelFormats[BlitJit::PixelFormat::PRGB32],
-      &BlitJit::Api::pixelFormats[BlitJit::PixelFormat::PRGB32],
-      &BlitJit::Api::pixelFormats[BlitJit::PixelFormat::A8],
-      &BlitJit::Api::operators[BlitJit::Operator::CompositeOver]);
-
-    _fillFuncs.fillSpanM_RGB32 = NULL;
-
-    _init = true;
-  }
-
-  bool _init;
-  FillFuncs _fillFuncs;
-};
-
-static Static<PainterLocal> painter_local;
-
-// ============================================================================
 // [Fog::PainterDevice]
 // ============================================================================
 
@@ -136,7 +80,7 @@ struct FOG_HIDDEN NullPainterDevice : public PainterDevice
 
   virtual int width() const { return 0; }
   virtual int height() const { return 0; }
-  virtual ImageFormat format() const { return ImageFormat(); }
+  virtual int format() const { return Image::FormatNull; }
 
   virtual void setMetaVariables(
     const Point& metaOrigin,
@@ -269,6 +213,10 @@ struct FOG_HIDDEN NullPainterDevice : public PainterDevice
   // [Image drawing]
 
   virtual void drawImage(const Point& p, const Image& image, const Rect* irect) {}
+
+  // [Flush]
+
+  virtual void flush() {}
 };
 
 // ============================================================================
@@ -362,14 +310,14 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
 {
   // [Construction / Destruction]
 
-  RasterPainterDevice(uint8_t* pixels, int width, int height, sysint_t stride, const ImageFormat& format);
+  RasterPainterDevice(uint8_t* pixels, int width, int height, sysint_t stride, int format);
   virtual ~RasterPainterDevice();
 
   // [Meta]
 
   virtual int width() const;
   virtual int height() const;
-  virtual ImageFormat format() const;
+  virtual int format() const;
 
   virtual void setMetaVariables(
     const Point& metaOrigin,
@@ -503,6 +451,10 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
 
   virtual void drawImage(const Point& p, const Image& image, const Rect* irect);
 
+  // [Flush]
+
+  virtual void flush();
+
   // [Helpers]
 
   void _updateWorkRegion();
@@ -519,6 +471,7 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
   virtual void _renderGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip);
   virtual void _renderBoxes(const Box* box, sysuint_t count);
   virtual void _renderPath(const Path& path, bool stroke);
+  virtual void _renderImage(const Rect& dst, const Image& image, const Rect& src);
 
   // [Members]
 
@@ -529,7 +482,7 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
   int _metaWidth;
   int _metaHeight;
 
-  ImageFormat _format;
+  int _format;
   sysint_t _bpp;
 
   Point _metaOrigin;
@@ -548,6 +501,8 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
   Box _clipBox;
 
   uint32_t _op;
+  bool _compositingEnabled;
+  bool _premultiplied;
 
   Rgba _source;
 
@@ -582,14 +537,14 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
   ScanlineP8 _slP8;
   ScanlineU8 _slU8;
 
-  FillFuncs _fillFuncs;
+  Raster::FunctionMap::Raster* _rasterCtx;
 };
 
 // ============================================================================
 // [Fog::RasterPainterDevice - Construction / Destruction]
 // ============================================================================
 
-RasterPainterDevice::RasterPainterDevice(uint8_t* pixels, int width, int height, sysint_t stride, const ImageFormat& format)
+RasterPainterDevice::RasterPainterDevice(uint8_t* pixels, int width, int height, sysint_t stride, int format)
 {
   _metaRaster = pixels;
   _workRaster = pixels;
@@ -599,7 +554,7 @@ RasterPainterDevice::RasterPainterDevice(uint8_t* pixels, int width, int height,
   _metaHeight = height;
 
   _format = format;
-  _bpp = format.depth() >> 3;
+  _bpp = Image::formatToDepth(format) >> 3;
 
   _metaOrigin.set(0, 0);
   _userOrigin.set(0, 0);
@@ -612,10 +567,13 @@ RasterPainterDevice::RasterPainterDevice(uint8_t* pixels, int width, int height,
   _clipSimple = true;
   _clipBox.set(0, 0, width, height);
 
-  _op = OpCombine;
+  _op = CompositeOver;
+  _premultiplied = (format == Image::FormatPRGB32);
+  _compositingEnabled = format == Image::FormatARGB32 || _premultiplied;
+
   _source = Rgba(255, 255, 255, 255);
 
-  painter_local->getFillFuncs(&_fillFuncs);
+  _rasterCtx = NULL;
 
   _setDeviceDefaults();
 }
@@ -638,7 +596,7 @@ int RasterPainterDevice::height() const
   return _metaHeight;
 }
 
-ImageFormat RasterPainterDevice::format() const
+int RasterPainterDevice::format() const
 {
   return _format;
 }
@@ -766,6 +724,11 @@ bool RasterPainterDevice::usedUserRegion() const
 
 void RasterPainterDevice::setOp(uint32_t op)
 {
+  if (!_compositingEnabled) return;
+  if (op >= CompositeCount) return;
+
+  _op = op;
+  _rasterCtx = &Raster::functionMap->raster_argb32[_premultiplied][op];
 }
 
 uint32_t RasterPainterDevice::op() const
@@ -1383,7 +1346,79 @@ void RasterPainterDevice::drawText(const Rect& r, const String32& text, const Fo
 
 void RasterPainterDevice::drawImage(const Point& p, const Image& image, const Rect* irect)
 {
-  // TODO
+  int srcx = 0;
+  int srcy = 0;
+  int dstx = p.x();
+  int dsty = p.y();
+  int dstw;
+  int dsth;
+
+  if (irect == NULL)
+  {
+    dstw = image.width();
+    if (dstw == 0) return;
+    dsth = image.height();
+    if (dsth == 0) return;
+  }
+  else
+  {
+    if (!irect->isValid()) return;
+
+    srcx = irect->x1();
+    if (srcx < 0) return;
+    srcy = irect->y1();
+    if (srcy < 0) return;
+
+    dstw = fog_min(image.width(), irect->width());
+    if (dstw == 0) return;
+    dsth = fog_min(image.height(), irect->height());
+    if (dsth == 0) return;
+  }
+
+  int d;
+
+  if ((uint)(d = dstx - _clipBox.x1()) >= (uint)_clipBox.width())
+  {
+    if (d < 0)
+    {
+      if ((dstw += d) <= 0) return;
+      dstx = 0;
+      srcx = -d;
+    }
+    else
+    {
+      return;
+    }
+  }
+
+  if ((uint)(d = dsty - _clipBox.y1()) >= (uint)_clipBox.height())
+  {
+    if (d < 0)
+    {
+      if ((dsth += d) <= 0) return;
+      dsty = 0;
+      srcy = -d;
+    }
+    else
+    {
+      return;
+    }
+  }
+
+  if ((d = _clipBox.x2() - dstx) < dstw) dstw = d;
+  if ((d = _clipBox.y2() - dsty) < dsth) dsth = d;
+
+  Rect dst(dstx, dsty, dstw, dsth);
+  Rect src(srcx, srcy, dstw, dsth);
+  _renderImage(dst, image, src);
+}
+
+// ============================================================================
+// [Fog::RasterPainterDevice - Flush]
+// ============================================================================
+
+void RasterPainterDevice::flush()
+{
 }
 
 // ============================================================================
@@ -1461,6 +1496,8 @@ void RasterPainterDevice::_updateWorkRegion()
 
 void RasterPainterDevice::_setDeviceDefaults()
 {
+  _op = CompositeOver;
+
   _lineWidth = 1.0;
   _lineIsSimple = true;
 
@@ -1476,6 +1513,8 @@ void RasterPainterDevice::_setDeviceDefaults()
 
   _transformations = AffineMatrix();
   _transformationsUsed = false;
+
+  _rasterCtx = Raster::getRasterOps(_format, _op);
 }
 
 // ============================================================================
@@ -1484,7 +1523,7 @@ void RasterPainterDevice::_setDeviceDefaults()
 
 #if 0
 template<int BitsPerPixel, class Rasterizer, class Scanline>
-static void FOG_OPTIMIZEDCALL WdeAGG_render_scanlines(RasterPainterDevice* painter_d, Rasterizer& ras, Scanline& sl)
+static void FOG_FASTCALL WdeAGG_render_scanlines(RasterPainterDevice* painter_d, Rasterizer& ras, Scanline& sl)
 {
   if (!ras.rewind_scanlines()) return;
 
@@ -1613,7 +1652,7 @@ static void WdeAGG_renderPath(RasterPainterDevice* d, VertexSource& path)
 }
 
 template<class PathT>
-static void FOG_OPTIMIZEDCALL PainterSoftware_drawPoly_f_private(RasterPainterDevice* d, PathT& path)
+static void FOG_FASTCALL PainterSoftware_drawPoly_f_private(RasterPainterDevice* d, PathT& path)
 {
   if (d->_lineDashes.count() <= 1)
   {
@@ -1659,7 +1698,7 @@ static void FOG_OPTIMIZEDCALL PainterSoftware_drawPoly_f_private(RasterPainterDe
 }
 
 template<class Path>
-static void FOG_OPTIMIZEDCALL PainterSoftware_drawPath_f_private(RasterPainterDevice* d, Path& path)
+static void FOG_FASTCALL PainterSoftware_drawPath_f_private(RasterPainterDevice* d, Path& path)
 {
   if (d->_lineDashes.count() <= 1)
   {
@@ -1710,13 +1749,13 @@ static void FOG_OPTIMIZEDCALL PainterSoftware_drawPath_f_private(RasterPainterDe
 }
 
 template<class Path>
-static void FOG_OPTIMIZEDCALL PainterSoftware_fillPoly_f_private(RasterPainterDevice* d, Path& path)
+static void FOG_FASTCALL PainterSoftware_fillPoly_f_private(RasterPainterDevice* d, Path& path)
 {
   WdeAGG_renderPath(d, path);
 }
 
 template<class Path>
-static void FOG_OPTIMIZEDCALL PainterSoftware_fillPath_f_private(RasterPainterDevice* d, Path& path)
+static void FOG_FASTCALL PainterSoftware_fillPath_f_private(RasterPainterDevice* d, Path& path)
 {
   agg::conv_curve<Path> c(path);
   WdeAGG_renderPath(d, c);
@@ -1724,25 +1763,17 @@ static void FOG_OPTIMIZEDCALL PainterSoftware_fillPath_f_private(RasterPainterDe
 #endif
 
 template<int BytesPerPixel, class Rasterizer, class Scanline>
-static void FOG_OPTIMIZEDCALL AggRenderScanlines(RasterPainterDevice* d, Rasterizer& ras, Scanline& sl)
+static void FOG_FASTCALL AggRenderScanlines(RasterPainterDevice* d, Rasterizer& ras, Scanline& sl)
 {
   if (!ras.rewind_scanlines()) return;
 
   uint8_t* pBase = d->_workRaster;
-  uint8_t* pRas;
-  uint8_t* pCur;
   sysint_t stride = d->_stride;
 
   sl.reset(ras.min_x(), ras.max_x());
 
-  // TODO: Not needed ?
-  // int extx1 = painter_d->_realRegion.extents().x1();
-  // int exty1 = d->_clipBox.y1();
-  // int extx2 = painter_d->_realRegion.extents().x2();
-  // int exty2 = d->_clipBox.y2();
-
-  FillSpan fillSpan = d->_fillFuncs.fillSpan;
-  FillSpanM fillSpanM_A8 = d->_fillFuncs.fillSpanM_A8;
+  Raster::SpanSolidFn span_solid = d->_rasterCtx->span_solid;
+  Raster::SpanSolidMskFn span_solid_a8 = d->_rasterCtx->span_solid_a8;
 
   // solid source
   if (1)
@@ -1753,13 +1784,8 @@ static void FOG_OPTIMIZEDCALL AggRenderScanlines(RasterPainterDevice* d, Rasteri
       typename Scanline::const_iterator span = sl.begin();
 
       sysint_t y = sl.y();
-
-      // TODO: Not needed ?
-      // Vertical clipping to extents.
-      // if (y < exty1) continue;
-      // if (y >= exty2) break;
-
-      pRas = pBase + y * stride;
+      uint8_t* pRas = pBase + y * stride;
+      uint8_t* pCur;
 
       for (;;)
       {
@@ -1770,7 +1796,7 @@ static void FOG_OPTIMIZEDCALL AggRenderScanlines(RasterPainterDevice* d, Rasteri
 
         if (len > 0)
         {
-          fillSpanM_A8(pCur, &d->_source, span->covers, (unsigned)len);
+          span_solid_a8(pCur, d->_source, span->covers, (unsigned)len);
         }
         else
         {
@@ -1780,12 +1806,11 @@ static void FOG_OPTIMIZEDCALL AggRenderScanlines(RasterPainterDevice* d, Rasteri
           uint32_t cover = (uint32_t)*(span->covers);
           if (cover == 0xFF)
           {
-            fillSpan(pCur, &d->_source, len);
+            span_solid(pCur, d->_source, len);
           }
           else
           {
-            uint32_t t = Raster::bytemul(d->_source.i, cover);
-            fillSpan(pCur, &t, len);
+            span_solid(pCur, Raster::bytemul(d->_source.i, cover), len);
           }
         }
 
@@ -1816,7 +1841,7 @@ void RasterPainterDevice::_renderGlyphSet(const Point& pt, const GlyphSet& glyph
   uint8_t* pBuf = _workRaster;
   sysint_t stride = _stride;
 
-  FillSpanM fillSpanM = _fillFuncs.fillSpanM_A8;
+  Raster::SpanSolidMskFn span_solid_a8 = _rasterCtx->span_solid_a8;
 
   for (sysuint_t i = 0; i < count; i++)
   {
@@ -1837,7 +1862,6 @@ void RasterPainterDevice::_renderGlyphSet(const Point& pt, const GlyphSet& glyph
     int w = x2 - x1; if (w <= 0) continue;
     int h = y2 - y1; if (h <= 0) continue;
 
-    // TODO: Hardcoded
     uint8_t* pCur = pBuf;
     pCur += (sysint_t)y1 * stride;
     pCur += (sysint_t)x1 * 4;
@@ -1850,7 +1874,7 @@ void RasterPainterDevice::_renderGlyphSet(const Point& pt, const GlyphSet& glyph
     pGlyph += (sysint_t)(x1 - px1);
 
     do {
-      fillSpanM(pCur, &_source, pGlyph, (sysuint_t)w);
+      span_solid_a8(pCur, _source, pGlyph, (sysuint_t)w);
       pCur += stride;
       pGlyph += glyphStride;
     } while (--h);
@@ -1865,7 +1889,7 @@ void RasterPainterDevice::_renderBoxes(const Box* box, sysuint_t count)
   sysint_t stride = _stride;
   sysint_t bpp = _bpp;
 
-  FillSpan fillSpan = _fillFuncs.fillSpan;
+  Raster::SpanSolidFn span_solid = _rasterCtx->span_solid;
 
   for (sysuint_t i = 0; i < count; i++)
   {
@@ -1877,11 +1901,9 @@ void RasterPainterDevice::_renderBoxes(const Box* box, sysuint_t count)
     sysint_t h = box[i].height();
     if (h <= 0) continue;
 
-    // TODO: Hardcoded
     uint8_t* pCur = pBuf + y * stride + x * bpp;
-
     do {
-      fillSpan(pCur, &_source, (sysuint_t)w);
+      span_solid(pCur, _source, (sysuint_t)w);
       pCur += stride;
     } while (--h);
   }
@@ -1949,6 +1971,30 @@ void RasterPainterDevice::_renderPath(const Path& path, bool stroke)
   AggRenderScanlines<4, Rasterizer, ScanlineP8>(this, _ras, _slP8);
 }
 
+void RasterPainterDevice::_renderImage(const Rect& dst, const Image& image, const Rect& src)
+{
+  Image::Data* image_d = image._d;
+  sysint_t dstStride = _stride;
+  sysint_t srcStride = image_d->stride;
+
+  Raster::SpanCompositeFn span_composite = _rasterCtx->span_composite[image.format()];
+
+  sysint_t x = dst.x1();
+  sysint_t y = dst.y1();
+
+  sysint_t w = dst.width();
+  sysint_t h = dst.height();
+
+  uint8_t* dstCur = _workRaster + y * dstStride + x * _bpp;
+  const uint8_t* srcCur = image_d->first + src.y1() * srcStride + src.x1() * image_d->bytesPerPixel;
+
+  do {
+    span_composite(dstCur, srcCur, (sysuint_t)w);
+    dstCur += dstStride;
+    srcCur += srcStride;
+  } while (--h);
+}
+
 // ============================================================================
 // [Fog::Painter]
 // ============================================================================
@@ -1960,7 +2006,7 @@ Painter::Painter()
   _d = sharedNull;
 }
 
-Painter::Painter(uint8_t* pixels, int width, int height, sysint_t stride, const ImageFormat& format)
+Painter::Painter(uint8_t* pixels, int width, int height, sysint_t stride, int format)
 {
   _d = sharedNull;
   begin(pixels, width, height, stride, format);
@@ -1977,26 +2023,25 @@ Painter::~Painter()
   if (_d != sharedNull) delete _d;
 }
 
-err_t Painter::begin(uint8_t* pixels, int width, int height, sysint_t stride, const ImageFormat& format)
+err_t Painter::begin(uint8_t* pixels, int width, int height, sysint_t stride, int format)
 {
-  if (_d != sharedNull) delete _d;
+  end();
 
-  _d = new(std::nothrow) RasterPainterDevice(
+  if (width <= 0 || height <= 0) return Error::InvalidArgument;
+
+  PainterDevice* d = new(std::nothrow) RasterPainterDevice(
     pixels, width, height, stride, format);
+  if (!d) return Error::OutOfMemory;
 
-  if (!_d)
-  {
-    _d = sharedNull;
-    return Error::OutOfMemory;
-  }
-  else
-  {
-    return Error::Ok;
-  }
+  _d = d;
+  return Error::Ok;
 }
 
 err_t Painter::begin(Image& image)
 {
+  err_t err = image.detach();
+  if (err) return err;
+
   return begin(image.mData(), image.width(), image.height(), image.stride(), image.format());
 }
 
@@ -2014,8 +2059,6 @@ void Painter::end()
 
 FOG_INIT_DECLARE err_t fog_painter_init(void)
 {
-  Fog::painter_local.init();
-
   static Fog::NullPainterDevice sharedNullDevice;
   Fog::Painter::sharedNull = &sharedNullDevice;
 
@@ -2024,5 +2067,4 @@ FOG_INIT_DECLARE err_t fog_painter_init(void)
 
 FOG_INIT_DECLARE void fog_painter_shutdown(void)
 {
-  Fog::painter_local.destroy();
 }

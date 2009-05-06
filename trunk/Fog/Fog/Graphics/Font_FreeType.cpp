@@ -772,7 +772,7 @@ Glyph::Data* FontFaceFT::renderGlyph(uint32_t uc)
     width += ftBitmap->width;
 
     glyphd = new(std::nothrow) Glyph::Data();
-    if (!glyphd->image.create(width, ftGlyphSlot->bitmap.rows, ImageFormat::a8()))
+    if (glyphd->image.create(width, ftGlyphSlot->bitmap.rows, Image::FormatA8) != Error::Ok)
     {
       goto fail;
     }

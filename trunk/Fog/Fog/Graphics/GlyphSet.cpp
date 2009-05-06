@@ -23,13 +23,13 @@ namespace Fog {
 static void copyGlyphs(Glyph* dst, Glyph* src, sysuint_t count)
 {
   for (sysuint_t i = 0; i < count; i++)
-    dst[i]._d = src[i]._d->REF_ALWAYS();
+    dst[i]._d = src[i]._d->ref();
 }
 
 static void freeGlyphs(Glyph* data, sysuint_t count)
 {
   for (sysuint_t i = 0; i < count; i++)
-    data[i]._d->DEREF_INLINE();
+    data[i]._d->deref();
 }
 
 // ============================================================================

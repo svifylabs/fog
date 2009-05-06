@@ -15,8 +15,8 @@
 #include <Fog/Build/Build.h>
 
 #include <Fog/Graphics/Constants.h>
-#include <Fog/Graphics/Converter.h>
-#include <Fog/Graphics/Dither.h>
+#include <Fog/Graphics/AffineMatrix.h>
+#include <Fog/Graphics/DitherMatrix.h>
 #include <Fog/Graphics/Fixed.h>
 #include <Fog/Graphics/Font.h>
 #include <Fog/Graphics/Glyph.h>
@@ -24,9 +24,7 @@
 #include <Fog/Graphics/GlyphSet.h>
 #include <Fog/Graphics/Gradient.h>
 #include <Fog/Graphics/Image.h>
-#include <Fog/Graphics/ImageFormat.h>
 #include <Fog/Graphics/ImageIO.h>
-#include <Fog/Graphics/ImageScale.h>
 #include <Fog/Graphics/Painter.h>
 #include <Fog/Graphics/Palette.h>
 #include <Fog/Graphics/Path.h>

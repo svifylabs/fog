@@ -10,7 +10,6 @@
 // [Dependencies]
 #include <Fog/Core/Atomic.h>
 #include <Fog/Core/FileSystem.h>
-#include <Fog/Core/RefData.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/String.h>
 #include <Fog/Core/Value.h>

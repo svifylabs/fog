@@ -16,9 +16,9 @@
 #include <Fog/Core/String.h>
 #include <Fog/Core/StringCache.h>
 #include <Fog/Core/Strings.h>
-#include <Fog/Graphics/Converter.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/ImageIO/ImageIO_PNG.h>
+#include <Fog/Graphics/Raster_p.h>
 
 #if defined(FOG_HAVE_PNG_H)
 #define FOG_HAVE_PNG_HEADERS
@@ -35,11 +35,11 @@
 #if defined(FOG_HAVE_PNG_HEADERS)
 
 namespace Fog {
-
-// [Fog::ImageIO::]
 namespace ImageIO {
 
+// ============================================================================
 // [Fog::ImageIO::PngProvider]
+// ============================================================================
 
 struct PngProvider : public Provider
 {
@@ -53,7 +53,7 @@ struct PngProvider : public Provider
 
 struct PngLibrary
 {
-  enum { SymbolsCount = 32 };
+  enum { SymbolsCount = 33 };
 
   union
   {
@@ -78,6 +78,7 @@ struct PngLibrary
       FOG_CDECL void (*png_set_swap_alpha)(png_structp png_ptr);
       FOG_CDECL void (*png_set_filler)(png_structp png_ptr, png_uint_32 filler, int flags);
       FOG_CDECL void (*png_set_packing)(png_structp png_ptr);
+      FOG_CDECL void (*png_set_packswap)(png_structp png_ptr);
       FOG_CDECL void (*png_set_shift)(png_structp png_ptr, png_color_8p true_bits);
       FOG_CDECL void (*png_set_error_fn)(png_structp png_ptr, png_voidp error_ptr, png_error_ptr error_fn, png_error_ptr warning_fn);
       FOG_CDECL void (*png_set_read_fn)(png_structp png_ptr, png_voidp io_ptr, png_rw_ptr read_data_fn);
@@ -102,7 +103,7 @@ struct PngLibrary
     void *addr[SymbolsCount];
   };
 
-  Fog::Library dll;
+  Library dll;
   uint32_t ok;
 
   PngLibrary() : ok(false)
@@ -127,6 +128,7 @@ struct PngLibrary
       "png_set_swap_alpha\0"
       "png_set_filler\0"
       "png_set_packing\0"
+      "png_set_packswap\0"
       "png_set_shift\0"
       "png_set_error_fn\0"
       "png_set_read_fn\0"
@@ -141,7 +143,7 @@ struct PngLibrary
       "png_get_bit_depth\0"
       "png_get_IHDR\0";
 
-    if (dll.open(StubAscii8("png"), Fog::Library::OpenSystemPrefix | Fog::Library::OpenSystemSuffix) == Error::Ok &&
+    if (dll.open(StubAscii8("png"), Library::OpenSystemPrefix | Library::OpenSystemSuffix) == Error::Ok &&
         dll.symbols(addr, symbols, FOG_ARRAY_SIZE(symbols), SymbolsCount, (char**)NULL) == SymbolsCount)
     {
       ok = 1;
@@ -166,7 +168,6 @@ PngProvider::PngProvider()
 
   _features.rgbAlpha = true;
   _features.compressionTypeAdjust = true;
-
 
   // name
   _name = fog_strings->get(STR_GRAPHICS_PNG);
@@ -201,11 +202,11 @@ DecoderDevice* PngProvider::createDecoder()
   return new PngDecoderDevice();
 }
 
-static Fog::Lazy<PngLibrary> _png;
+static Lazy<PngLibrary> _png;
 
 static void user_read_data(png_structp png_ptr, png_bytep data, png_size_t length)
 {
-  if (((Fog::Stream *)png_ptr->io_ptr)->read(data, length) != length)
+  if (((Stream *)png_ptr->io_ptr)->read(data, length) != length)
   {
     _png.get()->png_error(png_ptr, "Read Error");
   }
@@ -213,7 +214,7 @@ static void user_read_data(png_structp png_ptr, png_bytep data, png_size_t lengt
 
 static void user_write_data(png_structp png_ptr, png_bytep data, png_size_t length)
 {
-  if (((Fog::Stream *)png_ptr->io_ptr)->write(data, length) != length)
+  if (((Stream *)png_ptr->io_ptr)->write(data, length) != length)
   {
     _png.get()->png_error(png_ptr, "Write Error");
   }
@@ -221,17 +222,16 @@ static void user_write_data(png_structp png_ptr, png_bytep data, png_size_t leng
 
 static void user_flush_data(png_structp png_ptr)
 {
-  // TODO: flush
-  //((Fog::Stream *)png_ptr->io_ptr)->flush();
 }
 
 static void user_error_fn(png_structp png_ptr, png_const_charp error_msg)
 {
-  //strncpy((char*)png_ptr->error_ptr, error_msg, 255);
   longjmp(png_ptr->jmpbuf, 1);
 }
 
+// ============================================================================
 // [Fog::ImageIO::PngDecoderDevice]
+// ============================================================================
 
 PngDecoderDevice::PngDecoderDevice() :
   _png_ptr(NULL),
@@ -244,7 +244,9 @@ PngDecoderDevice::~PngDecoderDevice()
   _deletePngStream();
 }
 
+// ============================================================================
 // [Fog::ImageIO::PngDecoderDevice::reset]
+// ============================================================================
 
 void PngDecoderDevice::reset()
 {
@@ -252,7 +254,9 @@ void PngDecoderDevice::reset()
   DecoderDevice::reset();
 }
 
+// ============================================================================
 // [Fog::ImageIO::PngDecoderDevice::readHeader]
+// ============================================================================
 
 uint32_t PngDecoderDevice::readHeader()
 {
@@ -310,13 +314,33 @@ uint32_t PngDecoderDevice::readHeader()
   _actualFrame = 0;
   _framesCount = 1;
 
-  // success
+  // Setup pixel format.
+  png_infop info_ptr = (png_infop)_png_info_ptr;
+
+  if (info_ptr->color_type == PNG_COLOR_TYPE_PALETTE)
+  {
+    _format = Image::FormatI8;
+  }
+  else if (
+      info_ptr->color_type == PNG_COLOR_TYPE_RGB_ALPHA ||
+      info_ptr->color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
+  {
+    _format = Image::FormatARGB32;
+  }
+  else
+  {
+    _format = Image::FormatRGB32;
+  }
+
+  // Success
   return (_headerResult = Error::Ok);
 }
 
+// ============================================================================
 // [Fog::ImageIO::PngDecoderDevice::readImage]
+// ============================================================================
 
-uint32_t PngDecoderDevice::readImage(Fog::Image& image)
+uint32_t PngDecoderDevice::readImage(Image& image)
 {
   // Png library pointer
   PngLibrary* lib = _png.get();
@@ -329,118 +353,101 @@ uint32_t PngDecoderDevice::readImage(Fog::Image& image)
   if (readerDone()) return (_readerResult = Error::ImageIO_NotAnimationFormat);
 
   // error code (default is success)
-  uint32_t error = Error::Ok;
+  uint32_t err = Error::Ok;
 
   // variables
-  png_structp  png_ptr = (png_structp)_png_ptr;
-  png_infop    info_ptr = (png_infop)_png_info_ptr;
-  png_uint_32  i;
-  uint32_t     format = Fog::ImageFormat::XRGB32;
-  bool         hasa = false;
-  bool         hasg = false;
-  uint8_t     *p;
-  uint8_t    **lines = NULL;
+  png_structp png_ptr = (png_structp)_png_ptr;
+  png_infop info_ptr = (png_infop)_png_info_ptr;
+  png_uint_32 i;
+  bool hasAlpha = false;
+  bool hasGrey = false;
+  uint8_t *p;
 
   if (setjmp(png_ptr->jmpbuf))
   {
     return Error::ImageIO_PngError;
   }
 
-  if (info_ptr->color_type == PNG_COLOR_TYPE_PALETTE)
-  {
-    lib->png_set_expand(png_ptr);
-    if (lib->png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS))
-      hasa = true;
-  }
+  // Change the order of packed pixels to least significant bit first.
+  lib->png_set_packswap(png_ptr);
+
+  // Tell libpng to strip 16 bit/color files down to 8 bits/color.
+  lib->png_set_strip_16(png_ptr);
 
   if (info_ptr->color_type == PNG_COLOR_TYPE_RGB_ALPHA)
   {
-    hasa = true;
+    hasAlpha = true;
   }
+
   if (info_ptr->color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
   {
-    hasa = true;
-    hasg = true;
+    hasAlpha = true;
+    hasGrey = true;
   }
+
   if (info_ptr->color_type == PNG_COLOR_TYPE_GRAY)
   {
-    hasg = true;
+    hasGrey = true;
   }
 
-  if (hasa)
+  if (hasAlpha) lib->png_set_expand(png_ptr);
+
+  // Extract multiple pixels with bit depths of 1, 2, and 4 from a single
+  // byte into separate bytes (useful for paletted and grayscale images).
+  lib->png_set_packing(png_ptr);
+
+  if (info_ptr->color_type != PNG_COLOR_TYPE_PALETTE)
   {
-    format = Fog::ImageFormat::ARGB32;
-  }
-
-  // if its the second phase load OR its immediate load or a progress
-  // callback is set then load the data
-  if (hasa)
-  {
-    lib->png_set_expand(png_ptr);
-  }
-
-  // we want ARGB
+    // We want ARGB
 #if FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
-  lib->png_set_bgr(png_ptr);
-  lib->png_set_filler(png_ptr, 0xFF, PNG_FILLER_AFTER);
+    lib->png_set_bgr(png_ptr);
+    lib->png_set_filler(png_ptr, 0xFF, PNG_FILLER_AFTER);
 #else
-  lib->png_set_swap_alpha(png_ptr);
-  lib->png_set_filler(png_ptr, 0xFF, PNG_FILLER_BEFORE);
+    lib->png_set_swap_alpha(png_ptr);
+    lib->png_set_filler(png_ptr, 0xFF, PNG_FILLER_BEFORE);
 #endif // FOG_BYTE_ORDER
 
-  // 16bit color -> 8bit color
-  lib->png_set_strip_16(png_ptr);
-
-  // pack all pixels to byte boundaires
-  lib->png_set_packing(png_ptr);
-  if (lib->png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS))
-  {
-    lib->png_set_expand(png_ptr);
-  }
-
-  if (!image.create(width(), height(), format) ||
-    (lines = (unsigned char **)Fog::Memory::alloc(height() * sizeof(uint8_t*))) == NULL)
-  {
-    lib->png_read_end(png_ptr, info_ptr);
-    error = Error::OutOfMemory;
-    goto end;
-  }
-
-  if (hasg)
-  {
-    lib->png_set_gray_to_rgb(png_ptr);
-    if (lib->png_get_bit_depth(png_ptr, info_ptr) < 8)
+    if (lib->png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS))
     {
-      lib->png_set_gray_1_2_4_to_8(png_ptr);
+      lib->png_set_expand(png_ptr);
     }
-  }
 
-  for (i = 0, p = image.mFirst(); i < height(); i++, p += image.stride())
-  {
-    lines[i] = p;
-  }
-
-  {
-    int pass, number_passes = lib->png_set_interlace_handling(png_ptr);
-    int y = 0;
-    int ytotal = number_passes * height();
-
-    for (pass = 0; pass < number_passes; pass++)
+    if (hasGrey)
     {
-      for (i = 0; i < height(); i++, y++)
+      lib->png_set_gray_to_rgb(png_ptr);
+      if (lib->png_get_bit_depth(png_ptr, info_ptr) < 8)
       {
-        lib->png_read_rows(png_ptr, &lines[i], NULL, 1);
-        if ((y & 15) == 0) updateProgress(y + pass * height(), ytotal);
+        lib->png_set_gray_1_2_4_to_8(png_ptr);
       }
     }
   }
 
+  if ((err = image.create(width(), height(), _format))) goto end;
+
+  {
+    int pass, number_passes = lib->png_set_interlace_handling(png_ptr);
+    int y = 0;
+    int yi = 0;
+    int ytotal = number_passes * height();
+
+    for (pass = 0; pass < number_passes; pass++)
+    {
+      for (i = 0; i < height(); i++, y++, yi++)
+      {
+        uint8_t* row = image._d->first + i * image.stride();
+        lib->png_read_rows(png_ptr, &row, NULL, 1);
+        if ((yi & 15) == 0) updateProgress(yi, ytotal);
+      }
+    }
+  }
+
+  // TODO: PNG - Read palette
+
 end:
   lib->png_read_end(png_ptr, info_ptr);
-  if (lines) Fog::Memory::free(lines);
 
   updateProgress(1.0);
-  return error;
+  return err;
 }
 
 uint32_t PngDecoderDevice::_createPngStream()
@@ -489,7 +496,9 @@ void PngDecoderDevice::_deletePngStream()
   }
 }
 
+// ============================================================================
 // [Fog::ImageIO::PngEncoder]
+// ============================================================================
 
 PngEncoderDevice::PngEncoderDevice()
 {
@@ -499,20 +508,18 @@ PngEncoderDevice::~PngEncoderDevice()
 {
 }
 
-uint32_t PngEncoderDevice::writeImage(const Fog::Image& image_)
+uint32_t PngEncoderDevice::writeImage(const Image& image)
 {
   // Png library pointer
   PngLibrary* lib = _png.get();
   if (!lib->ok) return Error::ImageIO_PngLibraryNotFound;
 
-  uint32_t error = Error::Ok;
+  uint32_t err = Error::Ok;
 
-  Image image(image_);
-  ImageFormat format(image.format());
+  int  format = image.format();
 
-  Converter converter;
-  Fog::MemoryBuffer<2048> bufferStorage;
-  uint8_t* buffer;
+  MemoryBuffer<2048> bufferStorage;
+  uint8_t* buffer = NULL;
 
   png_structp  png_ptr;
   png_infop    info_ptr;
@@ -520,91 +527,93 @@ uint32_t PngEncoderDevice::writeImage(const Fog::Image& image_)
   int          height = image.height();
   int          y;
   png_bytep    row_ptr;
-  png_color_8  sig_bit;
-  int          compression, num_passes = 1, pass;
+  int          compression;
 
   // Step 0: Simple reject
   if (!width || !height)
   {
-    error = Error::ImageSizeIsInvalid;
+    err = Error::ImageSizeIsInvalid;
     goto end;
   }
 
   if ((png_ptr = lib->png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL)) == NULL)
   {
-    error = Error::ImageIO_PngError;
+    err = Error::ImageIO_PngError;
     goto end;
   }
 
   if ((info_ptr = lib->png_create_info_struct(png_ptr)) == NULL)
   {
-    error = Error::ImageIO_PngError;
+    err = Error::ImageIO_PngError;
     goto end_destroy_write_struct;
   }
 
   if (setjmp(png_ptr->jmpbuf))
   {
-    error = Error::ImageIO_PngError;
+    err = Error::ImageIO_PngError;
     goto end_destroy_write_struct;
   }
 
-#if 0
-  // check whether we should use interlacing
-  if ((tag = __imlib_GetTag(im, "interlacing")) && tag->val)
-  {
-#ifdef PNG_WRITE_INTERLACING_SUPPORTED
-    png_ptr->interlaced = PNG_INTERLACE_ADAM7;
-    num_passes = lib->png_set_interlace_handling(png_ptr);
-#endif
-  }
-#endif
-
-  // use custom io functions
+  // Use custom I/O functions.
   lib->png_set_write_fn(png_ptr, &_stream, (png_rw_ptr)user_write_data, (png_flush_ptr)user_flush_data);
 
-  if (format.id() == Fog::ImageFormat::ARGB32 ||
-      format.id() == Fog::ImageFormat::PRGB32)
+  png_color_8 sig_bit;
+  memset(&sig_bit, 0, sizeof(sig_bit));
+
+  switch (format)
   {
-    lib->png_set_IHDR(png_ptr, info_ptr, width, height, 8,
-      PNG_COLOR_TYPE_RGB_ALPHA, png_ptr->interlaced,
-      PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
+    case Image::FormatARGB32:
+    case Image::FormatPRGB32:
+    {
+      lib->png_set_IHDR(png_ptr, info_ptr, width, height, 8,
+        PNG_COLOR_TYPE_RGB_ALPHA, png_ptr->interlaced,
+        PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
 #if FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
-    lib->png_set_bgr(png_ptr);
+      lib->png_set_bgr(png_ptr);
 #else
-    lib->png_set_swap_alpha(png_ptr);
+      lib->png_set_swap_alpha(png_ptr);
 #endif
-    if (format.id() == Fog::ImageFormat::PRGB32)
-    {
-      if (!converter.setup(Fog::ImageFormat::ARGB32, format.id()))
+
+      sig_bit.red = 8;
+      sig_bit.green = 8;
+      sig_bit.blue = 8;
+      sig_bit.alpha = 8;
+      sig_bit.gray = 0;
+      lib->png_set_sBIT(png_ptr, info_ptr, &sig_bit);
+
+      if (format == Image::FormatPRGB32)
       {
-        error = Error::ImageIO_ConverterNotAvailable;
-        goto end_destroy_write_struct;
+        buffer = (uint8_t*)bufferStorage.alloc(width * 4);
+        if (!buffer) { err = Error::OutOfMemory; goto end; }
       }
-      buffer = (uint8_t*)bufferStorage.alloc(width * 4);
     }
-  }
-  else
-  {
-    lib->png_set_IHDR(png_ptr, info_ptr, width, height, 8,
-      PNG_COLOR_TYPE_RGB, png_ptr->interlaced,
-      PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
-
-    if (!converter.setup(Fog::Converter::BGR24, format.id()))
+    case Image::FormatRGB32:
+    case Image::FormatRGB24:
     {
-      error = Error::ImageIO_ConverterNotAvailable;
-      goto end_destroy_write_struct;
+      lib->png_set_IHDR(png_ptr, info_ptr, width, height, 8,
+        PNG_COLOR_TYPE_RGB, png_ptr->interlaced,
+        PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
+
+      sig_bit.red = 8;
+      sig_bit.green = 8;
+      sig_bit.blue = 8;
+      sig_bit.alpha = 0;
+      sig_bit.gray = 0;
+      lib->png_set_sBIT(png_ptr, info_ptr, &sig_bit);
+
+      buffer = (uint8_t*)bufferStorage.alloc(width * 3);
+      if (!buffer) { err = Error::OutOfMemory; goto end; }
+      break;
     }
-    buffer = (uint8_t*)bufferStorage.alloc(width * 3);
+
+    case Image::FormatA8:
+    case Image::FormatI8:
+      // TODO: PNG - Write A8 and I8 images
+      break;
   }
 
-  sig_bit.red = 8;
-  sig_bit.green = 8;
-  sig_bit.blue = 8;
-  sig_bit.alpha = 8;
-  lib->png_set_sBIT(png_ptr, info_ptr, &sig_bit);
-
-  // TODO: Get compression from decoder
   compression = 5;
+
   if (compression < 0) compression = 0;
   if (compression > 9) compression = 9;
 
@@ -613,20 +622,28 @@ uint32_t PngEncoderDevice::writeImage(const Fog::Image& image_)
   lib->png_set_shift(png_ptr, &sig_bit);
   lib->png_set_packing(png_ptr);
 
-  for (pass = 0; pass < num_passes; pass++)
+  for (y = 0; y < height; y++)
   {
-    for (y = 0; y < height; y++)
+    switch (format)
     {
-      row_ptr = (png_bytep)image.cFirst() + y * image.stride();
-      if (format.id() != Fog::ImageFormat::ARGB32)
-      {
-        converter.convertSpan(buffer, 0, row_ptr, 0, width, Point(0, y));
+      case Image::FormatARGB32:
+      case Image::FormatI8:
+        row_ptr = (png_bytep)image.cFirst() + y * image.stride();
+        break;
+      case Image::FormatPRGB32:
         row_ptr = (png_bytep)buffer;
-      }
-      lib->png_write_rows(png_ptr, &row_ptr, 1);
-
-      if ((y & 15) == 0) updateProgress(y, height);
+        image.getDibArgb32(0, y, width, buffer);
+        break;
+      case Image::FormatRGB32:
+      case Image::FormatRGB24:
+        row_ptr = (png_bytep)buffer;
+        image.getDibRgb24(0, y, width, buffer);
+        break;
     }
+
+    lib->png_write_rows(png_ptr, &row_ptr, 1);
+
+    if ((y & 15) == 0) updateProgress(y, height);
   }
 
   lib->png_write_end(png_ptr, info_ptr);
@@ -635,22 +652,24 @@ end_destroy_write_struct:
   lib->png_destroy_write_struct(&png_ptr, (png_infopp)&info_ptr);
 end:
   updateProgress(1.0);
-  return error;
+  return err;
 }
 
-// [Fog::ImageIO::]
-}
-
+} // ImageIO namespace
 } // Fog namespace
 
-Fog::ImageIO::Provider* fog_imageio_getPngProvider(void)
+// ============================================================================
+// [CAPI]
+// ============================================================================
+
+FOG_CAPI_DECLARE Fog::ImageIO::Provider* fog_imageio_getPngProvider(void)
 {
   return Fog::ImageIO::_png.get()->ok ? new(std::nothrow) Fog::ImageIO::PngProvider() : NULL;
 }
 
 #else
 
-Fog::ImageIO::Provider* fog_imageio_getPngProvider(void)
+FOG_CAPI_DECLARE Fog::ImageIO::Provider* fog_imageio_getPngProvider(void)
 {
   return NULL;
 }

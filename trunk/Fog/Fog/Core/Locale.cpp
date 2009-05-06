@@ -71,7 +71,12 @@ static void _setLConv(Locale::Data* d, const struct lconv* conv)
 }
 
 Locale::Locale() :
-  _d(sharedNull.instancep()->REF_INLINE())
+  _d(sharedNull->refAlways())
+{
+}
+
+Locale::Locale(const Locale& other) :
+  _d(other._d->ref())
 {
 }
 
@@ -80,34 +85,31 @@ Locale::Locale(Data* d) :
 {
 }
 
-Locale::Locale(const Locale& other) :
-  _d(other._d->REF_INLINE())
-{
-}
-
 Locale::Locale(const String32& name) :
-  _d(sharedNull.instancep()->REF_INLINE())
+  _d(sharedNull->refAlways())
 {
   set(name);
 }
 
 Locale::~Locale()
 {
-  _d->DEREF_INLINE();
+  _d->deref();
 }
 
-void Locale::_detach()
+err_t Locale::_detach()
 {
-  if (refCount() > 1)
-  {
-    Data* newd = new Data(*_d);
-    AtomicBase::ptr_setXchg(&_d, newd)->DEREF_INLINE();
-  }
+  if (_d->refCount.get() == 1) return Error::Ok;
+
+  Data* newd = new Data(*_d);
+  if (newd) return Error::OutOfMemory;
+
+  AtomicBase::ptr_setXchg(&_d, newd)->deref();
+  return Error::Ok;
 }
 
 void Locale::free()
 {
-  AtomicBase::ptr_setXchg(&_d, sharedNull.instancep()->REF_INLINE())->DEREF_INLINE();
+  AtomicBase::ptr_setXchg(&_d, sharedNull->ref())->deref();
 }
 
 // [Set]
@@ -136,28 +138,30 @@ bool Locale::set(const String32& name)
 
 bool Locale::set(const Locale& other)
 {
-  AtomicBase::ptr_setXchg(&_d, other._d->REF_INLINE())->DEREF_INLINE();
+  AtomicBase::ptr_setXchg(&_d, other._d->ref())->deref();
   return true;
 }
 
-Locale& Locale::_setChar(sysuint_t index, uint32_t uc)
+err_t Locale::_setChar(sysuint_t index, uint32_t uc)
 {
-  FOG_ASSERT(index < Data::N);
+  if (index >= Data::N) return Error::InvalidArgument;
+  if (_d->data[index] == uc) return Error::Ok;
 
-  if (_d->data[index] != uc)
-  {
-    detach();
-    _d->data[index] = uc;
-  }
+  err_t err;
+  if ((err = detach())) return err;
 
-  return *this;
+  _d->data[index] = uc;
+  return Error::Ok;
 }
 
+// ============================================================================
 // [Fog::Locale::Data]
+// ============================================================================
 
 Locale::Data::Data()
 {
   refCount.init(1);
+  memset(data, 0, sizeof(uint32_t) * N);
 }
 
 Locale::Data::Data(const Data& other) :
@@ -171,25 +175,19 @@ Locale::Data::~Data()
 {
 }
 
-// [Ref]
-
-Locale::Data* Locale::Data::ref()
+Locale::Data* Locale::Data::ref() const
 {
-  return REF_INLINE();
+  return refAlways();
 }
 
 void Locale::Data::deref()
 {
-  DEREF_INLINE();
+  if (refCount.deref()) delete this;
 }
 
-Locale::Data* Locale::Data::copy(Data* d, uint allocPolicy)
+Locale::Data* Locale::Data::copy(Data* d)
 {
-  Data* newd = new Data(*d);
-
-  // TODO: allocPolicy
-
-  return newd;
+  return new(std::nothrow) Data(*d);
 }
 
 } // Fog namespace
@@ -211,9 +209,9 @@ FOG_INIT_DECLARE err_t fog_locale_init(void)
   Fog::Locale::sharedUser.init();
   Fog::_setLConv(Fog::Locale::sharedUser.instancep(), localeconv());
 
-  new (&Fog::Locale::sharedNullObj ) Fog::Locale(Fog::Locale::sharedNull .instancep()->REF_INLINE());
-  new (&Fog::Locale::sharedPosixObj) Fog::Locale(Fog::Locale::sharedPosix.instancep()->REF_INLINE());
-  new (&Fog::Locale::sharedUserObj ) Fog::Locale(Fog::Locale::sharedUser .instancep()->REF_INLINE());
+  new (&Fog::Locale::sharedNullObj ) Fog::Locale(Fog::Locale::sharedNull ->refAlways());
+  new (&Fog::Locale::sharedPosixObj) Fog::Locale(Fog::Locale::sharedPosix->refAlways());
+  new (&Fog::Locale::sharedUserObj ) Fog::Locale(Fog::Locale::sharedUser ->refAlways());
 
   return Error::Ok;
 }

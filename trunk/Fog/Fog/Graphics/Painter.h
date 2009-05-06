@@ -34,7 +34,7 @@ struct FOG_API PainterDevice
 
   virtual int width() const = 0;
   virtual int height() const = 0;
-  virtual ImageFormat format() const = 0;
+  virtual int format() const = 0;
 
   virtual void setMetaVariables(
     const Point& metaOrigin, 
@@ -168,6 +168,10 @@ struct FOG_API PainterDevice
 
   virtual void drawImage(const Point& p, const Image& image, const Rect* irect) = 0;
 
+  // [Flush]
+
+  virtual void flush() = 0;
+
 private:
   FOG_DISABLE_COPY(PainterDevice)
 };
@@ -182,13 +186,13 @@ struct FOG_API Painter
   // [Construction / Destruction]
 
   Painter();
-  Painter(uint8_t* pixels, int width, int height, sysint_t stride, const ImageFormat& format);
+  Painter(uint8_t* pixels, int width, int height, sysint_t stride, int format);
   Painter(Image& image);
   ~Painter();
 
   // [Begin / End]
 
-  err_t begin(uint8_t* pixels, int width, int height, sysint_t stride, const ImageFormat& format);
+  err_t begin(uint8_t* pixels, int width, int height, sysint_t stride, int format);
   err_t begin(Image& image);
   void end();
 
@@ -196,7 +200,7 @@ struct FOG_API Painter
 
   FOG_INLINE int width() const { return _d->width(); }
   FOG_INLINE int height() const { return _d->height(); }
-  FOG_INLINE ImageFormat format() const { return _d->format(); }
+  FOG_INLINE int format() const { return _d->format(); }
 
   FOG_INLINE void setMetaVariables(
     const Point& metaOrigin,
@@ -341,16 +345,21 @@ struct FOG_API Painter
   // [Text drawing]
 
   FOG_INLINE void drawText(
-    const Point& p, const String32& text, const Font& font, const Rect* clip = 0)
+    const Point& p, const String32& text, const Font& font, const Rect* clip = NULL)
   { _d->drawText(p, text, font, clip); }
 
   FOG_INLINE void drawText(
-    const Rect& r, const String32& text, const Font& font, uint32_t align, const Rect* clip = 0)
+    const Rect& r, const String32& text, const Font& font, uint32_t align, const Rect* clip = NULL)
   { _d->drawText(r, text, font, align, clip); }
 
   // [Image Drawing]
 
-  FOG_INLINE void drawImage(const Point& p, const Image& image, const Rect* irect = 0) { _d->drawImage(p, image, irect); }
+  FOG_INLINE void drawImage(const Point& p, const Image& image, const Rect* irect = 0)
+  { _d->drawImage(p, image, irect); }
+
+  // [Flush]
+
+  FOG_INLINE void flush() { _d->flush(); }
 
   // [Members]
 

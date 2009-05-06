@@ -10,7 +10,6 @@
 // [Dependencies]
 #include <Fog/Build/Build.h>
 #include <Fog/Core/Constants.h>
-#include <Fog/Core/RefData.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/String.h>
 #include <Fog/Core/TypeInfo.h>
@@ -34,19 +33,28 @@ struct FOG_API Library
 {
   // [Data]
 
-  struct FOG_API Data : public RefDataSimple<Data>
+  struct FOG_API Data
   {
-    void* handle;
+    // [Ref / Deref]
 
-    void free();
-    static Data* create();
+    Data* ref() const;
+    void deref();
+
+    Data* refAlways() const
+    {
+      refCount.inc();
+      return const_cast<Data*>(this);
+    }
+
+    static Data* alloc();
+
+    // [Members]
+
+    mutable Atomic<sysuint_t> refCount;
+    void* handle;
   };
 
   static Static<Data> sharedNull;
-
-  // [Members]
-
-  FOG_DECLARE_D(Data)
 
   // [Open Mode]
 
@@ -144,6 +152,10 @@ struct FOG_API Library
   static bool addPath(const String32& path);
   static bool removePath(const String32& path);
   static bool hasPath(const String32& path);
+
+  // [Members]
+
+  FOG_DECLARE_D(Data)
 };
 
 // ============================================================================

@@ -38,6 +38,10 @@
 
 //! @def FOG_OS_POSIX
 //! @brief Portable check if operating system is like unix (linux, freebsd, ...)
+//!
+//! @note Posix is always defined if Fog is not compiled for Windows. We treat
+//! all other operating systems as posix and we use posix API a lot. Differences
+//! are usually handled in places where needed (Linux/BSD/MacOSX specific code)
 
 #if !defined(FOG_OS_WINDOWS)
 # define FOG_OS_POSIX
@@ -244,12 +248,18 @@
 
 //! @def FOG_FASTCALL
 //! @brief Two first arguments of function will be registers, for small functions.
+//!
+//! @note Only valid for 32-bit x86 targets.
 
 //! @def FOG_STDCALL
 //! @brief No register arguments, just push and pop.
+//!
+//! @note Only valid for 32-bit x86 targets.
 
 //! @def FOG_CDECL
-//! @brief FIXME: To be documented...
+//! @brief Standard C function declaration.
+//!
+//! @note Only valid for 32-bit x86 targets.
 
 //! @def FOG_HIDDEN
 //! @brief Symbol will not be exported to library / executable.
@@ -447,21 +457,6 @@
 #define FOG_INIT_DECLARE FOG_INIT_DECLARE_BASE(FOG_API)
 
 //! @}
-
-// ============================================================================
-// [Compiler Intrinsics]
-// ============================================================================
-
-#define FOG_MMX_INTRIN_H <mmintrin.h>
-#define FOG_3DNOW_INTRIN_H <mm3dnow.h>
-#define FOG_SSE_INTRIN_H <xmmintrin.h>
-#define FOG_SSE2_INTRIN_H <emmintrin.h>
-
-#if defined(_MSC_VER)
-#define FOG_SSE3_INTRIN_H <intrin.h>
-#else
-#define FOG_SSE3_INTRIN_H <pmmintrin.h>
-#endif
 
 // ============================================================================
 // [Headers]
@@ -787,18 +782,12 @@ struct fog_if<false, _Then, _Else> { typedef _Else ret; };
 #endif
 
 #if defined(FOG_HARDCODE_SSE)
-#include FOG_SSE_INTRIN_H
+# include <xmmintrin.h>
 #endif // FOG_HARDCODE_SSE
 
 #if defined(FOG_HARDCODE_SSE2)
-#include FOG_SSE2_INTRIN_H
+# include <emmintrin.h>
 #endif // FOG_HARDCODE_SSE2
-
-#if defined(FOG_ARCH_X86) && FOG_ARCH_BITS == 32
-# define FOG_OPTIMIZEDCALL FOG_FASTCALL
-#else
-# define FOG_OPTIMIZEDCALL
-#endif
 
 //! Usage:
 //!

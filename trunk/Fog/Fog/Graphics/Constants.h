@@ -59,42 +59,33 @@ enum GraphicsError
 namespace Fog {
 
 //! @brief Image operators.
-enum Op
+enum CompositeOp
 {
-  // These are for images without alpha value, but
-  // Can be used on images with alpha value too!
-  OpCombine = 0,
+  CompositeSrc,
+  CompositeDest,
+  CompositeOver,
+  CompositeOverReverse,
+  CompositeIn,
+  CompositeInReverse,
+  CompositeOut,
+  CompositeOutReverse,
+  CompositeAtop,
+  CompositeAtopReverse,
+  CompositeXor,
+  CompositeClear,
 
-  // Internal SubOp. Used for OpCombine in situation that source has
-  // alpha channel, so the result is alpha-blending.
-  _OpCombineBlend = 1,
-  // Internal SubOp. Used for OpCombine in situation that source is full
-  // opaque (alpha == 255 or simply there is no alpha channel)
-  _OpCombineCopy = 2,
+  CompositeAdd,
+  CompositeSubtract,
+  CompositeMultiply,
+  CompositeScreen,
+  CompositeDarken,
+  CompositeLighten,
+  CompositeDifference,
+  CompositeExclusion,
+  CompositeInvert,
+  CompositeInvertRgb,
 
-  // These are for images with alpha value
-  // (can't be used on NON alpha images)
-  OpCompositeClear,
-  OpCompositeSrc,
-  OpCompositeDest,
-  OpCompositeOver,
-  OpCompositeOverReverse,
-  OpCompositeIn,
-  OpCompositeInReverse,
-  OpCompositeOut,
-  OpCompositeOutReverse,
-  OpCompositeAtop,
-  OpCompositeAtopReverse,
-  OpCompositeXor,
-  OpCompositeAdd,
-  OpCompositeSaturate,
-
-  // for Fog
-  _OpCompositeEnd,
-  _OpCompositeBegin = OpCompositeClear,
-
-  _OpCombineCount = 3,
-  _OpEnd = _OpCompositeEnd
+  CompositeCount
 };
 
 //! @brief Type of image masks.

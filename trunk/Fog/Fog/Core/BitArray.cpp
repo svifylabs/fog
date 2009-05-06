@@ -58,7 +58,7 @@ static sysuint_t getOptimalCapacity(sysuint_t capacity, sysuint_t need)
 
   sysuint_t result = capacity;
 
-  if (result <= 1024*1024*64) result <<= 1;
+  if (result <= 1024*1024*8) result <<= 1;
   if (result < need) result = need;
 
   return result;
