@@ -85,7 +85,6 @@ uint8_t Palette::findColor(uint8_t r, uint8_t g, uint8_t b) const
 
   int i;
   int smallest = INT_MAX;
-  int rd, gd, bd;
 
   const Rgba* data = _d->data;
 

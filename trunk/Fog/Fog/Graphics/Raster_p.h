@@ -898,6 +898,13 @@ static FOG_INLINE uint32_t alphamul(uint32_t x, uint32_t a)
 // x_c = (x_c * a) / 255
 static FOG_INLINE uint32_t bytemul(uint32_t x, uint32_t a)
 {
+#if FOG_ARCH_BITS == 64
+  uint64_t x0 = ((uint64_t)x | ((uint64_t)x << 24)) & FOG_UINT64_C(0x00FF00FF00FF00FF);
+  x0 *= a;
+  x0 = (x0 + ((x0 >> 8) & FOG_UINT64_C(0x00FF00FF00FF00FF)) + FOG_UINT64_C(0x0080008000800080)) >> 8;
+  x0 &= FOG_UINT64_C(0x00FF00FF00FF00FF);
+  return (uint32_t)(x0 | (x0 >> 24));
+#else
   uint32_t t0 = ((x & 0x00FF00FF)     ) * a;
   uint32_t t1 = ((x & 0xFF00FF00) >> 8) * a;
 
@@ -905,11 +912,22 @@ static FOG_INLINE uint32_t bytemul(uint32_t x, uint32_t a)
   x |= ((t1 + ((t1 >> 8) & 0x00FF00FF) + 0x00800080)     ) & 0xFF00FF00;
 
   return x;
+#endif
 }
 
 // x_c = min(x_c + y_c, 255)
 static FOG_INLINE uint32_t byteadd(uint32_t x, uint32_t y)
 {
+#if FOG_ARCH_BITS == 64
+  uint64_t x0 = ((uint64_t)x | ((uint64_t)x << 24)) & FOG_UINT64_C(0x00FF00FF00FF00FF);
+  uint64_t y0 = ((uint64_t)y | ((uint64_t)y << 24)) & FOG_UINT64_C(0x00FF00FF00FF00FF);
+
+  x0 += y0;
+  x0 |= FOG_UINT64_C(0x0100010001000100) - ((x0 >> 8) & FOG_UINT64_C(0x00FF00FF00FF00FF));
+  x0 &= FOG_UINT64_C(0x00FF00FF00FF00FF);
+
+  return (uint32_t)(x0 | (x0 >> 24));
+#else
   uint32_t t0 = (x & 0x00FF00FF);
   uint32_t t1 = (x & 0xFF00FF00) >> 8;
 
@@ -923,11 +941,26 @@ static FOG_INLINE uint32_t byteadd(uint32_t x, uint32_t y)
   t1 &= 0x00FF00FF;
 
   return t0 | (t1 << 8);
+#endif
 }
 
 // x_c = (x_c * a) / 255 + y
 static FOG_INLINE uint32_t bytemuladd(uint32_t x, uint32_t a, uint32_t y)
 {
+#if FOG_ARCH_BITS == 64
+  uint64_t x0 = ((uint64_t)x | ((uint64_t)x << 24)) & FOG_UINT64_C(0x00FF00FF00FF00FF);
+  uint64_t y0 = ((uint64_t)y | ((uint64_t)y << 24)) & FOG_UINT64_C(0x00FF00FF00FF00FF);
+
+  x0 *= a;
+  x0 = (x0 + ((x0 >> 8) & FOG_UINT64_C(0x00FF00FF00FF00FF)) + FOG_UINT64_C(0x0080008000800080)) >> 8;
+  x0 &= FOG_UINT64_C(0x00FF00FF00FF00FF);
+
+  x0 += y0;
+  x0 |= FOG_UINT64_C(0x0100010001000100) - ((x0 >> 8) & FOG_UINT64_C(0x00FF00FF00FF00FF));
+  x0 &= FOG_UINT64_C(0x00FF00FF00FF00FF);
+
+  return (uint32_t)(x0 | (x0 >> 24));
+#else
   uint32_t t0 = ((x & 0x00FF00FF)     ) * a;
   uint32_t t1 = ((x & 0xFF00FF00) >> 8) * a;
 
@@ -944,13 +977,8 @@ static FOG_INLINE uint32_t bytemuladd(uint32_t x, uint32_t a, uint32_t y)
   t1 &= 0x00FF00FF;
 
   return t0 | (t1 << 8);
+#endif
 }
-
-//  x_c = (x_c * a + y_c * b) / 255
-//static FOG_INLINE uint32_t byteaddmul(uint32_t x, uint32_t a, uint32_t y, uint32_t b)
-//{
-//   same as interpolate_255
-//}
 
 static FOG_INLINE uint32_t byteaddmul(
   uint32_t x0, uint32_t a0,
@@ -981,6 +1009,8 @@ static FOG_INLINE uint32_t byteaddmul_div256(
   return x0;
 }
 
+#if 0
+// Currently not used.
 // x_c = (x_c * a_c) / 255
 static FOG_INLINE uint32_t bytemulC(uint32_t x, uint32_t a)
 {
@@ -1059,52 +1089,7 @@ static FOG_INLINE uint32_t byteaddmulC(uint32_t x, uint32_t a, uint32_t y, uint3
 
   return x | t;
 }
-/*
-#define IntMult(a, b, t) ( (t) = (a) * (b) + 0x80, ( ( ( (t)>>8 ) + (t) )>>8 ) )
-#define IntDiv(a,b)    (((uint16_t) (a) * 0xFF) / (b))
-
-#define GetComp(v, i)   ((uint16_t) (uint8_t) ((v) >> i))
-
-#define Add(x,y,i,t)   ((t) = GetComp(x,i) + GetComp(y,i),              \
-                        (uint32_t) ((uint8_t) ((t) | (0 - ((t) >> 8)))) << (i))
-
-#define FbGen(x,y,i,ax,ay,t,u,v) ((t) = (IntMult(GetComp(y,i),ay,(u)) + \
-					 IntMult(GetComp(x,i),ax,(v))), \
-				  (uint32_t) ((uint8_t) ((t) |		\
-							 (0 - ((t) >> 8)))) << (i))
-*/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#endif
 
 // ============================================================================
 // [Fog::Raster - Premultiply / Demultiply]
@@ -1112,6 +1097,15 @@ static FOG_INLINE uint32_t byteaddmulC(uint32_t x, uint32_t a, uint32_t y, uint3
 
 static FOG_INLINE uint32_t premultiply(uint32_t x)
 {
+#if FOG_ARCH_BITS == 64
+  uint32_t a = x >> 24;
+  uint64_t x0 = ((uint64_t)x | ((uint64_t)x << 24)) & FOG_UINT64_C(0x000000FF00FF00FF);
+  x0 |= FOG_UINT64_C(0x00FF000000000000);
+  x0 *= a;
+  x0 = (x0 + ((x0 >> 8) & FOG_UINT64_C(0x00FF00FF00FF00FF)) + FOG_UINT64_C(0x0080008000800080)) >> 8;
+  x0 &= FOG_UINT64_C(0x00FF00FF00FF00FF);
+  return (uint32_t)(x0 | (x0 >> 24));
+#else
   uint32_t a = x >> 24;
   uint32_t t0 = (x & 0x00FF00FF) * a;
   uint32_t t1 = (x & 0x0000FF00) * a;
@@ -1120,6 +1114,7 @@ static FOG_INLINE uint32_t premultiply(uint32_t x)
   t1 = ((t1 + ((t1 >> 8) & 0x0000FF00) + 0x00008000) >> 8) & 0x0000FF00;
 
   return t0 | t1 | (a << 24);
+#endif
 }
 
 static FOG_INLINE uint32_t demultiply(uint32_t x)
@@ -1149,7 +1144,7 @@ static FOG_INLINE uint32_t blend_over_nonpremultiplied(uint32_t dst, uint32_t sr
   return dst + src;
 }
 
-static FOG_INLINE uint32_t blend_over_src_premultiplied(uint32_t dst, uint32_t src, uint32_t a)
+static FOG_INLINE uint32_t blend_over_srcpremultiplied(uint32_t dst, uint32_t src, uint32_t a)
 {
   dst = bytemul(dst & 0x00FFFFFF, 255 - a);
   return dst + src;
@@ -1161,60 +1156,6 @@ static FOG_INLINE uint32_t blend_lerp(uint32_t dst, uint32_t src, uint32_t a)
   src = bytemul(src, a);
   return dst + src;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // ============================================================================
 // [Fog::Raster - PixFmt_ARGB32]
@@ -1576,105 +1517,6 @@ struct FOG_HIDDEN PixFmt_A8
     p[0] = (uint8_t)s0;
   }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // ============================================================================
 // [Fog::Raster - BresenhamLineIterator]
