@@ -134,9 +134,6 @@ typedef Char16 CharW;
 typedef Char32 CharW;
 #endif // FOG_SIZEOF_WCHAR_T
 
-// FIXME: Disable this to make sources clean
-// typedef Char32 Char;
-
 // ============================================================================
 // [Unicode Constants]
 // ============================================================================

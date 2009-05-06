@@ -17,6 +17,7 @@
 //# define FOG_UISYSTEM_X11_API FOG_DLL_IMPORT
 //#endif // Fog_EXPORTS
 
+#include <Fog/Core/Atomic.h>
 #include <Fog/Core/Object.h>
 #include <Fog/Graphics/Geometry.h>
 #include <Fog/UI/Constants.h>
@@ -174,6 +175,9 @@ struct FOG_UISYSTEM_X11_API UISystemX11 : public UISystemDefault
   XColormap _colormap;
   XID _root;
   GC _gc;
+
+  //! @brief Pipe to wake up event loop.
+  int _wakeUpPipe[2];
 
   uint32_t _xShm : 1;
   uint32_t _xPrivateColormap : 1;
@@ -471,7 +475,7 @@ struct FOG_UISYSTEM_X11_API UIBackingStoreX11 : public UIBackingStore
   UIBackingStoreX11();
   virtual ~UIBackingStoreX11();
 
-  virtual bool resize(uint width, uint height, bool cache);
+  virtual bool resize(int width, int height, bool cache);
   virtual void destroy();
   virtual void updateRects(const Box* rects, sysuint_t count);
 
@@ -531,7 +535,11 @@ protected:
     int runDepth;
   };
 
+  void sendWakeUp();
+
 private:
+  Atomic<int> _wakeUpSent;
+
   //! @brief The time at which we should call @c scheduleDelayedWork().
   Time _delayedWorkTime;
 

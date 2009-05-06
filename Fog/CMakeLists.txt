@@ -55,10 +55,22 @@ Include_Directories(${FOG_AGG_DIR}/include)
 # [CFlags]
 # =============================================================================
 
-Set(FOG_OPTIMIZED_CFLAGS "")
+Set(FOG_CFLAGS_O3 "")
+Set(FOG_CFLAGS_MMX "")
+Set(FOG_CFLAGS_SSE "")
+Set(FOG_CFLAGS_SSE2 "")
+Set(FOG_CFLAGS_SSE3 "")
 
 If(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
-  Set(FOG_OPTIMIZED_CFLAGS -O3)
+  Set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -fno-exceptions -fvisibility-inlines-hidden")
+  Set(FOG_CFLAGS_O3 "")
+  If(NOT ${CMAKE_BUILD_TYPE} MATCHES "Debug")
+    Set(FOG_CFLAGS_O3 "-O3")
+  EndIf(NOT ${CMAKE_BUILD_TYPE} MATCHES "Debug")
+  Set(FOG_CFLAGS_MMX "${FOG_CFLAGS_O3} -mmmx")
+  Set(FOG_CFLAGS_SSE "${FOG_CFLAGS_O3} -msse")
+  Set(FOG_CFLAGS_SSE2 "${FOG_CFLAGS_O3} -msse2")
+  Set(FOG_CFLAGS_SSE3 "${FOG_CFLAGS_O3} -msse3")
 EndIf(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
 
 # =============================================================================
@@ -359,8 +371,7 @@ SOURCE_GROUP(Cpu FILES
 # Fog/Graphics Sources
 Set(FOG_GRAPHICS_SOURCES
   ${FOG_DIR}/Fog/Graphics/AffineMatrix.cpp
-  ${FOG_DIR}/Fog/Graphics/Converter.cpp
-  ${FOG_DIR}/Fog/Graphics/Dither.cpp
+  ${FOG_DIR}/Fog/Graphics/DitherMatrix.cpp
   ${FOG_DIR}/Fog/Graphics/Font.cpp
   ${FOG_DIR}/Fog/Graphics/Font_FreeType.cpp
   ${FOG_DIR}/Fog/Graphics/Font_Win.cpp
@@ -370,22 +381,21 @@ Set(FOG_GRAPHICS_SOURCES
   ${FOG_DIR}/Fog/Graphics/GlyphSet.cpp
   ${FOG_DIR}/Fog/Graphics/Gradient.cpp
   ${FOG_DIR}/Fog/Graphics/Image.cpp
-  ${FOG_DIR}/Fog/Graphics/ImageFormat.cpp
   ${FOG_DIR}/Fog/Graphics/ImageIO.cpp
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_BMP.cpp
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_GIF.cpp
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_JPEG.cpp
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_PCX.cpp
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_PNG.cpp
-  ${FOG_DIR}/Fog/Graphics/ImageScale.cpp
   ${FOG_DIR}/Fog/Graphics/Painter.cpp
   ${FOG_DIR}/Fog/Graphics/PainterUtil.cpp
   ${FOG_DIR}/Fog/Graphics/Palette.cpp
   ${FOG_DIR}/Fog/Graphics/Path.cpp
   ${FOG_DIR}/Fog/Graphics/Pattern.cpp
-  ${FOG_DIR}/Fog/Graphics/Raster.cpp
-  ${FOG_DIR}/Fog/Graphics/Raster_MMX.cpp
-  ${FOG_DIR}/Fog/Graphics/Raster_SSE2.cpp
+  ${FOG_DIR}/Fog/Graphics/Raster_p.cpp
+  ${FOG_DIR}/Fog/Graphics/Raster_BlitJit_p.cpp
+  ${FOG_DIR}/Fog/Graphics/Raster_MMX_p.cpp
+  ${FOG_DIR}/Fog/Graphics/Raster_SSE2_p.cpp
   ${FOG_DIR}/Fog/Graphics/Reduce.cpp
   ${FOG_DIR}/Fog/Graphics/Region.cpp
   ${FOG_DIR}/Fog/Graphics/RegionPoly.cpp
@@ -399,8 +409,8 @@ Set(FOG_GRAPHICS_HEADERS
   ${FOG_DIR}/Fog/Graphics.h
   ${FOG_DIR}/Fog/Graphics/AffineMatrix.h
   ${FOG_DIR}/Fog/Graphics/Constants.h
-  ${FOG_DIR}/Fog/Graphics/Converter.h
-  ${FOG_DIR}/Fog/Graphics/Dither.h
+  ${FOG_DIR}/Fog/Graphics/DitherMatrix.h
+  ${FOG_DIR}/Fog/Graphics/Error.h
   ${FOG_DIR}/Fog/Graphics/Fixed.h
   ${FOG_DIR}/Fog/Graphics/Font.h
   ${FOG_DIR}/Fog/Graphics/Font_Win.h
@@ -411,22 +421,21 @@ Set(FOG_GRAPHICS_HEADERS
   ${FOG_DIR}/Fog/Graphics/GlyphSet.h
   ${FOG_DIR}/Fog/Graphics/Gradient.h
   ${FOG_DIR}/Fog/Graphics/Image.h
-  ${FOG_DIR}/Fog/Graphics/ImageFormat.h
   ${FOG_DIR}/Fog/Graphics/ImageIO.h
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_BMP.h
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_GIF.h
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_JPEG.h
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_PCX.h
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_PNG.h
-  ${FOG_DIR}/Fog/Graphics/ImageScale.h
   ${FOG_DIR}/Fog/Graphics/Painter.h
   ${FOG_DIR}/Fog/Graphics/PainterUtil.h
   ${FOG_DIR}/Fog/Graphics/Palette.h
   ${FOG_DIR}/Fog/Graphics/Path.h
   ${FOG_DIR}/Fog/Graphics/Pattern.h
-  ${FOG_DIR}/Fog/Graphics/Raster.h
-  ${FOG_DIR}/Fog/Graphics/Raster_MMX.h
-  ${FOG_DIR}/Fog/Graphics/Raster_SSE2.h
+  ${FOG_DIR}/Fog/Graphics/Raster_p.h
+  ${FOG_DIR}/Fog/Graphics/Raster_BlitJit_p.h
+  ${FOG_DIR}/Fog/Graphics/Raster_MMX_p.h
+  ${FOG_DIR}/Fog/Graphics/Raster_SSE2_p.h
   ${FOG_DIR}/Fog/Graphics/Reduce.h
   ${FOG_DIR}/Fog/Graphics/Region.h
   ${FOG_DIR}/Fog/Graphics/Rgba.h
@@ -599,12 +608,13 @@ SOURCE_GROUP(3rdparty_agg FILES
   ${FOG_AGG_HEADERS})
 
 # Optimize specific files for speed
-Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Converter.cpp PROPERTIES COMPILE_FLAGS ${FOG_OPTIMIZED_CFLAGS})
-Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Painter.cpp PROPERTIES COMPILE_FLAGS ${FOG_OPTIMIZED_CFLAGS})
-Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Raster.cpp PROPERTIES COMPILE_FLAGS ${FOG_OPTIMIZED_CFLAGS})
-Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Raster_MMX.cpp PROPERTIES COMPILE_FLAGS ${FOG_OPTIMIZED_CFLAGS})
-Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Raster_SSE2.cpp PROPERTIES COMPILE_FLAGS ${FOG_OPTIMIZED_CFLAGS})
-Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Region.cpp PROPERTIES COMPILE_FLAGS ${FOG_OPTIMIZED_CFLAGS})
+Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Converter.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_O3}")
+Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Image.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_O3}")
+Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Painter.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_O3}")
+Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Raster.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_O3}")
+Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Raster_MMX.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_MMX}")
+Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Raster_SSE2.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE2}")
+Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Region.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_O3}")
 
 # =============================================================================
 # [Fog/UI] Part

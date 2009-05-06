@@ -29,8 +29,6 @@ FOG_CAPI_EXTERN void fog_debug(const char* format, ...);
 FOG_CAPI_EXTERN void FOG_NO_RETURN fog_assertion(const char* file, int line, const char* msg);
 FOG_CAPI_EXTERN void FOG_NO_RETURN fog_fail(const char* format, ...);
 
-FOG_CAPI_EXTERN sysuint_t fog_grow_size(sysuint_t sizeof_d, sysuint_t sizeof_element, sysuint_t before, sysuint_t after);
-
 FOG_CAPI_EXTERN void fog_sleep(uint32_t msecs);
 
 typedef int (*fog_qsort_callback)(const void*, const void*);

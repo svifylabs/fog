@@ -21,7 +21,7 @@ enum _LinkerInitialized { LinkerInitialized };
 
 enum AllocPolicy { AllocCantFail = 0, AllocCanFail = 1 };
 
-// [Fog::[] constants]
+// [Fog::Array constants]
 
 static const sysuint_t DetectLength  = (sysuint_t)-1;
 static const sysuint_t InvalidIndex  = (sysuint_t)-1;

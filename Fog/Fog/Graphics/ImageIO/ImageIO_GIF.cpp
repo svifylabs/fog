@@ -21,7 +21,7 @@
 #include <Fog/Core/Strings.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/ImageIO/ImageIO_GIF.h>
-#include <Fog/Graphics/Converter.h>
+#include <Fog/Graphics/Raster_p.h>
 
 #include <string.h>
 
@@ -2055,35 +2055,38 @@ static int EGifPutCodeNext(GifFileType* GifFile, const uint8_t* CodeBlock)
  *****************************************************************************/
 static int EGifCloseFile(GifFileType * GifFile)
 {
-    uint8_t Buf;
+  uint8_t Buf;
 
-    if (GifFile == NULL) return GIF_ERROR;
+  if (GifFile == NULL) return GIF_ERROR;
 
-    if (!IS_WRITEABLE(GifFile)) {
-        /* This file was NOT open for writing: */
-        _GifError = E_GIF_ERR_NOT_WRITEABLE;
-        return GIF_ERROR;
-    }
+  if (!IS_WRITEABLE(GifFile)) {
+      /* This file was NOT open for writing: */
+      _GifError = E_GIF_ERR_NOT_WRITEABLE;
+      return GIF_ERROR;
+  }
 
-    Buf = ';';
-    WRITE(GifFile, &Buf, 1);
+  Buf = ';';
+  WRITE(GifFile, &Buf, 1);
 
-    if (GifFile->Image.ColorMap)
+  if (GifFile->Image.ColorMap)
   {
-        FreeMapObject(GifFile->Image.ColorMap);
-        GifFile->Image.ColorMap = NULL;
-    }
-    if (GifFile->SColorMap)
+    FreeMapObject(GifFile->Image.ColorMap);
+    GifFile->Image.ColorMap = NULL;
+  }
+
+  if (GifFile->SColorMap)
   {
-        FreeMapObject(GifFile->SColorMap);
-        GifFile->SColorMap = NULL;
-    }
+    FreeMapObject(GifFile->SColorMap);
+    GifFile->SColorMap = NULL;
+  }
+
   if (GifFile->HashTable)
   {
     Fog::Memory::free(GifFile->HashTable);
   }
-    Fog::Memory::free(GifFile);
-    return GIF_OK;
+
+  Fog::Memory::free(GifFile);
+  return GIF_OK;
 }
 
 /******************************************************************************
@@ -2418,11 +2421,11 @@ static int EGifSpew(GifFileType * GifFileOut)
 }
 
 namespace Fog {
-  
-// [Fog::ImageIO::]
 namespace ImageIO {
 
+// ============================================================================
 // [Fog::ImageIO::GifProvider]
+// ============================================================================
 
 struct GifProvider : public Provider
 {
@@ -2487,7 +2490,9 @@ DecoderDevice* GifProvider::createDecoder()
   return new GifDecoderDevice();
 }
 
+// ============================================================================
 // [Fog::ImageIO::GifDecoderDevice]
+// ============================================================================
 
 GifDecoderDevice::GifDecoderDevice() :
   _context(NULL)
@@ -2540,7 +2545,7 @@ uint32_t GifDecoderDevice::readHeader()
   _actualFrame = 0;
   _framesCount = 0xFFFFFFFF;
 
-  _format.set(ImageFormat::I8);
+  _format = Image::FormatI8;
 
   // success
   return (_headerResult = Error::Ok);
@@ -2551,17 +2556,17 @@ uint32_t GifDecoderDevice::readImage(Image& image)
   // read gif header
   if (readHeader() != Error::Ok) return headerResult();
 
-  GifFileType     *gif = (GifFileType*)_context;
-  uint32_t        *ptr;
-  GifRowType      *rows = NULL;
-  GifRecordType    rec;
-  ColorMapObject  *cmap;
-  int              i, j, done = 0, bg, r, g, b, w = 0, h = 0;
-  int              intoffset[] = { 0, 4, 2, 1 };
-  int              intjump[] = { 8, 8, 4, 2 };
-  int              transp = -1;
-  uint32_t         error = Error::Ok;
-  uint32_t         format = ImageFormat::XRGB32;
+  GifFileType *gif = (GifFileType*)_context;
+  uint32_t *ptr;
+  GifRowType *rows = NULL;
+  GifRecordType rec;
+  ColorMapObject *cmap;
+  int i, j, done = 0, bg, r, g, b, w = 0, h = 0;
+  int intoffset[] = { 0, 4, 2, 1 };
+  int intjump[] = { 8, 8, 4, 2 };
+  int transp = -1;
+  err_t error = Error::Ok;
+  int format = Image::FormatRGB32;
 
   do {
     if (DGifGetRecordType(gif, &rec) == GIF_ERROR)
@@ -2630,12 +2635,8 @@ uint32_t GifDecoderDevice::readImage(Image& image)
     }
   } while (rec != TERMINATE_RECORD_TYPE && !done);
 
-  if (transp >= 0) format = ImageFormat::ARGB32;
-  if (!image.create(w, h, ImageFormat(format)))
-  {
-    error = Error::OutOfMemory;
-    goto end;
-  }
+  if (transp >= 0) format = Image::FormatARGB32;
+  if ((error = image.create(w, h, format))) goto end;
 
   bg = gif->SBackGroundColor;
   cmap = (gif->Image.ColorMap ? gif->Image.ColorMap : gif->SColorMap);
@@ -2674,7 +2675,9 @@ end:
   return error;
 }
 
+// ============================================================================
 // [Fog::ImageIO::GifEncoderDevice]
+// ============================================================================
 
 // TODO
 GifEncoderDevice::GifEncoderDevice()
@@ -2691,12 +2694,13 @@ uint32_t GifEncoderDevice::writeImage(const Image& image)
   return 0;
 }
 
-// [Fog::ImageIO::]
-}
-
+} // ImageIO namespace
 } // Fog namespace
 
+// ============================================================================
 // [CAPI]
+// ============================================================================
+
 FOG_CAPI_DECLARE Fog::ImageIO::Provider* fog_imageio_getGifProvider(void)
 {
   return new Fog::ImageIO::GifProvider();

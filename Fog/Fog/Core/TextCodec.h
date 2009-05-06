@@ -11,7 +11,6 @@
 #include <Fog/Build/Build.h>
 #include <Fog/Core/Atomic.h>
 #include <Fog/Core/Char.h>
-#include <Fog/Core/RefData.h>
 #include <Fog/Core/TypeInfo.h>
 #include <Fog/Core/String.h>
 

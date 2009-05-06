@@ -13,11 +13,11 @@
 #if defined(FOG_HAVE_JPEGLIB_H)
 
 namespace Fog {
-
-// [Fog::ImageIO::]
 namespace ImageIO {
 
+// ============================================================================
 // [Fog::ImageIO::JpegDecoderDevice]
+// ============================================================================
 
 struct FOG_API JpegDecoderDevice : public DecoderDevice
 {
@@ -30,7 +30,9 @@ public:
   virtual uint32_t readImage(Image& image);
 };
 
+// ============================================================================
 // [Fog::ImageIO::JpegEncoderDevice]
+// ============================================================================
 
 struct FOG_API JpegEncoderDevice : public EncoderDevice
 {
@@ -40,9 +42,7 @@ struct FOG_API JpegEncoderDevice : public EncoderDevice
   virtual uint32_t writeImage(const Image& image);
 };
 
-// [Fog::ImageIO::]
-}
-
+} // ImageIO namespace
 } // Fog namespace
 
 #endif // FOG_HAVE_JPEGLIB_H

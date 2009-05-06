@@ -25,6 +25,7 @@ enum UIError {
   UISystemX11_CantLoadXrender,
   UISystemX11_CantLoadXrenderSymbol,
   UISystemX11_CantOpenDisplay,
+  UISystemX11_CantCreatePipe,
   UISystemX11_CantCreateColormap,
   UISystemX11_TextListToTextPropertyFailed,
   UIWindowAlreadyExists

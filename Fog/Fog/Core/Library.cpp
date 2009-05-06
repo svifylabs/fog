@@ -115,24 +115,24 @@ const Char8* Library::systemSuffix;
 const Char8* Library::systemExtension;
 
 Library::Library() :
-  _d(sharedNull.instancep()->REF_ALWAYS())
+  _d(sharedNull->refAlways())
 {
 }
 
 Library::Library(const Library& other) :
-  _d(other._d->REF_ALWAYS())
+  _d(other._d->ref())
 {
 }
 
 Library::Library(const String32& fileName, uint32_t openFlags) :
-  _d(sharedNull.instancep()->REF_ALWAYS())
+  _d(sharedNull->refAlways())
 {
   open(fileName, openFlags);
 }
 
 Library::~Library()
 {
-  _d->DEREF_INLINE();
+  _d->deref();
 }
 
 err_t Library::open(const String32& _fileName, uint32_t openFlags)
@@ -157,8 +157,15 @@ err_t Library::open(const String32& _fileName, uint32_t openFlags)
   void* handle;
   if ( (err = platformOpenLibrary(fileName, &handle)) ) return err;
 
-  AtomicBase::ptr_setXchg(&_d, Data::create())->DEREF_INLINE();
-  _d->handle = handle;
+  Data* newd = Data::alloc();
+  if (!newd)
+  {
+    platformCloseLibrary(handle);
+    return Error::OutOfMemory;
+  }
+  newd->handle = handle;
+
+  AtomicBase::ptr_setXchg(&_d, newd)->deref();
   return Error::Ok;
 }
 
@@ -185,7 +192,7 @@ err_t Library::openPlugin(const String32& category, const String32& fileName)
 
 void Library::close()
 {
-  AtomicBase::ptr_setXchg(&_d, sharedNull->REF_ALWAYS())->DEREF_INLINE();
+  AtomicBase::ptr_setXchg(&_d, sharedNull->refAlways())->deref();
 }
 
 void* Library::symbol(const char* symbolName)
@@ -238,7 +245,7 @@ end:
 
 Library& Library::operator=(const Library& other)
 {
-  AtomicBase::ptr_setXchg(&_d, sharedNull->REF_ALWAYS())->DEREF_INLINE();
+  AtomicBase::ptr_setXchg(&_d, sharedNull->refAlways())->deref();
   return *this;
 }
 
@@ -282,17 +289,28 @@ bool Library::hasPath(const String32& path)
 
 Static<Library::Data> Library::sharedNull;
 
-void Library::Data::free()
+Library::Data* Library::Data::ref() const
 {
-  if (handle) platformCloseLibrary(handle);
-  Memory::free(this);
+  return refAlways();
 }
 
-Library::Data* Library::Data::create()
+void Library::Data::deref()
 {
-  Data* d = (Data*)Memory::xalloc(sizeof(Data));
+  if (refCount.deref())
+  {
+    if (handle) platformCloseLibrary(handle);
+    Memory::free(this);
+  }
+}
+
+Library::Data* Library::Data::alloc()
+{
+  Data* d = (Data*)Memory::alloc(sizeof(Data));
+  if (!d) return NULL;
+
   d->refCount.init(1);
   d->handle = NULL;
+
   return d;
 }
 

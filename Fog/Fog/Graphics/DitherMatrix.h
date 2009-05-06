@@ -4,8 +4,8 @@
 // MIT, See COPYING file in package
 
 // [Guard]
-#ifndef _FOG_GRAPHICS_DITHER_H
-#define _FOG_GRAPHICS_DITHER_H
+#ifndef _FOG_GRAPHICS_DITHERMATRIX_H
+#define _FOG_GRAPHICS_DITHERMATRIX_H
 
 // [Dependencies]
 #include <Fog/Build/Build.h>
@@ -13,7 +13,7 @@
 namespace Fog {
 
 // ============================================================================
-// [Fog::Dither]
+// [Fog::DitherMatrix]
 // ============================================================================
 
 //! @brief Functions and tables that can be used to dithering
@@ -26,7 +26,7 @@ namespace Fog {
 //! @note Dithering can be configured to use small dithering tables
 //! instead of large ones that can save 16kb of library size. Default
 //! are large dithering tables that produces better images.
-struct FOG_API Dither
+struct FOG_API DitherMatrix
 {
   // [Constants]
 
@@ -50,7 +50,7 @@ struct FOG_API Dither
 
   // To find correct position in dithering table, use this formula:
   // table[X & Mask][Y & Mask]
-  static const uint8_t table[Size][Size];
+  static const uint8_t matrix[Size][Size];
 
   // [Helpers]
   //
@@ -78,4 +78,4 @@ struct FOG_API Dither
 } // Fog namespace
 
 // [Guard]
-#endif // _FOG_GRAPHICS_DITHER_H
+#endif // _FOG_GRAPHICS_DITHERMATRIX_H

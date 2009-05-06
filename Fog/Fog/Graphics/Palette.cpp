@@ -16,76 +16,134 @@
 
 namespace Fog {
 
+// ============================================================================
 // [Fog::Palette]
+// ============================================================================
 
-Fog::Static<Palette::Data> Palette::sharedNull;
-Fog::Static<Palette::Data> Palette::sharedGrey;
+Static<Palette::Data> Palette::sharedNull;
+Static<Palette::Data> Palette::sharedGrey;
 
-Palette::Palette() : _d(sharedNull.instancep()->REF_INLINE()) {}
-Palette::Palette(const Palette& other) : _d(other._d->REF_INLINE()) {}
+Palette::Palette() : _d(sharedNull->refAlways()) {}
+Palette::Palette(const Palette& other) : _d(other._d->refAlways()) {}
 Palette::Palette(Data* d) : _d(d) {}
 
 Palette::~Palette()
 {
-  _d->DEREF_INLINE();
+  _d->deref();
 }
 
-void Palette::_detach()
+err_t Palette::_detach()
 {
-  Data* newd = Data::copy(_d, Fog::AllocCantFail);
-  Fog::AtomicBase::ptr_setXchg(&_d, newd)->deref();
-}
+  if (isDetached()) return Error::Ok;
 
-bool Palette::_tryDetach()
-{
-  Data* newd = Data::copy(_d, Fog::AllocCanFail);
+  Data* newd = Data::copy(_d);
+  if (!newd) return Error::OutOfMemory;
 
-  if (newd)
-  {
-    Fog::AtomicBase::ptr_setXchg(&_d, newd)->deref();
-  }
-
-  return newd != 0;
+  AtomicBase::ptr_setXchg(&_d, newd)->deref();
+  return Error::Ok;
 }
 
 void Palette::free()
 {
-  _d->DEREF_INLINE();
-  _d = sharedNull.instancep()->REF_INLINE();
+  AtomicBase::ptr_setXchg(&_d, sharedNull->refAlways())->deref();
 }
 
-Palette& Palette::set(const Fog::Palette& other)
+void Palette::clear()
 {
-  if (isStrong() || !other.isSharable())
-    set(0, 256, other.cData());
+  if (isDetached())
+    Memory::zero(_d->data, 256 * sizeof(Rgba));
   else
-    Fog::AtomicBase::ptr_setXchg(&_d, other._d->ref())->deref();
-
-  return *this;
+    AtomicBase::ptr_setXchg(&_d, sharedNull->refAlways())->deref();
 }
 
-Palette& Palette::set(sysuint_t index, sysuint_t count, const Rgba* rgba)
+err_t Palette::set(const Palette& other)
 {
-  if (index > 255 || count == 0) return *this;
+  AtomicBase::ptr_setXchg(&_d, other._d->ref())->deref();
+  return Error::Ok;
+}
+
+err_t Palette::setDeep(const Palette& other)
+{
+  return set(0, 256, other.cData());
+}
+
+err_t Palette::set(sysuint_t index, sysuint_t count, const Rgba* rgba)
+{
+  if (index > 255 || count == 0) return Error::InvalidArgument;
   if (256 - index > count) count = 256 - index;
 
-  detach();
-  Fog::Memory::copy(_d->data + index, rgba, sizeof(Rgba) * count);
+  err_t err = detach();
+  if (err) return err;
 
-  return *this;
+  Memory::copy(_d->data + index, rgba, sizeof(Rgba) * count);
+  return Error::Ok;
 }
 
-Palette& Palette::greyscale()
+uint8_t Palette::findColor(uint8_t r, uint8_t g, uint8_t b) const
 {
-  if (isStrong())
+  uint8_t best = 0;
+
+  int i;
+  int smallest = INT_MAX;
+  int rd, gd, bd;
+
+  const Rgba* data = _d->data;
+
+  for (i = 0; i != 256; i++, data++)
   {
-    return set(0, 256, sharedGrey.instancep()->data);
+    int rd = (int)data->r - (int)r;
+    int gd = (int)data->g - (int)g;
+    int bd = (int)data->b - (int)b;
+
+    int dist = (rd * rd) + (gd * gd) + (bd * bd);
+    if (dist < smallest)
+    {
+      if (dist == 0) return i;
+      best = i;
+      smallest = dist;
+    }
   }
-  else
+  return best;
+}
+
+Palette Palette::greyscale()
+{
+  return Palette(sharedGrey->refAlways());
+}
+
+Palette Palette::colorCube(int nr, int ng, int nb)
+{
+  Palette pal;
+
+  if (nr <= 0 || ng <= 0 || nb <= 0) return pal;
+
+  Rgba* data = pal.mData();
+  if (data == NULL) return pal;
+
+  int i = 0, r, g, b;
+
+  for (r = 0; r < nr; r++)
   {
-    Fog::AtomicBase::ptr_setXchg(&_d, sharedGrey.instancep()->REF_ALWAYS())->deref();
-    return *this;
+    for (g = 0; g < ng; g++)
+    {
+      for (b = 0; b < nb; b++)
+      {
+        int palr = 0;
+        int palg = 0;
+        int palb = 0;
+
+        if (nr > 1) palr = (r * 255) / (nr - 1);
+        if (ng > 1) palg = (g * 255) / (ng - 1);
+        if (nb > 1) palb = (b * 255) / (nb - 1);
+
+        data[i] = Rgba(palr, palg, palb);
+        if (++i == 256) goto end;
+      }
+    }
   }
+
+end:
+  return pal;
 }
 
 // static
@@ -101,43 +159,39 @@ bool Palette::isGreyOnly(const Rgba* data, sysuint_t count)
   return i == 0;
 }
 
+// ============================================================================
 // [Fog::Palette::Data]
-Palette::Data* Palette::Data::ref()
+// ============================================================================
+
+Palette::Data* Palette::Data::ref() const
 {
-  return REF_INLINE();
+  return refAlways();
 }
 
 void Palette::Data::deref()
 {
-  DEREF_INLINE();
+  if (refCount.deref()) Memory::free(this);
 }
 
-Palette::Data* Palette::Data::create(uint allocPolicy)
+Palette::Data* Palette::Data::create()
 {
-  Data* d = (Data*)Fog::Memory::alloc(sizeof(Data));
+  Data* d = (Data*)Memory::alloc(sizeof(Data));
 
   if (d)
   {
     d->refCount.init(1);
-    d->flags.set(IsDynamic | IsSharable);
-  }
-  else if (allocPolicy == Fog::AllocCantFail)
-  {
-    fog_out_of_memory_fatal_format(
-      "Fog::Palette::Data", "create", 
-      "Couldn't allocate %lu bytes of memory for palette data", (ulong)sizeof(Data));
   }
 
   return d;
 }
 
-Palette::Data* Palette::Data::copy(const Data* other, uint allocPolicy)
+Palette::Data* Palette::Data::copy(const Data* other)
 {
-  Data* d = create(allocPolicy);
+  Data* d = create();
 
   if (d)
   {
-    Fog::Memory::copy(d->data, other->data, sizeof(Rgba) * 256);
+    Memory::copy(d->data, other->data, sizeof(Rgba) * 256);
   }
 
   return d;
@@ -153,22 +207,17 @@ FOG_INIT_DECLARE err_t fog_palette_init(void)
 {
   Fog::Palette::Data* d;
 
-  Fog::Palette::sharedNull.init();
-  Fog::Palette::sharedGrey.init();
+  Fog::Palette::sharedNull;
+  Fog::Palette::sharedGrey;
 
   // Setup null palette;
   d = Fog::Palette::sharedNull.instancep();
   d->refCount.init(1);
-  d->flags.init(
-    Fog::Palette::Data::IsSharable | 
-    Fog::Palette::Data::IsNull);
   Fog::Memory::zero(d->data, 256 * sizeof(Fog::Rgba));
 
   // Setup grey palette;
   d = Fog::Palette::sharedGrey.instancep();
   d->refCount.init(1);
-  d->flags.init(
-    Fog::Palette::Data::IsSharable);
 
   sysuint_t i;
   for (i = 0; i != 256; i++)
@@ -186,7 +235,5 @@ FOG_INIT_DECLARE err_t fog_palette_init(void)
 FOG_INIT_DECLARE void fog_palette_shutdown(void)
 {
   Fog::Palette::sharedGrey.instancep()->refCount.dec();
-  Fog::Palette::sharedGrey.destroy();
   Fog::Palette::sharedNull.instancep()->refCount.dec();
-  Fog::Palette::sharedNull.destroy();
 }

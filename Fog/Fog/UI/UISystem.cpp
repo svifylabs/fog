@@ -77,15 +77,24 @@ void UIBackingStore::_clear()
   _pixels = NULL;
   _width = 0;
   _height = 0;
+  _format = Image::FormatNull;
+  _depth = 0;
   _stride = 0;
-  _format.set(Fog::ImageFormat::Invalid);
+
   _widthOrig = 0;
   _heightOrig = 0;
+
   _pixelsPrimary = NULL;
   _stridePrimary = 0;
+
   _pixelsSecondary = NULL;
   _strideSecondary = 0;
-  _usingConverter = false;
+
+  _convertFunc = NULL;
+  _convertDepth = 0;
+
+  _created = TimeTicks();
+  _expires = TimeTicks();
 }
 
 } // Fog namespace

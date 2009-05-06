@@ -129,49 +129,6 @@ FOG_CAPI_DECLARE void FOG_NO_RETURN fog_fail(const char* format, ...)
   exit(EXIT_FAILURE);
 }
 
-// TODO: Remove
-FOG_CAPI_DECLARE sysuint_t fog_grow_size(sysuint_t sizeof_d, sysuint_t sizeof_element, sysuint_t before, sysuint_t after)
-{
-  // Threshold for excessive growing. If data size in memory is larger than this,
-  // grow will not be excessive but constant.
-  const sysuint_t minThreshold = 128;
-  const sysuint_t maxThreshold = 1024 * 1024 * 8;
-
-  FOG_ASSERT(before < after);
-
-  sysuint_t beforeSize = sizeof_d + before * sizeof_element;
-  sysuint_t afterSize = sizeof_d + after * sizeof_element;
-  sysuint_t recommend;
-
-  if (afterSize < minThreshold)
-  {
-    recommend = minThreshold;
-  }
-  else if (beforeSize < maxThreshold && afterSize < maxThreshold)
-  {
-    recommend = beforeSize;
-    while (recommend < afterSize) recommend += ((recommend + 2) >> 1);
-  }
-  else
-  {
-    recommend = fog_max(beforeSize + maxThreshold, afterSize);
-  }
-
-  recommend = (recommend + 15) & ~15;
-  recommend = ((recommend - sizeof_d) / sizeof_element) - before;
-
-  //FOG_ASSERT(recommend >= after);
-
-  return recommend;
-/*
-fail:
-  fog_fail(
-    "Wde_dataGrowing() - failed to calculate recommended allocation for these parameters:\n"
-    "sizeof(d)=%lu, sizeof(element)=%lu, before=%lu after=%lu",
-    sizeof_d, sizeof_element, before, after);
-*/
-}
-
 FOG_CAPI_DECLARE void fog_sleep(uint32_t msecs)
 {
 #if defined(FOG_OS_WINDOWS)

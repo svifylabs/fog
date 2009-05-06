@@ -25,22 +25,15 @@ struct FOG_API Region
 {
   // [Data]
 
-  struct FOG_API Data : public Fog::RefData<Data>
+  struct FOG_API Data : public RefData<Data>
   {
-    //! @brief Count of preallocated rectangles.
-    sysuint_t capacity;
-    //! @brief Count of used rectangles.
-    sysuint_t count;
-    //! @brief Region extents.
-    Box extents;
-    //! @brief Region rectangles, always YX sorted.
-    Box rects[1];
+    // [Ref / Deref]
 
     Data* ref();
     void deref();
 
     FOG_INLINE void destroy() {}
-    FOG_INLINE void free() { Fog::Memory::free(this); }
+    FOG_INLINE void free() { Memory::free(this); }
 
     static Data* adopt(void* address, sysuint_t capacity);
     static Data* adopt(void* address, sysuint_t capacity, const Box& r);
@@ -53,6 +46,17 @@ struct FOG_API Region
 
     static FOG_INLINE sysuint_t sizeFor(sysuint_t capacity)
     { return sizeof(Data) - sizeof(Box) + sizeof(Box) * capacity; }
+
+    // [Members]
+
+    //! @brief Count of preallocated rectangles.
+    sysuint_t capacity;
+    //! @brief Count of used rectangles.
+    sysuint_t count;
+    //! @brief Region extents.
+    Box extents;
+    //! @brief Region rectangles, always YX sorted.
+    Box rects[1];
   };
 
   static Fog::Static<Data> sharedNull;

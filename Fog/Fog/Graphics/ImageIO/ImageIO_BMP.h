@@ -12,11 +12,11 @@
 #include <Fog/Graphics/ImageIO.h>
 
 namespace Fog {
-
-// [Fog::ImageIO::]
 namespace ImageIO {
 
+// ============================================================================
 // [Fog::ImageIO::BmpHeader]
+// ============================================================================
 
 #include <Fog/Core/Pack.h>
 struct FOG_PACKED BmpHeader
@@ -45,7 +45,9 @@ struct FOG_PACKED BmpHeader
 };
 #include <Fog/Core/Unpack.h>
 
+// ============================================================================
 // [Fog::ImageIO::BMP_BI]
+// ============================================================================
 
 enum BMP_BI
 {
@@ -55,7 +57,9 @@ enum BMP_BI
   BMP_BI_BITFIELDS  = 3
 };
 
+// ============================================================================
 // [Fog::ImageIO::BMP_RLE]
+// ============================================================================
 
 enum BMP_RLE
 {
@@ -64,9 +68,11 @@ enum BMP_RLE
   BMP_RLE_MOVE      = 2
 };
 
+// ============================================================================
 // [Fog::ImageIO::BmpDecoderDevice]
+// ============================================================================
 
-struct FOG_API BmpDecoderDevice : public Fog::ImageIO::DecoderDevice
+struct FOG_API BmpDecoderDevice : public DecoderDevice
 {
 private:
   enum HeaderType
@@ -112,7 +118,7 @@ public:
 
   virtual void reset();
   virtual uint32_t readHeader();
-  virtual uint32_t readImage(Fog::Image& image);
+  virtual uint32_t readImage(Image& image);
 
   FOG_INLINE uint32_t bmpHeaderType() const { return _bmpHeaderType; }
   FOG_INLINE uint32_t bmpOffset() const { return _bmpOffset; }
@@ -139,27 +145,27 @@ private:
   // clear everything
   FOG_INLINE void zeroall()
   {
-    const ulong ddsize = sizeof(Fog::ImageIO::DecoderDevice);
+    const ulong ddsize = sizeof(DecoderDevice);
 
-    Fog::Memory::zero(
+    Memory::zero(
       (uint8_t*)this + ddsize, 
-      sizeof(Fog::ImageIO::BmpDecoderDevice) - ddsize);
+      sizeof(BmpDecoderDevice) - ddsize);
   }
 };
 
+// ============================================================================
 // [Fog::ImageIO::BmpEncoderDevice]
+// ============================================================================
 
-struct FOG_API BmpEncoderDevice : public Fog::ImageIO::EncoderDevice
+struct FOG_API BmpEncoderDevice : public EncoderDevice
 {
   BmpEncoderDevice();
   virtual ~BmpEncoderDevice();
 
-  virtual uint32_t writeImage(const Fog::Image& image);
+  virtual uint32_t writeImage(const Image& image);
 };
 
-// [Fog::ImageIO::]
-}
-
+} // ImageIO namespace
 } // Fog namespace
 
 // [Guard]

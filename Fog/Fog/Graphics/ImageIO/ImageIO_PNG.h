@@ -13,11 +13,11 @@
 #if defined(FOG_HAVE_PNG_H)
 
 namespace Fog {
-
-// [Fog::ImageIO::]
 namespace ImageIO {
 
+// ============================================================================
 // [Fog::ImageIO::PngDecoderDevice]
+// ============================================================================
 
 struct FOG_API PngDecoderDevice : public DecoderDevice
 {
@@ -40,7 +40,9 @@ private:
   void _deletePngStream();
 };
 
+// ============================================================================
 // [Fog::ImageIO::PngEncoderDevice]
+// ============================================================================
 
 struct FOG_API PngEncoderDevice : public EncoderDevice
 {
@@ -50,9 +52,7 @@ struct FOG_API PngEncoderDevice : public EncoderDevice
   virtual uint32_t writeImage(const Image& image);
 };
 
-// [Fog::ImageIO::]
-}
-
+} // ImageIO namespace
 } // Fog namespace
 
 #endif // FOG_HAVE_PNG_H

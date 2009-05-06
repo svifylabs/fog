@@ -21,41 +21,31 @@
 // [Fog::Memory]
 // ============================================================================
 
-FOG_CAPI_EXTERN void* Core_Memory_alloc(sysuint_t size);
-FOG_CAPI_EXTERN void* Core_Memory_calloc(sysuint_t size);
-FOG_CAPI_EXTERN void* Core_Memory_realloc(void* addr, sysuint_t size);
-FOG_CAPI_EXTERN void* Core_Memory_reallocf(void* addr, sysuint_t size);
+FOG_CAPI_EXTERN void* fog_memory_alloc(sysuint_t size);
+FOG_CAPI_EXTERN void* fog_memory_calloc(sysuint_t size);
+FOG_CAPI_EXTERN void* fog_memory_realloc(void* addr, sysuint_t size);
+FOG_CAPI_EXTERN void* fog_memory_reallocf(void* addr, sysuint_t size);
 
-FOG_CAPI_EXTERN void* Core_Memory_xalloc(sysuint_t size);
-FOG_CAPI_EXTERN void* Core_Memory_xcalloc(sysuint_t size);
-FOG_CAPI_EXTERN void* Core_Memory_xrealloc(void* addr, sysuint_t size);
+FOG_CAPI_EXTERN void* fog_memory_xalloc(sysuint_t size);
+FOG_CAPI_EXTERN void* fog_memory_xcalloc(sysuint_t size);
+FOG_CAPI_EXTERN void* fog_memory_xrealloc(void* addr, sysuint_t size);
 
-FOG_CAPI_EXTERN void Core_Memory_free(void *addr);
+FOG_CAPI_EXTERN void fog_memory_free(void *addr);
 
-FOG_CAPI_EXTERN void* Core_Memory_dup(void *addr, sysuint_t size);
-FOG_CAPI_EXTERN void* Core_Memory_xdup(void *addr, sysuint_t size);
+FOG_CAPI_EXTERN void* fog_memory_dup(void *addr, sysuint_t size);
+FOG_CAPI_EXTERN void* fog_memory_xdup(void *addr, sysuint_t size);
 
-FOG_CVAR_EXTERN void (*Core_Memory_copy)(void* dest, const void* src, sysuint_t size);
-FOG_CVAR_EXTERN void (*Core_Memory_move)(void* dest, const void* src, sysuint_t size);
-FOG_CVAR_EXTERN void (*Core_Memory_set)(void* dest, uint c, sysuint_t size);
-FOG_CVAR_EXTERN void (*Core_Memory_zero)(void* dest, sysuint_t size);
+FOG_CVAR_EXTERN void (*fog_memory_copy)(void* dst, const void* src, sysuint_t size);
+FOG_CVAR_EXTERN void (*fog_memory_move)(void* dst, const void* src, sysuint_t size);
+FOG_CVAR_EXTERN void (*fog_memory_set)(void* dst, uint c, sysuint_t size);
+FOG_CVAR_EXTERN void (*fog_memory_zero)(void* dst, sysuint_t size);
 
-FOG_CVAR_EXTERN void (*Core_Memory_copy_nt)(void* dest, const void* src, sysuint_t size);
-FOG_CVAR_EXTERN void (*Core_Memory_move_nt)(void* dest, const void* src, sysuint_t size);
-FOG_CVAR_EXTERN void (*Core_Memory_set_nt)(void* dest, uint c, sysuint_t size);
-FOG_CVAR_EXTERN void (*Core_Memory_zero_nt)(void* dest, sysuint_t size);
+FOG_CVAR_EXTERN void (*fog_memory_copy_nt)(void* dst, const void* src, sysuint_t size);
+FOG_CVAR_EXTERN void (*fog_memory_move_nt)(void* dst, const void* src, sysuint_t size);
+FOG_CVAR_EXTERN void (*fog_memory_set_nt)(void* dst, uint c, sysuint_t size);
+FOG_CVAR_EXTERN void (*fog_memory_zero_nt)(void* dst, sysuint_t size);
 
-FOG_CAPI_EXTERN void Core_Memory_xchg(uint8_t* addr1, uint8_t* addr2, sysuint_t count);
-
-// ============================================================================
-// [Fog::MemoryDebugger]
-// ============================================================================
-
-FOG_CAPI_EXTERN void Core_MemoryDebugger_init(void);
-FOG_CAPI_EXTERN void Core_MemoryDebugger_shutdown(void);
-FOG_CAPI_EXTERN void Core_MemoryDebugger_add(void* addr, sysuint_t size);
-FOG_CAPI_EXTERN void Core_MemoryDebugger_remove(void* addr);
-FOG_CAPI_EXTERN void Core_MemoryDebugger_leaks(void);
+FOG_CAPI_EXTERN void fog_memory_xchg(uint8_t* addr1, uint8_t* addr2, sysuint_t count);
 
 //! @}
 
@@ -108,201 +98,201 @@ struct Memory
 
   static FOG_INLINE void* alloc(sysuint_t size)
   {
-    return Core_Memory_alloc(size);
+    return fog_memory_alloc(size);
   }
 
   static FOG_INLINE void* calloc(sysuint_t size)
   {
-    return Core_Memory_calloc(size);
+    return fog_memory_calloc(size);
   }
 
   static FOG_INLINE void* realloc(void* addr, sysuint_t size)
   {
-    return Core_Memory_realloc(addr, size);
+    return fog_memory_realloc(addr, size);
   }
 
   static FOG_INLINE void* reallocf(void* addr, sysuint_t size)
   {
-    return Core_Memory_reallocf(addr, size);
+    return fog_memory_reallocf(addr, size);
   }
 
   static FOG_INLINE void* xalloc(sysuint_t size)
   {
-    return Core_Memory_xalloc(size);
+    return fog_memory_xalloc(size);
   }
 
   static FOG_INLINE void* xcalloc(sysuint_t size)
   {
-    return Core_Memory_xcalloc(size);
+    return fog_memory_xcalloc(size);
   }
 
   static FOG_INLINE void* xrealloc(void* addr, sysuint_t size)
   {
-    return Core_Memory_xrealloc(addr, size);
+    return fog_memory_xrealloc(addr, size);
   }
 
   static FOG_INLINE void free(void* addr)
   {
-    return Core_Memory_free(addr);
+    return fog_memory_free(addr);
   }
 
   // [Memory operations]
 
   static FOG_INLINE void* dup(void* addr, sysuint_t size)
   {
-    return Core_Memory_dup(addr, size);
+    return fog_memory_dup(addr, size);
   }
 
   static FOG_INLINE void* xdup(void* addr, sysuint_t size)
   {
-    return Core_Memory_xdup(addr, size);
+    return fog_memory_xdup(addr, size);
   }
 
-  static FOG_INLINE void copy(void* dest, const void* src, sysuint_t size)
+  static FOG_INLINE void copy(void* dst, const void* src, sysuint_t size)
   {
-    Core_Memory_copy(dest, src, size);
+    fog_memory_copy(dst, src, size);
   }
 
-  static FOG_INLINE void move(void* dest, const void* src, sysuint_t size)
+  static FOG_INLINE void move(void* dst, const void* src, sysuint_t size)
   {
-    Core_Memory_move(dest, src, size);
+    fog_memory_move(dst, src, size);
   }
 
-  static FOG_INLINE void set(void* dest, int c, sysuint_t size)
+  static FOG_INLINE void set(void* dst, int c, sysuint_t size)
   {
-    Core_Memory_set(dest, c, size);
+    fog_memory_set(dst, c, size);
   }
 
-  static FOG_INLINE void zero(void* dest, sysuint_t size)
+  static FOG_INLINE void zero(void* dst, sysuint_t size)
   {
-    Core_Memory_zero(dest, size);
+    fog_memory_zero(dst, size);
   }
 
   // [Memory operations - nt]
 
-  static FOG_INLINE void copy_nt(void* dest, const void* src, sysuint_t size)
+  static FOG_INLINE void copy_nt(void* dst, const void* src, sysuint_t size)
   {
-    Core_Memory_copy_nt(dest, src, size);
+    fog_memory_copy_nt(dst, src, size);
   }
 
-  static FOG_INLINE void move_nt(void* dest, const void* src, sysuint_t size)
+  static FOG_INLINE void move_nt(void* dst, const void* src, sysuint_t size)
   {
-    Core_Memory_move_nt(dest, src, size);
+    fog_memory_move_nt(dst, src, size);
   }
 
-  static FOG_INLINE void set_nt(void* dest, int c, sysuint_t size)
+  static FOG_INLINE void set_nt(void* dst, int c, sysuint_t size)
   {
-    Core_Memory_set_nt(dest, c, size);
+    fog_memory_set_nt(dst, c, size);
   }
 
-  static FOG_INLINE void zero_nt(void* dest, int c, sysuint_t size)
+  static FOG_INLINE void zero_nt(void* dst, int c, sysuint_t size)
   {
-    Core_Memory_zero_nt(dest, size);
+    fog_memory_zero_nt(dst, size);
   }
 
   // [copy::]
 
-  static FOG_INLINE void copy1B(void* dest, const void* src)
+  static FOG_INLINE void copy1B(void* dst, const void* src)
   {
-    ((uint8_t *)dest)[0] = ((const uint8_t *)src)[0];
+    ((uint8_t *)dst)[0] = ((const uint8_t *)src)[0];
   }
 
-  static FOG_INLINE void copy2B(void* dest, const void* src)
+  static FOG_INLINE void copy2B(void* dst, const void* src)
   {
-    ((uint16_t *)dest)[0] = ((const uint16_t *)src)[0];
+    ((uint16_t *)dst)[0] = ((const uint16_t *)src)[0];
   }
 
-  static FOG_INLINE void copy3B(void* dest, const void* src)
+  static FOG_INLINE void copy3B(void* dst, const void* src)
   {
-    ((uint16_t *)dest)[0] = ((const uint16_t *)src)[0];
-    ((uint8_t  *)dest)[2] = ((const uint8_t  *)src)[2];
+    ((uint16_t *)dst)[0] = ((const uint16_t *)src)[0];
+    ((uint8_t  *)dst)[2] = ((const uint8_t  *)src)[2];
   }
 
-  static FOG_INLINE void copy4B(void* dest, const void* src)
+  static FOG_INLINE void copy4B(void* dst, const void* src)
   {
-    ((uint32_t *)dest)[0] = ((const uint32_t *)src)[0];
+    ((uint32_t *)dst)[0] = ((const uint32_t *)src)[0];
   }
 
-  static FOG_INLINE void copy8B(void* dest, const void* src)
+  static FOG_INLINE void copy8B(void* dst, const void* src)
   {
 #if FOG_ARCH_BITS == 32
-    ((uint32_t *)dest)[0] = ((const uint32_t *)src)[0];
-    ((uint32_t *)dest)[1] = ((const uint32_t *)src)[1];
+    ((uint32_t *)dst)[0] = ((const uint32_t *)src)[0];
+    ((uint32_t *)dst)[1] = ((const uint32_t *)src)[1];
 #else
-    ((uint64_t *)dest)[0] = ((const uint64_t *)src)[0];
+    ((uint64_t *)dst)[0] = ((const uint64_t *)src)[0];
 #endif
   }
 
-  static FOG_INLINE void copy16B(void* dest, const void* src)
+  static FOG_INLINE void copy16B(void* dst, const void* src)
   {
 #if defined(FOG_HARDCODE_SSE2)
-    _mm_storeu_si128((__m128i *)(dest), _mm_loadu_si128((__m128i *)(src)));
+    _mm_storeu_si128((__m128i *)(dst), _mm_loadu_si128((__m128i *)(src)));
 #elif FOG_ARCH_BITS == 64
-    ((uint32_t *)dest)[0] = ((const uint32_t *)src)[0];
-    ((uint32_t *)dest)[1] = ((const uint32_t *)src)[1];
-    ((uint32_t *)dest)[2] = ((const uint32_t *)src)[2];
-    ((uint32_t *)dest)[3] = ((const uint32_t *)src)[3];
+    ((uint32_t *)dst)[0] = ((const uint32_t *)src)[0];
+    ((uint32_t *)dst)[1] = ((const uint32_t *)src)[1];
+    ((uint32_t *)dst)[2] = ((const uint32_t *)src)[2];
+    ((uint32_t *)dst)[3] = ((const uint32_t *)src)[3];
 #else
-    ((uint64_t *)dest)[0] = ((const uint64_t *)src)[0];
-    ((uint64_t *)dest)[1] = ((const uint64_t *)src)[1];
+    ((uint64_t *)dst)[0] = ((const uint64_t *)src)[0];
+    ((uint64_t *)dst)[1] = ((const uint64_t *)src)[1];
 #endif
   }
 
-  static FOG_INLINE void copy32B(void* dest, const void* src)
+  static FOG_INLINE void copy32B(void* dst, const void* src)
   {
 #if defined(FOG_HARDCODE_SSE2)
-    _mm_storeu_si128((__m128i *)(dest     ), _mm_loadu_si128((__m128i *)(src     )));
-    _mm_storeu_si128((__m128i *)((char*)dest + 16), _mm_loadu_si128((__m128i *)((const char*)src + 16)));
+    _mm_storeu_si128((__m128i *)(dst     ), _mm_loadu_si128((__m128i *)(src     )));
+    _mm_storeu_si128((__m128i *)((char*)dst + 16), _mm_loadu_si128((__m128i *)((const char*)src + 16)));
 #elif FOG_ARCH_BITS == 64
-    ((uint64_t *)dest)[0] = ((const uint64_t *)src)[0];
-    ((uint64_t *)dest)[1] = ((const uint64_t *)src)[1];
-    ((uint64_t *)dest)[2] = ((const uint64_t *)src)[2];
-    ((uint64_t *)dest)[3] = ((const uint64_t *)src)[3];
+    ((uint64_t *)dst)[0] = ((const uint64_t *)src)[0];
+    ((uint64_t *)dst)[1] = ((const uint64_t *)src)[1];
+    ((uint64_t *)dst)[2] = ((const uint64_t *)src)[2];
+    ((uint64_t *)dst)[3] = ((const uint64_t *)src)[3];
 #else
-    ((uint32_t *)dest)[0] = ((const uint32_t *)src)[0];
-    ((uint32_t *)dest)[1] = ((const uint32_t *)src)[1];
-    ((uint32_t *)dest)[2] = ((const uint32_t *)src)[2];
-    ((uint32_t *)dest)[3] = ((const uint32_t *)src)[3];
-    ((uint32_t *)dest)[4] = ((const uint32_t *)src)[4];
-    ((uint32_t *)dest)[5] = ((const uint32_t *)src)[5];
-    ((uint32_t *)dest)[6] = ((const uint32_t *)src)[6];
-    ((uint32_t *)dest)[7] = ((const uint32_t *)src)[7];
+    ((uint32_t *)dst)[0] = ((const uint32_t *)src)[0];
+    ((uint32_t *)dst)[1] = ((const uint32_t *)src)[1];
+    ((uint32_t *)dst)[2] = ((const uint32_t *)src)[2];
+    ((uint32_t *)dst)[3] = ((const uint32_t *)src)[3];
+    ((uint32_t *)dst)[4] = ((const uint32_t *)src)[4];
+    ((uint32_t *)dst)[5] = ((const uint32_t *)src)[5];
+    ((uint32_t *)dst)[6] = ((const uint32_t *)src)[6];
+    ((uint32_t *)dst)[7] = ((const uint32_t *)src)[7];
 #endif
   }
 
-  static FOG_INLINE void copy64B(void* dest, const void* src)
+  static FOG_INLINE void copy64B(void* dst, const void* src)
   {
 #if defined(FOG_HARDCODE_SSE2)
-    _mm_storeu_si128((__m128i *)(dest     ), _mm_loadu_si128((__m128i *)(src     )));
-    _mm_storeu_si128((__m128i *)((char*)dest + 16), _mm_loadu_si128((__m128i *)((const char*)src + 16)));
-    _mm_storeu_si128((__m128i *)((char*)dest + 32), _mm_loadu_si128((__m128i *)((const char*)src + 32)));
-    _mm_storeu_si128((__m128i *)((char*)dest + 48), _mm_loadu_si128((__m128i *)((const char*)src + 48)));
+    _mm_storeu_si128((__m128i *)(dst     ), _mm_loadu_si128((__m128i *)(src     )));
+    _mm_storeu_si128((__m128i *)((char*)dst + 16), _mm_loadu_si128((__m128i *)((const char*)src + 16)));
+    _mm_storeu_si128((__m128i *)((char*)dst + 32), _mm_loadu_si128((__m128i *)((const char*)src + 32)));
+    _mm_storeu_si128((__m128i *)((char*)dst + 48), _mm_loadu_si128((__m128i *)((const char*)src + 48)));
 #elif FOG_ARCH_BITS == 64
-    ((uint64_t *)dest)[0] = ((const uint64_t *)src)[0];
-    ((uint64_t *)dest)[1] = ((const uint64_t *)src)[1];
-    ((uint64_t *)dest)[2] = ((const uint64_t *)src)[2];
-    ((uint64_t *)dest)[3] = ((const uint64_t *)src)[3];
-    ((uint64_t *)dest)[4] = ((const uint64_t *)src)[4];
-    ((uint64_t *)dest)[5] = ((const uint64_t *)src)[5];
-    ((uint64_t *)dest)[6] = ((const uint64_t *)src)[6];
-    ((uint64_t *)dest)[7] = ((const uint64_t *)src)[7];
+    ((uint64_t *)dst)[0] = ((const uint64_t *)src)[0];
+    ((uint64_t *)dst)[1] = ((const uint64_t *)src)[1];
+    ((uint64_t *)dst)[2] = ((const uint64_t *)src)[2];
+    ((uint64_t *)dst)[3] = ((const uint64_t *)src)[3];
+    ((uint64_t *)dst)[4] = ((const uint64_t *)src)[4];
+    ((uint64_t *)dst)[5] = ((const uint64_t *)src)[5];
+    ((uint64_t *)dst)[6] = ((const uint64_t *)src)[6];
+    ((uint64_t *)dst)[7] = ((const uint64_t *)src)[7];
 #else
-    ((uint32_t *)dest)[0] = ((const uint32_t *)src)[0];
-    ((uint32_t *)dest)[1] = ((const uint32_t *)src)[1];
-    ((uint32_t *)dest)[2] = ((const uint32_t *)src)[2];
-    ((uint32_t *)dest)[3] = ((const uint32_t *)src)[3];
-    ((uint32_t *)dest)[4] = ((const uint32_t *)src)[4];
-    ((uint32_t *)dest)[5] = ((const uint32_t *)src)[5];
-    ((uint32_t *)dest)[6] = ((const uint32_t *)src)[6];
-    ((uint32_t *)dest)[7] = ((const uint32_t *)src)[7];
-    ((uint32_t *)dest)[8] = ((const uint32_t *)src)[8];
-    ((uint32_t *)dest)[9] = ((const uint32_t *)src)[9];
-    ((uint32_t *)dest)[10] = ((const uint32_t *)src)[10];
-    ((uint32_t *)dest)[11] = ((const uint32_t *)src)[11];
-    ((uint32_t *)dest)[12] = ((const uint32_t *)src)[12];
-    ((uint32_t *)dest)[13] = ((const uint32_t *)src)[13];
-    ((uint32_t *)dest)[14] = ((const uint32_t *)src)[14];
-    ((uint32_t *)dest)[15] = ((const uint32_t *)src)[15];
+    ((uint32_t *)dst)[0] = ((const uint32_t *)src)[0];
+    ((uint32_t *)dst)[1] = ((const uint32_t *)src)[1];
+    ((uint32_t *)dst)[2] = ((const uint32_t *)src)[2];
+    ((uint32_t *)dst)[3] = ((const uint32_t *)src)[3];
+    ((uint32_t *)dst)[4] = ((const uint32_t *)src)[4];
+    ((uint32_t *)dst)[5] = ((const uint32_t *)src)[5];
+    ((uint32_t *)dst)[6] = ((const uint32_t *)src)[6];
+    ((uint32_t *)dst)[7] = ((const uint32_t *)src)[7];
+    ((uint32_t *)dst)[8] = ((const uint32_t *)src)[8];
+    ((uint32_t *)dst)[9] = ((const uint32_t *)src)[9];
+    ((uint32_t *)dst)[10] = ((const uint32_t *)src)[10];
+    ((uint32_t *)dst)[11] = ((const uint32_t *)src)[11];
+    ((uint32_t *)dst)[12] = ((const uint32_t *)src)[12];
+    ((uint32_t *)dst)[13] = ((const uint32_t *)src)[13];
+    ((uint32_t *)dst)[14] = ((const uint32_t *)src)[14];
+    ((uint32_t *)dst)[15] = ((const uint32_t *)src)[15];
 #endif
   }
 
@@ -579,7 +569,7 @@ struct Memory
 
   static FOG_INLINE void xchg(void* a, void* b, sysuint_t count)
   {
-    Core_Memory_xchg((uint8_t*)a, (uint8_t*)b, count);
+    fog_memory_xchg((uint8_t*)a, (uint8_t*)b, count);
   }
 
   // [bswap]
@@ -668,15 +658,6 @@ struct Memory
 #endif
   }
 
-  static FOG_INLINE int16_t bswap16(int16_t x)
-  { return (int16_t)bswap16( (uint16_t)x ); }
-
-  static FOG_INLINE int32_t bswap32(int32_t x)
-  { return (int32_t)bswap32( (uint32_t)x ); }
-
-  static FOG_INLINE int64_t bswap64(int64_t x)
-  { return (uint64_t)bswap64( (uint64_t)x ); }
-
 #if FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
 #define __FOG_SWAP(__le__, __be__) __le__
 #else
@@ -684,18 +665,12 @@ struct Memory
 #endif
 
   static FOG_INLINE uint16_t bswap16le(uint16_t x) { return __FOG_SWAP(x, bswap16(x)); }
-  static FOG_INLINE uint16_t bswap16le(int16_t x)  { return __FOG_SWAP(x, bswap16(x)); }
   static FOG_INLINE uint32_t bswap32le(uint32_t x) { return __FOG_SWAP(x, bswap32(x)); }
-  static FOG_INLINE uint32_t bswap32le(int32_t x)  { return __FOG_SWAP(x, bswap32(x)); }
   static FOG_INLINE uint64_t bswap64le(uint64_t x) { return __FOG_SWAP(x, bswap64(x)); }
-  static FOG_INLINE uint64_t bswap64le(int64_t x)  { return __FOG_SWAP(x, bswap64(x)); }
 
   static FOG_INLINE uint16_t bswap16be(uint16_t x) { return __FOG_SWAP(bswap16(x), x); }
-  static FOG_INLINE uint16_t bswap16be(int16_t x)  { return __FOG_SWAP(bswap16(x), x); }
   static FOG_INLINE uint32_t bswap32be(uint32_t x) { return __FOG_SWAP(bswap32(x), x); }
-  static FOG_INLINE uint32_t bswap32be(int32_t x)  { return __FOG_SWAP(bswap32(x), x); }
   static FOG_INLINE uint64_t bswap64be(uint64_t x) { return __FOG_SWAP(bswap64(x), x); }
-  static FOG_INLINE uint64_t bswap64be(int64_t x)  { return __FOG_SWAP(bswap64(x), x); }
 
 #undef __FOG_SWAP
 

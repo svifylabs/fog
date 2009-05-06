@@ -8,7 +8,6 @@
 #define _FOG_GRAPHICS_GLYPH_H
 
 // [Dependencies]
-#include <Fog/Core/RefData.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Geometry.h>
@@ -27,11 +26,31 @@ struct FOG_API Glyph
 {
   // [Data]
 
-  struct FOG_API Data : public RefDataSimple<Data>
+  struct FOG_API Data
+
   {
+    // [Construction / Destruction]
+
     Data();
     ~Data();
 
+    // [Ref / Deref]
+
+    FOG_INLINE Data* ref() const
+    {
+      refCount.inc();
+      return const_cast<Data*>(this);
+    }
+
+    FOG_INLINE void deref()
+    {
+      if (refCount.deref()) delete this;
+    }
+
+    // [Members]
+
+    //! @brief Reference count.
+    mutable Atomic<sysuint_t> refCount;
     //! @brief Glyph image, supported formats are only A8 and XRGB32 for now.
     Image image;
     //! @brief X offset for rendering glyph image.
@@ -44,10 +63,6 @@ struct FOG_API Glyph
     int endWidth;
     //! @brief Glyph advance.
     int advance;
-
-    FOG_INLINE Data* ref() { return REF_ALWAYS(); }
-    FOG_INLINE void deref() { DEREF_INLINE(); }
-    FOG_INLINE void free() { delete this; }
 
   private:
     FOG_DISABLE_COPY(Data)

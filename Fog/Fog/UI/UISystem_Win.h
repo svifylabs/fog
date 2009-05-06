@@ -126,7 +126,7 @@ struct FOG_API UIBackingStoreWin : public UIBackingStore
   UIBackingStoreWin();
   virtual ~UIBackingStoreWin();
 
-  virtual bool resize(uint width, uint height, bool cache);
+  virtual bool resize(int width, int height, bool cache);
   virtual void destroy();
   virtual void updateRects(const Box* rects, sysuint_t count);
 
@@ -134,7 +134,7 @@ struct FOG_API UIBackingStoreWin : public UIBackingStore
 
   FOG_INLINE bool expired(TimeTicks now) const
   {
-    return (_width != _widthOrig || _height != _heightOrig) && (now >= _expire);
+    return (_width != _widthOrig || _height != _heightOrig) && (now >= _expires);
   }
 
   FOG_INLINE HBITMAP hBitmap() const { return _hBitmap; }

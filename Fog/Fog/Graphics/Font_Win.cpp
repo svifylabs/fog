@@ -289,7 +289,7 @@ Glyph::Data* FontFaceWin::renderGlyph(uint32_t uc)
   if (dataSize == 0) return glyphd;
 
   // Alloc image for glyph
-  if (!glyphd->image.create(gm.gmBlackBoxX, gm.gmBlackBoxY, ImageFormat::a8()))
+  if (glyphd->image.create(gm.gmBlackBoxX, gm.gmBlackBoxY, Image::FormatA8) != Error::Ok)
   {
     delete glyphd;
     return NULL;

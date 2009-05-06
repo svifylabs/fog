@@ -80,8 +80,8 @@ void Module_Fill_32_SSE2::beginSwitch()
   }
 
   // Check if alpha is 0xFF (255) 
-  c->cmp(srcgp.r32(), imm(0xFF000000));
-  c->jae(getKindLabel(1));
+  //c->cmp(srcgp.r32(), imm(0xFF000000));
+  //c->jae(getKindLabel(1));
 
   // Alpha is not 0xFF, premultiply and prepare for compositing, but only if 
   // there is no mask. If there is mask, we must first multiply src with mask

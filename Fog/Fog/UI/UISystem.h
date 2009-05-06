@@ -11,10 +11,8 @@
 #include <Fog/Core/Hash.h>
 #include <Fog/Core/Library.h>
 #include <Fog/Core/Object.h>
-#include <Fog/Graphics/Converter.h>
 #include <Fog/Graphics/Geometry.h>
 #include <Fog/Graphics/Image.h>
-#include <Fog/Graphics/ImageFormat.h>
 #include <Fog/Graphics/Rgba.h>
 #include <Fog/UI/Constants.h>
 
@@ -371,7 +369,7 @@ struct FOG_API UIBackingStore
   UIBackingStore();
   virtual ~UIBackingStore();
 
-  virtual bool resize(uint width, uint height, bool cache) = 0;
+  virtual bool resize(int width, int height, bool cache) = 0;
   virtual void destroy() = 0;
   virtual void updateRects(const Box* rects, sysuint_t count) = 0;
 
@@ -379,29 +377,30 @@ struct FOG_API UIBackingStore
 
   FOG_INLINE bool expired(TimeTicks now) const
   {
-    return (_width != _widthOrig || _height != _heightOrig) && (now >= _expire);
+    return (_width != _widthOrig || _height != _heightOrig) && (now >= _expires);
   }
 
   FOG_INLINE uint32_t type() const { return _type; }
 
   FOG_INLINE uint8_t* pixels() const { return _pixels; }
-  FOG_INLINE uint32_t width() const { return _width; }
-  FOG_INLINE uint32_t height() const { return _height; }
+  FOG_INLINE int width() const { return _width; }
+  FOG_INLINE int height() const { return _height; }
+  FOG_INLINE int format() const { return _format; }
+  FOG_INLINE int depth() const { return _depth; }
   FOG_INLINE sysint_t stride() const { return _stride; }
-  FOG_INLINE const ImageFormat& format() const { return _format; }
 
-  FOG_INLINE uint32_t widthOrig() const { return _widthOrig; }
-  FOG_INLINE uint32_t heightOrig() const { return _heightOrig; }
+  FOG_INLINE int widthOrig() const { return _widthOrig; }
+  FOG_INLINE int heightOrig() const { return _heightOrig; }
 
   FOG_INLINE uint8_t* pixelsPrimary() const { return _pixelsPrimary; }
   FOG_INLINE sysint_t stridePrimary() const { return _stridePrimary; }
+
   FOG_INLINE uint8_t* pixelsSecondary() const { return _pixelsSecondary; }
   FOG_INLINE sysint_t strideSecondary() const { return _strideSecondary; }
 
-  FOG_INLINE bool usingConverter() const { return _usingConverter; }
-  FOG_INLINE const Converter& converter() const { return _converter; }
+  FOG_INLINE void* convertFunc() const { return _convertFunc; }
   FOG_INLINE TimeTicks created() const { return _created; }
-  FOG_INLINE TimeTicks expire() const { return _expire; }
+  FOG_INLINE TimeTicks expire() const { return _expires; }
 
   uint32_t _type;
 
@@ -409,15 +408,16 @@ struct FOG_API UIBackingStore
   // they aren't cached. So if window has 320x200 size it will be equal to 
   // _width and _height.
   uint8_t* _pixels;
-  uint32_t _width;
-  uint32_t _height;
+  int _width;
+  int _height;
+  int _format;
+  int _depth;
   sysint_t _stride;
-  ImageFormat _format;
 
   // original cached width and height, can be greater or equal than _width 
   // or _height
-  uint32_t _widthOrig;
-  uint32_t _heightOrig;
+  int _widthOrig;
+  int _heightOrig;
 
   // 24 or 32 bit double buffer parameters, parameters are cached.
   uint8_t* _pixelsPrimary;
@@ -428,12 +428,12 @@ struct FOG_API UIBackingStore
   uint8_t* _pixelsSecondary;
   sysint_t _strideSecondary;
 
-  bool _usingConverter;
-  Converter _converter;
+  void* _convertFunc;
+  int _convertDepth;
 
   // Time when the backing store wes created (for caching)
   TimeTicks _created;
-  TimeTicks _expire;
+  TimeTicks _expires;
 };
 
 } // Fog namespace

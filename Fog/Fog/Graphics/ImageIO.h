@@ -8,7 +8,6 @@
 #define _FOG_GRAPHICS_IMAGEIO_H
 
 // [Dependencies]
-#include <Fog/Core/Class.h>
 #include <Fog/Core/Stream.h>
 #include <Fog/Core/String.h>
 #include <Fog/Core/Value.h>
@@ -187,7 +186,7 @@ private:
 // [Fog::ImageIO::BaseDevice]
 // ============================================================================
 
-struct FOG_API BaseDevice : public Class
+struct FOG_API BaseDevice
 {
   // [Enums]
 
@@ -233,7 +232,7 @@ protected:
   uint32_t _framesCount;
 
   //! @brief Image format of target image.
-  ImageFormat _format;
+  int _format;
   //! @brief Palette if reading / writing 8 bit or less images.
   //!
   //! This is image palette that can be contained in loaded image,
@@ -250,11 +249,6 @@ protected:
 public:
   BaseDevice();
   virtual ~BaseDevice();
-
-  // [Static & Dynamic allocation]
-
-  FOG_INLINE bool isDynamic() const { return (flags() & IsDynamic) != 0; }
-  FOG_INLINE void deleteDynamic() { if (isDynamic()) delete this; }
 
   // [Members access]
 
@@ -278,7 +272,7 @@ public:
   FOG_INLINE uint32_t actualFrame() const { return _actualFrame; }
   FOG_INLINE uint32_t framesCount() const { return _framesCount; }
 
-  FOG_INLINE const ImageFormat& format() const { return _format; }
+  FOG_INLINE int format() const { return _format; }
   FOG_INLINE const Palette& palette() const { return _palette; }
   FOG_INLINE const String8& comment() const { return _comment; }
 

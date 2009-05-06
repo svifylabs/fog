@@ -12,7 +12,7 @@
 #include <Fog/Core/Hash.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Graphics/Image.h>
-#include <Fog/Graphics/ImageFormat.h>
+#include <Fog/Graphics/Raster_p.h>
 #include <Fog/Graphics/Reduce.h>
 
 #include <stdlib.h>
@@ -67,21 +67,21 @@ void Reduce::clear()
   _count = 0;
 }
 
-bool Reduce::analyze(const Image& image)
+bool Reduce::analyze(const Image& image, bool discardAlpha)
 {
   // first clear values
   clear();
 
-  uint x;
-  uint y;
-  uint w = (uint)image.width();
-  uint h = (uint)image.height();
-  uint i;
+  int x;
+  int y;
+  int w = image.width();
+  int h = image.height();
+  int i;
   const uint8_t* p;
 
   Entity* e = _entities;
 
-  if (image.format().isIndexed())
+  if (image.depth() == 8)
   {
     // It's guaranted maximum numbers of colors (256). So to calculate count
     // of colors is not hard. Entities are used directly.
@@ -95,45 +95,73 @@ bool Reduce::analyze(const Image& image)
       }
     }
   }
-  else if (image.format().depth() == 32)
+  else
   {
     Hash<uint32_t, uint64_t> hash;
 
-    for (y = 0; y < h; y++)
+    if (image.depth() == 24)
     {
-      for (x = 0, p = (const uint8_t*)image.cScanline(y); x < w; x++, p += 4)
+      for (y = 0; y < h; y++)
       {
-        uint32_t c = *(const uint32_t *)p;
+        for (x = 0, p = (const uint8_t*)image.cScanline(y); x < w; x++, p += 3)
+        {
+          uint32_t c = 
+            ((uint32_t)p[Raster::RGB24_RByte] << Raster::RGB32_RShift) |
+            ((uint32_t)p[Raster::RGB24_GByte] << Raster::RGB32_GShift) |
+            ((uint32_t)p[Raster::RGB24_BByte] << Raster::RGB32_BShift) |
+            Raster::RGB32_AMask;
 
-        // Increase count of 'c' if hash already contains it
-        if (hash.contains(c))
-          (*hash[c])++;
-        // Create new node if there are not 256 colors already
-        else if (hash.length() < 256)
-          hash.put(c, 1);
-        // Finished, no color reduction possible
-        else
-          return false;
+          // Increase count of 'c' if hash already contains it
+          if (hash.contains(c))
+            (*hash[c])++;
+          // Create new node if there are not 256 colors already
+          else if (hash.length() < 256)
+            hash.put(c, 1);
+          // Finished, no color reduction possible
+          else
+            return false;
+        }
+      }
+    }
+    else
+    {
+      bool fillalpha = (image.format() == Image::FormatRGB32) || discardAlpha;
+
+      for (y = 0; y < h; y++)
+      {
+        for (x = 0, p = (const uint8_t*)image.cScanline(y); x < w; x++, p += 4)
+        {
+          uint32_t c = *(const uint32_t *)p;
+          if (fillalpha) c |= Raster::RGB32_AMask;
+
+          // Increase count of 'c' if hash already contains it
+          if (hash.contains(c))
+            (*hash[c])++;
+          // Create new node if there are not 256 colors already
+          else if (hash.length() < 256)
+            hash.put(c, 1);
+          // Finished, no color reduction possible
+          else
+            return false;
+        }
       }
     }
 
     // If we are here, color reduction is possible, setup tables ...
-    Hash<uint32_t, uint64_t>::ConstIterator iterator(hash);
-    for (i = 0; iterator.isValid(); iterator.toNext(), i++)
+    i = 0;
+
+    Hash<uint32_t, uint64_t>::ConstIterator it(hash);
+    for (it.toBegin(); it.isValid(); it.toNext(), i++)
     {
-      e[i].key   = iterator.key();
-      e[i].usage = iterator.value();
+      e[i].key   = it.key();
+      e[i].usage = it.value();
     }
 
-    // Count items in hash table means count of colors used 
+    // Count items in hash table means count of colors used
     _count = hash.length();
   }
-  else
-  {
-    return false;
-  }
 
-  // sort, optimizes for PCX and all formats thats are dependent to 
+  // sort, optimizes for PCX and all formats that are dependent to 
   // color indexes (most used colors go first and unused last)
   qsort(e, count(), sizeof(Entity), qsort_color_ascent);
 
@@ -148,14 +176,27 @@ bool Reduce::analyze(const Image& image)
   }
 
   // create fast index table
-  for (i = 0; i < count(); i++) _indexes.put(e[i].key, i);
+  for (i = 0; i < (int)_count; i++) _indexes.put(e[i].key, i);
 
   return true;
 }
 
 uint32_t Reduce::traslate(uint32_t key) const
 {
-  return _indexes.value(key);
+  return _indexes.value(key, 255);
+}
+
+Palette Reduce::toPalette()
+{
+  Palette pal;
+  if (count())
+  {
+    Rgba* data = pal.mData();
+    if (!data) return pal;
+
+    for (uint32_t i = 0; i < _count; i++) data[i] = Rgba(_entities[i].key);
+  }
+  return pal;
 }
 
 } // Fog namespace

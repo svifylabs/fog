@@ -13,7 +13,6 @@
 #include <Fog/Core/Atomic.h>
 #include <Fog/Core/Char.h>
 #include <Fog/Core/Flags.h>
-#include <Fog/Core/RefData.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/String.h>
 #include <Fog/Core/TypeInfo.h>
@@ -43,16 +42,35 @@ struct FOG_API Locale
 {
   // [Data]
 
-  //! @brief %Locale data.
-  struct FOG_API Data : public RefDataSimple<Data>
+  struct FOG_API Data
   {
     enum { N = 10 };
 
-    // [Locale]
+    // [Construction / Destruction]
+
+    Data();
+    Data(const Data& other);
+    ~Data();
+
+    // [Ref / Deref]
+
+    Data* ref() const;
+    void deref();
+
+    FOG_INLINE Data* refAlways() const
+    {
+      refCount.inc();
+      return const_cast<Data*>(this);
+    }
+
+    static Data* copy(Data* d);
+
+    // [Members]
+
+    mutable Atomic<sysuint_t> refCount;
 
     String32 name;
 
-    // [Members]
     union
     {
       uint32_t data[N];
@@ -71,30 +89,8 @@ struct FOG_API Locale
         uint32_t reserved;
       };
     };
-
-    // [Construction / Destruction]
-
-    Data();
-    Data(const Data& other);
-    ~Data();
-
-    // [Ref]
-
-    Data* ref();
-    void deref();
-
-    FOG_INLINE Data* REF_INLINE()
-    { return REF_ALWAYS(); }
-    
-    FOG_INLINE void free()
-    { delete this; }
-
-    static Data* copy(Data* d, uint allocPolicy);
   };
 
-  // [Members]
-
-  FOG_DECLARE_D(Data)
 
   static Static<Data> sharedNull;
   static Static<Data> sharedPosix;
@@ -107,8 +103,8 @@ struct FOG_API Locale
   // [Construction / Destruction]
 
   Locale();
-  Locale(Data* d);
   Locale(const Locale& other);
+  explicit Locale(Data* d);
   explicit Locale(const String32& name);
   ~Locale();
 
@@ -117,11 +113,11 @@ struct FOG_API Locale
   //! @copydoc Doxygen::Implicit::refCount().
   FOG_INLINE sysuint_t refCount() const { return _d->refCount.get(); }
   //! @copydoc Doxygen::Implicit::isDetached().
-  FOG_INLINE bool isDetached() const { return refCount() == 1; }
+  FOG_INLINE bool isDetached() const { return _d->refCount.get() == 1; }
   //! @copydoc Doxygen::Implicit::detach().
-  FOG_INLINE void detach() { if (!isDetached()) _detach(); }
+  FOG_INLINE err_t detach() { return (!isDetached()) ? _detach() : Error::Ok; }
   //! @copydoc Doxygen::Implicit::_detach().
-  void _detach();
+  err_t _detach();
   //! @copydoc Doxygen::Implicit::free().
   void free();
   
@@ -166,31 +162,31 @@ struct FOG_API Locale
 
   // [Data Setters]
 
-  FOG_INLINE Locale& setDecimalPoint(Char32 c)
+  FOG_INLINE err_t setDecimalPoint(Char32 c)
   { return _setChar(0, c.ch()); }
   
-  FOG_INLINE Locale& setThousandsGroup(Char32 c)
+  FOG_INLINE err_t setThousandsGroup(Char32 c)
   { return _setChar(1, c.ch()); }
   
-  FOG_INLINE Locale& setZero(Char32 c)
+  FOG_INLINE err_t setZero(Char32 c)
   { return _setChar(2, c.ch()); }
   
-  FOG_INLINE Locale& setPlus(Char32 c)
+  FOG_INLINE err_t setPlus(Char32 c)
   { return _setChar(3, c.ch()); }
   
-  FOG_INLINE Locale& setMinus(Char32 c)
+  FOG_INLINE err_t setMinus(Char32 c)
   { return _setChar(4, c.ch()); }
   
-  FOG_INLINE Locale& setSpace(Char32 c)
+  FOG_INLINE err_t setSpace(Char32 c)
   { return _setChar(5, c.ch()); }
 
-  FOG_INLINE Locale& setExponential(Char32 c)
+  FOG_INLINE err_t setExponential(Char32 c)
   { return _setChar(6, c.ch()); }
   
-  FOG_INLINE Locale& setFirstThousandsGroup(uint32_t i)
+  FOG_INLINE err_t setFirstThousandsGroup(uint32_t i)
   { return _setChar(7, i); }
   
-  FOG_INLINE Locale& setNextThousandsGroup(uint32_t i)
+  FOG_INLINE err_t setNextThousandsGroup(uint32_t i)
   { return _setChar(8, i); }
 
   // [Operator Overload]
@@ -210,7 +206,12 @@ struct FOG_API Locale
   { return *((Fog::Locale*)&sharedUserObj); }
 
 private:
-  Locale& _setChar(sysuint_t index, uint32_t uc);
+  err_t _setChar(sysuint_t index, uint32_t uc);
+
+public:
+  // [Members]
+
+  FOG_DECLARE_D(Data)
 };
 
 } // Fog namespace

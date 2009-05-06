@@ -1,4 +1,4 @@
-// [Fog/UI Library - C++ API]
+// [Fog/Graphics Library - C++ API]
 //
 // [Licence] 
 // MIT, See COPYING file in package
@@ -9,7 +9,6 @@
 #endif // FOG_PRECOMP
 
 // [Dependencies]
-#include <Fog/Core/Memory.h>
 #include <Fog/Graphics/PainterUtil.h>
 
 namespace Fog {

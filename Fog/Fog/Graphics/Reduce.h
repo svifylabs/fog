@@ -6,6 +6,10 @@
 
 namespace Fog {
 
+// ============================================================================
+// [Fog::Reduce]
+// ============================================================================
+
 //! @brief Class used to get information about colors in image.
 //!
 //! It's designed for tasks where it's needed or optional to reduce color
@@ -42,9 +46,11 @@ struct FOG_API Reduce
   { return _count; }
 
   void clear();
-  bool analyze(const Image& image);
+  bool analyze(const Image& image, bool discardAlpha = false);
 
   uint32_t traslate(uint32_t key) const;
+
+  Palette toPalette();
 
 private:
   //! @brief Color to index hash.

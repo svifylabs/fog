@@ -16,9 +16,9 @@
 #include <Fog/Core/String.h>
 #include <Fog/Core/StringCache.h>
 #include <Fog/Core/Strings.h>
-#include <Fog/Graphics/Converter.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/ImageIO/ImageIO_JPEG.h>
+#include <Fog/Graphics/Raster_p.h>
 
 #if defined(FOG_HAVE_JPEGLIB_H)
 #define FOG_HAVE_JPEG_HEADERS
@@ -167,7 +167,7 @@ static Lazy<JpegLibrary> _jpeg;
 struct MyJpegSourceMgr
 {
   struct jpeg_source_mgr pub;
-  Fog::Stream* stream;
+  Stream* stream;
   uint8_t buffer[INPUT_BUFFER_SIZE];
 };
 
@@ -364,7 +364,7 @@ uint32_t JpegDecoderDevice::readImage(Image& image)
   JSAMPROW rowptr[1];
   Image::Data* image_d;
   err_t error = Error::Ok;
-  uint format = ImageFormat::RGB24;
+  int format = Image::FormatRGB24;
 
   // Create a decompression structure and load the header.
   cinfo.err = jpeg->jpeg_std_error(&jerr.errmgr);
@@ -402,7 +402,7 @@ uint32_t JpegDecoderDevice::readImage(Image& image)
       error = Error::ImageIO_FormatNotSupported;
       goto end;
     }
-    format = ImageFormat::A8;
+    format = Image::FormatA8;
   }
   else if (cinfo.out_color_space == JCS_RGB)
   {
@@ -418,13 +418,10 @@ uint32_t JpegDecoderDevice::readImage(Image& image)
     cinfo.quantize_colors = false;
   }
 
-  // resize our image to jpeg size
-  if (!image.create(cinfo.output_width, cinfo.output_height, format))
-  {
-    jpeg->jpeg_destroy_decompress(&cinfo);
-    error = Error::OutOfMemory;
+  // Resize our image to jpeg size.
+  if ((error = image.create(cinfo.output_width, cinfo.output_height, format))) 
     goto end;
-  }
+
   image_d = image._d;
 
   while (cinfo.output_scanline < cinfo.output_height)
@@ -432,16 +429,9 @@ uint32_t JpegDecoderDevice::readImage(Image& image)
     rowptr[0] = (JSAMPROW)(uint8_t *)image_d->first + cinfo.output_scanline * image_d->stride;
     jpeg->jpeg_read_scanlines(&cinfo, rowptr, (JDIMENSION)1);
 
-    // Need to swap R and B values for little endian architecture
+    // JPEG data are in big endian format.
 #if FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
-    uint8_t* rowtmp = (uint8_t*)rowptr[0];
-    ulong x;
-    for (x = cinfo.output_width; x; x--, rowtmp += 3)
-    {
-      uint8_t t = rowtmp[0];
-      rowtmp[0] = rowtmp[2];
-      rowtmp[2] = t;
-    }
+    Raster::functionMap->convert.bswap24(rowptr[0], rowptr[0], cinfo.output_width);
 #endif // FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
 
     if ((cinfo.output_scanline & 15) == 0)
@@ -450,7 +440,6 @@ uint32_t JpegDecoderDevice::readImage(Image& image)
   jpeg->jpeg_finish_decompress(&cinfo);
 
 end:
-  // Success
   jpeg->jpeg_destroy_decompress(&cinfo);
   return error;
 }
@@ -513,7 +502,7 @@ JpegEncoderDevice::~JpegEncoderDevice()
 {
 }
 
-uint32_t JpegEncoderDevice::writeImage(const Image& image_)
+uint32_t JpegEncoderDevice::writeImage(const Image& image)
 {
   JpegLibrary* jpeg = _jpeg.get();
   if (jpeg == NULL)
@@ -523,14 +512,14 @@ uint32_t JpegEncoderDevice::writeImage(const Image& image_)
 
   MemoryBuffer<4096> bufferLocal;
   uint8_t* buffer;
-  long bufferStride;
+  sysint_t bufferStride;
 
-  uint error = Error::Ok;
+  err_t err = Error::Ok;
 
-  Image::Data* d = image_._d;
-  uint width = d->width;
-  uint height = d->height;
-  uint formatId = d->format.id();
+  Image::Data* d = image._d;
+  int width = d->width;
+  int height = d->height;
+  int format = d->format;
 
   // This struct contains the JPEG compression parameters and pointers to
   // working space (which is allocated as needed by the JPEG library).
@@ -557,21 +546,16 @@ uint32_t JpegEncoderDevice::writeImage(const Image& image_)
   JSAMPROW row[1];
 
   // Converter
-  Converter converter;
+  Raster::ConvertPlainFn convert = NULL;
 
   if (setjmp(jerr.escape))
   {
-    // error
-    jpeg->jpeg_destroy_compress(&cinfo);
-    return Error::ImageIO_JpegError;
+    err = Error::ImageIO_JpegError;
+    goto end;
   }
 
   // Step 0: Simple reject
-  if (!width || !height)
-  {
-    error = Error::ImageSizeIsInvalid;
-    goto end;
-  }
+  if (!width || !height) return Error::ImageSizeIsInvalid;
 
   // Step 1: allocate and initialize JPEG compression object
 
@@ -600,12 +584,10 @@ uint32_t JpegEncoderDevice::writeImage(const Image& image_)
   cinfo.image_height = height;         // image height in pixels
 
   // JSAMPLEs per row in image_buffer
-  if (formatId == ImageFormat::A8)
+  if (format == Image::FormatA8)
   {
     cinfo.input_components = 1;          // # of color components per pixel
     cinfo.in_color_space = JCS_GRAYSCALE;// colorspace of input image
-
-    converter.setup(ImageFormat::A8, formatId);
 
     bufferStride = width;
     buffer = (uint8_t*)bufferLocal.alloc(bufferStride);
@@ -615,15 +597,11 @@ uint32_t JpegEncoderDevice::writeImage(const Image& image_)
     cinfo.input_components = 3;          // # of color components per pixel
     cinfo.in_color_space = JCS_RGB;      // colorspace of input image
 
-#if FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
-    converter.setup(Converter::BGR24, formatId);
-#else // FOG_BIG_ENDIAN
-    converter.setup(Converter::RGB24, formatId);
-#endif // FOG_BYTE_ORDER
-
     bufferStride = width * 3;
     buffer = (uint8_t*)bufferLocal.alloc(bufferStride);
   }
+
+  if (!buffer) { err = Error::OutOfMemory; goto end; }
 
   // Now use the library's routine to set default compression parameters.
   // (You must set at least cinfo.in_color_space before calling this,
@@ -655,8 +633,17 @@ uint32_t JpegEncoderDevice::writeImage(const Image& image_)
 
   while (cinfo.next_scanline < cinfo.image_height)
   {
-    converter.convertSpan(buffer, 0, d->first + cinfo.next_scanline * d->stride, 0, width, Point(0, cinfo.next_scanline));
+    if (format == Image::FormatA8)
+    {
+      row[0] = (JSAMPLE*)image.cScanline(cinfo.next_scanline);
+    }
+    else
+    {
+      image.getDibRgb24_be(0, cinfo.next_scanline, width, buffer);
+    }
+
     jpeg->jpeg_write_scanlines(&cinfo, row, 1);
+    if (cinfo.next_scanline & 15) updateProgress(cinfo.next_scanline, cinfo.image_height);
   }
 
   // Step 6: Finish compression
@@ -664,14 +651,12 @@ uint32_t JpegEncoderDevice::writeImage(const Image& image_)
   jpeg->jpeg_finish_compress(&cinfo);
 
   // Step 7: release JPEG compression object
+end:
 
   // This is an important step since it will release a good deal of memory.
   jpeg->jpeg_destroy_compress(&cinfo);
 
-  // And we're done!
-
-end:
-  return error;
+  return err;
 }
 
 } // ImageIO namespace
