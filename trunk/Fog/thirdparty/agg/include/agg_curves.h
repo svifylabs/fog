@@ -670,7 +670,7 @@ namespace agg
             }
         }
 
-        unsigned vertex(double* x, double* y)
+        AGG_INLINE unsigned vertex(double* x, double* y)
         {
             if(m_approximation_method == curve_inc) 
             {

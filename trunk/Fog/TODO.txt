@@ -10,7 +10,6 @@ TODO
 [ ] Fog::BitArray - fix
 [ ] Temporary...<N>::free sometimes not frees the memory ?
 
-[ ] Converters - connect with BlitJit
 [ ] Font - Ability to render to 'Path'
 [ ] Painter
     [ ] Text transform
@@ -20,17 +19,10 @@ TODO
     [ ] Line dashes
     [ ] Image transform
 [ ] Image
-    [x] Remove Image::blur()
-    [ ] Add some effects from qimageblitz
-    [x] Bresenham Line
+    [ ] Add some effects from qimageblitz?
     [ ] DOT line
     [ ] WU-Antialiased line
-    [x] Fill rectangle
     [ ] Fill trapezoid, using rasterizer from pixman with ability to set color for each corner
-    [x] Render basic types of gradients + Quad (VGradient, HGradient, QGradient)
     [ ] Render text using Font::getGlyphs
-    [ ] Premultiply / Demultiply
-    [x] extractChannel()
     [ ] ColorMatrix transformations
     [ ] Scaling
-    [ ] Delete Pixel Format class, use only Format in Fog::Image
