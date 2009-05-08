@@ -28,6 +28,13 @@ static FunctionMap functionMapData;
 FunctionMap* functionMap;
 
 // ============================================================================
+// [Fog::Raster - Defines]
+// ============================================================================
+
+#define READ_MASK_A8(ptr) ((const uint8_t *)ptr)[0]
+#define READ_MASK_C8(ptr) ((const uint32_t*)ptr)[0]
+
+// ============================================================================
 // [Fog::Raster - Demultiply Reciprocal Table]
 // ============================================================================
 
@@ -2068,9 +2075,6 @@ static void FOG_FASTCALL gradient_gradient_a8(uint8_t* dst, uint32_t c0, uint32_
 // [Fog::Raster - Operator - Base Macros and Generic Implementation]
 // ============================================================================
 
-#define READ_MASK_A8(ptr) ((const uint8_t *)ptr)[0]
-#define READ_MASK_C8(ptr) ((const uint32_t*)ptr)[0]
-
 #define BEGIN_OPERATOR_IMPL(OP_NAME, OP_INHERITS) \
   template<typename DstFmt, typename SrcFmt> \
   struct OP_NAME : public OP_INHERITS<OP_NAME<DstFmt, SrcFmt>, DstFmt, SrcFmt> \
@@ -3601,7 +3605,9 @@ static void FOG_FASTCALL raster_rgb32_pixel(
   uint32_t a = src >> 24;
 
   if (a != 0xFF)
-    src = blend_over_nonpremultiplied(((uint32_t*)dst)[0], src, a);
+  {
+    src = blend_over_srcpremultiplied(((uint32_t*)dst)[0], src, a);
+  }
 
   ((uint32_t*)dst)[0] = src;
 }
@@ -3609,10 +3615,13 @@ static void FOG_FASTCALL raster_rgb32_pixel(
 static void FOG_FASTCALL raster_rgb32_pixel_a8(
   uint8_t* dst, uint32_t src, uint32_t msk)
 {
-  uint32_t a = div255((src >> 24) * msk);
+  uint32_t a = src >> 24;
 
-  if (a != 0xFF)
-    src = blend_over_nonpremultiplied(((uint32_t*)dst)[0], src, a);
+  if (a != 0xFF || msk != 0xFF)
+  {
+    src = bytemul_reset_alpha(src, msk);
+    src = blend_over_srcpremultiplied(((uint32_t*)dst)[0], src, src >> 24);
+  }
 
   ((uint32_t*)dst)[0] = src;
 }
@@ -3625,11 +3634,11 @@ static void FOG_FASTCALL raster_rgb32_span_solid(
 
   if (a != 0xFF)
   {
-    src = bytemul(src, a);
+    src |= 0xFF000000;
     a = 255 - a;
 
     do {
-      ((uint32_t*)dst)[0] = bytemul(((uint32_t*)dst)[0], a) + src;
+      ((uint32_t*)dst)[0] = bytemul_reset_alpha(((uint32_t*)dst)[0], a) + src;
       dst += 4;
     } while (--w);
   }
@@ -3679,17 +3688,18 @@ static void FOG_FASTCALL raster_rgb32_span_solid_a8(
 
   if (a != 0xFF)
   {
+    uint32_t FFsrc = src | 0xFF000000;
     uint32_t ia = 255 - a;
-    uint32_t srcmul = bytemul(src, a);
 
     do {
       if ((m = READ_MASK_A8(msk)) == 0xFF)
       {
-        ((uint32_t*)dst)[0] = bytemul(((uint32_t*)dst)[0], ia) + srcmul;
+        ((uint32_t*)dst)[0] = bytemul_reset_alpha(((uint32_t*)dst)[0], ia) + FFsrc;
       }
       else if (m)
       {
-        ((uint32_t*)dst)[0] = blend_over_nonpremultiplied(((uint32_t*)dst)[0], src, div255(m * a));
+        uint32_t srcm = bytemul(src, m);
+        ((uint32_t*)dst)[0] = blend_over_srcpremultiplied(((uint32_t*)dst)[0], srcm, srcm >> 24);
       }
       dst += 4;
       msk += 1;

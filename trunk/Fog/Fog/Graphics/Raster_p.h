@@ -919,6 +919,48 @@ static FOG_INLINE uint32_t bytemul(uint32_t x, uint32_t a)
 #endif
 }
 
+// x_c = x_c * a
+// x_a = 0xFF
+static FOG_INLINE uint32_t bytemul_full_alpha(uint32_t x, uint32_t a)
+{
+#if FOG_ARCH_BITS == 64
+  uint64_t x0 = ((uint64_t)x | ((uint64_t)x << 24)) & FOG_UINT64_C(0x000000FF00FF00FF);
+  x0 *= a;
+  x0 = (x0 + ((x0 >> 8) & FOG_UINT64_C(0x000000FF00FF00FF)) + FOG_UINT64_C(0xFF00008000800080)) >> 8;
+  x0 &= FOG_UINT64_C(0x00FF00FF00FF00FF);
+  return (uint32_t)(x0 | (x0 >> 24));
+#else
+  uint32_t t0 = ((x & 0x00FF00FF)) * a;
+  uint32_t t1 = ((x & 0x0000FF00)) * a;
+
+  x  = ((t0 + ((t0 >> 8) & 0x00FF00FF) + 0x00800080) >> 8) & 0x00FF00FF;
+  x |= ((t1 + ((t1 >> 8) & 0x00FF00FF) + 0xFF000080) >> 8) & 0xFF00FF00;
+
+  return x;
+#endif
+}
+
+// x_c = x_c * a
+// x_a = 0x00
+static FOG_INLINE uint32_t bytemul_reset_alpha(uint32_t x, uint32_t a)
+{
+#if FOG_ARCH_BITS == 64
+  uint64_t x0 = ((uint64_t)x | ((uint64_t)x << 24)) & FOG_UINT64_C(0x000000FF00FF00FF);
+  x0 *= a;
+  x0 = (x0 + ((x0 >> 8) & FOG_UINT64_C(0x000000FF00FF00FF)) + FOG_UINT64_C(0x0000008000800080)) >> 8;
+  x0 &= FOG_UINT64_C(0x000000FF00FF00FF);
+  return (uint32_t)(x0 | (x0 >> 24));
+#else
+  uint32_t t0 = ((x & 0x00FF00FF)) * a;
+  uint32_t t1 = ((x & 0x0000FF00)) * a;
+
+  x  = ((t0 + ((t0 >> 8) & 0x00FF00FF) + 0x00800080) >> 8) & 0x00FF00FF;
+  x |= ((t1 + ((t1 >> 8) & 0x00FF00FF) + 0x00000080) >> 8) & 0x0000FF00;
+
+  return x;
+#endif
+}
+
 // x_c = min(x_c + y_c, 255)
 static FOG_INLINE uint32_t byteadd(uint32_t x, uint32_t y)
 {
@@ -1141,17 +1183,22 @@ static FOG_INLINE uint32_t demultiply(uint32_t x)
 // [Fog::Raster - Blending]
 // ============================================================================
 
+static FOG_INLINE uint32_t combine_alpha(uint32_t a0, uint32_t a1)
+{
+  return div255(a0 * a1);
+}
+
 static FOG_INLINE uint32_t blend_over_nonpremultiplied(uint32_t dst, uint32_t src, uint32_t a)
 {
-  dst = bytemul(dst | 0xFF000000, 255 - a);
-  src = bytemul(src | 0xFF000000, a);
+  dst = bytemul_full_alpha(dst, 255 - a);
+  src = bytemul_reset_alpha(src, a);
   return dst + src;
 }
 
 static FOG_INLINE uint32_t blend_over_srcpremultiplied(uint32_t dst, uint32_t src, uint32_t a)
 {
-  dst = bytemul(dst & 0x00FFFFFF, 255 - a);
-  return dst + src;
+  dst = bytemul_reset_alpha(dst, 255 - a);
+  return (dst + src) | 0xFF000000;
 }
 
 static FOG_INLINE uint32_t blend_lerp(uint32_t dst, uint32_t src, uint32_t a)
