@@ -62,7 +62,7 @@ Set(FOG_CFLAGS_SSE2 "")
 Set(FOG_CFLAGS_SSE3 "")
 
 If(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
-  Set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -fno-exceptions -fvisibility-inlines-hidden")
+  Set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -fno-exceptions -fvisibility-inlines-hidden -Winline")
   Set(FOG_CFLAGS_O3 "")
   If(NOT ${CMAKE_BUILD_TYPE} MATCHES "Debug")
     Set(FOG_CFLAGS_O3 "-O3")

@@ -109,6 +109,8 @@ namespace agg
 
 #if defined(_MSC_VER)
 #define AGG_INLINE __forceinline
+#elif defined(__GNUC__)
+#define AGG_INLINE inline __attribute__((always_inline))
 #else
 #define AGG_INLINE inline
 #endif
@@ -190,7 +192,7 @@ namespace agg
     //---------------------------------------------------------------saturation
     template<int Limit> struct saturation
     {
-        AGG_INLINE static int iround(double v)
+        static AGG_INLINE int iround(double v)
         {
             if(v < double(-Limit)) return -Limit;
             if(v > double( Limit)) return  Limit;
@@ -201,7 +203,7 @@ namespace agg
     //------------------------------------------------------------------mul_one
     template<unsigned Shift> struct mul_one
     {
-        AGG_INLINE static unsigned mul(unsigned a, unsigned b)
+        static AGG_INLINE unsigned mul(unsigned a, unsigned b)
         {
             register unsigned q = a * b + (1 << (Shift-1));
             return (q + (q >> Shift)) >> Shift;

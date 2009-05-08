@@ -637,7 +637,7 @@ namespace agg
 
     //------------------------------------------------------------------------
     template<class T, unsigned S>
-    inline T* pod_bvector<T, S>::data_ptr()
+    AGG_INLINE T* pod_bvector<T, S>::data_ptr()
     {
         unsigned nb = m_size >> block_shift;
         if(nb >= m_num_blocks)
@@ -651,7 +651,7 @@ namespace agg
 
     //------------------------------------------------------------------------
     template<class T, unsigned S> 
-    inline void pod_bvector<T, S>::add(const T& val)
+    AGG_INLINE void pod_bvector<T, S>::add(const T& val)
     {
         *data_ptr() = val;
         ++m_size;
@@ -660,7 +660,7 @@ namespace agg
 
     //------------------------------------------------------------------------
     template<class T, unsigned S> 
-    inline void pod_bvector<T, S>::remove_last()
+    AGG_INLINE void pod_bvector<T, S>::remove_last()
     {
         if(m_size) --m_size;
     }
@@ -668,7 +668,7 @@ namespace agg
 
     //------------------------------------------------------------------------
     template<class T, unsigned S> 
-    void pod_bvector<T, S>::modify_last(const T& val)
+    AGG_INLINE void pod_bvector<T, S>::modify_last(const T& val)
     {
         remove_last();
         add(val);
@@ -907,7 +907,7 @@ namespace agg
 
     
     //-----------------------------------------------------------swap_elements
-    template<class T> inline void swap_elements(T& a, T& b)
+    template<class T> AGG_INLINE void swap_elements(T& a, T& b)
     {
         T temp = a;
         a = b;
@@ -1104,16 +1104,16 @@ namespace agg
     };
 
     //---------------------------------------------------------------int_less
-    inline bool int_less(int a, int b) { return a < b; }
+    AGG_INLINE bool int_less(int a, int b) { return a < b; }
 
     //------------------------------------------------------------int_greater
-    inline bool int_greater(int a, int b) { return a > b; }
+    AGG_INLINE bool int_greater(int a, int b) { return a > b; }
 
     //----------------------------------------------------------unsigned_less
-    inline bool unsigned_less(unsigned a, unsigned b) { return a < b; }
+    AGG_INLINE bool unsigned_less(unsigned a, unsigned b) { return a < b; }
 
     //-------------------------------------------------------unsigned_greater
-    inline bool unsigned_greater(unsigned a, unsigned b) { return a > b; }
+    AGG_INLINE bool unsigned_greater(unsigned a, unsigned b) { return a > b; }
 }
 
 #endif
