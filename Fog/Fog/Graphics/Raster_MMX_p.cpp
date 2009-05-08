@@ -108,7 +108,7 @@ static void FOG_FASTCALL gradient_gradient_argb32_MMX(uint8_t* dst, uint32_t c0,
     mm0 = _mm_add_pi32(mm0, tmpAR.m64);          // mm0 = AR c0 + offset
     mm2 = _mm_add_pi32(mm2, tmpGB.m64);          // mm2 = GB c0 + offset
 
-    i = w - x1;
+    i = fog_min(w + 1, x2) - x1;
     x1 += i;
 
     // Align.

@@ -1705,7 +1705,7 @@ static void FOG_FASTCALL gradient_gradient_argb32(uint8_t* dst, uint32_t c0, uin
     grStp[3] = (((int)((c1 >> 24)       ) << 23) - grCur[3]) / (int)w;
     grCur[3] += grStp[3] * (int)x1;
 
-    i = w - x1;
+    i = fog_min(w + 1, x2) - x1;
     x1 += i;
 
     do {
@@ -1796,7 +1796,7 @@ static void FOG_FASTCALL gradient_gradient_prgb32(uint8_t* dst, uint32_t c0, uin
     grStp[3] = (((int)((c1 >> 24)       ) << 23) - grCur[3]) / (int)w;
     grCur[3] += grStp[3] * (int)x1;
 
-    i = w - x1;
+    i = fog_min(w + 1, x2) - x1;
     x1 += i;
 
     do {
@@ -1884,7 +1884,7 @@ static void FOG_FASTCALL gradient_gradient_rgb32(uint8_t* dst, uint32_t c0, uint
     grStp[2] = (((int)((c1 >> 16) & 0xFF) << 23) - grCur[2]) / (int)w;
     grCur[2] += grStp[2] * (int)x1;
 
-    i = w - x1;
+    i = fog_min(w + 1, x2) - x1;
     x1 += i;
 
     do {
@@ -1970,7 +1970,7 @@ static void FOG_FASTCALL gradient_gradient_rgb24(uint8_t* dst, uint32_t c0, uint
     grStp[2] = (((int)((c1 >> 16) & 0xFF) << 23) - grCur[2]) / (int)w;
     grCur[2] += grStp[2] * (int)x1;
 
-    i = w - x1;
+    i = fog_min(w + 1, x2) - x1;
     x1 += i;
 
     do {
@@ -2046,7 +2046,7 @@ static void FOG_FASTCALL gradient_gradient_a8(uint8_t* dst, uint32_t c0, uint32_
     grStp = (((int)((c1      ) & 0xFF) << 23) - grCur) / (int)w;
     grCur += grStp * (int)x1;
 
-    i = w - x1;
+    i = fog_min(w + 1, x2) - x1;
     x1 += i;
 
     do {
@@ -3796,9 +3796,9 @@ static void FOG_FASTCALL raster_rgb32_span_composite_prgb32_a8(
     if ((m = READ_MASK_A8(msk)))
     {
       uint32_t src0 = ((uint32_t*)src)[0];
-      uint32_t a0 = src0 >> 24;
-      if (m != 0xFF) src0 = bytemul(src0, m);
-      ((uint32_t*)dst)[0] = bytemul(((uint32_t*)dst)[0], (~src0) >> 24) + src0;
+      uint32_t ia0 = (~src0) >> 24;
+      if (m != 0xFF) { src0 = bytemul(src0, m); ia0 = (~src0) >> 24; }
+      ((uint32_t*)dst)[0] = bytemul(((uint32_t*)dst)[0], ia0) + src0;
     }
 
     dst += 4;
@@ -3948,6 +3948,7 @@ static err_t FOG_FASTCALL pattern_texture_init(
 
   ctx->format = ctx->texture.texture->format();
   
+  // Set fetch function.
   switch (pattern.spread())
   {
     case Pattern::PadSpread:
@@ -3961,6 +3962,9 @@ static err_t FOG_FASTCALL pattern_texture_init(
     default:
       return Error::InvalidArgument;
   }
+
+  // Set destroy function.
+  ctx->destroy = pattern_texture_destroy;
 
   // Copy texture variables into pattern context.
   ctx->texture.bits = ctx->texture.texture->cData();
