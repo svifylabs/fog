@@ -15,6 +15,10 @@
 #include <Fog/Graphics/Rgba.h>
 
 namespace Fog {
+
+// Used in function map prototypes.
+struct Pattern;
+
 namespace Raster {
 
 // ============================================================================
@@ -1868,8 +1872,66 @@ typedef void (FOG_FASTCALL *RectCompositeIndexedMskFn)(
   sysint_t dstStride, sysint_t srcStride, sysint_t mskStride, sysint_t w,
   const Rgba* pal);
 
+struct PatternContext;
+
+typedef err_t (FOG_FASTCALL *PatternContextInitFn)(
+  PatternContext* ctx, const Pattern& pattern);
+
+typedef void (FOG_FASTCALL *PatternContextFetchFn)(
+  PatternContext* ctx,
+  uint8_t* dst, int x, int y, int w);
+
+typedef void (FOG_FASTCALL *PatternContextDestroyFn)(
+  PatternContext* ctx);
+
+struct PatternContext
+{
+  PatternContextFetchFn fetch;
+  PatternContextDestroyFn destroy;
+
+  int initialized;
+  int format;
+  int depth;
+
+  struct Texture
+  {
+    // Must be dereferenced when context is destroyed: d->deref().
+    Static<Image> texture;
+
+    int dx;
+    int dy;
+
+    // Private, initialized when context is created. These variables are here
+    // for easier access into texture data (it saves some pointer dereferences,
+    // i don't know if this is optimization or not, but it's easier to access
+    // it in pattern fetchers).
+    const uint8_t* bits;
+    sysint_t stride;
+    int w;
+    int h;
+  };
+
+  struct LinearGradient
+  {
+    Rgba* stops;
+
+    int dx;
+    int dy;
+    int ax;
+    int ay;
+  };
+
+  union
+  {
+    Texture texture;
+    LinearGradient linearGradient;
+  };
+};
+
 struct FunctionMap
 {
+  // [Convert Table]
+
   struct Convert
   {
     // [ByteSwap]
@@ -1981,6 +2043,10 @@ struct FunctionMap
     ConvertDither16Fn rgb16_5650_bs_from_rgb24_dither;
   };
 
+  Convert convert;
+
+  // [Gradient Table]
+
   struct Gradient
   {
     // [GradientSpan]
@@ -1991,6 +2057,10 @@ struct FunctionMap
     GradientSpanFn gradient_rgb24;
     GradientSpanFn gradient_a8;
   };
+
+  Gradient gradient;
+
+  // [Raster Table]
 
   struct Raster
   {
@@ -2012,9 +2082,9 @@ struct FunctionMap
     // [Span Composite]
 
     // NOTE: There are two versions of funtions, but you can call only one
-    // of them. The indexed version is only for Image::FormatI8 format and
-    // painter and Fog library knows about it. The indexed version is only
-    // used when blitting or tiling image to destination, all transformations
+    // of them. The indexed version is only for Image::FormatI8. Painter and
+    // Fog library knows about this. The indexed version is only used when
+    // blitting or tiling image to destination, all transformations
     // and other operations uses 24 bit or 32 bit formats.
 
     union {
@@ -2033,21 +2103,35 @@ struct FunctionMap
       RectCompositeFn rect_composite[Image::FormatCount];
       RectCompositeIndexedFn rect_composite_indexed[Image::FormatCount];
     };
+
     union {
       RectCompositeMskFn rect_composite_a8[Image::FormatCount];
       RectCompositeIndexedMskFn rect_composite_indexed_a8[Image::FormatCount];
     };
   };
-
-  Convert convert;
-
-  Gradient gradient;
-
+  
   // 0 = ARGB32, 1 = ARGB32 premultiplied.
   Raster raster_argb32[2][CompositeCount];
-
   Raster raster_rgb32;
   Raster raster_rgb24;
+
+  // [Pattern Table]
+
+  struct Pattern_
+  {
+    // [Texture]
+
+    PatternContextInitFn texture_init;
+    PatternContextDestroyFn texture_destroy;
+
+    //PatternContextFetchFn texture_fetch;
+    //PatternContextFetchFn texture_fetch_scaled;
+    PatternContextFetchFn texture_fetch_repeat;
+    PatternContextFetchFn texture_fetch_reflect;
+    //PatternContextFetchFn texture_fetch_repeat_scaled;
+  };
+
+  Pattern_ pattern;
 };
 
 extern FOG_API FunctionMap* functionMap;

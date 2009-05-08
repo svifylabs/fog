@@ -12,7 +12,8 @@
 #include <Fog/Cpu/CpuInfo.h>
 #include <Fog/Graphics/DitherMatrix.h>
 
-#include "Raster_p.h"
+#include <Fog/Graphics/Image.h>
+#include <Fog/Graphics/Pattern.h>
 #include <Fog/Graphics/Raster_p.h>
 
 namespace Fog {
@@ -2091,7 +2092,7 @@ struct Operator_Base
     {
       return x |= 0xFF000000;
     }
-    else if (SrcFmt::HasAlpha && !SrcFmt::IsPremultiplied && DstFmt::HasAlpha && DstFmt::IsPremultiplied)
+    else if (SrcFmt::HasAlpha && DstFmt::HasAlpha && !SrcFmt::IsPremultiplied)
     {
       return premultiply(x);
     }
@@ -2119,7 +2120,7 @@ struct Operator_Base
 
   static FOG_INLINE uint32_t normalize_dst_store(uint32_t x)
   {
-    if (SrcFmt::HasAlpha && DstFmt::HasAlpha && !DstFmt::IsPremultiplied)
+    if (DstFmt::HasAlpha && !DstFmt::IsPremultiplied)
     {
       return demultiply(x);
     }
@@ -3634,10 +3635,38 @@ static void FOG_FASTCALL raster_rgb32_span_solid(
   }
   else
   {
-    do {
+    // This is C optimized version of memfill for 32-bit/64-bit architectures.
+    // On most x86 modern systems it will be always replaced by MMX / SSE2
+    // version, so it's mainly for other architectures.
+    sysuint_t src0 = unpackU32ToSysUInt(src);
+
+#if FOG_ARCH_BITS == 64
+    // Align.
+    if ((sysuint_t)dst & 0x7)
+    {
       ((uint32_t*)dst)[0] = src;
       dst += 4;
-    } while (--w);
+      i--;
+    }
+#endif
+
+    while (i >= 8)
+    {
+      set32(dst, src0);
+      dst += 32;
+      i -= 8;
+    }
+
+    switch (i)
+    {
+      case 7: ((uint32_t*)dst)[0] = src; dst += 4;
+      case 6: ((uint32_t*)dst)[0] = src; dst += 4;
+      case 5: ((uint32_t*)dst)[0] = src; dst += 4;
+      case 4: ((uint32_t*)dst)[0] = src; dst += 4;
+      case 3: ((uint32_t*)dst)[0] = src; dst += 4;
+      case 2: ((uint32_t*)dst)[0] = src; dst += 4;
+      case 1: ((uint32_t*)dst)[0] = src; dst += 4;
+    }
   }
 }
 
@@ -3650,17 +3679,17 @@ static void FOG_FASTCALL raster_rgb32_span_solid_a8(
 
   if (a != 0xFF)
   {
-    src = bytemul(src, a);
-    a = 255 - a;
+    uint32_t ia = 255 - a;
+    uint32_t srcmul = bytemul(src, a);
 
     do {
       if ((m = READ_MASK_A8(msk)) == 0xFF)
       {
-        ((uint32_t*)dst)[0] = bytemul(((uint32_t*)dst)[0], a) + src;
+        ((uint32_t*)dst)[0] = bytemul(((uint32_t*)dst)[0], ia) + srcmul;
       }
       else if (m)
       {
-        ((uint32_t*)dst)[0] = bytemul(src, m);
+        ((uint32_t*)dst)[0] = blend_over_nonpremultiplied(((uint32_t*)dst)[0], src, div255(m * a));
       }
       dst += 4;
       msk += 1;
@@ -3675,7 +3704,7 @@ static void FOG_FASTCALL raster_rgb32_span_solid_a8(
       }
       else if (m)
       {
-        ((uint32_t*)dst)[0] = bytemul(((uint32_t*)dst)[0], 255 - m) + bytemul(src, m);
+        ((uint32_t*)dst)[0] = blend_over_nonpremultiplied(((uint32_t*)dst)[0], src, m);
       }
       dst += 4;
       msk += 1;
@@ -3885,6 +3914,165 @@ static void FOG_FASTCALL raster_rgb24_span_composite_rgb32_a8(
 static void FOG_FASTCALL raster_rgb24_span_composite_rgb24_a8(
   uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w)
 {
+}
+
+// ============================================================================
+// [Fog::Raster - Patterns]
+// ============================================================================
+
+static FOG_INLINE int double_to_int(double d) { return (int)d; }
+
+static err_t FOG_FASTCALL pattern_texture_init(
+  PatternContext* ctx, const Pattern& pattern);
+
+static void FOG_FASTCALL pattern_texture_destroy(
+  PatternContext* ctx);
+
+static void FOG_FASTCALL pattern_texture_fetch_repeat(
+  PatternContext* ctx,
+  uint8_t* dst, int x, int y, int w);
+
+static void FOG_FASTCALL pattern_texture_fetch_reflect(
+  PatternContext* ctx,
+  uint8_t* dst, int x, int y, int w);
+
+static err_t FOG_FASTCALL pattern_texture_init(
+  PatternContext* ctx, const Pattern& pattern)
+{
+  Pattern::Data* d = pattern._d;
+  if (d->type != Pattern::IsTexture) return Error::InvalidArgument;
+
+  ctx->texture.texture.init(d->obj.texture.instance());
+  ctx->texture.dx = double_to_int(d->points[0].x());
+  ctx->texture.dy = double_to_int(d->points[0].y());
+
+  ctx->format = ctx->texture.texture->format();
+  
+  switch (pattern.spread())
+  {
+    case Pattern::PadSpread:
+    case Pattern::NoSpread:
+    case Pattern::RepeatSpread:
+      ctx->fetch = pattern_texture_fetch_repeat;
+      break;
+    case Pattern::ReflectSpread:
+      ctx->fetch = pattern_texture_fetch_reflect;
+      break;
+    default:
+      return Error::InvalidArgument;
+  }
+
+  // Copy texture variables into pattern context.
+  ctx->texture.bits = ctx->texture.texture->cData();
+  ctx->texture.stride = ctx->texture.texture->stride();
+  ctx->texture.w = ctx->texture.texture->width();
+  ctx->texture.h = ctx->texture.texture->height();
+
+  ctx->initialized = true;
+  return Error::Ok;
+}
+
+static void FOG_FASTCALL pattern_texture_destroy(
+  PatternContext* ctx)
+{
+  ctx->texture.texture.destroy();
+  ctx->initialized = false;
+}
+
+static void FOG_FASTCALL pattern_texture_fetch_repeat(
+  PatternContext* ctx,
+  uint8_t* dst, int x, int y, int w)
+{
+  int tw = ctx->texture.w;
+  int th = ctx->texture.h;
+
+  x -= ctx->texture.dx;
+  y -= ctx->texture.dy;
+
+  if (x < 0) x = (x % tw) + tw;
+  if (x >= tw) x %= tw;
+
+  if (y < 0) y = (y % th) + th;
+  if (y >= th) y %= th;
+
+  const uint8_t* base = ctx->texture.bits + y * ctx->texture.stride;
+  const uint8_t* src;
+
+  do {
+    int i = fog_min(tw - x, w);
+
+    src = base + mul4(x);
+
+    w -= i;
+    x = 0;
+
+    do {
+      ((uint32_t*)dst)[0] = ((const uint32_t*)src)[0];
+      dst += 4;
+      src += 4;
+    } while (--i);
+  } while (w);
+}
+
+static void FOG_FASTCALL pattern_texture_fetch_reflect(
+  PatternContext* ctx,
+  uint8_t* dst, int x, int y, int w)
+{
+  int tw = ctx->texture.w;
+  int th = ctx->texture.h;
+
+  int tw2 = tw << 1;
+  int th2 = th << 1;
+
+  x -= ctx->texture.dx;
+  y -= ctx->texture.dy;
+
+  if (x < 0) x = (x % tw2) + tw2;
+  if (x >= tw2) x %= tw2;
+
+  if (y < 0) y = (y % th2) + th2;
+  if (y >= th2) y %= th2;
+
+  // Modify Y if reflected (if it lies in second section).
+  if (y >= th) y = th2 - y - 1;
+
+  const uint8_t* base = ctx->texture.bits + y * ctx->texture.stride;
+  const uint8_t* src;
+
+  do {
+    // Reflect mode
+    if (x >= tw)
+    {
+      int i = fog_min(tw2 - x, w);
+
+      src = base + mul4(tw2 - x - 1);
+
+      w -= i;
+      x = 0;
+
+      do {
+        ((uint32_t*)dst)[0] = ((const uint32_t*)src)[0];
+        dst += 4;
+        src -= 4;
+      } while (--i);
+    }
+    // Repeat mode
+    else
+    {
+      int i = fog_min(tw - x, w);
+
+      src = base + mul4(x);
+
+      w -= i;
+      x += i;
+
+      do {
+        ((uint32_t*)dst)[0] = ((const uint32_t*)src)[0];
+        dst += 4;
+        src += 4;
+      } while (--i);
+    }
+  } while (w);
 }
 
 // ============================================================================
@@ -4201,6 +4389,13 @@ FOG_INIT_DECLARE err_t fog_raster_init(void)
   m->raster_rgb24.span_composite_a8[Image::FormatRGB24] = raster_rgb24_span_composite_rgb24_a8;
   m->raster_rgb24.span_composite_a8[Image::FormatA8] = raster_span_composite_a8_nop;
   m->raster_rgb24.span_composite_indexed_a8[Image::FormatI8] = TODO_NOT_IMPLEMENTED;
+
+  // [Pattern]
+
+  m->pattern.texture_init = pattern_texture_init;
+  m->pattern.texture_destroy = pattern_texture_destroy;
+  m->pattern.texture_fetch_repeat = pattern_texture_fetch_repeat;
+  m->pattern.texture_fetch_reflect = pattern_texture_fetch_reflect;
 
   // [Install MMX optimized code if supported]
 

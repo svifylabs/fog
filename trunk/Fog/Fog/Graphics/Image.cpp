@@ -331,6 +331,7 @@ err_t Image::convert(int format)
         ((Raster::SpanCompositeFn)blitter)(dstCur, dstCur, w);
     }
 
+    _d->format = targetFormat;
     return Error::Ok;
   }
   else

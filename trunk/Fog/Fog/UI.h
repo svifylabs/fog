@@ -26,9 +26,11 @@
 #include <Fog/UI/CheckBox.h>
 #include <Fog/UI/Composite.h>
 #include <Fog/UI/Constants.h>
+#include <Fog/UI/Event.h>
 #include <Fog/UI/Layout.h>
 #include <Fog/UI/LayoutItem.h>
 #include <Fog/UI/Theme.h>
+#include <Fog/UI/UISystem.h>
 #include <Fog/UI/Widget.h>
 #include <Fog/UI/Window.h>
 

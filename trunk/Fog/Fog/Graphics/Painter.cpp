@@ -10,7 +10,6 @@
 
 // [Dependencies]
 #include <Fog/Core/Error.h>
-
 #include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Thread.h>
@@ -23,7 +22,6 @@
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/Painter.h>
 #include <Fog/Graphics/Raster_p.h>
-//#include <Fog/Graphics/Raster_BlitJit_p.h>
 #include <Fog/Graphics/Rgba.h>
 
 // [AntiGrain]
@@ -54,7 +52,6 @@
 #include "agg_vcgen_dash.h"
 
 // [BlitJit]
-
 #include <BlitJit/BlitJit.h>
 
 namespace Fog {
@@ -117,10 +114,10 @@ struct FOG_HIDDEN NullPainterDevice : public PainterDevice
   // [Source]
 
   virtual void setSource(const Rgba& rgba) {}
-  //virtual void setSource(const Pattern& pattern) {}
+  virtual void setSource(const Pattern& pattern) {}
 
   virtual Rgba sourceRgba() { return Rgba(0); }
-  //virtual Pattern sourcePattern() {}
+  virtual Pattern sourcePattern() { return Pattern(); }
 
   // [Parameters]
 
@@ -302,6 +299,199 @@ done:
   return Error::Ok;
 }
 
+// [AntiGrain Typedefs]
+typedef agg::conv_curve<AggPath>              AggConvCurve;
+typedef agg::conv_stroke<AggConvCurve>        AggConvStroke;
+
+typedef agg::conv_transform<AggConvCurve>     AggConvCurveTransform;
+typedef agg::conv_transform<AggConvStroke>    AggConvStrokeTransform;
+
+typedef agg::rasterizer_scanline_aa<>         AggRasterizer;
+typedef agg::scanline_p8                      AggScanlineP8;
+typedef agg::scanline_u8                      AggScanlineU8;
+
+// ============================================================================
+// [Fog::RasterPainterState]
+// ============================================================================
+
+struct FOG_HIDDEN RasterPainterState
+{
+  RasterPainterState();
+  RasterPainterState(const RasterPainterState& other);
+  ~RasterPainterState();
+
+  RasterPainterState& operator=(const RasterPainterState& other);
+
+  uint8_t* workRaster;
+
+  Point metaOrigin;
+  Point userOrigin;
+  Point workOrigin;
+
+  Region metaRegion;
+  Region userRegion;
+  Region workRegion;
+
+  bool metaRegionUsed;
+  bool userRegionUsed;
+  bool workRegionUsed;
+
+  bool clipSimple;
+  Box clipBox;
+
+  uint32_t op;
+
+  Rgba solidSource;
+  Pattern patternSource;
+  bool isSolidSource;
+
+  double lineWidth;
+  bool lineIsSimple;
+  uint32_t lineCap;
+  uint32_t lineJoin;
+  Vector<double> lineDash;
+  double lineDashOffset;
+  double miterLimit;
+
+  uint32_t fillMode;
+
+  AffineMatrix transformations;
+  bool transformationsUsed;
+};
+
+RasterPainterState::RasterPainterState()
+{
+}
+
+RasterPainterState::RasterPainterState(const RasterPainterState& other) :
+  workRaster(other.workRaster),
+  metaOrigin(other.metaOrigin),
+  userOrigin(other.userOrigin),
+  workOrigin(other.workOrigin),
+  metaRegion(other.metaRegion),
+  userRegion(other.userRegion),
+  workRegion(other.workRegion),
+  clipSimple(other.clipSimple),
+  clipBox(other.clipBox),
+  op(other.op),
+  solidSource(other.solidSource),
+  patternSource(other.patternSource),
+  isSolidSource(other.isSolidSource),
+  lineWidth(other.lineWidth),
+  lineIsSimple(other.lineIsSimple),
+  lineCap(other.lineCap),
+  lineJoin(other.lineJoin),
+  lineDash(other.lineDash),
+  lineDashOffset(other.lineDashOffset),
+  miterLimit(other.miterLimit),
+  fillMode(other.fillMode),
+  transformations(other.transformations),
+  transformationsUsed(other.transformationsUsed)
+{
+}
+
+RasterPainterState::~RasterPainterState()
+{
+}
+
+RasterPainterState& RasterPainterState::operator=(const RasterPainterState& other)
+{
+  workRaster = other.workRaster;
+  metaOrigin = other.metaOrigin;
+  userOrigin = other.userOrigin;
+  workOrigin = other.workOrigin;
+  metaRegion = other.metaRegion;
+  userRegion = other.userRegion;
+  workRegion = other.workRegion;
+  clipSimple = other.clipSimple;
+  clipBox = other.clipBox;
+  op = other.op;
+  solidSource = other.solidSource;
+  patternSource = other.patternSource;
+  isSolidSource = other.isSolidSource;
+  lineWidth = other.lineWidth;
+  lineIsSimple = other.lineIsSimple;
+  lineCap = other.lineCap;
+  lineJoin = other.lineJoin;
+  lineDash = other.lineDash;
+  lineDashOffset = other.lineDashOffset;
+  miterLimit = other.miterLimit;
+  fillMode = other.fillMode;
+  transformations = other.transformations;
+  transformationsUsed = other.transformationsUsed;
+
+  return *this;
+}
+
+// ============================================================================
+// [Fog::RasterPainterContext]
+// ============================================================================
+
+// Context is accessed always from only one thread.
+struct FOG_HIDDEN RasterPainterContext
+{
+  RasterPainterContext();
+  ~RasterPainterContext();
+
+  uint8_t* getBuffer(sysint_t size);
+  void releaseBuffer(uint8_t* buffer);
+
+  AggRasterizer ras;
+  AggScanlineP8 slP8;
+  AggScanlineU8 slU8;
+
+  Raster::FunctionMap::Raster* raster;
+  Raster::PatternContext* pctx;
+
+  uint8_t* buffer;
+  sysint_t bufferSize;
+
+  uint8_t bufferStatic[8192];
+
+private:
+  FOG_DISABLE_COPY(RasterPainterContext)
+};
+
+RasterPainterContext::RasterPainterContext()
+{
+  raster = NULL;
+  pctx = NULL;
+
+  buffer = bufferStatic;
+  bufferSize = FOG_ARRAY_SIZE(bufferStatic);
+}
+
+RasterPainterContext::~RasterPainterContext()
+{
+  if (buffer != bufferStatic) Memory::free(buffer);
+}
+
+uint8_t* RasterPainterContext::getBuffer(sysint_t size)
+{
+  if (size > bufferSize)
+  {
+    if (buffer != bufferStatic) Memory::free(buffer);
+
+    // First dynamic memory will be twice as bufferStatic.
+    sysint_t capacity = FOG_ARRAY_SIZE(bufferStatic) << 1;
+    while (size < capacity) capacity <<= 1;
+
+    buffer = (uint8_t*)Memory::alloc(size);
+    if (buffer == NULL)
+    {
+      // Error, set to safe defaults and return NULL, painter can't continue
+      // if this happenned.
+      buffer = bufferStatic;
+      bufferSize = FOG_ARRAY_SIZE(bufferStatic);
+      return NULL;
+    }
+
+    bufferSize = capacity;
+  }
+
+  return buffer;
+}
+
 // ============================================================================
 // [Fog::RasterPainterDevice]
 // ============================================================================
@@ -354,10 +544,10 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
   // [Source]
 
   virtual void setSource(const Rgba& rgba);
-  //virtual void setSource(const Pattern& pattern);
+  virtual void setSource(const Pattern& pattern);
 
   virtual Rgba sourceRgba();
-  //virtual Pattern sourcePattern();
+  virtual Pattern sourcePattern();
 
   // [Parameters]
 
@@ -460,13 +650,16 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
   void _updateWorkRegion();
   void _setDeviceDefaults();
 
+  Raster::PatternContext* _getPatternContext();
+  void _releasePatternContext(Raster::PatternContext* pctx);
+
   FOG_INLINE void _updateLineWidth()
-  { _lineIsSimple = (_lineWidth == 1.0 && _lineDash.length() == 0); }
+  { state.lineIsSimple = (state.lineWidth == 1.0 && state.lineDash.length() == 0); }
 
   // [Renderers]
   //
   // Renderers are designed as virtual methods, because they are reimplemented
-  // by MTRasterPainterDevice class to be able to use multiple threads.
+  // by MTRasterPainterDevice class to be able to use multithreaded rendering.
 
   virtual void _renderGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip);
   virtual void _renderBoxes(const Box* box, sysuint_t count);
@@ -476,7 +669,6 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
   // [Members]
 
   uint8_t* _metaRaster;
-  uint8_t* _workRaster;
   sysint_t _stride;
 
   int _metaWidth;
@@ -485,59 +677,21 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
   int _format;
   sysint_t _bpp;
 
-  Point _metaOrigin;
-  Point _userOrigin;
-  Point _workOrigin;
-
-  Region _metaRegion;
-  Region _userRegion;
-  Region _workRegion;
-
-  bool _metaRegionUsed;
-  bool _userRegionUsed;
-  bool _workRegionUsed;
-
-  bool _clipSimple;
-  Box _clipBox;
-
-  uint32_t _op;
   bool _compositingEnabled;
   bool _premultiplied;
 
-  Rgba _source;
-
-  double _lineWidth;
-  bool _lineIsSimple;
-  uint32_t _lineCap;
-  uint32_t _lineJoin;
-  Vector<double> _lineDash;
-  double _lineDashOffset;
-  double _miterLimit;
-
-  uint32_t _fillMode;
-
-  AffineMatrix _transformations;
-  bool _transformationsUsed;
-
   // Temporary path
-  Path _workPath;
+  Path workPath;
 
-  // [AntiGrain Members]
-  typedef agg::conv_curve<AggPath>              ConvCurve;
-  typedef agg::conv_stroke<ConvCurve>           ConvStroke;
+  // Context that contains painter state. The context is designed to be saved
+  // or restored and to be used in multithreaded rendering, so it's safe to
+  // copy, create, delete contexts.
+  RasterPainterState state;
 
-  typedef agg::conv_transform<ConvCurve>        ConvCurveTransform;
-  typedef agg::conv_transform<ConvStroke>       ConvStrokeTransform;
-
-  typedef agg::rasterizer_scanline_aa<>         Rasterizer;
-  typedef agg::scanline_p8                      ScanlineP8;
-  typedef agg::scanline_u8                      ScanlineU8;
-
-  Rasterizer _ras;
-  ScanlineP8 _slP8;
-  ScanlineU8 _slU8;
-
-  Raster::FunctionMap::Raster* _rasterCtx;
+  // Antigrain context is declared outside of painter because we want that it
+  // will be accessible through multiple threads. Each thread have it's own
+  // context.
+  RasterPainterContext ctx;
 };
 
 // ============================================================================
@@ -547,7 +701,6 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
 RasterPainterDevice::RasterPainterDevice(uint8_t* pixels, int width, int height, sysint_t stride, int format)
 {
   _metaRaster = pixels;
-  _workRaster = pixels;
   _stride = stride;
 
   _metaWidth = width;
@@ -556,24 +709,18 @@ RasterPainterDevice::RasterPainterDevice(uint8_t* pixels, int width, int height,
   _format = format;
   _bpp = Image::formatToDepth(format) >> 3;
 
-  _metaOrigin.set(0, 0);
-  _userOrigin.set(0, 0);
-  _workOrigin.set(0, 0);
-
-  _metaRegionUsed = false;
-  _userRegionUsed = false;
-  _workRegionUsed = false;
-
-  _clipSimple = true;
-  _clipBox.set(0, 0, width, height);
-
-  _op = CompositeOver;
   _premultiplied = (format == Image::FormatPRGB32);
   _compositingEnabled = format == Image::FormatARGB32 || _premultiplied;
 
-  _source = Rgba(255, 255, 255, 255);
-
-  _rasterCtx = NULL;
+  state.workRaster = pixels;
+  state.metaOrigin.set(0, 0);
+  state.userOrigin.set(0, 0);
+  state.workOrigin.set(0, 0);
+  state.metaRegionUsed = false;
+  state.userRegionUsed = false;
+  state.workRegionUsed = false;
+  state.clipSimple = true;
+  state.clipBox.set(0, 0, width, height);
 
   _setDeviceDefaults();
 }
@@ -607,16 +754,18 @@ void RasterPainterDevice::setMetaVariables(
   bool useMetaRegion,
   bool reset)
 {
-  _metaOrigin = metaOrigin;
+  state.metaOrigin = metaOrigin;
 
-  _metaRegion = metaRegion;
-  _metaRegionUsed = useMetaRegion;
+  state.metaRegion = metaRegion;
+  state.metaRegionUsed = useMetaRegion;
 
   if (reset)
   {
-    _userOrigin.set(0, 0);
-    _userRegion.clear();
-    _userRegionUsed = false;
+    state.userOrigin.set(0, 0);
+    state.userRegion.clear();
+    state.userRegionUsed = false;
+
+    _setDeviceDefaults();
   }
 
   _updateWorkRegion();
@@ -624,17 +773,17 @@ void RasterPainterDevice::setMetaVariables(
 
 void RasterPainterDevice::setMetaOrigin(const Point& pt)
 {
-  if (_metaOrigin == pt) return;
+  if (state.metaOrigin == pt) return;
 
-  _metaOrigin = pt;
+  state.metaOrigin = pt;
   _updateWorkRegion();
 }
 
 void RasterPainterDevice::setUserOrigin(const Point& pt)
 {
-  if (_userOrigin == pt) return;
+  if (state.userOrigin == pt) return;
 
-  _userOrigin = pt;
+  state.userOrigin = pt;
   _updateWorkRegion();
 }
 
@@ -642,7 +791,7 @@ void RasterPainterDevice::translateMetaOrigin(const Point& pt)
 {
   if (pt.x() == 0 && pt.y() == 0) return;
 
-  _metaOrigin += pt;
+  state.metaOrigin += pt;
   _updateWorkRegion();
 }
 
@@ -650,72 +799,72 @@ void RasterPainterDevice::translateUserOrigin(const Point& pt)
 {
   if (pt.x() == 0 && pt.y() == 0) return;
 
-  _userOrigin += pt;
+  state.userOrigin += pt;
   _updateWorkRegion();
 }
 
 void RasterPainterDevice::setUserRegion(const Rect& r)
 {
-  _userRegion = r;
-  _userRegionUsed = true;
+  state.userRegion = r;
+  state.userRegionUsed = true;
 
   _updateWorkRegion();
 }
 
 void RasterPainterDevice::setUserRegion(const Region& r)
 {
-  _userRegion = r;
-  _userRegionUsed = true;
+  state.userRegion = r;
+  state.userRegionUsed = true;
 
   _updateWorkRegion();
 }
 
 void RasterPainterDevice::resetMetaVars()
 {
-  _metaOrigin.set(0, 0);
-  _metaRegion.clear();
-  _metaRegionUsed = false;
+  state.metaOrigin.set(0, 0);
+  state.metaRegion.clear();
+  state.metaRegionUsed = false;
 
   _updateWorkRegion();
 }
 
 void RasterPainterDevice::resetUserVars()
 {
-  _userOrigin.set(0, 0);
-  _userRegion.clear();
-  _userRegionUsed = false;
+  state.userOrigin.set(0, 0);
+  state.userRegion.clear();
+  state.userRegionUsed = false;
 
   _updateWorkRegion();
 }
 
 Point RasterPainterDevice::metaOrigin() const
 {
-  return _metaOrigin;
+  return state.metaOrigin;
 }
 
 Point RasterPainterDevice::userOrigin() const
 {
-  return _userOrigin;
+  return state.userOrigin;
 }
 
 Region RasterPainterDevice::metaRegion() const
 {
-  return _metaRegion;
+  return state.metaRegion;
 }
 
 Region RasterPainterDevice::userRegion() const
 {
-  return _userRegion;
+  return state.userRegion;
 }
 
 bool RasterPainterDevice::usedMetaRegion() const
 {
-  return _metaRegionUsed;
+  return state.metaRegionUsed;
 }
 
 bool RasterPainterDevice::usedUserRegion() const
 {
-  return _userRegionUsed;
+  return state.userRegionUsed;
 }
 
 // ============================================================================
@@ -727,13 +876,13 @@ void RasterPainterDevice::setOp(uint32_t op)
   if (!_compositingEnabled) return;
   if (op >= CompositeCount) return;
 
-  _op = op;
-  _rasterCtx = &Raster::functionMap->raster_argb32[_premultiplied][op];
+  state.op = op;
+  ctx.raster = &Raster::functionMap->raster_argb32[_premultiplied][op];
 }
 
 uint32_t RasterPainterDevice::op() const
 {
-  return _op;
+  return state.op;
 }
 
 // ============================================================================
@@ -742,12 +891,45 @@ uint32_t RasterPainterDevice::op() const
 
 void RasterPainterDevice::setSource(const Rgba& rgba)
 {
-  _source = rgba;
+  state.solidSource = rgba;
+  state.isSolidSource = true;
+
+  // Free pattern resource if not needed.
+  if (!state.patternSource.isNull())
+    state.patternSource.free();
+}
+
+void RasterPainterDevice::setSource(const Pattern& pattern)
+{
+  if (pattern.isSolid())
+  {
+    state.solidSource = pattern.color();
+    state.isSolidSource = true;
+    state.patternSource.free();
+  }
+  else
+  {
+    state.solidSource = Rgba(0, 0, 0, 0);
+    state.isSolidSource = false;
+    state.patternSource = pattern;
+  }
 }
 
 Rgba RasterPainterDevice::sourceRgba()
 {
-  return _source;
+  return state.solidSource;
+}
+
+Pattern RasterPainterDevice::sourcePattern()
+{
+  Pattern pattern;
+
+  if (state.isSolidSource)
+    pattern.setColor(state.solidSource);
+  else
+    pattern = state.patternSource;
+
+  return pattern;
 }
 
 // ============================================================================
@@ -756,82 +938,84 @@ Rgba RasterPainterDevice::sourceRgba()
 
 void RasterPainterDevice::setLineWidth(double lineWidth)
 {
-  _lineWidth = lineWidth;
+  if (state.lineWidth == lineWidth) return;
+
+  state.lineWidth = lineWidth;
   _updateLineWidth();
 }
 
 double RasterPainterDevice::lineWidth() const
 {
-  return _lineWidth;
+  return state.lineWidth;
 }
 
 void RasterPainterDevice::setLineCap(uint32_t lineCap)
 {
-  _lineCap = lineCap;
+  state.lineCap = lineCap;
 }
 
 uint32_t RasterPainterDevice::lineCap() const
 {
-  return _lineCap;
+  return state.lineCap;
 }
 
 void RasterPainterDevice::setLineJoin(uint32_t lineJoin)
 {
-  _lineJoin = lineJoin;
+  state.lineJoin = lineJoin;
 }
 
 uint32_t RasterPainterDevice::lineJoin() const
 {
-  return _lineJoin;
+  return state.lineJoin;
 }
 
 void RasterPainterDevice::setLineDash(const double* dashes, sysuint_t count)
 {
-  _lineDash.clear();
-  for (sysuint_t i = 0; i < count; i++) _lineDash.append(*dashes);
+  state.lineDash.clear();
+  for (sysuint_t i = 0; i < count; i++) state.lineDash.append(*dashes);
   _updateLineWidth();
 }
 
 void RasterPainterDevice::setLineDash(const Vector<double>& dashes)
 {
-  _lineDash = dashes;
+  state.lineDash = dashes;
   _updateLineWidth();
 }
 
 Vector<double> RasterPainterDevice::lineDash() const
 {
-  return _lineDash;
+  return state.lineDash;
 }
 
 void RasterPainterDevice::setLineDashOffset(double offset)
 {
-  _lineDashOffset = offset;
+  state.lineDashOffset = offset;
   _updateLineWidth();
 }
 
 double RasterPainterDevice::lineDashOffset() const
 {
-  return _lineDashOffset;
+  return state.lineDashOffset;
 }
 
 void RasterPainterDevice::setMiterLimit(double miterLimit)
 {
-  _miterLimit = miterLimit;
+  state.miterLimit = miterLimit;
 }
 
 double RasterPainterDevice::miterLimit() const
 {
-  return _miterLimit;
+  return state.miterLimit;
 }
 
 void RasterPainterDevice::setFillMode(uint32_t mode)
 {
-  _fillMode = mode;
+  state.fillMode = mode;
 }
 
 uint32_t RasterPainterDevice::fillMode()
 {
-  return _fillMode;
+  return state.fillMode;
 }
 
 // ============================================================================
@@ -840,56 +1024,56 @@ uint32_t RasterPainterDevice::fillMode()
 
 void RasterPainterDevice::setMatrix(const AffineMatrix& m)
 {
-  _transformations = m;
-  _transformationsUsed = !_transformations.isIdentity();
+  state.transformations = m;
+  state.transformationsUsed = !state.transformations.isIdentity();
 }
 
 void RasterPainterDevice::resetMatrix()
 {
-  _transformations = AffineMatrix();
-  _transformationsUsed = false;
+  state.transformations = AffineMatrix();
+  state.transformationsUsed = false;
 }
 
 AffineMatrix RasterPainterDevice::matrix() const
 {
-  return _transformations;
+  return state.transformations;
 }
 
 void RasterPainterDevice::rotate(double angle)
 {
-  _transformations *= AffineMatrix::fromRotation(angle);
-  _transformationsUsed = !_transformations.isIdentity();
+  state.transformations *= AffineMatrix::fromRotation(angle);
+  state.transformationsUsed = !state.transformations.isIdentity();
 }
 
 void RasterPainterDevice::scale(double sx, double sy)
 {
-  _transformations *= AffineMatrix::fromScale(sx, sy);
-  _transformationsUsed = !_transformations.isIdentity();
+  state.transformations *= AffineMatrix::fromScale(sx, sy);
+  state.transformationsUsed = !state.transformations.isIdentity();
 }
 
 void RasterPainterDevice::skew(double sx, double sy)
 {
-  _transformations *= AffineMatrix::fromSkew(sx, sy);
-  _transformationsUsed = !_transformations.isIdentity();
+  state.transformations *= AffineMatrix::fromSkew(sx, sy);
+  state.transformationsUsed = !state.transformations.isIdentity();
 }
 
 void RasterPainterDevice::translate(double x, double y)
 {
-  _transformations *= AffineMatrix::fromTranslation(x, y);
-  _transformationsUsed = !_transformations.isIdentity();
+  state.transformations *= AffineMatrix::fromTranslation(x, y);
+  state.transformationsUsed = !state.transformations.isIdentity();
 }
 
 void RasterPainterDevice::affine(const AffineMatrix& m)
 {
-  _transformations *= m;
-  _transformationsUsed = !_transformations.isIdentity();
+  state.transformations *= m;
+  state.transformationsUsed = !state.transformations.isIdentity();
 }
 
 void RasterPainterDevice::parallelogram(
   double x1, double y1, double x2, double y2, const double* para)
 {
-  _transformations *= AffineMatrix(x1, y1, x2, y2, para);
-  _transformationsUsed = !_transformations.isIdentity();
+  state.transformations *= AffineMatrix(x1, y1, x2, y2, para);
+  state.transformationsUsed = !state.transformations.isIdentity();
 }
 
 void RasterPainterDevice::viewport(
@@ -917,8 +1101,8 @@ void RasterPainterDevice::viewport(
   vp.device_viewport(screenX1, screenY1, screenX2, screenY2);
 
   agg::trans_affine aff = vp.to_affine();
-  _transformations *= *((const AffineMatrix *)&aff);
-  _transformationsUsed = !_transformations.isIdentity();
+  state.transformations *= *((const AffineMatrix *)&aff);
+  state.transformationsUsed = !state.transformations.isIdentity();
 }
 
 // ============================================================================
@@ -927,10 +1111,10 @@ void RasterPainterDevice::viewport(
 
 void RasterPainterDevice::clear()
 {
-  if (_clipSimple)
-    _renderBoxes(&_clipBox, 1);
+  if (state.clipSimple)
+    _renderBoxes(&state.clipBox, 1);
   else
-    _renderBoxes(_workRegion.cData(), _workRegion.count());
+    _renderBoxes(state.workRegion.cData(), state.workRegion.count());
 }
 
 void RasterPainterDevice::drawPixel(const Point& p)
@@ -950,7 +1134,7 @@ void RasterPainterDevice::drawRect(const Rect& r)
 {
   if (!r.isValid()) return;
 
-  if (_transformationsUsed || !_lineIsSimple)
+  if (state.transformationsUsed || !state.lineIsSimple)
   {
     RasterPainterDevice::drawRect(
       RectF(
@@ -977,11 +1161,11 @@ void RasterPainterDevice::drawRect(const Rect& r)
     box[3].set(r.x1()  , r.y2()-1, r.x2()  , r.y2()  );
   }
 
-  if (_clipSimple)
+  if (state.clipSimple)
   {
-    if (!_clipBox.subsumes(r))
+    if (!state.clipBox.subsumes(r))
     {
-      for (sysuint_t i = 0; i < count; i++) Box::intersect(box[0], box[0], _clipBox);
+      for (sysuint_t i = 0; i < count; i++) Box::intersect(box[0], box[0], state.clipBox);
     }
     RasterPainterDevice::_renderBoxes(box, count);
   }
@@ -991,7 +1175,7 @@ void RasterPainterDevice::drawRect(const Rect& r)
     TemporaryRegion<16> regionISect;
     regionBox.set(box, count);
 
-    Region::intersect(regionISect, regionBox, _workRegion);
+    Region::intersect(regionISect, regionBox, state.workRegion);
     if (!regionISect.count()) return;
 
     RasterPainterDevice::_renderBoxes(regionISect.cData(), regionISect.count());
@@ -1009,7 +1193,7 @@ void RasterPainterDevice::fillRect(const Rect& r)
 {
   if (!r.isValid()) return;
 
-  if (_transformationsUsed)
+  if (state.transformationsUsed)
   {
     RasterPainterDevice::fillRect(
       RectF(
@@ -1022,9 +1206,9 @@ void RasterPainterDevice::fillRect(const Rect& r)
 
   Box box(r.x1(), r.y1(), r.x2(), r.y2());
 
-  if (_clipSimple)
+  if (state.clipSimple)
   {
-    _clipBox.intersect(box, box, _clipBox);
+    Box::intersect(box, box, state.clipBox);
     if (!box.isValid()) return;
 
     RasterPainterDevice::_renderBoxes(&box, 1);
@@ -1035,7 +1219,7 @@ void RasterPainterDevice::fillRect(const Rect& r)
     TemporaryRegion<16> regionISect;
     regionBox.set(&box, 1);
 
-    Region::intersect(regionISect, regionBox, _workRegion);
+    Region::intersect(regionISect, regionBox, state.workRegion);
     if (!regionISect.count()) return;
 
     RasterPainterDevice::_renderBoxes(regionISect.cData(), regionISect.count());
@@ -1046,19 +1230,19 @@ void RasterPainterDevice::fillRects(const Rect* r, sysuint_t count)
 {
   if (!count) return;
 
-  if (_transformationsUsed)
+  if (state.transformationsUsed)
   {
-    _workPath.clear();
+    workPath.clear();
     for (sysuint_t i = 0; i < count; i++)
     {
-      if (r[i].isValid()) _workPath.addRect(
+      if (r[i].isValid()) workPath.addRect(
         RectF(
           (double)r[i].x1() + 0.5,
           (double)r[i].y1() + 0.5,
           (double)r[i].width(),
           (double)r[i].height()));
     }
-    fillPath(_workPath);
+    fillPath(workPath);
     return;
   }
 
@@ -1066,14 +1250,14 @@ void RasterPainterDevice::fillRects(const Rect* r, sysuint_t count)
   region.set(r, count);
   if (!region.count()) return;
 
-  if (_clipSimple)
+  if (state.clipSimple)
   {
-    if (_clipBox.subsumes(region.extents()))
+    if (state.clipBox.subsumes(region.extents()))
     {
       _renderBoxes(region.cData(), region.count());
       return;
     }
-    region.intersect(_clipBox);
+    region.intersect(state.clipBox);
     if (!region.count()) return;
 
     _renderBoxes(region.cData(), region.count());
@@ -1081,7 +1265,7 @@ void RasterPainterDevice::fillRects(const Rect* r, sysuint_t count)
   else
   {
     Region regionISect;
-    Region::intersect(regionISect, _workRegion, region);
+    Region::intersect(regionISect, state.workRegion, region);
     if (!regionISect.count()) return;
 
     _renderBoxes(regionISect.cData(), regionISect.count());
@@ -1097,14 +1281,14 @@ void RasterPainterDevice::fillRound(const Rect& r, const Point& radius)
 
 void RasterPainterDevice::fillRegion(const Region& region)
 {
-  if (_clipSimple && _clipBox.subsumes(region.extents()))
+  if (state.clipSimple && state.clipBox.subsumes(region.extents()))
   {
     _renderBoxes(region.cData(), region.count());
   }
   else
   {
     TemporaryRegion<16> dst;
-    Region::intersect(dst, _workRegion, region);
+    Region::intersect(dst, state.workRegion, region);
     if (!dst.count()) return;
 
     _renderBoxes(dst.cData(), dst.count());
@@ -1117,66 +1301,66 @@ void RasterPainterDevice::fillRegion(const Region& region)
 
 void RasterPainterDevice::drawPoint(const PointF& p)
 {
-  _workPath.clear();
-  _workPath.moveTo(p);
-  _workPath.lineTo(p.x(), p.y() + 0.0001);
-  drawPath(_workPath);
+  workPath.clear();
+  workPath.moveTo(p);
+  workPath.lineTo(p.x(), p.y() + 0.0001);
+  drawPath(workPath);
 }
 
 void RasterPainterDevice::drawLine(const PointF& start, const PointF& end)
 {
-  _workPath.clear();
-  _workPath.moveTo(start);
-  _workPath.lineTo(end);
-  drawPath(_workPath);
+  workPath.clear();
+  workPath.moveTo(start);
+  workPath.lineTo(end);
+  drawPath(workPath);
 }
 
 void RasterPainterDevice::drawLine(const PointF* pts, sysuint_t count)
 {
   if (!count) return;
 
-  _workPath.clear();
-  _workPath.moveTo(pts[0]);
+  workPath.clear();
+  workPath.moveTo(pts[0]);
   if (count > 1)
-    _workPath.addLineTo(pts + 1, count - 1);
+    workPath.addLineTo(pts + 1, count - 1);
   else
-    _workPath.lineTo(pts[0].x(), pts[0].y() + 0.0001);
-  drawPath(_workPath);
+    workPath.lineTo(pts[0].x(), pts[0].y() + 0.0001);
+  drawPath(workPath);
 }
 
 void RasterPainterDevice::drawPolygon(const PointF* pts, sysuint_t count)
 {
   if (!count) return;
 
-  _workPath.clear();
-  _workPath.moveTo(pts[0]);
+  workPath.clear();
+  workPath.moveTo(pts[0]);
   if (count > 1)
-    _workPath.addLineTo(pts + 1, count - 1);
+    workPath.addLineTo(pts + 1, count - 1);
   else
-    _workPath.lineTo(pts[0].x(), pts[0].y() + 0.0001);
-  _workPath.closePolygon();
-  drawPath(_workPath);
+    workPath.lineTo(pts[0].x(), pts[0].y() + 0.0001);
+  workPath.closePolygon();
+  drawPath(workPath);
 }
 
 void RasterPainterDevice::drawRect(const RectF& r)
 {
   if (!r.isValid()) return;
 
-  _workPath.clear();
-  _workPath.addRect(r);
-  drawPath(_workPath);
+  workPath.clear();
+  workPath.addRect(r);
+  drawPath(workPath);
 }
 
 void RasterPainterDevice::drawRects(const RectF* r, sysuint_t count)
 {
   if (!count) return;
 
-  _workPath.clear();
+  workPath.clear();
   for (sysuint_t i = 0; i < count; i++)
   {
-    if (r[i].isValid()) _workPath.addRect(r[i]);
+    if (r[i].isValid()) workPath.addRect(r[i]);
   }
-  drawPath(_workPath);
+  drawPath(workPath);
 }
 
 void RasterPainterDevice::drawRound(const RectF& r, const PointF& radius)
@@ -1201,9 +1385,9 @@ void RasterPainterDevice::drawRound(const RectF& r,
   // TODO:
   // rc.approximation_scale(worldToScreen(1.0) * g_approxScale);
 
-  _workPath.clear();
-  concatToPath(_workPath, rc, 0);
-  drawPath(_workPath);
+  workPath.clear();
+  concatToPath(workPath, rc, 0);
+  drawPath(workPath);
 }
 
 void RasterPainterDevice::drawEllipse(const PointF& cp, const PointF& r)
@@ -1215,9 +1399,9 @@ void RasterPainterDevice::drawArc(const PointF& cp, const PointF& r, double star
 {
   agg::bezier_arc arc(cp.x(), cp.y(), r.x(), r.y(), start, sweep);
 
-  _workPath.clear();
-  concatToPath(_workPath, arc, 0);
-  drawPath(_workPath);
+  workPath.clear();
+  concatToPath(workPath, arc, 0);
+  drawPath(workPath);
 }
 
 void RasterPainterDevice::drawPath(const Path& path)
@@ -1229,35 +1413,35 @@ void RasterPainterDevice::fillPolygon(const PointF* pts, sysuint_t count)
 {
   if (!count) return;
 
-  _workPath.clear();
-  _workPath.moveTo(pts[0]);
+  workPath.clear();
+  workPath.moveTo(pts[0]);
   if (count > 1)
-    _workPath.addLineTo(pts + 1, count - 1);
+    workPath.addLineTo(pts + 1, count - 1);
   else
-    _workPath.lineTo(pts[0].x(), pts[0].y() + 0.0001);
-  _workPath.closePolygon();
-  fillPath(_workPath);
+    workPath.lineTo(pts[0].x(), pts[0].y() + 0.0001);
+  workPath.closePolygon();
+  fillPath(workPath);
 }
 
 void RasterPainterDevice::fillRect(const RectF& r)
 {
   if (!r.isValid()) return;
 
-  _workPath.clear();
-  _workPath.addRect(r);
-  fillPath(_workPath);
+  workPath.clear();
+  workPath.addRect(r);
+  fillPath(workPath);
 }
 
 void RasterPainterDevice::fillRects(const RectF* r, sysuint_t count)
 {
   if (!count) return;
 
-  _workPath.clear();
+  workPath.clear();
   for (sysuint_t i = 0; i < count; i++)
   {
-    if (r[i].isValid()) _workPath.addRect(r[i]);
+    if (r[i].isValid()) workPath.addRect(r[i]);
   }
-  fillPath(_workPath);
+  fillPath(workPath);
 }
 
 void RasterPainterDevice::fillRound(const RectF& r, const PointF& radius)
@@ -1282,9 +1466,9 @@ void RasterPainterDevice::fillRound(const RectF& r,
   // TODO:
   // rc.approximation_scale(worldToScreen(1.0) * g_approxScale);
 
-  _workPath.clear();
-  concatToPath(_workPath, rc, 0);
-  fillPath(_workPath);
+  workPath.clear();
+  concatToPath(workPath, rc, 0);
+  fillPath(workPath);
 }
 
 void RasterPainterDevice::fillEllipse(const PointF& cp, const PointF& r)
@@ -1296,9 +1480,9 @@ void RasterPainterDevice::fillArc(const PointF& cp, const PointF& r, double star
 {
   agg::bezier_arc arc(cp.x(), cp.y(), r.x(), r.y(), start, sweep);
 
-  _workPath.clear();
-  concatToPath(_workPath, arc, 0);
-  fillPath(_workPath);
+  workPath.clear();
+  concatToPath(workPath, arc, 0);
+  fillPath(workPath);
 }
 
 void RasterPainterDevice::fillPath(const Path& path)
@@ -1377,7 +1561,7 @@ void RasterPainterDevice::drawImage(const Point& p, const Image& image, const Re
 
   int d;
 
-  if ((uint)(d = dstx - _clipBox.x1()) >= (uint)_clipBox.width())
+  if ((uint)(d = dstx - state.clipBox.x1()) >= (uint)state.clipBox.width())
   {
     if (d < 0)
     {
@@ -1391,7 +1575,7 @@ void RasterPainterDevice::drawImage(const Point& p, const Image& image, const Re
     }
   }
 
-  if ((uint)(d = dsty - _clipBox.y1()) >= (uint)_clipBox.height())
+  if ((uint)(d = dsty - state.clipBox.y1()) >= (uint)state.clipBox.height())
   {
     if (d < 0)
     {
@@ -1405,8 +1589,8 @@ void RasterPainterDevice::drawImage(const Point& p, const Image& image, const Re
     }
   }
 
-  if ((d = _clipBox.x2() - dstx) < dstw) dstw = d;
-  if ((d = _clipBox.y2() - dsty) < dsth) dsth = d;
+  if ((d = state.clipBox.x2() - dstx) < dstw) dstw = d;
+  if ((d = state.clipBox.y2() - dsty) < dsth) dsth = d;
 
   Rect dst(dstx, dsty, dstw, dsth);
   Rect src(srcx, srcy, dstw, dsth);
@@ -1427,94 +1611,146 @@ void RasterPainterDevice::flush()
 
 void RasterPainterDevice::_updateWorkRegion()
 {
-  _workOrigin = _metaOrigin + _userOrigin;
+  state.workOrigin = state.metaOrigin + state.userOrigin;
 
-  int negx = -_workOrigin.x();
-  int negy = -_workOrigin.y();
+  int negx = -state.workOrigin.x();
+  int negy = -state.workOrigin.y();
 
   // This is maximal clip box that can be used by painter.
-  _clipBox.set(negx, negy, negx + _metaWidth, negy + _metaHeight);
-  _clipSimple = true;
+  state.clipBox.set(negx, negy, negx + _metaWidth, negy + _metaHeight);
+  state.clipSimple = true;
 
   // Do region calculations only if they are really used.
-  if (_metaRegionUsed || _userRegionUsed)
+  if (state.metaRegionUsed || state.userRegionUsed)
   {
-    if (_metaRegionUsed)
+    if (state.metaRegionUsed)
     {
-      Region::translate(_workRegion, _metaRegion, Point(negx, negy));
+      Region::translate(state.workRegion, state.metaRegion, Point(negx, negy));
     }
     else
     {
-      _workRegion.set(Box(negx, negy, negx + _metaWidth, negy + _metaHeight));
+      state.workRegion.set(Box(negx, negy, negx + _metaWidth, negy + _metaHeight));
     }
 
-    if (_userRegionUsed)
+    if (state.userRegionUsed)
     {
       // Optimized!
-      if (_metaOrigin.x() || _metaOrigin.y())
+      if (state.metaOrigin.x() || state.metaOrigin.y())
       {
-        TemporaryRegion<64> _userTmp;
-        Region::translate(_userTmp, _userRegion, _metaOrigin.negated());
-        Region::subtract(_workRegion, _workRegion, _userTmp);
+        TemporaryRegion<64> userTmp;
+        Region::translate(userTmp, state.userRegion, state.metaOrigin.negated());
+        Region::subtract(state.workRegion, state.workRegion, userTmp);
       }
       else
       {
-        Region::subtract(_workRegion, _workRegion, _userRegion);
+        Region::subtract(state.workRegion, state.workRegion, state.userRegion);
       }
     }
 
     // Switch to box clip implementation if resulting region is simple.
-    if (_workRegion.count() == 1)
+    if (state.workRegion.count() == 1)
     {
-      _clipBox.set(_workRegion.extents());
+      state.clipBox.set(state.workRegion.extents());
 
-      _workRegion.clear();
-      _workRegionUsed = false;
+      state.workRegion.clear();
+      state.workRegionUsed = false;
     }
     else
     {
-      _clipSimple = false;
-      _clipBox.set(_workRegion.extents());
+      state.clipSimple = false;
+      state.clipBox.set(state.workRegion.extents());
 
-      _workRegionUsed = true;
+      state.workRegionUsed = true;
     }
   }
   else
   {
     // There is no clip box, we will use painter bounds that was in _clipBox
     // already
-    _workRegion.clear();
-    _workRegionUsed = false;
+    state.workRegion.clear();
+    state.workRegionUsed = false;
   }
 
   // This is very good trick. Make raster -relative to _workOrigin, so no
   // calculations are needed to draw pixels relative to _workOrigin.
-  _workRaster = _metaRaster +
-    (sysint_t)_workOrigin.x() * _bpp +
-    (sysint_t)_workOrigin.y() * _stride;
+  state.workRaster = _metaRaster +
+    (sysint_t)state.workOrigin.x() * _bpp +
+    (sysint_t)state.workOrigin.y() * _stride;
 }
 
 void RasterPainterDevice::_setDeviceDefaults()
 {
-  _op = CompositeOver;
+  state.op = CompositeOver;
+  state.solidSource = Rgba(0xFFFFFFFF);
+  state.patternSource.free();
+  state.isSolidSource = true;
 
-  _lineWidth = 1.0;
-  _lineIsSimple = true;
+  state.lineWidth = 1.0;
+  state.lineIsSimple = true;
 
-  _lineCap = LineCapRound;
-  _lineJoin = LineJoinRound;
+  state.lineCap = LineCapRound;
+  state.lineJoin = LineJoinRound;
 
-  _lineDash.free();
-  _lineDashOffset = 0.0;
+  state.lineDash.free();
+  state.lineDashOffset = 0.0;
 
-  _miterLimit = 1.0;
+  state.miterLimit = 1.0;
 
-  _fillMode = FillNonZero;
+  state.fillMode = FillNonZero;
 
-  _transformations = AffineMatrix();
-  _transformationsUsed = false;
+  state.transformations = AffineMatrix();
+  state.transformationsUsed = false;
 
-  _rasterCtx = Raster::getRasterOps(_format, _op);
+  ctx.raster = Raster::getRasterOps(_format, state.op);
+}
+
+Raster::PatternContext* RasterPainterDevice::_getPatternContext()
+{
+  // Sanity, calling _getPatternContext() for solid source is invalid.
+  if (state.isSolidSource) return NULL;
+
+  Raster::PatternContext* pctx = ctx.pctx;
+  err_t err = Error::Ok;
+
+  if (!pctx)
+  {
+    pctx = ctx.pctx = (Raster::PatternContext*)Memory::alloc(sizeof(Raster::PatternContext));
+    if (!pctx) return NULL;
+    pctx->initialized = false;
+  }
+
+  if (!pctx->initialized)
+  {
+    switch (state.patternSource.type())
+    {
+      case Pattern::IsTexture:
+        err = Raster::functionMap->pattern.texture_init(pctx, state.patternSource);
+        break;
+      default:
+        FOG_ASSERT_NOT_REACHED();
+    }
+  }
+
+  if (err)
+  {
+    fog_debug("Fog::RasterPainterDevice::_getPatternContext() - Failed to get context (error %d)\n", err);
+    return NULL;
+  }
+
+  // Be sure that pattern context is always marked as initialized.
+  FOG_ASSERT(pctx->initialized);
+
+  return pctx;
+}
+
+void RasterPainterDevice::_releasePatternContext(Raster::PatternContext* pctx)
+{
+  FOG_ASSERT(pctx != NULL);
+
+  if (pctx->destroy) pctx->destroy(pctx);
+  Memory::free(pctx);
+
+  if (ctx.pctx == pctx) ctx.pctx = NULL;
 }
 
 // ============================================================================
@@ -1767,17 +2003,19 @@ static void FOG_FASTCALL AggRenderScanlines(RasterPainterDevice* d, Rasterizer& 
 {
   if (!ras.rewind_scanlines()) return;
 
-  uint8_t* pBase = d->_workRaster;
+  uint8_t* pBase = d->state.workRaster;
   sysint_t stride = d->_stride;
 
   sl.reset(ras.min_x(), ras.max_x());
 
-  Raster::SpanSolidFn span_solid = d->_rasterCtx->span_solid;
-  Raster::SpanSolidMskFn span_solid_a8 = d->_rasterCtx->span_solid_a8;
+  Raster::SpanSolidFn span_solid = d->ctx.raster->span_solid;
+  Raster::SpanSolidMskFn span_solid_a8 = d->ctx.raster->span_solid_a8;
 
   // solid source
-  if (1)
+  if (d->state.isSolidSource)
   {
+    uint32_t solidColor = d->state.solidSource;
+
     while (ras.sweep_scanline(sl))
     {
       unsigned num_spans = sl.num_spans();
@@ -1796,7 +2034,7 @@ static void FOG_FASTCALL AggRenderScanlines(RasterPainterDevice* d, Rasterizer& 
 
         if (len > 0)
         {
-          span_solid_a8(pCur, d->_source, span->covers, (unsigned)len);
+          span_solid_a8(pCur, solidColor, span->covers, (unsigned)len);
         }
         else
         {
@@ -1806,11 +2044,66 @@ static void FOG_FASTCALL AggRenderScanlines(RasterPainterDevice* d, Rasterizer& 
           uint32_t cover = (uint32_t)*(span->covers);
           if (cover == 0xFF)
           {
-            span_solid(pCur, d->_source, len);
+            span_solid(pCur, solidColor, len);
           }
           else
           {
-            span_solid(pCur, Raster::bytemul(d->_source.i, cover), len);
+            span_solid(pCur, Raster::bytemul(solidColor, cover), len);
+          }
+        }
+
+        if (--num_spans == 0) break;
+        ++span;
+      }
+    }
+  }
+  else
+  {
+    Raster::PatternContext* pctx = d->_getPatternContext();
+    if (!pctx) return;
+
+    uint8_t* pbuf = d->ctx.getBuffer(Raster::mul4(d->state.clipBox.width()));
+    if (!pbuf) return;
+
+    Raster::SpanCompositeFn span_composite = d->ctx.raster->span_composite[pctx->format];
+    Raster::SpanCompositeMskFn span_composite_a8 = d->ctx.raster->span_composite_a8[pctx->format];
+
+    while (ras.sweep_scanline(sl))
+    {
+      unsigned num_spans = sl.num_spans();
+      typename Scanline::const_iterator span = sl.begin();
+
+      sysint_t y = sl.y();
+      uint8_t* pRas = pBase + y * stride;
+      uint8_t* pCur;
+
+      for (;;)
+      {
+        int x = span->x;
+        int len = span->len;
+
+        pCur = pRas + Raster::mul<int, BytesPerPixel>(x);
+
+        if (len > 0)
+        {
+          pctx->fetch(pctx, pbuf, x, y, len);
+          span_composite_a8(pCur, pbuf, span->covers, len);
+        }
+        else
+        {
+          len = -len;
+          FOG_ASSERT(len > 0);
+
+          uint32_t cover = (uint32_t)*(span->covers);
+          pctx->fetch(pctx, pbuf, x, y, len);
+          if (cover == 0xFF)
+          {
+            span_composite(pCur, pbuf, len);
+          }
+          else
+          {
+            // TODO
+            //span_solid(pCur, Raster::bytemul(solidColor, cover), len);
           }
         }
 
@@ -1826,7 +2119,7 @@ void RasterPainterDevice::_renderGlyphSet(const Point& pt, const GlyphSet& glyph
   // TODO: Hardcoded to A8 glyph format
   // TODO: Clipping
 
-  Box clipBox = _clipBox;
+  Box clipBox = state.clipBox;
   if (clip) Box::intersect(clipBox, clipBox, Box(*clip));
 
   if (!clipBox.isValid()) return;
@@ -1838,10 +2131,26 @@ void RasterPainterDevice::_renderGlyphSet(const Point& pt, const GlyphSet& glyph
   int px = pt.x();
   int py = pt.y();
 
-  uint8_t* pBuf = _workRaster;
+  uint8_t* pBuf = state.workRaster;
   sysint_t stride = _stride;
 
-  Raster::SpanSolidMskFn span_solid_a8 = _rasterCtx->span_solid_a8;
+  Raster::SpanSolidMskFn span_solid_a8 = ctx.raster->span_solid_a8;
+
+  // Used only if source is pattern
+  Raster::PatternContext* pctx;
+  uint8_t* pbuf;
+  Raster::SpanCompositeMskFn span_composite_a8;
+
+  if (!state.isSolidSource)
+  {
+    pctx = _getPatternContext();
+    if (!pctx) return;
+
+    pbuf = ctx.getBuffer(Raster::mul4(state.clipBox.width()));
+    if (!pbuf) return;
+
+    span_composite_a8 = ctx.raster->span_composite_a8[pctx->format];
+  }
 
   for (sysuint_t i = 0; i < count; i++)
   {
@@ -1873,11 +2182,25 @@ void RasterPainterDevice::_renderGlyphSet(const Point& pt, const GlyphSet& glyph
     pGlyph += (sysint_t)(y1 - py1) * glyphStride;
     pGlyph += (sysint_t)(x1 - px1);
 
-    do {
-      span_solid_a8(pCur, _source, pGlyph, (sysuint_t)w);
-      pCur += stride;
-      pGlyph += glyphStride;
-    } while (--h);
+    if (state.isSolidSource)
+    {
+      do {
+        span_solid_a8(pCur, state.solidSource, pGlyph, (sysuint_t)w);
+        pCur += stride;
+        pGlyph += glyphStride;
+      } while (--h);
+    }
+    else
+    {
+      do {
+        pctx->fetch(pctx, pbuf, x1, y1, w);
+        span_composite_a8(pCur, pbuf, pGlyph, (sysuint_t)w);
+
+        pCur += stride;
+        pGlyph += glyphStride;
+        y1++;
+      } while (--h);
+    }
   }
 }
 
@@ -1885,90 +2208,132 @@ void RasterPainterDevice::_renderBoxes(const Box* box, sysuint_t count)
 {
   if (!count) return;
 
-  uint8_t* pBuf = _workRaster;
+  uint8_t* pBuf = state.workRaster;
   sysint_t stride = _stride;
   sysint_t bpp = _bpp;
 
-  Raster::SpanSolidFn span_solid = _rasterCtx->span_solid;
-
-  for (sysuint_t i = 0; i < count; i++)
+  if (state.isSolidSource)
   {
-    sysint_t x = box[i].x1();
-    sysint_t y = box[i].y1();
+    Raster::SpanSolidFn span_solid = ctx.raster->span_solid;
 
-    sysint_t w = box[i].width();
-    if (w <= 0) continue;
-    sysint_t h = box[i].height();
-    if (h <= 0) continue;
+    for (sysuint_t i = 0; i < count; i++)
+    {
+      sysint_t x = box[i].x1();
+      sysint_t y = box[i].y1();
 
-    uint8_t* pCur = pBuf + y * stride + x * bpp;
-    do {
-      span_solid(pCur, _source, (sysuint_t)w);
-      pCur += stride;
-    } while (--h);
+      sysint_t w = box[i].width();
+      if (w <= 0) continue;
+      sysint_t h = box[i].height();
+      if (h <= 0) continue;
+
+      uint8_t* pCur = pBuf + y * stride + x * bpp;
+      do {
+        span_solid(pCur, state.solidSource, (sysuint_t)w);
+        pCur += stride;
+      } while (--h);
+    }
+  }
+  else
+  {
+    Raster::PatternContext* pctx = _getPatternContext();
+    if (!pctx) return;
+
+    uint8_t* pbuf = ctx.getBuffer(Raster::mul4(state.clipBox.width()));
+    if (!pbuf) return;
+
+    Raster::SpanCompositeFn span_composite = ctx.raster->span_composite[pctx->format];
+
+    for (sysuint_t i = 0; i < count; i++)
+    {
+      sysint_t x = box[i].x1();
+      sysint_t y = box[i].y1();
+
+      sysint_t w = box[i].width();
+      if (w <= 0) continue;
+      sysint_t h = box[i].height();
+      if (h <= 0) continue;
+
+      uint8_t* pCur = pBuf + y * stride + x * bpp;
+      do {
+        pctx->fetch(pctx, pbuf, x, y, w);
+        span_composite(pCur, pbuf, (sysuint_t)w);
+        pCur += stride;
+        y++;
+      } while (--h);
+    }
   }
 }
 
 void RasterPainterDevice::_renderPath(const Path& path, bool stroke)
 {
   AggPath aggPath(path);
-  ConvCurve curvesPath(aggPath);
+  AggConvCurve curvesPath(aggPath);
 
-  _ras.reset();
-  _ras.filling_rule(static_cast<agg::filling_rule_e>(_fillMode));
-  _ras.clip_box(
-    (double)_clipBox.x1(),
-    (double)_clipBox.y1(),
-    (double)_clipBox.x2()-0.000001,
-    (double)_clipBox.y2()-0.000001);
+  ctx.ras.reset();
+  ctx.ras.filling_rule(static_cast<agg::filling_rule_e>(state.fillMode));
+  ctx.ras.clip_box(
+    (double)state.clipBox.x1(),
+    (double)state.clipBox.y1(),
+    (double)state.clipBox.x2() - 0.000001,
+    (double)state.clipBox.y2() - 0.000001);
 
   // This can be a bit messy, but it's here to increase performance. We will
   // not calculate using transformations if they are not used. Also we add
   // stroke and line dash pipeline only if it's needed. This is goal of 
   // AntiGrain to be able to setup only pipelines what are really need.
-  if (_transformationsUsed)
+  if (state.transformationsUsed)
   {
     if (stroke)
     {
-      ConvStroke strokePath(curvesPath);
-      ConvStrokeTransform strokeTransform(
-        strokePath, *((agg::trans_affine *)&_transformations));
+      AggConvStroke strokePath(curvesPath);
+      AggConvStrokeTransform strokeTransform(
+        strokePath, *((agg::trans_affine *)&state.transformations));
 
-      strokePath.width(_lineWidth);
-      strokePath.line_join(static_cast<agg::line_join_e>(_lineJoin));
-      strokePath.line_cap(static_cast<agg::line_cap_e>(_lineCap));
-      strokePath.miter_limit(_miterLimit);
+      strokePath.width(state.lineWidth);
+      strokePath.line_join(static_cast<agg::line_join_e>(state.lineJoin));
+      strokePath.line_cap(static_cast<agg::line_cap_e>(state.lineCap));
+      strokePath.miter_limit(state.miterLimit);
 
-      _ras.add_path(strokeTransform);
+      ctx.ras.add_path(strokeTransform);
     }
     else
     {
-      ConvCurveTransform curvesTransform(
-        curvesPath, *((agg::trans_affine *)&_transformations));
+      AggConvCurveTransform curvesTransform(
+        curvesPath, *((agg::trans_affine *)&state.transformations));
 
-      _ras.add_path(curvesTransform);
+      ctx.ras.add_path(curvesTransform);
     }
   }
   else
   {
     if (stroke)
     {
-      ConvStroke strokePath(curvesPath);
+      AggConvStroke strokePath(curvesPath);
 
-      strokePath.width(_lineWidth);
-      strokePath.line_join(static_cast<agg::line_join_e>(_lineJoin));
-      strokePath.line_cap(static_cast<agg::line_cap_e>(_lineCap));
-      strokePath.miter_limit(_miterLimit);
+      strokePath.width(state.lineWidth);
+      strokePath.line_join(static_cast<agg::line_join_e>(state.lineJoin));
+      strokePath.line_cap(static_cast<agg::line_cap_e>(state.lineCap));
+      strokePath.miter_limit(state.miterLimit);
 
-      _ras.add_path(strokePath);
+      ctx.ras.add_path(strokePath);
     }
     else
     {
-      _ras.add_path(curvesPath);
+      ctx.ras.add_path(curvesPath);
     }
   }
 
-  AggRenderScanlines<4, Rasterizer, ScanlineP8>(this, _ras, _slP8);
+  switch (_bpp)
+  {
+    case 4:
+      AggRenderScanlines<4, AggRasterizer, AggScanlineP8>(this, ctx.ras, ctx.slP8);
+      break;
+    case 3:
+      AggRenderScanlines<3, AggRasterizer, AggScanlineP8>(this, ctx.ras, ctx.slP8);
+      break;
+    default:
+      FOG_ASSERT_NOT_REACHED();
+  }
 }
 
 void RasterPainterDevice::_renderImage(const Rect& dst, const Image& image, const Rect& src)
@@ -1977,7 +2342,7 @@ void RasterPainterDevice::_renderImage(const Rect& dst, const Image& image, cons
   sysint_t dstStride = _stride;
   sysint_t srcStride = image_d->stride;
 
-  Raster::SpanCompositeFn span_composite = _rasterCtx->span_composite[image.format()];
+  Raster::SpanCompositeFn span_composite = ctx.raster->span_composite[image.format()];
 
   sysint_t x = dst.x1();
   sysint_t y = dst.y1();
@@ -1985,7 +2350,7 @@ void RasterPainterDevice::_renderImage(const Rect& dst, const Image& image, cons
   sysint_t w = dst.width();
   sysint_t h = dst.height();
 
-  uint8_t* dstCur = _workRaster + y * dstStride + x * _bpp;
+  uint8_t* dstCur = state.workRaster + y * dstStride + x * _bpp;
   const uint8_t* srcCur = image_d->first + src.y1() * srcStride + src.x1() * image_d->bytesPerPixel;
 
   do {

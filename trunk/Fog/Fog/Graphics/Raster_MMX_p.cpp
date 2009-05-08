@@ -127,7 +127,7 @@ static void FOG_FASTCALL gradient_gradient_argb32_MMX(uint8_t* dst, uint32_t c0,
     }
 
     // Loop: Two pixels per time.
-    while ((i -= 2) >= 0)
+    while (i >= 2)
     {
       mm6 = mm2;                                 // mm6 = mm2
       mm6 = _mm_packs_pu16(mm6, mm0);            // mm6 = [A0R0G0B0]
@@ -148,10 +148,11 @@ static void FOG_FASTCALL gradient_gradient_argb32_MMX(uint8_t* dst, uint32_t c0,
 
       ((__m64 *)dstCur)[0] = mm6;
       dstCur += 8;
+      i -= 2;
     }
     
     // Tail.
-    if ((i += 2) != 0)
+    if (i)
     {
       mm6 = mm2;                                 // mm6 = mm2
       mm6 = _mm_packs_pu16(mm6, mm0);            // mm6 = [A0R0G0B0]
