@@ -4,8 +4,8 @@
 // MIT, See COPYING file in package
 
 // [Guard]
-#ifndef _FOG_UI_PATTERN_H
-#define _FOG_UI_PATTERN_H
+#ifndef _FOG_GRAPHICS_PATTERN_H
+#define _FOG_GRAPHICS_PATTERN_H
 
 // [Dependencies]
 #include <Fog/Core/Static.h>
@@ -43,7 +43,7 @@ struct FOG_API Pattern
   {
     NoSpread = 0,
     PadSpread = 1,
-    RepeadSpread = 2,
+    RepeatSpread = 2,
     ReflectSpread = 3
   };
 
@@ -171,4 +171,4 @@ struct FOG_API Pattern
 } // Fog namespace
 
 // [Guard]
-#endif // _FOG_UI_PATTERN_H
+#endif // _FOG_GRAPHICS_PATTERN_H

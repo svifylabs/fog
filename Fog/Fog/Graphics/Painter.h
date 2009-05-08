@@ -15,6 +15,7 @@
 #include <Fog/Graphics/Geometry.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/Path.h>
+#include <Fog/Graphics/Pattern.h>
 #include <Fog/Graphics/Region.h>
 #include <Fog/Graphics/Rgba.h>
 
@@ -71,10 +72,10 @@ struct FOG_API PainterDevice
   // [Source]
 
   virtual void setSource(const Rgba& rgba) = 0;
-  //virtual void setSource(const Pattern& pattern) = 0;
+  virtual void setSource(const Pattern& pattern) = 0;
 
   virtual Rgba sourceRgba() = 0;
-  //virtual Pattern sourcePattern() = 0;
+  virtual Pattern sourcePattern() = 0;
 
   // [Parameters]
 
@@ -238,10 +239,10 @@ struct FOG_API Painter
   // [Source]
 
   FOG_INLINE void setSource(const Rgba& rgba) { _d->setSource(rgba); }
-  //FOG_INLINE void setSource(const Pattern& pattern) { _d->setSource(pattern); }
+  FOG_INLINE void setSource(const Pattern& pattern) { _d->setSource(pattern); }
 
   FOG_INLINE Rgba sourceRgba() const { return _d->sourceRgba(); }
-  //FOG_INLINE Pattern sourcePattern() const { return _d->sourcePattern(); }
+  FOG_INLINE Pattern sourcePattern() const { return _d->sourcePattern(); }
 
   // [Parameters]
 

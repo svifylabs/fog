@@ -295,7 +295,7 @@
 #if defined(__GNUC__)
 #define FOG_CC_GNU __GNUC__
 
-#define FOG_INLINE inline
+#define FOG_INLINE inline __attribute__ ((always_inline))
 #define FOG_NO_RETURN __attribute__ ((noreturn))
 #define FOG_DEPRECATED __attribute__ ((deprecated))
 
@@ -440,6 +440,10 @@
 #else
 # error "Unsupported compiler"
 #endif
+
+#if !defined(FOG_GCC_FORCE_INLINE)
+#define FOG_GCC_FORCE_INLINE
+#endif // FOG_GCC_FORCE_INLINE
 
 #if defined(Fog_EXPORTS)
 # define FOG_API FOG_DLL_EXPORT

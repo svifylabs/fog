@@ -216,6 +216,9 @@ static void FOG_FASTCALL gradient_gradient_argb32_SSE2(uint8_t* dst, uint32_t c0
 
     xmm0 = _mm_add_epi32(xmm0, tmpARGB.m128i);   // xmm0 = c0 + offset
 
+    i = w - x1;
+    x1 += i;
+
     // Align.
     while (((sysuint_t)dstCur & 15) != 0)
     {
@@ -228,11 +231,11 @@ static void FOG_FASTCALL gradient_gradient_argb32_SSE2(uint8_t* dst, uint32_t c0
 
       ((int *)dstCur)[0] = _mm_cvtsi128_si32(xmm2);
       dstCur += 4;
-      if (--i == 0) return;
+      if (--i == 0) goto interpolation_end;
     }
 
     // 0op: 4 pixels at time.
-    while ((i -= 4) >= 0)
+    while (i >= 4)
     {
       xmm2 = xmm0;                               // xmm2 = [xAxxxRxxxGxxxBxx]
       xmm0 = _mm_add_epi32(xmm0, xmm1);          // xmm0 += xmm1
@@ -256,10 +259,8 @@ static void FOG_FASTCALL gradient_gradient_argb32_SSE2(uint8_t* dst, uint32_t c0
       _mm_store_si128((__m128i *)dstCur, xmm2);
 
       dstCur += 16;
-      i += 4;
+      i -= 4;
     }
-
-    i += 4;
 
     // Tail.
     while (i)
@@ -275,7 +276,7 @@ static void FOG_FASTCALL gradient_gradient_argb32_SSE2(uint8_t* dst, uint32_t c0
       dstCur += 4;
       i--;
     }
-
+interpolation_end:
     if (x1 == x2) return;
   }
 
@@ -354,6 +355,9 @@ static void FOG_FASTCALL gradient_gradient_prgb32_SSE2(uint8_t* dst, uint32_t c0
 
     xmm0 = _mm_add_epi32(xmm0, tmpARGB.m128i);   // xmm0 = c0 + offset
 
+    i = w - x1;
+    x1 += i;
+
     // Align.
     while (((sysuint_t)dstCur & 15) != 0)
     {
@@ -367,11 +371,11 @@ static void FOG_FASTCALL gradient_gradient_prgb32_SSE2(uint8_t* dst, uint32_t c0
 
       ((int *)dstCur)[0] = _mm_cvtsi128_si32(xmm2);
       dstCur += 4;
-      if (--i == 0) return;
+      if (--i == 0) goto interpolation_end;
     }
 
     // 0op: 4 pixels at time.
-    while ((i -= 4) >= 0)
+    while (i >= 4)
     {
       xmm2 = xmm0;                               // xmm2 = [xAxxxRxxxGxxxBxx]
       xmm0 = _mm_add_epi32(xmm0, xmm1);          // xmm0 += xmm1
@@ -396,10 +400,8 @@ static void FOG_FASTCALL gradient_gradient_prgb32_SSE2(uint8_t* dst, uint32_t c0
       _mm_store_si128((__m128i *)dstCur, xmm2);
 
       dstCur += 16;
-      i += 4;
+      i -= 4;
     }
-
-    i += 4;
 
     // Tail.
     while (i)
@@ -417,6 +419,7 @@ static void FOG_FASTCALL gradient_gradient_prgb32_SSE2(uint8_t* dst, uint32_t c0
       i--;
     }
 
+interpolation_end:
     if (x1 == x2) return;
   }
 
