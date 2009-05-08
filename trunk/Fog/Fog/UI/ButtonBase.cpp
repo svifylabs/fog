@@ -94,7 +94,7 @@ void ButtonBase::onKey(KeyEvent* e)
 {
   switch (e->code())
   {
-    case EvButtonPress:
+    case EvMousePress:
       if ((e->key() & KeyMask) == KeySpace)
       {
         _isSpaceDown = true;
@@ -103,7 +103,7 @@ void ButtonBase::onKey(KeyEvent* e)
         return;
       }
       break;
-    case EvButtonRelease:
+    case EvMouseRelease:
       if ((e->key() & KeyMask) == KeySpace)
       {
         _isSpaceDown = false;
@@ -129,14 +129,14 @@ void ButtonBase::onMouse(MouseEvent* e)
       _isMouseOver = false;
       repaint(RepaintWidget);
       break;
-    case EvButtonPress:
+    case EvMousePress:
       if (e->button() == ButtonLeft)
       {
         _isMouseDown = true;
         repaint(RepaintWidget);
       }
       break;
-    case EvButtonRelease:
+    case EvMouseRelease:
       if (e->button() == ButtonLeft)
       {
         _isMouseDown = false;

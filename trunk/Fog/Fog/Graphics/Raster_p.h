@@ -1877,7 +1877,7 @@ struct PatternContext;
 typedef err_t (FOG_FASTCALL *PatternContextInitFn)(
   PatternContext* ctx, const Pattern& pattern);
 
-typedef void (FOG_FASTCALL *PatternContextFetchFn)(
+typedef uint8_t* (FOG_FASTCALL *PatternContextFetchFn)(
   PatternContext* ctx,
   uint8_t* dst, int x, int y, int w);
 

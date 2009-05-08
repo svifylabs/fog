@@ -219,7 +219,7 @@ void UISystemDefault::changeMouseStatus(Widget* w, const Point& pos)
       w->sendEvent(&e);
     }
   }
-  else if (!(_mouseStatus.position != pos))
+  else if (_mouseStatus.position != pos)
   {
     // Clear button press times (double click).
     _buttonTime[0].clear();
@@ -244,7 +244,7 @@ void UISystemDefault::changeMouseStatus(Widget* w, const Point& pos)
 
     switch (hoverChange)
     {
-      case HoverChangeOutsideMove: code = EvOutsideMove; break;
+      case HoverChangeOutsideMove: code = EvMouseOutside; break;
       case HoverChangeOut:         code = EvMouseOut   ; break;
       case HoverChangeIn:          code = EvMouseIn    ; break;
       case HoverChangeInsideMove:  code = EvMouseMove  ; break;
@@ -1192,7 +1192,7 @@ void UIWindowDefault::onMousePress(uint32_t button, bool repeated)
   if (!repeated) uiSystem->startButtonRepeat(
     button, true, uiSystem->_repeatingDelay, uiSystem->_repeatingInterval);
 
-  MouseEvent e(EvButtonPress + (uint32_t)repeated);
+  MouseEvent e(EvMousePress + (uint32_t)repeated);
   e._button = button;
   e._modifiers = uiSystem->getKeyboardModifiers();
   e._position = uiSystem->_mouseStatus.position;
@@ -1226,7 +1226,7 @@ void UIWindowDefault::onMouseRelease(uint32_t button)
 
   bool lastButtonRelease = (uiSystem->_mouseStatus.buttons == 0);
 
-  MouseEvent e(EvButtonRelease);
+  MouseEvent e(EvMouseRelease);
   e._button = button;
   e._modifiers = uiSystem->getKeyboardModifiers();
   e._position = uiSystem->_mouseStatus.position;
