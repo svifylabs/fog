@@ -341,7 +341,8 @@ struct FOG_HIDDEN RasterPainterState
 
   uint32_t op;
 
-  Rgba solidSource;
+  uint32_t solidSource;
+  uint32_t solidSourcePremultiplied;
   Pattern patternSource;
   bool isSolidSource;
 
@@ -375,6 +376,7 @@ RasterPainterState::RasterPainterState(const RasterPainterState& other) :
   clipBox(other.clipBox),
   op(other.op),
   solidSource(other.solidSource),
+  solidSourcePremultiplied(other.solidSourcePremultiplied),
   patternSource(other.patternSource),
   isSolidSource(other.isSolidSource),
   lineWidth(other.lineWidth),
@@ -407,6 +409,7 @@ RasterPainterState& RasterPainterState::operator=(const RasterPainterState& othe
   clipBox = other.clipBox;
   op = other.op;
   solidSource = other.solidSource;
+  solidSourcePremultiplied = other.solidSourcePremultiplied;
   patternSource = other.patternSource;
   isSolidSource = other.isSolidSource;
   lineWidth = other.lineWidth;
@@ -893,6 +896,8 @@ uint32_t RasterPainterDevice::op() const
 void RasterPainterDevice::setSource(const Rgba& rgba)
 {
   state.solidSource = rgba;
+  state.solidSourcePremultiplied = Raster::premultiply(rgba);
+
   state.isSolidSource = true;
 
   // Free pattern resource if not needed.
@@ -909,12 +914,15 @@ void RasterPainterDevice::setSource(const Pattern& pattern)
   if (pattern.isSolid())
   {
     state.solidSource = pattern.color();
+    state.solidSourcePremultiplied = Raster::premultiply(state.solidSource);
     state.isSolidSource = true;
+
     state.patternSource.free();
   }
   else
   {
-    state.solidSource = Rgba(0, 0, 0, 0);
+    state.solidSource = 0xFFFFFFFF;
+    state.solidSourcePremultiplied = 0xFFFFFFFF;
     state.isSolidSource = false;
     state.patternSource = pattern;
   }
@@ -1688,7 +1696,8 @@ void RasterPainterDevice::_updateWorkRegion()
 void RasterPainterDevice::_setDeviceDefaults()
 {
   state.op = CompositeOver;
-  state.solidSource = Rgba(0xFFFFFFFF);
+  state.solidSource = 0xFFFFFFFF;
+  state.solidSourcePremultiplied = 0xFFFFFFFF;
   state.patternSource.free();
   state.isSolidSource = true;
 
@@ -2027,7 +2036,7 @@ static void FOG_FASTCALL AggRenderScanlines(RasterPainterDevice* d, Rasterizer& 
   // solid source
   if (d->state.isSolidSource)
   {
-    uint32_t solidColor = d->state.solidSource;
+    uint32_t solidColor = d->state.solidSourcePremultiplied;
 
     while (ras.sweep_scanline(sl))
     {
@@ -2199,7 +2208,7 @@ void RasterPainterDevice::_renderGlyphSet(const Point& pt, const GlyphSet& glyph
     if (state.isSolidSource)
     {
       do {
-        span_solid_a8(pCur, state.solidSource, pGlyph, (sysuint_t)w);
+        span_solid_a8(pCur, state.solidSourcePremultiplied, pGlyph, (sysuint_t)w);
         pCur += stride;
         pGlyph += glyphStride;
       } while (--h);
@@ -2243,7 +2252,7 @@ void RasterPainterDevice::_renderBoxes(const Box* box, sysuint_t count)
 
       uint8_t* pCur = pBuf + y * stride + x * bpp;
       do {
-        span_solid(pCur, state.solidSource, (sysuint_t)w);
+        span_solid(pCur, state.solidSourcePremultiplied, (sysuint_t)w);
         pCur += stride;
       } while (--h);
     }
