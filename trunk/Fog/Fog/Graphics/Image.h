@@ -352,19 +352,19 @@ struct FOG_API Image
   FOG_INLINE void getDibRgb24_le(int x, int y, sysint_t w, void* dst) const { DIBFN_LE(getDibRgb24)(x, y, w, dst); }
   FOG_INLINE void getDibRgb24_be(int x, int y, sysint_t w, void* dst) const { DIBFN_BE(getDibRgb24)(x, y, w, dst); }
 
-  FOG_INLINE void setDibRgb24_le(int x, int y, sysint_t w, const void* src) { DIBFN_BE(setDibRgb24)(x, y, w, src); }
+  FOG_INLINE void setDibRgb24_le(int x, int y, sysint_t w, const void* src) { DIBFN_LE(setDibRgb24)(x, y, w, src); }
   FOG_INLINE void setDibRgb24_be(int x, int y, sysint_t w, const void* src) { DIBFN_BE(setDibRgb24)(x, y, w, src); }
 
-  FOG_INLINE void getDibRgb16_555_le(int x, int y, sysint_t w, void* dst) const { DIBFN_BE(getDibRgb16_555)(x, y, w, dst); }
+  FOG_INLINE void getDibRgb16_555_le(int x, int y, sysint_t w, void* dst) const { DIBFN_LE(getDibRgb16_555)(x, y, w, dst); }
   FOG_INLINE void getDibRgb16_555_be(int x, int y, sysint_t w, void* dst) const { DIBFN_BE(getDibRgb16_555)(x, y, w, dst); }
 
-  FOG_INLINE void setDibRgb16_555_le(int x, int y, sysint_t w, const void* src) { DIBFN_BE(setDibRgb16_555)(x, y, w, src); }
+  FOG_INLINE void setDibRgb16_555_le(int x, int y, sysint_t w, const void* src) { DIBFN_LE(setDibRgb16_555)(x, y, w, src); }
   FOG_INLINE void setDibRgb16_555_be(int x, int y, sysint_t w, const void* src) { DIBFN_BE(setDibRgb16_555)(x, y, w, src); }
 
-  FOG_INLINE void getDibRgb16_565_le(int x, int y, sysint_t w, void* dst) const { DIBFN_BE(getDibRgb16_565)(x, y, w, dst); }
+  FOG_INLINE void getDibRgb16_565_le(int x, int y, sysint_t w, void* dst) const { DIBFN_LE(getDibRgb16_565)(x, y, w, dst); }
   FOG_INLINE void getDibRgb16_565_be(int x, int y, sysint_t w, void* dst) const { DIBFN_BE(getDibRgb16_565)(x, y, w, dst); }
 
-  FOG_INLINE void setDibRgb16_565_le(int x, int y, sysint_t w, const void* src) { DIBFN_BE(setDibRgb16_565)(x, y, w, src); }
+  FOG_INLINE void setDibRgb16_565_le(int x, int y, sysint_t w, const void* src) { DIBFN_LE(setDibRgb16_565)(x, y, w, src); }
   FOG_INLINE void setDibRgb16_565_be(int x, int y, sysint_t w, const void* src) { DIBFN_BE(setDibRgb16_565)(x, y, w, src); }
 
 #undef DIBFN_LE
