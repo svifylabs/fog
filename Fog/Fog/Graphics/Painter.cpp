@@ -2099,8 +2099,9 @@ static void FOG_FASTCALL AggRenderScanlines(RasterPainterDevice* d, Rasterizer& 
 
         if (len > 0)
         {
-          pctx->fetch(pctx, pbuf, x, y, len);
-          span_composite_a8(pCur, pbuf, span->covers, len);
+          span_composite_a8(pCur, 
+            pctx->fetch(pctx, pbuf, x, y, len),
+            span->covers, len);
         }
         else
         {
@@ -2108,15 +2109,15 @@ static void FOG_FASTCALL AggRenderScanlines(RasterPainterDevice* d, Rasterizer& 
           FOG_ASSERT(len > 0);
 
           uint32_t cover = (uint32_t)*(span->covers);
-          pctx->fetch(pctx, pbuf, x, y, len);
           if (cover == 0xFF)
           {
-            span_composite(pCur, pbuf, len);
+            span_composite(pCur,
+              pctx->fetch(pctx, pbuf, x, y, len),
+              len);
           }
           else
           {
             // TODO
-            //span_solid(pCur, Raster::bytemul(solidColor, cover), len);
           }
         }
 
@@ -2206,8 +2207,9 @@ void RasterPainterDevice::_renderGlyphSet(const Point& pt, const GlyphSet& glyph
     else
     {
       do {
-        pctx->fetch(pctx, pbuf, x1, y1, w);
-        span_composite_a8(pCur, pbuf, pGlyph, (sysuint_t)w);
+        span_composite_a8(pCur, 
+          pctx->fetch(pctx, pbuf, x1, y1, w),
+          pGlyph, (sysuint_t)w);
 
         pCur += stride;
         pGlyph += glyphStride;
@@ -2268,8 +2270,9 @@ void RasterPainterDevice::_renderBoxes(const Box* box, sysuint_t count)
 
       uint8_t* pCur = pBuf + y * stride + x * bpp;
       do {
-        pctx->fetch(pctx, pbuf, x, y, w);
-        span_composite(pCur, pbuf, (sysuint_t)w);
+        span_composite(pCur, 
+          pctx->fetch(pctx, pbuf, x, y, w),
+          (sysuint_t)w);
         pCur += stride;
         y++;
       } while (--h);

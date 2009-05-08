@@ -3498,7 +3498,7 @@ static void FOG_FASTCALL raster_span_composite_a8(
 }
 
 // ============================================================================
-// [Fog::Raster - Agb32 - Over]
+// [Fog::Raster - Raster - Agb32 - Over]
 // ============================================================================
 #if 0
 static void FOG_FASTCALL raster_argb32_pixel_over(
@@ -3592,7 +3592,7 @@ static void FOG_FASTCALL raster_argb32_span_solid_a8_over(
 #endif
 
 // ============================================================================
-// [Fog::Raster - Rgb32]
+// [Fog::Raster - Raster - Rgb32]
 // ============================================================================
 
 static void FOG_FASTCALL raster_rgb32_pixel(
@@ -3863,7 +3863,7 @@ static void FOG_FASTCALL raster_rgb32_span_composite_indexed_a8(
 }
 
 // ============================================================================
-// [Fog::Raster - Rgb24]
+// [Fog::Raster - Raster - Rgb24]
 // ============================================================================
 
 static void FOG_FASTCALL raster_rgb24_pixel(
@@ -3917,7 +3917,7 @@ static void FOG_FASTCALL raster_rgb24_span_composite_rgb24_a8(
 }
 
 // ============================================================================
-// [Fog::Raster - Patterns]
+// [Fog::Raster - Pattern - Texture]
 // ============================================================================
 
 static FOG_INLINE int double_to_int(double d) { return (int)d; }
@@ -3928,11 +3928,11 @@ static err_t FOG_FASTCALL pattern_texture_init(
 static void FOG_FASTCALL pattern_texture_destroy(
   PatternContext* ctx);
 
-static void FOG_FASTCALL pattern_texture_fetch_repeat(
+static uint8_t* FOG_FASTCALL pattern_texture_fetch_repeat(
   PatternContext* ctx,
   uint8_t* dst, int x, int y, int w);
 
-static void FOG_FASTCALL pattern_texture_fetch_reflect(
+static uint8_t* FOG_FASTCALL pattern_texture_fetch_reflect(
   PatternContext* ctx,
   uint8_t* dst, int x, int y, int w);
 
@@ -3983,10 +3983,12 @@ static void FOG_FASTCALL pattern_texture_destroy(
   ctx->initialized = false;
 }
 
-static void FOG_FASTCALL pattern_texture_fetch_repeat(
+static uint8_t* FOG_FASTCALL pattern_texture_fetch_repeat(
   PatternContext* ctx,
   uint8_t* dst, int x, int y, int w)
 {
+  uint8_t* dstCur = dst;
+
   int tw = ctx->texture.w;
   int th = ctx->texture.h;
 
@@ -3999,29 +4001,43 @@ static void FOG_FASTCALL pattern_texture_fetch_repeat(
   if (y < 0) y = (y % th) + th;
   if (y >= th) y %= th;
 
-  const uint8_t* base = ctx->texture.bits + y * ctx->texture.stride;
-  const uint8_t* src;
+  const uint8_t* srcBase = ctx->texture.bits + y * ctx->texture.stride;
+  const uint8_t* srcCur;
 
-  do {
-    int i = fog_min(tw - x, w);
+  int i;
 
-    src = base + mul4(x);
+  srcCur = srcBase + mul4(x);
 
+  // Return image buffer if span fits to it (this is very efficient 
+  // optimization for short spans or large textures)
+  i = fog_min(tw - x, w);
+  if (w < tw - x) 
+    return const_cast<uint8_t*>(srcCur);
+
+  for (;;)
+  {
     w -= i;
-    x = 0;
 
     do {
-      ((uint32_t*)dst)[0] = ((const uint32_t*)src)[0];
-      dst += 4;
-      src += 4;
+      ((uint32_t*)dstCur)[0] = ((const uint32_t*)srcCur)[0];
+      dstCur += 4;
+      srcCur += 4;
     } while (--i);
-  } while (w);
+    if (!w) break;
+
+    i = fog_min(w, tw);
+    srcCur = srcBase;
+  }
+
+  return dst;
 }
 
-static void FOG_FASTCALL pattern_texture_fetch_reflect(
+static uint8_t* FOG_FASTCALL pattern_texture_fetch_reflect(
   PatternContext* ctx,
   uint8_t* dst, int x, int y, int w)
 {
+  uint8_t* dstCur = dst;
+
   int tw = ctx->texture.w;
   int th = ctx->texture.h;
 
@@ -4040,8 +4056,11 @@ static void FOG_FASTCALL pattern_texture_fetch_reflect(
   // Modify Y if reflected (if it lies in second section).
   if (y >= th) y = th2 - y - 1;
 
-  const uint8_t* base = ctx->texture.bits + y * ctx->texture.stride;
-  const uint8_t* src;
+  const uint8_t* srcBase = ctx->texture.bits + y * ctx->texture.stride;
+  const uint8_t* srcCur;
+
+  if (x >= 0 && x <= tw && w < tw - x)
+    return const_cast<uint8_t*>(srcBase + mul4(x));
 
   do {
     // Reflect mode
@@ -4049,15 +4068,15 @@ static void FOG_FASTCALL pattern_texture_fetch_reflect(
     {
       int i = fog_min(tw2 - x, w);
 
-      src = base + mul4(tw2 - x - 1);
+      srcCur = srcBase + mul4(tw2 - x - 1);
 
       w -= i;
       x = 0;
 
       do {
-        ((uint32_t*)dst)[0] = ((const uint32_t*)src)[0];
-        dst += 4;
-        src -= 4;
+        ((uint32_t*)dstCur)[0] = ((const uint32_t*)srcCur)[0];
+        dstCur += 4;
+        srcCur -= 4;
       } while (--i);
     }
     // Repeat mode
@@ -4065,18 +4084,20 @@ static void FOG_FASTCALL pattern_texture_fetch_reflect(
     {
       int i = fog_min(tw - x, w);
 
-      src = base + mul4(x);
+      srcCur = srcBase + mul4(x);
 
       w -= i;
       x += i;
 
       do {
-        ((uint32_t*)dst)[0] = ((const uint32_t*)src)[0];
-        dst += 4;
-        src += 4;
+        ((uint32_t*)dstCur)[0] = ((const uint32_t*)srcCur)[0];
+        dstCur += 4;
+        srcCur += 4;
       } while (--i);
     }
   } while (w);
+
+  return dst;
 }
 
 // ============================================================================
