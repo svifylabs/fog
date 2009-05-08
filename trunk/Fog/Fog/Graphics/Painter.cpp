@@ -652,6 +652,7 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
 
   Raster::PatternContext* _getPatternContext();
   void _releasePatternContext(Raster::PatternContext* pctx);
+  void _resetPatternContext();
 
   FOG_INLINE void _updateLineWidth()
   { state.lineIsSimple = (state.lineWidth == 1.0 && state.lineDash.length() == 0); }
@@ -896,7 +897,11 @@ void RasterPainterDevice::setSource(const Rgba& rgba)
 
   // Free pattern resource if not needed.
   if (!state.patternSource.isNull())
+  {
     state.patternSource.free();
+
+    _resetPatternContext();
+  }
 }
 
 void RasterPainterDevice::setSource(const Pattern& pattern)
@@ -913,6 +918,8 @@ void RasterPainterDevice::setSource(const Pattern& pattern)
     state.isSolidSource = false;
     state.patternSource = pattern;
   }
+
+  _resetPatternContext();
 }
 
 Rgba RasterPainterDevice::sourceRgba()
@@ -1751,6 +1758,12 @@ void RasterPainterDevice::_releasePatternContext(Raster::PatternContext* pctx)
   Memory::free(pctx);
 
   if (ctx.pctx == pctx) ctx.pctx = NULL;
+}
+
+void RasterPainterDevice::_resetPatternContext()
+{
+  if (ctx.pctx && ctx.pctx->initialized)
+    ctx.pctx->destroy(ctx.pctx);
 }
 
 // ============================================================================

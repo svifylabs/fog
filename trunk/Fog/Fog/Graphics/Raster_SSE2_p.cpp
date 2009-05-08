@@ -20,14 +20,26 @@ namespace Raster {
 // [SSE2]
 // ============================================================================
 
-static __m128i Mask0080;
-static __m128i Mask00ff;
-static __m128i Mask0101;
-static __m128i Maskffff;
+static __m128i Mask0080008000800080;
+static __m128i Mask00FF00FF00FF00FF;
+static __m128i Mask0101010101010101;
+static __m128i MaskFFFFFFFFFFFFFFFF;
+static __m128i Mask00FF000000000000;
 
-static FOG_INLINE __m128i createMask_16_128(uint16_t mask)
+static FOG_INLINE __m128i createMask8x2(uint16_t m0, uint16_t m1, uint16_t m2, uint16_t m3)
 {
-  return _mm_set1_epi16(mask);
+  sse2_t t;
+
+  t.uw[3] = m0;
+  t.uw[2] = m1;
+  t.uw[1] = m2;
+  t.uw[0] = m3;
+  t.uw[7] = m0;
+  t.uw[6] = m1;
+  t.uw[5] = m2;
+  t.uw[4] = m3;
+
+  return _mm_loadu_si128((__m128i*)&t);
 }
 
 static FOG_INLINE __m128i unpack_32_1x128(uint32_t data)
@@ -70,7 +82,7 @@ static FOG_INLINE __m128i shuffle_1x128(__m128i pix)
 }
 
 static FOG_INLINE void expandAlpha_1x128(
-  __m128i& dst0, __m128i src0)
+  __m128i& dst0, __m128i& src0)
 {
   dst0 = shuffle_1x128<3, 3, 3, 3>(src0);
 }
@@ -103,8 +115,8 @@ static FOG_INLINE void pixMultiply_1x128(
   __m128i t0;
 
   t0 = _mm_mullo_epi16(data0, alpha0);
-  t0 = _mm_adds_epu16(t0, Mask0080);
-  dst0 = _mm_mulhi_epu16(t0, Mask0101);
+  t0 = _mm_adds_epu16(t0, Mask0080008000800080);
+  dst0 = _mm_mulhi_epu16(t0, Mask0101010101010101);
 }
 
 static FOG_INLINE void pixMultiply_2x128(
@@ -115,10 +127,10 @@ static FOG_INLINE void pixMultiply_2x128(
 
   t0 = _mm_mullo_epi16(data0, alpha0);
   t1 = _mm_mullo_epi16(data1, alpha1);
-  t0 = _mm_adds_epu16(t0, Mask0080);
-  t1 = _mm_adds_epu16(t1, Mask0080);
-  dst0 = _mm_mulhi_epu16(t0, Mask0101);
-  dst1 = _mm_mulhi_epu16(t1, Mask0101);
+  t0 = _mm_adds_epu16(t0, Mask0080008000800080);
+  t1 = _mm_adds_epu16(t1, Mask0080008000800080);
+  dst0 = _mm_mulhi_epu16(t0, Mask0101010101010101);
+  dst1 = _mm_mulhi_epu16(t1, Mask0101010101010101);
 }
 
 static FOG_INLINE void pixPremultiply_1x128(
@@ -127,6 +139,7 @@ static FOG_INLINE void pixPremultiply_1x128(
   __m128i alpha0;
 
   expandAlpha_1x128(alpha0, src0);
+  _mm_or_si128(alpha0, Mask00FF000000000000);
   pixMultiply_1x128(dst0, src0, alpha0);
 }
 
@@ -137,10 +150,14 @@ static FOG_INLINE void pixPremultiply_2x128(
   __m128i alpha0;
   __m128i alpha1;
 
-  expandAlpha_2x128(alpha0, src0,
-                    alpha1, src1);
-  pixMultiply_2x128(dst0, src0, alpha0,
-                    dst1, src1, alpha1);
+  expandAlpha_2x128(
+    alpha0, src0,
+    alpha1, src1);
+  _mm_or_si128(alpha0, Mask00FF000000000000);
+  _mm_or_si128(alpha1, Mask00FF000000000000);
+  pixMultiply_2x128(
+    dst0, src0, alpha0,
+    dst1, src1, alpha1);
 }
 
 // ============================================================================
@@ -216,7 +233,7 @@ static void FOG_FASTCALL gradient_gradient_argb32_SSE2(uint8_t* dst, uint32_t c0
 
     xmm0 = _mm_add_epi32(xmm0, tmpARGB.m128i);   // xmm0 = c0 + offset
 
-    i = w - x1;
+    i = fog_min(w + 1, x2) - x1;
     x1 += i;
 
     // Align.
@@ -226,8 +243,8 @@ static void FOG_FASTCALL gradient_gradient_argb32_SSE2(uint8_t* dst, uint32_t c0
       xmm0 = _mm_add_epi32(xmm0, xmm1);          // xmm0 += xmm1
 
       xmm2 = _mm_packus_epi16(xmm2, xmm2);       // xmm2 = [AxRxGxBxAxRxGxBx]
-      xmm2 = _mm_srai_epi16(xmm2, 8);            // xmm2 = [0A0R0G0B0A0R0G0B]
-      xmm2 = _mm_packs_epi16(xmm2, xmm2);        // xmm2 = [ARGBARGBARGBARGB]
+      xmm2 = _mm_srli_epi16(xmm2, 8);            // xmm2 = [0A0R0G0B0A0R0G0B]
+      xmm2 = _mm_packus_epi16(xmm2, xmm2);        // xmm2 = [ARGBARGBARGBARGB]
 
       ((int *)dstCur)[0] = _mm_cvtsi128_si32(xmm2);
       dstCur += 4;
@@ -251,10 +268,10 @@ static void FOG_FASTCALL gradient_gradient_argb32_SSE2(uint8_t* dst, uint32_t c0
 
       xmm2 = _mm_packus_epi16(xmm2, xmm3);       // xmm2 = [AxRxGxBxAxRxGxBx]
       xmm4 = _mm_packus_epi16(xmm4, xmm5);       // xmm4 = [AxRxGxBxAxRxGxBx]
-      xmm2 = _mm_srai_epi16(xmm2, 8);            // xmm2 = [0A0R0G0B0A0R0G0B]
-      xmm4 = _mm_srai_epi16(xmm4, 8);            // xmm4 = [0A0R0G0B0A0R0G0B]
+      xmm2 = _mm_srli_epi16(xmm2, 8);            // xmm2 = [0A0R0G0B0A0R0G0B]
+      xmm4 = _mm_srli_epi16(xmm4, 8);            // xmm4 = [0A0R0G0B0A0R0G0B]
 
-      xmm2 = _mm_packs_epi16(xmm2, xmm4);        // xmm2 = [ARGBARGBARGBARGB]
+      xmm2 = _mm_packus_epi16(xmm2, xmm4);       // xmm2 = [ARGBARGBARGBARGB]
 
       _mm_store_si128((__m128i *)dstCur, xmm2);
 
@@ -269,8 +286,8 @@ static void FOG_FASTCALL gradient_gradient_argb32_SSE2(uint8_t* dst, uint32_t c0
       xmm0 = _mm_add_epi32(xmm0, xmm1);          // xmm0 += xmm1
 
       xmm2 = _mm_packus_epi16(xmm2, xmm2);       // xmm2 = [AxRxGxBxAxRxGxBx]
-      xmm2 = _mm_srai_epi16(xmm2, 8);            // xmm2 = [0A0R0G0B0A0R0G0B]
-      xmm2 = _mm_packs_epi16(xmm2, xmm2);        // xmm2 = [ARGBARGBARGBARGB]
+      xmm2 = _mm_srli_epi16(xmm2, 8);            // xmm2 = [0A0R0G0B0A0R0G0B]
+      xmm2 = _mm_packus_epi16(xmm2, xmm2);       // xmm2 = [ARGBARGBARGBARGB]
 
       ((int *)dstCur)[0] = _mm_cvtsi128_si32(xmm2);
       dstCur += 4;
@@ -355,7 +372,7 @@ static void FOG_FASTCALL gradient_gradient_prgb32_SSE2(uint8_t* dst, uint32_t c0
 
     xmm0 = _mm_add_epi32(xmm0, tmpARGB.m128i);   // xmm0 = c0 + offset
 
-    i = w - x1;
+    i = fog_min(w + 1, x2) - x1;
     x1 += i;
 
     // Align.
@@ -365,9 +382,9 @@ static void FOG_FASTCALL gradient_gradient_prgb32_SSE2(uint8_t* dst, uint32_t c0
       xmm0 = _mm_add_epi32(xmm0, xmm1);          // xmm0 += xmm1
 
       xmm2 = _mm_packus_epi16(xmm2, xmm2);       // xmm2 = [AxRxGxBxAxRxGxBx]
-      xmm2 = _mm_srai_epi16(xmm2, 8);            // xmm2 = [0A0R0G0B0A0R0G0B]
+      xmm2 = _mm_srli_epi16(xmm2, 8);            // xmm2 = [0A0R0G0B0A0R0G0B]
       pixPremultiply_1x128(xmm2, xmm2);
-      xmm2 = _mm_packs_epi16(xmm2, xmm2);        // xmm2 = [ARGBARGBARGBARGB]
+      xmm2 = _mm_packus_epi16(xmm2, xmm2);       // xmm2 = [ARGBARGBARGBARGB]
 
       ((int *)dstCur)[0] = _mm_cvtsi128_si32(xmm2);
       dstCur += 4;
@@ -391,11 +408,10 @@ static void FOG_FASTCALL gradient_gradient_prgb32_SSE2(uint8_t* dst, uint32_t c0
 
       xmm2 = _mm_packus_epi16(xmm2, xmm3);       // xmm2 = [AxRxGxBxAxRxGxBx]
       xmm4 = _mm_packus_epi16(xmm4, xmm5);       // xmm4 = [AxRxGxBxAxRxGxBx]
-      xmm2 = _mm_srai_epi16(xmm2, 8);            // xmm2 = [0A0R0G0B0A0R0G0B]
-      xmm4 = _mm_srai_epi16(xmm4, 8);            // xmm4 = [0A0R0G0B0A0R0G0B]
+      xmm2 = _mm_srli_epi16(xmm2, 8);            // xmm2 = [0A0R0G0B0A0R0G0B]
+      xmm4 = _mm_srli_epi16(xmm4, 8);            // xmm4 = [0A0R0G0B0A0R0G0B]
       pixPremultiply_2x128(xmm2, xmm2, xmm4, xmm4);
-
-      xmm2 = _mm_packs_epi16(xmm2, xmm4);        // xmm2 = [ARGBARGBARGBARGB]
+      xmm2 = _mm_packus_epi16(xmm2, xmm4);       // xmm2 = [ARGBARGBARGBARGB]
 
       _mm_store_si128((__m128i *)dstCur, xmm2);
 
@@ -410,9 +426,9 @@ static void FOG_FASTCALL gradient_gradient_prgb32_SSE2(uint8_t* dst, uint32_t c0
       xmm0 = _mm_add_epi32(xmm0, xmm1);          // xmm0 += xmm1
 
       xmm2 = _mm_packus_epi16(xmm2, xmm2);       // xmm2 = [AxRxGxBxAxRxGxBx]
-      xmm2 = _mm_srai_epi16(xmm2, 8);            // xmm2 = [0A0R0G0B0A0R0G0B]
+      xmm2 = _mm_srli_epi16(xmm2, 8);            // xmm2 = [0A0R0G0B0A0R0G0B]
       pixPremultiply_1x128(xmm2, xmm2);
-      xmm2 = _mm_packs_epi16(xmm2, xmm2);        // xmm2 = [ARGBARGBARGBARGB]
+      xmm2 = _mm_packus_epi16(xmm2, xmm2);       // xmm2 = [ARGBARGBARGBARGB]
 
       ((int *)dstCur)[0] = _mm_cvtsi128_si32(xmm2);
       dstCur += 4;
@@ -440,10 +456,11 @@ interpolation_end:
 
 FOG_INIT_DECLARE void fog_raster_init_sse2(void)
 {
-  Fog::Raster::Mask0080 = Fog::Raster::createMask_16_128(0x0080);
-  Fog::Raster::Mask00ff = Fog::Raster::createMask_16_128(0x00ff);
-  Fog::Raster::Mask0101 = Fog::Raster::createMask_16_128(0x0101);
-  Fog::Raster::Maskffff = Fog::Raster::createMask_16_128(0xffff);
+  Fog::Raster::Mask0080008000800080 = Fog::Raster::createMask8x2(0x0080, 0x0080, 0x0080, 0x0080);
+  Fog::Raster::Mask00FF00FF00FF00FF = Fog::Raster::createMask8x2(0x00FF, 0x00FF, 0x00FF, 0x00FF);
+  Fog::Raster::Mask0101010101010101 = Fog::Raster::createMask8x2(0x0101, 0x0101, 0x0101, 0x0101);
+  Fog::Raster::MaskFFFFFFFFFFFFFFFF = Fog::Raster::createMask8x2(0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF);
+  Fog::Raster::Mask00FF000000000000 = Fog::Raster::createMask8x2(0x00FF, 0x0000, 0x0000, 0x0000);
 
   Fog::Raster::FunctionMap* m = Fog::Raster::functionMap;
 
