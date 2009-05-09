@@ -10,8 +10,11 @@
 
 // [Dependencies]
 #include <Fog/Cpu/Intrin_SSE2.h>
-#include <Fog/Graphics/Raster_p.h>
-#include <Fog/Graphics/Raster_SSE2_p.h>
+#include <Fog/Graphics/Image.h>
+#include <Fog/Graphics/Raster.h>
+#include <Fog/Graphics/Raster/Raster_ByteOp.h>
+#include <Fog/Graphics/Raster/Raster_PixelOp.h>
+#include <Fog/Graphics/Raster/Raster_C.h>
 
 namespace Fog {
 namespace Raster {

@@ -20,7 +20,11 @@
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/ImageIO.h>
-#include <Fog/Graphics/Raster_p.h>
+#include <Fog/Graphics/Raster.h>
+#include <Fog/Graphics/Raster/Raster_Bresenham.h>
+#include <Fog/Graphics/Raster/Raster_ByteOp.h>
+#include <Fog/Graphics/Raster/Raster_C.h>
+#include <Fog/Graphics/Raster/Raster_PixelOp.h>
 #include <Fog/Graphics/Reduce.h>
 
 namespace Fog {

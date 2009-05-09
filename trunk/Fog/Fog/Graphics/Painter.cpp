@@ -21,7 +21,9 @@
 #include <Fog/Graphics/GlyphSet.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/Painter.h>
-#include <Fog/Graphics/Raster_p.h>
+#include <Fog/Graphics/Raster.h>
+#include <Fog/Graphics/Raster/Raster_ByteOp.h>
+#include <Fog/Graphics/Raster/Raster_PixelOp.h>
 #include <Fog/Graphics/Rgba.h>
 
 // [AntiGrain]
@@ -1741,6 +1743,9 @@ Raster::PatternContext* RasterPainterDevice::_getPatternContext()
     {
       case Pattern::IsTexture:
         err = Raster::functionMap->pattern.texture_init(pctx, state.patternSource);
+        break;
+      case Pattern::IsLinearGradient:
+        err = Raster::functionMap->pattern.linear_gradient_init(pctx, state.patternSource);
         break;
       default:
         FOG_ASSERT_NOT_REACHED();

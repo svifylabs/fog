@@ -14,8 +14,8 @@
 
 // [Debugging]
 
-/* #undef DEBUG */
-/* #undef DEBUG_MEMORY */
+#define DEBUG
+#define DEBUG_MEMORY
 
 // [Byte Order]
 

@@ -392,10 +392,11 @@ Set(FOG_GRAPHICS_SOURCES
   ${FOG_DIR}/Fog/Graphics/Palette.cpp
   ${FOG_DIR}/Fog/Graphics/Path.cpp
   ${FOG_DIR}/Fog/Graphics/Pattern.cpp
-  ${FOG_DIR}/Fog/Graphics/Raster_p.cpp
-  ${FOG_DIR}/Fog/Graphics/Raster_BlitJit_p.cpp
-  ${FOG_DIR}/Fog/Graphics/Raster_MMX_p.cpp
-  ${FOG_DIR}/Fog/Graphics/Raster_SSE2_p.cpp
+  ${FOG_DIR}/Fog/Graphics/Raster.cpp
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_C.cpp
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_Jit.cpp
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_MMX.cpp
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_SSE2.cpp
   ${FOG_DIR}/Fog/Graphics/Reduce.cpp
   ${FOG_DIR}/Fog/Graphics/Region.cpp
   ${FOG_DIR}/Fog/Graphics/RegionPoly.cpp
@@ -432,10 +433,12 @@ Set(FOG_GRAPHICS_HEADERS
   ${FOG_DIR}/Fog/Graphics/Palette.h
   ${FOG_DIR}/Fog/Graphics/Path.h
   ${FOG_DIR}/Fog/Graphics/Pattern.h
-  ${FOG_DIR}/Fog/Graphics/Raster_p.h
-  ${FOG_DIR}/Fog/Graphics/Raster_BlitJit_p.h
-  ${FOG_DIR}/Fog/Graphics/Raster_MMX_p.h
-  ${FOG_DIR}/Fog/Graphics/Raster_SSE2_p.h
+  ${FOG_DIR}/Fog/Graphics/Raster.h
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_Bresenham.h
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_ByteOp.h
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_C.h
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_Jit.h
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_PixelOp.h
   ${FOG_DIR}/Fog/Graphics/Reduce.h
   ${FOG_DIR}/Fog/Graphics/Region.h
   ${FOG_DIR}/Fog/Graphics/Rgba.h

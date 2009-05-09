@@ -9,23 +9,16 @@
 #endif
 
 // [Dependencies]
-#include <Fog/Cpu/CpuInfo.h>
 #include <Fog/Graphics/DitherMatrix.h>
-
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/Pattern.h>
-#include <Fog/Graphics/Raster_p.h>
+#include <Fog/Graphics/Raster.h>
+#include <Fog/Graphics/Raster/Raster_C.h>
+#include <Fog/Graphics/Raster/Raster_ByteOp.h>
+#include <Fog/Graphics/Raster/Raster_PixelOp.h>
 
 namespace Fog {
 namespace Raster {
-
-// ============================================================================
-// [Fog::Raster - FunctionMap]
-// ============================================================================
-
-static FunctionMap functionMapData;
-
-FunctionMap* functionMap;
 
 // ============================================================================
 // [Fog::Raster - Defines]
@@ -33,6 +26,8 @@ FunctionMap* functionMap;
 
 #define READ_MASK_A8(ptr) ((const uint8_t *)ptr)[0]
 #define READ_MASK_C8(ptr) ((const uint32_t*)ptr)[0]
+
+static FOG_INLINE int double_to_int(double d) { return (int)d; }
 
 // ============================================================================
 // [Fog::Raster - Demultiply Reciprocal Table]
@@ -113,7 +108,8 @@ uint32_t const demultiply_reciprocal_table[256] =
   0x0001073A, 0x0001062C, 0x0001051F, 0x00010415, 0x0001030D, 0x00010207, 0x00010103, 0x00010000
 };
 
-void demultiply_argb(uint32_t* dst, uint32_t const * src, sysuint_t w)
+/*
+static void FOG_FASTCALL demultiply_argb(uint32_t* dst, uint32_t const * src, sysuint_t w)
 {
   for (sysuint_t i = w; i; i--, dst++, src++)
   {
@@ -131,6 +127,7 @@ void demultiply_argb(uint32_t* dst, uint32_t const * src, sysuint_t w)
     dst[0] = r | g | b | (a << 24);
   }
 }
+*/
 
 // ============================================================================
 // [Fog::Raster - Convert - BSwap]
@@ -3930,69 +3927,6 @@ static void FOG_FASTCALL raster_rgb24_span_composite_rgb24_a8(
 // [Fog::Raster - Pattern - Texture]
 // ============================================================================
 
-static FOG_INLINE int double_to_int(double d) { return (int)d; }
-
-static err_t FOG_FASTCALL pattern_texture_init(
-  PatternContext* ctx, const Pattern& pattern);
-
-static void FOG_FASTCALL pattern_texture_destroy(
-  PatternContext* ctx);
-
-static uint8_t* FOG_FASTCALL pattern_texture_fetch_repeat(
-  PatternContext* ctx,
-  uint8_t* dst, int x, int y, int w);
-
-static uint8_t* FOG_FASTCALL pattern_texture_fetch_reflect(
-  PatternContext* ctx,
-  uint8_t* dst, int x, int y, int w);
-
-static err_t FOG_FASTCALL pattern_texture_init(
-  PatternContext* ctx, const Pattern& pattern)
-{
-  Pattern::Data* d = pattern._d;
-  if (d->type != Pattern::IsTexture) return Error::InvalidArgument;
-
-  ctx->texture.texture.init(d->obj.texture.instance());
-  ctx->texture.dx = double_to_int(d->points[0].x());
-  ctx->texture.dy = double_to_int(d->points[0].y());
-
-  ctx->format = ctx->texture.texture->format();
-  
-  // Set fetch function.
-  switch (pattern.spread())
-  {
-    case Pattern::PadSpread:
-    case Pattern::NoSpread:
-    case Pattern::RepeatSpread:
-      ctx->fetch = pattern_texture_fetch_repeat;
-      break;
-    case Pattern::ReflectSpread:
-      ctx->fetch = pattern_texture_fetch_reflect;
-      break;
-    default:
-      return Error::InvalidArgument;
-  }
-
-  // Set destroy function.
-  ctx->destroy = pattern_texture_destroy;
-
-  // Copy texture variables into pattern context.
-  ctx->texture.bits = ctx->texture.texture->cData();
-  ctx->texture.stride = ctx->texture.texture->stride();
-  ctx->texture.w = ctx->texture.texture->width();
-  ctx->texture.h = ctx->texture.texture->height();
-
-  ctx->initialized = true;
-  return Error::Ok;
-}
-
-static void FOG_FASTCALL pattern_texture_destroy(
-  PatternContext* ctx)
-{
-  ctx->texture.texture.destroy();
-  ctx->initialized = false;
-}
-
 static uint8_t* FOG_FASTCALL pattern_texture_fetch_repeat(
   PatternContext* ctx,
   uint8_t* dst, int x, int y, int w)
@@ -4110,27 +4044,136 @@ static uint8_t* FOG_FASTCALL pattern_texture_fetch_reflect(
   return dst;
 }
 
-// ============================================================================
-// [Fog::Raster - getRasterOps]
-// ============================================================================
+static void FOG_FASTCALL pattern_texture_destroy(
+  PatternContext* ctx);
 
-FunctionMap::Raster* getRasterOps(int format, int op)
+static err_t FOG_FASTCALL pattern_texture_init(
+  PatternContext* ctx, const Pattern& pattern)
 {
-  if (op >= CompositeCount) return NULL;
+  Pattern::Data* d = pattern._d;
+  if (d->type != Pattern::IsTexture) return Error::InvalidArgument;
 
-  switch(format)
+  ctx->texture.texture.init(d->obj.texture.instance());
+  ctx->texture.dx = double_to_int(d->points[0].x());
+  ctx->texture.dy = double_to_int(d->points[0].y());
+
+  ctx->format = ctx->texture.texture->format();
+  
+  // Set fetch function.
+  switch (pattern.spread())
   {
-    case Image::FormatARGB32:
-      return &functionMap->raster_argb32[0][op];
-    case Image::FormatPRGB32:
-      return &functionMap->raster_argb32[1][op];
-    case Image::FormatRGB32:
-      return &functionMap->raster_rgb32;
-    case Image::FormatRGB24:
-      return &functionMap->raster_rgb24;
+    case Pattern::PadSpread:
+    case Pattern::NoSpread:
+    case Pattern::RepeatSpread:
+      ctx->fetch = pattern_texture_fetch_repeat;
+      break;
+    case Pattern::ReflectSpread:
+      ctx->fetch = pattern_texture_fetch_reflect;
+      break;
     default:
-      return NULL;
+      return Error::InvalidArgument;
   }
+
+  // Set destroy function.
+  ctx->destroy = pattern_texture_destroy;
+
+  // Copy texture variables into pattern context.
+  ctx->texture.bits = ctx->texture.texture->cData();
+  ctx->texture.stride = ctx->texture.texture->stride();
+  ctx->texture.w = ctx->texture.texture->width();
+  ctx->texture.h = ctx->texture.texture->height();
+
+  ctx->initialized = true;
+  return Error::Ok;
+}
+
+static void FOG_FASTCALL pattern_texture_destroy(
+  PatternContext* ctx)
+{
+  ctx->texture.texture.destroy();
+  ctx->initialized = false;
+}
+
+// ============================================================================
+// [Fog::Raster - Pattern - Linear Gradient]
+// ============================================================================
+
+static uint8_t* FOG_FASTCALL pattern_linear_gradient_fetch_pad(
+  PatternContext* ctx,
+  uint8_t* dst, int x, int y, int w)
+{
+  /*
+  uint8_t* dstCur = dst;
+
+  int tw = ctx->linearGradient.w;
+  int th = ctx->linearGradient.h;
+
+  x -= ctx->linearGradient.dx;
+  y -= ctx->linearGradient.dy;
+
+  if (x < 0) x = (x % tw) + tw;
+  if (x >= tw) x %= tw;
+
+  if (y < 0) y = (y % th) + th;
+  if (y >= th) y %= th;
+
+  const uint8_t* srcBase = ctx->texture.bits + y * ctx->texture.stride;
+  const uint8_t* srcCur;
+
+  int i;
+
+  srcCur = srcBase + mul4(x);
+  */
+  return dst;
+}
+
+static void FOG_FASTCALL pattern_linear_gradient_destroy(
+  PatternContext* ctx);
+
+static err_t FOG_FASTCALL pattern_linear_gradient_init(
+  PatternContext* ctx, const Pattern& pattern)
+{
+  Pattern::Data* d = pattern._d;
+  if (d->type != Pattern::IsLinearGradient) return Error::InvalidArgument;
+
+  ctx->texture.dx = double_to_int(d->points[0].x());
+  ctx->texture.dy = double_to_int(d->points[0].y());
+
+  ctx->format = ctx->texture.texture->format();
+  
+  // Set fetch function.
+  switch (pattern.spread())
+  {
+    case Pattern::NoSpread:
+      break;
+    case Pattern::PadSpread:
+      ctx->fetch = pattern_linear_gradient_fetch_pad;
+    case Pattern::RepeatSpread:
+      break;
+    case Pattern::ReflectSpread:
+      break;
+    default:
+      return Error::InvalidArgument;
+  }
+
+  // Set destroy function.
+  ctx->destroy = pattern_linear_gradient_destroy;
+
+  // Copy texture variables into pattern context.
+  ctx->texture.bits = ctx->texture.texture->cData();
+  ctx->texture.stride = ctx->texture.texture->stride();
+  ctx->texture.w = ctx->texture.texture->width();
+  ctx->texture.h = ctx->texture.texture->height();
+
+  ctx->initialized = true;
+  return Error::Ok;
+}
+
+static void FOG_FASTCALL pattern_linear_gradient_destroy(
+  PatternContext* ctx)
+{
+  ctx->texture.texture.destroy();
+  ctx->initialized = false;
 }
 
 } // Raster namespace
@@ -4140,21 +4183,15 @@ FunctionMap::Raster* getRasterOps(int format, int op)
 // [Library Initializers]
 // ============================================================================
 
-FOG_INIT_EXTERN void fog_raster_init_mmx(void);
-FOG_INIT_EXTERN void fog_raster_init_sse2(void);
-
-FOG_INIT_EXTERN void fog_raster_init_blitjit(void);
-FOG_INIT_EXTERN void fog_raster_shutdown_blitjit(void);
-
 #define TODO_NOT_IMPLEMENTED NULL
 
-FOG_INIT_DECLARE err_t fog_raster_init(void)
+FOG_INIT_DECLARE void fog_raster_init_c(void)
 {
   using namespace Fog;
   using namespace Fog::Raster;
 
   sysint_t i;
-  FunctionMap* m = functionMap = &functionMapData;
+  FunctionMap* m = functionMap;
 
   // [Convert - ByteSwap]
 
@@ -4425,31 +4462,16 @@ FOG_INIT_DECLARE err_t fog_raster_init(void)
   m->raster_rgb24.span_composite_a8[Image::FormatA8] = raster_span_composite_a8_nop;
   m->raster_rgb24.span_composite_indexed_a8[Image::FormatI8] = TODO_NOT_IMPLEMENTED;
 
-  // [Pattern]
+  // [Pattern - Texture]
 
   m->pattern.texture_init = pattern_texture_init;
   m->pattern.texture_destroy = pattern_texture_destroy;
   m->pattern.texture_fetch_repeat = pattern_texture_fetch_repeat;
   m->pattern.texture_fetch_reflect = pattern_texture_fetch_reflect;
 
-  // [Install MMX optimized code if supported]
+  // [Pattern - Linear Gradient]
 
-  if (Fog::cpuInfo->hasFeature(Fog::CpuInfo::Feature_MMX))
-    fog_raster_init_mmx();
-
-  // [Install SSE2 optimized code if supported]
-
-  if (Fog::cpuInfo->hasFeature(Fog::CpuInfo::Feature_SSE2))
-    fog_raster_init_sse2();
-
-  // [Install BlitJit]
-
-  fog_raster_init_blitjit();
-
-  return Error::Ok;
-}
-
-FOG_INIT_DECLARE void fog_raster_shutdown(void)
-{
-  fog_raster_shutdown_blitjit();
+  m->pattern.linear_gradient_init = pattern_linear_gradient_init;
+  m->pattern.linear_gradient_destroy = pattern_linear_gradient_destroy;
+  m->pattern.linear_gradient_fetch_pad = pattern_linear_gradient_fetch_pad;
 }
