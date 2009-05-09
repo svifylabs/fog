@@ -18,7 +18,7 @@
 #include <Fog/Core/Strings.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/ImageIO/ImageIO_PNG.h>
-#include <Fog/Graphics/Raster_p.h>
+#include <Fog/Graphics/Raster.h>
 
 #if defined(FOG_HAVE_PNG_H)
 #define FOG_HAVE_PNG_HEADERS

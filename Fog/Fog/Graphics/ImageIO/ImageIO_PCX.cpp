@@ -17,7 +17,8 @@
 #include <Fog/Core/Strings.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/ImageIO/ImageIO_PCX.h>
-#include <Fog/Graphics/Raster_p.h>
+#include <Fog/Graphics/Raster.h>
+#include <Fog/Graphics/Raster/Raster_C.h>
 
 namespace Fog {
 namespace ImageIO {

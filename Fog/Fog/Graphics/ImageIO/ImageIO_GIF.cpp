@@ -21,7 +21,7 @@
 #include <Fog/Core/Strings.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/ImageIO/ImageIO_GIF.h>
-#include <Fog/Graphics/Raster_p.h>
+#include <Fog/Graphics/Raster.h>
 
 #include <string.h>
 

@@ -10,11 +10,21 @@
 
 // [Dependencies]
 #include <Fog/Cpu/Intrin_MMX.h>
-#include <Fog/Graphics/Raster_p.h>
-#include <Fog/Graphics/Raster_MMX_p.h>
+#include <Fog/Graphics/Image.h>
+#include <Fog/Graphics/Raster.h>
+#include <Fog/Graphics/Raster/Raster_ByteOp.h>
+#include <Fog/Graphics/Raster/Raster_PixelOp.h>
+#include <Fog/Graphics/Raster/Raster_C.h>
 
 namespace Fog {
 namespace Raster {
+
+// ============================================================================
+// [Fog::Raster - Defines]
+// ============================================================================
+
+#define READ_MASK_A8(ptr) ((const uint8_t *)ptr)[0]
+#define READ_MASK_C8(ptr) ((const uint32_t*)ptr)[0]
 
 // ============================================================================
 // [Fog::Raster - Gradient - gradient]
@@ -185,7 +195,10 @@ end:
 
 FOG_INIT_DECLARE void fog_raster_init_mmx(void)
 {
-  Fog::Raster::FunctionMap* m = Fog::Raster::functionMap;
+  using namespace Fog;
+  using namespace Fog::Raster;
 
-  m->gradient.gradient_argb32 = Fog::Raster::gradient_gradient_argb32_MMX;
+  FunctionMap* m = functionMap;
+
+  m->gradient.gradient_argb32 = gradient_gradient_argb32_MMX;
 }

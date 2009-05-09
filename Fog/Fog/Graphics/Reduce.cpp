@@ -12,7 +12,8 @@
 #include <Fog/Core/Hash.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Graphics/Image.h>
-#include <Fog/Graphics/Raster_p.h>
+#include <Fog/Graphics/Raster.h>
+#include <Fog/Graphics/Raster/Raster_C.h>
 #include <Fog/Graphics/Reduce.h>
 
 #include <stdlib.h>
