@@ -26,8 +26,17 @@ struct MyWindow : public Window
     sprite[0].convert(Image::FormatARGB32);
     sprite[0].fillQGradient(Rect(0, 0, sprite[0].width(), sprite[0].height()), 0xFFFFFFFF, 0x00000000, 0xFFFF0000, 0xFF0000FF, false);
 
-    pattern.setTexture(sprite[0]);
-    pattern.setSpread(Pattern::ReflectSpread);
+    pattern[0].setTexture(sprite[0]);
+    pattern[0].setSpread(Pattern::ReflectSpread);
+
+    pattern[1].setType(Pattern::LinearGradient);
+    pattern[1].addGradientStop(GradientStop(0.0, Rgba(0xFFFFFFFF)));
+    pattern[1].addGradientStop(GradientStop(1.0, Rgba(0xFF0000FF)));
+    pattern[1].setStartPoint(PointF(10, 20));
+    pattern[1].setEndPoint(PointF(100, 230));
+
+    activePattern = 1;
+
 /*
     sprite[0].readFile(StubAscii8("/my/upload/img/babelfish.png"));
     sprite[0].premultiply();
@@ -43,7 +52,8 @@ struct MyWindow : public Window
 
     //timer.start();
 
-    _dragging = false;
+    _draggingLeft = false;
+    _draggingRight = false;
   }
 
   virtual ~MyWindow() {}
@@ -92,11 +102,12 @@ struct MyWindow : public Window
         if (++x == 6) { x = 0; y++; }
       }
 */
-      p->setSource(pattern);
+      p->setSource(pattern[activePattern]);
 
       Font font;
       font.setSize(50);
 
+      //p->fillRect(Rect(10, 10, 600, 300));
       p->drawText(Point(10, 10), StubAscii8("ABCDEFGHIJKLMNOP"), font);
       p->drawText(Point(10, 60), StubAscii8("ABCDEFGHIJKLMNOP"), font);
       p->drawText(Point(10, 110), StubAscii8("ABCDEFGHIJKLMNOP"), font);
@@ -172,27 +183,44 @@ struct MyWindow : public Window
     {
       case EvMousePress:
       {
-        if (e->button() == ButtonLeft)
+        switch (e->button())
         {
-          _dragging = true;
-          pattern.setStartPoint(e->position());
-          repaint(RepaintWidget);
+          case ButtonLeft:
+            _draggingLeft = true;
+            pattern[activePattern].setStartPoint(e->position());
+            repaint(RepaintWidget);
+            break;
+          case ButtonRight:
+            _draggingRight = true;
+            pattern[activePattern].setEndPoint(e->position());
+            repaint(RepaintWidget);
+            break;
         }
         break;
       }
       case EvMouseRelease:
       {
-        if (e->button() == ButtonLeft)
+        switch (e->button())
         {
-          _dragging = false;
+          case ButtonLeft:
+            _draggingLeft = false;
+            break;
+          case ButtonRight:
+            _draggingRight = false;
+            break;
         }
         break;
       }
       case EvMouseMove:
       {
-        if (_dragging)
+        if (_draggingLeft)
         {
-          pattern.setStartPoint(e->position());
+          pattern[activePattern].setStartPoint(e->position());
+          repaint(RepaintWidget);
+        }
+        if (_draggingRight)
+        {
+          pattern[activePattern].setEndPoint(e->position());
           repaint(RepaintWidget);
         }
         break;
@@ -218,12 +246,14 @@ struct MyWindow : public Window
   Button button;
 
   Image background;
-  Pattern pattern;
+  Pattern pattern[2];
+  int activePattern;
 
   Image sprite[4];
   Timer timer;
 
-  bool _dragging;
+  bool _draggingLeft;
+  bool _draggingRight;
 };
 
 FOG_UI_MAIN()
