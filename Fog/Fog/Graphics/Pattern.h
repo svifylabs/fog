@@ -26,15 +26,15 @@ struct FOG_API Pattern
 
   enum Type
   {
-    IsNull = 0x0,
-    IsSolid = 0x1,
-    IsTexture = 0x2,
+    Null = 0x0,
+    Solid = 0x1,
+    Texture = 0x2,
 
-    IsGradientMask = 0x10,
+    GradientMask = 0x10,
 
-    IsLinearGradient = IsGradientMask | 0x3,
-    IsRadialGradient = IsGradientMask | 0x4,
-    IsConicalGradient = IsGradientMask | 0x5
+    LinearGradient = GradientMask | 0x3,
+    RadialGradient = GradientMask | 0x4,
+    ConicalGradient = GradientMask | 0x5
   };
 
   // [Spread]
@@ -112,13 +112,13 @@ struct FOG_API Pattern
 
   FOG_INLINE uint32_t type() const { return _d->type; }
 
-  FOG_INLINE bool isNull() const { return _d->type == IsNull; }
-  FOG_INLINE bool isSolid() const { return _d->type == IsSolid; }
-  FOG_INLINE bool isTexture() const { return _d->type == IsTexture; }
+  FOG_INLINE bool isNull() const { return _d->type == Null; }
+  FOG_INLINE bool isSolid() const { return _d->type == Solid; }
+  FOG_INLINE bool isTexture() const { return _d->type == Texture; }
   FOG_INLINE bool isGradient() const { return (_d->type & 0x10) != 0; }
-  FOG_INLINE bool isLinearGradient() const { return _d->type == IsLinearGradient; }
-  FOG_INLINE bool isRadialGradient() const { return _d->type == IsRadialGradient; }
-  FOG_INLINE bool isConicalGradient() const { return _d->type == IsConicalGradient; }
+  FOG_INLINE bool isLinearGradient() const { return _d->type == LinearGradient; }
+  FOG_INLINE bool isRadialGradient() const { return _d->type == RadialGradient; }
+  FOG_INLINE bool isConicalGradient() const { return _d->type == ConicalGradient; }
 
   err_t setType(uint32_t type);
 
@@ -158,6 +158,7 @@ struct FOG_API Pattern
   FOG_INLINE double gradientRadius() const { return _d->gradientRadius; }
 
   err_t setGradientRadius(double r);
+  err_t setGradientStops(const GradientStops& stops);
   err_t addGradientStop(const GradientStop& stop);
 
   // [Operator Overload]

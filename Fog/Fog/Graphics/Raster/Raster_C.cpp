@@ -17,6 +17,8 @@
 #include <Fog/Graphics/Raster/Raster_ByteOp.h>
 #include <Fog/Graphics/Raster/Raster_PixelOp.h>
 
+#include <math.h>
+
 namespace Fog {
 namespace Raster {
 
@@ -28,6 +30,8 @@ namespace Raster {
 #define READ_MASK_C8(ptr) ((const uint32_t*)ptr)[0]
 
 static FOG_INLINE int double_to_int(double d) { return (int)d; }
+
+static FOG_INLINE int64_t double_to_fixed48x16(double d) { return (int64_t)(d * 65536.0); }
 
 // ============================================================================
 // [Fog::Raster - Demultiply Reciprocal Table]
@@ -3980,6 +3984,8 @@ static uint8_t* FOG_FASTCALL pattern_texture_fetch_reflect(
   PatternContext* ctx,
   uint8_t* dst, int x, int y, int w)
 {
+  FOG_ASSERT(w);
+
   uint8_t* dstCur = dst;
 
   int tw = ctx->texture.w;
@@ -4051,16 +4057,17 @@ static err_t FOG_FASTCALL pattern_texture_init(
   PatternContext* ctx, const Pattern& pattern)
 {
   Pattern::Data* d = pattern._d;
-  if (d->type != Pattern::IsTexture) return Error::InvalidArgument;
+  if (d->type != Pattern::Texture) return Error::InvalidArgument;
 
   ctx->texture.texture.init(d->obj.texture.instance());
   ctx->texture.dx = double_to_int(d->points[0].x());
   ctx->texture.dy = double_to_int(d->points[0].y());
 
   ctx->format = ctx->texture.texture->format();
+  ctx->depth = ctx->texture.texture->depth();
   
   // Set fetch function.
-  switch (pattern.spread())
+  switch (d->spread)
   {
     case Pattern::PadSpread:
     case Pattern::NoSpread:
@@ -4090,6 +4097,8 @@ static err_t FOG_FASTCALL pattern_texture_init(
 static void FOG_FASTCALL pattern_texture_destroy(
   PatternContext* ctx)
 {
+  FOG_ASSERT(ctx->initialized);
+
   ctx->texture.texture.destroy();
   ctx->initialized = false;
 }
@@ -4098,32 +4107,120 @@ static void FOG_FASTCALL pattern_texture_destroy(
 // [Fog::Raster - Pattern - Linear Gradient]
 // ============================================================================
 
+
+static void FOG_FASTCALL gradient_stops(
+	uint8_t* dst, const GradientStops& stops,
+	GradientSpanFn gradientSpan,
+	int offset, int size, int w,
+	bool reverse)
+{
+	// Sanity check.
+	FOG_ASSERT(w <= size || offset <= (size - w));
+
+	sysint_t count = (sysint_t)stops.length();
+	sysint_t end = offset + w;
+
+	if (count == 0 || w == 0) return;
+
+	if (count == 1 || size == 1)
+	{
+		//Rgba color = stops.cAt(0).color;
+		//render(dst, color, color, 0, w, w, &cpuState);
+	}
+	else
+	{
+		sysint_t i = (reverse) ? count - 1 : 0;
+		sysint_t iinc = (reverse) ? -1 : 1;
+
+    Rgba primaryStopColor = stops.cAt(i).rgba;
+		Rgba secondaryStopRgba;
+
+		double primaryStopOffset = 0.0;
+		double secondaryStopOffset;
+		long x1 = 0;
+		long x2 = 0;
+
+		for (; i < count && (sysint_t)x1 < end; i += iinc,
+			primaryStopOffset = secondaryStopOffset,
+			primaryStopColor = secondaryStopRgba,
+			x1 = x2)
+		{
+			secondaryStopOffset = stops.cAt(i).offset;
+			secondaryStopRgba = stops.cAt(i).rgba;
+
+			// Stop offset can be at range from 0.0 to 1.0 including.
+			if (secondaryStopOffset < 0.0) secondaryStopOffset = 0.0;
+			if (secondaryStopOffset > 1.0) secondaryStopOffset = 1.0;
+			if (reverse) secondaryStopOffset = 1.0 - secondaryStopOffset;
+
+			// Don't trust input data...
+			if (secondaryStopOffset < primaryStopOffset) return;
+
+			// Skip all siblings and the first one.
+			if (secondaryStopOffset == primaryStopOffset) continue;
+
+			// get pixel coordinates and skip that caller not wants
+			x2 = (sysint_t)((double)size * secondaryStopOffset);
+			if (x2 < (sysint_t)offset) continue; // not reached the beggining
+			if (x2 > (sysint_t)size) return;     // reached the end
+
+			sysint_t cx1 = x1; if (cx1 < (sysint_t)offset) cx1 = (sysint_t)offset;
+			sysint_t cx2 = x2; if (cx2 > (sysint_t)end) cx2 = (sysint_t)end;
+
+			if (cx2 - cx1)
+			{
+				gradientSpan(
+					// pointer to destination, it's needed to decrease it by 'offset'
+					dst + (sysint_t)(cx1 - offset) * 4,
+					// primary and secondary colors
+					primaryStopColor, secondaryStopRgba,
+          // width, x1, x2
+					cx2 - cx1, cx1 - x1, x2 - x1);
+			}
+		}
+
+		// TODO: draw last point
+		// if (size == width) ((uint32_t*)dst)[size-1] = secondaryStopRgba;
+	}
+}
+
 static uint8_t* FOG_FASTCALL pattern_linear_gradient_fetch_pad(
   PatternContext* ctx,
   uint8_t* dst, int x, int y, int w)
 {
-  /*
+  FOG_ASSERT(w);
+
   uint8_t* dstCur = dst;
 
-  int tw = ctx->linearGradient.w;
-  int th = ctx->linearGradient.h;
+  int64_t cx = ((int64_t)x << 16) - ctx->linearGradient.dx;
+  int64_t cy = ((int64_t)y << 16) - ctx->linearGradient.dy;
 
-  x -= ctx->linearGradient.dx;
-  y -= ctx->linearGradient.dy;
+  int64_t ax = ctx->linearGradient.ax;
+  int64_t ay = ctx->linearGradient.ay;
 
-  if (x < 0) x = (x % tw) + tw;
-  if (x >= tw) x %= tw;
+  int64_t yy = (ax * cx + ay * cy) >> 16;
 
-  if (y < 0) y = (y % th) + th;
-  if (y >= th) y %= th;
+  const uint32_t* colors = (const uint32_t*)ctx->linearGradient.colors;
+  sysint_t colorsLength = ctx->linearGradient.colorsLength;
+  sysint_t colorsIndex;
 
-  const uint8_t* srcBase = ctx->texture.bits + y * ctx->texture.stride;
-  const uint8_t* srcCur;
+  uint32_t color0 = colors[0];
+  uint32_t color1 = colors[colorsLength-1];
 
-  int i;
+  do {
+    colorsIndex = (sysint_t)(yy >> 16);
 
-  srcCur = srcBase + mul4(x);
-  */
+    if (colorsIndex < 0)
+      ((uint32_t*)dstCur)[0] = color0;
+    else if (colorsIndex >= colorsLength)
+      ((uint32_t*)dstCur)[0] = color1;
+    else
+      ((uint32_t*)dstCur)[0] = colors[colorsIndex];
+
+	  dstCur += 4;
+    yy += ax;
+  } while (--w);
+
   return dst;
 }
 
@@ -4134,20 +4231,86 @@ static err_t FOG_FASTCALL pattern_linear_gradient_init(
   PatternContext* ctx, const Pattern& pattern)
 {
   Pattern::Data* d = pattern._d;
-  if (d->type != Pattern::IsLinearGradient) return Error::InvalidArgument;
+  if (d->type != Pattern::LinearGradient) return Error::InvalidArgument;
 
-  ctx->texture.dx = double_to_int(d->points[0].x());
-  ctx->texture.dy = double_to_int(d->points[0].y());
+  double dxd = fog_abs(d->points[1].x() - d->points[0].x());
+  double dyd = fog_abs(d->points[1].y() - d->points[0].y());
+  double sqrtxxyy = sqrt(dxd * dxd + dyd * dyd);
 
-  ctx->format = ctx->texture.texture->format();
-  
+  int64_t dx = double_to_fixed48x16(dxd);
+  int64_t dy = double_to_fixed48x16(dyd);
+  int64_t dmax = fog_max(dx, dy);
+  sysint_t maxSize = d->obj.gradientStops->length() * 256;
+
+  sysint_t gLength = (sysint_t)((dmax >> 16) << 2);
+  sysint_t gAlloc = 0;
+  if (gLength > maxSize) gLength = maxSize;
+
+  double scale = gLength ? sqrtxxyy / (double)gLength : 1;
+
+  ctx->linearGradient.dx = double_to_fixed48x16(d->points[0].x());
+  ctx->linearGradient.dy = double_to_fixed48x16(d->points[0].y());
+
+  ctx->linearGradient.ax = double_to_fixed48x16(dxd / (scale * sqrtxxyy));
+  ctx->linearGradient.ay = double_to_fixed48x16(dyd / (scale * sqrtxxyy));
+
+  if (d->points[0].x() > d->points[1].x()) ctx->linearGradient.ax = -ctx->linearGradient.ax;
+  if (d->points[0].y() > d->points[1].y()) ctx->linearGradient.ay = -ctx->linearGradient.ay;
+
+  ctx->format = Image::FormatPRGB32;
+  ctx->depth = 32;
+
+  // check if gradient is too long (this can cause overflow in variables)
+  if (gLength >= 65536/2) return Error::Overflow;
+
+  gAlloc = gLength;
+  //if (pd->spread == Wde_GradientPattern::ReflectSpread) gAlloc <<= 1;
+
+  // alloc space for pattern or use reserved buffer.
+  {
+    if ((ctx->linearGradient.colors = (uint32_t*)Memory::alloc(gAlloc << 2)) == NULL)
+	  {
+      return Error::OutOfMemory;
+	  }
+  }
+
+  gradient_stops(
+    (uint8_t*)ctx->linearGradient.colors, d->obj.gradientStops.instance(),
+    functionMap->gradient.gradient_prgb32,
+	  0, (int)gLength, (int)gLength, false);
+
+  // for (int aaa = 0; aaa < gLength; aaa++) printf("%0.8X\n", ((uint32_t*)ctx->linearGradient.colors)[aaa]);
+
+  ctx->linearGradient.colorsAlloc = gAlloc;
+  ctx->linearGradient.colorsLength = gLength;
+
+/*
+  if (d->spread == Wde_GradientPattern::ReflectSpread)
+  {
+    // create mirror
+    uint32_t* patternTo = context->pattern + gLength;
+    uint32_t* patternFrom = patternTo - 1;
+
+    size_t i;
+    for (i = (size_t)gLength; i; i--, patternTo++, patternFrom--)
+    {
+	    *patternTo = *patternFrom;
+    }
+  }
+*/
+  // set correct span render methods
+  //ulong rep = (pd->spread != Wde_GradientPattern::PadSpread);
+  //context->alpha = Wde_RGBAStops_alpha(pd->stops);
+
   // Set fetch function.
-  switch (pattern.spread())
+      ctx->fetch = pattern_linear_gradient_fetch_pad;
+  switch (d->spread)
   {
     case Pattern::NoSpread:
       break;
     case Pattern::PadSpread:
       ctx->fetch = pattern_linear_gradient_fetch_pad;
+      break;
     case Pattern::RepeatSpread:
       break;
     case Pattern::ReflectSpread:
@@ -4159,12 +4322,6 @@ static err_t FOG_FASTCALL pattern_linear_gradient_init(
   // Set destroy function.
   ctx->destroy = pattern_linear_gradient_destroy;
 
-  // Copy texture variables into pattern context.
-  ctx->texture.bits = ctx->texture.texture->cData();
-  ctx->texture.stride = ctx->texture.texture->stride();
-  ctx->texture.w = ctx->texture.texture->width();
-  ctx->texture.h = ctx->texture.texture->height();
-
   ctx->initialized = true;
   return Error::Ok;
 }
@@ -4172,7 +4329,9 @@ static err_t FOG_FASTCALL pattern_linear_gradient_init(
 static void FOG_FASTCALL pattern_linear_gradient_destroy(
   PatternContext* ctx)
 {
-  ctx->texture.texture.destroy();
+  FOG_ASSERT(ctx->initialized);
+
+  Memory::free(ctx->linearGradient.colors);
   ctx->initialized = false;
 }
 

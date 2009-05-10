@@ -109,11 +109,11 @@ struct PatternContext
 
   struct Texture
   {
-    // Must be dereferenced when context is destroyed: d->deref().
-    Static<Image> texture;
-
     int dx;
     int dy;
+
+    // Must be dereferenced when context is destroyed: d->deref().
+    Static<Image> texture;
 
     // Private, initialized when context is created. These variables are here
     // for easier access into texture data (it saves some pointer dereferences,
@@ -127,12 +127,15 @@ struct PatternContext
 
   struct LinearGradient
   {
-    Rgba* stops;
+    int64_t dx;
+    int64_t dy;
 
-    int dx;
-    int dy;
-    int ax;
-    int ay;
+    int64_t ax;
+    int64_t ay;
+
+    int colorsAlloc;
+    int colorsLength;
+    uint32_t* colors;
   };
 
   union

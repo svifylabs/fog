@@ -1741,10 +1741,10 @@ Raster::PatternContext* RasterPainterDevice::_getPatternContext()
   {
     switch (state.patternSource.type())
     {
-      case Pattern::IsTexture:
+      case Pattern::Texture:
         err = Raster::functionMap->pattern.texture_init(pctx, state.patternSource);
         break;
-      case Pattern::IsLinearGradient:
+      case Pattern::LinearGradient:
         err = Raster::functionMap->pattern.linear_gradient_init(pctx, state.patternSource);
         break;
       default:

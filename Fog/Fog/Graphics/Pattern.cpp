@@ -55,11 +55,11 @@ err_t Pattern::setType(uint32_t type)
   err_t err;
   if (_d->type == type) return Error::Ok;
 
-  if (!(type <= 0x2 || (type >= IsLinearGradient && type <= IsConicalGradient)))
+  if (!(type <= 0x2 || (type >= LinearGradient && type <= ConicalGradient)))
     return Error::InvalidArgument;
 
   // Optimize gradient switching.
-  if ((_d->type & IsGradientMask) != 0 && (type & IsGradientMask) != 0)
+  if ((_d->type & GradientMask) != 0 && (type & GradientMask) != 0)
   {
     if ( (err = detach()) ) return err;
     _d->type = type;
@@ -73,9 +73,9 @@ err_t Pattern::setType(uint32_t type)
     _d->deleteResources();
     _d->type = type;
 
-    if (type == IsTexture)
+    if (type == Texture)
       _d->obj.texture.init();
-    else if (type & IsGradientMask)
+    else if (type & GradientMask)
       _d->obj.gradientStops.init();
   }
   else
@@ -89,9 +89,9 @@ err_t Pattern::setType(uint32_t type)
     newd->points[1] = _d->points[1];
     newd->gradientRadius = 0.0;
     
-    if (type == IsTexture)
+    if (type == Texture)
       newd->obj.texture.init();
-    else if (type & IsGradientMask)
+    else if (type & GradientMask)
       newd->obj.gradientStops.init();
 
     AtomicBase::ptr_setXchg(&_d, newd)->deref();
@@ -120,7 +120,7 @@ void Pattern::setNull()
   else
   {
     _d->deleteResources();
-    _d->type = IsNull;
+    _d->type = Null;
     _d->spread = NoSpread;
     _d->points[0].set(0.0, 0.0);
     _d->points[1].set(0.0, 0.0);
@@ -209,7 +209,7 @@ err_t Pattern::setColor(const Rgba& rgba)
     Data* newd = new(std::nothrow) Data();
     if (!newd) return Error::OutOfMemory;
 
-    newd->type = IsSolid;
+    newd->type = Solid;
     newd->spread = _d->spread;
     newd->points[0] = _d->points[0];
     newd->points[1] = _d->points[1];
@@ -245,7 +245,7 @@ err_t Pattern::setTexture(const Image& texture)
     Data* newd = new(std::nothrow) Data();
     if (!newd) return Error::OutOfMemory;
 
-    newd->type = IsTexture;
+    newd->type = Texture;
     newd->spread = _d->spread;
     newd->points[0] = _d->points[0];
     newd->points[1] = _d->points[1];
@@ -271,6 +271,19 @@ err_t Pattern::setGradientRadius(double r)
   return Error::Ok;
 }
 
+err_t Pattern::setGradientStops(const GradientStops& stops)
+{
+  if (!isGradient()) return Error::InvalidFunction;
+  if (_d->obj.gradientStops->_d == stops._d) return Error::Ok;
+
+  err_t err;
+  if ( (err = detach()) ) return err;
+
+  _d->obj.gradientStops.instance() = stops;
+  _d->obj.gradientStops->sort();
+  return Error::Ok;
+}
+
 err_t Pattern::addGradientStop(const GradientStop& stop)
 {
   if (!isGradient()) return Error::InvalidFunction;
@@ -282,7 +295,7 @@ err_t Pattern::addGradientStop(const GradientStop& stop)
   s.normalize();
 
   GradientStops::MutableIterator it(_d->obj.gradientStops.instance());
-  for (it.toStart(); it.isValid(); it.toEnd())
+  for (it.toStart(); it.isValid(); it.toNext())
   {
     if (it.value().offset == s.offset)
     {
@@ -320,7 +333,7 @@ Pattern& Pattern::operator=(const Rgba& rgba)
 Pattern::Data::Data()
 {
   refCount.init(1);
-  type = Pattern::IsNull;
+  type = Pattern::Null;
   spread = Pattern::NoSpread;
   points[0].set(0.0, 0.0);
   points[1].set(0.0, 0.0);
@@ -337,9 +350,9 @@ Pattern::Data::Data(const Data& other)
   points[1] = other.points[1];
   gradientRadius = other.gradientRadius;
 
-  if (type == IsTexture)
+  if (type == Texture)
     obj.texture.init(other.obj.texture.instance());
-  else if (type & IsGradientMask)
+  else if (type & GradientMask)
     obj.gradientStops.init(other.obj.gradientStops.instance());
 }
 
@@ -355,9 +368,9 @@ Pattern::Data* Pattern::Data::copy()
 
 void Pattern::Data::deleteResources()
 {
-  if (type == Pattern::IsTexture)
+  if (type == Pattern::Texture)
     obj.texture.destroy();
-  else if (type & Pattern::IsGradientMask)
+  else if (type & Pattern::GradientMask)
     obj.gradientStops.destroy();
 }
 
@@ -372,7 +385,7 @@ FOG_INIT_DECLARE err_t fog_pattern_init(void)
   Fog::Pattern::Data* d = Fog::Pattern::sharedNull.instancep();
 
   d->refCount.init(1);
-  d->type = Fog::Pattern::IsNull;
+  d->type = Fog::Pattern::Null;
   d->spread = Fog::Pattern::NoSpread;
   d->points[0].set(0.0, 0.0);
   d->points[1].set(0.0, 0.0);
