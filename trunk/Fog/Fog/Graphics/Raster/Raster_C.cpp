@@ -16,6 +16,7 @@
 #include <Fog/Graphics/Raster/Raster_C.h>
 #include <Fog/Graphics/Raster/Raster_ByteOp.h>
 #include <Fog/Graphics/Raster/Raster_PixelOp.h>
+#include <Fog/Graphics/RgbaAnalyzer.h>
 
 #include <math.h>
 
@@ -2073,6 +2074,419 @@ static void FOG_FASTCALL gradient_gradient_a8(uint8_t* dst, uint32_t c0, uint32_
 }
 
 // ============================================================================
+// [Fog::Raster - Pattern - Texture]
+// ============================================================================
+
+static uint8_t* FOG_FASTCALL pattern_texture_fetch_repeat(
+  PatternContext* ctx,
+  uint8_t* dst, int x, int y, int w)
+{
+  uint8_t* dstCur = dst;
+
+  int tw = ctx->texture.w;
+  int th = ctx->texture.h;
+
+  x -= ctx->texture.dx;
+  y -= ctx->texture.dy;
+
+  if (x < 0) x = (x % tw) + tw;
+  if (x >= tw) x %= tw;
+
+  if (y < 0) y = (y % th) + th;
+  if (y >= th) y %= th;
+
+  const uint8_t* srcBase = ctx->texture.bits + y * ctx->texture.stride;
+  const uint8_t* srcCur;
+
+  int i;
+
+  srcCur = srcBase + mul4(x);
+
+  // Return image buffer if span fits to it (this is very efficient 
+  // optimization for short spans or large textures)
+  i = fog_min(tw - x, w);
+  if (w < tw - x) 
+    return const_cast<uint8_t*>(srcCur);
+
+  for (;;)
+  {
+    w -= i;
+
+    do {
+      ((uint32_t*)dstCur)[0] = ((const uint32_t*)srcCur)[0];
+      dstCur += 4;
+      srcCur += 4;
+    } while (--i);
+    if (!w) break;
+
+    i = fog_min(w, tw);
+    srcCur = srcBase;
+  }
+
+  return dst;
+}
+
+static uint8_t* FOG_FASTCALL pattern_texture_fetch_reflect(
+  PatternContext* ctx,
+  uint8_t* dst, int x, int y, int w)
+{
+  FOG_ASSERT(w);
+
+  uint8_t* dstCur = dst;
+
+  int tw = ctx->texture.w;
+  int th = ctx->texture.h;
+
+  int tw2 = tw << 1;
+  int th2 = th << 1;
+
+  x -= ctx->texture.dx;
+  y -= ctx->texture.dy;
+
+  if (x < 0) x = (x % tw2) + tw2;
+  if (x >= tw2) x %= tw2;
+
+  if (y < 0) y = (y % th2) + th2;
+  if (y >= th2) y %= th2;
+
+  // Modify Y if reflected (if it lies in second section).
+  if (y >= th) y = th2 - y - 1;
+
+  const uint8_t* srcBase = ctx->texture.bits + y * ctx->texture.stride;
+  const uint8_t* srcCur;
+
+  if (x >= 0 && x <= tw && w < tw - x)
+    return const_cast<uint8_t*>(srcBase + mul4(x));
+
+  do {
+    // Reflect mode
+    if (x >= tw)
+    {
+      int i = fog_min(tw2 - x, w);
+
+      srcCur = srcBase + mul4(tw2 - x - 1);
+
+      w -= i;
+      x = 0;
+
+      do {
+        ((uint32_t*)dstCur)[0] = ((const uint32_t*)srcCur)[0];
+        dstCur += 4;
+        srcCur -= 4;
+      } while (--i);
+    }
+    // Repeat mode
+    else
+    {
+      int i = fog_min(tw - x, w);
+
+      srcCur = srcBase + mul4(x);
+
+      w -= i;
+      x += i;
+
+      do {
+        ((uint32_t*)dstCur)[0] = ((const uint32_t*)srcCur)[0];
+        dstCur += 4;
+        srcCur += 4;
+      } while (--i);
+    }
+  } while (w);
+
+  return dst;
+}
+
+static void FOG_FASTCALL pattern_texture_destroy(
+  PatternContext* ctx);
+
+static err_t FOG_FASTCALL pattern_texture_init(
+  PatternContext* ctx, const Pattern& pattern)
+{
+  Pattern::Data* d = pattern._d;
+  if (d->type != Pattern::Texture) return Error::InvalidArgument;
+
+  ctx->texture.texture.init(d->obj.texture.instance());
+  ctx->texture.dx = double_to_int(d->points[0].x());
+  ctx->texture.dy = double_to_int(d->points[0].y());
+
+  ctx->format = ctx->texture.texture->format();
+  ctx->depth = ctx->texture.texture->depth();
+  
+  // Set fetch function.
+  switch (d->spread)
+  {
+    case Pattern::PadSpread:
+    case Pattern::NoSpread:
+    case Pattern::RepeatSpread:
+      ctx->fetch = pattern_texture_fetch_repeat;
+      break;
+    case Pattern::ReflectSpread:
+      ctx->fetch = pattern_texture_fetch_reflect;
+      break;
+    default:
+      return Error::InvalidArgument;
+  }
+
+  // Set destroy function.
+  ctx->destroy = pattern_texture_destroy;
+
+  // Copy texture variables into pattern context.
+  ctx->texture.bits = ctx->texture.texture->cData();
+  ctx->texture.stride = ctx->texture.texture->stride();
+  ctx->texture.w = ctx->texture.texture->width();
+  ctx->texture.h = ctx->texture.texture->height();
+
+  ctx->initialized = true;
+  return Error::Ok;
+}
+
+static void FOG_FASTCALL pattern_texture_destroy(
+  PatternContext* ctx)
+{
+  FOG_ASSERT(ctx->initialized);
+
+  ctx->texture.texture.destroy();
+  ctx->initialized = false;
+}
+
+// ============================================================================
+// [Fog::Raster - Pattern - Linear Gradient]
+// ============================================================================
+
+static void FOG_FASTCALL gradient_stops(
+	uint8_t* dst, const GradientStops& stops,
+	GradientSpanFn gradientSpan,
+	int offset, int size, int w,
+	bool reverse)
+{
+	// Sanity check.
+	FOG_ASSERT(w <= size || offset <= (size - w));
+
+	sysint_t count = (sysint_t)stops.length();
+	sysint_t end = offset + w;
+
+	if (count == 0 || w == 0) return;
+
+	if (count == 1 || size == 1)
+	{
+		//Rgba color = stops.cAt(0).color;
+		//render(dst, color, color, 0, w, w, &cpuState);
+	}
+	else
+	{
+		sysint_t i = (reverse) ? count - 1 : 0;
+		sysint_t iinc = (reverse) ? -1 : 1;
+
+    Rgba primaryStopColor = stops.cAt(i).rgba;
+		Rgba secondaryStopRgba;
+
+		double primaryStopOffset = 0.0;
+		double secondaryStopOffset;
+		long x1 = 0;
+		long x2 = 0;
+
+		for (; i < count && (sysint_t)x1 < end; i += iinc,
+			primaryStopOffset = secondaryStopOffset,
+			primaryStopColor = secondaryStopRgba,
+			x1 = x2)
+		{
+			secondaryStopOffset = stops.cAt(i).offset;
+			secondaryStopRgba = stops.cAt(i).rgba;
+
+			// Stop offset can be at range from 0.0 to 1.0 including.
+			if (secondaryStopOffset < 0.0) secondaryStopOffset = 0.0;
+			if (secondaryStopOffset > 1.0) secondaryStopOffset = 1.0;
+			if (reverse) secondaryStopOffset = 1.0 - secondaryStopOffset;
+
+			// Don't trust input data...
+			if (secondaryStopOffset < primaryStopOffset) return;
+
+			// Skip all siblings and the first one.
+			if (secondaryStopOffset == primaryStopOffset) continue;
+
+			// get pixel coordinates and skip that caller not wants
+			x2 = (sysint_t)((double)size * secondaryStopOffset);
+			if (x2 < (sysint_t)offset) continue; // not reached the beggining
+			if (x2 > (sysint_t)size) return;     // reached the end
+
+			sysint_t cx1 = x1; if (cx1 < (sysint_t)offset) cx1 = (sysint_t)offset;
+			sysint_t cx2 = x2; if (cx2 > (sysint_t)end) cx2 = (sysint_t)end;
+
+			if (cx2 - cx1)
+			{
+				gradientSpan(
+					// pointer to destination, it's needed to decrease it by 'offset'
+					dst + (sysint_t)(cx1 - offset) * 4,
+					// primary and secondary colors
+					primaryStopColor, secondaryStopRgba,
+          // width, x1, x2
+					cx2 - cx1, cx1 - x1, x2 - x1);
+			}
+		}
+
+		// TODO: draw last point
+		// if (size == width) ((uint32_t*)dst)[size-1] = secondaryStopRgba;
+	}
+}
+
+static uint8_t* FOG_FASTCALL pattern_linear_gradient_fetch_pad(
+  PatternContext* ctx,
+  uint8_t* dst, int x, int y, int w)
+{
+  FOG_ASSERT(w);
+
+  uint8_t* dstCur = dst;
+
+  int64_t cx = ((int64_t)x << 16) - ctx->linearGradient.dx;
+  int64_t cy = ((int64_t)y << 16) - ctx->linearGradient.dy;
+
+  int64_t ax = ctx->linearGradient.ax;
+  int64_t ay = ctx->linearGradient.ay;
+
+  int64_t yy = (cx * ax + cy * ay) >> 16;
+
+  const uint32_t* colors = (const uint32_t*)ctx->linearGradient.colors;
+  sysint_t colorsLength = ctx->linearGradient.colorsLength;
+  sysint_t colorsIndex;
+
+  uint32_t color0 = colors[0];
+  uint32_t color1 = colors[colorsLength-1];
+
+  do {
+    colorsIndex = (sysint_t)(yy >> 16);
+
+    if (colorsIndex < 0)
+      ((uint32_t*)dstCur)[0] = color0;
+    else if (colorsIndex >= colorsLength)
+      ((uint32_t*)dstCur)[0] = color1;
+    else
+      ((uint32_t*)dstCur)[0] = colors[colorsIndex];
+
+	  dstCur += 4;
+    yy += ax;
+  } while (--w);
+
+  return dst;
+}
+
+static void FOG_FASTCALL pattern_linear_gradient_destroy(
+  PatternContext* ctx);
+
+static err_t FOG_FASTCALL pattern_linear_gradient_init(
+  PatternContext* ctx, const Pattern& pattern)
+{
+  Pattern::Data* d = pattern._d;
+  if (d->type != Pattern::LinearGradient) return Error::InvalidArgument;
+
+  double dxd = fog_abs(d->points[1].x() - d->points[0].x());
+  double dyd = fog_abs(d->points[1].y() - d->points[0].y());
+  double sqrtxxyy = sqrt(dxd * dxd + dyd * dyd);
+
+  bool hasAlpha = RgbaAnalyzer::analyzeAlpha(d->obj.gradientStops.instance()) != 0xFF;
+
+  int64_t dx = double_to_fixed48x16(dxd);
+  int64_t dy = double_to_fixed48x16(dyd);
+  int64_t dmax = fog_max(dx, dy);
+  sysint_t maxSize = d->obj.gradientStops->length() * 256;
+
+  sysint_t gLength = (sysint_t)((dmax >> 16) << 2);
+  sysint_t gAlloc = 0;
+  if (gLength > maxSize) gLength = maxSize;
+
+  double scale = gLength ? sqrtxxyy / (double)gLength : 1;
+
+  ctx->linearGradient.dx = double_to_fixed48x16(d->points[0].x());
+  ctx->linearGradient.dy = double_to_fixed48x16(d->points[0].y());
+
+  ctx->linearGradient.ax = double_to_fixed48x16(dxd / (scale * sqrtxxyy));
+  ctx->linearGradient.ay = double_to_fixed48x16(dyd / (scale * sqrtxxyy));
+
+  if (d->points[0].x() > d->points[1].x()) ctx->linearGradient.ax = -ctx->linearGradient.ax;
+  if (d->points[0].y() > d->points[1].y()) ctx->linearGradient.ay = -ctx->linearGradient.ay;
+
+  ctx->format = hasAlpha 
+    ? Image::FormatPRGB32
+    : Image::FormatRGB32;
+  ctx->depth = 32;
+
+  // check if gradient is too long (this can cause overflow in variables)
+  if (gLength >= 65536/2) return Error::Overflow;
+
+  gAlloc = gLength;
+  //if (pd->spread == Wde_GradientPattern::ReflectSpread) gAlloc <<= 1;
+
+  // alloc space for pattern or use reserved buffer.
+  {
+    if ((ctx->linearGradient.colors = (uint32_t*)Memory::alloc(gAlloc << 2)) == NULL)
+	  {
+      return Error::OutOfMemory;
+	  }
+  }
+
+  gradient_stops(
+    (uint8_t*)ctx->linearGradient.colors, d->obj.gradientStops.instance(),
+    hasAlpha 
+      ? functionMap->gradient.gradient_prgb32
+      : functionMap->gradient.gradient_rgb32,
+	  0, (int)gLength, (int)gLength, false);
+
+  // for (int aaa = 0; aaa < gLength; aaa++) printf("%0.8X\n", ((uint32_t*)ctx->linearGradient.colors)[aaa]);
+
+  ctx->linearGradient.colorsAlloc = gAlloc;
+  ctx->linearGradient.colorsLength = gLength;
+
+/*
+  if (d->spread == Wde_GradientPattern::ReflectSpread)
+  {
+    // create mirror
+    uint32_t* patternTo = context->pattern + gLength;
+    uint32_t* patternFrom = patternTo - 1;
+
+    size_t i;
+    for (i = (size_t)gLength; i; i--, patternTo++, patternFrom--)
+    {
+	    *patternTo = *patternFrom;
+    }
+  }
+*/
+  // set correct span render methods
+  //ulong rep = (pd->spread != Wde_GradientPattern::PadSpread);
+  //context->alpha = Wde_RGBAStops_alpha(pd->stops);
+
+  // Set fetch function.
+      ctx->fetch = pattern_linear_gradient_fetch_pad;
+  switch (d->spread)
+  {
+    case Pattern::NoSpread:
+      break;
+    case Pattern::PadSpread:
+      ctx->fetch = pattern_linear_gradient_fetch_pad;
+      break;
+    case Pattern::RepeatSpread:
+      break;
+    case Pattern::ReflectSpread:
+      break;
+    default:
+      return Error::InvalidArgument;
+  }
+
+  // Set destroy function.
+  ctx->destroy = pattern_linear_gradient_destroy;
+
+  ctx->initialized = true;
+  return Error::Ok;
+}
+
+static void FOG_FASTCALL pattern_linear_gradient_destroy(
+  PatternContext* ctx)
+{
+  FOG_ASSERT(ctx->initialized);
+
+  Memory::free(ctx->linearGradient.colors);
+  ctx->initialized = false;
+}
+
+// ============================================================================
 // [Fog::Raster - Operator - Base Macros and Generic Implementation]
 // ============================================================================
 
@@ -2482,13 +2896,14 @@ BEGIN_OPERATOR_IMPL(Operator_Over, Operator_Base)
       else
       {
         do {
-          // TODO
           if ((msk0 = READ_MASK_A8(msk)) != 0)
           {
             dst0 = normalize_dst_fetch(DstFmt::fetch(dst));
-
+            pix0lo = src0lo;
+            pix0hi = src0hi;
             byte2x2_unpack_0213(dst0lo, dst0hi, dst0);
-            byte2x2_muladd_byte2x2_byte2x2(dst0lo, dst0hi, pix0lo, pix0hi, dst0lo, dst0hi);
+            byte2x2_mul_u(pix0lo, pix0hi, msk0);
+            byte2x2_muladd_u_byte2x2(dst0lo, dst0hi, 255 - byte1x2_hi(pix0hi), dst0lo, dst0hi);
             DstFmt::store(dst, normalize_dst_store(byte2x2_pack_0213(dst0lo, dst0hi)));
           }
 
@@ -3927,414 +4342,6 @@ static void FOG_FASTCALL raster_rgb24_span_composite_rgb24_a8(
 {
 }
 
-// ============================================================================
-// [Fog::Raster - Pattern - Texture]
-// ============================================================================
-
-static uint8_t* FOG_FASTCALL pattern_texture_fetch_repeat(
-  PatternContext* ctx,
-  uint8_t* dst, int x, int y, int w)
-{
-  uint8_t* dstCur = dst;
-
-  int tw = ctx->texture.w;
-  int th = ctx->texture.h;
-
-  x -= ctx->texture.dx;
-  y -= ctx->texture.dy;
-
-  if (x < 0) x = (x % tw) + tw;
-  if (x >= tw) x %= tw;
-
-  if (y < 0) y = (y % th) + th;
-  if (y >= th) y %= th;
-
-  const uint8_t* srcBase = ctx->texture.bits + y * ctx->texture.stride;
-  const uint8_t* srcCur;
-
-  int i;
-
-  srcCur = srcBase + mul4(x);
-
-  // Return image buffer if span fits to it (this is very efficient 
-  // optimization for short spans or large textures)
-  i = fog_min(tw - x, w);
-  if (w < tw - x) 
-    return const_cast<uint8_t*>(srcCur);
-
-  for (;;)
-  {
-    w -= i;
-
-    do {
-      ((uint32_t*)dstCur)[0] = ((const uint32_t*)srcCur)[0];
-      dstCur += 4;
-      srcCur += 4;
-    } while (--i);
-    if (!w) break;
-
-    i = fog_min(w, tw);
-    srcCur = srcBase;
-  }
-
-  return dst;
-}
-
-static uint8_t* FOG_FASTCALL pattern_texture_fetch_reflect(
-  PatternContext* ctx,
-  uint8_t* dst, int x, int y, int w)
-{
-  FOG_ASSERT(w);
-
-  uint8_t* dstCur = dst;
-
-  int tw = ctx->texture.w;
-  int th = ctx->texture.h;
-
-  int tw2 = tw << 1;
-  int th2 = th << 1;
-
-  x -= ctx->texture.dx;
-  y -= ctx->texture.dy;
-
-  if (x < 0) x = (x % tw2) + tw2;
-  if (x >= tw2) x %= tw2;
-
-  if (y < 0) y = (y % th2) + th2;
-  if (y >= th2) y %= th2;
-
-  // Modify Y if reflected (if it lies in second section).
-  if (y >= th) y = th2 - y - 1;
-
-  const uint8_t* srcBase = ctx->texture.bits + y * ctx->texture.stride;
-  const uint8_t* srcCur;
-
-  if (x >= 0 && x <= tw && w < tw - x)
-    return const_cast<uint8_t*>(srcBase + mul4(x));
-
-  do {
-    // Reflect mode
-    if (x >= tw)
-    {
-      int i = fog_min(tw2 - x, w);
-
-      srcCur = srcBase + mul4(tw2 - x - 1);
-
-      w -= i;
-      x = 0;
-
-      do {
-        ((uint32_t*)dstCur)[0] = ((const uint32_t*)srcCur)[0];
-        dstCur += 4;
-        srcCur -= 4;
-      } while (--i);
-    }
-    // Repeat mode
-    else
-    {
-      int i = fog_min(tw - x, w);
-
-      srcCur = srcBase + mul4(x);
-
-      w -= i;
-      x += i;
-
-      do {
-        ((uint32_t*)dstCur)[0] = ((const uint32_t*)srcCur)[0];
-        dstCur += 4;
-        srcCur += 4;
-      } while (--i);
-    }
-  } while (w);
-
-  return dst;
-}
-
-static void FOG_FASTCALL pattern_texture_destroy(
-  PatternContext* ctx);
-
-static err_t FOG_FASTCALL pattern_texture_init(
-  PatternContext* ctx, const Pattern& pattern)
-{
-  Pattern::Data* d = pattern._d;
-  if (d->type != Pattern::Texture) return Error::InvalidArgument;
-
-  ctx->texture.texture.init(d->obj.texture.instance());
-  ctx->texture.dx = double_to_int(d->points[0].x());
-  ctx->texture.dy = double_to_int(d->points[0].y());
-
-  ctx->format = ctx->texture.texture->format();
-  ctx->depth = ctx->texture.texture->depth();
-  
-  // Set fetch function.
-  switch (d->spread)
-  {
-    case Pattern::PadSpread:
-    case Pattern::NoSpread:
-    case Pattern::RepeatSpread:
-      ctx->fetch = pattern_texture_fetch_repeat;
-      break;
-    case Pattern::ReflectSpread:
-      ctx->fetch = pattern_texture_fetch_reflect;
-      break;
-    default:
-      return Error::InvalidArgument;
-  }
-
-  // Set destroy function.
-  ctx->destroy = pattern_texture_destroy;
-
-  // Copy texture variables into pattern context.
-  ctx->texture.bits = ctx->texture.texture->cData();
-  ctx->texture.stride = ctx->texture.texture->stride();
-  ctx->texture.w = ctx->texture.texture->width();
-  ctx->texture.h = ctx->texture.texture->height();
-
-  ctx->initialized = true;
-  return Error::Ok;
-}
-
-static void FOG_FASTCALL pattern_texture_destroy(
-  PatternContext* ctx)
-{
-  FOG_ASSERT(ctx->initialized);
-
-  ctx->texture.texture.destroy();
-  ctx->initialized = false;
-}
-
-// ============================================================================
-// [Fog::Raster - Pattern - Linear Gradient]
-// ============================================================================
-
-
-static void FOG_FASTCALL gradient_stops(
-	uint8_t* dst, const GradientStops& stops,
-	GradientSpanFn gradientSpan,
-	int offset, int size, int w,
-	bool reverse)
-{
-	// Sanity check.
-	FOG_ASSERT(w <= size || offset <= (size - w));
-
-	sysint_t count = (sysint_t)stops.length();
-	sysint_t end = offset + w;
-
-	if (count == 0 || w == 0) return;
-
-	if (count == 1 || size == 1)
-	{
-		//Rgba color = stops.cAt(0).color;
-		//render(dst, color, color, 0, w, w, &cpuState);
-	}
-	else
-	{
-		sysint_t i = (reverse) ? count - 1 : 0;
-		sysint_t iinc = (reverse) ? -1 : 1;
-
-    Rgba primaryStopColor = stops.cAt(i).rgba;
-		Rgba secondaryStopRgba;
-
-		double primaryStopOffset = 0.0;
-		double secondaryStopOffset;
-		long x1 = 0;
-		long x2 = 0;
-
-		for (; i < count && (sysint_t)x1 < end; i += iinc,
-			primaryStopOffset = secondaryStopOffset,
-			primaryStopColor = secondaryStopRgba,
-			x1 = x2)
-		{
-			secondaryStopOffset = stops.cAt(i).offset;
-			secondaryStopRgba = stops.cAt(i).rgba;
-
-			// Stop offset can be at range from 0.0 to 1.0 including.
-			if (secondaryStopOffset < 0.0) secondaryStopOffset = 0.0;
-			if (secondaryStopOffset > 1.0) secondaryStopOffset = 1.0;
-			if (reverse) secondaryStopOffset = 1.0 - secondaryStopOffset;
-
-			// Don't trust input data...
-			if (secondaryStopOffset < primaryStopOffset) return;
-
-			// Skip all siblings and the first one.
-			if (secondaryStopOffset == primaryStopOffset) continue;
-
-			// get pixel coordinates and skip that caller not wants
-			x2 = (sysint_t)((double)size * secondaryStopOffset);
-			if (x2 < (sysint_t)offset) continue; // not reached the beggining
-			if (x2 > (sysint_t)size) return;     // reached the end
-
-			sysint_t cx1 = x1; if (cx1 < (sysint_t)offset) cx1 = (sysint_t)offset;
-			sysint_t cx2 = x2; if (cx2 > (sysint_t)end) cx2 = (sysint_t)end;
-
-			if (cx2 - cx1)
-			{
-				gradientSpan(
-					// pointer to destination, it's needed to decrease it by 'offset'
-					dst + (sysint_t)(cx1 - offset) * 4,
-					// primary and secondary colors
-					primaryStopColor, secondaryStopRgba,
-          // width, x1, x2
-					cx2 - cx1, cx1 - x1, x2 - x1);
-			}
-		}
-
-		// TODO: draw last point
-		// if (size == width) ((uint32_t*)dst)[size-1] = secondaryStopRgba;
-	}
-}
-
-static uint8_t* FOG_FASTCALL pattern_linear_gradient_fetch_pad(
-  PatternContext* ctx,
-  uint8_t* dst, int x, int y, int w)
-{
-  FOG_ASSERT(w);
-
-  uint8_t* dstCur = dst;
-
-  int64_t cx = ((int64_t)x << 16) - ctx->linearGradient.dx;
-  int64_t cy = ((int64_t)y << 16) - ctx->linearGradient.dy;
-
-  int64_t ax = ctx->linearGradient.ax;
-  int64_t ay = ctx->linearGradient.ay;
-
-  int64_t yy = (ax * cx + ay * cy) >> 16;
-
-  const uint32_t* colors = (const uint32_t*)ctx->linearGradient.colors;
-  sysint_t colorsLength = ctx->linearGradient.colorsLength;
-  sysint_t colorsIndex;
-
-  uint32_t color0 = colors[0];
-  uint32_t color1 = colors[colorsLength-1];
-
-  do {
-    colorsIndex = (sysint_t)(yy >> 16);
-
-    if (colorsIndex < 0)
-      ((uint32_t*)dstCur)[0] = color0;
-    else if (colorsIndex >= colorsLength)
-      ((uint32_t*)dstCur)[0] = color1;
-    else
-      ((uint32_t*)dstCur)[0] = colors[colorsIndex];
-
-	  dstCur += 4;
-    yy += ax;
-  } while (--w);
-
-  return dst;
-}
-
-static void FOG_FASTCALL pattern_linear_gradient_destroy(
-  PatternContext* ctx);
-
-static err_t FOG_FASTCALL pattern_linear_gradient_init(
-  PatternContext* ctx, const Pattern& pattern)
-{
-  Pattern::Data* d = pattern._d;
-  if (d->type != Pattern::LinearGradient) return Error::InvalidArgument;
-
-  double dxd = fog_abs(d->points[1].x() - d->points[0].x());
-  double dyd = fog_abs(d->points[1].y() - d->points[0].y());
-  double sqrtxxyy = sqrt(dxd * dxd + dyd * dyd);
-
-  int64_t dx = double_to_fixed48x16(dxd);
-  int64_t dy = double_to_fixed48x16(dyd);
-  int64_t dmax = fog_max(dx, dy);
-  sysint_t maxSize = d->obj.gradientStops->length() * 256;
-
-  sysint_t gLength = (sysint_t)((dmax >> 16) << 2);
-  sysint_t gAlloc = 0;
-  if (gLength > maxSize) gLength = maxSize;
-
-  double scale = gLength ? sqrtxxyy / (double)gLength : 1;
-
-  ctx->linearGradient.dx = double_to_fixed48x16(d->points[0].x());
-  ctx->linearGradient.dy = double_to_fixed48x16(d->points[0].y());
-
-  ctx->linearGradient.ax = double_to_fixed48x16(dxd / (scale * sqrtxxyy));
-  ctx->linearGradient.ay = double_to_fixed48x16(dyd / (scale * sqrtxxyy));
-
-  if (d->points[0].x() > d->points[1].x()) ctx->linearGradient.ax = -ctx->linearGradient.ax;
-  if (d->points[0].y() > d->points[1].y()) ctx->linearGradient.ay = -ctx->linearGradient.ay;
-
-  ctx->format = Image::FormatPRGB32;
-  ctx->depth = 32;
-
-  // check if gradient is too long (this can cause overflow in variables)
-  if (gLength >= 65536/2) return Error::Overflow;
-
-  gAlloc = gLength;
-  //if (pd->spread == Wde_GradientPattern::ReflectSpread) gAlloc <<= 1;
-
-  // alloc space for pattern or use reserved buffer.
-  {
-    if ((ctx->linearGradient.colors = (uint32_t*)Memory::alloc(gAlloc << 2)) == NULL)
-	  {
-      return Error::OutOfMemory;
-	  }
-  }
-
-  gradient_stops(
-    (uint8_t*)ctx->linearGradient.colors, d->obj.gradientStops.instance(),
-    functionMap->gradient.gradient_prgb32,
-	  0, (int)gLength, (int)gLength, false);
-
-  // for (int aaa = 0; aaa < gLength; aaa++) printf("%0.8X\n", ((uint32_t*)ctx->linearGradient.colors)[aaa]);
-
-  ctx->linearGradient.colorsAlloc = gAlloc;
-  ctx->linearGradient.colorsLength = gLength;
-
-/*
-  if (d->spread == Wde_GradientPattern::ReflectSpread)
-  {
-    // create mirror
-    uint32_t* patternTo = context->pattern + gLength;
-    uint32_t* patternFrom = patternTo - 1;
-
-    size_t i;
-    for (i = (size_t)gLength; i; i--, patternTo++, patternFrom--)
-    {
-	    *patternTo = *patternFrom;
-    }
-  }
-*/
-  // set correct span render methods
-  //ulong rep = (pd->spread != Wde_GradientPattern::PadSpread);
-  //context->alpha = Wde_RGBAStops_alpha(pd->stops);
-
-  // Set fetch function.
-      ctx->fetch = pattern_linear_gradient_fetch_pad;
-  switch (d->spread)
-  {
-    case Pattern::NoSpread:
-      break;
-    case Pattern::PadSpread:
-      ctx->fetch = pattern_linear_gradient_fetch_pad;
-      break;
-    case Pattern::RepeatSpread:
-      break;
-    case Pattern::ReflectSpread:
-      break;
-    default:
-      return Error::InvalidArgument;
-  }
-
-  // Set destroy function.
-  ctx->destroy = pattern_linear_gradient_destroy;
-
-  ctx->initialized = true;
-  return Error::Ok;
-}
-
-static void FOG_FASTCALL pattern_linear_gradient_destroy(
-  PatternContext* ctx)
-{
-  FOG_ASSERT(ctx->initialized);
-
-  Memory::free(ctx->linearGradient.colors);
-  ctx->initialized = false;
-}
-
 } // Raster namespace
 } // Fog namespace
 
@@ -4467,6 +4474,19 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   m->gradient.gradient_rgb32 = gradient_gradient_rgb32;
   m->gradient.gradient_rgb24 = gradient_gradient_rgb24;
   m->gradient.gradient_a8 = gradient_gradient_a8;
+
+  // [Pattern - Texture]
+
+  m->pattern.texture_init = pattern_texture_init;
+  m->pattern.texture_destroy = pattern_texture_destroy;
+  m->pattern.texture_fetch_repeat = pattern_texture_fetch_repeat;
+  m->pattern.texture_fetch_reflect = pattern_texture_fetch_reflect;
+
+  // [Pattern - Linear Gradient]
+
+  m->pattern.linear_gradient_init = pattern_linear_gradient_init;
+  m->pattern.linear_gradient_destroy = pattern_linear_gradient_destroy;
+  m->pattern.linear_gradient_fetch_pad = pattern_linear_gradient_fetch_pad;
 
   // [Raster]
 
@@ -4620,17 +4640,4 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   m->raster_rgb24.span_composite_a8[Image::FormatRGB24] = raster_rgb24_span_composite_rgb24_a8;
   m->raster_rgb24.span_composite_a8[Image::FormatA8] = raster_span_composite_a8_nop;
   m->raster_rgb24.span_composite_indexed_a8[Image::FormatI8] = TODO_NOT_IMPLEMENTED;
-
-  // [Pattern - Texture]
-
-  m->pattern.texture_init = pattern_texture_init;
-  m->pattern.texture_destroy = pattern_texture_destroy;
-  m->pattern.texture_fetch_repeat = pattern_texture_fetch_repeat;
-  m->pattern.texture_fetch_reflect = pattern_texture_fetch_reflect;
-
-  // [Pattern - Linear Gradient]
-
-  m->pattern.linear_gradient_init = pattern_linear_gradient_init;
-  m->pattern.linear_gradient_destroy = pattern_linear_gradient_destroy;
-  m->pattern.linear_gradient_fetch_pad = pattern_linear_gradient_fetch_pad;
 }

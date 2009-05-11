@@ -38,7 +38,24 @@ void Button::onPaint(PaintEvent* e)
   PainterUtil::draw3dRect(p, bounds, 0xFFFFFFFF, 0xFF000000, isDown());
 
   bounds.shrink(1);
-  p->setSource(isMouseOver() ? 0xFF8F8F8F : 0xFF7F7F7F);
+
+  Pattern pat;
+  pat.setType(Pattern::LinearGradient);
+
+  if (!isDown())
+  {
+    pat.setStartPoint(Point(0, 0));
+    pat.setEndPoint(Point(0, height()));
+  }
+  else
+  {
+    pat.setStartPoint(Point(0, height()));
+    pat.setEndPoint(Point(0, 0));
+  }
+
+  pat.addGradientStop(GradientStop(0.0, 255, 255, 255));
+  pat.addGradientStop(GradientStop(1.0, 200, 200, 255));
+  p->setSource(pat);
   p->fillRect(bounds);
 
   Point textpos(bounds.point());
