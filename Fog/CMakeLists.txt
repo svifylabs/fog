@@ -388,8 +388,6 @@ Set(FOG_GRAPHICS_SOURCES
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_PCX.cpp
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_PNG.cpp
   ${FOG_DIR}/Fog/Graphics/Painter.cpp
-  ${FOG_DIR}/Fog/Graphics/Painter_Null.cpp.h
-  ${FOG_DIR}/Fog/Graphics/Painter_Raster.cpp.h
   ${FOG_DIR}/Fog/Graphics/PainterUtil.cpp
   ${FOG_DIR}/Fog/Graphics/Palette.cpp
   ${FOG_DIR}/Fog/Graphics/Path.cpp
