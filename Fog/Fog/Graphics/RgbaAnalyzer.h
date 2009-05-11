@@ -54,13 +54,13 @@ struct FOG_API RgbaAnalyzer
       (const uint8_t*)data,
       count, 
       FOG_OFFSET_OF(GradientStop, rgba) + Rgba::AlphaBytePos, 
-      sizeof(Rgba));
+      sizeof(GradientStop));
   }
 
-  static FOG_INLINE int analyzeAlpha(const Fog::Sequence<GradientStop>& stops)
+  static FOG_INLINE int analyzeAlpha(const Sequence<GradientStop>& stops)
   { return analyzeAlpha(stops.cData(), stops.length()); }
 
-  static FOG_INLINE int analyzeAlpha(const Fog::Vector<GradientStop>& stops)
+  static FOG_INLINE int analyzeAlpha(const Vector<GradientStop>& stops)
   { return analyzeAlpha(stops.cData(), stops.length()); }
 };
 

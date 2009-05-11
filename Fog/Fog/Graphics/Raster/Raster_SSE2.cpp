@@ -972,10 +972,10 @@ static void FOG_FASTCALL raster_rgb32_span_composite_argb32_sse2(
     // to run this code in debug mode (uninitialized value exception).
     dst0mm = _mm_setzero_si128();                // dst0 = [0000000000000000]
     dst1mm = _mm_setzero_si128();                // dst1 = [0000000000000000]
-    _mm_cmpeq_epi8(dst0mm, dst0mm);              // dst0 = [FFFFFFFFFFFFFFFF]
+    dst0mm = _mm_cmpeq_epi8(dst0mm, dst0mm);     // dst0 = [FFFFFFFFFFFFFFFF]
 
-    _mm_cmpeq_epi8(dst1mm, src0mm);              // dst1
-    _mm_cmpeq_epi8(dst0mm, src0mm);              // dst0
+    dst1mm = _mm_cmpeq_epi8(dst1mm, src0mm);     // dst1
+    dst0mm = _mm_cmpeq_epi8(dst0mm, src0mm);     // dst0
 
     uint32_t t = (uint32_t)_mm_movemask_epi8(dst1mm) & 0x8888;
     uint32_t k = (uint32_t)_mm_movemask_epi8(dst0mm) & 0x8888;
@@ -1078,10 +1078,10 @@ static void FOG_FASTCALL raster_rgb32_span_composite_prgb32_sse2(
     // to run this code in debug mode (uninitialized value exception).
     dst0mm = _mm_setzero_si128();                // dst0 = [0000000000000000]
     dst1mm = _mm_setzero_si128();                // dst1 = [0000000000000000]
-    _mm_cmpeq_epi8(dst0mm, dst0mm);              // dst0 = [FFFFFFFFFFFFFFFF]
+    dst0mm = _mm_cmpeq_epi8(dst0mm, dst0mm);     // dst0 = [FFFFFFFFFFFFFFFF]
 
-    _mm_cmpeq_epi8(dst1mm, src0mm);              // dst1
-    _mm_cmpeq_epi8(dst0mm, src0mm);              // dst0
+    dst1mm = _mm_cmpeq_epi8(dst1mm, src0mm);     // dst1
+    dst0mm = _mm_cmpeq_epi8(dst0mm, src0mm);     // dst0
 
     uint32_t t = (uint32_t)_mm_movemask_epi8(dst1mm);
     uint32_t k = (uint32_t)_mm_movemask_epi8(dst0mm) & 0x8888;

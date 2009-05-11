@@ -100,6 +100,8 @@ typedef void (FOG_FASTCALL *PatternContextDestroyFn)(
 
 struct PatternContext
 {
+  Atomic<sysuint_t> refCount;
+
   PatternContextFetchFn fetch;
   PatternContextDestroyFn destroy;
 
@@ -277,6 +279,30 @@ struct FunctionMap
 
   Gradient gradient;
 
+  // [Pattern Table]
+
+  struct Pattern_
+  {
+    // [Texture]
+
+    PatternContextInitFn texture_init;
+    PatternContextDestroyFn texture_destroy;
+
+    //PatternContextFetchFn texture_fetch;
+    //PatternContextFetchFn texture_fetch_scaled;
+    PatternContextFetchFn texture_fetch_repeat;
+    PatternContextFetchFn texture_fetch_reflect;
+    //PatternContextFetchFn texture_fetch_repeat_scaled;
+
+    // [Linear Gradient]
+
+    PatternContextInitFn linear_gradient_init;
+    PatternContextDestroyFn linear_gradient_destroy;
+    PatternContextFetchFn linear_gradient_fetch_pad;
+  };
+
+  Pattern_ pattern;
+
   // [Raster Table]
 
   struct Raster
@@ -302,7 +328,8 @@ struct FunctionMap
     // of them. The indexed version is only for Image::FormatI8. Painter and
     // Fog library knows about this. The indexed version is only used when
     // blitting or tiling image to destination, all transformations
-    // and other operations uses 24 bit or 32 bit formats.
+    // and other operations uses 24 bit or 32 bit formats, because it's needed
+    // for antialiasing.
 
     union {
       SpanCompositeFn span_composite[Image::FormatCount];
@@ -331,30 +358,6 @@ struct FunctionMap
   Raster raster_argb32[2][CompositeCount];
   Raster raster_rgb32;
   Raster raster_rgb24;
-
-  // [Pattern Table]
-
-  struct Pattern_
-  {
-    // [Texture]
-
-    PatternContextInitFn texture_init;
-    PatternContextDestroyFn texture_destroy;
-
-    //PatternContextFetchFn texture_fetch;
-    //PatternContextFetchFn texture_fetch_scaled;
-    PatternContextFetchFn texture_fetch_repeat;
-    PatternContextFetchFn texture_fetch_reflect;
-    //PatternContextFetchFn texture_fetch_repeat_scaled;
-
-    // [Linear Gradient]
-
-    PatternContextInitFn linear_gradient_init;
-    PatternContextDestroyFn linear_gradient_destroy;
-    PatternContextFetchFn linear_gradient_fetch_pad;
-  };
-
-  Pattern_ pattern;
 };
 
 extern FOG_API FunctionMap* functionMap;

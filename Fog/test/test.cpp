@@ -11,10 +11,11 @@ struct MyWindow : public Window
   {
     setWindowTitle(StubAscii8("Fog Application"));
 
-    //button.setRect(Rect(10, 10, 100, 20));
-    //button.show();
-    //button.setText(StubAscii8("Test"));
-    //add(&button);
+    button.setRect(Rect(10, 10, 100, 20));
+    button.show();
+    button.setText(StubAscii8("Test"));
+    button.addListener(EvClick, this, &MyWindow::button_onClick);
+    add(&button);
 
     //background.readFile(StubAscii8("/mnt/data1/Storage/Wallpapers/Fantasmal.bmp"));
     //background.readFile(StubAscii8("/mnt/data1/Storage/Wallpapers/Blue ilusion.jpg"));
@@ -23,14 +24,15 @@ struct MyWindow : public Window
     background.convert(Image::FormatRGB32);
 
     sprite[0].readFile(StubAscii8("C:/My/CPlusPlus/BlitJitTest/img/babelfish.bmp"));
-    sprite[0].convert(Image::FormatARGB32);
-    sprite[0].fillQGradient(Rect(0, 0, sprite[0].width(), sprite[0].height()), 0xFFFFFFFF, 0x00000000, 0xFFFF0000, 0xFF0000FF, false);
+    sprite[0].convert(Image::FormatPRGB32);
+    //sprite[0].fillQGradient(Rect(0, 0, sprite[0].width(), sprite[0].height()), 0xFFFFFFFF, 0x00000000, 0xFFFF0000, 0xFF0000FF, false);
 
     pattern[0].setTexture(sprite[0]);
     pattern[0].setSpread(Pattern::ReflectSpread);
 
     pattern[1].setType(Pattern::LinearGradient);
     pattern[1].addGradientStop(GradientStop(0.0, Rgba(0xFFFFFFFF)));
+    pattern[1].addGradientStop(GradientStop(0.5, Rgba(0xFF00FFFF)));
     pattern[1].addGradientStop(GradientStop(1.0, Rgba(0xFF0000FF)));
     pattern[1].setStartPoint(PointF(10, 20));
     pattern[1].setEndPoint(PointF(100, 230));
@@ -80,7 +82,7 @@ struct MyWindow : public Window
 */
 
 
-    //p->drawImage(Point(0, 0), background);
+    p->drawImage(Point(0, 0), background);
 
     //p->setSource(Rgba(0x7FFFFFFF));
     //p->fillRect(Rect(100, 30, 200, 200));
@@ -113,6 +115,13 @@ struct MyWindow : public Window
       p->drawText(Point(10, 110), StubAscii8("ABCDEFGHIJKLMNOP"), font);
       p->drawText(Point(10, 160), StubAscii8("ABCDEFGHIJKLMNOP"), font);
       p->drawText(Point(10, 210), StubAscii8("ABCDEFGHIJKLMNOP"), font);
+      p->clear();
+      p->setSource(0xFF000000);
+
+      p->setLineWidth(4.0);
+      double dashes[] = { 20.0, 20.0 };
+      p->setLineDash(dashes, 2);
+      p->drawLine(pattern[activePattern].startPoint(), pattern[activePattern].endPoint());
       //p->fillRect(Rect(100, 100, 500, 500));
 /*
       Path path;
@@ -241,6 +250,12 @@ struct MyWindow : public Window
   virtual void onTimer(TimerEvent* e)
   {
     //fog_debug("onTimer()");
+  }
+
+  virtual void button_onClick(MouseEvent* e)
+  {
+    activePattern = 1 - activePattern;
+    repaint(RepaintWidget);
   }
 
   Button button;
