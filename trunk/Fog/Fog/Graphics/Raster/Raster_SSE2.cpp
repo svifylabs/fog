@@ -58,14 +58,14 @@ static FOG_INLINE __m128i pix_create_mask_8x2W(uint16_t m0, uint16_t m1, uint16_
 }
 
 static FOG_INLINE void pix_unpack_1x1W(
-  __m128i& dst0, __m128i data)
+  __m128i& dst0, const __m128i& data)
 {
   __m128i xmmz = _mm_setzero_si128();
   dst0 = _mm_unpacklo_epi8(data, xmmz);
 }
 
 static FOG_INLINE void pix_unpack_1x2W(
-  __m128i& dst0, __m128i data)
+  __m128i& dst0, const __m128i& data)
 {
   __m128i xmmz = _mm_setzero_si128();
   dst0 = _mm_unpacklo_epi8(data, xmmz);
@@ -79,7 +79,7 @@ static FOG_INLINE void pix_unpack_1x1W(
 
 static FOG_INLINE void pix_unpack_2x2W(
   __m128i& dst0,
-  __m128i& dst1, __m128i data)
+  __m128i& dst1, const __m128i& data)
 {
   __m128i xmmz = _mm_setzero_si128();
   dst0 = _mm_unpacklo_epi8(data, xmmz);
@@ -87,14 +87,13 @@ static FOG_INLINE void pix_unpack_2x2W(
 }
 
 static FOG_INLINE void pix_pack_1x1W(
-  __m128i& dst0, __m128i src0)
+  __m128i& dst0, const __m128i& src0)
 {
   dst0 = _mm_packus_epi16(src0, src0);
 }
 
 static FOG_INLINE void pix_pack_2x2W(
-  __m128i& dst0, __m128i src0,
-  __m128i src1)
+  __m128i& dst0, const __m128i& src0, const __m128i& src1)
 {
   dst0 = _mm_packus_epi16(src0, src1);
 }
@@ -110,14 +109,14 @@ static FOG_INLINE uint32_t pix_pack_alpha(
 }
 
 static FOG_INLINE void pix_negate_1x1W(
-  __m128i& dst0, __m128i& src0)
+  __m128i& dst0, const __m128i& src0)
 {
   dst0 = _mm_xor_si128(src0, Mask00FF00FF00FF00FF);
 }
 
 static FOG_INLINE void pix_negate_2x2W(
-  __m128i& dst0, __m128i& src0,
-  __m128i& dst1, __m128i& src1)
+  __m128i& dst0, const __m128i& src0,
+  __m128i& dst1, const __m128i& src1)
 {
   dst0 = _mm_xor_si128(src0, Mask00FF00FF00FF00FF);
   dst1 = _mm_xor_si128(src1, Mask00FF00FF00FF00FF);
@@ -130,21 +129,21 @@ static FOG_INLINE __m128i pix_expandPixel_32_1x128(uint32_t data)
 }*/
 
 static FOG_INLINE void pix_expand_alpha_1x1W(
-  __m128i& dst0, __m128i& src0)
+  __m128i& dst0, const __m128i& src0)
 {
   dst0 = _mm_shufflelo_epi16(src0, _MM_SHUFFLE(3, 3, 3, 3));
 }
 
 static FOG_INLINE void pix_expand_alpha_1x2W(
-  __m128i& dst0, __m128i& src0)
+  __m128i& dst0, const __m128i& src0)
 {
   dst0 = _mm_shufflelo_epi16(src0, _MM_SHUFFLE(3, 3, 3, 3));
   dst0 = _mm_shufflehi_epi16(dst0, _MM_SHUFFLE(3, 3, 3, 3));
 }
 
 static FOG_INLINE void pix_expand_alpha_2x2W(
-  __m128i& dst0, __m128i src0,
-  __m128i& dst1, __m128i src1)
+  __m128i& dst0, const __m128i src0,
+  __m128i& dst1, const __m128i src1)
 {
   dst0 = _mm_shufflelo_epi16(src0, _MM_SHUFFLE(3, 3, 3, 3));
   dst1 = _mm_shufflelo_epi16(src1, _MM_SHUFFLE(3, 3, 3, 3));
@@ -153,20 +152,20 @@ static FOG_INLINE void pix_expand_alpha_2x2W(
 }
 
 static FOG_INLINE void pix_expand_alpha_rev_1x1W(
-  __m128i& dst0, __m128i& src0)
+  __m128i& dst0, const __m128i& src0)
 {
   dst0 = _mm_shufflelo_epi16(src0, _MM_SHUFFLE(0, 0, 0, 0));
 }
 
 static FOG_INLINE void pix_expand_alpha_rev_1x2W(
-  __m128i& dst0, __m128i& src0)
+  __m128i& dst0, const __m128i& src0)
 {
   dst0 = _mm_shufflelo_epi16(src0, _MM_SHUFFLE(0, 0, 0, 0));
   dst0 = _mm_shufflehi_epi16(dst0, _MM_SHUFFLE(0, 0, 0, 0));
 }
 
 static FOG_INLINE void pix_multiply_1x1W(
-  __m128i& dst0, __m128i& data0, __m128i& alpha0)
+  __m128i& dst0, const __m128i& data0, const __m128i& alpha0)
 {
   __m128i t0;
 
@@ -176,8 +175,8 @@ static FOG_INLINE void pix_multiply_1x1W(
 }
 
 static FOG_INLINE void pix_multiply_2x2W(
-  __m128i& dst0, __m128i& data0, __m128i& alpha0,
-  __m128i& dst1, __m128i& data1, __m128i& alpha1)
+  __m128i& dst0, const __m128i& data0, const __m128i& alpha0,
+  __m128i& dst1, const __m128i& data1, const __m128i& alpha1)
 {
   __m128i t0, t1;
 
@@ -204,7 +203,7 @@ static FOG_INLINE void pix_fill_alpha_2x2W(
 }
 
 static FOG_INLINE void pix_premultiply_1x1W(
-  __m128i& dst0, __m128i& src0)
+  __m128i& dst0, const __m128i& src0)
 {
   __m128i alpha0;
 
@@ -214,8 +213,8 @@ static FOG_INLINE void pix_premultiply_1x1W(
 }
 
 static FOG_INLINE void pix_premultiply_2x2W(
-  __m128i& dst0, __m128i& src0,
-  __m128i& dst1, __m128i& src1)
+  __m128i& dst0, const __m128i& src0,
+  __m128i& dst1, const __m128i& src1)
 {
   __m128i alpha0;
   __m128i alpha1;
@@ -232,7 +231,7 @@ static FOG_INLINE void pix_premultiply_2x2W(
 }
 
 static FOG_INLINE void pix_over_1x1W(
-  __m128i& dst0, __m128i& src0, __m128i& alpha0)
+  __m128i& dst0, const __m128i& src0, const __m128i& alpha0)
 {
   __m128i ialpha0;
 
@@ -242,8 +241,8 @@ static FOG_INLINE void pix_over_1x1W(
 }
 
 static FOG_INLINE void pix_over_2x2W(
-  __m128i& dst0, __m128i& src0, __m128i& alpha0,
-  __m128i& dst1, __m128i& src1, __m128i& alpha1)
+  __m128i& dst0, const __m128i& src0, const __m128i& alpha0,
+  __m128i& dst1, const __m128i& src1, const __m128i& alpha1)
 {
   __m128i ialpha0;
   __m128i ialpha1;
