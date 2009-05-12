@@ -359,7 +359,7 @@ void EventLoop::runTask(Task* task)
   _nestableTasksAllowed = false;
 
   task->run();
-  if (task->deleteOnFinish()) delete task;
+  if (task->destroyOnFinish()) task->destroy();
 
   _nestableTasksAllowed = true;
 }
@@ -427,7 +427,7 @@ bool EventLoop::deletePendingTasks()
     else
     {
       // TODO(darin): Delete all tasks once it is safe to do so.
-      //delete task;
+      // if (task->destroyOnFinish()) task->destroy();
     }
   }
   didWork |= !_deferredNonNestableWorkQueue.empty();
@@ -436,14 +436,14 @@ bool EventLoop::deletePendingTasks()
     // TODO(darin): Delete all tasks once it is safe to do so.
     //Task* task = deferredNonNestableWorkQueue.front().task;
     _deferredNonNestableWorkQueue.pop();
-    //delete task;
+    // if (task->destroyOnFinish()) task->destroy();
   }
   didWork |= !_delayedWorkQueue.empty();
   while (!_delayedWorkQueue.empty())
   {
     Task* task = _delayedWorkQueue.top().task;
     _delayedWorkQueue.pop();
-    delete task;
+    if (task->destroyOnFinish()) task->destroy();
   }
   return didWork;
 }

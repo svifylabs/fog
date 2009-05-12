@@ -226,7 +226,7 @@ ThreadCondition::~ThreadCondition()
   // Rare shutdown problem.
   if (_recyclingListSize != _allocationCounter)
   {
-    // There are threads of execution still in this->TimedWait() and yet the
+    // There are threads of execution still in this->timedWait() and yet the
     // caller has instigated the destruction of this instance :-/.
     // A common reason for such "overly hasty" destruction is that the caller
     // was not willing to wait for all the threads to terminate.  Such hasty
@@ -245,8 +245,8 @@ ThreadCondition::~ThreadCondition()
 
 void ThreadCondition::wait()
 {
-  // Default to "wait forever" timing, which means have to get a Signal()
-  // or Broadcast() to come out of this wait state.
+  // Default to "wait forever" timing, which means have to get a signal()
+  // or broadcast() to come out of this wait state.
   timedWait(TimeDelta::fromMilliseconds(INFINITE));
 }
 

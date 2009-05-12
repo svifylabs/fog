@@ -186,6 +186,7 @@ struct Implicit
 #include <Fog/Core/ThreadCondition.h>
 #include <Fog/Core/ThreadEvent.h>
 #include <Fog/Core/ThreadLocalStorage.h>
+#include <Fog/Core/ThreadPool.h>
 #include <Fog/Core/Time.h>
 #include <Fog/Core/Timer.h>
 #include <Fog/Core/TypeInfo.h>

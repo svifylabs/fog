@@ -9,7 +9,7 @@
 #endif
 
 // [Dependencies]
-#include <Fog/Cpu/CpuInfo.h>
+#include <Fog/Core/CpuInfo.h>
 #include <Fog/Graphics/Raster.h>
 
 namespace Fog {

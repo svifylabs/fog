@@ -9,6 +9,7 @@ Project(Fog C CXX)
 Set(FOG_DIR ${CMAKE_SOURCE_DIR})
 Set(FOG_LIBRARIES "")
 Set(FOG_AGG_DIR "${FOG_DIR}/thirdparty/agg")
+Set(FOG_AGG_CONTRIB_DIR "${FOG_DIR}/thirdparty/agg-contrib")
 
 Set(ASMJIT_DIR "${FOG_DIR}/thirdparty/AsmJit")
 #Set(ASMJIT_BUILD_LIBRARY TRUE)
@@ -50,6 +51,7 @@ Include(FindThreads)
 
 Include_Directories(${FOG_DIR})
 Include_Directories(${FOG_AGG_DIR}/include)
+Include_Directories(${FOG_AGG_CONTRIB_DIR}/include)
 
 # =============================================================================
 # [CFlags]
@@ -224,6 +226,7 @@ Set(FOG_CORE_SOURCES
   ${FOG_DIR}/Fog/Core/BitArray.cpp
   ${FOG_DIR}/Fog/Core/Char.cpp
   ${FOG_DIR}/Fog/Core/Class.cpp
+  ${FOG_DIR}/Fog/Core/CpuInfo.cpp
   ${FOG_DIR}/Fog/Core/DirIterator.cpp
   ${FOG_DIR}/Fog/Core/Event.cpp
   ${FOG_DIR}/Fog/Core/EventLoop.cpp
@@ -264,6 +267,7 @@ Set(FOG_CORE_SOURCES
   ${FOG_DIR}/Fog/Core/ThreadCondition.cpp
   ${FOG_DIR}/Fog/Core/ThreadEvent.cpp
   ${FOG_DIR}/Fog/Core/ThreadLocalStorage.cpp
+  ${FOG_DIR}/Fog/Core/ThreadPool.cpp
   ${FOG_DIR}/Fog/Core/Time.cpp
   ${FOG_DIR}/Fog/Core/Timer.cpp
   ${FOG_DIR}/Fog/Core/UserInfo.cpp
@@ -283,6 +287,7 @@ Set(FOG_CORE_HEADERS
   ${FOG_DIR}/Fog/Core/Char.h
   ${FOG_DIR}/Fog/Core/Class.h
   ${FOG_DIR}/Fog/Core/Constants.h
+  ${FOG_DIR}/Fog/Core/CpuInfo.h
   ${FOG_DIR}/Fog/Core/Delegate.h
   ${FOG_DIR}/Fog/Core/DirIterator.h
   ${FOG_DIR}/Fog/Core/Error.h
@@ -295,6 +300,10 @@ Set(FOG_CORE_HEADERS
   ${FOG_DIR}/Fog/Core/FileUtil.h
   ${FOG_DIR}/Fog/Core/Flags.h
   ${FOG_DIR}/Fog/Core/Hash.h
+  ${FOG_DIR}/Fog/Core/Intrin_MMX.h
+  ${FOG_DIR}/Fog/Core/Intrin_SSE.h
+  ${FOG_DIR}/Fog/Core/Intrin_SSE2.h
+  ${FOG_DIR}/Fog/Core/Intrin_SSE3.h
   ${FOG_DIR}/Fog/Core/Lazy.h
   ${FOG_DIR}/Fog/Core/Library.h
   ${FOG_DIR}/Fog/Core/List.h
@@ -330,6 +339,7 @@ Set(FOG_CORE_HEADERS
   ${FOG_DIR}/Fog/Core/ThreadCondition.h
   ${FOG_DIR}/Fog/Core/ThreadEvent.h
   ${FOG_DIR}/Fog/Core/ThreadLocalStorage.h
+  ${FOG_DIR}/Fog/Core/ThreadPool.h
   ${FOG_DIR}/Fog/Core/Time.h
   ${FOG_DIR}/Fog/Core/Timer.h
   ${FOG_DIR}/Fog/Core/TypeInfo.h
@@ -342,27 +352,6 @@ Set(FOG_CORE_HEADERS
 SOURCE_GROUP(Core FILES
   ${FOG_CORE_SOURCES}
   ${FOG_CORE_HEADERS})
-
-# =============================================================================
-# [Fog/Cpu] Part
-# =============================================================================
-
-# Fog/Core Sources
-Set(FOG_CPU_SOURCES
-  ${FOG_DIR}/Fog/Cpu/CpuInfo.cpp
-)
-
-Set(FOG_CPU_HEADERS
-  ${FOG_DIR}/Fog/Cpu/CpuInfo.h
-  ${FOG_DIR}/Fog/Cpu/Intrin_MMX.h
-  ${FOG_DIR}/Fog/Cpu/Intrin_SSE.h
-  ${FOG_DIR}/Fog/Cpu/Intrin_SSE2.h
-  ${FOG_DIR}/Fog/Cpu/Intrin_SSE3.h
-)
-
-SOURCE_GROUP(Cpu FILES
-  ${FOG_CPU_SOURCES}
-  ${FOG_CPU_HEADERS})
 
 # =============================================================================
 # [Fog/Graphics] Part
@@ -600,6 +589,7 @@ Set(FOG_AGG_HEADERS
   ${FOG_AGG_DIR}/include/util/agg_color_conv.h
   ${FOG_AGG_DIR}/include/util/agg_color_conv_rgb16.h
   ${FOG_AGG_DIR}/include/util/agg_color_conv_rgb8.h
+  ${FOG_AGG_CONTRIB_DIR}/include/agg_rasterizer_scanline_aa_custom.h
 )
 
 SOURCE_GROUP(Graphics FILES 
@@ -686,7 +676,6 @@ EndIf(WIN32)
 Set(FOG_SOURCES 
   ${FOG_BUILD_SOURCES}
   ${FOG_CORE_SOURCES}
-  ${FOG_CPU_SOURCES}
   ${FOG_GRAPHICS_SOURCES}
   ${FOG_UI_SOURCES}
 )
@@ -694,7 +683,6 @@ Set(FOG_SOURCES
 Set(FOG_HEADERS
   ${FOG_BUILD_HEADERS}
   ${FOG_CORE_HEADERS}
-  ${FOG_CPU_HEADERS}
   ${FOG_GRAPHICS_HEADERS}
   ${FOG_UI_HEADERS}
 )

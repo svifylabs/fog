@@ -9,7 +9,7 @@
 #endif
 
 // [Dependencies]
-#include <Fog/Cpu/Intrin_MMX.h>
+#include <Fog/Core/Intrin_MMX.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/Raster.h>
 #include <Fog/Graphics/Raster/Raster_ByteOp.h>

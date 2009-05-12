@@ -1,4 +1,4 @@
-// [Fog/Cpu Library - C++ API]
+// [Fog/Core Library - C++ API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -8,14 +8,14 @@
 // found in the LICENSE file.
 
 // [Guard]
-#ifndef _FOG_CPU_INTRIN_MMX_H
-#define _FOG_CPU_INTRIN_MMX_H
+#ifndef _FOG_CORE_INTRIN_MMX_H
+#define _FOG_CORE_INTRIN_MMX_H
 
 // [Dependencies]
 #include <Fog/Build/Build.h>
 #include <mmintrin.h>
 
-//! @addtogroup Fog_Cpu
+//! @addtogroup Fog_Core
 //! @{
 
 namespace Fog {
@@ -38,4 +38,4 @@ union FOG_ALIGN(8) mmx_t
 //! @}
 
 // [Guard]
-#endif // _FOG_CPU_INTRIN_MMX_H
+#endif // _FOG_CORE_INTRIN_MMX_H

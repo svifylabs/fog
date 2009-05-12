@@ -126,10 +126,10 @@ struct FOG_API Value
   FOG_INLINE bool isDouble() const { return _d->type == TypeDouble; }
   FOG_INLINE bool isString() const { return _d->type == TypeString; }
 
-  FOG_INLINE err_t toInt32(int32_t* dst) { return _d->toInt32(dst); }
-  FOG_INLINE err_t toInt64(int64_t* dst) { return _d->toInt64(dst); }
-  FOG_INLINE err_t toDouble(double* dst) { return _d->toDouble(dst); }
-  FOG_INLINE err_t toString(String32* dst) { return _d->toString(dst); }
+  FOG_INLINE err_t toInt32(int32_t* dst) const { return _d->toInt32(dst); }
+  FOG_INLINE err_t toInt64(int64_t* dst) const { return _d->toInt64(dst); }
+  FOG_INLINE err_t toDouble(double* dst) const { return _d->toDouble(dst); }
+  FOG_INLINE err_t toString(String32* dst) const { return _d->toString(dst); }
 
   err_t setNull();
   err_t setInt32(int32_t val);

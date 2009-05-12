@@ -1,4 +1,4 @@
-// [Fog/Cpu Library - C++ API]
+// [Fog/Core Library - C++ API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -12,7 +12,7 @@
 #define _FOG_CPU_INTRIN_SSE3_H
 
 // [Dependencies]
-#include <Fog/Cpu/Intrin_SSE2.h>
+#include <Fog/Core/Intrin_SSE2.h>
 #if defined(_MSC_VER)
 # include <intrin.h>
 #else

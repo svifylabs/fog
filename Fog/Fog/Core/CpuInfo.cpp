@@ -15,8 +15,8 @@
 // [Dependencies]
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/Constants.h>
+#include <Fog/Core/CpuInfo.h>
 #include <Fog/Core/Error.h>
-#include <Fog/Cpu/CpuInfo.h>
 
 #if defined(FOG_OS_WINDOWS)
 # include <windows.h>

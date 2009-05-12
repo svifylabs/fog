@@ -14,7 +14,6 @@
 // [Dependencies]
 #include <Fog/Build/Build.h>
 #include <Fog/Core/Atomic.h>
-#include <Fog/Core/Class.h>
 #include <Fog/Core/EventLoop.h>
 #include <Fog/Core/Flags.h>
 #include <Fog/Core/String.h>
@@ -70,7 +69,7 @@ struct Application;
 //!
 //! If you want to run backgroun thread with no event loop. Use 
 //! Fog::EventLoop::TypeNone and override main() method.
-struct FOG_API Thread : public Class
+struct FOG_API Thread
 {
 public:
   // Fog::Thread::Handle should not be assumed to be a numeric type, 
