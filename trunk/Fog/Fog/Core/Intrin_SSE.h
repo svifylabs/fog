@@ -1,4 +1,4 @@
-// [Fog/Cpu Library - C++ API]
+// [Fog/Core Library - C++ API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -8,8 +8,8 @@
 // found in the LICENSE file.
 
 // [Guard]
-#ifndef _FOG_CPU_INTRIN_SSE_H
-#define _FOG_CPU_INTRIN_SSE_H
+#ifndef _FOG_CORE_INTRIN_SSE_H
+#define _FOG_CORE_INTRIN_SSE_H
 
 // [Dependencies]
 #include <Fog/Build/Build.h>
@@ -27,4 +27,4 @@
 #endif
 
 // [Guard]
-#endif // _FOG_CPU_INTRIN_SSE_H
+#endif // _FOG_CORE_INTRIN_SSE_H

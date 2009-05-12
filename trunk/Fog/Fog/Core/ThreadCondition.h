@@ -71,11 +71,11 @@ struct TimeDelta;
 //!
 //! USAGE NOTE 2: Broadcast() frees up all waiting threads at once,
 //! which leads to contention for the locks they all held when they
-//! called Wait().  This results in POOR performance.  A much better
-//! approach to getting a lot of threads out of Wait() is to have each
-//! thread (upon exiting Wait()) call Signal() to free up another
-//! Wait'ing thread.  Look at condition_variable_unittest.cc for
-//! both examples.
+//! called wait(). This results in POOR performance. A much better
+//! approach to getting a lot of threads out of wait() is to have each
+//! thread (upon exiting wait()) call signal() to free up another
+//! wait'ing thread.  Look at condition_variable_unittest.cc in Chrome)
+//! for both examples.
 //!
 //! Broadcast() can be used nicely during teardown, as it gets the job
 //! done, and leaves no sleeping threads... and performance is less
@@ -91,14 +91,14 @@ struct TimeDelta;
 //!
 //! This implementation offers support for "performance" in its selection of
 //! which thread to revive.  Performance, in direct contrast with "fairness,"
-//! assures that the thread that most recently began to Wait() is selected by
-//! Signal to revive.  Fairness would (if publicly supported) assure that the
+//! assures that the thread that most recently began to wait() is selected by
+//! signal to revive. Fairness would (if publicly supported) assure that the
 //! thread that has wait()ed the longest is selected. The default policy
 //! may improve performance, as the selected thread may have a greater chance of
 //! having some of its stack data in various CPU caches.
 //!
 //! For a discussion of the many very subtle implementation details, see the FAQ
-//! at the end of condition_variable_win.cc.
+//! at ThreadCondition.cpp.
 struct FOG_API ThreadCondition
 {
   //! @brief Construct a condition variable for use with ONLY one user lock.

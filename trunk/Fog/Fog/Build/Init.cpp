@@ -86,10 +86,8 @@ struct FogInitEntry
 // NOTE: Fog::Locale must be initialized before Fog::TextCodec
 static const FogInitEntry fog_init_entries[] =
 {
-  // Fog/Cpu
-  INIT_ENTRY(fog_cpuinfo),          // No dependency
-
   // Fog/Core
+  INIT_ENTRY(fog_cpuinfo),          // No dependency
   INIT_ENTRY(fog_lock),             // No dependency
   INIT_ENTRY(fog_memory),           // Depends to Cpu and Lock
   INIT_ENTRY(fog_sequence),         // No dependency

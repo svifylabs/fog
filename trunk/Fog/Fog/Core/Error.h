@@ -35,6 +35,7 @@ enum CoreError
   NotImplemented,
 
   InvalidFunction,
+  InvalidProperty,
   InvalidArgument,
   InvalidHandle,
 

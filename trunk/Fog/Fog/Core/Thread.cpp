@@ -231,15 +231,13 @@ Thread* Thread::current()
 }
 
 Thread::Thread(const String32& name) : 
-  Class(&_flags),
   _handle(0),
   _id(0),
-  _name(),
+  _name(name),
   _stackSize(0),
   _startupData(NULL),
   _eventLoop(NULL)
 {
-  _name = name;
 }
 
 Thread::~Thread()
@@ -268,8 +266,6 @@ bool Thread::start(const String32& eventLoopType)
 
   // Wait for the thread to start and initialize _eventLoop
   startupData.event.wait();
-
-  FOG_ASSERT(_eventLoop);
   return true;
 }
 

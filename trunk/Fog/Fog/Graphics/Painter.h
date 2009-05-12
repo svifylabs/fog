@@ -9,6 +9,8 @@
 
 // [Dependencies]
 #include <Fog/Core/Atomic.h>
+#include <Fog/Core/String.h>
+#include <Fog/Core/Value.h>
 #include <Fog/Core/Vector.h>
 #include <Fog/Graphics/AffineMatrix.h>
 #include <Fog/Graphics/Font.h>
@@ -172,6 +174,11 @@ struct FOG_API PainterDevice
   // [Flush]
 
   virtual void flush() = 0;
+
+  // [Properties]
+
+  virtual err_t setProperty(const String32& name, const Value& value) = 0;
+  virtual Value getProperty(const String32& name) const = 0;
 
 private:
   FOG_DISABLE_COPY(PainterDevice)
@@ -361,6 +368,14 @@ struct FOG_API Painter
   // [Flush]
 
   FOG_INLINE void flush() { _d->flush(); }
+
+  // [Properties]
+
+  FOG_INLINE err_t setProperty(const String32& name, const Value& value)
+  { return _d->setProperty(name, value); }
+
+  FOG_INLINE Value getProperty(const String32& name) const
+  { return _d->getProperty(name); }
 
   // [Members]
 

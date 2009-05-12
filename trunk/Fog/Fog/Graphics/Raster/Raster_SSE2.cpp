@@ -9,7 +9,7 @@
 #endif
 
 // [Dependencies]
-#include <Fog/Cpu/Intrin_SSE2.h>
+#include <Fog/Core/Intrin_SSE2.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/Raster.h>
 #include <Fog/Graphics/Raster/Raster_ByteOp.h>

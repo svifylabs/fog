@@ -17,12 +17,17 @@ namespace Fog {
 
 // [Fog::Task]
 
-Task::Task() : _deleteOnFinish(true)
+Task::Task() : _destroyOnFinish(true)
 {
 }
 
 Task::~Task()
 {
+}
+
+void Task::destroy()
+{
+  delete this;
 }
 
 void QuitTask::run()

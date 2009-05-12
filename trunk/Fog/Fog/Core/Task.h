@@ -22,11 +22,12 @@ struct FOG_API Task
   virtual ~Task();
 
   virtual void run() = 0;
+  virtual void destroy();
 
-  FOG_INLINE bool deleteOnFinish() const { return _deleteOnFinish; }
+  FOG_INLINE bool destroyOnFinish() const { return _destroyOnFinish; }
 
 protected:
-  bool _deleteOnFinish;
+  bool _destroyOnFinish;
 
 private:
   FOG_DISABLE_COPY(Task)

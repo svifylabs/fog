@@ -9,11 +9,16 @@
 #endif
 
 // [Dependencies]
+#include <Fog/Core/AutoLock.h>
+#include <Fog/Core/CpuInfo.h>
 #include <Fog/Core/Error.h>
 #include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
+#include <Fog/Core/OS.h>
+#include <Fog/Core/Static.h>
 #include <Fog/Core/Thread.h>
-#include <Fog/Cpu/CpuInfo.h>
+#include <Fog/Core/ThreadCondition.h>
+#include <Fog/Core/ThreadPool.h>
 #include <Fog/Graphics/AffineMatrix.h>
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Font.h>
@@ -38,7 +43,6 @@
 #include "agg_conv_transform.h"
 #include "agg_rendering_buffer.h"
 #include "agg_rasterizer_scanline_aa.h"
-#include "agg_rasterizer_outline.h"
 #include "agg_rounded_rect.h"
 #include "agg_scanline_p.h"
 #include "agg_scanline_u.h"
@@ -47,16 +51,28 @@
 #include "agg_trans_viewport.h"
 #include "agg_vcgen_dash.h"
 
+#include "agg_rasterizer_scanline_aa_custom.h"
+
 // [BlitJit]
 #include <BlitJit/BlitJit.h>
 
 namespace Fog {
 
 // ============================================================================
+// [Configuration]
+// ============================================================================
+
+#define RASTER_MAX_THREADS 4
+#define RASTER_MAX_COMMANDS 1024
+
+// ============================================================================
 // [Forward Declarations]
 // ============================================================================
 
 struct RasterPainterDevice;
+struct RasterPainterCommand;
+struct RasterPainterThreadData;
+struct RasterPainterThreadTask;
 
 // ============================================================================
 // [Fog::PainterDevice]
@@ -216,6 +232,11 @@ struct FOG_HIDDEN NullPainterDevice : public PainterDevice
   // [Flush]
 
   virtual void flush() {}
+
+  // [Properties]
+
+  virtual err_t setProperty(const String32& name, const Value& value) { return Error::InvalidProperty; }
+  virtual Value getProperty(const String32& name) const { return Value(); }
 };
 
 // ============================================================================
@@ -242,7 +263,7 @@ struct FOG_HIDDEN RasterPainterClipState
 
   FOG_INLINE void deref()
   {
-    if (refCount.deref() == 0) delete this;
+    if (refCount.deref()) delete this;
   }
 
   // [Members]
@@ -329,7 +350,7 @@ struct FOG_HIDDEN RasterPainterCapsState
 
   FOG_INLINE void deref()
   {
-    if (refCount.deref() == 0) delete this;
+    if (refCount.deref()) delete this;
   }
 
   // [Members]
@@ -504,16 +525,16 @@ typedef agg::conv_transform<AggConvCurveStroke>        AggConvCurveStrokeTransfo
 typedef agg::conv_transform<AggConvCurveDashStroke>    AggConvCurveDashStrokeTransform;
 
 // Rasterizer and scanline storage
-typedef agg::rasterizer_scanline_aa<>         AggRasterizer;
-typedef agg::scanline_p8                      AggScanlineP8;
-typedef agg::scanline_u8                      AggScanlineU8;
+typedef agg::rasterizer_scanline_aa_custom<>           AggRasterizer;
+typedef agg::scanline_p8                               AggScanlineP8;
+typedef agg::scanline_u8                               AggScanlineU8;
 
 // Context is accessed always from only one thread.
 struct FOG_HIDDEN RasterPainterContext
 {
   // [Construction / Destruction]
 
-  RasterPainterContext(RasterPainterDevice* _owner);
+  RasterPainterContext();
   ~RasterPainterContext();
 
   // [Buffer Manager]
@@ -534,22 +555,23 @@ struct FOG_HIDDEN RasterPainterContext
   Raster::FunctionMap::Raster* raster;
   Raster::PatternContext* pctx;
 
-  AggRasterizer ras;
   AggScanlineP8 slP8;
   AggScanlineU8 slU8;
 
   uint8_t* buffer;
   sysint_t bufferSize;
-
-  uint8_t bufferStatic[1024*16];
+  uint8_t bufferStatic[1024*8];
 
 private:
   FOG_DISABLE_COPY(RasterPainterContext)
 };
 
-RasterPainterContext::RasterPainterContext(RasterPainterDevice* _owner)
+RasterPainterContext::RasterPainterContext()
 {
-  owner = _owner;
+  // AntiGrain bug workaround
+  slP8.reset(0, 1000);
+
+  owner = NULL;
 
   clipState = NULL;
   capsState = NULL;
@@ -591,6 +613,161 @@ uint8_t* RasterPainterContext::getBuffer(sysint_t size)
 
   return buffer;
 }
+
+// ============================================================================
+// [Fog::RasterPainterCommandAllocator]
+// ============================================================================
+
+struct FOG_HIDDEN RasterPainterCommandAllocator
+{
+  // [Construction / Destruction]
+
+  RasterPainterCommandAllocator();
+  ~RasterPainterCommandAllocator();
+
+  // [Allocator]
+
+  void* alloc(sysuint_t size);
+  void freeAll();
+
+  // [Memory blocks]
+
+  struct Block
+  {
+    enum { BlockSize = 16000 };
+
+    Block* next;
+
+    sysuint_t size;
+    sysuint_t pos;
+    Atomic<sysuint_t> used;
+
+    uint8_t memory[BlockSize];
+  };
+
+  Block* blocks;
+};
+
+RasterPainterCommandAllocator::RasterPainterCommandAllocator() : 
+  blocks(NULL)
+{
+}
+
+RasterPainterCommandAllocator::~RasterPainterCommandAllocator()
+{
+  freeAll();
+}
+
+void* RasterPainterCommandAllocator::alloc(sysuint_t size)
+{
+  FOG_ASSERT(size <= Block::BlockSize);
+
+  Block* cur;
+  Block* prev;
+
+  // First look at memory in last block.
+  if (blocks && (blocks->size - blocks->pos) >= size)
+  {
+allocFromBlocks:
+    void* mem = (void*)(blocks->memory + blocks->pos);
+    blocks->pos += size;
+    blocks->used.add(size);
+    return mem;
+  }
+
+  // Traverse to previous blocks and try to find complete free one
+  cur = blocks;
+  prev = NULL;
+
+  while (cur)
+  {
+    if (cur->used.cmpXchg(0, 0))
+    {
+      if (prev)
+      {
+        prev->next = cur->next;
+        cur->next = blocks;
+        blocks = cur;
+      }
+      goto allocFromBlocks;
+    }
+
+    prev = cur;
+    cur = cur->next;
+  }
+
+  // If we are here, it's needed to allocate new chunk of memory.
+  cur = (Block*)Memory::alloc(sizeof(Block));
+  if (!cur) return NULL;
+
+  cur->size = Block::BlockSize;
+  cur->pos = 0;
+  cur->used.init(0);
+
+  cur->next = blocks;
+  blocks = cur;
+
+  goto allocFromBlocks;
+}
+
+void RasterPainterCommandAllocator::freeAll()
+{
+  Block* cur = blocks;
+  blocks = NULL;
+
+  while (cur)
+  {
+    Block* next = cur->next;
+
+    // It's failure if Block::used is not zero when freeing everything.
+    FOG_ASSERT(cur->used.get() == 0);
+    Memory::free(cur);
+
+    cur = next;
+  }
+}
+
+// ============================================================================
+// [Fog::RasterPainterCommand]
+// ============================================================================
+
+struct FOG_HIDDEN RasterPainterCommand
+{
+  // [Context]
+
+  Atomic<sysuint_t> refCount;
+  RasterPainterClipState* clipState;
+  RasterPainterCapsState* capsState;
+
+  Raster::FunctionMap::Raster* raster;
+  Raster::PatternContext* pctx;
+
+  // [Related to RasterPainterCommandAllocator]
+
+  RasterPainterCommandAllocator::Block* this_block;
+  sysuint_t this_size;
+
+  // [Id]
+
+  enum Id
+  {
+    PathId
+  };
+
+  int id;
+
+  // [Data]
+
+  struct PathData
+  {
+    AggRasterizer ras;
+  };
+
+  union
+  {
+    Static<PathData> path;
+  };
+};
 
 // ============================================================================
 // [Fog::RasterPainterDevice]
@@ -744,6 +921,16 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
   // [Flush]
 
   virtual void flush();
+  void flushWithQuit();
+
+  // [Properties]
+
+  virtual err_t setProperty(const String32& name, const Value& value);
+  virtual Value getProperty(const String32& name) const;
+
+  // [Multithreading]
+
+  void setMultithreaded(bool mt);
 
   // [Helpers]
 
@@ -774,14 +961,33 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
   void _serializePath(const Path& path, bool stroke);
   void _serializeImage(const Rect& dst, const Image& image, const Rect& src);
 
+  RasterPainterCommand* _createCommand();
+  void _postCommand(RasterPainterCommand* cmd);
+
+  // [Rasterizers]
+
+  static void _rasterizePath(RasterPainterContext* ctx, AggRasterizer& ras, const Path& path, bool stroke);
+
   // [Renderers]
   //
   // Renderers can be called from various threads (workers).
 
-  void _renderGlyphSet(RasterPainterContext* ctx, const Point& pt, const GlyphSet& glyphSet, const Rect* clip);
-  void _renderBoxes(RasterPainterContext* ctx, const Box* box, sysuint_t count);
-  void _renderPath(RasterPainterContext* ctx, const Path& path, bool stroke);
-  void _renderImage(RasterPainterContext* ctx, const Rect& dst, const Image& image, const Rect& src);
+  void _renderPath(const AggRasterizer& ras);
+  void _renderBoxes(const Box* box, sysuint_t count);
+  void _renderImage(const Rect& dst, const Image& image, const Rect& src);
+  void _renderGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip);
+
+  void _renderPathMT(RasterPainterContext* ctx, int offset, int delta, const AggRasterizer& ras);
+  //void _renderBoxesMT(RasterPainterContext* ctx, const Box* box, sysuint_t count);
+  //void _renderImageMT(RasterPainterContext* ctx, const Rect& dst, const Image& image, const Rect& src);
+  //void _renderGlyphSetMT(RasterPainterContext* ctx, const Point& pt, const GlyphSet& glyphSet, const Rect* clip);
+
+  // [Constants]
+
+  enum {
+    MT_MinWidth = 128,
+    MT_MinHeight = 128
+  };
 
   // [Members]
 
@@ -796,7 +1002,6 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
 
   bool _compositingEnabled;
   bool _premultiplied;
-  bool _multithreaded;
 
   // Temporary path
   Path workPath;
@@ -805,7 +1010,156 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
   // will be accessible through multiple threads. Each thread have it's own
   // context.
   RasterPainterContext ctx;
+  // If we are running in single-core environment it's better to embed one
+  // antigrain rasterizer in device itself (and only this rasterizer will be 
+  // used).
+  AggRasterizer ras;
+
+  // Multithreading
+  RasterPainterThreadData* _threadData;
+
+  // [Statics]
+
+  static ThreadPool* threadPool;
 };
+
+ThreadPool* RasterPainterDevice::threadPool;
+
+// ============================================================================
+// [Fog::RasterPainterThreadData / Fog::RasterPainterThreadTask]
+// ============================================================================
+
+// This is task created per painter thread that contains all variables needed
+// to process painter commands in parallel. The goal is that condition variable
+// is shared across all painter threads so one signal will wake them all.
+struct FOG_HIDDEN RasterPainterThreadTask : public Task
+{
+  RasterPainterThreadTask();
+
+  virtual void run();
+  virtual void destroy();
+
+  RasterPainterDevice* d;
+  RasterPainterThreadData* data;
+
+  Atomic<int> shouldQuit;
+
+  // Painter commands management.
+  sysuint_t currentCommand;
+
+  // Thread offset and delta.
+  int offset;
+  int delta;
+
+  RasterPainterContext ctx;
+};
+
+// Structure shared across all threads. 
+struct FOG_HIDDEN RasterPainterThreadData
+{
+  RasterPainterThreadData() : 
+    commandsReady(&commandsLock),
+    commandsComplete(&commandsLock),
+    releaseEvent(NULL)
+  {
+  }
+
+  ~RasterPainterThreadData()
+  {
+  }
+
+  ThreadPool* threadPool;
+
+  sysuint_t numThreads;
+  Atomic<sysuint_t> startedThreads;
+  Atomic<sysuint_t> finishedThreads;
+  Atomic<sysuint_t> workingThreads;
+
+  Lock commandsLock;
+  ThreadCondition commandsReady;
+  ThreadCondition commandsComplete;
+  ThreadEvent* releaseEvent;
+
+  Thread* threads[RASTER_MAX_THREADS];
+  Static<RasterPainterThreadTask> tasks[RASTER_MAX_THREADS];
+
+  // Commands
+  Atomic<sysuint_t> commandsPosition;
+  RasterPainterCommandAllocator commandAllocator;
+  RasterPainterCommand* commands[RASTER_MAX_COMMANDS];
+};
+
+RasterPainterThreadTask::RasterPainterThreadTask()
+{
+  d = NULL;
+  data = NULL;
+  shouldQuit.init(0);
+  currentCommand = 0;
+}
+
+void RasterPainterThreadTask::run()
+{
+  //fog_debug("Thread run: #%d %d", offset, Thread::current()->id());
+  for (;;)
+  {
+    // Process commands
+    while (currentCommand < data->commandsPosition.get())
+    {
+      //fog_debug("Processing #%d (command %d)", offset, (int)currentCommand);
+
+      RasterPainterCommand* cmd = data->commands[currentCommand];
+
+      switch (cmd->id)
+      {
+        case RasterPainterCommand::PathId:
+        {
+          // Render
+          ctx.clipState = cmd->clipState;
+          ctx.capsState = cmd->capsState;
+          ctx.raster = cmd->raster;
+          ctx.pctx = cmd->pctx;
+          d->_renderPathMT(&ctx, offset, delta, cmd->path->ras);
+
+          // Destroy
+          if (cmd->refCount.deref()) 
+          {
+            cmd->clipState->deref();
+            cmd->capsState->deref();
+            if (cmd->pctx && cmd->pctx->refCount.deref()) cmd->pctx->destroy(cmd->pctx);
+            cmd->path.destroy();
+            cmd->this_block->used.sub(cmd->this_size);
+          }
+          break;
+        }
+
+        default:
+          FOG_ASSERT_NOT_REACHED();
+      }
+
+      currentCommand++;
+    }
+
+    {
+      AutoLock locked(data->commandsLock);
+      if (currentCommand < data->commandsPosition.get()) continue;
+
+      if (data->workingThreads.deref())
+        data->commandsComplete.signal();
+      if (shouldQuit.get()) return;
+
+      data->commandsReady.wait();
+      data->workingThreads.inc();
+    }
+  }
+
+  fog_debug("Thread release: #%d %d", offset, Thread::current()->id());
+}
+
+void RasterPainterThreadTask::destroy()
+{
+  if (data->finishedThreads.addXchg(1) == data->numThreads-1)
+    data->releaseEvent->signal();
+}
 
 // ============================================================================
 // [Fog::RasterPainterDevice - Construction / Destruction]
@@ -819,10 +1173,10 @@ RasterPainterDevice::RasterPainterDevice(uint8_t* pixels, int width, int height,
   _format(format),
   _bpp(Image::formatToDepth(format) >> 3),
   _premultiplied(format == Image::FormatPRGB32),
-  _multithreaded(false),
   _compositingEnabled(format == Image::FormatARGB32 || format == Image::FormatPRGB32),
-  ctx(this)
+  _threadData(NULL)
 {
+  ctx.owner = this;
   ctx.clipState = new(std::nothrow) RasterPainterClipState();
   ctx.capsState = new(std::nothrow) RasterPainterCapsState();
 
@@ -832,12 +1186,17 @@ RasterPainterDevice::RasterPainterDevice(uint8_t* pixels, int width, int height,
   // Setup caps state
   _setCapsDefaults();
 
-  // Setup multithreading if possible
+  // Setup multithreading if possible. If the painting buffer if too small, we
+  // will not use multithreading, because it has no sense.
+  if (cpuInfo->numberOfProcessors > 1 && width >= MT_MinWidth && height >= MT_MinHeight)
+  {
+    setMultithreaded(true);
+  }
 }
 
 RasterPainterDevice::~RasterPainterDevice()
 {
-  flush();
+  if (_threadData) setMultithreaded(false);
 
   ctx.clipState->deref();
   ctx.capsState->deref();
@@ -1771,6 +2130,164 @@ void RasterPainterDevice::drawImage(const Point& p, const Image& image, const Re
 
 void RasterPainterDevice::flush()
 {
+  if (!_threadData) return;
+
+  AutoLock locked(_threadData->commandsLock);
+  while (_threadData->workingThreads.get() > 0)
+    _threadData->commandsComplete.wait();
+
+  // Reset command position and local command counters for each thread.
+  _threadData->commandsPosition.set(0);
+  for (sysuint_t i = 0; i < _threadData->numThreads; i++)
+  {
+    _threadData->tasks[i]->currentCommand = 0;
+  }
+}
+
+void RasterPainterDevice::flushWithQuit()
+{
+  FOG_ASSERT(_threadData);
+
+  AutoLock locked(_threadData->commandsLock);
+  if (_threadData->workingThreads.get() != _threadData->numThreads)
+    _threadData->commandsReady.broadcast();
+}
+
+// ============================================================================
+// [Fog::RasterPainterDevice - Properties]
+// ============================================================================
+
+err_t RasterPainterDevice::setProperty(const String32& name, const Value& value)
+{
+  err_t err = Error::InvalidProperty;
+  int p_int;
+
+  if (name == StubAscii8("multithreaded"))
+  {
+    if ((err = value.toInt32(&p_int)) == Error::Ok)
+      if (value.isInteger()) setMultithreaded(p_int != 0);
+  }
+
+  return err;
+}
+
+Value RasterPainterDevice::getProperty(const String32& name) const
+{
+  Value result;
+
+  if (name == StubAscii8("multithreaded"))
+    result.setInt32(_threadData != NULL);
+
+  return result;
+}
+
+// ============================================================================
+// [Fog::RasterPainterDevice - Multithreading - Start / Stop]
+// ============================================================================
+
+void RasterPainterDevice::setMultithreaded(bool mt)
+{
+  int i;
+
+  if ((_threadData != NULL) == mt) return;
+
+  // If worker pool is not created we can't start multithreaded rendering.
+  if (mt && !threadPool) return;
+
+  // Start multithreading...
+  if (mt)
+  {
+    int max = fog_min<int>(cpuInfo->numberOfProcessors, RASTER_MAX_THREADS);
+
+    _threadData = new(std::nothrow) RasterPainterThreadData;
+    if (_threadData == NULL) return;
+
+    // This is for testing multithreaded rendering on single cores.
+    if (max < 2) max = 2;
+
+    for (i = 0; i < max; i++)
+    {
+      if ((_threadData->threads[i] = threadPool->getThread()) == NULL) break;
+    }
+
+    // Failed to get workers. This can happen if there are many threads that
+    // uses multithreaded painter, we must destroy all resources and return.
+    if (i <= 1)
+    {
+      if (_threadData->threads[0])
+      {
+        threadPool->releaseThread(_threadData->threads[0]);
+        _threadData->threads[0] = NULL;
+      }
+
+      delete _threadData;
+      _threadData = NULL;
+
+      // Bailout
+      return;
+    }
+
+    int count = i;
+    _threadData->numThreads = count;
+    _threadData->startedThreads.init(0);
+    _threadData->finishedThreads.init(0);
+    _threadData->workingThreads.init(count);
+    _threadData->threadPool = threadPool;
+    _threadData->commandsPosition.init(0);
+
+    for (i = 0; i < count; i++)
+    {
+      _threadData->tasks[i].init();
+      RasterPainterThreadTask* task = _threadData->tasks[i].instancep();
+      task->d = this;
+      task->data = _threadData;
+      task->offset = i;
+      task->delta = count;
+      task->ctx.owner = this;
+    }
+
+    for (i = 0; i < count; i++)
+    {
+      RasterPainterThreadTask* task = _threadData->tasks[i].instancep();
+      _threadData->threads[i]->eventLoop()->postTask(task);
+    }
+
+    // Wait for threads to initialize
+    {
+      AutoLock locked(_threadData->commandsLock);
+      while (_threadData->workingThreads.get() != 0)
+        _threadData->commandsComplete.wait();
+    }
+    //fog_debug("Multithreaded: true");
+  }
+  // Stop multithreading
+  else
+  {
+    int count = _threadData->numThreads;
+
+    ThreadEvent releaseEvent(false, false);
+    _threadData->releaseEvent = &releaseEvent;
+
+    // Release threads
+    for (i = 0; i < count; i++)
+    {
+      _threadData->tasks[i]->shouldQuit.set(1);
+    }
+
+    // Flush everything and wait for completion.
+    flushWithQuit();
+
+    releaseEvent.wait();
+
+    for (i = 0; i < count; i++)
+    {
+      threadPool->releaseThread(_threadData->threads[i]);
+      _threadData->tasks[i].destroy();
+    }
+
+    delete _threadData;
+    _threadData = NULL;
+  }
 }
 
 // ============================================================================
@@ -1977,17 +2494,25 @@ bool RasterPainterDevice::_detachCaps()
 // [Fog::RasterPainterDevice - Serializers]
 // ============================================================================
 
-void RasterPainterDevice::_serializeGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip)
+void RasterPainterDevice::_serializePath(const Path& path, bool stroke)
 {
   // Pattern context must be always set up before _render() methods are called.
   if (!ctx.capsState->isSolidSource && !_getPatternContext()) return;
 
-  if (!_multithreaded)
+  if (_threadData)
   {
-    _renderGlyphSet(&ctx, pt, glyphSet, clip);
+    // MultiThreaded - Serialize command.
+    RasterPainterCommand* cmd = _createCommand();
+    cmd->id = RasterPainterCommand::PathId;
+    cmd->path.init();
+    _rasterizePath(&ctx, cmd->path->ras, path, stroke);
+    _postCommand(cmd);
   }
   else
   {
+    // SingleThreaded - Render now.
+    _rasterizePath(&ctx, ras, path, stroke);
+    _renderPath(ras);
   }
 }
 
@@ -1996,46 +2521,638 @@ void RasterPainterDevice::_serializeBoxes(const Box* box, sysuint_t count)
   // Pattern context must be always set up before _render() methods are called.
   if (!ctx.capsState->isSolidSource && !_getPatternContext()) return;
 
-  if (!_multithreaded)
+  if (_threadData)
   {
-    _renderBoxes(&ctx, box, count);
   }
   else
   {
-  }
-}
-
-void RasterPainterDevice::_serializePath(const Path& path, bool stroke)
-{
-  // Pattern context must be always set up before _render() methods are called.
-  if (!ctx.capsState->isSolidSource && !_getPatternContext()) return;
-
-  if (!_multithreaded)
-  {
-    _renderPath(&ctx, path, stroke);
-  }
-  else
-  {
+    _renderBoxes(box, count);
   }
 }
 
 void RasterPainterDevice::_serializeImage(const Rect& dst, const Image& image, const Rect& src)
 {
-  if (!_multithreaded)
+  if (_threadData)
   {
-    _renderImage(&ctx, dst, image, src);
   }
   else
   {
+    _renderImage(dst, image, src);
+  }
+}
+
+void RasterPainterDevice::_serializeGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip)
+{
+  // Pattern context must be always set up before _render() methods are called.
+  if (!ctx.capsState->isSolidSource && !_getPatternContext()) return;
+
+  if (_threadData)
+  {
+  }
+  else
+  {
+    _renderGlyphSet(pt, glyphSet, clip);
+  }
+}
+
+RasterPainterCommand* RasterPainterDevice::_createCommand()
+{
+  RasterPainterCommand* command = 
+    reinterpret_cast<RasterPainterCommand*>(
+      _threadData->commandAllocator.alloc(sizeof(RasterPainterCommand)));
+
+  if (!command) return NULL;
+
+  command->this_block = _threadData->commandAllocator.blocks;
+  command->this_size = sizeof(RasterPainterCommand);
+  command->refCount.init(_threadData->numThreads);
+  command->clipState = ctx.clipState->ref();
+  command->capsState = ctx.capsState->ref();
+  command->raster = ctx.raster;
+  command->pctx = NULL;
+
+  if (ctx.pctx && ctx.pctx->initialized)
+  {
+    ctx.pctx->refCount.inc();
+    command->pctx = ctx.pctx;
+  }
+
+  return command;
+}
+
+void RasterPainterDevice::_postCommand(RasterPainterCommand* cmd)
+{
+  // Flush everything if commands get to maximum
+  if (_threadData->commandsPosition.get() == RASTER_MAX_COMMANDS)
+  {
+    flush();
+    FOG_ASSERT(_threadData->commandsPosition.get() == 0);
+
+    _threadData->commands[0] = cmd;
+    _threadData->commandsPosition.set(1);
+  }
+  else
+  {
+    _threadData->commands[_threadData->commandsPosition.addXchg(1)] = cmd;
+  }
+
+  AutoLock locked(_threadData->commandsLock);
+  if (_threadData->workingThreads.get() != _threadData->numThreads)
+    _threadData->commandsReady.broadcast();
+}
+
+// ============================================================================
+// [Fog::RasterPainterDevice - Renderers - AntiGrain]
+// ============================================================================
+
+template <typename PathT>
+static void FOG_INLINE AggSetupStroke(PathT& path, RasterPainterCapsState* capsState)
+{
+  path.width(capsState->lineWidth);
+  path.line_join(static_cast<agg::line_join_e>(capsState->lineJoin));
+  path.line_cap(static_cast<agg::line_cap_e>(capsState->lineCap));
+  path.miter_limit(capsState->miterLimit);
+}
+
+template <typename PathT>
+static void FOG_INLINE AggSetupDash(PathT& path, RasterPainterCapsState* capsState)
+{
+  Vector<double>::ConstIterator it(capsState->lineDash);
+
+  for (;;)
+  {
+    double d1 = it.value(); it.toNext();
+    if (!it.isValid()) break;
+    double d2 = it.value(); it.toNext();
+    path.add_dash(d1, d2);
+    if (!it.isValid()) break;
+  }
+
+  path.dash_start(capsState->lineDashOffset);
+}
+
+static void FOG_FASTCALL AggRasterizePath(
+  RasterPainterContext* ctx, AggRasterizer& ras,
+  const Path& path, bool stroke)
+{
+  RasterPainterClipState* clipState = ctx->clipState;
+  RasterPainterCapsState* capsState = ctx->capsState;
+
+  ras.reset();
+  ras.filling_rule(static_cast<agg::filling_rule_e>(capsState->fillMode));
+  ras.clip_box(
+    (double)clipState->clipBox.x1(),
+    (double)clipState->clipBox.y1(),
+    (double)clipState->clipBox.x2(),
+    (double)clipState->clipBox.y2());
+
+  AggPath pAgg(path);
+  AggConvCurve pCurve(pAgg);
+
+  // This can be a bit messy, but it's here to increase performance. We will
+  // not calculate using transformations if they are not used. Also we add
+  // stroke and line dash pipeline only if it's needed. This is goal of 
+  // AntiGrain to be able to setup only pipelines what are really needed.
+  if (capsState->transformationsUsed)
+  {
+    if (stroke)
+    {
+      if (capsState->lineDash.length() <= 1)
+      {
+        AggConvCurveStroke pCurveStroke(pCurve);
+        AggSetupStroke(pCurveStroke, capsState);
+        AggConvCurveStrokeTransform strokeTransform(
+          pCurveStroke,
+          *((const agg::trans_affine *)&capsState->transformations));
+        ras.add_path(strokeTransform);
+      }
+      else
+      {
+        AggConvCurveDash pCurveDash(pCurve);
+        AggSetupDash(pCurveDash, capsState);
+        AggConvCurveDashStroke pCurveDashStroke(pCurveDash);
+        AggSetupStroke(pCurveDashStroke, capsState);
+        AggConvCurveDashStrokeTransform pCurveDashStrokeTransform(
+          pCurveDashStroke,
+          *((const agg::trans_affine *)&capsState->transformations));
+        ras.add_path(pCurveDashStrokeTransform);
+      }
+    }
+    else
+    {
+      AggConvCurveTransform pCurveTransform(
+        pCurve, *((agg::trans_affine *)&capsState->transformations));
+
+      ras.add_path(pCurveTransform);
+    }
+  }
+  else
+  {
+    if (stroke)
+    {
+      if (capsState->lineDash.length() <= 1)
+      {
+        AggConvCurveStroke pCurveStroke(pCurve);
+        AggSetupStroke(pCurveStroke, capsState);
+        ras.add_path(pCurveStroke);
+      }
+      else
+      {
+        AggConvCurveDash pCurveDash(pCurve);
+        AggSetupDash(pCurveDash, capsState);
+        AggConvCurveDashStroke pCurveDashStroke(pCurveDash);
+        AggSetupStroke(pCurveDashStroke, capsState);
+        ras.add_path(pCurveDashStroke);
+      }
+    }
+    else
+    {
+      ras.add_path(pCurve);
+    }
+  }
+  ras.sort();
+}
+
+template<int BytesPerPixel, class Rasterizer, class Scanline>
+static void FOG_INLINE AggRenderPath(
+  RasterPainterContext* ctx, const Rasterizer& ras, Scanline& sl, int offset, int delta)
+{
+  RasterPainterClipState* clipState = ctx->clipState;
+  RasterPainterCapsState* capsState = ctx->capsState;
+
+  sl.reset(ras.min_x(), ras.max_x());
+
+  Raster::SpanSolidFn span_solid = ctx->raster->span_solid;
+  Raster::SpanSolidMskFn span_solid_a8 = ctx->raster->span_solid_a8;
+
+  int y = ras.min_y() + offset;
+  int y_end = ras.max_y() + 1;
+  if (y >= y_end) return;
+
+  sysint_t stride = ctx->owner->_stride;
+  uint8_t* pBase = clipState->workRaster + y * stride;
+  uint8_t* pCur;
+
+  stride *= delta;
+
+  // solid source
+  if (capsState->isSolidSource)
+  {
+    uint32_t solidColor = capsState->solidSourcePremultiplied;
+
+    for (; y < y_end; y += delta, pBase += stride)
+    {
+      if (!ras.sweep_scanline(sl, y)) continue;
+
+      unsigned num_spans = sl.num_spans();
+      typename Scanline::const_iterator span = sl.begin();
+
+      for (;;)
+      {
+        int x = span->x;
+        int len = span->len;
+
+        pCur = pBase + Raster::mul<int, BytesPerPixel>(x);
+
+        if (len > 0)
+        {
+          span_solid_a8(pCur, solidColor, span->covers, (unsigned)len);
+        }
+        else
+        {
+          len = -len;
+          FOG_ASSERT(len > 0);
+
+          uint32_t cover = (uint32_t)*(span->covers);
+          if (cover == 0xFF)
+          {
+            span_solid(pCur, solidColor, len);
+          }
+          else
+          {
+            span_solid(pCur, Raster::bytemul(solidColor, cover), len);
+          }
+        }
+
+        if (--num_spans == 0) break;
+        ++span;
+      }
+    }
+  }
+  else
+  {
+    Raster::PatternContext* pctx = ctx->pctx;
+    if (!pctx) return;
+
+    uint8_t* pbuf = ctx->getBuffer(Raster::mul4(clipState->clipBox.width()));
+    if (!pbuf) return;
+
+    Raster::SpanCompositeFn span_composite = ctx->raster->span_composite[pctx->format];
+    Raster::SpanCompositeMskFn span_composite_a8 = ctx->raster->span_composite_a8[pctx->format];
+
+    for (; y < y_end; y += delta, pBase += stride)
+    {
+      if (!ras.sweep_scanline(sl, y)) continue;
+
+      unsigned num_spans = sl.num_spans();
+      typename Scanline::const_iterator span = sl.begin();
+
+      for (;;)
+      {
+        int x = span->x;
+        int len = span->len;
+
+        pCur = pBase + Raster::mul<int, BytesPerPixel>(x);
+
+        if (len > 0)
+        {
+          span_composite_a8(pCur, 
+            pctx->fetch(pctx, pbuf, x, y, len),
+            span->covers, len);
+        }
+        else
+        {
+          len = -len;
+          FOG_ASSERT(len > 0);
+
+          uint32_t cover = (uint32_t)*(span->covers);
+          if (cover == 0xFF)
+          {
+            span_composite(pCur,
+              pctx->fetch(pctx, pbuf, x, y, len),
+              len);
+          }
+          else
+          {
+            // TODO
+          }
+        }
+
+        if (--num_spans == 0) break;
+        ++span;
+      }
+    }
+  }
+}
+
+void RasterPainterDevice::_rasterizePath(RasterPainterContext* ctx, AggRasterizer& ras, const Path& path, bool stroke)
+{
+  AggRasterizePath(ctx, ras, path, stroke);
+}
+
+// ============================================================================
+// [Fog::RasterPainterDevice - Renderers - SingleThreaded]
+// ============================================================================
+
+void RasterPainterDevice::_renderPath(const AggRasterizer& ras)
+{
+  switch (_bpp)
+  {
+    case 4:
+      AggRenderPath<4, AggRasterizer, AggScanlineP8>(&ctx, ras, ctx.slP8, 0, 1);
+      break;
+    case 3:
+      AggRenderPath<3, AggRasterizer, AggScanlineP8>(&ctx, ras, ctx.slP8, 0, 1);
+      break;
+    default:
+      FOG_ASSERT_NOT_REACHED();
+  }
+}
+
+void RasterPainterDevice::_renderBoxes(const Box* box, sysuint_t count)
+{
+  if (!count) return;
+
+  uint8_t* pBuf = ctx.clipState->workRaster;
+  sysint_t stride = _stride;
+  sysint_t bpp = _bpp;
+
+  if (ctx.capsState->isSolidSource)
+  {
+    uint32_t rgba = ctx.capsState->solidSourcePremultiplied;
+    Raster::SpanSolidFn span_solid = ctx.raster->span_solid;
+
+    for (sysuint_t i = 0; i < count; i++)
+    {
+      sysint_t x = box[i].x1();
+      sysint_t y = box[i].y1();
+
+      sysint_t w = box[i].width();
+      if (w <= 0) continue;
+      sysint_t h = box[i].height();
+      if (h <= 0) continue;
+
+      uint8_t* pCur = pBuf + y * stride + x * bpp;
+      do {
+        span_solid(pCur, rgba, (sysuint_t)w);
+        pCur += stride;
+      } while (--h);
+    }
+  }
+  else
+  {
+    Raster::PatternContext* pctx = ctx.pctx;
+    if (!pctx) return;
+
+    uint8_t* pbuf = ctx.getBuffer(Raster::mul4(ctx.clipState->clipBox.width()));
+    if (!pbuf) return;
+
+    Raster::SpanCompositeFn span_composite = ctx.raster->span_composite[pctx->format];
+
+    for (sysuint_t i = 0; i < count; i++)
+    {
+      sysint_t x = box[i].x1();
+      sysint_t y = box[i].y1();
+
+      sysint_t w = box[i].width();
+      if (w <= 0) continue;
+      sysint_t h = box[i].height();
+      if (h <= 0) continue;
+
+      uint8_t* pCur = pBuf + y * stride + x * bpp;
+      do {
+        span_composite(pCur, 
+          pctx->fetch(pctx, pbuf, x, y, w),
+          (sysuint_t)w);
+        pCur += stride;
+        y++;
+      } while (--h);
+    }
+  }
+}
+
+void RasterPainterDevice::_renderImage(const Rect& dst, const Image& image, const Rect& src)
+{
+  Image::Data* image_d = image._d;
+  sysint_t dstStride = _stride;
+  sysint_t srcStride = image_d->stride;
+
+  Raster::SpanCompositeFn span_composite = ctx.raster->span_composite[image.format()];
+
+  sysint_t x = dst.x1();
+  sysint_t y = dst.y1();
+
+  sysint_t w = dst.width();
+  sysint_t h = dst.height();
+
+  uint8_t* dstCur = ctx.clipState->workRaster + y * dstStride + x * _bpp;
+  const uint8_t* srcCur = image_d->first + src.y1() * srcStride + src.x1() * image_d->bytesPerPixel;
+
+  do {
+    span_composite(dstCur, srcCur, (sysuint_t)w);
+    dstCur += dstStride;
+    srcCur += srcStride;
+  } while (--h);
+}
+
+void RasterPainterDevice::_renderGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip)
+{
+  // TODO: Hardcoded to A8 glyph format
+  // TODO: Clipping
+
+  Box clipBox = ctx.clipState->clipBox;
+  if (clip) Box::intersect(clipBox, clipBox, Box(*clip));
+
+  if (!clipBox.isValid()) return;
+  if (!glyphSet.length()) return;
+
+  const Glyph* glyphs = glyphSet.glyphs();
+  sysuint_t count = glyphSet.length();
+
+  int px = pt.x();
+  int py = pt.y();
+
+  uint8_t* pBuf = ctx.clipState->workRaster;
+  sysint_t stride = _stride;
+
+  Raster::SpanSolidMskFn span_solid_a8 = ctx.raster->span_solid_a8;
+
+  // Used only if source is solid
+  uint32_t rgba = ctx.capsState->solidSourcePremultiplied;
+
+  // Used only if source is pattern
+  Raster::PatternContext* pctx;
+  uint8_t* pbuf;
+  Raster::SpanCompositeMskFn span_composite_a8;
+
+  if (!ctx.capsState->isSolidSource)
+  {
+    pctx = ctx.pctx;
+    if (!pctx) return;
+
+    pbuf = ctx.getBuffer(Raster::mul4(ctx.clipState->clipBox.width()));
+    if (!pbuf) return;
+
+    span_composite_a8 = ctx.raster->span_composite_a8[pctx->format];
+  }
+
+  for (sysuint_t i = 0; i < count; i++)
+  {
+    Glyph::Data* glyphd = glyphs[i]._d;
+
+    int px1 = px + glyphd->offsetX;
+    int py1 = py + glyphd->offsetY;
+    int px2 = px1 + glyphd->image.width();
+    int py2 = py1 + glyphd->image.height();
+
+    px += glyphd->advance;
+
+    int x1 = px1; if (x1 < clipBox.x1()) x1 = clipBox.x1();
+    int y1 = py1; if (y1 < clipBox.y1()) y1 = clipBox.y1();
+    int x2 = px2; if (x2 > clipBox.x2()) x2 = clipBox.x2();
+    int y2 = py2; if (y2 > clipBox.y2()) y2 = clipBox.y2();
+
+    int w = x2 - x1; if (w <= 0) continue;
+    int h = y2 - y1; if (h <= 0) continue;
+
+    uint8_t* pCur = pBuf;
+    pCur += (sysint_t)y1 * stride;
+    pCur += (sysint_t)x1 * 4;
+
+    // TODO: Hardcoded
+    sysint_t glyphStride = glyphd->image.stride();
+    const uint8_t* pGlyph = glyphd->image.cData();
+
+    pGlyph += (sysint_t)(y1 - py1) * glyphStride;
+    pGlyph += (sysint_t)(x1 - px1);
+
+    if (ctx.capsState->isSolidSource)
+    {
+      do {
+        span_solid_a8(pCur, rgba, pGlyph, (sysuint_t)w);
+        pCur += stride;
+        pGlyph += glyphStride;
+      } while (--h);
+    }
+    else
+    {
+      do {
+        span_composite_a8(pCur, 
+          pctx->fetch(pctx, pbuf, x1, y1, w),
+          pGlyph, (sysuint_t)w);
+
+        pCur += stride;
+        pGlyph += glyphStride;
+        y1++;
+      } while (--h);
+    }
   }
 }
 
 // ============================================================================
-// [Fog::RasterPainterDevice - Renderers]
+// [Fog::RasterPainterDevice - Renderers - MultiThreaded]
 // ============================================================================
 
+void RasterPainterDevice::_renderPathMT(
+  RasterPainterContext* ctx, int offset, int delta,
+  const AggRasterizer& ras)
+{
+  switch (_bpp)
+  {
+    case 4:
+      AggRenderPath<4, AggRasterizer, AggScanlineP8>(ctx, ras, ctx->slP8, offset, delta);
+      break;
+    case 3:
+      AggRenderPath<3, AggRasterizer, AggScanlineP8>(ctx, ras, ctx->slP8, offset, delta);
+      break;
+    default:
+      FOG_ASSERT_NOT_REACHED();
+  }
+}
+
+#if 0
+void RasterPainterDevice::_renderBoxes(
+  RasterPainterContext* ctx, int offset, int delta,
+  const Box* box, sysuint_t count)
+{
+  if (!count) return;
+
+  uint8_t* pBuf = ctx->clipState->workRaster;
+  sysint_t stride = _stride;
+  sysint_t bpp = _bpp;
+
+  if (ctx->capsState->isSolidSource)
+  {
+    uint32_t rgba = ctx->capsState->solidSourcePremultiplied;
+    Raster::SpanSolidFn span_solid = ctx->raster->span_solid;
+
+    for (sysuint_t i = 0; i < count; i++)
+    {
+      sysint_t x = box[i].x1();
+      sysint_t y = box[i].y1();
+
+      sysint_t w = box[i].width();
+      if (w <= 0) continue;
+      sysint_t h = box[i].height();
+      if (h <= 0) continue;
+
+      uint8_t* pCur = pBuf + y * stride + x * bpp;
+      do {
+        span_solid(pCur, rgba, (sysuint_t)w);
+        pCur += stride;
+      } while (--h);
+    }
+  }
+  else
+  {
+    Raster::PatternContext* pctx = ctx->pctx;
+    if (!pctx) return;
+
+    uint8_t* pbuf = ctx->getBuffer(Raster::mul4(ctx->clipState->clipBox.width()));
+    if (!pbuf) return;
+
+    Raster::SpanCompositeFn span_composite = ctx->raster->span_composite[pctx->format];
+
+    for (sysuint_t i = 0; i < count; i++)
+    {
+      sysint_t x = box[i].x1();
+      sysint_t y = box[i].y1();
+
+      sysint_t w = box[i].width();
+      if (w <= 0) continue;
+      sysint_t h = box[i].height();
+      if (h <= 0) continue;
+
+      uint8_t* pCur = pBuf + y * stride + x * bpp;
+      do {
+        span_composite(pCur, 
+          pctx->fetch(pctx, pbuf, x, y, w),
+          (sysuint_t)w);
+        pCur += stride;
+        y++;
+      } while (--h);
+    }
+  }
+}
+
+void RasterPainterDevice::_renderImage(
+  RasterPainterContext* ctx, int offset, int delta,
+  const Rect& dst, const Image& image, const Rect& src)
+{
+  Image::Data* image_d = image._d;
+  sysint_t dstStride = _stride;
+  sysint_t srcStride = image_d->stride;
+
+  Raster::SpanCompositeFn span_composite = ctx->raster->span_composite[image.format()];
+
+  sysint_t x = dst.x1();
+  sysint_t y = dst.y1();
+
+  sysint_t w = dst.width();
+  sysint_t h = dst.height();
+
+  uint8_t* dstCur = ctx->clipState->workRaster + y * dstStride + x * _bpp;
+  const uint8_t* srcCur = image_d->first + src.y1() * srcStride + src.x1() * image_d->bytesPerPixel;
+
+  do {
+    span_composite(dstCur, srcCur, (sysuint_t)w);
+    dstCur += dstStride;
+    srcCur += srcStride;
+  } while (--h);
+}
+
 void RasterPainterDevice::_renderGlyphSet(
-  RasterPainterContext* ctx,
+  RasterPainterContext* ctx, int offset, int delta,
   const Point& pt, const GlyphSet& glyphSet, const Rect* clip)
 {
   // TODO: Hardcoded to A8 glyph format
@@ -2129,345 +3246,7 @@ void RasterPainterDevice::_renderGlyphSet(
     }
   }
 }
-
-void RasterPainterDevice::_renderBoxes(
-  RasterPainterContext* ctx,
-  const Box* box, sysuint_t count)
-{
-  if (!count) return;
-
-  uint8_t* pBuf = ctx->clipState->workRaster;
-  sysint_t stride = _stride;
-  sysint_t bpp = _bpp;
-
-  if (ctx->capsState->isSolidSource)
-  {
-    uint32_t rgba = ctx->capsState->solidSourcePremultiplied;
-    Raster::SpanSolidFn span_solid = ctx->raster->span_solid;
-
-    for (sysuint_t i = 0; i < count; i++)
-    {
-      sysint_t x = box[i].x1();
-      sysint_t y = box[i].y1();
-
-      sysint_t w = box[i].width();
-      if (w <= 0) continue;
-      sysint_t h = box[i].height();
-      if (h <= 0) continue;
-
-      uint8_t* pCur = pBuf + y * stride + x * bpp;
-      do {
-        span_solid(pCur, rgba, (sysuint_t)w);
-        pCur += stride;
-      } while (--h);
-    }
-  }
-  else
-  {
-    Raster::PatternContext* pctx = ctx->pctx;
-    if (!pctx) return;
-
-    uint8_t* pbuf = ctx->getBuffer(Raster::mul4(ctx->clipState->clipBox.width()));
-    if (!pbuf) return;
-
-    Raster::SpanCompositeFn span_composite = ctx->raster->span_composite[pctx->format];
-
-    for (sysuint_t i = 0; i < count; i++)
-    {
-      sysint_t x = box[i].x1();
-      sysint_t y = box[i].y1();
-
-      sysint_t w = box[i].width();
-      if (w <= 0) continue;
-      sysint_t h = box[i].height();
-      if (h <= 0) continue;
-
-      uint8_t* pCur = pBuf + y * stride + x * bpp;
-      do {
-        span_composite(pCur, 
-          pctx->fetch(pctx, pbuf, x, y, w),
-          (sysuint_t)w);
-        pCur += stride;
-        y++;
-      } while (--h);
-    }
-  }
-}
-
-
-template <typename PathT>
-static void FOG_INLINE AggSetupStroke(PathT& path, RasterPainterCapsState* capsState)
-{
-  path.width(capsState->lineWidth);
-  path.line_join(static_cast<agg::line_join_e>(capsState->lineJoin));
-  path.line_cap(static_cast<agg::line_cap_e>(capsState->lineCap));
-  path.miter_limit(capsState->miterLimit);
-}
-
-template <typename PathT>
-static void FOG_INLINE AggSetupDash(PathT& path, RasterPainterCapsState* capsState)
-{
-  Vector<double>::ConstIterator it(capsState->lineDash);
-  
-  for (;;)
-  {
-    double d1 = it.value(); it.toNext();
-    if (!it.isValid()) break;
-    double d2 = it.value(); it.toNext();
-    path.add_dash(d1, d2);
-    if (!it.isValid()) break;
-  }
-
-  path.dash_start(capsState->lineDashOffset);
-}
-
-static void FOG_FASTCALL AggRasterizePath(
-  RasterPainterContext* ctx,
-  const Path& path, bool stroke)
-{
-  RasterPainterClipState* clipState = ctx->clipState;
-  RasterPainterCapsState* capsState = ctx->capsState;
-
-  ctx->ras.reset();
-  ctx->ras.filling_rule(static_cast<agg::filling_rule_e>(capsState->fillMode));
-  ctx->ras.clip_box(
-    (double)clipState->clipBox.x1(),
-    (double)clipState->clipBox.y1(),
-    (double)clipState->clipBox.x2(),
-    (double)clipState->clipBox.y2());
-
-  AggPath pAgg(path);
-  AggConvCurve pCurve(pAgg);
-
-  // This can be a bit messy, but it's here to increase performance. We will
-  // not calculate using transformations if they are not used. Also we add
-  // stroke and line dash pipeline only if it's needed. This is goal of 
-  // AntiGrain to be able to setup only pipelines what are really needed.
-  if (capsState->transformationsUsed)
-  {
-    if (stroke)
-    {
-      if (capsState->lineDash.length() <= 1)
-      {
-        AggConvCurveStroke pCurveStroke(pCurve);
-        AggSetupStroke(pCurveStroke, capsState);
-        AggConvCurveStrokeTransform strokeTransform(
-          pCurveStroke,
-          *((const agg::trans_affine *)&capsState->transformations));
-        ctx->ras.add_path(strokeTransform);
-      }
-      else
-      {
-        AggConvCurveDash pCurveDash(pCurve);
-        AggSetupDash(pCurveDash, capsState);
-        AggConvCurveDashStroke pCurveDashStroke(pCurveDash);
-        AggSetupStroke(pCurveDashStroke, capsState);
-        AggConvCurveDashStrokeTransform pCurveDashStrokeTransform(
-          pCurveDashStroke,
-          *((const agg::trans_affine *)&capsState->transformations));
-        ctx->ras.add_path(pCurveDashStrokeTransform);
-      }
-    }
-    else
-    {
-      AggConvCurveTransform pCurveTransform(
-        pCurve, *((agg::trans_affine *)&capsState->transformations));
-
-      ctx->ras.add_path(pCurveTransform);
-    }
-  }
-  else
-  {
-    if (stroke)
-    {
-      if (capsState->lineDash.length() <= 1)
-      {
-        AggConvCurveStroke pCurveStroke(pCurve);
-        AggSetupStroke(pCurveStroke, capsState);
-        ctx->ras.add_path(pCurveStroke);
-      }
-      else
-      {
-        AggConvCurveDash pCurveDash(pCurve);
-        AggSetupDash(pCurveDash, capsState);
-        AggConvCurveDashStroke pCurveDashStroke(pCurveDash);
-        AggSetupStroke(pCurveDashStroke, capsState);
-        ctx->ras.add_path(pCurveDashStroke);
-      }
-    }
-    else
-    {
-      ctx->ras.add_path(pCurve);
-    }
-  }
-}
-
-template<int BytesPerPixel, class Rasterizer, class Scanline>
-static void FOG_FASTCALL AggRenderScanlines(
-  RasterPainterDevice* d,
-  RasterPainterContext* ctx, Rasterizer& ras, Scanline& sl)
-{
-  if (!ras.rewind_scanlines()) return;
-
-  RasterPainterClipState* clipState = ctx->clipState;
-  RasterPainterCapsState* capsState = ctx->capsState;
-
-  uint8_t* pBase = clipState->workRaster;
-  sysint_t stride = d->_stride;
-
-  sl.reset(ras.min_x(), ras.max_x());
-
-  Raster::SpanSolidFn span_solid = ctx->raster->span_solid;
-  Raster::SpanSolidMskFn span_solid_a8 = ctx->raster->span_solid_a8;
-
-  // solid source
-  if (capsState->isSolidSource)
-  {
-    uint32_t solidColor = capsState->solidSourcePremultiplied;
-
-    while (ras.sweep_scanline(sl))
-    {
-      unsigned num_spans = sl.num_spans();
-      typename Scanline::const_iterator span = sl.begin();
-
-      sysint_t y = sl.y();
-      uint8_t* pRas = pBase + y * stride;
-      uint8_t* pCur;
-
-      for (;;)
-      {
-        int x = span->x;
-        int len = span->len;
-
-        pCur = pRas + Raster::mul<int, BytesPerPixel>(x);
-
-        if (len > 0)
-        {
-          span_solid_a8(pCur, solidColor, span->covers, (unsigned)len);
-        }
-        else
-        {
-          len = -len;
-          FOG_ASSERT(len > 0);
-
-          uint32_t cover = (uint32_t)*(span->covers);
-          if (cover == 0xFF)
-          {
-            span_solid(pCur, solidColor, len);
-          }
-          else
-          {
-            span_solid(pCur, Raster::bytemul(solidColor, cover), len);
-          }
-        }
-
-        if (--num_spans == 0) break;
-        ++span;
-      }
-    }
-  }
-  else
-  {
-    Raster::PatternContext* pctx = ctx->pctx;
-    if (!pctx) return;
-
-    uint8_t* pbuf = ctx->getBuffer(Raster::mul4(clipState->clipBox.width()));
-    if (!pbuf) return;
-
-    Raster::SpanCompositeFn span_composite = ctx->raster->span_composite[pctx->format];
-    Raster::SpanCompositeMskFn span_composite_a8 = ctx->raster->span_composite_a8[pctx->format];
-
-    while (ras.sweep_scanline(sl))
-    {
-      unsigned num_spans = sl.num_spans();
-      typename Scanline::const_iterator span = sl.begin();
-
-      sysint_t y = sl.y();
-      uint8_t* pRas = pBase + y * stride;
-      uint8_t* pCur;
-
-      for (;;)
-      {
-        int x = span->x;
-        int len = span->len;
-
-        pCur = pRas + Raster::mul<int, BytesPerPixel>(x);
-
-        if (len > 0)
-        {
-          span_composite_a8(pCur, 
-            pctx->fetch(pctx, pbuf, x, y, len),
-            span->covers, len);
-        }
-        else
-        {
-          len = -len;
-          FOG_ASSERT(len > 0);
-
-          uint32_t cover = (uint32_t)*(span->covers);
-          if (cover == 0xFF)
-          {
-            span_composite(pCur,
-              pctx->fetch(pctx, pbuf, x, y, len),
-              len);
-          }
-          else
-          {
-            // TODO
-          }
-        }
-
-        if (--num_spans == 0) break;
-        ++span;
-      }
-    }
-  }
-}
-
-void RasterPainterDevice::_renderPath(
-  RasterPainterContext* ctx,
-  const Path& path, bool stroke)
-{
-  AggRasterizePath(ctx, path, stroke);
-
-  switch (_bpp)
-  {
-    case 4:
-      AggRenderScanlines<4, AggRasterizer, AggScanlineP8>(this, ctx, ctx->ras, ctx->slP8);
-      break;
-    case 3:
-      AggRenderScanlines<3, AggRasterizer, AggScanlineP8>(this, ctx, ctx->ras, ctx->slP8);
-      break;
-    default:
-      FOG_ASSERT_NOT_REACHED();
-  }
-}
-
-void RasterPainterDevice::_renderImage(
-  RasterPainterContext* ctx,
-  const Rect& dst, const Image& image, const Rect& src)
-{
-  Image::Data* image_d = image._d;
-  sysint_t dstStride = _stride;
-  sysint_t srcStride = image_d->stride;
-
-  Raster::SpanCompositeFn span_composite = ctx->raster->span_composite[image.format()];
-
-  sysint_t x = dst.x1();
-  sysint_t y = dst.y1();
-
-  sysint_t w = dst.width();
-  sysint_t h = dst.height();
-
-  uint8_t* dstCur = ctx->clipState->workRaster + y * dstStride + x * _bpp;
-  const uint8_t* srcCur = image_d->first + src.y1() * srcStride + src.x1() * image_d->bytesPerPixel;
-
-  do {
-    span_composite(dstCur, srcCur, (sysuint_t)w);
-    dstCur += dstStride;
-    srcCur += srcStride;
-  } while (--h);
-}
+#endif
 
 // ============================================================================
 // [Fog::Painter]
@@ -2536,9 +3315,22 @@ FOG_INIT_DECLARE err_t fog_painter_init(void)
   static Fog::NullPainterDevice sharedNullDevice;
   Fog::Painter::sharedNull = &sharedNullDevice;
 
+  // Setup multithreading.
+  // 
+  // If CPU contains more cores, we can improve rendering speed by using them.
+  // By default we set number of threads (workers) to count of CPU cores + 1.
+  Fog::RasterPainterDevice::threadPool = NULL;
+  Fog::RasterPainterDevice::threadPool = new(std::nothrow) Fog::ThreadPool();
+
   return Error::Ok;
 }
 
 FOG_INIT_DECLARE void fog_painter_shutdown(void)
 {
+  // Kill multithreading.
+  if (Fog::RasterPainterDevice::threadPool)
+  {
+    delete Fog::RasterPainterDevice::threadPool;
+    Fog::RasterPainterDevice::threadPool = NULL;
+  }
 }

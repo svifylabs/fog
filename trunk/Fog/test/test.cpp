@@ -15,7 +15,7 @@ struct MyWindow : public Window
     button.show();
     button.setText(StubAscii8("Test"));
     button.addListener(EvClick, this, &MyWindow::button_onClick);
-    add(&button);
+    //add(&button);
 
     //background.readFile(StubAscii8("/mnt/data1/Storage/Wallpapers/Fantasmal.bmp"));
     //background.readFile(StubAscii8("/mnt/data1/Storage/Wallpapers/Blue ilusion.jpg"));
@@ -66,11 +66,13 @@ struct MyWindow : public Window
 
     Painter* p = e->painter();
 
+    p->setProperty(StubAscii8("multithreaded"), Value::fromBool(true));
+
     int w = width();
     int h = height();
 
-    p->setSource(0xFF000000);
-    p->clear();
+    //p->setSource(0xFF000000);
+    //p->clear();
 /*
     {
       Pattern pat;
@@ -82,7 +84,7 @@ struct MyWindow : public Window
 */
 
 
-    p->drawImage(Point(0, 0), background);
+    //p->drawImage(Point(0, 0), background);
 
     //p->setSource(Rgba(0x7FFFFFFF));
     //p->fillRect(Rect(100, 30, 200, 200));
@@ -104,6 +106,7 @@ struct MyWindow : public Window
         if (++x == 6) { x = 0; y++; }
       }
 */
+/*
       p->setSource(pattern[activePattern]);
 
       Font font;
@@ -123,7 +126,8 @@ struct MyWindow : public Window
       p->setLineDash(dashes, 2);
       p->drawLine(pattern[activePattern].startPoint(), pattern[activePattern].endPoint());
       //p->fillRect(Rect(100, 100, 500, 500));
-/*
+*/
+
       Path path;
       path.moveTo(PointF(rand()%w, rand()%h));
       for (int i = 0; i < 5; i++)
@@ -132,8 +136,9 @@ struct MyWindow : public Window
       }
       path.closePolygon();
       p->setLineWidth(10.0);
+      p->setSource(0xFFFFFFFF);
       p->fillPath(path);
-*/
+
       //p->fillRect(Rect(100, 100, 400, 500));
       //p->fillRect(Rect(0, 0, w, h));
 

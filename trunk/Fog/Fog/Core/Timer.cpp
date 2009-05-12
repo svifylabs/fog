@@ -45,12 +45,12 @@ struct FOG_HIDDEN TimerTask : public Task
         timer->thread()->eventLoop()->postDelayedTask(
           this,
           static_cast<int>(timer->_interval.inMilliseconds()));
-        _deleteOnFinish = false;
+        _destroyOnFinish = false;
       }
       else
       {
         // We must be sure, it can be set to false.
-        _deleteOnFinish = true;
+        _destroyOnFinish = true;
       }
     }
   }
