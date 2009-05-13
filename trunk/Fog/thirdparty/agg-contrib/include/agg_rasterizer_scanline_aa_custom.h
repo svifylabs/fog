@@ -218,13 +218,14 @@ namespace agg
         {
             if(y > m_outline.max_y()) return false;
 
-            sl.reset_spans();
             unsigned num_cells = m_outline.scanline_num_cells(y);
+            if (!num_cells) return false;
+
+            sl.reset_spans();
             const cell_aa* const* cells = m_outline.scanline_cells(y);
             int cover = 0;
 
-            while(num_cells)
-            {
+            do {
                 const cell_aa* cur_cell = *cells;
                 int x    = cur_cell->x;
                 int area = cur_cell->area;
@@ -259,15 +260,20 @@ namespace agg
                         sl.add_span(x, cur_cell->x - x, alpha);
                     }
                 }
-            }
+            } while (num_cells);
     
-            if(sl.num_spans())
+            if (sl.num_spans())
             {
                 sl.finalize(y);
                 return true;
             }
             else
                 return false;
+        }
+
+        AGG_INLINE bool has_cells() const
+        {
+          return m_outline.total_cells() > 0;
         }
 
         //--------------------------------------------------------------------
