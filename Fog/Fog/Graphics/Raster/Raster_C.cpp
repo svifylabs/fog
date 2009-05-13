@@ -2204,6 +2204,7 @@ static err_t FOG_FASTCALL pattern_texture_init(
 {
   Pattern::Data* d = pattern._d;
   if (d->type != Pattern::Texture) return Error::InvalidArgument;
+  if (d->obj.texture->isEmpty()) return Error::ImageSizeIsZero;
 
   ctx->texture.texture.init(d->obj.texture.instance());
   ctx->texture.dx = double_to_int(d->points[0].x());
