@@ -33,8 +33,8 @@ struct FOG_API ThreadPool
 
   // [Thread Management]
 
-  Thread* getThread();
-  void releaseThread(Thread* thread);
+  Thread* getThread(int workId = -1);
+  void releaseThread(Thread* thread, int workId = -1);
 
   int minThreads() const;
   int maxThreads() const;
@@ -46,6 +46,7 @@ struct FOG_API ThreadPool
   {
     PoolEntry* next;
     Thread* thread;
+    int workId;
   };
 
 private:

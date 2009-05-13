@@ -23,7 +23,7 @@ namespace Fog {
 ThreadPool::ThreadPool() :
   // Safe defaults
   _minThreads(1),
-  _maxThreads(16),
+  _maxThreads(32),
   _numThreads(0),
   _usedThreads(NULL),
   _unusedThreads(NULL)
@@ -34,15 +34,42 @@ ThreadPool::~ThreadPool()
 {
 }
 
-Thread* ThreadPool::getThread()
+Thread* ThreadPool::getThread(int workId)
 {
   AutoLock locked(_lock);
   PoolEntry* pe = NULL;
 
   if (_unusedThreads)
   {
-    pe = _unusedThreads;
-    _unusedThreads = pe->next;
+    // First try to find workId if specified
+    if (workId >= 0)
+    {
+      PoolEntry* cur = _unusedThreads;
+      PoolEntry* prev = NULL;
+      
+      while (cur)
+      {
+        if (cur->workId == workId)
+        {
+          if (prev)
+            prev->next = cur->next;
+          else
+            _unusedThreads = cur->next;
+          pe = cur;
+          break;
+        }
+
+        prev = cur;
+        cur = cur->next;
+      }
+    }
+    
+    if (pe == NULL)
+    {
+      pe = _unusedThreads;
+      pe->workId = workId;
+      _unusedThreads = pe->next;
+    }
   }
   else if (_numThreads < _maxThreads)
   {
@@ -64,6 +91,7 @@ Thread* ThreadPool::getThread()
     }
 
     pe->thread = thread;
+    pe->workId = -1;
   }
   else
   {
@@ -76,7 +104,7 @@ Thread* ThreadPool::getThread()
   return pe->thread;
 }
 
-void ThreadPool::releaseThread(Thread* thread)
+void ThreadPool::releaseThread(Thread* thread, int workId)
 {
   AutoLock locked(_lock);
 
@@ -93,6 +121,7 @@ void ThreadPool::releaseThread(Thread* thread)
         _usedThreads = cur->next;
 
       cur->next = _unusedThreads;
+      if (workId != -1) cur->workId = workId;
       _unusedThreads = cur;
 
       return;
