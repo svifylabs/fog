@@ -58,14 +58,14 @@ static FOG_INLINE __m128i pix_create_mask_8x2W(uint16_t m0, uint16_t m1, uint16_
 }
 
 static FOG_INLINE void pix_unpack_1x1W(
-  __m128i& dst0, const __m128i& data)
+  __m128i& dst0, __m128i data)
 {
   __m128i xmmz = _mm_setzero_si128();
   dst0 = _mm_unpacklo_epi8(data, xmmz);
 }
 
 static FOG_INLINE void pix_unpack_1x2W(
-  __m128i& dst0, const __m128i& data)
+  __m128i& dst0, __m128i data)
 {
   __m128i xmmz = _mm_setzero_si128();
   dst0 = _mm_unpacklo_epi8(data, xmmz);
@@ -79,21 +79,21 @@ static FOG_INLINE void pix_unpack_1x1W(
 
 static FOG_INLINE void pix_unpack_2x2W(
   __m128i& dst0,
-  __m128i& dst1, const __m128i& data)
+  __m128i& dst1, __m128i data)
 {
   __m128i xmmz = _mm_setzero_si128();
-  dst0 = _mm_unpacklo_epi8(data, xmmz);
   dst1 = _mm_unpackhi_epi8(data, xmmz);
+  dst0 = _mm_unpacklo_epi8(data, xmmz);
 }
 
 static FOG_INLINE void pix_pack_1x1W(
-  __m128i& dst0, const __m128i& src0)
+  __m128i& dst0, __m128i src0)
 {
   dst0 = _mm_packus_epi16(src0, src0);
 }
 
 static FOG_INLINE void pix_pack_2x2W(
-  __m128i& dst0, const __m128i& src0, const __m128i& src1)
+  __m128i& dst0, __m128i src0, __m128i src1)
 {
   dst0 = _mm_packus_epi16(src0, src1);
 }
@@ -1089,7 +1089,7 @@ static void FOG_FASTCALL raster_rgb32_span_composite_prgb32_sse2(
     if (t != 0xFFFF)
     {
       // if k != 0x8888 then alpha values are variant.
-      //if (k != 0x8888)
+      if (k != 0x8888)
       {
         dst0mm = _mm_load_si128((__m128i *)dst);
 
@@ -1101,9 +1101,9 @@ static void FOG_FASTCALL raster_rgb32_span_composite_prgb32_sse2(
 
         _mm_store_si128((__m128i*)dst, dst0mm);
       }
-      //else
+      else
       {
-        //_mm_store_si128((__m128i*)dst, src0mm);
+        _mm_store_si128((__m128i*)dst, src0mm);
       }
     }
 
