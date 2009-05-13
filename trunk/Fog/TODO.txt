@@ -13,10 +13,10 @@ TODO
 [ ] Font - Ability to render to 'Path'
 [ ] Painter
     [ ] Text transform
-    [ ] Patterns support
+    [x] Patterns support
     [ ] Patterns transform
     [ ] Text in path support
-    [ ] Line dashes
+    [x] Line dashes
     [ ] Image transform
 [ ] Image
     [ ] Add some effects from qimageblitz?

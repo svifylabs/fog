@@ -753,7 +753,8 @@ struct FOG_HIDDEN RasterPainterCommand
   {
     PathId,
     BoxId,
-    ImageId
+    ImageId,
+    GlypsSetId
   };
 
   int id;
@@ -780,11 +781,18 @@ struct FOG_HIDDEN RasterPainterCommand
     Image image;
   };
 
+  struct GlyphSetData
+  {
+    Point pt;
+    GlyphSet glyphSet;
+  };
+
   union
   {
     Static<PathData> path;
     Static<BoxData> box;
     Static<ImageData> image;
+    Static<GlyphSet> glyphSet;
   };
 };
 
@@ -1333,7 +1341,8 @@ void RasterPainterDevice::setMetaVariables(
     ctx.clipState->userRegion.clear();
     ctx.clipState->userRegionUsed = false;
 
-    _setCapsDefaults();
+    if (_detachCaps())
+      _setCapsDefaults();
   }
 
   _updateWorkRegion();
