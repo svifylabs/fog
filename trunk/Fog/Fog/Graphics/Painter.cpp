@@ -751,10 +751,10 @@ struct FOG_HIDDEN RasterPainterCommand
 
   enum Id
   {
-    PathId,
-    BoxId,
-    ImageId,
-    GlypsSetId
+    PathId = 0,
+    BoxId = 1,
+    ImageId = 2,
+    GlypsSetId = 3
   };
 
   int id;
@@ -1100,7 +1100,6 @@ struct FOG_HIDDEN RasterPainterThreadData
   sysuint_t numThreads;
   Atomic<sysuint_t> startedThreads;   // Count of threads started (total)
   Atomic<sysuint_t> finishedThreads;  // Count of threads finished (used to quit)
-  Atomic<sysuint_t> workingThreads;   // Count of currently working threads
   Atomic<sysuint_t> completedThreads; // Count of threads that completed all tasks
 
   Lock commandsLock;
@@ -1221,13 +1220,7 @@ void RasterPainterThreadTask::run()
 #endif // RASTER_DEBUG
         data->commandsComplete.signal();
       }
-/*
-      if (currentCommand < data->commandsPosition.get())
-      {
-        data->workingThreads.inc();
-        continue;
-      }
-*/
+
       if (shouldQuit)
       {
 #if defined(RASTER_DEBUG)
@@ -1240,9 +1233,7 @@ void RasterPainterThreadTask::run()
       fog_debug("#%d - waiting...", offset);
 #endif // RASTER_DEBUG
 
-      data->workingThreads.dec();
       data->commandsReady.wait();
-      data->workingThreads.inc();
     }
   }
 }
@@ -2238,8 +2229,7 @@ void RasterPainterDevice::flush()
   AutoLock locked(_threadData->commandsLock);
 
 #if defined(RASTER_DEBUG)
-  fog_debug("== flush, working threads: %d, complete threads: %d, command position: %d",
-    (int)_threadData->workingThreads.get(),
+  fog_debug("== flush, complete threads: %d, command position: %d",
     (int)_threadData->completedThreads.get(),
     (int)_threadData->commandsPosition.get());
 #endif // RASTER_DEBUG
@@ -2269,7 +2259,7 @@ void RasterPainterDevice::flushWithQuit()
   fog_debug("== quitting");
 #endif // RASTER_DEBUG
 
-  if (_threadData->workingThreads.get() != _threadData->numThreads)
+  if (_threadData->completedThreads.get() > 0)
     _threadData->commandsReady.broadcast();
 }
 
@@ -2317,23 +2307,36 @@ void RasterPainterDevice::setMultithreaded(bool mt)
   // Start multithreading...
   if (mt)
   {
+#if defined(RASTER_DEBUG)
+    fog_debug("== starting multithreading");
+#endif // RASTER_DEBUG
+
     int max = fog_min<int>(cpuInfo->numberOfProcessors, RASTER_MAX_THREADS);
 
     _threadData = new(std::nothrow) RasterPainterThreadData;
     if (_threadData == NULL) return;
 
     // This is for testing multithreaded rendering on single cores.
-    if (max < 2) max = 2;
+    if (max < 2)
+    {
+#if defined(RASTER_DEBUG)
+      fog_debug("== cores detection says 1, switching to 2");
+#endif // RASTER_DEBUG
+      max = 2;
+    }
 
     for (i = 0; i < max; i++)
     {
-      if ((_threadData->threads[i] = threadPool->getThread()) == NULL) break;
+      if ((_threadData->threads[i] = threadPool->getThread(i)) == NULL) break;
     }
 
     // Failed to get workers. This can happen if there are many threads that
     // uses multithreaded painter, we must destroy all resources and return.
     if (i <= 1)
     {
+#if defined(RASTER_DEBUG)
+      fog_debug("== failed to get %d threads from pool, releasing...", max);
+#endif // RASTER_DEBUG
       if (_threadData->threads[0])
       {
         threadPool->releaseThread(_threadData->threads[0]);
@@ -2351,7 +2354,6 @@ void RasterPainterDevice::setMultithreaded(bool mt)
     _threadData->numThreads = count;
     _threadData->startedThreads.init(0);
     _threadData->finishedThreads.init(0);
-    _threadData->workingThreads.init(count);
     _threadData->completedThreads.init(0);
     _threadData->threadPool = threadPool;
     _threadData->commandsPosition.init(0);
@@ -2387,6 +2389,10 @@ void RasterPainterDevice::setMultithreaded(bool mt)
   // Stop multithreading
   else
   {
+#if defined(RASTER_DEBUG)
+    fog_debug("== stopping multithreading");
+#endif // RASTER_DEBUG
+
     int count = _threadData->numThreads;
 
     ThreadEvent releaseEvent(false, false);
@@ -2405,7 +2411,7 @@ void RasterPainterDevice::setMultithreaded(bool mt)
 
     for (i = 0; i < count; i++)
     {
-      threadPool->releaseThread(_threadData->threads[i]);
+      threadPool->releaseThread(_threadData->threads[i], i);
       _threadData->tasks[i].destroy();
     }
 
@@ -2776,9 +2782,22 @@ void RasterPainterDevice::_destroyCommand(RasterPainterCommand* cmd)
 
 void RasterPainterDevice::_postCommand(RasterPainterCommand* cmd)
 {
+#if defined(RASTER_DEBUG)
+  static const char* commandName[] = {
+    "path",
+    "box",
+    "image",
+    "glyphSet"
+  };
+  fog_debug("== posting command %d (%s)", cmd->id, commandName[cmd->id]);
+#endif // RASTER_DEBUG
+
   // Flush everything if commands get to maximum
   if (_threadData->commandsPosition.get() == RASTER_MAX_COMMANDS)
   {
+#if defined(RASTER_DEBUG)
+    fog_debug("== command buffer is full, flushing");
+#endif // RASTER_DEBUG
     flush();
     FOG_ASSERT(_threadData->commandsPosition.get() == 0);
 
@@ -2794,6 +2813,9 @@ void RasterPainterDevice::_postCommand(RasterPainterCommand* cmd)
   AutoLock locked(_threadData->commandsLock);
   if (_threadData->completedThreads.get() > 0)
   {
+#if defined(RASTER_DEBUG)
+    fog_debug("== broadcasting %d threads", (int)_threadData->completedThreads.get());
+#endif // RASTER_DEBUG
     _threadData->completedThreads.setXchg(0);
     _threadData->commandsReady.broadcast();
   }
