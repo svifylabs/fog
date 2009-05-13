@@ -389,7 +389,7 @@ uint32_t PcxDecoderDevice::readHeader()
   }
 
   // check for correct mime
-  if (pcxFileHeader().manufacturer != 10 ||
+  if (/*pcxFileHeader().manufacturer != 10 ||*/
     pcxFileHeader().version != 5 ||
     pcxFileHeader().encoding != 1)
   {
@@ -582,7 +582,7 @@ uint32_t PcxDecoderDevice::readImage(Image& image)
         pixelsCur[0] = (!(x & 1)) ? ((*mem & 0xF0) >> 4) : (*mem++ & 0xF);
       }
 
-      if (y & 15) updateProgress(y, height());
+      if ((y & 15) == 0) updateProgress(y, height());
     }
   }
 
@@ -594,6 +594,7 @@ uint32_t PcxDecoderDevice::readImage(Image& image)
     sysuint_t ignore = bytesPerLine - width();
     sysuint_t increment;
     sysuint_t plane;
+    sysuint_t planeMax = 1;
 
     switch (depth())
     {
@@ -606,12 +607,14 @@ uint32_t PcxDecoderDevice::readImage(Image& image)
         pos[1] = Raster::RGB24_GByte;
         pos[2] = Raster::RGB24_BByte;
         increment = 3;
+        planeMax = 3;
       case 32:
         pos[0] = Raster::RGB32_RByte;
         pos[1] = Raster::RGB32_GByte;
         pos[2] = Raster::RGB32_BByte;
         pos[3] = Raster::RGB32_AByte;
         increment = 4;
+        planeMax = 4;
         break;
       default:
         FOG_ASSERT_NOT_REACHED();
@@ -620,12 +623,12 @@ uint32_t PcxDecoderDevice::readImage(Image& image)
     for (y = 0; y != height(); y++) 
     {
       pixelsCur = image.xScanline(y);
-      for (plane = 0; plane < planes(); plane++)
+      for (plane = 0; plane < planeMax; plane++)
       {
         if ((error = PCX_decodeScanline(pixelsCur + pos[plane], &dataCur, dataEnd, width(), ignore, increment)) != Error::Ok) goto end;
       }
 
-      if (y & 15) updateProgress(y, height());
+      if ((y & 15) == 0) updateProgress(y, height());
     }
   }
 
@@ -771,7 +774,7 @@ uint32_t PcxEncoderDevice::writeImage(const Image& image)
   // align bpl to 16 bits
   alignment = bpl & 1; 
 
-  pcx.manufacturer = 0x10;
+  pcx.manufacturer = 10;
   pcx.version = version;
   pcx.encoding = 1;
   pcx.bitsPerPixel = bitsPerPixel;

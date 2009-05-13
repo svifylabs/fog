@@ -812,7 +812,6 @@ sysuint_t Stream::read(String8& dst, sysuint_t size)
 sysuint_t Stream::readAll(String8& dst, int64_t maxBytes)
 {
   dst.clear();
-  if (maxBytes <= 0) return 0;
 
   int64_t curPosition = tell();
   int64_t endPosition = seek(0, SeekEnd);
@@ -820,7 +819,9 @@ sysuint_t Stream::readAll(String8& dst, int64_t maxBytes)
   if (curPosition == -1 || endPosition == -1) return 0;
 
   int64_t remain = endPosition - curPosition;
-  if (remain > maxBytes) remain = maxBytes;
+
+  if (maxBytes > 0 && remain > maxBytes)
+    remain = maxBytes;
 
   if (seek(curPosition, SeekSet) == -1) return 0;
 

@@ -183,7 +183,7 @@ static uint createDirectoryHelper(const Char32* path, sysuint_t len)
     path[1] == Char32(':') &&
     path[2] == Char32('/'))
   {
-    return 2;
+    return Error::DirectoryAlreadyExists;
   }
 
   TemporaryString16<TemporaryLength> pathW;
@@ -197,12 +197,12 @@ static uint createDirectoryHelper(const Char32* path, sysuint_t len)
   {
     DWORD lastError = GetLastError();
     if (lastError != ERROR_ALREADY_EXISTS)
-      return 0;
+      return lastError;
     else
-      return 2;
+      return Error::DirectoryAlreadyExists;
   }
 
-  return 1;
+  return Error::Ok;
 }
 
 err_t FileSystem::createDirectory(const String32& dir, bool recursive)
@@ -401,7 +401,7 @@ static err_t createDirectoryHelper(const Char32* path, sysuint_t len)
 
   if (mkdir(path8.cStr(), S_IRWXU | S_IXGRP | S_IXOTH) == 0) return Error::Ok;
 
-  if (errno == EEXIST) 
+  if (errno == EEXIST)
     return Error::DirectoryAlreadyExists;
   else
     return errno;
