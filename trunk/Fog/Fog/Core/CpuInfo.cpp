@@ -93,7 +93,7 @@ void cpuid(uint32_t in, CpuId* out)
 #elif defined(__GNUC__)
 
 // Note, need to preserve ebx/rbx register!
-# if defined(ASMJIT_X86)
+# if defined(FOG_ARCH_X86)
 #  define __mycpuid(a, b, c, d, inp) \
   asm ("mov %%ebx, %%edi\n"    \
        "cpuid\n"               \
@@ -128,7 +128,7 @@ void detectCpuInfo(CpuInfo* i)
 
   i->numberOfProcessors = detectNumberOfProcessors();
 
-#if defined(FOG_ARCH_X86) || defined(FOG_ARCH_X64)
+#if defined(FOG_ARCH_X86) || defined(FOG_ARCH_X86_64)
   CpuId out;
 
   // Get vendor string
