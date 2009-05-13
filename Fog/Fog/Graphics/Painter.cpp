@@ -637,7 +637,7 @@ struct FOG_HIDDEN RasterPainterCommandAllocator
 
   struct Block
   {
-    enum { BlockSize = 16000 };
+    enum { BlockSize = 32000 };
 
     Block* next;
 
@@ -751,7 +751,9 @@ struct FOG_HIDDEN RasterPainterCommand
 
   enum Id
   {
-    PathId
+    PathId,
+    BoxId,
+    ImageId
   };
 
   int id;
@@ -763,9 +765,26 @@ struct FOG_HIDDEN RasterPainterCommand
     AggRasterizer ras;
   };
 
+  struct BoxData
+  {
+    enum { Size = 56 };
+
+    int count;
+    Box box[Size];
+  };
+
+  struct ImageData
+  {
+    Rect dst;
+    Rect src;
+    Image image;
+  };
+
   union
   {
     Static<PathData> path;
+    Static<BoxData> box;
+    Static<ImageData> image;
   };
 };
 
@@ -940,7 +959,6 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
   void _setCapsDefaults();
 
   Raster::PatternContext* _getPatternContext();
-  void _releasePatternContext(Raster::PatternContext* pctx);
   void _resetPatternContext();
 
   FOG_INLINE void _updateLineWidth()
@@ -962,6 +980,7 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
   void _serializeImage(const Rect& dst, const Image& image, const Rect& src);
 
   RasterPainterCommand* _createCommand();
+  void _destroyCommand(RasterPainterCommand* cmd);
   void _postCommand(RasterPainterCommand* cmd);
 
   // [Rasterizers]
@@ -970,7 +989,7 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
 
   // [Renderers]
   //
-  // Renderers can be called from various threads (workers).
+  // Renderers can be called from various threads.
 
   void _renderPath(const AggRasterizer& ras);
   void _renderBoxes(const Box* box, sysuint_t count);
@@ -978,8 +997,8 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
   void _renderGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip);
 
   void _renderPathMT(RasterPainterContext* ctx, int offset, int delta, const AggRasterizer& ras);
-  //void _renderBoxesMT(RasterPainterContext* ctx, const Box* box, sysuint_t count);
-  //void _renderImageMT(RasterPainterContext* ctx, const Rect& dst, const Image& image, const Rect& src);
+  void _renderBoxesMT(RasterPainterContext* ctx, int offset, int delta, const Box* box, sysuint_t count);
+  void _renderImageMT(RasterPainterContext* ctx, int offset, int delta, const Rect& dst, const Image& image, const Rect& src);
   //void _renderGlyphSetMT(RasterPainterContext* ctx, const Point& pt, const GlyphSet& glyphSet, const Rect* clip);
 
   // [Constants]
@@ -1129,11 +1148,43 @@ void RasterPainterThreadTask::run()
           // Destroy
           if (cmd->refCount.deref()) 
           {
-            cmd->clipState->deref();
-            cmd->capsState->deref();
-            if (cmd->pctx && cmd->pctx->refCount.deref()) cmd->pctx->destroy(cmd->pctx);
             cmd->path.destroy();
-            cmd->this_block->used.sub(cmd->this_size);
+            d->_destroyCommand(cmd);
+          }
+          break;
+        }
+
+        case RasterPainterCommand::BoxId:
+        {
+          // Render
+          ctx.clipState = cmd->clipState;
+          ctx.capsState = cmd->capsState;
+          ctx.raster = cmd->raster;
+          ctx.pctx = cmd->pctx;
+          d->_renderBoxesMT(&ctx, offset, delta, cmd->box->box, cmd->box->count);
+
+          // Destroy
+          if (cmd->refCount.deref())
+          {
+            d->_destroyCommand(cmd);
+          }
+          break;
+        }
+
+        case RasterPainterCommand::ImageId:
+        {
+          // Render
+          ctx.clipState = cmd->clipState;
+          ctx.capsState = cmd->capsState;
+          ctx.raster = cmd->raster;
+          ctx.pctx = cmd->pctx;
+          d->_renderImageMT(&ctx, offset, delta, cmd->image->dst, cmd->image->image, cmd->image->src);
+
+          // Destroy
+          if (cmd->refCount.deref())
+          {
+            cmd->image.destroy();
+            d->_destroyCommand(cmd);
           }
           break;
         }
@@ -2520,20 +2571,20 @@ Raster::PatternContext* RasterPainterDevice::_getPatternContext()
   return pctx;
 }
 
-void RasterPainterDevice::_releasePatternContext(Raster::PatternContext* pctx)
-{
-  FOG_ASSERT(pctx != NULL);
-
-  if (pctx->destroy) pctx->destroy(pctx);
-  Memory::free(pctx);
-
-  if (ctx.pctx == pctx) ctx.pctx = NULL;
-}
-
 void RasterPainterDevice::_resetPatternContext()
 {
   if (ctx.pctx && ctx.pctx->initialized)
-    ctx.pctx->destroy(ctx.pctx);
+  {
+    if (ctx.pctx->refCount.deref())
+    {
+      ctx.pctx->destroy(ctx.pctx);
+      ctx.pctx->refCount.inc();
+    }
+    else
+    {
+      ctx.pctx = NULL;
+    }
+  }
 }
 
 bool RasterPainterDevice::_detachClip()
@@ -2562,6 +2613,13 @@ bool RasterPainterDevice::_detachCaps()
 // [Fog::RasterPainterDevice - Serializers]
 // ============================================================================
 
+static FOG_INLINE int alignToDelta(int y, int offset, int delta)
+{
+  int mask = delta-1;
+  while ((y & mask) != offset) y++;
+  return y;
+}
+
 void RasterPainterDevice::_serializePath(const Path& path, bool stroke)
 {
   // Pattern context must be always set up before _render() methods are called.
@@ -2569,7 +2627,7 @@ void RasterPainterDevice::_serializePath(const Path& path, bool stroke)
 
   if (_threadData)
   {
-    // MultiThreaded - Serialize command.
+    // Multithreaded - Serialize command.
     RasterPainterCommand* cmd = _createCommand();
     cmd->id = RasterPainterCommand::PathId;
     cmd->path.init();
@@ -2590,7 +2648,7 @@ void RasterPainterDevice::_serializePath(const Path& path, bool stroke)
   }
   else
   {
-    // SingleThreaded - Render now.
+    // Singlethreaded - Render now.
     if (_rasterizePath(&ctx, ras, path, stroke))
     {
       _renderPath(ras);
@@ -2605,9 +2663,28 @@ void RasterPainterDevice::_serializeBoxes(const Box* box, sysuint_t count)
 
   if (_threadData)
   {
+    // Multithreaded - Serialize command.
+    sysuint_t i = 0;
+    while (i < count)
+    {
+      RasterPainterCommand* cmd = _createCommand();
+      cmd->id = RasterPainterCommand::BoxId;
+
+      sysuint_t j;
+      sysuint_t n = fog_min<sysuint_t>(count - i, RasterPainterCommand::BoxData::Size);
+
+      cmd->box->count = n;
+      for (j = 0; j < n; j++)
+        cmd->box->box[j] = box[j];
+      _postCommand(cmd);
+
+      i += n;
+      box += n;
+    }
   }
   else
   {
+    // Singlethreaded - Render now.
     _renderBoxes(box, count);
   }
 }
@@ -2616,9 +2693,18 @@ void RasterPainterDevice::_serializeImage(const Rect& dst, const Image& image, c
 {
   if (_threadData)
   {
+    // Multithreaded - Serialize command.
+    RasterPainterCommand* cmd = _createCommand();
+    cmd->id = RasterPainterCommand::ImageId;
+    cmd->image.init();
+    cmd->image->dst = dst;
+    cmd->image->src = src;
+    cmd->image->image = image;
+    _postCommand(cmd);
   }
   else
   {
+    // Singlethreaded - Render now.
     _renderImage(dst, image, src);
   }
 }
@@ -2633,6 +2719,7 @@ void RasterPainterDevice::_serializeGlyphSet(const Point& pt, const GlyphSet& gl
   }
   else
   {
+    // Singlethreaded - Render now.
     _renderGlyphSet(pt, glyphSet, clip);
   }
 }
@@ -2653,13 +2740,28 @@ RasterPainterCommand* RasterPainterDevice::_createCommand()
   command->raster = ctx.raster;
   command->pctx = NULL;
 
-  if (ctx.pctx && ctx.pctx->initialized)
+  if (!ctx.capsState->isSolidSource)
   {
+    FOG_ASSERT(ctx.pctx && ctx.pctx->initialized);
     ctx.pctx->refCount.inc();
     command->pctx = ctx.pctx;
   }
 
   return command;
+}
+
+void RasterPainterDevice::_destroyCommand(RasterPainterCommand* cmd)
+{
+  // Specific command data (in union) must be destroyed in worker. This method
+  // destroyes only general data for all command types.
+  cmd->clipState->deref();
+  cmd->capsState->deref();
+  if (cmd->pctx && cmd->pctx->refCount.deref())
+  {
+    cmd->pctx->destroy(cmd->pctx);
+    Memory::free(cmd->pctx);
+  }
+  cmd->this_block->used.sub(cmd->this_size);
 }
 
 void RasterPainterDevice::_postCommand(RasterPainterCommand* cmd)
@@ -2804,6 +2906,8 @@ template<int BytesPerPixel, class Rasterizer, class Scanline>
 static void FOG_INLINE AggRenderPath(
   RasterPainterContext* ctx, const Rasterizer& ras, Scanline& sl, int offset, int delta)
 {
+  FOG_ASSERT(delta > 0);
+
   RasterPainterClipState* clipState = ctx->clipState;
   RasterPainterCapsState* capsState = ctx->capsState;
 
@@ -2812,9 +2916,14 @@ static void FOG_INLINE AggRenderPath(
   Raster::SpanSolidFn span_solid = ctx->raster->span_solid;
   Raster::SpanSolidMskFn span_solid_a8 = ctx->raster->span_solid_a8;
 
-  int y = ras.min_y() + offset;
+  int y = ras.min_y();
   int y_end = ras.max_y();
-  if (y > y_end) return;
+
+  if (delta != 1)
+  {
+    y = alignToDelta(y, offset, delta);
+    if (y > y_end) return;
+  }
 
   sysint_t stride = ctx->owner->_stride;
   uint8_t* pBase = clipState->workRaster + y * stride;
@@ -2961,15 +3070,15 @@ void RasterPainterDevice::_renderBoxes(const Box* box, sysuint_t count)
 
     for (sysuint_t i = 0; i < count; i++)
     {
-      sysint_t x = box[i].x1();
-      sysint_t y = box[i].y1();
+      int x = box[i].x1();
+      int y = box[i].y1();
 
-      sysint_t w = box[i].width();
+      int w = box[i].width();
       if (w <= 0) continue;
-      sysint_t h = box[i].height();
+      int h = box[i].height();
       if (h <= 0) continue;
 
-      uint8_t* pCur = pBuf + y * stride + x * bpp;
+      uint8_t* pCur = pBuf + (sysint_t)y * stride + (sysint_t)x * bpp;
       do {
         span_solid(pCur, rgba, (sysuint_t)w);
         pCur += stride;
@@ -2988,15 +3097,15 @@ void RasterPainterDevice::_renderBoxes(const Box* box, sysuint_t count)
 
     for (sysuint_t i = 0; i < count; i++)
     {
-      sysint_t x = box[i].x1();
-      sysint_t y = box[i].y1();
+      int x = box[i].x1();
+      int y = box[i].y1();
 
-      sysint_t w = box[i].width();
+      int w = box[i].width();
       if (w <= 0) continue;
-      sysint_t h = box[i].height();
+      int h = box[i].height();
       if (h <= 0) continue;
 
-      uint8_t* pCur = pBuf + y * stride + x * bpp;
+      uint8_t* pCur = pBuf + (sysint_t)y * stride + (sysint_t)x * bpp;
       do {
         span_composite(pCur, 
           pctx->fetch(pctx, pbuf, x, y, w),
@@ -3016,14 +3125,16 @@ void RasterPainterDevice::_renderImage(const Rect& dst, const Image& image, cons
 
   Raster::SpanCompositeFn span_composite = ctx.raster->span_composite[image.format()];
 
-  sysint_t x = dst.x1();
-  sysint_t y = dst.y1();
+  int x = dst.x1();
+  int y = dst.y1();
 
-  sysint_t w = dst.width();
-  sysint_t h = dst.height();
+  int w = dst.width();
+  int h = dst.height();
 
-  uint8_t* dstCur = ctx.clipState->workRaster + y * dstStride + x * _bpp;
-  const uint8_t* srcCur = image_d->first + src.y1() * srcStride + src.x1() * image_d->bytesPerPixel;
+  uint8_t* dstCur = ctx.clipState->workRaster + 
+    (sysint_t)y * dstStride + (sysint_t)x * _bpp;
+  const uint8_t* srcCur = image_d->first + 
+    (sysint_t)src.y1() * srcStride + (sysint_t)src.x1() * image_d->bytesPerPixel;
 
   do {
     span_composite(dstCur, srcCur, (sysuint_t)w);
@@ -3147,15 +3258,13 @@ void RasterPainterDevice::_renderPathMT(
   }
 }
 
-#if 0
-void RasterPainterDevice::_renderBoxes(
-  RasterPainterContext* ctx, int offset, int delta,
-  const Box* box, sysuint_t count)
+void RasterPainterDevice::_renderBoxesMT(RasterPainterContext* ctx, int offset, int delta, const Box* box, sysuint_t count)
 {
   if (!count) return;
 
   uint8_t* pBuf = ctx->clipState->workRaster;
   sysint_t stride = _stride;
+  sysint_t strideWithDelta = stride * delta;
   sysint_t bpp = _bpp;
 
   if (ctx->capsState->isSolidSource)
@@ -3165,19 +3274,21 @@ void RasterPainterDevice::_renderBoxes(
 
     for (sysuint_t i = 0; i < count; i++)
     {
-      sysint_t x = box[i].x1();
-      sysint_t y = box[i].y1();
-
-      sysint_t w = box[i].width();
+      int x1 = box[i].x1();
+      int y1 = box[i].y1();
+      int y2 = box[i].y2();
+      int w = box[i].width();
       if (w <= 0) continue;
-      sysint_t h = box[i].height();
-      if (h <= 0) continue;
 
-      uint8_t* pCur = pBuf + y * stride + x * bpp;
+      y1 = alignToDelta(y1, offset, delta);
+      if (y1 >= y2) continue;
+
+      uint8_t* pCur = pBuf + (sysint_t)y1 * stride + (sysint_t)x1 * bpp;
       do {
         span_solid(pCur, rgba, (sysuint_t)w);
-        pCur += stride;
-      } while (--h);
+        pCur += strideWithDelta;
+        y1 += delta;
+      } while (y1 < y2);
     }
   }
   else
@@ -3192,27 +3303,28 @@ void RasterPainterDevice::_renderBoxes(
 
     for (sysuint_t i = 0; i < count; i++)
     {
-      sysint_t x = box[i].x1();
-      sysint_t y = box[i].y1();
-
-      sysint_t w = box[i].width();
+      int x1 = box[i].x1();
+      int y1 = box[i].y1();
+      int y2 = box[i].y2();
+      int w = box[i].width();
       if (w <= 0) continue;
-      sysint_t h = box[i].height();
-      if (h <= 0) continue;
 
-      uint8_t* pCur = pBuf + y * stride + x * bpp;
+      y1 = alignToDelta(y1, offset, delta);
+      if (y1 >= y2) continue;
+
+      uint8_t* pCur = pBuf + (sysint_t)y1 * stride + (sysint_t)x1 * bpp;
       do {
-        span_composite(pCur, 
-          pctx->fetch(pctx, pbuf, x, y, w),
+        span_composite(pCur,
+          pctx->fetch(pctx, pbuf, x1, y1, w),
           (sysuint_t)w);
-        pCur += stride;
-        y++;
-      } while (--h);
+        pCur += strideWithDelta;
+        y1 += delta;
+      } while (y1 < y2);
     }
   }
 }
 
-void RasterPainterDevice::_renderImage(
+void RasterPainterDevice::_renderImageMT(
   RasterPainterContext* ctx, int offset, int delta,
   const Rect& dst, const Image& image, const Rect& src)
 {
@@ -3222,21 +3334,32 @@ void RasterPainterDevice::_renderImage(
 
   Raster::SpanCompositeFn span_composite = ctx->raster->span_composite[image.format()];
 
-  sysint_t x = dst.x1();
-  sysint_t y = dst.y1();
+  int x = dst.x1();
+  int y = dst.y1();
 
-  sysint_t w = dst.width();
-  sysint_t h = dst.height();
+  int w = dst.width();
+  int y2 = dst.y2();
 
-  uint8_t* dstCur = ctx->clipState->workRaster + y * dstStride + x * _bpp;
-  const uint8_t* srcCur = image_d->first + src.y1() * srcStride + src.x1() * image_d->bytesPerPixel;
+  y = alignToDelta(y, offset, delta);
+  if (y >= y2) return;
+
+  uint8_t* dstCur = ctx->clipState->workRaster +
+    (sysint_t)y * dstStride + (sysint_t)x * _bpp;
+  const uint8_t* srcCur = image_d->first +
+    (sysint_t)(src.y1() + y - dst.y1()) * srcStride + (sysint_t)src.x1() * image_d->bytesPerPixel;
+
+  dstStride *= delta;
+  srcStride *= delta;
 
   do {
     span_composite(dstCur, srcCur, (sysuint_t)w);
     dstCur += dstStride;
     srcCur += srcStride;
-  } while (--h);
+    y += delta;
+  } while (y < y2);
 }
+
+#if 0
 
 void RasterPainterDevice::_renderGlyphSet(
   RasterPainterContext* ctx, int offset, int delta,
