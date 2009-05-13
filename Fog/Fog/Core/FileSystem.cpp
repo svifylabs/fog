@@ -20,6 +20,9 @@
 #if defined(FOG_OS_WINDOWS)
 // windows.h is already included in Fog/Build/Build.h
 #include <io.h>
+#ifndef IO_REPARSE_TAG_SYMLINK
+#define IO_REPARSE_TAG_SYMLINK 0xA000000C
+#endif // IO_REPARSE_TAG_SYMLINK
 #else
 #include <dirent.h>
 #include <errno.h>
@@ -58,6 +61,22 @@ uint32_t FileSystem::testFile(const String32& fileName, uint32_t flags)
       result |= FileSystem::CanRead;
     else
       result |= FileSystem::CanRead | FileSystem::CanWrite;
+
+    if ((flags & FileSystem::IsLink) && (fi.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT))
+    {
+      WIN32_FIND_DATAW fd;
+      HANDLE r;
+      
+      r = FindFirstFileW(fileNameW.cStrW(), &fd);
+      if (r != INVALID_HANDLE_VALUE)
+      {
+        if (fd.dwReserved0 & IO_REPARSE_TAG_SYMLINK)
+        {
+          result |= FileSystem::IsLink;
+        }
+        FindClose(r);
+      }
+    }
 
     if (fi.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) result |= FileSystem::IsHidden;
     if (fi.dwFileAttributes & FILE_ATTRIBUTE_ARCHIVE) result |= FileSystem::IsArchive;
