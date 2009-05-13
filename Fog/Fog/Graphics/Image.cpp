@@ -2387,53 +2387,6 @@ err_t Image::readMemory(const void* data, sysuint_t size, const String32& extens
   return readStream(stream, extension);
 }
 
-#if 0
-FOG_CAPI_DECLARE void Image::Fog_Image_writeFile(
-  Image* image,
-  const String32* fileName,
-  Fog_ImageProcessHandler* handler, void* handlerData, Value* result)
-{
-  Stream stream;
-
-  *result = stream.openFile(*fileName, Stream::Open_Write | Stream::Open_Create | Stream::Open_CreatePath | Stream::Open_Truncate);
-  if (result->ok())
-  {
-    TemporaryString<16> extension;
-    Path::extensionTo(*fileName, extension);
-    extension.lower();
-
-    Fog_Image_writeStream(image, &stream, &extension, handler, handlerData, result);
-  }
-}
-
-FOG_CAPI_DECLARE void Image::Fog_Image_writeStream(
-  Image* image,
-  Stream* stream, const String32* extension,
-  Fog_ImageProcessHandler* handler, void* handlerData, Value* result)
-{
-  Fog_ImageIOEncoder encoder;
-  uint error;
-  
-  if (extension == NULL || extension->length() == 0 || 
-    !encoder.getByExtension(*stream, *extension)) 
-  {
-    error = Fog_ImageError_ExtensionNotMatch;
-    goto end;
-  }
-
-  error = encoder.funcs->encodeImage(&encoder, image, handler, handlerData);
-end:
-  if (error == Fog_ImageError_Success)
-  {
-    result->null();
-  }
-  else
-  {
-    result->setError(ErrorDomain_Image, error);
-  }
-}
-#endif
-
 err_t Image::writeFile(const String32& fileName)
 {
   Stream stream;
@@ -2458,8 +2411,25 @@ err_t Image::writeFile(const String32& fileName)
 
 err_t Image::writeStream(Stream& stream, const String32& extension)
 {
-  // TODO:
-  return Error::Ok;
+  ImageIO::Provider* provider;
+  ImageIO::EncoderDevice* encoder;
+
+  if ((provider = ImageIO::getProviderByExtension(extension)))
+  {
+    if ((encoder = provider->createEncoder()))
+    {
+      err_t err;
+
+      encoder->attachStream(stream);
+      err = encoder->writeImage(*this);
+      delete encoder;
+      return err;
+    }
+    else
+      return Error::ImageIO_EncoderNotAvailable;
+  }
+  else
+    return Error::ImageIO_ProviderNotAvailable;
 }
 
 // ============================================================================
@@ -2639,35 +2609,6 @@ Image::Data* Image::Data::copy(const Data* other)
 }
 
 } // Fog namespace
-
-#if 0
-FOG_CAPI_DECLARE void Image::Fog_Image_writeStream(
-  Image* image,
-  Stream* stream, const String32* extension,
-  Fog_ImageProcessHandler* handler, void* handlerData, Value* result)
-{
-  Fog_ImageIOEncoder encoder;
-  uint error;
-  
-  if (extension == NULL || extension->length() == 0 || 
-    !encoder.getByExtension(*stream, *extension)) 
-  {
-    error = Fog_ImageError_ExtensionNotMatch;
-    goto end;
-  }
-
-  error = encoder.funcs->encodeImage(&encoder, image, handler, handlerData);
-end:
-  if (error == Fog_ImageError_Success)
-  {
-    result->null();
-  }
-  else
-  {
-    result->setError(ErrorDomain_Image, error);
-  }
-}
-#endif
 
 // ============================================================================
 // [Library Initializers]

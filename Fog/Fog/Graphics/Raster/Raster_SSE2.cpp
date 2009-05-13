@@ -142,8 +142,8 @@ static FOG_INLINE void pix_expand_alpha_1x2W(
 }
 
 static FOG_INLINE void pix_expand_alpha_2x2W(
-  __m128i& dst0, const __m128i src0,
-  __m128i& dst1, const __m128i src1)
+  __m128i& dst0, const __m128i& src0,
+  __m128i& dst1, const __m128i& src1)
 {
   dst0 = _mm_shufflelo_epi16(src0, _MM_SHUFFLE(3, 3, 3, 3));
   dst1 = _mm_shufflelo_epi16(src1, _MM_SHUFFLE(3, 3, 3, 3));
@@ -1089,7 +1089,7 @@ static void FOG_FASTCALL raster_rgb32_span_composite_prgb32_sse2(
     if (t != 0xFFFF)
     {
       // if k != 0x8888 then alpha values are variant.
-      if (k != 0x8888)
+      //if (k != 0x8888)
       {
         dst0mm = _mm_load_si128((__m128i *)dst);
 
@@ -1101,9 +1101,9 @@ static void FOG_FASTCALL raster_rgb32_span_composite_prgb32_sse2(
 
         _mm_store_si128((__m128i*)dst, dst0mm);
       }
-      else
+      //else
       {
-        _mm_store_si128((__m128i*)dst, src0mm);
+        //_mm_store_si128((__m128i*)dst, src0mm);
       }
     }
 

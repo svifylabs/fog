@@ -87,7 +87,7 @@ static FOG_INLINE uint8_t toGrey(uint32_t c)
 
 static FOG_INLINE uint32_t premultiply(uint32_t x)
 {
-#if FOG_ARCH_BITS == 64
+#if FOG_ARCH_BITS == 64 && 0
   uint32_t a = x >> 24;
   uint64_t x0 = ((uint64_t)x | ((uint64_t)x << 24)) & FOG_UINT64_C(0x000000FF00FF00FF);
   x0 |= FOG_UINT64_C(0x00FF000000000000);

@@ -2541,6 +2541,7 @@ Raster::PatternContext* RasterPainterDevice::_getPatternContext()
   {
     pctx = ctx.pctx = (Raster::PatternContext*)Memory::alloc(sizeof(Raster::PatternContext));
     if (!pctx) return NULL;
+    pctx->refCount.init(1);
     pctx->initialized = false;
   }
 
@@ -2573,11 +2574,11 @@ Raster::PatternContext* RasterPainterDevice::_getPatternContext()
 
 void RasterPainterDevice::_resetPatternContext()
 {
-  if (ctx.pctx && ctx.pctx->initialized)
+  if (ctx.pctx)
   {
     if (ctx.pctx->refCount.deref())
     {
-      ctx.pctx->destroy(ctx.pctx);
+      if (ctx.pctx->initialized) ctx.pctx->destroy(ctx.pctx);
       ctx.pctx->refCount.inc();
     }
     else
