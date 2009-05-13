@@ -10,6 +10,7 @@
 
 // [Dependencies]
 #include <Fog/Core/AutoLock.h>
+#include <Fog/Core/AutoUnlock.h>
 #include <Fog/Core/CpuInfo.h>
 #include <Fog/Core/Error.h>
 #include <Fog/Core/Math.h>
@@ -63,7 +64,9 @@ namespace Fog {
 // ============================================================================
 
 #define RASTER_MAX_THREADS 4
-#define RASTER_MAX_COMMANDS 1024
+#define RASTER_MAX_COMMANDS 4096
+
+// #define RASTER_DEBUG
 
 // ============================================================================
 // [Forward Declarations]
@@ -662,52 +665,49 @@ void* RasterPainterCommandAllocator::alloc(sysuint_t size)
 {
   FOG_ASSERT(size <= Block::BlockSize);
 
-  Block* cur;
-  Block* prev;
-
-  // First look at memory in last block.
-  if (blocks && (blocks->size - blocks->pos) >= size)
+  if (!blocks || (blocks->size - blocks->pos) < size)
   {
-allocFromBlocks:
-    void* mem = (void*)(blocks->memory + blocks->pos);
-    blocks->pos += size;
-    blocks->used.add(size);
-    return mem;
-  }
+    // Traverse to previous blocks and try to find complete free one
+    Block* cur = blocks;
+    Block* prev = NULL;
 
-  // Traverse to previous blocks and try to find complete free one
-  cur = blocks;
-  prev = NULL;
-
-  while (cur)
-  {
-    if (cur->used.cmpXchg(0, 0))
+    while (cur)
     {
-      if (prev)
+      if (cur->used.get() == 0)
       {
-        prev->next = cur->next;
-        cur->next = blocks;
-        blocks = cur;
+        // Make it first.
+        if (prev)
+        {
+          prev->next = cur->next;
+          cur->next = blocks;
+          blocks = cur;
+        }
+
+        cur->pos = 0;
+        goto allocFromBlocks;
       }
-      goto allocFromBlocks;
+
+      prev = cur;
+      cur = cur->next;
     }
 
-    prev = cur;
-    cur = cur->next;
+    // If we are here, it's needed to allocate new chunk of memory.
+    cur = (Block*)Memory::alloc(sizeof(Block));
+    if (!cur) return NULL;
+
+    cur->size = Block::BlockSize;
+    cur->pos = 0;
+    cur->used.init(0);
+
+    cur->next = blocks;
+    blocks = cur;
   }
 
-  // If we are here, it's needed to allocate new chunk of memory.
-  cur = (Block*)Memory::alloc(sizeof(Block));
-  if (!cur) return NULL;
-
-  cur->size = Block::BlockSize;
-  cur->pos = 0;
-  cur->used.init(0);
-
-  cur->next = blocks;
-  blocks = cur;
-
-  goto allocFromBlocks;
+allocFromBlocks:
+  void* mem = (void*)(blocks->memory + blocks->pos);
+  blocks->pos += size;
+  blocks->used.add(size);
+  return mem;
 }
 
 void RasterPainterCommandAllocator::freeAll()
@@ -966,7 +966,7 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
 
   // [Rasterizers]
 
-  static void _rasterizePath(RasterPainterContext* ctx, AggRasterizer& ras, const Path& path, bool stroke);
+  static bool _rasterizePath(RasterPainterContext* ctx, AggRasterizer& ras, const Path& path, bool stroke);
 
   // [Renderers]
   //
@@ -1042,10 +1042,10 @@ struct FOG_HIDDEN RasterPainterThreadTask : public Task
   RasterPainterDevice* d;
   RasterPainterThreadData* data;
 
-  Atomic<int> shouldQuit;
+  volatile int shouldQuit;
 
   // Painter commands management.
-  sysuint_t currentCommand;
+  volatile sysuint_t currentCommand;
 
   // Thread offset and delta.
   int offset;
@@ -1071,9 +1071,10 @@ struct FOG_HIDDEN RasterPainterThreadData
   ThreadPool* threadPool;
 
   sysuint_t numThreads;
-  Atomic<sysuint_t> startedThreads;
-  Atomic<sysuint_t> finishedThreads;
-  Atomic<sysuint_t> workingThreads;
+  Atomic<sysuint_t> startedThreads;   // Count of threads started (total)
+  Atomic<sysuint_t> finishedThreads;  // Count of threads finished (used to quit)
+  Atomic<sysuint_t> workingThreads;   // Count of currently working threads
+  Atomic<sysuint_t> completedThreads; // Count of threads that completed all tasks
 
   Lock commandsLock;
   ThreadCondition commandsReady;
@@ -1086,28 +1087,33 @@ struct FOG_HIDDEN RasterPainterThreadData
   // Commands
   Atomic<sysuint_t> commandsPosition;
   RasterPainterCommandAllocator commandAllocator;
-  RasterPainterCommand* commands[RASTER_MAX_COMMANDS];
+  RasterPainterCommand* volatile commands[RASTER_MAX_COMMANDS];
 };
 
 RasterPainterThreadTask::RasterPainterThreadTask()
 {
   d = NULL;
   data = NULL;
-  shouldQuit.init(0);
+  shouldQuit = 0;
   currentCommand = 0;
 }
 
 void RasterPainterThreadTask::run()
 {
-  //fog_debug("Thread run: #%d %d", offset, Thread::current()->id());
+#if defined(RASTER_DEBUG)
+  fog_debug("#%d - run() [ThreadID=%d]", offset, Thread::current()->id());
+#endif // RASTER_DEBUG
+
   for (;;)
   {
     // Process commands
     while (currentCommand < data->commandsPosition.get())
     {
-      //fog_debug("Processing #%d (command %d)", offset, (int)currentCommand);
-
       RasterPainterCommand* cmd = data->commands[currentCommand];
+
+#if defined(RASTER_DEBUG)
+      fog_debug("#%d - command %d (%p)", offset, (int)currentCommand, (cmd));
+#endif // RASTER_DEBUG
 
       switch (cmd->id)
       {
@@ -1141,24 +1147,61 @@ void RasterPainterThreadTask::run()
 
     {
       AutoLock locked(data->commandsLock);
-      if (currentCommand < data->commandsPosition.get()) continue;
 
-      if (data->workingThreads.deref())
+      if (currentCommand < data->commandsPosition.get())
+        continue;
+
+#if defined(RASTER_DEBUG)
+      fog_debug("#%d - done", offset);
+#endif // RASTER_DEBUG
+
+      if (data->completedThreads.addXchg(1)+1 == data->numThreads)
+      {
+#if defined(RASTER_DEBUG)
+        fog_debug("#%d - complete, signaling commandComplete()", offset);
+#endif // RASTER_DEBUG
         data->commandsComplete.signal();
-      if (shouldQuit.get()) return;
+      }
+/*
+      if (currentCommand < data->commandsPosition.get())
+      {
+        data->workingThreads.inc();
+        continue;
+      }
+*/
+      if (shouldQuit)
+      {
+#if defined(RASTER_DEBUG)
+        fog_debug("#%d - shouldQuit is true, quitting", offset);
+#endif // RASTER_DEBUG
+        return;
+      }
 
+#if defined(RASTER_DEBUG)
+      fog_debug("#%d - waiting...", offset);
+#endif // RASTER_DEBUG
+
+      data->workingThreads.dec();
       data->commandsReady.wait();
       data->workingThreads.inc();
     }
   }
-
-  fog_debug("Thread release: #%d %d", offset, Thread::current()->id());
 }
 
 void RasterPainterThreadTask::destroy()
 {
+#if defined(RASTER_DEBUG)
+  fog_debug("#%d - destroy()", offset);
+#endif // RASTER_DEBUG
+
   if (data->finishedThreads.addXchg(1) == data->numThreads-1)
+  {
+#if defined(RASTER_DEBUG)
+    fog_debug("#%d - I'm last, signaling releaseEvent()", offset);
+#endif // RASTER_DEBUG
+
     data->releaseEvent->signal();
+  }
 }
 
 // ============================================================================
@@ -2133,11 +2176,23 @@ void RasterPainterDevice::flush()
   if (!_threadData) return;
 
   AutoLock locked(_threadData->commandsLock);
-  while (_threadData->workingThreads.get() > 0)
+
+#if defined(RASTER_DEBUG)
+  fog_debug("== flush, working threads: %d, complete threads: %d, command position: %d",
+    (int)_threadData->workingThreads.get(),
+    (int)_threadData->completedThreads.get(),
+    (int)_threadData->commandsPosition.get());
+#endif // RASTER_DEBUG
+
+  while (_threadData->completedThreads.get() != _threadData->numThreads)
     _threadData->commandsComplete.wait();
 
   // Reset command position and local command counters for each thread.
-  _threadData->commandsPosition.set(0);
+#if defined(RASTER_DEBUG)
+  fog_debug("== flush, reseting command position and thread current commands");
+#endif // RASTER_DEBUG
+
+  _threadData->commandsPosition.setXchg(0);
   for (sysuint_t i = 0; i < _threadData->numThreads; i++)
   {
     _threadData->tasks[i]->currentCommand = 0;
@@ -2149,6 +2204,11 @@ void RasterPainterDevice::flushWithQuit()
   FOG_ASSERT(_threadData);
 
   AutoLock locked(_threadData->commandsLock);
+
+#if defined(RASTER_DEBUG)
+  fog_debug("== quitting");
+#endif // RASTER_DEBUG
+
   if (_threadData->workingThreads.get() != _threadData->numThreads)
     _threadData->commandsReady.broadcast();
 }
@@ -2232,6 +2292,7 @@ void RasterPainterDevice::setMultithreaded(bool mt)
     _threadData->startedThreads.init(0);
     _threadData->finishedThreads.init(0);
     _threadData->workingThreads.init(count);
+    _threadData->completedThreads.init(0);
     _threadData->threadPool = threadPool;
     _threadData->commandsPosition.init(0);
 
@@ -2255,10 +2316,13 @@ void RasterPainterDevice::setMultithreaded(bool mt)
     // Wait for threads to initialize
     {
       AutoLock locked(_threadData->commandsLock);
-      while (_threadData->workingThreads.get() != 0)
+      while (_threadData->completedThreads.get() != _threadData->numThreads)
         _threadData->commandsComplete.wait();
     }
-    //fog_debug("Multithreaded: true");
+
+#if defined(RASTER_DEBUG)
+    fog_debug("== multithreaded set to true");
+#endif // RASTER_DEBUG
   }
   // Stop multithreading
   else
@@ -2271,7 +2335,7 @@ void RasterPainterDevice::setMultithreaded(bool mt)
     // Release threads
     for (i = 0; i < count; i++)
     {
-      _threadData->tasks[i]->shouldQuit.set(1);
+      _threadData->tasks[i]->shouldQuit = 1;
     }
 
     // Flush everything and wait for completion.
@@ -2287,6 +2351,10 @@ void RasterPainterDevice::setMultithreaded(bool mt)
 
     delete _threadData;
     _threadData = NULL;
+
+#if defined(RASTER_DEBUG)
+    fog_debug("== multithreaded set to false");
+#endif // RASTER_DEBUG
   }
 }
 
@@ -2505,14 +2573,28 @@ void RasterPainterDevice::_serializePath(const Path& path, bool stroke)
     RasterPainterCommand* cmd = _createCommand();
     cmd->id = RasterPainterCommand::PathId;
     cmd->path.init();
-    _rasterizePath(&ctx, cmd->path->ras, path, stroke);
-    _postCommand(cmd);
+    if (_rasterizePath(&ctx, cmd->path->ras, path, stroke))
+    {
+      _postCommand(cmd);
+    }
+    else
+    {
+      // Destroy
+      // FIXME: Move this to separate function or to command directly?
+      cmd->clipState->deref();
+      cmd->capsState->deref();
+      if (cmd->pctx && cmd->pctx->refCount.deref()) cmd->pctx->destroy(cmd->pctx);
+      cmd->path.destroy();
+      cmd->this_block->used.sub(cmd->this_size);
+    }
   }
   else
   {
     // SingleThreaded - Render now.
-    _rasterizePath(&ctx, ras, path, stroke);
-    _renderPath(ras);
+    if (_rasterizePath(&ctx, ras, path, stroke))
+    {
+      _renderPath(ras);
+    }
   }
 }
 
@@ -2589,16 +2671,20 @@ void RasterPainterDevice::_postCommand(RasterPainterCommand* cmd)
     FOG_ASSERT(_threadData->commandsPosition.get() == 0);
 
     _threadData->commands[0] = cmd;
-    _threadData->commandsPosition.set(1);
+    _threadData->commandsPosition.setXchg(1);
   }
   else
   {
-    _threadData->commands[_threadData->commandsPosition.addXchg(1)] = cmd;
+    _threadData->commands[_threadData->commandsPosition.get()] = cmd;
+    _threadData->commandsPosition.inc();
   }
 
   AutoLock locked(_threadData->commandsLock);
-  if (_threadData->workingThreads.get() != _threadData->numThreads)
+  if (_threadData->completedThreads.get() > 0)
+  {
+    _threadData->completedThreads.setXchg(0);
     _threadData->commandsReady.broadcast();
+  }
 }
 
 // ============================================================================
@@ -2631,7 +2717,7 @@ static void FOG_INLINE AggSetupDash(PathT& path, RasterPainterCapsState* capsSta
   path.dash_start(capsState->lineDashOffset);
 }
 
-static void FOG_FASTCALL AggRasterizePath(
+static bool FOG_FASTCALL AggRasterizePath(
   RasterPainterContext* ctx, AggRasterizer& ras,
   const Path& path, bool stroke)
 {
@@ -2711,6 +2797,7 @@ static void FOG_FASTCALL AggRasterizePath(
     }
   }
   ras.sort();
+  return ras.has_cells();
 }
 
 template<int BytesPerPixel, class Rasterizer, class Scanline>
@@ -2726,8 +2813,8 @@ static void FOG_INLINE AggRenderPath(
   Raster::SpanSolidMskFn span_solid_a8 = ctx->raster->span_solid_a8;
 
   int y = ras.min_y() + offset;
-  int y_end = ras.max_y() + 1;
-  if (y >= y_end) return;
+  int y_end = ras.max_y();
+  if (y > y_end) return;
 
   sysint_t stride = ctx->owner->_stride;
   uint8_t* pBase = clipState->workRaster + y * stride;
@@ -2740,7 +2827,7 @@ static void FOG_INLINE AggRenderPath(
   {
     uint32_t solidColor = capsState->solidSourcePremultiplied;
 
-    for (; y < y_end; y += delta, pBase += stride)
+    for (; y <= y_end; y += delta, pBase += stride)
     {
       if (!ras.sweep_scanline(sl, y)) continue;
 
@@ -2790,7 +2877,7 @@ static void FOG_INLINE AggRenderPath(
     Raster::SpanCompositeFn span_composite = ctx->raster->span_composite[pctx->format];
     Raster::SpanCompositeMskFn span_composite_a8 = ctx->raster->span_composite_a8[pctx->format];
 
-    for (; y < y_end; y += delta, pBase += stride)
+    for (; y <= y_end; y += delta, pBase += stride)
     {
       if (!ras.sweep_scanline(sl, y)) continue;
 
@@ -2835,9 +2922,9 @@ static void FOG_INLINE AggRenderPath(
   }
 }
 
-void RasterPainterDevice::_rasterizePath(RasterPainterContext* ctx, AggRasterizer& ras, const Path& path, bool stroke)
+bool RasterPainterDevice::_rasterizePath(RasterPainterContext* ctx, AggRasterizer& ras, const Path& path, bool stroke)
 {
-  AggRasterizePath(ctx, ras, path, stroke);
+  return AggRasterizePath(ctx, ras, path, stroke);
 }
 
 // ============================================================================
