@@ -601,12 +601,11 @@ SOURCE_GROUP(3rdparty_agg FILES
   ${FOG_AGG_HEADERS})
 
 # Optimize specific files for speed
-Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Converter.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_O3}")
 Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Image.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_O3}")
 Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Painter.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_O3}")
-Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Raster.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_O3}")
-Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Raster_MMX.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_MMX}")
-Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Raster_SSE2.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE2}")
+Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Raster/Raster_C.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_O3}")
+Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Raster/Raster_MMX.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_MMX}")
+Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Raster/Raster_SSE2.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE2}")
 Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Region.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_O3}")
 
 # =============================================================================
