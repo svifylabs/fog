@@ -4222,10 +4222,13 @@ static void FOG_FASTCALL raster_rgb32_span_composite_prgb32_a8(
     uint32_t m;
     if ((m = READ_MASK_A8(msk)))
     {
+      //uint32_t src0 = ((uint32_t*)src)[0];
+      //uint32_t ia0 = (~src0) >> 24;
+      //if (m != 0xFF) { src0 = bytemul(src0, m); ia0 = (~src0) >> 24; }
+      //((uint32_t*)dst)[0] = bytemul(((uint32_t*)dst)[0], ia0) + src0;
       uint32_t src0 = ((uint32_t*)src)[0];
-      uint32_t ia0 = (~src0) >> 24;
-      if (m != 0xFF) { src0 = bytemul(src0, m); ia0 = (~src0) >> 24; }
-      ((uint32_t*)dst)[0] = bytemul(((uint32_t*)dst)[0], ia0) + src0;
+      if (m != 0xFF) src0 = bytemul(src0, m);
+      ((uint32_t*)dst)[0] = blend_over_srcpremultiplied(((uint32_t*)dst)[0], src0, src0 >> 24);
     }
 
     dst += 4;

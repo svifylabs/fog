@@ -191,15 +191,15 @@ static FOG_INLINE void pix_multiply_2x2W(
 static FOG_INLINE void pix_fill_alpha_1x1W(
   __m128i& dst0)
 {
-  _mm_or_si128(dst0, Mask00FF000000000000);
+  dst0 = _mm_or_si128(dst0, Mask00FF000000000000);
 }
 
 static FOG_INLINE void pix_fill_alpha_2x2W(
   __m128i& dst0,
   __m128i& dst1)
 {
-  _mm_or_si128(dst0, Mask00FF000000000000);
-  _mm_or_si128(dst1, Mask00FF000000000000);
+  dst0 = _mm_or_si128(dst0, Mask00FF000000000000);
+  dst1 = _mm_or_si128(dst1, Mask00FF000000000000);
 }
 
 static FOG_INLINE void pix_premultiply_1x1W(
