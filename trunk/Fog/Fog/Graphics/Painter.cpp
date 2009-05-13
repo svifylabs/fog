@@ -754,7 +754,7 @@ struct FOG_HIDDEN RasterPainterCommand
     PathId = 0,
     BoxId = 1,
     ImageId = 2,
-    GlypsSetId = 3
+    GlyphSetId = 3
   };
 
   int id;
@@ -785,6 +785,7 @@ struct FOG_HIDDEN RasterPainterCommand
   {
     Point pt;
     GlyphSet glyphSet;
+    Box boundingBox;
   };
 
   union
@@ -792,7 +793,7 @@ struct FOG_HIDDEN RasterPainterCommand
     Static<PathData> path;
     Static<BoxData> box;
     Static<ImageData> image;
-    Static<GlyphSet> glyphSet;
+    Static<GlyphSetData> glyphSet;
   };
 };
 
@@ -995,19 +996,19 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
 
   static bool _rasterizePath(RasterPainterContext* ctx, AggRasterizer& ras, const Path& path, bool stroke);
 
-  // [Renderers]
-  //
-  // Renderers can be called from various threads.
+  // [Renderers - Singlethreaded]
 
   void _renderPath(const AggRasterizer& ras);
   void _renderBoxes(const Box* box, sysuint_t count);
   void _renderImage(const Rect& dst, const Image& image, const Rect& src);
-  void _renderGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip);
+  void _renderGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Box& boundingBox);
+
+  // [Renderers - Multithreadedthreaded]
 
   void _renderPathMT(RasterPainterContext* ctx, int offset, int delta, const AggRasterizer& ras);
   void _renderBoxesMT(RasterPainterContext* ctx, int offset, int delta, const Box* box, sysuint_t count);
   void _renderImageMT(RasterPainterContext* ctx, int offset, int delta, const Rect& dst, const Image& image, const Rect& src);
-  //void _renderGlyphSetMT(RasterPainterContext* ctx, const Point& pt, const GlyphSet& glyphSet, const Rect* clip);
+  void _renderGlyphSetMT(RasterPainterContext* ctx, int offset, int delta, const Point& pt, const GlyphSet& glyphSet, const Box& boundingBox);
 
   // [Constants]
 
@@ -1191,6 +1192,24 @@ void RasterPainterThreadTask::run()
           if (cmd->refCount.deref())
           {
             cmd->image.destroy();
+            d->_destroyCommand(cmd);
+          }
+          break;
+        }
+
+        case RasterPainterCommand::GlyphSetId:
+        {
+          // Render
+          ctx.clipState = cmd->clipState;
+          ctx.capsState = cmd->capsState;
+          ctx.raster = cmd->raster;
+          ctx.pctx = cmd->pctx;
+          d->_renderGlyphSetMT(&ctx, offset, delta, cmd->glyphSet->pt, cmd->glyphSet->glyphSet, cmd->glyphSet->boundingBox);
+
+          // Destroy
+          if (cmd->refCount.deref())
+          {
+            cmd->glyphSet.destroy();
             d->_destroyCommand(cmd);
           }
           break;
@@ -2727,16 +2746,32 @@ void RasterPainterDevice::_serializeImage(const Rect& dst, const Image& image, c
 
 void RasterPainterDevice::_serializeGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip)
 {
+  Box boundingBox = ctx.clipState->clipBox;
+
+  if (clip)
+  {
+    Box::intersect(boundingBox, boundingBox, Box(*clip));
+    if (!boundingBox.isValid()) return;
+  }
+
   // Pattern context must be always set up before _render() methods are called.
   if (!ctx.capsState->isSolidSource && !_getPatternContext()) return;
 
   if (_threadData)
   {
+    // Multithreaded - Serialize command.
+    RasterPainterCommand* cmd = _createCommand();
+    cmd->id = RasterPainterCommand::GlyphSetId;
+    cmd->glyphSet.init();
+    cmd->glyphSet->pt = pt;
+    cmd->glyphSet->glyphSet = glyphSet;
+    cmd->glyphSet->boundingBox = boundingBox;
+    _postCommand(cmd);
   }
   else
   {
     // Singlethreaded - Render now.
-    _renderGlyphSet(pt, glyphSet, clip);
+    _renderGlyphSet(pt, glyphSet, boundingBox);
   }
 }
 
@@ -3069,7 +3104,7 @@ bool RasterPainterDevice::_rasterizePath(RasterPainterContext* ctx, AggRasterize
 }
 
 // ============================================================================
-// [Fog::RasterPainterDevice - Renderers - SingleThreaded]
+// [Fog::RasterPainterDevice - Renderers - Singlethreaded]
 // ============================================================================
 
 void RasterPainterDevice::_renderPath(const AggRasterizer& ras)
@@ -3175,15 +3210,11 @@ void RasterPainterDevice::_renderImage(const Rect& dst, const Image& image, cons
   } while (--h);
 }
 
-void RasterPainterDevice::_renderGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip)
+void RasterPainterDevice::_renderGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Box& boundingBox)
 {
   // TODO: Hardcoded to A8 glyph format
   // TODO: Clipping
 
-  Box clipBox = ctx.clipState->clipBox;
-  if (clip) Box::intersect(clipBox, clipBox, Box(*clip));
-
-  if (!clipBox.isValid()) return;
   if (!glyphSet.length()) return;
 
   const Glyph* glyphs = glyphSet.glyphs();
@@ -3227,10 +3258,10 @@ void RasterPainterDevice::_renderGlyphSet(const Point& pt, const GlyphSet& glyph
 
     px += glyphd->advance;
 
-    int x1 = px1; if (x1 < clipBox.x1()) x1 = clipBox.x1();
-    int y1 = py1; if (y1 < clipBox.y1()) y1 = clipBox.y1();
-    int x2 = px2; if (x2 > clipBox.x2()) x2 = clipBox.x2();
-    int y2 = py2; if (y2 > clipBox.y2()) y2 = clipBox.y2();
+    int x1 = px1; if (x1 < boundingBox.x1()) x1 = boundingBox.x1();
+    int y1 = py1; if (y1 < boundingBox.y1()) y1 = boundingBox.y1();
+    int x2 = px2; if (x2 > boundingBox.x2()) x2 = boundingBox.x2();
+    int y2 = py2; if (y2 > boundingBox.y2()) y2 = boundingBox.y2();
 
     int w = x2 - x1; if (w <= 0) continue;
     int h = y2 - y1; if (h <= 0) continue;
@@ -3270,7 +3301,7 @@ void RasterPainterDevice::_renderGlyphSet(const Point& pt, const GlyphSet& glyph
 }
 
 // ============================================================================
-// [Fog::RasterPainterDevice - Renderers - MultiThreaded]
+// [Fog::RasterPainterDevice - Renderers - Multithreaded]
 // ============================================================================
 
 void RasterPainterDevice::_renderPathMT(
@@ -3391,19 +3422,13 @@ void RasterPainterDevice::_renderImageMT(
   } while (y < y2);
 }
 
-#if 0
-
-void RasterPainterDevice::_renderGlyphSet(
+void RasterPainterDevice::_renderGlyphSetMT(
   RasterPainterContext* ctx, int offset, int delta,
-  const Point& pt, const GlyphSet& glyphSet, const Rect* clip)
+  const Point& pt, const GlyphSet& glyphSet, const Box& boundingBox)
 {
   // TODO: Hardcoded to A8 glyph format
   // TODO: Clipping
 
-  Box clipBox = ctx->clipState->clipBox;
-  if (clip) Box::intersect(clipBox, clipBox, Box(*clip));
-
-  if (!clipBox.isValid()) return;
   if (!glyphSet.length()) return;
 
   const Glyph* glyphs = glyphSet.glyphs();
@@ -3414,6 +3439,7 @@ void RasterPainterDevice::_renderGlyphSet(
 
   uint8_t* pBuf = ctx->clipState->workRaster;
   sysint_t stride = _stride;
+  sysint_t strideWithDelta = stride * delta;
 
   Raster::SpanSolidMskFn span_solid_a8 = ctx->raster->span_solid_a8;
 
@@ -3447,10 +3473,12 @@ void RasterPainterDevice::_renderGlyphSet(
 
     px += glyphd->advance;
 
-    int x1 = px1; if (x1 < clipBox.x1()) x1 = clipBox.x1();
-    int y1 = py1; if (y1 < clipBox.y1()) y1 = clipBox.y1();
-    int x2 = px2; if (x2 > clipBox.x2()) x2 = clipBox.x2();
-    int y2 = py2; if (y2 > clipBox.y2()) y2 = clipBox.y2();
+    int x1 = px1; if (x1 < boundingBox.x1()) x1 = boundingBox.x1();
+    int y1 = py1; if (y1 < boundingBox.y1()) y1 = boundingBox.y1();
+    int x2 = px2; if (x2 > boundingBox.x2()) x2 = boundingBox.x2();
+    int y2 = py2; if (y2 > boundingBox.y2()) y2 = boundingBox.y2();
+
+    y1 = alignToDelta(y1, offset, delta);
 
     int w = x2 - x1; if (w <= 0) continue;
     int h = y2 - y1; if (h <= 0) continue;
@@ -3461,6 +3489,7 @@ void RasterPainterDevice::_renderGlyphSet(
 
     // TODO: Hardcoded
     sysint_t glyphStride = glyphd->image.stride();
+    sysint_t glyphStrideWithDelta = glyphStride * delta;
     const uint8_t* pGlyph = glyphd->image.cData();
 
     pGlyph += (sysint_t)(y1 - py1) * glyphStride;
@@ -3470,9 +3499,10 @@ void RasterPainterDevice::_renderGlyphSet(
     {
       do {
         span_solid_a8(pCur, rgba, pGlyph, (sysuint_t)w);
-        pCur += stride;
-        pGlyph += glyphStride;
-      } while (--h);
+        pCur += strideWithDelta;
+        pGlyph += glyphStrideWithDelta;
+        y1 += delta;
+      } while (y1 < y2);
     }
     else
     {
@@ -3481,14 +3511,13 @@ void RasterPainterDevice::_renderGlyphSet(
           pctx->fetch(pctx, pbuf, x1, y1, w),
           pGlyph, (sysuint_t)w);
 
-        pCur += stride;
-        pGlyph += glyphStride;
-        y1++;
-      } while (--h);
+        pCur += strideWithDelta;
+        pGlyph += glyphStrideWithDelta;
+        y1 += delta;
+      } while (y1 < y2);
     }
   }
 }
-#endif
 
 // ============================================================================
 // [Fog::Painter]
