@@ -2391,10 +2391,10 @@ void RasterPainterEngine::setMultithreaded(bool mt)
     _threadData->commandsPosition.init(0);
 
     // Set threads affinity.
-    for (i = 0; i < count; i++)
-    {
-      _threadData->threads[i]->setAffinity(1 << i);
-    }
+    // if (count >= (int)cpuInfo->numberOfProcessors)
+    // {
+    //   for (i = 0; i < count; i++) _threadData->threads[i]->setAffinity(1 << i);
+    // }
 
     // Create thread tasks.
     for (i = 0; i < count; i++)
@@ -2450,10 +2450,10 @@ void RasterPainterEngine::setMultithreaded(bool mt)
     releaseEvent.wait();
 
     // Reset threads affinity.
-    for (i = 0; i < count; i++)
-    {
-      _threadData->threads[i]->resetAffinity();
-    }
+    // if (count >= (int)cpuInfo->numberOfProcessors)
+    // {
+    //   for (i = 0; i < count; i++) _threadData->threads[i]->resetAffinity();
+    // }
 
     for (i = 0; i < count; i++)
     {
