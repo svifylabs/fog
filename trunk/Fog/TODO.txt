@@ -32,6 +32,7 @@ TODO
     [ ] Render text using Font::getGlyphs
     [ ] ColorMatrix transformations
     [ ] Scaling
+    [ ] Inverting alpha channel on PRGB32 images not implemented yet
 [ ] Font
     [ ] Make caching work
     [ ] Fix issue that this code """Font font; font.setSize(80);""" takes too long (3ms on my machine)

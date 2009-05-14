@@ -78,7 +78,9 @@ FOG_INIT_DECLARE err_t fog_raster_init(void)
   // [Install SSE2 optimized code if supported]
 
   if (Fog::cpuInfo->hasFeature(Fog::CpuInfo::Feature_SSE2))
+  {
     fog_raster_init_sse2();
+  }
 
   // [Install JIT code generation]
 

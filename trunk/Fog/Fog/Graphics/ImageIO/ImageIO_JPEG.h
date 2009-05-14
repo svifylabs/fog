@@ -40,6 +40,14 @@ struct FOG_API JpegEncoderDevice : public EncoderDevice
   virtual ~JpegEncoderDevice();
 
   virtual uint32_t writeImage(const Image& image);
+
+  // [Properties]
+
+  virtual err_t setProperty(const String32& name, const Value& value);
+  virtual Value getProperty(const String32& name);
+
+private:
+  int _quality;
 };
 
 } // ImageIO namespace

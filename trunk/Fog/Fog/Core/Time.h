@@ -251,10 +251,8 @@ public:
   static Time now();
 
   // Converts to/from time_t in UTC and a Time class.
-  // TODO(brettw) this should be removed once everybody starts using the |Time|
-  // class.
-  static Time fromTime_t(time_t tt);
-  time_t toTime_t() const;
+  static Time fromTimeT(time_t tt);
+  time_t toTimeT() const;
 
   // Converts time to a double which is the number of seconds since epoch
   // (Jan 1, 1970). Webkit uses this format to represent time.

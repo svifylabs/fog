@@ -69,9 +69,9 @@ MyWindow::MyWindow(uint32_t createFlags) :
   button[1].addListener(EvClick, this, &MyWindow::button1_onClick);
   add(&button[1]);
 
-  //background.readFile(StubAscii8("/mnt/data1/Storage/Wallpapers/Fantasmal.bmp"));
-  //background.readFile(StubAscii8("/mnt/data1/Storage/Wallpapers/Blue ilusion.jpg"));
-  background.readFile(StubAscii8("C:/Shared/Wallpapers/flowerpaper.bmp"));
+  background.readFile(StubAscii8("/mnt/data1/Storage/Wallpapers/Fantasmal.bmp"));
+  background.readFile(StubAscii8("/mnt/data1/Storage/Wallpapers/Blue ilusion.jpg"));
+  //background.readFile(StubAscii8("C:/Shared/Wallpapers/flowerpaper.bmp"));
   //background.to8Bit();
   background.convert(Image::FormatRGB32);
 
@@ -79,17 +79,17 @@ MyWindow::MyWindow(uint32_t createFlags) :
   //sprite[0].convert(Image::FormatPRGB32);
   //sprite[0].fillQGradient(Rect(0, 0, sprite[0].width(), sprite[0].height()), 0xFFFFFFFF, 0x00000000, 0xFFFF0000, 0xFF0000FF, false);
 
-  //sprite[0].readFile(StubAscii8("/my/upload/img/babelfish.png"));
-  sprite[0].readFile(StubAscii8("C:/My/img/babelfish.pcx"));
+  sprite[0].readFile(StubAscii8("/my/upload/img/babelfish.png"));
+  //sprite[0].readFile(StubAscii8("C:/My/img/babelfish.pcx"));
   sprite[0].premultiply();
-  //sprite[1].readFile(StubAscii8("/my/upload/img/blockdevice.png"));
-  sprite[1].readFile(StubAscii8("C:/My/img/blockdevice.pcx"));
+  sprite[1].readFile(StubAscii8("/my/upload/img/blockdevice.png"));
+  //sprite[1].readFile(StubAscii8("C:/My/img/blockdevice.pcx"));
   sprite[1].premultiply();
-  //sprite[2].readFile(StubAscii8("/my/upload/img/drop.png"));
-  sprite[2].readFile(StubAscii8("C:/My/img/drop.pcx"));
+  sprite[2].readFile(StubAscii8("/my/upload/img/drop.png"));
+  //sprite[2].readFile(StubAscii8("C:/My/img/drop.pcx"));
   sprite[2].premultiply();
-  //sprite[3].readFile(StubAscii8("/my/upload/img/kweather.png"));
-  sprite[3].readFile(StubAscii8("C:/My/img/kweather.png"));
+  sprite[3].readFile(StubAscii8("/my/upload/img/kweather.png"));
+  //sprite[3].readFile(StubAscii8("C:/My/img/kweather.png"));
   sprite[3].premultiply();
 
   pattern[0].setTexture(sprite[0]);
@@ -192,13 +192,14 @@ void MyWindow::onTimer(TimerEvent* e)
 
 void MyWindow::onPaint(PaintEvent* e)
 {
-  //TimeTicks ticks = TimeTicks::highResNow();
+  TimeTicks ticks = TimeTicks::highResNow();
 
   //fog_debug("OnPaint()");
 
   Painter* p = e->painter();
+  background.readFile(StubAscii8("/mnt/data1/Storage/Wallpapers/Blue ilusion.jpg"));
 
-  p->setProperty(StubAscii8("multithreaded"), Value::fromBool(true));
+  p->setProperty(StubAscii8("multithreaded"), Value::fromBool(false));
 
   int w = width();
   int h = height();
@@ -206,9 +207,11 @@ void MyWindow::onPaint(PaintEvent* e)
 
   paintBackground(p, boundingRect);
   paintComposition(p, boundingRect);
-/*
+  //p->setSource(Rgba(0x1F000000));
+  //paintLines(p, boundingRect, 1000);
+#if 0
   for (int i = 0; i < 1000; i++)
-  {
+  {/*
     int x1 = rand() % w;
     int y1 = rand() % h;
     int x2 = rand() % w;
@@ -217,10 +220,17 @@ void MyWindow::onPaint(PaintEvent* e)
     p->setSource(Rgba(0x7F000000 | rand()));
     p->fillRound(Rect(
       fog_min(x1, x2), fog_min(y1, y2),
-      fog_abs(x2-x1), fog_abs(y2-y1)), Point(5, 5));
+      fog_abs(x2-x1), fog_abs(y2-y1)), Point(5, 5));*/
+    int x1 = rand() % w;
+    int y1 = rand() % h;
+    int x2 = rand() % 30;
+    int y2 = rand() % 30;
+
+    p->setSource(Rgba(0x7F000000 | rand()));
+    p->fillRound(Rect(x1, y1, x2, y2), Point(5, 5));
   }
-*/
-  //paintSprites(p, boundingRect, 100);
+#endif
+  //paintSprites(p, boundingRect, 10000);
 
   //p->setLineWidth(10.0);
   //paintCurves(p, boundingRect, 1000);
@@ -297,9 +307,9 @@ void MyWindow::onPaint(PaintEvent* e)
     }
   }*/
 
-  //p->flush();
-  //TimeDelta timeDelta = TimeTicks::highResNow() - ticks;
-  //fog_debug("Time: %f ms", timeDelta.inMillisecondsF());
+  p->flush();
+  TimeDelta timeDelta = TimeTicks::highResNow() - ticks;
+  fog_debug("Time: %f ms", timeDelta.inMillisecondsF());
 }
 
 void MyWindow::button0_onClick(MouseEvent* e)

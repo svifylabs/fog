@@ -261,7 +261,7 @@ static FOG_INLINE void pix_over_2x2W(
 // [Fog::Raster - Gradient - gradient]
 // ============================================================================
 
-static void FOG_FASTCALL gradient_gradient_argb32_SSE2(uint8_t* dst, uint32_t c0, uint32_t c1, sysint_t w, sysint_t x1, sysint_t x2)
+static void FOG_FASTCALL gradient_gradient_argb32_sse2(uint8_t* dst, uint32_t c0, uint32_t c1, sysint_t w, sysint_t x1, sysint_t x2)
 {
   uint8_t* dstCur = dst;
 
@@ -399,7 +399,7 @@ interpolation_end:
   do { set4(dstCur, c1); dstCur += 4; } while (--i);
 }
 
-static void FOG_FASTCALL gradient_gradient_prgb32_SSE2(uint8_t* dst, uint32_t c0, uint32_t c1, sysint_t w, sysint_t x1, sysint_t x2)
+static void FOG_FASTCALL gradient_gradient_prgb32_sse2(uint8_t* dst, uint32_t c0, uint32_t c1, sysint_t w, sysint_t x1, sysint_t x2)
 {
   uint8_t* dstCur = dst;
 
@@ -548,7 +548,7 @@ interpolation_end:
 // [Fog::Raster - Raster - Rgb32]
 // ============================================================================
 
-static void FOG_FASTCALL raster_rgb32_pixel(
+static void FOG_FASTCALL raster_rgb32_pixel_sse2(
   uint8_t* dst, uint32_t src)
 {
   uint32_t a = src >> 24;
@@ -573,7 +573,7 @@ static void FOG_FASTCALL raster_rgb32_pixel(
   }
 }
 
-static void FOG_FASTCALL raster_rgb32_pixel_a8(
+static void FOG_FASTCALL raster_rgb32_pixel_a8_sse2(
   uint8_t* dst, uint32_t src, uint32_t msk)
 {
   uint32_t a = src >> 24;
@@ -598,7 +598,7 @@ static void FOG_FASTCALL raster_rgb32_pixel_a8(
     ((uint32_t*)dst)[0] = src;
 }
 
-static void FOG_FASTCALL raster_rgb32_span_solid(
+static void FOG_FASTCALL raster_rgb32_span_solid_sse2(
   uint8_t* dst, uint32_t src, sysint_t w)
 {
   sysint_t i = w;
@@ -692,7 +692,7 @@ static void FOG_FASTCALL raster_rgb32_span_solid(
   }
 }
 
-static void FOG_FASTCALL raster_rgb32_span_solid_a8(
+static void FOG_FASTCALL raster_rgb32_span_solid_a8_sse2(
   uint8_t* dst, uint32_t src, const uint8_t* msk, sysint_t w)
 {
   sysint_t i = w;
@@ -1158,15 +1158,15 @@ FOG_INIT_DECLARE void fog_raster_init_sse2(void)
 
   // [Gradient]
 
-  m->gradient.gradient_argb32 = gradient_gradient_argb32_SSE2;
-  m->gradient.gradient_prgb32 = gradient_gradient_prgb32_SSE2;
+  m->gradient.gradient_argb32 = gradient_gradient_argb32_sse2;
+  m->gradient.gradient_prgb32 = gradient_gradient_prgb32_sse2;
 
   // [Raster - Rgb32]
 
-  m->raster_rgb32.pixel = raster_rgb32_pixel;
-  m->raster_rgb32.pixel_a8 = raster_rgb32_pixel_a8;
-  m->raster_rgb32.span_solid = raster_rgb32_span_solid;
-  m->raster_rgb32.span_solid_a8 = raster_rgb32_span_solid_a8;
+  m->raster_rgb32.pixel = raster_rgb32_pixel_sse2;
+  m->raster_rgb32.pixel_a8 = raster_rgb32_pixel_a8_sse2;
+  m->raster_rgb32.span_solid = raster_rgb32_span_solid_sse2;
+  m->raster_rgb32.span_solid_a8 = raster_rgb32_span_solid_a8_sse2;
   m->raster_rgb32.span_composite[Image::FormatPRGB32] = raster_rgb32_span_composite_rgb32_sse2;
   m->raster_rgb32.span_composite[Image::FormatPRGB32] = raster_rgb32_span_composite_argb32_sse2;
   m->raster_rgb32.span_composite[Image::FormatPRGB32] = raster_rgb32_span_composite_prgb32_sse2;
