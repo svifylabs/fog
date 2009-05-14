@@ -310,7 +310,7 @@ FOG_INIT_DECLARE err_t fog_font_init(void)
   Fog::font_local.init();
   Fog::font_local.instance().listInitialized = false;
 
-  uint initResult = Error::Ok;
+  err_t initResult = Error::Ok;
 
   // [Font Shared Null]
 

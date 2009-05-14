@@ -87,13 +87,13 @@ static FOG_INLINE void pix_unpack_2x2W(
 }
 
 static FOG_INLINE void pix_pack_1x1W(
-  __m128i& dst0, __m128i src0)
+  __m128i& dst0, const __m128i& src0)
 {
   dst0 = _mm_packus_epi16(src0, src0);
 }
 
 static FOG_INLINE void pix_pack_2x2W(
-  __m128i& dst0, __m128i src0, __m128i src1)
+  __m128i& dst0, const __m128i& src0, const __m128i& src1)
 {
   dst0 = _mm_packus_epi16(src0, src1);
 }
@@ -646,6 +646,8 @@ static void FOG_FASTCALL raster_rgb32_span_solid(
       pix_unpack_1x1W(dst0mm, ((uint32_t*)dst)[0]);
       pix_over_1x1W(dst0mm, src0mm, a0mm);
       pix_pack_1x1W(dst0mm, dst0mm);
+
+      ((uint32_t*)dst)[0] = _mm_cvtsi128_si32(dst0mm);
 
       dst += 4;
       i--;

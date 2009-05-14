@@ -641,7 +641,8 @@ FontFace* FontEngineFT::getFace(
       }
 
       // Put to cache, reference count is now 1 thats correct.
-      fepriv->ftFileCache.put(fileName, ftFile->ref());
+      // FIXME: Not true, reference count is still zero and must be
+      fepriv->ftFileCache.put(fileName, ftFile);
     }
 
     // If face was created, reference count is increased too.
@@ -1044,7 +1045,7 @@ FontFace* FtFile::createFace(uint32_t size, const FontAttributes& attributes)
   {
     // freetype not returned an error, so create new face and fill it
     face = new FontFaceFT();
-    face->ftFile = this;
+    face->ftFile = this->ref();
     face->family = family;
     face->metrics.size = size;
     face->attributes = attributes;

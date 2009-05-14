@@ -149,6 +149,9 @@ public:
   //! @brief Get thread stack size (0 means default).
   FOG_INLINE sysuint_t stackSize() const { return _stackSize; }
 
+  err_t setAffinity(int mask);
+  err_t resetAffinity();
+
   //! Starts the thread.  Returns true if the thread was successfully started;
   //! otherwise, returns false.  Upon successful return, the eventLoop()
   //! getter will return non-null.

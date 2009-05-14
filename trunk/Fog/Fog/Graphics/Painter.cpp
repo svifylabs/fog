@@ -65,6 +65,7 @@ namespace Fog {
 
 #define RASTER_MAX_THREADS 4
 #define RASTER_MAX_COMMANDS 4096
+#define RASTER_MIN_SIZE_THRESHOLD (512*512) // minimum size to set multithreading on
 
 // #define RASTER_DEBUG
 
@@ -72,27 +73,27 @@ namespace Fog {
 // [Forward Declarations]
 // ============================================================================
 
-struct RasterPainterDevice;
+struct RasterPainterEngine;
 struct RasterPainterCommand;
 struct RasterPainterThreadData;
 struct RasterPainterThreadTask;
 
 // ============================================================================
-// [Fog::PainterDevice]
+// [Fog::PainterEngine]
 // ============================================================================
 
-PainterDevice::PainterDevice() {}
-PainterDevice::~PainterDevice() {}
+PainterEngine::PainterEngine() {}
+PainterEngine::~PainterEngine() {}
 
 // ============================================================================
-// [Fog::NullPainterDevice]
+// [Fog::NullPainterEngine]
 // ============================================================================
 
 //! @brief Painter device.
-struct FOG_HIDDEN NullPainterDevice : public PainterDevice
+struct FOG_HIDDEN NullPainterEngine : public PainterEngine
 {
-  NullPainterDevice() {}
-  virtual ~NullPainterDevice() {}
+  NullPainterEngine() {}
+  virtual ~NullPainterEngine() {}
 
   // [Meta]
 
@@ -432,7 +433,7 @@ RasterPainterCapsState& RasterPainterCapsState::operator=(const RasterPainterCap
 }
 
 // ============================================================================
-// [Fog::RasterPainterDevice - AntiGrain Wrappers]
+// [Fog::RasterPainterEngine - AntiGrain Wrappers]
 //
 // There are templates and classes that helps to wrap fog containers and paths
 // to AntiGrain without converting them into antigrain storage containers. This
@@ -548,7 +549,7 @@ struct FOG_HIDDEN RasterPainterContext
   // [Members]
 
   // Owner of this context.
-  RasterPainterDevice* owner;
+  RasterPainterEngine* owner;
 
   // Clip state.
   RasterPainterClipState* clipState;
@@ -798,15 +799,15 @@ struct FOG_HIDDEN RasterPainterCommand
 };
 
 // ============================================================================
-// [Fog::RasterPainterDevice]
+// [Fog::RasterPainterEngine]
 // ============================================================================
 
-struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
+struct FOG_HIDDEN RasterPainterEngine : public PainterEngine
 {
   // [Construction / Destruction]
 
-  RasterPainterDevice(uint8_t* pixels, int width, int height, sysint_t stride, int format);
-  virtual ~RasterPainterDevice();
+  RasterPainterEngine(uint8_t* pixels, int width, int height, sysint_t stride, int format, int hints);
+  virtual ~RasterPainterEngine();
 
   // [Meta]
 
@@ -1010,13 +1011,6 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
   void _renderImageMT(RasterPainterContext* ctx, int offset, int delta, const Rect& dst, const Image& image, const Rect& src);
   void _renderGlyphSetMT(RasterPainterContext* ctx, int offset, int delta, const Point& pt, const GlyphSet& glyphSet, const Box& boundingBox);
 
-  // [Constants]
-
-  enum {
-    MT_MinWidth = 128,
-    MT_MinHeight = 128
-  };
-
   // [Members]
 
   uint8_t* _metaRaster;
@@ -1051,7 +1045,7 @@ struct FOG_HIDDEN RasterPainterDevice : public PainterDevice
   static ThreadPool* threadPool;
 };
 
-ThreadPool* RasterPainterDevice::threadPool;
+ThreadPool* RasterPainterEngine::threadPool;
 
 // ============================================================================
 // [Fog::RasterPainterThreadData / Fog::RasterPainterThreadTask]
@@ -1067,7 +1061,7 @@ struct FOG_HIDDEN RasterPainterThreadTask : public Task
   virtual void run();
   virtual void destroy();
 
-  RasterPainterDevice* d;
+  RasterPainterEngine* d;
   RasterPainterThreadData* data;
 
   volatile int shouldQuit;
@@ -1274,10 +1268,10 @@ void RasterPainterThreadTask::destroy()
 }
 
 // ============================================================================
-// [Fog::RasterPainterDevice - Construction / Destruction]
+// [Fog::RasterPainterEngine - Construction / Destruction]
 // ============================================================================
 
-RasterPainterDevice::RasterPainterDevice(uint8_t* pixels, int width, int height, sysint_t stride, int format) :
+RasterPainterEngine::RasterPainterEngine(uint8_t* pixels, int width, int height, sysint_t stride, int format, int hints) :
   _metaRaster(pixels),
   _stride(stride),
   _metaWidth(width),
@@ -1300,13 +1294,21 @@ RasterPainterDevice::RasterPainterDevice(uint8_t* pixels, int width, int height,
 
   // Setup multithreading if possible. If the painting buffer if too small, we
   // will not use multithreading, because it has no sense.
-  if (cpuInfo->numberOfProcessors > 1 && width >= MT_MinWidth && height >= MT_MinHeight)
+  if (cpuInfo->numberOfProcessors > 1 && (hints & Painter::HintNoMultithreading) == 0)
   {
-    setMultithreaded(true);
+    sysuint_t total = (sysuint_t)width * (sysuint_t)height;
+
+    if (total >= RASTER_MIN_SIZE_THRESHOLD)
+    {
+#if defined(RASTER_DEBUG)
+      fog_debug("== size of image %dx%d (total %d) targetted for multithreading", width, height, width * height);
+#endif // RASTER_DEBUG
+      setMultithreaded(true);
+    }
   }
 }
 
-RasterPainterDevice::~RasterPainterDevice()
+RasterPainterEngine::~RasterPainterEngine()
 {
   if (_threadData) setMultithreaded(false);
 
@@ -1315,25 +1317,25 @@ RasterPainterDevice::~RasterPainterDevice()
 }
 
 // ============================================================================
-// [Fog::RasterPainterDevice - Meta]
+// [Fog::RasterPainterEngine - Meta]
 // ============================================================================
 
-int RasterPainterDevice::width() const
+int RasterPainterEngine::width() const
 {
   return _metaWidth;
 }
 
-int RasterPainterDevice::height() const
+int RasterPainterEngine::height() const
 {
   return _metaHeight;
 }
 
-int RasterPainterDevice::format() const
+int RasterPainterEngine::format() const
 {
   return _format;
 }
 
-void RasterPainterDevice::setMetaVariables(
+void RasterPainterEngine::setMetaVariables(
   const Point& metaOrigin,
   const Region& metaRegion,
   bool useMetaRegion,
@@ -1358,7 +1360,7 @@ void RasterPainterDevice::setMetaVariables(
   _updateWorkRegion();
 }
 
-void RasterPainterDevice::setMetaOrigin(const Point& pt)
+void RasterPainterEngine::setMetaOrigin(const Point& pt)
 {
   if (ctx.clipState->metaOrigin == pt) return;
   if (!_detachClip()) return;
@@ -1367,7 +1369,7 @@ void RasterPainterDevice::setMetaOrigin(const Point& pt)
   _updateWorkRegion();
 }
 
-void RasterPainterDevice::setUserOrigin(const Point& pt)
+void RasterPainterEngine::setUserOrigin(const Point& pt)
 {
   if (ctx.clipState->userOrigin == pt) return;
   if (!_detachClip()) return;
@@ -1376,7 +1378,7 @@ void RasterPainterDevice::setUserOrigin(const Point& pt)
   _updateWorkRegion();
 }
 
-void RasterPainterDevice::translateMetaOrigin(const Point& pt)
+void RasterPainterEngine::translateMetaOrigin(const Point& pt)
 {
   if (pt.x() == 0 && pt.y() == 0) return;
   if (!_detachClip()) return;
@@ -1385,7 +1387,7 @@ void RasterPainterDevice::translateMetaOrigin(const Point& pt)
   _updateWorkRegion();
 }
 
-void RasterPainterDevice::translateUserOrigin(const Point& pt)
+void RasterPainterEngine::translateUserOrigin(const Point& pt)
 {
   if (pt.x() == 0 && pt.y() == 0) return;
   if (!_detachClip()) return;
@@ -1394,7 +1396,7 @@ void RasterPainterDevice::translateUserOrigin(const Point& pt)
   _updateWorkRegion();
 }
 
-void RasterPainterDevice::setUserRegion(const Rect& r)
+void RasterPainterEngine::setUserRegion(const Rect& r)
 {
   if (!_detachClip()) return;
 
@@ -1403,7 +1405,7 @@ void RasterPainterDevice::setUserRegion(const Rect& r)
   _updateWorkRegion();
 }
 
-void RasterPainterDevice::setUserRegion(const Region& r)
+void RasterPainterEngine::setUserRegion(const Region& r)
 {
   if (!_detachClip()) return;
 
@@ -1412,7 +1414,7 @@ void RasterPainterDevice::setUserRegion(const Region& r)
   _updateWorkRegion();
 }
 
-void RasterPainterDevice::resetMetaVars()
+void RasterPainterEngine::resetMetaVars()
 {
   if (!_detachClip()) return;
 
@@ -1422,7 +1424,7 @@ void RasterPainterDevice::resetMetaVars()
   _updateWorkRegion();
 }
 
-void RasterPainterDevice::resetUserVars()
+void RasterPainterEngine::resetUserVars()
 {
   if (!_detachClip()) return;
 
@@ -1432,41 +1434,41 @@ void RasterPainterDevice::resetUserVars()
   _updateWorkRegion();
 }
 
-Point RasterPainterDevice::metaOrigin() const
+Point RasterPainterEngine::metaOrigin() const
 {
   return ctx.clipState->metaOrigin;
 }
 
-Point RasterPainterDevice::userOrigin() const
+Point RasterPainterEngine::userOrigin() const
 {
   return ctx.clipState->userOrigin;
 }
 
-Region RasterPainterDevice::metaRegion() const
+Region RasterPainterEngine::metaRegion() const
 {
   return ctx.clipState->metaRegion;
 }
 
-Region RasterPainterDevice::userRegion() const
+Region RasterPainterEngine::userRegion() const
 {
   return ctx.clipState->userRegion;
 }
 
-bool RasterPainterDevice::usedMetaRegion() const
+bool RasterPainterEngine::usedMetaRegion() const
 {
   return ctx.clipState->metaRegionUsed;
 }
 
-bool RasterPainterDevice::usedUserRegion() const
+bool RasterPainterEngine::usedUserRegion() const
 {
   return ctx.clipState->userRegionUsed;
 }
 
 // ============================================================================
-// [Fog::RasterPainterDevice - Operator]
+// [Fog::RasterPainterEngine - Operator]
 // ============================================================================
 
-void RasterPainterDevice::setOp(uint32_t op)
+void RasterPainterEngine::setOp(uint32_t op)
 {
   if (!_compositingEnabled) return;
   if (op >= CompositeCount) return;
@@ -1476,16 +1478,16 @@ void RasterPainterDevice::setOp(uint32_t op)
   ctx.raster = &Raster::functionMap->raster_argb32[_premultiplied][op];
 }
 
-uint32_t RasterPainterDevice::op() const
+uint32_t RasterPainterEngine::op() const
 {
   return ctx.capsState->op;
 }
 
 // ============================================================================
-// [Fog::RasterPainterDevice - Source]
+// [Fog::RasterPainterEngine - Source]
 // ============================================================================
 
-void RasterPainterDevice::setSource(const Rgba& rgba)
+void RasterPainterEngine::setSource(const Rgba& rgba)
 {
   if (!_detachCaps()) return;
 
@@ -1502,7 +1504,7 @@ void RasterPainterDevice::setSource(const Rgba& rgba)
   }
 }
 
-void RasterPainterDevice::setSource(const Pattern& pattern)
+void RasterPainterEngine::setSource(const Pattern& pattern)
 {
   if (pattern.isSolid())
   {
@@ -1519,12 +1521,12 @@ void RasterPainterDevice::setSource(const Pattern& pattern)
   _resetPatternContext();
 }
 
-Rgba RasterPainterDevice::sourceRgba()
+Rgba RasterPainterEngine::sourceRgba()
 {
   return ctx.capsState->solidSource;
 }
 
-Pattern RasterPainterDevice::sourcePattern()
+Pattern RasterPainterEngine::sourcePattern()
 {
   Pattern pattern;
   if (ctx.capsState->isSolidSource)
@@ -1535,10 +1537,10 @@ Pattern RasterPainterDevice::sourcePattern()
 }
 
 // ============================================================================
-// [Fog::RasterPainterDevice - Parameters]
+// [Fog::RasterPainterEngine - Parameters]
 // ============================================================================
 
-void RasterPainterDevice::setLineWidth(double lineWidth)
+void RasterPainterEngine::setLineWidth(double lineWidth)
 {
   if (ctx.capsState->lineWidth == lineWidth) return;
   if (!_detachCaps()) return;
@@ -1547,12 +1549,12 @@ void RasterPainterDevice::setLineWidth(double lineWidth)
   _updateLineWidth();
 }
 
-double RasterPainterDevice::lineWidth() const
+double RasterPainterEngine::lineWidth() const
 {
   return ctx.capsState->lineWidth;
 }
 
-void RasterPainterDevice::setLineCap(uint32_t lineCap)
+void RasterPainterEngine::setLineCap(uint32_t lineCap)
 {
   if (ctx.capsState->lineCap == lineCap) return;
   if (!_detachCaps()) return;
@@ -1560,12 +1562,12 @@ void RasterPainterDevice::setLineCap(uint32_t lineCap)
   ctx.capsState->lineCap = lineCap;
 }
 
-uint32_t RasterPainterDevice::lineCap() const
+uint32_t RasterPainterEngine::lineCap() const
 {
   return ctx.capsState->lineCap;
 }
 
-void RasterPainterDevice::setLineJoin(uint32_t lineJoin)
+void RasterPainterEngine::setLineJoin(uint32_t lineJoin)
 {
   if (ctx.capsState->lineJoin == lineJoin) return;
   if (!_detachCaps()) return;
@@ -1573,12 +1575,12 @@ void RasterPainterDevice::setLineJoin(uint32_t lineJoin)
   ctx.capsState->lineJoin = lineJoin;
 }
 
-uint32_t RasterPainterDevice::lineJoin() const
+uint32_t RasterPainterEngine::lineJoin() const
 {
   return ctx.capsState->lineJoin;
 }
 
-void RasterPainterDevice::setLineDash(const double* dashes, sysuint_t count)
+void RasterPainterEngine::setLineDash(const double* dashes, sysuint_t count)
 {
   if (!_detachCaps()) return;
 
@@ -1587,7 +1589,7 @@ void RasterPainterDevice::setLineDash(const double* dashes, sysuint_t count)
   _updateLineWidth();
 }
 
-void RasterPainterDevice::setLineDash(const Vector<double>& dashes)
+void RasterPainterEngine::setLineDash(const Vector<double>& dashes)
 {
   if (!_detachCaps()) return;
 
@@ -1595,12 +1597,12 @@ void RasterPainterDevice::setLineDash(const Vector<double>& dashes)
   _updateLineWidth();
 }
 
-Vector<double> RasterPainterDevice::lineDash() const
+Vector<double> RasterPainterEngine::lineDash() const
 {
   return ctx.capsState->lineDash;
 }
 
-void RasterPainterDevice::setLineDashOffset(double offset)
+void RasterPainterEngine::setLineDashOffset(double offset)
 {
   if (ctx.capsState->lineDashOffset == offset) return;
   if (!_detachCaps()) return;
@@ -1609,12 +1611,12 @@ void RasterPainterDevice::setLineDashOffset(double offset)
   _updateLineWidth();
 }
 
-double RasterPainterDevice::lineDashOffset() const
+double RasterPainterEngine::lineDashOffset() const
 {
   return ctx.capsState->lineDashOffset;
 }
 
-void RasterPainterDevice::setMiterLimit(double miterLimit)
+void RasterPainterEngine::setMiterLimit(double miterLimit)
 {
   if (ctx.capsState->miterLimit == miterLimit) return;
   if (!_detachCaps()) return;
@@ -1622,12 +1624,12 @@ void RasterPainterDevice::setMiterLimit(double miterLimit)
   ctx.capsState->miterLimit = miterLimit;
 }
 
-double RasterPainterDevice::miterLimit() const
+double RasterPainterEngine::miterLimit() const
 {
   return ctx.capsState->miterLimit;
 }
 
-void RasterPainterDevice::setFillMode(uint32_t mode)
+void RasterPainterEngine::setFillMode(uint32_t mode)
 {
   if (ctx.capsState->fillMode == mode) return;
   if (!_detachCaps()) return;
@@ -1635,16 +1637,16 @@ void RasterPainterDevice::setFillMode(uint32_t mode)
   ctx.capsState->fillMode = mode;
 }
 
-uint32_t RasterPainterDevice::fillMode()
+uint32_t RasterPainterEngine::fillMode()
 {
   return ctx.capsState->fillMode;
 }
 
 // ============================================================================
-// [Fog::RasterPainterDevice - Transformations]
+// [Fog::RasterPainterEngine - Transformations]
 // ============================================================================
 
-void RasterPainterDevice::setMatrix(const AffineMatrix& m)
+void RasterPainterEngine::setMatrix(const AffineMatrix& m)
 {
   if (!_detachCaps()) return;
 
@@ -1652,7 +1654,7 @@ void RasterPainterDevice::setMatrix(const AffineMatrix& m)
   ctx.capsState->transformationsUsed = !ctx.capsState->transformations.isIdentity();
 }
 
-void RasterPainterDevice::resetMatrix()
+void RasterPainterEngine::resetMatrix()
 {
   if (!_detachCaps()) return;
 
@@ -1660,12 +1662,12 @@ void RasterPainterDevice::resetMatrix()
   ctx.capsState->transformationsUsed = false;
 }
 
-AffineMatrix RasterPainterDevice::matrix() const
+AffineMatrix RasterPainterEngine::matrix() const
 {
   return ctx.capsState->transformations;
 }
 
-void RasterPainterDevice::rotate(double angle)
+void RasterPainterEngine::rotate(double angle)
 {
   if (!_detachCaps()) return;
 
@@ -1673,7 +1675,7 @@ void RasterPainterDevice::rotate(double angle)
   ctx.capsState->transformationsUsed = !ctx.capsState->transformations.isIdentity();
 }
 
-void RasterPainterDevice::scale(double sx, double sy)
+void RasterPainterEngine::scale(double sx, double sy)
 {
   if (!_detachCaps()) return;
 
@@ -1681,7 +1683,7 @@ void RasterPainterDevice::scale(double sx, double sy)
   ctx.capsState->transformationsUsed = !ctx.capsState->transformations.isIdentity();
 }
 
-void RasterPainterDevice::skew(double sx, double sy)
+void RasterPainterEngine::skew(double sx, double sy)
 {
   if (!_detachCaps()) return;
 
@@ -1689,7 +1691,7 @@ void RasterPainterDevice::skew(double sx, double sy)
   ctx.capsState->transformationsUsed = !ctx.capsState->transformations.isIdentity();
 }
 
-void RasterPainterDevice::translate(double x, double y)
+void RasterPainterEngine::translate(double x, double y)
 {
   if (!_detachCaps()) return;
 
@@ -1697,7 +1699,7 @@ void RasterPainterDevice::translate(double x, double y)
   ctx.capsState->transformationsUsed = !ctx.capsState->transformations.isIdentity();
 }
 
-void RasterPainterDevice::affine(const AffineMatrix& m)
+void RasterPainterEngine::affine(const AffineMatrix& m)
 {
   if (!_detachCaps()) return;
 
@@ -1705,7 +1707,7 @@ void RasterPainterDevice::affine(const AffineMatrix& m)
   ctx.capsState->transformationsUsed = !ctx.capsState->transformations.isIdentity();
 }
 
-void RasterPainterDevice::parallelogram(
+void RasterPainterEngine::parallelogram(
   double x1, double y1, double x2, double y2, const double* para)
 {
   if (!_detachCaps()) return;
@@ -1714,7 +1716,7 @@ void RasterPainterDevice::parallelogram(
   ctx.capsState->transformationsUsed = !ctx.capsState->transformations.isIdentity();
 }
 
-void RasterPainterDevice::viewport(
+void RasterPainterEngine::viewport(
   double worldX1,  double worldY1,  double worldX2,  double worldY2,
   double screenX1, double screenY1, double screenX2, double screenY2,
   uint32_t viewportOption)
@@ -1746,10 +1748,10 @@ void RasterPainterDevice::viewport(
 }
 
 // ============================================================================
-// [Fog::RasterPainterDevice - Raster drawing]
+// [Fog::RasterPainterEngine - Raster drawing]
 // ============================================================================
 
-void RasterPainterDevice::clear()
+void RasterPainterEngine::clear()
 {
   if (ctx.clipState->clipSimple)
     _serializeBoxes(&ctx.clipState->clipBox, 1);
@@ -1757,26 +1759,26 @@ void RasterPainterDevice::clear()
     _serializeBoxes(ctx.clipState->workRegion.cData(), ctx.clipState->workRegion.count());
 }
 
-void RasterPainterDevice::drawPixel(const Point& p)
+void RasterPainterEngine::drawPixel(const Point& p)
 {
-  RasterPainterDevice::drawPoint(
+  RasterPainterEngine::drawPoint(
     PointF((double)p.x() + 0.5, (double)p.y() + 0.5));
 }
 
-void RasterPainterDevice::drawLine(const Point& start, const Point& end)
+void RasterPainterEngine::drawLine(const Point& start, const Point& end)
 {
-  RasterPainterDevice::drawLine(
+  RasterPainterEngine::drawLine(
     PointF((double)start.x() + 0.5, (double)start.y() + 0.5),
     PointF((double)end.x() + 0.5, (double)end.y() + 0.5));
 }
 
-void RasterPainterDevice::drawRect(const Rect& r)
+void RasterPainterEngine::drawRect(const Rect& r)
 {
   if (!r.isValid()) return;
 
   if (ctx.capsState->transformationsUsed || !ctx.capsState->lineIsSimple)
   {
-    RasterPainterDevice::drawRect(
+    RasterPainterEngine::drawRect(
       RectF(
         (double)r.x1() + 0.5,
         (double)r.y1() + 0.5,
@@ -1807,7 +1809,7 @@ void RasterPainterDevice::drawRect(const Rect& r)
     {
       for (sysuint_t i = 0; i < count; i++) Box::intersect(box[0], box[0], ctx.clipState->clipBox);
     }
-    RasterPainterDevice::_serializeBoxes(box, count);
+    RasterPainterEngine::_serializeBoxes(box, count);
   }
   else
   {
@@ -1818,24 +1820,24 @@ void RasterPainterDevice::drawRect(const Rect& r)
     Region::intersect(regionISect, regionBox, ctx.clipState->workRegion);
     if (!regionISect.count()) return;
 
-    RasterPainterDevice::_serializeBoxes(regionISect.cData(), regionISect.count());
+    RasterPainterEngine::_serializeBoxes(regionISect.cData(), regionISect.count());
   }
 }
 
-void RasterPainterDevice::drawRound(const Rect& r, const Point& radius)
+void RasterPainterEngine::drawRound(const Rect& r, const Point& radius)
 {
-  RasterPainterDevice::drawRound(
+  RasterPainterEngine::drawRound(
     RectF((double)r.x1() + 0.5, (double)r.y1() + 0.5, r.width(), r.height()),
     PointF((double)radius.x(), (double)radius.y()));
 }
 
-void RasterPainterDevice::fillRect(const Rect& r)
+void RasterPainterEngine::fillRect(const Rect& r)
 {
   if (!r.isValid()) return;
 
   if (ctx.capsState->transformationsUsed)
   {
-    RasterPainterDevice::fillRect(
+    RasterPainterEngine::fillRect(
       RectF(
         (double)r.x1() + 0.5,
         (double)r.y1() + 0.5,
@@ -1851,7 +1853,7 @@ void RasterPainterDevice::fillRect(const Rect& r)
     Box::intersect(box, box, ctx.clipState->clipBox);
     if (!box.isValid()) return;
 
-    RasterPainterDevice::_serializeBoxes(&box, 1);
+    RasterPainterEngine::_serializeBoxes(&box, 1);
   }
   else
   {
@@ -1862,11 +1864,11 @@ void RasterPainterDevice::fillRect(const Rect& r)
     Region::intersect(regionISect, regionBox, ctx.clipState->workRegion);
     if (!regionISect.count()) return;
 
-    RasterPainterDevice::_serializeBoxes(regionISect.cData(), regionISect.count());
+    RasterPainterEngine::_serializeBoxes(regionISect.cData(), regionISect.count());
   }
 }
 
-void RasterPainterDevice::fillRects(const Rect* r, sysuint_t count)
+void RasterPainterEngine::fillRects(const Rect* r, sysuint_t count)
 {
   if (!count) return;
 
@@ -1912,14 +1914,14 @@ void RasterPainterDevice::fillRects(const Rect* r, sysuint_t count)
   }
 }
 
-void RasterPainterDevice::fillRound(const Rect& r, const Point& radius)
+void RasterPainterEngine::fillRound(const Rect& r, const Point& radius)
 {
-  RasterPainterDevice::fillRound(
+  RasterPainterEngine::fillRound(
     RectF((double)r.x1() + 0.5, (double)r.y1() + 0.5, r.width(), r.height()),
     PointF(radius.x(), radius.y()));
 }
 
-void RasterPainterDevice::fillRegion(const Region& region)
+void RasterPainterEngine::fillRegion(const Region& region)
 {
   if (ctx.clipState->clipSimple && ctx.clipState->clipBox.subsumes(region.extents()))
   {
@@ -1936,10 +1938,10 @@ void RasterPainterDevice::fillRegion(const Region& region)
 }
 
 // ============================================================================
-// [Fog::RasterPainterDevice - Vector drawing]
+// [Fog::RasterPainterEngine - Vector drawing]
 // ============================================================================
 
-void RasterPainterDevice::drawPoint(const PointF& p)
+void RasterPainterEngine::drawPoint(const PointF& p)
 {
   workPath.clear();
   workPath.moveTo(p);
@@ -1947,7 +1949,7 @@ void RasterPainterDevice::drawPoint(const PointF& p)
   drawPath(workPath);
 }
 
-void RasterPainterDevice::drawLine(const PointF& start, const PointF& end)
+void RasterPainterEngine::drawLine(const PointF& start, const PointF& end)
 {
   workPath.clear();
   workPath.moveTo(start);
@@ -1955,7 +1957,7 @@ void RasterPainterDevice::drawLine(const PointF& start, const PointF& end)
   drawPath(workPath);
 }
 
-void RasterPainterDevice::drawLine(const PointF* pts, sysuint_t count)
+void RasterPainterEngine::drawLine(const PointF* pts, sysuint_t count)
 {
   if (!count) return;
 
@@ -1968,7 +1970,7 @@ void RasterPainterDevice::drawLine(const PointF* pts, sysuint_t count)
   drawPath(workPath);
 }
 
-void RasterPainterDevice::drawPolygon(const PointF* pts, sysuint_t count)
+void RasterPainterEngine::drawPolygon(const PointF* pts, sysuint_t count)
 {
   if (!count) return;
 
@@ -1982,7 +1984,7 @@ void RasterPainterDevice::drawPolygon(const PointF* pts, sysuint_t count)
   drawPath(workPath);
 }
 
-void RasterPainterDevice::drawRect(const RectF& r)
+void RasterPainterEngine::drawRect(const RectF& r)
 {
   if (!r.isValid()) return;
 
@@ -1991,7 +1993,7 @@ void RasterPainterDevice::drawRect(const RectF& r)
   drawPath(workPath);
 }
 
-void RasterPainterDevice::drawRects(const RectF* r, sysuint_t count)
+void RasterPainterEngine::drawRects(const RectF* r, sysuint_t count)
 {
   if (!count) return;
 
@@ -2003,12 +2005,12 @@ void RasterPainterDevice::drawRects(const RectF* r, sysuint_t count)
   drawPath(workPath);
 }
 
-void RasterPainterDevice::drawRound(const RectF& r, const PointF& radius)
+void RasterPainterEngine::drawRound(const RectF& r, const PointF& radius)
 {
-  RasterPainterDevice::drawRound(r, radius, radius, radius, radius);
+  RasterPainterEngine::drawRound(r, radius, radius, radius, radius);
 }
 
-void RasterPainterDevice::drawRound(const RectF& r,
+void RasterPainterEngine::drawRound(const RectF& r,
   const PointF& tlr, const PointF& trr,
   const PointF& blr, const PointF& brr)
 {
@@ -2030,12 +2032,12 @@ void RasterPainterDevice::drawRound(const RectF& r,
   drawPath(workPath);
 }
 
-void RasterPainterDevice::drawEllipse(const PointF& cp, const PointF& r)
+void RasterPainterEngine::drawEllipse(const PointF& cp, const PointF& r)
 {
-  RasterPainterDevice::drawArc(cp, r, 0.0, 2.0 * M_PI);
+  RasterPainterEngine::drawArc(cp, r, 0.0, 2.0 * M_PI);
 }
 
-void RasterPainterDevice::drawArc(const PointF& cp, const PointF& r, double start, double sweep)
+void RasterPainterEngine::drawArc(const PointF& cp, const PointF& r, double start, double sweep)
 {
   agg::bezier_arc arc(cp.x(), cp.y(), r.x(), r.y(), start, sweep);
 
@@ -2044,12 +2046,12 @@ void RasterPainterDevice::drawArc(const PointF& cp, const PointF& r, double star
   drawPath(workPath);
 }
 
-void RasterPainterDevice::drawPath(const Path& path)
+void RasterPainterEngine::drawPath(const Path& path)
 {
   _serializePath(path, true);
 }
 
-void RasterPainterDevice::fillPolygon(const PointF* pts, sysuint_t count)
+void RasterPainterEngine::fillPolygon(const PointF* pts, sysuint_t count)
 {
   if (!count) return;
 
@@ -2063,7 +2065,7 @@ void RasterPainterDevice::fillPolygon(const PointF* pts, sysuint_t count)
   fillPath(workPath);
 }
 
-void RasterPainterDevice::fillRect(const RectF& r)
+void RasterPainterEngine::fillRect(const RectF& r)
 {
   if (!r.isValid()) return;
 
@@ -2072,7 +2074,7 @@ void RasterPainterDevice::fillRect(const RectF& r)
   fillPath(workPath);
 }
 
-void RasterPainterDevice::fillRects(const RectF* r, sysuint_t count)
+void RasterPainterEngine::fillRects(const RectF* r, sysuint_t count)
 {
   if (!count) return;
 
@@ -2084,12 +2086,12 @@ void RasterPainterDevice::fillRects(const RectF* r, sysuint_t count)
   fillPath(workPath);
 }
 
-void RasterPainterDevice::fillRound(const RectF& r, const PointF& radius)
+void RasterPainterEngine::fillRound(const RectF& r, const PointF& radius)
 {
-  RasterPainterDevice::fillRound(r, radius, radius, radius, radius);
+  RasterPainterEngine::fillRound(r, radius, radius, radius, radius);
 }
 
-void RasterPainterDevice::fillRound(const RectF& r,
+void RasterPainterEngine::fillRound(const RectF& r,
   const PointF& tlr, const PointF& trr,
   const PointF& blr, const PointF& brr)
 {
@@ -2111,12 +2113,12 @@ void RasterPainterDevice::fillRound(const RectF& r,
   fillPath(workPath);
 }
 
-void RasterPainterDevice::fillEllipse(const PointF& cp, const PointF& r)
+void RasterPainterEngine::fillEllipse(const PointF& cp, const PointF& r)
 {
-  RasterPainterDevice::fillArc(cp, r, 0.0, 2.0 * M_PI);
+  RasterPainterEngine::fillArc(cp, r, 0.0, 2.0 * M_PI);
 }
 
-void RasterPainterDevice::fillArc(const PointF& cp, const PointF& r, double start, double sweep)
+void RasterPainterEngine::fillArc(const PointF& cp, const PointF& r, double start, double sweep)
 {
   agg::bezier_arc arc(cp.x(), cp.y(), r.x(), r.y(), start, sweep);
 
@@ -2125,16 +2127,16 @@ void RasterPainterDevice::fillArc(const PointF& cp, const PointF& r, double star
   fillPath(workPath);
 }
 
-void RasterPainterDevice::fillPath(const Path& path)
+void RasterPainterEngine::fillPath(const Path& path)
 {
   _serializePath(path, false);
 }
 
 // ============================================================================
-// [Fog::RasterPainterDevice - Glyph / Text Drawing]
+// [Fog::RasterPainterEngine - Glyph / Text Drawing]
 // ============================================================================
 
-void RasterPainterDevice::drawGlyph(const Point& pt, const Glyph& glyph, const Rect* clip)
+void RasterPainterEngine::drawGlyph(const Point& pt, const Glyph& glyph, const Rect* clip)
 {
   TemporaryGlyphSet<1> glyphSet;
   err_t err;
@@ -2146,12 +2148,12 @@ void RasterPainterDevice::drawGlyph(const Point& pt, const Glyph& glyph, const R
   _serializeGlyphSet(pt, glyphSet, clip);
 }
 
-void RasterPainterDevice::drawGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip)
+void RasterPainterEngine::drawGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip)
 {
   _serializeGlyphSet(pt, glyphSet, clip);
 }
 
-void RasterPainterDevice::drawText(const Point& pt, const String32& text, const Font& font, const Rect* clip)
+void RasterPainterEngine::drawText(const Point& pt, const String32& text, const Font& font, const Rect* clip)
 {
   TemporaryGlyphSet<128> glyphSet;
   if (font.getGlyphs(text.cData(), text.length(), glyphSet)) return;
@@ -2159,16 +2161,16 @@ void RasterPainterDevice::drawText(const Point& pt, const String32& text, const 
   _serializeGlyphSet(pt, glyphSet, clip);
 }
 
-void RasterPainterDevice::drawText(const Rect& r, const String32& text, const Font& font, uint32_t align, const Rect* clip)
+void RasterPainterEngine::drawText(const Rect& r, const String32& text, const Font& font, uint32_t align, const Rect* clip)
 {
   // TODO
 }
 
 // ============================================================================
-// [Fog::RasterPainterDevice - Image drawing]
+// [Fog::RasterPainterEngine - Image drawing]
 // ============================================================================
 
-void RasterPainterDevice::drawImage(const Point& p, const Image& image, const Rect* irect)
+void RasterPainterEngine::drawImage(const Point& p, const Image& image, const Rect* irect)
 {
   int srcx = 0;
   int srcy = 0;
@@ -2238,14 +2240,25 @@ void RasterPainterDevice::drawImage(const Point& p, const Image& image, const Re
 }
 
 // ============================================================================
-// [Fog::RasterPainterDevice - Flush]
+// [Fog::RasterPainterEngine - Flush]
 // ============================================================================
 
-void RasterPainterDevice::flush()
+void RasterPainterEngine::flush()
 {
   if (!_threadData) return;
 
   AutoLock locked(_threadData->commandsLock);
+
+
+  if (_threadData->completedThreads.get() > 0)
+  {
+#if defined(RASTER_DEBUG)
+    fog_debug("== broadcasting %d threads", (int)_threadData->completedThreads.get());
+#endif // RASTER_DEBUG
+    _threadData->completedThreads.setXchg(0);
+    _threadData->commandsReady.broadcast();
+  }
+
 
 #if defined(RASTER_DEBUG)
   fog_debug("== flush, complete threads: %d, command position: %d",
@@ -2268,7 +2281,7 @@ void RasterPainterDevice::flush()
   }
 }
 
-void RasterPainterDevice::flushWithQuit()
+void RasterPainterEngine::flushWithQuit()
 {
   FOG_ASSERT(_threadData);
 
@@ -2283,10 +2296,10 @@ void RasterPainterDevice::flushWithQuit()
 }
 
 // ============================================================================
-// [Fog::RasterPainterDevice - Properties]
+// [Fog::RasterPainterEngine - Properties]
 // ============================================================================
 
-err_t RasterPainterDevice::setProperty(const String32& name, const Value& value)
+err_t RasterPainterEngine::setProperty(const String32& name, const Value& value)
 {
   err_t err = Error::InvalidProperty;
   int p_int;
@@ -2300,7 +2313,7 @@ err_t RasterPainterDevice::setProperty(const String32& name, const Value& value)
   return err;
 }
 
-Value RasterPainterDevice::getProperty(const String32& name) const
+Value RasterPainterEngine::getProperty(const String32& name) const
 {
   Value result;
 
@@ -2311,10 +2324,10 @@ Value RasterPainterDevice::getProperty(const String32& name) const
 }
 
 // ============================================================================
-// [Fog::RasterPainterDevice - Multithreading - Start / Stop]
+// [Fog::RasterPainterEngine - Multithreading - Start / Stop]
 // ============================================================================
 
-void RasterPainterDevice::setMultithreaded(bool mt)
+void RasterPainterEngine::setMultithreaded(bool mt)
 {
   int i;
 
@@ -2326,11 +2339,11 @@ void RasterPainterDevice::setMultithreaded(bool mt)
   // Start multithreading...
   if (mt)
   {
-#if defined(RASTER_DEBUG)
-    fog_debug("== starting multithreading");
-#endif // RASTER_DEBUG
-
     int max = fog_min<int>(cpuInfo->numberOfProcessors, RASTER_MAX_THREADS);
+
+#if defined(RASTER_DEBUG)
+    fog_debug("== starting multithreading (%d threads)", max);
+#endif // RASTER_DEBUG
 
     _threadData = new(std::nothrow) RasterPainterThreadData;
     if (_threadData == NULL) return;
@@ -2377,6 +2390,13 @@ void RasterPainterDevice::setMultithreaded(bool mt)
     _threadData->threadPool = threadPool;
     _threadData->commandsPosition.init(0);
 
+    // Set threads affinity.
+    for (i = 0; i < count; i++)
+    {
+      _threadData->threads[i]->setAffinity(1 << i);
+    }
+
+    // Create thread tasks.
     for (i = 0; i < count; i++)
     {
       _threadData->tasks[i].init();
@@ -2388,13 +2408,14 @@ void RasterPainterDevice::setMultithreaded(bool mt)
       task->ctx.owner = this;
     }
 
+    // Post working task.
     for (i = 0; i < count; i++)
     {
       RasterPainterThreadTask* task = _threadData->tasks[i].instancep();
       _threadData->threads[i]->eventLoop()->postTask(task);
     }
 
-    // Wait for threads to initialize
+    // Wait for threads to initialize.
     {
       AutoLock locked(_threadData->commandsLock);
       while (_threadData->completedThreads.get() != _threadData->numThreads)
@@ -2417,7 +2438,7 @@ void RasterPainterDevice::setMultithreaded(bool mt)
     ThreadEvent releaseEvent(false, false);
     _threadData->releaseEvent = &releaseEvent;
 
-    // Release threads
+    // Release threads.
     for (i = 0; i < count; i++)
     {
       _threadData->tasks[i]->shouldQuit = 1;
@@ -2427,6 +2448,12 @@ void RasterPainterDevice::setMultithreaded(bool mt)
     flushWithQuit();
 
     releaseEvent.wait();
+
+    // Reset threads affinity.
+    for (i = 0; i < count; i++)
+    {
+      _threadData->threads[i]->resetAffinity();
+    }
 
     for (i = 0; i < count; i++)
     {
@@ -2444,10 +2471,10 @@ void RasterPainterDevice::setMultithreaded(bool mt)
 }
 
 // ============================================================================
-// [Fog::RasterPainterDevice - Helpers]
+// [Fog::RasterPainterEngine - Helpers]
 // ============================================================================
 
-void RasterPainterDevice::_updateWorkRegion()
+void RasterPainterEngine::_updateWorkRegion()
 {
   FOG_ASSERT(ctx.clipState->refCount.get() == 1);
 
@@ -2519,7 +2546,7 @@ void RasterPainterDevice::_updateWorkRegion()
     (sysint_t)ctx.clipState->workOrigin.y() * _stride;
 }
 
-void RasterPainterDevice::_setClipDefaults()
+void RasterPainterEngine::_setClipDefaults()
 {
   FOG_ASSERT(ctx.clipState->refCount.get() == 1);
 
@@ -2534,7 +2561,7 @@ void RasterPainterDevice::_setClipDefaults()
   ctx.clipState->clipBox.set(0, 0, _metaWidth, _metaHeight);
 }
 
-void RasterPainterDevice::_setCapsDefaults()
+void RasterPainterEngine::_setCapsDefaults()
 {
   FOG_ASSERT(ctx.capsState->refCount.get() == 1);
 
@@ -2563,7 +2590,7 @@ void RasterPainterDevice::_setCapsDefaults()
   ctx.raster = Raster::getRasterOps(_format, ctx.capsState->op);
 }
 
-Raster::PatternContext* RasterPainterDevice::_getPatternContext()
+Raster::PatternContext* RasterPainterEngine::_getPatternContext()
 {
   // Sanity, calling _getPatternContext() for solid source is invalid.
   if (ctx.capsState->isSolidSource) return NULL;
@@ -2596,7 +2623,7 @@ Raster::PatternContext* RasterPainterDevice::_getPatternContext()
 
   if (err)
   {
-    fog_debug("Fog::RasterPainterDevice::_getPatternContext() - Failed to get context (error %d)\n", err);
+    fog_debug("Fog::RasterPainterEngine::_getPatternContext() - Failed to get context (error %d)\n", err);
     return NULL;
   }
 
@@ -2606,7 +2633,7 @@ Raster::PatternContext* RasterPainterDevice::_getPatternContext()
   return pctx;
 }
 
-void RasterPainterDevice::_resetPatternContext()
+void RasterPainterEngine::_resetPatternContext()
 {
   if (ctx.pctx)
   {
@@ -2622,7 +2649,7 @@ void RasterPainterDevice::_resetPatternContext()
   }
 }
 
-bool RasterPainterDevice::_detachClip()
+bool RasterPainterEngine::_detachClip()
 {
   if (ctx.clipState->refCount.get() == 1) return true;
 
@@ -2633,7 +2660,7 @@ bool RasterPainterDevice::_detachClip()
   return true;
 }
 
-bool RasterPainterDevice::_detachCaps()
+bool RasterPainterEngine::_detachCaps()
 {
   if (ctx.capsState->refCount.get() == 1) return true;
 
@@ -2645,7 +2672,7 @@ bool RasterPainterDevice::_detachCaps()
 }
 
 // ============================================================================
-// [Fog::RasterPainterDevice - Serializers]
+// [Fog::RasterPainterEngine - Serializers]
 // ============================================================================
 
 static FOG_INLINE int alignToDelta(int y, int offset, int delta)
@@ -2655,7 +2682,7 @@ static FOG_INLINE int alignToDelta(int y, int offset, int delta)
   return y;
 }
 
-void RasterPainterDevice::_serializePath(const Path& path, bool stroke)
+void RasterPainterEngine::_serializePath(const Path& path, bool stroke)
 {
   // Pattern context must be always set up before _render() methods are called.
   if (!ctx.capsState->isSolidSource && !_getPatternContext()) return;
@@ -2691,7 +2718,7 @@ void RasterPainterDevice::_serializePath(const Path& path, bool stroke)
   }
 }
 
-void RasterPainterDevice::_serializeBoxes(const Box* box, sysuint_t count)
+void RasterPainterEngine::_serializeBoxes(const Box* box, sysuint_t count)
 {
   // Pattern context must be always set up before _render() methods are called.
   if (!ctx.capsState->isSolidSource && !_getPatternContext()) return;
@@ -2724,7 +2751,7 @@ void RasterPainterDevice::_serializeBoxes(const Box* box, sysuint_t count)
   }
 }
 
-void RasterPainterDevice::_serializeImage(const Rect& dst, const Image& image, const Rect& src)
+void RasterPainterEngine::_serializeImage(const Rect& dst, const Image& image, const Rect& src)
 {
   if (_threadData)
   {
@@ -2744,7 +2771,7 @@ void RasterPainterDevice::_serializeImage(const Rect& dst, const Image& image, c
   }
 }
 
-void RasterPainterDevice::_serializeGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip)
+void RasterPainterEngine::_serializeGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip)
 {
   Box boundingBox = ctx.clipState->clipBox;
 
@@ -2775,7 +2802,7 @@ void RasterPainterDevice::_serializeGlyphSet(const Point& pt, const GlyphSet& gl
   }
 }
 
-RasterPainterCommand* RasterPainterDevice::_createCommand()
+RasterPainterCommand* RasterPainterEngine::_createCommand()
 {
   RasterPainterCommand* command = 
     reinterpret_cast<RasterPainterCommand*>(
@@ -2801,7 +2828,7 @@ RasterPainterCommand* RasterPainterDevice::_createCommand()
   return command;
 }
 
-void RasterPainterDevice::_destroyCommand(RasterPainterCommand* cmd)
+void RasterPainterEngine::_destroyCommand(RasterPainterCommand* cmd)
 {
   // Specific command data (in union) must be destroyed in worker. This method
   // destroyes only general data for all command types.
@@ -2815,7 +2842,7 @@ void RasterPainterDevice::_destroyCommand(RasterPainterCommand* cmd)
   cmd->this_block->used.sub(cmd->this_size);
 }
 
-void RasterPainterDevice::_postCommand(RasterPainterCommand* cmd)
+void RasterPainterEngine::_postCommand(RasterPainterCommand* cmd)
 {
 #if defined(RASTER_DEBUG)
   static const char* commandName[] = {
@@ -2844,7 +2871,7 @@ void RasterPainterDevice::_postCommand(RasterPainterCommand* cmd)
     _threadData->commands[_threadData->commandsPosition.get()] = cmd;
     _threadData->commandsPosition.inc();
   }
-
+/*
   AutoLock locked(_threadData->commandsLock);
   if (_threadData->completedThreads.get() > 0)
   {
@@ -2854,10 +2881,11 @@ void RasterPainterDevice::_postCommand(RasterPainterCommand* cmd)
     _threadData->completedThreads.setXchg(0);
     _threadData->commandsReady.broadcast();
   }
+*/
 }
 
 // ============================================================================
-// [Fog::RasterPainterDevice - Renderers - AntiGrain]
+// [Fog::RasterPainterEngine - Renderers - AntiGrain]
 // ============================================================================
 
 template <typename PathT>
@@ -3098,16 +3126,16 @@ static void FOG_INLINE AggRenderPath(
   }
 }
 
-bool RasterPainterDevice::_rasterizePath(RasterPainterContext* ctx, AggRasterizer& ras, const Path& path, bool stroke)
+bool RasterPainterEngine::_rasterizePath(RasterPainterContext* ctx, AggRasterizer& ras, const Path& path, bool stroke)
 {
   return AggRasterizePath(ctx, ras, path, stroke);
 }
 
 // ============================================================================
-// [Fog::RasterPainterDevice - Renderers - Singlethreaded]
+// [Fog::RasterPainterEngine - Renderers - Singlethreaded]
 // ============================================================================
 
-void RasterPainterDevice::_renderPath(const AggRasterizer& ras)
+void RasterPainterEngine::_renderPath(const AggRasterizer& ras)
 {
   switch (_bpp)
   {
@@ -3122,7 +3150,7 @@ void RasterPainterDevice::_renderPath(const AggRasterizer& ras)
   }
 }
 
-void RasterPainterDevice::_renderBoxes(const Box* box, sysuint_t count)
+void RasterPainterEngine::_renderBoxes(const Box* box, sysuint_t count)
 {
   if (!count) return;
 
@@ -3184,7 +3212,7 @@ void RasterPainterDevice::_renderBoxes(const Box* box, sysuint_t count)
   }
 }
 
-void RasterPainterDevice::_renderImage(const Rect& dst, const Image& image, const Rect& src)
+void RasterPainterEngine::_renderImage(const Rect& dst, const Image& image, const Rect& src)
 {
   Image::Data* image_d = image._d;
   sysint_t dstStride = _stride;
@@ -3210,7 +3238,7 @@ void RasterPainterDevice::_renderImage(const Rect& dst, const Image& image, cons
   } while (--h);
 }
 
-void RasterPainterDevice::_renderGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Box& boundingBox)
+void RasterPainterEngine::_renderGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Box& boundingBox)
 {
   // TODO: Hardcoded to A8 glyph format
   // TODO: Clipping
@@ -3301,10 +3329,10 @@ void RasterPainterDevice::_renderGlyphSet(const Point& pt, const GlyphSet& glyph
 }
 
 // ============================================================================
-// [Fog::RasterPainterDevice - Renderers - Multithreaded]
+// [Fog::RasterPainterEngine - Renderers - Multithreaded]
 // ============================================================================
 
-void RasterPainterDevice::_renderPathMT(
+void RasterPainterEngine::_renderPathMT(
   RasterPainterContext* ctx, int offset, int delta,
   const AggRasterizer& ras)
 {
@@ -3321,7 +3349,7 @@ void RasterPainterDevice::_renderPathMT(
   }
 }
 
-void RasterPainterDevice::_renderBoxesMT(RasterPainterContext* ctx, int offset, int delta, const Box* box, sysuint_t count)
+void RasterPainterEngine::_renderBoxesMT(RasterPainterContext* ctx, int offset, int delta, const Box* box, sysuint_t count)
 {
   if (!count) return;
 
@@ -3387,7 +3415,7 @@ void RasterPainterDevice::_renderBoxesMT(RasterPainterContext* ctx, int offset, 
   }
 }
 
-void RasterPainterDevice::_renderImageMT(
+void RasterPainterEngine::_renderImageMT(
   RasterPainterContext* ctx, int offset, int delta,
   const Rect& dst, const Image& image, const Rect& src)
 {
@@ -3422,7 +3450,7 @@ void RasterPainterDevice::_renderImageMT(
   } while (y < y2);
 }
 
-void RasterPainterDevice::_renderGlyphSetMT(
+void RasterPainterEngine::_renderGlyphSetMT(
   RasterPainterContext* ctx, int offset, int delta,
   const Point& pt, const GlyphSet& glyphSet, const Box& boundingBox)
 {
@@ -3523,56 +3551,50 @@ void RasterPainterDevice::_renderGlyphSetMT(
 // [Fog::Painter]
 // ============================================================================
 
-PainterDevice* Painter::sharedNull;
+PainterEngine* Painter::sharedNull;
 
 Painter::Painter()
 {
-  _d = sharedNull;
+  _engine = sharedNull;
 }
 
-Painter::Painter(uint8_t* pixels, int width, int height, sysint_t stride, int format)
+Painter::Painter(Image& image, int hints)
 {
-  _d = sharedNull;
-  begin(pixels, width, height, stride, format);
-}
-
-Painter::Painter(Image& image)
-{
-  _d = sharedNull;
-  begin(image);
+  _engine = sharedNull;
+  begin(image, hints);
 }
 
 Painter::~Painter()
 {
-  if (_d != sharedNull) delete _d;
+  if (_engine != sharedNull) delete _engine;
 }
 
-err_t Painter::begin(uint8_t* pixels, int width, int height, sysint_t stride, int format)
+err_t Painter::begin(uint8_t* pixels, int width, int height, sysint_t stride, int format, int hints)
 {
   end();
 
   if (width <= 0 || height <= 0) return Error::InvalidArgument;
 
-  PainterDevice* d = new(std::nothrow) RasterPainterDevice(
-    pixels, width, height, stride, format);
+  PainterEngine* d = new(std::nothrow) RasterPainterEngine(
+    pixels, width, height, stride, format, hints);
   if (!d) return Error::OutOfMemory;
 
-  _d = d;
+  _engine = d;
   return Error::Ok;
 }
 
-err_t Painter::begin(Image& image)
+err_t Painter::begin(Image& image, int hints)
 {
   err_t err = image.detach();
   if (err) return err;
 
-  return begin(image.mData(), image.width(), image.height(), image.stride(), image.format());
+  return begin(image.mData(), image.width(), image.height(), image.stride(), image.format(), hints);
 }
 
 void Painter::end()
 {
-  if (_d != sharedNull) delete _d;
-  _d = sharedNull;
+  if (_engine != sharedNull) delete _engine;
+  _engine = sharedNull;
 }
 
 } // Fog namespace
@@ -3583,15 +3605,15 @@ void Painter::end()
 
 FOG_INIT_DECLARE err_t fog_painter_init(void)
 {
-  static Fog::NullPainterDevice sharedNullDevice;
+  static Fog::NullPainterEngine sharedNullDevice;
   Fog::Painter::sharedNull = &sharedNullDevice;
 
   // Setup multithreading.
   // 
   // If CPU contains more cores, we can improve rendering speed by using them.
   // By default we set number of threads (workers) to count of CPU cores + 1.
-  Fog::RasterPainterDevice::threadPool = NULL;
-  Fog::RasterPainterDevice::threadPool = new(std::nothrow) Fog::ThreadPool();
+  Fog::RasterPainterEngine::threadPool = NULL;
+  Fog::RasterPainterEngine::threadPool = new(std::nothrow) Fog::ThreadPool();
 
   return Error::Ok;
 }
@@ -3599,9 +3621,9 @@ FOG_INIT_DECLARE err_t fog_painter_init(void)
 FOG_INIT_DECLARE void fog_painter_shutdown(void)
 {
   // Kill multithreading.
-  if (Fog::RasterPainterDevice::threadPool)
+  if (Fog::RasterPainterEngine::threadPool)
   {
-    delete Fog::RasterPainterDevice::threadPool;
-    Fog::RasterPainterDevice::threadPool = NULL;
+    delete Fog::RasterPainterEngine::threadPool;
+    Fog::RasterPainterEngine::threadPool = NULL;
   }
 }

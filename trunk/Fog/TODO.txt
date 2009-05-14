@@ -1,23 +1,29 @@
 TODO
 ====
 
-[ ] Remove allocPolicy and AllocPolicy enums, all detach functions must return err_t
-    instead
-[ ] Fog::RegExp - use TRex
-[ ] Fog::String - not completed yet, add Locale support to group separators
-[ ] Fog::TextCodec - not completed yet
-[ ] StringUtil::some utf functions not completed yet
-[ ] Fog::BitArray - fix
-[ ] Temporary...<N>::free sometimes not frees the memory ?
+[ ] Fog/Core:
+    [ ] Remove allocPolicy and AllocPolicy enums, all detach functions must return err_t
+        instead
+    [ ] Fog::RegExp - use TRex
+    [ ] Fog::String - not completed yet, add Locale support to group separators
+    [ ] Fog::TextCodec - not completed yet
+    [ ] StringUtil::some utf functions not completed yet
+    [ ] Fog::BitArray - fix
+    [ ] Temporary...<N>::free sometimes not frees the memory ?
 
-[ ] Font - Ability to render to 'Path'
 [ ] Painter
     [ ] Text transform
+    [ ] Text over path
     [x] Patterns support
     [ ] Patterns transform
     [ ] Text in path support
     [x] Line dashes
     [ ] Image transform
+    [ ] Introduce save() / restore()
+    [ ] Introduce setClipPath() / restoreClip()
+    [ ] Reduce using of malloc/free in painter. All painter allocations should be pooled to maximize
+        performance. Something like zone objects (see AsmJit) can be introduced, because lifetime of
+        painter created objects is short.
 [ ] Image
     [ ] Add some effects from qimageblitz?
     [ ] DOT line
@@ -26,3 +32,20 @@ TODO
     [ ] Render text using Font::getGlyphs
     [ ] ColorMatrix transformations
     [ ] Scaling
+[ ] Font
+    [ ] Make caching work
+    [ ] Fix issue that this code """Font font; font.setSize(80);""" takes too long (3ms on my machine)
+        due to incorrect cache control ?
+    [ ] Ability to render to 'Path'
+[ ] Raster
+    [ ] Remove templated functions in Raster_C.cpp. It's needed to specialize code for each operation
+        and pixel format, because specialized functions for ARGB32 / PRGB32 formats can be sometimes
+        smaller and faster (template based ones are large).
+    [ ] Write MMX composite functions
+    [ ] Write SSE2 composite functions
+    [ ] Linear gradient can be calculated by SSE2, think about it! The instructions pmax pmin, pcmpgt
+        can be used in increments
+    [ ] Introduce compositing on RGB32/RGB24 images again. This shouldn't be hard, because many
+        combinations will degrade into over/src/NOP. I like the idea that I can set CompositeAdd
+        and make some effects in UI rendering.
+    [ ] Introduce compositing on A8 images.

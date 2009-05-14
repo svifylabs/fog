@@ -16,11 +16,9 @@ Library dependencies
 ====================
 
 Windows:
-- [Fog/Graphics] GDI+ (optional, runtime loading)
 - [Fog/UI] Win32 API only, no external dependencies
 
 Linux:
-- [Fog/Core] libevent (direct - linker loading)
 - [Fog/Graphics] Freetype2 (direct - runtime loading)
 - [Fog/Graphics] Fontconfig (optional - runtime loading)
 - [Fog/UI] X11 (optional - runtime loading)
