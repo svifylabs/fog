@@ -69,9 +69,9 @@ MyWindow::MyWindow(uint32_t createFlags) :
   button[1].addListener(EvClick, this, &MyWindow::button1_onClick);
   add(&button[1]);
 
-  background.readFile(StubAscii8("/mnt/data1/Storage/Wallpapers/Fantasmal.bmp"));
+  //background.readFile(StubAscii8("/mnt/data1/Storage/Wallpapers/Fantasmal.bmp"));
   //background.readFile(StubAscii8("/mnt/data1/Storage/Wallpapers/Blue ilusion.jpg"));
-  //background.readFile(StubAscii8("C:/Shared/Wallpapers/flowerpaper.bmp"));
+  background.readFile(StubAscii8("C:/Shared/Wallpapers/flowerpaper.bmp"));
   //background.to8Bit();
   background.convert(Image::FormatRGB32);
 
@@ -79,13 +79,17 @@ MyWindow::MyWindow(uint32_t createFlags) :
   //sprite[0].convert(Image::FormatPRGB32);
   //sprite[0].fillQGradient(Rect(0, 0, sprite[0].width(), sprite[0].height()), 0xFFFFFFFF, 0x00000000, 0xFFFF0000, 0xFF0000FF, false);
 
-  sprite[0].readFile(StubAscii8("/my/upload/img/babelfish.png"));
+  //sprite[0].readFile(StubAscii8("/my/upload/img/babelfish.png"));
+  sprite[0].readFile(StubAscii8("C:/My/img/babelfish.pcx"));
   sprite[0].premultiply();
-  sprite[1].readFile(StubAscii8("/my/upload/img/blockdevice.png"));
+  //sprite[1].readFile(StubAscii8("/my/upload/img/blockdevice.png"));
+  sprite[1].readFile(StubAscii8("C:/My/img/blockdevice.pcx"));
   sprite[1].premultiply();
-  sprite[2].readFile(StubAscii8("/my/upload/img/drop.png"));
+  //sprite[2].readFile(StubAscii8("/my/upload/img/drop.png"));
+  sprite[2].readFile(StubAscii8("C:/My/img/drop.pcx"));
   sprite[2].premultiply();
-  sprite[3].readFile(StubAscii8("/my/upload/img/kweather.png"));
+  //sprite[3].readFile(StubAscii8("/my/upload/img/kweather.png"));
+  sprite[3].readFile(StubAscii8("C:/My/img/kweather.png"));
   sprite[3].premultiply();
 
   pattern[0].setTexture(sprite[0]);
@@ -182,13 +186,13 @@ void MyWindow::onKey(KeyEvent* e)
 
 void MyWindow::onTimer(TimerEvent* e)
 {
-  repaint(RepaintWidget);
+  //repaint(RepaintWidget);
   //fog_debug("onTimer()");
 }
 
 void MyWindow::onPaint(PaintEvent* e)
 {
-  TimeTicks ticks = TimeTicks::highResNow();
+  //TimeTicks ticks = TimeTicks::highResNow();
 
   //fog_debug("OnPaint()");
 
@@ -201,7 +205,7 @@ void MyWindow::onPaint(PaintEvent* e)
   Rect boundingRect(0, 0, w, h);
 
   paintBackground(p, boundingRect);
-  //paintComposition(p, boundingRect);
+  paintComposition(p, boundingRect);
 /*
   for (int i = 0; i < 1000; i++)
   {
@@ -293,9 +297,9 @@ void MyWindow::onPaint(PaintEvent* e)
     }
   }*/
 
-  p->flush();
-  TimeDelta timeDelta = TimeTicks::highResNow() - ticks;
-  fog_debug("Time: %f ms", timeDelta.inMillisecondsF());
+  //p->flush();
+  //TimeDelta timeDelta = TimeTicks::highResNow() - ticks;
+  //fog_debug("Time: %f ms", timeDelta.inMillisecondsF());
 }
 
 void MyWindow::button0_onClick(MouseEvent* e)

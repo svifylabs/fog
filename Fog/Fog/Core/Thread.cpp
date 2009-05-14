@@ -256,7 +256,11 @@ err_t Thread::setAffinity(int mask)
   if (mask <= 0) return resetAffinity();
 
 #if defined(FOG_OS_WINDOWS)
-  return Error::NotImplemented;
+  DWORD_PTR result = SetThreadAffinityMask(_handle, (DWORD_PTR)mask);
+  if (result == 0)
+    return Error::Ok;
+  else
+    return Error::InvalidArgument;
 #elif defined(FOG_OS_LINUX)
   size_t affinityMask = mask;
   return pthread_setaffinity_np(_handle, sizeof(affinityMask), (const cpu_set_t*)&affinityMask);
@@ -268,7 +272,12 @@ err_t Thread::setAffinity(int mask)
 err_t Thread::resetAffinity()
 {
 #if defined(FOG_OS_WINDOWS)
-  return Error::NotImplemented;
+  size_t affinityMask = (1 << cpuInfo->numberOfProcessors) - 1;
+  DWORD_PTR result = SetThreadAffinityMask(_handle, (DWORD_PTR)(affinityMask));
+  if (result == 0)
+    return Error::Ok;
+  else
+    return Error::InvalidArgument;
 #elif defined(FOG_OS_LINUX)
   size_t affinityMask = (1 << cpuInfo->numberOfProcessors) - 1;
   return pthread_setaffinity_np(_handle, sizeof(affinityMask), (const cpu_set_t*)&affinityMask);
