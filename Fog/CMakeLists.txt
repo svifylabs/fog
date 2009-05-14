@@ -231,7 +231,6 @@ Set(FOG_CORE_SOURCES
   ${FOG_DIR}/Fog/Core/Event.cpp
   ${FOG_DIR}/Fog/Core/EventLoop.cpp
   ${FOG_DIR}/Fog/Core/EventLoop_Def.cpp
-# ${FOG_DIR}/Fog/Core/EventLoop_libevent.cpp
   ${FOG_DIR}/Fog/Core/EventLoop_Win.cpp
   ${FOG_DIR}/Fog/Core/FileSystem.cpp
   ${FOG_DIR}/Fog/Core/FileUtil.cpp
@@ -294,7 +293,6 @@ Set(FOG_CORE_HEADERS
   ${FOG_DIR}/Fog/Core/Event.h
   ${FOG_DIR}/Fog/Core/EventLoop.h
   ${FOG_DIR}/Fog/Core/EventLoop_Def.h
-# ${FOG_DIR}/Fog/Core/EventLoop_libevent.h
   ${FOG_DIR}/Fog/Core/EventLoop_Win.h
   ${FOG_DIR}/Fog/Core/FileSystem.h
   ${FOG_DIR}/Fog/Core/FileUtil.h

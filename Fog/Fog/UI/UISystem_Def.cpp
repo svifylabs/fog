@@ -711,11 +711,14 @@ void UISystemDefault::doUpdateWindow(UIWindow* window)
   }
 
   // We will call Painter::begin() here, because it will be shared
-  // between all repaints.
+  // between all repaints. Also we tweak width and height, because if we
+  // set abnormal large width or height (in cases that backing store is cached)
+  // we can tell painter to use multithreading in small areas (that we don't
+  // want).
   painter.begin(
       window->_backingStore->pixels(),
-      window->_backingStore->width(),
-      window->_backingStore->height(),
+      fog_min(window->_backingStore->width(), topSize.width()),
+      fog_min(window->_backingStore->height(), topSize.height()),
       window->_backingStore->stride(),
       window->_backingStore->format());
 

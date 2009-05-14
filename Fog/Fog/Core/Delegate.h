@@ -8,7 +8,7 @@
 // ----------------------------------------------------------------------------
 // Keep this file maximum synchronized with fast delegates downloaded from
 // codeproject, because they can fix some bugs. So use macros to translate
-// functions to 'Core' compatible ones and to keep syntax 'Core' friendly.
+// functions to 'Fog' compatible ones and to keep syntax 'Fog' friendly.
 // Minimize editing and possible document it here.
 
 // ----------------------------------------------------------------------------

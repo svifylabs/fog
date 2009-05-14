@@ -15,6 +15,7 @@
 // [Dependencies]
 #include <Fog/Core/Application.h>
 #include <Fog/Core/Assert.h>
+#include <Fog/Core/CpuInfo.h>
 #include <Fog/Core/Event.h>
 #include <Fog/Core/Lazy.h>
 #include <Fog/Core/OS.h>
@@ -48,7 +49,7 @@ namespace Fog {
 
 // A lazily created thread local storage for quick access to a thread's message
 // loop, if one exists. This should be safe and free of static constructors.
-static Fog::Static< Fog::ThreadLocalPointer<Fog::Thread> > thread_tls;
+static Static< ThreadLocalPointer<Thread> > thread_tls;
 
 // ============================================================================
 // [Fog::Thread]
@@ -248,6 +249,32 @@ Thread::~Thread()
 void Thread::setStackSize(sysuint_t ssize)
 {
   _stackSize = ssize;
+}
+
+err_t Thread::setAffinity(int mask)
+{
+  if (mask <= 0) return resetAffinity();
+
+#if defined(FOG_OS_WINDOWS)
+  return Error::NotImplemented;
+#elif defined(FOG_OS_LINUX)
+  size_t affinityMask = mask;
+  return pthread_setaffinity_np(_handle, sizeof(affinityMask), (const cpu_set_t*)&affinityMask);
+#else
+  return Error::NotImplemented;
+#endif
+}
+
+err_t Thread::resetAffinity()
+{
+#if defined(FOG_OS_WINDOWS)
+  return Error::NotImplemented;
+#elif defined(FOG_OS_LINUX)
+  size_t affinityMask = (1 << cpuInfo->numberOfProcessors) - 1;
+  return pthread_setaffinity_np(_handle, sizeof(affinityMask), (const cpu_set_t*)&affinityMask);
+#else
+  return Error::NotImplemented;
+#endif
 }
 
 bool Thread::start(const String32& eventLoopType)

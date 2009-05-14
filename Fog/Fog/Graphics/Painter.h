@@ -24,14 +24,14 @@
 namespace Fog {
 
 // ============================================================================
-// [Fog::PainterDevice]
+// [Fog::PainterEngine]
 // ============================================================================
 
-//! @brief Painter device.
-struct FOG_API PainterDevice
+//! @brief Painter engine.
+struct FOG_API PainterEngine
 {
-  PainterDevice();
-  virtual ~PainterDevice();
+  PainterEngine();
+  virtual ~PainterEngine();
 
   // [Meta]
 
@@ -181,7 +181,7 @@ struct FOG_API PainterDevice
   virtual Value getProperty(const String32& name) const = 0;
 
 private:
-  FOG_DISABLE_COPY(PainterDevice)
+  FOG_DISABLE_COPY(PainterEngine)
 };
 
 // ============================================================================
@@ -191,111 +191,117 @@ private:
 //! @brief Painter.
 struct FOG_API Painter 
 {
+  // [Hints]
+
+  enum Hints
+  {
+    HintNoMultithreading = (1 << 31)
+  };
+
   // [Construction / Destruction]
 
   Painter();
-  Painter(uint8_t* pixels, int width, int height, sysint_t stride, int format);
-  Painter(Image& image);
+  Painter(Image& image, int hints = 0);
   ~Painter();
 
   // [Begin / End]
 
-  err_t begin(uint8_t* pixels, int width, int height, sysint_t stride, int format);
-  err_t begin(Image& image);
+  err_t begin(uint8_t* pixels, int width, int height, sysint_t stride, int format, int hints = 0);
+  err_t begin(Image& image, int hints = 0);
   void end();
 
   // [Meta]
 
-  FOG_INLINE int width() const { return _d->width(); }
-  FOG_INLINE int height() const { return _d->height(); }
-  FOG_INLINE int format() const { return _d->format(); }
+  FOG_INLINE int width() const { return _engine->width(); }
+  FOG_INLINE int height() const { return _engine->height(); }
+  FOG_INLINE int format() const { return _engine->format(); }
 
   FOG_INLINE void setMetaVariables(
     const Point& metaOrigin,
     const Region& metaRegion, 
     bool useMetaRegion,
     bool reset)
-  { _d->setMetaVariables(metaOrigin, metaRegion, useMetaRegion, reset); }
+  { _engine->setMetaVariables(metaOrigin, metaRegion, useMetaRegion, reset); }
 
-  FOG_INLINE void setMetaOrigin(const Point& p) { _d->setMetaOrigin(p); }
-  FOG_INLINE void setUserOrigin(const Point& p) { _d->setUserOrigin(p); }
+  FOG_INLINE void setMetaOrigin(const Point& p) { _engine->setMetaOrigin(p); }
+  FOG_INLINE void setUserOrigin(const Point& p) { _engine->setUserOrigin(p); }
 
-  FOG_INLINE void translateMetaOrigin(const Point& p) { _d->translateMetaOrigin(p); }
-  FOG_INLINE void translateUserOrigin(const Point& p) { _d->translateUserOrigin(p); }
+  FOG_INLINE void translateMetaOrigin(const Point& p) { _engine->translateMetaOrigin(p); }
+  FOG_INLINE void translateUserOrigin(const Point& p) { _engine->translateUserOrigin(p); }
 
-  FOG_INLINE void setUserRegion(const Rect& r) { _d->setUserRegion(r); }
-  FOG_INLINE void setUserRegion(const Region& r) { _d->setUserRegion(r); }
+  FOG_INLINE void setUserRegion(const Rect& r) { _engine->setUserRegion(r); }
+  FOG_INLINE void setUserRegion(const Region& r) { _engine->setUserRegion(r); }
 
-  FOG_INLINE void resetMetaVars() { _d->resetMetaVars(); }
-  FOG_INLINE void resetUserVars() { _d->resetUserVars(); }
+  FOG_INLINE void resetMetaVars() { _engine->resetMetaVars(); }
+  FOG_INLINE void resetUserVars() { _engine->resetUserVars(); }
 
-  FOG_INLINE Point metaOrigin() const { return _d->metaOrigin(); }
-  FOG_INLINE Point userOrigin() const { return _d->userOrigin(); }
+  FOG_INLINE Point metaOrigin() const { return _engine->metaOrigin(); }
+  FOG_INLINE Point userOrigin() const { return _engine->userOrigin(); }
 
-  FOG_INLINE Region metaRegion() const { return _d->metaRegion(); }
-  FOG_INLINE Region userRegion() const { return _d->userRegion(); }
+  FOG_INLINE Region metaRegion() const { return _engine->metaRegion(); }
+  FOG_INLINE Region userRegion() const { return _engine->userRegion(); }
 
-  FOG_INLINE bool usedMetaRegion() const { return _d->usedMetaRegion(); }
-  FOG_INLINE bool usedUserRegion() const { return _d->usedUserRegion(); }
+  FOG_INLINE bool usedMetaRegion() const { return _engine->usedMetaRegion(); }
+  FOG_INLINE bool usedUserRegion() const { return _engine->usedUserRegion(); }
 
   // [Operator]
 
-  FOG_INLINE void setOp(uint32_t op) { _d->setOp(op); }
-  FOG_INLINE uint32_t op() const { return _d->op(); }
+  FOG_INLINE void setOp(uint32_t op) { _engine->setOp(op); }
+  FOG_INLINE uint32_t op() const { return _engine->op(); }
 
   // [Source]
 
-  FOG_INLINE void setSource(const Rgba& rgba) { _d->setSource(rgba); }
-  FOG_INLINE void setSource(const Pattern& pattern) { _d->setSource(pattern); }
+  FOG_INLINE void setSource(const Rgba& rgba) { _engine->setSource(rgba); }
+  FOG_INLINE void setSource(const Pattern& pattern) { _engine->setSource(pattern); }
 
-  FOG_INLINE Rgba sourceRgba() const { return _d->sourceRgba(); }
-  FOG_INLINE Pattern sourcePattern() const { return _d->sourcePattern(); }
+  FOG_INLINE Rgba sourceRgba() const { return _engine->sourceRgba(); }
+  FOG_INLINE Pattern sourcePattern() const { return _engine->sourcePattern(); }
 
   // [Parameters]
 
-  FOG_INLINE void setLineWidth(double lineWidth) { _d->setLineWidth(lineWidth); }
-  FOG_INLINE double lineWidth() const { return _d->lineWidth(); }
+  FOG_INLINE void setLineWidth(double lineWidth) { _engine->setLineWidth(lineWidth); }
+  FOG_INLINE double lineWidth() const { return _engine->lineWidth(); }
 
-  FOG_INLINE void setLineCap(uint32_t lineCap) { _d->setLineCap(lineCap);}
-  FOG_INLINE uint32_t lineCap() const { return _d->lineCap(); }
+  FOG_INLINE void setLineCap(uint32_t lineCap) { _engine->setLineCap(lineCap);}
+  FOG_INLINE uint32_t lineCap() const { return _engine->lineCap(); }
 
-  FOG_INLINE void setLineJoin(uint32_t lineJoin) { _d->setLineJoin(lineJoin); }
-  FOG_INLINE uint32_t lineJoin() const { return _d->lineJoin(); }
+  FOG_INLINE void setLineJoin(uint32_t lineJoin) { _engine->setLineJoin(lineJoin); }
+  FOG_INLINE uint32_t lineJoin() const { return _engine->lineJoin(); }
 
-  FOG_INLINE void setLineDash(const double* dashes, sysuint_t count) { _d->setLineDash(dashes, count); }
-  FOG_INLINE void setLineDash(const Vector<double>& dashes) { _d->setLineDash(dashes); }
-  FOG_INLINE Vector<double> lineDash() const { return _d->lineDash(); }
+  FOG_INLINE void setLineDash(const double* dashes, sysuint_t count) { _engine->setLineDash(dashes, count); }
+  FOG_INLINE void setLineDash(const Vector<double>& dashes) { _engine->setLineDash(dashes); }
+  FOG_INLINE Vector<double> lineDash() const { return _engine->lineDash(); }
 
-  FOG_INLINE void setLineDashOffset(double offset) { _d->setLineDashOffset(offset); }
-  FOG_INLINE double lineDashOffset() const { return _d->lineDashOffset(); }
+  FOG_INLINE void setLineDashOffset(double offset) { _engine->setLineDashOffset(offset); }
+  FOG_INLINE double lineDashOffset() const { return _engine->lineDashOffset(); }
 
-  FOG_INLINE void setMiterLimit(double miterLimit) { _d->setMiterLimit(miterLimit); }
-  FOG_INLINE double miterLimit() const { return _d->miterLimit(); }
+  FOG_INLINE void setMiterLimit(double miterLimit) { _engine->setMiterLimit(miterLimit); }
+  FOG_INLINE double miterLimit() const { return _engine->miterLimit(); }
 
-  FOG_INLINE void setFillMode(uint32_t mode) { _d->setFillMode(mode); }
-  FOG_INLINE uint32_t fillMode() { return _d->fillMode(); }
+  FOG_INLINE void setFillMode(uint32_t mode) { _engine->setFillMode(mode); }
+  FOG_INLINE uint32_t fillMode() { return _engine->fillMode(); }
 
   // [Transformations]
 
-  FOG_INLINE void setMatrix(const AffineMatrix& m) { _d->setMatrix(m); }
-  FOG_INLINE void resetMatrix() { _d->resetMatrix(); }
-  FOG_INLINE AffineMatrix matrix() const { return _d->matrix(); }
+  FOG_INLINE void setMatrix(const AffineMatrix& m) { _engine->setMatrix(m); }
+  FOG_INLINE void resetMatrix() { _engine->resetMatrix(); }
+  FOG_INLINE AffineMatrix matrix() const { return _engine->matrix(); }
 
-  FOG_INLINE void rotate(double angle) { _d->rotate(angle); }
-  FOG_INLINE void scale(double sx, double sy) { _d->scale(sx, sy); }
-  FOG_INLINE void skew(double sx, double sy) { _d->skew(sx, sy); }
-  FOG_INLINE void translate(double x, double y) { _d->translate(x, y); }
-  FOG_INLINE void affine(const AffineMatrix& m) { _d->affine(m); }
+  FOG_INLINE void rotate(double angle) { _engine->rotate(angle); }
+  FOG_INLINE void scale(double sx, double sy) { _engine->scale(sx, sy); }
+  FOG_INLINE void skew(double sx, double sy) { _engine->skew(sx, sy); }
+  FOG_INLINE void translate(double x, double y) { _engine->translate(x, y); }
+  FOG_INLINE void affine(const AffineMatrix& m) { _engine->affine(m); }
 
   FOG_INLINE void parallelogram(double x1, double y1, double x2, double y2, const double* para)
-  { _d->parallelogram(x1, y1, x2, y2, para); }
+  { _engine->parallelogram(x1, y1, x2, y2, para); }
 
   FOG_INLINE void viewport(
     double worldX1,  double worldY1,  double worldX2,  double worldY2,
     double screenX1, double screenY1, double screenX2, double screenY2,
     uint32_t viewportOption = ViewXMidYMid)
   {
-    _d->viewport(
+    _engine->viewport(
       worldX1, worldY1, worldX2, worldY2,
       screenX1, screenY1, screenX2, screenY2,
       viewportOption);
@@ -303,85 +309,85 @@ struct FOG_API Painter
 
   // [Raster Drawing]
 
-  FOG_INLINE void clear() { _d->clear(); }
-  FOG_INLINE void drawPixel(const Point& p) { _d->drawPixel(p); }
-  FOG_INLINE void drawLine(const Point& start, const Point& end) { _d->drawLine(start, end); }
-  FOG_INLINE void drawRect(const Rect& r) { _d->drawRect(r); }
-  FOG_INLINE void drawRound(const Rect& r, const Point& radius) { _d->drawRound(r, radius); }
-  FOG_INLINE void fillRect(const Rect& r) { _d->fillRect(r); }
-  FOG_INLINE void fillRects(const Rect* r, sysuint_t count) { _d->fillRects(r, count); }
-  FOG_INLINE void fillRound(const Rect& r, const Point& radius) { _d->fillRound(r, radius); }
-  FOG_INLINE void fillRegion(const Region& region) { _d->fillRegion(region); }
+  FOG_INLINE void clear() { _engine->clear(); }
+  FOG_INLINE void drawPixel(const Point& p) { _engine->drawPixel(p); }
+  FOG_INLINE void drawLine(const Point& start, const Point& end) { _engine->drawLine(start, end); }
+  FOG_INLINE void drawRect(const Rect& r) { _engine->drawRect(r); }
+  FOG_INLINE void drawRound(const Rect& r, const Point& radius) { _engine->drawRound(r, radius); }
+  FOG_INLINE void fillRect(const Rect& r) { _engine->fillRect(r); }
+  FOG_INLINE void fillRects(const Rect* r, sysuint_t count) { _engine->fillRects(r, count); }
+  FOG_INLINE void fillRound(const Rect& r, const Point& radius) { _engine->fillRound(r, radius); }
+  FOG_INLINE void fillRegion(const Region& region) { _engine->fillRegion(region); }
 
   // [Vector Drawing]
 
-  FOG_INLINE void drawPoint(const PointF& p) { _d->drawPoint(p); }
-  FOG_INLINE void drawLine(const PointF& start, const PointF& end) { _d->drawLine(start, end); }
-  FOG_INLINE void drawLine(const PointF* pts, sysuint_t count) { _d->drawLine(pts, count); }
-  FOG_INLINE void drawPolygon(const PointF* pts, sysuint_t count) { _d->drawPolygon(pts, count); }
-  FOG_INLINE void drawRect(const RectF& r) { _d->drawRect(r); }
-  FOG_INLINE void drawRects(const RectF* r, sysuint_t count) { _d->drawRects(r, count); }
-  FOG_INLINE void drawRound(const RectF& r, const PointF& radius) { _d->drawRound(r, radius); }
+  FOG_INLINE void drawPoint(const PointF& p) { _engine->drawPoint(p); }
+  FOG_INLINE void drawLine(const PointF& start, const PointF& end) { _engine->drawLine(start, end); }
+  FOG_INLINE void drawLine(const PointF* pts, sysuint_t count) { _engine->drawLine(pts, count); }
+  FOG_INLINE void drawPolygon(const PointF* pts, sysuint_t count) { _engine->drawPolygon(pts, count); }
+  FOG_INLINE void drawRect(const RectF& r) { _engine->drawRect(r); }
+  FOG_INLINE void drawRects(const RectF* r, sysuint_t count) { _engine->drawRects(r, count); }
+  FOG_INLINE void drawRound(const RectF& r, const PointF& radius) { _engine->drawRound(r, radius); }
   FOG_INLINE void drawRound(const RectF& r, 
     const PointF& tlr, const PointF& trr,
-    const PointF& blr, const PointF& brr) { _d->drawRound(r, tlr, trr, blr, brr); }
-  FOG_INLINE void drawEllipse(const PointF& cp, const PointF& r) { _d->drawEllipse(cp, r); }
-  FOG_INLINE void drawArc(const PointF& cp, const PointF& r, double start, double sweep) { _d->drawArc(cp, r, start, sweep); }
-  FOG_INLINE void drawPath(const Path& path) { _d->drawPath(path); }
+    const PointF& blr, const PointF& brr) { _engine->drawRound(r, tlr, trr, blr, brr); }
+  FOG_INLINE void drawEllipse(const PointF& cp, const PointF& r) { _engine->drawEllipse(cp, r); }
+  FOG_INLINE void drawArc(const PointF& cp, const PointF& r, double start, double sweep) { _engine->drawArc(cp, r, start, sweep); }
+  FOG_INLINE void drawPath(const Path& path) { _engine->drawPath(path); }
 
-  FOG_INLINE void fillPolygon(const PointF* pts, sysuint_t count) { _d->fillPolygon(pts, count); }
-  FOG_INLINE void fillRect(const RectF& r) { _d->fillRect(r); }
-  FOG_INLINE void fillRects(const RectF* r, sysuint_t count) { _d->fillRects(r, count); }
-  FOG_INLINE void fillRound(const RectF& r, const PointF& radius) { _d->fillRound(r, radius); }
+  FOG_INLINE void fillPolygon(const PointF* pts, sysuint_t count) { _engine->fillPolygon(pts, count); }
+  FOG_INLINE void fillRect(const RectF& r) { _engine->fillRect(r); }
+  FOG_INLINE void fillRects(const RectF* r, sysuint_t count) { _engine->fillRects(r, count); }
+  FOG_INLINE void fillRound(const RectF& r, const PointF& radius) { _engine->fillRound(r, radius); }
   FOG_INLINE void fillRound(const RectF& r,
     const PointF& tlr, const PointF& trr,
-    const PointF& blr, const PointF& brr) { _d->fillRound(r, tlr, trr, blr, brr); }
-  FOG_INLINE void fillEllipse(const PointF& cp, const PointF& r) { _d->fillEllipse(cp, r); }
-  FOG_INLINE void fillArc(const PointF& cp, const PointF& r, double start, double sweep) { _d->fillArc(cp, r, start, sweep); }
-  FOG_INLINE void fillPath(const Path& path) { _d->fillPath(path); }
+    const PointF& blr, const PointF& brr) { _engine->fillRound(r, tlr, trr, blr, brr); }
+  FOG_INLINE void fillEllipse(const PointF& cp, const PointF& r) { _engine->fillEllipse(cp, r); }
+  FOG_INLINE void fillArc(const PointF& cp, const PointF& r, double start, double sweep) { _engine->fillArc(cp, r, start, sweep); }
+  FOG_INLINE void fillPath(const Path& path) { _engine->fillPath(path); }
 
   // [Glyph / Text Drawing]
 
   FOG_INLINE void drawGlyph(
     const Point& pt, const Glyph& glyph, const Rect* clip = 0)
-  { _d->drawGlyph(pt, glyph, clip); }
+  { _engine->drawGlyph(pt, glyph, clip); }
 
   FOG_INLINE void drawGlyphSet(
     const Point& pt, const GlyphSet& glyphSet, const Rect* clip = 0)
-  { _d->drawGlyphSet(pt, glyphSet, clip); }
+  { _engine->drawGlyphSet(pt, glyphSet, clip); }
 
   // [Text drawing]
 
   FOG_INLINE void drawText(
     const Point& p, const String32& text, const Font& font, const Rect* clip = NULL)
-  { _d->drawText(p, text, font, clip); }
+  { _engine->drawText(p, text, font, clip); }
 
   FOG_INLINE void drawText(
     const Rect& r, const String32& text, const Font& font, uint32_t align, const Rect* clip = NULL)
-  { _d->drawText(r, text, font, align, clip); }
+  { _engine->drawText(r, text, font, align, clip); }
 
   // [Image Drawing]
 
   FOG_INLINE void drawImage(const Point& p, const Image& image, const Rect* irect = 0)
-  { _d->drawImage(p, image, irect); }
+  { _engine->drawImage(p, image, irect); }
 
   // [Flush]
 
-  FOG_INLINE void flush() { _d->flush(); }
+  FOG_INLINE void flush() { _engine->flush(); }
 
   // [Properties]
 
   FOG_INLINE err_t setProperty(const String32& name, const Value& value)
-  { return _d->setProperty(name, value); }
+  { return _engine->setProperty(name, value); }
 
   FOG_INLINE Value getProperty(const String32& name) const
-  { return _d->getProperty(name); }
+  { return _engine->getProperty(name); }
 
   // [Members]
 
-  FOG_DECLARE_D(PainterDevice)
+  PainterEngine* _engine;
 
-  static PainterDevice* sharedNull;
+  static PainterEngine* sharedNull;
 
 private:
   FOG_DISABLE_COPY(Painter);
