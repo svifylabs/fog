@@ -12,6 +12,8 @@
 #include <Fog/Build/Build.h>
 #include <Fog/Core/Constants.h>
 
+#include <new>
+
 //! @addtogroup Fog_Core
 //! @{
 
@@ -73,7 +75,7 @@ struct Lazy : public Lazy_Abstract
 protected:
   virtual void* _create()
   {
-    return new T();
+    return new(std::nothrow) T();
   }
 };
 

@@ -1271,7 +1271,30 @@ err_t Image::invert(Image& dst, const Image& src, uint32_t invertMode)
 
     case FormatPRGB32:
     {
-      // TODO:
+      // TODO: Implement inverting alpha channel on premultiplied images
+      uint32_t mask = 0;
+
+      if (invertMode & InvertRed  ) mask |= Rgba::RedMask;
+      if (invertMode & InvertGreen) mask |= Rgba::GreenMask;
+      if (invertMode & InvertBlue ) mask |= Rgba::BlueMask;
+
+      for (y = h; y; y--, dstPixels += dstStride, srcPixels += srcStride)
+      {
+        dstCur = dstPixels;
+        srcCur = srcPixels;
+
+        for (x = w; x; x--, dstCur += 4, srcCur += 4)
+        {
+          uint32_t pix0 = ((const uint32_t *)srcCur)[0];
+          uint32_t a0 = pix0 >> 24;
+
+          if (invertMode & InvertRed  ) pix0 = (pix0 & 0xFF00FFFF) | ((a0 << 16) - (pix0 & 0x00FF0000));
+          if (invertMode & InvertGreen) pix0 = (pix0 & 0xFFFF00FF) | ((a0 <<  8) - (pix0 & 0x0000FF00));
+          if (invertMode & InvertBlue ) pix0 = (pix0 & 0xFFFFFF00) | ((a0      ) - (pix0 & 0x000000FF));
+
+          ((uint32_t*)dstCur)[0] = pix0;
+        }
+      }
       break;
     }
 
@@ -1367,28 +1390,14 @@ err_t Image::invert(Image& dst, const Image& src, uint32_t invertMode)
 
 typedef void (FOG_FASTCALL *MirrorFunc)(uint8_t*, uint8_t*, sysuint_t);
 
-static void FOG_FASTCALL mirror_copy_src_is_not_dst_8(uint8_t* dst, uint8_t* src, sysuint_t w)
-{ Memory::copy(dst, src, w); }
+static void FOG_FASTCALL mirror_copy_src_is_not_dst_32(uint8_t* dst, uint8_t* src, sysuint_t w)
+{ Memory::copy(dst, src, Raster::mul4(w)); }
 
 static void FOG_FASTCALL mirror_copy_src_is_not_dst_24(uint8_t* dst, uint8_t* src, sysuint_t w)
 { Memory::copy(dst, src, Raster::mul3(w)); }
 
-static void FOG_FASTCALL mirror_copy_src_is_not_dst_32(uint8_t* dst, uint8_t* src, sysuint_t w)
-{ Memory::copy(dst, src, Raster::mul4(w)); }
-
-static void FOG_FASTCALL mirror_flip_src_is_not_dst_8(uint8_t* dst, uint8_t* src, sysuint_t w)
-{
-  src += w - 1;
-
-  for (sysuint_t x = w; x; x--, dst++, src--) dst[0] = src[0];
-}
-
-static void FOG_FASTCALL mirror_flip_src_is_not_dst_24(uint8_t* dst, uint8_t* src, sysuint_t w)
-{
-  src += Raster::mul3(w) - 3;
-
-  for (sysuint_t x = w; x; x--, dst += 3, src -= 3) Memory::copy3B(dst, src);
-}
+static void FOG_FASTCALL mirror_copy_src_is_not_dst_8(uint8_t* dst, uint8_t* src, sysuint_t w)
+{ Memory::copy(dst, src, w); }
 
 static void FOG_FASTCALL mirror_flip_src_is_not_dst_32(uint8_t* dst, uint8_t* src, sysuint_t w)
 {
@@ -1398,14 +1407,18 @@ static void FOG_FASTCALL mirror_flip_src_is_not_dst_32(uint8_t* dst, uint8_t* sr
   for (x = w; x; x--, dst += 4, src -= 4) Memory::copy4B(dst, src);
 }
 
-static void FOG_FASTCALL mirror_copy_src_is_dst_8(uint8_t* dst, uint8_t* src, sysuint_t w)
+static void FOG_FASTCALL mirror_flip_src_is_not_dst_24(uint8_t* dst, uint8_t* src, sysuint_t w)
 {
-  Memory::xchg(dst, src, w);
+  src += Raster::mul3(w) - 3;
+
+  for (sysuint_t x = w; x; x--, dst += 3, src -= 3) Memory::copy3B(dst, src);
 }
 
-static void FOG_FASTCALL mirror_copy_src_is_dst_24(uint8_t* dst, uint8_t* src, sysuint_t w)
+static void FOG_FASTCALL mirror_flip_src_is_not_dst_8(uint8_t* dst, uint8_t* src, sysuint_t w)
 {
-  Memory::xchg(dst, src, Raster::mul3(w));
+  src += w - 1;
+
+  for (sysuint_t x = w; x; x--, dst++, src--) dst[0] = src[0];
 }
 
 static void FOG_FASTCALL mirror_copy_src_is_dst_32(uint8_t* dst, uint8_t* src, sysuint_t w)
@@ -1413,13 +1426,23 @@ static void FOG_FASTCALL mirror_copy_src_is_dst_32(uint8_t* dst, uint8_t* src, s
   Memory::xchg(dst, src, Raster::mul4(w));
 }
 
-static void FOG_FASTCALL mirror_flip_src_is_dst_8(uint8_t* dst, uint8_t* src, sysuint_t w)
+static void FOG_FASTCALL mirror_copy_src_is_dst_24(uint8_t* dst, uint8_t* src, sysuint_t w)
+{
+  Memory::xchg(dst, src, Raster::mul3(w));
+}
+
+static void FOG_FASTCALL mirror_copy_src_is_dst_8(uint8_t* dst, uint8_t* src, sysuint_t w)
+{
+  Memory::xchg(dst, src, w);
+}
+
+static void FOG_FASTCALL mirror_flip_src_is_dst_32(uint8_t* dst, uint8_t* src, sysuint_t w)
 {
   sysuint_t x = w;
   if (src == dst) x >>= 1;
 
-  src += w - 1;
-  for (; x; x--, dst += 3, src -= 3) Memory::xchg1B(dst, src);
+  src += ((w - 1) << 2);
+  for (; x; x--, dst += 4, src -= 4) Memory::xchg4B(dst, src);
 }
 
 static void FOG_FASTCALL mirror_flip_src_is_dst_24(uint8_t* dst, uint8_t* src, sysuint_t w)
@@ -1435,13 +1458,13 @@ static void FOG_FASTCALL mirror_flip_src_is_dst_24(uint8_t* dst, uint8_t* src, s
   }
 }
 
-static void FOG_FASTCALL mirror_flip_src_is_dst_32(uint8_t* dst, uint8_t* src, sysuint_t w)
+static void FOG_FASTCALL mirror_flip_src_is_dst_8(uint8_t* dst, uint8_t* src, sysuint_t w)
 {
   sysuint_t x = w;
   if (src == dst) x >>= 1;
 
-  src += ((w - 1) << 2);
-  for (; x; x--, dst += 4, src -= 4) Memory::xchg4B(dst, src);
+  src += w - 1;
+  for (; x; x--, dst += 3, src -= 3) Memory::xchg1B(dst, src);
 }
 
 static const MirrorFunc mirror_funcs_copy_src_is_not_dst[] =

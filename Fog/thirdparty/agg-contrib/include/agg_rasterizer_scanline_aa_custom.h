@@ -26,20 +26,31 @@
 // PostScript and PDF technology for software developers.
 // 
 //----------------------------------------------------------------------------
-//
+
+//----------------------------------------------------------------------------
 // This is custom rasterizer that can be used in multithreaded environment
 // from multiple threads. Method sweep_scanline() from antigrain 
 // agg::rasterizer_scanline_aa<> template was replaced to method that accepts
 // y coordinate and it's tagged as const. After you serialize your content use
 // new sweep_scanline() method with you own Y coordinate.
 //
-// There is also optional gamma table setter for people who don't want this
-// table to be embedded in rasterizer itself (because you can have more 
-// rasterizers with same gamma table).
+// To use this rasterizer you must first set gamma table that will be used. In
+// multithreaded environment recomputing gamma table in each thread command
+// is not good, so the gamma table is here just const pointer to your real
+// table that is shared across many rasterizer instances. Use setGamma()
+// function to set gamma table.
+//
+// Note, gamma table is BYTE type not int as in original rasterizer.
 //
 // Contribution by Petr Kobalicek <kobalicek.petr@gmail.com>,
 // This contribution follows antigrain licence (Public Domain).
+//
+// Permission to copy, use, modify, sell and distribute this software
+// is granted provided this copyright notice appears in all copies.
+// This software is provided "as is" without express or implied
+// warranty, and with no claim as to its suitability for any purpose.
 //----------------------------------------------------------------------------
+
 #ifndef AGG_RASTERIZER_SCANLINE_AA_CUSTOM_INCLUDED
 #define AGG_RASTERIZER_SCANLINE_AA_CUSTOM_INCLUDED
 
@@ -101,6 +112,7 @@ namespace agg
 
         enum aa_scale_e
         {
+            // NOTE: This must be 8.
             aa_shift  = 8,
             aa_scale  = 1 << aa_shift,
             aa_mask   = aa_scale - 1,
@@ -109,31 +121,16 @@ namespace agg
         };
 
         //--------------------------------------------------------------------
-        rasterizer_scanline_aa_custom() : 
+        AGG_INLINE rasterizer_scanline_aa_custom() :
             m_outline(),
             m_clipper(),
+            m_gamma(NULL),
             m_filling_rule(fill_non_zero),
             m_auto_close(true),
             m_start_x(0),
             m_start_y(0),
             m_status(status_initial)
         {
-            int i;
-            for(i = 0; i < aa_scale; i++) m_gamma[i] = i;
-        }
-
-        //--------------------------------------------------------------------
-        template<class GammaF> 
-        rasterizer_scanline_aa_custom(const GammaF& gamma_function) : 
-            m_outline(),
-            m_clipper(m_outline),
-            m_filling_rule(fill_non_zero),
-            m_auto_close(true),
-            m_start_x(0),
-            m_start_y(0),
-            m_status(status_initial)
-        {
-            gamma(gamma_function);
         }
 
         //--------------------------------------------------------------------
@@ -143,19 +140,14 @@ namespace agg
         void filling_rule(filling_rule_e filling_rule);
         void auto_close(bool flag) { m_auto_close = flag; }
 
-        //--------------------------------------------------------------------
-        template<class GammaF> void gamma(const GammaF& gamma_function)
-        { 
-            int i;
-            for(i = 0; i < aa_scale; i++)
-            {
-                m_gamma[i] = uround(gamma_function(double(i) / aa_mask) * aa_mask);
-            }
+        AGG_INLINE void gamma(const unsigned char* gamma)
+        {
+          m_gamma = gamma;
         }
 
         //--------------------------------------------------------------------
-        unsigned apply_gamma(unsigned cover) const 
-        { 
+        AGG_INLINE unsigned apply_gamma(unsigned cover) const
+        {
             return m_gamma[cover]; 
         }
 
@@ -281,13 +273,13 @@ namespace agg
 
     private:
         rasterizer_cells_aa<cell_aa> m_outline;
-        clip_type      m_clipper;
-        int            m_gamma[aa_scale];
+        clip_type m_clipper;
+        const unsigned char* m_gamma;
         filling_rule_e m_filling_rule;
-        bool           m_auto_close;
-        coord_type     m_start_x;
-        coord_type     m_start_y;
-        unsigned       m_status;
+        bool m_auto_close;
+        coord_type m_start_x;
+        coord_type m_start_y;
+        unsigned m_status;
 
         //--------------------------------------------------------------------
         // Disable copying

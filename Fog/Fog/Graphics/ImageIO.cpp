@@ -273,12 +273,12 @@ void BaseDevice::detachStream()
   }
 }
 
-Value BaseDevice::getParam(const String32& name)
+err_t BaseDevice::setProperty(const String32& name, const Value& value)
 {
-  return Value();
+  return Error::InvalidProperty;
 }
 
-Value BaseDevice::setParam(const String32& name)
+Value BaseDevice::getProperty(const String32& name)
 {
   return Value();
 }

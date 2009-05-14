@@ -13,6 +13,7 @@
 #include <Fog/Core/Value.h>
 #include <Fog/Core/Vector.h>
 #include <Fog/Graphics/Image.h>
+#include <Fog/Graphics/Palette.h>
 
 namespace Fog {
 namespace ImageIO {
@@ -21,9 +22,10 @@ namespace ImageIO {
 // [Forward Declarations]
 // ============================================================================
 
-struct Provider;
-struct EncoderDevice;
+struct BaseDevice;
 struct DecoderDevice;
+struct EncoderDevice;
+struct Provider;
 
 // ============================================================================
 // [Functions]
@@ -295,10 +297,10 @@ public:
   virtual void attachStream(Stream& stream);
   virtual void detachStream();
 
-  // [Parameters]
+  // [Properties]
 
-  virtual Value getParam(const String32& name);
-  virtual Value setParam(const String32& name);
+  virtual err_t setProperty(const String32& name, const Value& value);
+  virtual Value getProperty(const String32& name);
 
   // [Protected virtuals]
 protected:

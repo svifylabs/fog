@@ -114,7 +114,7 @@ int64_t TimeDelta::inMicroseconds() const
 // [Fog::Time]
 
 // static
-Time Time::fromTime_t(time_t tt)
+Time Time::fromTimeT(time_t tt)
 {
   if (tt == 0)
     // Preserve 0 so we can tell it doesn't exist.
@@ -123,7 +123,7 @@ Time Time::fromTime_t(time_t tt)
   return (tt * MicrosecondsPerSecond) + kTimeTToMicrosecondsOffset;
 }
 
-time_t Time::toTime_t() const
+time_t Time::toTimeT() const
 {
   if (_us == 0)
     return 0;  // Preserve 0 so we can tell it doesn't exist.

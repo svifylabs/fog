@@ -101,11 +101,19 @@ struct JpegLibrary
       "jpeg_destroy_compress\0"
       "jpeg_destroy_decompress\0";
 
-    if (dll.open(StubAscii8("jpeg"), Library::OpenSystemPrefix | Library::OpenSystemSuffix) == Error::Ok &&
-        dll.symbols(addr, symbols, FOG_ARRAY_SIZE(symbols), SymbolsCount, (char**)NULL) == SymbolsCount)
+    if (dll.open(StubAscii8("jpeg"), Library::OpenSystemPrefix | Library::OpenSystemSuffix) != Error::Ok)
     {
-      ok = 1;
+      // No JPEG library found.
+      return;
     }
+
+    const char* badSymbol;
+    if (dll.symbols(addr, symbols, FOG_ARRAY_SIZE(symbols), SymbolsCount, (char**)&badSymbol) != SymbolsCount)
+    {
+      return;
+    }
+
+    ok = 1;
   }
 };
 
@@ -494,7 +502,8 @@ static void FOG_CDECL MyJpegTermDestination(j_compress_ptr cinfo)
   }
 }
 
-JpegEncoderDevice::JpegEncoderDevice()
+JpegEncoderDevice::JpegEncoderDevice() :
+  _quality(90)
 {
 }
 
@@ -544,9 +553,6 @@ uint32_t JpegEncoderDevice::writeImage(const Image& image)
 
   // pointer to JSAMPLE row[s]
   JSAMPROW row[1];
-
-  // Converter
-  Raster::ConvertPlainFn convert = NULL;
 
   if (setjmp(jerr.escape))
   {
@@ -610,8 +616,7 @@ uint32_t JpegEncoderDevice::writeImage(const Image& image)
 
   // Now you can set any non-default parameters you wish to.
   // Here we just illustrate the use of quality (quantization table) scaling:
-  // TODO: Quality settings, hardcoded to 10.
-  jpeg->jpeg_set_quality(&cinfo, 10, true /* limit to baseline-JPEG values */);
+  jpeg->jpeg_set_quality(&cinfo, _quality, true /* limit to baseline-JPEG values */);
 
   // Step 4: Start compressor
 
@@ -657,6 +662,39 @@ end:
   jpeg->jpeg_destroy_compress(&cinfo);
 
   return err;
+}
+
+err_t JpegEncoderDevice::setProperty(const String32& name, const Value& value)
+{
+  err_t err;
+
+  if (name == StubAscii8("quality"))
+  {
+    int32_t q;
+    if ((err = value.toInt32(&q))) return err;
+
+    if (q < 0) q = 0;
+    if (q > 100) q = 100;
+
+    _quality = q;
+    return Error::Ok;
+  }
+  else
+  {
+    return EncoderDevice::setProperty(name, value);
+  }
+}
+
+Value JpegEncoderDevice::getProperty(const String32& name)
+{
+  if (name == StubAscii8("quality"))
+  {
+    return Value::fromInt32(_quality);
+  }
+  else
+  {
+    return EncoderDevice::getProperty(name);
+  }
 }
 
 } // ImageIO namespace
