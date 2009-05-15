@@ -12,6 +12,7 @@
 #include <Fog/Core/Lazy.h>
 #include <Fog/Core/Library.h>
 #include <Fog/Core/Misc.h>
+#include <Fog/Core/Static.h>
 #include <Fog/Core/Stream.h>
 #include <Fog/Core/String.h>
 #include <Fog/Core/StringCache.h>
@@ -37,50 +38,11 @@ namespace Fog {
 namespace ImageIO {
 
 // ===========================================================================
-// [Fog::ImageIO::JpegProvider]
+// [Fog::ImageIO::JpegLibrary]
 // ===========================================================================
-
-struct JpegProvider : public Provider
-{
-  JpegProvider();
-  virtual ~JpegProvider();
-
-  virtual uint32_t check(const void* mem, sysuint_t length);
-  virtual EncoderDevice* createEncoder();
-  virtual DecoderDevice* createDecoder();
-};
 
 struct JpegLibrary
 {
-  enum { SymbolsCount = 16 };
-
-  union
-  {
-    struct
-    {
-      FOG_CDECL JDIMENSION (*jpeg_write_scanlines)(jpeg_compress_struct*, uint8_t**, unsigned int);
-      FOG_CDECL JDIMENSION (*jpeg_read_scanlines)(jpeg_decompress_struct*, uint8_t**, unsigned int);
-      FOG_CDECL void (*jpeg_set_defaults)(jpeg_compress_struct*);
-      FOG_CDECL void (*jpeg_set_quality)(jpeg_compress_struct*, int /* quality */, int /* force_baseline*/);
-      FOG_CDECL struct jpeg_error_mgr* (*jpeg_std_error)(jpeg_error_mgr*);
-      FOG_CDECL int (*jpeg_read_header)(jpeg_decompress_struct*, int);
-      FOG_CDECL void (*jpeg_calc_output_dimensions)(jpeg_decompress_struct*);
-      FOG_CDECL int (*jpeg_start_compress)(jpeg_compress_struct*, int);
-      FOG_CDECL int (*jpeg_start_decompress)(jpeg_decompress_struct*);
-      FOG_CDECL JDIMENSION (*jpegCreateCompress)(jpeg_compress_struct*, int, size_t);
-      FOG_CDECL JDIMENSION (*jpegCreateDecompress)(jpeg_decompress_struct*, int, size_t);
-      FOG_CDECL int (*jpeg_finish_compress)(jpeg_compress_struct*);
-      FOG_CDECL int (*jpeg_finish_decompress)(jpeg_decompress_struct*);
-      FOG_CDECL int (*jpeg_resync_to_restart)(jpeg_decompress_struct*, int);
-      FOG_CDECL void (*jpeg_destroy_compress)(jpeg_compress_struct*);
-      FOG_CDECL void (*jpeg_destroy_decompress)(jpeg_decompress_struct*);
-    };
-    void *addr[SymbolsCount];
-  };
-
-  Library dll;
-  uint32_t ok;
-
   JpegLibrary() : ok(false)
   {
     static const char symbols[] =
@@ -110,11 +72,59 @@ struct JpegLibrary
     const char* badSymbol;
     if (dll.symbols(addr, symbols, FOG_ARRAY_SIZE(symbols), SymbolsCount, (char**)&badSymbol) != SymbolsCount)
     {
+      // Some symbol failed to load? Inform about it.
+      fog_debug("Fog::ImageIO::JpegLibrary() - Can't load symbol '%s' from libjpeg", badSymbol);
+      dll.close();
       return;
     }
 
     ok = 1;
   }
+
+  enum { SymbolsCount = 16 };
+
+  union
+  {
+    struct
+    {
+      FOG_CDECL JDIMENSION (*jpeg_write_scanlines)(jpeg_compress_struct*, uint8_t**, unsigned int);
+      FOG_CDECL JDIMENSION (*jpeg_read_scanlines)(jpeg_decompress_struct*, uint8_t**, unsigned int);
+      FOG_CDECL void (*jpeg_set_defaults)(jpeg_compress_struct*);
+      FOG_CDECL void (*jpeg_set_quality)(jpeg_compress_struct*, int /* quality */, int /* force_baseline*/);
+      FOG_CDECL struct jpeg_error_mgr* (*jpeg_std_error)(jpeg_error_mgr*);
+      FOG_CDECL int (*jpeg_read_header)(jpeg_decompress_struct*, int);
+      FOG_CDECL void (*jpeg_calc_output_dimensions)(jpeg_decompress_struct*);
+      FOG_CDECL int (*jpeg_start_compress)(jpeg_compress_struct*, int);
+      FOG_CDECL int (*jpeg_start_decompress)(jpeg_decompress_struct*);
+      FOG_CDECL JDIMENSION (*jpegCreateCompress)(jpeg_compress_struct*, int, size_t);
+      FOG_CDECL JDIMENSION (*jpegCreateDecompress)(jpeg_decompress_struct*, int, size_t);
+      FOG_CDECL int (*jpeg_finish_compress)(jpeg_compress_struct*);
+      FOG_CDECL int (*jpeg_finish_decompress)(jpeg_decompress_struct*);
+      FOG_CDECL int (*jpeg_resync_to_restart)(jpeg_decompress_struct*, int);
+      FOG_CDECL void (*jpeg_destroy_compress)(jpeg_compress_struct*);
+      FOG_CDECL void (*jpeg_destroy_decompress)(jpeg_decompress_struct*);
+    };
+    void *addr[SymbolsCount];
+  };
+
+  Library dll;
+  uint32_t ok;
+};
+
+static Static< Lazy<JpegLibrary> > _jpeg;
+
+// ===========================================================================
+// [Fog::ImageIO::JpegProvider]
+// ===========================================================================
+
+struct JpegProvider : public Provider
+{
+  JpegProvider();
+  virtual ~JpegProvider();
+
+  virtual uint32_t check(const void* mem, sysuint_t length);
+  virtual EncoderDevice* createEncoder();
+  virtual DecoderDevice* createDecoder();
 };
 
 JpegProvider::JpegProvider()
@@ -156,15 +166,13 @@ uint32_t JpegProvider::check(const void* mem, sysuint_t length)
 
 EncoderDevice* JpegProvider::createEncoder()
 {
-  return new JpegEncoderDevice();
+  return _jpeg->get()->ok ? new(std::nothrow) JpegEncoderDevice() : NULL;
 }
 
 DecoderDevice* JpegProvider::createDecoder()
 {
-  return new JpegDecoderDevice();
+  return _jpeg->get()->ok ? new(std::nothrow) JpegDecoderDevice() : NULL;
 }
-
-static Lazy<JpegLibrary> _jpeg;
 
 // ===========================================================================
 // [Fog::ImageIO::JpegDecoderDevice]
@@ -264,15 +272,10 @@ static FOG_CDECL void MyJpegMessage(j_common_ptr cinfo)
 
 JpegDecoderDevice::JpegDecoderDevice()
 {
-  JpegLibrary* jpeg = _jpeg.get();
-  if (!jpeg->ok) return;
-
 }
 
 JpegDecoderDevice::~JpegDecoderDevice()
 {
-  JpegLibrary* jpeg = _jpeg.get();
-  if (!jpeg->ok) return;
 }
 
 // ===========================================================================
@@ -293,8 +296,8 @@ uint32_t JpegDecoderDevice::readHeader()
   // Don't read header more than once.
   if (headerDone()) return headerResult();
 
-  JpegLibrary* jpeg = _jpeg.get();
-  if (jpeg == NULL)
+  JpegLibrary* jpeg = _jpeg->get();
+  if (!jpeg->ok)
   {
     return (_headerResult = Error::ImageIO_JpegLibraryNotFound);
   }
@@ -360,8 +363,8 @@ uint32_t JpegDecoderDevice::readHeader()
 
 uint32_t JpegDecoderDevice::readImage(Image& image)
 {
-  JpegLibrary* jpeg = _jpeg.get();
-  if (jpeg == NULL)
+  JpegLibrary* jpeg = _jpeg->get();
+  if (!jpeg->ok)
   {
     return Error::ImageIO_JpegLibraryNotFound;
   }
@@ -513,8 +516,8 @@ JpegEncoderDevice::~JpegEncoderDevice()
 
 uint32_t JpegEncoderDevice::writeImage(const Image& image)
 {
-  JpegLibrary* jpeg = _jpeg.get();
-  if (jpeg == NULL)
+  JpegLibrary* jpeg = _jpeg->get();
+  if (!jpeg->ok)
   {
     return Error::ImageIO_JpegLibraryNotFound;
   }
@@ -618,6 +621,18 @@ uint32_t JpegEncoderDevice::writeImage(const Image& image)
   // Here we just illustrate the use of quality (quantization table) scaling:
   jpeg->jpeg_set_quality(&cinfo, _quality, true /* limit to baseline-JPEG values */);
 
+  // This idea is from enlightenment. Make pixel UV sampling 1x1 if quality
+  // is high (90 and higher)
+  if (_quality >= 90)
+  {
+    cinfo.comp_info[0].h_samp_factor = 1;
+    cinfo.comp_info[0].v_samp_factor = 1;
+    cinfo.comp_info[1].h_samp_factor = 1;
+    cinfo.comp_info[1].v_samp_factor = 1;
+    cinfo.comp_info[2].h_samp_factor = 1;
+    cinfo.comp_info[2].v_samp_factor = 1;
+  }
+
   // Step 4: Start compressor
 
   // true ensures that we will write a complete interchange-JPEG file.
@@ -704,16 +719,22 @@ Value JpegEncoderDevice::getProperty(const String32& name)
 // [CAPI]
 // ===========================================================================
 
-FOG_CAPI_DECLARE Fog::ImageIO::Provider* fog_imageio_getJpegProvider(void)
+FOG_INIT_DECLARE void fog_imageio_jpeg_init(void)
 {
-  return Fog::ImageIO::_jpeg.get()->ok ? new(std::nothrow) Fog::ImageIO::JpegProvider() : NULL;
+  Fog::ImageIO::_jpeg.init();
+  Fog::ImageIO::addProvider(new(std::nothrow) Fog::ImageIO::JpegProvider());
+}
+
+FOG_INIT_DECLARE void fog_imageio_jpeg_shutdown(void)
+{
+  // Provider is destroyed by Fog::ImageIO, need only to destroy JpegLibrary
+  // if open.
+  Fog::ImageIO::_jpeg.destroy();
 }
 
 #else
 
-FOG_CAPI_DECLARE Fog::ImageIO::Provider* fog_imageio_getJpegProvider(void)
-{
-  return NULL;
-}
+FOG_INIT_DECLARE void fog_imageio_jpeg_init(void) {}
+FOG_INIT_DECLARE void fog_imageio_jpeg_shutdown(void) {}
 
 #endif // FOG_HAVE_JPEG_HEADERS

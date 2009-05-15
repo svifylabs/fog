@@ -12,6 +12,7 @@
 #include <Fog/Core/Lazy.h>
 #include <Fog/Core/Library.h>
 #include <Fog/Core/Misc.h>
+#include <Fog/Core/Static.h>
 #include <Fog/Core/Stream.h>
 #include <Fog/Core/String.h>
 #include <Fog/Core/StringCache.h>
@@ -38,21 +39,65 @@ namespace Fog {
 namespace ImageIO {
 
 // ============================================================================
-// [Fog::ImageIO::PngProvider]
+// [Fog::ImageIO::PngLibrary]
 // ============================================================================
-
-struct PngProvider : public Provider
-{
-  PngProvider();
-  virtual ~PngProvider();
-
-  virtual uint32_t check(const void* mem, sysuint_t length);
-  virtual EncoderDevice* createEncoder();
-  virtual DecoderDevice* createDecoder();
-};
 
 struct PngLibrary
 {
+  PngLibrary() : ok(false)
+  {
+    static const char symbols[] =
+      "png_error\0"
+      "png_create_read_struct\0"
+      "png_destroy_read_struct\0"
+      "png_create_info_struct\0"
+      "png_read_info\0"
+      "png_read_rows\0"
+      "png_read_image\0"
+      "png_read_end\0"
+      "png_create_write_struct\0"
+      "png_destroy_write_struct\0"
+      "png_write_info\0"
+      "png_write_rows\0"
+      "png_write_end\0"
+      "png_set_gray_1_2_4_to_8\0"
+      "png_set_gray_to_rgb\0"
+      "png_set_strip_16\0"
+      "png_set_swap_alpha\0"
+      "png_set_filler\0"
+      "png_set_packing\0"
+      "png_set_packswap\0"
+      "png_set_shift\0"
+      "png_set_error_fn\0"
+      "png_set_read_fn\0"
+      "png_set_write_fn\0"
+      "png_set_bgr\0"
+      "png_set_expand\0"
+      "png_set_interlace_handling\0"
+      "png_set_compression_level\0"
+      "png_set_IHDR\0"
+      "png_set_sBIT\0"
+      "png_get_valid\0"
+      "png_get_bit_depth\0"
+      "png_get_IHDR\0";
+
+    if (dll.open(StubAscii8("png"), Library::OpenSystemPrefix | Library::OpenSystemSuffix) != Error::Ok)
+    {
+      return;
+    }
+
+    const char* badSymbol;
+    if (dll.symbols(addr, symbols, FOG_ARRAY_SIZE(symbols), SymbolsCount, (char**)NULL) != SymbolsCount)
+    {
+      // Some symbol failed to load? Inform about it.
+      fog_debug("Fog::ImageIO::PngLibrary() - Can't load symbol '%s' from libpng", badSymbol);
+      dll.close();
+      return;
+    }
+
+    ok = 1;
+  }
+
   enum { SymbolsCount = 33 };
 
   union
@@ -105,50 +150,22 @@ struct PngLibrary
 
   Library dll;
   uint32_t ok;
+};
 
-  PngLibrary() : ok(false)
-  {
-    static const char symbols[] =
-      "png_error\0"
-      "png_create_read_struct\0"
-      "png_destroy_read_struct\0"
-      "png_create_info_struct\0"
-      "png_read_info\0"
-      "png_read_rows\0"
-      "png_read_image\0"
-      "png_read_end\0"
-      "png_create_write_struct\0"
-      "png_destroy_write_struct\0"
-      "png_write_info\0"
-      "png_write_rows\0"
-      "png_write_end\0"
-      "png_set_gray_1_2_4_to_8\0"
-      "png_set_gray_to_rgb\0"
-      "png_set_strip_16\0"
-      "png_set_swap_alpha\0"
-      "png_set_filler\0"
-      "png_set_packing\0"
-      "png_set_packswap\0"
-      "png_set_shift\0"
-      "png_set_error_fn\0"
-      "png_set_read_fn\0"
-      "png_set_write_fn\0"
-      "png_set_bgr\0"
-      "png_set_expand\0"
-      "png_set_interlace_handling\0"
-      "png_set_compression_level\0"
-      "png_set_IHDR\0"
-      "png_set_sBIT\0"
-      "png_get_valid\0"
-      "png_get_bit_depth\0"
-      "png_get_IHDR\0";
+static Static< Lazy<PngLibrary> > _png;
 
-    if (dll.open(StubAscii8("png"), Library::OpenSystemPrefix | Library::OpenSystemSuffix) == Error::Ok &&
-        dll.symbols(addr, symbols, FOG_ARRAY_SIZE(symbols), SymbolsCount, (char**)NULL) == SymbolsCount)
-    {
-      ok = 1;
-    }
-  }
+// ============================================================================
+// [Fog::ImageIO::PngProvider]
+// ============================================================================
+
+struct PngProvider : public Provider
+{
+  PngProvider();
+  virtual ~PngProvider();
+
+  virtual uint32_t check(const void* mem, sysuint_t length);
+  virtual EncoderDevice* createEncoder();
+  virtual DecoderDevice* createDecoder();
 };
 
 PngProvider::PngProvider()
@@ -194,21 +211,19 @@ uint32_t PngProvider::check(const void* mem, sysuint_t length)
 
 EncoderDevice* PngProvider::createEncoder()
 {
-  return new PngEncoderDevice();
+  return _png->get()->ok ? new(std::nothrow) PngEncoderDevice() : NULL;
 }
 
 DecoderDevice* PngProvider::createDecoder()
 {
-  return new PngDecoderDevice();
+  return _png->get()->ok ? new(std::nothrow) PngDecoderDevice() : NULL;
 }
-
-static Lazy<PngLibrary> _png;
 
 static void user_read_data(png_structp png_ptr, png_bytep data, png_size_t length)
 {
   if (((Stream *)png_ptr->io_ptr)->read(data, length) != length)
   {
-    _png.get()->png_error(png_ptr, "Read Error");
+    _png->get()->png_error(png_ptr, "Read Error");
   }
 }
 
@@ -216,7 +231,7 @@ static void user_write_data(png_structp png_ptr, png_bytep data, png_size_t leng
 {
   if (((Stream *)png_ptr->io_ptr)->write(data, length) != length)
   {
-    _png.get()->png_error(png_ptr, "Write Error");
+    _png->get()->png_error(png_ptr, "Write Error");
   }
 }
 
@@ -264,7 +279,7 @@ uint32_t PngDecoderDevice::readHeader()
   if (headerDone()) return headerResult();
 
   // Png library pointer
-  PngLibrary* lib = _png.get();
+  PngLibrary* lib = _png->get();
   if (!lib->ok) return Error::ImageIO_PngLibraryNotFound;
 
   // don't read header more than once
@@ -343,7 +358,7 @@ uint32_t PngDecoderDevice::readHeader()
 uint32_t PngDecoderDevice::readImage(Image& image)
 {
   // Png library pointer
-  PngLibrary* lib = _png.get();
+  PngLibrary* lib = _png->get();
   if (!lib->ok) return Error::ImageIO_PngLibraryNotFound;
 
   // read png header
@@ -456,7 +471,7 @@ uint32_t PngDecoderDevice::_createPngStream()
   if (_png_ptr) return Error::Ok;
 
   // Png library pointer
-  PngLibrary* lib = _png.get();
+  PngLibrary* lib = _png->get();
   // Should be checked earlier
   FOG_ASSERT(lib->ok);
 
@@ -488,7 +503,7 @@ void PngDecoderDevice::_deletePngStream()
   if (_png_ptr)
   {
     // Png library pointer
-    PngLibrary* lib = _png.get();
+    PngLibrary* lib = _png->get();
     // Should be checked earlier
     FOG_ASSERT(lib->ok);
 
@@ -511,7 +526,7 @@ PngEncoderDevice::~PngEncoderDevice()
 uint32_t PngEncoderDevice::writeImage(const Image& image)
 {
   // Png library pointer
-  PngLibrary* lib = _png.get();
+  PngLibrary* lib = _png->get();
   if (!lib->ok) return Error::ImageIO_PngLibraryNotFound;
 
   uint32_t err = Error::Ok;
@@ -662,16 +677,22 @@ end:
 // [CAPI]
 // ============================================================================
 
-FOG_CAPI_DECLARE Fog::ImageIO::Provider* fog_imageio_getPngProvider(void)
+FOG_INIT_DECLARE void fog_imageio_png_init(void)
 {
-  return Fog::ImageIO::_png.get()->ok ? new(std::nothrow) Fog::ImageIO::PngProvider() : NULL;
+  Fog::ImageIO::_png.init();
+  Fog::ImageIO::addProvider(new(std::nothrow) Fog::ImageIO::PngProvider());
+}
+
+FOG_INIT_DECLARE void fog_imageio_png_shutdown(void)
+{
+  // Provider is destroyed by Fog::ImageIO, need only to destroy PngLibrary
+  // if open.
+  Fog::ImageIO::_png.destroy();
 }
 
 #else
 
-FOG_CAPI_DECLARE Fog::ImageIO::Provider* fog_imageio_getPngProvider(void)
-{
-  return NULL;
-}
+FOG_INIT_DECLARE void fog_imageio_png_init(void) {}
+FOG_INIT_DECLARE void fog_imageio_png_shutdown(void) {}
 
 #endif // FOG_HAVE_PNG_HEADERS

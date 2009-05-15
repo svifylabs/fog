@@ -956,7 +956,11 @@ fail:
 // [CAPI]
 // ============================================================================
 
-FOG_CAPI_DECLARE Fog::ImageIO::Provider* fog_imageio_getBmpProvider(void)
+FOG_INIT_DECLARE void fog_imageio_bmp_init(void)
 {
-  return new Fog::ImageIO::BmpProvider();
+  Fog::ImageIO::addProvider(new(std::nothrow) Fog::ImageIO::BmpProvider());
+}
+
+FOG_INIT_DECLARE void fog_imageio_bmp_shutdown(void)
+{
 }

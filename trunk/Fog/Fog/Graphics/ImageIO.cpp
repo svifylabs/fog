@@ -31,40 +31,26 @@
 #include <Fog/Graphics/ImageIO/ImageIO_PNG.h>
 
 // [Provider Ininializers]
-FOG_CAPI_EXTERN Fog::ImageIO::Provider* fog_imageio_getBmpProvider(void);
-FOG_CAPI_EXTERN Fog::ImageIO::Provider* fog_imageio_getPcxProvider(void);
-FOG_CAPI_EXTERN Fog::ImageIO::Provider* fog_imageio_getGifProvider(void);
+FOG_CAPI_EXTERN void fog_imageio_bmp_init(void);
+FOG_CAPI_EXTERN void fog_imageio_bmp_shutdown(void);
 
-#if defined(FOG_HAVE_PNG_H)
-FOG_CAPI_EXTERN Fog::ImageIO::Provider* fog_imageio_getPngProvider(void);
-#endif // FOG_HAVE_PNG_H
+FOG_CAPI_EXTERN void fog_imageio_pcx_init(void);
+FOG_CAPI_EXTERN void fog_imageio_pcx_shutdown(void);
 
-#if defined(FOG_HAVE_JPEGLIB_H)
-FOG_CAPI_EXTERN Fog::ImageIO::Provider* fog_imageio_getJpegProvider(void);
-#endif // FOG_HAVE_JPEGLIB_H
+FOG_CAPI_EXTERN void fog_imageio_gif_init(void);
+FOG_CAPI_EXTERN void fog_imageio_gif_shutdown(void);
+
+FOG_CAPI_EXTERN void fog_imageio_png_init(void);
+FOG_CAPI_EXTERN void fog_imageio_png_shutdown(void);
+
+FOG_CAPI_EXTERN void fog_imageio_jpeg_init(void);
+FOG_CAPI_EXTERN void fog_imageio_jpeg_shutdown(void);
 
 namespace Fog {
 
 // ============================================================================
 // [Fog::ImageIO - Local]
 // ============================================================================
-
-typedef ImageIO::Provider* (*GetProviderFn)(void);
-
-static GetProviderFn getProviderFns[] =
-{
-  fog_imageio_getBmpProvider,
-  fog_imageio_getPcxProvider,
-  fog_imageio_getGifProvider
-
-#if defined(FOG_HAVE_PNG_H)
-  ,fog_imageio_getPngProvider
-#endif // FOG_HAVE_PNG_H
-
-#if defined(FOG_HAVE_JPEGLIB_H)
-  ,fog_imageio_getJpegProvider
-#endif // FOG_HAVE_JPEGLIB_H
-};
 
 struct ImageIO_Local
 {
@@ -376,30 +362,30 @@ FOG_INIT_DECLARE err_t fog_imageio_init(void)
 {
   Fog::imageio_local.init();
 
-  sysuint_t i;
-  for (i = 0; i != FOG_ARRAY_SIZE(Fog::getProviderFns); i++)
-  {
-    Fog::ImageIO::Provider* provider = Fog::getProviderFns[i]();
-
-    if (provider)
-    {
-      Fog::imageio_local->providers.append(provider);
-    }
-  }
+  fog_imageio_bmp_init();
+  fog_imageio_pcx_init();
+  fog_imageio_gif_init();
+  fog_imageio_png_init();
+  fog_imageio_jpeg_init();
 
   return Error::Ok;
 }
 
 FOG_INIT_DECLARE void fog_imageio_shutdown(void)
 {
-  // Do not need to lock, because we are shutting down
-  // and all threads should be joined or non ImageIO
-  // related.
+  // Do not need to lock, because we are shutting down. All threads should
+  // been already joined.
   Fog::ImageIO_Local::Providers::ConstIterator it(
     Fog::imageio_local->providers);
 
   // Remove (and delete) all providers
   for (it.toStart(); it.isValid(); it.toNext()) delete it.value();
+
+  fog_imageio_jpeg_shutdown();
+  fog_imageio_png_shutdown();
+  fog_imageio_gif_shutdown();
+  fog_imageio_pcx_shutdown();
+  fog_imageio_bmp_shutdown();
 
   Fog::imageio_local.destroy();
 }

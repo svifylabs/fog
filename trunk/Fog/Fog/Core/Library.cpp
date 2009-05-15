@@ -84,14 +84,11 @@ static err_t platformOpenLibrary(const String32& fileName, void** handle)
   TemporaryString8<TemporaryLength> fileName8;
   if ( (err = fileName8.set(fileName, TextCodec::local8())) ) return err;
 
-  if ((*handle = (void*)dlopen(fileName8.cStr(), RTLD_NOW)) == NULL)
-  {
-    return Error::LibraryOpenFailed;
-  }
-  else
-  {
-    return Error::Ok;
-  }
+  void* h = (void*)dlopen(fileName8.cStr(), RTLD_NOW);
+  if (h == NULL) return Error::LibraryOpenFailed;
+
+  *handle = h;
+  return Error::Ok;
 }
 
 static void platformCloseLibrary(void* handle)

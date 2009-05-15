@@ -33,6 +33,7 @@ public:
   };
 
   Lazy_Abstract();
+  explicit Lazy_Abstract(_LinkerInitialized x);
   virtual ~Lazy_Abstract();
 
 protected:
@@ -51,9 +52,9 @@ protected:
 template<typename T>
 struct Lazy : public Lazy_Abstract
 {
-  Lazy()
-  {
-  }
+  FOG_INLINE Lazy() {}
+  explicit FOG_INLINE Lazy(_LinkerInitialized x) :
+    Lazy_Abstract(LinkerInitialized) {}
 
   ~Lazy()
   {
