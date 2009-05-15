@@ -54,7 +54,9 @@ void Button::onPaint(PaintEvent* e)
   }
 
   pat.addGradientStop(GradientStop(0.0, 255, 255, 255));
-  pat.addGradientStop(GradientStop(1.0, 200, 200, 255));
+  pat.addGradientStop(GradientStop(0.48, 140, 170, 255));
+  pat.addGradientStop(GradientStop(0.52, 110, 140, 255));
+  pat.addGradientStop(GradientStop(1.0, 70, 100, 255));
   p->setSource(pat);
   p->fillRect(bounds);
 
