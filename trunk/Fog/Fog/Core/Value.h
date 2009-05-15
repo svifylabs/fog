@@ -121,6 +121,8 @@ struct FOG_API Value
 
   // [Methods]
 
+  uint32_t type() const { return _d->type; }
+
   FOG_INLINE bool isNull() const { return _d->type == TypeNull; }
   FOG_INLINE bool isInteger() const { return _d->type == TypeInteger; }
   FOG_INLINE bool isDouble() const { return _d->type == TypeDouble; }
