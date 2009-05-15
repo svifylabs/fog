@@ -2701,7 +2701,11 @@ uint32_t GifEncoderDevice::writeImage(const Image& image)
 // [CAPI]
 // ============================================================================
 
-FOG_CAPI_DECLARE Fog::ImageIO::Provider* fog_imageio_getGifProvider(void)
+FOG_INIT_DECLARE void fog_imageio_gif_init(void)
 {
-  return new Fog::ImageIO::GifProvider();
+  Fog::ImageIO::addProvider(new(std::nothrow) Fog::ImageIO::GifProvider());
+}
+
+FOG_INIT_DECLARE void fog_imageio_gif_shutdown(void)
+{
 }

@@ -150,9 +150,13 @@ static void FOG_FASTCALL convert_bswap24(uint8_t* dst, const uint8_t* src, sysin
 {
   for (sysint_t i = w; i; i--, dst += 3, src += 3)
   {
-    dst[0] = src[2];
-    dst[1] = src[1];
-    dst[2] = src[0];
+    uint8_t s0 = src[0];
+    uint8_t s1 = src[1];
+    uint8_t s2 = src[2];
+
+    dst[0] = s2;
+    dst[1] = s1;
+    dst[2] = s0;
   }
 }
 

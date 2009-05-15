@@ -881,7 +881,11 @@ fail:
 // [CAPI]
 // ============================================================================
 
-FOG_CAPI_DECLARE Fog::ImageIO::Provider* fog_imageio_getPcxProvider(void)
+FOG_INIT_DECLARE void fog_imageio_pcx_init(void)
 {
-  return new Fog::ImageIO::PcxProvider();
+  Fog::ImageIO::addProvider(new(std::nothrow) Fog::ImageIO::PcxProvider());
+}
+
+FOG_INIT_DECLARE void fog_imageio_pcx_shutdown(void)
+{
 }

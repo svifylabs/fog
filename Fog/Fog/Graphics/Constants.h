@@ -38,6 +38,7 @@ enum GraphicsError
   ImageIO_NotAnimationFormat,
 
   ImageIO_JpegLibraryNotFound,
+  ImageIO_JpegSymbolNotFound,
   ImageIO_JpegError,
 
   ImageIO_PngLibraryNotFound,

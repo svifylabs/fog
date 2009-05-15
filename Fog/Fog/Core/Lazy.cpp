@@ -23,6 +23,11 @@ Lazy_Abstract::Lazy_Abstract() : _ptr(NULL)
 {
 }
 
+Lazy_Abstract::Lazy_Abstract(_LinkerInitialized x)
+{
+  FOG_UNUSED(x);
+}
+
 Lazy_Abstract::~Lazy_Abstract()
 {
   // Pointer should be NULL here
