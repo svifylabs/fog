@@ -62,12 +62,17 @@ typedef void (FOG_FASTCALL *SpanCompositeFn)(
   uint8_t* dst, const uint8_t* src, sysint_t w);
 typedef void (FOG_FASTCALL *SpanCompositeMskFn)(
   uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w);
+typedef void (FOG_FASTCALL *SpanCompositeMskConstFn)(
+  uint8_t* dst, const uint8_t* src, uint32_t msk, sysint_t w);
 
 typedef void (FOG_FASTCALL *SpanCompositeIndexedFn)(
   uint8_t* dst, const uint8_t* src, sysint_t w,
   const Rgba* pal);
 typedef void (FOG_FASTCALL *SpanCompositeIndexedMskFn)(
   uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w,
+  const Rgba* pal);
+typedef void (FOG_FASTCALL *SpanCompositeIndexedMskConstFn)(
+  uint8_t* dst, const uint8_t* src, uint32_t msk, sysint_t w,
   const Rgba* pal);
 
 typedef void (FOG_FASTCALL *RectCompositeFn)(
@@ -76,6 +81,9 @@ typedef void (FOG_FASTCALL *RectCompositeFn)(
 typedef void (FOG_FASTCALL *RectCompositeMskFn)(
   uint8_t* dst, const uint8_t* src, const uint8_t* msk,
   sysint_t dstStride, sysint_t srcStride, sysint_t mskStride, sysint_t w);
+typedef void (FOG_FASTCALL *RectCompositeMskConstFn)(
+  uint8_t* dst, const uint8_t* src, uint32_t msk,
+  sysint_t dstStride, sysint_t srcStride, sysint_t mskStride, sysint_t w);
 
 typedef void (FOG_FASTCALL *RectCompositeIndexedFn)(
   uint8_t* dst, const uint8_t* src,
@@ -83,6 +91,10 @@ typedef void (FOG_FASTCALL *RectCompositeIndexedFn)(
   const Rgba* pal);
 typedef void (FOG_FASTCALL *RectCompositeIndexedMskFn)(
   uint8_t* dst, const uint8_t* src, const uint8_t* msk,
+  sysint_t dstStride, sysint_t srcStride, sysint_t mskStride, sysint_t w,
+  const Rgba* pal);
+typedef void (FOG_FASTCALL *RectCompositeIndexedMskConstFn)(
+  uint8_t* dst, const uint8_t* src, uint32_t msk,
   sysint_t dstStride, sysint_t srcStride, sysint_t mskStride, sysint_t w,
   const Rgba* pal);
 

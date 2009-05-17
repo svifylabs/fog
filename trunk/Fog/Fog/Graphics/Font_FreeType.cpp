@@ -696,6 +696,10 @@ err_t FontFaceFT::getGlyphs(const Char32* str, sysuint_t length, GlyphSet& glyph
   }
 }
 
+err_t FontFaceFT::getPath(const Char32* str, sysuint_t length, Path& dst)
+{
+}
+
 Glyph::Data* FontFaceFT::renderGlyph(uint32_t uc)
 {
   Glyph::Data* glyphd = NULL;

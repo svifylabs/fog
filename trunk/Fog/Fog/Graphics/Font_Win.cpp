@@ -11,7 +11,14 @@
 #include <Fog/Core/Lock.h>
 #include <Fog/Core/Vector.h>
 
+#include <Fog/Graphics/AffineMatrix.h>
+#include <Fog/Graphics/Geometry.h>
 #include <Fog/Graphics/Font_Win.h>
+#include <Fog/Graphics/Path.h>
+
+#ifndef GGO_UNHINTED
+#define GGO_UNHINTED 0x0100
+#endif // GGO_UNHINTED
 
 namespace Fog {
 
@@ -151,19 +158,139 @@ fail:
 }
 
 // ============================================================================
+// [Fog::FontFaceWin - Helpers]
+// ============================================================================
+
+// Identity matrix. It seems that this matrix must be passed to 
+// GetGlyphOutlineW function.
+static const MAT2 mat2identity = {{0, 1}, {0, 0}, {0, 0}, {0, 1}};
+
+static FOG_INLINE FIXED dbl_to_fx(double d)
+{
+  int l;
+  l = int(d * 65536.0);
+  return *(FIXED*)&l;
+}
+
+static FOG_INLINE int dbl_to_plain_fx(double d)
+{
+  return int(d * 65536.0);
+}
+
+static FOG_INLINE FIXED negate_fx(const FIXED& fx)
+{
+  int l = -(*(int*)(&fx));
+  return *(FIXED*)&l;
+}
+
+static FOG_INLINE double fx_to_dbl(const FIXED& p)
+{
+  return double(p.value) + double(p.fract) * (1.0 / 65536.0);
+}
+
+static FOG_INLINE int fx_to_plain_int(const FIXED& fx)
+{
+  return *(int*)(&fx);
+}
+
+static FOG_INLINE int fx_to_int26p6(const FIXED& p)
+{
+  return (int(p.value) << 6) + (int(p.fract) >> 10);
+}
+
+static FOG_INLINE int dbl_to_int26p6(double p)
+{
+  return int(p * 64.0 + 0.5);
+}
+
+static bool decompose_win32_glyph_outline(
+  const uint8_t* gbuf,
+  unsigned total_size,
+  bool flip_y,
+  const AffineMatrix& mtx,
+  Path& path)
+{
+  const uint8_t* cur_glyph = gbuf;
+  const uint8_t* end_glyph = gbuf + total_size;
+  double x, y;
+
+  if (cur_glyph == end_glyph) return true;
+
+  do {
+    const TTPOLYGONHEADER* th = (TTPOLYGONHEADER*)cur_glyph;
+    
+    const uint8_t* end_poly = cur_glyph + th->cb;
+    const uint8_t* cur_poly = cur_glyph + sizeof(TTPOLYGONHEADER);
+
+    x = fx_to_dbl(th->pfxStart.x);
+    y = fx_to_dbl(th->pfxStart.y);
+    if (flip_y) y = -y;
+    mtx.transform(&x, &y);
+    path.moveTo(PointF(x, y));
+
+    while (cur_poly < end_poly)
+    {
+      const TTPOLYCURVE* pc = (const TTPOLYCURVE*)cur_poly;
+      
+      if (pc->wType == TT_PRIM_LINE)
+      {
+        int i;
+        for (i = 0; i < pc->cpfx; i++)
+        {
+          x = fx_to_dbl(pc->apfx[i].x);
+          y = fx_to_dbl(pc->apfx[i].y);
+          if(flip_y) y = -y;
+          mtx.transform(&x, &y);
+          path.lineTo(PointF(x, y));
+        }
+      }
+      
+      if (pc->wType == TT_PRIM_QSPLINE)
+      {
+        int u;
+        for (u = 0; u < pc->cpfx - 1; u++) // Walk through points in spline
+        {
+          POINTFX pnt_b = pc->apfx[u]; // B is always the current point
+          POINTFX pnt_c = pc->apfx[u+1];
+          
+          if (u < pc->cpfx - 2) // If not on last spline, compute C
+          {
+            // midpoint (x,y)
+            *(int*)&pnt_c.x = (*(int*)&pnt_b.x + *(int*)&pnt_c.x) / 2;
+            *(int*)&pnt_c.y = (*(int*)&pnt_b.y + *(int*)&pnt_c.y) / 2;
+          }
+          
+          double x2, y2;
+          x  = fx_to_dbl(pnt_b.x);
+          y  = fx_to_dbl(pnt_b.y);
+          x2 = fx_to_dbl(pnt_c.x);
+          y2 = fx_to_dbl(pnt_c.y);
+          if (flip_y) { y = -y; y2 = -y2; }
+          mtx.transform(&x,  &y);
+          mtx.transform(&x2, &y2);
+          path.quadraticCurveTo(PointF(x, y), PointF(x2, y2));
+        }
+      }
+      cur_poly += sizeof(WORD) * 2 + sizeof(POINTFX) * pc->cpfx;
+    }
+    cur_glyph += th->cb;
+  } while (cur_glyph < end_glyph);
+  path.closePolygon();
+
+  return true;
+}
+
+// ============================================================================
 // [Fog::FontFaceWin]
 // ============================================================================
 
 FontFaceWin::FontFaceWin() :
-  hFont(NULL),
-  hdc(NULL),
-  hOldFont(NULL)
+  hFont(NULL)
 {
 }
 
 FontFaceWin::~FontFaceWin()
 {
-  renderEnd();
   if (hFont) DeleteObject((HGDIOBJ)hFont);
 }
 
@@ -180,7 +307,7 @@ err_t FontFaceWin::getGlyphs(const Char32* str, sysuint_t length, GlyphSet& glyp
   AutoLock locked(lock);
 
   Glyph::Data* glyphd;
-  bool renderUsed = false;
+  HDC hdc = NULL;
 
   for (sysuint_t i = 0; i != length; i++)
   {
@@ -190,14 +317,21 @@ err_t FontFaceWin::getGlyphs(const Char32* str, sysuint_t length, GlyphSet& glyp
     glyphd = glyphCache.get(uc);
     if (FOG_UNLIKELY(!glyphd))
     {
-      if (!renderUsed) renderUsed = renderBegin();
-      if ((glyphd = renderGlyph(uc))) glyphCache.set(uc, glyphd);
+      // Glyph is not in cache, initialize HDC (if not initialized) and try
+      // to get glyph from HFONT.
+      if (hdc == NULL)
+      {
+        if ((hdc = CreateCompatibleDC(NULL)) == NULL) continue;
+        SelectObject(hdc, (HGDIOBJ)hFont);
+      }
+
+      if ((glyphd = renderGlyph(hdc, uc))) glyphCache.set(uc, glyphd);
     }
 
     if (FOG_LIKELY(glyphd)) glyphSet._add(glyphd->ref());
   }
 
-  if (renderUsed) renderEnd();
+  if (hdc) DeleteDC(hdc);
 
   if ( (err = glyphSet.end()) ) return err;
   return Error::Ok;
@@ -222,34 +356,54 @@ err_t FontFaceWin::getTextWidth(const Char32* str, sysuint_t length, TextWidth* 
   }
 }
 
-bool FontFaceWin::renderBegin()
+err_t FontFaceWin::getPath(const Char32* str, sysuint_t length, Path& dst)
 {
-  if (hdc == NULL)
+  AutoLock locked(lock);
+
+  err_t err = Error::Ok;
+  AffineMatrix matrix;
+
+  GLYPHMETRICS gm;
+  ZeroMemory(&gm, sizeof(gm));
+
+  HDC hdc = CreateCompatibleDC(NULL);
+  if (hdc == NULL) return GetLastError();
+  SelectObject(hdc, (HGDIOBJ)hFont);
+
+  MemoryBuffer<1024> glyphBuffer;
+  DWORD glyphBufferSize = 1024;
+  uint8_t *glyphData = reinterpret_cast<uint8_t*>(glyphBuffer.alloc(1024));
+
+  for (sysuint_t i = 0; i < length; i++)
   {
-    if ((hdc = CreateCompatibleDC(NULL)) == NULL) return false;
-    if ((hOldFont = (HFONT)SelectObject(hdc, (HGDIOBJ)hFont)) == NULL) 
+    uint32_t uc = str[i].ch();
+    uint32_t dataSize;
+
+repeat:
+    dataSize = GetGlyphOutlineW(hdc, uc, GGO_NATIVE, &gm, glyphBufferSize, glyphData, &mat2identity);
+    if (dataSize == GDI_ERROR) continue;
+
+    if (dataSize > glyphBufferSize)
     {
-      DeleteDC(hdc);
-      hdc = NULL; 
-      return false;
+      if (dataSize < 4000) dataSize = 4000;
+      glyphBuffer.free();
+      glyphData = reinterpret_cast<uint8_t*>(glyphBuffer.alloc(dataSize));
+      if (!glyphData) continue;
+      glyphBufferSize = dataSize;
+      goto repeat;
     }
+
+    decompose_win32_glyph_outline(glyphData, dataSize, true, matrix, dst);
+
+    matrix.translate(gm.gmCellIncX, gm.gmCellIncY);
   }
-  return true;
+
+end:
+  DeleteDC(hdc);
+  return err;
 }
 
-void FontFaceWin::renderEnd()
-{
-  if (hdc != NULL)
-  {
-    SelectObject(hdc, (HGDIOBJ)hOldFont);
-    DeleteDC(hdc);
-
-    hdc = NULL;
-    hOldFont = NULL;
-  }
-}
-
-Glyph::Data* FontFaceWin::renderGlyph(uint32_t uc)
+Glyph::Data* FontFaceWin::renderGlyph(HDC hdc, uint32_t uc)
 {
   // renderBegin() must be called before
   FOG_ASSERT(hdc);
@@ -257,21 +411,22 @@ Glyph::Data* FontFaceWin::renderGlyph(uint32_t uc)
   Glyph::Data* glyphd = NULL;
   Image::Data* imaged = NULL;
 
-  SetBkMode(hdc, TRANSPARENT);
-
   GLYPHMETRICS gm;
-
-  // Identity matrix. It seems that this matrix must be passed to 
-  // GetGlyphOutlineW function.
-  MAT2 m2 = {{0, 1}, {0, 0}, {0, 0}, {0, 1}};
-
   ZeroMemory(&gm, sizeof(gm));
 
-  uint32_t dataSize = GetGlyphOutlineW(hdc, uc, GGO_GRAY8_BITMAP, &gm, 0, NULL, &m2);
+  uint32_t dataSize = GetGlyphOutlineW(hdc, uc, GGO_GRAY8_BITMAP, &gm, 0, NULL, &mat2identity);
 
-  if (dataSize == GDI_ERROR) return NULL;
+  // GetGlyphOutline() fails when being called
+  // for GGO_GRAY8_BITMAP and white space.
+  if (dataSize == GDI_ERROR)
+  {
+    dataSize = GetGlyphOutlineW(hdc, uc, GGO_METRICS, &gm, 0, NULL, &mat2identity);
+    if (dataSize == GDI_ERROR) return NULL;
+    dataSize = 0;
+  }
 
-  glyphd = new Glyph::Data();
+  glyphd = new(std::nothrow) Glyph::Data();
+  if (glyphd == NULL) return NULL;
 
   // Whitespace?
   if (dataSize == 0) gm.gmBlackBoxX = gm.gmBlackBoxY = 0;
@@ -298,10 +453,10 @@ Glyph::Data* FontFaceWin::renderGlyph(uint32_t uc)
 
   // Fog library should align scanlines to 32 bits like Windows does.
   FOG_ASSERT((imaged->stride & 0x3) == 0);
-  // This should be also equal
+  // This should be also equal.
   FOG_ASSERT(dataSize == imaged->stride * imaged->height);
 
-  dataSize = GetGlyphOutlineW(hdc, uc, GGO_GRAY8_BITMAP, &gm, dataSize, imaged->data, &m2);
+  dataSize = GetGlyphOutlineW(hdc, uc, GGO_GRAY8_BITMAP, &gm, dataSize, imaged->data, &mat2identity);
   FOG_ASSERT(dataSize != GDI_ERROR);
 
   uint32_t x, y;
@@ -309,15 +464,11 @@ Glyph::Data* FontFaceWin::renderGlyph(uint32_t uc)
   for (y = 0; y != gm.gmBlackBoxY; y++)
   {
     uint8_t* p = imaged->first + y * imaged->stride;
-
     for (x = 0; x < gm.gmBlackBoxX; x++)
     {
       *p++ = (*p > 63) ? 0xFF : *p << 2;
     }
   }
-
-  // Windows uses bottom-to-top images while we are using top-to-bottom
-  // glyphd->image.mirror(Image::MirrorVertical);
 
   return glyphd;
 }

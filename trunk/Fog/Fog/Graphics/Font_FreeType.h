@@ -36,6 +36,7 @@ struct FOG_API FontFaceFT : public FontFace
 
   virtual err_t getGlyphs(const Char32* str, sysuint_t length, GlyphSet& glyphSet);
   virtual err_t getTextWidth(const Char32* str, sysuint_t length, TextWidth* textWidth);
+  virtual err_t getPath(const Char32* str, sysuint_t length, Path& dst);
 
 private:
   Glyph::Data* renderGlyph(uint32_t uc);

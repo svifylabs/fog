@@ -17,18 +17,25 @@ void PainterUtil::draw3dRect(Painter* p, const Rect& r, Rgba color1, Rgba color2
 {
   if (!r.isValid()) return;
 
-  int x1 = r.x1();
-  int y1 = r.y1();
-  int x2 = r.x2()-1;
-  int y2 = r.y2()-1;
+  double x1 = (double)r.x1()+.5;
+  double y1 = (double)r.y1()+.5;
+  double x2 = (double)r.x2()-.5;
+  double y2 = (double)r.y2()-.5;
+
+  p->save();
+
+  p->setLineWidth(1.0);
+  p->setLineCap(LineCapSquare);
 
   p->setSource(checked ? color2 : color1);
-  p->drawLine(Point(x1  , y1  ), Point(x2  , y1  ));
-  p->drawLine(Point(x1  , y1+1), Point(x1  , y2-1));
+  p->drawLine(PointF((double)x1   , (double)y1   ), PointF((double)x2   , (double)y1   ));
+  p->drawLine(PointF((double)x1   , (double)y1+1.), PointF((double)x1   , (double)y2-1.));
 
   p->setSource(checked ? color1 : color2);
-  p->drawLine(Point(x2  , y1+1), Point(x2  , y2-1));
-  p->drawLine(Point(x1  , y2  ), Point(x2  , y2  ));
+  p->drawLine(PointF((double)x2   , (double)y1+1.), PointF((double)x2   , (double)y2-1.));
+  p->drawLine(PointF((double)x1   , (double)y2   ), PointF((double)x2   , (double)y2   ));
+
+  p->restore();
 }
 
 } // Fog namespace
