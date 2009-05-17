@@ -120,6 +120,19 @@ struct FOG_API PainterEngine
     double screenX1, double screenY1, double screenX2, double screenY2,
     uint32_t viewportOption) = 0;
 
+  virtual void worldToScreen(PointF* pt) const = 0;
+  virtual void screenToWorld(PointF* pt) const = 0;
+
+  virtual void worldToScreen(double* scalar) const = 0;
+  virtual void screenToWorld(double* scalar) const = 0;
+
+  virtual void alignPoint(PointF* pt) const = 0;
+
+  // [State]
+
+  virtual void save() = 0;
+  virtual void restore() = 0;
+
   // [Raster Drawing]
 
   virtual void clear() = 0;
@@ -306,6 +319,19 @@ struct FOG_API Painter
       screenX1, screenY1, screenX2, screenY2,
       viewportOption);
   }
+
+  FOG_INLINE void worldToScreen(PointF* pt) const { _engine->worldToScreen(pt); }
+  FOG_INLINE void screenToWorld(PointF* pt) const { _engine->screenToWorld(pt); }
+
+  FOG_INLINE void worldToScreen(double* scalar) const { _engine->worldToScreen(scalar); }
+  FOG_INLINE void screenToWorld(double* scalar) const { _engine->screenToWorld(scalar); }
+
+  FOG_INLINE void alignPoint(PointF* pt) const { _engine->alignPoint(pt); }
+
+  // [State]
+
+  FOG_INLINE void save() { _engine->save(); }
+  FOG_INLINE void restore() { _engine->restore(); }
 
   // [Raster Drawing]
 

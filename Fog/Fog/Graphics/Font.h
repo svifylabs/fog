@@ -29,6 +29,7 @@ namespace Fog {
 // ============================================================================
 
 struct FontEngine;
+struct Path;
 
 // ============================================================================
 // [Fog::TextWidth]
@@ -88,6 +89,7 @@ struct FOG_API FontFace : public RefDataSimple<FontFace>
 
   virtual err_t getGlyphs(const Char32* str, sysuint_t length, GlyphSet& glyphSet) = 0;
   virtual err_t getTextWidth(const Char32* str, sysuint_t length, TextWidth* textWidth) = 0;
+  virtual err_t getPath(const Char32* str, sysuint_t length, Path& dst) = 0;
 
 private:
   FOG_DISABLE_COPY(FontFace)
@@ -200,6 +202,7 @@ struct FOG_API Font
   err_t getTextWidth(const String32& str, TextWidth* textWidth) const;
   err_t getTextWidth(const Char32* str, sysuint_t length, TextWidth* textWidth) const;
   err_t getGlyphs(const Char32* str, sysuint_t length, GlyphSet& glyphSet) const;
+  err_t getPath(const Char32* str, sysuint_t length, Path& dst) const;
 
   // [Overloaded Operators]
   FOG_INLINE const Font& operator=(const Font& other)

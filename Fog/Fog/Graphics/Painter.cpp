@@ -73,10 +73,10 @@ namespace Fog {
 // [Forward Declarations]
 // ============================================================================
 
-struct RasterPainterEngine;
-struct RasterPainterCommand;
-struct RasterPainterThreadData;
-struct RasterPainterThreadTask;
+struct RasterEngine;
+struct RasterEngineCommand;
+struct RasterEngineThreadData;
+struct RasterEngineThreadTask;
 
 // ============================================================================
 // [Fog::PainterEngine]
@@ -86,14 +86,14 @@ PainterEngine::PainterEngine() {}
 PainterEngine::~PainterEngine() {}
 
 // ============================================================================
-// [Fog::NullPainterEngine]
+// [Fog::NullEngine]
 // ============================================================================
 
 //! @brief Painter device.
-struct FOG_HIDDEN NullPainterEngine : public PainterEngine
+struct FOG_HIDDEN NullEngine : public PainterEngine
 {
-  NullPainterEngine() {}
-  virtual ~NullPainterEngine() {}
+  NullEngine() {}
+  virtual ~NullEngine() {}
 
   // [Meta]
 
@@ -182,6 +182,19 @@ struct FOG_HIDDEN NullPainterEngine : public PainterEngine
     double screenX1, double screenY1, double screenX2, double screenY2,
     uint32_t viewportOption) {}
 
+  virtual void worldToScreen(PointF* pt) const {}
+  virtual void screenToWorld(PointF* pt) const {}
+
+  virtual void worldToScreen(double* scalar) const {}
+  virtual void screenToWorld(double* scalar) const {}
+
+  virtual void alignPoint(PointF* pt) const {}
+
+  // [State]
+
+  virtual void save() {}
+  virtual void restore() {}
+
   // [Raster Drawing]
 
   virtual void clear() {}
@@ -268,25 +281,25 @@ static unsigned char defaultGamma[256] =
 };
 
 // ============================================================================
-// [Fog::RasterPainterClipState]
+// [Fog::RasterEngineClipState]
 // ============================================================================
 
-struct FOG_HIDDEN RasterPainterClipState
+struct FOG_HIDDEN RasterEngineClipState
 {
   // [Construction / Destruction]
 
-  RasterPainterClipState();
-  RasterPainterClipState(const RasterPainterClipState& other);
-  ~RasterPainterClipState();
+  RasterEngineClipState();
+  RasterEngineClipState(const RasterEngineClipState& other);
+  ~RasterEngineClipState();
 
-  RasterPainterClipState& operator=(const RasterPainterClipState& other);
+  RasterEngineClipState& operator=(const RasterEngineClipState& other);
 
   // [Ref / Deref]
 
-  FOG_INLINE RasterPainterClipState* ref() const
+  FOG_INLINE RasterEngineClipState* ref() const
   {
     refCount.inc();
-    return const_cast<RasterPainterClipState*>(this);
+    return const_cast<RasterEngineClipState*>(this);
   }
 
   FOG_INLINE void deref()
@@ -316,12 +329,12 @@ struct FOG_HIDDEN RasterPainterClipState
   Box clipBox;
 };
 
-RasterPainterClipState::RasterPainterClipState()
+RasterEngineClipState::RasterEngineClipState()
 {
   refCount.init(1);
 }
 
-RasterPainterClipState::RasterPainterClipState(const RasterPainterClipState& other) :
+RasterEngineClipState::RasterEngineClipState(const RasterEngineClipState& other) :
   workRaster(other.workRaster),
   metaOrigin(other.metaOrigin),
   userOrigin(other.userOrigin),
@@ -335,11 +348,11 @@ RasterPainterClipState::RasterPainterClipState(const RasterPainterClipState& oth
   refCount.init(1);
 }
 
-RasterPainterClipState::~RasterPainterClipState()
+RasterEngineClipState::~RasterEngineClipState()
 {
 }
 
-RasterPainterClipState& RasterPainterClipState::operator=(const RasterPainterClipState& other)
+RasterEngineClipState& RasterEngineClipState::operator=(const RasterEngineClipState& other)
 {
   workRaster = other.workRaster;
   metaOrigin = other.metaOrigin;
@@ -355,25 +368,25 @@ RasterPainterClipState& RasterPainterClipState::operator=(const RasterPainterCli
 }
 
 // ============================================================================
-// [Fog::RasterPainterCapsState]
+// [Fog::RasterEngineCapsState]
 // ============================================================================
 
-struct FOG_HIDDEN RasterPainterCapsState
+struct FOG_HIDDEN RasterEngineCapsState
 {
   // [Construction / Destruction]
 
-  RasterPainterCapsState();
-  RasterPainterCapsState(const RasterPainterCapsState& other);
-  ~RasterPainterCapsState();
+  RasterEngineCapsState();
+  RasterEngineCapsState(const RasterEngineCapsState& other);
+  ~RasterEngineCapsState();
 
-  RasterPainterCapsState& operator=(const RasterPainterCapsState& other);
+  RasterEngineCapsState& operator=(const RasterEngineCapsState& other);
 
   // [Ref / Deref]
 
-  FOG_INLINE RasterPainterCapsState* ref() const
+  FOG_INLINE RasterEngineCapsState* ref() const
   {
     refCount.inc();
-    return const_cast<RasterPainterCapsState*>(this);
+    return const_cast<RasterEngineCapsState*>(this);
   }
 
   FOG_INLINE void deref()
@@ -403,15 +416,16 @@ struct FOG_HIDDEN RasterPainterCapsState
   uint32_t fillMode;
 
   AffineMatrix transformations;
+  double transformationsApproxScale;
   bool transformationsUsed;
 };
 
-RasterPainterCapsState::RasterPainterCapsState()
+RasterEngineCapsState::RasterEngineCapsState()
 {
   refCount.init(1);
 }
 
-RasterPainterCapsState::RasterPainterCapsState(const RasterPainterCapsState& other) :
+RasterEngineCapsState::RasterEngineCapsState(const RasterEngineCapsState& other) :
   op(other.op),
   solidSource(other.solidSource),
   solidSourcePremultiplied(other.solidSourcePremultiplied),
@@ -426,16 +440,17 @@ RasterPainterCapsState::RasterPainterCapsState(const RasterPainterCapsState& oth
   miterLimit(other.miterLimit),
   fillMode(other.fillMode),
   transformations(other.transformations),
+  transformationsApproxScale(1.0),
   transformationsUsed(other.transformationsUsed)
 {
   refCount.init(1);
 }
 
-RasterPainterCapsState::~RasterPainterCapsState()
+RasterEngineCapsState::~RasterEngineCapsState()
 {
 }
 
-RasterPainterCapsState& RasterPainterCapsState::operator=(const RasterPainterCapsState& other)
+RasterEngineCapsState& RasterEngineCapsState::operator=(const RasterEngineCapsState& other)
 {
   op = other.op;
   solidSource = other.solidSource;
@@ -457,7 +472,24 @@ RasterPainterCapsState& RasterPainterCapsState::operator=(const RasterPainterCap
 }
 
 // ============================================================================
-// [Fog::RasterPainterEngine - AntiGrain Wrappers]
+// [Fog::RasterEngineSavedState]
+// ============================================================================
+
+// State structure used by save() and restore() methods.
+struct FOG_HIDDEN RasterEngineSavedState
+{
+  RasterEngineClipState* clipState;
+  RasterEngineCapsState* capsState;
+  Raster::FunctionMap::Raster* raster;
+  Raster::PatternContext* pctx;
+};
+
+} // Fog namespace
+FOG_DECLARE_TYPEINFO(RasterEngineSavedState, Fog::PrimitiveType);
+namespace Fog {
+
+// ============================================================================
+// [Fog::RasterEngine - AntiGrain Wrappers]
 //
 // There are templates and classes that helps to wrap fog containers and paths
 // to AntiGrain without converting them into antigrain storage containers. This
@@ -539,7 +571,7 @@ done:
   return Error::Ok;
 }
 // ============================================================================
-// [Fog::RasterPainterContext]
+// [Fog::RasterEngineContext]
 // ============================================================================
 
 // Agg pipeline typedefs
@@ -558,12 +590,12 @@ typedef agg::scanline_p8                               AggScanlineP8;
 typedef agg::scanline_u8                               AggScanlineU8;
 
 // Context is accessed always from only one thread.
-struct FOG_HIDDEN RasterPainterContext
+struct FOG_HIDDEN RasterEngineContext
 {
   // [Construction / Destruction]
 
-  RasterPainterContext();
-  ~RasterPainterContext();
+  RasterEngineContext();
+  ~RasterEngineContext();
 
   // [Buffer Manager]
 
@@ -573,12 +605,12 @@ struct FOG_HIDDEN RasterPainterContext
   // [Members]
 
   // Owner of this context.
-  RasterPainterEngine* owner;
+  RasterEngine* owner;
 
   // Clip state.
-  RasterPainterClipState* clipState;
+  RasterEngineClipState* clipState;
   // Capabilities state.
-  RasterPainterCapsState* capsState;
+  RasterEngineCapsState* capsState;
 
   Raster::FunctionMap::Raster* raster;
   Raster::PatternContext* pctx;
@@ -591,10 +623,10 @@ struct FOG_HIDDEN RasterPainterContext
   uint8_t bufferStatic[1024*8];
 
 private:
-  FOG_DISABLE_COPY(RasterPainterContext)
+  FOG_DISABLE_COPY(RasterEngineContext)
 };
 
-RasterPainterContext::RasterPainterContext()
+RasterEngineContext::RasterEngineContext()
 {
   // AntiGrain bug workaround
   slP8.reset(0, 1000);
@@ -611,12 +643,12 @@ RasterPainterContext::RasterPainterContext()
   bufferSize = FOG_ARRAY_SIZE(bufferStatic);
 }
 
-RasterPainterContext::~RasterPainterContext()
+RasterEngineContext::~RasterEngineContext()
 {
   if (buffer != bufferStatic) Memory::free(buffer);
 }
 
-uint8_t* RasterPainterContext::getBuffer(sysint_t size)
+uint8_t* RasterEngineContext::getBuffer(sysint_t size)
 {
   if (size > bufferSize)
   {
@@ -643,15 +675,15 @@ uint8_t* RasterPainterContext::getBuffer(sysint_t size)
 }
 
 // ============================================================================
-// [Fog::RasterPainterCommandAllocator]
+// [Fog::RasterEngineCommandAllocator]
 // ============================================================================
 
-struct FOG_HIDDEN RasterPainterCommandAllocator
+struct FOG_HIDDEN RasterEngineCommandAllocator
 {
   // [Construction / Destruction]
 
-  RasterPainterCommandAllocator();
-  ~RasterPainterCommandAllocator();
+  RasterEngineCommandAllocator();
+  ~RasterEngineCommandAllocator();
 
   // [Allocator]
 
@@ -676,17 +708,17 @@ struct FOG_HIDDEN RasterPainterCommandAllocator
   Block* blocks;
 };
 
-RasterPainterCommandAllocator::RasterPainterCommandAllocator() : 
+RasterEngineCommandAllocator::RasterEngineCommandAllocator() : 
   blocks(NULL)
 {
 }
 
-RasterPainterCommandAllocator::~RasterPainterCommandAllocator()
+RasterEngineCommandAllocator::~RasterEngineCommandAllocator()
 {
   freeAll();
 }
 
-void* RasterPainterCommandAllocator::alloc(sysuint_t size)
+void* RasterEngineCommandAllocator::alloc(sysuint_t size)
 {
   FOG_ASSERT(size <= Block::BlockSize);
 
@@ -735,7 +767,7 @@ allocFromBlocks:
   return mem;
 }
 
-void RasterPainterCommandAllocator::freeAll()
+void RasterEngineCommandAllocator::freeAll()
 {
   Block* cur = blocks;
   blocks = NULL;
@@ -753,23 +785,23 @@ void RasterPainterCommandAllocator::freeAll()
 }
 
 // ============================================================================
-// [Fog::RasterPainterCommand]
+// [Fog::RasterEngineCommand]
 // ============================================================================
 
-struct FOG_HIDDEN RasterPainterCommand
+struct FOG_HIDDEN RasterEngineCommand
 {
   // [Context]
 
   Atomic<sysuint_t> refCount;
-  RasterPainterClipState* clipState;
-  RasterPainterCapsState* capsState;
+  RasterEngineClipState* clipState;
+  RasterEngineCapsState* capsState;
 
   Raster::FunctionMap::Raster* raster;
   Raster::PatternContext* pctx;
 
-  // [Related to RasterPainterCommandAllocator]
+  // [Related to RasterEngineCommandAllocator]
 
-  RasterPainterCommandAllocator::Block* this_block;
+  RasterEngineCommandAllocator::Block* this_block;
   sysuint_t this_size;
 
   // [Id]
@@ -823,15 +855,15 @@ struct FOG_HIDDEN RasterPainterCommand
 };
 
 // ============================================================================
-// [Fog::RasterPainterEngine]
+// [Fog::RasterEngine]
 // ============================================================================
 
-struct FOG_HIDDEN RasterPainterEngine : public PainterEngine
+struct FOG_HIDDEN RasterEngine : public PainterEngine
 {
   // [Construction / Destruction]
 
-  RasterPainterEngine(uint8_t* pixels, int width, int height, sysint_t stride, int format, int hints);
-  virtual ~RasterPainterEngine();
+  RasterEngine(uint8_t* pixels, int width, int height, sysint_t stride, int format, int hints);
+  virtual ~RasterEngine();
 
   // [Meta]
 
@@ -920,6 +952,19 @@ struct FOG_HIDDEN RasterPainterEngine : public PainterEngine
     double screenX1, double screenY1, double screenX2, double screenY2,
     uint32_t viewportOption);
 
+  virtual void worldToScreen(PointF* pt) const;
+  virtual void screenToWorld(PointF* pt) const;
+
+  virtual void worldToScreen(double* scalar) const;
+  virtual void screenToWorld(double* scalar) const;
+
+  virtual void alignPoint(PointF* pt) const;
+
+  // [State]
+
+  virtual void save();
+  virtual void restore();
+
   // [Raster Drawing]
 
   virtual void clear();
@@ -988,6 +1033,7 @@ struct FOG_HIDDEN RasterPainterEngine : public PainterEngine
   // [Helpers]
 
   void _updateWorkRegion();
+  void _updateTransform();
 
   void _setClipDefaults();
   void _setCapsDefaults();
@@ -1004,6 +1050,8 @@ struct FOG_HIDDEN RasterPainterEngine : public PainterEngine
   bool _detachCaps();
   bool _detachClip();
 
+  void _deleteStates();
+
   // [Serializers]
   //
   // Serializers are always called from painter thread.
@@ -1013,13 +1061,13 @@ struct FOG_HIDDEN RasterPainterEngine : public PainterEngine
   void _serializePath(const Path& path, bool stroke);
   void _serializeImage(const Rect& dst, const Image& image, const Rect& src);
 
-  RasterPainterCommand* _createCommand();
-  void _destroyCommand(RasterPainterCommand* cmd);
-  void _postCommand(RasterPainterCommand* cmd);
+  RasterEngineCommand* _createCommand();
+  void _destroyCommand(RasterEngineCommand* cmd);
+  void _postCommand(RasterEngineCommand* cmd);
 
   // [Rasterizers]
 
-  static bool _rasterizePath(RasterPainterContext* ctx, AggRasterizer& ras, const Path& path, bool stroke);
+  static bool _rasterizePath(RasterEngineContext* ctx, AggRasterizer& ras, const Path& path, bool stroke);
 
   // [Renderers - Singlethreaded]
 
@@ -1030,10 +1078,10 @@ struct FOG_HIDDEN RasterPainterEngine : public PainterEngine
 
   // [Renderers - Multithreadedthreaded]
 
-  void _renderPathMT(RasterPainterContext* ctx, int offset, int delta, const AggRasterizer& ras);
-  void _renderBoxesMT(RasterPainterContext* ctx, int offset, int delta, const Box* box, sysuint_t count);
-  void _renderImageMT(RasterPainterContext* ctx, int offset, int delta, const Rect& dst, const Image& image, const Rect& src);
-  void _renderGlyphSetMT(RasterPainterContext* ctx, int offset, int delta, const Point& pt, const GlyphSet& glyphSet, const Box& boundingBox);
+  void _renderPathMT(RasterEngineContext* ctx, int offset, int delta, const AggRasterizer& ras);
+  void _renderBoxesMT(RasterEngineContext* ctx, int offset, int delta, const Box* box, sysuint_t count);
+  void _renderImageMT(RasterEngineContext* ctx, int offset, int delta, const Rect& dst, const Image& image, const Rect& src);
+  void _renderGlyphSetMT(RasterEngineContext* ctx, int offset, int delta, const Point& pt, const GlyphSet& glyphSet, const Box& boundingBox);
 
   // [Members]
 
@@ -1055,38 +1103,42 @@ struct FOG_HIDDEN RasterPainterEngine : public PainterEngine
   // Antigrain context is declared outside of painter because we want that it
   // will be accessible through multiple threads. Each thread have it's own
   // context.
-  RasterPainterContext ctx;
+  RasterEngineContext ctx;
+
+  // Context states LIFO buffer (for save() and restore() methods)
+  Vector<RasterEngineSavedState> states;
+
   // If we are running in single-core environment it's better to embed one
   // antigrain rasterizer in device itself (and only this rasterizer will be 
   // used).
   AggRasterizer ras;
 
   // Multithreading
-  RasterPainterThreadData* _threadData;
+  RasterEngineThreadData* _threadData;
 
   // [Statics]
 
   static ThreadPool* threadPool;
 };
 
-ThreadPool* RasterPainterEngine::threadPool;
+ThreadPool* RasterEngine::threadPool;
 
 // ============================================================================
-// [Fog::RasterPainterThreadData / Fog::RasterPainterThreadTask]
+// [Fog::RasterEngineThreadData / Fog::RasterEngineThreadTask]
 // ============================================================================
 
 // This is task created per painter thread that contains all variables needed
 // to process painter commands in parallel. The goal is that condition variable
 // is shared across all painter threads so one signal will wake them all.
-struct FOG_HIDDEN RasterPainterThreadTask : public Task
+struct FOG_HIDDEN RasterEngineThreadTask : public Task
 {
-  RasterPainterThreadTask();
+  RasterEngineThreadTask();
 
   virtual void run();
   virtual void destroy();
 
-  RasterPainterEngine* d;
-  RasterPainterThreadData* data;
+  RasterEngine* d;
+  RasterEngineThreadData* data;
 
   volatile int shouldQuit;
 
@@ -1097,20 +1149,20 @@ struct FOG_HIDDEN RasterPainterThreadTask : public Task
   int offset;
   int delta;
 
-  RasterPainterContext ctx;
+  RasterEngineContext ctx;
 };
 
 // Structure shared across all threads. 
-struct FOG_HIDDEN RasterPainterThreadData
+struct FOG_HIDDEN RasterEngineThreadData
 {
-  RasterPainterThreadData() : 
+  RasterEngineThreadData() : 
     commandsReady(&commandsLock),
     commandsComplete(&commandsLock),
     releaseEvent(NULL)
   {
   }
 
-  ~RasterPainterThreadData()
+  ~RasterEngineThreadData()
   {
   }
 
@@ -1127,15 +1179,15 @@ struct FOG_HIDDEN RasterPainterThreadData
   ThreadEvent* releaseEvent;
 
   Thread* threads[RASTER_MAX_THREADS];
-  Static<RasterPainterThreadTask> tasks[RASTER_MAX_THREADS];
+  Static<RasterEngineThreadTask> tasks[RASTER_MAX_THREADS];
 
   // Commands
   Atomic<sysuint_t> commandsPosition;
-  RasterPainterCommandAllocator commandAllocator;
-  RasterPainterCommand* volatile commands[RASTER_MAX_COMMANDS];
+  RasterEngineCommandAllocator commandAllocator;
+  RasterEngineCommand* volatile commands[RASTER_MAX_COMMANDS];
 };
 
-RasterPainterThreadTask::RasterPainterThreadTask()
+RasterEngineThreadTask::RasterEngineThreadTask()
 {
   d = NULL;
   data = NULL;
@@ -1143,7 +1195,7 @@ RasterPainterThreadTask::RasterPainterThreadTask()
   currentCommand = 0;
 }
 
-void RasterPainterThreadTask::run()
+void RasterEngineThreadTask::run()
 {
 #if defined(RASTER_DEBUG)
   fog_debug("#%d - run() [ThreadID=%d]", offset, Thread::current()->id());
@@ -1154,7 +1206,7 @@ void RasterPainterThreadTask::run()
     // Process commands
     while (currentCommand < data->commandsPosition.get())
     {
-      RasterPainterCommand* cmd = data->commands[currentCommand];
+      RasterEngineCommand* cmd = data->commands[currentCommand];
 
       // If meta origin or user origin is set, it's needed to calculate new
       // ofset variable or painter can cross different thread one.
@@ -1166,7 +1218,7 @@ void RasterPainterThreadTask::run()
 
       switch (cmd->id)
       {
-        case RasterPainterCommand::PathId:
+        case RasterEngineCommand::PathId:
         {
           // Render
           ctx.clipState = cmd->clipState;
@@ -1184,7 +1236,7 @@ void RasterPainterThreadTask::run()
           break;
         }
 
-        case RasterPainterCommand::BoxId:
+        case RasterEngineCommand::BoxId:
         {
           // Render
           ctx.clipState = cmd->clipState;
@@ -1201,7 +1253,7 @@ void RasterPainterThreadTask::run()
           break;
         }
 
-        case RasterPainterCommand::ImageId:
+        case RasterEngineCommand::ImageId:
         {
           // Render
           ctx.clipState = cmd->clipState;
@@ -1219,7 +1271,7 @@ void RasterPainterThreadTask::run()
           break;
         }
 
-        case RasterPainterCommand::GlyphSetId:
+        case RasterEngineCommand::GlyphSetId:
         {
           // Render
           ctx.clipState = cmd->clipState;
@@ -1279,7 +1331,7 @@ void RasterPainterThreadTask::run()
   }
 }
 
-void RasterPainterThreadTask::destroy()
+void RasterEngineThreadTask::destroy()
 {
 #if defined(RASTER_DEBUG)
   fog_debug("#%d - destroy()", offset);
@@ -1296,10 +1348,10 @@ void RasterPainterThreadTask::destroy()
 }
 
 // ============================================================================
-// [Fog::RasterPainterEngine - Construction / Destruction]
+// [Fog::RasterEngine - Construction / Destruction]
 // ============================================================================
 
-RasterPainterEngine::RasterPainterEngine(uint8_t* pixels, int width, int height, sysint_t stride, int format, int hints) :
+RasterEngine::RasterEngine(uint8_t* pixels, int width, int height, sysint_t stride, int format, int hints) :
   _metaRaster(pixels),
   _stride(stride),
   _metaWidth(width),
@@ -1311,8 +1363,8 @@ RasterPainterEngine::RasterPainterEngine(uint8_t* pixels, int width, int height,
   _threadData(NULL)
 {
   ctx.owner = this;
-  ctx.clipState = new(std::nothrow) RasterPainterClipState();
-  ctx.capsState = new(std::nothrow) RasterPainterCapsState();
+  ctx.clipState = new(std::nothrow) RasterEngineClipState();
+  ctx.capsState = new(std::nothrow) RasterEngineCapsState();
 
   ras.gamma(defaultGamma);
 
@@ -1338,34 +1390,35 @@ RasterPainterEngine::RasterPainterEngine(uint8_t* pixels, int width, int height,
   }
 }
 
-RasterPainterEngine::~RasterPainterEngine()
+RasterEngine::~RasterEngine()
 {
   if (_threadData) setMultithreaded(false);
 
+  _deleteStates();
   ctx.clipState->deref();
   ctx.capsState->deref();
 }
 
 // ============================================================================
-// [Fog::RasterPainterEngine - Meta]
+// [Fog::RasterEngine - Meta]
 // ============================================================================
 
-int RasterPainterEngine::width() const
+int RasterEngine::width() const
 {
   return _metaWidth;
 }
 
-int RasterPainterEngine::height() const
+int RasterEngine::height() const
 {
   return _metaHeight;
 }
 
-int RasterPainterEngine::format() const
+int RasterEngine::format() const
 {
   return _format;
 }
 
-void RasterPainterEngine::setMetaVariables(
+void RasterEngine::setMetaVariables(
   const Point& metaOrigin,
   const Region& metaRegion,
   bool useMetaRegion,
@@ -1379,6 +1432,8 @@ void RasterPainterEngine::setMetaVariables(
 
   if (reset)
   {
+    _deleteStates();
+
     ctx.clipState->userOrigin.set(0, 0);
     ctx.clipState->userRegion.clear();
     ctx.clipState->userRegionUsed = false;
@@ -1390,7 +1445,7 @@ void RasterPainterEngine::setMetaVariables(
   _updateWorkRegion();
 }
 
-void RasterPainterEngine::setMetaOrigin(const Point& pt)
+void RasterEngine::setMetaOrigin(const Point& pt)
 {
   if (ctx.clipState->metaOrigin == pt) return;
   if (!_detachClip()) return;
@@ -1399,7 +1454,7 @@ void RasterPainterEngine::setMetaOrigin(const Point& pt)
   _updateWorkRegion();
 }
 
-void RasterPainterEngine::setUserOrigin(const Point& pt)
+void RasterEngine::setUserOrigin(const Point& pt)
 {
   if (ctx.clipState->userOrigin == pt) return;
   if (!_detachClip()) return;
@@ -1408,7 +1463,7 @@ void RasterPainterEngine::setUserOrigin(const Point& pt)
   _updateWorkRegion();
 }
 
-void RasterPainterEngine::translateMetaOrigin(const Point& pt)
+void RasterEngine::translateMetaOrigin(const Point& pt)
 {
   if (pt.x() == 0 && pt.y() == 0) return;
   if (!_detachClip()) return;
@@ -1417,7 +1472,7 @@ void RasterPainterEngine::translateMetaOrigin(const Point& pt)
   _updateWorkRegion();
 }
 
-void RasterPainterEngine::translateUserOrigin(const Point& pt)
+void RasterEngine::translateUserOrigin(const Point& pt)
 {
   if (pt.x() == 0 && pt.y() == 0) return;
   if (!_detachClip()) return;
@@ -1426,7 +1481,7 @@ void RasterPainterEngine::translateUserOrigin(const Point& pt)
   _updateWorkRegion();
 }
 
-void RasterPainterEngine::setUserRegion(const Rect& r)
+void RasterEngine::setUserRegion(const Rect& r)
 {
   if (!_detachClip()) return;
 
@@ -1435,7 +1490,7 @@ void RasterPainterEngine::setUserRegion(const Rect& r)
   _updateWorkRegion();
 }
 
-void RasterPainterEngine::setUserRegion(const Region& r)
+void RasterEngine::setUserRegion(const Region& r)
 {
   if (!_detachClip()) return;
 
@@ -1444,7 +1499,7 @@ void RasterPainterEngine::setUserRegion(const Region& r)
   _updateWorkRegion();
 }
 
-void RasterPainterEngine::resetMetaVars()
+void RasterEngine::resetMetaVars()
 {
   if (!_detachClip()) return;
 
@@ -1454,7 +1509,7 @@ void RasterPainterEngine::resetMetaVars()
   _updateWorkRegion();
 }
 
-void RasterPainterEngine::resetUserVars()
+void RasterEngine::resetUserVars()
 {
   if (!_detachClip()) return;
 
@@ -1464,41 +1519,41 @@ void RasterPainterEngine::resetUserVars()
   _updateWorkRegion();
 }
 
-Point RasterPainterEngine::metaOrigin() const
+Point RasterEngine::metaOrigin() const
 {
   return ctx.clipState->metaOrigin;
 }
 
-Point RasterPainterEngine::userOrigin() const
+Point RasterEngine::userOrigin() const
 {
   return ctx.clipState->userOrigin;
 }
 
-Region RasterPainterEngine::metaRegion() const
+Region RasterEngine::metaRegion() const
 {
   return ctx.clipState->metaRegion;
 }
 
-Region RasterPainterEngine::userRegion() const
+Region RasterEngine::userRegion() const
 {
   return ctx.clipState->userRegion;
 }
 
-bool RasterPainterEngine::usedMetaRegion() const
+bool RasterEngine::usedMetaRegion() const
 {
   return ctx.clipState->metaRegionUsed;
 }
 
-bool RasterPainterEngine::usedUserRegion() const
+bool RasterEngine::usedUserRegion() const
 {
   return ctx.clipState->userRegionUsed;
 }
 
 // ============================================================================
-// [Fog::RasterPainterEngine - Operator]
+// [Fog::RasterEngine - Operator]
 // ============================================================================
 
-void RasterPainterEngine::setOp(uint32_t op)
+void RasterEngine::setOp(uint32_t op)
 {
   if (!_compositingEnabled) return;
   if (op >= CompositeCount) return;
@@ -1508,16 +1563,16 @@ void RasterPainterEngine::setOp(uint32_t op)
   ctx.raster = &Raster::functionMap->raster_argb32[_premultiplied][op];
 }
 
-uint32_t RasterPainterEngine::op() const
+uint32_t RasterEngine::op() const
 {
   return ctx.capsState->op;
 }
 
 // ============================================================================
-// [Fog::RasterPainterEngine - Source]
+// [Fog::RasterEngine - Source]
 // ============================================================================
 
-void RasterPainterEngine::setSource(const Rgba& rgba)
+void RasterEngine::setSource(const Rgba& rgba)
 {
   if (!_detachCaps()) return;
 
@@ -1534,7 +1589,7 @@ void RasterPainterEngine::setSource(const Rgba& rgba)
   }
 }
 
-void RasterPainterEngine::setSource(const Pattern& pattern)
+void RasterEngine::setSource(const Pattern& pattern)
 {
   if (pattern.isSolid())
   {
@@ -1551,12 +1606,12 @@ void RasterPainterEngine::setSource(const Pattern& pattern)
   _resetPatternContext();
 }
 
-Rgba RasterPainterEngine::sourceRgba()
+Rgba RasterEngine::sourceRgba()
 {
   return ctx.capsState->solidSource;
 }
 
-Pattern RasterPainterEngine::sourcePattern()
+Pattern RasterEngine::sourcePattern()
 {
   Pattern pattern;
   if (ctx.capsState->isSolidSource)
@@ -1567,10 +1622,10 @@ Pattern RasterPainterEngine::sourcePattern()
 }
 
 // ============================================================================
-// [Fog::RasterPainterEngine - Parameters]
+// [Fog::RasterEngine - Parameters]
 // ============================================================================
 
-void RasterPainterEngine::setLineWidth(double lineWidth)
+void RasterEngine::setLineWidth(double lineWidth)
 {
   if (ctx.capsState->lineWidth == lineWidth) return;
   if (!_detachCaps()) return;
@@ -1579,12 +1634,12 @@ void RasterPainterEngine::setLineWidth(double lineWidth)
   _updateLineWidth();
 }
 
-double RasterPainterEngine::lineWidth() const
+double RasterEngine::lineWidth() const
 {
   return ctx.capsState->lineWidth;
 }
 
-void RasterPainterEngine::setLineCap(uint32_t lineCap)
+void RasterEngine::setLineCap(uint32_t lineCap)
 {
   if (ctx.capsState->lineCap == lineCap) return;
   if (!_detachCaps()) return;
@@ -1592,12 +1647,12 @@ void RasterPainterEngine::setLineCap(uint32_t lineCap)
   ctx.capsState->lineCap = lineCap;
 }
 
-uint32_t RasterPainterEngine::lineCap() const
+uint32_t RasterEngine::lineCap() const
 {
   return ctx.capsState->lineCap;
 }
 
-void RasterPainterEngine::setLineJoin(uint32_t lineJoin)
+void RasterEngine::setLineJoin(uint32_t lineJoin)
 {
   if (ctx.capsState->lineJoin == lineJoin) return;
   if (!_detachCaps()) return;
@@ -1605,12 +1660,12 @@ void RasterPainterEngine::setLineJoin(uint32_t lineJoin)
   ctx.capsState->lineJoin = lineJoin;
 }
 
-uint32_t RasterPainterEngine::lineJoin() const
+uint32_t RasterEngine::lineJoin() const
 {
   return ctx.capsState->lineJoin;
 }
 
-void RasterPainterEngine::setLineDash(const double* dashes, sysuint_t count)
+void RasterEngine::setLineDash(const double* dashes, sysuint_t count)
 {
   if (!_detachCaps()) return;
 
@@ -1619,7 +1674,7 @@ void RasterPainterEngine::setLineDash(const double* dashes, sysuint_t count)
   _updateLineWidth();
 }
 
-void RasterPainterEngine::setLineDash(const Vector<double>& dashes)
+void RasterEngine::setLineDash(const Vector<double>& dashes)
 {
   if (!_detachCaps()) return;
 
@@ -1627,12 +1682,12 @@ void RasterPainterEngine::setLineDash(const Vector<double>& dashes)
   _updateLineWidth();
 }
 
-Vector<double> RasterPainterEngine::lineDash() const
+Vector<double> RasterEngine::lineDash() const
 {
   return ctx.capsState->lineDash;
 }
 
-void RasterPainterEngine::setLineDashOffset(double offset)
+void RasterEngine::setLineDashOffset(double offset)
 {
   if (ctx.capsState->lineDashOffset == offset) return;
   if (!_detachCaps()) return;
@@ -1641,12 +1696,12 @@ void RasterPainterEngine::setLineDashOffset(double offset)
   _updateLineWidth();
 }
 
-double RasterPainterEngine::lineDashOffset() const
+double RasterEngine::lineDashOffset() const
 {
   return ctx.capsState->lineDashOffset;
 }
 
-void RasterPainterEngine::setMiterLimit(double miterLimit)
+void RasterEngine::setMiterLimit(double miterLimit)
 {
   if (ctx.capsState->miterLimit == miterLimit) return;
   if (!_detachCaps()) return;
@@ -1654,12 +1709,12 @@ void RasterPainterEngine::setMiterLimit(double miterLimit)
   ctx.capsState->miterLimit = miterLimit;
 }
 
-double RasterPainterEngine::miterLimit() const
+double RasterEngine::miterLimit() const
 {
   return ctx.capsState->miterLimit;
 }
 
-void RasterPainterEngine::setFillMode(uint32_t mode)
+void RasterEngine::setFillMode(uint32_t mode)
 {
   if (ctx.capsState->fillMode == mode) return;
   if (!_detachCaps()) return;
@@ -1667,86 +1722,87 @@ void RasterPainterEngine::setFillMode(uint32_t mode)
   ctx.capsState->fillMode = mode;
 }
 
-uint32_t RasterPainterEngine::fillMode()
+uint32_t RasterEngine::fillMode()
 {
   return ctx.capsState->fillMode;
 }
 
 // ============================================================================
-// [Fog::RasterPainterEngine - Transformations]
+// [Fog::RasterEngine - Transformations]
 // ============================================================================
 
-void RasterPainterEngine::setMatrix(const AffineMatrix& m)
+void RasterEngine::setMatrix(const AffineMatrix& m)
 {
   if (!_detachCaps()) return;
 
   ctx.capsState->transformations = m;
-  ctx.capsState->transformationsUsed = !ctx.capsState->transformations.isIdentity();
+  _updateTransform();
 }
 
-void RasterPainterEngine::resetMatrix()
+void RasterEngine::resetMatrix()
 {
   if (!_detachCaps()) return;
 
   ctx.capsState->transformations = AffineMatrix();
+  ctx.capsState->transformationsApproxScale = 1.0;
   ctx.capsState->transformationsUsed = false;
 }
 
-AffineMatrix RasterPainterEngine::matrix() const
+AffineMatrix RasterEngine::matrix() const
 {
   return ctx.capsState->transformations;
 }
 
-void RasterPainterEngine::rotate(double angle)
+void RasterEngine::rotate(double angle)
 {
   if (!_detachCaps()) return;
 
   ctx.capsState->transformations *= AffineMatrix::fromRotation(angle);
-  ctx.capsState->transformationsUsed = !ctx.capsState->transformations.isIdentity();
+  _updateTransform();
 }
 
-void RasterPainterEngine::scale(double sx, double sy)
+void RasterEngine::scale(double sx, double sy)
 {
   if (!_detachCaps()) return;
 
   ctx.capsState->transformations *= AffineMatrix::fromScale(sx, sy);
-  ctx.capsState->transformationsUsed = !ctx.capsState->transformations.isIdentity();
+  _updateTransform();
 }
 
-void RasterPainterEngine::skew(double sx, double sy)
+void RasterEngine::skew(double sx, double sy)
 {
   if (!_detachCaps()) return;
 
   ctx.capsState->transformations *= AffineMatrix::fromSkew(sx, sy);
-  ctx.capsState->transformationsUsed = !ctx.capsState->transformations.isIdentity();
+  _updateTransform();
 }
 
-void RasterPainterEngine::translate(double x, double y)
+void RasterEngine::translate(double x, double y)
 {
   if (!_detachCaps()) return;
 
   ctx.capsState->transformations *= AffineMatrix::fromTranslation(x, y);
-  ctx.capsState->transformationsUsed = !ctx.capsState->transformations.isIdentity();
+  _updateTransform();
 }
 
-void RasterPainterEngine::affine(const AffineMatrix& m)
+void RasterEngine::affine(const AffineMatrix& m)
 {
   if (!_detachCaps()) return;
 
   ctx.capsState->transformations *= m;
-  ctx.capsState->transformationsUsed = !ctx.capsState->transformations.isIdentity();
+  _updateTransform();
 }
 
-void RasterPainterEngine::parallelogram(
+void RasterEngine::parallelogram(
   double x1, double y1, double x2, double y2, const double* para)
 {
   if (!_detachCaps()) return;
 
   ctx.capsState->transformations *= AffineMatrix(x1, y1, x2, y2, para);
-  ctx.capsState->transformationsUsed = !ctx.capsState->transformations.isIdentity();
+  _updateTransform();
 }
 
-void RasterPainterEngine::viewport(
+void RasterEngine::viewport(
   double worldX1,  double worldY1,  double worldX2,  double worldY2,
   double screenX1, double screenY1, double screenX2, double screenY2,
   uint32_t viewportOption)
@@ -1774,14 +1830,121 @@ void RasterPainterEngine::viewport(
 
   agg::trans_affine aff = vp.to_affine();
   ctx.capsState->transformations *= *((const AffineMatrix *)&aff);
-  ctx.capsState->transformationsUsed = !ctx.capsState->transformations.isIdentity();
+  _updateTransform();
+}
+
+void RasterEngine::worldToScreen(PointF* pt) const
+{
+  FOG_ASSERT(pt != NULL);
+
+  if (ctx.capsState->transformationsUsed)
+    ctx.capsState->transformations.transform(&pt->_x, &pt->_y);
+}
+
+void RasterEngine::screenToWorld(PointF* pt) const
+{
+  FOG_ASSERT(pt != NULL);
+
+  if (ctx.capsState->transformationsUsed)
+    ctx.capsState->transformations.transformInv(&pt->_x, &pt->_y);
+}
+
+void RasterEngine::worldToScreen(double* scalar) const
+{
+  FOG_ASSERT(scalar != NULL);
+
+  if (ctx.capsState->transformationsUsed)
+  {
+    PointF p1(0, 0);
+    PointF p2(*scalar, *scalar);
+
+    RasterEngine::worldToScreen(&p1);
+    RasterEngine::worldToScreen(&p2);
+
+    double dx = p2.x() - p1.x();
+    double dy = p2.y() - p1.y();
+
+    *scalar = sqrt(dx * dx + dy * dy) * 0.7071068;
+  }
+}
+
+void RasterEngine::screenToWorld(double* scalar) const
+{
+  FOG_ASSERT(scalar != NULL);
+
+  if (ctx.capsState->transformationsUsed)
+  {
+    PointF p1(0, 0);
+    PointF p2(*scalar, *scalar);
+
+    RasterEngine::screenToWorld(&p1);
+    RasterEngine::screenToWorld(&p2);
+
+    double dx = p2.x() - p1.x();
+    double dy = p2.y() - p1.y();
+
+    *scalar = sqrt(dx * dx + dy * dy) * 0.7071068;
+  }
+}
+
+void RasterEngine::alignPoint(PointF* pt) const
+{
+  FOG_ASSERT(pt != NULL);
+
+  RasterEngine::worldToScreen(pt);
+  pt->setX(floor(pt->x()) + 0.5);
+  pt->setY(floor(pt->y()) + 0.5);
+  RasterEngine::screenToWorld(pt);
 }
 
 // ============================================================================
-// [Fog::RasterPainterEngine - Raster drawing]
+// [Fog::RasterEngine - State]
 // ============================================================================
 
-void RasterPainterEngine::clear()
+void RasterEngine::save()
+{
+  RasterEngineSavedState s;
+
+  s.clipState = ctx.clipState->ref();
+  s.capsState = ctx.capsState->ref();
+  s.raster = ctx.raster;
+  s.pctx = NULL;
+
+  if (ctx.pctx && ctx.pctx->initialized)
+  {
+    s.pctx = ctx.pctx;
+    s.pctx->refCount.inc();
+  }
+
+  states.append(s);
+}
+
+void RasterEngine::restore()
+{
+  if (states.isEmpty()) return;
+
+  RasterEngineSavedState s = states.takeLast();
+
+  ctx.clipState->deref();
+  ctx.capsState->deref();
+
+  if (ctx.pctx && ctx.pctx->refCount.deref())
+  {
+    if (ctx.pctx->initialized) ctx.pctx->destroy(ctx.pctx);
+    Memory::free(ctx.pctx);
+  }
+
+  ctx.clipState = s.clipState;
+  ctx.capsState = s.capsState;
+  ctx.raster = s.raster;
+  ctx.pctx = s.pctx;
+}
+
+// ============================================================================
+// [Fog::RasterEngine - Raster drawing]
+// ============================================================================
+
+void RasterEngine::clear()
 {
   if (ctx.clipState->clipSimple)
     _serializeBoxes(&ctx.clipState->clipBox, 1);
@@ -1789,26 +1952,26 @@ void RasterPainterEngine::clear()
     _serializeBoxes(ctx.clipState->workRegion.cData(), ctx.clipState->workRegion.count());
 }
 
-void RasterPainterEngine::drawPixel(const Point& p)
+void RasterEngine::drawPixel(const Point& p)
 {
-  RasterPainterEngine::drawPoint(
+  RasterEngine::drawPoint(
     PointF((double)p.x() + 0.5, (double)p.y() + 0.5));
 }
 
-void RasterPainterEngine::drawLine(const Point& start, const Point& end)
+void RasterEngine::drawLine(const Point& start, const Point& end)
 {
-  RasterPainterEngine::drawLine(
+  RasterEngine::drawLine(
     PointF((double)start.x() + 0.5, (double)start.y() + 0.5),
     PointF((double)end.x() + 0.5, (double)end.y() + 0.5));
 }
 
-void RasterPainterEngine::drawRect(const Rect& r)
+void RasterEngine::drawRect(const Rect& r)
 {
   if (!r.isValid()) return;
 
   if (ctx.capsState->transformationsUsed || !ctx.capsState->lineIsSimple)
   {
-    RasterPainterEngine::drawRect(
+    RasterEngine::drawRect(
       RectF(
         (double)r.x1() + 0.5,
         (double)r.y1() + 0.5,
@@ -1839,7 +2002,7 @@ void RasterPainterEngine::drawRect(const Rect& r)
     {
       for (sysuint_t i = 0; i < count; i++) Box::intersect(box[0], box[0], ctx.clipState->clipBox);
     }
-    RasterPainterEngine::_serializeBoxes(box, count);
+    RasterEngine::_serializeBoxes(box, count);
   }
   else
   {
@@ -1850,24 +2013,24 @@ void RasterPainterEngine::drawRect(const Rect& r)
     Region::intersect(regionISect, regionBox, ctx.clipState->workRegion);
     if (!regionISect.count()) return;
 
-    RasterPainterEngine::_serializeBoxes(regionISect.cData(), regionISect.count());
+    RasterEngine::_serializeBoxes(regionISect.cData(), regionISect.count());
   }
 }
 
-void RasterPainterEngine::drawRound(const Rect& r, const Point& radius)
+void RasterEngine::drawRound(const Rect& r, const Point& radius)
 {
-  RasterPainterEngine::drawRound(
+  RasterEngine::drawRound(
     RectF((double)r.x1() + 0.5, (double)r.y1() + 0.5, r.width(), r.height()),
     PointF((double)radius.x(), (double)radius.y()));
 }
 
-void RasterPainterEngine::fillRect(const Rect& r)
+void RasterEngine::fillRect(const Rect& r)
 {
   if (!r.isValid()) return;
 
   if (ctx.capsState->transformationsUsed)
   {
-    RasterPainterEngine::fillRect(
+    RasterEngine::fillRect(
       RectF(
         (double)r.x1() + 0.5,
         (double)r.y1() + 0.5,
@@ -1883,7 +2046,7 @@ void RasterPainterEngine::fillRect(const Rect& r)
     Box::intersect(box, box, ctx.clipState->clipBox);
     if (!box.isValid()) return;
 
-    RasterPainterEngine::_serializeBoxes(&box, 1);
+    RasterEngine::_serializeBoxes(&box, 1);
   }
   else
   {
@@ -1894,11 +2057,11 @@ void RasterPainterEngine::fillRect(const Rect& r)
     Region::intersect(regionISect, regionBox, ctx.clipState->workRegion);
     if (!regionISect.count()) return;
 
-    RasterPainterEngine::_serializeBoxes(regionISect.cData(), regionISect.count());
+    RasterEngine::_serializeBoxes(regionISect.cData(), regionISect.count());
   }
 }
 
-void RasterPainterEngine::fillRects(const Rect* r, sysuint_t count)
+void RasterEngine::fillRects(const Rect* r, sysuint_t count)
 {
   if (!count) return;
 
@@ -1944,14 +2107,14 @@ void RasterPainterEngine::fillRects(const Rect* r, sysuint_t count)
   }
 }
 
-void RasterPainterEngine::fillRound(const Rect& r, const Point& radius)
+void RasterEngine::fillRound(const Rect& r, const Point& radius)
 {
-  RasterPainterEngine::fillRound(
+  RasterEngine::fillRound(
     RectF((double)r.x1() + 0.5, (double)r.y1() + 0.5, r.width(), r.height()),
     PointF(radius.x(), radius.y()));
 }
 
-void RasterPainterEngine::fillRegion(const Region& region)
+void RasterEngine::fillRegion(const Region& region)
 {
   if (ctx.clipState->clipSimple && ctx.clipState->clipBox.subsumes(region.extents()))
   {
@@ -1968,10 +2131,10 @@ void RasterPainterEngine::fillRegion(const Region& region)
 }
 
 // ============================================================================
-// [Fog::RasterPainterEngine - Vector drawing]
+// [Fog::RasterEngine - Vector drawing]
 // ============================================================================
 
-void RasterPainterEngine::drawPoint(const PointF& p)
+void RasterEngine::drawPoint(const PointF& p)
 {
   workPath.clear();
   workPath.moveTo(p);
@@ -1979,7 +2142,7 @@ void RasterPainterEngine::drawPoint(const PointF& p)
   drawPath(workPath);
 }
 
-void RasterPainterEngine::drawLine(const PointF& start, const PointF& end)
+void RasterEngine::drawLine(const PointF& start, const PointF& end)
 {
   workPath.clear();
   workPath.moveTo(start);
@@ -1987,7 +2150,7 @@ void RasterPainterEngine::drawLine(const PointF& start, const PointF& end)
   drawPath(workPath);
 }
 
-void RasterPainterEngine::drawLine(const PointF* pts, sysuint_t count)
+void RasterEngine::drawLine(const PointF* pts, sysuint_t count)
 {
   if (!count) return;
 
@@ -2000,7 +2163,7 @@ void RasterPainterEngine::drawLine(const PointF* pts, sysuint_t count)
   drawPath(workPath);
 }
 
-void RasterPainterEngine::drawPolygon(const PointF* pts, sysuint_t count)
+void RasterEngine::drawPolygon(const PointF* pts, sysuint_t count)
 {
   if (!count) return;
 
@@ -2014,7 +2177,7 @@ void RasterPainterEngine::drawPolygon(const PointF* pts, sysuint_t count)
   drawPath(workPath);
 }
 
-void RasterPainterEngine::drawRect(const RectF& r)
+void RasterEngine::drawRect(const RectF& r)
 {
   if (!r.isValid()) return;
 
@@ -2023,7 +2186,7 @@ void RasterPainterEngine::drawRect(const RectF& r)
   drawPath(workPath);
 }
 
-void RasterPainterEngine::drawRects(const RectF* r, sysuint_t count)
+void RasterEngine::drawRects(const RectF* r, sysuint_t count)
 {
   if (!count) return;
 
@@ -2035,12 +2198,12 @@ void RasterPainterEngine::drawRects(const RectF* r, sysuint_t count)
   drawPath(workPath);
 }
 
-void RasterPainterEngine::drawRound(const RectF& r, const PointF& radius)
+void RasterEngine::drawRound(const RectF& r, const PointF& radius)
 {
-  RasterPainterEngine::drawRound(r, radius, radius, radius, radius);
+  RasterEngine::drawRound(r, radius, radius, radius, radius);
 }
 
-void RasterPainterEngine::drawRound(const RectF& r,
+void RasterEngine::drawRound(const RectF& r,
   const PointF& tlr, const PointF& trr,
   const PointF& blr, const PointF& brr)
 {
@@ -2054,20 +2217,19 @@ void RasterPainterEngine::drawRound(const RectF& r,
     tlr.x(), tlr.y(), trr.x(), trr.y(),
     blr.x(), blr.y(), brr.x(), brr.y());
   rc.normalize_radius();
-  // TODO:
-  // rc.approximation_scale(worldToScreen(1.0) * g_approxScale);
+  rc.approximation_scale(ctx.capsState->transformationsApproxScale);
 
   workPath.clear();
   concatToPath(workPath, rc, 0);
   drawPath(workPath);
 }
 
-void RasterPainterEngine::drawEllipse(const PointF& cp, const PointF& r)
+void RasterEngine::drawEllipse(const PointF& cp, const PointF& r)
 {
-  RasterPainterEngine::drawArc(cp, r, 0.0, 2.0 * M_PI);
+  RasterEngine::drawArc(cp, r, 0.0, 2.0 * M_PI);
 }
 
-void RasterPainterEngine::drawArc(const PointF& cp, const PointF& r, double start, double sweep)
+void RasterEngine::drawArc(const PointF& cp, const PointF& r, double start, double sweep)
 {
   agg::bezier_arc arc(cp.x(), cp.y(), r.x(), r.y(), start, sweep);
 
@@ -2076,12 +2238,12 @@ void RasterPainterEngine::drawArc(const PointF& cp, const PointF& r, double star
   drawPath(workPath);
 }
 
-void RasterPainterEngine::drawPath(const Path& path)
+void RasterEngine::drawPath(const Path& path)
 {
   _serializePath(path, true);
 }
 
-void RasterPainterEngine::fillPolygon(const PointF* pts, sysuint_t count)
+void RasterEngine::fillPolygon(const PointF* pts, sysuint_t count)
 {
   if (!count) return;
 
@@ -2095,7 +2257,7 @@ void RasterPainterEngine::fillPolygon(const PointF* pts, sysuint_t count)
   fillPath(workPath);
 }
 
-void RasterPainterEngine::fillRect(const RectF& r)
+void RasterEngine::fillRect(const RectF& r)
 {
   if (!r.isValid()) return;
 
@@ -2104,7 +2266,7 @@ void RasterPainterEngine::fillRect(const RectF& r)
   fillPath(workPath);
 }
 
-void RasterPainterEngine::fillRects(const RectF* r, sysuint_t count)
+void RasterEngine::fillRects(const RectF* r, sysuint_t count)
 {
   if (!count) return;
 
@@ -2116,12 +2278,12 @@ void RasterPainterEngine::fillRects(const RectF* r, sysuint_t count)
   fillPath(workPath);
 }
 
-void RasterPainterEngine::fillRound(const RectF& r, const PointF& radius)
+void RasterEngine::fillRound(const RectF& r, const PointF& radius)
 {
-  RasterPainterEngine::fillRound(r, radius, radius, radius, radius);
+  RasterEngine::fillRound(r, radius, radius, radius, radius);
 }
 
-void RasterPainterEngine::fillRound(const RectF& r,
+void RasterEngine::fillRound(const RectF& r,
   const PointF& tlr, const PointF& trr,
   const PointF& blr, const PointF& brr)
 {
@@ -2135,20 +2297,19 @@ void RasterPainterEngine::fillRound(const RectF& r,
     tlr.x(), tlr.y(), trr.x(), trr.y(),
     blr.x(), blr.y(), brr.x(), brr.y());
   rc.normalize_radius();
-  // TODO:
-  // rc.approximation_scale(worldToScreen(1.0) * g_approxScale);
+  rc.approximation_scale(ctx.capsState->transformationsApproxScale);
 
   workPath.clear();
   concatToPath(workPath, rc, 0);
   fillPath(workPath);
 }
 
-void RasterPainterEngine::fillEllipse(const PointF& cp, const PointF& r)
+void RasterEngine::fillEllipse(const PointF& cp, const PointF& r)
 {
-  RasterPainterEngine::fillArc(cp, r, 0.0, 2.0 * M_PI);
+  RasterEngine::fillArc(cp, r, 0.0, 2.0 * M_PI);
 }
 
-void RasterPainterEngine::fillArc(const PointF& cp, const PointF& r, double start, double sweep)
+void RasterEngine::fillArc(const PointF& cp, const PointF& r, double start, double sweep)
 {
   agg::bezier_arc arc(cp.x(), cp.y(), r.x(), r.y(), start, sweep);
 
@@ -2157,16 +2318,16 @@ void RasterPainterEngine::fillArc(const PointF& cp, const PointF& r, double star
   fillPath(workPath);
 }
 
-void RasterPainterEngine::fillPath(const Path& path)
+void RasterEngine::fillPath(const Path& path)
 {
   _serializePath(path, false);
 }
 
 // ============================================================================
-// [Fog::RasterPainterEngine - Glyph / Text Drawing]
+// [Fog::RasterEngine - Glyph / Text Drawing]
 // ============================================================================
 
-void RasterPainterEngine::drawGlyph(const Point& pt, const Glyph& glyph, const Rect* clip)
+void RasterEngine::drawGlyph(const Point& pt, const Glyph& glyph, const Rect* clip)
 {
   TemporaryGlyphSet<1> glyphSet;
   err_t err;
@@ -2178,12 +2339,12 @@ void RasterPainterEngine::drawGlyph(const Point& pt, const Glyph& glyph, const R
   _serializeGlyphSet(pt, glyphSet, clip);
 }
 
-void RasterPainterEngine::drawGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip)
+void RasterEngine::drawGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip)
 {
   _serializeGlyphSet(pt, glyphSet, clip);
 }
 
-void RasterPainterEngine::drawText(const Point& pt, const String32& text, const Font& font, const Rect* clip)
+void RasterEngine::drawText(const Point& pt, const String32& text, const Font& font, const Rect* clip)
 {
   TemporaryGlyphSet<128> glyphSet;
   if (font.getGlyphs(text.cData(), text.length(), glyphSet)) return;
@@ -2191,16 +2352,16 @@ void RasterPainterEngine::drawText(const Point& pt, const String32& text, const 
   _serializeGlyphSet(pt, glyphSet, clip);
 }
 
-void RasterPainterEngine::drawText(const Rect& r, const String32& text, const Font& font, uint32_t align, const Rect* clip)
+void RasterEngine::drawText(const Rect& r, const String32& text, const Font& font, uint32_t align, const Rect* clip)
 {
   // TODO
 }
 
 // ============================================================================
-// [Fog::RasterPainterEngine - Image drawing]
+// [Fog::RasterEngine - Image drawing]
 // ============================================================================
 
-void RasterPainterEngine::drawImage(const Point& p, const Image& image, const Rect* irect)
+void RasterEngine::drawImage(const Point& p, const Image& image, const Rect* irect)
 {
   int srcx = 0;
   int srcy = 0;
@@ -2270,10 +2431,10 @@ void RasterPainterEngine::drawImage(const Point& p, const Image& image, const Re
 }
 
 // ============================================================================
-// [Fog::RasterPainterEngine - Flush]
+// [Fog::RasterEngine - Flush]
 // ============================================================================
 
-void RasterPainterEngine::flush()
+void RasterEngine::flush()
 {
   if (!_threadData) return;
 
@@ -2311,7 +2472,7 @@ void RasterPainterEngine::flush()
   }
 }
 
-void RasterPainterEngine::flushWithQuit()
+void RasterEngine::flushWithQuit()
 {
   FOG_ASSERT(_threadData);
 
@@ -2326,10 +2487,10 @@ void RasterPainterEngine::flushWithQuit()
 }
 
 // ============================================================================
-// [Fog::RasterPainterEngine - Properties]
+// [Fog::RasterEngine - Properties]
 // ============================================================================
 
-err_t RasterPainterEngine::setProperty(const String32& name, const Value& value)
+err_t RasterEngine::setProperty(const String32& name, const Value& value)
 {
   err_t err = Error::InvalidProperty;
   int p_int;
@@ -2343,7 +2504,7 @@ err_t RasterPainterEngine::setProperty(const String32& name, const Value& value)
   return err;
 }
 
-Value RasterPainterEngine::getProperty(const String32& name) const
+Value RasterEngine::getProperty(const String32& name) const
 {
   Value result;
 
@@ -2354,10 +2515,10 @@ Value RasterPainterEngine::getProperty(const String32& name) const
 }
 
 // ============================================================================
-// [Fog::RasterPainterEngine - Multithreading - Start / Stop]
+// [Fog::RasterEngine - Multithreading - Start / Stop]
 // ============================================================================
 
-void RasterPainterEngine::setMultithreaded(bool mt)
+void RasterEngine::setMultithreaded(bool mt)
 {
   int i;
 
@@ -2375,7 +2536,7 @@ void RasterPainterEngine::setMultithreaded(bool mt)
     fog_debug("== starting multithreading (%d threads)", max);
 #endif // RASTER_DEBUG
 
-    _threadData = new(std::nothrow) RasterPainterThreadData;
+    _threadData = new(std::nothrow) RasterEngineThreadData;
     if (_threadData == NULL) return;
 
     // This is for testing multithreaded rendering on single cores.
@@ -2430,7 +2591,7 @@ void RasterPainterEngine::setMultithreaded(bool mt)
     for (i = 0; i < count; i++)
     {
       _threadData->tasks[i].init();
-      RasterPainterThreadTask* task = _threadData->tasks[i].instancep();
+      RasterEngineThreadTask* task = _threadData->tasks[i].instancep();
       task->d = this;
       task->data = _threadData;
       task->offset = i;
@@ -2441,7 +2602,7 @@ void RasterPainterEngine::setMultithreaded(bool mt)
     // Post working task.
     for (i = 0; i < count; i++)
     {
-      RasterPainterThreadTask* task = _threadData->tasks[i].instancep();
+      RasterEngineThreadTask* task = _threadData->tasks[i].instancep();
       _threadData->threads[i]->eventLoop()->postTask(task);
     }
 
@@ -2501,10 +2662,10 @@ void RasterPainterEngine::setMultithreaded(bool mt)
 }
 
 // ============================================================================
-// [Fog::RasterPainterEngine - Helpers]
+// [Fog::RasterEngine - Helpers]
 // ============================================================================
 
-void RasterPainterEngine::_updateWorkRegion()
+void RasterEngine::_updateWorkRegion()
 {
   FOG_ASSERT(ctx.clipState->refCount.get() == 1);
 
@@ -2576,7 +2737,22 @@ void RasterPainterEngine::_updateWorkRegion()
     (sysint_t)ctx.clipState->workOrigin.y() * _stride;
 }
 
-void RasterPainterEngine::_setClipDefaults()
+void RasterEngine::_updateTransform()
+{
+  bool used = !ctx.capsState->transformations.isIdentity();
+
+  ctx.capsState->transformationsUsed = used;
+  ctx.capsState->transformationsApproxScale = 1.0;
+
+  if (used)
+  {
+    double scalar = 1.0;
+    RasterEngine::worldToScreen(&scalar);
+    ctx.capsState->transformationsApproxScale = scalar;
+  }
+}
+
+void RasterEngine::_setClipDefaults()
 {
   FOG_ASSERT(ctx.clipState->refCount.get() == 1);
 
@@ -2591,7 +2767,7 @@ void RasterPainterEngine::_setClipDefaults()
   ctx.clipState->clipBox.set(0, 0, _metaWidth, _metaHeight);
 }
 
-void RasterPainterEngine::_setCapsDefaults()
+void RasterEngine::_setCapsDefaults()
 {
   FOG_ASSERT(ctx.capsState->refCount.get() == 1);
 
@@ -2615,12 +2791,13 @@ void RasterPainterEngine::_setCapsDefaults()
   ctx.capsState->fillMode = FillNonZero;
 
   ctx.capsState->transformations = AffineMatrix();
+  ctx.capsState->transformationsApproxScale = 1.0;
   ctx.capsState->transformationsUsed = false;
 
   ctx.raster = Raster::getRasterOps(_format, ctx.capsState->op);
 }
 
-Raster::PatternContext* RasterPainterEngine::_getPatternContext()
+Raster::PatternContext* RasterEngine::_getPatternContext()
 {
   // Sanity, calling _getPatternContext() for solid source is invalid.
   if (ctx.capsState->isSolidSource) return NULL;
@@ -2653,7 +2830,7 @@ Raster::PatternContext* RasterPainterEngine::_getPatternContext()
 
   if (err)
   {
-    fog_debug("Fog::RasterPainterEngine::_getPatternContext() - Failed to get context (error %d)\n", err);
+    fog_debug("Fog::RasterEngine::_getPatternContext() - Failed to get context (error %d)\n", err);
     return NULL;
   }
 
@@ -2663,7 +2840,7 @@ Raster::PatternContext* RasterPainterEngine::_getPatternContext()
   return pctx;
 }
 
-void RasterPainterEngine::_resetPatternContext()
+void RasterEngine::_resetPatternContext()
 {
   if (ctx.pctx)
   {
@@ -2679,30 +2856,50 @@ void RasterPainterEngine::_resetPatternContext()
   }
 }
 
-bool RasterPainterEngine::_detachClip()
+bool RasterEngine::_detachClip()
 {
   if (ctx.clipState->refCount.get() == 1) return true;
 
-  RasterPainterClipState* newd = new(std::nothrow) RasterPainterClipState(*ctx.clipState);
+  RasterEngineClipState* newd = new(std::nothrow) RasterEngineClipState(*ctx.clipState);
   if (newd == NULL) return false;
 
   AtomicBase::ptr_setXchg(&ctx.clipState, newd)->deref();
   return true;
 }
 
-bool RasterPainterEngine::_detachCaps()
+bool RasterEngine::_detachCaps()
 {
   if (ctx.capsState->refCount.get() == 1) return true;
 
-  RasterPainterCapsState* newd = new(std::nothrow) RasterPainterCapsState(*ctx.capsState);
+  RasterEngineCapsState* newd = new(std::nothrow) RasterEngineCapsState(*ctx.capsState);
   if (newd == NULL) return false;
 
   AtomicBase::ptr_setXchg(&ctx.capsState, newd)->deref();
   return true;
 }
 
+void RasterEngine::_deleteStates()
+{
+  if (states.isEmpty()) return;
+
+  Vector<RasterEngineSavedState>::ConstIterator it(states);
+  for (it.toStart(); it.isValid(); it.toNext())
+  {
+    RasterEngineSavedState& s = const_cast<RasterEngineSavedState&>(it.value());
+    s.clipState->deref();
+    s.capsState->deref();
+
+    if (s.pctx && s.pctx->refCount.deref())
+    {
+      if (s.pctx->initialized) s.pctx->destroy(s.pctx);
+      Memory::free(s.pctx);
+    }
+  }
+  states.clear();
+}
+
 // ============================================================================
-// [Fog::RasterPainterEngine - Serializers]
+// [Fog::RasterEngine - Serializers]
 // ============================================================================
 
 static FOG_INLINE int alignToDelta(int y, int offset, int delta)
@@ -2712,7 +2909,7 @@ static FOG_INLINE int alignToDelta(int y, int offset, int delta)
   return y;
 }
 
-void RasterPainterEngine::_serializePath(const Path& path, bool stroke)
+void RasterEngine::_serializePath(const Path& path, bool stroke)
 {
   // Pattern context must be always set up before _render() methods are called.
   if (!ctx.capsState->isSolidSource && !_getPatternContext()) return;
@@ -2720,8 +2917,8 @@ void RasterPainterEngine::_serializePath(const Path& path, bool stroke)
   if (_threadData)
   {
     // Multithreaded - Serialize command.
-    RasterPainterCommand* cmd = _createCommand();
-    cmd->id = RasterPainterCommand::PathId;
+    RasterEngineCommand* cmd = _createCommand();
+    cmd->id = RasterEngineCommand::PathId;
     cmd->path.init();
     cmd->path->ras.gamma(defaultGamma);
 
@@ -2750,7 +2947,7 @@ void RasterPainterEngine::_serializePath(const Path& path, bool stroke)
   }
 }
 
-void RasterPainterEngine::_serializeBoxes(const Box* box, sysuint_t count)
+void RasterEngine::_serializeBoxes(const Box* box, sysuint_t count)
 {
   // Pattern context must be always set up before _render() methods are called.
   if (!ctx.capsState->isSolidSource && !_getPatternContext()) return;
@@ -2761,11 +2958,11 @@ void RasterPainterEngine::_serializeBoxes(const Box* box, sysuint_t count)
     sysuint_t i = 0;
     while (i < count)
     {
-      RasterPainterCommand* cmd = _createCommand();
-      cmd->id = RasterPainterCommand::BoxId;
+      RasterEngineCommand* cmd = _createCommand();
+      cmd->id = RasterEngineCommand::BoxId;
 
       sysuint_t j;
-      sysuint_t n = fog_min<sysuint_t>(count - i, RasterPainterCommand::BoxData::Size);
+      sysuint_t n = fog_min<sysuint_t>(count - i, RasterEngineCommand::BoxData::Size);
 
       cmd->box->count = n;
       for (j = 0; j < n; j++)
@@ -2783,13 +2980,13 @@ void RasterPainterEngine::_serializeBoxes(const Box* box, sysuint_t count)
   }
 }
 
-void RasterPainterEngine::_serializeImage(const Rect& dst, const Image& image, const Rect& src)
+void RasterEngine::_serializeImage(const Rect& dst, const Image& image, const Rect& src)
 {
   if (_threadData)
   {
     // Multithreaded - Serialize command.
-    RasterPainterCommand* cmd = _createCommand();
-    cmd->id = RasterPainterCommand::ImageId;
+    RasterEngineCommand* cmd = _createCommand();
+    cmd->id = RasterEngineCommand::ImageId;
     cmd->image.init();
     cmd->image->dst = dst;
     cmd->image->src = src;
@@ -2803,7 +3000,7 @@ void RasterPainterEngine::_serializeImage(const Rect& dst, const Image& image, c
   }
 }
 
-void RasterPainterEngine::_serializeGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip)
+void RasterEngine::_serializeGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip)
 {
   Box boundingBox = ctx.clipState->clipBox;
 
@@ -2819,8 +3016,8 @@ void RasterPainterEngine::_serializeGlyphSet(const Point& pt, const GlyphSet& gl
   if (_threadData)
   {
     // Multithreaded - Serialize command.
-    RasterPainterCommand* cmd = _createCommand();
-    cmd->id = RasterPainterCommand::GlyphSetId;
+    RasterEngineCommand* cmd = _createCommand();
+    cmd->id = RasterEngineCommand::GlyphSetId;
     cmd->glyphSet.init();
     cmd->glyphSet->pt = pt;
     cmd->glyphSet->glyphSet = glyphSet;
@@ -2834,16 +3031,16 @@ void RasterPainterEngine::_serializeGlyphSet(const Point& pt, const GlyphSet& gl
   }
 }
 
-RasterPainterCommand* RasterPainterEngine::_createCommand()
+RasterEngineCommand* RasterEngine::_createCommand()
 {
-  RasterPainterCommand* command = 
-    reinterpret_cast<RasterPainterCommand*>(
-      _threadData->commandAllocator.alloc(sizeof(RasterPainterCommand)));
+  RasterEngineCommand* command = 
+    reinterpret_cast<RasterEngineCommand*>(
+      _threadData->commandAllocator.alloc(sizeof(RasterEngineCommand)));
 
   if (!command) return NULL;
 
   command->this_block = _threadData->commandAllocator.blocks;
-  command->this_size = sizeof(RasterPainterCommand);
+  command->this_size = sizeof(RasterEngineCommand);
   command->refCount.init(_threadData->numThreads);
   command->clipState = ctx.clipState->ref();
   command->capsState = ctx.capsState->ref();
@@ -2860,7 +3057,7 @@ RasterPainterCommand* RasterPainterEngine::_createCommand()
   return command;
 }
 
-void RasterPainterEngine::_destroyCommand(RasterPainterCommand* cmd)
+void RasterEngine::_destroyCommand(RasterEngineCommand* cmd)
 {
   // Specific command data (in union) must be destroyed in worker. This method
   // destroyes only general data for all command types.
@@ -2874,7 +3071,7 @@ void RasterPainterEngine::_destroyCommand(RasterPainterCommand* cmd)
   cmd->this_block->used.sub(cmd->this_size);
 }
 
-void RasterPainterEngine::_postCommand(RasterPainterCommand* cmd)
+void RasterEngine::_postCommand(RasterEngineCommand* cmd)
 {
 #if defined(RASTER_DEBUG)
   static const char* commandName[] = {
@@ -2902,7 +3099,7 @@ void RasterPainterEngine::_postCommand(RasterPainterCommand* cmd)
   {
     _threadData->commands[_threadData->commandsPosition.get()] = cmd;
 
-    if (_threadData->commandsPosition.addXchg(1) & 7 == 7)
+    if ((_threadData->commandsPosition.addXchg(1) & 7) == 7)
     {
       AutoLock locked(_threadData->commandsLock);
       if (_threadData->completedThreads.get() > 0)
@@ -2918,11 +3115,11 @@ void RasterPainterEngine::_postCommand(RasterPainterCommand* cmd)
 }
 
 // ============================================================================
-// [Fog::RasterPainterEngine - Renderers - AntiGrain]
+// [Fog::RasterEngine - Renderers - AntiGrain]
 // ============================================================================
 
 template <typename PathT>
-static void FOG_INLINE AggSetupStroke(PathT& path, RasterPainterCapsState* capsState)
+static void FOG_INLINE AggSetupStroke(PathT& path, RasterEngineCapsState* capsState)
 {
   path.width(capsState->lineWidth);
   path.line_join(static_cast<agg::line_join_e>(capsState->lineJoin));
@@ -2931,7 +3128,7 @@ static void FOG_INLINE AggSetupStroke(PathT& path, RasterPainterCapsState* capsS
 }
 
 template <typename PathT>
-static void FOG_INLINE AggSetupDash(PathT& path, RasterPainterCapsState* capsState)
+static void FOG_INLINE AggSetupDash(PathT& path, RasterEngineCapsState* capsState)
 {
   Vector<double>::ConstIterator it(capsState->lineDash);
 
@@ -2948,11 +3145,11 @@ static void FOG_INLINE AggSetupDash(PathT& path, RasterPainterCapsState* capsSta
 }
 
 static bool FOG_FASTCALL AggRasterizePath(
-  RasterPainterContext* ctx, AggRasterizer& ras,
+  RasterEngineContext* ctx, AggRasterizer& ras,
   const Path& path, bool stroke)
 {
-  RasterPainterClipState* clipState = ctx->clipState;
-  RasterPainterCapsState* capsState = ctx->capsState;
+  RasterEngineClipState* clipState = ctx->clipState;
+  RasterEngineCapsState* capsState = ctx->capsState;
 
   ras.reset();
   ras.filling_rule(static_cast<agg::filling_rule_e>(capsState->fillMode));
@@ -2971,6 +3168,8 @@ static bool FOG_FASTCALL AggRasterizePath(
   // AntiGrain to be able to setup only pipelines what are really needed.
   if (capsState->transformationsUsed)
   {
+    pCurve.approximation_scale(capsState->transformationsApproxScale);
+
     if (stroke)
     {
       if (capsState->lineDash.length() <= 1)
@@ -3032,12 +3231,12 @@ static bool FOG_FASTCALL AggRasterizePath(
 
 template<int BytesPerPixel, class Rasterizer, class Scanline>
 static void FOG_INLINE AggRenderPath(
-  RasterPainterContext* ctx, const Rasterizer& ras, Scanline& sl, int offset, int delta)
+  RasterEngineContext* ctx, const Rasterizer& ras, Scanline& sl, int offset, int delta)
 {
   FOG_ASSERT(delta > 0);
 
-  RasterPainterClipState* clipState = ctx->clipState;
-  RasterPainterCapsState* capsState = ctx->capsState;
+  RasterEngineClipState* clipState = ctx->clipState;
+  RasterEngineCapsState* capsState = ctx->capsState;
 
   sl.reset(ras.min_x(), ras.max_x());
 
@@ -3159,16 +3358,16 @@ static void FOG_INLINE AggRenderPath(
   }
 }
 
-bool RasterPainterEngine::_rasterizePath(RasterPainterContext* ctx, AggRasterizer& ras, const Path& path, bool stroke)
+bool RasterEngine::_rasterizePath(RasterEngineContext* ctx, AggRasterizer& ras, const Path& path, bool stroke)
 {
   return AggRasterizePath(ctx, ras, path, stroke);
 }
 
 // ============================================================================
-// [Fog::RasterPainterEngine - Renderers - Singlethreaded]
+// [Fog::RasterEngine - Renderers - Singlethreaded]
 // ============================================================================
 
-void RasterPainterEngine::_renderPath(const AggRasterizer& ras)
+void RasterEngine::_renderPath(const AggRasterizer& ras)
 {
   switch (_bpp)
   {
@@ -3183,7 +3382,7 @@ void RasterPainterEngine::_renderPath(const AggRasterizer& ras)
   }
 }
 
-void RasterPainterEngine::_renderBoxes(const Box* box, sysuint_t count)
+void RasterEngine::_renderBoxes(const Box* box, sysuint_t count)
 {
   if (!count) return;
 
@@ -3245,7 +3444,7 @@ void RasterPainterEngine::_renderBoxes(const Box* box, sysuint_t count)
   }
 }
 
-void RasterPainterEngine::_renderImage(const Rect& dst, const Image& image, const Rect& src)
+void RasterEngine::_renderImage(const Rect& dst, const Image& image, const Rect& src)
 {
   Image::Data* image_d = image._d;
   sysint_t dstStride = _stride;
@@ -3271,7 +3470,7 @@ void RasterPainterEngine::_renderImage(const Rect& dst, const Image& image, cons
   } while (--h);
 }
 
-void RasterPainterEngine::_renderGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Box& boundingBox)
+void RasterEngine::_renderGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Box& boundingBox)
 {
   // TODO: Hardcoded to A8 glyph format
   // TODO: Clipping
@@ -3362,11 +3561,11 @@ void RasterPainterEngine::_renderGlyphSet(const Point& pt, const GlyphSet& glyph
 }
 
 // ============================================================================
-// [Fog::RasterPainterEngine - Renderers - Multithreaded]
+// [Fog::RasterEngine - Renderers - Multithreaded]
 // ============================================================================
 
-void RasterPainterEngine::_renderPathMT(
-  RasterPainterContext* ctx, int offset, int delta,
+void RasterEngine::_renderPathMT(
+  RasterEngineContext* ctx, int offset, int delta,
   const AggRasterizer& ras)
 {
   switch (_bpp)
@@ -3382,7 +3581,7 @@ void RasterPainterEngine::_renderPathMT(
   }
 }
 
-void RasterPainterEngine::_renderBoxesMT(RasterPainterContext* ctx, int offset, int delta, const Box* box, sysuint_t count)
+void RasterEngine::_renderBoxesMT(RasterEngineContext* ctx, int offset, int delta, const Box* box, sysuint_t count)
 {
   if (!count) return;
 
@@ -3448,8 +3647,8 @@ void RasterPainterEngine::_renderBoxesMT(RasterPainterContext* ctx, int offset, 
   }
 }
 
-void RasterPainterEngine::_renderImageMT(
-  RasterPainterContext* ctx, int offset, int delta,
+void RasterEngine::_renderImageMT(
+  RasterEngineContext* ctx, int offset, int delta,
   const Rect& dst, const Image& image, const Rect& src)
 {
   Image::Data* image_d = image._d;
@@ -3483,8 +3682,8 @@ void RasterPainterEngine::_renderImageMT(
   } while (y < y2);
 }
 
-void RasterPainterEngine::_renderGlyphSetMT(
-  RasterPainterContext* ctx, int offset, int delta,
+void RasterEngine::_renderGlyphSetMT(
+  RasterEngineContext* ctx, int offset, int delta,
   const Point& pt, const GlyphSet& glyphSet, const Box& boundingBox)
 {
   // TODO: Hardcoded to A8 glyph format
@@ -3608,7 +3807,7 @@ err_t Painter::begin(uint8_t* pixels, int width, int height, sysint_t stride, in
 
   if (width <= 0 || height <= 0) return Error::InvalidArgument;
 
-  PainterEngine* d = new(std::nothrow) RasterPainterEngine(
+  PainterEngine* d = new(std::nothrow) RasterEngine(
     pixels, width, height, stride, format, hints);
   if (!d) return Error::OutOfMemory;
 
@@ -3638,15 +3837,15 @@ void Painter::end()
 
 FOG_INIT_DECLARE err_t fog_painter_init(void)
 {
-  static Fog::NullPainterEngine sharedNullDevice;
+  static Fog::NullEngine sharedNullDevice;
   Fog::Painter::sharedNull = &sharedNullDevice;
 
   // Setup multithreading.
   // 
   // If CPU contains more cores, we can improve rendering speed by using them.
   // By default we set number of threads (workers) to count of CPU cores + 1.
-  Fog::RasterPainterEngine::threadPool = NULL;
-  Fog::RasterPainterEngine::threadPool = new(std::nothrow) Fog::ThreadPool();
+  Fog::RasterEngine::threadPool = NULL;
+  Fog::RasterEngine::threadPool = new(std::nothrow) Fog::ThreadPool();
 
   return Error::Ok;
 }
@@ -3654,9 +3853,9 @@ FOG_INIT_DECLARE err_t fog_painter_init(void)
 FOG_INIT_DECLARE void fog_painter_shutdown(void)
 {
   // Kill multithreading.
-  if (Fog::RasterPainterEngine::threadPool)
+  if (Fog::RasterEngine::threadPool)
   {
-    delete Fog::RasterPainterEngine::threadPool;
-    Fog::RasterPainterEngine::threadPool = NULL;
+    delete Fog::RasterEngine::threadPool;
+    Fog::RasterEngine::threadPool = NULL;
   }
 }

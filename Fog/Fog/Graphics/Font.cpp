@@ -195,6 +195,11 @@ err_t Font::getGlyphs(const Char32* str, sysuint_t length, GlyphSet& glyphSet) c
   return _d->face->getGlyphs(str, length, glyphSet);
 }
 
+err_t Font::getPath(const Char32* str, sysuint_t length, Path& dst) const
+{
+  return _d->face->getPath(str, length, dst);
+}
+
 bool Font::addFontPath(const String32& path)
 {
   AutoLock locked(font_local.instance().lock);

@@ -39,19 +39,12 @@ struct FOG_API FontFaceWin : public FontFace
 
   virtual err_t getGlyphs(const Char32* str, sysuint_t length, GlyphSet& glyphSet);
   virtual err_t getTextWidth(const Char32* str, sysuint_t length, TextWidth* textWidth);
+  virtual err_t getPath(const Char32* str, sysuint_t length, Path& dst);
 
 private:
-  // To call these functions or access members you must LOCK the lock
-  HDC hdc;
-  HFONT hOldFont;
-
-  //! @brief Initialize rendering resources for rendering glyphs.
-  bool renderBegin();
-  //! @brief Free rendering resources.
-  void renderEnd();
   //! @brief Renders glyph and returns it.
   //! @note You must use renderBegin() and renderEnd().
-  Glyph::Data* renderGlyph(uint32_t uc);
+  Glyph::Data* renderGlyph(HDC hdc, uint32_t uc);
 
   friend struct FontEngineWin;
 };
