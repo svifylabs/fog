@@ -1,0 +1,32 @@
+#summary Fog goals and philosophy
+
+=Introduction=
+
+Each project has goals. There were always reasons why to write software library and Fog isn't different in this area. There are many libraries for computer graphics, some pure raster based and some vector based. Each developer that want to create an application with user interface or visualization must choose set of libraries that will be used to do the job. Todays computers are powerful and difference between slow and fast code is day by day smaller so slower libraries are used in areas where it wasn't been possible to do few years ago.
+
+Main idea when creating library today is to make work done early. Time is money and companies or open source developers don't want to spend too much time writing optimized code that will be 20% faster than baseline. I accept these reasons, but I want to spend my time by optimizing code for these 20% and designing API that will allow more than it. Currently Fog library is designed to be fast, but the API must be as simple and powerful as other libraries.
+
+=Project goals=
+
+For general goals see the list:
+
+  * Platform abstraction library that will help to write crossplatform code (Fog/Core)
+  * Vector graphics library that will be fast enough to draw user interface without flicker (Fog/Graphics)
+  * User interface library that will use everything described here to do best job (Fog/UI)
+
+Because Fog is not pure graphics library and contains platform specific code not related to graphics at all there is also requierement that it can be used in server side to generate graphics by server scripts. This means that Fog library can't depend to X11 under linux and BSDs. This is solved through UISystem plugins.
+
+=Maturity / Stability=
+
+Fog library is not mature nor stable. It's in design state and will be probably long time. Only contributors and interested people can speedup this process. Writing platform indenpendent code is time consuming and writing fastest possible code is very time consuming, but library is growing and one day it will be mature and prepared for everyone.
+
+=Licence=
+
+Fog library is distributed under MIT licence. This means that any project can use Fog source code and you can for example create your graphics library based on Fog. Everything is possible and this will never change. I'm not lawyer, I'm interested developer who want to make source code public for everyone. Only what I want is to keep many name (and all who helped me) connected with Fog library sources.
+
+=Help wanted=
+
+Currently I'm only developer of Fog, AsmJit and BlitJit projects. The work is time consuming and I can't do this fulltime. There were a lot of work done, but must be also done in future. If you are interested about these projects and you want to help with all this work, contact me.
+
+- Petr Kobalicek
+  (Author of Fog, AsmJit, BlitJit libraries)
