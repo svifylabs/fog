@@ -1,4 +1,5 @@
 #summary Fog goals and philosophy
+#labels Featured
 
 =Introduction=
 
