@@ -29,5 +29,11 @@ Fog library is distributed under MIT licence. This means that any project can us
 
 Currently I'm only developer of Fog, AsmJit and BlitJit projects. The work is time consuming and I can't do this fulltime. There were a lot of work done, but must be also done in future. If you are interested about these projects and you want to help with all this work, contact me.
 
+You can also help by joining mailing list and start talking about library. Please post what you want to use Fog library for. The design is not over and everything can change to fit you company or personal needs.
+
+Also one possibility to support fog is donation. If you want donate Fog library, please contact me. I never get donation so my account is not prepared for this, but this can change.
+
+Thanks for all interested and impressed people.
+
 - Petr Kobalicek
   (Author of Fog, AsmJit, BlitJit libraries)
