@@ -31,7 +31,7 @@ Currently I'm only developer of Fog, AsmJit and BlitJit projects. The work is ti
 
 You can also help by joining mailing list and start talking about library. Please post what you want to use Fog library for. The design is not over and everything can change to fit you company or personal needs.
 
-Also one possibility to support fog is donation. If you want donate Fog library, please contact me. I never get donation so my account is not prepared for this, but this can change.
+Also one possibility to support fog is donation. If you want to donate Fog project, please contact me. I never got donation so my account is not prepared for this, but this can change.
 
 Thanks for all interested and impressed people.
 
