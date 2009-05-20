@@ -41,10 +41,9 @@ struct FOG_API Pattern
 
   enum Spread
   {
-    NoSpread = 0,
-    PadSpread = 1,
-    RepeatSpread = 2,
-    ReflectSpread = 3
+    PadSpread = 0,
+    RepeatSpread = 1,
+    ReflectSpread = 2
   };
 
   // [Data]

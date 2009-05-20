@@ -102,7 +102,7 @@ err_t Pattern::setType(uint32_t type)
 err_t Pattern::setSpread(uint32_t spread)
 {
   if (_d->spread == spread) return Error::Ok;
-  if (spread > ReflectSpread) return Error::InvalidArgument;
+  if (spread > 2) return Error::InvalidArgument;
 
   err_t err;
   if ( (err = detach()) ) return err;
@@ -121,7 +121,7 @@ void Pattern::setNull()
   {
     _d->deleteResources();
     _d->type = Null;
-    _d->spread = NoSpread;
+    _d->spread = PadSpread;
     _d->points[0].set(0.0, 0.0);
     _d->points[1].set(0.0, 0.0);
     _d->gradientRadius = 0.0;
@@ -334,7 +334,7 @@ Pattern::Data::Data()
 {
   refCount.init(1);
   type = Pattern::Null;
-  spread = Pattern::NoSpread;
+  spread = Pattern::PadSpread;
   points[0].set(0.0, 0.0);
   points[1].set(0.0, 0.0);
   gradientRadius = 0.0;
@@ -386,7 +386,7 @@ FOG_INIT_DECLARE err_t fog_pattern_init(void)
 
   d->refCount.init(1);
   d->type = Fog::Pattern::Null;
-  d->spread = Fog::Pattern::NoSpread;
+  d->spread = Fog::Pattern::PadSpread;
   d->points[0].set(0.0, 0.0);
   d->points[1].set(0.0, 0.0);
   d->gradientRadius = 0.0;

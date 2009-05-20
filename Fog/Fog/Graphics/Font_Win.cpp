@@ -226,6 +226,8 @@ static bool decompose_win32_glyph_outline(
     y = fx_to_dbl(th->pfxStart.y);
     if (flip_y) y = -y;
     mtx.transform(&x, &y);
+
+    path.closePolygon();
     path.moveTo(PointF(x, y));
 
     while (cur_poly < end_poly)
