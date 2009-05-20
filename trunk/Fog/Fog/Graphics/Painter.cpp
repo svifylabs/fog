@@ -574,7 +574,16 @@ done:
 // [Fog::RasterEngineContext]
 // ============================================================================
 
-// Agg pipeline typedefs
+// Agg polygon source pipeline typedefs
+typedef agg::conv_stroke<AggPath>                      AggConvStroke;
+typedef agg::conv_dash<AggPath, agg::vcgen_dash>       AggConvDash;
+typedef agg::conv_stroke<AggConvDash>                  AggConvDashStroke;
+
+typedef agg::conv_transform<AggPath>                   AggConvTransform;
+typedef agg::conv_transform<AggConvStroke>             AggConvStrokeTransform;
+typedef agg::conv_transform<AggConvDashStroke>         AggConvDashStrokeTransform;
+
+// Agg curve source pipeline typedefs
 typedef agg::conv_curve<AggPath>                       AggConvCurve;
 typedef agg::conv_stroke<AggConvCurve>                 AggConvCurveStroke;
 typedef agg::conv_dash<AggConvCurve, agg::vcgen_dash>  AggConvCurveDash;
@@ -1058,7 +1067,7 @@ struct FOG_HIDDEN RasterEngine : public PainterEngine
 
   void _serializeGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip);
   void _serializeBoxes(const Box* box, sysuint_t count);
-  void _serializePath(const Path& path, bool stroke);
+  void _serializePath(const Path& path, bool curves, bool stroke);
   void _serializeImage(const Rect& dst, const Image& image, const Rect& src);
 
   RasterEngineCommand* _createCommand();
@@ -1067,7 +1076,7 @@ struct FOG_HIDDEN RasterEngine : public PainterEngine
 
   // [Rasterizers]
 
-  static bool _rasterizePath(RasterEngineContext* ctx, AggRasterizer& ras, const Path& path, bool stroke);
+  static bool _rasterizePath(RasterEngineContext* ctx, AggRasterizer& ras, const Path& path, bool curves, bool stroke);
 
   // [Renderers - Singlethreaded]
 
@@ -2139,7 +2148,7 @@ void RasterEngine::drawPoint(const PointF& p)
   workPath.clear();
   workPath.moveTo(p);
   workPath.lineTo(p.x(), p.y() + 0.0001);
-  drawPath(workPath);
+  _serializePath(workPath, false, true);
 }
 
 void RasterEngine::drawLine(const PointF& start, const PointF& end)
@@ -2147,7 +2156,7 @@ void RasterEngine::drawLine(const PointF& start, const PointF& end)
   workPath.clear();
   workPath.moveTo(start);
   workPath.lineTo(end);
-  drawPath(workPath);
+  _serializePath(workPath, false, true);
 }
 
 void RasterEngine::drawLine(const PointF* pts, sysuint_t count)
@@ -2160,7 +2169,7 @@ void RasterEngine::drawLine(const PointF* pts, sysuint_t count)
     workPath.addLineTo(pts + 1, count - 1);
   else
     workPath.lineTo(pts[0].x(), pts[0].y() + 0.0001);
-  drawPath(workPath);
+  _serializePath(workPath, false, true);
 }
 
 void RasterEngine::drawPolygon(const PointF* pts, sysuint_t count)
@@ -2174,7 +2183,7 @@ void RasterEngine::drawPolygon(const PointF* pts, sysuint_t count)
   else
     workPath.lineTo(pts[0].x(), pts[0].y() + 0.0001);
   workPath.closePolygon();
-  drawPath(workPath);
+  _serializePath(workPath, false, true);
 }
 
 void RasterEngine::drawRect(const RectF& r)
@@ -2183,7 +2192,7 @@ void RasterEngine::drawRect(const RectF& r)
 
   workPath.clear();
   workPath.addRect(r);
-  drawPath(workPath);
+  _serializePath(workPath, false, true);
 }
 
 void RasterEngine::drawRects(const RectF* r, sysuint_t count)
@@ -2195,7 +2204,7 @@ void RasterEngine::drawRects(const RectF* r, sysuint_t count)
   {
     if (r[i].isValid()) workPath.addRect(r[i]);
   }
-  drawPath(workPath);
+  _serializePath(workPath, false, true);
 }
 
 void RasterEngine::drawRound(const RectF& r, const PointF& radius)
@@ -2221,7 +2230,7 @@ void RasterEngine::drawRound(const RectF& r,
 
   workPath.clear();
   concatToPath(workPath, rc, 0);
-  drawPath(workPath);
+  _serializePath(workPath, false, true);
 }
 
 void RasterEngine::drawEllipse(const PointF& cp, const PointF& r)
@@ -2235,12 +2244,12 @@ void RasterEngine::drawArc(const PointF& cp, const PointF& r, double start, doub
 
   workPath.clear();
   concatToPath(workPath, arc, 0);
-  drawPath(workPath);
+  _serializePath(workPath, false, true);
 }
 
 void RasterEngine::drawPath(const Path& path)
 {
-  _serializePath(path, true);
+  _serializePath(path, true, true);
 }
 
 void RasterEngine::fillPolygon(const PointF* pts, sysuint_t count)
@@ -2254,7 +2263,7 @@ void RasterEngine::fillPolygon(const PointF* pts, sysuint_t count)
   else
     workPath.lineTo(pts[0].x(), pts[0].y() + 0.0001);
   workPath.closePolygon();
-  fillPath(workPath);
+  _serializePath(workPath, false, false);
 }
 
 void RasterEngine::fillRect(const RectF& r)
@@ -2263,7 +2272,7 @@ void RasterEngine::fillRect(const RectF& r)
 
   workPath.clear();
   workPath.addRect(r);
-  fillPath(workPath);
+  _serializePath(workPath, false, false);
 }
 
 void RasterEngine::fillRects(const RectF* r, sysuint_t count)
@@ -2275,7 +2284,7 @@ void RasterEngine::fillRects(const RectF* r, sysuint_t count)
   {
     if (r[i].isValid()) workPath.addRect(r[i]);
   }
-  fillPath(workPath);
+  _serializePath(workPath, false, false);
 }
 
 void RasterEngine::fillRound(const RectF& r, const PointF& radius)
@@ -2301,7 +2310,7 @@ void RasterEngine::fillRound(const RectF& r,
 
   workPath.clear();
   concatToPath(workPath, rc, 0);
-  fillPath(workPath);
+  _serializePath(workPath, false, false);
 }
 
 void RasterEngine::fillEllipse(const PointF& cp, const PointF& r)
@@ -2315,12 +2324,12 @@ void RasterEngine::fillArc(const PointF& cp, const PointF& r, double start, doub
 
   workPath.clear();
   concatToPath(workPath, arc, 0);
-  fillPath(workPath);
+  _serializePath(workPath, false, false);
 }
 
 void RasterEngine::fillPath(const Path& path)
 {
-  _serializePath(path, false);
+  _serializePath(path, true, false);
 }
 
 // ============================================================================
@@ -2909,7 +2918,7 @@ static FOG_INLINE int alignToDelta(int y, int offset, int delta)
   return y;
 }
 
-void RasterEngine::_serializePath(const Path& path, bool stroke)
+void RasterEngine::_serializePath(const Path& path, bool curves, bool stroke)
 {
   // Pattern context must be always set up before _render() methods are called.
   if (!ctx.capsState->isSolidSource && !_getPatternContext()) return;
@@ -2922,7 +2931,7 @@ void RasterEngine::_serializePath(const Path& path, bool stroke)
     cmd->path.init();
     cmd->path->ras.gamma(defaultGamma);
 
-    if (_rasterizePath(&ctx, cmd->path->ras, path, stroke))
+    if (_rasterizePath(&ctx, cmd->path->ras, path, curves, stroke))
     {
       _postCommand(cmd);
     }
@@ -2940,7 +2949,7 @@ void RasterEngine::_serializePath(const Path& path, bool stroke)
   else
   {
     // Singlethreaded - Render now.
-    if (_rasterizePath(&ctx, ras, path, stroke))
+    if (_rasterizePath(&ctx, ras, path, curves, stroke))
     {
       _renderPath(ras);
     }
@@ -3146,7 +3155,7 @@ static void FOG_INLINE AggSetupDash(PathT& path, RasterEngineCapsState* capsStat
 
 static bool FOG_FASTCALL AggRasterizePath(
   RasterEngineContext* ctx, AggRasterizer& ras,
-  const Path& path, bool stroke)
+  const Path& path, bool curves, bool stroke)
 {
   RasterEngineClipState* clipState = ctx->clipState;
   RasterEngineCapsState* capsState = ctx->capsState;
@@ -3160,71 +3169,142 @@ static bool FOG_FASTCALL AggRasterizePath(
     (double)clipState->clipBox.y2());
 
   AggPath pAgg(path);
-  AggConvCurve pCurve(pAgg);
 
   // This can be a bit messy, but it's here to increase performance. We will
   // not calculate using transformations if they are not used. Also we add
   // stroke and line dash pipeline only if it's needed. This is goal of 
-  // AntiGrain to be able to setup only pipelines what are really needed.
-  if (capsState->transformationsUsed)
+  // AntiGrain to be able to setup only pipelines what are really useful.
+  if (curves)
   {
-    pCurve.approximation_scale(capsState->transformationsApproxScale);
+    // This fastpath is used for source that may contain curves. Curves are
+    // translated first to polygons and then send to rasterizer. There is
+    // also approximation scale that is needed when we are using affine
+    // transformations (to ensure that there will be enough lines to get
+    // perfect result).
+    AggConvCurve pCurve(pAgg);
 
-    if (stroke)
+    if (capsState->transformationsUsed)
     {
-      if (capsState->lineDash.length() <= 1)
+      pCurve.approximation_scale(capsState->transformationsApproxScale);
+
+      if (stroke)
       {
-        AggConvCurveStroke pCurveStroke(pCurve);
-        AggSetupStroke(pCurveStroke, capsState);
-        AggConvCurveStrokeTransform strokeTransform(
-          pCurveStroke,
-          *((const agg::trans_affine *)&capsState->transformations));
-        ras.add_path(strokeTransform);
+        if (capsState->lineDash.length() <= 1)
+        {
+          AggConvCurveStroke pCurveStroke(pCurve);
+          AggSetupStroke(pCurveStroke, capsState);
+          AggConvCurveStrokeTransform pStrokeTransform(
+            pCurveStroke,
+            *((const agg::trans_affine *)&capsState->transformations));
+          ras.add_path(pStrokeTransform);
+        }
+        else
+        {
+          AggConvCurveDash pCurveDash(pCurve);
+          AggSetupDash(pCurveDash, capsState);
+          AggConvCurveDashStroke pCurveDashStroke(pCurveDash);
+          AggSetupStroke(pCurveDashStroke, capsState);
+          AggConvCurveDashStrokeTransform pCurveDashStrokeTransform(
+            pCurveDashStroke,
+            *((const agg::trans_affine *)&capsState->transformations));
+          ras.add_path(pCurveDashStrokeTransform);
+        }
       }
       else
       {
-        AggConvCurveDash pCurveDash(pCurve);
-        AggSetupDash(pCurveDash, capsState);
-        AggConvCurveDashStroke pCurveDashStroke(pCurveDash);
-        AggSetupStroke(pCurveDashStroke, capsState);
-        AggConvCurveDashStrokeTransform pCurveDashStrokeTransform(
-          pCurveDashStroke,
-          *((const agg::trans_affine *)&capsState->transformations));
-        ras.add_path(pCurveDashStrokeTransform);
+        AggConvCurveTransform pCurveTransform(
+          pCurve, *((agg::trans_affine *)&capsState->transformations));
+
+        ras.add_path(pCurveTransform);
       }
     }
     else
     {
-      AggConvCurveTransform pCurveTransform(
-        pCurve, *((agg::trans_affine *)&capsState->transformations));
-
-      ras.add_path(pCurveTransform);
+      if (stroke)
+      {
+        if (capsState->lineDash.length() <= 1)
+        {
+          AggConvCurveStroke pCurveStroke(pCurve);
+          AggSetupStroke(pCurveStroke, capsState);
+          ras.add_path(pCurveStroke);
+        }
+        else
+        {
+          AggConvCurveDash pCurveDash(pCurve);
+          AggSetupDash(pCurveDash, capsState);
+          AggConvCurveDashStroke pCurveDashStroke(pCurveDash);
+          AggSetupStroke(pCurveDashStroke, capsState);
+          ras.add_path(pCurveDashStroke);
+        }
+      }
+      else
+      {
+        ras.add_path(pCurve);
+      }
     }
   }
   else
   {
-    if (stroke)
+    // This fastpath used for polygon-only path.
+    if (capsState->transformationsUsed)
     {
-      if (capsState->lineDash.length() <= 1)
+      if (stroke)
       {
-        AggConvCurveStroke pCurveStroke(pCurve);
-        AggSetupStroke(pCurveStroke, capsState);
-        ras.add_path(pCurveStroke);
+        if (capsState->lineDash.length() <= 1)
+        {
+          AggConvStroke pStroke(pAgg);
+          AggSetupStroke(pStroke, capsState);
+          AggConvStrokeTransform pStrokeTransform(
+            pStroke,
+            *((const agg::trans_affine *)&capsState->transformations));
+          ras.add_path(pStrokeTransform);
+        }
+        else
+        {
+          AggConvDash pDash(pAgg);
+          AggSetupDash(pDash, capsState);
+          AggConvDashStroke pDashStroke(pDash);
+          AggSetupStroke(pDashStroke, capsState);
+          AggConvDashStrokeTransform pDashStrokeTransform(
+            pDashStroke,
+            *((const agg::trans_affine *)&capsState->transformations));
+          ras.add_path(pDashStrokeTransform);
+        }
       }
       else
       {
-        AggConvCurveDash pCurveDash(pCurve);
-        AggSetupDash(pCurveDash, capsState);
-        AggConvCurveDashStroke pCurveDashStroke(pCurveDash);
-        AggSetupStroke(pCurveDashStroke, capsState);
-        ras.add_path(pCurveDashStroke);
+        AggConvTransform pTransform(
+          pAgg, *((agg::trans_affine *)&capsState->transformations));
+
+        ras.add_path(pTransform);
       }
     }
     else
     {
-      ras.add_path(pCurve);
+      if (stroke)
+      {
+        if (capsState->lineDash.length() <= 1)
+        {
+          AggConvStroke pStroke(pAgg);
+          AggSetupStroke(pStroke, capsState);
+          ras.add_path(pStroke);
+        }
+        else
+        {
+          AggConvDash pDash(pAgg);
+          AggSetupDash(pDash, capsState);
+          AggConvDashStroke pDashStroke(pDash);
+          AggSetupStroke(pDashStroke, capsState);
+          ras.add_path(pDashStroke);
+        }
+      }
+      else
+      {
+        ras.add_path(pAgg);
+      }
     }
   }
+
   ras.sort();
   return ras.has_cells();
 }
@@ -3358,9 +3438,9 @@ static void FOG_INLINE AggRenderPath(
   }
 }
 
-bool RasterEngine::_rasterizePath(RasterEngineContext* ctx, AggRasterizer& ras, const Path& path, bool stroke)
+bool RasterEngine::_rasterizePath(RasterEngineContext* ctx, AggRasterizer& ras, const Path& path, bool curves, bool stroke)
 {
-  return AggRasterizePath(ctx, ras, path, stroke);
+  return AggRasterizePath(ctx, ras, path, curves, stroke);
 }
 
 // ============================================================================

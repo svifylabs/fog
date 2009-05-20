@@ -19,15 +19,15 @@ TODO
     [ ] Text in path support
     [x] Line dashes
     [ ] Image transform
-    [ ] Introduce save() / restore()
+    [x] Introduce save() / restore()
     [ ] Introduce setClipPath() / restoreClip()
     [ ] Reduce using of malloc/free in painter. All painter allocations should be pooled to maximize
         performance. Something like zone objects (see AsmJit) can be introduced, because lifetime of
-        painter created objects is short.
+        painter created objects is very short.
 [ ] Image
     [ ] Add some effects from qimageblitz?
     [ ] DOT line
-    [ ] WU-Antialiased line
+    [ ] WU-Antialiased line (raster based, fastest possible)
     [ ] Fill trapezoid, using rasterizer from pixman with ability to set color for each corner
     [ ] Render text using Font::getGlyphs
     [ ] ColorMatrix transformations
@@ -38,6 +38,8 @@ TODO
     [ ] Fix issue that this code """Font font; font.setSize(80);""" takes too long (3ms on my machine)
         due to incorrect cache control ?
     [ ] Ability to render to 'Path'
+        [x] Win32
+        [ ] Freetype2
 [ ] Raster
     [ ] Remove templated functions in Raster_C.cpp. It's needed to specialize code for each operation
         and pixel format, because specialized functions for ARGB32 / PRGB32 formats can be sometimes

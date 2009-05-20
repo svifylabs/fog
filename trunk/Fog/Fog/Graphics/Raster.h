@@ -311,6 +311,11 @@ struct FunctionMap
     PatternContextInitFn linear_gradient_init;
     PatternContextDestroyFn linear_gradient_destroy;
     PatternContextFetchFn linear_gradient_fetch_pad;
+    PatternContextFetchFn linear_gradient_fetch_repeat;
+
+    // [Radial Gradient]
+
+    // [Conical Gradient]
   };
 
   Pattern_ pattern;

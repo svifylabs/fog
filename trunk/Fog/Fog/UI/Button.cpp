@@ -41,6 +41,7 @@ void Button::onPaint(PaintEvent* e)
 
   Pattern pat;
   pat.setType(Pattern::LinearGradient);
+  pat.setSpread(Pattern::PadSpread);
 
   if (!isDown())
   {
