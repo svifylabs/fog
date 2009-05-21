@@ -139,23 +139,49 @@ struct PatternContext
     int h;
   };
 
-  struct LinearGradient
+  struct GenericGradient
   {
-    int64_t dx;
-    int64_t dy;
-
-    int64_t ax;
-    int64_t ay;
-
     int colorsAlloc;
     int colorsLength;
     uint32_t* colors;
   };
 
+  struct LinearGradient
+  {
+    int colorsAlloc;
+    int colorsLength;
+    uint32_t* colors;
+
+    int64_t dx;
+    int64_t dy;
+
+    int64_t ax;
+    int64_t ay;
+  };
+
+  struct RadialGradient
+  {
+    int colorsAlloc;
+    int colorsLength;
+    uint32_t* colors;
+
+    double px;
+    double py;
+    double fx;
+    double fy;
+    double r;
+    double r2;
+    double fx2;
+    double fy2;
+    double mul;
+  };
+
   union
   {
     Texture texture;
+    GenericGradient genericGradient;
     LinearGradient linearGradient;
+    RadialGradient radialGradient;
   };
 };
 
@@ -298,7 +324,6 @@ struct FunctionMap
     // [Texture]
 
     PatternContextInitFn texture_init;
-    PatternContextDestroyFn texture_destroy;
 
     //PatternContextFetchFn texture_fetch;
     //PatternContextFetchFn texture_fetch_scaled;
@@ -309,11 +334,14 @@ struct FunctionMap
     // [Linear Gradient]
 
     PatternContextInitFn linear_gradient_init;
-    PatternContextDestroyFn linear_gradient_destroy;
     PatternContextFetchFn linear_gradient_fetch_pad;
     PatternContextFetchFn linear_gradient_fetch_repeat;
 
     // [Radial Gradient]
+
+    PatternContextInitFn radial_gradient_init;
+    PatternContextFetchFn radial_gradient_fetch_pad;
+    PatternContextFetchFn radial_gradient_fetch_repeat;
 
     // [Conical Gradient]
   };
