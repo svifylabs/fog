@@ -2254,7 +2254,7 @@ static void FOG_FASTCALL pattern_texture_destroy(
 }
 
 // ============================================================================
-// [Fog::Raster - Pattern - Linear Gradient]
+// [Fog::Raster - Pattern - Gradient - Generic]
 // ============================================================================
 
 static void FOG_FASTCALL gradient_stops(
@@ -2332,6 +2332,70 @@ static void FOG_FASTCALL gradient_stops(
 		// if (size == width) ((uint32_t*)dst)[size-1] = secondaryStopRgba;
 	}
 }
+
+static err_t FOG_FASTCALL pattern_generic_gradient_init(
+  PatternContext* ctx, const GradientStops& stops, sysint_t gLength, bool reflect)
+{
+  bool hasAlpha = RgbaAnalyzer::analyzeAlpha(stops) != 0xFF;
+
+  // Alloc twice memory for reflect spread.
+  sysint_t gAlloc = gLength;
+  if (reflect) gAlloc <<= 1;
+
+  // One pixel for interpolation.
+  gAlloc += 1;
+
+  // alloc space for pattern or use reserved buffer.
+  if ((ctx->genericGradient.colors = (uint32_t*)Memory::alloc(gAlloc << 2)) == NULL)
+  {
+    return Error::OutOfMemory;
+  }
+
+  ctx->format = hasAlpha 
+    ? Image::FormatPRGB32
+    : Image::FormatRGB32;
+  ctx->depth = 32;
+
+  gradient_stops(
+    (uint8_t*)ctx->genericGradient.colors, stops,
+    hasAlpha ? functionMap->gradient.gradient_prgb32
+             : functionMap->gradient.gradient_rgb32,
+	  0, (int)gLength, (int)gLength, false);
+
+  ctx->genericGradient.colorsAlloc = gAlloc;
+  ctx->genericGradient.colorsLength = gAlloc-1;
+
+  // Create mirror for reflect spread.
+  if (reflect)
+  {
+    uint32_t* patternTo = ctx->genericGradient.colors + gLength;
+    uint32_t* patternFrom = patternTo - 1;
+
+    size_t i;
+    for (i = (size_t)gLength; i; i--, patternTo++, patternFrom--)
+    {
+	    *patternTo = *patternFrom;
+    }
+  }
+
+  // Interpolation.
+  ctx->genericGradient.colors[gAlloc-1] = ctx->genericGradient.colors[0];
+
+  return Error::Ok;
+}
+
+static void FOG_FASTCALL pattern_generic_gradient_destroy(
+  PatternContext* ctx)
+{
+  FOG_ASSERT(ctx->initialized);
+
+  Memory::free(ctx->linearGradient.colors);
+  ctx->initialized = false;
+}
+
+// ============================================================================
+// [Fog::Raster - Pattern - Gradient - Linear]
+// ============================================================================
 
 static uint8_t* FOG_FASTCALL pattern_linear_gradient_fetch_pad(
   PatternContext* ctx,
@@ -2477,9 +2541,6 @@ end:
   return dst;
 }
 
-static void FOG_FASTCALL pattern_linear_gradient_destroy(
-  PatternContext* ctx);
-
 static err_t FOG_FASTCALL pattern_linear_gradient_init(
   PatternContext* ctx, const Pattern& pattern)
 {
@@ -2490,15 +2551,12 @@ static err_t FOG_FASTCALL pattern_linear_gradient_init(
   double dyd = fog_abs(d->points[1].y() - d->points[0].y());
   double sqrtxxyy = sqrt(dxd * dxd + dyd * dyd);
 
-  bool hasAlpha = RgbaAnalyzer::analyzeAlpha(d->obj.gradientStops.instance()) != 0xFF;
-
   int64_t dx = double_to_fixed48x16(dxd);
   int64_t dy = double_to_fixed48x16(dyd);
   int64_t dmax = fog_max(dx, dy);
   sysint_t maxSize = d->obj.gradientStops->length() * 256;
 
   sysint_t gLength = (sysint_t)((dmax >> 16) << 2);
-  sysint_t gAlloc = 0;
 
   if (gLength > maxSize) gLength = maxSize;
   if (gLength > 4096) gLength = 4096;
@@ -2514,49 +2572,10 @@ static err_t FOG_FASTCALL pattern_linear_gradient_init(
   if (d->points[0].x() > d->points[1].x()) ctx->linearGradient.ax = -ctx->linearGradient.ax;
   if (d->points[0].y() > d->points[1].y()) ctx->linearGradient.ay = -ctx->linearGradient.ay;
 
-  ctx->format = hasAlpha 
-    ? Image::FormatPRGB32
-    : Image::FormatRGB32;
-  ctx->depth = 32;
-
-  // Alloc twice memory for reflect spread.
-  gAlloc = gLength;
-  if (d->spread == Pattern::ReflectSpread) gAlloc <<= 1;
-
-  // One pixel for interpolation.
-  gAlloc += 1;
-
-  // alloc space for pattern or use reserved buffer.
-  if ((ctx->linearGradient.colors = (uint32_t*)Memory::alloc(gAlloc << 2)) == NULL)
-  {
-    return Error::OutOfMemory;
-  }
-
-  gradient_stops(
-    (uint8_t*)ctx->linearGradient.colors, d->obj.gradientStops.instance(),
-    hasAlpha 
-      ? functionMap->gradient.gradient_prgb32
-      : functionMap->gradient.gradient_rgb32,
-	  0, (int)gLength, (int)gLength, false);
-
-  ctx->linearGradient.colorsAlloc = gAlloc;
-  ctx->linearGradient.colorsLength = gAlloc-1;
-
-  // Create mirror for reflect spread.
-  if (d->spread == Pattern::ReflectSpread)
-  {
-    uint32_t* patternTo = ctx->linearGradient.colors + gLength;
-    uint32_t* patternFrom = patternTo - 1;
-
-    size_t i;
-    for (i = (size_t)gLength; i; i--, patternTo++, patternFrom--)
-    {
-	    *patternTo = *patternFrom;
-    }
-  }
-
-  // Interpolation.
-  ctx->linearGradient.colors[gAlloc-1] = ctx->linearGradient.colors[0];
+  err_t err = pattern_generic_gradient_init(ctx, 
+    d->obj.gradientStops.instance(), gLength,
+    d->spread == Pattern::ReflectSpread);
+  if (err) return err;
 
   // Set fetch function.
   switch (d->spread)
@@ -2575,19 +2594,173 @@ static err_t FOG_FASTCALL pattern_linear_gradient_init(
   }
 
   // Set destroy function.
-  ctx->destroy = pattern_linear_gradient_destroy;
+  ctx->destroy = pattern_generic_gradient_destroy;
 
   ctx->initialized = true;
   return Error::Ok;
 }
 
-static void FOG_FASTCALL pattern_linear_gradient_destroy(
-  PatternContext* ctx)
-{
-  FOG_ASSERT(ctx->initialized);
+// ============================================================================
+// [Fog::Raster - Pattern - Gradient - Radial]
+// ============================================================================
 
-  Memory::free(ctx->linearGradient.colors);
-  ctx->initialized = false;
+static uint8_t* FOG_FASTCALL pattern_radial_gradient_fetch_pad(
+  PatternContext* ctx,
+  uint8_t* dst, int x, int y, int w)
+{
+  FOG_ASSERT(w);
+
+  uint8_t* dstCur = dst;
+
+  const uint32_t* colors = (const uint32_t*)ctx->radialGradient.colors;
+  sysint_t colorsLength = ctx->radialGradient.colorsLength;
+
+  uint32_t color0 = colors[0];
+  uint32_t color1 = colors[colorsLength-1];
+
+	int index;
+
+	double dx = (double)x - ctx->radialGradient.px;
+	double dy = (double)y - ctx->radialGradient.py;
+
+  double fx = ctx->radialGradient.fx;
+  double fy = ctx->radialGradient.fy;
+  double r2 = ctx->radialGradient.r2;
+  double scale = ctx->radialGradient.mul;
+
+  do {
+		double d2 = dx * fy - dy * fx;
+		double d3 = r2 * (dx * dx + dy * dy) - d2 * d2;
+
+		index = (int) ((dx * fx + dy * fy + sqrt(fabs(d3))) * scale);
+
+		if (index < 0)
+      ((uint32_t*)dstCur)[0] = color0;
+		else if (index >= colorsLength)
+      ((uint32_t*)dstCur)[0] = color1;
+		else
+      ((uint32_t*)dstCur)[0] = colors[index];
+		dstCur += 4;
+  	dx += 1.0;
+	} while (--w);
+
+end:
+  return dst;
+}
+
+static uint8_t* FOG_FASTCALL pattern_radial_gradient_fetch_repeat(
+  PatternContext* ctx,
+  uint8_t* dst, int x, int y, int w)
+{
+  FOG_ASSERT(w);
+
+  uint8_t* dstCur = dst;
+
+  const uint32_t* colors = (const uint32_t*)ctx->radialGradient.colors;
+  sysint_t colorsLength = ctx->radialGradient.colorsLength;
+
+  uint32_t color0 = colors[0];
+  uint32_t color1 = colors[colorsLength-1];
+
+	int index;
+
+	double dx = (double)x - ctx->radialGradient.px;
+	double dy = (double)y - ctx->radialGradient.py;
+
+  double fx = ctx->radialGradient.fx;
+  double fy = ctx->radialGradient.fy;
+  double r2 = ctx->radialGradient.r2;
+  double scale = ctx->radialGradient.mul;
+
+  do {
+		double d2 = dx * fy - dy * fx;
+		double d3 = r2 * (dx * dx + dy * dy) - d2 * d2;
+
+		index = (int) ((dx * fx + dy * fy + sqrt(fabs(d3))) * scale) % colorsLength;
+    if (index < 0) index += colorsLength;
+
+    ((uint32_t*)dstCur)[0] = colors[index];
+		dstCur += 4;
+  	dx += 1.0;
+	} while (--w);
+
+end:
+  return dst;
+}
+
+static void FOG_FASTCALL pattern_radial_gradient_destroy(
+  PatternContext* ctx);
+
+static err_t FOG_FASTCALL pattern_radial_gradient_init(
+  PatternContext* ctx, const Pattern& pattern)
+{
+  Pattern::Data* d = pattern._d;
+  if (d->type != Pattern::RadialGradient) return Error::InvalidArgument;
+
+  sysint_t gLength = 256 * d->obj.gradientStops->length();
+  if (gLength > 4096) gLength = 4096;
+  sysint_t gAlloc = gLength;
+
+  // This calculation is based on AntiGrain 2.4 <www.antigrain.com>
+  // ----------------------------------------------------------------
+  // Calculate the invariant values. In case the focal center
+  // lies exactly on the gradient circle the divisor degenerates
+  // into zero. In this case we just move the focal center by
+  // one subpixel unit possibly in the direction to the origin (0,0)
+  // and calculate the values again.
+  //-----------------------------------------------------------------
+  ctx->radialGradient.px = d->points[1].x();
+  ctx->radialGradient.py = d->points[1].y();
+  ctx->radialGradient.fx = d->points[1].x() - d->points[0].x();
+  ctx->radialGradient.fy = d->points[1].y() - d->points[0].y();
+  ctx->radialGradient.r = d->gradientRadius;
+
+  ctx->radialGradient.r2  = ctx->radialGradient.r  * ctx->radialGradient.r;
+  ctx->radialGradient.fx2 = ctx->radialGradient.fx * ctx->radialGradient.fx;
+  ctx->radialGradient.fy2 = ctx->radialGradient.fy * ctx->radialGradient.fy;
+  double dd = (ctx->radialGradient.r2 - (ctx->radialGradient.fx2 + ctx->radialGradient.fy2));
+
+  if (dd == 0)
+  {
+	  if (ctx->radialGradient.fx) { if (ctx->radialGradient.fx < 0) ctx->radialGradient.fx += 1.0; else ctx->radialGradient.fx -= 1.0; }
+	  if (ctx->radialGradient.fy) { if (ctx->radialGradient.fy < 0) ctx->radialGradient.fy += 1.0; else ctx->radialGradient.fy -= 1.0; }
+	  ctx->radialGradient.fx2 = ctx->radialGradient.fx * ctx->radialGradient.fx;
+	  ctx->radialGradient.fy2 = ctx->radialGradient.fy * ctx->radialGradient.fy;
+	  dd = (ctx->radialGradient.r2 - (ctx->radialGradient.fx2 + ctx->radialGradient.fy2));
+  }
+
+  // Alloc twice memory for reflect spread.
+  gAlloc = gLength;
+  if (d->spread == Pattern::ReflectSpread) gAlloc <<= 1;
+
+  ctx->radialGradient.mul = (double)gAlloc / dd;
+
+  err_t err = pattern_generic_gradient_init(ctx, 
+    d->obj.gradientStops.instance(), gLength,
+    d->spread == Pattern::ReflectSpread);
+  if (err) return err;
+
+  // Set fetch function.
+  switch (d->spread)
+  {
+    case Pattern::PadSpread:
+      ctx->fetch = pattern_radial_gradient_fetch_pad;
+      break;
+    case Pattern::RepeatSpread:
+      ctx->fetch = pattern_radial_gradient_fetch_repeat;
+      break;
+    case Pattern::ReflectSpread:
+      ctx->fetch = pattern_radial_gradient_fetch_repeat;
+      break;
+    default:
+      FOG_ASSERT_NOT_REACHED();
+  }
+
+  // Set destroy function.
+  ctx->destroy = pattern_generic_gradient_destroy;
+
+  ctx->initialized = true;
+  return Error::Ok;
 }
 
 // ============================================================================
@@ -4581,16 +4754,20 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   // [Pattern - Texture]
 
   m->pattern.texture_init = pattern_texture_init;
-  m->pattern.texture_destroy = pattern_texture_destroy;
   m->pattern.texture_fetch_repeat = pattern_texture_fetch_repeat;
   m->pattern.texture_fetch_reflect = pattern_texture_fetch_reflect;
 
   // [Pattern - Linear Gradient]
 
   m->pattern.linear_gradient_init = pattern_linear_gradient_init;
-  m->pattern.linear_gradient_destroy = pattern_linear_gradient_destroy;
   m->pattern.linear_gradient_fetch_pad = pattern_linear_gradient_fetch_pad;
   m->pattern.linear_gradient_fetch_repeat = pattern_linear_gradient_fetch_repeat;
+
+  // [Pattern - Radial Gradient]
+
+  m->pattern.radial_gradient_init = pattern_radial_gradient_init;
+  m->pattern.radial_gradient_fetch_pad = pattern_radial_gradient_fetch_pad;
+  m->pattern.radial_gradient_fetch_repeat = pattern_radial_gradient_fetch_repeat;
 
   // [Raster]
 

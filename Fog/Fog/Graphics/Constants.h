@@ -10,6 +10,8 @@
 // [Dependencies]
 #include <Fog/Build/Build.h>
 
+// TODO: Move to Error.h
+
 namespace Error {
 
 // [Error codes]
@@ -178,6 +180,22 @@ enum ViewportOption
   ViewXMinYMax,
   ViewXMidYMax,
   ViewXMaxYMax
+};
+
+//! @brief Text alignment
+enum TextAlign
+{
+  TextAlignLeft        = 0x1,
+  TextAlignRight       = 0x2,
+  TextAlignHCenter     = 0x3,
+  TextAlignHMask       = 0x3,
+
+  TextAlignTop         = 0x10,
+  TextAlignBottom      = 0x20,
+  TextAlignVCenter     = 0x30,
+  TextAlignVMask       = 0x30,
+
+  TextAlignCenter      = TextAlignVCenter | TextAlignHCenter
 };
 
 } // Fog namespace

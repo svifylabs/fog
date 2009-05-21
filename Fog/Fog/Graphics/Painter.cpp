@@ -2009,7 +2009,7 @@ void RasterEngine::drawRect(const Rect& r)
   {
     if (!ctx.clipState->clipBox.subsumes(r))
     {
-      for (sysuint_t i = 0; i < count; i++) Box::intersect(box[0], box[0], ctx.clipState->clipBox);
+      for (sysuint_t i = 0; i < count; i++) Box::intersect(box[i], box[i], ctx.clipState->clipBox);
     }
     RasterEngine::_serializeBoxes(box, count);
   }
@@ -2363,7 +2363,42 @@ void RasterEngine::drawText(const Point& pt, const String32& text, const Font& f
 
 void RasterEngine::drawText(const Rect& r, const String32& text, const Font& font, uint32_t align, const Rect* clip)
 {
-  // TODO
+  TemporaryGlyphSet<128> glyphSet;
+  if (font.getGlyphs(text.cData(), text.length(), glyphSet)) return;
+
+  int wsize = glyphSet.advance();
+  int hsize = font.height();
+
+  int x = r.x1();
+  int y = r.y1();
+  int w = r.width();
+  int h = r.height();
+
+  switch (align & TextAlignHMask)
+  {
+    case TextAlignLeft:
+      break;
+    case TextAlignRight:
+      x = x + w - wsize;
+      break;
+    case TextAlignHCenter:
+      x = x + (w - wsize) / 2;
+      break;
+  }
+
+  switch (align & TextAlignVMask)
+  {
+    case TextAlignTop:
+      break;
+    case TextAlignBottom:
+      y = y + h - hsize;
+      break;
+    case TextAlignVCenter:
+      y = y + (h - hsize) / 2;
+      break;
+  }
+
+  _serializeGlyphSet(Point(x, y), glyphSet, clip);
 }
 
 // ============================================================================
@@ -2831,6 +2866,9 @@ Raster::PatternContext* RasterEngine::_getPatternContext()
         break;
       case Pattern::LinearGradient:
         err = Raster::functionMap->pattern.linear_gradient_init(pctx, ctx.capsState->patternSource);
+        break;
+      case Pattern::RadialGradient:
+        err = Raster::functionMap->pattern.radial_gradient_init(pctx, ctx.capsState->patternSource);
         break;
       default:
         FOG_ASSERT_NOT_REACHED();

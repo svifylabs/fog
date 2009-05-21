@@ -242,18 +242,6 @@ enum CaretTypeEnum
   CaretTypeOverwrite   = 1,      //!< @brief Overwrite type of caret.
 };
 
-//! @brief Text alignment
-enum TextAlignEnum
-{
-  TextAlignLeft        = 0x1,
-  TextAlignRight       = 0x2,
-  TextAlignHCenter     = 0x3,
-  TextAlignTop         = 0x10,
-  TextAlignBottom      = 0x20,
-  TextAlignVCenter     = 0x30,
-  TextAlignCenter      = TextAlignVCenter | TextAlignHCenter
-};
-
 enum FocusReasonEnum
 {
   FocusReasonNone = 0,
