@@ -673,15 +673,14 @@ void FontFaceFT::deref()
 
 err_t FontFaceFT::getGlyphs(const Char32* str, sysuint_t length, GlyphSet& glyphSet)
 {
+  err_t err;
+  if ( (err = glyphSet.begin(length)) ) return err;
+
   AutoLock locked(lock);
 
   Glyph::Data* glyphd;
-  TextWidth tw;
-  memset(&tw, 0, sizeof(TextWidth));
 
-  sysuint_t i;
-
-  for (i = 0; i != length; i++)
+  for (sysuint_t i = 0; i != length; i++)
   {
     uint32_t uc = str[i].ch();
 
@@ -694,10 +693,14 @@ err_t FontFaceFT::getGlyphs(const Char32* str, sysuint_t length, GlyphSet& glyph
 
     if (FOG_LIKELY(glyphd)) glyphSet._add(glyphd->ref());
   }
+
+  if ( (err = glyphSet.end()) ) return err;
+  return Error::Ok;
 }
 
 err_t FontFaceFT::getPath(const Char32* str, sysuint_t length, Path& dst)
 {
+  return Error::NotImplemented;
 }
 
 Glyph::Data* FontFaceFT::renderGlyph(uint32_t uc)
@@ -777,7 +780,8 @@ Glyph::Data* FontFaceFT::renderGlyph(uint32_t uc)
     width += ftBitmap->width;
 
     glyphd = new(std::nothrow) Glyph::Data();
-    if (glyphd->image.create(width, ftGlyphSlot->bitmap.rows, Image::FormatA8) != Error::Ok)
+
+    if (width != 0 && glyphd->image.create(width, ftGlyphSlot->bitmap.rows, Image::FormatA8) != Error::Ok)
     {
       goto fail;
     }
@@ -789,6 +793,8 @@ Glyph::Data* FontFaceFT::renderGlyph(uint32_t uc)
     glyphd->advance = advance;
   }
 
+  // If there is not glyph (spaces) just ignore copying step.
+  if (!glyphd->image.isEmpty())
   {
     // copy FT_Bitmap to our image and clean bytes over width
     sysuint_t p, pCount = glyphd->image.stride() - ftBitmap->width;
