@@ -165,8 +165,8 @@ struct PatternContext
     int colorsLength;
     uint32_t* colors;
 
-    double px;
-    double py;
+    double dx;
+    double dy;
     double fx;
     double fy;
     double r;
@@ -176,12 +176,24 @@ struct PatternContext
     double mul;
   };
 
+  struct ConicalGradient
+  {
+    int colorsAlloc;
+    int colorsLength;
+    uint32_t* colors;
+
+    double dx;
+    double dy;
+    double angle;
+  };
+
   union
   {
     Texture texture;
     GenericGradient genericGradient;
     LinearGradient linearGradient;
     RadialGradient radialGradient;
+    ConicalGradient conicalGradient;
   };
 };
 
@@ -344,6 +356,9 @@ struct FunctionMap
     PatternContextFetchFn radial_gradient_fetch_repeat;
 
     // [Conical Gradient]
+
+    PatternContextInitFn conical_gradient_init;
+    PatternContextFetchFn conical_gradient_fetch;
   };
 
   Pattern_ pattern;

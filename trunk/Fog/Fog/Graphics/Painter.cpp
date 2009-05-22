@@ -2870,6 +2870,9 @@ Raster::PatternContext* RasterEngine::_getPatternContext()
       case Pattern::RadialGradient:
         err = Raster::functionMap->pattern.radial_gradient_init(pctx, ctx.capsState->patternSource);
         break;
+      case Pattern::ConicalGradient:
+        err = Raster::functionMap->pattern.conical_gradient_init(pctx, ctx.capsState->patternSource);
+        break;
       default:
         FOG_ASSERT_NOT_REACHED();
     }
@@ -2951,9 +2954,9 @@ void RasterEngine::_deleteStates()
 
 static FOG_INLINE int alignToDelta(int y, int offset, int delta)
 {
-  int mask = delta-1;
-  while ((y & mask) != offset) y++;
-  return y;
+  int mask = (delta-1);
+  int newy = (y & ~mask) + offset;
+  return newy < y ? newy + delta : newy;
 }
 
 void RasterEngine::_serializePath(const Path& path, bool curves, bool stroke)
