@@ -61,10 +61,9 @@ void Button::onPaint(PaintEvent* e)
   p->setSource(pat);
   p->fillRect(bounds);
 
-  Point textpos(bounds.point());
-  if (isDown()) textpos.translate(1, 1);
+  if (isDown()) bounds.translate(1, 1);
   p->setSource(0xFF000000);
-  p->drawText(textpos, _text, _font);
+  p->drawText(bounds, _text, _font, TextAlignCenter);
 }
 
 } // Fog namespace

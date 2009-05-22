@@ -2620,8 +2620,8 @@ static uint8_t* FOG_FASTCALL pattern_radial_gradient_fetch_pad(
 
 	int index;
 
-	double dx = (double)x - ctx->radialGradient.px;
-	double dy = (double)y - ctx->radialGradient.py;
+	double dx = (double)x - ctx->radialGradient.dx;
+	double dy = (double)y - ctx->radialGradient.dy;
 
   double fx = ctx->radialGradient.fx;
   double fy = ctx->radialGradient.fy;
@@ -2664,8 +2664,8 @@ static uint8_t* FOG_FASTCALL pattern_radial_gradient_fetch_repeat(
 
 	int index;
 
-	double dx = (double)x - ctx->radialGradient.px;
-	double dy = (double)y - ctx->radialGradient.py;
+	double dx = (double)x - ctx->radialGradient.dx;
+	double dy = (double)y - ctx->radialGradient.dy;
 
   double fx = ctx->radialGradient.fx;
   double fy = ctx->radialGradient.fy;
@@ -2688,9 +2688,6 @@ end:
   return dst;
 }
 
-static void FOG_FASTCALL pattern_radial_gradient_destroy(
-  PatternContext* ctx);
-
 static err_t FOG_FASTCALL pattern_radial_gradient_init(
   PatternContext* ctx, const Pattern& pattern)
 {
@@ -2709,8 +2706,8 @@ static err_t FOG_FASTCALL pattern_radial_gradient_init(
   // one subpixel unit possibly in the direction to the origin (0,0)
   // and calculate the values again.
   //-----------------------------------------------------------------
-  ctx->radialGradient.px = d->points[1].x();
-  ctx->radialGradient.py = d->points[1].y();
+  ctx->radialGradient.dx = d->points[1].x();
+  ctx->radialGradient.dy = d->points[1].y();
   ctx->radialGradient.fx = d->points[1].x() - d->points[0].x();
   ctx->radialGradient.fy = d->points[1].y() - d->points[0].y();
   ctx->radialGradient.r = d->gradientRadius;
@@ -2755,6 +2752,71 @@ static err_t FOG_FASTCALL pattern_radial_gradient_init(
     default:
       FOG_ASSERT_NOT_REACHED();
   }
+
+  // Set destroy function.
+  ctx->destroy = pattern_generic_gradient_destroy;
+
+  ctx->initialized = true;
+  return Error::Ok;
+}
+
+// ============================================================================
+// [Fog::Raster - Pattern - Gradient - Conical]
+// ============================================================================
+
+static uint8_t* FOG_FASTCALL pattern_conical_gradient_fetch(
+  PatternContext* ctx,
+  uint8_t* dst, int x, int y, int w)
+{
+  FOG_ASSERT(w);
+
+  uint8_t* dstCur = dst;
+
+  const uint32_t* colors = (const uint32_t*)ctx->radialGradient.colors;
+  sysint_t colorsLength = ctx->radialGradient.colorsLength;
+
+	int index;
+
+	double dx = (double)x - ctx->conicalGradient.dx;
+	double dy = (double)y - ctx->conicalGradient.dy;
+  double scale = (double)colorsLength / (M_PI * 2.0);
+  double add = ctx->conicalGradient.angle;
+  if (add < M_PI) add += M_PI * 2.0;
+
+  do {
+		index = (int)((atan2(dy, dx) + add) * scale);
+    if (index >= colorsLength) index -= colorsLength;
+
+    ((uint32_t*)dstCur)[0] = colors[index];
+		dstCur += 4;
+  	dx += 1.0;
+	} while (--w);
+
+  return dst;
+}
+
+static err_t FOG_FASTCALL pattern_conical_gradient_init(
+  PatternContext* ctx, const Pattern& pattern)
+{
+  Pattern::Data* d = pattern._d;
+  if (d->type != Pattern::ConicalGradient) return Error::InvalidArgument;
+
+  sysint_t gLength = 256 * d->obj.gradientStops->length();
+  if (gLength > 4096) gLength = 4096;
+
+  ctx->conicalGradient.dx = d->points[0].x();
+  ctx->conicalGradient.dy = d->points[0].y();
+  ctx->conicalGradient.angle = atan2(
+    (d->points[0].x() - d->points[1].x()),
+    (d->points[0].y() - d->points[1].y())) + (M_PI/2.0);
+
+  err_t err = pattern_generic_gradient_init(ctx,
+    d->obj.gradientStops.instance(), gLength,
+    d->spread == Pattern::ReflectSpread);
+  if (err) return err;
+
+  // Set fetch function.
+  ctx->fetch = pattern_conical_gradient_fetch;
 
   // Set destroy function.
   ctx->destroy = pattern_generic_gradient_destroy;
@@ -4768,6 +4830,11 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   m->pattern.radial_gradient_init = pattern_radial_gradient_init;
   m->pattern.radial_gradient_fetch_pad = pattern_radial_gradient_fetch_pad;
   m->pattern.radial_gradient_fetch_repeat = pattern_radial_gradient_fetch_repeat;
+
+  // [Pattern - Conical Gradient]
+
+  m->pattern.conical_gradient_init = pattern_conical_gradient_init;
+  m->pattern.conical_gradient_fetch = pattern_conical_gradient_fetch;
 
   // [Raster]
 
