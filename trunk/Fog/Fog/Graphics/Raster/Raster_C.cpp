@@ -9,6 +9,7 @@
 #endif
 
 // [Dependencies]
+#include <Fog/Core/Math.h>
 #include <Fog/Graphics/DitherMatrix.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/Pattern.h>
@@ -66,8 +67,8 @@ static FOG_INLINE int64_t double_to_fixed48x16(double d) { return (int64_t)(d * 
 
 // The reciprocal_table[i] entries are defined by
 //
-// 	0		when i = 0
-//	255 / i		when i > 0
+//   0    when i = 0
+//  255 / i    when i > 0
 //
 // represented in fixed point format with RECIPROCAL_BITS of
 // precision and errors rounded up.
@@ -2258,79 +2259,79 @@ static void FOG_FASTCALL pattern_texture_destroy(
 // ============================================================================
 
 static void FOG_FASTCALL gradient_stops(
-	uint8_t* dst, const GradientStops& stops,
-	GradientSpanFn gradientSpan,
-	int offset, int size, int w,
-	bool reverse)
+  uint8_t* dst, const GradientStops& stops,
+  GradientSpanFn gradientSpan,
+  int offset, int size, int w,
+  bool reverse)
 {
-	// Sanity check.
-	FOG_ASSERT(w <= size || offset <= (size - w));
+  // Sanity check.
+  FOG_ASSERT(w <= size || offset <= (size - w));
 
-	sysint_t count = (sysint_t)stops.length();
-	sysint_t end = offset + w;
+  sysint_t count = (sysint_t)stops.length();
+  sysint_t end = offset + w;
 
-	if (count == 0 || w == 0) return;
+  if (count == 0 || w == 0) return;
 
-	if (count == 1 || size == 1)
-	{
-		//Rgba color = stops.cAt(0).color;
-		//render(dst, color, color, 0, w, w, &cpuState);
-	}
-	else
-	{
-		sysint_t i = (reverse) ? count - 1 : 0;
-		sysint_t iinc = (reverse) ? -1 : 1;
+  if (count == 1 || size == 1)
+  {
+    //Rgba color = stops.cAt(0).color;
+    //render(dst, color, color, 0, w, w, &cpuState);
+  }
+  else
+  {
+    sysint_t i = (reverse) ? count - 1 : 0;
+    sysint_t iinc = (reverse) ? -1 : 1;
 
     Rgba primaryStopColor = stops.cAt(i).rgba;
-		Rgba secondaryStopRgba;
+    Rgba secondaryStopRgba;
 
-		double primaryStopOffset = 0.0;
-		double secondaryStopOffset;
-		long x1 = 0;
-		long x2 = 0;
+    double primaryStopOffset = 0.0;
+    double secondaryStopOffset;
+    long x1 = 0;
+    long x2 = 0;
 
-		for (; i < count && (sysint_t)x1 < end; i += iinc,
-			primaryStopOffset = secondaryStopOffset,
-			primaryStopColor = secondaryStopRgba,
-			x1 = x2)
-		{
-			secondaryStopOffset = stops.cAt(i).offset;
-			secondaryStopRgba = stops.cAt(i).rgba;
+    for (; i < count && (sysint_t)x1 < end; i += iinc,
+      primaryStopOffset = secondaryStopOffset,
+      primaryStopColor = secondaryStopRgba,
+      x1 = x2)
+    {
+      secondaryStopOffset = stops.cAt(i).offset;
+      secondaryStopRgba = stops.cAt(i).rgba;
 
-			// Stop offset can be at range from 0.0 to 1.0 including.
-			if (secondaryStopOffset < 0.0) secondaryStopOffset = 0.0;
-			if (secondaryStopOffset > 1.0) secondaryStopOffset = 1.0;
-			if (reverse) secondaryStopOffset = 1.0 - secondaryStopOffset;
+      // Stop offset can be at range from 0.0 to 1.0 including.
+      if (secondaryStopOffset < 0.0) secondaryStopOffset = 0.0;
+      if (secondaryStopOffset > 1.0) secondaryStopOffset = 1.0;
+      if (reverse) secondaryStopOffset = 1.0 - secondaryStopOffset;
 
-			// Don't trust input data...
-			if (secondaryStopOffset < primaryStopOffset) return;
+      // Don't trust input data...
+      if (secondaryStopOffset < primaryStopOffset) return;
 
-			// Skip all siblings and the first one.
-			if (secondaryStopOffset == primaryStopOffset) continue;
+      // Skip all siblings and the first one.
+      if (secondaryStopOffset == primaryStopOffset) continue;
 
-			// get pixel coordinates and skip that caller not wants
-			x2 = (sysint_t)((double)size * secondaryStopOffset);
-			if (x2 < (sysint_t)offset) continue; // not reached the beggining
-			if (x2 > (sysint_t)size) return;     // reached the end
+      // get pixel coordinates and skip that caller not wants
+      x2 = (sysint_t)((double)size * secondaryStopOffset);
+      if (x2 < (sysint_t)offset) continue; // not reached the beggining
+      if (x2 > (sysint_t)size) return;     // reached the end
 
-			sysint_t cx1 = x1; if (cx1 < (sysint_t)offset) cx1 = (sysint_t)offset;
-			sysint_t cx2 = x2; if (cx2 > (sysint_t)end) cx2 = (sysint_t)end;
+      sysint_t cx1 = x1; if (cx1 < (sysint_t)offset) cx1 = (sysint_t)offset;
+      sysint_t cx2 = x2; if (cx2 > (sysint_t)end) cx2 = (sysint_t)end;
 
-			if (cx2 - cx1)
-			{
-				gradientSpan(
-					// pointer to destination, it's needed to decrease it by 'offset'
-					dst + (sysint_t)(cx1 - offset) * 4,
-					// primary and secondary colors
-					primaryStopColor, secondaryStopRgba,
+      if (cx2 - cx1)
+      {
+        gradientSpan(
+          // pointer to destination, it's needed to decrease it by 'offset'
+          dst + (sysint_t)(cx1 - offset) * 4,
+          // primary and secondary colors
+          primaryStopColor, secondaryStopRgba,
           // width, x1, x2
-					cx2 - cx1, cx1 - x1, x2 - x1);
-			}
-		}
+          cx2 - cx1, cx1 - x1, x2 - x1);
+      }
+    }
 
-		// TODO: draw last point
-		// if (size == width) ((uint32_t*)dst)[size-1] = secondaryStopRgba;
-	}
+    // TODO: draw last point
+    // if (size == width) ((uint32_t*)dst)[size-1] = secondaryStopRgba;
+  }
 }
 
 static err_t FOG_FASTCALL pattern_generic_gradient_init(
@@ -2360,7 +2361,7 @@ static err_t FOG_FASTCALL pattern_generic_gradient_init(
     (uint8_t*)ctx->genericGradient.colors, stops,
     hasAlpha ? functionMap->gradient.gradient_prgb32
              : functionMap->gradient.gradient_rgb32,
-	  0, (int)gLength, (int)gLength, false);
+    0, (int)gLength, (int)gLength, false);
 
   ctx->genericGradient.colorsAlloc = gAlloc;
   ctx->genericGradient.colorsLength = gAlloc-1;
@@ -2374,7 +2375,7 @@ static err_t FOG_FASTCALL pattern_generic_gradient_init(
     size_t i;
     for (i = (size_t)gLength; i; i--, patternTo++, patternFrom--)
     {
-	    *patternTo = *patternFrom;
+      *patternTo = *patternFrom;
     }
   }
 
@@ -2437,7 +2438,7 @@ static uint8_t* FOG_FASTCALL pattern_linear_gradient_fetch_pad(
       ((uint32_t*)dstCur)[0] = colors[(sysint_t)(yy >> 16)];
       if (!(--w)) goto end;
 
-	    dstCur += 4;
+      dstCur += 4;
       yy += ax;
     }
 
@@ -2463,7 +2464,7 @@ static uint8_t* FOG_FASTCALL pattern_linear_gradient_fetch_pad(
       ((uint32_t*)dstCur)[0] = colors[(sysint_t)(yy >> 16)];
       if (!(--w)) goto end;
 
-	    dstCur += 4;
+      dstCur += 4;
       yy += ax;
     }
 
@@ -2515,7 +2516,7 @@ static uint8_t* FOG_FASTCALL pattern_linear_gradient_fetch_repeat(
 
       if (!(--w)) goto end;
 
-	    dstCur += 4;
+      dstCur += 4;
       yy += ax;
       if (yy < 0) yy += yy_max;
     } while (true);
@@ -2531,7 +2532,7 @@ static uint8_t* FOG_FASTCALL pattern_linear_gradient_fetch_repeat(
 
       if (!(--w)) goto end;
 
-	    dstCur += 4;
+      dstCur += 4;
       yy += ax;
       if (yy >= yy_max) yy -= yy_max;
     } while (true);
@@ -2618,10 +2619,10 @@ static uint8_t* FOG_FASTCALL pattern_radial_gradient_fetch_pad(
   uint32_t color0 = colors[0];
   uint32_t color1 = colors[colorsLength-1];
 
-	int index;
+  int index;
 
-	double dx = (double)x - ctx->radialGradient.dx;
-	double dy = (double)y - ctx->radialGradient.dy;
+  double dx = (double)x - ctx->radialGradient.dx;
+  double dy = (double)y - ctx->radialGradient.dy;
 
   double fx = ctx->radialGradient.fx;
   double fy = ctx->radialGradient.fy;
@@ -2629,20 +2630,20 @@ static uint8_t* FOG_FASTCALL pattern_radial_gradient_fetch_pad(
   double scale = ctx->radialGradient.mul;
 
   do {
-		double d2 = dx * fy - dy * fx;
-		double d3 = r2 * (dx * dx + dy * dy) - d2 * d2;
+    double d2 = dx * fy - dy * fx;
+    double d3 = r2 * (dx * dx + dy * dy) - d2 * d2;
 
-		index = (int) ((dx * fx + dy * fy + sqrt(fabs(d3))) * scale);
+    index = (int) ((dx * fx + dy * fy + sqrt(fabs(d3))) * scale);
 
-		if (index < 0)
+    if (index < 0)
       ((uint32_t*)dstCur)[0] = color0;
-		else if (index >= colorsLength)
+    else if (index >= colorsLength)
       ((uint32_t*)dstCur)[0] = color1;
-		else
+    else
       ((uint32_t*)dstCur)[0] = colors[index];
-		dstCur += 4;
-  	dx += 1.0;
-	} while (--w);
+    dstCur += 4;
+    dx += 1.0;
+  } while (--w);
 
 end:
   return dst;
@@ -2662,10 +2663,10 @@ static uint8_t* FOG_FASTCALL pattern_radial_gradient_fetch_repeat(
   uint32_t color0 = colors[0];
   uint32_t color1 = colors[colorsLength-1];
 
-	int index;
+  int index;
 
-	double dx = (double)x - ctx->radialGradient.dx;
-	double dy = (double)y - ctx->radialGradient.dy;
+  double dx = (double)x - ctx->radialGradient.dx;
+  double dy = (double)y - ctx->radialGradient.dy;
 
   double fx = ctx->radialGradient.fx;
   double fy = ctx->radialGradient.fy;
@@ -2673,16 +2674,16 @@ static uint8_t* FOG_FASTCALL pattern_radial_gradient_fetch_repeat(
   double scale = ctx->radialGradient.mul;
 
   do {
-		double d2 = dx * fy - dy * fx;
-		double d3 = r2 * (dx * dx + dy * dy) - d2 * d2;
+    double d2 = dx * fy - dy * fx;
+    double d3 = r2 * (dx * dx + dy * dy) - d2 * d2;
 
-		index = (int) ((dx * fx + dy * fy + sqrt(fabs(d3))) * scale) % colorsLength;
+    index = (int) ((dx * fx + dy * fy + sqrt(fabs(d3))) * scale) % colorsLength;
     if (index < 0) index += colorsLength;
 
     ((uint32_t*)dstCur)[0] = colors[index];
-		dstCur += 4;
-  	dx += 1.0;
-	} while (--w);
+    dstCur += 4;
+    dx += 1.0;
+  } while (--w);
 
 end:
   return dst;
@@ -2719,11 +2720,11 @@ static err_t FOG_FASTCALL pattern_radial_gradient_init(
 
   if (dd == 0)
   {
-	  if (ctx->radialGradient.fx) { if (ctx->radialGradient.fx < 0) ctx->radialGradient.fx += 1.0; else ctx->radialGradient.fx -= 1.0; }
-	  if (ctx->radialGradient.fy) { if (ctx->radialGradient.fy < 0) ctx->radialGradient.fy += 1.0; else ctx->radialGradient.fy -= 1.0; }
-	  ctx->radialGradient.fx2 = ctx->radialGradient.fx * ctx->radialGradient.fx;
-	  ctx->radialGradient.fy2 = ctx->radialGradient.fy * ctx->radialGradient.fy;
-	  dd = (ctx->radialGradient.r2 - (ctx->radialGradient.fx2 + ctx->radialGradient.fy2));
+    if (ctx->radialGradient.fx) { if (ctx->radialGradient.fx < 0) ctx->radialGradient.fx += 1.0; else ctx->radialGradient.fx -= 1.0; }
+    if (ctx->radialGradient.fy) { if (ctx->radialGradient.fy < 0) ctx->radialGradient.fy += 1.0; else ctx->radialGradient.fy -= 1.0; }
+    ctx->radialGradient.fx2 = ctx->radialGradient.fx * ctx->radialGradient.fx;
+    ctx->radialGradient.fy2 = ctx->radialGradient.fy * ctx->radialGradient.fy;
+    dd = (ctx->radialGradient.r2 - (ctx->radialGradient.fx2 + ctx->radialGradient.fy2));
   }
 
   // Alloc twice memory for reflect spread.
@@ -2775,22 +2776,22 @@ static uint8_t* FOG_FASTCALL pattern_conical_gradient_fetch(
   const uint32_t* colors = (const uint32_t*)ctx->radialGradient.colors;
   sysint_t colorsLength = ctx->radialGradient.colorsLength;
 
-	int index;
+  int index;
 
-	double dx = (double)x - ctx->conicalGradient.dx;
-	double dy = (double)y - ctx->conicalGradient.dy;
+  double dx = (double)x - ctx->conicalGradient.dx;
+  double dy = (double)y - ctx->conicalGradient.dy;
   double scale = (double)colorsLength / (M_PI * 2.0);
   double add = ctx->conicalGradient.angle;
   if (add < M_PI) add += M_PI * 2.0;
 
   do {
-		index = (int)((atan2(dy, dx) + add) * scale);
+    index = (int)((atan2(dy, dx) + add) * scale);
     if (index >= colorsLength) index -= colorsLength;
 
     ((uint32_t*)dstCur)[0] = colors[index];
-		dstCur += 4;
-  	dx += 1.0;
-	} while (--w);
+    dstCur += 4;
+    dx += 1.0;
+  } while (--w);
 
   return dst;
 }
@@ -4257,32 +4258,32 @@ static void FOG_FASTCALL raster_span_composite_a8(
 }
 
 // ============================================================================
-// [Fog::Raster - Raster - Agb32 - Over]
+// [Fog::Raster - Raster - Agb32 - SrcOver]
 // ============================================================================
 #if 0
-static void FOG_FASTCALL raster_argb32_pixel_over(
+static void FOG_FASTCALL raster_argb32_pixel_srcover(
   uint8_t* dst, uint32_t src)
 {
   uint32_t a = src >> 24;
 
   if (a != 0xFF)
-    src = blend_over_nonpremultiplied(((uint32_t*)dst)[0], src, a);
+    src = blend_srcover_nonpremultiplied(((uint32_t*)dst)[0], src, a);
 
   ((uint32_t*)dst)[0] = src;
 }
 
-static void FOG_FASTCALL raster_argb32_pixel_a8_over(
+static void FOG_FASTCALL raster_argb32_pixel_a8_srcover(
   uint8_t* dst, uint32_t src, uint32_t msk)
 {
   uint32_t a = div255((src >> 24) * msk);
 
   if (a != 0xFF)
-    src = blend_over_nonpremultiplied(((uint32_t*)dst)[0], src, a);
+    src = blend_srcover_nonpremultiplied(((uint32_t*)dst)[0], src, a);
 
   ((uint32_t*)dst)[0] = src;
 }
 
-static void FOG_FASTCALL raster_argb32_span_solid_over(
+static void FOG_FASTCALL raster_argb32_span_solid_srcover(
   uint8_t* dst, uint32_t src, sysint_t w)
 {
   sysint_t i = w;
@@ -4307,7 +4308,7 @@ static void FOG_FASTCALL raster_argb32_span_solid_over(
   }
 }
 
-static void FOG_FASTCALL raster_argb32_span_solid_a8_over(
+static void FOG_FASTCALL raster_argb32_span_solid_a8_srcover(
   uint8_t* dst, uint32_t src, const uint8_t* msk, sysint_t w)
 {
   sysint_t i = w;
@@ -4838,6 +4839,8 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
 
   // [Raster]
 
+  // TODO: Write correct versions and remove
+
 #define SET_RASTER_ARGB32(DST_ID, DST_CLASS, SRC_SOLID_CLASS, OP_ID, OP_CLASS) \
   m->raster_argb32[DST_ID][OP_ID].pixel = raster_pixel< OP_CLASS<DST_CLASS, SRC_SOLID_CLASS> >; \
   m->raster_argb32[DST_ID][OP_ID].pixel_a8 = raster_pixel_a8< OP_CLASS<DST_CLASS, SRC_SOLID_CLASS> >; \
@@ -4860,26 +4863,26 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   // [Raster - Argb32 / Prgb32]
 
   SET_RASTER_ARGB32(0, PixFmt_ARGB32, PixFmt_ARGB32, CompositeSrc, Operator_Src);
-  SET_RASTER_ARGB32(0, PixFmt_ARGB32, PixFmt_ARGB32, CompositeOver, Operator_Over);
-  SET_RASTER_ARGB32(0, PixFmt_ARGB32, PixFmt_ARGB32, CompositeOverReverse, Operator_OverReverse);
-  SET_RASTER_ARGB32(0, PixFmt_ARGB32, PixFmt_ARGB32, CompositeIn, Operator_In);
-  SET_RASTER_ARGB32(0, PixFmt_ARGB32, PixFmt_ARGB32, CompositeInReverse, Operator_InReverse);
-  SET_RASTER_ARGB32(0, PixFmt_ARGB32, PixFmt_ARGB32, CompositeOut, Operator_Out);
-  SET_RASTER_ARGB32(0, PixFmt_ARGB32, PixFmt_ARGB32, CompositeOutReverse, Operator_OutReverse);
-  SET_RASTER_ARGB32(0, PixFmt_ARGB32, PixFmt_ARGB32, CompositeAtop, Operator_Atop);
-  SET_RASTER_ARGB32(0, PixFmt_ARGB32, PixFmt_ARGB32, CompositeAtopReverse, Operator_AtopReverse);
+  SET_RASTER_ARGB32(0, PixFmt_ARGB32, PixFmt_ARGB32, CompositeSrcOver, Operator_Over);
+  SET_RASTER_ARGB32(0, PixFmt_ARGB32, PixFmt_ARGB32, CompositeDestOver, Operator_OverReverse);
+  SET_RASTER_ARGB32(0, PixFmt_ARGB32, PixFmt_ARGB32, CompositeSrcIn, Operator_In);
+  SET_RASTER_ARGB32(0, PixFmt_ARGB32, PixFmt_ARGB32, CompositeDestIn, Operator_InReverse);
+  SET_RASTER_ARGB32(0, PixFmt_ARGB32, PixFmt_ARGB32, CompositeSrcOut, Operator_Out);
+  SET_RASTER_ARGB32(0, PixFmt_ARGB32, PixFmt_ARGB32, CompositeDestOut, Operator_OutReverse);
+  SET_RASTER_ARGB32(0, PixFmt_ARGB32, PixFmt_ARGB32, CompositeSrcAtop, Operator_Atop);
+  SET_RASTER_ARGB32(0, PixFmt_ARGB32, PixFmt_ARGB32, CompositeDestAtop, Operator_AtopReverse);
   SET_RASTER_ARGB32(0, PixFmt_ARGB32, PixFmt_ARGB32, CompositeXor, Operator_Xor);
   SET_RASTER_ARGB32(0, PixFmt_ARGB32, PixFmt_ARGB32, CompositeClear, Operator_Clear);
 
   SET_RASTER_ARGB32(1, PixFmt_PRGB32, PixFmt_PRGB32, CompositeSrc, Operator_Src);
-  SET_RASTER_ARGB32(1, PixFmt_PRGB32, PixFmt_PRGB32, CompositeOver, Operator_Over);
-  SET_RASTER_ARGB32(1, PixFmt_PRGB32, PixFmt_PRGB32, CompositeOverReverse, Operator_OverReverse);
-  SET_RASTER_ARGB32(1, PixFmt_PRGB32, PixFmt_PRGB32, CompositeIn, Operator_In);
-  SET_RASTER_ARGB32(1, PixFmt_PRGB32, PixFmt_PRGB32, CompositeInReverse, Operator_InReverse);
-  SET_RASTER_ARGB32(1, PixFmt_PRGB32, PixFmt_PRGB32, CompositeOut, Operator_Out);
-  SET_RASTER_ARGB32(1, PixFmt_PRGB32, PixFmt_PRGB32, CompositeOutReverse, Operator_OutReverse);
-  SET_RASTER_ARGB32(1, PixFmt_PRGB32, PixFmt_PRGB32, CompositeAtop, Operator_Atop);
-  SET_RASTER_ARGB32(1, PixFmt_PRGB32, PixFmt_PRGB32, CompositeAtopReverse, Operator_AtopReverse);
+  SET_RASTER_ARGB32(1, PixFmt_PRGB32, PixFmt_PRGB32, CompositeSrcOver, Operator_Over);
+  SET_RASTER_ARGB32(1, PixFmt_PRGB32, PixFmt_PRGB32, CompositeDestOver, Operator_OverReverse);
+  SET_RASTER_ARGB32(1, PixFmt_PRGB32, PixFmt_PRGB32, CompositeSrcIn, Operator_In);
+  SET_RASTER_ARGB32(1, PixFmt_PRGB32, PixFmt_PRGB32, CompositeDestIn, Operator_InReverse);
+  SET_RASTER_ARGB32(1, PixFmt_PRGB32, PixFmt_PRGB32, CompositeSrcOut, Operator_Out);
+  SET_RASTER_ARGB32(1, PixFmt_PRGB32, PixFmt_PRGB32, CompositeDestOut, Operator_OutReverse);
+  SET_RASTER_ARGB32(1, PixFmt_PRGB32, PixFmt_PRGB32, CompositeSrcAtop, Operator_Atop);
+  SET_RASTER_ARGB32(1, PixFmt_PRGB32, PixFmt_PRGB32, CompositeDestAtop, Operator_AtopReverse);
   SET_RASTER_ARGB32(1, PixFmt_PRGB32, PixFmt_PRGB32, CompositeXor, Operator_Xor);
   SET_RASTER_ARGB32(1, PixFmt_PRGB32, PixFmt_PRGB32, CompositeClear, Operator_Clear);
 
@@ -4906,6 +4909,8 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   SET_RASTER_ARGB32(1, PixFmt_PRGB32, PixFmt_PRGB32, CompositeInvertRgb, Operator_InvertRgb);
 
 #undef SET_RASTER_ARGB32
+
+  // [Raster - Argb32 / Prgb32 - SrcOver]
 
   // [Raster - Argb32 / Prgb32 - NOP]
 

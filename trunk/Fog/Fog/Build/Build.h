@@ -467,7 +467,6 @@
 // ============================================================================
 
 #if defined(FOG_OS_WINDOWS)
-# define WIN32_LEAN_AND_MEAN
 # define _WIN32_WINNT 0x400 // We need WinXP, 2000 or NT
 # include <windows.h>
 #endif

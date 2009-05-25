@@ -49,15 +49,15 @@ struct Window;
 //!
 //! @c Fog::Widget event base is a lot increased compared to @c Fog::Object. It 
 //! contains these new event handlers:
-//!  - <code>virtual void onStateChange(Wde_StateEvent* e)</code>
-//!  - <code>virtual void onVisibilityChange(Wde_VisibilityEvent* e)</code>
-//!  - <code>virtual void onConfigure(Wde_ConfigureEvent* e)</code>
-//!  - <code>virtual void onFocus(Wde_FocusEvent* e)</code>
-//!  - <code>virtual void onKey(Wde_KeyEvent* e)</code>
-//!  - <code>virtual void onMouse(Wde_MouseEvent* e)</code>
-//!  - <code>virtual void onNcPaint(Wde_PaintEvent* e)</code>
-//!  - <code>virtual void onPaint(Wde_PaintEvent* e)</code>
-//!  - <code>virtual void onClose(Wde_CloseEvent* e)</code>
+//!  - <code>virtual void onStateChange(StateEvent* e)</code>
+//!  - <code>virtual void onVisibilityChange(VisibilityEvent* e)</code>
+//!  - <code>virtual void onConfigure(ConfigureEvent* e)</code>
+//!  - <code>virtual void onFocus(FocusEvent* e)</code>
+//!  - <code>virtual void onKey(KeyEvent* e)</code>
+//!  - <code>virtual void onMouse(MouseEvent* e)</code>
+//!  - <code>virtual void onNcPaint(PaintEvent* e)</code>
+//!  - <code>virtual void onPaint(PaintEvent* e)</code>
+//!  - <code>virtual void onClose(CloseEvent* e)</code>
 //!
 //! Widget state:
 //!

@@ -82,14 +82,14 @@ static const BlitJit::Operator* fogOperatorToBlitJit(uint32_t oId)
   {
     case CompositeSrc        : return &BlitJit::Api::operators[BlitJit::Operator::CompositeSrc];
     case CompositeDest       : return &BlitJit::Api::operators[BlitJit::Operator::CompositeDest];
-    case CompositeOver       : return &BlitJit::Api::operators[BlitJit::Operator::CompositeOver];
-    case CompositeOverReverse: return &BlitJit::Api::operators[BlitJit::Operator::CompositeOverReverse];
-    case CompositeIn         : return &BlitJit::Api::operators[BlitJit::Operator::CompositeIn];
-    case CompositeInReverse  : return &BlitJit::Api::operators[BlitJit::Operator::CompositeInReverse];
-    case CompositeOut        : return &BlitJit::Api::operators[BlitJit::Operator::CompositeOut];
-    case CompositeOutReverse : return &BlitJit::Api::operators[BlitJit::Operator::CompositeOutReverse];
-    case CompositeAtop       : return &BlitJit::Api::operators[BlitJit::Operator::CompositeAtop];
-    case CompositeAtopReverse: return &BlitJit::Api::operators[BlitJit::Operator::CompositeAtopReverse];
+    case CompositeSrcOver    : return &BlitJit::Api::operators[BlitJit::Operator::CompositeOver];
+    case CompositeDestOver   : return &BlitJit::Api::operators[BlitJit::Operator::CompositeOverReverse];
+    case CompositeSrcIn      : return &BlitJit::Api::operators[BlitJit::Operator::CompositeIn];
+    case CompositeDestIn     : return &BlitJit::Api::operators[BlitJit::Operator::CompositeInReverse];
+    case CompositeSrcOut     : return &BlitJit::Api::operators[BlitJit::Operator::CompositeOut];
+    case CompositeDestOut    : return &BlitJit::Api::operators[BlitJit::Operator::CompositeOutReverse];
+    case CompositeSrcAtop    : return &BlitJit::Api::operators[BlitJit::Operator::CompositeAtop];
+    case CompositeDestAtop   : return &BlitJit::Api::operators[BlitJit::Operator::CompositeAtopReverse];
     case CompositeXor        : return &BlitJit::Api::operators[BlitJit::Operator::CompositeXor];
     case CompositeClear      : return &BlitJit::Api::operators[BlitJit::Operator::CompositeClear];
 

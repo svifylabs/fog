@@ -215,35 +215,35 @@ struct FOG_API Path
     bool sweepFlag,
     double dx, double dy);
 
-  err_t quadraticCurveTo(
+  err_t curve3To(
     double x_ctrl, double y_ctrl, 
     double x_to,   double y_to);
 
-  err_t quadraticCurveToRel(
+  err_t curve3ToRel(
     double dx_ctrl, double dy_ctrl, 
     double dx_to,   double dy_to);
 
-  err_t quadraticCurveTo(
+  err_t curve3To(
     double x_to,    double y_to);
 
-  err_t quadraticCurveToRel(
+  err_t curve3ToRel(
     double dx_to,   double dy_to);
 
-  err_t cubicCurveTo(
+  err_t curve4To(
     double x_ctrl1, double y_ctrl1,
     double x_ctrl2, double y_ctrl2,
     double x_to,    double y_to);
 
-  err_t cubicCurveToRel(
+  err_t curve4ToRel(
     double dx_ctrl1, double dy_ctrl1, 
     double dx_ctrl2, double dy_ctrl2, 
     double dx_to,    double dy_to);
 
-  err_t cubicCurveTo(
+  err_t curve4To(
     double x_ctrl2, double y_ctrl2, 
     double x_to,    double y_to);
 
-  err_t cubicCurveToRel(
+  err_t curve4ToRel(
     double dx_ctrl2, double dy_ctrl2, 
     double dx_to,    double dy_to);
 
@@ -256,10 +256,14 @@ struct FOG_API Path
   err_t translate(double dx, double dy);
   err_t translate(double dx, double dy, sysuint_t pathId);
 
+  err_t scale(double sx, double sy, bool keepStartPos = false);
+
   // [Complex]
 
   err_t addRect(const RectF& r);
   err_t addLineTo(const PointF* pts, sysuint_t count);
+  err_t addEllipse(const PointF& cp, const PointF& r);
+  err_t addArc(const PointF& cp, const PointF& r, double start, double sweep);
 
   // [Inlines]
 
@@ -291,45 +295,45 @@ struct FOG_API Path
     const PointF& pt)
   { return arcToRel(r.x(), r.y(), angle, largeArcFlag, sweepFlag, pt.x(), pt.y()); }
 
-  FOG_INLINE err_t quadraticCurveTo(
+  FOG_INLINE err_t curve3To(
     const PointF& ctrl,
     const PointF& to)
-  { return quadraticCurveTo(ctrl.x(), ctrl.y(), to.x(), to.y()); }
+  { return curve3To(ctrl.x(), ctrl.y(), to.x(), to.y()); }
 
-  FOG_INLINE err_t quadraticCurveToRel(
+  FOG_INLINE err_t curve3ToRel(
     const PointF& ctrl,
     const PointF& to)
-  { return quadraticCurveToRel(ctrl.x(), ctrl.y(), to.x(), to.y()); }
+  { return curve3ToRel(ctrl.x(), ctrl.y(), to.x(), to.y()); }
 
-  FOG_INLINE err_t quadraticCurveTo(
+  FOG_INLINE err_t curve3To(
     const PointF& to)
-  { return quadraticCurveTo(to.x(), to.y()); }
+  { return curve3To(to.x(), to.y()); }
 
-  FOG_INLINE err_t quadraticCurveToRel(
+  FOG_INLINE err_t curve3ToRel(
     const PointF& to)
-  { return quadraticCurveToRel(to.x(), to.y()); }
+  { return curve3ToRel(to.x(), to.y()); }
 
-  FOG_INLINE err_t cubicCurveTo(
+  FOG_INLINE err_t curve4To(
     const PointF& ctrl1,
     const PointF& ctrl2,
     const PointF& to)
-  { return cubicCurveTo(ctrl1.x(), ctrl1.y(), ctrl2.x(), ctrl2.y(), to.x(), to.y()); }
+  { return curve4To(ctrl1.x(), ctrl1.y(), ctrl2.x(), ctrl2.y(), to.x(), to.y()); }
 
-  FOG_INLINE err_t cubicCurveToRel(
+  FOG_INLINE err_t curve4ToRel(
     const PointF& ctrl1,
     const PointF& ctrl2,
     const PointF& to)
-  { return cubicCurveToRel(ctrl1.x(), ctrl1.y(), ctrl2.x(), ctrl2.y(), to.x(), to.y()); }
+  { return curve4ToRel(ctrl1.x(), ctrl1.y(), ctrl2.x(), ctrl2.y(), to.x(), to.y()); }
 
-  FOG_INLINE err_t cubicCurveTo(
+  FOG_INLINE err_t curve4To(
     const PointF& ctrl2,
     const PointF& to)
-  { return cubicCurveTo(ctrl2.x(), ctrl2.y(), to.x(), to.y()); }
+  { return curve4To(ctrl2.x(), ctrl2.y(), to.x(), to.y()); }
 
-  FOG_INLINE err_t cubicCurveToRel(
+  FOG_INLINE err_t curve4ToRel(
     const PointF& ctrl2,
     const PointF& to)
-  { return cubicCurveToRel(ctrl2.x(), ctrl2.y(), to.x(), to.y()); }
+  { return curve4ToRel(ctrl2.x(), ctrl2.y(), to.x(), to.y()); }
 
   FOG_INLINE err_t translate(const Point& pt)
   { return translate(pt.x(), pt.y()); }

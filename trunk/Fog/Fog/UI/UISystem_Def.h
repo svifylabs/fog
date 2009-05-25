@@ -25,10 +25,13 @@ struct UISystemDefault;
 // [Fog::UISystem]
 // ============================================================================
 
-//! @brief Base for @c Fog::Widget or @c Wde_Layout classes.
+//! @brief Default UISystem implementation that is shared between Windows and
+//! X11 UISystem.
 //!
-//! Layout item can be imagined as interface. It contains pure virtual methods
-//! that's overriden by widgets or layouts.
+//! The reason to make this class is fact that all UISystems needs similar
+//! things and only their API is different. Another reason is that anybody can
+//! implement own UISystem not based on this one reimplementing all abstract
+//! methods.
 struct FOG_API UISystemDefault : public UISystem
 {
   FOG_DECLARE_OBJECT(UISystemDefault, UISystem)

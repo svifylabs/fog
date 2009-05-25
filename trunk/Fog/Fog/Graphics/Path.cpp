@@ -143,16 +143,19 @@ static FOG_INLINE void relToAbsInline(Path::Data* d, double* x, double* y)
 }
 
 template<class VertexStorage>
-static void aggJoinPath(Path* self, VertexStorage& a)
+static err_t aggJoinPath(Path* self, VertexStorage& a)
 {
   sysuint_t i, len = a.num_vertices();
   Path::Vertex* v = self->_add(len);
+  if (!v) return Error::OutOfMemory;
 
   a.rewind(0);
   for (i = 0; i < len; i++)
   {
     v[i].cmd = a.vertex(&v[i].x, &v[i].y);
   }
+
+  return Error::Ok;
 }
 
 Path::Path()
@@ -384,14 +387,9 @@ err_t Path::arcTo(
     {
       agg::bezier_arc_svg a(x0, y0, rx, ry, angle, largeArcFlag, sweepFlag, x, y);
       if (a.radii_ok())
-      {
-        aggJoinPath(this, a);
-        return Error::Ok;
-      }
+        return aggJoinPath(this, a);
       else
-      {
         return lineTo(x, y);
-      }
     }
   }
   else
@@ -411,7 +409,7 @@ err_t Path::arcToRel(
   return arcTo(rx, ry, angle, largeArcFlag, sweepFlag, dx, dy);
 }
 
-err_t Path::quadraticCurveTo(
+err_t Path::curve3To(
   double x_ctrl, double y_ctrl, 
   double x_to,   double y_to)
 {
@@ -428,16 +426,16 @@ err_t Path::quadraticCurveTo(
   return Error::Ok;
 }
 
-err_t Path::quadraticCurveToRel(
+err_t Path::curve3ToRel(
   double dx_ctrl, double dy_ctrl, 
   double dx_to,   double dy_to)
 {
   relToAbsInline(_d, &dx_ctrl, &dy_ctrl);
   relToAbsInline(_d, &dx_to,   &dy_to);
-  return quadraticCurveTo(dx_ctrl, dy_ctrl, dx_to, dy_to);
+  return curve3To(dx_ctrl, dy_ctrl, dx_to, dy_to);
 }
 
-err_t Path::quadraticCurveTo(
+err_t Path::curve3To(
   double x_to,    double y_to)
 {
   Vertex* endv = _d->data + _d->length;
@@ -453,20 +451,20 @@ err_t Path::quadraticCurveTo(
       y_ctrl += endv[-1].y - endv[-2].y;
     }
 
-    return quadraticCurveTo(x_ctrl, y_ctrl, x_to, y_to);
+    return curve3To(x_ctrl, y_ctrl, x_to, y_to);
   }
   else
     return Error::Ok;
 }
 
-err_t Path::quadraticCurveToRel(
+err_t Path::curve3ToRel(
   double dx_to,   double dy_to)
 {
   relToAbsInline(_d, &dx_to, &dy_to);
-  return quadraticCurveTo(dx_to, dy_to);
+  return curve3To(dx_to, dy_to);
 }
 
-err_t Path::cubicCurveTo(
+err_t Path::curve4To(
   double x_ctrl1, double y_ctrl1,
   double x_ctrl2, double y_ctrl2,
   double x_to,    double y_to)
@@ -487,7 +485,7 @@ err_t Path::cubicCurveTo(
   return Error::Ok;
 }
 
-err_t Path::cubicCurveToRel(
+err_t Path::curve4ToRel(
   double dx_ctrl1, double dy_ctrl1, 
   double dx_ctrl2, double dy_ctrl2, 
   double dx_to,    double dy_to)
@@ -496,10 +494,10 @@ err_t Path::cubicCurveToRel(
   relToAbsInline(_d, &dx_ctrl2, &dy_ctrl2);
   relToAbsInline(_d, &dx_to,    &dy_to);
 
-  return cubicCurveTo(dx_ctrl1, dy_ctrl1, dx_ctrl2, dy_ctrl2, dx_to, dy_to);
+  return curve4To(dx_ctrl1, dy_ctrl1, dx_ctrl2, dy_ctrl2, dx_to, dy_to);
 }
 
-err_t Path::cubicCurveTo(
+err_t Path::curve4To(
   double x_ctrl2, double y_ctrl2, 
   double x_to,    double y_to)
 {
@@ -516,20 +514,20 @@ err_t Path::cubicCurveTo(
       y_ctrl1 += endv[-1].y - endv[-2].y;
     }
 
-    return cubicCurveTo(x_ctrl1, y_ctrl1, x_ctrl2, y_ctrl2, x_to, y_to);
+    return curve4To(x_ctrl1, y_ctrl1, x_ctrl2, y_ctrl2, x_to, y_to);
   }
   else
     return Error::Ok;
 }
 
-err_t Path::cubicCurveToRel(
+err_t Path::curve4ToRel(
   double dx_ctrl2, double dy_ctrl2, 
   double dx_to,    double dy_to)
 {
   relToAbsInline(_d, &dx_ctrl2, &dy_ctrl2);
   relToAbsInline(_d, &dx_to,    &dy_to);
 
-  return cubicCurveTo(dx_ctrl2, dy_ctrl2, dx_to, dy_to);
+  return curve4To(dx_ctrl2, dy_ctrl2, dx_to, dy_to);
 }
 
 err_t Path::endPoly(uint32_t cmdflags)
@@ -616,7 +614,7 @@ err_t Path::translate(double dx, double dy, sysuint_t pathId)
 
   err_t err = detach();
   if (err) return err;
-  
+
   sysuint_t i, len = _d->length;
   Vertex* v = _d->data;
 
@@ -627,6 +625,54 @@ err_t Path::translate(double dx, double dy, sysuint_t pathId)
     {
       v[i].x += dx;
       v[i].y += dy;
+    }
+  }
+
+  return Error::Ok;
+}
+
+err_t Path::scale(double sx, double sy, bool keepStartPos)
+{
+  if (!_d->length) return Error::Ok;
+
+  err_t err = detach();
+  if (err) return err;
+
+  sysuint_t i, len = _d->length;
+  Vertex* v = _d->data;
+
+  if (keepStartPos)
+  {
+    double px = v[0].x;
+    double py = v[0].y;
+
+    for (i = 1; i < len; i++)
+    {
+      if (v[i].cmd.isVertex())
+      {
+        if (v[i].x < px) px = v[i].x;
+        if (v[i].y < py) py = v[i].y;
+      }
+    }
+
+    for (i = 0; i < len; i++)
+    {
+      if (v[i].cmd.isVertex())
+      {
+        v[i].x = (v[i].x - px) * sx + px;
+        v[i].y = (v[i].y - py) * sy + py;
+      }
+    }
+  }
+  else
+  {
+    for (i = 0; i < len; i++)
+    {
+      if (v[i].cmd.isVertex())
+      {
+        v[i].x *= sx;
+        v[i].y *= sy;
+      }
     }
   }
 
@@ -670,6 +716,17 @@ err_t Path::addLineTo(const PointF* pts, sysuint_t count)
   }
 
   return Error::Ok;
+}
+
+err_t Path::addEllipse(const PointF& cp, const PointF& r)
+{
+  return addArc(cp, r, 0.0, 2.0 * M_PI);
+}
+
+err_t Path::addArc(const PointF& cp, const PointF& r, double start, double sweep)
+{
+  agg::bezier_arc arc(cp.x(), cp.y(), r.x(), r.y(), start, sweep);
+  return aggJoinPath(this, arc);
 }
 
 Path& Path::operator=(const Path& other)
