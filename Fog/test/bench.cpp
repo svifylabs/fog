@@ -103,12 +103,12 @@ struct BenchmarkModule_Fog : public BenchmarkModule
 };
 
 // ============================================================================
-// [BenchmarkModule_Fog_Fill]
+// [BenchmarkModule_Fog_FillRect]
 // ============================================================================
 
-struct BenchmarkModule_Fog_Fill : public BenchmarkModule_Fog
+struct BenchmarkModule_Fog_FillRect : public BenchmarkModule_Fog
 {
-  BenchmarkModule_Fog_Fill(int w, int h) :
+  BenchmarkModule_Fog_FillRect(int w, int h) :
     BenchmarkModule_Fog(w, h)
   {
   }
@@ -129,16 +129,16 @@ struct BenchmarkModule_Fog_Fill : public BenchmarkModule_Fog
     p.flush();
   }
 
-  virtual const char* name() { return mt ? "Fog - Fill (mt)" : "Fog - Fill"; }
+  virtual const char* name() { return mt ? "Fog - FillRect (mt)" : "Fog - FillRect"; }
 };
 
 // ============================================================================
-// [BenchmarkModule_Fog_Blit]
+// [BenchmarkModule_Fog_FillPath]
 // ============================================================================
 
-struct BenchmarkModule_Fog_Blit : public BenchmarkModule_Fog
+struct BenchmarkModule_Fog_FillPath : public BenchmarkModule_Fog
 {
-  BenchmarkModule_Fog_Blit(int w, int h) :
+  BenchmarkModule_Fog_FillPath(int w, int h) :
     BenchmarkModule_Fog(w, h)
   {
   }
@@ -148,25 +148,33 @@ struct BenchmarkModule_Fog_Blit : public BenchmarkModule_Fog
     p.save();
     for (int a = 0; a < quantity; a++)
     {
-      int rx = rand() % (w - 128);
-      int ry = rand() % (h - 128);
+      Path path;
+      path.moveTo(PointF(rand() % w, rand() % h));
+      for (int i = 0; i < 3; i++)
+      {
+        path.curve3To(
+          PointF(rand() % w, rand() % h),
+          PointF(rand() % w, rand() % h));
+      }
+      path.closePolygon();
 
-      p.drawImage(Point(rx, ry), sprite[rand() % 4]);
+      p.setSource(Rgba(randColor()));
+      p.fillPath(path);
     }
     p.restore();
     p.flush();
   }
 
-  virtual const char* name() { return mt ? "Fog - Blit (mt)" : "Fog - Blit"; }
+  virtual const char* name() { return mt ? "Fog - FillPath (mt)" : "Fog - FillPath"; }
 };
 
 // ============================================================================
-// [BenchmarkModule_Fog_Blit]
+// [BenchmarkModule_Fog_FillPattern]
 // ============================================================================
 
-struct BenchmarkModule_Fog_Pattern : public BenchmarkModule_Fog
+struct BenchmarkModule_Fog_FillPattern : public BenchmarkModule_Fog
 {
-  BenchmarkModule_Fog_Pattern(int w, int h) :
+  BenchmarkModule_Fog_FillPattern(int w, int h) :
     BenchmarkModule_Fog(w, h)
   {
     pattern.setType(Pattern::LinearGradient);
@@ -204,12 +212,40 @@ struct BenchmarkModule_Fog_Pattern : public BenchmarkModule_Fog
       case Pattern::ConicalGradient: p = "ConicalGradient"; break;
     }
 
-    sprintf(buf, "Fog - Pattern - %s%s", p, mt ? " (mt)" : "");
+    sprintf(buf, "Fog - FillPattern - %s%s", p, mt ? " (mt)" : "");
     return buf;
   }
 
   Pattern pattern;
   char buf[1024];
+};
+
+// ============================================================================
+// [BenchmarkModule_Fog_Blit]
+// ============================================================================
+
+struct BenchmarkModule_Fog_Blit : public BenchmarkModule_Fog
+{
+  BenchmarkModule_Fog_Blit(int w, int h) :
+    BenchmarkModule_Fog(w, h)
+  {
+  }
+
+  virtual void doBenchmark(int quantity)
+  {
+    p.save();
+    for (int a = 0; a < quantity; a++)
+    {
+      int rx = rand() % (w - 128);
+      int ry = rand() % (h - 128);
+
+      p.drawImage(Point(rx, ry), sprite[rand() % 4]);
+    }
+    p.restore();
+    p.flush();
+  }
+
+  virtual const char* name() { return mt ? "Fog - BlitImage (mt)" : "Fog - BlitImage"; }
 };
 
 #if defined(FOG_OS_WINDOWS)
@@ -275,12 +311,12 @@ struct BenchmarkModule_GDI : public BenchmarkModule
 };
 
 // ============================================================================
-// [BenchmarkModule_GDI_Fill]
+// [BenchmarkModule_GDI_FillRect]
 // ============================================================================
 
-struct BenchmarkModule_GDI_Fill : public BenchmarkModule_GDI
+struct BenchmarkModule_GDI_FillRect : public BenchmarkModule_GDI
 {
-  BenchmarkModule_GDI_Fill(int w, int h) :
+  BenchmarkModule_GDI_FillRect(int w, int h) :
     BenchmarkModule_GDI(w, h)
   {
   }
@@ -302,47 +338,16 @@ struct BenchmarkModule_GDI_Fill : public BenchmarkModule_GDI
     DeleteDC(dc);
   }
 
-  virtual const char* name() { return "GDI - Fill"; }
+  virtual const char* name() { return "GDI - FillRect"; }
 };
 
 // ============================================================================
-// [BenchmarkModule_GDI_Blit]
+// [BenchmarkModule_GDI_FillPattern]
 // ============================================================================
 
-struct BenchmarkModule_GDI_Blit : public BenchmarkModule_GDI
+struct BenchmarkModule_GDI_FillPattern : public BenchmarkModule_GDI
 {
-  BenchmarkModule_GDI_Blit(int w, int h) :
-    BenchmarkModule_GDI(w, h)
-  {
-  }
-
-  virtual void doBenchmark(int quantity)
-  {
-    HDC dc = CreateCompatibleDC(NULL);
-
-    SelectObject(dc, im);
-    {
-      Gdiplus::Graphics gr(dc);
-
-      for (int a = 0; a < quantity; a++)
-      {
-        Gdiplus::Bitmap bm(sprite[rand() % 4], (HPALETTE)NULL);
-        gr.DrawImage(&bm, rand() % (w - 128), rand() % (h - 128));
-      }
-    }
-    DeleteDC(dc);
-  }
-
-  virtual const char* name() { return "GDI - Blit"; }
-};
-
-// ============================================================================
-// [BenchmarkModule_GDI_Pattern]
-// ============================================================================
-
-struct BenchmarkModule_GDI_Pattern : public BenchmarkModule_GDI
-{
-  BenchmarkModule_GDI_Pattern(int w, int h) :
+  BenchmarkModule_GDI_FillPattern(int w, int h) :
     BenchmarkModule_GDI(w, h)
   {
   }
@@ -384,7 +389,38 @@ struct BenchmarkModule_GDI_Pattern : public BenchmarkModule_GDI
     }*/
   }
 
-  virtual const char* name() { return "GDI - Pattern - LinearGradient"; }
+  virtual const char* name() { return "GDI - FillPattern - LinearGradient"; }
+};
+
+// ============================================================================
+// [BenchmarkModule_GDI_BlitImage]
+// ============================================================================
+
+struct BenchmarkModule_GDI_BlitImage : public BenchmarkModule_GDI
+{
+  BenchmarkModule_GDI_BlitImage(int w, int h) :
+    BenchmarkModule_GDI(w, h)
+  {
+  }
+
+  virtual void doBenchmark(int quantity)
+  {
+    HDC dc = CreateCompatibleDC(NULL);
+
+    SelectObject(dc, im);
+    {
+      Gdiplus::Graphics gr(dc);
+
+      for (int a = 0; a < quantity; a++)
+      {
+        Gdiplus::Bitmap bm(sprite[rand() % 4], (HPALETTE)NULL);
+        gr.DrawImage(&bm, rand() % (w - 128), rand() % (h - 128));
+      }
+    }
+    DeleteDC(dc);
+  }
+
+  virtual const char* name() { return "GDI - BlitImage"; }
 };
 
 #else
@@ -420,9 +456,13 @@ struct BenchmarkModule_Cairo : public BenchmarkModule_Fog
   cairo_surface_t* csprite[4];
 };
 
-struct BenchmarkModule_Cairo_Fill : public BenchmarkModule_Cairo
+// ============================================================================
+// [BenchmarkModule_Cairo_FillRect]
+// ============================================================================
+
+struct BenchmarkModule_Cairo_FillRect : public BenchmarkModule_Cairo
 {
-  BenchmarkModule_Cairo_Fill(int w, int h) :
+  BenchmarkModule_Cairo_FillRect(int w, int h) :
     BenchmarkModule_Cairo(w, h)
   {
   }
@@ -446,12 +486,16 @@ struct BenchmarkModule_Cairo_Fill : public BenchmarkModule_Cairo
     cairo_destroy(cr);
   }
 
-  virtual const char* name() { return "Cairo - Fill"; }
+  virtual const char* name() { return "Cairo - FillRect"; }
 };
 
-struct BenchmarkModule_Cairo_Blit : public BenchmarkModule_Cairo
+// ============================================================================
+// [BenchmarkModule_Cairo_FillPath]
+// ============================================================================
+
+struct BenchmarkModule_Cairo_FillPath : public BenchmarkModule_Cairo
 {
-  BenchmarkModule_Cairo_Blit(int w, int h) :
+  BenchmarkModule_Cairo_FillPath(int w, int h) :
     BenchmarkModule_Cairo(w, h)
   {
   }
@@ -462,22 +506,42 @@ struct BenchmarkModule_Cairo_Blit : public BenchmarkModule_Cairo
 
     for (int a = 0; a < quantity; a++)
     {
-      int x = rand() % (w - 128);
-      int y = rand() % (h - 128);
+      double lx0 = rand() % w;
+      double ly0 = rand() % h;
+      cairo_move_to(cr, lx0, ly0);
 
-      cairo_set_source_surface(cr, csprite[rand()%4], x, y);
-      cairo_paint(cr);
+      for (int i = 0; i < 3; i++)
+      {
+        double lx1 = rand() % w;
+        double ly1 = rand() % h;
+        double lx2 = rand() % w;
+        double ly2 = rand() % h;
+        cairo_curve_to(cr, lx0, ly0, lx1, ly1, lx2, ly2);
+        lx0 = lx2;
+        ly0 = ly2;
+      }
+      cairo_close_path(cr);
+
+      Rgba c(randColor());
+      cairo_set_source_rgba(cr,
+        (double)c.r / 255.0, (double)c.g / 255.0, (double)c.b / 255.0, (double)c.a / 255.0);
+
+      cairo_fill(cr);
     }
 
     cairo_destroy(cr);
   }
 
-  virtual const char* name() { return "Cairo - Blit"; }
+  virtual const char* name() { return "Cairo - FillPath"; }
 };
 
-struct BenchmarkModule_Cairo_Pattern : public BenchmarkModule_Cairo
+// ============================================================================
+// [BenchmarkModule_Cairo_FillPattern]
+// ============================================================================
+
+struct BenchmarkModule_Cairo_FillPattern : public BenchmarkModule_Cairo
 {
-  BenchmarkModule_Cairo_Pattern(int w, int h) :
+  BenchmarkModule_Cairo_FillPattern(int w, int h) :
     BenchmarkModule_Cairo(w, h),
     type(0)
   {
@@ -521,13 +585,43 @@ struct BenchmarkModule_Cairo_Pattern : public BenchmarkModule_Cairo
   {
     switch (type)
     {
-      case 0: return "Cairo - Pattern - LinearGradient";
-      case 1: return "Cairo - Pattern - RadialGradient";
+      case 0: return "Cairo - FillPattern - LinearGradient";
+      case 1: return "Cairo - FillPattern - RadialGradient";
     }
     return NULL;
   }
 
   int type;
+};
+
+// ============================================================================
+// [BenchmarkModule_Cairo_BlitImage]
+// ============================================================================
+
+struct BenchmarkModule_Cairo_BlitImage : public BenchmarkModule_Cairo
+{
+  BenchmarkModule_Cairo_BlitImage(int w, int h) :
+    BenchmarkModule_Cairo(w, h)
+  {
+  }
+
+  virtual void doBenchmark(int quantity)
+  {
+    cairo_t* cr = cairo_create(cim);
+
+    for (int a = 0; a < quantity; a++)
+    {
+      int x = rand() % (w - 128);
+      int y = rand() % (h - 128);
+
+      cairo_set_source_surface(cr, csprite[rand()%4], x, y);
+      cairo_paint(cr);
+    }
+
+    cairo_destroy(cr);
+  }
+
+  virtual const char* name() { return "Cairo - BlitImage"; }
 };
 
 #endif 
@@ -541,16 +635,52 @@ static void benchAll()
   int w = 640, h = 480;
   int quantity = 100000;
 
-  // FOG - FILL
+  // FOG - FillRect
   {
-    BenchmarkModule_Fog_Fill mod(w, h);
+    BenchmarkModule_Fog_FillRect mod(w, h);
     mod.setMultithreaded(false);
     bench(mod, quantity);
     mod.setMultithreaded(true);
     bench(mod, quantity);
   }
 
-  // FOG - BLIT
+  // FOG - FillPath
+  {
+    BenchmarkModule_Fog_FillPath mod(w, h);
+    mod.setMultithreaded(false);
+    bench(mod, quantity);
+    mod.setMultithreaded(true);
+    bench(mod, quantity);
+  }
+
+  // FOG - FillPattern
+  {
+    BenchmarkModule_Fog_FillPattern mod(w, h);
+
+    mod.setMultithreaded(false);
+
+    mod.pattern.setType(Pattern::LinearGradient);
+    bench(mod, quantity);
+
+    mod.pattern.setType(Pattern::RadialGradient);
+    bench(mod, quantity);
+
+    mod.pattern.setType(Pattern::ConicalGradient);
+    bench(mod, quantity);
+
+    mod.setMultithreaded(true);
+
+    mod.pattern.setType(Pattern::LinearGradient);
+    bench(mod, quantity);
+
+    mod.pattern.setType(Pattern::RadialGradient);
+    bench(mod, quantity);
+
+    mod.pattern.setType(Pattern::ConicalGradient);
+    bench(mod, quantity);
+  }
+
+  // FOG - BlitImage
   {
     BenchmarkModule_Fog_Blit mod(w, h);
     mod.setMultithreaded(false);
@@ -559,70 +689,49 @@ static void benchAll()
     bench(mod, quantity);
   }
 
-  // FOG - PATTERN
-  {
-    BenchmarkModule_Fog_Pattern mod(w, h);
-
-    mod.setMultithreaded(false);
-
-    mod.pattern.setType(Pattern::LinearGradient);
-    bench(mod, quantity);
-
-    mod.pattern.setType(Pattern::RadialGradient);
-    bench(mod, quantity);
-
-    mod.pattern.setType(Pattern::ConicalGradient);
-    bench(mod, quantity);
-
-    mod.setMultithreaded(true);
-
-    mod.pattern.setType(Pattern::LinearGradient);
-    bench(mod, quantity);
-
-    mod.pattern.setType(Pattern::RadialGradient);
-    bench(mod, quantity);
-
-    mod.pattern.setType(Pattern::ConicalGradient);
-    bench(mod, quantity);
-  }
-
 #if defined(FOG_OS_WINDOWS)
-  // GDIPLUS - FILL
+  // GdiPlus - FillRect
   {
-    BenchmarkModule_GDI_Fill mod(w, h);
+    BenchmarkModule_GDI_FillRect mod(w, h);
     bench(mod, quantity);
   }
 
-  // GDIPLUS - BLIT
+  // GdiPlus - FillPattern
   {
-    BenchmarkModule_GDI_Blit mod(w, h);
+    BenchmarkModule_GDI_FillPattern mod(w, h);
     bench(mod, quantity);
   }
 
-  // GDIPLUS - PATTERN
+  // GdiPlus - BlitImage
   {
-    BenchmarkModule_GDI_Pattern mod(w, h);
+    BenchmarkModule_GDI_BlitImage mod(w, h);
     bench(mod, quantity);
   }
 #else
-  // CAIRO - FILL
+  // Cairo - FillRect
   {
-    BenchmarkModule_Cairo_Fill mod(w, h);
+    BenchmarkModule_Cairo_FillRect mod(w, h);
     bench(mod, quantity);
   }
 
-  // CAIRO - BLIT
+  // Cairo - FillPath
   {
-    BenchmarkModule_Cairo_Blit mod(w, h);
+    BenchmarkModule_Cairo_FillPath mod(w, h);
     bench(mod, quantity);
   }
 
-  // CAIRO - PATTERN
+  // Cairo - FillPattern
   {
-    BenchmarkModule_Cairo_Pattern mod(w, h);
+    BenchmarkModule_Cairo_FillPattern mod(w, h);
     bench(mod, quantity);
 
     mod.type = 1;
+    bench(mod, quantity);
+  }
+
+  // Cairo - BlitImage
+  {
+    BenchmarkModule_Cairo_BlitImage mod(w, h);
     bench(mod, quantity);
   }
 
