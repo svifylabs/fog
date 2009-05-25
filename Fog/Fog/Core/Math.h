@@ -16,7 +16,7 @@
 // [Fog::Math]
 // ============================================================================
 
-// Some constants are not defined by Microsoft compiler
+// Some constants are not defined by MSVCr
 
 // Constants with 'l' suffix are gcc extensions for long double
 // types
@@ -108,8 +108,8 @@
 #define NAN __builtin_nan("")
 #elif defined(FOG_ARCH_X86) || defined(FOG_ARCH_X86_64)
 // For MSVC! Is there any other compiler that will not declare NAN ?
-static FOG_HIDDEN const uint32_t __Wde_NAN__[2] = { 0xFFFFFFFF,0x7FFFFFFF };
-#define NAN ( *(const double *)__Wde_NAN__)
+static FOG_HIDDEN const uint32_t core_nan[2] = { 0xFFFFFFFF,0x7FFFFFFF };
+#define NAN ( *(const double *)core_nan)
 #else
 #error "Fog::Math - Haven't NAN"
 #endif
@@ -123,8 +123,8 @@ static FOG_HIDDEN const uint32_t __Wde_NAN__[2] = { 0xFFFFFFFF,0x7FFFFFFF };
 #define INFINITY __builtin_inf()
 #elif defined(FOG_ARCH_X86) || defined(FOG_ARCH_X86_64)
 // For MSVC! Is there any other compiler that will not declare INFINITY ?
-static FOG_HIDDEN const uint32_t __Core_INF__[2] = { 0x00000000,0x7FF00000 };
-#define INFINITY ( *(const double *)__Core_INF__)
+static FOG_HIDDEN const uint32_t core_inf[2] = { 0x00000000,0x7FF00000 };
+#define INFINITY ( *(const double *)core_inf)
 #else
 #error "Fog::Math - Haven't INFINITY"
 #endif

@@ -251,37 +251,6 @@ enum FocusReasonEnum
   FocusReasonBackTab
 };
 
-//! @brief Wde_Gui init failcodes.
-enum InitResult_Gui
-{
-  // 1 - 31 reserved for Wde_Core, but Wde_Code should always success at
-  // initialization
-
-  // X failure
-
-  InitResult_CantLoadXLib = 32,
-  InitResult_CantLoadXLibSymbol = 33,
-  InitResult_CantLoadXextLib = 34,
-  InitResult_CantLoadXextLibSymbol = 35,
-  InitResult_CantLoadXrenderLib = 36,
-  InitResult_CantLoadXrenderLibSymbol = 37,
-  InitResult_CantOpenXDisplay = 38,
-  InitResult_CantCreateColormap = 39,
-  InitResult_CantCreateAccureColormap = 40,
-
-  // Win failure
-
-  InitResult_CantRegisterClass = 41,
-  InitResult_CantCreateMsgWindow = 42,
-
-  // Font failure
-
-  InitResult_CantLoadFreetype = 43,
-  InitResult_CantLoadFreetypeSymbol = 44,
-  InitResult_CantInitializeFreetype = 45,
-  InitResult_CantLoadDefaultFontFace = 46
-};
-
 static FOG_INLINE bool isClearMod   (uint32_t mod) { return (mod & ModifierMask  ) == 0; }
 static FOG_INLINE bool isAltMod     (uint32_t mod) { return (mod & ModifierAlt   ) != 0; }
 static FOG_INLINE bool isAltOnly    (uint32_t mod) { return (mod & ModifierMask  ) == (mod & ModifierAlt); }

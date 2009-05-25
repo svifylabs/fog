@@ -1796,9 +1796,9 @@ static Raster::SpanSolidFn getSpanSolidBlitter(int format, bool over)
   switch (format)
   {
     case Image::FormatARGB32:
-      return m->raster_argb32[0][over ? CompositeOver : CompositeSrc].span_solid;
+      return m->raster_argb32[0][over ? CompositeSrcOver : CompositeSrc].span_solid;
     case Image::FormatPRGB32:
-      return m->raster_argb32[1][over ? CompositeOver : CompositeSrc].span_solid;
+      return m->raster_argb32[1][over ? CompositeSrcOver : CompositeSrc].span_solid;
     case Image::FormatRGB32:
       return m->raster_rgb32.span_solid;
     case Image::FormatRGB24:
@@ -1816,9 +1816,9 @@ static Raster::SpanCompositeFn getSpanCompositeBlitter(int format, bool over)
   switch (format)
   {
     case Image::FormatARGB32:
-      return m->raster_argb32[0][over ? CompositeOver : CompositeSrc].span_composite[Image::FormatARGB32];
+      return m->raster_argb32[0][over ? CompositeSrcOver : CompositeSrc].span_composite[Image::FormatARGB32];
     case Image::FormatPRGB32:
-      return m->raster_argb32[1][over ? CompositeOver : CompositeSrc].span_composite[Image::FormatPRGB32];
+      return m->raster_argb32[1][over ? CompositeSrcOver : CompositeSrc].span_composite[Image::FormatPRGB32];
     case Image::FormatRGB32:
       return m->raster_rgb32.span_composite[Image::FormatARGB32];
     case Image::FormatRGB24:
@@ -1945,7 +1945,7 @@ err_t Image::fillRect(const Rect& r, uint32_t c0, bool over)
   int fmt = _d->format;
 
   int op = CompositeSrc;
-  if (over && (c0 & 0xFF000000) != 0xFF000000) op = CompositeOver;
+  if (over && (c0 & 0xFF000000) != 0xFF000000) op = CompositeSrcOver;
 
   if (x1 < 0) x1 = 0;
   if (y1 < 0) y1 = 0;
@@ -1994,7 +1994,7 @@ err_t Image::fillQGradient(const Rect& r, Rgba c0, Rgba c1, Rgba c2, Rgba c3, bo
     (c0 & 0xFF000000) != 0xFF000000 ||
     (c1 & 0xFF000000) != 0xFF000000 ||
     (c2 & 0xFF000000) != 0xFF000000 ||
-    (c3 & 0xFF000000) != 0xFF000000)) op = CompositeOver;
+    (c3 & 0xFF000000) != 0xFF000000)) op = CompositeSrcOver;
 
   if (x1 < 0) x1 = 0;
   if (y1 < 0) y1 = 0;
@@ -2084,7 +2084,7 @@ err_t Image::fillHGradient(const Rect& r, Rgba c0, Rgba c1, bool over)
 
   if (over && (
     (c0 & 0xFF000000) != 0xFF000000 ||
-    (c1 & 0xFF000000) != 0xFF000000)) op = CompositeOver;
+    (c1 & 0xFF000000) != 0xFF000000)) op = CompositeSrcOver;
 
   if (x1 < 0) x1 = 0;
   if (y1 < 0) y1 = 0;
@@ -2138,7 +2138,7 @@ err_t Image::fillVGradient(const Rect& r, Rgba c0, Rgba c1, bool over)
   int op = CompositeSrc;
   if (over && (
     (c0 & 0xFF000000) != 0xFF000000 ||
-    (c1 & 0xFF000000) != 0xFF000000)) op = CompositeOver;
+    (c1 & 0xFF000000) != 0xFF000000)) op = CompositeSrcOver;
 
   if (x1 < 0) x1 = 0;
   if (y1 < 0) y1 = 0;

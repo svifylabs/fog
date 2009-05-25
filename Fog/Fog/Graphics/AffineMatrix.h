@@ -23,8 +23,8 @@
 //----------------------------------------------------------------------------
 
 // [Guard]
-#ifndef _FOG_GRAPHICS_AFFINE_MATRIX_H
-#define _FOG_GRAPHICS_AFFINE_MATRIX_H
+#ifndef _FOG_GRAPHICS_AFFINEMATRIX_H
+#define _FOG_GRAPHICS_AFFINEMATRIX_H
 
 // [Dependencies]
 #include <Fog/Build/Build.h>
@@ -175,6 +175,7 @@ struct FOG_API AffineMatrix
   AffineMatrix& rotate(double a);
   AffineMatrix& scale(double s);
   AffineMatrix& scale(double x, double y);
+  AffineMatrix& skew(double x, double y);
 
   //! @brief Multiply matrix by another one
   AffineMatrix& multiply(const AffineMatrix& m);
@@ -301,4 +302,4 @@ struct FOG_API AffineMatrix
 } // Fog namespace
 
 // [Guard]
-#endif // _FOG_GRAPHICS_AFFINE_MATRIX_H
+#endif // _FOG_GRAPHICS_AFFINEMATRIX_H

@@ -19,7 +19,7 @@ namespace Fog {
 // [Fog::LayoutItem]
 // ============================================================================
 
-//! @brief Base for @c Fog::Widget or @c Wde_Layout classes.
+//! @brief Base for @c Fog::Widget or @c Fog::Layout classes.
 //!
 //! Layout item can be imagined as interface. It contains pure virtual methods
 //! that's overriden by widgets or layouts.

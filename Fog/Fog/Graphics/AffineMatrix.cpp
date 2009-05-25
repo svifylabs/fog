@@ -184,6 +184,11 @@ AffineMatrix& AffineMatrix::scale(double x, double y)
   return *this;
 }
 
+AffineMatrix& AffineMatrix::skew(double x, double y)
+{
+  return multiply(AffineMatrix::fromSkew(x, y));
+}
+
 AffineMatrix& AffineMatrix::multiply(const AffineMatrix& m)
 {
   double t0 = sx  * m.sx + shy * m.shx;

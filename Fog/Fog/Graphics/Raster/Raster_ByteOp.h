@@ -206,7 +206,7 @@ static FOG_INLINE T mul(T i) { return i * Mul; }
 // [Fog::Raster - Div255/256]
 // ============================================================================
 
-//! @brief Accurate division of 255. The result is equal to <code>(val / 255)</code>.
+//! @brief Accurate division of 255. The result is equal to <code>(val / 255.0)</code>.
 //!
 //! @note This template is used for accure alpha blends.
 template<typename T>
@@ -215,7 +215,7 @@ static FOG_INLINE T div255(T i)
     return (T)( (((uint32_t)i << 8U) + ((uint32_t)i + 256U)) >> 16U );
 }
 
-//! @brief Accurate division of 255. The result is equal to <code>(val / 256)</code>.
+//! @brief Accurate division of 256. The result is equal to <code>(val / 256.0)</code>.
 template<typename T>
 static FOG_INLINE T div256(T i)
 {

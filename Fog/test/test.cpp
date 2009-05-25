@@ -36,12 +36,13 @@ struct MyWindow : public Window
   // [Members]
 
   Button button[4];
-
-  Image background;
-  Pattern pattern[2];
-  int activePattern;
+  CheckBox _multithreaded;
 
   Image sprite[4];
+
+  Pattern pattern[4];
+  int activePattern;
+
   Timer timer;
 
   bool _draggingLeft;
@@ -64,23 +65,18 @@ MyWindow::MyWindow(uint32_t createFlags) :
   button[0].show();
   button[0].setText(StubAscii8("Test"));
   button[0].addListener(EvClick, this, &MyWindow::button0_onClick);
-  //add(&button[0]);
+  add(&button[0]);
 
   button[1].setRect(Rect(10, 40, 100, 20));
   button[1].show();
   button[1].setText(StubAscii8("Test"));
   button[1].addListener(EvClick, this, &MyWindow::button1_onClick);
-  //add(&button[1]);
+  add(&button[1]);
 
-  //background.readFile(StubAscii8("/mnt/data1/Storage/Wallpapers/Fantasmal.bmp"));
-  //background.readFile(StubAscii8("/mnt/data1/Storage/Wallpapers/Blue ilusion.jpg"));
-  background.readFile(StubAscii8("C:/Shared/Wallpapers/flowerpaper.bmp"));
-  //background.to8Bit();
-  background.convert(Image::FormatRGB32);
-
-  //sprite[0].readFile(StubAscii8("C:/My/CPlusPlus/BlitJitTest/img/babelfish.bmp"));
-  //sprite[0].convert(Image::FormatPRGB32);
-  //sprite[0].fillQGradient(Rect(0, 0, sprite[0].width(), sprite[0].height()), 0xFFFFFFFF, 0x00000000, 0xFFFF0000, 0xFF0000FF, false);
+  _multithreaded.setRect(Rect(110, 10, 100, 20));
+  _multithreaded.show();
+  _multithreaded.setText(StubAscii8("Multithreaded"));
+  add(&_multithreaded);
 
   //sprite[0].readFile(StubAscii8("/my/upload/img/babelfish.png"));
   sprite[0].readFile(StubAscii8("C:/My/img/babelfish.pcx"));
@@ -98,7 +94,7 @@ MyWindow::MyWindow(uint32_t createFlags) :
   pattern[0].setTexture(sprite[0]);
   pattern[0].setSpread(Pattern::ReflectSpread);
 
-  pattern[1].setType(Pattern::RadialGradient);
+  pattern[1].setType(Pattern::LinearGradient);
   pattern[1].setSpread(Pattern::PadSpread);
   pattern[1].setGradientRadius(130.0);
   pattern[1].addGradientStop(GradientStop(0.0, Rgba(0x00FFFFFF)));
@@ -107,6 +103,12 @@ MyWindow::MyWindow(uint32_t createFlags) :
   pattern[1].addGradientStop(GradientStop(1.0, Rgba(0x9F0000FF)));
   pattern[1].setStartPoint(PointF(10, 20));
   pattern[1].setEndPoint(PointF(170, 270));
+
+  pattern[2] = pattern[1];
+  pattern[2].setType(Pattern::RadialGradient);
+
+  pattern[3] = pattern[1];
+  pattern[3].setType(Pattern::ConicalGradient);
 
   activePattern = 1;
 
@@ -228,14 +230,14 @@ void MyWindow::onPaint(PaintEvent* e)
 
   Painter* p = e->painter();
 
-  p->setProperty(StubAscii8("multithreaded"), Value::fromBool(false));
+  p->setProperty(StubAscii8("multithreaded"), Value::fromInt32(_multithreaded.checked()));
 
   int w = width();
   int h = height();
   Rect boundingRect(0, 0, w, h);
 
   //paintBackground(p, boundingRect);
-  p->setSource(0xFF000000);
+  p->setSource(0xFFFFFFFF);
   p->clear();
 
   //paintComposition(p, boundingRect);
@@ -243,142 +245,7 @@ void MyWindow::onPaint(PaintEvent* e)
   //p->setSource(pattern[activePattern]);
   //p->fillRect(Rect(0, 0, w, h));
 
-/*
-  {
-    int xx = 40, yy = 40;
-    int dx = 170, dy = 170;
 
-    Font font;
-    font.setSize(16);
-
-    Image i(128, 128, Image::FormatRGB32);
-
-    for (int a = 0; a < 6; a++)
-    {
-      const wchar_t* text = NULL;
-
-      i.clear(0xFFFFFFFF);
-
-      switch (a)
-      {
-        case 0:
-          text = L"výplò";
-          i.fillRect(Rect(30, 30, 50, 50), 0xFF000000);
-          i.fillRect(Rect(45, 45, 50, 50), 0x7FFF0000, true);
-          break;
-        case 1:
-          text = L"kreslení úseèek";
-          i.drawLine(Point(30, 20), Point(90, 80), 0xFF000000);
-          i.drawLine(Point(30, 30), Point(90, 90), 0xFFFF0000);
-          i.drawLine(Point(30, 40), Point(90,100), 0xFF00FF00);
-          i.drawLine(Point(30, 50), Point(90,110), 0xFF0000FF);
-          break;
-        case 2:
-        {
-          text = L"kreslení pixelù";
-          for (int b = 0; b < 100; b++)
-          {
-            i.drawPixel(Point(14 + (rand() % 100), 14 + (rand() % 100)), rand());
-          }
-          break;
-        }
-        case 3:
-        {
-          text = L"pøechod barev";
-          i.fillQGradient(Rect(0, 0, 128, 128), 0xFFFF0000, 0xFFFFFF00, 0xFF000000, 0xFFFFFFFF);
-          break;
-        }
-        case 4:
-        {
-          text = L"vertikální pøechod";
-          i.fillVGradient(Rect(0, 0, 128, 128), 0xFFFF0000, 0xFFFFFF00);
-          break;
-        }
-        case 5:
-        {
-          text = L"horizontální pøechod";
-          i.fillHGradient(Rect(0, 0, 128, 128), 0xFFFF0000, 0xFFFFFF00);
-          break;
-        }
-      }
-
-      p->setSource(0xFF000000);
-      p->drawText(Rect(xx, yy, 128, 20), StubW(text), font, TextAlignCenter);
-      p->drawRect(Rect(xx-1, yy + 23, 130, 130));
-      p->drawImage(Point(xx, yy + 24), i);
-      p->flush();
-
-      xx += dx;
-      if ((a % 3) == 2) { xx -= dx*3; yy += dy; }
-    }
-  }
-*/
-/*
-  {
-    int xx = 40, yy = 40;
-    int dx = 170, dy = 170;
-
-    Font font;
-    font.setSize(16);
-
-    Image i;
-
-    for (int a = 0; a < 9; a++)
-    {
-      const wchar_t* text = NULL;
-
-      i.readFile(StubAscii8("C:/My/img/babelfish.pcx"));
-
-      switch (a)
-      {
-        case 0:
-          text = L"bez úprav";
-          break;
-        case 1:
-          text = L"pøehození RGB";
-          i.swapRgb();
-          break;
-        case 2:
-          text = L"pøehození RGBA";
-          i.swapRgba();
-          break;
-        case 3:
-          text = L"rotace o 90°";
-          i.rotate(Image::Rotate90);
-          break;
-        case 4:
-          text = L"rotace o 180°";
-          i.rotate(Image::Rotate180);
-          break;
-        case 5:
-          text = L"rotace o 270°";
-          i.rotate(Image::Rotate270);
-          break;
-        case 6:
-          text = L"zrcadlo horizontálnì";
-          i.mirror(Image::MirrorHorizontal);
-          break;
-        case 7:
-          text = L"zrcadlo vertikálnì";
-          i.mirror(Image::MirrorVertical);
-          break;
-        case 8:
-          text = L"zrcadlo v obou smìrech";
-          i.mirror(Image::MirrorBoth);
-          break;
-      }
-
-      p->setSource(0xFF000000);
-      p->drawText(Rect(xx, yy, 128, 20), StubW(text), font, TextAlignCenter);
-      p->drawRect(Rect(xx-1, yy + 23, 130, 130));
-      p->drawImage(Point(xx, yy + 24), i);
-      p->flush();
-
-      xx += dx;
-      if ((a % 3) == 2) { xx -= dx*3; yy += dy; }
-    }
-  }
-*/
 /*
   {
     Font font;
@@ -427,8 +294,8 @@ void MyWindow::onPaint(PaintEvent* e)
 */
   //paintComposition(p, boundingRect);
 
-  p->setSource(Rgba(0xFFFFFFFF));
-  paintLines(p, boundingRect, 1000);
+  //p->setSource(Rgba(0xFFFFFFFF));
+  //paintLines(p, boundingRect, 1000);
 
 #if 0
   for (int i = 0; i < 1000; i++)
@@ -491,7 +358,7 @@ void MyWindow::onPaint(PaintEvent* e)
       path.moveTo(PointF(rand()%w, rand()%h));
       for (int i = 0; i < 5; i++)
       {
-        path.quadraticCurveTo(PointF(rand()%w, rand()%h), PointF(rand()%w, rand()%h));
+        path.curve3To(PointF(rand()%w, rand()%h), PointF(rand()%w, rand()%h));
       }
       path.closePolygon();
       p->setLineWidth(10.0);
@@ -533,7 +400,8 @@ void MyWindow::onPaint(PaintEvent* e)
 
 void MyWindow::button0_onClick(MouseEvent* e)
 {
-  activePattern = 1 - activePattern;
+  activePattern++;
+  if (activePattern >= 4) activePattern = 0;
   repaint(RepaintWidget);
 }
 
@@ -548,10 +416,6 @@ void MyWindow::button1_onClick(MouseEvent* e)
 
 void MyWindow::paintBackground(Painter* p, const Rect& r)
 {
-  Pattern pat;
-  pat.setTexture(background);
-  pat.setStartPoint(PointF(0, 0));
-  p->setSource(pat);
   p->clear();
 }
 
@@ -602,7 +466,7 @@ void MyWindow::paintCurves(Painter* p, const Rect& r, int count)
     path.lineTo(PointF(x + (rand() % w), y + (rand() % h)));
     for (int i = 0; i < 5; i++)
     {
-      path.quadraticCurveTo(
+      path.curve3To(
         PointF(x + (rand() % w), y + (rand() % h)),
         PointF(x + (rand() % w), y + (rand() % h)));
     }
@@ -660,25 +524,3 @@ FOG_UI_MAIN()
 
   return app.run();
 }
-/*
-  using namespace Fog;
-
-  // Vytvoøení cílového obrázku o rozmìrech 320x200
-  Image dst(320, 200, Image::FormatPRGB32);
-
-  // Vytvoøení zdrojového obrázku
-  Image src(320, 200, Image::FormatPRGB32);
-
-  // Vytvoøení grafického kontextu.
-  Painter p(dst);
-
-  // Vykreslení zdrojového obrázku
-  p.drawImage(Point(0, 0), src);
-
-  // Modifikace zdrojového obrázku zapøíèiní vytvoøení kopie v pøípadì,
-  // že je obrázek používán ještì alespoò jedním vláknem (pravdìpodobné).
-  src.fillRect(Rect(0, 0, 100, 100));
-
-  // Pokud se chceme problému vyhnout, je nutné pøed src.fillRect() zavolat
-  // p.flush().
-*/

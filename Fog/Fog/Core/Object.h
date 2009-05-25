@@ -276,11 +276,11 @@ struct FOG_API Object : public Class
   FOG_INLINE bool isWidget() const
   { return (_flags & IsWidget) != 0; }
 
-  //! @brief Returns @c true if basic event @c Wde_Event::Code_Create was posted.
+  //! @brief Returns @c true if basic event @c Fog::EvCreate was posted.
   //FOG_INLINE bool postedCreateEvent() const { return (_flags & Flag_PostedCreateEvent) != 0; }
-  //! @brief Returns @c true if basic event @c Wde_Event::Code_DeleteLater was posted.
+  //! @brief Returns @c true if basic event @c Fog::EvDeleteLater was posted.
   //FOG_INLINE bool postedDeleteLaterEvent() const { return (_flags & Flag_PostedDeleteLaterEvent) != 0; }
-  //! @brief Returns @c true if basic event @c Wde_Event::Code_Update was posted.
+  //! @brief Returns @c true if basic event @c Fog::EvUpdate was posted.
   //FOG_INLINE bool postedUpdateEvent() const { return (_flags & Flag_PostedUpdateEvent) != 0; }
 
   // [Id]

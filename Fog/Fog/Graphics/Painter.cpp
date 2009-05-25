@@ -1679,7 +1679,7 @@ void RasterEngine::setLineDash(const double* dashes, sysuint_t count)
   if (!_detachCaps()) return;
 
   ctx.capsState->lineDash.clear();
-  for (sysuint_t i = 0; i < count; i++) ctx.capsState->lineDash.append(*dashes);
+  for (sysuint_t i = count; i; i--, dashes++) ctx.capsState->lineDash.append(*dashes);
   _updateLineWidth();
 }
 
@@ -2235,16 +2235,16 @@ void RasterEngine::drawRound(const RectF& r,
 
 void RasterEngine::drawEllipse(const PointF& cp, const PointF& r)
 {
-  RasterEngine::drawArc(cp, r, 0.0, 2.0 * M_PI);
+  workPath.clear();
+  workPath.addEllipse(cp, r);
+  _serializePath(workPath, true, true);
 }
 
 void RasterEngine::drawArc(const PointF& cp, const PointF& r, double start, double sweep)
 {
-  agg::bezier_arc arc(cp.x(), cp.y(), r.x(), r.y(), start, sweep);
-
   workPath.clear();
-  concatToPath(workPath, arc, 0);
-  _serializePath(workPath, false, true);
+  workPath.addArc(cp, r, start, sweep);
+  _serializePath(workPath, true, true);
 }
 
 void RasterEngine::drawPath(const Path& path)
@@ -2315,16 +2315,16 @@ void RasterEngine::fillRound(const RectF& r,
 
 void RasterEngine::fillEllipse(const PointF& cp, const PointF& r)
 {
-  RasterEngine::fillArc(cp, r, 0.0, 2.0 * M_PI);
+  workPath.clear();
+  workPath.addEllipse(cp, r);
+  _serializePath(workPath, true, false);
 }
 
 void RasterEngine::fillArc(const PointF& cp, const PointF& r, double start, double sweep)
 {
-  agg::bezier_arc arc(cp.x(), cp.y(), r.x(), r.y(), start, sweep);
-
   workPath.clear();
-  concatToPath(workPath, arc, 0);
-  _serializePath(workPath, false, false);
+  workPath.addArc(cp, r, start, sweep);
+  _serializePath(workPath, true, false);
 }
 
 void RasterEngine::fillPath(const Path& path)
@@ -2815,7 +2815,7 @@ void RasterEngine::_setCapsDefaults()
 {
   FOG_ASSERT(ctx.capsState->refCount.get() == 1);
 
-  ctx.capsState->op = CompositeOver;
+  ctx.capsState->op = CompositeSrcOver;
   ctx.capsState->solidSource = 0xFFFFFFFF;
   ctx.capsState->solidSourcePremultiplied = 0xFFFFFFFF;
   ctx.capsState->patternSource.free();

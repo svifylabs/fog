@@ -719,3 +719,13 @@ If(TEST_BUILD)
   Add_Executable(test test/test.cpp)
   Target_Link_Libraries(test Fog ${FOG_LIBRARIES})
 EndIf(TEST_BUILD)
+
+If(MAKE_BENCH)
+  If(NOT WIN32)
+    Link_Libraries(cairo)
+    Include_Directories(/usr/include/cairo)
+  EndIf(NOT WIN32)
+
+  Add_Executable(bench test/bench.cpp)
+  Target_Link_Libraries(bench Fog ${FOG_LIBRARIES})
+EndIf(MAKE_BENCH)
