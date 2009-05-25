@@ -722,10 +722,13 @@ EndIf(TEST_BUILD)
 
 If(MAKE_BENCH)
   If(NOT WIN32)
-    Link_Libraries(cairo)
     Include_Directories(/usr/include/cairo)
   EndIf(NOT WIN32)
 
   Add_Executable(bench test/bench.cpp)
   Target_Link_Libraries(bench Fog ${FOG_LIBRARIES})
+
+  If(NOT WIN32)
+    Target_Link_Libraries(bench cairo)
+  EndIf(NOT WIN32)
 EndIf(MAKE_BENCH)
