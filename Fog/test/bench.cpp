@@ -4,6 +4,8 @@
 #include <windows.h>
 #include <gdiplus.h>
 #pragma comment(lib, "gdiplus.lib")
+#else
+#include <cairo/cairo.h>
 #endif // FOG_OS_WINDOWS
 
 #include <Fog/Core.h>
@@ -19,17 +21,17 @@ static Image _sprite[4];
 
 static void loadSprites()
 {
-  //_sprite[0].readFile(StubAscii8("/my/upload/img/babelfish.png"));
-  _sprite[0].readFile(StubAscii8("C:/My/img/babelfish.pcx"));
+  _sprite[0].readFile(StubAscii8("/my/upload/img/babelfish.png"));
+  //_sprite[0].readFile(StubAscii8("C:/My/img/babelfish.pcx"));
   _sprite[0].premultiply();
-  //_sprite[1].readFile(StubAscii8("/my/upload/img/blockdevice.png"));
-  _sprite[1].readFile(StubAscii8("C:/My/img/blockdevice.pcx"));
+  _sprite[1].readFile(StubAscii8("/my/upload/img/blockdevice.png"));
+  //_sprite[1].readFile(StubAscii8("C:/My/img/blockdevice.pcx"));
   _sprite[1].premultiply();
-  //_sprite[2].readFile(StubAscii8("/my/upload/img/drop.png"));
-  _sprite[2].readFile(StubAscii8("C:/My/img/drop.pcx"));
+  _sprite[2].readFile(StubAscii8("/my/upload/img/drop.png"));
+  //_sprite[2].readFile(StubAscii8("C:/My/img/drop.pcx"));
   _sprite[2].premultiply();
-  //_sprite[3].readFile(StubAscii8("/my/upload/img/kweather.png"));
-  _sprite[3].readFile(StubAscii8("C:/My/img/kweather.pcx"));
+  _sprite[3].readFile(StubAscii8("/my/upload/img/kweather.png"));
+  //_sprite[3].readFile(StubAscii8("C:/My/img/kweather.pcx"));
   _sprite[3].premultiply();
 }
 
@@ -124,6 +126,7 @@ struct BenchmarkModule_Fog_Fill : public BenchmarkModule_Fog
       p.fillRect(r);
     }
     p.restore();
+    p.flush();
   }
 
   virtual const char* name() { return mt ? "Fog - Fill (mt)" : "Fog - Fill"; }
@@ -151,6 +154,7 @@ struct BenchmarkModule_Fog_Blit : public BenchmarkModule_Fog
       p.drawImage(Point(rx, ry), sprite[rand() % 4]);
     }
     p.restore();
+    p.flush();
   }
 
   virtual const char* name() { return mt ? "Fog - Blit (mt)" : "Fog - Blit"; }
@@ -185,6 +189,7 @@ struct BenchmarkModule_Fog_Pattern : public BenchmarkModule_Fog
       p.fillRect(Rect(rx, ry, 128, 128));
     }
     p.restore();
+    p.flush();
   }
 
   virtual const char* name()
@@ -382,7 +387,150 @@ struct BenchmarkModule_GDI_Pattern : public BenchmarkModule_GDI
   virtual const char* name() { return "GDI - Pattern - LinearGradient"; }
 };
 
-#endif // FOG_OS_WINDOWS
+#else
+
+// ============================================================================
+// [BenchmarkModule_Cairo]
+// ============================================================================
+
+struct BenchmarkModule_Cairo : public BenchmarkModule_Fog
+{
+  BenchmarkModule_Cairo(int w, int h) :
+    BenchmarkModule_Fog(w, h)
+  {
+    cim = cairo_image_surface_create_for_data(
+      (unsigned char*)im.cFirst(), CAIRO_FORMAT_ARGB32,
+      im.width(), im.height(), im.stride());
+
+    for (int a = 0; a < 4; a++)
+      csprite[a] = cairo_image_surface_create_for_data(
+        (unsigned char*)sprite[a].cFirst(), CAIRO_FORMAT_ARGB32,
+        sprite[a].width(), sprite[a].height(), sprite[a].stride());
+  }
+
+  virtual ~BenchmarkModule_Cairo()
+  {
+    cairo_surface_destroy(cim);
+
+    for (int a = 0; a < 4; a++)
+      cairo_surface_destroy(csprite[a]);
+  }
+
+  cairo_surface_t* cim;
+  cairo_surface_t* csprite[4];
+};
+
+struct BenchmarkModule_Cairo_Fill : public BenchmarkModule_Cairo
+{
+  BenchmarkModule_Cairo_Fill(int w, int h) :
+    BenchmarkModule_Cairo(w, h)
+  {
+  }
+
+  virtual void doBenchmark(int quantity)
+  {
+    cairo_t* cr = cairo_create(cim);
+
+    for (int a = 0; a < quantity; a++)
+    {
+      int x = rand() % (w - 128);
+      int y = rand() % (h - 128);
+
+      Rgba c(randColor());
+      cairo_set_source_rgba(cr,
+        (double)c.r / 255.0, (double)c.g / 255.0, (double)c.b / 255.0, (double)c.a / 255.0);
+      cairo_rectangle(cr, x, y, 128, 128);
+      cairo_fill(cr);
+    }
+
+    cairo_destroy(cr);
+  }
+
+  virtual const char* name() { return "Cairo - Fill"; }
+};
+
+struct BenchmarkModule_Cairo_Blit : public BenchmarkModule_Cairo
+{
+  BenchmarkModule_Cairo_Blit(int w, int h) :
+    BenchmarkModule_Cairo(w, h)
+  {
+  }
+
+  virtual void doBenchmark(int quantity)
+  {
+    cairo_t* cr = cairo_create(cim);
+
+    for (int a = 0; a < quantity; a++)
+    {
+      int x = rand() % (w - 128);
+      int y = rand() % (h - 128);
+
+      cairo_set_source_surface(cr, csprite[rand()%4], x, y);
+      cairo_paint(cr);
+    }
+
+    cairo_destroy(cr);
+  }
+
+  virtual const char* name() { return "Cairo - Blit"; }
+};
+
+struct BenchmarkModule_Cairo_Pattern : public BenchmarkModule_Cairo
+{
+  BenchmarkModule_Cairo_Pattern(int w, int h) :
+    BenchmarkModule_Cairo(w, h),
+    type(0)
+  {
+  }
+
+  virtual void doBenchmark(int quantity)
+  {
+    cairo_t* cr = cairo_create(cim);
+
+
+    cairo_pattern_t *pat;
+
+    if (type == 0)
+    {
+      pat = cairo_pattern_create_linear(w/2, h/2, 30.0, 30.0);
+    }
+    else if (type == 1)
+    {
+      pat = cairo_pattern_create_radial(w/2, h/2, 1.0, 30.0, 30.0, 250.0);
+    }
+
+    cairo_pattern_add_color_stop_rgba(pat, 0.0, 1, 1, 1, 1);
+    cairo_pattern_add_color_stop_rgba(pat, 0.5, 1, 1, 0, 1);
+    cairo_pattern_add_color_stop_rgba(pat, 1.0, 0, 0, 0, 1);
+    cairo_set_source(cr, pat);
+
+    for (int a = 0; a < quantity; a++)
+    {
+      int x = rand() % (w - 128);
+      int y = rand() % (h - 128);
+
+      cairo_rectangle(cr, x, y, 128, 128);
+      cairo_fill(cr);
+    }
+
+    cairo_destroy(cr);
+    cairo_pattern_destroy(pat);
+  }
+
+  virtual const char* name()
+  {
+    switch (type)
+    {
+      case 0: return "Cairo - Pattern - LinearGradient";
+      case 1: return "Cairo - Pattern - RadialGradient";
+    }
+    return NULL;
+  }
+
+  int type;
+};
+
+#endif 
 
 // ============================================================================
 // [benchAll]
@@ -391,7 +539,7 @@ struct BenchmarkModule_GDI_Pattern : public BenchmarkModule_GDI
 static void benchAll()
 {
   int w = 640, h = 480;
-  int quantity = 100;
+  int quantity = 100000;
 
   // FOG - FILL
   {
@@ -456,6 +604,28 @@ static void benchAll()
     BenchmarkModule_GDI_Pattern mod(w, h);
     bench(mod, quantity);
   }
+#else
+  // CAIRO - FILL
+  {
+    BenchmarkModule_Cairo_Fill mod(w, h);
+    bench(mod, quantity);
+  }
+
+  // CAIRO - BLIT
+  {
+    BenchmarkModule_Cairo_Blit mod(w, h);
+    bench(mod, quantity);
+  }
+
+  // CAIRO - PATTERN
+  {
+    BenchmarkModule_Cairo_Pattern mod(w, h);
+    bench(mod, quantity);
+
+    mod.type = 1;
+    bench(mod, quantity);
+  }
+
 #endif // FOG_OS_WINDOWS
 }
 
@@ -478,8 +648,9 @@ FOG_UI_MAIN()
 #if defined(FOG_OS_WINDOWS)
 	// Shutdown GDI+
   Gdiplus::GdiplusShutdown(gdiplusToken);
-#endif // FOG_OS_WINDOWS
 
   system("pause");
+#endif // FOG_OS_WINDOWS
+
   return 0;
 }
