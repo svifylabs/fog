@@ -10,6 +10,7 @@
 // [Dependencies]
 #include <Fog/Core/Application.h>
 #include <Fog/UI/Constants.h>
+#include <Fog/UI/Error.h>
 #include <Fog/UI/UISystem_Win.h>
 #include <Fog/UI/Widget.h>
 

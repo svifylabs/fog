@@ -63,9 +63,9 @@ namespace Fog {
 // [Configuration]
 // ============================================================================
 
-#define RASTER_MAX_THREADS 4
+#define RASTER_MAX_THREADS 16
 #define RASTER_MAX_COMMANDS 4096
-#define RASTER_MIN_SIZE_THRESHOLD (512*512) // minimum size to set multithreading on
+#define RASTER_MIN_SIZE_THRESHOLD (384*384) // minimum size to set multithreading on
 
 // #define RASTER_DEBUG
 

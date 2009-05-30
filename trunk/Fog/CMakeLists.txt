@@ -638,6 +638,7 @@ Set(FOG_UI_HEADERS
   ${FOG_DIR}/Fog/UI/CheckBox.h
   ${FOG_DIR}/Fog/UI/Composite.h
   ${FOG_DIR}/Fog/UI/Constants.h
+  ${FOG_DIR}/Fog/UI/Error.h
   ${FOG_DIR}/Fog/UI/Event.h
   ${FOG_DIR}/Fog/UI/Layout.h
   ${FOG_DIR}/Fog/UI/LayoutItem.h

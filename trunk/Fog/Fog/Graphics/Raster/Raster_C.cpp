@@ -11,6 +11,7 @@
 // [Dependencies]
 #include <Fog/Core/Math.h>
 #include <Fog/Graphics/DitherMatrix.h>
+#include <Fog/Graphics/Error.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/Pattern.h>
 #include <Fog/Graphics/Raster.h>
@@ -175,22 +176,68 @@ static void FOG_FASTCALL convert_bswap32(uint8_t* dst, const uint8_t* src, sysin
 
 static void FOG_FASTCALL convert_memcpy8(uint8_t* dst, const uint8_t* src, sysint_t w)
 {
-  memcpy(dst, src, w);
+  while ((sysuint_t(dst) & 3))
+  {
+    copy1(dst, src);
+    dst++;
+    src++;
+    if (--w == 0) return;
+  }
+
+  while (w >= 32)
+  {
+    copy32(dst, src);
+    dst += 32;
+    src += 32;
+    w -= 32;
+  }
+
+  while (w >= 4)
+  {
+    copy4(dst, src);
+    dst += 4;
+    src += 4;
+    w -= 4;
+  }
+
+  switch (w & 3)
+  {
+    case 3: copy1(dst, src); dst += 1; src += 1;
+    case 2: copy1(dst, src); dst += 1; src += 1;
+    case 1: copy1(dst, src); dst += 1; src += 1;
+  }
 }
 
 static void FOG_FASTCALL convert_memcpy16(uint8_t* dst, const uint8_t* src, sysint_t w)
 {
-  memcpy(dst, src, mul2(w));
+  convert_memcpy8(dst, src, mul2(w));
 }
 
 static void FOG_FASTCALL convert_memcpy24(uint8_t* dst, const uint8_t* src, sysint_t w)
 {
-  memcpy(dst, src, mul3(w));
+  convert_memcpy8(dst, src, mul3(w));
 }
 
 static void FOG_FASTCALL convert_memcpy32(uint8_t* dst, const uint8_t* src, sysint_t w)
 {
-  memcpy(dst, src, mul4(w));
+  while (w >= 8)
+  {
+    copy32(dst, src);
+    dst += 32;
+    src += 32;
+    w -= 8;
+  }
+
+  switch (w & 7)
+  {
+    case 7: copy4(dst, src); dst += 4; src += 4;
+    case 6: copy4(dst, src); dst += 4; src += 4;
+    case 5: copy4(dst, src); dst += 4; src += 4;
+    case 4: copy4(dst, src); dst += 4; src += 4;
+    case 3: copy4(dst, src); dst += 4; src += 4;
+    case 2: copy4(dst, src); dst += 4; src += 4;
+    case 1: copy4(dst, src); dst += 4; src += 4;
+  }
 }
 
 // ============================================================================
@@ -2509,10 +2556,6 @@ static uint8_t* FOG_FASTCALL pattern_linear_gradient_fetch_repeat(
   {
     do {
       ((uint32_t*)dstCur)[0] = colors[(sysint_t)(yy >> 16)];
-      
-      //sysuint_t pos = ((sysuint_t)yy >> 16);
-      //uint32_t a = ((uint32_t)yy >> 8) & 0xFF;
-      //((uint32_t*)dstCur)[0] = byteaddmul(colors[pos], 255 - a, colors[pos + 1], a);
 
       if (!(--w)) goto end;
 
@@ -2525,10 +2568,6 @@ static uint8_t* FOG_FASTCALL pattern_linear_gradient_fetch_repeat(
   {
     do {
       ((uint32_t*)dstCur)[0] = colors[(sysint_t)(yy >> 16)];
-
-      //sysuint_t pos = (sysuint_t)(yy >> 16);
-      //uint32_t a = ((uint32_t)yy >> 8) & 0xFF;
-      //((uint32_t*)dstCur)[0] = byteaddmul(colors[pos], 255 - a, colors[pos + 1], a);
 
       if (!(--w)) goto end;
 
@@ -2718,7 +2757,7 @@ static err_t FOG_FASTCALL pattern_radial_gradient_init(
   ctx->radialGradient.fy2 = ctx->radialGradient.fy * ctx->radialGradient.fy;
   double dd = (ctx->radialGradient.r2 - (ctx->radialGradient.fx2 + ctx->radialGradient.fy2));
 
-  if (dd == 0)
+  if (dd == 0.0)
   {
     if (ctx->radialGradient.fx) { if (ctx->radialGradient.fx < 0) ctx->radialGradient.fx += 1.0; else ctx->radialGradient.fx -= 1.0; }
     if (ctx->radialGradient.fy) { if (ctx->radialGradient.fy < 0) ctx->radialGradient.fy += 1.0; else ctx->radialGradient.fy -= 1.0; }

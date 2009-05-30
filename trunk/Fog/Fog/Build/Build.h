@@ -80,6 +80,19 @@
 # define FOG_OS_NETBSD
 #endif // __NetBSD__
 
+//! @def FOG_OS_HPUX
+//! @brief Operating system is netbsd.
+
+#if !defined(FOG_OS_DEFINED) && defined(__HPUX__)
+# define FOG_OS_DEFINED
+# define FOG_OS_HPUX
+#endif // __HPUX__
+
+#if !defined(FOG_OS_DEFINED) && defined(__DARWIN__)
+# define FOG_OS_DEFINED
+# define FOG_OS_MACOSX
+#endif // __DARWIN__
+
 //! @}
 
 // ============================================================================

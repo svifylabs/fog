@@ -281,9 +281,13 @@ struct FOG_HIDDEN PixFmt_RGB24
 
   static FOG_INLINE uint32_t fetch(const uint8_t* p)
   {
+#if FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
+    return ( (uint32_t)(((const uint16_t*)(p))[0]) | ((uint32_t )p[2] << 16) );
+#else
     return ((uint32_t)p[RGB24_RByte] << RGB32_RShift) |
            ((uint32_t)p[RGB24_GByte] << RGB32_GShift) |
            ((uint32_t)p[RGB24_BByte] << RGB32_BShift) ;
+#endif
   }
 
   static FOG_INLINE uint32_t fetchAlpha(const uint8_t* p)
@@ -293,9 +297,14 @@ struct FOG_HIDDEN PixFmt_RGB24
 
   static FOG_INLINE void store(uint8_t* p, uint32_t s0)
   {
+#if FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
+    ((uint16_t*)(p))[0] = (uint16_t)s0;
+    p[2] = (uint8_t)(s0 >> 16);
+#else
     p[RGB24_RByte] = (uint8_t)(s0 >> RGB32_RShift);
     p[RGB24_GByte] = (uint8_t)(s0 >> RGB32_GShift);
     p[RGB24_BByte] = (uint8_t)(s0 >> RGB32_BShift);
+#endif
   }
 
   static FOG_INLINE void storeRGB(uint8_t* p, uint8_t r, uint8_t g, uint8_t b)

@@ -20,6 +20,7 @@
 #include <Fog/Core/String.h>
 #include <Fog/Core/UserInfo.h>
 #include <Fog/Graphics/Constants.h>
+#include <Fog/Graphics/Error.h>
 #include <Fog/Graphics/Font.h>
 #include <Fog/Graphics/Font_FreeType.h>
 #include <Fog/Graphics/Font_Win.h>
