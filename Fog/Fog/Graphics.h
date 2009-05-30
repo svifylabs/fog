@@ -14,9 +14,10 @@
 // [Fog/Graphics Include Files]
 #include <Fog/Build/Build.h>
 
-#include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/AffineMatrix.h>
+#include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/DitherMatrix.h>
+#include <Fog/Graphics/Error.h>
 #include <Fog/Graphics/Fixed.h>
 #include <Fog/Graphics/Font.h>
 #include <Fog/Graphics/Glyph.h>

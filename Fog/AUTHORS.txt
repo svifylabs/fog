@@ -16,7 +16,6 @@ Ultimate++ <http://www.ultimatepp.com> - Small unicode support, inspiration
 FastDelegate <http://www.codeproject.com/cpp/FastDelegate.asp> - Delegates
 
 XOrg <http://www.x.org> - Region
-Pixman <http://cgit.freedesktop.org/pixman/> - Raster compositing
 Evas <http://www.enlightenment.org> - Dithering to 8bpp, dithering tables.
-AGG version 2.4 <http://www.antigrain.com> - Vector painting, antialiased filling of primitives
+AGG version 2.4 <http://www.antigrain.com> - Affine matrix, rasterizer
 GifLib <http://sourceforge.net/projects/libungif> - ImageIO GIF support

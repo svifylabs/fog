@@ -769,6 +769,11 @@ static FOG_INLINE uint32_t alphamul(uint32_t x, uint32_t a)
   return (x & 0x00FFFFFF) | (a << 24);
 }
 
+static FOG_INLINE uint32_t alphaneg(uint32_t x)
+{
+  return x ^ 0xFF;
+}
+
 // x_c = (x_c * a) / 255
 static FOG_INLINE uint32_t bytemul(uint32_t x, uint32_t a)
 {

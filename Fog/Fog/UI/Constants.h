@@ -10,29 +10,6 @@
 // [Dependencies]
 #include <Fog/Build/Build.h>
 
-// TODO: Move to Fog/UI/Error.h
-namespace Error {
-
-enum UIError {
-  FailedToCreateUISystem,
-  FailedToCreateUIWindow,
-  FailedToTranslateCoordinates,
-  UISystemNotExists,
-  UISystemX11_CantLoadX11,
-  UISystemX11_CantLoadX11Symbol,
-  UISystemX11_CantLoadXext,
-  UISystemX11_CantLoadXextSymbol,
-  UISystemX11_CantLoadXrender,
-  UISystemX11_CantLoadXrenderSymbol,
-  UISystemX11_CantOpenDisplay,
-  UISystemX11_CantCreatePipe,
-  UISystemX11_CantCreateColormap,
-  UISystemX11_TextListToTextPropertyFailed,
-  UIWindowAlreadyExists
-};
-
-} // Error namespace
-
 namespace Fog {
 
 //! @brief Keys.

@@ -10,55 +10,6 @@
 // [Dependencies]
 #include <Fog/Build/Build.h>
 
-// TODO: Move to Error.h
-
-namespace Error {
-
-// [Error codes]
-
-//! @brief Fog library error codes.
-enum GraphicsError
-{
-  ImageSizeIsZero,
-  ImageSizeIsInvalid,
-  ImageSizeIsTooLarge,
-
-  ImageIO_ProviderNotAvailable,
-  ImageIO_DecoderNotAvailable,
-  ImageIO_EncoderNotAvailable,
-  ImageIO_ConverterNotAvailable,
-  ImageIO_FormatNotSupported,
-  ImageIO_Terminated,
-  ImageIO_Truncated,
-  ImageIO_ReadFailure,
-  ImageIO_WriteFailure,
-  ImageIO_SeekFailure,
-  ImageIO_NotSeekableStream,
-  ImageIO_MimeNotMatch,
-  ImageIO_RleError,
-  ImageIO_Internal,
-  ImageIO_NotAnimationFormat,
-
-  ImageIO_JpegLibraryNotFound,
-  ImageIO_JpegSymbolNotFound,
-  ImageIO_JpegError,
-
-  ImageIO_PngLibraryNotFound,
-  ImageIO_PngError,
-
-  FontCantLoadDefaultFace,
-
-  FontConfigLibraryNotFound,
-  FontConfigSymbolNotFound,
-  FontConfigInitFailed,
-
-  FreeTypeLibraryNotFound,
-  FreeTypeSymbolNotFound,
-  FreeTypeInitFailed
-};
-
-} // Error namespace
-
 namespace Fog {
 
 //! @brief Image operators.
@@ -89,16 +40,6 @@ enum CompositeOp
   CompositeInvertRgb,
 
   CompositeCount
-};
-
-//! @brief Type of image masks.
-enum MaskType
-{
-  MaskA8 = 0,
-  MaskXRGB32 = 1,
-
-  // fog Rog
-  _MaskCount = 2
 };
 
 //! @brief Results from some color analyze functions.

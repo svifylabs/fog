@@ -21,17 +21,13 @@ static Image _sprite[4];
 
 static void loadSprites()
 {
-  _sprite[0].readFile(StubAscii8("/my/upload/img/babelfish.png"));
-  _sprite[0].readFile(StubAscii8("C:/My/img/babelfish.pcx"));
+  _sprite[0].readFile(StubAscii8("babelfish.pcx"));
   _sprite[0].premultiply();
-  _sprite[1].readFile(StubAscii8("/my/upload/img/blockdevice.png"));
-  _sprite[1].readFile(StubAscii8("C:/My/img/blockdevice.pcx"));
+  _sprite[1].readFile(StubAscii8("blockdevice.pcx"));
   _sprite[1].premultiply();
-  _sprite[2].readFile(StubAscii8("/my/upload/img/drop.png"));
-  _sprite[2].readFile(StubAscii8("C:/My/img/drop.pcx"));
+  _sprite[2].readFile(StubAscii8("drop.pcx"));
   _sprite[2].premultiply();
-  _sprite[3].readFile(StubAscii8("/my/upload/img/kweather.png"));
-  _sprite[3].readFile(StubAscii8("C:/My/img/kweather.pcx"));
+  _sprite[3].readFile(StubAscii8("kweather.pcx"));
   _sprite[3].premultiply();
 }
 
@@ -453,12 +449,21 @@ struct BenchmarkModule_GDI_BlitImage : public BenchmarkModule_GDI
     SelectObject(dc, im);
     {
       Gdiplus::Graphics gr(dc);
+      Gdiplus::Bitmap* bm[4];
+      bm[0] = new Gdiplus::Bitmap(sprite[0], (HPALETTE)NULL);
+      bm[1] = new Gdiplus::Bitmap(sprite[1], (HPALETTE)NULL);
+      bm[2] = new Gdiplus::Bitmap(sprite[2], (HPALETTE)NULL);
+      bm[3] = new Gdiplus::Bitmap(sprite[3], (HPALETTE)NULL);
 
       for (int a = 0; a < quantity; a++)
       {
-        Gdiplus::Bitmap bm(sprite[rand() % 4], (HPALETTE)NULL);
-        gr.DrawImage(&bm, rand() % (w - 128), rand() % (h - 128));
+        gr.DrawImage(bm[rand() % 4], rand() % (w - 128), rand() % (h - 128));
       }
+
+      delete bm[0];
+      delete bm[1];
+      delete bm[2];
+      delete bm[3];
     }
     DeleteDC(dc);
   }
@@ -678,7 +683,7 @@ struct BenchmarkModule_Cairo_BlitImage : public BenchmarkModule_Cairo
 static void benchAll()
 {
   int w = 640, h = 480;
-  int quantity = 10000;
+  int quantity = 1000;
 
   // Fog - FillRect
   {

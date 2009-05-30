@@ -384,12 +384,15 @@ struct FunctionMap
 
     // [Span Composite]
 
-    // NOTE: There are two versions of funtions, but you can call only one
+    // NOTE 1: There are two versions of funtions, but you can call only one
     // of them. The indexed version is only for Image::FormatI8. Painter and
     // Fog library knows about this. The indexed version is only used when
     // blitting or tiling image to destination, all transformations
     // and other operations uses 24 bit or 32 bit formats, because it's needed
     // for antialiasing.
+    //
+    // NOTE 2: It's hell to implement them all, but when this will be done the
+    // performance will be great!
 
     union {
       SpanCompositeFn span_composite[Image::FormatCount];

@@ -331,8 +331,16 @@ FOG_INIT_DECLARE err_t fog_library_init(void)
   static const char librarySuffix[] = ".dll";
 #endif // FOG_OS_WINDOWS
 #if defined(FOG_OS_POSIX)
+# if defined(FOG_OS_HPUX)
+  static const char libraryPrefix[] = "lib";
+  static const char librarySuffix[] = ".sl";
+# elif defined(FOG_OS_MACOSX)
+  static const char libraryPrefix[] = "lib";
+  static const char librarySuffix[] = ".bundle";
+# else
   static const char libraryPrefix[] = "lib";
   static const char librarySuffix[] = ".so";
+# endif
 #endif // FOG_OS_POSIX
 
   Fog::Library::systemPrefix = (const Fog::Char8*)libraryPrefix;

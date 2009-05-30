@@ -18,6 +18,7 @@
 #include <Fog/Core/Misc.h>
 #include <Fog/Core/Std.h>
 #include <Fog/Graphics/Constants.h>
+#include <Fog/Graphics/Error.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/ImageIO.h>
 #include <Fog/Graphics/Raster.h>
@@ -2610,15 +2611,29 @@ Image::Data* Image::Data::copy(const Data* other)
     uint8_t *destPixels = d->first;
     const uint8_t *srcPixels = other->first;
 
-    // pixel format returns 1, 8, 16, 24 or 32
-    sysuint_t bytesPerLine =
-      (sysuint_t)( ((uint64_t)d->width * (uint64_t)d->depth + FOG_UINT64_C(7)) / FOG_UINT64_C(8) );
+    sysint_t w = d->width;
+    Raster::ConvertPlainFn copy;
+
+    switch (d->depth)
+    {
+      case 32:
+        copy = Raster::functionMap->convert.memcpy32;
+        break;
+      case 24:
+        copy = Raster::functionMap->convert.memcpy24;
+        break;
+      case 8:
+        copy = Raster::functionMap->convert.memcpy8;
+        break;
+      default:
+        FOG_ASSERT_NOT_REACHED();
+    }
 
     for (sysuint_t y = d->height; y; y--,
       destPixels += d->stride,
       srcPixels += other->stride)
     {
-      Memory::copy(destPixels, srcPixels, bytesPerLine);
+      copy(destPixels, srcPixels, w);
     }
 
     d->palette = other->palette;

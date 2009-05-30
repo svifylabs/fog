@@ -14,6 +14,7 @@
 #include <Fog/Core/String.h>
 #include <Fog/Core/Vector.h>
 #include <Fog/Graphics/Region.h>
+#include <Fog/UI/Error.h>
 #include <Fog/UI/Layout.h>
 #include <Fog/UI/LayoutItem.h>
 #include <Fog/UI/UISystem.h>
