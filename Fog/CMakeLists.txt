@@ -358,6 +358,7 @@ SOURCE_GROUP(Core FILES
 # Fog/Graphics Sources
 Set(FOG_GRAPHICS_SOURCES
   ${FOG_DIR}/Fog/Graphics/AffineMatrix.cpp
+  ${FOG_DIR}/Fog/Graphics/ColorMatrix.cpp
   ${FOG_DIR}/Fog/Graphics/DitherMatrix.cpp
   ${FOG_DIR}/Fog/Graphics/Font.cpp
   ${FOG_DIR}/Fog/Graphics/Font_FreeType.cpp
@@ -396,6 +397,7 @@ Set(FOG_GRAPHICS_SOURCES
 Set(FOG_GRAPHICS_HEADERS
   ${FOG_DIR}/Fog/Graphics.h
   ${FOG_DIR}/Fog/Graphics/AffineMatrix.h
+  ${FOG_DIR}/Fog/Graphics/ColorMatrix.h
   ${FOG_DIR}/Fog/Graphics/Constants.h
   ${FOG_DIR}/Fog/Graphics/DitherMatrix.h
   ${FOG_DIR}/Fog/Graphics/Error.h
@@ -697,10 +699,10 @@ Add_Library(Fog SHARED
   ${FOG_HEADERS}
   ${FOG_AGG_SOURCES}
   ${FOG_AGG_HEADERS}
-  ${ASMJIT_SOURCES}
-  ${ASMJIT_HEADERS}
-  ${BLITJIT_SOURCES}
-  ${BLITJIT_HEADERS}
+#  ${ASMJIT_SOURCES}
+#  ${ASMJIT_HEADERS}
+#  ${BLITJIT_SOURCES}
+#  ${BLITJIT_HEADERS}
 )
 Target_Link_Libraries(Fog ${FOG_LIBRARIES})
 

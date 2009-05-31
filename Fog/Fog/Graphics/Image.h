@@ -21,6 +21,12 @@
 namespace Fog {
 
 // ============================================================================
+// [Forward Declarations]
+// ============================================================================
+
+struct ColorMatrix;
+
+// ============================================================================
 // [Fog::Image]
 // ============================================================================
 
@@ -433,6 +439,11 @@ struct FOG_API Image
   };
 
   Image extractChannel(uint32_t channel) const;
+
+  // [Color matrix]
+
+  err_t applyColorMatrix(const ColorMatrix& mat);
+  err_t applyColorMatrix(const Rect& r, const ColorMatrix& mat);
 
   // [Inlines]
 

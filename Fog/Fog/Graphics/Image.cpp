@@ -17,6 +17,7 @@
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Misc.h>
 #include <Fog/Core/Std.h>
+#include <Fog/Graphics/ColorMatrix.h>
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Error.h>
 #include <Fog/Graphics/Image.h>
@@ -1785,6 +1786,90 @@ Image Image::extractChannel(uint32_t channel) const
   }
 
   return i;
+}
+
+// ============================================================================
+// [Fog::Image - Color matrix]
+// ============================================================================
+
+err_t Image::applyColorMatrix(const ColorMatrix& mat)
+{
+  return applyColorMatrix(Rect(0, 0, width(), height()), mat);
+}
+
+err_t Image::applyColorMatrix(const Rect& r, const ColorMatrix& mat)
+{
+  int x1 = r.x1();
+  int y1 = r.y1();
+  int x2 = r.x2();
+  int y2 = r.y2();
+
+  int w = _d->width;
+  int h = _d->height;
+  int fmt = _d->format;
+
+  if (x1 < 0) x1 = 0;
+  if (y1 < 0) y1 = 0;
+  if (x2 > w) x2 = w;
+  if (y2 > h) y2 = h;
+
+  if ((w = x2 - x1) <= 0) return Error::Ok;
+  if ((h = y2 - y1) <= 0) return Error::Ok;
+
+  err_t err;
+  if ((err = detach())) return err;
+
+  uint8_t* dstPixels = xScanline(y1) + x1 * bytesPerPixel();
+  sysint_t dstStride = stride();
+
+  for (int y = y1; y < y2; y++, dstPixels += dstStride)
+  {
+    uint8_t* dstCur = dstPixels;
+
+    switch (fmt)
+    {
+      case FormatARGB32:
+        for (int x = 0; x < w; x++, dstCur += 4)
+        {
+          mat.transformRgba((Rgba*)dstCur);
+        }
+        break;
+      case FormatPRGB32:
+        for (int x = 0; x < w; x++, dstCur += 4)
+        {
+          Rgba c = Raster::demultiply(((uint32_t*)dstCur)[0]);
+          mat.transformRgba(&c);
+          ((uint32_t*)dstCur)[0] = Raster::premultiply(c);
+        }
+        break;
+      case FormatRGB32:
+        for (int x = 0; x < w; x++, dstCur += 4)
+        {
+          mat.transformRgb((Rgba*)dstCur);
+        }
+        break;
+      case FormatRGB24:
+        for (int x = 0; x < w; x++, dstCur += 3)
+        {
+#if FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
+          mat.transformRgb((Rgba*)dstCur);
+#else
+          Rgba c = Raster::PixFmt_RGB24::fetch(dstCur);
+          mat.transformRgb(&c);
+          Raster::PixFmt_RGB24::store(dstCur, c);
+#endif
+        }
+        break;
+      case FormatA8:
+        for (int x = 0; x < w; x++, dstCur += 1)
+        {
+          mat.transformAlpha(dstCur);
+        }
+        break;
+    }
+  }
+
+  return Error::Ok;
 }
 
 // ============================================================================

@@ -16,6 +16,7 @@ Ultimate++ <http://www.ultimatepp.com> - Small unicode support, inspiration
 FastDelegate <http://www.codeproject.com/cpp/FastDelegate.asp> - Delegates
 
 XOrg <http://www.x.org> - Region
+AggOO <http://www.dratek.com/> - ColorMatrix
 Evas <http://www.enlightenment.org> - Dithering to 8bpp, dithering tables.
 AGG version 2.4 <http://www.antigrain.com> - Affine matrix, rasterizer
 GifLib <http://sourceforge.net/projects/libungif> - ImageIO GIF support

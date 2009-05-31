@@ -12,6 +12,8 @@
 
 namespace Fog {
 
+static const double defaultEpsilon = 1e-14; 
+
 //! @brief Image operators.
 enum CompositeOp
 {
@@ -83,6 +85,13 @@ enum ImageFile
   ImageFileXPM,
 
   ImageFileOther = 65536
+};
+
+//! @brief Matrix multiply ordering.
+enum MatrixOrder
+{
+  MatrixOrderPrepend = 0,
+  MatrixOrderAppend = 1
 };
 
 //! @brief Fill mode.

@@ -155,5 +155,17 @@ static bool FOG_INLINE fog_feq(T a, T b, T epsilon = 0.000001)
   return (fabs(a - b) <= epsilon);
 }
 
+namespace Fog {
+
+FOG_INLINE double deg2rad(double deg) { return deg * (M_PI / 180.0); }
+FOG_INLINE double rad2deg(double rad) { return rad * (180.0 / M_PI); }
+
+template<class T> inline bool isEqualEps(T v1, T v2, T epsilon)
+{
+  return fabs(v1 - v2) <= double(epsilon);
+}
+
+} // Fog namespace
+
 // [Guard]
 #endif // _FOG_CORE_MATH_H
