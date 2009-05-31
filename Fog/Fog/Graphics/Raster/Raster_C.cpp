@@ -4190,18 +4190,6 @@ static void FOG_FASTCALL raster_span_solid_a8_nop(
 {
 }
 
-static void FOG_FASTCALL raster_rect_solid_nop(
-  uint8_t* dst, uint32_t src,
-  sysint_t dstStride, sysint_t srcStride, sysint_t w)
-{
-}
-
-static void FOG_FASTCALL raster_rect_solid_a8_nop(
-  uint8_t* dst, uint32_t src, const uint8_t* msk,
-  sysint_t dstStride, sysint_t srcStride, sysint_t mskStride, sysint_t w)
-{
-}
-
 static void FOG_FASTCALL raster_span_composite_nop(
   uint8_t* dst, const uint8_t* src, sysint_t w)
 {
@@ -4220,32 +4208,6 @@ static void FOG_FASTCALL raster_span_composite_indexed_nop(
 
 static void FOG_FASTCALL raster_span_composite_indexed_a8_nop(
   uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w,
-  const Rgba* pal)
-{
-}
-
-static void FOG_FASTCALL raster_rect_composite_nop(
-  uint8_t* dst, const uint8_t* src,
-  sysint_t dstStride, sysint_t srcStride, sysint_t w)
-{
-}
-
-static void FOG_FASTCALL raster_rect_composite_a8_nop(
-  uint8_t* dst, const uint8_t* src, const uint8_t* msk,
-  sysint_t dstStride, sysint_t srcStride, sysint_t mskStride, sysint_t w)
-{
-}
-
-static void FOG_FASTCALL raster_rect_composite_indexed_nop(
-  uint8_t* dst, const uint8_t* src,
-  sysint_t dstStride, sysint_t srcStride, sysint_t w,
-  const Rgba* pal)
-{
-}
-
-static void FOG_FASTCALL raster_rect_composite_indexed_a8_nop(
-  uint8_t* dst, const uint8_t* src, const uint8_t* msk,
-  sysint_t dstStride, sysint_t srcStride, sysint_t mskStride, sysint_t w,
   const Rgba* pal)
 {
 }
@@ -4959,8 +4921,6 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
     m->raster_argb32[i][CompositeDest].pixel_a8 = raster_pixel_a8_nop;
     m->raster_argb32[i][CompositeDest].span_solid = raster_span_solid_nop;
     m->raster_argb32[i][CompositeDest].span_solid_a8 = raster_span_solid_a8_nop;
-    m->raster_argb32[i][CompositeDest].rect_solid = raster_rect_solid_nop;
-    m->raster_argb32[i][CompositeDest].rect_solid_a8 = raster_rect_solid_a8_nop;
 
     m->raster_argb32[i][CompositeDest].span_composite[Image::FormatARGB32] = raster_span_composite_nop;
     m->raster_argb32[i][CompositeDest].span_composite[Image::FormatPRGB32] = raster_span_composite_nop;
@@ -4975,20 +4935,6 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
     m->raster_argb32[i][CompositeDest].span_composite_a8[Image::FormatRGB24] = raster_span_composite_a8_nop;
     m->raster_argb32[i][CompositeDest].span_composite_a8[Image::FormatA8] = raster_span_composite_a8_nop;
     m->raster_argb32[i][CompositeDest].span_composite_indexed_a8[Image::FormatI8] = raster_span_composite_indexed_a8_nop;
-
-    m->raster_argb32[i][CompositeDest].rect_composite[Image::FormatARGB32] = raster_rect_composite_nop;
-    m->raster_argb32[i][CompositeDest].rect_composite[Image::FormatPRGB32] = raster_rect_composite_nop;
-    m->raster_argb32[i][CompositeDest].rect_composite[Image::FormatRGB32] = raster_rect_composite_nop;
-    m->raster_argb32[i][CompositeDest].rect_composite[Image::FormatRGB24] = raster_rect_composite_nop;
-    m->raster_argb32[i][CompositeDest].rect_composite[Image::FormatA8] = raster_rect_composite_nop;
-    m->raster_argb32[i][CompositeDest].rect_composite_indexed[Image::FormatI8] = raster_rect_composite_indexed_nop;
-  
-    m->raster_argb32[i][CompositeDest].rect_composite_a8[Image::FormatARGB32] = raster_rect_composite_a8_nop;
-    m->raster_argb32[i][CompositeDest].rect_composite_a8[Image::FormatPRGB32] = raster_rect_composite_a8_nop;
-    m->raster_argb32[i][CompositeDest].rect_composite_a8[Image::FormatRGB32] = raster_rect_composite_a8_nop;
-    m->raster_argb32[i][CompositeDest].rect_composite_a8[Image::FormatRGB24] = raster_rect_composite_a8_nop;
-    m->raster_argb32[i][CompositeDest].rect_composite_a8[Image::FormatA8] = raster_rect_composite_a8_nop;
-    m->raster_argb32[i][CompositeDest].rect_composite_indexed_a8[Image::FormatI8] = raster_rect_composite_indexed_a8_nop;
   }
 
   // [Raster - Rgb32]
