@@ -31,15 +31,15 @@ struct FOG_PACKED Rgba
     struct
     {
 #if FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
-      uint8_t a;
-      uint8_t r;
-      uint8_t g;
       uint8_t b;
+      uint8_t g;
+      uint8_t r;
+      uint8_t a;
 #else
-      uint8_t b;
-      uint8_t g;
-      uint8_t r;
       uint8_t a;
+      uint8_t r;
+      uint8_t g;
+      uint8_t b;
 #endif // FOG_BYTE_ORDER
     };
     uint32_t i;

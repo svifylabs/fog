@@ -28,12 +28,10 @@
 
 // [Dependencies]
 #include <Fog/Build/Build.h>
-
-#include <math.h>
+#include <Fog/Core/Math.h>
+#include <Fog/Graphics/Constants.h>
 
 namespace Fog {
-
-static const double defaultEpsilon = 1e-14; 
 
 // Affine transformation are linear transformations in Cartesian coordinates
 // (strictly speaking not only in Cartesian, but for the beginning we will 

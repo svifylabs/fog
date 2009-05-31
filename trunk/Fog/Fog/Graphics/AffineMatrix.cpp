@@ -26,11 +26,6 @@
 
 namespace Fog {
 
-template<class T> inline bool isEqualEps(T v1, T v2, T epsilon)
-{
-  return fabs(v1 - v2) <= double(epsilon);
-}
-
 AffineMatrix AffineMatrix::fromRotation(double a)
 {
   double aSin = sin(a);

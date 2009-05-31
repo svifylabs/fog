@@ -16,6 +16,7 @@
 
 #include <Fog/Graphics/AffineMatrix.h>
 #include <Fog/Graphics/Constants.h>
+#include <Fog/Graphics/ColorMatrix.h>
 #include <Fog/Graphics/DitherMatrix.h>
 #include <Fog/Graphics/Error.h>
 #include <Fog/Graphics/Fixed.h>
