@@ -16,6 +16,7 @@
 #include <Fog/Graphics/Raster.h>
 #include <Fog/Graphics/Raster/Raster_C.h>
 #include <Fog/UI/Constants.h>
+#include <Fog/UI/Error.h>
 #include <Fog/UI/UISystem_X11.h>
 #include <Fog/UI/Widget.h>
 

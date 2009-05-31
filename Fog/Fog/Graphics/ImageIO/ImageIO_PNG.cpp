@@ -17,6 +17,7 @@
 #include <Fog/Core/String.h>
 #include <Fog/Core/StringCache.h>
 #include <Fog/Core/Strings.h>
+#include <Fog/Graphics/Error.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/ImageIO/ImageIO_PNG.h>
 #include <Fog/Graphics/Raster.h>
