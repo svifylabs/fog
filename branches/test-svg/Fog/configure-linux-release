@@ -1,0 +1,5 @@
+#!/bin/sh
+mkdir build
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release -DDEBUG_VALGRIND=1 -G"Unix Makefiles"
+cd ..
