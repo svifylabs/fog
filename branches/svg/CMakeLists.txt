@@ -679,6 +679,7 @@ Set(FOG_SVG_SOURCES
 
 Set(FOG_SVG_HEADERS
   ${FOG_DIR}/Fog/Svg.h
+  ${FOG_DIR}/Fog/Svg/Svg.h
 )
 
 # =============================================================================
