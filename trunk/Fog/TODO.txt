@@ -1,3 +1,9 @@
+LEGEND
+[ ] Scheduled
+[ ] Completed
+[w] Working
+[D] Need discusion about usability or removing
+
 TODO
 ====
 
@@ -11,12 +17,12 @@ TODO
     [ ] Fog::BitArray - fix
     [ ] Temporary...<N>::free sometimes not frees the memory ?
 
-[ ] Fog/XML
+[ ] Fog/Xml
     [ ] XMLDOM (with XMLDocument)
     [ ] XMLParser
     [ ] XMLWriter
 
-[ ] Fog/SVG
+[ ] Fog/Svg
     [ ] SVGDOM (with SVGDocument)
     [ ] SVGParser (through XmlParser)
     [ ] SVGPainterEngine
@@ -38,12 +44,12 @@ TODO
     [ ] Move stroking into path (to be possible to stroke path by path methods and fill it by painter)
 
 [ ] Image
-    [ ] Add some effects from qimageblitz?
-    [ ] DOT line
-    [ ] WU-Antialiased line (raster based, fastest possible)
-    [ ] Fill trapezoid, using rasterizer from pixman with ability to set color for each corner
-    [ ] Render text using Font::getGlyphs
-    [ ] ColorMatrix transformations
+    [D] Add some effects from qimageblitz?
+    [D] DOT line
+    [D] WU-Antialiased line (raster based, fastest possible)
+    [D] Fill trapezoid, using rasterizer from pixman with ability to set color for each corner
+    [D] Render text using Font::getGlyphs
+    [x] ColorMatrix transformations
     [ ] Scaling
     [ ] Inverting alpha channel on PRGB32 images not implemented yet
 
