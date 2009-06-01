@@ -51,13 +51,6 @@ typedef void (FOG_FASTCALL *SpanSolidFn)(
 typedef void (FOG_FASTCALL *SpanSolidMskFn)(
   uint8_t* dst, uint32_t src, const uint8_t* msk, sysint_t w);
 
-typedef void (FOG_FASTCALL *RectSolidFn)(
-  uint8_t* dst, uint32_t src,
-  sysint_t dstStride, sysint_t srcStride, sysint_t w);
-typedef void (FOG_FASTCALL *RectSolidMskFn)(
-  uint8_t* dst, uint32_t src, const uint8_t* msk,
-  sysint_t dstStride, sysint_t srcStride, sysint_t mskStride, sysint_t w);
-
 typedef void (FOG_FASTCALL *SpanCompositeFn)(
   uint8_t* dst, const uint8_t* src, sysint_t w);
 typedef void (FOG_FASTCALL *SpanCompositeMskFn)(
@@ -75,38 +68,14 @@ typedef void (FOG_FASTCALL *SpanCompositeIndexedMskConstFn)(
   uint8_t* dst, const uint8_t* src, uint32_t msk, sysint_t w,
   const Rgba* pal);
 
-typedef void (FOG_FASTCALL *RectCompositeFn)(
-  uint8_t* dst, const uint8_t* src,
-  sysint_t dstStride, sysint_t srcStride, sysint_t w);
-typedef void (FOG_FASTCALL *RectCompositeMskFn)(
-  uint8_t* dst, const uint8_t* src, const uint8_t* msk,
-  sysint_t dstStride, sysint_t srcStride, sysint_t mskStride, sysint_t w);
-typedef void (FOG_FASTCALL *RectCompositeMskConstFn)(
-  uint8_t* dst, const uint8_t* src, uint32_t msk,
-  sysint_t dstStride, sysint_t srcStride, sysint_t mskStride, sysint_t w);
-
-typedef void (FOG_FASTCALL *RectCompositeIndexedFn)(
-  uint8_t* dst, const uint8_t* src,
-  sysint_t dstStride, sysint_t srcStride, sysint_t w,
-  const Rgba* pal);
-typedef void (FOG_FASTCALL *RectCompositeIndexedMskFn)(
-  uint8_t* dst, const uint8_t* src, const uint8_t* msk,
-  sysint_t dstStride, sysint_t srcStride, sysint_t mskStride, sysint_t w,
-  const Rgba* pal);
-typedef void (FOG_FASTCALL *RectCompositeIndexedMskConstFn)(
-  uint8_t* dst, const uint8_t* src, uint32_t msk,
-  sysint_t dstStride, sysint_t srcStride, sysint_t mskStride, sysint_t w,
-  const Rgba* pal);
-
 struct PatternContext;
 
 typedef err_t (FOG_FASTCALL *PatternContextInitFn)(
-  PatternContext* ctx, const Pattern& pattern);
-
+  PatternContext* ctx,
+  const Pattern& pattern);
 typedef uint8_t* (FOG_FASTCALL *PatternContextFetchFn)(
   PatternContext* ctx,
   uint8_t* dst, int x, int y, int w);
-
 typedef void (FOG_FASTCALL *PatternContextDestroyFn)(
   PatternContext* ctx);
 
@@ -126,7 +95,7 @@ struct PatternContext
     int dx;
     int dy;
 
-    // Must be dereferenced when context is destroyed: d->deref().
+    // Must be destroyed when context is destroyed and its type is texture.
     Static<Image> texture;
 
     // Private, initialized when context is created. These variables are here
@@ -143,11 +112,15 @@ struct PatternContext
   {
     int colorsAlloc;
     int colorsLength;
+
+    // Dynamically allocated, must be free when context is destroyed and its
+    // type is gradient.
     uint32_t* colors;
   };
 
   struct LinearGradient
   {
+    // See GenericGradient.
     int colorsAlloc;
     int colorsLength;
     uint32_t* colors;
@@ -161,6 +134,7 @@ struct PatternContext
 
   struct RadialGradient
   {
+    // See GenericGradient.
     int colorsAlloc;
     int colorsLength;
     uint32_t* colors;
@@ -178,6 +152,7 @@ struct PatternContext
 
   struct ConicalGradient
   {
+    // See GenericGradient.
     int colorsAlloc;
     int colorsLength;
     uint32_t* colors;
@@ -377,11 +352,6 @@ struct FunctionMap
     SpanSolidFn         span_solid;
     SpanSolidMskFn      span_solid_a8;
 
-    // [Rect Solid]
-
-    RectSolidFn         rect_solid;
-    RectSolidMskFn      rect_solid_a8;
-
     // [Span Composite]
 
     // NOTE 1: There are two versions of funtions, but you can call only one
@@ -402,18 +372,6 @@ struct FunctionMap
     union {
       SpanCompositeMskFn span_composite_a8[Image::FormatCount];
       SpanCompositeIndexedMskFn span_composite_indexed_a8[Image::FormatCount];
-    };
-
-    // [Rect Composite]
-
-    union {
-      RectCompositeFn rect_composite[Image::FormatCount];
-      RectCompositeIndexedFn rect_composite_indexed[Image::FormatCount];
-    };
-
-    union {
-      RectCompositeMskFn rect_composite_a8[Image::FormatCount];
-      RectCompositeIndexedMskFn rect_composite_indexed_a8[Image::FormatCount];
     };
   };
   

@@ -78,17 +78,21 @@ MyWindow::MyWindow(uint32_t createFlags) :
   _multithreaded.setText(StubAscii8("Multithreaded"));
   add(&_multithreaded);
 
-  //sprite[0].readFile(StubAscii8("/my/upload/img/babelfish.png"));
-  sprite[0].readFile(StubAscii8("C:/My/img/babelfish.pcx"));
+  sprite[0].readFile(StubAscii8("babelfish.pcx"));
+  sprite[1].readFile(StubAscii8("blockdevice.pcx"));
+  sprite[2].readFile(StubAscii8("drop.pcx"));
+  sprite[3].readFile(StubAscii8("kweather.pcx"));
+
+  sprite[0].applyColorMatrix(ColorMatrix(
+    1.2, 0.1, 0.0, 0.0, 0.0,
+    0.5, 0.7, 0.3, 0.0, 0.0,
+    0.4, 0.5, 0.5, 0.0, 0.0,
+    0.0, 0.0, 0.0, 1.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 1.0));
+
   sprite[0].premultiply();
-  //sprite[1].readFile(StubAscii8("/my/upload/img/blockdevice.png"));
-  sprite[1].readFile(StubAscii8("C:/My/img/blockdevice.pcx"));
   sprite[1].premultiply();
-  //sprite[2].readFile(StubAscii8("/my/upload/img/drop.png"));
-  sprite[2].readFile(StubAscii8("C:/My/img/drop.pcx"));
   sprite[2].premultiply();
-  //sprite[3].readFile(StubAscii8("/my/upload/img/kweather.png"));
-  sprite[3].readFile(StubAscii8("C:/My/img/kweather.pcx"));
   sprite[3].premultiply();
 
   pattern[0].setTexture(sprite[0]);
@@ -242,8 +246,8 @@ void MyWindow::onPaint(PaintEvent* e)
 
   //paintComposition(p, boundingRect);
 
-  //p->setSource(pattern[activePattern]);
-  //p->fillRect(Rect(0, 0, w, h));
+  p->setSource(pattern[activePattern]);
+  p->fillRect(Rect(0, 0, w, h));
 
 
 /*
@@ -392,10 +396,11 @@ void MyWindow::onPaint(PaintEvent* e)
       p->fillPath(path);
     }
   }*/
+  paintComposition(p, boundingRect);
 
   p->flush();
   TimeDelta timeDelta = TimeTicks::highResNow() - ticks;
-  //fog_debug("Time: %f ms", timeDelta.inMillisecondsF());
+  fog_debug("Time: %f ms", timeDelta.inMillisecondsF());
 }
 
 void MyWindow::button0_onClick(MouseEvent* e)

@@ -13,6 +13,7 @@
 #include <Fog/Core/Lock.h>
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Raster.h>
+#if 0
 #include <Fog/Graphics/Raster/Raster_Jit.h>
 
 namespace Fog {
@@ -167,6 +168,7 @@ FOG_API void releaseJitContext(JitContext* ctx)
 
 } // Raster namespace
 } // Fog namespace
+#endif
 
 // ============================================================================
 // [Library Initializers]
@@ -174,10 +176,10 @@ FOG_API void releaseJitContext(JitContext* ctx)
 
 FOG_INIT_DECLARE void fog_raster_init_jit(void)
 {
-  Fog::Raster::blitjit_local.init();
+  //Fog::Raster::blitjit_local.init();
 }
 
 FOG_INIT_DECLARE void fog_raster_shutdown_jit(void)
 {
-  Fog::Raster::blitjit_local.destroy();
+  //Fog::Raster::blitjit_local.destroy();
 }

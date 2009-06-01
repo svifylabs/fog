@@ -21,6 +21,7 @@
 #include <Fog/Core/StringCache.h>
 #include <Fog/Core/TextCodec.h>
 #include <Fog/Core/UserInfo.h>
+#include <Fog/Graphics/Error.h>
 #include <Fog/Graphics/Font.h>
 #include <Fog/Graphics/Font_FreeType.h>
 #include <Fog/Graphics/Image.h>

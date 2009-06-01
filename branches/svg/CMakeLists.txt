@@ -358,6 +358,7 @@ SOURCE_GROUP(Core FILES
 # Fog/Graphics Sources
 Set(FOG_GRAPHICS_SOURCES
   ${FOG_DIR}/Fog/Graphics/AffineMatrix.cpp
+  ${FOG_DIR}/Fog/Graphics/ColorMatrix.cpp
   ${FOG_DIR}/Fog/Graphics/DitherMatrix.cpp
   ${FOG_DIR}/Fog/Graphics/Font.cpp
   ${FOG_DIR}/Fog/Graphics/Font_FreeType.cpp
@@ -396,6 +397,7 @@ Set(FOG_GRAPHICS_SOURCES
 Set(FOG_GRAPHICS_HEADERS
   ${FOG_DIR}/Fog/Graphics.h
   ${FOG_DIR}/Fog/Graphics/AffineMatrix.h
+  ${FOG_DIR}/Fog/Graphics/ColorMatrix.h
   ${FOG_DIR}/Fog/Graphics/Constants.h
   ${FOG_DIR}/Fog/Graphics/DitherMatrix.h
   ${FOG_DIR}/Fog/Graphics/Error.h
@@ -668,6 +670,18 @@ Else(WIN32)
 EndIf(WIN32)
 
 # =============================================================================
+# [Fog/Svg] Part
+# =============================================================================
+
+Set(FOG_SVG_SOURCES
+  ${FOG_DIR}/Fog/Svg/Svg.cpp
+)
+
+Set(FOG_SVG_HEADERS
+  ${FOG_DIR}/Fog/Svg.h
+)
+
+# =============================================================================
 # [Finalize]
 # =============================================================================
 
@@ -676,6 +690,7 @@ Set(FOG_SOURCES
   ${FOG_CORE_SOURCES}
   ${FOG_GRAPHICS_SOURCES}
   ${FOG_UI_SOURCES}
+  ${FOG_SVG_SOURCES}
 )
 
 Set(FOG_HEADERS
@@ -683,6 +698,7 @@ Set(FOG_HEADERS
   ${FOG_CORE_HEADERS}
   ${FOG_GRAPHICS_HEADERS}
   ${FOG_UI_HEADERS}
+  ${FOG_SVG_HEADERS}
 )
 
 # Write CMAKE_ #defines into Fog/Build/Config.h files
@@ -697,10 +713,10 @@ Add_Library(Fog SHARED
   ${FOG_HEADERS}
   ${FOG_AGG_SOURCES}
   ${FOG_AGG_HEADERS}
-  ${ASMJIT_SOURCES}
-  ${ASMJIT_HEADERS}
-  ${BLITJIT_SOURCES}
-  ${BLITJIT_HEADERS}
+#  ${ASMJIT_SOURCES}
+#  ${ASMJIT_HEADERS}
+#  ${BLITJIT_SOURCES}
+#  ${BLITJIT_HEADERS}
 )
 Target_Link_Libraries(Fog ${FOG_LIBRARIES})
 

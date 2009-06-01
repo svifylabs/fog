@@ -13,34 +13,12 @@
 #include <Fog/Graphics/Rgba.h>
 #include <Fog/Graphics/Raster.h>
 
-// [BlitJit]
-#include <BlitJit/BlitJit.h>
-
 namespace Fog {
 namespace Raster {
 
 // ============================================================================
 // [Fog::Raster - BlitJit]
 // ============================================================================
-
-struct JitContext
-{
-  typedef BlitJit::FillSpanFn FillSpan;
-  typedef BlitJit::FillRectFn FillRect;
-  typedef BlitJit::BlitSpanFn BlitSpan;
-
-  typedef BlitJit::FillSpanWithMaskFn FillSpanM;
-  typedef BlitJit::BlitSpanWithMaskFn BlitSpanM;
-
-  FillSpan  fillSpan    ;
-  FillRect  fillRect    ;
-  FillSpanM fillSpanM_A8;
-  BlitSpan  blitSpan    [Image::FormatCount];
-  BlitSpanM blitSpanM_A8[Image::FormatCount];
-};
-
-FOG_API JitContext* getJitContext(uint32_t pfId, uint32_t oId);
-FOG_API void releaseJitContext(JitContext* ctx);
 
 } // Raster namespace
 } // Fog namespace
