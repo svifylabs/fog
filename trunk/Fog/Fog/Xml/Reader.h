@@ -78,6 +78,10 @@ struct FOG_API XmlReader
     StateTagExclamationMark,
     //! @brief Parser is in <!DOCTYPE declaration.
     StateDOCTYPE,
+    //! @brief Parser is in <!DOCTYPE text
+    StateDOCTYPEText,
+    //! @brief Parser is in <!DOCTYPE attribute.
+    StateDOCTYPEAttr,
     //! @brief Parser is in <? ?> or <% %> sequence.
     StatePI,
     //! @brief Parser is in <!-- --> sequence.
@@ -107,7 +111,7 @@ struct FOG_API XmlReader
   virtual err_t addAttribute(const String32& name, const String32& data) = 0;
   virtual err_t addText(const String32& data, bool isWhiteSpace) = 0;
   virtual err_t addCDATA(const String32& data) = 0;
-  virtual err_t addDOCTYPE(const String32& doctype) = 0;
+  virtual err_t addDOCTYPE(const Vector<String32>& doctype) = 0;
   virtual err_t addProcessingInstruction(const String32& data) = 0;
   virtual err_t addComment(const String32& data) = 0;
 
@@ -135,7 +139,7 @@ struct FOG_API XmlDomReader : public XmlReader
   virtual err_t addAttribute(const String32& name, const String32& data);
   virtual err_t addText(const String32& data, bool isWhiteSpace);
   virtual err_t addCDATA(const String32& data);
-  virtual err_t addDOCTYPE(const String32& doctype);
+  virtual err_t addDOCTYPE(const Vector<String32>& doctype);
   virtual err_t addProcessingInstruction(const String32& data);
   virtual err_t addComment(const String32& data);
 

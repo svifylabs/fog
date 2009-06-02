@@ -138,7 +138,7 @@ XmlElement* XmlElement::clone() const
   return e;
 }
 
-void XmlElement::serialize(XmlWriter& writer)
+void XmlElement::serialize(XmlWriter* writer)
 {
 }
 
