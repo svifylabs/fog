@@ -31,6 +31,7 @@ namespace Fog {
 // [Fog::XmlReader - Helpers]
 // ============================================================================
 
+/*
 enum
 {
   XML_CHAR_SPACE    = 0x01, // '\t''\r''\n'' '
@@ -96,6 +97,7 @@ static const Char32* xmlStrCHR(const Char32* buffer, const Char32* end, Char32 u
   while (buffer < end && *buffer != uc) buffer++;
   return buffer;
 }
+*/
 
 static bool xmlIsWhiteSpace(const Char32* buffer, const Char32* end)
 {

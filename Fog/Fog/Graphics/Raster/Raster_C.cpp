@@ -4862,7 +4862,7 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   m->raster_argb32[DST_ID][OP_ID].span_composite_a8[Image::FormatRGB24] = raster_span_composite_a8< OP_CLASS<DST_CLASS, PixFmt_RGB24> >
 
   // [Raster - Argb32 / Prgb32]
-
+#if 1
   SET_RASTER_ARGB32(0, PixFmt_ARGB32, PixFmt_ARGB32, CompositeSrc, Operator_Src);
   SET_RASTER_ARGB32(0, PixFmt_ARGB32, PixFmt_ARGB32, CompositeSrcOver, Operator_Over);
   SET_RASTER_ARGB32(0, PixFmt_ARGB32, PixFmt_ARGB32, CompositeDestOver, Operator_OverReverse);
@@ -4908,7 +4908,7 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   SET_RASTER_ARGB32(1, PixFmt_PRGB32, PixFmt_PRGB32, CompositeExclusion, Operator_Exclusion);
   SET_RASTER_ARGB32(1, PixFmt_PRGB32, PixFmt_PRGB32, CompositeInvert, Operator_Invert);
   SET_RASTER_ARGB32(1, PixFmt_PRGB32, PixFmt_PRGB32, CompositeInvertRgb, Operator_InvertRgb);
-
+#endif
 #undef SET_RASTER_ARGB32
 
   // [Raster - Argb32 / Prgb32 - SrcOver]
