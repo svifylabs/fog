@@ -43,7 +43,7 @@ enum XmlError
   XmlReaderSyntaxError,
 
   // [XmlDomReader Errors]
-  XmlDomInvalidClosingTag
+  XmlDomInvalidClosingTag,
 };
 
 //! @}

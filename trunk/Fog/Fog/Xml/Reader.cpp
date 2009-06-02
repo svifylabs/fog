@@ -23,6 +23,8 @@
 #include <Fog/Xml/Error.h>
 #include <Fog/Xml/Reader.h>
 
+#include "Error.h"
+
 namespace Fog {
 
 // ============================================================================
@@ -117,15 +119,20 @@ XmlReader::~XmlReader()
 {
 }
 
+err_t XmlReader::parseFile(const String32& fileName)
+{
+  Stream stream;
+  err_t err = stream.openFile(fileName, Stream::OpenRead);
+  if (err) return err;
+
+  return parseStream(stream);
+}
+
 err_t XmlReader::parseStream(Stream& stream)
 {
   String8 buffer;
-  err_t err = stream.readAll(buffer);
-
-  if (err)
-    return err;
-  else
-    return parseMemory(reinterpret_cast<const void*>(buffer.cData()), buffer.length());
+  stream.readAll(buffer);
+  return parseMemory(reinterpret_cast<const void*>(buffer.cData()), buffer.length());
 }
 
 err_t XmlReader::parseMemory(const void* mem, sysuint_t size)
@@ -259,6 +266,7 @@ cont:
         {
           markAttrStart = strCur;
           state = StateTagInsideAttrName;
+          break;
         }
 
         // Check for end tag sequence.
@@ -267,15 +275,16 @@ cont:
           case ElementTag:
             if (ch == Char32('/'))
             {
-              state = StateTagCloseEnd;
+              state = StateTagEnd;
               strCur++;
               goto begin;
             }
+            if (ch == Char32('>')) goto tagEnd;
             break;
           case ElementXML:
             if (ch == Char32('?'))
             {
-              state = StateTagCloseEnd;
+              state = StateTagEnd;
               strCur++;
               goto begin;
             }
@@ -340,12 +349,17 @@ cont:
 
         if (ch == Char32('>'))
         {
+tagEnd:
           state = StateReady;
           mark = ++strCur;
           depth--;
 
-          if ( (err = tempTagName.set(StubUtf32(markTagStart, (sysuint_t)(markTagEnd - markTagStart)))) ) goto end;
-          if ( (err = closeElement(tempTagName)) ) goto end;
+          // Do not call closeElement() for <?xml ?> declaration.
+          if (element == ElementTag)
+          {
+            if ( (err = tempTagName.set(StubUtf32(markTagStart, (sysuint_t)(markTagEnd - markTagStart)))) ) goto end;
+            if ( (err = closeElement(tempTagName)) ) goto end;
+          }
 
           goto begin;
         }
@@ -601,7 +615,7 @@ end:
 
 XmlDomReader::XmlDomReader(XmlDocument* document) :
   _document(document),
-  _current(NULL)
+  _current(document)
 {
 }
 
@@ -616,7 +630,7 @@ err_t XmlDomReader::openElement(const String32& tagName)
 
   err_t err;
 
-  if (_current == NULL)
+  if (_current == _document)
   {
     if (_document->documentRoot() == NULL)
       err = _document->setDocumentRoot(e);
@@ -642,7 +656,7 @@ err_t XmlDomReader::openElement(const String32& tagName)
 
 err_t XmlDomReader::closeElement(const String32& tagName)
 {
-  if (_current)
+  if (_current != _document)
   {
     _current = _current->parent();
     return Error::Ok;
@@ -655,55 +669,66 @@ err_t XmlDomReader::closeElement(const String32& tagName)
 
 err_t XmlDomReader::addAttribute(const String32& name, const String32& data)
 {
-  if (_current) return Error::XmlReaderUnknown;
   return _current->setAttribute(name, data);
 }
 
 err_t XmlDomReader::addText(const String32& data, bool isWhiteSpace)
 {
-  if (_current) return Error::XmlReaderUnknown;
+  if (_current == _document)
+  {
+    if (isWhiteSpace)
+      return Error::Ok;
+    else
+      return Error::XmlReaderSyntaxError;
+  }
 
   XmlElement* e = new XmlText(data);
   if (!e) return Error::OutOfMemory;
 
   err_t err;
-  if ((err = e->appendChild(e))) delete e;
+  if ((err = _current->appendChild(e))) delete e;
   return err;
 }
 
 err_t XmlDomReader::addCDATA(const String32& data)
 {
-  if (_current) return Error::XmlReaderUnknown;
+  if (_current == _document) return Error::XmlDomNotAllowed;
 
   XmlElement* e = new XmlCDATA(data);
   if (!e) return Error::OutOfMemory;
 
   err_t err;
-  if ((err = e->appendChild(e))) delete e;
+  if ((err = _current->appendChild(e))) delete e;
   return err;
+}
+
+err_t XmlDomReader::addDOCTYPE(const String32& doctype)
+{
+  if (_current != _document) return Error::XmlDomNotAllowed;
+  return _document->setDOCTYPE(doctype);
 }
 
 err_t XmlDomReader::addProcessingInstruction(const String32& data)
 {
-  if (_current) return Error::XmlReaderUnknown;
+  if (_current == _document) return Error::XmlDomNotAllowed;
 
   XmlElement* e = new XmlProcessingInstruction(data);
   if (!e) return Error::OutOfMemory;
 
   err_t err;
-  if ((err = e->appendChild(e))) delete e;
+  if ((err = _current->appendChild(e))) delete e;
   return err;
 }
 
 err_t XmlDomReader::addComment(const String32& data)
 {
-  if (_current) return Error::XmlReaderUnknown;
+  if (_current == _document) return Error::XmlDomNotAllowed;
 
   XmlElement* e = new XmlComment(data);
   if (!e) return Error::OutOfMemory;
 
   err_t err;
-  if ((err = e->appendChild(e))) delete e;
+  if ((err = _current->appendChild(e))) delete e;
   return err;
 }
 

@@ -19,6 +19,7 @@ namespace Fog {
 // [Forward Declarations]
 // ============================================================================
 
+struct Stream;
 struct XmlAttribute;
 struct XmlCDATA;
 struct XmlComment;
@@ -457,6 +458,16 @@ struct XmlDocument : public XmlElement
   //! @brief Return document root element.
   XmlElement* documentRoot() const;
 
+  void clear();
+
+  err_t readFile(const String32& fileName);
+  err_t readStream(Stream& stream);
+  err_t readMemory(const void* mem, sysuint_t size);
+  err_t readString(const String32& str);
+
+  FOG_INLINE const String32& getDOCTYPE() const { return _doctype; }
+  FOG_INLINE err_t setDOCTYPE(const String32& doctype) { return _doctype.set(doctype); }
+
 protected:
   //! @brief Must be called to manage @a resource string when node is inserted
   //! into DOM where _document is not @c NULL.
@@ -478,6 +489,8 @@ protected:
 
   //! @brief Hash table that contains all managed strings and reference counts.
   Hash<String32, sysuint_t> _managedStrings;
+
+  String32 _doctype;
 
 private:
   friend struct XmlAttribute;

@@ -16,6 +16,8 @@
 #include <Fog/Xml/Dom.h>
 #include <Fog/Xml/Entity.h>
 #include <Fog/Xml/Error.h>
+#include <Fog/Xml/Reader.h>
+#include <Fog/Xml/Writer.h>
 
 namespace Fog {
 
@@ -178,7 +180,7 @@ void XmlElement::normalize()
 
 err_t XmlElement::prependChild(XmlElement* ch)
 {
-  if (ch->contains(this)) return Error::XmlDomCyclic;
+  if (ch->contains(this, true)) return Error::XmlDomCyclic;
 
   err_t err;
   if (_document == ch->_document)
@@ -198,7 +200,7 @@ err_t XmlElement::prependChild(XmlElement* ch)
 
 err_t XmlElement::appendChild(XmlElement* ch)
 {
-  if (ch->contains(this)) return Error::XmlDomCyclic;
+  if (ch->contains(this, true)) return Error::XmlDomCyclic;
 
   err_t err;
   if (_document == ch->_document)
@@ -230,7 +232,7 @@ err_t XmlElement::replaceChild(XmlElement* newch, XmlElement* oldch)
 
   if (oldch->_parent != this) return Error::XmlDomInvalidChild;
   if (!oldch->_movable) return Error::XmlDomNotAllowed;
-  if (newch->contains(this)) return Error::XmlDomCyclic;
+  if (newch->contains(this, true)) return Error::XmlDomCyclic;
 
   err_t err;
   if (_document == newch->_document)
@@ -477,18 +479,33 @@ err_t XmlElement::setAttribute(const String32& _name, const String32& value)
   if (_name.isEmpty()) return Error::XmlDomInvalidAttribute;
   if (!_attributesAllowed) return Error::XmlDomNotAllowed;
 
-  // If XmlElement is part of XmlDocument that manages some resources, we can
-  // use some tricks to match XmlAttribute faster without comparing strings.
-  Vector<XmlAttribute*>::ConstIterator it(_attributes);
-
-  if (_document && _attributes.length() > 4)
+  if (!_attributes.isEmpty())
   {
-    String32 name = _document->_getManaged(_name);
-    if (!name.isEmpty())
+    Vector<XmlAttribute*>::ConstIterator it(_attributes);
+
+    // If XmlElement is part of XmlDocument that manages some resources, we can
+    // use some tricks to match XmlAttribute faster without comparing strings.
+    if (_document && _attributes.length() > 3)
+    {
+      String32 name = _document->_getManaged(_name);
+      if (!name.isEmpty())
+      {
+        do {
+          // Managed strings are shared, so we need only to compare String::Data.
+          if (it.value()->_name._string._d == name._d)
+          {
+            it.value()->_value = value;
+            return Error::Ok;
+          }
+
+          it.toNext();
+        } while (it.isValid());
+      }
+    }
+    else
     {
       do {
-        // Managed strings are shared, so we need only to compare String::Data.
-        if (it.value()->_name._string._d == name._d)
+        if (it.value()->_name._string == _name)
         {
           it.value()->_value = value;
           return Error::Ok;
@@ -497,18 +514,6 @@ err_t XmlElement::setAttribute(const String32& _name, const String32& value)
         it.toNext();
       } while (it.isValid());
     }
-  }
-  else
-  {
-    do {
-      if (it.value()->_name._string == _name)
-      {
-        it.value()->_value = value;
-        return Error::Ok;
-      }
-
-      it.toNext();
-    } while (it.isValid());
   }
 
   // Attribute not found, create new one.
@@ -824,6 +829,7 @@ err_t XmlProcessingInstruction::setData(const String32& data)
 XmlDocument::XmlDocument() :
   XmlElement(xml_local->xmlDocumentTagName)
 {
+  _document = this;
   _type = TypeDocument;
   _movable = false;
   _tagNameAllowed = false;
@@ -847,11 +853,45 @@ XmlElement* XmlDocument::clone() const
 err_t XmlDocument::setDocumentRoot(XmlElement* e)
 {
   if (_firstChild) return Error::XmlDomDocumentHasAlreadyRoot;
+  return appendChild(e);
 }
 
 XmlElement* XmlDocument::documentRoot() const
 {
   return _firstChild;
+}
+
+void XmlDocument::clear()
+{
+  deleteAll();
+}
+
+err_t XmlDocument::readFile(const String32& fileName)
+{
+  clear();
+  XmlDomReader reader(this);
+  return reader.parseFile(fileName);
+}
+
+err_t XmlDocument::readStream(Stream& stream)
+{
+  clear();
+  XmlDomReader reader(this);
+  return reader.parseStream(stream);
+}
+
+err_t XmlDocument::readMemory(const void* mem, sysuint_t size)
+{
+  clear();
+  XmlDomReader reader(this);
+  return reader.parseMemory(mem, size);
+}
+
+err_t XmlDocument::readString(const String32& str)
+{
+  clear();
+  XmlDomReader reader(this);
+  return reader.parseString(str);
 }
 
 err_t XmlDocument::_manageString(XmlString& resource)
