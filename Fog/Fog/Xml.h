@@ -11,12 +11,14 @@
 #ifndef _FOG_XML_H
 #define _FOG_XML_H
 
-// [Fog/Graphics Include Files]
+// [Fog/Xml Include Files]
 #include <Fog/Build/Build.h>
 
 #include <Fog/Xml/Dom.h>
 #include <Fog/Xml/Entity.h>
-#include <Fog/Xml/Sax.h>
+#include <Fog/Xml/Error.h>
+#include <Fog/Xml/Reader.h>
+#include <Fog/Xml/Writer.h>
 
 // [Guard]
 #endif // _FOG_XML_H
