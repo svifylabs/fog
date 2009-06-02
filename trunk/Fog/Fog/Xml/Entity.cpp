@@ -92,6 +92,7 @@ static const Fog::XmlEntity::Pair xmlentity_pairs[] =
   { "amp",       '&'   },
   { "and",       8743  },
   { "ang",       8736  },
+  // { "apos",      '\''  }, TODO: Add
   { "aring",     229   },
   { "asymp",     8776  },
   { "atilde",    227   },

@@ -21,12 +21,29 @@ enum XmlError
   _XmlErrorStart = 0x00011000,
   _XmlErrorLast  = 0x000110FF,
 
-  XmlNotAllowed = _XmlErrorStart,
-  XmlAttributeNotFound,
-  XmlAttributeInvalid,
-  XmlElementCyclic,
-  XmlElementInvalidChild,
-  XmlDocumentHasAlreadyRoot
+  // [XmlDom Errors]
+  XmlDomNotAllowed = _XmlErrorStart,
+  XmlDomAttributeNotFound,
+  XmlDomInvalidAttribute,
+  XmlDomCyclic,
+  XmlDomInvalidChild,
+  XmlDomDocumentHasAlreadyRoot,
+
+  // [XmlReader Errors]
+  XmlReaderUnknown,
+  XmlReaderNoDocument,
+  XmlReaderMissingRootTag,
+  XmlReaderMissingTag,
+  XmlReaderMissingAttribute,
+  XmlReaderUnmatchedClosingTag,
+  XmlReaderUnclosedCDATA,
+  XmlReaderUnclosedPI,
+  XmlReaderUnclosedComment,
+  XmlReaderUnclosedDOCTYPE,
+  XmlReaderSyntaxError,
+
+  // [XmlDomReader Errors]
+  XmlDomInvalidClosingTag
 };
 
 //! @}

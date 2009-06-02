@@ -388,7 +388,7 @@ struct XmlCDATA : public XmlNoTextElement
 {
   // [Construction / Destruction]
 
-  XmlCDATA(const String8& data = String8());
+  XmlCDATA(const String32& data = String32());
   virtual ~XmlCDATA();
 
   // [Clone]
@@ -397,11 +397,11 @@ struct XmlCDATA : public XmlNoTextElement
 
   // [CDATA Specific]
 
-  const String8& data() const;
-  err_t setData(const String8& data);
+  const String32& data() const;
+  err_t setData(const String32& data);
 
 protected:
-  String8 _data;
+  String32 _data;
 
   friend struct XmlElement;
   friend struct XmlDocument;
@@ -453,6 +453,9 @@ struct XmlDocument : public XmlElement
 
   //! @brief Set document root element to @a e.
   err_t setDocumentRoot(XmlElement* e);
+
+  //! @brief Return document root element.
+  XmlElement* documentRoot() const;
 
 protected:
   //! @brief Must be called to manage @a resource string when node is inserted
