@@ -259,7 +259,7 @@ public:
   // [Attributes]
 
   //! @brief Return true if current node contains attributes.
-  FOG_INLINE bool hasAttributes() const { _attributes.length() != 0; }
+  FOG_INLINE bool hasAttributes() const { return _attributes.length() != 0; }
 
   //! @brief Return array of child nodes.
   FOG_INLINE Vector<XmlAttribute*> attributes() const { return _attributes; }
@@ -310,7 +310,7 @@ private:
 // [Fog::XmlText]
 // ============================================================================
 
-struct XmlText : public XmlElement
+struct FOG_API XmlText : public XmlElement
 {
   // [Construction / Destruction]
 
@@ -336,8 +336,11 @@ struct XmlText : public XmlElement
 protected:
   String32 _data;
 
+private:
   friend struct XmlElement;
   friend struct XmlDocument;
+
+  FOG_DISABLE_COPY(XmlText)
 };
 
 // ============================================================================
@@ -352,13 +355,16 @@ struct FOG_API XmlNoTextElement : public XmlElement
 
   virtual String32 textContent() const;
   virtual err_t setTextContent(const String32& text);
+
+private:
+  FOG_DISABLE_COPY(XmlNoTextElement)
 };
 
 // ============================================================================
 // [Fog::XmlComment]
 // ============================================================================
 
-struct XmlComment : public XmlNoTextElement
+struct FOG_API XmlComment : public XmlNoTextElement
 {
   // [Construction / Destruction]
 
@@ -377,15 +383,18 @@ struct XmlComment : public XmlNoTextElement
 protected:
   String32 _data;
 
+private:
   friend struct XmlElement;
   friend struct XmlDocument;
+
+  FOG_DISABLE_COPY(XmlComment)
 };
 
 // ============================================================================
 // [Fog::XmlCDATA]
 // ============================================================================
 
-struct XmlCDATA : public XmlNoTextElement
+struct FOG_API XmlCDATA : public XmlNoTextElement
 {
   // [Construction / Destruction]
 
@@ -404,15 +413,18 @@ struct XmlCDATA : public XmlNoTextElement
 protected:
   String32 _data;
 
+private:
   friend struct XmlElement;
   friend struct XmlDocument;
+
+  FOG_DISABLE_COPY(XmlCDATA)
 };
 
 // ============================================================================
 // [Fog::XmlProcessingInstruction]
 // ============================================================================
 
-struct XmlProcessingInstruction : public XmlNoTextElement
+struct FOG_API XmlProcessingInstruction : public XmlNoTextElement
 {
   // [Construction / Destruction]
 
@@ -431,15 +443,18 @@ struct XmlProcessingInstruction : public XmlNoTextElement
 protected:
   String32 _data;
 
+private:
   friend struct XmlElement;
   friend struct XmlDocument;
+
+  FOG_DISABLE_COPY(XmlProcessingInstruction)
 };
 
 // ============================================================================
 // [Fog::XmlDocument]
 // ============================================================================
 
-struct XmlDocument : public XmlElement
+struct FOG_API XmlDocument : public XmlElement
 {
   // [Construction / Destruction]
 
@@ -495,6 +510,8 @@ protected:
 private:
   friend struct XmlAttribute;
   friend struct XmlElement;
+
+  FOG_DISABLE_COPY(XmlDocument)
 };
 
 //! @}

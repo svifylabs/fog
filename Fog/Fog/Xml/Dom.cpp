@@ -294,6 +294,8 @@ err_t XmlElement::deleteAll()
   _lastChild = NULL;
   _dirty = 0;
   _children.free();
+
+  return Error::Ok;
 }
 
 err_t XmlElement::unlink()
@@ -569,6 +571,8 @@ err_t XmlElement::removeAllAttributes()
     it.toNext();
   } while (it.isValid());
   _attributes.clear();
+
+  return Error::Ok;
 }
 
 err_t XmlElement::setTagName(const String32& name)
