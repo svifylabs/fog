@@ -3,11 +3,6 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Fog/Core Library - C++ API]
-//
-// [Licence] 
-// MIT, See COPYING file in package
-
 // [Guard]
 #ifndef _FOG_CORE_H
 #define _FOG_CORE_H
