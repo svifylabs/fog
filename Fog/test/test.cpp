@@ -1,6 +1,7 @@
 #include <Fog/Core.h>
 #include <Fog/Graphics.h>
 #include <Fog/UI.h>
+#include <Fog/Xml.h>
 
 using namespace Fog;
 
@@ -518,8 +519,20 @@ void MyWindow::paintSprites(Painter* p, const Rect& r, int count)
 // [MAIN]
 // ============================================================================
 
+void test()
+{
+  XmlDocument doc;
+  err_t err = doc.readFile(StubAscii8("/my/upload/test.xml"));
+
+  fog_debug("Xml reader status: %d", err);
+
+  XmlElement* e = doc.documentRoot();
+}
+
 FOG_UI_MAIN()
 {
+  test();
+
   Application app(StubAscii8("UI"));
 
   MyWindow window;

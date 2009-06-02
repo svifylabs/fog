@@ -39,6 +39,7 @@ struct FOG_API XmlReader
 
   // [Parser]
 
+  err_t parseFile(const String32& fileName);
   err_t parseStream(Stream& stream);
   err_t parseMemory(const void* mem, sysuint_t size);
   err_t parseString(const Char32* str, sysuint_t len);
@@ -104,6 +105,7 @@ struct FOG_API XmlReader
   virtual err_t addAttribute(const String32& name, const String32& data) = 0;
   virtual err_t addText(const String32& data, bool isWhiteSpace) = 0;
   virtual err_t addCDATA(const String32& data) = 0;
+  virtual err_t addDOCTYPE(const String32& doctype) = 0;
   virtual err_t addProcessingInstruction(const String32& data) = 0;
   virtual err_t addComment(const String32& data) = 0;
 
@@ -116,7 +118,7 @@ protected:
 // ============================================================================
 
 //! @brief Xml dom reader.
-struct FOG_API XmlDomReader
+struct FOG_API XmlDomReader : public XmlReader
 {
   // [Construction / Destruction]
 
@@ -131,6 +133,7 @@ struct FOG_API XmlDomReader
   virtual err_t addAttribute(const String32& name, const String32& data);
   virtual err_t addText(const String32& data, bool isWhiteSpace);
   virtual err_t addCDATA(const String32& data);
+  virtual err_t addDOCTYPE(const String32& doctype);
   virtual err_t addProcessingInstruction(const String32& data);
   virtual err_t addComment(const String32& data);
 
