@@ -91,6 +91,8 @@ struct FOG_API XmlReader
   {
     //! @brief Element is standard tag element.
     ElementTag = 0,
+    //! @brief Self-closing element.
+    ElementSelfClosingTag,
     //! @brief Element is XML declaration.
     ElementXML,
     //! @brief Element is DOCTYPE declaration.

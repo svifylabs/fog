@@ -75,15 +75,17 @@ XmlElement::XmlElement(const String32& tagName) :
 
 XmlElement::~XmlElement()
 {
+  //fog_debug("Deleting %p", this);
   if (_firstChild) deleteAll();
   if (_parent) unlink();
 }
 
-void XmlElement::_manage()
+void XmlElement::_manage(XmlDocument* doc)
 {
-  FOG_ASSERT(_document != NULL);
+  FOG_ASSERT(_document == NULL);
   FOG_ASSERT(_tagName._refCount == NULL);
 
+  _document = doc;
   _document->_manageString(_tagName);
 
   Vector<XmlAttribute*>::ConstIterator it(_attributes);
@@ -95,7 +97,7 @@ void XmlElement::_manage()
   XmlElement* e = _firstChild;
   while (e)
   {
-    e->_manage();
+    e->_manage(doc);
     e = e->_nextSibling;
   }
 }
@@ -118,6 +120,8 @@ void XmlElement::_unmanage()
     e->_unmanage();
     e = e->_nextSibling;
   }
+
+  _document = NULL;
 }
 
 XmlElement* XmlElement::clone() const
@@ -182,19 +186,30 @@ err_t XmlElement::prependChild(XmlElement* ch)
 {
   if (ch->contains(this, true)) return Error::XmlDomCyclic;
 
-  err_t err;
+  err_t err = Error::Ok;
   if (_document == ch->_document)
     err = ch->_unlinkUnmanaged();
   else if (ch->_parent)
     err = ch->unlink();
   if (err) return err;
 
-  ch->_document = _document;
+  ch->_parent = this;
   ch->_nextSibling = _firstChild;
-  _firstChild = ch;
+
+  if (!hasChildNodes())
+  {
+    _firstChild = ch;
+    _lastChild = ch;
+  }
+  else
+  {
+    _firstChild->_prevSibling = ch;
+    _firstChild = ch;
+  }
+
   _dirty = true;
 
-  if (_document && _document != ch->_document) ch->_manage();
+  if ( _document && _document != ch->_document) ch->_manage(_document);
   return Error::Ok;
 }
 
@@ -202,19 +217,30 @@ err_t XmlElement::appendChild(XmlElement* ch)
 {
   if (ch->contains(this, true)) return Error::XmlDomCyclic;
 
-  err_t err;
+  err_t err = Error::Ok;
   if (_document == ch->_document)
     err = ch->_unlinkUnmanaged();
   else if (ch->_parent)
     err = ch->unlink();
   if (err) return err;
 
-  ch->_document = _document;
+  ch->_parent = this;
   ch->_prevSibling = _lastChild;
-  _lastChild = ch;
+
+  if (!hasChildNodes())
+  {
+    _firstChild = ch;
+    _lastChild = ch;
+  }
+  else
+  {
+    _lastChild->_nextSibling = ch;
+    _lastChild = ch;
+  }
+
   _dirty = true;
 
-  if (_document && _document != ch->_document) ch->_manage();
+  if ( _document && _document != ch->_document) ch->_manage(_document);
   return Error::Ok;
 }
 
@@ -234,28 +260,28 @@ err_t XmlElement::replaceChild(XmlElement* newch, XmlElement* oldch)
   if (!oldch->_movable) return Error::XmlDomNotAllowed;
   if (newch->contains(this, true)) return Error::XmlDomCyclic;
 
-  err_t err;
+  err_t err = Error::Ok;
   if (_document == newch->_document)
     err = newch->_unlinkUnmanaged();
   else if (newch->_parent)
     err = newch->unlink();
   if (err) return err;
 
-  newch->_document = _document;
+  newch->_parent = this;
   newch->_prevSibling = oldch->_prevSibling;
   newch->_nextSibling = oldch->_nextSibling;
+
+  oldch->_unmanage();
+  oldch->_parent = NULL;
+  oldch->_prevSibling = NULL;
+  oldch->_nextSibling = NULL;
 
   if (newch->_prevSibling == NULL)
     _firstChild = newch;
   if (newch->_nextSibling == NULL)
     _lastChild = newch;
 
-  oldch->_unmanage();
-  oldch->_document = _document;
-  oldch->_parent = NULL;
-  oldch->_prevSibling = NULL;
-  oldch->_nextSibling = NULL;
-
+  if ( _document && _document != newch->_document) newch->_manage(_document);
   return Error::Ok;
 }
 
@@ -281,7 +307,7 @@ err_t XmlElement::deleteAll()
   do {
     XmlElement* next = e->_nextSibling;
 
-    e->_unmanage();
+    if (e->_document) e->_unmanage();
     e->_parent = NULL;
     e->_prevSibling = NULL;
     e->_nextSibling = NULL;
@@ -303,7 +329,7 @@ err_t XmlElement::unlink()
   if (_parent == NULL) return Error::Ok;
   if (!_movable) return Error::XmlDomNotAllowed;
 
-  _unmanage();
+  if (_document) _unmanage();
   return _unlinkUnmanaged();
 }
 
@@ -327,7 +353,6 @@ err_t XmlElement::_unlinkUnmanaged()
 
   _parent->_dirty = true;
 
-  _document = NULL;
   _parent = NULL;
   _prevSibling = NULL;
   _nextSibling = NULL;
@@ -567,7 +592,8 @@ err_t XmlElement::removeAllAttributes()
 {
   Vector<XmlAttribute*>::ConstIterator it(_attributes);
   do {
-    delete it.value();
+    XmlAttribute* a = (XmlAttribute*)it.value();
+    delete a;
     it.toNext();
   } while (it.isValid());
   _attributes.clear();
@@ -833,15 +859,24 @@ err_t XmlProcessingInstruction::setData(const String32& data)
 XmlDocument::XmlDocument() :
   XmlElement(xml_local->xmlDocumentTagName)
 {
-  _document = this;
   _type = TypeDocument;
   _movable = false;
   _tagNameAllowed = false;
+
+  // We will link to self.
+  _document = this;
 }
 
 XmlDocument::~XmlDocument()
 {
+  // Here is important to release all managed resources. Normally this is done
+  // in XmlElement destructor, but if we go there, the managed hash table will
+  // not exist at this time and segfault will occur. So destroy everythin here.
+  removeAllAttributes();
   deleteAll();
+
+  // And clear _document pointer
+  _document = NULL;
 }
 
 XmlElement* XmlDocument::clone() const
