@@ -159,7 +159,7 @@ public:
 
   // [Serialize]
 
-  virtual void serialize(XmlWriter& writer);
+  virtual void serialize(XmlWriter* writer);
 
   // [Normalize]
 

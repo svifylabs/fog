@@ -24,6 +24,8 @@ namespace Fog {
 
 struct FOG_API XmlWriter
 {
+  XmlWriter();
+  virtual ~XmlWriter();
 };
 
 //! @}
