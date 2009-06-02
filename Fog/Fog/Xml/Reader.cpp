@@ -627,7 +627,7 @@ XmlDomReader::~XmlDomReader()
 
 err_t XmlDomReader::openElement(const String32& tagName)
 {
-  fog_debug("OPEN");
+  //fog_debug("OPEN");
   XmlElement* e = new(std::nothrow) XmlElement(tagName);
   if (!e) return Error::OutOfMemory;
 
@@ -659,7 +659,7 @@ err_t XmlDomReader::openElement(const String32& tagName)
 
 err_t XmlDomReader::closeElement(const String32& tagName)
 {
-  fog_debug("CLOSE");
+  //fog_debug("CLOSE");
   if (_current != _document)
   {
     _current = _current->parent();
@@ -673,13 +673,13 @@ err_t XmlDomReader::closeElement(const String32& tagName)
 
 err_t XmlDomReader::addAttribute(const String32& name, const String32& data)
 {
-  fog_debug("ATTR");
+  //fog_debug("ATTR");
   return _current->setAttribute(name, data);
 }
 
 err_t XmlDomReader::addText(const String32& data, bool isWhiteSpace)
 {
-  fog_debug("TEXT");
+  //fog_debug("TEXT");
   if (_current == _document)
   {
     if (isWhiteSpace)

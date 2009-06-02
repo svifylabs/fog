@@ -75,7 +75,6 @@ XmlElement::XmlElement(const String32& tagName) :
 
 XmlElement::~XmlElement()
 {
-  //fog_debug("Deleting %p", this);
   if (_firstChild) deleteAll();
   if (_parent) unlink();
 }
@@ -940,7 +939,7 @@ err_t XmlDocument::_manageString(XmlString& resource)
   if (rc)
   {
     resource._refCount = rc;
-    *rc++;
+    (*rc)++;
   }
   else
   {
@@ -957,7 +956,7 @@ err_t XmlDocument::_manageString(XmlString& resource)
 
 err_t XmlDocument::_unmanageString(XmlString& resource)
 {
-  if (--*(resource._refCount) == 0)
+  if (--(*resource._refCount) == 0)
   {
     _managedStrings.remove(resource._string);
   }
