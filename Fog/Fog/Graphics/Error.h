@@ -20,8 +20,8 @@ namespace Error {
 enum GraphicsError
 {
   // [Errors Range]
-  _GraphicsErrorStart = 0x00011000,
-  _GraphicsErrorLast  = 0x00011FFF,
+  _GraphicsErrorStart = 0x00011100,
+  _GraphicsErrorLast  = 0x000111FF,
 
   ImageSizeIsZero = _GraphicsErrorStart,
   ImageSizeIsInvalid,
