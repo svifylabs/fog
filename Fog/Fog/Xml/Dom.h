@@ -147,7 +147,7 @@ struct FOG_API XmlElement
 
 protected:
   //! @brief Start managing this element.
-  virtual void _manage();
+  virtual void _manage(XmlDocument* doc);
   //! @brief Stop managing this element.
   virtual void _unmanage();
 

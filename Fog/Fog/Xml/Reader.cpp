@@ -249,12 +249,12 @@ cont:
 
         markTagEnd = strCur;
 
-        if ( (err = tempTagName.set(StubUtf32(markTagStart, (sysuint_t)(markTagEnd - markTagStart)))) ) goto end;
-        if ( (err = openElement(tempTagName)) ) goto end;
-
         state = StateTagInside;
         depth++;
         element = ElementTag;
+
+        if ( (err = tempTagName.set(StubUtf32(markTagStart, (sysuint_t)(markTagEnd - markTagStart)))) ) goto end;
+        if ( (err = openElement(tempTagName)) ) goto end;
 
         // ... go through ...
 
@@ -275,6 +275,7 @@ cont:
           case ElementTag:
             if (ch == Char32('/'))
             {
+              element = ElementSelfClosingTag;
               state = StateTagEnd;
               strCur++;
               goto begin;
@@ -352,11 +353,11 @@ cont:
 tagEnd:
           state = StateReady;
           mark = ++strCur;
-          depth--;
 
-          // Do not call closeElement() for <?xml ?> declaration.
-          if (element == ElementTag)
+          // Call closeElemet() here only for self-closing ones.
+          if (element == ElementSelfClosingTag)
           {
+            depth--;
             if ( (err = tempTagName.set(StubUtf32(markTagStart, (sysuint_t)(markTagEnd - markTagStart)))) ) goto end;
             if ( (err = closeElement(tempTagName)) ) goto end;
           }
@@ -391,12 +392,13 @@ tagEnd:
         // This is we are waiting for.
         if (ch == Char32('>'))
         {
-          if ( (err = tempTagName.set(StubUtf32(markTagStart, (sysuint_t)(markTagEnd - markTagStart)))) ) goto end;
-          if ( (err = closeElement(tempTagName)) ) goto end;
-
           state = StateReady;
           mark = ++strCur;
           depth--;
+
+          if ( (err = tempTagName.set(StubUtf32(markTagStart, (sysuint_t)(markTagEnd - markTagStart)))) ) goto end;
+          if ( (err = closeElement(tempTagName)) ) goto end;
+
           goto begin;
         }
 
@@ -625,6 +627,7 @@ XmlDomReader::~XmlDomReader()
 
 err_t XmlDomReader::openElement(const String32& tagName)
 {
+  fog_debug("OPEN");
   XmlElement* e = new(std::nothrow) XmlElement(tagName);
   if (!e) return Error::OutOfMemory;
 
@@ -656,6 +659,7 @@ err_t XmlDomReader::openElement(const String32& tagName)
 
 err_t XmlDomReader::closeElement(const String32& tagName)
 {
+  fog_debug("CLOSE");
   if (_current != _document)
   {
     _current = _current->parent();
@@ -669,11 +673,13 @@ err_t XmlDomReader::closeElement(const String32& tagName)
 
 err_t XmlDomReader::addAttribute(const String32& name, const String32& data)
 {
+  fog_debug("ATTR");
   return _current->setAttribute(name, data);
 }
 
 err_t XmlDomReader::addText(const String32& data, bool isWhiteSpace)
 {
+  fog_debug("TEXT");
   if (_current == _document)
   {
     if (isWhiteSpace)
