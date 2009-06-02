@@ -45,6 +45,10 @@ FOG_INIT_FUNC(fog_thread);
 FOG_INIT_FUNC(fog_object);
 FOG_INIT_FUNC(fog_application);
 
+// Fog/Xml
+FOG_INIT_FUNC(fog_xmlentity);
+FOG_INIT_FUNC(fog_xmldom);
+
 // Fog/Graphics
 FOG_INIT_FUNC(fog_colormatrix);
 FOG_INIT_FUNC(fog_raster);
@@ -107,6 +111,10 @@ static const FogInitEntry fog_init_entries[] =
   INIT_ENTRY(fog_object),           // Depends to String
   INIT_ENTRY(fog_application),      // Depends to Many
 
+  // Fog/Xml
+  INIT_ENTRY(fog_xmlentity),
+  INIT_ENTRY(fog_xmldom),           // Depends to String
+
   // Fog/Graphics
   INIT_ENTRY(fog_colormatrix),
   INIT_ENTRY(fog_raster),
@@ -115,7 +123,7 @@ static const FogInitEntry fog_init_entries[] =
   INIT_ENTRY(fog_region),
   INIT_ENTRY(fog_image),
   INIT_ENTRY(fog_imageio),
-  INIT_ENTRY(fog_glyph),
+  INIT_ENTRY(fog_glyph),            // Depends to Image
   INIT_ENTRY(fog_glyphset),
   INIT_ENTRY(fog_pattern),
   INIT_ENTRY(fog_font),

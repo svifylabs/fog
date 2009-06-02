@@ -259,6 +259,8 @@ struct Hash : public Hash_Abstract
   ValueT* get(const KeyT& key) const;
   ValueT* mod(const KeyT& key);
 
+  Node* _getNode(const KeyT& key) const;
+
   ValueT value(const KeyT& key) const;
   ValueT value(const KeyT& key, const ValueT& defaultValue) const;
 
@@ -515,6 +517,24 @@ ValueT* Hash<KeyT, ValueT>::mod(const KeyT& key)
   }
 
   return &node->value;
+}
+
+template<typename KeyT, typename ValueT>
+typename Hash<KeyT, ValueT>::Node* Hash<KeyT, ValueT>::_getNode(const KeyT& key) const
+{
+  if (!_d->length) return NULL;
+
+  uint32_t hashCode = toHashCode(key);
+  uint32_t hashMod = hashCode % capacity();
+
+  Node* node = (Node*)(_d->buckets[hashMod]);
+
+  while (node)
+  {
+    if (node->hashCode == hashCode && node->key == key) return node;
+    node = node->next;
+  }
+  return NULL;
 }
 
 template<typename KeyT, typename ValueT>

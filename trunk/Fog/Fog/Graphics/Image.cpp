@@ -2752,3 +2752,4 @@ FOG_INIT_DECLARE void fog_image_shutdown(void)
   Fog::Image::sharedNull.instancep()->refCount.dec();
   Fog::Image::sharedNull.destroy();
 }
+

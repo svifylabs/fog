@@ -19,8 +19,8 @@ namespace Error {
 enum UIError 
 {
   // [Errors Range]
-  _UIErrorStart = 0x00012000,
-  _UIErrorLast  = 0x00012FFF,
+  _UIErrorStart = 0x00011200,
+  _UIErrorLast  = 0x000112FF,
 
   FailedToCreateUISystem = _UIErrorStart,
   FailedToCreateUIWindow,

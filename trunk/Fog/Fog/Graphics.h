@@ -8,8 +8,8 @@
 #endif // _MSVC
 
 // [Guard]
-#ifndef _FOG_GRAPHICS_GRAPHICS_H
-#define _FOG_GRAPHICS_GRAPHICS_H
+#ifndef _FOG_GRAPHICS_H
+#define _FOG_GRAPHICS_H
 
 // [Fog/Graphics Include Files]
 #include <Fog/Build/Build.h>
@@ -37,4 +37,4 @@
 #include <Fog/Graphics/RgbaAnalyzer.h>
 
 // [Guard]
-#endif // _FOG_GRAPHICS_GRAPHICS_H
+#endif // _FOG_GRAPHICS_H

@@ -54,9 +54,6 @@
 
 #include "agg_rasterizer_scanline_aa_custom.h"
 
-// [BlitJit]
-#include <BlitJit/BlitJit.h>
-
 namespace Fog {
 
 // ============================================================================
