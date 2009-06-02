@@ -268,7 +268,7 @@ struct Hash : public Hash_Abstract
   Vector<KeyT> keys(const ValueT& value) const;
 
   Hash<KeyT, ValueT>& operator=(const Hash<KeyT, ValueT>& other)
-  { ((Data*)AtomicBase::ptr_setXchg(&_d, other._d->ref()))->deref(); }
+  { ((Data*)AtomicBase::ptr_setXchg(&_d, other._d->ref()))->deref(); return *this; }
 
   FOG_INLINE ValueT* operator[](const KeyT& key)
   { return mod(key); }
