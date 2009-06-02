@@ -15,8 +15,10 @@
 #include <Fog/Core/MapFile.h>
 #include <Fog/Core/Stream.h>
 #include <Fog/Core/String.h>
+#include <Fog/Core/StringUtil.h>
 #include <Fog/Core/TextCodec.h>
 #include <Fog/Core/Vector.h>
+#include <Fog/Xml/Dom.h>
 #include <Fog/Xml/Entity.h>
 #include <Fog/Xml/Error.h>
 #include <Fog/Xml/Reader.h>
@@ -24,161 +26,744 @@
 namespace Fog {
 
 // ============================================================================
+// [Fog::XmlReader - Helpers]
+// ============================================================================
+
+enum
+{
+  XML_CHAR_SPACE    = 0x01, // '\t''\r''\n'' '
+  XML_CHAR_EQUAL    = 0x02, // =
+  XML_CHAR_LT       = 0x04, // <
+  XML_CHAR_GT       = 0x08, // >
+  XML_CHAR_SLASH    = 0x10, // /
+  XML_CHAR_BRACKETS = 0x20, // []
+  XML_CHAR_QUOT     = 0x40, // '"
+  XML_CHAR_AND      = 0x80  // &
+};
+
+// Special xml characters.
+static const uint8_t xmlChars[128] = {
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 0
+  0x00, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, // 8
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 16
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 24
+  0x01, 0x00, 0x40, 0x00, 0x00, 0x00, 0x80, 0x40, // 32
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, // 40
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 48
+  0x00, 0x00, 0x00, 0x00, 0x04, 0x02, 0x08, 0x00, // 56
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 64
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 72
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 80
+  0x00, 0x00, 0x00, 0x20, 0x00, 0x20, 0x00, 0x00, // 88
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 96
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 104
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 112
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00  // 120
+};
+
+// Optimized strcspn for xml reading with mask instead of string
+static uint xmlStrCSPN(const Char32* buffer, const Char32* end, uint rejectMask)
+{
+  const Char32* start = buffer;
+
+  while (buffer < end)
+  {
+    if (buffer->ch() < 128 && (xmlChars[buffer->ch()] & rejectMask)) break;
+    buffer++;
+  }
+
+  return (sysuint_t)(buffer - start);
+}
+
+// Optimized strspn for xml reading with mask instead of string
+static uint xmlStrSPN(const Char32* buffer, const Char32* end, uint acceptMask)
+{
+  const Char32* start = buffer;
+
+  while (buffer < end)
+  {
+    if (*buffer > 127 || !(xmlChars[buffer->ch()] & acceptMask)) break;
+    buffer++;
+  }
+
+  return (sysuint_t)(buffer - start);
+}
+
+static const Char32* xmlStrCHR(const Char32* buffer, const Char32* end, Char32 uc)
+{
+  while (buffer < end && *buffer != uc) buffer++;
+  return buffer;
+}
+
+static bool xmlIsWhiteSpace(const Char32* buffer, const Char32* end)
+{
+  while (buffer < end)
+  {
+    if (!buffer->isSpace()) return false;
+    buffer++;
+  }
+  return true;
+}
+
+// ============================================================================
 // [Fog::XmlReader]
 // ============================================================================
 
-XmlReader::XmlReader() :
-  _status(StatusReady),
-  _encodingParsed(false)
+XmlReader::XmlReader()
 {
-  // Default text codec for xml streams.
-  _textCodec = TextCodec::fromCode(TextCodec::UTF8);
 }
 
 XmlReader::~XmlReader()
 {
 }
 
-void XmlReader::setStream(Stream& stream)
+err_t XmlReader::parseStream(Stream& stream)
 {
-  _stream = stream;
+  String8 buffer;
+  err_t err = stream.readAll(buffer);
+
+  if (err)
+    return err;
+  else
+    return parseMemory(reinterpret_cast<const void*>(buffer.cData()), buffer.length());
 }
 
-void XmlReader::resetStream()
+err_t XmlReader::parseMemory(const void* mem, sysuint_t size)
 {
-  _stream = Stream();
+  TextCodec textCodec = _detectEncoding(mem, size);
+  if (textCodec.isNull()) textCodec.setCode(TextCodec::UTF8);
+
+  String32 buffer;
+  err_t err = textCodec.toUtf32(buffer, Stub8((const char*)mem, size));
+  if (err) return err;
+
+  return parseString(buffer.cData(), buffer.length());
+}
+
+err_t XmlReader::parseString(const Char32* s, sysuint_t len)
+{
+  // Check if encoded length is zero (no document).
+  if (len == DetectLength) len = StringUtil::len(s);
+  if (len == 0) return Error::XmlReaderNoDocument;
+
+  const Char32* strCur = s;           // Parsing buffer.
+  const Char32* strEnd = s + len;     // End of buffer.
+
+  const Char32* mark = s;             // Mark to start position of currently parsed item.
+
+  const Char32* markTagStart  = NULL; // Mark to start position of currently parsed tag name.
+  const Char32* markTagEnd    = NULL; // Mark to end position of currently parsed tag name.
+
+  const Char32* markAttrStart = NULL; // Mark to start of attribute.
+  const Char32* markAttrEnd   = NULL; // Mark to end of attribute.
+
+  const Char32* markDataStart = NULL; // Mark to start of data (CDATA, Comment, attribute text, ...).
+  const Char32* markDataEnd   = NULL; // Mark to end of data (CDATA, Comment, attribute text, ...).
+
+  Char32 ch;                          // Current character.
+  Char32 attr;                        // Attribute marker (' or ").
+
+  err_t err = Error::Ok;              // Current error code.
+  int state = StateReady;             // Current state.
+  int element = ElementTag;           // Element type.
+  int depth = 0;                      // Current depth.
+  bool skipTagText = true;            // skip tag text...?
+
+  // Temporary reusable strings.
+  String32 tempTagName;
+  String32 tempAttrName;
+  String32 tempAttrValue;
+  String32 tempText;
+  String32 tempData;
+
+  for (;;)
+  {
+begin:
+    if (strCur == strEnd) break;
+    ch = *strCur;
+
+cont:
+    switch (state)
+    {
+      case StateReady:
+        // If xml char has special meaning, we will process it, otherwise go away.
+        if (ch == Char32('<'))
+        {
+          // If there is text, we will call addText().
+          if (mark != strCur)
+          {
+            bool isWhiteSpace = xmlIsWhiteSpace(mark, strCur);
+            if ( (err = tempText.set(StubUtf32(mark, (sysuint_t)(strCur - mark))) ) ) goto end;
+            if ( (err = addText(tempText, isWhiteSpace)) ) goto end;
+          }
+
+          state = StateTagBegin;
+          mark = strCur;
+        }
+        break;
+
+      case StateTagBegin:
+        // Match start tag name (this is probably the most common)
+        if (ch.isAlpha() || ch == Char32('_') || ch == Char32(':'))
+        {
+          state = StateTagName;
+          markTagStart = strCur;
+          break;
+        }
+
+        // Match closing tag slash.
+        if (ch.ch() == Char32('/'))
+        {
+          state = StateTagClose;
+          break;
+        }
+
+        if (ch.ch() == Char32('?'))
+        {
+          state = StateTagQuestionMark;
+          break;
+        }
+
+        if (ch.ch() == Char32('!'))
+        {
+          state = StateTagExclamationMark;
+          break;
+        }
+
+        if (ch.isSpace()) break;
+
+        // Syntax Error
+        err = Error::XmlReaderSyntaxError;
+        goto end;
+
+      case StateTagName:
+        if (ch.isAlnum() || ch == Char32('_') || ch == Char32(':') || ch == Char32('-') || ch == Char32('.'))
+          break;
+
+        markTagEnd = strCur;
+
+        if ( (err = tempTagName.set(StubUtf32(markTagStart, (sysuint_t)(markTagEnd - markTagStart)))) ) goto end;
+        if ( (err = openElement(tempTagName)) ) goto end;
+
+        state = StateTagInside;
+        depth++;
+        element = ElementTag;
+
+        // ... go through ...
+
+      case StateTagInside:
+        if (ch.isSpace()) break;
+
+        // Check for start of xml attribute.
+        if (ch.isAlpha() || ch == Char32('_'))
+        {
+          markAttrStart = strCur;
+          state = StateTagInsideAttrName;
+        }
+
+        // Check for end tag sequence.
+        switch (element)
+        {
+          case ElementTag:
+            if (ch == Char32('/'))
+            {
+              state = StateTagCloseEnd;
+              strCur++;
+              goto begin;
+            }
+            break;
+          case ElementXML:
+            if (ch == Char32('?'))
+            {
+              state = StateTagCloseEnd;
+              strCur++;
+              goto begin;
+            }
+            break;
+        }
+
+        err = Error::XmlReaderSyntaxError;
+        goto end;
+
+      case StateTagInsideAttrName:
+        if (ch.isAlnum() || ch == Char32('_') || ch == Char32('-') || ch == Char32('.')) break;
+
+        markAttrEnd = strCur;
+
+        // Now we expect =
+        while (ch.isSpace())
+        {
+          if (++strCur == strEnd) goto endOfInput;
+          ch = *strCur;
+        }
+
+        if (ch != Char32('=')) { err = Error::XmlReaderSyntaxError; goto end; }
+
+        if (++strCur == strEnd) goto endOfInput;
+        ch = *strCur;
+
+        // Now we expect ' or "
+        while (ch.isSpace())
+        {
+          if (++strCur == strEnd) goto endOfInput;
+          ch = *strCur;
+        }
+
+        if (ch == Char32('\'') || ch == Char32('\"'))
+        {
+          attr = ch;
+          state = StateTagInsideAttrValue;
+          markDataStart = ++strCur;
+          goto begin;
+        }
+        else
+        {
+          err = Error::XmlReaderSyntaxError;
+          goto end;
+        }
+
+      case StateTagInsideAttrValue:
+        if (ch != attr) break;
+
+        markDataEnd = strCur;
+        strCur++;
+        state = StateTagInside;
+
+        if ( (err = tempAttrName.set(StubUtf32(markAttrStart, (sysuint_t)(markAttrEnd - markAttrStart)))) ) goto end;
+        if ( (err = tempAttrValue.set(StubUtf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart)))) ) goto end;
+        if ( (err = addAttribute(tempAttrName, tempAttrValue))) goto end;
+
+        goto begin;
+
+      case StateTagEnd:
+        if (ch.isSpace()) break;
+
+        if (ch == Char32('>'))
+        {
+          state = StateReady;
+          mark = ++strCur;
+          depth--;
+
+          if ( (err = tempTagName.set(StubUtf32(markTagStart, (sysuint_t)(markTagEnd - markTagStart)))) ) goto end;
+          if ( (err = closeElement(tempTagName)) ) goto end;
+
+          goto begin;
+        }
+
+        break;
+
+      case StateTagClose:
+        // Only possible sequence here is [StartTagSequence].
+        if (ch.isAlpha() || ch == Char32('_') || ch == Char32(':'))
+        {
+          state = StateTagCloseName;
+          markTagStart = strCur;
+          break;
+        }
+
+        err = Error::XmlReaderSyntaxError;
+        goto end;
+
+      case StateTagCloseName:
+        if (ch.isAlnum() || ch == Char32('_') || ch == Char32(':') || ch == Char32('-') || ch == Char32('.'))
+          break;
+
+        state = StateTagCloseEnd;
+        markTagEnd = strCur;
+
+        // ...go through ...
+
+      case StateTagCloseEnd:
+        // This is we are waiting for.
+        if (ch == Char32('>'))
+        {
+          if ( (err = tempTagName.set(StubUtf32(markTagStart, (sysuint_t)(markTagEnd - markTagStart)))) ) goto end;
+          if ( (err = closeElement(tempTagName)) ) goto end;
+
+          state = StateReady;
+          mark = ++strCur;
+          depth--;
+          goto begin;
+        }
+
+        if (ch.isSpace()) break;
+
+        // Syntax Error.
+        err = Error::XmlReaderSyntaxError;
+        goto end;
+
+      case StateTagQuestionMark:
+        if ((sysuint_t)(strEnd - strCur) > 3 && StringUtil::eq(strCur, (const Char8*)"xml", 3, CaseInsensitive) && strCur[3].isSpace())
+        {
+          element = ElementXML;
+          state = StateTagInside;
+          strCur += 4;
+          goto begin;
+        }
+        else
+        {
+          markDataStart = strCur;
+          state = StatePI;
+        }
+        break;
+
+      case StateTagExclamationMark:
+        if ((sysuint_t)(strEnd - strCur) > 7 && StringUtil::eq(strCur, (const Char8*)"DOCTYPE", 7, CaseInsensitive) && strCur[7].isSpace())
+        {
+          element = ElementDOCTYPE;
+          state = StateDOCTYPE;
+          strCur += 8;
+          goto begin;
+        }
+        else
+        {
+          err = Error::XmlReaderSyntaxError;
+          goto end;
+        }
+
+      case StatePI:
+      {
+        const Char32* q = strEnd-1;
+
+        while (strCur < q &&
+               strCur[0].ch() != Char32('?') &&
+               strCur[1].ch() != Char32('>')) strCur++;
+
+        if (strCur == q)
+        {
+          err = Error::XmlReaderSyntaxError;
+          goto end;
+        }
+        else
+        {
+          markDataEnd = strCur;
+          strCur += 2;
+
+          state = StateReady;
+          mark = strCur;
+
+          if ( (err = tempData.set(StubUtf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart)))) ) goto end;
+          if ( (err = addProcessingInstruction(tempData)) ) goto end;
+
+          goto begin;
+        }
+      }
+
+      case StateComment:
+      {
+        const Char32* q = strEnd-2;
+
+        while (strCur < q &&
+               strCur[0].ch() != Char32('-') &&
+               strCur[1].ch() != Char32('-') &&
+               strCur[2].ch() != Char32('>')) strCur++;
+
+        if (strCur == q)
+        {
+          err = Error::XmlReaderSyntaxError;
+          goto end;
+        }
+        else
+        {
+          markDataEnd = strCur;
+          strCur += 3;
+
+          state = StateReady;
+          mark = strCur;
+
+          if ( (err = tempData.set(StubUtf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart)))) ) goto end;
+          if ( (err = addComment(tempData)) ) goto end;
+
+          goto begin;
+        }
+      }
+
+      case StateCDATA:
+      {
+        const Char32* q = strEnd-2;
+
+        while (strCur < q &&
+               strCur[0].ch() != Char32(']') &&
+               strCur[1].ch() != Char32(']') &&
+               strCur[2].ch() != Char32('>')) strCur++;
+
+        if (strCur == q)
+        {
+          err = Error::XmlReaderSyntaxError;
+          goto end;
+        }
+        else
+        {
+          markDataEnd = strCur;
+          strCur += 3;
+
+          state = StateReady;
+          mark = strCur;
+
+          if ( (err = tempData.set(StubUtf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart)))) ) goto end;
+          if ( (err = addCDATA(tempData)) ) goto end;
+
+          goto begin;
+        }
+      }
+
+      default:
+        err = Error::XmlReaderUnknown;
+        goto end;
+    }
+
+    strCur++;
+  }
+
+endOfInput:
+  if (depth > 0 || state != StateReady)
+  {
+    err = Error::XmlReaderSyntaxError;
+  }
+
+end:
+  return err;
+}
+
+TextCodec XmlReader::_detectEncoding(const void* mem, sysuint_t size)
+{
+  // first check for BOM
+  TextCodec textCodec = TextCodec::fromBom(mem, size);
+  if (!textCodec.isNull()) return textCodec;
+
+  const Char8* ptr = (const Char8 *)mem;
+  const Char8* end = ptr + size;
+
+  if (size < 15) goto end;
+
+  while (ptr != end)
+  {
+    // TODO: Detect UTF16LE, UTF16BE, UTF32LE, UTF32BE
+
+    if  (ptr[0] == Char8('<') && ptr < end - 5 &&
+         ptr[1] == Char8('?') &&
+        (ptr[2] == Char8('x') || ptr[2] == Char8('X')) &&
+        (ptr[3] == Char8('m') || ptr[2] == Char8('M')) &&
+        (ptr[4] == Char8('l') || ptr[2] == Char8('L')))
+    {
+      // Xml header, we are in "<?xml".
+      ptr += 5;
+
+      while(ptr + 9 < end)
+      {
+        if (*ptr == Char8('>')) goto end;
+        if (ptr->isAsciiSpace() && StringUtil::eq(ptr + 1, (const Char8*)"encoding", 8, CaseInsensitive))
+        {
+          // We are in "<?xml ..... encoding".
+          const Char8* begin;
+          Char8 q;
+          ptr += 9;
+
+          // Find '='.
+          while (ptr != end && *ptr != Char8('=')) ptr++;
+          if (ptr == end) goto end;
+
+          ptr++;
+
+          // We are in "<?xml ..... encoding = "
+          while (ptr != end && ptr->isAsciiSpace()) ptr++;
+          if (ptr == end) goto end;
+
+          q = *ptr++;
+          begin = ptr;
+
+          while (ptr != end && *ptr != q) ptr++;
+          if (ptr == end) goto end;
+
+          // Try encoding and return
+          textCodec = TextCodec::fromMime(StubAscii8(begin, (sysuint_t)(ptr - begin)));
+          goto end;
+        }
+        ptr++;
+      }
+    }
+    else if (ptr[0] == Char8('<'))
+    {
+      // xml header not found, default encoding is UTF-8
+      break;
+    }
+
+    ptr++;
+  }
+
+end:
+  return textCodec;
+}
+
+// ============================================================================
+// [Fog::XmlDomReader]
+// ============================================================================
+
+XmlDomReader::XmlDomReader(XmlDocument* document) :
+  _document(document),
+  _current(NULL)
+{
+}
+
+XmlDomReader::~XmlDomReader()
+{
+}
+
+err_t XmlDomReader::openElement(const String32& tagName)
+{
+  XmlElement* e = new(std::nothrow) XmlElement(tagName);
+  if (!e) return Error::OutOfMemory;
+
+  err_t err;
+
+  if (_current == NULL)
+  {
+    if (_document->documentRoot() == NULL)
+      err = _document->setDocumentRoot(e);
+    else
+      err = Error::XmlDomDocumentHasAlreadyRoot;
+  }
+  else
+  {
+    err = _current->appendChild(e);
+  }
+
+  if (err)
+  {
+    delete e;
+    return err;
+  }
+  else
+  {
+    _current = e;
+    return Error::Ok;
+  }
+}
+
+err_t XmlDomReader::closeElement(const String32& tagName)
+{
+  if (_current)
+  {
+    _current = _current->parent();
+    return Error::Ok;
+  }
+  else
+  {
+    return Error::XmlDomInvalidClosingTag;
+  }
+}
+
+err_t XmlDomReader::addAttribute(const String32& name, const String32& data)
+{
+  if (_current) return Error::XmlReaderUnknown;
+  return _current->setAttribute(name, data);
+}
+
+err_t XmlDomReader::addText(const String32& data, bool isWhiteSpace)
+{
+  if (_current) return Error::XmlReaderUnknown;
+
+  XmlElement* e = new XmlText(data);
+  if (!e) return Error::OutOfMemory;
+
+  err_t err;
+  if ((err = e->appendChild(e))) delete e;
+  return err;
+}
+
+err_t XmlDomReader::addCDATA(const String32& data)
+{
+  if (_current) return Error::XmlReaderUnknown;
+
+  XmlElement* e = new XmlCDATA(data);
+  if (!e) return Error::OutOfMemory;
+
+  err_t err;
+  if ((err = e->appendChild(e))) delete e;
+  return err;
+}
+
+err_t XmlDomReader::addProcessingInstruction(const String32& data)
+{
+  if (_current) return Error::XmlReaderUnknown;
+
+  XmlElement* e = new XmlProcessingInstruction(data);
+  if (!e) return Error::OutOfMemory;
+
+  err_t err;
+  if ((err = e->appendChild(e))) delete e;
+  return err;
+}
+
+err_t XmlDomReader::addComment(const String32& data)
+{
+  if (_current) return Error::XmlReaderUnknown;
+
+  XmlElement* e = new XmlComment(data);
+  if (!e) return Error::OutOfMemory;
+
+  err_t err;
+  if ((err = e->appendChild(e))) delete e;
+  return err;
 }
 
 } // Fog namespace
 
+
+
+
+
+
+
+
+
 // STOPPED HERE!
-
 #if 0
-// [Core::XmlDocument]
+#define __XML_CHAR_ERROR(n) return n
+  //XmlNode* doc = _doc._root; // new xml tree
+  //XmlNode* cur;              // current node
+  //XmlAttribute *attributes;  // attributes
 
-// Special xml characters
-static const uchar xmlChars[128] = {
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x01, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x40,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x04, 0x02, 0x08, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x20, 0x00, 0x20, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-};
-
-enum
-{
-  XML_SPACE    = (1 << 0), /* '\t''\r''\n'' ' */
-  XML_EQUAL    = (1 << 1), /* = */
-  XML_LT       = (1 << 2), /* < */
-  XML_GT       = (1 << 3), /* > */
-  XML_SLASH    = (1 << 4), /* / */
-  XML_BRACKETS = (1 << 5), /* [] */
-  XML_QUOT     = (1 << 6) /* '" */
-};
-
-struct CORE_HIDDEN XmlReader
-{
-  XmlDocument& _doc;
-  uint32_t _readFlags;
-
-  CORE_INLINE XmlReader(XmlDocument& doc, uint32_t readFlags = 0)
-    : _doc(doc), _readFlags(readFlags)
-  {
-  }
-
-  CORE_INLINE ~XmlReader()
-  {
-  }
-
-  Value readUnicode(const Char* str, sysuint_t length);
-
-  static bool checkForEncoding(const void* mem, sysuint_t length, TextCodec& textCodec);
-  static uint strCSPN(const Char* buffer, const Char* end, uint reject_mask);
-  static uint strSPN(const Char* buffer, const Char* end, uint accept_mask);
-  static const Char* strCHR(const Char* buffer, const Char* end, Char uc);
-  static void decode(String& dest, const Char* buffer, sysuint_t length);
-  static void openTag(XmlNode** pCur, const Char* tag, sysuint_t tagLength, XmlAttribute* last);
-  static void closeTag(XmlNode** pCur);
-};
-
-Value XmlReader::readUnicode(const Char* str, sysuint_t length)
-{
-  #define __XML_ERROR(n) do { errorCode = n; goto error; } while(0)
-
-  /* ===== Local variables ===== */
-  Value result;
-  uint32_t errorCode;
-
-  XmlNode* doc = _doc._root; // new xml tree
-  XmlNode* cur;              // current node
-  XmlAttribute *attributes;  // attributes
-  bool skipTagText = true;   // skip tag text...?
-
-  const Char* strCur;        // parsing buffer
-  const Char* strEnd;        // end of buffer
-
-  /* ===== Check if encoded length is zero (no document) ===== */
-  if (length == DetectLength) length = String::Raw::len(str);
-  if (length == 0) __XML_ERROR(EXmlNoDocument);
-
-  /* ===== Initialize parser ===== */
-  strCur = str;
-  strEnd = strCur + length;
-
-  /* ===== Initialize root tag ===== */
-  cur = doc;
-
-  /* ===== Find first tag ===== */
+  // ===== Find first tag =====
   for (;;)
   {
-    if (strCur == strEnd) __XML_ERROR(EXmlMissingRootTag);
+    if (strCur == strEnd) __XML_CHAR_ERROR(Error::XmlReaderMissingRootTag);
     else if (strCur->isSpace()) strCur++;
     else if (*strCur == '<') break;
-    else __XML_ERROR(EXmlMissingRootTag);
+    else __XML_CHAR_ERROR(Error::XmlReaderMissingRootTag);
   }
 
-  /* --------------------------------------------------------------------- */
-  /* ===== Loop (*strCur is now '<' --- beginning of first tag) ===== */
+  // ---------------------------------------------------------------------
+  // ===== Loop (*strCur is now '<' --- beginning of first tag) =====
   for (;;)
   {
-    /* next character */
+    // next character
     strCur++;
 
-    /* ----- New tag...? ----- */
+    // ----- New tag...? -----
     if (strCur->isAlpha() || *strCur == '_' || *strCur == ':' || *strCur > 127)
     {
-      if (!cur) __XML_ERROR(EXmlUnmatchedClosingTag);
+      if (!cur) __XML_CHAR_ERROR(Error::XmlReaderUnmatchedClosingTag);
 
-      /* === Clean attributes === */
+      // === Clean attributes ===
       attributes = NULL;
 
-      /* === Parse tag name === */
-      const Char* tag = strCur;
-      uint tagLength = strCSPN(strCur, strEnd, XML_SPACE | XML_SLASH | XML_GT);
+      // === Parse tag name ===
+      const Char32* tag = strCur;
+      uint tagLength = xmlStrCSPN(strCur, strEnd, XML_CHAR_SPACE | XML_CHAR_SLASH | XML_CHAR_GT);
 
       strCur += tagLength;
 
-      /* === New tag attributes === */
+      // === New tag attributes ===
       while (strCur != strEnd && *strCur != '/' && *strCur != '>')
       {
         // Skip spaces
         while (strCur->isSpace()) strCur++;
 
         // Temp variable where is stored beginning of attribute name or text
-        const Char* begin = strCur;
+        const Char32* begin = strCur;
 
-        strCur += strCSPN(strCur, strEnd, XML_SPACE | XML_EQUAL | XML_SLASH | XML_GT);
+        strCur += xmlStrCSPN(strCur, strEnd, XML_CHAR_SPACE | XML_CHAR_EQUAL | XML_CHAR_SLASH | XML_CHAR_GT);
         if (*strCur == '=' || strCur->isSpace())
         {
           // Create a new attribute
@@ -193,8 +778,8 @@ Value XmlReader::readUnicode(const Char* str, sysuint_t length)
             attributes = a;
           }
 
-          // q can be (") or (')
-          Char q = *(strCur += strSPN(strCur, strEnd, XML_SPACE | XML_EQUAL));
+          // q can be " or '
+          Char32 q = *(strCur += xmlStrSPN(strCur, strEnd, XML_CHAR_SPACE | XML_CHAR_EQUAL));
 
           // Get attribute value
           if (q == '\"' || q == '\'')
@@ -212,7 +797,7 @@ Value XmlReader::readUnicode(const Char* str, sysuint_t length)
               openTag(&cur, tag, tagLength, attributes);
               closeTag(&cur);
 
-              __XML_ERROR(EXmlMissingAttribute);
+              __XML_CHAR_ERROR(Error::XmlReaderMissingAttribute);
             }
 
             strCur++;
@@ -220,73 +805,77 @@ Value XmlReader::readUnicode(const Char* str, sysuint_t length)
         }
       }
 
-      /* === Self closing tag...? === */
+      // === Self closing tag...? ===
       if (*strCur == '/')
       {
-        /* Assign node */
+        // Assign node
         openTag(&cur, tag, tagLength, attributes);
         closeTag(&cur);
 
-        /* Skip spaces...Allow <SelfClosingNode/ > */
+        // Skip spaces...Allow <SelfClosingNode/ >
         for (;;)
         {
-          /* strEnd of input will cause error */
-          if (++strCur == strEnd) __XML_ERROR(EXmlMissingTag);
-          /* Skip spaces */
+          // strEnd of input will cause error
+          if (++strCur == strEnd) __XML_CHAR_ERROR(Error::XmlReaderMissingTag);
+          // Skip spaces
           if (strCur->isSpace()) continue;
-          /* 'Only '>' is valid */
+          // 'Only '>' is valid
           else if (*strCur == '>')
             break;
           else
-            __XML_ERROR(EXmlMissingTag);
+            __XML_CHAR_ERROR(Error::XmlReaderMissingTag);
         }
       }
 
-      /* === Open tag...? === */
+      // === Open tag...? ===
       else if (*strCur == '>')
       {
         openTag(&cur, tag, tagLength, attributes);
       }
 
-      /* === Error, Missing > === */
+      // === Error, Missing > ===
       else
       {
-        /* Assign last node, but this node can be damaged. */
+        // Assign last node, but this node can be damaged.
         openTag(&cur, tag, tagLength, attributes);
         closeTag(&cur);
 
-        __XML_ERROR(EXmlMissingTag);
+        __XML_CHAR_ERROR(Error::XmlReaderMissingTag);
       }
 
       skipTagText = false;
     }
 
 
-    /* ----- Close tag ----- */
+    // ----- Close tag -----
     else if (*strCur == '/')
     {
-      if (!cur) __XML_ERROR(EXmlUnmatchedClosingTag);
+      if (!cur) __XML_CHAR_ERROR(Error::XmlReaderUnmatchedClosingTag);
 
       closeTag(&cur);
       while (strCur != strEnd && *strCur != '>') strCur++;
-      if (strCur == strEnd) __XML_ERROR(EXmlMissingTag);
+      if (strCur == strEnd) __XML_CHAR_ERROR(Error::XmlReaderMissingTag);
     }
 
 
-    /* ----- Comment ----- */
+    // ----- Comment -----
     else if (strCur + 3 <= strEnd && String::Raw::eq(strCur, "!--", 3))
     {
-      strCur += 3;
+      const Char32* dataStart = strCur += 3;
+
       for (;;)
       {
-        if (strCur + 3 >= strEnd) __XML_ERROR(EXmlMissingComment);
-        else if (String::Raw::eq(strCur, "-->", 3)) { strCur += 3; break; }
+        if (strCur + 3 >= strEnd) __XML_CHAR_ERROR(Error::XmlReaderUnclosedComment);
+        else if (StringUtil::eq(strCur, "-->", 3)) { strCur += 3; break; }
         else strCur++;
       }
+
+      const Char32* dataEnd = strCur - 3;
+      addComment(String32(StubUtf32(dataStart, (sysuint_t)(dataEnd - dataStart))));
     }
 
 
-    /* ----- CDATA ----- */
+    // ----- CDATA -----
     else if (strCur + 8 <= strEnd && String::Raw::eq(strCur, "![CDATA[", 8))
     {
 #if 0
@@ -295,218 +884,118 @@ Value XmlReader::readUnicode(const Char* str, sysuint_t length)
         //WXmlCharContent(root, D + 8, (S += 2) - D - 10, 0);
       }
       else
-        __XML_ERROR(EXmlXmlCDataMissing);
+        __XML_CHAR_ERROR(Error::XmlReaderUnclosedCDATA);
 #endif
     }
 
 
-    /* ----- !DOCTYPE ----- */
+    // ----- !DOCTYPE -----
     else if (strCur + 8 <= strEnd && String::Raw::eq(strCur, "!DOCTYPE", 8))
     {
       uint i;
       for (i = 0; strCur != strEnd && ((!i && *strCur != '>') || (i && (*strCur != ']' ||
-                   strCur[strSPN(strCur + 1, strEnd, XML_SPACE) + 1] != '>')));
+                   strCur[xmlStrSPN(strCur + 1, strEnd, XML_CHAR_SPACE) + 1] != '>')));
                    i = (*strCur == '[') ? 1 : i)
       {
-        strCur += strCSPN(strCur + 1, strEnd, XML_BRACKETS | XML_GT) + 1;
+        strCur += xmlStrCSPN(strCur + 1, strEnd, XML_CHAR_BRACKETS | XML_CHAR_GT) + 1;
       }
 
-      /* Unclosed <!DOCTYPE */
-      if (strCur == strEnd) __XML_ERROR(EXmlMissingDocType);
+      // Unclosed <!DOCTYPE
+      if (strCur == strEnd) __XML_CHAR_ERROR(Error::XmlReaderUnclosedDOCTYPE);
     }
 
 
-    /* ----- <?...?> processing instructions ----- */
+    // ----- <?...?> processing instructions -----
     else if (*strCur == '?')
     {
+      Char32* dataStart = ++strCur;
+
       do {
-        strCur = strCHR(strCur, strEnd, Char('?'));
+        strCur = xmlStrCHR(strCur, strEnd, Char32('?'));
       } while (strCur && ++strCur != strEnd && *strCur != '>');
 
-      /* Unclosed <? */
+      // Unclosed <?
       if (!strCur)
       {
-        __XML_ERROR(EXmlMissingPreprocessor);
+        __XML_CHAR_ERROR(Error::XmlReaderUnclosedPI);
       }
       else
       {
-        //FIXME:continue;
-        //FIXME:To tady nebylo continue
-        //FIXME:Co ted ?
-        //FIXME:;//XmlProcInst(doc, D + 1, strCur - D - 2);
+        const Char32* dataEnd = strCur - 3;
+        addProcessingInstruction(String32(StubUtf32(dataStart, (sysuint_t)(dataEnd - dataStart))));
       }
     }
 
 
-    /* ----- Syntax Error ----- */
+    // ----- Syntax Error -----
     else
     {
-      __XML_ERROR(EXmlSyntaxError);
+      __XML_CHAR_ERROR(EXmlSyntaxError);
     }
 
 
-    /* ----- check for end ----- */
+    // ----- check for end -----
     if (strCur == strEnd) break;
 
 
-    /* ----- tag character content ----- */
+    // ----- tag character content -----
     {
-      const Char* begin = ++strCur;
+      const Char32* begin = ++strCur;
       while (strCur != strEnd && *strCur != '<') strCur++;
 
       if (strCur == strEnd) break;
       if (skipTagText) continue;
 
-      /* Remove white spaces, but don't remove &..; spaces */
+      // Remove white spaces, but don't remove &..; spaces
       while (begin->isSpace()) begin++;
 
-      const Char* tr = strCur-1;
+      const Char32* tr = strCur-1;
       while (tr > begin && tr->isSpace()) tr--;
       tr++;
 
-      /* Decode Xml text (&..;) to text */
+      // Decode Xml text (&..;) to text
       if (tr - begin) decode(cur->_text, begin, sysuint_t( tr - begin ));
       skipTagText = true;
     }
   }
-  /* --------------------------------------------------------------------- */
+  // ---------------------------------------------------------------------
 
   if (cur)
   {
     if (cur->tag().isEmpty())
-      __XML_ERROR(EXmlMissingRootTag);
+      __XML_CHAR_ERROR(Error::XmlReaderMissingRootTag);
     else
-      __XML_ERROR(EXmlMissingTag);
+      __XML_CHAR_ERROR(Error::XmlReaderMissingTag);
   }
 
-  return result;
-error:
-  return result.setError(ErrorDomain_Core, errorCode);
-  #undef __XML_ERROR
-}
+  return err;
+#undef __XML_CHAR_ERROR
+#endif
 
-bool XmlReader::checkForEncoding(const void* mem, sysuint_t length, TextCodec& textCodec)
-{
-  // first check for BOM
-  if (!(textCodec = TextCodec::fromBom(mem, length)).isNull()) return true;
-  if (length < 15) return false;
-
-  const char* ptr = (const char *)mem;
-  const char* end = ptr + length;
-
-  while (ptr != end)
-  {
-    // TODO: Detect UTF16LE, UTF16BE, UTF32LE, UTF32BE
-
-    if  (ptr[0] == '<' && ptr < end - 5 &&
-         ptr[1] == '?' &&
-        (ptr[2] == 'x' || ptr[2] == 'X') &&
-        (ptr[3] == 'm' || ptr[2] == 'M') &&
-        (ptr[4] == 'l' || ptr[2] == 'L'))
-    {
-      // Xml header, we are in <?xml
-      ptr += 5;
-
-      while(ptr + 9 < end)
-      {
-        if (*ptr == '>') goto end;
-        if (CType::isAsciiSpace(*ptr) && ByteArray::Raw::ieq(ptr + 1, "encoding", 8))
-        {
-          /* we are in <?xml ..... encoding */
-          const char* begin;
-          char q;
-          ptr += 9;
-
-          /* Find '=' */
-          while (ptr != end && *ptr != '=') ptr++;
-          if (ptr == end) goto end;
-
-          ptr++;
-
-          /* we are in <?xml ..... encoding = */
-          while (ptr != end && CType::isAsciiSpace(*ptr)) ptr++;
-          if (ptr == end) goto end;
-
-          q = *ptr++;
-          begin = ptr;
-
-          while (ptr != end && *ptr != q) ptr++;
-          if (ptr == end) goto end;
-
-          /* Try encoding and return */
-          textCodec = TextCodec::fromMime(String(begin, (sysuint_t)(ptr - begin)));
-          goto end;
-        }
-        ptr++;
-      }
-    }
-    else if (ptr[0] == '<')
-      // xml header not found, default encoding is UTF-8
-      break;
-    ptr++;
-  }
-
-end:
-  return !textCodec.isNull();
-}
-
-// Optimized strcspn for xml reading with mask instead of string
-uint XmlReader::strCSPN(const Char* buffer, const Char* end, uint reject_mask)
-{
-  const Char* start = buffer;
-
-  while (buffer < end)
-  {
-    if (*buffer < 128 && (xmlChars[buffer->uc()] & reject_mask)) break;
-    buffer++;
-  }
-
-  return sysuint_t( buffer - start );
-}
-
-// Optimized strspn for xml reading with mask instead of string
-uint XmlReader::strSPN(const Char* buffer, const Char* end, uint accept_mask)
-{
-  const Char* start = buffer;
-
-  while (buffer < end)
-  {
-    if (*buffer > 127 || !(xmlChars[buffer->uc()] & accept_mask)) break;
-    buffer++;
-  }
-
-  return sysuint_t( buffer - start );
-}
-
-const Char* XmlReader::strCHR(const Char* buffer, const Char* end, Char uc)
-{
-  while (buffer < end && *buffer != uc) buffer++;
-  return buffer;
-}
-
+#if 0
 // Decode xml &entities; into normal unicode text
-void XmlReader::decode(String& dest, const Char* buffer, sysuint_t length)
+void XmlReader::decode(String& dest, const Char32* buffer, sysuint_t length)
 {
   // This will probabbly never happen
   if (length == DetectLength) length = String::Raw::len(buffer);
 
-  const Char* end = buffer + length;
-  Char* p = dest._reserve(length);
+  const Char32* end = buffer + length;
+  Char32* p = dest._reserve(length);
 
 __begin:
   while (buffer != end)
   {
     if (*buffer == '&')
     {
-      const Char* begin = ++buffer;
+      const Char32* begin = ++buffer;
 
       while (buffer != end)
       {
         if (*buffer == ';')
         {
-          Char uc = XmlEntity::decode(begin, sysuint_t( buffer - begin ));
+          Char32 uc = XmlEntity::decode(begin, sysuint_t( buffer - begin ));
           buffer++;
-          if (uc.uc())
+          if (uc.ch())
           {
             *p++ = uc;
             goto __begin;
@@ -535,131 +1024,6 @@ __copy:
 
   dest.xFinalize(p);
 }
-
-// Called when parser finds begin of tag.
-void XmlReader::openTag(XmlNode** pCur, const Char* tag, sysuint_t tagLength, XmlAttribute* last)
-{
-  XmlNode* cur = *pCur;
-
-  if (!cur->tag().isEmpty())
-  {
-    XmlNode* node = new XmlNode();
-    node->_parent = cur;
-
-    // not root tag
-    if (cur->children())
-    {
-      // already have sub tags
-      node->_prev = cur->_last;
-      cur->_last->_next = node;
-      cur->_last = node;
-    }
-    else
-    {
-      // first sub tag
-      cur->_children = node;
-      cur->_last = node;
-    }
-    *pCur = cur = node;
-  }
-
-  // initialize new tag
-  cur->setTag(String(tag, tagLength));
-
-  // assign attributes
-  if (last)
-  {
-    while (last->prev()) last = last->prev();
-  }
-
-  cur->_attributes = last;
-}
-
-void XmlReader::closeTag(XmlNode** pCur)
-{
-  *pCur = (*pCur)->parent();
-}
-
-XmlDocument::XmlDocument()
-{
-  _root = new XmlNode();
-}
-
-XmlDocument::~XmlDocument()
-{
-  delete _root;
-}
-
-Value XmlDocument::readFile(const String& fileName, uint32_t readFlags)
-{
-  MapFile f;
-  Value result = f.map(fileName);
-
-  if (result.ok())
-    return readMemory(f.data(), f.size(), readFlags);
-  else
-    return result;
-}
-
-Value XmlDocument::readStream(Stream& stream, uint32_t readFlags)
-{
-  ByteArray ba;
-
-  if (!stream.readAll(ba))
-    return Value().setError(ErrorDomain_Core, EOutOfMemory);
-  else
-    return readMemory((const void*)ba.cData(), ba.length(), readFlags);
-}
-
-Value XmlDocument::readMemory(const void* mem, ulong size, uint32_t readFlags)
-{
-  String buffer;
-
-  /* ===== Setup xml encoding ===== */
-  if (!XmlReader::checkForEncoding(mem, size, _textCodec))
-    _textCodec = TextCodec::fromCode(TextCodec::UTF8);
-
-  _textCodec.appendToUtf32(buffer, mem, size);
-  return readUnicode(buffer.cData(), buffer.length(), readFlags);
-}
-
-Value XmlDocument::readUnicode(const Char* str, sysuint_t length, uint32_t readFlags)
-{
-  XmlReader xmlReader(*this, readFlags);
-  return xmlReader.readUnicode(str, length);
-}
-
-// Writing process
-static const uint8_t xml_escape_mask[] =
-{
-  // mask table for these characters: "%&<>
-  0x00, 0x00, 0x00, 0x00, 0x64, 0x00, 0x00, 0x50,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-};
-
-static uint8_t* xml_escape_fn(uint8_t* buffer, sysuint_t length, Char uc)
-{
-  // destLength is at least 255, so we can skip checks,
-  // but we must zero terminate output
-  buffer[XmlEntity::encode((char*)buffer, uc)] = 0;
-  return buffer;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 struct CORE_HIDDEN XmlWriter
 {
@@ -693,13 +1057,13 @@ struct CORE_HIDDEN XmlWriter
   inline void writeStr(const String& s)
   { _textCodec.appendFromUtf32(_target, s, &_textState); }
 
-  inline void writeChar(Char uc)
-  { _textCodec.appendFromUtf32(_target, &uc, sizeof(Char)); }
+  inline void writeChar(Char32 uc)
+  { _textCodec.appendFromUtf32(_target, &uc, sizeof(Char32)); }
 
   inline void writeSpaces(sysuint_t count)
   {
     sysuint_t i;
-    for (i = 0; i != count; i++) writeChar(Char(' '));
+    for (i = 0; i != count; i++) writeChar(Char32(' '));
   }
 
   inline void flush() { _stream.write(_target); _target.clear(); }
@@ -736,25 +1100,25 @@ void XmlWriter::writeNodesR(const XmlNode* node, uint depth)
       // Not self closing tag
 
       // Write <Tag [Attributes]>
-      writeChar(Char('<'));
+      writeChar(Char32('<'));
       writeStr(tag);
       writeAttributes(current);
-      writeChar(Char('>'));
+      writeChar(Char32('>'));
 
       // Write Text\n
       writeStr(current->text());
-      writeChar(Char('\n'));
+      writeChar(Char32('\n'));
 
       // Write children
       writeNodesR(current->children(), depth+1);
 
       // Write </Tag>\n
       writeSpaces(depth);
-      writeChar(Char('<'));
-      writeChar(Char('/'));
+      writeChar(Char32('<'));
+      writeChar(Char32('/'));
       writeStr(tag);
-      writeChar(Char('>'));
-      writeChar(Char('\n'));
+      writeChar(Char32('>'));
+      writeChar(Char32('\n'));
     }
     else
     {
@@ -762,27 +1126,27 @@ void XmlWriter::writeNodesR(const XmlNode* node, uint depth)
       if (current->text().isEmpty())
       {
         // Write <Tag [Attributes] />\n
-        writeChar(Char('<'));
+        writeChar(Char32('<'));
         writeStr(tag);
         writeAttributes(current);
-        writeChar(Char(' '));
-        writeChar(Char('/'));
-        writeChar(Char('>'));
-        writeChar(Char('\n'));
+        writeChar(Char32(' '));
+        writeChar(Char32('/'));
+        writeChar(Char32('>'));
+        writeChar(Char32('\n'));
       }
       else
       {
         // Write <Tag [Attributes]>Text</Tag>\n
-        writeChar(Char('<'));
+        writeChar(Char32('<'));
         writeStr(tag);
         writeAttributes(current);
-        writeChar(Char('>'));
+        writeChar(Char32('>'));
         writeStr(current->text());
-        writeChar(Char('<'));
-        writeChar(Char('/'));
+        writeChar(Char32('<'));
+        writeChar(Char32('/'));
         writeStr(tag);
-        writeChar(Char('>'));
-        writeChar(Char('\n'));
+        writeChar(Char32('>'));
+        writeChar(Char32('\n'));
       }
     }
 
@@ -793,7 +1157,7 @@ void XmlWriter::writeNodesR(const XmlNode* node, uint depth)
 
 void XmlWriter::writeAttributes(const XmlNode* node)
 {
-  static const Char q = Char('\"');
+  static const Char32 q = Char32('\"');
 
   const XmlAttribute* current = node->attributes();
 
@@ -802,9 +1166,9 @@ void XmlWriter::writeAttributes(const XmlNode* node)
   while (current)
   {
     // Write Attribute="Text"
-    writeChar(Char(' '));
+    writeChar(Char32(' '));
     writeStr(current->name());
-    writeChar(Char('='));
+    writeChar(Char32('='));
     writeChar(q);
     writeStr(current->value());
     writeChar(q);

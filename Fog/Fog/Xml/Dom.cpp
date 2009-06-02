@@ -178,7 +178,7 @@ void XmlElement::normalize()
 
 err_t XmlElement::prependChild(XmlElement* ch)
 {
-  if (ch->contains(this)) return Error::XmlElementCyclic;
+  if (ch->contains(this)) return Error::XmlDomCyclic;
 
   err_t err;
   if (_document == ch->_document)
@@ -198,7 +198,7 @@ err_t XmlElement::prependChild(XmlElement* ch)
 
 err_t XmlElement::appendChild(XmlElement* ch)
 {
-  if (ch->contains(this)) return Error::XmlElementCyclic;
+  if (ch->contains(this)) return Error::XmlDomCyclic;
 
   err_t err;
   if (_document == ch->_document)
@@ -221,16 +221,16 @@ err_t XmlElement::removeChild(XmlElement* ch)
   if (ch->_parent == this)
     return ch->unlink();
   else
-    return Error::XmlElementInvalidChild;
+    return Error::XmlDomInvalidChild;
 }
 
 err_t XmlElement::replaceChild(XmlElement* newch, XmlElement* oldch)
 {
   if (oldch == NULL) return appendChild(newch);
 
-  if (oldch->_parent != this) return Error::XmlElementInvalidChild;
-  if (!oldch->_movable) return Error::XmlNotAllowed;
-  if (newch->contains(this)) return Error::XmlElementCyclic;
+  if (oldch->_parent != this) return Error::XmlDomInvalidChild;
+  if (!oldch->_movable) return Error::XmlDomNotAllowed;
+  if (newch->contains(this)) return Error::XmlDomCyclic;
 
   err_t err;
   if (_document == newch->_document)
@@ -268,7 +268,7 @@ err_t XmlElement::deleteChild(XmlElement* ch)
     return Error::Ok;
   }
   else
-    return Error::XmlElementInvalidChild;
+    return Error::XmlDomInvalidChild;
 }
 
 err_t XmlElement::deleteAll()
@@ -297,7 +297,7 @@ err_t XmlElement::deleteAll()
 err_t XmlElement::unlink()
 {
   if (_parent == NULL) return Error::Ok;
-  if (!_movable) return Error::XmlNotAllowed;
+  if (!_movable) return Error::XmlDomNotAllowed;
 
   _unmanage();
   return _unlinkUnmanaged();
@@ -306,7 +306,7 @@ err_t XmlElement::unlink()
 err_t XmlElement::_unlinkUnmanaged()
 {
   if (_parent == NULL) return Error::Ok;
-  if (!_movable) return Error::XmlNotAllowed;
+  if (!_movable) return Error::XmlDomNotAllowed;
 
   XmlElement* next = _nextSibling;
   XmlElement* prev = _prevSibling;
@@ -474,8 +474,8 @@ bool XmlElement::hasAttribute(const String32& _name)
 
 err_t XmlElement::setAttribute(const String32& _name, const String32& value)
 {
-  if (_name.isEmpty()) return Error::XmlAttributeInvalid;
-  if (!_attributesAllowed) return Error::XmlNotAllowed;
+  if (_name.isEmpty()) return Error::XmlDomInvalidAttribute;
+  if (!_attributesAllowed) return Error::XmlDomNotAllowed;
 
   // If XmlElement is part of XmlDocument that manages some resources, we can
   // use some tricks to match XmlAttribute faster without comparing strings.
@@ -521,8 +521,8 @@ err_t XmlElement::setAttribute(const String32& _name, const String32& value)
 
 err_t XmlElement::removeAttribute(const String32& name)
 {
-  if (name.isEmpty()) return Error::XmlAttributeInvalid;
-  if (!_attributesAllowed) return Error::XmlNotAllowed;
+  if (name.isEmpty()) return Error::XmlDomInvalidAttribute;
+  if (!_attributesAllowed) return Error::XmlDomNotAllowed;
 
   // If XmlElement is part of XmlDocument that manages some resources, we can
   // use some tricks to match XmlAttribute faster without comparing strings.
@@ -531,7 +531,7 @@ err_t XmlElement::removeAttribute(const String32& name)
   if (_document && _attributes.length() > 4)
   {
     String32 name = _document->_getManaged(name);
-    if (name.isEmpty()) return Error::XmlAttributeNotFound;
+    if (name.isEmpty()) return Error::XmlDomAttributeNotFound;
 
     do {
       // Managed strings are shared, so we need only to compare String::Data.
@@ -548,7 +548,7 @@ err_t XmlElement::removeAttribute(const String32& name)
   }
 
   // Attribute not found.
-  return Error::XmlAttributeNotFound;
+  return Error::XmlDomAttributeNotFound;
 
 found:
   delete it.value();
@@ -568,8 +568,8 @@ err_t XmlElement::removeAllAttributes()
 
 err_t XmlElement::setTagName(const String32& name)
 {
-  if (name.isEmpty()) return Error::XmlAttributeInvalid;
-  if (!_tagNameAllowed) return Error::XmlNotAllowed;
+  if (name.isEmpty()) return Error::XmlDomInvalidAttribute;
+  if (!_tagNameAllowed) return Error::XmlDomNotAllowed;
 
   if (_document)
   {
@@ -712,7 +712,7 @@ String32 XmlNoTextElement::textContent() const
 
 err_t XmlNoTextElement::setTextContent(const String32& text)
 {
-  return Error::XmlNotAllowed;
+  return Error::XmlDomNotAllowed;
 }
 
 // ============================================================================
@@ -753,7 +753,7 @@ err_t XmlComment::setData(const String32& data)
 // [Fog::XmlCDATA]
 // ============================================================================
 
-XmlCDATA::XmlCDATA(const String8& data) :
+XmlCDATA::XmlCDATA(const String32& data) :
   XmlNoTextElement(xml_local->xmlCDATATagName),
   _data(data)
 {
@@ -771,13 +771,13 @@ XmlElement* XmlCDATA::clone() const
   return new(std::nothrow) XmlCDATA(_data);
 }
 
-const String8& XmlCDATA::data() const
+const String32& XmlCDATA::data() const
 {
   FOG_ASSERT(_type == TypeCDATA);
   return _data;
 }
 
-err_t XmlCDATA::setData(const String8& data)
+err_t XmlCDATA::setData(const String32& data)
 {
   FOG_ASSERT(_type == TypeCDATA);
   return _data.set(data);
@@ -846,7 +846,12 @@ XmlElement* XmlDocument::clone() const
 
 err_t XmlDocument::setDocumentRoot(XmlElement* e)
 {
-  if (_firstChild) return Error::XmlDocumentHasAlreadyRoot;
+  if (_firstChild) return Error::XmlDomDocumentHasAlreadyRoot;
+}
+
+XmlElement* XmlDocument::documentRoot() const
+{
+  return _firstChild;
 }
 
 err_t XmlDocument::_manageString(XmlString& resource)
