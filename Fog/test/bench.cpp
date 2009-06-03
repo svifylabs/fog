@@ -41,10 +41,26 @@ struct BenchmarkModule
   ~BenchmarkModule() {}
 
   virtual void doBenchmark(int quantity) = 0;
+  virtual void saveResult() = 0;
   virtual const char* name() = 0;
 
   FOG_INLINE uint32_t randColor() const
   { return (rand() & 0xFFFF) | (rand() << 16); }
+
+  FOG_INLINE Rect randRect(int rw, int rh) const
+  {
+    return Rect(rand() % (w - rw), rand() % (h - rh), rw, rh);
+  }
+
+  FOG_INLINE Point randPoint() const
+  {
+    return Point(rand() % (w - 128), rand() % (h - 128));
+  }
+
+  FOG_INLINE PointF randPointF() const
+  {
+    return PointF(rand() % (w - 128), rand() % (h - 128));
+  }
 
   int w, h;
 };
@@ -59,6 +75,7 @@ static TimeDelta bench(BenchmarkModule& mod, int quantity)
   TimeDelta delta =  TimeTicks::highResNow() - ticks;
 
   fog_debug("%s - %.3f [ms]", mod.name(), delta.inMillisecondsF());
+  mod.saveResult();
 
   return delta;
 }
@@ -84,6 +101,15 @@ struct BenchmarkModule_Fog : public BenchmarkModule
   virtual ~BenchmarkModule_Fog()
   {
     p.end();
+  }
+
+  virtual void saveResult()
+  {
+    String32 fileName;
+    fileName.set(StubAscii8("bench "));
+    fileName.append(StubAscii8(name()));
+    fileName.append(StubAscii8(".bmp"));
+    im.writeFile(fileName);
   }
 
   void setMultithreaded(bool mt)
@@ -114,10 +140,7 @@ struct BenchmarkModule_Fog_FillRect : public BenchmarkModule_Fog
     p.save();
     for (int a = 0; a < quantity; a++)
     {
-      int rw = 128;
-      int rh = 128;
-      Rect r(rand() % (w - rw + 1), rand() % (h - rh + 1), rw, rh);
-
+      Rect r = randRect(128, 128);
       p.setSource(Rgba(randColor()));
       p.fillRect(r);
     }
@@ -145,10 +168,12 @@ struct BenchmarkModule_Fog_FillPath : public BenchmarkModule_Fog
     for (int a = 0; a < quantity; a++)
     {
       Path path;
-      path.moveTo(rand() % w, rand() % h);
+      path.moveTo(randPointF());
       for (int i = 0; i < 3; i++)
       {
-        path.curve3To(rand() % w, rand() % h, rand() % w, rand() % h);
+        PointF c0 = randPointF();
+        PointF c1 = randPointF();
+        path.curve3To(c0, c1);
       }
 
       p.setSource(Rgba(randColor()));
@@ -184,10 +209,8 @@ struct BenchmarkModule_Fog_FillPattern : public BenchmarkModule_Fog
     p.setSource(pattern);
     for (int a = 0; a < quantity; a++)
     {
-      int rx = rand() % (w - 128);
-      int ry = rand() % (h - 128);
-
-      p.fillRect(Rect(rx, ry, 128, 128));
+      Rect r = randRect(128, 128);
+      p.fillRect(r);
     }
     p.restore();
     p.flush();
@@ -229,10 +252,8 @@ struct BenchmarkModule_Fog_BlitImage : public BenchmarkModule_Fog
     p.save();
     for (int a = 0; a < quantity; a++)
     {
-      int rx = rand() % (w - 128);
-      int ry = rand() % (h - 128);
-
-      p.drawImage(Point(rx, ry), sprite[rand() % 4]);
+      Rect r = randRect(128, 128);
+      p.drawImage(Point(r.x(), r.y()), sprite[rand() % 4]);
     }
     p.restore();
     p.flush();
@@ -282,6 +303,20 @@ struct BenchmarkModule_GDI : public BenchmarkModule
       DeleteObject(sprite[a]);
   }
 
+  virtual void saveResult()
+  {
+    DIBSECTION info;
+    GetObject(sprite[a], sizeof(DIBSECTION), &info);
+
+    Image fim;
+    fim.adopt(info.dsBm.bmWidth, info.dsBm.bmHeight, Image::FormatPRGB32, 
+      info.dsBm.bmBits, info.dsBm.bmWidthBytes);
+
+    String32 fileName;
+    fileName.format("bench %s.bmp", name());
+    fim.writeFile(fileName);
+  }
+
   HBITMAP im;
   HBITMAP sprite[4];
 
@@ -323,9 +358,10 @@ struct BenchmarkModule_GDI_FillRect : public BenchmarkModule_GDI
 
       for (int a = 0; a < quantity; a++)
       {
+        Rect r = randRect();
         Gdiplus::Color c(randColor());
         Gdiplus::SolidBrush br(c);
-        gr.FillRectangle((Gdiplus::Brush*)&br, rand() % (w - 128), rand() % (h - 128), 128, 128);
+        gr.FillRectangle((Gdiplus::Brush*)&br, r.x(), r.y(), r.width(), r.height());
       }
     }
     DeleteDC(dc);
@@ -361,8 +397,9 @@ struct BenchmarkModule_GDI_FillPath : public BenchmarkModule_GDI
         Gdiplus::PointF curv[7];
         for (int i = 0; i < 7; i++)
         {
-          curv[i].X = rand() % w;
-          curv[i].Y = rand() % h;
+          PointF c0 = randPointF();
+          curv[i].X = c0.x();
+          curv[i].Y = c0.y();
         }
         path.StartFigure();
         path.AddCurve(curv, 7);
@@ -413,19 +450,11 @@ struct BenchmarkModule_GDI_FillPattern : public BenchmarkModule_GDI
 
       for (int a = 0; a < quantity; a++)
       {
-        gr.FillRectangle((Gdiplus::Brush*)&br, rand() % (w - 128), rand() % (h - 128), 128, 128);
+        Rect r = randRect();
+        gr.FillRectangle((Gdiplus::Brush*)&br, r.x(), r.y(), r.width(), r.height());
       }
     }
     DeleteDC(dc);
-
-    /*{
-      Image save;
-      DIBSECTION info;
-      GetObject(im, sizeof(DIBSECTION), &info);
-      err_t err = save.adopt(info.dsBm.bmWidth, info.dsBm.bmHeight, Image::FormatRGB32, 
-        (uint8_t*)info.dsBm.bmBits, info.dsBm.bmWidthBytes);
-      save.writeFile(StubAscii8("BenchGdiPlus.bmp"));
-    }*/
   }
 
   virtual const char* name() { return "GdiPlus - FillPattern - LinearGradient"; }
@@ -457,7 +486,8 @@ struct BenchmarkModule_GDI_BlitImage : public BenchmarkModule_GDI
 
       for (int a = 0; a < quantity; a++)
       {
-        gr.DrawImage(bm[rand() % 4], rand() % (w - 128), rand() % (h - 128));
+        Rect r = randRect(128, 128);
+        gr.DrawImage(bm[rand() % 4], r.x(), r.y());
       }
 
       delete bm[0];
@@ -521,13 +551,12 @@ struct BenchmarkModule_Cairo_FillRect : public BenchmarkModule_Cairo
 
     for (int a = 0; a < quantity; a++)
     {
-      int x = rand() % (w - 128);
-      int y = rand() % (h - 128);
-
+      Rect r = randRect(128, 128);
       Rgba c(randColor());
+
       cairo_set_source_rgba(cr,
         (double)c.r / 255.0, (double)c.g / 255.0, (double)c.b / 255.0, (double)c.a / 255.0);
-      cairo_rectangle(cr, x, y, 128, 128);
+      cairo_rectangle(cr, r.x(), r.y(), r.width(), r.height());
       cairo_fill(cr);
     }
 
@@ -554,23 +583,16 @@ struct BenchmarkModule_Cairo_FillPath : public BenchmarkModule_Cairo
 
     for (int a = 0; a < quantity; a++)
     {
-      double x0 = rand() % (w - 128);
-      double y0 = rand() % (h - 128);
-      double x1, y1, x2, y2;
-
-      cairo_move_to(cr, x0, y0);
+      PointF c0 = randPointF();
+      cairo_move_to(cr, c0.x(), c0.y());
 
       for (int i = 0; i < 3; i++)
       {
-        double x1 = rand() % (w - 128);
-        double y1 = rand() % (h - 128);
-        double x2 = rand() % (w - 128);
-        double y2 = rand() % (h - 128);
+        PointF c1 = randPointF();
+        PointF c2 = randPointF();
 
-        cairo_curve_to(cr, x0, y0, x1, y2, x2, y2);
-
-        x0 = x2;
-        y0 = y2;
+        cairo_curve_to(cr, c0.x(), c0.y(), c1.x(), c1.y(), c2.x(), c2.y());
+        c0 = c2;
       }
 
       Rgba c(randColor());
@@ -620,10 +642,8 @@ struct BenchmarkModule_Cairo_FillPattern : public BenchmarkModule_Cairo
 
     for (int a = 0; a < quantity; a++)
     {
-      int x = rand() % (w - 128);
-      int y = rand() % (h - 128);
-
-      cairo_rectangle(cr, x, y, 128, 128);
+      Rect r = randRect(128, 128);
+      cairo_rectangle(cr, r.x(), r.y(), r.width(), r.height());
       cairo_fill(cr);
     }
 
@@ -661,10 +681,8 @@ struct BenchmarkModule_Cairo_BlitImage : public BenchmarkModule_Cairo
 
     for (int a = 0; a < quantity; a++)
     {
-      int x = rand() % (w - 128);
-      int y = rand() % (h - 128);
-
-      cairo_set_source_surface(cr, csprite[rand()%4], x, y);
+      Rect r = randRect(128, 128);
+      cairo_set_source_surface(cr, csprite[rand()%4], r.x(), r.y());
       cairo_paint(cr);
     }
 
@@ -683,24 +701,29 @@ struct BenchmarkModule_Cairo_BlitImage : public BenchmarkModule_Cairo
 static void benchAll()
 {
   int w = 640, h = 480;
-  int quantity = 1000;
+  int quantity = 10000;
+
+  TimeDelta totalFog;
+  TimeDelta totalFogMT;
+  TimeDelta totalCairo;
+  TimeDelta totalGdiPlus;
 
   // Fog - FillRect
   {
     BenchmarkModule_Fog_FillRect mod(w, h);
     mod.setMultithreaded(false);
-    bench(mod, quantity);
+    totalFog += bench(mod, quantity);
     mod.setMultithreaded(true);
-    bench(mod, quantity);
+    totalFogMT += bench(mod, quantity);
   }
 
   // Fog - FillPath
   {
     BenchmarkModule_Fog_FillPath mod(w, h);
     mod.setMultithreaded(false);
-    bench(mod, quantity);
+    totalFog += bench(mod, quantity);
     mod.setMultithreaded(true);
-    bench(mod, quantity);
+    totalFogMT += bench(mod, quantity);
   }
 
   // Fog - FillPattern
@@ -710,86 +733,96 @@ static void benchAll()
     mod.setMultithreaded(false);
 
     mod.pattern.setType(Pattern::LinearGradient);
-    bench(mod, quantity);
+    totalFog += bench(mod, quantity);
 
     mod.pattern.setType(Pattern::RadialGradient);
-    bench(mod, quantity);
+    totalFog += bench(mod, quantity);
 
-    mod.pattern.setType(Pattern::ConicalGradient);
-    bench(mod, quantity);
+    //mod.pattern.setType(Pattern::ConicalGradient);
+    //totalFog += bench(mod, quantity);
 
     mod.setMultithreaded(true);
 
     mod.pattern.setType(Pattern::LinearGradient);
-    bench(mod, quantity);
+    totalFogMT += bench(mod, quantity);
 
     mod.pattern.setType(Pattern::RadialGradient);
-    bench(mod, quantity);
+    totalFogMT += bench(mod, quantity);
 
-    mod.pattern.setType(Pattern::ConicalGradient);
-    bench(mod, quantity);
+    //mod.pattern.setType(Pattern::ConicalGradient);
+    //totalFogMT += bench(mod, quantity);
   }
 
   // Fog - BlitImage
   {
     BenchmarkModule_Fog_BlitImage mod(w, h);
     mod.setMultithreaded(false);
-    bench(mod, quantity);
+    totalFog += bench(mod, quantity);
     mod.setMultithreaded(true);
-    bench(mod, quantity);
+    totalFogMT += bench(mod, quantity);
   }
 
 #if defined(FOG_OS_WINDOWS)
   // GdiPlus - FillRect
   {
     BenchmarkModule_GDI_FillRect mod(w, h);
-    bench(mod, quantity);
+    totalGdiPlus += bench(mod, quantity);
   }
 
   // GdiPlus - FillPath
   {
     BenchmarkModule_GDI_FillPath mod(w, h);
-    bench(mod, quantity);
+    totalGdiPlus += bench(mod, quantity);
   }
 
   // GdiPlus - FillPattern
   {
     BenchmarkModule_GDI_FillPattern mod(w, h);
-    bench(mod, quantity);
+    totalGdiPlus += bench(mod, quantity);
   }
 
   // GdiPlus - BlitImage
   {
     BenchmarkModule_GDI_BlitImage mod(w, h);
-    bench(mod, quantity);
+    totalGdiPlus += bench(mod, quantity);
   }
 #else
   // Cairo - FillRect
   {
     BenchmarkModule_Cairo_FillRect mod(w, h);
-    bench(mod, quantity);
+    totalCairo += bench(mod, quantity);
   }
 
   // Cairo - FillPath
   {
     BenchmarkModule_Cairo_FillPath mod(w, h);
-    bench(mod, quantity);
+    totalCairo += bench(mod, quantity);
   }
 
   // Cairo - FillPattern
   {
     BenchmarkModule_Cairo_FillPattern mod(w, h);
-    bench(mod, quantity);
+    totalCairo += bench(mod, quantity);
 
     mod.type = 1;
-    bench(mod, quantity);
+    totalCairo += bench(mod, quantity);
   }
 
   // Cairo - BlitImage
   {
     BenchmarkModule_Cairo_BlitImage mod(w, h);
-    bench(mod, quantity);
+    totalCairo += bench(mod, quantity);
   }
+#endif // FOG_OS_WINDOWS
+
+  fog_debug("");
+  fog_debug("Summary:");
+  fog_debug("Fog        - %.3f [ms]", totalFog.inMillisecondsF());
+  fog_debug("Fog (mt)   - %.3f [ms]", totalFogMT.inMillisecondsF());
+#if defined(FOG_OS_WINDOWS)
+  fog_debug("GDI+       - %.3f [ms]", totalGdiPlus.inMillisecondsF());
+#else
+  fog_debug("Cairo      - %.3f [ms]", totalCairo.inMillisecondsF());
 #endif // FOG_OS_WINDOWS
 }
 

@@ -109,6 +109,9 @@ static __m128i MaskFFFFFFFFFFFFFFFF;
 static __m128i Mask00FF000000000000;
 static __m128i MaskFF000000FF000000;
 
+static __m128  Mask7FFFFFFF7FFFFFFF;
+static __m128d Mask7FFFFFFFFFFFFFFF;
+
 // ============================================================================
 // [Fog::Raster - SSE2]
 // ============================================================================
@@ -1456,6 +1459,411 @@ interpolation_end:
 }
 
 // ============================================================================
+// [Fog::Raster - Pattern - Texture]
+// ============================================================================
+
+static uint8_t* FOG_FASTCALL pattern_texture_fetch_repeat_sse2(
+  PatternContext* ctx,
+  uint8_t* dst, int x, int y, int w)
+{
+  uint8_t* dstCur = dst;
+
+  int tw = ctx->texture.w;
+  int th = ctx->texture.h;
+
+  x -= ctx->texture.dx;
+  y -= ctx->texture.dy;
+
+  if (x < 0) x = (x % tw) + tw;
+  if (x >= tw) x %= tw;
+
+  if (y < 0) y = (y % th) + th;
+  if (y >= th) y %= th;
+
+  const uint8_t* srcBase = ctx->texture.bits + y * ctx->texture.stride;
+  const uint8_t* srcCur;
+
+  int i;
+
+  srcCur = srcBase + mul4(x);
+
+  // Return image buffer if span fits to it (this is very efficient
+  // optimization for short spans or large textures)
+  i = fog_min(tw - x, w);
+  if (w < tw - x)
+    return const_cast<uint8_t*>(srcCur);
+
+  // This is equal to C implementation in Raster_C.cpp
+  for (;;)
+  {
+    w -= i;
+
+    if (i >= 32)
+    {
+      // We can improve texture fetching by more pixels at a time.
+      while ((sysuint_t)dstCur & 15)
+      {
+        ((uint32_t*)dstCur)[0] = ((const uint32_t*)srcCur)[0];
+        dstCur += 4;
+        srcCur += 4;
+        if (--i == 0) goto end;
+      }
+
+      while (i >= 8)
+      {
+        __m128i src0mm;
+        __m128i src1mm;
+        pix_load16u(src0mm, srcCur +  0);
+        pix_load16u(src1mm, srcCur + 16);
+        pix_store16a(dstCur +  0, src0mm);
+        pix_store16a(dstCur + 16, src1mm);
+
+        dstCur += 32;
+        srcCur += 32;
+        i -= 8;
+      }
+      if (i == 0) goto end;
+    }
+
+    do {
+      ((uint32_t*)dstCur)[0] = ((const uint32_t*)srcCur)[0];
+      dstCur += 4;
+      srcCur += 4;
+    } while (--i);
+end:
+    if (!w) break;
+
+    i = fog_min(w, tw);
+    srcCur = srcBase;
+  }
+
+  return dst;
+}
+
+static uint8_t* FOG_FASTCALL pattern_texture_fetch_reflect_sse2(
+  PatternContext* ctx,
+  uint8_t* dst, int x, int y, int w)
+{
+  FOG_ASSERT(w);
+
+  uint8_t* dstCur = dst;
+
+  int tw = ctx->texture.w;
+  int th = ctx->texture.h;
+
+  int tw2 = tw << 1;
+  int th2 = th << 1;
+
+  x -= ctx->texture.dx;
+  y -= ctx->texture.dy;
+
+  if (x < 0) x = (x % tw2) + tw2;
+  if (x >= tw2) x %= tw2;
+
+  if (y < 0) y = (y % th2) + th2;
+  if (y >= th2) y %= th2;
+
+  // Modify Y if reflected (if it lies in second section).
+  if (y >= th) y = th2 - y - 1;
+
+  const uint8_t* srcBase = ctx->texture.bits + y * ctx->texture.stride;
+  const uint8_t* srcCur;
+
+  if (x >= 0 && x <= tw && w < tw - x)
+    return const_cast<uint8_t*>(srcBase + mul4(x));
+
+  do {
+    // Reflect mode
+    if (x >= tw)
+    {
+      int i = fog_min(tw2 - x, w);
+
+      srcCur = srcBase + mul4(tw2 - x - 1);
+
+      w -= i;
+      x = 0;
+
+      if (i >= 32)
+      {
+        // We can improve texture fetching by more pixels at a time.
+        while ((sysuint_t)dstCur & 15)
+        {
+          ((uint32_t*)dstCur)[0] = ((const uint32_t*)srcCur)[0];
+          dstCur += 4;
+          srcCur -= 4;
+          if (--i == 0) goto end;
+        }
+
+        while (i >= 8)
+        {
+          __m128i src0mm;
+          __m128i src1mm;
+
+          srcCur -= 32;
+
+          pix_load16u(src0mm, srcCur + 20);
+          pix_load16u(src1mm, srcCur + 4);
+          src0mm = _mm_shuffle_epi32(src0mm, _MM_SHUFFLE(0, 1, 2, 3));
+          src1mm = _mm_shuffle_epi32(src1mm, _MM_SHUFFLE(0, 1, 2, 3));
+          pix_store16a(dstCur +  0, src0mm);
+          pix_store16a(dstCur + 16, src1mm);
+
+          dstCur += 32;
+          i -= 8;
+        }
+        if (i == 0) goto end;
+      }
+
+      do {
+        ((uint32_t*)dstCur)[0] = ((const uint32_t*)srcCur)[0];
+        dstCur += 4;
+        srcCur -= 4;
+      } while (--i);
+    }
+    // Repeat mode
+    else
+    {
+      int i = fog_min(tw - x, w);
+
+      srcCur = srcBase + mul4(x);
+
+      w -= i;
+      x += i;
+
+      if (i >= 32)
+      {
+        // We can improve texture fetching by more pixels at a time.
+        while ((sysuint_t)dstCur & 15)
+        {
+          ((uint32_t*)dstCur)[0] = ((const uint32_t*)srcCur)[0];
+          dstCur += 4;
+          srcCur += 4;
+          if (--i == 0) goto end;
+        }
+
+        while (i >= 8)
+        {
+          __m128i src0mm;
+          __m128i src1mm;
+          pix_load16u(src0mm, srcCur +  0);
+          pix_load16u(src1mm, srcCur + 16);
+          pix_store16a(dstCur +  0, src0mm);
+          pix_store16a(dstCur + 16, src1mm);
+
+          dstCur += 32;
+          srcCur += 32;
+          i -= 8;
+        }
+        if (i == 0) goto end;
+      }
+
+      do {
+        ((uint32_t*)dstCur)[0] = ((const uint32_t*)srcCur)[0];
+        dstCur += 4;
+        srcCur += 4;
+      } while (--i);
+    }
+end:
+    ;
+  } while (w);
+
+  return dst;
+}
+
+// ============================================================================
+// [Fog::Raster - Pattern - Gradient - Radial]
+// ============================================================================
+
+static uint8_t* FOG_FASTCALL pattern_radial_gradient_fetch_pad_sse2(
+  PatternContext* ctx,
+  uint8_t* dst, int x, int y, int w)
+{
+/*
+  FOG_ASSERT(w);
+
+  uint8_t* dstCur = dst;
+
+  const uint32_t* colors = (const uint32_t*)ctx->radialGradient.colors;
+  sysint_t colorsLength = ctx->radialGradient.colorsLength;
+
+  uint32_t color0 = colors[0];
+  uint32_t color1 = colors[colorsLength-1];
+
+  int index;
+
+  double dx = (double)x - ctx->radialGradient.dx;
+  double dy = (double)y - ctx->radialGradient.dy;
+
+  double fx = ctx->radialGradient.fx;
+  double fy = ctx->radialGradient.fy;
+  double r2 = ctx->radialGradient.r2;
+  double scale = ctx->radialGradient.mul;
+
+  double dyfx = dy * fx;
+  double dyfy = dy * fy;
+  double dydy = dy * dy;
+
+  double dxfx = dx * fx;
+  double dxfy = dx * fy;
+
+  double dxfx_p_dyfy = dxfx + dyfy;
+  double dxfy_m_dyfx = dxfy - dyfx;
+
+  double dxr2 = dx * r2;
+
+  double c = dydy * r2;
+
+  __m128d x_dx          = _mm_set_pd(dx + 1.0, dx);
+  __m128d x_dxr2        = _mm_set_pd(dxr2 + r2, dxr2);
+  __m128d x_dxfx_p_dyfy = _mm_set_pd(dxfx_p_dyfy + fx, dxfx_p_dyfy);
+  __m128d x_dxfy_m_dyfx = _mm_set_pd(dxfy_m_dyfx + fy, dxfy_m_dyfx);
+
+  __m128d x_2           = _mm_set1_pd(2.0);
+  __m128d x_r2          = _mm_set1_pd(r2 * 2.0);
+  __m128d x_fx          = _mm_set1_pd(fx * 2.0);
+  __m128d x_fy          = _mm_set1_pd(fy * 2.0);
+  __m128d x_c           = _mm_set1_pd(c);
+  __m128d x_scale       = _mm_set1_pd(scale);
+  __m128d x_min         = _mm_set1_pd(0.0);
+  __m128d x_max         = _mm_set1_pd((double)(colorsLength-1));
+
+  for (;;)
+  {
+    __m128d dd;
+
+    dd = _mm_add_pd(x_c, _mm_mul_pd(x_dxr2, x_dx));
+    dd = _mm_sub_pd(dd, _mm_mul_pd(x_dxfy_m_dyfx, x_dxfy_m_dyfx));
+    dd = _mm_and_pd(dd, Mask7FFFFFFFFFFFFFFF);
+    dd = _mm_sqrt_pd(dd);
+    dd = _mm_add_pd(dd, x_dxfx_p_dyfy);
+    dd = _mm_mul_pd(dd, x_scale);
+    dd = _mm_max_pd(dd, x_min);
+    dd = _mm_min_pd(dd, x_max);
+
+    __m128i di = _mm_cvtpd_epi32(dd);
+    uint index1 = (uint)_mm_cvtsi128_si32(di);
+    di = _mm_shuffle_epi32(di, _MM_SHUFFLE(0, 3, 2, 1));
+    uint index2 = (uint)_mm_cvtsi128_si32(di);
+
+    ((uint32_t*)dstCur)[0] = colors[index1];
+    if (--w == 0) break;
+
+    ((uint32_t*)dstCur)[1] = colors[index2];
+    if (--w == 0) break;
+
+    dstCur += 8;
+
+    x_dx          = _mm_add_pd(x_dx         , x_2);
+    x_dxr2        = _mm_add_pd(x_dxr2       , x_r2);
+    x_dxfx_p_dyfy = _mm_add_pd(x_dxfx_p_dyfy, x_fx);
+    x_dxfy_m_dyfx = _mm_add_pd(x_dxfy_m_dyfx, x_fy);
+  }
+
+  return dst;
+*/
+  FOG_ASSERT(w);
+
+  uint8_t* dstCur = dst;
+
+  const uint32_t* colors = (const uint32_t*)ctx->radialGradient.colors;
+  sysint_t colorsLength = ctx->radialGradient.colorsLength;
+
+  uint32_t color0 = colors[0];
+  uint32_t color1 = colors[colorsLength-1];
+
+  int index;
+
+  double dx = (double)x - ctx->radialGradient.dx;
+  double dy = (double)y - ctx->radialGradient.dy;
+
+  double fx = ctx->radialGradient.fx;
+  double fy = ctx->radialGradient.fy;
+  double r2 = ctx->radialGradient.r2;
+  double scale = ctx->radialGradient.mul;
+
+  double dyfx = dy * fx;
+  double dyfy = dy * fy;
+  double dydy = dy * dy;
+
+  double dxfx = dx * fx;
+  double dxfy = dx * fy;
+
+  double dxfx_p_dyfy = dxfx + dyfy;
+  double dxfy_m_dyfx = dxfy - dyfx;
+
+  double dxr2 = dx * r2;
+
+  double c = dydy * r2;
+
+  __m128 x_dx          = _mm_set_ps(dx + 3.0, dx + 2.0, dx + 1.0, dx);
+  __m128 x_dxr2        = _mm_set_ps(dxr2 + r2 + r2 + r2, dxr2 + r2 + r2, dxr2 + r2, dxr2);
+  __m128 x_dxfx_p_dyfy = _mm_set_ps(dxfx_p_dyfy + fx + fx + fx, dxfx_p_dyfy + fx + fx, dxfx_p_dyfy + fx, dxfx_p_dyfy);
+  __m128 x_dxfy_m_dyfx = _mm_set_ps(dxfy_m_dyfx + fy + fy + fy, dxfy_m_dyfx + fy + fy, dxfy_m_dyfx + fy, dxfy_m_dyfx);
+
+  __m128 x_1           = _mm_set1_ps(4.0);
+  __m128 x_r2          = _mm_set1_ps(r2 * 4.0);
+  __m128 x_fx          = _mm_set1_ps(fx * 4.0);
+  __m128 x_fy          = _mm_set1_ps(fy * 4.0);
+  __m128 x_c           = _mm_set1_ps(c);
+  __m128 x_scale       = _mm_set1_ps(scale);
+  __m128 x_min         = _mm_set1_ps(0.0);
+  __m128 x_max         = _mm_set1_ps((float)(colorsLength-1));
+
+  for (;;)
+  {
+    __m128 dd;
+
+    dd = _mm_add_ps(x_c, _mm_mul_ps(x_dxr2, x_dx));
+    dd = _mm_sub_ps(dd, _mm_mul_ps(x_dxfy_m_dyfx, x_dxfy_m_dyfx));
+    dd = _mm_and_ps(dd, Mask7FFFFFFF7FFFFFFF);
+    dd = _mm_sqrt_ps(dd);
+    dd = _mm_add_ps(dd, x_dxfx_p_dyfy);
+    dd = _mm_mul_ps(dd, x_scale);
+    dd = _mm_max_ps(dd, x_min);
+    dd = _mm_min_ps(dd, x_max);
+
+    __m128i di = _mm_cvtps_epi32(dd);
+    uint index;
+
+    // Pixel #0
+    index = (uint)_mm_cvtsi128_si32(di);
+    di = _mm_shuffle_epi32(di, _MM_SHUFFLE(0, 3, 2, 1));
+
+    ((uint32_t*)dstCur)[0] = colors[index];
+    if (--w == 0) break;
+
+    // Pixel #1
+    index = (uint)_mm_cvtsi128_si32(di);
+    di = _mm_shuffle_epi32(di, _MM_SHUFFLE(0, 3, 2, 1));
+
+    ((uint32_t*)dstCur)[1] = colors[index];
+    if (--w == 0) break;
+
+    // Pixel #2
+    index = (uint)_mm_cvtsi128_si32(di);
+    di = _mm_shuffle_epi32(di, _MM_SHUFFLE(0, 3, 2, 1));
+
+    ((uint32_t*)dstCur)[2] = colors[index];
+    if (--w == 0) break;
+
+    // Pixel #3
+    index = (uint)_mm_cvtsi128_si32(di);
+
+    ((uint32_t*)dstCur)[3] = colors[index];
+    if (--w == 0) break;
+
+    dstCur += 16;
+
+    x_dx          = _mm_add_ps(x_dx         , x_1);
+    x_dxr2        = _mm_add_ps(x_dxr2       , x_r2);
+    x_dxfx_p_dyfy = _mm_add_ps(x_dxfx_p_dyfy, x_fx);
+    x_dxfy_m_dyfx = _mm_add_ps(x_dxfy_m_dyfx, x_fy);
+  }
+
+  return dst;
+}
+
+// ============================================================================
 // [Fog::Raster - Raster - Prgb32 - SrcOver]
 // ============================================================================
 
@@ -1532,6 +1940,7 @@ static void FOG_FASTCALL raster_prgb32_span_solid_srcover_sse2(
       _mm_store_si128((__m128i*)(dst + 48), src0mm);
 
       dst += 64;
+      w -= 4;
     }
     switch (w & 3)
     {
@@ -1540,7 +1949,7 @@ static void FOG_FASTCALL raster_prgb32_span_solid_srcover_sse2(
       case 1: _mm_store_si128((__m128i*)(dst), src0mm); dst += 16;
     }
 
-    if ((_i = _j)) goto blt_opaque;
+    if ((_i = _j)) { w = 0; goto blt_opaque; }
     return;
   }
   else
@@ -7853,6 +8262,16 @@ FOG_INIT_DECLARE void fog_raster_init_sse2(void)
   Mask00FF000000000000 = pix_create_mask_8x2W(0x00FF, 0x0000, 0x0000, 0x0000);
   MaskFF000000FF000000 = pix_create_mask_8x2W(0xFF00, 0x0000, 0xFF00, 0x0000);
 
+  sse2_t t;
+
+  t.uq[0] = FOG_UINT64_C(~0x8000000080000000);
+  t.uq[1] = FOG_UINT64_C(~0x8000000080000000);
+  Mask7FFFFFFF7FFFFFFF = _mm_loadu_ps((float*)&t);
+
+  t.uq[0] = FOG_UINT64_C(~0x8000000000000000);
+  t.uq[1] = FOG_UINT64_C(~0x8000000000000000);
+  Mask7FFFFFFFFFFFFFFF = _mm_loadu_pd((double*)&t);
+
   FunctionMap* m = functionMap;
 
   // [Convert]
@@ -7866,10 +8285,19 @@ FOG_INIT_DECLARE void fog_raster_init_sse2(void)
   m->convert.rgb32_from_rgb24 = convert_rgb32_from_rgb24_sse2;
   m->convert.rgb32_from_bgr24 = convert_rgb32_from_bgr24_sse2;
 
-  // [Gradient]
+  // [Gradient - Gradient]
 
   m->gradient.gradient_argb32 = gradient_gradient_argb32_sse2;
   m->gradient.gradient_prgb32 = gradient_gradient_prgb32_sse2;
+
+  // [Pattern - Texture]
+
+  m->pattern.texture_fetch_repeat = pattern_texture_fetch_repeat_sse2;
+  m->pattern.texture_fetch_reflect = pattern_texture_fetch_reflect_sse2;
+
+  // [Pattern - Radial Gradient]
+
+  m->pattern.radial_gradient_fetch_pad = pattern_radial_gradient_fetch_pad_sse2;
 
   // [Raster - Prgb32]
 
