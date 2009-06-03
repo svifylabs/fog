@@ -75,6 +75,28 @@ int ColorMatrix::type() const
   //   [n n n n n]
   if (m[3][3] != 0.0) parts |= PartLutAlpha;
 
+  //! @brief Matrix contains const RGB lut part (all cells are set to 1.0).
+  //!
+  //! Const RGB lut part is illustrated here:
+  //!   [1 n n n n]
+  //!   [n 1 n n n]
+  //!   [n n 1 n n]
+  //!   [n n n n n]
+  //!   [n n n n n]
+  if (m[0][0] == 1.0 &&
+      m[1][1] == 1.0 &&
+      m[2][2] == 1.0) parts |= PartConstRGB;
+
+  //! @brief Matrix contains const alpha lut part (cell set to 1.0).
+  //!
+  //! Const alpha lut part is illustrated here:
+  //!   [n n n n n]
+  //!   [n n n n n]
+  //!   [n n n n n]
+  //!   [n n n 1 n]
+  //!   [n n n n n]
+  if (m[3][3] == 1.0) parts |= PartConstAlpha;
+
   // RGB translation part is illustrated here:
   //   [n n n n n]
   //   [n n n n n]

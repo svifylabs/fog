@@ -147,6 +147,38 @@ struct FOG_API ColorMatrix
     //! @note RGBA lut is combination of RGB and Alpha lut parts.
     PartLutRGBA = 0x0C,
 
+    //! @brief Matrix contains const RGB lut part (all cells are set to 1.0).
+    //!
+    //! Const RGB lut part is illustrated here:
+    //!   [1 n n n n]
+    //!   [n 1 n n n]
+    //!   [n n 1 n n]
+    //!   [n n n n n]
+    //!   [n n n n n]
+    PartConstRGB = 0x10,
+
+    //! @brief Matrix contains const alpha lut part (cell set to 1.0).
+    //!
+    //! Const alpha lut part is illustrated here:
+    //!   [n n n n n]
+    //!   [n n n n n]
+    //!   [n n n n n]
+    //!   [n n n 1 n]
+    //!   [n n n n n]
+    PartConstAlpha = 0x20,
+
+    //! @brief Matrix contains const RGBA lut part (all cells are set to 1.0).
+    //!
+    //! Const RGBA lut part is illustrated here:
+    //!   [1 n n n n]
+    //!   [n 1 n n n]
+    //!   [n n 1 n n]
+    //!   [n n n 1 n]
+    //!   [n n n n n]
+    //!
+    //! @note RGBA const lut is combination of RGB a Alpha const lut.
+    PartConstRGBA = 0x30,
+
     //! @brief Matrix contains RGB translation part
     //!
     //! RGB translation part is illustrated here:
@@ -155,7 +187,7 @@ struct FOG_API ColorMatrix
     //!   [n n n n n]
     //!   [n n n n n]
     //!   [X X X n n]
-    PartTranslateRGB  = 0x10,
+    PartTranslateRGB  = 0x40,
 
     //! @brief Matrix contains alpha translation part
     //!
@@ -165,7 +197,7 @@ struct FOG_API ColorMatrix
     //!   [n n n n n]
     //!   [n n n n n]
     //!   [n n n X n]
-    PartTranslateAlpha = 0x20,
+    PartTranslateAlpha = 0x80,
 
     //! @brief Matrix contains RGBA translation part
     //!
@@ -177,7 +209,7 @@ struct FOG_API ColorMatrix
     //!   [X X X X n]
     //!
     //! @note RGBA translation is combination of RGB and Alpha translation parts.
-    PartTranslateRGBA = 0x30
+    PartTranslateRGBA = 0xC0
   };
 
   //! @brief Determines type of color matrix.
