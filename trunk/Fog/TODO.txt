@@ -72,7 +72,7 @@ TODO
         [ ] Prgb dest
         [ ] Argb dest
     [ ] Write SSE2 composite functions
-        [ ] Prgb dest
+        [w] Prgb dest
         [ ] Argb dest
     [ ] Linear gradient can be calculated by SSE2, think about it! The instructions pmax pmin, pcmpgt
         can be used in increments
@@ -80,7 +80,7 @@ TODO
         combinations will degrade into over/src/NOP. I like the idea that I can set CompositeAdd
         and make some effects in UI rendering.
     [ ] Introduce compositing on A8 images.
-    [ ] Introduce painting with constant alpha (addition to masks)
+    [w] Introduce painting with constant alpha (addition to masks)
 
 [ ] ColorMatrix
     [x] Write ColorMatrix class

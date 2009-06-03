@@ -2270,10 +2270,10 @@ static err_t FOG_FASTCALL pattern_texture_init(
   {
     case Pattern::PadSpread:
     case Pattern::RepeatSpread:
-      ctx->fetch = pattern_texture_fetch_repeat;
+      ctx->fetch = functionMap->pattern.texture_fetch_repeat;
       break;
     case Pattern::ReflectSpread:
-      ctx->fetch = pattern_texture_fetch_reflect;
+      ctx->fetch = functionMap->pattern.texture_fetch_reflect;
       break;
     default:
       return Error::InvalidArgument;
@@ -2621,13 +2621,13 @@ static err_t FOG_FASTCALL pattern_linear_gradient_init(
   switch (d->spread)
   {
     case Pattern::PadSpread:
-      ctx->fetch = pattern_linear_gradient_fetch_pad;
+      ctx->fetch = functionMap->pattern.linear_gradient_fetch_pad;
       break;
     case Pattern::RepeatSpread:
-      ctx->fetch = pattern_linear_gradient_fetch_repeat;
+      ctx->fetch = functionMap->pattern.linear_gradient_fetch_repeat;
       break;
     case Pattern::ReflectSpread:
-      ctx->fetch = pattern_linear_gradient_fetch_repeat;
+      ctx->fetch = functionMap->pattern.linear_gradient_fetch_repeat;
       break;
     default:
       FOG_ASSERT_NOT_REACHED();
@@ -2644,6 +2644,50 @@ static err_t FOG_FASTCALL pattern_linear_gradient_init(
 // [Fog::Raster - Pattern - Gradient - Radial]
 // ============================================================================
 
+/*
+  This is reference implementation
+
+  uint8_t* dstCur = dst;
+
+  const uint32_t* colors = (const uint32_t*)ctx->radialGradient.colors;
+  sysint_t colorsLength = ctx->radialGradient.colorsLength;
+
+  uint32_t color0 = colors[0];
+  uint32_t color1 = colors[colorsLength-1];
+
+  int index;
+
+  double dx = (double)x - ctx->radialGradient.dx;
+  double dy = (double)y - ctx->radialGradient.dy;
+
+  double fx = ctx->radialGradient.fx;
+  double fy = ctx->radialGradient.fy;
+  double r2 = ctx->radialGradient.r2;
+  double scale = ctx->radialGradient.mul;
+
+  double dyfx = dy * fx;
+  double dyfy = dy * dy;
+  double dydy = dy * dy;
+
+  do {
+    double d2 = dx * fy - dyfx;
+    double d3 = r2 * (dx * dx + dydy) - d2 * d2;
+
+    index = (int) ((dx * fx + dyfy + sqrt(fabs(d3))) * scale);
+
+    if (index < 0)
+      ((uint32_t*)dstCur)[0] = color0;
+    else if (index >= colorsLength)
+      ((uint32_t*)dstCur)[0] = color1;
+    else
+      ((uint32_t*)dstCur)[0] = colors[index];
+
+    dstCur += 4;
+    dx += 1.0;
+  } while (--w);
+
+  return dst;
+*/
 static uint8_t* FOG_FASTCALL pattern_radial_gradient_fetch_pad(
   PatternContext* ctx,
   uint8_t* dst, int x, int y, int w)
@@ -2668,11 +2712,24 @@ static uint8_t* FOG_FASTCALL pattern_radial_gradient_fetch_pad(
   double r2 = ctx->radialGradient.r2;
   double scale = ctx->radialGradient.mul;
 
-  do {
-    double d2 = dx * fy - dy * fx;
-    double d3 = r2 * (dx * dx + dy * dy) - d2 * d2;
+  double dyfx = dy * fx;
+  double dyfy = dy * fy;
+  double dydy = dy * dy;
 
-    index = (int) ((dx * fx + dy * fy + sqrt(fabs(d3))) * scale);
+  double dxfx = dx * fx;
+  double dxfy = dx * fy;
+
+  double dxfx_p_dyfy = dxfx + dyfy;
+  double dxfy_m_dyfx = dxfy - dyfx;
+
+  double dxr2 = dx * r2;
+
+  double c = dydy * r2;
+
+  do {
+    double d3 = c + dxr2 * dx - dxfy_m_dyfx * dxfy_m_dyfx;
+
+    index = (int) ((dxfx_p_dyfy + sqrt(fabs(d3))) * scale);
 
     if (index < 0)
       ((uint32_t*)dstCur)[0] = color0;
@@ -2681,10 +2738,13 @@ static uint8_t* FOG_FASTCALL pattern_radial_gradient_fetch_pad(
     else
       ((uint32_t*)dstCur)[0] = colors[index];
     dstCur += 4;
+
     dx += 1.0;
+    dxr2 += r2;
+    dxfx_p_dyfy += fx;
+    dxfy_m_dyfx += fy;
   } while (--w);
 
-end:
   return dst;
 }
 
@@ -2781,13 +2841,13 @@ static err_t FOG_FASTCALL pattern_radial_gradient_init(
   switch (d->spread)
   {
     case Pattern::PadSpread:
-      ctx->fetch = pattern_radial_gradient_fetch_pad;
+      ctx->fetch = functionMap->pattern.radial_gradient_fetch_pad;
       break;
     case Pattern::RepeatSpread:
-      ctx->fetch = pattern_radial_gradient_fetch_repeat;
+      ctx->fetch = functionMap->pattern.radial_gradient_fetch_repeat;
       break;
     case Pattern::ReflectSpread:
-      ctx->fetch = pattern_radial_gradient_fetch_repeat;
+      ctx->fetch = functionMap->pattern.radial_gradient_fetch_repeat;
       break;
     default:
       FOG_ASSERT_NOT_REACHED();
@@ -2856,7 +2916,7 @@ static err_t FOG_FASTCALL pattern_conical_gradient_init(
   if (err) return err;
 
   // Set fetch function.
-  ctx->fetch = pattern_conical_gradient_fetch;
+  ctx->fetch = functionMap->pattern.conical_gradient_fetch;
 
   // Set destroy function.
   ctx->destroy = pattern_generic_gradient_destroy;

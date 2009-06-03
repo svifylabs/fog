@@ -688,7 +688,11 @@ err_t Stream::openFile(const String32& fileName, uint32_t openFlags)
   {
     TemporaryString32<TemporaryLength> dirName;
     if ((err = FileUtil::extractDirectory(dirName, fileName))) return err;
-    if ((err = FileSystem::createDirectory(dirName, true))) return err;
+
+    if (!dirName.isEmpty() && dirName != StubAscii8("."))
+    {
+      if ((err = FileSystem::createDirectory(dirName, true))) return err;
+    }
   }
 
   // Try to open file using OS specific calls.

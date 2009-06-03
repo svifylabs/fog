@@ -97,7 +97,7 @@ MyWindow::MyWindow(uint32_t createFlags) :
   sprite[3].premultiply();
 
   pattern[0].setTexture(sprite[0]);
-  pattern[0].setSpread(Pattern::ReflectSpread);
+  pattern[0].setSpread(Pattern::RepeatSpread);
 
   pattern[1].setType(Pattern::LinearGradient);
   pattern[1].setSpread(Pattern::PadSpread);
@@ -397,7 +397,7 @@ void MyWindow::onPaint(PaintEvent* e)
       p->fillPath(path);
     }
   }*/
-  paintComposition(p, boundingRect);
+  //paintComposition(p, boundingRect);
 
   p->flush();
   TimeDelta timeDelta = TimeTicks::highResNow() - ticks;
