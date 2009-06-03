@@ -54,12 +54,12 @@ struct BenchmarkModule
 
   FOG_INLINE Point randPoint() const
   {
-    return Point(rand() % (w - 128), rand() % (h - 128));
+    return Point(rand() % (w), rand() % (h));
   }
 
   FOG_INLINE PointF randPointF() const
   {
-    return PointF(rand() % (w - 128), rand() % (h - 128));
+    return PointF(rand() % (w), rand() % (h));
   }
 
   int w, h;
@@ -591,7 +591,13 @@ struct BenchmarkModule_Cairo_FillPath : public BenchmarkModule_Cairo
         PointF c1 = randPointF();
         PointF c2 = randPointF();
 
-        cairo_curve_to(cr, c0.x(), c0.y(), c1.x(), c1.y(), c2.x(), c2.y());
+        cairo_curve_to(cr, 
+          c1.x(),
+          c1.y(),
+          c2.x(),
+          c2.y(),
+          c2.x(),
+          c2.y());
         c0 = c2;
       }
 
@@ -632,12 +638,12 @@ struct BenchmarkModule_Cairo_FillPattern : public BenchmarkModule_Cairo
     }
     else if (type == 1)
     {
-      pat = cairo_pattern_create_radial(w/2, h/2, 1.0, 30.0, 30.0, 250.0);
+      pat = cairo_pattern_create_radial(w/2, h/2, 250.0, 30.0, 30.0, 1.0);
     }
 
-    cairo_pattern_add_color_stop_rgba(pat, 0.0, 1, 1, 1, 1);
+    cairo_pattern_add_color_stop_rgba(pat, 0.0, 0, 0, 0, 1);
     cairo_pattern_add_color_stop_rgba(pat, 0.5, 1, 1, 0, 1);
-    cairo_pattern_add_color_stop_rgba(pat, 1.0, 0, 0, 0, 1);
+    cairo_pattern_add_color_stop_rgba(pat, 1.0, 1, 1, 1, 1);
     cairo_set_source(cr, pat);
 
     for (int a = 0; a < quantity; a++)
@@ -701,7 +707,7 @@ struct BenchmarkModule_Cairo_BlitImage : public BenchmarkModule_Cairo
 static void benchAll()
 {
   int w = 640, h = 480;
-  int quantity = 10000;
+  int quantity = 100000;
 
   TimeDelta totalFog;
   TimeDelta totalFogMT;

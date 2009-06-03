@@ -76,6 +76,121 @@ struct FOG_API ColorMatrix
     m[4][0] = m40; m[4][1] = m41; m[4][2] = m42; m[4][3] = m43; m[4][4] = m44;
   }
 
+  // [Type]
+
+  //! @brief Characteristics of color matrix.
+  //!
+  //! Characteristics is bit mask.
+  enum Part
+  {
+    //! @brief Matrix contains RGB shear part.
+    //!
+    //! RGB shear part is illustrated here:
+    //!   [n X X n n]
+    //!   [X n X n n]
+    //!   [X X n n n]
+    //!   [n n n n n]
+    //!   [n n n n n]
+    PartShearRGB = 0x01,
+
+    //! @brief Matrix contains alpha shear part.
+    //!
+    //! Alpha shear part is illustrated here:
+    //!   [n n n X n]
+    //!   [n n n X n]
+    //!   [n n n X n]
+    //!   [X X X n n]
+    //!   [n n n n n]
+    PartShearAlpha = 0x02,
+
+    //! @brief Matrix contains RGBA shear part.
+    //!
+    //! RGBA shear part is illustrated here:
+    //!   [n X X X n]
+    //!   [X n X X n]
+    //!   [X X n X n]
+    //!   [X X X n n]
+    //!   [n n n n n]
+    //!
+    //! @note RGBA shear is combination of RGB and Alpha shear parts.
+    PartShearRGBA = 0x03,
+
+    //! @brief Matrix contains RGB lut part.
+    //!
+    //! RGB lut part is illustrated here:
+    //!   [X n n n n]
+    //!   [n X n n n]
+    //!   [n n X n n]
+    //!   [n n n n n]
+    //!   [n n n n n]
+    PartLutRGB = 0x04,
+
+    //! @brief Matrix contains RGB lut part.
+    //!
+    //! Alpha lut part is illustrated here:
+    //!   [n n n n n]
+    //!   [n n n n n]
+    //!   [n n n n n]
+    //!   [n n n X n]
+    //!   [n n n n n]
+    PartLutAlpha = 0x08,
+
+    //! @brief Matrix contains RGBA lut part.
+    //!
+    //! RGBA lut part is illustrated here:
+    //!   [X n n n n]
+    //!   [n X n n n]
+    //!   [n n X n n]
+    //!   [n n n X n]
+    //!   [n n n n n]
+    //!
+    //! @note RGBA lut is combination of RGB and Alpha lut parts.
+    PartLutRGBA = 0x0C,
+
+    //! @brief Matrix contains RGB translation part
+    //!
+    //! RGB translation part is illustrated here:
+    //!   [n n n n n]
+    //!   [n n n n n]
+    //!   [n n n n n]
+    //!   [n n n n n]
+    //!   [X X X n n]
+    PartTranslateRGB  = 0x10,
+
+    //! @brief Matrix contains alpha translation part
+    //!
+    //! Alpha translation part is illustrated here:
+    //!   [n n n n n]
+    //!   [n n n n n]
+    //!   [n n n n n]
+    //!   [n n n n n]
+    //!   [n n n X n]
+    PartTranslateAlpha = 0x20,
+
+    //! @brief Matrix contains RGBA translation part
+    //!
+    //! RGBA translation part is illustrated here:
+    //!   [n n n n n]
+    //!   [n n n n n]
+    //!   [n n n n n]
+    //!   [n n n n n]
+    //!   [X X X X n]
+    //!
+    //! @note RGBA translation is combination of RGB and Alpha translation parts.
+    PartTranslateRGBA = 0x30
+  };
+
+  //! @brief Determines type of color matrix.
+  //!
+  //! Type of color matrix is important part of optimization that can be done
+  //! in blitters. The main adventage of color matrix class is that many color
+  //! operations can be defined with it. But these operations usually not uses
+  //! all matrix cells, so the type() checks for zero and one values and
+  //! returns type value that can be used by optimized blitters.
+  //!
+  //! @see @c Type for type possibilities and its descriptions.
+  int type() const;
+
   // [Operations]
 
   FOG_INLINE ColorMatrix& set(const double src[5][5])
