@@ -24,6 +24,10 @@ namespace Fog {
 
 struct FontEngineWin;
 
+// ============================================================================
+// [Fog::FontFaceWin]
+// ============================================================================
+
 struct FOG_API FontFaceWin : public FontFace
 {
   // Lock
@@ -48,6 +52,10 @@ private:
 
   friend struct FontEngineWin;
 };
+
+// ============================================================================
+// [Fog::FontEngineWin]
+// ============================================================================
 
 struct FOG_API FontEngineWin : public FontEngine
 {

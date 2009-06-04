@@ -15,6 +15,9 @@
 #include <sys/stat.h>
 #endif // FOG_OS_POSIX
 
+//! @addtogroup Fog_Core
+//! @{
+
 namespace Fog {
 namespace FileSystem {
 

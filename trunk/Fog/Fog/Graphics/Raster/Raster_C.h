@@ -15,6 +15,9 @@
 #include <Fog/Graphics/Rgba.h>
 #include <Fog/Graphics/Raster.h>
 
+//! @addtogroup Fog_Graphics_Raster
+//! @{
+
 // This file is included from all Fog/Graphics/Raster/Raster_.h includes and 
 // .cpp files, so in future it may contain generic code for these modules.
 
@@ -77,6 +80,8 @@ enum RGB32_Mask
 
 } // Raster namespace
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_GRAPHICS_RASTER_C_H

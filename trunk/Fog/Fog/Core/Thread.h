@@ -23,10 +23,14 @@
 #include <pthread.h>
 #endif
 
-//! @addtogroup Fog_Core_CAPI
+namespace Fog {
+
+//! @addtogroup Fog_Core
 //! @{
 
+// ============================================================================
 // [FOG_THREAD_VAR]
+// ============================================================================
 
 //!
 //! @def FOG_THREAD_VAR
@@ -43,13 +47,6 @@
 #elif defined(FOG_CC_MSVC)
 #define FOG_THREAD_VAR __declspec(thread)
 #endif
-
-//! @}
-
-//! @addtogroup Fog_Core
-//! @{
-
-namespace Fog {
 
 // ============================================================================
 // [Forward Declarations]

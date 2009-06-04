@@ -33,6 +33,9 @@
 //#include <Fog/Core/EventPump_libevent.h>
 //#endif
 
+//! @addtogroup Fog_Core
+//! @{
+
 namespace Fog {
 
 // ============================================================================
@@ -482,6 +485,8 @@ private:
   FOG_DISABLE_COPY(EventLoop)
 };
 
-} // Fog namespace 
+} // Fog namespace
+
+//! @}
 
 #endif // _FOG_CORE_EVENTLOOP_H

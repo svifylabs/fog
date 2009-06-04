@@ -10,6 +10,9 @@
 // [Dependencies]
 #include <Fog/UI/Widget.h>
 
+//! @addtogroup Fog_UI
+//! @{
+
 namespace Fog {
 
 // ============================================================================
@@ -73,6 +76,8 @@ protected:
 };
 
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_UI_BUTTONBASE_H

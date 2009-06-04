@@ -16,6 +16,9 @@
 #include <Fog/Core/Static.h>
 #include <Fog/Core/TypeInfo.h>
 
+//! @addtogroup Fog_Core
+//! @{
+
 namespace Fog {
 
 // ============================================================================
@@ -363,6 +366,8 @@ FOG_INLINE StubUtf32::StubUtf32(const String32& str) :
   _str(str.cData()), _length(str.length()) {}
 
 } // Fog namespace
+
+//! @}
 
 // ============================================================================
 // [Fog::TypeInfo<T>]

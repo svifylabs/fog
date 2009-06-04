@@ -12,6 +12,9 @@
 #include <Fog/Core/String.h>
 #include <Fog/Graphics/ImageIO.h>
 
+//! @addtogroup Fog_Graphics_ImageIO
+//! @{
+
 namespace Fog {
 namespace ImageIO {
 
@@ -82,6 +85,8 @@ struct FOG_API PcxEncoderDevice : public EncoderDevice
 
 } // ImageIO namespace
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_GRAPHICS_IMAGEIO_PCX_H

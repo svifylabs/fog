@@ -11,6 +11,9 @@
 #include <Fog/Build/Build.h>
 #include <Fog/Core/TypeInfo.h>
 
+//! @addtogroup Fog_Core
+//! @{
+
 namespace Fog {
 
 // ============================================================================
@@ -158,6 +161,8 @@ loop:
 }
 
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_CORE_ALGORITHMS_H

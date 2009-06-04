@@ -10,12 +10,14 @@
 // [Dependencies]
 #include <Fog/Core/String.h>
 
-namespace Fog {
-
 //! @addtogroup Fog_Core
 //! @{
 
+namespace Fog {
+
+// ============================================================================
 // [Fog::UserInfo]
+// ============================================================================
 
 //! @brief Provides informations about user.
 struct FOG_API UserInfo
@@ -37,9 +39,9 @@ struct FOG_API UserInfo
   static bool directoryTo(uint32_t dir, String32& to);
 };
 
-//! @}
-
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_CORE_USERINFO_H

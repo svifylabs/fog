@@ -35,6 +35,9 @@ template<typename T> struct List;
 // [Fog::ListAPI]
 // ============================================================================
 
+//! @addtogroup Fog_Core_Detail
+//! @{
+
 struct FOG_API ListAPI_Base
 {
   // [Primitive Data Type]
@@ -131,6 +134,11 @@ struct ListAPI_Wrapper<T, 2> : public ListAPI_Wrapper<T, 1>
 
 template<typename T>
 struct ListAPI : public ListAPI_Wrapper<T, TypeInfo<T>::Type> {};
+
+//! @{
+
+//! @addtogroup Fog_Core
+//! @{
 
 // ============================================================================
 // [Fog::List<T>]
@@ -467,6 +475,8 @@ struct List : public Sequence<T>
     }
   };
 };
+
+//! @}
 
 } // Fog namespace
 

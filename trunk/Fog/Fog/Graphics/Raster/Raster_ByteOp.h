@@ -10,6 +10,9 @@
 // [Dependencies]
 #include <Fog/Graphics/Raster/Raster_C.h>
 
+//! @addtogroup Fog_Graphics_Raster
+//! @{
+
 namespace Fog {
 namespace Raster {
 
@@ -1014,6 +1017,8 @@ static FOG_INLINE uint32_t byteaddmulC(uint32_t x, uint32_t a, uint32_t y, uint3
 
 } // Raster namespace
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_GRAPHICS_BYTEOP_H

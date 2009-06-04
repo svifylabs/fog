@@ -16,11 +16,16 @@
 #include <Fog/Core/Task.h>
 #include <Fog/Core/Time.h>
 
+//! @addtogroup Fog_Core
+//! @{
+
 namespace Fog {
 
 struct EventLoop;
 
+// ============================================================================
 // [Fog::Timer]
+// ============================================================================
 
 struct FOG_API Timer : public Object
 {
@@ -55,4 +60,6 @@ private:
 
 } // Fog namespace
 
-#endif  // _FOG_TIMER_H
+//! @}
+
+#endif  // _FOG_CORE_TIMER_H

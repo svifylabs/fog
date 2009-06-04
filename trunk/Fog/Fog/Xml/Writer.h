@@ -13,10 +13,10 @@
 #include <Fog/Core/Stream.h>
 #include <Fog/Core/TextCodec.h>
 
-namespace Fog {
-
-//! @addtogroup Xml
+//! @addtogroup Fog_Xml
 //! @{
+
+namespace Fog {
 
 // ============================================================================
 // [Fog::XmlWriter]
@@ -28,9 +28,9 @@ struct FOG_API XmlWriter
   virtual ~XmlWriter();
 };
 
-//! @}
-
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_XML_WRITER_H

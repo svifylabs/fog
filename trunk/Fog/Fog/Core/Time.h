@@ -40,6 +40,9 @@
 
 #include <time.h>
 
+//! @addtogroup Fog_Core
+//! @{
+
 namespace Fog {
 
 // ============================================================================
@@ -514,6 +517,8 @@ FOG_INLINE TimeTicks TimeDelta::operator+(TimeTicks t) const
 }
 
 } // Fog namespace
+
+//! @}
 
 // ============================================================================
 // Fog::TypeInfo<>

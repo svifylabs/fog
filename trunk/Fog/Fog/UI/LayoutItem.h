@@ -13,6 +13,9 @@
 #include <Fog/UI/Event.h>
 #include <Fog/UI/Constants.h>
 
+//! @addtogroup Fog_UI
+//! @{
+
 namespace Fog {
 
 // ============================================================================
@@ -65,6 +68,8 @@ protected:
 };
 
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // GUI_LAYOUT_ITEM_H

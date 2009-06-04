@@ -13,11 +13,16 @@
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Geometry.h>
 
-//! @addtogroup Fog_Graphics_CAPI
+//! @addtogroup Fog_Graphics
 //! @{
 
 namespace Fog {
 
+// ============================================================================
+// [Fog::Path]
+// ============================================================================
+
+//! @brief Path defines graphics path that can be filled or stroked by painter.
 struct FOG_API Path
 {
   // [Cmd]
@@ -352,7 +357,7 @@ struct FOG_API Path
 
 } // Fog namespace
 
-// @}
+//! @}
 
 // [Guard]
 #endif // _FOG_GRAPHICS_PATH_H

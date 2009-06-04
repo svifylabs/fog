@@ -12,6 +12,9 @@
 
 #if defined(FOG_HAVE_PNG_H)
 
+//! @addtogroup Fog_Graphics_ImageIO
+//! @{
+
 namespace Fog {
 namespace ImageIO {
 
@@ -54,6 +57,8 @@ struct FOG_API PngEncoderDevice : public EncoderDevice
 
 } // ImageIO namespace
 } // Fog namespace
+
+//! @}
 
 #endif // FOG_HAVE_PNG_H
 

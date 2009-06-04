@@ -34,6 +34,9 @@ template<typename T> struct Vector;
 // [Fog::VectorAPI]
 // ============================================================================
 
+//! @addtogroup Fog_Core_Detail
+//! @{
+
 struct FOG_API VectorAPI_Base
 {
   // [Primitive Data Type]
@@ -122,6 +125,11 @@ struct VectorAPI_Wrapper<T, 2> : public VectorAPI_Wrapper<T, 1>
 
 template<typename T>
 struct VectorAPI : public VectorAPI_Wrapper<T, TypeInfo<T>::Type> {};
+
+//! @}
+
+//! @addtogroup Fog_Core
+//! @{
 
 // ============================================================================
 // [Fog::Vector<T>]
@@ -451,6 +459,8 @@ struct Vector : public Sequence<T>
     }
   };
 };
+
+//! @}
 
 } // Fog namespace
 

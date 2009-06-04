@@ -10,6 +10,9 @@
 // [Dependencies]
 #include <Fog/Build/Build.h>
 
+//! @addtogroup Fog_Core
+//! @{
+
 namespace Fog {
 
 // ============================================================================
@@ -111,6 +114,8 @@ public:
 };
 
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_CORE_TASK_H

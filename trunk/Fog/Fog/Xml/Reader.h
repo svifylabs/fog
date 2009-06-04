@@ -13,10 +13,10 @@
 #include <Fog/Core/Stream.h>
 #include <Fog/Core/TextCodec.h>
 
-namespace Fog {
-
-//! @addtogroup Xml
+//! @addtogroup Fog_Xml
 //! @{
+
+namespace Fog {
 
 // ============================================================================
 // [Forward Declarations]
@@ -150,9 +150,9 @@ protected:
   XmlElement* _current;
 };
 
-//! @}
-
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_XML_READER_H
