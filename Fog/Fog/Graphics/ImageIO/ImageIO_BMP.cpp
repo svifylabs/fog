@@ -789,7 +789,8 @@ uint32_t BmpEncoderDevice::writeImage(const Image& image)
   int bpl;
   int skip;
 
-  BmpHeader bmpHeader;
+  BmpFileHeader bmpFile;
+  BmpV3Header bmpHeader;
 
   MemoryBuffer<4096> bufferLocal;
 
@@ -799,22 +800,22 @@ uint32_t BmpEncoderDevice::writeImage(const Image& image)
     goto end;
   }
 
-  // file bmpHeader
-  bmpHeader.magic       = FOG_MAKE_UINT16_SEQ('B', 'M');
-  bmpHeader.reserved1   = 0x0000;
-  bmpHeader.reserved2   = 0x0000;
-  bmpHeader.imageOffset = Memory::bswap32le(54);
+  // File header.
+  bmpFile.magic              = FOG_MAKE_UINT16_SEQ('B', 'M');
+  bmpFile.reserved1          = 0x0000;
+  bmpFile.reserved2          = 0x0000;
+  bmpFile.imageOffset        = Memory::bswap32le(54);
 
-  // BMP bmpHeader
-  bmpHeader.headerSize  = Memory::bswap32le(40);
-  bmpHeader.width       = Memory::bswap32le(width);
-  bmpHeader.height      = Memory::bswap32le(height);
-  bmpHeader.planes      = Memory::bswap16le(1);
-  bmpHeader.compression = Memory::bswap32le(BMP_BI_RGB);
-  bmpHeader.reserved3   = 0x00000000;
-  bmpHeader.reserved4   = 0x00000000;
-  bmpHeader.reserved5   = 0x00000000;
-  bmpHeader.reserved6   = 0x00000000;
+  // Bitmap header.
+  bmpHeader.headerSize       = Memory::bswap32le(40);
+  bmpHeader.width            = Memory::bswap32le(width);
+  bmpHeader.height           = Memory::bswap32le(height);
+  bmpHeader.planes           = Memory::bswap16le(1);
+  bmpHeader.compression      = Memory::bswap32le(BMP_BI_RGB);
+  bmpHeader.horzResolution   = 0;
+  bmpHeader.vertResolution   = 0;
+  bmpHeader.colorsUsed       = 0;
+  bmpHeader.colorsImportant  = 0;
 
   switch (format)
   {
@@ -827,7 +828,7 @@ uint32_t BmpEncoderDevice::writeImage(const Image& image)
       skip = 0;
       imageSize = bpl * height;
 
-      bmpHeader.fileSize     = Memory::bswap32le(54 + imageSize);
+      bmpFile.fileSize       = Memory::bswap32le(54 + imageSize);
       bmpHeader.bitsPerPixel = Memory::bswap16le(32);
       bmpHeader.imageSize    = Memory::bswap32le(imageSize);
 
@@ -843,7 +844,7 @@ uint32_t BmpEncoderDevice::writeImage(const Image& image)
       skip = (4 - (bpl & 3)) & 3;
       imageSize = (bpl + skip) * height;
 
-      bmpHeader.fileSize     = Memory::bswap32le(54 + imageSize);
+      bmpFile.fileSize       = Memory::bswap32le(54 + imageSize);
       bmpHeader.bitsPerPixel = Memory::bswap16le(24);
       bmpHeader.imageSize    = Memory::bswap32le(imageSize);
 
@@ -860,20 +861,17 @@ uint32_t BmpEncoderDevice::writeImage(const Image& image)
       imageSize = (uint)(bpl + skip) * (uint)height;
 
       // 1024 == palette size (4 * 256)
-      bmpHeader.fileSize     = Memory::bswap32le(54 + imageSize + 1024);
+      bmpFile.fileSize       = Memory::bswap32le(54 + imageSize + 1024);
+      bmpFile.imageOffset    = Memory::bswap32le(1024 + 54);
       bmpHeader.bitsPerPixel = Memory::bswap16le(8);
       bmpHeader.imageSize    = Memory::bswap32le(imageSize);
-
-      bmpHeader.imageOffset  = Memory::bswap32le(1024 + 54);
       break;
     }
   }
 
-  // Write file and bmp bmpHeader.
-  if (stream().write((const void *)&bmpHeader, 54) != 54)
-  {
-    goto fail;
-  }
+  // Write file and bmp header.
+  if (stream().write((const void *)&bmpFile, 14) != 14) goto fail;
+  if (stream().write((const void *)&bmpHeader, 40) != 40) goto fail;
 
   switch (format)
   {
