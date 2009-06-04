@@ -1,6 +1,7 @@
 #include <Fog/Core.h>
 #include <Fog/Graphics.h>
 #include <Fog/UI.h>
+#include <Fog/Xml.h>
 
 using namespace Fog;
 
@@ -96,7 +97,7 @@ MyWindow::MyWindow(uint32_t createFlags) :
   sprite[3].premultiply();
 
   pattern[0].setTexture(sprite[0]);
-  pattern[0].setSpread(Pattern::ReflectSpread);
+  pattern[0].setSpread(Pattern::RepeatSpread);
 
   pattern[1].setType(Pattern::LinearGradient);
   pattern[1].setSpread(Pattern::PadSpread);
@@ -396,7 +397,7 @@ void MyWindow::onPaint(PaintEvent* e)
       p->fillPath(path);
     }
   }*/
-  paintComposition(p, boundingRect);
+  //paintComposition(p, boundingRect);
 
   p->flush();
   TimeDelta timeDelta = TimeTicks::highResNow() - ticks;
@@ -518,8 +519,20 @@ void MyWindow::paintSprites(Painter* p, const Rect& r, int count)
 // [MAIN]
 // ============================================================================
 
+void test()
+{
+  XmlDocument doc;
+  err_t err = doc.readFile(StubAscii8("/my/upload/test.xml"));
+
+  fog_debug("Xml reader status: %d", err);
+
+  XmlElement* e = doc.documentRoot();
+}
+
 FOG_UI_MAIN()
 {
+  test();
+
   Application app(StubAscii8("UI"));
 
   MyWindow window;

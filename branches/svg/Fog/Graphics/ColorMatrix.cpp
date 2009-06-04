@@ -32,6 +32,90 @@ static const double lumB = 0.0820;
 // [Fog::ColorMatrix]
 // ============================================================================
 
+int ColorMatrix::type() const
+{
+  int parts = 0;
+
+  // RGB shear part is illustrated here:
+  //   [n X X n n]
+  //   [X n X n n]
+  //   [X X n n n]
+  //   [n n n n n]
+  //   [n n n n n]
+  if (m[0][1] != 0.0 || m[0][2] != 0.0 ||
+      m[1][0] != 0.0 || m[1][2] != 0.0 ||
+      m[2][0] != 0.0 || m[2][1] != 0.0) parts |= PartShearRGB;
+
+  // Alpha shear part is illustrated here:
+  //   [n n n X n]
+  //   [n n n X n]
+  //   [n n n X n]
+  //   [X X X n n]
+  //   [n n n n n]
+  if (m[0][3] != 0.0 ||
+      m[1][3] != 0.0 ||
+      m[2][3] != 0.0 ||
+      m[2][0] != 0.0 || m[2][1] != 0.0 || m[2][2] != 0.0) parts |= PartShearAlpha;
+
+  // RGB lut part is illustrated here:
+  //   [X n n n n]
+  //   [n X n n n]
+  //   [n n X n n]
+  //   [n n n n n]
+  //   [n n n n n]
+  if (m[0][0] != 0.0 ||
+      m[1][1] != 0.0 ||
+      m[2][2] != 0.0) parts |= PartLutRGB;
+
+  // Alpha lut part is illustrated here:
+  //   [n n n n n]
+  //   [n n n n n]
+  //   [n n n n n]
+  //   [n n n X n]
+  //   [n n n n n]
+  if (m[3][3] != 0.0) parts |= PartLutAlpha;
+
+  //! @brief Matrix contains const RGB lut part (all cells are set to 1.0).
+  //!
+  //! Const RGB lut part is illustrated here:
+  //!   [1 n n n n]
+  //!   [n 1 n n n]
+  //!   [n n 1 n n]
+  //!   [n n n n n]
+  //!   [n n n n n]
+  if (m[0][0] == 1.0 &&
+      m[1][1] == 1.0 &&
+      m[2][2] == 1.0) parts |= PartConstRGB;
+
+  //! @brief Matrix contains const alpha lut part (cell set to 1.0).
+  //!
+  //! Const alpha lut part is illustrated here:
+  //!   [n n n n n]
+  //!   [n n n n n]
+  //!   [n n n n n]
+  //!   [n n n 1 n]
+  //!   [n n n n n]
+  if (m[3][3] == 1.0) parts |= PartConstAlpha;
+
+  // RGB translation part is illustrated here:
+  //   [n n n n n]
+  //   [n n n n n]
+  //   [n n n n n]
+  //   [n n n n n]
+  //   [X X X n n]
+  if (m[4][0] != 0.0 || m[4][1] != 0.0 || m[4][2] != 0.0) parts |= PartTranslateRGB;
+
+  // Alpha translation part is illustrated here:
+  //   [n n n n n]
+  //   [n n n n n]
+  //   [n n n n n]
+  //   [n n n n n]
+  //   [n n n X n]
+  if (m[4][3] != 0.0) parts |= PartTranslateAlpha;
+
+  return parts;
+}
+
 ColorMatrix& ColorMatrix::add(const ColorMatrix& other)
 {
   for (sysuint_t i = 0; i < 25; i++)

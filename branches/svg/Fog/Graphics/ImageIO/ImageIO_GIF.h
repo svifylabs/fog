@@ -19,19 +19,18 @@ namespace ImageIO {
 
 struct FOG_API GifDecoderDevice : public DecoderDevice
 {
-private:
-  void* _context;
-
-  bool openGif();
-  void closeGif();
-
-public:
   GifDecoderDevice();
   virtual ~GifDecoderDevice();
 
   virtual void reset();
   virtual uint32_t readHeader();
   virtual uint32_t readImage(Image& image);
+
+private:
+  void* _context;
+
+  bool openGif();
+  void closeGif();
 };
 
 // ============================================================================

@@ -3,14 +3,9 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Fog/Core Library - C++ API]
-//
-// [Licence] 
-// MIT, See COPYING file in package
-
 // [Guard]
-#ifndef _FOG_CORE_CORE_H
-#define _FOG_CORE_CORE_H
+#ifndef _FOG_CORE_H
+#define _FOG_CORE_H
 
 #if defined(_MSVC)
 #pragma once
@@ -196,4 +191,4 @@ struct Implicit
 #include <Fog/Core/Vector.h>
 
 // [Guard]
-#endif // _FOG_CORE_CORE_H
+#endif // _FOG_CORE_H

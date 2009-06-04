@@ -7,7 +7,9 @@
 // [Purpose]
 // This declares the class Svg - Scalable Vector Graphics that could be read and
 // written to file. This is not directly rendered to screen but compiled into
-// a drawable representation.
+// a drawable representation called Symbol.
+
+
 
 class Svg {
 public:
@@ -15,6 +17,6 @@ public:
     static Svg& read(file);
     write(file);
 
-    Drawable& compile();
+    Symbol& compile();
 
 };

@@ -373,6 +373,11 @@ struct FunctionMap
       SpanCompositeMskFn span_composite_a8[Image::FormatCount];
       SpanCompositeIndexedMskFn span_composite_indexed_a8[Image::FormatCount];
     };
+
+    union {
+      SpanCompositeMskConstFn span_composite_a8_const[Image::FormatCount];
+      SpanCompositeIndexedMskConstFn span_composite_indexed_a8_const[Image::FormatCount];
+    };
   };
   
   // 0 = ARGB32, 1 = ARGB32 premultiplied.
