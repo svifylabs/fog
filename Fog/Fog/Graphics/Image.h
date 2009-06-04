@@ -18,6 +18,9 @@
 #include <Fog/Graphics/Palette.h>
 #include <Fog/Graphics/Rgba.h>
 
+//! @addtogroup Fog_Graphics
+//! @{
+
 namespace Fog {
 
 // ============================================================================
@@ -517,6 +520,8 @@ struct FOG_API Image
 };
 
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_GRAPHICS_IMAGE_H

@@ -10,10 +10,10 @@
 // [Dependencies]
 #include <Fog/Build/Build.h>
 
-namespace Error {
-
 //! @addtogroup Xml
 //! @{
+
+namespace Error {
 
 enum XmlError
 {
@@ -46,9 +46,9 @@ enum XmlError
   XmlDomInvalidClosingTag,
 };
 
-//! @}
-
 }
+
+//! @}
 
 // [Guard]
 #endif // _FOG_XML_ERROR_H

@@ -21,6 +21,9 @@
 #include <Fog/Graphics/Region.h>
 #include <Fog/Graphics/Rgba.h>
 
+//! @addtogroup Fog_Graphics
+//! @{
+
 namespace Fog {
 
 // ============================================================================
@@ -420,6 +423,8 @@ private:
 };
 
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_GRAPHICS_PAINTER_H

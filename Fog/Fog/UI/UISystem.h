@@ -16,6 +16,9 @@
 #include <Fog/Graphics/Rgba.h>
 #include <Fog/UI/Constants.h>
 
+//! @addtogroup Fog_UI
+//! @{
+
 namespace Fog {
 
 // ============================================================================
@@ -437,6 +440,9 @@ struct FOG_API UIBackingStore
 };
 
 } // Fog namespace
+
+//! @addtogroup Fog_UI
+//! @}
 
 // ============================================================================
 // [Fog::TypeInfo<>]

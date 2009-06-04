@@ -22,6 +22,9 @@
 
 namespace Fog {
 
+//! @addtogroup Fog_Core_Detail
+//! @{
+
 // ============================================================================
 // [Fog::hashData/hashString]
 // ============================================================================
@@ -180,6 +183,11 @@ struct FOG_API Hash_Abstract
 
   FOG_DECLARE_D(Data)
 };
+
+//! @}
+
+//! @addtogroup Fog_Core
+//! @{
 
 // ============================================================================
 // [Fog::Hash]
@@ -590,6 +598,8 @@ Vector<KeyT> Hash<KeyT, ValueT>::keys(const ValueT& value) const
 
   return result;
 }
+
+//! @}
 
 } // Fog namespace
 

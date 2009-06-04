@@ -10,6 +10,9 @@
 // [Dependencies]
 #include <Fog/UI/Widget.h>
 
+//! @addtogroup Fog_UI
+//! @{
+
 namespace Fog {
 
 // ============================================================================
@@ -27,6 +30,8 @@ struct FOG_API Composite : public Widget
 };
 
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_UI_COMPOSITE_H

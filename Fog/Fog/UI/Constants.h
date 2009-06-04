@@ -10,6 +10,9 @@
 // [Dependencies]
 #include <Fog/Build/Build.h>
 
+//! @addtogroup Fog_UI
+//! @{
+
 namespace Fog {
 
 //! @brief Keys.
@@ -241,6 +244,7 @@ static FOG_INLINE bool isModeMod    (uint32_t mod) { return (mod & ModifierMode 
 
 } // Fog namespace
 
+//! @}
 
 // [Guard]
 #endif // _FOG_UI_CONSTANTS_H

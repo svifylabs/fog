@@ -12,6 +12,9 @@
 #include <Fog/Core/Lock.h>
 #include <Fog/Core/Thread.h>
 
+//! @addtogroup Fog_Core
+//! @{
+
 namespace Fog {
 
 // ============================================================================

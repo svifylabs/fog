@@ -12,10 +12,10 @@
 #include <Fog/Core/Char.h>
 #include <Fog/Core/String.h>
 
-namespace Fog {
-
-//! @addtogroup Xml
+//! @addtogroup Fog_Xml
 //! @{
+
+namespace Fog {
 
 // ============================================================================
 // [Fog::XmlEntity]
@@ -72,9 +72,9 @@ struct FOG_API XmlEntity
   static sysuint_t _pairsCount;
 };
 
-//! @}
-
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_XML_ENTITY_H

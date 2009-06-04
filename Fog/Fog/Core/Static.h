@@ -12,6 +12,9 @@
 
 #include <new>
 
+//! @addtogroup Fog_Core
+//! @{
+
 namespace Fog {
 
 //! @brief Simple template that can create class using placement new and delete.
@@ -79,6 +82,8 @@ private:
 };
 
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_CORE_STATIC_H

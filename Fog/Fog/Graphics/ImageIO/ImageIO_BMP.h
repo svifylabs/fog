@@ -11,6 +11,9 @@
 #include <Fog/Core/Memory.h>
 #include <Fog/Graphics/ImageIO.h>
 
+//! @addtogroup Fog_Graphics_ImageIO
+//! @{
+
 namespace Fog {
 namespace ImageIO {
 
@@ -202,6 +205,8 @@ struct FOG_API BmpEncoderDevice : public EncoderDevice
 
 } // ImageIO namespace
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_GRAPHICS_IMAGEIO_BMP_H

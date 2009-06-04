@@ -31,61 +31,65 @@
 #include <Fog/Core/Math.h>
 #include <Fog/Graphics/Constants.h>
 
+//! @addtogroup Fog_Graphics
+//! @{
+
 namespace Fog {
 
-// Affine transformation are linear transformations in Cartesian coordinates
-// (strictly speaking not only in Cartesian, but for the beginning we will 
-// think so). They are rotation, scaling, translation and skewing.  
-// After any affine transformation a line segment remains a line segment 
-// and it will never become a curve. 
-//
-// There will be no math about matrix calculations, since it has been 
-// described many times. Ask yourself a very simple question:
-// "why do we need to understand and use some matrix stuff instead of just 
-// rotating, scaling and so on". The answers are:
-//
-// 1. Any combination of transformations can be done by only 4 multiplications
-//    and 4 additions in floating point.
-// 2. One matrix transformation is equivalent to the number of consecutive
-//    discrete transformations, i.e. the matrix "accumulates" all transformations 
-//    in the order of their settings. Suppose we have 4 transformations: 
-//       * rotate by 30 degrees,
-//       * scale X to 2.0, 
-//       * scale Y to 1.5, 
-//       * move to (100, 100). 
-//    The result will depend on the order of these transformations, 
-//    and the advantage of matrix is that the sequence of discret calls:
-//    rotate(30), scaleX(2.0), scaleY(1.5), move(100,100) 
-//    will have exactly the same result as the following matrix transformations:
-//   
-//    affine_matrix m;
-//    m *= rotate_matrix(30); 
-//    m *= scaleX_matrix(2.0);
-//    m *= scaleY_matrix(1.5);
-//    m *= move_matrix(100,100);
-//
-//    m.transform_my_point_at_last(x, y);
-//
-// What is the good of it? In real life we will set-up the matrix only once
-// and then transform many points, let alone the convenience to set any 
-// combination of transformations.
-//
-// So, how to use it? Very easy - literally as it's shown above. Not quite,
-// let us write a correct example:
-//
-// AffineMatrix m;
-// m *= agg::AffineMatrix_rotation(30.0 * 3.1415926 / 180.0);
-// m *= agg::AffineMatrix_scaling(2.0, 1.5);
-// m *= agg::AffineMatrix_translation(100.0, 100.0);
-// m.transform(&x, &y);
-//
-// The affine matrix is all you need to perform any linear transformation,
-// but all transformations have origin point (0,0). It means that we need to 
-// use 2 translations if we want to rotate someting around (100,100):
-// 
-// m *= agg::AffineMatrix_translation(-100.0, -100.0);         // move to (0,0)
-// m *= agg::AffineMatrix_rotation(30.0 * 3.1415926 / 180.0);  // rotate
-// m *= agg::AffineMatrix_translation(100.0, 100.0);           // move back to (100,100)
+//! @brief Matrix for affine transformations.
+//!
+//! Affine transformation are linear transformations in Cartesian coordinates
+//! (strictly speaking not only in Cartesian, but for the beginning we will
+//! think so). They are rotation, scaling, translation and skewing.
+//! After any affine transformation a line segment remains a line segment
+//! and it will never become a curve.
+//!
+//! There will be no math about matrix calculations, since it has been
+//! described many times. Ask yourself a very simple question:
+//! "why do we need to understand and use some matrix stuff instead of just
+//! rotating, scaling and so on". The answers are:
+//!
+//! 1. Any combination of transformations can be done by only 4 multiplications
+//!    and 4 additions in floating point.
+//! 2. One matrix transformation is equivalent to the number of consecutive
+//!    discrete transformations, i.e. the matrix "accumulates" all transformations
+//!    in the order of their settings. Suppose we have 4 transformations:
+//!       * rotate by 30 degrees,
+//!       * scale X to 2.0,
+//!       * scale Y to 1.5,
+//!       * move to (100, 100).
+//!    The result will depend on the order of these transformations,
+//!    and the advantage of matrix is that the sequence of discret calls:
+//!    rotate(30), scaleX(2.0), scaleY(1.5), move(100,100)
+//!    will have exactly the same result as the following matrix transformations:
+//!
+//!      Fog::AffineMatrix m;
+//!      m *= Fog::AffineMatrix::fromRotation(30);
+//!      m *= Fog::AffineMatrix::fromScale(2.0, 1.5);
+//!      m *= Fog::AffineMatrix::fromTranslation(100, 100);
+//!
+//!      m.transform(&x, &y);
+//!
+//! What is the good of it? In real life we will set-up the matrix only once
+//! and then transform many points, let alone the convenience to set any
+//! combination of transformations.
+//!
+//! So, how to use it? Very easy - literally as it's shown above. Not quite,
+//! let us write a correct example:
+//!
+//!   Fog::AffineMatrix m;
+//!   m.rotate(Fog::deg2rad(30.0));
+//!   m.scale(2.0, 1.5);
+//!   m.translate(100.0, 100.0);
+//!   m.transform(&x, &y);
+//!
+//! The affine matrix is all you need to perform any linear transformation,
+//! but all transformations have origin point (0,0). It means that we need to
+//! use 2 translations if we want to rotate someting around (100, 100):
+//!
+//!   m.translate(-100.0, -100.0);  // move to (0,0)
+//!   m.rotate(Fog::deg2rad(30.0)); // rotate
+//!   m.translate(100.0, 100.0);    // move back to (100,100)
 struct FOG_API AffineMatrix
 {
   // [Construction / Destruction]
@@ -298,6 +302,8 @@ struct FOG_API AffineMatrix
 };
 
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_GRAPHICS_AFFINEMATRIX_H

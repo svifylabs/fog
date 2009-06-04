@@ -14,12 +14,16 @@
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/Rgba.h>
 
+//! @addtogroup Fog_Graphics
+//! @{
+
 namespace Fog {
 
 // ============================================================================
 // [Fog::Pattern]
 // ============================================================================
 
+//! @brief Pattern can be used to define stroke or fill source when painting.
 struct FOG_API Pattern
 {
   // [Type]
@@ -169,6 +173,8 @@ struct FOG_API Pattern
 };
 
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_GRAPHICS_PATTERN_H

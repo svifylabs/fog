@@ -10,13 +10,16 @@
 // [Dependencies]
 #include <Fog/Build/Build.h>
 
+//! @addtogroup Fog_Graphics
+//! @{
+
 // ============================================================================
 // [Error]
 // ============================================================================
 
 namespace Error {
 
-//! @brief Fog library error codes.
+//! @brief Fog/Graphics library error codes.
 enum GraphicsError
 {
   // [Errors Range]
@@ -62,6 +65,8 @@ enum GraphicsError
 };
 
 } // Error namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_GRAPHICS_ERROR_H

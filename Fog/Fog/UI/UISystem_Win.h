@@ -14,6 +14,9 @@
 #include <Fog/UI/UISystem.h>
 #include <Fog/UI/UISystem_Def.h>
 
+//! @addtogroup Fog_UI_Win
+//! @{
+
 namespace Fog {
 
 // ============================================================================
@@ -152,6 +155,8 @@ struct FOG_API UIBackingStoreWin : public UIBackingStore
 };
 
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_UI_UISYSTEM_WIN_H

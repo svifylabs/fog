@@ -10,6 +10,9 @@
 // [Dependencies]
 #include <Fog/Graphics/Rgba.h>
 
+//! @addtogroup Fog_Graphics
+//! @{
+
 namespace Fog {
 
 // ============================================================================
@@ -62,6 +65,8 @@ namespace Fog {
 typedef Vector<GradientStop> GradientStops;
 
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_GRAPHICS_GRADIENT_H

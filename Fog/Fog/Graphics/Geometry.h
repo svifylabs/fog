@@ -11,6 +11,9 @@
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/TypeInfo.h>
 
+//! @addtogroup Fog_Graphics
+//! @{
+
 namespace Fog {
 
 // ============================================================================
@@ -1238,6 +1241,7 @@ FOG_INLINE bool operator!=(const Fog::Box& a, const Fog::Box& b) { return !a.eq(
 FOG_INLINE Fog::Box operator+(const Fog::Box& a, const Fog::Point& b) { return Fog::Box(a.x1() + b.x(), a.y1() + b.y(), a.x2() + b.x(), a.y2() + b.y()); }
 FOG_INLINE Fog::Box operator-(const Fog::Box& a, const Fog::Point& b) { return Fog::Box(a.x1() - b.x(), a.y1() - b.y(), a.x2() - b.x(), a.y2() - b.y()); }
 
+//! @}
 
 // [Fog::TypeInfo<>]
 FOG_DECLARE_TYPEINFO(Fog::Point , Fog::PrimitiveType)

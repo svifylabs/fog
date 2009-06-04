@@ -14,12 +14,17 @@
 #include <Fog/Core/Static.h>
 #include <Fog/Graphics/Rgba.h>
 
+//! @addtogroup Fog_Graphics
+//! @{
+
 namespace Fog {
 
 // ============================================================================
 // [Fog::Palette]
 // ============================================================================
 
+//! @brief Palette is array of 256 ARGB values that can be used to define colors
+//! in 8 bit indexed images.
 struct FOG_API Palette
 {
   // [Data]
@@ -145,6 +150,8 @@ struct FOG_API Palette
 };
 
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_GRAPHICS_PALETTE_H

@@ -11,11 +11,26 @@
 #ifndef _FOG_UI_H
 #define _FOG_UI_H
 
-//! @mainpage UI Library Documentation
-//!
-//! @section Main_Page_Intro Introduction
-//!
-//! TODO...
+// [There is only documentation]
+#if defined(_DOXYGEN)
+/*!
+  @defgroup Fog_UI Fog/UI library API.
+
+  Set of Fog/UI library classes and their members.
+*/
+
+/*!
+  @defgroup Fog_UI_Win Fog/UI Windows module API.
+
+  This module contains specific part of UI system for Windows.
+*/
+
+/*!
+  @defgroup Fog_UI_X11 Fog/UI X11 module API.
+
+  This module contains specific part of UI system for X Window System (xlib).
+*/
+#endif // _DOXYGEN
 
 // [Fog/UI Include Files]
 #include <Fog/Build/Build.h>

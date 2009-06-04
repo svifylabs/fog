@@ -10,6 +10,9 @@
 // [Dependencies]
 #include <Fog/Graphics/ImageIO.h>
 
+//! @addtogroup Fog_Graphics_ImageIO
+//! @{
+
 namespace Fog {
 namespace ImageIO {
 
@@ -47,6 +50,8 @@ struct FOG_API GifEncoderDevice : public EncoderDevice
 
 } // ImageIO namespace
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_GRAPHICS_IMAGEIO_GIF_H

@@ -4,6 +4,9 @@
 #include <Fog/Core/Hash.h>
 #include <Fog/Graphics/Image.h>
 
+//! @addtogroup Fog_Graphics
+//! @{
+
 namespace Fog {
 
 // ============================================================================
@@ -66,5 +69,7 @@ private:
 };
 
 } // Fog namespace
+
+//! @}
 
 #endif // _FOG_GRAPHICS_REDUCE_H

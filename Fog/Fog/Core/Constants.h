@@ -10,6 +10,9 @@
 // [Dependencies]
 #include <Fog/Build/Build.h>
 
+//! @addtogroup Fog_Core
+//! @{
+
 namespace Fog {
 
 // [Fog::CreateSharable]
@@ -85,6 +88,8 @@ enum DoubleForm
 };
 
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_CORE_CONSTANTS_H

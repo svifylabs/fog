@@ -31,6 +31,9 @@ FOG_CVAR_EXTERN Fog::Lock* fog_object_lock;
 FOG_CAPI_EXTERN void* fog_object_cast_helper(Fog::Object* self, const Fog::MetaClass* targetMetaClass);
 FOG_CAPI_EXTERN void* fog_object_cast_string(Fog::Object* self, const Fog::Char8* className);
 
+//! @addtogroup Fog_Core
+//! @{
+
 // [Fog::Object macros]
 
 //!
@@ -509,6 +512,8 @@ FOG_INLINE const Fog::Widget* fog_object_cast(const Fog::Object* object)
   FOG_ASSERT(object);
   return (Fog::Widget*)(object->isWidget() ? object : NULL);
 }
+
+//! @}
 
 // ============================================================================
 // [Fog::TypeInfo<>]
