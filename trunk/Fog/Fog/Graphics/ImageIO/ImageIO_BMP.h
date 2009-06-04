@@ -19,30 +19,65 @@ namespace ImageIO {
 // ============================================================================
 
 #include <Fog/Core/Pack.h>
-struct FOG_PACKED BmpHeader
+  
+//! @brief Bitmap file header (always 14 bytes in little endian format).
+struct FOG_PACKED BmpFileHeader
 {
-  // ----- FILE header - 14 bytes -----
-
-  uint16_t magic;         // BM
-  uint32_t fileSize;
+  uint16_t magic;           //!< @brief Bitmap mime type ("BM").
+  uint32_t fileSize;        //!< @brief Bitmap file size in bytes.
   uint16_t reserved1;
   uint16_t reserved2;
-  uint32_t imageOffset;   // 54
-
-  // ----- BITMAP header - 40 bytes -----
-
-  uint32_t headerSize;    // 40
-  uint32_t width;
-  uint32_t height;
-  uint16_t planes;        // 1
-  uint16_t bitsPerPixel;  // 8, 24 or 32
-  uint32_t compression;   // BI_RGB
-  uint32_t imageSize;
-  uint32_t reserved3;
-  uint32_t reserved4;
-  uint32_t reserved5;
-  uint32_t reserved6;
+  uint32_t imageOffset;     //!< @brief Offset to image data (54, 124, ...).
 };
+
+struct FOG_PACKED BmpV3Header
+{
+  uint32_t headerSize;      //!< @brief Header size (40, 52).
+  uint32_t width;           //!< @brief Bitmap width.
+  uint32_t height;          //!< @brief Bitmap height.
+  uint16_t planes;          //!< @brief Count of planes, always 1.
+  uint16_t bitsPerPixel;    //!< @brief Bits per pixel (1, 4, 8, 16, 24 or 32).
+  uint32_t compression;     //!< Compression methods used (see @c BMP_BI).
+  uint32_t imageSize;       //!< @brief Image data size (in bytes).
+  uint32_t horzResolution;  //!< @brief Horizontal resolution in pixels per meter.
+  uint32_t vertResolution;  //!< @brief Vertical resolution in pixels per meter.
+  uint32_t colorsUsed;      //!< @brief Number of colors in the image.
+  uint32_t colorsImportant; //!< @brief Minimum number of important colors.
+};
+
+struct FOG_PACKED BmpV4Header
+{
+  uint32_t headerSize;      //!< @brief Header size (108).
+  uint32_t width;           //!< @brief Bitmap width.
+  uint32_t height;          //!< @brief Bitmap height.
+  uint16_t planes;          //!< @brief Count of planes, always 1.
+  uint16_t bitsPerPixel;    //!< @brief Bits per pixel (1, 4, 8, 16, 24 or 32).
+  uint32_t compression;     //!< Compression methods used (see @c BMP_BI).
+  uint32_t imageSize;       //!< @brief Image data size (in bytes).
+  uint32_t horzResolution;  //!< @brief Horizontal resolution in pixels per meter.
+  uint32_t vertResolution;  //!< @brief Vertical resolution in pixels per meter.
+  uint32_t colorsUsed;      //!< @brief Number of colors in the image.
+  uint32_t colorsImportant; //!< @brief Minimum number of important colors.
+
+	uint32_t rMask;           //!< @brief Mask identifying bits of red component.
+	uint32_t gMask;           //!< @brief Mask identifying bits of green component.
+	uint32_t BMask;           //!< @brief Mask identifying bits of blue component.
+	uint32_t aMask;           //!< @brief Mask identifying bits of alpha component.
+	uint32_t colorspace;      //!< @brief Color space type.
+	uint32_t rX;              //!< @brief X coordinate of red endpoint.
+	uint32_t rY;              //!< @brief Y coordinate of red endpoint.
+	uint32_t rZ;              //!< @brief Z coordinate of red endpoint.
+	uint32_t gX;              //!< @brief X coordinate of green endpoint.
+	uint32_t gY;              //!< @brief Y coordinate of green endpoint.
+	uint32_t gZ;              //!< @brief Z coordinate of green endpoint.
+	uint32_t bX;              //!< @brief X coordinate of blue endpoint.
+	uint32_t bY;              //!< @brief Y coordinate of blue endpoint.
+	uint32_t bZ;              //!< @brief Z coordinate of blue endpoint.
+	uint32_t rGamma;          //!< @brief Gamma red coordinate scale value.
+	uint32_t gGamma;          //!< @brief Gamma green coordinate scale value.
+	uint32_t bGamma;          //!< @brief Gamma blue coordinate scale value.
+};
+
 #include <Fog/Core/Unpack.h>
 
 // ============================================================================
