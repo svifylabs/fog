@@ -1689,8 +1689,6 @@ static uint8_t* FOG_FASTCALL pattern_radial_gradient_fetch_pad_sse2(
   uint32_t color0 = colors[0];
   uint32_t color1 = colors[colorsLength-1];
 
-  int index;
-
   double dx = (double)x - ctx->radialGradient.dx;
   double dy = (double)y - ctx->radialGradient.dy;
 
@@ -1770,8 +1768,6 @@ static uint8_t* FOG_FASTCALL pattern_radial_gradient_fetch_pad_sse2(
 
   uint32_t color0 = colors[0];
   uint32_t color1 = colors[colorsLength-1];
-
-  int index;
 
   double dx = (double)x - ctx->radialGradient.dx;
   double dy = (double)y - ctx->radialGradient.dy;
@@ -2753,7 +2749,6 @@ static void FOG_FASTCALL raster_prgb32_span_composite_rgb32_a8_const_srcover_sse
   BLIT_SSE2_SMALL_BEGIN(blt)
     __m128i src0mm;
     __m128i dst0mm;
-    __m128i a0mm;
 
     uint32_t src0 = READ_32(src) | 0xFF000000;
 
@@ -2774,7 +2769,6 @@ static void FOG_FASTCALL raster_prgb32_span_composite_rgb32_a8_const_srcover_sse
   BLIT_SSE2_LARGE_BEGIN(blt)
     __m128i src0mm, src1mm;
     __m128i dst0mm, dst1mm;
-    __m128i a0mm, a1mm;
 
     pix_load16u(src0mm, src);
     pix_load16a(dst0mm, dst);
@@ -2810,7 +2804,6 @@ static void FOG_FASTCALL raster_prgb32_span_composite_rgb24_a8_const_srcover_sse
   BLIT_SSE2_SMALL_BEGIN(blt)
     __m128i src0mm;
     __m128i dst0mm;
-    __m128i a0mm;
 
     uint32_t src0 = PixFmt_RGB24::fetch(src) | 0xFF000000;
 
@@ -2831,7 +2824,6 @@ static void FOG_FASTCALL raster_prgb32_span_composite_rgb24_a8_const_srcover_sse
   BLIT_SSE2_LARGE_BEGIN(blt)
     __m128i src0mm, src1mm;
     __m128i dst0mm, dst1mm;
-    __m128i a0mm, a1mm;
 
     pix_load16a(dst0mm, dst);
     pix_unpack_2x2W(dst0mm, dst1mm, dst0mm);
