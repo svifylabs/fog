@@ -106,10 +106,11 @@ struct BenchmarkModule_Fog : public BenchmarkModule
   virtual void saveResult()
   {
     String32 fileName;
+    Image t(im);
     fileName.set(StubAscii8("bench "));
     fileName.append(StubAscii8(name()));
     fileName.append(StubAscii8(".bmp"));
-    im.writeFile(fileName);
+    t.writeFile(fileName);
   }
 
   void setMultithreaded(bool mt)
@@ -171,10 +172,11 @@ struct BenchmarkModule_Fog_FillPath : public BenchmarkModule_Fog
       Path path;
       for (int i = 0; i < 7; i++)
       {
+        PointF c0 = randPointF();
         if (i == 0)
-          path.moveTo(randPointF());
+          path.moveTo(c0);
         else
-          path.lineTo(randPointF());
+          path.lineTo(c0);
       }
 
       p.setSource(Rgba(randColor()));
@@ -590,6 +592,8 @@ struct BenchmarkModule_Cairo_FillPath : public BenchmarkModule_Cairo
   {
     cairo_t* cr = cairo_create(cim);
 
+    cairo_set_fill_rule(cr, CAIRO_FILL_RULE_EVEN_ODD);
+
     for (int a = 0; a < quantity; a++)
     {
       for (int i = 0; i < 7; i++)
@@ -600,6 +604,7 @@ struct BenchmarkModule_Cairo_FillPath : public BenchmarkModule_Cairo
         else
           cairo_line_to(cr, c0.x(), c0.y());
       }
+      cairo_close_path(cr);
 
       Rgba c(randColor());
       cairo_set_source_rgba(cr,
