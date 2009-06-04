@@ -306,11 +306,11 @@ struct BenchmarkModule_GDI : public BenchmarkModule
   virtual void saveResult()
   {
     DIBSECTION info;
-    GetObject(sprite[a], sizeof(DIBSECTION), &info);
+    GetObject(im, sizeof(DIBSECTION), &info);
 
     Image fim;
     fim.adopt(info.dsBm.bmWidth, info.dsBm.bmHeight, Image::FormatPRGB32, 
-      info.dsBm.bmBits, info.dsBm.bmWidthBytes);
+      (uint8_t*)info.dsBm.bmBits, info.dsBm.bmWidthBytes);
 
     String32 fileName;
     fileName.format("bench %s.bmp", name());
@@ -358,7 +358,7 @@ struct BenchmarkModule_GDI_FillRect : public BenchmarkModule_GDI
 
       for (int a = 0; a < quantity; a++)
       {
-        Rect r = randRect();
+        Rect r = randRect(128, 128);
         Gdiplus::Color c(randColor());
         Gdiplus::SolidBrush br(c);
         gr.FillRectangle((Gdiplus::Brush*)&br, r.x(), r.y(), r.width(), r.height());
@@ -450,7 +450,7 @@ struct BenchmarkModule_GDI_FillPattern : public BenchmarkModule_GDI
 
       for (int a = 0; a < quantity; a++)
       {
-        Rect r = randRect();
+        Rect r = randRect(128, 128);
         gr.FillRectangle((Gdiplus::Brush*)&br, r.x(), r.y(), r.width(), r.height());
       }
     }
