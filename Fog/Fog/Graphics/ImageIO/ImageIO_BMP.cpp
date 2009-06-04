@@ -886,7 +886,7 @@ uint32_t BmpEncoderDevice::writeImage(const Image& image)
       // Write 32 bit BMP data
       for (uint y = 0; y != height; y++)
       {
-        image.getDibArgb32_le(0, y, width, buffer);
+        image.getDibArgb32_le(0, (height - 1 - y), width, buffer);
         if (stream().write((const void *)buffer, bpl) != bpl) goto fail;
         if ((y & 15) == 0) updateProgress(y, height);
       }
@@ -905,7 +905,7 @@ uint32_t BmpEncoderDevice::writeImage(const Image& image)
 
       for (int y = 0; y != height; y++)
       {
-        image.getDibRgb24_le(0, y, width, buffer);
+        image.getDibRgb24_le(0, (height - 1 - y), width, buffer);
         if (stream().write(buffer, bpl) != (sysuint_t)bpl) goto fail;
         if ((y & 15) == 0) updateProgress(y, height);
       }

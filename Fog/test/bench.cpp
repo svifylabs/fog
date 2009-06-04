@@ -165,15 +165,16 @@ struct BenchmarkModule_Fog_FillPath : public BenchmarkModule_Fog
   virtual void doBenchmark(int quantity)
   {
     p.save();
+    p.setFillMode(FillEvenOdd);
     for (int a = 0; a < quantity; a++)
     {
       Path path;
-      path.moveTo(randPointF());
-      for (int i = 0; i < 3; i++)
+      for (int i = 0; i < 7; i++)
       {
-        PointF c0 = randPointF();
-        PointF c1 = randPointF();
-        path.curve3To(c0, c1);
+        if (i == 0)
+          path.moveTo(randPointF());
+        else
+          path.lineTo(randPointF());
       }
 
       p.setSource(Rgba(randColor()));
@@ -313,7 +314,9 @@ struct BenchmarkModule_GDI : public BenchmarkModule
       (uint8_t*)info.dsBm.bmBits, info.dsBm.bmWidthBytes);
 
     String32 fileName;
-    fileName.format("bench %s.bmp", name());
+    fileName.set(StubAscii8("bench "));
+    fileName.append(StubAscii8(name()));
+    fileName.append(StubAscii8(".bmp"));
     fim.writeFile(fileName);
   }
 
@@ -387,22 +390,20 @@ struct BenchmarkModule_GDI_FillPath : public BenchmarkModule_GDI
     SelectObject(dc, im);
     {
       Gdiplus::Graphics gr(dc);
+      gr.SetSmoothingMode(Gdiplus::SmoothingModeHighQuality);
 
       for (int a = 0; a < quantity; a++)
       {
         Gdiplus::GraphicsPath path;
 
-        // 1x MoveTo
-        // 3x CurveTo => 7
-        Gdiplus::PointF curv[7];
+        Gdiplus::PointF lines[7];
         for (int i = 0; i < 7; i++)
         {
-          PointF c0 = randPointF();
-          curv[i].X = c0.x();
-          curv[i].Y = c0.y();
+          PointF p0 = randPointF();
+          lines[i].X = p0.x();
+          lines[i].Y = p0.y();
         }
-        path.StartFigure();
-        path.AddCurve(curv, 7);
+        path.AddLines(lines, 7);
         path.CloseFigure();
 
         Gdiplus::Color c(randColor());
@@ -479,21 +480,29 @@ struct BenchmarkModule_GDI_BlitImage : public BenchmarkModule_GDI
     {
       Gdiplus::Graphics gr(dc);
       Gdiplus::Bitmap* bm[4];
-      bm[0] = new Gdiplus::Bitmap(sprite[0], (HPALETTE)NULL);
-      bm[1] = new Gdiplus::Bitmap(sprite[1], (HPALETTE)NULL);
-      bm[2] = new Gdiplus::Bitmap(sprite[2], (HPALETTE)NULL);
-      bm[3] = new Gdiplus::Bitmap(sprite[3], (HPALETTE)NULL);
 
-      for (int a = 0; a < quantity; a++)
+      int a;
+
+      for (a = 0; a < 4; a++)
+      {
+        bm[a] = new Gdiplus::Bitmap(
+          _sprite[a].width(), 
+          _sprite[a].height(),
+          _sprite[a].stride(),
+          PixelFormat32bppPARGB,
+          (BYTE*)_sprite[a].cFirst());
+      }
+
+      for (a = 0; a < quantity; a++)
       {
         Rect r = randRect(128, 128);
         gr.DrawImage(bm[rand() % 4], r.x(), r.y());
       }
 
-      delete bm[0];
-      delete bm[1];
-      delete bm[2];
-      delete bm[3];
+      for (a = 0; a < 4; a++)
+      {
+        delete bm[a];
+      }
     }
     DeleteDC(dc);
   }
@@ -583,22 +592,13 @@ struct BenchmarkModule_Cairo_FillPath : public BenchmarkModule_Cairo
 
     for (int a = 0; a < quantity; a++)
     {
-      PointF c0 = randPointF();
-      cairo_move_to(cr, c0.x(), c0.y());
-
-      for (int i = 0; i < 3; i++)
+      for (int i = 0; i < 7; i++)
       {
-        PointF c1 = randPointF();
-        PointF c2 = randPointF();
-
-        cairo_curve_to(cr, 
-          c1.x(),
-          c1.y(),
-          c2.x(),
-          c2.y(),
-          c2.x(),
-          c2.y());
-        c0 = c2;
+        PointF c0 = randPointF();
+        if (i == 0)
+          cairo_move_to(cr, c0.x(), c0.y());
+        else
+          cairo_line_to(cr, c0.x(), c0.y());
       }
 
       Rgba c(randColor());
@@ -707,7 +707,7 @@ struct BenchmarkModule_Cairo_BlitImage : public BenchmarkModule_Cairo
 static void benchAll()
 {
   int w = 640, h = 480;
-  int quantity = 100000;
+  int quantity = 1000;
 
   TimeDelta totalFog;
   TimeDelta totalFogMT;
