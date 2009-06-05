@@ -2830,7 +2830,7 @@ static err_t FOG_FASTCALL pattern_radial_gradient_init(
   gAlloc = gLength;
   if (d->spread == Pattern::ReflectSpread) gAlloc <<= 1;
 
-  ctx->radialGradient.mul = (double)gAlloc / dd;
+  ctx->radialGradient.mul = (double)gLength / dd;
 
   err_t err = pattern_generic_gradient_init(ctx, 
     d->obj.gradientStops.instance(), gLength,

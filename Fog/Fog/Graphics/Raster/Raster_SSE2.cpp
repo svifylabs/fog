@@ -743,7 +743,7 @@ static FOG_INLINE void pix_fetch_rgb24_2x2W(__m128i& dst0, __m128i& dst1, const 
   __m128i xmmz = _mm_setzero_si128();
 
   pix_load8(dst0, srcp + 0);                                 // dst0 = [G2 B2 R1 G1 B1 R0 G0 B0]
-  pix_load8(dst0, srcp + 4);                                 // dst1 = [R3 G3 B3 R2 G2 B2 R1 G1]
+  pix_load8(dst1, srcp + 4);                                 // dst1 = [R3 G3 B3 R2 G2 B2 R1 G1]
 
   dst0 = _mm_slli_epi64(dst0, 8);                            // dst0 = [B2 R1 G1 B1 R0 G0 B0   ]
   dst1 = _mm_srli_epi64(dst1, 8);                            // dst1 = [   R3 G3 B3 R2 G2 B2 R1]
@@ -763,7 +763,7 @@ static FOG_INLINE void pix_fetch_bgr24_2x2W(__m128i& dst0, __m128i& dst1, const 
   __m128i xmmz = _mm_setzero_si128();
 
   pix_load8(dst0, srcp + 0);                                 // dst0 = [G2 R2 B1 G1 R1 B0 G0 R0]
-  pix_load8(dst0, srcp + 4);                                 // dst1 = [B3 G3 R3 B2 G2 R2 B1 G1]
+  pix_load8(dst1, srcp + 4);                                 // dst1 = [B3 G3 R3 B2 G2 R2 B1 G1]
 
   dst0 = _mm_slli_epi64(dst0, 8);                            // dst0 = [R2 B1 G1 R1 B0 G0 R0   ]
   dst1 = _mm_srli_epi64(dst1, 8);                            // dst1 = [   B3 G3 R3 B2 G2 R2 B1]
@@ -1037,7 +1037,7 @@ static void FOG_FASTCALL convert_rgb32_from_rgb24_sse2(uint8_t* dst, const uint8
 
     pix_fetch_rgb24_2x2W(src0mm, src1mm, src);
     pix_pack_2x2W(src0mm, src0mm, src1mm);
-    _mm_storeu_si128((__m128i *)dst, src0mm);
+    pix_store16u(dst, src0mm);
     dst += 16;
     src += 12;
     i -= 4;
@@ -1071,7 +1071,7 @@ static void FOG_FASTCALL convert_rgb32_from_bgr24_sse2(uint8_t* dst, const uint8
 
     pix_fetch_bgr24_2x2W(src0mm, src1mm, src);
     pix_pack_2x2W(src0mm, src0mm, src1mm);
-    _mm_storeu_si128((__m128i *)dst, src0mm);
+    pix_store16u(dst, src0mm);
     dst += 16;
     src += 12;
     i -= 4;
