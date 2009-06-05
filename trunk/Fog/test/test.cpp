@@ -39,9 +39,9 @@ struct MyWindow : public Window
   Button button[4];
   CheckBox _multithreaded;
 
-  Image sprite[4];
+  Image sprite[6];
 
-  Pattern pattern[4];
+  Pattern pattern[6];
   int activePattern;
 
   Timer timer;
@@ -64,13 +64,13 @@ MyWindow::MyWindow(uint32_t createFlags) :
 
   button[0].setRect(Rect(10, 10, 100, 20));
   button[0].show();
-  button[0].setText(StubAscii8("Test"));
+  button[0].setText(StubAscii8("Pattern"));
   button[0].addListener(EvClick, this, &MyWindow::button0_onClick);
   add(&button[0]);
 
   button[1].setRect(Rect(10, 40, 100, 20));
   button[1].show();
-  button[1].setText(StubAscii8("Test"));
+  button[1].setText(StubAscii8("Spread"));
   button[1].addListener(EvClick, this, &MyWindow::button1_onClick);
   add(&button[1]);
 
@@ -83,39 +83,42 @@ MyWindow::MyWindow(uint32_t createFlags) :
   sprite[1].readFile(StubAscii8("blockdevice.pcx"));
   sprite[2].readFile(StubAscii8("drop.pcx"));
   sprite[3].readFile(StubAscii8("kweather.pcx"));
-
-  sprite[0].applyColorMatrix(ColorMatrix(
-    1.2, 0.1, 0.0, 0.0, 0.0,
-    0.5, 0.7, 0.3, 0.0, 0.0,
-    0.4, 0.5, 0.5, 0.0, 0.0,
-    0.0, 0.0, 0.0, 1.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 1.0));
+  sprite[4].readFile(StubAscii8("texture0.bmp"));
+  sprite[5].readFile(StubAscii8("texture1.bmp"));
 
   sprite[0].premultiply();
   sprite[1].premultiply();
   sprite[2].premultiply();
   sprite[3].premultiply();
+  sprite[4].convert(Image::FormatRGB32);
+  sprite[5].convert(Image::FormatRGB32);
 
-  pattern[0].setTexture(sprite[0]);
-  pattern[0].setSpread(Pattern::RepeatSpread);
+  pattern[0].setType(Pattern::LinearGradient);
+  pattern[0].setSpread(Pattern::PadSpread);
+  pattern[0].setGradientRadius(130.0);
+  pattern[0].addGradientStop(GradientStop(0.0, Rgba(0x00FFFFFF)));
+  pattern[0].addGradientStop(GradientStop(0.5, Rgba(0x7FFF0000)));
+  pattern[0].addGradientStop(GradientStop(0.7, Rgba(0xFFFFFF00)));
+  pattern[0].addGradientStop(GradientStop(1.0, Rgba(0x9F0000FF)));
+  pattern[0].setStartPoint(PointF(10, 20));
+  pattern[0].setEndPoint(PointF(170, 270));
 
-  pattern[1].setType(Pattern::LinearGradient);
-  pattern[1].setSpread(Pattern::PadSpread);
-  pattern[1].setGradientRadius(130.0);
-  pattern[1].addGradientStop(GradientStop(0.0, Rgba(0x00FFFFFF)));
-  pattern[1].addGradientStop(GradientStop(0.5, Rgba(0x7FFF0000)));
-  pattern[1].addGradientStop(GradientStop(0.7, Rgba(0xFFFFFF00)));
-  pattern[1].addGradientStop(GradientStop(1.0, Rgba(0x9F0000FF)));
-  pattern[1].setStartPoint(PointF(10, 20));
-  pattern[1].setEndPoint(PointF(170, 270));
+  pattern[1] = pattern[0];
+  pattern[1].setType(Pattern::RadialGradient);
 
-  pattern[2] = pattern[1];
-  pattern[2].setType(Pattern::RadialGradient);
+  pattern[2] = pattern[0];
+  pattern[2].setType(Pattern::ConicalGradient);
 
-  pattern[3] = pattern[1];
-  pattern[3].setType(Pattern::ConicalGradient);
+  pattern[3].setTexture(sprite[0]);
+  pattern[3].setSpread(Pattern::RepeatSpread);
 
-  activePattern = 1;
+  pattern[4].setTexture(sprite[4]);
+  pattern[4].setSpread(Pattern::RepeatSpread);
+
+  pattern[5].setTexture(sprite[5]);
+  pattern[5].setSpread(Pattern::RepeatSpread);
+
+  activePattern = 0;
 
   timer.setInterval(TimeDelta::fromMilliseconds(50));
   timer.addListener(EvTimer, this, &MyWindow::onTimer);
@@ -242,7 +245,7 @@ void MyWindow::onPaint(PaintEvent* e)
   Rect boundingRect(0, 0, w, h);
 
   //paintBackground(p, boundingRect);
-  p->setSource(0xFFFFFFFF);
+  p->setSource(0xFF000000);
   p->clear();
 
   //paintComposition(p, boundingRect);
@@ -399,6 +402,23 @@ void MyWindow::onPaint(PaintEvent* e)
   }*/
   //paintComposition(p, boundingRect);
 
+  {
+    Pattern pat;
+    pat.setType(Pattern::LinearGradient);
+    pat.setSpread(Pattern::PadSpread);
+
+    pat.setStartPoint(Point(0, 0));
+    pat.setEndPoint(Point(0, 90));
+
+    pat.addGradientStop(GradientStop(0.0, 255, 255, 255));
+    pat.addGradientStop(GradientStop(0.38, 140, 170, 255));
+    pat.addGradientStop(GradientStop(0.42, 110, 140, 255));
+    pat.addGradientStop(GradientStop(0.70, 70, 100, 255));
+    pat.addGradientStop(GradientStop(1.0, 0, 0, 0, 0));
+    p->setSource(pat);
+    p->fillRect(Rect(0, 0, width(), 90));
+  }
+
   p->flush();
   TimeDelta timeDelta = TimeTicks::highResNow() - ticks;
   fog_debug("Time: %f ms", timeDelta.inMillisecondsF());
@@ -407,12 +427,15 @@ void MyWindow::onPaint(PaintEvent* e)
 void MyWindow::button0_onClick(MouseEvent* e)
 {
   activePattern++;
-  if (activePattern >= 4) activePattern = 0;
+  if (activePattern >= 6) activePattern = 0;
   repaint(RepaintWidget);
 }
 
 void MyWindow::button1_onClick(MouseEvent* e)
 {
+  pattern[activePattern].setSpread(
+    pattern[activePattern].spread() == Pattern::PadSpread 
+      ? Pattern::ReflectSpread : Pattern::PadSpread);
   repaint(RepaintWidget);
 }
 
@@ -522,7 +545,7 @@ void MyWindow::paintSprites(Painter* p, const Rect& r, int count)
 void test()
 {
   XmlDocument doc;
-  err_t err = doc.readFile(StubAscii8("/my/upload/test.xml"));
+  err_t err = doc.readFile(StubAscii8("C:/My/test.xml"));
 
   fog_debug("Xml reader status: %d", err);
 
