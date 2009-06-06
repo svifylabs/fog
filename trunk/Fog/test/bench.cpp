@@ -153,6 +153,33 @@ struct BenchmarkModule_Fog_FillRect : public BenchmarkModule_Fog
 };
 
 // ============================================================================
+// [BenchmarkModule_Fog_FillRound]
+// ============================================================================
+
+struct BenchmarkModule_Fog_FillRound : public BenchmarkModule_Fog
+{
+  BenchmarkModule_Fog_FillRound(int w, int h) :
+    BenchmarkModule_Fog(w, h)
+  {
+  }
+
+  virtual void doBenchmark(int quantity)
+  {
+    p.save();
+    for (int a = 0; a < quantity; a++)
+    {
+      Rect r = randRect(128, 128);
+      p.setSource(Rgba(randColor()));
+      p.fillRound(r, Point(8, 8));
+    }
+    p.restore();
+    p.flush();
+  }
+
+  virtual const char* name() { return mt ? "Fog - FillRound (mt)" : "Fog - FillRound"; }
+};
+
+// ============================================================================
 // [BenchmarkModule_Fog_FillPath]
 // ============================================================================
 
@@ -578,6 +605,90 @@ struct BenchmarkModule_Cairo_FillRect : public BenchmarkModule_Cairo
 };
 
 // ============================================================================
+// [BenchmarkModule_Cairo_FillRound]
+// ============================================================================
+
+struct BenchmarkModule_Cairo_FillRound : public BenchmarkModule_Cairo
+{
+  BenchmarkModule_Cairo_FillRound(int w, int h) :
+    BenchmarkModule_Cairo(w, h)
+  {
+  }
+
+  virtual void doBenchmark(int quantity)
+  {
+    cairo_t* cr = cairo_create(cim);
+
+    for (int a = 0; a < quantity; a++)
+    {
+      Rect r = randRect(128, 128);
+      Rgba c(randColor());
+
+      addRound(cr, r, 8);
+      cairo_set_source_rgba(cr,
+        (double)c.r / 255.0, (double)c.g / 255.0, (double)c.b / 255.0, (double)c.a / 255.0);
+      cairo_fill(cr);
+    }
+
+    cairo_destroy(cr);
+  }
+
+  void addRound(cairo_t* cr, Rect rect, double radius)
+  {
+    double x0 = rect.x();
+    double y0 = rect.y();
+    double rect_width = rect.w();
+    double rect_height = rect.h();
+
+    double x1 = x0 + rect_width;
+    double y1 = y0 + rect_height;
+
+    if (!rect_width || !rect_height)
+        return;
+
+    if (rect_width/2<radius) {
+        if (rect_height/2<radius) {
+            cairo_move_to  (cr, x0, (y0 + y1)/2);
+            cairo_curve_to (cr, x0 ,y0, x0, y0, (x0 + x1)/2, y0);
+            cairo_curve_to (cr, x1, y0, x1, y0, x1, (y0 + y1)/2);
+            cairo_curve_to (cr, x1, y1, x1, y1, (x1 + x0)/2, y1);
+            cairo_curve_to (cr, x0, y1, x0, y1, x0, (y0 + y1)/2);
+        } else {
+            cairo_move_to  (cr, x0, y0 + radius);
+            cairo_curve_to (cr, x0 ,y0, x0, y0, (x0 + x1)/2, y0);
+            cairo_curve_to (cr, x1, y0, x1, y0, x1, y0 + radius);
+            cairo_line_to (cr, x1 , y1 - radius);
+            cairo_curve_to (cr, x1, y1, x1, y1, (x1 + x0)/2, y1);
+            cairo_curve_to (cr, x0, y1, x0, y1, x0, y1- radius);
+        }
+    } else {
+        if (rect_height/2<radius) {
+            cairo_move_to  (cr, x0, (y0 + y1)/2);
+            cairo_curve_to (cr, x0 , y0, x0 , y0, x0 + radius, y0);
+            cairo_line_to (cr, x1 - radius, y0);
+            cairo_curve_to (cr, x1, y0, x1, y0, x1, (y0 + y1)/2);
+            cairo_curve_to (cr, x1, y1, x1, y1, x1 - radius, y1);
+            cairo_line_to (cr, x0 + radius, y1);
+            cairo_curve_to (cr, x0, y1, x0, y1, x0, (y0 + y1)/2);
+        } else {
+            cairo_move_to  (cr, x0, y0 + radius);
+            cairo_curve_to (cr, x0 , y0, x0 , y0, x0 + radius, y0);
+            cairo_line_to (cr, x1 - radius, y0);
+            cairo_curve_to (cr, x1, y0, x1, y0, x1, y0 + radius);
+            cairo_line_to (cr, x1 , y1 - radius);
+            cairo_curve_to (cr, x1, y1, x1, y1, x1 - radius, y1);
+            cairo_line_to (cr, x0 + radius, y1);
+            cairo_curve_to (cr, x0, y1, x0, y1, x0, y1- radius);
+        }
+    }
+    cairo_close_path (cr);
+  }
+
+  virtual const char* name() { return "Cairo - FillRound"; }
+};
+
+
+// ============================================================================
 // [BenchmarkModule_Cairo_FillPath]
 // ============================================================================
 
@@ -712,7 +823,7 @@ struct BenchmarkModule_Cairo_BlitImage : public BenchmarkModule_Cairo
 static void benchAll()
 {
   int w = 640, h = 480;
-  int quantity = 1000;
+  int quantity = 100000;
 
   TimeDelta totalFog;
   TimeDelta totalFogMT;
@@ -722,6 +833,15 @@ static void benchAll()
   // Fog - FillRect
   {
     BenchmarkModule_Fog_FillRect mod(w, h);
+    mod.setMultithreaded(false);
+    totalFog += bench(mod, quantity);
+    mod.setMultithreaded(true);
+    totalFogMT += bench(mod, quantity);
+  }
+
+  // Fog - FillRound
+  {
+    BenchmarkModule_Fog_FillRound mod(w, h);
     mod.setMultithreaded(false);
     totalFog += bench(mod, quantity);
     mod.setMultithreaded(true);
@@ -801,6 +921,12 @@ static void benchAll()
   // Cairo - FillRect
   {
     BenchmarkModule_Cairo_FillRect mod(w, h);
+    totalCairo += bench(mod, quantity);
+  }
+
+  // Cairo - FillRound
+  {
+    BenchmarkModule_Cairo_FillRound mod(w, h);
     totalCairo += bench(mod, quantity);
   }
 

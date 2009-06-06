@@ -2038,8 +2038,8 @@ void RasterEngine::fillRect(const Rect& r)
   {
     RasterEngine::fillRect(
       RectF(
-        (double)r.x1() + 0.5,
-        (double)r.y1() + 0.5,
+        (double)r.x1(),
+        (double)r.y1(),
         (double)r.width(),
         (double)r.height()));
     return;
@@ -2078,8 +2078,8 @@ void RasterEngine::fillRects(const Rect* r, sysuint_t count)
     {
       if (r[i].isValid()) workPath.addRect(
         RectF(
-          (double)r[i].x1() + 0.5,
-          (double)r[i].y1() + 0.5,
+          (double)r[i].x1(),
+          (double)r[i].y1(),
           (double)r[i].width(),
           (double)r[i].height()));
     }
@@ -2116,7 +2116,7 @@ void RasterEngine::fillRects(const Rect* r, sysuint_t count)
 void RasterEngine::fillRound(const Rect& r, const Point& radius)
 {
   RasterEngine::fillRound(
-    RectF((double)r.x1() + 0.5, (double)r.y1() + 0.5, r.width(), r.height()),
+    RectF((double)r.x1(), (double)r.y1(), r.width(), r.height()),
     PointF(radius.x(), radius.y()));
 }
 
@@ -3383,9 +3383,8 @@ static void FOG_INLINE AggRenderPath(
 
     for (; y <= y_end; y += delta, pBase += stride)
     {
-      if (!ras.sweep_scanline(sl, y)) continue;
-
-      unsigned num_spans = sl.num_spans();
+      unsigned numSpans = ras.sweep_scanline(sl, y);
+      if (numSpans == 0) continue;
       typename Scanline::const_iterator span = sl.begin();
 
       for (;;)
@@ -3415,7 +3414,7 @@ static void FOG_INLINE AggRenderPath(
           }
         }
 
-        if (--num_spans == 0) break;
+        if (--numSpans == 0) break;
         ++span;
       }
     }
@@ -3433,9 +3432,8 @@ static void FOG_INLINE AggRenderPath(
 
     for (; y <= y_end; y += delta, pBase += stride)
     {
-      if (!ras.sweep_scanline(sl, y)) continue;
-
-      unsigned num_spans = sl.num_spans();
+      unsigned numSpans = ras.sweep_scanline(sl, y);
+      if (numSpans == 0) continue;
       typename Scanline::const_iterator span = sl.begin();
 
       for (;;)
@@ -3469,7 +3467,7 @@ static void FOG_INLINE AggRenderPath(
           }
         }
 
-        if (--num_spans == 0) break;
+        if (--numSpans == 0) break;
         ++span;
       }
     }
