@@ -305,8 +305,8 @@ void MyWindow::onPaint(PaintEvent* e)
   //p->setSource(Rgba(0xFFFFFFFF));
   //paintLines(p, boundingRect, 1000);
 
-#if 0
-  for (int i = 0; i < 1000; i++)
+#if 1
+  for (int i = 0; i < 10; i++)
   {/*
     int x1 = rand() % w;
     int y1 = rand() % h;
@@ -319,8 +319,8 @@ void MyWindow::onPaint(PaintEvent* e)
       fog_abs(x2-x1), fog_abs(y2-y1)), Point(5, 5));*/
     int x1 = rand() % w;
     int y1 = rand() % h;
-    int x2 = rand() % 30;
-    int y2 = rand() % 30;
+    int x2 = rand() % 130;
+    int y2 = rand() % 130;
 
     p->setSource(Rgba(0x7F000000 | rand()));
     p->fillRound(Rect(x1, y1, x2, y2), Point(5, 5));

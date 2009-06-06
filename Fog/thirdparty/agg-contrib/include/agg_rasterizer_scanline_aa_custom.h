@@ -113,11 +113,11 @@ namespace agg
         enum aa_scale_e
         {
             // NOTE: This must be 8.
-            aa_shift  = 8,
-            aa_scale  = 1 << aa_shift,
-            aa_mask   = aa_scale - 1,
-            aa_scale2 = aa_scale * 2,
-            aa_mask2  = aa_scale2 - 1
+            aa_shift  = 8,             // 8
+            aa_scale  = 1 << aa_shift, // 256
+            aa_mask   = aa_scale - 1,  // 255
+            aa_scale2 = aa_scale * 2,  // 512
+            aa_mask2  = aa_scale2 - 1  // 511
         };
 
         //--------------------------------------------------------------------
@@ -164,7 +164,7 @@ namespace agg
 
         //-------------------------------------------------------------------
         template<class VertexSource>
-        void add_path(VertexSource& vs, unsigned path_id=0)
+        AGG_INLINE void add_path(VertexSource& vs, unsigned path_id=0)
         {
             double x;
             double y;
@@ -179,39 +179,52 @@ namespace agg
         }
         
         //--------------------------------------------------------------------
-        int min_x() const { return m_outline.min_x(); }
-        int min_y() const { return m_outline.min_y(); }
-        int max_x() const { return m_outline.max_x(); }
-        int max_y() const { return m_outline.max_y(); }
+        AGG_INLINE int min_x() const { return m_outline.min_x(); }
+        AGG_INLINE int min_y() const { return m_outline.min_y(); }
+        AGG_INLINE int max_x() const { return m_outline.max_x(); }
+        AGG_INLINE int max_y() const { return m_outline.max_y(); }
 
         //--------------------------------------------------------------------
         void sort();
 
         //--------------------------------------------------------------------
-        AGG_INLINE unsigned calculate_alpha(int area) const
+        AGG_INLINE unsigned calculate_alpha_non_zero(int area) const
         {
             int cover = area >> (poly_subpixel_shift*2 + 1 - aa_shift);
 
-            if(cover < 0) cover = -cover;
-            if(m_filling_rule == fill_even_odd)
-            {
-                cover &= aa_mask2;
-                if(cover > aa_scale)
-                {
-                    cover = aa_scale2 - cover;
-                }
-            }
-            if(cover > aa_mask) cover = aa_mask;
+            if (cover < 0) cover = -cover;
+            if (cover > aa_mask) cover = aa_mask;
+            return m_gamma[cover];
+        }
+
+        AGG_INLINE unsigned calculate_alpha_even_odd(int area) const
+        {
+            int cover = area >> (poly_subpixel_shift*2 + 1 - aa_shift);
+
+            if (cover < 0) cover = -cover;
+            cover &= aa_mask2;
+            if (cover > aa_scale) cover = aa_scale2 - cover;
+            if (cover > aa_mask) cover = aa_mask;
             return m_gamma[cover];
         }
 
         //--------------------------------------------------------------------
-        template<class Scanline> bool sweep_scanline(Scanline& sl, int y) const
+        template<class Scanline>
+        AGG_INLINE unsigned sweep_scanline(Scanline& sl, int y) const
         {
-            if(y > m_outline.max_y()) return false;
+          if (m_filling_rule == fill_non_zero)
+            return sweep_scanline_non_zero(sl, y);
+          else
+            return sweep_scanline_even_odd(sl, y);
+        }
+
+        template<class Scanline>
+        unsigned sweep_scanline_non_zero(Scanline& sl, int y) const
+        {
+            if (y > m_outline.max_y()) return 0;
 
             unsigned num_cells = m_outline.scanline_num_cells(y);
-            if (!num_cells) return false;
+            if (!num_cells) return 0;
 
             sl.reset_spans();
             const cell_aa* const* cells = m_outline.scanline_cells(y);
@@ -236,31 +249,69 @@ namespace agg
 
                 if(area)
                 {
-                    alpha = calculate_alpha((cover << (poly_subpixel_shift + 1)) - area);
-                    if(alpha)
-                    {
-                        sl.add_cell(x, alpha);
-                    }
+                    alpha = calculate_alpha_non_zero((cover << (poly_subpixel_shift + 1)) - area);
+                    if (alpha) sl.add_cell(x, alpha);
                     x++;
                 }
 
                 if(num_cells && cur_cell->x > x)
                 {
-                    alpha = calculate_alpha(cover << (poly_subpixel_shift + 1));
-                    if(alpha)
-                    {
-                        sl.add_span(x, cur_cell->x - x, alpha);
-                    }
+                    alpha = calculate_alpha_non_zero(cover << (poly_subpixel_shift + 1));
+                    if (alpha) sl.add_span(x, cur_cell->x - x, alpha);
                 }
             } while (num_cells);
     
-            if (sl.num_spans())
-            {
-                sl.finalize(y);
-                return true;
-            }
-            else
-                return false;
+            unsigned ns = sl.num_spans();
+            if (ns) sl.finalize(y);
+            return ns;
+        }
+
+        template<class Scanline>
+        unsigned sweep_scanline_even_odd(Scanline& sl, int y) const
+        {
+            if (y > m_outline.max_y()) return 0;
+
+            unsigned num_cells = m_outline.scanline_num_cells(y);
+            if (!num_cells) return 0;
+
+            sl.reset_spans();
+            const cell_aa* const* cells = m_outline.scanline_cells(y);
+            int cover = 0;
+
+            do {
+                const cell_aa* cur_cell = *cells;
+                int x    = cur_cell->x;
+                int area = cur_cell->area;
+                unsigned alpha;
+
+                cover += cur_cell->cover;
+
+                //accumulate all cells with the same X
+                while(--num_cells)
+                {
+                    cur_cell = *++cells;
+                    if(cur_cell->x != x) break;
+                    area  += cur_cell->area;
+                    cover += cur_cell->cover;
+                }
+
+                if(area)
+                {
+                    alpha = calculate_alpha_even_odd((cover << (poly_subpixel_shift + 1)) - area);
+                    if (alpha) sl.add_cell(x, alpha);
+                    x++;
+                }
+
+                if(num_cells && cur_cell->x > x)
+                {
+                    alpha = calculate_alpha_even_odd(cover << (poly_subpixel_shift + 1));
+                    if (alpha) sl.add_span(x, cur_cell->x - x, alpha);
+                }
+            } while (num_cells);
+
+            unsigned ns = sl.num_spans();
+            if (ns) sl.finalize(y);
+            return ns;
         }
 
         AGG_INLINE bool has_cells() const
