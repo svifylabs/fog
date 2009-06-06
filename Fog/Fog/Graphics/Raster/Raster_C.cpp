@@ -2716,20 +2716,22 @@ static uint8_t* FOG_FASTCALL pattern_radial_gradient_fetch_pad(
   double dyfy = dy * fy;
   double dydy = dy * dy;
 
+  double dxdx = dx * dx;
   double dxfx = dx * fx;
   double dxfy = dx * fy;
 
   double dxfx_p_dyfy = dxfx + dyfy;
   double dxfy_m_dyfx = dxfy - dyfx;
 
-  double dxr2 = dx * r2;
+  double cc = (dydy + dxdx) * r2 - (dxfy_m_dyfx * dxfy_m_dyfx);
+  double cx = (dx * r2)          - (dxfy_m_dyfx * fy);
+  double ci = r2                 - (fy * fy);
 
-  double c = dydy * r2;
+  double dd = (dxfx_p_dyfy);
+  double di = fx;
 
   do {
-    double d3 = c + dxr2 * dx - dxfy_m_dyfx * dxfy_m_dyfx;
-
-    index = (int) ((dxfx_p_dyfy + sqrt(fabs(d3))) * scale);
+    index = (int)((dd + sqrt(fabs(cc))) * scale);
 
     if (index < 0)
       ((uint32_t*)dstCur)[0] = color0;
@@ -2739,10 +2741,13 @@ static uint8_t* FOG_FASTCALL pattern_radial_gradient_fetch_pad(
       ((uint32_t*)dstCur)[0] = colors[index];
     dstCur += 4;
 
-    dx += 1.0;
-    dxr2 += r2;
-    dxfx_p_dyfy += fx;
-    dxfy_m_dyfx += fy;
+    // cc += cx + cx + ci
+    // cx += ci
+    cc += cx;
+    cx += ci;
+    cc += cx;
+
+    dd += di;
   } while (--w);
 
   return dst;
@@ -2772,19 +2777,40 @@ static uint8_t* FOG_FASTCALL pattern_radial_gradient_fetch_repeat(
   double r2 = ctx->radialGradient.r2;
   double scale = ctx->radialGradient.mul;
 
-  do {
-    double d2 = dx * fy - dy * fx;
-    double d3 = r2 * (dx * dx + dy * dy) - d2 * d2;
+  double dyfx = dy * fx;
+  double dyfy = dy * fy;
+  double dydy = dy * dy;
 
-    index = (int) ((dx * fx + dy * fy + sqrt(fabs(d3))) * scale) % colorsLength;
+  double dxdx = dx * dx;
+  double dxfx = dx * fx;
+  double dxfy = dx * fy;
+
+  double dxfx_p_dyfy = dxfx + dyfy;
+  double dxfy_m_dyfx = dxfy - dyfx;
+
+  double cc = (dydy + dxdx) * r2 - (dxfy_m_dyfx * dxfy_m_dyfx);
+  double cx = (dx * r2)          - (dxfy_m_dyfx * fy);
+  double ci = r2                 - (fy * fy);
+
+  double dd = (dxfx_p_dyfy);
+  double di = fx;
+
+  do {
+    index = (int)((dd + sqrt(fabs(cc))) * scale) % colorsLength;
     if (index < 0) index += colorsLength;
 
     ((uint32_t*)dstCur)[0] = colors[index];
     dstCur += 4;
-    dx += 1.0;
+
+    // cc += cx + cx + ci
+    // cx += ci
+    cc += cx;
+    cx += ci;
+    cc += cx;
+
+    dd += di;
   } while (--w);
 
-end:
   return dst;
 }
 

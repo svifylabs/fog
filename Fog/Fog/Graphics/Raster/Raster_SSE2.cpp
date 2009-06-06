@@ -1678,7 +1678,6 @@ static uint8_t* FOG_FASTCALL pattern_radial_gradient_fetch_pad_sse2(
   PatternContext* ctx,
   uint8_t* dst, int x, int y, int w)
 {
-/*
   FOG_ASSERT(w);
 
   uint8_t* dstCur = dst;
@@ -1686,174 +1685,103 @@ static uint8_t* FOG_FASTCALL pattern_radial_gradient_fetch_pad_sse2(
   const uint32_t* colors = (const uint32_t*)ctx->radialGradient.colors;
   sysint_t colorsLength = ctx->radialGradient.colorsLength;
 
-  uint32_t color0 = colors[0];
-  uint32_t color1 = colors[colorsLength-1];
+  // Here we use some tricks to do computation faster. First trick is that we
+  // can add incrementing values [3, 2, 1, 0] to dx. We need this, because we 
+  // are computing 4 pixels at time and we need to set correct offset for each.
+  __m128 dx = _mm_add_ps(_mm_set1_ps((float)x - (float)ctx->radialGradient.dx), _mm_set_ps(3.0f, 2.0f, 1.0f, 0.0f));
+  __m128 dy = _mm_set1_ps((float)y - (float)ctx->radialGradient.dy);
 
-  double dx = (double)x - ctx->radialGradient.dx;
-  double dy = (double)y - ctx->radialGradient.dy;
+  __m128 fx = _mm_set1_ps((float)ctx->radialGradient.fx);
+  __m128 fy = _mm_set1_ps((float)ctx->radialGradient.fy);
+  __m128 r2 = _mm_set1_ps((float)ctx->radialGradient.r2);
 
-  double fx = ctx->radialGradient.fx;
-  double fy = ctx->radialGradient.fy;
-  double r2 = ctx->radialGradient.r2;
-  double scale = ctx->radialGradient.mul;
+  __m128 dxdx = _mm_mul_ps(dx, dx);
 
-  double dyfx = dy * fx;
-  double dyfy = dy * fy;
-  double dydy = dy * dy;
+  // cc = (dy*dy + dx*dx) * r2 - ((dx*fy - dy*fx) * (dx*fy - dy*fx))
+  // cx = (dx*r2)              - ((dx*fy - dy*fx) * fy)
+  // ci = r2                   - (fy*fy)
+  __m128 cc = _mm_add_ps(_mm_mul_ps(dy, dy), dxdx);
+  cc = _mm_mul_ps(cc, r2);
+  __m128 cx = _mm_mul_ps(dx, r2);
+  __m128 ci = _mm_sub_ps(r2, _mm_mul_ps(fy, fy));
 
-  double dxfx = dx * fx;
-  double dxfy = dx * fy;
+  // pp = dx * fy - dy * fx
+  __m128 pp = _mm_sub_ps(_mm_mul_ps(dx, fy), _mm_mul_ps(dy, fx));
 
-  double dxfx_p_dyfy = dxfx + dyfy;
-  double dxfy_m_dyfx = dxfy - dyfx;
+  cx = _mm_sub_ps(cx, _mm_mul_ps(pp, fy));
+  cc = _mm_sub_ps(cc, _mm_mul_ps(pp, pp));
 
-  double dxr2 = dx * r2;
+  // dd = (dx*fx + dy*fy)
+  // di = fx
+  __m128 dd = _mm_add_ps(_mm_mul_ps(dx, fx), _mm_mul_ps(dy, fy));
+  __m128 di = _mm_mul_ps(fx, _mm_set1_ps(4.0));
 
-  double c = dydy * r2;
+  // ci4 = ci * 4
+  // ci16 = ci * 16
+  __m128 ci4 = _mm_mul_ps(ci, _mm_set1_ps(4.0));
+  __m128 ci16 = _mm_mul_ps(ci, _mm_set1_ps(16.0));
 
-  __m128d x_dx          = _mm_set_pd(dx + 1.0, dx);
-  __m128d x_dxr2        = _mm_set_pd(dxr2 + r2, dxr2);
-  __m128d x_dxfx_p_dyfy = _mm_set_pd(dxfx_p_dyfy + fx, dxfx_p_dyfy);
-  __m128d x_dxfy_m_dyfx = _mm_set_pd(dxfy_m_dyfx + fy, dxfy_m_dyfx);
+  __m128 eight = _mm_set1_ps(8.0);
 
-  __m128d x_2           = _mm_set1_pd(2.0);
-  __m128d x_r2          = _mm_set1_pd(r2 * 2.0);
-  __m128d x_fx          = _mm_set1_pd(fx * 2.0);
-  __m128d x_fy          = _mm_set1_pd(fy * 2.0);
-  __m128d x_c           = _mm_set1_pd(c);
-  __m128d x_scale       = _mm_set1_pd(scale);
-  __m128d x_min         = _mm_set1_pd(0.0);
-  __m128d x_max         = _mm_set1_pd((double)(colorsLength-1));
-
-  for (;;)
-  {
-    __m128d dd;
-
-    dd = _mm_add_pd(x_c, _mm_mul_pd(x_dxr2, x_dx));
-    dd = _mm_sub_pd(dd, _mm_mul_pd(x_dxfy_m_dyfx, x_dxfy_m_dyfx));
-    dd = _mm_and_pd(dd, Mask7FFFFFFFFFFFFFFF);
-    dd = _mm_sqrt_pd(dd);
-    dd = _mm_add_pd(dd, x_dxfx_p_dyfy);
-    dd = _mm_mul_pd(dd, x_scale);
-    dd = _mm_max_pd(dd, x_min);
-    dd = _mm_min_pd(dd, x_max);
-
-    __m128i di = _mm_cvtpd_epi32(dd);
-    uint index1 = (uint)_mm_cvtsi128_si32(di);
-    di = _mm_shuffle_epi32(di, _MM_SHUFFLE(0, 3, 2, 1));
-    uint index2 = (uint)_mm_cvtsi128_si32(di);
-
-    ((uint32_t*)dstCur)[0] = colors[index1];
-    if (--w == 0) break;
-
-    ((uint32_t*)dstCur)[1] = colors[index2];
-    if (--w == 0) break;
-
-    dstCur += 8;
-
-    x_dx          = _mm_add_pd(x_dx         , x_2);
-    x_dxr2        = _mm_add_pd(x_dxr2       , x_r2);
-    x_dxfx_p_dyfy = _mm_add_pd(x_dxfx_p_dyfy, x_fx);
-    x_dxfy_m_dyfx = _mm_add_pd(x_dxfy_m_dyfx, x_fy);
-  }
-
-  return dst;
-*/
-  FOG_ASSERT(w);
-
-  uint8_t* dstCur = dst;
-
-  const uint32_t* colors = (const uint32_t*)ctx->radialGradient.colors;
-  sysint_t colorsLength = ctx->radialGradient.colorsLength;
-
-  uint32_t color0 = colors[0];
-  uint32_t color1 = colors[colorsLength-1];
-
-  double dx = (double)x - ctx->radialGradient.dx;
-  double dy = (double)y - ctx->radialGradient.dy;
-
-  double fx = ctx->radialGradient.fx;
-  double fy = ctx->radialGradient.fy;
-  double r2 = ctx->radialGradient.r2;
-  double scale = ctx->radialGradient.mul;
-
-  double dyfx = dy * fx;
-  double dyfy = dy * fy;
-  double dydy = dy * dy;
-
-  double dxfx = dx * fx;
-  double dxfy = dx * fy;
-
-  double dxfx_p_dyfy = dxfx + dyfy;
-  double dxfy_m_dyfx = dxfy - dyfx;
-
-  double dxr2 = dx * r2;
-
-  double c = dydy * r2;
-
-  __m128 x_dx          = _mm_set_ps(dx + 3.0, dx + 2.0, dx + 1.0, dx);
-  __m128 x_dxr2        = _mm_set_ps(dxr2 + r2 + r2 + r2, dxr2 + r2 + r2, dxr2 + r2, dxr2);
-  __m128 x_dxfx_p_dyfy = _mm_set_ps(dxfx_p_dyfy + fx + fx + fx, dxfx_p_dyfy + fx + fx, dxfx_p_dyfy + fx, dxfx_p_dyfy);
-  __m128 x_dxfy_m_dyfx = _mm_set_ps(dxfy_m_dyfx + fy + fy + fy, dxfy_m_dyfx + fy + fy, dxfy_m_dyfx + fy, dxfy_m_dyfx);
-
-  __m128 x_1           = _mm_set1_ps(4.0);
-  __m128 x_r2          = _mm_set1_ps(r2 * 4.0);
-  __m128 x_fx          = _mm_set1_ps(fx * 4.0);
-  __m128 x_fy          = _mm_set1_ps(fy * 4.0);
-  __m128 x_c           = _mm_set1_ps(c);
-  __m128 x_scale       = _mm_set1_ps(scale);
-  __m128 x_min         = _mm_set1_ps(0.0);
-  __m128 x_max         = _mm_set1_ps((float)(colorsLength-1));
+  __m128 scale         = _mm_set1_ps((float)ctx->radialGradient.mul);
+  __m128 zero          = _mm_set1_ps((float)0.0f);
+  __m128 threshold     = _mm_set1_ps((float)(colorsLength-1));
 
   for (;;)
   {
-    __m128 dd;
-
-    dd = _mm_add_ps(x_c, _mm_mul_ps(x_dxr2, x_dx));
-    dd = _mm_sub_ps(dd, _mm_mul_ps(x_dxfy_m_dyfx, x_dxfy_m_dyfx));
-    dd = _mm_and_ps(dd, Mask7FFFFFFF7FFFFFFF);
-    dd = _mm_sqrt_ps(dd);
-    dd = _mm_add_ps(dd, x_dxfx_p_dyfy);
-    dd = _mm_mul_ps(dd, x_scale);
-    dd = _mm_max_ps(dd, x_min);
-    dd = _mm_min_ps(dd, x_max);
-
-    __m128i di = _mm_cvtps_epi32(dd);
+    __m128 idxf;
+    __m128i idxi;
     uint index;
 
+    idxf = _mm_and_ps(cc, Mask7FFFFFFF7FFFFFFF); // abs()
+    idxf = _mm_sqrt_ps(idxf);
+    idxf = _mm_add_ps(idxf, dd);
+    idxf = _mm_mul_ps(idxf, scale);
+    idxf = _mm_max_ps(idxf, zero);
+    idxf = _mm_min_ps(idxf, threshold);
+
+    idxi = _mm_cvtps_epi32(idxf);
+
     // Pixel #0
-    index = (uint)_mm_cvtsi128_si32(di);
-    di = _mm_shuffle_epi32(di, _MM_SHUFFLE(0, 3, 2, 1));
+    index = (uint)_mm_cvtsi128_si32(idxi);
+    idxi = _mm_shuffle_epi32(idxi, _MM_SHUFFLE(0, 3, 2, 1));
 
     ((uint32_t*)dstCur)[0] = colors[index];
     if (--w == 0) break;
 
     // Pixel #1
-    index = (uint)_mm_cvtsi128_si32(di);
-    di = _mm_shuffle_epi32(di, _MM_SHUFFLE(0, 3, 2, 1));
+    index = (uint)_mm_cvtsi128_si32(idxi);
+    idxi = _mm_shuffle_epi32(idxi, _MM_SHUFFLE(0, 3, 2, 1));
 
     ((uint32_t*)dstCur)[1] = colors[index];
     if (--w == 0) break;
 
     // Pixel #2
-    index = (uint)_mm_cvtsi128_si32(di);
-    di = _mm_shuffle_epi32(di, _MM_SHUFFLE(0, 3, 2, 1));
+    index = (uint)_mm_cvtsi128_si32(idxi);
+    idxi = _mm_shuffle_epi32(idxi, _MM_SHUFFLE(0, 3, 2, 1));
 
     ((uint32_t*)dstCur)[2] = colors[index];
     if (--w == 0) break;
 
     // Pixel #3
-    index = (uint)_mm_cvtsi128_si32(di);
+    index = (uint)_mm_cvtsi128_si32(idxi);
 
     ((uint32_t*)dstCur)[3] = colors[index];
     if (--w == 0) break;
 
     dstCur += 16;
 
-    x_dx          = _mm_add_ps(x_dx         , x_1);
-    x_dxr2        = _mm_add_ps(x_dxr2       , x_r2);
-    x_dxfx_p_dyfy = _mm_add_ps(x_dxfx_p_dyfy, x_fx);
-    x_dxfy_m_dyfx = _mm_add_ps(x_dxfy_m_dyfx, x_fy);
+    // cc += (cx + cx + ci) + 
+    //       (cx+ci + cx+ci + ci) + 
+    //       (cx+ci+ci + cx+ci+ci + ci) + 
+    //       (cx+ci+ci+ci + cx+ci+ci+ci + ci)
+    // cc += cx*8 + ci*16;
+    // cx += ci*4
+    cc = _mm_add_ps(cc, _mm_mul_ps(cx, eight));
+    cc = _mm_add_ps(cc, ci16);
+    cx = _mm_add_ps(cx, ci4);
+
+    dd = _mm_add_ps(dd, di);
   }
 
   return dst;
