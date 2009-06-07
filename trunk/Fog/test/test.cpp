@@ -305,7 +305,7 @@ void MyWindow::onPaint(PaintEvent* e)
   //p->setSource(Rgba(0xFFFFFFFF));
   //paintLines(p, boundingRect, 1000);
 
-#if 1
+#if 0
   for (int i = 0; i < 10; i++)
   {/*
     int x1 = rand() % w;
