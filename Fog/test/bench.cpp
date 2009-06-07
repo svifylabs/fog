@@ -403,6 +403,47 @@ struct BenchmarkModule_GDI_FillRect : public BenchmarkModule_GDI
 };
 
 // ============================================================================
+// [BenchmarkModule_GDI_FillRound]
+// ============================================================================
+
+struct BenchmarkModule_GDI_FillRound : public BenchmarkModule_GDI
+{
+  BenchmarkModule_GDI_FillRound(int w, int h) :
+    BenchmarkModule_GDI(w, h)
+  {
+  }
+
+  virtual void doBenchmark(int quantity)
+  {
+    HDC dc = CreateCompatibleDC(NULL);
+    SelectObject(dc, im);
+    {
+      Gdiplus::Graphics gr(dc);
+      gr.SetSmoothingMode(Gdiplus::SmoothingModeHighQuality);
+
+      for (int a = 0; a < quantity; a++)
+      {
+        Rect r = randRect(128, 128);
+        int d = 8;
+        Gdiplus::Color c(randColor());
+        Gdiplus::SolidBrush br(c);
+
+        Gdiplus::GraphicsPath path;
+		    path.AddArc(r.x(), r.y(), d, d, 180, 90);
+		    path.AddArc(r.x() + r.width() - d, r.y(), d, d, 270, 90);
+		    path.AddArc(r.x() + r.width() - d, r.y() + r.height() - d, d, d, 0, 90);
+		    path.AddArc(r.x(), r.y() + r.height() - d, d, d, 90, 90);
+        path.AddLine(r.x(), r.y() + r.height() - d, r.x(), r.y() + d/2);
+        gr.FillPath((Gdiplus::Brush*)&br, &path);
+      }
+    }
+    DeleteDC(dc);
+  }
+
+  virtual const char* name() { return "GdiPlus - FillRound"; }
+};
+
+// ============================================================================
 // [BenchmarkModule_GDI_FillPath]
 // ============================================================================
 
@@ -897,6 +938,12 @@ static void benchAll()
   // GdiPlus - FillRect
   {
     BenchmarkModule_GDI_FillRect mod(w, h);
+    totalGdiPlus += bench(mod, quantity);
+  }
+
+  // GdiPlus - FillRound
+  {
+    BenchmarkModule_GDI_FillRound mod(w, h);
     totalGdiPlus += bench(mod, quantity);
   }
 
