@@ -17,13 +17,18 @@ For general goals see the list:
 
 Because Fog is not pure graphics library and contains platform specific code not related to graphics at all there is also requierement that it can be used in server side to generate graphics by server scripts. This means that Fog library can't depend to X11 under linux and BSDs. This is solved through UISystem plugins.
 
+Also if we talk about Fog in context of graphics libraries, the goals are:
+  * Design of library should allow any time to replace one part of it (vector engines, raster engines, blitters, effects, etc...)
+  * Use of modern CPU features (MMX, SSE2). Currently Fog library contains strong SSE2 optimizations and tricks to do draw things faster
+  * Multithreading - This was key feature when designing the library. Fog painter is designed to be able to use threads for rasterization and blitting pipelines. Currently the design is not complete, but the thread management is very good and results are very promising
+
 =Maturity / Stability=
 
 Fog library is not mature nor stable. It's in design state and will be probably long time. Only contributors and interested people can speedup this process. Writing platform indenpendent code is time consuming and writing fastest possible code is very time consuming, but library is growing and one day it will be mature and prepared for everyone.
 
 =Licence=
 
-Fog library is distributed under MIT licence. This means that any project can use Fog source code and you can for example create your graphics library based on Fog. Everything is possible and this will never change. I'm not lawyer, I'm interested developer who want to make source code public for everyone. Only what I want is to keep many name (and all who helped me) connected with Fog library sources.
+Fog library is distributed under MIT licence. This means that any project can use Fog source code and you can for example create your graphics library based on Fog. Everything is possible and this will never change. I'm not lawyer, I'm interested developer who want to make source code public for everyone. Only what I want is to keep my name (and all who helped me) connected with Fog library sources.
 
 =Help wanted=
 
