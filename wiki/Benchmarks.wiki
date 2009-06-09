@@ -16,11 +16,11 @@ Usually the benchmarks for Cairo are run under Linux, and bechmarks fog GDI+ und
   * FillRound - Test that will fill rounded rectangles of 128x128 pixels and 8 radius. This test should be compared with FillRect and can tell the performance of rasterizing objects that are very similar to rectangles in size and in shape. It just reveals machinery and slowdown caused by library rasterizer.
   * FillPath - Test that will fill random path that is not limited in coordinates (coordinates can be generated for any point that is valid in destination image).
   * FillPattern - Filling 128x128 rectangle by linear or radial gradient brush. When filling we are interested in getting time consumed to create fill. This is reason that filling is also done in 128x128 rectangles.
-  * BlitImage - Blitting image with SrcOver (Ported & Duff) operator. This test should show how blitting engine is optimized for your CPU.
+  * BlitImage - Blitting image with SrcOver (Ported & Duff) operator. This test should show how blitting engine is optimized for your CPU. Image sizes are also 128x128 and contains alpha channel.
 
-The tests are usually done to perform 100.000 operations and result is time in [ms] for each kind of operation. The (mt) comment in Fog tests means that multithreading is used for tests, the number of threads is always determined as number of CPUs (or cores).
+The tests are usually done to perform 100.000 operations and result is time in [ms] for each kind of operation. The (mt) comment in Fog tests means that multithreading is used for tests, the number of threads is always determined as number of CPUs (or cores). The size of destination image is usually 640x480 and pixel format is PRGB32 (premultiplied ARGB32).
 
-In the future there will be probably more tests. Currentl tests were designed to tune Fog library, not to compare with others (this is also reason for gradient fills, image blitting and other tests).
+In the future there will be probably more tests. Current tests were designed to tune Fog library, not to compare with others (this is also reason for gradient fills, image blitting and other tests).
 
 =Benchmark Results=
 
