@@ -85,6 +85,6 @@ GDI+       - 133026,632 [ms]
 }}}
 =Conclusion=
 
-You can see that Fog library is really fast compared to others. Currently operations like FillRect are really optimized and this are is tagged as complete. But there are areas where future work will be focused, and this is mainly improving path rasterizing with better parallelization. With good parallelization the FillPath(mt) test should improve from 16.000 [ms] to only 6.000 [ms] and with better rasterizer it can speedup to 3.000 [ms].
+You can see that Fog library is really fast compared to others. Currently operations like FillRect are really optimized and are tagged as complete. But there are areas where future work will be focused, and this is mainly improving path rasterizing with better parallelization. With good parallelization the FillPath(mt) test should improve from 16.000 [ms] to only 6.000 [ms] and with better rasterizer it can speedup to 3.000 [ms].
 
 Another interesting topic is linear and radial gradient fills compared to Cairo. Fog library is able to fill gradients nearly in time needed to fill rect with constant color. This means that these fills can't be optimized to perform better. The radial gradient fill is currently optimized in SSE2 and it's about 4x faster than comparable C optimized code and about 4x faster than unoptimized code seen in other libraries (for example AntiGrain or Cairo).
