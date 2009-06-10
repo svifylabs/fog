@@ -1823,12 +1823,14 @@ void UIBackingStoreX11::updateRects(const Box* rects, sysuint_t count)
           while (y1 < y2)
           {
             ((Raster::ConvertDither8Fn)_convertFunc)(dstCur, srcCur, w, Point(x1, y1), palConv);
+            y1++;
           }
           break;
         case 16:
           while (y1 < y2)
           {
             ((Raster::ConvertDither16Fn)_convertFunc)(dstCur, srcCur, w, Point(x1, y1));
+            y1++;
           }
           break;
         case 24:
@@ -1836,6 +1838,7 @@ void UIBackingStoreX11::updateRects(const Box* rects, sysuint_t count)
           while (y1 < y2)
           {
             ((Raster::ConvertPlainFn)_convertFunc)(dstCur, srcCur, w);
+            y1++;
           }
           break;
       }
