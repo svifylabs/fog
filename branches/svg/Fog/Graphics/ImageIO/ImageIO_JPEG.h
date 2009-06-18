@@ -12,6 +12,9 @@
 
 #if defined(FOG_HAVE_JPEGLIB_H)
 
+//! @addtogroup Fog_Graphics_ImageIO
+//! @{
+
 namespace Fog {
 namespace ImageIO {
 
@@ -52,6 +55,8 @@ private:
 
 } // ImageIO namespace
 } // Fog namespace
+
+//! @}
 
 #endif // FOG_HAVE_JPEGLIB_H
 

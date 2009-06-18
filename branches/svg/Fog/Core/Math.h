@@ -149,6 +149,9 @@ static FOG_HIDDEN const uint32_t core_inf[2] = { 0x00000000,0x7FF00000 };
 
 // [floating point compare functions]
 
+//! @addtogroup Fog_Core
+//! @{
+
 template<typename T>
 static bool FOG_INLINE fog_feq(T a, T b, T epsilon = 0.000001)
 {
@@ -166,6 +169,8 @@ template<class T> inline bool isEqualEps(T v1, T v2, T epsilon)
 }
 
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_CORE_MATH_H

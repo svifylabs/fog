@@ -21,6 +21,10 @@ struct FontEngineFT;
 struct FontEngineFTPrivate;
 struct FtFile;
 
+// ============================================================================
+// [Fog::FontFaceFT]
+// ============================================================================
+
 struct FOG_API FontFaceFT : public FontFace
 {
   // Lock
@@ -43,6 +47,10 @@ private:
 
   friend struct FontEngineWin;
 };
+
+// ============================================================================
+// [Fog::FontEngineFT]
+// ============================================================================
 
 struct FOG_API FontEngineFT : public FontEngine
 {

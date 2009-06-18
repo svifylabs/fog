@@ -10,18 +10,23 @@
 // [Dependencies]
 #include <Fog/Build/Build.h>
 
+//! @addtogroup Fog_Core
+//! @{
+
 // ============================================================================
 // [Error]
 // ============================================================================
 
 namespace Error {
 
+//! @brief Single enumeration to define @c Ok value.
 enum NoError
 {
+  //! @brief Function proceed without errors (success).
   Ok = 0
 };
 
-//! @brief Core library error codes.
+//! @brief Fog/Core library error codes.
 enum CoreError
 {
   // [Errors Range]
@@ -98,6 +103,8 @@ enum CoreError
 };
 
 } // Error namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_CORE_ERROR_H

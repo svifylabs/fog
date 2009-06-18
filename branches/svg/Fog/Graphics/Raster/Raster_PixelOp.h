@@ -11,6 +11,9 @@
 #include <Fog/Graphics/Raster/Raster_C.h>
 #include <Fog/Graphics/Raster/Raster_ByteOp.h>
 
+//! @addtogroup Fog_Graphics_Raster
+//! @{
+
 namespace Fog {
 namespace Raster {
 
@@ -524,6 +527,8 @@ struct FOG_HIDDEN PixFmt_A8
 
 } // Raster namespace
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_GRAPHICS_PIXELOP_H

@@ -10,6 +10,9 @@
 // [Dependencies]
 #include <Fog/UI/ButtonBase.h>
 
+//! @addtogroup Fog_UI
+//! @{
+
 namespace Fog {
 
 // ============================================================================
@@ -32,6 +35,8 @@ struct FOG_API Button : public ButtonBase
 };
 
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_UI_BUTTON_H

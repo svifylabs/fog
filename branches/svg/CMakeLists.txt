@@ -18,6 +18,7 @@ Set(FOG_AGG_CONTRIB_DIR "${FOG_DIR}/thirdparty/agg-contrib")
 #Set(BLITJIT_BUILD_LIBRARY TRUE)
 
 Set(TEST_BUILD TRUE)
+Set(SVG_TEST_BUILD TRUE)
 
 # =============================================================================
 # [3rdparty Libraries]
@@ -700,11 +701,15 @@ EndIf(WIN32)
 
 Set(FOG_SVG_SOURCES
   ${FOG_DIR}/Fog/Svg/Svg.cpp
+  ${FOG_DIR}/Fog/Svg/Symbol.cpp
+  ${FOG_DIR}/Fog/Svg/SymbolCanvas.cpp
 )
 
 Set(FOG_SVG_HEADERS
   ${FOG_DIR}/Fog/Svg.h
   ${FOG_DIR}/Fog/Svg/Svg.h
+  ${FOG_DIR}/Fog/Svg/Symbol.h
+  ${FOG_DIR}/Fog/Svg/SymbolCanvas.h
 )
 
 # =============================================================================
@@ -764,6 +769,11 @@ If(TEST_BUILD)
   Add_Executable(test test/test.cpp)
   Target_Link_Libraries(test Fog ${FOG_LIBRARIES})
 EndIf(TEST_BUILD)
+
+If(SVG_TEST_BUILD)
+  Add_Executable(svgtest Fog/Svg/SvgTest.cpp)
+  Target_Link_Libraries(svgtest Fog ${FOG_LIBRARIES})
+EndIf(SVG_TEST_BUILD)
 
 If(MAKE_BENCH)
   If(NOT WIN32)

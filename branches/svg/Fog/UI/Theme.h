@@ -10,10 +10,13 @@
 // [Dependencies]
 #include <Fog/Core/Object.h>
 
+//! @addtogroup Fog_UI
+//! @{
+
 namespace Fog {
 
 // ============================================================================
-// [Fog::Button]
+// [Fog::Theme]
 // ============================================================================
 
 struct FOG_API Theme : public Object
@@ -37,6 +40,8 @@ struct FOG_API Theme : public Object
 };
 
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_UI_THEME_H

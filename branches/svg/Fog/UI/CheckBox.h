@@ -10,6 +10,9 @@
 // [Dependencies]
 #include <Fog/UI/ButtonBase.h>
 
+//! @addtogroup Fog_UI
+//! @{
+
 namespace Fog {
 
 // ============================================================================
@@ -33,6 +36,8 @@ struct FOG_API CheckBox : public ButtonBase
 };
 
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_UI_CHECKBOX_H

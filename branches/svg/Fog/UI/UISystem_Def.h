@@ -12,6 +12,9 @@
 #include <Fog/Core/Vector.h>
 #include <Fog/UI/UISystem.h>
 
+//! @addtogroup Fog_UI
+//! @{
+
 namespace Fog {
 
 // ============================================================================
@@ -207,6 +210,8 @@ protected:
 };
 
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_UI_UISYSTEM_DEF_H

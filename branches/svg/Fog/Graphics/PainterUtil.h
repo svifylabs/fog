@@ -4,12 +4,15 @@
 // MIT, See COPYING file in package
 
 // [Guard]
-#ifndef _FOG_UI_PAINTERUTIL_H
-#define _FOG_UI_PAINTERUTIL_H
+#ifndef _FOG_GRAPHICS_PAINTERUTIL_H
+#define _FOG_GRAPHICS_PAINTERUTIL_H
 
 // [Dependencies]
 #include <Fog/Graphics/Painter.h>
 #include <Fog/Graphics/Rgba.h>
+
+//! @addtogroup Fog_Graphics
+//! @{
 
 namespace Fog {
 
@@ -26,5 +29,7 @@ struct FOG_API PainterUtil
 
 } // Fog namespace
 
+//! @}
+
 // [Guard]
-#endif // _FOG_UI_PAINTERUTIL_H
+#endif // _FOG_GRAPHICS_PAINTERUTIL_H

@@ -21,6 +21,8 @@
 
 namespace Fog {
 
+//! @brief SSE2 data type that can be used to store / load data to / from
+//! xmm register.
 union FOG_ALIGN(16) sse2_t
 {
   __m128d m128d;

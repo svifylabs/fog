@@ -106,10 +106,11 @@ struct BenchmarkModule_Fog : public BenchmarkModule
   virtual void saveResult()
   {
     String32 fileName;
+    Image t(im);
     fileName.set(StubAscii8("bench "));
     fileName.append(StubAscii8(name()));
     fileName.append(StubAscii8(".bmp"));
-    im.writeFile(fileName);
+    t.writeFile(fileName);
   }
 
   void setMultithreaded(bool mt)
@@ -152,6 +153,33 @@ struct BenchmarkModule_Fog_FillRect : public BenchmarkModule_Fog
 };
 
 // ============================================================================
+// [BenchmarkModule_Fog_FillRound]
+// ============================================================================
+
+struct BenchmarkModule_Fog_FillRound : public BenchmarkModule_Fog
+{
+  BenchmarkModule_Fog_FillRound(int w, int h) :
+    BenchmarkModule_Fog(w, h)
+  {
+  }
+
+  virtual void doBenchmark(int quantity)
+  {
+    p.save();
+    for (int a = 0; a < quantity; a++)
+    {
+      Rect r = randRect(128, 128);
+      p.setSource(Rgba(randColor()));
+      p.fillRound(r, Point(8, 8));
+    }
+    p.restore();
+    p.flush();
+  }
+
+  virtual const char* name() { return mt ? "Fog - FillRound (mt)" : "Fog - FillRound"; }
+};
+
+// ============================================================================
 // [BenchmarkModule_Fog_FillPath]
 // ============================================================================
 
@@ -165,15 +193,17 @@ struct BenchmarkModule_Fog_FillPath : public BenchmarkModule_Fog
   virtual void doBenchmark(int quantity)
   {
     p.save();
+    p.setFillMode(FillEvenOdd);
     for (int a = 0; a < quantity; a++)
     {
       Path path;
-      path.moveTo(randPointF());
-      for (int i = 0; i < 3; i++)
+      for (int i = 0; i < 7; i++)
       {
         PointF c0 = randPointF();
-        PointF c1 = randPointF();
-        path.curve3To(c0, c1);
+        if (i == 0)
+          path.moveTo(c0);
+        else
+          path.lineTo(c0);
       }
 
       p.setSource(Rgba(randColor()));
@@ -313,7 +343,9 @@ struct BenchmarkModule_GDI : public BenchmarkModule
       (uint8_t*)info.dsBm.bmBits, info.dsBm.bmWidthBytes);
 
     String32 fileName;
-    fileName.format("bench %s.bmp", name());
+    fileName.set(StubAscii8("bench "));
+    fileName.append(StubAscii8(name()));
+    fileName.append(StubAscii8(".bmp"));
     fim.writeFile(fileName);
   }
 
@@ -371,6 +403,47 @@ struct BenchmarkModule_GDI_FillRect : public BenchmarkModule_GDI
 };
 
 // ============================================================================
+// [BenchmarkModule_GDI_FillRound]
+// ============================================================================
+
+struct BenchmarkModule_GDI_FillRound : public BenchmarkModule_GDI
+{
+  BenchmarkModule_GDI_FillRound(int w, int h) :
+    BenchmarkModule_GDI(w, h)
+  {
+  }
+
+  virtual void doBenchmark(int quantity)
+  {
+    HDC dc = CreateCompatibleDC(NULL);
+    SelectObject(dc, im);
+    {
+      Gdiplus::Graphics gr(dc);
+      gr.SetSmoothingMode(Gdiplus::SmoothingModeHighQuality);
+
+      for (int a = 0; a < quantity; a++)
+      {
+        Rect r = randRect(128, 128);
+        int d = 8;
+        Gdiplus::Color c(randColor());
+        Gdiplus::SolidBrush br(c);
+
+        Gdiplus::GraphicsPath path;
+		    path.AddArc(r.x(), r.y(), d, d, 180, 90);
+		    path.AddArc(r.x() + r.width() - d, r.y(), d, d, 270, 90);
+		    path.AddArc(r.x() + r.width() - d, r.y() + r.height() - d, d, d, 0, 90);
+		    path.AddArc(r.x(), r.y() + r.height() - d, d, d, 90, 90);
+        path.AddLine(r.x(), r.y() + r.height() - d, r.x(), r.y() + d/2);
+        gr.FillPath((Gdiplus::Brush*)&br, &path);
+      }
+    }
+    DeleteDC(dc);
+  }
+
+  virtual const char* name() { return "GdiPlus - FillRound"; }
+};
+
+// ============================================================================
 // [BenchmarkModule_GDI_FillPath]
 // ============================================================================
 
@@ -387,22 +460,20 @@ struct BenchmarkModule_GDI_FillPath : public BenchmarkModule_GDI
     SelectObject(dc, im);
     {
       Gdiplus::Graphics gr(dc);
+      gr.SetSmoothingMode(Gdiplus::SmoothingModeHighQuality);
 
       for (int a = 0; a < quantity; a++)
       {
         Gdiplus::GraphicsPath path;
 
-        // 1x MoveTo
-        // 3x CurveTo => 7
-        Gdiplus::PointF curv[7];
+        Gdiplus::PointF lines[7];
         for (int i = 0; i < 7; i++)
         {
-          PointF c0 = randPointF();
-          curv[i].X = c0.x();
-          curv[i].Y = c0.y();
+          PointF p0 = randPointF();
+          lines[i].X = p0.x();
+          lines[i].Y = p0.y();
         }
-        path.StartFigure();
-        path.AddCurve(curv, 7);
+        path.AddLines(lines, 7);
         path.CloseFigure();
 
         Gdiplus::Color c(randColor());
@@ -479,21 +550,29 @@ struct BenchmarkModule_GDI_BlitImage : public BenchmarkModule_GDI
     {
       Gdiplus::Graphics gr(dc);
       Gdiplus::Bitmap* bm[4];
-      bm[0] = new Gdiplus::Bitmap(sprite[0], (HPALETTE)NULL);
-      bm[1] = new Gdiplus::Bitmap(sprite[1], (HPALETTE)NULL);
-      bm[2] = new Gdiplus::Bitmap(sprite[2], (HPALETTE)NULL);
-      bm[3] = new Gdiplus::Bitmap(sprite[3], (HPALETTE)NULL);
 
-      for (int a = 0; a < quantity; a++)
+      int a;
+
+      for (a = 0; a < 4; a++)
+      {
+        bm[a] = new Gdiplus::Bitmap(
+          _sprite[a].width(), 
+          _sprite[a].height(),
+          _sprite[a].stride(),
+          PixelFormat32bppPARGB,
+          (BYTE*)_sprite[a].cFirst());
+      }
+
+      for (a = 0; a < quantity; a++)
       {
         Rect r = randRect(128, 128);
         gr.DrawImage(bm[rand() % 4], r.x(), r.y());
       }
 
-      delete bm[0];
-      delete bm[1];
-      delete bm[2];
-      delete bm[3];
+      for (a = 0; a < 4; a++)
+      {
+        delete bm[a];
+      }
     }
     DeleteDC(dc);
   }
@@ -567,6 +646,90 @@ struct BenchmarkModule_Cairo_FillRect : public BenchmarkModule_Cairo
 };
 
 // ============================================================================
+// [BenchmarkModule_Cairo_FillRound]
+// ============================================================================
+
+struct BenchmarkModule_Cairo_FillRound : public BenchmarkModule_Cairo
+{
+  BenchmarkModule_Cairo_FillRound(int w, int h) :
+    BenchmarkModule_Cairo(w, h)
+  {
+  }
+
+  virtual void doBenchmark(int quantity)
+  {
+    cairo_t* cr = cairo_create(cim);
+
+    for (int a = 0; a < quantity; a++)
+    {
+      Rect r = randRect(128, 128);
+      Rgba c(randColor());
+
+      addRound(cr, r, 8);
+      cairo_set_source_rgba(cr,
+        (double)c.r / 255.0, (double)c.g / 255.0, (double)c.b / 255.0, (double)c.a / 255.0);
+      cairo_fill(cr);
+    }
+
+    cairo_destroy(cr);
+  }
+
+  void addRound(cairo_t* cr, Rect rect, double radius)
+  {
+    double x0 = rect.x();
+    double y0 = rect.y();
+    double rect_width = rect.w();
+    double rect_height = rect.h();
+
+    double x1 = x0 + rect_width;
+    double y1 = y0 + rect_height;
+
+    if (!rect_width || !rect_height)
+        return;
+
+    if (rect_width/2<radius) {
+        if (rect_height/2<radius) {
+            cairo_move_to  (cr, x0, (y0 + y1)/2);
+            cairo_curve_to (cr, x0 ,y0, x0, y0, (x0 + x1)/2, y0);
+            cairo_curve_to (cr, x1, y0, x1, y0, x1, (y0 + y1)/2);
+            cairo_curve_to (cr, x1, y1, x1, y1, (x1 + x0)/2, y1);
+            cairo_curve_to (cr, x0, y1, x0, y1, x0, (y0 + y1)/2);
+        } else {
+            cairo_move_to  (cr, x0, y0 + radius);
+            cairo_curve_to (cr, x0 ,y0, x0, y0, (x0 + x1)/2, y0);
+            cairo_curve_to (cr, x1, y0, x1, y0, x1, y0 + radius);
+            cairo_line_to (cr, x1 , y1 - radius);
+            cairo_curve_to (cr, x1, y1, x1, y1, (x1 + x0)/2, y1);
+            cairo_curve_to (cr, x0, y1, x0, y1, x0, y1- radius);
+        }
+    } else {
+        if (rect_height/2<radius) {
+            cairo_move_to  (cr, x0, (y0 + y1)/2);
+            cairo_curve_to (cr, x0 , y0, x0 , y0, x0 + radius, y0);
+            cairo_line_to (cr, x1 - radius, y0);
+            cairo_curve_to (cr, x1, y0, x1, y0, x1, (y0 + y1)/2);
+            cairo_curve_to (cr, x1, y1, x1, y1, x1 - radius, y1);
+            cairo_line_to (cr, x0 + radius, y1);
+            cairo_curve_to (cr, x0, y1, x0, y1, x0, (y0 + y1)/2);
+        } else {
+            cairo_move_to  (cr, x0, y0 + radius);
+            cairo_curve_to (cr, x0 , y0, x0 , y0, x0 + radius, y0);
+            cairo_line_to (cr, x1 - radius, y0);
+            cairo_curve_to (cr, x1, y0, x1, y0, x1, y0 + radius);
+            cairo_line_to (cr, x1 , y1 - radius);
+            cairo_curve_to (cr, x1, y1, x1, y1, x1 - radius, y1);
+            cairo_line_to (cr, x0 + radius, y1);
+            cairo_curve_to (cr, x0, y1, x0, y1, x0, y1- radius);
+        }
+    }
+    cairo_close_path (cr);
+  }
+
+  virtual const char* name() { return "Cairo - FillRound"; }
+};
+
+
+// ============================================================================
 // [BenchmarkModule_Cairo_FillPath]
 // ============================================================================
 
@@ -581,25 +744,19 @@ struct BenchmarkModule_Cairo_FillPath : public BenchmarkModule_Cairo
   {
     cairo_t* cr = cairo_create(cim);
 
+    cairo_set_fill_rule(cr, CAIRO_FILL_RULE_EVEN_ODD);
+
     for (int a = 0; a < quantity; a++)
     {
-      PointF c0 = randPointF();
-      cairo_move_to(cr, c0.x(), c0.y());
-
-      for (int i = 0; i < 3; i++)
+      for (int i = 0; i < 7; i++)
       {
-        PointF c1 = randPointF();
-        PointF c2 = randPointF();
-
-        cairo_curve_to(cr, 
-          c1.x(),
-          c1.y(),
-          c2.x(),
-          c2.y(),
-          c2.x(),
-          c2.y());
-        c0 = c2;
+        PointF c0 = randPointF();
+        if (i == 0)
+          cairo_move_to(cr, c0.x(), c0.y());
+        else
+          cairo_line_to(cr, c0.x(), c0.y());
       }
+      cairo_close_path(cr);
 
       Rgba c(randColor());
       cairo_set_source_rgba(cr,
@@ -723,6 +880,15 @@ static void benchAll()
     totalFogMT += bench(mod, quantity);
   }
 
+  // Fog - FillRound
+  {
+    BenchmarkModule_Fog_FillRound mod(w, h);
+    mod.setMultithreaded(false);
+    totalFog += bench(mod, quantity);
+    mod.setMultithreaded(true);
+    totalFogMT += bench(mod, quantity);
+  }
+
   // Fog - FillPath
   {
     BenchmarkModule_Fog_FillPath mod(w, h);
@@ -775,6 +941,12 @@ static void benchAll()
     totalGdiPlus += bench(mod, quantity);
   }
 
+  // GdiPlus - FillRound
+  {
+    BenchmarkModule_GDI_FillRound mod(w, h);
+    totalGdiPlus += bench(mod, quantity);
+  }
+
   // GdiPlus - FillPath
   {
     BenchmarkModule_GDI_FillPath mod(w, h);
@@ -796,6 +968,12 @@ static void benchAll()
   // Cairo - FillRect
   {
     BenchmarkModule_Cairo_FillRect mod(w, h);
+    totalCairo += bench(mod, quantity);
+  }
+
+  // Cairo - FillRound
+  {
+    BenchmarkModule_Cairo_FillRound mod(w, h);
     totalCairo += bench(mod, quantity);
   }
 

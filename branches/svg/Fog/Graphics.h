@@ -11,6 +11,32 @@
 #ifndef _FOG_GRAPHICS_H
 #define _FOG_GRAPHICS_H
 
+// [There is only documentation]
+#if defined(_DOXYGEN)
+/*!
+  @defgroup Fog_Graphics Fog/Graphics library API.
+
+  Set of Fog/Graphics library classes and their members.
+*/
+
+/*!
+  @defgroup Fog_Graphics_ImageIO Fog/Graphics ImageIO module API.
+  @ingroup Fog_Graphics
+
+  This module contains classes related to specific ImageIO plugins.
+*/
+
+/*!
+  @defgroup Fog_Graphics_Raster Fog/Graphics Raster module API.
+  @ingroup Fog_Graphics
+
+  Raster module contains very low level functions to perform pixel operations.
+  The raster module is very optimized and functions defined in it all used
+  across many Fog/Graphics library classes. Using these classes in application
+  is not recommended, but on the other side, they will probably stay forever.
+*/
+#endif // _DOXYGEN
+
 // [Fog/Graphics Include Files]
 #include <Fog/Build/Build.h>
 

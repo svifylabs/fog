@@ -11,6 +11,9 @@
 #include <Fog/Build/Build.h>
 #include <Fog/Core/Char.h>
 
+//! @addtogroup Fog_Core
+//! @{
+
 namespace Fog {
 namespace StringUtil {
 
@@ -127,6 +130,8 @@ static FOG_INLINE void copy(uint32_t* dst, const char* src, sysuint_t length)
 #undef __G_SIZE
 
 #undef __G_GENERATE
+
+//! @}
 
 // [Guard]
 #endif // _FOG_CORE_STRINGUTIL_H

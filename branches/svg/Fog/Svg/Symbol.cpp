@@ -69,6 +69,7 @@ IDEAS:
 
 *******************************************************************************/
 
+#include "Symbol.h"
 
 /// creation of an empty Symbol
 Symbol::Symbol() {

@@ -23,6 +23,9 @@
 #include <Fog/UI/Event.h>
 #include <Fog/UI/LayoutItem.h>
 
+//! @addtogroup Fog_UI
+//! @{
+
 namespace Fog {
 
 // ============================================================================
@@ -488,6 +491,8 @@ private:
 };
 
 } // Fog namespace
+
+//! @}
 
 // ============================================================================
 // [Private Widget Iterator used in GUI library]

@@ -14,10 +14,10 @@
 #include <Fog/Core/String.h>
 #include <Fog/Core/TypeInfo.h>
 
-namespace Fog {
-
 //! @addtogroup Fog_Core
 //! @{
+
+namespace Fog {
 
 // ============================================================================
 // [Fog::ValueData]
@@ -148,9 +148,9 @@ struct FOG_API Value
   FOG_DECLARE_D(ValueData)
 };
 
-//! @}
-
 } // Fog namespace
+
+//! @}
 
 // ============================================================================
 // [Fog::TypeInfo<>]

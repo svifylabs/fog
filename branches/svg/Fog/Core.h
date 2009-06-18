@@ -15,7 +15,7 @@
 #if defined(_DOXYGEN)
 
 /*!
-  @mainpage Core Library Documentation
+  @mainpage Fog Library Documentation
 
   @section Main_Page_Intro Introduction
 
@@ -28,20 +28,26 @@
 */
 
 /*!
-  @defgroup Core_CAPI Core library C API
+  @defgroup Fog_Core Fog/Core library API.
 
-  Set of Core functions compatible with C calling convention.
+  Set of Fog/Core library classes and their members.
 */
 
 /*!
-  @defgroup Core Core library C++ API
-
-  Set of Core classes and their members.
+  @defgroup Fog_Core_Detail Fog/Core library implementation details.
+  @ingroup Fog_Core
 */
 
 /*!
-  @defgroup Core_Macros Core macros
-  @ingroup Core
+  @defgroup Fog_Core_CAPI Fog/Core library C API.
+  @ingroup Fog_Core
+
+  Set of Fog/Core functions compatible with C calling convention.
+*/
+
+/*!
+  @defgroup Fog_Core_Macros Fog/Core macros.
+  @ingroup Fog_Core
 
   Very low level macros, but needed for compiling Core library and
   applications.

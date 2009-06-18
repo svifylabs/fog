@@ -15,6 +15,9 @@
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/Palette.h>
 
+//! @addtogroup Fog_Graphics
+//! @{
+
 namespace Fog {
 namespace ImageIO {
 
@@ -384,6 +387,8 @@ protected:
 
 } // ImageIO namespace
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_GRAPHICS_IMAGEIO_H

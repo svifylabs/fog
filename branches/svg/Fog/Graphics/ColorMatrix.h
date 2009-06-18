@@ -19,6 +19,9 @@
 #include <Fog/Core/Constants.h>
 #include <Fog/Graphics/Constants.h>
 
+//! @addtogroup Fog_Graphics
+//! @{
+
 namespace Fog {
 
 // ============================================================================
@@ -406,6 +409,8 @@ private:
 };
 
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_GRAPHICS_COLORMATRIX_H

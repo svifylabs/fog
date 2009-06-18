@@ -11,6 +11,9 @@
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Vector.h>
 
+//! @addtogroup Fog_Graphics
+//! @{
+
 namespace Fog {
 
 // ============================================================================
@@ -18,6 +21,7 @@ namespace Fog {
 // ============================================================================
 
 #include <Fog/Core/Pack.h>
+//! @brief Stores 32 bit RGBA color entity (8 bits for each channel).
 struct FOG_PACKED Rgba
 {
   // [Enums]
@@ -207,6 +211,7 @@ struct FOG_PACKED Rgba
 // ============================================================================
 
 #include <Fog/Core/Pack.h>
+//! @brief Stores 64 bit RGBA entity (16 bits for each channel).
 struct Rgba64
 {
   // [Enums]
@@ -372,6 +377,8 @@ struct Rgba64
 #include <Fog/Core/Unpack.h>
 
 } // Fog namespace
+
+//! @}
 
 FOG_DECLARE_TYPEINFO(Fog::Rgba, Fog::PrimitiveType)
 FOG_DECLARE_TYPEINFO(Fog::Rgba64, Fog::PrimitiveType)

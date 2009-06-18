@@ -10,12 +10,16 @@
 // [Dependencies]
 #include <Fog/Build/Build.h>
 
+//! @addtogroup Fog_UI
+//! @{
+
 // ============================================================================
 // [Error]
 // ============================================================================
 
 namespace Error {
 
+//! @brief Fog/UI library error codes.
 enum UIError 
 {
   // [Errors Range]
@@ -40,6 +44,8 @@ enum UIError
 };
 
 } // Error namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_UI_ERROR_H

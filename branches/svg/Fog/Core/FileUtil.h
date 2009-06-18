@@ -10,6 +10,9 @@
 // [Dependencies]
 #include <Fog/Core/String.h>
 
+//! @addtogroup Fog_Core
+//! @{
+
 namespace Fog {
 namespace FileUtil {
 

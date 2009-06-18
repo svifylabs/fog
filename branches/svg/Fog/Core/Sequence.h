@@ -35,6 +35,9 @@ template<typename T> struct Sequence;
 // [Fog::SequenceAPI]
 // ============================================================================
 
+//! @addtogroup Fog_Core_Detail
+//! @{
+
 struct FOG_API SequenceAPI_Base
 {
   // [Data Functions]
@@ -300,6 +303,11 @@ struct FOG_HIDDEN SequenceUntyped
   FOG_INLINE bool isEmpty() const { return _d->length == 0; }
 };
 
+//! @}
+
+//! @addtogroup Fog_Core
+//! @{
+
 // ===========================================================================
 // [Fog::Sequence<T>]
 // ===========================================================================
@@ -502,6 +510,8 @@ struct Sequence
     }
   };
 };
+
+//! @}
 
 } // Fog namespace
 

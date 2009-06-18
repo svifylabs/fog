@@ -13,6 +13,9 @@
 #include <Fog/Core/String.h>
 #include <Fog/Core/Vector.h>
 
+//! @addtogroup Fog_Xml
+//! @{
+
 namespace Fog {
 
 // ============================================================================
@@ -29,9 +32,6 @@ struct XmlProcessingInstruction;
 struct XmlReader;
 struct XmlText;
 struct XmlWriter;
-
-//! @addtogroup Xml
-//! @{
 
 // ============================================================================
 // [Fog::XmlString]
@@ -514,9 +514,9 @@ private:
   FOG_DISABLE_COPY(XmlDocument)
 };
 
-//! @}
-
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_XML_DOM_H

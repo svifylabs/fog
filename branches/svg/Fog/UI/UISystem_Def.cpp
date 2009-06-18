@@ -744,7 +744,7 @@ void UISystemDefault::doUpdateWindow(UIWindow* window)
       TemporaryRegion<1>(Rect(0, 0, top->width(), top->height())),
       true,
       true);
-    top->onEvent(&e);
+    top->sendEvent(&e);
 
     uflags |=
       Widget::UFlagUpdateChild    ;
@@ -888,7 +888,7 @@ __pushed:
           // FIXME: Repaint caret repaints whole control
           if ((childRec.uflags & (Widget::UFlagRepaintWidget | Widget::UFlagRepaintCaret)) != 0)
           {
-            child->onEvent(&e);
+            child->sendEvent(&e);
             //blitFull = true;
             if (!parentRec.painted) blitRegion.unite(rtmp1);
           }

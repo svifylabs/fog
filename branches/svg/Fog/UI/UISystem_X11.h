@@ -25,6 +25,9 @@
 #include <Fog/UI/UISystem_Def.h>
 #include <Fog/UI/Xlib.h>
 
+//! @addtogroup Fog_UI_X11
+//! @{
+
 namespace Fog {
 
 // ============================================================================
@@ -557,6 +560,8 @@ struct FOG_UISYSTEM_X11_API EventLoopX11 : public EventLoop
 };
 
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_UI_UISYSTEM_X11_H

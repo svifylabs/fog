@@ -1,6 +1,6 @@
 // [Fog/Core Library - C++ API]
 //
-// [Licence] 
+// [Licence]
 // MIT, See COPYING file in package
 
 #if defined(_MSC_VER) && !defined(_CRT_SECURE_NO_WARNINGS)
@@ -112,8 +112,8 @@ FOG_CAPI_DECLARE void FOG_NO_RETURN fog_assertion(const char* file, int line, co
   fog_stderr_msg(NULL, NULL, "Assertion failed at %s, line %d\n", file, line);
   if (msg) fog_stderr_msg(NULL, NULL, "%s\n", msg);
 
-  //fog_failed = 1;
-  //exit(EXIT_FAILURE);
+  fog_failed = 1;
+  exit(EXIT_FAILURE);
 }
 
 FOG_CAPI_DECLARE void FOG_NO_RETURN fog_fail(const char* format, ...)
@@ -347,7 +347,7 @@ FOG_CAPI_DECLARE void FOG_NO_RETURN fog_out_of_memory_fatal()
 }
 
 FOG_CAPI_DECLARE void FOG_NO_RETURN fog_out_of_memory_fatal_format(
-  const char* namespaceStr, 
+  const char* namespaceStr,
   const char* methodStr,
   const char* format, ...)
 {
@@ -359,7 +359,7 @@ FOG_CAPI_DECLARE void FOG_NO_RETURN fog_out_of_memory_fatal_format(
   fog_stdxxx_vmsg(fog_stderr, namespaceStr, methodStr, format, ap);
 
   va_end(ap);
-  
+
   fog_fail("");
 }
 
