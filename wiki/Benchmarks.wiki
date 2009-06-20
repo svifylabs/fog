@@ -23,7 +23,7 @@ The tests are usually done to perform 100.000 operations and result is time in [
 In the future there will be probably more tests. Current tests were designed to tune Fog library, not to compare with others (this is also reason for gradient fills, image blitting and other tests).
 
 =Benchmark Results=
-
+Summary could be found in [BenchmarkSummaryTable Summary Table]
 ==Intel Quad Q6600 4x2.4GHz, 8GB RAM, Gentoo Linux 64-bit (dev-cpu)==
 
 {{{
