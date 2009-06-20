@@ -1,0 +1,39 @@
+#summary Summary table of the benchmarks on different systems
+
+= Benchmark Summary Table =
+
+|| *Fog*          ||Q66 L 64|| 
+|| FillRect       ||    2.1 || 
+|| FillRound      ||    4.1 || 
+|| FillPath       ||   24.7 || 
+|| LinearGradient ||    2.3 || 
+|| RadialGradient ||    6.3 || 
+|| BlitImage      ||    3.9 || 
+
+|| *Fog (mt)*     ||Q66 L 64||  
+|| FillRect       ||   0.7  || 
+|| FillRound      ||   3.1  || 
+|| FillPath       ||  16.9  || 
+|| LinearGradient ||   0.7  || 
+|| RadialGradient ||   1.6  || 
+|| BlitImage      ||   1.2  || 
+
+|| *Cairo*        ||Q66 L 64|| 
+|| FillRect       ||   2.2  || 
+|| FillRound      ||  12.1  || 
+|| FillPath       ||  52.4  || 
+|| LinearGradient ||  24.2  || 
+|| RadialGradient || 137.3  || 
+|| BlitImage      ||   4.1  || 
+
+Summary:
+Fog        - 43634.335 [ms]
+Fog (mt)   - 24222.686 [ms]
+Cairo      - 232268.452 [ms]
+
+= Details =
+
+Add your content here.  Format your content with:
+  * Text in *bold* or _italic_
+  * Headings, paragraphs, and lists
+  * Automatic links to other wiki pages
