@@ -2894,6 +2894,7 @@ static uint8_t* FOG_FASTCALL pattern_conical_gradient_fetch(
   PatternContext* ctx,
   uint8_t* dst, int x, int y, int w)
 {
+
   FOG_ASSERT(w);
 
   uint8_t* dstCur = dst;
@@ -2919,6 +2920,70 @@ static uint8_t* FOG_FASTCALL pattern_conical_gradient_fetch(
   } while (--w);
 
   return dst;
+/*
+  FOG_ASSERT(w);
+
+  uint8_t* dstCur = dst;
+
+  const uint32_t* colors = (const uint32_t*)ctx->radialGradient.colors;
+  sysint_t colorsLength = ctx->radialGradient.colorsLength;
+
+  int index;
+
+  double dx = (double)x - ctx->conicalGradient.dx;
+  double dy = (double)y - ctx->conicalGradient.dy;
+  double scale = (double)colorsLength / (M_PI * 2.0);
+  double add = ctx->conicalGradient.angle;
+  if (add < M_PI) add += M_PI * 2.0;
+
+  double angle;
+  double ainc;
+  int i;
+ 
+reconfigure:
+  if (dx < 0.0)
+  {
+    double stop;
+
+    angle = atan2(dy, dx);
+    stop = atan2(dy, -0.0000001);
+    ainc = (stop - angle) / (-dx);
+
+    i = (int)-dx;
+    if (i < 1) i = 1;
+    if (i > w) i = w;
+  }
+  else
+  {
+    double stop;
+
+    angle = atan2(dy, 0.0000001);
+    stop = atan2(dy, dx + (double)w);
+    ainc = (stop - angle) / (dx + (double)w);
+    angle += ainc * dx;
+
+    i = w;
+  }
+
+  if (i > 16) i = 16;
+  w -= i;
+  dx += (double)i;
+  angle += add;
+
+  do {
+    index = (int)(angle * scale);
+    if (index >= colorsLength) index -= colorsLength;
+
+    ((uint32_t*)dstCur)[0] = colors[index];
+    dstCur += 4;
+
+    angle += ainc;
+  } while (--i);
+  
+  if (w) goto reconfigure;
+
+  return dst;
+*/
 }
 
 static err_t FOG_FASTCALL pattern_conical_gradient_init(

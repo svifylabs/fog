@@ -147,6 +147,7 @@ __convBaseN_32bit:
   // write result and it's length back to args
   out->result = resultCur;
   out->length = (sysuint_t)(resultEnd - resultCur);
+  out->negative = false;
 }
 
 } // StringUtil namespace
