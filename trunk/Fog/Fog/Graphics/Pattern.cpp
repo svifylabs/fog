@@ -284,6 +284,14 @@ err_t Pattern::setGradientStops(const GradientStops& stops)
   return Error::Ok;
 }
 
+err_t Pattern::resetGradientStops()
+{
+  if (!isGradient()) return Error::InvalidFunction;
+
+  _d->obj.gradientStops->free();
+  return Error::Ok;
+}
+
 err_t Pattern::addGradientStop(const GradientStop& stop)
 {
   if (!isGradient()) return Error::InvalidFunction;

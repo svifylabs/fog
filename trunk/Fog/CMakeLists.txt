@@ -746,7 +746,7 @@ EndForEach(i)
 
 # Build test
 If(TEST_BUILD)
-  Add_Executable(test test/test.cpp)
+  Add_Executable(test WIN32 test/test.cpp)
   Target_Link_Libraries(test Fog ${FOG_LIBRARIES})
 EndIf(TEST_BUILD)
 

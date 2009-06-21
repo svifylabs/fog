@@ -401,7 +401,8 @@ void Object::postEvent(Event* e)
 
 void Object::postEvent(uint32_t code)
 {
-  postEvent(new Event(code, 0));
+  Event* e = new(std::nothrow) Event(code, 0);
+  if (e) postEvent(e);
 }
 
 void Object::sendEvent(Event* e)
@@ -425,7 +426,7 @@ void Object::sendEventById(uint32_t code)
 // event handlers
 
 // onEvent is normally defined by fog_event_begin() and fog_event_end() macro,
-// but Fog::Object is exception
+// but Fog::Object is exception.
 void Object::onEvent(Event* e)
 {
   switch (e->code())

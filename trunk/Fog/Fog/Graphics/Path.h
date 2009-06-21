@@ -19,6 +19,12 @@
 namespace Fog {
 
 // ============================================================================
+// [Forward Declarations]
+// ============================================================================
+
+struct AffineMatrix;
+
+// ============================================================================
 // [Fog::Path]
 // ============================================================================
 
@@ -263,12 +269,15 @@ struct FOG_API Path
 
   err_t scale(double sx, double sy, bool keepStartPos = false);
 
+  err_t applyMatrix(const AffineMatrix& matrix);
+
   // [Complex]
 
   err_t addRect(const RectF& r);
   err_t addLineTo(const PointF* pts, sysuint_t count);
   err_t addEllipse(const PointF& cp, const PointF& r);
   err_t addArc(const PointF& cp, const PointF& r, double start, double sweep);
+  err_t addPath(const Path& path);
 
   // [Inlines]
 
