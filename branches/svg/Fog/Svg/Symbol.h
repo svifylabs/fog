@@ -13,6 +13,12 @@
 #ifndef SYMBOL_H_INCLUDED
 #define SYMBOL_H_INCLUDED
 
+#include <Fog/Core.h>
+#include <Fog/Graphics.h>
+#include <Fog/UI.h>
+#include <Fog/Xml.h>
+using namespace Fog;
+
 typedef enum SymbolCommand_e {
 	SC_endOfSymbol = 0,
 
@@ -50,20 +56,20 @@ typedef enum SymbolCommand_e {
 } SymbolCommand;
 
 
-
+typedef String32 String;
 
 class Symbol {
 
 protected:
 public:
-    string		   name;
+    String	   name;
     SymbolCommand* cmd;
     int            cmd_size;
     double*        data;
     int            data_size;
     double         x, y, w, h,	// bounding box
 				   cx, cy;		// center of symbol
-    agg::trans_affine tfm;
+    AffineMatrix tfm;
 
 public:
     Symbol();
@@ -74,7 +80,7 @@ public:
     virtual ~Symbol();
     virtual void clear();
 
-    virtual void draw(Graphics& g);
+    virtual void draw(Painter& g);
 	virtual void debug();
 
     virtual void move(double x, double y); // relative move
@@ -85,8 +91,8 @@ public:
 
 	virtual long store(unsigned char* buff, long buffsize, long begin);
 
-    virtual char* strname();
-    virtual void strname(char *n);
+    virtual String strname();
+    virtual void strname(String n);
 
 private:
 	virtual void internal_minmax();

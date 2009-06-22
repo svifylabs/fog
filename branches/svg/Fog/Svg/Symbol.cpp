@@ -142,18 +142,18 @@ void Symbol::clear() {
         free(cmd);
     if (data!=0)
         free(data);
-	name = "";
+	name = StubAscii8("");
 }
 
 /// return the name of the symbol
-char* Symbol::strname()
+String Symbol::strname()
 {
-    return strdup(name.c_str());
+    return name;
 }
 
 /// set the name of the symbol
 void Symbol::strname(
-	char *n		// the new name of the symbol
+	String n		// the new name of the symbol
 ) {
     name = n;
 }
@@ -162,10 +162,12 @@ void Symbol::strname(
 /// TODO: finish me
 void Symbol::debug()
 {
+/*
 	logger.debug("DUMP Symbol @%08x",(void*)this);
 	for (int i=0; i<data_size; i++) {
 		logger.debug("    Data [%2i]: %.0f",i,data[i]);
 	}
+*/
 }
 
 /// Relative move the symbol (ie nudge the symbol around)
@@ -242,10 +244,11 @@ void Symbol::fitin(
 
 
 
-
+#include "agg_math_stroke.h"
+using namespace agg;
 
 // destructively set transformation so you have to store it before drawing a symbol.
-void Symbol::draw(Graphics& g) {
+void Symbol::draw(Painter& g) {
 
     SymbolCommand* sym = cmd;
     double*        ptr = data;
@@ -257,23 +260,24 @@ void Symbol::draw(Graphics& g) {
     while(goon) {
         switch(*sym++) {
         case SC_endOfSymbol:       goon=false; break;
-        case SC_noFill:            g.noFill(); break;
-        case SC_fillColor:         g.fillColor(*(Graphics::Color*)ptr++); break;
-        case SC_fillColorIndex:    g.fillColorIndex(*(unsigned*)ptr++); break;
+//        case SC_noFill:            g.noFill(); break;
+//        case SC_fillColor:         g.fillColor(*(Graphics::Color*)ptr++); break;
+//        case SC_fillColorIndex:    g.fillColorIndex(*(unsigned*)ptr++); break;
 
-        case SC_lineColor:         g.lineColor(*(Graphics::Color*)ptr++); break;
-        case SC_lineColorIndex:    g.lineColorIndex(*(unsigned*)ptr++); break;
-        case SC_noLine:            g.noLine(); break;
+//        case SC_lineColor:         g.lineColor(*(Graphics::Color*)ptr++); break;
+//        case SC_lineColorIndex:    g.lineColorIndex(*(unsigned*)ptr++); break;
+//        case SC_noLine:            g.noLine(); break;
 
-        case SC_lineWidth:         g.lineWidth(*ptr++); break;
-        case SC_lineCap_Butt:      g.lineCap(Graphics::CapButt); break;
-        case SC_lineCap_Square:    g.lineCap(Graphics::CapSquare); break;
-        case SC_lineCap_Round:     g.lineCap(Graphics::CapRound); break;
-        case SC_lineJoin_Miter:    g.lineJoin(Graphics::JoinMiter); break;
-        case SC_lineJoin_Round:    g.lineJoin(Graphics::JoinRound); break;
-        case SC_lineJoin_Bevel:    g.lineJoin(Graphics::JoinBevel); break;
-        case SC_fillEvenOdd_true:  g.fillEvenOdd(true); break;
-        case SC_fillEvenOdd_false: g.fillEvenOdd(false); break;
+        case SC_lineWidth:         g.setLineWidth(*ptr++); break;
+        /* FIXME: THIS IS BUTT UGLY, use agg_math_stroke.h enums instead */
+        case SC_lineCap_Butt:      g.setLineCap(0); break;
+        case SC_lineCap_Square:    g.setLineCap(1); break;
+        case SC_lineCap_Round:     g.setLineCap(2); break;
+        case SC_lineJoin_Miter:    g.setLineJoin(0); break;
+        case SC_lineJoin_Round:    g.setLineJoin(2); break;
+        case SC_lineJoin_Bevel:    g.setLineJoin(3); break;
+//        case SC_fillEvenOdd_true:  g.fillEvenOdd(true); break;
+//        case SC_fillEvenOdd_false: g.fillEvenOdd(false); break;
 
         case SC_moveTo:            g.moveTo(*ptr++,*ptr++); break;
         case SC_moveRel:           g.moveRel(*ptr++,*ptr++); break;
