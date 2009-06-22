@@ -11,12 +11,6 @@ Set(FOG_LIBRARIES "")
 Set(FOG_AGG_DIR "${FOG_DIR}/thirdparty/agg")
 Set(FOG_AGG_CONTRIB_DIR "${FOG_DIR}/thirdparty/agg-contrib")
 
-#Set(ASMJIT_DIR "${FOG_DIR}/thirdparty/AsmJit")
-#Set(ASMJIT_BUILD_LIBRARY TRUE)
-
-#Set(BLITJIT_DIR "${FOG_DIR}/thirdparty/BlitJit")
-#Set(BLITJIT_BUILD_LIBRARY TRUE)
-
 Set(TEST_BUILD TRUE)
 Set(SVG_TEST_BUILD TRUE)
 
@@ -24,19 +18,6 @@ Set(SVG_TEST_BUILD TRUE)
 # [3rdparty Libraries]
 # =============================================================================
 
-#Add_Definitions(-DASMJIT_API= -DASMJIT_HIDDEN=)
-#Add_Definitions(-DBLITJIT_API= -DBLITJIT_HIDDEN=)
-
-#If(ASMJIT_BUILD_LIBRARY)
-#  Include(${ASMJIT_DIR}/CMakeLists.txt NO_POLICY_SCOPE)
-#EndIf(ASMJIT_BUILD_LIBRARY)
-
-#If(BLITJIT_BUILD_LIBRARY)
-#  Include(${BLITJIT_DIR}/CMakeLists.txt NO_POLICY_SCOPE)
-#EndIf(BLITJIT_BUILD_LIBRARY)
-
-#SOURCE_GROUP(3rdparty_AsmJit FILES ${ASMJIT_SOURCES} ${ASMJIT_HEADERS})
-#SOURCE_GROUP(3rdparty_BlitJit FILES ${BLITJIT_SOURCES} ${BLITJIT_HEADERS})
 # =============================================================================
 # [Include cmake helpers we need]
 # =============================================================================
@@ -746,10 +727,6 @@ Add_Library(Fog SHARED
   ${FOG_HEADERS}
   ${FOG_AGG_SOURCES}
   ${FOG_AGG_HEADERS}
-#  ${ASMJIT_SOURCES}
-#  ${ASMJIT_HEADERS}
-#  ${BLITJIT_SOURCES}
-#  ${BLITJIT_HEADERS}
 )
 Target_Link_Libraries(Fog ${FOG_LIBRARIES})
 
@@ -766,7 +743,7 @@ EndForEach(i)
 
 # Build test
 If(TEST_BUILD)
-  Add_Executable(test test/test.cpp)
+  Add_Executable(test WIN32 test/test.cpp)
   Target_Link_Libraries(test Fog ${FOG_LIBRARIES})
 EndIf(TEST_BUILD)
 

@@ -162,6 +162,7 @@ struct FOG_API Pattern
 
   err_t setGradientRadius(double r);
   err_t setGradientStops(const GradientStops& stops);
+  err_t resetGradientStops();
   err_t addGradientStop(const GradientStop& stop);
 
   // [Operator Overload]

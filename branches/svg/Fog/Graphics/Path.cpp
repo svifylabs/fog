@@ -14,6 +14,7 @@
 #include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Std.h>
+#include <Fog/Graphics/AffineMatrix.h>
 #include <Fog/Graphics/Path.h>
 
 // [Antigrain]
@@ -679,6 +680,24 @@ err_t Path::scale(double sx, double sy, bool keepStartPos)
   return Error::Ok;
 }
 
+err_t Path::applyMatrix(const AffineMatrix& matrix)
+{
+  if (!_d->length) return Error::Ok;
+
+  err_t err = detach();
+  if (err) return err;
+
+  sysuint_t i, len = _d->length;
+  Vertex* v = _d->data;
+
+  for (i = 0; i < len; i++)
+  {
+    if (v[i].cmd.isVertex()) matrix.transform(&v[i].x, &v[i].y);
+  }
+
+  return Error::Ok;
+}
+
 err_t Path::addRect(const RectF& r)
 {
   Vertex* v = _add(5);
@@ -727,6 +746,26 @@ err_t Path::addArc(const PointF& cp, const PointF& r, double start, double sweep
 {
   agg::bezier_arc arc(cp.x(), cp.y(), r.x(), r.y(), start, sweep);
   return aggJoinPath(this, arc);
+}
+
+err_t Path::addPath(const Path& path)
+{
+  sysuint_t count = path.length();
+  if (count == 0) return Error::Ok;
+
+  Vertex* v = _add(count);
+  if (!v) return Error::OutOfMemory;
+
+  const Vertex* src = path.cData();
+
+  for (sysuint_t i = 0; i < count; i++, v++, src++)
+  {
+    v->cmd = src->cmd;
+    v->x   = src->x;
+    v->y   = src->y;
+  }
+
+  return Error::Ok;
 }
 
 Path& Path::operator=(const Path& other)
