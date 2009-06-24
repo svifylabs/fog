@@ -60,7 +60,7 @@ void MyWindow::onPaint(PaintEvent* e)
   p->clear();
 
   Path path;
-  //path.addPie(RectF(w/2.0 - 100.0, h/2.0 - 100.0, 200.0, 200.0), M_PI/4, M_PI*1.5);
+  path.addPie(RectF(w/2.0 - 100.0, h/2.0 - 100.0, 200.0, 200.0), M_PI/4, M_PI*1.5);
   path.addRound(RectF(10.5, 10.5, 300, 300), PointF(50, 50));
 
   Pattern pat;
@@ -77,6 +77,7 @@ void MyWindow::onPaint(PaintEvent* e)
   p->setSource(pat);
   p->drawPath(path);
 }
+
 // ============================================================================
 // [MAIN]
 // ============================================================================

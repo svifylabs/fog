@@ -115,9 +115,20 @@ enum LineJoin
   LineJoinMiter = 0,
   LineJoinMiterRevert,
   LineJoinRound,
-  LineJoinBevel
+  LineJoinBevel,
+  LineJoinMiterRound
 };
 
+//! @brief Inner join.
+enum InnerJoin
+{
+  InnerJoinBevel = 0,
+  InnerJoinMiter,
+  InnerJoinJag,
+  InnerJoinRound
+};
+
+//! @brief Viewport option.
 enum ViewportOption
 {
   ViewAnisotropic,
@@ -135,10 +146,10 @@ enum ViewportOption
 //! @brief Text alignment
 enum TextAlign
 {
-  TextAlignLeft        = 0x1,
-  TextAlignRight       = 0x2,
-  TextAlignHCenter     = 0x3,
-  TextAlignHMask       = 0x3,
+  TextAlignLeft        = 0x01,
+  TextAlignRight       = 0x02,
+  TextAlignHCenter     = 0x03,
+  TextAlignHMask       = 0x03,
 
   TextAlignTop         = 0x10,
   TextAlignBottom      = 0x20,
