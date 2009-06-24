@@ -157,9 +157,6 @@ struct FOG_API PainterEngine
   virtual void drawRect(const RectF& r) = 0;
   virtual void drawRects(const RectF* r, sysuint_t count) = 0;
   virtual void drawRound(const RectF& r, const PointF& radius) = 0;
-  virtual void drawRound(const RectF& r, 
-    const PointF& tlr, const PointF& trr,
-    const PointF& blr, const PointF& brr) = 0;
   virtual void drawEllipse(const PointF& cp, const PointF& r) = 0;
   virtual void drawArc(const PointF& cp, const PointF& r, double start, double sweep) = 0;
   virtual void drawPath(const Path& path) = 0;
@@ -168,9 +165,6 @@ struct FOG_API PainterEngine
   virtual void fillRect(const RectF& r) = 0;
   virtual void fillRects(const RectF* r, sysuint_t count) = 0;
   virtual void fillRound(const RectF& r, const PointF& radius) = 0;
-  virtual void fillRound(const RectF& r,
-    const PointF& tlr, const PointF& trr,
-    const PointF& blr, const PointF& brr) = 0;
   virtual void fillEllipse(const PointF& cp, const PointF& r) = 0;
   virtual void fillArc(const PointF& cp, const PointF& r, double start, double sweep) = 0;
   virtual void fillPath(const Path& path) = 0;
@@ -357,9 +351,6 @@ struct FOG_API Painter
   FOG_INLINE void drawRect(const RectF& r) { _engine->drawRect(r); }
   FOG_INLINE void drawRects(const RectF* r, sysuint_t count) { _engine->drawRects(r, count); }
   FOG_INLINE void drawRound(const RectF& r, const PointF& radius) { _engine->drawRound(r, radius); }
-  FOG_INLINE void drawRound(const RectF& r, 
-    const PointF& tlr, const PointF& trr,
-    const PointF& blr, const PointF& brr) { _engine->drawRound(r, tlr, trr, blr, brr); }
   FOG_INLINE void drawEllipse(const PointF& cp, const PointF& r) { _engine->drawEllipse(cp, r); }
   FOG_INLINE void drawArc(const PointF& cp, const PointF& r, double start, double sweep) { _engine->drawArc(cp, r, start, sweep); }
   FOG_INLINE void drawPath(const Path& path) { _engine->drawPath(path); }
@@ -368,9 +359,6 @@ struct FOG_API Painter
   FOG_INLINE void fillRect(const RectF& r) { _engine->fillRect(r); }
   FOG_INLINE void fillRects(const RectF* r, sysuint_t count) { _engine->fillRects(r, count); }
   FOG_INLINE void fillRound(const RectF& r, const PointF& radius) { _engine->fillRound(r, radius); }
-  FOG_INLINE void fillRound(const RectF& r,
-    const PointF& tlr, const PointF& trr,
-    const PointF& blr, const PointF& brr) { _engine->fillRound(r, tlr, trr, blr, brr); }
   FOG_INLINE void fillEllipse(const PointF& cp, const PointF& r) { _engine->fillEllipse(cp, r); }
   FOG_INLINE void fillArc(const PointF& cp, const PointF& r, double start, double sweep) { _engine->fillArc(cp, r, start, sweep); }
   FOG_INLINE void fillPath(const Path& path) { _engine->fillPath(path); }

@@ -35,8 +35,6 @@
 // [AntiGrain]
 #include "agg_alpha_mask_u8.h"
 #include "agg_basics.h"
-#include "agg_rendering_buffer.h"
-#include "agg_rounded_rect.h"
 #include "agg_scanline_p.h"
 #include "agg_scanline_u.h"
 #include "agg_scanline_bin.h"
@@ -203,9 +201,6 @@ struct FOG_HIDDEN NullEngine : public PainterEngine
   virtual void drawRect(const RectF& r) {}
   virtual void drawRects(const RectF* r, sysuint_t count) {}
   virtual void drawRound(const RectF& r, const PointF& radius) {}
-  virtual void drawRound(const RectF& r, 
-    const PointF& tlr, const PointF& trr,
-    const PointF& blr, const PointF& brr) {}
   virtual void drawEllipse(const PointF& cp, const PointF& r) {}
   virtual void drawArc(const PointF& cp, const PointF& r, double start, double sweep) {}
   virtual void drawPath(const Path& path) {}
@@ -214,9 +209,6 @@ struct FOG_HIDDEN NullEngine : public PainterEngine
   virtual void fillRect(const RectF& r) {}
   virtual void fillRects(const RectF* r, sysuint_t count) {}
   virtual void fillRound(const RectF& r, const PointF& radius) {}
-  virtual void fillRound(const RectF& r,
-    const PointF& tlr, const PointF& trr,
-    const PointF& blr, const PointF& brr) {}
   virtual void fillEllipse(const PointF& cp, const PointF& r) {}
   virtual void fillArc(const PointF& cp, const PointF& r, double start, double sweep) {}
   virtual void fillPath(const Path& path) {}
@@ -964,9 +956,6 @@ struct FOG_HIDDEN RasterEngine : public PainterEngine
   virtual void drawRect(const RectF& r);
   virtual void drawRects(const RectF* r, sysuint_t count);
   virtual void drawRound(const RectF& r, const PointF& radius);
-  virtual void drawRound(const RectF& r, 
-    const PointF& tlr, const PointF& trr,
-    const PointF& blr, const PointF& brr);
   virtual void drawEllipse(const PointF& cp, const PointF& r);
   virtual void drawArc(const PointF& cp, const PointF& r, double start, double sweep);
   virtual void drawPath(const Path& path);
@@ -975,9 +964,6 @@ struct FOG_HIDDEN RasterEngine : public PainterEngine
   virtual void fillRect(const RectF& r);
   virtual void fillRects(const RectF* r, sysuint_t count);
   virtual void fillRound(const RectF& r, const PointF& radius);
-  virtual void fillRound(const RectF& r,
-    const PointF& tlr, const PointF& trr,
-    const PointF& blr, const PointF& brr);
   virtual void fillEllipse(const PointF& cp, const PointF& r);
   virtual void fillArc(const PointF& cp, const PointF& r, double start, double sweep);
   virtual void fillPath(const Path& path);
@@ -1036,7 +1022,7 @@ struct FOG_HIDDEN RasterEngine : public PainterEngine
 
   void _serializeGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip);
   void _serializeBoxes(const Box* box, sysuint_t count);
-  void _serializePath(const Path& path, bool curves, bool stroke);
+  void _serializePath(const Path& path, bool stroke);
   void _serializeImage(const Rect& dst, const Image& image, const Rect& src);
 
   RasterEngineCommand* _createCommand();
@@ -1045,7 +1031,7 @@ struct FOG_HIDDEN RasterEngine : public PainterEngine
 
   // [Rasterizers]
 
-  static bool _rasterizePath(RasterEngineContext* ctx, AggRasterizer& ras, const Path& path, bool curves, bool stroke);
+  static bool _rasterizePath(RasterEngineContext* ctx, AggRasterizer& ras, const Path& path, bool stroke);
 
   // [Renderers - Singlethreaded]
 
@@ -2117,7 +2103,7 @@ void RasterEngine::drawPoint(const PointF& p)
   workPath.clear();
   workPath.moveTo(p);
   workPath.lineTo(p.x(), p.y() + 0.0001);
-  _serializePath(workPath, false, true);
+  _serializePath(workPath, true);
 }
 
 void RasterEngine::drawLine(const PointF& start, const PointF& end)
@@ -2125,7 +2111,7 @@ void RasterEngine::drawLine(const PointF& start, const PointF& end)
   workPath.clear();
   workPath.moveTo(start);
   workPath.lineTo(end);
-  _serializePath(workPath, false, true);
+  _serializePath(workPath, true);
 }
 
 void RasterEngine::drawLine(const PointF* pts, sysuint_t count)
@@ -2138,7 +2124,7 @@ void RasterEngine::drawLine(const PointF* pts, sysuint_t count)
     workPath.lineTo(pts + 1, count - 1);
   else
     workPath.lineTo(pts[0].x(), pts[0].y() + 0.0001);
-  _serializePath(workPath, false, true);
+  _serializePath(workPath, true);
 }
 
 void RasterEngine::drawPolygon(const PointF* pts, sysuint_t count)
@@ -2152,7 +2138,7 @@ void RasterEngine::drawPolygon(const PointF* pts, sysuint_t count)
   else
     workPath.lineTo(pts[0].x(), pts[0].y() + 0.0001);
   workPath.closePolygon();
-  _serializePath(workPath, false, true);
+  _serializePath(workPath, true);
 }
 
 void RasterEngine::drawRect(const RectF& r)
@@ -2161,7 +2147,7 @@ void RasterEngine::drawRect(const RectF& r)
 
   workPath.clear();
   workPath.addRect(r);
-  _serializePath(workPath, false, true);
+  _serializePath(workPath, true);
 }
 
 void RasterEngine::drawRects(const RectF* r, sysuint_t count)
@@ -2170,52 +2156,33 @@ void RasterEngine::drawRects(const RectF* r, sysuint_t count)
 
   workPath.clear();
   workPath.addRects(r, count);
-  _serializePath(workPath, false, true);
+  _serializePath(workPath, true);
 }
 
 void RasterEngine::drawRound(const RectF& r, const PointF& radius)
 {
-  RasterEngine::drawRound(r, radius, radius, radius, radius);
-}
-
-void RasterEngine::drawRound(const RectF& r,
-  const PointF& tlr, const PointF& trr,
-  const PointF& blr, const PointF& brr)
-{
-  if (!r.isValid()) return;
-  agg::rounded_rect rc;
-
-  rc.rect(
-    r.x1(), r.y1(),
-    r.x2(), r.y2());
-  rc.radius(
-    tlr.x(), tlr.y(), trr.x(), trr.y(),
-    blr.x(), blr.y(), brr.x(), brr.y());
-  rc.normalize_radius();
-  rc.approximation_scale(ctx.capsState->transformationsApproxScale);
-
   workPath.clear();
-  concatToPath(workPath, rc, 0);
-  _serializePath(workPath, false, true);
+  workPath.addRound(r, radius);
+  _serializePath(workPath, true);
 }
 
 void RasterEngine::drawEllipse(const PointF& cp, const PointF& r)
 {
   workPath.clear();
   workPath.addEllipse(cp, r);
-  _serializePath(workPath, true, true);
+  _serializePath(workPath, true);
 }
 
 void RasterEngine::drawArc(const PointF& cp, const PointF& r, double start, double sweep)
 {
   workPath.clear();
   workPath.addArc(cp, r, start, sweep);
-  _serializePath(workPath, true, true);
+  _serializePath(workPath, true);
 }
 
 void RasterEngine::drawPath(const Path& path)
 {
-  _serializePath(path, true, true);
+  _serializePath(path, true);
 }
 
 void RasterEngine::fillPolygon(const PointF* pts, sysuint_t count)
@@ -2229,7 +2196,7 @@ void RasterEngine::fillPolygon(const PointF* pts, sysuint_t count)
   else
     workPath.lineTo(pts[0].x(), pts[0].y() + 0.0001);
   workPath.closePolygon();
-  _serializePath(workPath, false, false);
+  _serializePath(workPath, false);
 }
 
 void RasterEngine::fillRect(const RectF& r)
@@ -2238,7 +2205,7 @@ void RasterEngine::fillRect(const RectF& r)
 
   workPath.clear();
   workPath.addRect(r);
-  _serializePath(workPath, false, false);
+  _serializePath(workPath, false);
 }
 
 void RasterEngine::fillRects(const RectF* r, sysuint_t count)
@@ -2247,52 +2214,33 @@ void RasterEngine::fillRects(const RectF* r, sysuint_t count)
 
   workPath.clear();
   workPath.addRects(r, count);
-  _serializePath(workPath, false, false);
+  _serializePath(workPath, false);
 }
 
 void RasterEngine::fillRound(const RectF& r, const PointF& radius)
 {
-  RasterEngine::fillRound(r, radius, radius, radius, radius);
-}
-
-void RasterEngine::fillRound(const RectF& r,
-  const PointF& tlr, const PointF& trr,
-  const PointF& blr, const PointF& brr)
-{
-  if (!r.isValid()) return;
-  agg::rounded_rect rc;
-
-  rc.rect(
-    r.x1(), r.y1(),
-    r.x2(), r.y2());
-  rc.radius(
-    tlr.x(), tlr.y(), trr.x(), trr.y(),
-    blr.x(), blr.y(), brr.x(), brr.y());
-  rc.normalize_radius();
-  rc.approximation_scale(ctx.capsState->transformationsApproxScale);
-
   workPath.clear();
-  concatToPath(workPath, rc, 0);
-  _serializePath(workPath, false, false);
+  workPath.addRound(r, radius);
+  _serializePath(workPath, false);
 }
 
 void RasterEngine::fillEllipse(const PointF& cp, const PointF& r)
 {
   workPath.clear();
   workPath.addEllipse(cp, r);
-  _serializePath(workPath, true, false);
+  _serializePath(workPath, false);
 }
 
 void RasterEngine::fillArc(const PointF& cp, const PointF& r, double start, double sweep)
 {
   workPath.clear();
   workPath.addArc(cp, r, start, sweep);
-  _serializePath(workPath, true, false);
+  _serializePath(workPath, false);
 }
 
 void RasterEngine::fillPath(const Path& path)
 {
-  _serializePath(path, true, false);
+  _serializePath(path, false);
 }
 
 // ============================================================================
@@ -2922,7 +2870,7 @@ static FOG_INLINE int alignToDelta(int y, int offset, int delta)
   return newy < y ? newy + delta : newy;
 }
 
-void RasterEngine::_serializePath(const Path& path, bool curves, bool stroke)
+void RasterEngine::_serializePath(const Path& path, bool stroke)
 {
   // Pattern context must be always set up before _render() methods are called.
   if (!ctx.capsState->isSolidSource && !_getPatternContext()) return;
@@ -2935,7 +2883,7 @@ void RasterEngine::_serializePath(const Path& path, bool curves, bool stroke)
     cmd->path.init();
     cmd->path->ras.gamma(defaultGamma);
 
-    if (_rasterizePath(&ctx, cmd->path->ras, path, curves, stroke))
+    if (_rasterizePath(&ctx, cmd->path->ras, path, stroke))
     {
       _postCommand(cmd);
     }
@@ -2953,7 +2901,7 @@ void RasterEngine::_serializePath(const Path& path, bool curves, bool stroke)
   else
   {
     // Singlethreaded - Render now.
-    if (_rasterizePath(&ctx, ras, path, curves, stroke))
+    if (_rasterizePath(&ctx, ras, path, stroke))
     {
       _renderPath(ras);
     }
@@ -3133,7 +3081,7 @@ void RasterEngine::_postCommand(RasterEngineCommand* cmd)
 
 static bool FOG_FASTCALL AggRasterizePath(
   RasterEngineContext* ctx, AggRasterizer& ras,
-  const Path& path, bool curves, bool stroke)
+  const Path& path, bool stroke)
 {
   RasterEngineClipState* clipState = ctx->clipState;
   RasterEngineCapsState* capsState = ctx->capsState;
@@ -3301,9 +3249,9 @@ static void FOG_INLINE AggRenderPath(
   }
 }
 
-bool RasterEngine::_rasterizePath(RasterEngineContext* ctx, AggRasterizer& ras, const Path& path, bool curves, bool stroke)
+bool RasterEngine::_rasterizePath(RasterEngineContext* ctx, AggRasterizer& ras, const Path& path, bool stroke)
 {
-  return AggRasterizePath(ctx, ras, path, curves, stroke);
+  return AggRasterizePath(ctx, ras, path, stroke);
 }
 
 // ============================================================================

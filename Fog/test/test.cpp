@@ -60,13 +60,21 @@ void MyWindow::onPaint(PaintEvent* e)
   p->clear();
 
   Path path;
-  path.addPie(RectF(w/2.0 - 100.0, h/2.0 - 100.0, 200.0, 200.0), M_PI/4, M_PI*1.5);
-  //path.flatten();
-  //path.stroke(StrokeParams(4.0, 1.0, LineCapButt, LineJoinMiter));
+  //path.addPie(RectF(w/2.0 - 100.0, h/2.0 - 100.0, 200.0, 200.0), M_PI/4, M_PI*1.5);
+  path.addRound(RectF(10.5, 10.5, 300, 300), PointF(50, 50));
 
-  p->setSource(0xFFFFFF00);
+  Pattern pat;
+  pat.setType(Pattern::LinearGradient);
+  pat.setPoints(PointF(10.5, 10.5), PointF(10.5 + 300, 10.5 + 300));
+
+  pat.addGradientStop(GradientStop(0.0, Rgba(0xFFFFFF00)));
+  pat.addGradientStop(GradientStop(1.0, Rgba(0xFFFF0000)));
+  p->setSource(pat);
   p->fillPath(path);
-  p->setSource(0xFF000000);
+
+  pat.addGradientStop(GradientStop(0.0, Rgba(0xFF0000FF)));
+  pat.addGradientStop(GradientStop(1.0, Rgba(0xFF000000)));
+  p->setSource(pat);
   p->drawPath(path);
 }
 // ============================================================================

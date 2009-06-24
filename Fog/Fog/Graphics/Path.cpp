@@ -1047,6 +1047,47 @@ err_t Path::addRects(const RectF* r, sysuint_t count)
   return Error::Ok;
 }
 
+err_t Path::addRound(const RectF& r, const PointF& radius)
+{
+  if (!r.isValid()) return Error::Ok;
+
+  double rw2 = r.w() / 2.0;
+  double rh2 = r.h() / 2.0;
+
+  double rx = fabs(radius.x());
+  double ry = fabs(radius.y());
+
+  if (rx > rw2) rx = rw2;
+  if (ry > rh2) ry = rh2;
+
+  if (rx == 0 || ry == 0)
+    return addRect(r);
+
+  double x1 = r.x();
+  double y1 = r.y();
+  double x2 = r.x() + r.width();
+  double y2 = r.y() + r.height();
+
+  err_t err = Error::Ok;
+
+  err |= moveTo(x1 + rx, y1);
+  err |= lineTo(x2 - rx, y1);
+  err |= arcTo(x2 - rx, y1 + ry, rx, ry, M_PI * 1.5, M_PI * 0.5);
+
+  err |= lineTo(x2, y2 - ry);
+  err |= arcTo(x2 - rx, y2 - ry, rx, ry, M_PI * 0.0, M_PI * 0.5);
+
+  err |= lineTo(x1 + rx, y2);
+  err |= arcTo(x1 + rx, y2 - ry, rx, ry, M_PI * 0.5, M_PI * 0.5);
+
+  err |= lineTo(x1, y1 + ry);
+  err |= arcTo(x1 + rx, y1 + ry, rx, ry, M_PI * 1.0, M_PI * 0.5);
+
+  err |= closePolygon();
+
+  return err;
+}
+
 err_t Path::addEllipse(const RectF& r)
 {
   if (!r.isValid()) return Error::Ok;
@@ -1926,7 +1967,7 @@ err_t Path::strokeTo(Path& dst, const StrokeParams& strokeParams, double approxi
 }
 
 // ============================================================================
-// [Fog::Path - Overloaded Operators]
+// [Fog::Path - Operator Overload]
 // ============================================================================
 
 Path& Path::operator=(const Path& other)
