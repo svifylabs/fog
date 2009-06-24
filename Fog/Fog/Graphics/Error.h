@@ -26,7 +26,9 @@ enum GraphicsError
   _GraphicsErrorStart = 0x00011100,
   _GraphicsErrorLast  = 0x000111FF,
 
-  ImageSizeIsZero = _GraphicsErrorStart,
+  InvalidPath = _GraphicsErrorStart,
+
+  ImageSizeIsZero,
   ImageSizeIsInvalid,
   ImageSizeIsTooLarge,
 
