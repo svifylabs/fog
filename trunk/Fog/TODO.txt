@@ -31,18 +31,14 @@ TODO
 [ ] Painter
     [ ] Text transform
     [ ] Text over path
-    [x] Patterns support
     [ ] Patterns transform
     [ ] Text in path support
-    [x] Line dashes
     [ ] Image scaling
     [ ] Image transform
-    [x] Introduce save() / restore()
     [ ] Introduce setClipPath() / restoreClip()
     [ ] Reduce using of malloc/free in painter. All painter allocations should be pooled to maximize
         performance. Something like zone objects (see AsmJit) can be introduced, because lifetime of
         painter created objects is very short.
-    [ ] Move stroking into path (to be possible to stroke path by path methods and fill it by painter)
 
 [ ] Image
     [D] Add some effects from qimageblitz?
@@ -50,7 +46,6 @@ TODO
     [D] WU-Antialiased line (raster based, fastest possible)
     [D] Fill trapezoid, using rasterizer from pixman with ability to set color for each corner
     [ ] Render text using Font::getGlyphs
-    [x] ColorMatrix transformations
     [ ] Add ColorLUT
         [ ] By color lut the contrast, brightness, threshold and gamma function can be implemented.
     [ ] Scaling
@@ -62,7 +57,7 @@ TODO
     [ ] Draw/Blend/Composite another image  into image
         [ ] Here we can support more blending or raster based operations than in painter.
         [ ] Here we should support scaling
-        [ ] Also same image into image operations
+        [ ] Also same image into image operations (guaranted)
     [ ] Implement scroll().
 
 [ ] Font
@@ -95,16 +90,11 @@ TODO
     [w] Introduce painting with constant alpha (addition to masks)
 
 [ ] ColorMatrix
-    [x] Write ColorMatrix class
-    [x] Add members to Image to apply colormatrix to whole image or only to rectangle part
     [ ] Add possibility to use ColorMatrix in Painter::drawImage().
 
 [ ] Path
-    [ ] Add more methods into path (pie, chord, ...)
-    [ ] Add convertToLines(double scaleFactor)
     [ ] Add fitTo(RectF)
     [ ] Add addText(Font, String32) to path
-    [ ] Add possibility to stroke path
     [ ] What about warp?
 
 [ ] Fresh ideas
