@@ -3204,6 +3204,7 @@ static void FOG_INLINE AggRenderPath(
 
     Raster::SpanCompositeFn span_composite = ctx->raster->span_composite[pctx->format];
     Raster::SpanCompositeMskFn span_composite_a8 = ctx->raster->span_composite_a8[pctx->format];
+    Raster::SpanCompositeMskConstFn span_composite_a8_const = ctx->raster->span_composite_a8_const[pctx->format];
 
     for (; y <= y_end; y += delta, pBase += stride)
     {
@@ -3238,7 +3239,10 @@ static void FOG_INLINE AggRenderPath(
           }
           else
           {
-            // TODO
+            span_composite_a8_const(pCur,
+              pctx->fetch(pctx, pbuf, x, y, len),
+              cover,
+              len);
           }
         }
 
