@@ -93,6 +93,7 @@ TODO
     [ ] Add possibility to use ColorMatrix in Painter::drawImage().
 
 [ ] Path
+    [ ] Port AGG code into Fog and remove dependencies to AntiGrain
     [ ] Add fitTo(RectF)
     [ ] Add addText(Font, String32) to path
     [ ] What about warp?
@@ -105,3 +106,8 @@ TODO
         ImageEffect class that will be able to do any image based transformations.
     [ ] Each effect should contain opacity value that will define blend factor of modified image
         into source image (this can be used by UI animations).
+
+[ ] Optimizations
+    [ ] ColorMatrix specializations (in Raster)
+    [ ] Path SSE2 curve code
+    [ ] Path SSE2 matrix transformations

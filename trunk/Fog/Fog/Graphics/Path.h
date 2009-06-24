@@ -366,6 +366,8 @@ struct FOG_API Path
 
   err_t addRects(const RectF* r, sysuint_t count);
 
+  err_t addRound(const RectF& r, const PointF& radius);
+
   //! @brief Add Closed ellipse into path.
   err_t addEllipse(const RectF& r);
   //! @overload
