@@ -3,6 +3,21 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
+//----------------------------------------------------------------------------
+// Anti-Grain Geometry - Version 2.4
+// Copyright (C) 2002-2005 Maxim Shemanarev (http://www.antigrain.com)
+//
+// Permission to copy, use, modify, sell and distribute this software
+// is granted provided this copyright notice appears in all copies.
+// This software is provided "as is" without express or implied
+// warranty, and with no claim as to its suitability for any purpose.
+//
+//----------------------------------------------------------------------------
+// Contact: mcseem@antigrain.com
+//          mcseemagg@yahoo.com
+//          http://www.antigrain.com
+//----------------------------------------------------------------------------
+
 // [Precompiled headers]
 #ifdef FOG_PRECOMP
 #include FOG_PRECOMP
@@ -104,6 +119,65 @@ done:
 }
 
 // ============================================================================
+// [Helpers]
+// ============================================================================
+
+// Coinciding points maximal distance (Epsilon).
+static const double vertex_dist_epsilon = 1.0e-14;
+
+// See calcIntersection (Epsilon).
+static const double intersection_epsilon = 1.0e-30;
+
+// This epsilon is used to prevent us from adding degenerate curves
+// (converging to a single point).
+// The value isn't very critical. Function arc_to_bezier() has a limit
+// of the sweep_angle. If fabs(sweep_angle) exceeds pi/2 the curve
+// becomes inaccurate. But slight exceeding is quite appropriate.
+static const double bezier_arc_angle_epsilon = 0.01;
+
+static const double curve_distance_epsilon = 1e-30;
+static const double curve_collinearity_epsilon = 1e-30;
+static const double curve_angle_tolerance_epsilon = 0.01;
+
+static FOG_INLINE double calcDistance(
+  double x1, double y1, double x2, double y2)
+{
+  double dx = x2 - x1;
+  double dy = y2 - y1;
+  return sqrt(dx * dx + dy * dy);
+}
+
+static FOG_INLINE double calcSqDistance(
+  double x1, double y1, double x2, double y2)
+{
+  double dx = x2 - x1;
+  double dy = y2 - y1;
+  return dx * dx + dy * dy;
+}
+
+static FOG_INLINE bool calcIntersection(
+  double ax, double ay, double bx, double by,
+  double cx, double cy, double dx, double dy,
+  double* x, double* y)
+{
+  double num = (ay-cy) * (dx-cx) - (ax-cx) * (dy-cy);
+  double den = (bx-ax) * (dy-cy) - (by-ay) * (dx-cx);
+  if (fabs(den) < intersection_epsilon) return false;
+  double r = num / den;
+  *x = ax + r * (bx-ax);
+  *y = ay + r * (by-ay);
+  return true;
+}
+
+static FOG_INLINE double crossProduct(
+  double x1, double y1,
+  double x2, double y2,
+  double x,  double y)
+{
+  return (x - x2) * (y2 - y1) - (y - y2) * (x2 - x1);
+}
+
+// ============================================================================
 // [Fog::Path::Data]
 // ============================================================================
 
@@ -191,13 +265,6 @@ Path::Data* Path::Data::realloc(Data* d, sysuint_t capacity)
 // ============================================================================
 // [Fog::Path]
 // ============================================================================
-
-static FOG_INLINE double calcDistance(double x1, double y1, double x2, double y2)
-{
-  double dx = x2 - x1;
-  double dy = y2 - y1;
-  return sqrt((dx * dx) + (dy * dy));
-}
 
 static FOG_INLINE Path::Cmd lastCmd(Path::Data* d)
 {
@@ -575,13 +642,6 @@ err_t Path::vlineToRel(double dy)
 // ============================================================================
 // [Fog::Path - ArcTo]
 // ============================================================================
-
-// This epsilon is used to prevent us from adding degenerate curves
-// (converging to a single point).
-// The value isn't very critical. Function arc_to_bezier() has a limit
-// of the sweep_angle. If fabs(sweep_angle) exceeds pi/2 the curve
-// becomes inaccurate. But slight exceeding is quite appropriate.
-static const double bezier_arc_angle_epsilon = 0.01;
 
 static void arc_to_bezier(
   double cx, double cy,
@@ -1197,17 +1257,6 @@ err_t Path::addPath(const Path& path)
 
 #define APPROXIMATE_CURVE3_RECURSION_LIMIT 32
 
-static const double curve_distance_epsilon = 1e-30;
-static const double curve_collinearity_epsilon = 1e-30;
-static const double curve_angle_tolerance_epsilon = 0.01;
-
-static FOG_INLINE double squareDistance(double x1, double y1, double x2, double y2)
-{
-  double dx = x2 - x1;
-  double dy = y2 - y1;
-  return dx * dx + dy * dy;
-}
-
 struct ApproximateCurve3Data
 {
   double x1;
@@ -1293,7 +1342,7 @@ static err_t approximateCurve3(
       da = dx*dx + dy*dy;
       if (da == 0)
       {
-        d = squareDistance(x1, y1, x2, y2);
+        d = calcSqDistance(x1, y1, x2, y2);
       }
       else
       {
@@ -1307,11 +1356,11 @@ static err_t approximateCurve3(
         }
 
         if (d <= 0)
-          d = squareDistance(x2, y2, x1, y1);
+          d = calcSqDistance(x2, y2, x1, y1);
         else if (d >= 1)
-          d = squareDistance(x2, y2, x3, y3);
+          d = calcSqDistance(x2, y2, x3, y3);
         else
-          d = squareDistance(x2, y2, x1 + d*dx, y1 + d*dy);
+          d = calcSqDistance(x2, y2, x1 + d*dx, y1 + d*dy);
       }
       if (d < distanceToleranceSquare)
       {
@@ -1417,8 +1466,8 @@ static err_t approximateCurve4(
         k = dx*dx + dy*dy;
         if (k == 0)
         {
-          d2 = squareDistance(x1, y1, x2, y2);
-          d3 = squareDistance(x4, y4, x3, y3);
+          d2 = calcSqDistance(x1, y1, x2, y2);
+          d3 = calcSqDistance(x4, y4, x3, y3);
         }
         else
         {
@@ -1438,18 +1487,18 @@ static err_t approximateCurve4(
           }
 
           if (d2 <= 0)
-            d2 = squareDistance(x2, y2, x1, y1);
+            d2 = calcSqDistance(x2, y2, x1, y1);
           else if (d2 >= 1)
-            d2 = squareDistance(x2, y2, x4, y4);
+            d2 = calcSqDistance(x2, y2, x4, y4);
           else
-            d2 = squareDistance(x2, y2, x1 + d2*dx, y1 + d2*dy);
+            d2 = calcSqDistance(x2, y2, x1 + d2*dx, y1 + d2*dy);
 
           if (d3 <= 0)
-            d3 = squareDistance(x3, y3, x1, y1);
+            d3 = calcSqDistance(x3, y3, x1, y1);
           else if (d3 >= 1)
-            d3 = squareDistance(x3, y3, x4, y4);
+            d3 = calcSqDistance(x3, y3, x4, y4);
           else
-            d3 = squareDistance(x3, y3, x1 + d3*dx, y1 + d3*dy);
+            d3 = calcSqDistance(x3, y3, x1 + d3*dx, y1 + d3*dy);
         }
 
         if (d2 > d3)
@@ -1927,11 +1976,1062 @@ err_t Path::dashTo(Path& dst, const Vector<double>& dashes, double startOffset, 
 // [Fog::Path - Stroke]
 // ============================================================================
 
+// Vertex (x, y) with the distance to the next one. The last vertex has
+// distance between the last and the first points if the polygon is closed
+// and 0.0 if it's a polyline.
+struct vertex_dist
+{
+  FOG_INLINE vertex_dist() {}
+  FOG_INLINE vertex_dist(double x_, double y_) :
+    x(x_),
+    y(y_),
+    dist(0.0)
+  {
+  }
+
+  bool operator () (const vertex_dist& val)
+  {
+    bool ret = (dist = calcDistance(x, y, val.x, val.y)) > vertex_dist_epsilon;
+    if (!ret) dist = 1.0 / vertex_dist_epsilon;
+    return ret;
+  }
+
+  double x;
+  double y;
+  double dist;
+};
+
+struct FOG_HIDDEN PathStroker
+{
+  PathStroker(Path& dst, const StrokeParams& params, double approximateScale = 1.0);
+  ~PathStroker();
+
+  FOG_INLINE void add_vertex(double x, double y)
+  {
+  }
+
+  void calcCap(
+    const vertex_dist& v0,
+    const vertex_dist& v1,
+    double len);
+
+  void calcJoin(
+    const vertex_dist& v0,
+    const vertex_dist& v1,
+    const vertex_dist& v2,
+    double len1,
+    double len2);
+
+  void calcArc(
+    double x,   double y,
+    double dx1, double dy1,
+    double dx2, double dy2);
+
+  void calcMiter(
+    const vertex_dist& v0,
+    const vertex_dist& v1,
+    const vertex_dist& v2,
+    double dx1, double dy1,
+    double dx2, double dy2,
+    uint32_t lj,
+    double mlimit,
+    double dbevel);
+
+  Path& dst;
+
+  double _approximateScale;
+
+  double       m_width;
+  double       m_width_abs;
+  double       m_width_eps;
+  int          m_width_sign;
+  double       m_miter_limit;
+  double       m_inner_miter_limit;
+  uint32_t     m_line_cap;
+  uint32_t     m_line_join;
+  uint32_t     m_inner_join;
+};
+
+PathStroker::PathStroker(Path& dst, const StrokeParams& params, double approximateScale) :
+  dst(dst)
+{
+  m_width = params.lineWidth * 0.5;
+
+  if (m_width < 0)
+  {
+    m_width_abs  = -m_width;
+    m_width_sign = -1;
+  }
+  else
+  {
+    m_width_abs  = m_width;
+    m_width_sign = 1;
+  }
+  m_width_eps = m_width / 1024.0;
+
+  // TODO: Add inner join and inner miter limit to painter and to StrokeParams.
+  m_miter_limit = params.miterLimit; // TODO: Default is 4, add this to painter
+  m_inner_miter_limit = 1.01;
+  _approximateScale = approximateScale;
+  m_line_cap = params.lineCap;
+  m_line_join = params.lineJoin;
+  m_inner_join = InnerJoinMiter;
+}
+
+PathStroker::~PathStroker()
+{
+}
+
+void PathStroker::calcArc(
+  double x,   double y,
+  double dx1, double dy1,
+  double dx2, double dy2)
+{
+  double a1 = atan2(dy1 * m_width_sign, dx1 * m_width_sign);
+  double a2 = atan2(dy2 * m_width_sign, dx2 * m_width_sign);
+  double da = a1 - a2;
+  int i, n;
+
+  da = acos(m_width_abs / (m_width_abs + 0.125 / _approximateScale)) * 2;
+
+  add_vertex(x + dx1, y + dy1);
+  if (m_width_sign > 0)
+  {
+    if (a1 > a2) a2 += 2.0 * M_PI;
+    n = int((a2 - a1) / da);
+    da = (a2 - a1) / (n + 1);
+    a1 += da;
+
+    for (i = 0; i < n; i++)
+    {
+      add_vertex(x + cos(a1) * m_width, y + sin(a1) * m_width);
+      a1 += da;
+    }
+  }
+  else
+  {
+    if (a1 < a2) a2 -= 2.0 * M_PI;
+    n = int((a1 - a2) / da);
+    da = (a1 - a2) / (n + 1);
+    a1 -= da;
+
+    for (i = 0; i < n; i++)
+    {
+        add_vertex(x + cos(a1) * m_width, y + sin(a1) * m_width);
+        a1 -= da;
+    }
+  }
+  add_vertex(x + dx2, y + dy2);
+}
+
+//-----------------------------------------------------------------------
+void PathStroker::calcMiter(
+  const vertex_dist& v0,
+  const vertex_dist& v1,
+  const vertex_dist& v2,
+  double dx1, double dy1,
+  double dx2, double dy2,
+  uint32_t lj,
+  double mlimit,
+  double dbevel)
+{
+  double xi  = v1.x;
+  double yi  = v1.y;
+  double di  = 1;
+  double lim = m_width_abs * mlimit;
+  bool miter_limit_exceeded = true; // Assume the worst
+  bool intersection_failed  = true; // Assume the worst
+
+  if (calcIntersection(v0.x + dx1, v0.y - dy1,
+                        v1.x + dx1, v1.y - dy1,
+                        v1.x + dx2, v1.y - dy2,
+                        v2.x + dx2, v2.y - dy2,
+                        &xi, &yi))
+  {
+    // Calculation of the intersection succeeded
+    //---------------------
+    di = calcDistance(v1.x, v1.y, xi, yi);
+    if (di <= lim)
+    {
+      // Inside the miter limit
+      //---------------------
+      add_vertex(xi, yi);
+      miter_limit_exceeded = false;
+    }
+    intersection_failed = false;
+  }
+  else
+  {
+    // Calculation of the intersection failed, most probably
+    // the three points lie one straight line.
+    // First check if v0 and v2 lie on the opposite sides of vector:
+    // (v1.x, v1.y) -> (v1.x+dx1, v1.y-dy1), that is, the perpendicular
+    // to the line determined by vertices v0 and v1.
+    // This condition determines whether the next line segments continues
+    // the previous one or goes back.
+    //----------------
+    double x2 = v1.x + dx1;
+    double y2 = v1.y - dy1;
+    if ((crossProduct(v0.x, v0.y, v1.x, v1.y, x2, y2) < 0.0) ==
+        (crossProduct(v1.x, v1.y, v2.x, v2.y, x2, y2) < 0.0))
+    {
+      // This case means that the next segment continues
+      // the previous one (straight line)
+      //-----------------
+      add_vertex(v1.x + dx1, v1.y - dy1);
+      miter_limit_exceeded = false;
+    }
+  }
+
+  if (miter_limit_exceeded)
+  {
+    // Miter limit exceeded.
+    switch(lj)
+    {
+      case LineJoinMiterRevert:
+        // For the compatibility with SVG, PDF, etc, we use a simple bevel 
+        // join instead of "smart" bevel.
+        add_vertex(v1.x + dx1, v1.y - dy1);
+        add_vertex(v1.x + dx2, v1.y - dy2);
+        break;
+
+      case LineJoinMiterRound:
+        calcArc(v1.x, v1.y, dx1, -dy1, dx2, -dy2);
+        break;
+
+      default:
+        // If no miter-revert, calculate new dx1, dy1, dx2, dy2.
+        if (intersection_failed)
+        {
+          mlimit *= m_width_sign;
+          add_vertex(v1.x + dx1 + dy1 * mlimit, v1.y - dy1 + dx1 * mlimit);
+          add_vertex(v1.x + dx2 - dy2 * mlimit, v1.y - dy2 - dx2 * mlimit);
+        }
+        else
+        {
+          double x1 = v1.x + dx1;
+          double y1 = v1.y - dy1;
+          double x2 = v1.x + dx2;
+          double y2 = v1.y - dy2;
+          di = (lim - dbevel) / (di - dbevel);
+          add_vertex(x1 + (xi - x1) * di, y1 + (yi - y1) * di);
+          add_vertex(x2 + (xi - x2) * di, y2 + (yi - y2) * di);
+        }
+        break;
+    }
+  }
+}
+
+void PathStroker::calcCap(
+  const vertex_dist& v0,
+  const vertex_dist& v1,
+  double len)
+{
+  // TODO
+  //vc.remove_all();
+
+  double dx1 = (v1.y - v0.y) / len;
+  double dy1 = (v1.x - v0.x) / len;
+  double dx2 = 0;
+  double dy2 = 0;
+
+  dx1 *= m_width;
+  dy1 *= m_width;
+
+  if (m_line_cap != LineCapRound)
+  {
+    if (m_line_cap == LineCapSquare)
+    {
+      dx2 = dy1 * m_width_sign;
+      dy2 = dx1 * m_width_sign;
+    }
+    add_vertex(v0.x - dx1 - dx2, v0.y + dy1 - dy2);
+    add_vertex(v0.x + dx1 - dx2, v0.y - dy1 - dy2);
+  }
+  else
+  {
+    double da = acos(m_width_abs / (m_width_abs + 0.125 / _approximateScale)) * 2;
+    double a1;
+    int i;
+    int n = int(M_PI / da);
+
+    da = M_PI / (n + 1);
+    add_vertex(v0.x - dx1, v0.y + dy1);
+
+    if (m_width_sign > 0)
+    {
+      a1 = atan2(dy1, -dx1);
+      a1 += da;
+      for (i = 0; i < n; i++)
+      {
+        add_vertex(v0.x + cos(a1) * m_width, v0.y + sin(a1) * m_width);
+        a1 += da;
+      }
+    }
+    else
+    {
+      a1 = atan2(-dy1, dx1);
+      a1 -= da;
+      for (i = 0; i < n; i++)
+      {
+        add_vertex(v0.x + cos(a1) * m_width, v0.y + sin(a1) * m_width);
+        a1 -= da;
+      }
+    }
+    add_vertex(v0.x + dx1, v0.y - dy1);
+  }
+}
+
+void PathStroker::calcJoin(
+  const vertex_dist& v0,
+  const vertex_dist& v1,
+  const vertex_dist& v2,
+  double len1,
+  double len2)
+{
+  double dx1 = m_width * (v1.y - v0.y) / len1;
+  double dy1 = m_width * (v1.x - v0.x) / len1;
+  double dx2 = m_width * (v2.y - v1.y) / len2;
+  double dy2 = m_width * (v2.x - v1.x) / len2;
+
+  // TODO:
+  //vc.remove_all();
+
+  double cp = crossProduct(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y);
+
+  if (cp != 0 && (cp > 0) == (m_width > 0))
+  {
+    // Inner join
+    //---------------
+    double limit = ((len1 < len2) ? len1 : len2) / m_width_abs;
+    if (limit < m_inner_miter_limit) limit = m_inner_miter_limit;
+
+    switch (m_inner_join)
+    {
+      default: // inner_bevel
+        add_vertex(v1.x + dx1, v1.y - dy1);
+        add_vertex(v1.x + dx2, v1.y - dy2);
+        break;
+
+      case InnerJoinMiter:
+        calcMiter(v0, v1, v2, dx1, dy1, dx2, dy2, LineJoinMiterRevert, limit, 0);
+        break;
+
+      case InnerJoinJag:
+      case InnerJoinRound:
+        cp = (dx1-dx2) * (dx1-dx2) + (dy1-dy2) * (dy1-dy2);
+        if (cp < len1 * len1 && cp < len2 * len2)
+        {
+          calcMiter(v0, v1, v2, dx1, dy1, dx2, dy2, LineJoinMiterRevert, limit, 0);
+        }
+        else
+        {
+          if (m_inner_join == InnerJoinJag)
+          {
+            add_vertex(v1.x + dx1, v1.y - dy1);
+            add_vertex(v1.x,       v1.y      );
+            add_vertex(v1.x + dx2, v1.y - dy2);
+          }
+          else
+          {
+            add_vertex(v1.x + dx1, v1.y - dy1);
+            add_vertex(v1.x,       v1.y      );
+            calcArc(v1.x, v1.y, dx2, -dy2, dx1, -dy1);
+            add_vertex(v1.x,       v1.y      );
+            add_vertex(v1.x + dx2, v1.y - dy2);
+          }
+        }
+        break;
+    }
+  }
+  else
+  {
+    // Outer join
+    //---------------
+
+    // Calculate the distance between v1 and
+    // the central point of the bevel line segment
+    //---------------
+    double dx = (dx1 + dx2) / 2;
+    double dy = (dy1 + dy2) / 2;
+    double dbevel = sqrt(dx * dx + dy * dy);
+
+    if (m_line_join == LineJoinRound || m_line_join == LineJoinBevel)
+    {
+      // This is an optimization that reduces the number of points
+      // in cases of almost collinear segments. If there's no
+      // visible difference between bevel and miter joins we'd rather
+      // use miter join because it adds only one point instead of two.
+      //
+      // Here we calculate the middle point between the bevel points
+      // and then, the distance between v1 and this middle point.
+      // At outer joins this distance always less than stroke width,
+      // because it's actually the height of an isosceles triangle of
+      // v1 and its two bevel points. If the difference between this
+      // width and this value is small (no visible bevel) we can
+      // add just one point.
+      //
+      // The constant in the expression makes the result approximately
+      // the same as in round joins and caps. You can safely comment
+      // out this entire "if".
+      //-------------------
+      if (_approximateScale * (m_width_abs - dbevel) < m_width_eps)
+      {
+        if (calcIntersection(v0.x + dx1, v0.y - dy1,
+                             v1.x + dx1, v1.y - dy1,
+                             v1.x + dx2, v1.y - dy2,
+                             v2.x + dx2, v2.y - dy2,
+                             &dx, &dy))
+        {
+          add_vertex(dx, dy);
+        }
+        else
+        {
+          add_vertex(v1.x + dx1, v1.y - dy1);
+        }
+        return;
+      }
+    }
+
+    switch (m_line_join)
+    {
+      case LineJoinMiter:
+      case LineJoinMiterRevert:
+      case LineJoinMiterRound:
+        calcMiter(v0, v1, v2, dx1, dy1, dx2, dy2,
+                   m_line_join,
+                   m_miter_limit,
+                   dbevel);
+        break;
+
+      case LineJoinRound:
+        calcArc(v1.x, v1.y, dx1, -dy1, dx2, -dy2);
+        break;
+
+      case LineJoinBevel:
+        add_vertex(v1.x + dx1, v1.y - dy1);
+        add_vertex(v1.x + dx2, v1.y - dy2);
+        break;
+
+      default:
+        FOG_ASSERT_NOT_REACHED();
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if 0
+
+namespace agg
+{
+
+    //------------------------------------------------------------------------
+    vcgen_stroke::vcgen_stroke() :
+        m_stroker(),
+        m_src_vertices(),
+        m_out_vertices(),
+        m_shorten(0.0),
+        m_closed(0),
+        m_status(initial),
+        m_src_vertex(0),
+        m_out_vertex(0)
+    {
+    }
+
+    //------------------------------------------------------------------------
+    void vcgen_stroke::remove_all()
+    {
+        m_src_vertices.remove_all();
+        m_closed = 0;
+        m_status = initial;
+    }
+
+    //------------------------------------------------------------------------
+    void vcgen_stroke::add_vertex(double x, double y, unsigned cmd)
+    {
+        m_status = initial;
+        if (is_move_to(cmd))
+        {
+            m_src_vertices.modify_last(vertex_dist(x, y));
+        }
+        else
+        {
+            if (is_vertex(cmd))
+            {
+                m_src_vertices.add(vertex_dist(x, y));
+            }
+            else
+            {
+                m_closed = get_close_flag(cmd);
+            }
+        }
+    }
+
+    //------------------------------------------------------------------------
+    void vcgen_stroke::rewind(unsigned)
+    {
+        if (m_status == initial)
+        {
+            m_src_vertices.close(m_closed != 0);
+            shorten_path(m_src_vertices, m_shorten, m_closed);
+            if (m_src_vertices.size() < 3) m_closed = 0;
+        }
+        m_status = ready;
+        m_src_vertex = 0;
+        m_out_vertex = 0;
+    }
+
+
+    //------------------------------------------------------------------------
+    unsigned vcgen_stroke::vertex(double* x, double* y)
+    {
+        unsigned cmd = path_cmd_line_to;
+        while(!is_stop(cmd))
+        {
+            switch(m_status)
+            {
+            case initial:
+                rewind(0);
+
+            case ready:
+                if (m_src_vertices.size() < 2 + unsigned(m_closed != 0))
+                {
+                    cmd = path_cmd_stop;
+                    break;
+                }
+                m_status = m_closed ? outline1 : cap1;
+                cmd = path_cmd_move_to;
+                m_src_vertex = 0;
+                m_out_vertex = 0;
+                break;
+
+            case cap1:
+                m_stroker.calcCap(m_out_vertices,
+                                  m_src_vertices[0],
+                                  m_src_vertices[1],
+                                  m_src_vertices[0].dist);
+                m_src_vertex = 1;
+                m_prev_status = outline1;
+                m_status = out_vertices;
+                m_out_vertex = 0;
+                break;
+
+            case cap2:
+                m_stroker.calcCap(m_out_vertices,
+                                  m_src_vertices[m_src_vertices.size() - 1],
+                                  m_src_vertices[m_src_vertices.size() - 2],
+                                  m_src_vertices[m_src_vertices.size() - 2].dist);
+                m_prev_status = outline2;
+                m_status = out_vertices;
+                m_out_vertex = 0;
+                break;
+
+            case outline1:
+                if (m_closed)
+                {
+                    if (m_src_vertex >= m_src_vertices.size())
+                    {
+                        m_prev_status = close_first;
+                        m_status = end_poly1;
+                        break;
+                    }
+                }
+                else
+                {
+                    if (m_src_vertex >= m_src_vertices.size() - 1)
+                    {
+                        m_status = cap2;
+                        break;
+                    }
+                }
+                m_stroker.calcJoin(m_out_vertices,
+                                   m_src_vertices.prev(m_src_vertex),
+                                   m_src_vertices.curr(m_src_vertex),
+                                   m_src_vertices.next(m_src_vertex),
+                                   m_src_vertices.prev(m_src_vertex).dist,
+                                   m_src_vertices.curr(m_src_vertex).dist);
+                ++m_src_vertex;
+                m_prev_status = m_status;
+                m_status = out_vertices;
+                m_out_vertex = 0;
+                break;
+
+            case close_first:
+                m_status = outline2;
+                cmd = path_cmd_move_to;
+
+            case outline2:
+                if (m_src_vertex <= unsigned(m_closed == 0))
+                {
+                    m_status = end_poly2;
+                    m_prev_status = stop;
+                    break;
+                }
+
+                --m_src_vertex;
+                m_stroker.calcJoin(m_out_vertices,
+                                   m_src_vertices.next(m_src_vertex),
+                                   m_src_vertices.curr(m_src_vertex),
+                                   m_src_vertices.prev(m_src_vertex),
+                                   m_src_vertices.curr(m_src_vertex).dist,
+                                   m_src_vertices.prev(m_src_vertex).dist);
+
+                m_prev_status = m_status;
+                m_status = out_vertices;
+                m_out_vertex = 0;
+                break;
+
+            case out_vertices:
+                if (m_out_vertex >= m_out_vertices.size())
+                {
+                    m_status = m_prev_status;
+                }
+                else
+                {
+                    const point_d& c = m_out_vertices[m_out_vertex++];
+                    *x = c.x;
+                    *y = c.y;
+                    return cmd;
+                }
+                break;
+
+            case end_poly1:
+                m_status = m_prev_status;
+                return path_cmd_end_poly | path_flags_close | path_flags_ccw;
+
+            case end_poly2:
+                m_status = m_prev_status;
+                return path_cmd_end_poly | path_flags_close | path_flags_cw;
+
+            case stop:
+                cmd = path_cmd_stop;
+                break;
+            }
+        }
+        return cmd;
+    }
+}
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if 0
+
+namespace agg
+{
+
+    //============================================================vcgen_stroke
+    //
+    // See Implementation agg_vcgen_stroke.cpp
+    // Stroke generator
+    //
+    //------------------------------------------------------------------------
+    class vcgen_stroke
+    {
+        enum status_e
+        {
+            initial,
+            ready,
+            cap1,
+            cap2,
+            outline1,
+            close_first,
+            outline2,
+            out_vertices,
+            end_poly1,
+            end_poly2,
+            stop
+        };
+
+    public:
+        typedef vertex_sequence<vertex_dist, 6> vertex_storage;
+        typedef pod_bvector<point_d, 6>         coord_storage;
+
+        vcgen_stroke();
+
+        void line_cap(line_cap_e lc)     { m_stroker.line_cap(lc); }
+        void line_join(line_join_e lj)   { m_stroker.line_join(lj); }
+        void inner_join(inner_join_e ij) { m_stroker.inner_join(ij); }
+
+        line_cap_e   line_cap()   const { return m_stroker.line_cap(); }
+        line_join_e  line_join()  const { return m_stroker.line_join(); }
+        inner_join_e inner_join() const { return m_stroker.inner_join(); }
+
+        void width(double w) { m_stroker.width(w); }
+        void miter_limit(double ml) { m_stroker.miter_limit(ml); }
+        void miter_limit_theta(double t) { m_stroker.miter_limit_theta(t); }
+        void inner_miter_limit(double ml) { m_stroker.inner_miter_limit(ml); }
+        void approximation_scale(double as) { m_stroker.approximation_scale(as); }
+
+        double width() const { return m_stroker.width(); }
+        double miter_limit() const { return m_stroker.miter_limit(); }
+        double inner_miter_limit() const { return m_stroker.inner_miter_limit(); }
+        double approximation_scale() const { return m_stroker.approximation_scale(); }
+
+        void shorten(double s) { m_shorten = s; }
+        double shorten() const { return m_shorten; }
+
+        // Vertex Generator Interface
+        void remove_all();
+        void add_vertex(double x, double y, unsigned cmd);
+
+        // Vertex Source Interface
+        void     rewind(unsigned path_id);
+        unsigned vertex(double* x, double* y);
+
+    private:
+        vcgen_stroke(const vcgen_stroke&);
+        const vcgen_stroke& operator = (const vcgen_stroke&);
+
+        math_stroke<coord_storage> m_stroker;
+        vertex_storage             m_src_vertices;
+        coord_storage              m_out_vertices;
+        double                     m_shorten;
+        unsigned                   m_closed;
+        status_e                   m_status;
+        status_e                   m_prev_status;
+        unsigned                   m_src_vertex;
+        unsigned                   m_out_vertex;
+    };
+}
+#endif
+
+
+
+
+
+
+
+
+
+
+#if 0
+
+namespace agg
+{
+
+    //===========================================================shorten_path
+    template<class VertexSequence>
+    void shorten_path(VertexSequence& vs, double s, unsigned closed = 0)
+    {
+        typedef typename VertexSequence::value_type vertex_type;
+
+        if (s > 0.0 && vs.size() > 1)
+        {
+            double d;
+            int n = int(vs.size() - 2);
+            while(n)
+            {
+                d = vs[n].dist;
+                if (d > s) break;
+                vs.remove_last();
+                s -= d;
+                --n;
+            }
+            if (vs.size() < 2)
+            {
+                vs.remove_all();
+            }
+            else
+            {
+                n = vs.size() - 1;
+                vertex_type& prev = vs[n-1];
+                vertex_type& last = vs[n];
+                d = (prev.dist - s) / prev.dist;
+                double x = prev.x + (last.x - prev.x) * d;
+                double y = prev.y + (last.y - prev.y) * d;
+                last.x = x;
+                last.y = y;
+                if (!prev(last)) vs.remove_last();
+                vs.close(closed != 0);
+            }
+        }
+    }
+
+
+}
+
+#endif
+
+
+
+
+
+
+#if 0
+
+#include "agg_basics.h"
+#include "agg_vcgen_stroke.h"
+#include "agg_conv_adaptor_vcgen.h"
+
+namespace agg
+{
+
+    //-------------------------------------------------------------conv_stroke
+    template<class VertexSource, class Markers=null_markers>
+    struct conv_stroke :
+    public conv_adaptor_vcgen<VertexSource, vcgen_stroke, Markers>
+    {
+        typedef Markers marker_type;
+        typedef conv_adaptor_vcgen<VertexSource, vcgen_stroke, Markers> base_type;
+
+        conv_stroke(VertexSource& vs) :
+            conv_adaptor_vcgen<VertexSource, vcgen_stroke, Markers>(vs)
+        {
+        }
+
+        void line_cap(line_cap_e lc)     { base_type::generator().line_cap(lc);  }
+        void line_join(line_join_e lj)   { base_type::generator().line_join(lj); }
+        void inner_join(inner_join_e ij) { base_type::generator().inner_join(ij); }
+
+        line_cap_e   line_cap()   const { return base_type::generator().line_cap();  }
+        line_join_e  line_join()  const { return base_type::generator().line_join(); }
+        inner_join_e inner_join() const { return base_type::generator().inner_join(); }
+
+        void width(double w) { base_type::generator().width(w); }
+        void miter_limit(double ml) { base_type::generator().miter_limit(ml); }
+        void miter_limit_theta(double t) { base_type::generator().miter_limit_theta(t); }
+        void inner_miter_limit(double ml) { base_type::generator().inner_miter_limit(ml); }
+        void approximation_scale(double as) { base_type::generator().approximation_scale(as); }
+
+        double width() const { return base_type::generator().width(); }
+        double miter_limit() const { return base_type::generator().miter_limit(); }
+        double inner_miter_limit() const { return base_type::generator().inner_miter_limit(); }
+        double approximation_scale() const { return base_type::generator().approximation_scale(); }
+
+        void shorten(double s) { base_type::generator().shorten(s); }
+        double shorten() const { return base_type::generator().shorten(); }
+
+    private:
+       conv_stroke(const conv_stroke<VertexSource, Markers>&);
+       const conv_stroke<VertexSource, Markers>&
+           operator = (const conv_stroke<VertexSource, Markers>&);
+
+    };
+
+}
+
+#endif
+
+
+
+#if 0
+err_t Path::strokeTo(Path& dst, const StrokeParams& strokeParams, double approximationScale) const
+{
+  if (type() != LineType)
+  {
+    Path tmp;
+    flattenTo(tmp, NULL, approximationScale);
+    return tmp.strokeTo(dst, strokeParams, approximationScale);
+  }
+  else
+  {
+    if (this == &dst)
+    {
+      Path tmp;
+      err_t err = dst.strokeTo(tmp, strokeParams, approximationScale);
+      dst = tmp;
+      return err;
+    }
+
+    dst.clear();
+
+    for (;;)
+    {
+      unsigned cmd = path_cmd_line_to;
+
+      while (!is_stop(cmd))
+      {
+        switch(m_status)
+        {
+          case initial:
+            rewind(0);
+
+          case ready:
+            if (m_src_vertices.size() < 2 + unsigned(m_closed != 0))
+            {
+              cmd = path_cmd_stop;
+              break;
+            }
+            m_status = m_closed ? outline1 : cap1;
+            cmd = path_cmd_move_to;
+            m_src_vertex = 0;
+            m_out_vertex = 0;
+            break;
+
+          case cap1:
+            m_stroker.calcCap(m_out_vertices,
+                              m_src_vertices[0],
+                              m_src_vertices[1],
+                              m_src_vertices[0].dist);
+            m_src_vertex = 1;
+            m_prev_status = outline1;
+            m_status = out_vertices;
+            m_out_vertex = 0;
+            break;
+
+          case cap2:
+            m_stroker.calcCap(m_out_vertices,
+                              m_src_vertices[m_src_vertices.size() - 1],
+                              m_src_vertices[m_src_vertices.size() - 2],
+                              m_src_vertices[m_src_vertices.size() - 2].dist);
+            m_prev_status = outline2;
+            m_status = out_vertices;
+            m_out_vertex = 0;
+            break;
+
+          case outline1:
+            if (m_closed)
+            {
+              if (m_src_vertex >= m_src_vertices.size())
+              {
+                m_prev_status = close_first;
+                m_status = end_poly1;
+                break;
+              }
+            }
+            else
+            {
+              if (m_src_vertex >= m_src_vertices.size() - 1)
+              {
+                m_status = cap2;
+                break;
+              }
+            }
+            m_stroker.calcJoin(m_out_vertices,
+                               m_src_vertices.prev(m_src_vertex),
+                               m_src_vertices.curr(m_src_vertex),
+                               m_src_vertices.next(m_src_vertex),
+                               m_src_vertices.prev(m_src_vertex).dist,
+                               m_src_vertices.curr(m_src_vertex).dist);
+            ++m_src_vertex;
+            m_prev_status = m_status;
+            m_status = out_vertices;
+            m_out_vertex = 0;
+            break;
+
+          case close_first:
+            m_status = outline2;
+            cmd = path_cmd_move_to;
+
+          case outline2:
+            if (m_src_vertex <= unsigned(m_closed == 0))
+            {
+              m_status = end_poly2;
+              m_prev_status = stop;
+              break;
+            }
+
+            --m_src_vertex;
+            m_stroker.calcJoin(m_out_vertices,
+                               m_src_vertices.next(m_src_vertex),
+                               m_src_vertices.curr(m_src_vertex),
+                               m_src_vertices.prev(m_src_vertex),
+                               m_src_vertices.curr(m_src_vertex).dist,
+                               m_src_vertices.prev(m_src_vertex).dist);
+
+            m_prev_status = m_status;
+            m_status = out_vertices;
+            m_out_vertex = 0;
+            break;
+
+          case out_vertices:
+            if (m_out_vertex >= m_out_vertices.size())
+            {
+              m_status = m_prev_status;
+            }
+            else
+            {
+              const point_d& c = m_out_vertices[m_out_vertex++];
+              *x = c.x;
+              *y = c.y;
+              return cmd;
+            }
+            break;
+
+          case end_poly1:
+            m_status = m_prev_status;
+            return path_cmd_end_poly | path_flags_close | path_flags_ccw;
+
+          case end_poly2:
+            m_status = m_prev_status;
+            return path_cmd_end_poly | path_flags_close | path_flags_cw;
+
+          case stop:
+            cmd = path_cmd_stop;
+            break;
+        }
+      }
+command:
+      return cmd;
+    }
+  }
+}
+#endif
+
+
+
+
+
+
+
+
+
+
 err_t Path::stroke(const StrokeParams& strokeParams, double approximationScale)
 {
   return strokeTo(*this, strokeParams);
 }
 
+#if 1
 err_t Path::strokeTo(Path& dst, const StrokeParams& strokeParams, double approximationScale) const
 {
   if (type() != LineType)
@@ -1965,6 +3065,7 @@ err_t Path::strokeTo(Path& dst, const StrokeParams& strokeParams, double approxi
     }
   }
 }
+#endif
 
 // ============================================================================
 // [Fog::Path - Operator Overload]
