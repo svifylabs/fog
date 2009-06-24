@@ -10,6 +10,7 @@
 // [Dependencies]
 #include <Fog/Core/Atomic.h>
 #include <Fog/Core/Static.h>
+#include <Fog/Core/Vector.h>
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Geometry.h>
 
@@ -23,6 +24,34 @@ namespace Fog {
 // ============================================================================
 
 struct AffineMatrix;
+
+// ============================================================================
+// [Fog::StrokeParams]
+// ============================================================================
+
+struct FOG_HIDDEN StrokeParams
+{
+  FOG_INLINE StrokeParams() :
+    lineWidth(1.0),
+    miterLimit(1.0),
+    lineCap(LineCapButt),
+    lineJoin(LineJoinMiter)
+  {
+  }
+
+  FOG_INLINE StrokeParams(double lineWidth, double miterLimit, uint32_t lineCap, uint32_t lineJoin) :
+    lineWidth(lineWidth),
+    miterLimit(miterLimit),
+    lineCap(lineCap),
+    lineJoin(lineJoin)
+  {
+  }
+
+  double lineWidth;
+  double miterLimit;
+  uint32_t lineCap;
+  uint32_t lineJoin;
+};
 
 // ============================================================================
 // [Fog::Path]
@@ -97,6 +126,15 @@ struct FOG_API Path
     double y;
   };
 
+  // [Type]
+
+  enum Type
+  {
+    UndefinedType = 0,
+    LineType = 1,
+    CurveType = 2
+  };
+
   // [Data]
 
   struct FOG_API Data
@@ -133,6 +171,7 @@ struct FOG_API Path
 
     mutable Fog::Atomic<sysuint_t> refCount;
     uint32_t flags;
+    uint32_t type;
     sysuint_t capacity;
     sysuint_t length;
     Vertex data[1];
@@ -173,19 +212,37 @@ struct FOG_API Path
   FOG_INLINE bool isStrong() const
   { return (_d->flags & Data::IsStrong) != 0; }
 
+  // [Type]
+
+  //! @brief Get type of path.
+  //!
+  //! Type of path is probably only used by @c Painter to determine which
+  //! operations are needed to successfuly rasterize it. This method can
+  //! only return @c LineType or CurveType values. @c LineType means that path
+  //! contains only lines and no curves and @c CurveType means that path
+  //! contains lines and curves.
+  uint32_t type() const;
+
+  //! @brief Invalidate type of path.
+  //!
+  //! This method must be called after path was manually changed by mData() or
+  //! similar methods to invalidate type of path.
+  FOG_INLINE void invalidateType() const { _d->type = UndefinedType; }
+
   // [Data]
 
+  //! @brief Get path capacity (count of allocated vertices).
   FOG_INLINE sysuint_t capacity() const { return _d->capacity; }
+  //! @brief Get path length (count of vertices used).
   FOG_INLINE sysuint_t length() const { return _d->length; }
+
   FOG_INLINE bool isEmpty() const { return _d->length == 0; }
 
   FOG_INLINE const Vertex* cData() const
   { return _d->data; }
 
   FOG_INLINE Vertex* mData()
-  {
-    return detach() == Error::Ok ? _d->data : NULL;
-  }
+  { return detach() == Error::Ok ? _d->data : NULL; }
 
   err_t reserve(sysuint_t capacity);
 
@@ -198,13 +255,31 @@ struct FOG_API Path
   void clear();
   void free();
 
+  // [Start / End]
+
   err_t start(sysuint_t* index);
+
+  err_t endPoly(uint32_t cmdflags = CFlagClose);
+  err_t closePolygon(uint32_t cmdflags = CFlagNone);
+
+  // [MoveTo]
 
   err_t moveTo(double x, double y);
   err_t moveToRel(double dx, double dy);
 
+  FOG_INLINE err_t moveTo(const PointF& pt) { return moveTo(pt.x(), pt.y()); }
+  FOG_INLINE err_t moveToRel(const PointF& pt) { return moveToRel(pt.x(), pt.y()); }
+
+  // [LineTo]
+
   err_t lineTo(double x, double y);
   err_t lineToRel(double dx, double dy);
+
+  FOG_INLINE err_t lineTo(const PointF& pt) { return lineTo(pt.x(), pt.y()); }
+  FOG_INLINE err_t lineToRel(const PointF& pt) { return lineToRel(pt.x(), pt.y()); }
+
+  err_t lineTo(const double* x, const double* y, sysuint_t count);
+  err_t lineTo(const PointF* pts, sysuint_t count);
 
   err_t hlineTo(double x);
   err_t hlineToRel(double dx);
@@ -212,148 +287,146 @@ struct FOG_API Path
   err_t vlineTo(double y);
   err_t vlineToRel(double dy);
 
-  err_t arcTo(
-    double rx, double ry,
-    double angle,
-    bool largeArcFlag,
-    bool sweepFlag,
-    double x, double y);
+  // [ArcTo]
 
-  err_t arcToRel(
-    double rx, double ry,
-    double angle,
-    bool largeArcFlag,
-    bool sweepFlag,
-    double dx, double dy);
+  err_t _arcTo(double cx, double cy, double rx, double ry, double start, double sweep, uint initialCommand, bool closePath);
 
-  err_t curve3To(
-    double x_ctrl, double y_ctrl, 
-    double x_to,   double y_to);
+  err_t arcTo(double cx, double cy, double rx, double ry, double start, double sweep);
+  err_t arcToRel(double cx, double cy, double rx, double ry, double start, double sweep);
 
-  err_t curve3ToRel(
-    double dx_ctrl, double dy_ctrl, 
-    double dx_to,   double dy_to);
+  FOG_INLINE err_t arcTo(const PointF& cp, const PointF& r, double start, double sweep)
+  { return arcTo(cp.x(), cp.y(), r.x(), r.y(), start, sweep); }
 
-  err_t curve3To(
-    double x_to,    double y_to);
+  FOG_INLINE err_t arcToRel(const PointF& cp, const PointF& r, double start, double sweep)
+  { return arcToRel(cp.x(), cp.y(), r.x(), r.y(), start, sweep); }
 
-  err_t curve3ToRel(
-    double dx_to,   double dy_to);
+  // [BezierTo]
 
-  err_t curve4To(
-    double x_ctrl1, double y_ctrl1,
-    double x_ctrl2, double y_ctrl2,
-    double x_to,    double y_to);
+  err_t curveTo(double cx, double cy, double tx, double ty);
+  err_t curveToRel(double cx, double cy, double tx, double ty);
 
-  err_t curve4ToRel(
-    double dx_ctrl1, double dy_ctrl1, 
-    double dx_ctrl2, double dy_ctrl2, 
-    double dx_to,    double dy_to);
+  err_t curveTo(double tx, double ty);
+  err_t curveToRel(double tx, double ty);
 
-  err_t curve4To(
-    double x_ctrl2, double y_ctrl2, 
-    double x_to,    double y_to);
+  FOG_INLINE err_t curveTo(const PointF& cp, const PointF& to)
+  { return curveTo(cp.x(), cp.y(), to.x(), to.y()); }
 
-  err_t curve4ToRel(
-    double dx_ctrl2, double dy_ctrl2, 
-    double dx_to,    double dy_to);
+  FOG_INLINE err_t curveToRel(const PointF& cp, const PointF& to)
+  { return curveToRel(cp.x(), cp.y(), to.x(), to.y()); }
 
-  err_t endPoly(uint32_t cmdflags = CFlagClose);
-  err_t closePolygon(uint32_t cmdflags = CFlagNone);
+  FOG_INLINE err_t curveTo(const PointF& to)
+  { return curveTo(to.x(), to.y()); }
+
+  FOG_INLINE err_t curveToRel(const PointF& to)
+  { return curveToRel(to.x(), to.y()); }
+
+  // [CubicTo]
+
+  err_t cubicTo(double cx1, double cy1, double cx2, double cy2, double tx, double ty);
+  err_t cubicToRel(double cx1, double cy1, double cx2, double cy2, double tx, double ty);
+
+  err_t cubicTo(double cx2, double cy2, double tx, double ty);
+  err_t cubicToRel(double cx2, double cy2, double tx, double ty);
+
+  FOG_INLINE err_t cubicTo(const PointF& cp1, const PointF& cp2, const PointF& to)
+  { return cubicTo(cp1.x(), cp1.y(), cp2.x(), cp2.y(), to.x(), to.y()); }
+
+  FOG_INLINE err_t cubicToRel(const PointF& cp1, const PointF& cp2, const PointF& to)
+  { return cubicToRel(cp1.x(), cp1.y(), cp2.x(), cp2.y(), to.x(), to.y()); }
+
+  FOG_INLINE err_t cubicTo(const PointF& cp2, const PointF& to)
+  { return cubicTo(cp2.x(), cp2.y(), to.x(), to.y()); }
+
+  FOG_INLINE err_t cubicToRel(const PointF& cp2, const PointF& to)
+  { return cubicToRel(cp2.x(), cp2.y(), to.x(), to.y()); }
+
+  // [FlipX / FlipY]
 
   err_t flipX(double x1, double x2);
   err_t flipY(double y1, double y2);
 
+  // [Translate]
+
   err_t translate(double dx, double dy);
   err_t translate(double dx, double dy, sysuint_t pathId);
 
+  // [Scale]
+
   err_t scale(double sx, double sy, bool keepStartPos = false);
 
+  // [applyMatrix]
+
+  //! @brief Apply affine matrix transformations to each vertex in path.
   err_t applyMatrix(const AffineMatrix& matrix);
 
   // [Complex]
 
+  //! @brief Add closed rectangle into path.
   err_t addRect(const RectF& r);
-  err_t addLineTo(const PointF* pts, sysuint_t count);
+
+  err_t addRects(const RectF* r, sysuint_t count);
+
+  //! @brief Add Closed ellipse into path.
+  err_t addEllipse(const RectF& r);
+  //! @overload
   err_t addEllipse(const PointF& cp, const PointF& r);
+
+  //! @brief Add arc into path.
+  err_t addArc(const RectF& r, double start, double sweep);
+  //! @overload
   err_t addArc(const PointF& cp, const PointF& r, double start, double sweep);
+
+  //! @brief Add chord into path.
+  err_t addChord(const RectF& r, double start, double sweep);
+  //! @overload
+  err_t addChord(const PointF& cp, const PointF& r, double start, double sweep);
+
+  //! @brief Add pie into path.
+  err_t addPie(const RectF& r, double start, double sweep);
+  //! @overload
+  err_t addPie(const PointF& cp, const PointF& r, double start, double sweep);
+
+  //! @brief Add other path into path.
   err_t addPath(const Path& path);
 
   // [Inlines]
 
-  FOG_INLINE err_t moveTo(const PointF& pt)
-  { return moveTo(pt.x(), pt.y()); }
-  
-  FOG_INLINE err_t moveToRel(const PointF& pt)
-  { return moveToRel(pt.x(), pt.y()); }
-
-  FOG_INLINE err_t lineTo(const PointF& pt)
-  { return lineTo(pt.x(), pt.y()); }
-  
-  FOG_INLINE err_t lineToRel(const PointF& pt)
-  { return lineToRel(pt.x(), pt.y()); }
-
-  FOG_INLINE err_t arcTo(
-    const PointF& r,
-    double angle,
-    bool largeArcFlag,
-    bool sweepFlag,
-    const PointF& pt) 
-  { return arcTo(r.x(), r.y(), angle, largeArcFlag, sweepFlag, pt.x(), pt.y()); }
-
-  FOG_INLINE err_t arcToRel(
-    const PointF& r,
-    double angle,
-    bool largeArcFlag,
-    bool sweepFlag,
-    const PointF& pt)
-  { return arcToRel(r.x(), r.y(), angle, largeArcFlag, sweepFlag, pt.x(), pt.y()); }
-
-  FOG_INLINE err_t curve3To(
-    const PointF& ctrl,
-    const PointF& to)
-  { return curve3To(ctrl.x(), ctrl.y(), to.x(), to.y()); }
-
-  FOG_INLINE err_t curve3ToRel(
-    const PointF& ctrl,
-    const PointF& to)
-  { return curve3ToRel(ctrl.x(), ctrl.y(), to.x(), to.y()); }
-
-  FOG_INLINE err_t curve3To(
-    const PointF& to)
-  { return curve3To(to.x(), to.y()); }
-
-  FOG_INLINE err_t curve3ToRel(
-    const PointF& to)
-  { return curve3ToRel(to.x(), to.y()); }
-
-  FOG_INLINE err_t curve4To(
-    const PointF& ctrl1,
-    const PointF& ctrl2,
-    const PointF& to)
-  { return curve4To(ctrl1.x(), ctrl1.y(), ctrl2.x(), ctrl2.y(), to.x(), to.y()); }
-
-  FOG_INLINE err_t curve4ToRel(
-    const PointF& ctrl1,
-    const PointF& ctrl2,
-    const PointF& to)
-  { return curve4ToRel(ctrl1.x(), ctrl1.y(), ctrl2.x(), ctrl2.y(), to.x(), to.y()); }
-
-  FOG_INLINE err_t curve4To(
-    const PointF& ctrl2,
-    const PointF& to)
-  { return curve4To(ctrl2.x(), ctrl2.y(), to.x(), to.y()); }
-
-  FOG_INLINE err_t curve4ToRel(
-    const PointF& ctrl2,
-    const PointF& to)
-  { return curve4ToRel(ctrl2.x(), ctrl2.y(), to.x(), to.y()); }
-
-  FOG_INLINE err_t translate(const Point& pt)
+  //! @brief Translate each vertex in path by @a pt.
+  FOG_INLINE err_t translate(const PointF& pt)
   { return translate(pt.x(), pt.y()); }
 
-  FOG_INLINE err_t translate(const Point& pt, sysuint_t pathId)
+  //! @brief Translate each vertex in subpath @a pathId by @a pt.
+  FOG_INLINE err_t translate(const PointF& pt, sysuint_t pathId)
   { return translate(pt.x(), pt.y(), pathId); }
+
+  //! @brief Scale each vertex in path by @a pt.
+  FOG_INLINE err_t scale(const PointF& pt, bool keepStartPos = false)
+  { return scale(pt.x(), pt.y(), keepStartPos); }
+
+  // [Flatten]
+
+  err_t flatten();
+  err_t flatten(const AffineMatrix* matrix, double approximationScale = 1.0);
+
+  //! @brief Similar method to @c flatten(), but with specified destination path.
+  err_t flattenTo(Path& dst, const AffineMatrix* matrix, double approximationScale = 1.0) const;
+
+  // [Dash]
+
+  err_t dash(const Vector<double>& dashes, double startOffset, double approximationScale = 1.0);
+
+  //! @brief Similar method to @c dash(), but with specified destination path.
+  err_t dashTo(Path& dst, const Vector<double>& dashes, double startOffset, double approximationScale = 1.0);
+
+  // [Stroke]
+
+  //! @brief Stroke the path.
+  //!
+  //! @note Stroking path will also flatten it.
+  err_t stroke(const StrokeParams& strokeParams, double approximationScale = 1.0);
+
+  //! @brief Similar method to @c stroke(), but with specified destination path.
+  err_t strokeTo(Path& dst, const StrokeParams& strokeParams, double approximationScale = 1.0) const;
 
   // [Operator Overload]
 

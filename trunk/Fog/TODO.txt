@@ -3,6 +3,7 @@ LEGEND
 [ ] Completed
 [w] Working
 [D] Need discusion about usability or removing
+[L] Low priority
 
 TODO
 ====
@@ -80,8 +81,8 @@ TODO
         [ ] Prgb dest
         [ ] Argb dest
     [ ] Write MMX composite functions
-        [ ] Prgb dest
-        [ ] Argb dest
+        [L] Prgb dest
+        [L] Argb dest
     [ ] Write SSE2 composite functions
         [w] Prgb dest
         [ ] Argb dest

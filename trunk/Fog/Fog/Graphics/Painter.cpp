@@ -567,6 +567,7 @@ done:
   dst._d->length = (sysuint_t)(v - dst._d->data);
   return Error::Ok;
 }
+
 // ============================================================================
 // [Fog::RasterEngineContext]
 // ============================================================================
@@ -2163,7 +2164,7 @@ void RasterEngine::drawLine(const PointF* pts, sysuint_t count)
   workPath.clear();
   workPath.moveTo(pts[0]);
   if (count > 1)
-    workPath.addLineTo(pts + 1, count - 1);
+    workPath.lineTo(pts + 1, count - 1);
   else
     workPath.lineTo(pts[0].x(), pts[0].y() + 0.0001);
   _serializePath(workPath, false, true);
@@ -2176,7 +2177,7 @@ void RasterEngine::drawPolygon(const PointF* pts, sysuint_t count)
   workPath.clear();
   workPath.moveTo(pts[0]);
   if (count > 1)
-    workPath.addLineTo(pts + 1, count - 1);
+    workPath.lineTo(pts + 1, count - 1);
   else
     workPath.lineTo(pts[0].x(), pts[0].y() + 0.0001);
   workPath.closePolygon();
@@ -2197,10 +2198,7 @@ void RasterEngine::drawRects(const RectF* r, sysuint_t count)
   if (!count) return;
 
   workPath.clear();
-  for (sysuint_t i = 0; i < count; i++)
-  {
-    if (r[i].isValid()) workPath.addRect(r[i]);
-  }
+  workPath.addRects(r, count);
   _serializePath(workPath, false, true);
 }
 
@@ -2256,7 +2254,7 @@ void RasterEngine::fillPolygon(const PointF* pts, sysuint_t count)
   workPath.clear();
   workPath.moveTo(pts[0]);
   if (count > 1)
-    workPath.addLineTo(pts + 1, count - 1);
+    workPath.lineTo(pts + 1, count - 1);
   else
     workPath.lineTo(pts[0].x(), pts[0].y() + 0.0001);
   workPath.closePolygon();
@@ -2277,10 +2275,7 @@ void RasterEngine::fillRects(const RectF* r, sysuint_t count)
   if (!count) return;
 
   workPath.clear();
-  for (sysuint_t i = 0; i < count; i++)
-  {
-    if (r[i].isValid()) workPath.addRect(r[i]);
-  }
+  workPath.addRects(r, count);
   _serializePath(workPath, false, false);
 }
 

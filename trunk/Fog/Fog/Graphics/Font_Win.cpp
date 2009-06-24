@@ -270,7 +270,7 @@ static bool decompose_win32_glyph_outline(
           if (flip_y) { y = -y; y2 = -y2; }
           mtx.transform(&x,  &y);
           mtx.transform(&x2, &y2);
-          path.curve3To(PointF(x, y), PointF(x2, y2));
+          path.curveTo(PointF(x, y), PointF(x2, y2));
         }
       }
       cur_poly += sizeof(WORD) * 2 + sizeof(POINTFX) * pc->cpfx;

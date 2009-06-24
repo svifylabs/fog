@@ -54,6 +54,26 @@ void MyWindow::onKey(KeyEvent* e)
 void MyWindow::onPaint(PaintEvent* e)
 {
   Painter* p = e->painter();
+  double w = width(), h = height();
+
+  p->setSource(0xFFFFFFFF);
+  p->clear();
+
+  Path path;
+  path.moveTo(w/2.0, h/2.0);
+  path.curveTo(230.0, 100.0, 180.0, 150.0);
+  //path.addPie(RectF(w/2.0 - 100.0, h/2.0 - 100.0, 200.0, 200.0), M_PI/4, M_PI*1.5);
+  //path.flatten();
+  Vector<double> dashes;
+  dashes.append(10.0);
+  dashes.append(10.0);
+  path.dash(dashes, 0.0);
+  path.stroke(StrokeParams(4.0, 1.0, LineCapButt, LineJoinMiter));
+
+  p->setSource(0xFFFFFF00);
+  p->fillPath(path);
+  p->setSource(0xFF000000);
+  p->drawPath(path);
 }
 // ============================================================================
 // [MAIN]
