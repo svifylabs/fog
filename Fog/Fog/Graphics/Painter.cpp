@@ -35,22 +35,12 @@
 // [AntiGrain]
 #include "agg_alpha_mask_u8.h"
 #include "agg_basics.h"
-#include "agg_path_storage.h"
-#include "agg_conv_contour.h"
-#include "agg_conv_curve.h"
-#include "agg_conv_dash.h"
-#include "agg_conv_stroke.h"
-#include "agg_conv_smooth_poly1.h"
-#include "agg_conv_transform.h"
 #include "agg_rendering_buffer.h"
-#include "agg_rasterizer_scanline_aa.h"
 #include "agg_rounded_rect.h"
 #include "agg_scanline_p.h"
 #include "agg_scanline_u.h"
 #include "agg_scanline_bin.h"
-#include "agg_trans_affine.h"
 #include "agg_trans_viewport.h"
-#include "agg_vcgen_dash.h"
 
 #include "agg_rasterizer_scanline_aa_custom.h"
 
@@ -571,25 +561,6 @@ done:
 // ============================================================================
 // [Fog::RasterEngineContext]
 // ============================================================================
-
-// Agg polygon source pipeline typedefs
-typedef agg::conv_stroke<AggPath>                      AggConvStroke;
-typedef agg::conv_dash<AggPath, agg::vcgen_dash>       AggConvDash;
-typedef agg::conv_stroke<AggConvDash>                  AggConvDashStroke;
-
-typedef agg::conv_transform<AggPath>                   AggConvTransform;
-typedef agg::conv_transform<AggConvStroke>             AggConvStrokeTransform;
-typedef agg::conv_transform<AggConvDashStroke>         AggConvDashStrokeTransform;
-
-// Agg curve source pipeline typedefs
-typedef agg::conv_curve<AggPath>                       AggConvCurve;
-typedef agg::conv_stroke<AggConvCurve>                 AggConvCurveStroke;
-typedef agg::conv_dash<AggConvCurve, agg::vcgen_dash>  AggConvCurveDash;
-typedef agg::conv_stroke<AggConvCurveDash>             AggConvCurveDashStroke;
-
-typedef agg::conv_transform<AggConvCurve>              AggConvCurveTransform;
-typedef agg::conv_transform<AggConvCurveStroke>        AggConvCurveStrokeTransform;
-typedef agg::conv_transform<AggConvCurveDashStroke>    AggConvCurveDashStrokeTransform;
 
 // Rasterizer and scanline storage
 typedef agg::rasterizer_scanline_aa_custom<>           AggRasterizer;
@@ -3160,38 +3131,33 @@ void RasterEngine::_postCommand(RasterEngineCommand* cmd)
 // [Fog::RasterEngine - Renderers - AntiGrain]
 // ============================================================================
 
-template <typename PathT>
-static void FOG_INLINE AggSetupStroke(PathT& path, RasterEngineCapsState* capsState)
-{
-  path.width(capsState->lineWidth);
-  path.line_join(static_cast<agg::line_join_e>(capsState->lineJoin));
-  path.line_cap(static_cast<agg::line_cap_e>(capsState->lineCap));
-  path.miter_limit(capsState->miterLimit);
-}
-
-template <typename PathT>
-static void FOG_INLINE AggSetupDash(PathT& path, RasterEngineCapsState* capsState)
-{
-  Vector<double>::ConstIterator it(capsState->lineDash);
-
-  for (;;)
-  {
-    double d1 = it.value(); it.toNext();
-    if (!it.isValid()) break;
-    double d2 = it.value(); it.toNext();
-    path.add_dash(d1, d2);
-    if (!it.isValid()) break;
-  }
-
-  path.dash_start(capsState->lineDashOffset);
-}
-
 static bool FOG_FASTCALL AggRasterizePath(
   RasterEngineContext* ctx, AggRasterizer& ras,
   const Path& path, bool curves, bool stroke)
 {
   RasterEngineClipState* clipState = ctx->clipState;
   RasterEngineCapsState* capsState = ctx->capsState;
+
+  Path dst(path);
+
+  if (stroke)
+  {
+    dst.flatten(NULL, capsState->transformationsApproxScale);
+    
+    if (capsState->lineDash.length() > 1)
+      dst.dash(capsState->lineDash, capsState->lineDashOffset, capsState->transformationsApproxScale);
+
+    dst.stroke(StrokeParams(capsState->lineWidth, capsState->miterLimit, capsState->lineCap, capsState->lineJoin), capsState->transformationsApproxScale);
+  }
+  else
+  {
+    dst.flatten(NULL, capsState->transformationsApproxScale);
+  }
+
+  if (capsState->transformationsUsed)
+  {
+    dst.applyMatrix(capsState->transformations);
+  }
 
   ras.reset();
   ras.filling_rule(static_cast<agg::filling_rule_e>(capsState->fillMode));
@@ -3201,142 +3167,8 @@ static bool FOG_FASTCALL AggRasterizePath(
     (double)clipState->clipBox.x2(),
     (double)clipState->clipBox.y2());
 
-  AggPath pAgg(path);
-
-  // This can be a bit messy, but it's here to increase performance. We will
-  // not calculate using transformations if they are not used. Also we add
-  // stroke and line dash pipeline only if it's needed. This is goal of 
-  // AntiGrain to be able to setup only pipelines what are really useful.
-  if (curves)
-  {
-    // This fastpath is used for source that may contain curves. Curves are
-    // translated first to polygons and then send to rasterizer. There is
-    // also approximation scale that is needed when we are using affine
-    // transformations (to ensure that there will be enough lines to get
-    // perfect result).
-    AggConvCurve pCurve(pAgg);
-
-    if (capsState->transformationsUsed)
-    {
-      pCurve.approximation_scale(capsState->transformationsApproxScale);
-
-      if (stroke)
-      {
-        if (capsState->lineDash.length() <= 1)
-        {
-          AggConvCurveStroke pCurveStroke(pCurve);
-          AggSetupStroke(pCurveStroke, capsState);
-          AggConvCurveStrokeTransform pStrokeTransform(
-            pCurveStroke,
-            *((const agg::trans_affine *)&capsState->transformations));
-          ras.add_path(pStrokeTransform);
-        }
-        else
-        {
-          AggConvCurveDash pCurveDash(pCurve);
-          AggSetupDash(pCurveDash, capsState);
-          AggConvCurveDashStroke pCurveDashStroke(pCurveDash);
-          AggSetupStroke(pCurveDashStroke, capsState);
-          AggConvCurveDashStrokeTransform pCurveDashStrokeTransform(
-            pCurveDashStroke,
-            *((const agg::trans_affine *)&capsState->transformations));
-          ras.add_path(pCurveDashStrokeTransform);
-        }
-      }
-      else
-      {
-        AggConvCurveTransform pCurveTransform(
-          pCurve, *((agg::trans_affine *)&capsState->transformations));
-
-        ras.add_path(pCurveTransform);
-      }
-    }
-    else
-    {
-      if (stroke)
-      {
-        if (capsState->lineDash.length() <= 1)
-        {
-          AggConvCurveStroke pCurveStroke(pCurve);
-          AggSetupStroke(pCurveStroke, capsState);
-          ras.add_path(pCurveStroke);
-        }
-        else
-        {
-          AggConvCurveDash pCurveDash(pCurve);
-          AggSetupDash(pCurveDash, capsState);
-          AggConvCurveDashStroke pCurveDashStroke(pCurveDash);
-          AggSetupStroke(pCurveDashStroke, capsState);
-          ras.add_path(pCurveDashStroke);
-        }
-      }
-      else
-      {
-        ras.add_path(pCurve);
-      }
-    }
-  }
-  else
-  {
-    // This fastpath used for polygon-only path.
-    if (capsState->transformationsUsed)
-    {
-      if (stroke)
-      {
-        if (capsState->lineDash.length() <= 1)
-        {
-          AggConvStroke pStroke(pAgg);
-          AggSetupStroke(pStroke, capsState);
-          AggConvStrokeTransform pStrokeTransform(
-            pStroke,
-            *((const agg::trans_affine *)&capsState->transformations));
-          ras.add_path(pStrokeTransform);
-        }
-        else
-        {
-          AggConvDash pDash(pAgg);
-          AggSetupDash(pDash, capsState);
-          AggConvDashStroke pDashStroke(pDash);
-          AggSetupStroke(pDashStroke, capsState);
-          AggConvDashStrokeTransform pDashStrokeTransform(
-            pDashStroke,
-            *((const agg::trans_affine *)&capsState->transformations));
-          ras.add_path(pDashStrokeTransform);
-        }
-      }
-      else
-      {
-        AggConvTransform pTransform(
-          pAgg, *((agg::trans_affine *)&capsState->transformations));
-
-        ras.add_path(pTransform);
-      }
-    }
-    else
-    {
-      if (stroke)
-      {
-        if (capsState->lineDash.length() <= 1)
-        {
-          AggConvStroke pStroke(pAgg);
-          AggSetupStroke(pStroke, capsState);
-          ras.add_path(pStroke);
-        }
-        else
-        {
-          AggConvDash pDash(pAgg);
-          AggSetupDash(pDash, capsState);
-          AggConvDashStroke pDashStroke(pDash);
-          AggSetupStroke(pDashStroke, capsState);
-          ras.add_path(pDashStroke);
-        }
-      }
-      else
-      {
-        ras.add_path(pAgg);
-      }
-    }
-  }
+  AggPath aggpath(dst);
+  ras.add_path(aggpath);
 
   ras.sort();
   return ras.has_cells();
