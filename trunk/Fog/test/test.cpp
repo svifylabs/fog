@@ -58,24 +58,46 @@ void MyWindow::onPaint(PaintEvent* e)
 
   p->setSource(0xFFFFFFFF);
   p->clear();
-
+/*
   Path path;
-  path.addPie(RectF(w/2.0 - 100.0, h/2.0 - 100.0, 200.0, 200.0), M_PI/4, M_PI*1.5);
   path.addRound(RectF(10.5, 10.5, 300, 300), PointF(50, 50));
 
-  Pattern pat;
-  pat.setType(Pattern::LinearGradient);
-  pat.setPoints(PointF(10.5, 10.5), PointF(10.5 + 300, 10.5 + 300));
+  Pattern pattern;
+  pattern.setType(Pattern::LinearGradient);
+  pattern.setPoints(PointF(10.5, 10.5), PointF(10.5 + 300, 10.5 + 300));
 
-  pat.addGradientStop(GradientStop(0.0, Rgba(0xFFFFFF00)));
-  pat.addGradientStop(GradientStop(1.0, Rgba(0xFFFF0000)));
-  p->setSource(pat);
+  pattern.addGradientStop(GradientStop(0.0, Rgba(0xFFFFFF00)));
+  pattern.addGradientStop(GradientStop(1.0, Rgba(0xFFFF0000)));
+  p->setSource(pattern);
   p->fillPath(path);
 
-  pat.addGradientStop(GradientStop(0.0, Rgba(0xFF0000FF)));
-  pat.addGradientStop(GradientStop(1.0, Rgba(0xFF000000)));
-  p->setSource(pat);
+  p->setSource(Rgba(0xFF000000));
   p->drawPath(path);
+*/
+
+  Font font;
+  font.setSize(94);
+  FontMetrics metrics = font.metrics();
+  int x1= 100, x2 = 400, y;
+
+  p->setSource(0xFFFF0000);
+  y = 50;
+  p->drawLine(Point(x1, y), Point(x2, y));
+
+  p->setSource(0xFF0000FF);
+  y = 50 + metrics.ascent;
+  p->drawLine(Point(x1, y), Point(x2, y));
+
+  p->setSource(0xFF0000FF);
+  y = 50 + metrics.descent;
+  p->drawLine(Point(x1, y), Point(x2, y));
+
+  p->setSource(0xFFFF0000);
+  y = 50 + metrics.height;
+  p->drawLine(Point(x1, y), Point(x2, y));
+
+  p->setSource(0xFF000000);
+  p->drawText(Point(100, 50), StubAscii8("Text"), font);
 }
 
 // ============================================================================

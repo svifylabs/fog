@@ -304,8 +304,51 @@
 //! @note This attribute is set to @c FOG_DLL_EXPORT when library is building and
 //! to @c FOG_DLL_IMPORT when library is including from another project.
 
-// GNU C++
-#if defined(__GNUC__)
+// [Compiler - IDE]
+
+// Here we generate macros thats friendly for IDEs. In compilation time they are
+// never used. Adding FOG_IDE as defined macro to your IDE can help with code
+// assist.
+#if defined(FOG_IDE)
+
+#define FOG_CC_IDE
+
+#define FOG_INLINE inline
+#define FOG_NO_RETURN
+#define FOG_DEPRECATED
+
+#define FOG_FASTCALL
+#define FOG_STDCALL
+#define FOG_CDECL
+
+#define FOG_HIDDEN
+
+#define FOG_DLL_IMPORT
+#define FOG_DLL_EXPORT
+
+#define FOG_LIKELY(exp) (exp)
+#define FOG_UNLIKELY(exp) (exp)
+
+#define FOG_UNUSED(a)
+#define FOG_ALIGN(__n__)
+
+#define FOG_BEGIN_MACRO do {
+#define FOG_END_MACRO } while(0)
+
+#define FOG_API
+
+#define FOG_CVAR_EXTERN_BASE(api) extern "C"
+#define FOG_CVAR_DECLARE_BASE(api)
+
+#define FOG_CAPI_EXTERN_BASE(api) extern "C"
+#define FOG_CAPI_DECLARE_BASE(api) extern "C"
+
+#define FOG_INIT_EXTERN_BASE(api) extern "C"
+#define FOG_INIT_DECLARE_BASE(api) extern "C"
+
+// [Compiler - GNU C/C++]
+
+#elif defined(__GNUC__)
 #define FOG_CC_GNU __GNUC__
 
 #define FOG_INLINE inline __attribute__ ((always_inline))
@@ -369,7 +412,8 @@
 #define FOG_INIT_EXTERN_BASE(api) extern "C" FOG_HIDDEN
 #define FOG_INIT_DECLARE_BASE(api) extern "C" FOG_HIDDEN
 
-// Borland C++ Builder or MSVC
+// [Compiler - Borland C++ Builder or MSVC]
+
 #elif defined(__BORLANDC__) || defined(_MSC_VER)
 
 #if defined(__BORLANDC__)

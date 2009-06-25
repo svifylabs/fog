@@ -443,27 +443,27 @@ Set(FOG_GRAPHICS_HEADERS
 # Fog/Agg Sources
 Set(FOG_AGG_SOURCES
   ${FOG_AGG_DIR}/src/agg_arc.cpp
-  ${FOG_AGG_DIR}/src/agg_arrowhead.cpp
-  ${FOG_AGG_DIR}/src/agg_bezier_arc.cpp
-  ${FOG_AGG_DIR}/src/agg_bspline.cpp
-  ${FOG_AGG_DIR}/src/agg_curves.cpp
-  ${FOG_AGG_DIR}/src/agg_image_filters.cpp
+#  ${FOG_AGG_DIR}/src/agg_arrowhead.cpp
+#  ${FOG_AGG_DIR}/src/agg_bezier_arc.cpp
+#  ${FOG_AGG_DIR}/src/agg_bspline.cpp
+#  ${FOG_AGG_DIR}/src/agg_curves.cpp
+#  ${FOG_AGG_DIR}/src/agg_image_filters.cpp
   ${FOG_AGG_DIR}/src/agg_line_aa_basics.cpp
-  ${FOG_AGG_DIR}/src/agg_line_profile_aa.cpp
+#  ${FOG_AGG_DIR}/src/agg_line_profile_aa.cpp
   ${FOG_AGG_DIR}/src/agg_rounded_rect.cpp
   ${FOG_AGG_DIR}/src/agg_sqrt_tables.cpp
   ${FOG_AGG_DIR}/src/agg_trans_affine.cpp
-  ${FOG_AGG_DIR}/src/agg_trans_double_path.cpp
-  ${FOG_AGG_DIR}/src/agg_trans_single_path.cpp
-  ${FOG_AGG_DIR}/src/agg_trans_warp_magnifier.cpp
-  ${FOG_AGG_DIR}/src/agg_vcgen_bspline.cpp
+#  ${FOG_AGG_DIR}/src/agg_trans_double_path.cpp
+#  ${FOG_AGG_DIR}/src/agg_trans_single_path.cpp
+#  ${FOG_AGG_DIR}/src/agg_trans_warp_magnifier.cpp
+#  ${FOG_AGG_DIR}/src/agg_vcgen_bspline.cpp
   ${FOG_AGG_DIR}/src/agg_vcgen_contour.cpp
   ${FOG_AGG_DIR}/src/agg_vcgen_dash.cpp
   ${FOG_AGG_DIR}/src/agg_vcgen_markers_term.cpp
-  ${FOG_AGG_DIR}/src/agg_vcgen_smooth_poly1.cpp
+#  ${FOG_AGG_DIR}/src/agg_vcgen_smooth_poly1.cpp
   ${FOG_AGG_DIR}/src/agg_vcgen_stroke.cpp
-  ${FOG_AGG_DIR}/src/agg_vpgen_clip_polygon.cpp
-  ${FOG_AGG_DIR}/src/agg_vpgen_clip_polyline.cpp
+#  ${FOG_AGG_DIR}/src/agg_vpgen_clip_polygon.cpp
+#  ${FOG_AGG_DIR}/src/agg_vpgen_clip_polyline.cpp
   ${FOG_AGG_DIR}/src/agg_vpgen_segmentator.cpp
 )
 

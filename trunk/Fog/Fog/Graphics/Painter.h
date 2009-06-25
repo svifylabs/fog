@@ -139,7 +139,7 @@ struct FOG_API PainterEngine
   // [Raster Drawing]
 
   virtual void clear() = 0;
-  virtual void drawPixel(const Point& p) = 0;
+  virtual void drawPoint(const Point& p) = 0;
   virtual void drawLine(const Point& start, const Point& end) = 0;
   virtual void drawRect(const Rect& r) = 0;
   virtual void drawRound(const Rect& r, const Point& radius) = 0;
@@ -333,7 +333,7 @@ struct FOG_API Painter
   // [Raster Drawing]
 
   FOG_INLINE void clear() { _engine->clear(); }
-  FOG_INLINE void drawPixel(const Point& p) { _engine->drawPixel(p); }
+  FOG_INLINE void drawPoint(const Point& p) { _engine->drawPoint(p); }
   FOG_INLINE void drawLine(const Point& start, const Point& end) { _engine->drawLine(start, end); }
   FOG_INLINE void drawRect(const Rect& r) { _engine->drawRect(r); }
   FOG_INLINE void drawRound(const Rect& r, const Point& radius) { _engine->drawRound(r, radius); }

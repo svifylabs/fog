@@ -183,7 +183,7 @@ struct FOG_HIDDEN NullEngine : public PainterEngine
   // [Raster Drawing]
 
   virtual void clear() {}
-  virtual void drawPixel(const Point& p) {}
+  virtual void drawPoint(const Point& p) {}
   virtual void drawLine(const Point& start, const Point& end) {}
   virtual void drawRect(const Rect& r) {}
   virtual void drawRound(const Rect& r, const Point& radius) {}
@@ -938,7 +938,7 @@ struct FOG_HIDDEN RasterEngine : public PainterEngine
   // [Raster Drawing]
 
   virtual void clear();
-  virtual void drawPixel(const Point& p);
+  virtual void drawPoint(const Point& p);
   virtual void drawLine(const Point& start, const Point& end);
   virtual void drawRect(const Rect& r);
   virtual void drawRound(const Rect& r, const Point& radius);
@@ -1916,7 +1916,7 @@ void RasterEngine::clear()
     _serializeBoxes(ctx.clipState->workRegion.cData(), ctx.clipState->workRegion.count());
 }
 
-void RasterEngine::drawPixel(const Point& p)
+void RasterEngine::drawPoint(const Point& p)
 {
   RasterEngine::drawPoint(
     PointF((double)p.x() + 0.5, (double)p.y() + 0.5));
