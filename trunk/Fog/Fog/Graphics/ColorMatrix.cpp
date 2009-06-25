@@ -196,7 +196,10 @@ void ColorMatrix::transformVector(double* v) const
   temp[2] = v[0] * m[0][2] + v[1] * m[1][2] + v[2] * m[2][2] + v[3] * m[3][2] + m[4][2];
   temp[3] = v[0] * m[0][3] + v[1] * m[1][3] + v[2] * m[2][3] + v[3] * m[3][3] + m[4][3];
 
-  memcpy(v, temp, sizeof( double ) * 4);
+  v[0] = temp[0];
+  v[1] = temp[1];
+  v[2] = temp[2];
+  v[3] = temp[3];
 }
 
 void ColorMatrix::transformRgb(Rgba* clr) const
@@ -205,9 +208,9 @@ void ColorMatrix::transformRgb(Rgba* clr) const
   double g = (double)clr->g;
   double b = (double)clr->b;
 
-  int tr = (int)(r * m[0][0] + g * m[1][0] + b * m[2][0] + 255.0 * m[3][0] + m[4][0]);
-  int tg = (int)(r * m[0][1] + g * m[1][1] + b * m[2][1] + 255.0 * m[3][1] + m[4][1]);
-  int tb = (int)(r * m[0][2] + g * m[1][2] + b * m[2][2] + 255.0 * m[3][2] + m[4][2]);
+  int tr = (int)(r * m[0][0] + g * m[1][0] + b * m[2][0] + 255.0 * m[3][0] + m[4][0] * 255.0);
+  int tg = (int)(r * m[0][1] + g * m[1][1] + b * m[2][1] + 255.0 * m[3][1] + m[4][1] * 255.0);
+  int tb = (int)(r * m[0][2] + g * m[1][2] + b * m[2][2] + 255.0 * m[3][2] + m[4][2] * 255.0);
 
   if (tr < 0) tr = 0;
   if (tg < 0) tg = 0;
@@ -228,9 +231,9 @@ void ColorMatrix::transformRgb64(Rgba64* clr) const
   double g = (double)clr->g;
   double b = (double)clr->b;
 
-  int tr = (int)(r * m[0][0] + g * m[1][0] + b * m[2][0] + 65535.0 * m[3][0] + m[4][0]);
-  int tg = (int)(r * m[0][1] + g * m[1][1] + b * m[2][1] + 65535.0 * m[3][1] + m[4][1]);
-  int tb = (int)(r * m[0][2] + g * m[1][2] + b * m[2][2] + 65535.0 * m[3][2] + m[4][2]);
+  int tr = (int)(r * m[0][0] + g * m[1][0] + b * m[2][0] + 65535.0 * m[3][0] + m[4][0] * 65535.0);
+  int tg = (int)(r * m[0][1] + g * m[1][1] + b * m[2][1] + 65535.0 * m[3][1] + m[4][1] * 65535.0);
+  int tb = (int)(r * m[0][2] + g * m[1][2] + b * m[2][2] + 65535.0 * m[3][2] + m[4][2] * 65535.0);
 
   if (tr < 0) tr = 0;
   if (tg < 0) tg = 0;
@@ -252,10 +255,10 @@ void ColorMatrix::transformRgba(Rgba* clr) const
   double b = (double)clr->b;
   double a = (double)clr->a;
 
-  int tr = (int)(r * m[0][0] + g * m[1][0] + b * m[2][0] + a * m[3][0] + m[4][0]);
-  int tg = (int)(r * m[0][1] + g * m[1][1] + b * m[2][1] + a * m[3][1] + m[4][1]);
-  int tb = (int)(r * m[0][2] + g * m[1][2] + b * m[2][2] + a * m[3][2] + m[4][2]);
-  int ta = (int)(r * m[0][3] + g * m[1][3] + b * m[2][3] + a * m[3][3] + m[4][3]);
+  int tr = (int)(r * m[0][0] + g * m[1][0] + b * m[2][0] + a * m[3][0] + m[4][0] * 255.0);
+  int tg = (int)(r * m[0][1] + g * m[1][1] + b * m[2][1] + a * m[3][1] + m[4][1] * 255.0);
+  int tb = (int)(r * m[0][2] + g * m[1][2] + b * m[2][2] + a * m[3][2] + m[4][2] * 255.0);
+  int ta = (int)(r * m[0][3] + g * m[1][3] + b * m[2][3] + a * m[3][3] + m[4][3] * 255.0);
 
   if (tr < 0) tr = 0;
   if (tg < 0) tg = 0;
@@ -277,10 +280,10 @@ void ColorMatrix::transformRgba64(Rgba64* clr) const
   double b = (double)clr->b;
   double a = (double)clr->a;
 
-  int tr = (int)(r * m[0][0] + g * m[1][0] + b * m[2][0] + a * m[3][0] + m[4][0]);
-  int tg = (int)(r * m[0][1] + g * m[1][1] + b * m[2][1] + a * m[3][1] + m[4][1]);
-  int tb = (int)(r * m[0][2] + g * m[1][2] + b * m[2][2] + a * m[3][2] + m[4][2]);
-  int ta = (int)(r * m[0][3] + g * m[1][3] + b * m[2][3] + a * m[3][3] + m[4][3]);
+  int tr = (int)(r * m[0][0] + g * m[1][0] + b * m[2][0] + a * m[3][0] + m[4][0] * 65535.0);
+  int tg = (int)(r * m[0][1] + g * m[1][1] + b * m[2][1] + a * m[3][1] + m[4][1] * 65535.0);
+  int tb = (int)(r * m[0][2] + g * m[1][2] + b * m[2][2] + a * m[3][2] + m[4][2] * 65535.0);
+  int ta = (int)(r * m[0][3] + g * m[1][3] + b * m[2][3] + a * m[3][3] + m[4][3] * 65535.0);
 
   if (tr < 0) tr = 0;
   if (tg < 0) tg = 0;
@@ -297,7 +300,7 @@ void ColorMatrix::transformRgba64(Rgba64* clr) const
 
 void ColorMatrix::transformAlpha(uint8_t* a) const
 {
-  int ta = (int)((double)*a * m[3][3] + m[4][3]);
+  int ta = (int)((double)*a * m[3][3] + m[4][3] * 255.0);
 
   if (ta < 0) ta = 0;
   if (ta > 255) ta = 255;

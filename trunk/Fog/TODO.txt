@@ -41,10 +41,6 @@ TODO
         painter created objects is very short.
 
 [ ] Image
-    [D] Add some effects from qimageblitz?
-    [D] DOT line
-    [D] WU-Antialiased line (raster based, fastest possible)
-    [D] Fill trapezoid, using rasterizer from pixman with ability to set color for each corner
     [ ] Render text using Font::getGlyphs
     [ ] Add ColorLUT
         [ ] By color lut the contrast, brightness, threshold and gamma function can be implemented.
