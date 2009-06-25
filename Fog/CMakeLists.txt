@@ -364,6 +364,8 @@ SOURCE_GROUP(Xml FILES
 # Fog/Graphics Sources
 Set(FOG_GRAPHICS_SOURCES
   ${FOG_DIR}/Fog/Graphics/AffineMatrix.cpp
+  ${FOG_DIR}/Fog/Graphics/ColorFilter.cpp
+  ${FOG_DIR}/Fog/Graphics/ColorLut.cpp
   ${FOG_DIR}/Fog/Graphics/ColorMatrix.cpp
   ${FOG_DIR}/Fog/Graphics/DitherMatrix.cpp
   ${FOG_DIR}/Fog/Graphics/Font.cpp
@@ -403,6 +405,8 @@ Set(FOG_GRAPHICS_SOURCES
 Set(FOG_GRAPHICS_HEADERS
   ${FOG_DIR}/Fog/Graphics.h
   ${FOG_DIR}/Fog/Graphics/AffineMatrix.h
+  ${FOG_DIR}/Fog/Graphics/ColorFilter.h
+  ${FOG_DIR}/Fog/Graphics/ColorLut.h
   ${FOG_DIR}/Fog/Graphics/ColorMatrix.h
   ${FOG_DIR}/Fog/Graphics/Constants.h
   ${FOG_DIR}/Fog/Graphics/DitherMatrix.h

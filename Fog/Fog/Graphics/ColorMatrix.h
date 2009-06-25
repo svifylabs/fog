@@ -35,7 +35,7 @@ struct Rgba64;
 // [Fog::ColorMatrix]
 // ============================================================================
 
-//! @brief Color matrix
+//! @brief Color matrix.
 //!
 //! The color matrix is a 5x5 matrix that can be used to do color transformations
 //! The idea is like affine transformations for vector painter coordinates.

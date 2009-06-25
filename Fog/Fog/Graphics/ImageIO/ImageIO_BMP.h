@@ -62,23 +62,23 @@ struct FOG_PACKED BmpV4Header
   uint32_t colorsUsed;      //!< @brief Number of colors in the image.
   uint32_t colorsImportant; //!< @brief Minimum number of important colors.
 
-	uint32_t rMask;           //!< @brief Mask identifying bits of red component.
-	uint32_t gMask;           //!< @brief Mask identifying bits of green component.
-	uint32_t BMask;           //!< @brief Mask identifying bits of blue component.
-	uint32_t aMask;           //!< @brief Mask identifying bits of alpha component.
-	uint32_t colorspace;      //!< @brief Color space type.
-	uint32_t rX;              //!< @brief X coordinate of red endpoint.
-	uint32_t rY;              //!< @brief Y coordinate of red endpoint.
-	uint32_t rZ;              //!< @brief Z coordinate of red endpoint.
-	uint32_t gX;              //!< @brief X coordinate of green endpoint.
-	uint32_t gY;              //!< @brief Y coordinate of green endpoint.
-	uint32_t gZ;              //!< @brief Z coordinate of green endpoint.
-	uint32_t bX;              //!< @brief X coordinate of blue endpoint.
-	uint32_t bY;              //!< @brief Y coordinate of blue endpoint.
-	uint32_t bZ;              //!< @brief Z coordinate of blue endpoint.
-	uint32_t rGamma;          //!< @brief Gamma red coordinate scale value.
-	uint32_t gGamma;          //!< @brief Gamma green coordinate scale value.
-	uint32_t bGamma;          //!< @brief Gamma blue coordinate scale value.
+  uint32_t rMask;           //!< @brief Mask identifying bits of red component.
+  uint32_t gMask;           //!< @brief Mask identifying bits of green component.
+  uint32_t BMask;           //!< @brief Mask identifying bits of blue component.
+  uint32_t aMask;           //!< @brief Mask identifying bits of alpha component.
+  uint32_t colorspace;      //!< @brief Color space type.
+  uint32_t rX;              //!< @brief X coordinate of red endpoint.
+  uint32_t rY;              //!< @brief Y coordinate of red endpoint.
+  uint32_t rZ;              //!< @brief Z coordinate of red endpoint.
+  uint32_t gX;              //!< @brief X coordinate of green endpoint.
+  uint32_t gY;              //!< @brief Y coordinate of green endpoint.
+  uint32_t gZ;              //!< @brief Z coordinate of green endpoint.
+  uint32_t bX;              //!< @brief X coordinate of blue endpoint.
+  uint32_t bY;              //!< @brief Y coordinate of blue endpoint.
+  uint32_t bZ;              //!< @brief Z coordinate of blue endpoint.
+  uint32_t rGamma;          //!< @brief Gamma red coordinate scale value.
+  uint32_t gGamma;          //!< @brief Gamma green coordinate scale value.
+  uint32_t bGamma;          //!< @brief Gamma blue coordinate scale value.
 };
 
 #include <Fog/Core/Unpack.h>
