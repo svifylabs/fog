@@ -648,12 +648,12 @@ uint32_t PngEncoderDevice::writeImage(const Image& image)
         break;
       case Image::FormatPRGB32:
         row_ptr = (png_bytep)buffer;
-        image.getDibArgb32(0, y, width, buffer);
+        image.getDibArgb32_be(0, y, width, buffer);
         break;
       case Image::FormatRGB32:
       case Image::FormatRGB24:
         row_ptr = (png_bytep)buffer;
-        image.getDibRgb24(0, y, width, buffer);
+        image.getDibRgb24_be(0, y, width, buffer);
         break;
     }
 

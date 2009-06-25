@@ -123,21 +123,21 @@ done:
 // ============================================================================
 
 // Coinciding points maximal distance (Epsilon).
-static const double vertex_dist_epsilon = 1.0e-14;
+static const double pathVertexDistEpsilon = 1.0e-14;
 
 // See calcIntersection (Epsilon).
-static const double intersection_epsilon = 1.0e-30;
+static const double intersectionEpsilon = 1.0e-30;
 
 // This epsilon is used to prevent us from adding degenerate curves
 // (converging to a single point).
 // The value isn't very critical. Function arc_to_bezier() has a limit
 // of the sweep_angle. If fabs(sweep_angle) exceeds pi/2 the curve
 // becomes inaccurate. But slight exceeding is quite appropriate.
-static const double bezier_arc_angle_epsilon = 0.01;
+static const double bezierArcAngleEpsilon = 0.01;
 
-static const double curve_distance_epsilon = 1e-30;
-static const double curve_collinearity_epsilon = 1e-30;
-static const double curve_angle_tolerance_epsilon = 0.01;
+static const double curveDistanceEpsilon = 1e-30;
+static const double curveCollinearityEpsilon = 1e-30;
+static const double curveAngleToleranceEpsilon = 0.01;
 
 static FOG_INLINE double calcDistance(
   double x1, double y1, double x2, double y2)
@@ -162,7 +162,7 @@ static FOG_INLINE bool calcIntersection(
 {
   double num = (ay-cy) * (dx-cx) - (ax-cx) * (dy-cy);
   double den = (bx-ax) * (dy-cy) - (by-ay) * (dx-cx);
-  if (fabs(den) < intersection_epsilon) return false;
+  if (fabs(den) < intersectionEpsilon) return false;
   double r = num / den;
   *x = ax + r * (bx-ax);
   *y = ay + r * (by-ay);
@@ -646,14 +646,14 @@ err_t Path::vlineToRel(double dy)
 static void arc_to_bezier(
   double cx, double cy,
   double rx, double ry,
-  double start_angle,
-  double sweep_angle,
+  double start,
+  double sweep,
   Path::Vertex* dst)
 {
-  sweep_angle /= 2.0;
+  sweep /= 2.0;
 
-  double x0 = cos(sweep_angle);
-  double y0 = sin(sweep_angle);
+  double x0 = cos(sweep);
+  double y0 = sin(sweep);
   double tx = (1.0 - x0) * (4.0 / 3.0);
   double ty = y0 - tx * x0 / y0;
   double px[4];
@@ -668,8 +668,8 @@ static void arc_to_bezier(
   px[3] =  x0;
   py[3] =  y0;
 
-  double sn = sin(start_angle + sweep_angle);
-  double cs = cos(start_angle + sweep_angle);
+  double sn = sin(start + sweep);
+  double cs = cos(start + sweep);
 
   for (sysuint_t i = 0; i < 4; i++)
   {
@@ -707,9 +707,9 @@ err_t Path::_arcTo(double cx, double cy, double rx, double ry, double start, dou
     Vertex* vstart = v;
     Vertex* vend = v + 13;
 
-    double total_sweep = 0.0;
-    double local_sweep = 0.0;
-    double prev_sweep;
+    double totalSweep = 0.0;
+    double localSweep = 0.0;
+    double prevSweep;
     bool done = false;
 
     v++;
@@ -717,32 +717,32 @@ err_t Path::_arcTo(double cx, double cy, double rx, double ry, double start, dou
     do {
       if (sweep < 0.0)
       {
-        prev_sweep   = total_sweep;
-        local_sweep  = -M_PI * 0.5;
-        total_sweep -=  M_PI * 0.5;
+        prevSweep   = totalSweep;
+        localSweep  = -M_PI * 0.5;
+        totalSweep -=  M_PI * 0.5;
 
-        if (total_sweep <= sweep + bezier_arc_angle_epsilon)
+        if (totalSweep <= sweep + bezierArcAngleEpsilon)
         {
-          local_sweep = sweep - prev_sweep;
+          localSweep = sweep - prevSweep;
           done = true;
         }
       }
       else
       {
-        prev_sweep   = total_sweep;
-        local_sweep  = M_PI * 0.5;
-        total_sweep += M_PI * 0.5;
+        prevSweep   = totalSweep;
+        localSweep  = M_PI * 0.5;
+        totalSweep += M_PI * 0.5;
 
-        if (total_sweep >= sweep - bezier_arc_angle_epsilon)
+        if (totalSweep >= sweep - bezierArcAngleEpsilon)
         {
-          local_sweep = sweep - prev_sweep;
+          localSweep = sweep - prevSweep;
           done = true;
         }
       }
 
-      arc_to_bezier(cx, cy, rx, ry, start, local_sweep, v-1);
+      arc_to_bezier(cx, cy, rx, ry, start, localSweep, v-1);
       v += 3;
-      start += local_sweep;
+      start += localSweep;
     } while (!done && v < vend);
 
     // Setup initial command, path length and set type to CurveType.
@@ -1311,14 +1311,14 @@ static err_t approximateCurve3(
     double d = fabs(((x2 - x3) * dy - (y2 - y3) * dx));
     double da;
 
-    if (d > curve_collinearity_epsilon)
+    if (d > curveCollinearityEpsilon)
     {
       // Regular case
       if (d * d <= distanceToleranceSquare * (dx*dx + dy*dy))
       {
         // If the curvature doesn't exceed the distance_tolerance value
         // we tend to finish subdivisions.
-        if (angleTolerance < curve_angle_tolerance_epsilon)
+        if (angleTolerance < curveAngleToleranceEpsilon)
         {
           ADD_VERTEX(Path::CmdLineTo, x123, y123);
           goto ret;
@@ -1458,8 +1458,8 @@ static err_t approximateCurve4(
     double d3 = fabs(((x3 - x4) * dy - (y3 - y4) * dx));
     double da1, da2, k;
 
-    switch ((int(d2 > curve_collinearity_epsilon) << 1) +
-             int(d3 > curve_collinearity_epsilon))
+    switch ((int(d2 > curveCollinearityEpsilon) << 1) +
+             int(d3 > curveCollinearityEpsilon))
     {
       // All collinear OR p1==p4
       case 0:
@@ -1523,7 +1523,7 @@ static err_t approximateCurve4(
     case 1:
       if (d3 * d3 <= distanceToleranceSquare * (dx*dx + dy*dy))
       {
-        if (angleTolerance < curve_angle_tolerance_epsilon)
+        if (angleTolerance < curveAngleToleranceEpsilon)
         {
           ADD_VERTEX(Path::CmdLineTo, x23, y23);
           goto ret;
@@ -1555,7 +1555,7 @@ static err_t approximateCurve4(
     case 2:
       if (d2 * d2 <= distanceToleranceSquare * (dx*dx + dy*dy))
       {
-        if (angleTolerance < curve_angle_tolerance_epsilon)
+        if (angleTolerance < curveAngleToleranceEpsilon)
         {
           ADD_VERTEX(Path::CmdLineTo, x23, y23);
           goto ret;
@@ -1589,7 +1589,7 @@ static err_t approximateCurve4(
       {
         // If the curvature doesn't exceed the distance_tolerance value
         // we tend to finish subdivisions.
-        if (angleTolerance < curve_angle_tolerance_epsilon)
+        if (angleTolerance < curveAngleToleranceEpsilon)
         {
           ADD_VERTEX(Path::CmdLineTo, x23, y23);
           goto ret;
@@ -1979,20 +1979,20 @@ err_t Path::dashTo(Path& dst, const Vector<double>& dashes, double startOffset, 
 // Vertex (x, y) with the distance to the next one. The last vertex has
 // distance between the last and the first points if the polygon is closed
 // and 0.0 if it's a polyline.
-struct vertex_dist
+struct FOG_HIDDEN PathVertexDist
 {
-  FOG_INLINE vertex_dist() {}
-  FOG_INLINE vertex_dist(double x_, double y_) :
+  FOG_INLINE PathVertexDist() {}
+  FOG_INLINE PathVertexDist(double x_, double y_) :
     x(x_),
     y(y_),
     dist(0.0)
   {
   }
 
-  bool operator () (const vertex_dist& val)
+  bool operator() (const PathVertexDist& val)
   {
-    bool ret = (dist = calcDistance(x, y, val.x, val.y)) > vertex_dist_epsilon;
-    if (!ret) dist = 1.0 / vertex_dist_epsilon;
+    bool ret = (dist = calcDistance(x, y, val.x, val.y)) > pathVertexDistEpsilon;
+    if (!ret) dist = 1.0 / pathVertexDistEpsilon;
     return ret;
   }
 
@@ -2011,14 +2011,14 @@ struct FOG_HIDDEN PathStroker
   }
 
   void calcCap(
-    const vertex_dist& v0,
-    const vertex_dist& v1,
+    const PathVertexDist& v0,
+    const PathVertexDist& v1,
     double len);
 
   void calcJoin(
-    const vertex_dist& v0,
-    const vertex_dist& v1,
-    const vertex_dist& v2,
+    const PathVertexDist& v0,
+    const PathVertexDist& v1,
+    const PathVertexDist& v2,
     double len1,
     double len2);
 
@@ -2028,9 +2028,9 @@ struct FOG_HIDDEN PathStroker
     double dx2, double dy2);
 
   void calcMiter(
-    const vertex_dist& v0,
-    const vertex_dist& v1,
-    const vertex_dist& v2,
+    const PathVertexDist& v0,
+    const PathVertexDist& v1,
+    const PathVertexDist& v2,
     double dx1, double dy1,
     double dx2, double dy2,
     uint32_t lj,
@@ -2040,42 +2040,44 @@ struct FOG_HIDDEN PathStroker
   Path& dst;
 
   double _approximateScale;
-
-  double       m_width;
-  double       m_width_abs;
-  double       m_width_eps;
-  int          m_width_sign;
-  double       m_miter_limit;
-  double       m_inner_miter_limit;
-  uint32_t     m_line_cap;
-  uint32_t     m_line_join;
-  uint32_t     m_inner_join;
+  double _width;
+  double _widthAbs;
+  double _widthEps;
+  double _da;
+  int _widthSign;
+  double _miterLimit;
+  double _innerMiterLimit;
+  uint32_t _lineCap;
+  uint32_t _lineJoin;
+  uint32_t _innerJoin;
 };
 
 PathStroker::PathStroker(Path& dst, const StrokeParams& params, double approximateScale) :
   dst(dst)
 {
-  m_width = params.lineWidth * 0.5;
+  _approximateScale = approximateScale;
+  _width = params.lineWidth * 0.5;
 
-  if (m_width < 0)
+  if (_width < 0)
   {
-    m_width_abs  = -m_width;
-    m_width_sign = -1;
+    _widthAbs  = -_width;
+    _widthSign = -1;
   }
   else
   {
-    m_width_abs  = m_width;
-    m_width_sign = 1;
+    _widthAbs  = _width;
+    _widthSign = 1;
   }
-  m_width_eps = m_width / 1024.0;
+  _widthEps = _width / 1024.0;
+
+  _da = acos(_widthAbs / (_widthAbs + 0.125 / _approximateScale)) * 2;
 
   // TODO: Add inner join and inner miter limit to painter and to StrokeParams.
-  m_miter_limit = params.miterLimit; // TODO: Default is 4, add this to painter
-  m_inner_miter_limit = 1.01;
-  _approximateScale = approximateScale;
-  m_line_cap = params.lineCap;
-  m_line_join = params.lineJoin;
-  m_inner_join = InnerJoinMiter;
+  _miterLimit = params.miterLimit; // TODO: Default is 4, add this to painter
+  _innerMiterLimit = 1.01;
+  _lineCap = params.lineCap;
+  _lineJoin = params.lineJoin;
+  _innerJoin = InnerJoinMiter;
 }
 
 PathStroker::~PathStroker()
@@ -2087,15 +2089,13 @@ void PathStroker::calcArc(
   double dx1, double dy1,
   double dx2, double dy2)
 {
-  double a1 = atan2(dy1 * m_width_sign, dx1 * m_width_sign);
-  double a2 = atan2(dy2 * m_width_sign, dx2 * m_width_sign);
-  double da = a1 - a2;
+  double a1 = atan2(dy1 * _widthSign, dx1 * _widthSign);
+  double a2 = atan2(dy2 * _widthSign, dx2 * _widthSign);
+  double da = _da;
   int i, n;
 
-  da = acos(m_width_abs / (m_width_abs + 0.125 / _approximateScale)) * 2;
-
   add_vertex(x + dx1, y + dy1);
-  if (m_width_sign > 0)
+  if (_widthSign > 0)
   {
     if (a1 > a2) a2 += 2.0 * M_PI;
     n = int((a2 - a1) / da);
@@ -2104,7 +2104,7 @@ void PathStroker::calcArc(
 
     for (i = 0; i < n; i++)
     {
-      add_vertex(x + cos(a1) * m_width, y + sin(a1) * m_width);
+      add_vertex(x + cos(a1) * _width, y + sin(a1) * _width);
       a1 += da;
     }
   }
@@ -2117,8 +2117,8 @@ void PathStroker::calcArc(
 
     for (i = 0; i < n; i++)
     {
-        add_vertex(x + cos(a1) * m_width, y + sin(a1) * m_width);
-        a1 -= da;
+      add_vertex(x + cos(a1) * _width, y + sin(a1) * _width);
+      a1 -= da;
     }
   }
   add_vertex(x + dx2, y + dy2);
@@ -2126,9 +2126,9 @@ void PathStroker::calcArc(
 
 //-----------------------------------------------------------------------
 void PathStroker::calcMiter(
-  const vertex_dist& v0,
-  const vertex_dist& v1,
-  const vertex_dist& v2,
+  const PathVertexDist& v0,
+  const PathVertexDist& v1,
+  const PathVertexDist& v2,
   double dx1, double dy1,
   double dx2, double dy2,
   uint32_t lj,
@@ -2138,15 +2138,15 @@ void PathStroker::calcMiter(
   double xi  = v1.x;
   double yi  = v1.y;
   double di  = 1;
-  double lim = m_width_abs * mlimit;
+  double lim = _widthAbs * mlimit;
   bool miter_limit_exceeded = true; // Assume the worst
   bool intersection_failed  = true; // Assume the worst
 
   if (calcIntersection(v0.x + dx1, v0.y - dy1,
-                        v1.x + dx1, v1.y - dy1,
-                        v1.x + dx2, v1.y - dy2,
-                        v2.x + dx2, v2.y - dy2,
-                        &xi, &yi))
+                       v1.x + dx1, v1.y - dy1,
+                       v1.x + dx2, v1.y - dy2,
+                       v2.x + dx2, v2.y - dy2,
+                       &xi, &yi))
   {
     // Calculation of the intersection succeeded
     //---------------------
@@ -2203,7 +2203,7 @@ void PathStroker::calcMiter(
         // If no miter-revert, calculate new dx1, dy1, dx2, dy2.
         if (intersection_failed)
         {
-          mlimit *= m_width_sign;
+          mlimit *= _widthSign;
           add_vertex(v1.x + dx1 + dy1 * mlimit, v1.y - dy1 + dx1 * mlimit);
           add_vertex(v1.x + dx2 - dy2 * mlimit, v1.y - dy2 - dx2 * mlimit);
         }
@@ -2223,34 +2223,35 @@ void PathStroker::calcMiter(
 }
 
 void PathStroker::calcCap(
-  const vertex_dist& v0,
-  const vertex_dist& v1,
+  const PathVertexDist& v0,
+  const PathVertexDist& v1,
   double len)
 {
   // TODO
   //vc.remove_all();
+  double ilen = 1.0 / len;
 
-  double dx1 = (v1.y - v0.y) / len;
-  double dy1 = (v1.x - v0.x) / len;
+  double dx1 = (v1.y - v0.y) * ilen;
+  double dy1 = (v1.x - v0.x) * ilen;
   double dx2 = 0;
   double dy2 = 0;
 
-  dx1 *= m_width;
-  dy1 *= m_width;
+  dx1 *= _width;
+  dy1 *= _width;
 
-  if (m_line_cap != LineCapRound)
+  if (_lineCap != LineCapRound)
   {
-    if (m_line_cap == LineCapSquare)
+    if (_lineCap == LineCapSquare)
     {
-      dx2 = dy1 * m_width_sign;
-      dy2 = dx1 * m_width_sign;
+      dx2 = dy1 * _widthSign;
+      dy2 = dx1 * _widthSign;
     }
     add_vertex(v0.x - dx1 - dx2, v0.y + dy1 - dy2);
     add_vertex(v0.x + dx1 - dx2, v0.y - dy1 - dy2);
   }
   else
   {
-    double da = acos(m_width_abs / (m_width_abs + 0.125 / _approximateScale)) * 2;
+    double da = _da;
     double a1;
     int i;
     int n = int(M_PI / da);
@@ -2258,13 +2259,13 @@ void PathStroker::calcCap(
     da = M_PI / (n + 1);
     add_vertex(v0.x - dx1, v0.y + dy1);
 
-    if (m_width_sign > 0)
+    if (_widthSign > 0)
     {
       a1 = atan2(dy1, -dx1);
       a1 += da;
       for (i = 0; i < n; i++)
       {
-        add_vertex(v0.x + cos(a1) * m_width, v0.y + sin(a1) * m_width);
+        add_vertex(v0.x + cos(a1) * _width, v0.y + sin(a1) * _width);
         a1 += da;
       }
     }
@@ -2274,7 +2275,7 @@ void PathStroker::calcCap(
       a1 -= da;
       for (i = 0; i < n; i++)
       {
-        add_vertex(v0.x + cos(a1) * m_width, v0.y + sin(a1) * m_width);
+        add_vertex(v0.x + cos(a1) * _width, v0.y + sin(a1) * _width);
         a1 -= da;
       }
     }
@@ -2283,32 +2284,35 @@ void PathStroker::calcCap(
 }
 
 void PathStroker::calcJoin(
-  const vertex_dist& v0,
-  const vertex_dist& v1,
-  const vertex_dist& v2,
+  const PathVertexDist& v0,
+  const PathVertexDist& v1,
+  const PathVertexDist& v2,
   double len1,
   double len2)
 {
-  double dx1 = m_width * (v1.y - v0.y) / len1;
-  double dy1 = m_width * (v1.x - v0.x) / len1;
-  double dx2 = m_width * (v2.y - v1.y) / len2;
-  double dy2 = m_width * (v2.x - v1.x) / len2;
+  double wilen1 = (_width / len1);
+  double wilen2 = (_width / len2);
+
+  double dx1 = (v1.y - v0.y) * wilen1;
+  double dy1 = (v1.x - v0.x) * wilen1;
+  double dx2 = (v2.y - v1.y) * wilen2;
+  double dy2 = (v2.x - v1.x) * wilen2;
 
   // TODO:
   //vc.remove_all();
 
   double cp = crossProduct(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y);
 
-  if (cp != 0 && (cp > 0) == (m_width > 0))
+  if (cp != 0 && (cp > 0) == (_width > 0))
   {
     // Inner join
     //---------------
-    double limit = ((len1 < len2) ? len1 : len2) / m_width_abs;
-    if (limit < m_inner_miter_limit) limit = m_inner_miter_limit;
+    double limit = ((len1 < len2) ? len1 : len2) / _widthAbs;
+    if (limit < _innerMiterLimit) limit = _innerMiterLimit;
 
-    switch (m_inner_join)
+    switch (_innerJoin)
     {
-      default: // inner_bevel
+      case InnerJoinBevel:
         add_vertex(v1.x + dx1, v1.y - dy1);
         add_vertex(v1.x + dx2, v1.y - dy2);
         break;
@@ -2326,7 +2330,7 @@ void PathStroker::calcJoin(
         }
         else
         {
-          if (m_inner_join == InnerJoinJag)
+          if (_innerJoin == InnerJoinJag)
           {
             add_vertex(v1.x + dx1, v1.y - dy1);
             add_vertex(v1.x,       v1.y      );
@@ -2342,6 +2346,9 @@ void PathStroker::calcJoin(
           }
         }
         break;
+
+      default:
+        FOG_ASSERT_NOT_REACHED();
     }
   }
   else
@@ -2356,7 +2363,7 @@ void PathStroker::calcJoin(
     double dy = (dy1 + dy2) / 2;
     double dbevel = sqrt(dx * dx + dy * dy);
 
-    if (m_line_join == LineJoinRound || m_line_join == LineJoinBevel)
+    if (_lineJoin == LineJoinRound || _lineJoin == LineJoinBevel)
     {
       // This is an optimization that reduces the number of points
       // in cases of almost collinear segments. If there's no
@@ -2375,7 +2382,7 @@ void PathStroker::calcJoin(
       // the same as in round joins and caps. You can safely comment
       // out this entire "if".
       //-------------------
-      if (_approximateScale * (m_width_abs - dbevel) < m_width_eps)
+      if (_approximateScale * (_widthAbs - dbevel) < _widthEps)
       {
         if (calcIntersection(v0.x + dx1, v0.y - dy1,
                              v1.x + dx1, v1.y - dy1,
@@ -2393,15 +2400,12 @@ void PathStroker::calcJoin(
       }
     }
 
-    switch (m_line_join)
+    switch (_lineJoin)
     {
       case LineJoinMiter:
       case LineJoinMiterRevert:
       case LineJoinMiterRound:
-        calcMiter(v0, v1, v2, dx1, dy1, dx2, dy2,
-                   m_line_join,
-                   m_miter_limit,
-                   dbevel);
+        calcMiter(v0, v1, v2, dx1, dy1, dx2, dy2, _lineJoin, _miterLimit, dbevel);
         break;
 
       case LineJoinRound:
@@ -2469,13 +2473,13 @@ namespace agg
         m_status = initial;
         if (is_move_to(cmd))
         {
-            m_src_vertices.modify_last(vertex_dist(x, y));
+            m_src_vertices.modify_last(PathVertexDist(x, y));
         }
         else
         {
             if (is_vertex(cmd))
             {
-                m_src_vertices.add(vertex_dist(x, y));
+                m_src_vertices.add(PathVertexDist(x, y));
             }
             else
             {
@@ -2692,7 +2696,7 @@ namespace agg
         };
 
     public:
-        typedef vertex_sequence<vertex_dist, 6> vertex_storage;
+        typedef vertex_sequence<PathVertexDist, 6> vertex_storage;
         typedef pod_bvector<point_d, 6>         coord_storage;
 
         vcgen_stroke();
