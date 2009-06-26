@@ -751,7 +751,8 @@ err_t Path::_arcTo(double cx, double cy, double rx, double ry, double start, dou
     _d->type = CurveType;
   }
 
-  if (closePath) return closePolygon();
+  if (closePath) closePolygon();
+  return Error::Ok;
 }
 
 err_t Path::arcTo(double cx, double cy, double rx, double ry, double start, double sweep)

@@ -442,7 +442,7 @@ uint8_t* BitArray::_tryGrow(sysuint_t by)
 void BitArray::squeeze()
 {
   Data* d = _d;
-  if (!d->flags & Data::IsDynamic) return;
+  if (!(d->flags & Data::IsDynamic)) return;
 
   sysuint_t length = d->length;
   if (length + 31 < d->capacity)
