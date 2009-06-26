@@ -282,7 +282,7 @@ uint8_t* BitArray::_reserve(sysuint_t to)
   if (to < d->length) to = d->length;
   to = (to + 31) & ~31;
 
-  if (d->flags.anyOf(Data::IsDynamic))
+  if (d->flags & Data::IsDynamic)
   {
     if (d->refCount.get() > 1)
     {
@@ -311,7 +311,7 @@ uint8_t* BitArray::_resize(sysuint_t to, uint32_t fill)
 {
   Data* d = _d;
 
-  if (d->flags.anyOf(Data::IsDynamic))
+  if (d->flags & Data::IsDynamic)
   {
     if (d->refCount.get() > 1)
     {
@@ -359,7 +359,7 @@ uint8_t* BitArray::_tryReserve(sysuint_t to)
   if (to < d->length) to = d->length;
   to = (to + 31) & ~31;
 
-  if (d->flags.anyOf(Data::IsDynamic))
+  if (d->flags & Data::IsDynamic)
   {
     if (d->refCount.get() > 1)
     {
@@ -394,7 +394,7 @@ uint8_t* BitArray::_tryResize(sysuint_t to, uint32_t fill)
 {
   Data* d = _d;
 
-  if (d->flags.anyOf(Data::IsDynamic))
+  if (d->flags & Data::IsDynamic)
   {
     if (d->refCount.get() > 1)
     {
@@ -442,7 +442,7 @@ uint8_t* BitArray::_tryGrow(sysuint_t by)
 void BitArray::squeeze()
 {
   Data* d = _d;
-  if (!d->flags.anyOf(Data::IsDynamic)) return;
+  if (!d->flags & Data::IsDynamic) return;
 
   sysuint_t length = d->length;
   if (length + 31 < d->capacity)
@@ -634,7 +634,7 @@ BitArray& BitArray::set(const BitArray& other)
   if (self_d == other_d) return *this;
 
   if (self_d->refCount.get() == 1 &&
-    self_d->flags.anyOf(Data::IsStrong) &&
+    (self_d->flags & Data::IsStrong) &&
     self_d->capacity >= other_d->length)
   {
     sysuint_t length = other_d->length;
@@ -872,7 +872,7 @@ BitArray::Data* BitArray::Data::adopt(void* address, sysuint_t capacity)
 
   Data* d = (Data*) address;
   d->refCount.init(1);
-  d->flags.init(IsStrong);
+  d->flags = IsStrong;
   d->capacity = capacity;
   d->length = 0;
   return d;
@@ -888,7 +888,7 @@ BitArray::Data* BitArray::Data::adopt(void* address, sysuint_t capacity, const u
 
   Data* d = (Data*) address;
   d->refCount.init(1);
-  d->flags.init(IsStrong);
+  d->flags = IsStrong;
   d->capacity = capacity;
   d->length = count;
   _copyBits(d->data, 0, data, bitoffset, count);
@@ -905,7 +905,7 @@ BitArray::Data* BitArray::Data::adopt(void* address, sysuint_t capacity, uint32_
 
   Data* d = (Data*) address;
   d->refCount.init(1);
-  d->flags.init(Data::IsStrong);
+  d->flags = Data::IsStrong;
   d->capacity = capacity;
   d->length = count;
   // this is pretty easy solution here. We know that bit array starts at bitoffset 0,
@@ -924,7 +924,7 @@ BitArray::Data* BitArray::Data::create(sysuint_t capacity, uint allocPolicy)
   if (d)
   {
     d->refCount.init(1);
-    d->flags.init(IsDynamic | IsSharable);
+    d->flags = IsDynamic | IsSharable;
     d->capacity = capacity;
     d->length = 0;
   }
@@ -1010,9 +1010,7 @@ FOG_INIT_DECLARE err_t fog_bitarray_init(void)
 
   Fog::BitArray::Data* d = Fog::BitArray::sharedNull.instancep();
   d->refCount.init(1);
-  d->flags.init(
-    Fog::BitArray::Data::IsSharable | 
-    Fog::BitArray::Data::IsNull);
+  d->flags = Fog::BitArray::Data::IsSharable | Fog::BitArray::Data::IsNull;
   d->capacity = 0;
   d->length = 0;
   *(uint32_t *)d->data = 0U;

@@ -15,7 +15,6 @@
 #include <Fog/Core/Hash.h>
 #include <Fog/Core/Delegate.h>
 #include <Fog/Core/Event.h>
-#include <Fog/Core/Flags.h>
 #include <Fog/Core/Thread.h>
 #include <Fog/Core/Vector.h>
 

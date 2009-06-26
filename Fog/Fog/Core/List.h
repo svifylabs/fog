@@ -13,7 +13,6 @@
 #include <Fog/Build/Build.h>
 #include <Fog/Core/Char.h>
 #include <Fog/Core/Error.h>
-#include <Fog/Core/Flags.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Sequence.h>
 #include <Fog/Core/SequenceInfo.h>

@@ -378,7 +378,7 @@ FOG_INIT_DECLARE err_t fog_sequence_init(void)
 
   memset(d, 0, sizeof(UntypedData));
   d->refCount.init(1);
-  d->flags.init(Fog::SequenceUntyped::Data::IsNull);
+  d->flags = Fog::SequenceUntyped::Data::IsNull;
 
   return Error::Ok;
 }

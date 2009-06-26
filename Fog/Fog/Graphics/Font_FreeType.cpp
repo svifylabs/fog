@@ -56,7 +56,7 @@ static FontEngineFTPrivate* fepriv;
 #define FT_FLOOR(X)     ((X & -64) / 64)
 #define FT_CEIL(X)      (((X + 63) & -64) / 64)
 
-// Returns @c true is mactrices 'a' and 'b' are equal
+// Returns @c true is mactrices 'a' and 'b' are equal.
 #define FT_Matrix_Equal(a,b) ( \
   (a)->xx == (b)->xx && \
   (a)->yy == (b)->yy && \
@@ -782,25 +782,25 @@ Glyph::Data* FontFaceFT::renderGlyph(uint32_t uc)
 
     glyphd = new(std::nothrow) Glyph::Data();
 
-    if (width != 0 && glyphd->image.create(width, ftGlyphSlot->bitmap.rows, Image::FormatA8) != Error::Ok)
+    if (width != 0 && glyphd->bitmap.create(width, ftGlyphSlot->bitmap.rows, Image::FormatA8) != Error::Ok)
     {
       goto fail;
     }
 
-    glyphd->offsetX = offsetX;
-    glyphd->offsetY = offsetY;
+    glyphd->bitmapX = offsetX;
+    glyphd->bitmapY = offsetY;
     glyphd->beginWidth = 0;
     glyphd->endWidth = 0;
     glyphd->advance = advance;
   }
 
   // If there is not glyph (spaces) just ignore copying step.
-  if (!glyphd->image.isEmpty())
+  if (!glyphd->bitmap.isEmpty())
   {
     // copy FT_Bitmap to our image and clean bytes over width
-    sysuint_t p, pCount = glyphd->image.stride() - ftBitmap->width;
+    sysuint_t p, pCount = glyphd->bitmap.stride() - ftBitmap->width;
 
-    uint8_t *dstPtr = glyphd->image._d->first;
+    uint8_t *dstPtr = glyphd->bitmap._d->first;
     const uint8_t *srcPtr = ftBitmap->buffer;
 
     for (y = 0; y != (uint)ftBitmap->rows; y++)
@@ -969,7 +969,7 @@ bool FtFile::load()
   if (ftFace) return true;
 
   // Try to mmap file, if this fail, use FT_New_Face function that will
-  // to open it manually.
+  // open it manually.
   if (mapFile.map(fileName, false) == Error::Ok)
   {
     FT_Open_Args ftArgs;
@@ -1013,7 +1013,7 @@ bool FtFile::setupSize(uint32_t size)
   FT_Error error = 0;
   FOG_ASSERT(loaded());
 
-  // Make sure that font face is scalable
+  // Make sure that font face is scalable.
   if (FT_IS_SCALABLE(ftFace))
   {
     // Set the character size and use default DPI (72)

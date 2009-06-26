@@ -24,8 +24,10 @@ Static<Glyph::Data> Glyph::sharedNull;
 // ============================================================================
 
 Glyph::Data::Data() :
-  offsetX(0),
-  offsetY(0),
+  bitmapX(0),
+  bitmapY(0),
+  pathScaleX(0.0),
+  pathScaleY(0.0),
   beginWidth(0),
   endWidth(0),
   advance(0)

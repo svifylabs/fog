@@ -12,7 +12,6 @@
 #include <Fog/Core/Constants.h>
 #include <Fog/Core/Atomic.h>
 #include <Fog/Core/Char.h>
-#include <Fog/Core/Flags.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/String.h>
 #include <Fog/Core/TypeInfo.h>

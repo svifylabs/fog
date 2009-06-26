@@ -15,7 +15,6 @@
 #include <Fog/Build/Build.h>
 #include <Fog/Core/Atomic.h>
 #include <Fog/Core/EventLoop.h>
-#include <Fog/Core/Flags.h>
 #include <Fog/Core/String.h>
 #include <Fog/Core/ThreadEvent.h>
 
@@ -223,7 +222,7 @@ private:
   Handle _handle;
 
   //! Thread flags
-  Flags<uint32_t> _flags;
+  uint32_t _flags;
 
   //! Thread id. Used for debugging purposes.
   uint32_t _id;

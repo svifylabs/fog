@@ -1165,9 +1165,9 @@ void Region::setSharable(bool val)
     detach();
 
     if (val)
-      _d->flags.set(Data::IsSharable);
+      _d->flags |= Data::IsSharable;
     else
-      _d->flags.unset(Data::IsSharable);
+      _d->flags &= ~Data::IsSharable;
   }
 }
 
@@ -1178,9 +1178,9 @@ void Region::setStrong(bool val)
     detach();
 
     if (val)
-      _d->flags.set(Data::IsStrong);
+      _d->flags |= Data::IsStrong;
     else
-      _d->flags.unset(Data::IsStrong);
+      _d->flags &= ~Data::IsStrong;
   }
 }
 
@@ -1229,7 +1229,7 @@ void Region::squeeze()
 {
   Data* d = _d;
   
-  if (d->flags.anyOf(Data::IsDynamic))
+  if (d->flags & Data::IsDynamic)
   {
     sysuint_t count = d->count;
     if (d->capacity == count) return;
@@ -1995,7 +1995,7 @@ void Region::Data::deref()
 
 static Region::Data* _reallocRegion(Region::Data* d, sysuint_t capacity)
 {
-  if (d->flags.anyOf(Region::Data::IsDynamic))
+  if (d->flags & Region::Data::IsDynamic)
   {
     d = (Region::Data*)Fog::Memory::xrealloc(d, Region::Data::sizeFor(capacity));
     d->capacity = capacity;
@@ -2012,7 +2012,7 @@ Region::Data* Region::Data::adopt(void* address, sysuint_t capacity)
   Data* d = (Data*)address;
   
   d->refCount.init(1);
-  d->flags.init(IsStrong);
+  d->flags = IsStrong;
   d->capacity = capacity;
   d->count = 0;
   d->extents.clear();
@@ -2027,7 +2027,7 @@ Region::Data* Region::Data::adopt(void* address, sysuint_t capacity, const Box& 
   Data* d = (Data*)address;
   
   d->refCount.init(1);
-  d->flags.init(IsStrong);
+  d->flags = IsStrong;
   d->capacity = capacity;
   if (r.isValid())
   {
@@ -2052,7 +2052,7 @@ Region::Data* Region::Data::adopt(void* address, sysuint_t capacity, const Box* 
   Data* d = (Data*)address;
   
   d->refCount.init(1);
-  d->flags.init(IsStrong);
+  d->flags = IsStrong;
   d->capacity = capacity;
   d->count = count;
   
@@ -2079,7 +2079,7 @@ Region::Data* Region::Data::create(sysuint_t capacity, uint allocPolicy)
   if (FOG_LIKELY(d != 0))
   {
     d->refCount.init(1);
-    d->flags.init(IsDynamic | IsSharable);
+    d->flags = IsDynamic | IsSharable;
     d->capacity = capacity;
     d->count = 0;
   }
@@ -2144,9 +2144,7 @@ FOG_INIT_DECLARE err_t fog_region_init(void)
   Fog::Region::Data* d = Fog::Region::sharedNull.instancep();
 
   d->refCount.init(1);
-  d->flags.init(
-    Fog::Region::Data::IsSharable |
-    Fog::Region::Data::IsNull);
+  d->flags = Fog::Region::Data::IsSharable | Fog::Region::Data::IsNull;
   d->extents.clear();
   d->rects[0].clear();
 

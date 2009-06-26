@@ -10,7 +10,6 @@
 // [Dependencies]
 #include <Fog/Build/Build.h>
 #include <Fog/Core/Constants.h>
-#include <Fog/Core/Flags.h>
 #include <Fog/Core/Memory.h>
 
 //! @addtogroup Fog_Core_CAPI
@@ -108,9 +107,6 @@ struct Class
   //! variable.
   FOG_INLINE Class(uint32_t* flags) { Core_Class_setup32((void*)this, flags); }
   FOG_INLINE Class(uint64_t* flags) { Core_Class_setup64((void*)this, flags); }
-  //! @overload
-  FOG_INLINE Class(Flags32* flags) { Core_Class_setup32((void*)this, (uint32_t *)flags); }
-  FOG_INLINE Class(Flags64* flags) { Core_Class_setup64((void*)this, (uint64_t *)flags); }
 
   //! @brief @c Fog::Class enumeration that has only @c IsDynamic member.
   enum

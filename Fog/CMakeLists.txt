@@ -215,7 +215,6 @@ Set(FOG_CORE_SOURCES
   ${FOG_DIR}/Fog/Core/EventLoop_Win.cpp
   ${FOG_DIR}/Fog/Core/FileSystem.cpp
   ${FOG_DIR}/Fog/Core/FileUtil.cpp
-  ${FOG_DIR}/Fog/Core/Flags.cpp
   ${FOG_DIR}/Fog/Core/Hash.cpp
   ${FOG_DIR}/Fog/Core/Lazy.cpp
   ${FOG_DIR}/Fog/Core/Library.cpp
@@ -277,7 +276,6 @@ Set(FOG_CORE_HEADERS
   ${FOG_DIR}/Fog/Core/EventLoop_Win.h
   ${FOG_DIR}/Fog/Core/FileSystem.h
   ${FOG_DIR}/Fog/Core/FileUtil.h
-  ${FOG_DIR}/Fog/Core/Flags.h
   ${FOG_DIR}/Fog/Core/Hash.h
   ${FOG_DIR}/Fog/Core/Intrin_MMX.h
   ${FOG_DIR}/Fog/Core/Intrin_SSE.h

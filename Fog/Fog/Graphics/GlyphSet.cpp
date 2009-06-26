@@ -161,10 +161,10 @@ err_t GlyphSet::end()
   {
     Glyph::Data* gd = _d->glyphs()[i]._d;
 
-    int gx1 = advanceX + gd->offsetX;
-    int gy1 = advanceY + gd->offsetY;
-    int gx2 = gx1 + gd->image.width();
-    int gy2 = gy1 + gd->image.height();
+    int gx1 = advanceX + gd->bitmapX;
+    int gy1 = advanceY + gd->bitmapY;
+    int gx2 = gx1 + gd->bitmap.width();
+    int gy2 = gy1 + gd->bitmap.height();
 
     if (x1 > gx1) x1 = gx1;
     if (y1 > gy1) y1 = gy1;
