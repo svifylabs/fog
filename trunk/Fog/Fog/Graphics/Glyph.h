@@ -12,6 +12,7 @@
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Geometry.h>
 #include <Fog/Graphics/Image.h>
+#include <Fog/Graphics/Path.h>
 
 //! @addtogroup Fog_Graphics
 //! @{
@@ -51,12 +52,24 @@ struct FOG_API Glyph
 
     //! @brief Reference count.
     mutable Atomic<sysuint_t> refCount;
-    //! @brief Glyph image, supported formats are only A8 and XRGB32 for now.
-    Image image;
-    //! @brief X offset for rendering glyph image.
-    int offsetX;
-    //! @brief Y offset for rendering glyph image.
-    int offsetY;
+
+    //! @brief Glyph bitmap data, supported formats are only A8 for now.
+    Image bitmap;
+    //! @brief Bitmap X offset.
+    int bitmapX;
+    //! @brief Bitmap Y offset.
+    int bitmapY;
+
+    //! @brief Glyph vector data.
+    Path path;
+    //! @brief Path scale factor for X coordinates.
+    double pathScaleX;
+    //! @brief Path scale factor for Y coordinates.
+    double pathScaleY;
+
+    //! @brief Glyph flags.
+    uint32_t flags;
+
     //! @brief Begin width.
     int beginWidth;
     //! @brief End width.
@@ -66,6 +79,14 @@ struct FOG_API Glyph
 
   private:
     FOG_DISABLE_COPY(Data)
+  };
+
+  // [Flags]
+
+  enum Flags
+  {
+    ContainsBitmapData = (1 << 0),
+    ContainsVectorData = (1 << 1)
   };
 
   // [Members]
@@ -95,9 +116,14 @@ struct FOG_API Glyph
 
   // [Getters]
 
-  FOG_INLINE const Image& image() const { return _d->image; }
-  FOG_INLINE int offsetX() const { return _d->offsetX; }
-  FOG_INLINE int offsetY() const { return _d->offsetY; }
+  FOG_INLINE const Image& bitmap() const { return _d->bitmap; }
+  FOG_INLINE int bitmapX() const { return _d->bitmapX; }
+  FOG_INLINE int bitmapY() const { return _d->bitmapY; }
+
+  FOG_INLINE const Path& path() const { return _d->path; }
+  FOG_INLINE double pathScaleX() const { return _d->pathScaleX; }
+  FOG_INLINE double pathScaleY() const { return _d->pathScaleY; }
+
   FOG_INLINE int beginWidth() const { return _d->beginWidth; }
   FOG_INLINE int endWidth() const { return _d->endWidth; }
   FOG_INLINE int advance() const { return _d->advance; }

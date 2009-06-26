@@ -9,7 +9,6 @@
 
 // [Dependencies]
 #include <Fog/Core/Atomic.h>
-#include <Fog/Core/Flags.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Graphics/Rgba.h>

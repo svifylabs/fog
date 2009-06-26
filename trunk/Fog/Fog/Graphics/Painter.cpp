@@ -3382,11 +3382,12 @@ void RasterEngine::_renderGlyphSet(const Point& pt, const GlyphSet& glyphSet, co
   for (sysuint_t i = 0; i < count; i++)
   {
     Glyph::Data* glyphd = glyphs[i]._d;
+    Image::Data* bitmapd = glyphd->bitmap._d;
 
-    int px1 = px + glyphd->offsetX;
-    int py1 = py + glyphd->offsetY;
-    int px2 = px1 + glyphd->image.width();
-    int py2 = py1 + glyphd->image.height();
+    int px1 = px + glyphd->bitmapX;
+    int py1 = py + glyphd->bitmapY;
+    int px2 = px1 + bitmapd->width;
+    int py2 = py1 + bitmapd->height;
 
     px += glyphd->advance;
 
@@ -3403,8 +3404,8 @@ void RasterEngine::_renderGlyphSet(const Point& pt, const GlyphSet& glyphSet, co
     pCur += (sysint_t)x1 * 4;
 
     // TODO: Hardcoded
-    sysint_t glyphStride = glyphd->image.stride();
-    const uint8_t* pGlyph = glyphd->image.cData();
+    sysint_t glyphStride = bitmapd->stride;
+    const uint8_t* pGlyph = bitmapd->first;
 
     pGlyph += (sysint_t)(y1 - py1) * glyphStride;
     pGlyph += (sysint_t)(x1 - px1);
@@ -3597,11 +3598,12 @@ void RasterEngine::_renderGlyphSetMT(
   for (sysuint_t i = 0; i < count; i++)
   {
     Glyph::Data* glyphd = glyphs[i]._d;
+    Image::Data* bitmapd = glyphd->bitmap._d;
 
-    int px1 = px + glyphd->offsetX;
-    int py1 = py + glyphd->offsetY;
-    int px2 = px1 + glyphd->image.width();
-    int py2 = py1 + glyphd->image.height();
+    int px1 = px + glyphd->bitmapX;
+    int py1 = py + glyphd->bitmapY;
+    int px2 = px1 + bitmapd->width;
+    int py2 = py1 + bitmapd->height;
 
     px += glyphd->advance;
 
@@ -3620,9 +3622,9 @@ void RasterEngine::_renderGlyphSetMT(
     pCur += (sysint_t)x1 * 4;
 
     // TODO: Hardcoded
-    sysint_t glyphStride = glyphd->image.stride();
+    sysint_t glyphStride = bitmapd->stride;
     sysint_t glyphStrideWithDelta = glyphStride * delta;
-    const uint8_t* pGlyph = glyphd->image.cData();
+    const uint8_t* pGlyph = bitmapd->first;
 
     pGlyph += (sysint_t)(y1 - py1) * glyphStride;
     pGlyph += (sysint_t)(x1 - px1);

@@ -12,7 +12,6 @@
 #include <Fog/Core/Atomic.h>
 #include <Fog/Build/Build.h>
 #include <Fog/Core/Error.h>
-#include <Fog/Core/Flags.h>
 #include <Fog/Core/Sequence.h>
 #include <Fog/Core/SequenceInfo.h>
 #include <Fog/Core/Static.h>

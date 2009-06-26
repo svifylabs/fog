@@ -11,7 +11,6 @@
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/Atomic.h>
 #include <Fog/Core/Constants.h>
-#include <Fog/Core/Flags.h>
 
 namespace Fog {
 
@@ -73,7 +72,7 @@ struct RefData
   mutable Atomic<sysuint_t> refCount;
 
   //! @brief Flags that contains informations about data, see @c Flags.
-  Flags<uint32_t> flags;
+  uint32_t flags;
 
 #if FOG_ARCH_BITS == 64
   uint32_t _data_padding;

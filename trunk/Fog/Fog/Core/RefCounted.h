@@ -81,11 +81,11 @@ public:
 
 protected:
   Atomic<sysuint_t> _refCount;
-  Flags<uint32_t> _flags;
+  uint32_t _flags;
 
   // [Fog::RefClassBase]
   FOG_INLINE RefClassBase() : 
-    Class(reinterpret_cast<uint32_t*>(&_flags))
+    Class(&_flags)
   {
     _refCount.init(0);
   }

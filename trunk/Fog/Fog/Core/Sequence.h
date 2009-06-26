@@ -12,7 +12,6 @@
 #include <Fog/Core/Atomic.h>
 #include <Fog/Build/Build.h>
 #include <Fog/Core/Error.h>
-#include <Fog/Core/Flags.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/SequenceInfo.h>
 #include <Fog/Core/Static.h>
@@ -192,7 +191,7 @@ struct FOG_HIDDEN SequencePrivate
     Atomic<sysuint_t> refCount;
 
     //! @brief Flags
-    Flags<uint32_t> flags;
+    uint32_t flags;
 
 #if FOG_ARCH_BITS == 64
     uint32_t _data_padding;
@@ -295,7 +294,7 @@ struct FOG_HIDDEN SequenceUntyped
   //! @brief Returns object flags.
   FOG_INLINE uint32_t flags() const { return _d->flags; }
   //! @copydoc Doxygen::Implicit::isNull().
-  FOG_INLINE bool isNull() const { return _d->flags.anyOf(Data::IsNull); }
+  FOG_INLINE bool isNull() const { return (_d->flags & Data::IsNull) != 0; }
 
   // [Container]
 

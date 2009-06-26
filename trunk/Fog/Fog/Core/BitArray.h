@@ -12,7 +12,6 @@
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/Atomic.h>
 #include <Fog/Core/Constants.h>
-#include <Fog/Core/Flags.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/RefData.h>
 #include <Fog/Core/Static.h>
@@ -86,13 +85,13 @@ struct FOG_API BitArray
   //! @copydoc Doxygen::Implicit::flags().
   FOG_INLINE uint32_t flags() const { return _d->flags; }
   //! @copydoc Doxygen::Implicit::isDynamic().
-  FOG_INLINE bool isDynamic() const { return _d->flags.anyOf(Data::IsDynamic); }
+  FOG_INLINE bool isDynamic() const { return (_d->flags & Data::IsDynamic) != 0; }
   //! @copydoc Doxygen::Implicit::isSharable().
-  FOG_INLINE bool isSharable() const { return _d->flags.anyOf(Data::IsSharable); }
+  FOG_INLINE bool isSharable() const { return (_d->flags & Data::IsSharable) != 0; }
   //! @copydoc Doxygen::Implicit::isNull().
-  FOG_INLINE bool isNull() const { return _d->flags.anyOf(Data::IsNull); }
+  FOG_INLINE bool isNull() const { return (_d->flags & Data::IsNull) != 0; }
   //! @copydoc Doxygen::Implicit::isStrong().
-  FOG_INLINE bool isStrong() const { return _d->flags.anyOf(Data::IsStrong); }
+  FOG_INLINE bool isStrong() const { return (_d->flags & Data::IsStrong) != 0; }
 
   // [Data]
 
