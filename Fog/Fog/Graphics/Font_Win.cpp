@@ -411,7 +411,7 @@ Glyph::Data* FontFaceWin::renderGlyph(HDC hdc, uint32_t uc)
   FOG_ASSERT(hdc);
 
   Glyph::Data* glyphd = NULL;
-  Image::Data* imaged = NULL;
+  Image::Data* bitmapd = NULL;
 
   GLYPHMETRICS gm;
   ZeroMemory(&gm, sizeof(gm));
@@ -433,8 +433,8 @@ Glyph::Data* FontFaceWin::renderGlyph(HDC hdc, uint32_t uc)
   // Whitespace?
   if (dataSize == 0) gm.gmBlackBoxX = gm.gmBlackBoxY = 0;
 
-  glyphd->offsetX = gm.gmptGlyphOrigin.x;
-  glyphd->offsetY = metrics.height - gm.gmptGlyphOrigin.y;
+  glyphd->bitmapX = gm.gmptGlyphOrigin.x;
+  glyphd->bitmapY = metrics.height - gm.gmptGlyphOrigin.y;
 
   glyphd->beginWidth = 0;
   glyphd->endWidth = 0;
@@ -446,26 +446,26 @@ Glyph::Data* FontFaceWin::renderGlyph(HDC hdc, uint32_t uc)
   if (dataSize == 0) return glyphd;
 
   // Alloc image for glyph
-  if (glyphd->image.create(gm.gmBlackBoxX, gm.gmBlackBoxY, Image::FormatA8) != Error::Ok)
+  if (glyphd->bitmap.create(gm.gmBlackBoxX, gm.gmBlackBoxY, Image::FormatA8) != Error::Ok)
   {
     delete glyphd;
     return NULL;
   }
-  imaged = glyphd->image._d;
+  bitmapd = glyphd->bitmap._d;
 
   // Fog library should align scanlines to 32 bits like Windows does.
-  FOG_ASSERT((imaged->stride & 0x3) == 0);
+  FOG_ASSERT((bitmapd->stride & 0x3) == 0);
   // This should be also equal.
-  FOG_ASSERT(dataSize == imaged->stride * imaged->height);
+  FOG_ASSERT(dataSize == bitmapd->stride * bitmapd->height);
 
-  dataSize = GetGlyphOutlineW(hdc, uc, GGO_GRAY8_BITMAP, &gm, dataSize, imaged->data, &mat2identity);
+  dataSize = GetGlyphOutlineW(hdc, uc, GGO_GRAY8_BITMAP, &gm, dataSize, bitmapd->data, &mat2identity);
   FOG_ASSERT(dataSize != GDI_ERROR);
 
   uint32_t x, y;
 
   for (y = 0; y != gm.gmBlackBoxY; y++)
   {
-    uint8_t* p = imaged->first + y * imaged->stride;
+    uint8_t* p = bitmapd->first + y * bitmapd->stride;
     for (x = 0; x < gm.gmBlackBoxX; x++)
     {
       *p++ = (*p > 63) ? 0xFF : *p << 2;
