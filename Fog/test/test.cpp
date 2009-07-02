@@ -78,7 +78,7 @@ void MyWindow::onPaint(PaintEvent* e)
   Font font;
   font.setSize(94);
   FontMetrics metrics = font.metrics();
-  int x1= 100, x2 = 400, y;
+  int x1= 100, x2 = 500, y;
 
   p->setSource(0xFFFF0000);
   y = 50;
@@ -97,7 +97,7 @@ void MyWindow::onPaint(PaintEvent* e)
   p->drawLine(Point(x1, y), Point(x2, y));
 
   p->setSource(0xFF000000);
-  p->drawText(Point(100, 50), StubAscii8("Text"), font);
+  p->drawText(Point(100, 50), StubAscii8("Abcdefgh"), font);
 }
 
 // ============================================================================
