@@ -161,46 +161,13 @@ fail:
 // [Fog::FontFaceWin - Helpers]
 // ============================================================================
 
-// Identity matrix. It seems that this matrix must be passed to 
+// Identity matrix. It seems that this matrix must be always passed to 
 // GetGlyphOutlineW function.
 static const MAT2 mat2identity = {{0, 1}, {0, 0}, {0, 0}, {0, 1}};
 
-static FOG_INLINE FIXED dbl_to_fx(double d)
+static FOG_INLINE double fxToDouble(const FIXED& p)
 {
-  int l;
-  l = int(d * 65536.0);
-  return *(FIXED*)&l;
-}
-
-static FOG_INLINE int dbl_to_plain_fx(double d)
-{
-  return int(d * 65536.0);
-}
-
-static FOG_INLINE FIXED negate_fx(const FIXED& fx)
-{
-  int l = -(*(int*)(&fx));
-  return *(FIXED*)&l;
-}
-
-static FOG_INLINE double fx_to_dbl(const FIXED& p)
-{
-  return double(p.value) + double(p.fract) * (1.0 / 65536.0);
-}
-
-static FOG_INLINE int fx_to_plain_int(const FIXED& fx)
-{
-  return *(int*)(&fx);
-}
-
-static FOG_INLINE int fx_to_int26p6(const FIXED& p)
-{
-  return (int(p.value) << 6) + (int(p.fract) >> 10);
-}
-
-static FOG_INLINE int dbl_to_int26p6(double p)
-{
-  return int(p * 64.0 + 0.5);
+  return (double)p.value + (double)p.fract * (1.0 / 65536.0);
 }
 
 static bool decompose_win32_glyph_outline(
@@ -222,8 +189,8 @@ static bool decompose_win32_glyph_outline(
     const uint8_t* end_poly = cur_glyph + th->cb;
     const uint8_t* cur_poly = cur_glyph + sizeof(TTPOLYGONHEADER);
 
-    x = fx_to_dbl(th->pfxStart.x);
-    y = fx_to_dbl(th->pfxStart.y);
+    x = fxToDouble(th->pfxStart.x);
+    y = fxToDouble(th->pfxStart.y);
     if (flip_y) y = -y;
     mtx.transform(&x, &y);
 
@@ -239,8 +206,8 @@ static bool decompose_win32_glyph_outline(
         int i;
         for (i = 0; i < pc->cpfx; i++)
         {
-          x = fx_to_dbl(pc->apfx[i].x);
-          y = fx_to_dbl(pc->apfx[i].y);
+          x = fxToDouble(pc->apfx[i].x);
+          y = fxToDouble(pc->apfx[i].y);
           if(flip_y) y = -y;
           mtx.transform(&x, &y);
           path.lineTo(PointF(x, y));
@@ -263,10 +230,10 @@ static bool decompose_win32_glyph_outline(
           }
           
           double x2, y2;
-          x  = fx_to_dbl(pnt_b.x);
-          y  = fx_to_dbl(pnt_b.y);
-          x2 = fx_to_dbl(pnt_c.x);
-          y2 = fx_to_dbl(pnt_c.y);
+          x  = fxToDouble(pnt_b.x);
+          y  = fxToDouble(pnt_b.y);
+          x2 = fxToDouble(pnt_c.x);
+          y2 = fxToDouble(pnt_c.y);
           if (flip_y) { y = -y; y2 = -y2; }
           mtx.transform(&x,  &y);
           mtx.transform(&x2, &y2);
@@ -434,7 +401,7 @@ Glyph::Data* FontFaceWin::renderGlyph(HDC hdc, uint32_t uc)
   if (dataSize == 0) gm.gmBlackBoxX = gm.gmBlackBoxY = 0;
 
   glyphd->bitmapX = gm.gmptGlyphOrigin.x;
-  glyphd->bitmapY = metrics.height - gm.gmptGlyphOrigin.y;
+  glyphd->bitmapY = metrics.ascent - gm.gmptGlyphOrigin.y;
 
   glyphd->beginWidth = 0;
   glyphd->endWidth = 0;

@@ -375,6 +375,7 @@ Set(FOG_GRAPHICS_SOURCES
   ${FOG_DIR}/Fog/Graphics/GlyphSet.cpp
   ${FOG_DIR}/Fog/Graphics/Gradient.cpp
   ${FOG_DIR}/Fog/Graphics/Image.cpp
+  ${FOG_DIR}/Fog/Graphics/ImageFx.cpp
   ${FOG_DIR}/Fog/Graphics/ImageIO.cpp
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_BMP.cpp
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_GIF.cpp
@@ -419,6 +420,7 @@ Set(FOG_GRAPHICS_HEADERS
   ${FOG_DIR}/Fog/Graphics/GlyphSet.h
   ${FOG_DIR}/Fog/Graphics/Gradient.h
   ${FOG_DIR}/Fog/Graphics/Image.h
+  ${FOG_DIR}/Fog/Graphics/ImageFx.h
   ${FOG_DIR}/Fog/Graphics/ImageIO.h
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_BMP.h
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_GIF.h

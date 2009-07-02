@@ -52,6 +52,7 @@
 #include <Fog/Graphics/GlyphSet.h>
 #include <Fog/Graphics/Gradient.h>
 #include <Fog/Graphics/Image.h>
+#include <Fog/Graphics/ImageFx.h>
 #include <Fog/Graphics/ImageIO.h>
 #include <Fog/Graphics/Painter.h>
 #include <Fog/Graphics/Palette.h>
