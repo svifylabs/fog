@@ -21,13 +21,13 @@ static Image _sprite[4];
 
 static void loadSprites()
 {
-  _sprite[0].readFile(StubAscii8("babelfish.pcx"));
+  _sprite[0].readFile(Ascii8("babelfish.pcx"));
   _sprite[0].premultiply();
-  _sprite[1].readFile(StubAscii8("blockdevice.pcx"));
+  _sprite[1].readFile(Ascii8("blockdevice.pcx"));
   _sprite[1].premultiply();
-  _sprite[2].readFile(StubAscii8("drop.pcx"));
+  _sprite[2].readFile(Ascii8("drop.pcx"));
   _sprite[2].premultiply();
-  _sprite[3].readFile(StubAscii8("kweather.pcx"));
+  _sprite[3].readFile(Ascii8("kweather.pcx"));
   _sprite[3].premultiply();
 }
 
@@ -107,16 +107,16 @@ struct BenchmarkModule_Fog : public BenchmarkModule
   {
     String32 fileName;
     Image t(im);
-    fileName.set(StubAscii8("bench "));
-    fileName.append(StubAscii8(name()));
-    fileName.append(StubAscii8(".bmp"));
+    fileName.set(Ascii8("bench "));
+    fileName.append(Ascii8(name()));
+    fileName.append(Ascii8(".bmp"));
     t.writeFile(fileName);
   }
 
   void setMultithreaded(bool mt)
   {
     this->mt = mt;
-    p.setProperty(StubAscii8("multithreaded"), Value::fromBool(mt));
+    p.setProperty(Ascii8("multithreaded"), Value::fromBool(mt));
   }
 
   Image im;
@@ -343,9 +343,9 @@ struct BenchmarkModule_GDI : public BenchmarkModule
       (uint8_t*)info.dsBm.bmBits, info.dsBm.bmWidthBytes);
 
     String32 fileName;
-    fileName.set(StubAscii8("bench "));
-    fileName.append(StubAscii8(name()));
-    fileName.append(StubAscii8(".bmp"));
+    fileName.set(Ascii8("bench "));
+    fileName.append(Ascii8(name()));
+    fileName.append(Ascii8(".bmp"));
     fim.writeFile(fileName);
   }
 

@@ -110,7 +110,7 @@ void Thread::_setName(const String32& name)
   if (!::IsDebuggerPresent()) return;
 
   TemporaryString8<256> t;
-  t.set(StubUtf32(name), TextCodec::local8());
+  t.set(Utf32(name), TextCodec::local8());
 
   THREADNAME_INFO info;
   info.dwType = 0x1000;
@@ -430,7 +430,7 @@ MainThread::MainThread()
 #endif // FOG_OS_POSIX
 
   _flags = 0;
-  _name.set(StubAscii8("Main"));
+  _name.set(Ascii8("Main"));
 
   _mainThread = this;
   _mainThreadId = _id;

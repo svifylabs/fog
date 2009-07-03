@@ -34,6 +34,8 @@
 
 #include <Fog/Core/Math.h>
 #include <Fog/Core/Misc.h>
+#include <Fog/Graphics/Raster/Raster_C.h>
+#include <Fog/Graphics/Raster/Raster_ByteOp.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/ImageFx.h>
 
@@ -50,21 +52,115 @@ static FOG_INLINE int saturate255(int val)
 }
 
 // ============================================================================
-// [Fog::ImageFx::convolveSymmetricFloat]
+// [Fog::ImageFx::transpose]
 // ============================================================================
 
-static void convolveSymmetricFloat_convolve_argb32(
+static void transpose_32(
   uint8_t* dst, sysint_t dstStride,
   const uint8_t* src, sysint_t srcStride,
-  int width, int height, const float* kernel, int size,
-  int edgeMode, uint32_t edgeColor)
+  int width, int height)
 {
   uint8_t* dstCur;
   const uint8_t* srcCur;
 
-  // Setup box blur mask.
+  sysint_t x, y;
+
+  for (y = 0; y < height; y++)
+  {
+    // Setup raster pointers.
+    dstCur = dst;
+    srcCur = src;
+
+    for (x = 0; x < width; x++)
+    {
+      Raster::copy4(dstCur, srcCur);
+      dstCur += dstStride;
+      srcCur += 4;
+    }
+
+    dst += 4;
+    src += srcStride;
+  }
+}
+
+static void transpose_24(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height)
+{
+  uint8_t* dstCur;
+  const uint8_t* srcCur;
+
+  sysint_t x, y;
+
+  for (y = 0; y < height; y++)
+  {
+    // Setup raster pointers.
+    dstCur = dst;
+    srcCur = src;
+
+    for (x = 0; x < width; x++)
+    {
+      Raster::copy3(dstCur, srcCur);
+      dstCur += dstStride;
+      srcCur += 4;
+    }
+
+    dst += 4;
+    src += srcStride;
+  }
+}
+
+static void transpose_8(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height)
+{
+  uint8_t* dstCur;
+  const uint8_t* srcCur;
+
+  sysint_t x, y;
+
+  for (y = 0; y < height; y++)
+  {
+    // Setup raster pointers.
+    dstCur = dst;
+    srcCur = src;
+
+    for (x = 0; x < width; x++)
+    {
+      Raster::copy1(dstCur, srcCur);
+      dstCur += dstStride;
+      srcCur += 4;
+    }
+
+    dst += 4;
+    src += srcStride;
+  }
+}
+
+// ============================================================================
+// [Fog::ImageFx::convolveLineFloat]
+// ============================================================================
+
+static void convolveLineFloat_convolve_argb32(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height, const float* kernel, int size, float divide,
+  int edgeMode, uint32_t edgeColor)
+{
+  if (kernel == NULL || size == 0)
+  {
+    transpose_32(dst, dstStride, src, srcStride, width, height);
+    return;
+  }
+
+  MemoryBuffer<512> kernelTemporary;
+
+  uint8_t* dstCur;
+  const uint8_t* srcCur;
+
   int radiusInt = size >> 1;
-  int widthMax = width - radiusInt - 1;
 
   // Hot inner loops.
   bool tooSmallImage = width <= size;
@@ -83,6 +179,16 @@ static void convolveSymmetricFloat_convolve_argb32(
   float rightEdgeG = leftEdgeG;
   float rightEdgeB = leftEdgeB;
   float rightEdgeA = leftEdgeA;
+
+  // Modify kernel to remove extra division / multiplication from main loop
+  if (divide != 1.0f)
+  {
+    float *k = (float*)kernelTemporary.alloc(sizeof(float) * size);
+    if (!k) return;
+
+    for (i = 0; i < size; i++) k[i] = kernel[i] / divide;
+    kernel = k;
+  }
 
   for (y = 0; y < height; y++)
   {
@@ -166,10 +272,10 @@ again:
 
       while (x < j)
       {
-        float cr = 0.0f;
-        float cg = 0.0f;
-        float cb = 0.0f;
-        float ca = 0.0f;
+        float cr = 0.5f;
+        float cg = 0.5f;
+        float cb = 0.5f;
+        float ca = 0.5f;
 
         for (kpos = 0, i = -radiusInt; kpos < size; kpos++, i++)
         {
@@ -202,9 +308,276 @@ again:
   }
 }
 
-err_t convolveSymmetricFloat(Image& dst, const Image& src, 
-  const float* hKernel, int hKernelSize,
-  const float* vKernel, int vKernelSize,
+static void convolveLineFloat_convolve_rgb24(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height, const float* kernel, int size, float divide,
+  int edgeMode, uint32_t edgeColor)
+{
+  if (kernel == NULL || size == 0)
+  {
+    transpose_24(dst, dstStride, src, srcStride, width, height);
+    return;
+  }
+
+  MemoryBuffer<512> kernelTemporary;
+
+  uint8_t* dstCur;
+  const uint8_t* srcCur;
+
+  int radiusInt = size >> 1;
+
+  // Hot inner loops.
+  bool tooSmallImage = width <= size;
+  int firstLoopStop = (tooSmallImage) ? width : radiusInt;
+  int secondLoopStop = (tooSmallImage) ? 0 : (width - radiusInt);
+
+  sysint_t i, j, kpos;
+  sysint_t x, y;
+
+  float leftEdgeR = (float)(int)((edgeColor >> 16) & 0xFF);
+  float leftEdgeG = (float)(int)((edgeColor >>  8) & 0xFF);
+  float leftEdgeB = (float)(int)((edgeColor      ) & 0xFF);
+
+  float rightEdgeR = leftEdgeR;
+  float rightEdgeG = leftEdgeG;
+  float rightEdgeB = leftEdgeB;
+
+  // Modify kernel to remove extra division / multiplication from main loop
+  if (divide != 1.0f)
+  {
+    float *k = (float*)kernelTemporary.alloc(sizeof(float) * size);
+    if (!k) return;
+
+    for (i = 0; i < size; i++) k[i] = kernel[i] / divide;
+    kernel = k;
+  }
+
+  for (y = 0; y < height; y++)
+  {
+    // Setup raster pointers.
+    dstCur = dst;
+    srcCur = src;
+
+    // Setup edges if needed.
+    if (edgeMode == EdgeModeAuto)
+    {
+      leftEdgeR = (float)(int32_t)(srcCur[Raster::RGB24_RByte]);
+      leftEdgeG = (float)(int32_t)(srcCur[Raster::RGB24_GByte]);
+      leftEdgeB = (float)(int32_t)(srcCur[Raster::RGB24_BByte]);
+
+      rightEdgeR = (float)(int32_t)(srcCur[(width-1)*3 + Raster::RGB24_RByte]);
+      rightEdgeG = (float)(int32_t)(srcCur[(width-1)*3 + Raster::RGB24_GByte]);
+      rightEdgeB = (float)(int32_t)(srcCur[(width-1)*3 + Raster::RGB24_BByte]);
+    }
+
+    x = 0;
+    j = firstLoopStop;
+
+    // Loop with bound checking supporting edges.
+again:
+    while (x < j)
+    {
+      float cr = 0.5f;
+      float cg = 0.5f;
+      float cb = 0.5f;
+
+      const uint8_t* srcCurInner = srcCur - radiusInt*3;
+      for (kpos = 0, i = x - radiusInt; kpos < size; kpos++, i++, srcCurInner += 3)
+      {
+        float k = kernel[kpos];
+
+        if (i < 0)
+        {
+          cr += leftEdgeR * k;
+          cg += leftEdgeG * k;
+          cb += leftEdgeB * k;
+        }
+        else if (i >= width)
+        {
+          cr += rightEdgeR * k;
+          cg += rightEdgeG * k;
+          cb += rightEdgeB * k;
+        }
+        else
+        {
+          cr += (float)(int32_t)(srcCurInner[Raster::RGB24_RByte]) * k;
+          cg += (float)(int32_t)(srcCurInner[Raster::RGB24_GByte]) * k;
+          cb += (float)(int32_t)(srcCurInner[Raster::RGB24_BByte]) * k;
+        }
+      }
+
+      dstCur[Raster::RGB24_RByte] = (uint32_t)saturate255((int32_t)cr);
+      dstCur[Raster::RGB24_GByte] = (uint32_t)saturate255((int32_t)cg);
+      dstCur[Raster::RGB24_BByte] = (uint32_t)saturate255((int32_t)cb);
+
+      dstCur += dstStride;
+      srcCur += 3;
+      x++;
+    }
+
+    // Loop without bound checking not supporting edges.
+    if (x != width)
+    {
+      j = secondLoopStop;
+
+      while (x < j)
+      {
+        float cr = 0.5f;
+        float cg = 0.5f;
+        float cb = 0.5f;
+
+        const uint8_t* srcCurInner = srcCur - radiusInt*3;
+        for (kpos = 0; kpos < size; kpos++, srcCurInner += 3)
+        {
+          float k = kernel[kpos];
+
+          cr += (float)(int32_t)(srcCurInner[Raster::RGB24_RByte]) * k;
+          cg += (float)(int32_t)(srcCurInner[Raster::RGB24_GByte]) * k;
+          cb += (float)(int32_t)(srcCurInner[Raster::RGB24_BByte]) * k;
+        }
+
+        dstCur[Raster::RGB24_RByte] = (uint32_t)saturate255((int32_t)cr);
+        dstCur[Raster::RGB24_GByte] = (uint32_t)saturate255((int32_t)cg);
+        dstCur[Raster::RGB24_BByte] = (uint32_t)saturate255((int32_t)cb);
+
+        dstCur += dstStride;
+        srcCur += 3;
+        x++;
+      }
+
+      j = width;
+      goto again;
+    }
+
+    dst += 3;
+    src += srcStride;
+  }
+}
+
+static void convolveLineFloat_convolve_a8(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height, const float* kernel, int size, float divide,
+  int edgeMode, uint32_t edgeColor)
+{
+  if (kernel == NULL || size == 0)
+  {
+    transpose_8(dst, dstStride, src, srcStride, width, height);
+    return;
+  }
+
+  MemoryBuffer<512> kernelTemporary;
+
+  uint8_t* dstCur;
+  const uint8_t* srcCur;
+
+  int radiusInt = size >> 1;
+
+  // Hot inner loops.
+  bool tooSmallImage = width <= size;
+  int firstLoopStop = (tooSmallImage) ? width : radiusInt;
+  int secondLoopStop = (tooSmallImage) ? 0 : (width - radiusInt);
+
+  sysint_t i, j, kpos;
+  sysint_t x, y;
+
+  float leftEdge = (float)(int)(edgeColor & 0xFF);
+  float rightEdge = leftEdge;
+
+  // Modify kernel to remove extra division / multiplication from main loop
+  if (divide != 1.0f)
+  {
+    float *k = (float*)kernelTemporary.alloc(sizeof(float) * size);
+    if (!k) return;
+
+    for (i = 0; i < size; i++) k[i] = kernel[i] / divide;
+    kernel = k;
+  }
+
+  for (y = 0; y < height; y++)
+  {
+    // Setup raster pointers.
+    dstCur = dst;
+    srcCur = src;
+
+    // Setup edges if needed.
+    if (edgeMode == EdgeModeAuto)
+    {
+      leftEdge = (float)(int32_t)(srcCur[0]);
+      rightEdge = (float)(int32_t)(srcCur[width-1]);
+    }
+
+    x = 0;
+    j = firstLoopStop;
+
+    // Loop with bound checking supporting edges.
+again:
+    while (x < j)
+    {
+      float ca = 0.5f;
+
+      const uint8_t* srcCurInner = srcCur - radiusInt;
+      for (kpos = 0, i = x - radiusInt; kpos < size; kpos++, i++, srcCurInner++)
+      {
+        float k = kernel[kpos];
+
+        if (i < 0)
+        {
+          ca += leftEdge * k;
+        }
+        else if (i >= width)
+        {
+          ca += rightEdge * k;
+        }
+        else
+        {
+          ca += (float)(int32_t)(srcCurInner[0]) * k;
+        }
+      }
+
+      dstCur[0] = (uint32_t)saturate255((int32_t)ca);
+
+      dstCur += dstStride;
+      srcCur += 1;
+      x++;
+    }
+
+    // Loop without bound checking not supporting edges.
+    if (x != width)
+    {
+      j = secondLoopStop;
+
+      while (x < j)
+      {
+        float ca = 0.5f;
+
+        const uint8_t* srcCurInner = srcCur - radiusInt;
+        for (kpos = 0; kpos < size; kpos++, srcCurInner++)
+        {
+          float k = kernel[kpos];
+          ca += (float)(int32_t)(srcCurInner[0]) * k;
+        }
+
+        dstCur[0] = (uint32_t)saturate255((int32_t)ca);
+
+        dstCur += dstStride;
+        srcCur += 1;
+        x++;
+      }
+
+      j = width;
+      goto again;
+    }
+
+    dst += 1;
+    src += srcStride;
+  }
+}
+
+err_t convolveLineFloat(Image& dst, const Image& src,
+  const float* hKernel, int hKernelSize, float hKernelDiv,
+  const float* vKernel, int vKernelSize, float vKernelDiv,
   int edgeMode, uint32_t edgeColor)
 {
   int width = src.width();
@@ -226,12 +599,12 @@ err_t convolveSymmetricFloat(Image& dst, const Image& src,
   buf = (uint8_t*)Memory::alloc(width * height * 4);
   if (!buf) return Error::OutOfMemory;
 
-  convolveSymmetricFloat_convolve_argb32(
+  convolveLineFloat_convolve_argb32(
     (uint8_t*)buf, bufStride, (uint8_t*)src.cFirst(), src.stride(),
-    width, height, hKernel, hKernelSize, edgeMode, edgeColor);
-  convolveSymmetricFloat_convolve_argb32(
+    width, height, hKernel, hKernelSize, hKernelDiv, edgeMode, edgeColor);
+  convolveLineFloat_convolve_argb32(
     (uint8_t*)dst.xFirst(), dst.stride(), (uint8_t*)buf, bufStride,
-    height, width, vKernel, vKernelSize, edgeMode, edgeColor);
+    height, width, vKernel, vKernelSize, vKernelDiv, edgeMode, edgeColor);
 
   Memory::free(buf);
   return Error::Ok;
@@ -247,6 +620,12 @@ static void boxBlur_convolve_argb32(
   int width, int height, int radius,
   int edgeMode, uint32_t edgeColor)
 {
+  if (radius == 0)
+  {
+    transpose_32(dst, dstStride, src, srcStride, width, height);
+    return;
+  }
+
   uint8_t* dstCur;
   const uint8_t* srcCur;
 
@@ -425,6 +804,311 @@ again:
   }
 }
 
+static void boxBlur_convolve_rgb24(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height, int radius,
+  int edgeMode, uint32_t edgeColor)
+{
+  if (radius == 0)
+  {
+    transpose_32(dst, dstStride, src, srcStride, width, height);
+    return;
+  }
+
+  uint8_t* dstCur;
+  const uint8_t* srcCur;
+
+  // Setup box blur mask.
+  int radius2 = radius * 2;
+  int size = radius2 + 1;
+  int widthMax = width - radius - 1;
+
+  // Accumulate loop sizes.
+  int accumulateUnderflow = radius;
+  int accumulateLoopSize = fog_min(width, radius + 1);
+  int accumulateOverflow = radius + 1 - accumulateLoopSize;
+
+  // Hot inner loops.
+  bool tooSmallImage = width <= size;
+  int firstLoopStop = (tooSmallImage) ? width : radius;
+  int secondLoopStop = (tooSmallImage) ? 0 : (width - radius);
+
+  sysint_t i, j;
+  sysint_t x, y;
+
+  // Calculate reciprocal. We are using multiplication instead of division in
+  // inner loop for performance reasons.
+  uint32_t reciprocal = (65536 + 128) / size;
+
+  uint32_t leftEdgeR = (edgeColor >> 16) & 0xFF;
+  uint32_t leftEdgeG = (edgeColor >>  8) & 0xFF;
+  uint32_t leftEdgeB = (edgeColor      ) & 0xFF;
+
+  uint32_t rightEdgeR = leftEdgeR;
+  uint32_t rightEdgeG = leftEdgeG;
+  uint32_t rightEdgeB = leftEdgeB;
+
+  for (y = 0; y < height; y++)
+  {
+    // Accumulators.
+    uint32_t cr, cg, cb;
+
+    // Setup raster pointers.
+    dstCur = dst;
+    srcCur = src;
+
+    // Setup edges if needed.
+    if (edgeMode == EdgeModeAuto)
+    {
+      leftEdgeR = srcCur[Raster::RGB24_RByte];
+      leftEdgeG = srcCur[Raster::RGB24_GByte];
+      leftEdgeB = srcCur[Raster::RGB24_BByte];
+
+      rightEdgeR = srcCur[(width-1)*3 + Raster::RGB24_RByte];
+      rightEdgeG = srcCur[(width-1)*3 + Raster::RGB24_GByte];
+      rightEdgeB = srcCur[(width-1)*3 + Raster::RGB24_BByte];
+    }
+
+    // Accumulate left edge values.
+    cr = leftEdgeR * accumulateUnderflow;
+    cg = leftEdgeG * accumulateUnderflow;
+    cb = leftEdgeB * accumulateUnderflow;
+
+    // Accumulate inner pixels.
+    // In normal case accumulateLoopSize is equal to radius+1.
+    {
+      const uint8_t* srcCurInner = srcCur;
+      for (i = 0; i < accumulateLoopSize; i++, srcCurInner += 3)
+      {
+        cr = srcCurInner[Raster::RGB24_RByte];
+        cg = srcCurInner[Raster::RGB24_GByte];
+        cb = srcCurInner[Raster::RGB24_BByte];
+      }
+    }
+
+    // Accumulate right edge values.
+    // This happen only if blur radius is larger or equal as width.
+    cr += rightEdgeR * accumulateOverflow;
+    cg += rightEdgeG * accumulateOverflow;
+    cb += rightEdgeB * accumulateOverflow;
+
+    x = 0;
+    j = firstLoopStop;
+
+    // Loop with bound checking supporting edges.
+again:
+    while (x < j)
+    {
+      dstCur[Raster::RGB24_RByte] = (cr * reciprocal) >> 16;
+      dstCur[Raster::RGB24_GByte] = (cg * reciprocal) >> 16;
+      dstCur[Raster::RGB24_BByte] = (cb * reciprocal) >> 16;
+
+      if (x >= radius)
+      {
+        const uint8_t* srcCurInner = srcCur - radius*3;
+        cr -= srcCurInner[Raster::RGB24_RByte];
+        cg -= srcCurInner[Raster::RGB24_GByte];
+        cb -= srcCurInner[Raster::RGB24_BByte];
+      }
+      else
+      {
+        cr -= leftEdgeR;
+        cg -= leftEdgeG;
+        cb -= leftEdgeB;
+      }
+
+      if (x < widthMax)
+      {
+        const uint8_t* srcCurInner = srcCur + ((radius+1)*3);
+        cr += srcCurInner[Raster::RGB24_RByte];
+        cg += srcCurInner[Raster::RGB24_GByte];
+        cb += srcCurInner[Raster::RGB24_BByte];
+      }
+      else
+      {
+        cr += rightEdgeR;
+        cg += rightEdgeG;
+        cb += rightEdgeB;
+      }
+
+      dstCur += dstStride;
+      srcCur += 3;
+      x++;
+    }
+
+    // Loop without bound checking not supporting edges.
+    if (x != width)
+    {
+      j = secondLoopStop;
+
+      while (x < j)
+      {
+        dstCur[Raster::RGB24_RByte] = (cr * reciprocal) >> 16;
+        dstCur[Raster::RGB24_GByte] = (cg * reciprocal) >> 16;
+        dstCur[Raster::RGB24_BByte] = (cb * reciprocal) >> 16;
+
+        const uint8_t* srcCurInner;
+
+        srcCurInner = srcCur - radius*3;
+        cr -= srcCurInner[Raster::RGB24_RByte];
+        cg -= srcCurInner[Raster::RGB24_GByte];
+        cb -= srcCurInner[Raster::RGB24_BByte];
+
+        srcCurInner = srcCur + ((radius+1)*3);
+        cr += srcCurInner[Raster::RGB24_RByte];
+        cg += srcCurInner[Raster::RGB24_GByte];
+        cb += srcCurInner[Raster::RGB24_BByte];
+
+        dstCur += dstStride;
+        srcCur += 3;
+        x++;
+      }
+
+      j = width;
+      goto again;
+    }
+
+    dst += 3;
+    src += srcStride;
+  }
+}
+
+static void boxBlur_convolve_a8(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height, int radius,
+  int edgeMode, uint32_t edgeColor)
+{
+  if (radius == 0)
+  {
+    transpose_32(dst, dstStride, src, srcStride, width, height);
+    return;
+  }
+
+  uint8_t* dstCur;
+  const uint8_t* srcCur;
+
+  // Setup box blur mask.
+  int radius2 = radius * 2;
+  int size = radius2 + 1;
+  int widthMax = width - radius - 1;
+
+  // Accumulate loop sizes.
+  int accumulateUnderflow = radius;
+  int accumulateLoopSize = fog_min(width, radius + 1);
+  int accumulateOverflow = radius + 1 - accumulateLoopSize;
+
+  // Hot inner loops.
+  bool tooSmallImage = width <= size;
+  int firstLoopStop = (tooSmallImage) ? width : radius;
+  int secondLoopStop = (tooSmallImage) ? 0 : (width - radius);
+
+  sysint_t i, j;
+  sysint_t x, y;
+
+  // Calculate reciprocal. We are using multiplication instead of division in
+  // inner loop for performance reasons.
+  uint32_t reciprocal = (65536 + 128) / size;
+
+  uint32_t leftEdge = edgeColor & 0xFF;
+  uint32_t rightEdge = leftEdge;
+
+  for (y = 0; y < height; y++)
+  {
+    // Accumulators.
+    uint32_t ca;
+
+    // Setup raster pointers.
+    dstCur = dst;
+    srcCur = src;
+
+    // Setup edges if needed.
+    if (edgeMode == EdgeModeAuto)
+    {
+      leftEdge = srcCur[0];
+      rightEdge = srcCur[width-1];
+    }
+
+    // Accumulate left edge values.
+    ca = leftEdge * accumulateUnderflow;
+
+    // Accumulate inner pixels.
+    // In normal case accumulateLoopSize is equal to radius+1.
+    {
+      const uint8_t* srcCurInner = srcCur;
+      for (i = 0; i < accumulateLoopSize; i++, srcCurInner++)
+      {
+        ca = srcCurInner[0];
+      }
+    }
+
+    // Accumulate right edge values.
+    // This happen only if blur radius is larger or equal as width.
+    ca += rightEdge * accumulateOverflow;
+
+    x = 0;
+    j = firstLoopStop;
+
+    // Loop with bound checking supporting edges.
+again:
+    while (x < j)
+    {
+      dstCur[0] = (ca * reciprocal) >> 16;
+
+      if (x >= radius)
+      {
+        const uint8_t* srcCurInner = srcCur - radius;
+        ca -= srcCurInner[0];
+      }
+      else
+      {
+        ca -= leftEdge;
+      }
+
+      if (x < widthMax)
+      {
+        const uint8_t* srcCurInner = srcCur + (radius+1);
+        ca += srcCurInner[0];
+      }
+      else
+      {
+        ca += rightEdge;
+      }
+
+      dstCur += dstStride;
+      srcCur += 1;
+      x++;
+    }
+
+    // Loop without bound checking not supporting edges.
+    if (x != width)
+    {
+      j = secondLoopStop;
+
+      while (x < j)
+      {
+        dstCur[0] = (ca * reciprocal) >> 16;
+
+        ca -= srcCur[-radius];
+
+        dstCur += dstStride;
+        srcCur += 1;
+
+        ca += srcCur[radius];
+
+        x++;
+      }
+
+      j = width;
+      goto again;
+    }
+
+    dst += 1;
+    src += srcStride;
+  }
+}
+
 err_t boxBlur(Image& dst, const Image& src, int hRadius, int vRadius, int edgeMode, uint32_t edgeColor)
 {
   if (hRadius == 0 && vRadius == 0) return dst.set(src);
@@ -509,6 +1193,12 @@ static void stackBlur_convolve_argb32(
   int width, int height, int radius,
   int edgeMode, uint32_t edgeColor)
 {
+  if (radius == 0)
+  {
+    transpose_32(dst, dstStride, src, srcStride, width, height);
+    return;
+  }
+
   uint x, y, xp, i;
   uint stackPtr;
   uint stackStart;
@@ -745,7 +1435,7 @@ err_t stackBlur(Image& dst, const Image& src, int hRadius, int vRadius, int edge
 // This function is designed to make kernel for gaussian blur matrix. See
 // wikipedia (http://en.wikipedia.org/wiki/Gaussian_function) for formulas and
 // equations.
-static void gaussianBlur_makeKernel(float* dst, double radius, int size)
+static float gaussianBlur_makeKernel(float* dst, double radius, int size)
 {
   FOG_ASSERT(dst);
 
@@ -770,11 +1460,9 @@ static void gaussianBlur_makeKernel(float* dst, double radius, int size)
     dst[i] = (float)val;
   }
 
-  // Error corrected.
-  total -= 0.001;
-
-  // We divide each kernel cell by total value to make convolution loop simpler.
-  for (i = 0; i < size; i++) dst[i] /= (float)total;
+  // Error correction.
+  if (total >= 0.001) total -= 0.001;
+  return total;
 }
 
 err_t gaussianBlur(Image& dst, const Image& src, double hRadius, double vRadius, int edgeMode, uint32_t edgeColor)
@@ -790,7 +1478,7 @@ err_t gaussianBlur(Image& dst, const Image& src, double hRadius, double vRadius,
   int format = src.format();
   err_t err;
 
-  if (hRadius == 0.0 && vRadius == 0.0) return dst.set(src);
+  if (hRadius <= 0.63 && vRadius <= 0.63) return dst.set(src);
   if (width < 3 || height < 3) return dst.set(src);
 
   int hRadiusInt = (int)ceil(hRadius);
@@ -801,6 +1489,9 @@ err_t gaussianBlur(Image& dst, const Image& src, double hRadius, double vRadius,
 
   float* hKernel = NULL;
   float* vKernel = NULL;
+
+  float hKernelDiv;
+  float vKernelDiv;
 
   int hKernelSize = hRadiusInt * 2 + 1;
   int vKernelSize = vRadiusInt * 2 + 1;
@@ -814,9 +1505,13 @@ err_t gaussianBlur(Image& dst, const Image& src, double hRadius, double vRadius,
   }
   else
   {
-    gaussianBlur_makeKernel(hKernel, hRadius, hKernelSize);
-    gaussianBlur_makeKernel(vKernel, vRadius, vKernelSize);
-    err = convolveSymmetricFloat(dst, src, hKernel, hKernelSize, vKernel, vKernelSize, edgeMode, edgeColor);
+    hKernelDiv = gaussianBlur_makeKernel(hKernel, hRadius, hKernelSize);
+    vKernelDiv = gaussianBlur_makeKernel(vKernel, vRadius, vKernelSize);
+
+    err = convolveLineFloat(dst, src,
+      hKernel, hKernelSize, hKernelDiv,
+      vKernel, vKernelSize, vKernelDiv,
+      edgeMode, edgeColor);
   }
 
   Memory::free(vKernel);

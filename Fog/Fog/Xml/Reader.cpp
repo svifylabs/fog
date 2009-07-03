@@ -204,7 +204,7 @@ cont:
           if (mark != strCur)
           {
             bool isWhiteSpace = xmlIsWhiteSpace(mark, strCur);
-            if ( (err = tempText.set(StubUtf32(mark, (sysuint_t)(strCur - mark))) ) ) goto end;
+            if ( (err = tempText.set(Utf32(mark, (sysuint_t)(strCur - mark))) ) ) goto end;
             if ( (err = addText(tempText, isWhiteSpace)) ) goto end;
           }
 
@@ -257,7 +257,7 @@ cont:
         depth++;
         element = ElementTag;
 
-        if ( (err = tempTagName.set(StubUtf32(markTagStart, (sysuint_t)(markTagEnd - markTagStart)))) ) goto end;
+        if ( (err = tempTagName.set(Utf32(markTagStart, (sysuint_t)(markTagEnd - markTagStart)))) ) goto end;
         if ( (err = openElement(tempTagName)) ) goto end;
 
         // ... go through ...
@@ -343,8 +343,8 @@ cont:
         strCur++;
         state = StateTagInside;
 
-        if ( (err = tempAttrName.set(StubUtf32(markAttrStart, (sysuint_t)(markAttrEnd - markAttrStart)))) ) goto end;
-        if ( (err = tempAttrValue.set(StubUtf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart)))) ) goto end;
+        if ( (err = tempAttrName.set(Utf32(markAttrStart, (sysuint_t)(markAttrEnd - markAttrStart)))) ) goto end;
+        if ( (err = tempAttrValue.set(Utf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart)))) ) goto end;
         if ( (err = addAttribute(tempAttrName, tempAttrValue))) goto end;
 
         goto begin;
@@ -362,7 +362,7 @@ tagEnd:
           if (element == ElementSelfClosingTag)
           {
             depth--;
-            if ( (err = tempTagName.set(StubUtf32(markTagStart, (sysuint_t)(markTagEnd - markTagStart)))) ) goto end;
+            if ( (err = tempTagName.set(Utf32(markTagStart, (sysuint_t)(markTagEnd - markTagStart)))) ) goto end;
             if ( (err = closeElement(tempTagName)) ) goto end;
           }
 
@@ -400,7 +400,7 @@ tagEnd:
           mark = ++strCur;
           depth--;
 
-          if ( (err = tempTagName.set(StubUtf32(markTagStart, (sysuint_t)(markTagEnd - markTagStart)))) ) goto end;
+          if ( (err = tempTagName.set(Utf32(markTagStart, (sysuint_t)(markTagEnd - markTagStart)))) ) goto end;
           if ( (err = closeElement(tempTagName)) ) goto end;
 
           goto begin;
@@ -485,7 +485,7 @@ tagEnd:
       case StateDOCTYPEText:
         if (ch.isAlnum() || ch == Char32('_') || ch == Char32(':') || ch == Char32('-') || ch == Char32('.')) break;
         markDataEnd = strCur;
-        doctype.append(String32(StubUtf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart))));
+        doctype.append(String32(Utf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart))));
 
         state = StateDOCTYPE;
         goto cont;
@@ -494,7 +494,7 @@ tagEnd:
         if (ch != Char32('\"')) break;
 
         markDataEnd = strCur;
-        doctype.append(String32(StubUtf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart))));
+        doctype.append(String32(Utf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart))));
 
         state = StateDOCTYPE;
         break;
@@ -520,7 +520,7 @@ tagEnd:
           state = StateReady;
           mark = strCur;
 
-          if ( (err = tempData.set(StubUtf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart)))) ) goto end;
+          if ( (err = tempData.set(Utf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart)))) ) goto end;
           if ( (err = addProcessingInstruction(tempData)) ) goto end;
 
           goto begin;
@@ -549,7 +549,7 @@ tagEnd:
           state = StateReady;
           mark = strCur;
 
-          if ( (err = tempData.set(StubUtf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart)))) ) goto end;
+          if ( (err = tempData.set(Utf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart)))) ) goto end;
           if ( (err = addComment(tempData)) ) goto end;
 
           goto begin;
@@ -578,7 +578,7 @@ tagEnd:
           state = StateReady;
           mark = strCur;
 
-          if ( (err = tempData.set(StubUtf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart)))) ) goto end;
+          if ( (err = tempData.set(Utf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart)))) ) goto end;
           if ( (err = addCDATA(tempData)) ) goto end;
 
           goto begin;
@@ -654,7 +654,7 @@ TextCodec XmlReader::_detectEncoding(const void* mem, sysuint_t size)
           if (ptr == end) goto end;
 
           // Try encoding and return
-          textCodec = TextCodec::fromMime(StubAscii8(begin, (sysuint_t)(ptr - begin)));
+          textCodec = TextCodec::fromMime(Ascii8(begin, (sysuint_t)(ptr - begin)));
           goto end;
         }
         ptr++;

@@ -82,7 +82,7 @@ struct PngLibrary
       "png_get_bit_depth\0"
       "png_get_IHDR\0";
 
-    if (dll.open(StubAscii8("png"), Library::OpenSystemPrefix | Library::OpenSystemSuffix) != Error::Ok)
+    if (dll.open(Ascii8("png"), Library::OpenSystemPrefix | Library::OpenSystemSuffix) != Error::Ok)
     {
       return;
     }

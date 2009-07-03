@@ -116,7 +116,7 @@ err_t DirIterator::open(const String32& path)
 
   if ((err = FileUtil::toAbsolutePath(pathAbs, String32(), path)) ||
       (err = t.set(pathAbs)) ||
-      (err = t.append(StubAscii8("\\*"))) ||
+      (err = t.append(Ascii8("\\*"))) ||
       (err = t.slashesToWin()))
   {
     return err;
@@ -191,7 +191,7 @@ __readNext:
   to._size =
     ((uint64_t)(to._winFindData.nFileSizeHigh) << 32) |
     ((uint64_t)(to._winFindData.nFileSizeLow));
-  to._name.set(StubUtf16(to._winFindData.cFileName));
+  to._name.set(Utf16(to._winFindData.cFileName));
 
   return true;
 }
@@ -205,7 +205,7 @@ err_t DirIterator::rewind()
   err_t err;
 
   if ((err = t.set(_path)) ||
-      (err = t.append(StubAscii8("\\*"))) ||
+      (err = t.append(Ascii8("\\*"))) ||
       (err = t.slashesToWin()))
   {
     return err;

@@ -34,11 +34,11 @@ template<typename T> struct Vector;
 
 // local classes defined in Core/String.h or Core/String_gen.h.
 struct Stub8;
-struct StubAscii8;
-struct StubLocal8;
-struct StubUtf8;
-struct StubUtf16;
-struct StubUtf32;
+struct Ascii8;
+struct Local8;
+struct Utf8;
+struct Utf16;
+struct Utf32;
 
 struct String8;
 struct String16;
@@ -56,10 +56,10 @@ struct StringMatcher32;
 
 #if FOG_SIZEOF_WCHAR_T == 2
 typedef String16 StringW;
-typedef StubUtf16 StubW;
+typedef Utf16 StubW;
 #else
 typedef String32 StringW;
-typedef StubUtf32 StubW;
+typedef Utf32 StubW;
 #endif // FOG_SIZEOF_WCHAR_T
 
 // FIXME: Disable this to make sources clean
@@ -105,109 +105,109 @@ private:
 };
 
 // ============================================================================
-// [Fog::StubAscii8]
+// [Fog::Ascii8]
 // ============================================================================
 
-struct FOG_HIDDEN StubAscii8 : public Stub8
+struct FOG_HIDDEN Ascii8 : public Stub8
 {
   // [Construction / Destruction]
 
-  explicit FOG_INLINE StubAscii8(
+  explicit FOG_INLINE Ascii8(
     const char* str,
     sysuint_t length = DetectLength) : Stub8(str, length)
   {}
 
-  explicit FOG_INLINE StubAscii8(
+  explicit FOG_INLINE Ascii8(
     const uint8_t* str,
     sysuint_t length = DetectLength) : Stub8(str, length)
   {}
 
-  explicit FOG_INLINE StubAscii8(
+  explicit FOG_INLINE Ascii8(
     const Char8* str,
     sysuint_t length = DetectLength) : Stub8(str, length)
   {}
 
-  explicit FOG_INLINE StubAscii8(const String8& str);
+  explicit FOG_INLINE Ascii8(const String8& str);
 };
 
 // ============================================================================
-// [Fog::StubLocal8]
+// [Fog::Local8]
 // ============================================================================
 
-struct FOG_HIDDEN StubLocal8 : public Stub8
+struct FOG_HIDDEN Local8 : public Stub8
 {
   // [Construction / Destruction]
 
-  explicit FOG_INLINE StubLocal8(
+  explicit FOG_INLINE Local8(
     const char* str,
     sysuint_t length = DetectLength) : Stub8(str, length)
   {}
 
-  explicit FOG_INLINE StubLocal8(
+  explicit FOG_INLINE Local8(
     const uint8_t* str,
     sysuint_t length = DetectLength) : Stub8(str, length)
   {}
 
-  explicit FOG_INLINE StubLocal8(
+  explicit FOG_INLINE Local8(
     const Char8* str,
     sysuint_t length = DetectLength) : Stub8(str, length)
   {}
 
-  explicit FOG_INLINE StubLocal8(const String8& str);
+  explicit FOG_INLINE Local8(const String8& str);
 };
 
 // ============================================================================
-// [Fog::StubUtf8]
+// [Fog::Utf8]
 // ============================================================================
 
-struct FOG_HIDDEN StubUtf8 : public Stub8
+struct FOG_HIDDEN Utf8 : public Stub8
 {
   // [Construction / Destruction]
 
-  explicit FOG_INLINE StubUtf8(
+  explicit FOG_INLINE Utf8(
     const char* str,
     sysuint_t length = DetectLength) : Stub8(str, length)
   {}
 
-  explicit FOG_INLINE StubUtf8(
+  explicit FOG_INLINE Utf8(
     const uint8_t* str,
     sysuint_t length = DetectLength) : Stub8(str, length)
   {}
 
-  explicit FOG_INLINE StubUtf8(
+  explicit FOG_INLINE Utf8(
     const Char8* str,
     sysuint_t length = DetectLength) : Stub8(str, length)
   {}
 
-  explicit FOG_INLINE StubUtf8(const String8& str);
+  explicit FOG_INLINE Utf8(const String8& str);
 };
 
 // ============================================================================
-// [Fog::StubUtf16]
+// [Fog::Utf16]
 // ============================================================================
 
-struct FOG_HIDDEN StubUtf16
+struct FOG_HIDDEN Utf16
 {
   // [Construction / Destruction]
 
-  explicit FOG_INLINE StubUtf16(
+  explicit FOG_INLINE Utf16(
     const uint16_t* str,
     sysuint_t length = DetectLength) : _str((const Char16*)str), _length(length)
   {}
 
-  explicit FOG_INLINE StubUtf16(
+  explicit FOG_INLINE Utf16(
     const Char16* str,
     sysuint_t length = DetectLength) : _str(str), _length(length)
   {}
 
 #if FOG_SIZEOF_WCHAR_T == 2
-  explicit FOG_INLINE StubUtf16(
+  explicit FOG_INLINE Utf16(
     const wchar_t* str,
     sysuint_t length = DetectLength) : _str((const Char16*)str), _length(length)
   {}
 #endif
 
-  explicit FOG_INLINE StubUtf16(const String16& str);
+  explicit FOG_INLINE Utf16(const String16& str);
 
   // [Methods]
 
@@ -222,28 +222,28 @@ private:
 };
 
 // ============================================================================
-// [Fog::StubUtf32]
+// [Fog::Utf32]
 // ============================================================================
 
-struct FOG_HIDDEN StubUtf32
+struct FOG_HIDDEN Utf32
 {
   // [Construction / Destruction]
 
-  explicit FOG_INLINE StubUtf32(const uint32_t* str, sysuint_t length = DetectLength) :
+  explicit FOG_INLINE Utf32(const uint32_t* str, sysuint_t length = DetectLength) :
     _str((const Char32*)str), _length(length)
   {}
 
-  explicit FOG_INLINE StubUtf32(const Char32* str, sysuint_t length = DetectLength) :
+  explicit FOG_INLINE Utf32(const Char32* str, sysuint_t length = DetectLength) :
     _str(str), _length(length)
   {}
 
 #if FOG_SIZEOF_WCHAR_T == 4
-  explicit FOG_INLINE StubUtf32(const wchar_t* str, sysuint_t length = DetectLength) :
+  explicit FOG_INLINE Utf32(const wchar_t* str, sysuint_t length = DetectLength) :
     _str((const Char32*)str), _length(length)
   {}
 #endif
 
-  explicit FOG_INLINE StubUtf32(const String32& str);
+  explicit FOG_INLINE Utf32(const String32& str);
 
   // [Methods]
 
@@ -350,19 +350,19 @@ namespace Fog {
 FOG_INLINE Stub8::Stub8(const String8& str) :
   _str(str.cData()), _length(str.length()) {}
 
-FOG_INLINE StubAscii8::StubAscii8(const String8& str) :
+FOG_INLINE Ascii8::Ascii8(const String8& str) :
   Stub8(str.cData(), str.length()) {}
 
-FOG_INLINE StubLocal8::StubLocal8(const String8& str) :
+FOG_INLINE Local8::Local8(const String8& str) :
   Stub8(str.cData(), str.length()) {}
 
-FOG_INLINE StubUtf8::StubUtf8(const String8& str) :
+FOG_INLINE Utf8::Utf8(const String8& str) :
   Stub8(str.cData(), str.length()) {}
 
-FOG_INLINE StubUtf16::StubUtf16(const String16& str) :
+FOG_INLINE Utf16::Utf16(const String16& str) :
   _str(str.cData()), _length(str.length()) {}
 
-FOG_INLINE StubUtf32::StubUtf32(const String32& str) :
+FOG_INLINE Utf32::Utf32(const String32& str) :
   _str(str.cData()), _length(str.length()) {}
 
 } // Fog namespace

@@ -57,7 +57,7 @@ struct OS_Local
 
     // [Get Windows Version]
 
-    windowsName.set(StubAscii8("Windows"));
+    windowsName.set(Ascii8("Windows"));
     windowsVersion = 0;
 
     OSVERSIONINFOW osVersion;
@@ -68,7 +68,7 @@ struct OS_Local
     switch (osVersion.dwPlatformId)
     {
       case VER_PLATFORM_WIN32_NT:
-        windowsName.set(StubAscii8("WinNT"));
+        windowsName.set(Ascii8("WinNT"));
         windowsVersion |= OS::Win_NT;
 
         // Windows NT 3.0
@@ -86,24 +86,24 @@ struct OS_Local
         {
           if (osVersion.dwMinorVersion == 0)
           {
-            windowsName.set(StubAscii8("Win2000"));
+            windowsName.set(Ascii8("Win2000"));
             windowsVersion |= OS::Win_2000;
           }
           else if (osVersion.dwMinorVersion == 1)
           {
-            windowsName.set(StubAscii8("WinXP"));
+            windowsName.set(Ascii8("WinXP"));
             windowsVersion |= OS::Win_XP;
           }
           else if (osVersion.dwMinorVersion == 2)
           {
-            windowsName.set(StubAscii8("Win2003"));
+            windowsName.set(Ascii8("Win2003"));
             windowsVersion |= OS::Win_2003;
           }
         }
         // Windows Vista
         else if (osVersion.dwMajorVersion == 6)
         {
-          windowsName.set(StubAscii8("WinVista"));
+          windowsName.set(Ascii8("WinVista"));
           windowsVersion |= OS::Win_Vista;
         }
         break;
@@ -120,7 +120,7 @@ struct OS_Local
 
     if (!result || result > PATH_MAX)
     {
-      windowsDirectory.set(StubAscii8("C:/WINDOWS"));
+      windowsDirectory.set(Ascii8("C:/WINDOWS"));
     }
     else
     {
@@ -148,7 +148,7 @@ String32 OS::name()
 
 #if defined(FOG_OS_POSIX)
   utsname info;
-  if (uname(&info) >= 0) result.set(StubAscii8(info.sysname));
+  if (uname(&info) >= 0) result.set(Ascii8(info.sysname));
 #endif // FOG_OS_POSIX
 
   return result;
@@ -165,7 +165,7 @@ String32 OS::version()
 
 #if defined(FOG_OS_POSIX)
   utsname info;
-  if (uname(&info) >= 0) result.set(StubLocal8(info.release));
+  if (uname(&info) >= 0) result.set(Local8(info.release));
 #endif // FOG_OS_POSIX
 
   return result;
@@ -245,7 +245,7 @@ err_t OS::getEnv(const String32& name, String32& value)
   TemporaryString16<128> nameW;
   TemporaryString16<128> valueW;
 
-  err_t err = nameW.set(StubUtf32(name));
+  err_t err = nameW.set(Utf32(name));
   if (err != Error::Ok) return err;
 
   DWORD sz;
@@ -279,7 +279,7 @@ err_t OS::getEnv(const String32& name, String32& value)
   const char* e = getenv(name8.cStr());
   if (e) 
   {
-    return value.set(StubLocal8(e));
+    return value.set(Local8(e));
   }
   else
   {

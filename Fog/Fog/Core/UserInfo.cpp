@@ -154,7 +154,7 @@ static bool xdgLookupDir(const char *type, String32& result)
   {
     if (strcmp(type, "DESKTOP") == 0)
     {
-      result.append(StubAscii8("/Desktop"));
+      result.append(Ascii8("/Desktop"));
     }
     return false;
   }
@@ -227,7 +227,7 @@ _back:
 static bool homeDirectory(String32& to)
 {
 #if defined(FOG_OS_WINDOWS)
-  OS::getEnv(TemporaryString32<12>(StubAscii8("USERPROFILE")), to);
+  OS::getEnv(TemporaryString32<12>(Ascii8("USERPROFILE")), to);
   return true;
 #endif // FOG_OS_WINDOWS
 
@@ -235,7 +235,7 @@ static bool homeDirectory(String32& to)
   struct passwd *pwd = getpwuid(UserInfo::uid());
   if (pwd)
   {
-    to.set(StubLocal8(pwd->pw_dir));
+    to.set(Local8(pwd->pw_dir));
     return true;
   }
   else
@@ -254,7 +254,7 @@ static bool homeDirectory(String32& to)
     }
     else
     {
-      to.set(StubAscii8("/tmp"));
+      to.set(Ascii8("/tmp"));
       return false;
     }
   }

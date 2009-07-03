@@ -135,10 +135,10 @@ bool FileSystem::findFile(const Sequence<String32>& paths, const String32& fileN
     pathW.set(it.value());
 
     // Append directory separator if needed
-    if (!it.value().endsWith(StubAscii8("\\", 1)) || 
-        !it.value().endsWith(StubAscii8("/", 1)))
+    if (!it.value().endsWith(Ascii8("\\", 1)) || 
+        !it.value().endsWith(Ascii8("/", 1)))
     {
-      pathW.append(StubAscii8("\\", 1));
+      pathW.append(Ascii8("\\", 1));
     }
 
     // Append file
@@ -206,7 +206,7 @@ static uint createDirectoryHelper(const Char32* path, sysuint_t len)
   }
 
   TemporaryString16<TemporaryLength> pathW;
-  if ((err = pathW.set(StubUtf32(path, len))) ||
+  if ((err = pathW.set(Utf32(path, len))) ||
       (err = pathW.slashesToWin()))
   {
     return err;
@@ -385,7 +385,7 @@ err_t FileSystem::getWorkingDirectory(String32& dst)
     const char* ptr = ::getcwd(dir8.mStr(), dir8.capacity()+1);
     if (ptr)
     {
-      dst.set(StubLocal8(ptr));
+      dst.set(Local8(ptr));
       return Error::Ok;
     }
     if (errno != ERANGE) return errno;
@@ -416,7 +416,7 @@ static err_t createDirectoryHelper(const Char32* path, sysuint_t len)
   err_t err;
   TemporaryString8<TemporaryLength> path8;
 
-  if ( (err = path8.set(StubUtf32(path, len), TextCodec::local8())) ) return err;
+  if ( (err = path8.set(Utf32(path, len), TextCodec::local8())) ) return err;
 
   if (mkdir(path8.cStr(), S_IRWXU | S_IXGRP | S_IXOTH) == 0) return Error::Ok;
 

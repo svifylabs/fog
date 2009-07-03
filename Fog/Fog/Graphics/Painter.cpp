@@ -2427,7 +2427,7 @@ err_t RasterEngine::setProperty(const String32& name, const Value& value)
   err_t err = Error::InvalidProperty;
   int p_int;
 
-  if (name == StubAscii8("multithreaded"))
+  if (name == Ascii8("multithreaded"))
   {
     if ((err = value.toInt32(&p_int)) == Error::Ok)
       if (value.isInteger()) setMultithreaded(p_int != 0);
@@ -2440,7 +2440,7 @@ Value RasterEngine::getProperty(const String32& name) const
 {
   Value result;
 
-  if (name == StubAscii8("multithreaded"))
+  if (name == Ascii8("multithreaded"))
     result.setInt32(_threadData != NULL);
 
   return result;

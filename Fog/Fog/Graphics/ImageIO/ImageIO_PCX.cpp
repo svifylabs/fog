@@ -513,7 +513,7 @@ uint32_t PcxDecoderDevice::readImage(Image& image)
   if (pcxFileHeader().unused[0])
   {
     const uint8_t* str = (const uint8_t*)pcxFileHeader().unused;
-    _comment.set(StubAscii8(str, PCX_strnlen(str, 54)));
+    _comment.set(Ascii8(str, PCX_strnlen(str, 54)));
   }
   else
     _comment.free();

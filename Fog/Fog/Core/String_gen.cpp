@@ -20,9 +20,9 @@
 #elif __G_SIZE == 2
 # define __G_STRING String16
 # define __G_STRING_NAME "Fog::String16"
-# define __G_STRING_STUB StubUtf16
+# define __G_STRING_STUB Utf16
 # define __G_STRING_UTFX String32
-# define __G_STRING_STUBX StubUtf32
+# define __G_STRING_STUBX Utf32
 # define __G_STRINGFILTER StringFilter16
 # define __G_STRINGMATCHER StringMatcher16
 # define __G_TEMPORARYSTRING TemporaryString16
@@ -31,9 +31,9 @@
 #else
 # define __G_STRING String32
 # define __G_STRING_NAME "Fog::String32"
-# define __G_STRING_STUB StubUtf32
+# define __G_STRING_STUB Utf32
 # define __G_STRING_UTFX String16
-# define __G_STRING_STUBX StubUtf16
+# define __G_STRING_STUBX Utf16
 # define __G_STRINGFILTER StringFilter32
 # define __G_STRINGMATCHER StringMatcher32
 # define __G_TEMPORARYSTRING TemporaryString32
@@ -108,7 +108,7 @@ __G_STRING::__G_STRING(const Stub8& str)
   if (!_d) _d = sharedNull->refAlways();
 }
 #else
-__G_STRING::__G_STRING(const StubAscii8& str)
+__G_STRING::__G_STRING(const Ascii8& str)
 {
   const Char8* s = str.str();
   sysuint_t length = (str.length() == DetectLength)
@@ -118,25 +118,25 @@ __G_STRING::__G_STRING(const StubAscii8& str)
   if (!_d) _d = sharedNull->refAlways();
 }
 
-__G_STRING::__G_STRING(const StubLocal8& str)
+__G_STRING::__G_STRING(const Local8& str)
 {
   _d = sharedNull->refAlways();
   set(str);
 }
 
-__G_STRING::__G_STRING(const StubUtf8& str)
+__G_STRING::__G_STRING(const Utf8& str)
 {
   _d = sharedNull->refAlways();
   set(str);
 }
 
-__G_STRING::__G_STRING(const StubUtf16& str)
+__G_STRING::__G_STRING(const Utf16& str)
 {
   _d = sharedNull->refAlways();
   set(str);
 }
 
-__G_STRING::__G_STRING(const StubUtf32& str)
+__G_STRING::__G_STRING(const Utf32& str)
 {
   _d = sharedNull->refAlways();
   set(str);
@@ -499,7 +499,7 @@ err_t __G_STRING::set(const Stub8& str)
   return Error::Ok;
 }
 
-err_t __G_STRING::set(const StubUtf8& str, const TextCodec& tc)
+err_t __G_STRING::set(const Utf8& str, const TextCodec& tc)
 {
   String32 s32;
   err_t err;
@@ -508,13 +508,13 @@ err_t __G_STRING::set(const StubUtf8& str, const TextCodec& tc)
   return tc.fromUtf32(*this, s32);
 }
 
-err_t __G_STRING::set(const StubUtf16& str, const TextCodec& tc)
+err_t __G_STRING::set(const Utf16& str, const TextCodec& tc)
 {
   clear();
   return tc.appendFromUtf16(*this, str);
 }
 
-err_t __G_STRING::set(const StubUtf32& str, const TextCodec& tc)
+err_t __G_STRING::set(const Utf32& str, const TextCodec& tc)
 {
   clear();
   return tc.appendFromUtf32(*this, str);
@@ -530,7 +530,7 @@ err_t __G_STRING::set(const void* str, sysuint_t size, const TextCodec& tc)
 #endif
 }
 
-err_t __G_STRING::set(const StubAscii8& str)
+err_t __G_STRING::set(const Ascii8& str)
 {
   const Char8* s = str.str();
   sysuint_t length = (str.length() == DetectLength)
@@ -543,17 +543,17 @@ err_t __G_STRING::set(const StubAscii8& str)
   return Error::Ok;
 }
 
-err_t __G_STRING::set(const StubLocal8& str)
+err_t __G_STRING::set(const Local8& str)
 {
   return set(str.str(), str.length(), TextCodec::local8());
 }
 
-err_t __G_STRING::set(const StubUtf8& str)
+err_t __G_STRING::set(const Utf8& str)
 {
   return set(str.str(), str.length(), TextCodec::utf8());
 }
 
-err_t __G_STRING::set(const StubUtf16& str)
+err_t __G_STRING::set(const Utf16& str)
 {
 #if __G_SIZE == 2
   const Char16* s = str.str();
@@ -573,7 +573,7 @@ err_t __G_STRING::set(const StubUtf16& str)
 #endif // __G_SIZE
 }
 
-err_t __G_STRING::set(const StubUtf32& str)
+err_t __G_STRING::set(const Utf32& str)
 {
 #if __G_SIZE == 2
   return TextCodec::utf32().toUtf16(
@@ -642,7 +642,7 @@ err_t __G_STRING::setDeep(const __G_STRING& other)
 
 err_t __G_STRING::setBool(bool b)
 {
-  return set(StubAscii8(b ? "true" : "false"));
+  return set(Ascii8(b ? "true" : "false"));
 }
 
 err_t __G_STRING::setInt(int32_t n, int base)
@@ -911,7 +911,7 @@ err_t __G_STRING::append(const Stub8& str)
   return Error::Ok;
 }
 
-err_t __G_STRING::append(const StubUtf8& str, const TextCodec& tc)
+err_t __G_STRING::append(const Utf8& str, const TextCodec& tc)
 {
   String32 s32;
   err_t err;
@@ -920,12 +920,12 @@ err_t __G_STRING::append(const StubUtf8& str, const TextCodec& tc)
   return tc.appendFromUtf32(*this, s32);
 }
 
-err_t __G_STRING::append(const StubUtf16& str, const TextCodec& tc)
+err_t __G_STRING::append(const Utf16& str, const TextCodec& tc)
 {
   return tc.appendFromUtf16(*this, str);
 }
 
-err_t __G_STRING::append(const StubUtf32& str, const TextCodec& tc)
+err_t __G_STRING::append(const Utf32& str, const TextCodec& tc)
 {
   return tc.appendFromUtf32(*this, str);
 }
@@ -939,7 +939,7 @@ err_t __G_STRING::append(const void* str, sysuint_t size, const TextCodec& tc)
 #endif // __G_SIZE
 }
 
-err_t __G_STRING::append(const StubAscii8& str)
+err_t __G_STRING::append(const Ascii8& str)
 {
   const Char8* s = str.str();
   sysuint_t length = (str.length() == DetectLength)
@@ -952,17 +952,17 @@ err_t __G_STRING::append(const StubAscii8& str)
   return Error::Ok;
 }
 
-err_t __G_STRING::append(const StubLocal8& str)
+err_t __G_STRING::append(const Local8& str)
 {
   return append(str.str(), str.length(), TextCodec::local8());
 }
 
-err_t __G_STRING::append(const StubUtf8& str)
+err_t __G_STRING::append(const Utf8& str)
 {
   return append(str.str(), str.length(), TextCodec::utf8());
 }
 
-err_t __G_STRING::append(const StubUtf16& str)
+err_t __G_STRING::append(const Utf16& str)
 {
 #if __G_SIZE == 2
   const Char16* s = str.str();
@@ -979,7 +979,7 @@ err_t __G_STRING::append(const StubUtf16& str)
 #endif
 }
 
-err_t __G_STRING::append(const StubUtf32& str)
+err_t __G_STRING::append(const Utf32& str)
 {
 #if __G_SIZE == 2
   return append(str.str(), str.length(), TextCodec::utf16());
@@ -1027,7 +1027,7 @@ err_t __G_STRING::append(const String16& other)
 
 err_t __G_STRING::appendBool(bool b)
 {
-  return append(StubAscii8(b ? "true" : "false"));
+  return append(Ascii8(b ? "true" : "false"));
 }
 
 err_t __G_STRING::appendInt(int32_t n, int base)
@@ -1295,7 +1295,7 @@ __exponentialForm:
   goto __ret;
 
 __InfOrNaN:
-  err |= append(StubAscii8((const char*)out.result, out.length));
+  err |= append(Ascii8((const char*)out.result, out.length));
 __ret:
   // Apply padding
   numberLength = _d->length - beginLength;
@@ -1405,17 +1405,17 @@ err_t __G_STRING::prepend(const Stub8& str)
   return insert(0, str);
 }
 
-err_t __G_STRING::prepend(const StubUtf8& str, const TextCodec& tc)
+err_t __G_STRING::prepend(const Utf8& str, const TextCodec& tc)
 {
   return insert(0, str, tc);
 }
 
-err_t __G_STRING::prepend(const StubUtf16& str, const TextCodec& tc)
+err_t __G_STRING::prepend(const Utf16& str, const TextCodec& tc)
 {
   return insert(0, str, tc);
 }
 
-err_t __G_STRING::prepend(const StubUtf32& str, const TextCodec& tc)
+err_t __G_STRING::prepend(const Utf32& str, const TextCodec& tc)
 {
   return insert(0, str, tc);
 }
@@ -1425,27 +1425,27 @@ err_t __G_STRING::prepend(const void* str, sysuint_t size, const TextCodec& tc)
   return insert(0, str, size, tc);
 }
 
-err_t __G_STRING::prepend(const StubAscii8& str)
+err_t __G_STRING::prepend(const Ascii8& str)
 {
   return insert(0, str);
 }
 
-err_t __G_STRING::prepend(const StubLocal8& str)
+err_t __G_STRING::prepend(const Local8& str)
 {
   return insert(0, str);
 }
 
-err_t __G_STRING::prepend(const StubUtf8& str)
+err_t __G_STRING::prepend(const Utf8& str)
 {
   return insert(0, str);
 }
 
-err_t __G_STRING::prepend(const StubUtf16& str)
+err_t __G_STRING::prepend(const Utf16& str)
 {
   return insert(0, str);
 }
 
-err_t __G_STRING::prepend(const StubUtf32& str)
+err_t __G_STRING::prepend(const Utf32& str)
 {
   return insert(0, str);
 }
@@ -1492,7 +1492,7 @@ err_t __G_STRING::insert(sysuint_t index, const Stub8& str)
   return Error::Ok;
 }
 
-err_t __G_STRING::insert(sysuint_t index, const StubUtf8& str, const TextCodec& tc)
+err_t __G_STRING::insert(sysuint_t index, const Utf8& str, const TextCodec& tc)
 {
   String8 s8;
   String32 s32;
@@ -1504,7 +1504,7 @@ err_t __G_STRING::insert(sysuint_t index, const StubUtf8& str, const TextCodec& 
   return insert(index, s8);
 }
 
-err_t __G_STRING::insert(sysuint_t index, const StubUtf16& str, const TextCodec& tc)
+err_t __G_STRING::insert(sysuint_t index, const Utf16& str, const TextCodec& tc)
 {
   TemporaryString8<TemporaryLength> t;
   err_t err = tc.appendFromUtf16(t, str);
@@ -1513,7 +1513,7 @@ err_t __G_STRING::insert(sysuint_t index, const StubUtf16& str, const TextCodec&
   return insert(index, t);
 }
 
-err_t __G_STRING::insert(sysuint_t index, const StubUtf32& str, const TextCodec& tc)
+err_t __G_STRING::insert(sysuint_t index, const Utf32& str, const TextCodec& tc)
 {
   TemporaryString8<TemporaryLength> t;
   err_t err = tc.appendFromUtf32(t, str);
@@ -1534,7 +1534,7 @@ err_t __G_STRING::insert(sysuint_t index, const void* str, sysuint_t size, const
   return insert(index, t);
 }
 
-err_t __G_STRING::insert(sysuint_t index, const StubAscii8& str)
+err_t __G_STRING::insert(sysuint_t index, const Ascii8& str)
 {
   const Char8* s = str.str();
   sysuint_t length = (str.length() == DetectLength)
@@ -1547,17 +1547,17 @@ err_t __G_STRING::insert(sysuint_t index, const StubAscii8& str)
   return Error::Ok;
 }
 
-err_t __G_STRING::insert(sysuint_t index, const StubLocal8& str)
+err_t __G_STRING::insert(sysuint_t index, const Local8& str)
 {
   return insert(index, str.str(), str.length(), TextCodec::local8());
 }
 
-err_t __G_STRING::insert(sysuint_t index, const StubUtf8& str)
+err_t __G_STRING::insert(sysuint_t index, const Utf8& str)
 {
   return insert(index, str.str(), str.length(), TextCodec::utf8());
 }
 
-err_t __G_STRING::insert(sysuint_t index, const StubUtf16& str)
+err_t __G_STRING::insert(sysuint_t index, const Utf16& str)
 {
 #if __G_SIZE == 2
   const Char16* s = str.str();
@@ -1574,7 +1574,7 @@ err_t __G_STRING::insert(sysuint_t index, const StubUtf16& str)
 #endif // __G_SIZE
 }
 
-err_t __G_STRING::insert(sysuint_t index, const StubUtf32& str)
+err_t __G_STRING::insert(sysuint_t index, const Utf32& str)
 {
 #if __G_SIZE == 2
   return insert(index, str.str(), str.length(), TextCodec::utf32());
@@ -2560,7 +2560,7 @@ bool __G_STRING::startsWith(const void* data, sysuint_t size, const TextCodec& t
   return startsWith(other, cs);
 }
 
-bool __G_STRING::startsWith(const StubAscii8& str, uint cs) const
+bool __G_STRING::startsWith(const Ascii8& str, uint cs) const
 {
   const Char8* s = str.str();
   sysuint_t len = str.length();
@@ -2569,7 +2569,7 @@ bool __G_STRING::startsWith(const StubAscii8& str, uint cs) const
   return length() >= len && StringUtil::eq(cData(), s, len, cs);
 }
 
-bool __G_STRING::startsWith(const StubLocal8& str, uint cs) const
+bool __G_STRING::startsWith(const Local8& str, uint cs) const
 {
   const Char8* s = str.str();
   sysuint_t len = str.length();
@@ -2578,7 +2578,7 @@ bool __G_STRING::startsWith(const StubLocal8& str, uint cs) const
   return startsWith((const void*)s, len, TextCodec::local8(), cs);
 }
 
-bool __G_STRING::startsWith(const StubUtf8& str, uint cs) const
+bool __G_STRING::startsWith(const Utf8& str, uint cs) const
 {
   const Char8* s = str.str();
   sysuint_t len = str.length();
@@ -2587,7 +2587,7 @@ bool __G_STRING::startsWith(const StubUtf8& str, uint cs) const
   return startsWith((const void*)s, len, TextCodec::utf8(), cs);
 }
 
-bool __G_STRING::startsWith(const StubUtf16& str, uint cs) const
+bool __G_STRING::startsWith(const Utf16& str, uint cs) const
 {
 #if __G_SIZE == 2
   const Char16* s = str.str();
@@ -2604,7 +2604,7 @@ bool __G_STRING::startsWith(const StubUtf16& str, uint cs) const
 #endif // __G_SIZE
 }
 
-bool __G_STRING::startsWith(const StubUtf32& str, uint cs) const
+bool __G_STRING::startsWith(const Utf32& str, uint cs) const
 {
 #if __G_SIZE == 2
   const Char32* s = str.str();
@@ -2660,7 +2660,7 @@ bool __G_STRING::endsWith(const void* data, sysuint_t size, const TextCodec& tc,
   return endsWith(other, cs);
 }
 
-bool __G_STRING::endsWith(const StubAscii8& str, uint cs) const
+bool __G_STRING::endsWith(const Ascii8& str, uint cs) const
 {
   const Char8* s = str.str();
   sysuint_t len = str.length();
@@ -2669,7 +2669,7 @@ bool __G_STRING::endsWith(const StubAscii8& str, uint cs) const
   return length() >= len && StringUtil::eq(cData() + length() - len, s, len, cs);
 }
 
-bool __G_STRING::endsWith(const StubLocal8& str, uint cs) const
+bool __G_STRING::endsWith(const Local8& str, uint cs) const
 {
   const Char8* s = str.str();
   sysuint_t len = str.length();
@@ -2678,7 +2678,7 @@ bool __G_STRING::endsWith(const StubLocal8& str, uint cs) const
   return endsWith((const void*)s, len, TextCodec::local8(), cs);
 }
 
-bool __G_STRING::endsWith(const StubUtf8& str, uint cs) const
+bool __G_STRING::endsWith(const Utf8& str, uint cs) const
 {
   const Char8* s = str.str();
   sysuint_t len = str.length();
@@ -2687,7 +2687,7 @@ bool __G_STRING::endsWith(const StubUtf8& str, uint cs) const
   return endsWith((const void*)s, len, TextCodec::utf8(), cs);
 }
 
-bool __G_STRING::endsWith(const StubUtf16& str, uint cs) const
+bool __G_STRING::endsWith(const Utf16& str, uint cs) const
 {
 #if __G_SIZE == 2
   const Char16* s = str.str();
@@ -2705,7 +2705,7 @@ bool __G_STRING::endsWith(const StubUtf16& str, uint cs) const
 #endif // __G_SIZE
 }
 
-bool __G_STRING::endsWith(const StubUtf32& str, uint cs) const
+bool __G_STRING::endsWith(const Utf32& str, uint cs) const
 {
 #if __G_SIZE == 2
   const Char32* s = str.str();
@@ -2864,7 +2864,7 @@ bool __G_STRING::eq(const Stub8& other, uint cs) const
     return length() == len && StringUtil::eq(cData(), other.str(), len, cs);
 }
 #else
-bool __G_STRING::eq(const StubAscii8& other, uint cs) const
+bool __G_STRING::eq(const Ascii8& other, uint cs) const
 {
   sysuint_t len = other.length();
   if (len == DetectLength)
@@ -2894,21 +2894,21 @@ bool __G_STRING::eq(const StubAscii8& other, uint cs) const
     return length() == len && StringUtil::eq(cData(), other.str(), len, cs);
 }
 
-bool __G_STRING::eq(const StubLocal8& other, uint cs) const
+bool __G_STRING::eq(const Local8& other, uint cs) const
 {
   __G_TEMPORARYSTRING<TemporaryLength> t;
   if (t.set(other) != Error::Ok) return false;
   return eq(t, cs);
 }
 
-bool __G_STRING::eq(const StubUtf8& other, uint cs) const
+bool __G_STRING::eq(const Utf8& other, uint cs) const
 {
   __G_TEMPORARYSTRING<TemporaryLength> t;
   if (t.set(other) != Error::Ok) return false;
   return eq(t, cs);
 }
 
-bool __G_STRING::eq(const StubUtf16& other, uint cs) const
+bool __G_STRING::eq(const Utf16& other, uint cs) const
 {
 #if __G_SIZE == 2
   sysuint_t len = other.length();
@@ -2944,7 +2944,7 @@ bool __G_STRING::eq(const StubUtf16& other, uint cs) const
 #endif
 }
 
-bool __G_STRING::eq(const StubUtf32& other, uint cs) const
+bool __G_STRING::eq(const Utf32& other, uint cs) const
 {
 #if __G_SIZE == 2
   __G_TEMPORARYSTRING<TemporaryLength> t;
@@ -3040,7 +3040,7 @@ int __G_STRING::compare(const Stub8& other, uint cs) const
   }
 }
 #else
-int __G_STRING::compare(const StubAscii8& other, uint cs) const
+int __G_STRING::compare(const Ascii8& other, uint cs) const
 {
   sysuint_t aLen = length();
   sysuint_t bLen = other.length();
@@ -3092,21 +3092,21 @@ int __G_STRING::compare(const StubAscii8& other, uint cs) const
   }
 }
 
-int __G_STRING::compare(const StubLocal8& other, uint cs) const
+int __G_STRING::compare(const Local8& other, uint cs) const
 {
   __G_TEMPORARYSTRING<TemporaryLength> t;
   t.set(other);
   return compare(t, cs);
 }
 
-int __G_STRING::compare(const StubUtf8& other, uint cs) const
+int __G_STRING::compare(const Utf8& other, uint cs) const
 {
   __G_TEMPORARYSTRING<TemporaryLength> t;
   t.set(other);
   return compare(t, cs);
 }
 
-int __G_STRING::compare(const StubUtf16& other, uint cs) const
+int __G_STRING::compare(const Utf16& other, uint cs) const
 {
 #if __G_SIZE == 2
   sysuint_t aLen = length();
@@ -3164,7 +3164,7 @@ int __G_STRING::compare(const StubUtf16& other, uint cs) const
 #endif
 }
 
-int __G_STRING::compare(const StubUtf32& other, uint cs) const
+int __G_STRING::compare(const Utf32& other, uint cs) const
 {
 #if __G_SIZE == 2
   __G_TEMPORARYSTRING<TemporaryLength> t;

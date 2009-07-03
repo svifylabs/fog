@@ -199,11 +199,11 @@ Locale::Data* Locale::Data::copy(Data* d)
 FOG_INIT_DECLARE err_t fog_locale_init(void)
 {
   Fog::Locale::sharedNull.init();
-  Fog::Locale::sharedNull->name = Fog::StubAscii8("NULL");
+  Fog::Locale::sharedNull->name = Fog::Ascii8("NULL");
   Fog::_setDefaults(Fog::Locale::sharedNull.instancep());
 
   Fog::Locale::sharedPosix.init();
-  Fog::Locale::sharedPosix->name= Fog::StubAscii8("POSIX");
+  Fog::Locale::sharedPosix->name= Fog::Ascii8("POSIX");
   Fog::_setDefaults(Fog::Locale::sharedPosix.instancep());
 
   Fog::Locale::sharedUser.init();

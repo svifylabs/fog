@@ -22,7 +22,7 @@ namespace Fog {
 // ============================================================================
 
 EventPumpDefault::EventPumpDefault() : 
-  EventPump(StubAscii8("Default")),
+  EventPump(Ascii8("Default")),
   _keepRunning(true),
   _event(false, false)
 {

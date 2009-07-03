@@ -36,7 +36,7 @@ struct EnumFontStruct
 // ============================================================================
 
 FontEngineWin::FontEngineWin() :
-  FontEngine(StubAscii8("Windows"))
+  FontEngine(Ascii8("Windows"))
 {
 }
 
@@ -64,7 +64,7 @@ static int CALLBACK enumFontCb(CONST LOGFONTW* lplf, CONST TEXTMETRICW* lpntm, D
   // is here better
   TemporaryString32<TemporaryLength> name;
 
-  name.set(StubUtf16(lfFaceName));
+  name.set(Utf16(lfFaceName));
 
   if (!efs->fonts->contains(name)) efs->fonts->append(name);
   
@@ -94,7 +94,7 @@ FontFace* FontEngineWin::getDefaultFace()
 {
   FontAttributes a;
   ZeroMemory(&a, sizeof(FontAttributes));
-  return getFace(String32(StubAscii8("arial")), 12, a);
+  return getFace(String32(Ascii8("arial")), 12, a);
 }
 
 FontFace* FontEngineWin::getFace(

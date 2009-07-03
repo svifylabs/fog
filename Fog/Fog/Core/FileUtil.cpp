@@ -54,7 +54,7 @@ err_t FileUtil::extractFile(String32& dst, const String32& path)
   if (index)
   {
     String32 path_(path);
-    return dst.set(StubUtf32(path_.cData() + index, path_.length() - index));
+    return dst.set(Utf32(path_.cData() + index, path_.length() - index));
   }
   else
   {
@@ -71,7 +71,7 @@ err_t FileUtil::extractDirectory(String32& dst, const String32& _path)
   if (index != InvalidIndex)
   {
     String32 path(_path);
-    return dst.set(StubUtf32(path.cData(), index != 0 ? index : 1));
+    return dst.set(Utf32(path.cData(), index != 0 ? index : 1));
   }
   else
   {
@@ -98,7 +98,7 @@ err_t FileUtil::extractExtension(String32& dst, const String32& _path)
     {
       if (++pathCur != pathEnd)
       {
-        return dst.set(StubUtf32(pathCur, sysuint_t(pathEnd - pathCur)));
+        return dst.set(Utf32(pathCur, sysuint_t(pathEnd - pathCur)));
       }
       break;
     }
@@ -305,7 +305,7 @@ bool FileUtil::isPathContainsDirectory(const String32& path, const String32& dir
 
   return (path.length() > d_length &&
     isDirSeparator(path.at(d_length)) &&
-    path.startsWith(StubUtf32(d_str, d_length), cs));
+    path.startsWith(Utf32(d_str, d_length), cs));
 }
 
 bool FileUtil::isPathContainsExtension(const String32& path, const String32& extension, uint cs)

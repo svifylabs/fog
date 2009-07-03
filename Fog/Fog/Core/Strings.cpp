@@ -87,7 +87,7 @@ FOG_INIT_DECLARE err_t fog_strings_init(void)
     Fog::fog_strings_data,
     FOG_ARRAY_SIZE(Fog::fog_strings_data),
     Fog::STR_COUNT,
-    Fog::StubAscii8("Fog")
+    Fog::Ascii8("Fog")
   );
 
   return Error::Ok;

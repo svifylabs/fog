@@ -358,7 +358,7 @@ EventPumpWin::Dispatcher::~Dispatcher() {}
 // ============================================================================
 
 EventPumpWinUI::EventPumpWinUI() :
-  EventPumpWin(StubAscii8("WinIO"))
+  EventPumpWin(Ascii8("WinIO"))
 {
 }
 
@@ -552,7 +552,7 @@ void HandlerData::onObjectSignaled(HANDLE object)
 }
 
 EventPumpWinIO::EventPumpWinIO() : 
-  EventPumpWin(StubAscii8("WinIO"))
+  EventPumpWin(Ascii8("WinIO"))
 {
 }
 
