@@ -143,12 +143,12 @@ err_t Library::open(const String32& _fileName, uint32_t openFlags)
   {
     if ( (err = fileName.insert(
       fileName.lastIndexOf(Char32('/')) + 1,
-      StubAscii8(systemPrefix))) ) return err;
+      Ascii8(systemPrefix))) ) return err;
   }
   if ((openFlags & OpenSystemSuffix) != 0)
   {
     if ( (err = fileName.append(
-      StubAscii8(systemSuffix))) ) return err;
+      Ascii8(systemSuffix))) ) return err;
   }
 
   void* handle;
@@ -172,14 +172,14 @@ err_t Library::openPlugin(const String32& category, const String32& fileName)
   TemporaryString32<TemporaryLength> relative;
   TemporaryString32<TemporaryLength> absolute;
 
-  if ( (err = relative.append(StubAscii8(systemPrefix))) ) return err;
+  if ( (err = relative.append(Ascii8(systemPrefix))) ) return err;
   if (!category.isEmpty())
   {
     if ( (err = relative.append(category)) ) return err;
     if ( (err = relative.append(Char32('_'))) ) return err;
   }
   if ( (err = relative.append(fileName)) ) return err;
-  if ( (err = relative.append(StubAscii8(systemSuffix))) ) return err;
+  if ( (err = relative.append(Ascii8(systemSuffix))) ) return err;
 
   if (FileSystem::findFile(paths(), relative, absolute))
     return open(absolute, 0);
@@ -200,7 +200,7 @@ void* Library::symbol(const char* symbolName)
 void* Library::symbol(const String32& symbolName)
 {
   TemporaryString8<TemporaryLength> symb8;
-  symb8.append(StubUtf32(symbolName), TextCodec::utf8());
+  symb8.append(Utf32(symbolName), TextCodec::utf8());
   return platformLoadSymbol(_d->handle, symb8.cStr());
 }
 
@@ -357,11 +357,11 @@ FOG_INIT_DECLARE err_t fog_library_init(void)
 
 #if defined(FOG_OS_POSIX)
 #if FOG_ARCH_BITS == 32
-  Fog::library_local.instance().paths.append(Fog::StubAscii8("/usr/lib"));
-  Fog::library_local.instance().paths.append(Fog::StubAscii8("/usr/local/lib"));
+  Fog::library_local.instance().paths.append(Fog::Ascii8("/usr/lib"));
+  Fog::library_local.instance().paths.append(Fog::Ascii8("/usr/local/lib"));
 #else
-  Fog::library_local.instance().paths.append(Fog::StubAscii8("/usr/lib64"));
-  Fog::library_local.instance().paths.append(Fog::StubAscii8("/usr/local/lib64"));
+  Fog::library_local.instance().paths.append(Fog::Ascii8("/usr/lib64"));
+  Fog::library_local.instance().paths.append(Fog::Ascii8("/usr/local/lib64"));
 #endif // FOG_ARCH_BITS
 #endif // FOG_OS_POSIX
 

@@ -1964,7 +1964,7 @@ replace:
   err = replacer(rbuf, Char32(uc));
   if (err) goto end2;
 
-  dst.append(StubAscii8(rbuf));
+  dst.append(Ascii8(rbuf));
 
   growSize = ((sysuint_t)(srcEnd - srcCur) >> 1);
 

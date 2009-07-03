@@ -282,7 +282,7 @@ struct FontEngineFTPrivate
     };
 
     // Load fontconfig library
-    if (fcDll.open(StubAscii8("fontconfig"), Library::OpenSystemPrefix | Library::OpenSystemSuffix))
+    if (fcDll.open(Ascii8("fontconfig"), Library::OpenSystemPrefix | Library::OpenSystemSuffix))
     {
       return Error::FontConfigLibraryNotFound;
     }
@@ -327,7 +327,7 @@ struct FontEngineFTPrivate
 
     while ((localDirName = (char*)pFcStrListNext(list)) != NULL)
     {
-      uniDirName.set(StubLocal8(localDirName, DetectLength));
+      uniDirName.set(Local8(localDirName, DetectLength));
       if (!result.contains(uniDirName)) result.append(uniDirName);
     }
 
@@ -456,7 +456,7 @@ struct FontEngineFTPrivate
     FT_Error error;
 
     // Load freetype library
-    if (!ftDll.open(StubAscii8("freetype"), Library::OpenSystemPrefix | Library::OpenSystemSuffix) == Error::Ok)
+    if (!ftDll.open(Ascii8("freetype"), Library::OpenSystemPrefix | Library::OpenSystemSuffix) == Error::Ok)
     {
       return Error::FreeTypeLibraryNotFound;
     }
@@ -532,7 +532,7 @@ struct FontEngineFTPrivate
       translatorDef,
       sizeof(translatorDef),
       DetectLength,
-      String32(StubAscii8("fog_freetype_translators")));
+      String32(Ascii8("fog_freetype_translators")));
 
     sysuint_t i, count = cache->count();
 
@@ -547,19 +547,19 @@ struct FontEngineFTPrivate
     Vector<String32> list;
 
     // Gentoo default font paths
-    list.append(StubAscii8("/usr/share/fonts"));
-    list.append(StubAscii8("/usr/share/fonts/TTF"));
-    list.append(StubAscii8("/usr/share/fonts/corefonts"));
-    list.append(StubAscii8("/usr/share/fonts/local"));
-    list.append(StubAscii8("/usr/share/fonts/ttf-bitstream-vera"));
-    list.append(StubAscii8("/usr/local/share/fonts"));
-    list.append(StubAscii8("/usr/local/share/fonts/TTF"));
-    list.append(StubAscii8("/usr/local/share/fonts/corefonts"));
-    list.append(StubAscii8("/usr/local/share/fonts/local"));
-    list.append(StubAscii8("/usr/local/share/fonts/ttf-bitstream-vera"));
+    list.append(Ascii8("/usr/share/fonts"));
+    list.append(Ascii8("/usr/share/fonts/TTF"));
+    list.append(Ascii8("/usr/share/fonts/corefonts"));
+    list.append(Ascii8("/usr/share/fonts/local"));
+    list.append(Ascii8("/usr/share/fonts/ttf-bitstream-vera"));
+    list.append(Ascii8("/usr/local/share/fonts"));
+    list.append(Ascii8("/usr/local/share/fonts/TTF"));
+    list.append(Ascii8("/usr/local/share/fonts/corefonts"));
+    list.append(Ascii8("/usr/local/share/fonts/local"));
+    list.append(Ascii8("/usr/local/share/fonts/ttf-bitstream-vera"));
 
     // Ubuntu default truetype font paths:
-    list.append(StubAscii8("/usr/share/fonts/truetype/msttcorefonts"));
+    list.append(Ascii8("/usr/share/fonts/truetype/msttcorefonts"));
 
     // Please add more paths
 
@@ -596,7 +596,7 @@ struct FontEngineFTPrivate
 // ============================================================================
 
 FontEngineFT::FontEngineFT() :
-  FontEngine(StubAscii8("FreeType"))
+  FontEngine(Ascii8("FreeType"))
 {
   p = fepriv = new FontEngineFTPrivate();
 }
@@ -614,7 +614,7 @@ FontFace* FontEngineFT::getDefaultFace()
 {
   FontAttributes a;
   memset(&a, 0, sizeof(FontAttributes));
-  return getFace(String32(StubAscii8("arial")), 12, a);
+  return getFace(String32(Ascii8("arial")), 12, a);
 }
 
 FontFace* FontEngineFT::getFace(

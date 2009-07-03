@@ -200,7 +200,7 @@ XmlWriter::~XmlWriter()
       }
 
       const Char32* dataEnd = strCur - 3;
-      addComment(String32(StubUtf32(dataStart, (sysuint_t)(dataEnd - dataStart))));
+      addComment(String32(Utf32(dataStart, (sysuint_t)(dataEnd - dataStart))));
     }
 
 
@@ -251,7 +251,7 @@ XmlWriter::~XmlWriter()
       else
       {
         const Char32* dataEnd = strCur - 3;
-        addProcessingInstruction(String32(StubUtf32(dataStart, (sysuint_t)(dataEnd - dataStart))));
+        addProcessingInstruction(String32(Utf32(dataStart, (sysuint_t)(dataEnd - dataStart))));
       }
     }
 

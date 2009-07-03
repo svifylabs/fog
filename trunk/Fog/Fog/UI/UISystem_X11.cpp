@@ -388,7 +388,7 @@ UISystemX11::UISystemX11()
 
   // Finally add the event loop type into application. Event loop will be
   // instantiated by application after UISystem was properly constructed.
-  Application::addEventLoopType<Fog::EventLoopX11>(Fog::StubAscii8("UI::X11"));
+  Application::addEventLoopType<Fog::EventLoopX11>(Fog::Ascii8("UI::X11"));
 
   _initialized = true;
   return;
@@ -400,7 +400,7 @@ fail:
 UISystemX11::~UISystemX11()
 {
   // We don't want that event loop is available after UISystemX11 was destroyed.
-  Application::removeEventLoopType(Fog::StubAscii8("UI::X11"));
+  Application::removeEventLoopType(Fog::Ascii8("UI::X11"));
 
   // Close display and free X resources.
   if (display())
@@ -827,7 +827,7 @@ void UISystemX11::destroyUIWindow(UIWindow* native)
 err_t UISystemX11::loadLibraries()
 {
   // Load X11
-  if (_xlib.open(StubAscii8("X11")) != Error::Ok)
+  if (_xlib.open(Ascii8("X11")) != Error::Ok)
     return Error::UISystemX11_CantLoadX11;
 
   if (_xlib.symbols(xlibFunctions,
@@ -839,7 +839,7 @@ err_t UISystemX11::loadLibraries()
   }
 
   // Load Xext
-  if (_xext.open(StubAscii8("Xext")) != Error::Ok)
+  if (_xext.open(Ascii8("Xext")) != Error::Ok)
     return Error::UISystemX11_CantLoadXext;
 
   if (_xext.symbols(xextFunctions,
@@ -851,7 +851,7 @@ err_t UISystemX11::loadLibraries()
   }
 
   // Load Xrender
-  if (_xrender.open(StubAscii8("Xrender")) != Error::Ok)
+  if (_xrender.open(Ascii8("Xrender")) != Error::Ok)
     return Error::UISystemX11_CantLoadXrender;
 
   if (_xrender.symbols(xrenderFunctions,
@@ -1337,7 +1337,7 @@ __keyPressNoXIC:
         // XIC not supported...?
         char buf[15*6 + 1];
         int len = uiSystem->pXLookupString(&xe->xkey, buf, FOG_ARRAY_SIZE(buf) - 1, &xsym, 0);
-        unicode.set(StubLocal8(buf, len));
+        unicode.set(Local8(buf, len));
       }
 
       key = uiSystem->translateXSym(xsym);
@@ -1926,7 +1926,7 @@ void UIBackingStoreX11::blitRects(XID target, const Box* rects, sysuint_t count)
 // ============================================================================
 
 EventPumpX11::EventPumpX11() :
-  EventPump(StubAscii8("UI::X11")),
+  EventPump(Ascii8("UI::X11")),
   _state(NULL)
 {
   _wakeUpSent.init(0);

@@ -20,9 +20,9 @@
 #elif __G_SIZE == 2
 # define __G_STRING String16
 # define __G_STRING_NAME "Fog::String16"
-# define __G_STRING_STUB StubUtf16
+# define __G_STRING_STUB Utf16
 # define __G_STRING_UTFX String32
-# define __G_STRING_STUBX StubUtf32
+# define __G_STRING_STUBX Utf32
 # define __G_STRINGFILTER StringFilter16
 # define __G_STRINGMATCHER StringMatcher16
 # define __G_TEMPORARYSTRING TemporaryString16
@@ -31,9 +31,9 @@
 #else
 # define __G_STRING String32
 # define __G_STRING_NAME "Fog::String32"
-# define __G_STRING_STUB StubUtf32
+# define __G_STRING_STUB Utf32
 # define __G_STRING_UTFX String16
-# define __G_STRING_STUBX StubUtf16
+# define __G_STRING_STUBX Utf16
 # define __G_STRINGFILTER StringFilter32
 # define __G_STRINGMATCHER StringMatcher32
 # define __G_TEMPORARYSTRING TemporaryString32
@@ -175,11 +175,11 @@ struct FOG_API __G_STRING
 #if __G_SIZE == 1
   __G_STRING(const Stub8& str);
 #else
-  __G_STRING(const StubAscii8& str);
-  __G_STRING(const StubLocal8& str);
-  __G_STRING(const StubUtf8& str);
-  __G_STRING(const StubUtf16& str);
-  __G_STRING(const StubUtf32& str);
+  __G_STRING(const Ascii8& str);
+  __G_STRING(const Local8& str);
+  __G_STRING(const Utf8& str);
+  __G_STRING(const Utf16& str);
+  __G_STRING(const Utf32& str);
 #endif // __G_SIZE 
 
   __G_STRING(Data* d);
@@ -322,22 +322,22 @@ struct FOG_API __G_STRING
 
 #if __G_SIZE == 1
   err_t set(const Stub8& str);
-  err_t set(const StubUtf8& str, const TextCodec& tc);
-  err_t set(const StubUtf16& str, const TextCodec& tc);
-  err_t set(const StubUtf32& str, const TextCodec& tc);
+  err_t set(const Utf8& str, const TextCodec& tc);
+  err_t set(const Utf16& str, const TextCodec& tc);
+  err_t set(const Utf32& str, const TextCodec& tc);
 
   FOG_INLINE err_t set(const String16& str, const TextCodec& tc)
-  { return set(StubUtf16(str), tc); }
+  { return set(Utf16(str), tc); }
 
   FOG_INLINE err_t set(const String32& str, const TextCodec& tc)
-  { return set(StubUtf32(str), tc); }
+  { return set(Utf32(str), tc); }
 #else
   err_t set(const void* str, sysuint_t size, const TextCodec& tc);
-  err_t set(const StubAscii8& str);
-  err_t set(const StubLocal8& str);
-  err_t set(const StubUtf8& str);
-  err_t set(const StubUtf16& str);
-  err_t set(const StubUtf32& str);
+  err_t set(const Ascii8& str);
+  err_t set(const Local8& str);
+  err_t set(const Utf8& str);
+  err_t set(const Utf16& str);
+  err_t set(const Utf32& str);
 #endif // __G_SIZE 
 
   err_t set(const __G_STRING& other);
@@ -386,22 +386,22 @@ struct FOG_API __G_STRING
 
 #if __G_SIZE == 1
   err_t append(const Stub8& str);
-  err_t append(const StubUtf8& str, const TextCodec& tc);
-  err_t append(const StubUtf16& str, const TextCodec& tc);
-  err_t append(const StubUtf32& str, const TextCodec& tc);
+  err_t append(const Utf8& str, const TextCodec& tc);
+  err_t append(const Utf16& str, const TextCodec& tc);
+  err_t append(const Utf32& str, const TextCodec& tc);
 
   FOG_INLINE err_t append(const String16& str, const TextCodec& tc)
-  { return append(StubUtf16(str), tc); }
+  { return append(Utf16(str), tc); }
 
   FOG_INLINE err_t append(const String32& str, const TextCodec& tc)
-  { return append(StubUtf32(str), tc); }
+  { return append(Utf32(str), tc); }
 #else
   err_t append(const void* str, sysuint_t size, const TextCodec& tc);
-  err_t append(const StubAscii8& str);
-  err_t append(const StubLocal8& str);
-  err_t append(const StubUtf8& str);
-  err_t append(const StubUtf16& str);
-  err_t append(const StubUtf32& str);
+  err_t append(const Ascii8& str);
+  err_t append(const Local8& str);
+  err_t append(const Utf8& str);
+  err_t append(const Utf16& str);
+  err_t append(const Utf32& str);
 #endif // __G_SIZE 
 
   err_t append(const __G_STRING& other);
@@ -448,22 +448,22 @@ struct FOG_API __G_STRING
 
 #if __G_SIZE == 1
   err_t prepend(const Stub8& str);
-  err_t prepend(const StubUtf8& str, const TextCodec& tc);
-  err_t prepend(const StubUtf16& str, const TextCodec& tc);
-  err_t prepend(const StubUtf32& str, const TextCodec& tc);
+  err_t prepend(const Utf8& str, const TextCodec& tc);
+  err_t prepend(const Utf16& str, const TextCodec& tc);
+  err_t prepend(const Utf32& str, const TextCodec& tc);
 
   FOG_INLINE err_t prepend(const String16& str, const TextCodec& tc)
-  { return prepend(StubUtf16(str), tc); }
+  { return prepend(Utf16(str), tc); }
 
   FOG_INLINE err_t prepend(const String32& str, const TextCodec& tc)
-  { return prepend(StubUtf32(str), tc); }
+  { return prepend(Utf32(str), tc); }
 #else
   err_t prepend(const void* str, sysuint_t size, const TextCodec& tc);
-  err_t prepend(const StubAscii8& str);
-  err_t prepend(const StubLocal8& str);
-  err_t prepend(const StubUtf8& str);
-  err_t prepend(const StubUtf16& str);
-  err_t prepend(const StubUtf32& str);
+  err_t prepend(const Ascii8& str);
+  err_t prepend(const Local8& str);
+  err_t prepend(const Utf8& str);
+  err_t prepend(const Utf16& str);
+  err_t prepend(const Utf32& str);
 #endif // __G_SIZE 
 
   err_t prepend(const __G_STRING& other);
@@ -479,22 +479,22 @@ struct FOG_API __G_STRING
 
 #if __G_SIZE == 1
   err_t insert(sysuint_t index, const Stub8& str);
-  err_t insert(sysuint_t index, const StubUtf8& str, const TextCodec& tc);
-  err_t insert(sysuint_t index, const StubUtf16& str, const TextCodec& tc);
-  err_t insert(sysuint_t index, const StubUtf32& str, const TextCodec& tc);
+  err_t insert(sysuint_t index, const Utf8& str, const TextCodec& tc);
+  err_t insert(sysuint_t index, const Utf16& str, const TextCodec& tc);
+  err_t insert(sysuint_t index, const Utf32& str, const TextCodec& tc);
 
   FOG_INLINE err_t insert(sysuint_t index, const String16& str, const TextCodec& tc)
-  { return insert(index, StubUtf16(str), tc); }
+  { return insert(index, Utf16(str), tc); }
 
   FOG_INLINE err_t insert(sysuint_t index, const String32& str, const TextCodec& tc)
-  { return insert(index, StubUtf32(str), tc); }
+  { return insert(index, Utf32(str), tc); }
 #else
   err_t insert(sysuint_t index, const void* str, sysuint_t size, const TextCodec& tc);
-  err_t insert(sysuint_t index, const StubAscii8& str);
-  err_t insert(sysuint_t index, const StubLocal8& str);
-  err_t insert(sysuint_t index, const StubUtf8& str);
-  err_t insert(sysuint_t index, const StubUtf16& str);
-  err_t insert(sysuint_t index, const StubUtf32& str);
+  err_t insert(sysuint_t index, const Ascii8& str);
+  err_t insert(sysuint_t index, const Local8& str);
+  err_t insert(sysuint_t index, const Utf8& str);
+  err_t insert(sysuint_t index, const Utf16& str);
+  err_t insert(sysuint_t index, const Utf32& str);
 #endif // __G_SIZE 
 
   err_t insert(sysuint_t index, const __G_STRING& other);
@@ -667,11 +667,11 @@ struct FOG_API __G_STRING
   bool startsWith(const Stub8& str, uint cs = CaseSensitive) const;
 #else
   bool startsWith(const void* data, sysuint_t size, const TextCodec& tc, uint cs = CaseSensitive) const;
-  bool startsWith(const StubAscii8& str, uint cs = CaseSensitive) const;
-  bool startsWith(const StubLocal8& str, uint cs = CaseSensitive) const;
-  bool startsWith(const StubUtf8& str, uint cs = CaseSensitive) const;
-  bool startsWith(const StubUtf16& str, uint cs = CaseSensitive) const;
-  bool startsWith(const StubUtf32& str, uint cs = CaseSensitive) const;
+  bool startsWith(const Ascii8& str, uint cs = CaseSensitive) const;
+  bool startsWith(const Local8& str, uint cs = CaseSensitive) const;
+  bool startsWith(const Utf8& str, uint cs = CaseSensitive) const;
+  bool startsWith(const Utf16& str, uint cs = CaseSensitive) const;
+  bool startsWith(const Utf32& str, uint cs = CaseSensitive) const;
 #endif // __G_SIZE
   bool startsWith(const __G_STRING& str, uint cs = CaseSensitive) const;
   bool startsWith(const __G_STRINGFILTER& filter, uint cs = CaseSensitive) const;
@@ -680,11 +680,11 @@ struct FOG_API __G_STRING
   bool endsWith(const Stub8& str, uint cs = CaseSensitive) const;
 #else
   bool endsWith(const void* data, sysuint_t size, const TextCodec& tc, uint cs = CaseSensitive) const;
-  bool endsWith(const StubAscii8& str, uint cs = CaseSensitive) const;
-  bool endsWith(const StubLocal8& str, uint cs = CaseSensitive) const;
-  bool endsWith(const StubUtf8& str, uint cs = CaseSensitive) const;
-  bool endsWith(const StubUtf16& str, uint cs = CaseSensitive) const;
-  bool endsWith(const StubUtf32& str, uint cs = CaseSensitive) const;
+  bool endsWith(const Ascii8& str, uint cs = CaseSensitive) const;
+  bool endsWith(const Local8& str, uint cs = CaseSensitive) const;
+  bool endsWith(const Utf8& str, uint cs = CaseSensitive) const;
+  bool endsWith(const Utf16& str, uint cs = CaseSensitive) const;
+  bool endsWith(const Utf32& str, uint cs = CaseSensitive) const;
 #endif // __G_SIZE
   bool endsWith(const __G_STRING& str, uint cs = CaseSensitive) const;
   bool endsWith(const __G_STRINGFILTER& filter, uint cs = CaseSensitive) const;
@@ -700,19 +700,19 @@ struct FOG_API __G_STRING
   FOG_INLINE __G_STRING& operator=(const Stub8& str)
   { set(str); return *this; }
 #else
-  FOG_INLINE __G_STRING& operator=(const StubAscii8& str)
+  FOG_INLINE __G_STRING& operator=(const Ascii8& str)
   { set(str); return *this; }
 
-  FOG_INLINE __G_STRING& operator=(const StubLocal8& str)
+  FOG_INLINE __G_STRING& operator=(const Local8& str)
   { set(str); return *this; }
 
-  FOG_INLINE __G_STRING& operator=(const StubUtf8& str)
+  FOG_INLINE __G_STRING& operator=(const Utf8& str)
   { set(str); return *this; }
 
-  FOG_INLINE __G_STRING& operator=(const StubUtf16& str)
+  FOG_INLINE __G_STRING& operator=(const Utf16& str)
   { set(str); return *this; }
 
-  FOG_INLINE __G_STRING& operator=(const StubUtf32& str)
+  FOG_INLINE __G_STRING& operator=(const Utf32& str)
   { set(str); return *this; }
 #endif
 
@@ -726,19 +726,19 @@ struct FOG_API __G_STRING
   FOG_INLINE __G_STRING& operator+=(const Stub8& str)
   { append(str); return *this; }
 #else
-  FOG_INLINE __G_STRING& operator+=(const StubAscii8& str)
+  FOG_INLINE __G_STRING& operator+=(const Ascii8& str)
   { append(str); return *this; }
 
-  FOG_INLINE __G_STRING& operator+=(const StubLocal8& str)
+  FOG_INLINE __G_STRING& operator+=(const Local8& str)
   { append(str); return *this; }
 
-  FOG_INLINE __G_STRING& operator+=(const StubUtf8& str)
+  FOG_INLINE __G_STRING& operator+=(const Utf8& str)
   { append(str); return *this; }
 
-  FOG_INLINE __G_STRING& operator+=(const StubUtf16& str)
+  FOG_INLINE __G_STRING& operator+=(const Utf16& str)
   { append(str); return *this; }
 
-  FOG_INLINE __G_STRING& operator+=(const StubUtf32& str)
+  FOG_INLINE __G_STRING& operator+=(const Utf32& str)
   { append(str); return *this; }
 #endif
   
@@ -766,22 +766,22 @@ struct FOG_API __G_STRING
 #if __G_SIZE == 1
   bool eq(const Stub8& other, uint cs = CaseSensitive) const;
 #else
-  bool eq(const StubAscii8& other, uint cs = CaseSensitive) const;
-  bool eq(const StubLocal8& other, uint cs = CaseSensitive) const;
-  bool eq(const StubUtf8& other, uint cs = CaseSensitive) const;
-  bool eq(const StubUtf16& other, uint cs = CaseSensitive) const;
-  bool eq(const StubUtf32& other, uint cs = CaseSensitive) const;
+  bool eq(const Ascii8& other, uint cs = CaseSensitive) const;
+  bool eq(const Local8& other, uint cs = CaseSensitive) const;
+  bool eq(const Utf8& other, uint cs = CaseSensitive) const;
+  bool eq(const Utf16& other, uint cs = CaseSensitive) const;
+  bool eq(const Utf32& other, uint cs = CaseSensitive) const;
 #endif
   bool eq(const __G_STRING& other, uint cs = CaseSensitive) const;
 
 #if __G_SIZE == 1
   int compare(const Stub8& other, uint cs = CaseSensitive) const;
 #else
-  int compare(const StubAscii8& other, uint cs = CaseSensitive) const;
-  int compare(const StubLocal8& other, uint cs = CaseSensitive) const;
-  int compare(const StubUtf8& other, uint cs = CaseSensitive) const;
-  int compare(const StubUtf16& other, uint cs = CaseSensitive) const;
-  int compare(const StubUtf32& other, uint cs = CaseSensitive) const;
+  int compare(const Ascii8& other, uint cs = CaseSensitive) const;
+  int compare(const Local8& other, uint cs = CaseSensitive) const;
+  int compare(const Utf8& other, uint cs = CaseSensitive) const;
+  int compare(const Utf16& other, uint cs = CaseSensitive) const;
+  int compare(const Utf32& other, uint cs = CaseSensitive) const;
 #endif
   int compare(const __G_STRING& other, uint cs = CaseSensitive) const;
 
@@ -880,18 +880,18 @@ struct __G_TEMPORARYSTRING : public __G_STRING
   {
   }
 #else
-  FOG_INLINE __G_TEMPORARYSTRING(const StubAscii8& str) :
+  FOG_INLINE __G_TEMPORARYSTRING(const Ascii8& str) :
     __G_STRING(Data::adopt((void*)&_storage, N, AllocCanFail, str.str(), str.length()))
   {
   }
 
 #if __G_SIZE == 2
-  FOG_INLINE __G_TEMPORARYSTRING(const StubUtf16& str) :
+  FOG_INLINE __G_TEMPORARYSTRING(const Utf16& str) :
     __G_STRING(Data::adopt((void*)&_storage, N, AllocCanFail, str.str(), str.length()))
   {
   }
 #else
-  FOG_INLINE __G_TEMPORARYSTRING(const StubUtf32& str) :
+  FOG_INLINE __G_TEMPORARYSTRING(const Utf32& str) :
     __G_STRING(Data::adopt((void*)&_storage, N, AllocCanFail, str.str(), str.length()))
   {
   }
@@ -1002,10 +1002,10 @@ private:
 //!
 //! Example:
 //! @verbatim
-//! StringMatcher32 matcher(StubAscii8("test"));
+//! StringMatcher32 matcher(Ascii8("test"));
 //!
-//! String32 s1(StubAscii8("This is test string..."));
-//! String32 s2(StubAscii8("This is another TEST string..."));
+//! String32 s1(Ascii8("This is test string..."));
+//! String32 s2(Ascii8("This is another TEST string..."));
 //!
 //! s1.indexOf(matcher, CaseSensitive);        // result == 8
 //! s1.indexOf(matcher, CaseInsensitive);      // result == 8
@@ -1092,34 +1092,34 @@ static FOG_INLINE const Fog::__G_STRING operator+(const Fog::__G_STRING& a, cons
 static FOG_INLINE const Fog::__G_STRING operator+(const Fog::Stub8& b, const Fog::__G_STRING& a)
 { Fog::__G_STRING t(b); t.append(a); return t; }
 #else
-static FOG_INLINE const Fog::__G_STRING operator+(const Fog::__G_STRING& a, const Fog::StubAscii8& b)
+static FOG_INLINE const Fog::__G_STRING operator+(const Fog::__G_STRING& a, const Fog::Ascii8& b)
 { Fog::__G_STRING t(a); t.append(b); return t; }
 
-static FOG_INLINE const Fog::__G_STRING operator+(const Fog::__G_STRING& a, const Fog::StubLocal8& b)
+static FOG_INLINE const Fog::__G_STRING operator+(const Fog::__G_STRING& a, const Fog::Local8& b)
 { Fog::__G_STRING t(a); t.append(b); return t; }
 
-static FOG_INLINE const Fog::__G_STRING operator+(const Fog::__G_STRING& a, const Fog::StubUtf8& b)
+static FOG_INLINE const Fog::__G_STRING operator+(const Fog::__G_STRING& a, const Fog::Utf8& b)
 { Fog::__G_STRING t(a); t.append(b); return t; }
 
-static FOG_INLINE const Fog::__G_STRING operator+(const Fog::__G_STRING& a, const Fog::StubUtf16& b)
+static FOG_INLINE const Fog::__G_STRING operator+(const Fog::__G_STRING& a, const Fog::Utf16& b)
 { Fog::__G_STRING t(a); t.append(b); return t; }
 
-static FOG_INLINE const Fog::__G_STRING operator+(const Fog::__G_STRING& a, const Fog::StubUtf32& b)
+static FOG_INLINE const Fog::__G_STRING operator+(const Fog::__G_STRING& a, const Fog::Utf32& b)
 { Fog::__G_STRING t(a); t.append(b); return t; }
 
-static FOG_INLINE const Fog::__G_STRING operator+(const Fog::StubAscii8& b, const Fog::__G_STRING& a)
+static FOG_INLINE const Fog::__G_STRING operator+(const Fog::Ascii8& b, const Fog::__G_STRING& a)
 { Fog::__G_STRING t(b); t.append(a); return t; }
 
-static FOG_INLINE const Fog::__G_STRING operator+(const Fog::StubLocal8& b, const Fog::__G_STRING& a)
+static FOG_INLINE const Fog::__G_STRING operator+(const Fog::Local8& b, const Fog::__G_STRING& a)
 { Fog::__G_STRING t(b); t.append(a); return t; }
 
-static FOG_INLINE const Fog::__G_STRING operator+(const Fog::StubUtf8& b, const Fog::__G_STRING& a)
+static FOG_INLINE const Fog::__G_STRING operator+(const Fog::Utf8& b, const Fog::__G_STRING& a)
 { Fog::__G_STRING t(b); t.append(a); return t; }
 
-static FOG_INLINE const Fog::__G_STRING operator+(const Fog::StubUtf16& b, const Fog::__G_STRING& a)
+static FOG_INLINE const Fog::__G_STRING operator+(const Fog::Utf16& b, const Fog::__G_STRING& a)
 { Fog::__G_STRING t(b); t.append(a); return t; }
 
-static FOG_INLINE const Fog::__G_STRING operator+(const Fog::StubUtf32& b, const Fog::__G_STRING& a)
+static FOG_INLINE const Fog::__G_STRING operator+(const Fog::Utf32& b, const Fog::__G_STRING& a)
 { Fog::__G_STRING t(b); t.append(a); return t; }
 #endif // __G_SIZE
 
@@ -1145,75 +1145,75 @@ static FOG_INLINE bool operator< (const Fog::Stub8& a, const Fog::__G_STRING& b)
 static FOG_INLINE bool operator>=(const Fog::Stub8& a, const Fog::__G_STRING& b) { return  b.compare(a) <= 0; }
 static FOG_INLINE bool operator> (const Fog::Stub8& a, const Fog::__G_STRING& b) { return  b.compare(a) <  0; }
 #else
-static FOG_INLINE bool operator==(const Fog::__G_STRING& a, const Fog::StubAscii8& b) { return  a.eq(b); }
-static FOG_INLINE bool operator!=(const Fog::__G_STRING& a, const Fog::StubAscii8& b) { return !a.eq(b); }
-static FOG_INLINE bool operator<=(const Fog::__G_STRING& a, const Fog::StubAscii8& b) { return  a.compare(b) <= 0; }
-static FOG_INLINE bool operator< (const Fog::__G_STRING& a, const Fog::StubAscii8& b) { return  a.compare(b) <  0; }
-static FOG_INLINE bool operator>=(const Fog::__G_STRING& a, const Fog::StubAscii8& b) { return  a.compare(b) >= 0; }
-static FOG_INLINE bool operator> (const Fog::__G_STRING& a, const Fog::StubAscii8& b) { return  a.compare(b) >  0; }
+static FOG_INLINE bool operator==(const Fog::__G_STRING& a, const Fog::Ascii8& b) { return  a.eq(b); }
+static FOG_INLINE bool operator!=(const Fog::__G_STRING& a, const Fog::Ascii8& b) { return !a.eq(b); }
+static FOG_INLINE bool operator<=(const Fog::__G_STRING& a, const Fog::Ascii8& b) { return  a.compare(b) <= 0; }
+static FOG_INLINE bool operator< (const Fog::__G_STRING& a, const Fog::Ascii8& b) { return  a.compare(b) <  0; }
+static FOG_INLINE bool operator>=(const Fog::__G_STRING& a, const Fog::Ascii8& b) { return  a.compare(b) >= 0; }
+static FOG_INLINE bool operator> (const Fog::__G_STRING& a, const Fog::Ascii8& b) { return  a.compare(b) >  0; }
 
-static FOG_INLINE bool operator==(const Fog::StubAscii8& a, const Fog::__G_STRING& b) { return  b.eq(a); }
-static FOG_INLINE bool operator!=(const Fog::StubAscii8& a, const Fog::__G_STRING& b) { return !b.eq(a); }
-static FOG_INLINE bool operator<=(const Fog::StubAscii8& a, const Fog::__G_STRING& b) { return  b.compare(a) >= 0; }
-static FOG_INLINE bool operator< (const Fog::StubAscii8& a, const Fog::__G_STRING& b) { return  b.compare(a) >  0; }
-static FOG_INLINE bool operator>=(const Fog::StubAscii8& a, const Fog::__G_STRING& b) { return  b.compare(a) <= 0; }
-static FOG_INLINE bool operator> (const Fog::StubAscii8& a, const Fog::__G_STRING& b) { return  b.compare(a) <  0; }
+static FOG_INLINE bool operator==(const Fog::Ascii8& a, const Fog::__G_STRING& b) { return  b.eq(a); }
+static FOG_INLINE bool operator!=(const Fog::Ascii8& a, const Fog::__G_STRING& b) { return !b.eq(a); }
+static FOG_INLINE bool operator<=(const Fog::Ascii8& a, const Fog::__G_STRING& b) { return  b.compare(a) >= 0; }
+static FOG_INLINE bool operator< (const Fog::Ascii8& a, const Fog::__G_STRING& b) { return  b.compare(a) >  0; }
+static FOG_INLINE bool operator>=(const Fog::Ascii8& a, const Fog::__G_STRING& b) { return  b.compare(a) <= 0; }
+static FOG_INLINE bool operator> (const Fog::Ascii8& a, const Fog::__G_STRING& b) { return  b.compare(a) <  0; }
 
-static FOG_INLINE bool operator==(const Fog::__G_STRING& a, const Fog::StubLocal8& b) { return  a.eq(b); }
-static FOG_INLINE bool operator!=(const Fog::__G_STRING& a, const Fog::StubLocal8& b) { return !a.eq(b); }
-static FOG_INLINE bool operator<=(const Fog::__G_STRING& a, const Fog::StubLocal8& b) { return  a.compare(b) <= 0; }
-static FOG_INLINE bool operator< (const Fog::__G_STRING& a, const Fog::StubLocal8& b) { return  a.compare(b) <  0; }
-static FOG_INLINE bool operator>=(const Fog::__G_STRING& a, const Fog::StubLocal8& b) { return  a.compare(b) >= 0; }
-static FOG_INLINE bool operator> (const Fog::__G_STRING& a, const Fog::StubLocal8& b) { return  a.compare(b) >  0; }
+static FOG_INLINE bool operator==(const Fog::__G_STRING& a, const Fog::Local8& b) { return  a.eq(b); }
+static FOG_INLINE bool operator!=(const Fog::__G_STRING& a, const Fog::Local8& b) { return !a.eq(b); }
+static FOG_INLINE bool operator<=(const Fog::__G_STRING& a, const Fog::Local8& b) { return  a.compare(b) <= 0; }
+static FOG_INLINE bool operator< (const Fog::__G_STRING& a, const Fog::Local8& b) { return  a.compare(b) <  0; }
+static FOG_INLINE bool operator>=(const Fog::__G_STRING& a, const Fog::Local8& b) { return  a.compare(b) >= 0; }
+static FOG_INLINE bool operator> (const Fog::__G_STRING& a, const Fog::Local8& b) { return  a.compare(b) >  0; }
 
-static FOG_INLINE bool operator==(const Fog::StubLocal8& a, const Fog::__G_STRING& b) { return  b.eq(a); }
-static FOG_INLINE bool operator!=(const Fog::StubLocal8& a, const Fog::__G_STRING& b) { return !b.eq(a); }
-static FOG_INLINE bool operator<=(const Fog::StubLocal8& a, const Fog::__G_STRING& b) { return  b.compare(a) >= 0; }
-static FOG_INLINE bool operator< (const Fog::StubLocal8& a, const Fog::__G_STRING& b) { return  b.compare(a) >  0; }
-static FOG_INLINE bool operator>=(const Fog::StubLocal8& a, const Fog::__G_STRING& b) { return  b.compare(a) <= 0; }
-static FOG_INLINE bool operator> (const Fog::StubLocal8& a, const Fog::__G_STRING& b) { return  b.compare(a) <  0; }
+static FOG_INLINE bool operator==(const Fog::Local8& a, const Fog::__G_STRING& b) { return  b.eq(a); }
+static FOG_INLINE bool operator!=(const Fog::Local8& a, const Fog::__G_STRING& b) { return !b.eq(a); }
+static FOG_INLINE bool operator<=(const Fog::Local8& a, const Fog::__G_STRING& b) { return  b.compare(a) >= 0; }
+static FOG_INLINE bool operator< (const Fog::Local8& a, const Fog::__G_STRING& b) { return  b.compare(a) >  0; }
+static FOG_INLINE bool operator>=(const Fog::Local8& a, const Fog::__G_STRING& b) { return  b.compare(a) <= 0; }
+static FOG_INLINE bool operator> (const Fog::Local8& a, const Fog::__G_STRING& b) { return  b.compare(a) <  0; }
 
-static FOG_INLINE bool operator==(const Fog::__G_STRING& a, const Fog::StubUtf8& b) { return  a.eq(b); }
-static FOG_INLINE bool operator!=(const Fog::__G_STRING& a, const Fog::StubUtf8& b) { return !a.eq(b); }
-static FOG_INLINE bool operator<=(const Fog::__G_STRING& a, const Fog::StubUtf8& b) { return  a.compare(b) <= 0; }
-static FOG_INLINE bool operator< (const Fog::__G_STRING& a, const Fog::StubUtf8& b) { return  a.compare(b) <  0; }
-static FOG_INLINE bool operator>=(const Fog::__G_STRING& a, const Fog::StubUtf8& b) { return  a.compare(b) >= 0; }
-static FOG_INLINE bool operator> (const Fog::__G_STRING& a, const Fog::StubUtf8& b) { return  a.compare(b) >  0; }
+static FOG_INLINE bool operator==(const Fog::__G_STRING& a, const Fog::Utf8& b) { return  a.eq(b); }
+static FOG_INLINE bool operator!=(const Fog::__G_STRING& a, const Fog::Utf8& b) { return !a.eq(b); }
+static FOG_INLINE bool operator<=(const Fog::__G_STRING& a, const Fog::Utf8& b) { return  a.compare(b) <= 0; }
+static FOG_INLINE bool operator< (const Fog::__G_STRING& a, const Fog::Utf8& b) { return  a.compare(b) <  0; }
+static FOG_INLINE bool operator>=(const Fog::__G_STRING& a, const Fog::Utf8& b) { return  a.compare(b) >= 0; }
+static FOG_INLINE bool operator> (const Fog::__G_STRING& a, const Fog::Utf8& b) { return  a.compare(b) >  0; }
 
-static FOG_INLINE bool operator==(const Fog::StubUtf8& a, const Fog::__G_STRING& b) { return  b.eq(a); }
-static FOG_INLINE bool operator!=(const Fog::StubUtf8& a, const Fog::__G_STRING& b) { return !b.eq(a); }
-static FOG_INLINE bool operator<=(const Fog::StubUtf8& a, const Fog::__G_STRING& b) { return  b.compare(a) >= 0; }
-static FOG_INLINE bool operator< (const Fog::StubUtf8& a, const Fog::__G_STRING& b) { return  b.compare(a) >  0; }
-static FOG_INLINE bool operator>=(const Fog::StubUtf8& a, const Fog::__G_STRING& b) { return  b.compare(a) <= 0; }
-static FOG_INLINE bool operator> (const Fog::StubUtf8& a, const Fog::__G_STRING& b) { return  b.compare(a) <  0; }
+static FOG_INLINE bool operator==(const Fog::Utf8& a, const Fog::__G_STRING& b) { return  b.eq(a); }
+static FOG_INLINE bool operator!=(const Fog::Utf8& a, const Fog::__G_STRING& b) { return !b.eq(a); }
+static FOG_INLINE bool operator<=(const Fog::Utf8& a, const Fog::__G_STRING& b) { return  b.compare(a) >= 0; }
+static FOG_INLINE bool operator< (const Fog::Utf8& a, const Fog::__G_STRING& b) { return  b.compare(a) >  0; }
+static FOG_INLINE bool operator>=(const Fog::Utf8& a, const Fog::__G_STRING& b) { return  b.compare(a) <= 0; }
+static FOG_INLINE bool operator> (const Fog::Utf8& a, const Fog::__G_STRING& b) { return  b.compare(a) <  0; }
 
-static FOG_INLINE bool operator==(const Fog::__G_STRING& a, const Fog::StubUtf16& b) { return  a.eq(b); }
-static FOG_INLINE bool operator!=(const Fog::__G_STRING& a, const Fog::StubUtf16& b) { return !a.eq(b); }
-static FOG_INLINE bool operator<=(const Fog::__G_STRING& a, const Fog::StubUtf16& b) { return  a.compare(b) <= 0; }
-static FOG_INLINE bool operator< (const Fog::__G_STRING& a, const Fog::StubUtf16& b) { return  a.compare(b) <  0; }
-static FOG_INLINE bool operator>=(const Fog::__G_STRING& a, const Fog::StubUtf16& b) { return  a.compare(b) >= 0; }
-static FOG_INLINE bool operator> (const Fog::__G_STRING& a, const Fog::StubUtf16& b) { return  a.compare(b) >  0; }
+static FOG_INLINE bool operator==(const Fog::__G_STRING& a, const Fog::Utf16& b) { return  a.eq(b); }
+static FOG_INLINE bool operator!=(const Fog::__G_STRING& a, const Fog::Utf16& b) { return !a.eq(b); }
+static FOG_INLINE bool operator<=(const Fog::__G_STRING& a, const Fog::Utf16& b) { return  a.compare(b) <= 0; }
+static FOG_INLINE bool operator< (const Fog::__G_STRING& a, const Fog::Utf16& b) { return  a.compare(b) <  0; }
+static FOG_INLINE bool operator>=(const Fog::__G_STRING& a, const Fog::Utf16& b) { return  a.compare(b) >= 0; }
+static FOG_INLINE bool operator> (const Fog::__G_STRING& a, const Fog::Utf16& b) { return  a.compare(b) >  0; }
 
-static FOG_INLINE bool operator==(const Fog::StubUtf16& a, const Fog::__G_STRING& b) { return  b.eq(a); }
-static FOG_INLINE bool operator!=(const Fog::StubUtf16& a, const Fog::__G_STRING& b) { return !b.eq(a); }
-static FOG_INLINE bool operator<=(const Fog::StubUtf16& a, const Fog::__G_STRING& b) { return  b.compare(a) >= 0; }
-static FOG_INLINE bool operator< (const Fog::StubUtf16& a, const Fog::__G_STRING& b) { return  b.compare(a) >  0; }
-static FOG_INLINE bool operator>=(const Fog::StubUtf16& a, const Fog::__G_STRING& b) { return  b.compare(a) <= 0; }
-static FOG_INLINE bool operator> (const Fog::StubUtf16& a, const Fog::__G_STRING& b) { return  b.compare(a) <  0; }
+static FOG_INLINE bool operator==(const Fog::Utf16& a, const Fog::__G_STRING& b) { return  b.eq(a); }
+static FOG_INLINE bool operator!=(const Fog::Utf16& a, const Fog::__G_STRING& b) { return !b.eq(a); }
+static FOG_INLINE bool operator<=(const Fog::Utf16& a, const Fog::__G_STRING& b) { return  b.compare(a) >= 0; }
+static FOG_INLINE bool operator< (const Fog::Utf16& a, const Fog::__G_STRING& b) { return  b.compare(a) >  0; }
+static FOG_INLINE bool operator>=(const Fog::Utf16& a, const Fog::__G_STRING& b) { return  b.compare(a) <= 0; }
+static FOG_INLINE bool operator> (const Fog::Utf16& a, const Fog::__G_STRING& b) { return  b.compare(a) <  0; }
 
-static FOG_INLINE bool operator==(const Fog::__G_STRING& a, const Fog::StubUtf32& b) { return  a.eq(b); }
-static FOG_INLINE bool operator!=(const Fog::__G_STRING& a, const Fog::StubUtf32& b) { return !a.eq(b); }
-static FOG_INLINE bool operator<=(const Fog::__G_STRING& a, const Fog::StubUtf32& b) { return  a.compare(b) <= 0; }
-static FOG_INLINE bool operator< (const Fog::__G_STRING& a, const Fog::StubUtf32& b) { return  a.compare(b) <  0; }
-static FOG_INLINE bool operator>=(const Fog::__G_STRING& a, const Fog::StubUtf32& b) { return  a.compare(b) >= 0; }
-static FOG_INLINE bool operator> (const Fog::__G_STRING& a, const Fog::StubUtf32& b) { return  a.compare(b) >  0; }
+static FOG_INLINE bool operator==(const Fog::__G_STRING& a, const Fog::Utf32& b) { return  a.eq(b); }
+static FOG_INLINE bool operator!=(const Fog::__G_STRING& a, const Fog::Utf32& b) { return !a.eq(b); }
+static FOG_INLINE bool operator<=(const Fog::__G_STRING& a, const Fog::Utf32& b) { return  a.compare(b) <= 0; }
+static FOG_INLINE bool operator< (const Fog::__G_STRING& a, const Fog::Utf32& b) { return  a.compare(b) <  0; }
+static FOG_INLINE bool operator>=(const Fog::__G_STRING& a, const Fog::Utf32& b) { return  a.compare(b) >= 0; }
+static FOG_INLINE bool operator> (const Fog::__G_STRING& a, const Fog::Utf32& b) { return  a.compare(b) >  0; }
 
-static FOG_INLINE bool operator==(const Fog::StubUtf32& a, const Fog::__G_STRING& b) { return  b.eq(a); }
-static FOG_INLINE bool operator!=(const Fog::StubUtf32& a, const Fog::__G_STRING& b) { return !b.eq(a); }
-static FOG_INLINE bool operator<=(const Fog::StubUtf32& a, const Fog::__G_STRING& b) { return  b.compare(a) >= 0; }
-static FOG_INLINE bool operator< (const Fog::StubUtf32& a, const Fog::__G_STRING& b) { return  b.compare(a) >  0; }
-static FOG_INLINE bool operator>=(const Fog::StubUtf32& a, const Fog::__G_STRING& b) { return  b.compare(a) <= 0; }
-static FOG_INLINE bool operator> (const Fog::StubUtf32& a, const Fog::__G_STRING& b) { return  b.compare(a) <  0; }
+static FOG_INLINE bool operator==(const Fog::Utf32& a, const Fog::__G_STRING& b) { return  b.eq(a); }
+static FOG_INLINE bool operator!=(const Fog::Utf32& a, const Fog::__G_STRING& b) { return !b.eq(a); }
+static FOG_INLINE bool operator<=(const Fog::Utf32& a, const Fog::__G_STRING& b) { return  b.compare(a) >= 0; }
+static FOG_INLINE bool operator< (const Fog::Utf32& a, const Fog::__G_STRING& b) { return  b.compare(a) >  0; }
+static FOG_INLINE bool operator>=(const Fog::Utf32& a, const Fog::__G_STRING& b) { return  b.compare(a) <= 0; }
+static FOG_INLINE bool operator> (const Fog::Utf32& a, const Fog::__G_STRING& b) { return  b.compare(a) <  0; }
 #endif // __G_SIZE
 
 //! @}

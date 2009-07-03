@@ -64,7 +64,7 @@ struct JpegLibrary
       "jpeg_destroy_compress\0"
       "jpeg_destroy_decompress\0";
 
-    if (dll.open(StubAscii8("jpeg"), Library::OpenSystemPrefix | Library::OpenSystemSuffix) != Error::Ok)
+    if (dll.open(Ascii8("jpeg"), Library::OpenSystemPrefix | Library::OpenSystemSuffix) != Error::Ok)
     {
       // No JPEG library found.
       return;
@@ -684,7 +684,7 @@ err_t JpegEncoderDevice::setProperty(const String32& name, const Value& value)
 {
   err_t err;
 
-  if (name == StubAscii8("quality"))
+  if (name == Ascii8("quality"))
   {
     int32_t q;
     if ((err = value.toInt32(&q))) return err;
@@ -703,7 +703,7 @@ err_t JpegEncoderDevice::setProperty(const String32& name, const Value& value)
 
 Value JpegEncoderDevice::getProperty(const String32& name)
 {
-  if (name == StubAscii8("quality"))
+  if (name == Ascii8("quality"))
   {
     return Value::fromInt32(_quality);
   }

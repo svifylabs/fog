@@ -329,7 +329,7 @@ FOG_INIT_DECLARE err_t fog_font_init(void)
   Fog::String32 home = Fog::UserInfo::directory(Fog::UserInfo::Home);
   Fog::String32 homeFonts;
 
-  Fog::FileUtil::joinPath(homeFonts, home, Fog::StubAscii8("fonts"));
+  Fog::FileUtil::joinPath(homeFonts, home, Fog::Ascii8("fonts"));
 
   Fog::font_local.instance().paths.append(home);
   Fog::font_local.instance().paths.append(homeFonts);
@@ -337,7 +337,7 @@ FOG_INIT_DECLARE err_t fog_font_init(void)
 #if defined(FOG_OS_WINDOWS)
   // Add Windows standard font directory.
   Fog::String32 winFonts = Fog::OS::windowsDirectory();
-  Fog::FileUtil::joinPath(winFonts, winFonts, Fog::StubAscii8("fonts"));
+  Fog::FileUtil::joinPath(winFonts, winFonts, Fog::Ascii8("fonts"));
   Fog::font_local.instance().paths.append(winFonts);
 #endif // FOG_OS_WINDOWS
 

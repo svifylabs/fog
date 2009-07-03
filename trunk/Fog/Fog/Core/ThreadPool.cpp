@@ -83,7 +83,7 @@ Thread* ThreadPool::getThread(int workId)
       return NULL;
     }
 
-    if (!thread->start(StubAscii8("Default")))
+    if (!thread->start(Ascii8("Default")))
     {
       delete thread;
       Memory::free(pe);

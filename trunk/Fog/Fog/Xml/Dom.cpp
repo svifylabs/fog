@@ -984,12 +984,12 @@ String32 XmlDocument::_getManaged(const String32& resource)
 FOG_INIT_DECLARE err_t fog_xmldom_init(void)
 {
   Fog::xml_local.init();
-  Fog::xml_local->xmlDocumentTagName.set(Fog::StubAscii8("#document"));
-  Fog::xml_local->xmlTextTagName.set(Fog::StubAscii8("#text"));
-  Fog::xml_local->xmlCommentTagName.set(Fog::StubAscii8("#comment"));
-  Fog::xml_local->xmlCDATATagName.set(Fog::StubAscii8("#cdata"));
-  Fog::xml_local->xmlProcessingInstructionTagName.set(Fog::StubAscii8("#pi"));
-  Fog::xml_local->xmlUnnamedTagName.set(Fog::StubAscii8("unnamed"));
+  Fog::xml_local->xmlDocumentTagName.set(Fog::Ascii8("#document"));
+  Fog::xml_local->xmlTextTagName.set(Fog::Ascii8("#text"));
+  Fog::xml_local->xmlCommentTagName.set(Fog::Ascii8("#comment"));
+  Fog::xml_local->xmlCDATATagName.set(Fog::Ascii8("#cdata"));
+  Fog::xml_local->xmlProcessingInstructionTagName.set(Fog::Ascii8("#pi"));
+  Fog::xml_local->xmlUnnamedTagName.set(Fog::Ascii8("unnamed"));
 
   return Error::Ok;
 }
