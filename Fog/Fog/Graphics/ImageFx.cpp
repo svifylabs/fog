@@ -51,6 +51,12 @@ static FOG_INLINE int saturate255(int val)
   return (val > 255) ? 255 : val;
 }
 
+// Get reciprocal for 16-bit value @a val.
+static INLINE uint getReciprocal(int val)
+{
+  return (65536 + val - 1) / val;
+}
+
 // ============================================================================
 // [Fog::ImageFx::transpose]
 // ============================================================================
@@ -647,9 +653,7 @@ static void boxBlur_convolve_argb32(
   sysint_t i, j;
   sysint_t x, y;
 
-  // Calculate reciprocal. We are using multiplication instead of division in
-  // inner loop for performance reasons.
-  uint32_t reciprocal = (65536 + 128) / size;
+  uint32_t reciprocal = getReciprocal(size);
 
   uint32_t leftEdgeR = (edgeColor >> 16) & 0xFF;
   uint32_t leftEdgeG = (edgeColor >>  8) & 0xFF;
@@ -837,9 +841,7 @@ static void boxBlur_convolve_rgb24(
   sysint_t i, j;
   sysint_t x, y;
 
-  // Calculate reciprocal. We are using multiplication instead of division in
-  // inner loop for performance reasons.
-  uint32_t reciprocal = (65536 + 128) / size;
+  uint32_t reciprocal = getReciprocal(size);
 
   uint32_t leftEdgeR = (edgeColor >> 16) & 0xFF;
   uint32_t leftEdgeG = (edgeColor >>  8) & 0xFF;
@@ -1007,9 +1009,7 @@ static void boxBlur_convolve_a8(
   sysint_t i, j;
   sysint_t x, y;
 
-  // Calculate reciprocal. We are using multiplication instead of division in
-  // inner loop for performance reasons.
-  uint32_t reciprocal = (65536 + 128) / size;
+  uint32_t reciprocal = getReciprocal(size);
 
   uint32_t leftEdge = edgeColor & 0xFF;
   uint32_t rightEdge = leftEdge;
