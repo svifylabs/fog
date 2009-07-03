@@ -575,7 +575,7 @@ again:
   }
 }
 
-err_t convolveLineFloat(Image& dst, const Image& src,
+err_t convolveSymmetricFloat(Image& dst, const Image& src,
   const float* hKernel, int hKernelSize, float hKernelDiv,
   const float* vKernel, int vKernelSize, float vKernelDiv,
   int edgeMode, uint32_t edgeColor)
@@ -1462,7 +1462,7 @@ static float gaussianBlur_makeKernel(float* dst, double radius, int size)
 
   // Error correction.
   if (total >= 0.001) total -= 0.001;
-  return total;
+  return (float)total;
 }
 
 err_t gaussianBlur(Image& dst, const Image& src, double hRadius, double vRadius, int edgeMode, uint32_t edgeColor)
@@ -1508,7 +1508,7 @@ err_t gaussianBlur(Image& dst, const Image& src, double hRadius, double vRadius,
     hKernelDiv = gaussianBlur_makeKernel(hKernel, hRadius, hKernelSize);
     vKernelDiv = gaussianBlur_makeKernel(vKernel, vRadius, vKernelSize);
 
-    err = convolveLineFloat(dst, src,
+    err = convolveSymmetricFloat(dst, src,
       hKernel, hKernelSize, hKernelDiv,
       vKernel, vKernelSize, vKernelDiv,
       edgeMode, edgeColor);
