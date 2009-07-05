@@ -21,12 +21,11 @@
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Error.h>
 #include <Fog/Graphics/Image.h>
+#include <Fog/Graphics/ImageFilter.h>
 #include <Fog/Graphics/ImageIO.h>
 #include <Fog/Graphics/Raster.h>
 #include <Fog/Graphics/Raster/Raster_Bresenham.h>
-#include <Fog/Graphics/Raster/Raster_ByteOp.h>
 #include <Fog/Graphics/Raster/Raster_C.h>
-#include <Fog/Graphics/Raster/Raster_PixelOp.h>
 #include <Fog/Graphics/Reduce.h>
 
 namespace Fog {
@@ -1789,15 +1788,46 @@ Image Image::extractChannel(uint32_t channel) const
 }
 
 // ============================================================================
-// [Fog::Image - Color matrix]
+// [Fog::Image - Filtering]
 // ============================================================================
 
-err_t Image::applyColorMatrix(const ColorMatrix& mat)
+err_t Image::filter(const ImageFilter& f)
 {
-  return applyColorMatrix(Rect(0, 0, width(), height()), mat);
+  return f.filterImage(*this, *this);
 }
 
-err_t Image::applyColorMatrix(const Rect& r, const ColorMatrix& mat)
+err_t Image::filter(const ImageFilter& f, const Rect& r)
+{
+  int w = width();
+  int h = height();
+
+  // Clip.
+  int x1 = fog_max(r.x(), 0);
+  int y1 = fog_max(r.y(), 0);
+  int x2 = fog_min(r.x(), w);
+  int y2 = fog_min(r.y(), h);
+
+  if (x1 >= x2 || y1 >= y2) return Error::Ok;
+
+  if (x1 == 0 && y1 == 0 && x2 == w && y2 == h)
+  {
+    return f.filterImage(*this, *this);
+  }
+  else
+  {
+    err_t err = detach();
+    if (err) return err;
+
+    return f.filterData(xFirst(), stride(), xFirst(), stride(), w, h, format());
+  }
+}
+
+err_t Image::filter(const ColorMatrix& mat)
+{
+  return filter(mat, Rect(0, 0, width(), height()));
+}
+
+err_t Image::filter(const ColorMatrix& mat, const Rect& r)
 {
   int x1 = r.x1();
   int y1 = r.y1();
@@ -2752,4 +2782,3 @@ FOG_INIT_DECLARE void fog_image_shutdown(void)
   Fog::Image::sharedNull.instancep()->refCount.dec();
   Fog::Image::sharedNull.destroy();
 }
-

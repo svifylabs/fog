@@ -27,7 +27,7 @@ FunctionMap* functionMap;
 // [Fog::Raster - getRasterOps]
 // ============================================================================
 
-FunctionMap::Raster* getRasterOps(int format, int op)
+FunctionMap::RasterFuncs* getRasterOps(int format, int op)
 {
   if (op >= CompositeCount) return NULL;
 
@@ -82,14 +82,9 @@ FOG_INIT_DECLARE err_t fog_raster_init(void)
     fog_raster_init_sse2();
   }
 
-  // [Install JIT code generation]
-
-  fog_raster_init_jit();
-
   return Error::Ok;
 }
 
 FOG_INIT_DECLARE void fog_raster_shutdown(void)
 {
-  fog_raster_shutdown_jit();
 }

@@ -29,8 +29,7 @@
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/Painter.h>
 #include <Fog/Graphics/Raster.h>
-#include <Fog/Graphics/Raster/Raster_ByteOp.h>
-#include <Fog/Graphics/Raster/Raster_PixelOp.h>
+#include <Fog/Graphics/Raster/Raster_C.h>
 #include <Fog/Graphics/Rgba.h>
 
 // [AntiGrain]
@@ -232,7 +231,7 @@ struct FOG_HIDDEN NullEngine : public PainterEngine
 
   // [Properties]
 
-  virtual err_t setProperty(const String32& name, const Value& value) { return Error::InvalidProperty; }
+  virtual err_t setProperty(const String32& name, const Value& value) { return Error::InvalidPropertyName; }
   virtual Value getProperty(const String32& name) const { return Value(); }
 };
 
@@ -436,7 +435,7 @@ struct FOG_HIDDEN RasterEngineSavedState
 {
   RasterEngineClipState* clipState;
   RasterEngineCapsState* capsState;
-  Raster::FunctionMap::Raster* raster;
+  Raster::FunctionMap::RasterFuncs* raster;
   Raster::PatternContext* pctx;
 };
 
@@ -559,7 +558,7 @@ struct FOG_HIDDEN RasterEngineContext
   // Capabilities state.
   RasterEngineCapsState* capsState;
 
-  Raster::FunctionMap::Raster* raster;
+  Raster::FunctionMap::RasterFuncs* raster;
   Raster::PatternContext* pctx;
 
   AggScanlineP8 slP8;
@@ -743,7 +742,7 @@ struct FOG_HIDDEN RasterEngineCommand
   RasterEngineClipState* clipState;
   RasterEngineCapsState* capsState;
 
-  Raster::FunctionMap::Raster* raster;
+  Raster::FunctionMap::RasterFuncs* raster;
   Raster::PatternContext* pctx;
 
   // [Related to RasterEngineCommandAllocator]
@@ -2424,7 +2423,7 @@ void RasterEngine::flushWithQuit()
 
 err_t RasterEngine::setProperty(const String32& name, const Value& value)
 {
-  err_t err = Error::InvalidProperty;
+  err_t err = Error::InvalidPropertyName;
   int p_int;
 
   if (name == Ascii8("multithreaded"))

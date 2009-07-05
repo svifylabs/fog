@@ -28,6 +28,7 @@ namespace Fog {
 // ============================================================================
 
 struct ColorMatrix;
+struct ImageFilter;
 
 // ============================================================================
 // [Fog::Image]
@@ -443,10 +444,13 @@ struct FOG_API Image
 
   Image extractChannel(uint32_t channel) const;
 
-  // [Color matrix]
+  // [Filtering]
 
-  err_t applyColorMatrix(const ColorMatrix& mat);
-  err_t applyColorMatrix(const Rect& r, const ColorMatrix& mat);
+  err_t filter(const ImageFilter& f);
+  err_t filter(const ImageFilter& f, const Rect& r);
+
+  err_t filter(const ColorMatrix& mat);
+  err_t filter(const ColorMatrix& mat, const Rect& r);
 
   // [Inlines]
 

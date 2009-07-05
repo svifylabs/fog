@@ -40,13 +40,17 @@ enum CoreError
   NotImplemented,
 
   InvalidFunction,
-  InvalidProperty,
   InvalidArgument,
   InvalidHandle,
-
   InvalidInput,
 
   Overflow,
+
+  // [Properties]
+
+  InvalidPropertyName,
+  InvalidPropertyValue,
+  PropertyIsReadOnly,
 
   // [IO Errors]
 

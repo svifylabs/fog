@@ -186,7 +186,10 @@ static Image makeImage()
   p.drawRect(Rect(0, 0, p.width(), p.height()));
 
   p.setSource(0xFF0000FF);
-  p.drawText(Rect(2, 2, p.width(), p.height()), Ascii8("Fog Library"), font, TextAlignCenter);
+  p.drawText(Rect( 1, 1, p.width(), p.height()), Ascii8("Fog Library"), font, TextAlignCenter);
+  p.drawText(Rect(-1, 1, p.width(), p.height()), Ascii8("Fog Library"), font, TextAlignCenter);
+  p.drawText(Rect( 1,-1, p.width(), p.height()), Ascii8("Fog Library"), font, TextAlignCenter);
+  p.drawText(Rect(-1,-1, p.width(), p.height()), Ascii8("Fog Library"), font, TextAlignCenter);
 
   p.setSource(0xFF000000);
   p.drawText(Rect(0, 0, p.width(), p.height()), Ascii8("Fog Library"), font, TextAlignCenter);
@@ -225,23 +228,26 @@ void MyWindow::onPaint(PaintEvent* e)
   Image im2;
   Image im3;
 
-  ImageFx::boxBlur(im1, im0, r, r, ImageFx::EdgeModeAuto, 0xFF000000);
-  ImageFx::stackBlur(im2, im0, r, r, ImageFx::EdgeModeAuto, 0xFF000000);
-  //ImageFx::gaussianBlur(im3, im0, r, r, ImageFx::EdgeModeAuto, 0xFF000000);
+  BlurImageFilter(BlurImageFilter::BoxBlurType, r, r).filterImage(im1, im0);
+  BlurImageFilter(BlurImageFilter::StackBlurType, r, r).filterImage(im2, im0);
+
+  //float kernel[] = { -3.0, -1.5, -1.0, -2.0, 1.0, -2.0, -1.0, -1.5, -3.0 };
+  //int size = 9;
+  //float div = 0.0;
+  //for (int i = 0; i < size; i++) div += kernel[i];
+  //ImageFx::convolveSymmetricFloat(im3, im0, kernel, size, div, kernel, size, div, ImageFx::EdgeModeAuto, 0);
 
   p->setSource(0xFFFFFFFF);
   p->clear();
 
-  //p->setSource(0xFF000000);
-  //p->drawRect(Rect(49, 49, im.width() + 2, im.height() + 2));
-
-  p->drawImage(Point(50, 50 + (im1.height() + 10) * 0), im1);
-  p->drawImage(Point(50, 50 + (im1.height() + 10) * 1), im2);
-  p->drawImage(Point(50, 50 + (im1.height() + 10) * 2), im3);
+  //p->drawImage(Point(50, 50 + (im1.height() + 10) * 0), im1);
+  //p->drawImage(Point(50, 50 + (im1.height() + 10) * 1), im2);
+  //p->drawImage(Point(50, 50 + (im1.height() + 10) * 2), im3);
 }
 
 void MyWindow::bench()
 {
+  /*
   TimeTicks td;
 
   Image src = makeImage();
@@ -270,6 +276,7 @@ void MyWindow::bench()
     ImageFx::gaussianBlur(dst, src, r, r, ImageFx::EdgeModeAuto, 0xFF000000);
   }
   fog_debug("Gaussian blur: %f", (TimeTicks::highResNow() - td).inMillisecondsF());
+  */
 }
 
 // ============================================================================

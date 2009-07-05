@@ -375,7 +375,7 @@ Set(FOG_GRAPHICS_SOURCES
   ${FOG_DIR}/Fog/Graphics/GlyphSet.cpp
   ${FOG_DIR}/Fog/Graphics/Gradient.cpp
   ${FOG_DIR}/Fog/Graphics/Image.cpp
-  ${FOG_DIR}/Fog/Graphics/ImageFx.cpp
+  ${FOG_DIR}/Fog/Graphics/ImageFilter.cpp
   ${FOG_DIR}/Fog/Graphics/ImageIO.cpp
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_BMP.cpp
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_GIF.cpp
@@ -389,9 +389,26 @@ Set(FOG_GRAPHICS_SOURCES
   ${FOG_DIR}/Fog/Graphics/Pattern.cpp
   ${FOG_DIR}/Fog/Graphics/Raster.cpp
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_C.cpp
-  ${FOG_DIR}/Fog/Graphics/Raster/Raster_Jit.cpp
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_C_base.cpp.h
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_C_composite.cpp.h
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_C_convert.cpp.h
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_C_filters.cpp.h
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_C_gradient.cpp.h
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_C_pattern.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_MMX.cpp
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_MMX_base.cpp.h
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_MMX_composite.cpp.h
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_MMX_convert.cpp.h
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_MMX_filters.cpp.h
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_MMX_gradient.cpp.h
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_MMX_pattern.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_SSE2.cpp
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_SSE2_base.cpp.h
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_SSE2_composite.cpp.h
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_SSE2_convert.cpp.h
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_SSE2_filters.cpp.h
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_SSE2_gradient.cpp.h
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_SSE2_pattern.cpp.h
   ${FOG_DIR}/Fog/Graphics/Reduce.cpp
   ${FOG_DIR}/Fog/Graphics/Region.cpp
   ${FOG_DIR}/Fog/Graphics/RegionPoly.cpp
@@ -420,7 +437,7 @@ Set(FOG_GRAPHICS_HEADERS
   ${FOG_DIR}/Fog/Graphics/GlyphSet.h
   ${FOG_DIR}/Fog/Graphics/Gradient.h
   ${FOG_DIR}/Fog/Graphics/Image.h
-  ${FOG_DIR}/Fog/Graphics/ImageFx.h
+  ${FOG_DIR}/Fog/Graphics/ImageFilter.h
   ${FOG_DIR}/Fog/Graphics/ImageIO.h
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_BMP.h
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_GIF.h
@@ -434,10 +451,7 @@ Set(FOG_GRAPHICS_HEADERS
   ${FOG_DIR}/Fog/Graphics/Pattern.h
   ${FOG_DIR}/Fog/Graphics/Raster.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_Bresenham.h
-  ${FOG_DIR}/Fog/Graphics/Raster/Raster_ByteOp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_C.h
-  ${FOG_DIR}/Fog/Graphics/Raster/Raster_Jit.h
-  ${FOG_DIR}/Fog/Graphics/Raster/Raster_PixelOp.h
   ${FOG_DIR}/Fog/Graphics/Reduce.h
   ${FOG_DIR}/Fog/Graphics/Region.h
   ${FOG_DIR}/Fog/Graphics/Rgba.h

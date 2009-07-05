@@ -25,6 +25,7 @@ namespace Raster {
 // [Fog::Raster - Function Map]
 // ============================================================================
 
+// Converters
 typedef void (FOG_FASTCALL *ConvertPlainFn)(
   uint8_t* dst, const uint8_t* src, sysint_t w);
 
@@ -37,10 +38,12 @@ typedef void (FOG_FASTCALL *ConvertDither16Fn)(
 typedef void (FOG_FASTCALL *ConvertIndexedFn)(
   uint8_t* dst, const uint8_t* src, sysint_t w, const Rgba* pal);
 
+// Gradient
 typedef void (FOG_FASTCALL *GradientSpanFn)(
   uint8_t* dst, uint32_t c0, uint32_t c1,
   sysint_t w, sysint_t x1, sysint_t x2);
 
+// Raster
 typedef void (FOG_FASTCALL *PixelFn)(
   uint8_t* dst, uint32_t src);
 typedef void (FOG_FASTCALL *PixelMskFn)(
@@ -68,6 +71,7 @@ typedef void (FOG_FASTCALL *SpanCompositeIndexedMskConstFn)(
   uint8_t* dst, const uint8_t* src, uint32_t msk, sysint_t w,
   const Rgba* pal);
 
+// Pattern
 struct PatternContext;
 
 typedef err_t (FOG_FASTCALL *PatternContextInitFn)(
@@ -172,11 +176,41 @@ struct PatternContext
   };
 };
 
+// Filters
+typedef void (FOG_FASTCALL *TransposeFn)(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height);
+
+typedef void (FOG_FASTCALL *IntegerScanlineConvolveFn)(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height, const int* kernel, int size, int divide,
+  int borderMode, uint32_t borderColor);
+
+typedef void (FOG_FASTCALL *FloatScanlineConvolveFn)(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height, const float* kernel, int size, float divide,
+  int borderMode, uint32_t borderColor);
+
+typedef void (FOG_FASTCALL *BlurConvolveFn)(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height, int radius,
+  int borderMode, uint32_t borderColor);
+
+//! @brief Function map contains all low-level raster based manipulation methods.
+//!
+//! Function map is designed for overriding functions by their better 
+//! implementation. For example if processor supports MMX or SSE2, some
+//! functions are replaced by MMX/SSE2 versions. This way means that there
+//! is not needed to check for these features in higher level API.
 struct FunctionMap
 {
   // [Convert Table]
 
-  struct Convert
+  struct ConvertFuncs
   {
     // [ByteSwap]
 
@@ -287,11 +321,11 @@ struct FunctionMap
     ConvertDither16Fn rgb16_5650_bs_from_rgb24_dither;
   };
 
-  Convert convert;
+  ConvertFuncs convert;
 
   // [Gradient Table]
 
-  struct Gradient
+  struct GradientFuncs
   {
     // [GradientSpan]
 
@@ -302,11 +336,11 @@ struct FunctionMap
     GradientSpanFn gradient_a8;
   };
 
-  Gradient gradient;
+  GradientFuncs gradient;
 
   // [Pattern Table]
 
-  struct Pattern_
+  struct PatternFuncs
   {
     // [Texture]
 
@@ -336,11 +370,11 @@ struct FunctionMap
     PatternContextFetchFn conical_gradient_fetch;
   };
 
-  Pattern_ pattern;
+  PatternFuncs pattern;
 
   // [Raster Table]
 
-  struct Raster
+  struct RasterFuncs
   {
     // [Pixel]
 
@@ -353,7 +387,7 @@ struct FunctionMap
     SpanSolidMskFn      span_solid_a8;
 
     // [Span Composite]
-
+  
     // NOTE 1: There are two versions of funtions, but you can call only one
     // of them. The indexed version is only for Image::FormatI8. Painter and
     // Fog library knows about this. The indexed version is only used when
@@ -381,14 +415,27 @@ struct FunctionMap
   };
   
   // 0 = ARGB32, 1 = ARGB32 premultiplied.
-  Raster raster_argb32[2][CompositeCount];
-  Raster raster_rgb32;
-  Raster raster_rgb24;
+  RasterFuncs raster_argb32[2][CompositeCount];
+  RasterFuncs raster_rgb32;
+  RasterFuncs raster_rgb24;
+
+  // [Filters Table]
+
+  struct FiltersFuncs
+  {
+    TransposeFn transpose[Image::FormatCount];
+    IntegerScanlineConvolveFn integerScanlineConvolve[Image::FormatCount];
+    FloatScanlineConvolveFn floatScanlineConvolve[Image::FormatCount];
+    BlurConvolveFn boxBlurConvolve[Image::FormatCount];
+    BlurConvolveFn stackBlurConvolve[Image::FormatCount];
+  };
+
+  FiltersFuncs filters;
 };
 
 extern FOG_API FunctionMap* functionMap;
 
-FOG_API FunctionMap::Raster* getRasterOps(int format, int op);
+FOG_API FunctionMap::RasterFuncs* getRasterOps(int format, int op);
 
 } // Raster namespace
 } // Fog namespace
