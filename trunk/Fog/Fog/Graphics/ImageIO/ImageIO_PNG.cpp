@@ -597,11 +597,9 @@ uint32_t PngEncoderDevice::writeImage(const Image& image)
       sig_bit.gray = 0;
       lib->png_set_sBIT(png_ptr, info_ptr, &sig_bit);
 
-      if (format == Image::FormatPRGB32)
-      {
-        buffer = (uint8_t*)bufferStorage.alloc(width * 4);
-        if (!buffer) { err = Error::OutOfMemory; goto end; }
-      }
+      buffer = (uint8_t*)bufferStorage.alloc(width * 4);
+      if (!buffer) { err = Error::OutOfMemory; goto end; }
+      break;
     }
     case Image::FormatRGB32:
     case Image::FormatRGB24:
@@ -643,17 +641,17 @@ uint32_t PngEncoderDevice::writeImage(const Image& image)
     switch (format)
     {
       case Image::FormatARGB32:
-      case Image::FormatI8:
-        row_ptr = (png_bytep)image.cFirst() + y * image.stride();
-        break;
       case Image::FormatPRGB32:
         row_ptr = (png_bytep)buffer;
-        image.getDibArgb32_be(0, y, width, buffer);
+        image.getDibArgb32(0, y, width, buffer);
         break;
       case Image::FormatRGB32:
       case Image::FormatRGB24:
         row_ptr = (png_bytep)buffer;
         image.getDibRgb24_be(0, y, width, buffer);
+        break;
+      case Image::FormatI8:
+        row_ptr = (png_bytep)image.cFirst() + y * image.stride();
         break;
     }
 

@@ -3108,21 +3108,30 @@ FOG_INIT_DECLARE err_t fog_textcodec_init(void)
 
   Fog::TextCodec* addr = (Fog::TextCodec*)Fog::TextCodec::sharedBuiltIn;
 
+  // Initialize null text codec.
   new (&addr[Fog::TextCodec::BuiltInNull]) 
     Fog::TextCodec(Fog::TextCodec::fromCode(Fog::TextCodec::None));
 
+  // Initialize ASCII text codec.
   new (&addr[Fog::TextCodec::BuiltInAscii]) 
     Fog::TextCodec(Fog::TextCodec::fromCode(Fog::TextCodec::ISO8859_1));
   
+  // Initialize local 8-bit text codec. If there was problem to initialize it,
+  // we will use ASCII one.
   new (&addr[Fog::TextCodec::BuiltInLocal]) 
     Fog::TextCodec(Fog::TextCodec::fromMime(Fog::TextCodec_getCodeset()));
-  
+  if (addr[Fog::TextCodec::BuiltInLocal].isNull())
+    addr[Fog::TextCodec::BuiltInLocal] = addr[Fog::TextCodec::BuiltInAscii];
+
+  // Initialize UTF-8 text codec.
   new (&addr[Fog::TextCodec::BuiltInUTF8]) 
     Fog::TextCodec(Fog::TextCodec::fromCode(Fog::TextCodec::UTF8));
   
+  // Initialize UTF-16 text codec.
   new (&addr[Fog::TextCodec::BuiltInUTF16]) 
     Fog::TextCodec(Fog::TextCodec::fromCode(Fog::TextCodec::UTF16));
   
+  // Initialize UTF-32 text codec.
   new (&addr[Fog::TextCodec::BuiltInUTF32]) 
     Fog::TextCodec(Fog::TextCodec::fromCode(Fog::TextCodec::UTF32));
 

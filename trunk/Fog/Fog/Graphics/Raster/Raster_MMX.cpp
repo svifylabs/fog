@@ -12,9 +12,15 @@
 #include <Fog/Core/Intrin_MMX.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/Raster.h>
-#include <Fog/Graphics/Raster/Raster_ByteOp.h>
-#include <Fog/Graphics/Raster/Raster_PixelOp.h>
 #include <Fog/Graphics/Raster/Raster_C.h>
+
+// [Raster_MMX]
+#include <Fog/Graphics/Raster/Raster_MMX_base.cpp.h>
+#include <Fog/Graphics/Raster/Raster_MMX_convert.cpp.h>
+#include <Fog/Graphics/Raster/Raster_MMX_composite.cpp.h>
+#include <Fog/Graphics/Raster/Raster_MMX_gradient.cpp.h>
+#include <Fog/Graphics/Raster/Raster_MMX_pattern.cpp.h>
+#include <Fog/Graphics/Raster/Raster_MMX_filters.cpp.h>
 
 namespace Fog {
 namespace Raster {
