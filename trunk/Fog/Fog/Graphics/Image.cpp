@@ -1682,7 +1682,8 @@ Image Image::extractChannel(uint32_t channel) const
   Image i;
 
   // Invalid argument error.
-  if (channel >= 4) return i;
+  if (channel >= ChannelCount) return i;
+  if ((channel & (channel-1)) != channel) return i;
 
   // Requested alpha channel on A8 image?
   if (channel == ChannelAlpha && format() == FormatA8)
@@ -1809,6 +1810,47 @@ err_t Image::filter(const ImageFilter& f, const Rect& r)
   }
 }
 
+err_t Image::filter(const ColorLut& lut)
+{
+  return filter(lut, Rect(0, 0, width(), height()));
+}
+
+err_t Image::filter(const ColorLut& lut, const Rect& r)
+{
+  int x1 = r.x1();
+  int y1 = r.y1();
+  int x2 = r.x2();
+  int y2 = r.y2();
+
+  int w = _d->width;
+  int h = _d->height;
+  int fmt = _d->format;
+
+  if (x1 < 0) x1 = 0;
+  if (y1 < 0) y1 = 0;
+  if (x2 > w) x2 = w;
+  if (y2 > h) y2 = h;
+
+  if ((w = x2 - x1) <= 0) return Error::Ok;
+  if ((h = y2 - y1) <= 0) return Error::Ok;
+
+  err_t err;
+  if ((err = detach())) return err;
+
+  uint8_t* dstPixels = xScanline(y1) + x1 * bytesPerPixel();
+  sysint_t dstStride = stride();
+
+  Raster::ColorLutFn converter = Raster::functionMap->filters.colorLut[format()];
+  const ColorLut::Table* table = &lut._d->table;
+
+  for (int y = y1; y < y2; y++, dstPixels += dstStride)
+  {
+    converter(dstPixels, dstPixels, table, w);
+  }
+
+  return Error::Ok;
+}
+
 err_t Image::filter(const ColorMatrix& mat)
 {
   return filter(mat, Rect(0, 0, width(), height()));
@@ -1839,51 +1881,12 @@ err_t Image::filter(const ColorMatrix& mat, const Rect& r)
   uint8_t* dstPixels = xScanline(y1) + x1 * bytesPerPixel();
   sysint_t dstStride = stride();
 
+  Raster::ColorMatrixFn converter = Raster::functionMap->filters.colorMatrix[format()];
+  uint32_t type = mat.type();
+
   for (int y = y1; y < y2; y++, dstPixels += dstStride)
   {
-    uint8_t* dstCur = dstPixels;
-
-    switch (fmt)
-    {
-      case FormatARGB32:
-        for (int x = 0; x < w; x++, dstCur += 4)
-        {
-          mat.transformRgba((Rgba*)dstCur);
-        }
-        break;
-      case FormatPRGB32:
-        for (int x = 0; x < w; x++, dstCur += 4)
-        {
-          Rgba c = Raster::demultiply(((uint32_t*)dstCur)[0]);
-          mat.transformRgba(&c);
-          ((uint32_t*)dstCur)[0] = Raster::premultiply(c);
-        }
-        break;
-      case FormatRGB32:
-        for (int x = 0; x < w; x++, dstCur += 4)
-        {
-          mat.transformRgb((Rgba*)dstCur);
-        }
-        break;
-      case FormatRGB24:
-        for (int x = 0; x < w; x++, dstCur += 3)
-        {
-#if FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
-          mat.transformRgb((Rgba*)dstCur);
-#else
-          Rgba c = Raster::PixFmt_RGB24::fetch(dstCur);
-          mat.transformRgb(&c);
-          Raster::PixFmt_RGB24::store(dstCur, c);
-#endif
-        }
-        break;
-      case FormatA8:
-        for (int x = 0; x < w; x++, dstCur += 1)
-        {
-          mat.transformAlpha(dstCur);
-        }
-        break;
-    }
+    converter(dstPixels, dstPixels, &mat, type, w);
   }
 
   return Error::Ok;

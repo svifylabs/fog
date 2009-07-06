@@ -109,10 +109,7 @@ ColorLut::Data* ColorLut::Data::copy(const Data* other)
   newd->type = other->type;
   newd->flags = other->flags;
 
-  memcpy(newd->rTable, other->rTable, 256);
-  memcpy(newd->gTable, other->gTable, 256);
-  memcpy(newd->bTable, other->bTable, 256);
-  memcpy(newd->aTable, other->aTable, 256);
+  Memory::copy(&newd->table, &other->table, sizeof(ColorLut::Table));
 
   return newd;
 }
@@ -130,11 +127,12 @@ FOG_INIT_DECLARE err_t fog_colorlut_init(void)
 
   d->refCount.init(1);
   d->type = Fog::ColorLut::NopType;
+  d->flags = 0;
 
-  memcpy(d->aTable, Fog::linearLutData, 256);
-  memcpy(d->rTable, Fog::linearLutData, 256);
-  memcpy(d->gTable, Fog::linearLutData, 256);
-  memcpy(d->bTable, Fog::linearLutData, 256);
+  Fog::Memory::copy(d->table.a, Fog::linearLutData, 256);
+  Fog::Memory::copy(d->table.r, Fog::linearLutData, 256);
+  Fog::Memory::copy(d->table.g, Fog::linearLutData, 256);
+  Fog::Memory::copy(d->table.b, Fog::linearLutData, 256);
 
   return Error::Ok;
 }

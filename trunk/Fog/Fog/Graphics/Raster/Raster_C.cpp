@@ -11,6 +11,7 @@
 // [Dependencies]
 #include <Fog/Core/Math.h>
 #include <Fog/Core/Misc.h>
+#include <Fog/Graphics/ColorLut.h>
 #include <Fog/Graphics/ColorMatrix.h>
 #include <Fog/Graphics/DitherMatrix.h>
 #include <Fog/Graphics/Error.h>
@@ -323,6 +324,22 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   m->raster_rgb24.span_composite_a8[Image::FormatA8] = raster_span_composite_a8_nop;
   m->raster_rgb24.span_composite_indexed_a8[Image::FormatI8] = TODO_NOT_IMPLEMENTED;
 
+  // [Filters - ColorLut]
+
+  m->filters.colorLut[Image::FormatARGB32] = colorLut_argb32;
+  m->filters.colorLut[Image::FormatPRGB32] = colorLut_prgb32;
+  m->filters.colorLut[Image::FormatRGB32] = colorLut_rgb32;
+  m->filters.colorLut[Image::FormatRGB24] = colorLut_rgb24;
+  m->filters.colorLut[Image::FormatA8] = colorLut_a8;
+
+  // [Filters - ColorMatrix]
+
+  m->filters.colorMatrix[Image::FormatARGB32] = colorMatrix_argb32;
+  m->filters.colorMatrix[Image::FormatPRGB32] = colorMatrix_prgb32;
+  m->filters.colorMatrix[Image::FormatRGB32] = colorMatrix_rgb32;
+  m->filters.colorMatrix[Image::FormatRGB24] = colorMatrix_rgb24;
+  m->filters.colorMatrix[Image::FormatA8] = colorMatrix_a8;
+
   // [Filters - Transpose]
 
   m->filters.transpose[Image::FormatARGB32] = transpose_32;
@@ -338,7 +355,6 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   m->filters.floatScanlineConvolve[Image::FormatRGB32] = floatScanlineConvolve_argb32;
   m->filters.floatScanlineConvolve[Image::FormatRGB24] = floatScanlineConvolve_rgb24;
   m->filters.floatScanlineConvolve[Image::FormatA8] = floatScanlineConvolve_a8;
-  m->filters.floatScanlineConvolve[Image::FormatI8] = floatScanlineConvolve_a8;
 
   // [Filters - BoxBlurConvolve]
 
@@ -346,7 +362,6 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   m->filters.boxBlurConvolve[Image::FormatRGB32] = boxBlurConvolve_argb32;
   m->filters.boxBlurConvolve[Image::FormatRGB24] = boxBlurConvolve_rgb24;
   m->filters.boxBlurConvolve[Image::FormatA8] = boxBlurConvolve_a8;
-  m->filters.boxBlurConvolve[Image::FormatI8] = boxBlurConvolve_a8;
 
   // [Filters - StackBlurConvolve]
 
@@ -354,5 +369,4 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   m->filters.stackBlurConvolve[Image::FormatRGB32] = stackBlurConvolve_argb32;
   m->filters.stackBlurConvolve[Image::FormatRGB24] = stackBlurConvolve_rgb24;
   m->filters.stackBlurConvolve[Image::FormatA8] = stackBlurConvolve_a8;
-  m->filters.stackBlurConvolve[Image::FormatI8] = stackBlurConvolve_a8;
 }

@@ -27,6 +27,7 @@ namespace Fog {
 // [Forward Declarations]
 // ============================================================================
 
+struct ColorLut;
 struct ColorMatrix;
 struct ImageFilter;
 
@@ -443,20 +444,15 @@ struct FOG_API Image
 
   // [Channel related]
 
-  enum Channel
-  {
-    ChannelRed = 0,
-    ChannelGreen,
-    ChannelBlue,
-    ChannelAlpha
-  };
-
   Image extractChannel(uint32_t channel) const;
 
   // [Filtering]
 
   err_t filter(const ImageFilter& f);
   err_t filter(const ImageFilter& f, const Rect& r);
+
+  err_t filter(const ColorLut& lut);
+  err_t filter(const ColorLut& lut, const Rect& r);
 
   err_t filter(const ColorMatrix& mat);
   err_t filter(const ColorMatrix& mat, const Rect& r);

@@ -87,6 +87,19 @@ enum ImageFile
   ImageFileOther = 65536
 };
 
+//! @brief Rgba color channels.
+enum Channel
+{
+  ChannelRed = 0x1,
+  ChannelGreen = 0x2,
+  ChannelBlue = 0x4,
+  ChannelAlpha = 0x8,
+  ChannelRGB = ChannelRed | ChannelGreen | ChannelBlue,
+  ChannelRGBA = ChannelRGB | ChannelAlpha,
+
+  ChannelCount = ChannelRGBA + 1
+};
+
 //! @brief Matrix multiply ordering.
 enum MatrixOrder
 {
