@@ -102,7 +102,7 @@ static void FOG_FASTCALL convert_prgb32_from_argb32_sse2(uint8_t* dst, const uin
 
     dst += 4;
     src += 4;
-    if (--i) return;
+    if (--i == 0) return;
   }
 
   while (i >= 4)
@@ -154,7 +154,7 @@ static void FOG_FASTCALL convert_prgb32_from_argb32_bs_sse2(uint8_t* dst, const 
 
     dst += 4;
     src += 4;
-    if (--i) return;
+    if (--i == 0) return;
   }
 
   while (i >= 4)
@@ -208,7 +208,7 @@ static void FOG_FASTCALL convert_prgb32_bs_from_argb32_sse2(uint8_t* dst, const 
 
     dst += 4;
     src += 4;
-    if (--i) return;
+    if (--i == 0) return;
   }
 
   while (i >= 4)
@@ -258,7 +258,7 @@ static void FOG_FASTCALL convert_rgb32_from_rgb24_sse2(uint8_t* dst, const uint8
     ((uint32_t*)dst)[0] = PixFmt_RGB24::fetch(src) | 0xFF000000;
     dst += 4;
     src += 3;
-    if (--i) return;
+    if (--i == 0) return;
   }
 
   while (i >= 4)
@@ -292,7 +292,7 @@ static void FOG_FASTCALL convert_rgb32_from_bgr24_sse2(uint8_t* dst, const uint8
     ((uint32_t*)dst)[0] = PixFmt_BGR24::fetch(src) | 0xFF000000;
     dst += 4;
     src += 3;
-    if (--i) return;
+    if (--i == 0) return;
   }
 
   while (i >= 4)

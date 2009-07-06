@@ -1177,7 +1177,7 @@ err_t __G_STRING::appendDouble(double d, int doubleForm, const FormatFlags& ff, 
     i = precision + 16;
     if (decpt > 0) i += (sysuint_t)decpt;
 
-    if ( (err = grow(i)) ) return err;
+    if ( (err = reserve(length() + i)) ) return err;
     dest = xData() + length();
 
     while (bufCur != bufEnd && decpt > 0) { *dest++ = zero + (uint8_t)*bufCur++; decpt--; }
@@ -1208,7 +1208,7 @@ __exponentialForm:
     if (decpt == 9999) goto __InfOrNaN;
 
     // reserve some space for number, we need +X.{PRECISION}e+123
-    if ( (err = grow(precision + 10)) ) return err;
+    if ( (err = reserve(length() + precision + 10)) ) return err;
     dest = xData() + length();
 
     bufCur = out.result;
@@ -1268,7 +1268,7 @@ __exponentialForm:
     i = precision + 16;
     if (decpt > 0) i += (sysuint_t)decpt;
 
-    if ( (err = grow(i)) ) return err;
+    if ( (err = reserve(length() + i)) ) return err;
     dest = save = xData() + length();
 
     bufCur = out.result;

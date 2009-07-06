@@ -223,6 +223,7 @@ void MyWindow::onKey(KeyEvent* e)
 void MyWindow::onPaint(PaintEvent* e)
 {
   Painter* p = e->painter();
+/*
   double w = width(), h = height();
 
   Image im0 = makeImage();
@@ -245,6 +246,32 @@ void MyWindow::onPaint(PaintEvent* e)
   p->drawImage(Point(50, 50 + (im1.height() + 10) * 0), im1);
   p->drawImage(Point(50, 50 + (im1.height() + 10) * 1), im2);
   //p->drawImage(Point(50, 50 + (im1.height() + 10) * 2), im3);
+*/
+  Image src;
+  int i, w;
+
+  // [0] Source image.
+  src.readFile(Ascii8("C:/My/img/babelfish.pcx"));
+  src.convert(Image::FormatPRGB32); // should already be.
+  //src.convert(Image::FormatARGB32); // should already be.
+  w = src.width() + 5;
+
+  p->setSource(0xFF000000);
+  p->clear();
+
+  // [1] ColorMatrix filtering.
+  {
+    for (i = 0; i < 6; i++)
+    {
+      ColorMatrix cm;
+      cm.rotateHue(deg2rad(double(i) * 60));
+
+      Image tmp(src);
+      tmp.filter(cm);
+
+      p->drawImage(Point(50 + i*w, 50), tmp);
+    }
+  }
 }
 
 void MyWindow::bench()
