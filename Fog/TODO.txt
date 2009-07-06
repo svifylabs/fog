@@ -45,12 +45,6 @@ TODO
     [ ] Add ColorLUT
         [ ] By color lut the contrast, brightness, threshold and gamma function can be implemented.
     [ ] Scaling
-    [x] Inverting alpha channel on PRGB32 images not implemented yet
-    [w] Draw/Blend/Composite another image into image
-        [D] Here we can support more blending or raster based operations than in painter.
-        [ ] Here we should support scaling
-        [x] Also same image into image operations (guaranted)
-    [x] Implement scroll().
 
 [ ] Font
     [ ] Make caching work again
@@ -101,12 +95,9 @@ TODO
     [ ] Each effect should contain opacity value that will define blend factor of modified image
         into source image (this can be used by UI animations).
     [ ] Sharpen
-    [x] Gaussian Blur
     [ ] Convolve
 
 [ ] Optimizations
-    [ ] ColorMatrix specializations (in Raster)
-    [ ] ColorMatrix 3dNow code
-    [ ] ColorMatrix SSE2
+    [ ] Are usable 3dNow optimizations?
     [ ] Path SSE2 curve code
     [ ] Path SSE2 matrix transformations
