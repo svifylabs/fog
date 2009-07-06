@@ -315,11 +315,11 @@ struct FOG_API Image
   void setDibArgb32(int x, int y, sysint_t w, const void* src);
   void setDibArgb32_bs(int x, int y, sysint_t w, const void* src);
 
-  void getDibArgb32Premultiplied(int x, int y, sysint_t w, void* dst) const;
-  void getDibArgb32Premultiplied_bs(int x, int y, sysint_t w, void* dst) const;
+  void getDibPrgb32(int x, int y, sysint_t w, void* dst) const;
+  void getDibPrgb32_bs(int x, int y, sysint_t w, void* dst) const;
 
-  void setDibArgb32Premultiplied(int x, int y, sysint_t w, const void* src);
-  void setDibArgb32Premultiplied_bs(int x, int y, sysint_t w, const void* src);
+  void setDibPrgb32(int x, int y, sysint_t w, const void* src);
+  void setDibPrgb32_bs(int x, int y, sysint_t w, const void* src);
 
   void getDibRgb24(int x, int y, sysint_t w, void* dst) const;
   void getDibRgb24_bs(int x, int y, sysint_t w, void* dst) const;
@@ -353,11 +353,11 @@ struct FOG_API Image
   FOG_INLINE void setDibArgb32_le(int x, int y, sysint_t w, const void* src) { DIBFN_LE(setDibArgb32)(x, y, w, src); }
   FOG_INLINE void setDibArgb32_be(int x, int y, sysint_t w, const void* src) { DIBFN_BE(setDibArgb32)(x, y, w, src); }
 
-  FOG_INLINE void getDibArgb32Premultiplied_le(int x, int y, sysint_t w, void* dst) const { DIBFN_LE(getDibArgb32Premultiplied)(x, y, w, dst); }
-  FOG_INLINE void getDibArgb32Premultiplied_be(int x, int y, sysint_t w, void* dst) const { DIBFN_BE(getDibArgb32Premultiplied)(x, y, w, dst); }
+  FOG_INLINE void getDibPrgb32_le(int x, int y, sysint_t w, void* dst) const { DIBFN_LE(getDibPrgb32)(x, y, w, dst); }
+  FOG_INLINE void getDibPrgb32_be(int x, int y, sysint_t w, void* dst) const { DIBFN_BE(getDibPrgb32)(x, y, w, dst); }
 
-  FOG_INLINE void setDibArgb32Premultiplied_le(int x, int y, sysint_t w, const void* src) { DIBFN_LE(setDibArgb32Premultiplied)(x, y, w, src); }
-  FOG_INLINE void setDibArgb32Premultiplied_be(int x, int y, sysint_t w, const void* src) { DIBFN_BE(setDibArgb32Premultiplied)(x, y, w, src); }
+  FOG_INLINE void setDibPrgb32_le(int x, int y, sysint_t w, const void* src) { DIBFN_LE(setDibPrgb32)(x, y, w, src); }
+  FOG_INLINE void setDibPrgb32_be(int x, int y, sysint_t w, const void* src) { DIBFN_BE(setDibPrgb32)(x, y, w, src); }
 
   FOG_INLINE void getDibRgb24_le(int x, int y, sysint_t w, void* dst) const { DIBFN_LE(getDibRgb24)(x, y, w, dst); }
   FOG_INLINE void getDibRgb24_be(int x, int y, sysint_t w, void* dst) const { DIBFN_BE(getDibRgb24)(x, y, w, dst); }
@@ -406,6 +406,9 @@ struct FOG_API Image
 
   static err_t invert(Image& dest, const Image& src, uint32_t invertMode);
 
+  FOG_INLINE err_t invert(uint32_t invertMode)
+  { return invert(*this, *this, invertMode); }
+
   // [Mirror]
 
   //! @brief Invert modes used together with @c Image::mirror() and @c Image::mirrored() methods.
@@ -419,6 +422,9 @@ struct FOG_API Image
 
   static err_t mirror(Image& dest, const Image& src, uint32_t mirrorMode);
 
+  FOG_INLINE err_t mirror(uint32_t mirrorMode)
+  { return mirror(*this, *this, mirrorMode); }
+
   // [Rotate]
 
   //! @brief Invert modes used together with @c Image::rotate() and @c Image::rotated() methods.
@@ -431,6 +437,9 @@ struct FOG_API Image
   };
 
   static err_t rotate(Image& dest, const Image& src, uint32_t rotateMode);
+
+  FOG_INLINE err_t rotate(uint32_t rotateMode)
+  { return rotate(*this, *this, rotateMode); }
 
   // [Channel related]
 
@@ -452,23 +461,11 @@ struct FOG_API Image
   err_t filter(const ColorMatrix& mat);
   err_t filter(const ColorMatrix& mat, const Rect& r);
 
-  // [Inlines]
-
-  FOG_INLINE err_t invert(uint32_t invertMode)
-  { return invert(*this, *this, invertMode); }
-
-  FOG_INLINE err_t mirror(uint32_t mirrorMode)
-  { return mirror(*this, *this, mirrorMode); }
-
-  FOG_INLINE err_t rotate(uint32_t rotateMode)
-  { return rotate(*this, *this, rotateMode); }
-
-  // [Basic Painting]
+  // [Painting]
 
   err_t clear(uint32_t c0);
 
   err_t drawPixel(const Point& pt, uint32_t c0);
-
   err_t drawLine(const Point& pt0, const Point& pt1, uint32_t c0, bool lastPoint = true);
 
   err_t fillRect(const Rect& r, uint32_t c0, bool over = true);
@@ -476,6 +473,12 @@ struct FOG_API Image
   err_t fillQGradient(const Rect& r, Rgba c0, Rgba c1, Rgba c2, Rgba c3, bool over = true);
   err_t fillHGradient(const Rect& r, Rgba c0, Rgba c1, bool over = true);
   err_t fillVGradient(const Rect& r, Rgba c0, Rgba c1, bool over = true);
+
+  err_t drawImage(const Point& pt, const Image& src, uint32_t op = CompositeSrcOver, uint32_t opacity = 255);
+  err_t drawImage(const Point& pt, const Image& src, const Rect& srcRect, uint32_t op = CompositeSrcOver, uint32_t opacity = 255);
+
+  err_t scroll(int x, int y);
+  err_t scroll(int x, int y, const Rect& r);
 
   // [Misc]
 

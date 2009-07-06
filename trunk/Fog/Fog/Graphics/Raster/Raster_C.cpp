@@ -338,6 +338,7 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   m->filters.floatScanlineConvolve[Image::FormatRGB32] = floatScanlineConvolve_argb32;
   m->filters.floatScanlineConvolve[Image::FormatRGB24] = floatScanlineConvolve_rgb24;
   m->filters.floatScanlineConvolve[Image::FormatA8] = floatScanlineConvolve_a8;
+  m->filters.floatScanlineConvolve[Image::FormatI8] = floatScanlineConvolve_a8;
 
   // [Filters - BoxBlurConvolve]
 
@@ -345,9 +346,13 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   m->filters.boxBlurConvolve[Image::FormatRGB32] = boxBlurConvolve_argb32;
   m->filters.boxBlurConvolve[Image::FormatRGB24] = boxBlurConvolve_rgb24;
   m->filters.boxBlurConvolve[Image::FormatA8] = boxBlurConvolve_a8;
+  m->filters.boxBlurConvolve[Image::FormatI8] = boxBlurConvolve_a8;
 
   // [Filters - StackBlurConvolve]
 
   m->filters.stackBlurConvolve[Image::FormatARGB32] = stackBlurConvolve_argb32;
   m->filters.stackBlurConvolve[Image::FormatRGB32] = stackBlurConvolve_argb32;
+  m->filters.stackBlurConvolve[Image::FormatRGB24] = stackBlurConvolve_rgb24;
+  m->filters.stackBlurConvolve[Image::FormatA8] = stackBlurConvolve_a8;
+  m->filters.stackBlurConvolve[Image::FormatI8] = stackBlurConvolve_a8;
 }

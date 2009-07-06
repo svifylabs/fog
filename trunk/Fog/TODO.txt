@@ -45,16 +45,12 @@ TODO
     [ ] Add ColorLUT
         [ ] By color lut the contrast, brightness, threshold and gamma function can be implemented.
     [ ] Scaling
-    [ ] Inverting alpha channel on PRGB32 images not implemented yet
-    [ ] Image effects related
-        [ ] Sharpen
-        [ ] Gaussian Blur
-        [ ] Convolve
-    [ ] Draw/Blend/Composite another image  into image
-        [ ] Here we can support more blending or raster based operations than in painter.
+    [x] Inverting alpha channel on PRGB32 images not implemented yet
+    [w] Draw/Blend/Composite another image into image
+        [D] Here we can support more blending or raster based operations than in painter.
         [ ] Here we should support scaling
-        [ ] Also same image into image operations (guaranted)
-    [ ] Implement scroll().
+        [x] Also same image into image operations (guaranted)
+    [x] Implement scroll().
 
 [ ] Font
     [ ] Make caching work again
@@ -94,16 +90,23 @@ TODO
     [ ] Add addText(Font, String32) to path
     [ ] What about warp?
 
-[ ] Fresh ideas
+[ ] Image filtering
     [ ] Color effects (ColorMatrix, ColorLut, ...) should be grouped and result should be
         ColorEffect class that will be able to do any color based transformations. ColorEffect
         should be possible to set when blitting image by Fog::Painter.
+        - ColorFilter class
     [ ] Image effects (Blur, Sharpen, ...) should be grouped and result should be
         ImageEffect class that will be able to do any image based transformations.
+        - ImageFilter class.
     [ ] Each effect should contain opacity value that will define blend factor of modified image
         into source image (this can be used by UI animations).
+    [ ] Sharpen
+    [x] Gaussian Blur
+    [ ] Convolve
 
 [ ] Optimizations
     [ ] ColorMatrix specializations (in Raster)
+    [ ] ColorMatrix 3dNow code
+    [ ] ColorMatrix SSE2
     [ ] Path SSE2 curve code
     [ ] Path SSE2 matrix transformations

@@ -1254,9 +1254,8 @@ err_t Path::addPath(const Path& path)
 // [Fog::Path - Curves Approximation]
 // ============================================================================
 
-#define ADD_VERTEX(_cmd, _x, _y) { v->x = _x; v->y = _y; v->cmd = _cmd; v++; }
-
 #define APPROXIMATE_CURVE3_RECURSION_LIMIT 32
+#define ADD_VERTEX(_cmd, _x, _y) { v->x = _x; v->y = _y; v->cmd = _cmd; v++; }
 
 struct ApproximateCurve3Data
 {
@@ -1679,6 +1678,8 @@ ret:
   return Error::Ok;
 }
 
+#undef ADD_VERTEX
+
 // ============================================================================
 // [Fog::Path - Flatten]
 // ============================================================================
@@ -1834,10 +1835,10 @@ ensureSpace:
         err = approximateCurve4(dst,
           x2,
           y2,
-          (-x1 + 6*x2 + x3) / 6,
-          (-y1 + 6*y2 + y3) / 6,
-          ( x2 + 6*x3 - x4) / 6,
-          ( y2 + 6*y3 - y4) / 6,
+          (-x1 + 6.0 * x2 + x3) / 6.0,
+          (-y1 + 6.0 * y2 + y3) / 6.0,
+          ( x2 + 6.0 * x3 - x4) / 6.0,
+          ( y2 + 6.0 * y3 - y4) / 6.0,
           x3,
           y3,
           approximationScale);
@@ -2252,12 +2253,11 @@ void PathStroker::calcCap(
   }
   else
   {
-    double da = _da;
-    double a1;
     int i;
-    int n = int(M_PI / da);
+    int n = int(M_PI / _da);
+    double da = M_PI / (n + 1);
+    double a1;
 
-    da = M_PI / (n + 1);
     add_vertex(v0.x - dx1, v0.y + dy1);
 
     if (_widthSign > 0)
