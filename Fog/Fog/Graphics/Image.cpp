@@ -735,7 +735,7 @@ void Image::setDibArgb32_bs(int x, int y, sysint_t w, const void* src)
   image_setdib(this, x, y, w, src, converter);
 }
 
-void Image::getDibArgb32Premultiplied(int x, int y, sysint_t w, void* dst) const
+void Image::getDibPrgb32(int x, int y, sysint_t w, void* dst) const
 {
   void* converter = NULL;
   switch (format())
@@ -759,7 +759,7 @@ void Image::getDibArgb32Premultiplied(int x, int y, sysint_t w, void* dst) const
   image_getdib(this, x, y, w, dst, converter);
 }
 
-void Image::getDibArgb32Premultiplied_bs(int x, int y, sysint_t w, void* dst) const
+void Image::getDibPrgb32_bs(int x, int y, sysint_t w, void* dst) const
 {
   void* converter = NULL;
   switch (format())
@@ -783,7 +783,7 @@ void Image::getDibArgb32Premultiplied_bs(int x, int y, sysint_t w, void* dst) co
   image_getdib(this, x, y, w, dst, converter);
 }
 
-void Image::setDibArgb32Premultiplied(int x, int y, sysint_t w, const void* src)
+void Image::setDibPrgb32(int x, int y, sysint_t w, const void* src)
 {
   void* converter = NULL;
   switch (format())
@@ -804,7 +804,7 @@ void Image::setDibArgb32Premultiplied(int x, int y, sysint_t w, const void* src)
   image_setdib(this, x, y, w, src, converter);
 }
 
-void Image::setDibArgb32Premultiplied_bs(int x, int y, sysint_t w, const void* src)
+void Image::setDibPrgb32_bs(int x, int y, sysint_t w, const void* src)
 {
   void* converter = NULL;
   switch (format())
@@ -1248,6 +1248,7 @@ err_t Image::invert(Image& dst, const Image& src, uint32_t invertMode)
       // ... fall through ...
 
     case FormatARGB32:
+    case FormatPRGB32:
     case FormatRGB32:
     {
       uint32_t mask = 0;
@@ -1257,43 +1258,29 @@ err_t Image::invert(Image& dst, const Image& src, uint32_t invertMode)
       if (invertMode & InvertBlue ) mask |= Rgba::BlueMask;
       if (invertMode & InvertAlpha && format == FormatARGB32) mask |= Rgba::AlphaMask;
 
-      for (y = h; y; y--, dstPixels += dstStride, srcPixels += srcStride)
+      if (format == FormatPRGB32)
       {
-        dstCur = dstPixels;
-        srcCur = srcPixels;
-
-        for (x = w; x; x--, dstCur += 4, srcCur += 4)
+        for (y = h; y; y--, dstPixels += dstStride, srcPixels += srcStride)
         {
-          ((uint32_t*)dstCur)[0] = ((uint32_t *)srcCur)[0] ^ mask;
+          Raster::functionMap->convert.argb32_from_prgb32(dstPixels, srcPixels, w);
+
+          dstCur = dstPixels;
+          for (x = w; x; x--, dstCur += 4) ((uint32_t*)dstCur)[0] ^= mask;
+
+          Raster::functionMap->convert.prgb32_from_argb32(dstPixels, dstPixels, w);
         }
       }
-      break;
-    }
-
-    case FormatPRGB32:
-    {
-      // TODO: Implement inverting alpha channel on premultiplied images
-      uint32_t mask = 0;
-
-      if (invertMode & InvertRed  ) mask |= Rgba::RedMask;
-      if (invertMode & InvertGreen) mask |= Rgba::GreenMask;
-      if (invertMode & InvertBlue ) mask |= Rgba::BlueMask;
-
-      for (y = h; y; y--, dstPixels += dstStride, srcPixels += srcStride)
+      else
       {
-        dstCur = dstPixels;
-        srcCur = srcPixels;
-
-        for (x = w; x; x--, dstCur += 4, srcCur += 4)
+        for (y = h; y; y--, dstPixels += dstStride, srcPixels += srcStride)
         {
-          uint32_t pix0 = ((const uint32_t *)srcCur)[0];
-          uint32_t a0 = pix0 >> 24;
+          dstCur = dstPixels;
+          srcCur = srcPixels;
 
-          if (invertMode & InvertRed  ) pix0 = (pix0 & 0xFF00FFFF) | ((a0 << 16) - (pix0 & 0x00FF0000));
-          if (invertMode & InvertGreen) pix0 = (pix0 & 0xFFFF00FF) | ((a0 <<  8) - (pix0 & 0x0000FF00));
-          if (invertMode & InvertBlue ) pix0 = (pix0 & 0xFFFFFF00) | ((a0      ) - (pix0 & 0x000000FF));
-
-          ((uint32_t*)dstCur)[0] = pix0;
+          for (x = w; x; x--, dstCur += 4, srcCur += 4)
+          {
+            ((uint32_t*)dstCur)[0] = ((uint32_t *)srcCur)[0] ^ mask;
+          }
         }
       }
       break;
@@ -1903,7 +1890,7 @@ err_t Image::filter(const ColorMatrix& mat, const Rect& r)
 }
 
 // ============================================================================
-// [Fog::Image - Basic Painting]
+// [Fog::Image - Painting]
 // ============================================================================
 
 static Raster::SpanSolidFn getSpanSolidBlitter(int format, bool over)
@@ -2084,6 +2071,10 @@ err_t Image::fillRect(const Rect& r, uint32_t c0, bool over)
 
   return Error::Ok;
 }
+
+// ============================================================================
+// [Fog::Image - Painting - Gradients]
+// ============================================================================
 
 err_t Image::fillQGradient(const Rect& r, Rgba c0, Rgba c1, Rgba c2, Rgba c3, bool over)
 {
@@ -2289,6 +2280,268 @@ err_t Image::fillVGradient(const Rect& r, Rgba c0, Rgba c1, bool over)
   {
     blitter(dstCur, ((uint32_t*)shade0)[0], w);
   }
+  return Error::Ok;
+}
+
+// ============================================================================
+// [Fog::Image - Painting - Blit]
+// ============================================================================
+
+static err_t _blitImage(
+  Image::Data* dstD, int dstX, int dstY,
+  Image::Data* srcD, int srcX, int srcY,
+  int w, int h,
+  uint32_t op, uint32_t opacity)
+{
+  sysint_t dstStride = dstD->stride;
+  sysint_t srcStride = srcD->stride;
+
+  uint8_t* dstPixels = dstD->first;
+  const uint8_t* srcPixels = srcD->first;
+
+  // Special case if dst and src overlaps.
+  if (dstD == srcD && dstY >= srcY && (dstY - srcY) <= h)
+  {
+    dstPixels += (dstY + h - 1) * dstStride;
+    srcPixels += (srcY + h - 1) * srcStride;
+
+    dstStride = -dstStride;
+    srcStride = -srcStride;
+  }
+  else
+  {
+    dstPixels += dstY * dstStride;
+    srcPixels += srcY * srcStride;
+  }
+
+  dstPixels += dstX * dstD->bytesPerPixel;
+  srcPixels += srcX * srcD->bytesPerPixel;
+
+  int y;
+
+  // Support for overlapping images.
+  if (dstD == srcD && dstX >= srcX && (dstX - srcX) <= w)
+  {
+    MemoryBuffer<512> bufStorage;
+    sysint_t bufSize = w * srcD->bytesPerPixel;
+    uint8_t* buf = (uint8_t*)bufStorage.alloc(bufSize);
+    if (!buf) return Error::OutOfMemory;
+
+    Raster::ConvertPlainFn copy = Raster::functionMap->convert.memcpy8;
+
+    if (opacity >= 255)
+    {
+      Raster::SpanCompositeFn blit = 
+        Raster::getRasterOps(dstD->format, op)->span_composite[srcD->format];
+
+      for (y = h; y; y--, dstPixels += dstStride, srcPixels += srcStride)
+      {
+        copy(buf, srcPixels, bufSize);
+        blit(dstPixels, buf, w);
+      }
+    }
+    else
+    {
+      Raster::SpanCompositeMskConstFn blit = 
+        Raster::getRasterOps(dstD->format, op)->span_composite_a8_const[srcD->format];
+
+      for (y = h; y; y--, dstPixels += dstStride, srcPixels += srcStride)
+      {
+        copy(buf, srcPixels, bufSize);
+        blit(dstPixels, buf, opacity, w);
+      }
+    }
+  }
+  // Normal case.
+  else
+  {
+    if (srcD->format == Image::FormatI8)
+    {
+      const Rgba* palette = srcD->palette.cData();
+
+      if (opacity >= 255)
+      {
+        Raster::SpanCompositeIndexedFn blit = 
+          Raster::getRasterOps(dstD->format, op)->span_composite_indexed[srcD->format];
+
+        for (y = h; y; y--, dstPixels += dstStride, srcPixels += srcStride)
+        {
+          blit(dstPixels, srcPixels, w, palette);
+        }
+      }
+      else
+      {
+        Raster::SpanCompositeIndexedMskConstFn blit = 
+          Raster::getRasterOps(dstD->format, op)->span_composite_indexed_a8_const[srcD->format];
+
+        for (y = h; y; y--, dstPixels += dstStride, srcPixels += srcStride)
+        {
+          blit(dstPixels, srcPixels, opacity, w, palette);
+        }
+      }
+    }
+    else
+    {
+      if (opacity >= 255)
+      {
+        Raster::SpanCompositeFn blit = 
+          Raster::getRasterOps(dstD->format, op)->span_composite[srcD->format];
+
+        for (y = h; y; y--, dstPixels += dstStride, srcPixels += srcStride)
+        {
+          blit(dstPixels, srcPixels, w);
+        }
+      }
+      else
+      {
+        Raster::SpanCompositeMskConstFn blit = 
+          Raster::getRasterOps(dstD->format, op)->span_composite_a8_const[srcD->format];
+
+        for (y = h; y; y--, dstPixels += dstStride, srcPixels += srcStride)
+        {
+          blit(dstPixels, srcPixels, opacity, w);
+        }
+      }
+    }
+  }
+  return Error::Ok;
+}
+
+err_t Image::drawImage(const Point& pt, const Image& src, uint32_t op, uint32_t opacity)
+{
+  if (op >= CompositeCount) return Error::InvalidArgument;
+  if (opacity == 0) return Error::Ok;
+
+  Data* dst_d = _d;
+  Data* src_d = src._d;
+
+  int w = dst_d->width;
+  int h = dst_d->height;
+
+  int x1 = pt.x();
+  int y1 = pt.y();
+  int x2 = x1 + src_d->width;
+  int y2 = y1 + src_d->height;
+
+  if (x1 < 0) x1 = 0;
+  if (y1 < 0) y1 = 0;
+  if (x2 > w) x2 = w;
+  if (y2 > h) y2 = h;
+
+  if (x1 >= x2 || y1 >= y2) return Error::Ok;
+
+  err_t err = detach();
+  if (err) return err;
+
+  return _blitImage(_d, x1, y1, src_d, x1 - pt.x(), y1 - pt.y(), x2 - x1, y2 - y1, op, opacity);
+}
+
+err_t Image::drawImage(const Point& pt, const Image& src, const Rect& srcRect, uint32_t op, uint32_t opacity)
+{
+  if (op >= CompositeCount) return Error::InvalidArgument;
+  if (!srcRect.isValid()) return Error::Ok;
+  if (opacity == 0) return Error::Ok;
+
+  Data* dst_d = _d;
+  Data* src_d = src._d;
+
+  int srcX1 = srcRect.x1();
+  int srcY1 = srcRect.y1();
+  int srcX2 = srcRect.x2();
+  int srcY2 = srcRect.y2();
+
+  if (srcX1 < 0) srcX1 = 0;
+  if (srcY1 < 0) srcY1 = 0;
+  if (srcX2 > src_d->width) srcX1 = src_d->width;
+  if (srcY2 > src_d->height) srcY2 = src_d->height;
+
+  if (srcX1 >= srcX2 || srcY1 >= srcY2) return Error::Ok;
+
+  int dstX1 = pt.x() + (srcX1 - srcRect.x1());
+  int dstY1 = pt.y() + (srcY1 - srcRect.y1());
+  int dstX2 = dstX1 + (srcX2 - srcX1);
+  int dstY2 = dstY1 + (srcY2 - srcY1);
+
+  if (dstX1 < 0) { srcX1 -= dstX1; dstX1 = 0; }
+  if (dstY1 < 0) { srcY1 -= dstY1; dstY1 = 0; }
+  if (dstX2 > dst_d->width) dstX2 = dst_d->width;
+  if (dstY2 > dst_d->height) dstY2 = dst_d->height;
+
+  if (dstX1 >= dstX2 || dstY1 >= dstY2) return Error::Ok;
+
+  err_t err = detach();
+  if (err) return err;
+
+  return _blitImage(_d, dstX1, dstY1, src_d, srcX1, srcY1, dstX2 - dstX1, dstY2 - dstY1, op, opacity);
+}
+
+// ============================================================================
+// [Fog::Image - Painting - Scroll]
+// ============================================================================
+
+err_t Image::scroll(int scrollX, int scrollY)
+{
+  return scroll(scrollX, scrollY, Rect(0, 0, width(), height()));
+}
+
+err_t Image::scroll(int scrollX, int scrollY, const Rect& r)
+{
+  if (scrollX == 0 && scrollY == 0) return Error::Ok;
+
+  Data* d = _d;
+
+  int x1 = r.x1();
+  int y1 = r.y1();
+  int x2 = r.x2();
+  int y2 = r.y2();
+
+  if (x1 < 0) x1 = 0;
+  if (y1 < 0) y1 = 0;
+  if (x2 > d->width) x1 = d->width;
+  if (y2 > d->height) y2 = d->height;
+
+  if (x1 >= x2 || y1 >= y2) return Error::Ok;
+
+  int absX = abs(scrollX);
+  int absY = abs(scrollY);
+
+  int scrollW = x2 - x1;
+  int scrollH = y2 - y1;
+
+  int srcX, srcY;
+  int dstX, dstY;
+
+  if (absX >= scrollW || absY >= scrollH) return Error::Ok;
+
+  err_t err = detach();
+  if (err) return err;
+
+  if (scrollX < 0) { srcX = absX; dstX = 0; } else { srcX = 0; dstX = absX; }
+  if (scrollY < 0) { srcY = absY; dstY = 0; } else { srcY = 0; dstY = absY; }
+
+  scrollW -= absX;
+  scrollH -= absY;
+
+  sysint_t stride = d->stride;
+  sysint_t size = scrollW * d->bytesPerPixel;
+
+  uint8_t* dstPixels = d->first + dstX * d->bytesPerPixel;
+  uint8_t* srcPixels = d->first + srcX * d->bytesPerPixel;
+
+  dstPixels += dstY * stride;
+  srcPixels += srcY * stride;
+
+  if (scrollY > 0)
+  {
+    dstPixels += (scrollH - 1) * stride;
+    srcPixels += (scrollH - 1) * stride;
+
+    stride = -stride;
+  }
+
+  for (int y = scrollH; y; y--, dstPixels += stride, srcPixels += stride)
+    memmove(dstPixels, srcPixels, size);
+
   return Error::Ok;
 }
 

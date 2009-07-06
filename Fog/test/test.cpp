@@ -171,11 +171,12 @@ MyWindow::~MyWindow()
 
 static Image makeImage()
 {
-  Image im(600, 120, Image::FormatRGB32);
+  Image im(600, 120, Image::FormatARGB32);
+  im.clear(0x00000000);
   Painter p(im);
 
-  p.setSource(0xFFFFFFFF);
-  p.clear();
+  //p.setSource(0xFFFFFFFF);
+  //p.clear();
 
   Font font;
   font.setFamily(Ascii8("Courier New"));
@@ -195,6 +196,7 @@ static Image makeImage()
   p.drawText(Rect(0, 0, p.width(), p.height()), Ascii8("Fog Library"), font, TextAlignCenter);
 
   p.end();
+  im.scroll(25, 25);
   return im;
 }
 
@@ -240,8 +242,8 @@ void MyWindow::onPaint(PaintEvent* e)
   p->setSource(0xFFFFFFFF);
   p->clear();
 
-  //p->drawImage(Point(50, 50 + (im1.height() + 10) * 0), im1);
-  //p->drawImage(Point(50, 50 + (im1.height() + 10) * 1), im2);
+  p->drawImage(Point(50, 50 + (im1.height() + 10) * 0), im1);
+  p->drawImage(Point(50, 50 + (im1.height() + 10) * 1), im2);
   //p->drawImage(Point(50, 50 + (im1.height() + 10) * 2), im3);
 }
 

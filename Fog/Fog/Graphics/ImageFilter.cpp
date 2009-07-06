@@ -367,13 +367,6 @@ err_t BlurImageFilter::filterPrivate(
         width, height, hKernel, hKernelSize, hKernelDiv, _borderMode, _borderColor);
       convolve(dst, dstStride, buf, bufStride,
         height, width, vKernel, vKernelSize, vKernelDiv, _borderMode, _borderColor);
-/*
-      err = convolveSymmetricFloat(
-        dst, dstStride, src, srcStride,
-        width, height, format,
-        hKernel, hKernelSize, hKernelDiv,
-        vKernel, vKernelSize, vKernelDiv,
-        _borderMode, _borderColor);*/
       break;
     }
   }
