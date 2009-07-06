@@ -9,6 +9,7 @@
 
 // [Dependencies]
 #include <Fog/Build/Build.h>
+#include <Fog/Graphics/ColorLut.h>
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Geometry.h>
 #include <Fog/Graphics/Image.h>
@@ -17,6 +18,7 @@
 namespace Fog {
 
 // Used in function map prototypes.
+struct ColorMatrix;
 struct Pattern;
 
 namespace Raster {
@@ -176,7 +178,18 @@ struct PatternContext
   };
 };
 
-// Filters
+// Color Filters
+typedef void (FOG_FASTCALL *ColorLutFn)(
+  uint8_t* dst, const uint8_t* src,
+  const ColorLut::Table* lut,
+  sysint_t width);
+
+typedef void (FOG_FASTCALL *ColorMatrixFn)(
+  uint8_t* dst, const uint8_t* src,
+  const ColorMatrix* cm, uint32_t type,
+  sysint_t width);
+
+// Image Filters
 typedef void (FOG_FASTCALL *TransposeFn)(
   uint8_t* dst, sysint_t dstStride,
   const uint8_t* src, sysint_t srcStride,
@@ -388,15 +401,12 @@ struct FunctionMap
 
     // [Span Composite]
   
-    // NOTE 1: There are two versions of funtions, but you can call only one
+    // NOTE: There are two versions of funtions, but you can call only one
     // of them. The indexed version is only for Image::FormatI8. Painter and
     // Fog library knows about this. The indexed version is only used when
     // blitting or tiling image to destination, all transformations
     // and other operations uses 24 bit or 32 bit formats, because it's needed
     // for antialiasing.
-    //
-    // NOTE 2: It's hell to implement them all, but when this will be done the
-    // performance will be great!
 
     union {
       SpanCompositeFn span_composite[Image::FormatCount];
@@ -423,6 +433,13 @@ struct FunctionMap
 
   struct FiltersFuncs
   {
+    // [Color Filters]
+
+    ColorLutFn colorLut[Image::FormatCount];
+    ColorMatrixFn colorMatrix[Image::FormatCount];
+
+    // [Image Filters]
+
     TransposeFn transpose[Image::FormatCount];
     IntegerScanlineConvolveFn integerScanlineConvolve[Image::FormatCount];
     FloatScanlineConvolveFn floatScanlineConvolve[Image::FormatCount];

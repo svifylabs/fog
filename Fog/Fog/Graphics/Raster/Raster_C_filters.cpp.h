@@ -59,7 +59,132 @@ static FOG_INLINE int getReciprocal(int val)
 }
 
 // ============================================================================
-// [Fog::Raster_C::transpose]
+// [Fog::Raster_C - ColorLut]
+// ============================================================================
+
+static void FOG_FASTCALL colorLut_prgb32(
+  uint8_t* dst, const uint8_t* src, const ColorLut::Table* lut, sysint_t width)
+{
+  functionMap->convert.argb32_from_prgb32(dst, src, width);
+  functionMap->filters.colorLut[Image::FormatARGB32](dst, dst, lut, width);
+  functionMap->convert.prgb32_from_argb32(dst, dst, width);
+}
+
+static void FOG_FASTCALL colorLut_argb32(
+  uint8_t* dst, const uint8_t* src, const ColorLut::Table* lut, sysint_t width)
+{
+  const uint8_t* rLut = lut->r;
+  const uint8_t* gLut = lut->g;
+  const uint8_t* bLut = lut->b;
+  const uint8_t* aLut = lut->a;
+
+  for (sysint_t i = width; i; i--, dst += 4, src += 4)
+  {
+    dst[RGB32_RByte] = rLut[src[RGB32_RByte]];
+    dst[RGB32_GByte] = gLut[src[RGB32_GByte]];
+    dst[RGB32_BByte] = bLut[src[RGB32_BByte]];
+    dst[RGB32_AByte] = aLut[src[RGB32_AByte]];
+  }
+}
+
+static void FOG_FASTCALL colorLut_rgb32(
+  uint8_t* dst, const uint8_t* src, const ColorLut::Table* lut, sysint_t width)
+{
+  const uint8_t* rLut = lut->r;
+  const uint8_t* gLut = lut->g;
+  const uint8_t* bLut = lut->b;
+
+  for (sysint_t i = width; i; i--, dst += 4, src += 4)
+  {
+    dst[RGB32_RByte] = rLut[src[RGB32_RByte]];
+    dst[RGB32_GByte] = gLut[src[RGB32_GByte]];
+    dst[RGB32_BByte] = bLut[src[RGB32_BByte]];
+    dst[RGB32_AByte] = src[RGB32_AByte];
+  }
+}
+
+static void FOG_FASTCALL colorLut_rgb24(
+  uint8_t* dst, const uint8_t* src, const ColorLut::Table* lut, sysint_t width)
+{
+  const uint8_t* rLut = lut->r;
+  const uint8_t* gLut = lut->g;
+  const uint8_t* bLut = lut->b;
+
+  for (sysint_t i = width; i; i--, dst += 3, src += 3)
+  {
+    dst[RGB24_RByte] = rLut[src[RGB24_RByte]];
+    dst[RGB24_GByte] = gLut[src[RGB24_GByte]];
+    dst[RGB24_BByte] = bLut[src[RGB24_BByte]];
+  }
+}
+
+static void FOG_FASTCALL colorLut_a8(
+  uint8_t* dst, const uint8_t* src, const ColorLut::Table* lut, sysint_t width)
+{
+  const uint8_t* aLut = lut->a;
+  for (sysint_t i = width; i; i--, dst += 1, src += 1) dst[0] = aLut[src[0]];
+}
+
+// ============================================================================
+// [Fog::Raster_C - ColorMatrix]
+// ============================================================================
+
+static void FOG_FASTCALL colorMatrix_prgb32(
+  uint8_t* dst, const uint8_t* src,
+  const ColorMatrix* cm, uint32_t type, sysint_t width)
+{
+  functionMap->convert.argb32_from_prgb32(dst, src, width);
+  functionMap->filters.colorMatrix[Image::FormatARGB32](dst, dst, cm, type, width);
+  functionMap->convert.prgb32_from_argb32(dst, dst, width);
+}
+
+static void FOG_FASTCALL colorMatrix_argb32(
+  uint8_t* dst, const uint8_t* src,
+  const ColorMatrix* cm, uint32_t type, sysint_t width)
+{
+  for (sysint_t i = width; i; i--, dst += 4, src += 4)
+  {
+    ((uint32_t*)dst)[0] = ((const uint32_t*)src)[0];
+    cm->transformRgba((Rgba*)dst);
+  }
+}
+
+static void FOG_FASTCALL colorMatrix_rgb32(
+  uint8_t* dst, const uint8_t* src,
+  const ColorMatrix* cm, uint32_t type, sysint_t width)
+{
+  for (sysint_t i = width; i; i--, dst += 4, src += 4)
+  {
+    ((uint32_t*)dst)[0] = ((const uint32_t*)src)[0];
+    cm->transformRgb((Rgba*)dst);
+  }
+}
+
+static void FOG_FASTCALL colorMatrix_rgb24(
+  uint8_t* dst, const uint8_t* src,
+  const ColorMatrix* cm, uint32_t type, sysint_t width)
+{
+  for (sysint_t i = width; i; i--, dst += 3, src += 3)
+  {
+    Rgba c = PixFmt_RGB24::fetch(src);
+    cm->transformRgb(&c);
+    PixFmt_RGB24::store(dst, c);
+  }
+}
+
+static void FOG_FASTCALL colorMatrix_a8(
+  uint8_t* dst, const uint8_t* src,
+  const ColorMatrix* cm, uint32_t type, sysint_t width)
+{
+  for (sysint_t i = width; i; i--, dst += 1, src += 1)
+  {
+    dst[0] = src[0];
+    cm->transformAlpha(dst);
+  }
+}
+
+// ============================================================================
+// [Fog::Raster_C - Transpose]
 // ============================================================================
 
 static void FOG_FASTCALL transpose_32(
@@ -147,7 +272,7 @@ static void FOG_FASTCALL transpose_8(
 }
 
 // ============================================================================
-// [Fog::Raster_C::floatScanlineConvolve]
+// [Fog::Raster_C - FloatScanlineConvolve]
 // ============================================================================
 
 static void FOG_FASTCALL floatScanlineConvolve_argb32(
@@ -583,7 +708,7 @@ again:
 }
 
 // ============================================================================
-// [Fog::Raster_C::boxBlur]
+// [Fog::Raster_C - BoxBlur]
 // ============================================================================
 
 static void FOG_FASTCALL boxBlurConvolve_argb32(
@@ -1076,7 +1201,7 @@ again:
 }
 
 // ============================================================================
-// [Fog::Raster_C::stackBlur]
+// [Fog::Raster_C - StackBlur]
 // ============================================================================
 
 static const uint16_t stack_blur8_mul[255] = 

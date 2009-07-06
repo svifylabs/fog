@@ -40,6 +40,16 @@ struct Rgba64;
 //! instead.
 struct FOG_API ColorLut
 {
+  // [Table]
+
+  struct Table
+  {
+    uint8_t r[256];
+    uint8_t g[256];
+    uint8_t b[256];
+    uint8_t a[256];
+  };
+
   // [Data]
 
   struct FOG_API Data
@@ -60,10 +70,7 @@ struct FOG_API ColorLut
     uint32_t type;
     uint32_t flags;
 
-    uint8_t rTable[256];
-    uint8_t gTable[256];
-    uint8_t bTable[256];
-    uint8_t aTable[256];
+    Table table;
   };
 
   static Static<Data> sharedNull;
@@ -106,20 +113,20 @@ struct FOG_API ColorLut
 
   // [Lut Tables]
 
-  FOG_INLINE const uint8_t* cRedTable  () const { return _d->rTable; }
-  FOG_INLINE const uint8_t* cGreenTable() const { return _d->gTable; }
-  FOG_INLINE const uint8_t* cBlueTable () const { return _d->bTable; }
-  FOG_INLINE const uint8_t* cAlphaTable() const { return _d->aTable; }
+  FOG_INLINE const uint8_t* cRedTable  () const { return _d->table.r; }
+  FOG_INLINE const uint8_t* cGreenTable() const { return _d->table.g; }
+  FOG_INLINE const uint8_t* cBlueTable () const { return _d->table.b; }
+  FOG_INLINE const uint8_t* cAlphaTable() const { return _d->table.a; }
 
-  FOG_INLINE uint8_t* mRedTable  () { return detach() == Error::Ok ? _d->rTable : NULL; }
-  FOG_INLINE uint8_t* mGreenTable() { return detach() == Error::Ok ? _d->gTable : NULL; }
-  FOG_INLINE uint8_t* mBlueTable () { return detach() == Error::Ok ? _d->bTable : NULL; }
-  FOG_INLINE uint8_t* mAlphaTable() { return detach() == Error::Ok ? _d->aTable : NULL; }
+  FOG_INLINE uint8_t* mRedTable  () { return detach() == Error::Ok ? _d->table.r : NULL; }
+  FOG_INLINE uint8_t* mGreenTable() { return detach() == Error::Ok ? _d->table.g : NULL; }
+  FOG_INLINE uint8_t* mBlueTable () { return detach() == Error::Ok ? _d->table.b : NULL; }
+  FOG_INLINE uint8_t* mAlphaTable() { return detach() == Error::Ok ? _d->table.a : NULL; }
 
-  FOG_INLINE uint8_t* xRedTable  () { FOG_ASSERT_X(isDetached(), "Fog::ColorLut::xRedTable() - Not detached data."  ); return _d->rTable; }
-  FOG_INLINE uint8_t* xGreenTable() { FOG_ASSERT_X(isDetached(), "Fog::ColorLut::xGreenTable() - Not detached data."); return _d->gTable; }
-  FOG_INLINE uint8_t* xBlueTable () { FOG_ASSERT_X(isDetached(), "Fog::ColorLut::xBlueTable() - Not detached data." ); return _d->bTable; }
-  FOG_INLINE uint8_t* xAlphaTable() { FOG_ASSERT_X(isDetached(), "Fog::ColorLut::xAlphaTable() - Not detached data."); return _d->aTable; }
+  FOG_INLINE uint8_t* xRedTable  () { FOG_ASSERT_X(isDetached(), "Fog::ColorLut::xRedTable() - Not detached data."  ); return _d->table.r; }
+  FOG_INLINE uint8_t* xGreenTable() { FOG_ASSERT_X(isDetached(), "Fog::ColorLut::xGreenTable() - Not detached data."); return _d->table.g; }
+  FOG_INLINE uint8_t* xBlueTable () { FOG_ASSERT_X(isDetached(), "Fog::ColorLut::xBlueTable() - Not detached data." ); return _d->table.b; }
+  FOG_INLINE uint8_t* xAlphaTable() { FOG_ASSERT_X(isDetached(), "Fog::ColorLut::xAlphaTable() - Not detached data."); return _d->table.a; }
 
   // [Brightness / Contrast]
 

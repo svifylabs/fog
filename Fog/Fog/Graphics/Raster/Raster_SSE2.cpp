@@ -10,6 +10,8 @@
 
 // [Dependencies]
 #include <Fog/Core/Intrin_SSE2.h>
+#include <Fog/Graphics/ColorLut.h>
+#include <Fog/Graphics/ColorMatrix.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/Raster.h>
 #include <Fog/Graphics/Raster/Raster_C.h>
@@ -232,4 +234,11 @@ FOG_INIT_DECLARE void fog_raster_init_sse2(void)
   m->raster_rgb32.span_composite_a8_const[Image::FormatPRGB32] = raster_rgb32_span_composite_prgb32_a8_const_sse2;
   m->raster_rgb32.span_composite_a8_const[Image::FormatRGB32] = raster_rgb32_span_composite_rgb32_a8_const_sse2;
   m->raster_rgb32.span_composite_a8_const[Image::FormatRGB24] = raster_rgb32_span_composite_rgb24_a8_const_sse2;
+
+  // [Filters - ColorMatrix]
+
+  m->filters.colorMatrix[Image::FormatARGB32] = colorMatrix_argb32_sse2;
+  m->filters.colorMatrix[Image::FormatRGB32] = colorMatrix_rgb32_sse2;
+  m->filters.colorMatrix[Image::FormatRGB24] = colorMatrix_rgb24_sse2;
+  m->filters.colorMatrix[Image::FormatA8] = colorMatrix_a8_sse2;
 }

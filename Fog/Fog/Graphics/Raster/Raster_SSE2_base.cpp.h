@@ -225,6 +225,21 @@ static FOG_INLINE uint32_t pix_pack_alpha_to_uint32(__m128i& src)
   return _mm_cvtsi128_si32(dst);
 }
 
+static FOG_INLINE void pix_unpack_to_float(__m128& dst0, __m128i pix0)
+{
+  __m128i xmmz = _mm_setzero_si128();
+  pix0 = _mm_unpacklo_epi8(pix0, xmmz);
+  pix0 = _mm_unpacklo_epi16(pix0, xmmz);
+  dst0 = _mm_cvtepi32_ps(pix0);
+}
+
+static FOG_INLINE void pix_pack_from_float(__m128i& dst0, __m128 pix0)
+{
+  dst0 = _mm_cvtps_epi32(pix0);
+  dst0 = _mm_packs_epi32(dst0, dst0);
+  dst0 = _mm_packus_epi16(dst0, dst0);
+}
+
 static FOG_INLINE void pix_negate_1x1W(
   __m128i& dst0, const __m128i& src0)
 {
