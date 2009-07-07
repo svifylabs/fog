@@ -196,7 +196,6 @@ static Image makeImage()
   p.drawText(Rect(0, 0, p.width(), p.height()), Ascii8("Fog Library"), font, TextAlignCenter);
 
   p.end();
-  im.scroll(25, 25);
   return im;
 }
 
@@ -223,7 +222,7 @@ void MyWindow::onKey(KeyEvent* e)
 void MyWindow::onPaint(PaintEvent* e)
 {
   Painter* p = e->painter();
-/*
+
   double w = width(), h = height();
 
   Image im0 = makeImage();
@@ -246,7 +245,8 @@ void MyWindow::onPaint(PaintEvent* e)
   p->drawImage(Point(50, 50 + (im1.height() + 10) * 0), im1);
   p->drawImage(Point(50, 50 + (im1.height() + 10) * 1), im2);
   //p->drawImage(Point(50, 50 + (im1.height() + 10) * 2), im3);
-*/
+
+/*
   Image src;
   int i, w;
 
@@ -264,7 +264,7 @@ void MyWindow::onPaint(PaintEvent* e)
     for (i = 0; i < 6; i++)
     {
       ColorMatrix cm;
-      cm.rotateHue(deg2rad(double(i) * 60));
+      cm.rotateHue(Math::deg2rad(double(i) * 60));
 
       Image tmp(src);
       tmp.filter(cm);
@@ -272,6 +272,7 @@ void MyWindow::onPaint(PaintEvent* e)
       p->drawImage(Point(50 + i*w, 50), tmp);
     }
   }
+*/
 }
 
 void MyWindow::bench()
