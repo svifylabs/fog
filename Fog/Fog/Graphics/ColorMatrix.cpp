@@ -363,7 +363,7 @@ ColorMatrix& ColorMatrix::rotateHue(double phi)
 bool ColorMatrix::eq(const ColorMatrix& other, double epsilon) const
 {
   for (sysuint_t i = 0; i < 25; i++)
-    if (!isEqualEps(arr[i], other.arr[i], epsilon)) return false;
+    if (!Math::feq(arr[i], other.arr[i], epsilon)) return false;
 
   return true;
 }
@@ -452,7 +452,7 @@ FOG_INIT_DECLARE err_t fog_colormatrix_init(void)
   // gave better results than 39.182655, I wonder where the higher
   // value came from...  If you want to use 39.182655, simply
   // change the value of greenRotation below.
-  const double greenRotation(Fog::deg2rad(35.26439));
+  const double greenRotation(Fog::Math::deg2rad(35.26439));
 
   // Rotating the hue requires several matrix multiplications.  To
   // speed things up a bit, use two static matrices (pre and post
@@ -460,7 +460,7 @@ FOG_INIT_DECLARE err_t fog_colormatrix_init(void)
 
   // Prepare the preHue matrix
   // Rotate the gray vector in the red plane:
-  Fog::ColorMatrix::PreHue.rotateRed(Fog::deg2rad(45.0));
+  Fog::ColorMatrix::PreHue.rotateRed(Fog::Math::deg2rad(45.0));
 
   // Rotate again in the green plane so it coinsides with the
   // blue axis:
@@ -484,7 +484,7 @@ FOG_INIT_DECLARE err_t fog_colormatrix_init(void)
   // preHue matrix
   Fog::ColorMatrix::PostHue.shearBlue(-shearRed, -shearGreen);
   Fog::ColorMatrix::PostHue.rotateGreen(greenRotation);
-  Fog::ColorMatrix::PostHue.rotateRed(Fog::deg2rad(-45.0));
+  Fog::ColorMatrix::PostHue.rotateRed(Fog::Math::deg2rad(-45.0));
 
   return Error::Ok;
 }

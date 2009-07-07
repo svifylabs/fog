@@ -268,12 +268,12 @@ AffineMatrix& AffineMatrix::reset()
 
 bool AffineMatrix::isIdentity(double epsilon) const
 {
-  return isEqualEps(sx,  1.0, epsilon) &&
-         isEqualEps(shy, 0.0, epsilon) &&
-         isEqualEps(shx, 0.0, epsilon) && 
-         isEqualEps(sy,  1.0, epsilon) &&
-         isEqualEps(tx,  0.0, epsilon) &&
-         isEqualEps(ty,  0.0, epsilon);
+  return Math::feq(sx,  1.0, epsilon) &&
+         Math::feq(shy, 0.0, epsilon) &&
+         Math::feq(shx, 0.0, epsilon) && 
+         Math::feq(sy,  1.0, epsilon) &&
+         Math::feq(tx,  0.0, epsilon) &&
+         Math::feq(ty,  0.0, epsilon);
 }
 
 void AffineMatrix::transform(double* x, double* y) const
@@ -318,12 +318,12 @@ bool AffineMatrix::isValid(double epsilon) const
 
 bool AffineMatrix::isEqual(const AffineMatrix& m, double epsilon) const
 {
-  return isEqualEps(sx,  m.sx,  epsilon) &&
-         isEqualEps(shy, m.shy, epsilon) &&
-         isEqualEps(shx, m.shx, epsilon) && 
-         isEqualEps(sy,  m.sy,  epsilon) &&
-         isEqualEps(tx,  m.tx,  epsilon) &&
-         isEqualEps(ty,  m.ty,  epsilon);
+  return Math::feq(sx,  m.sx,  epsilon) &&
+         Math::feq(shy, m.shy, epsilon) &&
+         Math::feq(shx, m.shx, epsilon) && 
+         Math::feq(sy,  m.sy,  epsilon) &&
+         Math::feq(tx,  m.tx,  epsilon) &&
+         Math::feq(ty,  m.ty,  epsilon);
 }
 
 double AffineMatrix::rotation() const
