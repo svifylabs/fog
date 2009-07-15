@@ -183,14 +183,14 @@ static Image makeImage()
   font.setSize(80);
   font.setBold(true);
 
-  p.setSource(0xFF000000);
-  p.drawRect(Rect(0, 0, p.width(), p.height()));
+  //p.setSource(0xFF000000);
+  //p.drawRect(Rect(0, 0, p.width(), p.height()));
 
-  p.setSource(0xFF0000FF);
-  p.drawText(Rect( 1, 1, p.width(), p.height()), Ascii8("Fog Library"), font, TextAlignCenter);
-  p.drawText(Rect(-1, 1, p.width(), p.height()), Ascii8("Fog Library"), font, TextAlignCenter);
-  p.drawText(Rect( 1,-1, p.width(), p.height()), Ascii8("Fog Library"), font, TextAlignCenter);
-  p.drawText(Rect(-1,-1, p.width(), p.height()), Ascii8("Fog Library"), font, TextAlignCenter);
+  //p.setSource(0xFF0000FF);
+  //p.drawText(Rect( 1, 1, p.width(), p.height()), Ascii8("Fog Library"), font, TextAlignCenter);
+  //p.drawText(Rect(-1, 1, p.width(), p.height()), Ascii8("Fog Library"), font, TextAlignCenter);
+  //p.drawText(Rect( 1,-1, p.width(), p.height()), Ascii8("Fog Library"), font, TextAlignCenter);
+  //p.drawText(Rect(-1,-1, p.width(), p.height()), Ascii8("Fog Library"), font, TextAlignCenter);
 
   p.setSource(0xFF000000);
   p.drawText(Rect(0, 0, p.width(), p.height()), Ascii8("Fog Library"), font, TextAlignCenter);
@@ -230,8 +230,17 @@ void MyWindow::onPaint(PaintEvent* e)
   Image im2;
   Image im3;
 
-  BlurImageFilter(BlurImageFilter::BoxBlurType, r, r).filterImage(im1, im0);
-  BlurImageFilter(BlurImageFilter::StackBlurType, r, r).filterImage(im2, im0);
+  im0.readFile(Ascii8("C:/My/img/babelfish.pcx"));
+  im0.convert(Image::FormatARGB32);
+
+  //im0.convert(Image::FormatRGB24);
+  BlurImageFilter(BlurImageFilter::BlurTypeBox, r, r, ImageFilter::BorderModeColor, 0x00000000).filterImage(im1, im0);
+  BlurImageFilter(BlurImageFilter::BlurTypeStack, r, r, ImageFilter::BorderModeColor, 0x00000000).filterImage(im2, im0);
+
+  im3 = im0;
+  ColorMatrix cm;
+  cm.rotateHue(Math::deg2rad(r * 5.0));
+  im3.filter(cm);
 
   //float kernel[] = { -3.0, -1.5, -1.0, -2.0, 1.0, -2.0, -1.0, -1.5, -3.0 };
   //int size = 9;
@@ -242,9 +251,14 @@ void MyWindow::onPaint(PaintEvent* e)
   p->setSource(0xFFFFFFFF);
   p->clear();
 
+  //im0.convert(Image::FormatARGB32);
+  //im1.convert(Image::FormatARGB32);
+  //im2.convert(Image::FormatARGB32);
+  //im3.convert(Image::FormatARGB32);
+
   p->drawImage(Point(50, 50 + (im1.height() + 10) * 0), im1);
   p->drawImage(Point(50, 50 + (im1.height() + 10) * 1), im2);
-  //p->drawImage(Point(50, 50 + (im1.height() + 10) * 2), im3);
+  p->drawImage(Point(50, 50 + (im1.height() + 10) * 2), im3);
 
 /*
   Image src;
@@ -273,40 +287,43 @@ void MyWindow::onPaint(PaintEvent* e)
     }
   }
 */
+  String32 a;
+  a.setDouble(r);
+  p->setSource(0xFF000000);
+  p->drawText(Rect(0, 0, 200, 20), a, font(), TextAlignCenter);
 }
 
 void MyWindow::bench()
 {
-  /*
   TimeTicks td;
 
   Image src = makeImage();
   Image dst;
-  int i, count = 1;
+  int i, count = 1000;
 
   fog_debug("Benchmarking, radius: %g", r);
 
   td = TimeTicks::highResNow();
   for (i = 0; i < count; i++)
   {
-    ImageFx::boxBlur(dst, src, r, r, ImageFx::EdgeModeAuto, 0xFF000000);
+    BlurImageFilter(ImageFilter::BlurTypeBox, r, r, ImageFilter::BorderModeExtend, 0xFF000000).filterImage(dst, src);
   }
   fog_debug("Box blur: %f", (TimeTicks::highResNow() - td).inMillisecondsF());
 
   td = TimeTicks::highResNow();
   for (i = 0; i < count; i++)
   {
-    ImageFx::stackBlur(dst, src, r, r, ImageFx::EdgeModeAuto, 0xFF000000);
+    BlurImageFilter(ImageFilter::BlurTypeStack, r, r, ImageFilter::BorderModeExtend, 0xFF000000).filterImage(dst, src);
   }
   fog_debug("Stack blur: %f", (TimeTicks::highResNow() - td).inMillisecondsF());
-
+/*
   td = TimeTicks::highResNow();
   for (i = 0; i < count; i++)
   {
-    ImageFx::gaussianBlur(dst, src, r, r, ImageFx::EdgeModeAuto, 0xFF000000);
+    ImageFx::gaussianBlur(dst, src, r, r, ImageFilter::BorderModeExtend, 0xFF000000);
   }
   fog_debug("Gaussian blur: %f", (TimeTicks::highResNow() - td).inMillisecondsF());
-  */
+*/
 }
 
 // ============================================================================
@@ -320,6 +337,8 @@ FOG_UI_MAIN()
 #endif
 {
   Application app(Ascii8("UI"));
+
+  fog_redirect_std_to_file("log.txt");
 
   MyWindow window;
   window.setSize(Size(715, 515));

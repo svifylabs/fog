@@ -11,6 +11,35 @@
 #include <Fog/Graphics/Raster/Raster_SSE2_composite.cpp.h>
 #endif // FOG_IDE
 
+//----------------------------------------------------------------------------
+// Stack blur and recursive blur algorithms were ported from AntiGrain.
+//----------------------------------------------------------------------------
+//
+// Anti-Grain Geometry - Version 2.4
+// Copyright (C) 2002-2005 Maxim Shemanarev (http://www.antigrain.com)
+//
+// Permission to copy, use, modify, sell and distribute this software 
+// is granted provided this copyright notice appears in all copies. 
+// This software is provided "as is" without express or implied
+// warranty, and with no claim as to its suitability for any purpose.
+//
+//----------------------------------------------------------------------------
+// Contact: mcseem@antigrain.com
+//          mcseemagg@yahoo.com
+//          http://www.antigrain.com
+//----------------------------------------------------------------------------
+//
+// The Stack Blur Algorithm was invented by Mario Klingemann, 
+// mario@quasimondo.com and described here:
+// http://incubator.quasimondo.com/processing/fast_blur_deluxe.php
+// (search phrase "Stackblur: Fast But Goodlooking"). 
+// The major improvement is that there's no more division table
+// that was very expensive to create for large blur radii. Insted, 
+// for 8-bit per channel and radius not exceeding 254 the division is 
+// replaced by multiplication and shift. 
+//
+//----------------------------------------------------------------------------
+
 namespace Fog {
 namespace Raster {
 
@@ -280,7 +309,7 @@ static void FOG_FASTCALL boxBlurConvolveH_argb32_sse2(
 
     srcCur = src;
 
-    if (borderMode == ImageFilter::ExtendBorderMode)
+    if (borderMode == ImageFilter::BorderModeExtend)
     {
       lBorderColor = READ_32(srcCur);
       rBorderColor = READ_32(srcCur + end);
@@ -419,7 +448,7 @@ static void FOG_FASTCALL boxBlurConvolveV_argb32_sse2(
 
     srcCur = src;
 
-    if (borderMode == ImageFilter::ExtendBorderMode)
+    if (borderMode == ImageFilter::BorderModeExtend)
     {
       lBorderColor = READ_32(srcCur);
       rBorderColor = READ_32(srcCur + end);
@@ -565,7 +594,7 @@ static void FOG_FASTCALL stackBlurConvolveH_argb32_sse2(
 
     srcCur = src;
 
-    if (borderMode == ImageFilter::ExtendBorderMode)
+    if (borderMode == ImageFilter::BorderModeExtend)
     {
       lBorderColor = READ_32(srcCur);
       rBorderColor = READ_32(srcCur + end);
@@ -731,7 +760,7 @@ static void FOG_FASTCALL stackBlurConvolveV_argb32_sse2(
 
     srcCur = src;
 
-    if (borderMode == ImageFilter::ExtendBorderMode)
+    if (borderMode == ImageFilter::BorderModeExtend)
     {
       lBorderColor = READ_32(srcCur);
       rBorderColor = READ_32(srcCur + end);

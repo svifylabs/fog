@@ -35,12 +35,9 @@ struct ImageFilter;
 // [Fog::Image]
 // ============================================================================
 
+//! @brief Raster image container.
 struct FOG_API Image
 {
-  // don't change order of these values, it's very dependent to
-  // values that will be initialized in Image.cpp and dependent
-  // to Converter.cpp tables.
-
   //! @brief Pixel format.
   //!
   //! @note All pixel formats are CPU endian dependent. So @c ARGB32 pixels
@@ -63,6 +60,9 @@ struct FOG_API Image
   //! @note Do not change order of this enum.
   enum Format
   {
+    // Don't change order of these values, it's very dependent to
+    // values that will be initialized in Image.cpp.
+
     FormatNull = 0,
     //! @brief 32 bit RGBA (equivalent for @c Rgba).
     FormatARGB32 = 1,
@@ -187,50 +187,80 @@ struct FOG_API Image
 
   // [Data]
 
+  //! @brief Get constant pointer to image data (first byte in image buffer).
+  //!
+  //! Note that image data should be usually equal to image first scanline. But
+  //! it's possible that this pointer will be last image scanline in cases that
+  //! raster data are filled from bottom to top (Windows DIBs). So if you want
+  //! to write portable code, use always @c cFirst() or @c cScanline() methods.
   FOG_INLINE const uint8_t* cData() const
   {
     return _d->data;
   }
 
+  //! @brief Get mutable pointer to image data (first byte in image buffer).
+  //!
+  //! Note that image data should be usually equal to image first scanline. But
+  //! it's possible that this pointer will be last image scanline in cases that
+  //! raster data are filled from bottom to top (Windows DIBs). So if you want
+  //! to write portable code, use always @c mFirst() or @c mScanline() methods.
   FOG_INLINE uint8_t* mData()
   {
     return (detach() == Error::Ok) ? _d->data : NULL;
   }
 
+  //! @brief Get mutable pointer to image data (first byte in image buffer).
+  //!
+  //! Note that image data should be usually equal to image first scanline. But
+  //! it's possible that this pointer will be last image scanline in cases that
+  //! raster data are filled from bottom to top (Windows DIBs). So if you want
+  //! to write portable code, use always @c xFirst() or @c xScanline() methods.
+  //!
+  //! @note Image must be detached to call this function.
   FOG_INLINE uint8_t* xData()
   {
     FOG_ASSERT(isDetached());
     return _d->data;
   }
 
+  //! @brief Get constant pointer to image first scanline.
   FOG_INLINE const uint8_t* cFirst() const
   {
     return _d->first;
   }
 
+  //! @brief Get mutable pointer to image first scanline.
   FOG_INLINE uint8_t* mFirst()
   {
     return (detach() == Error::Ok) ? _d->first : NULL;
   }
 
+  //! @brief Get constant pointer to image first scanline.
+  //!
+  //! @note Image must be detached to call this function.
   FOG_INLINE uint8_t* xFirst()
   {
     FOG_ASSERT(isDetached());
     return _d->first;
   }
 
+  //! @brief Get constant pointer to @c i scanline.
   FOG_INLINE const uint8_t* cScanline(uint32_t i) const
   {
     FOG_ASSERT((sysuint_t)i < (sysuint_t)_d->height);
     return _d->first + (sysint_t)i * _d->stride;
   }
 
+  //! @brief Get mutable pointer to @c i scanline.
   FOG_INLINE uint8_t* mScanline(uint32_t i)
   {
     FOG_ASSERT((sysuint_t)i < (sysuint_t)_d->height);
     return (detach() == Error::Ok) ? _d->first + (sysint_t)i * _d->stride : NULL;
   }
 
+  //! @brief Get mutable pointer to @c i scanline.
+  //!
+  //! @note Image must be detached to call this function.
   FOG_INLINE uint8_t* xScanline(uint32_t i)
   {
     FOG_ASSERT((sysuint_t)i < (sysuint_t)_d->height);
@@ -240,36 +270,54 @@ struct FOG_API Image
 
   // [Dimensions]
 
+  //! @brief Get image width (in pixels).
   FOG_INLINE int width() const { return _d->width; }
+  //! @brief Get image height (in pixels).
   FOG_INLINE int height() const { return _d->height; }
+  //! @brief Get whether image is empty (width and height equals to zero).
   FOG_INLINE bool isEmpty() const { return _d->stride == 0; }
+  //! @brief Get image stride (bytes per line).
+  //!
+  //! @note Stride can be 'width * bytesPerPixel', but can be also larger.
   FOG_INLINE sysint_t stride() const { return _d->stride; }
 
   // [Format]
 
+  //! @brief Get image format, see @c Format enumeration.
   FOG_INLINE int format() const { return _d->format; }
+  //! @brief Get image depth (8, 24 or 32).
   FOG_INLINE int depth() const { return _d->depth; }
+  //! @brief Get image bytes per pixel.
   FOG_INLINE int bytesPerPixel() const { return _d->bytesPerPixel; }
 
-  FOG_INLINE bool isIndexed() const
-  { return _d->format == FormatI8; }
+  //! @brief Get whether image is indexed (8-bit image with palette).
+  FOG_INLINE bool isIndexed() const { return _d->format == FormatI8; }
 
-  FOG_INLINE bool isPremultiplied() const
-  { return _d->format == FormatPRGB32; }
+  //! @brief Get whether image is premultiplied (@c FormatARGB32).
+  FOG_INLINE bool isPremultiplied() const { return _d->format == FormatPRGB32; }
 
   // [Create / Adopt]
 
+  //! @brief Create new image at @a w x @a h size in a given @a format.
+  //!
+  //! Please always check error value, because allocation memory for image data
+  //! can fail. Also if there are invalid arguments (dimensions or format) the
+  //! Error::InvalidArgument will be returned.
   err_t create(
     int w, int h, int format);
   
   //! @brief Image adopt flags.
   enum AdoptFlags
   {
+    //! @brief Standard adopt behavior
     NoAdoptFlags = 0x0,
+    //! @brief Adopted image will be read-only.
     AdoptReadOnly = 0x1,
-    AdoptReversed = 0x2,
+    //! @brief Adopted image data are from bottom-to-top (Windows DIBs).
+    AdoptReversed = 0x2
   };
 
+  //! @brief Adopt memory buffer to the image.
   err_t adopt(
     int w, int h, int format,
     const uint8_t* mem, sysint_t stride,
@@ -277,7 +325,9 @@ struct FOG_API Image
 
   // [Set]
 
+  //! @brief Set other image to this image creating reference to it if possible.
   err_t set(const Image& other);
+  //! @brief Set other image to this image making deep copy of it.
   err_t setDeep(const Image& other);
 
   // [Convert]
@@ -300,9 +350,11 @@ struct FOG_API Image
 
   // [Palette]
 
+  //! @brief Get image palette.
   FOG_INLINE const Palette& palette() const { return _d->palette; }
-
+  //! @brief Set image palette.
   err_t setPalette(const Palette& palette);
+  //! @brief Set image palette entries.
   err_t setPalette(sysuint_t index, sysuint_t count, const Rgba* rgba);
 
   // [GetDib / SetDib]
@@ -412,7 +464,7 @@ struct FOG_API Image
 
   // [Mirror]
 
-  //! @brief Invert modes used together with @c Image::mirror() and @c Image::mirrored() methods.
+  //! @brief Mirror modes used together with @c Image::mirror().
   enum MirrorMode
   {
     MirrorNone       = 0x0,
@@ -428,7 +480,7 @@ struct FOG_API Image
 
   // [Rotate]
 
-  //! @brief Invert modes used together with @c Image::rotate() and @c Image::rotated() methods.
+  //! @brief Rotate modes used together with @c Image::rotate() methods.
   enum RotateMode
   {
     Rotate0 = 0,
@@ -437,8 +489,10 @@ struct FOG_API Image
     Rotate270
   };
 
+  //! @brief Rotate image by 0, 90, 180 or 270 degrees, see @c RotateMode.
   static err_t rotate(Image& dest, const Image& src, uint32_t rotateMode);
 
+  //! @brief Rotate image by 0, 90, 180 or 270 degrees, see @c RotateMode.
   FOG_INLINE err_t rotate(uint32_t rotateMode)
   { return rotate(*this, *this, rotateMode); }
 
@@ -473,16 +527,24 @@ struct FOG_API Image
   err_t drawImage(const Point& pt, const Image& src, uint32_t op = CompositeSrcOver, uint32_t opacity = 255);
   err_t drawImage(const Point& pt, const Image& src, const Rect& srcRect, uint32_t op = CompositeSrcOver, uint32_t opacity = 255);
 
+  //! @brief Scroll data in image.
+  //!
+  //! @note data that was scrolled out are unchanged.
   err_t scroll(int x, int y);
+  //! @brief Scroll data in image in rectangle @a r.
+  //!
+  //! @note data that was scrolled out are unchanged.
   err_t scroll(int x, int y, const Rect& r);
 
   // [Misc]
 
+  //! @brief Check if point at a given coordinates @a x and @a y is in image.
   FOG_INLINE bool hasPoint(int x, int y) 
   { 
     return (uint)x < (uint)width() && (uint)y < (uint)height(); 
   }
   
+  //! @brief Check if point at a given coordinates @a at is in image.
   FOG_INLINE bool hasPoint(const Point& pt) 
   { 
     return (uint)pt.x() < (uint)width() && (uint)pt.y() < (uint)height(); 
@@ -490,7 +552,13 @@ struct FOG_API Image
 
   // [WinAPI functions]
 #if defined(FOG_OS_WINDOWS)
+  //! @brief Convert image to Windows @c HBITMAP.
+  //!
+  //! @note This function is Windows-only.
   HBITMAP toHBITMAP();
+  //! @brief Convert image from Windows @c HBITMAP.
+  //!
+  //! @note This function is Windows-only.
   bool fromHBITMAP(HBITMAP hBitmap);
 #endif // FOG_OS_WINDOWS
 
@@ -514,8 +582,17 @@ struct FOG_API Image
 
   // [Statics]
 
+  //! @brief Calculate stride for a given image @a width and @a depth.
+  //!
+  //! Stride is calculated using @a width and @a depth using 32-bit alignment
+  //! that is compatible to Windows DIBs and probably to other OS specific
+  //! image formats.
   static sysint_t calcStride(int width, int depth);
+
+  //! @brief Converts a given format @a format into depth.
   static int formatToDepth(int format);
+
+  //! @brief Converts a given format @a format into bytes per pixel.
   static int formatToBytesPerPixel(int format);
 
   // [Members]

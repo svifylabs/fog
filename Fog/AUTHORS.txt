@@ -11,12 +11,26 @@ Jaroslav Smid <jardasmid@gmail.com>
 Other libraries and source code used in Fog (always BSD/MIT/Public Domain)
 ==========================================================================
 
-Chromium <http://code.google.com/p/chromium/> - Threading and Event loop related.
-Ultimate++ <http://www.ultimatepp.com> - Small unicode support, inspiration.
-FastDelegate <http://www.codeproject.com/cpp/FastDelegate.asp> - Delegates.
+Fog/Core
+========
 
-XOrg <http://www.x.org> - Region.
-AggOO <http://www.dratek.com/> - ColorMatrix.
-Evas <http://www.enlightenment.org> - Dithering to 8bpp, dithering tables.
-AGG version 2.4 <http://www.antigrain.com> - Affine matrix, Path, Rasterizer.
-GifLib <http://sourceforge.net/projects/libungif> - ImageIO GIF support.
+Delegates - FastDelegate <http://www.codeproject.com/cpp/FastDelegate.asp>.
+Threading and Event loops - Chromium <http://code.google.com/p/chromium/>.
+Unicode support - Ultimate++ <http://www.ultimatepp.com>.
+
+Fog/Graphics
+============
+
+AffineMatrix - AGG version 2.4 <http://www.antigrain.com>.
+ColorMatrix - AggOO <http://www.dratek.com/>.
+DitherMatrix - Evas <http://www.enlightenment.org>.
+ImageFilter::StackBlur - Mario Klingemann <http://incubator.quasimondo.com/processing/fast_blur_deluxe.php>
+ImageIO::GIF - GifLib <http://sourceforge.net/projects/libungif>.
+Path - AGG version 2.4 <http://www.antigrain.com>.
+Rasterizer - AGG version 2.4 <http://www.antigrain.com>.
+Region - XOrg <http://www.x.org>.
+
+Fog/UI
+======
+
+None currently.

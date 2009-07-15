@@ -21,7 +21,7 @@ namespace Fog {
 // ============================================================================
 
 ImageFilter::ImageFilter() : 
-  _type(NoneFilterType),
+  _type(FilterTypeNone),
   _flags(0)
 {
 }
@@ -165,10 +165,10 @@ static err_t convolveSymmetricFloat(
 }
 */
 BlurImageFilter::BlurImageFilter() :
-  _blurType(StackBlurType),
+  _blurType(BlurTypeStack),
   _hRadius(1.0),
   _vRadius(1.0),
-  _borderMode(ExtendBorderMode),
+  _borderMode(BorderModeExtend),
   _borderColor(0x00000000)
 {
   _setupFilter();
@@ -211,7 +211,7 @@ Value BlurImageFilter::getProperty(const String32& name) const
 
 err_t BlurImageFilter::setBlurType(int blurType)
 {
-  if (blurType >= InvalidBlurType) return Error::InvalidPropertyValue;
+  if (blurType >= BlurTypeInvalid) return Error::InvalidPropertyValue;
 
   _blurType = blurType;
   return Error::Ok;
@@ -231,7 +231,7 @@ err_t BlurImageFilter::setVerticalRadius(double vr)
 
 err_t BlurImageFilter::setBorderMode(int borderMode)
 {
-  if (borderMode >= InvalidBorderMode) return Error::InvalidPropertyValue;
+  if (borderMode >= BorderModeInvalid) return Error::InvalidPropertyValue;
 
   _borderMode = borderMode;
   return Error::Ok;
@@ -250,10 +250,10 @@ bool BlurImageFilter::isNop() const
 
   switch (_blurType)
   {
-    case BoxBlurType:
-    case StackBlurType:
+    case BlurTypeBox:
+    case BlurTypeStack:
       return hRadius < 1.0 && vRadius < 1.0;
-    case GaussianBlurType:
+    case BlurTypeGaussian:
       return hRadius < 0.63 && vRadius < 0.63;
     default:
       FOG_ASSERT_NOT_REACHED();
@@ -283,8 +283,8 @@ err_t BlurImageFilter::filterPrivate(
 
   switch (_blurType)
   {
-    case BoxBlurType:
-    case StackBlurType:
+    case BlurTypeBox:
+    case BlurTypeStack:
     {
       if (hRadiusInt == 0 && vRadiusInt == 0)
       {
@@ -293,7 +293,7 @@ err_t BlurImageFilter::filterPrivate(
       }
       break;
     }
-    case GaussianBlurType:
+    case BlurTypeGaussian:
     {
       if (vRadius <= 0.63 && hRadius <= 0.63)
       {
@@ -310,13 +310,13 @@ err_t BlurImageFilter::filterPrivate(
 
   switch (_blurType)
   {
-    case BoxBlurType:
-    case StackBlurType:  
+    case BlurTypeBox:
+    case BlurTypeStack: 
     {
       Raster::BlurConvolveFn convolveH;
       Raster::BlurConvolveFn convolveV;
 
-      if (_blurType == BoxBlurType)
+      if (_blurType == BlurTypeBox)
       {
         convolveH = Raster::functionMap->filters.boxBlurConvolveH[format];
         convolveV = Raster::functionMap->filters.boxBlurConvolveV[format];
@@ -332,7 +332,7 @@ err_t BlurImageFilter::filterPrivate(
       break;
     }
 
-    case GaussianBlurType:
+    case BlurTypeGaussian:
     {
       sysint_t bufStride = height * Image::formatToBytesPerPixel(format);
       if (bufStride == 0) return Error::InvalidArgument;
@@ -371,7 +371,7 @@ err_t BlurImageFilter::filterPrivate(
 
 void BlurImageFilter::_setupFilter()
 {
-  _type = BlurFilterType;
+  _type = FilterTypeBlur;
   _flags = OnlyNonPremultiplied | TwoPasses;
 }
 
