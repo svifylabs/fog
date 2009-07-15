@@ -2891,6 +2891,25 @@ int Image::formatToDepth(int format)
   }
 }
 
+int Image::formatToBytesPerPixel(int format)
+{
+  switch (format)
+  {
+    case FormatARGB32:
+    case FormatPRGB32:
+    case FormatRGB32:
+      return 4;
+    case FormatRGB24:
+      return 3;
+    case FormatA8:
+    case FormatI8:
+      return 1;
+    // Everything else is invalid.
+    default:
+      return 0;
+  }
+}
+
 // ============================================================================
 // [Fog::Image::Data]
 // ============================================================================

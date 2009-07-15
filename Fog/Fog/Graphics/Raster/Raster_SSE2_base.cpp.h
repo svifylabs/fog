@@ -17,9 +17,9 @@ namespace Raster {
 // [Fog::Raster_SSE2 - Defines]
 // ============================================================================
 
-#define READ_8(ptr)  (((const uint8_t *)ptr)[0])
-#define READ_16(ptr) (((const uint16_t*)ptr)[0])
-#define READ_32(ptr) (((const uint32_t*)ptr)[0])
+#define READ_8(ptr)  (((const uint8_t *)(ptr))[0])
+#define READ_16(ptr) (((const uint16_t*)(ptr))[0])
+#define READ_32(ptr) (((const uint32_t*)(ptr))[0])
 
 // These macros were designed to simplify blit functions. The idea is very simple.
 // There are usually three loops that you can see in blitters. One is align loop.
@@ -225,6 +225,27 @@ static FOG_INLINE uint32_t pix_pack_alpha_to_uint32(__m128i& src)
   return _mm_cvtsi128_si32(dst);
 }
 
+static FOG_INLINE void pix_unpack_1x1D(
+  __m128i& dst0, __m128i& src0)
+{
+  __m128i xmmz = _mm_setzero_si128();
+  dst0 = _mm_unpacklo_epi8(src0, xmmz);
+  dst0 = _mm_unpacklo_epi16(dst0, xmmz);
+}
+
+static FOG_INLINE void pix_unpack_1x1D(
+  __m128i& dst0, uint32_t src0)
+{
+  pix_unpack_1x1D(dst0, _mm_cvtsi32_si128(src0));
+}
+
+static FOG_INLINE void pix_pack_1x1D(
+  __m128i& dst0, __m128i& src0)
+{
+  dst0 = _mm_packs_epi32(src0, src0);
+  dst0 = _mm_packus_epi16(dst0, dst0);
+}
+
 static FOG_INLINE void pix_unpack_to_float(__m128& dst0, __m128i pix0)
 {
   __m128i xmmz = _mm_setzero_si128();
@@ -370,6 +391,12 @@ static FOG_INLINE void pix_expand_mask_2x2W(
   dst0 = _mm_shufflelo_epi16(dst0, _MM_SHUFFLE(0, 0, 0, 0));
   dst1 = _mm_shufflehi_epi16(dst1, _MM_SHUFFLE(3, 3, 3, 3));
   dst0 = _mm_shufflehi_epi16(dst0, _MM_SHUFFLE(1, 1, 1, 1));
+}
+
+static FOG_INLINE void pix_expand_mask_1x1D(
+  __m128i& dst0, uint32_t msk)
+{
+  dst0 = _mm_shuffle_epi32(_mm_cvtsi32_si128(msk), _MM_SHUFFLE(0, 0, 0, 0));
 }
 
 static FOG_INLINE void pix_multiply_1x1W(
@@ -804,6 +831,16 @@ static FOG_INLINE void pix_fetch_bgr24_2x2W(__m128i& dst0, __m128i& dst1, const 
 
   dst0 = _mm_shufflehi_epi16(dst0, _MM_SHUFFLE(0, 1, 2, 3)); // dst0 = [FF R1 G1 B1 FF R0 G0 B0]
   dst1 = _mm_shufflehi_epi16(dst1, _MM_SHUFFLE(0, 1, 2, 3)); // dst1 = [FF R3 G3 B3 FF R2 G2 B2]
+}
+
+static FOG_INLINE void sse2_mul_const_4D(__m128i& dst, const __m128i& a, const __m128i& b)
+{
+  __m128i tmp = _mm_shuffle_epi32(a, _MM_SHUFFLE(2, 3, 0, 1));
+
+  dst = _mm_mul_epu32(a, b);
+  tmp = _mm_mul_epu32(tmp, b);
+  tmp = _mm_shuffle_epi32(tmp, _MM_SHUFFLE(2, 3, 0, 1));
+  dst = _mm_or_si128(dst, tmp);
 }
 
 } // Raster namespace

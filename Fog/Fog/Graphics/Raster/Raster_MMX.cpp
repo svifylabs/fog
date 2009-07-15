@@ -26,14 +26,15 @@ namespace Fog {
 namespace Raster {
 
 // ============================================================================
-// [Fog::Raster - Defines]
+// [Fog::Raster_MMX - Defines]
 // ============================================================================
 
-#define READ_MASK_A8(ptr) ((const uint8_t *)ptr)[0]
-#define READ_MASK_C8(ptr) ((const uint32_t*)ptr)[0]
+#define READ_8(ptr)  (((const uint8_t *)(ptr))[0])
+#define READ_16(ptr) (((const uint16_t*)(ptr))[0])
+#define READ_32(ptr) (((const uint32_t*)(ptr))[0])
 
 // ============================================================================
-// [Fog::Raster - Gradient - gradient]
+// [Fog::Raster_MMX - Gradient - gradient]
 // ============================================================================
 
 static void FOG_FASTCALL gradient_gradient_argb32_MMX(uint8_t* dst, uint32_t c0, uint32_t c1, sysint_t w, sysint_t x1, sysint_t x2)

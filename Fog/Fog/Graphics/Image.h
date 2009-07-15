@@ -516,6 +516,7 @@ struct FOG_API Image
 
   static sysint_t calcStride(int width, int depth);
   static int formatToDepth(int format);
+  static int formatToBytesPerPixel(int format);
 
   // [Members]
 

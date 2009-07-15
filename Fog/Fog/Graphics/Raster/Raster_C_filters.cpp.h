@@ -59,6 +59,52 @@ static FOG_INLINE int getReciprocal(int val)
 }
 
 // ============================================================================
+// [Fog::Raster_C - CopyArea]
+// ============================================================================
+
+static void copyArea_32(
+  uint8_t* dst, sysint_t dstStride, 
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height)
+{
+  sysint_t y;
+  sysint_t size = width * 4;
+
+  for (y = height; y; y--, dst += dstStride, src += srcStride)
+  {
+    memcpy(dst, src, size);
+  }
+}
+
+static void copyArea_24(
+  uint8_t* dst, sysint_t dstStride, 
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height)
+{
+  sysint_t y;
+  sysint_t size = width * 3;
+
+  for (y = height; y; y--, dst += dstStride, src += srcStride)
+  {
+    memcpy(dst, src, size);
+  }
+}
+
+static void copyArea_8(
+  uint8_t* dst, sysint_t dstStride, 
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height)
+{
+  sysint_t y;
+  sysint_t size = width;
+
+  for (y = height; y; y--, dst += dstStride, src += srcStride)
+  {
+    memcpy(dst, src, size);
+  }
+}
+
+// ============================================================================
 // [Fog::Raster_C - ColorLut]
 // ============================================================================
 
@@ -278,12 +324,12 @@ static void FOG_FASTCALL transpose_8(
 static void FOG_FASTCALL floatScanlineConvolve_argb32(
   uint8_t* dst, sysint_t dstStride,
   const uint8_t* src, sysint_t srcStride,
-  int width, int height, const float* kernel, int size, float divide,
+  int width, int height, const float* kernel, int size, float divisor,
   int borderMode, uint32_t borderColor)
 {
   if (kernel == NULL || size == 0)
   {
-    transpose_32(dst, dstStride, src, srcStride, width, height);
+    functionMap->filters.transpose[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
     return;
   }
 
@@ -313,12 +359,12 @@ static void FOG_FASTCALL floatScanlineConvolve_argb32(
   float rightEdgeA = leftEdgeA;
 
   // Modify kernel to remove extra division / multiplication from main loop
-  if (divide != 1.0f)
+  if (divisor != 1.0f)
   {
     float *k = (float*)kernelTemporary.alloc(sizeof(float) * size);
     if (!k) return;
 
-    for (i = 0; i < size; i++) k[i] = kernel[i] / divide;
+    for (i = 0; i < size; i++) k[i] = kernel[i] / divisor;
     kernel = k;
   }
 
@@ -443,12 +489,12 @@ again:
 static void FOG_FASTCALL floatScanlineConvolve_rgb24(
   uint8_t* dst, sysint_t dstStride,
   const uint8_t* src, sysint_t srcStride,
-  int width, int height, const float* kernel, int size, float divide,
+  int width, int height, const float* kernel, int size, float divisor,
   int borderMode, uint32_t borderColor)
 {
   if (kernel == NULL || size == 0)
   {
-    transpose_24(dst, dstStride, src, srcStride, width, height);
+    functionMap->filters.transpose[Image::FormatRGB24](dst, dstStride, src, srcStride, width, height);
     return;
   }
 
@@ -476,12 +522,12 @@ static void FOG_FASTCALL floatScanlineConvolve_rgb24(
   float rightEdgeB = leftEdgeB;
 
   // Modify kernel to remove extra division / multiplication from main loop
-  if (divide != 1.0f)
+  if (divisor != 1.0f)
   {
     float *k = (float*)kernelTemporary.alloc(sizeof(float) * size);
     if (!k) return;
 
-    for (i = 0; i < size; i++) k[i] = kernel[i] / divide;
+    for (i = 0; i < size; i++) k[i] = kernel[i] / divisor;
     kernel = k;
   }
 
@@ -590,12 +636,12 @@ again:
 static void FOG_FASTCALL floatScanlineConvolve_a8(
   uint8_t* dst, sysint_t dstStride,
   const uint8_t* src, sysint_t srcStride,
-  int width, int height, const float* kernel, int size, float divide,
+  int width, int height, const float* kernel, int size, float divisor,
   int borderMode, uint32_t borderColor)
 {
   if (kernel == NULL || size == 0)
   {
-    transpose_8(dst, dstStride, src, srcStride, width, height);
+    functionMap->filters.transpose[Image::FormatA8](dst, dstStride, src, srcStride, width, height);
     return;
   }
 
@@ -618,12 +664,12 @@ static void FOG_FASTCALL floatScanlineConvolve_a8(
   float rightEdge = leftEdge;
 
   // Modify kernel to remove extra division / multiplication from main loop
-  if (divide != 1.0f)
+  if (divisor != 1.0f)
   {
     float *k = (float*)kernelTemporary.alloc(size * sizeof(float));
     if (!k) return;
 
-    for (i = 0; i < size; i++) k[i] = kernel[i] / divide;
+    for (i = 0; i < size; i++) k[i] = kernel[i] / divisor;
     kernel = k;
   }
 
@@ -711,492 +757,962 @@ again:
 // [Fog::Raster_C - BoxBlur]
 // ============================================================================
 
-static void FOG_FASTCALL boxBlurConvolve_argb32(
+static void FOG_FASTCALL boxBlurConvolveH_argb32(
   uint8_t* dst, sysint_t dstStride,
   const uint8_t* src, sysint_t srcStride,
   int width, int height, int radius,
   int borderMode, uint32_t borderColor)
 {
-  if (radius == 0)
+  if (radius == 0 || width < 2)
   {
-    transpose_32(dst, dstStride, src, srcStride, width, height);
+    if (dst != src) functionMap->filters.copyArea[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
     return;
   }
+
+  if (radius > 254) radius = 254;
+
+  sysint_t dym1 = width;
+  sysint_t dym2 = height;
+  sysint_t max = dym1 - 1;
+  sysint_t end = max * 4;
 
   uint8_t* dstCur;
   const uint8_t* srcCur;
 
-  // Setup box blur mask.
-  int radius2 = radius * 2;
-  int size = radius2 + 1;
-  int widthMax = width - radius - 1;
+  sysint_t pos1;
+  sysint_t pos2;
+  sysint_t xp, i;
 
-  // Accumulate loop sizes.
-  int accumulateUnderflow = radius;
-  int accumulateLoopSize = fog_min(width, radius + 1);
-  int accumulateOverflow = radius + 1 - accumulateLoopSize;
+  uint size = (uint)radius * 2 + 1;
 
-  // Hot inner loops.
-  bool tooSmallImage = width <= size;
-  int firstLoopStop = (tooSmallImage) ? width : radius;
-  int secondLoopStop = (tooSmallImage) ? 0 : (width - radius);
+  uint sumMul = getReciprocal(size);
+  uint sumShr = 16;
 
-  sysint_t i, j;
-  sysint_t x, y;
+  uint32_t stack[512];
+  uint32_t* stackEnd = stack + size;
+  uint32_t* stackCur;
 
-  uint32_t reciprocal = getReciprocal(size);
+  uint32_t lBorderColor = borderColor;
+  uint32_t rBorderColor = borderColor;
 
-  uint32_t leftEdgeR = (borderColor >> 16) & 0xFF;
-  uint32_t leftEdgeG = (borderColor >>  8) & 0xFF;
-  uint32_t leftEdgeB = (borderColor      ) & 0xFF;
-  uint32_t leftEdgeA = (borderColor >> 24);
-
-  uint32_t rightEdgeR = leftEdgeR;
-  uint32_t rightEdgeG = leftEdgeG;
-  uint32_t rightEdgeB = leftEdgeB;
-  uint32_t rightEdgeA = leftEdgeA;
-
-  for (y = 0; y < height; y++)
+  for (pos2 = 0; pos2 < dym2; pos2++)
   {
-    // Accumulators.
-    uint32_t cr, cg;
-    uint32_t cb, ca;
+    uint32_t pix0;
+    uint32_t pixR;
+    uint32_t pixG;
+    uint32_t pixB;
+    uint32_t pixA;
 
-    // Setup raster pointers.
-    dstCur = dst;
+    uint32_t sumR = 0;
+    uint32_t sumG = 0;
+    uint32_t sumB = 0;
+    uint32_t sumA = 0;
+
     srcCur = src;
 
-    // Setup borders if needed.
     if (borderMode == ImageFilter::ExtendBorderMode)
     {
-      uint32_t pix;
-
-      pix = ((const uint32_t*)srcCur)[0];
-      leftEdgeR = (pix >> 16) & 0xFF;
-      leftEdgeG = (pix >>  8) & 0xFF;
-      leftEdgeB = (pix      ) & 0xFF;
-      leftEdgeA = (pix >> 24);
-
-      pix = ((const uint32_t*)srcCur)[width-1];
-      rightEdgeR = (pix >> 16) & 0xFF;
-      rightEdgeG = (pix >>  8) & 0xFF;
-      rightEdgeB = (pix      ) & 0xFF;
-      rightEdgeA = (pix >> 24);
+      lBorderColor = READ_32(srcCur);
+      rBorderColor = READ_32(srcCur + end);
     }
 
-    // Accumulate left border values.
-    cr = leftEdgeR * accumulateUnderflow;
-    cg = leftEdgeG * accumulateUnderflow;
-    cb = leftEdgeB * accumulateUnderflow;
-    ca = leftEdgeA * accumulateUnderflow;
+    pix0 = lBorderColor;
+    pixR = (pix0 >> 16) & 0xFF;
+    pixG = (pix0 >>  8) & 0xFF;
+    pixB = (pix0      ) & 0xFF;
+    pixA = (pix0 >> 24);
 
-    // Accumulate inner pixels.
-    // In normal case accumulateLoopSize is equal to radius+1.
-    for (i = 0; i < accumulateLoopSize; i++)
+    stackCur = stack;
+
+    for (i = 0; i < radius; i++)
     {
-      uint32_t pix = ((const uint32_t*)srcCur)[i];
-      cr += (pix >> 16) & 0xFF;
-      cg += (pix >>  8) & 0xFF;
-      cb += (pix      ) & 0xFF;
-      ca += (pix >> 24);
+      stackCur[0] = pix0;
+      stackCur++;
+
+      sumR += pixR;
+      sumG += pixG;
+      sumB += pixB;
+      sumA += pixA;
     }
 
-    // Accumulate right border values. 
-    // This happen only if blur radius is larger or equal as width.
-    cr += rightEdgeR * accumulateOverflow;
-    cg += rightEdgeG * accumulateOverflow;
-    cb += rightEdgeB * accumulateOverflow;
-    ca += rightEdgeA * accumulateOverflow;
+    pix0 = READ_32(srcCur);
+    stackCur[0] = pix0;
+    stackCur++;
 
-    x = 0;
-    j = firstLoopStop;
+    pixR = (pix0 >> 16) & 0xFF;
+    pixG = (pix0 >>  8) & 0xFF;
+    pixB = (pix0      ) & 0xFF;
+    pixA = (pix0 >> 24);
 
-    // Loop with bound checking supporting borders.
-again:
-    while (x < j)
+    sumR += pixR;
+    sumG += pixG;
+    sumB += pixB;
+    sumA += pixA;
+
+    for (i = 1; i <= radius; i++)
+    {
+      if (i <= max)
+      {
+        srcCur += 4;
+        pix0 = READ_32(srcCur);
+      }
+      else 
+      {
+        pix0 = rBorderColor;
+      }
+
+      stackCur[0] = pix0;
+      stackCur++;
+
+      pixR = (pix0 >> 16) & 0xFF;
+      pixG = (pix0 >>  8) & 0xFF;
+      pixB = (pix0      ) & 0xFF;
+      pixA = (pix0 >> 24);
+
+      sumR += pixR;
+      sumG += pixG;
+      sumB += pixB;
+      sumA += pixA;
+    }
+
+    xp = fog_min(radius, max);
+
+    srcCur = src + xp * 4;
+    dstCur = dst;
+
+    stackCur = stack;
+
+    for (pos1 = 0; pos1 < dym1; pos1++)
     {
       ((uint32_t*)dstCur)[0] = 
-        (((cr * reciprocal) & 0x00FF0000)      ) | 
-        (((cg * reciprocal) & 0x00FF0000) >>  8) |
-        (((cb * reciprocal) & 0x00FF0000) >> 16) |
-        (((ca * reciprocal) & 0x00FF0000) <<  8) ;
+        (((sumR * sumMul) >> sumShr) << 16) |
+        (((sumG * sumMul) >> sumShr) <<  8) |
+        (((sumB * sumMul) >> sumShr)      ) |
+        (((sumA * sumMul) >> sumShr) << 24) ;
+      dstCur += 4;
 
-      if (x >= radius)
+      pix0 = stackCur[0];
+
+      pixR = (pix0 >> 16) & 0xFF;
+      pixG = (pix0 >>  8) & 0xFF;
+      pixB = (pix0      ) & 0xFF;
+      pixA = (pix0 >> 24);
+
+      sumR -= pixR;
+      sumG -= pixG;
+      sumB -= pixB;
+      sumA -= pixA;
+
+      if (xp < max)
       {
-        uint32_t pix = ((const uint32_t*)srcCur)[-radius];
-        cr -= (pix >> 16) & 0xFF;
-        cg -= (pix >>  8) & 0xFF;
-        cb -= (pix      ) & 0xFF;
-        ca -= (pix >> 24);
-      }
-      else
-      {
-        cr -= leftEdgeR;
-        cg -= leftEdgeG;
-        cb -= leftEdgeB;
-        ca -= leftEdgeA;
-      }
-
-      if (x < widthMax)
-      {
-        uint32_t pix = ((const uint32_t*)srcCur)[radius+1];
-        cr += (pix >> 16) & 0xFF;
-        cg += (pix >>  8) & 0xFF;
-        cb += (pix      ) & 0xFF;
-        ca += (pix >> 24);
-      }
-      else
-      {
-        cr += rightEdgeR;
-        cg += rightEdgeG;
-        cb += rightEdgeB;
-        ca += rightEdgeA;
-      }
-
-      dstCur += dstStride;
-      srcCur += 4;
-      x++;
-    }
-
-    // Loop without bound checking not supporting borders.
-    if (x != width)
-    {
-      j = secondLoopStop;
-
-      while (x < j)
-      {
-        uint32_t pix;
-
-        ((uint32_t*)dstCur)[0] = 
-          (((cr * reciprocal) & 0x00FF0000)      ) | 
-          (((cg * reciprocal) & 0x00FF0000) >>  8) |
-          (((cb * reciprocal) & 0x00FF0000) >> 16) |
-          (((ca * reciprocal) & 0x00FF0000) <<  8) ;
-
-        pix = ((const uint32_t*)srcCur)[-radius];
-        cr -= (pix >> 16) & 0xFF;
-        cg -= (pix >>  8) & 0xFF;
-        cb -= (pix      ) & 0xFF;
-        ca -= (pix >> 24);
-
-        pix = ((const uint32_t*)srcCur)[radius+1];
-        cr += (pix >> 16) & 0xFF;
-        cg += (pix >>  8) & 0xFF;
-        cb += (pix      ) & 0xFF;
-        ca += (pix >> 24);
-
-        dstCur += dstStride;
+        ++xp;
         srcCur += 4;
-        x++;
+        pix0 = READ_32(srcCur);
+      }
+      else
+      {
+        pix0 = rBorderColor;
       }
 
-      j = width;
-      goto again;
+      stackCur[0] = pix0;
+
+      pixR    = (pix0 >> 16) & 0xFF;
+      pixG    = (pix0 >>  8) & 0xFF;
+      pixB    = (pix0      ) & 0xFF;
+      pixA    = (pix0 >> 24);
+
+      sumR += pixR;
+      sumG += pixG;
+      sumB += pixB;
+      sumA += pixA;
+
+      stackCur += 1;
+      if (stackCur == stackEnd) stackCur = stack;
     }
 
+    src += srcStride;
+    dst += dstStride;
+  }
+}
+
+static void FOG_FASTCALL boxBlurConvolveV_argb32(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height, int radius,
+  int borderMode, uint32_t borderColor)
+{
+  if (radius == 0 || height < 2)
+  {
+    if (dst != src) functionMap->filters.copyArea[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
+    return;
+  }
+
+  if (radius > 254) radius = 254;
+
+  sysint_t dym1 = height;
+  sysint_t dym2 = width;
+  sysint_t max = dym1 - 1;
+  sysint_t end = max * srcStride;
+
+  uint8_t* dstCur;
+  const uint8_t* srcCur;
+
+  sysint_t pos1;
+  sysint_t pos2;
+  sysint_t xp, i;
+
+  uint size = (uint)radius * 2 + 1;
+
+  uint sumMul = getReciprocal(size);
+  uint sumShr = 16;
+
+  uint32_t stack[512];
+  uint32_t* stackEnd = stack + size;
+  uint32_t* stackCur;
+
+  uint32_t lBorderColor = borderColor;
+  uint32_t rBorderColor = borderColor;
+
+  for (pos2 = 0; pos2 < dym2; pos2++)
+  {
+    uint32_t pix0;
+    uint32_t pixR;
+    uint32_t pixG;
+    uint32_t pixB;
+    uint32_t pixA;
+
+    uint32_t sumR = 0;
+    uint32_t sumG = 0;
+    uint32_t sumB = 0;
+    uint32_t sumA = 0;
+
+    srcCur = src;
+
+    if (borderMode == ImageFilter::ExtendBorderMode)
+    {
+      lBorderColor = READ_32(srcCur);
+      rBorderColor = READ_32(srcCur + end);
+    }
+
+    pix0 = lBorderColor;
+    pixR = (pix0 >> 16) & 0xFF;
+    pixG = (pix0 >>  8) & 0xFF;
+    pixB = (pix0      ) & 0xFF;
+    pixA = (pix0 >> 24);
+
+    stackCur = stack;
+
+    for (i = 0; i < radius; i++)
+    {
+      stackCur[0] = pix0;
+      stackCur++;
+
+      sumR += pixR;
+      sumG += pixG;
+      sumB += pixB;
+      sumA += pixA;
+    }
+
+    pix0 = READ_32(srcCur);
+    stackCur[0] = pix0;
+    stackCur++;
+
+    pixR = (pix0 >> 16) & 0xFF;
+    pixG = (pix0 >>  8) & 0xFF;
+    pixB = (pix0      ) & 0xFF;
+    pixA = (pix0 >> 24);
+
+    sumR += pixR;
+    sumG += pixG;
+    sumB += pixB;
+    sumA += pixA;
+
+    for (i = 1; i <= radius; i++)
+    {
+      if (i <= max)
+      {
+        srcCur += srcStride;
+        pix0 = READ_32(srcCur);
+      }
+      else 
+      {
+        pix0 = rBorderColor;
+      }
+
+      stackCur[0] = pix0;
+      stackCur++;
+
+      pixR = (pix0 >> 16) & 0xFF;
+      pixG = (pix0 >>  8) & 0xFF;
+      pixB = (pix0      ) & 0xFF;
+      pixA = (pix0 >> 24);
+
+      sumR += pixR;
+      sumG += pixG;
+      sumB += pixB;
+      sumA += pixA;
+    }
+
+    xp = fog_min(radius, max);
+
+    srcCur = src + xp * srcStride;
+    dstCur = dst;
+
+    stackCur = stack;
+
+    for (pos1 = 0; pos1 < dym1; pos1++)
+    {
+      ((uint32_t*)dstCur)[0] = 
+        (((sumR * sumMul) >> sumShr) << 16) |
+        (((sumG * sumMul) >> sumShr) <<  8) |
+        (((sumB * sumMul) >> sumShr)      ) |
+        (((sumA * sumMul) >> sumShr) << 24) ;
+      dstCur += dstStride;
+
+      pix0 = stackCur[0];
+
+      pixR = (pix0 >> 16) & 0xFF;
+      pixG = (pix0 >>  8) & 0xFF;
+      pixB = (pix0      ) & 0xFF;
+      pixA = (pix0 >> 24);
+
+      sumR -= pixR;
+      sumG -= pixG;
+      sumB -= pixB;
+      sumA -= pixA;
+
+      if (xp < max)
+      {
+        ++xp;
+        srcCur += srcStride;
+        pix0 = READ_32(srcCur);
+      }
+      else
+      {
+        pix0 = rBorderColor;
+      }
+
+      stackCur[0] = pix0;
+
+      pixR    = (pix0 >> 16) & 0xFF;
+      pixG    = (pix0 >>  8) & 0xFF;
+      pixB    = (pix0      ) & 0xFF;
+      pixA    = (pix0 >> 24);
+
+      sumR += pixR;
+      sumG += pixG;
+      sumB += pixB;
+      sumA += pixA;
+
+      stackCur += 1;
+      if (stackCur == stackEnd) stackCur = stack;
+    }
+
+    src += 4;
     dst += 4;
-    src += srcStride;
   }
 }
 
-static void FOG_FASTCALL boxBlurConvolve_rgb24(
+static void FOG_FASTCALL boxBlurConvolveH_rgb24(
   uint8_t* dst, sysint_t dstStride,
   const uint8_t* src, sysint_t srcStride,
   int width, int height, int radius,
   int borderMode, uint32_t borderColor)
 {
-  if (radius == 0)
+  if (radius == 0 || width < 2)
   {
-    transpose_32(dst, dstStride, src, srcStride, width, height);
+    if (dst != src) functionMap->filters.copyArea[Image::FormatRGB24](dst, dstStride, src, srcStride, width, height);
     return;
   }
+
+  if (radius > 254) radius = 254;
+
+  sysint_t dym1 = width;
+  sysint_t dym2 = height;
+  sysint_t max = dym1 - 1;
+  sysint_t end = max * 3;
 
   uint8_t* dstCur;
   const uint8_t* srcCur;
 
-  // Setup box blur mask.
-  int radius2 = radius * 2;
-  int size = radius2 + 1;
-  int widthMax = width - radius - 1;
+  sysint_t pos1;
+  sysint_t pos2;
+  sysint_t xp, i;
 
-  // Accumulate loop sizes.
-  int accumulateUnderflow = radius;
-  int accumulateLoopSize = fog_min(width, radius + 1);
-  int accumulateOverflow = radius + 1 - accumulateLoopSize;
+  uint size = (uint)radius * 2 + 1;
 
-  // Hot inner loops.
-  bool tooSmallImage = width <= size;
-  int firstLoopStop = (tooSmallImage) ? width : radius;
-  int secondLoopStop = (tooSmallImage) ? 0 : (width - radius);
+  uint sumMul = getReciprocal(size);
+  uint sumShr = 16;
 
-  sysint_t i, j;
-  sysint_t x, y;
+  uint8_t stack[512*3];
+  uint8_t* stackEnd = stack + size * 3;
+  uint8_t* stackCur;
 
-  uint32_t reciprocal = getReciprocal(size);
+  uint32_t lBorderColorR = (borderColor >> 16) & 0xFF;
+  uint32_t lBorderColorG = (borderColor >>  8) & 0xFF;
+  uint32_t lBorderColorB = (borderColor      ) & 0xFF;
+  uint32_t rBorderColorR = lBorderColorR;
+  uint32_t rBorderColorG = lBorderColorG;
+  uint32_t rBorderColorB = lBorderColorB;
 
-  uint32_t leftEdgeR = (borderColor >> 16) & 0xFF;
-  uint32_t leftEdgeG = (borderColor >>  8) & 0xFF;
-  uint32_t leftEdgeB = (borderColor      ) & 0xFF;
-
-  uint32_t rightEdgeR = leftEdgeR;
-  uint32_t rightEdgeG = leftEdgeG;
-  uint32_t rightEdgeB = leftEdgeB;
-
-  for (y = 0; y < height; y++)
+  for (pos2 = 0; pos2 < dym2; pos2++)
   {
-    // Accumulators.
-    uint32_t cr, cg, cb;
+    uint32_t pixR;
+    uint32_t pixG;
+    uint32_t pixB;
 
-    // Setup raster pointers.
-    dstCur = dst;
+    uint32_t sumR = 0;
+    uint32_t sumG = 0;
+    uint32_t sumB = 0;
+
     srcCur = src;
 
-    // Setup borders if needed.
     if (borderMode == ImageFilter::ExtendBorderMode)
     {
-      leftEdgeR = srcCur[Raster::RGB24_RByte];
-      leftEdgeG = srcCur[Raster::RGB24_GByte];
-      leftEdgeB = srcCur[Raster::RGB24_BByte];
+      lBorderColorR = srcCur[RGB24_RByte];
+      lBorderColorG = srcCur[RGB24_GByte];
+      lBorderColorB = srcCur[RGB24_BByte];
 
-      rightEdgeR = srcCur[(width-1)*3 + Raster::RGB24_RByte];
-      rightEdgeG = srcCur[(width-1)*3 + Raster::RGB24_GByte];
-      rightEdgeB = srcCur[(width-1)*3 + Raster::RGB24_BByte];
+      rBorderColorR = srcCur[RGB24_RByte + end];
+      rBorderColorG = srcCur[RGB24_GByte + end];
+      rBorderColorB = srcCur[RGB24_BByte + end];
     }
 
-    // Accumulate left border values.
-    cr = leftEdgeR * accumulateUnderflow;
-    cg = leftEdgeG * accumulateUnderflow;
-    cb = leftEdgeB * accumulateUnderflow;
+    pixR = lBorderColorR;
+    pixG = lBorderColorG;
+    pixB = lBorderColorB;
 
-    // Accumulate inner pixels.
-    // In normal case accumulateLoopSize is equal to radius+1.
+    stackCur = stack;
+
+    for (i = 0; i < radius; i++)
     {
-      const uint8_t* srcCurInner = srcCur;
-      for (i = 0; i < accumulateLoopSize; i++, srcCurInner += 3)
-      {
-        cr = srcCurInner[Raster::RGB24_RByte];
-        cg = srcCurInner[Raster::RGB24_GByte];
-        cb = srcCurInner[Raster::RGB24_BByte];
-      }
+      stackCur[RGB24_RByte] = pixR;
+      stackCur[RGB24_GByte] = pixR;
+      stackCur[RGB24_BByte] = pixR;
+      stackCur += 3;
+
+      sumR += pixR;
+      sumG += pixG;
+      sumB += pixB;
     }
 
-    // Accumulate right border values.
-    // This happen only if blur radius is larger or equal as width.
-    cr += rightEdgeR * accumulateOverflow;
-    cg += rightEdgeG * accumulateOverflow;
-    cb += rightEdgeB * accumulateOverflow;
+    pixR = srcCur[RGB24_RByte];
+    pixG = srcCur[RGB24_GByte];
+    pixB = srcCur[RGB24_BByte];
 
-    x = 0;
-    j = firstLoopStop;
+    stackCur[RGB24_RByte] = pixR;
+    stackCur[RGB24_GByte] = pixG;
+    stackCur[RGB24_BByte] = pixB;
+    stackCur += 3;
 
-    // Loop with bound checking supporting borders.
-again:
-    while (x < j)
+    sumR += pixR;
+    sumG += pixG;
+    sumB += pixB;
+
+    for (i = 1; i <= radius; i++)
     {
-      dstCur[Raster::RGB24_RByte] = (cr * reciprocal) >> 16;
-      dstCur[Raster::RGB24_GByte] = (cg * reciprocal) >> 16;
-      dstCur[Raster::RGB24_BByte] = (cb * reciprocal) >> 16;
-
-      if (x >= radius)
+      if (i <= max)
       {
-        const uint8_t* srcCurInner = srcCur - radius*3;
-        cr -= srcCurInner[Raster::RGB24_RByte];
-        cg -= srcCurInner[Raster::RGB24_GByte];
-        cb -= srcCurInner[Raster::RGB24_BByte];
-      }
-      else
-      {
-        cr -= leftEdgeR;
-        cg -= leftEdgeG;
-        cb -= leftEdgeB;
-      }
-
-      if (x < widthMax)
-      {
-        const uint8_t* srcCurInner = srcCur + ((radius+1)*3);
-        cr += srcCurInner[Raster::RGB24_RByte];
-        cg += srcCurInner[Raster::RGB24_GByte];
-        cb += srcCurInner[Raster::RGB24_BByte];
-      }
-      else
-      {
-        cr += rightEdgeR;
-        cg += rightEdgeG;
-        cb += rightEdgeB;
-      }
-
-      dstCur += dstStride;
-      srcCur += 3;
-      x++;
-    }
-
-    // Loop without bound checking not supporting borders.
-    if (x != width)
-    {
-      j = secondLoopStop;
-
-      while (x < j)
-      {
-        dstCur[Raster::RGB24_RByte] = (cr * reciprocal) >> 16;
-        dstCur[Raster::RGB24_GByte] = (cg * reciprocal) >> 16;
-        dstCur[Raster::RGB24_BByte] = (cb * reciprocal) >> 16;
-
-        const uint8_t* srcCurInner;
-
-        srcCurInner = srcCur - radius*3;
-        cr -= srcCurInner[Raster::RGB24_RByte];
-        cg -= srcCurInner[Raster::RGB24_GByte];
-        cb -= srcCurInner[Raster::RGB24_BByte];
-
-        srcCurInner = srcCur + ((radius+1)*3);
-        cr += srcCurInner[Raster::RGB24_RByte];
-        cg += srcCurInner[Raster::RGB24_GByte];
-        cb += srcCurInner[Raster::RGB24_BByte];
-
-        dstCur += dstStride;
         srcCur += 3;
-        x++;
+        pixR = srcCur[RGB24_RByte];
+        pixG = srcCur[RGB24_GByte];
+        pixB = srcCur[RGB24_BByte];
+      }
+      else 
+      {
+        pixR = rBorderColorR;
+        pixG = rBorderColorG;
+        pixB = rBorderColorB;
       }
 
-      j = width;
-      goto again;
+      stackCur[RGB24_RByte] = pixR;
+      stackCur[RGB24_GByte] = pixG;
+      stackCur[RGB24_BByte] = pixB;
+      stackCur += 3;
+
+      sumR += pixR;
+      sumG += pixG;
+      sumB += pixB;
     }
 
-    dst += 3;
+    xp = fog_min(radius, max);
+
+    srcCur = src + xp * 3;
+    dstCur = dst;
+
+    stackCur = stack;
+
+    for (pos1 = 0; pos1 < dym1; pos1++)
+    {
+      dstCur[RGB24_RByte] = (sumR * sumMul) >> sumShr;
+      dstCur[RGB24_GByte] = (sumG * sumMul) >> sumShr;
+      dstCur[RGB24_BByte] = (sumB * sumMul) >> sumShr;
+      dstCur += 3;
+
+      pixR = stackCur[RGB24_RByte];
+      pixG = stackCur[RGB24_GByte];
+      pixB = stackCur[RGB24_BByte];
+
+      sumR -= pixR;
+      sumG -= pixG;
+      sumB -= pixB;
+
+      if (xp < max)
+      {
+        ++xp;
+        srcCur += 3;
+        pixR = srcCur[RGB24_RByte];
+        pixG = srcCur[RGB24_GByte];
+        pixB = srcCur[RGB24_BByte];
+      }
+      else
+      {
+        pixR = rBorderColorR;
+        pixG = rBorderColorG;
+        pixB = rBorderColorB;
+      }
+
+      stackCur[RGB24_RByte] = pixR;
+      stackCur[RGB24_GByte] = pixG;
+      stackCur[RGB24_BByte] = pixB;
+      stackCur += 3;
+
+      sumR += pixR;
+      sumG += pixG;
+      sumB += pixB;
+
+      stackCur += 3;
+      if (stackCur == stackEnd) stackCur = stack;
+    }
+
     src += srcStride;
+    dst += dstStride;
   }
 }
 
-static void FOG_FASTCALL boxBlurConvolve_a8(
+static void FOG_FASTCALL boxBlurConvolveV_rgb24(
   uint8_t* dst, sysint_t dstStride,
   const uint8_t* src, sysint_t srcStride,
   int width, int height, int radius,
   int borderMode, uint32_t borderColor)
 {
-  if (radius == 0)
+  if (radius == 0 || height < 2)
   {
-    transpose_32(dst, dstStride, src, srcStride, width, height);
+    if (dst != src) functionMap->filters.copyArea[Image::FormatRGB24](dst, dstStride, src, srcStride, width, height);
     return;
   }
+
+  if (radius > 254) radius = 254;
+
+  sysint_t dym1 = height;
+  sysint_t dym2 = width;
+  sysint_t max = dym1 - 1;
+  sysint_t end = max * srcStride;
 
   uint8_t* dstCur;
   const uint8_t* srcCur;
 
-  // Setup box blur mask.
-  int radius2 = radius * 2;
-  int size = radius2 + 1;
-  int widthMax = width - radius - 1;
+  sysint_t pos1;
+  sysint_t pos2;
+  sysint_t xp, i;
 
-  // Accumulate loop sizes.
-  int accumulateUnderflow = radius;
-  int accumulateLoopSize = fog_min(width, radius + 1);
-  int accumulateOverflow = radius + 1 - accumulateLoopSize;
+  uint size = (uint)radius * 2 + 1;
 
-  // Hot inner loops.
-  bool tooSmallImage = width <= size;
-  int firstLoopStop = (tooSmallImage) ? width : radius;
-  int secondLoopStop = (tooSmallImage) ? 0 : (width - radius);
+  uint sumMul = getReciprocal(size);
+  uint sumShr = 16;
 
-  sysint_t i, j;
-  sysint_t x, y;
+  uint8_t stack[512*3];
+  uint8_t* stackEnd = stack + size * 3;
+  uint8_t* stackCur;
 
-  uint32_t reciprocal = getReciprocal(size);
+  uint32_t lBorderColorR = (borderColor >> 16) & 0xFF;
+  uint32_t lBorderColorG = (borderColor >>  8) & 0xFF;
+  uint32_t lBorderColorB = (borderColor      ) & 0xFF;
+  uint32_t rBorderColorR = lBorderColorR;
+  uint32_t rBorderColorG = lBorderColorG;
+  uint32_t rBorderColorB = lBorderColorB;
 
-  uint32_t leftEdge = borderColor & 0xFF;
-  uint32_t rightEdge = leftEdge;
-
-  for (y = 0; y < height; y++)
+  for (pos2 = 0; pos2 < dym2; pos2++)
   {
-    // Accumulators.
-    uint32_t ca;
+    uint32_t pixR;
+    uint32_t pixG;
+    uint32_t pixB;
 
-    // Setup raster pointers.
-    dstCur = dst;
+    uint32_t sumR = 0;
+    uint32_t sumG = 0;
+    uint32_t sumB = 0;
+
     srcCur = src;
 
-    // Setup borders if needed.
     if (borderMode == ImageFilter::ExtendBorderMode)
     {
-      leftEdge = srcCur[0];
-      rightEdge = srcCur[width-1];
+      lBorderColorR = srcCur[RGB24_RByte];
+      lBorderColorG = srcCur[RGB24_GByte];
+      lBorderColorB = srcCur[RGB24_BByte];
+
+      rBorderColorR = srcCur[RGB24_RByte + end];
+      rBorderColorG = srcCur[RGB24_GByte + end];
+      rBorderColorB = srcCur[RGB24_BByte + end];
     }
 
-    // Accumulate left border values.
-    ca = leftEdge * accumulateUnderflow;
+    pixR = lBorderColorR;
+    pixG = lBorderColorG;
+    pixB = lBorderColorB;
 
-    // Accumulate inner pixels.
-    // In normal case accumulateLoopSize is equal to radius+1.
+    stackCur = stack;
+
+    for (i = 0; i < radius; i++)
     {
-      const uint8_t* srcCurInner = srcCur;
-      for (i = 0; i < accumulateLoopSize; i++, srcCurInner++)
-      {
-        ca = srcCurInner[0];
-      }
+      stackCur[RGB24_RByte] = pixR;
+      stackCur[RGB24_GByte] = pixR;
+      stackCur[RGB24_BByte] = pixR;
+      stackCur += 3;
+
+      sumR += pixR;
+      sumG += pixG;
+      sumB += pixB;
     }
 
-    // Accumulate right border values.
-    // This happen only if blur radius is larger or equal as width.
-    ca += rightEdge * accumulateOverflow;
+    pixR = srcCur[RGB24_RByte];
+    pixG = srcCur[RGB24_GByte];
+    pixB = srcCur[RGB24_BByte];
 
-    x = 0;
-    j = firstLoopStop;
+    stackCur[RGB24_RByte] = pixR;
+    stackCur[RGB24_GByte] = pixG;
+    stackCur[RGB24_BByte] = pixB;
+    stackCur += 3;
 
-    // Loop with bound checking supporting borders.
-again:
-    while (x < j)
+    sumR += pixR;
+    sumG += pixG;
+    sumB += pixB;
+
+    for (i = 1; i <= radius; i++)
     {
-      dstCur[0] = (ca * reciprocal) >> 16;
-
-      if (x >= radius)
+      if (i <= max)
       {
-        const uint8_t* srcCurInner = srcCur - radius;
-        ca -= srcCurInner[0];
+        srcCur += srcStride;
+        pixR = srcCur[RGB24_RByte];
+        pixG = srcCur[RGB24_GByte];
+        pixB = srcCur[RGB24_BByte];
       }
-      else
+      else 
       {
-        ca -= leftEdge;
-      }
-
-      if (x < widthMax)
-      {
-        const uint8_t* srcCurInner = srcCur + (radius+1);
-        ca += srcCurInner[0];
-      }
-      else
-      {
-        ca += rightEdge;
+        pixR = rBorderColorR;
+        pixG = rBorderColorG;
+        pixB = rBorderColorB;
       }
 
+      stackCur[RGB24_RByte] = pixR;
+      stackCur[RGB24_GByte] = pixG;
+      stackCur[RGB24_BByte] = pixB;
+      stackCur += 3;
+
+      sumR += pixR;
+      sumG += pixG;
+      sumB += pixB;
+    }
+
+    xp = fog_min(radius, max);
+
+    srcCur = src + xp * srcStride;
+    dstCur = dst;
+
+    stackCur = stack;
+
+    for (pos1 = 0; pos1 < dym1; pos1++)
+    {
+      dstCur[RGB24_RByte] = (sumR * sumMul) >> sumShr;
+      dstCur[RGB24_GByte] = (sumG * sumMul) >> sumShr;
+      dstCur[RGB24_BByte] = (sumB * sumMul) >> sumShr;
       dstCur += dstStride;
-      srcCur += 1;
-      x++;
-    }
 
-    // Loop without bound checking not supporting borders.
-    if (x != width)
-    {
-      j = secondLoopStop;
+      pixR = stackCur[RGB24_RByte];
+      pixG = stackCur[RGB24_GByte];
+      pixB = stackCur[RGB24_BByte];
 
-      while (x < j)
+      sumR -= pixR;
+      sumG -= pixG;
+      sumB -= pixB;
+
+      if (xp < max)
       {
-        dstCur[0] = (ca * reciprocal) >> 16;
-
-        ca -= srcCur[-radius];
-
-        dstCur += dstStride;
-        srcCur += 1;
-
-        ca += srcCur[radius];
-
-        x++;
+        ++xp;
+        srcCur += srcStride;
+        pixR = srcCur[RGB24_RByte];
+        pixG = srcCur[RGB24_GByte];
+        pixB = srcCur[RGB24_BByte];
+      }
+      else
+      {
+        pixR = rBorderColorR;
+        pixG = rBorderColorG;
+        pixB = rBorderColorB;
       }
 
-      j = width;
-      goto again;
+      stackCur[RGB24_RByte] = pixR;
+      stackCur[RGB24_GByte] = pixG;
+      stackCur[RGB24_BByte] = pixB;
+      stackCur += 3;
+
+      sumR += pixR;
+      sumG += pixG;
+      sumB += pixB;
+
+      stackCur += 3;
+      if (stackCur == stackEnd) stackCur = stack;
     }
 
-    dst += 1;
+    src += 3;
+    dst += 3;
+  }
+}
+
+static void FOG_FASTCALL boxBlurConvolveH_a8(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height, int radius,
+  int borderMode, uint32_t borderColor)
+{
+  if (radius == 0 || width < 2)
+  {
+    if (dst != src) functionMap->filters.copyArea[Image::FormatA8](dst, dstStride, src, srcStride, width, height);
+    return;
+  }
+
+  if (radius > 254) radius = 254;
+
+  sysint_t dym1 = width;
+  sysint_t dym2 = height;
+  sysint_t max = dym1 - 1;
+  sysint_t end = max;
+
+  uint8_t* dstCur;
+  const uint8_t* srcCur;
+
+  sysint_t pos1;
+  sysint_t pos2;
+  sysint_t xp, i;
+
+  uint size = (uint)radius * 2 + 1;
+
+  uint sumMul = getReciprocal(size);
+  uint sumShr = 16;
+
+  uint8_t stack[512];
+  uint8_t* stackEnd = stack + size;
+  uint8_t* stackCur;
+
+  uint32_t lBorderColor = borderColor;
+  uint32_t rBorderColor = borderColor;
+
+  for (pos2 = 0; pos2 < dym2; pos2++)
+  {
+    uint32_t pix;
+    uint32_t sum = 0;
+
+    srcCur = src;
+
+    if (borderMode == ImageFilter::ExtendBorderMode)
+    {
+      lBorderColor = srcCur[0];
+      rBorderColor = srcCur[end];
+    }
+
+    pix = lBorderColor;
+
+    stackCur = stack;
+
+    for (i = 0; i < radius; i++)
+    {
+      stackCur[0] = pix;
+      stackCur++;
+
+      sum += pix;
+    }
+
+    pix = srcCur[0];
+    stackCur[0] = pix;
+    stackCur++;
+
+    sum += pix;
+
+    for (i = 1; i <= radius; i++)
+    {
+      if (i <= max)
+      {
+        srcCur += 1;
+        pix = srcCur[0];
+      }
+      else 
+      {
+        pix = rBorderColor;
+      }
+
+      stackCur[0] = pix;
+      stackCur++;
+
+      sum += pix;
+    }
+
+    xp = fog_min(radius, max);
+
+    srcCur = src + xp;
+    dstCur = dst;
+
+    stackCur = stack;
+
+    for (pos1 = 0; pos1 < dym1; pos1++)
+    {
+      dstCur[0] = (sum * sumMul) >> sumShr;
+      dstCur += 1;
+
+      pix = stackCur[0];
+      sum -= pix;
+
+      if (xp < max)
+      {
+        ++xp;
+        srcCur += 1;
+        pix = srcCur[0];
+      }
+      else
+      {
+        pix = rBorderColor;
+      }
+
+      stackCur[0] = pix;
+      sum += pix;
+
+      stackCur += 1;
+      if (stackCur == stackEnd) stackCur = stack;
+    }
+
     src += srcStride;
+    dst += dstStride;
+  }
+}
+
+static void FOG_FASTCALL boxBlurConvolveV_a8(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height, int radius,
+  int borderMode, uint32_t borderColor)
+{
+  if (radius == 0 || height < 2)
+  {
+    if (dst != src) functionMap->filters.copyArea[Image::FormatA8](dst, dstStride, src, srcStride, width, height);
+    return;
+  }
+
+  if (radius > 254) radius = 254;
+
+  sysint_t dym1 = height;
+  sysint_t dym2 = width;
+  sysint_t max = dym1 - 1;
+  sysint_t end = max * srcStride;
+
+  uint8_t* dstCur;
+  const uint8_t* srcCur;
+
+  sysint_t pos1;
+  sysint_t pos2;
+  sysint_t xp, i;
+
+  uint size = (uint)radius * 2 + 1;
+
+  uint sumMul = getReciprocal(size);
+  uint sumShr = 16;
+
+  uint8_t stack[512];
+  uint8_t* stackEnd = stack + size;
+  uint8_t* stackCur;
+
+  uint32_t lBorderColor = borderColor;
+  uint32_t rBorderColor = borderColor;
+
+  for (pos2 = 0; pos2 < dym2; pos2++)
+  {
+    uint32_t pix;
+    uint32_t sum = 0;
+
+    srcCur = src;
+
+    if (borderMode == ImageFilter::ExtendBorderMode)
+    {
+      lBorderColor = srcCur[0];
+      rBorderColor = srcCur[end];
+    }
+
+    pix = lBorderColor;
+    stackCur = stack;
+
+    for (i = 0; i < radius; i++)
+    {
+      stackCur[0] = pix;
+      stackCur++;
+
+      sum += pix;
+    }
+
+    pix = srcCur[0];
+    stackCur[0] = pix;
+    stackCur++;
+
+    sum += pix;
+
+    for (i = 1; i <= radius; i++)
+    {
+      if (i <= max)
+      {
+        srcCur += srcStride;
+        pix = srcCur[0];
+      }
+      else 
+      {
+        pix = rBorderColor;
+      }
+
+      stackCur[0] = pix;
+      stackCur++;
+
+      sum += pix;
+    }
+
+    xp = fog_min(radius, max);
+
+    srcCur = src + xp * srcStride;
+    dstCur = dst;
+
+    stackCur = stack;
+
+    for (pos1 = 0; pos1 < dym1; pos1++)
+    {
+      dstCur[0] = (sum * sumMul) >> sumShr;
+      dstCur += dstStride;
+
+      pix = stackCur[0];
+      sum -= pix;
+
+      if (xp < max)
+      {
+        ++xp;
+        srcCur += srcStride;
+        pix = srcCur[0];
+      }
+      else
+      {
+        pix = rBorderColor;
+      }
+
+      stackCur[0] = pix;
+      sum += pix;
+
+      stackCur += 1;
+      if (stackCur == stackEnd) stackCur = stack;
+    }
+
+    src += 1;
+    dst += 1;
   }
 }
 
@@ -1204,7 +1720,7 @@ again:
 // [Fog::Raster_C - StackBlur]
 // ============================================================================
 
-static const uint16_t stack_blur8_mul[255] = 
+static const uint16_t stackBlur8Mul[255] = 
 {
   512, 512, 456, 512, 328, 456, 335, 512, 405, 328, 271, 456, 388, 335, 292, 512,
   454, 405, 364, 328, 298, 271, 496, 456, 420, 388, 360, 335, 312, 292, 273, 512,
@@ -1224,7 +1740,7 @@ static const uint16_t stack_blur8_mul[255] =
   289, 287, 285, 282, 280, 278, 275, 273, 271, 269, 267, 265, 263, 261, 259
 };
 
-static const uint8_t stack_blur8_shr[255] = 
+static const uint8_t stackBlur8Shr[255] = 
 {
   9 , 11, 12, 13, 13, 14, 14, 15, 15, 15, 15, 16, 16, 16, 16, 17, 
   17, 17, 17, 17, 17, 17, 18, 18, 18, 18, 18, 18, 18, 18, 18, 19, 
@@ -1244,45 +1760,44 @@ static const uint8_t stack_blur8_shr[255] =
   24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24
 };
 
-static void FOG_FASTCALL stackBlurConvolve_argb32(
+static void FOG_FASTCALL stackBlurConvolveH_argb32(
   uint8_t* dst, sysint_t dstStride,
   const uint8_t* src, sysint_t srcStride,
   int width, int height, int radius,
   int borderMode, uint32_t borderColor)
 {
-  if (radius == 0)
+  if (radius == 0 || width < 2)
   {
-    transpose_32(dst, dstStride, src, srcStride, width, height);
+    if (dst != src) functionMap->filters.copyArea[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
     return;
   }
 
-  uint x, y, xp, i;
-  uint stackPtr;
-  uint stackStart;
+  if (radius > 254) radius = 254;
+
+  sysint_t dym1 = width;
+  sysint_t dym2 = height;
+  sysint_t max = dym1 - 1;
+  sysint_t end = max * 4;
 
   uint8_t* dstCur;
   const uint8_t* srcCur;
-  uint32_t* stackCur;
 
-  uint w   = (uint)width;
-  uint h   = (uint)height;
-  uint wm  = w - 1;
-  uint hm  = h - 1;
+  sysint_t pos1;
+  sysint_t pos2;
+  sysint_t xp, i;
 
-  uint div;
-  uint sumMul;
-  uint sumShr;
-
-  if (radius > 254) radius = 254;
-  div = radius * 2 + 1;
-  sumMul = stack_blur8_mul[radius];
-  sumShr = stack_blur8_shr[radius];
+  uint sumMul = functionMap->filters.stackBlur8Mul[radius];
+  uint sumShr = functionMap->filters.stackBlur8Shr[radius];
 
   uint32_t stack[512];
-  uint32_t leftEdgeColor = borderColor;
-  uint32_t rightEdgeColor = borderColor;
+  uint32_t* stackEnd = stack + (radius * 2 + 1);
+  uint32_t* stackLeft;
+  uint32_t* stackRight;
 
-  for (y = 0; y < h; y++)
+  uint32_t lBorderColor = borderColor;
+  uint32_t rBorderColor = borderColor;
+
+  for (pos2 = 0; pos2 < dym2; pos2++)
   {
     uint32_t pix0;
     uint32_t pixR;
@@ -1309,20 +1824,22 @@ static void FOG_FASTCALL stackBlurConvolve_argb32(
 
     if (borderMode == ImageFilter::ExtendBorderMode)
     {
-      leftEdgeColor = ((const uint32_t*)srcCur)[0];
-      rightEdgeColor = ((const uint32_t*)srcCur)[wm];
+      lBorderColor = READ_32(srcCur);
+      rBorderColor = READ_32(srcCur + end);
     }
 
-    pix0 = leftEdgeColor;
+    pix0 = lBorderColor;
     pixR = (pix0 >> 16) & 0xFF;
     pixG = (pix0 >>  8) & 0xFF;
     pixB = (pix0      ) & 0xFF;
     pixA = (pix0 >> 24);
 
-    for (i = 0; i <= (uint)radius; i++)
+    stackLeft = stack;
+
+    for (i = 0; i < radius; i++)
     {
-      stackCur    = &stack[i];
-      stackCur[0] = pix0;
+      stackLeft[0] = pix0;
+      stackLeft++;
 
       sumR            += pixR * (i + 1);
       sumG            += pixG * (i + 1);
@@ -1335,16 +1852,35 @@ static void FOG_FASTCALL stackBlurConvolve_argb32(
       sumOutA         += pixA;
     }
 
-    for (i = 1; i <= (uint)radius; i++)
+    pix0 = READ_32(srcCur);
+    stackLeft[0] = pix0;
+    stackLeft++;
+
+    pixR = (pix0 >> 16) & 0xFF;
+    pixG = (pix0 >>  8) & 0xFF;
+    pixB = (pix0      ) & 0xFF;
+    pixA = (pix0 >> 24);
+
+    sumR            += pixR * (radius + 1);
+    sumG            += pixG * (radius + 1);
+    sumB            += pixB * (radius + 1);
+    sumA            += pixA * (radius + 1);
+
+    sumOutR         += pixR;
+    sumOutG         += pixG;
+    sumOutB         += pixB;
+    sumOutA         += pixA;
+
+    for (i = 1; i <= radius; i++)
     {
-      if (i <= wm) 
+      if (i <= max)
       {
         srcCur += 4;
-        pix0 = ((const uint32_t*)srcCur)[0];
+        pix0 = READ_32(srcCur);
       }
       else 
       {
-        pix0 = rightEdgeColor;
+        pix0 = rBorderColor;
       }
 
       pixR = (pix0 >> 16) & 0xFF;
@@ -1352,8 +1888,8 @@ static void FOG_FASTCALL stackBlurConvolve_argb32(
       pixB = (pix0      ) & 0xFF;
       pixA = (pix0 >> 24);
 
-      stackCur    = &stack[i + radius];
-      stackCur[0] = pix0;
+      stackLeft[0] = pix0;
+      stackLeft++;
 
       sumR            += pixR * (radius + 1 - i);
       sumG            += pixG * (radius + 1 - i);
@@ -1366,46 +1902,44 @@ static void FOG_FASTCALL stackBlurConvolve_argb32(
       sumInA          += pixA;
     }
 
-    stackPtr = radius;
-    xp = radius;
-    if (xp > wm) xp = wm;
+    xp = fog_min(radius, max);
 
     srcCur = src + xp * 4;
     dstCur = dst;
 
-    for (x = 0; x < w; x++)
+    stackLeft = stack;
+    stackRight = stack + radius;
+
+    for (pos1 = 0; pos1 < dym1; pos1++)
     {
       ((uint32_t*)dstCur)[0] = 
         (((sumR * sumMul) >> sumShr) << 16) |
         (((sumG * sumMul) >> sumShr) <<  8) |
         (((sumB * sumMul) >> sumShr)      ) |
         (((sumA * sumMul) >> sumShr) << 24) ;
-      dstCur += dstStride;
+      dstCur += 4;
 
       sumR -= sumOutR;
       sumG -= sumOutG;
       sumB -= sumOutB;
       sumA -= sumOutA;
 
-      stackStart = stackPtr + div - radius;
-      if (stackStart >= div) stackStart -= div;
-      stackCur = &stack[stackStart];
+      pix0 = stackLeft[0];
 
-      pix0 = stackCur[0];
       sumOutR -= (pix0 >> 16) & 0xFF;
       sumOutG -= (pix0 >>  8) & 0xFF;
       sumOutB -= (pix0      ) & 0xFF;
       sumOutA -= (pix0 >> 24);
 
-      if (xp < wm) 
+      if (xp < max)
       {
-        srcCur += 4;
         ++xp;
-        pix0 = ((const uint32_t*)srcCur)[0];
+        srcCur += 4;
+        pix0 = READ_32(srcCur);
       }
       else
       {
-        pix0 = rightEdgeColor;
+        pix0 = rBorderColor;
       }
 
       pixR    = (pix0 >> 16) & 0xFF;
@@ -1413,7 +1947,7 @@ static void FOG_FASTCALL stackBlurConvolve_argb32(
       pixB    = (pix0      ) & 0xFF;
       pixA    = (pix0 >> 24);
 
-      stackCur[0] = pix0;
+      stackLeft[0] = pix0;
 
       sumInR += pixR;
       sumInG += pixG;
@@ -1425,11 +1959,13 @@ static void FOG_FASTCALL stackBlurConvolve_argb32(
       sumB   += sumInB;
       sumA   += sumInA;
 
-      ++stackPtr;
-      if(stackPtr >= div) stackPtr = 0;
-      stackCur = &stack[stackPtr];
+      stackLeft += 1;
+      stackRight += 1;
 
-      pix0    = stackCur[0];
+      if (stackLeft == stackEnd) stackLeft = stack;
+      if (stackRight == stackEnd) stackRight = stack;
+
+      pix0    = stackRight[0];
       pixR    = (pix0 >> 16) & 0xFF;
       pixG    = (pix0 >>  8) & 0xFF;
       pixB    = (pix0      ) & 0xFF;
@@ -1447,47 +1983,275 @@ static void FOG_FASTCALL stackBlurConvolve_argb32(
     }
 
     src += srcStride;
-    dst += 4;
+    dst += dstStride;
   }
 }
 
-static void FOG_FASTCALL stackBlurConvolve_rgb24(
+static void FOG_FASTCALL stackBlurConvolveV_argb32(
   uint8_t* dst, sysint_t dstStride,
   const uint8_t* src, sysint_t srcStride,
   int width, int height, int radius,
   int borderMode, uint32_t borderColor)
 {
-  if (radius == 0)
+  if (radius == 0 || height < 2)
   {
-    transpose_24(dst, dstStride, src, srcStride, width, height);
+    if (dst != src) functionMap->filters.copyArea[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
     return;
   }
 
-  uint x, y, xp, i;
-  uint stackPtr;
-  uint stackStart;
+  if (radius > 254) radius = 254;
+
+  sysint_t dym1 = height;
+  sysint_t dym2 = width;
+  sysint_t max = dym1 - 1;
+  sysint_t end = max * srcStride;
 
   uint8_t* dstCur;
   const uint8_t* srcCur;
-  uint8_t* stackCur;
 
-  uint w   = (uint)width;
-  uint h   = (uint)height;
-  uint wm  = w - 1;
-  uint hm  = h - 1;
+  sysint_t pos1;
+  sysint_t pos2;
+  sysint_t xp, i;
 
-  uint div;
-  uint sumMul;
-  uint sumShr;
+  uint sumMul = functionMap->filters.stackBlur8Mul[radius];
+  uint sumShr = functionMap->filters.stackBlur8Shr[radius];
+
+  uint32_t stack[512];
+  uint32_t* stackEnd = stack + (radius * 2 + 1);
+  uint32_t* stackLeft;
+  uint32_t* stackRight;
+
+  uint32_t lBorderColor = borderColor;
+  uint32_t rBorderColor = borderColor;
+
+  for (pos2 = 0; pos2 < dym2; pos2++)
+  {
+    uint32_t pix0;
+    uint32_t pixR;
+    uint32_t pixG;
+    uint32_t pixB;
+    uint32_t pixA;
+
+    uint32_t sumR = 0;
+    uint32_t sumG = 0;
+    uint32_t sumB = 0;
+    uint32_t sumA = 0;
+
+    uint32_t sumInR = 0;
+    uint32_t sumInG = 0;
+    uint32_t sumInB = 0;
+    uint32_t sumInA = 0;
+
+    uint32_t sumOutR = 0;
+    uint32_t sumOutG = 0;
+    uint32_t sumOutB = 0;
+    uint32_t sumOutA = 0;
+
+    srcCur = src;
+
+    if (borderMode == ImageFilter::ExtendBorderMode)
+    {
+      lBorderColor = READ_32(srcCur);
+      rBorderColor = READ_32(srcCur + end);
+    }
+
+    pix0 = lBorderColor;
+    pixR = (pix0 >> 16) & 0xFF;
+    pixG = (pix0 >>  8) & 0xFF;
+    pixB = (pix0      ) & 0xFF;
+    pixA = (pix0 >> 24);
+
+    stackLeft = stack;
+
+    for (i = 0; i < radius; i++)
+    {
+      stackLeft[0] = pix0;
+      stackLeft++;
+
+      sumR            += pixR * (i + 1);
+      sumG            += pixG * (i + 1);
+      sumB            += pixB * (i + 1);
+      sumA            += pixA * (i + 1);
+
+      sumOutR         += pixR;
+      sumOutG         += pixG;
+      sumOutB         += pixB;
+      sumOutA         += pixA;
+    }
+
+    pix0 = READ_32(srcCur);
+    stackLeft[0] = pix0;
+    stackLeft++;
+
+    pixR = (pix0 >> 16) & 0xFF;
+    pixG = (pix0 >>  8) & 0xFF;
+    pixB = (pix0      ) & 0xFF;
+    pixA = (pix0 >> 24);
+
+    sumR            += pixR * (radius + 1);
+    sumG            += pixG * (radius + 1);
+    sumB            += pixB * (radius + 1);
+    sumA            += pixA * (radius + 1);
+
+    sumOutR         += pixR;
+    sumOutG         += pixG;
+    sumOutB         += pixB;
+    sumOutA         += pixA;
+
+    for (i = 1; i <= radius; i++)
+    {
+      if (i <= max)
+      {
+        srcCur += srcStride;
+        pix0 = READ_32(srcCur);
+      }
+      else 
+      {
+        pix0 = rBorderColor;
+      }
+
+      pixR = (pix0 >> 16) & 0xFF;
+      pixG = (pix0 >>  8) & 0xFF;
+      pixB = (pix0      ) & 0xFF;
+      pixA = (pix0 >> 24);
+
+      stackLeft[0] = pix0;
+      stackLeft++;
+
+      sumR            += pixR * (radius + 1 - i);
+      sumG            += pixG * (radius + 1 - i);
+      sumB            += pixB * (radius + 1 - i);
+      sumA            += pixA * (radius + 1 - i);
+
+      sumInR          += pixR;
+      sumInG          += pixG;
+      sumInB          += pixB;
+      sumInA          += pixA;
+    }
+
+    xp = fog_min(radius, max);
+
+    srcCur = src + xp * srcStride;
+    dstCur = dst;
+
+    stackLeft = stack;
+    stackRight = stack + radius;
+
+    for (pos1 = 0; pos1 < dym1; pos1++)
+    {
+      ((uint32_t*)dstCur)[0] = 
+        (((sumR * sumMul) >> sumShr) << 16) |
+        (((sumG * sumMul) >> sumShr) <<  8) |
+        (((sumB * sumMul) >> sumShr)      ) |
+        (((sumA * sumMul) >> sumShr) << 24) ;
+      dstCur += dstStride;
+
+      sumR -= sumOutR;
+      sumG -= sumOutG;
+      sumB -= sumOutB;
+      sumA -= sumOutA;
+
+      pix0 = stackLeft[0];
+
+      sumOutR -= (pix0 >> 16) & 0xFF;
+      sumOutG -= (pix0 >>  8) & 0xFF;
+      sumOutB -= (pix0      ) & 0xFF;
+      sumOutA -= (pix0 >> 24);
+
+      if (xp < max) 
+      {
+        srcCur += srcStride;
+        ++xp;
+        pix0 = ((const uint32_t*)srcCur)[0];
+      }
+      else
+      {
+        pix0 = rBorderColor;
+      }
+
+      pixR    = (pix0 >> 16) & 0xFF;
+      pixG    = (pix0 >>  8) & 0xFF;
+      pixB    = (pix0      ) & 0xFF;
+      pixA    = (pix0 >> 24);
+
+      stackLeft[0] = pix0;
+
+      sumInR += pixR;
+      sumInG += pixG;
+      sumInB += pixB;
+      sumInA += pixA;
+
+      sumR   += sumInR;
+      sumG   += sumInG;
+      sumB   += sumInB;
+      sumA   += sumInA;
+
+      stackLeft += 1;
+      stackRight += 1;
+
+      if (stackLeft == stackEnd) stackLeft = stack;
+      if (stackRight == stackEnd) stackRight = stack;
+
+      pix0    = stackRight[0];
+      pixR    = (pix0 >> 16) & 0xFF;
+      pixG    = (pix0 >>  8) & 0xFF;
+      pixB    = (pix0      ) & 0xFF;
+      pixA    = (pix0 >> 24);
+
+      sumOutR += pixR;
+      sumOutG += pixG;
+      sumOutB += pixB;
+      sumOutA += pixA;
+
+      sumInR  -= pixR;
+      sumInG  -= pixG;
+      sumInB  -= pixB;
+      sumInA  -= pixA;
+    }
+
+    src += 4;
+    dst += 4;
+  }
+}
+
+static void FOG_FASTCALL stackBlurConvolveH_rgb24(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height, int radius,
+  int borderMode, uint32_t borderColor)
+{
+  if (radius == 0 || width < 2)
+  {
+    if (dst != src) functionMap->filters.copyArea[Image::FormatRGB24](dst, dstStride, src, srcStride, width, height);
+    return;
+  }
 
   if (radius > 254) radius = 254;
-  div = radius * 2 + 1;
-  sumMul = stack_blur8_mul[radius];
-  sumShr = stack_blur8_shr[radius];
+
+  sysint_t dym1 = width;
+  sysint_t dym2 = height;
+  sysint_t max = dym1 - 1;
+  sysint_t end = max * 3;
+
+  uint8_t* dstCur;
+  const uint8_t* srcCur;
+
+  sysint_t pos1;
+  sysint_t pos2;
+  sysint_t xp, i;
+
+  uint sumMul = functionMap->filters.stackBlur8Mul[radius];
+  uint sumShr = functionMap->filters.stackBlur8Shr[radius];
 
   uint8_t stack[512*3];
+  uint8_t* stackEnd = stack + (radius * 2 + 1) * 3;
+  uint8_t* stackLeft;
+  uint8_t* stackRight;
 
-  for (y = 0; y < h; y++)
+  uint32_t lBorderColor = borderColor;
+  uint32_t rBorderColor = borderColor;
+
+  for (pos2 = 0; pos2 < dym2; pos2++)
   {
     uint32_t pixR;
     uint32_t pixG;
@@ -1505,47 +2269,49 @@ static void FOG_FASTCALL stackBlurConvolve_rgb24(
     uint32_t sumOutG = 0;
     uint32_t sumOutB = 0;
 
-    uint32_t leftEdgeColorR;
-    uint32_t leftEdgeColorG;
-    uint32_t leftEdgeColorB;
+    uint32_t lBorderColorR;
+    uint32_t lBorderColorG;
+    uint32_t lBorderColorB;
 
-    uint32_t rightEdgeColorR;
-    uint32_t rightEdgeColorG;
-    uint32_t rightEdgeColorB;
+    uint32_t rBorderColorR;
+    uint32_t rBorderColorG;
+    uint32_t rBorderColorB;
 
     srcCur = src;
 
     if (borderMode == ImageFilter::ExtendBorderMode)
     {
-      leftEdgeColorR = srcCur[RGB24_RByte];
-      leftEdgeColorG = srcCur[RGB24_GByte];
-      leftEdgeColorB = srcCur[RGB24_BByte];
+      lBorderColorR = srcCur[RGB24_RByte];
+      lBorderColorG = srcCur[RGB24_GByte];
+      lBorderColorB = srcCur[RGB24_BByte];
 
-      rightEdgeColorR = srcCur[wm*3 + RGB24_RByte];
-      rightEdgeColorG = srcCur[wm*3 + RGB24_GByte];
-      rightEdgeColorB = srcCur[wm*3 + RGB24_BByte];
+      rBorderColorR = srcCur[end + RGB24_RByte];
+      rBorderColorG = srcCur[end + RGB24_GByte];
+      rBorderColorB = srcCur[end + RGB24_BByte];
     }
     else
     {
-      leftEdgeColorR = (borderColor >> 16) & 0xFF;
-      leftEdgeColorG = (borderColor >>  8) & 0xFF;
-      leftEdgeColorB = (borderColor      ) & 0xFF;
+      lBorderColorR = (borderColor >> 16) & 0xFF;
+      lBorderColorG = (borderColor >>  8) & 0xFF;
+      lBorderColorB = (borderColor      ) & 0xFF;
 
-      rightEdgeColorR = leftEdgeColorR;
-      rightEdgeColorG = leftEdgeColorG;
-      rightEdgeColorB = leftEdgeColorB;
+      rBorderColorR = lBorderColorR;
+      rBorderColorG = lBorderColorG;
+      rBorderColorB = lBorderColorB;
     }
 
-    pixR = leftEdgeColorR;
-    pixG = leftEdgeColorG;
-    pixB = leftEdgeColorB;
+    pixR = lBorderColorR;
+    pixG = lBorderColorG;
+    pixB = lBorderColorB;
 
-    for (i = 0; i <= (uint)radius; i++)
+    stackLeft = stack;
+
+    for (i = 0; i < radius; i++)
     {
-      stackCur    = &stack[i*3];
-      stackCur[RGB24_RByte] = pixR;
-      stackCur[RGB24_GByte] = pixG;
-      stackCur[RGB24_BByte] = pixB;
+      stackLeft[RGB24_RByte] = pixR;
+      stackLeft[RGB24_GByte] = pixG;
+      stackLeft[RGB24_BByte] = pixB;
+      stackLeft += 3;
 
       sumR            += pixR * (i + 1);
       sumG            += pixG * (i + 1);
@@ -1556,9 +2322,26 @@ static void FOG_FASTCALL stackBlurConvolve_rgb24(
       sumOutB         += pixB;
     }
 
-    for (i = 1; i <= (uint)radius; i++)
+    pixR = srcCur[RGB24_RByte];
+    pixG = srcCur[RGB24_GByte];
+    pixB = srcCur[RGB24_BByte];
+
+    stackLeft[RGB24_RByte] = pixR;
+    stackLeft[RGB24_GByte] = pixG;
+    stackLeft[RGB24_BByte] = pixB;
+    stackLeft += 3;
+
+    sumR            += pixR * (radius + 1);
+    sumG            += pixG * (radius + 1);
+    sumB            += pixB * (radius + 1);
+
+    sumOutR         += pixR;
+    sumOutG         += pixG;
+    sumOutB         += pixB;
+
+    for (i = 1; i <= radius; i++)
     {
-      if (i <= wm) 
+      if (i <= max) 
       {
         srcCur += 3;
         pixR = srcCur[RGB24_RByte];
@@ -1567,15 +2350,15 @@ static void FOG_FASTCALL stackBlurConvolve_rgb24(
       }
       else 
       {
-        pixR = rightEdgeColorR;
-        pixG = rightEdgeColorG;
-        pixB = rightEdgeColorB;
+        pixR = rBorderColorR;
+        pixG = rBorderColorG;
+        pixB = rBorderColorB;
       }
 
-      stackCur    = &stack[(i + radius) * 3];
-      stackCur[RGB24_RByte] = pixR;
-      stackCur[RGB24_GByte] = pixG;
-      stackCur[RGB24_BByte] = pixB;
+      stackLeft[RGB24_RByte] = pixR;
+      stackLeft[RGB24_GByte] = pixG;
+      stackLeft[RGB24_BByte] = pixB;
+      stackLeft += 3;
 
       sumR            += pixR * (radius + 1 - i);
       sumG            += pixG * (radius + 1 - i);
@@ -1586,50 +2369,48 @@ static void FOG_FASTCALL stackBlurConvolve_rgb24(
       sumInB          += pixB;
     }
 
-    stackPtr = radius;
-    xp = radius;
-    if (xp > wm) xp = wm;
+    xp = fog_min(radius, max);
 
     srcCur = src + xp * 3;
     dstCur = dst;
 
-    for (x = 0; x < w; x++)
+    stackLeft = stack;
+    stackRight = stack + radius * 3;
+
+    for (pos1 = 0; pos1 < dym1; pos1++)
     {
       dstCur[RGB24_RByte] = ((sumR * sumMul) >> sumShr);
       dstCur[RGB24_GByte] = ((sumG * sumMul) >> sumShr);
       dstCur[RGB24_BByte] = ((sumB * sumMul) >> sumShr);
-      dstCur += dstStride;
+      dstCur += 3;
 
       sumR -= sumOutR;
       sumG -= sumOutG;
       sumB -= sumOutB;
 
-      stackStart = stackPtr + div - radius;
-      if (stackStart >= div) stackStart -= div;
-      stackCur = &stack[stackStart*3];
+      sumOutR -= stackLeft[RGB24_RByte];
+      sumOutG -= stackLeft[RGB24_GByte];
+      sumOutB -= stackLeft[RGB24_BByte];
 
-      sumOutR -= stackCur[RGB24_RByte];
-      sumOutG -= stackCur[RGB24_GByte];
-      sumOutB -= stackCur[RGB24_BByte];
-
-      if (xp < wm) 
+      if (xp < max) 
       {
         srcCur += 3;
+        ++xp;
+
         pixR = srcCur[RGB24_RByte];
         pixG = srcCur[RGB24_GByte];
         pixB = srcCur[RGB24_BByte];
-        ++xp;
       }
       else
       {
-        pixR = rightEdgeColorR;
-        pixG = rightEdgeColorG;
-        pixB = rightEdgeColorB;
+        pixR = rBorderColorR;
+        pixG = rBorderColorG;
+        pixB = rBorderColorB;
       }
 
-      stackCur[RGB24_RByte] = pixR;
-      stackCur[RGB24_GByte] = pixG;
-      stackCur[RGB24_BByte] = pixB;
+      stackLeft[RGB24_RByte] = pixR;
+      stackLeft[RGB24_GByte] = pixG;
+      stackLeft[RGB24_BByte] = pixB;
 
       sumInR += pixR;
       sumInG += pixG;
@@ -1639,13 +2420,15 @@ static void FOG_FASTCALL stackBlurConvolve_rgb24(
       sumG   += sumInG;
       sumB   += sumInB;
 
-      ++stackPtr;
-      if (stackPtr >= div) stackPtr = 0;
-      stackCur = &stack[stackPtr*3];
+      stackLeft += 3;
+      stackRight += 3;
 
-      pixR    = stackCur[RGB24_RByte];
-      pixG    = stackCur[RGB24_GByte];
-      pixB    = stackCur[RGB24_BByte];
+      if (stackLeft == stackEnd) stackLeft = stack;
+      if (stackRight == stackEnd) stackRight = stack;
+
+      pixR    = stackRight[RGB24_RByte];
+      pixG    = stackRight[RGB24_GByte];
+      pixB    = stackRight[RGB24_BByte];
 
       sumOutR += pixR;
       sumOutG += pixG;
@@ -1657,146 +2440,523 @@ static void FOG_FASTCALL stackBlurConvolve_rgb24(
     }
 
     src += srcStride;
-    dst += 3;
+    dst += dstStride;
   }
 }
 
-static void FOG_FASTCALL stackBlurConvolve_a8(
+static void FOG_FASTCALL stackBlurConvolveV_rgb24(
   uint8_t* dst, sysint_t dstStride,
   const uint8_t* src, sysint_t srcStride,
   int width, int height, int radius,
   int borderMode, uint32_t borderColor)
 {
-  if (radius == 0)
+  if (radius == 0 || height < 2)
   {
-    transpose_8(dst, dstStride, src, srcStride, width, height);
+    if (dst != src) functionMap->filters.copyArea[Image::FormatRGB24](dst, dstStride, src, srcStride, width, height);
     return;
   }
 
-  uint x, y, xp, i;
-  uint stackPtr;
-  uint stackStart;
+  if (radius > 254) radius = 254;
+
+  sysint_t dym1 = height;
+  sysint_t dym2 = width;
+  sysint_t max = dym1 - 1;
+  sysint_t end = max * srcStride;
 
   uint8_t* dstCur;
   const uint8_t* srcCur;
-  uint8_t* stackCur;
 
-  uint w   = (uint)width;
-  uint h   = (uint)height;
-  uint wm  = w - 1;
-  uint hm  = h - 1;
+  sysint_t pos1;
+  sysint_t pos2;
+  sysint_t xp, i;
 
-  uint div;
-  uint sumMul;
-  uint sumShr;
+  uint sumMul = functionMap->filters.stackBlur8Mul[radius];
+  uint sumShr = functionMap->filters.stackBlur8Shr[radius];
+
+  uint8_t stack[512*3];
+  uint8_t* stackEnd = stack + (radius * 2 + 1) * 3;
+  uint8_t* stackLeft;
+  uint8_t* stackRight;
+
+  uint32_t lBorderColor = borderColor;
+  uint32_t rBorderColor = borderColor;
+
+  for (pos2 = 0; pos2 < dym2; pos2++)
+  {
+    uint32_t pixR;
+    uint32_t pixG;
+    uint32_t pixB;
+
+    uint32_t sumR = 0;
+    uint32_t sumG = 0;
+    uint32_t sumB = 0;
+
+    uint32_t sumInR = 0;
+    uint32_t sumInG = 0;
+    uint32_t sumInB = 0;
+
+    uint32_t sumOutR = 0;
+    uint32_t sumOutG = 0;
+    uint32_t sumOutB = 0;
+
+    uint32_t lBorderColorR;
+    uint32_t lBorderColorG;
+    uint32_t lBorderColorB;
+
+    uint32_t rBorderColorR;
+    uint32_t rBorderColorG;
+    uint32_t rBorderColorB;
+
+    srcCur = src;
+
+    if (borderMode == ImageFilter::ExtendBorderMode)
+    {
+      lBorderColorR = srcCur[RGB24_RByte];
+      lBorderColorG = srcCur[RGB24_GByte];
+      lBorderColorB = srcCur[RGB24_BByte];
+
+      rBorderColorR = srcCur[end + RGB24_RByte];
+      rBorderColorG = srcCur[end + RGB24_GByte];
+      rBorderColorB = srcCur[end + RGB24_BByte];
+    }
+    else
+    {
+      lBorderColorR = (borderColor >> 16) & 0xFF;
+      lBorderColorG = (borderColor >>  8) & 0xFF;
+      lBorderColorB = (borderColor      ) & 0xFF;
+
+      rBorderColorR = lBorderColorR;
+      rBorderColorG = lBorderColorG;
+      rBorderColorB = lBorderColorB;
+    }
+
+    pixR = lBorderColorR;
+    pixG = lBorderColorG;
+    pixB = lBorderColorB;
+
+    stackLeft = stack;
+
+    for (i = 0; i < radius; i++)
+    {
+      stackLeft[RGB24_RByte] = pixR;
+      stackLeft[RGB24_GByte] = pixG;
+      stackLeft[RGB24_BByte] = pixB;
+      stackLeft += 3;
+
+      sumR            += pixR * (i + 1);
+      sumG            += pixG * (i + 1);
+      sumB            += pixB * (i + 1);
+
+      sumOutR         += pixR;
+      sumOutG         += pixG;
+      sumOutB         += pixB;
+    }
+
+    pixR = srcCur[RGB24_RByte];
+    pixG = srcCur[RGB24_GByte];
+    pixB = srcCur[RGB24_BByte];
+
+    stackLeft[RGB24_RByte] = pixR;
+    stackLeft[RGB24_GByte] = pixG;
+    stackLeft[RGB24_BByte] = pixB;
+    stackLeft += 3;
+
+    sumR            += pixR * (radius + 1);
+    sumG            += pixG * (radius + 1);
+    sumB            += pixB * (radius + 1);
+
+    sumOutR         += pixR;
+    sumOutG         += pixG;
+    sumOutB         += pixB;
+
+    for (i = 1; i <= radius; i++)
+    {
+      if (i <= max) 
+      {
+        srcCur += srcStride;
+        pixR = srcCur[RGB24_RByte];
+        pixG = srcCur[RGB24_GByte];
+        pixB = srcCur[RGB24_BByte];
+      }
+      else 
+      {
+        pixR = rBorderColorR;
+        pixG = rBorderColorG;
+        pixB = rBorderColorB;
+      }
+
+      stackLeft[RGB24_RByte] = pixR;
+      stackLeft[RGB24_GByte] = pixG;
+      stackLeft[RGB24_BByte] = pixB;
+      stackLeft += 3;
+
+      sumR            += pixR * (radius + 1 - i);
+      sumG            += pixG * (radius + 1 - i);
+      sumB            += pixB * (radius + 1 - i);
+
+      sumInR          += pixR;
+      sumInG          += pixG;
+      sumInB          += pixB;
+    }
+
+    xp = fog_min(radius, max);
+
+    srcCur = src + xp * srcStride;
+    dstCur = dst;
+
+    stackLeft = stack;
+    stackRight = stack + radius * 3;
+
+    for (pos1 = 0; pos1 < dym1; pos1++)
+    {
+      dstCur[RGB24_RByte] = ((sumR * sumMul) >> sumShr);
+      dstCur[RGB24_GByte] = ((sumG * sumMul) >> sumShr);
+      dstCur[RGB24_BByte] = ((sumB * sumMul) >> sumShr);
+      dstCur += dstStride;
+
+      sumR -= sumOutR;
+      sumG -= sumOutG;
+      sumB -= sumOutB;
+
+      sumOutR -= stackLeft[RGB24_RByte];
+      sumOutG -= stackLeft[RGB24_GByte];
+      sumOutB -= stackLeft[RGB24_BByte];
+
+      if (xp < max) 
+      {
+        srcCur += srcStride;
+        ++xp;
+
+        pixR = srcCur[RGB24_RByte];
+        pixG = srcCur[RGB24_GByte];
+        pixB = srcCur[RGB24_BByte];
+      }
+      else
+      {
+        pixR = rBorderColorR;
+        pixG = rBorderColorG;
+        pixB = rBorderColorB;
+      }
+
+      stackLeft[RGB24_RByte] = pixR;
+      stackLeft[RGB24_GByte] = pixG;
+      stackLeft[RGB24_BByte] = pixB;
+
+      sumInR += pixR;
+      sumInG += pixG;
+      sumInB += pixB;
+
+      sumR   += sumInR;
+      sumG   += sumInG;
+      sumB   += sumInB;
+
+      stackLeft += 3;
+      stackRight += 3;
+
+      if (stackLeft == stackEnd) stackLeft = stack;
+      if (stackRight == stackEnd) stackRight = stack;
+
+      pixR    = stackRight[RGB24_RByte];
+      pixG    = stackRight[RGB24_GByte];
+      pixB    = stackRight[RGB24_BByte];
+
+      sumOutR += pixR;
+      sumOutG += pixG;
+      sumOutB += pixB;
+
+      sumInR  -= pixR;
+      sumInG  -= pixG;
+      sumInB  -= pixB;
+    }
+
+    src += 3;
+    dst += 3;
+  }
+}
+
+static void FOG_FASTCALL stackBlurConvolveH_a8(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height, int radius,
+  int borderMode, uint32_t borderColor)
+{
+  if (radius == 0 || width < 2)
+  {
+    if (dst != src) functionMap->filters.copyArea[Image::FormatA8](dst, dstStride, src, srcStride, width, height);
+    return;
+  }
 
   if (radius > 254) radius = 254;
-  div = radius * 2 + 1;
-  sumMul = stack_blur8_mul[radius];
-  sumShr = stack_blur8_shr[radius];
+
+  sysint_t dym1 = width;
+  sysint_t dym2 = height;
+  sysint_t max = dym1 - 1;
+  sysint_t end = max;
+
+  uint8_t* dstCur;
+  const uint8_t* srcCur;
+
+  sysint_t pos1;
+  sysint_t pos2;
+  sysint_t xp, i;
+
+  uint sumMul = functionMap->filters.stackBlur8Mul[radius];
+  uint sumShr = functionMap->filters.stackBlur8Shr[radius];
 
   uint8_t stack[512];
+  uint8_t* stackEnd = stack + (radius * 2 + 1);
+  uint8_t* stackLeft;
+  uint8_t* stackRight;
 
-  for (y = 0; y < h; y++)
+  uint32_t lBorderColor = borderColor;
+  uint32_t rBorderColor = borderColor;
+
+  for (pos2 = 0; pos2 < dym2; pos2++)
   {
     uint32_t pix;
     uint32_t sum = 0;
     uint32_t sumIn = 0;
     uint32_t sumOut = 0;
 
-    uint32_t leftEdgeColor;
-    uint32_t rightEdgeColor;
-
     srcCur = src;
 
     if (borderMode == ImageFilter::ExtendBorderMode)
     {
-      leftEdgeColor = srcCur[0];
-      rightEdgeColor = srcCur[wm];
-    }
-    else
-    {
-      leftEdgeColor = (borderColor >> 16) & 0xFF;
-      rightEdgeColor = leftEdgeColor;
+      lBorderColor = srcCur[0];
+      rBorderColor = srcCur[end];
     }
 
-    pix = leftEdgeColor;
+    pix = lBorderColor;
 
-    for (i = 0; i <= (uint)radius; i++)
+    stackLeft = stack;
+
+    for (i = 0; i < radius; i++)
     {
-      stackCur    = &stack[i];
-      stackCur[0] = pix;
+      stackLeft[0] = pix;
+      stackLeft += 1;
 
       sum            += pix * (i + 1);
       sumOut         += pix;
     }
 
-    for (i = 1; i <= (uint)radius; i++)
+    pix = srcCur[0];
+
+    stackLeft[0] = pix;
+    stackLeft += 1;
+
+    sum            += pix * (radius + 1);
+    sumOut         += pix;
+
+    for (i = 1; i <= radius; i++)
     {
-      if (i <= wm) 
+      if (i <= max) 
       {
         srcCur += 1;
         pix = srcCur[0];
       }
       else 
       {
-        pix = rightEdgeColor;
+        pix = rBorderColor;
       }
 
-      stackCur    = &stack[i + radius];
-      stackCur[0] = pix;
+      stackLeft[0] = pix;
+      stackLeft += 1;
 
       sum            += pix * (radius + 1 - i);
       sumIn          += pix;
     }
 
-    stackPtr = radius;
-    xp = radius;
-    if (xp > wm) xp = wm;
+    xp = fog_min(radius, max);
 
     srcCur = src + xp;
     dstCur = dst;
 
-    for (x = 0; x < w; x++)
+    stackLeft = stack;
+    stackRight = stack + radius;
+
+    for (pos1 = 0; pos1 < dym1; pos1++)
     {
       dstCur[0] = ((sum * sumMul) >> sumShr);
-      dstCur += dstStride;
+      dstCur += 1;
 
       sum -= sumOut;
+      sumOut -= stackLeft[0];
 
-      stackStart = stackPtr + div - radius;
-      if (stackStart >= div) stackStart -= div;
-      stackCur = &stack[stackStart];
-
-      sumOut -= stackCur[0];
-
-      if (xp < wm) 
+      if (xp < max) 
       {
         srcCur += 1;
-        pix = srcCur[0];
         ++xp;
+
+        pix = srcCur[0];
       }
       else
       {
-        pix = rightEdgeColor;
+        pix = rBorderColor;
       }
 
-      stackCur[0] = pix;
+      stackLeft[0] = pix;
 
       sumIn += pix;
       sum   += sumIn;
 
-      ++stackPtr;
-      if (stackPtr >= div) stackPtr = 0;
-      stackCur = &stack[stackPtr];
+      stackLeft += 1;
+      stackRight += 1;
 
-      pix    = stackCur[0];
+      if (stackLeft == stackEnd) stackLeft = stack;
+      if (stackRight == stackEnd) stackRight = stack;
+
+      pix    = stackRight[0];
 
       sumOut += pix;
       sumIn  -= pix;
     }
 
     src += srcStride;
+    dst += dstStride;
+  }
+}
+
+static void FOG_FASTCALL stackBlurConvolveV_a8(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height, int radius,
+  int borderMode, uint32_t borderColor)
+{
+  if (radius == 0 || height < 2)
+  {
+    if (dst != src) functionMap->filters.copyArea[Image::FormatA8](dst, dstStride, src, srcStride, width, height);
+    return;
+  }
+
+  if (radius > 254) radius = 254;
+
+  sysint_t dym1 = height;
+  sysint_t dym2 = width;
+  sysint_t max = dym1 - 1;
+  sysint_t end = max * srcStride;
+
+  uint8_t* dstCur;
+  const uint8_t* srcCur;
+
+  sysint_t pos1;
+  sysint_t pos2;
+  sysint_t xp, i;
+
+  uint sumMul = functionMap->filters.stackBlur8Mul[radius];
+  uint sumShr = functionMap->filters.stackBlur8Shr[radius];
+
+  uint8_t stack[512];
+  uint8_t* stackEnd = stack + (radius * 2 + 1);
+  uint8_t* stackLeft;
+  uint8_t* stackRight;
+
+  uint32_t lBorderColor = borderColor;
+  uint32_t rBorderColor = borderColor;
+
+  for (pos2 = 0; pos2 < dym2; pos2++)
+  {
+    uint32_t pix;
+    uint32_t sum = 0;
+    uint32_t sumIn = 0;
+    uint32_t sumOut = 0;
+
+    srcCur = src;
+
+    if (borderMode == ImageFilter::ExtendBorderMode)
+    {
+      lBorderColor = srcCur[0];
+      rBorderColor = srcCur[end];
+    }
+    else
+    {
+      lBorderColor = (borderColor >> 24) & 0xFF;
+      rBorderColor = lBorderColor;
+    }
+
+    pix = lBorderColor;
+    stackLeft = stack;
+
+    for (i = 0; i <= radius; i++)
+    {
+      stackLeft[0] = pix;
+      stackLeft += 1;
+
+      sum            += pix * (i + 1);
+      sumOut         += pix;
+    }
+
+    pix = srcCur[0];
+
+    stackLeft[0] = pix;
+    stackLeft += 1;
+
+    sum            += pix * (radius + 1);
+    sumOut         += pix;
+
+    for (i = 1; i < radius; i++)
+    {
+      if (i <= max) 
+      {
+        srcCur += srcStride;
+        pix = srcCur[0];
+      }
+      else 
+      {
+        pix = rBorderColor;
+      }
+
+      stackLeft[0] = pix;
+      stackLeft += 1;
+
+      sum            += pix * (radius + 1 - i);
+      sumIn          += pix;
+    }
+
+    xp = fog_min(radius, max);
+
+    srcCur = src + xp * srcStride;
+    dstCur = dst;
+
+    stackLeft = stack;
+    stackRight = stack + radius;
+
+    for (pos1 = 0; pos1 < dym1; pos1++)
+    {
+      dstCur[0] = ((sum * sumMul) >> sumShr);
+      dstCur += dstStride;
+
+      sum -= sumOut;
+      sumOut -= stackLeft[0];
+
+      if (xp < max) 
+      {
+        srcCur += srcStride;
+        ++xp;
+
+        pix = srcCur[0];
+      }
+      else
+      {
+        pix = rBorderColor;
+      }
+
+      stackLeft[0] = pix;
+
+      sumIn += pix;
+      sum   += sumIn;
+
+      stackLeft += 1;
+      stackRight += 1;
+
+      if (stackLeft == stackEnd) stackLeft = stack;
+      if (stackRight == stackEnd) stackRight = stack;
+
+      pix    = stackRight[0];
+      sumOut += pix;
+      sumIn  -= pix;
+    }
+
+    src += 1;
     dst += 1;
   }
 }

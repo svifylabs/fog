@@ -15,7 +15,17 @@ namespace Fog {
 namespace Raster {
 
 // ============================================================================
-// [Fog::Raster_C - ColorMatrix]
+// [Fog::Raster_SSE2 - HelpersMatrix]
+// ============================================================================
+
+// Get reciprocal for 16-bit value @a val.
+static FOG_INLINE int getReciprocal(int val)
+{
+  return (65536 + val - 1) / val;
+}
+
+// ============================================================================
+// [Fog::Raster_SSE2 - ColorMatrix]
 // ============================================================================
 
 static FOG_INLINE __m128 _loadColorMatrixRow(const double* src)
@@ -215,6 +225,624 @@ static void FOG_FASTCALL colorMatrix_a8_sse2(
 
     pix_pack_from_float(pix, pixf);
     dst[0] = _mm_cvtsi128_si32(pix);
+  }
+}
+
+// ============================================================================
+// [Fog::Raster_SSE2 - BoxBlur]
+// ============================================================================
+
+static void FOG_FASTCALL boxBlurConvolveH_argb32_sse2(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height, int radius,
+  int borderMode, uint32_t borderColor)
+{
+  if (radius == 0 || width < 2)
+  {
+    if (dst != src) functionMap->filters.copyArea[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
+    return;
+  }
+
+  if (radius > 254) radius = 254;
+
+  sysint_t dym1 = width;
+  sysint_t dym2 = height;
+  sysint_t max = dym1 - 1;
+  sysint_t end = max * 4;
+
+  uint8_t* dstCur;
+  const uint8_t* srcCur;
+
+  sysint_t pos1;
+  sysint_t pos2;
+  sysint_t xp, i;
+
+  uint size = (uint)radius * 2 + 1;
+
+  __m128i mmMul = _mm_cvtsi32_si128(getReciprocal(size));
+  __m128i mmShr = _mm_cvtsi32_si128(16);
+  pix_expand_pixel_1x4B(mmMul, mmMul);
+
+  uint32_t stack[512];
+  uint32_t* stackEnd = stack + size;
+  uint32_t* stackCur;
+
+  uint32_t lBorderColor = borderColor;
+  uint32_t rBorderColor = borderColor;
+
+  for (pos2 = 0; pos2 < dym2; pos2++)
+  {
+    uint32_t pix32;
+
+    __m128i pix;
+    __m128i sum = _mm_setzero_si128();
+
+    srcCur = src;
+
+    if (borderMode == ImageFilter::ExtendBorderMode)
+    {
+      lBorderColor = READ_32(srcCur);
+      rBorderColor = READ_32(srcCur + end);
+    }
+
+    pix32 = lBorderColor;
+    pix_unpack_1x1D(pix, pix32);
+
+    stackCur = stack;
+
+    for (i = 0; i < radius; i++)
+    {
+      stackCur[0] = pix32;
+      stackCur++;
+
+      sum = _mm_add_epi32(sum, pix);
+    }
+
+    pix32 = READ_32(srcCur);
+    stackCur[0] = pix32;
+    stackCur++;
+
+    pix_unpack_1x1D(pix, pix32);
+    sum = _mm_add_epi32(sum, pix);
+
+    for (i = 1; i <= radius; i++)
+    {
+      if (i <= max)
+      {
+        srcCur += 4;
+        pix32 = READ_32(srcCur);
+      }
+      else 
+      {
+        pix32 = rBorderColor;
+      }
+
+      stackCur[0] = pix32;
+      stackCur++;
+
+      pix_unpack_1x1D(pix, pix32);
+      sum = _mm_add_epi32(sum, pix);
+    }
+
+    xp = fog_min(radius, max);
+
+    srcCur = src + xp * 4;
+    dstCur = dst;
+
+    stackCur = stack;
+
+    for (pos1 = 0; pos1 < dym1; pos1++)
+    {
+      sse2_mul_const_4D(pix, sum, mmMul);
+      pix = _mm_srl_epi32(pix, mmShr);
+      pix_pack_1x1D(pix, pix);
+      pix_store4(dstCur, pix);
+
+      dstCur += 4;
+
+      pix32 = stackCur[0];
+
+      pix_unpack_1x1D(pix, pix32);
+      sum = _mm_sub_epi32(sum, pix);
+
+      if (xp < max)
+      {
+        ++xp;
+        srcCur += 4;
+        pix32 = READ_32(srcCur);
+      }
+      else
+      {
+        pix32 = rBorderColor;
+      }
+
+      stackCur[0] = pix32;
+
+      pix_unpack_1x1D(pix, pix32);
+      sum = _mm_add_epi32(sum, pix);
+
+      stackCur += 1;
+      if (stackCur == stackEnd) stackCur = stack;
+    }
+
+    src += srcStride;
+    dst += dstStride;
+  }
+}
+
+static void FOG_FASTCALL boxBlurConvolveV_argb32_sse2(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height, int radius,
+  int borderMode, uint32_t borderColor)
+{
+  if (radius == 0 || height < 2)
+  {
+    if (dst != src) functionMap->filters.copyArea[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
+    return;
+  }
+
+  if (radius > 254) radius = 254;
+
+  sysint_t dym1 = height;
+  sysint_t dym2 = width;
+  sysint_t max = dym1 - 1;
+  sysint_t end = max * srcStride;
+
+  uint8_t* dstCur;
+  const uint8_t* srcCur;
+
+  sysint_t pos1;
+  sysint_t pos2;
+  sysint_t xp, i;
+
+  uint size = (uint)radius * 2 + 1;
+
+  __m128i mmMul = _mm_cvtsi32_si128(getReciprocal(size));
+  __m128i mmShr = _mm_cvtsi32_si128(16);
+  pix_expand_pixel_1x4B(mmMul, mmMul);
+
+  uint32_t stack[512];
+  uint32_t* stackEnd = stack + size;
+  uint32_t* stackCur;
+
+  uint32_t lBorderColor = borderColor;
+  uint32_t rBorderColor = borderColor;
+
+  for (pos2 = 0; pos2 < dym2; pos2++)
+  {
+    uint32_t pix32;
+
+    __m128i pix;
+    __m128i sum = _mm_setzero_si128();
+
+    srcCur = src;
+
+    if (borderMode == ImageFilter::ExtendBorderMode)
+    {
+      lBorderColor = READ_32(srcCur);
+      rBorderColor = READ_32(srcCur + end);
+    }
+
+    pix32 = lBorderColor;
+    pix_unpack_1x1D(pix, pix32);
+
+    stackCur = stack;
+
+    for (i = 0; i < radius; i++)
+    {
+      stackCur[0] = pix32;
+      stackCur++;
+
+      sum = _mm_add_epi32(sum, pix);
+    }
+
+    pix32 = READ_32(srcCur);
+    stackCur[0] = pix32;
+    stackCur++;
+
+    pix_unpack_1x1D(pix, pix32);
+    sum = _mm_add_epi32(sum, pix);
+
+    for (i = 1; i <= radius; i++)
+    {
+      if (i <= max)
+      {
+        srcCur += srcStride;
+        pix32 = READ_32(srcCur);
+      }
+      else 
+      {
+        pix32 = rBorderColor;
+      }
+
+      stackCur[0] = pix32;
+      stackCur++;
+
+      pix_unpack_1x1D(pix, pix32);
+      sum = _mm_add_epi32(sum, pix);
+    }
+
+    xp = fog_min(radius, max);
+
+    srcCur = src + xp * srcStride;
+    dstCur = dst;
+
+    stackCur = stack;
+
+    for (pos1 = 0; pos1 < dym1; pos1++)
+    {
+      sse2_mul_const_4D(pix, sum, mmMul);
+      pix = _mm_srl_epi32(pix, mmShr);
+      pix_pack_1x1D(pix, pix);
+      pix_store4(dstCur, pix);
+
+      dstCur += dstStride;
+
+      pix32 = stackCur[0];
+
+      pix_unpack_1x1D(pix, pix32);
+      sum = _mm_sub_epi32(sum, pix);
+
+      if (xp < max)
+      {
+        ++xp;
+        srcCur += srcStride;
+        pix32 = READ_32(srcCur);
+      }
+      else
+      {
+        pix32 = rBorderColor;
+      }
+
+      stackCur[0] = pix32;
+
+      pix_unpack_1x1D(pix, pix32);
+      sum = _mm_add_epi32(sum, pix);
+
+      stackCur += 1;
+      if (stackCur == stackEnd) stackCur = stack;
+    }
+
+    src += 4;
+    dst += 4;
+  }
+}
+
+// ============================================================================
+// [Fog::Raster_SSE2 - StackBlur]
+// ============================================================================
+
+static void FOG_FASTCALL stackBlurConvolveH_argb32_sse2(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height, int radius,
+  int borderMode, uint32_t borderColor)
+{
+  if (radius == 0 || width < 2)
+  {
+    if (dst != src) functionMap->filters.copyArea[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
+    return;
+  }
+
+  if (radius > 254) radius = 254;
+
+  sysint_t dym1 = width;
+  sysint_t dym2 = height;
+  sysint_t max = dym1 - 1;
+  sysint_t end = max * 4;
+
+  uint8_t* dstCur;
+  const uint8_t* srcCur;
+
+  sysint_t pos1;
+  sysint_t pos2;
+  sysint_t xp, i;
+
+  __m128i mmMul = _mm_cvtsi32_si128(functionMap->filters.stackBlur8Mul[radius]);
+  __m128i mmShr = _mm_cvtsi32_si128(functionMap->filters.stackBlur8Shr[radius]);
+  pix_expand_pixel_1x4B(mmMul, mmMul);
+
+  uint32_t stack[512];
+  uint32_t* stackEnd = stack + (radius * 2 + 1);
+  uint32_t* stackLeft;
+  uint32_t* stackRight;
+
+  uint32_t lBorderColor = borderColor;
+  uint32_t rBorderColor = borderColor;
+
+  for (pos2 = 0; pos2 < dym2; pos2++)
+  {
+    uint32_t pix32;
+
+    __m128i pix;
+    __m128i sum    = _mm_setzero_si128();
+    __m128i sumIn  = _mm_setzero_si128();
+    __m128i sumOut = _mm_setzero_si128();
+    __m128i mi;
+    __m128i m1;
+
+    srcCur = src;
+
+    if (borderMode == ImageFilter::ExtendBorderMode)
+    {
+      lBorderColor = READ_32(srcCur);
+      rBorderColor = READ_32(srcCur + end);
+    }
+
+    pix32 = lBorderColor;
+    pix_unpack_1x1D(pix, pix32);
+    mi = pix;
+
+    stackLeft = stack;
+
+    for (i = 0; i < radius; i++)
+    {
+      stackLeft[0] = pix32;
+      stackLeft++;
+
+      sum    = _mm_add_epi32(sum   , mi);
+      sumOut = _mm_add_epi32(sumOut, pix);
+      mi     = _mm_add_epi32(mi    , pix);
+    }
+
+    pix32 = READ_32(srcCur);
+    pix_unpack_1x1D(pix, pix32);
+
+    stackLeft[0] = pix32;
+    stackLeft++;
+
+    pix_expand_mask_1x1D(mi, radius + 1);
+    pix_expand_mask_1x1D(m1, 1);
+
+    sumOut = _mm_add_epi32(sumOut, pix);
+
+    sse2_mul_const_4D(pix, pix, mi);
+    sum = _mm_add_epi32(sum, pix);
+
+    for (i = 1; i <= radius; i++)
+    {
+      if (i <= max)
+      {
+        srcCur += 4;
+        pix32 = READ_32(srcCur);
+      }
+      else 
+      {
+        pix32 = rBorderColor;
+      }
+
+      stackLeft[0] = pix32;
+      stackLeft++;
+
+      pix_unpack_1x1D(pix, pix32);
+
+      mi = _mm_sub_epi32(mi, m1);
+      sumIn = _mm_add_epi32(sumIn, pix);
+      pix = _mm_mullo_epi16(pix, mi);
+      sum = _mm_add_epi32(sum, pix);
+    }
+
+    xp = fog_min(radius, max);
+
+    srcCur = src + xp * 4;
+    dstCur = dst;
+
+    stackLeft = stack;
+    stackRight = stack + radius;
+
+    for (pos1 = 0; pos1 < dym1; pos1++)
+    {
+      sse2_mul_const_4D(pix, sum, mmMul);
+      pix = _mm_srl_epi32(pix, mmShr);
+      pix_pack_1x1D(pix, pix);
+      pix_store4(dstCur, pix);
+
+      dstCur += 4;
+
+      sum = _mm_sub_epi32(sum, sumOut);
+
+      pix_unpack_1x1D(pix, stackLeft[0]);
+      sumOut = _mm_sub_epi32(sumOut, pix);
+
+      if (xp < max)
+      {
+        ++xp;
+        srcCur += 4;
+        pix32 = READ_32(srcCur);
+      }
+      else
+      {
+        pix32 = rBorderColor;
+      }
+
+      stackLeft[0] = pix32;
+      pix_unpack_1x1D(pix, pix32);
+
+      sumIn = _mm_add_epi32(sumIn, pix);
+      sum = _mm_add_epi32(sum, sumIn);
+
+      stackLeft += 1;
+      stackRight += 1;
+
+      if (stackLeft == stackEnd) stackLeft = stack;
+      if (stackRight == stackEnd) stackRight = stack;
+
+      pix_unpack_1x1D(pix, stackRight[0]);
+
+      sumOut = _mm_add_epi32(sumOut, pix);
+      sumIn = _mm_sub_epi32(sumIn, pix);
+    }
+
+    src += srcStride;
+    dst += dstStride;
+  }
+}
+
+static void FOG_FASTCALL stackBlurConvolveV_argb32_sse2(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height, int radius,
+  int borderMode, uint32_t borderColor)
+{
+  if (radius == 0 || height < 2)
+  {
+    if (dst != src) functionMap->filters.copyArea[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
+    return;
+  }
+
+  if (radius > 254) radius = 254;
+
+  sysint_t dym1 = height;
+  sysint_t dym2 = width;
+  sysint_t max = dym1 - 1;
+  sysint_t end = max * srcStride;
+
+  uint8_t* dstCur;
+  const uint8_t* srcCur;
+
+  sysint_t pos1;
+  sysint_t pos2;
+  sysint_t xp, i;
+
+  __m128i mmMul = _mm_cvtsi32_si128(functionMap->filters.stackBlur8Mul[radius]);
+  __m128i mmShr = _mm_cvtsi32_si128(functionMap->filters.stackBlur8Shr[radius]);
+  pix_expand_pixel_1x4B(mmMul, mmMul);
+
+  uint32_t stack[512];
+  uint32_t* stackEnd = stack + (radius * 2 + 1);
+  uint32_t* stackLeft;
+  uint32_t* stackRight;
+
+  uint32_t lBorderColor = borderColor;
+  uint32_t rBorderColor = borderColor;
+
+  for (pos2 = 0; pos2 < dym2; pos2++)
+  {
+    uint32_t pix32;
+
+    __m128i pix;
+    __m128i sum    = _mm_setzero_si128();
+    __m128i sumIn  = _mm_setzero_si128();
+    __m128i sumOut = _mm_setzero_si128();
+    __m128i mi;
+    __m128i m1;
+
+    srcCur = src;
+
+    if (borderMode == ImageFilter::ExtendBorderMode)
+    {
+      lBorderColor = READ_32(srcCur);
+      rBorderColor = READ_32(srcCur + end);
+    }
+
+    pix32 = lBorderColor;
+    pix_unpack_1x1D(pix, pix32);
+    mi = pix;
+
+    stackLeft = stack;
+
+    for (i = 0; i < radius; i++)
+    {
+      stackLeft[0] = pix32;
+      stackLeft++;
+
+      sum    = _mm_add_epi32(sum   , mi);
+      sumOut = _mm_add_epi32(sumOut, pix);
+      mi     = _mm_add_epi32(mi    , pix);
+    }
+
+    pix32 = READ_32(srcCur);
+    pix_unpack_1x1D(pix, pix32);
+
+    stackLeft[0] = pix32;
+    stackLeft++;
+
+    pix_expand_mask_1x1D(mi, radius + 1);
+    pix_expand_mask_1x1D(m1, 1);
+
+    sumOut = _mm_add_epi32(sumOut, pix);
+
+    sse2_mul_const_4D(pix, pix, mi);
+    sum = _mm_add_epi32(sum, pix);
+
+    for (i = 1; i <= radius; i++)
+    {
+      if (i <= max)
+      {
+        srcCur += srcStride;
+        pix32 = READ_32(srcCur);
+      }
+      else 
+      {
+        pix32 = rBorderColor;
+      }
+
+      stackLeft[0] = pix32;
+      stackLeft++;
+
+      pix_unpack_1x1D(pix, pix32);
+
+      mi = _mm_sub_epi32(mi, m1);
+      sumIn = _mm_add_epi32(sumIn, pix);
+      pix = _mm_mullo_epi16(pix, mi);
+      sum = _mm_add_epi32(sum, pix);
+    }
+
+    xp = fog_min(radius, max);
+
+    srcCur = src + xp * srcStride;
+    dstCur = dst;
+
+    stackLeft = stack;
+    stackRight = stack + radius;
+
+    for (pos1 = 0; pos1 < dym1; pos1++)
+    {
+      sse2_mul_const_4D(pix, sum, mmMul);
+      pix = _mm_srl_epi32(pix, mmShr);
+      pix_pack_1x1D(pix, pix);
+      pix_store4(dstCur, pix);
+
+      dstCur += dstStride;
+
+      sum = _mm_sub_epi32(sum, sumOut);
+
+      pix_unpack_1x1D(pix, stackLeft[0]);
+      sumOut = _mm_sub_epi32(sumOut, pix);
+
+      if (xp < max)
+      {
+        ++xp;
+        srcCur += srcStride;
+        pix32 = READ_32(srcCur);
+      }
+      else
+      {
+        pix32 = rBorderColor;
+      }
+
+      stackLeft[0] = pix32;
+      pix_unpack_1x1D(pix, pix32);
+
+      sumIn = _mm_add_epi32(sumIn, pix);
+      sum = _mm_add_epi32(sum, sumIn);
+
+      stackLeft += 1;
+      stackRight += 1;
+
+      if (stackLeft == stackEnd) stackLeft = stack;
+      if (stackRight == stackEnd) stackRight = stack;
+
+      pix_unpack_1x1D(pix, stackRight[0]);
+
+      sumOut = _mm_add_epi32(sumOut, pix);
+      sumIn = _mm_sub_epi32(sumIn, pix);
+    }
+
+    src += 4;
+    dst += 4;
   }
 }
 

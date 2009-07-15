@@ -190,6 +190,11 @@ typedef void (FOG_FASTCALL *ColorMatrixFn)(
   sysint_t width);
 
 // Image Filters
+typedef void (FOG_FASTCALL *CopyAreaFn)(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height);
+
 typedef void (FOG_FASTCALL *TransposeFn)(
   uint8_t* dst, sysint_t dstStride,
   const uint8_t* src, sysint_t srcStride,
@@ -198,13 +203,13 @@ typedef void (FOG_FASTCALL *TransposeFn)(
 typedef void (FOG_FASTCALL *IntegerScanlineConvolveFn)(
   uint8_t* dst, sysint_t dstStride,
   const uint8_t* src, sysint_t srcStride,
-  int width, int height, const int* kernel, int size, int divide,
+  int width, int height, const int* kernel, int size, int divisor,
   int borderMode, uint32_t borderColor);
 
 typedef void (FOG_FASTCALL *FloatScanlineConvolveFn)(
   uint8_t* dst, sysint_t dstStride,
   const uint8_t* src, sysint_t srcStride,
-  int width, int height, const float* kernel, int size, float divide,
+  int width, int height, const float* kernel, int size, float divisor,
   int borderMode, uint32_t borderColor);
 
 typedef void (FOG_FASTCALL *BlurConvolveFn)(
@@ -440,11 +445,20 @@ struct FunctionMap
 
     // [Image Filters]
 
+    CopyAreaFn copyArea[Image::FormatCount];
     TransposeFn transpose[Image::FormatCount];
+
     IntegerScanlineConvolveFn integerScanlineConvolve[Image::FormatCount];
     FloatScanlineConvolveFn floatScanlineConvolve[Image::FormatCount];
-    BlurConvolveFn boxBlurConvolve[Image::FormatCount];
-    BlurConvolveFn stackBlurConvolve[Image::FormatCount];
+
+    BlurConvolveFn boxBlurConvolveH[Image::FormatCount];
+    BlurConvolveFn boxBlurConvolveV[Image::FormatCount];
+
+    const uint16_t* stackBlur8Mul; // [255]
+    const uint8_t* stackBlur8Shr;  // [255]
+
+    BlurConvolveFn stackBlurConvolveH[Image::FormatCount];
+    BlurConvolveFn stackBlurConvolveV[Image::FormatCount];
   };
 
   FiltersFuncs filters;
