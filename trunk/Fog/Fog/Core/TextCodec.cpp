@@ -13,6 +13,7 @@
 #include <Fog/Core/AutoLock.h>
 #include <Fog/Core/Error.h>
 #include <Fog/Core/Lock.h>
+#include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/String.h>
@@ -43,7 +44,7 @@ static sysuint_t TextCodec_addToState(TextCodec::State* state, const uint8_t* cu
   FOG_ASSERT(state->count <= 8);
 
   sysuint_t curSize = state->count;
-  sysuint_t bufSize = fog_min((sysuint_t)(end - cur), 8 - curSize);
+  sysuint_t bufSize = Math::min((sysuint_t)(end - cur), 8 - curSize);
 
   memcpy(state->buffer + curSize, cur, bufSize);
   state->count += bufSize;

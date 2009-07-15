@@ -16,6 +16,7 @@
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/Constants.h>
 #include <Fog/Core/Error.h>
+#include <Fog/Core/Math.h>
 #include <Fog/Core/Std.h>
 
 #include <locale.h>
@@ -295,9 +296,9 @@ loop:
   }
 
   pn = (char *) a + n * es;
-  r = fog_min(pa - (char *)a, pb - pa);
+  r = Fog::Math::min(pa - (char *)a, pb - pa);
   fog_qsort_vecswap(a, pb - r, r);
-  r = fog_min((sysint_t)(pd - pc), (sysint_t)(pn - pd) - (sysint_t)es);
+  r = Fog::Math::min((sysint_t)(pd - pc), (sysint_t)(pn - pd) - (sysint_t)es);
   fog_qsort_vecswap(pb, pn - r, r);
   if ((sysuint_t)(r = pb - pa) > es) fog_qsort(a, (sysuint_t)r / es, es, compar);
   if ((sysuint_t)(r = pd - pc) > es)
@@ -390,7 +391,7 @@ sysuint_t calcOptimalCapacity(sysuint_t sizeof_d, sysuint_t sizeof_element, sysu
   }
   else
   {
-    recommend = fog_max(beforeSize + maxThreshold, afterSize);
+    recommend = Math::max(beforeSize + maxThreshold, afterSize);
   }
 
   recommend = (recommend + 15) & ~15;

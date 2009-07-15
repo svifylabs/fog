@@ -11,6 +11,7 @@
 // [Dependencies]
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/Error.h>
+#include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/List.h>
 #include <Fog/Core/Std.h>
@@ -233,7 +234,7 @@ sysuint_t ListAPI_Base::_removeAt_p(void* self, sysuint_t sizeOfT, sysuint_t ind
   sysuint_t length = d->length;
   if (FOG_UNLIKELY(index >= length)) return 0;
 
-  range = fog_min(range, d->length - index);
+  range = Math::min(range, d->length - index);
   if (FOG_UNLIKELY(range == 0)) return 0;
 
   sysuint_t newLength = length - range;
@@ -539,7 +540,7 @@ sysuint_t ListAPI_Base::_removeAt_c(void* self, const SequenceInfoVTable* vtable
   sysuint_t length = d->length;
   if (FOG_UNLIKELY(index >= length)) return 0;
 
-  range = fog_min(range, d->length - index);
+  range = Math::min(range, d->length - index);
   if (FOG_UNLIKELY(range == 0)) return 0;
 
   sysuint_t newLength = length - range;

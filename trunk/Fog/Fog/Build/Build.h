@@ -744,19 +744,6 @@ typedef uint64_t sysuint_t;
 #define FOG_MACRO8(a0, a1, a2, a3, a4, a5, a6, a7) a0, a1, a2, a3, a4, a5, a6, a7
 #define FOG_MACRO9(a0, a1, a2, a3, a4, a5, a6, a7, a8) a0, a1, a2, a3, a4, a5, a6, a7, a8
 
-//! @brief Returns lower number of @a a and @a b
-template<typename T>
-FOG_INLINE const T& fog_min(const T& a, const T& b) { return (a < b) ? a : b; }
-//! @brief Returns higher number of @a a and @a b
-template<typename T>
-FOG_INLINE const T& fog_max(const T& a, const T& b) { return (a > b) ? a : b; }
-//! @brief Returns value @a val saturated between @a min and @a max.
-template<typename T>
-FOG_INLINE const T& fog_bound(const T& min, const T& val, const T& max) { return fog_max(fog_min(val, max), min); }
-//! @brief Returns absolute value of @a a
-template<typename T>
-FOG_INLINE T fog_abs(const T& a) { return (a >= 0) ? a : -a; }
-
 //! @brief Some systems hasn't defined @c offsetof keyword, but FOG_OFFSET_OF 
 //! is always defined and it's possible to use it to get offset from a class 
 //! member (only single inheritance is allowed).

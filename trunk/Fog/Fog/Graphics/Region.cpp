@@ -13,6 +13,7 @@
 #include <Fog/Core/Constants.h>
 #include <Fog/Core/Error.h>
 #include <Fog/Core/Memory.h>
+#include <Fog/Core/Math.h>
 #include <Fog/Core/Misc.h>
 #include <Fog/Core/Std.h>
 #include <Fog/Graphics/Constants.h>
@@ -352,8 +353,8 @@ static void _unitePrivate(Region* dest, const Box* src1, sysuint_t count1, const
     */
     if (src1->y1() < src2->y1())
     {
-      top = fog_max(src1->y1(), ybot);
-      bot = fog_min(src1->y2(), src2->y1());
+      top = Math::max(src1->y1(), ybot);
+      bot = Math::min(src1->y2(), src2->y1());
 
       if (top != bot)
       {
@@ -365,8 +366,8 @@ static void _unitePrivate(Region* dest, const Box* src1, sysuint_t count1, const
     }
     else if (src2->y1() < src1->y1())
     {
-      top = fog_max(src2->y1(), ybot);
-      bot = fog_min(src2->y2(), src1->y1());
+      top = Math::max(src2->y1(), ybot);
+      bot = Math::min(src2->y2(), src1->y1());
 
       if (top != bot)
       {
@@ -381,8 +382,8 @@ static void _unitePrivate(Region* dest, const Box* src1, sysuint_t count1, const
       Now see if we've hit an intersecting band. The two bands only
       intersect if ybot > ytop
     */
-    ytop = fog_max(src1->y1(), src2->y1());
-    ybot = fog_min(src1->y2(), src2->y2());
+    ytop = Math::max(src1->y1(), src2->y1());
+    ybot = Math::min(src1->y2(), src2->y2());
     if (ybot > ytop)
     {
       const Box* i1 = src1;
@@ -460,7 +461,7 @@ static void _unitePrivate(Region* dest, const Box* src1, sysuint_t count1, const
     }
 
     int y0 = src->y1();
-    int y1 = fog_max(src->y1(), ybot);
+    int y1 = Math::max(src->y1(), ybot);
 
     // append first band and coalesce
     while (src != srcEnd && src->y1() == y0) { (*destCur++).set(src->x1(), y1, src->x2(), src->y2()); src++; }
@@ -525,8 +526,8 @@ static void _intersectPrivate(Region* dest, const Box* src1, sysuint_t count1, c
   // simplest case, if there are only 1 rect in each -> rects overlap
   if (count1 == 1 && count2 == 1)
   {
-    dest->set(Box(fog_max(src1->x1(), src2->x1()), fog_max(src1->y1(), src2->y1()),
-                  fog_min(src1->x2(), src2->x2()), fog_min(src1->y2(), src2->y2())));
+    dest->set(Box(Math::max(src1->x1(), src2->x1()), Math::max(src1->y1(), src2->y1()),
+                  Math::min(src1->x2(), src2->x2()), Math::min(src1->y2(), src2->y2())));
     return;
   }
 
@@ -603,8 +604,8 @@ static void _intersectPrivate(Region* dest, const Box* src1, sysuint_t count1, c
       See if we've hit an intersecting band. The two bands only
       intersect if ybot > ytop
     */
-    ytop = fog_max(src1->y1(), src2->y1());
-    ybot = fog_min(src1->y2(), src2->y2());
+    ytop = Math::max(src1->y1(), src2->y1());
+    ybot = Math::min(src1->y2(), src2->y2());
     if (ybot > ytop)
     {
       // intersect
@@ -616,8 +617,8 @@ static void _intersectPrivate(Region* dest, const Box* src1, sysuint_t count1, c
 
       while ((i1 != src1BandEnd) && (i2 != src2BandEnd))
       {
-        x1 = fog_max(i1->x1(), i2->x1());
-        x2 = fog_min(i1->x2(), i2->x2());
+        x1 = Math::max(i1->x1(), i2->x1());
+        x2 = Math::min(i1->x2(), i2->x2());
 
         /*
           If there's any overlap between the two rectangles, add that
@@ -824,8 +825,8 @@ static void _subtractPrivate(Region* dest, const Box* src1, sysuint_t count1, co
     if (src1->y1() < src2->y1())
     {
       // non overlap (src1) - merge it
-      top = fog_max(src1->y1(), ybot);
-      bot = fog_min(src1->y2(), src2->y1());
+      top = Math::max(src1->y1(), ybot);
+      bot = Math::min(src1->y2(), src2->y1());
 
       if (top != bot)
       {
@@ -840,8 +841,8 @@ static void _subtractPrivate(Region* dest, const Box* src1, sysuint_t count1, co
       Now see if we've hit an intersecting band. The two bands only
       intersect if ybot > ytop
     */
-    ytop = fog_max(src1->y1(), src2->y1());
-    ybot = fog_min(src1->y2(), src2->y2());
+    ytop = Math::max(src1->y1(), src2->y1());
+    ybot = Math::min(src1->y2(), src2->y2());
     if (ybot > ytop)
     {
       const Box* i1 = src1;
@@ -935,7 +936,7 @@ static void _subtractPrivate(Region* dest, const Box* src1, sysuint_t count1, co
     src = src1; srcEnd = src1End;
 
     int y0 = src->y1();
-    int y1 = fog_max(src->y1(), ybot);
+    int y1 = Math::max(src->y1(), ybot);
 
     // append first band and coalesce
     while (src != srcEnd && src->y1() == y0)
@@ -1514,10 +1515,10 @@ Region& Region::unite(const Region& r)
   const Box* rdfirst = rd->rects;
 
   Box ext(
-    fog_min(td->extents.x1(), rd->extents.x1()),
-    fog_min(td->extents.y1(), rd->extents.y1()),
-    fog_max(td->extents.x2(), rd->extents.x2()),
-    fog_max(td->extents.y2(), rd->extents.y2())
+    Math::min(td->extents.x1(), rd->extents.x1()),
+    Math::min(td->extents.y1(), rd->extents.y1()),
+    Math::max(td->extents.x2(), rd->extents.x2()),
+    Math::max(td->extents.y2(), rd->extents.y2())
   );
 
   if ( sdlast->y2() <= rdfirst->y1() ||
@@ -1552,10 +1553,10 @@ Region& Region::unite(const Box& r)
   if (td->count == 1 && td->extents.subsumes(r)) return *this;
 
   Box ext(
-    fog_min(td->extents.x1(), r.x1()),
-    fog_min(td->extents.y1(), r.y1()),
-    fog_max(td->extents.x2(), r.x2()),
-    fog_max(td->extents.y2(), r.y2()));
+    Math::min(td->extents.x1(), r.x1()),
+    Math::min(td->extents.y1(), r.y1()),
+    Math::max(td->extents.x2(), r.x2()),
+    Math::max(td->extents.y2(), r.y2()));
 
   // Last optimization can be append
 
@@ -1754,10 +1755,10 @@ void Region::unite(Region& dest, const Region& src1, const Region& src2)
   const Box* src1last = src1first + src1d->count - 1;
   const Box* src2last = src2first + src2d->count - 1;
 
-  Box ext(fog_min(src1d->extents.x1(), src2d->extents.x1()),
-          fog_min(src1d->extents.y1(), src2d->extents.y1()),
-          fog_max(src1d->extents.x2(), src2d->extents.x2()),
-          fog_max(src1d->extents.y2(), src2d->extents.y2()));
+  Box ext(Math::min(src1d->extents.x1(), src2d->extents.x1()),
+          Math::min(src1d->extents.y1(), src2d->extents.y1()),
+          Math::max(src1d->extents.x2(), src2d->extents.x2()),
+          Math::max(src1d->extents.y2(), src2d->extents.y2()));
 
   if (src1last->y2() <= src2first->y1()) 
   {

@@ -10,6 +10,7 @@
 
 // [Dependencies]
 #include <Fog/Core/Assert.h>
+#include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Std.h>
 #include <Fog/Graphics/Constants.h>
@@ -734,10 +735,10 @@ Region& Region::polyPolygon(const Point* src, const sysuint_t *count, sysuint_t 
          src[3].y() == src[0].y()) ))
   {
     return set(Box(
-      fog_min(src[0].x(), src[2].x()),
-      fog_min(src[0].y(), src[2].y()),
-      fog_max(src[0].x(), src[2].x()) + 1,
-      fog_max(src[0].y(), src[2].y()) + 1));
+      Math::min(src[0].x(), src[2].x()),
+      Math::min(src[0].y(), src[2].y()),
+      Math::max(src[0].x(), src[2].x()) + 1,
+      Math::max(src[0].y(), src[2].y()) + 1));
   }
 
   for (poly = total = 0; poly < polygons; poly++) total += count[poly];

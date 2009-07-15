@@ -13,6 +13,7 @@
 #endif
 
 // [Dependencies]
+#include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Misc.h>
 #include <Fog/Core/Stream.h>
@@ -425,7 +426,7 @@ static ColorMapObject *UnionColorMap(
   /* 
    * Allocate table which will hold the result for sure.
    */
-  ColorUnion = MakeMapObject(fog_max(ColorIn1->ColorCount,
+  ColorUnion = MakeMapObject(Fog::Math::max(ColorIn1->ColorCount,
                  ColorIn2->ColorCount) * 2, NULL);
 
   if (ColorUnion == NULL)

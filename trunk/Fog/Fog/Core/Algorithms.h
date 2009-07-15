@@ -9,6 +9,7 @@
 
 // [Dependencies]
 #include <Fog/Build/Build.h>
+#include <Fog/Core/Math.h>
 #include <Fog/Core/TypeInfo.h>
 
 //! @addtogroup Fog_Core
@@ -144,10 +145,10 @@ loop:
 
   pn = a + n;
 
-  r = fog_min((sysint_t)(pa - a), (sysint_t)(pb - pa));
+  r = Math::min((sysint_t)(pa - a), (sysint_t)(pb - pa));
   swap(a, pb - r, r);
 
-  r = fog_min((sysint_t)(pd - pc), (sysint_t)(pn - pd) - (sysint_t)1);
+  r = Math::min((sysint_t)(pd - pc), (sysint_t)(pn - pd) - (sysint_t)1);
   swap(pb, pn - r, r);
 
   if ((r = (sysint_t)(pb - pa)) > 1) sort(a, (sysuint_t)r, compar);
