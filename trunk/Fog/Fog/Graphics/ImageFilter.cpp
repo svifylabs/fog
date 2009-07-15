@@ -171,7 +171,7 @@ BlurImageFilter::BlurImageFilter() :
   _borderMode(BorderModeExtend),
   _borderColor(0x00000000)
 {
-  _setupFilter();
+  _setupFilterType();
 }
 
 BlurImageFilter::BlurImageFilter(int blurType, double hRadius, double vRadius, int borderMode, uint32_t borderColor) :
@@ -181,7 +181,7 @@ BlurImageFilter::BlurImageFilter(int blurType, double hRadius, double vRadius, i
   _borderMode(borderMode),
   _borderColor(borderColor)
 {
-  _setupFilter();
+  _setupFilterType();
 }
 
 BlurImageFilter::~BlurImageFilter()
@@ -369,7 +369,7 @@ err_t BlurImageFilter::filterPrivate(
   return err;
 }
 
-void BlurImageFilter::_setupFilter()
+void BlurImageFilter::_setupFilterType()
 {
   _type = FilterTypeBlur;
   _flags = OnlyNonPremultiplied | TwoPasses;

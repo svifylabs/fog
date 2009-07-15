@@ -438,21 +438,32 @@ struct FunctionMap
 
   struct FiltersFuncs
   {
-    // [Color Filters]
+    // [ColorLut / ColorMatrix]
 
     ColorLutFn colorLut[Image::FormatCount];
     ColorMatrixFn colorMatrix[Image::FormatCount];
 
-    // [Image Filters]
+    // [Copy Area]
 
     CopyAreaFn copyArea[Image::FormatCount];
     TransposeFn transpose[Image::FormatCount];
 
+    // [IntegerConvolve / FloatConvolve]
+
     IntegerScanlineConvolveFn integerScanlineConvolve[Image::FormatCount];
+    IntegerScanlineConvolveFn integerScanlineConvolveH[Image::FormatCount];
+    IntegerScanlineConvolveFn integerScanlineConvolveV[Image::FormatCount];
+
     FloatScanlineConvolveFn floatScanlineConvolve[Image::FormatCount];
+    FloatScanlineConvolveFn floatScanlineConvolveH[Image::FormatCount];
+    FloatScanlineConvolveFn floatScanlineConvolveV[Image::FormatCount];
+
+    // [Box Blur]
 
     BlurConvolveFn boxBlurConvolveH[Image::FormatCount];
     BlurConvolveFn boxBlurConvolveV[Image::FormatCount];
+
+    // [Stack Blur]
 
     const uint16_t* stackBlur8Mul; // [255]
     const uint8_t* stackBlur8Shr;  // [255]
