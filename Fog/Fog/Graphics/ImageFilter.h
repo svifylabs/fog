@@ -146,18 +146,18 @@ struct FOG_API ImageFilter
     const uint8_t* src, sysint_t srcStride,
     int width, int height, int format) const;
 
-  // [Members]
-
-protected:
-  int _type;
-  int _flags;
-
   // [Filtering]
 
+protected:
   virtual err_t filterPrivate(
     uint8_t* dst, sysint_t dstStride,
     const uint8_t* src, sysint_t srcStride,
     int width, int height, int format) const = 0;
+
+  // [Members]
+
+  int _type;
+  int _flags;
 
 private:
   FOG_DISABLE_COPY(ImageFilter)
@@ -228,7 +228,7 @@ protected:
     int width, int height, int format) const;
 
 private:
-  void _setupFilter();
+  void _setupFilterType();
 
   FOG_DISABLE_COPY(BlurImageFilter)
 };
