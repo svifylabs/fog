@@ -340,7 +340,14 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   m->filters.colorMatrix[Image::FormatRGB24] = colorMatrix_rgb24;
   m->filters.colorMatrix[Image::FormatA8] = colorMatrix_a8;
 
-  // [Filters - Transpose]
+  // [Filters - CopyArea]
+
+  m->filters.copyArea[Image::FormatARGB32] = transpose_32;
+  m->filters.copyArea[Image::FormatPRGB32] = transpose_32;
+  m->filters.copyArea[Image::FormatRGB32] = transpose_32;
+  m->filters.copyArea[Image::FormatRGB24] = transpose_24;
+  m->filters.copyArea[Image::FormatA8] = transpose_8;
+  m->filters.copyArea[Image::FormatI8] = transpose_8;
 
   m->filters.transpose[Image::FormatARGB32] = transpose_32;
   m->filters.transpose[Image::FormatPRGB32] = transpose_32;
@@ -358,15 +365,26 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
 
   // [Filters - BoxBlurConvolve]
 
-  m->filters.boxBlurConvolve[Image::FormatARGB32] = boxBlurConvolve_argb32;
-  m->filters.boxBlurConvolve[Image::FormatRGB32] = boxBlurConvolve_argb32;
-  m->filters.boxBlurConvolve[Image::FormatRGB24] = boxBlurConvolve_rgb24;
-  m->filters.boxBlurConvolve[Image::FormatA8] = boxBlurConvolve_a8;
+  m->filters.boxBlurConvolveH[Image::FormatARGB32] = boxBlurConvolveH_argb32;
+  m->filters.boxBlurConvolveV[Image::FormatARGB32] = boxBlurConvolveV_argb32;
+  m->filters.boxBlurConvolveH[Image::FormatRGB32] = boxBlurConvolveH_argb32;
+  m->filters.boxBlurConvolveV[Image::FormatRGB32] = boxBlurConvolveV_argb32;
+  m->filters.boxBlurConvolveH[Image::FormatRGB24] = boxBlurConvolveH_rgb24;
+  m->filters.boxBlurConvolveV[Image::FormatRGB24] = boxBlurConvolveV_rgb24;
+  m->filters.boxBlurConvolveH[Image::FormatA8] = boxBlurConvolveH_a8;
+  m->filters.boxBlurConvolveV[Image::FormatA8] = boxBlurConvolveV_a8;
 
   // [Filters - StackBlurConvolve]
 
-  m->filters.stackBlurConvolve[Image::FormatARGB32] = stackBlurConvolve_argb32;
-  m->filters.stackBlurConvolve[Image::FormatRGB32] = stackBlurConvolve_argb32;
-  m->filters.stackBlurConvolve[Image::FormatRGB24] = stackBlurConvolve_rgb24;
-  m->filters.stackBlurConvolve[Image::FormatA8] = stackBlurConvolve_a8;
+  m->filters.stackBlur8Mul = stackBlur8Mul;
+  m->filters.stackBlur8Shr = stackBlur8Shr;
+
+  m->filters.stackBlurConvolveH[Image::FormatARGB32] = stackBlurConvolveH_argb32;
+  m->filters.stackBlurConvolveV[Image::FormatARGB32] = stackBlurConvolveV_argb32;
+  m->filters.stackBlurConvolveH[Image::FormatRGB32] = stackBlurConvolveH_argb32;
+  m->filters.stackBlurConvolveV[Image::FormatRGB32] = stackBlurConvolveV_argb32;
+  m->filters.stackBlurConvolveH[Image::FormatRGB24] = stackBlurConvolveH_rgb24;
+  m->filters.stackBlurConvolveV[Image::FormatRGB24] = stackBlurConvolveV_rgb24;
+  m->filters.stackBlurConvolveH[Image::FormatA8] = stackBlurConvolveH_a8;
+  m->filters.stackBlurConvolveV[Image::FormatA8] = stackBlurConvolveV_a8;
 }

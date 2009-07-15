@@ -88,7 +88,7 @@ struct Operator_Base
   {
     for (sysint_t i = w; i; i--, dst += DstFmt::BytesPerPixel, src += SrcFmt::BytesPerPixel, msk += 1)
     {
-      Operator::pixel_a8(dst, src, READ_MASK_A8(msk));
+      Operator::pixel_a8(dst, src, READ_8(msk));
     }
   }
 };
@@ -199,7 +199,7 @@ struct Operator_Complex : public Operator_Base<Operator, DstFmt, SrcFmt>
     do {
       uint32_t src0 = normalize_src_fetch(SrcFmt::fetch(src));
       uint32_t dst0 = normalize_dst_fetch(DstFmt::fetch(dst));
-      uint32_t msk0 = READ_MASK_A8(msk);
+      uint32_t msk0 = READ_8(msk);
 
       byte1x2 dst0lo, dst0hi;
       byte1x2 src0lo, src0hi;
@@ -258,7 +258,7 @@ BEGIN_OPERATOR_IMPL(Operator_Src, Operator_Base)
       for (sysint_t i = w; i; i--, dst += DstFmt::BytesPerPixel, msk += 1)
       {
         uint32_t p = src0;
-        uint32_t m = READ_MASK_A8(msk);
+        uint32_t m = READ_8(msk);
 
         if (m != 0xFF)
         {
@@ -405,7 +405,7 @@ BEGIN_OPERATOR_IMPL(Operator_Over, Operator_Base)
       if (a0 == 0xFF)
       {
         do {
-          if ((msk0 = READ_MASK_A8(msk)) != 0)
+          if ((msk0 = READ_8(msk)) != 0)
           {
             dst0 = normalize_dst_fetch(DstFmt::fetch(dst));
             pix0lo = src0lo;
@@ -423,7 +423,7 @@ BEGIN_OPERATOR_IMPL(Operator_Over, Operator_Base)
       else
       {
         do {
-          if ((msk0 = READ_MASK_A8(msk)) != 0)
+          if ((msk0 = READ_8(msk)) != 0)
           {
             dst0 = normalize_dst_fetch(DstFmt::fetch(dst));
             pix0lo = src0lo;
@@ -531,7 +531,7 @@ BEGIN_OPERATOR_IMPL(Operator_OverReverse, Operator_Base)
     byte2x2_unpack_0213(src0lo, src0hi, src0);
 
     do {
-      if ((msk0 = READ_MASK_A8(msk)) != 0)
+      if ((msk0 = READ_8(msk)) != 0)
       {
         dst0 = normalize_dst_fetch(DstFmt::fetch(dst));
         a0 = dst0 >> 24;
@@ -610,7 +610,7 @@ BEGIN_OPERATOR_IMPL(Operator_In, Operator_Base)
       if (dst0)
       {
         uint32_t a0 = getAlpha(dst0);
-        uint32_t m0 = READ_MASK_A8(msk);
+        uint32_t m0 = READ_8(msk);
         uint32_t s0 = src0;
         if (m0 != 0xFF) s0 = bytemul(s0, m0);
         DstFmt::store(dst, normalize_dst_store(bytemul(s0, a0)));
@@ -690,7 +690,7 @@ BEGIN_OPERATOR_IMPL(Operator_InReverse, Operator_Base)
       if (a0 == 0xFF)
       {
         do {
-          uint32_t m0 = READ_MASK_A8(msk);
+          uint32_t m0 = READ_8(msk);
           if (m0 != 0xFF)
           {
             uint32_t dst0 = normalize_dst_fetch(DstFmt::fetch(dst));
@@ -704,7 +704,7 @@ BEGIN_OPERATOR_IMPL(Operator_InReverse, Operator_Base)
       else
       {
         do {
-          uint32_t m0 = div255(a0 * READ_MASK_A8(msk));
+          uint32_t m0 = div255(a0 * READ_8(msk));
           uint32_t dst0 = normalize_dst_fetch(DstFmt::fetch(dst));
           DstFmt::store(dst, normalize_dst_store(bytemul(dst0, m0)));
 
@@ -757,7 +757,7 @@ BEGIN_OPERATOR_IMPL(Operator_Out, Operator_Base)
     sysint_t i = w;
 
     do {
-      uint32_t a0 = 255 - div255(DstFmt::fetchAlpha(dst) * READ_MASK_A8(msk));
+      uint32_t a0 = 255 - div255(DstFmt::fetchAlpha(dst) * READ_8(msk));
       DstFmt::store(dst, normalize_dst_store(bytemul(src0, a0)));
 
       dst += DstFmt::BytesPerPixel;
@@ -824,7 +824,7 @@ BEGIN_OPERATOR_IMPL(Operator_OutReverse, Operator_Base)
         uint32_t dst0 = normalize_dst_fetch(DstFmt::fetch(dst));
         if (dst0)
         {
-          DstFmt::store(dst, normalize_dst_store(bytemul(dst0, 255 - READ_MASK_A8(msk))));
+          DstFmt::store(dst, normalize_dst_store(bytemul(dst0, 255 - READ_8(msk))));
         }
 
         dst += DstFmt::BytesPerPixel;
@@ -837,7 +837,7 @@ BEGIN_OPERATOR_IMPL(Operator_OutReverse, Operator_Base)
         uint32_t dst0 = normalize_dst_fetch(DstFmt::fetch(dst));
         if (dst0)
         {
-          DstFmt::store(dst, normalize_dst_store(bytemul(dst0, 255 - div255(a0 * READ_MASK_A8(msk)))));
+          DstFmt::store(dst, normalize_dst_store(bytemul(dst0, 255 - div255(a0 * READ_8(msk)))));
         }
 
         dst += DstFmt::BytesPerPixel;
@@ -908,7 +908,7 @@ BEGIN_OPERATOR_IMPL(Operator_Atop, Operator_Base)
       uint32_t dst0 = DstFmt::fetch(dst);
       if (dst0)
       {
-        uint32_t srcm0 = bytemul(src0, READ_MASK_A8(msk));
+        uint32_t srcm0 = bytemul(src0, READ_8(msk));
         uint32_t srci0 = getAlpha(~srcm0);
         uint32_t dsta0 = getAlpha(dst0);
         DstFmt::store(dst, normalize_dst_store(byteaddmul(srcm0, dsta0, dst0, srci0)));
@@ -971,7 +971,7 @@ BEGIN_OPERATOR_IMPL(Operator_AtopReverse, Operator_Base)
     do {
       uint32_t src0 = normalize_src_fetch(SrcFmt::fetch(src));
       uint32_t dst0 = normalize_dst_fetch(DstFmt::fetch(dst));
-      uint32_t m0 = READ_MASK_A8(msk);
+      uint32_t m0 = READ_8(msk);
       if (m0 != 0xFF) src0 = bytemul(src0, m0);
       uint32_t srca0 = getAlpha(src0);
       uint32_t dsti0 = getAlpha(~dst0);
@@ -1047,7 +1047,7 @@ BEGIN_OPERATOR_IMPL(Operator_Xor, Operator_Base)
     do {
       uint32_t dst0 = normalize_dst_fetch(DstFmt::fetch(dst));
       uint32_t srcm0 = src0;
-      uint32_t m0 = READ_MASK_A8(msk);
+      uint32_t m0 = READ_8(msk);
       if (m0 != 0xFF) srcm0 = bytemul(srcm0, m0);
       uint32_t srci0 = getAlpha(~srcm0);
       uint32_t dsti0 = getAlpha(~dst0);
@@ -1470,7 +1470,7 @@ static void FOG_FASTCALL raster_argb32_span_solid_a8_srcover(
     a = 255 - a;
 
     do {
-      if ((m = READ_MASK_A8(msk)) == 0xFF)
+      if ((m = READ_8(msk)) == 0xFF)
       {
         ((uint32_t*)dst)[0] = bytemul(((uint32_t*)dst)[0], a) + src;
       }
@@ -1485,7 +1485,7 @@ static void FOG_FASTCALL raster_argb32_span_solid_a8_srcover(
   else
   {
     do {
-      if ((m = READ_MASK_A8(msk)) == 0xFF)
+      if ((m = READ_8(msk)) == 0xFF)
       {
         ((uint32_t*)dst)[0] = src;
       }
@@ -1597,7 +1597,7 @@ static void FOG_FASTCALL raster_rgb32_span_solid_a8(
     uint32_t ia = 255 - a;
 
     do {
-      if ((m = READ_MASK_A8(msk)) == 0xFF)
+      if ((m = READ_8(msk)) == 0xFF)
       {
         ((uint32_t*)dst)[0] = bytemul_reset_alpha(((uint32_t*)dst)[0], ia) + FFsrc;
       }
@@ -1613,7 +1613,7 @@ static void FOG_FASTCALL raster_rgb32_span_solid_a8(
   else
   {
     do {
-      if ((m = READ_MASK_A8(msk)) == 0xFF)
+      if ((m = READ_8(msk)) == 0xFF)
       {
         ((uint32_t*)dst)[0] = src;
       }
@@ -1689,7 +1689,7 @@ static void FOG_FASTCALL raster_rgb32_span_composite_argb32_a8(
 {
   do {
     uint32_t m;
-    if ((m = READ_MASK_A8(msk)))
+    if ((m = READ_8(msk)))
     {
       uint32_t src0 = ((uint32_t*)src)[0];
       uint32_t a0 = src0 >> 24;
@@ -1708,7 +1708,7 @@ static void FOG_FASTCALL raster_rgb32_span_composite_prgb32_a8(
 {
   do {
     uint32_t m;
-    if ((m = READ_MASK_A8(msk)))
+    if ((m = READ_8(msk)))
     {
       uint32_t src0 = ((uint32_t*)src)[0];
       if (m != 0xFF) src0 = bytemul(src0, m);
@@ -1726,7 +1726,7 @@ static void FOG_FASTCALL raster_rgb32_span_composite_rgb32_a8(
 {
   do {
     uint32_t m;
-    if ((m = READ_MASK_A8(msk)))
+    if ((m = READ_8(msk)))
     {
       uint32_t src0 = ((uint32_t*)src)[0];
       if (m != 0xFF) src0 = bytemul(((uint32_t*)dst)[0], 255 - m) + bytemul(src0, m);
@@ -1744,7 +1744,7 @@ static void FOG_FASTCALL raster_rgb32_span_composite_rgb24_a8(
 {
   do {
     uint32_t m;
-    if ((m = READ_MASK_A8(msk)))
+    if ((m = READ_8(msk)))
     {
       uint32_t src0 = PixFmt_RGB24::fetch(src);
       if (m != 0xFF) src0 = bytemul(((uint32_t*)dst)[0], 255 - m) + bytemul(src0, m);
@@ -1762,7 +1762,7 @@ static void FOG_FASTCALL raster_rgb32_span_composite_indexed_a8(
 {
   do {
     uint32_t m;
-    if ((m = READ_MASK_A8(msk)))
+    if ((m = READ_8(msk)))
     {
       uint32_t src0 = pal[src[0]];
       uint32_t a0 = src0 >> 24;

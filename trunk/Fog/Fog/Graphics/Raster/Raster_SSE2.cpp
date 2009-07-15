@@ -13,6 +13,7 @@
 #include <Fog/Graphics/ColorLut.h>
 #include <Fog/Graphics/ColorMatrix.h>
 #include <Fog/Graphics/Image.h>
+#include <Fog/Graphics/ImageFilter.h>
 #include <Fog/Graphics/Raster.h>
 #include <Fog/Graphics/Raster/Raster_C.h>
 
@@ -241,4 +242,14 @@ FOG_INIT_DECLARE void fog_raster_init_sse2(void)
   m->filters.colorMatrix[Image::FormatRGB32] = colorMatrix_rgb32_sse2;
   m->filters.colorMatrix[Image::FormatRGB24] = colorMatrix_rgb24_sse2;
   m->filters.colorMatrix[Image::FormatA8] = colorMatrix_a8_sse2;
+
+  // [Filters - BoxBlur]
+
+  m->filters.boxBlurConvolveH[Image::FormatARGB32] = boxBlurConvolveH_argb32_sse2;
+  m->filters.boxBlurConvolveV[Image::FormatARGB32] = boxBlurConvolveV_argb32_sse2;
+
+  // [Filters - StackBlur]
+
+  m->filters.stackBlurConvolveH[Image::FormatARGB32] = stackBlurConvolveH_argb32_sse2;
+  m->filters.stackBlurConvolveV[Image::FormatARGB32] = stackBlurConvolveV_argb32_sse2;
 }

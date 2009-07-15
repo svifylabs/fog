@@ -104,20 +104,6 @@ Value ImageFilter::getProperty(const String32& name) const
 // [Fog::BlurImageFilter]
 // ============================================================================
 
-static void copyBuffer(
-  uint8_t* dst, sysint_t dstStride, 
-  const uint8_t* src, sysint_t srcStride,
-  int width, int height, int format)
-{
-  int depth = Image::formatToDepth(format);
-  int stride = width * (depth >> 3);
-
-  for (int y = height; y; y--, dst += dstStride, src += srcStride)
-  {
-    memcpy(dst, src, stride);
-  }
-}
-
 // This function is designed to make kernel for gaussian blur matrix. See
 // wikipedia (http://en.wikipedia.org/wiki/Gaussian_function) for equations.
 static float makeGaussianBlurKernel(float* dst, double radius, int size)
@@ -302,7 +288,7 @@ err_t BlurImageFilter::filterPrivate(
     {
       if (hRadiusInt == 0 && vRadiusInt == 0)
       {
-        if (dst != src) copyBuffer(dst, dstStride, src, srcStride, width, height, format);
+        if (dst != src) Raster::functionMap->filters.copyArea[format](dst, dstStride, src, srcStride, width, height);
         return Error::Ok;
       }
       break;
@@ -311,7 +297,7 @@ err_t BlurImageFilter::filterPrivate(
     {
       if (vRadius <= 0.63 && hRadius <= 0.63)
       {
-        if (dst != src) copyBuffer(dst, dstStride, src, srcStride, width, height, format);
+        if (dst != src) Raster::functionMap->filters.copyArea[format](dst, dstStride, src, srcStride, width, height);
         return Error::Ok;
       }
       break;
@@ -320,12 +306,6 @@ err_t BlurImageFilter::filterPrivate(
       FOG_ASSERT_NOT_REACHED();
   }
 
-  sysint_t bufStride = height * (Image::formatToDepth(format) >> 3);
-  if (bufStride == 0) return Error::InvalidArgument;
-
-  uint8_t* buf = (uint8_t*)Memory::alloc(width * bufStride);
-  if (!buf) return Error::OutOfMemory;
-
   err_t err = Error::Ok;
 
   switch (_blurType)
@@ -333,20 +313,33 @@ err_t BlurImageFilter::filterPrivate(
     case BoxBlurType:
     case StackBlurType:  
     {
-      Raster::BlurConvolveFn convolve;
+      Raster::BlurConvolveFn convolveH;
+      Raster::BlurConvolveFn convolveV;
 
       if (_blurType == BoxBlurType)
-        convolve = Raster::functionMap->filters.boxBlurConvolve[format];
+      {
+        convolveH = Raster::functionMap->filters.boxBlurConvolveH[format];
+        convolveV = Raster::functionMap->filters.boxBlurConvolveV[format];
+      }
       else
-        convolve = Raster::functionMap->filters.stackBlurConvolve[format];
+      {
+        convolveH = Raster::functionMap->filters.stackBlurConvolveH[format];
+        convolveV = Raster::functionMap->filters.stackBlurConvolveV[format];
+      }
 
-      convolve(buf, bufStride, src, srcStride, width, height, hRadiusInt, _borderMode, _borderColor);
-      convolve(dst, dstStride, buf, bufStride, height, width, vRadiusInt, _borderMode, _borderColor);
+      convolveH(dst, dstStride, src, srcStride, width, height, hRadiusInt, _borderMode, _borderColor);
+      convolveV(dst, dstStride, dst, dstStride, width, height, vRadiusInt, _borderMode, _borderColor);
       break;
     }
 
     case GaussianBlurType:
     {
+      sysint_t bufStride = height * Image::formatToBytesPerPixel(format);
+      if (bufStride == 0) return Error::InvalidArgument;
+
+      uint8_t* buf = (uint8_t*)Memory::alloc(width * bufStride);
+      if (!buf) return Error::OutOfMemory;
+
       float* hKernel;
       float* vKernel;
 
@@ -367,11 +360,12 @@ err_t BlurImageFilter::filterPrivate(
         width, height, hKernel, hKernelSize, hKernelDiv, _borderMode, _borderColor);
       convolve(dst, dstStride, buf, bufStride,
         height, width, vKernel, vKernelSize, vKernelDiv, _borderMode, _borderColor);
+
+      Memory::free(buf);
       break;
     }
   }
 
-  Memory::free(buf);
   return err;
 }
 

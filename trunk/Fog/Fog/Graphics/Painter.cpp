@@ -1297,7 +1297,7 @@ RasterEngine::RasterEngine(uint8_t* pixels, int width, int height, sysint_t stri
   _metaWidth(width),
   _metaHeight(height),
   _format(format),
-  _bpp(Image::formatToDepth(format) >> 3),
+  _bpp(Image::formatToBytesPerPixel(format)),
   _premultiplied(format == Image::FormatPRGB32),
   _compositingEnabled(format == Image::FormatARGB32 || format == Image::FormatPRGB32),
   _threadData(NULL)
