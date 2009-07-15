@@ -14,6 +14,7 @@
 #include <Fog/Core/FileSystem.h>
 #include <Fog/Core/FileUtil.h>
 #include <Fog/Core/MapFile.h>
+#include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Misc.h>
 #include <Fog/Core/Std.h>
@@ -1790,10 +1791,10 @@ err_t Image::filter(const ImageFilter& f, const Rect& r)
   int h = height();
 
   // Clip.
-  int x1 = fog_max(r.x(), 0);
-  int y1 = fog_max(r.y(), 0);
-  int x2 = fog_min(r.x(), w);
-  int y2 = fog_min(r.y(), h);
+  int x1 = Math::max(r.x(), 0);
+  int y1 = Math::max(r.y(), 0);
+  int x2 = Math::min(r.x(), w);
+  int y2 = Math::min(r.y(), h);
 
   if (x1 >= x2 || y1 >= y2) return Error::Ok;
 

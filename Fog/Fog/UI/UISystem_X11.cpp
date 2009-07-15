@@ -13,6 +13,7 @@
 
 // [Dependencies]
 #include <Fog/Core/Application.h>
+#include <Fog/Core/Math.h>
 #include <Fog/Graphics/Raster.h>
 #include <Fog/Graphics/Raster/Raster_C.h>
 #include <Fog/UI/Constants.h>
@@ -2006,7 +2007,7 @@ void EventPumpX11::waitForWork()
   UISystemX11* uiSystem = UI_SYSTEM();
 
   int fd = uiSystem->_fd;
-  int fdSize = fog_max(fd, uiSystem->_wakeUpPipe[0]) + 1;
+  int fdSize = Math::max(fd, uiSystem->_wakeUpPipe[0]) + 1;
   fd_set fdSet;
 
   struct timeval tval;

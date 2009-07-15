@@ -44,7 +44,7 @@ static uint8_t* FOG_FASTCALL pattern_texture_fetch_repeat_sse2(
 
   // Return image buffer if span fits to it (this is very efficient
   // optimization for short spans or large textures)
-  i = fog_min(tw - x, w);
+  i = Math::min(tw - x, w);
   if (w < tw - x)
     return const_cast<uint8_t*>(srcCur);
 
@@ -88,7 +88,7 @@ static uint8_t* FOG_FASTCALL pattern_texture_fetch_repeat_sse2(
 end:
     if (!w) break;
 
-    i = fog_min(w, tw);
+    i = Math::min(w, tw);
     srcCur = srcBase;
   }
 
@@ -131,7 +131,7 @@ static uint8_t* FOG_FASTCALL pattern_texture_fetch_reflect_sse2(
     // Reflect mode
     if (x >= tw)
     {
-      int i = fog_min(tw2 - x, w);
+      int i = Math::min(tw2 - x, w);
 
       srcCur = srcBase + mul4(tw2 - x - 1);
 
@@ -178,7 +178,7 @@ static uint8_t* FOG_FASTCALL pattern_texture_fetch_reflect_sse2(
     // Repeat mode
     else
     {
-      int i = fog_min(tw - x, w);
+      int i = Math::min(tw - x, w);
 
       srcCur = srcBase + mul4(x);
 

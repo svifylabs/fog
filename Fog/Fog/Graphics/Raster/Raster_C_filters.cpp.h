@@ -1163,7 +1163,7 @@ static void FOG_FASTCALL boxBlurConvolveH_argb32(
       sumA += pixA;
     }
 
-    xp = fog_min(radius, max);
+    xp = Math::min((sysint_t)radius, max);
 
     srcCur = src + xp * 4;
     dstCur = dst;
@@ -1341,7 +1341,7 @@ static void FOG_FASTCALL boxBlurConvolveV_argb32(
       sumA += pixA;
     }
 
-    xp = fog_min(radius, max);
+    xp = Math::min((sysint_t)radius, max);
 
     srcCur = src + xp * srcStride;
     dstCur = dst;
@@ -1523,7 +1523,7 @@ static void FOG_FASTCALL boxBlurConvolveH_rgb24(
       sumB += pixB;
     }
 
-    xp = fog_min(radius, max);
+    xp = Math::min((sysint_t)radius, max);
 
     srcCur = src + xp * 3;
     dstCur = dst;
@@ -1700,7 +1700,7 @@ static void FOG_FASTCALL boxBlurConvolveV_rgb24(
       sumB += pixB;
     }
 
-    xp = fog_min(radius, max);
+    xp = Math::min((sysint_t)radius, max);
 
     srcCur = src + xp * srcStride;
     dstCur = dst;
@@ -1842,7 +1842,7 @@ static void FOG_FASTCALL boxBlurConvolveH_a8(
       sum += pix;
     }
 
-    xp = fog_min(radius, max);
+    xp = Math::min((sysint_t)radius, max);
 
     srcCur = src + xp;
     dstCur = dst;
@@ -1966,7 +1966,7 @@ static void FOG_FASTCALL boxBlurConvolveV_a8(
       sum += pix;
     }
 
-    xp = fog_min(radius, max);
+    xp = Math::min((sysint_t)radius, max);
 
     srcCur = src + xp * srcStride;
     dstCur = dst;
@@ -2190,7 +2190,7 @@ static void FOG_FASTCALL stackBlurConvolveH_argb32(
       sumInA          += pixA;
     }
 
-    xp = fog_min(radius, max);
+    xp = Math::min((sysint_t)radius, max);
 
     srcCur = src + xp * 4;
     dstCur = dst;
@@ -2417,7 +2417,7 @@ static void FOG_FASTCALL stackBlurConvolveV_argb32(
       sumInA          += pixA;
     }
 
-    xp = fog_min(radius, max);
+    xp = Math::min((sysint_t)radius, max);
 
     srcCur = src + xp * srcStride;
     dstCur = dst;
@@ -2657,7 +2657,7 @@ static void FOG_FASTCALL stackBlurConvolveH_rgb24(
       sumInB          += pixB;
     }
 
-    xp = fog_min(radius, max);
+    xp = Math::min((sysint_t)radius, max);
 
     srcCur = src + xp * 3;
     dstCur = dst;
@@ -2887,7 +2887,7 @@ static void FOG_FASTCALL stackBlurConvolveV_rgb24(
       sumInB          += pixB;
     }
 
-    xp = fog_min(radius, max);
+    xp = Math::min((sysint_t)radius, max);
 
     srcCur = src + xp * srcStride;
     dstCur = dst;
@@ -3054,7 +3054,7 @@ static void FOG_FASTCALL stackBlurConvolveH_a8(
       sumIn          += pix;
     }
 
-    xp = fog_min(radius, max);
+    xp = Math::min((sysint_t)radius, max);
 
     srcCur = src + xp;
     dstCur = dst;
@@ -3200,7 +3200,7 @@ static void FOG_FASTCALL stackBlurConvolveV_a8(
       sumIn          += pix;
     }
 
-    xp = fog_min(radius, max);
+    xp = Math::min((sysint_t)radius, max);
 
     srcCur = src + xp * srcStride;
     dstCur = dst;

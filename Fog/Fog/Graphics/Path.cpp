@@ -1232,7 +1232,7 @@ err_t Path::addPath(const Path& path)
   sysuint_t count = path.length();
   if (count == 0) return Error::Ok;
 
-  uint32_t t = fog_max(type(), path.type());
+  uint32_t t = Math::max(type(), path.type());
 
   Vertex* v = _add(count);
   if (!v) return Error::OutOfMemory;

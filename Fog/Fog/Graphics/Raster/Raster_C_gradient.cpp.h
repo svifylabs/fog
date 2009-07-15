@@ -39,7 +39,7 @@ static void FOG_FASTCALL gradient_gradient_argb32(uint8_t* dst, uint32_t c0, uin
   // Fill c0 before gradient start.
   if (x1 < 0)
   {
-    i = fog_min((sysint_t)0, x2) - x1;
+    i = Math::min((sysint_t)0, x2) - x1;
 
     xw -= i;
     x1 = 0;
@@ -71,7 +71,7 @@ static void FOG_FASTCALL gradient_gradient_argb32(uint8_t* dst, uint32_t c0, uin
     grStp[3] = (((int)((c1 >> 24)       ) << 23) - grCur[3]) / (int)w;
     grCur[3] += grStp[3] * (int)x1;
 
-    i = fog_min(w + 1, x2) - x1;
+    i = Math::min(w + 1, x2) - x1;
     x1 += i;
 
     do {
@@ -130,7 +130,7 @@ static void FOG_FASTCALL gradient_gradient_prgb32(uint8_t* dst, uint32_t c0, uin
   if (x1 < 0)
   {
     uint32_t c0p = premultiply(c0);
-    i = fog_min((sysint_t)0, x2) - x1;
+    i = Math::min((sysint_t)0, x2) - x1;
 
     xw -= i;
     x1 = 0;
@@ -162,7 +162,7 @@ static void FOG_FASTCALL gradient_gradient_prgb32(uint8_t* dst, uint32_t c0, uin
     grStp[3] = (((int)((c1 >> 24)       ) << 23) - grCur[3]) / (int)w;
     grCur[3] += grStp[3] * (int)x1;
 
-    i = fog_min(w + 1, x2) - x1;
+    i = Math::min(w + 1, x2) - x1;
     x1 += i;
 
     do {
@@ -222,7 +222,7 @@ static void FOG_FASTCALL gradient_gradient_rgb32(uint8_t* dst, uint32_t c0, uint
   // Fill c0 before gradient start.
   if (x1 < 0)
   {
-    i = fog_min((sysint_t)0, x2) - x1;
+    i = Math::min((sysint_t)0, x2) - x1;
 
     xw -= i;
     x1 = 0;
@@ -250,7 +250,7 @@ static void FOG_FASTCALL gradient_gradient_rgb32(uint8_t* dst, uint32_t c0, uint
     grStp[2] = (((int)((c1 >> 16) & 0xFF) << 23) - grCur[2]) / (int)w;
     grCur[2] += grStp[2] * (int)x1;
 
-    i = fog_min(w + 1, x2) - x1;
+    i = Math::min(w + 1, x2) - x1;
     x1 += i;
 
     do {
@@ -298,7 +298,7 @@ static void FOG_FASTCALL gradient_gradient_rgb24(uint8_t* dst, uint32_t c0, uint
   // Fill c0 before gradient start.
   if (x1 < 0)
   {
-    i = fog_min((sysint_t)0, x2) - x1;
+    i = Math::min((sysint_t)0, x2) - x1;
 
     xw -= i;
     x1 = 0;
@@ -336,7 +336,7 @@ static void FOG_FASTCALL gradient_gradient_rgb24(uint8_t* dst, uint32_t c0, uint
     grStp[2] = (((int)((c1 >> 16) & 0xFF) << 23) - grCur[2]) / (int)w;
     grCur[2] += grStp[2] * (int)x1;
 
-    i = fog_min(w + 1, x2) - x1;
+    i = Math::min(w + 1, x2) - x1;
     x1 += i;
 
     do {
@@ -392,7 +392,7 @@ static void FOG_FASTCALL gradient_gradient_a8(uint8_t* dst, uint32_t c0, uint32_
   // Fill c0 before gradient start.
   if (x1 < 0)
   {
-    i = fog_min((sysint_t)0, x2) - x1;
+    i = Math::min((sysint_t)0, x2) - x1;
 
     xw -= i;
     x1 = 0;
@@ -412,7 +412,7 @@ static void FOG_FASTCALL gradient_gradient_a8(uint8_t* dst, uint32_t c0, uint32_
     grStp = (((int)((c1      ) & 0xFF) << 23) - grCur) / (int)w;
     grCur += grStp * (int)x1;
 
-    i = fog_min(w + 1, x2) - x1;
+    i = Math::min(w + 1, x2) - x1;
     x1 += i;
 
     do {

@@ -354,7 +354,7 @@ static void FOG_FASTCALL boxBlurConvolveH_argb32_sse2(
       sum = _mm_add_epi32(sum, pix);
     }
 
-    xp = fog_min(radius, max);
+    xp = Math::min((sysint_t)radius, max);
 
     srcCur = src + xp * 4;
     dstCur = dst;
@@ -493,7 +493,7 @@ static void FOG_FASTCALL boxBlurConvolveV_argb32_sse2(
       sum = _mm_add_epi32(sum, pix);
     }
 
-    xp = fog_min(radius, max);
+    xp = Math::min((sysint_t)radius, max);
 
     srcCur = src + xp * srcStride;
     dstCur = dst;
@@ -653,7 +653,7 @@ static void FOG_FASTCALL stackBlurConvolveH_argb32_sse2(
       sum = _mm_add_epi32(sum, pix);
     }
 
-    xp = fog_min(radius, max);
+    xp = Math::min((sysint_t)radius, max);
 
     srcCur = src + xp * 4;
     dstCur = dst;
@@ -819,7 +819,7 @@ static void FOG_FASTCALL stackBlurConvolveV_argb32_sse2(
       sum = _mm_add_epi32(sum, pix);
     }
 
-    xp = fog_min(radius, max);
+    xp = Math::min((sysint_t)radius, max);
 
     srcCur = src + xp * srcStride;
     dstCur = dst;

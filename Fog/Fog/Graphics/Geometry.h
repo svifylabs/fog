@@ -8,6 +8,7 @@
 #define _FOG_GRAPHICS_GEOMETRY_H
 
 // [Dependencies]
+#include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/TypeInfo.h>
 
@@ -665,14 +666,14 @@ struct Rect
 
   static FOG_INLINE bool intersect(Rect& dest, const Rect& src1, const Rect& src2)
   {
-    int x = fog_max(src1.x1(), src2.x1());
-    int y = fog_max(src1.y1(), src2.y1());
+    int x = Math::max(src1.x1(), src2.x1());
+    int y = Math::max(src1.y1(), src2.y1());
 
     dest.set(
       x,
       y,
-      fog_min(src1.x2(), src2.x2()) - x,
-      fog_min(src1.y2(), src2.y2()) - y);
+      Math::min(src1.x2(), src2.x2()) - x,
+      Math::min(src1.y2(), src2.y2()) - y);
     return dest.isValid();
   }
 
@@ -829,8 +830,8 @@ struct RectF
   */
   FOG_INLINE bool overlaps(const RectF& r) const
   {
-    return (fog_max(x1(), r.x1()) < fog_min(x1(), r.x2()) &&
-            fog_max(y1(), r.y1()) < fog_min(y2(), r.y2()) );
+    return (Math::max(x1(), r.x1()) < Math::min(x1(), r.x2()) &&
+            Math::max(y1(), r.y1()) < Math::min(y2(), r.y2()) );
   }
 
   /*! @brief Returns @c true if rectangle completely subsumes @a r. */
@@ -909,10 +910,10 @@ struct RectF
     double src2x2 = src2.x2();
     double src2y2 = src2.y2();
 
-    dest._x = fog_max(src1x1, src2x1);
-    dest._y = fog_max(src1y1, src2y1);
-    dest._w = fog_min(src1x2, src2x2) - dest._x;
-    dest._h = fog_min(src1y2, src2y2) - dest._y;
+    dest._x = Math::max(src1x1, src2x1);
+    dest._y = Math::max(src1y1, src2y1);
+    dest._w = Math::min(src1x2, src2x2) - dest._x;
+    dest._h = Math::min(src1y2, src2y2) - dest._y;
 
     return dest.isValid();
   }
@@ -928,10 +929,10 @@ struct RectF
     double src2x2 = src2.x2();
     double src2y2 = src2.y2();
 
-    dest._x = fog_min(src1x1, src2x1);
-    dest._y = fog_min(src1y1, src2y1);
-    dest._w = fog_max(src1x2, src2x2) - dest._x;
-    dest._h = fog_max(src1y2, src2y2) - dest._y;
+    dest._x = Math::min(src1x1, src2x1);
+    dest._y = Math::min(src1y1, src2y1);
+    dest._w = Math::max(src1x2, src2x2) - dest._x;
+    dest._h = Math::max(src1y2, src2y2) - dest._y;
   }
 
   double _x;
@@ -1161,10 +1162,10 @@ struct Box
     _mm_storeu_si128((__m128i *)(&dest), _mm_or_si128(xmm0, xmm2));
 #else
     dest.set(
-      fog_max(src1.x1(), src2.x1()),
-      fog_max(src1.y1(), src2.y1()),
-      fog_min(src1.x2(), src2.x2()),
-      fog_min(src1.y2(), src2.y2()));
+      Math::max(src1.x1(), src2.x1()),
+      Math::max(src1.y1(), src2.y1()),
+      Math::min(src1.x2(), src2.x2()),
+      Math::min(src1.y2(), src2.y2()));
 #endif // FOG_HARDCODE_SSE2
     return dest.isValid();
   }

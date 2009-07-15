@@ -37,7 +37,7 @@ static void FOG_FASTCALL gradient_gradient_argb32_sse2(uint8_t* dst, uint32_t c0
   // Fill c0 before gradient start.
   if (x1 < 0)
   {
-    i = fog_min((sysint_t)0, x2) - x1;
+    i = Math::min((sysint_t)0, x2) - x1;
 
     xw -= i;
     x1 = 0;
@@ -86,7 +86,7 @@ static void FOG_FASTCALL gradient_gradient_argb32_sse2(uint8_t* dst, uint32_t c0
 
     xmm0 = _mm_add_epi32(xmm0, tmpARGB.m128i);   // xmm0 = c0 + offset
 
-    i = fog_min(w + 1, x2) - x1;
+    i = Math::min(w + 1, x2) - x1;
     x1 += i;
 
     // Align.
@@ -176,7 +176,7 @@ static void FOG_FASTCALL gradient_gradient_prgb32_sse2(uint8_t* dst, uint32_t c0
   if (x1 < 0)
   {
     uint32_t c0p = premultiply(c0);
-    i = fog_min((sysint_t)0, x2) - x1;
+    i = Math::min((sysint_t)0, x2) - x1;
 
     xw -= i;
     x1 = 0;
@@ -225,7 +225,7 @@ static void FOG_FASTCALL gradient_gradient_prgb32_sse2(uint8_t* dst, uint32_t c0
 
     xmm0 = _mm_add_epi32(xmm0, tmpARGB.m128i);   // xmm0 = c0 + offset
 
-    i = fog_min(w + 1, x2) - x1;
+    i = Math::min(w + 1, x2) - x1;
     x1 += i;
 
     // Align.

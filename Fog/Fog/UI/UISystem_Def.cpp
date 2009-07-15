@@ -5,6 +5,7 @@
 
 // [Dependencies]
 #include <Fog/Core/Application.h>
+#include <Fog/Core/Math.h>
 #include <Fog/Core/Vector.h>
 #include <Fog/Graphics/Geometry.h>
 #include <Fog/Graphics/Font.h>
@@ -692,8 +693,8 @@ void UISystemDefault::doUpdateWindow(UIWindow* window)
   // want).
   painter.begin(
       window->_backingStore->pixels(),
-      fog_min(window->_backingStore->width(), topSize.width()),
-      fog_min(window->_backingStore->height(), topSize.height()),
+      Math::min(window->_backingStore->width(), topSize.width()),
+      Math::min(window->_backingStore->height(), topSize.height()),
       window->_backingStore->stride(),
       window->_backingStore->format());
 

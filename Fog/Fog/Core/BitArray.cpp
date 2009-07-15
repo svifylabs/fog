@@ -13,6 +13,7 @@
 #include <Fog/Core/BitArray.h>
 #include <Fog/Core/Constants.h>
 #include <Fog/Core/Error.h>
+#include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/Std.h>
@@ -814,7 +815,7 @@ int BitArray::compare(const BitArray* a, const BitArray* b)
   if (a_d == b_d) return 0;
 
   sysuint_t i;
-  sysuint_t bitsCompare = fog_min(a_d->length, b_d->length);
+  sysuint_t bitsCompare = Math::min(a_d->length, b_d->length);
   sysuint_t bytesCompare = bitsCompare >> 3;
 
   const uint8_t* a_data = a_d->data;

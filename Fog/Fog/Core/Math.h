@@ -149,11 +149,40 @@ namespace Math {
 //! @addtogroup Fog_Core
 //! @{
 
+#if defined(min)
+#undef min
+#endif // min
+
+#if defined(max)
+#undef max
+#endif // max
+
+#if defined(bound)
+#undef bound
+#endif // bound
+
+#if defined(abs)
+#undef abs
+#endif // abs
+
+//! @brief Returns lower number of @a a and @a b
 template<typename T>
-static FOG_INLINE bool feq(T a, T b, T epsilon = 0.000001)
-{
-  return fabs(a - b) <= epsilon;
-}
+static FOG_INLINE const T& min(const T& a, const T& b) { return (a < b) ? a : b; }
+
+//! @brief Returns higher number of @a a and @a b
+template<typename T>
+static FOG_INLINE const T& max(const T& a, const T& b) { return (a > b) ? a : b; }
+
+//! @brief Returns value @a val saturated between @a min and @a max.
+template<typename T>
+static FOG_INLINE const T& bound(const T& min, const T& val, const T& max) { return val < max ? (val > min ? val : min) : max; }
+
+//! @brief Returns absolute value of @a a
+template<typename T>
+static FOG_INLINE T abs(const T& a) { return (a >= 0) ? a : -a; }
+
+template<typename T>
+static FOG_INLINE bool feq(T a, T b, T epsilon = 0.000001) { return fabs(a - b) <= epsilon; }
 
 static FOG_INLINE float deg2rad(float deg) { return deg * ((float)M_PI / 180.0f); }
 static FOG_INLINE float rad2deg(float rad) { return rad * (180.0f / (float)M_PI); }

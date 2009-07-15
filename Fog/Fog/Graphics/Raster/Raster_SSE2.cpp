@@ -10,6 +10,8 @@
 
 // [Dependencies]
 #include <Fog/Core/Intrin_SSE2.h>
+#include <Fog/Core/Math.h>
+#include <Fog/Core/Misc.h>
 #include <Fog/Graphics/ColorLut.h>
 #include <Fog/Graphics/ColorMatrix.h>
 #include <Fog/Graphics/Image.h>

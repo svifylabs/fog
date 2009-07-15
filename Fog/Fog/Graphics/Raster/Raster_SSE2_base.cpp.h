@@ -208,7 +208,7 @@ static FOG_INLINE void pix_pack_2x2W(
   dst0 = _mm_packus_epi16(src0, src1);
 }
 
-static FOG_INLINE void pix_pack_alpha(__m128i& dst0, __m128i& src0)
+static FOG_INLINE void pix_pack_alpha(__m128i& dst0, const __m128i& src0)
 {
   __m128i mmz = _mm_setzero_si128();
   dst0 = src0;
@@ -218,7 +218,7 @@ static FOG_INLINE void pix_pack_alpha(__m128i& dst0, __m128i& src0)
   dst0 = _mm_packus_epi16(dst0, mmz);
 }
 
-static FOG_INLINE uint32_t pix_pack_alpha_to_uint32(__m128i& src)
+static FOG_INLINE uint32_t pix_pack_alpha_to_uint32(const __m128i& src)
 {
   __m128i dst;
   pix_pack_alpha(dst, src);
@@ -226,7 +226,7 @@ static FOG_INLINE uint32_t pix_pack_alpha_to_uint32(__m128i& src)
 }
 
 static FOG_INLINE void pix_unpack_1x1D(
-  __m128i& dst0, __m128i& src0)
+  __m128i& dst0, const __m128i& src0)
 {
   __m128i xmmz = _mm_setzero_si128();
   dst0 = _mm_unpacklo_epi8(src0, xmmz);

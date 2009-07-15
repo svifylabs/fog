@@ -2317,9 +2317,9 @@ void RasterEngine::drawImage(const Point& p, const Image& image, const Rect* ire
     srcy = irect->y1();
     if (srcy < 0) return;
 
-    dstw = fog_min(image.width(), irect->width());
+    dstw = Math::min(image.width(), irect->width());
     if (dstw == 0) return;
-    dsth = fog_min(image.height(), irect->height());
+    dsth = Math::min(image.height(), irect->height());
     if (dsth == 0) return;
   }
 
@@ -2461,7 +2461,7 @@ void RasterEngine::setMultithreaded(bool mt)
   // Start multithreading...
   if (mt)
   {
-    int max = fog_min<int>(cpuInfo->numberOfProcessors, RASTER_MAX_THREADS);
+    int max = Math::min<int>(cpuInfo->numberOfProcessors, RASTER_MAX_THREADS);
 
 #if defined(RASTER_DEBUG)
     fog_debug("== starting multithreading (%d threads)", max);
@@ -2899,7 +2899,7 @@ void RasterEngine::_serializeBoxes(const Box* box, sysuint_t count)
       cmd->id = RasterEngineCommand::BoxId;
 
       sysuint_t j;
-      sysuint_t n = fog_min<sysuint_t>(count - i, RasterEngineCommand::BoxData::Size);
+      sysuint_t n = Math::min<sysuint_t>(count - i, RasterEngineCommand::BoxData::Size);
 
       cmd->box->count = n;
       for (j = 0; j < n; j++)

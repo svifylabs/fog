@@ -10,6 +10,8 @@
 
 // [Dependencies]
 #include <Fog/Core/Intrin_MMX.h>
+#include <Fog/Core/Math.h>
+#include <Fog/Core/Misc.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/Raster.h>
 #include <Fog/Graphics/Raster/Raster_C.h>
@@ -57,7 +59,7 @@ static void FOG_FASTCALL gradient_gradient_argb32_MMX(uint8_t* dst, uint32_t c0,
   // Fill c0 before gradient start.
   if (x1 < 0)
   {
-    i = fog_min((sysint_t)0, x2) - x1;
+    i = Math::min((sysint_t)0, x2) - x1;
 
     xw -= i;
     x1 = 0;
@@ -125,7 +127,7 @@ static void FOG_FASTCALL gradient_gradient_argb32_MMX(uint8_t* dst, uint32_t c0,
     mm0 = _mm_add_pi32(mm0, tmpAR.m64);          // mm0 = AR c0 + offset
     mm2 = _mm_add_pi32(mm2, tmpGB.m64);          // mm2 = GB c0 + offset
 
-    i = fog_min(w + 1, x2) - x1;
+    i = Math::min(w + 1, x2) - x1;
     x1 += i;
 
     // Align.

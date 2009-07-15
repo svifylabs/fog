@@ -11,6 +11,7 @@
 // [Dependencies]
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/Error.h>
+#include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Std.h>
 #include <Fog/Core/Vector.h>
@@ -136,7 +137,7 @@ sysuint_t VectorAPI_Base::_removeAt_p(void* self, sysuint_t sizeOfT, sysuint_t i
   sysuint_t length = d->length;
   if (FOG_UNLIKELY(index >= length)) return 0;
 
-  range = fog_min(range, d->length - index);
+  range = Math::min(range, d->length - index);
   if (FOG_UNLIKELY(range == 0)) return 0;
 
   sysuint_t newLength = length - range;
@@ -177,7 +178,7 @@ sysuint_t VectorAPI_Base::_replace_p(void* self, sysuint_t sizeOfT, sysuint_t in
   sysuint_t length = d->length;
   if (index > length) index = length;
 
-  range = fog_min(range, d->length - index);
+  range = Math::min(range, d->length - index);
 
   sysuint_t newLength = length - range;
   FOG_ASSERT(newLength + dataLength >= newLength); // Overflow
@@ -328,7 +329,7 @@ sysuint_t VectorAPI_Base::_removeAt_c(void* self, const SequenceInfoVTable* vtab
   sysuint_t length = d->length;
   if (FOG_UNLIKELY(index >= length)) return 0;
 
-  range = fog_min(range, d->length - index);
+  range = Math::min(range, d->length - index);
   if (FOG_UNLIKELY(range == 0)) return 0;
 
   sysuint_t newLength = length - range;
@@ -372,7 +373,7 @@ sysuint_t VectorAPI_Base::_replace_c(void* self, const SequenceInfoVTable* vtabl
   sysuint_t length = d->length;
   if (index > length) index = length;
 
-  range = fog_min(range, d->length - index);
+  range = Math::min(range, d->length - index);
 
   sysuint_t newLength = length - range;
   FOG_ASSERT(newLength + dataLength >= newLength); // Overflow
