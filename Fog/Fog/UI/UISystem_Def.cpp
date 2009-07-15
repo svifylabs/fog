@@ -149,31 +149,6 @@ err_t UISystemDefault::getSystemMouseStatus(SystemMouseStatus* out) const
   return Error::Ok;
 }
 
-#if 0
-// clear mouse status
-  if (mouseStatus.widget)
-  {
-    Widget* widget = mouseStatus.widget;
-    uint32_t hover = mouseStatus.wHover;
-    uint32_t inClientArea = mouseStatus.wInClientArea;
-
-    mouseStatus.widget = NULL;
-    mouseStatus.wPosition.set(INT_MIN, INT_MIN);
-    mouseStatus.wHover = false;
-    mouseStatus.buttons = 0;
-    mouseStatus.valid = true;
-
-    if (hover)
-    {
-      MouseEvent e(EvMouseOut);
-      e._button = ButtonInvalid;
-      e._modifiers = getKeyboardModifiers();
-      e._position.set(INT_MIN, INT_MIN);
-      widget->sendEvent(&e);
-    }
-  }
-#endif
-
 void UISystemDefault::invalidateMouseStatus()
 {
   _mouseStatus.valid = false;
@@ -1044,14 +1019,14 @@ UIWindowDefault::~UIWindowDefault()
 {
   UISystemDefault* uiSystem = UI_SYSTEM();
 
-  // Remove UIWindow from system mouse status
+  // Remove UIWindow from system mouse status.
   if (uiSystem->_systemMouseStatus.uiWindow == this)
   {
     uiSystem->clearSystemMouseStatus();
     uiSystem->clearButtonRepeat();
   }
 
-  // Remove UIWindow from dirty list
+  // Remove 'UIWindow's from dirty list.
   sysuint_t i = uiSystem->_dirtyList.indexOf(this);
   if (i != InvalidIndex) uiSystem->_dirtyList[i] = NULL;
 }
@@ -1175,8 +1150,24 @@ void UIWindowDefault::onMouseLeave(int x, int y)
 
   if (uiSystem->_systemMouseStatus.uiWindow == this)
   {
+    Widget* w = uiSystem->_mouseStatus.widget;
+
+    uiSystem->_mouseStatus.widget = NULL;
+    uiSystem->_mouseStatus.position.set(-1, -1);;
+    uiSystem->_mouseStatus.valid = 1;
+    uiSystem->_mouseStatus.buttons = 0;
+    uiSystem->_mouseStatus.hover = 0;
+
     uiSystem->clearSystemMouseStatus();
     uiSystem->clearButtonRepeat();
+
+    if (w)
+    {
+      MouseEvent e(EvMouseOut);
+      e._position.set(-1, -1);
+
+      w->sendEvent(&e);
+    }
   }
 }
 
