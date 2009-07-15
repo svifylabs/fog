@@ -30,18 +30,20 @@ struct FOG_API ImageFilter
   ImageFilter();
   virtual ~ImageFilter();
 
-  // [Type and flags]
+  // [Filter Type]
 
   //! @brief Image filter types.
-  enum Type
+  enum FilterType
   {
-    NoneFilterType = 0,
-    ConvolutionFilterType,
-    BlurFilterType
+    FilterTypeNone = 0,
+    FilterTypeBlur,
+    FilterTypeConvolution,
   };
 
+  // [Filter Flags]
+
   //! @brief Image filter flags.
-  enum Flags
+  enum FilterFlags
   {
     //! @brief Flag that means that filter is doing only color transformations.
     //!
@@ -70,11 +72,6 @@ struct FOG_API ImageFilter
     TwoPasses = (1U << 4)
   };
 
-  //! @brief Get type of image filter, see @c Type.
-  FOG_INLINE int type() const { return _type; }
-  //! @brief Get image filter flags, see @c Flags.
-  FOG_INLINE int flags() const { return _flags; }
-
   // [Border Mode]
 
   //! @brief Edge mode used in image filtering (convolution and blurs).
@@ -84,13 +81,48 @@ struct FOG_API ImageFilter
     //!
     //! To get Overflow or underflow pixel the first or last pixel
     //! in scanline is used.
-    ExtendBorderMode = 0,
+    BorderModeExtend = 0,
 
     //! @brief All borders contains @c borderColor value.
-    ColorBorderMode,
+    BorderModeColor,
 
-    InvalidBorderMode
+    //! @brief Used to detect invalid arguments.
+    BorderModeInvalid
   };
+
+  // [Blur Type]
+
+  //! @brief Type of blur.
+  enum BlurType
+  {
+    //! @brief Box blur type.
+    //!
+    //! Box blur is very bad looking blur, but it's fastest blur implemented
+    //! in Fog library. Fog small radius it's quite good looking one. Box blur
+    //! is also most agressive blur in Fog library.
+    BlurTypeBox,
+
+    //! @brief Stack blur (the default one).
+    //!
+    //! Stack blur provides very good looking blur with optimal speed.
+    BlurTypeStack,
+
+    //! @brief Gaussian blur type.
+    //!
+    //! Gaussian blur uses gaussian function to setup convolution matrix. It's
+    //! slowest blur in Fog library, but the quality is excellent.
+    BlurTypeGaussian,
+
+    //! @brief Used to detect invalid arguments.
+    BlurTypeInvalid
+  };
+
+  // [Type and Flags]
+
+  //! @brief Get type of image filter, see @c Type.
+  FOG_INLINE int type() const { return _type; }
+  //! @brief Get image filter flags, see @c Flags.
+  FOG_INLINE int flags() const { return _flags; }
 
   // [Clone]
 
@@ -142,7 +174,7 @@ struct FOG_API BlurImageFilter : public ImageFilter
   BlurImageFilter();
   BlurImageFilter(
     int blurType, double hRadius, double vRadius,
-    int borderMode = ExtendBorderMode, uint32_t borderColor = 0x00000000);
+    int borderMode = BorderModeExtend, uint32_t borderColor = 0x00000000);
   virtual ~BlurImageFilter();
 
   // [Clone]
@@ -153,32 +185,6 @@ struct FOG_API BlurImageFilter : public ImageFilter
 
   virtual err_t setProperty(const String32& name, const Value& value);
   virtual Value getProperty(const String32& name) const;
-
-  // [Blur Type]
-
-  //! @brief Type of blur.
-  enum BlurType
-  {
-    //! @brief Box blur type.
-    //!
-    //! Box blur is very bad looking blur, but it's fastest blur implemented
-    //! in Fog library. Fog small radius it's quite good looking one. Box blur
-    //! is also most agressive blur in Fog library.
-    BoxBlurType,
-
-    //! @brief Stack blur (the default one).
-    //!
-    //! Stack blur provides very good looking blur with optimal speed.
-    StackBlurType,
-
-    //! @brief Gaussian blur type.
-    //!
-    //! Gaussian blur uses gaussian function to setup convolution matrix. It's
-    //! slowest blur in Fog library, but the quality is excellent.
-    GaussianBlurType,
-
-    InvalidBlurType
-  };
 
   FOG_INLINE int blurType() const { return _blurType; }
   err_t setBlurType(int blurType);

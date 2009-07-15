@@ -375,7 +375,7 @@ static void FOG_FASTCALL floatScanlineConvolve_argb32(
     srcCur = src;
 
     // Setup borders if needed.
-    if (borderMode == ImageFilter::ExtendBorderMode)
+    if (borderMode == ImageFilter::BorderModeExtend)
     {
       uint32_t pix;
 
@@ -538,7 +538,7 @@ static void FOG_FASTCALL floatScanlineConvolve_rgb24(
     srcCur = src;
 
     // Setup borders if needed.
-    if (borderMode == ImageFilter::ExtendBorderMode)
+    if (borderMode == ImageFilter::BorderModeExtend)
     {
       leftEdgeR = (float)(int32_t)(srcCur[Raster::RGB24_RByte]);
       leftEdgeG = (float)(int32_t)(srcCur[Raster::RGB24_GByte]);
@@ -680,7 +680,7 @@ static void FOG_FASTCALL floatScanlineConvolve_a8(
     srcCur = src;
 
     // Setup borders if needed.
-    if (borderMode == ImageFilter::ExtendBorderMode)
+    if (borderMode == ImageFilter::BorderModeExtend)
     {
       leftEdge = (float)(int32_t)(srcCur[0]);
       rightEdge = (float)(int32_t)(srcCur[width-1]);
@@ -810,7 +810,7 @@ static void FOG_FASTCALL boxBlurConvolveH_argb32(
 
     srcCur = src;
 
-    if (borderMode == ImageFilter::ExtendBorderMode)
+    if (borderMode == ImageFilter::BorderModeExtend)
     {
       lBorderColor = READ_32(srcCur);
       rBorderColor = READ_32(srcCur + end);
@@ -988,7 +988,7 @@ static void FOG_FASTCALL boxBlurConvolveV_argb32(
 
     srcCur = src;
 
-    if (borderMode == ImageFilter::ExtendBorderMode)
+    if (borderMode == ImageFilter::BorderModeExtend)
     {
       lBorderColor = READ_32(srcCur);
       rBorderColor = READ_32(srcCur + end);
@@ -1167,7 +1167,7 @@ static void FOG_FASTCALL boxBlurConvolveH_rgb24(
 
     srcCur = src;
 
-    if (borderMode == ImageFilter::ExtendBorderMode)
+    if (borderMode == ImageFilter::BorderModeExtend)
     {
       lBorderColorR = srcCur[RGB24_RByte];
       lBorderColorG = srcCur[RGB24_GByte];
@@ -1344,7 +1344,7 @@ static void FOG_FASTCALL boxBlurConvolveV_rgb24(
 
     srcCur = src;
 
-    if (borderMode == ImageFilter::ExtendBorderMode)
+    if (borderMode == ImageFilter::BorderModeExtend)
     {
       lBorderColorR = srcCur[RGB24_RByte];
       lBorderColorG = srcCur[RGB24_GByte];
@@ -1512,7 +1512,7 @@ static void FOG_FASTCALL boxBlurConvolveH_a8(
 
     srcCur = src;
 
-    if (borderMode == ImageFilter::ExtendBorderMode)
+    if (borderMode == ImageFilter::BorderModeExtend)
     {
       lBorderColor = srcCur[0];
       rBorderColor = srcCur[end];
@@ -1637,7 +1637,7 @@ static void FOG_FASTCALL boxBlurConvolveV_a8(
 
     srcCur = src;
 
-    if (borderMode == ImageFilter::ExtendBorderMode)
+    if (borderMode == ImageFilter::BorderModeExtend)
     {
       lBorderColor = srcCur[0];
       rBorderColor = srcCur[end];
@@ -1822,7 +1822,7 @@ static void FOG_FASTCALL stackBlurConvolveH_argb32(
 
     srcCur = src;
 
-    if (borderMode == ImageFilter::ExtendBorderMode)
+    if (borderMode == ImageFilter::BorderModeExtend)
     {
       lBorderColor = READ_32(srcCur);
       rBorderColor = READ_32(srcCur + end);
@@ -2049,7 +2049,7 @@ static void FOG_FASTCALL stackBlurConvolveV_argb32(
 
     srcCur = src;
 
-    if (borderMode == ImageFilter::ExtendBorderMode)
+    if (borderMode == ImageFilter::BorderModeExtend)
     {
       lBorderColor = READ_32(srcCur);
       rBorderColor = READ_32(srcCur + end);
@@ -2279,7 +2279,7 @@ static void FOG_FASTCALL stackBlurConvolveH_rgb24(
 
     srcCur = src;
 
-    if (borderMode == ImageFilter::ExtendBorderMode)
+    if (borderMode == ImageFilter::BorderModeExtend)
     {
       lBorderColorR = srcCur[RGB24_RByte];
       lBorderColorG = srcCur[RGB24_GByte];
@@ -2509,7 +2509,7 @@ static void FOG_FASTCALL stackBlurConvolveV_rgb24(
 
     srcCur = src;
 
-    if (borderMode == ImageFilter::ExtendBorderMode)
+    if (borderMode == ImageFilter::BorderModeExtend)
     {
       lBorderColorR = srcCur[RGB24_RByte];
       lBorderColorG = srcCur[RGB24_GByte];
@@ -2720,7 +2720,7 @@ static void FOG_FASTCALL stackBlurConvolveH_a8(
 
     srcCur = src;
 
-    if (borderMode == ImageFilter::ExtendBorderMode)
+    if (borderMode == ImageFilter::BorderModeExtend)
     {
       lBorderColor = srcCur[0];
       rBorderColor = srcCur[end];
@@ -2862,7 +2862,7 @@ static void FOG_FASTCALL stackBlurConvolveV_a8(
 
     srcCur = src;
 
-    if (borderMode == ImageFilter::ExtendBorderMode)
+    if (borderMode == ImageFilter::BorderModeExtend)
     {
       lBorderColor = srcCur[0];
       rBorderColor = srcCur[end];
