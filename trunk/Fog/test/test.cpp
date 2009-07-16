@@ -201,6 +201,13 @@ static Image makeImage()
 
 void MyWindow::onMouse(MouseEvent* e)
 {
+  switch (e->code())
+  {
+    case EvMouseIn: printf("MouseIn\n"); break;
+    case EvMouseOut: printf("MouseOut\n"); break;
+    case EvMouseMove: printf("MouseMove\n"); break;
+    case EvMouseOutside: printf("MouseOutside\n"); break;
+  }
   base::onMouse(e);
 }
 
@@ -233,7 +240,7 @@ void MyWindow::onPaint(PaintEvent* e)
   //im0.convert(Image::FormatRGB24);
   BlurImageFilter(BlurImageFilter::BlurTypeBox, r, r, ImageFilter::BorderModeColor, 0x00000000).filterImage(im1, im0);
   BlurImageFilter(BlurImageFilter::BlurTypeStack, r, r, ImageFilter::BorderModeColor, 0x00000000).filterImage(im2, im0);
-  BlurImageFilter(BlurImageFilter::BlurTypeGaussian, r, r, ImageFilter::BorderModeColor, 0x00000000).filterImage(im3, im0);
+  //BlurImageFilter(BlurImageFilter::BlurTypeGaussian, r, r, ImageFilter::BorderModeColor, 0x00000000).filterImage(im3, im0);
 
   //float kernel[] = { -3.0, -1.5, -1.0, -2.0, 1.0, -2.0, -1.0, -1.5, -3.0 };
   //int size = 9;
