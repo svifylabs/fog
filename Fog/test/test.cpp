@@ -175,39 +175,21 @@ static Image makeImage()
   im.clear(0x00000000);
   Painter p(im);
 
-  //p.setSource(0xFFFFFFFF);
-  //p.clear();
-
   Font font;
   font.setFamily(Ascii8("Courier New"));
   font.setSize(80);
   font.setBold(true);
 
-  //p.setSource(0xFF000000);
-  //p.drawRect(Rect(0, 0, p.width(), p.height()));
-
-  //p.setSource(0xFF0000FF);
-  //p.drawText(Rect( 1, 1, p.width(), p.height()), Ascii8("Fog Library"), font, TextAlignCenter);
-  //p.drawText(Rect(-1, 1, p.width(), p.height()), Ascii8("Fog Library"), font, TextAlignCenter);
-  //p.drawText(Rect( 1,-1, p.width(), p.height()), Ascii8("Fog Library"), font, TextAlignCenter);
-  //p.drawText(Rect(-1,-1, p.width(), p.height()), Ascii8("Fog Library"), font, TextAlignCenter);
-
   p.setSource(0xFF000000);
   p.drawText(Rect(0, 0, p.width(), p.height()), Ascii8("Fog Library"), font, TextAlignCenter);
 
   p.end();
+
   return im;
 }
 
 void MyWindow::onMouse(MouseEvent* e)
 {
-  switch (e->code())
-  {
-    case EvMouseIn: printf("MouseIn\n"); break;
-    case EvMouseOut: printf("MouseOut\n"); break;
-    case EvMouseMove: printf("MouseMove\n"); break;
-    case EvMouseOutside: printf("MouseOutside\n"); break;
-  }
   base::onMouse(e);
 }
 
@@ -237,7 +219,6 @@ void MyWindow::onPaint(PaintEvent* e)
   Image im2;
   Image im3;
 
-  //im0.convert(Image::FormatRGB24);
   BlurImageFilter(BlurImageFilter::BlurTypeBox, r, r, ImageFilter::BorderModeColor, 0x00000000).filterImage(im1, im0);
   BlurImageFilter(BlurImageFilter::BlurTypeStack, r, r, ImageFilter::BorderModeColor, 0x00000000).filterImage(im2, im0);
   //BlurImageFilter(BlurImageFilter::BlurTypeGaussian, r, r, ImageFilter::BorderModeColor, 0x00000000).filterImage(im3, im0);

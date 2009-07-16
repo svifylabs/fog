@@ -57,9 +57,9 @@ FOG_INIT_FUNC(fog_raster);
 FOG_INIT_FUNC(fog_palette);
 FOG_INIT_FUNC(fog_path);
 FOG_INIT_FUNC(fog_region);
-FOG_INIT_FUNC(fog_imageformat);
 FOG_INIT_FUNC(fog_image);
 FOG_INIT_FUNC(fog_imageio);
+FOG_INIT_FUNC(fog_imagefilter);
 FOG_INIT_FUNC(fog_glyph);
 FOG_INIT_FUNC(fog_glyphset);
 FOG_INIT_FUNC(fog_pattern);
@@ -127,6 +127,7 @@ static const FogInitEntry fog_init_entries[] =
   INIT_ENTRY(fog_region),
   INIT_ENTRY(fog_image),
   INIT_ENTRY(fog_imageio),
+  INIT_ENTRY(fog_imagefilter),
   INIT_ENTRY(fog_glyph),            // Depends to Image
   INIT_ENTRY(fog_glyphset),
   INIT_ENTRY(fog_pattern),
