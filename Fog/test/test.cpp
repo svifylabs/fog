@@ -230,17 +230,10 @@ void MyWindow::onPaint(PaintEvent* e)
   Image im2;
   Image im3;
 
-  im0.readFile(Ascii8("C:/My/img/babelfish.pcx"));
-  im0.convert(Image::FormatARGB32);
-
   //im0.convert(Image::FormatRGB24);
   BlurImageFilter(BlurImageFilter::BlurTypeBox, r, r, ImageFilter::BorderModeColor, 0x00000000).filterImage(im1, im0);
   BlurImageFilter(BlurImageFilter::BlurTypeStack, r, r, ImageFilter::BorderModeColor, 0x00000000).filterImage(im2, im0);
-
-  im3 = im0;
-  ColorMatrix cm;
-  cm.rotateHue(Math::deg2rad(r * 5.0));
-  im3.filter(cm);
+  BlurImageFilter(BlurImageFilter::BlurTypeGaussian, r, r, ImageFilter::BorderModeColor, 0x00000000).filterImage(im3, im0);
 
   //float kernel[] = { -3.0, -1.5, -1.0, -2.0, 1.0, -2.0, -1.0, -1.5, -3.0 };
   //int size = 9;

@@ -266,6 +266,12 @@ err_t BlurImageFilter::filterPrivate(
   const uint8_t* src, sysint_t srcStride,
   int width, int height, int format) const
 {
+  if (isNop())
+  {
+    if (dst != src) Raster::functionMap->filters.copyArea[format](dst, dstStride, src, srcStride, width, height);
+    return Error::Ok;
+  }
+
   double hRadius = fabs(_hRadius);
   double vRadius = fabs(_vRadius);
 
@@ -280,31 +286,6 @@ err_t BlurImageFilter::filterPrivate(
 
   int hKernelSize = hRadiusInt * 2 + 1;
   int vKernelSize = vRadiusInt * 2 + 1;
-
-  switch (_blurType)
-  {
-    case BlurTypeBox:
-    case BlurTypeStack:
-    {
-      if (hRadiusInt == 0 && vRadiusInt == 0)
-      {
-        if (dst != src) Raster::functionMap->filters.copyArea[format](dst, dstStride, src, srcStride, width, height);
-        return Error::Ok;
-      }
-      break;
-    }
-    case BlurTypeGaussian:
-    {
-      if (vRadius <= 0.63 && hRadius <= 0.63)
-      {
-        if (dst != src) Raster::functionMap->filters.copyArea[format](dst, dstStride, src, srcStride, width, height);
-        return Error::Ok;
-      }
-      break;
-    }
-    default:
-      FOG_ASSERT_NOT_REACHED();
-  }
 
   err_t err = Error::Ok;
 
@@ -337,9 +318,6 @@ err_t BlurImageFilter::filterPrivate(
       sysint_t bufStride = height * Image::formatToBytesPerPixel(format);
       if (bufStride == 0) return Error::InvalidArgument;
 
-      uint8_t* buf = (uint8_t*)Memory::alloc(width * bufStride);
-      if (!buf) return Error::OutOfMemory;
-
       float* hKernel;
       float* vKernel;
 
@@ -351,17 +329,17 @@ err_t BlurImageFilter::filterPrivate(
       if (!hKernel) return Error::OutOfMemory;
       vKernel = hKernel + hKernelSize;
 
+      Raster::FloatScanlineConvolveFn convolveH = Raster::functionMap->filters.floatScanlineConvolveH[format];
+      Raster::FloatScanlineConvolveFn convolveV = Raster::functionMap->filters.floatScanlineConvolveV[format];
+
       hKernelDiv = makeGaussianBlurKernel(hKernel, hRadius, hKernelSize);
       vKernelDiv = makeGaussianBlurKernel(vKernel, vRadius, vKernelSize);
 
-      Raster::FloatScanlineConvolveFn convolve = Raster::functionMap->filters.floatScanlineConvolve[format];
-
-      convolve(buf, bufStride, src, srcStride,
+      convolveH(dst, dstStride, src, srcStride,
         width, height, hKernel, hKernelSize, hKernelDiv, _borderMode, _borderColor);
-      convolve(dst, dstStride, buf, bufStride,
-        height, width, vKernel, vKernelSize, vKernelDiv, _borderMode, _borderColor);
+      convolveV(dst, dstStride, dst, dstStride,
+        width, height, vKernel, vKernelSize, vKernelDiv, _borderMode, _borderColor);
 
-      Memory::free(buf);
       break;
     }
   }

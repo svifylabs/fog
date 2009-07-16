@@ -342,26 +342,23 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
 
   // [Filters - CopyArea]
 
-  m->filters.copyArea[Image::FormatARGB32] = transpose_32;
-  m->filters.copyArea[Image::FormatPRGB32] = transpose_32;
-  m->filters.copyArea[Image::FormatRGB32] = transpose_32;
-  m->filters.copyArea[Image::FormatRGB24] = transpose_24;
-  m->filters.copyArea[Image::FormatA8] = transpose_8;
-  m->filters.copyArea[Image::FormatI8] = transpose_8;
-
-  m->filters.transpose[Image::FormatARGB32] = transpose_32;
-  m->filters.transpose[Image::FormatPRGB32] = transpose_32;
-  m->filters.transpose[Image::FormatRGB32] = transpose_32;
-  m->filters.transpose[Image::FormatRGB24] = transpose_24;
-  m->filters.transpose[Image::FormatA8] = transpose_8;
-  m->filters.transpose[Image::FormatI8] = transpose_8;
+  m->filters.copyArea[Image::FormatARGB32] = copyArea_32;
+  m->filters.copyArea[Image::FormatPRGB32] = copyArea_32;
+  m->filters.copyArea[Image::FormatRGB32] = copyArea_32;
+  m->filters.copyArea[Image::FormatRGB24] = copyArea_24;
+  m->filters.copyArea[Image::FormatA8] = copyArea_8;
+  m->filters.copyArea[Image::FormatI8] = copyArea_8;
 
   // [Filters - FloatScanlineConvolve]
 
-  m->filters.floatScanlineConvolve[Image::FormatARGB32] = floatScanlineConvolve_argb32;
-  m->filters.floatScanlineConvolve[Image::FormatRGB32] = floatScanlineConvolve_argb32;
-  m->filters.floatScanlineConvolve[Image::FormatRGB24] = floatScanlineConvolve_rgb24;
-  m->filters.floatScanlineConvolve[Image::FormatA8] = floatScanlineConvolve_a8;
+  m->filters.floatScanlineConvolveH[Image::FormatARGB32] = floatScanlineConvolveH_argb32;
+  m->filters.floatScanlineConvolveV[Image::FormatARGB32] = floatScanlineConvolveV_argb32;
+  m->filters.floatScanlineConvolveH[Image::FormatRGB32] = floatScanlineConvolveH_argb32;
+  m->filters.floatScanlineConvolveV[Image::FormatRGB32] = floatScanlineConvolveV_argb32;
+  m->filters.floatScanlineConvolveH[Image::FormatRGB24] = floatScanlineConvolveH_rgb24;
+  m->filters.floatScanlineConvolveV[Image::FormatRGB24] = floatScanlineConvolveV_rgb24;
+  m->filters.floatScanlineConvolveH[Image::FormatA8] = floatScanlineConvolveH_a8;
+  m->filters.floatScanlineConvolveV[Image::FormatA8] = floatScanlineConvolveV_a8;
 
   // [Filters - BoxBlurConvolve]
 

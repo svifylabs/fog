@@ -258,6 +258,287 @@ static void FOG_FASTCALL colorMatrix_a8_sse2(
 }
 
 // ============================================================================
+// [Fog::Raster_C - FloatScanlineConvolve]
+// ============================================================================
+
+static void FOG_FASTCALL floatScanlineConvolveH_argb32_sse2(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height, const float* kernel, int size, float divisor,
+  int borderMode, uint32_t borderColor)
+{
+  if (size == 0 || width < 2)
+  {
+    if (dst != src) functionMap->filters.copyArea[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
+    return;
+  }
+
+  sysint_t dym1 = width;
+  sysint_t dym2 = height;
+  sysint_t max = dym1 - 1;
+  sysint_t end = max * 4;
+
+  uint8_t* dstCur;
+  const uint8_t* srcCur;
+
+  sysint_t pos1;
+  sysint_t pos2;
+  sysint_t xp, i;
+
+  int sizeHalf = size >> 1;
+
+  MemoryBuffer<512*sizeof(float)> stackBuffer;
+  uint32_t* stack = (uint32_t*)stackBuffer.alloc(size * (sizeof(uint32_t) + sizeof(float)));
+  uint32_t* stackEnd = stack + size;
+  uint32_t* stackCur;
+
+  if (!stack) return;
+
+  uint32_t lBorderColor = borderColor;
+  uint32_t rBorderColor = borderColor;
+
+  // If divisor is not 1.0, we will modify a given kernel to be.
+  if (divisor != 1.0f)
+  {
+    float* k = (float*)( (uint8_t*)stack + size * sizeof(float) );
+    Math::vdivs(k, kernel, divisor, size);
+    kernel = k;
+  }
+
+  __m128 const1 = _mm_set1_ps(1.0f);
+  __m128 const0 = _mm_set1_ps(0.0f);
+  __m128 const255 = _mm_set1_ps(255.0f);
+
+  for (pos2 = 0; pos2 < dym2; pos2++)
+  {
+    uint32_t pix0;
+
+    dstCur = dst;
+    srcCur = src;
+    stackCur = stack;
+
+    if (borderMode == ImageFilter::BorderModeExtend)
+    {
+      lBorderColor = READ_32(srcCur);
+      rBorderColor = READ_32(srcCur + end);
+    }
+
+    pix0 = lBorderColor;
+    xp = 0;
+
+    for (i = 0; i < sizeHalf; i++)
+    {
+      stackCur[0] = pix0;
+      stackCur++;
+    }
+
+    for (i = sizeHalf; i < size; i++)
+    {
+      if (xp < dym1)
+      {
+        pix0 = READ_32(srcCur);
+        srcCur += 4;
+        xp++;
+      }
+      else
+      {
+        pix0 = rBorderColor;
+      }
+
+      stackCur[0] = pix0;
+      stackCur++;
+    }
+
+    stackCur = stack;
+
+    for (pos1 = 0; pos1 < dym1; pos1++)
+    {
+      __m128i pixi;
+      __m128 z = const1;
+
+      for (i = 0; i < size; i++)
+      {
+        __m128 k = _mm_set1_ps(kernel[i]);
+        __m128 pixf;
+
+        pix_load4(pixi, (uint8_t*)stackCur);
+        pix_unpack_to_float(pixf, pixi);
+
+        pixf = _mm_mul_ps(pixf, k);
+        z = _mm_add_ps(z, pixf);
+
+        stackCur++;
+        if (stackCur == stackEnd) stackCur = stack;
+      }
+
+      z = _mm_max_ps(z, const0);
+      z = _mm_min_ps(z, const255);
+
+      pix_pack_from_float(pixi, z);
+      pix_store4(dstCur, pixi);
+      dstCur += 4;
+
+      if (xp < dym1)
+      {
+        pix_load4(pixi, srcCur);
+        pix_store4((uint8_t*)stackCur, pixi);
+        srcCur += 4;
+        xp++;
+      }
+      else
+      {
+        stackCur[0] = rBorderColor;
+      }
+
+      stackCur++;
+      if (stackCur == stackEnd) stackCur = stack;
+    }
+
+    src += srcStride;
+    dst += dstStride;
+  }
+}
+
+static void FOG_FASTCALL floatScanlineConvolveV_argb32_sse2(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height, const float* kernel, int size, float divisor,
+  int borderMode, uint32_t borderColor)
+{
+  if (size == 0 || height < 2)
+  {
+    if (dst != src) functionMap->filters.copyArea[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
+    return;
+  }
+
+  sysint_t dym1 = height;
+  sysint_t dym2 = width;
+  sysint_t max = dym1 - 1;
+  sysint_t end = max * srcStride;
+
+  uint8_t* dstCur;
+  const uint8_t* srcCur;
+
+  sysint_t pos1;
+  sysint_t pos2;
+  sysint_t xp, i;
+
+  int sizeHalf = size >> 1;
+
+  MemoryBuffer<512*sizeof(float)> stackBuffer;
+  uint32_t* stack = (uint32_t*)stackBuffer.alloc(size * (sizeof(uint32_t) + sizeof(float)));
+  uint32_t* stackEnd = stack + size;
+  uint32_t* stackCur;
+
+  if (!stack) return;
+
+  uint32_t lBorderColor = borderColor;
+  uint32_t rBorderColor = borderColor;
+
+  // If divisor is not 1.0, we will modify a given kernel to be.
+  if (divisor != 1.0f)
+  {
+    float* k = (float*)( (uint8_t*)stack + size * sizeof(uint32_t) );
+    Math::vdivs(k, kernel, divisor, size);
+    kernel = k;
+  }
+
+  __m128 const1 = _mm_set1_ps(1.0f);
+  __m128 const0 = _mm_set1_ps(0.0f);
+  __m128 const255 = _mm_set1_ps(255.0f);
+
+  for (pos2 = 0; pos2 < dym2; pos2++)
+  {
+    uint32_t pix0;
+
+    dstCur = dst;
+    srcCur = src;
+    stackCur = stack;
+
+    if (borderMode == ImageFilter::BorderModeExtend)
+    {
+      lBorderColor = READ_32(srcCur);
+      rBorderColor = READ_32(srcCur + end);
+    }
+
+    pix0 = lBorderColor;
+    xp = 0;
+
+    for (i = 0; i < sizeHalf; i++)
+    {
+      stackCur[0] = pix0;
+      stackCur++;
+    }
+
+    for (i = sizeHalf; i < size; i++)
+    {
+      if (xp < dym1)
+      {
+        pix0 = READ_32(srcCur);
+        srcCur += srcStride;
+        xp++;
+      }
+      else
+      {
+        pix0 = rBorderColor;
+      }
+
+      stackCur[0] = pix0;
+      stackCur++;
+    }
+
+    stackCur = stack;
+
+    for (pos1 = 0; pos1 < dym1; pos1++)
+    {
+      __m128i pixi;
+      __m128 z = const1;
+
+      for (i = 0; i < size; i++)
+      {
+        __m128 k = _mm_set1_ps(kernel[i]);
+        __m128 pixf;
+
+        pix_load4(pixi, (uint8_t*)stackCur);
+        pix_unpack_to_float(pixf, pixi);
+
+        pixf = _mm_mul_ps(pixf, k);
+        z = _mm_add_ps(z, pixf);
+
+        stackCur++;
+        if (stackCur == stackEnd) stackCur = stack;
+      }
+
+      z = _mm_max_ps(z, const0);
+      z = _mm_min_ps(z, const255);
+
+      pix_pack_from_float(pixi, z);
+      pix_store4(dstCur, pixi);
+      dstCur += dstStride;
+
+      if (xp < dym1)
+      {
+        pix_load4(pixi, srcCur);
+        pix_store4((uint8_t*)stackCur, pixi);
+        srcCur += srcStride;
+        xp++;
+      }
+      else
+      {
+        stackCur[0] = rBorderColor;
+      }
+
+      stackCur++;
+      stackCur++;
+      if (stackCur == stackEnd) stackCur = stack;
+    }
+
+    src += 4;
+    dst += 4;
+  }
+}
+
+// ============================================================================
 // [Fog::Raster_SSE2 - BoxBlur]
 // ============================================================================
 
