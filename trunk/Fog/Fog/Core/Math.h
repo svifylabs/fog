@@ -13,7 +13,7 @@
 #include <math.h>
 
 // ============================================================================
-// [Fog::Math]
+// [Fog::Math - Constants]
 // ============================================================================
 
 // Some constants are not defined by MSVC.
@@ -99,7 +99,9 @@
 # define M_SQRT1_2l     0.7071067811865475244008443621048490L
 #endif
 
-// [NaN and Inf]
+// ============================================================================
+// [Fog::Math - NaN and Inf]
+// ============================================================================
 
 // Not defined NAN ?
 #if !defined(NAN)
@@ -127,7 +129,9 @@ static FOG_HIDDEN const uint32_t fog_inf[2] = { 0x00000000, 0x7FF00000 };
 # endif
 #endif
 
-// [control87]
+// ============================================================================
+// [Fog::Math - Control87]
+// ============================================================================
 
 #if defined(FOG_OS_WINDOWS) && defined(FOG_CC_MSVC)
 # define FOG_CONTROL87_BEGIN() uint _control87_old = _control87(0x9001F, FOG_ARCH_32_64(_MCW_DN|_MCW_EM|_MCW_RC, 0xFFFF))
@@ -148,6 +152,10 @@ namespace Math {
 
 //! @addtogroup Fog_Core
 //! @{
+
+// ============================================================================
+// [Fog::Math - Min/Max/Bound]
+// ============================================================================
 
 #if defined(min)
 #undef min
@@ -177,18 +185,69 @@ static FOG_INLINE const T& max(const T& a, const T& b) { return (a > b) ? a : b;
 template<typename T>
 static FOG_INLINE const T& bound(const T& min, const T& val, const T& max) { return val < max ? (val > min ? val : min) : max; }
 
+// ============================================================================
+// [Fog::Math - Abs]
+// ============================================================================
+
 //! @brief Returns absolute value of @a a
 template<typename T>
 static FOG_INLINE T abs(const T& a) { return (a >= 0) ? a : -a; }
 
+// ============================================================================
+// [Fog::Math - Floating point ops with epsilon]
+// ============================================================================
+
 template<typename T>
 static FOG_INLINE bool feq(T a, T b, T epsilon = 0.000001) { return fabs(a - b) <= epsilon; }
+
+// ============================================================================
+// [Fog::Math - Degrees <-> Radians]
+// ============================================================================
 
 static FOG_INLINE float deg2rad(float deg) { return deg * ((float)M_PI / 180.0f); }
 static FOG_INLINE float rad2deg(float rad) { return rad * (180.0f / (float)M_PI); }
 
 static FOG_INLINE double deg2rad(double deg) { return deg * (M_PI / 180.0); }
 static FOG_INLINE double rad2deg(double rad) { return rad * (180.0 / M_PI); }
+
+// ============================================================================
+// [Fog::Math - Trigonometric Functions]
+// ============================================================================
+
+// static FOG_INLINE float sin(float rad) { return ::sin(rad); }
+// static FOG_INLINE float cos(float rad) { return ::cos(rad); }
+
+// ============================================================================
+// [Fog::Math - Vector Functions]
+// ============================================================================
+
+struct FunctionMap
+{
+  typedef void (FOG_FASTCALL *VOpArrayF)(float* dst, const float* src1, const float* src2, sysuint_t size);
+  typedef void (FOG_FASTCALL *VOpScalarF)(float* dst, const float* src1, float src2, sysuint_t size);
+
+  VOpArrayF vAddArrayF;
+  VOpArrayF vSubArrayF;
+  VOpArrayF vMulArrayF;
+  VOpArrayF vDivArrayF;
+
+  VOpScalarF vAddScalarF;
+  VOpScalarF vSubScalarF;
+  VOpScalarF vMulScalarF;
+  VOpScalarF vDivScalarF;
+};
+
+extern FOG_API const FunctionMap* functionMap;
+
+static FOG_INLINE void vadda(float* dst, const float* src1, const float* src2, sysuint_t size) { functionMap->vAddArrayF(dst, src1, src2, size); }
+static FOG_INLINE void vsuba(float* dst, const float* src1, const float* src2, sysuint_t size) { functionMap->vSubArrayF(dst, src1, src2, size); }
+static FOG_INLINE void vmula(float* dst, const float* src1, const float* src2, sysuint_t size) { functionMap->vMulArrayF(dst, src1, src2, size); }
+static FOG_INLINE void vdiva(float* dst, const float* src1, const float* src2, sysuint_t size) { functionMap->vDivArrayF(dst, src1, src2, size); }
+
+static FOG_INLINE void vadds(float* dst, const float* src1, float src2, sysuint_t size) { functionMap->vAddScalarF(dst, src1, src2, size); }
+static FOG_INLINE void vsubs(float* dst, const float* src1, float src2, sysuint_t size) { functionMap->vSubScalarF(dst, src1, src2, size); }
+static FOG_INLINE void vmuls(float* dst, const float* src1, float src2, sysuint_t size) { functionMap->vMulScalarF(dst, src1, src2, size); }
+static FOG_INLINE void vdivs(float* dst, const float* src1, float src2, sysuint_t size) { functionMap->vDivScalarF(dst, src1, src2, size); }
 
 } // Math namespace
 } // Fog namespace

@@ -222,6 +222,7 @@ Set(FOG_CORE_SOURCES
   ${FOG_DIR}/Fog/Core/Locale.cpp
   ${FOG_DIR}/Fog/Core/Lock.cpp
   ${FOG_DIR}/Fog/Core/MapFile.cpp
+  ${FOG_DIR}/Fog/Core/Math.cpp
   ${FOG_DIR}/Fog/Core/Memory.cpp
   ${FOG_DIR}/Fog/Core/Misc.cpp
   ${FOG_DIR}/Fog/Core/OS.cpp

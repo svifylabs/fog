@@ -230,98 +230,9 @@ static void FOG_FASTCALL colorMatrix_a8(
 }
 
 // ============================================================================
-// [Fog::Raster_C - Transpose]
-// ============================================================================
-
-static void FOG_FASTCALL transpose_32(
-  uint8_t* dst, sysint_t dstStride,
-  const uint8_t* src, sysint_t srcStride,
-  int width, int height)
-{
-  uint8_t* dstCur;
-  const uint8_t* srcCur;
-
-  sysint_t x, y;
-
-  for (y = 0; y < height; y++)
-  {
-    // Setup raster pointers.
-    dstCur = dst;
-    srcCur = src;
-
-    for (x = 0; x < width; x++)
-    {
-      Raster::copy4(dstCur, srcCur);
-      dstCur += dstStride;
-      srcCur += 4;
-    }
-
-    dst += 4;
-    src += srcStride;
-  }
-}
-
-static void FOG_FASTCALL transpose_24(
-  uint8_t* dst, sysint_t dstStride,
-  const uint8_t* src, sysint_t srcStride,
-  int width, int height)
-{
-  uint8_t* dstCur;
-  const uint8_t* srcCur;
-
-  sysint_t x, y;
-
-  for (y = 0; y < height; y++)
-  {
-    // Setup raster pointers.
-    dstCur = dst;
-    srcCur = src;
-
-    for (x = 0; x < width; x++)
-    {
-      Raster::copy3(dstCur, srcCur);
-      dstCur += dstStride;
-      srcCur += 4;
-    }
-
-    dst += 4;
-    src += srcStride;
-  }
-}
-
-static void FOG_FASTCALL transpose_8(
-  uint8_t* dst, sysint_t dstStride,
-  const uint8_t* src, sysint_t srcStride,
-  int width, int height)
-{
-  uint8_t* dstCur;
-  const uint8_t* srcCur;
-
-  sysint_t x, y;
-
-  for (y = 0; y < height; y++)
-  {
-    // Setup raster pointers.
-    dstCur = dst;
-    srcCur = src;
-
-    for (x = 0; x < width; x++)
-    {
-      Raster::copy1(dstCur, srcCur);
-      dstCur += dstStride;
-      srcCur += 4;
-    }
-
-    dst += 4;
-    src += srcStride;
-  }
-}
-
-// ============================================================================
 // [Fog::Raster_C - FloatScanlineConvolve]
 // ============================================================================
 
-#if 0
 static void FOG_FASTCALL floatScanlineConvolveH_argb32(
   uint8_t* dst, sysint_t dstStride,
   const uint8_t* src, sysint_t srcStride,
@@ -349,7 +260,7 @@ static void FOG_FASTCALL floatScanlineConvolveH_argb32(
   int sizeHalf = size >> 1;
 
   MemoryBuffer<512*sizeof(float)> stackBuffer;
-  uint32_t* stack = (uint32_t*)stackBuffer.alloc(size * sizeof(float) * 2);
+  uint32_t* stack = (uint32_t*)stackBuffer.alloc(size * (sizeof(uint32_t) + sizeof(float)));
   uint32_t* stackEnd = stack + size;
   uint32_t* stackCur;
 
@@ -358,14 +269,11 @@ static void FOG_FASTCALL floatScanlineConvolveH_argb32(
   uint32_t lBorderColor = borderColor;
   uint32_t rBorderColor = borderColor;
   
-  // If divisor is not 1.0, we will make our kernel to speedup computation.
+  // If divisor is not 1.0, we will modify a given kernel to be.
   if (divisor != 1.0f)
   {
     float* k = (float*)( (uint8_t*)stack + size * sizeof(float) );
-
-    for (i = 0; i < size; i++)
-      k[i] = kernel[i] / divisor;
-
+    Math::vdivs(k, kernel, divisor, size);
     kernel = k;
   }
 
@@ -394,7 +302,7 @@ static void FOG_FASTCALL floatScanlineConvolveH_argb32(
 
     for (i = sizeHalf; i < size; i++)
     {
-      if (xp < width)
+      if (xp < dym1)
       {
         pix0 = READ_32(srcCur);
         srcCur += 4;
@@ -439,7 +347,7 @@ static void FOG_FASTCALL floatScanlineConvolveH_argb32(
         ((uint32_t)clamp255((int)ca) << 24) ;
       dstCur += 4;
 
-      if (xp < width)
+      if (xp < dym1)
       {
         pix0 = READ_32(srcCur);
         srcCur += 4;
@@ -458,588 +366,686 @@ static void FOG_FASTCALL floatScanlineConvolveH_argb32(
     src += srcStride;
     dst += dstStride;
   }
+}
 
-  // Modify kernel to remove extra division / multiplication from main loop
+static void FOG_FASTCALL floatScanlineConvolveV_argb32(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height, const float* kernel, int size, float divisor,
+  int borderMode, uint32_t borderColor)
+{
+  if (size == 0 || height < 2)
+  {
+    if (dst != src) functionMap->filters.copyArea[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
+    return;
+  }
+
+  sysint_t dym1 = height;
+  sysint_t dym2 = width;
+  sysint_t max = dym1 - 1;
+  sysint_t end = max * srcStride;
+
+  uint8_t* dstCur;
+  const uint8_t* srcCur;
+
+  sysint_t pos1;
+  sysint_t pos2;
+  sysint_t xp, i;
+
+  int sizeHalf = size >> 1;
+
+  MemoryBuffer<512*sizeof(float)> stackBuffer;
+  uint32_t* stack = (uint32_t*)stackBuffer.alloc(size * (sizeof(uint32_t) + sizeof(float)));
+  uint32_t* stackEnd = stack + size;
+  uint32_t* stackCur;
+
+  if (!stack) return;
+
+  uint32_t lBorderColor = borderColor;
+  uint32_t rBorderColor = borderColor;
+
+  // If divisor is not 1.0, we will modify a given kernel to be.
   if (divisor != 1.0f)
   {
-    float *k = (float*)kernelTemporary.alloc(sizeof(float) * size);
-    if (!k) return;
-
-    for (i = 0; i < size; i++) k[i] = kernel[i] / divisor;
+    float* k = (float*)( (uint8_t*)stack + size * sizeof(uint32_t) );
+    Math::vdivs(k, kernel, divisor, size);
     kernel = k;
   }
 
-  for (y = 0; y < height; y++)
+  for (pos2 = 0; pos2 < dym2; pos2++)
   {
-    // Setup raster pointers.
+    uint32_t pix0;
+
     dstCur = dst;
     srcCur = src;
+    stackCur = stack;
 
-    // Setup borders if needed.
     if (borderMode == ImageFilter::BorderModeExtend)
     {
-      uint32_t pix;
-
-      pix = ((const uint32_t*)srcCur)[0];
-      leftEdgeR = (float)(int32_t)((pix >> 16) & 0xFF);
-      leftEdgeG = (float)(int32_t)((pix >>  8) & 0xFF);
-      leftEdgeB = (float)(int32_t)((pix      ) & 0xFF);
-      leftEdgeA = (float)(int32_t)((pix >> 24)       );
-
-      pix = ((const uint32_t*)srcCur)[width-1];
-      rightEdgeR = (float)(int32_t)((pix >> 16) & 0xFF);
-      rightEdgeG = (float)(int32_t)((pix >>  8) & 0xFF);
-      rightEdgeB = (float)(int32_t)((pix      ) & 0xFF);
-      rightEdgeA = (float)(int32_t)((pix >> 24)       );
+      lBorderColor = READ_32(srcCur);
+      rBorderColor = READ_32(srcCur + end);
     }
 
-    x = 0;
-    j = firstLoopStop;
+    pix0 = lBorderColor;
+    xp = 0;
 
-    // Loop with bound checking supporting borders.
-again:
-    while (x < j)
+    for (i = 0; i < sizeHalf; i++)
+    {
+      stackCur[0] = pix0;
+      stackCur++;
+    }
+
+    for (i = sizeHalf; i < size; i++)
+    {
+      if (xp < dym1)
+      {
+        pix0 = READ_32(srcCur);
+        srcCur += srcStride;
+        xp++;
+      }
+      else
+      {
+        pix0 = rBorderColor;
+      }
+
+      stackCur[0] = pix0;
+      stackCur++;
+    }
+
+    stackCur = stack;
+
+    for (pos1 = 0; pos1 < dym1; pos1++)
     {
       float cr = 0.5f;
       float cg = 0.5f;
       float cb = 0.5f;
       float ca = 0.5f;
 
-      for (kpos = 0, i = x - radiusInt; kpos < size; kpos++, i++)
+      for (i = 0; i < size; i++)
       {
-        float k = kernel[kpos];
+        float k = kernel[i];
+        pix0 = stackCur[0];
 
-        if (i < 0)
-        {
-          cr += leftEdgeR * k;
-          cg += leftEdgeG * k;
-          cb += leftEdgeB * k;
-          ca += leftEdgeA * k;
-        }
-        else if (i >= width)
-        {
-          cr += rightEdgeR * k;
-          cg += rightEdgeG * k;
-          cb += rightEdgeB * k;
-          ca += rightEdgeA * k;
-        }
-        else
-        {
-          uint32_t pix = ((const uint32_t*)src)[i];
-          cr += (float)(int32_t)((pix >> 16) & 0xFF) * k;
-          cg += (float)(int32_t)((pix >>  8) & 0xFF) * k;
-          cb += (float)(int32_t)((pix      ) & 0xFF) * k;
-          ca += (float)(int32_t)((pix >> 24)       ) * k;
-        }
+        cr += (float)((int)(pix0 >> 16) & 0xFF) * k;
+        cg += (float)((int)(pix0 >>  8) & 0xFF) * k;
+        cb += (float)((int)(pix0      ) & 0xFF) * k;
+        ca += (float)((int)(pix0 >> 24)       ) * k;
+
+        stackCur++;
+        if (stackCur == stackEnd) stackCur = stack;
       }
 
-      ((uint32_t*)dstCur)[0] = 
-        ((uint32_t)clamp255((int32_t)cr) << 16) | 
-        ((uint32_t)clamp255((int32_t)cg) <<  8) |
-        ((uint32_t)clamp255((int32_t)cb)      ) |
-        ((uint32_t)clamp255((int32_t)ca) << 24) ;
-
+      ((uint32_t*)dstCur)[0] =
+        ((uint32_t)clamp255((int)cr) << 16) |
+        ((uint32_t)clamp255((int)cg) <<  8) |
+        ((uint32_t)clamp255((int)cb)      ) |
+        ((uint32_t)clamp255((int)ca) << 24) ;
       dstCur += dstStride;
-      srcCur += 4;
-      x++;
-    }
 
-    // Loop without bound checking not supporting borders.
-    if (x != width)
-    {
-      j = secondLoopStop;
-
-      while (x < j)
+      if (xp < dym1)
       {
-        float cr = 0.5f;
-        float cg = 0.5f;
-        float cb = 0.5f;
-        float ca = 0.5f;
-
-        for (kpos = 0, i = -radiusInt; kpos < size; kpos++, i++)
-        {
-          float k = kernel[kpos];
-
-          uint32_t pix = ((const uint32_t*)srcCur)[i];
-          cr += (float)(int32_t)((pix >> 16) & 0xFF) * k;
-          cg += (float)(int32_t)((pix >>  8) & 0xFF) * k;
-          cb += (float)(int32_t)((pix      ) & 0xFF) * k;
-          ca += (float)(int32_t)((pix >> 24)       ) * k;
-        }
-
-        ((uint32_t*)dstCur)[0] = 
-          ((uint32_t)clamp255((int32_t)cr) << 16) | 
-          ((uint32_t)clamp255((int32_t)cg) <<  8) |
-          ((uint32_t)clamp255((int32_t)cb)      ) |
-          ((uint32_t)clamp255((int32_t)ca) << 24) ;
-
-        dstCur += dstStride;
-        srcCur += 4;
-        x++;
+        pix0 = READ_32(srcCur);
+        srcCur += srcStride;
+        xp++;
+      }
+      else
+      {
+        pix0 = rBorderColor;
       }
 
-      j = width;
-      goto again;
+      stackCur[0] = pix0;
+      stackCur++;
+      if (stackCur == stackEnd) stackCur = stack;
     }
 
+    src += 4;
     dst += 4;
-    src += srcStride;
   }
 }
 
-#endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static void FOG_FASTCALL floatScanlineConvolve_argb32(
+static void FOG_FASTCALL floatScanlineConvolveH_rgb24(
   uint8_t* dst, sysint_t dstStride,
   const uint8_t* src, sysint_t srcStride,
   int width, int height, const float* kernel, int size, float divisor,
   int borderMode, uint32_t borderColor)
 {
-  if (kernel == NULL || size == 0)
+  if (size == 0 || width < 2)
   {
-    functionMap->filters.transpose[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
+    if (dst != src) functionMap->filters.copyArea[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
     return;
   }
 
-  MemoryBuffer<512> kernelTemporary;
+  sysint_t dym1 = width;
+  sysint_t dym2 = height;
+  sysint_t max = dym1 - 1;
+  sysint_t end = max * 3;
 
   uint8_t* dstCur;
   const uint8_t* srcCur;
 
-  int radiusInt = size >> 1;
+  sysint_t pos1;
+  sysint_t pos2;
+  sysint_t xp, i;
 
-  // Hot inner loops.
-  bool tooSmallImage = width <= size;
-  int firstLoopStop = (tooSmallImage) ? width : radiusInt;
-  int secondLoopStop = (tooSmallImage) ? 0 : (width - radiusInt);
+  int sizeHalf = size >> 1;
 
-  sysint_t i, j, kpos;
-  sysint_t x, y;
+  MemoryBuffer<512*sizeof(float)> stackBuffer;
+  uint32_t* stack = (uint32_t*)stackBuffer.alloc(size * (sizeof(uint32_t) + sizeof(float)));
+  uint32_t* stackEnd = stack + size;
+  uint32_t* stackCur;
 
-  float leftEdgeR = (float)(int)((borderColor >> 16) & 0xFF);
-  float leftEdgeG = (float)(int)((borderColor >>  8) & 0xFF);
-  float leftEdgeB = (float)(int)((borderColor      ) & 0xFF);
-  float leftEdgeA = (float)(int)((borderColor >> 24)       );
+  if (!stack) return;
 
-  float rightEdgeR = leftEdgeR;
-  float rightEdgeG = leftEdgeG;
-  float rightEdgeB = leftEdgeB;
-  float rightEdgeA = leftEdgeA;
+  uint32_t lBorderColor = borderColor;
+  uint32_t rBorderColor = borderColor;
 
-  // Modify kernel to remove extra division / multiplication from main loop
+  // If divisor is not 1.0, we will modify a given kernel to be.
   if (divisor != 1.0f)
   {
-    float *k = (float*)kernelTemporary.alloc(sizeof(float) * size);
-    if (!k) return;
-
-    for (i = 0; i < size; i++) k[i] = kernel[i] / divisor;
+    float* k = (float*)( (uint8_t*)stack + size * sizeof(float) );
+    Math::vdivs(k, kernel, divisor, size);
     kernel = k;
   }
 
-  for (y = 0; y < height; y++)
+  for (pos2 = 0; pos2 < dym2; pos2++)
   {
-    // Setup raster pointers.
+    uint32_t pix0;
+
     dstCur = dst;
     srcCur = src;
+    stackCur = stack;
 
-    // Setup borders if needed.
     if (borderMode == ImageFilter::BorderModeExtend)
     {
-      uint32_t pix;
-
-      pix = ((const uint32_t*)srcCur)[0];
-      leftEdgeR = (float)(int32_t)((pix >> 16) & 0xFF);
-      leftEdgeG = (float)(int32_t)((pix >>  8) & 0xFF);
-      leftEdgeB = (float)(int32_t)((pix      ) & 0xFF);
-      leftEdgeA = (float)(int32_t)((pix >> 24)       );
-
-      pix = ((const uint32_t*)srcCur)[width-1];
-      rightEdgeR = (float)(int32_t)((pix >> 16) & 0xFF);
-      rightEdgeG = (float)(int32_t)((pix >>  8) & 0xFF);
-      rightEdgeB = (float)(int32_t)((pix      ) & 0xFF);
-      rightEdgeA = (float)(int32_t)((pix >> 24)       );
+      lBorderColor = PixFmt_RGB24::fetch(srcCur);
+      rBorderColor = PixFmt_RGB24::fetch(srcCur + end);
     }
 
-    x = 0;
-    j = firstLoopStop;
+    pix0 = lBorderColor;
+    xp = 0;
 
-    // Loop with bound checking supporting borders.
-again:
-    while (x < j)
+    for (i = 0; i < sizeHalf; i++)
     {
-      float cr = 0.5f;
-      float cg = 0.5f;
-      float cb = 0.5f;
-      float ca = 0.5f;
+      stackCur[0] = pix0;
+      stackCur++;
+    }
 
-      for (kpos = 0, i = x - radiusInt; kpos < size; kpos++, i++)
+    for (i = sizeHalf; i < size; i++)
+    {
+      if (xp < dym1)
       {
-        float k = kernel[kpos];
-
-        if (i < 0)
-        {
-          cr += leftEdgeR * k;
-          cg += leftEdgeG * k;
-          cb += leftEdgeB * k;
-          ca += leftEdgeA * k;
-        }
-        else if (i >= width)
-        {
-          cr += rightEdgeR * k;
-          cg += rightEdgeG * k;
-          cb += rightEdgeB * k;
-          ca += rightEdgeA * k;
-        }
-        else
-        {
-          uint32_t pix = ((const uint32_t*)src)[i];
-          cr += (float)(int32_t)((pix >> 16) & 0xFF) * k;
-          cg += (float)(int32_t)((pix >>  8) & 0xFF) * k;
-          cb += (float)(int32_t)((pix      ) & 0xFF) * k;
-          ca += (float)(int32_t)((pix >> 24)       ) * k;
-        }
-      }
-
-      ((uint32_t*)dstCur)[0] = 
-        ((uint32_t)clamp255((int32_t)cr) << 16) | 
-        ((uint32_t)clamp255((int32_t)cg) <<  8) |
-        ((uint32_t)clamp255((int32_t)cb)      ) |
-        ((uint32_t)clamp255((int32_t)ca) << 24) ;
-
-      dstCur += dstStride;
-      srcCur += 4;
-      x++;
-    }
-
-    // Loop without bound checking not supporting borders.
-    if (x != width)
-    {
-      j = secondLoopStop;
-
-      while (x < j)
-      {
-        float cr = 0.5f;
-        float cg = 0.5f;
-        float cb = 0.5f;
-        float ca = 0.5f;
-
-        for (kpos = 0, i = -radiusInt; kpos < size; kpos++, i++)
-        {
-          float k = kernel[kpos];
-
-          uint32_t pix = ((const uint32_t*)srcCur)[i];
-          cr += (float)(int32_t)((pix >> 16) & 0xFF) * k;
-          cg += (float)(int32_t)((pix >>  8) & 0xFF) * k;
-          cb += (float)(int32_t)((pix      ) & 0xFF) * k;
-          ca += (float)(int32_t)((pix >> 24)       ) * k;
-        }
-
-        ((uint32_t*)dstCur)[0] = 
-          ((uint32_t)clamp255((int32_t)cr) << 16) | 
-          ((uint32_t)clamp255((int32_t)cg) <<  8) |
-          ((uint32_t)clamp255((int32_t)cb)      ) |
-          ((uint32_t)clamp255((int32_t)ca) << 24) ;
-
-        dstCur += dstStride;
-        srcCur += 4;
-        x++;
-      }
-
-      j = width;
-      goto again;
-    }
-
-    dst += 4;
-    src += srcStride;
-  }
-}
-
-static void FOG_FASTCALL floatScanlineConvolve_rgb24(
-  uint8_t* dst, sysint_t dstStride,
-  const uint8_t* src, sysint_t srcStride,
-  int width, int height, const float* kernel, int size, float divisor,
-  int borderMode, uint32_t borderColor)
-{
-  if (kernel == NULL || size == 0)
-  {
-    functionMap->filters.transpose[Image::FormatRGB24](dst, dstStride, src, srcStride, width, height);
-    return;
-  }
-
-  MemoryBuffer<512> kernelTemporary;
-
-  uint8_t* dstCur;
-  const uint8_t* srcCur;
-
-  int radiusInt = size >> 1;
-
-  // Hot inner loops.
-  bool tooSmallImage = width <= size;
-  int firstLoopStop = (tooSmallImage) ? width : radiusInt;
-  int secondLoopStop = (tooSmallImage) ? 0 : (width - radiusInt);
-
-  sysint_t i, j, kpos;
-  sysint_t x, y;
-
-  float leftEdgeR = (float)(int)((borderColor >> 16) & 0xFF);
-  float leftEdgeG = (float)(int)((borderColor >>  8) & 0xFF);
-  float leftEdgeB = (float)(int)((borderColor      ) & 0xFF);
-
-  float rightEdgeR = leftEdgeR;
-  float rightEdgeG = leftEdgeG;
-  float rightEdgeB = leftEdgeB;
-
-  // Modify kernel to remove extra division / multiplication from main loop
-  if (divisor != 1.0f)
-  {
-    float *k = (float*)kernelTemporary.alloc(sizeof(float) * size);
-    if (!k) return;
-
-    for (i = 0; i < size; i++) k[i] = kernel[i] / divisor;
-    kernel = k;
-  }
-
-  for (y = 0; y < height; y++)
-  {
-    // Setup raster pointers.
-    dstCur = dst;
-    srcCur = src;
-
-    // Setup borders if needed.
-    if (borderMode == ImageFilter::BorderModeExtend)
-    {
-      leftEdgeR = (float)(int32_t)(srcCur[Raster::RGB24_RByte]);
-      leftEdgeG = (float)(int32_t)(srcCur[Raster::RGB24_GByte]);
-      leftEdgeB = (float)(int32_t)(srcCur[Raster::RGB24_BByte]);
-
-      rightEdgeR = (float)(int32_t)(srcCur[(width-1)*3 + Raster::RGB24_RByte]);
-      rightEdgeG = (float)(int32_t)(srcCur[(width-1)*3 + Raster::RGB24_GByte]);
-      rightEdgeB = (float)(int32_t)(srcCur[(width-1)*3 + Raster::RGB24_BByte]);
-    }
-
-    x = 0;
-    j = firstLoopStop;
-
-    // Loop with bound checking supporting borders.
-again:
-    while (x < j)
-    {
-      float cr = 0.5f;
-      float cg = 0.5f;
-      float cb = 0.5f;
-
-      const uint8_t* srcCurInner = srcCur - radiusInt*3;
-      for (kpos = 0, i = x - radiusInt; kpos < size; kpos++, i++, srcCurInner += 3)
-      {
-        float k = kernel[kpos];
-
-        if (i < 0)
-        {
-          cr += leftEdgeR * k;
-          cg += leftEdgeG * k;
-          cb += leftEdgeB * k;
-        }
-        else if (i >= width)
-        {
-          cr += rightEdgeR * k;
-          cg += rightEdgeG * k;
-          cb += rightEdgeB * k;
-        }
-        else
-        {
-          cr += (float)(int32_t)(srcCurInner[Raster::RGB24_RByte]) * k;
-          cg += (float)(int32_t)(srcCurInner[Raster::RGB24_GByte]) * k;
-          cb += (float)(int32_t)(srcCurInner[Raster::RGB24_BByte]) * k;
-        }
-      }
-
-      dstCur[Raster::RGB24_RByte] = (uint32_t)clamp255((int32_t)cr);
-      dstCur[Raster::RGB24_GByte] = (uint32_t)clamp255((int32_t)cg);
-      dstCur[Raster::RGB24_BByte] = (uint32_t)clamp255((int32_t)cb);
-
-      dstCur += dstStride;
-      srcCur += 3;
-      x++;
-    }
-
-    // Loop without bound checking not supporting borders.
-    if (x != width)
-    {
-      j = secondLoopStop;
-
-      while (x < j)
-      {
-        float cr = 0.5f;
-        float cg = 0.5f;
-        float cb = 0.5f;
-
-        const uint8_t* srcCurInner = srcCur - radiusInt*3;
-        for (kpos = 0; kpos < size; kpos++, srcCurInner += 3)
-        {
-          float k = kernel[kpos];
-
-          cr += (float)(int32_t)(srcCurInner[Raster::RGB24_RByte]) * k;
-          cg += (float)(int32_t)(srcCurInner[Raster::RGB24_GByte]) * k;
-          cb += (float)(int32_t)(srcCurInner[Raster::RGB24_BByte]) * k;
-        }
-
-        dstCur[Raster::RGB24_RByte] = (uint32_t)clamp255((int32_t)cr);
-        dstCur[Raster::RGB24_GByte] = (uint32_t)clamp255((int32_t)cg);
-        dstCur[Raster::RGB24_BByte] = (uint32_t)clamp255((int32_t)cb);
-
-        dstCur += dstStride;
+        pix0 = PixFmt_RGB24::fetch(srcCur);
         srcCur += 3;
-        x++;
+        xp++;
+      }
+      else
+      {
+        pix0 = rBorderColor;
       }
 
-      j = width;
-      goto again;
+      stackCur[0] = pix0;
+      stackCur++;
     }
 
-    dst += 3;
+    stackCur = stack;
+
+    for (pos1 = 0; pos1 < dym1; pos1++)
+    {
+      float cr = 0.5f;
+      float cg = 0.5f;
+      float cb = 0.5f;
+
+      for (i = 0; i < size; i++)
+      {
+        float k = kernel[i];
+        pix0 = stackCur[0];
+
+        cr += (float)((int)(pix0 >> 16) & 0xFF) * k;
+        cg += (float)((int)(pix0 >>  8) & 0xFF) * k;
+        cb += (float)((int)(pix0      ) & 0xFF) * k;
+
+        stackCur++;
+        if (stackCur == stackEnd) stackCur = stack;
+      }
+
+      PixFmt_RGB24::storeRGB(dstCur,
+        ((uint32_t)clamp255((int)cr) << 16),
+        ((uint32_t)clamp255((int)cg) <<  8),
+        ((uint32_t)clamp255((int)cb)      ));
+      dstCur += 3;
+
+      if (xp < dym1)
+      {
+        pix0 = PixFmt_RGB24::fetch(srcCur);
+        srcCur += 3;
+        xp++;
+      }
+      else
+      {
+        pix0 = rBorderColor;
+      }
+
+      stackCur[0] = pix0;
+      stackCur++;
+      if (stackCur == stackEnd) stackCur = stack;
+    }
+
     src += srcStride;
+    dst += dstStride;
   }
 }
 
-static void FOG_FASTCALL floatScanlineConvolve_a8(
+static void FOG_FASTCALL floatScanlineConvolveV_rgb24(
   uint8_t* dst, sysint_t dstStride,
   const uint8_t* src, sysint_t srcStride,
   int width, int height, const float* kernel, int size, float divisor,
   int borderMode, uint32_t borderColor)
 {
-  if (kernel == NULL || size == 0)
+  if (size == 0 || height < 2)
   {
-    functionMap->filters.transpose[Image::FormatA8](dst, dstStride, src, srcStride, width, height);
+    if (dst != src) functionMap->filters.copyArea[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
     return;
   }
 
-  MemoryBuffer<512> kernelTemporary;
+  sysint_t dym1 = height;
+  sysint_t dym2 = width;
+  sysint_t max = dym1 - 1;
+  sysint_t end = max * srcStride;
 
   uint8_t* dstCur;
   const uint8_t* srcCur;
 
-  int radiusInt = size >> 1;
+  sysint_t pos1;
+  sysint_t pos2;
+  sysint_t xp, i;
 
-  // Hot inner loops.
-  bool tooSmallImage = width <= size;
-  int firstLoopStop = (tooSmallImage) ? width : radiusInt;
-  int secondLoopStop = (tooSmallImage) ? 0 : (width - radiusInt);
+  int sizeHalf = size >> 1;
 
-  sysint_t i, j, kpos;
-  sysint_t x, y;
+  MemoryBuffer<512*sizeof(float)> stackBuffer;
+  uint32_t* stack = (uint32_t*)stackBuffer.alloc(size * (sizeof(uint32_t) + sizeof(float)));
+  uint32_t* stackEnd = stack + size;
+  uint32_t* stackCur;
 
-  float leftEdge = (float)(int)(borderColor & 0xFF);
-  float rightEdge = leftEdge;
+  if (!stack) return;
 
-  // Modify kernel to remove extra division / multiplication from main loop
+  uint32_t lBorderColor = borderColor;
+  uint32_t rBorderColor = borderColor;
+
+  // If divisor is not 1.0, we will modify a given kernel to be.
   if (divisor != 1.0f)
   {
-    float *k = (float*)kernelTemporary.alloc(size * sizeof(float));
-    if (!k) return;
-
-    for (i = 0; i < size; i++) k[i] = kernel[i] / divisor;
+    float* k = (float*)( (uint8_t*)stack + size * sizeof(uint32_t) );
+    Math::vdivs(k, kernel, divisor, size);
     kernel = k;
   }
 
-  for (y = 0; y < height; y++)
+  for (pos2 = 0; pos2 < dym2; pos2++)
   {
-    // Setup raster pointers.
+    uint32_t pix0;
+
     dstCur = dst;
     srcCur = src;
+    stackCur = stack;
 
-    // Setup borders if needed.
     if (borderMode == ImageFilter::BorderModeExtend)
     {
-      leftEdge = (float)(int32_t)(srcCur[0]);
-      rightEdge = (float)(int32_t)(srcCur[width-1]);
+      lBorderColor = READ_32(srcCur);
+      rBorderColor = READ_32(srcCur + end);
     }
 
-    x = 0;
-    j = firstLoopStop;
+    pix0 = lBorderColor;
+    xp = 0;
 
-    // Loop with bound checking supporting borders.
-again:
-    while (x < j)
+    for (i = 0; i < sizeHalf; i++)
+    {
+      stackCur[0] = pix0;
+      stackCur++;
+    }
+
+    for (i = sizeHalf; i < size; i++)
+    {
+      if (xp < dym1)
+      {
+        pix0 = PixFmt_RGB24::fetch(srcCur);
+        srcCur += srcStride;
+        xp++;
+      }
+      else
+      {
+        pix0 = rBorderColor;
+      }
+
+      stackCur[0] = pix0;
+      stackCur++;
+    }
+
+    stackCur = stack;
+
+    for (pos1 = 0; pos1 < dym1; pos1++)
+    {
+      float cr = 0.5f;
+      float cg = 0.5f;
+      float cb = 0.5f;
+
+      for (i = 0; i < size; i++)
+      {
+        float k = kernel[i];
+        pix0 = stackCur[0];
+
+        cr += (float)((int)(pix0 >> 16) & 0xFF) * k;
+        cg += (float)((int)(pix0 >>  8) & 0xFF) * k;
+        cb += (float)((int)(pix0      ) & 0xFF) * k;
+
+        stackCur++;
+        if (stackCur == stackEnd) stackCur = stack;
+      }
+
+      PixFmt_RGB24::storeRGB(dstCur,
+        ((uint32_t)clamp255((int)cr) << 16),
+        ((uint32_t)clamp255((int)cg) <<  8),
+        ((uint32_t)clamp255((int)cb)      ));
+      dstCur += dstStride;
+
+      if (xp < dym1)
+      {
+        pix0 = PixFmt_RGB24::fetch(srcCur);
+        srcCur += srcStride;
+        xp++;
+      }
+      else
+      {
+        pix0 = rBorderColor;
+      }
+
+      stackCur[0] = pix0;
+      stackCur++;
+      if (stackCur == stackEnd) stackCur = stack;
+    }
+
+    src += 3;
+    dst += 3;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void FOG_FASTCALL floatScanlineConvolveH_a8(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height, const float* kernel, int size, float divisor,
+  int borderMode, uint32_t borderColor)
+{
+  if (size == 0 || width < 2)
+  {
+    if (dst != src) functionMap->filters.copyArea[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
+    return;
+  }
+
+  sysint_t dym1 = width;
+  sysint_t dym2 = height;
+  sysint_t max = dym1 - 1;
+  sysint_t end = max;
+
+  uint8_t* dstCur;
+  const uint8_t* srcCur;
+
+  sysint_t pos1;
+  sysint_t pos2;
+  sysint_t xp, i;
+
+  int sizeHalf = size >> 1;
+
+  MemoryBuffer<512*sizeof(float)> stackBuffer;
+  uint8_t* stack = (uint8_t*)stackBuffer.alloc(size * (sizeof(uint8_t) + sizeof(float)));
+  uint8_t* stackEnd = stack + size;
+  uint8_t* stackCur;
+
+  if (!stack) return;
+
+  uint8_t lBorderColor = borderColor;
+  uint8_t rBorderColor = borderColor;
+
+  // If divisor is not 1.0, we will modify a given kernel to be.
+  if (divisor != 1.0f)
+  {
+    float* k = (float*)( (uint8_t*)stack + size * sizeof(uint8_t) );
+    Math::vdivs(k, kernel, divisor, size);
+    kernel = k;
+  }
+
+  for (pos2 = 0; pos2 < dym2; pos2++)
+  {
+    uint8_t pix0;
+
+    dstCur = dst;
+    srcCur = src;
+    stackCur = stack;
+
+    if (borderMode == ImageFilter::BorderModeExtend)
+    {
+      lBorderColor = srcCur[0];
+      rBorderColor = srcCur[end];
+    }
+
+    pix0 = lBorderColor;
+    xp = 0;
+
+    for (i = 0; i < sizeHalf; i++)
+    {
+      stackCur[0] = pix0;
+      stackCur++;
+    }
+
+    for (i = sizeHalf; i < size; i++)
+    {
+      if (xp < dym1)
+      {
+        pix0 = srcCur[0];
+        srcCur += 1;
+        xp++;
+      }
+      else
+      {
+        pix0 = rBorderColor;
+      }
+
+      stackCur[0] = pix0;
+      stackCur++;
+    }
+
+    stackCur = stack;
+
+    for (pos1 = 0; pos1 < dym1; pos1++)
     {
       float ca = 0.5f;
 
-      const uint8_t* srcCurInner = srcCur - radiusInt;
-      for (kpos = 0, i = x - radiusInt; kpos < size; kpos++, i++, srcCurInner++)
+      for (i = 0; i < size; i++)
       {
-        float k = kernel[kpos];
+        float k = kernel[i];
+        pix0 = stackCur[0];
 
-        if (i < 0)
-        {
-          ca += leftEdge * k;
-        }
-        else if (i >= width)
-        {
-          ca += rightEdge * k;
-        }
-        else
-        {
-          ca += (float)(int32_t)(srcCurInner[0]) * k;
-        }
+        ca += (float)((int)pix0) * k;
+
+        stackCur++;
+        if (stackCur == stackEnd) stackCur = stack;
       }
 
-      dstCur[0] = (uint32_t)clamp255((int32_t)ca);
+      dstCur[0] = (uint8_t)clamp255((int)ca);
+      dstCur += 1;
 
-      dstCur += dstStride;
-      srcCur += 1;
-      x++;
-    }
-
-    // Loop without bound checking not supporting borders.
-    if (x != width)
-    {
-      j = secondLoopStop;
-
-      while (x < j)
+      if (xp < dym1)
       {
-        float ca = 0.5f;
-
-        const uint8_t* srcCurInner = srcCur - radiusInt;
-        for (kpos = 0; kpos < size; kpos++, srcCurInner++)
-        {
-          float k = kernel[kpos];
-          ca += (float)(int32_t)(srcCurInner[0]) * k;
-        }
-
-        dstCur[0] = (uint32_t)clamp255((int32_t)ca);
-
-        dstCur += dstStride;
+        stackCur[0] = srcCur[0];
         srcCur += 1;
-        x++;
+        xp++;
+      }
+      else
+      {
+        stackCur[0] = rBorderColor;
       }
 
-      j = width;
-      goto again;
+      stackCur++;
+      if (stackCur == stackEnd) stackCur = stack;
     }
 
-    dst += 1;
     src += srcStride;
+    dst += dstStride;
   }
 }
+
+static void FOG_FASTCALL floatScanlineConvolveV_a8(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height, const float* kernel, int size, float divisor,
+  int borderMode, uint32_t borderColor)
+{
+  if (size == 0 || height < 2)
+  {
+    if (dst != src) functionMap->filters.copyArea[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
+    return;
+  }
+
+  sysint_t dym1 = height;
+  sysint_t dym2 = width;
+  sysint_t max = dym1 - 1;
+  sysint_t end = max * srcStride;
+
+  uint8_t* dstCur;
+  const uint8_t* srcCur;
+
+  sysint_t pos1;
+  sysint_t pos2;
+  sysint_t xp, i;
+
+  int sizeHalf = size >> 1;
+
+  MemoryBuffer<512*sizeof(float)> stackBuffer;
+  uint8_t* stack = (uint8_t*)stackBuffer.alloc(size * (sizeof(uint8_t) + sizeof(float)));
+  uint8_t* stackEnd = stack + size;
+  uint8_t* stackCur;
+
+  if (!stack) return;
+
+  uint8_t lBorderColor = borderColor;
+  uint8_t rBorderColor = borderColor;
+
+  // If divisor is not 1.0, we will modify a given kernel to be.
+  if (divisor != 1.0f)
+  {
+    float* k = (float*)( (uint8_t*)stack + size * sizeof(uint32_t) );
+    Math::vdivs(k, kernel, divisor, size);
+    kernel = k;
+  }
+
+  for (pos2 = 0; pos2 < dym2; pos2++)
+  {
+    uint8_t pix0;
+
+    dstCur = dst;
+    srcCur = src;
+    stackCur = stack;
+
+    if (borderMode == ImageFilter::BorderModeExtend)
+    {
+      lBorderColor = srcCur[0];
+      rBorderColor = srcCur[end];
+    }
+
+    pix0 = lBorderColor;
+    xp = 0;
+
+    for (i = 0; i < sizeHalf; i++)
+    {
+      stackCur[0] = pix0;
+      stackCur++;
+    }
+
+    for (i = sizeHalf; i < size; i++)
+    {
+      if (xp < dym1)
+      {
+        pix0 = srcCur[0];
+        srcCur += srcStride;
+        xp++;
+      }
+      else
+      {
+        pix0 = rBorderColor;
+      }
+
+      stackCur[0] = pix0;
+      stackCur++;
+    }
+
+    stackCur = stack;
+
+    for (pos1 = 0; pos1 < dym1; pos1++)
+    {
+      float ca = 0.5f;
+
+      for (i = 0; i < size; i++)
+      {
+        float k = kernel[i];
+        pix0 = stackCur[0];
+
+        ca += (float)((int)pix0) * k;
+
+        stackCur++;
+        if (stackCur == stackEnd) stackCur = stack;
+      }
+
+      dstCur[0] = (uint8_t)clamp255((int)ca);
+      dstCur += dstStride;
+
+      if (xp < dym1)
+      {
+        stackCur[0] = srcCur[0];
+        srcCur += 1;
+        xp++;
+      }
+      else
+      {
+        stackCur[0] = rBorderColor;
+      }
+
+      stackCur++;
+      if (stackCur == stackEnd) stackCur = stack;
+    }
+
+    src += 1;
+    dst += 1;
+  }
+}
+
+
+
+
+
+
+
+
+
 
 // ============================================================================
 // [Fog::Raster_C - BoxBlur]
