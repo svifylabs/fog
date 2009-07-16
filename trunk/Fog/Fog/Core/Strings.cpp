@@ -21,12 +21,16 @@ namespace Fog {
 
 static const char fog_strings_data[] =
 {
-  // [Object]
+  // [Core - Object]
 
   "id\0"
   "name\0"
 
-  // [Image File Types]
+  // [Core - Properties]
+
+  // reserved...
+
+  // [Graphics - Image File Types]
 
   "ANI\0"
   "APNG\0"
@@ -46,7 +50,7 @@ static const char fog_strings_data[] =
   "XBM\0"
   "XPM\0"
 
-  // [Image File Extensions]
+  // [Graphics - Image File Extensions]
 
   "ani\0"
   "apng\0"
@@ -70,6 +74,27 @@ static const char fog_strings_data[] =
   "tiff\0"
   "xbm\0"
   "xpm\0"
+
+  // [Graphics - ImageIO Properties]
+
+  "width\0"
+  "height\0"
+  "depth\0"
+  "planes\0"
+  "actualFrame\0"
+  "framesCount\0"
+  "progress\0"
+  "quality\0"
+
+  // [Graphics - ImageFilter Properties]
+
+  "filterType\0"
+  "blurType\0"
+  "borderMode\0"
+  "borderColor\0"
+  "horizontalRadius\0"
+  "verticalRadius\0"
+  "kernel\0"
 };
 
 FOG_CVAR_DECLARE Fog::StringCache* fog_strings;

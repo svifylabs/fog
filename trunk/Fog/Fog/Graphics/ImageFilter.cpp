@@ -10,7 +10,10 @@
 
 // [Dependencies]
 #include <Fog/Core/Math.h>
+#include <Fog/Core/Memory.h>
 #include <Fog/Core/Misc.h>
+#include <Fog/Core/StringCache.h>
+#include <Fog/Core/Strings.h>
 #include <Fog/Graphics/ImageFilter.h>
 #include <Fog/Graphics/Raster.h>
 
@@ -30,10 +33,34 @@ ImageFilter::~ImageFilter()
 {
 }
 
+// [Properties]
+
+Static<PropertiesData> ImageFilter::_propertiesData;
+
+err_t ImageFilter::setProperty(int id, const Value& value)
+{
+  switch (id)
+  {
+    case PropertyFilterType:
+      return Error::PropertyIsReadOnly;
+    default:
+      return base::setProperty(id, value);
+  }
+}
+
+err_t ImageFilter::getProperty(int id, Value& value) const
+{
+  return Error::NotImplemented;
+}
+
+// [Nop]
+
 bool ImageFilter::isNop() const
 {
   return false;
 }
+
+// [Filters]
 
 err_t ImageFilter::filterImage(Image& dst, const Image& src) const
 {
@@ -90,16 +117,6 @@ err_t ImageFilter::filterData(
   }
 }
 
-err_t ImageFilter::setProperty(const String32& name, const Value& value)
-{
-  return Error::InvalidPropertyName;
-}
-
-Value ImageFilter::getProperty(const String32& name) const
-{
-  return Value();
-}
-
 // ============================================================================
 // [Fog::BlurImageFilter]
 // ============================================================================
@@ -135,35 +152,7 @@ static float makeGaussianBlurKernel(float* dst, double radius, int size)
   if (total >= 0.001) total -= 0.001;
   return (float)total;
 }
-/*
-static err_t convolveSymmetricFloat(
-  uint8_t* dst, sysint_t dstStride, 
-  const uint8_t* src, sysint_t srcStride,
-  int width, int height, int format,
-  const float* hKernel, int hKernelSize, float hKernelDiv,
-  const float* vKernel, int vKernelSize, float vKernelDiv,
-  int borderMode, uint32_t borderColor)
-{
-  // Kernel sizes must be odd.
-  if ((hKernelSize & 1) == 0 || (vKernelSize & 1) == 0) return Error::InvalidArgument;
 
-  uint8_t* buf = NULL;
-  sysint_t bufStride = height * 4;
-
-  buf = (uint8_t*)Memory::alloc(width * height * 4);
-  if (!buf) return Error::OutOfMemory;
-
-  Raster::FloatScanlineConvolveFn convolve = Raster::functionMap->filters.floatScanlineConvolve[format];
-
-  convolve(buf, bufStride, src, srcStride,
-    width, height, hKernel, hKernelSize, hKernelDiv, borderMode, borderColor);
-  convolve(dst, dstStride, buf, bufStride,
-    height, width, vKernel, vKernelSize, vKernelDiv, borderMode, borderColor);
-
-  Memory::free(buf);
-  return Error::Ok;
-}
-*/
 BlurImageFilter::BlurImageFilter() :
   _blurType(BlurTypeStack),
   _hRadius(1.0),
@@ -197,17 +186,39 @@ ImageFilter* BlurImageFilter::clone() const
 
 // [Properties]
 
-err_t BlurImageFilter::setProperty(const String32& name, const Value& value)
+Static<PropertiesData> BlurImageFilter::_propertiesData;
+
+err_t BlurImageFilter::setProperty(int id, const Value& value)
 {
-  // TODO
-  return Error::NotImplemented;
+  switch (id)
+  {
+    case PropertyBorderMode:
+    case PropertyBorderColor:
+    case PropertyBlurType:
+    case PropertyHorizontalRadius:
+    case PropertyVerticalRadius:
+      return Error::NotImplemented;
+    default:
+      return base::setProperty(id, value);
+  }
 }
 
-Value BlurImageFilter::getProperty(const String32& name) const
+err_t BlurImageFilter::getProperty(int id, Value& value) const
 {
-  // TODO
-  return Value();
+  switch (id)
+  {
+    case PropertyBorderMode:
+    case PropertyBorderColor:
+    case PropertyBlurType:
+    case PropertyHorizontalRadius:
+    case PropertyVerticalRadius:
+      return Error::NotImplemented;
+    default:
+      return base::getProperty(id, value);
+  }
 }
+
+// [Blur Type]
 
 err_t BlurImageFilter::setBlurType(int blurType)
 {
@@ -229,6 +240,8 @@ err_t BlurImageFilter::setVerticalRadius(double vr)
   return Error::Ok;
 }
 
+// [Border Mode]
+
 err_t BlurImageFilter::setBorderMode(int borderMode)
 {
   if (borderMode >= BorderModeInvalid) return Error::InvalidPropertyValue;
@@ -237,11 +250,15 @@ err_t BlurImageFilter::setBorderMode(int borderMode)
   return Error::Ok;
 }
 
+// [Border Color]
+
 err_t BlurImageFilter::setBorderColor(uint32_t borderColor)
 {
   _borderColor = borderColor;
   return Error::Ok;
 }
+
+// [Nop]
 
 bool BlurImageFilter::isNop() const
 {
@@ -260,6 +277,8 @@ bool BlurImageFilter::isNop() const
       return true;
   }
 }
+
+// [Filters]
 
 err_t BlurImageFilter::filterPrivate(
   uint8_t* dst, sysint_t dstStride,
@@ -353,4 +372,298 @@ void BlurImageFilter::_setupFilterType()
   _flags = OnlyNonPremultiplied | TwoPasses;
 }
 
+// ============================================================================
+// [Fog::IntConvolutionMatrix]
+// ============================================================================
+
+Static<IntConvolutionMatrix::Data> IntConvolutionMatrix::sharedNull;
+
+IntConvolutionMatrix::IntConvolutionMatrix() :
+  _d(sharedNull->ref())
+{
+}
+
+IntConvolutionMatrix::IntConvolutionMatrix(const IntConvolutionMatrix& other) :
+  _d(other._d->ref())
+{
+}
+
+IntConvolutionMatrix::~IntConvolutionMatrix()
+{
+  _d->deref();
+}
+
+err_t IntConvolutionMatrix::_detach()
+{
+  if (_d->refCount.get() == 1) return Error::Ok;
+
+  Data* newd = Data::create(_d->width, _d->height);
+  if (!newd) return Error::OutOfMemory;
+
+  Data::copy(newd, 0, 0, _d, 0, 0, _d->width, _d->height);
+  return Error::Ok;
+}
+
+err_t IntConvolutionMatrix::create(int width, int height)
+{
+  if (_d->width == width && _d->height == height) return Error::Ok;
+
+  Data* newd = Data::create(width, height);
+  if (!newd) return Error::OutOfMemory;
+
+  AtomicBase::ptr_setXchg(&_d, newd)->deref();
+  return Error::Ok;
+}
+
+err_t IntConvolutionMatrix::extend(int width, int height, ValueType value)
+{
+  if (_d->width == width && _d->height == height) return Error::Ok;
+
+  Data* newd = Data::create(width, height);
+  if (!newd) return Error::OutOfMemory;
+  
+  int copyw = Math::min(_d->width, width);
+  int copyh = Math::min(_d->height, height);
+  int zerow = width - copyw;
+
+  int x, y;
+
+  ValueType *dstCur = newd->m;
+  ValueType* srcM = _d->m;
+
+  for (y = copyh; y; y--, srcM += _d->width)
+  {
+    ValueType *srcCur = srcM;
+
+    for (x = copyw; x; x--, dstCur++, srcCur++) *dstCur++ = *srcCur++;
+    for (x = zerow; x; x--) *dstCur++ = value;
+  }
+
+  for (y = copyh; y; y--)
+  {
+    for (x = width; x; x--) *dstCur++ = value;
+  }
+
+  AtomicBase::ptr_setXchg(&_d, newd)->deref();
+  return Error::Ok;
+}
+
+int IntConvolutionMatrix::get(int x, int y) const
+{
+  Data* d = _d;
+  if ((uint)x >= (uint)d->width || (uint)y >= (uint)_d->height) return 0;
+
+  return d->m[y * d->width + x];
+}
+
+void IntConvolutionMatrix::set(int x, int y, int val)
+{
+  Data* d = _d;
+  if ((uint)x >= (uint)d->width || (uint)y >= (uint)_d->height) return;
+
+  if (FOG_UNLIKELY(!isDetached()))
+  {
+    if (_detach()) return;
+    d = _d;
+  }
+
+  d->m[y * d->width + x] = val;
+}
+
+IntConvolutionMatrix& IntConvolutionMatrix::operator=(const IntConvolutionMatrix& other)
+{
+  AtomicBase::ptr_setXchg(&_d, other._d->ref())->deref();
+  return *this;
+}
+
+int* IntConvolutionMatrix::operator[](int y)
+{
+  Data* d = _d;
+  if ((uint)y >= (uint)_d->height) return NULL;
+
+  if (FOG_UNLIKELY(!isDetached()))
+  {
+    if (_detach()) return NULL;
+    d = _d;
+  }
+
+  return d->m + y * d->width;
+}
+
+IntConvolutionMatrix::Data* IntConvolutionMatrix::Data::create(int w, int h)
+{
+  if (w == 0 || h == 0) return sharedNull->ref();
+
+  Data* d = (Data*)Memory::alloc(sizeof(Data) + (w * h) * sizeof(ValueType));
+  if (!d) return NULL;
+
+  d->refCount.init(1);
+  d->width = w;
+  d->height = h;
+  return d;
+}
+
+void IntConvolutionMatrix::Data::copy(Data* dst, int dstX, int dstY, Data* src, int srcX, int srcY, int w, int h)
+{
+  ValueType* dstM = dst->m + dstY * dst->width + dstX;
+  ValueType* srcM = src->m + srcY * src->width + srcX;
+
+  for (int y = h; y; y--, dstM += dst->width, srcM += src->width)
+  {
+    ValueType* dstCur = dstM;
+    ValueType* srcCur = srcM;
+
+    for (int x = w; x; x--, dstCur++, srcCur++) *dstCur++ = *srcCur++;
+  }
+}
+
+// ============================================================================
+// [Fog::IntConvolutionImageFilter]
+// ============================================================================
+
+IntConvolutionImageFilter::IntConvolutionImageFilter() :
+  _borderMode(BorderModeExtend),
+  _borderColor(0x00000000)
+{
+  _setupFilterType();
+}
+
+IntConvolutionImageFilter::IntConvolutionImageFilter(const IntConvolutionMatrix& kernel, int borderMode, uint32_t borderColor) :
+  _kernel(kernel),
+  _borderMode(borderMode),
+  _borderColor(borderColor)
+{
+  _setupFilterType();
+}
+
+IntConvolutionImageFilter::~IntConvolutionImageFilter()
+{
+}
+
+// [Clone]
+
+ImageFilter* IntConvolutionImageFilter::clone() const
+{
+  return new(std::nothrow) IntConvolutionImageFilter(_kernel, _borderMode, _borderColor);
+}
+
+// [Properties]
+
+Static<PropertiesData> IntConvolutionImageFilter::_propertiesData;
+
+err_t IntConvolutionImageFilter::setProperty(int id, const Value& value)
+{
+  switch (id)
+  {
+    case PropertyBorderMode:
+    case PropertyBorderColor:
+    case PropertyKernel:
+      return Error::NotImplemented;
+    default:
+      return base::setProperty(id, value);
+  }
+}
+
+err_t IntConvolutionImageFilter::getProperty(int id, Value& value) const
+{
+  switch (id)
+  {
+    case PropertyBorderMode:
+    case PropertyBorderColor:
+    case PropertyKernel:
+      return Error::NotImplemented;
+    default:
+      return base::getProperty(id, value);
+  }
+}
+
+// [Kernel]
+
+err_t IntConvolutionImageFilter::setKernel(const IntConvolutionMatrix& kernel)
+{
+  _kernel = kernel;
+  return Error::Ok;
+}
+
+// [Border Type]
+
+err_t IntConvolutionImageFilter::setBorderMode(int borderMode)
+{
+  if (borderMode >= BorderModeInvalid) return Error::InvalidPropertyValue;
+
+  _borderMode = borderMode;
+  return Error::Ok;
+}
+
+// [Border Color]
+
+err_t IntConvolutionImageFilter::setBorderColor(uint32_t borderColor)
+{
+  _borderColor = borderColor;
+  return Error::Ok;
+}
+
+// [Nop]
+
+bool IntConvolutionImageFilter::isNop() const
+{
+  return _kernel.isEmpty();
+}
+
+// [Filters]
+
+err_t IntConvolutionImageFilter::filterPrivate(
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  int width, int height, int format) const
+{
+  return Error::NotImplemented;
+}
+
+void IntConvolutionImageFilter::_setupFilterType()
+{
+  _type = FilterTypeConvolution;
+  _flags = OnlyNonPremultiplied | OnePass;
+}
+
 } // Fog namespace
+
+// ============================================================================
+// [Library Initializers]
+// ============================================================================
+
+FOG_INIT_DECLARE err_t fog_imagefilter_init(void)
+{
+  using namespace Fog;
+
+  Vector<String32> properties;
+
+  properties.clear();
+  properties.append(fog_strings->get(STR_GRAPHICS_filterType));
+  INIT_PROPERTIES_CONTAINER(ImageFilter, ImageFilter::base, properties);
+
+  properties.clear();
+  properties.append(fog_strings->get(STR_GRAPHICS_borderMode));
+  properties.append(fog_strings->get(STR_GRAPHICS_borderColor));
+  properties.append(fog_strings->get(STR_GRAPHICS_blurType));
+  properties.append(fog_strings->get(STR_GRAPHICS_horizontalRadius));
+  properties.append(fog_strings->get(STR_GRAPHICS_verticalRadius));
+  INIT_PROPERTIES_CONTAINER(BlurImageFilter, BlurImageFilter::base, properties);
+
+  properties.clear();
+  properties.append(fog_strings->get(STR_GRAPHICS_borderMode));
+  properties.append(fog_strings->get(STR_GRAPHICS_borderColor));
+  properties.append(fog_strings->get(STR_GRAPHICS_kernel));
+  INIT_PROPERTIES_CONTAINER(IntConvolutionImageFilter, IntConvolutionImageFilter::base, properties);
+
+  return Error::Ok;
+}
+
+FOG_INIT_DECLARE void fog_imagefilter_shutdown(void)
+{
+  using namespace Fog;
+
+  DESTROY_PROPERTIES_CONTAINER(IntConvolutionImageFilter);
+  DESTROY_PROPERTIES_CONTAINER(BlurImageFilter);
+  DESTROY_PROPERTIES_CONTAINER(ImageFilter);
+}

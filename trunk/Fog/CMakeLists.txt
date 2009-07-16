@@ -228,6 +228,7 @@ Set(FOG_CORE_SOURCES
   ${FOG_DIR}/Fog/Core/OS.cpp
   ${FOG_DIR}/Fog/Core/Object.cpp
   ${FOG_DIR}/Fog/Core/ObserverList.cpp
+  ${FOG_DIR}/Fog/Core/Properties.cpp
   ${FOG_DIR}/Fog/Core/RefCounted.cpp
   ${FOG_DIR}/Fog/Core/RefData.cpp
   ${FOG_DIR}/Fog/Core/Sequence.cpp
@@ -298,6 +299,7 @@ Set(FOG_CORE_HEADERS
   ${FOG_DIR}/Fog/Core/Pack.h
   ${FOG_DIR}/Fog/Core/RefCounted.h
   ${FOG_DIR}/Fog/Core/RefData.h
+  ${FOG_DIR}/Fog/Core/Properties.h
   ${FOG_DIR}/Fog/Core/ScopedHandle.h
   ${FOG_DIR}/Fog/Core/ScopedPtr.h
   ${FOG_DIR}/Fog/Core/Sequence.h

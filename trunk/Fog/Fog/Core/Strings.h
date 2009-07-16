@@ -28,12 +28,16 @@ struct StringCache;
 //! @brief Cached strings IDs used in @c fog_strings array.
 enum STR_ID
 {
-  // [Object]
+  // [Core - Object]
 
   STR_CORE_id = 0,
   STR_CORE_name,
 
-  // [Image File Types]
+  // [Core - Properties]
+
+  // reserved...
+
+  // [Graphics - Image File Types]
 
   STR_GRAPHICS_ANI,
   STR_GRAPHICS_APNG,
@@ -53,7 +57,7 @@ enum STR_ID
   STR_GRAPHICS_XBM,
   STR_GRAPHICS_XPM,
 
-  // [Image File Extensions]
+  // [Graphics - Image File Extensions]
 
   STR_GRAPHICS_ani,
   STR_GRAPHICS_apng,
@@ -77,6 +81,29 @@ enum STR_ID
   STR_GRAPHICS_tiff,
   STR_GRAPHICS_xbm,
   STR_GRAPHICS_xpm,
+
+  // [Graphics - ImageIO Properties]
+
+  STR_GRAPHICS_width,
+  STR_GRAPHICS_height,
+  STR_GRAPHICS_depth,
+  STR_GRAPHICS_planes,
+  STR_GRAPHICS_actualFrame,
+  STR_GRAPHICS_framesCount,
+  STR_GRAPHICS_progress,
+  STR_GRAPHICS_quality,
+
+  // [Graphics - ImageFilter Properties]
+
+  STR_GRAPHICS_filterType,
+  STR_GRAPHICS_blurType,
+  STR_GRAPHICS_borderMode,
+  STR_GRAPHICS_borderColor,
+  STR_GRAPHICS_horizontalRadius,
+  STR_GRAPHICS_verticalRadius,
+  STR_GRAPHICS_kernel,
+
+  // [Count]
 
   STR_COUNT
 };

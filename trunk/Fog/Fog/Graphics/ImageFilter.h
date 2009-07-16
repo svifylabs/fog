@@ -8,7 +8,10 @@
 #define _FOG_GRAPHICS_IMAGEFILTER_H
 
 // [Dependencies]
+#include <Fog/Core/Memory.h>
 #include <Fog/Core/Object.h>
+#include <Fog/Core/Properties.h>
+#include <Fog/Core/Static.h>
 #include <Fog/Core/String.h>
 #include <Fog/Core/Value.h>
 #include <Fog/Graphics/Constants.h>
@@ -23,8 +26,10 @@ namespace Fog {
 // [Fog::ImageFilter]
 // ============================================================================
 
-struct FOG_API ImageFilter
+struct FOG_API ImageFilter : public PropertiesContainer
 {
+  typedef PropertiesContainer base;
+
   // [Construction / Destruction]
 
   ImageFilter();
@@ -130,8 +135,16 @@ struct FOG_API ImageFilter
 
   // [Properties]
 
-  virtual err_t setProperty(const String32& name, const Value& value);
-  virtual Value getProperty(const String32& name) const;
+  DECLARE_PROPERTIES_CONTAINER()
+
+  enum PropertyId
+  {
+    PropertyFilterType,
+    PropertyLast
+  };
+
+  virtual err_t setProperty(int id, const Value& value);
+  virtual err_t getProperty(int id, Value& value) const;
 
   // [Nop]
 
@@ -145,8 +158,6 @@ struct FOG_API ImageFilter
     uint8_t* dst, sysint_t dstStride,
     const uint8_t* src, sysint_t srcStride,
     int width, int height, int format) const;
-
-  // [Filtering]
 
 protected:
   virtual err_t filterPrivate(
@@ -169,6 +180,8 @@ private:
 
 struct FOG_API BlurImageFilter : public ImageFilter
 {
+  typedef ImageFilter base;
+
   // [Construction / Destruction]
 
   BlurImageFilter();
@@ -183,8 +196,23 @@ struct FOG_API BlurImageFilter : public ImageFilter
 
   // [Properties]
 
-  virtual err_t setProperty(const String32& name, const Value& value);
-  virtual Value getProperty(const String32& name) const;
+  enum PropertyId
+  {
+    PropertyBorderMode = base::PropertyLast,
+    PropertyBorderColor,
+    PropertyBlurType,
+    PropertyHorizontalRadius,
+    PropertyVerticalRadius,
+
+    PropertyLast
+  };
+
+  DECLARE_PROPERTIES_CONTAINER()
+
+  virtual err_t setProperty(int id, const Value& value);
+  virtual err_t getProperty(int id, Value& value) const;
+
+  // [Blur Type]
 
   FOG_INLINE int blurType() const { return _blurType; }
   err_t setBlurType(int blurType);
@@ -231,6 +259,169 @@ private:
   void _setupFilterType();
 
   FOG_DISABLE_COPY(BlurImageFilter)
+};
+
+// ============================================================================
+// [Fog::IntConvolutionMatrix]
+// ============================================================================
+
+struct FOG_API IntConvolutionMatrix
+{
+  // [Types]
+
+  typedef int ValueType;
+
+  // [Data]
+
+  struct FOG_API Data
+  {
+    // [Ref / Deref]
+
+    FOG_INLINE Data* ref() const
+    {
+      refCount.inc();
+      return const_cast<Data*>(this);
+    }
+
+    FOG_INLINE void deref()
+    {
+      if (refCount.deref()) Memory::free(this);
+    }
+
+    // [Statics]
+
+    static Data* create(int w, int h);
+    static void copy(Data* dst, int dstX, int dstY, Data* src, int srcX, int srcY, int w, int h);
+
+    // [Members]
+
+    mutable Atomic<sysuint_t> refCount;
+    int width;
+    int height;
+    ValueType m[1];
+  };
+
+  static Static<Data> sharedNull;
+
+  // [Construction / Destruction]
+
+  IntConvolutionMatrix();
+  IntConvolutionMatrix(const IntConvolutionMatrix& other);
+  ~IntConvolutionMatrix();
+
+  // [Implicit Sharing]
+
+  FOG_INLINE sysuint_t refCount() const { return _d->refCount.get(); }
+  FOG_INLINE bool isDetached() const { return _d->refCount.get() == 1; }
+  FOG_INLINE err_t detach() { return _d->refCount.get() == 1 ? Error::Ok : _detach(); }
+
+  err_t _detach();
+
+  // [Flags]
+
+  FOG_INLINE bool isEmpty() const { return _d->width == 0; }
+  FOG_INLINE bool isNull() const { return _d == sharedNull.instancep(); }
+
+  // [Width / Height]
+
+  err_t create(int width, int height);
+  err_t extend(int width, int height, ValueType value = 0);
+
+  FOG_INLINE int width() const { return _d->width; }
+  FOG_INLINE int height() const { return _d->height; }
+
+  // [Manipulation]
+
+  FOG_INLINE const int* cData() const { return _d->m; }
+  FOG_INLINE int* mData() { return detach() ? NULL : _d->m; }
+  FOG_INLINE int* xData() { FOG_ASSERT_X(isDetached(), "Fog::IntConvolutionMatrix::xData() - Not detached."); return _d->m; }
+
+  int get(int x, int y) const;
+  void set(int x, int y, int val);
+
+  // [Operator Overload]
+
+  IntConvolutionMatrix& operator=(const IntConvolutionMatrix& other);
+
+  int* operator[](int y);
+
+  // [Members]
+
+  FOG_DECLARE_D(Data)
+};
+
+// ============================================================================
+// [Fog::IntConvolutionImageFilter]
+// ============================================================================
+
+struct FOG_API IntConvolutionImageFilter : public ImageFilter
+{
+  typedef ImageFilter base;
+
+  // [Construction / Destruction]
+
+  IntConvolutionImageFilter();
+  IntConvolutionImageFilter(const IntConvolutionMatrix& kernel,
+    int borderMode = BorderModeExtend, uint32_t borderColor = 0x00000000);
+  virtual ~IntConvolutionImageFilter();
+
+  // [Clone]
+
+  virtual ImageFilter* clone() const;
+
+  // [Properties]
+
+  enum PropertyId
+  {
+    PropertyBorderMode = base::PropertyLast,
+    PropertyBorderColor,
+    PropertyKernel,
+
+    PropertyLast
+  };
+
+  DECLARE_PROPERTIES_CONTAINER()
+
+  virtual err_t setProperty(int id, const Value& value);
+  virtual err_t getProperty(int id, Value& value) const;
+
+  // [Kernel]
+
+  FOG_INLINE const IntConvolutionMatrix& kernel() const { return _kernel; }
+  err_t setKernel(const IntConvolutionMatrix& kernel);
+
+  // [Border Type]
+
+  FOG_INLINE int borderMode() const { return _borderMode; }
+  err_t setBorderMode(int borderMode);
+
+  // [Border Color]
+
+  FOG_INLINE uint32_t borderColor() const { return _borderColor; }
+  err_t setBorderColor(uint32_t borderColor);
+
+  // [Nop]
+
+  virtual bool isNop() const;
+
+  // [Members]
+
+protected:
+  IntConvolutionMatrix _kernel;
+  int _borderMode;
+  uint32_t _borderColor;
+
+  // [Filtering]
+
+  virtual err_t filterPrivate(
+    uint8_t* dst, sysint_t dstStride,
+    const uint8_t* src, sysint_t srcStride,
+    int width, int height, int format) const;
+
+private:
+  void _setupFilterType();
+
+  FOG_DISABLE_COPY(IntConvolutionImageFilter)
 };
 
 } // Fog namespace
