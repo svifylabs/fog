@@ -320,7 +320,7 @@ struct FOG_UISYSTEM_X11_API UISystemX11 : public UISystemDefault
       int (*pXLookupString)(XKeyEvent* /* event */, char* /* bufferReturn */, int /* bufferLength */, KeySym* /* keySymReturn */, XComposeStatus* /* statusInOut */);
       int (*pXwcLookupString)(XIC /* ic */, XKeyPressedEvent* /* event */, wchar_t* /* bufferReturn*/, int /* wcharsBuffer */, KeySym* /* keysymReturn */, XStatus* /* statusReturn */);
 
-      int (*pXGrabPointer)(Display*, XID /* grabWindow */, XBool /* ownerEvents */, uint /* eventMask */, int /* pointerMode */, int /* keyboardMode */, XID /* confineTo */, Cursor /* cursor */, Time /* time */);
+      int (*pXGrabPointer)(Display*, XID /* grabWindow */, XBool /* ownerEvents */, uint /* eventMask */, int /* pointerMode */, int /* keyboardMode */, XID /* confineTo */, Cursor /* cursor */, XTime /* time */);
       int (*pXUngrabPointer)(Display*, XTime /* time */);
 
       int (*pXGetPointerMapping)(Display*, uchar* /* map_return*/, int /* namp*/);

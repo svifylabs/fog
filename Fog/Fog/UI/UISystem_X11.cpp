@@ -1384,20 +1384,6 @@ __keyPressNoXIC:
 
     case XButtonPress:
     {
-#if 0
-      uiSystem->pXGrabPointer(
-        uiSystem->display(),                    /* Display              */
-        (XID)handle(),                          /* Window               */
-        true,                                   /* Owner events         */
-        ButtonPressMask  | ButtonReleaseMask |  /* Event mask           */
-        ButtonMotionMask | PointerMotionMask ,
-        GrabModeAsync,                          /* Pointer mode         */
-        GrabModeAsync,                          /* Keyboard mode        */
-        XNone,                                  /* Confine to (window)  */
-        0,                                      /* Cursor               */
-        CurrentTime);                           /* Time                 */
-#endif
-
       uint button = uiSystem->translateButton(xe->xbutton.button);
       switch (button)
       {

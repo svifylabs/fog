@@ -1180,6 +1180,7 @@ void UIWindowDefault::onMousePress(uint32_t button, bool repeated)
   Widget* w = uiSystem->_mouseStatus.widget;
   if (!w) return;
 
+  uiSystem->_systemMouseStatus.buttons |= button;
   uiSystem->_mouseStatus.buttons |= button;
 
   TimeTicks now = TimeTicks::now();
@@ -1213,7 +1214,9 @@ void UIWindowDefault::onMouseRelease(uint32_t button)
   UISystemDefault* uiSystem = UI_SYSTEM();
   if (uiSystem->_systemMouseStatus.uiWindow != this) return;
 
+  uiSystem->_systemMouseStatus.buttons &= ~button;
   uiSystem->_mouseStatus.buttons &= ~button;
+
   uiSystem->stopButtonRepeat(button);
 
   Widget* w = uiSystem->_mouseStatus.widget;
