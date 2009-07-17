@@ -10,12 +10,15 @@
 
 // [Dependencies]
 #include <Fog/Core/AutoLock.h>
+#include <Fog/Core/Assert.h>
 #include <Fog/Core/Hash.h>
 #include <Fog/Core/Lock.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/String.h>
 #include <Fog/Core/StringCache.h>
 #include <Fog/Core/StringUtil.h>
+
+#include <Fog/Core/TextCodec.h>
 
 // [Fog::StringCache - local variables]
 
@@ -80,15 +83,22 @@ StringCache::StringCache(
 
 StringCache::~StringCache()
 {
-#if defined(DEBUG)
-  register String32* pData = reinterpret_cast<String32*>(_data);
-  register sysuint_t i;
+#if defined(FOG_DEBUG)
+  String32* pData = reinterpret_cast<String32*>(_data);
+  sysuint_t i;
 
   for (i = count(); i; i--, pData++)
   {
-    FOG_ASSERT(pData->_d->refCount.get() == 1);
+    FOG_ASSERT_X(pData->_d->refCount.get() == 1, "Fog::~StringCache() - String reference is not one, it's leaked!");
+
+    if (pData->_d->refCount.get() > 1)
+    {
+      String8 b;
+      TextCodec::utf8().fromUtf32(b, Stub8((Char8*)pData->_d->data, pData->_d->length * 4));
+      FOG_ASSERT_X(0, b.cStr());
+    }
   }
-#endif // DEBUG
+#endif // FOG_DEBUG
 }
 
 StringCache* StringCache::create(

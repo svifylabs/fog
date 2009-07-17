@@ -67,7 +67,7 @@ FOG_INIT_FUNC(fog_font);
 FOG_INIT_FUNC(fog_painter);
 
 // Fog/UI
-FOG_INIT_FUNC(fog_widget);
+// reserved...
 
 // ============================================================================
 // [Fog::Init]

@@ -417,7 +417,7 @@ struct FOG_API Object : public Class
     //! @brief Object was posted 'DeleteLater' event.
     PostedDeleteLaterEvent = (1 << 6),
 
-    // [UI::Widget flags]
+    // [Fog::Widget flags]
 
     //! @brief Object type is @c Fog::Widget.
     IsWidget = (1 << 16)

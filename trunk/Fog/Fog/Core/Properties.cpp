@@ -23,12 +23,16 @@ PropertiesData::PropertiesData() :
   _bucketsCount(0),
   _offset(-1)
 {
-
 }
 
 PropertiesData::~PropertiesData()
 {
+  FOG_ASSERT_X(_offset != -2, "Fog::PropertiesData::~PropertiesData() - Destroyed twice!");
+
   if (_bucketsData) destroy();
+
+  // Mark this object as destroyed to prevend destroying it twice (it's usually allocated by linker).
+  _offset = -2;
 }
 
 err_t PropertiesData::init(PropertiesData* parent, const Vector<String32>& properties)
@@ -40,12 +44,14 @@ err_t PropertiesData::init(PropertiesData* parent, const Vector<String32>& prope
   int offset = parent ? parent->_last : 0;
 
   _parent = parent;
-  if (parent) _properties = _parent->_properties;
+
+  if (parent) _properties = parent->_properties;
   _properties.append(properties);
   _properties.squeeze();
 
   // Align bucketsCount to be power of 2, minimum value is 8. This allows us
   // to use AND instead of MOD operators in calculating bucket index from hash.
+  if (bucketsCount > 0)
   {
     int t = 8;
     while (bucketsCount > t) t <<= 1;
@@ -54,7 +60,7 @@ err_t PropertiesData::init(PropertiesData* parent, const Vector<String32>& prope
 
   // One allocation for _buckets and all data. Individual buckets are created
   // using placement new() operator.
-  sysuint_t bucketsDataSize = bucketsCount * sizeof(Bucket*);
+  sysuint_t bucketsDataSize = bucketsCount * sizeof(Bucket**);
   sysuint_t propertiesDataSize = propertiesCount * sizeof(Bucket);
 
   Bucket** bucketsData = (Bucket**)Memory::alloc(bucketsDataSize + propertiesDataSize);
@@ -79,8 +85,8 @@ err_t PropertiesData::init(PropertiesData* parent, const Vector<String32>& prope
     else
     {
       Bucket* t = bucketsData[hidx];
-      while (t->next) t = t->next;
-      t->next = b;
+      while (t->_next) t = t->_next;
+      t->_next = b;
     }
   }
 
@@ -102,7 +108,7 @@ void PropertiesData::destroy()
 
     while (bucket)
     {
-      Bucket* next = bucket->next;
+      Bucket* next = bucket->_next;
       bucket->~Bucket();
       bucket = next;
     }

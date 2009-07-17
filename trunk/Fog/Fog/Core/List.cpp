@@ -22,7 +22,7 @@ namespace Fog {
 // [Debug]
 // ===========================================================================
 
-#if defined(DEBUG)
+#if defined(FOG_DEBUG)
 #define FOG_LIST_VERIFY_DATA(d) \
   FOG_ASSERT((d)->length <= (d)->capacity); \
   FOG_ASSERT((d)->startIndex + (d)->length <= (d)->capacity); \
@@ -30,13 +30,13 @@ namespace Fog {
 #else
 #define FOG_LIST_VERIFY_DATA(d) \
   FOG_NOOP
-#endif // DEBUG
+#endif // FOG_DEBUG
 
 // ===========================================================================
 // [Fog::ListAPI_Base - Primitive Data Type]
 // ===========================================================================
 
-static inline void ListAPI_Base_deref_p(SequenceUntyped::Data* d)
+static FOG_INLINE void ListAPI_Base_deref_p(SequenceUntyped::Data* d)
 {
   if (d->refCount.deref()) SequenceAPI_Base::_freeData((void*)d);
 }

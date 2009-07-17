@@ -100,12 +100,12 @@ String32 EventLoop::type() const
 // Optional call to connect the thread name with this loop.
 void EventLoop::setThreadName(const String32& threadName)
 {
-#if defined DEBUG
+#if defined FOG_DEBUG
   if (!_threadName.isEmpty())
   {
-    fog_debug("Fog::EventLoop::setThreadName() - Should not rename this thread!");
+    fog_debug("Fog::EventLoop::setThreadName() - Shouldn't rename this thread!");
   }
-#endif // DEBUG
+#endif // FOG_DEBUG
   _threadName = threadName;
 }
 

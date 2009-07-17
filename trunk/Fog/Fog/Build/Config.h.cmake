@@ -14,8 +14,8 @@
 
 // [Debugging]
 
-#cmakedefine DEBUG
-#cmakedefine DEBUG_MEMORY
+#cmakedefine FOG_DEBUG
+#cmakedefine FOG_DEBUG_MEMORY
 
 // [Byte Order]
 

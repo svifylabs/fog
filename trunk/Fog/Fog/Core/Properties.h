@@ -85,12 +85,12 @@ struct FOG_API PropertiesData
 
   struct Bucket
   {
-    FOG_INLINE Bucket(const String32& name, int id) : next(NULL), name(name), id(id) {}
+    FOG_INLINE Bucket(const String32& name, int id) : _next(NULL), _name(name), _id(id) {}
     FOG_INLINE ~Bucket() {}
 
-    Bucket* next;
-    String32 name;
-    int id;
+    Bucket* _next;
+    String32 _name;
+    int _id;
   };
 
   // [Init / Destroy]
@@ -120,8 +120,8 @@ struct FOG_API PropertiesData
       bucket = pdata->_bucketsData[hash & (pdata->_bucketsCount - 1)];
       while (bucket)
       {
-        if (bucket->name == name) return bucket->id;
-        bucket = bucket->next;
+        if (bucket->_name == name) return bucket->_id;
+        bucket = bucket->_next;
       }
     } while (pdata = pdata->_parent);
     return -1;

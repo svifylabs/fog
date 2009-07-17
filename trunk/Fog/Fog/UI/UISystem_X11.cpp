@@ -389,7 +389,7 @@ UISystemX11::UISystemX11()
 
   // Finally add the event loop type into application. Event loop will be
   // instantiated by application after UISystem was properly constructed.
-  Application::addEventLoopType<Fog::EventLoopX11>(Fog::Ascii8("UI::X11"));
+  Application::addEventLoopType<Fog::EventLoopX11>(Fog::Ascii8("UI.X11"));
 
   _initialized = true;
   return;
@@ -401,7 +401,7 @@ fail:
 UISystemX11::~UISystemX11()
 {
   // We don't want that event loop is available after UISystemX11 was destroyed.
-  Application::removeEventLoopType(Fog::Ascii8("UI::X11"));
+  Application::removeEventLoopType(Fog::Ascii8("UI.X11"));
 
   // Close display and free X resources.
   if (display())
@@ -1913,7 +1913,7 @@ void UIBackingStoreX11::blitRects(XID target, const Box* rects, sysuint_t count)
 // ============================================================================
 
 EventPumpX11::EventPumpX11() :
-  EventPump(Ascii8("UI::X11")),
+  EventPump(Ascii8("UI.X11")),
   _state(NULL)
 {
   _wakeUpSent.init(0);
