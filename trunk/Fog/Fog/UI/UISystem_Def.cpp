@@ -1208,6 +1208,9 @@ void UIWindowDefault::onMousePress(uint32_t button, bool repeated)
   e._button = button;
   e._modifiers = uiSystem->getKeyboardModifiers();
   e._position = uiSystem->_mouseStatus.position;
+  e._isOutside = (
+    e._position.x() >= 0 && e._position.y() >= 0 &&
+    e._position.x() < w->width() && e._position.y() < w->height());
   w->sendEvent(&e);
 
   uint32_t buttonId = fogButtonToId(button);
@@ -1244,6 +1247,9 @@ void UIWindowDefault::onMouseRelease(uint32_t button)
   e._button = button;
   e._modifiers = uiSystem->getKeyboardModifiers();
   e._position = uiSystem->_mouseStatus.position;
+  e._isOutside = (
+    e._position.x() >= 0 && e._position.y() >= 0 &&
+    e._position.x() < w->width() && e._position.y() < w->height());
   w->sendEvent(&e);
 
   e._code = EvClick;
