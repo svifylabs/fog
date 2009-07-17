@@ -8,6 +8,7 @@
 #define _FOG_GRAPHICS_IMAGEIO_H
 
 // [Dependencies]
+#include <Fog/Core/Properties.h>
 #include <Fog/Core/Stream.h>
 #include <Fog/Core/String.h>
 #include <Fog/Core/Value.h>
@@ -57,7 +58,14 @@ FOG_API Provider* getProviderByMemory(void* mem, sysuint_t len);
 //! mime type data (first image file bytes)
 struct FOG_API Provider
 {
-  // [Structures]
+  // [Construction / Destruction]
+
+  //! @brief Image file format Constructor.
+  Provider();
+  //! @brief Image file format descructor.
+  virtual ~Provider();
+
+  // [Features]
 
   //! @brief File format features.
   struct Features
@@ -97,7 +105,7 @@ struct FOG_API Provider
     uint32_t argbf : 1;
 
     // [Size]
-    
+
     //! @brief @c true if size of image or animation is limited or predefined (for example FLI).
     uint32_t limitedSize : 1;
 
@@ -142,25 +150,6 @@ struct FOG_API Provider
     uint32_t qualityAdjust : 1;
   };
 
-  // [Members]
-protected:
-  //! @brief Image file format name ("BMP", "JPEG", "PNG", ...) .
-  String32 _name;
-  //! @brief Image file format id.
-  uint32_t _id;
-  //! @brief Image file format extensions ("bmp", "jpg", "jpeg", ...).
-  Vector<String32> _extensions;
-
-  //! @brief Image file format features.
-  Features _features;
-
-  // [Construction / Destruction]
-public:
-  //! @brief Image file format Constructor.
-  Provider();
-  //! @brief Image file format descructor.
-  virtual ~Provider();
-
   // [Members access]
 
   //! @brief Returns image file format name.
@@ -183,6 +172,19 @@ public:
   virtual EncoderDevice* createEncoder();
   virtual DecoderDevice* createDecoder();
 
+  // [Members]
+
+protected:
+  //! @brief Image file format name ("BMP", "JPEG", "PNG", ...) .
+  String32 _name;
+  //! @brief Image file format id.
+  uint32_t _id;
+  //! @brief Image file format extensions ("bmp", "jpg", "jpeg", ...).
+  Vector<String32> _extensions;
+
+  //! @brief Image file format features.
+  Features _features;
+
 private:
   FOG_DISABLE_COPY(Provider)
 };
@@ -191,9 +193,37 @@ private:
 // [Fog::ImageIO::BaseDevice]
 // ============================================================================
 
-struct FOG_API BaseDevice
+struct FOG_API BaseDevice : public PropertiesContainer
 {
-  // [Enums]
+  typedef PropertiesContainer base;
+
+  // [Construction / Descruction]
+
+  BaseDevice();
+  virtual ~BaseDevice();
+
+  // [Properties]
+
+  DECLARE_PROPERTIES_CONTAINER()
+
+  enum PropertyId
+  {
+    PropertyWidth,
+    PropertyHeight,
+    PropertyDepth,
+    PropertyPlanes,
+    PropertyActualFrame,
+    PropertyFramesCount,
+    PropertyProgress,
+
+    PropertyLast
+  };
+
+  virtual int propertyInfo(int id) const;
+  virtual err_t getProperty(int id, Value& value) const;
+  virtual err_t setProperty(int id, const Value& value);
+
+  // [Device Type]
 
   enum DeviceType
   {
@@ -206,54 +236,6 @@ struct FOG_API BaseDevice
     //! @brief Proxy for another image processing library.
     ProxyType = 0x4
   };
-
-  // [Members]
-
-protected:
-  //! @brief Device provider.
-  Provider* _provider;
-  //! @brief Device type.
-  uint32_t _deviceType;
-  //! @brief Flags.
-  uint32_t _flags;
-
-  //! @brief Attached stream offset.
-  uint64_t _attachedOffset;
-  //! @brief Attached stream.
-  Stream _stream;
-
-  //! @brief Image or animation width.
-  uint32_t _width;
-  //! @brief Image or animation height.
-  uint32_t _height;
-  //! @brief Image or animation depth (bits per pixel).
-  uint32_t _depth;
-  //! @brief Image or animation planes.
-  uint32_t _planes;
-
-  //! @brief Actual frame.
-  uint32_t _actualFrame;
-  //! @brief Count of frames.
-  uint32_t _framesCount;
-
-  //! @brief Image format of target image.
-  int _format;
-  //! @brief Palette if reading / writing 8 bit or less images.
-  //!
-  //! This is image palette that can be contained in loaded image,
-  //! but it's not needed if image is directly loaded to different
-  //! image format and decoder supports this.
-  Palette _palette;
-  //! @brief Comment
-  String8 _comment;
-
-  //! @brief Progress, 0 to 100 [percent]
-  float _progress;
-
-  // [Construction / Descruction]
-public:
-  BaseDevice();
-  virtual ~BaseDevice();
 
   // [Members access]
 
@@ -300,14 +282,51 @@ public:
   virtual void attachStream(Stream& stream);
   virtual void detachStream();
 
-  // [Properties]
-
-  virtual err_t setProperty(const String32& name, const Value& value);
-  virtual Value getProperty(const String32& name);
-
   // [Protected virtuals]
 protected:
   virtual void reset();
+
+  // [Members]
+
+  //! @brief Device provider.
+  Provider* _provider;
+  //! @brief Device type.
+  uint32_t _deviceType;
+  //! @brief Flags.
+  uint32_t _flags;
+
+  //! @brief Attached stream offset.
+  uint64_t _attachedOffset;
+  //! @brief Attached stream.
+  Stream _stream;
+
+  //! @brief Image or animation width.
+  uint32_t _width;
+  //! @brief Image or animation height.
+  uint32_t _height;
+  //! @brief Image or animation depth (bits per pixel).
+  uint32_t _depth;
+  //! @brief Image or animation planes.
+  uint32_t _planes;
+
+  //! @brief Actual frame.
+  uint32_t _actualFrame;
+  //! @brief Count of frames.
+  uint32_t _framesCount;
+
+  //! @brief Image format of target image.
+  int _format;
+  //! @brief Palette if reading / writing 8 bit or less images.
+  //!
+  //! This is image palette that can be contained in loaded image,
+  //! but it's not needed if image is directly loaded to different
+  //! image format and decoder supports this.
+  Palette _palette;
+  //! @brief Comment
+  String8 _comment;
+
+  //! @brief Progress, 0 to 100 [percent]
+  float _progress;
 };
 
 // ============================================================================
@@ -317,19 +336,8 @@ protected:
 //! @brief Image IO decoder device.
 struct FOG_API DecoderDevice : public BaseDevice
 {
-  // [Members]
-protected:
-  //! @brief @c true if header was read.
-  uint32_t _headerDone : 1;
-  //! @brief @c true if image was read.
-  uint32_t _readerDone : 1;
-  //! @brief Header decoder result code (returned by @c readHeader()).
-  uint32_t _headerResult;
-  //! @brief Image decoder result code (returned by @c readImage()).
-  uint32_t _readerResult;
-
   // [Construction / Descruction]
-public:
+
   DecoderDevice();
   virtual ~DecoderDevice();
 
@@ -348,6 +356,17 @@ public:
   // [Protected virtuals]
 protected:
   virtual void reset();
+
+  // [Members]
+
+  //! @brief @c true if header was read.
+  uint32_t _headerDone : 1;
+  //! @brief @c true if image was read.
+  uint32_t _readerDone : 1;
+  //! @brief Header decoder result code (returned by @c readHeader()).
+  uint32_t _headerResult;
+  //! @brief Image decoder result code (returned by @c readImage()).
+  uint32_t _readerResult;
 };
 
 // ============================================================================
@@ -357,13 +376,8 @@ protected:
 //! @brief Image IO encoder device.
 struct FOG_API EncoderDevice : public BaseDevice
 {
-  // [Members]
-protected:
-  uint32_t _headerDone : 1;
-  uint32_t _writerDone : 1;
-
   // [Construction / Descruction]
-public:
+
   EncoderDevice();
   virtual ~EncoderDevice();
 
@@ -372,8 +386,7 @@ public:
   FOG_INLINE bool headerDone() const { return _headerDone; }
   FOG_INLINE bool writerDone() const { return _writerDone; }
 
-  FOG_INLINE void setComment(const String8& comment)
-  { _comment = comment; }
+  FOG_INLINE void setComment(const String8& comment) { _comment = comment; }
 
   // [Virtuals]
 
@@ -383,6 +396,11 @@ public:
 protected:
   virtual void reset();
   virtual void finalize();
+
+  // [Members]
+
+  uint32_t _headerDone : 1;
+  uint32_t _writerDone : 1;
 };
 
 } // ImageIO namespace

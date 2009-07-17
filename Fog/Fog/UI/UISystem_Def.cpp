@@ -202,38 +202,54 @@ void UISystemDefault::changeMouseStatus(Widget* w, const Point& pos)
     _buttonTime[1].clear();
     _buttonTime[2].clear();
 
-    uint32_t hoverChange = !!_mouseStatus.hover;
     uint32_t code = 0; // be quite
+    uint32_t hoverChange;;
 
-    hoverChange |= (!(pos.x() < 0 || 
-                      pos.y() < 0 || 
-                      pos.x() >= w->width() || 
-                      pos.y() >= w->height())) << 1;
+    hoverChange = (!!_mouseStatus.hover) |
+                  ((!(pos.x() < 0 || 
+                      pos.y() < 0 ||
+                      pos.x() >= w->width() ||
+                      pos.y() >= w->height())) << 1);
 
     enum HoverChange
     {
-      HoverChangeOutsideMove = 0x0, // 00b
-      HoverChangeOut         = 0x1, // 01b
-      HoverChangeIn          = 0x2, // 10b
-      HoverChangeInsideMove  = 0x3  // 11b
+      HoverChangeOutsideMove = 0x00, // 00b
+      HoverChangeOut         = 0x01, // 01b
+      HoverChangeIn          = 0x02, // 10b
+      HoverChangeInsideMove  = 0x03  // 11b
     };
 
     switch (hoverChange)
     {
-      case HoverChangeOutsideMove: code = EvMouseOutside; break;
-      case HoverChangeOut:         code = EvMouseOut   ; break;
-      case HoverChangeIn:          code = EvMouseIn    ; break;
-      case HoverChangeInsideMove:  code = EvMouseMove  ; break;
+      case HoverChangeOutsideMove: code = EvMouseMove; break;
+      case HoverChangeOut:         code = EvMouseOut ; break;
+      case HoverChangeIn:          code = EvMouseIn  ; break;
+      case HoverChangeInsideMove:  code = EvMouseMove; break;
     }
 
     _mouseStatus.position = pos;
-    _mouseStatus.hover = (hoverChange & 0x2) != 0;
+    _mouseStatus.hover = (hoverChange & 0x02) != 0;
 
-    MouseEvent e(code);
-    e._button = ButtonInvalid;
-    e._modifiers = getKeyboardModifiers();
-    e._position = pos;
-    w->sendEvent(&e);
+    {
+      MouseEvent e(code);
+      e._button = ButtonInvalid;
+      e._modifiers = getKeyboardModifiers();
+      e._position = pos;
+      e._isOutside = (hoverChange == 0x00);
+      w->sendEvent(&e);
+    }
+
+    // Generate MouseMove events if generated event was MouseOut and widget is
+    // in dragging state.
+    if (_mouseStatus.buttons && code == EvMouseOut)
+    {
+      MouseEvent e(EvMouseMove);
+      e._button = ButtonInvalid;
+      e._modifiers = getKeyboardModifiers();
+      e._position = pos;
+      e._isOutside = true;
+      w->sendEvent(&e);
+    }
   }
 }
 

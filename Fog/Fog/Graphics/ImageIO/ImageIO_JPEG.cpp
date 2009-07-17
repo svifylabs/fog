@@ -680,36 +680,36 @@ end:
   return err;
 }
 
-err_t JpegEncoderDevice::setProperty(const String32& name, const Value& value)
+// [Properties]
+
+Static<PropertiesData> JpegEncoderDevice::_propertiesData;
+
+err_t JpegEncoderDevice::getProperty(int id, Value& value) const
 {
-  err_t err;
-
-  if (name == Ascii8("quality"))
+  switch (id)
   {
-    int32_t q;
-    if ((err = value.toInt32(&q))) return err;
-
-    if (q < 0) q = 0;
-    if (q > 100) q = 100;
-
-    _quality = q;
-    return Error::Ok;
-  }
-  else
-  {
-    return EncoderDevice::setProperty(name, value);
+    case PropertyQuality:
+      return value.setInt32(_quality);
+    default:
+      return base::getProperty(id, value);
   }
 }
 
-Value JpegEncoderDevice::getProperty(const String32& name)
+err_t JpegEncoderDevice::setProperty(int id, const Value& value)
 {
-  if (name == Ascii8("quality"))
+  err_t err;
+  int i;
+
+  switch (id)
   {
-    return Value::fromInt32(_quality);
-  }
-  else
-  {
-    return EncoderDevice::getProperty(name);
+    case PropertyQuality:
+      if ((err = value.toInt32(&i))) return err;
+      if (i < 0) i = 0;
+      if (i > 100) i = 100;
+      _quality = i;
+      return Error::Ok;
+    default:
+      return base::setProperty(id, value);
   }
 }
 
@@ -722,15 +722,27 @@ Value JpegEncoderDevice::getProperty(const String32& name)
 
 FOG_INIT_DECLARE void fog_imageio_jpeg_init(void)
 {
-  Fog::ImageIO::_jpeg.init();
-  Fog::ImageIO::addProvider(new(std::nothrow) Fog::ImageIO::JpegProvider());
+  using namespace Fog;
+
+  ImageIO::_jpeg.init();
+  ImageIO::addProvider(new(std::nothrow) Fog::ImageIO::JpegProvider());
+
+  Vector<String32> properties;
+
+  properties.append(fog_strings->get(STR_GRAPHICS_quality));
+  INIT_PROPERTIES_CONTAINER(ImageIO::JpegEncoderDevice, ImageIO::JpegEncoderDevice::base, properties);
+
 }
 
 FOG_INIT_DECLARE void fog_imageio_jpeg_shutdown(void)
 {
+  using namespace Fog;
+
   // Provider is destroyed by Fog::ImageIO, need only to destroy JpegLibrary
   // if open.
-  Fog::ImageIO::_jpeg.destroy();
+  ImageIO::_jpeg.destroy();
+
+  DESTROY_PROPERTIES_CONTAINER(ImageIO::JpegDecoderDevice);
 }
 
 #else

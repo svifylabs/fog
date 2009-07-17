@@ -37,6 +37,28 @@ ImageFilter::~ImageFilter()
 
 Static<PropertiesData> ImageFilter::_propertiesData;
 
+int ImageFilter::propertyInfo(int id) const
+{
+  switch (id)
+  {
+    case PropertyFilterType:
+      return IProperties::Exists | IProperties::ReadOnly;
+    default:
+      return base::propertyInfo(id);
+  }
+}
+
+err_t ImageFilter::getProperty(int id, Value& value) const
+{
+  switch (id)
+  {
+    case PropertyFilterType:
+      return value.setInt32(_type);
+    default:
+      return base::getProperty(id, value);
+  }
+}
+
 err_t ImageFilter::setProperty(int id, const Value& value)
 {
   switch (id)
@@ -46,11 +68,6 @@ err_t ImageFilter::setProperty(int id, const Value& value)
     default:
       return base::setProperty(id, value);
   }
-}
-
-err_t ImageFilter::getProperty(int id, Value& value) const
-{
-  return Error::NotImplemented;
 }
 
 // [Nop]
@@ -188,33 +205,50 @@ ImageFilter* BlurImageFilter::clone() const
 
 Static<PropertiesData> BlurImageFilter::_propertiesData;
 
-err_t BlurImageFilter::setProperty(int id, const Value& value)
-{
-  switch (id)
-  {
-    case PropertyBorderMode:
-    case PropertyBorderColor:
-    case PropertyBlurType:
-    case PropertyHorizontalRadius:
-    case PropertyVerticalRadius:
-      return Error::NotImplemented;
-    default:
-      return base::setProperty(id, value);
-  }
-}
-
 err_t BlurImageFilter::getProperty(int id, Value& value) const
 {
   switch (id)
   {
     case PropertyBorderMode:
+      return value.setInt32(_borderMode);
     case PropertyBorderColor:
+      return value.setInt32(_borderColor);
     case PropertyBlurType:
+      return value.setInt32(_blurType);
     case PropertyHorizontalRadius:
+      return value.setDouble(_hRadius);
     case PropertyVerticalRadius:
-      return Error::NotImplemented;
+      return value.setDouble(_vRadius);
     default:
       return base::getProperty(id, value);
+  }
+}
+
+err_t BlurImageFilter::setProperty(int id, const Value& value)
+{
+  err_t err;
+  int i;
+  double d;
+
+  switch (id)
+  {
+    case PropertyBorderMode:
+      if ((err = value.toInt32(&i))) return err;
+      return setBorderMode(i);
+    case PropertyBorderColor:
+      if ((err = value.toInt32(&i))) return err;
+      return setBorderColor((uint32_t)i);
+    case PropertyBlurType:
+      if ((err = value.toInt32(&i))) return err;
+      return setBlurType(i);
+    case PropertyHorizontalRadius:
+      if ((err = value.toDouble(&d))) return err;
+      return setHorizontalRadius(d);
+    case PropertyVerticalRadius:
+      if ((err = value.toDouble(&d))) return err;
+      return setVerticalRadius(d);
+    default:
+      return base::setProperty(id, value);
   }
 }
 
@@ -551,29 +585,38 @@ ImageFilter* IntConvolutionImageFilter::clone() const
 
 Static<PropertiesData> IntConvolutionImageFilter::_propertiesData;
 
-err_t IntConvolutionImageFilter::setProperty(int id, const Value& value)
-{
-  switch (id)
-  {
-    case PropertyBorderMode:
-    case PropertyBorderColor:
-    case PropertyKernel:
-      return Error::NotImplemented;
-    default:
-      return base::setProperty(id, value);
-  }
-}
-
 err_t IntConvolutionImageFilter::getProperty(int id, Value& value) const
 {
   switch (id)
   {
     case PropertyBorderMode:
+      return value.setInt32(_borderMode);
     case PropertyBorderColor:
+      return value.setInt32(_borderColor);
     case PropertyKernel:
       return Error::NotImplemented;
     default:
       return base::getProperty(id, value);
+  }
+}
+
+err_t IntConvolutionImageFilter::setProperty(int id, const Value& value)
+{
+  err_t err;
+  int i;
+
+  switch (id)
+  {
+    case PropertyBorderMode:
+      if ((err = value.toInt32(&i))) return err;
+      return setBorderMode(i);
+    case PropertyBorderColor:
+      if ((err = value.toInt32(&i))) return err;
+      return setBorderColor((uint32_t)i);
+    case PropertyKernel:
+      return Error::NotImplemented;
+    default:
+      return base::setProperty(id, value);
   }
 }
 

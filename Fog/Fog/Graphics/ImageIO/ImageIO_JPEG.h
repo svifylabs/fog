@@ -24,9 +24,14 @@ namespace ImageIO {
 
 struct FOG_API JpegDecoderDevice : public DecoderDevice
 {
-public:
+  typedef DecoderDevice base;
+
+  // [Construction / Destruction]
+
   JpegDecoderDevice();
   virtual ~JpegDecoderDevice();
+
+  // [Virtuals]
 
   virtual void reset();
   virtual uint32_t readHeader();
@@ -39,15 +44,30 @@ public:
 
 struct FOG_API JpegEncoderDevice : public EncoderDevice
 {
+  typedef EncoderDevice base;
+
+  // [Construction / Destruction]
+
   JpegEncoderDevice();
   virtual ~JpegEncoderDevice();
+
+  // [Virtuals]
 
   virtual uint32_t writeImage(const Image& image);
 
   // [Properties]
 
-  virtual err_t setProperty(const String32& name, const Value& value);
-  virtual Value getProperty(const String32& name);
+  DECLARE_PROPERTIES_CONTAINER()
+
+  enum PropertyId
+  {
+    PropertyQuality = base::PropertyLast,
+
+    PropertyLast
+  };
+
+  virtual err_t getProperty(int id, Value& value) const;
+  virtual err_t setProperty(int id, const Value& value);
 
 private:
   int _quality;

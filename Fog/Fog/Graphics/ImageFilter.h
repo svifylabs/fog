@@ -143,8 +143,9 @@ struct FOG_API ImageFilter : public PropertiesContainer
     PropertyLast
   };
 
-  virtual err_t setProperty(int id, const Value& value);
+  virtual int propertyInfo(int id) const;
   virtual err_t getProperty(int id, Value& value) const;
+  virtual err_t setProperty(int id, const Value& value);
 
   // [Nop]
 
@@ -209,8 +210,8 @@ struct FOG_API BlurImageFilter : public ImageFilter
 
   DECLARE_PROPERTIES_CONTAINER()
 
-  virtual err_t setProperty(int id, const Value& value);
   virtual err_t getProperty(int id, Value& value) const;
+  virtual err_t setProperty(int id, const Value& value);
 
   // [Blur Type]
 
@@ -382,8 +383,8 @@ struct FOG_API IntConvolutionImageFilter : public ImageFilter
 
   DECLARE_PROPERTIES_CONTAINER()
 
-  virtual err_t setProperty(int id, const Value& value);
   virtual err_t getProperty(int id, Value& value) const;
+  virtual err_t setProperty(int id, const Value& value);
 
   // [Kernel]
 
