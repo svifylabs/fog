@@ -365,7 +365,6 @@ bool FileSystem::findFile(const Sequence<String32>& paths, const String32& fileN
     path8.append(fileName8);
 
     // Test
-    printf("Find File:%s\n", path8.cStr());
     if (::stat(path8.cStr(), &s) == 0 && S_ISREG(s.st_mode))
     {
       return FileUtil::joinPath(dst, it.value(), fileName) == Error::Ok;

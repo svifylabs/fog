@@ -130,7 +130,7 @@ void Application::quit()
   _eventLoop->quit();
 }
 
-bool Application::_addEventLoopType(const String32& type, EventLoopConstructor ctor)
+bool Application::addEventLoopType(const String32& type, EventLoopConstructor ctor)
 {
   AutoLock locked(application_local->lock);
   return application_local->elHash.put(type, ctor);
@@ -168,11 +168,10 @@ UISystem* Application::createUISystem(const String32& _type)
     return new UISystemWin();
 #endif // FOG_OS_WINDOWS
 
-  // TODO: Only temporary
-#if defined(FOG_OS_POSIX)
+#if defined(FOG_OS_POSIX) && defined(FOG_BUILD_MODULE_X11_INTERNAL)
   if (type == Ascii8("UI.X11"))
     return new UISystemX11();
-#endif // FOG_OS_X11
+#endif // FOG_OS_X11 && FOG_BUILD_MODULE_X11_INTERNAL
 
   // All other UI systems are dynamic linked libraries
   if (!type.startsWith(Ascii8("UI."))) return NULL;
@@ -181,8 +180,7 @@ UISystem* Application::createUISystem(const String32& _type)
     err_t err = lib.openPlugin(Ascii8("FogUI"), type.substring(Range(3)));
     if (err) return NULL;
 
-    UISystemConstructor ctor = 
-      (UISystemConstructor)lib.symbol(Ascii8("createUISystem"));
+    UISystemConstructor ctor = (UISystemConstructor)lib.symbol(Ascii8("createUISystem"));
     if (!ctor) return NULL;
 
     UISystem* uis = ctor();
@@ -212,17 +210,19 @@ EventLoop* Application::createEventLoop(const String32 &_type)
 
 FOG_INIT_DECLARE err_t fog_application_init(void)
 {
-  Fog::application_local.init();
+  using namespace Fog;
 
-  Fog::Application::addEventLoopType<Fog::EventLoopDefault>(Fog::Ascii8("Default"));
+  application_local.init();
+
+  Application::addEventLoopTypeT<EventLoopDefault>(Ascii8("Default"));
 
 #if defined(FOG_OS_WINDOWS)
-  Fog::Application::addEventLoopType<Fog::EventLoopWinUI>(Fog::Ascii8("UI.Windows"));
-  Fog::Application::addEventLoopType<Fog::EventLoopWinIO>(Fog::Ascii8("IO.Windows"));
+  Application::addEventLoopTypeT<EventLoopWinUI>(Ascii8("UI.Windows"));
+  Application::addEventLoopTypeT<EventLoopWinIO>(Ascii8("IO.Windows"));
 #endif // FOG_OS_WINDOWS
 
 #if defined(FOG_OS_POSIX)
-//  Fog::Application->addEventLoopType<Fog::EventLoopLibevent>(Fog::Ascii8("IO.LibEvent"));
+//  Application->addEventLoopTypeT<EventLoopLibevent>(Ascii8("IO.LibEvent"));
 #endif // FOG_OS_POSIX
 
   return Error::Ok;
@@ -230,5 +230,7 @@ FOG_INIT_DECLARE err_t fog_application_init(void)
 
 FOG_INIT_DECLARE void fog_application_shutdown(void)
 {
-  Fog::application_local.destroy();
+  using namespace Fog;
+
+  application_local.destroy();
 }

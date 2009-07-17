@@ -1,7 +1,3 @@
-
-#include "Fog/Core/TextCodec.h"
-#include "UISystem_Def.h"
-
 // [Fog/UI Library - C++ API]
 //
 // [Licence]
@@ -9,7 +5,7 @@
 
 #include <Fog/Build/Build.h>
 
-#if defined(FOG_UI_X11)
+#if defined(FOG_BUILD_MODULE_X11_EXTERNAL) || defined(FOG_BUILD_MODULE_X11_INTERNAL)
 
 // [Dependencies]
 #include <Fog/Core/Application.h>
@@ -389,7 +385,7 @@ UISystemX11::UISystemX11()
 
   // Finally add the event loop type into application. Event loop will be
   // instantiated by application after UISystem was properly constructed.
-  Application::addEventLoopType<Fog::EventLoopX11>(Fog::Ascii8("UI.X11"));
+  Application::addEventLoopTypeT<EventLoopX11>(Ascii8("UI.X11"));
 
   _initialized = true;
   return;
@@ -813,7 +809,7 @@ void UISystemX11::freeRGB(XColormap colormap, const uint8_t* palconv, uint count
 
 UIWindow* UISystemX11::createUIWindow(Widget* widget)
 {
-  return new UIWindowX11(widget);
+  return new /*(std::nothrow)*/ UIWindowX11(widget);
 }
 
 void UISystemX11::destroyUIWindow(UIWindow* native)
@@ -877,7 +873,7 @@ UIWindowX11::UIWindowX11(Widget* widget) :
   _mapRequest(false),
   _xflags(0)
 {
-  _backingStore = new UIBackingStoreX11();
+  _backingStore = new(std::nothrow) UIBackingStoreX11();
 }
 
 UIWindowX11::~UIWindowX11()
@@ -2096,7 +2092,7 @@ void EventPumpX11::sendWakeUp()
 // ============================================================================
 
 EventLoopX11::EventLoopX11() :
-  EventLoop(new EventPumpX11())
+  EventLoop(new(std::nothrow) EventPumpX11())
 {
 }
 
@@ -2108,7 +2104,7 @@ EventLoopX11::EventLoopX11() :
 
 extern "C" FOG_DLL_EXPORT void* createUISystem()
 {
-  return new Fog::UISystemX11();
+  return new /*(std::nothrow)*/ Fog::UISystemX11();
 }
 
-#endif /// FOG_UI_X11
+#endif // FOG_BUILD_MODULE_X11_EXTERNAL || FOG_BUILD_MODULE_X11_INTERNAL

@@ -10,12 +10,15 @@
 // [Dependencies]
 #include <Fog/Build/Build.h>
 
-#define FOG_UISYSTEM_X11_API FOG_API
-//#if defined(Fog_EXPORTS)
-//# define FOG_UISYSTEM_X11_API FOG_DLL_EXPORT
-//#else
-//# define FOG_UISYSTEM_X11_API FOG_DLL_IMPORT
-//#endif // Fog_EXPORTS
+#if defined(FOG_BUILD_X11_MODULE_INTERNAL)
+# define FOG_UISYSTEM_X11_API FOG_API
+#else
+# if defined(FogUI_X11_EXPORTS)
+#  define FOG_UISYSTEM_X11_API FOG_DLL_EXPORT
+# else
+#  define FOG_UISYSTEM_X11_API FOG_DLL_IMPORT
+# endif // FogUI_X11_EXPORTS
+#endif // FOG_BUILD_X11_MODULE_EXTERNAL
 
 #include <Fog/Core/Atomic.h>
 #include <Fog/Core/Object.h>

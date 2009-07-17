@@ -13,6 +13,9 @@ Set(FOG_AGG_CONTRIB_DIR "${FOG_DIR}/thirdparty/agg-contrib")
 
 Set(TEST_BUILD TRUE)
 
+Set(FOG_BUILD_MODULE_X11_EXTERNAL TRUE)
+Set(FOG_BUILD_MODULE_X11_INTERNAL FALSE)
+
 # =============================================================================
 # [3rdparty Libraries]
 # =============================================================================
@@ -38,7 +41,7 @@ Include_Directories(${FOG_AGG_CONTRIB_DIR}/include)
 # [CFlags]
 # =============================================================================
 
-Set(FOG_CFLAGS_O3 "")
+Set(FOG_CFLAGS_OPTIMIZE "")
 Set(FOG_CFLAGS_MMX "")
 Set(FOG_CFLAGS_SSE "")
 Set(FOG_CFLAGS_SSE2 "")
@@ -46,14 +49,14 @@ Set(FOG_CFLAGS_SSE3 "")
 
 If(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
   Set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -fno-exceptions -fvisibility-inlines-hidden -Winline")
-  Set(FOG_CFLAGS_O3 "")
+  Set(FOG_CFLAGS_OPTIMIZE "")
   If(NOT ${CMAKE_BUILD_TYPE} MATCHES "Debug")
-    Set(FOG_CFLAGS_O3 "-O3")
+    Set(FOG_CFLAGS_OPTIMIZE "-O2")
   EndIf(NOT ${CMAKE_BUILD_TYPE} MATCHES "Debug")
-  Set(FOG_CFLAGS_MMX "${FOG_CFLAGS_O3} -mmmx")
-  Set(FOG_CFLAGS_SSE "${FOG_CFLAGS_O3} -msse")
-  Set(FOG_CFLAGS_SSE2 "${FOG_CFLAGS_O3} -msse2")
-  Set(FOG_CFLAGS_SSE3 "${FOG_CFLAGS_O3} -msse3")
+  Set(FOG_CFLAGS_MMX "${FOG_CFLAGS_OPTIMIZE} -mmmx")
+  Set(FOG_CFLAGS_SSE "${FOG_CFLAGS_OPTIMIZE} -msse")
+  Set(FOG_CFLAGS_SSE2 "${FOG_CFLAGS_OPTIMIZE} -msse2")
+  Set(FOG_CFLAGS_SSE3 "${FOG_CFLAGS_OPTIMIZE} -msse3")
 EndIf(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
 
 # =============================================================================
@@ -628,12 +631,12 @@ SOURCE_GROUP(3rdparty_agg FILES
   ${FOG_AGG_HEADERS})
 
 # Optimize specific files for speed
-Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Image.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_O3}")
-Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Painter.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_O3}")
-Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Raster/Raster_C.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_O3}")
+Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Image.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Painter.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Raster/Raster_C.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
 Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Raster/Raster_MMX.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_MMX}")
 Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Raster/Raster_SSE2.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE2}")
-Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Region.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_O3}")
+Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Region.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
 
 # =============================================================================
 # [Fog/UI] Part
@@ -654,7 +657,6 @@ Set(FOG_UI_SOURCES
   ${FOG_DIR}/Fog/UI/UISystem.cpp
   ${FOG_DIR}/Fog/UI/UISystem_Def.cpp
   ${FOG_DIR}/Fog/UI/UISystem_Win.cpp
-  ${FOG_DIR}/Fog/UI/UISystem_X11.cpp
   ${FOG_DIR}/Fog/UI/Widget.cpp
   ${FOG_DIR}/Fog/UI/Window.cpp
 )
@@ -676,15 +678,23 @@ Set(FOG_UI_HEADERS
   ${FOG_DIR}/Fog/UI/UISystem.h
   ${FOG_DIR}/Fog/UI/UISystem_Def.h
   ${FOG_DIR}/Fog/UI/UISystem_Win.h
-  ${FOG_DIR}/Fog/UI/UISystem_X11.h
   ${FOG_DIR}/Fog/UI/Widget.h
   ${FOG_DIR}/Fog/UI/Window.h
   ${FOG_DIR}/Fog/UI/Xlib.h
 )
 
+Set(FOG_UI_X11_SOURCES
+  ${FOG_DIR}/Fog/UI/UISystem_X11.cpp
+)
+Set(FOG_UI_X11_HEADERS
+  ${FOG_DIR}/Fog/UI/UISystem_X11.h
+)
+
 SOURCE_GROUP(UI FILES
   ${FOG_UI_SOURCES}
-  ${FOG_UI_HEADERS})
+  ${FOG_UI_HEADERS}
+  ${FOG_UI_X11_SOURCES}
+  ${FOG_UI_X11_HEADERS})
 
 # UI-Subsystem and Libraries
 If(WIN32)
@@ -708,12 +718,20 @@ Set(FOG_SOURCES
   ${FOG_UI_SOURCES}
 )
 
+If(FOG_BUILD_MODULE_X11_INTERNAL AND NOT WIN32)
+Set(FOG_SOURCES
+  ${FOG_SOURCES}
+  ${FOG_UI_X11_SOURCES}
+)
+EndIf(FOG_BUILD_MODULE_X11_INTERNAL AND NOT WIN32)
+
 Set(FOG_HEADERS
   ${FOG_BUILD_HEADERS}
   ${FOG_CORE_HEADERS}
   ${FOG_XML_HEADERS}
   ${FOG_GRAPHICS_HEADERS}
   ${FOG_UI_HEADERS}
+  ${FOG_UI_X11_HEADERS}
 )
 
 # Write CMAKE_ #defines into Fog/Build/Config.h files
@@ -731,10 +749,10 @@ Add_Library(Fog SHARED
 )
 Target_Link_Libraries(Fog ${FOG_LIBRARIES})
 
-#If(NOT WIN32)
-#  Add_Library(FogUI_X11 SHARED ${FOG_DIR}/Fog/UI/UISystem_X11.cpp)
-#  Target_Link_Libraries(FogUI_X11 Fog ${FOG_LIBRARIES})
-#EndIf(NOT WIN32)
+If(FOG_BUILD_MODULE_X11_EXTERNAL AND NOT WIN32)
+  Add_Library(FogUI_X11 SHARED ${FOG_UI_X11_SOURCES})
+  Target_Link_Libraries(FogUI_X11 Fog ${FOG_LIBRARIES})
+EndIf(FOG_BUILD_MODULE_X11_EXTERNAL AND NOT WIN32)
 
 # Install
 ForEach(i ${FOG_HEADERS})
