@@ -54,6 +54,9 @@ struct FOG_API Application : public Object
 
   typedef EventLoop* (*EventLoopConstructor)();
 
+  static bool addEventLoopType(const String32& type, EventLoopConstructor ctor);
+  static bool removeEventLoopType(const String32& type);
+
   template<typename EventLoopT>
   struct CtorHelper
   {
@@ -61,13 +64,10 @@ struct FOG_API Application : public Object
   };
 
   template<typename EventLoopT>
-  static void addEventLoopType(const String32& type)
+  static FOG_INLINE bool addEventLoopTypeT(const String32& type)
   {
-    _addEventLoopType(type, CtorHelper<EventLoopT>::ctor);
+    return addEventLoopType(type, CtorHelper<EventLoopT>::ctor);
   }
-
-  static bool _addEventLoopType(const String32& type, EventLoopConstructor ctor);
-  static bool removeEventLoopType(const String32& type);
 
   // [Statics]
 

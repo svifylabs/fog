@@ -84,5 +84,13 @@
 //! @brief Defined if we are using X Window System.
 #cmakedefine FOG_UI_X11
 
+// [BuiltIn]
+#cmakedefine FOG_BUILD_MODULE_X11_EXTERNAL
+#cmakedefine FOG_BUILD_MODULE_X11_INTERNAL
+
+#if defined(FOG_BUILD_MODULE_X11_EXTERNAL) && defined(FOG_BUILD_MODULE_X11_INTERNAL)
+#error "Can't be defined both FOG_BUILD_MODULE_X11_EXTERNAL and FOG_BUILD_MODULE_X11_INTERNAL."
+#endif
+
 // [Guard]
 #endif // _FOG_BUILD_CONFIG_H

@@ -242,7 +242,7 @@ end:
 
 Library& Library::operator=(const Library& other)
 {
-  AtomicBase::ptr_setXchg(&_d, sharedNull->refAlways())->deref();
+  AtomicBase::ptr_setXchg(&_d, other._d->ref())->deref();
   return *this;
 }
 
