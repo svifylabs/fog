@@ -145,11 +145,11 @@ bool Application::removeEventLoopType(const String32& type)
 String32 Application::detectUI()
 {
 #if defined(FOG_OS_WINDOWS)
-  return Ascii8("UI::Windows");
+  return Ascii8("UI.Windows");
 #endif // FOG_OS_WINDOWS
 
 #if defined(FOG_OS_POSIX)
-  return Ascii8("UI::X11");
+  return Ascii8("UI.X11");
 #endif // FOG_OS_POSIX
 }
 
@@ -162,23 +162,23 @@ UISystem* Application::createUISystem(const String32& _type)
   // First try to detect UISystem if not specified
   if (type == Ascii8("UI")) type = detectUI();
 
-  // UI::Windows is built-in
+  // UI.Windows is built-in
 #if defined(FOG_OS_WINDOWS)
-  if (type == Ascii8("UI::Windows"))
+  if (type == Ascii8("UI.Windows"))
     return new UISystemWin();
 #endif // FOG_OS_WINDOWS
 
   // TODO: Only temporary
 #if defined(FOG_OS_POSIX)
-  if (type == Ascii8("UI::X11"))
+  if (type == Ascii8("UI.X11"))
     return new UISystemX11();
 #endif // FOG_OS_X11
 
   // All other UI systems are dynamic linked libraries
-  if (!type.startsWith(Ascii8("UI::"))) return NULL;
+  if (!type.startsWith(Ascii8("UI."))) return NULL;
   {
     Library lib;
-    err_t err = lib.openPlugin(Ascii8("FogUI"), type.substring(Range(4)));
+    err_t err = lib.openPlugin(Ascii8("FogUI"), type.substring(Range(3)));
     if (err) return NULL;
 
     UISystemConstructor ctor = 
@@ -217,12 +217,12 @@ FOG_INIT_DECLARE err_t fog_application_init(void)
   Fog::Application::addEventLoopType<Fog::EventLoopDefault>(Fog::Ascii8("Default"));
 
 #if defined(FOG_OS_WINDOWS)
-  Fog::Application::addEventLoopType<Fog::EventLoopWinUI>(Fog::Ascii8("UI::Windows"));
-  Fog::Application::addEventLoopType<Fog::EventLoopWinIO>(Fog::Ascii8("IO::Windows"));
+  Fog::Application::addEventLoopType<Fog::EventLoopWinUI>(Fog::Ascii8("UI.Windows"));
+  Fog::Application::addEventLoopType<Fog::EventLoopWinIO>(Fog::Ascii8("IO.Windows"));
 #endif // FOG_OS_WINDOWS
 
 #if defined(FOG_OS_POSIX)
-//  Fog::Application->addEventLoopType<Fog::EventLoopLibevent>(Fog::Ascii8("IO::LibEvent"));
+//  Fog::Application->addEventLoopType<Fog::EventLoopLibevent>(Fog::Ascii8("IO.LibEvent"));
 #endif // FOG_OS_POSIX
 
   return Error::Ok;

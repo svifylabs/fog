@@ -742,7 +742,7 @@ FOG_INIT_DECLARE void fog_imageio_jpeg_shutdown(void)
   // if open.
   ImageIO::_jpeg.destroy();
 
-  DESTROY_PROPERTIES_CONTAINER(ImageIO::JpegDecoderDevice);
+  DESTROY_PROPERTIES_CONTAINER(ImageIO::JpegEncoderDevice);
 }
 
 #else

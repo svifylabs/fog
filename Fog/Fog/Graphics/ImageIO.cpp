@@ -429,8 +429,6 @@ FOG_INIT_DECLARE err_t fog_imageio_init(void)
   imageio_local.init();
 
   Vector<String32> properties;
-
-  properties.clear();
   properties.append(fog_strings->get(STR_GRAPHICS_width));
   properties.append(fog_strings->get(STR_GRAPHICS_height));
   properties.append(fog_strings->get(STR_GRAPHICS_depth));
@@ -452,6 +450,7 @@ FOG_INIT_DECLARE err_t fog_imageio_init(void)
 FOG_INIT_DECLARE void fog_imageio_shutdown(void)
 {
   using namespace Fog;
+
   // Do not need to lock, because we are shutting down. All threads should
   // been already joined.
   ImageIO_Local::Providers::ConstIterator it(

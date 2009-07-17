@@ -60,6 +60,10 @@ struct FOG_API UISystemWin : public UISystemDefault
   uint32_t winKeyToUnicode(UINT vKey, UINT scanCode);
   uint32_t winKeyToFogKey(WPARAM vk, UINT scancode);
 
+  // [Debug]
+
+  const char* msgToStr(uint message)
+
   friend struct UIWindowWin;
 };
 

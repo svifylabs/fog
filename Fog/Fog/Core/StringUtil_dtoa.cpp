@@ -169,9 +169,9 @@ namespace StringUtil {
  *  the result overflows to +-Infinity or underflows to 0.
  */
 
-#if defined(DEBUG)
+#if defined(FOG_DEBUG)
 #define Bug(x) fog_fail(NULL, "%s", x)
-#endif // DEBUG
+#endif // FOG_DEBUG
 
 #if FOG_ARCH_BITS == 64
 #define USE_UINT64
@@ -841,12 +841,12 @@ static int cmp(BInt *a, BInt *b)
 
   i = a->wds;
   j = b->wds;
-#ifdef DEBUG
+#ifdef FOG_DEBUG
   if (i > 1 && !a->x[i-1])
     Bug("cmp called with a->x[a->wds-1] == 0");
   if (j > 1 && !b->x[j-1])
     Bug("cmp called with b->x[b->wds-1] == 0");
-#endif // DEBUG
+#endif // FOG_DEBUG
   if (i -= j) return i;
   xa0 = a->x;
   xa = xa0 + j;
@@ -1011,9 +1011,9 @@ static double b2d(BInt *a, int *e)
   xa0 = a->x;
   xa = xa0 + a->wds;
   y = *--xa;
-#ifdef DEBUG
+#ifdef FOG_DEBUG
   if (!y) Bug("zero y in b2d");
-#endif // DEBUG
+#endif // FOG_DEBUG
   k = hi0bits(y);
   *e = 32 - k;
 #ifdef Pack_32
@@ -1115,9 +1115,9 @@ static BInt* BContext_d2b(BContext* context, double d, int *e, int *bits)
   }
   else
   {
-#ifdef DEBUG
+#ifdef FOG_DEBUG
     if (!z) Bug("Zero passed to d2b");
-#endif // DEBUG
+#endif // FOG_DEBUG
     k = lo0bits(&z);
     x[0] = z;
 #ifndef Sudden_Underflow
@@ -1158,9 +1158,9 @@ static BInt* BContext_d2b(BContext* context, double d, int *e, int *bits)
   }
   else
   {
-#ifdef DEBUG
+#ifdef FOG_DEBUG
     if (!z) Bug("Zero passed to d2b");
-#endif // DEBUG
+#endif // FOG_DEBUG
     k = lo0bits(&z);
     if (k >= 16)
     {
@@ -1323,18 +1323,18 @@ static int quorem(BInt *b, BInt *S)
 #endif
 
   n = S->wds;
-#ifdef DEBUG
+#ifdef FOG_DEBUG
   if (b->wds > n) Bug("oversize b in quorem");
-#endif // DEBUG
+#endif // FOG_DEBUG
   if (b->wds < n) return 0;
   sx = S->x;
   sxe = sx + --n;
   bx = b->x;
   bxe = bx + n;
   q = *bxe / (*sxe + 1);  /* ensure q <= true quotient */
-#ifdef DEBUG
+#ifdef FOG_DEBUG
   if (q > 9) Bug("oversized quotient in quorem");
-#endif // DEBUG
+#endif // FOG_DEBUG
   if (q)
   {
     borrow = 0;
