@@ -102,7 +102,8 @@ MouseEvent::MouseEvent(uint32_t code) :
   Event(code),
   _button(0),
   _modifiers(0),
-  _position(-1, -1)
+  _position(-1, -1),
+  _isOutside(false)
 {
 }
 

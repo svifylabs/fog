@@ -15,10 +15,13 @@
 #include <Fog/Core/Lock.h>
 #include <Fog/Core/MapFile.h>
 #include <Fog/Core/Memory.h>
+#include <Fog/Core/Properties.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/Std.h>
 #include <Fog/Core/Stream.h>
 #include <Fog/Core/String.h>
+#include <Fog/Core/StringCache.h>
+#include <Fog/Core/Strings.h>
 #include <Fog/Core/TextCodec.h>
 #include <Fog/Core/Vector.h>
 
@@ -212,6 +215,69 @@ BaseDevice::~BaseDevice()
 {
 }
 
+// [Properties]
+
+Static<PropertiesData> BaseDevice::_propertiesData;
+
+int BaseDevice::propertyInfo(int id) const
+{
+  switch (id)
+  {
+    case PropertyWidth:
+    case PropertyHeight:
+    case PropertyDepth:
+    case PropertyPlanes:
+    case PropertyActualFrame:
+    case PropertyFramesCount:
+    case PropertyProgress:
+      return IProperties::Exists | IProperties::ReadOnly;
+    default:
+      return base::propertyInfo(id);
+  }
+}
+
+err_t BaseDevice::setProperty(int id, const Value& value)
+{
+  switch (id)
+  {
+    case PropertyWidth:
+    case PropertyHeight:
+    case PropertyDepth:
+    case PropertyPlanes:
+    case PropertyActualFrame:
+    case PropertyFramesCount:
+    case PropertyProgress:
+      return Error::PropertyIsReadOnly;
+    default:
+      return base::setProperty(id, value);
+  }
+}
+
+err_t BaseDevice::getProperty(int id, Value& value) const
+{
+  switch (id)
+  {
+    case PropertyWidth:
+      return value.setInt32(_width);
+    case PropertyHeight:
+      return value.setInt32(_height);
+    case PropertyDepth:
+      return value.setInt32(_depth);
+    case PropertyPlanes:
+      return value.setInt32(_planes);
+    case PropertyActualFrame:
+      return value.setInt32(_actualFrame);
+    case PropertyFramesCount:
+      return value.setInt32(_framesCount);
+    case PropertyProgress:
+      return value.setDouble(_progress);
+    default:
+      return base::getProperty(id, value);
+  }
+}
+
+// [Progress]
+
 void BaseDevice::updateProgress(float value)
 {
   _progress = value;
@@ -221,6 +287,8 @@ void BaseDevice::updateProgress(uint32_t y, uint32_t height)
 {
   updateProgress((float)( (double)y / (double)height ));
 }
+
+// [Dimensions]
 
 bool BaseDevice::areDimensionsZero() const 
 { 
@@ -241,6 +309,8 @@ bool BaseDevice::areDimensionsTooLarge() const
   return false;
 }
 
+// [Stream]
+
 void BaseDevice::attachStream(Stream& stream)
 {
   // detach current stream first
@@ -259,15 +329,7 @@ void BaseDevice::detachStream()
   }
 }
 
-err_t BaseDevice::setProperty(const String32& name, const Value& value)
-{
-  return Error::InvalidPropertyName;
-}
-
-Value BaseDevice::getProperty(const String32& name)
-{
-  return Value();
-}
+// [Reset]
 
 void BaseDevice::reset()
 {
@@ -302,6 +364,8 @@ DecoderDevice::DecoderDevice() :
 DecoderDevice::~DecoderDevice()
 {
 }
+
+// [Reset]
 
 void DecoderDevice::reset()
 {
@@ -360,7 +424,21 @@ void EncoderDevice::finalize()
 
 FOG_INIT_DECLARE err_t fog_imageio_init(void)
 {
-  Fog::imageio_local.init();
+  using namespace Fog;
+
+  imageio_local.init();
+
+  Vector<String32> properties;
+
+  properties.clear();
+  properties.append(fog_strings->get(STR_GRAPHICS_width));
+  properties.append(fog_strings->get(STR_GRAPHICS_height));
+  properties.append(fog_strings->get(STR_GRAPHICS_depth));
+  properties.append(fog_strings->get(STR_GRAPHICS_planes));
+  properties.append(fog_strings->get(STR_GRAPHICS_actualFrame));
+  properties.append(fog_strings->get(STR_GRAPHICS_framesCount));
+  properties.append(fog_strings->get(STR_GRAPHICS_progress));
+  INIT_PROPERTIES_CONTAINER(ImageIO::BaseDevice, ImageIO::BaseDevice::base, properties);
 
   fog_imageio_bmp_init();
   fog_imageio_pcx_init();
@@ -373,10 +451,11 @@ FOG_INIT_DECLARE err_t fog_imageio_init(void)
 
 FOG_INIT_DECLARE void fog_imageio_shutdown(void)
 {
+  using namespace Fog;
   // Do not need to lock, because we are shutting down. All threads should
   // been already joined.
-  Fog::ImageIO_Local::Providers::ConstIterator it(
-    Fog::imageio_local->providers);
+  ImageIO_Local::Providers::ConstIterator it(
+    imageio_local->providers);
 
   // Remove (and delete) all providers
   for (it.toStart(); it.isValid(); it.toNext()) delete it.value();
@@ -387,5 +466,7 @@ FOG_INIT_DECLARE void fog_imageio_shutdown(void)
   fog_imageio_pcx_shutdown();
   fog_imageio_bmp_shutdown();
 
-  Fog::imageio_local.destroy();
+  imageio_local.destroy();
+
+  DESTROY_PROPERTIES_CONTAINER(ImageIO::BaseDevice);
 }

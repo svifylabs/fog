@@ -68,9 +68,8 @@ enum EvGui
 
   // [MouseEvent]
   EvMouseIn,
-  EvMouseMove,
-  EvMouseOutside,
   EvMouseOut,
+  EvMouseMove,
   EvMousePress,
   EvMousePressRepeated,
   EvMouseRelease,
@@ -106,8 +105,7 @@ struct FOG_API ChildEvent : public Event
 {
   ChildEvent(uint32_t code = 0, Widget* child = NULL);
 
-  FOG_INLINE Widget* child() const
-  { return _child; }
+  FOG_INLINE Widget* child() const { return _child; }
 
   Widget* _child;
 };
@@ -140,26 +138,19 @@ struct FOG_API ConfigureEvent : public Event
     ChangedOrientation = (1 << 4)
   };
 
-  FOG_INLINE const Rect& rect() const
-  { return _rect; }
+  FOG_INLINE const Rect& rect() const { return _rect; }
   
-  FOG_INLINE uint32_t changed() const
-  { return _changed; }
+  FOG_INLINE uint32_t changed() const { return _changed; }
   
-  FOG_INLINE bool changedPosition() const
-  { return (_changed & ChangedPosition) != 0; }
+  FOG_INLINE bool changedPosition() const { return (_changed & ChangedPosition) != 0; }
   
-  FOG_INLINE bool changedSize() const
-  { return (_changed & ChangedSize) != 0; }
+  FOG_INLINE bool changedSize() const { return (_changed & ChangedSize) != 0; }
   
-  FOG_INLINE bool changedWindowPosition() const
-  { return (_changed & ChangedWindowPosition) != 0; }
+  FOG_INLINE bool changedWindowPosition() const { return (_changed & ChangedWindowPosition) != 0; }
 
-  FOG_INLINE bool changedWindowSize() const
-  { return (_changed & ChangedWindowSize) != 0; }
+  FOG_INLINE bool changedWindowSize() const { return (_changed & ChangedWindowSize) != 0; }
 
-  FOG_INLINE bool changedOrientation() const
-  { return (_changed & ChangedOrientation) != 0; }
+  FOG_INLINE bool changedOrientation() const { return (_changed & ChangedOrientation) != 0; }
 
   // TODO: Is this needed?
   Rect _rect;
@@ -170,8 +161,7 @@ struct FOG_API OriginEvent : public Event
 {
   OriginEvent();
 
-  FOG_INLINE const Point& origin() const
-  { return _origin; }
+  FOG_INLINE const Point& origin() const { return _origin; }
 
   Point _origin;
 };
@@ -180,8 +170,7 @@ struct FOG_API FocusEvent : public Event
 {
   FocusEvent(uint32_t code = 0, uint32_t reason = FocusReasonNone);
 
-  FOG_INLINE uint32_t reason() const
-  { return _reason; }
+  FOG_INLINE uint32_t reason() const { return _reason; }
 
   uint32_t _reason;
 };
@@ -217,17 +206,17 @@ struct FOG_API MouseEvent : public Event
   MouseEvent(uint32_t code = 0);
 
   //! @brief Returns mouse button that was pressed or released.
-  FOG_INLINE uint32_t button() const
-  { return _button; }
+  FOG_INLINE uint32_t button() const { return _button; }
 
   //! @brief Returns modifierd.
-  FOG_INLINE uint32_t modifiers() const
-  { return _modifiers; }
+  FOG_INLINE uint32_t modifiers() const { return _modifiers; }
 
   //! @brief Returns mouse position relative to client or non-client 
   //! area (depends to event type).
-  FOG_INLINE const Point& position() const
-  { return _position; }
+  FOG_INLINE const Point& position() const { return _position; }
+
+  //! @brief Get if event was generated outside of widget.
+  FOG_INLINE bool isOutside() const { return _isOutside; }
 
   //! @brief Mouse button that was pressed or released. 
   //!
@@ -239,6 +228,9 @@ struct FOG_API MouseEvent : public Event
 
   //! @brief Relative mouse position.
   Point _position;
+
+  //! @brief True if event is outside of widget (grabbing).
+  bool _isOutside;
 };
 
 struct FOG_API SelectionEvent : public Event
@@ -250,11 +242,9 @@ struct FOG_API PaintEvent : public Event
 {
   PaintEvent(uint32_t code = 0);
 
-  FOG_INLINE Painter* painter() const
-  { return _painter; }
+  FOG_INLINE Painter* painter() const { return _painter; }
 
-  FOG_INLINE bool parentPainted() const
-  { return _parentPainted; }
+  FOG_INLINE bool parentPainted() const { return _parentPainted; }
 
   Painter* _painter;
   bool _parentPainted;
@@ -269,8 +259,7 @@ struct FOG_API CheckEvent : public Event
 {
   CheckEvent(uint32_t code = EvCheck);
 
-  FOG_INLINE uint checked() const
-  { return _checked; }
+  FOG_INLINE uint checked() const { return _checked; }
 
   uint _checked;
 };
