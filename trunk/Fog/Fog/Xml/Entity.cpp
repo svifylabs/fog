@@ -20,6 +20,7 @@ namespace Fog {
 // [Fog::XmlEntity - Pairs]
 // ============================================================================
 
+// keep sorted order, this table is binary searched!
 static const Fog::XmlEntity::Pair xmlentity_pairs[] =
 {
   { "AElig",     198   },

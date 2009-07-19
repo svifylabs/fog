@@ -62,11 +62,6 @@ typedef String32 StringW;
 typedef Utf32 StubW;
 #endif // FOG_SIZEOF_WCHAR_T
 
-// FIXME: Disable this to make sources clean
-// typedef String32 String;
-// typedef StringFilter32 StringFilter;
-// typedef StringMatcher32 StringMatcher;
-
 // ============================================================================
 // [Fog::Stub8]
 // ============================================================================
