@@ -23,16 +23,6 @@
 #include <deque>
 #include <queue>
 
-// TODO : Remove
-//#if defined(FOG_OS_WINDOWS)
-// We need this to declare Fog::EventPumpWin::Dispatcher, which we should
-// really just eliminate.
-//#include <Fog/Core/EventPump_Win.h>
-//#endif
-//#if defined(FOG_OS_POSIX)
-//#include <Fog/Core/EventPump_libevent.h>
-//#endif
-
 //! @addtogroup Fog_Core
 //! @{
 

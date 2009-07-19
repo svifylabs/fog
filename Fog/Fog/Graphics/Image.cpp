@@ -2594,7 +2594,7 @@ HBITMAP Image::toHBITMAP()
   bmi.bmiHeader.biBitCount    = d->depth;
   bmi.bmiHeader.biCompression = BI_RGB;
 
-  // TODO: 8 bit greyscale and 1 bit mono images
+  // TODO: 8 bit greyscale
   // TODO: ARGB32 and PRGB32 images?
   hDibSection = CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, (void**)&raw, NULL, 0);
 

@@ -9,6 +9,7 @@
 
 // [Dependencies]
 #include <Fog/Build/Build.h>
+#include <Fog/Core/Assert.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/TypeInfo.h>
 
@@ -154,12 +155,21 @@ enum UnicodeConstants
   //! @brief Leading (high) surrogate maximum (0xDBFF)
   LeadSurrogateMax = 0xDBFFU,
 
+  LeadSurrogateMask = 0xFC00U,
+  LeadSurrogateBase = 0xD800U,
+
   // Trailing (low) surrogates are from 0xDC00 - 0xDFFF
 
   //! @brief Trailing (low) surrogate minimum (0xDC00)
   TrailSurrogateMin = 0xDC00U,
   //! @brief Trailing (low) surrogate maximum (0xDFFF)
   TrailSurrogateMax = 0xDFFFU,
+
+  TrailSurrogateMask = 0xFC00U,
+  TrailSurrogateBase = 0xDC00U,
+
+  SurrogatePairMask = 0xF800U,
+  SurrogatePairBase = 0xD800U,
 
   // Offsets
 
@@ -387,20 +397,13 @@ struct FOG_HIDDEN FOG_PACKED Char16
 
   FOG_INLINE bool isLeadSurrogate() const { return isLeadSurrogate(_ch); }
   FOG_INLINE bool isTrailSurrogate() const { return isTrailSurrogate(_ch); }
-  FOG_INLINE bool isPair() const { return isPair(_ch); }
+  FOG_INLINE bool isSurrogatePair() const { return isSurrogatePair(_ch); }
   FOG_INLINE bool isValid() const { return isValid(_ch); }
 
-  static FOG_INLINE bool isLeadSurrogate(uint16_t ch)
-  { return (ch >= LeadSurrogateMin && ch <= LeadSurrogateMax); }
-
-  static FOG_INLINE bool isTrailSurrogate(uint16_t ch)
-  { return (ch >= TrailSurrogateMin && ch <= TrailSurrogateMax); }
-
-  static FOG_INLINE bool isPair(uint16_t ch)
-  { return (ch >= LeadSurrogateMin && ch <= TrailSurrogateMax); }
-
-  static FOG_INLINE bool isValid(uint16_t ch)
-  { return (ch < 0xFFFE); }
+  static FOG_INLINE bool isLeadSurrogate(uint16_t ch) { return (ch & LeadSurrogateMask) == LeadSurrogateBase; }
+  static FOG_INLINE bool isTrailSurrogate(uint16_t ch) { return (ch & TrailSurrogateMask) == TrailSurrogateBase; }
+  static FOG_INLINE bool isSurrogatePair(uint16_t ch) { return (ch & SurrogatePairMask) == SurrogatePairBase; }
+  static FOG_INLINE bool isValid(uint16_t ch) { return (ch < 0xFFFE); }
 
   FOG_INLINE Char16& bswap() { _ch = Memory::bswap16(_ch); return *this; }
 
@@ -497,6 +500,24 @@ struct FOG_HIDDEN FOG_PACKED Char32
   FOG_INLINE bool isPrint() const { return CType::isPrint(_ch); }
   FOG_INLINE bool isCntrl() const { return CType::isCntrl(_ch); }
 
+  // [Surrogates]
+
+  static FOG_INLINE Char32 fromSurrogate(uint32_t uc0, uint32_t uc1)
+  {
+    return Char32((uint32_t)(
+      0x10000U + ((uc0 - LeadSurrogateMin) << 10) +
+                 ( uc1 - (LeadSurrogateMax + 1U))));
+  }
+
+  FOG_INLINE void toSurrogatePair(uint16_t* uc0, uint16_t* uc1)
+  {
+    FOG_ASSERT(_ch >= 0x10000);
+
+    uint32_t ch = _ch - 0x10000;
+    *uc0 = (uint16_t)((ch >> 10) + 0xD800);
+    *uc1 = (uint16_t)((ch & 0x03FF) + 0xDC00);
+  }
+
   // [Unicode Helpers]
 
   FOG_INLINE bool isValid() const { return isValid(_ch); }
@@ -510,10 +531,10 @@ struct FOG_HIDDEN FOG_PACKED Char32
 
   FOG_INLINE Char32& bswap() { _ch = Memory::bswap32(_ch); return *this; }
 
-  // [Combine]
-
   static FOG_INLINE Char32 combine(Char32 ch, Char32 comb)
-  { return Char32(Core_CType_Unicode_combine(ch._ch, comb._ch)); }
+  {
+    return Char32(Core_CType_Unicode_combine(ch._ch, comb._ch));
+  }
 
   // [Members]
 

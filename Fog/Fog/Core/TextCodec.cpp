@@ -59,10 +59,10 @@ static err_t TextCodec_defaultReplacer(String8& dst, Char32 uc)
 }
 
 // ============================================================================
-// [Fog::TextCodec - Device]
+// [Fog::TextCodec - Engine]
 // ============================================================================
 
-TextCodec::Device::Device(
+TextCodec::Engine::Engine(
   uint32_t _code, uint32_t _flags, const char* _mime, const Page8* _page8)
 {
   refCount.init(1);
@@ -72,18 +72,18 @@ TextCodec::Device::Device(
   page8 = _page8;
 }
 
-TextCodec::Device::~Device()
+TextCodec::Engine::~Engine()
 {
 }
 
 // ============================================================================
-// [Fog::TextCodec - Device_Null]
+// [Fog::TextCodec - Engine_Null]
 // ============================================================================
 
-struct FOG_HIDDEN Device_Null : public TextCodec::Device
+struct FOG_HIDDEN Engine_Null : public TextCodec::Engine
 {
-  Device_Null(uint32_t code, uint32_t flags, const char* mime) : 
-    TextCodec::Device(code, flags, mime, NULL)
+  Engine_Null(uint32_t code, uint32_t flags, const char* mime) :
+    TextCodec::Engine(code, flags, mime, NULL)
   {
   }
 
@@ -112,48 +112,13 @@ struct FOG_HIDDEN Device_Null : public TextCodec::Device
   }
 };
 
-static TextCodec::Device* Device_Null_create(uint32_t code, uint32_t flags, const char* mime, void*)
+static TextCodec::Engine* Engine_Null_create(uint32_t code, uint32_t flags, const char* mime, void*)
 {
-  return new Device_Null(code, flags, mime);
+  return new Engine_Null(code, flags, mime);
 }
 
 // ============================================================================
-// [Fog::TextCodec - Device_Base]
-// ============================================================================
-
-struct FOG_HIDDEN Device_Base : public TextCodec::Device
-{
-  Device_Base(uint32_t code, uint32_t flags, const char* mime, const Page8* page8);
-
-  virtual err_t appendFromUtf16(
-    String8& dst, const void* src, sysuint_t srcBytes, Replacer replacer, State* state) const;
-
-  virtual err_t appendToUtf16(
-    String16& dst, const void* src, sysuint_t srcBytes, State* state) const;
-};
-
-Device_Base::Device_Base(
-  uint32_t code, uint32_t flags, const char* mime, const Page8* page8) 
-    : Device(code, flags, mime, page8)
-{
-}
-
-err_t Device_Base::appendFromUtf16(
-  String8& dst, const void* src, sysuint_t srcBytes, Replacer replacer, State* state) const
-{
-  // TODO:
-  return Error::InvalidCodec;
-}
-
-err_t Device_Base::appendToUtf16(
-  String16& dst, const void* src, sysuint_t srcBytes, State* state) const
-{
-  // TODO:
-  return Error::InvalidCodec;
-}
-
-// ============================================================================
-// [Fog::TextCodec - Device_8Bit]
+// [Fog::TextCodec - Engine_8Bit]
 // ============================================================================
 
 static const uint16_t TextCodec_Table_ISO_8859_1[128] =
@@ -836,7 +801,7 @@ static const uint16_t TextCodec_Table_GEORGIAN_PS[128] =
   0x00f8, 0x00f9, 0x00fa, 0x00fb, 0x00fc, 0x00fd, 0x00fe, 0x00ff
 };
 
-static const TextCodec::Page8::Decode Device_8Bit_emptyDecoder =
+static const TextCodec::Page8::Decode Engine_8Bit_emptyDecoder =
 {
   {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -874,10 +839,15 @@ static const TextCodec::Page8::Decode Device_8Bit_emptyDecoder =
   }
 };
 
-struct FOG_HIDDEN Device_8Bit : public Device_Base
+struct FOG_HIDDEN Engine_8Bit : public TextCodec::Engine
 {
-  Device_8Bit(uint32_t code, uint32_t flags, const char* mime, const Page8* page8);
-  virtual ~Device_8Bit();
+  Engine_8Bit(uint32_t code, uint32_t flags, const char* mime, const Page8* page8);
+  virtual ~Engine_8Bit();
+
+  virtual err_t appendFromUtf16(
+    String8& dst, const void* src, sysuint_t srcBytes, Replacer replacer, State* state) const;
+  virtual err_t appendToUtf16(
+    String16& dst, const void* src, sysuint_t srcBytes, State* state) const;
 
   virtual err_t appendFromUtf32(
     String8& dst, const void* src, sysuint_t srcBytes, Replacer replacer, State* state) const;
@@ -885,13 +855,13 @@ struct FOG_HIDDEN Device_8Bit : public Device_Base
     String32& dst, const void* src, sysuint_t srcBytes, State* state) const;
 };
 
-Device_8Bit::Device_8Bit(
+Engine_8Bit::Engine_8Bit(
   uint32_t code, uint32_t flags, const char* mime, const Page8* page8) 
-    : Device_Base(code, flags, mime, page8)
+    : TextCodec::Engine(code, flags, mime, page8)
 {
 }
 
-Device_8Bit::~Device_8Bit()
+Engine_8Bit::~Engine_8Bit()
 {
   if (page8)
   {
@@ -899,14 +869,185 @@ Device_8Bit::~Device_8Bit()
 
     for (sysuint_t i = 0; i != 256; i++)
     {
-      if (tables[i] != &Device_8Bit_emptyDecoder) Memory::free(tables[i]);
+      if (tables[i] != &Engine_8Bit_emptyDecoder) Memory::free(tables[i]);
     }
 
     Memory::free((void*)page8);
   }
 }
 
-err_t Device_8Bit::appendFromUtf32(
+err_t Engine_8Bit::appendFromUtf16(
+  String8& dst, const void* src, sysuint_t srcBytes, Replacer replacer, State* state) const
+{
+  // TODO
+  return Error::NotImplemented;
+
+  // TODO TODO TODO TODO
+#if 0
+  // Source Buffer
+  if (srcBytes == DetectLength) srcBytes = StringUtil::len((const Char16*)src) << 1;
+
+  const uint8_t* srcCur = (const uint8_t*)src;
+  const uint8_t* srcEnd = (const uint8_t*)srcCur + srcBytes;
+  const uint8_t* srcEndMinus1 = srcEnd - 1;
+  const uint8_t* srcEndMinus3 = srcEnd - 3;
+
+  // Destination Buffer
+  sysuint_t oldStateSize = 0;
+  sysuint_t growSize = ((srcBytes) >> 1) + 1;
+
+  err_t err = dst.reserve(dst.length() + growSize);
+  if (err) return err;
+
+  uint8_t* dstCur = (uint8_t*)dst.xData() + dst.length();
+  uint8_t* dstEnd = (uint8_t*)dst.xData() + dst.capacity();
+
+  // Replacements
+  if (replacer == NULL) replacer = TextCodec_defaultReplacer;
+
+  // Characters
+  uint32_t uc;
+  uint8_t ch;
+
+  // 8 bit tables
+  TextCodec::Page8::Decode* const* table = page8->decode;
+
+  if (state && (oldStateSize = state->count))
+  {
+    const uint8_t* bufPtr = state->buffer;
+    sysuint_t bufSize = TextCodec_addToState(state, srcCur, srcEnd);
+
+    // Incomplete Input, we are returning Error::Ok, because we know
+    // that the state isn't NULL pointer. In all other cases TextCodec
+    // should return Error::IncompleteInput.
+    if (FOG_UNLIKELY(bufSize < 2)) return Error::Ok;
+
+    uc = ((const uint16_t*)bufPtr)[0];
+
+    if (Char16::isSurrogatePair(uc))
+    {
+      if (Char16::isTrailSurrogate(uc)) goto invalid;
+      if (bufSize < 4) return Error::Ok;
+
+      uint32_t uc_1 = ((const uint16_t*)bufPtr)[1];
+      if (!Char16::isTrailSurrogate(uc_1)) goto invalid;
+      uc = ....
+    }
+
+    srcCur -= oldStateSize;
+    state->count = 0;
+
+    goto code;
+  }
+
+  for (;;)
+  {
+    // Incomplete Input
+    if (FOG_UNLIKELY(srcCur >= srcEndMinus1)) goto inputTruncated;
+
+    uc0 = ((const uint16_t*)srcCur)[0];
+
+    if (Char16::isSurrogate(uc0))
+    {
+      if (Char16::isLeadSurrogate(uc0))
+      {
+        if (srcCur >= srcEndMinus3) goto inputTruncated;
+        uc1 = ((const uint16_t*)srcCur)[1];
+        if (!Char16::isTrailSurrogate(uc1)) goto invalid;
+        goto replace;
+      }
+      else
+      {
+        goto invalid;
+      }
+    }
+
+code:
+    if (uc >= 0xFFFF) goto replace;
+
+    ch = table[uc >> 8]->uc[uc & 0xFF];
+    if (FOG_UNLIKELY(ch == 0) && uc != 0) goto replace;
+
+    *dstCur++ = ch;
+
+cont:
+    srcCur += 2;
+    if (FOG_UNLIKELY(srcCur == srcEnd)) break;
+  }
+  goto end;
+
+inputTruncated:
+  // Different behavior if state is set or not.
+  if (state)
+  {
+    sysuint_t bufSize = (sysuint_t)(srcEnd - srcCur);
+    memcpy(state->buffer, srcCur, bufSize);
+  }
+  else
+  {
+    err = Error::InputTruncated;
+  }
+  goto end;
+
+replace:
+  dst.xFinalize((Char8*)dstCur);
+
+  err = replacer(dst, Char32(uc));
+  if (err) return err;
+
+  growSize = (sysuint_t)(srcEnd - srcCur);
+  if (dst.capacity() - dst.length() < growSize)
+  {
+    err = dst.reserve(dst.length() + growSize);
+    if (err) return err;
+  }
+
+  dstCur = (uint8_t*)dst.xData() + dst.length();
+  dstEnd = (uint8_t*)dst.xData() + dst.capacity();
+  goto cont;
+
+end:
+  dst.xFinalize((char*)dstCur);
+  return err;
+#endif
+}
+
+err_t Engine_8Bit::appendToUtf16(
+  String16& dst, const void* src, sysuint_t srcBytes, State* state) const
+{
+  // Source Buffer
+  if (srcBytes == DetectLength) srcBytes = strlen((const char*)(src));
+
+  const uint8_t* srcCur = (uint8_t*)(src);
+  const uint8_t* srcEnd = srcCur + (srcBytes);
+
+  // Destination Buffer
+  sysuint_t growSize = srcBytes + 1;
+
+  err_t err = dst.reserve(dst.length() + growSize);
+  if (err) return err;
+
+  Char16* dstCur = dst.xData() + dst.length();
+
+  // Characters
+  uint16_t uc;
+
+  // 8 bit tables
+  const TextCodec::Page8::Encode* table = page8->encode;
+
+  for (;;)
+  {
+    uc = *srcCur++;
+    if (FOG_UNLIKELY(uc >= 128)) uc = table->uc[uc-128];
+    *dstCur++ = uc;
+    if (srcCur == srcEnd) break;
+  }
+
+  dst.xFinalize(dstCur);
+  return err;
+}
+
+err_t Engine_8Bit::appendFromUtf32(
   String8& dst, const void* src, sysuint_t srcBytes, Replacer replacer, State* state) const
 {
   // Source Buffer
@@ -1008,7 +1149,7 @@ end:
   return err;
 }
 
-err_t Device_8Bit::appendToUtf32(
+err_t Engine_8Bit::appendToUtf32(
   String32& dst, const void* src, sysuint_t srcBytes, State* state) const
 {
   // Source Buffer
@@ -1024,7 +1165,6 @@ err_t Device_8Bit::appendToUtf32(
   if (err) return err;
 
   Char32* dstCur = dst.xData() + dst.length();
-  Char32* dstEnd = dst.xData() + dst.capacity();
 
   // Characters
   uint32_t uc;
@@ -1044,7 +1184,7 @@ err_t Device_8Bit::appendToUtf32(
   return err;
 }
 
-static TextCodec::Device* Device_8Bit_create(uint32_t code, uint32_t flags, const char* mime, void* table)
+static TextCodec::Engine* Engine_8Bit_create(uint32_t code, uint32_t flags, const char* mime, void* table)
 {
   TextCodec::Page8* page8  = 
     (TextCodec::Page8 *)Memory::xalloc(sizeof(TextCodec::Page8));
@@ -1056,7 +1196,7 @@ static TextCodec::Device* Device_8Bit_create(uint32_t code, uint32_t flags, cons
 
   for (i = 0; i != 256; i++)
   {
-    page8->decode[i] = (TextCodec::Page8::Decode*)&Device_8Bit_emptyDecoder;
+    page8->decode[i] = (TextCodec::Page8::Decode*)&Engine_8Bit_emptyDecoder;
   }
 
   for (i = 0; i != 256; i++)
@@ -1068,7 +1208,7 @@ static TextCodec::Device* Device_8Bit_create(uint32_t code, uint32_t flags, cons
     TextCodec::Page8::Decode* decode = 
       (TextCodec::Page8::Decode*)page8->decode[ucPage];
 
-    if (decode == &Device_8Bit_emptyDecoder)
+    if (decode == &Engine_8Bit_emptyDecoder)
     {
       page8->decode[ucPage] = decode = (TextCodec::Page8::Decode *)
         Memory::xcalloc(sizeof(TextCodec::Page8::Decode));
@@ -1077,16 +1217,21 @@ static TextCodec::Device* Device_8Bit_create(uint32_t code, uint32_t flags, cons
     decode->uc[ucIndex] = (uint8_t)i;
   }
 
-  return new Device_8Bit(code, flags, mime, page8);
+  return new Engine_8Bit(code, flags, mime, page8);
 }
 
 // ---------------------------------------------------------------------------
-// [Fog::TextCodec - Device_UTF8]
+// [Fog::TextCodec - Engine_UTF8]
 // ---------------------------------------------------------------------------
 
-struct FOG_HIDDEN Device_UTF8 : public Device_Base
+struct FOG_HIDDEN Engine_UTF8 : public TextCodec::Engine
 {
-  Device_UTF8(uint32_t code, uint32_t flags, const char* mime);
+  Engine_UTF8(uint32_t code, uint32_t flags, const char* mime);
+
+  virtual err_t appendFromUtf16(
+    String8& dst, const void* src, sysuint_t srcBytes, Replacer replacer, State* state) const;
+  virtual err_t appendToUtf16(
+    String16& dst, const void* src, sysuint_t srcBytes, State* state) const;
 
   virtual err_t appendFromUtf32(
     String8& dst, const void* src, sysuint_t srcBytes, Replacer replacer, State* state) const;
@@ -1094,12 +1239,26 @@ struct FOG_HIDDEN Device_UTF8 : public Device_Base
     String32& dst, const void* src, sysuint_t srcBytes, State* state) const;
 };
 
-Device_UTF8::Device_UTF8(uint32_t code, uint32_t flags, const char* mime) :
-  Device_Base(code, flags, mime, NULL)
+Engine_UTF8::Engine_UTF8(uint32_t code, uint32_t flags, const char* mime) :
+  TextCodec::Engine(code, flags, mime, NULL)
 {
 }
 
-err_t Device_UTF8::appendFromUtf32(
+err_t Engine_UTF8::appendFromUtf16(
+  String8& dst, const void* src, sysuint_t srcBytes, Replacer replacer, State* state) const
+{
+  // TODO
+  return Error::NotImplemented;
+}
+
+err_t Engine_UTF8::appendToUtf16(
+  String16& dst, const void* src, sysuint_t srcBytes, State* state) const
+{
+  // TODO
+  return Error::NotImplemented;
+}
+
+err_t Engine_UTF8::appendFromUtf32(
   String8& dst, const void* src, sysuint_t srcBytes, Replacer replacer, State* state) const
 {
   // Source Buffer
@@ -1205,7 +1364,7 @@ end:
   return err;
 }
 
-err_t Device_UTF8::appendToUtf32(
+err_t Engine_UTF8::appendToUtf32(
   String32& dst, const void* src, sysuint_t srcBytes, State* state) const
 {
 #define TEXTCODEC_DEVICE_UTF8_GET_CHAR(__buffer__) \
@@ -1322,18 +1481,18 @@ end:
 #undef TEXTCODEC_DEVICE_UTF8_GET_CHAR
 }
 
-static TextCodec::Device* Device_UTF8_create(uint32_t code, uint32_t flags, const char* mime, void*)
+static TextCodec::Engine* Engine_UTF8_create(uint32_t code, uint32_t flags, const char* mime, void*)
 {
-  return new Device_UTF8(code, flags, mime);
+  return new Engine_UTF8(code, flags, mime);
 }
 
 // ============================================================================
-// [Fog::TextCodec - Device_UTF16]
+// [Fog::TextCodec - Engine_UTF16]
 // ============================================================================
 
-struct FOG_HIDDEN Device_UTF16 : public Device_Base
+struct FOG_HIDDEN Engine_UTF16 : public TextCodec::Engine
 {
-  Device_UTF16(uint32_t code, uint32_t flags, const char* mime);
+  Engine_UTF16(uint32_t code, uint32_t flags, const char* mime);
 
   virtual err_t appendFromUtf16(
     String8& dst, const void* src, sysuint_t srcBytes, Replacer replacer, State* state) const;
@@ -1346,12 +1505,12 @@ struct FOG_HIDDEN Device_UTF16 : public Device_Base
     String32& dst, const void* src, sysuint_t srcBytes, State* state) const;
 };
 
-Device_UTF16::Device_UTF16(uint32_t code, uint32_t flags, const char* mime) :
-  Device_Base(code, flags, mime, NULL)
+Engine_UTF16::Engine_UTF16(uint32_t code, uint32_t flags, const char* mime) :
+  TextCodec::Engine(code, flags, mime, NULL)
 {
 }
 
-err_t Device_UTF16::appendFromUtf16(
+err_t Engine_UTF16::appendFromUtf16(
   String8& dst, const void* src, sysuint_t srcBytes, Replacer replacer, State* state) const
 {
   if (srcBytes == DetectLength) srcBytes = StringUtil::len((const Char16*)src) << 1;
@@ -1472,7 +1631,7 @@ end:
   return err;
 }
 
-err_t Device_UTF16::appendToUtf16(
+err_t Engine_UTF16::appendToUtf16(
   String16& dst, const void* src, sysuint_t srcBytes, State* state) const
 {
   // Source Buffer
@@ -1602,7 +1761,7 @@ end:
   return err;
 }
 
-err_t Device_UTF16::appendFromUtf32(
+err_t Engine_UTF16::appendFromUtf32(
   String8& dst, const void* src, sysuint_t srcBytes, Replacer replacer, State* state) const
 {
   if (srcBytes == DetectLength) srcBytes = StringUtil::len((const Char32*)src) << 2;
@@ -1706,7 +1865,7 @@ end:
   return err;
 }
 
-err_t Device_UTF16::appendToUtf32(
+err_t Engine_UTF16::appendToUtf32(
   String32& dst, const void* src, sysuint_t srcBytes, State* state) const
 {
   // Source Buffer
@@ -1761,9 +1920,7 @@ err_t Device_UTF16::appendToUtf32(
 
       uc16_1 = ((const uint16_t *)bufPtr)[1];
       if (byteSwap) uc16_1 = Memory::bswap16(uc16_1);
-      uc = 0x10000 + 
-           (((uint32_t)uc16_0 - LeadSurrogateMin) << 10) + 
-           ( (uint32_t)uc16_1 - (LeadSurrogateMax + 1));
+      uc = Char32::fromSurrogate(uc16_0, uc16_1);
     }
     else if (Char16::isTrailSurrogate(uc16_0))
     {
@@ -1804,9 +1961,7 @@ loop:
       uc16_1 = ((const uint16_t *)srcCur)[1];
       if (FOG_UNLIKELY(byteSwap)) uc16_1 = Memory::bswap16(uc16_1);
 
-      uc = 0x10000 + 
-           (((uint32_t)uc16_0 - LeadSurrogateMin) << 10) + 
-           ( (uint32_t)uc16_1 - (LeadSurrogateMax + 1));
+      uc = Char32::fromSurrogate(uc16_0, uc16_1);
     }
     else if (Char16::isTrailSurrogate(uc16_0))
     {
@@ -1848,13 +2003,13 @@ end:
   return err;
 }
 
-static TextCodec::Device* Device_UTF16_create(uint32_t code, uint32_t flags, const char* mime, void*)
+static TextCodec::Engine* Engine_UTF16_create(uint32_t code, uint32_t flags, const char* mime, void*)
 {
-  return new Device_UTF16(code, flags, mime);
+  return new Engine_UTF16(code, flags, mime);
 }
 
 // ============================================================================
-// [Fog::TextCodec - Device_UCS2]
+// [Fog::TextCodec - Engine_UCS2]
 // ============================================================================
 
 // UCS2
@@ -1862,9 +2017,14 @@ static TextCodec::Device* Device_UTF16_create(uint32_t code, uint32_t flags, con
 // UCS2 encoding is still used in embedded devices, Win2000 and others. In 
 // future it will be probably substituted by UTF-16 or better UTF-32/UCS-4.
 
-struct FOG_HIDDEN Device_UCS2 : public Device_Base
+struct FOG_HIDDEN Engine_UCS2 : public TextCodec::Engine
 {
-  Device_UCS2(uint32_t code, uint32_t flags, const char* mime);
+  Engine_UCS2(uint32_t code, uint32_t flags, const char* mime);
+
+  virtual err_t appendFromUtf16(
+    String8& dst, const void* src, sysuint_t srcBytes, Replacer replacer, State* state) const;
+  virtual err_t appendToUtf16(
+    String16& dst, const void* src, sysuint_t srcBytes, State* state) const;
 
   virtual err_t appendFromUtf32(
     String8& dst, const void* src, sysuint_t srcBytes, Replacer replacer, State* state) const;
@@ -1872,12 +2032,26 @@ struct FOG_HIDDEN Device_UCS2 : public Device_Base
     String32& dst, const void* src, sysuint_t srcBytes, State* state) const;
 };
 
-Device_UCS2::Device_UCS2(uint32_t code, uint32_t flags, const char* mime) :
-  Device_Base(code, flags, mime, NULL)
+Engine_UCS2::Engine_UCS2(uint32_t code, uint32_t flags, const char* mime) :
+  TextCodec::Engine(code, flags, mime, NULL)
 {
 }
 
-err_t Device_UCS2::appendFromUtf32(
+err_t Engine_UCS2::appendFromUtf16(
+  String8& dst, const void* src, sysuint_t srcBytes, Replacer replacer, State* state) const
+{
+  // TODO
+  return Error::NotImplemented;
+}
+
+err_t Engine_UCS2::appendToUtf16(
+  String16& dst, const void* src, sysuint_t srcBytes, State* state) const
+{
+  // TODO
+  return Error::NotImplemented;
+}
+
+err_t Engine_UCS2::appendFromUtf32(
   String8& dst, const void* src, sysuint_t srcBytes, Replacer replacer, State* state) const
 {
   // Source Buffer
@@ -1993,7 +2167,7 @@ end2:
   return err;
 }
 
-err_t Device_UCS2::appendToUtf32(
+err_t Engine_UCS2::appendToUtf32(
   String32& dst, const void* src, sysuint_t srcBytes, State* state) const
 {
   // Source Buffer
@@ -2039,7 +2213,7 @@ err_t Device_UCS2::appendToUtf32(
 
     if (byteSwap) uc = Memory::bswap16(uc);
 
-    if (Char16::isPair(uc))
+    if (Char16::isSurrogatePair(uc))
     {
       goto invalidInput;
     }
@@ -2066,7 +2240,7 @@ loop:
     
     if (FOG_UNLIKELY(byteSwap)) uc = Memory::bswap16(uc);
 
-    if (FOG_UNLIKELY(Char16::isPair(uc)))
+    if (FOG_UNLIKELY(Char16::isSurrogatePair(uc)))
     {
       goto invalidInput;
     }
@@ -2103,18 +2277,18 @@ end:
   return err;
 }
 
-static TextCodec::Device* Device_UCS2_create(uint32_t code, uint32_t flags, const char* mime, void*)
+static TextCodec::Engine* Engine_UCS2_create(uint32_t code, uint32_t flags, const char* mime, void*)
 {
-  return new Device_UCS2(code, flags, mime);
+  return new Engine_UCS2(code, flags, mime);
 }
 
 // ============================================================================
-// [Fog::TextCodec - Device_UTF32]
+// [Fog::TextCodec - Engine_UTF32]
 // ============================================================================
 
-struct FOG_HIDDEN Device_UTF32 : public Device_Base
+struct FOG_HIDDEN Engine_UTF32 : public TextCodec::Engine
 {
-  Device_UTF32(uint32_t code, uint32_t flags, const char* mime);
+  Engine_UTF32(uint32_t code, uint32_t flags, const char* mime);
 
   virtual err_t appendFromUtf16(
     String8& dst, const void* src, sysuint_t srcBytes, Replacer replacer, State* state) const;
@@ -2127,12 +2301,12 @@ struct FOG_HIDDEN Device_UTF32 : public Device_Base
     String32& dst, const void* src, sysuint_t srcBytes, State* state) const;
 };
 
-Device_UTF32::Device_UTF32(uint32_t code, uint32_t flags, const char* mime) :
-  Device_Base(code, flags, mime, NULL)
+Engine_UTF32::Engine_UTF32(uint32_t code, uint32_t flags, const char* mime) :
+  TextCodec::Engine(code, flags, mime, NULL)
 {
 }
 
-err_t Device_UTF32::appendFromUtf16(
+err_t Engine_UTF32::appendFromUtf16(
   String8& dst, const void* src, sysuint_t srcBytes, Replacer replacer, State* state) const
 {
   if (srcBytes == DetectLength) srcBytes = StringUtil::len((const Char16*)src) << 1;
@@ -2185,9 +2359,7 @@ code:
     {
       if (!Char16::isTrailSurrogate(uc1)) goto invalidInput;
 
-      ((uint32_t*)dstCur)[0] = 0x10000 + 
-           (((uint32_t)uc0 - LeadSurrogateMin) << 10) + 
-           ( (uint32_t)uc1 - (LeadSurrogateMax + 1));
+      ((uint32_t*)dstCur)[0] = Char32::fromSurrogate(uc0, uc1);
       uc0 = 0;
     }
     else if (Char16::isLeadSurrogate(uc1))
@@ -2253,7 +2425,7 @@ end:
   return err;
 }
 
-err_t Device_UTF32::appendToUtf16(
+err_t Engine_UTF32::appendToUtf16(
   String16& dst, const void* src, sysuint_t srcBytes, State* state) const
 {
   // Source Buffer
@@ -2370,7 +2542,7 @@ end:
   return err;
 }
 
-err_t Device_UTF32::appendFromUtf32(
+err_t Engine_UTF32::appendFromUtf32(
   String8& dst, const void* src, sysuint_t srcBytes, Replacer replacer, State* state) const
 {
   // Source Buffer
@@ -2464,7 +2636,7 @@ end:
   return err;
 }
 
-err_t Device_UTF32::appendToUtf32(
+err_t Engine_UTF32::appendToUtf32(
   String32& dst, const void* src, sysuint_t srcBytes, State* state) const
 {
   // Source Buffer
@@ -2570,9 +2742,9 @@ end:
   return err;
 }
 
-static TextCodec::Device* Device_UTF32_create(uint32_t code, uint32_t flags, const char* mime, void*)
+static TextCodec::Engine* Engine_UTF32_create(uint32_t code, uint32_t flags, const char* mime, void*)
 {
-  return new Device_UTF32(code, flags, mime);
+  return new Engine_UTF32(code, flags, mime);
 }
 
 // ============================================================================
@@ -2581,7 +2753,7 @@ static TextCodec::Device* Device_UTF32_create(uint32_t code, uint32_t flags, con
 
 struct TextCodec_Class
 {
-  typedef TextCodec::Device* (*CreateFn)(uint32_t code, uint32_t flags, const char* mime, void* table);
+  typedef TextCodec::Engine* (*CreateFn)(uint32_t code, uint32_t flags, const char* mime, void* table);
 
   CreateFn create;
   const char* mime;
@@ -2592,104 +2764,104 @@ struct TextCodec_Class
 
 static const TextCodec_Class TextCodec_class[] =
 {
-  { Device_Null_create, "NONE\000", 
+  { Engine_Null_create, "NONE\000",
     TextCodec::None, TextCodec::IsNull, NULL },
-  { Device_UTF8_create, "UTF-8\000", 
+  { Engine_UTF8_create, "UTF-8\000",
     TextCodec::UTF8, TextCodec::IsUnicode | TextCodec::Is8Bit | TextCodec::IsVariableSize, NULL },
 #if FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
-  { Device_UTF16_create, "UTF-16LE\000" "UTF-16\000",
+  { Engine_UTF16_create, "UTF-16LE\000" "UTF-16\000",
     TextCodec::UTF16LE, TextCodec::IsUnicode | TextCodec::Is16Bit | TextCodec::IsVariableSize, NULL },
-  { Device_UTF16_create, "UTF-16BE\000",
+  { Engine_UTF16_create, "UTF-16BE\000",
     TextCodec::UTF16BE, TextCodec::IsUnicode | TextCodec::Is16Bit | TextCodec::IsVariableSize | TextCodec::IsByteSwapped, NULL },
-  { Device_UTF32_create, "UTF-32LE\000" "UTF-32\000" "UCS-4LE\000" "UCS-4\000",
+  { Engine_UTF32_create, "UTF-32LE\000" "UTF-32\000" "UCS-4LE\000" "UCS-4\000",
     TextCodec::UTF32LE, TextCodec::IsUnicode | TextCodec::Is32Bit, NULL },
-  { Device_UTF32_create, "UTF-32BE\000",
+  { Engine_UTF32_create, "UTF-32BE\000",
     TextCodec::UTF32BE, TextCodec::IsUnicode | TextCodec::Is32Bit | TextCodec::IsByteSwapped, NULL },
-  { Device_UCS2_create, "UCS-2LE\000" "UCS-2\000", 
+  { Engine_UCS2_create, "UCS-2LE\000" "UCS-2\000",
     TextCodec::UCS2LE, TextCodec::IsUnicode | TextCodec::Is16Bit, NULL },
-  { Device_UCS2_create, "UCS-2BE\000", 
+  { Engine_UCS2_create, "UCS-2BE\000",
     TextCodec::UCS2BE, TextCodec::IsUnicode | TextCodec::Is16Bit | TextCodec::IsByteSwapped, NULL },
 #else
-  { Device_UTF16_create, "UTF-16BE\000" "UTF-16\000", 
+  { Engine_UTF16_create, "UTF-16BE\000" "UTF-16\000",
     TextCodec::UTF16BE, TextCodec::IsUnicode | TextCodec::Is16Bit | TextCodec::IsVariableSize, NULL },
-  { Device_UTF16_create, "UTF-16LE\000",
+  { Engine_UTF16_create, "UTF-16LE\000",
     TextCodec::UTF16LE, TextCodec::IsUnicode | TextCodec::Is16Bit | TextCodec::IsVariableSize | TextCodec::IsByteSwapped, NULL },
-  { Device_UTF32_create, "UTF-32BE\000" "UTF-32\000" "UCS-4BE\000" "UCS-4\000",
+  { Engine_UTF32_create, "UTF-32BE\000" "UTF-32\000" "UCS-4BE\000" "UCS-4\000",
     TextCodec::UTF32BE, TextCodec::IsUnicode | TextCodec::Is32Bit, NULL },
-  { Device_UTF32_create, "UTF-32LE\000" "UCS-4LE\000",
+  { Engine_UTF32_create, "UTF-32LE\000" "UCS-4LE\000",
     TextCodec::UTF32LE, TextCodec::IsUnicode | TextCodec::Is32Bit | TextCodec::IsByteSwapped, NULL },
-  { Device_UCS2_create, "UCS-2BE\000" "UCS-2\000", 
+  { Engine_UCS2_create, "UCS-2BE\000" "UCS-2\000",
     TextCodec::UCS2BE, TextCodec::IsUnicode | TextCodec::Is16Bit  , NULL },
-  { Device_UCS2_create, "UCS-2LE\000",
+  { Engine_UCS2_create, "UCS-2LE\000",
     TextCodec::UCS2LE, TextCodec::IsUnicode | TextCodec::Is16Bit | TextCodec::IsByteSwapped, NULL },
 #endif // FOG_BYTE_ORDER
-  { Device_8Bit_create, "ISO-8859-1\000" "8859-1\000" "LATIN1\000" "L1\000" "ISO-IR-100\000" "CP819\000" "IBM819\000" "819\000", 
+  { Engine_8Bit_create, "ISO-8859-1\000" "8859-1\000" "LATIN1\000" "L1\000" "ISO-IR-100\000" "CP819\000" "IBM819\000" "819\000",
     TextCodec::ISO8859_1, TextCodec::Is8Bit, (void*)TextCodec_Table_ISO_8859_1 },
-  { Device_8Bit_create, "ISO-8859-2\000" "8859-2\000" "LATIN2\000" "L2\000" "ISO-IR-101\000",
+  { Engine_8Bit_create, "ISO-8859-2\000" "8859-2\000" "LATIN2\000" "L2\000" "ISO-IR-101\000",
     TextCodec::ISO8859_2, TextCodec::Is8Bit, (void*)TextCodec_Table_ISO_8859_2 },
-  { Device_8Bit_create, "ISO-8859-3\000" "8859-3\000" "LATIN3\000" "L3\000" "ISO-IR-109\000",
+  { Engine_8Bit_create, "ISO-8859-3\000" "8859-3\000" "LATIN3\000" "L3\000" "ISO-IR-109\000",
     TextCodec::ISO8859_3, TextCodec::Is8Bit, (void*)TextCodec_Table_ISO_8859_3 },
-  { Device_8Bit_create, "ISO-8859-4\000" "8859-4\000" "LATIN4\000" "L4\000" "ISO-IR-110\000",
+  { Engine_8Bit_create, "ISO-8859-4\000" "8859-4\000" "LATIN4\000" "L4\000" "ISO-IR-110\000",
     TextCodec::ISO8859_4, TextCodec::Is8Bit, (void*)TextCodec_Table_ISO_8859_4 },
-  { Device_8Bit_create, "ISO-8859-5\000" "8859-5\000" "CYRILLIC\000" "ISO-IR-144\000",
+  { Engine_8Bit_create, "ISO-8859-5\000" "8859-5\000" "CYRILLIC\000" "ISO-IR-144\000",
     TextCodec::ISO8859_5, TextCodec::Is8Bit, (void*)TextCodec_Table_ISO_8859_5 },
-  { Device_8Bit_create, "ISO-8859-6\000" "8859-6\000" "ISO-8859-6-I\000" "ECMA-114\000" "ASMO-708\000" "ARABIC\000" "ISO-IR-127\000",
+  { Engine_8Bit_create, "ISO-8859-6\000" "8859-6\000" "ISO-8859-6-I\000" "ECMA-114\000" "ASMO-708\000" "ARABIC\000" "ISO-IR-127\000",
     TextCodec::ISO8859_6, TextCodec::Is8Bit, (void*)TextCodec_Table_ISO_8859_6 },
-  { Device_8Bit_create, "ISO-8859-7\000" "8859-7\000" "ECMA-118\000" "GREEK\000" "ISO-IR-126\000",
+  { Engine_8Bit_create, "ISO-8859-7\000" "8859-7\000" "ECMA-118\000" "GREEK\000" "ISO-IR-126\000",
     TextCodec::ISO8859_7, TextCodec::Is8Bit, (void*)TextCodec_Table_ISO_8859_7 },
-  { Device_8Bit_create, "ISO-8859-8\000" "8859-8\000" "ISO-8859-8-I\000" "ISO-IR-138\000" "HEBREW\000",
+  { Engine_8Bit_create, "ISO-8859-8\000" "8859-8\000" "ISO-8859-8-I\000" "ISO-IR-138\000" "HEBREW\000",
     TextCodec::ISO8859_8, TextCodec::Is8Bit, (void*)TextCodec_Table_ISO_8859_8 },
-  { Device_8Bit_create, "ISO-8859-9\000" "8859-9\000" "ISO-IR-148\000" "LATIN5\000" "L5\000",
+  { Engine_8Bit_create, "ISO-8859-9\000" "8859-9\000" "ISO-IR-148\000" "LATIN5\000" "L5\000",
     TextCodec::ISO8859_9, TextCodec::Is8Bit, (void*)TextCodec_Table_ISO_8859_9 },
-  { Device_8Bit_create, "ISO-8859-10\000" "8859-10\000" "ISO-IR-157\000" "LATIN6\000" "L6\000" "ISO-8859-10:1992\000",
+  { Engine_8Bit_create, "ISO-8859-10\000" "8859-10\000" "ISO-IR-157\000" "LATIN6\000" "L6\000" "ISO-8859-10:1992\000",
     TextCodec::ISO8859_10, TextCodec::Is8Bit, (void*)TextCodec_Table_ISO_8859_10 },
-  { Device_8Bit_create, "ISO-8859-11\000" "8859-11\000" "TIS-620\000",
+  { Engine_8Bit_create, "ISO-8859-11\000" "8859-11\000" "TIS-620\000",
     TextCodec::ISO8859_11, TextCodec::Is8Bit, (void*)TextCodec_Table_ISO_8859_11 },
-  { Device_8Bit_create, "ISO-8859-13\000" "8859-13\000",
+  { Engine_8Bit_create, "ISO-8859-13\000" "8859-13\000",
     TextCodec::ISO8859_13, TextCodec::Is8Bit, (void*)TextCodec_Table_ISO_8859_13 },
-  { Device_8Bit_create, "ISO-8859-14\000" "8859-14\000" "ISO-IR-199\000" "LATIN8\000" "L8\000" "ISO-CELTIC\000",
+  { Engine_8Bit_create, "ISO-8859-14\000" "8859-14\000" "ISO-IR-199\000" "LATIN8\000" "L8\000" "ISO-CELTIC\000",
     TextCodec::ISO8859_14, TextCodec::Is8Bit, (void*)TextCodec_Table_ISO_8859_14 },
-  { Device_8Bit_create, "ISO-8859-16\000" "8859-16\000" "ISO-IR-226\000" "LATIN10\000" "L10\000",
+  { Engine_8Bit_create, "ISO-8859-16\000" "8859-16\000" "ISO-IR-226\000" "LATIN10\000" "L10\000",
     TextCodec::ISO8859_16, TextCodec::Is8Bit, (void*)TextCodec_Table_ISO_8859_16 },
-  { Device_8Bit_create, "CP850\000" "IBM850\000" "850\000",
+  { Engine_8Bit_create, "CP850\000" "IBM850\000" "850\000",
     TextCodec::CP850, TextCodec::Is8Bit, (void*)TextCodec_Table_CP_850 },
-  { Device_8Bit_create, "CP866\000" "IBM866\000" "866\000",
+  { Engine_8Bit_create, "CP866\000" "IBM866\000" "866\000",
     TextCodec::CP866, TextCodec::Is8Bit, (void*)TextCodec_Table_CP_866 },
-  { Device_8Bit_create, "CP874\000" "IBM874\000" "874\000",
+  { Engine_8Bit_create, "CP874\000" "IBM874\000" "874\000",
     TextCodec::CP874, TextCodec::Is8Bit, (void*)TextCodec_Table_CP_874 },
-  { Device_8Bit_create, "CP1250\000" "WINDOWS-1250\000" "1250\000",
+  { Engine_8Bit_create, "CP1250\000" "WINDOWS-1250\000" "1250\000",
     TextCodec::CP1250, TextCodec::Is8Bit, (void*)TextCodec_Table_CP_1250 },
-  { Device_8Bit_create, "CP1251\000" "WINDOWS-1251\000" "1251\000",
+  { Engine_8Bit_create, "CP1251\000" "WINDOWS-1251\000" "1251\000",
     TextCodec::CP1251, TextCodec::Is8Bit, (void*)TextCodec_Table_CP_1251 },
-  { Device_8Bit_create, "CP1252\000" "WINDOWS-1252\000" "1252\000",
+  { Engine_8Bit_create, "CP1252\000" "WINDOWS-1252\000" "1252\000",
     TextCodec::CP1252, TextCodec::Is8Bit, (void*)TextCodec_Table_CP_1252 },
-  { Device_8Bit_create, "CP1253\000" "WINDOWS-1253\000" "1253\000",
+  { Engine_8Bit_create, "CP1253\000" "WINDOWS-1253\000" "1253\000",
     TextCodec::CP1253, TextCodec::Is8Bit, (void*)TextCodec_Table_CP_1253 },
-  { Device_8Bit_create, "CP1254\000" "WINDOWS-1254\000" "1254\000",
+  { Engine_8Bit_create, "CP1254\000" "WINDOWS-1254\000" "1254\000",
     TextCodec::CP1254, TextCodec::Is8Bit, (void*)TextCodec_Table_CP_1254 },
-  { Device_8Bit_create, "CP1255\000" "WINDOWS-1255\000" "1255\000",
+  { Engine_8Bit_create, "CP1255\000" "WINDOWS-1255\000" "1255\000",
     TextCodec::CP1255, TextCodec::Is8Bit, (void*)TextCodec_Table_CP_1255 },
-  { Device_8Bit_create, "CP1256\000" "WINDOWS-1256\000" "1256\000",
+  { Engine_8Bit_create, "CP1256\000" "WINDOWS-1256\000" "1256\000",
     TextCodec::CP1256, TextCodec::Is8Bit, (void*)TextCodec_Table_CP_1256 },
-  { Device_8Bit_create, "CP1257\000" "WINDOWS-1257\000" "1257\000",
+  { Engine_8Bit_create, "CP1257\000" "WINDOWS-1257\000" "1257\000",
     TextCodec::CP1257, TextCodec::Is8Bit, (void*)TextCodec_Table_CP_1257 },
-  { Device_8Bit_create, "CP1258\000" "WINDOWS-1258\000" "1258\000",
+  { Engine_8Bit_create, "CP1258\000" "WINDOWS-1258\000" "1258\000",
     TextCodec::CP1258, TextCodec::Is8Bit, (void*)TextCodec_Table_CP_1258 },
-  { Device_8Bit_create, "APPLE-ROMAN\000",
+  { Engine_8Bit_create, "APPLE-ROMAN\000",
     TextCodec::AppleRoman, TextCodec::Is8Bit, (void*)TextCodec_Table_APPLE_ROMAN },
-  { Device_8Bit_create, "KOI8-R\000",
+  { Engine_8Bit_create, "KOI8-R\000",
     TextCodec::KOI8R, TextCodec::Is8Bit, (void*)TextCodec_Table_KOI8R },
-  { Device_8Bit_create, "KOI8-U\000" "KOI8-RU\000",
+  { Engine_8Bit_create, "KOI8-U\000" "KOI8-RU\000",
     TextCodec::KOI8U, TextCodec::Is8Bit, (void*)TextCodec_Table_KOI8U },
-  { Device_8Bit_create, "WINSAMI2\000" "WS2\000",
+  { Engine_8Bit_create, "WINSAMI2\000" "WS2\000",
     TextCodec::WinSami2, TextCodec::Is8Bit, (void*)TextCodec_Table_WINSAMI_2 },
-  { Device_8Bit_create, "ROMAN8\000" "HP-ROMAN8\000",
+  { Engine_8Bit_create, "ROMAN8\000" "HP-ROMAN8\000",
     TextCodec::Roman8, TextCodec::Is8Bit, (void*)TextCodec_Table_ROMAN_8 },
-  { Device_8Bit_create, "ARMSCII-8\000",
+  { Engine_8Bit_create, "ARMSCII-8\000",
     TextCodec::Armscii8, TextCodec::Is8Bit, (void*)TextCodec_Table_ARMSCII_8 },
-  { Device_8Bit_create, "GEORGIAN-ACADEMY\000",
+  { Engine_8Bit_create, "GEORGIAN-ACADEMY\000",
     TextCodec::GeorgianAcademy, TextCodec::Is8Bit, (void*)TextCodec_Table_GEORGIAN_ACADEMY },
-  { Device_8Bit_create, "GEORGIAN-PS\000",
+  { Engine_8Bit_create, "GEORGIAN-PS\000",
     TextCodec::GeorgianPS, TextCodec::Is8Bit, (void*)TextCodec_Table_GEORGIAN_PS }
 };
 
@@ -2762,34 +2934,34 @@ static const char* TextCodec_getCodeset(void)
 #endif // FOG_OS_WINDOWS
 }
 
-static TextCodec::Device* TextCodec_deviceInstances[TextCodec::Invalid];
+static TextCodec::Engine* TextCodec_deviceInstances[TextCodec::Invalid];
 
-static TextCodec::Device* TextCodec_getDevice(uint32_t code)
+static TextCodec::Engine* TextCodec_getEngine(uint32_t code)
 {
   if (code >= TextCodec::Invalid) code = 0;
 
-  TextCodec::Device** _ptr = &TextCodec_deviceInstances[code];
-  TextCodec::Device* v = AtomicOperation<TextCodec::Device*>::get(_ptr);
+  TextCodec::Engine** _ptr = &TextCodec_deviceInstances[code];
+  TextCodec::Engine* v = AtomicOperation<TextCodec::Engine*>::get(_ptr);
 
   enum { Creating = 1 };
 
   // Already created, just return it
-  if (v != NULL && v != (TextCodec::Device*)Creating) goto ret;
+  if (v != NULL && v != (TextCodec::Engine*)Creating) goto ret;
 
   // Create instance
-  if (AtomicOperation<TextCodec::Device*>::cmpXchg(_ptr, 
-    (TextCodec::Device*)NULL, 
-    (TextCodec::Device*)Creating))
+  if (AtomicOperation<TextCodec::Engine*>::cmpXchg(_ptr,
+    (TextCodec::Engine*)NULL,
+    (TextCodec::Engine*)Creating))
   {
     const TextCodec_Class &c = TextCodec_class[code];
     v = c.create(c.code, c.flags, c.mime, c.tables);
-    AtomicOperation<TextCodec::Device*>::set(_ptr, v);
+    AtomicOperation<TextCodec::Engine*>::set(_ptr, v);
     goto ret;
   }
 
   // Race.
   // This is very rare situation, but it can happen!
-  while ((v = AtomicOperation<TextCodec::Device*>::get(_ptr)) == (TextCodec::Device*)Creating)
+  while ((v = AtomicOperation<TextCodec::Engine*>::get(_ptr)) == (TextCodec::Engine*)Creating)
   {
     Thread::_yield();
   }
@@ -2813,7 +2985,7 @@ TextCodec::TextCodec(const TextCodec& other) :
 {
 }
 
-TextCodec::TextCodec(Device* d) :
+TextCodec::TextCodec(Engine* d) :
   _d(d)
 {
 }
@@ -2827,7 +2999,7 @@ TextCodec::~TextCodec()
 
 TextCodec TextCodec::fromCode(uint32_t code)
 {
-  return TextCodec(TextCodec_getDevice(code));
+  return TextCodec(TextCodec_getEngine(code));
 }
 
 TextCodec TextCodec::fromMime(const char* mime)
@@ -2899,7 +3071,7 @@ err_t TextCodec::setCode(uint32_t code)
   err_t err = Error::Ok;
   if (code >= Invalid) { code = 0; err = Error::InvalidCodec; }
 
-  AtomicBase::ptr_setXchg(&_d, TextCodec_getDevice(code))->deref();
+  AtomicBase::ptr_setXchg(&_d, TextCodec_getEngine(code))->deref();
   return err;
 }
 

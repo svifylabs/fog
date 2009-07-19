@@ -286,10 +286,10 @@ struct FOG_API TextCodec
   typedef err_t (*Replacer)(String8& dst, Char32 ch);
 
   // --------------------------------------------------------------------------
-  // [Device]
+  // [Engine]
   // --------------------------------------------------------------------------
 
-  struct FOG_API Device
+  struct FOG_API Engine
   {
     typedef TextCodec::Replacer Replacer;
     typedef TextCodec::State State;
@@ -297,8 +297,8 @@ struct FOG_API TextCodec
 
     // [Construction / Destruction]
 
-    Device(uint32_t code, uint32_t flags, const char* mime, const Page8* page8 = NULL);
-    virtual ~Device();
+    Engine(uint32_t code, uint32_t flags, const char* mime, const Page8* page8 = NULL);
+    virtual ~Engine();
 
     // [Abstract]
 
@@ -309,7 +309,7 @@ struct FOG_API TextCodec
 
     // [Implicit Sharing]
 
-    FOG_INLINE Device* ref() const { refCount.inc(); return (Device*)this; }
+    FOG_INLINE Engine* ref() const { refCount.inc(); return (Engine*)this; }
     FOG_INLINE void deref() { if (refCount.deref()) delete this; }
 
     // [Members]
@@ -338,7 +338,7 @@ struct FOG_API TextCodec
     const Page8* page8;
 
   private:
-    FOG_DISABLE_COPY(Device)
+    FOG_DISABLE_COPY(Engine)
   };
 
   // --------------------------------------------------------------------------
@@ -347,7 +347,7 @@ struct FOG_API TextCodec
 
   TextCodec();
   TextCodec(const TextCodec& other);
-  TextCodec(Device* d);
+  TextCodec(Engine* d);
   ~TextCodec();
 
   // --------------------------------------------------------------------------
@@ -498,7 +498,7 @@ struct FOG_API TextCodec
   // [Members]
   // --------------------------------------------------------------------------
 
-  FOG_DECLARE_D(Device)
+  FOG_DECLARE_D(Engine)
 };
 
 } // Fog namespace

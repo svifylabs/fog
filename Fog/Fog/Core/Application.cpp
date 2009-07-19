@@ -32,8 +32,7 @@
 #include <Fog/UI/UISystem_Win.h>
 #endif // FOG_OS_WINDOWS
 
-// TODO: Only temporary
-#if defined(FOG_OS_POSIX)
+#if defined(FOG_OS_POSIX) && defined(FOG_BUILD_MODULE_X11_INTERNAL)
 #include <Fog/UI/UISystem_X11.h>
 #endif // FOG_OS_POSIX
 
@@ -220,10 +219,6 @@ FOG_INIT_DECLARE err_t fog_application_init(void)
   Application::addEventLoopTypeT<EventLoopWinUI>(Ascii8("UI.Windows"));
   Application::addEventLoopTypeT<EventLoopWinIO>(Ascii8("IO.Windows"));
 #endif // FOG_OS_WINDOWS
-
-#if defined(FOG_OS_POSIX)
-//  Application->addEventLoopTypeT<EventLoopLibevent>(Ascii8("IO.LibEvent"));
-#endif // FOG_OS_POSIX
 
   return Error::Ok;
 }
