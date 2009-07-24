@@ -16,6 +16,8 @@ Set(TEST_BUILD TRUE)
 Set(FOG_BUILD_MODULE_X11_EXTERNAL TRUE)
 Set(FOG_BUILD_MODULE_X11_INTERNAL FALSE)
 
+Set(CMAKE_CXX_STANDARD_LIBRARIES "")
+
 # =============================================================================
 # [3rdparty Libraries]
 # =============================================================================
@@ -60,12 +62,10 @@ If(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
 EndIf(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
 
 If(MSVC)
-  If(NOT ${CMAKE_BUILD_TYPE} MATCHES "Debug")
-    Set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Oi /Oy /GF /GS- /GR-")
-    Set(FOG_CFLAGS_OPTIMIZE "/Ot")
-    Set(FOG_CFLAGS_SSE "/arch:SSE")
-    Set(FOG_CFLAGS_SSE2 "/arch:SSE2")
-  EndIf(NOT ${CMAKE_BUILD_TYPE} MATCHES "Debug")
+  Set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Oi /Oy /GF /GS- /GR-")
+  Set(FOG_CFLAGS_OPTIMIZE "/Ot")
+  Set(FOG_CFLAGS_SSE "/arch:SSE")
+  Set(FOG_CFLAGS_SSE2 "/arch:SSE2")
 EndIf(MSVC)
 
 # =============================================================================
@@ -710,9 +710,6 @@ SOURCE_GROUP(UI FILES
 # UI-Subsystem and Libraries
 If(WIN32)
   Set(FOG_UI_WINDOWS 1)
-  if(MINGW)
-    Set(FOG_LIBRARIES ${FOG_LIBRARIES} -luser32 -lgdi32)
-  EndIf(MINGW)
 Else(WIN32)
   Set(FOG_UI_X11 1)
 EndIf(WIN32)
@@ -765,10 +762,13 @@ Add_Library(Fog SHARED
 )
 Target_Link_Libraries(Fog ${FOG_LIBRARIES})
 
+If(WIN32)
+  Target_Link_Libraries(Fog user32 gdi32 advapi32 winmm)
+EndIf(WIN32)
+
 If(FOG_BUILD_MODULE_X11_EXTERNAL AND NOT WIN32)
   Add_Library(FogUI_X11 SHARED ${FOG_UI_X11_SOURCES})
   Target_Link_Libraries(FogUI_X11 Fog ${FOG_LIBRARIES})
-  Target_Add_Definitions("-DUNICODE")
 EndIf(FOG_BUILD_MODULE_X11_EXTERNAL AND NOT WIN32)
 
 # Install

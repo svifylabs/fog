@@ -16,8 +16,6 @@
 #include <Fog/Core/Time.h>
 
 #if defined(FOG_OS_WINDOWS)
-// TODO: Add this library to cmake
-#pragma comment(lib, "winmm.lib")
 #include <windows.h>
 #include <mmsystem.h>
 #endif // FOG_OS_WINDOWS

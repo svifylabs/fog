@@ -81,16 +81,10 @@ struct FOG_HIDDEN Application_Local
 Application_Local::Application_Local()
 {
 #if defined(FOG_OS_WINDOWS)
-  WCHAR* cmdLine = GetCommandLineW();
-  applicationCommand.set(StubW(cmdLine));
-  applicationCommand.slashesToPosix();
+  applicationCommand.set(StubW(GetCommandLineW()));
   applicationCommand.squeeze();
 
-  //WinUtil::getModuleFileName(NULL, applicationExecutable);
-  int count;
-  WCHAR** args = CommandLineToArgvW(cmdLine, &count);
-
-  applicationExecutable.set(StubW(args[0]));
+  WinUtil::getModuleFileName(NULL, applicationExecutable);
   applicationExecutable.slashesToPosix();
   applicationExecutable.squeeze();
 
