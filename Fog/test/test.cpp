@@ -270,6 +270,7 @@ void MyWindow::onPaint(PaintEvent* e)
 */
   String32 a;
   a.setDouble(r);
+  Application::getApplicationCommand(a);
   p->setSource(0xFF000000);
   p->drawText(Rect(0, 0, w, 20), a, font(), TextAlignCenter);
 }
