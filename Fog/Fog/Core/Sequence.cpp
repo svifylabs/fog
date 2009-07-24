@@ -178,7 +178,90 @@ void SequenceAPI_Base::_sort_p(void* self, sysuint_t sizeOfT, TypeInfo_CompareFn
 
 void SequenceAPI_Base::_reverse_p(void* self, sysuint_t sizeOfT)
 {
-  // TODO
+  _detach_p(self, sizeOfT);
+
+  SequenceUntyped::Data* d = ((SequenceUntyped*)self)->_d;
+  sysuint_t len = d->length;
+  uint8_t* a = d->data;
+  uint8_t* b = d->data + (len - 1)* sizeOfT;
+
+  // Specialization for T type.
+  switch (sizeOfT)
+  {
+    case 1:
+      while (a < b)
+      {
+        uint8_t t = ((uint8_t*)a)[0];
+        ((uint8_t*)a)[0] = ((uint8_t*)b)[0];
+        ((uint8_t*)b)[0] = t;
+
+        a += 1;
+        b -= 1;
+      }
+      break;
+
+    case 2:
+      while (a < b)
+      {
+        uint16_t t = ((uint16_t*)a)[0];
+        ((uint16_t*)a)[0] = ((uint16_t*)b)[0];
+        ((uint16_t*)b)[0] = t;
+
+        a += 2;
+        b -= 2;
+      }
+      break;
+
+    case 4:
+      while (a < b)
+      {
+        uint32_t t = ((uint32_t*)a)[0];
+        ((uint32_t*)a)[0] = ((uint32_t*)b)[0];
+        ((uint32_t*)b)[0] = t;
+
+        a += 4;
+        b -= 4;
+      }
+      break;
+
+    case 8:
+      while (a < b)
+      {
+        uint64_t t = ((uint64_t*)a)[0];
+        ((uint64_t*)a)[0] = ((uint64_t*)b)[0];
+        ((uint64_t*)b)[0] = t;
+
+        a += 8;
+        b -= 8;
+      }
+      break;
+
+    default:
+      while (a < b)
+      {
+        sysuint_t i;
+        uint8_t* aCur = a;
+        uint8_t* bCur = b;
+
+        for (i = sizeOfT >> 2; i; i--, aCur += 4, bCur += 4)
+        {
+          uint32_t t = ((uint32_t*)aCur)[0];
+          ((uint32_t*)aCur)[0] = ((uint32_t*)bCur)[0];
+          ((uint32_t*)bCur)[0] = t;
+        }
+
+        for (i = sizeOfT & 3; i; i--, aCur += 1, bCur += 1)
+        {
+          uint8_t t = aCur[0];
+          aCur[0] = bCur[0];
+          bCur[0] = t;
+        }
+
+        a += sizeOfT;
+        b -= sizeOfT;
+      }
+      break;
+  }
 }
 
 // ===========================================================================

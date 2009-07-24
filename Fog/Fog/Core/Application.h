@@ -50,7 +50,19 @@ struct FOG_API Application : public Object
   //! @brief Return application UI system (can be NULL).
   FOG_INLINE UISystem* uiSystem() const { return _uiSystem; }
 
-  // [Add / remove event loop type]
+  // [Application Directory / Command Line]
+
+  static err_t getApplicationExecutable(String32& dst);
+  static err_t getApplicationBaseName(String32& dst);
+  static err_t getApplicationDirectory(String32& dst);
+  static err_t getApplicationCommand(String32& dst);
+
+  // [Working Directory]
+
+  static err_t getWorkingDirectory(String32& dir);
+  static err_t setWorkingDirectory(const String32& dir);
+
+  // [Add / Remove Event Loop]
 
   typedef EventLoop* (*EventLoopConstructor)();
 
@@ -58,7 +70,7 @@ struct FOG_API Application : public Object
   static bool removeEventLoopType(const String32& type);
 
   template<typename EventLoopT>
-  struct CtorHelper
+  struct _EventLoopCtorHelper
   {
     static EventLoop* ctor() { return new EventLoopT(); }
   };
@@ -66,16 +78,18 @@ struct FOG_API Application : public Object
   template<typename EventLoopT>
   static FOG_INLINE bool addEventLoopTypeT(const String32& type)
   {
-    return addEventLoopType(type, CtorHelper<EventLoopT>::ctor);
+    return addEventLoopType(type, _EventLoopCtorHelper<EventLoopT>::ctor);
   }
 
-  // [Statics]
+  // [UI / UISystem]
 
   static FOG_INLINE Application* instance() { return _instance; }
 
   static String32 detectUI();
   static UISystem* createUISystem(const String32& type);
   static EventLoop* createEventLoop(const String32& type);
+
+  // [Members]
 
 protected:
   static Application* _instance;

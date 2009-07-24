@@ -62,7 +62,7 @@ struct FOG_API UISystemWin : public UISystemDefault
 
   // [Debug]
 
-  const char* msgToStr(uint message)
+  const char* msgToStr(uint message);
 
   friend struct UIWindowWin;
 };

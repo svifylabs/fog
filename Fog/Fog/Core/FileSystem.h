@@ -97,8 +97,6 @@ static FOG_INLINE bool isFile(const String32& fileName)
 static FOG_INLINE bool isDirectory(const String32& fileName)
 { return testFile(fileName, IsDirectory) == IsDirectory;}
 
-FOG_API err_t getWorkingDirectory(String32& dir);
-FOG_API err_t setWorkingDirectory(const String32& dir);
 FOG_API err_t createDirectory(const String32& dir, bool recursive = true);
 FOG_API err_t deleteDirectory(const String32& dir);
 

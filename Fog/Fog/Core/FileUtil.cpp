@@ -9,6 +9,7 @@
 #endif // FOG_PRECOMP
 
 // [Dependencies]
+#include <Fog/Core/Application.h>
 #include <Fog/Core/Error.h>
 #include <Fog/Core/FileSystem.h>
 #include <Fog/Core/FileUtil.h>
@@ -243,7 +244,7 @@ err_t FileUtil::toAbsolutePath(String32& dst, const String32& base, const String
     if (base.isEmpty())
     {
       TemporaryString32<TemporaryLength> working;
-      if ( (err = FileSystem::getWorkingDirectory(working)) ) return err;
+      if ( (err = Application::getWorkingDirectory(working)) ) return err;
       if ( (err = FileUtil::joinPath(dst, working, path)) ) return err;
     }
     else

@@ -19,12 +19,15 @@
 #include <Fog/Core/Error.h>
 #include <Fog/Core/EventLoop.h>
 #include <Fog/Core/EventLoop_Def.h>
+#include <Fog/Core/FileUtil.h>
 #include <Fog/Core/Hash.h>
 #include <Fog/Core/Library.h>
+#include <Fog/Core/Misc.h>
 #include <Fog/Core/Object.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/String.h>
 #include <Fog/Core/Thread.h>
+#include <Fog/Core/WinUtil.h>
 #include <Fog/UI/UISystem.h>
 
 #if defined(FOG_OS_WINDOWS)
@@ -35,6 +38,16 @@
 #if defined(FOG_OS_POSIX) && defined(FOG_BUILD_MODULE_X11_INTERNAL)
 #include <Fog/UI/UISystem_X11.h>
 #endif // FOG_OS_POSIX
+
+#if defined(FOG_OS_WINDOWS)
+// windows.h is already included in Fog/Build/Build.h
+#include <io.h>
+#else
+#include <errno.h>
+#if defined(FOG_HAVE_UNISTD_H)
+#include <unistd.h>
+#endif
+#endif
 
 namespace Fog {
 
@@ -49,6 +62,14 @@ struct FOG_HIDDEN Application_Local
   Lock lock;
   ELHash elHash;
 
+  String32 applicationExecutable;
+  String32 applicationDirectory;
+  String32 applicationBaseName;
+  String32 applicationCommand;
+
+  Application_Local();
+  ~Application_Local();
+
   EventLoop* createEventLoop(const String32& type)
   {
     AutoLock locked(lock);
@@ -56,6 +77,40 @@ struct FOG_HIDDEN Application_Local
     return ctor ? ctor() : NULL;
   }
 };
+
+Application_Local::Application_Local()
+{
+#if defined(FOG_OS_WINDOWS)
+  WCHAR* cmdLine = GetCommandLineW();
+  applicationCommand.set(StubW(cmdLine));
+  applicationCommand.slashesToPosix();
+  applicationCommand.squeeze();
+
+  //WinUtil::getModuleFileName(NULL, applicationExecutable);
+  int count;
+  WCHAR** args = CommandLineToArgvW(cmdLine, &count);
+
+  applicationExecutable.set(StubW(args[0]));
+  applicationExecutable.slashesToPosix();
+  applicationExecutable.squeeze();
+
+  FileUtil::extractDirectory(applicationDirectory, applicationExecutable);
+  FileUtil::extractFile(applicationBaseName, applicationExecutable);
+#endif // FOG_OS_WINDOWS
+
+#if defined(FOG_OS_POSIX)
+  // TODO
+#endif // FOG_OS_POSIX
+
+  // Application directory usually contains plugins and library itself under
+  // Windows, but we will add it also for posix OSes. It can help if application
+  // is started from user home directory.
+  Library::addPath(applicationDirectory, Library::PathPrepend);
+}
+
+Application_Local::~Application_Local()
+{
+}
 
 static Static<Application_Local> application_local;
 
@@ -70,8 +125,7 @@ Application::Application(const String32& type) :
   _uiSystem(NULL)
 {
   // Create UISystem by type.
-  if (type.startsWith(Ascii8("UI")))
-    _uiSystem = createUISystem(type);
+  if (type.startsWith(Ascii8("UI"))) _uiSystem = createUISystem(type);
 
   // Create EventLoop by type.
   _eventLoop = createEventLoop(type);
@@ -105,8 +159,8 @@ Application::~Application()
     delete _eventLoop;
     _eventLoop = NULL;
 
-    // Unset main thread event loop (this is safe, we will destroy it later if it
-    // exists).
+    // Unset main thread event loop (this is safe, we will destroy it later
+    // if it exists).
     Thread::_mainThread->_eventLoop = NULL;
   }
 
@@ -129,6 +183,114 @@ void Application::quit()
   _eventLoop->quit();
 }
 
+// ============================================================================
+// [Fog::Application - Application Directory]
+// ============================================================================
+
+err_t Application::getApplicationExecutable(String32& dst)
+{
+  return dst.set(application_local->applicationExecutable);
+}
+
+err_t Application::getApplicationBaseName(String32& dst)
+{
+  return dst.set(application_local->applicationBaseName);
+}
+
+err_t Application::getApplicationDirectory(String32& dst)
+{
+  return dst.set(application_local->applicationDirectory);
+}
+
+err_t Application::getApplicationCommand(String32& dst)
+{
+  return dst.set(application_local->applicationCommand);
+}
+
+// ============================================================================
+// [Fog::Application - Working Directory]
+// ============================================================================
+
+#if defined(FOG_OS_WINDOWS)
+err_t Application::getWorkingDirectory(String32& dst)
+{
+  err_t err;
+  TemporaryString16<TemporaryLength> dirW;
+
+  for (;;)
+  {
+    DWORD size = GetCurrentDirectoryW(dirW.capacity()+1, dirW.mStrW());
+    if (size >= dirW.capacity())
+    {
+      if ( (err = dirW.reserve(size)) ) return err;
+      continue;
+    }
+    else
+    {
+      if ((err = dst.set(dirW)) ) return err;
+      return dst.slashesToPosix();
+    }
+  }
+}
+
+err_t Application::setWorkingDirectory(const String32& dir)
+{
+  err_t err;
+  TemporaryString16<TemporaryLength> dirW;
+
+  if ((err = dirW.set(dir)) ||
+      (err = dirW.slashesToWin()))
+  {
+    return err;
+  }
+
+  if (SetCurrentDirectoryW(dirW.cStrW()) == 0)
+    return Error::Ok;
+  else
+    return GetLastError();
+}
+#endif // FOG_OS_WINDOWS
+
+#if defined(FOG_OS_POSIX)
+err_t Application::getWorkingDirectory(String32& dst)
+{
+  err_t err;
+  TemporaryString8<TemporaryLength> dir8;
+
+  dst.clear();
+  for (;;)
+  {
+    const char* ptr = ::getcwd(dir8.mStr(), dir8.capacity()+1);
+    if (ptr)
+    {
+      dst.set(Local8(ptr));
+      return Error::Ok;
+    }
+    if (errno != ERANGE) return errno;
+
+    // Alloc more...
+    if ((err = dir8.reserve(dir8.capacity() + 4096))) return err;
+  }
+}
+
+err_t Application::setWorkingDirectory(const String32& dir)
+{
+  err_t err;
+  TemporaryString8<TemporaryLength> dir8;
+
+  if ( (err = dir8.set(dir, TextCodec::local8())) ) return err;
+
+  if (::chdir(dir8.cStr()) == 0)
+    return Error::Ok;
+  else
+    return errno;
+}
+#endif // FOG_OS_POSIX
+
+// ============================================================================
+// [Fog::Application - Add / Remove Event Loop]
+// ============================================================================
+
 bool Application::addEventLoopType(const String32& type, EventLoopConstructor ctor)
 {
   AutoLock locked(application_local->lock);
@@ -140,6 +302,10 @@ bool Application::removeEventLoopType(const String32& type)
   AutoLock locked(application_local->lock);
   return application_local->elHash.remove(type);
 }
+
+// ============================================================================
+// [Fog::Application - UI / UISystem]
+// ============================================================================
 
 String32 Application::detectUI()
 {

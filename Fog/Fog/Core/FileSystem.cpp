@@ -155,44 +155,6 @@ bool FileSystem::findFile(const Sequence<String32>& paths, const String32& fileN
   return false;
 }
 
-err_t FileSystem::getWorkingDirectory(String32& dst)
-{
-  err_t err;
-  TemporaryString16<TemporaryLength> dirW;
-
-  for (;;)
-  {
-    DWORD size = GetCurrentDirectoryW(dirW.capacity()+1, dirW.mStrW());
-    if (size >= dirW.capacity())
-    {
-      if ( (err = dirW.reserve(size)) ) return err;
-      continue;
-    }
-    else
-    {
-      if ((err = dst.set(dirW)) ) return err;
-      return dst.slashesToPosix();
-    }
-  }
-}
-
-err_t FileSystem::setWorkingDirectory(const String32& dir)
-{
-  err_t err;
-  TemporaryString16<TemporaryLength> dirW;
-
-  if ((err = dirW.set(dir)) ||
-      (err = dirW.slashesToWin()))
-  {
-    return err;
-  }
-
-  if (SetCurrentDirectoryW(dirW.cStrW()) == 0)
-    return Error::Ok;
-  else
-    return GetLastError();
-}
-
 static uint createDirectoryHelper(const Char32* path, sysuint_t len)
 {
   err_t err;
@@ -371,41 +333,6 @@ bool FileSystem::findFile(const Sequence<String32>& paths, const String32& fileN
     }
   }
   return false;
-}
-
-err_t FileSystem::getWorkingDirectory(String32& dst)
-{
-  err_t err;
-  TemporaryString8<TemporaryLength> dir8;
-
-  dst.clear();
-  for (;;)
-  {
-    const char* ptr = ::getcwd(dir8.mStr(), dir8.capacity()+1);
-    if (ptr)
-    {
-      dst.set(Local8(ptr));
-      return Error::Ok;
-    }
-    if (errno != ERANGE) return errno;
-
-    // Alloc more...
-    if ((err = dir8.reserve(dir8.capacity() + 4096))) return err;
-  }
-}
-
-
-err_t FileSystem::setWorkingDirectory(const String32& dir)
-{
-  err_t err;
-  TemporaryString8<TemporaryLength> dir8;
-
-  if ( (err = dir8.set(dir, TextCodec::local8())) ) return err;
-
-  if (::chdir(dir8.cStr()) == 0)
-    return Error::Ok;
-  else
-    return errno;
 }
 
 static err_t createDirectoryHelper(const Char32* path, sysuint_t len)

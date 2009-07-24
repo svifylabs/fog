@@ -254,18 +254,17 @@ Vector<String32> Library::paths()
   return library_local.instance().paths;
 }
 
-bool Library::addPath(const String32& path)
+bool Library::addPath(const String32& path, int mode)
 {
   AutoLock locked(library_local.instance().lock);
-  if (library_local.instance().paths.indexOf(path) == InvalidIndex)
-  {
+  if (path.isEmpty()) return false;
+  if (library_local.instance().paths.indexOf(path) != InvalidIndex) return false;
+
+  if (mode == PathAppend)
     library_local.instance().paths.append(path);
-    return true;
-  }
   else
-  {
-    return false;
-  }
+    library_local.instance().paths.prepend(path);
+  return true;
 }
 
 bool Library::removePath(const String32& path)
@@ -346,14 +345,6 @@ FOG_INIT_DECLARE err_t fog_library_init(void)
   Fog::Library::systemPrefix = (const Fog::Char8*)libraryPrefix;
   Fog::Library::systemSuffix = (const Fog::Char8*)librarySuffix;
   Fog::Library::systemExtension = (const Fog::Char8*)librarySuffix + 1;
-
-  // Application directory usually contains plugins and library itself under
-  // Windows, but we will add it also for posix OSes.
-
-  // TODO: Get application directory instead of working directory
-  Fog::String32 workingDirectory;
-  Fog::FileSystem::getWorkingDirectory(workingDirectory);
-  Fog::library_local.instance().paths.append(workingDirectory);
 
 #if defined(FOG_OS_POSIX)
 #if FOG_ARCH_BITS == 32

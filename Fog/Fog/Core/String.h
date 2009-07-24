@@ -274,8 +274,8 @@ struct FOG_HIDDEN FormatFlags
   sysuint_t width;
   uint32_t flags;
 
-  static const sysuint_t NoPrecision   = (sysuint_t)-1;
-  static const sysuint_t NoWidth       = (sysuint_t)-1;
+  static const sysuint_t NoPrecision = (sysuint_t)-1;
+  static const sysuint_t NoWidth     = (sysuint_t)-1;
 
   //! @brief Number format flags.
   enum Flags
@@ -307,10 +307,9 @@ struct FOG_HIDDEN Range
 {
   // [Construction / Destruction]
 
-  FOG_INLINE Range(sysuint_t index = 0, sysuint_t length = DetectLength) :
-    index(index), length(length)
-  {
-  }
+  FOG_INLINE Range() {};
+  FOG_INLINE Range(sysuint_t index, sysuint_t length = DetectLength) :
+    index(index), length(length) {}
 
   // [Members]
 
@@ -368,6 +367,12 @@ FOG_INLINE Utf32::Utf32(const String32& str) :
 // [Fog::TypeInfo<T>]
 // ============================================================================
 
+FOG_DECLARE_TYPEINFO(Fog::Stub8      , Fog::PrimitiveType)
+FOG_DECLARE_TYPEINFO(Fog::Ascii8     , Fog::PrimitiveType)
+FOG_DECLARE_TYPEINFO(Fog::Local8     , Fog::PrimitiveType)
+FOG_DECLARE_TYPEINFO(Fog::Utf8       , Fog::PrimitiveType)
+FOG_DECLARE_TYPEINFO(Fog::Utf16      , Fog::PrimitiveType)
+FOG_DECLARE_TYPEINFO(Fog::Utf32      , Fog::PrimitiveType)
 FOG_DECLARE_TYPEINFO(Fog::FormatFlags, Fog::PrimitiveType)
 FOG_DECLARE_TYPEINFO(Fog::Range      , Fog::PrimitiveType)
 

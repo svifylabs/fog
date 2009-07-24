@@ -148,8 +148,14 @@ struct FOG_API Library
 
   // [Paths]
 
+  enum AddPathMode
+  {
+    PathAppend = 0,
+    PathPrepend
+  };
+
   static Vector<String32> paths();
-  static bool addPath(const String32& path);
+  static bool addPath(const String32& path, int mode = PathAppend);
   static bool removePath(const String32& path);
   static bool hasPath(const String32& path);
 

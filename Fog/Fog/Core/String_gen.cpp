@@ -44,10 +44,10 @@
 namespace Fog {
 
 // ============================================================================
-// [Fog::String - Construction / Destruction]
+// [Fog::String - Helpers]
 // ============================================================================
 
-static inline bool fitToRange(
+static FOG_INLINE bool fitToRange(
   const __G_STRING& s, sysuint_t* _start, sysuint_t* _len, const Range& range)
 {
   sysuint_t start = range.index;
@@ -62,6 +62,14 @@ static inline bool fitToRange(
   *_len = r;
   return true;
 }
+
+// These will be included only once.
+#if __G_SIZE == 1
+#endif // __G_SIZE == 1
+
+// ============================================================================
+// [Fog::String - Construction / Destruction]
+// ============================================================================
 
 __G_STRING::__G_STRING()
 {
@@ -1335,8 +1343,360 @@ err_t __G_STRING::appendFormat(const char* fmt, ...)
 
 err_t __G_STRING::appendVformat(const char* fmt, va_list ap)
 {
-  // TODO
-  return Error::NotImplemented;
+#define __VFORMAT_PARSE_NUMBER(__ptr__, __out__)     \
+{                                                    \
+  /* ----- Clean-up ----- */                         \
+  __out__ = 0;                                       \
+                                                     \
+  /* ----- Remove zeros ----- */                     \
+  while (*__ptr__ == '0') __ptr__++;                 \
+                                                     \
+  /* ----- Parse number ----- */                     \
+  while ((c = (uint8_t)*__ptr__) >= '0' && c <= '9') \
+  {                                                  \
+    __out__ = 10 * __out__ + (c - '0');              \
+    __ptr__++;                                       \
+  }                                                  \
+}
+
+  if (fmt == NULL) return Error::InvalidArgument;
+
+  const char* fmtBeginChunk = fmt;
+  uint32_t c;
+  sysuint_t beginLength = length();
+
+  for (;;)
+  {
+    c = (uint8_t)*fmt;
+
+    if (c == '%')
+    {
+      uint directives = 0;
+      uint sizeFlags = 0;
+      sysuint_t fieldWidth = FormatFlags::NoWidth;
+      sysuint_t precision = FormatFlags::NoPrecision;
+      uint base = 10;
+
+      if (fmtBeginChunk != fmt) append(Ascii8(fmtBeginChunk, (sysuint_t)(fmt - fmtBeginChunk)));
+
+      // Parse directives.
+      for (;;)
+      {
+        c = (uint8_t)*(++fmt);
+
+        if      (c == '#')  directives |= FormatFlags::Alternate;
+        else if (c == '0')  directives |= FormatFlags::ZeroPadded;
+        else if (c == '-')  directives |= FormatFlags::LeftAdjusted;
+        else if (c == ' ')  directives |= FormatFlags::BlankPositive;
+        else if (c == '+')  directives |= FormatFlags::ShowSign;
+        else if (c == '\'') directives |= FormatFlags::ThousandsGroup;
+        else break;
+      }
+
+      // Parse field width.
+      if (CType::isAsciiDigit((uint8_t)c))
+      {
+        __VFORMAT_PARSE_NUMBER(fmt, fieldWidth)
+      }
+      else if (c == '*')
+      {
+        c = *++fmt;
+
+        int _fieldWidth = va_arg(ap, int);
+        if (_fieldWidth < 0) _fieldWidth = 0;
+        if (_fieldWidth > 4096) _fieldWidth = 4096;
+        fieldWidth = (sysuint_t)_fieldWidth;
+      }
+
+      // Parse precision.
+      if (c == '.')
+      {
+        c = *++fmt;
+
+        if (CType::isAsciiDigit((uint8_t)c))
+        {
+          __VFORMAT_PARSE_NUMBER(fmt, precision);
+        }
+        else if (c == '*')
+        {
+          c = *++fmt;
+
+          int _precision = va_arg(ap, int);
+          if (_precision < 0) _precision = 0;
+          if (_precision > 4096) _precision = 4096;
+          precision = (sysuint_t)_precision;
+        }
+      }
+
+      // Parse argument type.
+      enum
+      {
+        Arg_Size_H   = 0x01,
+        Arg_Size_HH  = 0x02,
+        Arg_Size_L   = 0x04,
+        Arg_Size_LL  = 0x08,
+        Arg_Size_M   = 0x10,
+#if (CORE_ARCH_BITS == 32)
+        Arg_Size_64  = Arg_Size_LL
+#else
+        Arg_Size_64  = Arg_Size_L
+#endif
+      };
+
+      // 'h' and 'hh'.
+      if (c == 'h')
+      {
+        c = (uint8_t)*(++fmt);
+        if (c == 'h')
+        {
+          c = (uint8_t)*(++fmt);
+          sizeFlags |= Arg_Size_HH;
+        }
+        else
+        {
+          sizeFlags |= Arg_Size_H;
+        }
+      }
+      // 'L'.
+      else if (c == 'L')
+      {
+        c = (uint8_t)*(++fmt);
+        sizeFlags |= Arg_Size_LL;
+      }
+      // 'l' and 'll'.
+      else if (c == 'l')
+      {
+        c = (uint8_t)*(++fmt);
+        if (c == 'l')
+        {
+          c = (uint8_t)*(++fmt);
+          sizeFlags |= Arg_Size_LL;
+        }
+        else
+        {
+          sizeFlags |= Arg_Size_L;
+        }
+      }
+      // 'j'.
+      else if (c == 'j')
+      {
+        c = (uint8_t)*(++fmt);
+        sizeFlags |= Arg_Size_LL;
+      }
+      // 'z'.
+      else if (c == 'z' || c == 'Z')
+      {
+        c = (uint8_t)*(++fmt);
+        if (sizeof(size_t) > sizeof(long))
+          sizeFlags |= Arg_Size_LL;
+        else if (sizeof(size_t) > sizeof(int))
+          sizeFlags |= Arg_Size_L;
+      }
+      // 't'.
+      else if (c == 't')
+      {
+        c = (uint8_t)*(++fmt);
+        if (sizeof(ptrdiff_t) > sizeof(long))
+          sizeFlags |= Arg_Size_LL;
+        else if (sizeof(ptrdiff_t) > sizeof(int))
+          sizeFlags |= Arg_Size_L;
+      }
+      // 'M' = max type (Core extension).
+      else if (c == 'M')
+      {
+        c = (uint8_t)*(++fmt);
+        sizeFlags |= Arg_Size_M;
+      }
+
+      // Parse conversion character.
+      switch (c)
+      {
+        // Signed integers.
+        case 'd':
+        case 'i':
+        {
+          int64_t i = (sizeFlags >= Arg_Size_64) ? va_arg(ap, int64_t) : va_arg(ap, int32_t);
+
+          if (precision == FormatFlags::NoPrecision && fieldWidth == FormatFlags::NoWidth && directives == 0)
+            appendInt(i, base);
+          else
+            appendInt(i, base, FormatFlags(precision, fieldWidth, directives));
+          break;
+        }
+
+        // Unsigned integers.
+        case 'o':
+          base = 8;
+          goto ffUnsigned;
+        case 'X':
+          directives |= FormatFlags::Capitalize;
+        case 'x':
+          base = 16;
+        case 'u':
+ffUnsigned:
+        {
+          uint64_t i = (sizeFlags >= Arg_Size_64) ? va_arg(ap, uint64_t) : va_arg(ap, uint32_t);
+
+          if (precision == FormatFlags::NoPrecision && fieldWidth == FormatFlags::NoWidth && directives == 0)
+            appendInt(i, base);
+          else
+            appendInt(i, base, FormatFlags(precision, fieldWidth, directives));
+          break;
+        }
+
+        // Floats, doubles, long doubles.
+        case 'F':
+        case 'E':
+        case 'G':
+          directives |= FormatFlags::CapitalizeEOrX;
+        case 'f':
+        case 'e':
+        case 'g':
+        {
+          double i;
+          uint doubleForm = 0; // Be quite
+
+          if (c == 'e' || c == 'E')
+            doubleForm = DF_Exponent;
+          else if (c == 'f' || c == 'F')
+            doubleForm = DF_Decimal;
+          else if (c == 'g' || c == 'G')
+            doubleForm = DF_SignificantDigits;
+
+          i = va_arg(ap, double);
+          appendDouble(i, doubleForm, FormatFlags(precision, fieldWidth, directives));
+          break;
+        }
+
+        // Characters (latin1 or unicode...).
+        case 'C':
+          sizeFlags |= Arg_Size_L;
+        case 'c':
+        {
+          if (precision == FormatFlags::NoPrecision) precision = 1;
+          if (fieldWidth == FormatFlags::NoWidth) fieldWidth = 0;
+
+          sysuint_t fill = (fieldWidth > precision) ? fieldWidth - precision : 0;
+
+          if (fill && (directives & FormatFlags::LeftAdjusted) == 0) append(__G_CHAR(' '), fill);
+          append(__G_CHAR(va_arg(ap, uint)), precision);
+          if (fill && (directives & FormatFlags::LeftAdjusted) != 0) append(__G_CHAR(' '), fill);
+          break;
+        }
+
+        // Strings.
+        case 'S':
+#if FOG_SIZEOF_WCHAR_T == 2
+          sizeFlags |= Arg_Size_L;
+#else
+          sizeFlags |= Arg_Size_LL;
+#endif
+        case 's':
+          if (fieldWidth == FormatFlags::NoWidth) fieldWidth = 0;
+
+          if (sizeFlags >= Arg_Size_LL)
+          {
+            // UTF-32 string (Char32*).
+            const Char32* s = va_arg(ap, const Char32*);
+            sysuint_t slen = (precision != FormatFlags::NoPrecision) 
+              ? (sysuint_t)StringUtil::nlen(s, precision)
+              : (sysuint_t)StringUtil::len(s);
+            sysuint_t fill = (fieldWidth > slen) ? fieldWidth - slen : 0;
+
+            if (fill && (directives & FormatFlags::LeftAdjusted) == 0) append(__G_CHAR(' '), fill);
+#if __G_SIZE == 1
+            append(Utf32(s, slen), TextCodec::local8());
+#else
+            append(Utf32(s, slen));
+#endif // __G_SIZE == 1
+            if (fill && (directives & FormatFlags::LeftAdjusted) != 0) append(__G_CHAR(' '), fill);
+          }
+          else if (sizeFlags >= Arg_Size_L)
+          {
+            // UTF-16 string (Char16*).
+            const Char16* s = va_arg(ap, const Char16*);
+            sysuint_t slen = (precision != FormatFlags::NoPrecision) 
+              ? (sysuint_t)StringUtil::nlen(s, precision)
+              : (sysuint_t)StringUtil::len(s);
+            sysuint_t fill = (fieldWidth > slen) ? fieldWidth - slen : 0;
+
+            if (fill && (directives & FormatFlags::LeftAdjusted) == 0) append(__G_CHAR(' '), fill);
+#if __G_SIZE == 1
+            append(Utf16(s, slen), TextCodec::local8());
+#else
+            append(Utf16(s, slen));
+#endif // __G_SIZE == 1
+            if (fill && (directives & FormatFlags::LeftAdjusted) != 0) append(__G_CHAR(' '), fill);
+          }
+          else
+          {
+            // 8-bit string (Char8*).
+            const Char8* s = va_arg(ap, const Char8*);
+            sysuint_t slen = (precision != FormatFlags::NoPrecision)
+              ? (sysuint_t)StringUtil::nlen(s, precision)
+              : (sysuint_t)StringUtil::len(s);
+            sysuint_t fill = (fieldWidth > slen) ? fieldWidth - slen : 0;
+
+            if (fill && (directives & FormatFlags::LeftAdjusted) == 0) append(__G_CHAR(' '), fill);
+            append(Local8(s, slen));
+            if (fill && (directives & FormatFlags::LeftAdjusted) != 0) append(__G_CHAR(' '), fill);
+          }
+          break;
+
+        // Pointer.
+        case 'p':
+          directives |= FormatFlags::Alternate;
+#if FOG_ARCH_BITS == 32
+          sizeFlags = 0;
+#elif FOG_ARCH_BITS == 64
+          sizeFlags = Arg_Size_LL;
+#endif // FOG_ARCH_BITS
+          goto ffUnsigned;
+
+        // Position receiver 'n'.
+        case 'n':
+        {
+          void* pointer = va_arg(ap, void*);
+          sysuint_t n = length() - beginLength;
+          switch (sizeFlags) {
+            case Arg_Size_M:
+            case Arg_Size_LL: *(uint64_t *)pointer = (uint64_t)(n); break;
+            case Arg_Size_L:  *(ulong    *)pointer = (ulong   )(n); break;
+            case Arg_Size_HH: *(uchar    *)pointer = (uchar   )(n); break;
+            case Arg_Size_H:  *(uint16_t *)pointer = (uint16_t)(n); break;
+            default:          *(uint     *)pointer = (uint    )(n); break;
+          }
+          break;
+        }
+
+        // Extensions.
+
+        // Percent.
+        case '%':
+          // skip one "%" if its legal "%%", otherwise send everything
+          // to output.
+          if (fmtBeginChunk + 1 == fmt) fmtBeginChunk++;
+          break;
+
+        // Unsupported or end of input.
+        default:
+          goto end;
+      }
+      fmtBeginChunk = fmt+1;
+    }
+
+end:
+    if (c == '\0')
+    {
+      if (fmtBeginChunk != fmt) append(Ascii8(fmtBeginChunk, (sysuint_t)(fmt - fmtBeginChunk)));
+      break;
+    }
+
+    fmt++;
+  }
+  return Error::Ok;
+
+#undef __VFORMAT_PARSE_NUMBER
 }
 
 err_t __G_STRING::appendWformat(const __G_STRING& fmt, __G_CHAR lex, const Sequence<__G_STRING>& args)
@@ -1657,8 +2017,7 @@ sysuint_t __G_STRING::remove(const Range& range)
 
 sysuint_t __G_STRING::remove(__G_CHAR ch, uint cs, const Range& range)
 {
-  sysuint_t rstart;
-  sysuint_t rlen;
+  sysuint_t rstart, rlen;
   if (!fitToRange(*this, &rstart, &rlen, range)) return 0;
 
   Data* d = _d;
@@ -1750,95 +2109,175 @@ caseInsensitiveRemove:
 
 sysuint_t __G_STRING::remove(const __G_STRING& other, uint cs, const Range& range)
 {
-  // TODO
-  return Error::NotImplemented;
+  sysuint_t rstart, rlen;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return 0;
+
+  sysuint_t len = other.length();
+  if (len == 0) return 0;
+  if (len == 1) return remove(other.at(0), cs, range);
+
+  if (rlen >= 256)
+  {
+    // Match using StringMatcher.
+    __G_STRINGMATCHER matcher;
+    if (matcher.setPattern(other)) return 0;
+
+    return remove(matcher, cs, range);
+  }
+  else
+  {
+    // Match using naive algorithm.
+    const __G_CHAR* aStr = cData();
+    const __G_CHAR* bStr = other.cData();
+
+    sysuint_t aLength = length();
+    sysuint_t bLength = len;
+
+    Range ranges[128]; // Maximal length is 256 and minimal pattern size is 2.
+    sysuint_t count = 0;
+    sysuint_t rpos = rstart;
+    sysuint_t rend = rstart + rlen;
+
+    for (;;)
+    {
+      sysuint_t i = StringUtil::indexOf(aStr + rpos, rend - rpos, bStr, bLength);
+      if (i == InvalidIndex) break;
+      rpos += i;
+
+      ranges[count].index = rpos;
+      ranges[count].length = bLength;
+      count++;
+
+      rpos += bLength;
+    }
+
+    return remove(ranges, count);
+  }
 }
 
 sysuint_t __G_STRING::remove(const __G_STRINGFILTER& filter, uint cs, const Range& range)
 {
-  // TODO
-  return Error::NotImplemented;
+  sysuint_t rstart, rlen;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return 0;
+
+  const __G_CHAR* str = cData();
+  sysuint_t len = length();
+  sysuint_t rend = rstart + rlen;
+
+  Vector<Range> ranges;
+
+  for (;;)
+  {
+    Range r = filter.indexOf(str, len, cs, Range(rstart, rstart - rend));
+    if (r.index == InvalidIndex) break;
+
+    ranges.append(r);
+    rstart = r.index + r.length;
+  }
+
+  return remove(ranges.cData(), ranges.length());
+}
+
+sysuint_t __G_STRING::remove(const Range* range, sysuint_t count)
+{
+  if (range == NULL || count == 0) return 0;
+
+  sysuint_t i;
+  sysuint_t len = length();
+
+  if (_d->refCount.get() == 1)
+  {
+    i = 0;
+    __G_CHAR* s = _d->data;
+    sysuint_t dstPos = range[0].index;
+    sysuint_t srcPos = dstPos;
+
+    do {
+      srcPos += range[i].length;
+      sysuint_t j = ((++i == count) ? len : range[i].index) - srcPos;
+
+      StringUtil::copy(s + dstPos, s + srcPos, j);
+
+      dstPos += j;
+      srcPos += j;
+    } while (i != count);
+
+    _d->length = dstPos;
+    _d->hashCode = 0;
+    s[dstPos] = 0;
+  }
+  else
+  {
+    sysuint_t deleteLength = 0;
+    sysuint_t lengthAfter;
+
+    for (i = 0; i < count; i++) deleteLength += range[i].length;
+    FOG_ASSERT(len >= deleteLength);
+
+    lengthAfter = len - deleteLength;
+
+    Data* newd = Data::alloc(lengthAfter, AllocCanFail);
+    if (!newd) return 0;
+
+    i = 0;
+    __G_CHAR* dstData = newd->data;
+    __G_CHAR* srcData = _d->data;
+
+    sysuint_t dstPos = range[0].index;
+    sysuint_t srcPos = dstPos;
+
+    StringUtil::copy(dstData, srcData, dstPos);
+
+    do {
+      srcPos += range[i].length;
+      sysuint_t j = ((++i == count) ? len : range[i].index) - srcPos;
+
+      StringUtil::copy(dstData + dstPos, srcData + srcPos, j);
+
+      dstPos += j;
+      srcPos += j;
+    } while (i != count);
+
+    newd->length = lengthAfter;
+    newd->data[lengthAfter] = 0;
+
+    AtomicBase::ptr_setXchg(&_d, newd)->deref();
+  }
+  return count;
 }
 
 // ============================================================================
 // [Fog::String - Replace]
 // ============================================================================
 
-err_t __G_STRING::_replaceMatches(
-  Range* m, sysuint_t mcount,
-  const __G_CHAR* after, sysuint_t alen)
-{
-  sysuint_t i;
-  sysuint_t pos = 0;
-  sysuint_t len = length();
-  const __G_CHAR* cur = cData();
-
-  // Get total count of characters we remove.
-  sysuint_t mTotal = 0;
-  for (i = 0; i < mcount; i++) mTotal += m[i].length;
-
-  // Get total count of characters we add.
-  sysuint_t aTotal = alen * mcount;
-
-  // Get target length.
-  sysuint_t lenAfter = len - mTotal + aTotal;
-
-  Data* newd = Data::alloc(lenAfter, AllocCanFail);
-  if (!newd) return Error::OutOfMemory;
-
-  __G_CHAR* p = newd->data;
-  sysuint_t remain = lenAfter;
-  sysuint_t t;
-
-  // Serialize
-  for (i = 0; i < mcount; i++)
-  {
-    sysuint_t mstart = m[i].index;
-    sysuint_t mlen = m[i].length;
-
-    // Begin
-    t = mstart - pos;
-    if (t > remain) goto overflow;
-    StringUtil::copy(p, cur + pos, t);
-    p += t; remain -= t;
-
-    // Replacement
-    if (alen > remain) goto overflow;
-    StringUtil::copy(p, after, alen);
-    p += alen; remain -= alen;
-
-    pos += mstart + mlen;
-  }
-
-  // Last piece of string
-  t = length() - pos;
-  if (t > remain) goto overflow;
-  StringUtil::copy(p, cur + pos, t);
-  p += t;
-
-  // Be sure that calculated length is correct (if this assert fails, the
-  // 'm' and 'mcount' parameters are incorrect).
-  FOG_ASSERT(p == newd->data + lenAfter);
-
-  newd->length = lenAfter;
-  newd->data[lenAfter] = 0;
-
-  AtomicBase::ptr_setXchg(&_d, newd)->deref();
-  return Error::Ok;
-
-overflow:
-  newd->deref();
-  return Error::Overflow;
-}
-
 err_t __G_STRING::replace(const Range& range, const __G_STRING& replacement)
 {
-  sysuint_t rstart;
-  sysuint_t rlen;
+  sysuint_t rstart, rlen;
   if (!fitToRange(*this, &rstart, &rlen, range)) return Error::Ok;
 
+  const __G_CHAR* replacementData = replacement.cData();
+  sysuint_t replacementLength = replacement.length();
 
-  // TODO
+  if (_d->refCount.get() == 1 && _d != replacement._d)
+  {
+    __G_CHAR* s = _d->data + rstart;
+    sysuint_t lengthAfter = _d->length - rlen + replacementLength;
+    if (lengthAfter < _d->length) return Error::Overflow;
+
+    if (_d->capacity >= lengthAfter)
+    {
+      StringUtil::move(s + replacementLength, s + rlen, _d->length - rstart - rlen);
+      StringUtil::copy(s, replacementData, replacementLength);
+
+      _d->length = lengthAfter;
+      _d->hashCode = 0;
+      _d->data[lengthAfter] = 0;
+      return Error::Ok;
+    }
+  }
+
+  Range r(rstart, rlen);
+  return replace(&r, 1, replacementData, replacementLength);
 }
 
 err_t __G_STRING::replace(__G_CHAR before, __G_CHAR after, 
@@ -1922,17 +2361,138 @@ caseInsensitiveReplace:
 err_t __G_STRING::replace(const __G_STRING& before, const __G_STRING& after, 
   uint cs, const Range& range)
 {
-  __G_STRINGMATCHER matcher(before);
-  return replace(matcher, after, cs, range);
+  sysuint_t rstart, rlen;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return 0;
+
+  sysuint_t len = before.length();
+  if (len == 0) return 0;
+
+  if (rlen >= 256)
+  {
+    // Match using StringMatcher.
+    __G_STRINGMATCHER matcher;
+    if (matcher.setPattern(before)) return 0;
+
+    return replace(matcher, after, cs, range);
+  }
+  else
+  {
+    // Match using naive algorithm.
+    const __G_CHAR* aStr = cData();
+    const __G_CHAR* bStr = before.cData();
+
+    sysuint_t aLength = length();
+    sysuint_t bLength = len;
+
+    Range ranges[256];
+    sysuint_t count = 0;
+    sysuint_t rpos = rstart;
+    sysuint_t rend = rstart + rlen;
+
+    for (;;)
+    {
+      sysuint_t i = StringUtil::indexOf(aStr + rpos, rend - rpos, bStr, bLength);
+      if (i == InvalidIndex) break;
+      rpos += i;
+
+      ranges[count].index = rpos;
+      ranges[count].length = bLength;
+      count++;
+
+      rpos += bLength;
+    }
+
+    return replace(ranges, count, after.cData(), after.length());
+  }
 }
 
-err_t __G_STRING::replace(const __G_STRINGFILTER& before, const __G_STRING& after, 
+err_t __G_STRING::replace(const __G_STRINGFILTER& filter, const __G_STRING& after, 
   uint cs, const Range& range)
 {
-  Vector<Range> matches;
+  sysuint_t rstart, rlen;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return 0;
 
-  // TODO
-  return Error::NotImplemented;
+  const __G_CHAR* str = cData();
+  sysuint_t len = length();
+  sysuint_t rend = rstart + rlen;
+
+  Vector<Range> ranges;
+
+  for (;;)
+  {
+    Range r = filter.indexOf(str, len, cs, Range(rstart, rstart - rend));
+    if (r.index == InvalidIndex) break;
+
+    ranges.append(r);
+    rstart = r.index + r.length;
+  }
+
+  return replace(ranges.cData(), ranges.length(), after.cData(), after.length());
+}
+
+err_t __G_STRING::replace(const Range* m, sysuint_t mcount, const __G_CHAR* after, sysuint_t alen)
+{
+  sysuint_t i;
+  sysuint_t pos = 0;
+  sysuint_t len = length();
+  const __G_CHAR* cur = cData();
+
+  // Get total count of characters we remove.
+  sysuint_t mTotal = 0;
+  for (i = 0; i < mcount; i++) mTotal += m[i].length;
+
+  // Get total count of characters we add.
+  sysuint_t aTotal = alen * mcount;
+
+  // Get target length.
+  sysuint_t lenAfter = len - mTotal + aTotal;
+
+  Data* newd = Data::alloc(lenAfter, AllocCanFail);
+  if (!newd) return Error::OutOfMemory;
+
+  __G_CHAR* p = newd->data;
+  sysuint_t remain = lenAfter;
+  sysuint_t t;
+
+  // Serialize
+  for (i = 0; i < mcount; i++)
+  {
+    sysuint_t mstart = m[i].index;
+    sysuint_t mlen = m[i].length;
+
+    // Begin
+    t = mstart - pos;
+    if (t > remain) goto overflow;
+    StringUtil::copy(p, cur + pos, t);
+    p += t; remain -= t;
+
+    // Replacement
+    if (alen > remain) goto overflow;
+    StringUtil::copy(p, after, alen);
+    p += alen; remain -= alen;
+
+    pos = mstart + mlen;
+  }
+
+  // Last piece of string
+  t = length() - pos;
+  if (t > remain) goto overflow;
+  StringUtil::copy(p, cur + pos, t);
+  p += t;
+
+  // Be sure that calculated length is correct (if this assert fails, the
+  // 'm' and 'mcount' parameters are incorrect).
+  FOG_ASSERT(p == newd->data + lenAfter);
+
+  newd->length = lenAfter;
+  newd->data[lenAfter] = 0;
+
+  AtomicBase::ptr_setXchg(&_d, newd)->deref();
+  return Error::Ok;
+
+overflow:
+  newd->deref();
+  return Error::Overflow;
 }
 
 // ============================================================================
@@ -2313,10 +2873,9 @@ Vector<__G_STRING> __G_STRING::split(const __G_STRINGFILTER& filter, uint splitB
 __G_STRING __G_STRING::substring(const Range& range) const
 {
   __G_STRING ret;
-  sysuint_t i, len;
 
-  if (fitToRange(*this, &i, &len, range))
-    ret.set(__G_STRING_STUB(cData() + i, len));
+  sysuint_t rstart, rlen;
+  if (fitToRange(*this, &rstart, &rlen, range)) ret.set(__G_STRING_STUB(cData() + rstart, rlen));
 
   return ret;
 }
@@ -2407,10 +2966,9 @@ err_t __G_STRING::atod(double* dst, const Locale* locale, sysuint_t* end, uint32
 bool __G_STRING::contains(__G_CHAR ch,
   uint cs, const Range& range) const
 {
-  sysuint_t i, len;
-
-  if (fitToRange(*this, &i, &len, range))
-    return StringUtil::indexOf(cData() + i, len, ch, cs) != InvalidIndex;
+  sysuint_t rstart, rlen;
+  if (fitToRange(*this, &rstart, &rlen, range))
+    return StringUtil::indexOf(cData() + rstart, rlen, ch, cs) != InvalidIndex;
   else
     return false;
 }
@@ -2435,10 +2993,9 @@ bool __G_STRING::contains(const __G_STRINGFILTER& filter,
 sysuint_t __G_STRING::countOf(__G_CHAR ch,
   uint cs, const Range& range) const
 {
-  sysuint_t i, len;
-
-  if (fitToRange(*this, &i, &len, range))
-    return StringUtil::countOf(cData() + i, len, ch, cs);
+  sysuint_t rstart, rlen;
+  if (fitToRange(*this, &rstart, &rlen, range))
+    return StringUtil::countOf(cData() + rstart, rlen, ch, cs);
   else
     return 0;
 }
@@ -2446,25 +3003,70 @@ sysuint_t __G_STRING::countOf(__G_CHAR ch,
 sysuint_t __G_STRING::countOf(const __G_STRING& pattern,
   uint cs, const Range& range) const
 {
-  if (pattern.isEmpty())
+  sysuint_t rstart, rlen;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return 0;
+
+  sysuint_t len = pattern.length();
+  if (len == 0) return 0;
+  if (len == 1) return countOf(pattern.at(0), cs, range);
+
+  if (rlen >= 256)
   {
-    return 0;
-  }
-  else if (pattern.length() == 1)
-  {
-    return countOf(pattern.at(0), cs, range);
+    // Match using StringMatcher.
+    __G_STRINGMATCHER matcher;
+    if (matcher.setPattern(pattern)) return 0;
+
+    return countOf(matcher, cs, range);
   }
   else
   {
-    // TODO
-  } 
+    // Match using naive algorithm.
+    const __G_CHAR* aStr = cData();
+    const __G_CHAR* bStr = pattern.cData();
+
+    sysuint_t aLength = length();
+    sysuint_t bLength = len;
+
+    sysuint_t rpos = rstart;
+    sysuint_t rend = rstart + rlen;
+
+    sysuint_t count = 0;
+
+    for (;;)
+    {
+      sysuint_t i = StringUtil::indexOf(aStr + rpos, rend - rpos, bStr, bLength);
+      if (i == InvalidIndex) break;
+      rpos += i;
+
+      count++;
+      rpos += bLength;
+    }
+
+    return count;
+  }
 }
 
 sysuint_t __G_STRING::countOf(const __G_STRINGFILTER& filter,
   uint cs, const Range& range) const
 {
-  // TODO
-  return 0;
+  sysuint_t rstart, rlen;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return 0;
+
+  const __G_CHAR* str = cData();
+  sysuint_t len = length();
+  sysuint_t rend = rstart + rlen;
+  sysuint_t count = 0;
+
+  for (;;)
+  {
+    Range r = filter.indexOf(str, len, cs, Range(rstart, rstart - rend));
+    if (r.index == InvalidIndex) break;
+
+    count++;
+    rstart = r.index + r.length;
+  }
+
+  return count;
 }
 
 // ============================================================================
@@ -2474,62 +3076,121 @@ sysuint_t __G_STRING::countOf(const __G_STRINGFILTER& filter,
 sysuint_t __G_STRING::indexOf(__G_CHAR ch,
   uint cs, const Range& range) const
 {
-  sysuint_t start, len;
-  if (!fitToRange(*this, &start, &len, range)) return InvalidIndex;
+  sysuint_t rstart, rlen;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return InvalidIndex;
 
-  sysuint_t i = StringUtil::indexOf(cData() + start, len, ch, cs);
-  return i != InvalidIndex ? i + start : i;
+  sysuint_t i = StringUtil::indexOf(cData() + rstart, rlen, ch, cs);
+  return i != InvalidIndex ? i + rstart : i;
 }
 
 sysuint_t __G_STRING::indexOf(const __G_STRING& pattern,
   uint cs, const Range& range) const
 {
-  if (pattern.isEmpty())
+  sysuint_t rstart, rlen;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return 0;
+
+  sysuint_t len = pattern.length();
+  if (len == 0) return InvalidIndex;
+  if (len == 1) return indexOf(pattern.at(0), cs, range);
+
+  if (rlen >= 256)
   {
-    return InvalidIndex;
-  }
-  else if (pattern.length() == 1)
-  {
-    return indexOf(pattern.at(0), cs, range);
+    // Match using StringMatcher.
+    __G_STRINGMATCHER matcher;
+    if (matcher.setPattern(pattern)) return 0;
+
+    return indexOf(matcher, cs, range);
   }
   else
   {
-    // TODO
+    // Match using naive algorithm.
+    sysuint_t i = StringUtil::indexOf(cData() + rstart, rlen, pattern.cData(), len);
+    return (i == InvalidIndex) ? i : i + rstart;
   }
 }
 
 sysuint_t __G_STRING::indexOf(const __G_STRINGFILTER& filter,
   uint cs, const Range& range) const
 {
-  sysuint_t start, len;
-  if (!fitToRange(*this, &start, &len, range)) return InvalidIndex;
+  sysuint_t rstart, rlen;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return InvalidIndex;
 
-  Range m = filter.match(cData(), length(), cs, Range(start, len));
+  Range m = filter.match(cData(), length(), cs, Range(rstart, rlen));
   return m.index;
 }
 
 sysuint_t __G_STRING::lastIndexOf(__G_CHAR ch,
   uint cs, const Range& range) const
 {
-  sysuint_t start, len;
-  if (!fitToRange(*this, &start, &len, range)) return InvalidIndex;
+  sysuint_t rstart, rlen;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return InvalidIndex;
 
-  sysuint_t i = StringUtil::lastIndexOf(cData() + start, len, ch, cs);
-  return i != InvalidIndex ? i + start : i;
+  sysuint_t i = StringUtil::lastIndexOf(cData() + rstart, rlen, ch, cs);
+  return i != InvalidIndex ? i + rstart : i;
 }
 
 sysuint_t __G_STRING::lastIndexOf(const __G_STRING& pattern,
   uint cs, const Range& range) const
 {
-  // TODO
-  return Error::NotImplemented;
+  sysuint_t rstart, rlen;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return 0;
+
+  sysuint_t len = pattern.length();
+  if (len == 0) return InvalidIndex;
+  if (len == 1) return lastIndexOf(pattern.at(0), cs, range);
+
+  if (rlen >= 256)
+  {
+    // Match using StringMatcher.
+    __G_STRINGMATCHER matcher;
+    if (matcher.setPattern(pattern)) return 0;
+
+    return lastIndexOf(matcher, cs, range);
+  }
+  else
+  {
+    // Match using naive algorithm.
+    const __G_CHAR* aData = cData();
+    const __G_CHAR* bData = pattern.cData();
+
+    sysuint_t result = InvalidIndex;
+
+    for (;;)
+    {
+      sysuint_t i = StringUtil::indexOf(aData + rstart, rlen, bData, len);
+      if (i == InvalidIndex) break;
+
+      result = i + rstart;
+
+      i += len;
+      rstart += i;
+      rlen -= i;
+    }
+    return result;
+  }
 }
 
 sysuint_t __G_STRING::lastIndexOf(const __G_STRINGFILTER& filter,
   uint cs, const Range& range) const
 {
-  // TODO
-  return Error::NotImplemented;
+  sysuint_t rstart, rlen;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return InvalidIndex;
+
+  sysuint_t result = InvalidIndex;
+
+  for (;;)
+  {
+    Range m = filter.match(cData(), length(), cs, Range(rstart, rlen));
+    if (m.index == InvalidIndex) break;
+
+    result = m.index;
+
+    sysuint_t d = m.index + m.length;
+    rstart += d;
+    rlen -= d;
+  }
+
+  return result;
 }
 
 // ============================================================================
@@ -3256,14 +3917,24 @@ int __G_STRING::compare(const __G_STRING& other, uint cs) const
 // Utf8
 err_t __G_STRING::utf8Validate()
 {
-  // TODO
-  return Error::NotImplemented;
+  sysuint_t i = StringUtil::utf8Validate(cData(), length());
+  return (i == length()) ? (err_t)Error::Ok : (err_t)Error::InvalidUtf8;
 }
 
 err_t __G_STRING::utf8Characters(sysuint_t* dst)
 {
-  // TODO
-  return Error::NotImplemented;
+  sysuint_t i = StringUtil::utf8ToUtf32Len(cData(), length());
+
+  if (i != InvalidIndex)
+  {
+    *dst = i;
+    return Error::Ok;
+  }
+  else
+  {
+    *dst = StringUtil::utf8Validate(cData(), length());
+    return Error::InvalidUtf8;
+  }
 }
 
 // Encode
@@ -3381,7 +4052,7 @@ uint32_t __G_STRING::toHashCode() const
   uint32_t h = _d->hashCode;
   if (h) return h;
 
-  return (_d->hashCode = hashData((const void*)cData(), length() << 2));
+  return (_d->hashCode = hashData((const void*)cData(), length() * __G_SIZE));
 }
 
 // ============================================================================

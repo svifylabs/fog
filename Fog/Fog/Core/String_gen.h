@@ -402,7 +402,7 @@ struct FOG_API __G_STRING
   err_t append(const Utf8& str);
   err_t append(const Utf16& str);
   err_t append(const Utf32& str);
-#endif // __G_SIZE 
+#endif // __G_SIZE
 
   err_t append(const __G_STRING& other);
 #if __G_SIZE != 1
@@ -506,32 +506,29 @@ struct FOG_API __G_STRING
   // [Remove]
   // --------------------------------------------------------------------------
 
-  sysuint_t remove(const Range& range);
-
   sysuint_t remove(__G_CHAR ch,
-    uint cs = CaseSensitive, const Range& range = Range());
+    uint cs = CaseSensitive, const Range& range = Range(0));
   sysuint_t remove(const __G_STRING& other,
-    uint cs = CaseSensitive, const Range& range = Range());
+    uint cs = CaseSensitive, const Range& range = Range(0));
   sysuint_t remove(const __G_STRINGFILTER& filter,
-    uint cs = CaseSensitive, const Range& range = Range());
+    uint cs = CaseSensitive, const Range& range = Range(0));
+
+  sysuint_t remove(const Range& range);
+  sysuint_t remove(const Range* range, sysuint_t count);
 
   // --------------------------------------------------------------------------
   // [Replace]
   // --------------------------------------------------------------------------
 
-  err_t _replaceMatches(
-    Range* m, sysuint_t mcount,
-    const __G_CHAR* after, sysuint_t alen);
-
-  err_t replace(const Range& range,
-    const __G_STRING& replacement);
-
   err_t replace(__G_CHAR before, __G_CHAR after, 
-    uint cs = CaseSensitive, const Range& range = Range());
+    uint cs = CaseSensitive, const Range& range = Range(0));
   err_t replace(const __G_STRING& before, const __G_STRING& after, 
-    uint cs = CaseSensitive, const Range& range = Range());
-  err_t replace(const __G_STRINGFILTER& before, const __G_STRING& after, 
-    uint cs = CaseSensitive, const Range& range = Range());
+    uint cs = CaseSensitive, const Range& range = Range(0));
+  err_t replace(const __G_STRINGFILTER& filter, const __G_STRING& after, 
+    uint cs = CaseSensitive, const Range& range = Range(0));
+
+  err_t replace(const Range& range, const __G_STRING& replacement);
+  err_t replace(const Range* range, sysuint_t count, const __G_CHAR* after, sysuint_t alen);
 
   // --------------------------------------------------------------------------
   // [Lower / Upper]
@@ -622,42 +619,42 @@ struct FOG_API __G_STRING
   // --------------------------------------------------------------------------
 
   bool contains(__G_CHAR ch,
-    uint cs = CaseSensitive, const Range& range = Range()) const;
+    uint cs = CaseSensitive, const Range& range = Range(0)) const;
 
   bool contains(const __G_STRING& pattern,
-    uint cs = CaseSensitive, const Range& range = Range()) const;
+    uint cs = CaseSensitive, const Range& range = Range(0)) const;
 
   bool contains(const __G_STRINGFILTER& filter, 
-    uint cs = CaseSensitive, const Range& range = Range()) const;
+    uint cs = CaseSensitive, const Range& range = Range(0)) const;
 
   // --------------------------------------------------------------------------
   // [CountOf]
   // --------------------------------------------------------------------------
 
   sysuint_t countOf(__G_CHAR ch,
-    uint cs = CaseSensitive, const Range& range = Range()) const;
+    uint cs = CaseSensitive, const Range& range = Range(0)) const;
   sysuint_t countOf(const __G_STRING& pattern,
-    uint cs = CaseSensitive, const Range& range = Range()) const;
+    uint cs = CaseSensitive, const Range& range = Range(0)) const;
   sysuint_t countOf(const __G_STRINGFILTER& filter,
-    uint cs = CaseSensitive, const Range& range = Range()) const;
+    uint cs = CaseSensitive, const Range& range = Range(0)) const;
 
   // --------------------------------------------------------------------------
   // [IndexOf / LastIndexOf]
   // --------------------------------------------------------------------------
 
   sysuint_t indexOf(__G_CHAR ch,
-    uint cs = CaseSensitive, const Range& range = Range()) const;
+    uint cs = CaseSensitive, const Range& range = Range(0)) const;
   sysuint_t indexOf(const __G_STRING& pattern,
-    uint cs = CaseSensitive, const Range& range = Range()) const;
+    uint cs = CaseSensitive, const Range& range = Range(0)) const;
   sysuint_t indexOf(const __G_STRINGFILTER& filter,
-    uint cs = CaseSensitive, const Range& range = Range()) const;
+    uint cs = CaseSensitive, const Range& range = Range(0)) const;
 
   sysuint_t lastIndexOf(__G_CHAR ch,
-    uint cs = CaseSensitive, const Range& range = Range()) const;
+    uint cs = CaseSensitive, const Range& range = Range(0)) const;
   sysuint_t lastIndexOf(const __G_STRING& pattern,
-    uint cs = CaseSensitive, const Range& range = Range()) const;
+    uint cs = CaseSensitive, const Range& range = Range(0)) const;
   sysuint_t lastIndexOf(const __G_STRINGFILTER& filter,
-    uint cs = CaseSensitive, const Range& range = Range()) const;
+    uint cs = CaseSensitive, const Range& range = Range(0)) const;
 
   // --------------------------------------------------------------------------
   // [StartsWith / EndsWith]
@@ -921,27 +918,37 @@ struct __G_TEMPORARYSTRING : public __G_STRING
   // [Operator Overload]
   // --------------------------------------------------------------------------
 
-  // TODO:
   // These overloads are needed to succesfull use this template (or implicit conversion
   // will break template and new string will be allocated)
-  FOG_INLINE __G_TEMPORARYSTRING& operator=(const char* str)
-  {
-    return reinterpret_cast<__G_TEMPORARYSTRING&>(set(str));
-  }
 
-  FOG_INLINE __G_TEMPORARYSTRING& operator=(const __G_CHAR* str)
-  {
-    return reinterpret_cast<__G_TEMPORARYSTRING&>(set(str));
-  }
+  FOG_INLINE __G_TEMPORARYSTRING<N>& operator=(__G_CHAR ch)
+  { set(ch); return *this; }
+  
+#if __G_SIZE == 1
+  FOG_INLINE __G_TEMPORARYSTRING<N>& operator=(const Stub8& str)
+  { set(str); return *this; }
+#else
+  FOG_INLINE __G_TEMPORARYSTRING<N>& operator=(const Ascii8& str)
+  { set(str); return *this; }
 
-  FOG_INLINE __G_TEMPORARYSTRING& operator=(const __G_STRING& str)
-  {
-    return reinterpret_cast<__G_TEMPORARYSTRING&>(set(str));
-  }
-  FOG_INLINE __G_TEMPORARYSTRING& operator=(const __G_TEMPORARYSTRING<N>& str)
-  {
-    return reinterpret_cast<__G_TEMPORARYSTRING&>(set(str));
-  }
+  FOG_INLINE __G_TEMPORARYSTRING<N>& operator=(const Local8& str)
+  { set(str); return *this; }
+
+  FOG_INLINE __G_TEMPORARYSTRING<N>& operator=(const Utf8& str)
+  { set(str); return *this; }
+
+  FOG_INLINE __G_TEMPORARYSTRING<N>& operator=(const Utf16& str)
+  { set(str); return *this; }
+
+  FOG_INLINE __G_TEMPORARYSTRING<N>& operator=(const Utf32& str)
+  { set(str); return *this; }
+#endif
+
+  FOG_INLINE __G_TEMPORARYSTRING<N>& operator=(const __G_STRING& other)
+  { set(other); return *this; }
+
+  FOG_INLINE __G_TEMPORARYSTRING<N>& operator=(const __G_TEMPORARYSTRING<N>& other)
+  { set(other); return *this; }
 };
 
 // ============================================================================
@@ -959,11 +966,11 @@ struct FOG_API __G_STRINGFILTER
 
   virtual Range indexOf(
     const __G_CHAR* str, sysuint_t length, 
-    uint cs = CaseSensitive, const Range& range = Range()) const;
+    uint cs = CaseSensitive, const Range& range = Range(0)) const;
 
   virtual Range lastIndexOf(
     const __G_CHAR* str, sysuint_t length, 
-    uint cs = CaseSensitive, const Range& range = Range()) const;
+    uint cs = CaseSensitive, const Range& range = Range(0)) const;
 
   // [Filter Implementation]
 

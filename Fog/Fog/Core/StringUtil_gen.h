@@ -38,6 +38,7 @@ FOG_API bool eq(const __G_CHAR* a, const __G_CHAR* b, sysuint_t length, uint cs 
 
 FOG_API sysuint_t countOf(const __G_CHAR* str, sysuint_t length, __G_CHAR ch, uint cs = CaseSensitive);
 FOG_API sysuint_t indexOf(const __G_CHAR* str, sysuint_t length, __G_CHAR ch, uint cs = CaseSensitive);
+FOG_API sysuint_t indexOf(const __G_CHAR* aStr, sysuint_t aLength, const __G_CHAR* bStr, sysuint_t bLength, uint cs = CaseSensitive);
 FOG_API sysuint_t indexOfAny(const __G_CHAR* str, sysuint_t length, const __G_CHAR* ch, sysuint_t count, uint cs = CaseSensitive);
 
 FOG_API sysuint_t lastIndexOf(const __G_CHAR* str, sysuint_t length, __G_CHAR ch, uint cs = CaseSensitive);
