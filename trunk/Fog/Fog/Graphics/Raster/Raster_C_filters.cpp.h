@@ -62,7 +62,7 @@ static FOG_INLINE int getReciprocal(int val)
 // [Fog::Raster_C - CopyArea]
 // ============================================================================
 
-static void copyArea_32(
+static void FOG_FASTCALL copyArea_32(
   uint8_t* dst, sysint_t dstStride, 
   const uint8_t* src, sysint_t srcStride,
   int width, int height)
@@ -76,7 +76,7 @@ static void copyArea_32(
   }
 }
 
-static void copyArea_24(
+static void FOG_FASTCALL copyArea_24(
   uint8_t* dst, sysint_t dstStride, 
   const uint8_t* src, sysint_t srcStride,
   int width, int height)
@@ -90,7 +90,7 @@ static void copyArea_24(
   }
 }
 
-static void copyArea_8(
+static void FOG_FASTCALL copyArea_8(
   uint8_t* dst, sysint_t dstStride, 
   const uint8_t* src, sysint_t srcStride,
   int width, int height)

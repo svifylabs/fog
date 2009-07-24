@@ -59,6 +59,15 @@ If(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
   Set(FOG_CFLAGS_SSE3 "${FOG_CFLAGS_OPTIMIZE} -msse3")
 EndIf(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
 
+If(MSVC)
+  If(NOT ${CMAKE_BUILD_TYPE} MATCHES "Debug")
+    Set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Oi /Oy /GF /GS- /GR-")
+    Set(FOG_CFLAGS_OPTIMIZE "/Ot")
+    Set(FOG_CFLAGS_SSE "/arch:SSE")
+    Set(FOG_CFLAGS_SSE2 "/arch:SSE2")
+  EndIf(NOT ${CMAKE_BUILD_TYPE} MATCHES "Debug")
+EndIf(MSVC)
+
 # =============================================================================
 # [Endianness]
 # =============================================================================
@@ -257,6 +266,7 @@ Set(FOG_CORE_SOURCES
   ${FOG_DIR}/Fog/Core/UserInfo.cpp
   ${FOG_DIR}/Fog/Core/Value.cpp
   ${FOG_DIR}/Fog/Core/Vector.cpp
+  ${FOG_DIR}/Fog/Core/WinUtil.cpp
 )
 
 Set(FOG_CORE_HEADERS
@@ -330,6 +340,7 @@ Set(FOG_CORE_HEADERS
   ${FOG_DIR}/Fog/Core/UserInfo.h
   ${FOG_DIR}/Fog/Core/Value.h
   ${FOG_DIR}/Fog/Core/Vector.h
+  ${FOG_DIR}/Fog/Core/WinUtil.h
 )
 
 SOURCE_GROUP(Core FILES
@@ -740,6 +751,11 @@ Configure_File(${FOG_DIR}/Fog/Build/Config.h.cmake ${FOG_DIR}/Fog/Build/Config.h
 # Trim
 String(STRIP "${FOG_LIBRARIES}" FOG_LIBRARIES)
 
+# Unicode
+If(WIN32)
+  Add_Definitions(-DUNICODE -D_UNICODE)
+EndIf(WIN32)
+
 # Library
 Add_Library(Fog SHARED
   ${FOG_SOURCES}
@@ -752,6 +768,7 @@ Target_Link_Libraries(Fog ${FOG_LIBRARIES})
 If(FOG_BUILD_MODULE_X11_EXTERNAL AND NOT WIN32)
   Add_Library(FogUI_X11 SHARED ${FOG_UI_X11_SOURCES})
   Target_Link_Libraries(FogUI_X11 Fog ${FOG_LIBRARIES})
+  Target_Add_Definitions("-DUNICODE")
 EndIf(FOG_BUILD_MODULE_X11_EXTERNAL AND NOT WIN32)
 
 # Install

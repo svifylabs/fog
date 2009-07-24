@@ -1763,6 +1763,58 @@ caseSensitiveLoop:
   return InvalidIndex;
 }
 
+sysuint_t indexOf(const __G_CHAR* aStr, sysuint_t aLength, const __G_CHAR* bStr, sysuint_t bLength, uint cs)
+{
+  if (bLength > aLength) return InvalidIndex;
+
+  const __G_CHAR* aOrig = aStr;
+  const __G_CHAR* aEnd = aStr + aLength - bLength + 1;
+
+  __G_CHAR c(*bStr++);
+  sysuint_t i, bLengthMinus1 = bLength - 1;
+
+  if (cs == CaseSensitive)
+  {
+    while (aStr != aEnd)
+    {
+      // Match first character for faster results.
+      if (*aStr++ == c)
+      {
+        // Compare remaining characters.
+        for (i = 0;; i++)
+        {
+          if (i == bLengthMinus1) return (sysuint_t)((aStr - 1) - aOrig);
+          if (aStr[i] != bStr[i]) break;
+        }
+      }
+    }
+  }
+  else
+  {
+    __G_CHAR cLower(c.toLower());
+    __G_CHAR cUpper(c.toUpper());
+
+    while (aStr != aEnd)
+    {
+      // Match first character for faster results.
+      if (*aStr == cLower || *aStr == cUpper)
+      {
+        aStr++;
+        // Compare remaining characters.
+        for (i = 0;; i++)
+        {
+          if (i == bLengthMinus1) return (sysuint_t)((aStr - 1) - aOrig);
+          if (aStr[i].toLower() != bStr[i].toLower()) break;
+        }
+      }
+      else
+        aStr++;
+    }
+  }
+
+  return InvalidIndex;
+}
+
 sysuint_t indexOfAny(const __G_CHAR* str, sysuint_t length, const __G_CHAR* ch, sysuint_t count, uint cs)
 {
   if (count == DetectLength) count = len(ch);

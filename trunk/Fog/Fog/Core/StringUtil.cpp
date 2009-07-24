@@ -43,7 +43,6 @@ sysuint_t utf16Validate(const Char16* src, sysuint_t len)
 
   for (;;)
   {
-    // success
     if (srcCur == srcEnd) return InvalidIndex;
     uc = *srcCur++;
 
