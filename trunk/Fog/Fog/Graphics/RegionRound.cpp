@@ -64,9 +64,11 @@ SOFTWARE.
 
 namespace Fog {
 
-// [Fog::Region - round]
+// ============================================================================
+// [Fog::Region - Round]
+// ============================================================================
 
-Region& Region::round(const Rect& r, uint xradius, uint yradius, bool fill)
+err_t Region::round(const Rect& r, uint xradius, uint yradius, bool fill)
 {
   Data* selfd;
 
@@ -81,11 +83,12 @@ Region& Region::round(const Rect& r, uint xradius, uint yradius, bool fill)
   uint ewidth;
   uint eheight;
   uint space;
+  err_t err;
 
   if (x1 >= x2 || y1 >= y2)
   {
     clear();
-    return *this;
+    return Error::InvalidArgument;
   }
 
   width  = (uint)(x2 - x1);
@@ -97,7 +100,7 @@ Region& Region::round(const Rect& r, uint xradius, uint yradius, bool fill)
   if (ewidth > width) ewidth = width;
   if (eheight > height) eheight = height;
 
-  // Check if we can do a normal rectangle instead
+  // Check if we can do a normal rectangle instead.
   if (ewidth < 2 || eheight < 2)
   {
     return set(Box(r));
@@ -114,7 +117,7 @@ Region& Region::round(const Rect& r, uint xradius, uint yradius, bool fill)
     if (space > (height << 1)) space = (height << 1);
   }
 
-  prepare(space);
+  if ((err = prepare(space))) { clear(); return err; }
   selfd = _d;
 
   Box* rectCur = selfd->rects;
@@ -146,13 +149,13 @@ Region& Region::round(const Rect& r, uint xradius, uint yradius, bool fill)
     // Filled round
     // -------------------------------
 
-    // Loop to draw first half of quadrant
+    // Loop to draw first half of quadrant.
     while (xd < yd)
     {
-      // if nearest pixel is toward the center
+      // If nearest pixel is toward the center.
       if (d > 0)
       {
-        // move toward center
+        // Move toward center.
         rectCur->set(lx1, y1, lx2, y1+1);
         rectCur++;
 
@@ -160,18 +163,18 @@ Region& Region::round(const Rect& r, uint xradius, uint yradius, bool fill)
         yd -= asq2;
         d  -= yd;
       }
-      // next horizontal point
+      // Next horizontal point.
       lx1--;
       lx2++;
       xd += bsq2;
       d  += bsq + xd;
     }
 
-    // Loop to draw second half of quadrant
+    // Loop to draw second half of quadrant.
     d += (3 * (asq-bsq) / 2 - (xd+yd)) / 2;
     while (yd > 0)
     {
-      // next vertical point
+      // Next vertical point.
       if (rectCur != selfd->rects && rectCur[-1].x1() == lx1)
       {
         rectCur[-1].setY2(y1+1);
@@ -183,10 +186,10 @@ Region& Region::round(const Rect& r, uint xradius, uint yradius, bool fill)
       }
       y1++;
 
-      // if nearest pixel is outside ellipse
+      // If nearest pixel is outside ellipse.
       if (d < 0)
       {
-        // move away from center
+        // Move away from center.
         lx1--;
         lx2++;
         xd += bsq2;
@@ -196,7 +199,7 @@ Region& Region::round(const Rect& r, uint xradius, uint yradius, bool fill)
       d  += asq - yd;
     }
 
-    // Check...If we hasn't rectangles in region now, we can safe skip some steps
+    // Check...If we hasn't rectangles in region now, we can safe skip some steps.
     if (rectCur == selfd->rects) goto _clear;
 
     // Remember last rectangle and last height in region (because this height
@@ -204,7 +207,7 @@ Region& Region::round(const Rect& r, uint xradius, uint yradius, bool fill)
     // rectangle than we need.
     reverse = rectCur-1;
 
-    // Add the inside rectangle
+    // Add the inside rectangle.
     {
       sysuint_t outside = (sysuint_t)(y1 - r.y1()) << 1;
       if (outside < height)
@@ -235,13 +238,13 @@ Region& Region::round(const Rect& r, uint xradius, uint yradius, bool fill)
     Box* rectEnd = rectCur + space - 1;
     int len = 0;
 
-    // Loop to draw first half of quadrant
+    // Loop to draw first half of quadrant.
     while (xd < yd)
     {
-      // if nearest pixel is toward the center
+      // If nearest pixel is toward the center.
       if (d > 0)
       {
-        // move toward center
+        // Move toward center.
         if (rectCur == selfd->rects)
         {
           (*rectCur++).set(lx1, y1, lx2, y1+1);
@@ -261,7 +264,7 @@ Region& Region::round(const Rect& r, uint xradius, uint yradius, bool fill)
         d  -= yd;
         len = 0;
       }
-      // next horizontal point
+      // Next horizontal point.
       lx1--;
       lx2++;
       len++;
@@ -269,11 +272,11 @@ Region& Region::round(const Rect& r, uint xradius, uint yradius, bool fill)
       d  += bsq + xd;
     }
 
-    // Loop to draw second half of quadrant
+    // Loop to draw second half of quadrant.
     d += (3 * (asq-bsq) / 2 - (xd+yd)) / 2;
     while (yd > 0)
     {
-      // next vertical point
+      // Next vertical point.
       if (rectCur == selfd->rects)
       {
         (*rectCur++).set(lx1, y1, lx2, y1+1);
@@ -296,10 +299,10 @@ Region& Region::round(const Rect& r, uint xradius, uint yradius, bool fill)
       y1++;
       y2--;
 
-      // if nearest pixel is outside ellipse
+      // If nearest pixel is outside ellipse.
       if (d < 0)
       {
-        // move away from center
+        // Move away from center.
         lx1--;
         lx2++;
         xd += bsq2;
@@ -309,7 +312,7 @@ Region& Region::round(const Rect& r, uint xradius, uint yradius, bool fill)
       d  += asq - yd;
     }
 
-    // Check...If we haven't rectangles in region now, we can safe skip some steps
+    // Check...If we haven't rectangles in region now, we can safe skip some steps.
     if (rectCur == selfd->rects) goto _clear;
 
     // Remember last rectangle and last height in region (because this height
@@ -337,11 +340,11 @@ Region& Region::round(const Rect& r, uint xradius, uint yradius, bool fill)
     }
   }
   selfd->extents = r;
-  return *this;
+  return Error::Ok;
 
 _clear:
   clear();
-  return *this;
+  return Error::Ok;
 }
 
 } // Fog namespace
