@@ -26,6 +26,7 @@
 #include <Fog/Core/Object.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/String.h>
+#include <Fog/Core/TextCodec.h>
 #include <Fog/Core/Thread.h>
 #include <Fog/Core/WinUtil.h>
 #include <Fog/UI/UISystem.h>
