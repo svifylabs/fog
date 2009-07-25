@@ -69,11 +69,15 @@ SOFTWARE.
 
 namespace Fog {
 
+// ============================================================================
 // [Fog::Region]
+// ============================================================================
 
 #define Fog_Region_Local 256
 
-// [static functions]
+// ============================================================================
+// [Fog::Region - Statics]
+// ============================================================================
 
 static FOG_INLINE void _copyRects(Box* dest, const Box* src, sysuint_t count)
 {
@@ -100,86 +104,86 @@ static void _copyRectsExtents(Box* dest, const Box* src, sysuint_t count, Box* e
   extents->set(extentsX1, extentsY1, extentsX2, extentsY2);
 }
 
-/*
-  -----------------------------------------------------------------------
-  Utility procedure compress_:
-
-  Replace r by the region r', where
-    p in r' iff (Quantifer m <= dx) (p + m in r), and
-    Quantifier is Exists if grow is true, For all if grow is false, and
-    (x,y) + m = (x+m,y) if xdir is true; (x,y+m) if xdir is false.
-
-  Thus, if xdir is true and grow is false, r is replaced by the region
-  of all points p such that p and the next dx points on the same
-  horizontal scan line are all in r.  We do this using by noting
-  that p is the head of a run of length 2^i + k iff p is the head
-  of a run of length 2^i and p+2^i is the head of a run of length
-  k. Thus, the loop invariant: s contains the region corresponding
-  to the runs of length shift. r contains the region corresponding
-  to the runs of length 1 + dxo & (shift-1), where dxo is the original
-  value of dx.  dx = dxo & ~(shift-1).  As parameters, s and t are
-  scratch regions, so that we don't have to allocate them on every
-  call.
-  -----------------------------------------------------------------------
-*/
-static void _compress(
-  Region& r, Region& s, Region& t,
-  register uint dx,
-  register bool xdir, register bool grow)
+// -----------------------------------------------------------------------
+// Utility procedure _compress:
+//
+// Replace r by the region r', where
+//   p in r' iff (Quantifer m <= dx) (p + m in r), and
+//   Quantifier is Exists if grow is true, For all if grow is false, and
+//   (x,y) + m = (x+m,y) if xdir is true; (x,y+m) if xdir is false.
+//
+// Thus, if xdir is true and grow is false, r is replaced by the region
+// of all points p such that p and the next dx points on the same
+// horizontal scan line are all in r.  We do this using by noting
+// that p is the head of a run of length 2^i + k iff p is the head
+// of a run of length 2^i and p+2^i is the head of a run of length
+// k. Thus, the loop invariant: s contains the region corresponding
+// to the runs of length shift. r contains the region corresponding
+// to the runs of length 1 + dxo & (shift-1), where dxo is the original
+// value of dx.  dx = dxo & ~(shift-1).  As parameters, s and t are
+// scratch regions, so that we don't have to allocate them on every
+// call.
+// -----------------------------------------------------------------------
+static err_t _compress(Region& r, Region& s, Region& t, uint dx, bool xdir, register bool grow)
 {
-  register uint shift = 1;
+  err_t err;
+  uint shift = 1;
 
-  s.setDeep(r);
+  if ((err = s.setDeep(r))) return err;
 
   while (dx)
   {
     if (dx & shift)
     {
       if (xdir)
-        Region::translate(r, r, Point(-(int)shift, 0)); 
+        err = Region::translate(r, r, Point(-(int)shift, 0)); 
       else
-        Region::translate(r, r, Point(0, -(int)shift));
+        err = Region::translate(r, r, Point(0, -(int)shift));
+      if (err) return err;
 
       if (grow)
-        r.unite(s);
+        err = r.unite(s);
       else
-        r.intersect(s);
+        err = r.intersect(s);
+      if (err) return err;
 
       dx -= shift;
       if (!dx) break;
     }
 
-    t.setDeep(s);
+    if ((err = t.setDeep(s))) return err;
     if (xdir)
-      Region::translate(s, s, Point(-(int)shift, 0));
+      err = Region::translate(s, s, Point(-(int)shift, 0));
     else 
-      Region::translate(s, s, Point(0, -(int)shift));
+      err = Region::translate(s, s, Point(0, -(int)shift));
+    if (err) return err;
 
     if (grow)
-      s.unite(t); 
+      err = s.unite(t); 
     else
-      s.intersect(t);
+      err = s.intersect(t);
+    if (err) return err;
 
     shift <<= 1;
   }
+
+  return Error::Ok;
 }
 
-/*
-  -----------------------------------------------------------------------
-  coalesce
-    Attempt to merge the boxes in the current band with those in the
-    previous one. Used only by miRegionOp.
-
-  Results:
-    dest pointer (can be smaller if coalesced)
-
-  Side Effects:
-    If coalescing takes place:
-    - rectangles in the previous band will have their y2 fields
-      altered.
-    - Count may be decreased.
-  -----------------------------------------------------------------------
-*/
+// -----------------------------------------------------------------------
+// coalesce
+//   Attempt to merge the boxes in the current band with those in the
+//   previous one. Used only by miRegionOp.
+//
+// Results:
+//   dest pointer (can be smaller if coalesced)
+//
+// Side Effects:
+//   If coalescing takes place:
+//   - rectangles in the previous band will have their y2 fields
+//     altered.
+//   - Count may be decreased.
+// -----------------------------------------------------------------------
 
 static Box* _coalesceHelper(Box* dest_ptr, Box** prev_start_, Box** cur_start_)
 {
@@ -214,7 +218,7 @@ static Box* _coalesceHelper(Box* dest_ptr, Box** prev_start_, Box** cur_start_)
   return dest_ptr;
 }
 
-// inline here produces better results
+// Inline here produces better results
 static FOG_INLINE Box* _coalesce(Box* dest_ptr, Box** prev_start_, Box** cur_start_)
 {
   if (*prev_start_ != *cur_start_)
@@ -225,22 +229,20 @@ static FOG_INLINE Box* _coalesce(Box* dest_ptr, Box** prev_start_, Box** cur_sta
     return dest_ptr;
 }
 
-// Forward declarations for rectangle processor
-static void _unitePrivate(Region* dest, const Box* src1, sysuint_t count1, const Box* src2, sysuint_t count2, bool memOverlap, const Box* new_extents);
-static void _intersectPrivate(Region* dest, const Box* src1, sysuint_t count1, const Box* src2, sysuint_t count2, bool memOverlap);
-static void _subtractPrivate(Region* dest, const Box* src1, sysuint_t count1, const Box* src2, sysuint_t count2, bool memOverlap);
-static void _appendPrivate(Region* dest, const Box* src, sysuint_t count, const Box* new_extents);
+// Forward declarations for rectangle processor.
+static err_t _unitePrivate(Region* dest, const Box* src1, sysuint_t count1, const Box* src2, sysuint_t count2, bool memOverlap, const Box* new_extents);
+static err_t _intersectPrivate(Region* dest, const Box* src1, sysuint_t count1, const Box* src2, sysuint_t count2, bool memOverlap);
+static err_t _subtractPrivate(Region* dest, const Box* src1, sysuint_t count1, const Box* src2, sysuint_t count2, bool memOverlap);
+static err_t _appendPrivate(Region* dest, const Box* src, sysuint_t count, const Box* new_extents);
 
-// ::Data statics
+// Fog::Region::Data statics
 static Region::Data* _reallocRegion(Region::Data* d, sysuint_t capacity);
 
-// [Fog::Region]
+// ============================================================================
+// [Fog::Region - Union, Subtraction, Intersection and Append Implementation]
+// ============================================================================
 
-// ---------------------------------------------------------------------------
-// Fog::Region private routines (union, subtraction, intersection and append)
-// ---------------------------------------------------------------------------
-
-static void _unitePrivate(Region* dest, const Box* src1, sysuint_t count1, const Box* src2, sysuint_t count2, bool memOverlap, const Box* new_extents)
+static err_t _unitePrivate(Region* dest, const Box* src1, sysuint_t count1, const Box* src2, sysuint_t count2, bool memOverlap, const Box* new_extents)
 {
   Box* destBegin;                      // destination begin
   Box* destCur;                        // destination ptr
@@ -260,97 +262,89 @@ static void _unitePrivate(Region* dest, const Box* src1, sysuint_t count1, const
   Box* prevBand;                       // pointer to start of previous band
   Box* curBand;                        // pointer to start of current band
 
-  sysuint_t min_rects_needed = (count1 + count2) << 1;
+  sysuint_t minRectsNeeded = (count1 + count2) << 1;
 
-  // trivial reject
-  if (src1 == src1End || src2 == src2End) 
-  {
-    dest->clear();
-    return;
-  }
+  // Trivial reject.
+  if (src1 == src1End) return dest->set(*src2);
+  if (src2 == src2End) return dest->set(*src1);
 
-  // new region data in case that it needs it
-  Region::Data* newd = 0;
+  // New region data in case that it needs it.
+  Region::Data* newd = NULL;
+  sysuint_t count;
 
-  // local buffer that can be used instead of malloc in mosst calls
-  // can be increased to higher values, but I think that 256 is ok
-  Box static_buffer[256];
+  // Local buffer that can be used instead of malloc in mosst calls
+  // can be increased to higher values, but I think that 256 is ok.
+  Box staticBuffer[256];
 
   if (memOverlap)
   {
-    // need to allocate new block
-    if (min_rects_needed < FOG_ARRAY_SIZE(static_buffer))
+    // Need to allocate new block.
+    if (minRectsNeeded < FOG_ARRAY_SIZE(staticBuffer))
     {
-      destCur = static_buffer;
+      destCur = staticBuffer;
     }
     else
     {
-      newd = Region::Data::create(min_rects_needed, Fog::AllocCantFail);
+      newd = Region::Data::create(minRectsNeeded);
+      if (!newd) return Error::OutOfMemory;
       destCur = newd->rects;
     }
   }
   else
   {
-    // can use dest
-    dest->prepare(min_rects_needed);
+    // Can use dest.
+    err_t err;
+    if ((err = dest->prepare(minRectsNeeded))) { dest->clear(); return err; }
     destCur = dest->_d->rects;
   }
 
   destBegin = destCur;
-
-  /*
-    Initialize ybot and ytop.
-    In the upcoming loop, ybot and ytop serve different functions depending
-    on whether the band being handled is an overlapping or non-overlapping
-    band.
-    In the case of a non-overlapping band (only one of the regions
-    has points in the band), ybot is the bottom of the most recent
-    intersection and thus clips the top of the rectangles in that band.
-    ytop is the top of the next intersection between the two regions and
-    serves to clip the bottom of the rectangles in the current band.
-    For an overlapping band (where the two regions intersect), ytop clips
-    the top of the rectangles of both regions and ybot clips the bottoms.
-  */
+  
+  // Initialize ybot and ytop.
+  // In the upcoming loop, ybot and ytop serve different functions depending
+  // on whether the band being handled is an overlapping or non-overlapping
+  // band.
+  // In the case of a non-overlapping band (only one of the regions
+  // has points in the band), ybot is the bottom of the most recent
+  // intersection and thus clips the top of the rectangles in that band.
+  // ytop is the top of the next intersection between the two regions and
+  // serves to clip the bottom of the rectangles in the current band.
+  // For an overlapping band (where the two regions intersect), ytop clips
+  // the top of the rectangles of both regions and ybot clips the bottoms.
 
   if (src1->y1() < src2->y1())
     ybot = src1->y1();
   else
     ybot = src2->y1();
 
-  /*
-    prevBand serves to mark the start of the previous band so rectangles
-    can be coalesced into larger rectangles. qv. coalesce, above.
-    In the beginning, there is no previous band, so prevBand == curBand
-    (curBand is set later on, of course, but the first band will always
-    start at index 0). prevBand and curBand must be indices because of
-    the possible expansion, and resultant moving, of the new region's
-    array of rectangles.
-  */
+  // prevBand serves to mark the start of the previous band so rectangles
+  // can be coalesced into larger rectangles. qv. coalesce, above.
+  // In the beginning, there is no previous band, so prevBand == curBand
+  // (curBand is set later on, of course, but the first band will always
+  // start at index 0). prevBand and curBand must be indices because of
+  // the possible expansion, and resultant moving, of the new region's
+  // array of rectangles.
   prevBand = destCur;
 
   do {
     curBand = destCur;
-    /*
-      This algorithm proceeds one source-band (as opposed to a
-      destination band, which is determined by where the two regions
-      intersect) at a time. src1BandEnd and src2BandEnd serve to mark the
-      rectangle after the last one in the current band for their
-      respective regions.
-    */
+    // This algorithm proceeds one source-band (as opposed to a
+    // destination band, which is determined by where the two regions
+    // intersect) at a time. src1BandEnd and src2BandEnd serve to mark the
+    // rectangle after the last one in the current band for their
+    // respective regions.
     src1BandEnd = src1;
     src2BandEnd = src2;
 
     while ((++src1BandEnd != src1End) && (src1BandEnd->y1() == src1->y1())) ;
     while ((++src2BandEnd != src2End) && (src2BandEnd->y1() == src2->y1())) ;
 
-    /*
-      First handle the band that doesn't intersect, if any.
-
-      Note that attention is restricted to one band in the
-      non-intersecting region at once, so if a region has n
-      bands between the current position and the next place it overlaps
-      the other, this entire loop will be passed through n times.
-    */
+    // First handle the band that doesn't intersect, if any.
+    //
+    // Note that attention is restricted to one band in the
+    // non-intersecting region at once, so if a region has n
+    // bands between the current position and the next place it overlaps
+    // the other, this entire loop will be passed through n times.
     if (src1->y1() < src2->y1())
     {
       top = Math::max(src1->y1(), ybot);
@@ -359,7 +353,7 @@ static void _unitePrivate(Region* dest, const Box* src1, sysuint_t count1, const
       if (top != bot)
       {
         const Box* ovrlp = src1;
-        while(ovrlp != src1BandEnd) { (*destCur++).set(ovrlp->x1(), top, ovrlp->x2(), bot); ovrlp++; }
+        while (ovrlp != src1BandEnd) { (*destCur++).set(ovrlp->x1(), top, ovrlp->x2(), bot); ovrlp++; }
 
         destCur = _coalesce(destCur, &prevBand, &curBand);
       }
@@ -372,16 +366,14 @@ static void _unitePrivate(Region* dest, const Box* src1, sysuint_t count1, const
       if (top != bot)
       {
         const Box* ovrlp = src2;
-        while(ovrlp != src2BandEnd) { (*destCur++).set(ovrlp->x1(), top, ovrlp->x2(), bot); ovrlp++; }
+        while (ovrlp != src2BandEnd) { (*destCur++).set(ovrlp->x1(), top, ovrlp->x2(), bot); ovrlp++; }
 
         destCur = _coalesce(destCur, &prevBand, &curBand);
       }
     }
 
-    /*
-      Now see if we've hit an intersecting band. The two bands only
-      intersect if ybot > ytop
-    */
+    // Now see if we've hit an intersecting band. The two bands only
+    // intersect if ybot > ytop.
     ytop = Math::max(src1->y1(), src2->y1());
     ybot = Math::min(src1->y2(), src2->y2());
     if (ybot > ytop)
@@ -389,18 +381,18 @@ static void _unitePrivate(Region* dest, const Box* src1, sysuint_t count1, const
       const Box* i1 = src1;
       const Box* i2 = src2;
 
-      // unite
+      // Unite.
       #define MERGE_RECT(__x1__, __y1__, __x2__, __y2__) \
-          if (destCur != destBegin &&                                   \
-             (destCur[-1].y1() == __y1__) &&                            \
-             (destCur[-1].y2() == __y2__) &&                            \
-             (destCur[-1].x2() >= __x1__))                              \
-          {                                                             \
-              if (destCur[-1].x2() < __x2__) destCur[-1]._x2 = __x2__;  \
-          }                                                             \
-          else {                                                        \
-              (*destCur++).set(__x1__, __y1__, __x2__, __y2__);         \
-          }
+        if (destCur != destBegin &&                                 \
+         (destCur[-1].y1() == __y1__) &&                            \
+         (destCur[-1].y2() == __y2__) &&                            \
+         (destCur[-1].x2() >= __x1__))                              \
+        {                                                           \
+          if (destCur[-1].x2() < __x2__) destCur[-1]._x2 = __x2__;  \
+        }                                                           \
+        else {                                                      \
+          (*destCur++).set(__x1__, __y1__, __x2__, __y2__);         \
+        }
 
       while ((i1 != src1BandEnd) && (i2 != src2BandEnd))
       {
@@ -433,17 +425,13 @@ static void _unitePrivate(Region* dest, const Box* src1, sysuint_t count1, const
       destCur = _coalesce(destCur, &prevBand, &curBand);
     }
 
-    /*
-      If we've finished with a band (y2 == ybot) we skip forward
-      in the region to the next band.
-    */
+    // If we've finished with a band (y2 == ybot) we skip forward
+    // in the region to the next band.
     if (src1->y2() == ybot) src1 = src1BandEnd;
     if (src2->y2() == ybot) src2 = src2BandEnd;
   } while ((src1 != src1End) && (src2 != src2End));
 
-  /*
-    Deal with whichever region still has rectangles left.
-  */
+  // Deal with whichever region still has rectangles left.
   if (src1 != src1End || src2 != src2End)
   {
     const Box* src;
@@ -463,47 +451,47 @@ static void _unitePrivate(Region* dest, const Box* src1, sysuint_t count1, const
     int y0 = src->y1();
     int y1 = Math::max(src->y1(), ybot);
 
-    // append first band and coalesce
+    // Append first band and coalesce.
     while (src != srcEnd && src->y1() == y0) { (*destCur++).set(src->x1(), y1, src->x2(), src->y2()); src++; }
     destCur = _coalesce(destCur, &prevBand, &curBand);
 
-    // append remaining rectangles, coalesce isn't needed
+    // Append remaining rectangles, coalesce isn't needed.
     while (src != srcEnd) *destCur++ = *src++;
-
   }
 
-  // finished, we have complete intersected region in destCur
-  sysuint_t c = sysuint_t( destCur - destBegin );
-
-  // its paranoid here, because unite_private is called only if there are
-  // rectangles in regions
-  if (c)
+  // Finished, we have complete intersected region in destCur.
+  //
+  // Its paranoid here, because unite_private is called only if there are
+  // rectangles in regions.
+  if ((count = sysuint_t(destCur - destBegin)) != 0)
   {
     if (memOverlap)
     {
-      if (destBegin == static_buffer)
+      if (destBegin == staticBuffer)
       {
-        dest->reserve(c);
-        _copyRects(dest->_d->rects, destBegin, c);
+        err_t err;
+        if ((err = dest->reserve(count))) { dest->clear(); return err; }
+        _copyRects(dest->_d->rects, destBegin, count);
       }
       else
       {
-        dest->_d->DEREF_INLINE();
+        dest->_d->deref();
         dest->_d = newd;
       }
     }
 
     dest->_d->extents = *new_extents;
-    dest->_d->count = c;
+    dest->_d->count = count;
   }
   else
   {
-    if (memOverlap && destBegin == static_buffer) Fog::Memory::free(newd);
+    if (memOverlap && destBegin == staticBuffer) Memory::free(newd);
     dest->clear();
   }
+  return Error::Ok;
 }
 
-static void _intersectPrivate(Region* dest, const Box* src1, sysuint_t count1, const Box* src2, sysuint_t count2, bool memOverlap)
+static err_t _intersectPrivate(Region* dest, const Box* src1, sysuint_t count1, const Box* src2, sysuint_t count2, bool memOverlap)
 {
   Box* destBegin;                      // destination begin
   Box* destCur;                        // destination ptr
@@ -526,17 +514,16 @@ static void _intersectPrivate(Region* dest, const Box* src1, sysuint_t count1, c
   // simplest case, if there are only 1 rect in each -> rects overlap
   if (count1 == 1 && count2 == 1)
   {
-    dest->set(Box(Math::max(src1->x1(), src2->x1()), Math::max(src1->y1(), src2->y1()),
-                  Math::min(src1->x2(), src2->x2()), Math::min(src1->y2(), src2->y2())));
-    return;
+    return dest->set(Box(Math::max(src1->x1(), src2->x1()), Math::max(src1->y1(), src2->y1()),
+                         Math::min(src1->x2(), src2->x2()), Math::min(src1->y2(), src2->y2())));
   }
 
-  sysuint_t min_rects_needed = (count1 + count2) << 1;
+  sysuint_t minRectsNeeded = (count1 + count2) << 1;
 
-  /* Find first rectangle that can intersect */
-  while (true)
+  // Find first rectangle that can intersect.
+  for (;;)
   {
-    if (src1 == src1End || src2 == src2End) { dest->clear(); return; }
+    if (src1 == src1End || src2 == src2End) { dest->clear(); return Error::Ok; }
 
     if (src1->y2() < src2->y1()) { src1++; continue; }
     if (src2->y2() < src1->y1()) { src2++; continue; }
@@ -544,71 +531,67 @@ static void _intersectPrivate(Region* dest, const Box* src1, sysuint_t count1, c
     break;
   }
 
-  // new region data in case that it needs it
-  Region::Data* newd = 0;
+  // New region data in case that it needs it.
+  Region::Data* newd = NULL;
+  sysuint_t count;
 
-  // local buffer that can be used instead of malloc in mosst calls
-  // can be increased to higher values, but I think that 256 is ok
-  Box static_buffer[256];
+  // Local buffer that can be used instead of malloc in mosst calls
+  // can be increased to higher values, but I think that 256 is ok.
+  Box staticBuffer[256];
 
   if (memOverlap)
   {
-    // need to allocate new block
-    if (min_rects_needed < FOG_ARRAY_SIZE(static_buffer))
+    // Need to allocate new block.
+    if (minRectsNeeded < FOG_ARRAY_SIZE(staticBuffer))
     {
-      destCur = static_buffer;
+      destCur = staticBuffer;
     }
     else
     {
-      newd = Region::Data::create(min_rects_needed, Fog::AllocCantFail);
+      newd = Region::Data::create(minRectsNeeded);
+      if (!newd) { dest->clear(); return Error::OutOfMemory; }
       destCur = newd->rects;
     }
   }
   else
   {
-    // can use dest
-    dest->prepare(min_rects_needed);
+    // Can use dest.
+    err_t err;
+    if ((err = dest->prepare(minRectsNeeded))) { dest->clear(); return err; }
     destCur = dest->_d->rects;
   }
 
   destBegin = destCur;
 
-  /*
-    prevBand serves to mark the start of the previous band so rectangles
-    can be coalesced into larger rectangles. qv. miCoalesce, above.
-    In the beginning, there is no previous band, so prevBand == curBand
-    (curBand is set later on, of course, but the first band will always
-    start at index 0). prevBand and curBand must be indices because of
-    the possible expansion, and resultant moving, of the new region's
-    array of rectangles.
-  */
+  // prevBand serves to mark the start of the previous band so rectangles
+  // can be coalesced into larger rectangles. qv. miCoalesce, above.
+  // In the beginning, there is no previous band, so prevBand == curBand
+  // (curBand is set later on, of course, but the first band will always
+  // start at index 0). prevBand and curBand must be indices because of
+  // the possible expansion, and resultant moving, of the new region's
+  // array of rectangles.
   prevBand = destCur;
 
   do {
     curBand = destCur;
 
-    /*
-      This algorithm proceeds one source-band (as opposed to a
-      destination band, which is determined by where the two regions
-      intersect) at a time. src1BandEnd and src2BandEnd serve to mark the
-      rectangle after the last one in the current band for their
-      respective regions.
-    */
+    // This algorithm proceeds one source-band (as opposed to a destination
+    // band, which is determined by where the two regions intersect) at a time.
+    // src1BandEnd and src2BandEnd serve to mark the rectangle after the last 
+    // one in the current band for their respective regions.
     src1BandEnd = src1;
     src2BandEnd = src2;
 
     while ((src1BandEnd != src1End) && (src1BandEnd->y1() == src1->y1())) src1BandEnd++;
     while ((src2BandEnd != src2End) && (src2BandEnd->y1() == src2->y1())) src2BandEnd++;
 
-    /*
-      See if we've hit an intersecting band. The two bands only
-      intersect if ybot > ytop
-    */
+    // See if we've hit an intersecting band. The two bands only
+    // intersect if ybot > ytop.
     ytop = Math::max(src1->y1(), src2->y1());
     ybot = Math::min(src1->y2(), src2->y2());
     if (ybot > ytop)
     {
-      // intersect
+      // Intersect.
       const Box* i1 = src1;
       const Box* i2 = src2;
 
@@ -620,25 +603,21 @@ static void _intersectPrivate(Region* dest, const Box* src1, sysuint_t count1, c
         x1 = Math::max(i1->x1(), i2->x1());
         x2 = Math::min(i1->x2(), i2->x2());
 
-        /*
-          If there's any overlap between the two rectangles, add that
-          overlap to the new region.
-          There's no need to check for subsumption because the only way
-          such a need could arise is if some region has two rectangles
-          right next to each other. Since that should never happen...
-        */
+        // If there's any overlap between the two rectangles, add that
+        // overlap to the new region.
+        // There's no need to check for subsumption because the only way
+        // such a need could arise is if some region has two rectangles
+        // right next to each other. Since that should never happen...
         if (x1 < x2)
         {
-          // append rectangle
+          // Append rectangle.
           destCur->set(x1, ytop, x2, ybot);
           destCur++;
         }
 
-        /*
-          Need to advance the pointers. Shift the one that extends
-          to the right the least, since the other still has a chance to
-          overlap with that region's next rectangle, if you see what I mean.
-        */
+        // Need to advance the pointers. Shift the one that extends
+        // to the right the least, since the other still has a chance to
+        // overlap with that region's next rectangle, if you see what I mean.
         if (i1->x2() < i2->x2())
         {
           i1++;
@@ -658,30 +637,28 @@ static void _intersectPrivate(Region* dest, const Box* src1, sysuint_t count1, c
       {
         destCur = _coalesce(destCur, &prevBand, &curBand);
 
-        // update x1 and x2 extents
+        // Update x1 and x2 extents.
         if (curBand[0].x1() < extentsX1) extentsX1 = curBand[0].x1();
         if (destCur[-1].x2() > extentsX2) extentsX2 = destCur[-1].x2();
       }
     }
 
-    /*
-      If we've finished with a band (y2 == ybot) we skip forward
-      in the region to the next band.
-    */
+    // If we've finished with a band (y2 == ybot) we skip forward
+    // in the region to the next band.
     if (src1->y2() == ybot) src1 = src1BandEnd;
     if (src2->y2() == ybot) src2 = src2BandEnd;
   } while ((src1 != src1End) && (src2 != src2End));
 
-  // finished, we have complete intersected region in destCur
-  sysuint_t c = sysuint_t( destCur - destBegin );
-
-  if (c)
+  // Finished, we have complete intersected region in destCur.
+  if ((count = sysuint_t(destCur - destBegin)) != 0)
   {
-    if (memOverlap) {
-      if (destBegin == static_buffer)
+    if (memOverlap)
+    {
+      if (destBegin == staticBuffer)
       {
-        dest->reserve(c);
-        _copyRects(dest->_d->rects, destBegin, c);
+        err_t err;
+        if ((err = dest->reserve(count))) { dest->clear(); return err; }
+        _copyRects(dest->_d->rects, destBegin, count);
       }
       else
       {
@@ -690,19 +667,18 @@ static void _intersectPrivate(Region* dest, const Box* src1, sysuint_t count1, c
       }
     }
 
-    dest->_d->count = c;
-    dest->_d->extents.set(
-      extentsX1, destBegin[0].y1(), 
-      extentsX2, destCur[-1].y2());
+    dest->_d->count = count;
+    dest->_d->extents.set(extentsX1, destBegin[0].y1(), extentsX2, destCur[-1].y2());
   }
   else
   {
-    if (memOverlap && destBegin == static_buffer) Fog::Memory::free(newd);
+    if (memOverlap && destBegin == staticBuffer) Memory::free(newd);
     dest->clear();
   }
+  return Error::Ok;
 }
 
-static void _subtractPrivate(Region* dest, const Box* src1, sysuint_t count1, const Box* src2, sysuint_t count2, bool memOverlap)
+static err_t _subtractPrivate(Region* dest, const Box* src1, sysuint_t count1, const Box* src2, sysuint_t count2, bool memOverlap)
 {
   Box* destBegin;                      // destination begin
   Box* destCur;                        // destination ptr
@@ -726,102 +702,98 @@ static void _subtractPrivate(Region* dest, const Box* src1, sysuint_t count1, co
   Box* prevBand;                       // pointer to start of previous band
   Box* curBand;                        // pointer to start of current band
 
-  sysuint_t min_rects_needed = (count1 + count2) << 1;
+  sysuint_t minRectsNeeded = (count1 + count2) << 1;
 
-  Region::Data* d;
+  Region::Data* newd;
+  sysuint_t count;
 
   if (memOverlap)
   {
-    d = Region::Data::create(min_rects_needed, Fog::AllocCantFail);
+    newd = Region::Data::create(minRectsNeeded);
+    if (!newd) { dest->clear(); return Error::OutOfMemory; }
   }
   else
   {
-    dest->prepare(min_rects_needed);
-    d = dest->_d;
+    err_t err = dest->prepare(minRectsNeeded);
+    if (err) { dest->clear(); return Error::OutOfMemory; }
+    newd = dest->_d;
   }
 
-  destCur = d->rects;
-  destEnd = destCur + d->capacity;
+  destCur = newd->rects;
+  destEnd = destCur + newd->capacity;
   destBegin = destCur;
 
-  /*
-    Initialize ybot and ytop.
-    In the upcoming loop, ybot and ytop serve different functions depending
-    on whether the band being handled is an overlapping or non-overlapping
-    band.
-    In the case of a non-overlapping band (only one of the regions
-    has points in the band), ybot is the bottom of the most recent
-    intersection and thus clips the top of the rectangles in that band.
-    ytop is the top of the next intersection between the two regions and
-    serves to clip the bottom of the rectangles in the current band.
-    For an overlapping band (where the two regions intersect), ytop clips
-    the top of the rectangles of both regions and ybot clips the bottoms.
-  */
+  // Initialize ybot and ytop.
+  // In the upcoming loop, ybot and ytop serve different functions depending
+  // on whether the band being handled is an overlapping or non-overlapping
+  // band.
+  // In the case of a non-overlapping band (only one of the regions
+  // has points in the band), ybot is the bottom of the most recent
+  // intersection and thus clips the top of the rectangles in that band.
+  // ytop is the top of the next intersection between the two regions and
+  // serves to clip the bottom of the rectangles in the current band.
+  // For an overlapping band (where the two regions intersect), ytop clips
+  // the top of the rectangles of both regions and ybot clips the bottoms.
 
   if (src1->y1() < src2->y1())
     ybot = src1->y1();
   else
     ybot = src2->y1();
 
-  /*
-    prevBand serves to mark the start of the previous band so rectangles
-    can be coalesced into larger rectangles. qv. coalesce, above.
-    In the beginning, there is no previous band, so prevBand == curBand
-    (curBand is set later on, of course, but the first band will always
-    start at index 0). prevBand and curBand must be indices because of
-    the possible expansion, and resultant moving, of the new region's
-    array of rectangles.
-  */
+  // prevBand serves to mark the start of the previous band so rectangles
+  // can be coalesced into larger rectangles. qv. coalesce, above.
+  // In the beginning, there is no previous band, so prevBand == curBand
+  // (curBand is set later on, of course, but the first band will always
+  // start at index 0). prevBand and curBand must be indices because of
+  // the possible expansion, and resultant moving, of the new region's
+  // array of rectangles.
   prevBand = destCur;
 
-  /*
-    macro for merging rectangles, it's designed to simplify loop, because
-    result of subtraction can be more than 'min_need_needed' we need to
-    detect end of the destination buffer.
-  */
+  // macro for merging rectangles, it's designed to simplify loop, because
+  // result of subtraction can be more than 'minRectsNeeded' we need to
+  // detect end of the destination buffer.
   #define ADD_RECT(__x1__, __y1__, __x2__, __y2__) \
-      if (FOG_UNLIKELY(destCur == destEnd)) {                        \
-          sysuint_t count = d->capacity;                              \
-          sysuint_t prevBandIndex = (sysuint_t)(prevBand - destBegin);\
-          sysuint_t curBandIndex = (sysuint_t)(curBand - destBegin);  \
-                                                                      \
-          d = _reallocRegion(d, count << 1);                          \
-          destBegin = d->rects;                                       \
-          destCur = destBegin + count;                                \
-          destEnd = destBegin + d->capacity;                          \
-                                                                      \
-          prevBand = destBegin + prevBandIndex;                       \
-          curBand = destBegin + curBandIndex;                         \
-      }                                                               \
-      destCur->set(__x1__, __y1__, __x2__, __y2__);                   \
-      destCur++;                                                      \
-                                                                      \
-      if (FOG_UNLIKELY(extentsX1 > __x1__)) extentsX1 = __x1__;      \
-      if (FOG_UNLIKELY(extentsX2 < __x2__)) extentsX2 = __x2__
+    if (FOG_UNLIKELY(destCur == destEnd)) {                       \
+      sysuint_t count = newd->capacity;                           \
+      sysuint_t prevBandIndex = (sysuint_t)(prevBand - destBegin);\
+      sysuint_t curBandIndex = (sysuint_t)(curBand - destBegin);  \
+                                                                  \
+      Region::Data* _d = _reallocRegion(newd, count << 1);        \
+      if (!_d) goto outOfMemory;                                  \
+                                                                  \
+      newd = _d;                                                  \
+      destBegin = newd->rects;                                    \
+      destCur = destBegin + count;                                \
+      destEnd = destBegin + newd->capacity;                       \
+                                                                  \
+      prevBand = destBegin + prevBandIndex;                       \
+      curBand = destBegin + curBandIndex;                         \
+    }                                                             \
+    destCur->set(__x1__, __y1__, __x2__, __y2__);                 \
+    destCur++;                                                    \
+                                                                  \
+    if (FOG_UNLIKELY(extentsX1 > __x1__)) extentsX1 = __x1__;     \
+    if (FOG_UNLIKELY(extentsX2 < __x2__)) extentsX2 = __x2__
 
   do {
     curBand = destCur;
-    /*
-      This algorithm proceeds one source-band (as opposed to a
-      destination band, which is determined by where the two regions
-      intersect) at a time. src1BandEnd and src2BandEnd serve to mark the
-      rectangle after the last one in the current band for their
-      respective regions.
-    */
+    // This algorithm proceeds one source-band (as opposed to a
+    // destination band, which is determined by where the two regions
+    // intersect) at a time. src1BandEnd and src2BandEnd serve to mark the
+    // rectangle after the last one in the current band for their
+    // respective regions.
     src1BandEnd = src1;
     src2BandEnd = src2;
 
     while ((src1BandEnd != src1End) && (src1BandEnd->y1() == src1->y1())) src1BandEnd++;
     while ((src2BandEnd != src2End) && (src2BandEnd->y1() == src2->y1())) src2BandEnd++;
 
-    /*
-      First handle the band that doesn't intersect, if any.
-
-      Note that attention is restricted to one band in the
-      non-intersecting region at once, so if a region has n
-      bands between the current position and the next place it overlaps
-      the other, this entire loop will be passed through n times.
-    */
+    // First handle the band that doesn't intersect, if any.
+    //
+    // Note that attention is restricted to one band in the
+    // non-intersecting region at once, so if a region has n
+    // bands between the current position and the next place it overlaps
+    // the other, this entire loop will be passed through n times.
     if (src1->y1() < src2->y1())
     {
       // non overlap (src1) - merge it
@@ -837,10 +809,8 @@ static void _subtractPrivate(Region* dest, const Box* src1, sysuint_t count1, co
       }
     }
 
-    /*
-      Now see if we've hit an intersecting band. The two bands only
-      intersect if ybot > ytop
-    */
+    // Now see if we've hit an intersecting band. The two bands only
+    // intersect if ybot > ytop
     ytop = Math::max(src1->y1(), src2->y1());
     ybot = Math::min(src1->y2(), src2->y2());
     if (ybot > ytop)
@@ -854,59 +824,53 @@ static void _subtractPrivate(Region* dest, const Box* src1, sysuint_t count1, co
       {
         if (i2->x2() <= x1)
         {
-          /* Subtrahend missed the boat: go to next subtrahend. */
+          // Subtrahend missed the boat: go to next subtrahend.
           i2++;
         }
         else if (i2->x1() <= x1)
         {
-          /* Subtrahend preceeds minuend: nuke left edge of minuend. */
+          // Subtrahend preceeds minuend: nuke left edge of minuend.
           x1 = i2->x2();
           if (x1 >= i1->x2())
           {
-            /*
-              Minuend completely covered: advance to next minuend and
-              reset left fence to edge of new minuend.
-            */
+            // Minuend completely covered: advance to next minuend and
+            // reset left fence to edge of new minuend.
             if (++i1 != src1BandEnd) x1 = i1->x1();
           }
           else
           {
-            /*
-              Subtrahend now used up since it doesn't extend beyond
-              minuend
-            */
+            // Subtrahend now used up since it doesn't extend beyond
+            // minuend.
             i2++;
           }
         }
         else if (i2->x1() < i1->x2())
         {
-          /*
-            x1 part of subtrahend covers part of minuend: add uncovered
-            part of minuend to region and skip to next subtrahend.
-          */
+          // x1 part of subtrahend covers part of minuend: add uncovered
+          // part of minuend to region and skip to next subtrahend.
           ADD_RECT(x1, ytop, i2->x1(), ybot);
 
           x1 = i2->x2();
           if (x1 >= i1->x2())
           {
-            /* Minuend used up: advance to new... */
+            // Minuend used up: advance to new...
             if (++i1 != src1BandEnd) x1 = i1->x1();
           }
           else
           {
-            /* Subtrahend used up */
+            // Subtrahend used up.
             i2++;
           }
         }
         else
         {
-          /* Minuend used up: add any remaining piece before advancing. */
+          // Minuend used up: add any remaining piece before advancing.
           if (i1->x2() > x1) { ADD_RECT(x1, ytop, i1->x2(), ybot); }
           if (++i1 != src1BandEnd) x1 = i1->x1();
         }
       }
 
-      /* Add remaining minuend rectangles to region. */
+      // Add remaining minuend rectangles to region.
       while (i1 != src1BandEnd)
       {
         ADD_RECT(x1, ytop, i1->x2(), ybot);
@@ -916,17 +880,13 @@ static void _subtractPrivate(Region* dest, const Box* src1, sysuint_t count1, co
       destCur = _coalesce(destCur, &prevBand, &curBand);
     }
 
-    /*
-      If we've finished with a band (y2 == ybot) we skip forward
-      in the region to the next band.
-    */
+    // If we've finished with a band (y2 == ybot) we skip forward
+    // in the region to the next band.
     if (src1->y2() == ybot) src1 = src1BandEnd;
     if (src2->y2() == ybot) src2 = src2BandEnd;
   } while ((src1 != src1End) && (src2 != src2End));
 
-  /*
-    Deal with whichever src1 still has rectangles left.
-  */
+  // Deal with whichever src1 still has rectangles left.
   if (src1 != src1End)
   {
     const Box* src;
@@ -938,42 +898,49 @@ static void _subtractPrivate(Region* dest, const Box* src1, sysuint_t count1, co
     int y0 = src->y1();
     int y1 = Math::max(src->y1(), ybot);
 
-    // append first band and coalesce
+    // Append first band and coalesce.
     while (src != srcEnd && src->y1() == y0)
     {
       ADD_RECT(src->x1(), y1, src->x2(), src->y2()); src++;
     }
     destCur = _coalesce(destCur, &prevBand, &curBand);
 
-    // append remaining rectangles, coalesce isn't needed
+    // Append remaining rectangles, coalesce isn't needed.
     while (src != srcEnd) { ADD_RECT(src->x1(), src->y1(), src->x2(), src->y2()); src++; }
   }
 
   #undef ADD_RECT
 
-  // finished, we have complete intersected region in destCur
-  sysuint_t count = sysuint_t( destCur - destBegin );
-  if (count)
+  // Finished, we have complete intersected region in destCur.
+  if ((count = sysuint_t(destCur - destBegin)) != 0)
   {
     if (memOverlap) dest->_d->deref();
 
-    d->extents.set(extentsX1, destBegin[0].y1(), extentsX2, destCur[-1].y2());
-    d->count = count;
-    dest->_d = d;
+    newd->extents.set(extentsX1, destBegin[0].y1(), extentsX2, destCur[-1].y2());
+    newd->count = count;
+    dest->_d = newd;
   }
   else
   {
-    if (memOverlap) Fog::Memory::free(d);
+    if (memOverlap) Memory::free(newd);
     dest->clear();
   }
+  return Error::Ok;
+
+outOfMemory:
+  if (memOverlap) Memory::free(newd);
+  dest->clear();
+  return Error::OutOfMemory;
 }
 
-static void _appendPrivate(Region* dest, const Box* src, sysuint_t count, const Box* new_extents)
+static err_t _appendPrivate(Region* dest, const Box* src, sysuint_t count, const Box* new_extents)
 {
-  // its guaranted that we CAN append region and its also guaranted that
+  err_t err;
+
+  // Its guaranted that we CAN append region and its also guaranted that
   // destination region has minimal 1 rectangle, so [-1] index from end
-  // must be valid
-  dest->reserve(dest->count() + count);
+  // must be valid.
+  if ((err = dest->reserve(dest->count() + count))) return err;
 
   Box* destBegin = dest->_d->rects;
   Box* destCur = destBegin + dest->_d->count;
@@ -982,19 +949,19 @@ static void _appendPrivate(Region* dest, const Box* src, sysuint_t count, const 
 
   if (src->y1() == destCur[-1].y1())
   {
-    // here is an interesting case that we will append an band that exist
+    // Here is an interesting case that we will append an band that exist
     // in destination
     //
     // XXXXXXXXX
     // XXXXX<-Here
 
-    // merge first? (we can increase an existing band)
+    // Merge first? (we can increase an existing band).
     if (destCur[-1].x2() == src->x1()) { destCur[-1].setX2(src->x2()); src++; }
 
-    // append all other bands
+    // Append all other bands.
     while (src != srcEnd && destCur[-1].y1() == src->y1()) *destCur++ = *src++;
 
-    // coalesce
+    // Coalesce.
     {
       Box* destBand1Begin;
       Box* destBand2Begin = destCur-1;
@@ -1012,7 +979,7 @@ static void _appendPrivate(Region* dest, const Box* src, sysuint_t count, const 
 
         if (index1 == index2)
         {
-          // it's chance for coalesce, need to compare bands
+          // It's chance for coalesce, need to compare bands.
           sysuint_t i;
           for (i = 0; i != index1; i++)
           {
@@ -1021,7 +988,7 @@ static void _appendPrivate(Region* dest, const Box* src, sysuint_t count, const 
             goto __noCoalesce;
           }
 
-          // coalesce now;
+          // Coalesce now.
           y = destBand2Begin[0].y2();
           for (i = 0; i != index1; i++)
           {
@@ -1038,15 +1005,15 @@ __noCoalesce:
 
   if (src->y1() == destCur[-1].y2())
   {
-    // coalesce, need to find previous band in dest
+    // Coalesce, need to find previous band in dest.
     Box* destBandBegin = destCur-1;
     while (destBandBegin != destBegin && destBandBegin->y1() == destCur[-1].y1()) destBandBegin--;
 
     const Box* srcBandBegin = src;
     const Box* srcBandEnd = src;
-    while(srcBandEnd != srcEnd && srcBandEnd->y1() == src->y1()) srcBandEnd++;
+    while (srcBandEnd != srcEnd && srcBandEnd->y1() == src->y1()) srcBandEnd++;
 
-    // now we have:
+    // Now we have:
     // - source:
     //       srcBandBegin
     //       srcBandEnd
@@ -1055,38 +1022,42 @@ __noCoalesce:
     //       destBandEnd == destCur !
     if (srcBandEnd - srcBandBegin == destCur - destBandBegin)
     {
-      // probabbility for coasesce...
+      // Probabbility for coasesce...
       sysuint_t i, count = (sysuint_t)(srcBandEnd - srcBandBegin);
       for (i = 0; i != count; i++)
       {
         if (srcBandBegin[i].x1() != destBandBegin[i].x1() ||
             srcBandBegin[i].x2() != destBandBegin[i].x2())
         {
-          goto __fast_append;
+          goto __fastAppend;
         }
       }
 
-      // coalesce success
+      // Coalesce success.
       int y2 = srcBandBegin->y2();
       for (i = 0; i != count; i++) destBandBegin[i].setY2(y2);
     }
   }
 
-__fast_append:
-  // fastest case, fast append, no coasesce...
+__fastAppend:
+  // Fastest case, fast append, no coasesce...
   while (src != srcEnd) *destCur++ = *src++;
 
 __end:
   dest->_d->count = (sysuint_t)(destCur - destBegin);
   dest->_d->extents = *new_extents;
+
+  return Error::Ok;
 }
 
+// ============================================================================
 // [Fog::Region]
+// ============================================================================
 
-Fog::Static<Region::Data> Region::sharedNull;
+Static<Region::Data> Region::sharedNull;
 
 Region::Region() :
-  _d(sharedNull.instancep()->REF_ALWAYS())
+  _d(sharedNull.instancep()->refAlways())
 {
 }
 
@@ -1102,7 +1073,7 @@ Region::Region(const Rect& rect)
 }
 
 Region::Region(const Region& other) :
-  _d(other._d->REF_INLINE())
+  _d(other._d->ref())
 {
 }
 
@@ -1113,10 +1084,10 @@ Region::Region(Data* d) :
 
 Region::~Region()
 {
-  _d->DEREF_INLINE();
+  _d->derefInline();
 }
 
-void Region::_detach()
+err_t Region::_detach()
 {
   Data* d = _d;
 
@@ -1125,105 +1096,110 @@ void Region::_detach()
     if (d->count > 0)
     {
       d = Data::create(d->count, &d->extents, d->rects, d->count);
+      if (!d) return Error::OutOfMemory;
     }
     else
     {
-      d = Data::create(d->count, Fog::AllocCantFail);
+      d = Data::create(d->count);
+      if (!d) return Error::OutOfMemory;
       d->extents.clear();
     }
-    Fog::AtomicBase::ptr_setXchg(&_d, d)->DEREF_INLINE();
+    AtomicBase::ptr_setXchg(&_d, d)->deref();
   }
-}
 
-bool Region::_tryDetach()
-{
-  Data* d = _d;
-
-  if (d->refCount.get() > 1)
-  {
-    sysuint_t count = d->count;
-
-    d = Data::create(count, Fog::AllocCantFail);
-    if (!d) return false;
-    d->count = count;
-    d->extents = _d->extents;
-    _copyRects(d->rects, _d->rects, count);
-    Fog::AtomicBase::ptr_setXchg(&_d, d)->DEREF_INLINE();
-  }
-  return true;
+  return Error::Ok;
 }
 
 void Region::free()
 {
-  Fog::AtomicBase::ptr_setXchg(&_d,
-    sharedNull.instancep()->REF_ALWAYS())->DEREF_INLINE();
+  AtomicBase::ptr_setXchg(&_d, sharedNull.instancep()->refAlways())->derefInline();
 }
 
-void Region::setSharable(bool val)
+err_t Region::setSharable(bool val)
 {
   if (isSharable() != val)
   {
-    detach();
+    err_t err = detach();
+    if (err) return err;
 
     if (val)
       _d->flags |= Data::IsSharable;
     else
       _d->flags &= ~Data::IsSharable;
   }
+
+  return Error::Ok;
 }
 
-void Region::setStrong(bool val)
+err_t Region::setStrong(bool val)
 {
   if (isSharable() != val)
   {
-    detach();
+    err_t err = detach();
+    if (err) return err;
 
     if (val)
       _d->flags |= Data::IsStrong;
     else
       _d->flags &= ~Data::IsStrong;
   }
+
+  return Error::Ok;
 }
 
-void Region::reserve(sysuint_t to)
+err_t Region::reserve(sysuint_t to)
 {
   Data* d = _d;
 
   if (d->refCount.get() > 1)
   {
 __create:
-    Fog::AtomicBase::ptr_setXchg(&_d, 
-      Data::create(to, &d->extents, d->rects, d->count))->DEREF_INLINE();
+    Data* newd = Data::create(to, &d->extents, d->rects, d->count);
+    if (!newd) return Error::OutOfMemory;
+    AtomicBase::ptr_setXchg(&_d, newd)->derefInline();
   }
   else if (d->capacity < to)
   {
     if (!(d->flags & Data::IsDynamic)) goto __create;
 
-    d = _d = (Data *)Fog::Memory::xrealloc(d, Data::sizeFor(to));
-    d->capacity = to;
+    Data* newd = (Data *)Memory::realloc(d, Data::sizeFor(to));
+    if (!newd) return Error::OutOfMemory;
+    newd->capacity = to;
+    _d = newd;
   }
+
+  return Error::Ok;
 }
 
-void Region::prepare(sysuint_t to)
+err_t Region::prepare(sysuint_t to)
 {
   Data* d = _d;
 
   if (d->refCount.get() > 1)
   {
 __create:
-    Fog::AtomicBase::ptr_setXchg(&_d, 
-      Data::create(to, Fog::AllocCantFail))->DEREF_INLINE();
+    Data* newd = Data::create(to);
+    if (!newd) return Error::OutOfMemory;
+
+    AtomicBase::ptr_setXchg(&_d, newd)->derefInline();
   }
   else if (d->capacity < to)
   {
     if (!(d->flags & Data::IsDynamic)) goto __create;
 
-    d = _d = (Data *)Fog::Memory::xrealloc(d, Data::sizeFor(to));
-    d->capacity = to;
-    d->count = 0;
+    Data* newd = (Data *)Memory::realloc(d, Data::sizeFor(to));
+    if (!newd) return Error::OutOfMemory;
+
+    newd->capacity = to;
+    newd->count = 0;
+    _d = newd;
   }
   else
+  {
     d->count = 0;
+  }
+
+  return Error::Ok;
 }
 
 void Region::squeeze()
@@ -1237,17 +1213,19 @@ void Region::squeeze()
 
     if (d->refCount.get() > 1)
     {
-      d = Data::create(count, Fog::AllocCanFail);
+      d = Data::create(count);
       if (!d) return;
+
       d->count = count;
       d->extents = _d->extents;
       _copyRects(d->rects, _d->rects, count);
-      Fog::AtomicBase::ptr_setXchg(&_d, d)->deref();
+      AtomicBase::ptr_setXchg(&_d, d)->deref();
     }
     else
     {
-      d = (Data *)Fog::Memory::realloc(d, Data::sizeFor(count));
+      d = (Data *)Memory::realloc(d, Data::sizeFor(count));
       if (!d) return;
+
       _d = d;
       d->capacity = count;
     }
@@ -1322,10 +1300,9 @@ uint Region::contains(const Rect& r) const
 uint Region::contains(const Box& r) const
 {
   Data* d = _d;
-
   sysuint_t c = d->count;
 
-  // this is (just) a useful optimization
+  // This is (just) a useful optimization.
   if (!c || !d->extents.overlaps(r)) return Out;
 
   const Box* cur = d->rects;
@@ -1337,46 +1314,44 @@ uint Region::contains(const Box& r) const
   int x = r.x1();
   int y = r.y1();
 
-  // can stop when both PartOut and PartIn are true, or we reach cur->y2
+  // Can stop when both PartOut and PartIn are true, or we reach cur->y2.
   for (; cur < end; cur++)
   {
-    if (cur->y2() <= y)
-      // getting up to speed or skipping remainder of band
-      continue;
+    // Getting up to speed or skipping remainder of band.
+    if (cur->y2() <= y) continue;
 
     if (cur->y1() > y)
     {
-      // missed part of rectangle above
+      // Missed part of rectangle above.
       partOut = true;
       if (partIn || (cur->y1() >= r.y2())) break;
-      // x guaranteed to be == rect->x1
+      // X guaranteed to be == rect->x1.
       y = cur->y1();
     }
 
-    if (cur->x2() <= x)
-      // not far enough over yet
-      continue;
+    // Not far enough over yet.
+    if (cur->x2() <= x) continue;
 
     if (cur->x1() > x)
     {
-      // missed part of rectangle to left
+      // Missed part of rectangle to left.
       partOut = true;
       if (partIn) break;
     }
 
     if (cur->x1() < r.x2())
     {
-      // definitely overlap
+      // Definitely overlap.
       partIn = true;
       if (partOut) break;
     }
 
     if (cur->x2() >= r.x2())
     {
-      // finished with this band
+      // Finished with this band.
       y = cur->y2();
       if (y >= r.y2()) break;
-      // reset x out to left again
+      // Reset x out to left again.
       x = r.x1();
     }
     else
@@ -1393,34 +1368,32 @@ uint Region::contains(const Box& r) const
   return (partIn) ? ((y < r.y2()) ? Part : In) : Out;
 }
 
-Region& Region::clear()
+void Region::clear()
 {
   Data* d = _d;
-  if (d->count == 0) return *this;
+  if (d->count == 0) return;
 
   if (d->refCount.get() > 0)
   {
-    Fog::AtomicBase::ptr_setXchg(&_d, sharedNull.instancep()->REF_ALWAYS())->DEREF_INLINE();
+    AtomicBase::ptr_setXchg(&_d, sharedNull.instancep()->refAlways())->derefInline();
   }
   else
   {
     d->count = 0;
     d->extents.clear();
   }
-
-  return *this;
 }
 
-Region& Region::set(const Region& r)
+err_t Region::set(const Region& r)
 {
   Data* td = _d;
   Data* rd = r._d;
-  if (td == rd) return *this;
+  if (td == rd) return Error::Ok;
 
-  if ( (td->flags & Data::IsStrong) ||
-      !(rd->flags & Data::IsSharable))
+  if ((td->flags & Data::IsStrong) || !(rd->flags & Data::IsSharable))
   {
-    prepare(rd->count);
+    err_t err = prepare(rd->count);
+    if (err) return err;
 
     td = _d;
     td->count = rd->count;
@@ -1429,29 +1402,32 @@ Region& Region::set(const Region& r)
   }
   else
   {
-    Fog::AtomicBase::ptr_setXchg(&_d, rd->REF_ALWAYS())->DEREF_INLINE();
+    AtomicBase::ptr_setXchg(&_d, rd->refAlways())->derefInline();
   }
 
-  return *this;
+  return Error::Ok;
 }
 
-Region& Region::set(const Rect& r)
+err_t Region::set(const Rect& r)
 {
-  if (!r.isValid()) return clear();
+  if (!r.isValid()) { clear(); return Error::Ok; }
 
-  prepare(1);
-  Data* d = _d;
-  d->count = 1;
+  err_t err = prepare(1);
+  if (err) return err;
+
   Box b(r);
-  d->extents = b;
-  d->rects[0] = b;
+  Data* newd = _d;
 
-  return *this;
+  newd->count = 1;
+  newd->extents = b;
+  newd->rects[0] = b;
+
+  return Error::Ok;
 }
 
-Region& Region::set(const Box& r)
+err_t Region::set(const Box& r)
 {
-  if (!r.isValid()) return clear();
+  if (!r.isValid()) { clear(); return Error::Ok; }
 
   prepare(1);
   Data* d = _d;
@@ -1459,260 +1435,257 @@ Region& Region::set(const Box& r)
   d->extents = r;
   d->rects[0] = r;
 
-  return *this;
+  return Error::Ok;
 }
 
-Region& Region::setDeep(const Region& r)
+err_t Region::setDeep(const Region& r)
 {
   Data* td = _d;
   Data* rd = r._d;
-  if (td == rd) return *this;
+  if (td == rd) return Error::Ok;
 
-  prepare(rd->count);
+  err_t err = prepare(rd->count);
+  if (err) return err;
+
   td = _d;
   td->count = rd->count;
   td->extents = rd->extents;
   _copyRects(td->rects, rd->rects, rd->count);
 
-  return *this;
+  return Error::Ok;
 }
 
-Region& Region::set(const Rect* rects, sysuint_t count)
+err_t Region::set(const Rect* rects, sysuint_t count)
 {
-  // TODO: Not optimal
+  // TODO: Not optimal.
   clear();
   for (sysuint_t i = 0; i < count; i++) unite(rects[i]);
-  return *this;
+  return Error::Ok;
 }
 
-Region& Region::set(const Box* rects, sysuint_t count)
+err_t Region::set(const Box* rects, sysuint_t count)
 {
-  // TODO: Not optimal
+  // TODO: Not optimal.
   clear();
   for (sysuint_t i = 0; i < count; i++) unite(rects[i]);
-  return *this;
+  return Error::Ok;
 }
 
-Region& Region::unite(const Region& r)
+err_t Region::unite(const Region& r)
 {
   Data* td = _d;
   Data* rd = r._d;
 
   // Union region is same or r is empty... -> nop
-  if (td == rd || rd->count == 0) return *this;
+  if (td == rd || rd->count == 0) return Error::Ok;
 
   // We are empty or r completely subsumes us -> set r
-  if (td->count == 0 || (rd->count == 1 && rd->extents.subsumes(td->extents)))
-  {
-    return set(r);
-  }
+  if (td->count == 0 || (rd->count == 1 && rd->extents.subsumes(td->extents))) return set(r);
 
   // We completely subsumes r
-  if (td->count == 1 && rd->count == 1 && td->extents.subsumes(rd->extents)) return *this;
+  if (td->count == 1 && rd->count == 1 && td->extents.subsumes(rd->extents)) return Error::Ok;
 
   // Last optimization can be append
   const Box* sdlast = td->rects + td->count - 1;
   const Box* rdfirst = rd->rects;
 
-  Box ext(
-    Math::min(td->extents.x1(), rd->extents.x1()),
-    Math::min(td->extents.y1(), rd->extents.y1()),
-    Math::max(td->extents.x2(), rd->extents.x2()),
-    Math::max(td->extents.y2(), rd->extents.y2())
-  );
+  Box ext(Math::min(td->extents.x1(), rd->extents.x1()),
+          Math::min(td->extents.y1(), rd->extents.y1()),
+          Math::max(td->extents.x2(), rd->extents.x2()),
+          Math::max(td->extents.y2(), rd->extents.y2()));
 
-  if ( sdlast->y2() <= rdfirst->y1() ||
-      (sdlast->y1() == rdfirst->y1() &&
-       sdlast->y2() == rdfirst->y2() &&
-       sdlast->x2() <= rdfirst->x1() ))
-    _appendPrivate(this, rd->rects, rd->count, &ext);
+  err_t err;
+  if (sdlast->y2() <= rdfirst->y1() ||
+     (sdlast->y1() == rdfirst->y1() &&
+      sdlast->y2() == rdfirst->y2() &&
+      sdlast->x2() <= rdfirst->x1() ))
+  {
+    err = _appendPrivate(this, rd->rects, rd->count, &ext);
+  }
   else
-    _unitePrivate(this, td->rects, td->count, rd->rects, rd->count, true, &ext);
+  {
+    err = _unitePrivate(this, td->rects, td->count, rd->rects, rd->count, true, &ext);
+  }
 
-  return *this;
+  return err;
 }
 
-Region& Region::unite(const Rect& r)
+err_t Region::unite(const Rect& r)
 {
   return unite(Box(r));
 }
 
-Region& Region::unite(const Box& r)
+err_t Region::unite(const Box& r)
 {
   Data* td = _d;
 
-  if (!r.isValid()) return *this;
+  if (!r.isValid()) return Error::Ok;
 
-  // We are empty or 'r' completely subsumes us
-  if (td->count == 0 || r.subsumes(td->extents)) 
-  {
-    return set(r);
-  }
+  // We are empty or 'r' completely subsumes us.
+  if (td->count == 0 || r.subsumes(td->extents)) return set(r);
 
-  // We completely subsumes src
-  if (td->count == 1 && td->extents.subsumes(r)) return *this;
+  // We completely subsumes src.
+  if (td->count == 1 && td->extents.subsumes(r)) return Error::Ok;
 
-  Box ext(
-    Math::min(td->extents.x1(), r.x1()),
-    Math::min(td->extents.y1(), r.y1()),
-    Math::max(td->extents.x2(), r.x2()),
-    Math::max(td->extents.y2(), r.y2()));
+  Box ext(Math::min(td->extents.x1(), r.x1()),
+          Math::min(td->extents.y1(), r.y1()),
+          Math::max(td->extents.x2(), r.x2()),
+          Math::max(td->extents.y2(), r.y2()));
 
-  // Last optimization can be append
-
+  // Last optimization can be append.
   Box* sdlast = td->rects + td->count-1;
+  err_t err;
+
   if ( sdlast->y2() <= r.y1() ||
       (sdlast->y1() == r.y1() &&
        sdlast->y2() == r.y2() &&
        sdlast->x2() <= r.x1() ))
-    _appendPrivate(this, &r, 1, &ext);
+  {
+    err = _appendPrivate(this, &r, 1, &ext);
+  }
   else
-    _unitePrivate(this, td->rects, td->count, &r, 1, true, &ext);
+  {
+    err = _unitePrivate(this, td->rects, td->count, &r, 1, true, &ext);
+  }
 
-  return *this;
+  return err;
 }
 
-Region& Region::intersect(const Region& r)
+err_t Region::intersect(const Region& r)
 {
   Data* td = _d;
   Data* rd = r._d;
+  err_t err = Error::Ok;
 
   if (td == rd)
-    return *this;
+    ;
   else if (td->count == 0 || rd->count == 0 || !td->extents.overlaps(rd->extents)) 
     clear();
   else
-    _intersectPrivate(this, td->rects, td->count, rd->rects, rd->count, true);
+    err = _intersectPrivate(this, td->rects, td->count, rd->rects, rd->count, true);
 
-  return *this;
+  return err;
 }
 
-Region& Region::intersect(const Rect& r)
+err_t Region::intersect(const Rect& r)
 {
   return intersect(Box(r));
 }
 
-Region& Region::intersect(const Box& r)
+err_t Region::intersect(const Box& r)
 {
   Data* td = _d;
+  err_t err = Error::Ok;
 
   if (td->count == 0 || !r.isValid() || !td->extents.overlaps(r)) 
     clear();
   else
-    _intersectPrivate(this, td->rects, td->count, &r, 1, true);
-  return *this;
+    err = _intersectPrivate(this, td->rects, td->count, &r, 1, true);
+
+  return err;
 }
 
-Region& Region::eor(const Region& r)
+err_t Region::eor(const Region& r)
 {
-  eor(*this, *this, r);
-  return *this;
+  return eor(*this, *this, r);
 }
 
-Region& Region::eor(const Rect& r)
-{
-  TemporaryRegion<1> reg(r);
-  return eor(reg);
-}
-
-Region& Region::eor(const Box& r)
+err_t Region::eor(const Rect& r)
 {
   TemporaryRegion<1> reg(r);
   return eor(reg);
 }
 
-Region& Region::subtract(const Region& r)
+err_t Region::eor(const Box& r)
+{
+  TemporaryRegion<1> reg(r);
+  return eor(reg);
+}
+
+err_t Region::subtract(const Region& r)
 {
   Data* td = _d;
   Data* rd = r._d;
+  err_t err = Error::Ok;
 
   if (td == rd) 
     clear();
   else if (td->count == 0 || rd->count == 0 || !td->extents.overlaps(rd->extents)) 
     ;
   else
-    _subtractPrivate(this, td->rects, td->count, rd->rects, rd->count, true);
-  return *this;
+    err = _subtractPrivate(this, td->rects, td->count, rd->rects, rd->count, true);
+
+  return err;
 }
 
-Region& Region::subtract(const Rect& r)
+err_t Region::subtract(const Rect& r)
 {
   return subtract(Box(r));
 }
 
-Region& Region::subtract(const Box& r)
+err_t Region::subtract(const Box& r)
 {
   Data* td = _d;
+  err_t err = Error::Ok;
 
   if (td->count == 0 || !r.isValid() || !td->extents.overlaps(r))
     clear();
   else
-    _subtractPrivate(this, td->rects, td->count, &r, 1, true);
+    err = _subtractPrivate(this, td->rects, td->count, &r, 1, true);
 
-  return *this;
+  return err;
 }
 
-Region& Region::op(const Region& r, uint _op)
+err_t Region::op(const Region& r, uint _op)
 {
   switch (_op)
   {
-    case OpCopy:
-      return set(r);
-    case OpUnite:
-      return unite(r);
-    case OpIntersect:
-      return intersect(r);
-    case OpEor:
-      return eor(r);
-    case OpSubtract:
-      return subtract(r);
+    case OpCopy:      return set(r);
+    case OpUnite:     return unite(r);
+    case OpIntersect: return intersect(r);
+    case OpEor:       return eor(r);
+    case OpSubtract:  return subtract(r);
+
     default:
       FOG_ASSERT_NOT_REACHED();
-      return *this;
+      return Error::InvalidArgument;
   }
 }
 
-Region& Region::op(const Rect& r, uint _op)
+err_t Region::op(const Rect& r, uint _op)
 {
   return op(Box(r), _op);
 }
 
-Region& Region::op(const Box& r, uint _op)
+err_t Region::op(const Box& r, uint _op)
 {
   switch (_op)
   {
-    case OpCopy:
-      return set(r);
-    case OpUnite:
-      return unite(r);
-    case OpIntersect:
-      return intersect(r);
-    case OpEor:
-      return eor(r);
-    case OpSubtract:
-      return subtract(r);
+    case OpCopy:      return set(r);
+    case OpUnite:     return unite(r);
+    case OpIntersect: return intersect(r);
+    case OpEor:       return eor(r);
+    case OpSubtract:  return subtract(r);
+
     default:
       FOG_ASSERT_NOT_REACHED();
-      return *this;
+      return Error::InvalidArgument;
   }
 }
 
-Region& Region::translate(const Point& pt)
+err_t Region::translate(const Point& pt)
 {
-  translate(*this, *this, pt);
-  return *this;
+  return translate(*this, *this, pt);
 }
 
-Region& Region::shrink(const Point& pt)
+err_t Region::shrink(const Point& pt)
 {
-  shrink(*this, *this, pt);
-  return *this;
+  return shrink(*this, *this, pt);
 }
 
-Region& Region::frame(const Point& pt)
+err_t Region::frame(const Point& pt)
 {
-  frame(*this, *this, pt);
-  return *this;
+  return frame(*this, *this, pt);
 }
 
 bool Region::eq(const Region& other) const
@@ -1734,21 +1707,21 @@ bool Region::eq(const Region& other) const
   return true;
 }
 
-void Region::set(Region& dest, const Region& src)
+err_t Region::set(Region& dest, const Region& src)
 {
-  dest = src;
+  return dest.set(src);
 }
 
-void Region::unite(Region& dest, const Region& src1, const Region& src2)
+err_t Region::unite(Region& dest, const Region& src1, const Region& src2)
 {
   Data* destd = dest._d;
   Data* src1d = src1._d;
   Data* src2d = src2._d;
 
   // Trivial operations
-  if (src1d->count == 0) { dest.set(src2); return; }
-  if (src2d->count == 0) { dest.set(src1); return; }
-  if (src1d == src2d   ) { dest.set(src1); return; }
+  if (src1d->count == 0) { return dest.set(src2); }
+  if (src2d->count == 0) { return dest.set(src1); }
+  if (src1d == src2d   ) { return dest.set(src1); }
 
   const Box* src1first = src1d->rects;
   const Box* src2first = src2d->rects;
@@ -1760,87 +1733,95 @@ void Region::unite(Region& dest, const Region& src1, const Region& src2)
           Math::max(src1d->extents.x2(), src2d->extents.x2()),
           Math::max(src1d->extents.y2(), src2d->extents.y2()));
 
+  err_t err;
   if (src1last->y2() <= src2first->y1()) 
   {
-    dest.setDeep(src1);
-    _appendPrivate(&dest, src2first, src2d->count, &ext);
+    err = dest.setDeep(src1);
+    if (!err) err = _appendPrivate(&dest, src2first, src2d->count, &ext);
   }
   else if (src2last->y2() <= src1first->y1()) 
   {
-    dest.setDeep(src2);
-    _appendPrivate(&dest, src1first, src1d->count, &ext);
+    err = dest.setDeep(src2);
+    if (!err) err = _appendPrivate(&dest, src1first, src1d->count, &ext);
   }
   else
   {
-    _unitePrivate(&dest, src1first, src1d->count, src2first, src2d->count, destd == src1d || destd == src2d, &ext);
+    err = _unitePrivate(&dest, src1first, src1d->count, src2first, src2d->count, destd == src1d || destd == src2d, &ext);
   }
+
+  return err;
 }
 
-void Region::intersect(Region& dest, const Region& src1, const Region& src2)
+err_t Region::intersect(Region& dest, const Region& src1, const Region& src2)
 {
   Data* destd = dest._d;
   Data* src1d = src1._d;
   Data* src2d = src2._d;
+  err_t err = Error::Ok;
 
-  // trivial rejects
+  // Trivial rejects.
   if (FOG_UNLIKELY(src1d == src2d))
-    dest.set(src1);
+    err = dest.set(src1);
   else if (FOG_UNLIKELY(src1d->count == 0 || src2d->count == 0 || !src1d->extents.overlaps(src2d->extents))) 
     dest.clear();
   else
-    _intersectPrivate(&dest, src1d->rects, src1d->count, src2d->rects, src2d->count, destd == src1d || destd == src2d);
+    err = _intersectPrivate(&dest, src1d->rects, src1d->count, src2d->rects, src2d->count, destd == src1d || destd == src2d);
+
+  return err;
 }
 
-void Region::eor(Region& dest, const Region& src1, const Region& src2)
+err_t Region::eor(Region& dest, const Region& src1, const Region& src2)
 {
   TemporaryRegion<Fog_Region_Local> r1;
   TemporaryRegion<Fog_Region_Local> r2;
+  err_t err;
 
-  subtract(r1, src1, src2);
-  subtract(r2, src2, src1);
-  unite(dest, r1, r2);
+  if ((err = subtract(r1, src1, src2))) return err;
+  if ((err = subtract(r2, src2, src1))) return err;
+  if ((err = unite(dest, r1, r2))) return err;
+
+  return Error::Ok;
 }
 
-void Region::subtract(Region& dest, const Region& src1, const Region& src2)
+err_t Region::subtract(Region& dest, const Region& src1, const Region& src2)
 {
   Data* destd = dest._d;
   Data* src1d = src1._d;
   Data* src2d = src2._d;
+  err_t err = Error::Ok;
 
-  // Trivial reject
+  // Trivial rejects.
   if (src1d == src2d || src1d->count == 0) 
     dest.clear();
   else if (src2d->count == 0 || !src1d->extents.overlaps(src2d->extents)) 
-    dest.set(src1);
+    err = dest.set(src1);
   else
-    _subtractPrivate(&dest, src1d->rects, src1d->count, src2d->rects, src2d->count, destd == src1d || destd == src2d);
+    err = _subtractPrivate(&dest, src1d->rects, src1d->count, src2d->rects, src2d->count, destd == src1d || destd == src2d);
+
+  return Error::Ok;
 }
 
-void Region::op(Region& dest, const Region& src1, const Region& src2, uint _op)
+err_t Region::op(Region& dest, const Region& src1, const Region& src2, uint _op)
 {
   switch (_op)
   {
-    case OpCopy:
-      return set(dest, src1);
-    case OpUnite:
-      return unite(dest, src1, src2);
-    case OpIntersect:
-      return intersect(dest, src1, src2);
-    case OpEor:
-      return eor(dest, src1, src2);
-    case OpSubtract:
-      return subtract(dest, src1, src2);
+    case OpCopy:      return set(dest, src1);
+    case OpUnite:     return unite(dest, src1, src2);
+    case OpIntersect: return intersect(dest, src1, src2);
+    case OpEor:       return eor(dest, src1, src2);
+    case OpSubtract:  return subtract(dest, src1, src2);
     default:
       FOG_ASSERT_NOT_REACHED();
+      return Error::InvalidArgument;
   }
 }
 
-void Region::translate(Region& dest, const Region& src, const Point& pt)
+err_t Region::translate(Region& dest, const Region& src, const Point& pt)
 {
   int x = pt.x();
   int y = pt.y();
 
-  if (x == 0 && y == 0) { dest = src; return; }
+  if (x == 0 && y == 0) { return dest.set(src); }
 
   Data* dest_d = dest._d;
   Data* src_d = src._d;
@@ -1861,7 +1842,9 @@ void Region::translate(Region& dest, const Region& src, const Point& pt)
   }
   else
   {
-    dest.prepare(src_d->count);
+    err_t err = dest.prepare(src_d->count);
+    if (err) return err;
+
     dest_d = dest._d; 
 
     dest_d->extents.set(src_d->extents.x1() + x, src_d->extents.y1() + y,
@@ -1877,42 +1860,49 @@ void Region::translate(Region& dest, const Region& src, const Point& pt)
         src_r->x2() + x, src_r->y2() + y);
     }
   }
+  return Error::Ok;
 }
 
-void Region::shrink(Region& dest, const Region& src, const Point& pt)
+err_t Region::shrink(Region& dest, const Region& src, const Point& pt)
 {
   int x = pt.x();
   int y = pt.y();
+  if (x == 0 && y == 0) return dest.set(src);
 
-  if (x == 0 && y == 0) return;
-  dest.setDeep(src);
+  err_t err = dest.setDeep(src);
+  if (err) return err;
 
   TemporaryRegion<Fog_Region_Local> s;
   TemporaryRegion<Fog_Region_Local> t;
   bool grow;
 
-  if (x) { if ((grow = (x < 0))) { x = -x; } _compress(dest, s, t, uint(x) << 1, true , grow); }
-  if (y) { if ((grow = (y < 0))) { y = -y; } _compress(dest, s, t, uint(y) << 1, false, grow); }
+  if (x) { if ((grow = (x < 0))) { x = -x; } err = _compress(dest, s, t, uint(x) << 1, true , grow); if (err) return err; }
+  if (y) { if ((grow = (y < 0))) { y = -y; } err = _compress(dest, s, t, uint(y) << 1, false, grow); if (err) return err; }
 
-  dest.translate(x, y);
+  return dest.translate(x, y);
 }
 
-void Region::frame(Region& dest, const Region& src, const Point& pt)
+err_t Region::frame(Region& dest, const Region& src, const Point& pt)
 {
   // In cases that dest == src, we need to backup src
   TemporaryRegion<Fog_Region_Local> r1;
   TemporaryRegion<Fog_Region_Local> r2;
+  err_t err;
 
-  translate(r2, src, Point(-pt.x(),       0));
-  translate(r1, src, Point( pt.x(),       0)); r2.intersect(r1);
-  translate(r1, src, Point(      0, -pt.y())); r2.intersect(r1);
-  translate(r1, src, Point(      0,  pt.y())); r2.intersect(r1);
+  if ((err = translate(r2, src, Point(-pt.x(), 0))) ||
+      (err = translate(r1, src, Point( pt.x(), 0))) ||
+      (err = r2.intersect(r1)) ||
+      (err = translate(r1, src, Point(0, -pt.y()))) ||
+      (err = r2.intersect(r1)) ||
+      (err = translate(r1, src, Point(0,  pt.y()))) ||
+      (err = r2.intersect(r1)) ||
+      (err = subtract(dest, src, r2))) return err;
 
-  subtract(dest, src, r2);
+  return Error::Ok;
 }
 
 #if defined(FOG_OS_WINDOWS)
-static inline void BoxToRECT(RECT* dest, const Box* src)
+static FOG_INLINE void BoxToRECT(RECT* dest, const Box* src)
 {
   dest->left   = src->x1();
   dest->top    = src->y1();
@@ -1920,7 +1910,7 @@ static inline void BoxToRECT(RECT* dest, const Box* src)
   dest->bottom = src->y2();
 }
 
-static inline void RECTToBox(Box* dest, const RECT* src)
+static FOG_INLINE void RECTToBox(Box* dest, const RECT* src)
 {
   dest->_x1 = src->left;
   dest->_y1 = src->top;
@@ -1934,7 +1924,7 @@ HRGN Region::toHRGN() const
   sysuint_t i;
   sysuint_t count = d->count;
 
-  Fog::MemoryBuffer<4096> mem;
+  MemoryBuffer<4096> mem;
   RGNDATAHEADER *hdr = (RGNDATAHEADER *)mem.alloc(sizeof(RGNDATAHEADER) + count * sizeof(RECT));
   if (!hdr) return (HRGN)NULLREGION;
 
@@ -1952,53 +1942,65 @@ HRGN Region::toHRGN() const
   return ExtCreateRegion(NULL, sizeof(RGNDATAHEADER) + (sizeof(RECT)*count), (RGNDATA *)hdr);
 }
 
-bool Region::fromHRGN(HRGN hrgn)
+err_t Region::fromHRGN(HRGN hrgn)
 {
   clear();
 
-  if (hrgn == NULL) return false;
-  if (hrgn == (HRGN)NULLREGION) return true;
+  if (hrgn == NULL) return Error::InvalidArgument;
+  if (hrgn == (HRGN)NULLREGION) return Error::Ok;
 
   DWORD size = GetRegionData(hrgn, 0, NULL);
   if (size == 0) return false;
 
-  Fog::MemoryBuffer<4096> mem;
+  MemoryBuffer<1024> mem;
   RGNDATAHEADER *hdr = (RGNDATAHEADER *)mem.alloc(size);
-  if (hdr) return false;
+  if (hdr) return Error::OutOfMemory;
 
-  if (!GetRegionData(hrgn, size, (RGNDATA*)hdr)) return false;
+  if (!GetRegionData(hrgn, size, (RGNDATA*)hdr)) return GetLastError();
 
   sysuint_t i;
   sysuint_t count = hdr->nCount;
-  RECT* r = (RECT *)((uint8_t *)hdr + sizeof(RGNDATAHEADER));
+  RECT* r = (RECT*)((uint8_t*)hdr + sizeof(RGNDATAHEADER));
 
   // TODO: Rects should be already YX sorted, but I'm not sure
   for (i = 0; i != count; i++, r++)
   {
-    unite(Fog::Box(r->left, r->top, r->right, r->bottom));
+    unite(Box(r->left, r->top, r->right, r->bottom));
   }
 
-  return true;
+  return Error::Ok;
 }
 #endif // FOG_OS_WINDOWS
 
+// ============================================================================
 // [Fog::Region::Data]
+// ============================================================================
 
-Region::Data* Region::Data::ref()
+Region::Data* Region::Data::ref() const
 {
-  return REF_INLINE();
+  if (flags & IsSharable)
+  {
+    refCount.inc();
+    return const_cast<Data*>(this);
+  }
+  else
+  {
+    return Data::copy(this);
+  }
 }
 
 void Region::Data::deref()
 {
-  DEREF_INLINE();
+  if (refCount.deref() && (flags & IsDynamic) != 0) Memory::free(this);
 }
 
 static Region::Data* _reallocRegion(Region::Data* d, sysuint_t capacity)
 {
-  if (d->flags & Region::Data::IsDynamic)
+  if ((d->flags & Region::Data::IsDynamic) != 0)
   {
-    d = (Region::Data*)Fog::Memory::xrealloc(d, Region::Data::sizeFor(capacity));
+    d = (Region::Data*)Memory::realloc(d, Region::Data::sizeFor(capacity));
+    if (!d) return NULL;
+
     d->capacity = capacity;
     return d;
   }
@@ -2070,26 +2072,18 @@ Region::Data* Region::Data::adopt(void* address, sysuint_t capacity, const Box* 
   return d;
 }
 
-Region::Data* Region::Data::create(sysuint_t capacity, uint allocPolicy)
+Region::Data* Region::Data::create(sysuint_t capacity)
 {
-  if (FOG_UNLIKELY(capacity == 0)) return Region::sharedNull.instancep()->REF_ALWAYS();
+  if (FOG_UNLIKELY(capacity == 0)) return Region::sharedNull.instancep()->refAlways();
 
   sysuint_t dsize = sizeFor(capacity);
-  Data* d = (Data*)Fog::Memory::alloc(dsize);
+  Data* d = (Data*)Memory::alloc(dsize);
+  if (!d) return NULL;
 
-  if (FOG_LIKELY(d != 0))
-  {
-    d->refCount.init(1);
-    d->flags = IsDynamic | IsSharable;
-    d->capacity = capacity;
-    d->count = 0;
-  }
-  else if (allocPolicy == Fog::AllocCantFail)
-  {
-    fog_out_of_memory_fatal_format(
-      "Fog::Region::Data", "create",
-      "Couldn't allocate %lu bytes of memory for region data", (ulong)dsize);
-  }
+  d->refCount.init(1);
+  d->flags = IsDynamic | IsSharable;
+  d->capacity = capacity;
+  d->count = 0;
 
   return d;
 }
@@ -2098,7 +2092,8 @@ Region::Data* Region::Data::create(sysuint_t capacity, const Box* extents, const
 {
   if (FOG_UNLIKELY(capacity < count)) capacity = count;
 
-  Data* d = create(capacity, Fog::AllocCantFail);
+  Data* d = create(capacity);
+  if (!d) return NULL;
 
   if (FOG_LIKELY(count))
   {
@@ -2117,18 +2112,16 @@ Region::Data* Region::Data::create(sysuint_t capacity, const Box* extents, const
   return d;
 }
 
-Region::Data* Region::Data::copy(const Data* other, uint allocPolicy)
+Region::Data* Region::Data::copy(const Data* other)
 {
-  if (!other->count) return Region::sharedNull.instancep()->REF_ALWAYS();
+  if (!other->count) return Region::sharedNull.instancep()->refAlways();
 
-  Data* d = create(other->count, allocPolicy);
+  Data* d = create(other->count);
+  if (!d) return NULL;
 
-  if (d)
-  {
-    d->count = other->count;
-    d->extents = other->extents;
-    _copyRects(d->rects, other->rects, other->count);
-  }
+  d->count = other->count;
+  d->extents = other->extents;
+  _copyRects(d->rects, other->rects, other->count);
 
   return d;
 }
@@ -2141,11 +2134,13 @@ Region::Data* Region::Data::copy(const Data* other, uint allocPolicy)
 
 FOG_INIT_DECLARE err_t fog_region_init(void)
 {
-  Fog::Region::sharedNull.init();
-  Fog::Region::Data* d = Fog::Region::sharedNull.instancep();
+  using namespace Fog;
+
+  Region::sharedNull.init();
+  Region::Data* d = Region::sharedNull.instancep();
 
   d->refCount.init(1);
-  d->flags = Fog::Region::Data::IsSharable | Fog::Region::Data::IsNull;
+  d->flags = Region::Data::IsSharable | Region::Data::IsNull;
   d->extents.clear();
   d->rects[0].clear();
 
@@ -2154,6 +2149,8 @@ FOG_INIT_DECLARE err_t fog_region_init(void)
 
 FOG_INIT_DECLARE void fog_region_shutdown(void)
 {
-  Fog::Region::sharedNull.instancep()->refCount.dec();
-  Fog::Region::sharedNull.destroy();
+  using namespace Fog;
+
+  Region::sharedNull.instancep()->refCount.dec();
+  Region::sharedNull.destroy();
 }
