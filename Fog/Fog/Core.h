@@ -196,6 +196,7 @@ struct Implicit
 #include <Fog/Core/UserInfo.h>
 #include <Fog/Core/Value.h>
 #include <Fog/Core/Vector.h>
+#include <Fog/Core/WinUtil.h>
 
 // [Guard]
 #endif // _FOG_CORE_H
