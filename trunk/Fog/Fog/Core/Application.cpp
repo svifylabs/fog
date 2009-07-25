@@ -38,6 +38,7 @@
 
 #if defined(FOG_OS_POSIX) && defined(FOG_BUILD_MODULE_X11_INTERNAL)
 #include <Fog/UI/UISystem_X11.h>
+#include <unistd.h>
 #endif // FOG_OS_POSIX
 
 #if defined(FOG_OS_WINDOWS)
@@ -88,6 +89,27 @@ Application_Local::Application_Local()
   WinUtil::getModuleFileName(NULL, applicationExecutable);
   applicationExecutable.slashesToPosix();
   applicationExecutable.squeeze();
+#endif // FOG_OS_WINDOWS
+
+#if defined(FOG_OS_POSIX)
+  String8 cmdLine;
+
+  {
+    String32 procFile;
+    Stream stream;
+
+    procFile.format("/proc/%u/cmdline", (uint)getpid());
+    stream.openFile(procFile, Stream::OpenRead);
+    stream.readAll(cmdLine);
+  }
+
+  if (!cmdLine.isEmpty())
+  {
+    String32 e;
+    e.set(Local8(cmdLine.cData()));
+    FileUtil::toAbsolutePath(applicationExecutable, String32(), e);
+  }
+#endif // FOG_OS_POSIX
 
   FileUtil::extractDirectory(applicationDirectory, applicationExecutable);
   FileUtil::extractFile(applicationBaseName, applicationExecutable);
@@ -96,14 +118,6 @@ Application_Local::Application_Local()
   // Windows, but we will add it also for posix OSes. It can help if application
   // is started from user home directory.
   Library::addPath(applicationDirectory, Library::PathPrepend);
-#endif // FOG_OS_WINDOWS
-
-#if defined(FOG_OS_POSIX)
-  // TODO: This is temporary solution.
-  String32 cwd;
-  Application::getWorkingDirectory(cwd);
-  Library::addPath(cwd, Library::PathPrepend);
-#endif // FOG_OS_POSIX
 }
 
 Application_Local::~Application_Local()
