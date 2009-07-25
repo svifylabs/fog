@@ -173,7 +173,6 @@ struct Implicit
 #include <Fog/Core/ObserverList.h>
 #include <Fog/Core/Properties.h>
 #include <Fog/Core/RefCounted.h>
-#include <Fog/Core/RefData.h>
 #include <Fog/Core/ScopedHandle.h>
 #include <Fog/Core/ScopedPtr.h>
 #include <Fog/Core/Sequence.h>

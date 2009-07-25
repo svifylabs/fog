@@ -3,6 +3,8 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
+// TODO: This header is deprecated and will be removed.
+
 // [Guard]
 #ifndef _FOG_CORE_REFDATA_H
 #define _FOG_CORE_REFDATA_H

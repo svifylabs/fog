@@ -39,7 +39,6 @@ struct FOG_API FontFaceWin : public FontFace
 
   FontFaceWin();
   virtual ~FontFaceWin();
-  virtual void deref();
 
   virtual err_t getGlyphs(const Char32* str, sysuint_t length, GlyphSet& glyphSet);
   virtual err_t getTextWidth(const Char32* str, sysuint_t length, TextWidth* textWidth);

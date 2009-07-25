@@ -26,7 +26,11 @@ enum GraphicsError
   _GraphicsErrorStart = 0x00011100,
   _GraphicsErrorLast  = 0x000111FF,
 
+  // [Fog::Path]
+
   InvalidPath = _GraphicsErrorStart,
+
+  // [Fog::Image / Fog::ImageIO]
 
   ImageSizeIsZero,
   ImageSizeIsInvalid,
@@ -55,7 +59,10 @@ enum GraphicsError
   ImageIO_PngLibraryNotFound,
   ImageIO_PngError,
 
+  // [Fog::Font]
+
   FontCantLoadDefaultFace,
+  FontInvalidFace,
 
   FontConfigLibraryNotFound,
   FontConfigSymbolNotFound,
