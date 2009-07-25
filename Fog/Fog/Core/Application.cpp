@@ -92,6 +92,8 @@ Application_Local::Application_Local()
 #endif // FOG_OS_WINDOWS
 
 #if defined(FOG_OS_POSIX)
+  // TODO: Get also 'applicationCommand'
+
   String8 cmdLine;
 
   {
