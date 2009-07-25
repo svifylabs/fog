@@ -820,23 +820,50 @@ sysuint_t Stream::readAll(String8& dst, int64_t maxBytes)
   int64_t curPosition = tell();
   int64_t endPosition = seek(0, SeekEnd);
 
-  if (curPosition == -1 || endPosition == -1) return 0;
+  if (curPosition == 0 && endPosition == 0)
+  {
+    // This happen for example in /proc/ or in virtual files. We will try to
+    // read everything we can.
+    uint64_t remain = (maxBytes < 0) ? UINT64_MAX : (uint64_t)maxBytes;
 
-  int64_t remain = endPosition - curPosition;
+    for (;;)
+    {
+      sysuint_t count = 4096;
+      sysuint_t done;
 
-  if (maxBytes > 0 && remain > maxBytes)
-    remain = maxBytes;
+      if ((uint64_t)count > remain) count = (sysuint_t)remain;
 
-  if (seek(curPosition, SeekSet) == -1) return 0;
+      sysuint_t len = dst.length();
+      err_t err = dst.reserve(len + (sysuint_t)count);
+      if (err) break;
+
+      done = read(dst.mData(), count);
+      dst.resize(len + done);
+
+      if (done != count) break;
+    }
+
+    return dst.length();
+  }
+  else
+  {
+    if (curPosition == -1 || endPosition == -1) return 0;
+    int64_t remain = endPosition - curPosition;
+
+    if (maxBytes > 0 && remain > maxBytes)
+      remain = maxBytes;
+
+    if (seek(curPosition, SeekSet) == -1) return 0;
 
 #if FOG_ARCH_BITS > 32
-  if (remain > (int64_t)(SYSINT_MAX)) return 0;
+    if (remain > (int64_t)(SYSINT_MAX)) return 0;
 #endif // FOG_ARCH_BITS > 32
-  if (dst.reserve((sysuint_t)remain) != Error::Ok) return 0;
+    if (dst.reserve((sysuint_t)remain) != Error::Ok) return 0;
 
-  sysuint_t n = read(dst.mData(), (sysuint_t)remain);
-  dst.resize(n);
-  return n;
+    sysuint_t n = read(dst.mData(), (sysuint_t)remain);
+    dst.resize(n);
+    return n;
+  }
 }
 
 sysuint_t Stream::write(const void* buffer, sysuint_t size)
