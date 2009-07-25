@@ -667,11 +667,6 @@ FontFaceFT::~FontFaceFT()
   if (ftFile) ftFile->deref();
 }
 
-void FontFaceFT::deref()
-{
-  if (refCount.deref()) delete this;
-}
-
 err_t FontFaceFT::getGlyphs(const Char32* str, sysuint_t length, GlyphSet& glyphSet)
 {
   err_t err;

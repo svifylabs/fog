@@ -10,7 +10,6 @@
 // [Dependencies]
 #include <Fog/Core/Lock.h>
 #include <Fog/Core/Misc.h>
-#include <Fog/Core/RefData.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/String.h>
 #include <Fog/Graphics/Constants.h>
@@ -74,22 +73,32 @@ struct FontAttributes
 // ============================================================================
 
 //! @brief Font face.
-struct FOG_API FontFace : public RefDataSimple<FontFace>
+struct FOG_API FontFace
 {
-  String32 family;
-  FontMetrics metrics;
-  FontAttributes attributes;
+  // [Construction / Destruction]
 
   FontFace();
   virtual ~FontFace();
 
+  // [Ref / Deref]
+
   virtual FontFace* ref();
-  virtual void deref() = 0;
-  FOG_INLINE void free() { delete this; }
+  virtual void deref();
+
+  // [Abstract]
 
   virtual err_t getGlyphs(const Char32* str, sysuint_t length, GlyphSet& glyphSet) = 0;
   virtual err_t getTextWidth(const Char32* str, sysuint_t length, TextWidth* textWidth) = 0;
   virtual err_t getPath(const Char32* str, sysuint_t length, Path& dst) = 0;
+  
+  // [Members]
+
+  //! @brief Reference count.
+  mutable Atomic<sysuint_t> refCount;
+
+  String32 family;
+  FontMetrics metrics;
+  FontAttributes attributes;
 
 private:
   FOG_DISABLE_COPY(FontFace)
@@ -101,6 +110,8 @@ private:
 
 struct FOG_API FontFaceCache
 {
+  // [Entry]
+
   struct Entry
   {
     //! @brief Font family name.
@@ -110,6 +121,8 @@ struct FOG_API FontFaceCache
     //! @brief Font attributes.
     FontAttributes attributes;
   };
+
+  // [Members]
 
   Lock lock;
 };
@@ -122,18 +135,24 @@ struct FOG_API Font
 {
   // [Data]
 
-  struct FOG_API Data : public RefDataSimple<Data>
+  struct FOG_API Data
   {
-    FontFace* face;
+    // [Construction / Destruction]
 
     Data();
     ~Data();
 
+    // [Ref / Deref]
+
+    Data* ref() const;
+    void deref();
+
     static Data* copy(Data* d);
 
-    FOG_INLINE Data* ref() { return REF_ALWAYS(); }
-    FOG_INLINE void deref() { DEREF_INLINE(); }
-    FOG_INLINE void free() { delete this; }
+    // [Members]
+
+    mutable Atomic<sysuint_t> refCount;
+    FontFace* face;
 
   private:
     FOG_DISABLE_COPY(Data)
@@ -141,15 +160,11 @@ struct FOG_API Font
 
   static Data* sharedNull;
 
-  // [Members]
-
-  FOG_DECLARE_D(Data)
-
   // [Construction and destruction]
 
   Font();
-  Font(Data* d);
   Font(const Font& other);
+  explicit Font(Data* d);
   ~Font();
 
   // [Implicit sharing and basic flags]
@@ -159,9 +174,9 @@ struct FOG_API Font
   //! @copydoc Doxygen::Implicit::isDetached().
   FOG_INLINE bool isDetached() const { return refCount() == 1; }
   //! @copydoc Doxygen::Implicit::detach().
-  FOG_INLINE void detach() { if (!isDetached()) _detach(); }
+  FOG_INLINE err_t detach() { return !isDetached() ? _detach() : (err_t)Error::Ok; }
   //! @copydoc Doxygen::Implicit::_detach().
-  void _detach();
+  err_t _detach();
   //! @copydoc Doxygen::Implicit::free().
   void free();
 
@@ -182,20 +197,20 @@ struct FOG_API Font
   FOG_INLINE bool isStrike() const { return attributes().strike != 0; }
   FOG_INLINE bool isUnderline() const { return attributes().underline != 0; }
 
-  bool setFamily(const String32& family);
-  bool setFamily(const String32& family, uint32_t size);
-  bool setFamily(const String32& family, uint32_t size, const FontAttributes& attributes);
+  err_t setFamily(const String32& family);
+  err_t setFamily(const String32& family, uint32_t size);
+  err_t setFamily(const String32& family, uint32_t size, const FontAttributes& attributes);
 
-  bool setSize(uint32_t size);
-  bool setAttributes(const FontAttributes& a);
-  bool setBold(bool val);
-  bool setItalic(bool val);
-  bool setStrike(bool val);
-  bool setUnderline(bool val);
+  err_t setSize(uint32_t size);
+  err_t setAttributes(const FontAttributes& a);
+  err_t setBold(bool val);
+  err_t setItalic(bool val);
+  err_t setStrike(bool val);
+  err_t setUnderline(bool val);
 
   // [Set]
 
-  const Font& set(const Font& other);
+  err_t set(const Font& other);
 
   // [Face Methods]
 
@@ -205,8 +220,7 @@ struct FOG_API Font
   err_t getPath(const Char32* str, sysuint_t length, Path& dst) const;
 
   // [Overloaded Operators]
-  FOG_INLINE const Font& operator=(const Font& other)
-  { return set(other); }
+  FOG_INLINE const Font& operator=(const Font& other) { set(other); return *this; }
 
   // [Font path management functions]
 
@@ -222,13 +236,21 @@ struct FOG_API Font
 
   // [Engine]
   static FontEngine* _engine;
+
+  // [Members]
+
+  FOG_DECLARE_D(Data)
 };
 
 //! @brief Font engine.
 struct FOG_API FontEngine
 {
+  // [Construction / Destruction]
+
   FontEngine(const String32& name);
   virtual ~FontEngine();
+
+  // [Abstract]
 
   virtual Vector<String32> getFonts() = 0;
 
@@ -240,6 +262,8 @@ struct FOG_API FontEngine
 
   FOG_INLINE const String32& name() const
   { return _name; }
+
+  // [Members]
 
 protected:
   String32 _name;

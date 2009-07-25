@@ -89,25 +89,17 @@ struct FOG_API Glyph
     ContainsVectorData = (1 << 1)
   };
 
-  // [Members]
-
-  FOG_DECLARE_D(Data)
-
   static Static<Data> sharedNull;
 
   // [Construction / Destruction]
 
-  FOG_INLINE Glyph() : _d(sharedNull.instancep()->ref()) 
-  {}
+  FOG_INLINE Glyph() : _d(sharedNull.instancep()->ref())  {}
 
-  FOG_INLINE Glyph(const Glyph& other) : _d(other._d->ref()) 
-  {}
+  FOG_INLINE Glyph(const Glyph& other) : _d(other._d->ref())  {}
 
-  FOG_INLINE Glyph(Data* d) : _d(d) 
-  {}
+  FOG_INLINE explicit Glyph(Data* d) : _d(d)  {}
 
-  FOG_INLINE ~Glyph()
-  { _d->deref(); }
+  FOG_INLINE ~Glyph() { _d->deref(); }
 
   // [Implicit Sharing]
 
@@ -132,6 +124,10 @@ struct FOG_API Glyph
 
   FOG_INLINE Glyph& operator=(const Glyph& other)
   { AtomicBase::ptr_setXchg(&_d, other._d->ref())->deref(); return *this; }
+
+  // [Members]
+
+  FOG_DECLARE_D(Data)
 };
 
 } // Fog namespace

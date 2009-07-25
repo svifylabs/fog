@@ -65,6 +65,11 @@ FontFace* FontFace::ref()
   return this;
 }
 
+void FontFace::deref()
+{
+  if (refCount.deref()) delete this;
+}
+
 // ============================================================================
 // [Fog::Font]
 // ============================================================================
@@ -72,25 +77,22 @@ FontFace* FontFace::ref()
 Font::Data* Font::sharedNull;
 FontEngine* Font::_engine;
 
-static bool _setFace(Font* self, FontFace* face)
+static err_t _setFace(Font* self, FontFace* face)
 {
-  if (!face) return false;
-  if (self->_d->face == face) return true;
+  if (!face) return Error::FontInvalidFace;
+  if (self->_d->face == face) return Error::Ok;
 
-  self->detach();
+  err_t err = self->detach();
+  if (err) return err;
+
   if (self->_d->face) self->_d->face->deref();
   self->_d->face = face;
 
-  return true;
+  return Error::Ok;
 }
 
 Font::Font() :
   _d(sharedNull->ref())
-{
-}
-
-Font::Font(Data* d) :
-  _d(d)
 {
 }
 
@@ -99,15 +101,25 @@ Font::Font(const Font& other) :
 {
 }
 
+Font::Font(Data* d) :
+  _d(d)
+{
+}
+
 Font::~Font()
 {
   _d->deref();
 }
 
-void Font::_detach()
+err_t Font::_detach()
 {
   if (_d->refCount.get() > 1)
-    AtomicBase::ptr_setXchg(&_d, Data::copy(_d))->deref();
+  {
+    Data* newd = Data::copy(_d);
+    if (!newd) return Error::OutOfMemory;
+    AtomicBase::ptr_setXchg(&_d, newd)->deref();
+  }
+  return Error::Ok;
 }
 
 void Font::free()
@@ -115,29 +127,29 @@ void Font::free()
   AtomicBase::ptr_setXchg(&_d, sharedNull->ref())->deref();
 }
 
-bool Font::setFamily(const String32& family)
+err_t Font::setFamily(const String32& family)
 {
   return _setFace(this, _engine->getFace(family, size(), attributes()));
 }
 
-bool Font::setFamily(const String32& family, uint32_t size)
+err_t Font::setFamily(const String32& family, uint32_t size)
 {
   return _setFace(this, _engine->getFace(family, size, attributes()));
 }
 
-bool Font::setSize(uint32_t size)
+err_t Font::setSize(uint32_t size)
 {
   return _setFace(this, _engine->getFace(family(), size, attributes()));
 }
 
-bool Font::setAttributes(const FontAttributes& a)
+err_t Font::setAttributes(const FontAttributes& a)
 {
   return _setFace(this, _engine->getFace(family(), size(), a));
 }
 
-bool Font::setBold(bool val)
+err_t Font::setBold(bool val)
 {
-  if (isBold() == val) return true;
+  if (isBold() == val) return Error::Ok;
 
   FontAttributes a = attributes();
   a.bold = val;
@@ -145,9 +157,9 @@ bool Font::setBold(bool val)
   return _setFace(this, _engine->getFace(family(), size(), a));
 }
 
-bool Font::setItalic(bool val)
+err_t Font::setItalic(bool val)
 {
-  if (isItalic() == val) return true;
+  if (isItalic() == val) return Error::Ok;
 
   FontAttributes a = attributes();
   a.italic = val;
@@ -155,9 +167,9 @@ bool Font::setItalic(bool val)
   return _setFace(this, _engine->getFace(family(), size(), a));
 }
 
-bool Font::setStrike(bool val)
+err_t Font::setStrike(bool val)
 {
-  if (isStrike() == val) return true;
+  if (isStrike() == val) return Error::Ok;
 
   FontAttributes a = attributes();
   a.strike = val;
@@ -165,9 +177,9 @@ bool Font::setStrike(bool val)
   return _setFace(this, _engine->getFace(family(), size(), a));
 }
 
-bool Font::setUnderline(bool val)
+err_t Font::setUnderline(bool val)
 {
-  if (isUnderline() == val) return true;
+  if (isUnderline() == val) return Error::Ok;
 
   FontAttributes a = attributes();
   a.underline = val;
@@ -175,10 +187,10 @@ bool Font::setUnderline(bool val)
   return _setFace(this, _engine->getFace(family(), size(), a));
 }
 
-const Font& Font::set(const Font& other)
+err_t Font::set(const Font& other)
 {
   AtomicBase::ptr_setXchg(&_d, other._d->ref())->deref();
-  return *this;
+  return Error::Ok;
 }
 
 err_t Font::getTextWidth(const String32& str, TextWidth* textWidth) const
@@ -270,10 +282,10 @@ Vector<String32> Font::fontList()
 // [Font::Data]
 // ============================================================================
 
-Font::Data::Data() :
-  face(NULL)
+Font::Data::Data()
 {
   refCount.init(1);
+  face = NULL;
 }
 
 Font::Data::~Data()
@@ -281,10 +293,23 @@ Font::Data::~Data()
   if (face) face->deref();
 }
 
+Font::Data* Font::Data::ref() const
+{
+  refCount.inc();
+  return const_cast<Data*>(this);
+}
+
+void Font::Data::deref()
+{
+  if (refCount.deref()) delete this;
+}
+
 Font::Data* Font::Data::copy(Data* d)
 {
-  Data* newd = new Data();
-  newd->face = d->face ? d->face->ref() : 0;
+  Data* newd = new(std::nothrow) Data();
+  if (!newd) return NULL;
+
+  newd->face = d->face ? d->face->ref() : NULL;
   return newd;
 }
 
@@ -311,53 +336,55 @@ FOG_INIT_EXTERN void fog_font_shutdown(void);
 
 FOG_INIT_DECLARE err_t fog_font_init(void)
 {
+  using namespace Fog;
+
   // [Local]
 
-  Fog::font_local.init();
-  Fog::font_local.instance().listInitialized = false;
+  font_local.init();
+  font_local.instance().listInitialized = false;
 
   err_t initResult = Error::Ok;
 
   // [Font Shared Null]
 
-  Fog::Font::sharedNull = new Fog::Font::Data();
+  Font::sharedNull = new Font::Data();
 
   // [Font Paths]
 
   // add $HOME and $HOME/fonts directories (standard in linux)
   // (can be for example symlink to real font path)
-  Fog::String32 home = Fog::UserInfo::directory(Fog::UserInfo::Home);
-  Fog::String32 homeFonts;
+  String32 home = UserInfo::directory(UserInfo::Home);
+  String32 homeFonts;
 
-  Fog::FileUtil::joinPath(homeFonts, home, Fog::Ascii8("fonts"));
+  FileUtil::joinPath(homeFonts, home, Ascii8("fonts"));
 
-  Fog::font_local.instance().paths.append(home);
-  Fog::font_local.instance().paths.append(homeFonts);
+  font_local.instance().paths.append(home);
+  font_local.instance().paths.append(homeFonts);
 
 #if defined(FOG_OS_WINDOWS)
   // Add Windows standard font directory.
-  Fog::String32 winFonts = Fog::OS::windowsDirectory();
-  Fog::FileUtil::joinPath(winFonts, winFonts, Fog::Ascii8("fonts"));
-  Fog::font_local.instance().paths.append(winFonts);
+  String32 winFonts = OS::windowsDirectory();
+  FileUtil::joinPath(winFonts, winFonts, Ascii8("fonts"));
+  font_local.instance().paths.append(winFonts);
 #endif // FOG_OS_WINDOWS
 
   // [Font Face Cache]
 
   // [Font Engine]
 
-  Fog::Font::_engine = NULL;
+  Font::_engine = NULL;
 
 #if defined(FOG_FONT_WINDOWS)
-  if (!Fog::Font::_engine) Fog::Font::_engine = new Fog::FontEngineWin();
+  if (!Font::_engine) Font::_engine = new FontEngineWin();
 #endif // FOG_FONT_WINDOWS
 
 #if defined(FOG_FONT_FREETYPE)
-  if (!Fog::Font::_engine) Fog::Font::_engine = new Fog::FontEngineFT();
+  if (!Font::_engine) Font::_engine = new FontEngineFT();
 #endif // FOG_FONT_FREETYPE
 
-  Fog::Font::sharedNull->face = Fog::Font::_engine->getDefaultFace();
+  Font::sharedNull->face = Font::_engine->getDefaultFace();
 
-  if (Fog::Font::sharedNull->face == NULL)
+  if (Font::sharedNull->face == NULL)
   {
     initResult = Error::FontCantLoadDefaultFace;
     goto __fail;
@@ -372,9 +399,11 @@ __fail:
 
 FOG_INIT_DECLARE void fog_font_shutdown(void)
 {
+  using namespace Fog;
+
   // [Font Shared Null]
-  delete Fog::Font::sharedNull;
-  Fog::Font::sharedNull = NULL;
+  delete Font::sharedNull;
+  Font::sharedNull = NULL;
 
   // [Font Face Cache]
 
@@ -383,15 +412,15 @@ FOG_INIT_DECLARE void fog_font_shutdown(void)
 
   // [Font Engine]
 
-  if (Fog::Font::_engine)
+  if (Font::_engine)
   {
-    delete Fog::Font::_engine;
-    Fog::Font::_engine = NULL;
+    delete Font::_engine;
+    Font::_engine = NULL;
   }
 
   // [Local]
 
-  Fog::font_local.destroy();
+  font_local.destroy();
 }
 
 

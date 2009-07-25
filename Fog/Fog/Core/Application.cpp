@@ -99,6 +99,7 @@ Application_Local::Application_Local()
 #endif // FOG_OS_WINDOWS
 
 #if defined(FOG_OS_POSIX)
+  // TODO: This is temporary solution.
   String32 cwd;
   Application::getWorkingDirectory(cwd);
   Library::addPath(cwd, Library::PathPrepend);
