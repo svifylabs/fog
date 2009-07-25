@@ -82,7 +82,7 @@ struct FOG_HIDDEN Application_Local
 Application_Local::Application_Local()
 {
 #if defined(FOG_OS_WINDOWS)
-  applicationCommand.set(StubW(GetCommandLineW()));
+  applicationCommand.set(StubW(::GetCommandLineW()));
   applicationCommand.squeeze();
 
   WinUtil::getModuleFileName(NULL, applicationExecutable);
@@ -91,16 +91,18 @@ Application_Local::Application_Local()
 
   FileUtil::extractDirectory(applicationDirectory, applicationExecutable);
   FileUtil::extractFile(applicationBaseName, applicationExecutable);
-#endif // FOG_OS_WINDOWS
-
-#if defined(FOG_OS_POSIX)
-  // TODO
-#endif // FOG_OS_POSIX
 
   // Application directory usually contains plugins and library itself under
   // Windows, but we will add it also for posix OSes. It can help if application
   // is started from user home directory.
   Library::addPath(applicationDirectory, Library::PathPrepend);
+#endif // FOG_OS_WINDOWS
+
+#if defined(FOG_OS_POSIX)
+  String32 cwd;
+  Application::getWorkingDirectory(cwd);
+  Library::addPath(cwd, Library::PathPrepend);
+#endif // FOG_OS_POSIX
 }
 
 Application_Local::~Application_Local()
