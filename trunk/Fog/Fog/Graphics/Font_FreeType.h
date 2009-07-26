@@ -62,7 +62,7 @@ struct FOG_API FontEngineFT : public FontEngine
 
   virtual FontFace* getDefaultFace();
 
-  virtual FontFace* getFace(
+  virtual FontFace* createFace(
     const String32& family, uint32_t size, 
     const FontAttributes& attributes);
 };

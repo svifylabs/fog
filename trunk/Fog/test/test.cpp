@@ -147,6 +147,7 @@ struct MyWindow : public Window
 
   void bench();
 
+  Button button1;
   double r;
 };
 
@@ -158,6 +159,12 @@ MyWindow::MyWindow(uint32_t createFlags) :
   Window(createFlags)
 {
   setWindowTitle(Ascii8("Filters"));
+
+  //button1.setRect(Rect(10, 10, 100, 20));
+  //button1.setText(Ascii8("Test"));
+  //button1.show();
+  //add(&button1);
+
   r = 0.0;
 }
 
@@ -320,7 +327,7 @@ FOG_UI_MAIN()
 {
   Application app(Ascii8("UI"));
 
-  // fog_redirect_std_to_file("log.txt");
+  fog_redirect_std_to_file("log.txt");
 
   MyWindow window;
   window.setSize(Size(715, 515));
