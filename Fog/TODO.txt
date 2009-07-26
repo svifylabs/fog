@@ -47,12 +47,14 @@ TODO
     [ ] Scaling
 
 [ ] Font
-    [ ] Make caching work again
-    [ ] Fix issue that this code """Font font; font.setSize(80);""" takes too long (3ms on my machine)
+    [x] Make caching work again
+    [x] Fix issue that this code """Font font; font.setSize(80);""" takes too long (3ms on my machine)
         due to incorrect cache control ?
     [ ] Ability to render to 'Path'
         [x] Win32
         [ ] Freetype2
+    [ ] FreeType2 bold/italic/bold+italic
+    [ ] Cache size control
 
 [ ] Raster
     [ ] Remove templated functions in Raster_C.cpp. It's needed to specialize code for each operation

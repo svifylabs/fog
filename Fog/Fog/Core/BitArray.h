@@ -32,7 +32,7 @@ struct FOG_API BitArray
   {
     // [Flags]
 
-    //! @brief Basic RefData<T> flags that supports most classes.
+    //! @brief Flags.
     enum Flags
     {
       //! @brief Null 'd' object.
