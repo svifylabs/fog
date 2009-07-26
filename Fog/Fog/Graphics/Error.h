@@ -63,6 +63,7 @@ enum GraphicsError
 
   FontCantLoadDefaultFace,
   FontInvalidFace,
+  FontAlreadyInCache,
 
   FontConfigLibraryNotFound,
   FontConfigSymbolNotFound,

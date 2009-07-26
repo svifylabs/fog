@@ -8,6 +8,7 @@
 #define _FOG_GRAPHICS_FONT_H
 
 // [Dependencies]
+#include <Fog/Core/Hash.h>
 #include <Fog/Core/Lock.h>
 #include <Fog/Core/Misc.h>
 #include <Fog/Core/Static.h>
@@ -60,12 +61,16 @@ struct FontMetrics
 // [Fog::FontAttributes]
 // ============================================================================
 
-struct FontAttributes
+union FontAttributes
 {
-  uint8_t bold;
-  uint8_t italic;
-  uint8_t strike;
-  uint8_t underline;
+  struct
+  {
+    uint8_t bold;
+    uint8_t italic;
+    uint8_t strike;
+    uint8_t underline;
+  };
+  uint32_t value;
 };
 
 // ============================================================================
@@ -105,15 +110,76 @@ private:
 };
 
 // ============================================================================
-// [Fog::FontFaceCache]
+// [Fog::FontCache]
 // ============================================================================
 
-struct FOG_API FontFaceCache
+struct FOG_API FontCache
 {
+  // [Construction / Destruction]
+
+  FontCache();
+  ~FontCache();
+
   // [Entry]
 
   struct Entry
   {
+    // [Construction / Destruction]
+
+    FOG_INLINE Entry()
+    {
+      size = 0;
+      attributes.value = 0;
+    }
+    
+    FOG_INLINE Entry(const Entry& other) :
+      family(other.family)
+    {
+      size = other.size;
+      attributes.value = other.attributes.value;
+    }
+    
+    FOG_INLINE Entry(const String32& _family, uint32_t _size, const FontAttributes& _attributes) :
+      family(_family)
+    {
+      size = _size;
+      attributes.value = _attributes.value;
+    }
+
+    FOG_INLINE ~Entry() {}
+
+    // [Methods]
+
+    FOG_INLINE uint32_t toHashCode() const
+    {
+      return family.toHashCode() ^ (size * 133) ^ attributes.value;
+    }
+
+    // [Operator Overload]
+
+    FOG_INLINE Entry& operator=(const Entry& other)
+    {
+      family = other.family;
+      size = other.size;
+      attributes.value = other.attributes.value;
+    }
+
+    FOG_INLINE bool operator==(const Entry& other) const
+    {
+      return family == other.family &&
+             size == other.size &&
+             attributes.value == other.attributes.value;
+    }
+
+    FOG_INLINE bool operator!=(const Entry& other) const
+    {
+      return family != other.family ||
+             size != other.size ||
+             attributes.value != other.attributes.value;
+    }
+
+    // [Members]
+
     //! @brief Font family name.
     String32 family;
     //! @brief Font size.
@@ -122,9 +188,20 @@ struct FOG_API FontFaceCache
     FontAttributes attributes;
   };
 
+  // [Methods]
+
+  FontFace* getFace(const String32& family, uint32_t size, const FontAttributes& attrs);
+  err_t putFace(FontFace* face);
+
+  void deleteAll();
+
   // [Members]
 
-  Lock lock;
+  Lock _lock;
+  Hash<Entry, FontFace*> _cache;
+
+private:
+  FOG_DISABLE_COPY(FontCache)
 };
 
 // ============================================================================
@@ -220,6 +297,7 @@ struct FOG_API Font
   err_t getPath(const Char32* str, sysuint_t length, Path& dst) const;
 
   // [Overloaded Operators]
+
   FOG_INLINE const Font& operator=(const Font& other) { set(other); return *this; }
 
   // [Font path management functions]
@@ -233,6 +311,9 @@ struct FOG_API Font
 
   // [Font list management]
   static Vector<String32> fontList();
+
+  // [Cache]
+  static FontCache* _cache;
 
   // [Engine]
   static FontEngine* _engine;
@@ -256,12 +337,15 @@ struct FOG_API FontEngine
 
   virtual FontFace* getDefaultFace() = 0;
 
-  virtual FontFace* getFace(
+  virtual FontFace* cachedFace(
+    const String32& family, uint32_t size, 
+    const FontAttributes& attributes);
+
+  virtual FontFace* createFace(
     const String32& family, uint32_t size, 
     const FontAttributes& attributes) = 0;
 
-  FOG_INLINE const String32& name() const
-  { return _name; }
+  FOG_INLINE const String32& name() const { return _name; }
 
   // [Members]
 

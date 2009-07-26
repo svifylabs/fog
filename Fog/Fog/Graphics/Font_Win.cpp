@@ -94,10 +94,10 @@ FontFace* FontEngineWin::getDefaultFace()
 {
   FontAttributes a;
   ZeroMemory(&a, sizeof(FontAttributes));
-  return getFace(String32(Ascii8("arial")), 12, a);
+  return cachedFace(String32(Ascii8("arial")), 12, a);
 }
 
-FontFace* FontEngineWin::getFace(
+FontFace* FontEngineWin::createFace(
   const String32& family, uint32_t size,
   const FontAttributes& attributes)
 {

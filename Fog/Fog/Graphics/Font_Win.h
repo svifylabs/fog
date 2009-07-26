@@ -65,7 +65,7 @@ struct FOG_API FontEngineWin : public FontEngine
 
   virtual FontFace* getDefaultFace();
 
-  virtual FontFace* getFace(
+  virtual FontFace* createFace(
     const Fog::String32& family, uint32_t size, 
     const FontAttributes& attributes);
 };

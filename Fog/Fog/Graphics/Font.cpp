@@ -71,10 +71,54 @@ void FontFace::deref()
 }
 
 // ============================================================================
+// [Fog::FontCache]
+// ============================================================================
+
+FontCache::FontCache()
+{
+}
+
+FontCache::~FontCache()
+{
+  deleteAll();
+}
+
+FontFace* FontCache::getFace(const String32& family, uint32_t size, const FontAttributes& attrs)
+{
+  Entry entry(family, size, attrs);
+  AutoLock locked(_lock);
+
+  FontFace* face = _cache.value(entry, NULL);
+  if (face) face = face->ref();
+  return face;
+}
+
+err_t FontCache::putFace(FontFace* face)
+{
+  Entry entry(face->family, face->metrics.size, face->attributes);
+  AutoLock locked(_lock);
+
+  return _cache.put(entry, face, false);
+}
+
+void FontCache::deleteAll()
+{
+  AutoLock locked(_lock);
+  Hash<Entry, FontFace*>::MutableIterator it(_cache);
+
+  while (it.isValid())
+  {
+    it.value()->deref();
+    it.remove();
+  }
+}
+
+// ============================================================================
 // [Fog::Font]
 // ============================================================================
 
 Font::Data* Font::sharedNull;
+FontCache* Font::_cache;
 FontEngine* Font::_engine;
 
 static err_t _setFace(Font* self, FontFace* face)
@@ -129,22 +173,22 @@ void Font::free()
 
 err_t Font::setFamily(const String32& family)
 {
-  return _setFace(this, _engine->getFace(family, size(), attributes()));
+  return _setFace(this, _engine->cachedFace(family, size(), attributes()));
 }
 
 err_t Font::setFamily(const String32& family, uint32_t size)
 {
-  return _setFace(this, _engine->getFace(family, size, attributes()));
+  return _setFace(this, _engine->cachedFace(family, size, attributes()));
 }
 
 err_t Font::setSize(uint32_t size)
 {
-  return _setFace(this, _engine->getFace(family(), size, attributes()));
+  return _setFace(this, _engine->cachedFace(family(), size, attributes()));
 }
 
 err_t Font::setAttributes(const FontAttributes& a)
 {
-  return _setFace(this, _engine->getFace(family(), size(), a));
+  return _setFace(this, _engine->cachedFace(family(), size(), a));
 }
 
 err_t Font::setBold(bool val)
@@ -154,7 +198,7 @@ err_t Font::setBold(bool val)
   FontAttributes a = attributes();
   a.bold = val;
 
-  return _setFace(this, _engine->getFace(family(), size(), a));
+  return _setFace(this, _engine->cachedFace(family(), size(), a));
 }
 
 err_t Font::setItalic(bool val)
@@ -164,7 +208,7 @@ err_t Font::setItalic(bool val)
   FontAttributes a = attributes();
   a.italic = val;
 
-  return _setFace(this, _engine->getFace(family(), size(), a));
+  return _setFace(this, _engine->cachedFace(family(), size(), a));
 }
 
 err_t Font::setStrike(bool val)
@@ -174,7 +218,7 @@ err_t Font::setStrike(bool val)
   FontAttributes a = attributes();
   a.strike = val;
 
-  return _setFace(this, _engine->getFace(family(), size(), a));
+  return _setFace(this, _engine->cachedFace(family(), size(), a));
 }
 
 err_t Font::setUnderline(bool val)
@@ -184,7 +228,7 @@ err_t Font::setUnderline(bool val)
   FontAttributes a = attributes();
   a.underline = val;
 
-  return _setFace(this, _engine->getFace(family(), size(), a));
+  return _setFace(this, _engine->cachedFace(family(), size(), a));
 }
 
 err_t Font::set(const Font& other)
@@ -326,6 +370,54 @@ FontEngine::~FontEngine()
 {
 }
 
+FontFace* FontEngine::cachedFace(
+  const String32& family, uint32_t size, 
+  const FontAttributes& attributes)
+{
+  FontFace* face;
+  
+  // Create to get font face from global cache.
+  face = Font::_cache->getFace(family, size, attributes);
+  if (face) return face->ref();
+
+  // If needed face is not in cache, we will try to create it.
+  face = createFace(family, size, attributes);
+  if (!face) return NULL;
+
+  // Now we created font face that will be put into cache.
+  err_t err = Font::_cache->putFace(face);
+  if (err == Error::Ok)
+  {
+    // Everything is OK, our face is now in cache and we need to increase reference
+    // count if we want to use it - cachedFace() and getFace() returns font face
+    // that can be used (so minimal reference count value is 1).
+    return face->ref();
+  }
+
+  // This can happen if ther is concurrency. We created font face that was created
+  // by another thread and put into cache. Everything we need is to delete our one
+  // and use font face that is in cache already.
+  //
+  // Second case is that engine created face that is close to demanded one but not
+  // equal.
+  else if (err == Error::ObjectAlreadyExists)
+  {
+    // We are using values from font face, not family, size and attributes given to
+    // this function.
+    FontFace* other = Font::_cache->getFace(face->family, face->metrics.size, face->attributes);
+    if (!other) return face;
+
+    // Dereference our font face and use cached one.
+    face->deref();
+    return other->ref();
+  }
+  else
+  {
+    // Failed? Maybe memory allocation error? Just use this face.
+    return face;
+  }
+}
+
 } // Fog namespace
 
 // ============================================================================
@@ -343,7 +435,7 @@ FOG_INIT_DECLARE err_t fog_font_init(void)
   font_local.init();
   font_local.instance().listInitialized = false;
 
-  err_t initResult = Error::Ok;
+  err_t err = Error::Ok;
 
   // [Font Shared Null]
 
@@ -368,58 +460,67 @@ FOG_INIT_DECLARE err_t fog_font_init(void)
   font_local.instance().paths.append(winFonts);
 #endif // FOG_OS_WINDOWS
 
-  // [Font Face Cache]
+  // [Font Cache]
+
+  Font::_cache = new(std::nothrow) FontCache();
+  if (Font::_cache == NULL) { err = Error::OutOfMemory; goto fail; }
 
   // [Font Engine]
 
-  Font::_engine = NULL;
-
 #if defined(FOG_FONT_WINDOWS)
-  if (!Font::_engine) Font::_engine = new FontEngineWin();
+  if (!Font::_engine)
+  {
+    Font::_engine = new(std::nothrow) FontEngineWin();
+    if (Font::_engine == NULL) { err = Error::OutOfMemory; goto fail; }
+  }
 #endif // FOG_FONT_WINDOWS
 
 #if defined(FOG_FONT_FREETYPE)
-  if (!Font::_engine) Font::_engine = new FontEngineFT();
+  if (!Font::_engine)
+  {
+    Font::_engine = new(std::nothrow) FontEngineFT();
+    if (Font::_engine == NULL) { err = Error::OutOfMemory; goto fail; }
+  }
 #endif // FOG_FONT_FREETYPE
 
   Font::sharedNull->face = Font::_engine->getDefaultFace();
 
   if (Font::sharedNull->face == NULL)
   {
-    initResult = Error::FontCantLoadDefaultFace;
-    goto __fail;
+    err = Error::FontCantLoadDefaultFace;
+    goto fail;
   }
 
-  return initResult;
+  return err;
 
-__fail:
+fail:
   fog_font_shutdown();
-  return initResult;
+  return err;
 }
 
 FOG_INIT_DECLARE void fog_font_shutdown(void)
 {
   using namespace Fog;
 
-  // [Font Shared Null]
-  delete Font::sharedNull;
-  Font::sharedNull = NULL;
-
-  // [Font Face Cache]
-
-  //Fog_Font_cleanup();
-  //Fog_FontFace_cache->~Fog_FontFaceCache();
+  // [Font Cache]
+  if (Font::_cache)
+  {
+    delete Font::_cache;
+    Font::_cache = NULL;
+  }
 
   // [Font Engine]
-
   if (Font::_engine)
   {
     delete Font::_engine;
     Font::_engine = NULL;
   }
 
-  // [Local]
+  // [Font Shared Null]
+  delete Font::sharedNull;
+  Font::sharedNull = NULL;
 
+  // [Local]
   font_local.destroy();
 }
 
