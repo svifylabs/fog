@@ -12,8 +12,8 @@
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/Atomic.h>
 #include <Fog/Core/Constants.h>
+#include <Fog/Core/Error.h>
 #include <Fog/Core/Memory.h>
-#include <Fog/Core/RefData.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/TypeInfo.h>
 
@@ -28,30 +28,73 @@ namespace Fog {
 
 struct FOG_API BitArray
 {
-  struct FOG_API Data : public RefData<Data>
+  struct FOG_API Data
   {
-    sysuint_t capacity;
-    sysuint_t length;
-    uint8_t data[4];
+    // [Flags]
 
-    Data* ref();
+    //! @brief Basic RefData<T> flags that supports most classes.
+    enum Flags
+    {
+      //! @brief Null 'd' object.
+      //!
+      //! This is very likely object that's shared between all null objects. So
+      //! normally only one data instance can has this flag set on.
+      IsNull = (1U << 0),
+
+      //! @brief Object is created on the heap.
+      //!
+      //! Object is created by function like @c malloc() or Fog::Memory::alloc() or
+      //! by @c new operator. It this flag is not set, you can't delete object from
+      //! the heap and object is probabbly only temporary (short life).
+      IsDynamic = (1U << 1),
+
+      //! @brief Object is shareable.
+      //!
+      //! Object can be directly referenced by internal method @c ref(). Sharable
+      //! objects are usually created on the heap and together with this flag is set
+      //! also @c IsDynamic, but it couldn't be.
+      IsSharable = (1U << 2),
+
+      //! @brief Prevents destroying from assigning operations.
+      //!
+      //! This flag is usually only for @c Fog::String family classes and it
+      //! it means
+      //!   "Don't assign other object to me, instead, copy it to me directly!".
+      IsStrong = (1U << 3)
+    };
+
+    // [Ref / Deref]
+
+    FOG_INLINE Data* refAlways() const
+    {
+      refCount.inc();
+      return const_cast<Data*>(this);
+    }
+
+    Data* ref() const;
     void deref();
-
-    FOG_INLINE void destroy() {}
-    FOG_INLINE void free() { Fog::Memory::free(this); }
 
     static Data* adopt(void* address, sysuint_t capacity);
     static Data* adopt(void* address, sysuint_t capacity, const uint8_t* data, sysuint_t bitoffset, sysuint_t count);
     static Data* adopt(void* address, sysuint_t capacity, uint32_t bit, sysuint_t count);
 
-    static Data* create(sysuint_t capacity, uint allocPolicy);
+    static Data* create(sysuint_t capacity);
     static Data* create(sysuint_t capacity, const uint8_t* data, sysuint_t bitoffset, sysuint_t count);
 
     static Data* createFor(uint32_t bit, sysuint_t count);
     static Data* createFor(const uint8_t* data, sysuint_t bitoffset, sysuint_t count);
     static Data* createFor2(const uint8_t* data1, sysuint_t bitoffset1, sysuint_t count1, const uint8_t* data2, sysuint_t bitoffset2, sysuint_t count2);
 
-    static Data* copy(const Data* other, uint allocPolicy);
+    static Data* copy(const Data* other);
+
+    // [Members]
+
+    mutable Atomic<sysuint_t> refCount;
+    uint32_t flags;
+
+    sysuint_t capacity;
+    sysuint_t length;
+    uint8_t data[4];
   };
 
   static Static<Data> sharedNull;
@@ -59,8 +102,8 @@ struct FOG_API BitArray
   // [Construction / Destruction]
 
   BitArray();
-  BitArray(Data* d);
   BitArray(const BitArray& other);
+  explicit BitArray(Data* d);
   ~BitArray();
 
   // [Implicit Sharing]
@@ -70,13 +113,9 @@ struct FOG_API BitArray
   //! @copydoc Doxygen::Implicit::isDetached().
   FOG_INLINE bool isDetached() const { return refCount() == 1; }
   //! @copydoc Doxygen::Implicit::detach().
-  FOG_INLINE void detach() { if (!isDetached()) _detach(); }
-  //! @copydoc Doxygen::Implicit::tryDetach().
-  FOG_INLINE bool tryDetach() { return (!isDetached()) ? _tryDetach() : true; }
+  FOG_INLINE err_t detach() { return !isDetached() ? _detach() : (err_t)Error::Ok; }
   //! @copydoc Doxygen::Implicit::_detach().
-  void _detach();
-  //! @copydoc Doxygen::Implicit::_tryDetach().
-  bool _tryDetach();
+  err_t _detach();
   //! @copydoc Doxygen::Implicit::free().
   void free();
 
@@ -108,8 +147,7 @@ struct FOG_API BitArray
 
   FOG_INLINE uint8_t* mData()
   {
-    detach();
-    return _d->data;
+    return detach() == Error::Ok ? _d->data : NULL;
   }
 
   FOG_INLINE uint8_t* xData()
@@ -121,7 +159,7 @@ struct FOG_API BitArray
   FOG_INLINE bool at(sysuint_t index) const
   {
     FOG_ASSERT_X(index < length(), "Fog::BitArray::at() - Index out of range.");
-    return (_d->data[index >> 3] & (1 << (index & 7))) != 0;
+    return (bool)(_d->data[index >> 3] & (1 << (index & 7)));
   }
 
   //! @brief Returns count of allocated bits (capacity).
@@ -131,67 +169,48 @@ struct FOG_API BitArray
   //! @brief Returns true if bit array is empty.
   FOG_INLINE bool isEmpty() const { return length() == 0; }
 
-  FOG_INLINE void reserve(sysuint_t to)
-  { _reserve(to); }
-  FOG_INLINE void resize(sysuint_t to, uint32_t fill = 0)
-  { _resize(to); }
-  FOG_INLINE void grow(sysuint_t by)
-  { _grow(by); }
-
-  FOG_INLINE bool tryReserve(sysuint_t to)
-  { return _tryReserve(to) != 0; }
-  FOG_INLINE bool tryResize(sysuint_t to, uint32_t fill = 0)
-  { return _tryResize(to) != 0; }
-  FOG_INLINE bool tryGrow(sysuint_t by)
-  { return _tryGrow(by) != 0; }
-
-  uint8_t* _reserve(sysuint_t to);
-  uint8_t* _resize(sysuint_t to, uint32_t fill = 0);
-  uint8_t* _grow(sysuint_t by);
-
-  uint8_t* _tryReserve(sysuint_t to);
-  uint8_t* _tryResize(sysuint_t to, uint32_t fill = 0);
-  uint8_t* _tryGrow(sysuint_t by);
+  err_t reserve(sysuint_t to);
+  err_t resize(sysuint_t to, uint32_t fill = 0);
+  err_t grow(sysuint_t by);
 
   void squeeze();
-
   void clear();
 
   // [Single bit manipulation]
 
-  BitArray& setBit(sysuint_t index);
-  BitArray& setBit(sysuint_t index, uint32_t bit);
-  BitArray& resetBit(sysuint_t index);
-  BitArray& invertBit(sysuint_t index);
+  err_t setBit(sysuint_t index);
+  err_t setBit(sysuint_t index, uint32_t bit);
+  err_t resetBit(sysuint_t index);
+  err_t invertBit(sysuint_t index);
 
   // [Multiple bits manipulation]
 
-  BitArray& fill(uint32_t bit);
-  BitArray& fillAt(sysuint_t index, sysuint_t count, uint32_t bit);
-  BitArray& invert();
-  BitArray& invertAt(sysuint_t index, sysuint_t count);
+  err_t fill(uint32_t bit);
+  err_t fillAt(sysuint_t index, sysuint_t count, uint32_t bit);
+  err_t invert();
+  err_t invertAt(sysuint_t index, sysuint_t count);
 
   // [Set]
 
-  BitArray& set(const BitArray& other);
+  err_t set(const BitArray& other);
 
   // [Append]
 
-  BitArray& append(uint32_t bit);
-  BitArray& append(uint32_t bit, sysuint_t count);
-  BitArray& append(const BitArray& other);
+  err_t append(uint32_t bit);
+  err_t append(uint32_t bit, sysuint_t count);
+  err_t append(const BitArray& other);
 
   // [Prepend]
 
-  BitArray& prepend(uint32_t bit);
-  BitArray& prepend(uint32_t bit, sysuint_t count);
-  BitArray& prepend(const BitArray& other);
+  err_t prepend(uint32_t bit);
+  err_t prepend(uint32_t bit, sysuint_t count);
+  err_t prepend(const BitArray& other);
 
   // [Insert]
 
-  BitArray& insert(sysuint_t index, uint32_t bit);
-  BitArray& insert(sysuint_t index, uint32_t bit, sysuint_t count);
-  BitArray& insert(sysuint_t index, const BitArray& other);
+  err_t insert(sysuint_t index, uint32_t bit);
+  err_t insert(sysuint_t index, uint32_t bit, sysuint_t count);
+  err_t insert(sysuint_t index, const BitArray& other);
 
   // [Overloaded Operators]
 
