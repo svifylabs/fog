@@ -502,6 +502,10 @@ FOG_INIT_DECLARE void fog_font_shutdown(void)
 {
   using namespace Fog;
 
+  // [Font Shared Null]
+  delete Font::sharedNull;
+  Font::sharedNull = NULL;
+
   // [Font Cache]
   if (Font::_cache)
   {
@@ -515,10 +519,6 @@ FOG_INIT_DECLARE void fog_font_shutdown(void)
     delete Font::_engine;
     Font::_engine = NULL;
   }
-
-  // [Font Shared Null]
-  delete Font::sharedNull;
-  Font::sharedNull = NULL;
 
   // [Local]
   font_local.destroy();
