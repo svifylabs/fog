@@ -39,7 +39,7 @@ static const uint8_t nToBitsINC[8] =
 
 static const uint8_t nToBitsDEC[8] =
 {
-  // simple conversion, result is nToBitsINC[n] << (8 - n)
+  // Simple conversion, result is nToBitsINC[n] << (8 - n).
   0x00, // 00000000
   0x80, // 10000000
   0xC0, // 11000000
@@ -50,7 +50,7 @@ static const uint8_t nToBitsDEC[8] =
   0xFE  // 11111110
 };
 
-// need is always larger than capacity
+// Need is always larger than capacity.
 static sysuint_t getOptimalCapacity(sysuint_t capacity, sysuint_t need)
 {
   FOG_ASSERT(need >= capacity);
@@ -65,80 +65,211 @@ static sysuint_t getOptimalCapacity(sysuint_t capacity, sysuint_t need)
   return result;
 }
 
-// basic functions for manipulating with RAW bits
+// Basic functions for manipulating with RAW bits.
 
-// copy bits from source to destination, bit offsets means first bit in data buffer,
-// count is always means in bits
-static void _copyBits(uint8_t* dest, sysuint_t destBitOffset, const uint8_t* src, sysuint_t srcBitOffset, sysuint_t _count)
+// Copy bits from source to destination, bit offsets means first bit in data buffer,
+// count is always means in bits. Source and destination pointers can overlap.
+static void _copyBits(uint8_t* dst, sysuint_t dstBitOffset, const uint8_t* src, sysuint_t srcBitOffset, sysuint_t _count)
 {
-  sysuint_t i;
+#if 1
+  sysuint_t i = dstBitOffset & 7;
   sysuint_t count = _count;
 
-  // when copying bits, we need some logic in it. So we will first align destBitOffset
-  // and then we copy bits as 1 BYTE to the destination
-  i = destBitOffset & 7;
   if (i)
   {
-    // compute count of bits that's needed to align the destination
+    // Calculate count of bits thats needed to align the destination.
     i = 8 - i;
-
     if (i > count) i = count;
 
     count -= i;
-    destBitOffset += i;
+    dstBitOffset += i;
     srcBitOffset += i;
   }
 
-  // destination is aligned, make from source one BYTE and copy it to destination
+  // Destination is aligned, make from source one BYTE and copy it to destination.
   i = srcBitOffset & 7;
 
+  dst += (dstBitOffset >> 3);
+  src += (srcBitOffset >> 3);
+
+  sysuint_t count_div8 = count >> 3;
+
+  // Source and destination are aligned.
   if (i == 0)
   {
-    // easy solution, because source is aligned to the 8 bits too :)
-    sysuint_t count_div8 = count >> 3;
-    for (i = 0; i != count_div8; i++) *dest++ = *src++;
+    for (i = 0; i != count_div8; i++, dst++, src++) dst[0] = src[0];
 
-    // copy the last BYTE (but we must OR it to the destination)
-
-    // tail mask
+    // Tail BYTE.
     uint8_t mask = ~nToBitsINC[count & 7];
-    // clear remaining bits in dest
-    *dest &= mask;
-    // set remaining bits in dest from src
-    *dest |= *src & mask;
+    dst[0] = (dst[0] & ~mask) | (src[0] & mask);
+  }
+  // Source and destination aren't aligned.
+  else
+  {
+    // Count of bits in mask1 and mask2 have to be 8.
+    uint8_t shft0 = 8 - (uint8_t)i;
+    uint8_t shft1 = (uint8_t)i;
+    uint8_t mask0 = nToBitsDEC[8 - i];
+    uint8_t mask1 = nToBitsINC[i];
+
+    uint8_t src0 = src[0];
+    for (i = 0; i != count_div8; i++, dst++, src++)
+    {
+      uint8_t src1 = src[1];
+      dst[0] = ((src0 & mask0) << shft0) | ((src1 & mask1) >> shft1);
+      src0 = src1;
+    }
+
+    // Tail BYTE.
+    uint8_t mask = ~nToBitsINC[count & 7];
+    if (mask)
+    {
+      dst[0] = (dst[0] & ~mask) | (((src0 & mask0) << shft0) | ((src[1] & mask1) >> shft1) & mask);
+    }
+  }
+#endif
+
+#if 0
+  // When copying bits, we need some logic in it. So we will first align dstBitOffset
+  // and then we copy bits as 1 BYTE to the destination.
+  sysuint_t dstByteOffset = dstBitOffset >> 3;
+  sysuint_t srcByteOffset = srcBitOffset >> 3;
+
+  dstBitOffset &= 7;
+  srcBitOffset &= 7;
+
+  dst += dstByteOffset;
+  src += srcByteOffset;
+
+  sysuint_t align = (8 - (dstBitOffset)) & 7;
+  sysuint_t tail = (_count - align) & 7;
+  sysuint_t count = _count - align - tail;
+  sysuint_t bcount = count >> 3;
+
+  sysuint_t i;
+
+  dst += dstByteOffset;
+  src += srcByteOffset;
+  
+  if (dstBitOffset == srcBitOffset)
+  {
+    if (align)
+    {
+      uint8_t mask = nToBitsINC[align];
+      dst[0] = (dst[0] & ~mask) | (src[0] & mask);
+      dst++;
+      src++;
+    }
+
+    for (i = 0; i != bcount; i++, dst++, src++) dst[0] = src[0];
+
+    if (tail)
+    {
+      uint8_t mask = nToBitsDEC[align];
+      dst[0] = (dst[0] & ~mask) | (src[0] & mask);
+    }
   }
   else
   {
-    // complex solution, it needs to parse two bytes from source and create
-    // one BYTE that will be copyed to the destination.
-    //
-    // count of bits in mask1 and mask2 have to be 8
+    uint8_t shft0 = (8 - (uint8_t)srcBitOffset) & 7;
+    uint8_t shft1 = (uint8_t)srcBitOffset;
+    uint8_t mask0 = nToBitsDEC[8 - srcBitOffset];
+    uint8_t mask1 = nToBitsINC[srcBitOffset];
+
+    uint8_t src0 = src[0];
+
+    if (align)
+    {
+      uint8_t src1 = src[1];
+      uint8_t mask = nToBitsINC[align];
+      dst[0] = (dst[0] & ~mask) | (src[0] & mask);
+      src0 = src1;
+
+      dst++;
+      src++;
+    }
+
+    for (i = 0; i != bcount; i++, dst++, src++)
+    {
+      uint8_t src1 = src[1];
+      dst[0] = ((src0 & mask1) << shft1) | ((src1 & mask2) >> shft2);
+      src0 = src1;
+    }
+
+    if (tail)
+    {
+      uint8_t mask = nToBitsDEC[align];
+      dst[0] = (dst[0] & ~mask) | (src[0] & mask);
+    }
+  }
+
+  if (i)
+  {
+    // Calculate count of bits thats needed to align the destination.
+    i = 8 - i;
+    if (i > count) i = count;
+
+    count -= i;
+    dstBitOffset += i;
+    srcBitOffset += i;
+  }
+
+  // Destination is aligned, make from source one BYTE and copy it to destination.
+  i = srcBitOffset & 7;
+
+  dst += (dstBitOffset >> 3);
+  src += (srcBitOffset >> 3);
+
+  sysuint_t count_div8 = count >> 3;
+
+  // Source and destination are aligned.
+  if (i == 0)
+  {
+    for (i = 0; i != count_div8; i++, dst++, src++) dst[0] = src[0];
+
+    // Copy the last BYTE (but we must OR it to the destination).
+
+    // Tail mask.
+    uint8_t mask = ~nToBitsINC[count & 7];
+    // Clear remaining bits in dst.
+    *dst &= mask;
+    // Set remaining bits in dst from src.
+    *dst |= *src & mask;
+  }
+  // Source and destination aren't aligned.
+  else
+  {
+    // Count of bits in mask1 and mask2 have to be 8.
     uint8_t shft1 = 8 - (uint8_t)i;
     uint8_t shft2 = (uint8_t)i;
     uint8_t mask1 = nToBitsDEC[8 - i];
     uint8_t mask2 = nToBitsINC[i];
 
-    while (count >= 8)
+    uint8_t src0 = src[0];
+    for (i = 0; i != count_div8; i++, dst++, src++)
     {
-      *dest++ = ((src[0] & mask1) << shft1) | ((src[1] & mask2) >> shft2);
-      count -= 8;
+      uint8_t dst0 = ((src0 & mask1) << shft1);
+      src0 = src[1];
+      dst0 |= ((src0 & mask2) >> shft2);
+      dst[0] = dst0;
     }
 
-    // tail mask
+    // Tail mask.
     uint8_t mask = ~nToBitsINC[count & 7];
-    // clear remaining bits in dest
-    *dest &= mask; 
-    // set remaining bits in dest from src
-    *dest |= ((src[0] & mask1) << shft1) | ((src[1] & mask2) >> shft2) & mask;
+    // Clear remaining bits in dst.
+    *dst &= mask;
+    // Set remaining bits in dst from src.
+    *dst |= ((src[0] & mask1) << shft1) | ((src[1] & mask2) >> shft2) & mask;
   }
+#endif
 }
 
-static void _setBits(uint8_t* dest, sysuint_t destBitOffset, uint32_t bit, sysuint_t _count)
+static void _setBits(uint8_t* dst, sysuint_t dstBitOffset, uint32_t bit, sysuint_t _count)
 {
   sysuint_t i;
 
-  sysuint_t byteoffset = destBitOffset >> 3;
-  sysuint_t bitoffset = destBitOffset & 7;
+  sysuint_t byteoffset = dstBitOffset >> 3;
+  sysuint_t bitoffset = dstBitOffset & 7;
   sysuint_t count = _count;
   sysuint_t align = (8 - bitoffset) & 7;
 
@@ -154,20 +285,20 @@ static void _setBits(uint8_t* dest, sysuint_t destBitOffset, uint32_t bit, sysui
   sysuint_t count_div8 = count >> 3;
   uint8_t pattern = bit ? 0xFF : 0x00;
 
-  // advance dest pointer
-  dest += byteoffset;
+  // advance dst pointer
+  dst += byteoffset;
 
   if (align)
   {
     uint8_t mask = nToBitsINC[align] << bitoffset;
     if (bit)
-      *dest++ |= mask;
+      *dst++ |= mask;
     else
-      *dest++ &= ~mask;
+      *dst++ &= ~mask;
   }
 
   // BYTE fill
-  for (i = 0; i != count_div8; i++) *dest++ = pattern;
+  for (i = 0; i != count_div8; i++) *dst++ = pattern;
 
   // do the tail
   if (tail)
@@ -175,18 +306,18 @@ static void _setBits(uint8_t* dest, sysuint_t destBitOffset, uint32_t bit, sysui
     uint8_t mask = nToBitsINC[tail];
 
     if (bit)
-      *dest |= mask;
+      *dst |= mask;
     else
-      *dest &= ~mask;
+      *dst &= ~mask;
   }
 }
 
-static void _xorBits(uint8_t* dest, sysuint_t destBitOffset, sysuint_t _count)
+static void _xorBits(uint8_t* dst, sysuint_t dstBitOffset, sysuint_t _count)
 {
   sysuint_t i;
 
-  sysuint_t byteoffset = destBitOffset >> 3;
-  sysuint_t bitoffset = destBitOffset & 7;
+  sysuint_t byteoffset = dstBitOffset >> 3;
+  sysuint_t bitoffset = dstBitOffset & 7;
   sysuint_t count = _count;
   sysuint_t align = (8 - bitoffset) & 7;
 
@@ -201,23 +332,23 @@ static void _xorBits(uint8_t* dest, sysuint_t destBitOffset, sysuint_t _count)
 
   sysuint_t count_div8 = count >> 3;
 
-  // advance dest pointer
-  dest += byteoffset;
+  // advance dst pointer
+  dst += byteoffset;
 
   if (align)
   {
     uint8_t mask = nToBitsINC[align] << bitoffset;
-    *dest++ ^= mask;
+    *dst++ ^= mask;
   }
 
   // BYTE xor
-  for (i = 0; i != count_div8; i++) *dest++ ^= 0xFF;
+  for (i = 0; i != count_div8; i++) *dst++ ^= 0xFF;
 
   // do the tail
   if (tail)
   {
     uint8_t mask = nToBitsINC[tail];
-    *dest ^= mask;
+    *dst ^= mask;
   }
 }
 
