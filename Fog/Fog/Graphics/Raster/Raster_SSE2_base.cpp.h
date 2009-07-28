@@ -559,7 +559,8 @@ static FOG_INLINE void pix_demultiply_1x1W(__m128i& dst0, const __m128i& src0)
   index = buffer[6];
 
   pix_load8(recip, (int8_t*)demultiply_reciprocal_table_w + index * 8);
-  dst0 = _mm_mulhi_epu16(src0, recip);
+  dst0 = _mm_slli_epi16(dst0, 8);
+  dst0 = _mm_mulhi_epu16(dst0, recip);
 }
 
 static FOG_INLINE void pix_demultiply_2x2W(__m128i& dst0, const __m128i& src0, __m128i& dst1, const __m128i& src1)
