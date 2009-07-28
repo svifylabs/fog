@@ -186,13 +186,17 @@ StringCache* StringCache::getCacheByName(const String32& name)
 
 FOG_INIT_DECLARE err_t fog_stringcache_init(void)
 {
-  Fog::stringcache_local.init();
+  using namespace Fog;
+
+  stringcache_local.init();
   return Error::Ok;
 }
 
 FOG_INIT_DECLARE void fog_stringcache_shutdown(void)
 {
-  // free cache here, because all loadable modules and libraries can define cache,
-  // but it's guaranted that they will be valid until here
-  Fog::stringcache_local.destroy();
+  using namespace Fog;
+
+  // Free cache here, because all loadable modules and libraries can define cache,
+  // but it's guaranted that they will be valid until here.
+  stringcache_local.destroy();
 }

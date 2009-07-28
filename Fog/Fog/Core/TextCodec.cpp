@@ -3277,54 +3277,57 @@ err_t TextCodec::appendToUtf32(String32& dst, const String8& src, State* state) 
 
 FOG_INIT_DECLARE err_t fog_textcodec_init(void)
 {
-  Fog::Memory::zero(Fog::TextCodec_deviceInstances, sizeof(void*) * Fog::TextCodec::Invalid);
+  using namespace Fog;
 
-  Fog::TextCodec* addr = (Fog::TextCodec*)Fog::TextCodec::sharedBuiltIn;
+  Memory::zero(TextCodec_deviceInstances, sizeof(void*) * TextCodec::Invalid);
+
+  TextCodec* addr = (TextCodec*)TextCodec::sharedBuiltIn;
 
   // Initialize null text codec.
-  new (&addr[Fog::TextCodec::BuiltInNull]) 
-    Fog::TextCodec(Fog::TextCodec::fromCode(Fog::TextCodec::None));
+  new (&addr[TextCodec::BuiltInNull]) 
+    TextCodec(TextCodec::fromCode(TextCodec::None));
 
   // Initialize ASCII text codec.
-  new (&addr[Fog::TextCodec::BuiltInAscii]) 
-    Fog::TextCodec(Fog::TextCodec::fromCode(Fog::TextCodec::ISO8859_1));
+  new (&addr[TextCodec::BuiltInAscii]) 
+    TextCodec(TextCodec::fromCode(TextCodec::ISO8859_1));
   
   // Initialize local 8-bit text codec. If there was problem to initialize it,
   // we will use ASCII one.
-  new (&addr[Fog::TextCodec::BuiltInLocal]) 
-    Fog::TextCodec(Fog::TextCodec::fromMime(Fog::TextCodec_getCodeset()));
-  if (addr[Fog::TextCodec::BuiltInLocal].isNull())
-    addr[Fog::TextCodec::BuiltInLocal] = addr[Fog::TextCodec::BuiltInAscii];
+  new (&addr[TextCodec::BuiltInLocal]) 
+    TextCodec(TextCodec::fromMime(TextCodec_getCodeset()));
+  if (addr[TextCodec::BuiltInLocal].isNull())
+    addr[TextCodec::BuiltInLocal] = addr[TextCodec::BuiltInAscii];
 
   // Initialize UTF-8 text codec.
-  new (&addr[Fog::TextCodec::BuiltInUTF8]) 
-    Fog::TextCodec(Fog::TextCodec::fromCode(Fog::TextCodec::UTF8));
+  new (&addr[TextCodec::BuiltInUTF8]) 
+    TextCodec(TextCodec::fromCode(TextCodec::UTF8));
   
   // Initialize UTF-16 text codec.
-  new (&addr[Fog::TextCodec::BuiltInUTF16]) 
-    Fog::TextCodec(Fog::TextCodec::fromCode(Fog::TextCodec::UTF16));
+  new (&addr[TextCodec::BuiltInUTF16]) 
+    TextCodec(TextCodec::fromCode(TextCodec::UTF16));
   
   // Initialize UTF-32 text codec.
-  new (&addr[Fog::TextCodec::BuiltInUTF32]) 
-    Fog::TextCodec(Fog::TextCodec::fromCode(Fog::TextCodec::UTF32));
+  new (&addr[TextCodec::BuiltInUTF32]) 
+    TextCodec(TextCodec::fromCode(TextCodec::UTF32));
 
   return Error::Ok;
 }
 
 FOG_INIT_DECLARE void fog_textcodec_shutdown(void)
 {
-  Fog::TextCodec* addr = (Fog::TextCodec*)Fog::TextCodec::sharedBuiltIn;
+  using namespace Fog;
 
-  addr[Fog::TextCodec::BuiltInNull].~TextCodec();
-  addr[Fog::TextCodec::BuiltInAscii].~TextCodec();
-  addr[Fog::TextCodec::BuiltInLocal].~TextCodec();
-  addr[Fog::TextCodec::BuiltInUTF8].~TextCodec();
-  addr[Fog::TextCodec::BuiltInUTF16].~TextCodec();
-  addr[Fog::TextCodec::BuiltInUTF32].~TextCodec();
+  TextCodec* addr = (TextCodec*)TextCodec::sharedBuiltIn;
 
-  for (sysuint_t i = 0; i != FOG_ARRAY_SIZE(Fog::TextCodec_deviceInstances); i++)
+  addr[TextCodec::BuiltInNull].~TextCodec();
+  addr[TextCodec::BuiltInAscii].~TextCodec();
+  addr[TextCodec::BuiltInLocal].~TextCodec();
+  addr[TextCodec::BuiltInUTF8].~TextCodec();
+  addr[TextCodec::BuiltInUTF16].~TextCodec();
+  addr[TextCodec::BuiltInUTF32].~TextCodec();
+
+  for (sysuint_t i = 0; i != FOG_ARRAY_SIZE(TextCodec_deviceInstances); i++)
   {
-    if (Fog::TextCodec_deviceInstances[i])
-      Fog::TextCodec_deviceInstances[i]->deref();
+    if (TextCodec_deviceInstances[i]) TextCodec_deviceInstances[i]->deref();
   }
 }

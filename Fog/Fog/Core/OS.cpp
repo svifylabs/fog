@@ -333,11 +333,15 @@ err_t OS::setEnv(const String32& name, const String32& value)
 
 FOG_INIT_DECLARE err_t fog_os_init(void)
 {
-  Fog::os_local.init();
+  using namespace Fog;
+
+  os_local.init();
   return Error::Ok;
 }
 
 FOG_INIT_DECLARE void fog_os_shutdown(void)
 {
-  Fog::os_local.destroy();
+  using namespace Fog;
+
+  os_local.destroy();
 }

@@ -2705,7 +2705,9 @@ uint32_t GifEncoderDevice::writeImage(const Image& image)
 
 FOG_INIT_DECLARE void fog_imageio_gif_init(void)
 {
-  Fog::ImageIO::addProvider(new(std::nothrow) Fog::ImageIO::GifProvider());
+  using namespace Fog;
+
+  ImageIO::addProvider(new(std::nothrow) ImageIO::GifProvider());
 }
 
 FOG_INIT_DECLARE void fog_imageio_gif_shutdown(void)

@@ -179,7 +179,7 @@ MyWindow::~MyWindow()
 
 static Image makeImage()
 {
-  Image im(600, 120, Image::FormatRGB32);
+  Image im(600, 120, Image::FormatARGB32);
   im.clear(0x00000000);
   Painter p(im);
 
@@ -189,11 +189,8 @@ static Image makeImage()
   font.setBold(true);
 
   p.setOp(CompositeSrc);
-  p.setSource(0xFFFFFFFF);
+  p.setSource(0xFF000000);
   p.setLineWidth(15.0);
-  
-  //for (int i = 0 ; i < 1000; i++)
-  //  p.drawPoint(Point(rand()%600, rand()%120));
 
   p.drawText(Rect(0, 0, p.width(), p.height()), Ascii8("Fog Library"), font, TextAlignCenter);
 

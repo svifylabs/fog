@@ -456,13 +456,17 @@ static Static<MainThread> mainThread;
 
 FOG_INIT_DECLARE err_t fog_thread_init(void)
 {
-  Fog::thread_tls.init();
-  Fog::mainThread.init();
+  using namespace Fog;
+
+  thread_tls.init();
+  mainThread.init();
   return Error::Ok;
 }
 
 FOG_INIT_DECLARE void fog_thread_shutdown(void)
 {
-  Fog::mainThread.destroy();
-  Fog::thread_tls.destroy();
+  using namespace Fog;
+
+  mainThread.destroy();
+  thread_tls.destroy();
 }

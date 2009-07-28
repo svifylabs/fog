@@ -237,10 +237,11 @@ void detectCpuInfo(CpuInfo* i)
 
 FOG_INIT_DECLARE err_t fog_cpuinfo_init(void)
 {
-  static Fog::CpuInfo staticCpuInfo;
+  using namespace Fog;
 
-  Fog::cpuInfo = &staticCpuInfo;
-  Fog::detectCpuInfo(Fog::cpuInfo);
+  static CpuInfo staticCpuInfo;
+  cpuInfo = &staticCpuInfo;
+  detectCpuInfo(cpuInfo);
 
   return Error::Ok;
 }

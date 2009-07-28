@@ -107,12 +107,13 @@ FOG_CVAR_DECLARE Fog::StringCache* fog_strings;
 
 FOG_INIT_DECLARE err_t fog_strings_init(void)
 {
-  Fog::fog_strings = Fog::StringCache::create
-  (
-    Fog::fog_strings_data,
-    FOG_ARRAY_SIZE(Fog::fog_strings_data),
-    Fog::STR_COUNT,
-    Fog::Ascii8("Fog")
+  using namespace Fog;
+
+  fog_strings = StringCache::create(
+    fog_strings_data,
+    FOG_ARRAY_SIZE(fog_strings_data),
+    STR_COUNT,
+    Ascii8("Fog")
   );
 
   return Error::Ok;
@@ -120,5 +121,7 @@ FOG_INIT_DECLARE err_t fog_strings_init(void)
 
 FOG_INIT_DECLARE void fog_strings_shutdown(void)
 {
-  Fog::StringCache::destroy(Fog::fog_strings);
+  using namespace Fog;
+
+  StringCache::destroy(fog_strings);
 }

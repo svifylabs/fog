@@ -541,13 +541,17 @@ err_t Value::setString(const String32& val)
 
 FOG_INIT_DECLARE err_t fog_value_init(void)
 {
-  Fog::sharedNullData.init();
-  Fog::Value::sharedNull = Fog::sharedNullData.instancep();
+  using namespace Fog;
+
+  sharedNullData.init();
+  Value::sharedNull = sharedNullData.instancep();
 
   return Error::Ok;
 }
 
 FOG_INIT_DECLARE void fog_value_shutdown(void)
 {
-  Fog::sharedNullData.destroy();
+  using namespace Fog;
+
+  sharedNullData.destroy();
 }
