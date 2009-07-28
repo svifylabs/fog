@@ -123,7 +123,7 @@ struct FOG_API PropertiesData
         if (bucket->_name == name) return bucket->_id;
         bucket = bucket->_next;
       }
-    } while (pdata = pdata->_parent);
+    } while ((pdata = pdata->_parent) != NULL);
     return -1;
   }
 
