@@ -1081,8 +1081,8 @@ static FOG_INLINE uint32_t byteaddmulC(uint32_t x, uint32_t a, uint32_t y, uint3
 // [Fog::Raster - Demultiply Reciprocal Table]
 // ============================================================================
 
-extern FOG_API uint32_t const demultiply_reciprocal_table[256];
-
+extern FOG_API const uint32_t demultiply_reciprocal_table_d[256];
+extern FOG_API const uint16_t demultiply_reciprocal_table_w[256*4];
 
 // ============================================================================
 // [Fog::Raster - Get Red/Green/Blue/Alpha]
@@ -1173,7 +1173,7 @@ static FOG_INLINE uint32_t premultiply(uint32_t x)
 static FOG_INLINE uint32_t demultiply(uint32_t x)
 {
   uint32_t a = (x >> 24);
-  uint32_t recip = demultiply_reciprocal_table[a];
+  uint32_t recip = demultiply_reciprocal_table_d[a];
 
   uint32_t r = (x >> 16) & 0xFF;
   uint32_t g = (x >>  8) & 0xFF;

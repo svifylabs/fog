@@ -187,25 +187,25 @@ static FOG_INLINE void pix_load16u(__m128i& dst0, const SrcT* srcp)
 // Store.
 
 template<typename DstT>
-static FOG_INLINE void pix_store4(DstT* dstp, __m128i& src0)
+static FOG_INLINE void pix_store4(DstT* dstp, const __m128i& src0)
 {
   ((int *)dstp)[0] = _mm_cvtsi128_si32(src0);
 }
 
 template<typename DstT>
-static FOG_INLINE void pix_store8(DstT* dstp, __m128i& src0)
+static FOG_INLINE void pix_store8(DstT* dstp, const __m128i& src0)
 {
   _mm_storel_epi64((__m128i*)(dstp), src0);
 }
 
 template<typename DstT>
-static FOG_INLINE void pix_store16a(DstT* dstp, __m128i& src0)
+static FOG_INLINE void pix_store16a(DstT* dstp, const __m128i& src0)
 {
   _mm_store_si128((__m128i *)(dstp), src0);
 }
 
 template<typename DstT>
-static FOG_INLINE void pix_store16u(DstT* dstp, __m128i& src0)
+static FOG_INLINE void pix_store16u(DstT* dstp, const __m128i& src0)
 {
   _mm_storeu_si128((__m128i *)(dstp), src0);
 }
@@ -548,12 +548,60 @@ static FOG_INLINE void pix_premultiply_2x2W(
 
 // Demultiply.
 
+static FOG_INLINE void pix_demultiply_1x1W(__m128i& dst0, const __m128i& src0)
+{
+  __m128i recip;
+  uint32_t index;
+  uint8_t buffer[8];
+
+  pix_store8(buffer, src0);
+
+  index = buffer[6];
+
+  pix_load8(recip, (int8_t*)demultiply_reciprocal_table_w + index * 8);
+  dst0 = _mm_mulhi_epu16(src0, recip);
+}
+
+static FOG_INLINE void pix_demultiply_2x2W(__m128i& dst0, const __m128i& src0, __m128i& dst1, const __m128i& src1)
+{
+  __m128i recip0, recip1;
+  uint32_t index0;
+  uint32_t index1;
+  uint8_t buffer[16];
+
+  pix_store16u(buffer, src0);
+
+  index0 = buffer[6];
+  index1 = buffer[14];
+
+  pix_load8(recip0, (int8_t*)demultiply_reciprocal_table_w + index0 * 8);
+  pix_load8(recip1, (int8_t*)demultiply_reciprocal_table_w + index1 * 8);
+
+  pix_store16u(buffer, src1);
+
+  recip1 = _mm_shuffle_epi32(recip1, _MM_SHUFFLE(1, 0, 3, 2));
+  recip0 = _mm_or_si128(recip0, recip1);
+
+  dst0 = _mm_mulhi_epu16(src0, recip0);
+
+  index0 = buffer[6];
+  index1 = buffer[14];
+
+  pix_load8(recip0, (int8_t*)demultiply_reciprocal_table_w + index0 * 8);
+  pix_load8(recip1, (int8_t*)demultiply_reciprocal_table_w + index1 * 8);
+
+  recip1 = _mm_shuffle_epi32(recip1, _MM_SHUFFLE(1, 0, 3, 2));
+  recip0 = _mm_or_si128(recip0, recip1);
+
+  dst1 = _mm_mulhi_epu16(src1, recip0);
+}
+
 static FOG_INLINE void pix_unpack_and_demultiply_1x1W(__m128i& dst0, const __m128i& src0)
 {
   uint32_t index = _mm_cvtsi128_si32(src0) >> 24;
 
   __m128i xmmz = _mm_setzero_si128();
-  __m128i recip = _mm_cvtsi32_si128((int)demultiply_reciprocal_table[index]);
+  __m128i recip = _mm_cvtsi32_si128((int)demultiply_reciprocal_table_d[index]);
 
   recip = _mm_or_si128(recip, Mask00010000000000000000000000000000);
   recip = _mm_shuffle_epi32(recip, _MM_SHUFFLE(3, 0, 0, 0));
@@ -575,7 +623,7 @@ static FOG_INLINE void pix_unpack_and_demultiply_2x2W(__m128i& dst0, __m128i& ds
 
   pix_unpack_2x2W(dst0, dst1, src0);
 
-  recip = _mm_cvtsi32_si128((int)demultiply_reciprocal_table[index & 0xFF]);
+  recip = _mm_cvtsi32_si128((int)demultiply_reciprocal_table_d[index & 0xFF]);
   recip = _mm_or_si128(recip, Mask00010000000000000000000000000000);
   recip = _mm_shuffle_epi32(recip, _MM_SHUFFLE(3, 0, 0, 0));
 
@@ -583,7 +631,7 @@ static FOG_INLINE void pix_unpack_and_demultiply_2x2W(__m128i& dst0, __m128i& ds
   sse2_mul_const_4D(tmp0, tmp0, recip);
 
   index >>= 8;
-  recip = _mm_cvtsi32_si128((int)demultiply_reciprocal_table[index & 0xFF]);
+  recip = _mm_cvtsi32_si128((int)demultiply_reciprocal_table_d[index & 0xFF]);
   recip = _mm_or_si128(recip, Mask00010000000000000000000000000000);
   recip = _mm_shuffle_epi32(recip, _MM_SHUFFLE(3, 0, 0, 0));
 
@@ -593,7 +641,7 @@ static FOG_INLINE void pix_unpack_and_demultiply_2x2W(__m128i& dst0, __m128i& ds
 
   dst0 = _mm_packs_epi32(tmp0, tmp1);
   index >>= 8;
-  recip = _mm_cvtsi32_si128((int)demultiply_reciprocal_table[index & 0xFF]);
+  recip = _mm_cvtsi32_si128((int)demultiply_reciprocal_table_d[index & 0xFF]);
   recip = _mm_or_si128(recip, Mask00010000000000000000000000000000);
   recip = _mm_shuffle_epi32(recip, _MM_SHUFFLE(3, 0, 0, 0));
 
@@ -602,7 +650,7 @@ static FOG_INLINE void pix_unpack_and_demultiply_2x2W(__m128i& dst0, __m128i& ds
   dst1 = _mm_shuffle_epi32(dst1, _MM_SHUFFLE(1, 0, 3, 2));
 
   index >>= 8;
-  recip = _mm_cvtsi32_si128((int)demultiply_reciprocal_table[index]);
+  recip = _mm_cvtsi32_si128((int)demultiply_reciprocal_table_d[index]);
   recip = _mm_or_si128(recip, Mask00010000000000000000000000000000);
   recip = _mm_shuffle_epi32(recip, _MM_SHUFFLE(3, 0, 0, 0));
 
