@@ -20,8 +20,8 @@ namespace Fog {
 // helpers
 struct SequenceInfo_NoInitFree
 {
-  static void init(void* _dest, sysuint_t count) {}
-  static void free(void* _dest, sysuint_t count) {}
+  static void init(void* _dest, sysuint_t count) { FOG_UNUSED(_dest); FOG_UNUSED(count); }
+  static void free(void* _dest, sysuint_t count) { FOG_UNUSED(_dest); FOG_UNUSED(count); }
 };
 
 template<sysuint_t N>
