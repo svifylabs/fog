@@ -153,7 +153,7 @@ static void FOG_FASTCALL convert_argb32_from_prgb32(
       r = (rgba >> 16) & 0xFF;
       g = (rgba >> 8 ) & 0xFF;
       b = (rgba      ) & 0xFF;
-      recip = demultiply_reciprocal_table[a];
+      recip = demultiply_reciprocal_table_d[a];
 
       r = ((r * recip)      ) & 0x00FF0000;
       g = ((g * recip) >>  8) & 0x0000FF00;
@@ -172,7 +172,7 @@ static void FOG_FASTCALL convert_argb32_from_prgb32(
       r = (rgba >> 16) & 0xFF;
       g = (rgba >>  8) & 0xFF;
       b = (rgba      ) & 0xFF;
-      recip = demultiply_reciprocal_table[a];
+      recip = demultiply_reciprocal_table_d[a];
 
       diff = rgba ^ const_in;
 
@@ -243,7 +243,7 @@ static void FOG_FASTCALL convert_argb32_from_prgb32_bs(
       r = (rgba >>  8) & 0xFF;
       g = (rgba >> 16) & 0xFF;
       b = (rgba >> 24);
-      recip = demultiply_reciprocal_table[a];
+      recip = demultiply_reciprocal_table_d[a];
 
       r = ((r * recip)      ) & 0x00FF0000;
       g = ((g * recip) >>  8) & 0x0000FF00;
@@ -262,7 +262,7 @@ static void FOG_FASTCALL convert_argb32_from_prgb32_bs(
       r = (rgba >>  8) & 0xFF;
       g = (rgba >> 16) & 0xFF;
       b = (rgba >> 24);
-      recip = demultiply_reciprocal_table[a];
+      recip = demultiply_reciprocal_table_d[a];
 
       diff = rgba ^ const_in;
 
@@ -356,7 +356,7 @@ static void FOG_FASTCALL convert_argb32_bs_from_prgb32(uint8_t* _dst, const uint
       r = (rgba >> 16) & 0xFF;
       g = (rgba >> 8 ) & 0xFF;
       b = (rgba      ) & 0xFF;
-      recip = demultiply_reciprocal_table[a];
+      recip = demultiply_reciprocal_table_d[a];
 
       r = ((r * recip) >>  8) & 0x0000FF00;
       g = ((g * recip)      ) & 0x00FF0000;
@@ -376,7 +376,7 @@ static void FOG_FASTCALL convert_argb32_bs_from_prgb32(uint8_t* _dst, const uint
       r = (rgba >> 16) & 0xFF;
       g = (rgba >> 8 ) & 0xFF;
       b = (rgba      ) & 0xFF;
-      recip = demultiply_reciprocal_table[a];
+      recip = demultiply_reciprocal_table_d[a];
 
       diff = rgba ^ const_in;
 

@@ -2413,6 +2413,18 @@ static void FOG_FASTCALL raster_prgb32_span_composite_rgb24_a8_const_srcover_sse
 // [Fog::Raster - Raster - Argb32 - SrcOver]
 // ============================================================================
 
+static FOG_INLINE void pix_over_nonpremultiplied_1x1W(__m128i& dst0, const __m128i& src0)
+{
+  __m128i alpha0;
+  __m128i tmp0;
+
+  pix_expand_alpha_1x1W(alpha0, src0);
+  pix_multiply_1x1W(tmp0, src0, alpha0);
+  pix_negate_1x1W(alpha0, alpha0);
+  pix_multiply_1x1W(dst0, dst0, alpha0);
+  dst0 = _mm_adds_epu8(dst0, tmp0);
+}
+
 // znacka
 static void FOG_FASTCALL raster_argb32_pixel_srcover_sse2(
   uint8_t* dst, const Solid* src)
@@ -2428,7 +2440,9 @@ static void FOG_FASTCALL raster_argb32_pixel_srcover_sse2(
     pix_load4(dst0mm, dst);
     pix_unpack_1x1W(src0mm, src0mm);
     pix_unpack_1x1W(dst0mm, dst0mm);
+    pix_premultiply_1x1W(dst0mm, dst0mm);
     pix_over_1x1W(dst0mm, src0mm);
+    pix_demultiply_1x1W(dst0mm, dst0mm);
     pix_pack_1x1W(dst0mm, dst0mm);
     pix_store4(dst, dst0mm);
   }
