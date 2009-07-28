@@ -185,7 +185,7 @@ struct Memory
     fog_memory_set_nt(dst, c, size);
   }
 
-  static FOG_INLINE void zero_nt(void* dst, int c, sysuint_t size)
+  static FOG_INLINE void zero_nt(void* dst, sysuint_t size)
   {
     fog_memory_zero_nt(dst, size);
   }
