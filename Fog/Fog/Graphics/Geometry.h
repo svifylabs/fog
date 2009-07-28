@@ -42,7 +42,7 @@ struct FOG_HIDDEN Point
   {
     if (sizeof(Point) == 8)
     {
-      Fog::Memory::copy8B(static_cast<void*>(this), static_cast<const void*>(&other));
+      Memory::copy8B(static_cast<void*>(this), static_cast<const void*>(&other));
     }
     else
     {
@@ -58,7 +58,7 @@ struct FOG_HIDDEN Point
   { 
     if (sizeof(Point) == 8)
     {
-      Fog::Memory::copy8B(static_cast<void*>(this), static_cast<const void*>(&other));
+      Memory::copy8B(static_cast<void*>(this), static_cast<const void*>(&other));
     }
     else
     {
@@ -129,7 +129,7 @@ struct FOG_HIDDEN Point
   {
     if (sizeof(Point) == 8)
     {
-      return Fog::Memory::eq8B(static_cast<const void*>(this), static_cast<const void*>(&other));
+      return Memory::eq8B(static_cast<const void*>(this), static_cast<const void*>(&other));
     }
     else
     {
@@ -487,7 +487,7 @@ struct Rect
   {
     if (sizeof(Rect) == 16)
     {
-      Fog::Memory::copy16B(static_cast<void*>(this), static_cast<const void*>(&other));
+      Memory::copy16B(static_cast<void*>(this), static_cast<const void*>(&other));
     }
     else
     {
@@ -514,7 +514,7 @@ struct Rect
   {
     if (sizeof(Rect) == 16)
     {
-      Fog::Memory::zero16B(static_cast<void*>(this));
+      Memory::zero16B(static_cast<void*>(this));
     }
     else
     {
@@ -599,7 +599,7 @@ struct Rect
   FOG_INLINE bool eq(const Rect& other) const
   {
     if (sizeof(Rect) == 16)
-      return Fog::Memory::eq16B(static_cast<const void*>(this), static_cast<const void*>(&other));
+      return Memory::eq16B(static_cast<const void*>(this), static_cast<const void*>(&other));
     else
       return _x == other.x() && _y == other.y() && _w == other.w() && _h == other.h();
   }
@@ -984,7 +984,7 @@ struct Box
   { 
     if (sizeof(Box) == 16)
     {
-      Fog::Memory::copy16B(static_cast<void*>(this), static_cast<const void*>(&other));
+      Memory::copy16B(static_cast<void*>(this), static_cast<const void*>(&other));
     }
     else
     {
@@ -1033,7 +1033,7 @@ struct Box
   {
     if (sizeof(Box) == 16)
     {
-      Fog::Memory::zero16B(static_cast<void*>(this));
+      Memory::zero16B(static_cast<void*>(this));
     }
     else
     {
@@ -1116,13 +1116,13 @@ struct Box
 
   FOG_INLINE bool eq(int ox1, int oy1, int ox2, int oy2) const
   {
-    return _x1 == ox2 && _y1 == oy1 && _x2 == ox2 && _y2 == oy2;
+    return _x1 == ox1 && _y1 == oy1 && _x2 == ox2 && _y2 == oy2;
   }
 
   FOG_INLINE bool eq(const Box& other) const
   {
     if (sizeof(Box) == 16)
-      return Fog::Memory::eq16B(static_cast<const void*>(this), static_cast<const void*>(&other));
+      return Memory::eq16B(static_cast<const void*>(this), static_cast<const void*>(&other));
     else
       return _x1 == other.x2() && _y1 == other.y1() && _x2 == other.x2() && _y2 == other.y2();
   }

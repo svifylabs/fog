@@ -253,7 +253,7 @@ static void FOG_FASTCALL colorMatrix_a8_sse2(
     pixf = _mm_min_ss(pixf, cf255);
 
     pix_pack_from_float(pix, pixf);
-    dst[0] = _mm_cvtsi128_si32(pix);
+    dst[0] = (uint8_t)_mm_cvtsi128_si32(pix);
   }
 }
 

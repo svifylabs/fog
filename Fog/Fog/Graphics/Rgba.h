@@ -46,7 +46,7 @@ struct FOG_PACKED Rgba
       uint8_t b;
 #endif // FOG_BYTE_ORDER
     };
-    uint32_t i;
+    uint32_t value;
   };
 
   // [Constants]
@@ -77,9 +77,9 @@ struct FOG_PACKED Rgba
   // [Construction / Destruction]
 
   FOG_INLINE Rgba() {}
-  FOG_INLINE Rgba(uint32_t _i) : i(_i) {}
+  FOG_INLINE Rgba(uint32_t _value) : value(_value) {}
   FOG_INLINE Rgba(uint8_t _r, uint8_t _g, uint8_t _b, uint8_t _a = 0xFF) :
-    i(
+    value(
       ((uint32_t)(_r) << RedShift  ) |
       ((uint32_t)(_g) << GreenShift) |
       ((uint32_t)(_b) << BlueShift ) |
@@ -87,19 +87,19 @@ struct FOG_PACKED Rgba
   {
   }
   FOG_INLINE Rgba(const Rgba& rgba) :
-    i(rgba.i)
+    value(rgba.value)
   {
   }
 
   // [Set]
 
   FOG_INLINE Rgba& set(const Rgba& rgba)
-  { i = rgba.i; return* this; }
+  { value = rgba.value; return* this; }
   FOG_INLINE Rgba& set(uint32_t rgba)
-  { i = rgba; return* this; }
+  { value = rgba; return* this; }
   FOG_INLINE Rgba& set(uint8_t _r, uint8_t _g, uint8_t _b, uint8_t _a = 0xFF)
   { 
-    i = (
+    value = (
       ((uint32_t)(_r) << RedShift  ) |
       ((uint32_t)(_g) << GreenShift) |
       ((uint32_t)(_b) << BlueShift ) |
@@ -113,7 +113,7 @@ struct FOG_PACKED Rgba
   FOG_INLINE uint32_t gren () const { return g; }
   FOG_INLINE uint32_t blue () const { return b; }
   FOG_INLINE uint32_t alpha() const { return a; }
-  FOG_INLINE uint32_t grey () const { return grey(i); }
+  FOG_INLINE uint32_t grey () const { return grey(value); }
 
   // [Swap]
 
@@ -121,22 +121,22 @@ struct FOG_PACKED Rgba
   { uint8_t t = r; r = g; g = t; }
 
   FOG_INLINE void swapRgba() 
-  { i = Memory::bswap32(i); }
+  { value = Memory::bswap32(value); }
 
   // [Overloaded Operators]
 
-  FOG_INLINE operator uint32_t() const { return i; }
+  FOG_INLINE operator uint32_t() const { return value; }
 
   FOG_INLINE Rgba& operator=(const Rgba& rgba) { return set(rgba); }
   FOG_INLINE Rgba& operator=(uint32_t rgba) { return set(rgba); }
 
-  FOG_INLINE Rgba& operator|=(uint32_t _i) { i |= _i; return *this; }
-  FOG_INLINE Rgba& operator&=(uint32_t _i) { i &= _i; return *this; }
-  FOG_INLINE Rgba& operator^=(uint32_t _i) { i ^= _i; return *this; }
-  FOG_INLINE Rgba& operator+=(uint32_t _i) { i += _i; return *this; }
-  FOG_INLINE Rgba& operator-=(uint32_t _i) { i -= _i; return *this; }
-  FOG_INLINE Rgba& operator*=(uint32_t _i) { i *= _i; return *this; }
-  FOG_INLINE Rgba& operator/=(uint32_t _i) { i /= _i; return *this; }
+  FOG_INLINE Rgba& operator|=(uint32_t _value) { value |= _value; return *this; }
+  FOG_INLINE Rgba& operator&=(uint32_t _value) { value &= _value; return *this; }
+  FOG_INLINE Rgba& operator^=(uint32_t _value) { value ^= _value; return *this; }
+  FOG_INLINE Rgba& operator+=(uint32_t _value) { value += _value; return *this; }
+  FOG_INLINE Rgba& operator-=(uint32_t _value) { value -= _value; return *this; }
+  FOG_INLINE Rgba& operator*=(uint32_t _value) { value *= _value; return *this; }
+  FOG_INLINE Rgba& operator/=(uint32_t _value) { value /= _value; return *this; }
 
   // [Static]
 
@@ -147,10 +147,10 @@ struct FOG_PACKED Rgba
 
   static FOG_INLINE uint8_t grey(uint32_t rgba)
   {
-    return (
+    return (uint8_t)((
       red  (rgba) *  77U +
       green(rgba) * 150U +
-      blue (rgba) *  29U ) >> 8U;
+      blue (rgba) *  29U ) >> 8U);
   }
 
   static FOG_INLINE uint32_t half(uint32_t color1, uint32_t color2)
@@ -236,7 +236,7 @@ struct Rgba64
       uint16_t a;
 #endif // FOG_BYTE_ORDER
     };
-    uint64_t i;
+    uint64_t value;
   };
 
   // [Constants]
@@ -267,7 +267,7 @@ struct Rgba64
   // [Construction / Destruction]
 
   FOG_INLINE Rgba64() {}
-  FOG_INLINE Rgba64(uint64_t _i) : i(_i) {}
+  FOG_INLINE Rgba64(uint64_t _value) : value(_value) {}
   FOG_INLINE Rgba64(uint16_t _r, uint16_t _g, uint16_t _b, uint16_t _a = 0xFFFF)
   { set(_r, _g, _b, _a); }
   FOG_INLINE Rgba64(const Rgba64& other)
@@ -278,7 +278,7 @@ struct Rgba64
   // [Set]
 
   FOG_INLINE Rgba64& set(uint64_t rgba)
-  { i = rgba; return* this; }
+  { value = rgba; return* this; }
 
   FOG_INLINE Rgba64& set(uint16_t _r, uint16_t _g, uint16_t _b, uint16_t _a = 0xFFFF)
   { 
@@ -290,7 +290,7 @@ struct Rgba64
   }
 
   FOG_INLINE Rgba64& set(const Rgba64& rgba)
-  { i = rgba.i; return* this; }
+  { value = rgba.value; return* this; }
 
   FOG_INLINE Rgba64& set(const Rgba& other)
   {
@@ -308,7 +308,7 @@ struct Rgba64
   FOG_INLINE uint16_t gren () const { return g; }
   FOG_INLINE uint16_t blue () const { return b; }
   FOG_INLINE uint16_t alpha() const { return a; }
-  FOG_INLINE uint16_t grey () const { return grey(i); }
+  FOG_INLINE uint16_t grey () const { return grey(value); }
 
   // [Swap]
 
@@ -331,19 +331,18 @@ struct Rgba64
 
   // [Overloaded Operators]
 
-  // FOG_INLINE operator uint32_t() const { return i; }
-  FOG_INLINE operator uint64_t() const { return i; }
+  FOG_INLINE operator uint64_t() const { return value; }
 
   FOG_INLINE Rgba64& operator=(const Rgba64& rgba) { return set(rgba); }
   FOG_INLINE Rgba64& operator=(uint64_t rgba) { return set(rgba); }
 
-  FOG_INLINE Rgba64& operator|=(uint64_t _i) { i |= _i; return *this; }
-  FOG_INLINE Rgba64& operator&=(uint64_t _i) { i &= _i; return *this; }
-  FOG_INLINE Rgba64& operator^=(uint64_t _i) { i ^= _i; return *this; }
-  FOG_INLINE Rgba64& operator+=(uint64_t _i) { i += _i; return *this; }
-  FOG_INLINE Rgba64& operator-=(uint64_t _i) { i -= _i; return *this; }
-  FOG_INLINE Rgba64& operator*=(uint64_t _i) { i *= _i; return *this; }
-  FOG_INLINE Rgba64& operator/=(uint64_t _i) { i /= _i; return *this; }
+  FOG_INLINE Rgba64& operator|=(uint64_t _value) { value |= _value; return *this; }
+  FOG_INLINE Rgba64& operator&=(uint64_t _value) { value &= _value; return *this; }
+  FOG_INLINE Rgba64& operator^=(uint64_t _value) { value ^= _value; return *this; }
+  FOG_INLINE Rgba64& operator+=(uint64_t _value) { value += _value; return *this; }
+  FOG_INLINE Rgba64& operator-=(uint64_t _value) { value -= _value; return *this; }
+  FOG_INLINE Rgba64& operator*=(uint64_t _value) { value *= _value; return *this; }
+  FOG_INLINE Rgba64& operator/=(uint64_t _value) { value /= _value; return *this; }
 
   // [Static]
 
@@ -354,10 +353,10 @@ struct Rgba64
 
   static FOG_INLINE uint16_t grey(uint64_t rgba)
   {
-    return (
+    return (uint16_t)((
       (uint32_t)(red  (rgba)) *  77U +
       (uint32_t)(green(rgba)) * 150U +
-      (uint32_t)(blue (rgba)) *  29U ) >> 8U;
+      (uint32_t)(blue (rgba)) *  29U ) >> 8U);
   }
 
   static FOG_INLINE uint64_t half(uint64_t color1, uint64_t color2)

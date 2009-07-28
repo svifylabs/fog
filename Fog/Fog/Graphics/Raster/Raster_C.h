@@ -1141,7 +1141,7 @@ static FOG_INLINE uint8_t toGrey(uint32_t c)
     ((c >>  8) & 0xFF) * 46868 +
     ((c      ) & 0xFF) *  4730 ;
 
-  return grey >> 16;
+  return (uint8_t)(grey >> 16);
 }
 
 // ============================================================================
@@ -1311,6 +1311,7 @@ struct FOG_HIDDEN PixFmt_RGB32
 
   static FOG_INLINE uint32_t fetchAlpha(const uint8_t* p)
   {
+    FOG_UNUSED(p);
     return 0xFF;
   }
 
@@ -1355,6 +1356,7 @@ struct FOG_HIDDEN PixFmt_RGB24
 
   static FOG_INLINE uint32_t fetchAlpha(const uint8_t* p)
   {
+    FOG_UNUSED(p);
     return 0xFF;
   }
 
@@ -1400,6 +1402,7 @@ struct FOG_HIDDEN PixFmt_BGR24
 
   static FOG_INLINE uint32_t fetchAlpha(const uint8_t* p)
   {
+    FOG_UNUSED(p);
     return 0xFF;
   }
 
@@ -1442,15 +1445,16 @@ struct FOG_HIDDEN PixFmt_RGB16_555
 
   static FOG_INLINE uint32_t fetchAlpha(const uint8_t* p)
   {
+    FOG_UNUSED(p);
     return 0xFF;
   }
 
   static FOG_INLINE void store(uint8_t* p, uint32_t s0)
   {
-    ((uint16_t*)p)[0] =
+    ((uint16_t*)p)[0] = (uint16_t)(
       ((s0 >> 3) & 0x001F) |
       ((s0 >> 6) & 0x03E0) |
-      ((s0 >> 9) & 0x7C00) ;
+      ((s0 >> 9) & 0x7C00));
   }
 };
 
@@ -1474,15 +1478,16 @@ struct FOG_HIDDEN PixFmt_RGB16_555_BS
 
   static FOG_INLINE uint32_t fetchAlpha(const uint8_t* p)
   {
+    FOG_UNUSED(p);
     return 0xFF;
   }
 
   static FOG_INLINE void store(uint8_t* p, uint32_t s0)
   {
-    ((uint16_t*)p)[0] = Memory::bswap16(
+    ((uint16_t*)p)[0] = Memory::bswap16((uint16_t)(
       ((s0 >> 3) & 0x001F) |
       ((s0 >> 6) & 0x03E0) |
-      ((s0 >> 9) & 0x7C00) );
+      ((s0 >> 9) & 0x7C00)));
   }
 };
 
@@ -1511,15 +1516,16 @@ struct FOG_HIDDEN PixFmt_RGB16_565
 
   static FOG_INLINE uint32_t fetchAlpha(const uint8_t* p)
   {
+    FOG_UNUSED(p);
     return 0xFF;
   }
 
   static FOG_INLINE void store(uint8_t* p, uint32_t s0)
   {
-    ((uint16_t*)p)[0] =
+    ((uint16_t*)p)[0] = (uint16_t)(
       ((s0 >> 3) & 0x001F) |
       ((s0 >> 5) & 0x07E0) |
-      ((s0 >> 8) & 0xF800) ;
+      ((s0 >> 8) & 0xF800));
   }
 };
 
@@ -1544,15 +1550,16 @@ struct FOG_HIDDEN PixFmt_RGB16_565_BS
 
   static FOG_INLINE uint32_t fetchAlpha(const uint8_t* p)
   {
+    FOG_UNUSED(p);
     return 0xFF;
   }
 
   static FOG_INLINE void store(uint8_t* p, uint32_t s0)
   {
-    ((uint16_t*)p)[0] = Memory::bswap16(
+    ((uint16_t*)p)[0] = Memory::bswap16((uint16_t)(
       ((s0 >> 3) & 0x001F) |
       ((s0 >> 5) & 0x07E0) |
-      ((s0 >> 8) & 0xF800) );
+      ((s0 >> 8) & 0xF800)));
   }
 };
 

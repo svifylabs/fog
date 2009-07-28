@@ -48,9 +48,12 @@ namespace Fog {
 // [Configuration]
 // ============================================================================
 
+// Maximum number of threads to use for rendering.
 #define RASTER_MAX_THREADS 16
+// Maximum commands to accumulate in buffer.
 #define RASTER_MAX_COMMANDS 4096
-#define RASTER_MIN_SIZE_THRESHOLD (384*384) // minimum size to set multithreading on
+// Minimum size to set multithreading on.
+#define RASTER_MIN_SIZE_THRESHOLD (256*256)
 
 // #define RASTER_DEBUG
 
@@ -355,8 +358,7 @@ struct FOG_HIDDEN RasterEngineCapsState
 
   uint32_t op;
 
-  uint32_t solidSource;
-  uint32_t solidSourcePremultiplied;
+  Raster::Solid solidSource;
   Pattern patternSource;
   bool isSolidSource;
 
@@ -383,7 +385,6 @@ RasterEngineCapsState::RasterEngineCapsState()
 RasterEngineCapsState::RasterEngineCapsState(const RasterEngineCapsState& other) :
   op(other.op),
   solidSource(other.solidSource),
-  solidSourcePremultiplied(other.solidSourcePremultiplied),
   patternSource(other.patternSource),
   isSolidSource(other.isSolidSource),
   lineWidth(other.lineWidth),
@@ -409,7 +410,6 @@ RasterEngineCapsState& RasterEngineCapsState::operator=(const RasterEngineCapsSt
 {
   op = other.op;
   solidSource = other.solidSource;
-  solidSourcePremultiplied = other.solidSourcePremultiplied;
   patternSource = other.patternSource;
   isSolidSource = other.isSolidSource;
   lineWidth = other.lineWidth;
@@ -1034,7 +1034,6 @@ struct FOG_HIDDEN RasterEngine : public PainterEngine
   int _format;
   sysint_t _bpp;
 
-  bool _compositingEnabled;
   bool _premultiplied;
 
   // Temporary path
@@ -1299,7 +1298,6 @@ RasterEngine::RasterEngine(uint8_t* pixels, int width, int height, sysint_t stri
   _format(format),
   _bpp(Image::formatToBytesPerPixel(format)),
   _premultiplied(format == Image::FormatPRGB32),
-  _compositingEnabled(format == Image::FormatARGB32 || format == Image::FormatPRGB32),
   _threadData(NULL)
 {
   ctx.owner = this;
@@ -1495,12 +1493,11 @@ bool RasterEngine::usedUserRegion() const
 
 void RasterEngine::setOp(uint32_t op)
 {
-  if (!_compositingEnabled) return;
   if (op >= CompositeCount) return;
   if (!_detachCaps()) return;
 
   ctx.capsState->op = op;
-  ctx.raster = &Raster::functionMap->raster_argb32[_premultiplied][op];
+  ctx.raster = Raster::getRasterOps(_format, (int)op);
 }
 
 uint32_t RasterEngine::op() const
@@ -1516,9 +1513,8 @@ void RasterEngine::setSource(const Rgba& rgba)
 {
   if (!_detachCaps()) return;
 
-  ctx.capsState->solidSource = rgba;
-  ctx.capsState->solidSourcePremultiplied = Raster::premultiply(rgba);
-
+  ctx.capsState->solidSource.rgba = rgba.value;
+  ctx.capsState->solidSource.rgbp = Raster::premultiply(rgba.value);
   ctx.capsState->isSolidSource = true;
 
   // Free pattern resource if not needed.
@@ -1539,8 +1535,8 @@ void RasterEngine::setSource(const Pattern& pattern)
 
   if (!_detachCaps()) return;
 
-  ctx.capsState->solidSource = 0xFFFFFFFF;
-  ctx.capsState->solidSourcePremultiplied = 0xFFFFFFFF;
+  ctx.capsState->solidSource.rgba = 0xFFFFFFFF;
+  ctx.capsState->solidSource.rgbp = 0xFFFFFFFF;
   ctx.capsState->isSolidSource = false;
   ctx.capsState->patternSource = pattern;
   _resetPatternContext();
@@ -1548,14 +1544,14 @@ void RasterEngine::setSource(const Pattern& pattern)
 
 Rgba RasterEngine::sourceRgba()
 {
-  return ctx.capsState->solidSource;
+  return Rgba(ctx.capsState->solidSource.rgba);
 }
 
 Pattern RasterEngine::sourcePattern()
 {
   Pattern pattern;
   if (ctx.capsState->isSolidSource)
-    pattern.setColor(ctx.capsState->solidSource);
+    pattern.setColor(ctx.capsState->solidSource.rgba);
   else
     pattern = ctx.capsState->patternSource;
   return pattern;
@@ -2703,8 +2699,8 @@ void RasterEngine::_setCapsDefaults()
   FOG_ASSERT(ctx.capsState->refCount.get() == 1);
 
   ctx.capsState->op = CompositeSrcOver;
-  ctx.capsState->solidSource = 0xFFFFFFFF;
-  ctx.capsState->solidSourcePremultiplied = 0xFFFFFFFF;
+  ctx.capsState->solidSource.rgba = 0xFFFFFFFF;
+  ctx.capsState->solidSource.rgbp = 0xFFFFFFFF;
   ctx.capsState->patternSource.free();
   ctx.capsState->isSolidSource = true;
 
@@ -3130,7 +3126,7 @@ static void FOG_INLINE AggRenderPath(
   // solid source
   if (capsState->isSolidSource)
   {
-    uint32_t solidColor = capsState->solidSourcePremultiplied;
+    const Raster::Solid* source = &capsState->solidSource;
 
     for (; y <= y_end; y += delta, pBase += stride)
     {
@@ -3147,7 +3143,7 @@ static void FOG_INLINE AggRenderPath(
 
         if (len > 0)
         {
-          span_solid_a8(pCur, solidColor, span->covers, (unsigned)len);
+          span_solid_a8(pCur, source, span->covers, (unsigned)len);
         }
         else
         {
@@ -3157,11 +3153,15 @@ static void FOG_INLINE AggRenderPath(
           uint32_t cover = (uint32_t)*(span->covers);
           if (cover == 0xFF)
           {
-            span_solid(pCur, solidColor, len);
+            span_solid(pCur, source, len);
           }
           else
           {
-            span_solid(pCur, Raster::bytemul(solidColor, cover), len);
+            uint32_t c = Raster::bytemul(source->rgbp, cover);
+            Raster::Solid srcmod;
+            srcmod.rgbp = c;
+            srcmod.rgba = (source->rgba & 0x00FFFFFF) | (c & 0xFF000000);
+            span_solid(pCur, &srcmod, len);
           }
         }
 
@@ -3263,7 +3263,7 @@ void RasterEngine::_renderBoxes(const Box* box, sysuint_t count)
 
   if (ctx.capsState->isSolidSource)
   {
-    uint32_t rgba = ctx.capsState->solidSourcePremultiplied;
+    const Raster::Solid* source = &ctx.capsState->solidSource;
     Raster::SpanSolidFn span_solid = ctx.raster->span_solid;
 
     for (sysuint_t i = 0; i < count; i++)
@@ -3278,7 +3278,7 @@ void RasterEngine::_renderBoxes(const Box* box, sysuint_t count)
 
       uint8_t* pCur = pBuf + (sysint_t)y * stride + (sysint_t)x * bpp;
       do {
-        span_solid(pCur, rgba, (sysuint_t)w);
+        span_solid(pCur, source, (sysuint_t)w);
         pCur += stride;
       } while (--h);
     }
@@ -3360,7 +3360,7 @@ void RasterEngine::_renderGlyphSet(const Point& pt, const GlyphSet& glyphSet, co
   Raster::SpanSolidMskFn span_solid_a8 = ctx.raster->span_solid_a8;
 
   // Used only if source is solid
-  uint32_t rgba = ctx.capsState->solidSourcePremultiplied;
+  const Raster::Solid* source = &ctx.capsState->solidSource;
 
   // Used only if source is pattern
   Raster::PatternContext* pctx;
@@ -3412,7 +3412,7 @@ void RasterEngine::_renderGlyphSet(const Point& pt, const GlyphSet& glyphSet, co
     if (ctx.capsState->isSolidSource)
     {
       do {
-        span_solid_a8(pCur, rgba, pGlyph, (sysuint_t)w);
+        span_solid_a8(pCur, source, pGlyph, (sysuint_t)w);
         pCur += stride;
         pGlyph += glyphStride;
       } while (--h);
@@ -3464,7 +3464,7 @@ void RasterEngine::_renderBoxesMT(RasterEngineContext* ctx, int offset, int delt
 
   if (ctx->capsState->isSolidSource)
   {
-    uint32_t rgba = ctx->capsState->solidSourcePremultiplied;
+    const Raster::Solid* source = &ctx->capsState->solidSource;
     Raster::SpanSolidFn span_solid = ctx->raster->span_solid;
 
     for (sysuint_t i = 0; i < count; i++)
@@ -3480,7 +3480,7 @@ void RasterEngine::_renderBoxesMT(RasterEngineContext* ctx, int offset, int delt
 
       uint8_t* pCur = pBuf + (sysint_t)y1 * stride + (sysint_t)x1 * bpp;
       do {
-        span_solid(pCur, rgba, (sysuint_t)w);
+        span_solid(pCur, source, (sysuint_t)w);
         pCur += strideWithDelta;
         y1 += delta;
       } while (y1 < y2);
@@ -3576,7 +3576,7 @@ void RasterEngine::_renderGlyphSetMT(
   Raster::SpanSolidMskFn span_solid_a8 = ctx->raster->span_solid_a8;
 
   // Used only if source is solid
-  uint32_t rgba = ctx->capsState->solidSourcePremultiplied;
+  const Raster::Solid* source = &ctx->capsState->solidSource;
 
   // Used only if source is pattern
   Raster::PatternContext* pctx;
@@ -3631,7 +3631,7 @@ void RasterEngine::_renderGlyphSetMT(
     if (ctx->capsState->isSolidSource)
     {
       do {
-        span_solid_a8(pCur, rgba, pGlyph, (sysuint_t)w);
+        span_solid_a8(pCur, source, pGlyph, (sysuint_t)w);
         pCur += strideWithDelta;
         pGlyph += glyphStrideWithDelta;
         y1 += delta;

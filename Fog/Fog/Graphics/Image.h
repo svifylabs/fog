@@ -459,8 +459,7 @@ struct FOG_API Image
 
   static err_t invert(Image& dest, const Image& src, uint32_t invertMode);
 
-  FOG_INLINE err_t invert(uint32_t invertMode)
-  { return invert(*this, *this, invertMode); }
+  FOG_INLINE err_t invert(uint32_t invertMode) { return invert(*this, *this, invertMode); }
 
   // [Mirror]
 
@@ -475,8 +474,7 @@ struct FOG_API Image
 
   static err_t mirror(Image& dest, const Image& src, uint32_t mirrorMode);
 
-  FOG_INLINE err_t mirror(uint32_t mirrorMode)
-  { return mirror(*this, *this, mirrorMode); }
+  FOG_INLINE err_t mirror(uint32_t mirrorMode) { return mirror(*this, *this, mirrorMode); }
 
   // [Rotate]
 
@@ -493,8 +491,7 @@ struct FOG_API Image
   static err_t rotate(Image& dest, const Image& src, uint32_t rotateMode);
 
   //! @brief Rotate image by 0, 90, 180 or 270 degrees, see @c RotateMode.
-  FOG_INLINE err_t rotate(uint32_t rotateMode)
-  { return rotate(*this, *this, rotateMode); }
+  FOG_INLINE err_t rotate(uint32_t rotateMode) { return rotate(*this, *this, rotateMode); }
 
   // [Channel related]
 
@@ -513,16 +510,16 @@ struct FOG_API Image
 
   // [Painting]
 
-  err_t clear(uint32_t c0);
+  err_t clear(Rgba c0);
 
-  err_t drawPixel(const Point& pt, uint32_t c0);
-  err_t drawLine(const Point& pt0, const Point& pt1, uint32_t c0, bool lastPoint = true);
+  err_t drawPixel(const Point& pt, Rgba c0);
+  err_t drawLine(const Point& pt0, const Point& pt1, Rgba c0, bool lastPoint = true);
 
-  err_t fillRect(const Rect& r, uint32_t c0, bool over = true);
+  err_t fillRect(const Rect& r, Rgba c0, int op = CompositeSrcOver);
 
-  err_t fillQGradient(const Rect& r, Rgba c0, Rgba c1, Rgba c2, Rgba c3, bool over = true);
-  err_t fillHGradient(const Rect& r, Rgba c0, Rgba c1, bool over = true);
-  err_t fillVGradient(const Rect& r, Rgba c0, Rgba c1, bool over = true);
+  err_t fillQGradient(const Rect& r, Rgba c0, Rgba c1, Rgba c2, Rgba c3, int op = CompositeSrcOver);
+  err_t fillHGradient(const Rect& r, Rgba c0, Rgba c1, int op = CompositeSrcOver);
+  err_t fillVGradient(const Rect& r, Rgba c0, Rgba c1, int op = CompositeSrcOver);
 
   err_t drawImage(const Point& pt, const Image& src, uint32_t op = CompositeSrcOver, uint32_t opacity = 255);
   err_t drawImage(const Point& pt, const Image& src, const Rect& srcRect, uint32_t op = CompositeSrcOver, uint32_t opacity = 255);
@@ -552,14 +549,17 @@ struct FOG_API Image
 
   // [WinAPI functions]
 #if defined(FOG_OS_WINDOWS)
-  //! @brief Convert image to Windows @c HBITMAP.
+
+  // TODO: Introduce ENUM to set alpha format of HBITMAP.
+
+  //! @brief Convert image to Windows @c HBITMAP (DIBSECTION).
   //!
   //! @note This function is Windows-only.
   HBITMAP toHBITMAP();
-  //! @brief Convert image from Windows @c HBITMAP.
+  //! @brief Convert image from Windows @c HBITMAP (Ideally DIBSECTION).
   //!
   //! @note This function is Windows-only.
-  bool fromHBITMAP(HBITMAP hBitmap);
+  err_t fromHBITMAP(HBITMAP hBitmap);
 #endif // FOG_OS_WINDOWS
 
   // [Read]

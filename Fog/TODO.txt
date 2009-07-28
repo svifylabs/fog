@@ -1,6 +1,6 @@
 LEGEND
-[ ] Scheduled
-[ ] Completed
+[ ] Incomplete
+[x] Completed
 [w] Working
 [D] Need discusion about usability or removing
 [L] Low priority
