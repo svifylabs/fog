@@ -291,6 +291,7 @@ Set(FOG_CORE_HEADERS
   ${FOG_DIR}/Fog/Core/FileSystem.h
   ${FOG_DIR}/Fog/Core/FileUtil.h
   ${FOG_DIR}/Fog/Core/Hash.h
+  ${FOG_DIR}/Fog/Core/Intrin_3dNow.h
   ${FOG_DIR}/Fog/Core/Intrin_MMX.h
   ${FOG_DIR}/Fog/Core/Intrin_SSE.h
   ${FOG_DIR}/Fog/Core/Intrin_SSE2.h
