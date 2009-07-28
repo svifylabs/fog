@@ -78,7 +78,7 @@ namespace Fog {
 //! let us write a correct example:
 //!
 //!   Fog::AffineMatrix m;
-//!   m.rotate(Fog::deg2rad(30.0));
+//!   m.rotate(Fog::Math::deg2rad(30.0));
 //!   m.scale(2.0, 1.5);
 //!   m.translate(100.0, 100.0);
 //!   m.transform(&x, &y);
@@ -88,7 +88,7 @@ namespace Fog {
 //! use 2 translations if we want to rotate someting around (100, 100):
 //!
 //!   m.translate(-100.0, -100.0);  // move to (0,0)
-//!   m.rotate(Fog::deg2rad(30.0)); // rotate
+//!   m.rotate(Fog::Math::deg2rad(30.0)); // rotate
 //!   m.translate(100.0, 100.0);    // move back to (100,100)
 struct FOG_API AffineMatrix
 {

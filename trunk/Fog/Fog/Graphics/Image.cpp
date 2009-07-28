@@ -3021,16 +3021,20 @@ Image::Data* Image::Data::copy(const Data* other)
 
 FOG_INIT_DECLARE err_t fog_image_init(void)
 {
-  Fog::Image::sharedNull.init();
-  Fog::Image::Data* d = Fog::Image::sharedNull.instancep();
+  using namespace Fog;
+
+  Image::sharedNull.init();
+  Image::Data* d = Image::sharedNull.instancep();
   d->refCount.init(1);
-  d->flags = Fog::Image::Data::IsSharable | Fog::Image::Data::IsNull;
+  d->flags = Image::Data::IsSharable | Image::Data::IsNull;
 
   return Error::Ok;
 }
 
 FOG_INIT_DECLARE void fog_image_shutdown(void)
 {
-  Fog::Image::sharedNull.instancep()->refCount.dec();
-  Fog::Image::sharedNull.destroy();
+  using namespace Fog;
+
+  Image::sharedNull.instancep()->refCount.dec();
+  Image::sharedNull.destroy();
 }

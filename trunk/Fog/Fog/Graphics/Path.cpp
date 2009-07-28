@@ -3090,15 +3090,17 @@ Path& Path::operator=(const Path& other)
 
 FOG_INIT_DECLARE err_t fog_path_init(void)
 {
-  Fog::Path::Data* d = Fog::Path::sharedNull.instancep();
+  using namespace Fog;
+
+  Path::Data* d = Path::sharedNull.instancep();
 
   d->refCount.init(1);
-  d->flags |= Fog::Path::Data::IsNull | Fog::Path::Data::IsSharable;
-  d->type = Fog::Path::LineType;
+  d->flags |= Path::Data::IsNull | Path::Data::IsSharable;
+  d->type = Path::LineType;
   d->capacity = 0;
   d->length = 0;
 
-  d->data[0].cmd._cmd = Fog::Path::CmdStop;
+  d->data[0].cmd._cmd = Path::CmdStop;
   d->data[0].x = 0.0;
   d->data[0].y = 0.0;
 
@@ -3107,5 +3109,7 @@ FOG_INIT_DECLARE err_t fog_path_init(void)
 
 FOG_INIT_DECLARE void fog_path_shutdown(void)
 {
-  Fog::Path::sharedNull->refCount.dec();
+  using namespace Fog;
+
+  Path::sharedNull->refCount.dec();
 }

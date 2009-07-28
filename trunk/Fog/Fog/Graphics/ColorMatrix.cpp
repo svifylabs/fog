@@ -409,39 +409,41 @@ ColorMatrix ColorMatrix::PostHue(LinkerInitialized);
 
 FOG_INIT_DECLARE err_t fog_colormatrix_init(void)
 {
+  using namespace Fog;
+
   // Grayscale color matrix is modified from the GDI+ FAQ (submitted by
   // Gilles Khouzam) to use the NTSC color values.  The version in the FAQ
   // used 0.3, 0.59, and 0.11, so it was close...
-  Fog::ColorMatrix::Greyscale.set(
-    Fog::lumR, Fog::lumR, Fog::lumR, 0.0, 0.0,
-    Fog::lumG, Fog::lumG, Fog::lumG, 0.0, 0.0,
-    Fog::lumB, Fog::lumB, Fog::lumB, 0.0, 0.0,
+  ColorMatrix::Greyscale.set(
+    lumR, lumR, lumR, 0.0, 0.0,
+    lumG, lumG, lumG, 0.0, 0.0,
+    lumB, lumB, lumB, 0.0, 0.0,
     0.0      , 0.0      , 0.0      , 1.0, 0.0,
     0.0      , 0.0      , 0.0      , 0.0, 1.0);
 
-  Fog::ColorMatrix::Identity.set(
+  ColorMatrix::Identity.set(
     1.0, 0.0, 0.0, 0.0, 0.0,
     0.0, 1.0, 0.0, 0.0, 0.0,
     0.0, 0.0, 1.0, 0.0, 0.0,
     0.0, 0.0, 0.0, 1.0, 0.0,
     0.0, 0.0, 0.0, 0.0, 1.0);
 
-  Fog::ColorMatrix::White.set(
+  ColorMatrix::White.set(
     1.0, 1.0, 1.0, 0.0, 0.0,
     1.0, 1.0, 1.0, 0.0, 0.0,
     1.0, 1.0, 1.0, 0.0, 0.0,
     0.0, 0.0, 0.0, 1.0, 0.0,
     0.0, 0.0, 0.0, 0.0, 1.0);
 
-  Fog::ColorMatrix::Zero.set(
+  ColorMatrix::Zero.set(
     0.0, 0.0, 0.0, 0.0, 0.0,
     0.0, 0.0, 0.0, 0.0, 0.0,
     0.0, 0.0, 0.0, 0.0, 0.0,
     0.0, 0.0, 0.0, 0.0, 0.0,
     0.0, 0.0, 0.0, 0.0, 0.0);
 
-  Fog::ColorMatrix::PreHue = Fog::ColorMatrix::Identity;
-  Fog::ColorMatrix::PostHue = Fog::ColorMatrix::Identity;
+  ColorMatrix::PreHue = ColorMatrix::Identity;
+  ColorMatrix::PostHue = ColorMatrix::Identity;
 
   // [CMD 2006-02-22]
   //
@@ -452,7 +454,7 @@ FOG_INIT_DECLARE err_t fog_colormatrix_init(void)
   // gave better results than 39.182655, I wonder where the higher
   // value came from...  If you want to use 39.182655, simply
   // change the value of greenRotation below.
-  const double greenRotation(Fog::Math::deg2rad(35.26439));
+  const double greenRotation(Math::deg2rad(35.26439));
 
   // Rotating the hue requires several matrix multiplications.  To
   // speed things up a bit, use two static matrices (pre and post
@@ -460,31 +462,31 @@ FOG_INIT_DECLARE err_t fog_colormatrix_init(void)
 
   // Prepare the preHue matrix
   // Rotate the gray vector in the red plane:
-  Fog::ColorMatrix::PreHue.rotateRed(Fog::Math::deg2rad(45.0));
+  ColorMatrix::PreHue.rotateRed(Math::deg2rad(45.0));
 
   // Rotate again in the green plane so it coinsides with the
   // blue axis:
-  Fog::ColorMatrix::PreHue.rotateGreen(-greenRotation);
+  ColorMatrix::PreHue.rotateGreen(-greenRotation);
 
   // Shear the blue plane, in order to keep the color luminance
   // constant:
-  double lum[4] = { Fog::lumR, Fog::lumG, Fog::lumB, 1.0 };
+  double lum[4] = { lumR, lumG, lumB, 1.0 };
 
   // Transform by the luminance vector:
-  Fog::ColorMatrix::PreHue.transformVector(lum);
+  ColorMatrix::PreHue.transformVector(lum);
 
   // Calculate the red and green factors:
   double shearRed   = lum[0] / lum[2];
   double shearGreen = lum[1] / lum[2];
 
   // Shear the blue plane:
-  Fog::ColorMatrix::PreHue.shearBlue(shearRed, shearGreen);
+  ColorMatrix::PreHue.shearBlue(shearRed, shearGreen);
 
   // Prepare the postHue matrix, which is actually the inverse of the
   // preHue matrix
-  Fog::ColorMatrix::PostHue.shearBlue(-shearRed, -shearGreen);
-  Fog::ColorMatrix::PostHue.rotateGreen(greenRotation);
-  Fog::ColorMatrix::PostHue.rotateRed(Fog::Math::deg2rad(-45.0));
+  ColorMatrix::PostHue.shearBlue(-shearRed, -shearGreen);
+  ColorMatrix::PostHue.rotateGreen(greenRotation);
+  ColorMatrix::PostHue.rotateRed(Math::deg2rad(-45.0));
 
   return Error::Ok;
 }

@@ -3710,25 +3710,28 @@ void Painter::end()
 
 FOG_INIT_DECLARE err_t fog_painter_init(void)
 {
-  static Fog::NullEngine sharedNullDevice;
-  Fog::Painter::sharedNull = &sharedNullDevice;
+  using namespace Fog;
+
+  static NullEngine sharedNullDevice;
+  Painter::sharedNull = &sharedNullDevice;
 
   // Setup multithreading.
   // 
   // If CPU contains more cores, we can improve rendering speed by using them.
   // By default we set number of threads (workers) to count of CPU cores + 1.
-  Fog::RasterEngine::threadPool = NULL;
-  Fog::RasterEngine::threadPool = new(std::nothrow) Fog::ThreadPool();
+  RasterEngine::threadPool = new(std::nothrow) ThreadPool();
 
   return Error::Ok;
 }
 
 FOG_INIT_DECLARE void fog_painter_shutdown(void)
 {
+  using namespace Fog;
+
   // Kill multithreading.
-  if (Fog::RasterEngine::threadPool)
+  if (RasterEngine::threadPool)
   {
-    delete Fog::RasterEngine::threadPool;
-    Fog::RasterEngine::threadPool = NULL;
+    delete RasterEngine::threadPool;
+    RasterEngine::threadPool = NULL;
   }
 }

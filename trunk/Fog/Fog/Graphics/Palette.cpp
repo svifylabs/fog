@@ -204,28 +204,25 @@ Palette::Data* Palette::Data::copy(const Data* other)
 
 FOG_INIT_DECLARE err_t fog_palette_init(void)
 {
-  Fog::Palette::Data* d;
+  using namespace Fog;
 
-  Fog::Palette::sharedNull;
-  Fog::Palette::sharedGrey;
+  Palette::Data* d;
+
+  Palette::sharedNull;
+  Palette::sharedGrey;
 
   // Setup null palette;
-  d = Fog::Palette::sharedNull.instancep();
+  d = Palette::sharedNull.instancep();
   d->refCount.init(1);
-  Fog::Memory::zero(d->data, 256 * sizeof(Fog::Rgba));
+  Memory::zero(d->data, 256 * sizeof(Rgba));
 
   // Setup grey palette;
-  d = Fog::Palette::sharedGrey.instancep();
+  d = Palette::sharedGrey.instancep();
   d->refCount.init(1);
 
-  sysuint_t i;
-  for (i = 0; i != 256; i++)
+  for (uint32_t i = 256, c0 = 0xFF000000; i; i--, c0 += 0x00010101)
   {
-    d->data[i] = Fog::Rgba(
-      (uint8_t)i, 
-      (uint8_t)i, 
-      (uint8_t)i, 
-      (uint8_t)0xFF);
+    d->data[i] = c0;
   }
 
   return Error::Ok;
@@ -233,6 +230,8 @@ FOG_INIT_DECLARE err_t fog_palette_init(void)
 
 FOG_INIT_DECLARE void fog_palette_shutdown(void)
 {
-  Fog::Palette::sharedGrey.instancep()->refCount.dec();
-  Fog::Palette::sharedNull.instancep()->refCount.dec();
+  using namespace Fog;
+
+  Palette::sharedGrey.instancep()->refCount.dec();
+  Palette::sharedNull.instancep()->refCount.dec();
 }
