@@ -1,5 +1,5 @@
 #!/bin/sh
 mkdir build
 cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DMAKE_BENCH=True -G"Unix Makefiles"
+cmake .. -DCMAKE_BUILD_TYPE=Release -DFOG_DEBUG=0 -DMAKE_BENCH=True -G"Unix Makefiles"
 cd ..
