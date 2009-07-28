@@ -349,6 +349,13 @@ static FOG_INLINE sysuint_t unpackU8ToSysUInt(uint8_t i)
 }
 
 // ============================================================================
+// [Fog::Raster - Alpha]
+// ============================================================================
+
+static FOG_INLINE bool isAlpha0xFF(uint32_t c0) { return (c0 >= 0xFF000000); }
+static FOG_INLINE bool isAlpha0x00(uint32_t c0) { return (c0 <= 0x00FFFFFF); }
+
+// ============================================================================
 // [Fog::Raster - Byte1x2 - 32 Bit Integer SIMD Library]
 // ============================================================================
 
