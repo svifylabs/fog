@@ -318,12 +318,14 @@ Library::Data* Library::Data::alloc()
 
 FOG_INIT_DECLARE err_t fog_library_init(void)
 {
-  Fog::Library::sharedNull.init();
-  Fog::Library::Data* d = Fog::Library::sharedNull.instancep();
+  using namespace Fog;
+
+  Library::sharedNull.init();
+  Library::Data* d = Library::sharedNull.instancep();
   d->refCount.init(1);
   d->handle = NULL;
 
-  Fog::library_local.init();
+  library_local.init();
 
 #if defined(FOG_OS_WINDOWS)
   static const char libraryPrefix[] = "";
@@ -342,17 +344,17 @@ FOG_INIT_DECLARE err_t fog_library_init(void)
 # endif
 #endif // FOG_OS_POSIX
 
-  Fog::Library::systemPrefix = (const Fog::Char8*)libraryPrefix;
-  Fog::Library::systemSuffix = (const Fog::Char8*)librarySuffix;
-  Fog::Library::systemExtension = (const Fog::Char8*)librarySuffix + 1;
+  Library::systemPrefix = (const Char8*)libraryPrefix;
+  Library::systemSuffix = (const Char8*)librarySuffix;
+  Library::systemExtension = (const Char8*)librarySuffix + 1;
 
 #if defined(FOG_OS_POSIX)
 #if FOG_ARCH_BITS == 32
-  Fog::library_local.instance().paths.append(Fog::Ascii8("/usr/lib"));
-  Fog::library_local.instance().paths.append(Fog::Ascii8("/usr/local/lib"));
+  library_local.instance().paths.append(Ascii8("/usr/lib"));
+  library_local.instance().paths.append(Ascii8("/usr/local/lib"));
 #else
-  Fog::library_local.instance().paths.append(Fog::Ascii8("/usr/lib64"));
-  Fog::library_local.instance().paths.append(Fog::Ascii8("/usr/local/lib64"));
+  library_local.instance().paths.append(Ascii8("/usr/lib64"));
+  library_local.instance().paths.append(Ascii8("/usr/local/lib64"));
 #endif // FOG_ARCH_BITS
 #endif // FOG_OS_POSIX
 
@@ -361,8 +363,10 @@ FOG_INIT_DECLARE err_t fog_library_init(void)
 
 FOG_INIT_DECLARE void fog_library_shutdown(void)
 {
-  Fog::library_local.destroy();
+  using namespace Fog;
 
-  Fog::Library::sharedNull.instancep()->refCount.dec();
-  Fog::Library::sharedNull.destroy();
+  library_local.destroy();
+
+  Library::sharedNull.instancep()->refCount.dec();
+  Library::sharedNull.destroy();
 }

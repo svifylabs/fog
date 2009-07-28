@@ -198,31 +198,35 @@ Locale::Data* Locale::Data::copy(Data* d)
 
 FOG_INIT_DECLARE err_t fog_locale_init(void)
 {
-  Fog::Locale::sharedNull.init();
-  Fog::Locale::sharedNull->name = Fog::Ascii8("NULL");
-  Fog::_setDefaults(Fog::Locale::sharedNull.instancep());
+  using namespace Fog;
 
-  Fog::Locale::sharedPosix.init();
-  Fog::Locale::sharedPosix->name= Fog::Ascii8("POSIX");
-  Fog::_setDefaults(Fog::Locale::sharedPosix.instancep());
+  Locale::sharedNull.init();
+  Locale::sharedNull->name = Ascii8("NULL");
+  _setDefaults(Locale::sharedNull.instancep());
 
-  Fog::Locale::sharedUser.init();
-  Fog::_setLConv(Fog::Locale::sharedUser.instancep(), localeconv());
+  Locale::sharedPosix.init();
+  Locale::sharedPosix->name= Ascii8("POSIX");
+  _setDefaults(Locale::sharedPosix.instancep());
 
-  new (&Fog::Locale::sharedNullObj ) Fog::Locale(Fog::Locale::sharedNull ->refAlways());
-  new (&Fog::Locale::sharedPosixObj) Fog::Locale(Fog::Locale::sharedPosix->refAlways());
-  new (&Fog::Locale::sharedUserObj ) Fog::Locale(Fog::Locale::sharedUser ->refAlways());
+  Locale::sharedUser.init();
+  _setLConv(Locale::sharedUser.instancep(), localeconv());
+
+  new (&Locale::sharedNullObj ) Locale(Locale::sharedNull ->refAlways());
+  new (&Locale::sharedPosixObj) Locale(Locale::sharedPosix->refAlways());
+  new (&Locale::sharedUserObj ) Locale(Locale::sharedUser ->refAlways());
 
   return Error::Ok;
 }
 
 FOG_INIT_DECLARE void fog_locale_shutdown(void)
 {
-  ((Fog::Locale *)&Fog::Locale::sharedNullObj )->~Locale();
-  ((Fog::Locale *)&Fog::Locale::sharedPosixObj)->~Locale();
-  ((Fog::Locale *)&Fog::Locale::sharedUserObj )->~Locale();
+  using namespace Fog;
 
-  Fog::Locale::sharedNull.destroy();
-  Fog::Locale::sharedPosix.destroy();
-  Fog::Locale::sharedUser.destroy();
+  ((Locale *)&Locale::sharedNullObj )->~Locale();
+  ((Locale *)&Locale::sharedPosixObj)->~Locale();
+  ((Locale *)&Locale::sharedUserObj )->~Locale();
+
+  Locale::sharedNull.destroy();
+  Locale::sharedPosix.destroy();
+  Locale::sharedUser.destroy();
 }

@@ -884,7 +884,9 @@ fail:
 
 FOG_INIT_DECLARE void fog_imageio_pcx_init(void)
 {
-  Fog::ImageIO::addProvider(new(std::nothrow) Fog::ImageIO::PcxProvider());
+  using namespace Fog;
+
+  ImageIO::addProvider(new(std::nothrow) ImageIO::PcxProvider());
 }
 
 FOG_INIT_DECLARE void fog_imageio_pcx_shutdown(void)

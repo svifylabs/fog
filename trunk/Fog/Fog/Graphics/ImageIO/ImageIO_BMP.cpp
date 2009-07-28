@@ -957,7 +957,9 @@ fail:
 
 FOG_INIT_DECLARE void fog_imageio_bmp_init(void)
 {
-  Fog::ImageIO::addProvider(new(std::nothrow) Fog::ImageIO::BmpProvider());
+  using namespace Fog;
+
+  ImageIO::addProvider(new(std::nothrow) ImageIO::BmpProvider());
 }
 
 FOG_INIT_DECLARE void fog_imageio_bmp_shutdown(void)

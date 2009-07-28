@@ -295,8 +295,9 @@ Hash_Abstract::Node* Hash_Abstract::_Iterator::_removeCurrent()
 
 FOG_INIT_DECLARE err_t fog_hash_init(void)
 {
-  Fog::Hash_Abstract::Data* d = 
-    Fog::Hash_Abstract::sharedNull.instancep();
+  using namespace Fog;
+
+  Hash_Abstract::Data* d = Hash_Abstract::sharedNull.instancep();
   d->refCount.init(1);
   d->capacity = 1;
   d->length = 0;
@@ -311,7 +312,8 @@ FOG_INIT_DECLARE err_t fog_hash_init(void)
 
 FOG_INIT_DECLARE void fog_hash_shutdown(void)
 {
-  Fog::Hash_Abstract::Data* d = 
-    Fog::Hash_Abstract::sharedNull.instancep();
+  using namespace Fog;
+
+  Hash_Abstract::Data* d = Hash_Abstract::sharedNull.instancep();
   d->refCount.dec();
 }

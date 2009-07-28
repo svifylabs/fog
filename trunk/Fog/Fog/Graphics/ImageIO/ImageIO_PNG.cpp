@@ -678,15 +678,19 @@ end:
 
 FOG_INIT_DECLARE void fog_imageio_png_init(void)
 {
-  Fog::ImageIO::_png.init();
-  Fog::ImageIO::addProvider(new(std::nothrow) Fog::ImageIO::PngProvider());
+  using namespace Fog;
+
+  ImageIO::_png.init();
+  ImageIO::addProvider(new(std::nothrow) ImageIO::PngProvider());
 }
 
 FOG_INIT_DECLARE void fog_imageio_png_shutdown(void)
 {
+  using namespace Fog;
+
   // Provider is destroyed by Fog::ImageIO, need only to destroy PngLibrary
   // if open.
-  Fog::ImageIO::_png.destroy();
+  ImageIO::_png.destroy();
 }
 
 #else

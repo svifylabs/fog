@@ -725,7 +725,7 @@ FOG_INIT_DECLARE void fog_imageio_jpeg_init(void)
   using namespace Fog;
 
   ImageIO::_jpeg.init();
-  ImageIO::addProvider(new(std::nothrow) Fog::ImageIO::JpegProvider());
+  ImageIO::addProvider(new(std::nothrow) ImageIO::JpegProvider());
 
   Vector<String32> properties;
 
