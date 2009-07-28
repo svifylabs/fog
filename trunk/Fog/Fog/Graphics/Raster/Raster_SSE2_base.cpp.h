@@ -664,9 +664,9 @@ static FOG_INLINE void pix_unpack_and_demultiply_2x2W(__m128i& dst0, __m128i& ds
   dst1 = _mm_packs_epi32(tmp0, tmp1);
 }
 
-// Interpolate.
+// Lerp (Interpolation).
 
-static FOG_INLINE void pix_interpolate_1x1W(
+static FOG_INLINE void pix_lerp_1x1W(
   __m128i& dst0, const __m128i& src0, const __m128i& alpha0)
 {
   __m128i ialpha0;
@@ -678,7 +678,7 @@ static FOG_INLINE void pix_interpolate_1x1W(
   dst0 = _mm_adds_epu8(dst0, tmp0);
 }
 
-static FOG_INLINE void pix_interpolate_2x2W(
+static FOG_INLINE void pix_lerp_2x2W(
   __m128i& dst0, const __m128i& src0, const __m128i& alpha0,
   __m128i& dst1, const __m128i& src1, const __m128i& alpha1)
 {
@@ -692,7 +692,7 @@ static FOG_INLINE void pix_interpolate_2x2W(
   dst1 = _mm_adds_epu8(dst1, tmp1);
 }
 
-static FOG_INLINE void pix_interpolate_ialpha_1x1W(
+static FOG_INLINE void pix_lerp_ialpha_1x1W(
   __m128i& dst0, const __m128i& src0, const __m128i& alpha0, const __m128i& ialpha0)
 {
   __m128i tmp0;
@@ -702,7 +702,7 @@ static FOG_INLINE void pix_interpolate_ialpha_1x1W(
   dst0 = _mm_adds_epu8(dst0, tmp0);
 }
 
-static FOG_INLINE void pix_interpolate_ialpha_2x2W(
+static FOG_INLINE void pix_lerp_ialpha_2x2W(
   __m128i& dst0, const __m128i& src0, const __m128i& alpha0, const __m128i& ialpha0,
   __m128i& dst1, const __m128i& src1, const __m128i& alpha1, const __m128i& ialpha1)
 {
