@@ -580,10 +580,13 @@ static FOG_INLINE void pix_demultiply_2x2W(__m128i& dst0, const __m128i& src0, _
 
   pix_store16u(buffer, src1);
 
+  dst0 = _mm_slli_epi16(src0, 8);
+  dst1 = _mm_slli_epi16(src1, 8);
+
   recip1 = _mm_shuffle_epi32(recip1, _MM_SHUFFLE(1, 0, 3, 2));
   recip0 = _mm_or_si128(recip0, recip1);
 
-  dst0 = _mm_mulhi_epu16(src0, recip0);
+  dst0 = _mm_mulhi_epu16(dst0, recip0);
 
   index0 = buffer[6];
   index1 = buffer[14];
@@ -594,7 +597,7 @@ static FOG_INLINE void pix_demultiply_2x2W(__m128i& dst0, const __m128i& src0, _
   recip1 = _mm_shuffle_epi32(recip1, _MM_SHUFFLE(1, 0, 3, 2));
   recip0 = _mm_or_si128(recip0, recip1);
 
-  dst1 = _mm_mulhi_epu16(src1, recip0);
+  dst1 = _mm_mulhi_epu16(dst1, recip0);
 }
 
 static FOG_INLINE void pix_unpack_and_demultiply_1x1W(__m128i& dst0, const __m128i& src0)
