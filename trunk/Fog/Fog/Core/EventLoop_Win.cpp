@@ -32,7 +32,7 @@ static const WCHAR kWndClass[] = L"Fog::EventPumpWin";
 // another task (a series of such messages creates a continuous task pump).
 static const int kMsgHaveWork = WM_USER + 1;
 
-#ifndef NDEBUG
+#if defined(FOG_DEBUG)
 // Force exercise of polling model.
 static const int kMaxWaitObjects = 8;
 #else
