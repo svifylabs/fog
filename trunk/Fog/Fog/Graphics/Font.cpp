@@ -106,11 +106,7 @@ void FontCache::deleteAll()
   AutoLock locked(_lock);
   Hash<Entry, FontFace*>::MutableIterator it(_cache);
 
-  while (it.isValid())
-  {
-    it.value()->deref();
-    it.remove();
-  }
+  for (it.toBegin(); it.isValid(); it.remove()) it.value()->deref();
 }
 
 // ============================================================================
