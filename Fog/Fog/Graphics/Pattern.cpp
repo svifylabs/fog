@@ -390,11 +390,12 @@ void Pattern::Data::deleteResources()
 
 FOG_INIT_DECLARE err_t fog_pattern_init(void)
 {
-  Fog::Pattern::Data* d = Fog::Pattern::sharedNull.instancep();
+  using namespace Fog;
 
+  Pattern::Data* d = Pattern::sharedNull.instancep();
   d->refCount.init(1);
-  d->type = Fog::Pattern::Null;
-  d->spread = Fog::Pattern::PadSpread;
+  d->type = Pattern::Null;
+  d->spread = Pattern::PadSpread;
   d->points[0].set(0.0, 0.0);
   d->points[1].set(0.0, 0.0);
   d->gradientRadius = 0.0;
@@ -405,5 +406,7 @@ FOG_INIT_DECLARE err_t fog_pattern_init(void)
 
 FOG_INIT_DECLARE void fog_pattern_shutdown(void)
 {
-  Fog::Pattern::sharedNull.instancep()->refCount.dec();
+  using namespace Fog;
+
+  Pattern::sharedNull.instancep()->refCount.dec();
 }

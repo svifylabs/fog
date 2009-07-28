@@ -277,11 +277,11 @@ void GlyphSet::Data::free(Data* d)
 
 FOG_INIT_DECLARE err_t fog_glyphset_init(void)
 {
-  Fog::GlyphSet::Data* d = Fog::GlyphSet::sharedNull.instancep();
+  using namespace Fog;
 
+  GlyphSet::Data* d = GlyphSet::sharedNull.instancep();
   d->refCount.init(1);
-  d->flags = Fog::GlyphSet::Data::IsNull | 
-             Fog::GlyphSet::Data::IsSharable;
+  d->flags = GlyphSet::Data::IsNull | GlyphSet::Data::IsSharable;
   d->capacity = 0;
   d->length = 0;
   d->extents.set(0, 0, 0, 0);
@@ -292,7 +292,8 @@ FOG_INIT_DECLARE err_t fog_glyphset_init(void)
 
 FOG_INIT_DECLARE void fog_glyphset_shutdown(void)
 {
-  Fog::GlyphSet::Data* d = Fog::GlyphSet::sharedNull.instancep();
+  using namespace Fog;
 
+  GlyphSet::Data* d = Fog::GlyphSet::sharedNull.instancep();
   d->refCount.dec();
 }

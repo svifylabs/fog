@@ -61,12 +61,12 @@ FOG_INIT_DECLARE err_t fog_raster_init(void)
 
   // [Install MMX optimized code if supported]
 
-  if (Fog::cpuInfo->hasFeature(Fog::CpuInfo::Feature_MMX))
+  if (cpuInfo->hasFeature(CpuInfo::Feature_MMX))
     fog_raster_init_mmx();
 
   // [Install SSE2 optimized code if supported]
 
-  if (Fog::cpuInfo->hasFeature(Fog::CpuInfo::Feature_SSE2))
+  if (cpuInfo->hasFeature(CpuInfo::Feature_SSE2))
   {
     fog_raster_init_sse2();
   }
