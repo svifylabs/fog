@@ -12,35 +12,244 @@
 
 namespace Fog {
 
+// TODO: Move to Fog::Math.
 static const double defaultEpsilon = 1e-14; 
 
-//! @brief Image operators.
+//! @brief Image compositing operators.
+//!
+//! @note Many values and formulas are from antigrain and from SVG specification
+//! that can be found here: 
+//! - http://www.w3.org/TR/2004/WD-SVG12-20041027/rendering.html
 enum CompositeOp
 {
+  //! @brief The source is copied to the destination.
+  //!
+  //! The source pixel is copied to destination pixel. If destination pixel 
+  //! format not supports alpha channel, the source alpha value is ignored. 
+  //! If there is alpha channel mask the composition is done using LERP 
+  //! operator.
+  //!
+  //! Formulas for premultiplied colorspace:
+  //!   Dca' = Sca.Da + Sca.(1 - Da)
+  //!        = Sca
+  //!   Da'  = Sa.Da + Sa.(1 - Da)
+  //!        = Sa
   CompositeSrc,
+
+  //! @brief The destination is left untouched.
+  //!
+  //! Destination pixels remains unchanged.
+  //!
+  //! Formulas for premultiplied colorspace:
+  //!   Dca' = Dca.Sa + Dca.(1 - Sa)
+  //!        = Dca
+  //!   Da'  = Da.Sa + Da.(1 - Sa)
+  //!        = Da
   CompositeDest,
+
+  //! @brief The source is composited over the destination.
+  //!
+  //! Formulas for premultiplied colorspace:
+  //!   Dca' = Sca.Da + Sca.(1 - Da) + Dca.(1 - Sa)
+  //!        = Sca + Dca.(1 - Sa)
+  //!   Da'  = Sa.Da + Sa.(1 - Da) + Da.(1 - Sa)
+  //!        = Sa + Da.(1 - Sa)
+  //!        = Sa + Da - Sa.Da
   CompositeSrcOver,
+
+  //! @brief The destination is composited over the source and the result 
+  //! replaces the destination. 
+  //!
+  //! Formulas for premultiplied colorspace:
+  //!   Dca' = Dca.Sa + Sca.(1 - Da) + Dca.(1 - Sa)
+  //!        = Dca + Sca.(1 - Da)
+  //!   Da'  = Da.Sa + Sa.(1 - Da) + Da.(1 - Sa)
+  //!        = Da + Sa.(1 - Da)
+  //!        = Da + Sa - Da.Sa
   CompositeDestOver,
+
+  //! @brief The part of the source lying inside of the destination replaces
+  //! the destination. 
+  //!
+  //! Formulas for premultiplied colorspace:
+  //!   Dca' = Sca.Da
+  //!   Da'  = Sa.Da
   CompositeSrcIn,
+
+  //! @brief The part of the destination lying inside of the source replaces
+  //! the destination. 
+  //!
+  //! Formulas for premultiplied colorspace:
+  //!   Dca' = Dca.Sa
+  //!   Da'  = Da.Sa
   CompositeDestIn,
+
+  //! @brief The part of the source lying outside of the destination replaces
+  //! the destination. 
+  //!
+  //! Formulas for premultiplied colorspace:
+  //!   Dca' = Sca.(1 - Da)
+  //!   Da'  = Sa.(1 - Da)
   CompositeSrcOut,
+
+  //! @brief The part of the destination lying outside of the source replaces
+  //! the destination. 
+  //!
+  //! Formulas for premultiplied colorspace:
+  //!   Dca' = Dca.(1 - Sa)
+  //!   Da'  = Da.(1 - Sa)
   CompositeDestOut,
+
+  //! @brief The part of the source lying inside of the destination is
+  //! composited onto the destination. 
+  //!
+  //! Formulas for premultiplied colorspace:
+  //!   Dca' = Sca.Da + Dca.(1 - Sa)
+  //!   Da'  = Sa.Da + Da.(1 - Sa)
+  //!        = Da.(Sa + 1 - Sa)
+  //!        = Da
   CompositeSrcAtop,
+
+  //! @brief The part of the destination lying inside of the source is 
+  //! composited over the source and replaces the destination. 
+  //!
+  //! Formulas for premultiplied colorspace:
+  //!   Dca' = Dca.Sa + Sca.(1 - Da)
+  //!   Da'  = Da.Sa + Sa.(1 - Da)
+  //!        = Sa.(Da + 1 - Da)
+  //!        = Sa
   CompositeDestAtop,
+
+  //! @brief The part of the source that lies outside of the destination is 
+  //! combined with the part of the destination that lies outside of the source.
+  //!
+  //! Formulas for premultiplied colorspace:
+  //!   Dca' = Sca.(1 - Da) + Dca.(1 - Sa)
+  //!   Da'  = Sa.(1 - Da) + Da.(1 - Sa)
+  //!        = Sa + Da - 2.Sa.Da
   CompositeXor,
+
+  //! @brief Clear the destination not using the source.
+  //!
+  //! Formulas for premultiplied colorspace:
+  //!   Dca' = 0
+  //!   Da'  = 0
   CompositeClear,
 
+  //! @brief The source is added to the destination and replaces the destination.
+  //!
+  //! Formulas for premultiplied colorspace:
+  //!   Dca' = Sca.Da + Dca.Sa + Sca.(1 - Da) + Dca.(1 - Sa)
+  //!        = Sca + Dca
+  //!   Da'  = Sa.Da + Da.Sa + Sa.(1 - Da) + Da.(1 - Sa)
+  //!        = Sa + Da
   CompositeAdd,
+
+  //! @brief The source is subtracted from the destination and replaces 
+  //! the destination.
+  //!
+  //! Formulas for premultiplied colorspace:
+  //!   Dca' = Dca - Sca
+  //!   Da'  = 1 - (1 - Sa).(1 - Da)
   CompositeSubtract,
-  CompositeMultiply,
+
+  //! @brief The source is multiplied by the destination and replaces 
+  //! the destination
+  //!
+  //! The resultant color is always at least as dark as either of the two 
+  //! constituent colors. Multiplying any color with black produces black.
+  //! Multiplying any color with white leaves the original color unchanged.
+  //!
+  //! Formulas for premultiplied colorspace:
+  //!   Dca' = Sca.Dca + Sca.(1 - Da) + Dca.(1 - Sa)
+  //!   Da'  = Sa.Da + Sa.(1 - Da) + Da.(1 - Sa)
+  //!        = Sa + Da - Sa.Da
+ CompositeMultiply,
+
+  //! @brief The source and destination are complemented and then multiplied 
+  //! and then replace the destination
+  //!
+  //! Formulas for premultiplied colorspace:
+  //!   Dca' = (Sca.Da + Dca.Sa - Sca.Dca) + Sca.(1 - Da) + Dca.(1 - Sa)
+  //!        = Sca + Dca - Sca.Dca
+  //!   Da'  = Sa + Da - Sa.Da
   CompositeScreen,
+
+  //! @brief Selects the darker of the destination and source colors. The 
+  //! destination is replaced with the source when the source is darker,
+  //! otherwise it is left unchanged.
+  //!
+  //! Formulas for premultiplied colorspace:
+  //!   Dca' = min(Sca.Da, Dca.Sa) + Sca.(1 - Da) + Dca.(1 - Sa)
+  //!   Da'  = min(Sa.Da, Da.Sa) + Sa.(1 - Da) + Da.(1 - Sa)
+  //!        = Sa.Da + Sa - Sa.Da + Da - Sa.Da
+  //!        = Sa + Da - Sa.Da
+  //!
+  //!   OR: if (Sca.Da < Dca.Sa) Src-Over() else Dst-Over()
   CompositeDarken,
+
+  //! @brief Selects the lighter of the destination and source colors. The
+  //! destination is replaced with the source when the source is lighter, 
+  //! otherwise it is left unchanged.
+  //!
+  //! Formulas for premultiplied colorspace:
+  //!   Dca' = max(Sca.Da, Dca.Sa) + Sca.(1 - Da) + Dca.(1 - Sa)
+  //!   Da'  = max(Sa.Da, Da.Sa) + Sa.(1 - Da) + Da.(1 - Sa)
+  //!        = Sa.Da + Sa - Sa.Da + Da - Sa.Da
+  //!        = Sa + Da - Sa.Da
+  //!
+  //!   OR: if (Sca.Da > Dca.Sa) Src-Over() else Dst-Over()
   CompositeLighten,
+
+  //! @brief Subtracts the darker of the two constituent colors from the 
+  //! lighter. Painting with white inverts the destination color. Painting
+  //! with black produces no change.
+  //!
+  //! Formulas for premultiplied colorspace:
+  //!   Dca' = abs(Dca.Sa - Sca.Da) + Sca.(1 - Da) + Dca.(1 - Sa)
+  //!        = Sca + Dca - 2.min(Sca.Da, Dca.Sa)
+  //!   Da'  = Sa + Da - min(Sa.Da, Da.Sa)
+  //!        = Sa + Da - Sa.Da
   CompositeDifference,
+
+  //! @brief Produces an effect similar to that of 'difference', but appears
+  //! as lower contrast. Painting with white inverts the destination color.
+  //! Painting with black produces no change.
+  //!
+  //! Formulas for premultiplied colorspace:
+  //!   Dca' = (Sca.Da + Dca.Sa - 2.Sca.Dca) + Sca.(1 - Da) + Dca.(1 - Sa)
+  //!          Sca + Dca - 2.Sca.Dca
+  //!   Da'  = (Sa.Da + Da.Sa - 2.Sa.Da) + Sa.(1 - Da) + Da.(1 - Sa)
+  //!        = Sa - Sa.Da + Da - Da.Sa = Sa + Da - 2.Sa.Da
+  //!          [Substitute 2.Sa.Da with Sa.Da]
+  //!        = Sa + Da - Sa.Da
   CompositeExclusion,
+
+  //! @brief Invert.
+  //!
+  //! Formulas for premultiplied colorspace:
+  //!   Dca' = (Da - Dca) * Sa + Dca.(1 - Sa)
+  //!   Da'  = Sa + (Da - Da) * Sa + Da - Sa.Da
+  //!        = Sa + Da - Sa.Da
+  //!
+  //! For calculation this formula is best:
+  //!   Dca' = (Da - Dca) * Sa + Dca.(1 - Sa)
+  //!   Da'  = (1 + Da - Da) * Sa + Da.(1 - Sa)
   CompositeInvert,
+
+  //! @brief Invert RGB.
+  //!
+  //! Formulas for premultiplied colorspace:
+  //!   Dca' = (Da - Dca) * Sca + Dca.(1 - Sa)
+  //!   Da'  = Sa + (Da - Da) * Sa + Da - Da.Sa
+  //!        = Sa + Da - Sa.Da
+  //!
+  //! For calculation this formula is best:
+  //!   Dca' = (Da - Dca) * Sca + Dca.(1 - Sa)
+  //!   Da'  = (1 + Da - Da) * Sa + Da.(1 - Sa)
   CompositeInvertRgb,
 
+  //! @brief Count of compositing operators (this is not a valid operator).
   CompositeCount
 };
 

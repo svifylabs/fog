@@ -23,6 +23,15 @@ struct Pattern;
 
 namespace Raster {
 
+//! @brief Solid source for raster based compositing.
+struct Solid
+{
+  //! @brief Non-premultiplied RGBA color.
+  uint32_t rgba;
+  //! @brief Premultiplied RGBA color.
+  uint32_t rgbp;
+};
+
 // ============================================================================
 // [Fog::Raster - Function Map]
 // ============================================================================
@@ -47,14 +56,16 @@ typedef void (FOG_FASTCALL *GradientSpanFn)(
 
 // Raster
 typedef void (FOG_FASTCALL *PixelFn)(
-  uint8_t* dst, uint32_t src);
+  uint8_t* dst, const Solid* src);
 typedef void (FOG_FASTCALL *PixelMskFn)(
-  uint8_t* dst, uint32_t src, uint32_t msk);
+  uint8_t* dst, const Solid* src, uint32_t msk);
 
 typedef void (FOG_FASTCALL *SpanSolidFn)(
-  uint8_t* dst, uint32_t src, sysint_t w);
+  uint8_t* dst, const Solid* src, sysint_t w);
 typedef void (FOG_FASTCALL *SpanSolidMskFn)(
-  uint8_t* dst, uint32_t src, const uint8_t* msk, sysint_t w);
+  uint8_t* dst, const Solid* src, const uint8_t* msk, sysint_t w);
+typedef void (FOG_FASTCALL *SpanSolidMskConstFn)(
+  uint8_t* dst, const Solid* src, uint32_t msk, sysint_t w);
 
 typedef void (FOG_FASTCALL *SpanCompositeFn)(
   uint8_t* dst, const uint8_t* src, sysint_t w);
@@ -403,6 +414,7 @@ struct FunctionMap
 
     SpanSolidFn         span_solid;
     SpanSolidMskFn      span_solid_a8;
+    SpanSolidMskConstFn span_solid_a8_const;
 
     // [Span Composite]
   
@@ -429,10 +441,7 @@ struct FunctionMap
     };
   };
   
-  // 0 = ARGB32, 1 = ARGB32 premultiplied.
-  RasterFuncs raster_argb32[2][CompositeCount];
-  RasterFuncs raster_rgb32;
-  RasterFuncs raster_rgb24;
+  RasterFuncs raster[Image::FormatCount][CompositeCount];
 
   // [Filters Table]
 

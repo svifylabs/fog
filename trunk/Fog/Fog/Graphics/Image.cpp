@@ -1897,52 +1897,12 @@ err_t Image::filter(const ColorMatrix& mat, const Rect& r)
 // [Fog::Image - Painting]
 // ============================================================================
 
-static Raster::SpanSolidFn getSpanSolidBlitter(int format, bool over)
+err_t Image::clear(Rgba c0)
 {
-  Raster::FunctionMap* m = Raster::functionMap;
-  switch (format)
-  {
-    case Image::FormatARGB32:
-      return m->raster_argb32[0][over ? CompositeSrcOver : CompositeSrc].span_solid;
-    case Image::FormatPRGB32:
-      return m->raster_argb32[1][over ? CompositeSrcOver : CompositeSrc].span_solid;
-    case Image::FormatRGB32:
-      return m->raster_rgb32.span_solid;
-    case Image::FormatRGB24:
-      return m->raster_rgb24.span_solid;
-    case Image::FormatA8:
-    case Image::FormatI8:
-    default:
-      return NULL;
-  }
+  return fillRect(Rect(0, 0, width(), height()), c0, CompositeSrc);
 }
 
-static Raster::SpanCompositeFn getSpanCompositeBlitter(int format, bool over)
-{
-  Raster::FunctionMap* m = Raster::functionMap;
-  switch (format)
-  {
-    case Image::FormatARGB32:
-      return m->raster_argb32[0][over ? CompositeSrcOver : CompositeSrc].span_composite[Image::FormatARGB32];
-    case Image::FormatPRGB32:
-      return m->raster_argb32[1][over ? CompositeSrcOver : CompositeSrc].span_composite[Image::FormatPRGB32];
-    case Image::FormatRGB32:
-      return m->raster_rgb32.span_composite[Image::FormatARGB32];
-    case Image::FormatRGB24:
-      return m->raster_rgb24.span_composite[Image::FormatARGB32];
-    case Image::FormatA8:
-    case Image::FormatI8:
-    default:
-      return NULL;
-  }
-}
-
-err_t Image::clear(uint32_t c0)
-{
-  return fillRect(Rect(0, 0, width(), height()), c0, false);
-}
-
-err_t Image::drawPixel(const Point& pt, uint32_t c0)
+err_t Image::drawPixel(const Point& pt, Rgba c0)
 {
   if ((uint)pt.x() >= (uint)width() || (uint)pt.y() >= (uint)height())
     return Error::Ok;
@@ -2001,7 +1961,7 @@ static void Draw_BresenhamLine(uint8_t* dst, sysint_t dstStride, uint32_t c0, Ra
   if (last) Op::store(dst, c0);
 }
 
-err_t Image::drawLine(const Point& pt0, const Point& pt1, uint32_t c0, bool lastPoint)
+err_t Image::drawLine(const Point& pt0, const Point& pt1, Rgba c0, bool lastPoint)
 {
   if (isEmpty())
     return Error::Ok;
@@ -2040,8 +2000,10 @@ err_t Image::drawLine(const Point& pt0, const Point& pt1, uint32_t c0, bool last
   return Error::Ok;
 }
 
-err_t Image::fillRect(const Rect& r, uint32_t c0, bool over)
+err_t Image::fillRect(const Rect& r, Rgba c0, int op)
 {
+  if ((uint32_t)op >= CompositeCount) return Error::InvalidArgument;
+
   int x1 = r.x1();
   int y1 = r.y1();
   int x2 = r.x2();
@@ -2051,13 +2013,16 @@ err_t Image::fillRect(const Rect& r, uint32_t c0, bool over)
   int h = _d->height;
   int fmt = _d->format;
 
-  int op = CompositeSrc;
-  if (over && (c0 & 0xFF000000) != 0xFF000000) op = CompositeSrcOver;
+  bool solid = (c0 & 0xFF000000) == 0xFF000000;
+  if (op == CompositeSrcOver && solid) op = CompositeSrc;
 
   if (x1 < 0) x1 = 0;
   if (y1 < 0) y1 = 0;
   if (x2 > w) x2 = w;
   if (y2 > h) y2 = h;
+
+  Raster::FunctionMap::RasterFuncs* ops = Raster::getRasterOps(fmt, op);
+  if (ops == NULL) return Error::NotImplemented;
 
   if ((w = x2 - x1) <= 0) return Error::Ok;
   if ((h = y2 - y1) <= 0) return Error::Ok;
@@ -2068,10 +2033,14 @@ err_t Image::fillRect(const Rect& r, uint32_t c0, bool over)
   sysint_t dstStride = _d->stride;
   uint8_t* dstCur = _d->first + y1 * dstStride + x1 * bytesPerPixel();
 
-  Raster::SpanSolidFn blitter = getSpanSolidBlitter(fmt, over);
+  Raster::Solid source;
+  source.rgba = c0;
+  source.rgbp = Raster::premultiply(c0);
+
+  Raster::SpanSolidFn blitter = ops->span_solid;
 
   for (int i = 0; i < h; i++, dstCur += dstStride)
-    blitter(dstCur, c0, w);
+    blitter(dstCur, &source, w);
 
   return Error::Ok;
 }
@@ -2080,13 +2049,13 @@ err_t Image::fillRect(const Rect& r, uint32_t c0, bool over)
 // [Fog::Image - Painting - Gradients]
 // ============================================================================
 
-err_t Image::fillQGradient(const Rect& r, Rgba c0, Rgba c1, Rgba c2, Rgba c3, bool over)
+err_t Image::fillQGradient(const Rect& r, Rgba c0, Rgba c1, Rgba c2, Rgba c3, int op)
 {
   if (format() == FormatI8) return Error::InvalidFunction;
 
   // Optimized variants.
-  if (c0 == c1 && c2 == c3) return fillVGradient(r, c0, c2, over);
-  if (c0 == c2 && c1 == c3) return fillHGradient(r, c0, c1, over);
+  if (c0 == c1 && c2 == c3) return fillVGradient(r, c0, c2, op);
+  if (c0 == c2 && c1 == c3) return fillHGradient(r, c0, c1, op);
 
   int i;
 
@@ -2099,18 +2068,20 @@ err_t Image::fillQGradient(const Rect& r, Rgba c0, Rgba c1, Rgba c2, Rgba c3, bo
   int h = _d->height;
   int fmt = _d->format;
 
-  int op = CompositeSrc;
-
-  if (over && (
-    (c0 & 0xFF000000) != 0xFF000000 ||
-    (c1 & 0xFF000000) != 0xFF000000 ||
-    (c2 & 0xFF000000) != 0xFF000000 ||
-    (c3 & 0xFF000000) != 0xFF000000)) op = CompositeSrcOver;
+  bool solid = (c0 & 0xFF000000) == 0xFF000000 &&
+               (c1 & 0xFF000000) == 0xFF000000 &&
+               (c2 & 0xFF000000) == 0xFF000000 &&
+               (c3 & 0xFF000000) == 0xFF000000 ;
+  int sourceFormat = solid ? FormatRGB32 : FormatARGB32;
+  if (op == CompositeSrcOver && solid) op = CompositeSrc;
 
   if (x1 < 0) x1 = 0;
   if (y1 < 0) y1 = 0;
   if (x2 > w) x2 = w;
   if (y2 > h) y2 = h;
+
+  Raster::FunctionMap::RasterFuncs* ops = Raster::getRasterOps(fmt, op);
+  if (ops == NULL) return Error::NotImplemented;
 
   if ((w = x2 - x1) <= 0) return Error::Ok;
   if ((h = y2 - y1) <= 0) return Error::Ok;
@@ -2143,29 +2114,26 @@ err_t Image::fillQGradient(const Rect& r, Rgba c0, Rgba c1, Rgba c2, Rgba c3, bo
       // setting it here and not before is that all gradient functions need
       // colors in ARGB colorspace.
       gradientSpan = Raster::functionMap->gradient.gradient_prgb32;
+      sourceFormat = FormatPRGB32;
       // ... fall throught ...
     case FormatARGB32:
     case FormatRGB32:
-      if (!over)
+      // If operator is CompositeSrc, we will directly render gradient spans
+      // into image buffer (this is fastest possible gradient rendering).
+      if (op == CompositeSrc)
       {
-        for (i = 0; i < h; i++,
-          dstCur += dstStride,
-          shade0 += sizeof(uint32_t),
-          shade1 += sizeof(uint32_t))
+        for (i = 0; i < h; i++, dstCur += dstStride, shade0 += sizeof(uint32_t), shade1 += sizeof(uint32_t))
         {
           gradientSpan(dstCur, ((uint32_t*)shade0)[0], ((uint32_t*)shade1)[0], w, 0, w);
         }
         break;
       }
-      // ... fall thgouht ...
+      // ... fall throught ...
     default:
     {
-      Raster::SpanCompositeFn blitter = getSpanCompositeBlitter(fmt, over);
+      Raster::SpanCompositeFn blitter = ops->span_composite[sourceFormat];
 
-      for (i = 0; i < h; i++,
-        dstCur += dstStride,
-        shade0 += sizeof(uint32_t),
-        shade1 += sizeof(uint32_t))
+      for (i = 0; i < h; i++, dstCur += dstStride, shade0 += sizeof(uint32_t), shade1 += sizeof(uint32_t))
       {
         gradientSpan(shadeW, ((uint32_t*)shade0)[0], ((uint32_t*)shade1)[0], w, 0, w);
         blitter(dstCur, shadeW, w);
@@ -2176,11 +2144,12 @@ err_t Image::fillQGradient(const Rect& r, Rgba c0, Rgba c1, Rgba c2, Rgba c3, bo
   return Error::Ok;
 }
 
-err_t Image::fillHGradient(const Rect& r, Rgba c0, Rgba c1, bool over)
+err_t Image::fillHGradient(const Rect& r, Rgba c0, Rgba c1, int op)
 {
   if (format() == FormatI8) return Error::InvalidFunction;
+  if (c0 == c1) return fillRect(r, c0, op);
 
-  if (c0 == c1) return fillRect(r, c0, over);
+  int i;
 
   int x1 = r.x1();
   int y1 = r.y1();
@@ -2191,16 +2160,17 @@ err_t Image::fillHGradient(const Rect& r, Rgba c0, Rgba c1, bool over)
   int h = _d->height;
   int fmt = _d->format;
 
-  int op = CompositeSrc;
-
-  if (over && (
-    (c0 & 0xFF000000) != 0xFF000000 ||
-    (c1 & 0xFF000000) != 0xFF000000)) op = CompositeSrcOver;
+  bool solid = (c0 & 0xFF000000) == 0xFF000000 &&
+               (c1 & 0xFF000000) == 0xFF000000 ;
+  if (op == CompositeSrcOver && solid) op = CompositeSrc;
 
   if (x1 < 0) x1 = 0;
   if (y1 < 0) y1 = 0;
   if (x2 > w) x2 = w;
   if (y2 > h) y2 = h;
+
+  Raster::FunctionMap::RasterFuncs* ops = Raster::getRasterOps(fmt, op);
+  if (ops == NULL) return Error::NotImplemented;
 
   if ((w = x2 - x1) <= 0) return Error::Ok;
   if ((h = y2 - y1) <= 0) return Error::Ok;
@@ -2222,20 +2192,21 @@ err_t Image::fillHGradient(const Rect& r, Rgba c0, Rgba c1, bool over)
 
   gradientSpan(shade0, c0, c1, w, 0, w);
 
-  Raster::SpanCompositeFn blitter = getSpanCompositeBlitter(fmt, over);
+  Raster::SpanCompositeFn blitter = ops->span_composite[fmt == FormatPRGB32 ? FormatPRGB32 : FormatARGB32];
 
-  for (int i = 0; i < h; i++, dstCur += dstStride)
+  for (i = 0; i < h; i++, dstCur += dstStride)
   {
     blitter(dstCur, shade0, w);
   }
   return Error::Ok;
 }
 
-err_t Image::fillVGradient(const Rect& r, Rgba c0, Rgba c1, bool over)
+err_t Image::fillVGradient(const Rect& r, Rgba c0, Rgba c1, int op)
 {
   if (format() == FormatI8) return Error::InvalidFunction;
+  if (c0 == c1) return fillRect(r, c0, op);
 
-  if (c0 == c1) return fillRect(r, c0, over);
+  int i;
 
   int x1 = r.x1();
   int y1 = r.y1();
@@ -2246,15 +2217,17 @@ err_t Image::fillVGradient(const Rect& r, Rgba c0, Rgba c1, bool over)
   int h = _d->height;
   int fmt = _d->format;
 
-  int op = CompositeSrc;
-  if (over && (
-    (c0 & 0xFF000000) != 0xFF000000 ||
-    (c1 & 0xFF000000) != 0xFF000000)) op = CompositeSrcOver;
+  bool solid = (c0 & 0xFF000000) == 0xFF000000 &&
+               (c1 & 0xFF000000) == 0xFF000000 ;
+  if (op == CompositeSrcOver && solid) op = CompositeSrc;
 
   if (x1 < 0) x1 = 0;
   if (y1 < 0) y1 = 0;
   if (x2 > w) x2 = w;
   if (y2 > h) y2 = h;
+
+  Raster::FunctionMap::RasterFuncs* ops = Raster::getRasterOps(fmt, op);
+  if (ops == NULL) return Error::NotImplemented;
 
   if ((w = x2 - x1) <= 0) return Error::Ok;
   if ((h = y2 - y1) <= 0) return Error::Ok;
@@ -2271,18 +2244,17 @@ err_t Image::fillVGradient(const Rect& r, Rgba c0, Rgba c1, bool over)
 
   uint8_t* shade0 = mem;
 
-  Raster::GradientSpanFn gradientSpan =
-    fmt == FormatPRGB32
-      ? Raster::functionMap->gradient.gradient_prgb32
-      : Raster::functionMap->gradient.gradient_argb32;
-
+  Raster::GradientSpanFn gradientSpan = Raster::functionMap->gradient.gradient_argb32;
   gradientSpan(shade0, c0, c1, h, 0, h);
 
-  Raster::SpanSolidFn blitter = getSpanSolidBlitter(fmt, over);
+  Raster::SpanSolidFn blitter = ops->span_solid;
 
-  for (int i = 0; i < h; i++, dstCur += dstStride, shade0 += sizeof(uint32_t))
+  for (i = 0; i < h; i++, dstCur += dstStride, shade0 += sizeof(uint32_t))
   {
-    blitter(dstCur, ((uint32_t*)shade0)[0], w);
+    Raster::Solid source;
+    source.rgba = ((uint32_t*)shade0)[0];
+    source.rgbp = Raster::premultiply(source.rgba);
+    blitter(dstCur, &source, w);
   }
   return Error::Ok;
 }
@@ -2618,12 +2590,14 @@ HBITMAP Image::toHBITMAP()
   return hDibSection;
 }
 
-bool Image::fromHBITMAP(HBITMAP hBitmap)
+err_t Image::fromHBITMAP(HBITMAP hBitmap)
 {
-  BITMAP bm;       // source
-  BITMAPINFO dibi; // target (for GetDIBits() function)
+  if (hBitmap == NULL) return Error::InvalidArgument;
+
+  BITMAP bm;       // Source.
+  BITMAPINFO dibi; // Target (for GetDIBits() function).
   GetObject(hBitmap, sizeof(BITMAP), &bm);
-  
+
   int format;
 
   switch (bm.bmBitsPixel)
@@ -2637,12 +2611,14 @@ bool Image::fromHBITMAP(HBITMAP hBitmap)
       break;
   }
 
-  if (create(bm.bmWidth, bm.bmHeight, format) != Error::Ok) return false;
+  err_t err = create(bm.bmWidth, bm.bmHeight, format);
+  if (err) return err;
 
   if (bm.bmBits)
   {
     // DIB
     // TODO:
+    return Error::NotImplemented;
   }
   else 
   {

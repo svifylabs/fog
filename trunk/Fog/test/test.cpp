@@ -1,5 +1,6 @@
 #include <Fog/Core.h>
 #include <Fog/Graphics.h>
+#include <Fog/Graphics/Raster/Raster_C.h>
 #include <Fog/UI.h>
 #include <Fog/Xml.h>
 
@@ -178,7 +179,7 @@ MyWindow::~MyWindow()
 
 static Image makeImage()
 {
-  Image im(600, 120, Image::FormatARGB32);
+  Image im(600, 120, Image::FormatRGB32);
   im.clear(0x00000000);
   Painter p(im);
 
@@ -187,7 +188,13 @@ static Image makeImage()
   font.setSize(80);
   font.setBold(true);
 
-  p.setSource(0xFF000000);
+  p.setOp(CompositeSrc);
+  p.setSource(0xFFFFFFFF);
+  p.setLineWidth(15.0);
+  
+  //for (int i = 0 ; i < 1000; i++)
+  //  p.drawPoint(Point(rand()%600, rand()%120));
+
   p.drawText(Rect(0, 0, p.width(), p.height()), Ascii8("Fog Library"), font, TextAlignCenter);
 
   p.end();
@@ -319,6 +326,26 @@ void MyWindow::bench()
 // [MAIN]
 // ============================================================================
 
+static void test()
+{
+  uint32_t cDst = 0x7F7FFF00;
+  uint32_t cSrc = 0x7F7F00FF;
+
+  Raster::Solid source;
+  source.rgba = cSrc;
+  source.rgbp = Raster::premultiply(cSrc);
+
+  uint32_t adst = cDst;
+  uint32_t pdst = Raster::premultiply(cDst);
+
+  Raster::functionMap->raster[Image::FormatARGB32][CompositeSrcOver].pixel((uint8_t*)(&adst), &source);
+  Raster::functionMap->raster[Image::FormatPRGB32][CompositeSrcOver].pixel((uint8_t*)(&pdst), &source);
+
+  fog_debug("adst     = %.8X", adst);
+  fog_debug("adst (P) = %.8X", Raster::premultiply(adst));
+  fog_debug("pdst     = %.8X", pdst);
+}
+
 #if defined(FOG_OS_WINDOWS)
 int FOG_STDCALL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 #else
@@ -328,6 +355,7 @@ FOG_UI_MAIN()
   Application app(Ascii8("UI"));
 
   fog_redirect_std_to_file("log.txt");
+  test();
 
   MyWindow window;
   window.setSize(Size(715, 515));

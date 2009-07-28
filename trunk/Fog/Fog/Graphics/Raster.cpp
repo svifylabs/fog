@@ -29,21 +29,10 @@ FunctionMap* functionMap;
 
 FunctionMap::RasterFuncs* getRasterOps(int format, int op)
 {
-  if (op >= CompositeCount) return NULL;
+  FOG_ASSERT(format < Image::FormatCount);
+  FOG_ASSERT(op < CompositeCount);
 
-  switch(format)
-  {
-    case Image::FormatARGB32:
-      return &functionMap->raster_argb32[0][op];
-    case Image::FormatPRGB32:
-      return &functionMap->raster_argb32[1][op];
-    case Image::FormatRGB32:
-      return &functionMap->raster_rgb32;
-    case Image::FormatRGB24:
-      return &functionMap->raster_rgb24;
-    default:
-      return NULL;
-  }
+  return &functionMap->raster[format][op];
 }
 
 } // Raster namespace

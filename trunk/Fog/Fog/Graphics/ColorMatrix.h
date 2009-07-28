@@ -43,7 +43,7 @@ struct FOG_API ColorMatrix
 {
   // [Construction / Destruction]
 
-  FOG_INLINE ColorMatrix(_LinkerInitialized _linkerInitialized) {}
+  FOG_INLINE ColorMatrix(_LinkerInitialized _linkerInitialized) { FOG_UNUSED(_linkerInitialized); }
 
   FOG_INLINE ColorMatrix()
   {

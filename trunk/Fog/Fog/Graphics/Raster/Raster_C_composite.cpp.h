@@ -1319,45 +1319,73 @@ END_OPERATOR_IMPL;
 // ============================================================================
 
 static void FOG_FASTCALL raster_pixel_nop(
-  uint8_t* dst, uint32_t src)
+  uint8_t* dst, const Solid* src)
 {
+  FOG_UNUSED(dst);
+  FOG_UNUSED(src);
 }
 
 static void FOG_FASTCALL raster_pixel_a8_nop(
-  uint8_t* dst, uint32_t src, uint32_t msk)
+  uint8_t* dst, const Solid* src, uint32_t msk)
 {
+  FOG_UNUSED(dst);
+  FOG_UNUSED(src);
+  FOG_UNUSED(msk);
 }
 
 static void FOG_FASTCALL raster_span_solid_nop(
-  uint8_t* dst, uint32_t src, sysint_t w)
+  uint8_t* dst, const Solid* src, sysint_t w)
 {
+  FOG_UNUSED(dst);
+  FOG_UNUSED(src);
+  FOG_UNUSED(w);
 }
 
 static void FOG_FASTCALL raster_span_solid_a8_nop(
-  uint8_t* dst, uint32_t src, const uint8_t* msk, sysint_t w)
+  uint8_t* dst, const Solid* src, const uint8_t* msk, sysint_t w)
 {
+  FOG_UNUSED(dst);
+  FOG_UNUSED(src);
+  FOG_UNUSED(msk);
+  FOG_UNUSED(w);
 }
 
 static void FOG_FASTCALL raster_span_composite_nop(
   uint8_t* dst, const uint8_t* src, sysint_t w)
 {
+  FOG_UNUSED(dst);
+  FOG_UNUSED(src);
+  FOG_UNUSED(w);
 }
 
 static void FOG_FASTCALL raster_span_composite_a8_nop(
   uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w)
 {
+  FOG_UNUSED(dst);
+  FOG_UNUSED(src);
+  FOG_UNUSED(msk);
+  FOG_UNUSED(w);
 }
 
 static void FOG_FASTCALL raster_span_composite_indexed_nop(
   uint8_t* dst, const uint8_t* src, sysint_t w,
   const Rgba* pal)
 {
+  FOG_UNUSED(dst);
+  FOG_UNUSED(src);
+  FOG_UNUSED(w);
+  FOG_UNUSED(pal);
 }
 
 static void FOG_FASTCALL raster_span_composite_indexed_a8_nop(
   uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w,
   const Rgba* pal)
 {
+  FOG_UNUSED(dst);
+  FOG_UNUSED(src);
+  FOG_UNUSED(msk);
+  FOG_UNUSED(w);
+  FOG_UNUSED(pal);
 }
 
 // ============================================================================

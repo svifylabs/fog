@@ -16,6 +16,36 @@ namespace Raster {
 // [Fog::Raster - Convert - Argb32 Dest]
 // ============================================================================
 
+static void FOG_FASTCALL convert_argb32_from_prgb32_sse2(
+  uint8_t* dst, const uint8_t* src, sysint_t w)
+{
+  BLIT_SSE2_INIT(dst, w);
+
+  BLIT_SSE2_SMALL_BEGIN(blt)
+    __m128i src0mm;
+
+    pix_load4(src0mm, src);
+    pix_unpack_and_demultiply_1x1W(src0mm, src0mm);
+    pix_pack_1x1W(src0mm, src0mm);
+    pix_store4(dst, src0mm);
+
+    src += 4;
+    dst += 4;
+  BLIT_SSE2_SMALL_END(blt)
+
+  BLIT_SSE2_LARGE_BEGIN(blt)
+    __m128i src0mm, src1mm;
+
+    pix_load16u(src0mm, src);
+    pix_unpack_and_demultiply_2x2W(src0mm, src1mm, src0mm);
+    pix_pack_2x2W(src0mm, src0mm, src1mm);
+    pix_store16a(dst, src0mm);
+
+    src += 16;
+    dst += 16;
+  BLIT_SSE2_LARGE_END(blt)
+}
+
 static void FOG_FASTCALL convert_argb32_from_rgb32_sse2(
   uint8_t* dst, const uint8_t* src, sysint_t w)
 {

@@ -120,7 +120,8 @@ static void FOG_FASTCALL convert_memcpy32(uint8_t* dst, const uint8_t* src, sysi
 // [Fog::Raster - Convert - Argb32 Dest]
 // ============================================================================
 
-static void FOG_FASTCALL convert_argb32_from_prgb32(uint8_t* _dst, const uint8_t* _src, sysint_t w)
+static void FOG_FASTCALL convert_argb32_from_prgb32(
+  uint8_t* _dst, const uint8_t* _src, sysint_t w)
 {
   uint32_t* dst = reinterpret_cast<uint32_t*>(_dst);
   const uint32_t* src = reinterpret_cast<const uint32_t*>(_src);
@@ -209,7 +210,8 @@ static void FOG_FASTCALL convert_argb32_from_prgb32(uint8_t* _dst, const uint8_t
   }
 }
 
-static void FOG_FASTCALL convert_argb32_from_prgb32_bs(uint8_t* _dst, const uint8_t* _src, sysint_t w)
+static void FOG_FASTCALL convert_argb32_from_prgb32_bs(
+  uint8_t* _dst, const uint8_t* _src, sysint_t w)
 {
   uint32_t* dst = reinterpret_cast<uint32_t*>(_dst);
   const uint32_t* src = reinterpret_cast<const uint32_t*>(_src);
