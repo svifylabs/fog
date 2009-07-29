@@ -3105,9 +3105,6 @@ static void FOG_INLINE AggRenderPath(
 
   sl.reset(ras.min_x(), ras.max_x());
 
-  Raster::SpanSolidFn span_solid = ctx->raster->span_solid;
-  Raster::SpanSolidMskFn span_solid_a8 = ctx->raster->span_solid_a8;
-
   int y = ras.min_y();
   int y_end = ras.max_y();
 
@@ -3127,6 +3124,10 @@ static void FOG_INLINE AggRenderPath(
   if (capsState->isSolidSource)
   {
     const Raster::Solid* source = &capsState->solidSource;
+
+    Raster::SpanSolidFn span_solid = ctx->raster->span_solid;
+    Raster::SpanSolidMskFn span_solid_a8 = ctx->raster->span_solid_a8;
+    Raster::SpanSolidMskConstFn span_solid_a8_const = ctx->raster->span_solid_a8_const;
 
     for (; y <= y_end; y += delta, pBase += stride)
     {
@@ -3157,11 +3158,7 @@ static void FOG_INLINE AggRenderPath(
           }
           else
           {
-            uint32_t c = Raster::bytemul(source->rgbp, cover);
-            Raster::Solid srcmod;
-            srcmod.rgbp = c;
-            srcmod.rgba = (source->rgba & 0x00FFFFFF) | (c & 0xFF000000);
-            span_solid(pCur, &srcmod, len);
+            span_solid_a8_const(pCur, source, cover, len);
           }
         }
 
