@@ -350,6 +350,10 @@ struct FontEngineFTPrivate
 
     p1 = pFcNameParse((FcChar8 *)family8.cStr());
     pFcPatternAddDouble(p1, FC_SIZE, (double)size);
+
+    if (attributes.italic) pFcPatternAddInteger(p1, FC_SLANT, FC_SLANT_ITALIC);
+    if (attributes.bold) pFcPatternAddInteger(p1, FC_WEIGHT, FC_WEIGHT_BOLD);
+
     pFcConfigSubstitute(NULL, p1, FcMatchPattern);
     pFcDefaultSubstitute(p1);
 

@@ -25,7 +25,8 @@ static void FOG_FASTCALL convert_argb32_from_prgb32_sse2(
     __m128i src0mm;
 
     pix_load4(src0mm, src);
-    pix_unpack_and_demultiply_1x1W(src0mm, src0mm);
+    pix_unpack_1x1W(src0mm, src0mm);
+    pix_demultiply_1x1W_srcbuf(src0mm, src0mm, src);
     pix_pack_1x1W(src0mm, src0mm);
     pix_store4(dst, src0mm);
 
@@ -37,7 +38,8 @@ static void FOG_FASTCALL convert_argb32_from_prgb32_sse2(
     __m128i src0mm, src1mm;
 
     pix_load16u(src0mm, src);
-    pix_unpack_and_demultiply_2x2W(src0mm, src1mm, src0mm);
+    pix_unpack_2x2W(src0mm, src1mm, src0mm);
+    pix_demultiply_2x2W_srcbuf(src0mm, src0mm, src1mm, src1mm, src);
     pix_pack_2x2W(src0mm, src0mm, src1mm);
     pix_store16a(dst, src0mm);
 
@@ -118,10 +120,9 @@ static void FOG_FASTCALL convert_argb32_from_rgb32_sse2(
 
 static void FOG_FASTCALL convert_prgb32_from_argb32_sse2(uint8_t* dst, const uint8_t* src, sysint_t w)
 {
-  sysint_t i = w;
+  BLIT_SSE2_INIT(dst, w);
 
-  while ((sysuint_t(dst) & 15))
-  {
+  BLIT_SSE2_SMALL_BEGIN(blt)
     __m128i src0mm;
 
     pix_load4(src0mm, src);
@@ -132,11 +133,9 @@ static void FOG_FASTCALL convert_prgb32_from_argb32_sse2(uint8_t* dst, const uin
 
     dst += 4;
     src += 4;
-    if (--i == 0) return;
-  }
+  BLIT_SSE2_SMALL_END(blt)
 
-  while (i >= 4)
-  {
+  BLIT_SSE2_LARGE_BEGIN(blt)
     __m128i src0mm;
     __m128i src1mm;
 
@@ -148,31 +147,14 @@ static void FOG_FASTCALL convert_prgb32_from_argb32_sse2(uint8_t* dst, const uin
 
     dst += 16;
     src += 16;
-    i -= 4;
-  }
-
-  while (i)
-  {
-    __m128i src0mm;
-
-    pix_load4(src0mm, src);
-    pix_unpack_1x1W(src0mm, src0mm);
-    pix_premultiply_1x1W(src0mm, src0mm);
-    pix_pack_1x1W(src0mm, src0mm);
-    pix_store4(dst, src0mm);
-
-    dst += 4;
-    src += 4;
-    i--;
-  }
+  BLIT_SSE2_LARGE_END(blt)
 }
 
 static void FOG_FASTCALL convert_prgb32_from_argb32_bs_sse2(uint8_t* dst, const uint8_t* src, sysint_t w)
 {
-  sysint_t i = w;
+  BLIT_SSE2_INIT(dst, w);
 
-  while ((sysuint_t(dst) & 15))
-  {
+  BLIT_SSE2_SMALL_BEGIN(blt)
     __m128i src0mm;
 
     pix_load4(src0mm, src);
@@ -184,11 +166,9 @@ static void FOG_FASTCALL convert_prgb32_from_argb32_bs_sse2(uint8_t* dst, const 
 
     dst += 4;
     src += 4;
-    if (--i == 0) return;
-  }
+  BLIT_SSE2_SMALL_END(blt)
 
-  while (i >= 4)
-  {
+  BLIT_SSE2_LARGE_BEGIN(blt)
     __m128i src0mm;
     __m128i src1mm;
 
@@ -201,32 +181,14 @@ static void FOG_FASTCALL convert_prgb32_from_argb32_bs_sse2(uint8_t* dst, const 
 
     dst += 16;
     src += 16;
-    i -= 4;
-  }
-
-  while (i)
-  {
-    __m128i src0mm;
-
-    pix_load4(src0mm, src);
-    pix_unpack_1x1W(src0mm, src0mm);
-    pix_swap_1x1W(src0mm, src0mm);
-    pix_premultiply_1x1W(src0mm, src0mm);
-    pix_pack_1x1W(src0mm, src0mm);
-    pix_store4(dst, src0mm);
-
-    dst += 4;
-    src += 4;
-    i--;
-  }
+  BLIT_SSE2_LARGE_END(blt)
 }
 
 static void FOG_FASTCALL convert_prgb32_bs_from_argb32_sse2(uint8_t* dst, const uint8_t* src, sysint_t w)
 {
-  sysint_t i = w;
+  BLIT_SSE2_INIT(dst, w);
 
-  while ((sysuint_t(dst) & 15))
-  {
+  BLIT_SSE2_SMALL_BEGIN(blt)
     __m128i src0mm;
 
     pix_load4(src0mm, src);
@@ -238,11 +200,9 @@ static void FOG_FASTCALL convert_prgb32_bs_from_argb32_sse2(uint8_t* dst, const 
 
     dst += 4;
     src += 4;
-    if (--i == 0) return;
-  }
+  BLIT_SSE2_SMALL_END(blt)
 
-  while (i >= 4)
-  {
+  BLIT_SSE2_LARGE_BEGIN(blt)
     __m128i src0mm;
     __m128i src1mm;
 
@@ -255,24 +215,7 @@ static void FOG_FASTCALL convert_prgb32_bs_from_argb32_sse2(uint8_t* dst, const 
 
     dst += 16;
     src += 16;
-    i -= 4;
-  }
-
-  while (i)
-  {
-    __m128i src0mm;
-
-    pix_load4(src0mm, src);
-    pix_unpack_1x1W(src0mm, src0mm);
-    pix_premultiply_1x1W(src0mm, src0mm);
-    pix_swap_1x1W(src0mm, src0mm);
-    pix_pack_1x1W(src0mm, src0mm);
-    pix_store4(dst, src0mm);
-
-    dst += 4;
-    src += 4;
-    i--;
-  }
+  BLIT_SSE2_LARGE_END(blt)
 }
 
 // ============================================================================

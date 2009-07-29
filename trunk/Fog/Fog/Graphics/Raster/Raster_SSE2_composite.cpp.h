@@ -249,8 +249,9 @@ static void FOG_FASTCALL raster_argb32_span_composite_prgb32_a8_src_sse2(
       if (msk0 != 0xFF)
       {
         pix_load4(dst0mm, dst);
-        pix_unpack_and_demultiply_1x1W(src0mm, src0mm);
+        pix_unpack_1x1W(src0mm, src0mm);
         pix_unpack_1x1W(dst0mm, dst0mm);
+        pix_demultiply_1x1W_srcbuf(src0mm, src0mm, src);
         pix_expand_mask_1x1W(a0mm, msk0);
         pix_lerp_1x1W(dst0mm, src0mm, a0mm);
         pix_pack_1x1W(dst0mm, dst0mm);
@@ -281,8 +282,9 @@ static void FOG_FASTCALL raster_argb32_span_composite_prgb32_a8_src_sse2(
       if (msk0 != 0xFFFFFFFF)
       {
         pix_load16a(dst0mm, dst);
-        pix_unpack_and_demultiply_2x2W(src0mm, src1mm, src0mm);
+        pix_unpack_2x2W(src0mm, src1mm, src0mm);
         pix_unpack_2x2W(dst0mm, dst1mm, dst0mm);
+        pix_demultiply_2x2W_srcbuf(src0mm, src0mm, src1mm, src1mm, src);
         pix_expand_mask_2x2W(a0mm, a1mm, msk0);
         pix_lerp_2x2W(dst0mm, src0mm, a0mm, dst1mm, src1mm, a1mm);
         pix_pack_2x2W(dst0mm, dst0mm, dst1mm);
@@ -513,8 +515,9 @@ static void FOG_FASTCALL raster_argb32_span_composite_prgb32_a8_const_src_sse2(
 
     pix_load4(src0mm, src);
     pix_load4(dst0mm, dst);
-    pix_unpack_and_demultiply_1x1W(src0mm, src0mm);
+    pix_unpack_1x1W(src0mm, src0mm);
     pix_unpack_1x1W(dst0mm, dst0mm);
+    pix_demultiply_1x1W_srcbuf(src0mm, src0mm, src);
     pix_lerp_ialpha_1x1W(dst0mm, src0mm, m0mm, im0mm);
     pix_pack_1x1W(dst0mm, dst0mm);
     pix_store4(dst, dst0mm);
@@ -529,8 +532,9 @@ static void FOG_FASTCALL raster_argb32_span_composite_prgb32_a8_const_src_sse2(
 
     pix_load16u(src0mm, src);
     pix_load16a(dst0mm, dst);
-    pix_unpack_and_demultiply_2x2W(src0mm, src1mm, src0mm);
+    pix_unpack_2x2W(src0mm, src1mm, src0mm);
     pix_unpack_2x2W(dst0mm, dst1mm, dst0mm);
+    pix_demultiply_2x2W_srcbuf(src0mm, src0mm, src1mm, src1mm, src);
     pix_lerp_ialpha_2x2W(dst0mm, src0mm, m0mm, im0mm, dst1mm, src1mm, m0mm, im0mm);
     pix_pack_2x2W(dst0mm, dst0mm, dst1mm);
     pix_store16a(dst, dst0mm);
