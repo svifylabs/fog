@@ -600,68 +600,48 @@ static FOG_INLINE void pix_demultiply_2x2W(__m128i& dst0, const __m128i& src0, _
   dst1 = _mm_mulhi_epu16(dst1, recip0);
 }
 
-static FOG_INLINE void pix_unpack_and_demultiply_1x1W(__m128i& dst0, const __m128i& src0)
+static FOG_INLINE void pix_demultiply_1x1W_srcbuf(__m128i& dst0, const __m128i& src0, const uint8_t* srcBuf)
 {
-  uint32_t index = _mm_cvtsi128_si32(src0) >> 24;
+  __m128i recip;
+  uint32_t index;
 
-  __m128i xmmz = _mm_setzero_si128();
-  __m128i recip = _mm_cvtsi32_si128((int)demultiply_reciprocal_table_d[index]);
+  index = srcBuf[RGB32_AByte];
 
-  recip = _mm_or_si128(recip, Mask00010000000000000000000000000000);
-  recip = _mm_shuffle_epi32(recip, _MM_SHUFFLE(3, 0, 0, 0));
-  dst0 = _mm_unpacklo_epi8(src0, xmmz);
-  dst0 = _mm_unpacklo_epi16(dst0, xmmz);
-  sse2_mul_const_4D(dst0, dst0, recip);
-  dst0 = _mm_packs_epi32(dst0, dst0);
+  pix_load8(recip, (int8_t*)demultiply_reciprocal_table_w + index * 8);
+  dst0 = _mm_slli_epi16(dst0, 8);
+  dst0 = _mm_mulhi_epu16(dst0, recip);
 }
 
-static FOG_INLINE void pix_unpack_and_demultiply_2x2W(__m128i& dst0, __m128i& dst1, const __m128i& src0)
+static FOG_INLINE void pix_demultiply_2x2W_srcbuf(__m128i& dst0, const __m128i& src0, __m128i& dst1, const __m128i& src1, const uint8_t* srcBuf)
 {
-  uint32_t index = pix_pack_alpha_to_uint32(src0);
+  __m128i recip0, recip1;
+  uint32_t index0;
+  uint32_t index1;
 
-  __m128i xmmz = _mm_setzero_si128();
-  __m128i recip;
+  index0 = srcBuf[RGB32_AByte];
+  index1 = srcBuf[RGB32_AByte+4];
 
-  __m128i tmp0;
-  __m128i tmp1;
+  pix_load8(recip0, (int8_t*)demultiply_reciprocal_table_w + index0 * 8);
+  pix_load8(recip1, (int8_t*)demultiply_reciprocal_table_w + index1 * 8);
 
-  pix_unpack_2x2W(dst0, dst1, src0);
+  dst0 = _mm_slli_epi16(src0, 8);
+  dst1 = _mm_slli_epi16(src1, 8);
 
-  recip = _mm_cvtsi32_si128((int)demultiply_reciprocal_table_d[index & 0xFF]);
-  recip = _mm_or_si128(recip, Mask00010000000000000000000000000000);
-  recip = _mm_shuffle_epi32(recip, _MM_SHUFFLE(3, 0, 0, 0));
+  recip1 = _mm_shuffle_epi32(recip1, _MM_SHUFFLE(1, 0, 3, 2));
+  recip0 = _mm_or_si128(recip0, recip1);
 
-  tmp0 = _mm_unpacklo_epi16(dst0, xmmz);
-  sse2_mul_const_4D(tmp0, tmp0, recip);
+  dst0 = _mm_mulhi_epu16(dst0, recip0);
 
-  index >>= 8;
-  recip = _mm_cvtsi32_si128((int)demultiply_reciprocal_table_d[index & 0xFF]);
-  recip = _mm_or_si128(recip, Mask00010000000000000000000000000000);
-  recip = _mm_shuffle_epi32(recip, _MM_SHUFFLE(3, 0, 0, 0));
+  index0 = srcBuf[RGB32_AByte+8];
+  index1 = srcBuf[RGB32_AByte+12];
 
-  dst0 = _mm_shuffle_epi32(dst0, _MM_SHUFFLE(1, 0, 3, 2));
-  tmp1 = _mm_unpacklo_epi16(dst0, xmmz);
-  sse2_mul_const_4D(tmp1, tmp1, recip);
+  pix_load8(recip0, (int8_t*)demultiply_reciprocal_table_w + index0 * 8);
+  pix_load8(recip1, (int8_t*)demultiply_reciprocal_table_w + index1 * 8);
 
-  dst0 = _mm_packs_epi32(tmp0, tmp1);
-  index >>= 8;
-  recip = _mm_cvtsi32_si128((int)demultiply_reciprocal_table_d[index & 0xFF]);
-  recip = _mm_or_si128(recip, Mask00010000000000000000000000000000);
-  recip = _mm_shuffle_epi32(recip, _MM_SHUFFLE(3, 0, 0, 0));
+  recip1 = _mm_shuffle_epi32(recip1, _MM_SHUFFLE(1, 0, 3, 2));
+  recip0 = _mm_or_si128(recip0, recip1);
 
-  tmp0 = _mm_unpacklo_epi16(dst1, xmmz);
-  sse2_mul_const_4D(tmp0, tmp0, recip);
-  dst1 = _mm_shuffle_epi32(dst1, _MM_SHUFFLE(1, 0, 3, 2));
-
-  index >>= 8;
-  recip = _mm_cvtsi32_si128((int)demultiply_reciprocal_table_d[index]);
-  recip = _mm_or_si128(recip, Mask00010000000000000000000000000000);
-  recip = _mm_shuffle_epi32(recip, _MM_SHUFFLE(3, 0, 0, 0));
-
-  tmp1 = _mm_unpacklo_epi16(dst1, xmmz);
-  sse2_mul_const_4D(tmp1, tmp1, recip);
-
-  dst1 = _mm_packs_epi32(tmp0, tmp1);
+  dst1 = _mm_mulhi_epu16(dst1, recip0);
 }
 
 // Lerp (Interpolation).

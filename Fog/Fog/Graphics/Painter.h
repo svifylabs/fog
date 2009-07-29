@@ -199,6 +199,8 @@ private:
 // ============================================================================
 
 //! @brief Painter.
+//!
+//! Painter is high level class that can be used to draw into the images.
 struct FOG_API Painter 
 {
   // [Hints]
