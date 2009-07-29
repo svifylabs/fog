@@ -833,6 +833,13 @@ static FOG_INLINE void byte2x2_neg(
 // [Fog::Raster - Pixel Operations]
 // ============================================================================
 
+static FOG_INLINE uint32_t singlemul(uint32_t x, uint32_t y)
+{
+  x *= y;
+  x = ((x + (x >> 8) + 0x80) >> 8);
+  return x;
+}
+
 static FOG_INLINE uint32_t alphamul(uint32_t x, uint32_t a)
 {
   a *= x >> 24;
