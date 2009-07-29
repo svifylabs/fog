@@ -54,12 +54,12 @@ FOG_INIT_DECLARE void fog_raster_init_sse2(void)
   // Float / Double masks
   sse2_t t;
 
-  t.uq[0] = FOG_UINT64_C(~0x8000000080000000);
-  t.uq[1] = FOG_UINT64_C(~0x8000000080000000);
+  t.uq[0] = ~(FOG_UINT64_C(0x8000000080000000));
+  t.uq[1] = ~(FOG_UINT64_C(0x8000000080000000));
   Mask7FFFFFFF7FFFFFFF = _mm_loadu_ps((float*)&t);
 
-  t.uq[0] = FOG_UINT64_C(~0x8000000000000000);
-  t.uq[1] = FOG_UINT64_C(~0x8000000000000000);
+  t.uq[0] = ~(FOG_UINT64_C(0x8000000000000000));
+  t.uq[1] = ~(FOG_UINT64_C(0x8000000000000000));
   Mask7FFFFFFFFFFFFFFF = _mm_loadu_pd((double*)&t);
 
   FunctionMap* m = functionMap;
@@ -95,6 +95,7 @@ FOG_INIT_DECLARE void fog_raster_init_sse2(void)
   m->raster[Image::FormatARGB32][CompositeSrc].pixel_a8 = raster_argb32_pixel_a8_src_sse2;
   m->raster[Image::FormatARGB32][CompositeSrc].span_solid = raster_argb32_span_solid_src_sse2;
   m->raster[Image::FormatARGB32][CompositeSrc].span_solid_a8 = raster_argb32_span_solid_a8_src_sse2;
+  m->raster[Image::FormatARGB32][CompositeSrc].span_solid_a8_const = raster_argb32_span_solid_a8_const_src_sse2;
 
   m->raster[Image::FormatARGB32][CompositeSrc].span_composite[Image::FormatPRGB32] = raster_argb32_span_composite_prgb32_src_sse2;
   m->raster[Image::FormatARGB32][CompositeSrc].span_composite[Image::FormatARGB32] = raster_argb32_span_composite_argb32_src_sse2;
@@ -115,6 +116,7 @@ FOG_INIT_DECLARE void fog_raster_init_sse2(void)
   m->raster[Image::FormatPRGB32][CompositeSrc].pixel_a8 = raster_prgb32_pixel_a8_src_sse2;
   m->raster[Image::FormatPRGB32][CompositeSrc].span_solid = raster_prgb32_span_solid_src_sse2;
   m->raster[Image::FormatPRGB32][CompositeSrc].span_solid_a8 = raster_prgb32_span_solid_a8_src_sse2;
+  m->raster[Image::FormatPRGB32][CompositeSrc].span_solid_a8_const = raster_prgb32_span_solid_a8_const_src_sse2;
 
   m->raster[Image::FormatPRGB32][CompositeSrc].span_composite[Image::FormatARGB32] = raster_prgb32_span_composite_argb32_src_sse2;
   m->raster[Image::FormatPRGB32][CompositeSrc].span_composite[Image::FormatPRGB32] = raster_prgb32_span_composite_prgb32_src_sse2;
@@ -135,6 +137,7 @@ FOG_INIT_DECLARE void fog_raster_init_sse2(void)
   m->raster[Image::FormatRGB32][CompositeSrc].pixel_a8 = raster_rgb32_pixel_a8_src_sse2;
   m->raster[Image::FormatRGB32][CompositeSrc].span_solid = raster_rgb32_span_solid_src_sse2;
   m->raster[Image::FormatRGB32][CompositeSrc].span_solid_a8 = raster_rgb32_span_solid_a8_src_sse2;
+  m->raster[Image::FormatRGB32][CompositeSrc].span_solid_a8_const = raster_rgb32_span_solid_a8_const_src_sse2;
 
   m->raster[Image::FormatRGB32][CompositeSrc].span_composite[Image::FormatARGB32] = raster_rgb32_span_composite_argb32_src_sse2;
   //m->raster[Image::FormatRGB32][CompositeSrc].span_composite[Image::FormatPRGB32] = raster_rgb32_span_composite_prgb32_src_sse2;
@@ -168,6 +171,7 @@ FOG_INIT_DECLARE void fog_raster_init_sse2(void)
   m->raster[Image::FormatARGB32][CompositeSrcOver].pixel_a8 = raster_argb32_pixel_a8_srcover_sse2;
   m->raster[Image::FormatARGB32][CompositeSrcOver].span_solid = raster_argb32_span_solid_srcover_sse2;
   m->raster[Image::FormatARGB32][CompositeSrcOver].span_solid_a8 = raster_argb32_span_solid_a8_srcover_sse2;
+  m->raster[Image::FormatARGB32][CompositeSrcOver].span_solid_a8_const = raster_argb32_span_solid_a8_const_srcover_sse2;
 
   // TODO
   m->raster[Image::FormatARGB32][CompositeSrcOver].span_composite[Image::FormatRGB24] = convert_rgb32_from_rgb24_sse2;
@@ -176,6 +180,7 @@ FOG_INIT_DECLARE void fog_raster_init_sse2(void)
   m->raster[Image::FormatPRGB32][CompositeSrcOver].pixel_a8 = raster_prgb32_pixel_a8_srcover_sse2;
   m->raster[Image::FormatPRGB32][CompositeSrcOver].span_solid = raster_prgb32_span_solid_srcover_sse2;
   m->raster[Image::FormatPRGB32][CompositeSrcOver].span_solid_a8 = raster_prgb32_span_solid_a8_srcover_sse2;
+  m->raster[Image::FormatPRGB32][CompositeSrcOver].span_solid_a8_const = raster_prgb32_span_solid_a8_const_srcover_sse2;
 
   m->raster[Image::FormatPRGB32][CompositeSrcOver].span_composite[Image::FormatARGB32] = raster_prgb32_span_composite_argb32_srcover_sse2;
   m->raster[Image::FormatPRGB32][CompositeSrcOver].span_composite[Image::FormatPRGB32] = raster_prgb32_span_composite_prgb32_srcover_sse2;
@@ -196,6 +201,7 @@ FOG_INIT_DECLARE void fog_raster_init_sse2(void)
   m->raster[Image::FormatRGB32][CompositeSrcOver].pixel_a8 = raster_rgb32_pixel_a8_srcover_sse2;
   m->raster[Image::FormatRGB32][CompositeSrcOver].span_solid = raster_rgb32_span_solid_srcover_sse2;
   m->raster[Image::FormatRGB32][CompositeSrcOver].span_solid_a8 = raster_rgb32_span_solid_a8_srcover_sse2;
+  m->raster[Image::FormatRGB32][CompositeSrcOver].span_solid_a8_const = raster_rgb32_span_solid_a8_const_srcover_sse2;
 
   m->raster[Image::FormatRGB32][CompositeSrcOver].span_composite[Image::FormatARGB32] = raster_rgb32_span_composite_argb32_srcover_sse2;
   m->raster[Image::FormatRGB32][CompositeSrcOver].span_composite[Image::FormatPRGB32] = raster_rgb32_span_composite_prgb32_srcover_sse2;
