@@ -45,6 +45,8 @@ FOG_INIT_DECLARE void fog_raster_init_sse2(void)
   MaskFFFFFFFFFFFFFFFF = pix_create_mask_8x2W(0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF);
   Mask00FF000000000000 = pix_create_mask_8x2W(0x00FF, 0x0000, 0x0000, 0x0000);
   MaskFF000000FF000000 = pix_create_mask_8x2W(0xFF00, 0x0000, 0xFF00, 0x0000);
+  Mask00FFFFFF00FFFFFF = pix_create_mask_8x2W(0x00FF, 0xFFFF, 0x00FF, 0xFFFF);
+  Mask0000000100000001 = pix_create_mask_8x2W(0x0000, 0x0001, 0x0000, 0x0001);
 
   // D masks
   Mask00010000000000000000000000000000 = pix_create_mask_4x1D(0x00010000, 0x00000000, 0x00000000, 0x00000000);
@@ -365,6 +367,69 @@ FOG_INIT_DECLARE void fog_raster_init_sse2(void)
 
   // [Raster - CompositeClear]
 
+  m->raster[Image::FormatARGB32][CompositeClear].pixel = raster_argb32_pixel_clear_sse2;
+  m->raster[Image::FormatARGB32][CompositeClear].pixel_a8 = raster_argb32_pixel_a8_clear_sse2;
+  m->raster[Image::FormatARGB32][CompositeClear].span_solid = raster_argb32_span_solid_clear_sse2;
+  m->raster[Image::FormatARGB32][CompositeClear].span_solid_a8 = raster_argb32_span_solid_a8_clear_sse2;
+  m->raster[Image::FormatARGB32][CompositeClear].span_solid_a8_const = raster_argb32_span_solid_a8_const_clear_sse2;
+
+  m->raster[Image::FormatARGB32][CompositeClear].span_composite[Image::FormatARGB32] = (SpanCompositeFn)raster_argb32_span_solid_clear_sse2;
+  m->raster[Image::FormatARGB32][CompositeClear].span_composite[Image::FormatPRGB32] = (SpanCompositeFn)raster_argb32_span_solid_clear_sse2;
+  m->raster[Image::FormatARGB32][CompositeClear].span_composite[Image::FormatRGB32] = (SpanCompositeFn)raster_argb32_span_solid_clear_sse2;
+  m->raster[Image::FormatARGB32][CompositeClear].span_composite[Image::FormatRGB24] = (SpanCompositeFn)raster_argb32_span_solid_clear_sse2;
+
+  m->raster[Image::FormatARGB32][CompositeClear].span_composite_a8[Image::FormatARGB32] = (SpanCompositeMskFn)raster_argb32_span_solid_a8_clear_sse2;
+  m->raster[Image::FormatARGB32][CompositeClear].span_composite_a8[Image::FormatPRGB32] = (SpanCompositeMskFn)raster_argb32_span_solid_a8_clear_sse2;
+  m->raster[Image::FormatARGB32][CompositeClear].span_composite_a8[Image::FormatRGB32] = (SpanCompositeMskFn)raster_argb32_span_solid_a8_clear_sse2;
+  m->raster[Image::FormatARGB32][CompositeClear].span_composite_a8[Image::FormatRGB24] = (SpanCompositeMskFn)raster_argb32_span_solid_a8_clear_sse2;
+
+  m->raster[Image::FormatARGB32][CompositeClear].span_composite_a8_const[Image::FormatARGB32] = (SpanCompositeMskConstFn)raster_argb32_span_solid_a8_const_clear_sse2;
+  m->raster[Image::FormatARGB32][CompositeClear].span_composite_a8_const[Image::FormatPRGB32] = (SpanCompositeMskConstFn)raster_argb32_span_solid_a8_const_clear_sse2;
+  m->raster[Image::FormatARGB32][CompositeClear].span_composite_a8_const[Image::FormatRGB32] = (SpanCompositeMskConstFn)raster_argb32_span_solid_a8_const_clear_sse2;
+  m->raster[Image::FormatARGB32][CompositeClear].span_composite_a8_const[Image::FormatRGB24] = (SpanCompositeMskConstFn)raster_argb32_span_solid_a8_const_clear_sse2;
+
+  m->raster[Image::FormatPRGB32][CompositeClear].pixel = raster_prgb32_pixel_clear_sse2;
+  m->raster[Image::FormatPRGB32][CompositeClear].pixel_a8 = raster_prgb32_pixel_a8_clear_sse2;
+  m->raster[Image::FormatPRGB32][CompositeClear].span_solid = raster_prgb32_span_solid_clear_sse2;
+  m->raster[Image::FormatPRGB32][CompositeClear].span_solid_a8 = raster_prgb32_span_solid_a8_clear_sse2;
+  m->raster[Image::FormatPRGB32][CompositeClear].span_solid_a8_const = raster_prgb32_span_solid_a8_const_clear_sse2;
+
+  m->raster[Image::FormatPRGB32][CompositeClear].span_composite[Image::FormatARGB32] = (SpanCompositeFn)raster_prgb32_span_solid_clear_sse2;
+  m->raster[Image::FormatPRGB32][CompositeClear].span_composite[Image::FormatPRGB32] = (SpanCompositeFn)raster_prgb32_span_solid_clear_sse2;
+  m->raster[Image::FormatPRGB32][CompositeClear].span_composite[Image::FormatRGB32] = (SpanCompositeFn)raster_prgb32_span_solid_clear_sse2;
+  m->raster[Image::FormatPRGB32][CompositeClear].span_composite[Image::FormatRGB24] = (SpanCompositeFn)raster_prgb32_span_solid_clear_sse2;
+
+  m->raster[Image::FormatPRGB32][CompositeClear].span_composite_a8[Image::FormatARGB32] = (SpanCompositeMskFn)raster_prgb32_span_solid_a8_clear_sse2;
+  m->raster[Image::FormatPRGB32][CompositeClear].span_composite_a8[Image::FormatPRGB32] = (SpanCompositeMskFn)raster_prgb32_span_solid_a8_clear_sse2;
+  m->raster[Image::FormatPRGB32][CompositeClear].span_composite_a8[Image::FormatRGB32] = (SpanCompositeMskFn)raster_prgb32_span_solid_a8_clear_sse2;
+  m->raster[Image::FormatPRGB32][CompositeClear].span_composite_a8[Image::FormatRGB24] = (SpanCompositeMskFn)raster_prgb32_span_solid_a8_clear_sse2;
+
+  m->raster[Image::FormatPRGB32][CompositeClear].span_composite_a8_const[Image::FormatARGB32] = (SpanCompositeMskConstFn)raster_prgb32_span_solid_a8_const_clear_sse2;
+  m->raster[Image::FormatPRGB32][CompositeClear].span_composite_a8_const[Image::FormatPRGB32] = (SpanCompositeMskConstFn)raster_prgb32_span_solid_a8_const_clear_sse2;
+  m->raster[Image::FormatPRGB32][CompositeClear].span_composite_a8_const[Image::FormatRGB32] = (SpanCompositeMskConstFn)raster_prgb32_span_solid_a8_const_clear_sse2;
+  m->raster[Image::FormatPRGB32][CompositeClear].span_composite_a8_const[Image::FormatRGB24] = (SpanCompositeMskConstFn)raster_prgb32_span_solid_a8_const_clear_sse2;
+
+  m->raster[Image::FormatRGB32][CompositeClear].pixel = raster_rgb32_pixel_clear_sse2;
+  m->raster[Image::FormatRGB32][CompositeClear].pixel_a8 = raster_rgb32_pixel_a8_clear_sse2;
+  m->raster[Image::FormatRGB32][CompositeClear].span_solid = raster_rgb32_span_solid_clear_sse2;
+  m->raster[Image::FormatRGB32][CompositeClear].span_solid_a8 = raster_rgb32_span_solid_a8_clear_sse2;
+  m->raster[Image::FormatRGB32][CompositeClear].span_solid_a8_const = raster_rgb32_span_solid_a8_const_clear_sse2;
+
+  m->raster[Image::FormatRGB32][CompositeClear].span_composite[Image::FormatARGB32] = (SpanCompositeFn)raster_rgb32_span_solid_clear_sse2;
+  m->raster[Image::FormatRGB32][CompositeClear].span_composite[Image::FormatPRGB32] = (SpanCompositeFn)raster_rgb32_span_solid_clear_sse2;
+  m->raster[Image::FormatRGB32][CompositeClear].span_composite[Image::FormatRGB32] = (SpanCompositeFn)raster_rgb32_span_solid_clear_sse2;
+  m->raster[Image::FormatRGB32][CompositeClear].span_composite[Image::FormatRGB24] = (SpanCompositeFn)raster_rgb32_span_solid_clear_sse2;
+
+  m->raster[Image::FormatRGB32][CompositeClear].span_composite_a8[Image::FormatARGB32] = (SpanCompositeMskFn)raster_rgb32_span_solid_a8_clear_sse2;
+  m->raster[Image::FormatRGB32][CompositeClear].span_composite_a8[Image::FormatPRGB32] = (SpanCompositeMskFn)raster_rgb32_span_solid_a8_clear_sse2;
+  m->raster[Image::FormatRGB32][CompositeClear].span_composite_a8[Image::FormatRGB32] = (SpanCompositeMskFn)raster_rgb32_span_solid_a8_clear_sse2;
+  m->raster[Image::FormatRGB32][CompositeClear].span_composite_a8[Image::FormatRGB24] = (SpanCompositeMskFn)raster_rgb32_span_solid_a8_clear_sse2;
+
+  m->raster[Image::FormatRGB32][CompositeClear].span_composite_a8_const[Image::FormatARGB32] = (SpanCompositeMskConstFn)raster_rgb32_span_solid_a8_const_clear_sse2;
+  m->raster[Image::FormatRGB32][CompositeClear].span_composite_a8_const[Image::FormatPRGB32] = (SpanCompositeMskConstFn)raster_rgb32_span_solid_a8_const_clear_sse2;
+  m->raster[Image::FormatRGB32][CompositeClear].span_composite_a8_const[Image::FormatRGB32] = (SpanCompositeMskConstFn)raster_rgb32_span_solid_a8_const_clear_sse2;
+  m->raster[Image::FormatRGB32][CompositeClear].span_composite_a8_const[Image::FormatRGB24] = (SpanCompositeMskConstFn)raster_rgb32_span_solid_a8_const_clear_sse2;
+
   // TODO
 
   // [Raster - CompositeAdd]
@@ -373,6 +438,7 @@ FOG_INIT_DECLARE void fog_raster_init_sse2(void)
   m->raster[Image::FormatPRGB32][CompositeAdd].pixel_a8 = raster_prgb32_pixel_a8_add_sse2;
   m->raster[Image::FormatPRGB32][CompositeAdd].span_solid = raster_prgb32_span_solid_add_sse2;
   m->raster[Image::FormatPRGB32][CompositeAdd].span_solid_a8 = raster_prgb32_span_solid_a8_add_sse2;
+  m->raster[Image::FormatPRGB32][CompositeAdd].span_solid_a8_const = raster_prgb32_span_solid_a8_const_add_sse2;
 
   m->raster[Image::FormatPRGB32][CompositeAdd].span_composite[Image::FormatARGB32] = raster_prgb32_span_composite_argb32_add_sse2;
   m->raster[Image::FormatPRGB32][CompositeAdd].span_composite[Image::FormatPRGB32] = raster_prgb32_span_composite_prgb32_add_sse2;
@@ -383,6 +449,32 @@ FOG_INIT_DECLARE void fog_raster_init_sse2(void)
   m->raster[Image::FormatPRGB32][CompositeAdd].span_composite_a8[Image::FormatPRGB32] = raster_prgb32_span_composite_prgb32_a8_add_sse2;
   m->raster[Image::FormatPRGB32][CompositeAdd].span_composite_a8[Image::FormatRGB32] = raster_prgb32_span_composite_rgb32_a8_add_sse2;
   m->raster[Image::FormatPRGB32][CompositeAdd].span_composite_a8[Image::FormatRGB24] = raster_prgb32_span_composite_rgb24_a8_add_sse2;
+
+  m->raster[Image::FormatPRGB32][CompositeAdd].span_composite_a8_const[Image::FormatARGB32] = raster_prgb32_span_composite_argb32_a8_const_add_sse2;
+  m->raster[Image::FormatPRGB32][CompositeAdd].span_composite_a8_const[Image::FormatPRGB32] = raster_prgb32_span_composite_prgb32_a8_const_add_sse2;
+  m->raster[Image::FormatPRGB32][CompositeAdd].span_composite_a8_const[Image::FormatRGB32] = raster_prgb32_span_composite_rgb32_a8_const_add_sse2;
+  m->raster[Image::FormatPRGB32][CompositeAdd].span_composite_a8_const[Image::FormatRGB24] = raster_prgb32_span_composite_rgb24_a8_const_add_sse2;
+
+  m->raster[Image::FormatRGB32][CompositeAdd].pixel = raster_rgb32_pixel_add_sse2;
+  m->raster[Image::FormatRGB32][CompositeAdd].pixel_a8 = raster_rgb32_pixel_a8_add_sse2;
+  m->raster[Image::FormatRGB32][CompositeAdd].span_solid = raster_rgb32_span_solid_add_sse2;
+  m->raster[Image::FormatRGB32][CompositeAdd].span_solid_a8 = raster_rgb32_span_solid_a8_add_sse2;
+  m->raster[Image::FormatRGB32][CompositeAdd].span_solid_a8_const = raster_rgb32_span_solid_a8_const_add_sse2;
+
+  m->raster[Image::FormatRGB32][CompositeAdd].span_composite[Image::FormatARGB32] = raster_rgb32_span_composite_argb32_add_sse2;
+  m->raster[Image::FormatRGB32][CompositeAdd].span_composite[Image::FormatPRGB32] = raster_rgb32_span_composite_prgb32_add_sse2;
+  m->raster[Image::FormatRGB32][CompositeAdd].span_composite[Image::FormatRGB32] = raster_rgb32_span_composite_rgb32_add_sse2;
+  m->raster[Image::FormatRGB32][CompositeAdd].span_composite[Image::FormatRGB24] = raster_rgb32_span_composite_rgb24_add_sse2;
+
+  m->raster[Image::FormatRGB32][CompositeAdd].span_composite_a8[Image::FormatARGB32] = raster_rgb32_span_composite_argb32_a8_add_sse2;
+  m->raster[Image::FormatRGB32][CompositeAdd].span_composite_a8[Image::FormatPRGB32] = raster_rgb32_span_composite_prgb32_a8_add_sse2;
+  m->raster[Image::FormatRGB32][CompositeAdd].span_composite_a8[Image::FormatRGB32] = raster_rgb32_span_composite_rgb32_a8_add_sse2;
+  m->raster[Image::FormatRGB32][CompositeAdd].span_composite_a8[Image::FormatRGB24] = raster_rgb32_span_composite_rgb24_a8_add_sse2;
+
+  m->raster[Image::FormatRGB32][CompositeAdd].span_composite_a8_const[Image::FormatARGB32] = raster_rgb32_span_composite_argb32_a8_const_add_sse2;
+  m->raster[Image::FormatRGB32][CompositeAdd].span_composite_a8_const[Image::FormatPRGB32] = raster_rgb32_span_composite_prgb32_a8_const_add_sse2;
+  m->raster[Image::FormatRGB32][CompositeAdd].span_composite_a8_const[Image::FormatRGB32] = raster_rgb32_span_composite_rgb32_a8_const_add_sse2;
+  m->raster[Image::FormatRGB32][CompositeAdd].span_composite_a8_const[Image::FormatRGB24] = raster_rgb32_span_composite_rgb24_a8_const_add_sse2;
 
   // TODO
 
