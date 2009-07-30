@@ -12,9 +12,6 @@
 
 namespace Fog {
 
-// TODO: Move to Fog::Math.
-static const double defaultEpsilon = 1e-14; 
-
 //! @brief Image compositing operators.
 //!
 //! @note Many values and formulas are from antigrain and from SVG specification

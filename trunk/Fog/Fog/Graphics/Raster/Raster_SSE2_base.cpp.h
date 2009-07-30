@@ -465,6 +465,22 @@ static FOG_INLINE void pix_expand_alpha_2x2W(
   dst1 = _mm_shufflehi_epi16(dst1, _MM_SHUFFLE(3, 3, 3, 3));
 }
 
+// Expand one alpha value and unpack in to 1x4D format.
+static FOG_INLINE void pix_expand_a8_1x4D(__m128i& dst0, uint32_t src0)
+{
+  dst0 = _mm_cvtsi32_si128(src0);
+  dst0 = _mm_shuffle_epi32(dst0, _MM_SHUFFLE(0, 0, 0, 0));
+  dst0 = _mm_packs_epi32(dst0, dst0);
+  dst0 = _mm_packus_epi16(dst0, dst0);
+}
+
+static FOG_INLINE void pix_expand_a8_1x2W(__m128i& dst0, uint32_t src0)
+{
+  dst0 = _mm_cvtsi32_si128(src0);
+  dst0 = _mm_shuffle_epi32(dst0, _MM_SHUFFLE(0, 0, 0, 0));
+  dst0 = _mm_packs_epi32(dst0, dst0);
+}
+
 // Expand Alpha Reversed.
 
 static FOG_INLINE void pix_expand_alpha_rev_1x1W(
@@ -1114,6 +1130,25 @@ static FOG_INLINE void pix_fetch_bgr24_2x2W(__m128i& dst0, __m128i& dst1, const 
 }
 
 // Mask analyzer.
+
+static FOG_INLINE void pix_analyze_mask_16B_zero(uint32_t& msk0isZero, const __m128i& msk0)
+{
+  __m128i t0;
+
+  t0 = _mm_setzero_si128();
+  t0 = _mm_cmpeq_epi8(t0, msk0);
+  msk0isZero = _mm_movemask_epi8(t0);
+}
+
+static FOG_INLINE void pix_analyze_mask_16B_full(uint32_t& msk0isFull, const __m128i& msk0)
+{
+  __m128i t0;
+
+  t0 = _mm_setzero_si128();
+  t0 = _mm_cmpeq_epi8(t0, t0);
+  t0 = _mm_cmpeq_epi8(t0, msk0);
+  msk0isFull = _mm_movemask_epi8(t0);
+}
 
 static FOG_INLINE void pix_analyze_mask_16B(uint32_t& msk0IsZero, uint32_t& msk0IsFull, const __m128i& msk0)
 {

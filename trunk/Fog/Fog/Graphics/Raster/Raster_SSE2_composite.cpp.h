@@ -1601,9 +1601,9 @@ static void FOG_FASTCALL raster_a8_pixel_a8_src_sse2(
 static void FOG_FASTCALL raster_a8_span_solid_src_sse2(
   uint8_t* dst, const Solid* src, sysint_t w)
 {
-  uint32_t src0 = alphaexpand(src->rgba);
-  __m128i src0mm = _mm_cvtsi32_si128(src0);
-  pix_expand_pixel_1x4B(src0mm, src0mm);
+  uint32_t src0 = src->rgba;
+  __m128i src0mm;
+  pix_expand_a8_1x4D(src0mm, src0 >> 24);
 
   BLIT_8_SSE2_INIT(dst, w)
 
@@ -2409,7 +2409,7 @@ static void FOG_FASTCALL raster_prgb32_span_solid_a8_const_srcover_sse2(
 
   BLIT_32_SSE2_INIT(dst, w);
 
-  BLIT_32_SSE2_SMALL_BEGIN(blt_opaque)
+  BLIT_32_SSE2_SMALL_BEGIN(blt)
     __m128i dst0mm;
 
     pix_load4(dst0mm, dst);
@@ -2420,9 +2420,9 @@ static void FOG_FASTCALL raster_prgb32_span_solid_a8_const_srcover_sse2(
     pix_store4(dst, dst0mm);
 
     dst += 4;
-  BLIT_32_SSE2_SMALL_END(blt_opaque)
+  BLIT_32_SSE2_SMALL_END(blt)
 
-  BLIT_32_SSE2_LARGE_BEGIN(blt_opaque)
+  BLIT_32_SSE2_LARGE_BEGIN(blt)
     __m128i dst0mm, dst1mm;
 
     pix_load16a(dst0mm, dst);
@@ -2433,7 +2433,7 @@ static void FOG_FASTCALL raster_prgb32_span_solid_a8_const_srcover_sse2(
     pix_store16a(dst, dst0mm);
 
     dst += 16;
-  BLIT_32_SSE2_LARGE_END(blt_opaque)
+  BLIT_32_SSE2_LARGE_END(blt)
 }
 
 static void FOG_FASTCALL raster_prgb32_span_composite_argb32_srcover_sse2(
@@ -4608,8 +4608,8 @@ static void FOG_FASTCALL raster_a8_span_solid_srcover_sse2(
 
   if (src0 == 0xFF)
   {
-    __m128i src0mm = _mm_cvtsi32_si128(singleexpand(src0));
-    pix_expand_pixel_1x4B(src0mm, src0mm);
+    __m128i src0mm;
+    pix_expand_a8_1x4D(src0mm, src0);
 
     BLIT_8_SSE2_INIT(dst, w)
 
@@ -4641,11 +4641,10 @@ static void FOG_FASTCALL raster_a8_span_solid_srcover_sse2(
   else
   {
     uint32_t src0neg = singleneg(src0);
-    __m128i src0mm = _mm_cvtsi32_si128(singleexpand(src0));
+    __m128i src0mm;
     __m128i isrc0mm;
 
-    pix_unpack_1x1W(src0mm, src0mm);
-    pix_expand_pixel_1x2W(src0mm, src0mm);
+    pix_expand_a8_1x2W(src0mm, src0);
     pix_negate_1x1W(isrc0mm, src0mm);
     pix_pack_1x1W(src0mm, src0mm);
 
@@ -4677,17 +4676,16 @@ static void FOG_FASTCALL raster_a8_span_solid_a8_srcover_sse2(
   uint32_t src0neg = singleneg(src0);
 
   __m128i src0orig;
-  __m128i src0mm = _mm_cvtsi32_si128(singleexpand(src0));
+  __m128i src0mm;
   __m128i isrc0mm;
 
-  pix_unpack_1x1W(src0mm, src0mm);
-  pix_expand_pixel_1x2W(src0mm, src0mm);
+  pix_expand_a8_1x2W(src0mm, src0);
   pix_negate_1x1W(isrc0mm, src0mm);
   pix_pack_1x1W(src0orig, src0mm);
 
   BLIT_8_SSE2_INIT(dst, w)
 
-  BLIT_8_SSE2_SMALL_BEGIN(blt_trans)
+  BLIT_8_SSE2_SMALL_BEGIN(blt)
     uint32_t msk0 = READ_8(msk);
     if (msk0 != 0x00)
     {
@@ -4704,9 +4702,9 @@ static void FOG_FASTCALL raster_a8_span_solid_a8_srcover_sse2(
 
     dst += 1;
     msk += 1;
-  BLIT_8_SSE2_SMALL_END(blt_trans)
+  BLIT_8_SSE2_SMALL_END(blt)
 
-  BLIT_8_SSE2_LARGE_BEGIN(blt_trans)
+  BLIT_8_SSE2_LARGE_BEGIN(blt)
     uint32_t msk0IsZero;
     uint32_t msk0IsFull;
 
@@ -4741,7 +4739,7 @@ static void FOG_FASTCALL raster_a8_span_solid_a8_srcover_sse2(
 
     dst += 16;
     msk += 16;
-  BLIT_8_SSE2_LARGE_END(blt_trans)
+  BLIT_8_SSE2_LARGE_END(blt)
 }
 
 static void FOG_FASTCALL raster_a8_span_solid_a8_const_srcover_sse2(
@@ -4756,22 +4754,21 @@ static void FOG_FASTCALL raster_a8_span_solid_a8_const_srcover_sse2(
   uint32_t src0 = singlemul(src->rgba >> 24, msk0);
   uint32_t src0neg = singleneg(src0);
 
-  __m128i src0mm = _mm_cvtsi32_si128(singleexpand(src0));
+  __m128i src0mm;
   __m128i isrc0mm;
 
-  pix_unpack_1x1W(src0mm, src0mm);
-  pix_expand_pixel_1x2W(src0mm, src0mm);
+  pix_expand_a8_1x2W(src0mm, src0);
   pix_negate_1x1W(isrc0mm, src0mm);
 
   BLIT_8_SSE2_INIT(dst, w)
 
-  BLIT_8_SSE2_SMALL_BEGIN(blt_trans)
+  BLIT_8_SSE2_SMALL_BEGIN(blt)
     dst[0] = (uint8_t)(src0 + singlemul(dst[0], src0neg));
 
     dst += 1;
-  BLIT_8_SSE2_SMALL_END(blt_trans)
+  BLIT_8_SSE2_SMALL_END(blt)
 
-  BLIT_8_SSE2_LARGE_BEGIN(blt_trans)
+  BLIT_8_SSE2_LARGE_BEGIN(blt)
     __m128i dst0mm, dst1mm;
 
     pix_load16a(dst0mm, dst);
@@ -4781,7 +4778,7 @@ static void FOG_FASTCALL raster_a8_span_solid_a8_const_srcover_sse2(
     pix_store16a(dst, dst0mm);
 
     dst += 16;
-  BLIT_8_SSE2_LARGE_END(blt_trans)
+  BLIT_8_SSE2_LARGE_END(blt)
 }
 
 static void FOG_FASTCALL raster_a8_span_composite_axxx32_srcover_sse2(
@@ -5162,7 +5159,7 @@ static void FOG_FASTCALL raster_a8_span_composite_a8_a8_const_srcover_sse2(
     }
 
     dst += 16;
-    src += 15;
+    src += 16;
   BLIT_8_SSE2_LARGE_END(blt)
 }
 
@@ -5925,6 +5922,34 @@ static void FOG_FASTCALL raster_prgb32_span_composite_rgb24_a8_dstover_sse2(
 }
 
 // ============================================================================
+// [Fog::Raster - Raster - A8 - DstOver]
+// ============================================================================
+
+#define raster_a8_pixel_dstover_sse2 raster_a8_pixel_srcover_sse2
+#define raster_a8_pixel_a8_dstover_sse2 raster_a8_pixel_a8_srcover_sse2
+#define raster_a8_span_solid_dstover_sse2 raster_a8_span_solid_srcover_sse2
+#define raster_a8_span_solid_a8_dstover_sse2 raster_a8_span_solid_a8_srcover_sse2
+#define raster_a8_span_solid_a8_const_dstover_sse2 raster_a8_span_solid_a8_const_srcover_sse2
+
+#define raster_a8_span_composite_argb32_dstover_sse2 raster_a8_span_composite_argb32_srcover_sse2
+#define raster_a8_span_composite_prgb32_dstover_sse2 raster_a8_span_composite_prgb32_srcover_sse2
+#define raster_a8_span_composite_rgb32_dstover_sse2 raster_a8_span_composite_rgb32_srcover_sse2
+#define raster_a8_span_composite_rgb24_dstover_sse2 raster_a8_span_composite_rgb24_srcover_sse2
+#define raster_a8_span_composite_a8_dstover_sse2 raster_a8_span_composite_a8_srcover_sse2
+
+#define raster_a8_span_composite_argb32_a8_dstover_sse2 raster_a8_span_composite_argb32_a8_srcover_sse2
+#define raster_a8_span_composite_prgb32_a8_dstover_sse2 raster_a8_span_composite_prgb32_a8_srcover_sse2
+#define raster_a8_span_composite_rgb32_a8_dstover_sse2 raster_a8_span_composite_rgb32_a8_srcover_sse2
+#define raster_a8_span_composite_rgb24_a8_dstover_sse2 raster_a8_span_composite_rgb24_a8_srcover_sse2
+#define raster_a8_span_composite_a8_a8_dstover_sse2 raster_a8_span_composite_a8_a8_srcover_sse2
+
+#define raster_a8_span_composite_argb32_a8_const_dstover_sse2 raster_a8_span_composite_argb32_a8_const_srcover_sse2
+#define raster_a8_span_composite_prgb32_a8_const_dstover_sse2 raster_a8_span_composite_prgb32_a8_const_srcover_sse2
+#define raster_a8_span_composite_rgb32_a8_const_dstover_sse2 raster_a8_span_composite_rgb32_a8_const_srcover_sse2
+#define raster_a8_span_composite_rgb24_a8_const_dstover_sse2 raster_a8_span_composite_rgb24_a8_const_srcover_sse2
+#define raster_a8_span_composite_a8_a8_const_dstover_sse2 raster_a8_span_composite_a8_a8_const_srcover_sse2
+
+// ============================================================================
 // [Fog::Raster - Raster - Prgb32 - SrcIn]
 // ============================================================================
 
@@ -6496,6 +6521,510 @@ static void FOG_FASTCALL raster_prgb32_span_composite_rgb24_a8_srcin_sse2(
 }
 
 // ============================================================================
+// [Fog::Raster - Raster - A8 - SrcIn]
+// ============================================================================
+
+static void FOG_FASTCALL raster_a8_pixel_srcin_sse2(
+  uint8_t* dst, const Solid* src)
+{
+  uint32_t src0 = src->rgba >> 24;
+
+  if (src0 != 0xFF)
+  {
+    dst[0] = (uint8_t)(singlemul(dst[0], src0));
+  }
+}
+
+static void FOG_FASTCALL raster_a8_pixel_a8_srcin_sse2(
+  uint8_t* dst, const Solid* src, uint32_t msk0)
+{
+  uint32_t src0 = src->rgba >> 24;
+
+  if (src0 != 0xFF)
+  {
+    dst[0] = singleinmsk(dst[0], src0, msk0);
+  }
+}
+
+static void FOG_FASTCALL raster_a8_span_solid_srcin_sse2(
+  uint8_t* dst, const Solid* src, sysint_t w)
+{
+  uint32_t src0 = src->rgba >> 24;
+
+  if (src0 != 0xFF)
+  {
+    __m128i src0mm;
+    pix_expand_a8_1x2W(src0mm, src0);
+
+    BLIT_8_SSE2_INIT(dst, w)
+
+    BLIT_8_SSE2_SMALL_BEGIN(blt)
+      dst[0] = (uint8_t)singlemul(dst[0], src0);
+      dst += 1;
+    BLIT_8_SSE2_SMALL_END(blt)
+
+    BLIT_8_SSE2_LARGE_BEGIN(blt)
+      __m128i dst0mm, dst1mm;
+
+      pix_load16a(dst0mm, dst);
+      pix_unpack_2x2W(dst0mm, dst1mm, dst0mm);
+      pix_multiply_2x2W(dst0mm, dst0mm, src0mm, dst1mm, dst1mm, src0mm);
+      pix_pack_2x2W(dst0mm, dst0mm, dst1mm);
+      pix_store16a(dst, dst0mm);
+
+      dst += 16;
+    BLIT_8_SSE2_LARGE_END(blt)
+  }
+}
+
+static void FOG_FASTCALL raster_a8_span_solid_a8_srcin_sse2(
+  uint8_t* dst, const Solid* src, const uint8_t* msk, sysint_t w)
+{
+  uint32_t src0 = src->rgba >> 24;
+
+  __m128i src0mm;
+  pix_expand_a8_1x2W(src0mm, src0);
+
+  BLIT_8_SSE2_INIT(dst, w)
+
+  BLIT_8_SSE2_SMALL_BEGIN(blt)
+    uint32_t msk0 = READ_8(msk);
+    if (msk0 != 0x00)
+    {
+      uint32_t dst0 = dst[0];
+      uint32_t mul0 = singlemul(dst0, src0);
+
+      if (msk0 == 0xFF)
+      {
+        dst[0] = (uint8_t)mul0;
+      }
+      else
+      {
+        dst[0] = (uint8_t)singlelerp(dst0, mul0, msk0);
+      }
+    }
+
+    dst += 1;
+    msk += 1;
+  BLIT_8_SSE2_SMALL_END(blt)
+
+  BLIT_8_SSE2_LARGE_BEGIN(blt)
+    uint32_t msk0IsZero;
+    uint32_t msk0IsFull;
+
+    __m128i dst0mm, dst1mm;
+    __m128i msk0mm, msk1mm;
+
+    pix_load16u(msk0mm, msk);
+    pix_analyze_mask_16B(msk0IsZero, msk0IsFull, msk0mm);
+
+    if (msk0IsZero != 0xFFFF)
+    {
+      if (msk0IsFull == 0xFFFF)
+      {
+        pix_load16a(dst0mm, dst);
+        pix_unpack_2x2W(dst0mm, dst1mm, dst0mm);
+        pix_multiply_2x2W(dst0mm, dst0mm, src0mm, dst1mm, dst1mm, src0mm);
+        pix_pack_2x2W(dst0mm, dst0mm, dst1mm);
+        pix_store16a(dst, dst0mm);
+      }
+      else
+      {
+        __m128i tmp0mm, tmp1mm;
+
+        pix_load16a(dst0mm, dst);
+        pix_unpack_2x2W(dst0mm, dst1mm, dst0mm);
+        pix_unpack_2x2W(msk0mm, msk1mm, msk0mm);
+        pix_multiply_2x2W(tmp0mm, dst0mm, src0mm, tmp1mm, dst1mm, src0mm);
+        pix_lerp_2x2W(dst0mm, tmp0mm, msk0mm, dst1mm, tmp1mm, msk1mm);
+        pix_pack_2x2W(dst0mm, dst0mm, dst1mm);
+        pix_store16a(dst, dst0mm);
+      }
+    }
+
+    dst += 16;
+    msk += 16;
+  BLIT_8_SSE2_LARGE_END(blt)
+}
+
+static void FOG_FASTCALL raster_a8_span_solid_a8_const_srcin_sse2(
+  uint8_t* dst, const Solid* src, uint32_t msk0, sysint_t w)
+{
+  if (msk0 == 0xFF)
+  {
+    raster_a8_span_solid_srcin_sse2(dst, src, w);
+    return;
+  }
+
+  uint32_t src0 = singlemul(src->rgba >> 24, msk0);
+  uint32_t imsk0 = singleneg(msk0);
+
+  __m128i src0mm;
+  __m128i imsk0mm;
+
+  pix_expand_a8_1x2W(src0mm, src0);
+  pix_expand_a8_1x2W(imsk0mm, imsk0);
+
+  BLIT_8_SSE2_INIT(dst, w)
+
+  BLIT_8_SSE2_SMALL_BEGIN(blt)
+    uint32_t dst0 = dst[0];
+    dst[0] = singledmuladd(dst0, src0, imsk0);
+
+    dst += 1;
+  BLIT_8_SSE2_SMALL_END(blt)
+
+  BLIT_8_SSE2_LARGE_BEGIN(blt)
+    __m128i dst0mm, dst1mm;
+    __m128i tmp0mm, tmp1mm;
+
+    pix_load16a(dst0mm, dst);
+    pix_unpack_2x2W(dst0mm, dst1mm, dst0mm);
+    pix_multiply_2x2W(tmp0mm, dst0mm, src0mm, tmp1mm, dst1mm, src0mm);
+    pix_multiply_2x2W(dst0mm, dst0mm, imsk0mm, dst1mm, dst1mm, imsk0mm);
+    dst0mm = _mm_adds_epu8(dst0mm, tmp0mm);
+    dst1mm = _mm_adds_epu8(dst1mm, tmp1mm);
+    pix_pack_2x2W(dst0mm, dst0mm, dst1mm);
+    pix_store16a(dst, dst0mm);
+
+    dst += 16;
+  BLIT_8_SSE2_LARGE_END(blt)
+}
+
+static void FOG_FASTCALL raster_a8_span_composite_axxx32_srcin_sse2(
+  uint8_t* dst, const uint8_t* src, sysint_t w)
+{
+  BLIT_8_SSE2_INIT(dst, w);
+
+  BLIT_8_SSE2_SMALL_BEGIN(blt)
+    uint32_t src0 = src[RGB32_AByte];
+    if (src0 != 0xFF)
+    {
+      uint32_t dst0 = dst[0];
+      dst[0] = (uint8_t)singlemul(dst0, src0);
+    }
+
+    dst += 1;
+    src += 4;
+  BLIT_8_SSE2_SMALL_END(blt)
+
+  BLIT_8_SSE2_LARGE_BEGIN(blt)
+    uint32_t src0IsZero;
+    uint32_t src0IsFull;
+
+    __m128i src0mm, src1mm;
+    __m128i dst0mm, dst1mm;
+
+    pix_load_and_unpack_axxx32_64B(src0mm, src1mm, src);
+    pix_pack_2x2W(src0mm, src0mm, src1mm);
+
+    pix_analyze_mask_16B(src0IsZero, src0IsFull, src0mm);
+    if (src0IsZero == 0xFFFF)
+    {
+      pix_store16a(dst, src0mm);
+    }
+    else if (src0IsFull != 0xFFFF)
+    {
+      pix_load16a(dst0mm, dst);
+      pix_unpack_2x2W(dst0mm, dst1mm, dst0mm);
+      pix_unpack_2x2W(src0mm, src1mm, src0mm);
+      pix_multiply_2x2W(dst0mm, dst0mm, src0mm, dst1mm, dst1mm, src1mm);
+      pix_pack_2x2W(dst0mm, dst0mm, dst1mm);
+      pix_store16a(dst, dst0mm);
+    }
+
+    dst += 16;
+    src += 64;
+  BLIT_8_SSE2_LARGE_END(blt)
+}
+
+#define raster_a8_span_composite_argb32_srcin_sse2 raster_a8_span_composite_axxx32_srcin_sse2
+#define raster_a8_span_composite_prgb32_srcin_sse2 raster_a8_span_composite_axxx32_srcin_sse2
+
+static void FOG_FASTCALL raster_a8_span_composite_a8_srcin_sse2(
+  uint8_t* dst, const uint8_t* src, sysint_t w)
+{
+  BLIT_8_SSE2_INIT(dst, w);
+
+  BLIT_8_SSE2_SMALL_BEGIN(blt)
+    uint32_t src0 = src[0];
+    if (src0 != 0xFF)
+    {
+      uint32_t dst0 = dst[0];
+      dst[0] = (uint8_t)singlemul(dst0, src0);
+    }
+
+    dst += 1;
+    src += 1;
+  BLIT_8_SSE2_SMALL_END(blt)
+
+  BLIT_8_SSE2_LARGE_BEGIN(blt)
+    uint32_t src0IsZero;
+    uint32_t src0IsFull;
+
+    __m128i src0mm, src1mm;
+    __m128i dst0mm, dst1mm;
+
+    pix_load16u(src0mm, src);
+    pix_analyze_mask_16B(src0IsZero, src0IsFull, src0mm);
+    if (src0IsZero == 0xFFFF)
+    {
+      pix_store16a(dst, src0mm);
+    }
+    else if (src0IsFull != 0xFFFF)
+    {
+      pix_load16a(dst0mm, dst);
+      pix_unpack_2x2W(dst0mm, dst1mm, dst0mm);
+      pix_unpack_2x2W(src0mm, src1mm, src0mm);
+      pix_multiply_2x2W(dst0mm, dst0mm, src0mm, dst1mm, dst1mm, src1mm);
+      pix_pack_2x2W(dst0mm, dst0mm, dst1mm);
+      pix_store16a(dst, dst0mm);
+    }
+
+    dst += 16;
+    src += 16;
+  BLIT_8_SSE2_LARGE_END(blt)
+}
+
+static void FOG_FASTCALL raster_a8_span_composite_axxx32_a8_srcin_sse2(
+  uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w)
+{
+  BLIT_8_SSE2_INIT(dst, w);
+
+  BLIT_8_SSE2_SMALL_BEGIN(blt)
+    uint32_t msk0 = READ_8(msk);
+    if (msk0 != 0x00)
+    {
+      uint32_t dst0 = dst[0];
+      uint32_t src0 = singlemul(src[RGB32_AByte], msk0);
+      dst[0] = (uint8_t)singledmuladd(dst0, src0, singleneg(msk0));
+    }
+
+    dst += 1;
+    src += 4;
+    msk += 1;
+  BLIT_8_SSE2_SMALL_END(blt)
+
+  BLIT_8_SSE2_LARGE_BEGIN(blt)
+    uint32_t msk0IsZero;
+    uint32_t src0IsFull;
+
+    __m128i src0mm, src1mm;
+    __m128i msk0mm;
+
+    pix_load16u(msk0mm, msk);
+    pix_analyze_mask_16B_zero(msk0IsZero, msk0mm);
+
+    if (msk0IsZero != 0xFFFF)
+    {
+      pix_load_and_unpack_axxx32_64B(src0mm, src1mm, src);
+      pix_pack_2x2W(src0mm, src0mm, src1mm);
+      pix_analyze_mask_16B_full(src0IsFull, src0mm);
+
+      if (src0IsFull != 0xFFFF)
+      {
+        __m128i dst0mm, dst1mm;
+        __m128i a0mm, a1mm;
+
+        pix_load16a(dst0mm, dst);
+        pix_unpack_2x2W(dst0mm, dst1mm, dst0mm);
+        pix_unpack_2x2W(src0mm, src1mm, src0mm);
+        pix_unpack_2x2W(a0mm, a1mm, msk0mm);
+        pix_multiply_2x2W(src0mm, src0mm, a0mm, src1mm, src1mm, a1mm);
+        pix_multiply_2x2W(src0mm, src0mm, dst0mm, src1mm, src1mm, dst1mm);
+        pix_negate_2x2W(a0mm, a0mm, a1mm, a1mm);
+        pix_multiply_2x2W(dst0mm, dst0mm, a0mm, dst1mm, dst1mm, a1mm);
+        dst0mm = _mm_adds_epu8(dst0mm, src0mm);
+        dst1mm = _mm_adds_epu8(dst1mm, src1mm);
+        pix_pack_2x2W(dst0mm, dst0mm, dst1mm);
+        pix_store16a(dst, dst0mm);
+      }
+    }
+
+    dst += 16;
+    src += 64;
+    msk += 16;
+  BLIT_8_SSE2_LARGE_END(blt)
+}
+
+#define raster_a8_span_composite_argb32_a8_srcin_sse2 raster_a8_span_composite_axxx32_a8_srcin_sse2
+#define raster_a8_span_composite_prgb32_a8_srcin_sse2 raster_a8_span_composite_axxx32_a8_srcin_sse2
+
+static void FOG_FASTCALL raster_a8_span_composite_a8_a8_srcin_sse2(
+  uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w)
+{
+  BLIT_8_SSE2_INIT(dst, w);
+
+  BLIT_8_SSE2_SMALL_BEGIN(blt)
+    uint32_t msk0 = READ_8(msk);
+    if (msk0 != 0x00)
+    {
+      uint32_t dst0 = dst[0];
+      uint32_t src0 = singlemul(src[0], msk0);
+      dst[0] = (uint8_t)singledmuladd(dst0, src0, singleneg(msk0));
+    }
+
+    dst += 1;
+    src += 1;
+    msk += 1;
+  BLIT_8_SSE2_SMALL_END(blt)
+
+  BLIT_8_SSE2_LARGE_BEGIN(blt)
+    uint32_t msk0IsZero;
+    uint32_t src0IsFull;
+
+    __m128i src0mm, src1mm;
+    __m128i msk0mm;
+
+    pix_load16u(msk0mm, msk);
+    pix_analyze_mask_16B_zero(msk0IsZero, msk0mm);
+
+    if (msk0IsZero != 0xFFFF)
+    {
+      pix_load16u(src0mm, src);
+      pix_analyze_mask_16B_full(src0IsFull, src0mm);
+
+      if (src0IsFull != 0xFFFF)
+      {
+        __m128i dst0mm, dst1mm;
+        __m128i a0mm, a1mm;
+
+        pix_load16a(dst0mm, dst);
+        pix_unpack_2x2W(dst0mm, dst1mm, dst0mm);
+        pix_unpack_2x2W(src0mm, src1mm, src0mm);
+        pix_unpack_2x2W(a0mm, a1mm, msk0mm);
+        pix_multiply_2x2W(src0mm, src0mm, a0mm, src1mm, src1mm, a1mm);
+        pix_multiply_2x2W(src0mm, src0mm, dst0mm, src1mm, src1mm, dst1mm);
+        pix_negate_2x2W(a0mm, a0mm, a1mm, a1mm);
+        pix_multiply_2x2W(dst0mm, dst0mm, a0mm, dst1mm, dst1mm, a1mm);
+        dst0mm = _mm_adds_epu8(dst0mm, src0mm);
+        dst1mm = _mm_adds_epu8(dst1mm, src1mm);
+        pix_pack_2x2W(dst0mm, dst0mm, dst1mm);
+        pix_store16a(dst, dst0mm);
+      }
+    }
+
+    dst += 16;
+    src += 16;
+    msk += 16;
+  BLIT_8_SSE2_LARGE_END(blt)
+}
+
+static void FOG_FASTCALL raster_a8_span_composite_axxx32_a8_const_srcin_sse2(
+  uint8_t* dst, const uint8_t* src, uint32_t msk0, sysint_t w)
+{
+  if (FOG_UNLIKELY(msk0 == 0xFF))
+  {
+    raster_a8_span_composite_axxx32_srcin_sse2(dst, src, w);
+    return;
+  }
+
+  uint32_t imsk0 = singleneg(msk0);
+  __m128i msk0mm, imsk0mm;
+
+  pix_expand_mask_1x1W(msk0mm, msk0);
+  pix_expand_pixel_1x2W(msk0mm, msk0mm);
+  pix_negate_1x1W(imsk0mm, msk0mm);
+
+  BLIT_8_SSE2_INIT(dst, w);
+
+  BLIT_8_SSE2_SMALL_BEGIN(blt)
+    uint32_t dst0 = dst[0];
+    uint32_t src0 = singlemul(src[RGB32_AByte], msk0);
+    dst[0] = (uint8_t)singledmuladd(dst0, src0, imsk0);
+
+    dst += 1;
+    src += 4;
+  BLIT_8_SSE2_SMALL_END(blt)
+
+  BLIT_8_SSE2_LARGE_BEGIN(blt)
+    uint32_t src0IsFull;
+
+    __m128i dst0mm, dst1mm;
+    __m128i src0mm, src1mm;
+
+    pix_load_and_unpack_axxx32_64B(src0mm, src1mm, src);
+    pix_pack_2x2W(src0mm, src0mm, src1mm);
+    pix_analyze_mask_16B_full(src0IsFull, src0mm);
+
+    if (src0IsFull != 0xFFFF)
+    {
+      pix_load16a(dst0mm, dst);
+      pix_unpack_2x2W(dst0mm, dst1mm, dst0mm);
+      pix_unpack_2x2W(src0mm, src1mm, src0mm);
+      pix_multiply_2x2W(src0mm, src0mm, msk0mm, src1mm, src1mm, msk0mm);
+      pix_multiply_2x2W(src0mm, src0mm, dst0mm, src1mm, src1mm, dst1mm);
+      pix_multiply_2x2W(dst0mm, dst0mm, imsk0mm, dst1mm, dst1mm, imsk0mm);
+      dst0mm = _mm_adds_epu8(dst0mm, src0mm);
+      dst1mm = _mm_adds_epu8(dst1mm, src1mm);
+      pix_pack_2x2W(dst0mm, dst0mm, dst1mm);
+      pix_store16a(dst, dst0mm);
+    }
+
+    dst += 16;
+    src += 64;
+  BLIT_8_SSE2_LARGE_END(blt)
+}
+
+#define raster_a8_span_composite_argb32_a8_const_srcin_sse2 raster_a8_span_composite_axxx32_a8_const_srcin_sse2
+#define raster_a8_span_composite_prgb32_a8_const_srcin_sse2 raster_a8_span_composite_axxx32_a8_const_srcin_sse2
+
+static void FOG_FASTCALL raster_a8_span_composite_a8_a8_const_srcin_sse2(
+  uint8_t* dst, const uint8_t* src, uint32_t msk0, sysint_t w)
+{
+  if (FOG_UNLIKELY(msk0 == 0xFF))
+  {
+    raster_a8_span_composite_a8_srcin_sse2(dst, src, w);
+    return;
+  }
+
+  uint32_t imsk0 = singleneg(msk0);
+  __m128i msk0mm, imsk0mm;
+
+  pix_expand_mask_1x1W(msk0mm, msk0);
+  pix_expand_pixel_1x2W(msk0mm, msk0mm);
+  pix_negate_1x1W(imsk0mm, msk0mm);
+
+  BLIT_8_SSE2_INIT(dst, w);
+
+  BLIT_8_SSE2_SMALL_BEGIN(blt)
+    uint32_t dst0 = dst[0];
+    uint32_t src0 = singlemul(src[0], msk0);
+    dst[0] = (uint8_t)singledmuladd(dst0, src0, imsk0);
+
+    dst += 1;
+    src += 1;
+  BLIT_8_SSE2_SMALL_END(blt)
+
+  BLIT_8_SSE2_LARGE_BEGIN(blt)
+    uint32_t src0IsFull;
+
+    __m128i dst0mm, dst1mm;
+    __m128i src0mm, src1mm;
+
+    pix_load16u(src0mm, src);
+    pix_analyze_mask_16B_full(src0IsFull, src0mm);
+
+    if (src0IsFull != 0xFFFF)
+    {
+      pix_load16a(dst0mm, dst);
+      pix_unpack_2x2W(dst0mm, dst1mm, dst0mm);
+      pix_unpack_2x2W(src0mm, src1mm, src0mm);
+      pix_multiply_2x2W(src0mm, src0mm, msk0mm, src1mm, src1mm, msk0mm);
+      pix_multiply_2x2W(src0mm, src0mm, dst0mm, src1mm, src1mm, dst1mm);
+      pix_multiply_2x2W(dst0mm, dst0mm, imsk0mm, dst1mm, dst1mm, imsk0mm);
+      dst0mm = _mm_adds_epu8(dst0mm, src0mm);
+      dst1mm = _mm_adds_epu8(dst1mm, src1mm);
+      pix_pack_2x2W(dst0mm, dst0mm, dst1mm);
+      pix_store16a(dst, dst0mm);
+    }
+
+    dst += 16;
+    src += 16;
+  BLIT_8_SSE2_LARGE_END(blt)
+}
+
+// ============================================================================
 // [Fog::Raster - Raster - Prgb32 - DstIn]
 // ============================================================================
 
@@ -6789,6 +7318,28 @@ static void FOG_FASTCALL raster_prgb32_span_composite_xxxx_a8_dstin_sse2(
     msk += 4;
   BLIT_32_SSE2_LARGE_END(blt)
 }
+
+// ============================================================================
+// [Fog::Raster - Raster - A8 - DstIn]
+// ============================================================================
+
+#define raster_a8_pixel_dstin_sse2 raster_a8_pixel_srcin_sse2
+#define raster_a8_pixel_a8_dstin_sse2 raster_a8_pixel_a8_srcin_sse2
+#define raster_a8_span_solid_dstin_sse2 raster_a8_span_solid_srcin_sse2
+#define raster_a8_span_solid_a8_dstin_sse2 raster_a8_span_solid_a8_srcin_sse2
+#define raster_a8_span_solid_a8_const_dstin_sse2 raster_a8_span_solid_a8_const_srcin_sse2
+
+#define raster_a8_span_composite_argb32_dstin_sse2 raster_a8_span_composite_argb32_srcin_sse2
+#define raster_a8_span_composite_prgb32_dstin_sse2 raster_a8_span_composite_prgb32_srcin_sse2
+#define raster_a8_span_composite_a8_dstin_sse2 raster_a8_span_composite_a8_srcin_sse2
+
+#define raster_a8_span_composite_argb32_a8_dstin_sse2 raster_a8_span_composite_argb32_a8_srcin_sse2
+#define raster_a8_span_composite_prgb32_a8_dstin_sse2 raster_a8_span_composite_prgb32_a8_srcin_sse2
+#define raster_a8_span_composite_a8_a8_dstin_sse2 raster_a8_span_composite_a8_a8_srcin_sse2
+
+#define raster_a8_span_composite_argb32_a8_const_dstin_sse2 raster_a8_span_composite_argb32_a8_const_srcin_sse2
+#define raster_a8_span_composite_prgb32_a8_const_dstin_sse2 raster_a8_span_composite_prgb32_a8_const_srcin_sse2
+#define raster_a8_span_composite_a8_a8_const_dstin_sse2 raster_a8_span_composite_a8_a8_const_srcin_sse2
 
 // ============================================================================
 // [Fog::Raster - Raster - Prgb32 - SrcOut]
@@ -8881,6 +9432,34 @@ static void FOG_FASTCALL raster_prgb32_span_composite_rgb24_a8_dstatop_sse2(
     msk += 4;
   BLIT_32_SSE2_LARGE_END(blt)
 }
+
+// ============================================================================
+// [Fog::Raster - Raster - A8 - DstAtop]
+// ============================================================================
+
+#define raster_a8_pixel_dstatop_sse2 raster_a8_pixel_src_sse2
+#define raster_a8_pixel_a8_dstatop_sse2 raster_a8_pixel_a8_src_sse2
+#define raster_a8_span_solid_dstatop_sse2 raster_a8_span_solid_src_sse2
+#define raster_a8_span_solid_a8_dstatop_sse2 raster_a8_span_solid_a8_src_sse2
+#define raster_a8_span_solid_a8_const_dstatop_sse2 raster_a8_span_solid_a8_const_src_sse2
+
+#define raster_a8_span_composite_argb32_dstatop_sse2 raster_a8_span_composite_argb32_src_sse2
+#define raster_a8_span_composite_prgb32_dstatop_sse2 raster_a8_span_composite_prgb32_src_sse2
+#define raster_a8_span_composite_rgb32_dstatop_sse2 raster_a8_span_composite_rgb32_src_sse2
+#define raster_a8_span_composite_rgb24_dstatop_sse2 raster_a8_span_composite_rgb24_src_sse2
+#define raster_a8_span_composite_a8_dstatop_sse2 raster_a8_span_composite_rgb24_src_sse2
+
+#define raster_a8_span_composite_argb32_a8_dstatop_sse2 raster_a8_span_composite_argb32_a8_src_sse2
+#define raster_a8_span_composite_prgb32_a8_dstatop_sse2 raster_a8_span_composite_prgb32_a8_src_sse2
+#define raster_a8_span_composite_rgb32_a8_dstatop_sse2 raster_a8_span_composite_rgb32_a8_src_sse2
+#define raster_a8_span_composite_rgb24_a8_dstatop_sse2 raster_a8_span_composite_rgb24_a8_src_sse2
+#define raster_a8_span_composite_a8_a8_dstatop_sse2 raster_a8_span_composite_rgb24_a8_src_sse2
+
+#define raster_a8_span_composite_argb32_a8_const_dstatop_sse2 raster_a8_span_composite_argb32_a8_const_src_sse2
+#define raster_a8_span_composite_prgb32_a8_const_dstatop_sse2 raster_a8_span_composite_prgb32_a8_const_src_sse2
+#define raster_a8_span_composite_rgb32_a8_const_dstatop_sse2 raster_a8_span_composite_rgb32_a8_const_src_sse2
+#define raster_a8_span_composite_rgb24_a8_const_dstatop_sse2 raster_a8_span_composite_rgb24_a8_const_src_sse2
+#define raster_a8_span_composite_a8_a8_const_dstatop_sse2 raster_a8_span_composite_rgb24_a8_const_src_sse2
 
 // ============================================================================
 // [Fog::Raster - Raster - Prgb32 - Xor]

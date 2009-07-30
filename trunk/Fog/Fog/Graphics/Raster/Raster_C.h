@@ -861,6 +861,28 @@ static FOG_INLINE uint32_t singleexpand(uint32_t x)
   return x;
 }
 
+// Return: (x * a) + (x * b)
+static FOG_INLINE uint32_t singledmuladd(uint32_t x, uint32_t a, uint32_t b)
+{
+  uint32_t t0 = a | (b << 16);
+  t0 = ((t0 + ((t0 >> 8) & 0x00FF00FF) + 0x00800080) >> 8);
+
+  return (t0 & 0xFF) + (t0 >> 16);
+}
+
+// dst0 = (x * y) / 255
+// dst1 = (x * (255 - y)) / 255
+static FOG_INLINE uint32_t singleinmsk(uint32_t dst, uint32_t src, uint32_t msk)
+{
+  uint32_t t0 = dst | (src << 16);
+  t0 = ((t0 + ((t0 >> 8) & 0x00FF00FF) + 0x00800080) >> 8);
+
+  uint32_t dstmsk = dst & 0xFF;
+  uint32_t srcmsk = src >> 16;
+
+  return singlemul(srcmsk, dstmsk) + (dst - dstmsk);
+}
+
 static FOG_INLINE uint32_t alphaexpand(uint32_t x)
 {
   x >>= 24;

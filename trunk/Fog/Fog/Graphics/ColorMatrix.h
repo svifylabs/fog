@@ -343,7 +343,7 @@ struct FOG_API ColorMatrix
   FOG_INLINE ColorMatrix& operator=(const ColorMatrix& other)
   { _copyData(this->m, other.m); return *this; }
 
-  bool eq(const ColorMatrix& other, double epsilon = defaultEpsilon) const;
+  bool eq(const ColorMatrix& other, double epsilon = Math::defaultEpsilon) const;
 
   //! @brief Equality operator.
   FOG_INLINE bool operator==(const ColorMatrix& other)
