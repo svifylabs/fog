@@ -1306,10 +1306,10 @@ RasterEngine::RasterEngine(uint8_t* pixels, int width, int height, sysint_t stri
 
   ras.gamma(ColorLut::linearLut);
 
-  // Setup clip state
+  // Setup clip state.
   _setClipDefaults();
 
-  // Setup caps state
+  // Setup caps state.
   _setCapsDefaults();
 
   // Setup multithreading if possible. If the painting buffer if too small, we
@@ -3245,6 +3245,9 @@ void RasterEngine::_renderPath(const AggRasterizer& ras)
     case 3:
       AggRenderPath<3, AggRasterizer, AggScanlineP8>(&ctx, ras, ctx.slP8, 0, 1);
       break;
+    case 1:
+      AggRenderPath<1, AggRasterizer, AggScanlineP8>(&ctx, ras, ctx.slP8, 0, 1);
+      break;
     default:
       FOG_ASSERT_NOT_REACHED();
   }
@@ -3381,6 +3384,7 @@ void RasterEngine::_renderGlyphSet(const Point& pt, const GlyphSet& glyphSet, co
 
   uint8_t* pBuf = ctx.clipState->workRaster;
   sysint_t stride = _stride;
+  sysint_t bpp = _bpp;
 
   Raster::SpanSolidMskFn span_solid_a8 = ctx.raster->span_solid_a8;
 
@@ -3425,7 +3429,7 @@ void RasterEngine::_renderGlyphSet(const Point& pt, const GlyphSet& glyphSet, co
 
     uint8_t* pCur = pBuf;
     pCur += (sysint_t)y1 * stride;
-    pCur += (sysint_t)x1 * 4;
+    pCur += (sysint_t)x1 * bpp;
 
     // TODO: Hardcoded
     sysint_t glyphStride = bitmapd->stride;
@@ -3472,6 +3476,9 @@ void RasterEngine::_renderPathMT(
       break;
     case 3:
       AggRenderPath<3, AggRasterizer, AggScanlineP8>(ctx, ras, ctx->slP8, offset, delta);
+      break;
+    case 1:
+      AggRenderPath<1, AggRasterizer, AggScanlineP8>(ctx, ras, ctx->slP8, offset, delta);
       break;
     default:
       FOG_ASSERT_NOT_REACHED();
@@ -3625,6 +3632,7 @@ void RasterEngine::_renderGlyphSetMT(
 
   uint8_t* pBuf = ctx->clipState->workRaster;
   sysint_t stride = _stride;
+  sysint_t bpp = _bpp;
   sysint_t strideWithDelta = stride * delta;
 
   Raster::SpanSolidMskFn span_solid_a8 = ctx->raster->span_solid_a8;
@@ -3672,7 +3680,7 @@ void RasterEngine::_renderGlyphSetMT(
 
     uint8_t* pCur = pBuf;
     pCur += (sysint_t)y1 * stride;
-    pCur += (sysint_t)x1 * 4;
+    pCur += (sysint_t)x1 * bpp;
 
     // TODO: Hardcoded
     sysint_t glyphStride = bitmapd->stride;
