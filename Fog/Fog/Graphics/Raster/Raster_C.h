@@ -854,7 +854,7 @@ static FOG_INLINE uint32_t singleneg(uint32_t x)
   return x ^ 0xFF;
 }
 
-static FOG_INLINE uint32_t maskexpand(uint32_t x)
+static FOG_INLINE uint32_t singleexpand(uint32_t x)
 {
   x |= x << 8;
   x |= x << 16;
