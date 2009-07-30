@@ -1113,5 +1113,41 @@ static FOG_INLINE void pix_fetch_bgr24_2x2W(__m128i& dst0, __m128i& dst1, const 
   dst1 = _mm_shufflehi_epi16(dst1, _MM_SHUFFLE(0, 1, 2, 3)); // dst1 = [FF R3 G3 B3 FF R2 G2 B2]
 }
 
+// Mask analyzer.
+
+static FOG_INLINE void pix_analyze_mask_16B(uint32_t& msk0IsZero, uint32_t& msk0IsFull, const __m128i& msk0)
+{
+  __m128i t0;
+  __m128i t1;
+
+  t1 = _mm_setzero_si128();
+  t0 = _mm_setzero_si128();
+  t1 = _mm_cmpeq_epi8(t1, t1);
+  t0 = _mm_cmpeq_epi8(t0, msk0);
+  t1 = _mm_cmpeq_epi8(t1, msk0);
+
+  msk0IsZero = _mm_movemask_epi8(t0);
+  msk0IsFull = _mm_movemask_epi8(t1);
+}
+
+// Misc / Unsorted.
+
+static FOG_INLINE void pix_load_and_unpack_axxx32_64B(__m128i& dst0, __m128i& dst1, const uint8_t* src)
+{
+  __m128i dst2;
+
+  pix_load16u(dst0, src);
+  pix_load16u(dst1, src + 16);
+  dst0 = _mm_srli_epi32(dst0, 24);
+  dst1 = _mm_srli_epi32(dst1, 24);
+  dst0 = _mm_packs_epi32(dst0, dst1);
+
+  pix_load16u(dst1, src + 32);
+  pix_load16u(dst2, src + 48);
+  dst1 = _mm_srli_epi32(dst1, 24);
+  dst2 = _mm_srli_epi32(dst1, 24);
+  dst1 = _mm_packs_epi32(dst1, dst2);
+}
+
 } // Raster namespace
 } // Fog namespace
