@@ -66,7 +66,6 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   using namespace Fog;
   using namespace Fog::Raster;
 
-  sysint_t i;
   FunctionMap* m = functionMap;
 
   // [Convert - ByteSwap]

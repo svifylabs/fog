@@ -529,7 +529,6 @@ static void FOG_FASTCALL floatScanlineConvolveV_argb32_sse2(
       }
 
       stackCur++;
-      stackCur++;
       if (stackCur == stackEnd) stackCur = stack;
     }
 
