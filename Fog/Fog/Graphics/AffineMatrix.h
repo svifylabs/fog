@@ -245,11 +245,11 @@ struct FOG_API AffineMatrix
 
   //! @brief Equal operator with default epsilon
   FOG_INLINE bool operator==(const AffineMatrix& m) const
-  { return isEqual(m, defaultEpsilon); }
+  { return isEqual(m, Math::defaultEpsilon); }
 
   //! @brief Not Equal operator with default epsilon
   FOG_INLINE bool operator!=(const AffineMatrix& m) const
-  { return !isEqual(m, defaultEpsilon); }
+  { return !isEqual(m, Math::defaultEpsilon); }
 
   // [Transformations]
 
@@ -280,13 +280,13 @@ struct FOG_API AffineMatrix
   double scale() const;
 
   //! @brief Check to see if the matrix is not degenerate.
-  bool isValid(double epsilon = defaultEpsilon) const;
+  bool isValid(double epsilon = Math::defaultEpsilon) const;
 
   //! @brief Check to see if it's an identity matrix.
-  bool isIdentity(double epsilon = defaultEpsilon) const;
+  bool isIdentity(double epsilon = Math::defaultEpsilon) const;
 
   //! @brief Check to see if two matrices are equal.
-  bool isEqual(const AffineMatrix& m, double epsilon = defaultEpsilon) const;
+  bool isEqual(const AffineMatrix& m, double epsilon = Math::defaultEpsilon) const;
 
   //! @brief Determine the major parameters. Use with caution considering 
   //! possible degenerate cases.

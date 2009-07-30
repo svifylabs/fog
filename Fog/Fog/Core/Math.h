@@ -197,6 +197,9 @@ static FOG_INLINE T abs(const T& a) { return (a >= 0) ? a : -a; }
 // [Fog::Math - Floating point ops with epsilon]
 // ============================================================================
 
+//! @brief Default epsilon used in math.
+static const double defaultEpsilon = 1e-14; 
+
 template<typename T>
 static FOG_INLINE bool feq(T a, T b, T epsilon = 0.000001) { return fabs(a - b) <= epsilon; }
 

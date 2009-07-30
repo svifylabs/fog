@@ -257,6 +257,8 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
 
   // [Raster - CompositeDestAtop]
 
+  fog_raster_set_nops(&m->raster[Image::FormatA8][CompositeDestAtop]);
+
   // TODO
 
   // [Raster - CompositeXor]
