@@ -19,9 +19,9 @@ namespace Raster {
 static void FOG_FASTCALL convert_argb32_from_prgb32_sse2(
   uint8_t* dst, const uint8_t* src, sysint_t w)
 {
-  BLIT_SSE2_INIT(dst, w);
+  BLIT_32_SSE2_INIT(dst, w);
 
-  BLIT_SSE2_SMALL_BEGIN(blt)
+  BLIT_32_SSE2_SMALL_BEGIN(blt)
     __m128i src0mm;
 
     pix_load4(src0mm, src);
@@ -32,9 +32,9 @@ static void FOG_FASTCALL convert_argb32_from_prgb32_sse2(
 
     src += 4;
     dst += 4;
-  BLIT_SSE2_SMALL_END(blt)
+  BLIT_32_SSE2_SMALL_END(blt)
 
-  BLIT_SSE2_LARGE_BEGIN(blt)
+  BLIT_32_SSE2_LARGE_BEGIN(blt)
     __m128i src0mm, src1mm;
 
     pix_load16u(src0mm, src);
@@ -45,7 +45,7 @@ static void FOG_FASTCALL convert_argb32_from_prgb32_sse2(
 
     src += 16;
     dst += 16;
-  BLIT_SSE2_LARGE_END(blt)
+  BLIT_32_SSE2_LARGE_END(blt)
 }
 
 static void FOG_FASTCALL convert_argb32_from_rgb32_sse2(
@@ -120,9 +120,9 @@ static void FOG_FASTCALL convert_argb32_from_rgb32_sse2(
 
 static void FOG_FASTCALL convert_prgb32_from_argb32_sse2(uint8_t* dst, const uint8_t* src, sysint_t w)
 {
-  BLIT_SSE2_INIT(dst, w);
+  BLIT_32_SSE2_INIT(dst, w);
 
-  BLIT_SSE2_SMALL_BEGIN(blt)
+  BLIT_32_SSE2_SMALL_BEGIN(blt)
     __m128i src0mm;
 
     pix_load4(src0mm, src);
@@ -133,9 +133,9 @@ static void FOG_FASTCALL convert_prgb32_from_argb32_sse2(uint8_t* dst, const uin
 
     dst += 4;
     src += 4;
-  BLIT_SSE2_SMALL_END(blt)
+  BLIT_32_SSE2_SMALL_END(blt)
 
-  BLIT_SSE2_LARGE_BEGIN(blt)
+  BLIT_32_SSE2_LARGE_BEGIN(blt)
     __m128i src0mm;
     __m128i src1mm;
 
@@ -147,14 +147,14 @@ static void FOG_FASTCALL convert_prgb32_from_argb32_sse2(uint8_t* dst, const uin
 
     dst += 16;
     src += 16;
-  BLIT_SSE2_LARGE_END(blt)
+  BLIT_32_SSE2_LARGE_END(blt)
 }
 
 static void FOG_FASTCALL convert_prgb32_from_argb32_bs_sse2(uint8_t* dst, const uint8_t* src, sysint_t w)
 {
-  BLIT_SSE2_INIT(dst, w);
+  BLIT_32_SSE2_INIT(dst, w);
 
-  BLIT_SSE2_SMALL_BEGIN(blt)
+  BLIT_32_SSE2_SMALL_BEGIN(blt)
     __m128i src0mm;
 
     pix_load4(src0mm, src);
@@ -166,9 +166,9 @@ static void FOG_FASTCALL convert_prgb32_from_argb32_bs_sse2(uint8_t* dst, const 
 
     dst += 4;
     src += 4;
-  BLIT_SSE2_SMALL_END(blt)
+  BLIT_32_SSE2_SMALL_END(blt)
 
-  BLIT_SSE2_LARGE_BEGIN(blt)
+  BLIT_32_SSE2_LARGE_BEGIN(blt)
     __m128i src0mm;
     __m128i src1mm;
 
@@ -181,14 +181,14 @@ static void FOG_FASTCALL convert_prgb32_from_argb32_bs_sse2(uint8_t* dst, const 
 
     dst += 16;
     src += 16;
-  BLIT_SSE2_LARGE_END(blt)
+  BLIT_32_SSE2_LARGE_END(blt)
 }
 
 static void FOG_FASTCALL convert_prgb32_bs_from_argb32_sse2(uint8_t* dst, const uint8_t* src, sysint_t w)
 {
-  BLIT_SSE2_INIT(dst, w);
+  BLIT_32_SSE2_INIT(dst, w);
 
-  BLIT_SSE2_SMALL_BEGIN(blt)
+  BLIT_32_SSE2_SMALL_BEGIN(blt)
     __m128i src0mm;
 
     pix_load4(src0mm, src);
@@ -200,9 +200,9 @@ static void FOG_FASTCALL convert_prgb32_bs_from_argb32_sse2(uint8_t* dst, const 
 
     dst += 4;
     src += 4;
-  BLIT_SSE2_SMALL_END(blt)
+  BLIT_32_SSE2_SMALL_END(blt)
 
-  BLIT_SSE2_LARGE_BEGIN(blt)
+  BLIT_32_SSE2_LARGE_BEGIN(blt)
     __m128i src0mm;
     __m128i src1mm;
 
@@ -215,7 +215,7 @@ static void FOG_FASTCALL convert_prgb32_bs_from_argb32_sse2(uint8_t* dst, const 
 
     dst += 16;
     src += 16;
-  BLIT_SSE2_LARGE_END(blt)
+  BLIT_32_SSE2_LARGE_END(blt)
 }
 
 // ============================================================================
@@ -372,6 +372,117 @@ static void FOG_FASTCALL convert_memcpy32_sse2(uint8_t* dst, const uint8_t* src,
     case 3: copy4(dst, src); dst += 4; src += 4;
     case 2: copy4(dst, src); dst += 4; src += 4;
     case 1: copy4(dst, src); dst += 4; src += 4;
+  }
+}
+
+static void FOG_FASTCALL convert_memcpy8_sse2(uint8_t* dst, const uint8_t* src, sysint_t w);
+
+static void FOG_FASTCALL convert_memcpy24_sse2(uint8_t* dst, const uint8_t* src, sysint_t w)
+{
+  convert_memcpy8_sse2(dst, src, mul3(w));
+}
+
+static void FOG_FASTCALL convert_memcpy16_sse2(uint8_t* dst, const uint8_t* src, sysint_t w)
+{
+  convert_memcpy8_sse2(dst, src, mul2(w));
+}
+
+static void FOG_FASTCALL convert_memcpy8_sse2(uint8_t* dst, const uint8_t* src, sysint_t w)
+{
+  sysuint_t i;
+
+  if (w < 16)
+  {
+    for (i = w; i; i--, dst++, src++) dst[0] = src[0];
+  }
+  else
+  {
+    sysuint_t align = (16 - (sysuint_t(dst) & 15)) & 15;
+    w -= (sysint_t)align;
+
+    for (i = align; i; i--)
+    {
+      copy1(dst, src);
+      dst++;
+      src++;
+    }
+
+    if (((sysuint_t)src & 15) == 0)
+    {
+      for (i = w >> 6; i; i--)
+      {
+        __m128i src0mm;
+        __m128i src1mm;
+        __m128i src2mm;
+        __m128i src3mm;
+
+        _mm_prefetch((const char*)(src + 64), _MM_HINT_T0);
+
+        pix_load16a(src0mm, src + 0);
+        pix_load16a(src1mm, src + 16);
+        pix_load16a(src2mm, src + 32);
+        pix_load16a(src3mm, src + 48);
+        pix_store16a(dst + 0, src0mm);
+        pix_store16a(dst + 16, src1mm);
+        pix_store16a(dst + 32, src2mm);
+        pix_store16a(dst + 48, src3mm);
+
+        dst += 64;
+        src += 64;
+      }
+    }
+    else
+    {
+      for (i = w >> 6; i; i--)
+      {
+        __m128i src0mm;
+        __m128i src1mm;
+        __m128i src2mm;
+        __m128i src3mm;
+
+        _mm_prefetch((const char*)(src + 64), _MM_HINT_T0);
+
+        pix_load16u(src0mm, src + 0);
+        pix_load16u(src1mm, src + 16);
+        pix_load16u(src2mm, src + 32);
+        pix_load16u(src3mm, src + 48);
+        pix_store16a(dst + 0, src0mm);
+        pix_store16a(dst + 16, src1mm);
+        pix_store16a(dst + 32, src2mm);
+        pix_store16a(dst + 48, src3mm);
+
+        dst += 64;
+        src += 64;
+      }
+    }
+
+    w &= 63;
+
+    switch (w >> 2)
+    {
+      case 15: copy4(dst, src); dst += 4; src += 4;
+      case 14: copy4(dst, src); dst += 4; src += 4;
+      case 13: copy4(dst, src); dst += 4; src += 4;
+      case 12: copy4(dst, src); dst += 4; src += 4;
+      case 11: copy4(dst, src); dst += 4; src += 4;
+      case 10: copy4(dst, src); dst += 4; src += 4;
+      case 9: copy4(dst, src); dst += 4; src += 4;
+      case 8: copy4(dst, src); dst += 4; src += 4;
+      case 7: copy4(dst, src); dst += 4; src += 4;
+      case 6: copy4(dst, src); dst += 4; src += 4;
+      case 5: copy4(dst, src); dst += 4; src += 4;
+      case 4: copy4(dst, src); dst += 4; src += 4;
+      case 3: copy4(dst, src); dst += 4; src += 4;
+      case 2: copy4(dst, src); dst += 4; src += 4;
+      case 1: copy4(dst, src); dst += 4; src += 4;
+    }
+
+    switch (w & 3)
+    {
+      case 3: copy1(dst, src); dst += 1; src += 1;
+      case 2: copy1(dst, src); dst += 1; src += 1;
+      case 1: copy1(dst, src); dst += 1; src += 1;
+    }
   }
 }
 
