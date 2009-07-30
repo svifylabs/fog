@@ -177,7 +177,6 @@ static void FOG_FASTCALL raster_argb32_span_solid_a8_const_src_sse2(
 
   BLIT_SSE2_SMALL_BEGIN(blt)
     __m128i dst0mm;
-    __m128i a0mm;
 
     pix_load4(dst0mm, dst);
     pix_unpack_1x1W(dst0mm, dst0mm);
@@ -190,11 +189,10 @@ static void FOG_FASTCALL raster_argb32_span_solid_a8_const_src_sse2(
 
   BLIT_SSE2_LARGE_BEGIN(blt)
     __m128i dst0mm, dst1mm;
-    __m128i a0mm, a1mm;
 
     pix_load16a(dst0mm, dst);
     pix_unpack_2x2W(dst0mm, dst1mm, dst0mm);
-    pix_lerp_2x2W(dst0mm, src0unpacked, a0mm, m0mm, src0unpacked, m0mm);
+    pix_lerp_2x2W(dst0mm, src0unpacked, m0mm, dst1mm, src0unpacked, m0mm);
     pix_pack_2x2W(dst0mm, dst0mm, dst1mm);
     pix_store16a(dst, dst0mm);
 
@@ -1534,7 +1532,6 @@ static void FOG_FASTCALL raster_rgb32_span_solid_a8_const_src_sse2(
 
   BLIT_SSE2_SMALL_BEGIN(blt)
     __m128i dst0mm;
-    __m128i a0mm;
 
     pix_load4(dst0mm, dst);
     dst0mm = _mm_or_si128(dst0mm, MaskFF000000FF000000);
@@ -1549,7 +1546,6 @@ static void FOG_FASTCALL raster_rgb32_span_solid_a8_const_src_sse2(
 
   BLIT_SSE2_LARGE_BEGIN(blt)
     __m128i dst0mm, dst1mm;
-    __m128i a0mm, a1mm;
 
     pix_load16a(dst0mm, dst);
     dst0mm = _mm_or_si128(dst0mm, MaskFF000000FF000000);
@@ -8405,7 +8401,6 @@ static void FOG_FASTCALL raster_prgb32_span_solid_a8_const_clear_sse2(
 
   BLIT_SSE2_SMALL_BEGIN(blt)
     __m128i dst0mm;
-    __m128i a0mm;
 
     pix_load4(dst0mm, dst);
     pix_multiply_1x1W(dst0mm, dst0mm, m0mm);
@@ -8417,7 +8412,6 @@ static void FOG_FASTCALL raster_prgb32_span_solid_a8_const_clear_sse2(
 
   BLIT_SSE2_LARGE_BEGIN(blt)
     __m128i dst0mm, dst1mm;
-    __m128i a0mm, a1mm;
 
     pix_load16a(dst0mm, dst);
     pix_unpack_2x2W(dst0mm, dst1mm, dst0mm);
@@ -8540,7 +8534,6 @@ static void FOG_FASTCALL raster_rgb32_span_solid_a8_const_clear_sse2(
 
   BLIT_SSE2_SMALL_BEGIN(blt)
     __m128i dst0mm;
-    __m128i a0mm;
 
     pix_load4(dst0mm, dst);
     pix_multiply_1x1W(dst0mm, dst0mm, m0mm);
@@ -8553,7 +8546,6 @@ static void FOG_FASTCALL raster_rgb32_span_solid_a8_const_clear_sse2(
 
   BLIT_SSE2_LARGE_BEGIN(blt)
     __m128i dst0mm, dst1mm;
-    __m128i a0mm, a1mm;
 
     pix_load16a(dst0mm, dst);
     pix_unpack_2x2W(dst0mm, dst1mm, dst0mm);

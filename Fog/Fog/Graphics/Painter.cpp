@@ -3285,29 +3285,57 @@ void RasterEngine::_renderBoxes(const Box* box, sysuint_t count)
     Raster::PatternContext* pctx = ctx.pctx;
     if (!pctx) return;
 
-    uint8_t* pbuf = ctx.getBuffer(Raster::mul4(ctx.clipState->clipBox.width()));
-    if (!pbuf) return;
-
+    uint32_t op = ctx.capsState->op;
     Raster::SpanCompositeFn span_composite = ctx.raster->span_composite[pctx->format];
 
-    for (sysuint_t i = 0; i < count; i++)
+    // Fastpath: Do not copy pattern to extra buffer, if compositing operation
+    // is copy. We need to check for pixel formats and operator.
+    if (_format == pctx->format && (op == CompositeSrc || (op == CompositeSrcOver && _format == Image::FormatRGB32)))
     {
-      int x = box[i].x1();
-      int y = box[i].y1();
+      for (sysuint_t i = 0; i < count; i++)
+      {
+        int x = box[i].x1();
+        int y = box[i].y1();
 
-      int w = box[i].width();
-      if (w <= 0) continue;
-      int h = box[i].height();
-      if (h <= 0) continue;
+        int w = box[i].width();
+        if (w <= 0) continue;
+        int h = box[i].height();
+        if (h <= 0) continue;
 
-      uint8_t* pCur = pBuf + (sysint_t)y * stride + (sysint_t)x * bpp;
-      do {
-        span_composite(pCur, 
-          pctx->fetch(pctx, pbuf, x, y, w),
-          (sysuint_t)w);
-        pCur += stride;
-        y++;
-      } while (--h);
+        uint8_t* pCur = pBuf + (sysint_t)y * stride + (sysint_t)x * bpp;
+        do {
+          uint8_t* f = pctx->fetch(pctx, pCur, x, y, w);
+          if (f != pCur) span_composite(pCur, f, w);
+
+          pCur += stride;
+          y++;
+        } while (--h);
+      }
+    }
+    else
+    {
+      uint8_t* pbuf = ctx.getBuffer(Raster::mul4(ctx.clipState->clipBox.width()));
+      if (!pbuf) return;
+
+      for (sysuint_t i = 0; i < count; i++)
+      {
+        int x = box[i].x1();
+        int y = box[i].y1();
+
+        int w = box[i].width();
+        if (w <= 0) continue;
+        int h = box[i].height();
+        if (h <= 0) continue;
+
+        uint8_t* pCur = pBuf + (sysint_t)y * stride + (sysint_t)x * bpp;
+        do {
+          span_composite(pCur, 
+            pctx->fetch(pctx, pbuf, x, y, w),
+            (sysuint_t)w);
+          pCur += stride;
+          y++;
+        } while (--h);
+      }
     }
   }
 }
@@ -3488,30 +3516,59 @@ void RasterEngine::_renderBoxesMT(RasterEngineContext* ctx, int offset, int delt
     Raster::PatternContext* pctx = ctx->pctx;
     if (!pctx) return;
 
-    uint8_t* pbuf = ctx->getBuffer(Raster::mul4(ctx->clipState->clipBox.width()));
-    if (!pbuf) return;
-
     Raster::SpanCompositeFn span_composite = ctx->raster->span_composite[pctx->format];
+    uint32_t op = ctx->capsState->op;
 
-    for (sysuint_t i = 0; i < count; i++)
+    // Fastpath: Do not copy pattern to extra buffer, if compositing operation
+    // is copy. We need to check for pixel formats and operator.
+    if (_format == pctx->format && (op == CompositeSrc || (op == CompositeSrcOver && _format == Image::FormatRGB32)))
     {
-      int x1 = box[i].x1();
-      int y1 = box[i].y1();
-      int y2 = box[i].y2();
-      int w = box[i].width();
-      if (w <= 0) continue;
+      for (sysuint_t i = 0; i < count; i++)
+      {
+        int x1 = box[i].x1();
+        int y1 = box[i].y1();
+        int y2 = box[i].y2();
+        int w = box[i].width();
+        if (w <= 0) continue;
 
-      y1 = alignToDelta(y1, offset, delta);
-      if (y1 >= y2) continue;
+        y1 = alignToDelta(y1, offset, delta);
+        if (y1 >= y2) continue;
 
-      uint8_t* pCur = pBuf + (sysint_t)y1 * stride + (sysint_t)x1 * bpp;
-      do {
-        span_composite(pCur,
-          pctx->fetch(pctx, pbuf, x1, y1, w),
-          (sysuint_t)w);
-        pCur += strideWithDelta;
-        y1 += delta;
-      } while (y1 < y2);
+        uint8_t* pCur = pBuf + (sysint_t)y1 * stride + (sysint_t)x1 * bpp;
+        do {
+          uint8_t* f = pctx->fetch(pctx, pCur, x1, y1, w);
+          if (f != pCur) span_composite(pCur, f, w);
+
+          pCur += strideWithDelta;
+          y1 += delta;
+        } while (y1 < y2);
+      }
+    }
+    else
+    {
+      uint8_t* pbuf = ctx->getBuffer(Raster::mul4(ctx->clipState->clipBox.width()));
+      if (!pbuf) return;
+
+      for (sysuint_t i = 0; i < count; i++)
+      {
+        int x1 = box[i].x1();
+        int y1 = box[i].y1();
+        int y2 = box[i].y2();
+        int w = box[i].width();
+        if (w <= 0) continue;
+
+        y1 = alignToDelta(y1, offset, delta);
+        if (y1 >= y2) continue;
+
+        uint8_t* pCur = pBuf + (sysint_t)y1 * stride + (sysint_t)x1 * bpp;
+        do {
+          span_composite(pCur,
+            pctx->fetch(pctx, pbuf, x1, y1, w),
+            (sysuint_t)w);
+          pCur += strideWithDelta;
+          y1 += delta;
+        } while (y1 < y2);
+      }
     }
   }
 }

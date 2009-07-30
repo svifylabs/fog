@@ -146,8 +146,6 @@ struct MyWindow : public Window
 
   virtual void onTimer(TimerEvent* e);
 
-  void bench();
-
   Button button1;
   Timer timer;
   double r;
@@ -221,7 +219,6 @@ void MyWindow::onKey(KeyEvent* e)
     {
       case KeyQ: r += 1.0; repaint(RepaintWidget); break;
       case KeyW: r -= 1.0; repaint(RepaintWidget); break;
-      case KeyB: bench(); break;
     }
   }
 
@@ -230,24 +227,10 @@ void MyWindow::onKey(KeyEvent* e)
 
 void MyWindow::onPaint(PaintEvent* e)
 {
+  TimeTicks ticks = TimeTicks::highResNow();
   Painter* p = e->painter();
 
   double w = width(), h = height();
-
-  Image im0 = makeImage();
-  Image im1;
-  Image im2;
-  Image im3;
-
-  BlurImageFilter(BlurImageFilter::BlurTypeBox, r, r, ImageFilter::BorderModeColor, 0x00000000).filterImage(im1, im0);
-  BlurImageFilter(BlurImageFilter::BlurTypeStack, r, r, ImageFilter::BorderModeColor, 0x00000000).filterImage(im2, im0);
-  //BlurImageFilter(BlurImageFilter::BlurTypeGaussian, r, r, ImageFilter::BorderModeColor, 0x00000000).filterImage(im3, im0);
-
-  //float kernel[] = { -3.0, -1.5, -1.0, -2.0, 1.0, -2.0, -1.0, -1.5, -3.0 };
-  //int size = 9;
-  //float div = 0.0;
-  //for (int i = 0; i < size; i++) div += kernel[i];
-  //ImageFx::convolveSymmetricFloat(im3, im0, kernel, size, div, kernel, size, div, ImageFx::EdgeModeAuto, 0);
 
   {
     Pattern pattern;
@@ -259,10 +242,14 @@ void MyWindow::onPaint(PaintEvent* e)
     p->clear();
   }
 
-  //im0.convert(Image::FormatARGB32);
-  //im1.convert(Image::FormatARGB32);
-  //im2.convert(Image::FormatARGB32);
-  //im3.convert(Image::FormatARGB32);
+  Image im0 = makeImage();
+  Image im1;
+  Image im2;
+  Image im3;
+
+  BlurImageFilter(BlurImageFilter::BlurTypeBox, r, r, ImageFilter::BorderModeColor, 0x00000000).filterImage(im1, im0);
+  BlurImageFilter(BlurImageFilter::BlurTypeStack, r, r, ImageFilter::BorderModeColor, 0x00000000).filterImage(im2, im0);
+  //BlurImageFilter(BlurImageFilter::BlurTypeGaussian, r, r, ImageFilter::BorderModeColor, 0x00000000).filterImage(im3, im0);
 
   p->drawImage(Point(50, 50 + (im1.height() + 10) * 0), im1);
   p->drawImage(Point(50, 50 + (im1.height() + 10) * 1), im2);
@@ -295,49 +282,18 @@ void MyWindow::onPaint(PaintEvent* e)
     }
   }
 */
+  p->flush();
+  double t = (TimeTicks::highResNow() - ticks).inMillisecondsF();
+
   String32 a;
-  a.setDouble(r);
-  Application::getApplicationCommand(a);
+  a.format("TIME: %g [ms]", t);
   p->setSource(0xFF000000);
-  p->drawText(Rect(0, 0, w, 20), a, font(), TextAlignCenter);
+  p->drawText(Rect(0, 0, w, 20), a, font(), TextAlignRight);
 }
 
 void MyWindow::onTimer(TimerEvent* e)
 {
   //repaint(RepaintWidget);
-}
-
-void MyWindow::bench()
-{
-  TimeTicks td;
-
-  Image src = makeImage();
-  Image dst;
-  int i, count = 1000;
-
-  fog_debug("Benchmarking, radius: %g", r);
-
-  td = TimeTicks::highResNow();
-  for (i = 0; i < count; i++)
-  {
-    BlurImageFilter(ImageFilter::BlurTypeBox, r, r, ImageFilter::BorderModeExtend, 0xFF000000).filterImage(dst, src);
-  }
-  fog_debug("Box blur: %f", (TimeTicks::highResNow() - td).inMillisecondsF());
-
-  td = TimeTicks::highResNow();
-  for (i = 0; i < count; i++)
-  {
-    BlurImageFilter(ImageFilter::BlurTypeStack, r, r, ImageFilter::BorderModeExtend, 0xFF000000).filterImage(dst, src);
-  }
-  fog_debug("Stack blur: %f", (TimeTicks::highResNow() - td).inMillisecondsF());
-/*
-  td = TimeTicks::highResNow();
-  for (i = 0; i < count; i++)
-  {
-    ImageFx::gaussianBlur(dst, src, r, r, ImageFilter::BorderModeExtend, 0xFF000000);
-  }
-  fog_debug("Gaussian blur: %f", (TimeTicks::highResNow() - td).inMillisecondsF());
-*/
 }
 
 // ============================================================================
@@ -352,7 +308,7 @@ FOG_UI_MAIN()
 {
   Application app(Ascii8("UI"));
 
-  //fog_redirect_std_to_file("log.txt");
+  fog_redirect_std_to_file("log.txt");
 
   MyWindow window;
   window.setSize(Size(715, 515));
