@@ -127,8 +127,6 @@ FOG_UI_MAIN()
 
 #endif
 
-
-
 // ============================================================================
 // [MyWindow - Declaration]
 // ============================================================================
@@ -146,9 +144,12 @@ struct MyWindow : public Window
   virtual void onKey(KeyEvent* e);
   virtual void onPaint(PaintEvent* e);
 
+  virtual void onTimer(TimerEvent* e);
+
   void bench();
 
   Button button1;
+  Timer timer;
   double r;
 };
 
@@ -166,6 +167,10 @@ MyWindow::MyWindow(uint32_t createFlags) :
   //button1.show();
   //add(&button1);
 
+  timer.setInterval(TimeDelta::fromMilliseconds(5));
+  timer.addListener(EvTimer, this, &MyWindow::onTimer);
+  timer.start();
+
   r = 0.0;
 }
 
@@ -180,18 +185,22 @@ MyWindow::~MyWindow()
 static Image makeImage()
 {
   Image im(600, 120, Image::FormatARGB32);
-  im.clear(0x00000000);
   Painter p(im);
+
+  p.setOp(CompositeClear);
+  p.clear();
+
+  p.setOp(CompositeSrcOver);
+  p.setSource(Rgba(0xFF000000));
+  p.drawRect(Rect(0, 0, 600, 120));
 
   Font font;
   font.setFamily(Ascii8("Courier New"));
   font.setSize(80);
   font.setBold(true);
 
-  p.setOp(CompositeSrc);
+  p.setOp(CompositeSrcOver);
   p.setSource(0xFF000000);
-  p.setLineWidth(15.0);
-
   p.drawText(Rect(0, 0, p.width(), p.height()), Ascii8("Fog Library"), font, TextAlignCenter);
 
   p.end();
@@ -240,8 +249,15 @@ void MyWindow::onPaint(PaintEvent* e)
   //for (int i = 0; i < size; i++) div += kernel[i];
   //ImageFx::convolveSymmetricFloat(im3, im0, kernel, size, div, kernel, size, div, ImageFx::EdgeModeAuto, 0);
 
-  p->setSource(0xFFFFFFFF);
-  p->clear();
+  {
+    Pattern pattern;
+    pattern.setType(Pattern::LinearGradient);
+    pattern.setPoints(PointF(0, 0), PointF(w, h));
+    pattern.addGradientStop(GradientStop(0.0, Rgba(0xFFFFFF00)));
+    pattern.addGradientStop(GradientStop(1.0, Rgba(0xFFFF0000)));
+    p->setSource(pattern);
+    p->clear();
+  }
 
   //im0.convert(Image::FormatARGB32);
   //im1.convert(Image::FormatARGB32);
@@ -286,6 +302,11 @@ void MyWindow::onPaint(PaintEvent* e)
   p->drawText(Rect(0, 0, w, 20), a, font(), TextAlignCenter);
 }
 
+void MyWindow::onTimer(TimerEvent* e)
+{
+  //repaint(RepaintWidget);
+}
+
 void MyWindow::bench()
 {
   TimeTicks td;
@@ -323,26 +344,6 @@ void MyWindow::bench()
 // [MAIN]
 // ============================================================================
 
-static void test()
-{
-  uint32_t cDst = 0x7F7FFF00;
-  uint32_t cSrc = 0x7F7F00FF;
-
-  Raster::Solid source;
-  source.rgba = cSrc;
-  source.rgbp = Raster::premultiply(cSrc);
-
-  uint32_t adst = cDst;
-  uint32_t pdst = Raster::premultiply(cDst);
-
-  Raster::functionMap->raster[Image::FormatARGB32][CompositeSrcOver].pixel((uint8_t*)(&adst), &source);
-  Raster::functionMap->raster[Image::FormatPRGB32][CompositeSrcOver].pixel((uint8_t*)(&pdst), &source);
-
-  fog_debug("adst     = %.8X", adst);
-  fog_debug("adst (P) = %.8X", Raster::premultiply(adst));
-  fog_debug("pdst     = %.8X", pdst);
-}
-
 #if defined(FOG_OS_WINDOWS)
 int FOG_STDCALL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 #else
@@ -352,7 +353,6 @@ FOG_UI_MAIN()
   Application app(Ascii8("UI"));
 
   //fog_redirect_std_to_file("log.txt");
-  test();
 
   MyWindow window;
   window.setSize(Size(715, 515));
