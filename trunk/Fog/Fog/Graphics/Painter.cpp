@@ -2628,7 +2628,7 @@ void RasterEngine::_updateWorkRegion()
       else
       {
         // Fast path.
-        Region::subtract(
+        Region::intersect(
           ctx.clipState->workRegion,
           ctx.clipState->workRegion,
           ctx.clipState->userRegion);
