@@ -35,25 +35,41 @@ namespace Raster {
 //
 // The two loops are named SMALL and LARGE.
 //
-// BLIT_SSE2_INIT(dst, w) - This macro will declare '_i' variable that contains
-// initial value for small loop and '_j' variable that contains count of pixels to
-// process in tail loop. It also modifies _w variable to contain only how many cycles
-// will be processed by large loop (4 pixels at time), not whole width in pixels.
+// BLIT_[32/24/8]_SSE2_INIT(dst, w) - This macro will declare '_i' variable that
+// contains initial value for small loop and '_j' variable that contains count
+// of pixels to process in tail loop. It also modifies _w variable to contain
+// only how many cycles will be processed by large loop (4 pixels at time), not
+// whole width in pixels.
 //
-// 1 pixel at time:
-// - BLIT_SSE2_SMALL_BEGIN(dst) - Small loop begin.
-// - BLIT_SSE2_SMALL_END(dst) - Small loop end.
+// 32-bit entities:
+//   - 1 pixel at time:
+//     - BLIT_32_SSE2_SMALL_BEGIN(dst) - Small loop begin.
+//     - BLIT_32_SSE2_SMALL_END(dst) - Small loop end.
 //
-// 4 pixels at time:
-// - BLIT_SSE2_LARGE_BEGIN(dst) - Main loop begin.
-// - BLIT_SSE2_LARGE_END(dst) - Main loop end.
+//   - 4 pixels at time:
+//     - BLIT_32_SSE2_LARGE_BEGIN(dst) - Main loop begin.
+//     - BLIT_32_SSE2_LARGE_END(dst) - Main loop end.
+//
+// 24-bit entities:
+//   - TODO
+//
+// 8-bit entities:
+//   - 1 pixel at time:
+//     - BLIT_8_SSE2_SMALL_BEGIN(dst) - Small loop begin.
+//     - BLIT_8_SSE2_SMALL_END(dst) - Small loop end.
+//
+//   - 16 pixels at time:
+//     - BLIT_8_SSE2_LARGE_BEGIN(dst) - Main loop begin.
+//     - BLIT_8_SSE2_LARGE_END(dst) - Main loop end.
 //
 // Because compilers can be quite missed from our machinery, it's needed
 // to follow some rules to help them to optimize this code:
 // - declare temporary variables (mainly sse2 registers) in local loop scope.
-// - do not add anything between BLIT_SSE2_SMALL_END and BLIT_SSE2_LARGE_BEGIN.
+// - do not add anything between BLIT_32_SSE2_SMALL_END and BLIT_32_SSE2_LARGE_BEGIN.
 
-#define BLIT_SSE2_INIT(_dst, _w) \
+// 32-bit entities:
+
+#define BLIT_32_SSE2_INIT(_dst, _w) \
   sysuint_t _i = (sysuint_t)_w; \
   sysuint_t _j = 0; \
   \
@@ -71,21 +87,68 @@ namespace Raster {
     _w = 0; \
   }
 
-#define BLIT_SSE2_SMALL_BEGIN(group) \
+#define BLIT_32_SSE2_SMALL_BEGIN(group) \
   if (_i) \
   { \
 group: \
     do {
 
-#define BLIT_SSE2_SMALL_END(group) \
+#define BLIT_32_SSE2_SMALL_END(group) \
     } while (--_i); \
     if (!w) return; \
   } \
 
-#define BLIT_SSE2_LARGE_BEGIN(group) \
+#define BLIT_32_SSE2_LARGE_BEGIN(group) \
   do {
 
-#define BLIT_SSE2_LARGE_END(group) \
+#define BLIT_32_SSE2_LARGE_END(group) \
+  } while (--w); \
+  \
+  if ((_i = _j)) goto group; \
+  return;
+
+// 8-bit entities:
+  
+#define BLIT_8_SSE2_INIT(_dst, _w) \
+  sysuint_t _i = (sysuint_t)_w; \
+  sysuint_t _j = 0; \
+  \
+  if (_i >= 16) \
+  { \
+    sysint_t align = ((sysint_t)16 - ((sysint_t)(_dst) & 15)) & 15; \
+    \
+    if (_w - align < 16) \
+    { \
+      _w = 0; \
+    } \
+    else \
+    { \
+      _i = align; \
+      _w -= (sysint_t)_i; \
+      _j = _w & 15; \
+      _w >>= 4; \
+    } \
+  } \
+  else \
+  { \
+    _w = 0; \
+  }
+
+#define BLIT_8_SSE2_SMALL_BEGIN(group) \
+  if (_i) \
+  { \
+group: \
+    do {
+
+#define BLIT_8_SSE2_SMALL_END(group) \
+    } while (--_i); \
+    if (!w) return; \
+  } \
+
+#define BLIT_8_SSE2_LARGE_BEGIN(group) \
+  do {
+
+#define BLIT_8_SSE2_LARGE_END(group) \
   } while (--w); \
   \
   if ((_i = _j)) goto group; \

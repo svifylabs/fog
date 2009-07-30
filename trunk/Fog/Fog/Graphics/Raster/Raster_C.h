@@ -840,6 +840,35 @@ static FOG_INLINE uint32_t singlemul(uint32_t x, uint32_t y)
   return x;
 }
 
+static FOG_INLINE uint32_t singlelerp(uint32_t x, uint32_t y, uint32_t a)
+{
+  x *= a;
+  y *= a ^ 0xFF;
+  x += y;
+  x = ((x + (x >> 8) + 0x80) >> 8);
+  return x;
+}
+
+static FOG_INLINE uint32_t singleneg(uint32_t x)
+{
+  return x ^ 0xFF;
+}
+
+static FOG_INLINE uint32_t maskexpand(uint32_t x)
+{
+  x |= x << 8;
+  x |= x << 16;
+  return x;
+}
+
+static FOG_INLINE uint32_t alphaexpand(uint32_t x)
+{
+  x >>= 24;
+  x |= x << 8;
+  x |= x << 16;
+  return x;
+}
+
 static FOG_INLINE uint32_t alphamul(uint32_t x, uint32_t a)
 {
   a *= x >> 24;
