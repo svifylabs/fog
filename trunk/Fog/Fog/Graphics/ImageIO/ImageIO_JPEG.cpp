@@ -443,7 +443,7 @@ uint32_t JpegDecoderDevice::readImage(Image& image)
 
     // JPEG data are in big endian format.
 #if FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
-    Raster::functionMap->convert.bswap24(rowptr[0], rowptr[0], cinfo.output_width);
+    Raster::functionMap->convert.bswap24(rowptr[0], rowptr[0], cinfo.output_width, NULL);
 #endif // FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
 
     if ((cinfo.output_scanline & 15) == 0)
