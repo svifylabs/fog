@@ -1820,7 +1820,7 @@ void UIBackingStoreX11::updateRects(const Box* rects, sysuint_t count)
         case 32:
           while (y1 < y2)
           {
-            ((Raster::ConvertPlainFn)_convertFunc)(dstCur, srcCur, w);
+            ((Raster::ConvertPlainFn)_convertFunc)(dstCur, srcCur, w, NULL);
             y1++;
           }
           break;
