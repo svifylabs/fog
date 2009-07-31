@@ -296,6 +296,49 @@ static void FOG_FASTCALL convert_rgb32_from_bgr24_sse2(
 }
 
 // ============================================================================
+// [Fog::Raster - Convert - A8 Dest]
+// ============================================================================
+
+static void FOG_FASTCALL convert_a8_from_axxx32_sse2(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
+{
+  BLIT_8_SSE2_INIT(dst, w);
+
+  BLIT_8_SSE2_SMALL_BEGIN(blt)
+    dst[0] = src[RGB32_AByte];
+
+    dst += 1;
+    src += 4;
+  BLIT_8_SSE2_SMALL_END(blt)
+
+  BLIT_8_SSE2_LARGE_BEGIN(blt)
+    __m128i src0mm;
+    __m128i src1mm;
+
+    pix_load_and_unpack_axxx32_64B(src0mm, src1mm, src);
+    pix_pack_2x2W(src0mm, src0mm, src1mm);
+    pix_store16a(dst, src0mm);
+
+    dst += 16;
+    src += 64;
+  BLIT_8_SSE2_LARGE_END(blt)
+}
+
+static void FOG_FASTCALL convert_a8_from_i8_sse2(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
+{
+  const uint32_t* srcPal = (const uint32_t*)closure->srcPalette;
+
+  for (sysint_t i = w; i; i--)
+  {
+    dst[0] = ((const uint8_t*)&srcPal[src[0]])[RGB32_AByte];
+
+    dst += 1;
+    src += 1;
+  }
+}
+
+// ============================================================================
 // [Fog::Raster - Convert - MemCpy]
 // ============================================================================
 

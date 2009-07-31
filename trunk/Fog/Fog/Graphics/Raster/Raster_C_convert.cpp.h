@@ -1139,6 +1139,38 @@ static void FOG_FASTCALL convert_rgb16_5650_bs_from_i8(
 }
 
 // ============================================================================
+// [Fog::Raster - Convert - A8 Dest]
+// ============================================================================
+
+static void FOG_FASTCALL convert_a8_from_axxx32_sse2(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
+{
+  src += RGB32_AByte;
+
+  for (sysint_t i = w; i; i--)
+  {
+    dst[0] = src[0];
+
+    dst += 1;
+    src += 4;
+  }
+}
+
+static void FOG_FASTCALL convert_a8_from_i8_sse2(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
+{
+  const uint32_t* srcPal = (const uint32_t*)closure->srcPalette;
+
+  for (sysint_t i = w; i; i--)
+  {
+    dst[0] = ((const uint8_t*)&srcPal[src[0]])[RGB32_AByte];
+
+    dst += 1;
+    src += 1;
+  }
+}
+
+// ============================================================================
 // [Fog::Raster - Convert - Greyscale]
 // ============================================================================
 

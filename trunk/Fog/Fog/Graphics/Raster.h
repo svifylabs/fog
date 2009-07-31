@@ -317,6 +317,12 @@ struct FunctionMap
     ConvertPlainFn rgb16_5650_bs_from_rgb24;
     ConvertPlainFn rgb16_5650_bs_from_i8;
 
+    // [A8 Dest]
+
+    ConvertPlainFn a8_from_axxx32;
+    ConvertPlainFn a8_from_axxx32_bs;
+    ConvertPlainFn a8_from_i8;
+
     // [Greyscale]
 
     ConvertPlainFn greyscale8_from_rgb32;
