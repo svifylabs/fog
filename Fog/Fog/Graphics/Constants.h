@@ -12,7 +12,7 @@
 
 namespace Fog {
 
-//! @brief Image compositing operators.
+//! @brief Image compositing operator.
 //!
 //! @note Many values and formulas are from antigrain and from SVG specification
 //! that can be found here: 
@@ -148,6 +148,7 @@ enum CompositeOp
   //! Formulas for premultiplied colorspace:
   //!   Dca' = Dca - Sca
   //!   Da'  = 1 - (1 - Sa).(1 - Da)
+  //!        = Sa + Da - Sa.Da
   CompositeSubtract,
 
   //! @brief The source is multiplied by the destination and replaces 

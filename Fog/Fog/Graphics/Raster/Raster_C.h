@@ -854,6 +854,14 @@ static FOG_INLINE uint32_t singleneg(uint32_t x)
   return x ^ 0xFF;
 }
 
+static FOG_INLINE uint32_t singleaddsat(uint32_t x, uint32_t y)
+{
+  x += y;
+  x |= 0x0100U - ((x >> 8) & 0x00FFU);
+  x &= 0x00FF;
+  return x;
+}
+
 static FOG_INLINE uint32_t singleexpand(uint32_t x)
 {
   x |= x << 8;
