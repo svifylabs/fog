@@ -512,6 +512,36 @@ static FOG_INLINE void pix_expand_alpha_rev_2x2W(
   dst1 = _mm_shufflehi_epi16(dst1, _MM_SHUFFLE(0, 0, 0, 0));
 }
 
+// Add.
+
+static FOG_INLINE void pix_addsat_1x4B(
+  __m128i& dst0, const __m128i& a0, const __m128i& b0)
+{
+  dst0 = _mm_adds_epu8(a0, b0);
+}
+
+static FOG_INLINE void pix_addsat_2x4B(
+  __m128i& dst0, const __m128i& a0, const __m128i& b0,
+  __m128i& dst1, const __m128i& a1, const __m128i& b1)
+{
+  dst0 = _mm_adds_epu8(a0, b0);
+  dst1 = _mm_adds_epu8(a1, b1);
+}
+
+static FOG_INLINE void pix_addsat_1x1W(
+  __m128i& dst0, const __m128i& a0, const __m128i& b0)
+{
+  dst0 = _mm_adds_epu8(a0, b0);
+}
+
+static FOG_INLINE void pix_addsat_2x2W(
+  __m128i& dst0, const __m128i& a0, const __m128i& b0,
+  __m128i& dst1, const __m128i& a1, const __m128i& b1)
+{
+  dst0 = _mm_adds_epu8(a0, b0);
+  dst1 = _mm_adds_epu8(a1, b1);
+}
+
 // Expand Mask.
 
 static FOG_INLINE void pix_expand_mask_1x1W(
