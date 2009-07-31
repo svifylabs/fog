@@ -46,19 +46,26 @@ static void fog_raster_set_nops(Fog::Raster::FunctionMap::RasterFuncs* ops)
   ops->span_solid = raster_span_solid_nop;
   ops->span_solid_a8 = raster_span_solid_a8_nop;
 
-  ops->span_composite[Image::FormatARGB32] = raster_span_composite_nop;
-  ops->span_composite[Image::FormatPRGB32] = raster_span_composite_nop;
-  ops->span_composite[Image::FormatRGB32] = raster_span_composite_nop;
-  ops->span_composite[Image::FormatRGB24] = raster_span_composite_nop;
-  ops->span_composite[Image::FormatA8] = raster_span_composite_nop;
-  ops->span_composite_indexed[Image::FormatI8] = raster_span_composite_indexed_nop;
+  ops->span_composite[Image::FormatARGB32] = (SpanCompositeFn)raster_span_solid_nop;
+  ops->span_composite[Image::FormatPRGB32] = (SpanCompositeFn)raster_span_solid_nop;
+  ops->span_composite[Image::FormatRGB32] = (SpanCompositeFn)raster_span_solid_nop;
+  ops->span_composite[Image::FormatRGB24] = (SpanCompositeFn)raster_span_solid_nop;
+  ops->span_composite[Image::FormatA8] = (SpanCompositeFn)raster_span_solid_nop;
+  ops->span_composite[Image::FormatI8] = (SpanCompositeFn)raster_span_solid_nop;
 
-  ops->span_composite_a8[Image::FormatARGB32] = raster_span_composite_a8_nop;
-  ops->span_composite_a8[Image::FormatPRGB32] = raster_span_composite_a8_nop;
-  ops->span_composite_a8[Image::FormatRGB32] = raster_span_composite_a8_nop;
-  ops->span_composite_a8[Image::FormatRGB24] = raster_span_composite_a8_nop;
-  ops->span_composite_a8[Image::FormatA8] = raster_span_composite_a8_nop;
-  ops->span_composite_indexed_a8[Image::FormatI8] = raster_span_composite_indexed_a8_nop;
+  ops->span_composite_a8[Image::FormatARGB32] = (SpanCompositeMskFn)raster_span_solid_a8_nop;
+  ops->span_composite_a8[Image::FormatPRGB32] = (SpanCompositeMskFn)raster_span_solid_a8_nop;
+  ops->span_composite_a8[Image::FormatRGB32] = (SpanCompositeMskFn)raster_span_solid_a8_nop;
+  ops->span_composite_a8[Image::FormatRGB24] = (SpanCompositeMskFn)raster_span_solid_a8_nop;
+  ops->span_composite_a8[Image::FormatA8] = (SpanCompositeMskFn)raster_span_solid_a8_nop;
+  ops->span_composite_a8[Image::FormatI8] = (SpanCompositeMskFn)raster_span_solid_a8_nop;
+
+  ops->span_composite_a8_const[Image::FormatARGB32] = (SpanCompositeMskConstFn)raster_span_solid_a8_const_nop;
+  ops->span_composite_a8_const[Image::FormatPRGB32] = (SpanCompositeMskConstFn)raster_span_solid_a8_const_nop;
+  ops->span_composite_a8_const[Image::FormatRGB32] = (SpanCompositeMskConstFn)raster_span_solid_a8_const_nop;
+  ops->span_composite_a8_const[Image::FormatRGB24] = (SpanCompositeMskConstFn)raster_span_solid_a8_const_nop;
+  ops->span_composite_a8_const[Image::FormatA8] = (SpanCompositeMskConstFn)raster_span_solid_a8_const_nop;
+  ops->span_composite_a8_const[Image::FormatI8] = (SpanCompositeMskConstFn)raster_span_solid_a8_const_nop;
 }
 
 FOG_INIT_DECLARE void fog_raster_init_c(void)
@@ -270,42 +277,6 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   // TODO
 
   // [Raster - CompositeAdd]
-
-  // TODO
-
-  // [Raster - CompositeSubtract]
-
-  // TODO
-
-  // [Raster - CompositeMultiply]
-
-  // TODO
-
-  // [Raster - CompositeScreen]
-
-  // TODO
-
-  // [Raster - CompositeDarken]
-
-  // TODO
-
-  // [Raster - CompositeLighten]
-
-  // TODO
-
-  // [Raster - CompositeDifference]
-
-  // TODO
-
-  // [Raster - CompositeExclusion]
-
-  // TODO
-
-  // [Raster - CompositeInvert]
-
-  // TODO
-
-  // [Raster - CompositeInvertRgb]
 
   // TODO
 

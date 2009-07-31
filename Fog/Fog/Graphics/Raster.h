@@ -32,22 +32,31 @@ struct Solid
   uint32_t rgbp;
 };
 
+//! @brief Closure structure that is passed to each compositing or blitting 
+//! method.
+struct Closure
+{
+  //! @brief Compositing object or NULL if not used.
+  const void* closure;
+  //! @brief If source pixels are indexed, here is link to 256 color entries.
+  const Rgba* srcPalette;
+  //! @brief If destination pixels are indexed, here is link to 256 color entries.
+  const Rgba* dstPalette;
+};
+
 // ============================================================================
 // [Fog::Raster - Function Map]
 // ============================================================================
 
 // Converters
 typedef void (FOG_FASTCALL *ConvertPlainFn)(
-  uint8_t* dst, const uint8_t* src, sysint_t w);
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure);
 
 typedef void (FOG_FASTCALL *ConvertDither8Fn)(
   uint8_t* dst, const uint8_t* src, sysint_t w, const Point& origin, const uint8_t* palConv);
 
 typedef void (FOG_FASTCALL *ConvertDither16Fn)(
   uint8_t* dst, const uint8_t* src, sysint_t w, const Point& origin);
-
-typedef void (FOG_FASTCALL *ConvertIndexedFn)(
-  uint8_t* dst, const uint8_t* src, sysint_t w, const Rgba* pal);
 
 // Gradient
 typedef void (FOG_FASTCALL *GradientSpanFn)(
@@ -56,33 +65,23 @@ typedef void (FOG_FASTCALL *GradientSpanFn)(
 
 // Raster
 typedef void (FOG_FASTCALL *PixelFn)(
-  uint8_t* dst, const Solid* src);
+  uint8_t* dst, const Solid* src, const Closure* closure);
 typedef void (FOG_FASTCALL *PixelMskFn)(
-  uint8_t* dst, const Solid* src, uint32_t msk);
+  uint8_t* dst, const Solid* src, uint32_t msk, const Closure* closure);
 
 typedef void (FOG_FASTCALL *SpanSolidFn)(
-  uint8_t* dst, const Solid* src, sysint_t w);
+  uint8_t* dst, const Solid* src, sysint_t w, const Closure* closure);
 typedef void (FOG_FASTCALL *SpanSolidMskFn)(
-  uint8_t* dst, const Solid* src, const uint8_t* msk, sysint_t w);
+  uint8_t* dst, const Solid* src, const uint8_t* msk, sysint_t w, const Closure* closure);
 typedef void (FOG_FASTCALL *SpanSolidMskConstFn)(
-  uint8_t* dst, const Solid* src, uint32_t msk, sysint_t w);
+  uint8_t* dst, const Solid* src, uint32_t msk, sysint_t w, const Closure* closure);
 
 typedef void (FOG_FASTCALL *SpanCompositeFn)(
-  uint8_t* dst, const uint8_t* src, sysint_t w);
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure);
 typedef void (FOG_FASTCALL *SpanCompositeMskFn)(
-  uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w);
+  uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w, const Closure* closure);
 typedef void (FOG_FASTCALL *SpanCompositeMskConstFn)(
-  uint8_t* dst, const uint8_t* src, uint32_t msk, sysint_t w);
-
-typedef void (FOG_FASTCALL *SpanCompositeIndexedFn)(
-  uint8_t* dst, const uint8_t* src, sysint_t w,
-  const Rgba* pal);
-typedef void (FOG_FASTCALL *SpanCompositeIndexedMskFn)(
-  uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w,
-  const Rgba* pal);
-typedef void (FOG_FASTCALL *SpanCompositeIndexedMskConstFn)(
-  uint8_t* dst, const uint8_t* src, uint32_t msk, sysint_t w,
-  const Rgba* pal);
+  uint8_t* dst, const uint8_t* src, uint32_t msk, sysint_t w, const Closure* closure);
 
 // Pattern
 struct PatternContext;
@@ -268,10 +267,10 @@ struct FunctionMap
 
     ConvertPlainFn prgb32_from_argb32;
     ConvertPlainFn prgb32_from_argb32_bs;
-    ConvertIndexedFn prgb32_from_i8;
+    ConvertPlainFn prgb32_from_i8;
 
     ConvertPlainFn prgb32_bs_from_argb32;
-    ConvertIndexedFn prgb32_bs_from_i8;
+    ConvertPlainFn prgb32_bs_from_i8;
 
     // [Rgb32 Dest]
 
@@ -283,7 +282,7 @@ struct FunctionMap
     ConvertPlainFn rgb32_from_rgb16_5550_bs;
     ConvertPlainFn rgb32_from_rgb16_5650;
     ConvertPlainFn rgb32_from_rgb16_5650_bs;
-    ConvertIndexedFn rgb32_from_i8;
+    ConvertPlainFn rgb32_from_i8;
 
     ConvertPlainFn rgb32_bs_from_rgb24;
 
@@ -295,34 +294,34 @@ struct FunctionMap
     ConvertPlainFn rgb24_from_rgb16_5550_bs;
     ConvertPlainFn rgb24_from_rgb16_5650;
     ConvertPlainFn rgb24_from_rgb16_5650_bs;
-    ConvertIndexedFn rgb24_from_i8;
+    ConvertPlainFn rgb24_from_i8;
 
     ConvertPlainFn bgr24_from_rgb32;
-    ConvertIndexedFn bgr24_from_i8;
+    ConvertPlainFn bgr24_from_i8;
 
     // [Rgb16 Dest]
 
     ConvertPlainFn rgb16_5550_from_rgb32;
     ConvertPlainFn rgb16_5550_from_rgb24;
-    ConvertIndexedFn rgb16_5550_from_i8;
+    ConvertPlainFn rgb16_5550_from_i8;
 
     ConvertPlainFn rgb16_5650_from_rgb32;
     ConvertPlainFn rgb16_5650_from_rgb24;
-    ConvertIndexedFn rgb16_5650_from_i8;
+    ConvertPlainFn rgb16_5650_from_i8;
 
     ConvertPlainFn rgb16_5550_bs_from_rgb32;
     ConvertPlainFn rgb16_5550_bs_from_rgb24;
-    ConvertIndexedFn rgb16_5550_bs_from_i8;
+    ConvertPlainFn rgb16_5550_bs_from_i8;
 
     ConvertPlainFn rgb16_5650_bs_from_rgb32;
     ConvertPlainFn rgb16_5650_bs_from_rgb24;
-    ConvertIndexedFn rgb16_5650_bs_from_i8;
+    ConvertPlainFn rgb16_5650_bs_from_i8;
 
     // [Greyscale]
 
     ConvertPlainFn greyscale8_from_rgb32;
     ConvertPlainFn greyscale8_from_rgb24;
-    ConvertIndexedFn greyscale8_from_i8;
+    ConvertPlainFn greyscale8_from_i8;
 
     ConvertPlainFn rgb32_from_greyscale8;
     ConvertPlainFn rgb24_from_greyscale8;
@@ -405,6 +404,8 @@ struct FunctionMap
 
   struct RasterFuncs
   {
+    const void* closure;
+
     // [Pixel]
 
     PixelFn             pixel;
@@ -417,31 +418,13 @@ struct FunctionMap
     SpanSolidMskConstFn span_solid_a8_const;
 
     // [Span Composite]
-  
-    // NOTE: There are two versions of funtions, but you can call only one
-    // of them. The indexed version is only for Image::FormatI8. Painter and
-    // Fog library knows about this. The indexed version is only used when
-    // blitting or tiling image to destination, all transformations
-    // and other operations uses 24 bit or 32 bit formats, because it's needed
-    // for antialiasing.
 
-    union {
-      SpanCompositeFn span_composite[Image::FormatCount];
-      SpanCompositeIndexedFn span_composite_indexed[Image::FormatCount];
-    };
-
-    union {
-      SpanCompositeMskFn span_composite_a8[Image::FormatCount];
-      SpanCompositeIndexedMskFn span_composite_indexed_a8[Image::FormatCount];
-    };
-
-    union {
-      SpanCompositeMskConstFn span_composite_a8_const[Image::FormatCount];
-      SpanCompositeIndexedMskConstFn span_composite_indexed_a8_const[Image::FormatCount];
-    };
+    SpanCompositeFn span_composite[Image::FormatCount];
+    SpanCompositeMskFn span_composite_a8[Image::FormatCount];
+    SpanCompositeMskConstFn span_composite_a8_const[Image::FormatCount];
   };
-  
-  RasterFuncs raster[Image::FormatCount][CompositeCount];
+
+  RasterFuncs raster[Image::FormatCount][CompositeBuiltIn];
 
   // [Filters Table]
 

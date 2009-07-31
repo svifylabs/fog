@@ -435,7 +435,7 @@ struct FOG_HIDDEN RasterEngineSavedState
 {
   RasterEngineClipState* clipState;
   RasterEngineCapsState* capsState;
-  Raster::FunctionMap::RasterFuncs* raster;
+  Raster::FunctionMap::RasterFuncs* rops;
   Raster::PatternContext* pctx;
 };
 
@@ -558,8 +558,10 @@ struct FOG_HIDDEN RasterEngineContext
   // Capabilities state.
   RasterEngineCapsState* capsState;
 
-  Raster::FunctionMap::RasterFuncs* raster;
+  Raster::FunctionMap::RasterFuncs* rops;
   Raster::PatternContext* pctx;
+
+  Raster::Closure closure;
 
   AggScanlineP8 slP8;
   AggScanlineU8 slU8;
@@ -582,8 +584,12 @@ RasterEngineContext::RasterEngineContext()
   clipState = NULL;
   capsState = NULL;
 
-  raster = NULL;
+  rops = NULL;
   pctx = NULL;
+
+  closure.closure = NULL;
+  closure.dstPalette = NULL;
+  closure.srcPalette = NULL;
 
   buffer = bufferStatic;
   bufferSize = FOG_ARRAY_SIZE(bufferStatic);
@@ -742,7 +748,7 @@ struct FOG_HIDDEN RasterEngineCommand
   RasterEngineClipState* clipState;
   RasterEngineCapsState* capsState;
 
-  Raster::FunctionMap::RasterFuncs* raster;
+  Raster::FunctionMap::RasterFuncs* rops;
   Raster::PatternContext* pctx;
 
   // [Related to RasterEngineCommandAllocator]
@@ -1162,8 +1168,9 @@ void RasterEngineThreadTask::run()
           // Render
           ctx.clipState = cmd->clipState;
           ctx.capsState = cmd->capsState;
-          ctx.raster = cmd->raster;
+          ctx.rops = cmd->rops;
           ctx.pctx = cmd->pctx;
+          ctx.closure.closure = ctx.rops->closure;
           d->_renderPathMT(&ctx, workerOffset, delta, cmd->path->ras);
 
           // Destroy
@@ -1180,8 +1187,9 @@ void RasterEngineThreadTask::run()
           // Render
           ctx.clipState = cmd->clipState;
           ctx.capsState = cmd->capsState;
-          ctx.raster = cmd->raster;
+          ctx.rops = cmd->rops;
           ctx.pctx = cmd->pctx;
+          ctx.closure.closure = ctx.rops->closure;
           d->_renderBoxesMT(&ctx, workerOffset, delta, cmd->box->box, cmd->box->count);
 
           // Destroy
@@ -1197,8 +1205,9 @@ void RasterEngineThreadTask::run()
           // Render
           ctx.clipState = cmd->clipState;
           ctx.capsState = cmd->capsState;
-          ctx.raster = cmd->raster;
+          ctx.rops = cmd->rops;
           ctx.pctx = cmd->pctx;
+          ctx.closure.closure = ctx.rops->closure;
           d->_renderImageMT(&ctx, workerOffset, delta, cmd->image->dst, cmd->image->image, cmd->image->src);
 
           // Destroy
@@ -1215,8 +1224,9 @@ void RasterEngineThreadTask::run()
           // Render
           ctx.clipState = cmd->clipState;
           ctx.capsState = cmd->capsState;
-          ctx.raster = cmd->raster;
+          ctx.rops = cmd->rops;
           ctx.pctx = cmd->pctx;
+          ctx.closure.closure = ctx.rops->closure;
           d->_renderGlyphSetMT(&ctx, workerOffset, delta, cmd->glyphSet->pt, cmd->glyphSet->glyphSet, cmd->glyphSet->boundingBox);
 
           // Destroy
@@ -1497,7 +1507,8 @@ void RasterEngine::setOp(uint32_t op)
   if (!_detachCaps()) return;
 
   ctx.capsState->op = op;
-  ctx.raster = Raster::getRasterOps(_format, (int)op);
+  ctx.rops = Raster::getRasterOps(_format, (int)op);
+  ctx.closure.closure = ctx.rops->closure;
 }
 
 uint32_t RasterEngine::op() const
@@ -1843,7 +1854,7 @@ void RasterEngine::save()
 
   s.clipState = ctx.clipState->ref();
   s.capsState = ctx.capsState->ref();
-  s.raster = ctx.raster;
+  s.rops = ctx.rops;
   s.pctx = NULL;
 
   if (ctx.pctx && ctx.pctx->initialized)
@@ -1872,8 +1883,9 @@ void RasterEngine::restore()
 
   ctx.clipState = s.clipState;
   ctx.capsState = s.capsState;
-  ctx.raster = s.raster;
+  ctx.rops = s.rops;
   ctx.pctx = s.pctx;
+  ctx.closure.closure = ctx.rops->closure;
 }
 
 // ============================================================================
@@ -2721,7 +2733,8 @@ void RasterEngine::_setCapsDefaults()
   ctx.capsState->transformationsApproxScale = 1.0;
   ctx.capsState->transformationsUsed = false;
 
-  ctx.raster = Raster::getRasterOps(_format, ctx.capsState->op);
+  ctx.rops = Raster::getRasterOps(_format, ctx.capsState->op);
+  ctx.closure.closure = ctx.rops->closure;
 }
 
 Raster::PatternContext* RasterEngine::_getPatternContext()
@@ -2977,7 +2990,7 @@ RasterEngineCommand* RasterEngine::_createCommand()
   command->refCount.init(_threadData->numThreads);
   command->clipState = ctx.clipState->ref();
   command->capsState = ctx.capsState->ref();
-  command->raster = ctx.raster;
+  command->rops = ctx.rops;
   command->pctx = NULL;
 
   if (!ctx.capsState->isSolidSource)
@@ -3125,9 +3138,10 @@ static void FOG_INLINE AggRenderPath(
   {
     const Raster::Solid* source = &capsState->solidSource;
 
-    Raster::SpanSolidFn span_solid = ctx->raster->span_solid;
-    Raster::SpanSolidMskFn span_solid_a8 = ctx->raster->span_solid_a8;
-    Raster::SpanSolidMskConstFn span_solid_a8_const = ctx->raster->span_solid_a8_const;
+    Raster::SpanSolidFn span_solid = ctx->rops->span_solid;
+    Raster::SpanSolidMskFn span_solid_a8 = ctx->rops->span_solid_a8;
+    Raster::SpanSolidMskConstFn span_solid_a8_const = ctx->rops->span_solid_a8_const;
+    Raster::Closure* closure = &ctx->closure;
 
     for (; y <= y_end; y += delta, pBase += stride)
     {
@@ -3144,7 +3158,7 @@ static void FOG_INLINE AggRenderPath(
 
         if (len > 0)
         {
-          span_solid_a8(pCur, source, span->covers, (unsigned)len);
+          span_solid_a8(pCur, source, span->covers, (unsigned)len, closure);
         }
         else
         {
@@ -3154,11 +3168,11 @@ static void FOG_INLINE AggRenderPath(
           uint32_t cover = (uint32_t)*(span->covers);
           if (cover == 0xFF)
           {
-            span_solid(pCur, source, len);
+            span_solid(pCur, source, len, closure);
           }
           else
           {
-            span_solid_a8_const(pCur, source, cover, len);
+            span_solid_a8_const(pCur, source, cover, len, closure);
           }
         }
 
@@ -3175,9 +3189,10 @@ static void FOG_INLINE AggRenderPath(
     uint8_t* pbuf = ctx->getBuffer(Raster::mul4(clipState->clipBox.width()));
     if (!pbuf) return;
 
-    Raster::SpanCompositeFn span_composite = ctx->raster->span_composite[pctx->format];
-    Raster::SpanCompositeMskFn span_composite_a8 = ctx->raster->span_composite_a8[pctx->format];
-    Raster::SpanCompositeMskConstFn span_composite_a8_const = ctx->raster->span_composite_a8_const[pctx->format];
+    Raster::SpanCompositeFn span_composite = ctx->rops->span_composite[pctx->format];
+    Raster::SpanCompositeMskFn span_composite_a8 = ctx->rops->span_composite_a8[pctx->format];
+    Raster::SpanCompositeMskConstFn span_composite_a8_const = ctx->rops->span_composite_a8_const[pctx->format];
+    Raster::Closure* closure = &ctx->closure;
 
     for (; y <= y_end; y += delta, pBase += stride)
     {
@@ -3196,7 +3211,7 @@ static void FOG_INLINE AggRenderPath(
         {
           span_composite_a8(pCur, 
             pctx->fetch(pctx, pbuf, x, y, len),
-            span->covers, len);
+            span->covers, len, closure);
         }
         else
         {
@@ -3208,14 +3223,13 @@ static void FOG_INLINE AggRenderPath(
           {
             span_composite(pCur,
               pctx->fetch(pctx, pbuf, x, y, len),
-              len);
+              len, closure);
           }
           else
           {
             span_composite_a8_const(pCur,
               pctx->fetch(pctx, pbuf, x, y, len),
-              cover,
-              len);
+              cover, len, closure);
           }
         }
 
@@ -3261,10 +3275,12 @@ void RasterEngine::_renderBoxes(const Box* box, sysuint_t count)
   sysint_t stride = _stride;
   sysint_t bpp = _bpp;
 
+  Raster::Closure* closure = &ctx.closure;
+
   if (ctx.capsState->isSolidSource)
   {
     const Raster::Solid* source = &ctx.capsState->solidSource;
-    Raster::SpanSolidFn span_solid = ctx.raster->span_solid;
+    Raster::SpanSolidFn span_solid = ctx.rops->span_solid;
 
     for (sysuint_t i = 0; i < count; i++)
     {
@@ -3278,7 +3294,7 @@ void RasterEngine::_renderBoxes(const Box* box, sysuint_t count)
 
       uint8_t* pCur = pBuf + (sysint_t)y * stride + (sysint_t)x * bpp;
       do {
-        span_solid(pCur, source, (sysuint_t)w);
+        span_solid(pCur, source, (sysuint_t)w, closure);
         pCur += stride;
       } while (--h);
     }
@@ -3289,7 +3305,7 @@ void RasterEngine::_renderBoxes(const Box* box, sysuint_t count)
     if (!pctx) return;
 
     uint32_t op = ctx.capsState->op;
-    Raster::SpanCompositeFn span_composite = ctx.raster->span_composite[pctx->format];
+    Raster::SpanCompositeFn span_composite = ctx.rops->span_composite[pctx->format];
 
     // Fastpath: Do not copy pattern to extra buffer, if compositing operation
     // is copy. We need to check for pixel formats and operator.
@@ -3308,7 +3324,7 @@ void RasterEngine::_renderBoxes(const Box* box, sysuint_t count)
         uint8_t* pCur = pBuf + (sysint_t)y * stride + (sysint_t)x * bpp;
         do {
           uint8_t* f = pctx->fetch(pctx, pCur, x, y, w);
-          if (f != pCur) span_composite(pCur, f, w);
+          if (f != pCur) span_composite(pCur, f, w, closure);
 
           pCur += stride;
           y++;
@@ -3334,7 +3350,7 @@ void RasterEngine::_renderBoxes(const Box* box, sysuint_t count)
         do {
           span_composite(pCur, 
             pctx->fetch(pctx, pbuf, x, y, w),
-            (sysuint_t)w);
+            (sysuint_t)w, closure);
           pCur += stride;
           y++;
         } while (--h);
@@ -3349,24 +3365,27 @@ void RasterEngine::_renderImage(const Rect& dst, const Image& image, const Rect&
   sysint_t dstStride = _stride;
   sysint_t srcStride = image_d->stride;
 
-  Raster::SpanCompositeFn span_composite = ctx.raster->span_composite[image.format()];
-
   int x = dst.x1();
   int y = dst.y1();
 
   int w = dst.width();
   int h = dst.height();
 
+  Raster::SpanCompositeFn span_composite = ctx.rops->span_composite[image.format()];
+  Raster::Closure* closure = &ctx.closure;
+
   uint8_t* dstCur = ctx.clipState->workRaster + 
     (sysint_t)y * dstStride + (sysint_t)x * _bpp;
   const uint8_t* srcCur = image_d->first + 
     (sysint_t)src.y1() * srcStride + (sysint_t)src.x1() * image_d->bytesPerPixel;
 
+  closure->srcPalette = image._d->palette.cData();
   do {
-    span_composite(dstCur, srcCur, (sysuint_t)w);
+    span_composite(dstCur, srcCur, (sysuint_t)w, closure);
     dstCur += dstStride;
     srcCur += srcStride;
   } while (--h);
+  closure->srcPalette = NULL;
 }
 
 void RasterEngine::_renderGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Box& boundingBox)
@@ -3386,7 +3405,7 @@ void RasterEngine::_renderGlyphSet(const Point& pt, const GlyphSet& glyphSet, co
   sysint_t stride = _stride;
   sysint_t bpp = _bpp;
 
-  Raster::SpanSolidMskFn span_solid_a8 = ctx.raster->span_solid_a8;
+  Raster::SpanSolidMskFn span_solid_a8 = ctx.rops->span_solid_a8;
 
   // Used only if source is solid
   const Raster::Solid* source = &ctx.capsState->solidSource;
@@ -3394,7 +3413,9 @@ void RasterEngine::_renderGlyphSet(const Point& pt, const GlyphSet& glyphSet, co
   // Used only if source is pattern
   Raster::PatternContext* pctx;
   uint8_t* pbuf;
+
   Raster::SpanCompositeMskFn span_composite_a8;
+  Raster::Closure* closure = &ctx.closure;
 
   if (!ctx.capsState->isSolidSource)
   {
@@ -3404,7 +3425,7 @@ void RasterEngine::_renderGlyphSet(const Point& pt, const GlyphSet& glyphSet, co
     pbuf = ctx.getBuffer(Raster::mul4(ctx.clipState->clipBox.width()));
     if (!pbuf) return;
 
-    span_composite_a8 = ctx.raster->span_composite_a8[pctx->format];
+    span_composite_a8 = ctx.rops->span_composite_a8[pctx->format];
   }
 
   for (sysuint_t i = 0; i < count; i++)
@@ -3441,7 +3462,7 @@ void RasterEngine::_renderGlyphSet(const Point& pt, const GlyphSet& glyphSet, co
     if (ctx.capsState->isSolidSource)
     {
       do {
-        span_solid_a8(pCur, source, pGlyph, (sysuint_t)w);
+        span_solid_a8(pCur, source, pGlyph, (sysuint_t)w, closure);
         pCur += stride;
         pGlyph += glyphStride;
       } while (--h);
@@ -3451,7 +3472,7 @@ void RasterEngine::_renderGlyphSet(const Point& pt, const GlyphSet& glyphSet, co
       do {
         span_composite_a8(pCur, 
           pctx->fetch(pctx, pbuf, x1, y1, w),
-          pGlyph, (sysuint_t)w);
+          pGlyph, (sysuint_t)w, closure);
 
         pCur += stride;
         pGlyph += glyphStride;
@@ -3497,7 +3518,9 @@ void RasterEngine::_renderBoxesMT(RasterEngineContext* ctx, int offset, int delt
   if (ctx->capsState->isSolidSource)
   {
     const Raster::Solid* source = &ctx->capsState->solidSource;
-    Raster::SpanSolidFn span_solid = ctx->raster->span_solid;
+
+    Raster::SpanSolidFn span_solid = ctx->rops->span_solid;
+    Raster::Closure* closure = &ctx->closure;
 
     for (sysuint_t i = 0; i < count; i++)
     {
@@ -3512,7 +3535,7 @@ void RasterEngine::_renderBoxesMT(RasterEngineContext* ctx, int offset, int delt
 
       uint8_t* pCur = pBuf + (sysint_t)y1 * stride + (sysint_t)x1 * bpp;
       do {
-        span_solid(pCur, source, (sysuint_t)w);
+        span_solid(pCur, source, (sysuint_t)w, closure);
         pCur += strideWithDelta;
         y1 += delta;
       } while (y1 < y2);
@@ -3523,7 +3546,9 @@ void RasterEngine::_renderBoxesMT(RasterEngineContext* ctx, int offset, int delt
     Raster::PatternContext* pctx = ctx->pctx;
     if (!pctx) return;
 
-    Raster::SpanCompositeFn span_composite = ctx->raster->span_composite[pctx->format];
+    Raster::SpanCompositeFn span_composite = ctx->rops->span_composite[pctx->format];
+    Raster::Closure* closure = &ctx->closure;
+
     uint32_t op = ctx->capsState->op;
 
     // Fastpath: Do not copy pattern to extra buffer, if compositing operation
@@ -3544,7 +3569,7 @@ void RasterEngine::_renderBoxesMT(RasterEngineContext* ctx, int offset, int delt
         uint8_t* pCur = pBuf + (sysint_t)y1 * stride + (sysint_t)x1 * bpp;
         do {
           uint8_t* f = pctx->fetch(pctx, pCur, x1, y1, w);
-          if (f != pCur) span_composite(pCur, f, w);
+          if (f != pCur) span_composite(pCur, f, w, closure);
 
           pCur += strideWithDelta;
           y1 += delta;
@@ -3571,7 +3596,7 @@ void RasterEngine::_renderBoxesMT(RasterEngineContext* ctx, int offset, int delt
         do {
           span_composite(pCur,
             pctx->fetch(pctx, pbuf, x1, y1, w),
-            (sysuint_t)w);
+            (sysuint_t)w, closure);
           pCur += strideWithDelta;
           y1 += delta;
         } while (y1 < y2);
@@ -3588,8 +3613,6 @@ void RasterEngine::_renderImageMT(
   sysint_t dstStride = _stride;
   sysint_t srcStride = image_d->stride;
 
-  Raster::SpanCompositeFn span_composite = ctx->raster->span_composite[image.format()];
-
   int x = dst.x1();
   int y = dst.y1();
 
@@ -3599,6 +3622,9 @@ void RasterEngine::_renderImageMT(
   y = alignToDelta(y, offset, delta);
   if (y >= y2) return;
 
+  Raster::SpanCompositeFn span_composite = ctx->rops->span_composite[image.format()];
+  Raster::Closure* closure = &ctx->closure;
+
   uint8_t* dstCur = ctx->clipState->workRaster +
     (sysint_t)y * dstStride + (sysint_t)x * _bpp;
   const uint8_t* srcCur = image_d->first +
@@ -3607,12 +3633,14 @@ void RasterEngine::_renderImageMT(
   dstStride *= delta;
   srcStride *= delta;
 
+  closure->srcPalette = image_d->palette.cData();
   do {
-    span_composite(dstCur, srcCur, (sysuint_t)w);
+    span_composite(dstCur, srcCur, (sysuint_t)w, closure);
     dstCur += dstStride;
     srcCur += srcStride;
     y += delta;
   } while (y < y2);
+  closure->srcPalette = NULL;
 }
 
 void RasterEngine::_renderGlyphSetMT(
@@ -3635,7 +3663,8 @@ void RasterEngine::_renderGlyphSetMT(
   sysint_t bpp = _bpp;
   sysint_t strideWithDelta = stride * delta;
 
-  Raster::SpanSolidMskFn span_solid_a8 = ctx->raster->span_solid_a8;
+  Raster::SpanSolidMskFn span_solid_a8 = ctx->rops->span_solid_a8;
+  Raster::Closure* closure = &ctx->closure;
 
   // Used only if source is solid
   const Raster::Solid* source = &ctx->capsState->solidSource;
@@ -3653,7 +3682,7 @@ void RasterEngine::_renderGlyphSetMT(
     pbuf = ctx->getBuffer(Raster::mul4(ctx->clipState->clipBox.width()));
     if (!pbuf) return;
 
-    span_composite_a8 = ctx->raster->span_composite_a8[pctx->format];
+    span_composite_a8 = ctx->rops->span_composite_a8[pctx->format];
   }
 
   for (sysuint_t i = 0; i < count; i++)
@@ -3693,7 +3722,7 @@ void RasterEngine::_renderGlyphSetMT(
     if (ctx->capsState->isSolidSource)
     {
       do {
-        span_solid_a8(pCur, source, pGlyph, (sysuint_t)w);
+        span_solid_a8(pCur, source, pGlyph, (sysuint_t)w, closure);
         pCur += strideWithDelta;
         pGlyph += glyphStrideWithDelta;
         y1 += delta;
@@ -3704,7 +3733,7 @@ void RasterEngine::_renderGlyphSetMT(
       do {
         span_composite_a8(pCur, 
           pctx->fetch(pctx, pbuf, x1, y1, w),
-          pGlyph, (sysuint_t)w);
+          pGlyph, (sysuint_t)w, closure);
 
         pCur += strideWithDelta;
         pGlyph += glyphStrideWithDelta;

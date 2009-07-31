@@ -31,7 +31,7 @@ enum CompositeOp
   //!        = Sca
   //!   Da'  = Sa.Da + Sa.(1 - Da)
   //!        = Sa
-  CompositeSrc,
+  CompositeSrc = 0,
 
   //! @brief The destination is left untouched.
   //!
@@ -42,7 +42,7 @@ enum CompositeOp
   //!        = Dca
   //!   Da'  = Da.Sa + Da.(1 - Sa)
   //!        = Da
-  CompositeDest,
+  CompositeDest = 1,
 
   //! @brief The source is composited over the destination.
   //!
@@ -52,7 +52,7 @@ enum CompositeOp
   //!   Da'  = Sa.Da + Sa.(1 - Da) + Da.(1 - Sa)
   //!        = Sa + Da.(1 - Sa)
   //!        = Sa + Da - Sa.Da
-  CompositeSrcOver,
+  CompositeSrcOver = 2,
 
   //! @brief The destination is composited over the source and the result 
   //! replaces the destination. 
@@ -63,7 +63,7 @@ enum CompositeOp
   //!   Da'  = Da.Sa + Sa.(1 - Da) + Da.(1 - Sa)
   //!        = Da + Sa.(1 - Da)
   //!        = Da + Sa - Da.Sa
-  CompositeDestOver,
+  CompositeDestOver = 3,
 
   //! @brief The part of the source lying inside of the destination replaces
   //! the destination. 
@@ -71,7 +71,7 @@ enum CompositeOp
   //! Formulas for premultiplied colorspace:
   //!   Dca' = Sca.Da
   //!   Da'  = Sa.Da
-  CompositeSrcIn,
+  CompositeSrcIn = 4,
 
   //! @brief The part of the destination lying inside of the source replaces
   //! the destination. 
@@ -79,7 +79,7 @@ enum CompositeOp
   //! Formulas for premultiplied colorspace:
   //!   Dca' = Dca.Sa
   //!   Da'  = Da.Sa
-  CompositeDestIn,
+  CompositeDestIn = 5,
 
   //! @brief The part of the source lying outside of the destination replaces
   //! the destination. 
@@ -87,7 +87,7 @@ enum CompositeOp
   //! Formulas for premultiplied colorspace:
   //!   Dca' = Sca.(1 - Da)
   //!   Da'  = Sa.(1 - Da)
-  CompositeSrcOut,
+  CompositeSrcOut = 6,
 
   //! @brief The part of the destination lying outside of the source replaces
   //! the destination. 
@@ -95,7 +95,7 @@ enum CompositeOp
   //! Formulas for premultiplied colorspace:
   //!   Dca' = Dca.(1 - Sa)
   //!   Da'  = Da.(1 - Sa)
-  CompositeDestOut,
+  CompositeDestOut = 7,
 
   //! @brief The part of the source lying inside of the destination is
   //! composited onto the destination. 
@@ -105,7 +105,7 @@ enum CompositeOp
   //!   Da'  = Sa.Da + Da.(1 - Sa)
   //!        = Da.(Sa + 1 - Sa)
   //!        = Da
-  CompositeSrcAtop,
+  CompositeSrcAtop = 8,
 
   //! @brief The part of the destination lying inside of the source is 
   //! composited over the source and replaces the destination. 
@@ -115,7 +115,7 @@ enum CompositeOp
   //!   Da'  = Da.Sa + Sa.(1 - Da)
   //!        = Sa.(Da + 1 - Da)
   //!        = Sa
-  CompositeDestAtop,
+  CompositeDestAtop = 9,
 
   //! @brief The part of the source that lies outside of the destination is 
   //! combined with the part of the destination that lies outside of the source.
@@ -124,14 +124,14 @@ enum CompositeOp
   //!   Dca' = Sca.(1 - Da) + Dca.(1 - Sa)
   //!   Da'  = Sa.(1 - Da) + Da.(1 - Sa)
   //!        = Sa + Da - 2.Sa.Da
-  CompositeXor,
+  CompositeXor = 10,
 
   //! @brief Clear the destination not using the source.
   //!
   //! Formulas for premultiplied colorspace:
   //!   Dca' = 0
   //!   Da'  = 0
-  CompositeClear,
+  CompositeClear = 11,
 
   //! @brief The source is added to the destination and replaces the destination.
   //!
@@ -140,7 +140,7 @@ enum CompositeOp
   //!        = Sca + Dca
   //!   Da'  = Sa.Da + Da.Sa + Sa.(1 - Da) + Da.(1 - Sa)
   //!        = Sa + Da
-  CompositeAdd,
+  CompositeAdd = 12,
 
   //! @brief The source is subtracted from the destination and replaces 
   //! the destination.
@@ -149,7 +149,7 @@ enum CompositeOp
   //!   Dca' = Dca - Sca
   //!   Da'  = 1 - (1 - Sa).(1 - Da)
   //!        = Sa + Da - Sa.Da
-  CompositeSubtract,
+  CompositeSubtract = 13,
 
   //! @brief The source is multiplied by the destination and replaces 
   //! the destination
@@ -162,7 +162,7 @@ enum CompositeOp
   //!   Dca' = Sca.Dca + Sca.(1 - Da) + Dca.(1 - Sa)
   //!   Da'  = Sa.Da + Sa.(1 - Da) + Da.(1 - Sa)
   //!        = Sa + Da - Sa.Da
- CompositeMultiply,
+ CompositeMultiply = 14,
 
   //! @brief The source and destination are complemented and then multiplied 
   //! and then replace the destination
@@ -171,7 +171,7 @@ enum CompositeOp
   //!   Dca' = (Sca.Da + Dca.Sa - Sca.Dca) + Sca.(1 - Da) + Dca.(1 - Sa)
   //!        = Sca + Dca - Sca.Dca
   //!   Da'  = Sa + Da - Sa.Da
-  CompositeScreen,
+  CompositeScreen = 15,
 
   //! @brief Selects the darker of the destination and source colors. The 
   //! destination is replaced with the source when the source is darker,
@@ -184,7 +184,7 @@ enum CompositeOp
   //!        = Sa + Da - Sa.Da
   //!
   //!   OR: if (Sca.Da < Dca.Sa) Src-Over() else Dst-Over()
-  CompositeDarken,
+  CompositeDarken = 16,
 
   //! @brief Selects the lighter of the destination and source colors. The
   //! destination is replaced with the source when the source is lighter, 
@@ -197,7 +197,7 @@ enum CompositeOp
   //!        = Sa + Da - Sa.Da
   //!
   //!   OR: if (Sca.Da > Dca.Sa) Src-Over() else Dst-Over()
-  CompositeLighten,
+  CompositeLighten = 17,
 
   //! @brief Subtracts the darker of the two constituent colors from the 
   //! lighter. Painting with white inverts the destination color. Painting
@@ -208,7 +208,7 @@ enum CompositeOp
   //!        = Sca + Dca - 2.min(Sca.Da, Dca.Sa)
   //!   Da'  = Sa + Da - min(Sa.Da, Da.Sa)
   //!        = Sa + Da - Sa.Da
-  CompositeDifference,
+  CompositeDifference = 18,
 
   //! @brief Produces an effect similar to that of 'difference', but appears
   //! as lower contrast. Painting with white inverts the destination color.
@@ -221,7 +221,7 @@ enum CompositeOp
   //!        = Sa - Sa.Da + Da - Da.Sa = Sa + Da - 2.Sa.Da
   //!          [Substitute 2.Sa.Da with Sa.Da]
   //!        = Sa + Da - Sa.Da
-  CompositeExclusion,
+  CompositeExclusion = 19,
 
   //! @brief Invert.
   //!
@@ -233,7 +233,7 @@ enum CompositeOp
   //! For calculation this formula is best:
   //!   Dca' = (Da - Dca) * Sa + Dca.(1 - Sa)
   //!   Da'  = (1 + Da - Da) * Sa + Da.(1 - Sa)
-  CompositeInvert,
+  CompositeInvert = 20,
 
   //! @brief Invert RGB.
   //!
@@ -245,10 +245,13 @@ enum CompositeOp
   //! For calculation this formula is best:
   //!   Dca' = (Da - Dca) * Sca + Dca.(1 - Sa)
   //!   Da'  = (1 + Da - Da) * Sa + Da.(1 - Sa)
-  CompositeInvertRgb,
+  CompositeInvertRgb = 21,
 
   //! @brief Count of compositing operators (this is not a valid operator).
-  CompositeCount
+  CompositeCount = 22,
+
+  //! @brief Count of compositing operators built in Fog/Raster engine.
+  CompositeBuiltIn = 12
 };
 
 //! @brief Results from some color analyze functions.

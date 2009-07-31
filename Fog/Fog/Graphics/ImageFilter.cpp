@@ -116,14 +116,14 @@ err_t ImageFilter::filterData(
 
     for (y = height, srcCur = src, dstCur = dst; y; y--, srcCur += srcStride, dstCur += dstStride)
     {
-      demultiply(dstCur, srcCur, width);
+      demultiply(dstCur, srcCur, width, NULL);
     }
 
     err_t err = filterPrivate(dst, dstStride, dst, dstStride, width, height, format);
 
     for (y = height, dstCur = dst; y; y--, dstCur += dstStride)
     {
-      premultiply(dstCur, dstCur, width);
+      premultiply(dstCur, dstCur, width, NULL);
     }
 
     return err;
