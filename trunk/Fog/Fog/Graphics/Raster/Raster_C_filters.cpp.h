@@ -111,9 +111,9 @@ static void FOG_FASTCALL copyArea_8(
 static void FOG_FASTCALL colorLut_prgb32(
   uint8_t* dst, const uint8_t* src, const ColorLut::Table* lut, sysint_t width)
 {
-  functionMap->convert.argb32_from_prgb32(dst, src, width);
+  functionMap->convert.argb32_from_prgb32(dst, src, width, NULL);
   functionMap->filters.colorLut[Image::FormatARGB32](dst, dst, lut, width);
-  functionMap->convert.prgb32_from_argb32(dst, dst, width);
+  functionMap->convert.prgb32_from_argb32(dst, dst, width, NULL);
 }
 
 static void FOG_FASTCALL colorLut_argb32(
@@ -179,9 +179,9 @@ static void FOG_FASTCALL colorMatrix_prgb32(
   uint8_t* dst, const uint8_t* src,
   const ColorMatrix* cm, uint32_t type, sysint_t width)
 {
-  functionMap->convert.argb32_from_prgb32(dst, src, width);
+  functionMap->convert.argb32_from_prgb32(dst, src, width, NULL);
   functionMap->filters.colorMatrix[Image::FormatARGB32](dst, dst, cm, type, width);
-  functionMap->convert.prgb32_from_argb32(dst, dst, width);
+  functionMap->convert.prgb32_from_argb32(dst, dst, width, NULL);
 }
 
 static void FOG_FASTCALL colorMatrix_argb32(

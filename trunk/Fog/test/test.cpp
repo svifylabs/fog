@@ -307,7 +307,6 @@ FOG_UI_MAIN()
 #endif
 {
   Application app(Ascii8("UI"));
-
   fog_redirect_std_to_file("log.txt");
 
   MyWindow window;

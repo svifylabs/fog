@@ -17,7 +17,7 @@ namespace Raster {
 // ============================================================================
 
 static void FOG_FASTCALL convert_argb32_from_prgb32_sse2(
-  uint8_t* dst, const uint8_t* src, sysint_t w)
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   BLIT_32_SSE2_INIT(dst, w);
 
@@ -49,7 +49,7 @@ static void FOG_FASTCALL convert_argb32_from_prgb32_sse2(
 }
 
 static void FOG_FASTCALL convert_argb32_from_rgb32_sse2(
-  uint8_t* dst, const uint8_t* src, sysint_t w)
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   sysint_t i = w;
 
@@ -118,7 +118,8 @@ static void FOG_FASTCALL convert_argb32_from_rgb32_sse2(
 // [Fog::Raster - Convert - Prgb32 Dest]
 // ============================================================================
 
-static void FOG_FASTCALL convert_prgb32_from_argb32_sse2(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_prgb32_from_argb32_sse2(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   BLIT_32_SSE2_INIT(dst, w);
 
@@ -150,7 +151,8 @@ static void FOG_FASTCALL convert_prgb32_from_argb32_sse2(uint8_t* dst, const uin
   BLIT_32_SSE2_LARGE_END(blt)
 }
 
-static void FOG_FASTCALL convert_prgb32_from_argb32_bs_sse2(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_prgb32_from_argb32_bs_sse2(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   BLIT_32_SSE2_INIT(dst, w);
 
@@ -184,7 +186,8 @@ static void FOG_FASTCALL convert_prgb32_from_argb32_bs_sse2(uint8_t* dst, const 
   BLIT_32_SSE2_LARGE_END(blt)
 }
 
-static void FOG_FASTCALL convert_prgb32_bs_from_argb32_sse2(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_prgb32_bs_from_argb32_sse2(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   BLIT_32_SSE2_INIT(dst, w);
 
@@ -222,7 +225,8 @@ static void FOG_FASTCALL convert_prgb32_bs_from_argb32_sse2(uint8_t* dst, const 
 // [Fog::Raster - Convert - Rgb32 Dest]
 // ============================================================================
 
-static void FOG_FASTCALL convert_rgb32_from_rgb24_sse2(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_rgb32_from_rgb24_sse2(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   sysint_t i = w;
 
@@ -256,7 +260,8 @@ static void FOG_FASTCALL convert_rgb32_from_rgb24_sse2(uint8_t* dst, const uint8
   }
 }
 
-static void FOG_FASTCALL convert_rgb32_from_bgr24_sse2(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_rgb32_from_bgr24_sse2(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   sysint_t i = w;
 
@@ -294,7 +299,8 @@ static void FOG_FASTCALL convert_rgb32_from_bgr24_sse2(uint8_t* dst, const uint8
 // [Fog::Raster - Convert - MemCpy]
 // ============================================================================
 
-static void FOG_FASTCALL convert_memcpy32_sse2(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_memcpy32_sse2(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   while (sysuint_t(dst) & 15)
   {
@@ -375,19 +381,23 @@ static void FOG_FASTCALL convert_memcpy32_sse2(uint8_t* dst, const uint8_t* src,
   }
 }
 
-static void FOG_FASTCALL convert_memcpy8_sse2(uint8_t* dst, const uint8_t* src, sysint_t w);
+static void FOG_FASTCALL convert_memcpy8_sse2(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure);
 
-static void FOG_FASTCALL convert_memcpy24_sse2(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_memcpy24_sse2(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
-  convert_memcpy8_sse2(dst, src, mul3(w));
+  convert_memcpy8_sse2(dst, src, mul3(w), closure);
 }
 
-static void FOG_FASTCALL convert_memcpy16_sse2(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_memcpy16_sse2(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
-  convert_memcpy8_sse2(dst, src, mul2(w));
+  convert_memcpy8_sse2(dst, src, mul2(w), closure);
 }
 
-static void FOG_FASTCALL convert_memcpy8_sse2(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_memcpy8_sse2(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   sysuint_t i;
 

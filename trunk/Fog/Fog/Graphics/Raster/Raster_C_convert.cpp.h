@@ -16,7 +16,8 @@ namespace Raster {
 // [Fog::Raster - Convert - BSwap]
 // ============================================================================
 
-static void FOG_FASTCALL convert_bswap16(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_bswap16(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   for (sysint_t i = w; i; i--, dst += 2, src += 2)
   {
@@ -24,7 +25,8 @@ static void FOG_FASTCALL convert_bswap16(uint8_t* dst, const uint8_t* src, sysin
   }
 }
 
-static void FOG_FASTCALL convert_bswap24(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_bswap24(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   for (sysint_t i = w; i; i--, dst += 3, src += 3)
   {
@@ -38,7 +40,8 @@ static void FOG_FASTCALL convert_bswap24(uint8_t* dst, const uint8_t* src, sysin
   }
 }
 
-static void FOG_FASTCALL convert_bswap32(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_bswap32(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   for (sysint_t i = w; i; i--, dst += 4, src += 4)
   {
@@ -50,7 +53,8 @@ static void FOG_FASTCALL convert_bswap32(uint8_t* dst, const uint8_t* src, sysin
 // [Fog::Raster - Convert - MemCpy]
 // ============================================================================
 
-static void FOG_FASTCALL convert_memcpy8(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_memcpy8(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   while ((sysuint_t(dst) & 3))
   {
@@ -84,17 +88,20 @@ static void FOG_FASTCALL convert_memcpy8(uint8_t* dst, const uint8_t* src, sysin
   }
 }
 
-static void FOG_FASTCALL convert_memcpy16(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_memcpy16(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
-  convert_memcpy8(dst, src, mul2(w));
+  convert_memcpy8(dst, src, mul2(w), closure);
 }
 
-static void FOG_FASTCALL convert_memcpy24(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_memcpy24(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
-  convert_memcpy8(dst, src, mul3(w));
+  convert_memcpy8(dst, src, mul3(w), closure);
 }
 
-static void FOG_FASTCALL convert_memcpy32(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_memcpy32(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   while (w >= 8)
   {
@@ -121,7 +128,7 @@ static void FOG_FASTCALL convert_memcpy32(uint8_t* dst, const uint8_t* src, sysi
 // ============================================================================
 
 static void FOG_FASTCALL convert_argb32_from_prgb32(
-  uint8_t* _dst, const uint8_t* _src, sysint_t w)
+  uint8_t* _dst, const uint8_t* _src, sysint_t w, const Closure* closure)
 {
   uint32_t* dst = reinterpret_cast<uint32_t*>(_dst);
   const uint32_t* src = reinterpret_cast<const uint32_t*>(_src);
@@ -211,7 +218,7 @@ static void FOG_FASTCALL convert_argb32_from_prgb32(
 }
 
 static void FOG_FASTCALL convert_argb32_from_prgb32_bs(
-  uint8_t* _dst, const uint8_t* _src, sysint_t w)
+  uint8_t* _dst, const uint8_t* _src, sysint_t w, const Closure* closure)
 {
   uint32_t* dst = reinterpret_cast<uint32_t*>(_dst);
   const uint32_t* src = reinterpret_cast<const uint32_t*>(_src);
@@ -300,7 +307,8 @@ static void FOG_FASTCALL convert_argb32_from_prgb32_bs(
   }
 }
 
-static void FOG_FASTCALL convert_argb32_from_rgb32(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_argb32_from_rgb32(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   for (sysint_t i = w; i; i--, dst += 4, src += 4)
   {
@@ -308,7 +316,8 @@ static void FOG_FASTCALL convert_argb32_from_rgb32(uint8_t* dst, const uint8_t* 
   }
 }
 
-static void FOG_FASTCALL convert_argb32_from_rgb32_bs(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_argb32_from_rgb32_bs(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   for (sysint_t i = w; i; i--, dst += 4, src += 4)
   {
@@ -316,7 +325,8 @@ static void FOG_FASTCALL convert_argb32_from_rgb32_bs(uint8_t* dst, const uint8_
   }
 }
 
-static void FOG_FASTCALL convert_argb32_bs_from_rgb32(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_argb32_bs_from_rgb32(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   for (sysint_t i = w; i; i--, dst += 4, src += 4)
   {
@@ -324,7 +334,8 @@ static void FOG_FASTCALL convert_argb32_bs_from_rgb32(uint8_t* dst, const uint8_
   }
 }
 
-static void FOG_FASTCALL convert_argb32_bs_from_prgb32(uint8_t* _dst, const uint8_t* _src, sysint_t w)
+static void FOG_FASTCALL convert_argb32_bs_from_prgb32(
+  uint8_t* _dst, const uint8_t* _src, sysint_t w, const Closure* closure)
 {
   uint32_t* dst = reinterpret_cast<uint32_t*>(_dst);
   const uint32_t* src = reinterpret_cast<const uint32_t*>(_src);
@@ -418,7 +429,8 @@ static void FOG_FASTCALL convert_argb32_bs_from_prgb32(uint8_t* _dst, const uint
 // [Fog::Raster - Convert - Prgb32 Dest]
 // ============================================================================
 
-static void FOG_FASTCALL convert_prgb32_from_argb32(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_prgb32_from_argb32(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   for (sysint_t i = w; i; i--, dst += 4, src += 4)
   {
@@ -426,7 +438,8 @@ static void FOG_FASTCALL convert_prgb32_from_argb32(uint8_t* dst, const uint8_t*
   }
 }
 
-static void FOG_FASTCALL convert_prgb32_from_argb32_bs(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_prgb32_from_argb32_bs(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   for (sysint_t i = w; i; i--, dst += 4, src += 4)
   {
@@ -434,15 +447,19 @@ static void FOG_FASTCALL convert_prgb32_from_argb32_bs(uint8_t* dst, const uint8
   }
 }
 
-static void FOG_FASTCALL convert_prgb32_from_i8(uint8_t* dst, const uint8_t* src, sysint_t w, const Rgba* pal)
+static void FOG_FASTCALL convert_prgb32_from_i8(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
+  const Rgba* srcPal = closure->srcPalette;
+
   for (sysint_t i = w; i; i--, dst += 4, src += 1)
   {
-    ((uint32_t*)dst)[0] = premultiply(pal[src[0]]);
+    ((uint32_t*)dst)[0] = premultiply(srcPal[src[0]]);
   }
 }
 
-static void FOG_FASTCALL convert_prgb32_bs_from_argb32(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_prgb32_bs_from_argb32(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   for (sysint_t i = w; i; i--, dst += 4, src += 4)
   {
@@ -450,11 +467,14 @@ static void FOG_FASTCALL convert_prgb32_bs_from_argb32(uint8_t* dst, const uint8
   }
 }
 
-static void FOG_FASTCALL convert_prgb32_bs_from_i8(uint8_t* dst, const uint8_t* src, sysint_t w, const Rgba* pal)
+static void FOG_FASTCALL convert_prgb32_bs_from_i8(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
+  const Rgba* srcPal = closure->srcPalette;
+
   for (sysint_t i = w; i; i--, dst += 4, src += 1)
   {
-    ((uint32_t*)dst)[0] = Memory::bswap32(premultiply(pal[src[0]]));
+    ((uint32_t*)dst)[0] = Memory::bswap32(premultiply(srcPal[src[0]]));
   }
 }
 
@@ -462,7 +482,8 @@ static void FOG_FASTCALL convert_prgb32_bs_from_i8(uint8_t* dst, const uint8_t* 
 // [Fog::Raster - Convert - Rgb32 Dest]
 // ============================================================================
 
-static void FOG_FASTCALL convert_rgb32_from_argb32(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_rgb32_from_argb32(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   for (sysint_t i = w; i; i--, dst += 4, src += 4)
   {
@@ -470,7 +491,8 @@ static void FOG_FASTCALL convert_rgb32_from_argb32(uint8_t* dst, const uint8_t* 
   }
 }
 
-static void FOG_FASTCALL convert_rgb32_from_argb32_bs(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_rgb32_from_argb32_bs(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   for (sysint_t i = w; i; i--, dst += 4, src += 4)
   {
@@ -478,7 +500,8 @@ static void FOG_FASTCALL convert_rgb32_from_argb32_bs(uint8_t* dst, const uint8_
   }
 }
 
-static void FOG_FASTCALL convert_rgb32_from_rgb24(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_rgb32_from_rgb24(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   sysint_t i = w;
 
@@ -514,7 +537,8 @@ static void FOG_FASTCALL convert_rgb32_from_rgb24(uint8_t* dst, const uint8_t* s
   }
 }
 
-static void FOG_FASTCALL convert_rgb32_from_bgr24(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_rgb32_from_bgr24(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   for (sysint_t i = w; i; i--, dst += 4, src += 3)
   {
@@ -522,7 +546,8 @@ static void FOG_FASTCALL convert_rgb32_from_bgr24(uint8_t* dst, const uint8_t* s
   }
 }
 
-static void FOG_FASTCALL convert_rgb32_from_rgb16_5550(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_rgb32_from_rgb16_5550(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   for (sysint_t i = w; i; i--, dst += 4, src += 2)
   {
@@ -530,7 +555,8 @@ static void FOG_FASTCALL convert_rgb32_from_rgb16_5550(uint8_t* dst, const uint8
   }
 }
 
-static void FOG_FASTCALL convert_rgb32_from_rgb16_5550_bs(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_rgb32_from_rgb16_5550_bs(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   for (sysint_t i = w; i; i--, dst += 4, src += 2)
   {
@@ -538,7 +564,8 @@ static void FOG_FASTCALL convert_rgb32_from_rgb16_5550_bs(uint8_t* dst, const ui
   }
 }
 
-static void FOG_FASTCALL convert_rgb32_from_rgb16_5650(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_rgb32_from_rgb16_5650(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   for (sysint_t i = w; i; i--, dst += 4, src += 2)
   {
@@ -546,7 +573,8 @@ static void FOG_FASTCALL convert_rgb32_from_rgb16_5650(uint8_t* dst, const uint8
   }
 }
 
-static void FOG_FASTCALL convert_rgb32_from_rgb16_5650_bs(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_rgb32_from_rgb16_5650_bs(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   for (sysint_t i = w; i; i--, dst += 4, src += 2)
   {
@@ -554,15 +582,19 @@ static void FOG_FASTCALL convert_rgb32_from_rgb16_5650_bs(uint8_t* dst, const ui
   }
 }
 
-static void FOG_FASTCALL convert_rgb32_from_i8(uint8_t* dst, const uint8_t* src, sysint_t w, const Rgba* pal)
+static void FOG_FASTCALL convert_rgb32_from_i8(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
+  const Rgba* srcPal = closure->srcPalette;
+
   for (sysint_t i = w; i; i--, dst += 4, src += 1)
   {
-    ((uint32_t*)dst)[0] = pal[src[0]] | 0xFF000000;
+    ((uint32_t*)dst)[0] = srcPal[src[0]] | 0xFF000000;
   }
 }
 
-static void FOG_FASTCALL convert_rgb32_bs_from_rgb24(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_rgb32_bs_from_rgb24(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   for (sysint_t i = w; i; i--, dst += 4, src += 3)
   {
@@ -574,7 +606,8 @@ static void FOG_FASTCALL convert_rgb32_bs_from_rgb24(uint8_t* dst, const uint8_t
 // [Fog::Raster - Convert - Rgb24/Bgr24 Dest]
 // ============================================================================
 
-static void FOG_FASTCALL convert_rgb24_from_rgb32(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_rgb24_from_rgb32(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   sysint_t i = w;
 
@@ -629,7 +662,8 @@ static void FOG_FASTCALL convert_rgb24_from_rgb32(uint8_t* dst, const uint8_t* s
   }
 }
 
-static void FOG_FASTCALL convert_rgb24_from_rgb32_bs(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_rgb24_from_rgb32_bs(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   sysint_t i = w;
 
@@ -684,7 +718,8 @@ static void FOG_FASTCALL convert_rgb24_from_rgb32_bs(uint8_t* dst, const uint8_t
   }
 }
 
-static void FOG_FASTCALL convert_rgb24_from_rgb16_5550(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_rgb24_from_rgb16_5550(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   sysint_t i = w;
 
@@ -702,7 +737,8 @@ static void FOG_FASTCALL convert_rgb24_from_rgb16_5550(uint8_t* dst, const uint8
   }
 }
 
-static void FOG_FASTCALL convert_rgb24_from_rgb16_5550_bs(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_rgb24_from_rgb16_5550_bs(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   sysint_t i = w;
 
@@ -720,7 +756,8 @@ static void FOG_FASTCALL convert_rgb24_from_rgb16_5550_bs(uint8_t* dst, const ui
   }
 }
 
-static void FOG_FASTCALL convert_rgb24_from_rgb16_5650(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_rgb24_from_rgb16_5650(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   sysint_t i = w;
 
@@ -738,7 +775,8 @@ static void FOG_FASTCALL convert_rgb24_from_rgb16_5650(uint8_t* dst, const uint8
   }
 }
 
-static void FOG_FASTCALL convert_rgb24_from_rgb16_5650_bs(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_rgb24_from_rgb16_5650_bs(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   sysint_t i = w;
 
@@ -756,15 +794,17 @@ static void FOG_FASTCALL convert_rgb24_from_rgb16_5650_bs(uint8_t* dst, const ui
   }
 }
 
-static void FOG_FASTCALL convert_rgb24_from_i8(uint8_t* dst, const uint8_t* src, sysint_t w, const Rgba* pal)
+static void FOG_FASTCALL convert_rgb24_from_i8(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
+  const Rgba* srcPal = closure->srcPalette;
   sysint_t i = w;
 
 #if FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
   // Align.
   while (i && (sysuint_t)dst & 0x3)
   {
-    uint32_t s0 = pal[src[0]];
+    uint32_t s0 = srcPal[src[0]];
 
     dst[RGB24_RByte] = (uint8_t)(s0 >> 8);
     dst[RGB24_GByte] = (uint8_t)(s0 >> 16);
@@ -782,10 +822,10 @@ static void FOG_FASTCALL convert_rgb24_from_i8(uint8_t* dst, const uint8_t* src,
     //
     // [X R G B] [X R G B] [X R G B] [X R G B]
     // [B G R B] [G R B G] [R B G R]
-    uint32_t s0 = pal[src[0]];
-    uint32_t s1 = pal[src[1]];
-    uint32_t s2 = pal[src[2]];
-    uint32_t s3 = pal[src[3]];
+    uint32_t s0 = srcPal[src[0]];
+    uint32_t s1 = srcPal[src[1]];
+    uint32_t s2 = srcPal[src[2]];
+    uint32_t s3 = srcPal[src[3]];
 
     ((uint32_t*)dst)[0] = (s0 & 0x00FFFFFF) | (s1 << 24); s1 >>= 8;
     ((uint32_t*)dst)[1] = (s1 & 0x0000FFFF) | (s2 << 16); s2 >>= 16;
@@ -799,7 +839,7 @@ static void FOG_FASTCALL convert_rgb24_from_i8(uint8_t* dst, const uint8_t* src,
 
   while (i)
   {
-    uint32_t s0 = pal[src[0]];
+    uint32_t s0 = srcPal[src[0]];
 
     dst[RGB24_RByte] = (uint8_t)(s0 >> 8);
     dst[RGB24_GByte] = (uint8_t)(s0 >> 16);
@@ -811,7 +851,8 @@ static void FOG_FASTCALL convert_rgb24_from_i8(uint8_t* dst, const uint8_t* src,
   }
 }
 
-static void FOG_FASTCALL convert_bgr24_from_rgb32(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_bgr24_from_rgb32(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   sysint_t i = w;
 
@@ -829,13 +870,15 @@ static void FOG_FASTCALL convert_bgr24_from_rgb32(uint8_t* dst, const uint8_t* s
   }
 }
 
-static void FOG_FASTCALL convert_bgr24_from_i8(uint8_t* dst, const uint8_t* src, sysint_t w, const Rgba* pal)
+static void FOG_FASTCALL convert_bgr24_from_i8(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
+  const Rgba* srcPal = closure->srcPalette;
   sysint_t i = w;
 
   while (i)
   {
-    uint32_t s0 = pal[src[0]];
+    uint32_t s0 = srcPal[src[0]];
 
     dst[2 - RGB24_RByte] = (uint8_t)(s0 >> 8);
     dst[2 - RGB24_GByte] = (uint8_t)(s0 >> 16);
@@ -851,7 +894,8 @@ static void FOG_FASTCALL convert_bgr24_from_i8(uint8_t* dst, const uint8_t* src,
 // [Fog::Raster - Convert - Rgb16 Dest]
 // ============================================================================
 
-static void FOG_FASTCALL convert_rgb16_5550_from_rgb32(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_rgb16_5550_from_rgb32(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   sysint_t i = w;
 
@@ -870,7 +914,8 @@ static void FOG_FASTCALL convert_rgb16_5550_from_rgb32(uint8_t* dst, const uint8
   }
 }
 
-static void FOG_FASTCALL convert_rgb16_5550_from_rgb24(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_rgb16_5550_from_rgb24(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   sysint_t i = w;
 
@@ -889,13 +934,15 @@ static void FOG_FASTCALL convert_rgb16_5550_from_rgb24(uint8_t* dst, const uint8
   }
 }
 
-static void FOG_FASTCALL convert_rgb16_5550_from_i8(uint8_t* dst, const uint8_t* src, sysint_t w, const Rgba* pal)
+static void FOG_FASTCALL convert_rgb16_5550_from_i8(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
+  const Rgba* srcPal = closure->srcPalette;
   sysint_t i = w;
 
   while (i)
   {
-    uint32_t s0 = pal[src[0]];
+    uint32_t s0 = srcPal[src[0]];
 
     ((uint16_t*)dst)[0] =
       ((s0 >> 9) & 0x7C00) |
@@ -908,7 +955,8 @@ static void FOG_FASTCALL convert_rgb16_5550_from_i8(uint8_t* dst, const uint8_t*
   }
 }
 
-static void FOG_FASTCALL convert_rgb16_5650_from_rgb32(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_rgb16_5650_from_rgb32(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   sysint_t i = w;
 
@@ -927,7 +975,8 @@ static void FOG_FASTCALL convert_rgb16_5650_from_rgb32(uint8_t* dst, const uint8
   }
 }
 
-static void FOG_FASTCALL convert_rgb16_5650_from_rgb24(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_rgb16_5650_from_rgb24(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   sysint_t i = w;
 
@@ -946,13 +995,15 @@ static void FOG_FASTCALL convert_rgb16_5650_from_rgb24(uint8_t* dst, const uint8
   }
 }
 
-static void FOG_FASTCALL convert_rgb16_5650_from_i8(uint8_t* dst, const uint8_t* src, sysint_t w, const Rgba* pal)
+static void FOG_FASTCALL convert_rgb16_5650_from_i8(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
+  const Rgba* srcPal = closure->srcPalette;
   sysint_t i = w;
 
   while (i)
   {
-    uint32_t s0 = pal[src[0]];
+    uint32_t s0 = srcPal[src[0]];
 
     ((uint16_t*)dst)[0] =
       ((s0 >> 8) & 0xF800) |
@@ -965,7 +1016,8 @@ static void FOG_FASTCALL convert_rgb16_5650_from_i8(uint8_t* dst, const uint8_t*
   }
 }
 
-static void FOG_FASTCALL convert_rgb16_5550_bs_from_rgb32(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_rgb16_5550_bs_from_rgb32(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   sysint_t i = w;
 
@@ -984,7 +1036,8 @@ static void FOG_FASTCALL convert_rgb16_5550_bs_from_rgb32(uint8_t* dst, const ui
   }
 }
 
-static void FOG_FASTCALL convert_rgb16_5550_bs_from_rgb24(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_rgb16_5550_bs_from_rgb24(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   sysint_t i = w;
 
@@ -1003,13 +1056,15 @@ static void FOG_FASTCALL convert_rgb16_5550_bs_from_rgb24(uint8_t* dst, const ui
   }
 }
 
-static void FOG_FASTCALL convert_rgb16_5550_bs_from_i8(uint8_t* dst, const uint8_t* src, sysint_t w, const Rgba* pal)
+static void FOG_FASTCALL convert_rgb16_5550_bs_from_i8(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
+  const Rgba* srcPal = closure->srcPalette;
   sysint_t i = w;
 
   while (i)
   {
-    uint32_t s0 = pal[src[0]];
+    uint32_t s0 = srcPal[src[0]];
 
     ((uint16_t*)dst)[0] = Memory::bswap16(
       ((s0 >> 9) & 0x7C00) |
@@ -1022,7 +1077,8 @@ static void FOG_FASTCALL convert_rgb16_5550_bs_from_i8(uint8_t* dst, const uint8
   }
 }
 
-static void FOG_FASTCALL convert_rgb16_5650_bs_from_rgb32(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_rgb16_5650_bs_from_rgb32(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   sysint_t i = w;
 
@@ -1041,7 +1097,8 @@ static void FOG_FASTCALL convert_rgb16_5650_bs_from_rgb32(uint8_t* dst, const ui
   }
 }
 
-static void FOG_FASTCALL convert_rgb16_5650_bs_from_rgb24(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_rgb16_5650_bs_from_rgb24(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   sysint_t i = w;
 
@@ -1060,13 +1117,15 @@ static void FOG_FASTCALL convert_rgb16_5650_bs_from_rgb24(uint8_t* dst, const ui
   }
 }
 
-static void FOG_FASTCALL convert_rgb16_5650_bs_from_i8(uint8_t* dst, const uint8_t* src, sysint_t w, const Rgba* pal)
+static void FOG_FASTCALL convert_rgb16_5650_bs_from_i8(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
+  const Rgba* srcPal = closure->srcPalette;
   sysint_t i = w;
 
   while (i)
   {
-    uint32_t s0 = pal[src[0]];
+    uint32_t s0 = srcPal[src[0]];
 
     ((uint16_t*)dst)[0] = Memory::bswap16(
       ((s0 >> 8) & 0xF800) |
@@ -1087,7 +1146,8 @@ static void FOG_FASTCALL convert_rgb16_5650_bs_from_i8(uint8_t* dst, const uint8
 //  0.212671 * R + 0.715160 * G + 0.072169 * B;
 // As:
 //  (13938 * R + 46868 * G + 4730 * B) / 65536
-static void FOG_FASTCALL convert_greyscale8_from_rgb32(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_greyscale8_from_rgb32(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   sysint_t i = w;
 
@@ -1108,7 +1168,8 @@ static void FOG_FASTCALL convert_greyscale8_from_rgb32(uint8_t* dst, const uint8
   }
 }
 
-static void FOG_FASTCALL convert_greyscale8_from_rgb24(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_greyscale8_from_rgb24(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   sysint_t i = w;
 
@@ -1127,13 +1188,15 @@ static void FOG_FASTCALL convert_greyscale8_from_rgb24(uint8_t* dst, const uint8
   }
 }
 
-static void FOG_FASTCALL convert_greyscale8_from_i8(uint8_t* dst, const uint8_t* src, sysint_t w, const Rgba* pal)
+static void FOG_FASTCALL convert_greyscale8_from_i8(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
+  const Rgba* srcPal = closure->srcPalette;
   sysint_t i = w;
 
   while (i)
   {
-    uint32_t s0 = pal[src[0]];
+    uint32_t s0 = srcPal[src[0]];
 
     uint32_t grey =
       ((s0 >> 16) & 0xFF) * 13938 +
@@ -1148,7 +1211,8 @@ static void FOG_FASTCALL convert_greyscale8_from_i8(uint8_t* dst, const uint8_t*
   }
 }
 
-static void FOG_FASTCALL convert_rgb32_from_greyscale8(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_rgb32_from_greyscale8(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   sysint_t i = w;
 
@@ -1164,7 +1228,8 @@ static void FOG_FASTCALL convert_rgb32_from_greyscale8(uint8_t* dst, const uint8
   }
 }
 
-static void FOG_FASTCALL convert_rgb24_from_greyscale8(uint8_t* dst, const uint8_t* src, sysint_t w)
+static void FOG_FASTCALL convert_rgb24_from_greyscale8(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   sysint_t i = w;
 
