@@ -269,7 +269,7 @@ static void FOG_FASTCALL floatScanlineConvolveH_argb32_sse2(
 {
   if (size == 0 || width < 2)
   {
-    if (dst != src) functionMap->filters.copyArea[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
+    if (dst != src) functionMap->filter.copyArea[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
     return;
   }
 
@@ -407,7 +407,7 @@ static void FOG_FASTCALL floatScanlineConvolveV_argb32_sse2(
 {
   if (size == 0 || height < 2)
   {
-    if (dst != src) functionMap->filters.copyArea[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
+    if (dst != src) functionMap->filter.copyArea[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
     return;
   }
 
@@ -549,7 +549,7 @@ static void FOG_FASTCALL boxBlurConvolveH_argb32_sse2(
 {
   if (radius == 0 || width < 2)
   {
-    if (dst != src) functionMap->filters.copyArea[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
+    if (dst != src) functionMap->filter.copyArea[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
     return;
   }
 
@@ -688,7 +688,7 @@ static void FOG_FASTCALL boxBlurConvolveV_argb32_sse2(
 {
   if (radius == 0 || height < 2)
   {
-    if (dst != src) functionMap->filters.copyArea[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
+    if (dst != src) functionMap->filter.copyArea[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
     return;
   }
 
@@ -831,7 +831,7 @@ static void FOG_FASTCALL stackBlurConvolveH_argb32_sse2(
 {
   if (radius == 0 || width < 2)
   {
-    if (dst != src) functionMap->filters.copyArea[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
+    if (dst != src) functionMap->filter.copyArea[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
     return;
   }
 
@@ -849,8 +849,8 @@ static void FOG_FASTCALL stackBlurConvolveH_argb32_sse2(
   sysint_t pos2;
   sysint_t xp, i;
 
-  __m128i mmMul = _mm_cvtsi32_si128(functionMap->filters.stackBlur8Mul[radius]);
-  __m128i mmShr = _mm_cvtsi32_si128(functionMap->filters.stackBlur8Shr[radius]);
+  __m128i mmMul = _mm_cvtsi32_si128(functionMap->filter.stackBlur8Mul[radius]);
+  __m128i mmShr = _mm_cvtsi32_si128(functionMap->filter.stackBlur8Shr[radius]);
   pix_expand_pixel_1x4B(mmMul, mmMul);
 
   uint32_t stack[512];
@@ -997,7 +997,7 @@ static void FOG_FASTCALL stackBlurConvolveV_argb32_sse2(
 {
   if (radius == 0 || height < 2)
   {
-    if (dst != src) functionMap->filters.copyArea[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
+    if (dst != src) functionMap->filter.copyArea[Image::FormatARGB32](dst, dstStride, src, srcStride, width, height);
     return;
   }
 
@@ -1015,8 +1015,8 @@ static void FOG_FASTCALL stackBlurConvolveV_argb32_sse2(
   sysint_t pos2;
   sysint_t xp, i;
 
-  __m128i mmMul = _mm_cvtsi32_si128(functionMap->filters.stackBlur8Mul[radius]);
-  __m128i mmShr = _mm_cvtsi32_si128(functionMap->filters.stackBlur8Shr[radius]);
+  __m128i mmMul = _mm_cvtsi32_si128(functionMap->filter.stackBlur8Mul[radius]);
+  __m128i mmShr = _mm_cvtsi32_si128(functionMap->filter.stackBlur8Shr[radius]);
   pix_expand_pixel_1x4B(mmMul, mmMul);
 
   uint32_t stack[512];

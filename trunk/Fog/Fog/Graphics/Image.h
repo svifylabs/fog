@@ -355,7 +355,7 @@ struct FOG_API Image
   //! @brief Set image palette.
   err_t setPalette(const Palette& palette);
   //! @brief Set image palette entries.
-  err_t setPalette(sysuint_t index, sysuint_t count, const Rgba* rgba);
+  err_t setPalette(sysuint_t index, const Rgba* rgba, sysuint_t count);
 
   // [GetDib / SetDib]
 

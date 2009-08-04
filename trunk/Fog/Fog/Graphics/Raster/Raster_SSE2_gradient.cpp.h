@@ -98,8 +98,8 @@ static void FOG_FASTCALL gradient_gradient_argb32_sse2(uint8_t* dst, uint32_t c0
       xmm2 = _mm_packus_epi16(xmm2, xmm2);       // xmm2 = [AxRxGxBxAxRxGxBx]
       xmm2 = _mm_srli_epi16(xmm2, 8);            // xmm2 = [0A0R0G0B0A0R0G0B]
       xmm2 = _mm_packus_epi16(xmm2, xmm2);       // xmm2 = [ARGBARGBARGBARGB]
+      pix_store4(dstCur, xmm2);
 
-      ((int *)dstCur)[0] = _mm_cvtsi128_si32(xmm2);
       dstCur += 4;
       if (--i == 0) goto interpolation_end;
     }
@@ -125,8 +125,7 @@ static void FOG_FASTCALL gradient_gradient_argb32_sse2(uint8_t* dst, uint32_t c0
       xmm4 = _mm_srli_epi16(xmm4, 8);            // xmm4 = [0A0R0G0B0A0R0G0B]
 
       xmm2 = _mm_packus_epi16(xmm2, xmm4);       // xmm2 = [ARGBARGBARGBARGB]
-
-      _mm_store_si128((__m128i *)dstCur, xmm2);
+      pix_store16a(dstCur, xmm2);
 
       dstCur += 16;
       i -= 4;
@@ -141,8 +140,8 @@ static void FOG_FASTCALL gradient_gradient_argb32_sse2(uint8_t* dst, uint32_t c0
       xmm2 = _mm_packus_epi16(xmm2, xmm2);       // xmm2 = [AxRxGxBxAxRxGxBx]
       xmm2 = _mm_srli_epi16(xmm2, 8);            // xmm2 = [0A0R0G0B0A0R0G0B]
       xmm2 = _mm_packus_epi16(xmm2, xmm2);       // xmm2 = [ARGBARGBARGBARGB]
+      pix_store4(dstCur, xmm2);
 
-      ((int *)dstCur)[0] = _mm_cvtsi128_si32(xmm2);
       dstCur += 4;
       i--;
     }
@@ -157,6 +156,12 @@ interpolation_end:
 
 static void FOG_FASTCALL gradient_gradient_prgb32_sse2(uint8_t* dst, uint32_t c0, uint32_t c1, sysint_t w, sysint_t x1, sysint_t x2)
 {
+  if (isAlpha0xFF(c0) && isAlpha0xFF(c1))
+  {
+    gradient_gradient_argb32_sse2(dst, c0, c1, w, x1, x2);
+    return;
+  }
+
   uint8_t* dstCur = dst;
 
   // Sanity checks.
@@ -238,8 +243,8 @@ static void FOG_FASTCALL gradient_gradient_prgb32_sse2(uint8_t* dst, uint32_t c0
       xmm2 = _mm_srli_epi16(xmm2, 8);            // xmm2 = [0A0R0G0B0A0R0G0B]
       pix_premultiply_1x1W(xmm2, xmm2);
       xmm2 = _mm_packus_epi16(xmm2, xmm2);       // xmm2 = [ARGBARGBARGBARGB]
+      pix_store4(dstCur, xmm2);
 
-      ((int *)dstCur)[0] = _mm_cvtsi128_si32(xmm2);
       dstCur += 4;
       if (--i == 0) goto interpolation_end;
     }
@@ -265,8 +270,7 @@ static void FOG_FASTCALL gradient_gradient_prgb32_sse2(uint8_t* dst, uint32_t c0
       xmm4 = _mm_srli_epi16(xmm4, 8);            // xmm4 = [0A0R0G0B0A0R0G0B]
       pix_premultiply_2x2W(xmm2, xmm2, xmm4, xmm4);
       xmm2 = _mm_packus_epi16(xmm2, xmm4);       // xmm2 = [ARGBARGBARGBARGB]
-
-      _mm_store_si128((__m128i *)dstCur, xmm2);
+      pix_store16a(dstCur, xmm2);
 
       dstCur += 16;
       i -= 4;
@@ -282,8 +286,8 @@ static void FOG_FASTCALL gradient_gradient_prgb32_sse2(uint8_t* dst, uint32_t c0
       xmm2 = _mm_srli_epi16(xmm2, 8);            // xmm2 = [0A0R0G0B0A0R0G0B]
       pix_premultiply_1x1W(xmm2, xmm2);
       xmm2 = _mm_packus_epi16(xmm2, xmm2);       // xmm2 = [ARGBARGBARGBARGB]
+      pix_store4(dstCur, xmm2);
 
-      ((int *)dstCur)[0] = _mm_cvtsi128_si32(xmm2);
       dstCur += 4;
       i--;
     }

@@ -43,33 +43,33 @@ namespace Raster {
 //
 // 32-bit entities:
 //   - 1 pixel at time:
-//     - BLIT_32_SSE2_SMALL_BEGIN(dst) - Small loop begin.
-//     - BLIT_32_SSE2_SMALL_END(dst) - Small loop end.
+//     - BLIT_SSE2_32x4_SMALL_BEGIN(dst) - Small loop begin.
+//     - BLIT_SSE2_32x4_SMALL_END(dst) - Small loop end.
 //
 //   - 4 pixels at time:
-//     - BLIT_32_SSE2_LARGE_BEGIN(dst) - Main loop begin.
-//     - BLIT_32_SSE2_LARGE_END(dst) - Main loop end.
+//     - BLIT_SSE2_32x4_LARGE_BEGIN(dst) - Main loop begin.
+//     - BLIT_SSE2_32x4_LARGE_END(dst) - Main loop end.
 //
 // 24-bit entities:
 //   - TODO
 //
 // 8-bit entities:
 //   - 1 pixel at time:
-//     - BLIT_8_SSE2_SMALL_BEGIN(dst) - Small loop begin.
-//     - BLIT_8_SSE2_SMALL_END(dst) - Small loop end.
+//     - BLIT_SSE2_8x16_SMALL_BEGIN(dst) - Small loop begin.
+//     - BLIT_SSE2_8x16_SMALL_END(dst) - Small loop end.
 //
 //   - 16 pixels at time:
-//     - BLIT_8_SSE2_LARGE_BEGIN(dst) - Main loop begin.
-//     - BLIT_8_SSE2_LARGE_END(dst) - Main loop end.
+//     - BLIT_SSE2_8x16_LARGE_BEGIN(dst) - Main loop begin.
+//     - BLIT_SSE2_8x16_LARGE_END(dst) - Main loop end.
 //
 // Because compilers can be quite missed from our machinery, it's needed
 // to follow some rules to help them to optimize this code:
 // - declare temporary variables (mainly sse2 registers) in local loop scope.
-// - do not add anything between BLIT_32_SSE2_SMALL_END and BLIT_32_SSE2_LARGE_BEGIN.
+// - do not add anything between BLIT_SSE2_32x4_SMALL_END and BLIT_SSE2_32x4_LARGE_BEGIN.
 
 // 32-bit entities:
 
-#define BLIT_32_SSE2_INIT(_dst, _w) \
+#define BLIT_SSE2_32x4_INIT(_dst, _w) \
   sysuint_t _i = (sysuint_t)_w; \
   sysuint_t _j = 0; \
   \
@@ -87,29 +87,74 @@ namespace Raster {
     _w = 0; \
   }
 
-#define BLIT_32_SSE2_SMALL_BEGIN(group) \
+#define BLIT_SSE2_32x4_SMALL_BEGIN(group) \
   if (_i) \
   { \
 group: \
     do {
 
-#define BLIT_32_SSE2_SMALL_END(group) \
+#define BLIT_SSE2_32x4_SMALL_END(group) \
     } while (--_i); \
     if (!w) return; \
   } \
 
-#define BLIT_32_SSE2_LARGE_BEGIN(group) \
+#define BLIT_SSE2_32x4_LARGE_BEGIN(group) \
   do {
 
-#define BLIT_32_SSE2_LARGE_END(group) \
+#define BLIT_SSE2_32x4_LARGE_END(group) \
   } while (--w); \
   \
   if ((_i = _j)) goto group; \
   return;
 
 // 8-bit entities:
-  
-#define BLIT_8_SSE2_INIT(_dst, _w) \
+
+#define BLIT_SSE2_8x4_INIT(_dst, _w) \
+  sysuint_t _i = (sysuint_t)_w; \
+  sysuint_t _j = 0; \
+  \
+  if (_i >= 4) \
+  { \
+    sysint_t align = ((sysint_t)4 - ((sysint_t)(_dst) & 3)) & 3; \
+    \
+    if (_w - align < 4) \
+    { \
+      _w = 0; \
+    } \
+    else \
+    { \
+      _i = align; \
+      _w -= (sysint_t)_i; \
+      _j = _w & 3; \
+      _w >>= 2; \
+    } \
+  } \
+  else \
+  { \
+    _w = 0; \
+  }
+
+#define BLIT_SSE2_8x4_SMALL_BEGIN(group) \
+  if (_i) \
+  { \
+group: \
+    do {
+
+#define BLIT_SSE2_8x4_SMALL_END(group) \
+    } while (--_i); \
+    if (!w) return; \
+  } \
+
+#define BLIT_SSE2_8x4_LARGE_BEGIN(group) \
+  do {
+
+#define BLIT_SSE2_8x4_LARGE_END(group) \
+  } while (--w); \
+  \
+  if ((_i = _j)) goto group; \
+  return;
+
+#define BLIT_SSE2_8x16_INIT(_dst, _w) \
   sysuint_t _i = (sysuint_t)_w; \
   sysuint_t _j = 0; \
   \
@@ -134,21 +179,21 @@ group: \
     _w = 0; \
   }
 
-#define BLIT_8_SSE2_SMALL_BEGIN(group) \
+#define BLIT_SSE2_8x16_SMALL_BEGIN(group) \
   if (_i) \
   { \
 group: \
     do {
 
-#define BLIT_8_SSE2_SMALL_END(group) \
+#define BLIT_SSE2_8x16_SMALL_END(group) \
     } while (--_i); \
     if (!w) return; \
   } \
 
-#define BLIT_8_SSE2_LARGE_BEGIN(group) \
+#define BLIT_SSE2_8x16_LARGE_BEGIN(group) \
   do {
 
-#define BLIT_8_SSE2_LARGE_END(group) \
+#define BLIT_SSE2_8x16_LARGE_END(group) \
   } while (--w); \
   \
   if ((_i = _j)) goto group; \
@@ -514,13 +559,13 @@ static FOG_INLINE void pix_expand_alpha_rev_2x2W(
 
 // Add.
 
-static FOG_INLINE void pix_addsat_1x4B(
+static FOG_INLINE void pix_adds_1x1W(
   __m128i& dst0, const __m128i& a0, const __m128i& b0)
 {
   dst0 = _mm_adds_epu8(a0, b0);
 }
 
-static FOG_INLINE void pix_addsat_2x4B(
+static FOG_INLINE void pix_adds_2x2W(
   __m128i& dst0, const __m128i& a0, const __m128i& b0,
   __m128i& dst1, const __m128i& a1, const __m128i& b1)
 {
@@ -528,18 +573,16 @@ static FOG_INLINE void pix_addsat_2x4B(
   dst1 = _mm_adds_epu8(a1, b1);
 }
 
-static FOG_INLINE void pix_addsat_1x1W(
+static FOG_INLINE void pix_adds_1x1B(
   __m128i& dst0, const __m128i& a0, const __m128i& b0)
 {
   dst0 = _mm_adds_epu8(a0, b0);
 }
 
-static FOG_INLINE void pix_addsat_2x2W(
-  __m128i& dst0, const __m128i& a0, const __m128i& b0,
-  __m128i& dst1, const __m128i& a1, const __m128i& b1)
+static FOG_INLINE void pix_adds_1x4B(
+  __m128i& dst0, const __m128i& a0, const __m128i& b0)
 {
   dst0 = _mm_adds_epu8(a0, b0);
-  dst1 = _mm_adds_epu8(a1, b1);
 }
 
 // Expand Mask.
@@ -596,6 +639,18 @@ static FOG_INLINE void pix_multiply_2x2W(
 }
 
 // Fill Alpha.
+
+static FOG_INLINE void pix_fill_alpha_1x1B(
+  __m128i& dst0)
+{
+  dst0 = _mm_or_si128(dst0, MaskFF000000FF000000);
+}
+
+static FOG_INLINE void pix_fill_alpha_1x4B(
+  __m128i& dst0)
+{
+  dst0 = _mm_or_si128(dst0, MaskFF000000FF000000);
+}
 
 static FOG_INLINE void pix_fill_alpha_1x1W(
   __m128i& dst0)
@@ -766,7 +821,7 @@ static FOG_INLINE void pix_lerp_1x1W(
   pix_multiply_1x1W(tmp0, src0, alpha0);
   pix_negate_1x1W(ialpha0, alpha0);
   pix_multiply_1x1W(dst0, dst0, ialpha0);
-  dst0 = _mm_adds_epu8(dst0, tmp0);
+  pix_adds_1x1W(dst0, dst0, tmp0);
 }
 
 static FOG_INLINE void pix_lerp_2x2W(
@@ -779,8 +834,7 @@ static FOG_INLINE void pix_lerp_2x2W(
   pix_multiply_2x2W(tmp0, src0, alpha0, tmp1, src1, alpha1);
   pix_negate_2x2W(ialpha0, alpha0, ialpha1, alpha1);
   pix_multiply_2x2W(dst0, dst0, ialpha0, dst1, dst1, ialpha1);
-  dst0 = _mm_adds_epu8(dst0, tmp0);
-  dst1 = _mm_adds_epu8(dst1, tmp1);
+  pix_adds_2x2W(dst0, dst0, tmp0, dst1, dst1, tmp1);
 }
 
 static FOG_INLINE void pix_lerp_ialpha_1x1W(
@@ -790,7 +844,7 @@ static FOG_INLINE void pix_lerp_ialpha_1x1W(
 
   pix_multiply_1x1W(tmp0, src0, alpha0);
   pix_multiply_1x1W(dst0, dst0, ialpha0);
-  dst0 = _mm_adds_epu8(dst0, tmp0);
+  pix_adds_1x1W(dst0, dst0, tmp0);
 }
 
 static FOG_INLINE void pix_lerp_ialpha_2x2W(
@@ -801,8 +855,7 @@ static FOG_INLINE void pix_lerp_ialpha_2x2W(
 
   pix_multiply_2x2W(tmp0, src0, alpha0, tmp1, src1, alpha1);
   pix_multiply_2x2W(dst0, dst0, ialpha0, dst1, dst1, ialpha1);
-  dst0 = _mm_adds_epu8(dst0, tmp0);
-  dst1 = _mm_adds_epu8(dst1, tmp1);
+  pix_adds_2x2W(dst0, dst0, tmp0, dst1, dst1, tmp1);
 }
 
 // Over.
@@ -811,7 +864,7 @@ static FOG_INLINE void pix_over_ialpha_1x1W(
   __m128i& dst0, const __m128i& src0, const __m128i& ialpha0)
 {
   pix_multiply_1x1W(dst0, dst0, ialpha0);
-  dst0 = _mm_adds_epu8(dst0, src0);
+  pix_adds_1x1W(dst0, dst0, src0);
 }
 
 static FOG_INLINE void pix_over_1x1W(
@@ -821,7 +874,7 @@ static FOG_INLINE void pix_over_1x1W(
 
   pix_negate_1x1W(ialpha0, alpha0);
   pix_multiply_1x1W(dst0, dst0, ialpha0);
-  dst0 = _mm_adds_epu8(dst0, src0);
+  pix_adds_1x1W(dst0, dst0, src0);
 }
 
 static FOG_INLINE void pix_over_ialpha_2x2W(
@@ -831,8 +884,7 @@ static FOG_INLINE void pix_over_ialpha_2x2W(
   pix_multiply_2x2W(
     dst0, dst0, ialpha0,
     dst1, dst1, ialpha1);
-  dst0 = _mm_adds_epu8(dst0, src0);
-  dst1 = _mm_adds_epu8(dst1, src1);
+  pix_adds_2x2W(dst0, dst0, src0, dst1, dst1, src1);
 }
 
 static FOG_INLINE void pix_over_2x2W(
@@ -848,8 +900,7 @@ static FOG_INLINE void pix_over_2x2W(
   pix_multiply_2x2W(
     dst0, dst0, ialpha0,
     dst1, dst1, ialpha1);
-  dst0 = _mm_adds_epu8(dst0, src0);
-  dst1 = _mm_adds_epu8(dst1, src1);
+  pix_adds_2x2W(dst0, dst0, src0, dst1, dst1, src1);
 }
 
 static FOG_INLINE void pix_over_1x1W(
@@ -881,7 +932,7 @@ static FOG_INLINE void pix_overrev_ialpha_1x1W(
 {
   __m128i t0;
   pix_multiply_1x1W(t0, src0, ialpha0);
-  dst0 = _mm_adds_epu8(dst0, t0);
+  pix_adds_1x1W(dst0, dst0, t0);
 }
 
 static FOG_INLINE void pix_overrev_1x1W(
@@ -892,7 +943,7 @@ static FOG_INLINE void pix_overrev_1x1W(
 
   pix_negate_1x1W(ialpha0, alpha0);
   pix_multiply_1x1W(t0, src0, ialpha0);
-  dst0 = _mm_adds_epu8(dst0, t0);
+  pix_adds_1x1W(dst0, dst0, t0);
 }
 
 static FOG_INLINE void pix_overrev_ialpha_2x2W(
@@ -905,8 +956,7 @@ static FOG_INLINE void pix_overrev_ialpha_2x2W(
   pix_multiply_2x2W(
     t0, src0, ialpha0,
     t1, src1, ialpha1);
-  dst0 = _mm_adds_epu8(dst0, t0);
-  dst1 = _mm_adds_epu8(dst1, t1);
+  pix_adds_2x2W(dst0, dst0, t0, dst1, dst1, t1);
 }
 
 static FOG_INLINE void pix_overrev_2x2W(
@@ -924,8 +974,7 @@ static FOG_INLINE void pix_overrev_2x2W(
   pix_multiply_2x2W(
     t0, src0, ialpha0,
     t1, src1, ialpha1);
-  dst0 = _mm_adds_epu8(dst0, t0);
-  dst1 = _mm_adds_epu8(dst1, t1);
+  pix_adds_2x2W(dst0, dst0, t0, dst1, dst1, t1);
 }
 
 static FOG_INLINE void pix_overrev_1x1W(
@@ -958,11 +1007,9 @@ static void FOG_INLINE pix_atop_ialpha_1x1W(
   __m128i dst0a;
 
   pix_expand_alpha_1x1W(dst0a, dst0);
-
   pix_multiply_1x1W(dst0, dst0, src0ia);
   pix_multiply_1x1W(dst0a, dst0a, src0);
-
-  dst0 = _mm_adds_epu8(dst0, dst0a);
+  pix_adds_1x1W(dst0, dst0, dst0a);
 }
 
 static void FOG_INLINE pix_atop_ialpha_2x2W(
@@ -973,12 +1020,9 @@ static void FOG_INLINE pix_atop_ialpha_2x2W(
   __m128i dst1a;
 
   pix_expand_alpha_2x2W(dst0a, dst0, dst1a, dst1);
-
   pix_multiply_2x2W(dst0, dst0, src0ia, dst1, dst1, src1ia);
   pix_multiply_2x2W(dst0a, dst0a, src0, dst1a, dst1a, src1);
-
-  dst0 = _mm_adds_epu8(dst0, dst0a);
-  dst1 = _mm_adds_epu8(dst1, dst1a);
+  pix_adds_2x2W(dst0, dst0, dst0a, dst1, dst1, dst1a);
 }
 
 static void FOG_INLINE pix_atop_1x1W(
@@ -1035,8 +1079,7 @@ static void FOG_INLINE pix_atoprev_1x1W(
 
   pix_multiply_1x1W(dst0, dst0, srca0);
   pix_multiply_1x1W(dstia0, dstia0, src0);
-
-  dst0 = _mm_adds_epu8(dst0, dstia0);
+  pix_adds_1x1W(dst0, dst0, dstia0);
 }
 
 static void FOG_INLINE pix_atoprev_2x2W(
@@ -1048,12 +1091,9 @@ static void FOG_INLINE pix_atoprev_2x2W(
 
   pix_expand_alpha_2x2W(dstia0, dst0, dstia1, dst1);
   pix_negate_2x2W(dstia0, dstia0, dstia1, dstia1);
-
   pix_multiply_2x2W(dst0, dst0, srca0, dst1, dst1, srca1);
   pix_multiply_2x2W(dstia0, dstia0, src0, dstia1, dstia1, src1);
-
-  dst0 = _mm_adds_epu8(dst0, dstia0);
-  dst1 = _mm_adds_epu8(dst1, dstia1);
+  pix_adds_2x2W(dst0, dst0, dstia0, dst1, dst1, dstia1);
 }
 
 // Xor.
@@ -1065,11 +1105,9 @@ static void FOG_INLINE pix_xor_ialpha_1x1W(
 
   pix_expand_alpha_1x1W(dstia0, dst0);
   pix_negate_1x1W(dstia0, dstia0);
-
   pix_multiply_1x1W(dst0, dst0, srcia0);
   pix_multiply_1x1W(dstia0, dstia0, src0);
-
-  dst0 = _mm_adds_epu8(dst0, dstia0);
+  pix_adds_1x1W(dst0, dst0, dstia0);
 }
 
 static void FOG_INLINE pix_xor_1x1W(
@@ -1089,12 +1127,9 @@ static void FOG_INLINE pix_xor_ialpha_2x2W(
 
   pix_expand_alpha_2x2W(dstia0, dst0, dstia1, dst1);
   pix_negate_2x2W(dstia0, dstia0, dstia1, dstia1);
-
   pix_multiply_2x2W(dst0, dst0, srcia0, dst1, dst1, srcia1);
   pix_multiply_2x2W(dstia0, dstia0, src0, dstia1, dstia1, src1);
-
-  dst0 = _mm_adds_epu8(dst0, dstia0);
-  dst1 = _mm_adds_epu8(dst1, dstia1);
+  pix_adds_2x2W(dst0, dst0, dstia0, dst1, dst1, dstia1);
 }
 
 static void FOG_INLINE pix_xor_2x2W(
@@ -1196,6 +1231,55 @@ static FOG_INLINE void pix_analyze_mask_16B(uint32_t& msk0IsZero, uint32_t& msk0
 }
 
 // Misc / Unsorted.
+
+static FOG_INLINE void pix_load_1xA8(__m128i& dst0, const uint8_t* p)
+{
+  dst0 = _mm_cvtsi32_si128(p[0]);
+}
+
+static FOG_INLINE void pix_load_4xA8(__m128i& dst0, const uint8_t* p)
+{
+  pix_load4(dst0, p);
+  pix_unpack_1x1D(dst0, dst0);
+  dst0 = _mm_slli_epi32(dst0, 24);
+}
+
+static FOG_INLINE void pix_load_1xI8(__m128i& dst0, const uint8_t* p, const Rgba* pal)
+{
+  const uint8_t* p0 = (uint8_t*)(&pal[p[0]]);
+  pix_load4(dst0, p0);
+}
+
+static FOG_INLINE void pix_load_4xI8(__m128i& dst0, const uint8_t* p, const Rgba* pal)
+{
+  __m128i dst1;
+  __m128i dst2;
+
+  const uint8_t* p0;
+  const uint8_t* p1;
+
+  p0 = (uint8_t*)(&pal[p[0]]);
+  p1 = (uint8_t*)(&pal[p[1]]);
+
+  pix_load4(dst0, p0);
+  pix_load4(dst1, p1);
+
+  dst1 = _mm_shuffle_epi32(dst1, _MM_SHUFFLE(3, 3, 0, 3));
+
+  p0 = (uint8_t*)(&pal[p[2]]);
+  p1 = (uint8_t*)(&pal[p[3]]);
+
+  dst0 = _mm_or_si128(dst0, dst1);
+
+  pix_load4(dst1, p0);
+  pix_load4(dst2, p1);
+
+  dst1 = _mm_shuffle_epi32(dst1, _MM_SHUFFLE(3, 0, 3, 3));
+  dst2 = _mm_shuffle_epi32(dst2, _MM_SHUFFLE(0, 3, 3, 3));
+
+  dst1 = _mm_or_si128(dst1, dst2);
+  dst0 = _mm_or_si128(dst0, dst1);
+}
 
 static FOG_INLINE void pix_load_and_unpack_axxx32_64B(__m128i& dst0, __m128i& dst1, const uint8_t* src)
 {

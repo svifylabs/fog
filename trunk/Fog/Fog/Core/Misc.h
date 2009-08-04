@@ -14,24 +14,22 @@
 
 namespace Fog {
 
-/*!
-  @brief This template is for fast routines that needs to alloc memory on
-  the stack. Maximum size of memory allocated on the stack is @a N.
-
-  If N is zero, it will always use heap allocation.
-
-  This class is used internaly in Core and all upper libraries to simplify 
-  some code, because there are situations where we need to alloc memory by 
-  alloca(), but if the amount of requested memory is too big, it's better 
-  to use memory on heap.
-
-  @c alloc() member can be called only once. Memory allocated on the heap is
-  freed by destructor or explicit @c free() call.
-
-  If you use @c free() to free allocated bytes, you can use @c alloc() again.
-
-  This template simulates the @c alloca() behavior.
-*/
+//! @brief This template is for fast routines that needs to alloc memory on
+//! the stack. Maximum size of memory allocated on the stack is @a N.
+//!
+//! If N is zero, it will always use heap allocation.
+//!
+//! This class is used internaly in Core and all upper libraries to simplify 
+//! some code, because there are situations where we need to alloc memory by 
+//! alloca(), but if the amount of requested memory is too big, it's better 
+//! to use memory on heap.
+//!
+//! @c alloc() member can be called only once. Memory allocated on the heap is
+//! freed by destructor or explicit @c free() call.
+//!
+//! If you use @c free() to free allocated bytes, you can use @c alloc() again.
+//!
+//! This template simulates the @c alloca() behavior.
 template<sysuint_t N = 0>
 struct MemoryBuffer
 {
@@ -99,15 +97,15 @@ struct LocalStack
 {
   struct Node
   {
-    /*! @brief Pointer to current position in buffer for this node. */
+    //! @brief Pointer to current position in buffer for this node.
     uint8_t* cur;
-    /*! @brief Pointer to next node. */
+    //! @brief Pointer to next node.
     Node* next;
-    /*! @brief Pointer to previous node. */
+    //! @brief Pointer to previous node.
     Node* prev;
-    /*! @brief Remaining bytes in bufer. */
+    //! @brief Remaining bytes in bufer.
     sysuint_t remain;
-    /*! @brief Node data. */
+    //! @brief Node data.
     uint8_t buffer[N];
   };
 

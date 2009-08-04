@@ -461,7 +461,7 @@ err_t Image::to8Bit(const Palette& pal)
       {
         for (y = 0; y < 256; y++)
         {
-          Rgba c = _d->palette.cAt(y);
+          Rgba c = _d->palette.at(y);
           table[y] = pal.findColor(c.r, c.g, c.b);
         }
       }
@@ -469,7 +469,7 @@ err_t Image::to8Bit(const Palette& pal)
       {
         for (y = 0; y < 256; y++)
         {
-          uint8_t c = _d->palette.cAt(y).grey();
+          uint8_t c = _d->palette.at(y).grey();
           table[y] = pal.findColor(c, c, c);
         }
       }
@@ -518,21 +518,21 @@ err_t Image::forceFormat(int format)
 
 err_t Image::setPalette(const Palette& palette)
 {
-  err_t err;
-  if ( (err = detach()) ) return err;
+  err_t err = detach();
+  if (err) return err;
 
   _d->palette = palette;
   return Error::Ok;
 }
 
-err_t Image::setPalette(sysuint_t index, sysuint_t count, const Rgba* rgba)
+err_t Image::setPalette(sysuint_t index, const Rgba* rgba, sysuint_t count)
 {
   if (count == 0) return Error::Ok;
 
-  err_t err;
-  if ( (err = detach()) ) return err;
+  err_t err = detach();
+  if (err) return err;
 
-  return _d->palette.set(index, count, rgba);
+  return _d->palette.setRgba32(index, rgba, count);
 }
 
 // ============================================================================
@@ -599,8 +599,8 @@ void Image::getDibArgb32(int x, int y, sysint_t w, void* dst) const
     case FormatPRGB32: converter = Raster::functionMap->convert.argb32_from_prgb32; break;
     case FormatRGB32 : converter = Raster::functionMap->convert.argb32_from_rgb32; break;
     case FormatRGB24 : converter = Raster::functionMap->convert.rgb32_from_rgb24; break;
-    case FormatA8    : break; // TODO
-    case FormatI8    : break; // TODO
+    case FormatA8    : converter = Raster::functionMap->convert.axxx32_from_a8; break;
+    case FormatI8    : converter = Raster::functionMap->convert.argb32_from_i8; break;
   }
   image_getdib(this, x, y, w, dst, converter);
 }
@@ -614,8 +614,8 @@ void Image::getDibArgb32_bs(int x, int y, sysint_t w, void* dst) const
     case FormatPRGB32: converter = Raster::functionMap->convert.argb32_bs_from_prgb32; break;
     case FormatRGB32 : converter = Raster::functionMap->convert.argb32_bs_from_rgb32; break;
     case FormatRGB24 : converter = Raster::functionMap->convert.rgb32_bs_from_rgb24; break;
-    case FormatA8    : break; // TODO
-    case FormatI8    : break; // TODO
+    case FormatA8    : converter = Raster::functionMap->convert.axxx32_bs_from_a8; break;
+    case FormatI8    : converter = Raster::functionMap->convert.argb32_bs_from_i8; break;
   }
   image_getdib(this, x, y, w, dst, converter);
 }
@@ -629,8 +629,8 @@ void Image::setDibArgb32(int x, int y, sysint_t w, const void* src)
     case FormatPRGB32: converter = Raster::functionMap->convert.prgb32_from_argb32; break;
     case FormatRGB32 : converter = Raster::functionMap->convert.rgb32_from_argb32; break;
     case FormatRGB24 : converter = Raster::functionMap->convert.rgb32_from_rgb24; break;
-    //case FormatA8    : converter = Raster::functionMap->convert.a8_from_axxx32; break;
-    //case FormatI8    : converter = Raster::functionMap->convert.argb32_from_i8; break;
+    case FormatA8    : converter = Raster::functionMap->convert.a8_from_axxx32; break;
+    case FormatI8    : break;
   }
   image_setdib(this, x, y, w, src, converter);
 }
@@ -644,8 +644,8 @@ void Image::setDibArgb32_bs(int x, int y, sysint_t w, const void* src)
     case FormatPRGB32: converter = Raster::functionMap->convert.prgb32_from_argb32_bs; break;
     case FormatRGB32 : converter = Raster::functionMap->convert.rgb32_from_argb32_bs; break;
     case FormatRGB24 : converter = Raster::functionMap->convert.rgb24_from_rgb32_bs; break;
-    case FormatA8    : break; // TODO
-    case FormatI8    : break; // TODO
+    case FormatA8    : converter = Raster::functionMap->convert.a8_from_axxx32_bs; break;
+    case FormatI8    : break;
   }
   image_setdib(this, x, y, w, src, converter);
 }
@@ -659,7 +659,7 @@ void Image::getDibPrgb32(int x, int y, sysint_t w, void* dst) const
     case FormatPRGB32: converter = Raster::functionMap->convert.memcpy32; break;
     case FormatRGB32 : converter = Raster::functionMap->convert.argb32_from_rgb32; break;
     case FormatRGB24 : converter = Raster::functionMap->convert.rgb32_from_rgb24; break;
-    //case FormatA8    : converter = Raster::functionMap->convert.axxx32_from_a8; break;
+    case FormatA8    : converter = Raster::functionMap->convert.axxx32_from_a8; break;
     case FormatI8    : converter = Raster::functionMap->convert.prgb32_from_i8; break;
   }
   image_getdib(this, x, y, w, dst, converter);
@@ -674,6 +674,7 @@ void Image::getDibPrgb32_bs(int x, int y, sysint_t w, void* dst) const
     case FormatPRGB32: converter = Raster::functionMap->convert.bswap32; break;
     case FormatRGB32 : converter = Raster::functionMap->convert.argb32_bs_from_rgb32; break;
     case FormatRGB24 : converter = Raster::functionMap->convert.rgb32_bs_from_rgb24; break;
+    case FormatA8    : converter = Raster::functionMap->convert.axxx32_bs_from_a8; break;
     case FormatI8    : converter = Raster::functionMap->convert.prgb32_bs_from_i8; break;
   }
   image_getdib(this, x, y, w, dst, converter);
@@ -688,6 +689,8 @@ void Image::setDibPrgb32(int x, int y, sysint_t w, const void* src)
     case FormatPRGB32: converter = Raster::functionMap->convert.memcpy32; break;
     case FormatRGB32 : converter = Raster::functionMap->convert.rgb32_from_argb32; break;
     case FormatRGB24 : converter = Raster::functionMap->convert.rgb24_from_rgb32; break;
+    case FormatA8    : converter = Raster::functionMap->convert.a8_from_axxx32; break;
+    case FormatI8    : break;
   }
   image_setdib(this, x, y, w, src, converter);
 }
@@ -701,6 +704,8 @@ void Image::setDibPrgb32_bs(int x, int y, sysint_t w, const void* src)
     case FormatPRGB32: converter = Raster::functionMap->convert.bswap32; break;
     case FormatRGB32 : converter = Raster::functionMap->convert.rgb32_from_argb32_bs; break;
     case FormatRGB24 : converter = Raster::functionMap->convert.rgb24_from_rgb32_bs; break;
+    case FormatA8    : converter = Raster::functionMap->convert.a8_from_axxx32_bs; break;
+    case FormatI8    : break;
   }
   image_setdib(this, x, y, w, src, converter);
 }
@@ -714,6 +719,7 @@ void Image::getDibRgb24(int x, int y, sysint_t w, void* dst) const
     case FormatPRGB32:
     case FormatRGB32 : converter = Raster::functionMap->convert.rgb24_from_rgb32; break;
     case FormatRGB24 : converter = Raster::functionMap->convert.memcpy24; break;
+    case FormatA8    : converter = Raster::functionMap->convert.rgb24_from_greyscale8; break;
     case FormatI8    : converter = Raster::functionMap->convert.rgb24_from_i8; break;
   }
   image_getdib(this, x, y, w, dst, converter);
@@ -728,6 +734,7 @@ void Image::getDibRgb24_bs(int x, int y, sysint_t w, void* dst) const
     case FormatPRGB32:
     case FormatRGB32 : converter = Raster::functionMap->convert.bgr24_from_rgb32; break;
     case FormatRGB24 : converter = Raster::functionMap->convert.bswap24; break;
+    case FormatA8    : converter = Raster::functionMap->convert.rgb24_from_greyscale8; break;
     case FormatI8    : converter = Raster::functionMap->convert.bgr24_from_i8; break;
   }
   image_getdib(this, x, y, w, dst, converter);
@@ -742,6 +749,8 @@ void Image::setDibRgb24(int x, int y, sysint_t w, const void* src)
     case FormatPRGB32:
     case FormatRGB32 : converter = Raster::functionMap->convert.rgb32_from_rgb24; break;
     case FormatRGB24 : converter = Raster::functionMap->convert.memcpy24; break;
+    case FormatA8    : converter = Raster::functionMap->convert.greyscale8_from_rgb24; break;
+    case FormatI8    : break;
   }
   image_setdib(this, x, y, w, src, converter);
 }
@@ -755,6 +764,8 @@ void Image::setDibRgb24_bs(int x, int y, sysint_t w, const void* src)
     case FormatPRGB32:
     case FormatRGB32 : converter = Raster::functionMap->convert.rgb32_from_bgr24; break;
     case FormatRGB24 : converter = Raster::functionMap->convert.bswap24; break;
+    case FormatA8    : converter = Raster::functionMap->convert.greyscale8_from_bgr24; break;
+    case FormatI8    : break;
   }
   image_setdib(this, x, y, w, src, converter);
 }
@@ -768,6 +779,7 @@ void Image::getDibRgb16_555(int x, int y, sysint_t w, void* dst) const
     case FormatPRGB32:
     case FormatRGB32 : converter = Raster::functionMap->convert.rgb16_5550_from_rgb32; break;
     case FormatRGB24 : converter = Raster::functionMap->convert.rgb16_5550_from_rgb24; break;
+    case FormatA8    : break;
     case FormatI8    : converter = Raster::functionMap->convert.rgb16_5550_from_i8; break;
   }
   image_getdib(this, x, y, w, dst, converter);
@@ -782,6 +794,7 @@ void Image::getDibRgb16_555_bs(int x, int y, sysint_t w, void* dst) const
     case FormatPRGB32:
     case FormatRGB32 : converter = Raster::functionMap->convert.rgb16_5550_bs_from_rgb32; break;
     case FormatRGB24 : converter = Raster::functionMap->convert.rgb16_5550_bs_from_rgb24; break;
+    case FormatA8    : break;
     case FormatI8    : converter = Raster::functionMap->convert.rgb16_5550_bs_from_i8; break;
   }
   image_getdib(this, x, y, w, dst, converter);
@@ -796,6 +809,8 @@ void Image::setDibRgb16_555(int x, int y, sysint_t w, const void* src)
     case FormatPRGB32:
     case FormatRGB32 : converter = Raster::functionMap->convert.rgb32_from_rgb16_5550; break;
     case FormatRGB24 : converter = Raster::functionMap->convert.rgb24_from_rgb16_5550; break;
+    case FormatA8    : break;
+    case FormatI8    : break;
   }
   image_setdib(this, x, y, w, src, converter);
 }
@@ -809,6 +824,8 @@ void Image::setDibRgb16_555_bs(int x, int y, sysint_t w, const void* src)
     case FormatPRGB32:
     case FormatRGB32 : converter = Raster::functionMap->convert.rgb32_from_rgb16_5550_bs; break;
     case FormatRGB24 : converter = Raster::functionMap->convert.rgb24_from_rgb16_5550_bs; break;
+    case FormatA8    : break;
+    case FormatI8    : break;
   }
   image_setdib(this, x, y, w, src, converter);
 }
@@ -822,6 +839,7 @@ void Image::getDibRgb16_565(int x, int y, sysint_t w, void* dst) const
     case FormatPRGB32:
     case FormatRGB32 : converter = Raster::functionMap->convert.rgb16_5650_from_rgb32; break;
     case FormatRGB24 : converter = Raster::functionMap->convert.rgb16_5650_from_rgb24; break;
+    case FormatA8    : break;
     case FormatI8    : converter = Raster::functionMap->convert.rgb16_5650_from_i8; break;
   }
   image_getdib(this, x, y, w, dst, converter);
@@ -836,6 +854,7 @@ void Image::getDibRgb16_565_bs(int x, int y, sysint_t w, void* dst) const
     case FormatPRGB32:
     case FormatRGB32 : converter = Raster::functionMap->convert.rgb16_5650_bs_from_rgb32; break;
     case FormatRGB24 : converter = Raster::functionMap->convert.rgb16_5650_bs_from_rgb24; break;
+    case FormatA8    : break;
     case FormatI8    : converter = Raster::functionMap->convert.rgb16_5650_bs_from_i8; break;
   }
   image_getdib(this, x, y, w, dst, converter);
@@ -850,6 +869,8 @@ void Image::setDibRgb16_565(int x, int y, sysint_t w, const void* src)
     case FormatPRGB32:
     case FormatRGB32 : converter = Raster::functionMap->convert.rgb32_from_rgb16_5650; break;
     case FormatRGB24 : converter = Raster::functionMap->convert.rgb24_from_rgb16_5650; break;
+    case FormatA8    : break;
+    case FormatI8    : break;
   }
   image_setdib(this, x, y, w, src, converter);
 }
@@ -863,6 +884,8 @@ void Image::setDibRgb16_565_bs(int x, int y, sysint_t w, const void* src)
     case FormatPRGB32:
     case FormatRGB32 : converter = Raster::functionMap->convert.rgb32_from_rgb16_5650_bs; break;
     case FormatRGB24 : converter = Raster::functionMap->convert.rgb24_from_rgb16_5650_bs; break;
+    case FormatA8    : break;
+    case FormatI8    : break;
   }
   image_setdib(this, x, y, w, src, converter);
 }
@@ -876,19 +899,20 @@ err_t Image::swapRgb()
   if (isEmpty()) return Error::Ok;
   if (format() == FormatA8) return Error::Ok;
 
-  err_t err;
-  if ( (err = detach()) ) return err;
+  err_t err = detach();
+  if (err) return err;
 
   Data* d = _d;
 
   int x, y;
   int w = d->width;
   int h = d->height;
+  int fmt = d->format;
 
   sysint_t stride = d->stride;
   uint8_t* dst = d->first;
 
-  switch (format())
+  switch (fmt)
   {
     case FormatI8:
       dst = (uint8_t*)d->palette.mData();
@@ -915,6 +939,8 @@ err_t Image::swapRgb()
           dstCur[2] = t;
         }
       }
+
+      if (fmt == FormatI8) d->palette.update();
       break;
 
     case FormatRGB24:
@@ -946,19 +972,20 @@ err_t Image::swapRgba()
   if (format() == FormatA8) return Error::Ok;
   if (format() == FormatRGB24) return swapRgb();
 
-  err_t err;
-  if ( (err = detach()) ) return err;
+  err_t err = detach();
+  if (err) return err;
 
   Data* d = _d;
 
   int x, y;
   int w = d->width;
   int h = d->height;
+  int fmt = d->format;
 
   sysint_t stride = d->stride;
   uint8_t* dst = d->first;
 
-  switch (format())
+  switch (fmt)
   {
     case FormatI8:
       dst = (uint8_t*)d->palette.mData();
@@ -979,6 +1006,7 @@ err_t Image::swapRgba()
           ((uint32_t *)dstCur)[0] = Memory::bswap32(((uint32_t *)dstCur)[0]);
         }
       }
+      if (fmt == FormatI8) d->palette.update();
       break;
     }
 
@@ -996,7 +1024,10 @@ err_t Image::swapRgba()
 
 err_t Image::premultiply()
 {
-  return convert(FormatPRGB32);
+  if (format() == FormatARGB32) 
+    return convert(FormatPRGB32);
+  else
+    return Error::Ok;
 }
 
 err_t Image::demultiply()
@@ -1103,6 +1134,8 @@ err_t Image::invert(Image& dst, const Image& src, uint32_t invertMode)
           }
         }
       }
+
+      if (format == FormatI8) dst_d->palette.update();
       break;
     }
 
@@ -1654,13 +1687,13 @@ err_t Image::filter(const ColorLut& lut, const Rect& r)
   if ((w = x2 - x1) <= 0) return Error::Ok;
   if ((h = y2 - y1) <= 0) return Error::Ok;
 
-  err_t err;
-  if ((err = detach())) return err;
+  err_t err = detach();
+  if (err) return err;
 
   uint8_t* dstPixels = xScanline(y1) + x1 * bytesPerPixel();
   sysint_t dstStride = stride();
 
-  Raster::ColorLutFn converter = Raster::functionMap->filters.colorLut[format()];
+  Raster::ColorLutFn converter = Raster::functionMap->filter.colorLut[format()];
   const ColorLut::Table* table = &lut._d->table;
 
   for (int y = y1; y < y2; y++, dstPixels += dstStride)
@@ -1695,13 +1728,13 @@ err_t Image::filter(const ColorMatrix& mat, const Rect& r)
   if ((w = x2 - x1) <= 0) return Error::Ok;
   if ((h = y2 - y1) <= 0) return Error::Ok;
 
-  err_t err;
-  if ((err = detach())) return err;
+  err_t err = detach();
+  if (err) return err;
 
   uint8_t* dstPixels = xScanline(y1) + x1 * bytesPerPixel();
   sysint_t dstStride = stride();
 
-  Raster::ColorMatrixFn converter = Raster::functionMap->filters.colorMatrix[format()];
+  Raster::ColorMatrixFn converter = Raster::functionMap->filter.colorMatrix[format()];
   uint32_t type = mat.type();
 
   for (int y = y1; y < y2; y++, dstPixels += dstStride)

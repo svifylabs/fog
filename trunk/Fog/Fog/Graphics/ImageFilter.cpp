@@ -321,7 +321,7 @@ err_t BlurImageFilter::filterPrivate(
 {
   if (isNop())
   {
-    if (dst != src) Raster::functionMap->filters.copyArea[format](dst, dstStride, src, srcStride, width, height);
+    if (dst != src) Raster::functionMap->filter.copyArea[format](dst, dstStride, src, srcStride, width, height);
     return Error::Ok;
   }
 
@@ -352,13 +352,13 @@ err_t BlurImageFilter::filterPrivate(
 
       if (_blurType == BlurTypeBox)
       {
-        convolveH = Raster::functionMap->filters.boxBlurConvolveH[format];
-        convolveV = Raster::functionMap->filters.boxBlurConvolveV[format];
+        convolveH = Raster::functionMap->filter.boxBlurConvolveH[format];
+        convolveV = Raster::functionMap->filter.boxBlurConvolveV[format];
       }
       else
       {
-        convolveH = Raster::functionMap->filters.stackBlurConvolveH[format];
-        convolveV = Raster::functionMap->filters.stackBlurConvolveV[format];
+        convolveH = Raster::functionMap->filter.stackBlurConvolveH[format];
+        convolveV = Raster::functionMap->filter.stackBlurConvolveV[format];
       }
 
       convolveH(dst, dstStride, src, srcStride, width, height, hRadiusInt, _borderMode, _borderColor);
@@ -382,8 +382,8 @@ err_t BlurImageFilter::filterPrivate(
       if (!hKernel) return Error::OutOfMemory;
       vKernel = hKernel + hKernelSize;
 
-      Raster::FloatScanlineConvolveFn convolveH = Raster::functionMap->filters.floatScanlineConvolveH[format];
-      Raster::FloatScanlineConvolveFn convolveV = Raster::functionMap->filters.floatScanlineConvolveV[format];
+      Raster::FloatScanlineConvolveFn convolveH = Raster::functionMap->filter.floatScanlineConvolveH[format];
+      Raster::FloatScanlineConvolveFn convolveV = Raster::functionMap->filter.floatScanlineConvolveV[format];
 
       hKernelDiv = makeGaussianBlurKernel(hKernel, hRadius, hKernelSize);
       vKernelDiv = makeGaussianBlurKernel(vKernel, vRadius, vKernelSize);

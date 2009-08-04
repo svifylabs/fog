@@ -120,9 +120,9 @@ const Fog::MetaClass* selftype::staticMetaClass() \
   if (Fog::AtomicOperation<uint32_t>::cmpXchg(&initialized, 0, 1)) \
   { \
     metaClass.base = base::staticMetaClass(); \
-    metaClass.name = (const Char8*)metaClassName; \
+    metaClass.name = (const Fog::Char8*)metaClassName; \
     metaClass.hash = Fog::hashString( \
-      (const Char8*)metaClassName, FOG_ARRAY_SIZE(metaClassName)-1); \
+      (const Fog::Char8*)metaClassName, FOG_ARRAY_SIZE(metaClassName)-1); \
     \
     Fog::AtomicOperation<uint32_t>::set(&initialized, 1); \
     return &metaClass; \

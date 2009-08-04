@@ -13,28 +13,36 @@
 
 // [There is only documentation]
 #if defined(_DOXYGEN)
-/*!
-  @defgroup Fog_Graphics Fog/Graphics library API.
+//! @defgroup Fog_Graphics Fog/Graphics library API.
+//!
+//! Set of Fog/Graphics library classes and their members.
 
-  Set of Fog/Graphics library classes and their members.
-*/
+//! @defgroup Fog_Graphics_ImageIO Fog/Graphics ImageIO module API.
+//! @ingroup Fog_Graphics
+//!
+//! This module contains classes related to specific ImageIO plugins.
 
-/*!
-  @defgroup Fog_Graphics_ImageIO Fog/Graphics ImageIO module API.
-  @ingroup Fog_Graphics
+//! @defgroup Fog_Graphics_Raster Fog/Graphics Raster module API.
+//! @ingroup Fog_Graphics
+//!
+//! Raster module contains very low level functions to perform pixel operations.
+//! The raster module is very optimized and functions defined in it all used
+//! across many Fog/Graphics library classes. Using these classes in application
+//! is not recommended, but on the other side, they will probably stay forever.
 
-  This module contains classes related to specific ImageIO plugins.
-*/
+//! @namespace Fog::Raster
+//! @brief Low level raster based functions namespace.
+//!
+//! Raster namespace contains lowest level pixel manipulation library that is
+//! used in Fog library.
+//!
+//! @section Pixel format conversion and definitions.
+//!
+//! Fog library contains few pixel formats that can be usually combined together.
+//! When usung compositing function and destination not supports alpha channel,
+//! the result is premultiplied and alpha is set to 0xFF. This is like blitting
+//! the result into black destination using source over operator.
 
-/*!
-  @defgroup Fog_Graphics_Raster Fog/Graphics Raster module API.
-  @ingroup Fog_Graphics
-
-  Raster module contains very low level functions to perform pixel operations.
-  The raster module is very optimized and functions defined in it all used
-  across many Fog/Graphics library classes. Using these classes in application
-  is not recommended, but on the other side, they will probably stay forever.
-*/
 #endif // _DOXYGEN
 
 // [Fog/Graphics Include Files]

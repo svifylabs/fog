@@ -57,15 +57,9 @@ TODO
     [w] Remove templated functions in Raster_C.cpp. It's needed to specialize code for each operation
         and pixel format, because specialized functions for ARGB32 / PRGB32 formats can be sometimes
         smaller and faster (template based ones are large).
-    [ ] Write C composite functions and remove templates
-        [ ] Prgb dest
-        [ ] Argb dest
+    [ ] Write C composite functions
     [ ] Write MMX composite functions
-        [ ] Prgb dest
-        [ ] Argb dest
     [w] Write SSE2 composite functions
-        [w] Prgb dest
-        [w] Argb dest
     [ ] Linear gradient can be calculated by SSE2, think about it! The instructions pmax pmin, pcmpgt
         can be used in increments
     [w] Introduce painting with constant alpha (addition to masks)
@@ -96,3 +90,8 @@ TODO
     [ ] Are usable 3dNow optimizations?
     [ ] Path SSE2 curve code
     [ ] Path SSE2 matrix transformations
+
+AUDIT:
+[ ] Check for all raster conversion functions to follow these rules
+    [ ] ARGB32 to RGB32 conversion -> premultiply
+    [ ] PRGB32 to RGB32 conversion -> set alpha to 0xFF

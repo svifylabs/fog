@@ -23,6 +23,7 @@
 #include <Fog/Graphics/AffineMatrix.h>
 #include <Fog/Graphics/ColorLut.h>
 #include <Fog/Graphics/Constants.h>
+#include <Fog/Graphics/Error.h>
 #include <Fog/Graphics/Font.h>
 #include <Fog/Graphics/Glyph.h>
 #include <Fog/Graphics/GlyphSet.h>
@@ -3769,10 +3770,20 @@ err_t Painter::begin(uint8_t* pixels, int width, int height, sysint_t stride, in
 {
   end();
 
-  if (width <= 0 || height <= 0) return Error::InvalidArgument;
+  // Never initialize painter for zero image.
+  if (width <= 0 || height <= 0)
+  {
+    if (width == 0 && height == 0)
+      return Error::ImageSizeIsZero;
+    else
+      return Error::ImageSizeIsInvalid;
+  }
 
-  PainterEngine* d = new(std::nothrow) RasterEngine(
-    pixels, width, height, stride, format, hints);
+  // Check for valid image format.
+  if (format == Image::FormatNull || format >= Image::FormatCount) return Error::InvalidArgument;
+  if (format == Image::FormatI8) return Error::ImageFormatNotSupported;
+
+  PainterEngine* d = new(std::nothrow) RasterEngine(pixels, width, height, stride, format, hints);
   if (!d) return Error::OutOfMemory;
 
   _engine = d;

@@ -30,11 +30,12 @@ enum GraphicsError
 
   InvalidPath = _GraphicsErrorStart,
 
-  // [Fog::Image / Fog::ImageIO]
+  // [Fog::Image / Fog::ImageIO / Fog::Painter]
 
   ImageSizeIsZero,
   ImageSizeIsInvalid,
   ImageSizeIsTooLarge,
+  ImageFormatNotSupported,
 
   ImageIO_ProviderNotAvailable,
   ImageIO_DecoderNotAvailable,

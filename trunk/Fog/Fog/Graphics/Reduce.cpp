@@ -189,15 +189,15 @@ uint32_t Reduce::traslate(uint32_t key) const
 
 Palette Reduce::toPalette()
 {
-  Palette pal;
-  if (count())
-  {
-    Rgba* data = pal.mData();
-    if (!data) return pal;
+  Palette palette;
+  uint32_t colors[256];
 
-    for (uint32_t i = 0; i < _count; i++) data[i] = Rgba(_entities[i].key);
-  }
-  return pal;
+  FOG_ASSERT(_count < 256);
+
+  for (uint32_t i = 0; i < _count; i++) colors[i] = _entities[i].key;
+  palette.setRgba32(0, (Rgba*)colors, _count);
+
+  return palette;
 }
 
 } // Fog namespace

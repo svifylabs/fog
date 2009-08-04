@@ -107,13 +107,7 @@ void MyWindow::onPaint(PaintEvent* e)
 // [MAIN]
 // ============================================================================
 
-
-
-#if defined(FOG_OS_WINDOWS)
-int FOG_STDCALL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
-#else
 FOG_UI_MAIN()
-#endif
 {
   Application app(Ascii8("UI"));
 
@@ -241,7 +235,7 @@ void MyWindow::onPaint(PaintEvent* e)
     p->setSource(pattern);
     p->clear();
   }
-
+/*
   Image im0 = makeImage();
   Image im1;
   Image im2;
@@ -254,7 +248,7 @@ void MyWindow::onPaint(PaintEvent* e)
   p->drawImage(Point(50, 50 + (im1.height() + 10) * 0), im1);
   p->drawImage(Point(50, 50 + (im1.height() + 10) * 1), im2);
   p->drawImage(Point(50, 50 + (im1.height() + 10) * 2), im3);
-
+*/
 /*
   Image src;
   int i, w;
@@ -300,14 +294,10 @@ void MyWindow::onTimer(TimerEvent* e)
 // [MAIN]
 // ============================================================================
 
-#if defined(FOG_OS_WINDOWS)
-int FOG_STDCALL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
-#else
 FOG_UI_MAIN()
-#endif
 {
   Application app(Ascii8("UI"));
-  fog_redirect_std_to_file("log.txt");
+  // fog_redirect_std_to_file("log.txt");
 
   MyWindow window;
   window.setSize(Size(715, 515));
