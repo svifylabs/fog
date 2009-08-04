@@ -280,7 +280,7 @@ enum CompositeOp
   //!   Msk:
   //!
   //!   Dca' = (Dc.Da + Sc.m.(1 - Da)) / Da'
-  //!   Da'  = Da.(1 - m)
+  //!   Da'  = Da + m.(1-Da) 
   //!
   //! Formulas for RGB(dst), PRGB(src) colorspaces:
   //!   Dc'  = Dc
