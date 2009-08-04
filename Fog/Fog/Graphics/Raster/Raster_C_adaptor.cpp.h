@@ -65,7 +65,7 @@ static void FOG_FASTCALL adaptor_argb32_span_composite_argb32(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.prgb32_from_argb32(srcBuf, src, cw, closure);
     f[Image::FormatARGB32].span_composite[Image::FormatPRGB32](dst, srcBuf, cw, closure);
 
@@ -90,7 +90,7 @@ static void FOG_FASTCALL adaptor_argb32_span_composite_rgb32(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.axxx32_from_xxxx32(srcBuf, src, cw, closure);
     f[Image::FormatARGB32].span_composite[Image::FormatPRGB32](dst, srcBuf, cw, closure);
 
@@ -107,7 +107,7 @@ static void FOG_FASTCALL adaptor_argb32_span_composite_rgb24(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(srcBuf, src, cw, closure);
     f[Image::FormatARGB32].span_composite[Image::FormatPRGB32](dst, srcBuf, cw, closure);
 
@@ -124,7 +124,7 @@ static void FOG_FASTCALL adaptor_argb32_span_composite_a8(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.axxx32_from_a8(srcBuf, src, cw, closure);
     f[Image::FormatARGB32].span_composite[Image::FormatPRGB32](dst, srcBuf, cw, closure);
 
@@ -141,7 +141,7 @@ static void FOG_FASTCALL adaptor_argb32_span_composite_i8(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.prgb32_from_i8(srcBuf, src, cw, closure);
     f[Image::FormatARGB32].span_composite[Image::FormatPRGB32](dst, srcBuf, cw, closure);
 
@@ -158,7 +158,7 @@ static void FOG_FASTCALL adaptor_argb32_span_composite_argb32_a8(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.prgb32_from_argb32(srcBuf, src, cw, closure);
     f[Image::FormatARGB32].span_composite_a8[Image::FormatPRGB32](dst, srcBuf, msk, cw, closure);
 
@@ -184,7 +184,7 @@ static void FOG_FASTCALL adaptor_argb32_span_composite_rgb32_a8(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.axxx32_from_a8(srcBuf, src, cw, closure);
     f[Image::FormatARGB32].span_composite_a8[Image::FormatPRGB32](dst, srcBuf, msk, cw, closure);
 
@@ -202,7 +202,7 @@ static void FOG_FASTCALL adaptor_argb32_span_composite_rgb24_a8(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(srcBuf, src, cw, closure);
     f[Image::FormatARGB32].span_composite_a8[Image::FormatPRGB32](dst, srcBuf, msk, cw, closure);
 
@@ -220,7 +220,7 @@ static void FOG_FASTCALL adaptor_argb32_span_composite_a8_a8(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.axxx32_from_a8(srcBuf, src, cw, closure);
     f[Image::FormatARGB32].span_composite_a8[Image::FormatPRGB32](dst, srcBuf, msk, cw, closure);
 
@@ -238,7 +238,7 @@ static void FOG_FASTCALL adaptor_argb32_span_composite_i8_a8(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.prgb32_from_i8(srcBuf, src, cw, closure);
     f[Image::FormatARGB32].span_composite_a8[Image::FormatPRGB32](dst, srcBuf, msk, cw, closure);
 
@@ -256,7 +256,7 @@ static void FOG_FASTCALL adaptor_argb32_span_composite_argb32_a8_const(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.prgb32_from_argb32(srcBuf, src, cw, closure);
     f[Image::FormatARGB32].span_composite_a8_const[Image::FormatPRGB32](dst, srcBuf, msk0, cw, closure);
 
@@ -281,7 +281,7 @@ static void FOG_FASTCALL adaptor_argb32_span_composite_rgb32_a8_const(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.axxx32_from_xxxx32(srcBuf, src, cw, closure);
     f[Image::FormatARGB32].span_composite_a8_const[Image::FormatPRGB32](dst, srcBuf, msk0, cw, closure);
 
@@ -298,7 +298,7 @@ static void FOG_FASTCALL adaptor_argb32_span_composite_rgb24_a8_const(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(srcBuf, src, cw, closure);
     f[Image::FormatARGB32].span_composite_a8_const[Image::FormatPRGB32](dst, srcBuf, msk0, cw, closure);
 
@@ -315,7 +315,7 @@ static void FOG_FASTCALL adaptor_argb32_span_composite_a8_a8_const(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.axxx32_from_a8(srcBuf, src, cw, closure);
     f[Image::FormatARGB32].span_composite_a8_const[Image::FormatPRGB32](dst, srcBuf, msk0, cw, closure);
 
@@ -332,7 +332,7 @@ static void FOG_FASTCALL adaptor_argb32_span_composite_i8_a8_const(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.prgb32_from_i8(srcBuf, src, cw, closure);
     f[Image::FormatARGB32].span_composite_a8_const[Image::FormatPRGB32](dst, srcBuf, msk0, cw, closure);
 
@@ -393,7 +393,7 @@ static void FOG_FASTCALL adaptor_prgb32_span_composite_argb32(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.prgb32_from_argb32(srcBuf, src, cw, closure);
     f[Image::FormatPRGB32].span_composite[Image::FormatPRGB32](dst, srcBuf, cw, closure);
 
@@ -418,7 +418,7 @@ static void FOG_FASTCALL adaptor_prgb32_span_composite_rgb32(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w,(sysint_t) ADAPTOR_STEP);
     functionMap->convert.axxx32_from_xxxx32(srcBuf, src, cw, closure);
     f[Image::FormatPRGB32].span_composite[Image::FormatPRGB32](dst, srcBuf, cw, closure);
 
@@ -435,7 +435,7 @@ static void FOG_FASTCALL adaptor_prgb32_span_composite_rgb24(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(srcBuf, src, cw, closure);
     f[Image::FormatPRGB32].span_composite[Image::FormatPRGB32](dst, srcBuf, cw, closure);
 
@@ -452,7 +452,7 @@ static void FOG_FASTCALL adaptor_prgb32_span_composite_a8(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.axxx32_from_a8(srcBuf, src, cw, closure);
     f[Image::FormatPRGB32].span_composite[Image::FormatPRGB32](dst, srcBuf, cw, closure);
 
@@ -469,7 +469,7 @@ static void FOG_FASTCALL adaptor_prgb32_span_composite_i8(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.prgb32_from_i8(srcBuf, src, cw, closure);
     f[Image::FormatPRGB32].span_composite[Image::FormatPRGB32](dst, srcBuf, cw, closure);
 
@@ -486,7 +486,7 @@ static void FOG_FASTCALL adaptor_prgb32_span_composite_argb32_a8(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.prgb32_from_argb32(srcBuf, src, cw, closure);
     f[Image::FormatPRGB32].span_composite_a8[Image::FormatPRGB32](dst, srcBuf, msk, cw, closure);
 
@@ -512,7 +512,7 @@ static void FOG_FASTCALL adaptor_prgb32_span_composite_rgb32_a8(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.axxx32_from_xxxx32(srcBuf, src, cw, closure);
     f[Image::FormatPRGB32].span_composite_a8[Image::FormatPRGB32](dst, srcBuf, msk, cw, closure);
 
@@ -530,7 +530,7 @@ static void FOG_FASTCALL adaptor_prgb32_span_composite_rgb24_a8(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(srcBuf, src, cw, closure);
     f[Image::FormatPRGB32].span_composite_a8[Image::FormatPRGB32](dst, srcBuf, msk, cw, closure);
 
@@ -548,7 +548,7 @@ static void FOG_FASTCALL adaptor_prgb32_span_composite_a8_a8(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.axxx32_from_a8(srcBuf, src, cw, closure);
     f[Image::FormatPRGB32].span_composite_a8[Image::FormatPRGB32](dst, srcBuf, msk, cw, closure);
 
@@ -566,7 +566,7 @@ static void FOG_FASTCALL adaptor_prgb32_span_composite_i8_a8(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.prgb32_from_i8(srcBuf, src, cw, closure);
     f[Image::FormatPRGB32].span_composite_a8[Image::FormatPRGB32](dst, srcBuf, msk, cw, closure);
 
@@ -584,7 +584,7 @@ static void FOG_FASTCALL adaptor_prgb32_span_composite_argb32_a8_const(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.prgb32_from_argb32(srcBuf, src, cw, closure);
     f[Image::FormatPRGB32].span_composite_a8_const[Image::FormatPRGB32](dst, srcBuf, msk0, cw, closure);
 
@@ -609,7 +609,7 @@ static void FOG_FASTCALL adaptor_prgb32_span_composite_rgb32_a8_const(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.axxx32_from_xxxx32(srcBuf, src, cw, closure);
     f[Image::FormatPRGB32].span_composite_a8_const[Image::FormatPRGB32](dst, srcBuf, msk0, cw, closure);
 
@@ -626,7 +626,7 @@ static void FOG_FASTCALL adaptor_prgb32_span_composite_rgb24_a8_const(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(srcBuf, src, cw, closure);
     f[Image::FormatPRGB32].span_composite_a8_const[Image::FormatPRGB32](dst, srcBuf, msk0, cw, closure);
 
@@ -643,7 +643,7 @@ static void FOG_FASTCALL adaptor_prgb32_span_composite_a8_a8_const(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.axxx32_from_a8(srcBuf, src, cw, closure);
     f[Image::FormatPRGB32].span_composite_a8_const[Image::FormatPRGB32](dst, srcBuf, msk0, cw, closure);
 
@@ -660,7 +660,7 @@ static void FOG_FASTCALL adaptor_prgb32_span_composite_i8_a8_const(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.prgb32_from_i8(srcBuf, src, cw, closure);
     f[Image::FormatPRGB32].span_composite_a8_const[Image::FormatPRGB32](dst, srcBuf, msk0, cw, closure);
 
@@ -721,7 +721,7 @@ static void FOG_FASTCALL adaptor_rgb32_span_composite_argb32(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.prgb32_from_argb32(srcBuf, src, cw, closure);
     f[Image::FormatRGB32].span_composite[Image::FormatPRGB32](dst, srcBuf, cw, closure);
 
@@ -746,7 +746,7 @@ static void FOG_FASTCALL adaptor_rgb32_span_composite_rgb32(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.axxx32_from_xxxx32(srcBuf, src, cw, closure);
     f[Image::FormatRGB32].span_composite[Image::FormatPRGB32](dst, srcBuf, cw, closure);
 
@@ -763,7 +763,7 @@ static void FOG_FASTCALL adaptor_rgb32_span_composite_rgb24(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(srcBuf, src, cw, closure);
     f[Image::FormatRGB32].span_composite[Image::FormatPRGB32](dst, srcBuf, cw, closure);
 
@@ -780,7 +780,7 @@ static void FOG_FASTCALL adaptor_rgb32_span_composite_a8(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.axxx32_from_a8(srcBuf, src, cw, closure);
     f[Image::FormatRGB32].span_composite[Image::FormatPRGB32](dst, srcBuf, cw, closure);
 
@@ -797,7 +797,7 @@ static void FOG_FASTCALL adaptor_rgb32_span_composite_i8(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.prgb32_from_i8(srcBuf, src, cw, closure);
     f[Image::FormatRGB32].span_composite[Image::FormatPRGB32](dst, srcBuf, cw, closure);
 
@@ -814,7 +814,7 @@ static void FOG_FASTCALL adaptor_rgb32_span_composite_argb32_a8(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.prgb32_from_argb32(srcBuf, src, cw, closure);
     f[Image::FormatRGB32].span_composite_a8[Image::FormatPRGB32](dst, srcBuf, msk, cw, closure);
 
@@ -840,7 +840,7 @@ static void FOG_FASTCALL adaptor_rgb32_span_composite_rgb32_a8(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.axxx32_from_xxxx32(srcBuf, src, cw, closure);
     f[Image::FormatRGB32].span_composite_a8[Image::FormatPRGB32](dst, srcBuf, msk, cw, closure);
 
@@ -858,7 +858,7 @@ static void FOG_FASTCALL adaptor_rgb32_span_composite_rgb24_a8(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(srcBuf, src, cw, closure);
     f[Image::FormatRGB32].span_composite_a8[Image::FormatPRGB32](dst, srcBuf, msk, cw, closure);
 
@@ -876,7 +876,7 @@ static void FOG_FASTCALL adaptor_rgb32_span_composite_a8_a8(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.axxx32_from_a8(srcBuf, src, cw, closure);
     f[Image::FormatRGB32].span_composite_a8[Image::FormatPRGB32](dst, srcBuf, msk, cw, closure);
 
@@ -894,7 +894,7 @@ static void FOG_FASTCALL adaptor_rgb32_span_composite_i8_a8(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.prgb32_from_i8(srcBuf, src, cw, closure);
     f[Image::FormatRGB32].span_composite_a8[Image::FormatPRGB32](dst, srcBuf, msk, cw, closure);
 
@@ -912,7 +912,7 @@ static void FOG_FASTCALL adaptor_rgb32_span_composite_argb32_a8_const(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.prgb32_from_argb32(srcBuf, src, cw, closure);
     f[Image::FormatRGB32].span_composite_a8_const[Image::FormatPRGB32](dst, srcBuf, msk0, cw, closure);
 
@@ -937,7 +937,7 @@ static void FOG_FASTCALL adaptor_rgb32_span_composite_rgb32_a8_const(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.axxx32_from_xxxx32(srcBuf, src, cw, closure);
     f[Image::FormatRGB32].span_composite_a8_const[Image::FormatPRGB32](dst, srcBuf, msk0, cw, closure);
 
@@ -954,7 +954,7 @@ static void FOG_FASTCALL adaptor_rgb32_span_composite_rgb24_a8_const(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(srcBuf, src, cw, closure);
     f[Image::FormatRGB32].span_composite_a8_const[Image::FormatPRGB32](dst, srcBuf, msk0, cw, closure);
 
@@ -971,7 +971,7 @@ static void FOG_FASTCALL adaptor_rgb32_span_composite_a8_a8_const(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.axxx32_from_a8(srcBuf, src, cw, closure);
     f[Image::FormatRGB32].span_composite_a8_const[Image::FormatPRGB32](dst, srcBuf, msk0, cw, closure);
 
@@ -988,7 +988,7 @@ static void FOG_FASTCALL adaptor_rgb32_span_composite_i8_a8_const(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.prgb32_from_i8(srcBuf, src, cw, closure);
     f[Image::FormatRGB32].span_composite_a8_const[Image::FormatPRGB32](dst, srcBuf, msk0, cw, closure);
 
@@ -1031,7 +1031,7 @@ static void FOG_FASTCALL adaptor_rgb24_span_solid(
   uint8_t dstBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(dstBuf, dst, cw, closure);
     f[Image::FormatRGB32].span_solid(dst, src, cw, closure);
     functionMap->convert.rgb24_from_rgb32(dst, dstBuf, cw, closure);
@@ -1048,7 +1048,7 @@ static void FOG_FASTCALL adaptor_rgb24_span_solid_a8(
   uint8_t dstBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(dstBuf, dst, cw, closure);
     f[Image::FormatRGB32].span_solid_a8(dst, src, msk, cw, closure);
     functionMap->convert.rgb24_from_rgb32(dst, dstBuf, cw, closure);
@@ -1066,7 +1066,7 @@ static void FOG_FASTCALL adaptor_rgb24_span_solid_a8_const(
   uint8_t dstBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(dstBuf, dst, cw, closure);
     f[Image::FormatRGB32].span_solid_a8_const(dst, src, msk0, cw, closure);
     functionMap->convert.rgb24_from_rgb32(dst, dstBuf, cw, closure);
@@ -1084,7 +1084,7 @@ static void FOG_FASTCALL adaptor_rgb24_span_composite_argb32(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(dstBuf, dst, cw, closure);
     functionMap->convert.prgb32_from_argb32(srcBuf, src, cw, closure);
     f[Image::FormatRGB32].span_composite[Image::FormatPRGB32](dstBuf, srcBuf, cw, closure);
@@ -1103,7 +1103,7 @@ static void FOG_FASTCALL adaptor_rgb24_span_composite_prgb32(
   uint8_t dstBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(dstBuf, dst, cw, closure);
     f[Image::FormatRGB32].span_composite[Image::FormatPRGB32](dstBuf, src, cw, closure);
     functionMap->convert.rgb24_from_rgb32(dst, dstBuf, cw, closure);
@@ -1121,7 +1121,7 @@ static void FOG_FASTCALL adaptor_rgb24_span_composite_rgb32(
   uint8_t dstBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(dstBuf, dst, cw, closure);
     f[Image::FormatRGB32].span_composite[Image::FormatRGB32](dstBuf, src, cw, closure);
     functionMap->convert.rgb24_from_rgb32(dst, dstBuf, cw, closure);
@@ -1140,7 +1140,7 @@ static void FOG_FASTCALL adaptor_rgb24_span_composite_rgb24(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(dstBuf, dst, cw, closure);
     functionMap->convert.rgb32_from_rgb24(srcBuf, src, cw, closure);
     f[Image::FormatRGB32].span_composite[Image::FormatRGB32](dstBuf, srcBuf, cw, closure);
@@ -1160,7 +1160,7 @@ static void FOG_FASTCALL adaptor_rgb24_span_composite_a8(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(dstBuf, dst, cw, closure);
     functionMap->convert.axxx32_from_a8(srcBuf, src, cw, closure);
     f[Image::FormatRGB32].span_composite[Image::FormatPRGB32](dstBuf, srcBuf, cw, closure);
@@ -1180,7 +1180,7 @@ static void FOG_FASTCALL adaptor_rgb24_span_composite_i8(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(dstBuf, dst, cw, closure);
     functionMap->convert.prgb32_from_i8(srcBuf, src, cw, closure);
     f[Image::FormatRGB32].span_composite[Image::FormatPRGB32](dstBuf, srcBuf, cw, closure);
@@ -1200,7 +1200,7 @@ static void FOG_FASTCALL adaptor_rgb24_span_composite_argb32_a8(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(dstBuf, dst, cw, closure);
     functionMap->convert.prgb32_from_argb32(srcBuf, src, cw, closure);
     f[Image::FormatRGB32].span_composite_a8[Image::FormatPRGB32](dstBuf, srcBuf, msk, cw, closure);
@@ -1220,7 +1220,7 @@ static void FOG_FASTCALL adaptor_rgb24_span_composite_prgb32_a8(
   uint8_t dstBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(dstBuf, dst, cw, closure);
     f[Image::FormatRGB32].span_composite_a8[Image::FormatPRGB32](dstBuf, src, msk, cw, closure);
     functionMap->convert.rgb24_from_rgb32(dst, dstBuf, cw, closure);
@@ -1239,7 +1239,7 @@ static void FOG_FASTCALL adaptor_rgb24_span_composite_rgb32_a8(
   uint8_t dstBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(dstBuf, dst, cw, closure);
     f[Image::FormatRGB32].span_composite_a8[Image::FormatRGB32](dstBuf, src, msk, cw, closure);
     functionMap->convert.rgb24_from_rgb32(dst, dstBuf, cw, closure);
@@ -1259,7 +1259,7 @@ static void FOG_FASTCALL adaptor_rgb24_span_composite_rgb24_a8(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(dstBuf, dst, cw, closure);
     functionMap->convert.rgb32_from_rgb24(srcBuf, src, cw, closure);
     f[Image::FormatRGB32].span_composite_a8[Image::FormatRGB32](dstBuf, srcBuf, msk, cw, closure);
@@ -1280,7 +1280,7 @@ static void FOG_FASTCALL adaptor_rgb24_span_composite_a8_a8(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(dstBuf, dst, cw, closure);
     functionMap->convert.axxx32_from_a8(srcBuf, src, cw, closure);
     f[Image::FormatRGB32].span_composite_a8[Image::FormatPRGB32](dstBuf, srcBuf, msk, cw, closure);
@@ -1301,7 +1301,7 @@ static void FOG_FASTCALL adaptor_rgb24_span_composite_i8_a8(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(dstBuf, dst, cw, closure);
     functionMap->convert.prgb32_from_i8(srcBuf, src, cw, closure);
     f[Image::FormatRGB32].span_composite_a8[Image::FormatPRGB32](dstBuf, srcBuf, msk, cw, closure);
@@ -1322,7 +1322,7 @@ static void FOG_FASTCALL adaptor_rgb24_span_composite_argb32_a8_const(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(dstBuf, dst, cw, closure);
     functionMap->convert.prgb32_from_argb32(srcBuf, src, cw, closure);
     f[Image::FormatRGB32].span_composite_a8_const[Image::FormatPRGB32](dstBuf, srcBuf, msk0, cw, closure);
@@ -1341,7 +1341,7 @@ static void FOG_FASTCALL adaptor_rgb24_span_composite_prgb32_a8_const(
   uint8_t dstBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(dstBuf, dst, cw, closure);
     f[Image::FormatRGB32].span_composite_a8_const[Image::FormatPRGB32](dstBuf, src, msk0, cw, closure);
     functionMap->convert.rgb24_from_rgb32(dst, dstBuf, cw, closure);
@@ -1359,7 +1359,7 @@ static void FOG_FASTCALL adaptor_rgb24_span_composite_rgb32_a8_const(
   uint8_t dstBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(dstBuf, dst, cw, closure);
     f[Image::FormatRGB32].span_composite_a8_const[Image::FormatRGB32](dstBuf, src, msk0, cw, closure);
     functionMap->convert.rgb24_from_rgb32(dst, dstBuf, cw, closure);
@@ -1378,7 +1378,7 @@ static void FOG_FASTCALL adaptor_rgb24_span_composite_rgb24_a8_const(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(dstBuf, dst, cw, closure);
     functionMap->convert.rgb32_from_rgb24(srcBuf, src, cw, closure);
     f[Image::FormatRGB32].span_composite_a8_const[Image::FormatRGB32](dstBuf, srcBuf, msk0, cw, closure);
@@ -1398,7 +1398,7 @@ static void FOG_FASTCALL adaptor_rgb24_span_composite_a8_a8_const(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(dstBuf, dst, cw, closure);
     functionMap->convert.axxx32_from_a8(srcBuf, src, cw, closure);
     f[Image::FormatRGB32].span_composite_a8_const[Image::FormatPRGB32](dstBuf, srcBuf, msk0, cw, closure);
@@ -1418,7 +1418,7 @@ static void FOG_FASTCALL adaptor_rgb24_span_composite_i8_a8_const(
   uint8_t srcBuf[ADAPTOR_STEP * sizeof(uint32_t)];
 
   do {
-    sysint_t cw = Math::min(w, ADAPTOR_STEP);
+    sysint_t cw = Math::min(w, (sysint_t)ADAPTOR_STEP);
     functionMap->convert.rgb32_from_rgb24(dstBuf, dst, cw, closure);
     functionMap->convert.prgb32_from_i8(srcBuf, src, cw, closure);
     f[Image::FormatRGB32].span_composite_a8_const[Image::FormatPRGB32](dstBuf, srcBuf, msk0, cw, closure);
