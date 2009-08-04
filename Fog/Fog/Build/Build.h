@@ -843,7 +843,7 @@ struct fog_if<false, _Then, _Else> { typedef _Else ret; };
 //!   // Your main() here ...
 //!   return Core::ExitSuccess;
 //! }
-#if defined(FOG_OS_WINDOWS) && 0
+#if defined(FOG_OS_WINDOWS)
 #define FOG_UI_MAIN() int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 #else
 #define FOG_UI_MAIN() int main(int argc, char* argv[])

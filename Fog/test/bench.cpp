@@ -1014,7 +1014,7 @@ static void benchAll()
 // [MAIN]
 // ============================================================================
 #undef main
-FOG_UI_MAIN()
+int main(int argc, char* argv[])
 {
 #if defined(FOG_OS_WINDOWS)
 	// Initialize GDI+

@@ -124,6 +124,43 @@ static void FOG_FASTCALL convert_memcpy32(
 }
 
 // ============================================================================
+// [Fog::Raster - Convert - Axxx32 Dest]
+// ============================================================================
+
+static void FOG_FASTCALL convert_axxx32_from_xxxx32(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
+{
+  for (sysint_t i = w; i; i--, dst += 4, src += 4)
+  {
+    ((uint32_t*)dst)[0] = ((const uint32_t*)src)[0] | 0xFF000000;
+  }
+}
+
+static void FOG_FASTCALL convert_axxx32_from_a8(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
+{
+  for (sysint_t i = w; i; i--)
+  {
+    ((uint32_t*)dst)[0] = (uint32_t)src[0] << 24;
+
+    dst += 4;
+    src += 1;
+  }
+}
+
+static void FOG_FASTCALL convert_axxx32_bs_from_a8(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
+{
+  for (sysint_t i = w; i; i--)
+  {
+    ((uint32_t*)dst)[0] = (uint32_t)src[0];
+
+    dst += 4;
+    src += 1;
+  }
+}
+
+// ============================================================================
 // [Fog::Raster - Convert - Argb32 Dest]
 // ============================================================================
 
@@ -307,21 +344,23 @@ static void FOG_FASTCALL convert_argb32_from_prgb32_bs(
   }
 }
 
-static void FOG_FASTCALL convert_argb32_from_rgb32(
-  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
-{
-  for (sysint_t i = w; i; i--, dst += 4, src += 4)
-  {
-    ((uint32_t*)dst)[0] = ((const uint32_t*)src)[0] | 0xFF000000;
-  }
-}
-
 static void FOG_FASTCALL convert_argb32_from_rgb32_bs(
   uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   for (sysint_t i = w; i; i--, dst += 4, src += 4)
   {
     ((uint32_t*)dst)[0] = Memory::bswap32(((const uint32_t*)src)[0]) | 0xFF000000;
+  }
+}
+
+static void FOG_FASTCALL convert_argb32_from_i8(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
+{
+  const Rgba* srcPal = closure->srcPalette + Palette::IndexARGB32;
+
+  for (sysint_t i = w; i; i--, dst += 4, src += 1)
+  {
+    ((uint32_t*)dst)[0] = srcPal[src[0]];
   }
 }
 
@@ -425,6 +464,17 @@ static void FOG_FASTCALL convert_argb32_bs_from_prgb32(
   }
 }
 
+static void FOG_FASTCALL convert_argb32_bs_from_i8(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
+{
+  const Rgba* srcPal = closure->srcPalette + Palette::IndexARGB32;
+
+  for (sysint_t i = w; i; i--, dst += 4, src += 1)
+  {
+    ((uint32_t*)dst)[0] = Memory::bswap32(srcPal[src[0]]);
+  }
+}
+
 // ============================================================================
 // [Fog::Raster - Convert - Prgb32 Dest]
 // ============================================================================
@@ -450,11 +500,11 @@ static void FOG_FASTCALL convert_prgb32_from_argb32_bs(
 static void FOG_FASTCALL convert_prgb32_from_i8(
   uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
-  const Rgba* srcPal = closure->srcPalette;
+  const Rgba* srcPal = closure->srcPalette + Palette::IndexPRGB32;
 
   for (sysint_t i = w; i; i--, dst += 4, src += 1)
   {
-    ((uint32_t*)dst)[0] = premultiply(srcPal[src[0]]);
+    ((uint32_t*)dst)[0] = srcPal[src[0]];
   }
 }
 
@@ -470,11 +520,11 @@ static void FOG_FASTCALL convert_prgb32_bs_from_argb32(
 static void FOG_FASTCALL convert_prgb32_bs_from_i8(
   uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
-  const Rgba* srcPal = closure->srcPalette;
+  const Rgba* srcPal = closure->srcPalette + Palette::IndexPRGB32;
 
   for (sysint_t i = w; i; i--, dst += 4, src += 1)
   {
-    ((uint32_t*)dst)[0] = Memory::bswap32(premultiply(srcPal[src[0]]));
+    ((uint32_t*)dst)[0] = Memory::bswap32(srcPal[src[0]]);
   }
 }
 
@@ -487,7 +537,7 @@ static void FOG_FASTCALL convert_rgb32_from_argb32(
 {
   for (sysint_t i = w; i; i--, dst += 4, src += 4)
   {
-    ((uint32_t*)dst)[0] = ((const uint32_t*)src)[0] | 0xFF000000;
+    ((uint32_t*)dst)[0] = premultiply(((const uint32_t*)src)[0]) | 0xFF000000;
   }
 }
 
@@ -496,7 +546,7 @@ static void FOG_FASTCALL convert_rgb32_from_argb32_bs(
 {
   for (sysint_t i = w; i; i--, dst += 4, src += 4)
   {
-    ((uint32_t*)dst)[0] = Memory::bswap32(((const uint32_t*)src)[0] | 0xFF000000);
+    ((uint32_t*)dst)[0] = Memory::bswap32(premultiply(((const uint32_t*)src)[0]) | 0xFF000000);
   }
 }
 
@@ -585,7 +635,7 @@ static void FOG_FASTCALL convert_rgb32_from_rgb16_5650_bs(
 static void FOG_FASTCALL convert_rgb32_from_i8(
   uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
-  const Rgba* srcPal = closure->srcPalette;
+  const Rgba* srcPal = closure->srcPalette + Palette::IndexPRGB32;
 
   for (sysint_t i = w; i; i--, dst += 4, src += 1)
   {
@@ -797,7 +847,7 @@ static void FOG_FASTCALL convert_rgb24_from_rgb16_5650_bs(
 static void FOG_FASTCALL convert_rgb24_from_i8(
   uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
-  const Rgba* srcPal = closure->srcPalette;
+  const Rgba* srcPal = closure->srcPalette + Palette::IndexPRGB32;
   sysint_t i = w;
 
 #if FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
@@ -873,7 +923,7 @@ static void FOG_FASTCALL convert_bgr24_from_rgb32(
 static void FOG_FASTCALL convert_bgr24_from_i8(
   uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
-  const Rgba* srcPal = closure->srcPalette;
+  const Rgba* srcPal = closure->srcPalette + Palette::IndexPRGB32;
   sysint_t i = w;
 
   while (i)
@@ -937,7 +987,7 @@ static void FOG_FASTCALL convert_rgb16_5550_from_rgb24(
 static void FOG_FASTCALL convert_rgb16_5550_from_i8(
   uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
-  const Rgba* srcPal = closure->srcPalette;
+  const Rgba* srcPal = closure->srcPalette + Palette::IndexPRGB32;
   sysint_t i = w;
 
   while (i)
@@ -998,7 +1048,7 @@ static void FOG_FASTCALL convert_rgb16_5650_from_rgb24(
 static void FOG_FASTCALL convert_rgb16_5650_from_i8(
   uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
-  const Rgba* srcPal = closure->srcPalette;
+  const Rgba* srcPal = closure->srcPalette + Palette::IndexPRGB32;
   sysint_t i = w;
 
   while (i)
@@ -1059,7 +1109,7 @@ static void FOG_FASTCALL convert_rgb16_5550_bs_from_rgb24(
 static void FOG_FASTCALL convert_rgb16_5550_bs_from_i8(
   uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
-  const Rgba* srcPal = closure->srcPalette;
+  const Rgba* srcPal = closure->srcPalette + Palette::IndexPRGB32;
   sysint_t i = w;
 
   while (i)
@@ -1120,7 +1170,7 @@ static void FOG_FASTCALL convert_rgb16_5650_bs_from_rgb24(
 static void FOG_FASTCALL convert_rgb16_5650_bs_from_i8(
   uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
-  const Rgba* srcPal = closure->srcPalette;
+  const Rgba* srcPal = closure->srcPalette + Palette::IndexPRGB32;
   sysint_t i = w;
 
   while (i)
@@ -1142,7 +1192,7 @@ static void FOG_FASTCALL convert_rgb16_5650_bs_from_i8(
 // [Fog::Raster - Convert - A8 Dest]
 // ============================================================================
 
-static void FOG_FASTCALL convert_a8_from_axxx32_sse2(
+static void FOG_FASTCALL convert_a8_from_axxx32(
   uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
   src += RGB32_AByte;
@@ -1156,14 +1206,14 @@ static void FOG_FASTCALL convert_a8_from_axxx32_sse2(
   }
 }
 
-static void FOG_FASTCALL convert_a8_from_i8_sse2(
+static void FOG_FASTCALL convert_a8_from_i8(
   uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
-  const uint32_t* srcPal = (const uint32_t*)closure->srcPalette;
+  const Rgba* srcPal = closure->srcPalette + Palette::IndexARGB32;
 
   for (sysint_t i = w; i; i--)
   {
-    dst[0] = ((const uint8_t*)&srcPal[src[0]])[RGB32_AByte];
+    dst[0] = srcPal[src[0]].a;
 
     dst += 1;
     src += 1;
@@ -1220,21 +1270,38 @@ static void FOG_FASTCALL convert_greyscale8_from_rgb24(
   }
 }
 
+static void FOG_FASTCALL convert_greyscale8_from_bgr24(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
+{
+  sysint_t i = w;
+
+  while (i)
+  {
+    uint32_t grey =
+      (uint32_t)src[BGR24_RByte] * 13938 +
+      (uint32_t)src[BGR24_GByte] * 46868 +
+      (uint32_t)src[BGR24_BByte] *  4730 ;
+
+    dst[0] = grey >> 16;
+
+    dst += 1;
+    src += 3;
+    i--;
+  }
+}
+
 static void FOG_FASTCALL convert_greyscale8_from_i8(
   uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
 {
-  const Rgba* srcPal = closure->srcPalette;
+  const Rgba* srcPal = closure->srcPalette + Palette::IndexPRGB32;
   sysint_t i = w;
 
   while (i)
   {
     uint32_t s0 = srcPal[src[0]];
-
-    uint32_t grey =
-      ((s0 >> 16) & 0xFF) * 13938 +
-      ((s0 >>  8) & 0xFF) * 46868 +
-      ((s0      ) & 0xFF) *  4730 ;
-
+    uint32_t grey = ((s0 >> 16) & 0xFF) * 13938 +
+                    ((s0 >>  8) & 0xFF) * 46868 +
+                    ((s0      ) & 0xFF) *  4730 ;
     dst[0] = grey >> 16;
 
     dst += 1;
@@ -1251,7 +1318,6 @@ static void FOG_FASTCALL convert_rgb32_from_greyscale8(
   while (i)
   {
     uint32_t grey = src[0];
-
     ((uint32_t*)dst)[0] = grey | (grey << 8) | (grey << 16) | 0xFF000000;
 
     dst += 4;

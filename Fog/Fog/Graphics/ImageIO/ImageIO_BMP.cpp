@@ -237,12 +237,12 @@ uint32_t BmpDecoderDevice::readHeader()
 
   _bmpStride = (((width() * depth() + 7) >> 3) + 3) & ~3;
 
-  // os2 header didn't define image size
+  // OS2 header didn't define image size.
   if (bmpImageSize() == 0) _bmpImageSize = bmpStride() * height();
 
   switch (depth())
   {
-    // setup palette
+    // Setup palette.
     case 1:
     case 4:
     case 8:
@@ -286,10 +286,11 @@ uint32_t BmpDecoderDevice::readHeader()
       }
 
       _format = Image::FormatI8;
+      _palette.update();
       break;
     }
 
-    // setup rgb
+    // Setup rgb.
     case 16:
       _rMask = 0x7C00; _rShift = 10; _rLoss = 3;
       _gMask = 0x03E0; _gShift =  5; _gLoss = 3;

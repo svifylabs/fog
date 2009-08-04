@@ -236,7 +236,7 @@ typedef void (FOG_FASTCALL *BlurConvolveFn)(
 //! is not needed to check for these features in higher level API.
 struct FunctionMap
 {
-  // [Convert Table]
+  // [Convert Functions]
 
   struct ConvertFuncs
   {
@@ -253,15 +253,23 @@ struct FunctionMap
     ConvertPlainFn memcpy24;
     ConvertPlainFn memcpy32;
 
+    // [Axxx32 Dest]
+
+    ConvertPlainFn axxx32_from_xxxx32;
+    ConvertPlainFn axxx32_from_a8;
+    ConvertPlainFn axxx32_bs_from_a8;
+
     // [Argb32 Dest]
 
     ConvertPlainFn argb32_from_prgb32;
     ConvertPlainFn argb32_from_prgb32_bs;
     ConvertPlainFn argb32_from_rgb32;
     ConvertPlainFn argb32_from_rgb32_bs;
+    ConvertPlainFn argb32_from_i8;
 
     ConvertPlainFn argb32_bs_from_rgb32;
     ConvertPlainFn argb32_bs_from_prgb32;
+    ConvertPlainFn argb32_bs_from_i8;
 
     // [Prgb32 Dest]
 
@@ -327,6 +335,7 @@ struct FunctionMap
 
     ConvertPlainFn greyscale8_from_rgb32;
     ConvertPlainFn greyscale8_from_rgb24;
+    ConvertPlainFn greyscale8_from_bgr24;
     ConvertPlainFn greyscale8_from_i8;
 
     ConvertPlainFn rgb32_from_greyscale8;
@@ -357,7 +366,7 @@ struct FunctionMap
 
   ConvertFuncs convert;
 
-  // [Gradient Table]
+  // [Gradient Functions]
 
   struct GradientFuncs
   {
@@ -372,7 +381,7 @@ struct FunctionMap
 
   GradientFuncs gradient;
 
-  // [Pattern Table]
+  // [Pattern Functions]
 
   struct PatternFuncs
   {
@@ -406,21 +415,23 @@ struct FunctionMap
 
   PatternFuncs pattern;
 
-  // [Raster Table]
+  // [Raster Functions]
 
   struct RasterFuncs
   {
+    // [Closure]
+
     const void* closure;
 
     // [Pixel]
 
-    PixelFn             pixel;
-    PixelMskFn          pixel_a8;
+    PixelFn pixel;
+    PixelMskFn pixel_a8;
 
     // [Span Solid]
 
-    SpanSolidFn         span_solid;
-    SpanSolidMskFn      span_solid_a8;
+    SpanSolidFn span_solid;
+    SpanSolidMskFn span_solid_a8;
     SpanSolidMskConstFn span_solid_a8_const;
 
     // [Span Composite]
@@ -430,11 +441,15 @@ struct FunctionMap
     SpanCompositeMskConstFn span_composite_a8_const[Image::FormatCount];
   };
 
-  RasterFuncs raster[Image::FormatCount][CompositeBuiltIn];
+  RasterFuncs raster[CompositeCount][Image::FormatCount];
 
-  // [Filters Table]
+  // [Adaptor Functions]
 
-  struct FiltersFuncs
+  RasterFuncs adaptor[Image::FormatCount];
+
+  // [Filter Functions]
+
+  struct FilterFuncs
   {
     // [ColorLut / ColorMatrix]
 
@@ -467,7 +482,7 @@ struct FunctionMap
     BlurConvolveFn stackBlurConvolveV[Image::FormatCount];
   };
 
-  FiltersFuncs filters;
+  FilterFuncs filter;
 };
 
 extern FOG_API FunctionMap* functionMap;

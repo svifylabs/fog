@@ -22,10 +22,22 @@ namespace Fog {
 // [Fog::Palette]
 // ============================================================================
 
-//! @brief Palette is array of 256 ARGB values that can be used to define colors
-//! in 8 bit indexed images.
+//! @brief Palette is array of 256 32-bit ARGB colors that can be used to 
+//! define colors in 8 bit indexed images.
+//!
+//! Palette also contains 256 32-bit premultiplied colors that can be used to 
+//! speed-up image blitting and compositing. These pixels are stored at index
+//! 256 up to 511.
 struct FOG_API Palette
 {
+  // [Indexes]
+
+  enum Index
+  {
+    IndexARGB32 = 0,
+    IndexPRGB32 = 256
+  };
+
   // [Data]
 
   struct FOG_API Data
@@ -50,15 +62,11 @@ struct FOG_API Palette
 
     mutable Atomic<sysuint_t> refCount;
 
-    Rgba data[256];
+    Rgba data[512];
   };
 
   static Static<Data> sharedNull;
   static Static<Data> sharedGrey;
-
-  // [Members]
-
-  FOG_DECLARE_D(Data);
 
   // [Construction / Destruction]
 
@@ -89,36 +97,25 @@ struct FOG_API Palette
   }
 
   //! @brief Returns mutable pointer to palette data.
+  //!
+  //! @note If you change some data, you must call update() method.
   FOG_INLINE Rgba* mData()
   {
-    detach();
-    return _d->data;
+    return (detach() == Error::Ok) ? _d->data : NULL;
   }
 
   //! @brief Returns mutable pointer to palette data and not calls detach().
+  //!
+  //! @note If you change some data, you must call update() method.
   FOG_INLINE Rgba* xData()
   {
     FOG_ASSERT_X(isDetached(), "Fog::Palette::xData() - Non detached data.");
     return _d->data;
   }
 
-  FOG_INLINE const Rgba& cAt(sysuint_t index) const
+  FOG_INLINE Rgba at(sysuint_t index) const
   { 
-    FOG_ASSERT_X(index < 256, "Fog::Palette::cAt() - Index out of range.");
-    return _d->data[index];
-  }
-
-  FOG_INLINE Rgba& mAt(sysuint_t index)
-  { 
-    FOG_ASSERT_X(index < 256, "Fog::Palette::mAt() - Index out of range.");
-    detach();
-    return _d->data[index];
-  }
-
-  FOG_INLINE Rgba& xAt(sysuint_t index)
-  { 
-    FOG_ASSERT_X(index < 256, "Fog::Palette::xAt() - Index out of range.");
-    FOG_ASSERT_X(isDetached(), "Fog::Palette::xAt() - Non detached data.");
+    FOG_ASSERT_X(index < 256, "Fog::Palette::at() - Index out of range.");
     return _d->data[index];
   }
 
@@ -128,9 +125,34 @@ struct FOG_API Palette
 
   err_t set(const Palette& other);
   err_t setDeep(const Palette& other);
-  err_t set(sysuint_t index, sysuint_t count, const Rgba* rgba);
+
+  //! @brief Set palette entries starting at index @a index to @a pal.
+  err_t setRgba32(sysuint_t index, const Rgba* pal, sysuint_t count);
+
+  //! @brief Set palette entries starting at index @a index to @a pal.
+  err_t setRgb32(sysuint_t index, const Rgba* pal, sysuint_t count);
+
+  //! @brief Set palette entries starting at index @a index to @a pal.
+  //!
+  //! Data format in @a pal is same as @c Image::FormatRGB24 (this means
+  //! in BGR order on little endian machines and RGB order on big endian
+  //! machines).
+  err_t setRgb24(sysuint_t index, const uint8_t *pal, sysuint_t count);
+
+  //! @brief Set palette entries starting at index @a index to @a pal.
+  //!
+  //! Data format in @a pal is in reversed order as @c Image::FormatRGB24
+  //! (this means in RGB order on little endian machines and BGR order on
+  //! big endian machines).
+  err_t setBgr24(sysuint_t index, const uint8_t *pal, sysuint_t count);
 
   uint8_t findColor(uint8_t r, uint8_t g, uint8_t b) const;
+
+  // [Changed]
+
+  void update();
+
+  // [Static Constructors]
 
   static Palette greyscale();
   static Palette colorCube(int r, int g, int b);
@@ -146,6 +168,10 @@ struct FOG_API Palette
   // [Statics]
 
   static bool isGreyOnly(const Rgba* data, sysuint_t count);
+
+  // [Members]
+
+  FOG_DECLARE_D(Data);
 };
 
 } // Fog namespace

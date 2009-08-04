@@ -18,6 +18,7 @@
 
 // [Raster_MMX]
 #include <Fog/Graphics/Raster/Raster_MMX_base.cpp.h>
+#include <Fog/Graphics/Raster/Raster_MMX_adaptor.cpp.h>
 #include <Fog/Graphics/Raster/Raster_MMX_convert.cpp.h>
 #include <Fog/Graphics/Raster/Raster_MMX_composite.cpp.h>
 #include <Fog/Graphics/Raster/Raster_MMX_gradient.cpp.h>

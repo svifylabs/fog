@@ -406,12 +406,14 @@ Set(FOG_GRAPHICS_SOURCES
   ${FOG_DIR}/Fog/Graphics/Raster.cpp
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_C.cpp
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_C_base.cpp.h
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_C_adaptor.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_C_composite.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_C_convert.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_C_filters.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_C_gradient.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_C_pattern.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_MMX.cpp
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_MMX_adaptor.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_MMX_base.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_MMX_composite.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_MMX_convert.cpp.h
@@ -419,6 +421,7 @@ Set(FOG_GRAPHICS_SOURCES
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_MMX_gradient.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_MMX_pattern.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_SSE2.cpp
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_SSE2_adaptor.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_SSE2_base.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_SSE2_composite.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_SSE2_convert.cpp.h

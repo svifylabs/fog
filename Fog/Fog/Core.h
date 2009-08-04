@@ -11,53 +11,48 @@
 #pragma once
 #endif // _MSVC
 
-// [There is only documentation]
+// ============================================================================
+// [Fog::Documentation]
+// ============================================================================
+
 #if defined(_DOXYGEN)
 
-/*!
-  @mainpage Fog Library Documentation
+//! @mainpage Fog Library Documentation
+//!
+//! @section Main_Page_Intro Introduction
+//!
+//! Fog library is high performance library written mainly in C++ 
+//! language that abstracts operating system dependencies and enables 
+//! multi platform development through single source compatibility. This 
+//! library was created as an abstraction layer between Windows and 
+//! Unix like operating systems.
 
-  @section Main_Page_Intro Introduction
+//! @defgroup Fog_Core Fog/Core library API.
+//!
+//! Set of Fog/Core library classes and their members.
 
-  Core library is high performance library written mainly in C++ 
-  language that abstracts operating system dependencies and enables 
-  multi platform development through single source compatibility. This 
-  library was created as an abstraction layer between Windows and 
-  Unix like operating systems. Core library is set of C functions wrapped 
-  around C++ classes.
-*/
+//! @defgroup Fog_Core_Detail Fog/Core library implementation details.
+//! @ingroup Fog_Core
 
-/*!
-  @defgroup Fog_Core Fog/Core library API.
+//! @defgroup Fog_Core_CAPI Fog/Core library C API.
+//! @ingroup Fog_Core
+//!
+//! Set of Fog/Core functions compatible with C calling convention.
 
-  Set of Fog/Core library classes and their members.
-*/
+//! @defgroup Fog_Core_Macros Fog/Core macros.
+//! @ingroup Fog_Core
+//!
+//! Very low level macros, but needed for compiling Core library and
+//! applications.
 
-/*!
-  @defgroup Fog_Core_Detail Fog/Core library implementation details.
-  @ingroup Fog_Core
-*/
-
-/*!
-  @defgroup Fog_Core_CAPI Fog/Core library C API.
-  @ingroup Fog_Core
-
-  Set of Fog/Core functions compatible with C calling convention.
-*/
-
-/*!
-  @defgroup Fog_Core_Macros Fog/Core macros.
-  @ingroup Fog_Core
-
-  Very low level macros, but needed for compiling Core library and
-  applications.
-*/
-
+// ============================================================================
 // [Doxygen::]
-/*! @brief Namespace for shared documentation between classes. */
+// ============================================================================
+
+//! @brief Namespace for shared documentation between classes.
 namespace Doxygen {
 
-/*! @brief Not real structure, used only for doxygen. */
+//! @brief Not real structure, used only for doxygen.
 struct Implicit
 {
   // [Implicit Sharing]
@@ -136,12 +131,14 @@ struct Implicit
   bool isStrong() const;
 };
 
-// [Doxygen::]
-}
+} // Doxygen namespace
 
 #endif // _DOXYGEN
 
+// ============================================================================
 // [Fog/Core Include Files]
+// ============================================================================
+
 #include <Fog/Build/Build.h>
 
 #include <Fog/Core/Algorithms.h>

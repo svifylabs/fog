@@ -36,12 +36,12 @@ enum RGB32_BytePos
   RGB32_RByte = 2,
   RGB32_GByte = 1,
   RGB32_BByte = 0,
-  RGB32_AByte = 3,
+  RGB32_AByte = 3
 #else // FOG_BYTE_ORDER == FOG_BIG_ENDIAN
   RGB32_RByte = 1,
   RGB32_GByte = 2,
   RGB32_BByte = 3,
-  RGB32_AByte = 0,
+  RGB32_AByte = 0
 #endif // FOG_BYTE_ORDER
 };
 
@@ -50,12 +50,19 @@ enum RGB24_BytePos
 #if FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
   RGB24_RByte = 2,
   RGB24_GByte = 1,
-  RGB24_BByte = 0,
+  RGB24_BByte = 0
 #else // FOG_BYTE_ORDER == FOG_BIG_ENDIAN
   RGB24_RByte = 0,
   RGB24_GByte = 1,
-  RGB24_BByte = 2,
+  RGB24_BByte = 2
 #endif // FOG_BYTE_ORDER
+};
+
+enum BGR24_BytePos
+{
+  BGR24_RByte = 2 - RGB24_RByte,
+  BGR24_GByte = 2 - RGB24_GByte,
+  BGR24_BByte = 2 - RGB24_BByte
 };
 
 // [Shift]

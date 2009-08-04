@@ -295,36 +295,36 @@ static bool PCX_encodeScanline(
   return stream.write((const char *)buffer, length) == length;
 }
 
-static void PCX_fillMonoPalette(Rgba* palette)
+static void PCX_fillMonoPalette(uint32_t* palette)
 {
   palette[0] = 0xFF000000;
   palette[1] = 0xFFFFFFFF;
 }
 
-static void PCX_fillGreyPalette(Rgba* palette)
+static void PCX_fillGreyPalette(uint32_t* palette)
 {
-  uint32_t c = 0xFF000000;
-  for (sysuint_t i = 256; i; i--, c += 0x00010101) *palette++ = c;
+  uint32_t c = 0xFF000000, i;
+  for (i = 256; i; i--, c += 0x00010101, palette++) palette[0] = c;
 }
 
-static void PCX_fillEgaPalette(Rgba* palette)
+static void PCX_fillEgaPalette(uint32_t* palette)
 {
-  palette[0] = 0xFF000000;
-  palette[1] = 0xFF0000AA;
-  palette[2] = 0xFF00AA00;
-  palette[3] = 0xFF00AAAA;
-  palette[4] = 0xFFAA0000;
-  palette[5] = 0xFFAA00AA;
-  palette[6] = 0xFFAA5500;
-  palette[7] = 0xFFAAAAAA;
-  palette[8] = 0xFF555555;
-  palette[9] = 0xFF5555FF;
-  palette[10] = 0xFF55FF55;
-  palette[11] = 0xFF55FFFF;
-  palette[12] = 0xFFFF5555;
-  palette[13] = 0xFFFF55FF;
-  palette[14] = 0xFFFFFF55;
-  palette[15] = 0xFFFFFFFF;
+  palette[0x0] = 0xFF000000;
+  palette[0x1] = 0xFF0000AA;
+  palette[0x2] = 0xFF00AA00;
+  palette[0x3] = 0xFF00AAAA;
+  palette[0x4] = 0xFFAA0000;
+  palette[0x5] = 0xFFAA00AA;
+  palette[0x6] = 0xFFAA5500;
+  palette[0x7] = 0xFFAAAAAA;
+  palette[0x8] = 0xFF555555;
+  palette[0x9] = 0xFF5555FF;
+  palette[0xA] = 0xFF55FF55;
+  palette[0xB] = 0xFF55FFFF;
+  palette[0xC] = 0xFFFF5555;
+  palette[0xD] = 0xFFFF55FF;
+  palette[0xE] = 0xFFFFFF55;
+  palette[0xF] = 0xFFFFFFFF;
 }
 
 static void PCX_applyPalette(uint8_t* pixels, sysuint_t count, const uint32_t* palette)
@@ -636,12 +636,14 @@ uint32_t PcxDecoderDevice::readImage(Image& image)
   // Read palette
   if (depth() <= 8)
   {
-    Rgba* pdest = _palette.mData();
+    uint32_t pal[256];
+    uint32_t* pdest = pal;
+
     uint nColors = 1 << (depth() * planes());
     bool read = true;
 
     // Setup basic palette settings.
-    Memory::zero(pdest, 256 * sizeof(Rgba));
+    Memory::zero(pdest, 256 * sizeof(uint32_t));
 
     if (depth() == 1 && planes() == 1)
     {
@@ -653,10 +655,10 @@ uint32_t PcxDecoderDevice::readImage(Image& image)
       PCX_fillEgaPalette(pdest);
     }
 
-    // 256 color palette
+    // 256 color palette.
     if (depth() == 8)
     {
-      // Find 0x0C marker
+      // Find 0x0C marker.
       while (dataCur != dataEnd)
       {
         if (*dataCur++ == 0x0C) 
@@ -701,14 +703,16 @@ uint32_t PcxDecoderDevice::readImage(Image& image)
     {
       for (x = 0; x < nColors; x++) 
       {
-        pdest[x].set(dataCur[0], dataCur[1], dataCur[2]);
+        pdest[x] = Rgba(dataCur[0], dataCur[1], dataCur[2]);
         dataCur += 3;
       }
     }
+
+    _palette.setRgb32(0, (Rgba*)pal, 256);
   }
 
   // apply palette if needed
-  if (depth() <= 8) image.setPalette(palette());
+  if (depth() <= 8) image.setPalette(_palette);
 
 end:
   if (error == Error::Ok) updateProgress(1.0);
