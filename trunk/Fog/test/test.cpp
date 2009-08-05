@@ -6,140 +6,27 @@
 
 using namespace Fog;
 
-#if 0
-
 // ============================================================================
 // [MyWindow - Declaration]
 // ============================================================================
 
 struct MyWindow : public Window
 {
-  // [Construction / Destruction]
+  // [Fog Object System]
+  FOG_DECLARE_OBJECT(MyWindow, Window)
 
+  // [Construction / Destruction]
   MyWindow(uint32_t createFlags = 0);
   virtual ~MyWindow();
 
   // [Event Handlers]
-
-  virtual void onMouse(MouseEvent* e);
-  virtual void onKey(KeyEvent* e);
-  virtual void onPaint(PaintEvent* e);
-};
-
-// ============================================================================
-// [MyWindow - Construction / Destruction]
-// ============================================================================
-
-MyWindow::MyWindow(uint32_t createFlags) :
-  Window(createFlags)
-{
-  setWindowTitle(Ascii8("Fog Application"));
-}
-
-MyWindow::~MyWindow()
-{
-}
-
-// ============================================================================
-// [MyWindow - Event Handlers]
-// ============================================================================
-
-void MyWindow::onMouse(MouseEvent* e)
-{
-  base::onMouse(e);
-}
-
-void MyWindow::onKey(KeyEvent* e)
-{
-  base::onKey(e);
-}
-
-void MyWindow::onPaint(PaintEvent* e)
-{
-  Painter* p = e->painter();
-  double w = width(), h = height();
-
-  p->setSource(0xFFFFFFFF);
-  p->clear();
-/*
-  Path path;
-  path.addRound(RectF(10.5, 10.5, 300, 300), PointF(50, 50));
-
-  Pattern pattern;
-  pattern.setType(Pattern::LinearGradient);
-  pattern.setPoints(PointF(10.5, 10.5), PointF(10.5 + 300, 10.5 + 300));
-
-  pattern.addGradientStop(GradientStop(0.0, Rgba(0xFFFFFF00)));
-  pattern.addGradientStop(GradientStop(1.0, Rgba(0xFFFF0000)));
-  p->setSource(pattern);
-  p->fillPath(path);
-
-  p->setSource(Rgba(0xFF000000));
-  p->drawPath(path);
-*/
-
-  Font font;
-  font.setSize(94);
-  FontMetrics metrics = font.metrics();
-  int x1= 100, x2 = 500, y;
-
-  p->setSource(0xFFFF0000);
-  y = 50;
-  p->drawLine(Point(x1, y), Point(x2, y));
-
-  p->setSource(0xFF0000FF);
-  y = 50 + metrics.ascent;
-  p->drawLine(Point(x1, y), Point(x2, y));
-
-  p->setSource(0xFF0000FF);
-  y = 50 + metrics.descent;
-  p->drawLine(Point(x1, y), Point(x2, y));
-
-  p->setSource(0xFFFF0000);
-  y = 50 + metrics.height;
-  p->drawLine(Point(x1, y), Point(x2, y));
-
-  p->setSource(0xFF000000);
-  p->drawText(Point(100, 50), Ascii8("Abcdefgh"), font);
-}
-
-// ============================================================================
-// [MAIN]
-// ============================================================================
-
-FOG_UI_MAIN()
-{
-  Application app(Ascii8("UI"));
-
-  MyWindow window;
-  window.setSize(Size(640, 480));
-  window.show();
-  window.addListener(EvClose, &app, &Application::quit);
-
-  return app.run();
-}
-
-#endif
-
-// ============================================================================
-// [MyWindow - Declaration]
-// ============================================================================
-
-struct MyWindow : public Window
-{
-  // [Construction / Destruction]
-
-  MyWindow(uint32_t createFlags = 0);
-  virtual ~MyWindow();
-
-  // [Event Handlers]
-
   virtual void onMouse(MouseEvent* e);
   virtual void onKey(KeyEvent* e);
   virtual void onPaint(PaintEvent* e);
 
   virtual void onTimer(TimerEvent* e);
 
+  // [Members]
   Button button1;
   Timer timer;
   double r;
@@ -148,6 +35,8 @@ struct MyWindow : public Window
 // ============================================================================
 // [MyWindow - Construction / Destruction]
 // ============================================================================
+
+FOG_IMPLEMENT_OBJECT(MyWindow)
 
 MyWindow::MyWindow(uint32_t createFlags) :
   Window(createFlags)
@@ -235,6 +124,7 @@ void MyWindow::onPaint(PaintEvent* e)
     p->setSource(pattern);
     p->clear();
   }
+
 /*
   Image im0 = makeImage();
   Image im1;
@@ -249,33 +139,7 @@ void MyWindow::onPaint(PaintEvent* e)
   p->drawImage(Point(50, 50 + (im1.height() + 10) * 1), im2);
   p->drawImage(Point(50, 50 + (im1.height() + 10) * 2), im3);
 */
-/*
-  Image src;
-  int i, w;
 
-  // [0] Source image.
-  src.readFile(Ascii8("C:/My/img/babelfish.pcx"));
-  src.convert(Image::FormatPRGB32); // should already be.
-  //src.convert(Image::FormatARGB32); // should already be.
-  w = src.width() + 5;
-
-  p->setSource(0xFF000000);
-  p->clear();
-
-  // [1] ColorMatrix filtering.
-  {
-    for (i = 0; i < 6; i++)
-    {
-      ColorMatrix cm;
-      cm.rotateHue(Math::deg2rad(double(i) * 60));
-
-      Image tmp(src);
-      tmp.filter(cm);
-
-      p->drawImage(Point(50 + i*w, 50), tmp);
-    }
-  }
-*/
   p->flush();
   double t = (TimeTicks::highResNow() - ticks).inMillisecondsF();
 

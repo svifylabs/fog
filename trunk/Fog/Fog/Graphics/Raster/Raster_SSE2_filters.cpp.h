@@ -137,7 +137,7 @@ static void FOG_FASTCALL colorMatrix_rgb32_sse2(
     __m128 result = pt;
 
     pix_load4(pix, src);
-    pix = _mm_or_si128(pix, MaskFF000000FF000000);
+    pix = _mm_or_si128(pix, Mask_FF000000FF000000_FF000000FF000000);
     pix_unpack_to_float(pixf, pix);
 
     pixt = _mm_shuffle_ps(pixf, pixf, _MM_SHUFFLE(2, 2, 2, 2));
@@ -183,7 +183,7 @@ static void FOG_FASTCALL colorMatrix_rgb24_sse2(
     __m128 result = pt;
 
     pix = _mm_cvtsi32_si128(PixFmt_RGB24::fetch(dst));
-    pix = _mm_or_si128(pix, MaskFF000000FF000000);
+    pix = _mm_or_si128(pix, Mask_FF000000FF000000_FF000000FF000000);
     pix_unpack_to_float(pixf, pix);
 
     pixt = _mm_shuffle_ps(pixf, pixf, _MM_SHUFFLE(2, 2, 2, 2));

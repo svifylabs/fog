@@ -1155,8 +1155,9 @@ void RasterEngineThreadTask::run()
       RasterEngineCommand* cmd = data->commands[currentCommand];
 
       // If meta origin or user origin is set, it's needed to calculate new
-      // ofset variable or painter can cross different thread one.
-      int workerOffset = (offset + cmd->clipState->workOrigin.y()) % delta;
+      // offset variable or painter can concurrent different thread data.
+      int workerOffset = (offset - cmd->clipState->workOrigin.y()) % delta;
+      if (workerOffset < 0) workerOffset += delta;
 
 #if defined(RASTER_DEBUG)
       fog_debug("#%d - command %d (%p)", offset, (int)currentCommand, (cmd));
@@ -2681,6 +2682,9 @@ void RasterEngine::_updateWorkRegion()
   ctx.clipState->workRaster = _metaRaster +
     (sysint_t)ctx.clipState->workOrigin.x() * _bpp +
     (sysint_t)ctx.clipState->workOrigin.y() * _stride;
+  //ctx.clipState->workRaster = _metaRaster +
+  //  negx * _bpp +
+  //  negy * _stride;
 }
 
 void RasterEngine::_updateTransform()
@@ -2857,9 +2861,17 @@ void RasterEngine::_deleteStates()
 
 static FOG_INLINE int alignToDelta(int y, int offset, int delta)
 {
-  int mask = (delta-1);
-  int newy = (y & ~mask) + offset;
-  return newy < y ? newy + delta : newy;
+  FOG_ASSERT(offset >= 0);
+  FOG_ASSERT(delta >= 1);
+  FOG_ASSERT(offset < delta);
+
+  int mody = y % delta;
+  if (mody < 0) mody += delta;
+
+  int newy = y - (mody) + offset;
+  if (newy < y) newy += delta;
+
+  return newy;
 }
 
 void RasterEngine::_serializePath(const Path& path, bool stroke)

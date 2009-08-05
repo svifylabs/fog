@@ -287,7 +287,7 @@ static uint8_t* FOG_FASTCALL pattern_radial_gradient_fetch_pad_sse2(
   // root for next 4 pixels while we are processing current ones.
   __m128 idxf;
 
-  idxf = _mm_and_ps(cc, Mask7FFFFFFF7FFFFFFF); // abs()
+  idxf = _mm_and_ps(cc, Mask_7FFFFFFF7FFFFFFF_7FFFFFFF7FFFFFFF); // abs()
   idxf = _mm_sqrt_ps(idxf);
 
   for (;;)
@@ -318,7 +318,7 @@ static uint8_t* FOG_FASTCALL pattern_radial_gradient_fetch_pad_sse2(
 
     // This step is important, _mm_sqrt_ps() is last called and from now
     // this register will not be used.
-    idxf = _mm_and_ps(cc, Mask7FFFFFFF7FFFFFFF); // abs()
+    idxf = _mm_and_ps(cc, Mask_7FFFFFFF7FFFFFFF_7FFFFFFF7FFFFFFF); // abs()
     idxf = _mm_sqrt_ps(idxf);
 
     // Pixel #0
