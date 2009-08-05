@@ -226,7 +226,7 @@ static void FOG_FASTCALL convert_axxx32_from_xxxx32_sse2(
     __m128i src0mm;
 
     pix_load4(src0mm, src);
-    src0mm = _mm_or_si128(src0mm, MaskFF000000FF000000);
+    src0mm = _mm_or_si128(src0mm, Mask_FF000000FF000000_FF000000FF000000);
     pix_store4(dst, src0mm);
 
     src += 4;
@@ -237,7 +237,7 @@ static void FOG_FASTCALL convert_axxx32_from_xxxx32_sse2(
     __m128i src0mm;
 
     pix_load16u(src0mm, src);
-    src0mm = _mm_or_si128(src0mm, MaskFF000000FF000000);
+    src0mm = _mm_or_si128(src0mm, Mask_FF000000FF000000_FF000000FF000000);
     pix_store16a(dst, src0mm);
 
     src += 16;
@@ -460,7 +460,7 @@ static void FOG_FASTCALL convert_rgb32_from_argb32_sse2(
     pix_unpack_1x1W(src0mm, src0mm);
     pix_premultiply_1x1W(src0mm, src0mm);
     pix_pack_1x1W(src0mm, src0mm);
-    src0mm = _mm_or_si128(src0mm, MaskFF000000FF000000);
+    src0mm = _mm_or_si128(src0mm, Mask_FF000000FF000000_FF000000FF000000);
     pix_store4(dst, src0mm);
 
     dst += 4;
@@ -475,7 +475,7 @@ static void FOG_FASTCALL convert_rgb32_from_argb32_sse2(
     pix_unpack_2x2W(src0mm, src1mm, src0mm);
     pix_premultiply_2x2W(src0mm, src0mm, src1mm, src1mm);
     pix_pack_2x2W(src0mm, src0mm, src1mm);
-    src0mm = _mm_or_si128(src0mm, MaskFF000000FF000000);
+    src0mm = _mm_or_si128(src0mm, Mask_FF000000FF000000_FF000000FF000000);
     pix_store16a(dst, src0mm);
 
     dst += 16;
@@ -496,7 +496,7 @@ static void FOG_FASTCALL convert_rgb32_from_argb32_bs_sse2(
     pix_swap_1x1W(src0mm, src0mm);
     pix_premultiply_1x1W(src0mm, src0mm);
     pix_pack_1x1W(src0mm, src0mm);
-    src0mm = _mm_or_si128(src0mm, MaskFF000000FF000000);
+    src0mm = _mm_or_si128(src0mm, Mask_FF000000FF000000_FF000000FF000000);
     pix_store4(dst, src0mm);
 
     dst += 4;
@@ -512,7 +512,7 @@ static void FOG_FASTCALL convert_rgb32_from_argb32_bs_sse2(
     pix_swap_2x2W(src0mm, src0mm, src1mm, src1mm);
     pix_premultiply_2x2W(src0mm, src0mm, src1mm, src1mm);
     pix_pack_2x2W(src0mm, src0mm, src1mm);
-    src0mm = _mm_or_si128(src0mm, MaskFF000000FF000000);
+    src0mm = _mm_or_si128(src0mm, Mask_FF000000FF000000_FF000000FF000000);
     pix_store16a(dst, src0mm);
 
     dst += 16;

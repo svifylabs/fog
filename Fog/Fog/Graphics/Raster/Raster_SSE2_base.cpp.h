@@ -204,25 +204,32 @@ group: \
 // ============================================================================
 
 // W masks
-static __m128i Mask0080008000800080;
-static __m128i Mask000000FF00FF00FF;
-static __m128i Mask00FF00FF00FF00FF;
-static __m128i MaskFF000000000000FF;
-static __m128i Mask0101010101010101;
-static __m128i MaskFFFFFFFFFFFFFFFF;
-static __m128i Mask00FF000000000000;
-static __m128i MaskFF000000FF000000;
-static __m128i Mask00FFFFFF00FFFFFF;
-static __m128i Mask0000000100000001;
+static __m128i Mask_0080008000800080_0080008000800080;
+static __m128i Mask_000000FF00FF00FF_000000FF00FF00FF;
+static __m128i Mask_000000FF00FF00FF_00FF00FF00FF00FF;
+static __m128i Mask_00FF00FF00FF00FF_000000FF00FF00FF;
+static __m128i Mask_00FF00FF00FF00FF_00FF00FF00FF00FF;
+static __m128i Mask_FF000000000000FF_FF000000000000FF;
+static __m128i Mask_0101010101010101_0101010101010101;
+static __m128i Mask_FFFFFFFFFFFFFFFF_FFFFFFFFFFFFFFFF;
+static __m128i Mask_00FF000000000000_00FF000000000000;
+static __m128i Mask_0000000000000000_00FF000000000000;
+static __m128i Mask_00FF000000000000_0000000000000000;
+static __m128i Mask_FF000000FF000000_FF000000FF000000;
+static __m128i Mask_00FFFFFF00FFFFFF_00FFFFFF00FFFFFF;
+static __m128i Mask_0000000100000001_0000000100000001;
+
+static __m128i Mask_00FF00FF00FF00FF_0000000000000000;
+static __m128i Mask_0000000000000000_00FF00FF00FF00FF;
 
 // D masks
-static __m128i Mask00010000000000000000000000000000;
+static __m128i Mask_0001000000000000_0000000000000000;
 
 // Float masks
-static __m128  Mask7FFFFFFF7FFFFFFF;
+static __m128  Mask_7FFFFFFF7FFFFFFF_7FFFFFFF7FFFFFFF;
 
 // Double masks
-static __m128d Mask7FFFFFFFFFFFFFFF;
+static __m128d Mask_7FFFFFFFFFFFFFFF_7FFFFFFFFFFFFFFF;
 
 // ============================================================================
 // [Fog::Raster_SSE2 - Helpers]
@@ -252,6 +259,22 @@ static FOG_INLINE __m128i pix_create_mask_8x2W(uint16_t m0, uint16_t m1, uint16_
   t.uw[6] = m1;
   t.uw[5] = m2;
   t.uw[4] = m3;
+
+  return _mm_loadu_si128((__m128i*)&t);
+}
+
+static FOG_INLINE __m128i pix_create_mask_8x2W(uint16_t m0, uint16_t m1, uint16_t m2, uint16_t m3, uint16_t m4, uint16_t m5, uint16_t m6, uint16_t m7)
+{
+  sse2_t t;
+
+  t.uw[7] = m0;
+  t.uw[6] = m1;
+  t.uw[5] = m2;
+  t.uw[4] = m3;
+  t.uw[3] = m4;
+  t.uw[2] = m5;
+  t.uw[1] = m6;
+  t.uw[0] = m7;
 
   return _mm_loadu_si128((__m128i*)&t);
 }
@@ -418,26 +441,63 @@ static FOG_INLINE void pix_pack_from_float(__m128i& dst0, __m128 pix0)
   dst0 = _mm_packus_epi16(dst0, dst0);
 }
 
+// Combine / Split.
+
+static FOG_INLINE void pix_combine_1x1B_1x1B(__m128i& hi, const __m128i& lo)
+{
+  hi = _mm_shuffle_epi32(hi, _MM_SHUFFLE(3, 2, 0, 3));
+  hi = _mm_or_si128(hi, lo);
+}
+
+static FOG_INLINE void pix_split_1x1B_1x1B(__m128i& hi, const __m128i& lo)
+{
+  hi = _mm_shuffle_epi32(hi, _MM_SHUFFLE(3, 2, 3, 1));
+  FOG_UNUSED(lo);
+}
+
+static FOG_INLINE void pix_combine_1x1W_1x1W(__m128i& hi, const __m128i& lo)
+{
+  hi = _mm_shuffle_epi32(hi, _MM_SHUFFLE(1, 0, 3, 2));
+}
+
+static FOG_INLINE void pix_split_1x1W_1x1W(__m128i& hi, const __m128i& lo)
+{
+  hi = _mm_shuffle_epi32(hi, _MM_SHUFFLE(1, 0, 3, 2));
+  FOG_UNUSED(lo);
+}
+
 // Negate.
 
 static FOG_INLINE void pix_negate_1x1W(
   __m128i& dst0, const __m128i& src0)
 {
-  dst0 = _mm_xor_si128(src0, Mask00FF00FF00FF00FF);
+  dst0 = _mm_xor_si128(src0, Mask_00FF00FF00FF00FF_00FF00FF00FF00FF);
 }
 
 static FOG_INLINE void pix_negate_1x2W(
   __m128i& dst0, const __m128i& src0)
 {
-  dst0 = _mm_xor_si128(src0, Mask00FF00FF00FF00FF);
+  dst0 = _mm_xor_si128(src0, Mask_00FF00FF00FF00FF_00FF00FF00FF00FF);
+}
+
+static FOG_INLINE void pix_negate_1x2W_lo(
+  __m128i& dst0, const __m128i& src0)
+{
+  dst0 = _mm_xor_si128(src0, Mask_0000000000000000_00FF00FF00FF00FF);
+}
+
+static FOG_INLINE void pix_negate_1x2W_hi(
+  __m128i& dst0, const __m128i& src0)
+{
+  dst0 = _mm_xor_si128(src0, Mask_00FF00FF00FF00FF_0000000000000000);
 }
 
 static FOG_INLINE void pix_negate_2x2W(
   __m128i& dst0, const __m128i& src0,
   __m128i& dst1, const __m128i& src1)
 {
-  dst0 = _mm_xor_si128(src0, Mask00FF00FF00FF00FF);
-  dst1 = _mm_xor_si128(src1, Mask00FF00FF00FF00FF);
+  dst0 = _mm_xor_si128(src0, Mask_00FF00FF00FF00FF_00FF00FF00FF00FF);
+  dst1 = _mm_xor_si128(src1, Mask_00FF00FF00FF00FF_00FF00FF00FF00FF);
 }
 
 // Swap.
@@ -585,6 +645,34 @@ static FOG_INLINE void pix_adds_1x4B(
   dst0 = _mm_adds_epu8(a0, b0);
 }
 
+// Sub.
+
+static FOG_INLINE void pix_subs_1x1W(
+  __m128i& dst0, const __m128i& a0, const __m128i& b0)
+{
+  dst0 = _mm_subs_epu8(a0, b0);
+}
+
+static FOG_INLINE void pix_subs_2x2W(
+  __m128i& dst0, const __m128i& a0, const __m128i& b0,
+  __m128i& dst1, const __m128i& a1, const __m128i& b1)
+{
+  dst0 = _mm_subs_epu8(a0, b0);
+  dst1 = _mm_subs_epu8(a1, b1);
+}
+
+static FOG_INLINE void pix_subs_1x1B(
+  __m128i& dst0, const __m128i& a0, const __m128i& b0)
+{
+  dst0 = _mm_subs_epu8(a0, b0);
+}
+
+static FOG_INLINE void pix_subs_1x4B(
+  __m128i& dst0, const __m128i& a0, const __m128i& b0)
+{
+  dst0 = _mm_subs_epu8(a0, b0);
+}
+
 // Expand Mask.
 
 static FOG_INLINE void pix_expand_mask_1x1W(
@@ -620,8 +708,14 @@ static FOG_INLINE void pix_multiply_1x1W(
   __m128i t0;
 
   t0 = _mm_mullo_epi16(data0, alpha0);
-  t0 = _mm_adds_epu16(t0, Mask0080008000800080);
-  dst0 = _mm_mulhi_epu16(t0, Mask0101010101010101);
+  t0 = _mm_adds_epu16(t0, Mask_0080008000800080_0080008000800080);
+  dst0 = _mm_mulhi_epu16(t0, Mask_0101010101010101_0101010101010101);
+}
+
+static FOG_INLINE void pix_multiply_1x2W(
+  __m128i& dst0, const __m128i& data0, const __m128i& alpha0)
+{
+  pix_multiply_1x1W(dst0, data0, alpha0);
 }
 
 static FOG_INLINE void pix_multiply_2x2W(
@@ -632,10 +726,10 @@ static FOG_INLINE void pix_multiply_2x2W(
 
   t0 = _mm_mullo_epi16(data0, alpha0);
   t1 = _mm_mullo_epi16(data1, alpha1);
-  t0 = _mm_adds_epu16(t0, Mask0080008000800080);
-  t1 = _mm_adds_epu16(t1, Mask0080008000800080);
-  dst0 = _mm_mulhi_epu16(t0, Mask0101010101010101);
-  dst1 = _mm_mulhi_epu16(t1, Mask0101010101010101);
+  t0 = _mm_adds_epu16(t0, Mask_0080008000800080_0080008000800080);
+  t1 = _mm_adds_epu16(t1, Mask_0080008000800080_0080008000800080);
+  dst0 = _mm_mulhi_epu16(t0, Mask_0101010101010101_0101010101010101);
+  dst1 = _mm_mulhi_epu16(t1, Mask_0101010101010101_0101010101010101);
 }
 
 // Fill Alpha.
@@ -643,43 +737,91 @@ static FOG_INLINE void pix_multiply_2x2W(
 static FOG_INLINE void pix_fill_alpha_1x1B(
   __m128i& dst0)
 {
-  dst0 = _mm_or_si128(dst0, MaskFF000000FF000000);
+  dst0 = _mm_or_si128(dst0, Mask_FF000000FF000000_FF000000FF000000);
 }
 
 static FOG_INLINE void pix_fill_alpha_1x4B(
   __m128i& dst0)
 {
-  dst0 = _mm_or_si128(dst0, MaskFF000000FF000000);
+  dst0 = _mm_or_si128(dst0, Mask_FF000000FF000000_FF000000FF000000);
 }
 
 static FOG_INLINE void pix_fill_alpha_1x1W(
   __m128i& dst0)
 {
-  dst0 = _mm_or_si128(dst0, Mask00FF000000000000);
+  dst0 = _mm_or_si128(dst0, Mask_00FF000000000000_00FF000000000000);
+}
+
+static FOG_INLINE void pix_fill_alpha_1x2W(
+  __m128i& dst0)
+{
+  dst0 = _mm_or_si128(dst0, Mask_00FF000000000000_00FF000000000000);
+}
+
+static FOG_INLINE void pix_fill_alpha_1x2W_lo(
+  __m128i& dst0)
+{
+  dst0 = _mm_or_si128(dst0, Mask_0000000000000000_00FF000000000000);
+}
+
+static FOG_INLINE void pix_fill_alpha_1x2W_hi(
+  __m128i& dst0)
+{
+  dst0 = _mm_or_si128(dst0, Mask_00FF000000000000_0000000000000000);
 }
 
 static FOG_INLINE void pix_fill_alpha_2x2W(
   __m128i& dst0,
   __m128i& dst1)
 {
-  dst0 = _mm_or_si128(dst0, Mask00FF000000000000);
-  dst1 = _mm_or_si128(dst1, Mask00FF000000000000);
+  dst0 = _mm_or_si128(dst0, Mask_00FF000000000000_00FF000000000000);
+  dst1 = _mm_or_si128(dst1, Mask_00FF000000000000_00FF000000000000);
 }
 
 // Zero Alpha.
 
+static FOG_INLINE void pix_zero_alpha_1x1B(
+  __m128i& dst0)
+{
+  dst0 = _mm_and_si128(dst0, Mask_00FFFFFF00FFFFFF_00FFFFFF00FFFFFF);
+}
+
+static FOG_INLINE void pix_zero_alpha_1x4B(
+  __m128i& dst0)
+{
+  dst0 = _mm_and_si128(dst0, Mask_00FFFFFF00FFFFFF_00FFFFFF00FFFFFF);
+}
+
 static FOG_INLINE void pix_zero_alpha_1x1W(
   __m128i& dst0)
 {
-  dst0 = _mm_and_si128(dst0, Mask000000FF00FF00FF);
+  dst0 = _mm_and_si128(dst0, Mask_000000FF00FF00FF_000000FF00FF00FF);
+}
+
+static FOG_INLINE void pix_zero_alpha_1x2W(
+  __m128i& dst0)
+{
+  dst0 = _mm_and_si128(dst0, Mask_000000FF00FF00FF_000000FF00FF00FF);
+}
+
+static FOG_INLINE void pix_zero_alpha_1x2W_lo(
+  __m128i& dst0)
+{
+  dst0 = _mm_and_si128(dst0, Mask_00FF00FF00FF00FF_000000FF00FF00FF);
+}
+
+static FOG_INLINE void pix_zero_alpha_1x2W_hi(
+  __m128i& dst0)
+{
+  dst0 = _mm_and_si128(dst0, Mask_000000FF00FF00FF_00FF00FF00FF00FF);
 }
 
 static FOG_INLINE void pix_zero_alpha_2x2W(
   __m128i& dst0,
   __m128i& dst1)
 {
-  dst0 = _mm_and_si128(dst0, Mask000000FF00FF00FF);
-  dst1 = _mm_and_si128(dst1, Mask000000FF00FF00FF);
+  dst0 = _mm_and_si128(dst0, Mask_000000FF00FF00FF_000000FF00FF00FF);
+  dst1 = _mm_and_si128(dst1, Mask_000000FF00FF00FF_000000FF00FF00FF);
 }
 
 // Premultiply.
@@ -1161,8 +1303,8 @@ static FOG_INLINE void pix_fetch_rgb24_2x2W(__m128i& dst0, __m128i& dst1, const 
   dst0 = _mm_slli_epi64(dst0, 8);                            // dst0 = [B2 R1 G1 B1 R0 G0 B0   ]
   dst1 = _mm_srli_epi64(dst1, 8);                            // dst1 = [   R3 G3 B3 R2 G2 B2 R1]
 
-  dst0 = _mm_or_si128(dst0, MaskFF000000000000FF);           // dst0 = [FF R1 G1 B1 R0 G0 B0 FF]
-  dst1 = _mm_or_si128(dst1, MaskFF000000000000FF);           // dst1 = [FF R3 G3 B3 R2 G2 B2 FF]
+  dst0 = _mm_or_si128(dst0, Mask_FF000000000000FF_FF000000000000FF);           // dst0 = [FF R1 G1 B1 R0 G0 B0 FF]
+  dst1 = _mm_or_si128(dst1, Mask_FF000000000000FF_FF000000000000FF);           // dst1 = [FF R3 G3 B3 R2 G2 B2 FF]
 
   dst0 = _mm_unpacklo_epi8(dst0, xmmz);
   dst1 = _mm_unpacklo_epi8(dst1, xmmz);
@@ -1181,8 +1323,8 @@ static FOG_INLINE void pix_fetch_bgr24_2x2W(__m128i& dst0, __m128i& dst1, const 
   dst0 = _mm_slli_epi64(dst0, 8);                            // dst0 = [R2 B1 G1 R1 B0 G0 R0   ]
   dst1 = _mm_srli_epi64(dst1, 8);                            // dst1 = [   B3 G3 R3 B2 G2 R2 B1]
 
-  dst0 = _mm_or_si128(dst0, MaskFF000000000000FF);           // dst0 = [FF B1 G1 R1 B0 G0 R0 FF]
-  dst1 = _mm_or_si128(dst1, MaskFF000000000000FF);           // dst1 = [FF B3 G3 R3 B2 G2 R2 FF]
+  dst0 = _mm_or_si128(dst0, Mask_FF000000000000FF_FF000000000000FF);           // dst0 = [FF B1 G1 R1 B0 G0 R0 FF]
+  dst1 = _mm_or_si128(dst1, Mask_FF000000000000FF_FF000000000000FF);           // dst1 = [FF B3 G3 R3 B2 G2 R2 FF]
 
   dst0 = _mm_unpacklo_epi8(dst0, xmmz);
   dst1 = _mm_unpacklo_epi8(dst1, xmmz);

@@ -334,12 +334,12 @@ enum CompositeOp
   //!        = Da
   //!
   //! Formulas for ARGB(dst), PRGB(src) colorspaces (SRC_IN):
-  //!   Dc'  = Sc
+  //!   Dc'  = Sca/Sa
   //!   Da'  = Sa.Da
   //!
   //!   Msk:
   //!
-  //!   Dca' = (Sc.Sa.Da.m + Dca.(1 - m)) / Da'
+  //!   Dc'  = (Sca.Da.m + Dc.Da.(1 - m)) / Da'
   //!   Da'  = Sa.Da.m + Da .(1 - m)
   //!
   //! Formulas for ARGB(dst), ARGB(src) colorspaces (SRC_IN):
@@ -348,7 +348,7 @@ enum CompositeOp
   //!
   //!   Msk:
   //!
-  //!   Dca' = (Sc.Sa.Da.m + Dc.Da.(1 - m)) / Da'
+  //!   Dc'  = (Sc.Sa.Da.m + Dc.Da.(1 - m)) / Da'
   //!   Da'  = Sa.Da.m + Da.(1 - m)
   //!
   //! Formulas for ARGB(dst), RGB(src) colorspaces (?):
@@ -357,7 +357,7 @@ enum CompositeOp
   //!
   //!   Msk:
   //!
-  //!   Dca' = (Sc.m + Dc.(1 - m))
+  //!   Dc'  = (Sc.m + Dc.(1 - m))
   //!   Da'  = Da.m + Da.(1 - m) => Da
   //!
   //! Formulas for RGB(dst), PRGB(src) colorspaces (SRC):
