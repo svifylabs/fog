@@ -2621,30 +2621,36 @@ void RasterEngine::_updateWorkRegion()
   // Do region calculations only if they are really used.
   if (ctx.clipState->metaRegionUsed || ctx.clipState->userRegionUsed)
   {
+    TemporaryRegion<1> boundsReg(Box(negx, negy, negx + _metaWidth, negy + _metaHeight));
     if (ctx.clipState->metaRegionUsed)
     {
-      Region::translate(ctx.clipState->workRegion, ctx.clipState->metaRegion, Point(negx, negy));
+      if (negx == 0 && negy == 0)
+      {
+        Region::intersect(ctx.clipState->workRegion, ctx.clipState->metaRegion, boundsReg);
+      }
+      else
+      {
+        TemporaryRegion<64> tmp;
+        Region::translate(tmp, ctx.clipState->metaRegion, Point(negx, negy));
+        Region::intersect(ctx.clipState->workRegion, tmp, boundsReg);
+      }
     }
     else
     {
-      ctx.clipState->workRegion.set(Box(negx, negy, negx + _metaWidth, negy + _metaHeight));
+      ctx.clipState->workRegion.set(boundsReg);
     }
 
     if (ctx.clipState->userRegionUsed)
     {
       if (ctx.clipState->metaOrigin.x() || ctx.clipState->metaOrigin.y())
       {
-        TemporaryRegion<64> userTmp;
-        Region::translate(userTmp, ctx.clipState->userRegion, ctx.clipState->metaOrigin.negated());
-        Region::subtract(ctx.clipState->workRegion, ctx.clipState->workRegion, userTmp);
+        TemporaryRegion<64> tmp;
+        Region::translate(tmp, ctx.clipState->userRegion, ctx.clipState->metaOrigin.negated());
+        Region::intersect(ctx.clipState->workRegion, ctx.clipState->workRegion, tmp);
       }
       else
       {
-        // Fast path.
-        Region::intersect(
-          ctx.clipState->workRegion,
-          ctx.clipState->workRegion,
-          ctx.clipState->userRegion);
+        Region::intersect(ctx.clipState->workRegion, ctx.clipState->workRegion, ctx.clipState->userRegion);
       }
     }
 
