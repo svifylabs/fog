@@ -64,7 +64,8 @@ FOG_INIT_FUNC(fog_glyph);
 FOG_INIT_FUNC(fog_glyphset);
 FOG_INIT_FUNC(fog_pattern);
 FOG_INIT_FUNC(fog_font);
-FOG_INIT_FUNC(fog_painter);
+FOG_INIT_FUNC(fog_painter_null);
+FOG_INIT_FUNC(fog_painter_raster);
 
 // Fog/UI
 // reserved...
@@ -132,7 +133,8 @@ static const FogInitEntry fog_init_entries[] =
   INIT_ENTRY(fog_glyphset),
   INIT_ENTRY(fog_pattern),
   INIT_ENTRY(fog_font),
-  INIT_ENTRY(fog_painter)
+  INIT_ENTRY(fog_painter_null),
+  INIT_ENTRY(fog_painter_raster),
 
   // Fog/UI
 };

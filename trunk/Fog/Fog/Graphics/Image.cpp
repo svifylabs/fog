@@ -101,6 +101,12 @@ err_t Image::create(int w, int h, int format)
     return Error::InvalidArgument;
   }
 
+  if (w >= MaxWidth || h >= MaxHeight)
+  {
+    free();
+    return Error::ImageSizeIsTooLarge;
+  }
+
   // Always return a new detached and writable image.
   if (d->width == w && d->height == h && d->format == format && d->refCount.get() == 1 && !(d->flags & Data::IsReadOnly))
   {
@@ -2787,12 +2793,17 @@ Image::Data* Image::Data::alloc(int w, int h, int format)
   sysint_t stride;
   uint64_t size;
 
+  FOG_ASSERT(w >= 0 && h >= 0);
+
   // Zero or negative coordinates are invalid
-  if (w == 0 || h == 0) return 0;
+  if (w == 0 || h == 0) return NULL;
 
   // Prevent multiply overflow (64 bit int type)
-  size = (uint64_t)w * h;
-  if (size > (uint64_t)Image::MaxSize) return 0;
+  if (w >= Image::MaxWidth || h >= Image::MaxHeight)
+    return NULL;
+
+  size = (int64_t)w * h;
+  if (size > INT_MAX) return NULL;
 
   int depth = formatToDepth(format);
 

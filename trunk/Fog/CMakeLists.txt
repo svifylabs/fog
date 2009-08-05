@@ -399,6 +399,9 @@ Set(FOG_GRAPHICS_SOURCES
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_PCX.cpp
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_PNG.cpp
   ${FOG_DIR}/Fog/Graphics/Painter.cpp
+  ${FOG_DIR}/Fog/Graphics/PainterEngine.cpp
+  ${FOG_DIR}/Fog/Graphics/PainterEngine_Null.cpp
+  ${FOG_DIR}/Fog/Graphics/PainterEngine_Raster.cpp
   ${FOG_DIR}/Fog/Graphics/PainterUtil.cpp
   ${FOG_DIR}/Fog/Graphics/Palette.cpp
   ${FOG_DIR}/Fog/Graphics/Path.cpp
@@ -464,6 +467,9 @@ Set(FOG_GRAPHICS_HEADERS
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_PCX.h
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_PNG.h
   ${FOG_DIR}/Fog/Graphics/Painter.h
+  ${FOG_DIR}/Fog/Graphics/PainterEngine.h
+  ${FOG_DIR}/Fog/Graphics/PainterEngine_Null.h
+  ${FOG_DIR}/Fog/Graphics/PainterEngine_Raster.h
   ${FOG_DIR}/Fog/Graphics/PainterUtil.h
   ${FOG_DIR}/Fog/Graphics/Palette.h
   ${FOG_DIR}/Fog/Graphics/Path.h
