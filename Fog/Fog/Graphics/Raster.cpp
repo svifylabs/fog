@@ -68,32 +68,32 @@ static void fog_raster_init_adaptors()
       if (r->pixel == NULL)
       {
         r->pixel = m->adaptor[dstf].pixel;
-        FOG_ASSERT(r->pixel);
+        //FOG_ASSERT(r->pixel);
       }
 
       if (r->pixel_a8 == NULL)
       {
         r->pixel_a8 = m->adaptor[dstf].pixel_a8;
-        FOG_ASSERT(r->pixel_a8);
+        //FOG_ASSERT(r->pixel_a8);
       }
 
       // Solid span adaptors.
       if (r->span_solid == NULL)
       {
         r->span_solid = m->adaptor[dstf].span_solid;
-        FOG_ASSERT(r->span_solid);
+        //FOG_ASSERT(r->span_solid);
       }
       
       if (r->span_solid_a8 == NULL)
       {
         r->span_solid_a8 = m->adaptor[dstf].span_solid_a8;
-        FOG_ASSERT(r->span_solid_a8);
+        //FOG_ASSERT(r->span_solid_a8);
       }
       
       if (r->span_solid_a8_const == NULL)
       {
         r->span_solid_a8_const = m->adaptor[dstf].span_solid_a8_const;
-        FOG_ASSERT(r->span_solid_a8_const);
+        //FOG_ASSERT(r->span_solid_a8_const);
       }
 
       // Composite adaptors
@@ -102,7 +102,7 @@ static void fog_raster_init_adaptors()
         if (r->span_composite[srcf] == NULL)
         {
           r->span_composite[srcf] = m->adaptor[dstf].span_composite[srcf];
-          FOG_ASSERT(r->span_composite[srcf]);
+          //FOG_ASSERT(r->span_composite[srcf]);
         }
       }
 
@@ -111,7 +111,7 @@ static void fog_raster_init_adaptors()
         if (r->span_composite_a8[srcf] == NULL)
         {
           r->span_composite_a8[srcf] = m->adaptor[dstf].span_composite_a8[srcf];
-          FOG_ASSERT(r->span_composite_a8[srcf]);
+          //FOG_ASSERT(r->span_composite_a8[srcf]);
         }
       }
 
@@ -120,7 +120,7 @@ static void fog_raster_init_adaptors()
         if (r->span_composite_a8_const[srcf] == NULL)
         {
           r->span_composite_a8_const[srcf] = m->adaptor[dstf].span_composite_a8_const[srcf];
-          FOG_ASSERT(r->span_composite_a8_const[srcf]);
+          //FOG_ASSERT(r->span_composite_a8_const[srcf]);
         }
       }
     }
