@@ -65,6 +65,8 @@
 #include <Fog/Graphics/ImageFilter.h>
 #include <Fog/Graphics/ImageIO.h>
 #include <Fog/Graphics/Painter.h>
+#include <Fog/Graphics/PainterEngine.h>
+#include <Fog/Graphics/PainterUtil.h>
 #include <Fog/Graphics/Palette.h>
 #include <Fog/Graphics/Path.h>
 #include <Fog/Graphics/Pattern.h>

@@ -145,8 +145,10 @@ struct FOG_API Image
 
   enum
   {
-    //! @brief Maximum image size (in pixels)
-    MaxSize = 16384*16384
+    //! @brief Maximum image width (in pixels).
+    MaxWidth = 16777215,
+    //! @brief Maximum image height (in pixels).
+    MaxHeight = 16777215
   };
 
   // [Construction / Destruction]
