@@ -312,6 +312,21 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
   virtual Value getProperty(const String32& name) const;
 
   // --------------------------------------------------------------------------
+  // [Forward Declarations]
+  // --------------------------------------------------------------------------
+
+  struct Action;
+  struct ActionAllocator;
+  struct CapsState;
+  struct ClipState;
+  struct Context;
+  struct Calculation;
+  struct Command;
+  struct SavedState;
+  struct WorkerManager;
+  struct WorkerTask;
+
+  // --------------------------------------------------------------------------
   // [ClipState]
   // --------------------------------------------------------------------------
 
@@ -468,21 +483,25 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
   };
 
   // --------------------------------------------------------------------------
-  // [FastAllocator]
+  // [ActionAllocator]
   // --------------------------------------------------------------------------
 
-  struct FOG_HIDDEN FastAllocator
+  struct FOG_HIDDEN ActionAllocator
   {
     // [Construction / Destruction]
 
-    FastAllocator();
-    ~FastAllocator();
+    ActionAllocator();
+    ~ActionAllocator();
 
     // [Block]
 
     struct Block
     {
+      // [Block Size]
+
       enum { BlockSize = 32500 };
+
+      // [Members]
 
       Block* next;
 
@@ -493,19 +512,9 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
       uint8_t memory[BlockSize];
     };
 
-    // [Header]
-
-    struct Header
-    {
-      FOG_INLINE void release() { this_block->used.sub(this_size); }
-
-      Block* this_block;
-      sysuint_t this_size;
-    };
-
     // [Alloc / Free]
 
-    Header* alloc(sysuint_t size);
+    void* alloc(sysuint_t size);
     void freeAll();
 
     // [Members]
@@ -513,15 +522,52 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
     Block* blocks;
 
   private:
-    FOG_DISABLE_COPY(FastAllocator)
+    FOG_DISABLE_COPY(ActionAllocator)
+  };
+
+  // --------------------------------------------------------------------------
+  // [Action]
+  // --------------------------------------------------------------------------
+
+  struct FOG_HIDDEN Action
+  {
+    FOG_INLINE Action() {}
+    FOG_INLINE ~Action() {}
+
+    // [Abstract]
+
+    virtual void run(Context* ctx) = 0;
+    virtual void release() = 0;
+
+    // [Memory Management]
+
+    // Must be called from implemented @c release() method.
+    FOG_INLINE void _releaseMemory();
+
+    // [Members]
+
+    ActionAllocator::Block* this_block;
+    sysuint_t this_size;
+
+  private:
+    FOG_DISABLE_COPY(Action)
   };
 
   // --------------------------------------------------------------------------
   // [Command]
   // --------------------------------------------------------------------------
 
-  struct FOG_HIDDEN Command : public FastAllocator::Header
+  struct FOG_HIDDEN Command : public Action
   {
+    // [Construction / Destruction]
+    FOG_INLINE Command() {};
+    FOG_INLINE ~Command() {};
+
+    // [Members]
+
+    // This method destroys only general Command data.
+    FOG_INLINE void _releaseObjects();
+
     // [Context]
 
     Atomic<sysuint_t> refCount;
@@ -531,6 +577,10 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
     Raster::FunctionMap::RasterFuncs* rops;
     Raster::PatternContext* pctx;
 
+    // [Ready]
+
+    volatile int ready;
+#if 0
     // [Id]
 
     enum Id
@@ -579,22 +629,95 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
       Static<ImageData> image;
       Static<GlyphSetData> glyphSet;
     };
+#endif
+  };
+
+  // --------------------------------------------------------------------------
+  // [Command_Boxes]
+  // --------------------------------------------------------------------------
+
+  struct FOG_HIDDEN Command_Boxes : public Command
+  {
+    // [Implementation]
+
+    virtual void run(Context* ctx);
+    virtual void release();
+
+    // [Members]
+
+    sysuint_t count;
+    Box boxes[1];
+  };
+
+  // --------------------------------------------------------------------------
+  // [Command_Image]
+  // --------------------------------------------------------------------------
+
+  struct FOG_HIDDEN Command_Image : public Command
+  {
+    // [Implementation]
+
+    virtual void run(Context* ctx);
+    virtual void release();
+
+    // [Members]
+
+    Static<Image> image;
+
+    Rect dst;
+    Rect src;
+  };
+
+  // --------------------------------------------------------------------------
+  // [Command_GlyphSet]
+  // --------------------------------------------------------------------------
+
+  struct FOG_HIDDEN Command_GlyphSet : public Command
+  {
+    // [Implementation]
+
+    virtual void run(Context* ctx);
+    virtual void release();
+
+    // [Members]
+
+    Static<GlyphSet> glyphSet;
+
+    Point pt;
+    Box boundingBox;
+  };
+
+  // --------------------------------------------------------------------------
+  // [Command_Path]
+  // --------------------------------------------------------------------------
+
+  struct FOG_HIDDEN Command_Path : public Command
+  {
+    // [Implementation]
+
+    virtual void run(Context* ctx);
+    virtual void release();
+
+    // [Members]
+
+    Static<AggRasterizer> ras;
   };
 
   // --------------------------------------------------------------------------
   // [Calculation]
   // --------------------------------------------------------------------------
 
-  struct FOG_HIDDEN Calculation : public FastAllocator::Header
+  struct FOG_HIDDEN Calculation : public Action
   {
+    FOG_INLINE Calculation();
+    FOG_INLINE ~Calculation();
 
+    Command* relatedTo;
   };
 
   // --------------------------------------------------------------------------
   // [WorkerTask]
   // --------------------------------------------------------------------------
-
-  struct WorkerManager;
 
   // This is task created per painter thread that contains all variables needed
   // to process painter commands in parallel. The goal is that condition variable
@@ -606,12 +729,14 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
     virtual void run();
     virtual void destroy();
 
+    // True if worker should quit from main loop.
     volatile int shouldQuit;
 
-    // Painter commands management.
-    volatile sysuint_t currentCommand;
+    // Commands and calculations.
+    volatile sysint_t currentCalculation;
+    volatile sysint_t currentCommand;
 
-    // Thread offset and delta.
+    // Worker context.
     Context ctx;
   };
 
@@ -633,7 +758,7 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
     {
     }
 
-    ThreadPool* threadPool;             // Thread pool
+    ThreadPool* threadPool;             // Thread pool.
 
     sysuint_t numWorkers;               // Count of workers used in engine.
 
@@ -650,14 +775,14 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
     Static<WorkerTask> tasks[MaxWorkers];
 
     // Commands and calculations allocator.
-    FastAllocator allocator;
+    ActionAllocator allocator;
 
     // Commands manager.
-    Atomic<sysuint_t> commandsPosition;
+    volatile sysint_t commandsPosition;
     Command* volatile commandsData[MaxCommands];
 
     // Calculations manager.
-    Atomic<sysuint_t> calculationsPosition;
+    volatile sysint_t calculationsPosition;
     Calculation* volatile calculationsData[MaxCalculations];
   };
 
@@ -697,13 +822,17 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
 
   // Serializers are always called from painter thread.
 
-  void _serializeGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip);
   void _serializeBoxes(const Box* box, sysuint_t count);
-  void _serializePath(const Path& path, bool stroke);
   void _serializeImage(const Rect& dst, const Image& image, const Rect& src);
+  void _serializeGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip);
+  void _serializePath(const Path& path, bool stroke);
 
-  Command* _createCommand();
-  void _destroyCommand(Command* cmd);
+  template<typename T>
+  FOG_INLINE T* _createCommand(sysuint_t size = sizeof(T));
+
+  template<typename T>
+  FOG_INLINE T* _createCalculation(sysuint_t size = sizeof(T));
+
   void _postCommand(Command* cmd);
 
   // --------------------------------------------------------------------------
@@ -716,10 +845,10 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
   // [Renderers]
   // --------------------------------------------------------------------------
 
-  void _renderPath(Context* ctx, const AggRasterizer& ras);
   void _renderBoxes(Context* ctx, const Box* box, sysuint_t count);
   void _renderImage(Context* ctx, const Rect& dst, const Image& image, const Rect& src);
   void _renderGlyphSet(Context* ctx, const Point& pt, const GlyphSet& glyphSet, const Box& boundingBox);
+  void _renderPath(Context* ctx, const AggRasterizer& ras);
 
   // --------------------------------------------------------------------------
   // [Members]
@@ -938,26 +1067,26 @@ uint8_t* PainterEngine_Raster::Context::getBuffer(sysint_t size)
 }
 
 // ============================================================================
-// [Fog::PainterEngine_Raster::FastAllocator]
+// [Fog::PainterEngine_Raster::ActionAllocator]
 // ============================================================================
 
-PainterEngine_Raster::FastAllocator::FastAllocator() :
+PainterEngine_Raster::ActionAllocator::ActionAllocator() :
   blocks(NULL)
 {
 }
 
-PainterEngine_Raster::FastAllocator::~FastAllocator()
+PainterEngine_Raster::ActionAllocator::~ActionAllocator()
 {
   freeAll();
 }
 
-PainterEngine_Raster::FastAllocator::Header* PainterEngine_Raster::FastAllocator::alloc(sysuint_t size)
+void* PainterEngine_Raster::ActionAllocator::alloc(sysuint_t size)
 {
   FOG_ASSERT(size <= Block::BlockSize);
 
   if (!blocks || (blocks->size - blocks->pos) < size)
   {
-    // Traverse to previous blocks and try to find complete free one
+    // Traverse to previous blocks and try to find complete free one.
     Block* cur = blocks;
     Block* prev = NULL;
 
@@ -994,15 +1123,18 @@ PainterEngine_Raster::FastAllocator::Header* PainterEngine_Raster::FastAllocator
   }
 
 allocFromBlocks:
-  Header* mem = (Header*)(blocks->memory + blocks->pos);
+  Action* action = (Action*)(blocks->memory + blocks->pos);
+
   blocks->pos += size;
   blocks->used.add(size);
-  mem->this_block = blocks;
-  mem->this_size = size;
-  return mem;
+
+  action->this_block = blocks;
+  action->this_size = size;
+
+  return (void*)action;
 }
 
-void PainterEngine_Raster::FastAllocator::freeAll()
+void PainterEngine_Raster::ActionAllocator::freeAll()
 {
   Block* cur = blocks;
   blocks = NULL;
@@ -1020,12 +1152,103 @@ void PainterEngine_Raster::FastAllocator::freeAll()
 }
 
 // ============================================================================
+// [Fog::PainterEngine_Raster::Action]
+// ============================================================================
+
+FOG_INLINE void PainterEngine_Raster::Action::_releaseMemory()
+{
+  this_block->used.sub(this_size);
+}
+
+// ============================================================================
+// [Fog::PainterEngine_Raster::Command]
+// ============================================================================
+
+FOG_INLINE void PainterEngine_Raster::Command::_releaseObjects()
+{
+  clipState->deref();
+  capsState->deref();
+  if (pctx && pctx->refCount.deref())
+  {
+    pctx->destroy(pctx);
+    Memory::free(pctx);
+  }
+}
+
+// ============================================================================
+// [Fog::PainterEngine_Raster::Command_Boxes]
+// ============================================================================
+
+void PainterEngine_Raster::Command_Boxes::run(Context* ctx)
+{
+  ctx->engine->_renderBoxes(ctx, boxes, count);
+}
+
+void PainterEngine_Raster::Command_Boxes::release()
+{
+  _releaseObjects();
+  _releaseMemory();
+}
+
+// ============================================================================
+// [Fog::PainterEngine_Raster::Command_Image]
+// ============================================================================
+
+void PainterEngine_Raster::Command_Image::run(Context* ctx)
+{
+  ctx->engine->_renderImage(ctx, dst, image.instance(), src);
+}
+
+void PainterEngine_Raster::Command_Image::release()
+{
+  image.destroy();
+
+  _releaseObjects();
+  _releaseMemory();
+}
+
+// ============================================================================
+// [Fog::PainterEngine_Raster::Command_GlyphSet]
+// ============================================================================
+
+void PainterEngine_Raster::Command_GlyphSet::run(Context* ctx)
+{
+  ctx->engine->_renderGlyphSet(ctx, pt, glyphSet.instance(), boundingBox);
+}
+
+void PainterEngine_Raster::Command_GlyphSet::release()
+{
+  glyphSet.destroy();
+
+  _releaseObjects();
+  _releaseMemory();
+}
+
+// ============================================================================
+// [Fog::PainterEngine_Raster::Command_Path]
+// ============================================================================
+
+void PainterEngine_Raster::Command_Path::run(Context* ctx)
+{
+  ctx->engine->_renderPath(ctx, ras.instance());
+}
+
+void PainterEngine_Raster::Command_Path::release()
+{
+  ras.destroy();
+
+  _releaseObjects();
+  _releaseMemory();
+}
+
+// ============================================================================
 // [Fog::PainterEngine_Raster::WorkerTask]
 // ============================================================================
 
 PainterEngine_Raster::WorkerTask::WorkerTask()
 {
   shouldQuit = 0;
+  currentCalculation = 0;
   currentCommand = 0;
 }
 
@@ -1043,111 +1266,66 @@ void PainterEngine_Raster::WorkerTask::run()
 
   for (;;)
   {
-    // Process commands
-    while (currentCommand < mgr->commandsPosition.get())
-    {
-      Command* cmd = mgr->commandsData[currentCommand];
+    // Do calculations and commands.
+    bool cont;
 
-      // If meta origin or user origin is set, it's needed to calculate new
-      // (correct) offset variable or different threads can paint into the
-      // same area.
-      int workerOffset = (id - cmd->clipState->workOrigin.y()) % delta;
-      if (workerOffset < 0) workerOffset += delta;
+    do {
+      cont = false;
 
-      ctx.offset = workerOffset;
-
-#if defined(FOG_DEBUG_RASTER)
-      fog_debug("#%d - command %d (%p)", ctx.id, (int)currentCommand, (cmd));
-#endif // FOG_DEBUG_RASTER
-
-      switch (cmd->id)
+      // Do calculations (highest priority than commands).
+      while (currentCalculation < mgr->calculationsPosition)
       {
-        case Command::CmdPath:
-        {
-          // Render
-          ctx.clipState = cmd->clipState;
-          ctx.capsState = cmd->capsState;
-          ctx.rops = cmd->rops;
-          ctx.pctx = cmd->pctx;
-          ctx.closure.closure = ctx.rops->closure;
-          engine->_renderPath(&ctx, cmd->path->ras);
+        // Here is high thread concurrency and we are doing this without locking,
+        // atomic operations helps us to get Calculation* or NULL. If we get NULL,
+        // it's being calculated or done.
+        Calculation** pclc = (Calculation**)&mgr->calculationsData[currentCalculation];
+        Calculation* clc = *pclc;
 
-          // Destroy
-          if (cmd->refCount.deref())
-          {
-            cmd->path.destroy();
-            engine->_destroyCommand(cmd);
-          }
-          break;
+        if (clc && AtomicOperation<Calculation*>::cmpXchg(pclc, clc, NULL))
+        {
+          // If we are here, Calculation* is ours and we need to calculate it.
+
         }
 
-        case Command::CmdBox:
-        {
-          // Render
-          ctx.clipState = cmd->clipState;
-          ctx.capsState = cmd->capsState;
-          ctx.rops = cmd->rops;
-          ctx.pctx = cmd->pctx;
-          ctx.closure.closure = ctx.rops->closure;
-          engine->_renderBoxes(&ctx, cmd->box->box, cmd->box->count);
-
-          // Destroy
-          if (cmd->refCount.deref())
-          {
-            engine->_destroyCommand(cmd);
-          }
-          break;
-        }
-
-        case Command::CmdImage:
-        {
-          // Render
-          ctx.clipState = cmd->clipState;
-          ctx.capsState = cmd->capsState;
-          ctx.rops = cmd->rops;
-          ctx.pctx = cmd->pctx;
-          ctx.closure.closure = ctx.rops->closure;
-          engine->_renderImage(&ctx, cmd->image->dst, cmd->image->image, cmd->image->src);
-
-          // Destroy
-          if (cmd->refCount.deref())
-          {
-            cmd->image.destroy();
-            engine->_destroyCommand(cmd);
-          }
-          break;
-        }
-
-        case Command::CmdGlyphSet:
-        {
-          // Render
-          ctx.clipState = cmd->clipState;
-          ctx.capsState = cmd->capsState;
-          ctx.rops = cmd->rops;
-          ctx.pctx = cmd->pctx;
-          ctx.closure.closure = ctx.rops->closure;
-          engine->_renderGlyphSet(&ctx, cmd->glyphSet->pt, cmd->glyphSet->glyphSet, cmd->glyphSet->boundingBox);
-
-          // Destroy
-          if (cmd->refCount.deref())
-          {
-            cmd->glyphSet.destroy();
-            engine->_destroyCommand(cmd);
-          }
-          break;
-        }
-
-        default:
-          FOG_ASSERT_NOT_REACHED();
+        currentCalculation++;
+        cont = true;
       }
 
-      currentCommand++;
-    }
+      // Do command.
+      if (currentCommand < mgr->commandsPosition)
+      {
+        Command* cmd = mgr->commandsData[currentCommand];
+
+        // If meta origin or user origin is set, it's needed to calculate new
+        // (correct) offset variable or different threads can paint into the
+        // same area.
+        int workerOffset = (id - cmd->clipState->workOrigin.y()) % delta;
+        if (workerOffset < 0) workerOffset += delta;
+
+        ctx.offset = workerOffset;
+
+  #if defined(FOG_DEBUG_RASTER)
+        fog_debug("#%d - command %d (%p)", ctx.id, (int)currentCommand, (cmd));
+  #endif // FOG_DEBUG_RASTER
+
+        ctx.clipState = cmd->clipState;
+        ctx.capsState = cmd->capsState;
+        ctx.rops = cmd->rops;
+        ctx.pctx = cmd->pctx;
+        ctx.closure.closure = ctx.rops->closure;
+
+        cmd->run(&ctx);
+        if (cmd->refCount.deref()) cmd->release();
+
+        currentCommand++;
+        cont = true;
+      }
+    } while (cont);
 
     {
       AutoLock locked(mgr->commandsLock);
 
-      if (currentCommand < mgr->commandsPosition.get())
+      if (currentCommand < mgr->commandsPosition)
         continue;
 
 #if defined(FOG_DEBUG_RASTER)
@@ -1197,8 +1375,6 @@ void PainterEngine_Raster::WorkerTask::destroy()
     mgr->releaseEvent->signal();
   }
 }
-
-
 
 // ============================================================================
 // [Fog::PainterEngine_Raster - Construction / Destruction]
@@ -2298,7 +2474,7 @@ void PainterEngine_Raster::flush()
 #if defined(FOG_DEBUG_RASTER)
   fog_debug("== flush, complete threads: %d, command position: %d",
     (int)workerManager->completedWorkers.get(),
-    (int)workerManager->commandsPosition.get());
+    (int)workerManager->commandsPosition);
 #endif // FOG_DEBUG_RASTER
 
   while (workerManager->completedWorkers.get() != workerManager->numWorkers)
@@ -2309,7 +2485,7 @@ void PainterEngine_Raster::flush()
   fog_debug("== flush, reseting command position and thread current commands");
 #endif // FOG_DEBUG_RASTER
 
-  workerManager->commandsPosition.setXchg(0);
+  workerManager->commandsPosition = 0;
   for (sysuint_t i = 0; i < workerManager->numWorkers; i++)
   {
     workerManager->tasks[i]->currentCommand = 0;
@@ -2418,12 +2594,15 @@ void PainterEngine_Raster::setMultithreaded(bool mt)
     }
 
     int count = i;
+    workerManager->threadPool = threadPool;
     workerManager->numWorkers = count;
+
     workerManager->startedWorkers.init(0);
     workerManager->finishedWorkers.init(0);
     workerManager->completedWorkers.init(0);
-    workerManager->threadPool = threadPool;
-    workerManager->commandsPosition.init(0);
+
+    workerManager->commandsPosition = 0;
+    workerManager->calculationsPosition = 0;
 
     // Set threads affinity.
     // if (count >= (int)cpuInfo->numberOfProcessors)
@@ -2431,7 +2610,7 @@ void PainterEngine_Raster::setMultithreaded(bool mt)
     //   for (i = 0; i < count; i++) workerManager->threads[i]->setAffinity(1 << i);
     // }
 
-    // Create thread tasks.
+    // Create worker tasks.
     for (i = 0; i < count; i++)
     {
       workerManager->tasks[i].init();
@@ -2442,7 +2621,7 @@ void PainterEngine_Raster::setMultithreaded(bool mt)
       task->ctx.delta = count;
     }
 
-    // Post working task.
+    // Post worker tasks.
     for (i = 0; i < count; i++)
     {
       WorkerTask* task = workerManager->tasks[i].instancep();
@@ -2776,93 +2955,52 @@ static FOG_INLINE int alignToDelta(int y, int offset, int delta)
   return newy;
 }
 
-void PainterEngine_Raster::_serializePath(const Path& path, bool stroke)
-{
-  // Pattern context must be always set up before _render() methods are called.
-  if (!ctx.capsState->isSolidSource && !_getPatternContext()) return;
-
-  if (workerManager)
-  {
-    // Multithreaded - Serialize command.
-    Command* cmd = _createCommand();
-    cmd->id = Command::CmdPath;
-    cmd->path.init();
-    cmd->path->ras.gamma(ColorLut::linearLut);
-
-    if (_rasterizePath(&ctx, cmd->path->ras, path, stroke))
-    {
-      _postCommand(cmd);
-    }
-    else
-    {
-      // Destroy
-      // FIXME: Move this to separate function or to command directly?
-      cmd->clipState->deref();
-      cmd->capsState->deref();
-      if (cmd->pctx && cmd->pctx->refCount.deref()) cmd->pctx->destroy(cmd->pctx);
-      cmd->path.destroy();
-    }
-  }
-  else
-  {
-    // Singlethreaded - Render now.
-    if (_rasterizePath(&ctx, ras, path, stroke))
-    {
-      _renderPath(&ctx, ras);
-    }
-  }
-}
-
 void PainterEngine_Raster::_serializeBoxes(const Box* box, sysuint_t count)
 {
   // Pattern context must be always set up before _render() methods are called.
   if (!ctx.capsState->isSolidSource && !_getPatternContext()) return;
 
-  if (workerManager)
+  // Singlethreaded.
+  if (workerManager == NULL)
   {
-    // Multithreaded - Serialize command.
-    sysuint_t i = 0;
-    while (i < count)
-    {
-      Command* cmd = _createCommand();
-      cmd->id = Command::CmdBox;
-
-      sysuint_t j;
-      sysuint_t n = Math::min<sysuint_t>(count - i, Command::BoxData::Size);
-
-      cmd->box->count = n;
-      for (j = 0; j < n; j++)
-        cmd->box->box[j] = box[j];
-      _postCommand(cmd);
-
-      i += n;
-      box += n;
-    }
+    _renderBoxes(&ctx, box, count);
   }
+  // Multithreaded.
   else
   {
-    // Singlethreaded - Render now.
-    _renderBoxes(&ctx, box, count);
+    while (count > 0)
+    {
+      sysuint_t n = Math::min<sysuint_t>(count, 128);
+      Command_Boxes* cmd = _createCommand<Command_Boxes>(sizeof(Command_Boxes) - sizeof(Box) + n * sizeof(Box));
+      if (!cmd) return;
+
+      cmd->count = n;
+      for (sysuint_t j = 0; j < n; j++) cmd->boxes[j] = box[j];
+      _postCommand(cmd);
+
+      count -= n;
+      box += n;
+    }
   }
 }
 
 void PainterEngine_Raster::_serializeImage(const Rect& dst, const Image& image, const Rect& src)
 {
-  if (workerManager)
+  // Singlethreaded.
+  if (workerManager == NULL)
   {
-    // Multithreaded - Serialize command.
-    Command* cmd = _createCommand();
-    cmd->id = Command::CmdImage;
-    cmd->image.init();
-    cmd->image->dst = dst;
-    cmd->image->src = src;
-    cmd->image->image = image;
-    _postCommand(cmd);
+    _renderImage(&ctx, dst, image, src);
   }
+  // Multithreaded.
   else
   {
-    // Singlethreaded - Render now.
-    _renderImage(&ctx, dst, image, src);
+    Command_Image* cmd = _createCommand<Command_Image>();
+    if (!cmd) return;
+
+    cmd->dst = dst;
+    cmd->src = src;
+    cmd->image.init(image);
+    _postCommand(cmd);
   }
 }
 
@@ -2879,28 +3017,61 @@ void PainterEngine_Raster::_serializeGlyphSet(const Point& pt, const GlyphSet& g
   // Pattern context must be always set up before _render() methods are called.
   if (!ctx.capsState->isSolidSource && !_getPatternContext()) return;
 
-  if (workerManager)
+  // Singlethreaded.
+  if (workerManager == NULL)
   {
-    // Multithreaded - Serialize command.
-    Command* cmd = _createCommand();
-    cmd->id = Command::CmdGlyphSet;
-    cmd->glyphSet.init();
-    cmd->glyphSet->pt = pt;
-    cmd->glyphSet->glyphSet = glyphSet;
-    cmd->glyphSet->boundingBox = boundingBox;
-    _postCommand(cmd);
+    _renderGlyphSet(&ctx, pt, glyphSet, boundingBox);
   }
+  // Multithreaded.
   else
   {
-    // Singlethreaded - Render now.
-    _renderGlyphSet(&ctx, pt, glyphSet, boundingBox);
+    Command_GlyphSet* cmd = _createCommand<Command_GlyphSet>();
+    if (!cmd) return;
+
+    cmd->pt = pt;
+    cmd->boundingBox = boundingBox;
+    cmd->glyphSet.init(glyphSet);
+    _postCommand(cmd);
   }
 }
 
-PainterEngine_Raster::Command* PainterEngine_Raster::_createCommand()
+void PainterEngine_Raster::_serializePath(const Path& path, bool stroke)
 {
-  Command* command = reinterpret_cast<Command*>(workerManager->allocator.alloc(sizeof(Command)));
+  // Pattern context must be always set up before _render() methods are called.
+  if (!ctx.capsState->isSolidSource && !_getPatternContext()) return;
+
+  // Singlethreaded.
+  if (workerManager == NULL)
+  {
+    if (_rasterizePath(&ctx, ras, path, stroke)) _renderPath(&ctx, ras);
+  }
+  // Multithreaded.
+  else
+  {
+    Command_Path* cmd = _createCommand<Command_Path>();
+    if (!cmd) return;
+
+    cmd->ras.init();
+    cmd->ras.instance().gamma(ColorLut::linearLut);
+
+    if (_rasterizePath(&ctx, cmd->ras.instance(), path, stroke))
+    {
+      _postCommand(cmd);
+    }
+    else
+    {
+      cmd->release();
+    }
+  }
+}
+
+template <typename T>
+FOG_INLINE T* PainterEngine_Raster::_createCommand(sysuint_t size)
+{
+  T* command = reinterpret_cast<T*>(workerManager->allocator.alloc(size));
   if (!command) return NULL;
+
+  new(command) T;
 
   command->refCount.init(workerManager->numWorkers);
   command->clipState = ctx.clipState->ref();
@@ -2918,18 +3089,15 @@ PainterEngine_Raster::Command* PainterEngine_Raster::_createCommand()
   return command;
 }
 
-void PainterEngine_Raster::_destroyCommand(Command* cmd)
+template<typename T>
+T* PainterEngine_Raster::_createCalculation(sysuint_t size)
 {
-  // Specific command data (in union) must be destroyed in worker. This method
-  // destroyes only general data for all command types.
-  cmd->clipState->deref();
-  cmd->capsState->deref();
-  if (cmd->pctx && cmd->pctx->refCount.deref())
-  {
-    cmd->pctx->destroy(cmd->pctx);
-    Memory::free(cmd->pctx);
-  }
-  cmd->release();
+  T* calculation = reinterpret_cast<T*>(workerManager->allocator.alloc(size));
+  if (!calculation) return NULL;
+
+  new(calculation) T;
+
+  return calculation;
 }
 
 void PainterEngine_Raster::_postCommand(Command* cmd)
@@ -2945,29 +3113,29 @@ void PainterEngine_Raster::_postCommand(Command* cmd)
 #endif // FOG_DEBUG_RASTER
 
   // Flush everything if commands get to maximum
-  if (workerManager->commandsPosition.get() == MaxCommands)
+  if (workerManager->commandsPosition == MaxCommands)
   {
 #if defined(FOG_DEBUG_RASTER)
     fog_debug("== command buffer is full, flushing");
 #endif // FOG_DEBUG_RASTER
     flush();
-    FOG_ASSERT(workerManager->commandsPosition.get() == 0);
+    FOG_ASSERT(workerManager->commandsPosition == 0);
 
     workerManager->commandsData[0] = cmd;
-    workerManager->commandsPosition.setXchg(1);
+    workerManager->commandsPosition = 1;
   }
   else
   {
-    workerManager->commandsData[workerManager->commandsPosition.get()] = cmd;
+    workerManager->commandsData[workerManager->commandsPosition] = cmd;
 
-    if ((workerManager->commandsPosition.addXchg(1) & 7) == 7)
+    if ((workerManager->commandsPosition++ & 15) == 15)
     {
       AutoLock locked(workerManager->commandsLock);
       if (workerManager->completedWorkers.get() > 0)
       {
-    #if defined(FOG_DEBUG_RASTER)
+#if defined(FOG_DEBUG_RASTER)
         fog_debug("== broadcasting %d threads", (int)workerManager->completedWorkers.get());
-    #endif // FOG_DEBUG_RASTER
+#endif // FOG_DEBUG_RASTER
         workerManager->completedWorkers.setXchg(0);
         workerManager->commandsReady.broadcast();
       }
@@ -3162,24 +3330,6 @@ bool PainterEngine_Raster::_rasterizePath(Context* ctx, AggRasterizer& ras, cons
 // ============================================================================
 // [Fog::PainterEngine_Raster - Renderers]
 // ============================================================================
-
-void PainterEngine_Raster::_renderPath(Context* ctx, const AggRasterizer& ras)
-{
-  switch (_bpp)
-  {
-    case 4:
-      AggRenderPath<4, AggRasterizer, AggScanlineP8>(ctx, ras, ctx->slP8);
-      break;
-    case 3:
-      AggRenderPath<3, AggRasterizer, AggScanlineP8>(ctx, ras, ctx->slP8);
-      break;
-    case 1:
-      AggRenderPath<1, AggRasterizer, AggScanlineP8>(ctx, ras, ctx->slP8);
-      break;
-    default:
-      FOG_ASSERT_NOT_REACHED();
-  }
-}
 
 void PainterEngine_Raster::_renderBoxes(Context* ctx, const Box* box, sysuint_t count)
 {
@@ -3474,6 +3624,24 @@ void PainterEngine_Raster::_renderGlyphSet(Context* ctx, const Point& pt, const 
         y1 += delta;
       } while (y1 < y2);
     }
+  }
+}
+
+void PainterEngine_Raster::_renderPath(Context* ctx, const AggRasterizer& ras)
+{
+  switch (_bpp)
+  {
+    case 4:
+      AggRenderPath<4, AggRasterizer, AggScanlineP8>(ctx, ras, ctx->slP8);
+      break;
+    case 3:
+      AggRenderPath<3, AggRasterizer, AggScanlineP8>(ctx, ras, ctx->slP8);
+      break;
+    case 1:
+      AggRenderPath<1, AggRasterizer, AggScanlineP8>(ctx, ras, ctx->slP8);
+      break;
+    default:
+      FOG_ASSERT_NOT_REACHED();
   }
 }
 
