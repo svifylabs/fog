@@ -32,6 +32,30 @@ static void loadSprites()
 }
 
 // ============================================================================
+// [Tools]
+// ============================================================================
+
+static FOG_INLINE uint32_t randColor()
+{
+  return (rand() & 0xFFFF) | (rand() << 16);
+}
+
+static FOG_INLINE Rect randRect(int w, int h, int rw, int rh)
+{
+  return Rect(rand() % (w - rw), rand() % (h - rh), rw, rh);
+}
+
+static FOG_INLINE Point randPoint(int w, int h)
+{
+  return Point(rand() % w, rand() % h);
+}
+
+static FOG_INLINE PointF randPointF(int w, int h)
+{
+  return PointF(rand() % w, rand() % h);
+}
+
+// ============================================================================
 // [BenchmarkModule]
 // ============================================================================
 
@@ -40,27 +64,12 @@ struct BenchmarkModule
   BenchmarkModule(int w, int h) : w(w), h(h) {}
   ~BenchmarkModule() {}
 
+  virtual void prepareBenchmark(int quantity) {}
+  virtual void finishBenchmark() {}
   virtual void doBenchmark(int quantity) = 0;
+
   virtual void saveResult() = 0;
   virtual const char* name() = 0;
-
-  FOG_INLINE uint32_t randColor() const
-  { return (rand() & 0xFFFF) | (rand() << 16); }
-
-  FOG_INLINE Rect randRect(int rw, int rh) const
-  {
-    return Rect(rand() % (w - rw), rand() % (h - rh), rw, rh);
-  }
-
-  FOG_INLINE Point randPoint() const
-  {
-    return Point(rand() % (w), rand() % (h));
-  }
-
-  FOG_INLINE PointF randPointF() const
-  {
-    return PointF(rand() % (w), rand() % (h));
-  }
 
   int w, h;
 };
@@ -70,15 +79,51 @@ static TimeDelta bench(BenchmarkModule& mod, int quantity)
   // Clear random seed (so all tests will behave identically)
   srand(43);
 
+  mod.prepareBenchmark(quantity);
   TimeTicks ticks = TimeTicks::highResNow();
   mod.doBenchmark(quantity);
   TimeDelta delta =  TimeTicks::highResNow() - ticks;
+  mod.finishBenchmark();
 
   fog_debug("%s - %.3f [ms]", mod.name(), delta.inMillisecondsF());
   mod.saveResult();
 
   return delta;
 }
+
+// ============================================================================
+// [BenchmarkRandomizer_Rect]
+// ============================================================================
+
+struct BenchmarkRandomizer_Rect
+{
+  BenchmarkRandomizer_Rect()
+  {
+    rectData = NULL;
+    rgbaData = NULL;
+  }
+
+  void prepare(int w, int h, int quantity)
+  {
+    rectData = (Rect*)Memory::alloc(sizeof(Rect) * quantity);
+    rgbaData = (Rgba*)Memory::alloc(sizeof(Rgba) * quantity);
+
+    for (int a = 0; a < quantity; a++)
+    {
+      rectData[a] = randRect(w, h, 128, 128);
+      rgbaData[a] = randColor();
+    }
+  }
+
+  void finish()
+  {
+    Memory::free(rectData);
+    Memory::free(rgbaData);
+  }
+
+  Rect* rectData;
+  Rgba* rgbaData;
+};
 
 // ============================================================================
 // [BenchmarkModule_Fog]
@@ -136,20 +181,24 @@ struct BenchmarkModule_Fog_FillRect : public BenchmarkModule_Fog
   {
   }
 
+  virtual void prepareBenchmark(int quantity) { randomizer.prepare(w, h, quantity); }
+  virtual void finishBenchmark() { randomizer.finish(); }
+
   virtual void doBenchmark(int quantity)
   {
     p.save();
     for (int a = 0; a < quantity; a++)
     {
-      Rect r = randRect(128, 128);
-      p.setSource(Rgba(randColor()));
-      p.fillRect(r);
+      p.setSource(randomizer.rgbaData[a]);
+      p.fillRect(randomizer.rectData[a]);
     }
     p.restore();
     p.flush();
   }
 
   virtual const char* name() { return mt ? "Fog - FillRect (mt)" : "Fog - FillRect"; }
+
+  BenchmarkRandomizer_Rect randomizer;
 };
 
 // ============================================================================
@@ -163,20 +212,24 @@ struct BenchmarkModule_Fog_FillRound : public BenchmarkModule_Fog
   {
   }
 
+  virtual void prepareBenchmark(int quantity) { randomizer.prepare(w, h, quantity); }
+  virtual void finishBenchmark() { randomizer.finish(); }
+
   virtual void doBenchmark(int quantity)
   {
     p.save();
     for (int a = 0; a < quantity; a++)
     {
-      Rect r = randRect(128, 128);
-      p.setSource(Rgba(randColor()));
-      p.fillRound(r, Point(8, 8));
+      p.setSource(randomizer.rgbaData[a]);
+      p.fillRound(randomizer.rectData[a], Point(8, 8));
     }
     p.restore();
     p.flush();
   }
 
   virtual const char* name() { return mt ? "Fog - FillRound (mt)" : "Fog - FillRound"; }
+
+  BenchmarkRandomizer_Rect randomizer;
 };
 
 // ============================================================================
@@ -199,7 +252,7 @@ struct BenchmarkModule_Fog_FillPath : public BenchmarkModule_Fog
       Path path;
       for (int i = 0; i < 7; i++)
       {
-        PointF c0 = randPointF();
+        PointF c0 = randPointF(w, h);
         if (i == 0)
           path.moveTo(c0);
         else
@@ -233,14 +286,16 @@ struct BenchmarkModule_Fog_FillPattern : public BenchmarkModule_Fog
     pattern.setGradientRadius(250.0);
   }
 
+  virtual void prepareBenchmark(int quantity) { randomizer.prepare(w, h, quantity); }
+  virtual void finishBenchmark() { randomizer.finish(); }
+
   virtual void doBenchmark(int quantity)
   {
     p.save();
     p.setSource(pattern);
     for (int a = 0; a < quantity; a++)
     {
-      Rect r = randRect(128, 128);
-      p.fillRect(r);
+      p.fillRect(randomizer.rectData[a]);
     }
     p.restore();
     p.flush();
@@ -264,6 +319,8 @@ struct BenchmarkModule_Fog_FillPattern : public BenchmarkModule_Fog
 
   Pattern pattern;
   char buf[1024];
+
+  BenchmarkRandomizer_Rect randomizer;
 };
 
 // ============================================================================
@@ -282,7 +339,7 @@ struct BenchmarkModule_Fog_BlitImage : public BenchmarkModule_Fog
     p.save();
     for (int a = 0; a < quantity; a++)
     {
-      Rect r = randRect(128, 128);
+      Rect r = randRect(w, h, 128, 128);
       p.drawImage(Point(r.x(), r.y()), sprite[rand() % 4]);
     }
     p.restore();
@@ -381,6 +438,9 @@ struct BenchmarkModule_GDI_FillRect : public BenchmarkModule_GDI
   {
   }
 
+  virtual void prepareBenchmark(int quantity) { randomizer.prepare(w, h, quantity); }
+  virtual void finishBenchmark() { randomizer.finish(); }
+
   virtual void doBenchmark(int quantity)
   {
     HDC dc = CreateCompatibleDC(NULL);
@@ -390,8 +450,8 @@ struct BenchmarkModule_GDI_FillRect : public BenchmarkModule_GDI
 
       for (int a = 0; a < quantity; a++)
       {
-        Rect r = randRect(128, 128);
-        Gdiplus::Color c(randColor());
+        Rect r = randomizer.rectData[a];
+        Gdiplus::Color c(randomizer.rgbaData[a]);
         Gdiplus::SolidBrush br(c);
         gr.FillRectangle((Gdiplus::Brush*)&br, r.x(), r.y(), r.width(), r.height());
       }
@@ -400,6 +460,8 @@ struct BenchmarkModule_GDI_FillRect : public BenchmarkModule_GDI
   }
 
   virtual const char* name() { return "GdiPlus - FillRect"; }
+
+  BenchmarkRandomizer_Rect randomizer;
 };
 
 // ============================================================================
@@ -413,6 +475,9 @@ struct BenchmarkModule_GDI_FillRound : public BenchmarkModule_GDI
   {
   }
 
+  virtual void prepareBenchmark(int quantity) { randomizer.prepare(w, h, quantity); }
+  virtual void finishBenchmark() { randomizer.finish(); }
+
   virtual void doBenchmark(int quantity)
   {
     HDC dc = CreateCompatibleDC(NULL);
@@ -423,9 +488,9 @@ struct BenchmarkModule_GDI_FillRound : public BenchmarkModule_GDI
 
       for (int a = 0; a < quantity; a++)
       {
-        Rect r = randRect(128, 128);
+        Rect r = randomizer.rectData[a];
         int d = 8;
-        Gdiplus::Color c(randColor());
+        Gdiplus::Color c(randomizer.rgbaData[a]);
         Gdiplus::SolidBrush br(c);
 
         Gdiplus::GraphicsPath path;
@@ -441,6 +506,8 @@ struct BenchmarkModule_GDI_FillRound : public BenchmarkModule_GDI
   }
 
   virtual const char* name() { return "GdiPlus - FillRound"; }
+
+  BenchmarkRandomizer_Rect randomizer;
 };
 
 // ============================================================================
@@ -469,7 +536,7 @@ struct BenchmarkModule_GDI_FillPath : public BenchmarkModule_GDI
         Gdiplus::PointF lines[7];
         for (int i = 0; i < 7; i++)
         {
-          PointF p0 = randPointF();
+          PointF p0 = randPointF(w, h);
           lines[i].X = p0.x();
           lines[i].Y = p0.y();
         }
@@ -499,6 +566,9 @@ struct BenchmarkModule_GDI_FillPattern : public BenchmarkModule_GDI
   {
   }
 
+  virtual void prepareBenchmark(int quantity) { randomizer.prepare(w, h, quantity); }
+  virtual void finishBenchmark() { randomizer.finish(); }
+
   virtual void doBenchmark(int quantity)
   {
     HDC dc = CreateCompatibleDC(NULL);
@@ -521,7 +591,7 @@ struct BenchmarkModule_GDI_FillPattern : public BenchmarkModule_GDI
 
       for (int a = 0; a < quantity; a++)
       {
-        Rect r = randRect(128, 128);
+        Rect r = randomizer.rectData[a];
         gr.FillRectangle((Gdiplus::Brush*)&br, r.x(), r.y(), r.width(), r.height());
       }
     }
@@ -529,6 +599,8 @@ struct BenchmarkModule_GDI_FillPattern : public BenchmarkModule_GDI
   }
 
   virtual const char* name() { return "GdiPlus - FillPattern - LinearGradient"; }
+
+  BenchmarkRandomizer_Rect randomizer;
 };
 
 // ============================================================================
@@ -565,7 +637,7 @@ struct BenchmarkModule_GDI_BlitImage : public BenchmarkModule_GDI
 
       for (a = 0; a < quantity; a++)
       {
-        Rect r = randRect(128, 128);
+        Rect r = randRect(w, h, 128, 128);
         gr.DrawImage(bm[rand() % 4], r.x(), r.y());
       }
 
@@ -624,14 +696,17 @@ struct BenchmarkModule_Cairo_FillRect : public BenchmarkModule_Cairo
   {
   }
 
+  virtual void prepareBenchmark(int quantity) { randomizer.prepare(w, h, quantity); }
+  virtual void finishBenchmark() { randomizer.finish(); }
+
   virtual void doBenchmark(int quantity)
   {
     cairo_t* cr = cairo_create(cim);
 
     for (int a = 0; a < quantity; a++)
     {
-      Rect r = randRect(128, 128);
-      Rgba c(randColor());
+      Rect r = randomizer.rectData[a];
+      Rgba c(randomizer.rgbaData[a]);
 
       cairo_set_source_rgba(cr,
         (double)c.r / 255.0, (double)c.g / 255.0, (double)c.b / 255.0, (double)c.a / 255.0);
@@ -643,6 +718,8 @@ struct BenchmarkModule_Cairo_FillRect : public BenchmarkModule_Cairo
   }
 
   virtual const char* name() { return "Cairo - FillRect"; }
+
+  BenchmarkRandomizer_Rect randomizer;
 };
 
 // ============================================================================
@@ -656,14 +733,17 @@ struct BenchmarkModule_Cairo_FillRound : public BenchmarkModule_Cairo
   {
   }
 
+  virtual void prepareBenchmark(int quantity) { randomizer.prepare(w, h, quantity); }
+  virtual void finishBenchmark() { randomizer.finish(); }
+
   virtual void doBenchmark(int quantity)
   {
     cairo_t* cr = cairo_create(cim);
 
     for (int a = 0; a < quantity; a++)
     {
-      Rect r = randRect(128, 128);
-      Rgba c(randColor());
+      Rect r = randomizer.rectData[a];
+      Rgba c(randomizer.rgbaData[a]);
 
       addRound(cr, r, 8);
       cairo_set_source_rgba(cr,
@@ -726,6 +806,8 @@ struct BenchmarkModule_Cairo_FillRound : public BenchmarkModule_Cairo
   }
 
   virtual const char* name() { return "Cairo - FillRound"; }
+
+  BenchmarkRandomizer_Rect randomizer;
 };
 
 
@@ -750,7 +832,7 @@ struct BenchmarkModule_Cairo_FillPath : public BenchmarkModule_Cairo
     {
       for (int i = 0; i < 7; i++)
       {
-        PointF c0 = randPointF();
+        PointF c0 = randPointF(w, h);
         if (i == 0)
           cairo_move_to(cr, c0.x(), c0.y());
         else
@@ -782,11 +864,12 @@ struct BenchmarkModule_Cairo_FillPattern : public BenchmarkModule_Cairo
   {
   }
 
+  virtual void prepareBenchmark(int quantity) { randomizer.prepare(w, h, quantity); }
+  virtual void finishBenchmark() { randomizer.finish(); }
+
   virtual void doBenchmark(int quantity)
   {
     cairo_t* cr = cairo_create(cim);
-
-
     cairo_pattern_t *pat;
 
     if (type == 0)
@@ -805,7 +888,7 @@ struct BenchmarkModule_Cairo_FillPattern : public BenchmarkModule_Cairo
 
     for (int a = 0; a < quantity; a++)
     {
-      Rect r = randRect(128, 128);
+      Rect r = randomizer.rectData[a];
       cairo_rectangle(cr, r.x(), r.y(), r.width(), r.height());
       cairo_fill(cr);
     }
@@ -825,6 +908,8 @@ struct BenchmarkModule_Cairo_FillPattern : public BenchmarkModule_Cairo
   }
 
   int type;
+
+  BenchmarkRandomizer_Rect randomizer;
 };
 
 // ============================================================================
@@ -844,7 +929,7 @@ struct BenchmarkModule_Cairo_BlitImage : public BenchmarkModule_Cairo
 
     for (int a = 0; a < quantity; a++)
     {
-      Rect r = randRect(128, 128);
+      Rect r = randRect(w, h, 128, 128);
       cairo_set_source_surface(cr, csprite[rand()%4], r.x(), r.y());
       cairo_paint(cr);
     }

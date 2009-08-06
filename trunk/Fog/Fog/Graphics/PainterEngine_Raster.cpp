@@ -580,56 +580,6 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
     // [Ready]
 
     volatile int ready;
-#if 0
-    // [Id]
-
-    enum Id
-    {
-      CmdPath = 0,
-      CmdBox = 1,
-      CmdImage = 2,
-      CmdGlyphSet = 3
-    };
-
-    int id;
-
-    // [Data]
-
-    struct PathData
-    {
-      AggRasterizer ras;
-    };
-
-    struct BoxData
-    {
-      enum { Size = 56 };
-
-      int count;
-      Box box[Size];
-    };
-
-    struct ImageData
-    {
-      Rect dst;
-      Rect src;
-      Image image;
-    };
-
-    struct GlyphSetData
-    {
-      Point pt;
-      GlyphSet glyphSet;
-      Box boundingBox;
-    };
-
-    union
-    {
-      Static<PathData> path;
-      Static<BoxData> box;
-      Static<ImageData> image;
-      Static<GlyphSetData> glyphSet;
-    };
-#endif
   };
 
   // --------------------------------------------------------------------------
