@@ -126,12 +126,50 @@ struct BenchmarkRandomizer_Rect
 };
 
 // ============================================================================
+// [BenchmarkRandomizer_Rect]
+// ============================================================================
+
+struct BenchmarkRandomizer_Polygon
+{
+  BenchmarkRandomizer_Polygon()
+  {
+    polyData = NULL;
+    rgbaData = NULL;
+  }
+
+  void prepare(int w, int h, int quantity)
+  {
+    polyData = (PointF*)Memory::alloc(sizeof(PointF) * quantity * 10);
+    rgbaData = (Rgba  *)Memory::alloc(sizeof(Rgba) * quantity);
+
+    for (int a = 0; a < quantity * 10; a++)
+    {
+      polyData[a] = randPointF(w, h);
+    }
+
+    for (int a = 0; a < quantity; a++)
+    {
+      rgbaData[a] = randColor();
+    }
+  }
+
+  void finish()
+  {
+    Memory::free(polyData);
+    Memory::free(rgbaData);
+  }
+
+  PointF* polyData;
+  Rgba* rgbaData;
+};
+
+// ============================================================================
 // [BenchmarkModule_Fog]
 // ============================================================================
 
 struct BenchmarkModule_Fog : public BenchmarkModule
 {
-  BenchmarkModule_Fog(int w, int h) :
+  FOG_NO_INLINE BenchmarkModule_Fog(int w, int h) :
     BenchmarkModule(w, h)
   {
     im.create(w, h, Image::FormatPRGB32);
@@ -143,12 +181,12 @@ struct BenchmarkModule_Fog : public BenchmarkModule
       sprite[a] = _sprite[a];
   }
 
-  virtual ~BenchmarkModule_Fog()
+  FOG_NO_INLINE virtual ~BenchmarkModule_Fog()
   {
     p.end();
   }
 
-  virtual void saveResult()
+  FOG_NO_INLINE virtual void saveResult()
   {
     String32 fileName;
     Image t(im);
@@ -158,7 +196,7 @@ struct BenchmarkModule_Fog : public BenchmarkModule
     t.writeFile(fileName);
   }
 
-  void setMultithreaded(bool mt)
+  FOG_NO_INLINE void setMultithreaded(bool mt)
   {
     this->mt = mt;
     p.setProperty(Ascii8("multithreaded"), Value::fromBool(mt));
@@ -233,40 +271,49 @@ struct BenchmarkModule_Fog_FillRound : public BenchmarkModule_Fog
 };
 
 // ============================================================================
-// [BenchmarkModule_Fog_FillPath]
+// [BenchmarkModule_Fog_FillPolygon]
 // ============================================================================
 
-struct BenchmarkModule_Fog_FillPath : public BenchmarkModule_Fog
+struct BenchmarkModule_Fog_FillPolygon : public BenchmarkModule_Fog
 {
-  BenchmarkModule_Fog_FillPath(int w, int h) :
+  BenchmarkRandomizer_Polygon randomizer;
+
+  BenchmarkModule_Fog_FillPolygon(int w, int h) :
     BenchmarkModule_Fog(w, h)
   {
   }
+
+  virtual void prepareBenchmark(int quantity) { randomizer.prepare(w, h, quantity); }
+  virtual void finishBenchmark() { randomizer.finish(); }
 
   virtual void doBenchmark(int quantity)
   {
     p.save();
     p.setFillMode(FillEvenOdd);
+
     for (int a = 0; a < quantity; a++)
     {
+      const PointF* polyData = &randomizer.polyData[a*10];
+
       Path path;
-      for (int i = 0; i < 7; i++)
+      for (int i = 0; i < 10; i++)
       {
-        PointF c0 = randPointF(w, h);
+        PointF c0 = polyData[i];
         if (i == 0)
           path.moveTo(c0);
         else
           path.lineTo(c0);
       }
 
-      p.setSource(Rgba(randColor()));
+      p.setSource(randomizer.rgbaData[a]);
       p.fillPath(path);
     }
+
     p.restore();
     p.flush();
   }
 
-  virtual const char* name() { return mt ? "Fog - FillPath (mt)" : "Fog - FillPath"; }
+  virtual const char* name() { return mt ? "Fog - FillPolygon (mt)" : "Fog - FillPolygon"; }
 };
 
 // ============================================================================
@@ -511,15 +558,18 @@ struct BenchmarkModule_GDI_FillRound : public BenchmarkModule_GDI
 };
 
 // ============================================================================
-// [BenchmarkModule_GDI_FillPath]
+// [BenchmarkModule_GDI_FillPolygon]
 // ============================================================================
 
-struct BenchmarkModule_GDI_FillPath : public BenchmarkModule_GDI
+struct BenchmarkModule_GDI_FillPolygon : public BenchmarkModule_GDI
 {
-  BenchmarkModule_GDI_FillPath(int w, int h) :
+  BenchmarkModule_GDI_FillPolygon(int w, int h) :
     BenchmarkModule_GDI(w, h)
   {
   }
+
+  virtual void prepareBenchmark(int quantity) { randomizer.prepare(w, h, quantity); }
+  virtual void finishBenchmark() { randomizer.finish(); }
 
   virtual void doBenchmark(int quantity)
   {
@@ -531,19 +581,19 @@ struct BenchmarkModule_GDI_FillPath : public BenchmarkModule_GDI
 
       for (int a = 0; a < quantity; a++)
       {
-        Gdiplus::GraphicsPath path;
+        const PointF* polyData = &randomizer.polyData[a*10];
 
-        Gdiplus::PointF lines[7];
-        for (int i = 0; i < 7; i++)
+        Gdiplus::GraphicsPath path;
+        Gdiplus::PointF lines[10];
+        for (int i = 0; i < 10; i++)
         {
-          PointF p0 = randPointF(w, h);
-          lines[i].X = p0.x();
-          lines[i].Y = p0.y();
+          lines[i].X = polyData[i].x();
+          lines[i].Y = polyData[i].y();
         }
-        path.AddLines(lines, 7);
+        path.AddLines(lines, 10);
         path.CloseFigure();
 
-        Gdiplus::Color c(randColor());
+        Gdiplus::Color c(randomizer.rgbaData[a]);
         Gdiplus::SolidBrush br(c);
 
         gr.FillPath((Gdiplus::Brush*)&br, &path);
@@ -552,7 +602,9 @@ struct BenchmarkModule_GDI_FillPath : public BenchmarkModule_GDI
     DeleteDC(dc);
   }
 
-  virtual const char* name() { return "GdiPlus - FillPath"; }
+  virtual const char* name() { return "GdiPlus - FillPolygon"; }
+
+  BenchmarkRandomizer_Polygon randomizer;
 };
 
 // ============================================================================
@@ -754,7 +806,7 @@ struct BenchmarkModule_Cairo_FillRound : public BenchmarkModule_Cairo
     cairo_destroy(cr);
   }
 
-  void addRound(cairo_t* cr, Rect rect, double radius)
+  FOG_INLINE void addRound(cairo_t* cr, Rect rect, double radius)
   {
     double x0 = rect.x();
     double y0 = rect.y();
@@ -764,45 +816,56 @@ struct BenchmarkModule_Cairo_FillRound : public BenchmarkModule_Cairo
     double x1 = x0 + rect_width;
     double y1 = y0 + rect_height;
 
-    if (!rect_width || !rect_height)
-        return;
+    radius *= 2.0;
 
-    if (rect_width/2<radius) {
-        if (rect_height/2<radius) {
-            cairo_move_to  (cr, x0, (y0 + y1)/2);
-            cairo_curve_to (cr, x0 ,y0, x0, y0, (x0 + x1)/2, y0);
-            cairo_curve_to (cr, x1, y0, x1, y0, x1, (y0 + y1)/2);
-            cairo_curve_to (cr, x1, y1, x1, y1, (x1 + x0)/2, y1);
-            cairo_curve_to (cr, x0, y1, x0, y1, x0, (y0 + y1)/2);
-        } else {
-            cairo_move_to  (cr, x0, y0 + radius);
-            cairo_curve_to (cr, x0 ,y0, x0, y0, (x0 + x1)/2, y0);
-            cairo_curve_to (cr, x1, y0, x1, y0, x1, y0 + radius);
-            cairo_line_to (cr, x1 , y1 - radius);
-            cairo_curve_to (cr, x1, y1, x1, y1, (x1 + x0)/2, y1);
-            cairo_curve_to (cr, x0, y1, x0, y1, x0, y1- radius);
-        }
-    } else {
-        if (rect_height/2<radius) {
-            cairo_move_to  (cr, x0, (y0 + y1)/2);
-            cairo_curve_to (cr, x0 , y0, x0 , y0, x0 + radius, y0);
-            cairo_line_to (cr, x1 - radius, y0);
-            cairo_curve_to (cr, x1, y0, x1, y0, x1, (y0 + y1)/2);
-            cairo_curve_to (cr, x1, y1, x1, y1, x1 - radius, y1);
-            cairo_line_to (cr, x0 + radius, y1);
-            cairo_curve_to (cr, x0, y1, x0, y1, x0, (y0 + y1)/2);
-        } else {
-            cairo_move_to  (cr, x0, y0 + radius);
-            cairo_curve_to (cr, x0 , y0, x0 , y0, x0 + radius, y0);
-            cairo_line_to (cr, x1 - radius, y0);
-            cairo_curve_to (cr, x1, y0, x1, y0, x1, y0 + radius);
-            cairo_line_to (cr, x1 , y1 - radius);
-            cairo_curve_to (cr, x1, y1, x1, y1, x1 - radius, y1);
-            cairo_line_to (cr, x0 + radius, y1);
-            cairo_curve_to (cr, x0, y1, x0, y1, x0, y1- radius);
-        }
+    if (!rect_width || !rect_height)
+      return;
+
+    if (rect_width/2<radius)
+    {
+      if (rect_height/2<radius)
+      {
+        cairo_move_to(cr, x0, (y0 + y1)/2);
+        cairo_curve_to(cr, x0 ,y0, x0, y0, (x0 + x1)/2, y0);
+        cairo_curve_to(cr, x1, y0, x1, y0, x1, (y0 + y1)/2);
+        cairo_curve_to(cr, x1, y1, x1, y1, (x1 + x0)/2, y1);
+        cairo_curve_to(cr, x0, y1, x0, y1, x0, (y0 + y1)/2);
+      }
+      else
+      {
+        cairo_move_to(cr, x0, y0 + radius);
+        cairo_curve_to(cr, x0 ,y0, x0, y0, (x0 + x1)/2, y0);
+        cairo_curve_to(cr, x1, y0, x1, y0, x1, y0 + radius);
+        cairo_line_to(cr, x1 , y1 - radius);
+        cairo_curve_to(cr, x1, y1, x1, y1, (x1 + x0)/2, y1);
+        cairo_curve_to(cr, x0, y1, x0, y1, x0, y1- radius);
+      }
     }
-    cairo_close_path (cr);
+    else
+    {
+      if (rect_height/2<radius)
+      {
+        cairo_move_to(cr, x0, (y0 + y1)/2);
+        cairo_curve_to(cr, x0 , y0, x0 , y0, x0 + radius, y0);
+        cairo_line_to(cr, x1 - radius, y0);
+        cairo_curve_to(cr, x1, y0, x1, y0, x1, (y0 + y1)/2);
+        cairo_curve_to(cr, x1, y1, x1, y1, x1 - radius, y1);
+        cairo_line_to(cr, x0 + radius, y1);
+        cairo_curve_to(cr, x0, y1, x0, y1, x0, (y0 + y1)/2);
+      }
+      else
+      {
+        cairo_move_to(cr, x0, y0 + radius);
+        cairo_curve_to(cr, x0 , y0, x0 , y0, x0 + radius, y0);
+        cairo_line_to(cr, x1 - radius, y0);
+        cairo_curve_to(cr, x1, y0, x1, y0, x1, y0 + radius);
+        cairo_line_to(cr, x1 , y1 - radius);
+        cairo_curve_to(cr, x1, y1, x1, y1, x1 - radius, y1);
+        cairo_line_to(cr, x0 + radius, y1);
+        cairo_curve_to(cr, x0, y1, x0, y1, x0, y1- radius);
+      }
+    }
+    cairo_close_path(cr);
   }
 
   virtual const char* name() { return "Cairo - FillRound"; }
@@ -812,35 +875,38 @@ struct BenchmarkModule_Cairo_FillRound : public BenchmarkModule_Cairo
 
 
 // ============================================================================
-// [BenchmarkModule_Cairo_FillPath]
+// [BenchmarkModule_Cairo_FillPolygon]
 // ============================================================================
 
-struct BenchmarkModule_Cairo_FillPath : public BenchmarkModule_Cairo
+struct BenchmarkModule_Cairo_FillPolygon : public BenchmarkModule_Cairo
 {
-  BenchmarkModule_Cairo_FillPath(int w, int h) :
+  BenchmarkModule_Cairo_FillPolygon(int w, int h) :
     BenchmarkModule_Cairo(w, h)
   {
   }
 
+  virtual void prepareBenchmark(int quantity) { randomizer.prepare(w, h, quantity); }
+  virtual void finishBenchmark() { randomizer.finish(); }
+
   virtual void doBenchmark(int quantity)
   {
     cairo_t* cr = cairo_create(cim);
-
     cairo_set_fill_rule(cr, CAIRO_FILL_RULE_EVEN_ODD);
 
     for (int a = 0; a < quantity; a++)
     {
-      for (int i = 0; i < 7; i++)
+      const PointF* polyData = &randomizer.polyData[a*10];
+
+      for (int i = 0; i < 10; i++)
       {
-        PointF c0 = randPointF(w, h);
         if (i == 0)
-          cairo_move_to(cr, c0.x(), c0.y());
+          cairo_move_to(cr, polyData[i].x(), polyData[i].y());
         else
-          cairo_line_to(cr, c0.x(), c0.y());
+          cairo_line_to(cr, polyData[i].x(), polyData[i].y());
       }
       cairo_close_path(cr);
 
-      Rgba c(randColor());
+      Rgba c = randomizer.rgbaData[a];
       cairo_set_source_rgba(cr,
         (double)c.r / 255.0, (double)c.g / 255.0, (double)c.b / 255.0, (double)c.a / 255.0);
       cairo_fill(cr);
@@ -849,7 +915,9 @@ struct BenchmarkModule_Cairo_FillPath : public BenchmarkModule_Cairo
     cairo_destroy(cr);
   }
 
-  virtual const char* name() { return "Cairo - FillPath"; }
+  virtual const char* name() { return "Cairo - FillPolygon"; }
+
+  BenchmarkRandomizer_Polygon randomizer;
 };
 
 // ============================================================================
@@ -949,7 +1017,7 @@ struct BenchmarkModule_Cairo_BlitImage : public BenchmarkModule_Cairo
 static void benchAll()
 {
   int w = 640, h = 480;
-  int quantity = 100000;
+  int quantity = 5000;
 
   TimeDelta totalFog;
   TimeDelta totalFogMT;
@@ -974,9 +1042,9 @@ static void benchAll()
     totalFogMT += bench(mod, quantity);
   }
 
-  // Fog - FillPath
+  // Fog - FillPolygon
   {
-    BenchmarkModule_Fog_FillPath mod(w, h);
+    BenchmarkModule_Fog_FillPolygon mod(w, h);
     mod.setMultithreaded(false);
     totalFog += bench(mod, quantity);
     mod.setMultithreaded(true);
@@ -1032,9 +1100,9 @@ static void benchAll()
     totalGdiPlus += bench(mod, quantity);
   }
 
-  // GdiPlus - FillPath
+  // GdiPlus - FillPolygon
   {
-    BenchmarkModule_GDI_FillPath mod(w, h);
+    BenchmarkModule_GDI_FillPolygon mod(w, h);
     totalGdiPlus += bench(mod, quantity);
   }
 
@@ -1062,9 +1130,9 @@ static void benchAll()
     totalCairo += bench(mod, quantity);
   }
 
-  // Cairo - FillPath
+  // Cairo - FillPolygon
   {
-    BenchmarkModule_Cairo_FillPath mod(w, h);
+    BenchmarkModule_Cairo_FillPolygon mod(w, h);
     totalCairo += bench(mod, quantity);
   }
 

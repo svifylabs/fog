@@ -18,12 +18,10 @@
 #include <Fog/Core/StringUtil.h>
 #include <Fog/Core/TextCodec.h>
 #include <Fog/Core/Vector.h>
-#include <Fog/Xml/Dom.h>
-#include <Fog/Xml/Entity.h>
 #include <Fog/Xml/Error.h>
-#include <Fog/Xml/Reader.h>
-
-#include "Error.h"
+#include <Fog/Xml/XmlDom.h>
+#include <Fog/Xml/XmlEntity.h>
+#include <Fog/Xml/XmlReader.h>
 
 namespace Fog {
 
@@ -300,7 +298,7 @@ cont:
         goto end;
 
       case StateTagInsideAttrName:
-        if (ch.isAlnum() || ch == Char32('_') || ch == Char32('-') || ch == Char32('.')) break;
+        if (ch.isAlnum()  || ch == Char32('_') || ch == Char32(':') || ch == Char32('-') || ch == Char32('.')) break;
 
         markAttrEnd = strCur;
 
@@ -428,7 +426,13 @@ tagEnd:
         break;
 
       case StateTagExclamationMark:
-        if ((sysuint_t)(strEnd - strCur) > 7 && StringUtil::eq(strCur, (const Char8*)"DOCTYPE", 7, CaseInsensitive) && strCur[7].isSpace())
+        if ((sysuint_t)(strEnd - strCur) > 1 && StringUtil::eq(strCur, (const Char8*)"--", 2, CaseSensitive))
+        {
+          state = StateComment;
+          strCur += 3;
+          goto begin;
+        }
+        else if ((sysuint_t)(strEnd - strCur) > 7 && StringUtil::eq(strCur, (const Char8*)"DOCTYPE", 7, CaseInsensitive) && strCur[7].isSpace())
         {
           element = ElementDOCTYPE;
           state = StateDOCTYPE;
@@ -453,6 +457,9 @@ tagEnd:
             markDataStart = ++strCur;
             goto begin;
           }
+
+          // End of DOCTYPE
+          if (ch == Char32('>')) goto doctypeEnd;
         }
         else
         {
@@ -472,6 +479,7 @@ tagEnd:
           }
           if (ch == Char32('>'))
           {
+doctypeEnd:
             if ((err = addDOCTYPE(doctype))) return err;
             state = StateReady;
             mark = ++strCur;
@@ -521,7 +529,7 @@ tagEnd:
           mark = strCur;
 
           if ( (err = tempData.set(Utf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart)))) ) goto end;
-          if ( (err = addProcessingInstruction(tempData)) ) goto end;
+          if ( (err = addPI(tempData)) ) goto end;
 
           goto begin;
         }
@@ -531,10 +539,10 @@ tagEnd:
       {
         const Char32* q = strEnd-2;
 
-        while (strCur < q &&
-               strCur[0].ch() != Char32('-') &&
-               strCur[1].ch() != Char32('-') &&
-               strCur[2].ch() != Char32('>')) strCur++;
+        while (strCur < q && (
+               strCur[0].ch() != Char32('-') ||
+               strCur[1].ch() != Char32('-') ||
+               strCur[2].ch() != Char32('>'))) strCur++;
 
         if (strCur == q)
         {
@@ -689,23 +697,10 @@ XmlDomReader::~XmlDomReader()
 
 err_t XmlDomReader::openElement(const String32& tagName)
 {
-  XmlElement* e = new(std::nothrow) XmlElement(tagName);
+  XmlElement* e = _document->createElement(tagName);
   if (!e) return Error::OutOfMemory;
 
-  err_t err;
-
-  if (_current == _document)
-  {
-    if (_document->documentRoot() == NULL)
-      err = _document->setDocumentRoot(e);
-    else
-      err = Error::XmlDomDocumentHasAlreadyRoot;
-  }
-  else
-  {
-    err = _current->appendChild(e);
-  }
-
+  err_t err = _current->appendChild(e);
   if (err)
   {
     delete e;
@@ -731,9 +726,9 @@ err_t XmlDomReader::closeElement(const String32& tagName)
   }
 }
 
-err_t XmlDomReader::addAttribute(const String32& name, const String32& data)
+err_t XmlDomReader::addAttribute(const String32& name, const String32& value)
 {
-  return _current->setAttribute(name, data);
+  return _current->setAttribute(name, value);
 }
 
 err_t XmlDomReader::addText(const String32& data, bool isWhiteSpace)
@@ -746,57 +741,53 @@ err_t XmlDomReader::addText(const String32& data, bool isWhiteSpace)
       return Error::XmlReaderSyntaxError;
   }
 
-  XmlElement* e = new XmlText(data);
+  XmlElement* e = new(std::nothrow) XmlText(data);
   if (!e) return Error::OutOfMemory;
 
-  err_t err;
-  if ((err = _current->appendChild(e))) delete e;
+  err_t err = _current->appendChild(e);
+  if (err) delete e;
   return err;
 }
 
 err_t XmlDomReader::addCDATA(const String32& data)
 {
-  if (_current == _document) return Error::XmlDomNotAllowed;
+  if (_current == _document) return Error::XmlDomDocumentInvalidChild;
 
-  XmlElement* e = new XmlCDATA(data);
+  XmlElement* e = new(std::nothrow) XmlCDATA(data);
   if (!e) return Error::OutOfMemory;
 
-  err_t err;
-  if ((err = _current->appendChild(e))) delete e;
+  err_t err = _current->appendChild(e);
+  if (err) delete e;
   return err;
 }
 
 err_t XmlDomReader::addDOCTYPE(const Vector<String32>& doctype)
 {
-  if (_current != _document) return Error::XmlDomNotAllowed;
+  if (_current != _document) return Error::XmlDomDocumentInvalidChild;
 
-  // TODO:
+  // XML TODO:
   // return _document->setDOCTYPE(doctype);
 
   return Error::Ok;
 }
 
-err_t XmlDomReader::addProcessingInstruction(const String32& data)
+err_t XmlDomReader::addPI(const String32& data)
 {
-  if (_current == _document) return Error::XmlDomNotAllowed;
-
-  XmlElement* e = new XmlProcessingInstruction(data);
+  XmlElement* e = new(std::nothrow) XmlPI(data);
   if (!e) return Error::OutOfMemory;
 
-  err_t err;
-  if ((err = _current->appendChild(e))) delete e;
+  err_t err = _current->appendChild(e);
+  if (err) delete e;
   return err;
 }
 
 err_t XmlDomReader::addComment(const String32& data)
 {
-  if (_current == _document) return Error::XmlDomNotAllowed;
-
-  XmlElement* e = new XmlComment(data);
+  XmlElement* e = new(std::nothrow) XmlComment(data);
   if (!e) return Error::OutOfMemory;
 
-  err_t err;
-  if ((err = _current->appendChild(e))) delete e;
+  err_t err = _current->appendChild(e);
+  if (err) delete e;
   return err;
 }
 

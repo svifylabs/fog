@@ -204,7 +204,7 @@ struct FOG_API BaseDevice : public PropertiesContainer
 
   // [Properties]
 
-  DECLARE_PROPERTIES_CONTAINER()
+  FOG_DECLARE_PROPERTIES_CONTAINER()
 
   enum PropertyId
   {

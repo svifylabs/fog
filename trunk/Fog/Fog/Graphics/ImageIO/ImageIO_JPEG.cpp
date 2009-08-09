@@ -730,7 +730,7 @@ FOG_INIT_DECLARE void fog_imageio_jpeg_init(void)
   Vector<String32> properties;
 
   properties.append(fog_strings->get(STR_GRAPHICS_quality));
-  INIT_PROPERTIES_CONTAINER(ImageIO::JpegEncoderDevice, ImageIO::JpegEncoderDevice::base, properties);
+  FOG_INIT_PROPERTIES_CONTAINER(ImageIO::JpegEncoderDevice, ImageIO::JpegEncoderDevice::base, properties);
 
 }
 
@@ -742,7 +742,7 @@ FOG_INIT_DECLARE void fog_imageio_jpeg_shutdown(void)
   // if open.
   ImageIO::_jpeg.destroy();
 
-  DESTROY_PROPERTIES_CONTAINER(ImageIO::JpegEncoderDevice);
+  FOG_DESTROY_PROPERTIES_CONTAINER(ImageIO::JpegEncoderDevice);
 }
 
 #else

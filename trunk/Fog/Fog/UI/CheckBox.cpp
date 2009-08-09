@@ -1,6 +1,3 @@
-
-#include "ButtonBase.h"
-
 // [Fog/UI Library - C++ API]
 //
 // [Licence]

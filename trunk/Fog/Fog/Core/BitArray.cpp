@@ -428,9 +428,9 @@ err_t BitArray::reserve(sysuint_t to)
 
 __newplace:
   d = Data::create(to);
-  if (!d) return NULL;
-  d->length = d->length;
-  memcpy(d->data, d->data, (d->length + 7) >> 3);
+  if (!d) return Error::OutOfMemory;
+  d->length = _d->length;
+  memcpy(d->data, _d->data, (_d->length + 7) >> 3);
   AtomicBase::ptr_setXchg(&_d, d)->deref();
   return Error::Ok;
 }

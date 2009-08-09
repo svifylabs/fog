@@ -16,7 +16,7 @@
 #include <Fog/Cpu/Intrin_MMX.h>
 #include <mm3dnow.h>
 
-//! @addtogroup Fog_Cpu
+//! @addtogroup Fog_Core
 //! @{
 
 namespace Fog {

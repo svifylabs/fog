@@ -436,7 +436,7 @@ FOG_INIT_DECLARE err_t fog_imageio_init(void)
   properties.append(fog_strings->get(STR_GRAPHICS_actualFrame));
   properties.append(fog_strings->get(STR_GRAPHICS_framesCount));
   properties.append(fog_strings->get(STR_GRAPHICS_progress));
-  INIT_PROPERTIES_CONTAINER(ImageIO::BaseDevice, ImageIO::BaseDevice::base, properties);
+  FOG_INIT_PROPERTIES_CONTAINER(ImageIO::BaseDevice, ImageIO::BaseDevice::base, properties);
 
   fog_imageio_bmp_init();
   fog_imageio_pcx_init();
@@ -467,5 +467,5 @@ FOG_INIT_DECLARE void fog_imageio_shutdown(void)
 
   imageio_local.destroy();
 
-  DESTROY_PROPERTIES_CONTAINER(ImageIO::BaseDevice);
+  FOG_DESTROY_PROPERTIES_CONTAINER(ImageIO::BaseDevice);
 }

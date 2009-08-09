@@ -683,7 +683,7 @@ FOG_INIT_DECLARE err_t fog_imagefilter_init(void)
 
   properties.clear();
   properties.append(fog_strings->get(STR_GRAPHICS_filterType));
-  INIT_PROPERTIES_CONTAINER(ImageFilter, ImageFilter::base, properties);
+  FOG_INIT_PROPERTIES_CONTAINER(ImageFilter, ImageFilter::base, properties);
 
   properties.clear();
   properties.append(fog_strings->get(STR_GRAPHICS_borderMode));
@@ -691,13 +691,13 @@ FOG_INIT_DECLARE err_t fog_imagefilter_init(void)
   properties.append(fog_strings->get(STR_GRAPHICS_blurType));
   properties.append(fog_strings->get(STR_GRAPHICS_horizontalRadius));
   properties.append(fog_strings->get(STR_GRAPHICS_verticalRadius));
-  INIT_PROPERTIES_CONTAINER(BlurImageFilter, BlurImageFilter::base, properties);
+  FOG_INIT_PROPERTIES_CONTAINER(BlurImageFilter, BlurImageFilter::base, properties);
 
   properties.clear();
   properties.append(fog_strings->get(STR_GRAPHICS_borderMode));
   properties.append(fog_strings->get(STR_GRAPHICS_borderColor));
   properties.append(fog_strings->get(STR_GRAPHICS_kernel));
-  INIT_PROPERTIES_CONTAINER(IntConvolutionImageFilter, IntConvolutionImageFilter::base, properties);
+  FOG_INIT_PROPERTIES_CONTAINER(IntConvolutionImageFilter, IntConvolutionImageFilter::base, properties);
 
   return Error::Ok;
 }
@@ -706,7 +706,7 @@ FOG_INIT_DECLARE void fog_imagefilter_shutdown(void)
 {
   using namespace Fog;
 
-  DESTROY_PROPERTIES_CONTAINER(IntConvolutionImageFilter);
-  DESTROY_PROPERTIES_CONTAINER(BlurImageFilter);
-  DESTROY_PROPERTIES_CONTAINER(ImageFilter);
+  FOG_DESTROY_PROPERTIES_CONTAINER(IntConvolutionImageFilter);
+  FOG_DESTROY_PROPERTIES_CONTAINER(BlurImageFilter);
+  FOG_DESTROY_PROPERTIES_CONTAINER(ImageFilter);
 }

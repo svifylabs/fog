@@ -13,9 +13,9 @@
 #include <Fog/Core/String.h>
 #include <Fog/Core/StringUtil.h>
 #include <Fog/Core/TextCodec.h>
-#include <Fog/Xml/Entity.h>
 #include <Fog/Xml/Error.h>
-#include <Fog/Xml/Writer.h>
+#include <Fog/Xml/XmlEntity.h>
+#include <Fog/Xml/XmlWriter.h>
 
 namespace Fog {
 
@@ -251,7 +251,7 @@ XmlWriter::~XmlWriter()
       else
       {
         const Char32* dataEnd = strCur - 3;
-        addProcessingInstruction(String32(Utf32(dataStart, (sysuint_t)(dataEnd - dataStart))));
+        addPI(String32(Utf32(dataStart, (sysuint_t)(dataEnd - dataStart))));
       }
     }
 

@@ -36,9 +36,6 @@ TODO
     [ ] Image scaling
     [ ] Image transform
     [ ] Introduce setClipPath() / restoreClip()
-    [ ] Reduce using of malloc/free in painter. All painter allocations should be pooled to maximize
-        performance. Something like zone objects (see AsmJit) can be introduced, because lifetime of
-        painter created objects is very short.
     [ ] Painter should implement IProperty interface.
 
 [ ] Image
@@ -54,9 +51,6 @@ TODO
     [ ] Cache size control
 
 [ ] Raster
-    [w] Remove templated functions in Raster_C.cpp. It's needed to specialize code for each operation
-        and pixel format, because specialized functions for ARGB32 / PRGB32 formats can be sometimes
-        smaller and faster (template based ones are large).
     [ ] Write C composite functions
     [ ] Write MMX composite functions
     [w] Write SSE2 composite functions

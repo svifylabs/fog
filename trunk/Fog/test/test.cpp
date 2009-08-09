@@ -2,6 +2,7 @@
 #include <Fog/Graphics.h>
 #include <Fog/Graphics/Raster/Raster_C.h>
 #include <Fog/UI.h>
+#include <Fog/Svg.h>
 #include <Fog/Xml.h>
 
 using namespace Fog;
@@ -123,6 +124,20 @@ void MyWindow::onPaint(PaintEvent* e)
     pattern.addGradientStop(GradientStop(1.0, Rgba(0xFFFF0000)));
     p->setSource(pattern);
     p->clear();
+  }
+
+  {
+    SvgDocument svg;
+    //svg.readFile(Ascii8("C:/my/svg/altum_angelfish_01.svg"));
+    svg.readFile(Ascii8("C:/my/svg/tiger.svg"));
+    //svg.readFile(Ascii8("C:/my/svg/clinton.svg"));
+    //svg.readFile(Ascii8("C:/my/svg/longhorn.svg"));
+    //svg.readFile(Ascii8("C:/my/svg/brown_fish_01.svg"));
+
+    SvgContext ctx(p);
+    p->translate(180.0, 145.0);
+    p->scale(w/550.0, h/510.0);
+    svg.render(&ctx);
   }
 
 /*

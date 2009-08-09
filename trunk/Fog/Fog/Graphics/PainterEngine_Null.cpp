@@ -10,9 +10,8 @@
 
 // [Dependencies]
 #include <Fog/Core/Static.h>
+#include <Fog/Graphics/Painter.h>
 #include <Fog/Graphics/PainterEngine_Null.h>
-
-#include "Painter.h"
 
 namespace Fog {
 

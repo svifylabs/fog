@@ -109,17 +109,17 @@ struct FOG_API Hash_Abstract
     //! @brief Reference count.
     mutable Atomic<sysuint_t> refCount;
 
-    //! @brief Count of capacity.
+    //! @brief Count of buckets.
     sysuint_t capacity;
     //! @brief Count of nodes.
     sysuint_t length;
 
-    //! @brief Count of buckeds we will expand to if length exceeds _expandLength.
+    //! @brief Count of buckets we will expand to if length exceeds _expandLength.
     sysuint_t expandCapacity;
     //! @brief Count of nodes to grow.
     sysuint_t expandLength;
 
-    //! @brief Count of buckeds we will shrink to if length gets _shinkLength.
+    //! @brief Count of buckets we will shrink to if length gets _shinkLength.
     sysuint_t shrinkCapacity;
     //! @brief Count of nodes to shrink.
     sysuint_t shrinkLength;
@@ -178,6 +178,9 @@ struct FOG_API Hash_Abstract
 
   static Data* _allocData(sysuint_t capacity);
   static void _freeData(Data* d);
+
+  static sysuint_t _calcExpandCapacity(sysuint_t capacity);
+  static sysuint_t _calcShrinkCapacity(sysuint_t capacity);
 
   // [Members]
 

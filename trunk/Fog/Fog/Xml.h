@@ -13,21 +13,19 @@
 
 // [There is only documentation]
 #if defined(_DOXYGEN)
-/*!
-  @defgroup Fog_Xml Fog/Xml library API.
-
-  Set of Fog/Xml library classes and their members.
-*/
+//! @defgroup Fog_Xml Fog/Xml library API.
+//!
+//! Set of Fog/Xml library classes and their members.
 #endif // _DOXYGEN
 
 // [Fog/Xml Include Files]
 #include <Fog/Build/Build.h>
 
-#include <Fog/Xml/Dom.h>
-#include <Fog/Xml/Entity.h>
 #include <Fog/Xml/Error.h>
-#include <Fog/Xml/Reader.h>
-#include <Fog/Xml/Writer.h>
+#include <Fog/Xml/XmlDom.h>
+#include <Fog/Xml/XmlEntity.h>
+#include <Fog/Xml/XmlReader.h>
+#include <Fog/Xml/XmlWriter.h>
 
 // [Guard]
 #endif // _FOG_XML_H

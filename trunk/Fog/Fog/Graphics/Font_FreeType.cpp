@@ -87,11 +87,7 @@ struct FontEngineFTTranslator
   { return family == other.family && file == other.file; }
 };
 
-}
-
-FOG_DECLARE_TYPEINFO(Fog::FontEngineFTTranslator, Fog::PrimitiveType)
-
-namespace Fog {
+} FOG_DECLARE_TYPEINFO(FontEngineFTTranslator, PrimitiveType) namespace Fog {
 
 // ============================================================================
 // [Fog::FtFile]
