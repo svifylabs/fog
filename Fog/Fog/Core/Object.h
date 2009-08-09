@@ -151,7 +151,7 @@ const Fog::MetaClass* selftype::metaClass() const \
 //! This macro creates a fast compiled static table that can't be
 //! overriden by addListener() or removeListener() methods.
 #define fog_event_begin() \
-virtual void onEvent(Fog::Event* e) \
+virtual FOG_NO_INLINE void onEvent(Fog::Event* e) \
 { \
   switch (e->code()) \
   {

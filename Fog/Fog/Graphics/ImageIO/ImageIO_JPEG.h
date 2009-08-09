@@ -57,7 +57,7 @@ struct FOG_API JpegEncoderDevice : public EncoderDevice
 
   // [Properties]
 
-  DECLARE_PROPERTIES_CONTAINER()
+  FOG_DECLARE_PROPERTIES_CONTAINER()
 
   enum PropertyId
   {

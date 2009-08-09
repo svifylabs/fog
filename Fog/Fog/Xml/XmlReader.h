@@ -4,8 +4,8 @@
 // MIT, See COPYING file in package
 
 // [Guard]
-#ifndef _FOG_XML_READER_H
-#define _FOG_XML_READER_H
+#ifndef _FOG_XML_XMLREADER_H
+#define _FOG_XML_XMLREADER_H
 
 // [Dependencies]
 #include <Fog/Build/Build.h>
@@ -108,11 +108,11 @@ struct FOG_API XmlReader
   virtual err_t openElement(const String32& tagName) = 0;
   virtual err_t closeElement(const String32& tagName) = 0;
 
-  virtual err_t addAttribute(const String32& name, const String32& data) = 0;
+  virtual err_t addAttribute(const String32& name, const String32& value) = 0;
   virtual err_t addText(const String32& data, bool isWhiteSpace) = 0;
   virtual err_t addCDATA(const String32& data) = 0;
   virtual err_t addDOCTYPE(const Vector<String32>& doctype) = 0;
-  virtual err_t addProcessingInstruction(const String32& data) = 0;
+  virtual err_t addPI(const String32& data) = 0;
   virtual err_t addComment(const String32& data) = 0;
 
 protected:
@@ -136,11 +136,11 @@ struct FOG_API XmlDomReader : public XmlReader
   virtual err_t openElement(const String32& tagName);
   virtual err_t closeElement(const String32& tagName);
 
-  virtual err_t addAttribute(const String32& name, const String32& data);
+  virtual err_t addAttribute(const String32& name, const String32& value);
   virtual err_t addText(const String32& data, bool isWhiteSpace);
   virtual err_t addCDATA(const String32& data);
   virtual err_t addDOCTYPE(const Vector<String32>& doctype);
-  virtual err_t addProcessingInstruction(const String32& data);
+  virtual err_t addPI(const String32& data);
   virtual err_t addComment(const String32& data);
 
   FOG_INLINE XmlDocument* document() const { return _document; }
@@ -155,4 +155,4 @@ protected:
 //! @}
 
 // [Guard]
-#endif // _FOG_XML_READER_H
+#endif // _FOG_XML_XMLREADER_H

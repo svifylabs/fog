@@ -4,8 +4,8 @@
 // MIT, See COPYING file in package
 
 // [Guard]
-#ifndef _FOG_XML_WRITER_H
-#define _FOG_XML_WRITER_H
+#ifndef _FOG_XML_XMLWRITER_H
+#define _FOG_XML_XMLWRITER_H
 
 // [Dependencies]
 #include <Fog/Build/Build.h>
@@ -33,4 +33,4 @@ struct FOG_API XmlWriter
 //! @}
 
 // [Guard]
-#endif // _FOG_XML_WRITER_H
+#endif // _FOG_XML_XMLWRITER_H

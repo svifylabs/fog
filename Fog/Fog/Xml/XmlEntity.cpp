@@ -12,7 +12,7 @@
 #include <Fog/Core/Error.h>
 #include <Fog/Core/String.h>
 #include <Fog/Core/StringUtil.h>
-#include <Fog/Xml/Entity.h>
+#include <Fog/Xml/XmlEntity.h>
 
 namespace Fog {
 

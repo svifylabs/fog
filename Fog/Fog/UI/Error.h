@@ -19,7 +19,7 @@
 
 namespace Error {
 
-//! @brief Fog/UI library error codes.
+//! @brief Error codes used in Fog/UI.
 enum UIError 
 {
   // [Errors Range]

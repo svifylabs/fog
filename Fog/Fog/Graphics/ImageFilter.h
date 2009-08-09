@@ -135,7 +135,7 @@ struct FOG_API ImageFilter : public PropertiesContainer
 
   // [Properties]
 
-  DECLARE_PROPERTIES_CONTAINER()
+  FOG_DECLARE_PROPERTIES_CONTAINER()
 
   enum PropertyId
   {
@@ -208,7 +208,7 @@ struct FOG_API BlurImageFilter : public ImageFilter
     PropertyLast
   };
 
-  DECLARE_PROPERTIES_CONTAINER()
+  FOG_DECLARE_PROPERTIES_CONTAINER()
 
   virtual err_t getProperty(int id, Value& value) const;
   virtual err_t setProperty(int id, const Value& value);
@@ -381,7 +381,7 @@ struct FOG_API IntConvolutionImageFilter : public ImageFilter
     PropertyLast
   };
 
-  DECLARE_PROPERTIES_CONTAINER()
+  FOG_DECLARE_PROPERTIES_CONTAINER()
 
   virtual err_t getProperty(int id, Value& value) const;
   virtual err_t setProperty(int id, const Value& value);

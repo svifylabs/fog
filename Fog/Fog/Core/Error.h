@@ -26,7 +26,7 @@ enum NoError
   Ok = 0
 };
 
-//! @brief Fog/Core library error codes.
+//! @brief Error codes used in Fog/Core.
 enum CoreError
 {
   // [Errors Range]

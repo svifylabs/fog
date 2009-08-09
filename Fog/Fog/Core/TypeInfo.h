@@ -51,6 +51,11 @@ enum TypeInfoFlags
   TypeInfoMask        = 0xFFFFFF00
 };
 
+// [Fog::TypeInfo_CompareFn and Fog::TypeInfo_EqFn]
+
+typedef int (*TypeInfo_CompareFn)(const void* a, const void* b);
+typedef bool (*TypeInfo_EqFn)(const void* a, const void* b);
+
 // ===========================================================================
 // [Fog::TypeInfo - TypeInfo<T>
 //
@@ -65,14 +70,14 @@ struct TypeInfo
   enum
   {
     // [Type and Size - Generic type is always ClassType]
-    Type = ClassType,
+    Type = Fog::ClassType,
     Flags = 0,
     Size = sizeof(T),
 
     // [Basic Informations]
-    IsPrimitive = Type == PrimitiveType,
-    IsMoveable = Type <= MoveableType,
-    IsClass = Type == ClassType,
+    IsPrimitive = (Type == Fog::PrimitiveType),
+    IsMoveable = (Type <= Fog::MoveableType),
+    IsClass = (Type == Fog::ClassType),
     IsPointer = 0,
 
     // [Extended Informations]
@@ -94,14 +99,14 @@ struct TypeInfo<T*>
   enum
   {
     // [Type and Size - Pointer is always simple type]
-    Type = PrimitiveType,
-    Flags = TypeInfoIsPODType,
+    Type = Fog::PrimitiveType,
+    Flags = Fog::TypeInfoIsPODType,
     Size = sizeof(T*),
 
     // [Type and Size - Generic type is always ClassType]
-    IsPrimitive = Type == PrimitiveType,
-    IsMoveable = Type <= MoveableType,
-    IsClass = Type == ClassType,
+    IsPrimitive = (Type == Fog::PrimitiveType),
+    IsMoveable = (Type <= Fog::MoveableType),
+    IsClass = (Type == Fog::ClassType),
     IsPointer = 1,
 
     // [Extended Informations]
@@ -122,21 +127,21 @@ struct TypeInfo_Wrapper
   // TypeInfo constants
   enum {
     // [Type and Size - Based on __TypeInfo__]
-    Type = (__TypeInfo__ & ~TypeInfoMask),
-    Flags = (__TypeInfo__ & TypeInfoMask),
+    Type = (__TypeInfo__ & ~Fog::TypeInfoMask),
+    Flags = (__TypeInfo__ & Fog::TypeInfoMask),
     Size = sizeof(T),
 
     // [Basic Informations]
-    IsPrimitive = (Type == PrimitiveType),
-    IsMoveable = (Type <= MoveableType),
-    IsClass = (Type == ClassType),
+    IsPrimitive = (Type == Fog::PrimitiveType),
+    IsMoveable = (Type <= Fog::MoveableType),
+    IsClass = (Type == Fog::ClassType),
     IsPointer = 0,
 
     // [Extended Informations]
-    IsPOD = (__TypeInfo__ & TypeInfoIsPODType) != 0,
-    IsFloat = (__TypeInfo__ & TypeInfoIsFloatType) != 0,
-    HasCompare = (__TypeInfo__ & TypeInfoHasCompare) != 0,
-    HasEq = (__TypeInfo__ & TypeInfoHasEq) != 0
+    IsPOD = (__TypeInfo__ & Fog::TypeInfoIsPODType) != 0,
+    IsFloat = (__TypeInfo__ & Fog::TypeInfoIsFloatType) != 0,
+    HasCompare = (__TypeInfo__ & Fog::TypeInfoHasCompare) != 0,
+    HasEq = (__TypeInfo__ & Fog::TypeInfoHasEq) != 0
   };
 
   typedef bool (*EqFn)(const T* a, const T* b);
@@ -146,12 +151,6 @@ struct TypeInfo_Wrapper
 // ===========================================================================
 // [Fog::TypeInfo - Compare
 // ===========================================================================
-
-// [Fog::TypeInfo_CompareFn]
-
-typedef int (*TypeInfo_CompareFn)(const void* a, const void* b);
-
-// [Fog::TypeInfo_Compare - Compar]
 
 template<typename T>
 struct TypeInfo_Compare_Integral
@@ -190,8 +189,6 @@ struct TypeInfo_Compare_Default
   }
 };
 
-// [Fog::TypeInfo_Compare - Machinery]
-
 // TypeInfo_Compare_Wrapper_POD
 template<typename T, uint __POD_Flags__>
 struct TypeInfo_Compare_Wrapper_POD : 
@@ -199,7 +196,7 @@ struct TypeInfo_Compare_Wrapper_POD :
   public TypeInfo_Compare_Default<T> {};
 
 template<typename T>
-struct TypeInfo_Compare_Wrapper_POD<T, TypeInfoIsPODType /* and not TypeInfoIsFloatType */> : 
+struct TypeInfo_Compare_Wrapper_POD<T, Fog::TypeInfoIsPODType /* and not Fog::TypeInfoIsFloatType */> : 
   // Defaults to TypeInfo_Compare_Integral, implementation for integral types
   public TypeInfo_Compare_Integral<T> {};
 
@@ -210,7 +207,7 @@ struct TypeInfo_Compare_Wrapper :
 
 template<typename T>
 struct TypeInfo_Compare_Wrapper<T, 0> : 
-  public TypeInfo_Compare_Wrapper_POD<T, TypeInfo<T>::Flags & (TypeInfoIsPODType | TypeInfoIsFloatType)> {};
+  public TypeInfo_Compare_Wrapper_POD<T, TypeInfo<T>::Flags & (Fog::TypeInfoIsPODType | Fog::TypeInfoIsFloatType)> {};
 
 // TypeInfo_Compare_Wrapper_HasCompare
 template<typename T, uint __HasCompare__>
@@ -232,12 +229,6 @@ struct TypeInfo_Compare :
 // [Fog::TypeInfo - Eq
 // ===========================================================================
 
-// [Fog::TypeInfo_EqFn]
-
-typedef bool (*TypeInfo_EqFn)(const void* a, const void* b);
-
-// [Fog::TypeInfo_Eq - Eq]
-
 template<typename T>
 struct TypeInfo_Eq_Default
 {
@@ -246,8 +237,6 @@ struct TypeInfo_Eq_Default
     return *a == *b;
   }
 };
-
-// [Fog::TypeInfo_Eq - Machinery]
 
 // TypeInfo_Eq_Wrapper
 template<typename T, uint __TypeInfo__>
@@ -270,9 +259,6 @@ template<typename T>
 struct TypeInfo_Eq : 
   public TypeInfo_Eq_Wrapper_HasEq<T, TypeInfo<T>::HasEq> {};
 
-
-} // Fog namespace
-
 // ===========================================================================
 // [Fog::TypeInfo - Macros]
 // ===========================================================================
@@ -283,69 +269,71 @@ struct TypeInfo_Eq :
 //! used in template specializations
 #define FOG_DECLARE_TYPEINFO(__symbol__, __typeinfo__) \
 namespace Fog { \
-  template <> \
-  struct TypeInfo <__symbol__> : public TypeInfo_Wrapper< __symbol__, __typeinfo__ > {}; \
+template <> \
+struct TypeInfo <__symbol__> : public TypeInfo_Wrapper< __symbol__, __typeinfo__ > {}; \
 }
 
 #define FOG_DECLARE_TYPEINFO_TEMPLATE1(__symbol__, T1, A1, __typeinfo__) \
 namespace Fog { \
-  template <T1 A1> \
-  struct TypeInfo < __symbol__<A1> > : public TypeInfo_Wrapper< __symbol__<A1>, __typeinfo__ > {}; \
+template <T1 A1> \
+struct TypeInfo < __symbol__<A1> > : public TypeInfo_Wrapper< __symbol__<A1>, __typeinfo__ > {}; \
 }
 
 #define FOG_DECLARE_TYPEINFO_TEMPLATE2(__symbol__, T1, A1, T2, A2, __typeinfo__) \
 namespace Fog { \
-  template <T1 A1, T2 A2> \
-  struct TypeInfo < __symbol__<A1, A2> > : public TypeInfo_Wrapper< __symbol__<A1, A2>, __typeinfo__ > {}; \
+template <T1 A1, T2 A2> \
+struct TypeInfo < __symbol__<A1, A2> > : public TypeInfo_Wrapper< __symbol__<A1, A2>, __typeinfo__ > {}; \
 }
 
 #define FOG_DECLARE_TYPEINFO_TEMPLATE3(__symbol__, T1, A1, T2, A2, T3, A3, __typeinfo__) \
 namespace Fog { \
-  template <T1 A1, T2 A2, T3 A3> \
-  struct TypeInfo < __symbol__<A1, A2, A3> > : public TypeInfo_Wrapper< __symbol__<A1, A2, A3>, __typeinfo__ > {}; \
+template <T1 A1, T2 A2, T3 A3> \
+struct TypeInfo < __symbol__<A1, A2, A3> > : public TypeInfo_Wrapper< __symbol__<A1, A2, A3>, __typeinfo__ > {}; \
 }
 
 #define FOG_DECLARE_TYPEINFO_TEMPLATE4(__symbol__, T1, A1, T2, A2, T3, A3, T4, A4, __typeinfo__) \
 namespace Fog { \
-  template <T1 A1, T2 A2, T3 A3, T4 A4> \
-  struct TypeInfo < __symbol__<A1, A2, A3, A4> > : public TypeInfo_Wrapper< __symbol__<A1, A2, A3, A4>, __typeinfo__ > {}; \
+template <T1 A1, T2 A2, T3 A3, T4 A4> \
+struct TypeInfo < __symbol__<A1, A2, A3, A4> > : public TypeInfo_Wrapper< __symbol__<A1, A2, A3, A4>, __typeinfo__ > {}; \
 }
 
 #define FOG_DECLARE_TYPEINFO_TEMPLATE5(__symbol__, T1, A1, T2, A2, T3, A3, T4, A4, T5, A5, __typeinfo__) \
 namespace Fog { \
-  template <T1 A1, T2 A2, T3 A3, T4 A4, T5 A5> \
-  struct TypeInfo < __symbol__<A1, A2, A3, A4, A5> > : public TypeInfo_Wrapper< __symbol__<A1, A2, A3, A4, A5>, __typeinfo__ > {}; \
+template <T1 A1, T2 A2, T3 A3, T4 A4, T5 A5> \
+struct TypeInfo < __symbol__<A1, A2, A3, A4, A5> > : public TypeInfo_Wrapper< __symbol__<A1, A2, A3, A4, A5>, __typeinfo__ > {}; \
 }
 
 #define FOG_DECLARE_TYPEINFO_TEMPLATE6(__symbol__, T1, A1, T2, A2, T3, A3, T4, A4, T5, A5, T6, A6, __typeinfo__) \
 namespace Fog { \
-  template <T1 A1, T2 A2, T3 A3, T4 A4, T5 A5, T6 A6> \
-  struct TypeInfo < __symbol__<A1, A2, A3, A4, A5, A6> > : public TypeInfo_Wrapper< __symbol__<A1, A2, A3, A4, A5, A6>, __typeinfo__ > {}; \
+template <T1 A1, T2 A2, T3 A3, T4 A4, T5 A5, T6 A6> \
+struct TypeInfo < __symbol__<A1, A2, A3, A4, A5, A6> > : public TypeInfo_Wrapper< __symbol__<A1, A2, A3, A4, A5, A6>, __typeinfo__ > {}; \
 }
 
 #define FOG_DECLARE_TYPEINFO_TEMPLATE7(__symbol__, T1, A1, T2, A2, T3, A3, T4, A4, T5, A5, T6, A6, T7, A7, __typeinfo__) \
 namespace Fog { \
-  template <T1 A1, T2 A2, T3 A3, T4 A4, T5 A5, T6 A6, T7 A7> \
-  struct TypeInfo < __symbol__<A1, A2, A3, A4, A5, A6, A7> > : public TypeInfo_Wrapper< __symbol__<A1, A2, A3, A4, A5, A6, A7>, __typeinfo__ > {}; \
+template <T1 A1, T2 A2, T3 A3, T4 A4, T5 A5, T6 A6, T7 A7> \
+struct TypeInfo < __symbol__<A1, A2, A3, A4, A5, A6, A7> > : public TypeInfo_Wrapper< __symbol__<A1, A2, A3, A4, A5, A6, A7>, __typeinfo__ > {}; \
 }
 
 #define FOG_DECLARE_TYPEINFO_TEMPLATE8(__symbol__, T1, A1, T2, A2, T3, A3, T4, A4, T5, A5, T6, A6, T7, A7, T8, A8, __typeinfo__) \
 namespace Fog { \
-  template <T1 A1, T2 A2, T3 A3, T4 A4, T5 A5, T6 A6, T7 A7, T8 A8> \
-  struct TypeInfo < __symbol__<A1, A2, A3, A4, A5, A6, A7, A8> > : public TypeInfo_Wrapper< __symbol__<A1, A2, A3, A4, A5, A6, A7, A8>, __typeinfo__ > {}; \
+template <T1 A1, T2 A2, T3 A3, T4 A4, T5 A5, T6 A6, T7 A7, T8 A8> \
+struct TypeInfo < __symbol__<A1, A2, A3, A4, A5, A6, A7, A8> > : public TypeInfo_Wrapper< __symbol__<A1, A2, A3, A4, A5, A6, A7, A8>, __typeinfo__ > {}; \
 }
 
 #define FOG_DECLARE_TYPEINFO_TEMPLATE9(__symbol__, T1, A1, T2, A2, T3, A3, T4, A4, T5, A5, T6, A6, T7, A7, T8, A8, T9, A9, __typeinfo__) \
 namespace Fog { \
-  template <T1 A1, T2 A2, T3 A3, T4 A4, T5 A5, T6 A6, T7 A7, T8 A8, T9 A9> \
-  struct TypeInfo < __symbol__<A1, A2, A3, A4, A5, A6, A7, A8, A9> > : public TypeInfo_Wrapper< __symbol__<A1, A2, A3, A4, A5, A6, A7, A8, A9>, __typeinfo__ > {}; \
+template <T1 A1, T2 A2, T3 A3, T4 A4, T5 A5, T6 A6, T7 A7, T8 A8, T9 A9> \
+struct TypeInfo < __symbol__<A1, A2, A3, A4, A5, A6, A7, A8, A9> > : public TypeInfo_Wrapper< __symbol__<A1, A2, A3, A4, A5, A6, A7, A8, A9>, __typeinfo__ > {}; \
 }
 
 #define FOG_DECLARE_TYPEINFO_TEMPLATE10(__symbol__, T1, A1, T2, A2, T3, A3, T4, A4, T5, A5, T6, A6, T7, A7, T8, A8, T9, A9, T10, A10, __typeinfo__) \
 namespace Fog { \
-  template <T1 A1, T2 A2, T3 A3, T4 A4, T5 A5, T6 A6, T7 A7, T8 A8, T9 A9, T10 A10> \
-  struct TypeInfo < __symbol__<A1, A2, A3, A4, A5, A6, A7, A8, A9, A10> > : public TypeInfo_Wrapper< __symbol__<A1, A2, A3, A4, A5, A6, A7, A8, A9, A10>, __typeinfo__ > {}; \
+template <T1 A1, T2 A2, T3 A3, T4 A4, T5 A5, T6 A6, T7 A7, T8 A8, T9 A9, T10 A10> \
+struct TypeInfo < __symbol__<A1, A2, A3, A4, A5, A6, A7, A8, A9, A10> > : public TypeInfo_Wrapper< __symbol__<A1, A2, A3, A4, A5, A6, A7, A8, A9, A10>, __typeinfo__ > {}; \
 }
+
+} // Fog namespace
 
 // ===========================================================================
 // [Fog::TypeInfo - Built-In]

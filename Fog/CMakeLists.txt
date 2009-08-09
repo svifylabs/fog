@@ -212,7 +212,6 @@ SOURCE_GROUP(Build FILES
 # [Fog/Core] Part
 # =============================================================================
 
-# Fog/Core Sources
 Set(FOG_CORE_SOURCES
   ${FOG_DIR}/Fog/Core/Algorithms.cpp
   ${FOG_DIR}/Fog/Core/Application.cpp
@@ -350,21 +349,20 @@ SOURCE_GROUP(Core FILES
 # [Fog/Xml] Part
 # =============================================================================
 
-# Fog/Core Sources
 Set(FOG_XML_SOURCES
-  ${FOG_DIR}/Fog/Xml/Dom.cpp
-  ${FOG_DIR}/Fog/Xml/Entity.cpp
-  ${FOG_DIR}/Fog/Xml/Reader.cpp
-  ${FOG_DIR}/Fog/Xml/Writer.cpp
+  ${FOG_DIR}/Fog/Xml/XmlDom.cpp
+  ${FOG_DIR}/Fog/Xml/XmlEntity.cpp
+  ${FOG_DIR}/Fog/Xml/XmlReader.cpp
+  ${FOG_DIR}/Fog/Xml/XmlWriter.cpp
 )
 
 Set(FOG_XML_HEADERS
   ${FOG_DIR}/Fog/Xml.h
-  ${FOG_DIR}/Fog/Xml/Dom.h
-  ${FOG_DIR}/Fog/Xml/Entity.h
   ${FOG_DIR}/Fog/Xml/Error.h
-  ${FOG_DIR}/Fog/Xml/Reader.h
-  ${FOG_DIR}/Fog/Xml/Writer.h
+  ${FOG_DIR}/Fog/Xml/XmlDom.h
+  ${FOG_DIR}/Fog/Xml/XmlEntity.h
+  ${FOG_DIR}/Fog/Xml/XmlReader.h
+  ${FOG_DIR}/Fog/Xml/XmlWriter.h
 )
 
 SOURCE_GROUP(Xml FILES
@@ -375,7 +373,6 @@ SOURCE_GROUP(Xml FILES
 # [Fog/Graphics] Part
 # =============================================================================
 
-# Fog/Graphics Sources
 Set(FOG_GRAPHICS_SOURCES
   ${FOG_DIR}/Fog/Graphics/AffineMatrix.cpp
   ${FOG_DIR}/Fog/Graphics/ColorFilter.cpp
@@ -439,7 +436,6 @@ Set(FOG_GRAPHICS_SOURCES
   ${FOG_DIR}/Fog/Graphics/RgbaAnalyzer.cpp
 )
 
-# Fog/Graphics Sources
 Set(FOG_GRAPHICS_HEADERS
   ${FOG_DIR}/Fog/Graphics.h
   ${FOG_DIR}/Fog/Graphics/AffineMatrix.h
@@ -658,10 +654,31 @@ Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Raster/Raster_SSE2.cpp PROPE
 Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Region.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
 
 # =============================================================================
+# [Fog/Svg] Part
+# =============================================================================
+
+Set(FOG_SVG_SOURCES
+  ${FOG_DIR}/Fog/Svg/SvgContext.cpp
+  ${FOG_DIR}/Fog/Svg/SvgDom.cpp
+  ${FOG_DIR}/Fog/Svg/SvgUtil.cpp
+)
+
+Set(FOG_SVG_HEADERS
+  ${FOG_DIR}/Fog/Svg.h
+  ${FOG_DIR}/Fog/Svg/Error.h
+  ${FOG_DIR}/Fog/Svg/SvgContext.h
+  ${FOG_DIR}/Fog/Svg/SvgDom.h
+  ${FOG_DIR}/Fog/Svg/SvgUtil.h
+)
+
+SOURCE_GROUP(Svg FILES
+  ${FOG_SVG_SOURCES}
+  ${FOG_SVG_HEADERS})
+
+# =============================================================================
 # [Fog/UI] Part
 # =============================================================================
 
-# Fog/UI Sources
 Set(FOG_UI_SOURCES
   ${FOG_DIR}/Fog/UI/BoxLayout.cpp
   ${FOG_DIR}/Fog/UI/Button.cpp
@@ -731,6 +748,7 @@ Set(FOG_SOURCES
   ${FOG_CORE_SOURCES}
   ${FOG_XML_SOURCES}
   ${FOG_GRAPHICS_SOURCES}
+  ${FOG_SVG_SOURCES}
   ${FOG_UI_SOURCES}
 )
 
@@ -746,6 +764,7 @@ Set(FOG_HEADERS
   ${FOG_CORE_HEADERS}
   ${FOG_XML_HEADERS}
   ${FOG_GRAPHICS_HEADERS}
+  ${FOG_SVG_HEADERS}
   ${FOG_UI_HEADERS}
   ${FOG_UI_X11_HEADERS}
 )

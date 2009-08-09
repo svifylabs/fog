@@ -314,6 +314,7 @@
 #define FOG_CC_IDE
 
 #define FOG_INLINE inline
+#define FOG_NO_INLINE
 #define FOG_NO_RETURN
 #define FOG_DEPRECATED
 
@@ -351,15 +352,16 @@
 #elif defined(__GNUC__)
 #define FOG_CC_GNU __GNUC__
 
-#define FOG_INLINE inline __attribute__ ((always_inline))
-#define FOG_NO_RETURN __attribute__ ((noreturn))
-#define FOG_DEPRECATED __attribute__ ((deprecated))
+#define FOG_INLINE inline __attribute__((always_inline))
+#define FOG_NO_INLINE __attribute__((noinline))
+#define FOG_NO_RETURN __attribute__((noreturn))
+#define FOG_DEPRECATED __attribute__((deprecated))
 
 // 32-bit x86 calling conventions
 #ifdef FOG_ARCH_X86
 # define FOG_FASTCALL __attribute__((regparm(3)))
-# define FOG_STDCALL __attribute__ ((stdcall))
-# define FOG_CDECL __attribute__ ((cdecl))
+# define FOG_STDCALL __attribute__((stdcall))
+# define FOG_CDECL __attribute__((cdecl))
 #else
 # define FOG_FASTCALL
 # define FOG_STDCALL
@@ -430,10 +432,12 @@
 
 #if defined(FOG_CC_MSVC)
 # define FOG_INLINE __forceinline
+# define FOG_NO_INLINE
 # define FOG_NO_RETURN __declspec(noreturn)
 # define FOG_DEPRECATED __declspec(deprecated)
 #else // BORLAND
 # define FOG_INLINE inline
+# define FOG_NO_INLINE
 # define FOG_NO_RETURN
 # define FOG_DEPRECATED __declspec(deprecated)
 #endif
@@ -824,8 +828,8 @@ struct fog_if<false, _Then, _Else> { typedef _Else ret; };
 // here instead of creating #ifdefs in code.
 #if defined(FOG_OS_WINDOWS)
 // unix like
-#define strncasecmp _strnicmp
-#define strcasecmp _stricmp
+# define strncasecmp _strnicmp
+# define strcasecmp _stricmp
 #endif
 
 #if defined(FOG_HARDCODE_SSE)
@@ -841,12 +845,12 @@ struct fog_if<false, _Then, _Else> { typedef _Else ret; };
 //! FOG_UI_MAIN()
 //! {
 //!   // Your main() here ...
-//!   return Core::ExitSuccess;
+//!   return Fog::ExitSuccess;
 //! }
 #if defined(FOG_OS_WINDOWS)
-#define FOG_UI_MAIN() int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+# define FOG_UI_MAIN() int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 #else
-#define FOG_UI_MAIN() int main(int argc, char* argv[])
+# define FOG_UI_MAIN() int main(int argc, char* argv[])
 #endif
 
 // [Guard]

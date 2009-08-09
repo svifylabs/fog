@@ -60,7 +60,7 @@ struct FOG_API IProperties
   enum InfoFlags
   {
     //! @brief Property name / id is invalid (this just means no flags).
-    NotExists = 0,
+    NotExists = 0x00,
     //! @brief Property name / id exists.
     Exists = 0x01,
     //! @brief Property is read-only.
@@ -157,7 +157,7 @@ private:
 // [Fog::PropertiesContainer]
 // ============================================================================
 
-// Trick to allow DECLARE_PROPERTIES_CONTAINER() to base on PropertiesContainer.
+// Trick to allow FOG_DECLARE_PROPERTIES_CONTAINER() to base on PropertiesContainer.
 template <typename T>
 struct _PropertiesContainerBase
 {
@@ -170,17 +170,17 @@ struct _PropertiesContainerBase<PropertiesContainer>
   static FOG_INLINE PropertiesData* propertiesData() { return NULL; }
 };
 
-#define DECLARE_PROPERTIES_CONTAINER() \
+#define FOG_DECLARE_PROPERTIES_CONTAINER() \
 public: \
   static Fog::Static<Fog::PropertiesData> _propertiesData; \
   \
   virtual const Fog::PropertiesData* propertiesData() const { return _propertiesData.instancep(); }
 
-#define INIT_PROPERTIES_CONTAINER(__class__, __base__, __properties__) \
+#define FOG_INIT_PROPERTIES_CONTAINER(__class__, __base__, __properties__) \
   __class__::_propertiesData.init(); \
   __class__::_propertiesData.instancep()->init(_PropertiesContainerBase<__base__>::propertiesData(), __properties__)
 
-#define DESTROY_PROPERTIES_CONTAINER(__class__) \
+#define FOG_DESTROY_PROPERTIES_CONTAINER(__class__) \
   __class__::_propertiesData.destroy()
 
 //! @brief Helper class used to work with properties.

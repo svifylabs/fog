@@ -48,7 +48,6 @@ FOG_INIT_FUNC(fog_application);
 
 // Fog/Xml
 FOG_INIT_FUNC(fog_xmlentity);
-FOG_INIT_FUNC(fog_xmldom);
 
 // Fog/Graphics
 FOG_INIT_FUNC(fog_colormatrix);
@@ -117,7 +116,6 @@ static const FogInitEntry fog_init_entries[] =
 
   // Fog/Xml
   INIT_ENTRY(fog_xmlentity),
-  INIT_ENTRY(fog_xmldom),           // Depends to String
 
   // Fog/Graphics
   INIT_ENTRY(fog_colormatrix),

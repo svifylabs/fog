@@ -19,7 +19,7 @@
 
 namespace Error {
 
-//! @brief Fog/Graphics library error codes.
+//! @brief Error codes used in Fog/Graphics.
 enum GraphicsError
 {
   // [Errors Range]

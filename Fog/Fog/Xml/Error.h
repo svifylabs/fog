@@ -10,11 +10,12 @@
 // [Dependencies]
 #include <Fog/Build/Build.h>
 
-//! @addtogroup Xml
+//! @addtogroup Fog_Xml
 //! @{
 
 namespace Error {
 
+//! @brief Error codes used in Fog/Xml.
 enum XmlError
 {
   // [Errors Range]
@@ -22,7 +23,12 @@ enum XmlError
   _XmlErrorLast  = 0x000110FF,
 
   // [XmlDom Errors]
-  XmlDomNotAllowed = _XmlErrorStart,
+  XmlDomDocumentInvalidChild = _XmlErrorStart,
+  XmlDomManipulationNotAllowed,
+  XmlDomTagChangeNotAllowed,
+  XmlDomAttributesNotAllowed,
+  XmlDomAttributesAddRemoveNotAllowed,
+  XmlDomNotATextNode,
   XmlDomAttributeNotFound,
   XmlDomInvalidAttribute,
   XmlDomCyclic,

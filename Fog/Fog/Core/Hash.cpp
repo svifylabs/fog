@@ -129,26 +129,6 @@ uint32_t hashString(const Char32* key, sysuint_t length)
 
 Static<Hash_Abstract::Data> Hash_Abstract::sharedNull;
 
-static sysuint_t calcExpandCapacity(sysuint_t capacity)
-{
-  static const sysuint_t threshold = 1024*1024*4;
-
-  if (capacity < threshold)
-    return capacity << 1;
-  else
-    return capacity + threshold;
-}
-
-static sysuint_t calcShrinkCapacity(sysuint_t capacity)
-{
-  static const sysuint_t threshold = 1024*1024*4;
-
-  if (capacity < threshold)
-    return capacity >> 1;
-  else
-    return capacity - threshold;
-}
-
 Hash_Abstract::Data* Hash_Abstract::_allocData(sysuint_t capacity)
 {
   sysuint_t dsize = 
@@ -160,10 +140,10 @@ Hash_Abstract::Data* Hash_Abstract::_allocData(sysuint_t capacity)
   d->refCount.init(1);
   d->capacity = capacity;
 
-  d->expandCapacity = calcExpandCapacity(capacity);
+  d->expandCapacity = _calcExpandCapacity(capacity);
   d->expandLength = (sysuint_t)((sysint_t)d->capacity * 0.92);
 
-  d->shrinkCapacity = calcShrinkCapacity(capacity);
+  d->shrinkCapacity = _calcShrinkCapacity(capacity);
   d->shrinkLength = (sysuint_t)((sysint_t)d->shrinkCapacity * 0.70);
 
   return d;
@@ -172,6 +152,26 @@ Hash_Abstract::Data* Hash_Abstract::_allocData(sysuint_t capacity)
 void Hash_Abstract::_freeData(Data* d)
 {
   Memory::free(d);
+}
+
+sysuint_t Hash_Abstract::_calcExpandCapacity(sysuint_t capacity)
+{
+  static const sysuint_t threshold = 1024*1024*4;
+
+  if (capacity < threshold)
+    return capacity << 1;
+  else
+    return capacity + threshold;
+}
+
+sysuint_t Hash_Abstract::_calcShrinkCapacity(sysuint_t capacity)
+{
+  static const sysuint_t threshold = 1024*1024*4;
+
+  if (capacity < threshold)
+    return capacity >> 1;
+  else
+    return capacity - threshold;
 }
 
 bool Hash_Abstract::_rehash(sysuint_t bc)

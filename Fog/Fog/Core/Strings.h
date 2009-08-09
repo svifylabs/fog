@@ -103,6 +103,55 @@ enum STR_ID
   STR_GRAPHICS_verticalRadius,
   STR_GRAPHICS_kernel,
 
+  // [Xml]
+
+  STR_XML_unnamed,
+  STR_XML_id,
+  STR_XML_style,
+
+  STR_XML__text,
+  STR_XML__cdata,
+  STR_XML__pi,
+  STR_XML__comment,
+  STR_XML__document,
+
+  // [Svg]
+
+  STR_SVG_circle,
+  STR_SVG_ellipse,
+  STR_SVG_g,
+  STR_SVG_line,
+  STR_SVG_polygon,
+  STR_SVG_polyline,
+  STR_SVG_rect,
+  STR_SVG_path,
+
+  STR_SVG_transform,
+
+  STR_SVG_STYLE_NAMES,
+  STR_SVG_none = STR_SVG_STYLE_NAMES,
+  STR_SVG_clip_path,
+  STR_SVG_clip_rule,
+  STR_SVG_enable_background,
+  STR_SVG_fill,
+  STR_SVG_fill_opacity,
+  STR_SVG_fill_rule,
+  STR_SVG_filter,
+  STR_SVG_font_family,
+  STR_SVG_font_size,
+  STR_SVG_letter_spacing,
+  STR_SVG_mask,
+  STR_SVG_opacity,
+  STR_SVG_stop_color,
+  STR_SVG_stop_opacity,
+  STR_SVG_stroke,
+  STR_SVG_stroke_dasharray,
+  STR_SVG_stroke_linecap,
+  STR_SVG_stroke_linejoin,
+  STR_SVG_stroke_miterlimit,
+  STR_SVG_stroke_opacity,
+  STR_SVG_stroke_width,
+
   // [Count]
 
   STR_COUNT

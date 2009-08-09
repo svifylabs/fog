@@ -410,10 +410,10 @@ struct Sequence
   { SequenceAPI<T>::free(this); }
 
   FOG_INLINE sysuint_t indexOf(const T& element) const
-  { return SequenceAPI<T>::indexOf(this, &element, TypeInfo_Eq<T>::eq); }
+  { return SequenceAPI<T>::indexOf(this, &element, Fog::TypeInfo_Eq<T>::eq); }
 
   FOG_INLINE sysuint_t lastIndexOf(const T& element) const
-  { return SequenceAPI<T>::lastIndexOf(this, &element, TypeInfo_Eq<T>::eq); }
+  { return SequenceAPI<T>::lastIndexOf(this, &element, Fog::TypeInfo_Eq<T>::eq); }
 
   FOG_INLINE sysuint_t indexOfAt(sysuint_t index, sysuint_t range, const T& element) const
   { return SequenceAPI<T>::indexOfAt(this, index, range, &element, TypeInfo_Eq<T>::eq); }

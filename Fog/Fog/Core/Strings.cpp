@@ -95,6 +95,54 @@ static const char fog_strings_data[] =
   "horizontalRadius\0"
   "verticalRadius\0"
   "kernel\0"
+
+  // [Xml]
+
+  "unnamed\0"
+  "id\0"
+  "style\0"
+
+  "#text\0"
+  "#cdata\0"
+  "#pi\0"
+  "#comment\0"
+  "#document\0"
+
+  // [Svg]
+
+  "circle\0"
+  "ellipse\0"
+  "g\0"
+  "line\0"
+  "polygon\0"
+  "polyline\0"
+  "rect\0"
+  "path\0"
+
+  "transform\0"
+
+  "none\0"
+  "clip-path\0"
+  "clip-rule\0"
+  "enable-background\0"
+  "fill\0"
+  "fill-opacity\0"
+  "fill-rule\0"
+  "filter\0"
+  "font-family\0"
+  "font-size\0"
+  "letter-spacing\0"
+  "mask\0"
+  "opacity\0"
+  "stop-color\0"
+  "stop-opacity\0"
+  "stroke\0"
+  "stroke-dasharray\0"
+  "stroke-linecap\0"
+  "stroke-linejoin\0"
+  "stroke-miterlimit\0"
+  "stroke-opacity\0"
+  "stroke-width\0"
 };
 
 FOG_CVAR_DECLARE Fog::StringCache* fog_strings;
