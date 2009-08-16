@@ -579,6 +579,7 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
     // [Context]
 
     Atomic<sysuint_t> refCount;
+    PainterEngine_Raster* engine;
     ClipState* clipState;
     CapsState* capsState;
 
@@ -716,6 +717,8 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
     virtual void release();
 
     // [Members]
+
+    PainterEngine_Raster* engine;
 
     Static<Path> path;
     bool stroke;
@@ -2986,6 +2989,7 @@ void PainterEngine_Raster::_setCapsDefaults()
 Raster::PatternContext* PainterEngine_Raster::_getPatternContext()
 {
   // Sanity, calling _getPatternContext() for solid source is invalid.
+  FOG_ASSERT(ctx.capsState->isSolidSource == false);
   if (ctx.capsState->isSolidSource) return NULL;
 
   Raster::PatternContext* pctx = ctx.pctx;
@@ -3228,6 +3232,7 @@ FOG_INLINE T* PainterEngine_Raster::_createCommand(sysuint_t size)
   new(command) T;
 
   command->refCount.init(workerManager->numWorkers);
+  command->engine = this;
   command->clipState = ctx.clipState->ref();
   command->capsState = ctx.capsState->ref();
   command->rops = ctx.rops;
@@ -3252,7 +3257,7 @@ T* PainterEngine_Raster::_createCalculation(sysuint_t size)
   if (!calculation) return NULL;
 
   new(calculation) T;
-
+  calculation->engine = this;
   return calculation;
 }
 
@@ -3337,8 +3342,7 @@ static bool FOG_FASTCALL AggRasterizePath(
     (double)clipState->clipBox.getX2(),
     (double)clipState->clipBox.getY2());
 
-  AggPath aggpath(dst);
-  ras.add_path(aggpath);
+  ras.add_path(dst.cData(), dst.getLength());
 
   ras.sort();
   return ras.has_cells();

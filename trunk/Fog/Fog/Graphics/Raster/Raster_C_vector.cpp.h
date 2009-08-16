@@ -31,13 +31,11 @@ static void FOG_FASTCALL pathVertexTransform(Path::Vertex* data, sysuint_t lengt
   }
 }
 
+#define VERTEX_INITIAL_SIZE 256
 #define ADD_VERTEX(_cmd, _x, _y) { v->x = _x; v->y = _y; v->cmd = _cmd; v++; }
 
 enum { ApproximateCurve3RecursionLimit = 32 };
 enum { ApproximateCurve4RecursionLimit = 32 };
-
-enum { ApproximateCurve3MaxVertices = ApproximateCurve3RecursionLimit * 2 + 1 };
-enum { ApproximateCurve4MaxVertices = ApproximateCurve4RecursionLimit * 2 + 1 };
 
 static err_t FOG_FASTCALL approximateCurve3(
   Path& dst,
@@ -53,11 +51,19 @@ static err_t FOG_FASTCALL approximateCurve3(
   sysuint_t level = 0;
   ApproximateCurve3Data stack[ApproximateCurve3RecursionLimit];
 
-  Path::Vertex* v = dst._add(ApproximateCurve3MaxVertices);
+  Path::Vertex* v;
+  Path::Vertex* vend;
+
+realloc:
+  v = dst._add(VERTEX_INITIAL_SIZE);
   if (!v) return Error::OutOfMemory;
+  vend = v + VERTEX_INITIAL_SIZE - 1;
 
   for (;;)
   {
+    // Realloc if needed.
+    if (v >= vend) { dst._d->length = (sysuint_t)(v - dst._d->data); goto realloc; }
+
     // Calculate all the mid-points of the line segments
     double x12   = (x1 + x2) / 2.0;
     double y12   = (y1 + y2) / 2.0;
@@ -172,6 +178,8 @@ ret:
   ADD_VERTEX(Path::CmdLineTo, x3, y3);
 
   dst._d->length = (sysuint_t)(v - dst._d->data);
+  FOG_ASSERT(dst._d->capacity >= dst._d->length);
+
   return Error::Ok;
 }
 
@@ -191,11 +199,19 @@ static err_t FOG_FASTCALL approximateCurve4(
   sysuint_t level = 0;
   ApproximateCurve4Data stack[ApproximateCurve4RecursionLimit];
 
-  Path::Vertex* v = dst._add(ApproximateCurve4MaxVertices);
+  Path::Vertex* v;
+  Path::Vertex* vend;
+
+realloc:
+  v = dst._add(VERTEX_INITIAL_SIZE);
   if (!v) return Error::OutOfMemory;
+  vend = v + VERTEX_INITIAL_SIZE - 2;
 
   for (;;)
   {
+    // Realloc if needed.
+    if (v >= vend) { dst._d->length = (sysuint_t)(v - dst._d->data); goto realloc; }
+
     // Calculate all the mid-points of the line segments
     double x12   = (x1 + x2) / 2.0;
     double y12   = (y1 + y2) / 2.0;
@@ -435,6 +451,8 @@ ret:
   ADD_VERTEX(Path::CmdLineTo, x4, y4);
 
   dst._d->length = (sysuint_t)(v - dst._d->data);
+  FOG_ASSERT(dst._d->capacity >= dst._d->length);
+
   return Error::Ok;
 }
 
