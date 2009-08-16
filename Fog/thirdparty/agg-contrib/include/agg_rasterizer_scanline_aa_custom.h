@@ -54,6 +54,8 @@
 #ifndef AGG_RASTERIZER_SCANLINE_AA_CUSTOM_INCLUDED
 #define AGG_RASTERIZER_SCANLINE_AA_CUSTOM_INCLUDED
 
+#include <Fog/Graphics/Path.h>
+
 #include "agg_rasterizer_cells_aa.h"
 #include "agg_rasterizer_scanline_aa.h"
 #include "agg_rasterizer_sl_clip.h"
@@ -133,11 +135,33 @@ namespace agg
         {
         }
 
-        //--------------------------------------------------------------------
-        void reset(); 
-        void reset_clipping();
-        void clip_box(double x1, double y1, double x2, double y2);
-        void filling_rule(filling_rule_e filling_rule);
+        //------------------------------------------------------------------------
+        AGG_INLINE void reset() 
+        { 
+            m_outline.reset(); 
+            m_status = status_initial;
+        }
+
+        //------------------------------------------------------------------------
+        AGG_INLINE void reset_clipping()
+        {
+            reset();
+            m_clipper.reset_clipping();
+        }
+
+        //------------------------------------------------------------------------
+        AGG_INLINE void clip_box(double x1, double y1, double x2, double y2)
+        {
+            reset();
+            m_clipper.clip_box(conv_type::upscale(x1), conv_type::upscale(y1), 
+                               conv_type::upscale(x2), conv_type::upscale(y2));
+        }
+
+        AGG_INLINE void filling_rule(filling_rule_e filling_rule)
+        { 
+            m_filling_rule = filling_rule; 
+        }
+
         void auto_close(bool flag) { m_auto_close = flag; }
 
         AGG_INLINE void gamma(const unsigned char* gamma)
@@ -152,30 +176,89 @@ namespace agg
         }
 
         //--------------------------------------------------------------------
-        void move_to(int x, int y);
-        void line_to(int x, int y);
-        void move_to_d(double x, double y);
-        void line_to_d(double x, double y);
-        void close_polygon();
-        void add_vertex(double x, double y, unsigned cmd);
-
-        void edge(int x1, int y1, int x2, int y2);
-        void edge_d(double x1, double y1, double x2, double y2);
-
-        //-------------------------------------------------------------------
-        template<class VertexSource>
-        AGG_INLINE void add_path(VertexSource& vs, unsigned path_id=0)
+        AGG_INLINE void close_polygon()
         {
-            double x;
-            double y;
-
-            unsigned cmd;
-            vs.rewind(path_id);
-            if(m_outline.sorted()) reset();
-            while(!is_stop(cmd = vs.vertex(&x, &y)))
+            if(m_status == status_line_to)
             {
-                add_vertex(x, y, cmd);
+                m_clipper.line_to(m_outline, m_start_x, m_start_y);
+                m_status = status_closed;
             }
+        }
+
+        //------------------------------------------------------------------------
+        AGG_INLINE void move_to(int x, int y)
+        {
+            if(m_outline.sorted()) reset();
+            if(m_auto_close) close_polygon();
+            m_clipper.move_to(m_start_x = conv_type::downscale(x), 
+                              m_start_y = conv_type::downscale(y));
+            m_status = status_move_to;
+        }
+
+        //------------------------------------------------------------------------
+        AGG_INLINE void line_to(int x, int y)
+        {
+            m_clipper.line_to(m_outline, 
+                              conv_type::downscale(x), 
+                              conv_type::downscale(y));
+            m_status = status_line_to;
+        }
+
+        //------------------------------------------------------------------------
+        AGG_INLINE void move_to_d(double x, double y) 
+        { 
+            if(m_outline.sorted()) reset();
+            if(m_auto_close) close_polygon();
+            m_clipper.move_to(m_start_x = conv_type::upscale(x), m_start_y = conv_type::upscale(y)); 
+            m_status = status_move_to;
+        }
+
+        //------------------------------------------------------------------------
+        AGG_INLINE void line_to_d(double x, double y) 
+        { 
+            m_clipper.line_to(m_outline, conv_type::upscale(x), conv_type::upscale(y)); 
+            m_status = status_line_to;
+        }
+
+        //------------------------------------------------------------------------
+        AGG_INLINE void add_path(const Fog::Path::Vertex* src, sysuint_t count)
+        {
+          if (m_outline.sorted()) reset();
+
+          for (sysuint_t i = count; i; i--, src++)
+          {
+            uint cmd = src->cmd.cmd();
+            if (cmd == Fog::Path::CmdMoveTo)
+            {
+              move_to_d(src->x, src->y);
+            }
+            else if (cmd == Fog::Path::CmdLineTo)
+            {
+              line_to_d(src->x, src->y);
+            }
+            else if (is_close(cmd))
+            {
+              close_polygon();
+            }
+          }
+        }
+
+        //------------------------------------------------------------------------
+        AGG_INLINE void edge(int x1, int y1, int x2, int y2)
+        {
+            if(m_outline.sorted()) reset();
+            m_clipper.move_to(conv_type::downscale(x1), conv_type::downscale(y1));
+            m_clipper.line_to(m_outline, conv_type::downscale(x2), conv_type::downscale(y2));
+            m_status = status_move_to;
+        }
+        
+        //------------------------------------------------------------------------
+        AGG_INLINE void edge_d(double x1, double y1, double x2, double y2)
+        {
+            if(m_outline.sorted()) reset();
+            m_clipper.move_to(conv_type::upscale(x1), conv_type::upscale(y1)); 
+            m_clipper.line_to(m_outline, conv_type::upscale(x2), conv_type::upscale(y2)); 
+            m_status = status_move_to;
         }
         
         //--------------------------------------------------------------------
@@ -184,8 +267,12 @@ namespace agg
         AGG_INLINE int max_x() const { return m_outline.max_x(); }
         AGG_INLINE int max_y() const { return m_outline.max_y(); }
 
-        //--------------------------------------------------------------------
-        void sort();
+        //------------------------------------------------------------------------
+        AGG_INLINE void sort()
+        {
+            if(m_auto_close) close_polygon();
+            m_outline.sort_cells();
+        }
 
         //--------------------------------------------------------------------
         AGG_INLINE unsigned calculate_alpha_non_zero(int area) const
@@ -338,146 +425,6 @@ namespace agg
         const rasterizer_scanline_aa_custom<Clip>& 
         operator = (const rasterizer_scanline_aa_custom<Clip>&);
     };
-
-    //------------------------------------------------------------------------
-    template<class Clip> 
-    void rasterizer_scanline_aa_custom<Clip>::reset() 
-    { 
-        m_outline.reset(); 
-        m_status = status_initial;
-    }
-
-    //------------------------------------------------------------------------
-    template<class Clip> 
-    void rasterizer_scanline_aa_custom<Clip>::filling_rule(filling_rule_e filling_rule) 
-    { 
-        m_filling_rule = filling_rule; 
-    }
-
-    //------------------------------------------------------------------------
-    template<class Clip> 
-    void rasterizer_scanline_aa_custom<Clip>::clip_box(double x1, double y1, 
-                                                double x2, double y2)
-    {
-        reset();
-        m_clipper.clip_box(conv_type::upscale(x1), conv_type::upscale(y1), 
-                           conv_type::upscale(x2), conv_type::upscale(y2));
-    }
-
-    //------------------------------------------------------------------------
-    template<class Clip> 
-    void rasterizer_scanline_aa_custom<Clip>::reset_clipping()
-    {
-        reset();
-        m_clipper.reset_clipping();
-    }
-
-    //------------------------------------------------------------------------
-    template<class Clip> 
-    void rasterizer_scanline_aa_custom<Clip>::close_polygon()
-    {
-        if(m_status == status_line_to)
-        {
-            m_clipper.line_to(m_outline, m_start_x, m_start_y);
-            m_status = status_closed;
-        }
-    }
-
-    //------------------------------------------------------------------------
-    template<class Clip> 
-    void rasterizer_scanline_aa_custom<Clip>::move_to(int x, int y)
-    {
-        if(m_outline.sorted()) reset();
-        if(m_auto_close) close_polygon();
-        m_clipper.move_to(m_start_x = conv_type::downscale(x), 
-                          m_start_y = conv_type::downscale(y));
-        m_status = status_move_to;
-    }
-
-    //------------------------------------------------------------------------
-    template<class Clip> 
-    void rasterizer_scanline_aa_custom<Clip>::line_to(int x, int y)
-    {
-        m_clipper.line_to(m_outline, 
-                          conv_type::downscale(x), 
-                          conv_type::downscale(y));
-        m_status = status_line_to;
-    }
-
-    //------------------------------------------------------------------------
-    template<class Clip> 
-    void rasterizer_scanline_aa_custom<Clip>::move_to_d(double x, double y) 
-    { 
-        if(m_outline.sorted()) reset();
-        if(m_auto_close) close_polygon();
-        m_clipper.move_to(m_start_x = conv_type::upscale(x), 
-                          m_start_y = conv_type::upscale(y)); 
-        m_status = status_move_to;
-    }
-
-    //------------------------------------------------------------------------
-    template<class Clip> 
-    void rasterizer_scanline_aa_custom<Clip>::line_to_d(double x, double y) 
-    { 
-        m_clipper.line_to(m_outline, 
-                          conv_type::upscale(x), 
-                          conv_type::upscale(y)); 
-        m_status = status_line_to;
-    }
-
-    //------------------------------------------------------------------------
-    template<class Clip> 
-    AGG_INLINE void rasterizer_scanline_aa_custom<Clip>::add_vertex(double x, double y, unsigned cmd)
-    {
-        if(is_move_to(cmd)) 
-        {
-            move_to_d(x, y);
-        }
-        else 
-        if(is_vertex(cmd))
-        {
-            line_to_d(x, y);
-        }
-        else
-        if(is_close(cmd))
-        {
-            close_polygon();
-        }
-    }
-
-    //------------------------------------------------------------------------
-    template<class Clip> 
-    void rasterizer_scanline_aa_custom<Clip>::edge(int x1, int y1, int x2, int y2)
-    {
-        if(m_outline.sorted()) reset();
-        m_clipper.move_to(conv_type::downscale(x1), conv_type::downscale(y1));
-        m_clipper.line_to(m_outline, 
-                          conv_type::downscale(x2), 
-                          conv_type::downscale(y2));
-        m_status = status_move_to;
-    }
-    
-    //------------------------------------------------------------------------
-    template<class Clip> 
-    void rasterizer_scanline_aa_custom<Clip>::edge_d(
-      double x1, double y1, 
-      double x2, double y2)
-    {
-        if(m_outline.sorted()) reset();
-        m_clipper.move_to(conv_type::upscale(x1), conv_type::upscale(y1)); 
-        m_clipper.line_to(m_outline, 
-                          conv_type::upscale(x2), 
-                          conv_type::upscale(y2)); 
-        m_status = status_move_to;
-    }
-
-    //------------------------------------------------------------------------
-    template<class Clip> 
-    void rasterizer_scanline_aa_custom<Clip>::sort()
-    {
-        if(m_auto_close) close_polygon();
-        m_outline.sort_cells();
-    }
 
     //------------------------------------------------------------------------
     template<class Clip> 

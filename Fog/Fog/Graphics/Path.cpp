@@ -363,7 +363,7 @@ Path::Vertex* Path::_add(sysuint_t count)
   else
   {
     sysuint_t optimalCapacity = 
-      Std::calcOptimalCapacity(sizeof(Data), sizeof(Vertex), _d->length, _d->length + count);
+      Std::calcOptimalCapacity(sizeof(Data), sizeof(Vertex), length, length + count);
 
     Data* newd = Data::alloc(optimalCapacity);
     if (!newd) return NULL;
