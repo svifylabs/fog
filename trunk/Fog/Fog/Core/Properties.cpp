@@ -3,7 +3,7 @@
 // [Licence]
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
@@ -39,7 +39,7 @@ err_t PropertiesData::init(PropertiesData* parent, const Vector<String32>& prope
 {
   FOG_ASSERT_X(!isInitialized(), "Fog::PropertiesData::init() - Already initialized.");
 
-  int propertiesCount = (int)properties.length();
+  int propertiesCount = (int)properties.getLength();
   int bucketsCount = propertiesCount;
   int offset = parent ? parent->_last : 0;
 
@@ -72,7 +72,7 @@ err_t PropertiesData::init(PropertiesData* parent, const Vector<String32>& prope
   for (int i = 0; i < propertiesCount; i++)
   {
     const String32& name = properties.cAt(i);
-    uint32_t hash = name.toHashCode();
+    uint32_t hash = name.getHashCode();
     uint32_t hidx = hash & (bucketsCount-1);
 
     Bucket* b = new(p) Bucket(name, offset + i);

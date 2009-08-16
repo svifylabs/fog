@@ -27,10 +27,16 @@ struct MyWindow : public Window
 
   virtual void onTimer(TimerEvent* e);
 
-  // [Members]
-  Button button1;
+  // [UI]
+  BoxLayout layout;
+  Button button[4];
+
+  // [Test]
   Timer timer;
   double r;
+  double s;
+
+  SvgDocument svg;
 };
 
 // ============================================================================
@@ -44,6 +50,15 @@ MyWindow::MyWindow(uint32_t createFlags) :
 {
   setWindowTitle(Ascii8("Filters"));
 
+  setLayout(&layout);
+  for (sysuint_t i = 0; i < 4; i++)
+  {
+    button[i].setText(Ascii8("button"));
+    button[1].show();
+    layout.addItem(&button[i]);
+  }
+  layout.reparentChildren();
+
   //button1.setRect(Rect(10, 10, 100, 20));
   //button1.setText(Ascii8("Test"));
   //button1.show();
@@ -54,6 +69,18 @@ MyWindow::MyWindow(uint32_t createFlags) :
   timer.start();
 
   r = 0.0;
+  s = 1.0;
+
+  //svg.readFile(Ascii8("C:/my/svg/tiger.svg"));
+  //svg.readFile(Ascii8("C:/my/svg/gradient-alignment.svg"));
+  {
+    Vector<String32> argv = Application::getApplicationArguments();
+
+    if (argv.getLength() > 1)
+      svg.readFile(argv.cAt(1));
+    else
+      svg.readFile(Ascii8("C:/my/svg/tiger.svg"));
+  }
 }
 
 MyWindow::~MyWindow()
@@ -69,10 +96,10 @@ static Image makeImage()
   Image im(600, 120, Image::FormatARGB32);
   Painter p(im);
 
-  p.setOp(CompositeClear);
+  p.setOperator(CompositeClear);
   p.clear();
 
-  p.setOp(CompositeSrcOver);
+  p.setOperator(CompositeSrcOver);
   p.setSource(Rgba(0xFF000000));
   p.drawRect(Rect(0, 0, 600, 120));
 
@@ -81,9 +108,9 @@ static Image makeImage()
   font.setSize(80);
   font.setBold(true);
 
-  p.setOp(CompositeSrcOver);
+  p.setOperator(CompositeSrcOver);
   p.setSource(0xFF000000);
-  p.drawText(Rect(0, 0, p.width(), p.height()), Ascii8("Fog Library"), font, TextAlignCenter);
+  p.drawText(Rect(0, 0, p.getWidth(), p.getHeight()), Ascii8("Fog Library"), font, TextAlignCenter);
 
   p.end();
 
@@ -97,12 +124,14 @@ void MyWindow::onMouse(MouseEvent* e)
 
 void MyWindow::onKey(KeyEvent* e)
 {
-  if (e->code() == EvKeyPress)
+  if (e->getCode() == EvKeyPress)
   {
-    switch (e->key())
+    switch (e->getKey())
     {
       case KeyQ: r += 1.0; repaint(RepaintWidget); break;
       case KeyW: r -= 1.0; repaint(RepaintWidget); break;
+      case KeyA: s += 0.1; repaint(RepaintWidget); break;
+      case KeyS: s -= 0.1; repaint(RepaintWidget); break;
     }
   }
 
@@ -112,32 +141,45 @@ void MyWindow::onKey(KeyEvent* e)
 void MyWindow::onPaint(PaintEvent* e)
 {
   TimeTicks ticks = TimeTicks::highResNow();
-  Painter* p = e->painter();
+  Painter* p = e->getPainter();
 
-  double w = width(), h = height();
-
+  double w = getWidth(), h = getHeight();
+/*
   {
     Pattern pattern;
-    pattern.setType(Pattern::LinearGradient);
+    pattern.setType(Pattern::TypeLinearGradient);
     pattern.setPoints(PointF(0, 0), PointF(w, h));
     pattern.addGradientStop(GradientStop(0.0, Rgba(0xFFFFFF00)));
     pattern.addGradientStop(GradientStop(1.0, Rgba(0xFFFF0000)));
     p->setSource(pattern);
     p->clear();
   }
+*/
+  p->setSource(0xFFFFFFFF);
+  p->clear();
 
   {
-    SvgDocument svg;
+    SvgContext ctx(p);
+    p->scale(s, s);
+
+    //p->translate(180.0, 145.0);
+    //p->scale(w/550.0, h/510.0);
+
+    //p->translate(-w/2, -h/2);
+    //p->rotate(Math::deg2rad(r));
+    //p->translate(w/2, h/2);
+
+    //svg.readFile(Ascii8("C:/my/svg/cowboy.svg"));
+    //p->translate(0.0, -450.0);
+    //p->scale(w/350.0, h/310.0);
+
     //svg.readFile(Ascii8("C:/my/svg/altum_angelfish_01.svg"));
-    svg.readFile(Ascii8("C:/my/svg/tiger.svg"));
+
     //svg.readFile(Ascii8("C:/my/svg/clinton.svg"));
     //svg.readFile(Ascii8("C:/my/svg/longhorn.svg"));
     //svg.readFile(Ascii8("C:/my/svg/brown_fish_01.svg"));
 
-    SvgContext ctx(p);
-    p->translate(180.0, 145.0);
-    p->scale(w/550.0, h/510.0);
-    svg.render(&ctx);
+    svg.onRender(&ctx);
   }
 
 /*

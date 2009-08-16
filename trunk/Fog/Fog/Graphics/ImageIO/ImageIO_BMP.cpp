@@ -3,17 +3,17 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #ifdef FOG_PRECOMP
 #include FOG_PRECOMP
 #endif
 
 // [Dependencies]
+#include <Fog/Core/ManagedString.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Misc.h>
 #include <Fog/Core/Stream.h>
 #include <Fog/Core/String.h>
-#include <Fog/Core/StringCache.h>
 #include <Fog/Core/Strings.h>
 #include <Fog/Graphics/Error.h>
 #include <Fog/Graphics/Image.h>
@@ -58,12 +58,12 @@ BmpProvider::BmpProvider()
   _features.rgbAlpha = true;
 
   // name
-  _name = fog_strings->get(STR_GRAPHICS_BMP);
+  _name = fog_strings->getString(STR_GRAPHICS_BMP);
 
   // extensions
   _extensions.reserve(2);
-  _extensions.append(fog_strings->get(STR_GRAPHICS_bmp));
-  _extensions.append(fog_strings->get(STR_GRAPHICS_ras));
+  _extensions.append(fog_strings->getString(STR_GRAPHICS_bmp));
+  _extensions.append(fog_strings->getString(STR_GRAPHICS_ras));
 }
 
 BmpProvider::~BmpProvider()
@@ -397,7 +397,7 @@ uint32_t BmpDecoderDevice::readImage(Image& image)
   // create image
   if ( (err = image.create(width(), height(), format())) ) goto end;
 
-  stride = image.stride();
+  stride = image.getStride();
   pixelsBegin = image._d->first;
   pixelsCur = pixelsBegin + stride * (height() - 1);
 
@@ -928,7 +928,7 @@ uint32_t BmpEncoderDevice::writeImage(const Image& image)
       else
       {
         // Standard palette.
-        if (stream().write(image.palette().cData(), 1024) != 1024) goto fail;
+        if (stream().write(image.getPalette().cData(), 1024) != 1024) goto fail;
       }
 
       // Write 8 bit BMP data.

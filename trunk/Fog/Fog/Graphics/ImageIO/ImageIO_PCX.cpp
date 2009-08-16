@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #ifdef FOG_PRECOMP
 #include FOG_PRECOMP
 #endif
@@ -13,7 +13,6 @@
 #include <Fog/Core/Misc.h>
 #include <Fog/Core/Stream.h>
 #include <Fog/Core/String.h>
-#include <Fog/Core/StringCache.h>
 #include <Fog/Core/Strings.h>
 #include <Fog/Graphics/Error.h>
 #include <Fog/Graphics/Image.h>
@@ -56,11 +55,11 @@ PcxProvider::PcxProvider()
   _features.rgbAlpha = true;
 
   // name
-  _name = fog_strings->get(STR_GRAPHICS_PCX);
+  _name = fog_strings->getString(STR_GRAPHICS_PCX);
 
   // extensions
   _extensions.reserve(1);
-  _extensions.append(fog_strings->get(STR_GRAPHICS_pcx));
+  _extensions.append(fog_strings->getString(STR_GRAPHICS_pcx));
 }
 
 PcxProvider::~PcxProvider()
@@ -520,7 +519,7 @@ uint32_t PcxDecoderDevice::readImage(Image& image)
 
   stream().readAll(dataArray);
   dataCur = (const uint8_t*)dataArray.cData();
-  dataEnd = dataCur + dataArray.length();
+  dataEnd = dataCur + dataArray.getLength();
 
   if ((error = image.create(width(), height(), format()))) goto end;
 
@@ -736,9 +735,9 @@ uint32_t PcxEncoderDevice::writeImage(const Image& image)
   PcxHeader pcx;
   Memory::zero((void*)&pcx, sizeof(pcx));
 
-  int width = image.width();
-  int height = image.height();
-  int format = image.format();
+  int width = image.getWidth();
+  int height = image.getHeight();
+  int format = image.getFormat();
   int version;
   int bitsPerPixel;
   int nPlanes;
@@ -795,7 +794,7 @@ uint32_t PcxEncoderDevice::writeImage(const Image& image)
   // Try to write comment
   if (!comment().isEmpty())
   {
-    sysuint_t length = comment().length();
+    sysuint_t length = comment().getLength();
     if (length > 54) length = 54;
     memcpy(pcx.unused, (const char*)comment().cData(), length);
   }
@@ -809,7 +808,7 @@ uint32_t PcxEncoderDevice::writeImage(const Image& image)
   if (!rleenc.alloc((width << 1) + 2)) return Error::OutOfMemory;
 
   // Write 8 bit image.
-  if (image.depth() == 8)
+  if (image.getDepth() == 8)
   {
     for (y = 0; y != height; y++)
     {
@@ -833,7 +832,7 @@ uint32_t PcxEncoderDevice::writeImage(const Image& image)
       // Standard indexed image.
       else
       {
-        PCX_convPaletteToPcx(palette + 1, (uint8_t*)image.palette().cData(), 256, sizeof(Rgba));
+        PCX_convPaletteToPcx(palette + 1, (uint8_t*)image.getPalette().cData(), 256, sizeof(Rgba));
       }
 
       if (stream().write((const char*)palette, 768+1) != 768+1) goto fail;
@@ -844,9 +843,9 @@ uint32_t PcxEncoderDevice::writeImage(const Image& image)
   {
     sysint_t pos[4];
     sysint_t plane;
-    sysint_t increment = image.bytesPerPixel();
+    sysint_t increment = image.getBytesPerPixel();
 
-    if (image.depth() == 32)
+    if (image.getDepth() == 32)
     {
       pos[0] = Raster::RGB32_RByte;
       pos[1] = Raster::RGB32_GByte;

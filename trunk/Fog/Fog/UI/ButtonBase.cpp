@@ -3,13 +3,14 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
 
 // [Dependencies]
 #include <Fog/UI/ButtonBase.h>
+#include <Fog/UI/Constants.h>
 
 FOG_IMPLEMENT_OBJECT(Fog::ButtonBase)
 
@@ -21,7 +22,7 @@ namespace Fog {
 
 ButtonBase::ButtonBase() : 
   Widget(),
-  _checked(false),
+  _checked(CheckedOff),
   _isMouseOver(false),
   _isMouseDown(false),
   _isSpaceDown(false)
@@ -32,7 +33,7 @@ ButtonBase::~ButtonBase()
 {
 }
 
-String32 ButtonBase::text() const
+String32 ButtonBase::getText() const
 {
   return _text;
 }
@@ -40,15 +41,17 @@ String32 ButtonBase::text() const
 void ButtonBase::setText(const String32& text)
 {
   _text = text;
+
+  invalidateLayout();
   repaint(RepaintWidget);
 }
 
-uint ButtonBase::checked() const
+int ButtonBase::getChecked() const
 {
   return _checked;
 }
 
-void ButtonBase::setChecked(uint value)
+void ButtonBase::setChecked(int value)
 {
   if (_checked == value) return;
   if (value > 2) return;
@@ -81,7 +84,7 @@ bool ButtonBase::isDown() const
 
 void ButtonBase::onFocus(FocusEvent* e)
 {
-  if (e->code() == EvFocusOut && _isSpaceDown) 
+  if (e->getCode() == EvFocusOut && _isSpaceDown) 
   {
     _isSpaceDown = false;
     repaint(RepaintWidget);
@@ -92,10 +95,10 @@ void ButtonBase::onFocus(FocusEvent* e)
 
 void ButtonBase::onKey(KeyEvent* e)
 {
-  switch (e->code())
+  switch (e->getCode())
   {
     case EvMousePress:
-      if ((e->key() & KeyMask) == KeySpace)
+      if ((e->getKey() & KeyMask) == KeySpace)
       {
         _isSpaceDown = true;
         repaint(RepaintWidget);
@@ -104,7 +107,7 @@ void ButtonBase::onKey(KeyEvent* e)
       }
       break;
     case EvMouseRelease:
-      if ((e->key() & KeyMask) == KeySpace)
+      if ((e->getKey() & KeyMask) == KeySpace)
       {
         _isSpaceDown = false;
         repaint(RepaintWidget);
@@ -119,7 +122,7 @@ void ButtonBase::onKey(KeyEvent* e)
 
 void ButtonBase::onMouse(MouseEvent* e)
 {
-  switch (e->code())
+  switch (e->getCode())
   {
     case EvMouseIn:
       _isMouseOver = true;
@@ -130,14 +133,14 @@ void ButtonBase::onMouse(MouseEvent* e)
       repaint(RepaintWidget);
       break;
     case EvMousePress:
-      if (e->button() == ButtonLeft)
+      if (e->getButton() == ButtonLeft)
       {
         _isMouseDown = true;
         repaint(RepaintWidget);
       }
       break;
     case EvMouseRelease:
-      if (e->button() == ButtonLeft)
+      if (e->getButton() == ButtonLeft)
       {
         _isMouseDown = false;
         repaint(RepaintWidget);

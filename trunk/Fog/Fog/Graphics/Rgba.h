@@ -78,50 +78,45 @@ struct FOG_PACKED Rgba
 
   FOG_INLINE Rgba() {}
   FOG_INLINE Rgba(uint32_t _value) : value(_value) {}
+
   FOG_INLINE Rgba(uint8_t _r, uint8_t _g, uint8_t _b, uint8_t _a = 0xFF) :
     value(
       ((uint32_t)(_r) << RedShift  ) |
       ((uint32_t)(_g) << GreenShift) |
       ((uint32_t)(_b) << BlueShift ) |
       ((uint32_t)(_a) << AlphaShift) )
-  {
-  }
+  {}
+
   FOG_INLINE Rgba(const Rgba& rgba) :
     value(rgba.value)
-  {
-  }
+  {}
 
   // [Set]
 
-  FOG_INLINE Rgba& set(const Rgba& rgba)
-  { value = rgba.value; return* this; }
-  FOG_INLINE Rgba& set(uint32_t rgba)
-  { value = rgba; return* this; }
+  FOG_INLINE Rgba& set(const Rgba& rgba) { value = rgba.value; return* this; }
+  FOG_INLINE Rgba& set(uint32_t rgba) { value = rgba; return* this; }
   FOG_INLINE Rgba& set(uint8_t _r, uint8_t _g, uint8_t _b, uint8_t _a = 0xFF)
   { 
-    value = (
-      ((uint32_t)(_r) << RedShift  ) |
-      ((uint32_t)(_g) << GreenShift) |
-      ((uint32_t)(_b) << BlueShift ) |
-      ((uint32_t)(_a) << AlphaShift) );
+    value = (((uint32_t)(_r) << RedShift  ) |
+             ((uint32_t)(_g) << GreenShift) |
+             ((uint32_t)(_b) << BlueShift ) |
+             ((uint32_t)(_a) << AlphaShift) );
     return* this;
   }
 
   // [Channels]
 
-  FOG_INLINE uint32_t red  () const { return r; }
-  FOG_INLINE uint32_t gren () const { return g; }
-  FOG_INLINE uint32_t blue () const { return b; }
-  FOG_INLINE uint32_t alpha() const { return a; }
-  FOG_INLINE uint32_t grey () const { return grey(value); }
+  FOG_INLINE uint32_t getRed  () const { return r; }
+  FOG_INLINE uint32_t getGreen() const { return g; }
+  FOG_INLINE uint32_t getBlue () const { return b; }
+  FOG_INLINE uint32_t getAlpha() const { return a; }
+  FOG_INLINE uint32_t getGrey () const { return getGrey(value); }
+  FOG_INLINE uint32_t getValue() const { return value; }
 
   // [Swap]
 
-  FOG_INLINE void swapRgb()
-  { uint8_t t = r; r = g; g = t; }
-
-  FOG_INLINE void swapRgba() 
-  { value = Memory::bswap32(value); }
+  FOG_INLINE void swapRgb() { uint8_t t = r; r = g; g = t; }
+  FOG_INLINE void swapRgba() { value = Memory::bswap32(value); }
 
   // [Overloaded Operators]
 
@@ -140,17 +135,16 @@ struct FOG_PACKED Rgba
 
   // [Static]
 
-  static FOG_INLINE uint32_t red  (uint32_t rgba) { return (rgba & RedMask  ) >> RedShift  ; }
-  static FOG_INLINE uint32_t green(uint32_t rgba) { return (rgba & GreenMask) >> GreenShift; }
-  static FOG_INLINE uint32_t blue (uint32_t rgba) { return (rgba & BlueMask ) >> BlueShift ; }
-  static FOG_INLINE uint32_t alpha(uint32_t rgba) { return (rgba & AlphaMask) >> AlphaShift; }
+  static FOG_INLINE uint32_t getRed  (uint32_t rgba) { return (rgba & RedMask  ) >> RedShift  ; }
+  static FOG_INLINE uint32_t getGreen(uint32_t rgba) { return (rgba & GreenMask) >> GreenShift; }
+  static FOG_INLINE uint32_t getBlue (uint32_t rgba) { return (rgba & BlueMask ) >> BlueShift ; }
+  static FOG_INLINE uint32_t getAlpha(uint32_t rgba) { return (rgba & AlphaMask) >> AlphaShift; }
 
-  static FOG_INLINE uint8_t grey(uint32_t rgba)
+  static FOG_INLINE uint8_t getGrey(uint32_t rgba)
   {
-    return (uint8_t)((
-      red  (rgba) *  77U +
-      green(rgba) * 150U +
-      blue (rgba) *  29U ) >> 8U);
+    return (uint8_t)((getRed  (rgba) *  77U +
+                      getGreen(rgba) * 150U +
+                      getBlue (rgba) *  29U ) >> 8U);
   }
 
   static FOG_INLINE uint32_t half(uint32_t color1, uint32_t color2)
@@ -165,8 +159,8 @@ struct FOG_PACKED Rgba
     __m128i xmm1 = _mm_cvtsi32_si128((int)(color2 & 0x00FFFFFF));
     return _mm_cvtsi128_si32(_mm_adds_epu8(xmm0, xmm1));
 #else
-    register uint32_t c13 = (color1 & 0x00FF00FF) + (color2 & 0x00FF00FF);
-    register uint32_t c24 = (color1 & 0xFF00FF00) + (color2 & 0x0000FF00);
+    uint32_t c13 = (color1 & 0x00FF00FF) + (color2 & 0x00FF00FF);
+    uint32_t c24 = (color1 & 0xFF00FF00) + (color2 & 0x0000FF00);
 
     if (c13 & 0xFF000000) c13 |= 0x00FF0000;
     if (c24 & 0x00FF0000) c24 |= 0x0000FF00;
@@ -179,13 +173,13 @@ struct FOG_PACKED Rgba
   static FOG_INLINE uint32_t sub(uint32_t color1, uint32_t color2)
   {
 #if defined(FOG_HARDCODE_SSE2)
-    __m128i xmm0 = _mm_cvtsi32_si128((int)color1);
+    __m128i xmm0 = _mm_cvtsi32_si128((int)(color1));
     __m128i xmm1 = _mm_cvtsi32_si128((int)(color2 & 0x00FFFFFF));
     return _mm_cvtsi128_si32(_mm_subs_epu8(xmm0, xmm1));
 #else
-    register uint32_t c1 = (color1 & 0x00FF0000) - (color2 & 0x00FF0000);
-    register uint32_t c2 = (color1 & 0x0000FF00) - (color2 & 0x0000FF00);
-    register uint32_t c3 = (color1 & 0x000000FF) - (color2 & 0x000000FF);
+    uint32_t c1 = (color1 & 0x00FF0000) - (color2 & 0x00FF0000);
+    uint32_t c2 = (color1 & 0x0000FF00) - (color2 & 0x0000FF00);
+    uint32_t c3 = (color1 & 0x000000FF) - (color2 & 0x000000FF);
 
     if (c1 & 0xFF00FFFF) c1 = 0;
     if (c2 & 0xFFFF00FF) c2 = 0;
@@ -197,11 +191,10 @@ struct FOG_PACKED Rgba
 
   static FOG_INLINE uint32_t make(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 0xFF)
   {
-    return
-      ((uint32_t)(r) << RedShift  ) |
-      ((uint32_t)(g) << GreenShift) |
-      ((uint32_t)(b) << BlueShift ) |
-      ((uint32_t)(a) << AlphaShift) ;
+    return ((uint32_t)(r) << RedShift  ) |
+           ((uint32_t)(g) << GreenShift) |
+           ((uint32_t)(b) << BlueShift ) |
+           ((uint32_t)(a) << AlphaShift) ;
   }
 };
 #include <Fog/Core/Unpack.h>
@@ -268,17 +261,13 @@ struct Rgba64
 
   FOG_INLINE Rgba64() {}
   FOG_INLINE Rgba64(uint64_t _value) : value(_value) {}
-  FOG_INLINE Rgba64(uint16_t _r, uint16_t _g, uint16_t _b, uint16_t _a = 0xFFFF)
-  { set(_r, _g, _b, _a); }
-  FOG_INLINE Rgba64(const Rgba64& other)
-  { set(other); }
-  FOG_INLINE explicit Rgba64(const Rgba& other)
-  { set(other); }
+  FOG_INLINE Rgba64(uint16_t _r, uint16_t _g, uint16_t _b, uint16_t _a = 0xFFFF) { set(_r, _g, _b, _a); }
+  FOG_INLINE Rgba64(const Rgba64& other) { set(other); }
+  FOG_INLINE explicit Rgba64(const Rgba& other) { set(other); }
 
   // [Set]
 
-  FOG_INLINE Rgba64& set(uint64_t rgba)
-  { value = rgba; return* this; }
+  FOG_INLINE Rgba64& set(uint64_t rgba) { value = rgba; return* this; }
 
   FOG_INLINE Rgba64& set(uint16_t _r, uint16_t _g, uint16_t _b, uint16_t _a = 0xFFFF)
   { 
@@ -289,8 +278,7 @@ struct Rgba64
     return* this;
   }
 
-  FOG_INLINE Rgba64& set(const Rgba64& rgba)
-  { value = rgba.value; return* this; }
+  FOG_INLINE Rgba64& set(const Rgba64& rgba) { value = rgba.value; return* this; }
 
   FOG_INLINE Rgba64& set(const Rgba& other)
   {
@@ -304,11 +292,12 @@ struct Rgba64
 
   // [Channels]
 
-  FOG_INLINE uint16_t red  () const { return r; }
-  FOG_INLINE uint16_t gren () const { return g; }
-  FOG_INLINE uint16_t blue () const { return b; }
-  FOG_INLINE uint16_t alpha() const { return a; }
-  FOG_INLINE uint16_t grey () const { return grey(value); }
+  FOG_INLINE uint16_t getRed  () const { return r; }
+  FOG_INLINE uint16_t getGreen() const { return g; }
+  FOG_INLINE uint16_t getBlue () const { return b; }
+  FOG_INLINE uint16_t getAlpha() const { return a; }
+  FOG_INLINE uint16_t getGrey () const { return getGrey(value); }
+  FOG_INLINE uint64_t getValue() const { return value; }
 
   // [Swap]
 
@@ -346,17 +335,16 @@ struct Rgba64
 
   // [Static]
 
-  static FOG_INLINE uint16_t red  (uint64_t rgba) { return (uint16_t)((rgba & RedMask  ) >> RedShift  ); }
-  static FOG_INLINE uint16_t green(uint64_t rgba) { return (uint16_t)((rgba & GreenMask) >> GreenShift); }
-  static FOG_INLINE uint16_t blue (uint64_t rgba) { return (uint16_t)((rgba & BlueMask ) >> BlueShift ); }
-  static FOG_INLINE uint16_t alpha(uint64_t rgba) { return (uint16_t)((rgba & AlphaMask) >> AlphaShift); }
+  static FOG_INLINE uint16_t getRed  (uint64_t rgba) { return (uint16_t)((rgba & RedMask  ) >> RedShift  ); }
+  static FOG_INLINE uint16_t getGreen(uint64_t rgba) { return (uint16_t)((rgba & GreenMask) >> GreenShift); }
+  static FOG_INLINE uint16_t getBlue (uint64_t rgba) { return (uint16_t)((rgba & BlueMask ) >> BlueShift ); }
+  static FOG_INLINE uint16_t getAlpha(uint64_t rgba) { return (uint16_t)((rgba & AlphaMask) >> AlphaShift); }
 
-  static FOG_INLINE uint16_t grey(uint64_t rgba)
+  static FOG_INLINE uint16_t getGrey(uint64_t rgba)
   {
-    return (uint16_t)((
-      (uint32_t)(red  (rgba)) *  77U +
-      (uint32_t)(green(rgba)) * 150U +
-      (uint32_t)(blue (rgba)) *  29U ) >> 8U);
+    return (uint16_t)(((uint32_t)(getRed  (rgba)) *  77U +
+                       (uint32_t)(getGreen(rgba)) * 150U +
+                       (uint32_t)(getBlue (rgba)) *  29U ) >> 8U);
   }
 
   static FOG_INLINE uint64_t half(uint64_t color1, uint64_t color2)
@@ -366,11 +354,10 @@ struct Rgba64
 
   static FOG_INLINE uint64_t make(uint16_t r, uint16_t g, uint16_t b, uint16_t a = 0xFFFF)
   {
-    return
-      ((uint64_t)(r) << RedShift  ) |
-      ((uint64_t)(g) << GreenShift) |
-      ((uint64_t)(b) << BlueShift ) |
-      ((uint64_t)(a) << AlphaShift) ;
+    return ((uint64_t)(r) << RedShift  ) |
+           ((uint64_t)(g) << GreenShift) |
+           ((uint64_t)(b) << BlueShift ) |
+           ((uint64_t)(a) << AlphaShift) ;
   }
 };
 #include <Fog/Core/Unpack.h>

@@ -7,18 +7,18 @@
 #define _CRT_SECURE_NO_WARNINGS
 #endif // _MSC_VER
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #ifdef FOG_PRECOMP
 #include FOG_PRECOMP
 #endif
 
 // [Dependencies]
+#include <Fog/Core/ManagedString.h>
 #include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Misc.h>
 #include <Fog/Core/Stream.h>
 #include <Fog/Core/String.h>
-#include <Fog/Core/StringCache.h>
 #include <Fog/Core/Strings.h>
 #include <Fog/Graphics/Error.h>
 #include <Fog/Graphics/Image.h>
@@ -2457,11 +2457,11 @@ GifProvider::GifProvider()
   _features.keyAlpha = true;
 
   // name
-  _name = fog_strings->get(STR_GRAPHICS_GIF);
+  _name = fog_strings->getString(STR_GRAPHICS_GIF);
 
   // extensions
   _extensions.reserve(1);
-  _extensions.append(fog_strings->get(STR_GRAPHICS_gif));
+  _extensions.append(fog_strings->getString(STR_GRAPHICS_gif));
 }
 
 GifProvider::~GifProvider()

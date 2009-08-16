@@ -121,8 +121,8 @@ struct FOG_API BitArray
 
   // [Flags]
 
-  //! @copydoc Doxygen::Implicit::flags().
-  FOG_INLINE uint32_t flags() const { return _d->flags; }
+  //! @copydoc Doxygen::Implicit::getFlags().
+  FOG_INLINE uint32_t getFlags() const { return _d->flags; }
   //! @copydoc Doxygen::Implicit::isDynamic().
   FOG_INLINE bool isDynamic() const { return (_d->flags & Data::IsDynamic) != 0; }
   //! @copydoc Doxygen::Implicit::isSharable().
@@ -163,11 +163,11 @@ struct FOG_API BitArray
   }
 
   //! @brief Returns count of allocated bits (capacity).
-  FOG_INLINE sysuint_t capacity() const { return _d->capacity; }
+  FOG_INLINE sysuint_t getCapacity() const { return _d->capacity; }
   //! @brief Returns count of used bits (length).
-  FOG_INLINE sysuint_t length() const { return _d->length; }
+  FOG_INLINE sysuint_t getLength() const { return _d->length; }
   //! @brief Returns true if bit array is empty.
-  FOG_INLINE bool isEmpty() const { return length() == 0; }
+  FOG_INLINE bool isEmpty() const { return _d->length == 0; }
 
   err_t reserve(sysuint_t to);
   err_t resize(sysuint_t to, uint32_t fill = 0);

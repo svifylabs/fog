@@ -92,7 +92,7 @@ struct Implicit
   //! Object flags contains boolean informations about object data. There
   //! are always informations about object allocation, shareability and
   //! null.
-  uint32_t flags() const;
+  uint32_t getFlags() const;
 
   //! @brief Returns @c true if object data are allocated by dynamic memory
   //! allocation.
@@ -157,10 +157,12 @@ struct Implicit
 #include <Fog/Core/FileSystem.h>
 #include <Fog/Core/FileUtil.h>
 #include <Fog/Core/Hash.h>
+#include <Fog/Core/HashUtil.h>
 #include <Fog/Core/Lazy.h>
 #include <Fog/Core/Library.h>
 #include <Fog/Core/List.h>
 #include <Fog/Core/Locale.h>
+#include <Fog/Core/ManagedString.h>
 #include <Fog/Core/MapFile.h>
 #include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
@@ -177,7 +179,6 @@ struct Implicit
 #include <Fog/Core/Static.h>
 #include <Fog/Core/Stream.h>
 #include <Fog/Core/String.h>
-#include <Fog/Core/StringCache.h>
 #include <Fog/Core/StringUtil.h>
 #include <Fog/Core/Strings.h>
 #include <Fog/Core/TextCodec.h>

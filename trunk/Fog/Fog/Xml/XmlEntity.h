@@ -52,17 +52,17 @@ struct FOG_API XmlEntity
   //! @brief Decode named entity into unicode character.
   static uint16_t decode(const Char8* entityName, sysuint_t entityLength = DetectLength);
   //! @overload.
-  static FOG_INLINE uint16_t decode(const String8& entityName) { return decode(entityName.cData(), entityName.length()); }
+  static FOG_INLINE uint16_t decode(const String8& entityName) { return decode(entityName.cData(), entityName.getLength()); }
 
   //! @brief Decode named entity into unicode character.
   static uint16_t decode(const Char16* entityName, sysuint_t entityLength = DetectLength);
   //! @overload.
-  static FOG_INLINE uint16_t decode(const String16& entityName) { return decode(entityName.cData(), entityName.length()); }
+  static FOG_INLINE uint16_t decode(const String16& entityName) { return decode(entityName.cData(), entityName.getLength()); }
 
   //! @brief Decode named entity into unicode character.
   static uint16_t decode(const Char32* entityName, sysuint_t entityLength = DetectLength);
   //! @overload.
-  static FOG_INLINE uint16_t decode(const String32& entityName) { return decode(entityName.cData(), entityName.length()); }
+  static FOG_INLINE uint16_t decode(const String32& entityName) { return decode(entityName.cData(), entityName.getLength()); }
 
   //! @brief Encode unicode character into named entity.
   //! @note Length of @a dest must be at least 16 characters.

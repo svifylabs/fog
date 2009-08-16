@@ -93,8 +93,8 @@ void UIBackingStore::_clear()
   _convertFunc = NULL;
   _convertDepth = 0;
 
-  _created = TimeTicks();
-  _expires = TimeTicks();
+  _createdTime = TimeTicks();
+  _expireTime = TimeTicks();
 }
 
 } // Fog namespace

@@ -61,10 +61,10 @@ struct FOG_API RgbaAnalyzer
   }
 
   static FOG_INLINE int analyzeAlpha(const Sequence<GradientStop>& stops)
-  { return analyzeAlpha(stops.cData(), stops.length()); }
+  { return analyzeAlpha(stops.cData(), stops.getLength()); }
 
   static FOG_INLINE int analyzeAlpha(const Vector<GradientStop>& stops)
-  { return analyzeAlpha(stops.cData(), stops.length()); }
+  { return analyzeAlpha(stops.cData(), stops.getLength()); }
 };
 
 } // Fog namespace

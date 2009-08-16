@@ -141,7 +141,7 @@ struct FOG_API UIBackingStoreWin : public UIBackingStore
 
   FOG_INLINE bool expired(TimeTicks now) const
   {
-    return (_width != _widthOrig || _height != _heightOrig) && (now >= _expires);
+    return (_width != _widthOrig || _height != _heightOrig) && (now >= _expireTime);
   }
 
   FOG_INLINE HBITMAP hBitmap() const { return _hBitmap; }

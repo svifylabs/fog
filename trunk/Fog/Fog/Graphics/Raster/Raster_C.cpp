@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #ifdef FOG_PRECOMP
 #include FOG_PRECOMP
 #endif
@@ -17,6 +17,9 @@
 #include <Fog/Graphics/Error.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/ImageFilter.h>
+#include <Fog/Graphics/Matrix.h>
+#include <Fog/Graphics/Path.h>
+#include <Fog/Graphics/Path_p.h>
 #include <Fog/Graphics/Pattern.h>
 #include <Fog/Graphics/Raster.h>
 #include <Fog/Graphics/Raster/Raster_C.h>
@@ -30,6 +33,7 @@
 #include <Fog/Graphics/Raster/Raster_C_gradient.cpp.h>
 #include <Fog/Graphics/Raster/Raster_C_pattern.cpp.h>
 #include <Fog/Graphics/Raster/Raster_C_filters.cpp.h>
+#include <Fog/Graphics/Raster/Raster_C_vector.cpp.h>
 
 // ============================================================================
 // [Library Initializers]
@@ -470,4 +474,10 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   m->filter.stackBlurConvolveV[Image::FormatRGB24] = stackBlurConvolveV_rgb24;
   m->filter.stackBlurConvolveH[Image::FormatA8] = stackBlurConvolveH_a8;
   m->filter.stackBlurConvolveV[Image::FormatA8] = stackBlurConvolveV_a8;
+
+  // [Vector]
+
+  m->vector.pathVertexTransform = pathVertexTransform;
+  m->vector.approximateCurve3 = approximateCurve3;
+  m->vector.approximateCurve4 = approximateCurve4;
 }

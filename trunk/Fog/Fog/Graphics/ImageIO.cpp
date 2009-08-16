@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #ifdef FOG_PRECOMP
 #include FOG_PRECOMP
 #endif
@@ -13,6 +13,7 @@
 #include <Fog/Core/AutoLock.h>
 #include <Fog/Core/FileSystem.h>
 #include <Fog/Core/Lock.h>
+#include <Fog/Core/ManagedString.h>
 #include <Fog/Core/MapFile.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Properties.h>
@@ -20,7 +21,6 @@
 #include <Fog/Core/Std.h>
 #include <Fog/Core/Stream.h>
 #include <Fog/Core/String.h>
-#include <Fog/Core/StringCache.h>
 #include <Fog/Core/Strings.h>
 #include <Fog/Core/TextCodec.h>
 #include <Fog/Core/Vector.h>
@@ -429,13 +429,13 @@ FOG_INIT_DECLARE err_t fog_imageio_init(void)
   imageio_local.init();
 
   Vector<String32> properties;
-  properties.append(fog_strings->get(STR_GRAPHICS_width));
-  properties.append(fog_strings->get(STR_GRAPHICS_height));
-  properties.append(fog_strings->get(STR_GRAPHICS_depth));
-  properties.append(fog_strings->get(STR_GRAPHICS_planes));
-  properties.append(fog_strings->get(STR_GRAPHICS_actualFrame));
-  properties.append(fog_strings->get(STR_GRAPHICS_framesCount));
-  properties.append(fog_strings->get(STR_GRAPHICS_progress));
+  properties.append(fog_strings->getString(STR_GRAPHICS_width));
+  properties.append(fog_strings->getString(STR_GRAPHICS_height));
+  properties.append(fog_strings->getString(STR_GRAPHICS_depth));
+  properties.append(fog_strings->getString(STR_GRAPHICS_planes));
+  properties.append(fog_strings->getString(STR_GRAPHICS_actualFrame));
+  properties.append(fog_strings->getString(STR_GRAPHICS_framesCount));
+  properties.append(fog_strings->getString(STR_GRAPHICS_progress));
   FOG_INIT_PROPERTIES_CONTAINER(ImageIO::BaseDevice, ImageIO::BaseDevice::base, properties);
 
   fog_imageio_bmp_init();

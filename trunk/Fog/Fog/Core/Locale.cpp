@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(_MSC_VER) && !defined(_CRT_SECURE_NO_WARNINGS)
 #define _CRT_SECURE_NO_WARNINGS
 #endif // _MSC_VER
@@ -117,7 +117,7 @@ void Locale::free()
 bool Locale::set(const String32& name)
 {
   char lcNameA[512];
-  if (!StringUtil::utf32ToLatin((Char8*)lcNameA, (Char32*)name.cData(), name.length())) return false;
+  if (!StringUtil::utf32ToLatin((Char8*)lcNameA, (Char32*)name.cData(), name.getLength())) return false;
 
   TemporaryString8<128> savedLocale(Stub8(setlocale(LC_ALL, NULL)));
 

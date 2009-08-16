@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
@@ -896,11 +896,11 @@ err_t Engine_8Bit::appendFromUtf16(
   sysuint_t oldStateSize = 0;
   sysuint_t growSize = ((srcBytes) >> 1) + 1;
 
-  err_t err = dst.reserve(dst.length() + growSize);
+  err_t err = dst.reserve(dst.getLength() + growSize);
   if (err) return err;
 
-  uint8_t* dstCur = (uint8_t*)dst.xData() + dst.length();
-  uint8_t* dstEnd = (uint8_t*)dst.xData() + dst.capacity();
+  uint8_t* dstCur = (uint8_t*)dst.xData() + dst.getLength();
+  uint8_t* dstEnd = (uint8_t*)dst.xData() + dst.getCapacity();
 
   // Replacements
   if (replacer == NULL) replacer = TextCodec_defaultReplacer;
@@ -996,14 +996,14 @@ replace:
   if (err) return err;
 
   growSize = (sysuint_t)(srcEnd - srcCur);
-  if (dst.capacity() - dst.length() < growSize)
+  if (dst.getCapacity() - dst.getLength() < growSize)
   {
-    err = dst.reserve(dst.length() + growSize);
+    err = dst.reserve(dst.getLength() + growSize);
     if (err) return err;
   }
 
-  dstCur = (uint8_t*)dst.xData() + dst.length();
-  dstEnd = (uint8_t*)dst.xData() + dst.capacity();
+  dstCur = (uint8_t*)dst.xData() + dst.getLength();
+  dstEnd = (uint8_t*)dst.xData() + dst.getCapacity();
   goto cont;
 
 end:
@@ -1024,10 +1024,10 @@ err_t Engine_8Bit::appendToUtf16(
   // Destination Buffer
   sysuint_t growSize = srcBytes + 1;
 
-  err_t err = dst.reserve(dst.length() + growSize);
+  err_t err = dst.reserve(dst.getLength() + growSize);
   if (err) return err;
 
-  Char16* dstCur = dst.xData() + dst.length();
+  Char16* dstCur = dst.xData() + dst.getLength();
 
   // Characters
   uint16_t uc;
@@ -1061,11 +1061,11 @@ err_t Engine_8Bit::appendFromUtf32(
   sysuint_t oldStateSize = 0;
   sysuint_t growSize = ((srcBytes) >> 2) + 1;
 
-  err_t err = dst.reserve(dst.length() + growSize);
+  err_t err = dst.reserve(dst.getLength() + growSize);
   if (err) return err;
 
-  uint8_t* dstCur = (uint8_t*)dst.xData() + dst.length();
-  uint8_t* dstEnd = (uint8_t*)dst.xData() + dst.capacity();
+  uint8_t* dstCur = (uint8_t*)dst.xData() + dst.getLength();
+  uint8_t* dstEnd = (uint8_t*)dst.xData() + dst.getCapacity();
 
   // Replacements
   if (replacer == NULL) replacer = TextCodec_defaultReplacer;
@@ -1134,14 +1134,14 @@ replace:
   if (err) return err;
 
   growSize = (sysuint_t)(srcEnd - srcCur);
-  if (dst.capacity() - dst.length() < growSize)
+  if (dst.getCapacity() - dst.getLength() < growSize)
   {
-    err = dst.reserve(dst.length() + growSize);
+    err = dst.reserve(dst.getLength() + growSize);
     if (err) return err;
   }
  
-  dstCur = (uint8_t*)dst.xData() + dst.length();
-  dstEnd = (uint8_t*)dst.xData() + dst.capacity();
+  dstCur = (uint8_t*)dst.xData() + dst.getLength();
+  dstEnd = (uint8_t*)dst.xData() + dst.getCapacity();
   goto cont;
 
 end:
@@ -1161,10 +1161,10 @@ err_t Engine_8Bit::appendToUtf32(
   // Destination Buffer
   sysuint_t growSize = srcBytes + 1;
 
-  err_t err = dst.reserve(dst.length() + growSize);
+  err_t err = dst.reserve(dst.getLength() + growSize);
   if (err) return err;
 
-  Char32* dstCur = dst.xData() + dst.length();
+  Char32* dstCur = dst.xData() + dst.getLength();
 
   // Characters
   uint32_t uc;
@@ -1272,11 +1272,11 @@ err_t Engine_UTF8::appendFromUtf32(
   sysuint_t oldStateSize = 0;
   sysuint_t growSize = srcBytes + 4;
 
-  err_t err = dst.reserve(dst.length() + growSize);
+  err_t err = dst.reserve(dst.getLength() + growSize);
   if (err) return err;
 
-  uint8_t* dstCur = (uint8_t*)dst.xData() + dst.length();
-  uint8_t* dstEnd = (uint8_t*)dst.xData() + dst.capacity();
+  uint8_t* dstCur = (uint8_t*)dst.xData() + dst.getLength();
+  uint8_t* dstEnd = (uint8_t*)dst.xData() + dst.getCapacity();
 
   // Characters
   uint32_t uc;
@@ -1408,11 +1408,11 @@ err_t Engine_UTF8::appendToUtf32(
   sysuint_t utf8Size;
   sysuint_t growSize = srcBytes + 1;
  
-  err_t err = dst.reserve(dst.length() + growSize);
+  err_t err = dst.reserve(dst.getLength() + growSize);
   if (err) return err;
 
-  Char32* dstCur = dst.xData() + dst.length();
-  Char32* dstEnd = dst.xData() + dst.capacity();
+  Char32* dstCur = dst.xData() + dst.getLength();
+  Char32* dstEnd = dst.xData() + dst.getCapacity();
 
   // Characters
   uint32_t uc;
@@ -1521,15 +1521,15 @@ err_t Engine_UTF16::appendFromUtf16(
   const uint8_t* srcEndMinus1 = srcEnd - 1;
 
   // Destination Buffer
-  sysuint_t oldDestLength = dst.length();
+  sysuint_t oldDestLength = dst.getLength();
   sysuint_t oldStateSize = 0;
   sysuint_t growSize = srcBytes + 4;
 
-  err_t err = dst.reserve(dst.length() + growSize);
+  err_t err = dst.reserve(dst.getLength() + growSize);
   if (err) return err;
 
-  uint16_t* dstCur = (uint16_t*)dst.xData() + dst.length();
-  uint16_t* dstEnd = (uint16_t*)dst.xData() + dst.capacity();
+  uint16_t* dstCur = (uint16_t*)dst.xData() + dst.getLength();
+  uint16_t* dstEnd = (uint16_t*)dst.xData() + dst.getCapacity();
 
   // Characters
   uint16_t uc0 = 0;
@@ -1623,7 +1623,7 @@ end:
   if (flags & TextCodec::IsByteSwapped)
   {
     dstCur = (uint16_t *)(dst.xData() + oldDestLength);
-    dstEnd = (uint16_t *)(dst.xData() + dst.length());
+    dstEnd = (uint16_t *)(dst.xData() + dst.getLength());
 
     while (dstCur < dstEnd) *dstCur++ = Memory::bswap16(*dstCur);
   }
@@ -1644,11 +1644,11 @@ err_t Engine_UTF16::appendToUtf16(
   sysuint_t oldStateSize = 0;
   sysuint_t growSize = (srcBytes >> 1) + 2;
 
-  err_t err = dst.reserve(dst.length() + growSize);
+  err_t err = dst.reserve(dst.getLength() + growSize);
   if (err) return err;
 
-  Char16* dstCur = dst.xData() + dst.length(); 
-  Char16* dstEnd = dst.xData() + dst.capacity();
+  Char16* dstCur = dst.xData() + dst.getLength(); 
+  Char16* dstEnd = dst.xData() + dst.getCapacity();
 
   // Characters
   uint16_t uc16_0;
@@ -1772,15 +1772,15 @@ err_t Engine_UTF16::appendFromUtf32(
   const uint8_t* srcEndMinus3 = srcEnd - 3;
 
   // Destination Buffer
-  sysuint_t oldDestLength = dst.length();
+  sysuint_t oldDestLength = dst.getLength();
   sysuint_t oldStateSize = 0;
   sysuint_t growSize = srcBytes + 4;
 
-  err_t err = dst.reserve(dst.length() + growSize);
+  err_t err = dst.reserve(dst.getLength() + growSize);
   if (err) return err;
 
-  uint16_t* dstCur = (uint16_t*)dst.xData() + dst.length();
-  uint16_t* dstEnd = (uint16_t*)dst.xData() + dst.capacity();
+  uint16_t* dstCur = (uint16_t*)dst.xData() + dst.getLength();
+  uint16_t* dstEnd = (uint16_t*)dst.xData() + dst.getCapacity();
 
   // Characters
   uint32_t uc;
@@ -1857,7 +1857,7 @@ end:
   if (flags & TextCodec::IsByteSwapped)
   {
     dstCur = (uint16_t *)(dst.xData() + oldDestLength);
-    dstEnd = (uint16_t *)(dst.xData() + dst.length());
+    dstEnd = (uint16_t *)(dst.xData() + dst.getLength());
 
     while (dstCur < dstEnd) *dstCur++ = Memory::bswap16(*dstCur);
   }
@@ -1878,11 +1878,11 @@ err_t Engine_UTF16::appendToUtf32(
   sysuint_t oldStateSize = 0;
   sysuint_t growSize = (srcBytes >> 1) + 1;
 
-  err_t err = dst.reserve(dst.length() + growSize);
+  err_t err = dst.reserve(dst.getLength() + growSize);
   if (err) return err;
 
-  Char32* dstCur = dst.xData() + dst.length(); 
-  Char32* dstEnd = dst.xData() + dst.capacity();
+  Char32* dstCur = dst.xData() + dst.getLength(); 
+  Char32* dstEnd = dst.xData() + dst.getCapacity();
 
   // Characters
   uint32_t uc;
@@ -2062,15 +2062,15 @@ err_t Engine_UCS2::appendFromUtf32(
   const uint8_t* srcEndMinus3 = srcEnd - 3;
 
   // Destination Buffer
-  sysuint_t oldDestLength = dst.length();
+  sysuint_t oldDestLength = dst.getLength();
   sysuint_t oldStateSize = 0;
   sysuint_t growSize = (srcBytes >> 1) + 2;
 
-  err_t err = dst.reserve(dst.length() + growSize);
+  err_t err = dst.reserve(dst.getLength() + growSize);
   if (err) return err;
 
-  uint16_t* dstCur = (uint16_t*)(dst.xData() + dst.length());
-  uint16_t* dstEnd = (uint16_t*)(dst.xData() + dst.capacity());
+  uint16_t* dstCur = (uint16_t*)(dst.xData() + dst.getLength());
+  uint16_t* dstEnd = (uint16_t*)(dst.xData() + dst.getCapacity());
 
   // Replacement
   String8 rbuf;
@@ -2143,11 +2143,11 @@ replace:
 
   growSize = ((sysuint_t)(srcEnd - srcCur) >> 1);
 
-  err = dst.reserve(dst.length() + growSize);
+  err = dst.reserve(dst.getLength() + growSize);
   if (err) goto end2;
 
-  dstCur = (uint16_t*)(dst.xData() + dst.length());
-  dstEnd = (uint16_t*)(dst.xData() + dst.capacity());
+  dstCur = (uint16_t*)(dst.xData() + dst.getLength());
+  dstEnd = (uint16_t*)(dst.xData() + dst.getCapacity());
 
   goto cont;
 
@@ -2159,7 +2159,7 @@ end2:
   if (flags & TextCodec::IsByteSwapped)
   {
     dstCur = (uint16_t *)(dst.xData() + oldDestLength);
-    dstEnd = (uint16_t *)(dst.xData() + dst.length());
+    dstEnd = (uint16_t *)(dst.xData() + dst.getLength());
 
     while (dstCur < dstEnd) *dstCur++ = Memory::bswap16(*dstCur);
   }
@@ -2180,10 +2180,10 @@ err_t Engine_UCS2::appendToUtf32(
   sysuint_t oldStateSize = 0;
   sysuint_t growSize = (srcBytes >> 1) + 1;
  
-  err_t err = dst.reserve(dst.length() + growSize);
+  err_t err = dst.reserve(dst.getLength() + growSize);
   if (err) return err;
 
-  Char32* dstCur = dst.xData() + dst.length();
+  Char32* dstCur = dst.xData() + dst.getLength();
 
   // Characters
   uint16_t uc;
@@ -2317,15 +2317,15 @@ err_t Engine_UTF32::appendFromUtf16(
   const uint8_t* srcEndMinus1 = srcEnd - 1;
 
   // Destination Buffer
-  sysuint_t oldDestLength = dst.length();
+  sysuint_t oldDestLength = dst.getLength();
   sysuint_t oldStateSize = 0;
   sysuint_t growSize = (srcBytes << 2) + 4;
 
-  err_t err = dst.reserve(dst.length() + growSize);
+  err_t err = dst.reserve(dst.getLength() + growSize);
   if (err) return err;
 
-  uint32_t* dstCur = (uint32_t*)(dst.xData() + dst.length());
-  uint32_t* dstEnd = (uint32_t*)(dst.xData() + dst.capacity());
+  uint32_t* dstCur = (uint32_t*)(dst.xData() + dst.getLength());
+  uint32_t* dstEnd = (uint32_t*)(dst.xData() + dst.getCapacity());
 
   // Characters
   uint16_t uc0 = 0;
@@ -2417,7 +2417,7 @@ end:
   if (flags & TextCodec::IsByteSwapped)
   {
     dstCur = (uint32_t *)(dst.xData() + oldDestLength);
-    dstEnd = (uint32_t *)(dst.xData() + dst.length());
+    dstEnd = (uint32_t *)(dst.xData() + dst.getLength());
 
     while (dstCur < dstEnd) *dstCur++ = Memory::bswap32(*dstCur);
   }
@@ -2439,10 +2439,10 @@ err_t Engine_UTF32::appendToUtf16(
   sysuint_t oldStateSize = 0;
   sysuint_t growSize = (srcBytes >> 1) + 1;
 
-  err_t err = dst.reserve(dst.length() + growSize);
+  err_t err = dst.reserve(dst.getLength() + growSize);
   if (err) return err;
 
-  Char16* dstCur = dst.xData() + dst.length();
+  Char16* dstCur = dst.xData() + dst.getLength();
 
   // Characters
   uint32_t uc;
@@ -2553,14 +2553,14 @@ err_t Engine_UTF32::appendFromUtf32(
   const uint8_t* srcEndMinus3 = srcEnd - 3;
 
   // Destination Buffer
-  sysuint_t oldDestLength = dst.length();
+  sysuint_t oldDestLength = dst.getLength();
   sysuint_t oldStateSize = 0;
   sysuint_t growSize = srcBytes + 4;
 
-  err_t err = dst.reserve(dst.length() + growSize);
+  err_t err = dst.reserve(dst.getLength() + growSize);
   if (err) return err;
 
-  uint32_t* dstCur = (uint32_t*)(dst.xData() + dst.length());
+  uint32_t* dstCur = (uint32_t*)(dst.xData() + dst.getLength());
 
   // Characters
   uint32_t uc;
@@ -2629,7 +2629,7 @@ end:
   if (flags & TextCodec::IsByteSwapped)
   {
     dstCur = (uint32_t *)(dst.xData() + oldDestLength);
-    for (sysuint_t i = dst.length() - oldDestLength; i; i--)
+    for (sysuint_t i = dst.getLength() - oldDestLength; i; i--)
       *dstCur++ = Memory::bswap32(*dstCur);
   }
 
@@ -2650,10 +2650,10 @@ err_t Engine_UTF32::appendToUtf32(
   sysuint_t oldStateSize = 0;
   sysuint_t growSize = (srcBytes >> 2) + 1;
 
-  err_t err = dst.reserve(dst.length() + growSize);
+  err_t err = dst.reserve(dst.getLength() + growSize);
   if (err) return err;
 
-  Char32* dstCur = dst.xData() + dst.length();
+  Char32* dstCur = dst.xData() + dst.getLength();
 
   // Characters
   uint32_t uc;
@@ -3017,11 +3017,11 @@ TextCodec TextCodec::fromMime(const char* mime)
 
 TextCodec TextCodec::fromMime(const String32& mime)
 {
-  if (mime.length() > 255) return TextCodec();
+  if (mime.getLength() > 255) return TextCodec();
 
   char mime8[256];
-  StringUtil::utf32ToLatin((Char8*)mime8, mime.cData(), mime.length());
-  mime8[mime.length()] = '\0';
+  StringUtil::utf32ToLatin((Char8*)mime8, mime.cData(), mime.getLength());
+  mime8[mime.getLength()] = '\0';
 
   return fromMime(mime8);
 }
@@ -3094,7 +3094,7 @@ err_t TextCodec::fromUtf16(
 {
   dst.clear();
   return _d->appendFromUtf16(
-    dst, (const void*)src.str(), src.length(), replacer, state);
+    dst, (const void*)src.getStr(), src.getLength(), replacer, state);
 }
 
 err_t TextCodec::fromUtf16(
@@ -3108,7 +3108,7 @@ err_t TextCodec::fromUtf16(
 
   dst.clear();
   err_t err = _d->appendFromUtf16(
-    dst, (const void*)src.cData(), src.length(), replacer, state);
+    dst, (const void*)src.cData(), src.getLength(), replacer, state);
 
   // Dereference (important step)
   src_d->deref();
@@ -3120,7 +3120,7 @@ err_t TextCodec::fromUtf16(
 {
   dst.clear();
   return _d->appendFromUtf16(
-    dst, (const void*)src.cData(), src.length() << 1, replacer, state);
+    dst, (const void*)src.cData(), src.getLength() << 1, replacer, state);
 }
 
 err_t TextCodec::fromUtf32(
@@ -3128,7 +3128,7 @@ err_t TextCodec::fromUtf32(
 {
   dst.clear();
   return _d->appendFromUtf32(
-    dst, (const void*)src.str(), src.length(), replacer, state);
+    dst, (const void*)src.getStr(), src.getLength(), replacer, state);
 }
 
 err_t TextCodec::fromUtf32(
@@ -3142,7 +3142,7 @@ err_t TextCodec::fromUtf32(
 
   dst.clear();
   err_t err = _d->appendFromUtf32(
-    dst, (const void*)src.cData(), src.length(), replacer, state);
+    dst, (const void*)src.cData(), src.getLength(), replacer, state);
 
   // Dereference (important step)
   src_d->deref();
@@ -3154,7 +3154,7 @@ err_t TextCodec::fromUtf32(
 {
   dst.clear();
   return _d->appendFromUtf32(
-    dst, (const void*)src.cData(), src.length() << 2, replacer, state);
+    dst, (const void*)src.cData(), src.getLength() << 2, replacer, state);
 }
 
 // AppendFromUtf16/32
@@ -3163,7 +3163,7 @@ err_t TextCodec::appendFromUtf16(
   String8& dst, const Stub8& src, Replacer replacer, State* state) const
 {
   return _d->appendFromUtf16(
-    dst, (const void*)src.str(), src.length(), replacer, state);
+    dst, (const void*)src.getStr(), src.getLength(), replacer, state);
 }
 
 err_t TextCodec::appendFromUtf16(
@@ -3176,7 +3176,7 @@ err_t TextCodec::appendFromUtf16(
   src_d->refCount.inc();
 
   err_t err = _d->appendFromUtf16(
-    dst, (const void*)src.cData(), src.length(), replacer, state);
+    dst, (const void*)src.cData(), src.getLength(), replacer, state);
 
   // Dereference (important step)
   src_d->deref();
@@ -3187,14 +3187,14 @@ err_t TextCodec::appendFromUtf16(
   String8& dst, const String16& src, Replacer replacer, State* state) const
 {
   return _d->appendFromUtf16(
-    dst, (const void*)src.cData(), src.length() << 1, replacer, state);
+    dst, (const void*)src.cData(), src.getLength() << 1, replacer, state);
 }
 
 err_t TextCodec::appendFromUtf32(
   String8& dst, const Stub8& src, Replacer replacer, State* state) const
 {
   return _d->appendFromUtf32(
-    dst, (const void*)src.str(), src.length(), replacer, state);
+    dst, (const void*)src.getStr(), src.getLength(), replacer, state);
 }
 
 err_t TextCodec::appendFromUtf32(
@@ -3207,7 +3207,7 @@ err_t TextCodec::appendFromUtf32(
   src_d->refCount.inc();
 
   err_t err = _d->appendFromUtf32(
-    dst, (const void*)src.cData(), src.length(), replacer, state);
+    dst, (const void*)src.cData(), src.getLength(), replacer, state);
 
   // Dereference (important step)
   src_d->deref();
@@ -3218,7 +3218,7 @@ err_t TextCodec::appendFromUtf32(
   String8& dst, const String32& src, Replacer replacer, State* state) const
 {
   return _d->appendFromUtf32(
-    dst, (const void*)src.cData(), src.length() << 2, replacer, state);
+    dst, (const void*)src.cData(), src.getLength() << 2, replacer, state);
 }
 
 // ToUtf16/32
@@ -3226,47 +3226,47 @@ err_t TextCodec::appendFromUtf32(
 err_t TextCodec::toUtf16(String16& dst, const Stub8& src, State* state) const
 {
   dst.clear();
-  return _d->appendToUtf16(dst, (const void*)src.str(), src.length(), state);
+  return _d->appendToUtf16(dst, (const void*)src.getStr(), src.getLength(), state);
 }
 
 err_t TextCodec::toUtf16(String16& dst, const String8& src, State* state) const
 {
   dst.clear();
-  return _d->appendToUtf16(dst, (const void*)src.cData(), src.length(), state);
+  return _d->appendToUtf16(dst, (const void*)src.cData(), src.getLength(), state);
 }
 
 err_t TextCodec::toUtf32(String32& dst, const Stub8& src, State* state) const
 {
   dst.clear();
-  return _d->appendToUtf32(dst, (const void*)src.str(), src.length(), state);
+  return _d->appendToUtf32(dst, (const void*)src.getStr(), src.getLength(), state);
 }
 
 err_t TextCodec::toUtf32(String32& dst, const String8& src, State* state) const
 {
   dst.clear();
-  return _d->appendToUtf32(dst, (const void*)src.cData(), src.length(), state);
+  return _d->appendToUtf32(dst, (const void*)src.cData(), src.getLength(), state);
 }
 
 // AppendToUtf16/32
 
 err_t TextCodec::appendToUtf16(String16& dst, const Stub8& src, State* state) const
 {
-  return _d->appendToUtf16(dst, (const void*)src.str(), src.length(), state);
+  return _d->appendToUtf16(dst, (const void*)src.getStr(), src.getLength(), state);
 }
 
 err_t TextCodec::appendToUtf16(String16& dst, const String8& src, State* state) const
 {
-  return _d->appendToUtf16(dst, (const void*)src.cData(), src.length(), state);
+  return _d->appendToUtf16(dst, (const void*)src.cData(), src.getLength(), state);
 }
 
 err_t TextCodec::appendToUtf32(String32& dst, const Stub8& src, State* state) const
 {
-  return _d->appendToUtf32(dst, (const void*)src.str(), src.length(), state);
+  return _d->appendToUtf32(dst, (const void*)src.getStr(), src.getLength(), state);
 }
 
 err_t TextCodec::appendToUtf32(String32& dst, const String8& src, State* state) const
 {
-  return _d->appendToUtf32(dst, (const void*)src.cData(), src.length(), state);
+  return _d->appendToUtf32(dst, (const void*)src.cData(), src.getLength(), state);
 }
 
 } // Fog namespace

@@ -23,12 +23,13 @@
 //----------------------------------------------------------------------------
 
 // [Guard]
-#ifndef _FOG_GRAPHICS_AFFINEMATRIX_H
-#define _FOG_GRAPHICS_AFFINEMATRIX_H
+#ifndef _FOG_GRAPHICS_MATRIX_H
+#define _FOG_GRAPHICS_MATRIX_H
 
 // [Dependencies]
 #include <Fog/Build/Build.h>
 #include <Fog/Core/Math.h>
+#include <Fog/Core/TypeInfo.h>
 #include <Fog/Graphics/Constants.h>
 
 //! @addtogroup Fog_Graphics
@@ -36,7 +37,11 @@
 
 namespace Fog {
 
-//! @brief Matrix for affine transformations.
+// ============================================================================
+// [Fog::Matrix]
+// ============================================================================
+
+//! @brief Matrix that can be used to do affine transformations.
 //!
 //! Affine transformation are linear transformations in Cartesian coordinates
 //! (strictly speaking not only in Cartesian, but for the beginning we will
@@ -63,10 +68,10 @@ namespace Fog {
 //!    rotate(30), scaleX(2.0), scaleY(1.5), move(100,100)
 //!    will have exactly the same result as the following matrix transformations:
 //!
-//!      Fog::AffineMatrix m;
-//!      m *= Fog::AffineMatrix::fromRotation(30);
-//!      m *= Fog::AffineMatrix::fromScale(2.0, 1.5);
-//!      m *= Fog::AffineMatrix::fromTranslation(100, 100);
+//!      Fog::Matrix m;
+//!      m *= Fog::Matrix::fromRotation(30);
+//!      m *= Fog::Matrix::fromScale(2.0, 1.5);
+//!      m *= Fog::Matrix::fromTranslation(100, 100);
 //!
 //!      m.transform(&x, &y);
 //!
@@ -77,7 +82,7 @@ namespace Fog {
 //! So, how to use it? Very easy - literally as it's shown above. Not quite,
 //! let us write a correct example:
 //!
-//!   Fog::AffineMatrix m;
+//!   Fog::Matrix m;
 //!   m.rotate(Fog::Math::deg2rad(30.0));
 //!   m.scale(2.0, 1.5);
 //!   m.translate(100.0, 100.0);
@@ -90,66 +95,81 @@ namespace Fog {
 //!   m.translate(-100.0, -100.0);  // move to (0,0)
 //!   m.rotate(Fog::Math::deg2rad(30.0)); // rotate
 //!   m.translate(100.0, 100.0);    // move back to (100,100)
-struct FOG_API AffineMatrix
+struct FOG_API Matrix
 {
   // [Construction / Destruction]
 
   //! @brief Create identity matrix.
-  FOG_INLINE AffineMatrix() :
-    sx(1.0), shy(0.0), shx(0.0), sy(1.0), tx(0.0), ty(0.0)
-  {}
+  FOG_INLINE Matrix()
+  {
+    sx  = 1.0; shy = 0.0;
+    shx = 0.0; sy  = 1.0;
+    tx  = 0.0; ty  = 0.0;
+  }
 
   //! @brief Create custom matrix.
-  FOG_INLINE AffineMatrix(
-    double v0, double v1, double v2, 
-    double v3, double v4, double v5) :
-      sx(v0), shy(v1), shx(v2), sy(v3), tx(v4), ty(v5)
-  {}
+  FOG_INLINE Matrix(
+    double m0, double m1, double m2, 
+    double m3, double m4, double m5)
+  {
+    sx  = m0; shy = m1;
+    shx = m2; sy  = m3;
+    tx  = m4; ty  = m5;
+  }
 
   //! @brief Create custom matrix from m[6].
-  FOG_INLINE explicit AffineMatrix(const double* m) :
-    sx(m[0]), shy(m[1]), shx(m[2]), sy(m[3]), tx(m[4]), ty(m[5])
-  {}
+  FOG_INLINE explicit Matrix(const double* m)
+  {
+    sx  = m[0]; shy = m[1];
+    shx = m[2]; sy  = m[3];
+    tx  = m[4]; ty  = m[5];
+  }
 
   //! @brief Rectangle to a parallelogram..
-  FOG_INLINE AffineMatrix(double x1, double y1, double x2, double y2, const double* parl)
-  { rectToParl(x1, y1, x2, y2, parl); }
+  FOG_INLINE Matrix(double x1, double y1, double x2, double y2, const double* parl)
+  {
+    rectToParl(x1, y1, x2, y2, parl);
+  }
 
   //! @brief Parallelogram to a rectangle.
-  FOG_INLINE AffineMatrix(const double* parl, double x1, double y1, double x2, double y2)
-  { parlToRect(parl, x1, y1, x2, y2); }
+  FOG_INLINE Matrix(const double* parl, double x1, double y1, double x2, double y2)
+  {
+    parlToRect(parl, x1, y1, x2, y2);
+  }
 
   //! @brief Arbitrary parallelogram transformation.
-  FOG_INLINE AffineMatrix(const double* src, const double* dst)
-  { parlToParl(src, dst); }
+  FOG_INLINE Matrix(const double* src, const double* dst)
+  {
+    parlToParl(src, dst);
+  }
 
   //! @brief Create rotation matrix.
-  static AffineMatrix fromRotation(double a);
+  static Matrix fromRotation(double a);
 
   //! @brief Create scaling matrix.
-  static AffineMatrix fromScale(double s);
+  static Matrix fromScale(double s);
 
   //! @brief Create scaling matrix.
-  static AffineMatrix fromScale(double x, double y);
+  static Matrix fromScale(double x, double y);
 
   //! @brief Create translation matrix
-  static AffineMatrix fromTranslation(double x, double y);
+  static Matrix fromTranslation(double x, double y);
 
   //! @brief Create skewing (shear) matrix
-  static AffineMatrix fromSkew(double x, double y);
+  static Matrix fromSkew(double x, double y);
 
   //! @brief Create line segment matrix - rotate, scale and translate, 
   //! associating 0...dist with line segment x1, y1, x2, y2.
-  static AffineMatrix fromLineSegment(double x1, double y1, double x2, double y2, double dist);
+  static Matrix fromLineSegment(double x1, double y1, double x2, double y2, double dist);
 
   //! Reflection matrix. Reflect coordinates across the line through 
   //! the origin containing the unit vector (ux, uy).
   //!
   //! Contributed by John Horigan
-  static AffineMatrix fromReflectionUnit(double ux, double uy);
+  static Matrix fromReflectionUnit(double ux, double uy);
 
-  static AffineMatrix fromReflection(double a);
-  static AffineMatrix fromReflection(double x, double y);
+  static Matrix fromReflection(double a);
+  static Matrix fromReflection(double x, double y);
 
   // [Parellelogram transformations]
 
@@ -163,44 +183,44 @@ struct FOG_API AffineMatrix
   //      /                 /
   //     /(x1,y1)   (x2,y2)/
   //    *-----------------*
-  AffineMatrix& parlToParl(const double* src, const double* dst);
-  AffineMatrix& rectToParl(double x1, double y1, double x2, double y2, const double* parl);
-  AffineMatrix& parlToRect(const double* parl, double x1, double y1, double x2, double y2);
+  Matrix& parlToParl(const double* src, const double* dst);
+  Matrix& rectToParl(double x1, double y1, double x2, double y2, const double* parl);
+  Matrix& parlToRect(const double* parl, double x1, double y1, double x2, double y2);
 
   // [Operations]
 
   //! @brief Reset - load an identity matrix
-  AffineMatrix& reset();
+  Matrix& reset();
 
   // Direct transformations operations
-  AffineMatrix& translate(double x, double y);
-  AffineMatrix& rotate(double a);
-  AffineMatrix& scale(double s);
-  AffineMatrix& scale(double x, double y);
-  AffineMatrix& skew(double x, double y);
+  Matrix& translate(double x, double y);
+  Matrix& rotate(double a);
+  Matrix& scale(double s);
+  Matrix& scale(double x, double y);
+  Matrix& skew(double x, double y);
 
   //! @brief Multiply matrix by another one
-  AffineMatrix& multiply(const AffineMatrix& m);
-
-  //! @brief Multiply "m" to "this" and assign the result to "this"
-  AffineMatrix& premultiply(const AffineMatrix& m);
+  Matrix& multiply(const Matrix& m);
 
   //! @brief Multiply matrix to inverse of another one
-  AffineMatrix& multiplyInv(const AffineMatrix& m);
+  Matrix& multiplyInv(const Matrix& m);
+
+  //! @brief Multiply "m" to "this" and assign the result to "this"
+  Matrix& premultiply(const Matrix& m);
 
   //! @brief Multiply inverse of "m" to "this" and assign the result to "this"
-  AffineMatrix& premultiplyInv(const AffineMatrix& m);
+  Matrix& premultiplyInv(const Matrix& m);
 
   //! @brief Invert matrix. Do not try to invert degenerate matrices,
   //! there's no check for validity. If you set scale to 0 and 
   //! then try to invert matrix, expect unpredictable result.
-  AffineMatrix& invert();
+  Matrix& invert();
 
   //! @brief Mirroring around X
-  AffineMatrix& flipX();
+  Matrix& flipX();
 
   //! @brief Mirroring around Y
-  AffineMatrix& flipY();
+  Matrix& flipY();
 
   // [Load / Store]
 
@@ -212,7 +232,7 @@ struct FOG_API AffineMatrix
   }
 
   //! @brief Load matrix from an array [6] of double
-  FOG_INLINE AffineMatrix& loadFrom(const double* m)
+  FOG_INLINE Matrix& loadFrom(const double* m)
   {
     sx = m[0]; shy = m[1]; shx = m[2];
     sy = m[3]; tx  = m[4]; ty  = m[5];
@@ -222,33 +242,33 @@ struct FOG_API AffineMatrix
   // [Operators]
   
   //! @brief Multiply the matrix by another one
-  FOG_INLINE AffineMatrix& operator*=(const AffineMatrix& m)
+  FOG_INLINE Matrix& operator*=(const Matrix& m)
   { return multiply(m); }
 
   //! @brief Multiply the matrix by inverse of another one
-  FOG_INLINE AffineMatrix& operator/=(const AffineMatrix& m)
+  FOG_INLINE Matrix& operator/=(const Matrix& m)
   { return multiplyInv(m); }
 
   //! @brief Multiply the matrix by another one and return
   //! the result in a separete matrix.
-  FOG_INLINE AffineMatrix operator*(const AffineMatrix& m)
-  { return AffineMatrix(*this).multiply(m); }
+  FOG_INLINE Matrix operator*(const Matrix& m)
+  { return Matrix(*this).multiply(m); }
 
   //! @brief Multiply the matrix by inverse of another one 
   //! and return the result in a separete matrix.
-  FOG_INLINE AffineMatrix operator/(const AffineMatrix& m)
-  { return AffineMatrix(*this).multiplyInv(m); }
+  FOG_INLINE Matrix operator/(const Matrix& m)
+  { return Matrix(*this).multiplyInv(m); }
 
   //! @brief Calculate and return the inverse matrix
-  FOG_INLINE AffineMatrix operator~() const
-  { AffineMatrix ret = *this; return ret.invert(); }
+  FOG_INLINE Matrix operator~() const
+  { Matrix ret = *this; return ret.invert(); }
 
   //! @brief Equal operator with default epsilon
-  FOG_INLINE bool operator==(const AffineMatrix& m) const
+  FOG_INLINE bool operator==(const Matrix& m) const
   { return isEqual(m, Math::defaultEpsilon); }
 
   //! @brief Not Equal operator with default epsilon
-  FOG_INLINE bool operator!=(const AffineMatrix& m) const
+  FOG_INLINE bool operator!=(const Matrix& m) const
   { return !isEqual(m, Math::defaultEpsilon); }
 
   // [Transformations]
@@ -286,7 +306,7 @@ struct FOG_API AffineMatrix
   bool isIdentity(double epsilon = Math::defaultEpsilon) const;
 
   //! @brief Check to see if two matrices are equal.
-  bool isEqual(const AffineMatrix& m, double epsilon = Math::defaultEpsilon) const;
+  bool isEqual(const Matrix& m, double epsilon = Math::defaultEpsilon) const;
 
   //! @brief Determine the major parameters. Use with caution considering 
   //! possible degenerate cases.
@@ -298,12 +318,25 @@ struct FOG_API AffineMatrix
 
   // [Members]
 
-  double sx, shy, shx, sy, tx, ty;
+  union {
+    double m[6];
+    struct {
+      // Never change order of these variables, they are accessed through SSE2
+      // fast paths without referencing (directly from m[] pointer).
+      double sx, shy, shx, sy, tx, ty;
+    };
+  };
 };
 
 } // Fog namespace
 
+// ============================================================================
+// [Fog::TypeInfo<T>]
+// ============================================================================
+
+FOG_DECLARE_TYPEINFO(Fog::Matrix, Fog::PrimitiveType)
+
 //! @}
 
 // [Guard]
-#endif // _FOG_GRAPHICS_AFFINEMATRIX_H
+#endif // _FOG_GRAPHICS_MATRIX_H

@@ -91,7 +91,7 @@ struct FOG_API Region
     //! @brief Count of preallocated rectangles.
     sysuint_t capacity;
     //! @brief Count of used rectangles.
-    sysuint_t count;
+    sysuint_t length;
     //! @brief Region extents.
     Box extents;
     //! @brief Region rectangles, always YX sorted.
@@ -124,8 +124,8 @@ struct FOG_API Region
 
   // [Flags]
 
-  //! @copydoc Doxygen::Implicit::flags().
-  FOG_INLINE uint32_t flags() const { return _d->flags; }
+  //! @copydoc Doxygen::Implicit::getFlags().
+  FOG_INLINE uint32_t getFlags() const { return _d->flags; }
   //! @copydoc Doxygen::Implicit::isDynamic().
   FOG_INLINE bool isDynamic() const { return (_d->flags & Data::IsDynamic) != 0; }
   //! @copydoc Doxygen::Implicit::isSharable().
@@ -156,13 +156,13 @@ struct FOG_API Region
   // [Container]
 
   //! @brief Returns capacity of region in rectangles.
-  FOG_INLINE sysuint_t capacity() const  { return _d->capacity; }
+  FOG_INLINE sysuint_t getCapacity() const  { return _d->capacity; }
 
   //! @brief Returns count of rectangles in region.
-  FOG_INLINE sysuint_t count() const  { return _d->count; }
+  FOG_INLINE sysuint_t getLength() const  { return _d->length; }
 
   //! @brief Returns @c true if region is empty.
-  FOG_INLINE bool isEmpty() const  { return _d->count == 0; }
+  FOG_INLINE bool isEmpty() const  { return _d->length == 0; }
 
   //! @brief Returns region extents.
   FOG_INLINE const Box& extents() const  { return _d->extents; }
@@ -171,7 +171,7 @@ struct FOG_API Region
   err_t prepare(sysuint_t to);
   void squeeze();
 
-  uint32_t type() const;
+  uint32_t getType() const;
 
   // [Contains]
 
@@ -350,12 +350,12 @@ struct TemporaryRegion : public Region
   }
 
   FOG_INLINE TemporaryRegion(const TemporaryRegion<N>& other) :
-    Region(Data::adopt((void*)&_storage, N, &other._d->extents, other._d->rects, other._d->count))
+    Region(Data::adopt((void*)&_storage, N, &other._d->extents, other._d->rects, other._d->length))
   {
   }
   
   FOG_INLINE TemporaryRegion(const Region& other) :
-    Region(Data::adopt((void*)&_storage, N, &other._d->extents, other._d->rects, other._d->count))
+    Region(Data::adopt((void*)&_storage, N, &other._d->extents, other._d->rects, other._d->length))
   {
   }
 

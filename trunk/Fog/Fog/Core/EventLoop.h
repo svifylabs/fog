@@ -293,17 +293,17 @@ public:
   ~EventLoop();
 
   //! @brief Returns the type passed to the constructor.
-  String32 type() const;
+  String32 getType() const;
 
   //! @brief Optional call to connect the thread name with this loop.
   void setThreadName(const String32& threadName);
 
   //! @brief Return thread name.
-  const String32& threadName() const;
+  const String32& getThreadName() const;
 
   //! @brief Return the EventLoop object for the current thread, or null if 
   //! none.
-  static EventLoop* current();
+  static EventLoop* getCurrent();
 
   // Enables or disables the recursive task processing. This happens in the case
   // of recursive message loops. Some unwanted event loop may occurs when

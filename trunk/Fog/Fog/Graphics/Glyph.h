@@ -108,17 +108,17 @@ struct FOG_API Glyph
 
   // [Getters]
 
-  FOG_INLINE const Image& bitmap() const { return _d->bitmap; }
-  FOG_INLINE int bitmapX() const { return _d->bitmapX; }
-  FOG_INLINE int bitmapY() const { return _d->bitmapY; }
+  FOG_INLINE const Image& getBitmap() const { return _d->bitmap; }
+  FOG_INLINE int getBitmapX() const { return _d->bitmapX; }
+  FOG_INLINE int getBitmapY() const { return _d->bitmapY; }
 
-  FOG_INLINE const Path& path() const { return _d->path; }
-  FOG_INLINE double pathScaleX() const { return _d->pathScaleX; }
-  FOG_INLINE double pathScaleY() const { return _d->pathScaleY; }
+  FOG_INLINE const Path& getPath() const { return _d->path; }
+  FOG_INLINE double getPathScaleX() const { return _d->pathScaleX; }
+  FOG_INLINE double getPathScaleY() const { return _d->pathScaleY; }
 
-  FOG_INLINE int beginWidth() const { return _d->beginWidth; }
-  FOG_INLINE int endWidth() const { return _d->endWidth; }
-  FOG_INLINE int advance() const { return _d->advance; }
+  FOG_INLINE int getBeginWidth() const { return _d->beginWidth; }
+  FOG_INLINE int getEndWidth() const { return _d->endWidth; }
+  FOG_INLINE int getAdvance() const { return _d->advance; }
 
   // [Operator Overload]
 

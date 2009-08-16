@@ -167,7 +167,7 @@ struct FOG_API Provider
   //! loader will use relevance for decoders.
   virtual uint32_t check(const void* mem, sysuint_t length) = 0;
   //! @overload
-  FOG_INLINE uint32_t check(const String8& mem) { return check(mem.cData(), mem.length()); }
+  FOG_INLINE uint32_t check(const String8& mem) { return check(mem.cData(), mem.getLength()); }
 
   virtual EncoderDevice* createEncoder();
   virtual DecoderDevice* createDecoder();

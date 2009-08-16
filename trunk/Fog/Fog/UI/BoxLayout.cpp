@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
@@ -28,9 +28,9 @@ BoxLayout::~BoxLayout()
 {
 }
 
-void BoxLayout::reparent()
+void BoxLayout::reparentChildren()
 {
-  Widget* parent = parentWidget();
+  Widget* parent = getParentWidget();
   if (!parent) return;
 
   Vector<LayoutItem*>::ConstIterator it(_items);
@@ -39,6 +39,8 @@ void BoxLayout::reparent()
     Widget* w = fog_object_cast<Widget*>(it.value());
     if (w) w->setParent(parent);
   }
+
+  invalidateLayout();
 }
 
 sysint_t BoxLayout::indexOf(LayoutItem* item)
@@ -49,20 +51,27 @@ sysint_t BoxLayout::indexOf(LayoutItem* item)
 bool BoxLayout::addItem(LayoutItem* item)
 {
   _items.append(item);
+
+  invalidateLayout();
   return true;
 }
 
 bool BoxLayout::addItemAt(sysint_t index, LayoutItem* item)
 {
-  if (_items.length() > (sysuint_t)index) return false;
+  if (_items.getLength() > (sysuint_t)index) return false;
   _items.insert(index, item);
+
+  invalidateLayout();
   return true;
 }
 
 LayoutItem* BoxLayout::takeAt(sysint_t index)
 {
-  if (_items.length() >= (sysuint_t)index) return NULL;
-  return _items.takeAt((sysuint_t)index);
+  if (_items.getLength() >= (sysuint_t)index) return NULL;
+  LayoutItem* item = _items.takeAt((sysuint_t)index);
+
+  invalidateLayout();
+  return item;
 }
 
 bool BoxLayout::deleteItem(LayoutItem* item)

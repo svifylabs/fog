@@ -1354,8 +1354,8 @@ static void FOG_FASTCALL convert_i8rgb232_from_rgb32_dither(
 {
   sysint_t i;
 
-  const uint8_t* dt = DitherMatrix::matrix[origin.y() & DitherMatrix::Mask];
-  int dx = origin.x();
+  const uint8_t* dt = DitherMatrix::matrix[origin.getY() & DitherMatrix::Mask];
+  int dx = origin.getX();
 
   for (i = w; i; i--, dx++, dst += 1, src += 4)
   {
@@ -1385,8 +1385,8 @@ static void FOG_FASTCALL convert_i8rgb222_from_rgb32_dither(
 {
   sysint_t i;
 
-  const uint8_t* dt = DitherMatrix::matrix[origin.y() & DitherMatrix::Mask];
-  int dx = origin.x();
+  const uint8_t* dt = DitherMatrix::matrix[origin.getY() & DitherMatrix::Mask];
+  int dx = origin.getX();
 
   for (i = w; i; i--, dx++, dst += 1, src += 4)
   {
@@ -1418,8 +1418,8 @@ static void FOG_FASTCALL convert_i8rgb111_from_rgb32_dither(
 {
   sysint_t i;
 
-  const uint8_t* dt = DitherMatrix::matrix[origin.y() & DitherMatrix::Mask];
-  int dx = origin.x();
+  const uint8_t* dt = DitherMatrix::matrix[origin.getY() & DitherMatrix::Mask];
+  int dx = origin.getX();
 
   for (i = w; i; i--, dx++, dst += 1, src += 4)
   {
@@ -1449,8 +1449,8 @@ static void FOG_FASTCALL convert_i8rgb232_from_rgb24_dither(
 {
   sysint_t i;
 
-  const uint8_t* dt = DitherMatrix::matrix[origin.y() & DitherMatrix::Mask];
-  int dx = origin.x();
+  const uint8_t* dt = DitherMatrix::matrix[origin.getY() & DitherMatrix::Mask];
+  int dx = origin.getX();
 
   for (i = w; i; i--, dx++, dst += 1, src += 3)
   {
@@ -1478,8 +1478,8 @@ static void FOG_FASTCALL convert_i8rgb222_from_rgb24_dither(
 {
   sysint_t i;
 
-  const uint8_t* dt = DitherMatrix::matrix[origin.y() & DitherMatrix::Mask];
-  int dx = origin.x();
+  const uint8_t* dt = DitherMatrix::matrix[origin.getY() & DitherMatrix::Mask];
+  int dx = origin.getX();
 
   for (i = w; i; i--, dx++, dst += 1, src += 3)
   {
@@ -1509,8 +1509,8 @@ static void FOG_FASTCALL convert_i8rgb111_from_rgb24_dither(
 {
   sysint_t i;
 
-  const uint8_t* dt = DitherMatrix::matrix[origin.y() & DitherMatrix::Mask];
-  int dx = origin.x();
+  const uint8_t* dt = DitherMatrix::matrix[origin.getY() & DitherMatrix::Mask];
+  int dx = origin.getX();
 
   for (i = w; i; i--, dx++, dst += 1, src += 3)
   {
@@ -1538,8 +1538,8 @@ static void FOG_FASTCALL convert_rgb16_5550_from_rgb32_dither(
 {
   sysint_t i;
 
-  const uint8_t* dt = DitherMatrix::matrix[origin.y() & DitherMatrix::Mask];
-  int dx = origin.x();
+  const uint8_t* dt = DitherMatrix::matrix[origin.getY() & DitherMatrix::Mask];
+  int dx = origin.getX();
 
   for (i = w; i; i--, dx++, dst += 2, src += 4)
   {
@@ -1565,8 +1565,8 @@ static void FOG_FASTCALL convert_rgb16_5550_from_rgb24_dither(
 {
   sysint_t i;
 
-  const uint8_t* dt = DitherMatrix::matrix[origin.y() & DitherMatrix::Mask];
-  int dx = origin.x();
+  const uint8_t* dt = DitherMatrix::matrix[origin.getY() & DitherMatrix::Mask];
+  int dx = origin.getX();
 
   for (i = w; i; i--, dx++, dst += 2, src += 3)
   {
@@ -1590,8 +1590,8 @@ static void FOG_FASTCALL convert_rgb16_5650_from_rgb32_dither(
 {
   sysint_t i;
 
-  const uint8_t* dt = DitherMatrix::matrix[origin.y() & DitherMatrix::Mask];
-  int dx = origin.x();
+  const uint8_t* dt = DitherMatrix::matrix[origin.getY() & DitherMatrix::Mask];
+  int dx = origin.getX();
 
   for (i = w; i; i--, dx++, dst += 2, src += 4)
   {
@@ -1619,8 +1619,8 @@ static void FOG_FASTCALL convert_rgb16_5650_from_rgb24_dither(
 {
   sysint_t i;
 
-  const uint8_t* dt = DitherMatrix::matrix[origin.y() & DitherMatrix::Mask];
-  int dx = origin.x();
+  const uint8_t* dt = DitherMatrix::matrix[origin.getY() & DitherMatrix::Mask];
+  int dx = origin.getX();
 
   for (i = w; i; i--, dx++, dst += 2, src += 3)
   {
@@ -1646,8 +1646,8 @@ static void FOG_FASTCALL convert_rgb16_5550_bs_from_rgb32_dither(
 {
   sysint_t i;
 
-  const uint8_t* dt = DitherMatrix::matrix[origin.y() & DitherMatrix::Mask];
-  int dx = origin.x();
+  const uint8_t* dt = DitherMatrix::matrix[origin.getY() & DitherMatrix::Mask];
+  int dx = origin.getX();
 
   for (i = w; i; i--, dx++, dst += 2, src += 4)
   {
@@ -1673,8 +1673,8 @@ static void FOG_FASTCALL convert_rgb16_5550_bs_from_rgb24_dither(
 {
   sysint_t i;
 
-  const uint8_t* dt = DitherMatrix::matrix[origin.y() & DitherMatrix::Mask];
-  int dx = origin.x();
+  const uint8_t* dt = DitherMatrix::matrix[origin.getY() & DitherMatrix::Mask];
+  int dx = origin.getX();
 
   for (i = w; i; i--, dx++, dst += 2, src += 3)
   {
@@ -1698,8 +1698,8 @@ static void FOG_FASTCALL convert_rgb16_5650_bs_from_rgb32_dither(
 {
   sysint_t i;
 
-  const uint8_t* dt = DitherMatrix::matrix[origin.y() & DitherMatrix::Mask];
-  int dx = origin.x();
+  const uint8_t* dt = DitherMatrix::matrix[origin.getY() & DitherMatrix::Mask];
+  int dx = origin.getX();
 
   for (i = w; i; i--, dx++, dst += 2, src += 4)
   {
@@ -1727,8 +1727,8 @@ static void FOG_FASTCALL convert_rgb16_5650_bs_from_rgb24_dither(
 {
   sysint_t i;
 
-  const uint8_t* dt = DitherMatrix::matrix[origin.y() & DitherMatrix::Mask];
-  int dx = origin.x();
+  const uint8_t* dt = DitherMatrix::matrix[origin.getY() & DitherMatrix::Mask];
+  int dx = origin.getX();
 
   for (i = w; i; i--, dx++, dst += 2, src += 3)
   {

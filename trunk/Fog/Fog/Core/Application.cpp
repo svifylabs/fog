@@ -7,7 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
@@ -57,6 +57,118 @@ namespace Fog {
 // [Fog::Application - Local]
 // ============================================================================
 
+static void unescapeArgument(String32& s)
+{
+  Char32* beg = s.mData();
+  Char32* cur = beg;
+  Char32* dst = beg;
+
+  sysuint_t remain = s.getLength();
+
+  while (remain)
+  {
+    if (cur[0] == Char32('\\') && remain > 1 && (cur[1] == Char32('\"') ||
+                                                 cur[1] == Char32('\'') ||
+                                                 cur[1] == Char32(' ')) )
+    {
+      cur++;
+      remain--;
+    }
+    *dst++ = *cur++;
+    remain--;
+  }
+
+  s.resize((sysuint_t)(dst - beg));
+}
+
+#if defined(FOG_OS_WINDOWS)
+static void parseWinCmdLine(const String32& cmdLine, Vector<String32>& dst)
+{
+  const Char32* cur = cmdLine.cData();
+  const Char32* end = cur + cmdLine.getLength();
+
+  const Char32* mark;
+  Char32 quote;
+  bool isEscaped;
+  sysuint_t len;
+
+  for (;;)
+  {
+    // Skip spaces.
+    for (;;) {
+      if (cur == end) goto end;
+      if (cur->isSpace()) cur++;
+      else break;
+    }
+    
+    // Zero character means end.
+    if (cur->ch() == 0) goto end;
+
+    // Parse quote character (if it's here).
+    mark = cur;
+    quote = 0;
+
+    if (cur[0] == Char32('\"') ||
+        cur[0] == Char32('\'') )
+    {
+      quote = cur[0];
+    }
+    cur++;
+
+    // Parse argument
+    isEscaped = false;
+
+    for (;;)
+    {
+      if (cur == end) goto parsed;
+
+      Char32 c = cur[0];
+      if (c.ch() == 0) goto parsed;
+      if (c.isSpace() && quote.ch() == 0) goto parsed;
+
+      // Quotes.
+      if (c == quote)
+      {
+        cur++;
+        goto parsed;
+      }
+
+      // Escape sequence.
+      if (c == Char32('\\'))
+      {
+        if (cur < end - 1 && (cur[1] == Char32('\"') || 
+                              cur[1] == Char32('\'') || 
+                              cur[1] == Char32(' ')) )
+        {
+          cur++;
+          isEscaped = true;
+        }
+      }
+
+      cur++;
+    }
+
+parsed:
+    len = (sysuint_t)(cur - mark);
+    if (quote.ch() != 0)
+    {
+      mark++;
+      len--;
+      if (len && mark[len-1] == quote) len--;
+    }
+
+    {
+      String32 arg(Utf32(mark, len));
+      if (isEscaped) unescapeArgument(arg);
+      dst.append(arg);
+    }
+  }
+
+end:
+  return;
+}
+#endif // FOG_OS_WINDOWS
+
 struct FOG_HIDDEN Application_Local
 {
   typedef Hash<String32, Application::EventLoopConstructor> ELHash;
@@ -65,9 +177,7 @@ struct FOG_HIDDEN Application_Local
   ELHash elHash;
 
   String32 applicationExecutable;
-  String32 applicationDirectory;
-  String32 applicationBaseName;
-  String32 applicationCommand;
+  Vector<String32> applicationArguments;
 
   Application_Local();
   ~Application_Local();
@@ -82,17 +192,15 @@ struct FOG_HIDDEN Application_Local
 
 Application_Local::Application_Local()
 {
+  String32 applicationCommand;
+
 #if defined(FOG_OS_WINDOWS)
   applicationCommand.set(StubW(::GetCommandLineW()));
-  applicationCommand.squeeze();
-
-  WinUtil::getModuleFileName(NULL, applicationExecutable);
-  applicationExecutable.slashesToPosix();
-  applicationExecutable.squeeze();
+  parseWinCmdLine(applicationCommand, applicationArguments);
 #endif // FOG_OS_WINDOWS
 
 #if defined(FOG_OS_POSIX)
-  // TODO: Get also 'applicationCommand'
+  // CORE TODO: Get application arguments.
 
   String8 cmdLine;
 
@@ -113,8 +221,8 @@ Application_Local::Application_Local()
   }
 #endif // FOG_OS_POSIX
 
+  String32 applicationDirectory;
   FileUtil::extractDirectory(applicationDirectory, applicationExecutable);
-  FileUtil::extractFile(applicationBaseName, applicationExecutable);
 
   // Application directory usually contains plugins and library itself under
   // Windows, but we will add it also for posix OSes. It can help if application
@@ -198,27 +306,17 @@ void Application::quit()
 }
 
 // ============================================================================
-// [Fog::Application - Application Directory]
+// [Fog::Application - Application Executable / Arguments]
 // ============================================================================
 
-err_t Application::getApplicationExecutable(String32& dst)
+String32 Application::getApplicationExecutable()
 {
-  return dst.set(application_local->applicationExecutable);
+  return application_local->applicationExecutable;
 }
 
-err_t Application::getApplicationBaseName(String32& dst)
+Vector<String32> Application::getApplicationArguments()
 {
-  return dst.set(application_local->applicationBaseName);
-}
-
-err_t Application::getApplicationDirectory(String32& dst)
-{
-  return dst.set(application_local->applicationDirectory);
-}
-
-err_t Application::getApplicationCommand(String32& dst)
-{
-  return dst.set(application_local->applicationCommand);
+  return application_local->applicationArguments;
 }
 
 // ============================================================================
@@ -233,8 +331,8 @@ err_t Application::getWorkingDirectory(String32& dst)
 
   for (;;)
   {
-    DWORD size = GetCurrentDirectoryW(dirW.capacity()+1, dirW.mStrW());
-    if (size >= dirW.capacity())
+    DWORD size = GetCurrentDirectoryW(dirW.getCapacity()+1, dirW.mStrW());
+    if (size >= dirW.getCapacity())
     {
       if ( (err = dirW.reserve(size)) ) return err;
       continue;
@@ -274,7 +372,7 @@ err_t Application::getWorkingDirectory(String32& dst)
   dst.clear();
   for (;;)
   {
-    const char* ptr = ::getcwd(dir8.mStr(), dir8.capacity()+1);
+    const char* ptr = ::getcwd(dir8.mStr(), dir8.getCapacity()+1);
     if (ptr)
     {
       dst.set(Local8(ptr));
@@ -283,7 +381,7 @@ err_t Application::getWorkingDirectory(String32& dst)
     if (errno != ERANGE) return errno;
 
     // Alloc more...
-    if ((err = dir8.reserve(dir8.capacity() + 4096))) return err;
+    if ((err = dir8.reserve(dir8.getCapacity() + 4096))) return err;
   }
 }
 
@@ -359,7 +457,7 @@ UISystem* Application::createUISystem(const String32& _type)
     err_t err = lib.openPlugin(Ascii8("FogUI"), type.substring(Range(3)));
     if (err) return NULL;
 
-    UISystemConstructor ctor = (UISystemConstructor)lib.symbol(Ascii8("createUISystem"));
+    UISystemConstructor ctor = (UISystemConstructor)lib.getSymbol(Ascii8("createUISystem"));
     if (!ctor) return NULL;
 
     UISystem* uis = ctor();

@@ -3,7 +3,7 @@
 // [Licence]
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #ifdef FOG_PRECOMP
 #include FOG_PRECOMP
 #endif
@@ -719,12 +719,15 @@ sysuint_t XmlEntity::encode(char* dst, Char32 _ch)
 
 FOG_INIT_DECLARE err_t fog_xmlentity_init(void)
 {
-  Fog::XmlEntity::_pairs = Fog::xmlentity_pairs;
-  Fog::XmlEntity::_pairsCount = FOG_ARRAY_SIZE(Fog::xmlentity_pairs);
+  using namespace Fog;
+
+  XmlEntity::_pairs = xmlentity_pairs;
+  XmlEntity::_pairsCount = FOG_ARRAY_SIZE(xmlentity_pairs);
 
   return Error::Ok;
 }
 
 FOG_INIT_DECLARE void fog_xmlentity_shutdown(void)
 {
+  using namespace Fog;
 }

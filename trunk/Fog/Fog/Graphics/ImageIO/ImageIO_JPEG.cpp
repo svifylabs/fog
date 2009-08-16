@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #ifdef FOG_PRECOMP
 #include FOG_PRECOMP
 #endif
@@ -11,11 +11,11 @@
 // [Dependencies]
 #include <Fog/Core/Lazy.h>
 #include <Fog/Core/Library.h>
+#include <Fog/Core/ManagedString.h>
 #include <Fog/Core/Misc.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/Stream.h>
 #include <Fog/Core/String.h>
-#include <Fog/Core/StringCache.h>
 #include <Fog/Core/Strings.h>
 #include <Fog/Graphics/Error.h>
 #include <Fog/Graphics/Image.h>
@@ -71,7 +71,7 @@ struct JpegLibrary
     }
 
     const char* badSymbol;
-    if (dll.symbols(addr, symbols, FOG_ARRAY_SIZE(symbols), SymbolsCount, (char**)&badSymbol) != SymbolsCount)
+    if (dll.getSymbols(addr, symbols, FOG_ARRAY_SIZE(symbols), SymbolsCount, (char**)&badSymbol) != SymbolsCount)
     {
       // Some symbol failed to load? Inform about it.
       fog_debug("Fog::ImageIO::JpegLibrary() - Can't load symbol '%s' from libjpeg", badSymbol);
@@ -137,14 +137,14 @@ JpegProvider::JpegProvider()
   _features.rgb24 = true;
 
   // name
-  _name = fog_strings->get(STR_GRAPHICS_JPEG);
+  _name = fog_strings->getString(STR_GRAPHICS_JPEG);
 
   // extensions
   _extensions.reserve(4);
-  _extensions.append(fog_strings->get(STR_GRAPHICS_jpg));
-  _extensions.append(fog_strings->get(STR_GRAPHICS_jpeg));
-  _extensions.append(fog_strings->get(STR_GRAPHICS_jfi));
-  _extensions.append(fog_strings->get(STR_GRAPHICS_jfif));
+  _extensions.append(fog_strings->getString(STR_GRAPHICS_jpg));
+  _extensions.append(fog_strings->getString(STR_GRAPHICS_jpeg));
+  _extensions.append(fog_strings->getString(STR_GRAPHICS_jfi));
+  _extensions.append(fog_strings->getString(STR_GRAPHICS_jfif));
 }
 
 JpegProvider::~JpegProvider()
@@ -703,7 +703,7 @@ err_t JpegEncoderDevice::setProperty(int id, const Value& value)
   switch (id)
   {
     case PropertyQuality:
-      if ((err = value.toInt32(&i))) return err;
+      if ((err = value.getInt32(&i))) return err;
       if (i < 0) i = 0;
       if (i > 100) i = 100;
       _quality = i;
@@ -729,7 +729,7 @@ FOG_INIT_DECLARE void fog_imageio_jpeg_init(void)
 
   Vector<String32> properties;
 
-  properties.append(fog_strings->get(STR_GRAPHICS_quality));
+  properties.append(fog_strings->getString(STR_GRAPHICS_quality));
   FOG_INIT_PROPERTIES_CONTAINER(ImageIO::JpegEncoderDevice, ImageIO::JpegEncoderDevice::base, properties);
 
 }

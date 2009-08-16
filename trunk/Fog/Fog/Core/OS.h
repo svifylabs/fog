@@ -24,16 +24,16 @@ namespace Fog {
 namespace OS {
 
 //! @brief Returns the name of the host operating system.
-FOG_API String32 name();
+FOG_API String32 getName();
 
 //! @brief Returns the version of the host operating system.
-FOG_API String32 version();
+FOG_API String32 getVersion();
 
 //! @brief Return the number of bytes of physical memory on the current machine.
-FOG_API uint64_t amountOfPhysicalMemory();
+FOG_API uint64_t getAmountOfPhysicalMemory();
 
 //! @brief Return the number of megabytes of physical memory on the current machine.
-FOG_API uint32_t amountOfPhysicalMemoryMB();
+FOG_API uint32_t getAmountOfPhysicalMemoryMB();
 
 #if defined(FOG_OS_WINDOWS)
 enum Win_Version
@@ -56,8 +56,8 @@ enum Win_Version
   Win_Vista      = 0x0040
 };
 
-FOG_API uint32_t windowsVersion();
-FOG_API String32 windowsDirectory();
+FOG_API uint32_t getWindowsVersion();
+FOG_API String32 getWindowsDirectory();
 #endif // FOG_OS_WINDOWS
 
 FOG_API err_t getEnv(const String32& name, String32& value);

@@ -24,7 +24,7 @@ namespace Fog {
 //! Painter is high level class that can be used to draw into the images or raw
 //! memory buffers. Fog painter is state based and each rendering call depends
 //! to current painter state that can be changed by methods like @c setLineWidth(),
-//! @c setLineCap(), @c setOp(), etc...
+//! @c setLineCap(), @c setOperator(), etc...
 //!
 //! @section Beginning and finalizing rendering.
 //!
@@ -96,11 +96,11 @@ struct FOG_API Painter
   // [Meta]
 
   //! @brief Get painter width in pixels (width returned is width passed to @c begin() method).
-  FOG_INLINE int width() const { return _engine->width(); }
+  FOG_INLINE int getWidth() const { return _engine->getWidth(); }
   //! @brief Get painter heigh in pixels (height returned is height passed to @c begin() method).
-  FOG_INLINE int height() const { return _engine->height(); }
+  FOG_INLINE int getHeight() const { return _engine->getHeight(); }
   //! @brief Get painter format  (format returned is format passed to @c begin() method).
-  FOG_INLINE int format() const { return _engine->format(); }
+  FOG_INLINE int getFormat() const { return _engine->getFormat(); }
 
   //! @brief Set painter meta variables (meta origin, meta region, user origin and user region).
   //!
@@ -117,6 +117,11 @@ struct FOG_API Painter
   FOG_INLINE void setMetaOrigin(const Point& p) { _engine->setMetaOrigin(p); }
   //! @brief Change user origin to @a p.
   FOG_INLINE void setUserOrigin(const Point& p) { _engine->setUserOrigin(p); }
+
+  //! @brief Get meta origin.
+  FOG_INLINE Point getMetaOrigin() const { return _engine->getMetaOrigin(); }
+  //! @brief Get user origin.
+  FOG_INLINE Point getUserOrigin() const { return _engine->getUserOrigin(); }
 
   //! @brief Translate meta origin by @a p.
   FOG_INLINE void translateMetaOrigin(const Point& p) { _engine->translateMetaOrigin(p); }
@@ -138,31 +143,26 @@ struct FOG_API Painter
   //! Resetting means set user origin to [0, 0] and clear user region.
   FOG_INLINE void resetUserVars() { _engine->resetUserVars(); }
 
-  //! @brief Get meta origin.
-  FOG_INLINE Point metaOrigin() const { return _engine->metaOrigin(); }
-  //! @brief Get user origin.
-  FOG_INLINE Point userOrigin() const { return _engine->userOrigin(); }
-
   //! @brief Get meta region.
-  FOG_INLINE Region metaRegion() const { return _engine->metaRegion(); }
+  FOG_INLINE Region getMetaRegion() const { return _engine->getMetaRegion(); }
   //! @brief Get user origin.
-  FOG_INLINE Region userRegion() const { return _engine->userRegion(); }
+  FOG_INLINE Region getUserRegion() const { return _engine->getUserRegion(); }
 
   //! @brief Tells if current meta region is used (calling @c resetMetaVars() will unuse it).
-  FOG_INLINE bool usedMetaRegion() const { return _engine->usedMetaRegion(); }
+  FOG_INLINE bool isMetaRegionUsed() const { return _engine->isMetaRegionUsed(); }
   //! @brief Tells if current user region is used (calling @c resetUserVars() will unuse it).
-  FOG_INLINE bool usedUserRegion() const { return _engine->usedUserRegion(); }
+  FOG_INLINE bool isUserRegionUsed() const { return _engine->isUserRegionUsed(); }
 
   // [Operator]
 
   //! @brief Set compositing operator.
   //!
   //! See @c CompositeOp enumeration for operators and their descriptions.
-  FOG_INLINE void setOp(uint32_t op) { _engine->setOp(op); }
+  FOG_INLINE void setOperator(uint32_t op) { _engine->setOperator(op); }
   //! @brief Get compositing operator.
   //!
   //! See @c CompositeOp enumeration for operators and their descriptions.
-  FOG_INLINE uint32_t op() const { return _engine->op(); }
+  FOG_INLINE uint32_t getOperator() const { return _engine->getOperator(); }
 
   // [Source]
 
@@ -184,53 +184,58 @@ struct FOG_API Painter
 
   // [Parameters]
 
+  //! @brief Set line parameters.
+  FOG_INLINE void setLineParams(const LineParams& params) { _engine->setLineParams(params); }
+  //! @brief Get line parameters.
+  FOG_INLINE void getLineParams(LineParams& params) const { return _engine->getLineParams(params); }
+
   //! @brief Set line width.
   //!
   //! @note Line width is scaled by affine transformations.
   FOG_INLINE void setLineWidth(double lineWidth) { _engine->setLineWidth(lineWidth); }
   //! @brief Get line width.
-  FOG_INLINE double lineWidth() const { return _engine->lineWidth(); }
+  FOG_INLINE double getLineWidth() const { return _engine->getLineWidth(); }
 
   //! @brief Set line cap.
   FOG_INLINE void setLineCap(uint32_t lineCap) { _engine->setLineCap(lineCap);}
   //! @brief Get line cap.
-  FOG_INLINE uint32_t lineCap() const { return _engine->lineCap(); }
+  FOG_INLINE uint32_t getLineCap() const { return _engine->getLineCap(); }
 
   //! @brief Set line join.
   FOG_INLINE void setLineJoin(uint32_t lineJoin) { _engine->setLineJoin(lineJoin); }
   //! @brief Get line join.
-  FOG_INLINE uint32_t lineJoin() const { return _engine->lineJoin(); }
+  FOG_INLINE uint32_t getLineJoin() const { return _engine->getLineJoin(); }
 
   //! @brief Set line dash.
-  FOG_INLINE void setLineDash(const Vector<double>& dashes) { _engine->setLineDash(dashes); }
+  FOG_INLINE void setDashes(const Vector<double>& dashes) { _engine->setDashes(dashes); }
   //! @overload.
-  FOG_INLINE void setLineDash(const double* dashes, sysuint_t count) { _engine->setLineDash(dashes, count); }
+  FOG_INLINE void setDashes(const double* dashes, sysuint_t count) { _engine->setDashes(dashes, count); }
   //! @brief Set line dash.
-  FOG_INLINE Vector<double> lineDash() const { return _engine->lineDash(); }
+  FOG_INLINE Vector<double> getDashes() const { return _engine->getDashes(); }
 
   //! @brief Set line dash offset.
-  FOG_INLINE void setLineDashOffset(double offset) { _engine->setLineDashOffset(offset); }
+  FOG_INLINE void setDashOffset(double offset) { _engine->setDashOffset(offset); }
   //! @brief Get line dash offset.
-  FOG_INLINE double lineDashOffset() const { return _engine->lineDashOffset(); }
+  FOG_INLINE double getDashOffset() const { return _engine->getDashOffset(); }
 
   //! @brief Set line miter limit.
   FOG_INLINE void setMiterLimit(double miterLimit) { _engine->setMiterLimit(miterLimit); }
   //! @brief Get line miter limit.
-  FOG_INLINE double miterLimit() const { return _engine->miterLimit(); }
+  FOG_INLINE double getMiterLimit() const { return _engine->getMiterLimit(); }
 
   //! @brief Set fill mode, see @c FillMode enumeration.
   FOG_INLINE void setFillMode(uint32_t mode) { _engine->setFillMode(mode); }
   //! @brief Get fill mode, see @c FillMode enumeration.
-  FOG_INLINE uint32_t fillMode() { return _engine->fillMode(); }
+  FOG_INLINE uint32_t getFillMode() { return _engine->getFillMode(); }
 
   // [Transformations]
 
   //! @brief Set affine matrix to @a m, discarding current transformations.
-  FOG_INLINE void setMatrix(const AffineMatrix& m) { _engine->setMatrix(m); }
+  FOG_INLINE void setMatrix(const Matrix& m) { _engine->setMatrix(m); }
   //! @brief Discard current transformations.
   FOG_INLINE void resetMatrix() { _engine->resetMatrix(); }
   //! @brief Get current affine matrix used for transformations.
-  FOG_INLINE AffineMatrix matrix() const { return _engine->matrix(); }
+  FOG_INLINE Matrix getMatrix() const { return _engine->getMatrix(); }
 
   //! @brief Rotate (will modify affine matrix).
   FOG_INLINE void rotate(double angle) { _engine->rotate(angle); }
@@ -241,7 +246,7 @@ struct FOG_API Painter
   //! @brief Translate (will modify affine matrix).
   FOG_INLINE void translate(double x, double y) { _engine->translate(x, y); }
   //! @brief Affine (will modify affine matrix).
-  FOG_INLINE void affine(const AffineMatrix& m) { _engine->affine(m); }
+  FOG_INLINE void affine(const Matrix& m) { _engine->affine(m); }
 
   FOG_INLINE void parallelogram(double x1, double y1, double x2, double y2, const double* para)
   { _engine->parallelogram(x1, y1, x2, y2, para); }

@@ -3,7 +3,7 @@
 // [Licence]
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #ifdef FOG_PRECOMP
 #include FOG_PRECOMP
 #endif
@@ -14,8 +14,14 @@
 #include <Fog/Core/Misc.h>
 #include <Fog/Graphics/ColorLut.h>
 #include <Fog/Graphics/ColorMatrix.h>
+#include <Fog/Graphics/DitherMatrix.h>
+#include <Fog/Graphics/Error.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/ImageFilter.h>
+#include <Fog/Graphics/Matrix.h>
+#include <Fog/Graphics/Path.h>
+#include <Fog/Graphics/Path_p.h>
+#include <Fog/Graphics/Pattern.h>
 #include <Fog/Graphics/Raster.h>
 #include <Fog/Graphics/Raster/Raster_C.h>
 
@@ -27,6 +33,7 @@
 #include <Fog/Graphics/Raster/Raster_SSE2_gradient.cpp.h>
 #include <Fog/Graphics/Raster/Raster_SSE2_pattern.cpp.h>
 #include <Fog/Graphics/Raster/Raster_SSE2_filters.cpp.h>
+#include <Fog/Graphics/Raster/Raster_SSE2_vector.cpp.h>
 
 // ============================================================================
 // [Library Initializers]
@@ -571,4 +578,8 @@ FOG_INIT_DECLARE void fog_raster_init_sse2(void)
 
   m->filter.stackBlurConvolveH[Image::FormatARGB32] = stackBlurConvolveH_argb32_sse2;
   m->filter.stackBlurConvolveV[Image::FormatARGB32] = stackBlurConvolveV_argb32_sse2;
+
+  // [Vector]
+
+  m->vector.pathVertexTransform = pathVertexTransform_sse2;
 }

@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #ifdef FOG_PRECOMP
 #include FOG_PRECOMP
 #endif
@@ -140,7 +140,7 @@ FOG_INIT_DECLARE err_t fog_raster_init(void)
   using namespace Fog;
   using namespace Fog::Raster;
 
-  FunctionMap* m = functionMap = &functionMapData;
+  functionMap = &functionMapData;
 
   // [Install C optimized code (default)]
   {

@@ -7,7 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
@@ -87,7 +87,7 @@ void EventPumpWin::pumpOutPendingPaintMessages()
   // to get the job done.  Actual common max is 4 peeks, but we'll be a little
   // safe here.
   const int kMaxPeekCount = 20;
-  bool win2k = OS::windowsVersion() <= OS::Win_2000;
+  bool win2k = OS::getWindowsVersion() <= OS::Win_2000;
   int peek_count;
   MSG msg;
 
@@ -573,7 +573,7 @@ void EventPumpWinIO::watchObject(HANDLE object, Watcher* watcher)
     {
      static sysuint_t warning_multiple = 1;
 
-     if (_objects.length() >= warning_multiple * MAXIMUM_WAIT_OBJECTS / 2)
+     if (_objects.getLength() >= warning_multiple * MAXIMUM_WAIT_OBJECTS / 2)
      {
        // LOG(INFO) << "More than " << warning_multiple * MAXIMUM_WAIT_OBJECTS / 2
        //           << " objects being watched";
@@ -720,7 +720,7 @@ void EventPumpWinIO::waitForWork()
   bool use_polling = false;  // Poll if too many objects for one OS Wait call.
   for (;;) {
     // Do initialization here, in case APC modifies object list.
-    sysuint_t total_objs = _objects.length();
+    sysuint_t total_objs = _objects.getLength();
 
     // The first unprocessed object index.
     sysuint_t polling_index = 0;
@@ -780,7 +780,7 @@ void EventPumpWinIO::waitForWork()
 
 bool EventPumpWinIO::processNextObject()
 {
-  sysuint_t total_objs = _objects.length();
+  sysuint_t total_objs = _objects.getLength();
   if (!total_objs) return false;
 
   // The first unprocessed object index.
@@ -818,7 +818,7 @@ bool EventPumpWinIO::processNextObject()
 bool EventPumpWinIO::signalWatcher(sysuint_t objectIndex)
 {
   // Signal the watcher corresponding to the given index.
-  FOG_ASSERT(_objects.length() > objectIndex);
+  FOG_ASSERT(_objects.getLength() > objectIndex);
 
   // On reception of OnObjectSignaled() to a Watcher object, it may call
   // WatchObject(). _watchers and _objects will be modified. This is expected,

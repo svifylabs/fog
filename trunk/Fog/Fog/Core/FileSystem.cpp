@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
@@ -91,7 +91,7 @@ uint32_t FileSystem::testFile(const String32& fileName, uint32_t flags)
       FileUtil::extractExtension(ext, fileName);
 
       const Char32* extStr = ext.cData();
-      sysuint_t extLength = ext.length();
+      sysuint_t extLength = ext.getLength();
 
       // Executable extension has usually 3 characters
       if (extLength == 3)
@@ -189,7 +189,7 @@ static uint createDirectoryHelper(const Char32* path, sysuint_t len)
 err_t FileSystem::createDirectory(const String32& dir, bool recursive)
 {
   if (dir.isEmpty()) return Error::InvalidArgument;
-  if (!recursive) return createDirectoryHelper(dir.cData(), dir.length());
+  if (!recursive) return createDirectoryHelper(dir.cData(), dir.getLength());
 
   err_t err;
   TemporaryString32<TemporaryLength> dirAbs;
@@ -200,7 +200,7 @@ err_t FileSystem::createDirectory(const String32& dir, bool recursive)
   // that dirAbs is absolute dir, so we need to find first two occurences
   // of '/'. Second occurece can be end of string.
   sysuint_t i = dirAbs.indexOf(Char32('/'));
-  sysuint_t length = dirAbs.length();
+  sysuint_t length = dirAbs.getLength();
 
   if (i == InvalidIndex) return Error::InvalidArgument;
   if (dirAbs.at(length-1) == Char32('/')) length--;
@@ -318,7 +318,7 @@ bool FileSystem::findFile(const Sequence<String32>& paths, const String32& fileN
     path8.set(it.value(), TextCodec::local8());
 
     // Append directory separator if needed
-    if (path8.length() && !path8.endsWith(Stub8("/", 1)))
+    if (path8.getLength() && !path8.endsWith(Stub8("/", 1)))
     {
       path8.append(Char8('/'));
     }
@@ -355,7 +355,7 @@ static err_t createDirectoryHelper(const Char32* path, sysuint_t len)
 err_t FileSystem::createDirectory(const String32& dir, bool recursive)
 {
   if (dir.isEmpty()) return Error::InvalidArgument;
-  if (!recursive) return createDirectoryHelper(dir.cData(), dir.length());
+  if (!recursive) return createDirectoryHelper(dir.cData(), dir.getLength());
 
   err_t err;
   TemporaryString32<TemporaryLength> dirAbs;
@@ -364,10 +364,10 @@ err_t FileSystem::createDirectory(const String32& dir, bool recursive)
   // FileSystem::toAbsolutePath() always normalize dir to '/', we can imagine
   // that dirAbs is absolute dir, so we need to find first two occurences
   // of '/'. Second occurece can be end of string.
-  if (dirAbs.length() == 1 && dirAbs.at(0) == '/') return Error::DirectoryAlreadyExists;
+  if (dirAbs.getLength() == 1 && dirAbs.at(0) == '/') return Error::DirectoryAlreadyExists;
 
   sysuint_t i = dirAbs.indexOf(Char32('/'));
-  sysuint_t length = dirAbs.length();
+  sysuint_t length = dirAbs.getLength();
 
   if (i == InvalidIndex) return Error::InvalidArgument;
   if (dirAbs.at(length-1) == Char32('/')) length--;

@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
@@ -55,11 +55,11 @@ err_t Pattern::setType(uint32_t type)
   err_t err;
   if (_d->type == type) return Error::Ok;
 
-  if (!(type <= 0x2 || (type >= LinearGradient && type <= ConicalGradient)))
+  if (!(type <= 0x2 || (type >= TypeLinearGradient && type <= TypeConicalGradient)))
     return Error::InvalidArgument;
 
   // Optimize gradient switching.
-  if ((_d->type & GradientMask) != 0 && (type & GradientMask) != 0)
+  if ((_d->type & TypeGradientMask) != 0 && (type & TypeGradientMask) != 0)
   {
     if ( (err = detach()) ) return err;
     _d->type = type;
@@ -73,9 +73,9 @@ err_t Pattern::setType(uint32_t type)
     _d->deleteResources();
     _d->type = type;
 
-    if (type == Texture)
+    if (type == TypeTexture)
       _d->obj.texture.init();
-    else if (type & GradientMask)
+    else if (type & TypeGradientMask)
       _d->obj.gradientStops.init();
   }
   else
@@ -89,9 +89,9 @@ err_t Pattern::setType(uint32_t type)
     newd->points[1] = _d->points[1];
     newd->gradientRadius = 0.0;
     
-    if (type == Texture)
+    if (type == TypeTexture)
       newd->obj.texture.init();
-    else if (type & GradientMask)
+    else if (type & TypeGradientMask)
       newd->obj.gradientStops.init();
 
     AtomicBase::ptr_setXchg(&_d, newd)->deref();
@@ -120,8 +120,8 @@ void Pattern::setNull()
   else
   {
     _d->deleteResources();
-    _d->type = Null;
-    _d->spread = PadSpread;
+    _d->type = TypeNull;
+    _d->spread = SpreadPad;
     _d->points[0].set(0.0, 0.0);
     _d->points[1].set(0.0, 0.0);
     _d->gradientRadius = 0.0;
@@ -132,20 +132,7 @@ void Pattern::setNull()
 err_t Pattern::setStartPoint(const Point& pt)
 {
   return setStartPoint(
-    PointF((double)pt.x() + 0.5, (double)pt.y() + 0.5));
-}
-
-err_t Pattern::setEndPoint(const Point& pt)
-{
-  return setEndPoint(
-    PointF((double)pt.x() + 0.5, (double)pt.y() + 0.5));
-}
-
-err_t Pattern::setPoints(const Point& startPt, const Point& endPt)
-{
-  return setPoints(
-    PointF((double)startPt.x() + 0.5, (double)startPt.y() + 0.5),
-    PointF((double)endPt.x() + 0.5, (double)endPt.y() + 0.5));
+    PointF((double)pt.getX() + 0.5, (double)pt.getY() + 0.5));
 }
 
 err_t Pattern::setStartPoint(const PointF& pt)
@@ -159,6 +146,12 @@ err_t Pattern::setStartPoint(const PointF& pt)
   return Error::Ok;
 }
 
+err_t Pattern::setEndPoint(const Point& pt)
+{
+  return setEndPoint(
+    PointF((double)pt.getX() + 0.5, (double)pt.getY() + 0.5));
+}
+
 err_t Pattern::setEndPoint(const PointF& pt)
 {
   if (_d->points[1] == pt) return Error::Ok;
@@ -168,6 +161,13 @@ err_t Pattern::setEndPoint(const PointF& pt)
 
   _d->points[1] = pt;
   return Error::Ok;
+}
+
+err_t Pattern::setPoints(const Point& startPt, const Point& endPt)
+{
+  return setPoints(
+    PointF((double)startPt.getX() + 0.5, (double)startPt.getY() + 0.5),
+    PointF((double)endPt.getX()   + 0.5, (double)endPt.getY()   + 0.5));
 }
 
 err_t Pattern::setPoints(const PointF& startPt, const PointF& endPt)
@@ -184,7 +184,7 @@ err_t Pattern::setPoints(const PointF& startPt, const PointF& endPt)
 
 // [Solid]
 
-Rgba Pattern::color() const
+Rgba Pattern::getColor() const
 {
   if (isSolid())
     return _d->obj.rgba.instance();
@@ -209,7 +209,7 @@ err_t Pattern::setColor(const Rgba& rgba)
     Data* newd = new(std::nothrow) Data();
     if (!newd) return Error::OutOfMemory;
 
-    newd->type = Solid;
+    newd->type = TypeSolid;
     newd->spread = _d->spread;
     newd->points[0] = _d->points[0];
     newd->points[1] = _d->points[1];
@@ -223,7 +223,7 @@ err_t Pattern::setColor(const Rgba& rgba)
 
 // [Texture]
 
-Image Pattern::texture() const
+Image Pattern::getTexture() const
 {
   if (isTexture())
     return _d->obj.texture.instance();
@@ -245,7 +245,7 @@ err_t Pattern::setTexture(const Image& texture)
     Data* newd = new(std::nothrow) Data();
     if (!newd) return Error::OutOfMemory;
 
-    newd->type = Texture;
+    newd->type = TypeTexture;
     newd->spread = _d->spread;
     newd->points[0] = _d->points[0];
     newd->points[1] = _d->points[1];
@@ -341,8 +341,8 @@ Pattern& Pattern::operator=(const Rgba& rgba)
 Pattern::Data::Data()
 {
   refCount.init(1);
-  type = Pattern::Null;
-  spread = Pattern::PadSpread;
+  type = Pattern::TypeNull;
+  spread = Pattern::SpreadPad;
   points[0].set(0.0, 0.0);
   points[1].set(0.0, 0.0);
   gradientRadius = 0.0;
@@ -358,9 +358,9 @@ Pattern::Data::Data(const Data& other)
   points[1] = other.points[1];
   gradientRadius = other.gradientRadius;
 
-  if (type == Texture)
+  if (type == TypeTexture)
     obj.texture.init(other.obj.texture.instance());
-  else if (type & GradientMask)
+  else if (type & TypeGradientMask)
     obj.gradientStops.init(other.obj.gradientStops.instance());
 }
 
@@ -376,9 +376,9 @@ Pattern::Data* Pattern::Data::copy()
 
 void Pattern::Data::deleteResources()
 {
-  if (type == Pattern::Texture)
+  if (type == Pattern::TypeTexture)
     obj.texture.destroy();
-  else if (type & Pattern::GradientMask)
+  else if (type & Pattern::TypeGradientMask)
     obj.gradientStops.destroy();
 }
 
@@ -394,8 +394,8 @@ FOG_INIT_DECLARE err_t fog_pattern_init(void)
 
   Pattern::Data* d = Pattern::sharedNull.instancep();
   d->refCount.init(1);
-  d->type = Pattern::Null;
-  d->spread = Pattern::PadSpread;
+  d->type = Pattern::TypeNull;
+  d->spread = Pattern::SpreadPad;
   d->points[0].set(0.0, 0.0);
   d->points[1].set(0.0, 0.0);
   d->gradientRadius = 0.0;

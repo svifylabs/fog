@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
@@ -17,7 +17,9 @@
 
 namespace Fog {
 
+// ============================================================================
 // [Fog::Event]
+// ============================================================================
 
 static Atomic<uint32_t> uid_val = FOG_ATOMIC_SET(EvUID);
 
@@ -25,7 +27,7 @@ void Event::run()
 {
   if (!wasDeleted())
   {
-    Object* r = receiver();
+    Object* r = getReceiver();
 
     // Remove object from its event queue
     {
@@ -56,7 +58,7 @@ void Event::run()
 
 Event* Event::clone() const 
 {
-  return ( new Event(code(), flags()) )->_cloned(receiver() );
+  return ( new Event(getCode(), getFlags()) )->_cloned(getReceiver() );
 }
 
 uint32_t Event::uid()
@@ -71,13 +73,17 @@ uint32_t Event::uid()
   return id;
 }
 
+// ============================================================================
 // [Fog::CreateEvent]
+// ============================================================================
 
 CreateEvent::CreateEvent() : Event(EvCreate)
 {
 }
 
+// ============================================================================
 // [Fog::DestroyEvent]
+// ============================================================================
 
 DestroyEvent::DestroyEvent()  : Event(EvDestroy)
 {
@@ -88,7 +94,9 @@ void DestroyEvent::run()
   Event::run();
 }
 
+// ============================================================================
 // [Fog::TimerEvent]
+// ============================================================================
 
 TimerEvent::TimerEvent(Timer* timer) : 
   Event(EvTimer),
@@ -98,10 +106,12 @@ TimerEvent::TimerEvent(Timer* timer) :
 
 Event* TimerEvent::clone()
 {
-  return ( new TimerEvent(timer()) )->_cloned(receiver());
+  return ( new TimerEvent(getTimer()) )->_cloned(getReceiver());
 }
 
+// ============================================================================
 // [Fog::PropertyChangedEvent]
+// ============================================================================
 
 PropertyChangedEvent::PropertyChangedEvent(const String32& name) :
   Event(EvPropertyChanged),
@@ -115,7 +125,7 @@ PropertyChangedEvent::~PropertyChangedEvent()
 
 Event* PropertyChangedEvent::clone() const
 { 
-  return ( new PropertyChangedEvent(name()) )->_cloned(receiver());
+  return ( new PropertyChangedEvent(getName()) )->_cloned(getReceiver());
 }
 
 } // Fog namespace

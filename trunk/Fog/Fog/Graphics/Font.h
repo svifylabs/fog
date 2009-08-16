@@ -150,9 +150,9 @@ struct FOG_API FontCache
 
     // [Methods]
 
-    FOG_INLINE uint32_t toHashCode() const
+    FOG_INLINE uint32_t getHashCode() const
     {
-      return family.toHashCode() ^ (size * 133) ^ attributes.value;
+      return family.getHashCode() ^ (size * 133) ^ attributes.value;
     }
 
     // [Operator Overload]

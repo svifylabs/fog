@@ -51,7 +51,7 @@ static FOG_INLINE bool fitToRange(
   const __G_STRING& s, sysuint_t* _start, sysuint_t* _len, const Range& range)
 {
   sysuint_t start = range.index;
-  sysuint_t slen = s.length();
+  sysuint_t slen = s.getLength();
 
   if (start >= slen) return false;
 
@@ -94,7 +94,7 @@ __G_STRING::__G_STRING(const __G_STRING& other)
 
 __G_STRING::__G_STRING(const __G_STRING& other1, const __G_STRING& other2)
 {
-  if (other1.length() == 0)
+  if (other1.getLength() == 0)
   {
     _d = other2._d->ref();
   }
@@ -108,9 +108,9 @@ __G_STRING::__G_STRING(const __G_STRING& other1, const __G_STRING& other2)
 #if __G_SIZE == 1
 __G_STRING::__G_STRING(const Stub8& str)
 {
-  const Char8* s = str.str();
-  sysuint_t length = (str.length() == DetectLength)
-    ? StringUtil::len(s) : str.length();
+  const Char8* s = str.getStr();
+  sysuint_t length = (str.getLength() == DetectLength)
+    ? StringUtil::len(s) : str.getLength();
 
   _d = Data::alloc(0, AllocCanFail, s, length);
   if (!_d) _d = sharedNull->refAlways();
@@ -118,9 +118,9 @@ __G_STRING::__G_STRING(const Stub8& str)
 #else
 __G_STRING::__G_STRING(const Ascii8& str)
 {
-  const Char8* s = str.str();
-  sysuint_t length = (str.length() == DetectLength)
-    ? StringUtil::len(s) : str.length();
+  const Char8* s = str.getStr();
+  sysuint_t length = (str.getLength() == DetectLength)
+    ? StringUtil::len(s) : str.getLength();
 
   _d = Data::alloc(0, AllocCanFail, s, length);
   if (!_d) _d = sharedNull->refAlways();
@@ -150,11 +150,6 @@ __G_STRING::__G_STRING(const Utf32& str)
   set(str);
 }
 #endif // __G_SIZE 
-
-__G_STRING::__G_STRING(Data* d)
-{
-  _d = d;
-}
 
 __G_STRING::~__G_STRING()
 {
@@ -496,9 +491,9 @@ err_t __G_STRING::set(__G_CHAR ch, sysuint_t length)
 #if __G_SIZE == 1
 err_t __G_STRING::set(const Stub8& str)
 {
-  const Char8* s = str.str();
-  sysuint_t length = (str.length() == DetectLength)
-    ? StringUtil::len(s) : str.length();
+  const Char8* s = str.getStr();
+  sysuint_t length = (str.getLength() == DetectLength)
+    ? StringUtil::len(s) : str.getLength();
 
   __G_CHAR* p = _prepareSet(this, length);
   if (!p) return Error::OutOfMemory;
@@ -540,9 +535,9 @@ err_t __G_STRING::set(const void* str, sysuint_t size, const TextCodec& tc)
 
 err_t __G_STRING::set(const Ascii8& str)
 {
-  const Char8* s = str.str();
-  sysuint_t length = (str.length() == DetectLength)
-    ? StringUtil::len(s) : str.length();
+  const Char8* s = str.getStr();
+  sysuint_t length = (str.getLength() == DetectLength)
+    ? StringUtil::len(s) : str.getLength();
 
   __G_CHAR* p = _prepareSet(this, length);
   if (!p) return Error::OutOfMemory;
@@ -553,20 +548,20 @@ err_t __G_STRING::set(const Ascii8& str)
 
 err_t __G_STRING::set(const Local8& str)
 {
-  return set(str.str(), str.length(), TextCodec::local8());
+  return set(str.getStr(), str.getLength(), TextCodec::local8());
 }
 
 err_t __G_STRING::set(const Utf8& str)
 {
-  return set(str.str(), str.length(), TextCodec::utf8());
+  return set(str.getStr(), str.getLength(), TextCodec::utf8());
 }
 
 err_t __G_STRING::set(const Utf16& str)
 {
 #if __G_SIZE == 2
-  const Char16* s = str.str();
-  sysuint_t length = (str.length() == DetectLength)
-    ? StringUtil::len(s) : str.length();
+  const Char16* s = str.getStr();
+  sysuint_t length = (str.getLength() == DetectLength)
+    ? StringUtil::len(s) : str.getLength();
 
   __G_CHAR* p = _prepareSet(this, length);
   if (!p) return Error::OutOfMemory;
@@ -575,8 +570,8 @@ err_t __G_STRING::set(const Utf16& str)
   return Error::Ok;
 #else
   return TextCodec::utf16().toUtf32(*this,
-    Stub8((const char*)str.str(), str.length() != DetectLength 
-      ? str.length() << 1
+    Stub8((const char*)str.getStr(), str.getLength() != DetectLength 
+      ? str.getLength() << 1
       : DetectLength));
 #endif // __G_SIZE
 }
@@ -585,13 +580,13 @@ err_t __G_STRING::set(const Utf32& str)
 {
 #if __G_SIZE == 2
   return TextCodec::utf32().toUtf16(
-    *this, Stub8((const char*)str.str(), str.length() != DetectLength 
-      ? str.length() << 2 
+    *this, Stub8((const char*)str.getStr(), str.getLength() != DetectLength 
+      ? str.getLength() << 2 
       : DetectLength));
 #else
-  const Char32* s = str.str();
-  sysuint_t length = (str.length() == DetectLength)
-    ? StringUtil::len(s) : str.length();
+  const Char32* s = str.getStr();
+  sysuint_t length = (str.getLength() == DetectLength)
+    ? StringUtil::len(s) : str.getLength();
 
   __G_CHAR* p = _prepareSet(this, length);
   if (!p) return Error::OutOfMemory;
@@ -606,14 +601,14 @@ err_t __G_STRING::set(const Utf32& str)
 err_t __G_STRING::set(const String32& other)
 {
   return TextCodec::utf32().toUtf16(
-    *this, Stub8((const char*)other.cData(), other.length() << 2));
+    *this, Stub8((const char*)other.cData(), other.getLength() << 2));
 }
 #endif // __G_SIZE
 #if __G_SIZE == 4
 err_t __G_STRING::set(const String16& other)
 {
   return TextCodec::utf16().toUtf32(
-    *this, Stub8((const char*)other.cData(), other.length() << 1));
+    *this, Stub8((const char*)other.cData(), other.getLength() << 1));
 }
 #endif // __G_SIZE
 
@@ -644,7 +639,7 @@ err_t __G_STRING::setDeep(const __G_STRING& other)
   __G_CHAR* p = _prepareSet(this, other_d->length);
   if (!p) return Error::OutOfMemory;
 
-  StringUtil::copy(p, other.cData(), other.length());
+  StringUtil::copy(p, other.cData(), other.getLength());
   return Error::Ok;
 }
 
@@ -768,7 +763,7 @@ err_t __G_STRING::vformat(const char* fmt, va_list ap)
 err_t __G_STRING::wformat(const __G_STRING& fmt, __G_CHAR lex, const Sequence<__G_STRING>& args)
 {
   clear();
-  return appendWformat(fmt, lex, args.cData(), args.length());
+  return appendWformat(fmt, lex, args.cData(), args.getLength());
 }
 
 err_t __G_STRING::wformat(const __G_STRING& fmt, __G_CHAR lex, const __G_STRING* args, sysuint_t length)
@@ -811,11 +806,11 @@ static err_t append_ntoa(__G_STRING* self, uint64_t n, int base, const FormatFla
   uint32_t fmt = ff.flags;
 
   if (out->negative)
-    *prefix++ = l.minus();
+    *prefix++ = l.getMinus();
   else if (fmt & FormatFlags::ShowSign)
-    *prefix++ = l.plus();
+    *prefix++ = l.getPlus();
   else if (fmt & FormatFlags::BlankPositive)
-    *prefix++ = l.space();
+    *prefix++ = l.getSpace();
 
   if (fmt & FormatFlags::Alternate)
   {
@@ -858,12 +853,12 @@ static err_t append_ntoa(__G_STRING* self, uint64_t n, int base, const FormatFla
   StringUtil::copy(p, prefixBuffer, prefixLength); p += prefixLength;
 
   // Body
-  if (base == 10 && l.zero() != __G_CHAR('0'))
+  if (base == 10 && l.getZero() != __G_CHAR('0'))
   {
-    StringUtil::fill(p, l.zero(), fillLength); p += fillLength;
+    StringUtil::fill(p, l.getZero(), fillLength); p += fillLength;
 
     for (sysuint_t i = 0; i != resultLength; i++) 
-      p[i] = l.zero() + (uint32_t)((uint8_t)out->result[i] - (uint8_t)'0');
+      p[i] = l.getZero() + (uint32_t)((uint8_t)out->result[i] - (uint8_t)'0');
     p += resultLength;
   }
   else
@@ -908,9 +903,9 @@ err_t __G_STRING::append(__G_CHAR ch, sysuint_t length)
 #if __G_SIZE == 1
 err_t __G_STRING::append(const Stub8& str)
 {
-  const Char8* s = str.str();
-  sysuint_t length = (str.length() == DetectLength)
-    ? StringUtil::len(s) : str.length();
+  const Char8* s = str.getStr();
+  sysuint_t length = (str.getLength() == DetectLength)
+    ? StringUtil::len(s) : str.getLength();
 
   __G_CHAR* p = _prepareAppend(this, length);
   if (!p) return Error::OutOfMemory;
@@ -949,9 +944,9 @@ err_t __G_STRING::append(const void* str, sysuint_t size, const TextCodec& tc)
 
 err_t __G_STRING::append(const Ascii8& str)
 {
-  const Char8* s = str.str();
-  sysuint_t length = (str.length() == DetectLength)
-    ? StringUtil::len(s) : str.length();
+  const Char8* s = str.getStr();
+  sysuint_t length = (str.getLength() == DetectLength)
+    ? StringUtil::len(s) : str.getLength();
 
   __G_CHAR* p = _prepareAppend(this, length);
   if (!p) return Error::OutOfMemory;
@@ -962,20 +957,20 @@ err_t __G_STRING::append(const Ascii8& str)
 
 err_t __G_STRING::append(const Local8& str)
 {
-  return append(str.str(), str.length(), TextCodec::local8());
+  return append(str.getStr(), str.getLength(), TextCodec::local8());
 }
 
 err_t __G_STRING::append(const Utf8& str)
 {
-  return append(str.str(), str.length(), TextCodec::utf8());
+  return append(str.getStr(), str.getLength(), TextCodec::utf8());
 }
 
 err_t __G_STRING::append(const Utf16& str)
 {
 #if __G_SIZE == 2
-  const Char16* s = str.str();
-  sysuint_t length = (str.length() == DetectLength)
-    ? StringUtil::len(s) : str.length();
+  const Char16* s = str.getStr();
+  sysuint_t length = (str.getLength() == DetectLength)
+    ? StringUtil::len(s) : str.getLength();
 
   __G_CHAR* p = _prepareAppend(this, length);
   if (!p) return Error::OutOfMemory;
@@ -983,18 +978,18 @@ err_t __G_STRING::append(const Utf16& str)
   StringUtil::copy(p, s, length);
   return Error::Ok;
 #else
-  return append(str.str(), str.length(), TextCodec::utf32());
+  return append(str.getStr(), str.getLength(), TextCodec::utf32());
 #endif
 }
 
 err_t __G_STRING::append(const Utf32& str)
 {
 #if __G_SIZE == 2
-  return append(str.str(), str.length(), TextCodec::utf16());
+  return append(str.getStr(), str.getLength(), TextCodec::utf16());
 #else
-  const Char32* s = str.str();
-  sysuint_t length = (str.length() == DetectLength)
-    ? StringUtil::len(s) : str.length();
+  const Char32* s = str.getStr();
+  sysuint_t length = (str.getLength() == DetectLength)
+    ? StringUtil::len(s) : str.getLength();
 
   __G_CHAR* p = _prepareAppend(this, length);
   if (!p) return Error::OutOfMemory;
@@ -1007,14 +1002,14 @@ err_t __G_STRING::append(const Utf32& str)
 
 err_t __G_STRING::append(const __G_STRING& _other)
 {
-  if (length() == 0) return set(_other);
+  if (getLength() == 0) return set(_other);
 
   __G_STRING other(_other);
 
-  __G_CHAR* p = _prepareAppend(this, other.length());
+  __G_CHAR* p = _prepareAppend(this, other.getLength());
   if (!p) return Error::OutOfMemory;
 
-  StringUtil::copy(p, other.cData(), other.length());
+  StringUtil::copy(p, other.cData(), other.getLength());
   return Error::Ok;
 }
 
@@ -1022,14 +1017,14 @@ err_t __G_STRING::append(const __G_STRING& _other)
 err_t __G_STRING::append(const String32& other)
 {
   return TextCodec::utf32().appendToUtf16(
-    *this, Stub8((const char*)other.cData(), other.length() << 2));
+    *this, Stub8((const char*)other.cData(), other.getLength() << 2));
 }
 #endif // __G_SIZE
 #if __G_SIZE == 4
 err_t __G_STRING::append(const String16& other)
 {
   return TextCodec::utf16().appendToUtf32(
-    *this, Stub8((const char*)other.cData(), other.length() << 1));
+    *this, Stub8((const char*)other.cData(), other.getLength() << 1));
 }
 #endif // __G_SIZE
 
@@ -1157,16 +1152,16 @@ err_t __G_STRING::appendDouble(double d, int doubleForm, const FormatFlags& ff, 
 
   __G_CHAR* dest;
   __G_CHAR sign = __G_CHAR('\0');
-  __G_CHAR zero = l.zero() - __G_CHAR('0');
+  __G_CHAR zero = l.getZero() - __G_CHAR('0');
 
   if (precision == FormatFlags::NoPrecision) precision = 6;
 
   if (d < 0.0)
-    { sign = l.minus(); d = -d; }
+    { sign = l.getMinus(); d = -d; }
   else if (fmt & FormatFlags::ShowSign)
-    sign = l.plus();
+    sign = l.getPlus();
   else if (fmt & FormatFlags::BlankPositive)
-    sign = l.space();
+    sign = l.getSpace();
 
   if (sign != 0) append(sign);
 
@@ -1185,8 +1180,8 @@ err_t __G_STRING::appendDouble(double d, int doubleForm, const FormatFlags& ff, 
     i = precision + 16;
     if (decpt > 0) i += (sysuint_t)decpt;
 
-    if ( (err = reserve(length() + i)) ) return err;
-    dest = xData() + length();
+    if ( (err = reserve(getLength() + i)) ) return err;
+    dest = xData() + getLength();
 
     while (bufCur != bufEnd && decpt > 0) { *dest++ = zero + (uint8_t)*bufCur++; decpt--; }
     // Even if not in buffer
@@ -1195,7 +1190,7 @@ err_t __G_STRING::appendDouble(double d, int doubleForm, const FormatFlags& ff, 
     if ((fmt & FormatFlags::Alternate) != 0 || bufCur != bufEnd)
     {
       if (bufCur == out.result) *dest++ = zero + __G_CHAR('0');
-      *dest++ = l.decimalPoint();
+      *dest++ = l.getDecimalPoint();
       while (decpt < 0 && precision > 0) { *dest++ = zero + __G_CHAR('0'); decpt++; precision--; }
 
       // Print rest of stuff
@@ -1216,14 +1211,14 @@ __exponentialForm:
     if (decpt == 9999) goto __InfOrNaN;
 
     // reserve some space for number, we need +X.{PRECISION}e+123
-    if ( (err = reserve(length() + precision + 10)) ) return err;
-    dest = xData() + length();
+    if ( (err = reserve(getLength() + precision + 10)) ) return err;
+    dest = xData() + getLength();
 
     bufCur = out.result;
     bufEnd = bufCur + out.length;
 
     *dest++ = zero + (uint8_t)*(bufCur++);
-    if ((fmt & FormatFlags::Alternate) != 0 || precision != 0) *dest++ = l.decimalPoint();
+    if ((fmt & FormatFlags::Alternate) != 0 || precision != 0) *dest++ = l.getDecimalPoint();
     while (bufCur != bufEnd && precision > 0)
     {
       *dest++ = zero + (uint8_t)*(bufCur++);
@@ -1238,12 +1233,12 @@ __exponentialForm:
     }
 
     // Add the exponent.
-    *dest++ = l.exponential();
+    *dest++ = l.getExponential();
     decpt--;
     if (decpt < 0)
-      { *dest++ = l.minus(); decpt = -decpt; }
+      { *dest++ = l.getMinus(); decpt = -decpt; }
     else
-      *dest++ = l.plus();
+      *dest++ = l.getPlus();
 
     dest = append_exponent(dest, decpt, zero + __G_CHAR('0'));
 
@@ -1276,8 +1271,8 @@ __exponentialForm:
     i = precision + 16;
     if (decpt > 0) i += (sysuint_t)decpt;
 
-    if ( (err = reserve(length() + i)) ) return err;
-    dest = save = xData() + length();
+    if ( (err = reserve(getLength() + i)) ) return err;
+    dest = save = xData() + getLength();
 
     bufCur = out.result;
     bufEnd = bufCur + out.length;
@@ -1289,7 +1284,7 @@ __exponentialForm:
     if ((fmt & FormatFlags::Alternate) != 0 || bufCur != bufEnd)
     {
       if (dest == save) *dest++ = zero + __G_CHAR('0');
-      *dest++ = l.decimalPoint();
+      *dest++ = l.getDecimalPoint();
       while (decpt < 0 && precision > 0) { *dest++ = zero + __G_CHAR('0'); decpt++; precision--; }
 
       // Print rest of stuff
@@ -1363,7 +1358,7 @@ err_t __G_STRING::appendVformat(const char* fmt, va_list ap)
 
   const char* fmtBeginChunk = fmt;
   uint32_t c;
-  sysuint_t beginLength = length();
+  sysuint_t beginLength = getLength();
 
   for (;;)
   {
@@ -1657,7 +1652,7 @@ ffUnsigned:
         case 'n':
         {
           void* pointer = va_arg(ap, void*);
-          sysuint_t n = length() - beginLength;
+          sysuint_t n = getLength() - beginLength;
           switch (sizeFlags) {
             case Arg_Size_M:
             case Arg_Size_LL: *(uint64_t *)pointer = (uint64_t)(n); break;
@@ -1701,13 +1696,13 @@ end:
 
 err_t __G_STRING::appendWformat(const __G_STRING& fmt, __G_CHAR lex, const Sequence<__G_STRING>& args)
 {
-  return appendWformat(fmt, lex, args.cData(), args.length());
+  return appendWformat(fmt, lex, args.cData(), args.getLength());
 }
 
 err_t __G_STRING::appendWformat(const __G_STRING& fmt, __G_CHAR lex, const __G_STRING* args, sysuint_t length)
 {
   const __G_CHAR* fmtBeg = fmt.cData();
-  const __G_CHAR* fmtEnd = fmtBeg + fmt.length();
+  const __G_CHAR* fmtEnd = fmtBeg + fmt.getLength();
   const __G_CHAR* fmtCur;
 
   err_t err = Error::Ok;
@@ -1819,7 +1814,7 @@ err_t __G_STRING::prepend(const __G_STRING& other)
 #if __G_SIZE != 1
 err_t __G_STRING::prepend(const __G_STRING_UTFX& other)
 {
-  return prepend(__G_STRING_STUBX(other.cData(), other.length()));
+  return prepend(__G_STRING_STUBX(other.cData(), other.getLength()));
 }
 #endif // __G_SIZE
 
@@ -1841,9 +1836,9 @@ err_t __G_STRING::insert(sysuint_t index, __G_CHAR ch, sysuint_t length)
 #if __G_SIZE == 1
 err_t __G_STRING::insert(sysuint_t index, const Stub8& str)
 {
-  const Char8* s = str.str();
-  sysuint_t length = (str.length() == DetectLength)
-    ? StringUtil::len(s) : str.length();
+  const Char8* s = str.getStr();
+  sysuint_t length = (str.getLength() == DetectLength)
+    ? StringUtil::len(s) : str.getLength();
 
   __G_CHAR* p = _prepareInsert(this, index, length);
   if (!p) return Error::OutOfMemory;
@@ -1896,9 +1891,9 @@ err_t __G_STRING::insert(sysuint_t index, const void* str, sysuint_t size, const
 
 err_t __G_STRING::insert(sysuint_t index, const Ascii8& str)
 {
-  const Char8* s = str.str();
-  sysuint_t length = (str.length() == DetectLength)
-    ? StringUtil::len(s) : str.length();
+  const Char8* s = str.getStr();
+  sysuint_t length = (str.getLength() == DetectLength)
+    ? StringUtil::len(s) : str.getLength();
 
   __G_CHAR* p = _prepareInsert(this, index, length);
   if (!p) return Error::OutOfMemory;
@@ -1909,20 +1904,20 @@ err_t __G_STRING::insert(sysuint_t index, const Ascii8& str)
 
 err_t __G_STRING::insert(sysuint_t index, const Local8& str)
 {
-  return insert(index, str.str(), str.length(), TextCodec::local8());
+  return insert(index, str.getStr(), str.getLength(), TextCodec::local8());
 }
 
 err_t __G_STRING::insert(sysuint_t index, const Utf8& str)
 {
-  return insert(index, str.str(), str.length(), TextCodec::utf8());
+  return insert(index, str.getStr(), str.getLength(), TextCodec::utf8());
 }
 
 err_t __G_STRING::insert(sysuint_t index, const Utf16& str)
 {
 #if __G_SIZE == 2
-  const Char16* s = str.str();
-  sysuint_t length = (str.length() == DetectLength)
-    ? StringUtil::len(s) : str.length();
+  const Char16* s = str.getStr();
+  sysuint_t length = (str.getLength() == DetectLength)
+    ? StringUtil::len(s) : str.getLength();
 
   __G_CHAR* p = _prepareInsert(this, index, length);
   if (!p) return Error::OutOfMemory;
@@ -1930,18 +1925,18 @@ err_t __G_STRING::insert(sysuint_t index, const Utf16& str)
   StringUtil::copy(p, s, length);
   return Error::Ok;
 #else
-  return insert(index, str.str(), str.length(), TextCodec::utf16());
+  return insert(index, str.getStr(), str.getLength(), TextCodec::utf16());
 #endif // __G_SIZE
 }
 
 err_t __G_STRING::insert(sysuint_t index, const Utf32& str)
 {
 #if __G_SIZE == 2
-  return insert(index, str.str(), str.length(), TextCodec::utf32());
+  return insert(index, str.getStr(), str.getLength(), TextCodec::utf32());
 #else
-  const Char32* s = str.str();
-  sysuint_t length = (str.length() == DetectLength)
-    ? StringUtil::len(s) : str.length();
+  const Char32* s = str.getStr();
+  sysuint_t length = (str.getLength() == DetectLength)
+    ? StringUtil::len(s) : str.getLength();
 
   __G_CHAR* p = _prepareInsert(this, index, length);
   if (!p) return Error::OutOfMemory;
@@ -1956,10 +1951,10 @@ err_t __G_STRING::insert(sysuint_t index, const __G_STRING& _other)
 {
   __G_STRING other(_other);
 
-  __G_CHAR* p = _prepareInsert(this, index, other.length());
+  __G_CHAR* p = _prepareInsert(this, index, other.getLength());
   if (!p) return Error::OutOfMemory;
 
-  StringUtil::copy(p, other.cData(), other.length());
+  StringUtil::copy(p, other.cData(), other.getLength());
   return Error::Ok;
 }
 
@@ -1969,10 +1964,10 @@ err_t __G_STRING::insert(sysuint_t index, const __G_STRING_UTFX& other)
   __G_STRING t;
 #if __G_SIZE == 2
   err_t err = TextCodec::utf32().appendToUtf16(
-    t, Stub8((const char*)other.cData(), other.length() << 2));
+    t, Stub8((const char*)other.cData(), other.getLength() << 2));
 #else
   err_t err = TextCodec::utf16().appendToUtf32(
-    t, Stub8((const char*)other.cData(), other.length() << 1));
+    t, Stub8((const char*)other.cData(), other.getLength() << 1));
 #endif
   if (err) return err;
   return insert(index, t);
@@ -1989,8 +1984,8 @@ sysuint_t __G_STRING::remove(const Range& range)
   if (!fitToRange(*this, &rstart, &rlen, range)) return 0;
 
   sysuint_t lenPart1 = rstart;
-  sysuint_t lenPart2 = length() - rstart - rlen;
-  sysuint_t lenAfter = length() - rlen;
+  sysuint_t lenPart2 = getLength() - rstart - rlen;
+  sysuint_t lenAfter = getLength() - rlen;
 
   if (_d->refCount.get() > 1)
   {
@@ -2112,7 +2107,7 @@ sysuint_t __G_STRING::remove(const __G_STRING& other, uint cs, const Range& rang
   sysuint_t rstart, rlen;
   if (!fitToRange(*this, &rstart, &rlen, range)) return 0;
 
-  sysuint_t len = other.length();
+  sysuint_t len = other.getLength();
   if (len == 0) return 0;
   if (len == 1) return remove(other.at(0), cs, range);
 
@@ -2130,7 +2125,7 @@ sysuint_t __G_STRING::remove(const __G_STRING& other, uint cs, const Range& rang
     const __G_CHAR* aStr = cData();
     const __G_CHAR* bStr = other.cData();
 
-    sysuint_t aLength = length();
+    sysuint_t aLength = getLength();
     sysuint_t bLength = len;
 
     Range ranges[128]; // Maximal length is 256 and minimal pattern size is 2.
@@ -2161,7 +2156,7 @@ sysuint_t __G_STRING::remove(const __G_STRINGFILTER& filter, uint cs, const Rang
   if (!fitToRange(*this, &rstart, &rlen, range)) return 0;
 
   const __G_CHAR* str = cData();
-  sysuint_t len = length();
+  sysuint_t len = getLength();
   sysuint_t rend = rstart + rlen;
 
   Vector<Range> ranges;
@@ -2175,7 +2170,7 @@ sysuint_t __G_STRING::remove(const __G_STRINGFILTER& filter, uint cs, const Rang
     rstart = r.index + r.length;
   }
 
-  return remove(ranges.cData(), ranges.length());
+  return remove(ranges.cData(), ranges.getLength());
 }
 
 sysuint_t __G_STRING::remove(const Range* range, sysuint_t count)
@@ -2183,7 +2178,7 @@ sysuint_t __G_STRING::remove(const Range* range, sysuint_t count)
   if (range == NULL || count == 0) return 0;
 
   sysuint_t i;
-  sysuint_t len = length();
+  sysuint_t len = getLength();
 
   if (_d->refCount.get() == 1)
   {
@@ -2256,7 +2251,7 @@ err_t __G_STRING::replace(const Range& range, const __G_STRING& replacement)
   if (!fitToRange(*this, &rstart, &rlen, range)) return Error::Ok;
 
   const __G_CHAR* replacementData = replacement.cData();
-  sysuint_t replacementLength = replacement.length();
+  sysuint_t replacementLength = replacement.getLength();
 
   if (_d->refCount.get() == 1 && _d != replacement._d)
   {
@@ -2364,7 +2359,7 @@ err_t __G_STRING::replace(const __G_STRING& before, const __G_STRING& after,
   sysuint_t rstart, rlen;
   if (!fitToRange(*this, &rstart, &rlen, range)) return 0;
 
-  sysuint_t len = before.length();
+  sysuint_t len = before.getLength();
   if (len == 0) return 0;
 
   if (rlen >= 256)
@@ -2381,7 +2376,7 @@ err_t __G_STRING::replace(const __G_STRING& before, const __G_STRING& after,
     const __G_CHAR* aStr = cData();
     const __G_CHAR* bStr = before.cData();
 
-    sysuint_t aLength = length();
+    sysuint_t aLength = getLength();
     sysuint_t bLength = len;
 
     Range ranges[256];
@@ -2402,7 +2397,7 @@ err_t __G_STRING::replace(const __G_STRING& before, const __G_STRING& after,
       rpos += bLength;
     }
 
-    return replace(ranges, count, after.cData(), after.length());
+    return replace(ranges, count, after.cData(), after.getLength());
   }
 }
 
@@ -2413,7 +2408,7 @@ err_t __G_STRING::replace(const __G_STRINGFILTER& filter, const __G_STRING& afte
   if (!fitToRange(*this, &rstart, &rlen, range)) return 0;
 
   const __G_CHAR* str = cData();
-  sysuint_t len = length();
+  sysuint_t len = getLength();
   sysuint_t rend = rstart + rlen;
 
   Vector<Range> ranges;
@@ -2427,14 +2422,14 @@ err_t __G_STRING::replace(const __G_STRINGFILTER& filter, const __G_STRING& afte
     rstart = r.index + r.length;
   }
 
-  return replace(ranges.cData(), ranges.length(), after.cData(), after.length());
+  return replace(ranges.cData(), ranges.getLength(), after.cData(), after.getLength());
 }
 
 err_t __G_STRING::replace(const Range* m, sysuint_t mcount, const __G_CHAR* after, sysuint_t alen)
 {
   sysuint_t i;
   sysuint_t pos = 0;
-  sysuint_t len = length();
+  sysuint_t len = getLength();
   const __G_CHAR* cur = cData();
 
   // Get total count of characters we remove.
@@ -2475,7 +2470,7 @@ err_t __G_STRING::replace(const Range* m, sysuint_t mcount, const __G_CHAR* afte
   }
 
   // Last piece of string
-  t = length() - pos;
+  t = getLength() - pos;
   if (t > remain) goto overflow;
   StringUtil::copy(p, cur + pos, t);
   p += t;
@@ -2819,7 +2814,7 @@ __caseSensitive:
 
 Vector<__G_STRING> __G_STRING::split(const __G_STRING& pattern, uint splitBehavior, uint cs) const
 {
-  sysuint_t plen = pattern.length();
+  sysuint_t plen = pattern.getLength();
 
   if (!plen)
   {
@@ -2886,59 +2881,59 @@ __G_STRING __G_STRING::substring(const Range& range) const
 
 err_t __G_STRING::atob(bool* dst, int base, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atob(cData(), length(), dst, end, parserFlags);
+  return StringUtil::atob(cData(), getLength(), dst, end, parserFlags);
 }
 
 err_t __G_STRING::atoi8(int8_t* dst, int base, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atoi8(cData(), length(), dst, base, end, parserFlags);
+  return StringUtil::atoi8(cData(), getLength(), dst, base, end, parserFlags);
 }
 
 err_t __G_STRING::atou8(uint8_t* dst, int base, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atou8(cData(), length(), dst, base, end, parserFlags);
+  return StringUtil::atou8(cData(), getLength(), dst, base, end, parserFlags);
 }
 
 err_t __G_STRING::atoi16(int16_t* dst, int base, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atoi16(cData(), length(), dst, base, end, parserFlags);
+  return StringUtil::atoi16(cData(), getLength(), dst, base, end, parserFlags);
 }
 
 err_t __G_STRING::atou16(uint16_t* dst, int base, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atou16(cData(), length(), dst, base, end, parserFlags);
+  return StringUtil::atou16(cData(), getLength(), dst, base, end, parserFlags);
 }
 
 err_t __G_STRING::atoi32(int32_t* dst, int base, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atoi32(cData(), length(), dst, base, end, parserFlags);
+  return StringUtil::atoi32(cData(), getLength(), dst, base, end, parserFlags);
 }
 
 err_t __G_STRING::atou32(uint32_t* dst, int base, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atou32(cData(), length(), dst, base, end, parserFlags);
+  return StringUtil::atou32(cData(), getLength(), dst, base, end, parserFlags);
 }
 
 err_t __G_STRING::atoi64(int64_t* dst, int base, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atoi64(cData(), length(), dst, base, end, parserFlags);
+  return StringUtil::atoi64(cData(), getLength(), dst, base, end, parserFlags);
 }
 
 err_t __G_STRING::atou64(uint64_t* dst, int base, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atou64(cData(), length(), dst, base, end, parserFlags);
+  return StringUtil::atou64(cData(), getLength(), dst, base, end, parserFlags);
 }
 
 #if __G_SIZE == 1
 err_t __G_STRING::atof(float* dst, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atof(cData(), length(), dst, 
+  return StringUtil::atof(cData(), getLength(), dst, 
     __G_CHAR('.'), end, parserFlags);
 }
 
 err_t __G_STRING::atod(double* dst, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atod(cData(), length(), dst,
+  return StringUtil::atod(cData(), getLength(), dst,
     __G_CHAR('.'), end, parserFlags);
 }
 #else
@@ -2946,16 +2941,16 @@ err_t __G_STRING::atof(float* dst, const Locale* locale, sysuint_t* end, uint32_
 {
   if (locale == NULL) locale = &Locale::posix();
 
-  return StringUtil::atof(cData(), length(), dst, 
-    __G_CHAR(locale->decimalPoint().ch()), end, parserFlags);
+  return StringUtil::atof(cData(), getLength(), dst, 
+    __G_CHAR(locale->getDecimalPoint().ch()), end, parserFlags);
 }
 
 err_t __G_STRING::atod(double* dst, const Locale* locale, sysuint_t* end, uint32_t* parserFlags) const
 {
   if (locale == NULL) locale = &Locale::posix();
 
-  return StringUtil::atod(cData(), length(), dst,
-    __G_CHAR(locale->decimalPoint().ch()), end, parserFlags);
+  return StringUtil::atod(cData(), getLength(), dst,
+    __G_CHAR(locale->getDecimalPoint().ch()), end, parserFlags);
 }
 #endif
 
@@ -2982,7 +2977,7 @@ bool __G_STRING::contains(const __G_STRING& pattern,
 bool __G_STRING::contains(const __G_STRINGFILTER& filter, 
   uint cs, const Range& range) const
 {
-  Range m = filter.indexOf(cData(), length(), cs, range);
+  Range m = filter.indexOf(cData(), getLength(), cs, range);
   return m.index != InvalidIndex;
 }
 
@@ -3006,7 +3001,7 @@ sysuint_t __G_STRING::countOf(const __G_STRING& pattern,
   sysuint_t rstart, rlen;
   if (!fitToRange(*this, &rstart, &rlen, range)) return 0;
 
-  sysuint_t len = pattern.length();
+  sysuint_t len = pattern.getLength();
   if (len == 0) return 0;
   if (len == 1) return countOf(pattern.at(0), cs, range);
 
@@ -3024,7 +3019,7 @@ sysuint_t __G_STRING::countOf(const __G_STRING& pattern,
     const __G_CHAR* aStr = cData();
     const __G_CHAR* bStr = pattern.cData();
 
-    sysuint_t aLength = length();
+    sysuint_t aLength = getLength();
     sysuint_t bLength = len;
 
     sysuint_t rpos = rstart;
@@ -3053,7 +3048,7 @@ sysuint_t __G_STRING::countOf(const __G_STRINGFILTER& filter,
   if (!fitToRange(*this, &rstart, &rlen, range)) return 0;
 
   const __G_CHAR* str = cData();
-  sysuint_t len = length();
+  sysuint_t len = getLength();
   sysuint_t rend = rstart + rlen;
   sysuint_t count = 0;
 
@@ -3087,9 +3082,9 @@ sysuint_t __G_STRING::indexOf(const __G_STRING& pattern,
   uint cs, const Range& range) const
 {
   sysuint_t rstart, rlen;
-  if (!fitToRange(*this, &rstart, &rlen, range)) return 0;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return InvalidIndex;
 
-  sysuint_t len = pattern.length();
+  sysuint_t len = pattern.getLength();
   if (len == 0) return InvalidIndex;
   if (len == 1) return indexOf(pattern.at(0), cs, range);
 
@@ -3104,7 +3099,7 @@ sysuint_t __G_STRING::indexOf(const __G_STRING& pattern,
   else
   {
     // Match using naive algorithm.
-    sysuint_t i = StringUtil::indexOf(cData() + rstart, rlen, pattern.cData(), len);
+    sysuint_t i = StringUtil::indexOf(cData() + rstart, rlen, pattern.cData(), len, cs);
     return (i == InvalidIndex) ? i : i + rstart;
   }
 }
@@ -3115,7 +3110,7 @@ sysuint_t __G_STRING::indexOf(const __G_STRINGFILTER& filter,
   sysuint_t rstart, rlen;
   if (!fitToRange(*this, &rstart, &rlen, range)) return InvalidIndex;
 
-  Range m = filter.match(cData(), length(), cs, Range(rstart, rlen));
+  Range m = filter.match(cData(), getLength(), cs, Range(rstart, rlen));
   return m.index;
 }
 
@@ -3133,9 +3128,9 @@ sysuint_t __G_STRING::lastIndexOf(const __G_STRING& pattern,
   uint cs, const Range& range) const
 {
   sysuint_t rstart, rlen;
-  if (!fitToRange(*this, &rstart, &rlen, range)) return 0;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return InvalidIndex;
 
-  sysuint_t len = pattern.length();
+  sysuint_t len = pattern.getLength();
   if (len == 0) return InvalidIndex;
   if (len == 1) return lastIndexOf(pattern.at(0), cs, range);
 
@@ -3180,7 +3175,7 @@ sysuint_t __G_STRING::lastIndexOf(const __G_STRINGFILTER& filter,
 
   for (;;)
   {
-    Range m = filter.match(cData(), length(), cs, Range(rstart, rlen));
+    Range m = filter.match(cData(), getLength(), cs, Range(rstart, rlen));
     if (m.index == InvalidIndex) break;
 
     result = m.index;
@@ -3200,11 +3195,11 @@ sysuint_t __G_STRING::lastIndexOf(const __G_STRINGFILTER& filter,
 #if __G_SIZE == 1
 bool __G_STRING::startsWith(const Stub8& str, uint cs) const
 {
-  const Char8* s = str.str();
-  sysuint_t len = str.length();
+  const Char8* s = str.getStr();
+  sysuint_t len = str.getLength();
   if (len == DetectLength) len = StringUtil::len(s);
 
-  return length() >= len && StringUtil::eq(cData(), s, len, cs);
+  return getLength() >= len && StringUtil::eq(cData(), s, len, cs);
 }
 #else
 bool __G_STRING::startsWith(const void* data, sysuint_t size, const TextCodec& tc, uint cs) const
@@ -3223,17 +3218,17 @@ bool __G_STRING::startsWith(const void* data, sysuint_t size, const TextCodec& t
 
 bool __G_STRING::startsWith(const Ascii8& str, uint cs) const
 {
-  const Char8* s = str.str();
-  sysuint_t len = str.length();
+  const Char8* s = str.getStr();
+  sysuint_t len = str.getLength();
   if (len == DetectLength) len = StringUtil::len(s);
 
-  return length() >= len && StringUtil::eq(cData(), s, len, cs);
+  return getLength() >= len && StringUtil::eq(cData(), s, len, cs);
 }
 
 bool __G_STRING::startsWith(const Local8& str, uint cs) const
 {
-  const Char8* s = str.str();
-  sysuint_t len = str.length();
+  const Char8* s = str.getStr();
+  sysuint_t len = str.getLength();
   if (len == DetectLength) len = StringUtil::len(s);
 
   return startsWith((const void*)s, len, TextCodec::local8(), cs);
@@ -3241,8 +3236,8 @@ bool __G_STRING::startsWith(const Local8& str, uint cs) const
 
 bool __G_STRING::startsWith(const Utf8& str, uint cs) const
 {
-  const Char8* s = str.str();
-  sysuint_t len = str.length();
+  const Char8* s = str.getStr();
+  sysuint_t len = str.getLength();
   if (len == DetectLength) len = StringUtil::len(s);
 
   return startsWith((const void*)s, len, TextCodec::utf8(), cs);
@@ -3251,14 +3246,14 @@ bool __G_STRING::startsWith(const Utf8& str, uint cs) const
 bool __G_STRING::startsWith(const Utf16& str, uint cs) const
 {
 #if __G_SIZE == 2
-  const Char16* s = str.str();
-  sysuint_t len = str.length();
+  const Char16* s = str.getStr();
+  sysuint_t len = str.getLength();
   if (len == DetectLength) len = StringUtil::len(s);
 
-  return length() >= len && StringUtil::eq(cData(), s, len, cs);
+  return getLength() >= len && StringUtil::eq(cData(), s, len, cs);
 #else
-  const Char16* s = str.str();
-  sysuint_t len = str.length();
+  const Char16* s = str.getStr();
+  sysuint_t len = str.getLength();
   if (len == DetectLength) len = StringUtil::len(s);
 
   return startsWith((const void*)s, len << 1, TextCodec::utf16(), cs);
@@ -3268,43 +3263,43 @@ bool __G_STRING::startsWith(const Utf16& str, uint cs) const
 bool __G_STRING::startsWith(const Utf32& str, uint cs) const
 {
 #if __G_SIZE == 2
-  const Char32* s = str.str();
-  sysuint_t len = str.length();
+  const Char32* s = str.getStr();
+  sysuint_t len = str.getLength();
   if (len == DetectLength) len = StringUtil::len(s);
 
   return startsWith((const void*)s, len << 2, TextCodec::utf32(), cs);
 #else
-  const Char32* s = str.str();
-  sysuint_t len = str.length();
+  const Char32* s = str.getStr();
+  sysuint_t len = str.getLength();
   if (len == DetectLength) len = StringUtil::len(s);
 
-  return length() >= len && StringUtil::eq(cData(), s, len, cs);
+  return getLength() >= len && StringUtil::eq(cData(), s, len, cs);
 #endif // __G_SIZE
 }
 #endif // __G_SIZE
 
 bool __G_STRING::startsWith(const __G_STRING& str, uint cs) const
 {
-  return length() >= str.length() && 
-    StringUtil::eq(cData(), str.cData(), str.length(), cs);
+  return getLength() >= str.getLength() && 
+    StringUtil::eq(cData(), str.cData(), str.getLength(), cs);
 }
 
 bool __G_STRING::startsWith(const __G_STRINGFILTER& filter, uint cs) const
 {
-  sysuint_t flen = filter.length();
+  sysuint_t flen = filter.getLength();
 
-  if (flen == InvalidIndex) flen = length();
-  return filter.match(cData(), length(), cs, Range(0, flen)).index == 0;
+  if (flen == InvalidIndex) flen = getLength();
+  return filter.match(cData(), getLength(), cs, Range(0, flen)).index == 0;
 }
 
 #if __G_SIZE == 1
 bool __G_STRING::endsWith(const Stub8& str, uint cs) const
 {
-  const Char8* s = str.str();
-  sysuint_t len = str.length();
+  const Char8* s = str.getStr();
+  sysuint_t len = str.getLength();
   if (len == DetectLength) len = StringUtil::len(s);
 
-  return length() >= len && StringUtil::eq(cData() + length() - len, s, len, cs);
+  return getLength() >= len && StringUtil::eq(cData() + getLength() - len, s, len, cs);
 }
 #else
 bool __G_STRING::endsWith(const void* data, sysuint_t size, const TextCodec& tc, uint cs) const
@@ -3323,17 +3318,17 @@ bool __G_STRING::endsWith(const void* data, sysuint_t size, const TextCodec& tc,
 
 bool __G_STRING::endsWith(const Ascii8& str, uint cs) const
 {
-  const Char8* s = str.str();
-  sysuint_t len = str.length();
+  const Char8* s = str.getStr();
+  sysuint_t len = str.getLength();
   if (len == DetectLength) len = StringUtil::len(s);
 
-  return length() >= len && StringUtil::eq(cData() + length() - len, s, len, cs);
+  return getLength() >= len && StringUtil::eq(cData() + getLength() - len, s, len, cs);
 }
 
 bool __G_STRING::endsWith(const Local8& str, uint cs) const
 {
-  const Char8* s = str.str();
-  sysuint_t len = str.length();
+  const Char8* s = str.getStr();
+  sysuint_t len = str.getLength();
   if (len == DetectLength) len = StringUtil::len(s);
 
   return endsWith((const void*)s, len, TextCodec::local8(), cs);
@@ -3341,8 +3336,8 @@ bool __G_STRING::endsWith(const Local8& str, uint cs) const
 
 bool __G_STRING::endsWith(const Utf8& str, uint cs) const
 {
-  const Char8* s = str.str();
-  sysuint_t len = str.length();
+  const Char8* s = str.getStr();
+  sysuint_t len = str.getLength();
   if (len == DetectLength) len = StringUtil::len(s);
 
   return endsWith((const void*)s, len, TextCodec::utf8(), cs);
@@ -3351,15 +3346,15 @@ bool __G_STRING::endsWith(const Utf8& str, uint cs) const
 bool __G_STRING::endsWith(const Utf16& str, uint cs) const
 {
 #if __G_SIZE == 2
-  const Char16* s = str.str();
-  sysuint_t len = str.length();
+  const Char16* s = str.getStr();
+  sysuint_t len = str.getLength();
   if (len == DetectLength) len = StringUtil::len(s);
 
-  return length() >= len && 
-    StringUtil::eq(cData() + length() - len, s, len, cs);
+  return getLength() >= len && 
+    StringUtil::eq(cData() + getLength() - len, s, len, cs);
 #else
-  const Char16* s = str.str();
-  sysuint_t len = str.length();
+  const Char16* s = str.getStr();
+  sysuint_t len = str.getLength();
   if (len == DetectLength) len = StringUtil::len(s);
 
   return endsWith((const void*)s, len << 1, TextCodec::utf16(), cs);
@@ -3369,36 +3364,36 @@ bool __G_STRING::endsWith(const Utf16& str, uint cs) const
 bool __G_STRING::endsWith(const Utf32& str, uint cs) const
 {
 #if __G_SIZE == 2
-  const Char32* s = str.str();
-  sysuint_t len = str.length();
+  const Char32* s = str.getStr();
+  sysuint_t len = str.getLength();
   if (len == DetectLength) len = StringUtil::len(s);
 
   return endsWith((const void*)s, len << 2, TextCodec::utf32(), cs);
 #else
-  const Char32* s = str.str();
-  sysuint_t len = str.length();
+  const Char32* s = str.getStr();
+  sysuint_t len = str.getLength();
   if (len == DetectLength) len = StringUtil::len(s);
 
-  return length() >= len && 
-    StringUtil::eq(cData() + length() - len, s, len, cs);
+  return getLength() >= len && 
+    StringUtil::eq(cData() + getLength() - len, s, len, cs);
 #endif // __G_SIZE
 }
 #endif // __G_SIZE
 
 bool __G_STRING::endsWith(const __G_STRING& str, uint cs) const
 {
-  return length() >= str.length() && 
-    StringUtil::eq(cData() + length() - str.length(), str.cData(), str.length(), cs);
+  return getLength() >= str.getLength() && 
+    StringUtil::eq(cData() + getLength() - str.getLength(), str.cData(), str.getLength(), cs);
 }
 
 bool __G_STRING::endsWith(const __G_STRINGFILTER& filter, uint cs) const
 {
-  sysuint_t flen = filter.length();
+  sysuint_t flen = filter.getLength();
 
   if (flen == InvalidIndex)
   {
     sysuint_t i = 0;
-    sysuint_t len = length();
+    sysuint_t len = getLength();
 
     for (;;)
     {
@@ -3411,9 +3406,9 @@ bool __G_STRING::endsWith(const __G_STRINGFILTER& filter, uint cs) const
   }
   else
   {
-    return flen <= length() &&
+    return flen <= getLength() &&
       filter.match(
-        cData() + length() - flen, length(), cs, Range(0, flen)).index == 0;
+        cData() + getLength() - flen, getLength(), cs, Range(0, flen)).index == 0;
   }
 }
 
@@ -3424,10 +3419,10 @@ bool __G_STRING::endsWith(const __G_STRINGFILTER& filter, uint cs) const
 #if __G_SIZE > 1
 err_t __G_STRING::bswap()
 {
-  if (length() == 0) return Error::Ok;
+  if (getLength() == 0) return Error::Ok;
   if (!tryDetach()) return Error::OutOfMemory;
 
-  sysuint_t i, len = length();
+  sysuint_t i, len = getLength();
   __G_CHAR* ch = _d->data;
   for (i = 0; i < len; i++) ch[i].bswap();
 
@@ -3442,8 +3437,8 @@ err_t __G_STRING::bswap()
 
 bool __G_STRING::eq(const __G_STRING* a, const __G_STRING* b)
 {
-  sysuint_t alen = a->length();
-  sysuint_t blen = b->length();
+  sysuint_t alen = a->getLength();
+  sysuint_t blen = b->getLength();
   if (alen != blen) return false;
 
   return StringUtil::eq(a->cData(), b->cData(), alen, CaseSensitive);
@@ -3451,8 +3446,8 @@ bool __G_STRING::eq(const __G_STRING* a, const __G_STRING* b)
 
 bool __G_STRING::ieq(const __G_STRING* a, const __G_STRING* b)
 {
-  sysuint_t alen = a->length();
-  sysuint_t blen = b->length();
+  sysuint_t alen = a->getLength();
+  sysuint_t blen = b->getLength();
   if (alen != blen) return false;
 
   return StringUtil::eq(a->cData(), b->cData(), alen, CaseInsensitive);
@@ -3460,8 +3455,8 @@ bool __G_STRING::ieq(const __G_STRING* a, const __G_STRING* b)
 
 int __G_STRING::compare(const __G_STRING* a, const __G_STRING* b)
 {
-  sysuint_t aLen = a->length();
-  sysuint_t bLen = b->length();
+  sysuint_t aLen = a->getLength();
+  sysuint_t bLen = b->getLength();
   const __G_CHAR* aCur = a->cData();
   const __G_CHAR* bCur = b->cData();
   const __G_CHAR* aEnd = aCur + aLen;
@@ -3478,8 +3473,8 @@ int __G_STRING::compare(const __G_STRING* a, const __G_STRING* b)
 
 int __G_STRING::icompare(const __G_STRING* a, const __G_STRING* b)
 {
-  sysuint_t aLen = a->length();
-  sysuint_t bLen = b->length();
+  sysuint_t aLen = a->getLength();
+  sysuint_t bLen = b->getLength();
   const __G_CHAR* aCur = a->cData();
   const __G_CHAR* bCur = b->cData();
   const __G_CHAR* aEnd = aCur + aLen;
@@ -3497,15 +3492,15 @@ int __G_STRING::icompare(const __G_STRING* a, const __G_STRING* b)
 #if __G_SIZE == 1
 bool __G_STRING::eq(const Stub8& other, uint cs) const
 {
-  sysuint_t len = other.length();
+  sysuint_t len = other.getLength();
   if (len == DetectLength)
   {
     const Char8* aCur = cData();
-    const Char8* bCur = other.str();
+    const Char8* bCur = other.getStr();
 
     if (cs == CaseSensitive)
     {
-      for (sysuint_t i = length(); i; i--, aCur++, bCur++)
+      for (sysuint_t i = getLength(); i; i--, aCur++, bCur++)
       {
         if (FOG_UNLIKELY(bCur->ch() == 0)) return false;
         if (*aCur != *bCur) return false;
@@ -3513,7 +3508,7 @@ bool __G_STRING::eq(const Stub8& other, uint cs) const
     }
     else
     {
-      for (sysuint_t i = length(); i; i--, aCur++, bCur++)
+      for (sysuint_t i = getLength(); i; i--, aCur++, bCur++)
       {
         if (FOG_UNLIKELY(bCur->ch() == 0)) return false;
         if (aCur->toLower().ch() != bCur->toLower().ch()) return false;
@@ -3522,20 +3517,20 @@ bool __G_STRING::eq(const Stub8& other, uint cs) const
     return bCur->ch() == 0;
   }
   else
-    return length() == len && StringUtil::eq(cData(), other.str(), len, cs);
+    return getLength() == len && StringUtil::eq(cData(), other.getStr(), len, cs);
 }
 #else
 bool __G_STRING::eq(const Ascii8& other, uint cs) const
 {
-  sysuint_t len = other.length();
+  sysuint_t len = other.getLength();
   if (len == DetectLength)
   {
     const __G_CHAR* aCur = cData();
-    const Char8* bCur = other.str();
+    const Char8* bCur = other.getStr();
 
     if (cs == CaseSensitive)
     {
-      for (sysuint_t i = length(); i; i--, aCur++, bCur++)
+      for (sysuint_t i = getLength(); i; i--, aCur++, bCur++)
       {
         if (FOG_UNLIKELY(bCur->ch() == 0)) return false;
         if (*aCur != *bCur) return false;
@@ -3543,7 +3538,7 @@ bool __G_STRING::eq(const Ascii8& other, uint cs) const
     }
     else
     {
-      for (sysuint_t i = length(); i; i--, aCur++, bCur++)
+      for (sysuint_t i = getLength(); i; i--, aCur++, bCur++)
       {
         if (FOG_UNLIKELY(bCur->ch() == 0)) return false;
         if (aCur->toLower().ch() != bCur->toLower().ch()) return false;
@@ -3552,7 +3547,7 @@ bool __G_STRING::eq(const Ascii8& other, uint cs) const
     return bCur->ch() == 0;
   }
   else
-    return length() == len && StringUtil::eq(cData(), other.str(), len, cs);
+    return getLength() == len && StringUtil::eq(cData(), other.getStr(), len, cs);
 }
 
 bool __G_STRING::eq(const Local8& other, uint cs) const
@@ -3572,15 +3567,15 @@ bool __G_STRING::eq(const Utf8& other, uint cs) const
 bool __G_STRING::eq(const Utf16& other, uint cs) const
 {
 #if __G_SIZE == 2
-  sysuint_t len = other.length();
+  sysuint_t len = other.getLength();
   if (len == DetectLength)
   {
     const Char16* aCur = cData();
-    const Char16* bCur = other.str();
+    const Char16* bCur = other.getStr();
 
     if (cs == CaseSensitive)
     {
-      for (sysuint_t i = length(); i; i--, aCur++, bCur++)
+      for (sysuint_t i = getLength(); i; i--, aCur++, bCur++)
       {
         if (FOG_UNLIKELY(bCur->ch() == 0)) return false;
         if (*aCur != *bCur) return false;
@@ -3588,7 +3583,7 @@ bool __G_STRING::eq(const Utf16& other, uint cs) const
     }
     else
     {
-      for (sysuint_t i = length(); i; i--, aCur++, bCur++)
+      for (sysuint_t i = getLength(); i; i--, aCur++, bCur++)
       {
         if (FOG_UNLIKELY(bCur->ch() == 0)) return false;
         if (aCur->toLower().ch() != bCur->toLower().ch()) return false;
@@ -3597,7 +3592,7 @@ bool __G_STRING::eq(const Utf16& other, uint cs) const
     return bCur->ch() == 0;
   }
   else
-    return length() == len && StringUtil::eq(cData(), other.str(), len, cs);
+    return getLength() == len && StringUtil::eq(cData(), other.getStr(), len, cs);
 #else
   __G_TEMPORARYSTRING<TemporaryLength> t;
   if (t.set(other) != Error::Ok) return false;
@@ -3612,15 +3607,15 @@ bool __G_STRING::eq(const Utf32& other, uint cs) const
   if (t.set(other) != Error::Ok) return false;
   return eq(t, cs);
 #else
-  sysuint_t len = other.length();
+  sysuint_t len = other.getLength();
   if (len == DetectLength)
   {
     const Char32* aCur = cData();
-    const Char32* bCur = other.str();
+    const Char32* bCur = other.getStr();
 
     if (cs == CaseSensitive)
     {
-      for (sysuint_t i = length(); i; i--, aCur++, bCur++)
+      for (sysuint_t i = getLength(); i; i--, aCur++, bCur++)
       {
         if (FOG_UNLIKELY(*bCur == 0)) return false;
         if (*aCur != *bCur) return false;
@@ -3628,7 +3623,7 @@ bool __G_STRING::eq(const Utf32& other, uint cs) const
     }
     else
     {
-      for (sysuint_t i = length(); i; i--, aCur++, bCur++)
+      for (sysuint_t i = getLength(); i; i--, aCur++, bCur++)
       {
         if (FOG_UNLIKELY(*bCur == 0)) return false;
         if (aCur->toLower().ch() != bCur->toLower().ch()) return false;
@@ -3637,25 +3632,25 @@ bool __G_STRING::eq(const Utf32& other, uint cs) const
     return bCur->ch() == 0;
   }
   else
-    return length() == len && StringUtil::eq(cData(), other.str(), len, cs);
+    return getLength() == len && StringUtil::eq(cData(), other.getStr(), len, cs);
 #endif
 }
 #endif
 
 bool __G_STRING::eq(const __G_STRING& other, uint cs) const
 {
-  return length() == other.length() && 
-    StringUtil::eq(cData(), other.cData(), length(), cs);
+  return getLength() == other.getLength() && 
+    StringUtil::eq(cData(), other.cData(), getLength(), cs);
 }
 
 #if __G_SIZE == 1
 int __G_STRING::compare(const Stub8& other, uint cs) const
 {
-  sysuint_t aLen = length();
-  sysuint_t bLen = other.length();
+  sysuint_t aLen = getLength();
+  sysuint_t bLen = other.getLength();
   const Char8* aCur = cData();
   const Char8* aEnd = aCur + aLen;
-  const Char8* bCur = other.str();
+  const Char8* bCur = other.getStr();
 
   int c;
 
@@ -3703,11 +3698,11 @@ int __G_STRING::compare(const Stub8& other, uint cs) const
 #else
 int __G_STRING::compare(const Ascii8& other, uint cs) const
 {
-  sysuint_t aLen = length();
-  sysuint_t bLen = other.length();
+  sysuint_t aLen = getLength();
+  sysuint_t bLen = other.getLength();
   const __G_CHAR* aCur = cData();
   const __G_CHAR* aEnd = aCur + aLen;
-  const Char8* bCur = other.str();
+  const Char8* bCur = other.getStr();
 
   int c;
 
@@ -3770,11 +3765,11 @@ int __G_STRING::compare(const Utf8& other, uint cs) const
 int __G_STRING::compare(const Utf16& other, uint cs) const
 {
 #if __G_SIZE == 2
-  sysuint_t aLen = length();
-  sysuint_t bLen = other.length();
+  sysuint_t aLen = getLength();
+  sysuint_t bLen = other.getLength();
   const Char16* aCur = cData();
   const Char16* aEnd = aCur + aLen;
-  const Char16* bCur = other.str();
+  const Char16* bCur = other.getStr();
 
   int c;
 
@@ -3832,11 +3827,11 @@ int __G_STRING::compare(const Utf32& other, uint cs) const
   t.set(other);
   return compare(t, cs);
 #else
-  sysuint_t aLen = length();
-  sysuint_t bLen = other.length();
+  sysuint_t aLen = getLength();
+  sysuint_t bLen = other.getLength();
   const Char32* aCur = cData();
   const Char32* aEnd = aCur + aLen;
-  const Char32* bCur = other.str();
+  const Char32* bCur = other.getStr();
 
   int c;
 
@@ -3886,8 +3881,8 @@ int __G_STRING::compare(const Utf32& other, uint cs) const
 
 int __G_STRING::compare(const __G_STRING& other, uint cs) const
 {
-  sysuint_t aLen = length();
-  sysuint_t bLen = other.length();
+  sysuint_t aLen = getLength();
+  sysuint_t bLen = other.getLength();
   const __G_CHAR* aCur = cData();
   const __G_CHAR* aEnd = aCur + aLen;
   const __G_CHAR* bCur = other.cData();
@@ -3917,13 +3912,13 @@ int __G_STRING::compare(const __G_STRING& other, uint cs) const
 // Utf8
 err_t __G_STRING::utf8Validate()
 {
-  sysuint_t i = StringUtil::utf8Validate(cData(), length());
-  return (i == length()) ? (err_t)Error::Ok : (err_t)Error::InvalidUtf8;
+  sysuint_t i = StringUtil::utf8Validate(cData(), getLength());
+  return (i == getLength()) ? (err_t)Error::Ok : (err_t)Error::InvalidUtf8;
 }
 
 err_t __G_STRING::utf8Characters(sysuint_t* dst)
 {
-  sysuint_t i = StringUtil::utf8ToUtf32Len(cData(), length());
+  sysuint_t i = StringUtil::utf8ToUtf32Len(cData(), getLength());
 
   if (i != InvalidIndex)
   {
@@ -3932,7 +3927,7 @@ err_t __G_STRING::utf8Characters(sysuint_t* dst)
   }
   else
   {
-    *dst = StringUtil::utf8Validate(cData(), length());
+    *dst = StringUtil::utf8Validate(cData(), getLength());
     return Error::InvalidUtf8;
   }
 }
@@ -4047,12 +4042,12 @@ err_t __G_STRING::slashesToWin()
 // [Fog::String::Hash]
 // ============================================================================
 
-uint32_t __G_STRING::toHashCode() const
+uint32_t __G_STRING::getHashCode() const
 {
   uint32_t h = _d->hashCode;
   if (h) return h;
 
-  return (_d->hashCode = hashData((const void*)cData(), length() * __G_SIZE));
+  return (_d->hashCode = hashData((const void*)cData(), getLength() * __G_SIZE));
 }
 
 // ============================================================================
@@ -4307,7 +4302,7 @@ Range __G_STRINGFILTER::lastIndexOf(
   return m;
 }
 
-sysuint_t __G_STRINGFILTER::length() const
+sysuint_t __G_STRINGFILTER::getLength() const
 {
   return InvalidIndex;
 }
@@ -4434,7 +4429,7 @@ Range __G_STRINGMATCHER::match(
   FOG_ASSERT(range.index <= length);
   FOG_ASSERT(length - range.index >= range.length);
 
-  sysuint_t patternLength = _pattern.length();
+  sysuint_t patternLength = _pattern.getLength();
 
   // simple reject
   if (patternLength == 0 || patternLength > length) 
@@ -4536,9 +4531,9 @@ Range __G_STRINGMATCHER::match(
   return Range(InvalidIndex);
 }
 
-sysuint_t __G_STRINGMATCHER::length() const
+sysuint_t __G_STRINGMATCHER::getLength() const
 {
-  return _pattern.length();
+  return _pattern.getLength();
 }
 
 } // Fog namespace

@@ -39,9 +39,7 @@ struct FOG_API Timer : public Object
   bool start();
   void stop();
 
-  FOG_INLINE TimeDelta interval() const
-  { return _interval; }
-
+  FOG_INLINE TimeDelta getInterval() const { return _interval; }
   void setInterval(TimeDelta interval);
 
   virtual void onTimer(TimerEvent* e);

@@ -3,14 +3,14 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
 
 // [Dependencies]
 #include <Fog/Core/Error.h>
-#include <Fog/Core/StringCache.h>
+#include <Fog/Core/ManagedString.h>
 #include <Fog/Core/Strings.h>
 
 namespace Fog {
@@ -111,15 +111,43 @@ static const char fog_strings_data[] =
   // [Svg]
 
   "circle\0"
+  "defs\0"
   "ellipse\0"
   "g\0"
   "line\0"
+  "linearGradient\0"
+  "path\0"
   "polygon\0"
   "polyline\0"
+  "radialGradient\0"
   "rect\0"
-  "path\0"
+  "solidColor\0"
+  "stop\0"
+  "svg\0"
 
+  "cx\0"
+  "cy\0"
+  "d\0"
+  "fx\0"
+  "fy\0"
+  "gradientTransform\0"
+  "gradientUnits\0"
+  "height\0"
+  "offset\0"
+  "points\0"
+  "r\0"
+  "rx\0"
+  "ry\0"
+  "spreadMethod\0"
   "transform\0"
+  "width\0"
+  "x\0"
+  "x1\0"
+  "x2\0"
+  "xlink:href\0"
+  "y\0"
+  "y1\0"
+  "y2\0"
 
   "none\0"
   "clip-path\0"
@@ -138,6 +166,7 @@ static const char fog_strings_data[] =
   "stop-opacity\0"
   "stroke\0"
   "stroke-dasharray\0"
+  "stroke-dashoffset\0"
   "stroke-linecap\0"
   "stroke-linejoin\0"
   "stroke-miterlimit\0"
@@ -145,7 +174,7 @@ static const char fog_strings_data[] =
   "stroke-width\0"
 };
 
-FOG_CVAR_DECLARE Fog::StringCache* fog_strings;
+FOG_CVAR_DECLARE Fog::ManagedString32::Cache* fog_strings;
 
 } // Fog namespace
 
@@ -157,7 +186,7 @@ FOG_INIT_DECLARE err_t fog_strings_init(void)
 {
   using namespace Fog;
 
-  fog_strings = StringCache::create(
+  fog_strings = ManagedString32::createCache(
     fog_strings_data,
     FOG_ARRAY_SIZE(fog_strings_data),
     STR_COUNT,
@@ -169,7 +198,4 @@ FOG_INIT_DECLARE err_t fog_strings_init(void)
 
 FOG_INIT_DECLARE void fog_strings_shutdown(void)
 {
-  using namespace Fog;
-
-  StringCache::destroy(fog_strings);
 }

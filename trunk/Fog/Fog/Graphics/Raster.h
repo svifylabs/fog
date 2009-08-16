@@ -13,12 +13,14 @@
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Geometry.h>
 #include <Fog/Graphics/Image.h>
+#include <Fog/Graphics/Path.h>
 #include <Fog/Graphics/Rgba.h>
 
 namespace Fog {
 
 // Used in function map prototypes.
 struct ColorMatrix;
+struct Matrix;
 struct Pattern;
 
 namespace Raster {
@@ -227,6 +229,53 @@ typedef void (FOG_FASTCALL *BlurConvolveFn)(
   const uint8_t* src, sysint_t srcStride,
   int width, int height, int radius,
   int borderMode, uint32_t borderColor);
+
+// Vector
+
+struct ApproximateCurve3Data
+{
+  double x1;
+  double y1;
+  double x2;
+  double y2;
+  double x3;
+  double y3;
+};
+
+struct ApproximateCurve4Data
+{
+  double x1;
+  double y1;
+  double x2;
+  double y2;
+  double x3;
+  double y3;
+  double x4;
+  double y4;
+};
+
+typedef void (FOG_FASTCALL *PathVertexTransformFn)(
+  Path::Vertex* data,
+  sysuint_t count,
+  const Matrix* matrix);
+
+typedef err_t (FOG_FASTCALL *ApproximateCurve3Fn)(
+  Path& dst,
+  double x1, double y1,
+  double x2, double y2,
+  double x3, double y3,
+  double approximationScale,
+  double angleTolerance);
+
+typedef err_t (FOG_FASTCALL *ApproximateCurve4Fn)(
+  Path& dst,
+  double x1, double y1,
+  double x2, double y2,
+  double x3, double y3,
+  double x4, double y4,
+  double approximationScale,
+  double angleTolerance,
+  double cuspLimit);
 
 //! @brief Function map contains all low-level raster based manipulation methods.
 //!
@@ -483,6 +532,17 @@ struct FunctionMap
   };
 
   FilterFuncs filter;
+
+  // [Vector]
+
+  struct VectorFuncs
+  {
+    PathVertexTransformFn pathVertexTransform;
+    ApproximateCurve3Fn approximateCurve3;
+    ApproximateCurve4Fn approximateCurve4;
+  };
+
+  VectorFuncs vector;
 };
 
 extern FOG_API FunctionMap* functionMap;

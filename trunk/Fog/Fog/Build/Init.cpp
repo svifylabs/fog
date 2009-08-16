@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
@@ -33,9 +33,9 @@ FOG_INIT_FUNC(fog_math);
 FOG_INIT_FUNC(fog_sequence);
 FOG_INIT_FUNC(fog_bitarray);
 FOG_INIT_FUNC(fog_string);
+FOG_INIT_FUNC(fog_managedstring);
 FOG_INIT_FUNC(fog_textcodec);
 FOG_INIT_FUNC(fog_hash);
-FOG_INIT_FUNC(fog_stringcache);
 FOG_INIT_FUNC(fog_strings);
 FOG_INIT_FUNC(fog_locale);
 FOG_INIT_FUNC(fog_value);
@@ -65,6 +65,9 @@ FOG_INIT_FUNC(fog_pattern);
 FOG_INIT_FUNC(fog_font);
 FOG_INIT_FUNC(fog_painter_null);
 FOG_INIT_FUNC(fog_painter_raster);
+
+// Fog/Svg
+// reserved...
 
 // Fog/UI
 // reserved...
@@ -103,12 +106,12 @@ static const FogInitEntry fog_init_entries[] =
   INIT_ENTRY(fog_string),           // No dependency
   INIT_ENTRY(fog_textcodec),        // No dependency
   INIT_ENTRY(fog_hash),             // No dependency
-  INIT_ENTRY(fog_stringcache),      // Depends to String, TextCodec
+  INIT_ENTRY(fog_managedstring),    // Depends to String and Lock
   INIT_ENTRY(fog_strings),          // Depends to StringCache
   INIT_ENTRY(fog_locale),           // Depends to TextCodec
   INIT_ENTRY(fog_value),            // No dependency
   INIT_ENTRY(fog_library),          // No dependency
-  INIT_ENTRY(fog_os),               // Depends to String, TextCodec
+  INIT_ENTRY(fog_os),               // Depends to String and TextCodec
   INIT_ENTRY(fog_stream),           // No dependency
   INIT_ENTRY(fog_thread),           // No dependency
   INIT_ENTRY(fog_object),           // Depends to String
@@ -133,6 +136,8 @@ static const FogInitEntry fog_init_entries[] =
   INIT_ENTRY(fog_font),
   INIT_ENTRY(fog_painter_null),
   INIT_ENTRY(fog_painter_raster),
+
+  // Fog/Svg
 
   // Fog/UI
 };

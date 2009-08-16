@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
@@ -21,20 +21,77 @@ namespace Fog {
 // ============================================================================
 
 Layout::Layout() : 
-  _parentItem(NULL)
+  _parentItem(NULL),
+  _isLayoutDirty(true)
 {
+  _flags |= IsLayout;
 }
 
 Layout::~Layout() 
 {
 }
 
-LayoutItem* Layout::parentItem() const
+Size Layout::getSizeHint() const
+{
+  return Size(-1, -1);
+}
+
+void Layout::setSizeHint(const Size& sizeHint)
+{
+}
+
+Size Layout::getMinimumSize() const
+{
+  return Size(-1, -1);
+}
+
+void Layout::setMinimumSize(const Size& minSize)
+{
+}
+
+Size Layout::getMaximumSize() const
+{
+  return Size(-1, -1);
+}
+
+void Layout::setMaximumSize(const Size& maxSize)
+{
+}
+
+uint32_t Layout::getLayoutPolicy() const
+{
+  return 0;
+}
+
+void Layout::setLayoutPolicy(uint32_t policy)
+{
+}
+
+bool Layout::hasHeightForWidth() const
+{
+  return false;
+}
+
+int Layout::getHeightForWidth(int width) const
+{
+  return -1;
+}
+
+bool Layout::isLayoutDirty() const
+{
+  return false;
+}
+
+void Layout::invalidateLayout() const
+{
+}
+
+LayoutItem* Layout::getParentItem() const
 {
   return _parentItem;
 }
 
-Widget* Layout::parentWidget() const
+Widget* Layout::getParentWidget() const
 {
   LayoutItem* item = _parentItem;
 
@@ -44,10 +101,6 @@ Widget* Layout::parentWidget() const
   } while (item);
 
   return NULL;
-}
-
-void Layout::reparent()
-{
 }
 
 } // Fog namespace

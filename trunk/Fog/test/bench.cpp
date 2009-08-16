@@ -325,7 +325,7 @@ struct BenchmarkModule_Fog_FillPattern : public BenchmarkModule_Fog
   BenchmarkModule_Fog_FillPattern(int w, int h) :
     BenchmarkModule_Fog(w, h)
   {
-    pattern.setType(Pattern::LinearGradient);
+    pattern.setType(Pattern::TypeLinearGradient);
     pattern.setPoints(PointF(w/2.0, h/2.0), PointF(30.0, 30.0));
     pattern.addGradientStop(GradientStop(0.0, Rgba(0xFFFFFFFF)));
     pattern.addGradientStop(GradientStop(0.5, Rgba(0xFFFFFF00)));
@@ -352,12 +352,12 @@ struct BenchmarkModule_Fog_FillPattern : public BenchmarkModule_Fog
   {
     const char* p;
 
-    switch (pattern.type())
+    switch (pattern.getType())
     {
-      case Pattern::Texture: p = "Texture"; break;
-      case Pattern::LinearGradient: p = "LinearGradient"; break;
-      case Pattern::RadialGradient: p = "RadialGradient"; break;
-      case Pattern::ConicalGradient: p = "ConicalGradient"; break;
+      case Pattern::TypeTexture: p = "Texture"; break;
+      case Pattern::TypeLinearGradient: p = "LinearGradient"; break;
+      case Pattern::TypeRadialGradient: p = "RadialGradient"; break;
+      case Pattern::TypeConicalGradient: p = "ConicalGradient"; break;
     }
 
     sprintf(buf, "Fog - FillPattern - %s%s", p, mt ? " (mt)" : "");
@@ -387,7 +387,7 @@ struct BenchmarkModule_Fog_BlitImage : public BenchmarkModule_Fog
     for (int a = 0; a < quantity; a++)
     {
       Rect r = randRect(w, h, 128, 128);
-      p.drawImage(Point(r.x(), r.y()), sprite[rand() % 4]);
+      p.drawImage(r.getPosition(), sprite[rand() % 4]);
     }
     p.restore();
     p.flush();
@@ -425,7 +425,7 @@ struct BenchmarkModule_GDI : public BenchmarkModule
       GetObject(sprite[a], sizeof(DIBSECTION), &info);
 
       memcpy(info.dsBm.bmBits, _sprite[a].cFirst(),
-        _sprite[a].width() * _sprite[a].height() * 4);
+        _sprite[a].getWidth() * _sprite[a].getHeight() * 4);
     }
   }
 
@@ -500,7 +500,7 @@ struct BenchmarkModule_GDI_FillRect : public BenchmarkModule_GDI
         Rect r = randomizer.rectData[a];
         Gdiplus::Color c(randomizer.rgbaData[a]);
         Gdiplus::SolidBrush br(c);
-        gr.FillRectangle((Gdiplus::Brush*)&br, r.x(), r.y(), r.width(), r.height());
+        gr.FillRectangle((Gdiplus::Brush*)&br, r.getX(), r.getY(), r.getWidth(), r.getHeight());
       }
     }
     DeleteDC(dc);
@@ -541,11 +541,11 @@ struct BenchmarkModule_GDI_FillRound : public BenchmarkModule_GDI
         Gdiplus::SolidBrush br(c);
 
         Gdiplus::GraphicsPath path;
-		    path.AddArc(r.x(), r.y(), d, d, 180, 90);
-		    path.AddArc(r.x() + r.width() - d, r.y(), d, d, 270, 90);
-		    path.AddArc(r.x() + r.width() - d, r.y() + r.height() - d, d, d, 0, 90);
-		    path.AddArc(r.x(), r.y() + r.height() - d, d, d, 90, 90);
-        path.AddLine(r.x(), r.y() + r.height() - d, r.x(), r.y() + d/2);
+		    path.AddArc(r.getX(), r.getY(), d, d, 180, 90);
+		    path.AddArc(r.getX() + r.getWidth() - d, r.getY(), d, d, 270, 90);
+		    path.AddArc(r.getX() + r.getWidth() - d, r.getY() + r.getHeight() - d, d, d, 0, 90);
+		    path.AddArc(r.getX(), r.getY() + r.getHeight() - d, d, d, 90, 90);
+        path.AddLine(r.getX(), r.getY() + r.getHeight() - d, r.getX(), r.getY() + d/2);
         gr.FillPath((Gdiplus::Brush*)&br, &path);
       }
     }
@@ -587,8 +587,8 @@ struct BenchmarkModule_GDI_FillPolygon : public BenchmarkModule_GDI
         Gdiplus::PointF lines[10];
         for (int i = 0; i < 10; i++)
         {
-          lines[i].X = polyData[i].x();
-          lines[i].Y = polyData[i].y();
+          lines[i].X = polyData[i].getX();
+          lines[i].Y = polyData[i].getY();
         }
         path.AddLines(lines, 10);
         path.CloseFigure();
@@ -644,7 +644,7 @@ struct BenchmarkModule_GDI_FillPattern : public BenchmarkModule_GDI
       for (int a = 0; a < quantity; a++)
       {
         Rect r = randomizer.rectData[a];
-        gr.FillRectangle((Gdiplus::Brush*)&br, r.x(), r.y(), r.width(), r.height());
+        gr.FillRectangle((Gdiplus::Brush*)&br, r.getX(), r.getY(), r.getWidth(), r.getHeight());
       }
     }
     DeleteDC(dc);
@@ -680,9 +680,9 @@ struct BenchmarkModule_GDI_BlitImage : public BenchmarkModule_GDI
       for (a = 0; a < 4; a++)
       {
         bm[a] = new Gdiplus::Bitmap(
-          _sprite[a].width(), 
-          _sprite[a].height(),
-          _sprite[a].stride(),
+          _sprite[a].getWidth(), 
+          _sprite[a].getHeight(),
+          _sprite[a].getStride(),
           PixelFormat32bppPARGB,
           (BYTE*)_sprite[a].cFirst());
       }
@@ -690,7 +690,7 @@ struct BenchmarkModule_GDI_BlitImage : public BenchmarkModule_GDI
       for (a = 0; a < quantity; a++)
       {
         Rect r = randRect(w, h, 128, 128);
-        gr.DrawImage(bm[rand() % 4], r.x(), r.y());
+        gr.DrawImage(bm[rand() % 4], r.getX(), r.getY());
       }
 
       for (a = 0; a < 4; a++)
@@ -717,12 +717,12 @@ struct BenchmarkModule_Cairo : public BenchmarkModule_Fog
   {
     cim = cairo_image_surface_create_for_data(
       (unsigned char*)im.cFirst(), CAIRO_FORMAT_ARGB32,
-      im.width(), im.height(), im.stride());
+      im.getWidth(), im.getHeight(), im.getStride());
 
     for (int a = 0; a < 4; a++)
       csprite[a] = cairo_image_surface_create_for_data(
         (unsigned char*)sprite[a].cFirst(), CAIRO_FORMAT_ARGB32,
-        sprite[a].width(), sprite[a].height(), sprite[a].stride());
+        sprite[a].getWidth(), sprite[a].getHeight(), sprite[a].getStride());
   }
 
   virtual ~BenchmarkModule_Cairo()
@@ -762,7 +762,7 @@ struct BenchmarkModule_Cairo_FillRect : public BenchmarkModule_Cairo
 
       cairo_set_source_rgba(cr,
         (double)c.r / 255.0, (double)c.g / 255.0, (double)c.b / 255.0, (double)c.a / 255.0);
-      cairo_rectangle(cr, r.x(), r.y(), r.width(), r.height());
+      cairo_rectangle(cr, r.getX(), r.getY(), r.getWidth(), r.getHeight());
       cairo_fill(cr);
     }
 
@@ -808,10 +808,10 @@ struct BenchmarkModule_Cairo_FillRound : public BenchmarkModule_Cairo
 
   FOG_INLINE void addRound(cairo_t* cr, Rect rect, double radius)
   {
-    double x0 = rect.x();
-    double y0 = rect.y();
-    double rect_width = rect.w();
-    double rect_height = rect.h();
+    double x0 = rect.getX();
+    double y0 = rect.getY();
+    double rect_width = rect.getWidth();
+    double rect_height = rect.getHeight();
 
     double x1 = x0 + rect_width;
     double y1 = y0 + rect_height;
@@ -900,9 +900,9 @@ struct BenchmarkModule_Cairo_FillPolygon : public BenchmarkModule_Cairo
       for (int i = 0; i < 10; i++)
       {
         if (i == 0)
-          cairo_move_to(cr, polyData[i].x(), polyData[i].y());
+          cairo_move_to(cr, polyData[i].getX(), polyData[i].getY());
         else
-          cairo_line_to(cr, polyData[i].x(), polyData[i].y());
+          cairo_line_to(cr, polyData[i].getX(), polyData[i].getY());
       }
       cairo_close_path(cr);
 
@@ -957,7 +957,7 @@ struct BenchmarkModule_Cairo_FillPattern : public BenchmarkModule_Cairo
     for (int a = 0; a < quantity; a++)
     {
       Rect r = randomizer.rectData[a];
-      cairo_rectangle(cr, r.x(), r.y(), r.width(), r.height());
+      cairo_rectangle(cr, r.getX(), r.getY(), r.getWidth(), r.getHeight());
       cairo_fill(cr);
     }
 
@@ -998,7 +998,7 @@ struct BenchmarkModule_Cairo_BlitImage : public BenchmarkModule_Cairo
     for (int a = 0; a < quantity; a++)
     {
       Rect r = randRect(w, h, 128, 128);
-      cairo_set_source_surface(cr, csprite[rand()%4], r.x(), r.y());
+      cairo_set_source_surface(cr, csprite[rand()%4], r.getX(), r.getY());
       cairo_paint(cr);
     }
 
@@ -1017,7 +1017,7 @@ struct BenchmarkModule_Cairo_BlitImage : public BenchmarkModule_Cairo
 static void benchAll()
 {
   int w = 640, h = 480;
-  int quantity = 5000;
+  int quantity = 10000;
 
   TimeDelta totalFog;
   TimeDelta totalFogMT;
@@ -1057,24 +1057,24 @@ static void benchAll()
 
     mod.setMultithreaded(false);
 
-    mod.pattern.setType(Pattern::LinearGradient);
+    mod.pattern.setType(Pattern::TypeLinearGradient);
     totalFog += bench(mod, quantity);
 
-    mod.pattern.setType(Pattern::RadialGradient);
+    mod.pattern.setType(Pattern::TypeRadialGradient);
     totalFog += bench(mod, quantity);
 
-    //mod.pattern.setType(Pattern::ConicalGradient);
+    //mod.pattern.setType(Pattern::TypeConicalGradient);
     //totalFog += bench(mod, quantity);
 
     mod.setMultithreaded(true);
 
-    mod.pattern.setType(Pattern::LinearGradient);
+    mod.pattern.setType(Pattern::TypeLinearGradient);
     totalFogMT += bench(mod, quantity);
 
-    mod.pattern.setType(Pattern::RadialGradient);
+    mod.pattern.setType(Pattern::TypeRadialGradient);
     totalFogMT += bench(mod, quantity);
 
-    //mod.pattern.setType(Pattern::ConicalGradient);
+    //mod.pattern.setType(Pattern::TypeConicalGradient);
     //totalFogMT += bench(mod, quantity);
   }
 

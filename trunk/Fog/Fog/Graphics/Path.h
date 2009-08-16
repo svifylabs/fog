@@ -38,7 +38,7 @@ namespace Fog {
 // [Forward Declarations]
 // ============================================================================
 
-struct AffineMatrix;
+struct Matrix;
 
 // ============================================================================
 // [Fog::StrokeParams]
@@ -212,7 +212,7 @@ struct FOG_API Path
 
   // [Flags]
 
-  FOG_INLINE uint32_t flags() const
+  FOG_INLINE uint32_t getFlags() const
   { return _d->flags; }
 
   FOG_INLINE bool isNull() const
@@ -236,7 +236,7 @@ struct FOG_API Path
   //! only return @c LineType or CurveType values. @c LineType means that path
   //! contains only lines and no curves and @c CurveType means that path
   //! contains lines and curves.
-  uint32_t type() const;
+  uint32_t getType() const;
 
   //! @brief Invalidate type of path.
   //!
@@ -247,9 +247,9 @@ struct FOG_API Path
   // [Data]
 
   //! @brief Get path capacity (count of allocated vertices).
-  FOG_INLINE sysuint_t capacity() const { return _d->capacity; }
+  FOG_INLINE sysuint_t getCapacity() const { return _d->capacity; }
   //! @brief Get path length (count of vertices used).
-  FOG_INLINE sysuint_t length() const { return _d->length; }
+  FOG_INLINE sysuint_t getLength() const { return _d->length; }
 
   FOG_INLINE bool isEmpty() const { return _d->length == 0; }
 
@@ -270,6 +270,10 @@ struct FOG_API Path
   void clear();
   void free();
 
+  // [Bounding Rect]
+
+  RectF boundingRect() const;
+
   // [Start / End]
 
   err_t start(sysuint_t* index);
@@ -282,16 +286,16 @@ struct FOG_API Path
   err_t moveTo(double x, double y);
   err_t moveToRel(double dx, double dy);
 
-  FOG_INLINE err_t moveTo(const PointF& pt) { return moveTo(pt.x(), pt.y()); }
-  FOG_INLINE err_t moveToRel(const PointF& pt) { return moveToRel(pt.x(), pt.y()); }
+  FOG_INLINE err_t moveTo(const PointF& pt) { return moveTo(pt.x, pt.y); }
+  FOG_INLINE err_t moveToRel(const PointF& pt) { return moveToRel(pt.x, pt.y); }
 
   // [LineTo]
 
   err_t lineTo(double x, double y);
   err_t lineToRel(double dx, double dy);
 
-  FOG_INLINE err_t lineTo(const PointF& pt) { return lineTo(pt.x(), pt.y()); }
-  FOG_INLINE err_t lineToRel(const PointF& pt) { return lineToRel(pt.x(), pt.y()); }
+  FOG_INLINE err_t lineTo(const PointF& pt) { return lineTo(pt.x, pt.y); }
+  FOG_INLINE err_t lineToRel(const PointF& pt) { return lineToRel(pt.x, pt.y); }
 
   err_t lineTo(const double* x, const double* y, sysuint_t count);
   err_t lineTo(const PointF* pts, sysuint_t count);
@@ -310,10 +314,10 @@ struct FOG_API Path
   err_t arcToRel(double cx, double cy, double rx, double ry, double start, double sweep);
 
   FOG_INLINE err_t arcTo(const PointF& cp, const PointF& r, double start, double sweep)
-  { return arcTo(cp.x(), cp.y(), r.x(), r.y(), start, sweep); }
+  { return arcTo(cp.x, cp.y, r.x, r.y, start, sweep); }
 
   FOG_INLINE err_t arcToRel(const PointF& cp, const PointF& r, double start, double sweep)
-  { return arcToRel(cp.x(), cp.y(), r.x(), r.y(), start, sweep); }
+  { return arcToRel(cp.x, cp.y, r.x, r.y, start, sweep); }
 
   // [BezierTo]
 
@@ -324,16 +328,16 @@ struct FOG_API Path
   err_t curveToRel(double tx, double ty);
 
   FOG_INLINE err_t curveTo(const PointF& cp, const PointF& to)
-  { return curveTo(cp.x(), cp.y(), to.x(), to.y()); }
+  { return curveTo(cp.x, cp.y, to.x, to.y); }
 
   FOG_INLINE err_t curveToRel(const PointF& cp, const PointF& to)
-  { return curveToRel(cp.x(), cp.y(), to.x(), to.y()); }
+  { return curveToRel(cp.x, cp.y, to.x, to.y); }
 
   FOG_INLINE err_t curveTo(const PointF& to)
-  { return curveTo(to.x(), to.y()); }
+  { return curveTo(to.x, to.y); }
 
   FOG_INLINE err_t curveToRel(const PointF& to)
-  { return curveToRel(to.x(), to.y()); }
+  { return curveToRel(to.x, to.y); }
 
   // [CubicTo]
 
@@ -344,16 +348,16 @@ struct FOG_API Path
   err_t cubicToRel(double cx2, double cy2, double tx, double ty);
 
   FOG_INLINE err_t cubicTo(const PointF& cp1, const PointF& cp2, const PointF& to)
-  { return cubicTo(cp1.x(), cp1.y(), cp2.x(), cp2.y(), to.x(), to.y()); }
+  { return cubicTo(cp1.x, cp1.y, cp2.x, cp2.y, to.x, to.y); }
 
   FOG_INLINE err_t cubicToRel(const PointF& cp1, const PointF& cp2, const PointF& to)
-  { return cubicToRel(cp1.x(), cp1.y(), cp2.x(), cp2.y(), to.x(), to.y()); }
+  { return cubicToRel(cp1.x, cp1.y, cp2.x, cp2.y, to.x, to.y); }
 
   FOG_INLINE err_t cubicTo(const PointF& cp2, const PointF& to)
-  { return cubicTo(cp2.x(), cp2.y(), to.x(), to.y()); }
+  { return cubicTo(cp2.x, cp2.y, to.x, to.y); }
 
   FOG_INLINE err_t cubicToRel(const PointF& cp2, const PointF& to)
-  { return cubicToRel(cp2.x(), cp2.y(), to.x(), to.y()); }
+  { return cubicToRel(cp2.x, cp2.y, to.x, to.y); }
 
   // [FlipX / FlipY]
 
@@ -372,7 +376,7 @@ struct FOG_API Path
   // [applyMatrix]
 
   //! @brief Apply affine matrix transformations to each vertex in path.
-  err_t applyMatrix(const AffineMatrix& matrix);
+  err_t applyMatrix(const Matrix& matrix);
 
   // [Complex]
 
@@ -410,23 +414,23 @@ struct FOG_API Path
 
   //! @brief Translate each vertex in path by @a pt.
   FOG_INLINE err_t translate(const PointF& pt)
-  { return translate(pt.x(), pt.y()); }
+  { return translate(pt.x, pt.y); }
 
   //! @brief Translate each vertex in subpath @a pathId by @a pt.
   FOG_INLINE err_t translate(const PointF& pt, sysuint_t pathId)
-  { return translate(pt.x(), pt.y(), pathId); }
+  { return translate(pt.x, pt.y, pathId); }
 
   //! @brief Scale each vertex in path by @a pt.
   FOG_INLINE err_t scale(const PointF& pt, bool keepStartPos = false)
-  { return scale(pt.x(), pt.y(), keepStartPos); }
+  { return scale(pt.x, pt.y, keepStartPos); }
 
   // [Flatten]
 
   err_t flatten();
-  err_t flatten(const AffineMatrix* matrix, double approximationScale = 1.0);
+  err_t flatten(const Matrix* matrix, double approximationScale = 1.0);
 
   //! @brief Similar method to @c flatten(), but with specified destination path.
-  err_t flattenTo(Path& dst, const AffineMatrix* matrix, double approximationScale = 1.0) const;
+  err_t flattenTo(Path& dst, const Matrix* matrix, double approximationScale = 1.0) const;
 
   // [Dash]
 

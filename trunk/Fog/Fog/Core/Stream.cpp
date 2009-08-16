@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
@@ -833,7 +833,7 @@ sysuint_t Stream::readAll(String8& dst, int64_t maxBytes)
 
       if ((uint64_t)count > remain) count = (sysuint_t)remain;
 
-      sysuint_t len = dst.length();
+      sysuint_t len = dst.getLength();
       err_t err = dst.reserve(len + (sysuint_t)count);
       if (err) break;
 
@@ -843,7 +843,7 @@ sysuint_t Stream::readAll(String8& dst, int64_t maxBytes)
       if (done != count) break;
     }
 
-    return dst.length();
+    return dst.getLength();
   }
   else
   {
@@ -873,7 +873,7 @@ sysuint_t Stream::write(const void* buffer, sysuint_t size)
 
 sysuint_t Stream::write(const String8& data)
 {
-  return _d->write((const void*)data.cData(), data.length());
+  return _d->write((const void*)data.cData(), data.getLength());
 }
 
 err_t Stream::truncate(int64_t offset)

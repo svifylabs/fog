@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
@@ -17,10 +17,10 @@ void PainterUtil::draw3dRect(Painter* p, const Rect& r, Rgba color1, Rgba color2
 {
   if (!r.isValid()) return;
 
-  double x1 = (double)r.x1()+.5;
-  double y1 = (double)r.y1()+.5;
-  double x2 = (double)r.x2()-.5;
-  double y2 = (double)r.y2()-.5;
+  double x1 = (double)r.getX1()+.5;
+  double y1 = (double)r.getY1()+.5;
+  double x2 = (double)r.getX2()-.5;
+  double y2 = (double)r.getY2()-.5;
 
   p->save();
 

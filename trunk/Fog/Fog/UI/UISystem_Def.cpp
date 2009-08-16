@@ -27,7 +27,7 @@ namespace Fog {
 // ============================================================================
 
 #define UI_SYSTEM() \
-  reinterpret_cast<UISystemDefault*>(Application::instance()->uiSystem())
+  reinterpret_cast<UISystemDefault*>(Application::getInstance()->getUiSystem())
 
 static uint32_t fogButtonToId(uint32_t button)
 {
@@ -206,10 +206,10 @@ void UISystemDefault::changeMouseStatus(Widget* w, const Point& pos)
     uint32_t hoverChange;;
 
     hoverChange = (!!_mouseStatus.hover) |
-                  ((!(pos.x() < 0 || 
-                      pos.y() < 0 ||
-                      pos.x() >= w->width() ||
-                      pos.y() >= w->height())) << 1);
+                  ((!(pos.getX() < 0 || 
+                      pos.getY() < 0 ||
+                      pos.getX() >= w->getWidth() ||
+                      pos.getY() >= w->getHeight())) << 1);
 
     enum HoverChange
     {
@@ -341,7 +341,7 @@ TimeDelta UISystemDefault::getDoubleClickInterval() const
 
 void UISystemDefault::dispatchEnabled(Widget* w, bool enabled)
 {
-  uint32_t state = w->state();
+  uint32_t state = w->getState();
 
   // Dispatch 'Enable'.
   if (enabled)
@@ -358,7 +358,7 @@ void UISystemDefault::dispatchEnabled(Widget* w, bool enabled)
       // before traverse
       {
         // show only child that's hidden by parent
-        if (child->state() != Widget::DisabledByParent) FOG_WIDGET_TREE_ITERATOR_NEXT(i1);
+        if (child->getState() != Widget::DisabledByParent) FOG_WIDGET_TREE_ITERATOR_NEXT(i1);
 
         child->_state = Widget::Enabled;
         child->sendEvent(&e);
@@ -373,7 +373,7 @@ void UISystemDefault::dispatchEnabled(Widget* w, bool enabled)
   // Dispatch 'Disable'.
   else
   {
-    uint32_t state = w->state();
+    uint32_t state = w->getState();
     if (state == Widget::Disabled) return;
 
     w->_state = Widget::Disabled;
@@ -392,7 +392,7 @@ void UISystemDefault::dispatchEnabled(Widget* w, bool enabled)
       // before traverse
       {
         // mark 'DisableByParent' all childs that's visible
-        if (child->state() != Widget::Enabled)
+        if (child->getState() != Widget::Enabled)
         {
           FOG_WIDGET_TREE_ITERATOR_NEXT(i2);
         }
@@ -478,11 +478,9 @@ void UISystemDefault::dispatchVisibility(Widget* w, bool visible)
         {
         }
       );
-      
-      if (w->parent())
-      {
-        w->parent()->update(Widget::UFlagUpdateAll);
-      }
+
+      Widget* p = w->getParent();
+      if (p) p->update(Widget::UFlagUpdateAll);
     }
   }
 }
@@ -491,18 +489,11 @@ void UISystemDefault::dispatchConfigure(Widget* w, const Rect& rect, bool change
 {
   uint32_t changed = 0;
 
-  if (w->rect().point() != rect.point())
+  if (w->getPosition() != rect.getPosition())
     changed |= ConfigureEvent::ChangedPosition;
 
-  if (w->rect().size() != rect.size())
+  if (w->getSize() != rect.getSize())
     changed |= ConfigureEvent::ChangedSize;
-
-  // TODO:
-  //if (w->clientRect().x1() != client.x1() || w->clientRect().y1() != client.y1())
-  //  changed |= ConfigureEvent::ChangedClientPosition;
-
-  //if (w->clientRect().width() != rect.width() || w->clientRect().height() != client.height())
-  //  changed |= ConfigureEvent::ChangedClientSize;
 
   if (changedOrientation)
     changed |= ConfigureEvent::ChangedOrientation;
@@ -516,12 +507,10 @@ void UISystemDefault::dispatchConfigure(Widget* w, const Rect& rect, bool change
   w->_rect = rect;
   w->sendEvent(&e);
 
-  if (w->parent())
+  Widget* p = w->getParent();
+  if (p)
   {
-    if (w->visibility() == Widget::Visible)
-    {
-      w->parent()->update(Widget::UFlagUpdateAll);
-    }
+    if (w->visibility() == Widget::Visible) p->update(Widget::UFlagUpdateAll);
   }
   else if (changed & ConfigureEvent::ChangedSize)
   {
@@ -570,7 +559,7 @@ struct UpdateTask : public CancelableTask
     if (!_valid) return;
 
     // Try to process all pending messages from event queue.
-    EventLoop::current()->runAllPending();
+    EventLoop::getCurrent()->runAllPending();
     // Do update.
     UI_SYSTEM()->doUpdate();
   }
@@ -590,7 +579,7 @@ void UISystemDefault::update()
   {
     _updateStatus.scheduled = true;
     _updateStatus.task = new UpdateTask();
-    Application::instance()->eventLoop()->postTask(_updateStatus.task);
+    Application::getInstance()->getEventLoop()->postTask(_updateStatus.task);
   }
 }
 
@@ -652,8 +641,8 @@ void UISystemDefault::doUpdateWindow(UIWindow* window)
   TemporaryRegion<64> blitRegion;
 
   // Some temporary data.
-  Size topSize(top->size());
-  Box  topBox(0, 0, (int)topSize.width(), (int)topSize.height());
+  Size topSize(top->getSize());
+  Box  topBox(0, 0, (int)topSize.getWidth(), (int)topSize.getHeight());
 
   uint32_t uflags = top->_uflags;
   uint32_t implicitFlags = 0;
@@ -663,10 +652,10 @@ void UISystemDefault::doUpdateWindow(UIWindow* window)
   // Paint helper variables.
   uint topBytesPerPixel;
 
-  if ((int)window->_backingStore->width()  < topSize.width() ||
-      (int)window->_backingStore->height() < topSize.height())
+  if ((int)window->_backingStore->getWidth()  < topSize.getWidth() ||
+      (int)window->_backingStore->getHeight() < topSize.getHeight())
   {
-    window->_backingStore->resize((uint)topSize.width(), (uint)topSize.height(), true);
+    window->_backingStore->resize((uint)topSize.getWidth(), (uint)topSize.getHeight(), true);
 
     // We can omit updating here, because if window size was changed,
     // all uflags are already set.
@@ -674,16 +663,16 @@ void UISystemDefault::doUpdateWindow(UIWindow* window)
     // It should already be set, but nobody knows...
     uflags |= Widget::UFlagUpdateAll;
   }
-  else if (
-      ((int)window->_backingStore->width() != topSize.width() ||
-      (int)window->_backingStore->height() != topSize.height()) &&
+  else if ((
+      (int)window->_backingStore->getWidth() != topSize.getWidth() ||
+      (int)window->_backingStore->getHeight() != topSize.getHeight()) &&
       window->_backingStore->expired(now))
   {
-    window->_backingStore->resize(topSize.width(), topSize.height(), false);
+    window->_backingStore->resize(topSize.getWidth(), topSize.getHeight(), false);
     uflags |= Widget::UFlagUpdateAll;
   }
 
-  topBytesPerPixel = window->_backingStore->depth() >> 3;
+  topBytesPerPixel = window->_backingStore->getDepth() >> 3;
 
   // =======================================================
   // Update top level widget.
@@ -708,11 +697,11 @@ void UISystemDefault::doUpdateWindow(UIWindow* window)
   // we can tell painter to use multithreading in small areas (that we don't
   // want).
   painter.begin(
-      window->_backingStore->pixels(),
-      Math::min(window->_backingStore->width(), topSize.width()),
-      Math::min(window->_backingStore->height(), topSize.height()),
-      window->_backingStore->stride(),
-      window->_backingStore->format());
+      window->_backingStore->getPixels(),
+      Math::min(window->_backingStore->getWidth(), topSize.getWidth()),
+      Math::min(window->_backingStore->getHeight(), topSize.getHeight()),
+      window->_backingStore->getStride(),
+      window->_backingStore->getFormat());
 
   if ((uflags & Widget::UFlagUpdateAll) != 0)
   {
@@ -729,11 +718,11 @@ void UISystemDefault::doUpdateWindow(UIWindow* window)
   {
     e._code = EvPaint;
     e._receiver = top;
-    e._parentPainted = 0;
+    e._isParentPainted = 0;
 
     painter.setMetaVariables(
       Point(0, 0),
-      TemporaryRegion<1>(Rect(0, 0, top->width(), top->height())),
+      TemporaryRegion<1>(Rect(0, 0, top->getWidth(), top->getHeight())),
       true,
       true);
     top->sendEvent(&e);
@@ -768,16 +757,16 @@ void UISystemDefault::doUpdateWindow(UIWindow* window)
     UpdateRec childRec;
 
     parent = top;
-    parentRec.bounds.set(0, 0, parent->width(), parent->height());
-    parentRec.paintBounds.set(0, 0, parent->width(), parent->height());
+    parentRec.bounds.set(0, 0, parent->getWidth(), parent->getHeight());
+    parentRec.paintBounds.set(0, 0, parent->getWidth(), parent->getHeight());
     parentRec.uflags = uflags;
     parentRec.implicitFlags = implicitFlags;
     parentRec.visible = true;
     parentRec.painted = blitFull | paintAll;
 
 __pushed:
-    ocur = parent->children().cData();
-    oend = ocur + parent->children().length();
+    ocur = parent->_children.cData();
+    oend = ocur + parent->_children.getLength();
 
     child = (Widget*)*ocur;
     for (;;)
@@ -811,12 +800,12 @@ __pushed:
         goto __next;
       }
 
-      childRec.bounds._x1 = parentRec.bounds.x1() + child->rect().x1();
-      childRec.bounds._y1 = parentRec.bounds.y1() + child->rect().y1();
-      childRec.bounds._x2 = childRec.bounds.x1() + child->rect().width();
-      childRec.bounds._y2 = childRec.bounds.y1() + child->rect().height();
+      childRec.bounds.x1 = parentRec.bounds.getX1() + child->getX1();
+      childRec.bounds.y1 = parentRec.bounds.getY1() + child->getY1();
+      childRec.bounds.x2 = childRec.bounds.getX1() + child->getWidth();
+      childRec.bounds.y2 = childRec.bounds.getY1() + child->getHeight();
 
-      childRec.bounds += parent->origin();
+      childRec.bounds += parent->getOrigin();
 
       childRec.visible = Box::intersect(childRec.paintBounds, parentRec.paintBounds, childRec.bounds);
       childRec.painted = false;
@@ -828,10 +817,10 @@ __pushed:
         {
           e._code = EvPaint;
           e._receiver = child;
-          e._parentPainted = parentRec.painted | (!!(child->_uflags & Widget::UFlagPaintParentDone));
+          e._isParentPainted = parentRec.painted | (!!(child->_uflags & Widget::UFlagPaintParentDone));
 
 #if 0
-          if (child->children().count() > 0 && child->children().length() <= 16)
+          if (child->children().count() > 0 && child->children().getLength() <= 16)
           {
             rtmp2.set(childRec.paintBounds);
             TemporaryRegion<128> rtmp4;
@@ -872,7 +861,7 @@ __pushed:
           }
 #endif
           painter.setMetaVariables(
-            Point(childRec.bounds.x1(), childRec.bounds.y1()),
+            Point(childRec.bounds.getX1(), childRec.bounds.getY1()),
             rtmp1,
             true,
             true);
@@ -908,7 +897,7 @@ __pushed:
         }
       }
 
-      if ((childRec.uflags & Widget::UFlagUpdateChild) != 0 && child->_children.length())
+      if ((childRec.uflags & Widget::UFlagUpdateChild) != 0 && child->_children.getLength())
       {
         stack.push(parent);
         stack.push(ocur);
@@ -960,24 +949,23 @@ __next:
   // =======================================================
 
   const Box* rptr;
-  sysuint_t rcount = 0;
+  sysuint_t rlen = 0;
 
   if (blitFull || window->_blit) 
   {
     rptr = &topBox;
-    rcount = 1;
+    rlen = 1;
   }
   else
   {
     rptr = blitRegion.cData();
-    rcount = blitRegion.count();
+    rlen = blitRegion.getLength();
   }
 
-  if (rcount)
+  if (rlen)
   {
-    window->_backingStore->updateRects(rptr, rcount);
-
-    doBlitWindow(window, rptr, rcount);
+    window->_backingStore->updateRects(rptr, rlen);
+    doBlitWindow(window, rptr, rlen);
   }
 
   // Clear update flags.
@@ -1003,14 +991,14 @@ void UISystemDefault::_onButtonRepeatTimeOut(TimerEvent* e)
 {
   if (_systemMouseStatus.uiWindow == NULL) 
   {
-    e->timer()->stop();
+    e->getTimer()->stop();
   }
   else
   {
     uint32_t id;
     for (id = 0; id != 3; id++)
     {
-      if (e->timer() == &_buttonRepeat[id])
+      if (e->getTimer() == &_buttonRepeat[id])
       {
         _buttonRepeat[id].setInterval(_buttonRepeatInterval[id]);
         _systemMouseStatus.uiWindow->onMousePress(1 << id, true);
@@ -1071,10 +1059,10 @@ void UIWindowDefault::onConfigure(const Rect& windowRect, const Rect& clientRect
   _clientRect = clientRect;
 
   UI_SYSTEM()->dispatchConfigure(_widget, Rect(
-    windowRect.x1(),
-    windowRect.y1(),
-    clientRect.width(),
-    clientRect.height()), false);
+    windowRect.getX(),
+    windowRect.getY(),
+    clientRect.getWidth(),
+    clientRect.getHeight()), false);
 }
 
 void UIWindowDefault::onMouseHover(int x, int y)
@@ -1114,7 +1102,7 @@ void UIWindowDefault::onMouseMove(int x, int y)
   if (uiSystem->_mouseStatus.buttons)
   {
     w = uiSystem->_mouseStatus.widget;
-    p -= _widget->origin();
+    p -= _widget->getOrigin();
 
     if (!Widget::translateCoordinates(w, _widget, &p))
     {
@@ -1130,7 +1118,7 @@ void UIWindowDefault::onMouseMove(int x, int y)
   // ----------------------------------
 
   // in motion mode, mouse should be in widget bounds (so check for it)
-  if (x < 0 || y < 0 || x >= _widget->width() || y >= _widget->height())
+  if (x < 0 || y < 0 || x >= _widget->getWidth() || y >= _widget->getHeight())
   {
     return;
   }
@@ -1152,7 +1140,7 @@ __repeat:
       if (current->visibility() == Widget::Visible && current->_rect.contains(p))
       {
         w = current;
-        p -= w->position();
+        p -= w->getPosition();
         goto __repeat;
       }
     }
@@ -1207,10 +1195,11 @@ void UIWindowDefault::onMousePress(uint32_t button, bool repeated)
   MouseEvent e(EvMousePress + (uint32_t)repeated);
   e._button = button;
   e._modifiers = uiSystem->getKeyboardModifiers();
-  e._position = uiSystem->_mouseStatus.position;
-  e._isOutside = (
-    e._position.x() >= 0 && e._position.y() >= 0 &&
-    e._position.x() < w->width() && e._position.y() < w->height());
+  e._position  = uiSystem->_mouseStatus.position;
+  e._isOutside = ((e._position.x >= 0) &
+                  (e._position.y >= 0) &
+                  (e._position.x < w->getWidth()) &
+                  (e._position.y < w->getHeight()));
   w->sendEvent(&e);
 
   uint32_t buttonId = fogButtonToId(button);
@@ -1248,8 +1237,10 @@ void UIWindowDefault::onMouseRelease(uint32_t button)
   e._modifiers = uiSystem->getKeyboardModifiers();
   e._position = uiSystem->_mouseStatus.position;
   e._isOutside = (
-    e._position.x() >= 0 && e._position.y() >= 0 &&
-    e._position.x() < w->width() && e._position.y() < w->height());
+    e._position.x >= 0 &&
+    e._position.y >= 0 &&
+    e._position.x < w->getWidth() &&
+    e._position.y < w->getHeight());
   w->sendEvent(&e);
 
   e._code = EvClick;
@@ -1257,9 +1248,8 @@ void UIWindowDefault::onMouseRelease(uint32_t button)
 
   if (lastButtonRelease)
   {
-    onMouseMove(
-      uiSystem->_systemMouseStatus.position.x(),
-      uiSystem->_systemMouseStatus.position.y());
+    onMouseMove(uiSystem->_systemMouseStatus.position.x,
+                uiSystem->_systemMouseStatus.position.y);
   }
 }
 
@@ -1316,8 +1306,8 @@ bool UIWindowDefault::onKeyPress(uint32_t key, uint32_t modifier, uint32_t syste
   // Set this status after modifiers check.
   uiSystem->_keyboardStatus.modifiers |= modifier;
 
-  if ((e.unicode().ch() >= 1 && e.unicode().ch() <= 31) ||
-      e.unicode().ch() == 127 /* DEL key */)
+  if ((e.getUnicode().ch() >= 1 && e.getUnicode().ch() <= 31) ||
+      e.getUnicode().ch() == 127 /* DEL key */)
   {
     e._unicode._ch = 0;
   }
@@ -1372,7 +1362,7 @@ void UIWindowDefault::setFocus(Widget* w, uint32_t reason)
   Widget* t = w;
   while (t != _widget)
   {
-    Widget* parent = t->parent();
+    Widget* parent = t->getParent();
     parent->_focusLink = t;
     t = parent;
     FOG_ASSERT(t != NULL);

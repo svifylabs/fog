@@ -112,14 +112,11 @@ public:
 
   // Main
 
-  static FOG_INLINE Thread* mainThread()
-  { return _mainThread; }
+  static FOG_INLINE Thread* mainThread() { return _mainThread; }
 
-  static FOG_INLINE uint32_t mainThreadId()
-  { return _mainThreadId; }
+  static FOG_INLINE uint32_t mainThreadId() { return _mainThreadId; }
 
-  static FOG_INLINE bool isMainThread()
-  { return _tid() == _mainThreadId; }
+  static FOG_INLINE bool isMainThread() { return _tid() == _mainThreadId; }
 
   // Current
 
@@ -183,17 +180,17 @@ public:
   void stopSoon();
 
   //! Thread flags
-  FOG_INLINE uint32_t flags() const { return _flags; }
+  FOG_INLINE uint32_t getFlags() const { return _flags; }
 
   //! The native thread handle.
-  FOG_INLINE Handle& handle() { return _handle; }
-  FOG_INLINE const Handle& handle() const { return _handle; }
+  FOG_INLINE Handle& getHandle() { return _handle; }
+  FOG_INLINE const Handle& getHandle() const { return _handle; }
 
   //! The native thread id
-  FOG_INLINE uint32_t id() const { return _id; }
+  FOG_INLINE uint32_t getId() const { return _id; }
 
   //! Get the name of this thread (for display in debugger too).
-  FOG_INLINE const String32& name() const { return _name; }
+  FOG_INLINE const String32& getName() const { return _name; }
 
   //! Returns the message loop for this thread.  Use the EventLoop's
   //! postTask methods to execute code on the thread.  This only returns
@@ -202,7 +199,7 @@ public:
   //!
   //! NOTE: You must not call this EventLoop's quit() method directly.  Use
   //! the Thread's stop() method instead.
-  FOG_INLINE EventLoop* eventLoop() const { return _eventLoop; }
+  FOG_INLINE EventLoop* getEventLoop() const { return _eventLoop; }
 
   //! Called just prior to starting the message loop
   virtual void init();

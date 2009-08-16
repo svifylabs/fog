@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #ifdef FOG_PRECOMP
 #include FOG_PRECOMP
 #endif
@@ -11,11 +11,11 @@
 // [Dependencies]
 #include <Fog/Core/Lazy.h>
 #include <Fog/Core/Library.h>
+#include <Fog/Core/ManagedString.h>
 #include <Fog/Core/Misc.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/Stream.h>
 #include <Fog/Core/String.h>
-#include <Fog/Core/StringCache.h>
 #include <Fog/Core/Strings.h>
 #include <Fog/Graphics/Error.h>
 #include <Fog/Graphics/Image.h>
@@ -88,7 +88,7 @@ struct PngLibrary
     }
 
     const char* badSymbol;
-    if (dll.symbols(addr, symbols, FOG_ARRAY_SIZE(symbols), SymbolsCount, (char**)NULL) != SymbolsCount)
+    if (dll.getSymbols(addr, symbols, FOG_ARRAY_SIZE(symbols), SymbolsCount, (char**)NULL) != SymbolsCount)
     {
       // Some symbol failed to load? Inform about it.
       fog_debug("Fog::ImageIO::PngLibrary() - Can't load symbol '%s' from libpng", badSymbol);
@@ -188,11 +188,11 @@ PngProvider::PngProvider()
   _features.compressionTypeAdjust = true;
 
   // name
-  _name = fog_strings->get(STR_GRAPHICS_PNG);
+  _name = fog_strings->getString(STR_GRAPHICS_PNG);
 
   // extensions
   _extensions.reserve(1);
-  _extensions.append(fog_strings->get(STR_GRAPHICS_png));
+  _extensions.append(fog_strings->getString(STR_GRAPHICS_png));
 }
 
 PngProvider::~PngProvider()
@@ -450,7 +450,7 @@ uint32_t PngDecoderDevice::readImage(Image& image)
     {
       for (i = 0; i < height(); i++, y++, yi++)
       {
-        uint8_t* row = image._d->first + i * image.stride();
+        uint8_t* row = image._d->first + i * image.getStride();
         lib->png_read_rows(png_ptr, &row, NULL, 1);
         if ((yi & 15) == 0) updateProgress(yi, ytotal);
       }
@@ -532,15 +532,15 @@ uint32_t PngEncoderDevice::writeImage(const Image& image)
 
   uint32_t err = Error::Ok;
 
-  int  format = image.format();
+  int  format = image.getFormat();
 
   MemoryBuffer<2048> bufferStorage;
   uint8_t* buffer = NULL;
 
   png_structp  png_ptr;
   png_infop    info_ptr;
-  int          width = image.width();
-  int          height = image.height();
+  int          width = image.getWidth();
+  int          height = image.getHeight();
   int          y;
   png_bytep    row_ptr;
   int          compression;
@@ -651,7 +651,7 @@ uint32_t PngEncoderDevice::writeImage(const Image& image)
         image.getDibRgb24_be(0, y, width, buffer);
         break;
       case Image::FormatI8:
-        row_ptr = (png_bytep)image.cFirst() + y * image.stride();
+        row_ptr = (png_bytep)image.cFirst() + y * image.getStride();
         break;
     }
 

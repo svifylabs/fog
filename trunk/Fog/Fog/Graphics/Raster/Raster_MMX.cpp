@@ -3,7 +3,7 @@
 // [Licence]
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #ifdef FOG_PRECOMP
 #include FOG_PRECOMP
 #endif
@@ -12,9 +12,19 @@
 #include <Fog/Core/Intrin_MMX.h>
 #include <Fog/Core/Math.h>
 #include <Fog/Core/Misc.h>
+#include <Fog/Graphics/ColorLut.h>
+#include <Fog/Graphics/ColorMatrix.h>
+#include <Fog/Graphics/DitherMatrix.h>
+#include <Fog/Graphics/Error.h>
 #include <Fog/Graphics/Image.h>
+#include <Fog/Graphics/ImageFilter.h>
+#include <Fog/Graphics/Matrix.h>
+#include <Fog/Graphics/Path.h>
+#include <Fog/Graphics/Path_p.h>
+#include <Fog/Graphics/Pattern.h>
 #include <Fog/Graphics/Raster.h>
 #include <Fog/Graphics/Raster/Raster_C.h>
+#include <Fog/Graphics/RgbaAnalyzer.h>
 
 // [Raster_MMX]
 #include <Fog/Graphics/Raster/Raster_MMX_base.cpp.h>
@@ -24,6 +34,7 @@
 #include <Fog/Graphics/Raster/Raster_MMX_gradient.cpp.h>
 #include <Fog/Graphics/Raster/Raster_MMX_pattern.cpp.h>
 #include <Fog/Graphics/Raster/Raster_MMX_filters.cpp.h>
+#include <Fog/Graphics/Raster/Raster_MMX_vector.cpp.h>
 
 namespace Fog {
 namespace Raster {

@@ -3,16 +3,16 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #ifdef FOG_PRECOMP
 #include FOG_PRECOMP
 #endif
 
 // [Dependencies]
+#include <Fog/Core/ManagedString.h>
 #include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Misc.h>
-#include <Fog/Core/StringCache.h>
 #include <Fog/Core/Strings.h>
 #include <Fog/Graphics/ImageFilter.h>
 #include <Fog/Graphics/Raster.h>
@@ -81,16 +81,16 @@ bool ImageFilter::isNop() const
 
 err_t ImageFilter::filterImage(Image& dst, const Image& src) const
 {
-  int w = src.width();
-  int h = src.height();
-  int format = src.format();
+  int w = src.getWidth();
+  int h = src.getHeight();
+  int format = src.getFormat();
 
   if (isNop()) return dst.set(src);
 
   err_t err = (&dst == &src) ? dst.detach() : dst.create(w, h, format);
   if (err) return err;
 
-  return filterData(dst.xFirst(), dst.stride(), src.cFirst(), src.stride(), w, h, format);
+  return filterData(dst.xFirst(), dst.getStride(), src.cFirst(), src.getStride(), w, h, format);
 }
 
 err_t ImageFilter::filterData(
@@ -233,19 +233,19 @@ err_t BlurImageFilter::setProperty(int id, const Value& value)
   switch (id)
   {
     case PropertyBorderMode:
-      if ((err = value.toInt32(&i))) return err;
+      if ((err = value.getInt32(&i))) return err;
       return setBorderMode(i);
     case PropertyBorderColor:
-      if ((err = value.toInt32(&i))) return err;
+      if ((err = value.getInt32(&i))) return err;
       return setBorderColor((uint32_t)i);
     case PropertyBlurType:
-      if ((err = value.toInt32(&i))) return err;
+      if ((err = value.getInt32(&i))) return err;
       return setBlurType(i);
     case PropertyHorizontalRadius:
-      if ((err = value.toDouble(&d))) return err;
+      if ((err = value.getDouble(&d))) return err;
       return setHorizontalRadius(d);
     case PropertyVerticalRadius:
-      if ((err = value.toDouble(&d))) return err;
+      if ((err = value.getDouble(&d))) return err;
       return setVerticalRadius(d);
     default:
       return base::setProperty(id, value);
@@ -608,10 +608,10 @@ err_t IntConvolutionImageFilter::setProperty(int id, const Value& value)
   switch (id)
   {
     case PropertyBorderMode:
-      if ((err = value.toInt32(&i))) return err;
+      if ((err = value.getInt32(&i))) return err;
       return setBorderMode(i);
     case PropertyBorderColor:
-      if ((err = value.toInt32(&i))) return err;
+      if ((err = value.getInt32(&i))) return err;
       return setBorderColor((uint32_t)i);
     case PropertyKernel:
       return Error::NotImplemented;
@@ -682,21 +682,21 @@ FOG_INIT_DECLARE err_t fog_imagefilter_init(void)
   Vector<String32> properties;
 
   properties.clear();
-  properties.append(fog_strings->get(STR_GRAPHICS_filterType));
+  properties.append(fog_strings->getString(STR_GRAPHICS_filterType));
   FOG_INIT_PROPERTIES_CONTAINER(ImageFilter, ImageFilter::base, properties);
 
   properties.clear();
-  properties.append(fog_strings->get(STR_GRAPHICS_borderMode));
-  properties.append(fog_strings->get(STR_GRAPHICS_borderColor));
-  properties.append(fog_strings->get(STR_GRAPHICS_blurType));
-  properties.append(fog_strings->get(STR_GRAPHICS_horizontalRadius));
-  properties.append(fog_strings->get(STR_GRAPHICS_verticalRadius));
+  properties.append(fog_strings->getString(STR_GRAPHICS_borderMode));
+  properties.append(fog_strings->getString(STR_GRAPHICS_borderColor));
+  properties.append(fog_strings->getString(STR_GRAPHICS_blurType));
+  properties.append(fog_strings->getString(STR_GRAPHICS_horizontalRadius));
+  properties.append(fog_strings->getString(STR_GRAPHICS_verticalRadius));
   FOG_INIT_PROPERTIES_CONTAINER(BlurImageFilter, BlurImageFilter::base, properties);
 
   properties.clear();
-  properties.append(fog_strings->get(STR_GRAPHICS_borderMode));
-  properties.append(fog_strings->get(STR_GRAPHICS_borderColor));
-  properties.append(fog_strings->get(STR_GRAPHICS_kernel));
+  properties.append(fog_strings->getString(STR_GRAPHICS_borderMode));
+  properties.append(fog_strings->getString(STR_GRAPHICS_borderColor));
+  properties.append(fog_strings->getString(STR_GRAPHICS_kernel));
   FOG_INIT_PROPERTIES_CONTAINER(IntConvolutionImageFilter, IntConvolutionImageFilter::base, properties);
 
   return Error::Ok;

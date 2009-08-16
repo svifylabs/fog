@@ -17,18 +17,18 @@ TODO
     [ ] StringUtil::some utf functions not completed yet
     [ ] Fog::BitArray - fix
     [ ] Temporary...<N>::free sometimes not frees the memory ?
+    [ ] Join EventLoop and EventPump. Original code is different, in our code there
+        is no benefit to keeping this split.
+    [ ] Remove stl dependency from EventLoop.h
 
-[w] Fog/Xml
-    [w] XMLDOM (with XMLDocument)
-    [w] XMLParser
-    [ ] XMLWriter
+[w] Fog/Xml:
+    [ ] XmlWriter
 
-[ ] Fog/Svg
-    [ ] SVGDOM (with SVGDocument)
-    [ ] SVGParser (through XmlParser)
-    [ ] SVGPainterEngine
+[ ] Fog/Svg:
+    [ ] PainterEngine_Svg
     
-[ ] Painter
+[ ] Painter:
+    [ ] Set constant mask
     [ ] Text transform
     [ ] Text over path
     [ ] Patterns transform
@@ -38,36 +38,37 @@ TODO
     [ ] Introduce setClipPath() / restoreClip()
     [ ] Painter should implement IProperty interface.
 
-[ ] Image
+[ ] Image:
     [ ] Render text using Font::getGlyphs
     [ ] Add ColorLUT
         [ ] By color lut the contrast, brightness, threshold and gamma function can be implemented.
     [ ] Scaling
 
-[ ] Font
+[ ] Font:
     [ ] Ability to render to 'Path'
         [x] Win32
         [ ] Freetype2
     [ ] Cache size control
+    [ ] Increase granularity of X position in glyphs to 4 (0.0, 0.25, 0.50 and 0.75), because vector
+        fonts can be very sensitive.
 
-[ ] Raster
+[ ] Raster:
     [ ] Write C composite functions
     [ ] Write MMX composite functions
     [w] Write SSE2 composite functions
     [ ] Linear gradient can be calculated by SSE2, think about it! The instructions pmax pmin, pcmpgt
         can be used in increments
-    [w] Introduce painting with constant alpha (addition to masks)
 
-[ ] ColorMatrix
+[ ] ColorMatrix:
     [ ] Add possibility to use ColorMatrix in Painter::drawImage().
 
-[ ] Path
+[ ] Path:
     [ ] Port AGG code into Fog and remove dependencies to AntiGrain
     [ ] Add fitTo(RectF)
     [ ] Add addText(Font, String32) to path
     [ ] What about warp?
 
-[ ] Image filtering
+[ ] Image filtering:
     [ ] Color effects (ColorMatrix, ColorLut, ...) should be grouped and result should be
         ColorEffect class that will be able to do any color based transformations. ColorEffect
         should be possible to set when blitting image by Fog::Painter.
@@ -80,12 +81,35 @@ TODO
     [ ] Sharpen
     [ ] Convolve
 
-[ ] Optimizations
+[ ] Colors:
+    [ ] Add RgbaUtil.h, RgbaUtil.cpp and implement here basic compositing (blending, ...)
+    [ ] Add rgbToHsv, hsvToRgb
+
+[ ] Region:
+    [ ] Remove polygon() and round() generators, use Fog::Path() and rasterizer
+        instead.
+    [ ] If Path generator will be implemented, we can implement transforms operations.
+        (Region to path, path to region)
+    [ ] Add RegionBuilder class that will be very fast alternative to Region::unite()
+        for ultra count of rectangles.
+
+[ ] Optimizations:
     [ ] Are usable 3dNow optimizations?
     [ ] Path SSE2 curve code
-    [ ] Path SSE2 matrix transformations
+    
+[ ] UI Toolkit
+    [ ] First make basic layouts working and define them
 
-AUDIT:
-[ ] Check for all raster conversion functions to follow these rules
-    [ ] ARGB32 to RGB32 conversion -> premultiply
+AUDIT
+=====
+
+[ ] Check for all raster conversion functions to follow these rules:
+    [ ] ARGB32 to RGB32 conversion -> premultiply and set alpha to 0xFF
     [ ] PRGB32 to RGB32 conversion -> set alpha to 0xFF
+    [ ] Audit SRC_OVER::ARGB32 dst
+
+REFACTORIZATION
+===============
+
+[ ] All getters (get() methods) should be declared before setters (set() methods)
+[ ] Make sure that all classes are using correct getXXX() methods

@@ -30,15 +30,19 @@ struct FOG_API ButtonBase : public Widget
 
   // [Text]
 
-  String32 text() const;
+  String32 getText() const;
   void setText(const String32& text);
 
   // [Value]
 
-  uint checked() const;
-  void setChecked(uint value);
+  //! @brief Get whether widget is checked (see @c CheckedState).
+  int getChecked() const;
+  //! @brief Set checked state of the widget (see @c CheckedState).
+  void setChecked(int value);
 
+  //! @brief Set widget state to checked.
   FOG_INLINE void check() { setChecked(true); }
+  //! @brief Set widget state to unchecked.
   FOG_INLINE void uncheck() { setChecked(false); }
 
   // [Interaction]
@@ -48,7 +52,7 @@ struct FOG_API ButtonBase : public Widget
   bool isSpaceDown() const;
   bool isDown() const;
 
-  // [Events]
+  // [Event Handlers]
 
   // Fog::Widget Events.
   virtual void onFocus(FocusEvent* e);
@@ -69,7 +73,7 @@ struct FOG_API ButtonBase : public Widget
 protected:
   String32 _text;
 
-  uint _checked;
+  int _checked;
   bool _isMouseOver;
   bool _isMouseDown;
   bool _isSpaceDown;

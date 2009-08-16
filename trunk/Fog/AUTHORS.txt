@@ -24,13 +24,23 @@ Fog/Graphics
 AffineMatrix - AGG version 2.4 <http://www.antigrain.com>.
 ColorMatrix - AggOO <http://www.dratek.com/>.
 DitherMatrix - Evas <http://www.enlightenment.org>.
-ImageFilter::StackBlur - Mario Klingemann <http://incubator.quasimondo.com/processing/fast_blur_deluxe.php>
+ImageFilter::StackBlur - Mario Klingemann <http://incubator.quasimondo.com/processing/fast_blur_deluxe.php>.
 ImageIO::GIF - GifLib <http://sourceforge.net/projects/libungif>.
 Path - AGG version 2.4 <http://www.antigrain.com>.
 Rasterizer - AGG version 2.4 <http://www.antigrain.com>.
 Region - XOrg <http://www.x.org>.
 
+Fog/Svg
+=======
+
+None currently.
+
 Fog/UI
 ======
+
+None currently.
+
+Fog/Xml
+=======
 
 None currently.

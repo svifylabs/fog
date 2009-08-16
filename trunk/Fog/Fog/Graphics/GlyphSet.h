@@ -138,11 +138,11 @@ struct FOG_API GlyphSet
   FOG_INLINE sysuint_t refCount() const { return _d->refCount.get(); }
   FOG_INLINE bool isDetached() const { return _d->refCount.get() == 1; }
 
-  FOG_INLINE sysuint_t capacity() const { return _d->capacity; }
-  FOG_INLINE sysuint_t length() const { return _d->length; }
+  FOG_INLINE sysuint_t getCapacity() const { return _d->capacity; }
+  FOG_INLINE sysuint_t getLength() const { return _d->length; }
 
-  FOG_INLINE const Rect& extents() const { return _d->extents; }
-  FOG_INLINE int advance() const { return _d->advance; }
+  FOG_INLINE const Rect& getExtents() const { return _d->extents; }
+  FOG_INLINE int getAdvance() const { return _d->advance; }
 
   FOG_INLINE const Glyph* glyphs() const { return _d->glyphs(); }
 

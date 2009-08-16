@@ -28,7 +28,7 @@ struct FOG_API Button : public ButtonBase
   Button();
   virtual ~Button();
 
-  // [Events]
+  // [Event Handlers]
 
   // Fog::Widget Events.
   virtual void onPaint(PaintEvent* e);

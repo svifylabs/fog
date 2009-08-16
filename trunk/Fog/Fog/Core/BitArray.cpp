@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
@@ -641,7 +641,7 @@ err_t BitArray::fill(uint32_t bit)
   err_t err = detach();
   if (err) return err;
 
-  memset(_d->data, bit ? 0xFF : 0x00, (length() + 7) >> 3);
+  memset(_d->data, bit ? 0xFF : 0x00, (getLength() + 7) >> 3);
   return Error::Ok;
 }
 
@@ -781,7 +781,7 @@ err_t BitArray::append(const BitArray& other)
 {
   Data* d = _d;
   sysuint_t before = d->length;
-  sysuint_t after = before + other.length();
+  sysuint_t after = before + other.getLength();
 
   FOG_ASSERT(after >= before);
 
@@ -794,14 +794,14 @@ err_t BitArray::append(const BitArray& other)
   }
   else if (d->capacity < after)
   {
-    err_t err = reserve(before + getOptimalCapacity(before, other.length()));
+    err_t err = reserve(before + getOptimalCapacity(before, other.getLength()));
     if (err) return err;
 
     d = _d;
   }
 
   // Append bit array.
-  _copyBits(d->data, before, other._d->data, 0, other.length());
+  _copyBits(d->data, before, other._d->data, 0, other.getLength());
   d->length = after;
 
   return Error::Ok;

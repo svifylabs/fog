@@ -3,7 +3,7 @@
 // [Licence]
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #ifdef FOG_PRECOMP
 #include FOG_PRECOMP
 #endif
@@ -21,7 +21,7 @@
 #include <Fog/Core/Thread.h>
 #include <Fog/Core/ThreadCondition.h>
 #include <Fog/Core/ThreadPool.h>
-#include <Fog/Graphics/AffineMatrix.h>
+#include <Fog/Graphics/Matrix.h>
 #include <Fog/Graphics/ColorLut.h>
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Error.h>
@@ -140,9 +140,9 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
   // [Meta]
   // --------------------------------------------------------------------------
 
-  virtual int width() const;
-  virtual int height() const;
-  virtual int format() const;
+  virtual int getWidth() const;
+  virtual int getHeight() const;
+  virtual int getFormat() const;
 
   virtual void setMetaVariables(
     const Point& metaOrigin,
@@ -162,21 +162,21 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
   virtual void resetMetaVars();
   virtual void resetUserVars();
 
-  virtual Point metaOrigin() const;
-  virtual Point userOrigin() const;
+  virtual Point getMetaOrigin() const;
+  virtual Point getUserOrigin() const;
 
-  virtual Region metaRegion() const;
-  virtual Region userRegion() const;
+  virtual Region getMetaRegion() const;
+  virtual Region getUserRegion() const;
 
-  virtual bool usedMetaRegion() const;
-  virtual bool usedUserRegion() const;
+  virtual bool isMetaRegionUsed() const;
+  virtual bool isUserRegionUsed() const;
 
   // --------------------------------------------------------------------------
   // [Operator]
   // --------------------------------------------------------------------------
 
-  virtual void setOp(uint32_t op);
-  virtual uint32_t op() const;
+  virtual void setOperator(uint32_t op);
+  virtual uint32_t getOperator() const;
 
   // --------------------------------------------------------------------------
   // [Source]
@@ -192,41 +192,44 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
   // [Parameters]
   // --------------------------------------------------------------------------
 
+  virtual void setLineParams(const LineParams& params);
+  virtual void getLineParams(LineParams& params) const;
+
   virtual void setLineWidth(double lineWidth);
-  virtual double lineWidth() const;
+  virtual double getLineWidth() const;
 
   virtual void setLineCap(uint32_t lineCap);
-  virtual uint32_t lineCap() const;
+  virtual uint32_t getLineCap() const;
 
   virtual void setLineJoin(uint32_t lineJoin);
-  virtual uint32_t lineJoin() const;
+  virtual uint32_t getLineJoin() const;
 
-  virtual void setLineDash(const double* dashes, sysuint_t count);
-  virtual void setLineDash(const Vector<double>& dashes);
-  virtual Vector<double> lineDash() const;
+  virtual void setDashes(const double* dashes, sysuint_t count);
+  virtual void setDashes(const Vector<double>& dashes);
+  virtual Vector<double> getDashes() const;
 
-  virtual void setLineDashOffset(double offset);
-  virtual double lineDashOffset() const;
+  virtual void setDashOffset(double offset);
+  virtual double getDashOffset() const;
 
   virtual void setMiterLimit(double miterLimit);
-  virtual double miterLimit() const;
+  virtual double getMiterLimit() const;
 
   virtual void setFillMode(uint32_t mode);
-  virtual uint32_t fillMode();
+  virtual uint32_t getFillMode();
 
   // --------------------------------------------------------------------------
   // [Transformations]
   // --------------------------------------------------------------------------
 
-  virtual void setMatrix(const AffineMatrix& m);
+  virtual void setMatrix(const Matrix& m);
   virtual void resetMatrix();
-  virtual AffineMatrix matrix() const;
+  virtual Matrix getMatrix() const;
 
   virtual void rotate(double angle);
   virtual void scale(double sx, double sy);
   virtual void skew(double sx, double sy);
   virtual void translate(double x, double y);
-  virtual void affine(const AffineMatrix& m);
+  virtual void affine(const Matrix& m);
   virtual void parallelogram(double x1, double y1, double x2, double y2, const double* para);
   virtual void viewport(
     double worldX1,  double worldY1,  double worldX2,  double worldY2,
@@ -408,13 +411,13 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
     bool lineIsSimple;
     uint32_t lineCap;
     uint32_t lineJoin;
-    Vector<double> lineDash;
-    double lineDashOffset;
     double miterLimit;
+    Vector<double> dashes;
+    double dashOffset;
 
     uint32_t fillMode;
 
-    AffineMatrix transformations;
+    Matrix transformations;
     double transformationsApproxScale;
     bool transformationsUsed;
   };
@@ -467,15 +470,15 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
     // Pattern context.
     Raster::PatternContext* pctx;
 
-    // Antigrain rasterizer scanline containers
+    // Antigrain scanline rasterizer containers.
     AggScanlineP8 slP8;
     AggScanlineU8 slU8;
 
     // Multithreading id, offset and delta. If id is equal to -1, multithreading
     // is disabled.
     int id;
-    int offset;
-    int delta;
+    int offset; // If multithreading is disabled, offset is 0.
+    int delta;  // If multithreading is disabled, delta is 1.
 
     // Static embedded buffer for fast alloc/free, see getBuffer(), releaseBuffer().
     uint8_t* buffer;
@@ -564,6 +567,7 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
   struct FOG_HIDDEN Command : public Action
   {
     // [Construction / Destruction]
+
     FOG_INLINE Command() {};
     FOG_INLINE ~Command() {};
 
@@ -590,7 +594,7 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
       Skip = 2
     };
 
-    volatile int status;
+    Atomic<int> status;
     Calculation* calculation;
   };
 
@@ -600,6 +604,11 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
 
   struct FOG_HIDDEN Command_Boxes : public Command
   {
+    // [Construction / Destruction]
+
+    FOG_INLINE Command_Boxes() {};
+    FOG_INLINE ~Command_Boxes() {};
+
     // [Implementation]
 
     virtual void run(Context* ctx);
@@ -617,6 +626,11 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
 
   struct FOG_HIDDEN Command_Image : public Command
   {
+    // [Construction / Destruction]
+
+    FOG_INLINE Command_Image() {};
+    FOG_INLINE ~Command_Image() {};
+
     // [Implementation]
 
     virtual void run(Context* ctx);
@@ -636,6 +650,11 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
 
   struct FOG_HIDDEN Command_GlyphSet : public Command
   {
+    // [Construction / Destruction]
+
+    FOG_INLINE Command_GlyphSet() {};
+    FOG_INLINE ~Command_GlyphSet() {};
+
     // [Implementation]
 
     virtual void run(Context* ctx);
@@ -655,6 +674,11 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
 
   struct FOG_HIDDEN Command_Path : public Command
   {
+    // [Construction / Destruction]
+
+    FOG_INLINE Command_Path() {};
+    FOG_INLINE ~Command_Path() {};
+
     // [Implementation]
 
     virtual void run(Context* ctx);
@@ -683,6 +707,9 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
 
   struct FOG_HIDDEN Calculation_Path : public Calculation
   {
+    FOG_INLINE Calculation_Path() {};
+    FOG_INLINE ~Calculation_Path() {};
+
     // [Implementation]
 
     virtual void run(Context* ctx);
@@ -789,7 +816,7 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
   FOG_INLINE void _updateLineWidth()
   {
     ctx.capsState->lineIsSimple =
-      (ctx.capsState->lineWidth == 1.0 && ctx.capsState->lineDash.length() == 0);
+      (ctx.capsState->lineWidth == 1.0 && ctx.capsState->dashes.getLength() == 0);
   }
 
   bool _detachCaps();
@@ -941,8 +968,8 @@ PainterEngine_Raster::CapsState::CapsState(const CapsState& other) :
   lineIsSimple(other.lineIsSimple),
   lineCap(other.lineCap),
   lineJoin(other.lineJoin),
-  lineDash(other.lineDash),
-  lineDashOffset(other.lineDashOffset),
+  dashes(other.dashes),
+  dashOffset(other.dashOffset),
   miterLimit(other.miterLimit),
   fillMode(other.fillMode),
   transformations(other.transformations),
@@ -977,8 +1004,8 @@ PainterEngine_Raster::CapsState& PainterEngine_Raster::CapsState::operator=(cons
   lineIsSimple = other.lineIsSimple;
   lineCap = other.lineCap;
   lineJoin = other.lineJoin;
-  lineDash = other.lineDash;
-  lineDashOffset = other.lineDashOffset;
+  dashes = other.dashes;
+  dashOffset = other.dashOffset;
   miterLimit = other.miterLimit;
   fillMode = other.fillMode;
   transformations = other.transformations;
@@ -1231,7 +1258,7 @@ void PainterEngine_Raster::Calculation_Path::run(Context* ctx)
   Command_Path* cmd = reinterpret_cast<Command_Path*>(relatedTo);
 
   bool ok = _rasterizePath(ctx, cmd->ras.instance(), path.instance(), stroke);
-  cmd->status = ok ? Command::Ready : Command::Skip;
+  cmd->status.set(ok ? Command::Ready : Command::Skip);
 }
 
 void PainterEngine_Raster::Calculation_Path::release()
@@ -1268,12 +1295,10 @@ void PainterEngine_Raster::WorkerTask::run()
     // Do calculations and commands.
     bool cont;
     bool wait;
-    bool wakeUpWorkers;
 
     do {
       cont = false;
       wait = false;
-      wakeUpWorkers = false;
   
       // Do calculations (highest priority than commands).
       while (currentCalculation < mgr->calculationsPosition)
@@ -1298,14 +1323,12 @@ void PainterEngine_Raster::WorkerTask::run()
           clc->run(&ctx);
           clc->release();
 
-          wakeUpWorkers = true;
+          mgr->wakeUpWaitingWorkers();
         }
 
         currentCalculation++;
         cont = true;
       }
-
-      if (wakeUpWorkers) mgr->wakeUpWaitingWorkers();
 
       // Do command.
       while (currentCommand < mgr->commandsPosition)
@@ -1314,17 +1337,17 @@ void PainterEngine_Raster::WorkerTask::run()
 
 #if defined(FOG_DEBUG_RASTER)
         static const char* statusMsg[] = { "Wait", "Ready", "Skip" };
-        fog_debug("Fog::Painter[Worker #%d]::run() - command %d (%p) status=%s", ctx.id, (int)currentCommand, cmd, statusMsg[cmd->status]);
+        fog_debug("Fog::Painter[Worker #%d]::run() - command %d (%p) status=%s", ctx.id, (int)currentCommand, cmd, statusMsg[cmd->status.get()]);
 #endif // FOG_DEBUG_RASTER
 
-        switch (cmd->status)
+        switch (cmd->status.get())
         {
           case Command::Ready:
           {
             // If meta origin or user origin is set, it's needed to calculate new
             // (correct) offset variable or different threads can paint into the
             // same area.
-            int workerOffset = (id - cmd->clipState->workOrigin.y()) % delta;
+            int workerOffset = (id - cmd->clipState->workOrigin.getY()) % delta;
             if (workerOffset < 0) workerOffset += delta;
 
             ctx.offset = workerOffset;
@@ -1365,7 +1388,7 @@ skipCommands:
       AutoLock locked(mgr->lock);
 
       if (currentCalculation < mgr->calculationsPosition ||
-         (currentCommand < mgr->commandsPosition && mgr->commandsData[currentCommand]->status != Command::Wait))
+         (currentCommand < mgr->commandsPosition && mgr->commandsData[currentCommand]->status.get() != Command::Wait))
       {
         continue;
       }
@@ -1538,17 +1561,17 @@ PainterEngine_Raster::~PainterEngine_Raster()
 // [Fog::PainterEngine_Raster - Meta]
 // ============================================================================
 
-int PainterEngine_Raster::width() const
+int PainterEngine_Raster::getWidth() const
 {
   return _metaWidth;
 }
 
-int PainterEngine_Raster::height() const
+int PainterEngine_Raster::getHeight() const
 {
   return _metaHeight;
 }
 
-int PainterEngine_Raster::format() const
+int PainterEngine_Raster::getFormat() const
 {
   return _format;
 }
@@ -1600,7 +1623,7 @@ void PainterEngine_Raster::setUserOrigin(const Point& pt)
 
 void PainterEngine_Raster::translateMetaOrigin(const Point& pt)
 {
-  if (pt.x() == 0 && pt.y() == 0) return;
+  if (pt.getX() == 0 && pt.getY() == 0) return;
   if (!_detachClip()) return;
 
   ctx.clipState->metaOrigin += pt;
@@ -1609,7 +1632,7 @@ void PainterEngine_Raster::translateMetaOrigin(const Point& pt)
 
 void PainterEngine_Raster::translateUserOrigin(const Point& pt)
 {
-  if (pt.x() == 0 && pt.y() == 0) return;
+  if (pt.getX() == 0 && pt.getY() == 0) return;
   if (!_detachClip()) return;
 
   ctx.clipState->userOrigin += pt;
@@ -1654,32 +1677,32 @@ void PainterEngine_Raster::resetUserVars()
   _updateWorkRegion();
 }
 
-Point PainterEngine_Raster::metaOrigin() const
+Point PainterEngine_Raster::getMetaOrigin() const
 {
   return ctx.clipState->metaOrigin;
 }
 
-Point PainterEngine_Raster::userOrigin() const
+Point PainterEngine_Raster::getUserOrigin() const
 {
   return ctx.clipState->userOrigin;
 }
 
-Region PainterEngine_Raster::metaRegion() const
+Region PainterEngine_Raster::getMetaRegion() const
 {
   return ctx.clipState->metaRegion;
 }
 
-Region PainterEngine_Raster::userRegion() const
+Region PainterEngine_Raster::getUserRegion() const
 {
   return ctx.clipState->userRegion;
 }
 
-bool PainterEngine_Raster::usedMetaRegion() const
+bool PainterEngine_Raster::isMetaRegionUsed() const
 {
   return ctx.clipState->metaRegionUsed;
 }
 
-bool PainterEngine_Raster::usedUserRegion() const
+bool PainterEngine_Raster::isUserRegionUsed() const
 {
   return ctx.clipState->userRegionUsed;
 }
@@ -1688,7 +1711,7 @@ bool PainterEngine_Raster::usedUserRegion() const
 // [Fog::PainterEngine_Raster - Operator]
 // ============================================================================
 
-void PainterEngine_Raster::setOp(uint32_t op)
+void PainterEngine_Raster::setOperator(uint32_t op)
 {
   if (op >= CompositeCount) return;
   if (!_detachCaps()) return;
@@ -1698,7 +1721,7 @@ void PainterEngine_Raster::setOp(uint32_t op)
   ctx.closure.closure = ctx.rops->closure;
 }
 
-uint32_t PainterEngine_Raster::op() const
+uint32_t PainterEngine_Raster::getOperator() const
 {
   return ctx.capsState->op;
 }
@@ -1727,7 +1750,7 @@ void PainterEngine_Raster::setSource(const Pattern& pattern)
 {
   if (pattern.isSolid())
   {
-    setSource(pattern.color());
+    setSource(pattern.getColor());
     return;
   }
 
@@ -1759,6 +1782,33 @@ Pattern PainterEngine_Raster::sourcePattern()
 // [Fog::PainterEngine_Raster - Parameters]
 // ============================================================================
 
+void PainterEngine_Raster::setLineParams(const LineParams& params)
+{
+  if (!_detachCaps()) return;
+
+  ctx.capsState->lineWidth  = params.lineWidth;
+  ctx.capsState->lineCap    = params.lineCap;
+  ctx.capsState->lineJoin   = params.lineJoin;
+  ctx.capsState->miterLimit = params.miterLimit;
+  ctx.capsState->dashes     = params.dashes;
+  ctx.capsState->dashOffset = params.dashOffset;
+
+  if (ctx.capsState->lineCap >= LineCapInvalid) ctx.capsState->lineCap = LineCapSquare;
+  if (ctx.capsState->lineJoin >= LineJoinInvalid) ctx.capsState->lineJoin = LineJoinMiter;
+
+  _updateLineWidth();
+}
+
+void PainterEngine_Raster::getLineParams(LineParams& params) const
+{
+  params.lineWidth  = ctx.capsState->lineWidth;
+  params.lineCap    = ctx.capsState->lineCap;
+  params.lineJoin   = ctx.capsState->lineJoin;
+  params.miterLimit = ctx.capsState->miterLimit;
+  params.dashes     = ctx.capsState->dashes;
+  params.dashOffset = ctx.capsState->dashOffset;
+}
+
 void PainterEngine_Raster::setLineWidth(double lineWidth)
 {
   if (ctx.capsState->lineWidth == lineWidth) return;
@@ -1768,7 +1818,7 @@ void PainterEngine_Raster::setLineWidth(double lineWidth)
   _updateLineWidth();
 }
 
-double PainterEngine_Raster::lineWidth() const
+double PainterEngine_Raster::getLineWidth() const
 {
   return ctx.capsState->lineWidth;
 }
@@ -1781,7 +1831,7 @@ void PainterEngine_Raster::setLineCap(uint32_t lineCap)
   ctx.capsState->lineCap = lineCap;
 }
 
-uint32_t PainterEngine_Raster::lineCap() const
+uint32_t PainterEngine_Raster::getLineCap() const
 {
   return ctx.capsState->lineCap;
 }
@@ -1794,45 +1844,45 @@ void PainterEngine_Raster::setLineJoin(uint32_t lineJoin)
   ctx.capsState->lineJoin = lineJoin;
 }
 
-uint32_t PainterEngine_Raster::lineJoin() const
+uint32_t PainterEngine_Raster::getLineJoin() const
 {
   return ctx.capsState->lineJoin;
 }
 
-void PainterEngine_Raster::setLineDash(const double* dashes, sysuint_t count)
+void PainterEngine_Raster::setDashes(const double* dashes, sysuint_t count)
 {
   if (!_detachCaps()) return;
 
-  ctx.capsState->lineDash.clear();
-  for (sysuint_t i = count; i; i--, dashes++) ctx.capsState->lineDash.append(*dashes);
+  ctx.capsState->dashes.clear();
+  for (sysuint_t i = count; i; i--, dashes++) ctx.capsState->dashes.append(*dashes);
   _updateLineWidth();
 }
 
-void PainterEngine_Raster::setLineDash(const Vector<double>& dashes)
+void PainterEngine_Raster::setDashes(const Vector<double>& dashes)
 {
   if (!_detachCaps()) return;
 
-  ctx.capsState->lineDash = dashes;
+  ctx.capsState->dashes = dashes;
   _updateLineWidth();
 }
 
-Vector<double> PainterEngine_Raster::lineDash() const
+Vector<double> PainterEngine_Raster::getDashes() const
 {
-  return ctx.capsState->lineDash;
+  return ctx.capsState->dashes;
 }
 
-void PainterEngine_Raster::setLineDashOffset(double offset)
+void PainterEngine_Raster::setDashOffset(double offset)
 {
-  if (ctx.capsState->lineDashOffset == offset) return;
+  if (ctx.capsState->dashOffset == offset) return;
   if (!_detachCaps()) return;
 
-  ctx.capsState->lineDashOffset = offset;
+  ctx.capsState->dashOffset = offset;
   _updateLineWidth();
 }
 
-double PainterEngine_Raster::lineDashOffset() const
+double PainterEngine_Raster::getDashOffset() const
 {
-  return ctx.capsState->lineDashOffset;
+  return ctx.capsState->dashOffset;
 }
 
 void PainterEngine_Raster::setMiterLimit(double miterLimit)
@@ -1843,7 +1893,7 @@ void PainterEngine_Raster::setMiterLimit(double miterLimit)
   ctx.capsState->miterLimit = miterLimit;
 }
 
-double PainterEngine_Raster::miterLimit() const
+double PainterEngine_Raster::getMiterLimit() const
 {
   return ctx.capsState->miterLimit;
 }
@@ -1856,7 +1906,7 @@ void PainterEngine_Raster::setFillMode(uint32_t mode)
   ctx.capsState->fillMode = mode;
 }
 
-uint32_t PainterEngine_Raster::fillMode()
+uint32_t PainterEngine_Raster::getFillMode()
 {
   return ctx.capsState->fillMode;
 }
@@ -1865,7 +1915,7 @@ uint32_t PainterEngine_Raster::fillMode()
 // [Fog::PainterEngine_Raster - Transformations]
 // ============================================================================
 
-void PainterEngine_Raster::setMatrix(const AffineMatrix& m)
+void PainterEngine_Raster::setMatrix(const Matrix& m)
 {
   if (!_detachCaps()) return;
 
@@ -1877,12 +1927,12 @@ void PainterEngine_Raster::resetMatrix()
 {
   if (!_detachCaps()) return;
 
-  ctx.capsState->transformations = AffineMatrix();
+  ctx.capsState->transformations = Matrix();
   ctx.capsState->transformationsApproxScale = 1.0;
   ctx.capsState->transformationsUsed = false;
 }
 
-AffineMatrix PainterEngine_Raster::matrix() const
+Matrix PainterEngine_Raster::getMatrix() const
 {
   return ctx.capsState->transformations;
 }
@@ -1891,7 +1941,7 @@ void PainterEngine_Raster::rotate(double angle)
 {
   if (!_detachCaps()) return;
 
-  ctx.capsState->transformations *= AffineMatrix::fromRotation(angle);
+  ctx.capsState->transformations *= Matrix::fromRotation(angle);
   _updateTransform();
 }
 
@@ -1899,7 +1949,7 @@ void PainterEngine_Raster::scale(double sx, double sy)
 {
   if (!_detachCaps()) return;
 
-  ctx.capsState->transformations *= AffineMatrix::fromScale(sx, sy);
+  ctx.capsState->transformations *= Matrix::fromScale(sx, sy);
   _updateTransform();
 }
 
@@ -1907,7 +1957,7 @@ void PainterEngine_Raster::skew(double sx, double sy)
 {
   if (!_detachCaps()) return;
 
-  ctx.capsState->transformations *= AffineMatrix::fromSkew(sx, sy);
+  ctx.capsState->transformations *= Matrix::fromSkew(sx, sy);
   _updateTransform();
 }
 
@@ -1915,11 +1965,11 @@ void PainterEngine_Raster::translate(double x, double y)
 {
   if (!_detachCaps()) return;
 
-  ctx.capsState->transformations *= AffineMatrix::fromTranslation(x, y);
+  ctx.capsState->transformations *= Matrix::fromTranslation(x, y);
   _updateTransform();
 }
 
-void PainterEngine_Raster::affine(const AffineMatrix& m)
+void PainterEngine_Raster::affine(const Matrix& m)
 {
   if (!_detachCaps()) return;
 
@@ -1932,7 +1982,7 @@ void PainterEngine_Raster::parallelogram(
 {
   if (!_detachCaps()) return;
 
-  ctx.capsState->transformations *= AffineMatrix(x1, y1, x2, y2, para);
+  ctx.capsState->transformations *= Matrix(x1, y1, x2, y2, para);
   _updateTransform();
 }
 
@@ -1963,7 +2013,7 @@ void PainterEngine_Raster::viewport(
   vp.device_viewport(screenX1, screenY1, screenX2, screenY2);
 
   agg::trans_affine aff = vp.to_affine();
-  ctx.capsState->transformations *= *((const AffineMatrix *)&aff);
+  ctx.capsState->transformations *= *((const Matrix *)&aff);
   _updateTransform();
 }
 
@@ -1972,7 +2022,7 @@ void PainterEngine_Raster::worldToScreen(PointF* pt) const
   FOG_ASSERT(pt != NULL);
 
   if (ctx.capsState->transformationsUsed)
-    ctx.capsState->transformations.transform(&pt->_x, &pt->_y);
+    ctx.capsState->transformations.transform(&pt->x, &pt->y);
 }
 
 void PainterEngine_Raster::screenToWorld(PointF* pt) const
@@ -1980,7 +2030,7 @@ void PainterEngine_Raster::screenToWorld(PointF* pt) const
   FOG_ASSERT(pt != NULL);
 
   if (ctx.capsState->transformationsUsed)
-    ctx.capsState->transformations.transformInv(&pt->_x, &pt->_y);
+    ctx.capsState->transformations.transformInv(&pt->x, &pt->y);
 }
 
 void PainterEngine_Raster::worldToScreen(double* scalar) const
@@ -1995,8 +2045,8 @@ void PainterEngine_Raster::worldToScreen(double* scalar) const
     PainterEngine_Raster::worldToScreen(&p1);
     PainterEngine_Raster::worldToScreen(&p2);
 
-    double dx = p2.x() - p1.x();
-    double dy = p2.y() - p1.y();
+    double dx = p2.getX() - p1.getX();
+    double dy = p2.getY() - p1.getY();
 
     *scalar = sqrt(dx * dx + dy * dy) * 0.7071068;
   }
@@ -2014,8 +2064,8 @@ void PainterEngine_Raster::screenToWorld(double* scalar) const
     PainterEngine_Raster::screenToWorld(&p1);
     PainterEngine_Raster::screenToWorld(&p2);
 
-    double dx = p2.x() - p1.x();
-    double dy = p2.y() - p1.y();
+    double dx = p2.getX() - p1.getX();
+    double dy = p2.getY() - p1.getY();
 
     *scalar = sqrt(dx * dx + dy * dy) * 0.7071068;
   }
@@ -2026,8 +2076,8 @@ void PainterEngine_Raster::alignPoint(PointF* pt) const
   FOG_ASSERT(pt != NULL);
 
   PainterEngine_Raster::worldToScreen(pt);
-  pt->setX(floor(pt->x()) + 0.5);
-  pt->setY(floor(pt->y()) + 0.5);
+  pt->setX(floor(pt->getX()) + 0.5);
+  pt->setY(floor(pt->getY()) + 0.5);
   PainterEngine_Raster::screenToWorld(pt);
 }
 
@@ -2084,20 +2134,20 @@ void PainterEngine_Raster::clear()
   if (ctx.clipState->clipSimple)
     _serializeBoxes(&ctx.clipState->clipBox, 1);
   else
-    _serializeBoxes(ctx.clipState->workRegion.cData(), ctx.clipState->workRegion.count());
+    _serializeBoxes(ctx.clipState->workRegion.cData(), ctx.clipState->workRegion.getLength());
 }
 
 void PainterEngine_Raster::drawPoint(const Point& p)
 {
   PainterEngine_Raster::drawPoint(
-    PointF((double)p.x() + 0.5, (double)p.y() + 0.5));
+    PointF((double)p.getX() + 0.5, (double)p.getY() + 0.5));
 }
 
 void PainterEngine_Raster::drawLine(const Point& start, const Point& end)
 {
   PainterEngine_Raster::drawLine(
-    PointF((double)start.x() + 0.5, (double)start.y() + 0.5),
-    PointF((double)end.x() + 0.5, (double)end.y() + 0.5));
+    PointF((double)start.getX() + 0.5, (double)start.getY() + 0.5),
+    PointF((double)end.getX() + 0.5, (double)end.getY() + 0.5));
 }
 
 void PainterEngine_Raster::drawRect(const Rect& r)
@@ -2108,27 +2158,27 @@ void PainterEngine_Raster::drawRect(const Rect& r)
   {
     PainterEngine_Raster::drawRect(
       RectF(
-        (double)r.x1() + 0.5,
-        (double)r.y1() + 0.5,
-        (double)r.width(),
-        (double)r.height()));
+        (double)r.getX() + 0.5,
+        (double)r.getY() + 0.5,
+        (double)r.getWidth(),
+        (double)r.getHeight()));
     return;
   }
 
   Box box[4];
   sysuint_t count = 4;
 
-  if (r.width() <= 2 || r.height() <= 2)
+  if (r.getWidth() <= 2 || r.getHeight() <= 2)
   {
-    box[0].set(r.x1(), r.y1(), r.x2(), r.y2());
+    box[0].set(r.getX1(), r.getY1(), r.getX2(), r.getY2());
     count = 1;
   }
   else
   {
-    box[0].set(r.x1()  , r.y1()  , r.x2()  , r.y1()+1);
-    box[1].set(r.x1()  , r.y1()+1, r.x1()+1, r.y2()-1);
-    box[2].set(r.x2()-1, r.y1()+1, r.x2()  , r.y2()-1);
-    box[3].set(r.x1()  , r.y2()-1, r.x2()  , r.y2()  );
+    box[0].set(r.getX1()  , r.getY1()  , r.getX2()  , r.getY1()+1);
+    box[1].set(r.getX1()  , r.getY1()+1, r.getX1()+1, r.getY2()-1);
+    box[2].set(r.getX2()-1, r.getY1()+1, r.getX2()  , r.getY2()-1);
+    box[3].set(r.getX1()  , r.getY2()-1, r.getX2()  , r.getY2()  );
   }
 
   if (ctx.clipState->clipSimple)
@@ -2146,17 +2196,17 @@ void PainterEngine_Raster::drawRect(const Rect& r)
     regionBox.set(box, count);
 
     Region::intersect(regionISect, regionBox, ctx.clipState->workRegion);
-    if (!regionISect.count()) return;
+    if (!regionISect.getLength()) return;
 
-    PainterEngine_Raster::_serializeBoxes(regionISect.cData(), regionISect.count());
+    PainterEngine_Raster::_serializeBoxes(regionISect.cData(), regionISect.getLength());
   }
 }
 
 void PainterEngine_Raster::drawRound(const Rect& r, const Point& radius)
 {
   PainterEngine_Raster::drawRound(
-    RectF((double)r.x1() + 0.5, (double)r.y1() + 0.5, r.width(), r.height()),
-    PointF((double)radius.x(), (double)radius.y()));
+    RectF((double)r.getX() + 0.5, (double)r.getY() + 0.5, r.getWidth(), r.getHeight()),
+    PointF((double)radius.getX(), (double)radius.getY()));
 }
 
 void PainterEngine_Raster::fillRect(const Rect& r)
@@ -2167,14 +2217,14 @@ void PainterEngine_Raster::fillRect(const Rect& r)
   {
     PainterEngine_Raster::fillRect(
       RectF(
-        (double)r.x1(),
-        (double)r.y1(),
-        (double)r.width(),
-        (double)r.height()));
+        (double)r.getX(),
+        (double)r.getY(),
+        (double)r.getWidth(),
+        (double)r.getHeight()));
     return;
   }
 
-  Box box(r.x1(), r.y1(), r.x2(), r.y2());
+  Box box(r.getX1(), r.getY1(), r.getX2(), r.getY2());
 
   if (ctx.clipState->clipSimple)
   {
@@ -2190,9 +2240,9 @@ void PainterEngine_Raster::fillRect(const Rect& r)
     regionBox.set(&box, 1);
 
     Region::intersect(regionISect, regionBox, ctx.clipState->workRegion);
-    if (!regionISect.count()) return;
+    if (!regionISect.getLength()) return;
 
-    PainterEngine_Raster::_serializeBoxes(regionISect.cData(), regionISect.count());
+    PainterEngine_Raster::_serializeBoxes(regionISect.cData(), regionISect.getLength());
   }
 }
 
@@ -2207,10 +2257,10 @@ void PainterEngine_Raster::fillRects(const Rect* r, sysuint_t count)
     {
       if (r[i].isValid()) tmpPath.addRect(
         RectF(
-          (double)r[i].x1(),
-          (double)r[i].y1(),
-          (double)r[i].width(),
-          (double)r[i].height()));
+          (double)r[i].getX(),
+          (double)r[i].getY(),
+          (double)r[i].getWidth(),
+          (double)r[i].getHeight()));
     }
     fillPath(tmpPath);
     return;
@@ -2218,50 +2268,50 @@ void PainterEngine_Raster::fillRects(const Rect* r, sysuint_t count)
 
   Region region;
   region.set(r, count);
-  if (!region.count()) return;
+  if (region.isEmpty()) return;
 
   if (ctx.clipState->clipSimple)
   {
     if (ctx.clipState->clipBox.subsumes(region.extents()))
     {
-      _serializeBoxes(region.cData(), region.count());
+      _serializeBoxes(region.cData(), region.getLength());
       return;
     }
     region.intersect(ctx.clipState->clipBox);
-    if (!region.count()) return;
+    if (region.isEmpty()) return;
 
-    _serializeBoxes(region.cData(), region.count());
+    _serializeBoxes(region.cData(), region.getLength());
   }
   else
   {
     Region regionISect;
     Region::intersect(regionISect, ctx.clipState->workRegion, region);
-    if (!regionISect.count()) return;
+    if (regionISect.isEmpty()) return;
 
-    _serializeBoxes(regionISect.cData(), regionISect.count());
+    _serializeBoxes(regionISect.cData(), regionISect.getLength());
   }
 }
 
 void PainterEngine_Raster::fillRound(const Rect& r, const Point& radius)
 {
   PainterEngine_Raster::fillRound(
-    RectF((double)r.x1(), (double)r.y1(), r.width(), r.height()),
-    PointF(radius.x(), radius.y()));
+    RectF((double)r.getX(), (double)r.getY(), r.getWidth(), r.getHeight()),
+    PointF(radius.getX(), radius.getY()));
 }
 
 void PainterEngine_Raster::fillRegion(const Region& region)
 {
   if (ctx.clipState->clipSimple && ctx.clipState->clipBox.subsumes(region.extents()))
   {
-    _serializeBoxes(region.cData(), region.count());
+    _serializeBoxes(region.cData(), region.getLength());
   }
   else
   {
     TemporaryRegion<16> dst;
     Region::intersect(dst, ctx.clipState->workRegion, region);
-    if (!dst.count()) return;
+    if (dst.isEmpty()) return;
 
-    _serializeBoxes(dst.cData(), dst.count());
+    _serializeBoxes(dst.cData(), dst.getLength());
   }
 }
 
@@ -2273,7 +2323,7 @@ void PainterEngine_Raster::drawPoint(const PointF& p)
 {
   tmpPath.clear();
   tmpPath.moveTo(p);
-  tmpPath.lineTo(p.x(), p.y() + 0.0001);
+  tmpPath.lineTo(p.getX(), p.getY() + 0.0001);
   _serializePath(tmpPath, true);
 }
 
@@ -2294,7 +2344,7 @@ void PainterEngine_Raster::drawLine(const PointF* pts, sysuint_t count)
   if (count > 1)
     tmpPath.lineTo(pts + 1, count - 1);
   else
-    tmpPath.lineTo(pts[0].x(), pts[0].y() + 0.0001);
+    tmpPath.lineTo(pts[0].getX(), pts[0].getY() + 0.0001);
   _serializePath(tmpPath, true);
 }
 
@@ -2307,7 +2357,7 @@ void PainterEngine_Raster::drawPolygon(const PointF* pts, sysuint_t count)
   if (count > 1)
     tmpPath.lineTo(pts + 1, count - 1);
   else
-    tmpPath.lineTo(pts[0].x(), pts[0].y() + 0.0001);
+    tmpPath.lineTo(pts[0].getX(), pts[0].getY() + 0.0001);
   tmpPath.closePolygon();
   _serializePath(tmpPath, true);
 }
@@ -2365,7 +2415,7 @@ void PainterEngine_Raster::fillPolygon(const PointF* pts, sysuint_t count)
   if (count > 1)
     tmpPath.lineTo(pts + 1, count - 1);
   else
-    tmpPath.lineTo(pts[0].x(), pts[0].y() + 0.0001);
+    tmpPath.lineTo(pts[0].getX(), pts[0].getY() + 0.0001);
   tmpPath.closePolygon();
   _serializePath(tmpPath, false);
 }
@@ -2438,7 +2488,7 @@ void PainterEngine_Raster::drawGlyphSet(const Point& pt, const GlyphSet& glyphSe
 void PainterEngine_Raster::drawText(const Point& pt, const String32& text, const Font& font, const Rect* clip)
 {
   TemporaryGlyphSet<128> glyphSet;
-  if (font.getGlyphs(text.cData(), text.length(), glyphSet)) return;
+  if (font.getGlyphs(text.cData(), text.getLength(), glyphSet)) return;
 
   _serializeGlyphSet(pt, glyphSet, clip);
 }
@@ -2446,15 +2496,15 @@ void PainterEngine_Raster::drawText(const Point& pt, const String32& text, const
 void PainterEngine_Raster::drawText(const Rect& r, const String32& text, const Font& font, uint32_t align, const Rect* clip)
 {
   TemporaryGlyphSet<128> glyphSet;
-  if (font.getGlyphs(text.cData(), text.length(), glyphSet)) return;
+  if (font.getGlyphs(text.cData(), text.getLength(), glyphSet)) return;
 
-  int wsize = glyphSet.advance();
+  int wsize = glyphSet.getAdvance();
   int hsize = font.height();
 
-  int x = r.x1();
-  int y = r.y1();
-  int w = r.width();
-  int h = r.height();
+  int x = r.getX();
+  int y = r.getY();
+  int w = r.getWidth();
+  int h = r.getHeight();
 
   switch (align & TextAlignHMask)
   {
@@ -2491,36 +2541,36 @@ void PainterEngine_Raster::drawImage(const Point& p, const Image& image, const R
 {
   int srcx = 0;
   int srcy = 0;
-  int dstx = p.x();
-  int dsty = p.y();
+  int dstx = p.getX();
+  int dsty = p.getY();
   int dstw;
   int dsth;
 
   if (irect == NULL)
   {
-    dstw = image.width();
+    dstw = image.getWidth();
     if (dstw == 0) return;
-    dsth = image.height();
+    dsth = image.getHeight();
     if (dsth == 0) return;
   }
   else
   {
     if (!irect->isValid()) return;
 
-    srcx = irect->x1();
+    srcx = irect->getX();
     if (srcx < 0) return;
-    srcy = irect->y1();
+    srcy = irect->getY();
     if (srcy < 0) return;
 
-    dstw = Math::min(image.width(), irect->width());
+    dstw = Math::min(image.getWidth(), irect->getWidth());
     if (dstw == 0) return;
-    dsth = Math::min(image.height(), irect->height());
+    dsth = Math::min(image.getHeight(), irect->getHeight());
     if (dsth == 0) return;
   }
 
   int d;
 
-  if ((uint)(d = dstx - ctx.clipState->clipBox.x1()) >= (uint)ctx.clipState->clipBox.width())
+  if ((uint)(d = dstx - ctx.clipState->clipBox.getX1()) >= (uint)ctx.clipState->clipBox.getWidth())
   {
     if (d < 0)
     {
@@ -2534,7 +2584,7 @@ void PainterEngine_Raster::drawImage(const Point& p, const Image& image, const R
     }
   }
 
-  if ((uint)(d = dsty - ctx.clipState->clipBox.y1()) >= (uint)ctx.clipState->clipBox.height())
+  if ((uint)(d = dsty - ctx.clipState->clipBox.getY1()) >= (uint)ctx.clipState->clipBox.getHeight())
   {
     if (d < 0)
     {
@@ -2548,8 +2598,8 @@ void PainterEngine_Raster::drawImage(const Point& p, const Image& image, const R
     }
   }
 
-  if ((d = ctx.clipState->clipBox.x2() - dstx) < dstw) dstw = d;
-  if ((d = ctx.clipState->clipBox.y2() - dsty) < dsth) dsth = d;
+  if ((d = ctx.clipState->clipBox.getX2() - dstx) < dstw) dstw = d;
+  if ((d = ctx.clipState->clipBox.getY2() - dsty) < dsth) dsth = d;
 
   Rect dst(dstx, dsty, dstw, dsth);
   Rect src(srcx, srcy, dstw, dsth);
@@ -2622,7 +2672,7 @@ err_t PainterEngine_Raster::setProperty(const String32& name, const Value& value
 
   if (name == Ascii8("multithreaded"))
   {
-    if ((err = value.toInt32(&p_int)) == Error::Ok)
+    if ((err = value.getInt32(&p_int)) == Error::Ok)
       if (value.isInteger()) setMultithreaded(p_int != 0);
   }
 
@@ -2732,7 +2782,7 @@ void PainterEngine_Raster::setMultithreaded(bool mt)
     for (i = 0; i < count; i++)
     {
       WorkerTask* task = workerManager->tasks[i].instancep();
-      workerManager->threads[i]->eventLoop()->postTask(task);
+      workerManager->threads[i]->getEventLoop()->postTask(task);
     }
 
     // Wait for threads to initialize.
@@ -2800,8 +2850,8 @@ void PainterEngine_Raster::_updateWorkRegion()
 
   ctx.clipState->workOrigin = ctx.clipState->metaOrigin + ctx.clipState->userOrigin;
 
-  int negx = -ctx.clipState->workOrigin.x();
-  int negy = -ctx.clipState->workOrigin.y();
+  int negx = -ctx.clipState->workOrigin.getX();
+  int negy = -ctx.clipState->workOrigin.getY();
 
   // This is maximal clip box that can be used by painter.
   ctx.clipState->clipBox.set(negx, negy, negx + _metaWidth, negy + _metaHeight);
@@ -2831,7 +2881,7 @@ void PainterEngine_Raster::_updateWorkRegion()
 
     if (ctx.clipState->userRegionUsed)
     {
-      if (ctx.clipState->metaOrigin.x() || ctx.clipState->metaOrigin.y())
+      if (ctx.clipState->metaOrigin.getX() || ctx.clipState->metaOrigin.getY())
       {
         TemporaryRegion<64> tmp;
         Region::translate(tmp, ctx.clipState->userRegion, ctx.clipState->metaOrigin.negated());
@@ -2844,7 +2894,7 @@ void PainterEngine_Raster::_updateWorkRegion()
     }
 
     // Switch to box clip implementation if resulting region is simple.
-    if (ctx.clipState->workRegion.count() == 1)
+    if (ctx.clipState->workRegion.getLength() == 1)
     {
       ctx.clipState->clipBox.set(ctx.clipState->workRegion.extents());
       ctx.clipState->workRegion.clear();
@@ -2868,11 +2918,8 @@ void PainterEngine_Raster::_updateWorkRegion()
   // This is very good trick. Make raster -relative to _workOrigin, so no
   // calculations are needed to draw pixels relative to _workOrigin.
   ctx.clipState->workRaster = _metaRaster +
-    (sysint_t)ctx.clipState->workOrigin.x() * _bpp +
-    (sysint_t)ctx.clipState->workOrigin.y() * _stride;
-  //ctx.clipState->workRaster = _metaRaster +
-  //  negx * _bpp +
-  //  negy * _stride;
+    (sysint_t)ctx.clipState->workOrigin.getX() * _bpp +
+    (sysint_t)ctx.clipState->workOrigin.getY() * _stride;
 }
 
 void PainterEngine_Raster::_updateTransform()
@@ -2918,17 +2965,17 @@ void PainterEngine_Raster::_setCapsDefaults()
   ctx.capsState->lineWidth = 1.0;
   ctx.capsState->lineIsSimple = true;
 
-  ctx.capsState->lineCap = LineCapRound;
-  ctx.capsState->lineJoin = LineJoinRound;
+  ctx.capsState->lineCap = LineCapButt;
+  ctx.capsState->lineJoin = LineJoinMiter;
 
-  ctx.capsState->lineDash.free();
-  ctx.capsState->lineDashOffset = 0.0;
+  ctx.capsState->dashes.free();
+  ctx.capsState->dashOffset = 0.0;
 
-  ctx.capsState->miterLimit = 1.0;
+  ctx.capsState->miterLimit = 4.0;
 
   ctx.capsState->fillMode = FillNonZero;
 
-  ctx.capsState->transformations = AffineMatrix();
+  ctx.capsState->transformations = Matrix();
   ctx.capsState->transformationsApproxScale = 1.0;
   ctx.capsState->transformationsUsed = false;
 
@@ -2954,18 +3001,18 @@ Raster::PatternContext* PainterEngine_Raster::_getPatternContext()
 
   if (!pctx->initialized)
   {
-    switch (ctx.capsState->patternSource.type())
+    switch (ctx.capsState->patternSource.getType())
     {
-      case Pattern::Texture:
+      case Pattern::TypeTexture:
         err = Raster::functionMap->pattern.texture_init(pctx, ctx.capsState->patternSource);
         break;
-      case Pattern::LinearGradient:
+      case Pattern::TypeLinearGradient:
         err = Raster::functionMap->pattern.linear_gradient_init(pctx, ctx.capsState->patternSource);
         break;
-      case Pattern::RadialGradient:
+      case Pattern::TypeRadialGradient:
         err = Raster::functionMap->pattern.radial_gradient_init(pctx, ctx.capsState->patternSource);
         break;
-      case Pattern::ConicalGradient:
+      case Pattern::TypeConicalGradient:
         err = Raster::functionMap->pattern.conical_gradient_init(pctx, ctx.capsState->patternSource);
         break;
       default:
@@ -3164,7 +3211,7 @@ void PainterEngine_Raster::_serializePath(const Path& path, bool stroke)
     clc->relatedTo = cmd;
     clc->path.init(path);
     clc->stroke = stroke;
-    cmd->status = Command::Wait;
+    cmd->status.init(Command::Wait);
     cmd->calculation = clc;
     cmd->ras.init();
     cmd->ras.instance().gamma(ColorLut::linearLut);
@@ -3185,7 +3232,7 @@ FOG_INLINE T* PainterEngine_Raster::_createCommand(sysuint_t size)
   command->capsState = ctx.capsState->ref();
   command->rops = ctx.rops;
   command->pctx = NULL;
-  command->status = Command::Ready;
+  command->status.init(Command::Ready);
   command->calculation = NULL;
 
   if (!ctx.capsState->isSolidSource)
@@ -3267,8 +3314,8 @@ static bool FOG_FASTCALL AggRasterizePath(
   {
     dst.flatten(NULL, capsState->transformationsApproxScale);
 
-    if (capsState->lineDash.length() > 1)
-      dst.dash(capsState->lineDash, capsState->lineDashOffset, capsState->transformationsApproxScale);
+    if (capsState->dashes.getLength() > 1)
+      dst.dash(capsState->dashes, capsState->dashOffset, capsState->transformationsApproxScale);
 
     dst.stroke(StrokeParams(capsState->lineWidth, capsState->miterLimit, capsState->lineCap, capsState->lineJoin), capsState->transformationsApproxScale);
   }
@@ -3283,12 +3330,12 @@ static bool FOG_FASTCALL AggRasterizePath(
   }
 
   ras.reset();
-  ras.filling_rule(static_cast<agg::filling_rule_e>(capsState->fillMode));
+  ras.filling_rule(stroke ? agg::fill_even_odd : static_cast<agg::filling_rule_e>(capsState->fillMode));
   ras.clip_box(
-    (double)clipState->clipBox.x1(),
-    (double)clipState->clipBox.y1(),
-    (double)clipState->clipBox.x2(),
-    (double)clipState->clipBox.y2());
+    (double)clipState->clipBox.getX1(),
+    (double)clipState->clipBox.getY1(),
+    (double)clipState->clipBox.getX2(),
+    (double)clipState->clipBox.getY2());
 
   AggPath aggpath(dst);
   ras.add_path(aggpath);
@@ -3375,7 +3422,7 @@ static void FOG_INLINE AggRenderPath(PainterEngine_Raster::Context* ctx, const R
     Raster::PatternContext* pctx = ctx->pctx;
     if (!pctx) return;
 
-    uint8_t* pbuf = ctx->getBuffer(Raster::mul4(clipState->clipBox.width()));
+    uint8_t* pbuf = ctx->getBuffer(Raster::mul4(clipState->clipBox.getWidth()));
     if (!pbuf) return;
 
     Raster::SpanCompositeFn span_composite = ctx->rops->span_composite[pctx->format];
@@ -3460,11 +3507,11 @@ void PainterEngine_Raster::_renderBoxes(Context* ctx, const Box* box, sysuint_t 
 
     for (sysuint_t i = 0; i < count; i++)
     {
-      int x1 = box[i].x1();
-      int y1 = box[i].y1();
-      int y2 = box[i].y2();
+      int x1 = box[i].getX1();
+      int y1 = box[i].getY1();
+      int y2 = box[i].getY2();
 
-      int w = box[i].width();
+      int w = box[i].getWidth();
       if (w <= 0) continue;
 
       if (delta != 1) y1 = alignToDelta(y1, offset, delta);
@@ -3493,11 +3540,11 @@ void PainterEngine_Raster::_renderBoxes(Context* ctx, const Box* box, sysuint_t 
     {
       for (sysuint_t i = 0; i < count; i++)
       {
-        int x1 = box[i].x1();
-        int y1 = box[i].y1();
-        int y2 = box[i].y2();
+        int x1 = box[i].getX1();
+        int y1 = box[i].getY1();
+        int y2 = box[i].getY2();
 
-        int w = box[i].width();
+        int w = box[i].getWidth();
         if (w <= 0) continue;
 
         if (delta != 1) y1 = alignToDelta(y1, offset, delta);
@@ -3515,16 +3562,16 @@ void PainterEngine_Raster::_renderBoxes(Context* ctx, const Box* box, sysuint_t 
     }
     else
     {
-      uint8_t* pbuf = ctx->getBuffer(Raster::mul4(ctx->clipState->clipBox.width()));
+      uint8_t* pbuf = ctx->getBuffer(Raster::mul4(ctx->clipState->clipBox.getWidth()));
       if (!pbuf) return;
 
       for (sysuint_t i = 0; i < count; i++)
       {
-        int x1 = box[i].x1();
-        int y1 = box[i].y1();
-        int y2 = box[i].y2();
+        int x1 = box[i].getX1();
+        int y1 = box[i].getY1();
+        int y2 = box[i].getY2();
 
-        int w = box[i].width();
+        int w = box[i].getWidth();
         if (w <= 0) continue;
 
         if (delta != 1) y1 = alignToDelta(y1, offset, delta);
@@ -3549,13 +3596,13 @@ void PainterEngine_Raster::_renderImage(Context* ctx, const Rect& dst, const Ima
   sysint_t dstStride = _stride;
   sysint_t srcStride = image_d->stride;
 
-  int x1 = dst.x1();
-  int w = dst.width();
+  int x = dst.getX();
+  int w = dst.getWidth();
 
-  int y1 = dst.y1();
-  int y2 = dst.y2();
+  int y1 = dst.getY1();
+  int y2 = dst.getY2();
 
-  Raster::SpanCompositeFn span_composite = ctx->rops->span_composite[image.format()];
+  Raster::SpanCompositeFn span_composite = ctx->rops->span_composite[image.getFormat()];
   Raster::Closure* closure = &ctx->closure;
 
   uint8_t* dstCur;
@@ -3568,16 +3615,16 @@ void PainterEngine_Raster::_renderImage(Context* ctx, const Rect& dst, const Ima
     y1 = alignToDelta(y1, offset, delta);
     if (y1 >= y2) return;
 
-    dstCur = ctx->clipState->workRaster + (sysint_t)y1 * dstStride + (sysint_t)x1 * _bpp;
-    srcCur = image_d->first + ((sysint_t)src.y1() + y1 - dst.y1()) * srcStride + (sysint_t)src.x1() * image_d->bytesPerPixel;
+    dstCur = ctx->clipState->workRaster + (sysint_t)y1 * dstStride + (sysint_t)x * _bpp;
+    srcCur = image_d->first + ((sysint_t)src.getY() + y1 - dst.getY()) * srcStride + (sysint_t)src.getX() * image_d->bytesPerPixel;
 
     dstStride *= delta;
     srcStride *= delta;
   }
   else
   {
-    dstCur = ctx->clipState->workRaster + (sysint_t)y1 * dstStride + (sysint_t)x1 * _bpp;
-    srcCur = image_d->first + (sysint_t)src.y1() * srcStride + (sysint_t)src.x1() * image_d->bytesPerPixel;
+    dstCur = ctx->clipState->workRaster + (sysint_t)y1 * dstStride + (sysint_t)x * _bpp;
+    srcCur = image_d->first + (sysint_t)src.getY() * srcStride + (sysint_t)src.getX() * image_d->bytesPerPixel;
   }
 
   closure->srcPalette = image._d->palette.cData();
@@ -3595,16 +3642,16 @@ void PainterEngine_Raster::_renderGlyphSet(Context* ctx, const Point& pt, const 
   // TODO: Hardcoded to A8 glyph format
   // TODO: Clipping
 
-  if (!glyphSet.length()) return;
+  if (!glyphSet.getLength()) return;
 
   int offset = ctx->offset;
   int delta = ctx->delta;
 
   const Glyph* glyphs = glyphSet.glyphs();
-  sysuint_t count = glyphSet.length();
+  sysuint_t count = glyphSet.getLength();
 
-  int px = pt.x();
-  int py = pt.y();
+  int px = pt.getX();
+  int py = pt.getY();
 
   uint8_t* pBuf = ctx->clipState->workRaster;
   sysint_t stride = _stride;
@@ -3631,10 +3678,10 @@ void PainterEngine_Raster::_renderGlyphSet(Context* ctx, const Point& pt, const 
 
       px += glyphd->advance;
 
-      int x1 = px1; if (x1 < boundingBox.x1()) x1 = boundingBox.x1();
-      int y1 = py1; if (y1 < boundingBox.y1()) y1 = boundingBox.y1();
-      int x2 = px2; if (x2 > boundingBox.x2()) x2 = boundingBox.x2();
-      int y2 = py2; if (y2 > boundingBox.y2()) y2 = boundingBox.y2();
+      int x1 = px1; if (x1 < boundingBox.getX1()) x1 = boundingBox.getX1();
+      int y1 = py1; if (y1 < boundingBox.getY1()) y1 = boundingBox.getY1();
+      int x2 = px2; if (x2 > boundingBox.getX2()) x2 = boundingBox.getX2();
+      int y2 = py2; if (y2 > boundingBox.getY2()) y2 = boundingBox.getY2();
 
       if (delta != 1) y1 = alignToDelta(y1, offset, delta);
 
@@ -3670,7 +3717,7 @@ void PainterEngine_Raster::_renderGlyphSet(Context* ctx, const Point& pt, const 
     Raster::SpanCompositeMskFn span_composite_a8 = ctx->rops->span_composite_a8[pctx->format];
     Raster::Closure* closure = &ctx->closure;
 
-    uint8_t* pbuf = ctx->getBuffer(Raster::mul4(ctx->clipState->clipBox.width()));
+    uint8_t* pbuf = ctx->getBuffer(Raster::mul4(ctx->clipState->clipBox.getWidth()));
     if (!pbuf) return;
 
     for (sysuint_t i = 0; i < count; i++)
@@ -3685,10 +3732,10 @@ void PainterEngine_Raster::_renderGlyphSet(Context* ctx, const Point& pt, const 
 
       px += glyphd->advance;
 
-      int x1 = px1; if (x1 < boundingBox.x1()) x1 = boundingBox.x1();
-      int y1 = py1; if (y1 < boundingBox.y1()) y1 = boundingBox.y1();
-      int x2 = px2; if (x2 > boundingBox.x2()) x2 = boundingBox.x2();
-      int y2 = py2; if (y2 > boundingBox.y2()) y2 = boundingBox.y2();
+      int x1 = px1; if (x1 < boundingBox.getX1()) x1 = boundingBox.getX1();
+      int y1 = py1; if (y1 < boundingBox.getY1()) y1 = boundingBox.getY1();
+      int x2 = px2; if (x2 > boundingBox.getX2()) x2 = boundingBox.getX2();
+      int y2 = py2; if (y2 > boundingBox.getY2()) y2 = boundingBox.getY2();
 
       if (delta != 1) y1 = alignToDelta(y1, offset, delta);
 

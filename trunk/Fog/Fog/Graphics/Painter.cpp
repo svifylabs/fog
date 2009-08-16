@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #ifdef FOG_PRECOMP
 #include FOG_PRECOMP
 #endif
@@ -68,7 +68,7 @@ err_t Painter::begin(uint8_t* pixels, int width, int height, sysint_t stride, in
 
 err_t Painter::begin(Image& image, int hints)
 {
-  int format = image.format();
+  int format = image.getFormat();
 
   end();
 
@@ -84,7 +84,8 @@ err_t Painter::begin(Image& image, int hints)
   uint8_t* data = image.mData();
   if (!data) return Error::OutOfMemory;
 
-  PainterEngine* d = _getRasterPainterEngine(data, image.width(), image.height(), image.stride(), format, hints);
+  PainterEngine* d = _getRasterPainterEngine(
+    data, image.getWidth(), image.getHeight(), image.getStride(), format, hints);
   if (!d) return Error::OutOfMemory;
 
   _engine = d;

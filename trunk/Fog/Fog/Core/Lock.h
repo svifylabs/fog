@@ -77,12 +77,12 @@ public:
 #endif // FOG_OS_POSIX
   }
 
-  FOG_INLINE Handle& handle()
+  FOG_INLINE Handle& getHandle()
   {
     return _handle;
   }
 
-  FOG_INLINE const Handle& handle() const
+  FOG_INLINE const Handle& getHandle() const
   {
     return _handle;
   }

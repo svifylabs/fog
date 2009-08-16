@@ -18,7 +18,7 @@
 #include <Fog/Core/FileSystem.h>
 #include <Fog/Core/FileUtil.h>
 #include <Fog/Core/Static.h>
-#include <Fog/Core/StringCache.h>
+#include <Fog/Core/Strings.h>
 #include <Fog/Core/TextCodec.h>
 #include <Fog/Core/UserInfo.h>
 #include <Fog/Graphics/Error.h>
@@ -284,7 +284,7 @@ struct FontEngineFTPrivate
     }
 
     // Load symbols
-    if (fcDll.symbols(fcAddr, symbols, FOG_ARRAY_SIZE(symbols), FcSymbolsCount, (char**)NULL) != FcSymbolsCount)
+    if (fcDll.getSymbols(fcAddr, symbols, FOG_ARRAY_SIZE(symbols), FcSymbolsCount, (char**)NULL) != FcSymbolsCount)
     {
       fcDll.close();
       return Error::FontConfigSymbolNotFound;
@@ -462,7 +462,7 @@ struct FontEngineFTPrivate
     }
 
     // Load symbols
-    if (ftDll.symbols(ftAddr, symbols, FOG_ARRAY_SIZE(symbols), FtSymbolsCount, (char**)NULL) != FtSymbolsCount)
+    if (ftDll.getSymbols(ftAddr, symbols, FOG_ARRAY_SIZE(symbols), FtSymbolsCount, (char**)NULL) != FtSymbolsCount)
     {
       ftDll.close();
       return Error::FreeTypeSymbolNotFound;
@@ -482,7 +482,7 @@ struct FontEngineFTPrivate
   void ftClose()
   {
     Hash<String32, FtFile*>::MutableIterator it(ftFileCache);
-    for (it.toBegin(); it.isValid(); it.remove())
+    for (it.toStart(); it.isValid(); it.remove())
     {
       FtFile* ftFile = it.value();
       if (ftFile->refCount.get())
@@ -528,17 +528,23 @@ struct FontEngineFTPrivate
 
       "Tahoma\0" "tahoma.ttf\0";
 
-    StringCache* cache = StringCache::create(
-      translatorDef,
-      sizeof(translatorDef),
-      DetectLength,
-      String32(Ascii8("fog_freetype_translators")));
+    const char* cur = translatorDef;
 
-    sysuint_t i, count = cache->count();
-
-    for (i = 0; i < count; i += 2)
+    for (;;)
     {
-      ftTranslator.append(FontEngineFTTranslator(cache->get(i), cache->get(i+1)));
+      if (cur[0] == '\0') break;
+
+      sysuint_t len;
+
+      len = strlen(cur);
+      String32 s0(Ascii8(cur, len));
+      cur += len + 1;
+
+      len = strlen(cur);
+      String32 s1(Ascii8(cur, len));
+      cur += len + 1;
+
+      ftTranslator.append(FontEngineFTTranslator(s0, s1));
     }
   }
 
@@ -793,7 +799,7 @@ Glyph::Data* FontFaceFT::renderGlyph(uint32_t uc)
   if (!glyphd->bitmap.isEmpty())
   {
     // copy FT_Bitmap to our image and clean bytes over width
-    sysuint_t p, pCount = glyphd->bitmap.stride() - ftBitmap->width;
+    sysuint_t p, pCount = glyphd->bitmap.getStride() - ftBitmap->width;
 
     uint8_t *dstPtr = glyphd->bitmap._d->first;
     const uint8_t *srcPtr = ftBitmap->buffer;
@@ -894,7 +900,7 @@ err_t FontFaceFT::getTextWidth(const Char32* str, sysuint_t length, TextWidth* t
   }
   else
   {
-    textWidth->advance = glyphSet.advance();
+    textWidth->advance = glyphSet.getAdvance();
     textWidth->beginWidth = 0;
     textWidth->endWidth = 0;
     return Error::Ok;
@@ -970,8 +976,8 @@ bool FtFile::load()
     FT_Open_Args ftArgs;
 
     memset(&ftArgs, 0, sizeof(FT_Open_Args));
-    ftArgs.memory_base = (const FT_Byte*)mapFile.data();
-    ftArgs.memory_size = mapFile.size();
+    ftArgs.memory_base = (const FT_Byte*)mapFile.getData();
+    ftArgs.memory_size = mapFile.getSize();
     ftArgs.flags = FT_OPEN_MEMORY;
 
     loadError = fepriv->pFT_Open_Face(fepriv->ftLibrary, &ftArgs, 0, &ftFace);

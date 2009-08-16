@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
@@ -32,12 +32,12 @@ void Task::destroy()
 
 void QuitTask::run()
 {
-  EventLoop::current()->quit();
+  EventLoop::getCurrent()->quit();
 }
 
 void ThreadQuitTask::run()
 {
-  EventLoop::current()->quit();
+  EventLoop::getCurrent()->quit();
 }
 
 //[Fog::]

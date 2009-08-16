@@ -292,13 +292,13 @@ struct FOG_HIDDEN SequenceUntyped
   // [Flags]
 
   //! @brief Returns object flags.
-  FOG_INLINE uint32_t flags() const { return _d->flags; }
+  FOG_INLINE uint32_t getFlags() const { return _d->flags; }
   //! @copydoc Doxygen::Implicit::isNull().
   FOG_INLINE bool isNull() const { return (_d->flags & Data::IsNull) != 0; }
 
   // [Container]
 
-  FOG_INLINE sysuint_t length() const { return _d->length; }
+  FOG_INLINE sysuint_t getLength() const { return _d->length; }
   FOG_INLINE bool isEmpty() const { return _d->length == 0; }
 };
 
@@ -350,13 +350,13 @@ struct Sequence
   // [Flags]
 
   //! @brief Returns object flags.
-  FOG_INLINE uint32_t flags() const { return _d->flags; }
+  FOG_INLINE uint32_t getFlags() const { return _d->flags; }
   //! @copydoc Doxygen::Implicit::isNull().
   FOG_INLINE bool isNull() const { return _d->flags.anyOf(Data::IsNull); }
 
   // [Container]
 
-  FOG_INLINE sysuint_t length() const { return _d->length; }
+  FOG_INLINE sysuint_t getLength() const { return _d->length; }
   FOG_INLINE bool isEmpty() const { return _d->length == 0; }
 
   FOG_INLINE void squeeze()
