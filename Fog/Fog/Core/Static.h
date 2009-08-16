@@ -43,14 +43,14 @@ namespace Fog {
 //! This template is very effective, because the memory is not allocated on the
 //! heap, instead stack based allocation is used together with placement @c new
 //! and @c delete operators.
-template<class Type>
+template<typename Type>
 struct Static
 {
 public:
   //! @brief Initializer (calls placement @c new operator).
   FOG_INLINE void init() { new ((void*)_storage) Type; }
   //! @brief Initializer with copy assignment (calls placement @c new operator).
-  FOG_INLINE void init(const Static& t) { new ((void*)_storage) Type(t.instance()); }
+  FOG_INLINE void init(const Static<Type>& t) { new ((void*)_storage) Type(t.instance()); }
   //! @brief Initializer with copy assignment (calls placement @c new operator).
   FOG_INLINE void init(const Type& t) { new ((void*)_storage) Type(t); }
   //! @brief Deinitializer (calls placement @c delete operator).

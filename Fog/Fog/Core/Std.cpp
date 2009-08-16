@@ -7,7 +7,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #endif // _MSC_VER
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP

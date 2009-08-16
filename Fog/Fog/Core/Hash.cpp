@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
@@ -41,6 +41,8 @@ uint32_t hashData(const void* data, sysuint_t size)
   const uint8_t* k = (const uint8_t*)data;
   uint32_t a, b, c;
   sysuint_t len;
+
+  if (size == 0) return 0;
 
   // some abbreviations
 #define ub4 uint32_t

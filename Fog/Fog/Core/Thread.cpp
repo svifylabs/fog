@@ -7,7 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
@@ -124,7 +124,7 @@ void Thread::_setName(const String32& name)
 bool Thread::_create(sysuint_t stackSize, Thread* thread)
 {
   uint flags = 0;
-  if (stackSize > 0 && OS::windowsVersion() >= OS::Win_XP)
+  if (stackSize > 0 && OS::getWindowsVersion() >= OS::Win_XP)
     flags = STACK_SIZE_PARAM_IS_A_RESERVATION;
   else
     stackSize = 0;

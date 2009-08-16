@@ -22,40 +22,40 @@
 //
 //----------------------------------------------------------------------------
 
-#include <Fog/Graphics/AffineMatrix.h>
+#include <Fog/Graphics/Matrix.h>
 
 namespace Fog {
 
-AffineMatrix AffineMatrix::fromRotation(double a)
+Matrix Matrix::fromRotation(double a)
 {
   double aSin = sin(a);
   double aCos = cos(a);
-  return AffineMatrix(aCos, aSin, -aSin, aCos, 0.0, 0.0);
+  return Matrix(aCos, aSin, -aSin, aCos, 0.0, 0.0);
 }
 
-AffineMatrix AffineMatrix::fromScale(double s)
+Matrix Matrix::fromScale(double s)
 {
-  return AffineMatrix(s, 0.0, 0.0, s, 0.0, 0.0);
+  return Matrix(s, 0.0, 0.0, s, 0.0, 0.0);
 }
 
-AffineMatrix AffineMatrix::fromScale(double x, double y)
+Matrix Matrix::fromScale(double x, double y)
 {
-  return AffineMatrix(x, 0.0, 0.0, y, 0.0, 0.0);
+  return Matrix(x, 0.0, 0.0, y, 0.0, 0.0);
 }
 
-AffineMatrix AffineMatrix::fromTranslation(double x, double y)
+Matrix Matrix::fromTranslation(double x, double y)
 {
-  return AffineMatrix(1.0, 0.0, 0.0, 1.0, x, y);
+  return Matrix(1.0, 0.0, 0.0, 1.0, x, y);
 }
 
-AffineMatrix AffineMatrix::fromSkew(double x, double y)
+Matrix Matrix::fromSkew(double x, double y)
 {
-  return AffineMatrix(1.0, tan(y), tan(x), 1.0, 0.0, 0.0);
+  return Matrix(1.0, tan(y), tan(x), 1.0, 0.0, 0.0);
 }
 
-AffineMatrix AffineMatrix::fromLineSegment(double x1, double y1, double x2, double y2, double dist)
+Matrix Matrix::fromLineSegment(double x1, double y1, double x2, double y2, double dist)
 {
-  AffineMatrix m;
+  Matrix m;
 
   double dx = x2 - x1;
   double dy = y2 - y1;
@@ -69,26 +69,26 @@ AffineMatrix AffineMatrix::fromLineSegment(double x1, double y1, double x2, doub
   return m;
 }
 
-AffineMatrix AffineMatrix::fromReflectionUnit(double ux, double uy)
+Matrix Matrix::fromReflectionUnit(double ux, double uy)
 {
   double ux2 = ux * 2;
   double uy2 = uy * 2;
 
-  return AffineMatrix(ux2 * ux - 1.0, ux2 * uy, ux2 * uy, uy2 * uy - 1.0, 0.0, 0.0);
+  return Matrix(ux2 * ux - 1.0, ux2 * uy, ux2 * uy, uy2 * uy - 1.0, 0.0, 0.0);
 }
 
-AffineMatrix AffineMatrix::fromReflection(double a)
+Matrix Matrix::fromReflection(double a)
 {
   return fromReflectionUnit(cos(a), sin(a));
 }
 
-AffineMatrix AffineMatrix::fromReflection(double x, double y)
+Matrix Matrix::fromReflection(double x, double y)
 {
   double t = sqrt(x * x + y * y);
   return fromReflectionUnit(x / t, y / t);
 }
 
-AffineMatrix& AffineMatrix::parlToParl(const double* src, const double* dst)
+Matrix& Matrix::parlToParl(const double* src, const double* dst)
 {
   sx  = src[2] - src[0];
   shy = src[3] - src[1];
@@ -100,7 +100,7 @@ AffineMatrix& AffineMatrix::parlToParl(const double* src, const double* dst)
   invert();
 
   multiply(
-    AffineMatrix(
+    Matrix(
       dst[2] - dst[0],
       dst[3] - dst[1],
       dst[4] - dst[0],
@@ -110,7 +110,7 @@ AffineMatrix& AffineMatrix::parlToParl(const double* src, const double* dst)
   return *this;
 }
 
-AffineMatrix& AffineMatrix::rectToParl(double x1, double y1, double x2, double y2, const double* parl)
+Matrix& Matrix::rectToParl(double x1, double y1, double x2, double y2, const double* parl)
 {
   double src[6];
 
@@ -122,7 +122,7 @@ AffineMatrix& AffineMatrix::rectToParl(double x1, double y1, double x2, double y
   return *this;
 }
 
-AffineMatrix& AffineMatrix::parlToRect(const double* parl, double x1, double y1, double x2, double y2)
+Matrix& Matrix::parlToRect(const double* parl, double x1, double y1, double x2, double y2)
 {
   double dst[6];
 
@@ -134,14 +134,14 @@ AffineMatrix& AffineMatrix::parlToRect(const double* parl, double x1, double y1,
   return *this;
 }
 
-AffineMatrix& AffineMatrix::translate(double x, double y)
+Matrix& Matrix::translate(double x, double y)
 {
   tx += x;
   ty += y; 
   return *this;
 }
 
-AffineMatrix& AffineMatrix::rotate(double a)
+Matrix& Matrix::rotate(double a)
 {
   double ca = cos(a); 
   double sa = sin(a);
@@ -157,7 +157,7 @@ AffineMatrix& AffineMatrix::rotate(double a)
   return *this;
 }
 
-AffineMatrix& AffineMatrix::scale(double s)
+Matrix& Matrix::scale(double s)
 {
   sx  *= s;
   shx *= s;
@@ -168,7 +168,7 @@ AffineMatrix& AffineMatrix::scale(double s)
   return *this;
 }
 
-AffineMatrix& AffineMatrix::scale(double x, double y)
+Matrix& Matrix::scale(double x, double y)
 {
   sx  *= x;
   shx *= x;
@@ -179,12 +179,12 @@ AffineMatrix& AffineMatrix::scale(double x, double y)
   return *this;
 }
 
-AffineMatrix& AffineMatrix::skew(double x, double y)
+Matrix& Matrix::skew(double x, double y)
 {
-  return multiply(AffineMatrix::fromSkew(x, y));
+  return multiply(Matrix::fromSkew(x, y));
 }
 
-AffineMatrix& AffineMatrix::multiply(const AffineMatrix& m)
+Matrix& Matrix::multiply(const Matrix& m)
 {
   double t0 = sx  * m.sx + shy * m.shx;
   double t2 = shx * m.sx + sy  * m.shx;
@@ -200,27 +200,27 @@ AffineMatrix& AffineMatrix::multiply(const AffineMatrix& m)
   return *this;
 }
 
-AffineMatrix& AffineMatrix::premultiply(const AffineMatrix& m)
+Matrix& Matrix::multiplyInv(const Matrix& m)
 {
-  AffineMatrix t = m;
-  return *this = t.multiply(*this);
-}
-
-AffineMatrix& AffineMatrix::multiplyInv(const AffineMatrix& m)
-{
-  AffineMatrix t = m;
+  Matrix t = m;
   t.invert();
   return multiply(t);
 }
 
-AffineMatrix& AffineMatrix::premultiplyInv(const AffineMatrix& m)
+Matrix& Matrix::premultiply(const Matrix& m)
 {
-  AffineMatrix t = m;
+  Matrix t = m;
+  return *this = t.multiply(*this);
+}
+
+Matrix& Matrix::premultiplyInv(const Matrix& m)
+{
+  Matrix t = m;
   t.invert();
   return *this = t.multiply(*this);
 }
 
-AffineMatrix& AffineMatrix::invert()
+Matrix& Matrix::invert()
 {
   double d, t0, t4;
 
@@ -240,7 +240,7 @@ AffineMatrix& AffineMatrix::invert()
   return *this;
 }
 
-AffineMatrix& AffineMatrix::flipX()
+Matrix& Matrix::flipX()
 {
   sx  = -sx;
   shy = -shy;
@@ -249,7 +249,7 @@ AffineMatrix& AffineMatrix::flipX()
   return *this;
 }
 
-AffineMatrix& AffineMatrix::flipY()
+Matrix& Matrix::flipY()
 {
   shx = -shx;
   sy  = -sy;
@@ -258,7 +258,7 @@ AffineMatrix& AffineMatrix::flipY()
   return *this;
 }
 
-AffineMatrix& AffineMatrix::reset()
+Matrix& Matrix::reset()
 {
   sx  = sy  = 1.0; 
   shy = shx = tx = ty = 0.0;
@@ -266,7 +266,7 @@ AffineMatrix& AffineMatrix::reset()
   return *this;
 }
 
-bool AffineMatrix::isIdentity(double epsilon) const
+bool Matrix::isIdentity(double epsilon) const
 {
   return Math::feq(sx,  1.0, epsilon) &&
          Math::feq(shy, 0.0, epsilon) &&
@@ -276,21 +276,21 @@ bool AffineMatrix::isIdentity(double epsilon) const
          Math::feq(ty,  0.0, epsilon);
 }
 
-void AffineMatrix::transform(double* x, double* y) const
+void Matrix::transform(double* x, double* y) const
 {
   double tmp = *x;
   *x = tmp * sx  + *y * shx + tx;
   *y = tmp * shy + *y * sy  + ty;
 }
 
-void AffineMatrix::transform2x2(double* x, double* y) const
+void Matrix::transform2x2(double* x, double* y) const
 {
   double tmp = *x;
   *x = tmp * sx  + *y * shx;
   *y = tmp * shy + *y * sy;
 }
 
-void AffineMatrix::transformInv(double* x, double* y) const
+void Matrix::transformInv(double* x, double* y) const
 {
   double d = determinantReciprocal();
   double a = (*x - tx) * d;
@@ -299,24 +299,24 @@ void AffineMatrix::transformInv(double* x, double* y) const
   *y = b * sx - a * shy;
 }
 
-double AffineMatrix::determinantReciprocal() const
+double Matrix::determinantReciprocal() const
 {
   return 1.0 / (sx * sy - shy * shx);
 }
 
-double AffineMatrix::scale() const
+double Matrix::scale() const
 {
   double x = 0.707106781 * sx  + 0.707106781 * shx;
   double y = 0.707106781 * shy + 0.707106781 * sy;
   return sqrt(x*x + y*y);
 }
 
-bool AffineMatrix::isValid(double epsilon) const
+bool Matrix::isValid(double epsilon) const
 {
   return fabs(sx) > epsilon && fabs(sy) > epsilon;
 }
 
-bool AffineMatrix::isEqual(const AffineMatrix& m, double epsilon) const
+bool Matrix::isEqual(const Matrix& m, double epsilon) const
 {
   return Math::feq(sx,  m.sx,  epsilon) &&
          Math::feq(shy, m.shy, epsilon) &&
@@ -326,7 +326,7 @@ bool AffineMatrix::isEqual(const AffineMatrix& m, double epsilon) const
          Math::feq(ty,  m.ty,  epsilon);
 }
 
-double AffineMatrix::rotation() const
+double Matrix::rotation() const
 {
   double x1 = 0.0;
   double y1 = 0.0;
@@ -338,20 +338,20 @@ double AffineMatrix::rotation() const
   return atan2(y2-y1, x2-x1);
 }
 
-void AffineMatrix::translation(double* dx, double* dy) const
+void Matrix::translation(double* dx, double* dy) const
 {
   *dx = tx;
   *dy = ty;
 }
 
-void AffineMatrix::scaling(double* x, double* y) const
+void Matrix::scaling(double* x, double* y) const
 {
   double x1 = 0.0;
   double y1 = 0.0;
   double x2 = 1.0;
   double y2 = 1.0;
 
-  AffineMatrix t(*this);
+  Matrix t(*this);
   t *= fromRotation(-rotation());
   t.transform(&x1, &y1);
   t.transform(&x2, &y2);
@@ -359,7 +359,7 @@ void AffineMatrix::scaling(double* x, double* y) const
   *y = y2 - y1;
 }
 
-void AffineMatrix::scalingAbs(double* x, double* y) const
+void Matrix::scalingAbs(double* x, double* y) const
 {
   // Used to calculate scaling coefficients in image resampling. 
   // When there is considerable shear this method gives us much

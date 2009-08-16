@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
@@ -55,7 +55,7 @@ err_t FileUtil::extractFile(String32& dst, const String32& path)
   if (index)
   {
     String32 path_(path);
-    return dst.set(Utf32(path_.cData() + index, path_.length() - index));
+    return dst.set(Utf32(path_.cData() + index, path_.getLength() - index));
   }
   else
   {
@@ -86,7 +86,7 @@ err_t FileUtil::extractExtension(String32& dst, const String32& _path)
   String32 path(_path);
   dst.clear();
 
-  sysuint_t pathLength = path.length();
+  sysuint_t pathLength = path.getLength();
   if (!pathLength) { return Error::InvalidArgument; }
 
   // Speed is important, so RAW manipulation is needed
@@ -122,7 +122,7 @@ err_t FileUtil::normalizePath(String32& dst, const String32& _path)
   // - all "/./" to "/" or "BEGIN./" to ""
   // - all "/../" eats previous directory
 
-  sysuint_t pathLength = path.length();
+  sysuint_t pathLength = path.getLength();
   bool prevSlash = false;
 
   err_t err;
@@ -261,8 +261,8 @@ static err_t _joinPath(String32& dst, const String32& base, const String32& part
 {
   const Char32* d_str = base.cData();
   const Char32* f_str = part.cData();
-  sysuint_t d_length = base.length();
-  sysuint_t f_length = part.length();
+  sysuint_t d_length = base.getLength();
+  sysuint_t f_length = part.getLength();
 
   if (d_length && isDirSeparator(d_str[d_length-1])) d_length--;
 
@@ -290,28 +290,28 @@ err_t FileUtil::joinPath(String32& dst, const String32& base, const String32& pa
 bool FileUtil::isPathContainsFile(const String32& path, const String32& file, uint cs)
 {
   sysuint_t index = path.lastIndexOf(Char32('/'));
-  sysuint_t length = path.length() - index;
+  sysuint_t length = path.getLength() - index;
 
-  return (length == file.length() &&
+  return (length == file.getLength() &&
     StringUtil::eq(path.cData() + index, file.cData(), length, cs));
 }
 
 bool FileUtil::isPathContainsDirectory(const String32& path, const String32& directory, uint cs)
 {
   const Char32* d_str = directory.cData();
-  sysuint_t d_length = directory.length();
+  sysuint_t d_length = directory.getLength();
 
   if (d_length == 0) return false;
   if (isDirSeparator(d_str[d_length-1])) d_length--;
 
-  return (path.length() > d_length &&
+  return (path.getLength() > d_length &&
     isDirSeparator(path.at(d_length)) &&
     path.startsWith(Utf32(d_str, d_length), cs));
 }
 
 bool FileUtil::isPathContainsExtension(const String32& path, const String32& extension, uint cs)
 {
-  sysuint_t pathLength = path.length();
+  sysuint_t pathLength = path.getLength();
   if (!pathLength) return false;
 
   // Speed is important, so RAW manipulation is needed
@@ -323,8 +323,8 @@ bool FileUtil::isPathContainsExtension(const String32& path, const String32& ext
     if (FOG_UNLIKELY(*--pathCur == Char32('.')))
     {
       pathCur++;
-      return ((sysuint_t)(pathEnd - pathCur) == extension.length() &&
-        StringUtil::eq(pathCur, extension.cData(), extension.length(), cs));
+      return ((sysuint_t)(pathEnd - pathCur) == extension.getLength() &&
+        StringUtil::eq(pathCur, extension.cData(), extension.getLength(), cs));
     }
     else if (FOG_UNLIKELY(isDirSeparator(*pathCur)))
     {
@@ -341,7 +341,7 @@ bool FileUtil::isNormalizedPath(const String32& path)
 #if defined(FOG_OS_WINDOWS)
   const Char32* pathBegin = path.cData();
   const Char32* pathCur = pathBegin;
-  const Char32* pathEnd = pathBegin + path.length();
+  const Char32* pathEnd = pathBegin + path.getLength();
 
   // normalize X:\ form
   if (pathCur[2] == Char32('\\')) return false;
@@ -374,7 +374,7 @@ bool FileUtil::isNormalizedPath(const String32& path)
 #else
   const Char32* pathBegin = path.cData();
   const Char32* pathCur = pathBegin;
-  const Char32* pathEnd = pathBegin + path.length();
+  const Char32* pathEnd = pathBegin + path.getLength();
 
   if (*pathCur++ == Char32('/'))
   {
@@ -410,7 +410,7 @@ bool FileUtil::isAbsolutePath(const String32& path)
 {
 #if defined(FOG_OS_WINDOWS)
   // We can accept that "[A-Za-z]:/" as absolute path
-  if (path.length() > 2)
+  if (path.getLength() > 2)
   {
     const Char32* pathStr = path.cData();
     return (pathStr[0].isAsciiAlpha() &&
@@ -420,7 +420,7 @@ bool FileUtil::isAbsolutePath(const String32& path)
   else
     return false;
 #else
-  return (path.length() != 0 && path.at(0) == Char32('/'));
+  return (path.getLength() != 0 && path.at(0) == Char32('/'));
 #endif
 }
 

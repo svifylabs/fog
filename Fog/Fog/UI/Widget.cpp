@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
@@ -34,6 +34,9 @@ Widget::Widget(uint32_t createFlags) :
   _rect(0, 0, 0, 0),
   _origin(0, 0),
   _layout(NULL),
+  _layoutPolicy(0),
+  _hasHeightForWidth(false),
+  _isLayoutDirty(true),
   _lastFocus(NULL),
   _focusLink(NULL),
   _uflags(0),
@@ -70,16 +73,16 @@ bool Widget::setParent(Widget* p)
 {
   if (p) return p->add(this);
 
-  if (parent() == NULL)
+  if (_parent == NULL)
     return true;
   else
-    return parent()->remove(this);
+    return _parent->remove(this);
 }
 
 bool Widget::add(Widget* w)
 {
   // First remove the element from it's parent
-  Widget* p = w->parent();
+  Widget* p = w->_parent;
   if (p != NULL && p != this) 
   {
     // Remove element can fail, so we return false in that case
@@ -87,12 +90,12 @@ bool Widget::add(Widget* w)
   }
 
   // Now element can be added, call virtual method
-  return _add(_children.length(), w);
+  return _add(_children.getLength(), w);
 }
 
 bool Widget::remove(Widget* w)
 {
-  Widget* p = w->parent();
+  Widget* p = w->_parent;
   if (p != this) return false;
 
   return _remove(_children.indexOf(w), w);
@@ -100,7 +103,7 @@ bool Widget::remove(Widget* w)
 
 bool Widget::_add(sysuint_t index, Widget* w)
 {
-  FOG_ASSERT(index <= _children.length());
+  FOG_ASSERT(index <= _children.getLength());
 
   _children.insert(index, w);
   w->_parent = this;
@@ -110,7 +113,7 @@ bool Widget::_add(sysuint_t index, Widget* w)
 
 bool Widget::_remove(sysuint_t index, Widget* w)
 {
-  FOG_ASSERT(index < _children.length());
+  FOG_ASSERT(index < _children.getLength());
   FOG_ASSERT(_children.cAt(index) == w);
 
   _children.removeAt(index);
@@ -123,7 +126,7 @@ bool Widget::_remove(sysuint_t index, Widget* w)
 // [Fog::Widget - UIWindow]
 // ============================================================================
 
-UIWindow* Widget::closestUIWindow() const
+UIWindow* Widget::getClosestUIWindow() const
 {
   Widget* w = const_cast<Widget*>(this);
   do {
@@ -138,7 +141,7 @@ err_t Widget::createWindow(uint32_t createFlags)
 {
   if (_uiWindow) return Error::UIWindowAlreadyExists;
 
-  UISystem* uiSystem = Application::instance()->uiSystem();
+  UISystem* uiSystem = Application::getInstance()->getUiSystem();
   if (uiSystem == NULL) return Error::UISystemNotExists;
 
   _uiWindow = uiSystem->createUIWindow(this);
@@ -158,25 +161,11 @@ err_t Widget::destroyWindow()
   return true;
 }
 
-String32 Widget::windowTitle() const
+String32 Widget::getWindowTitle() const
 {
   String32 title;
   if (_uiWindow) _uiWindow->getTitle(title);
   return title;
-}
-
-Image Widget::windowIcon() const
-{
-  Image i;
-  if (_uiWindow) _uiWindow->getIcon(i);
-  return i;
-}
-
-Point Widget::windowGranularity() const
-{
-  Point sz(0, 0);
-  if (_uiWindow) _uiWindow->getSizeGranularity(sz);
-  return sz;
 }
 
 err_t Widget::setWindowTitle(const String32& title)
@@ -185,10 +174,24 @@ err_t Widget::setWindowTitle(const String32& title)
   return _uiWindow->setTitle(title);
 }
 
+Image Widget::getWindowIcon() const
+{
+  Image i;
+  if (_uiWindow) _uiWindow->getIcon(i);
+  return i;
+}
+
 err_t Widget::setWindowIcon(const Image& icon)
 {
   if (!_uiWindow) return Error::InvalidHandle;
   return _uiWindow->setIcon(icon);
+}
+
+Point Widget::getWindowGranularity() const
+{
+  Point sz(0, 0);
+  if (_uiWindow) _uiWindow->getSizeGranularity(sz);
+  return sz;
 }
 
 err_t Widget::setWindowGranularity(const Point& pt)
@@ -201,6 +204,42 @@ err_t Widget::setWindowGranularity(const Point& pt)
 // [Fog::Widget - Geometry]
 // ============================================================================
 
+void Widget::setPosition(const Point& pt)
+{
+  if (_rect.getPosition() == pt) return;
+
+  if (_uiWindow)
+  {
+    _uiWindow->move(pt);
+  }
+  else
+  {
+    UISystem* uiSystem = Application::getInstance()->getUiSystem();
+    if (!uiSystem) return;
+
+    uiSystem->dispatchConfigure(this,
+      Rect(pt.getX(), pt.getY(), getWidth(), getHeight()), false);
+  }
+}
+
+void Widget::setSize(const Size& sz)
+{
+  if (_rect.getSize() == sz) return;
+
+  if (_uiWindow)
+  {
+    _uiWindow->resize(sz);
+  }
+  else
+  {
+    UISystem* uiSystem = Application::getInstance()->getUiSystem();
+    if (!uiSystem) return;
+
+    uiSystem->dispatchConfigure(this,
+      Rect(getX1(), getY1(), sz.getWidth(), sz.getHeight()), false);
+  }
+}
+
 void Widget::setRect(const Rect& rect)
 {
   if (_rect == rect) return;
@@ -211,47 +250,11 @@ void Widget::setRect(const Rect& rect)
   }
   else
   {
-    UISystem* uiSystem = Application::instance()->uiSystem();
+    UISystem* uiSystem = Application::getInstance()->getUiSystem();
     if (!uiSystem) return;
 
     uiSystem->dispatchConfigure(this,
       rect, false);
-  }
-}
-
-void Widget::setPosition(const Point& pt)
-{
-  if (_rect.point() == pt) return;
-
-  if (_uiWindow)
-  {
-    _uiWindow->move(pt);
-  }
-  else
-  {
-    UISystem* uiSystem = Application::instance()->uiSystem();
-    if (!uiSystem) return;
-
-    uiSystem->dispatchConfigure(this,
-      Rect(pt.x(), pt.y(), width(), height()), false);
-  }
-}
-
-void Widget::setSize(const Size& sz)
-{
-  if (_rect.size() == sz) return;
-
-  if (_uiWindow)
-  {
-    _uiWindow->resize(sz);
-  }
-  else
-  {
-    UISystem* uiSystem = Application::instance()->uiSystem();
-    if (!uiSystem) return;
-
-    uiSystem->dispatchConfigure(this,
-      Rect(x1(), y1(), sz.width(), sz.height()), false);
   }
 }
 
@@ -273,10 +276,10 @@ bool Widget::worldToClient(Point* coords) const
   Widget* w = const_cast<Widget*>(this);
 
   do {
-    coords->translate(w->origin());
+    coords->translate(w->getOrigin());
     if (w->_uiWindow) return w->_uiWindow->worldToClient(coords);
-    coords->translate(w->position().negated());
-    w = w->parent();
+    coords->translate(w->getPosition().negated());
+    w = w->_parent;
   } while (w);
 
   return false;
@@ -287,10 +290,10 @@ bool Widget::clientToWorld(Point* coords) const
   Widget* w = const_cast<Widget*>(this);
 
   do {
-    coords->translate(w->origin());
+    coords->translate(w->getOrigin());
     if (w->_uiWindow) return w->_uiWindow->clientToWorld(coords);
-    coords->translate(w->position());
-    w = w->parent();
+    coords->translate(w->getPosition());
+    w = w->_parent;
   } while (w);
 
   return false;
@@ -305,17 +308,17 @@ bool Widget::translateCoordinates(Widget* to, Widget* from, Point* coords)
 
   // Traverse 'from' -> 'to'.
   w = from;
-  x = coords->x();
-  y = coords->y();
+  x = coords->getX();
+  y = coords->getY();
 
-  while (w->parent())
+  while (w->_parent)
   {
-    x += w->_origin.x();
-    y += w->_origin.y();
-    x += w->_rect.x1();
-    y += w->_rect.y1();
+    x += w->getOrigin().getX();
+    y += w->getOrigin().getY();
+    x += w->getRect().getX();
+    y += w->getRect().getY();
 
-    w = w->parent();
+    w = w->_parent;
 
     if (w == to)
     {
@@ -326,17 +329,17 @@ bool Widget::translateCoordinates(Widget* to, Widget* from, Point* coords)
 
   // Traverse 'to' -> 'from'.
   w = to;
-  x = coords->x();
-  y = coords->y();
+  x = coords->getX();
+  y = coords->getY();
 
-  while (w->parent())
+  while (w->_parent)
   {
-    x -= w->_origin.x();
-    y -= w->_origin.y();
-    x -= w->_rect.x1();
-    y -= w->_rect.y1();
+    x -= w->getOrigin().getX();
+    y -= w->getOrigin().getY();
+    x -= w->getRect().getX();
+    y -= w->getRect().getY();
 
-    w = w->parent();
+    w = w->_parent;
 
     if (w == from)
     {
@@ -355,17 +358,46 @@ bool Widget::translateCoordinates(Widget* to, Widget* from, Point* coords)
 
 Widget* Widget::hitTest(const Point& pt) const
 {
-  int x = pt.x();
-  int y = pt.y();
+  int x = pt.getX();
+  int y = pt.getY();
 
-  if (x < 0 || y < 0 || x > _rect.width() || y > _rect.height()) return NULL;
+  if (x < 0 || y < 0 || x > _rect.getWidth() || y > _rect.getHeight()) return NULL;
 
   Vector<Widget*>::ConstIterator it(_children);
   for (it.toEnd(); it.isValid(); it.toPrevious())
   {
     if (it.value()->_rect.contains(pt)) return it.value();
   }
+
   return const_cast<Widget*>(this);
+}
+
+Widget* Widget::getChildAt(const Point& pt, bool recursive) const
+{
+  int x = pt.getX();
+  int y = pt.getY();
+
+  if (x < 0 || y < 0 || x > _rect.getWidth() || y > _rect.getHeight()) return NULL;
+
+  Widget* current = const_cast<Widget*>(this);
+
+repeat:
+  {
+    Vector<Widget*>::ConstIterator it(current->_children);
+    for (it.toEnd(); it.isValid(); it.toPrevious())
+    {
+      if (it.value()->_rect.contains(pt))
+      {
+        current = it.value();
+        x -= current->getX();
+        y -= current->getY();
+        if (current->hasChildren()) goto repeat;
+        break;
+      }
+    }
+  }
+
+  return current;
 }
 
 // ============================================================================
@@ -377,8 +409,7 @@ void Widget::setLayout(Layout* lay)
   if (lay->_parentItem == this) return;
   if (lay->_parentItem)
   {
-    fog_stderr_msg(
-      "Fog::Widget", "setLayout", "Can't set layout that has already parent");
+    fog_stderr_msg("Fog::Widget", "setLayout", "Can't set layout that has already parent");
     return;
   }
 
@@ -392,6 +423,8 @@ void Widget::setLayout(Layout* lay)
     LayoutEvent e(EvLayoutSet);
     this->sendEvent(&e);
     lay->sendEvent(&e);
+
+    invalidateLayout();
   }
 }
 
@@ -407,40 +440,107 @@ Layout* Widget::takeLayout()
 
   if (lay)
   {
+    lay->_parentItem = NULL;
+    _layout = NULL;
+
+    invalidateLayout();
+
     LayoutEvent e(EvLayoutRemove);
     lay->sendEvent(&e);
     this->sendEvent(&e);
-
-    lay->_parentItem = NULL;
-    _layout = NULL;
   }
 
   return lay;
 }
 
 // ============================================================================
-// [Fog::Widget - LayoutItem]
+// [Layout Hints]
 // ============================================================================
+
+Size Widget::getSizeHint() const
+{
+  return Size(-1, -1);
+}
+
+void Widget::setSizeHint(const Size& sizeHint)
+{
+}
+
+Size Widget::getMinimumSize() const
+{
+  return Size(-1, -1);
+}
+
+void Widget::setMinimumSize(const Size& minSize)
+{
+}
+
+Size Widget::getMaximumSize() const
+{
+  return Size(-1, -1);
+}
+
+void Widget::setMaximumSize(const Size& maxSize)
+{
+}
+
+// ============================================================================
+// [Layout Policy]
+// ============================================================================
+
+uint32_t Widget::getLayoutPolicy() const
+{
+  return _layoutPolicy;
+}
+
+void Widget::setLayoutPolicy(uint32_t policy)
+{
+  if (_layoutPolicy == policy) return;
+
+  _layoutPolicy = policy;
+  invalidateLayout();
+}
+
+// ============================================================================
+// [Layout Height For Width]
+// ============================================================================
+
+bool Widget::hasHeightForWidth() const
+{
+  return _hasHeightForWidth;
+}
+
+int Widget::getHeightForWidth(int width) const
+{
+  return -1;
+}
+
+// ============================================================================
+// [Layout State]
+// ============================================================================
+
+bool Widget::isLayoutDirty() const
+{
+  return _isLayoutDirty;
+}
 
 void Widget::invalidateLayout() const
 {
-}
+  // Don't invalidate more times, it can be time consuming.
+  if (_isLayoutDirty) return;
 
-void Widget::setSizeHint(const Fog::Size& sizeHint)
-{
-}
+  // Invalidate widget that has layout.
+  Widget* w = const_cast<Widget*>(this);
+  while (w->_layout == NULL)
+  {
+    w = w->_parent;
+    if (w == NULL) return;
+  }
 
-void Widget::setMinimumSize(const Fog::Size& sizeHint)
-{
-}
+  w->_isLayoutDirty = true;
+  w->_layout->invalidateLayout();
 
-void Widget::setMaximumSize(const Fog::Size& sizeHint)
-{
-}
-
-int Widget::heightForWidth(int width) const
-{
-  return 0;
+  if (w->_parent && w->_parent->_isLayoutDirty == false) w->_parent->invalidateLayout();
 }
 
 // ============================================================================
@@ -461,7 +561,7 @@ void Widget::setEnabled(bool val)
   }
   else
   {
-    UISystem* uiSystem = Application::instance()->uiSystem();
+    UISystem* uiSystem = Application::getInstance()->getUiSystem();
     if (!uiSystem) return;
 
     uiSystem->dispatchEnabled(this, val);
@@ -486,7 +586,7 @@ void Widget::setVisible(bool val)
   }
   else
   {
-    UISystem* uiSystem = Application::instance()->uiSystem();
+    UISystem* uiSystem = Application::getInstance()->getUiSystem();
     if (!uiSystem) return;
 
     uiSystem->dispatchVisibility(this, val);
@@ -503,7 +603,7 @@ void Widget::setOrientation(uint32_t val)
 
   _orientation = val;
 
-  UISystem* uiSystem = Application::instance()->uiSystem();
+  UISystem* uiSystem = Application::getInstance()->getUiSystem();
   if (!uiSystem) return;
   uiSystem->dispatchConfigure(this, _rect, true);
 }
@@ -554,10 +654,10 @@ Widget* Widget::getFocusableWidget(uint32_t focusable)
 
 void Widget::takeFocus(uint32_t reason)
 {
-  if (!hasFocus() && visibility() == Visible && state() == Enabled)
+  if (!hasFocus() && visibility() == Visible && getState() == Enabled)
   {
     // TODO:
-    //Application::instance()->uiSystem()->dispatchTakeFocus(this, reason);
+    //Application::getInstance()->getUiSystem()->dispatchTakeFocus(this, reason);
   }
 }
 
@@ -611,7 +711,7 @@ void Widget::update(uint32_t updateFlags)
 
   // No UFlagUpdate nor UIWindow, traverse all parents up to UIWindow and
   // set UFlagUpdateChild to all parents.
-  Widget* w = this->parent();
+  Widget* w = _parent;
   while (w && !(w->_uflags & (UFlagUpdateChild | UFlagUpdateAll)))
   {
     w->_uflags |= UFlagUpdateChild;
@@ -620,7 +720,7 @@ void Widget::update(uint32_t updateFlags)
       if (!w->_uiWindow->dirty()) w->_uiWindow->setDirty();
       return;
     }
-    w = w->parent();
+    w = w->_parent;
   }
 }
 
@@ -682,6 +782,10 @@ void Widget::onClose(CloseEvent* e)
 }
 
 void Widget::onThemeChange(ThemeEvent* e)
+{
+}
+
+void Widget::onLayout(LayoutEvent* e)
 {
 }
 

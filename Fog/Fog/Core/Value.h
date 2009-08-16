@@ -36,10 +36,10 @@ struct FOG_API ValueData
   // [Methods]
 
   virtual err_t clone(void* dst) const = 0;
-  virtual err_t toInt32(int32_t* dst) const = 0;
-  virtual err_t toInt64(int64_t* dst) const = 0;
-  virtual err_t toDouble(double* dst) const = 0;
-  virtual err_t toString(String32* dst) const = 0;
+  virtual err_t getInt32(int32_t* dst) const = 0;
+  virtual err_t getInt64(int64_t* dst) const = 0;
+  virtual err_t getDouble(double* dst) const = 0;
+  virtual err_t getString(String32* dst) const = 0;
 
   virtual err_t setValue(void* val) = 0;
 
@@ -93,7 +93,7 @@ struct FOG_API Value
 
   Value();
   Value(const Value& other);
-  Value(ValueData* d);
+  explicit FOG_INLINE Value(ValueData* d) : _d(d) {}
   ~Value();
 
   Value& operator=(const Value& other);
@@ -121,17 +121,17 @@ struct FOG_API Value
 
   // [Methods]
 
-  uint32_t type() const { return _d->type; }
+  uint32_t getType() const { return _d->type; }
 
   FOG_INLINE bool isNull() const { return _d->type == TypeNull; }
   FOG_INLINE bool isInteger() const { return _d->type == TypeInteger; }
   FOG_INLINE bool isDouble() const { return _d->type == TypeDouble; }
   FOG_INLINE bool isString() const { return _d->type == TypeString; }
 
-  FOG_INLINE err_t toInt32(int32_t* dst) const { return _d->toInt32(dst); }
-  FOG_INLINE err_t toInt64(int64_t* dst) const { return _d->toInt64(dst); }
-  FOG_INLINE err_t toDouble(double* dst) const { return _d->toDouble(dst); }
-  FOG_INLINE err_t toString(String32* dst) const { return _d->toString(dst); }
+  FOG_INLINE err_t getInt32(int32_t* dst) const { return _d->getInt32(dst); }
+  FOG_INLINE err_t getInt64(int64_t* dst) const { return _d->getInt64(dst); }
+  FOG_INLINE err_t getDouble(double* dst) const { return _d->getDouble(dst); }
+  FOG_INLINE err_t getString(String32* dst) const { return _d->getString(dst); }
 
   err_t setNull();
   err_t setInt32(int32_t val);

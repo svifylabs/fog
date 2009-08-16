@@ -11,7 +11,7 @@
 #include <Fog/Core/String.h>
 #include <Fog/Core/Value.h>
 #include <Fog/Core/Vector.h>
-#include <Fog/Graphics/AffineMatrix.h>
+#include <Fog/Graphics/Matrix.h>
 #include <Fog/Graphics/Font.h>
 #include <Fog/Graphics/Geometry.h>
 #include <Fog/Graphics/Image.h>
@@ -24,6 +24,32 @@
 //! @{
 
 namespace Fog {
+
+// ============================================================================
+// [Fog::LineParams]
+// ============================================================================
+
+struct FOG_API LineParams
+{
+  // [Construction / Destruction]
+
+  LineParams();
+  LineParams(const LineParams& other);
+  ~LineParams();
+
+  // [Operator Overload]
+
+  LineParams& operator=(const LineParams& other);
+
+  // [Members]
+
+  double lineWidth;
+  uint32_t lineCap;
+  uint32_t lineJoin;
+  double miterLimit;
+  Vector<double> dashes;
+  double dashOffset;
+};
 
 // ============================================================================
 // [Fog::PainterEngine]
@@ -39,9 +65,9 @@ struct FOG_API PainterEngine
 
   // [Meta]
 
-  virtual int width() const = 0;
-  virtual int height() const = 0;
-  virtual int format() const = 0;
+  virtual int getWidth() const = 0;
+  virtual int getHeight() const = 0;
+  virtual int getFormat() const = 0;
 
   virtual void setMetaVariables(
     const Point& metaOrigin,
@@ -52,28 +78,28 @@ struct FOG_API PainterEngine
   virtual void setMetaOrigin(const Point& pt) = 0;
   virtual void setUserOrigin(const Point& pt) = 0;
 
+  virtual Point getMetaOrigin() const = 0;
+  virtual Point getUserOrigin() const = 0;
+
   virtual void translateMetaOrigin(const Point& pt) = 0;
   virtual void translateUserOrigin(const Point& pt) = 0;
 
   virtual void setUserRegion(const Rect& r) = 0;
   virtual void setUserRegion(const Region& r) = 0;
 
+  virtual Region getMetaRegion() const = 0;
+  virtual Region getUserRegion() const = 0;
+
+  virtual bool isMetaRegionUsed() const = 0;
+  virtual bool isUserRegionUsed() const = 0;
+
   virtual void resetMetaVars() = 0;
   virtual void resetUserVars() = 0;
 
-  virtual Point metaOrigin() const = 0;
-  virtual Point userOrigin() const = 0;
-
-  virtual Region metaRegion() const = 0;
-  virtual Region userRegion() const = 0;
-
-  virtual bool usedMetaRegion() const = 0;
-  virtual bool usedUserRegion() const = 0;
-
   // [Operator]
 
-  virtual void setOp(uint32_t op) = 0;
-  virtual uint32_t op() const = 0;
+  virtual void setOperator(uint32_t op) = 0;
+  virtual uint32_t getOperator() const = 0;
 
   // [Source]
 
@@ -85,39 +111,42 @@ struct FOG_API PainterEngine
 
   // [Parameters]
 
+  virtual void setLineParams(const LineParams& params) = 0;
+  virtual void getLineParams(LineParams& params) const = 0;
+
   virtual void setLineWidth(double lineWidth) = 0;
-  virtual double lineWidth() const = 0;
+  virtual double getLineWidth() const = 0;
 
   virtual void setLineCap(uint32_t lineCap) = 0;
-  virtual uint32_t lineCap() const = 0;
+  virtual uint32_t getLineCap() const = 0;
 
   virtual void setLineJoin(uint32_t lineJoin) = 0;
-  virtual uint32_t lineJoin() const = 0;
+  virtual uint32_t getLineJoin() const = 0;
 
-  virtual void setLineDash(const double* dashes, sysuint_t count) = 0;
-  virtual void setLineDash(const Vector<double>& dashes) = 0;
-  virtual Vector<double> lineDash() const = 0;
+  virtual void setDashes(const double* dashes, sysuint_t count) = 0;
+  virtual void setDashes(const Vector<double>& dashes) = 0;
+  virtual Vector<double> getDashes() const = 0;
 
-  virtual void setLineDashOffset(double offset) = 0;
-  virtual double lineDashOffset() const = 0;
+  virtual void setDashOffset(double offset) = 0;
+  virtual double getDashOffset() const = 0;
 
   virtual void setMiterLimit(double miterLimit) = 0;
-  virtual double miterLimit() const = 0;
+  virtual double getMiterLimit() const = 0;
 
   virtual void setFillMode(uint32_t mode) = 0;
-  virtual uint32_t fillMode() = 0;
+  virtual uint32_t getFillMode() = 0;
 
   // [Transformations]
 
-  virtual void setMatrix(const AffineMatrix& m) = 0;
+  virtual void setMatrix(const Matrix& m) = 0;
   virtual void resetMatrix() = 0;
-  virtual AffineMatrix matrix() const = 0;
+  virtual Matrix getMatrix() const = 0;
 
   virtual void rotate(double angle) = 0;
   virtual void scale(double sx, double sy) = 0;
   virtual void skew(double sx, double sy) = 0;
   virtual void translate(double x, double y) = 0;
-  virtual void affine(const AffineMatrix& m) = 0;
+  virtual void affine(const Matrix& m) = 0;
   virtual void parallelogram(double x1, double y1, double x2, double y2, const double* para) = 0;
   virtual void viewport(
     double worldX1,  double worldY1,  double worldX2,  double worldY2,

@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #ifdef FOG_PRECOMP
 #include FOG_PRECOMP
 #endif
@@ -75,14 +75,14 @@ bool Reduce::analyze(const Image& image, bool discardAlpha)
 
   int x;
   int y;
-  int w = image.width();
-  int h = image.height();
+  int w = image.getWidth();
+  int h = image.getHeight();
   int i;
   const uint8_t* p;
 
   Entity* e = _entities;
 
-  if (image.depth() == 8)
+  if (image.getDepth() == 8)
   {
     // It's guaranted maximum numbers of colors (256). So to calculate count
     // of colors is not hard. Entities are used directly.
@@ -100,7 +100,7 @@ bool Reduce::analyze(const Image& image, bool discardAlpha)
   {
     Hash<uint32_t, uint64_t> hash;
 
-    if (image.depth() == 24)
+    if (image.getDepth() == 24)
     {
       for (y = 0; y < h; y++)
       {
@@ -116,7 +116,7 @@ bool Reduce::analyze(const Image& image, bool discardAlpha)
           if (hash.contains(c))
             (*hash[c])++;
           // Create new node if there are not 256 colors already
-          else if (hash.length() < 256)
+          else if (hash.getLength() < 256)
             hash.put(c, 1);
           // Finished, no color reduction possible
           else
@@ -126,7 +126,7 @@ bool Reduce::analyze(const Image& image, bool discardAlpha)
     }
     else
     {
-      bool fillalpha = (image.format() == Image::FormatRGB32) || discardAlpha;
+      bool fillalpha = (image.getFormat() == Image::FormatRGB32) || discardAlpha;
 
       for (y = 0; y < h; y++)
       {
@@ -139,7 +139,7 @@ bool Reduce::analyze(const Image& image, bool discardAlpha)
           if (hash.contains(c))
             (*hash[c])++;
           // Create new node if there are not 256 colors already
-          else if (hash.length() < 256)
+          else if (hash.getLength() < 256)
             hash.put(c, 1);
           // Finished, no color reduction possible
           else
@@ -152,23 +152,23 @@ bool Reduce::analyze(const Image& image, bool discardAlpha)
     i = 0;
 
     Hash<uint32_t, uint64_t>::ConstIterator it(hash);
-    for (it.toBegin(); it.isValid(); it.toNext(), i++)
+    for (it.toStart(); it.isValid(); it.toNext(), i++)
     {
       e[i].key   = it.key();
       e[i].usage = it.value();
     }
 
     // Count items in hash table means count of colors used
-    _count = hash.length();
+    _count = hash.getLength();
   }
 
   // sort, optimizes for PCX and all formats that are dependent to 
   // color indexes (most used colors go first and unused last)
-  qsort(e, count(), sizeof(Entity), qsort_color_ascent);
+  qsort(e, _count, sizeof(Entity), qsort_color_ascent);
 
   // fix black and white images, it's usual that black color
   // is at index 0 
-  if (count() == 2)
+  if (_count == 2)
   {
     if (_entities[1].key == 0xFF000000)
     {

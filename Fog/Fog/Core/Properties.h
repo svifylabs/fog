@@ -114,7 +114,7 @@ struct FOG_API PropertiesData
   {
     const PropertiesData* pdata = this;
     Bucket* bucket;
-    uint32_t hash = name.toHashCode();
+    uint32_t hash = name.getHashCode();
 
     do {
       bucket = pdata->_bucketsData[hash & (pdata->_bucketsCount - 1)];

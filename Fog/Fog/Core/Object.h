@@ -153,7 +153,7 @@ const Fog::MetaClass* selftype::metaClass() const \
 #define fog_event_begin() \
 virtual FOG_NO_INLINE void onEvent(Fog::Event* e) \
 { \
-  switch (e->code()) \
+  switch (e->getCode()) \
   {
 
 
@@ -253,8 +253,7 @@ struct FOG_API Object : public Class
   //! @brief Posts delete later event.
   void deleteLater();
 
-  FOG_INLINE bool postedDeleteLaterEvent() const
-  { return (_flags & PostedDeleteLaterEvent) != 0; }
+  FOG_INLINE bool postedDeleteLaterEvent() const { return (_flags & PostedDeleteLaterEvent) != 0; }
 
   //! @brief Destroys object if it's allocated on the heap (calls delete)
   //!
@@ -267,16 +266,16 @@ struct FOG_API Object : public Class
   // [Flags]
 
   //! @brief Returns object flags.
-  FOG_INLINE uint32_t flags() const
-  { return _flags; }
+  FOG_INLINE uint32_t getFlags() const { return _flags; }
   
   //! @brief Returns @c true for dynamic instances (checked by @c Fog::Class).
-  FOG_INLINE bool isDynamic() const
-  { return (_flags & IsDynamic) != 0; }
+  FOG_INLINE bool isDynamic() const { return (_flags & IsDynamic) != 0; }
   
   //! @brief Returns @c true if object is @c Fog::Widget.
-  FOG_INLINE bool isWidget() const
-  { return (_flags & IsWidget) != 0; }
+  FOG_INLINE bool isWidget() const { return (_flags & IsWidget) != 0; }
+
+  //! @brief Returns @c true if object is @c Fog::Layout.
+  FOG_INLINE bool isLayout() const { return (_flags & IsLayout) != 0; }
 
   //! @brief Returns @c true if basic event @c Fog::EvCreate was posted.
   //FOG_INLINE bool postedCreateEvent() const { return (_flags & Flag_PostedCreateEvent) != 0; }
@@ -288,8 +287,7 @@ struct FOG_API Object : public Class
   // [Id]
 
   //! @brief Returns object id.
-  FOG_INLINE uint32_t objectId() const 
-  { return _objectId; }
+  FOG_INLINE uint32_t getObjectId() const  { return _objectId; }
 
   //! @brief Sets object id.
   void setObjectId(uint32_t objectId);
@@ -297,8 +295,7 @@ struct FOG_API Object : public Class
   // [Name]
 
   //! @brief Returns object name.
-  FOG_INLINE String32 objectName() const
-  { return _objectName; }
+  FOG_INLINE String32 getObjectName() const { return _objectName; }
 
   //! @brief Sets object name.
   void setObjectName(const String32& objectName);
@@ -306,30 +303,27 @@ struct FOG_API Object : public Class
   // [Threading]
 
   //! @brief Returns thread id where object lives.
-  FOG_INLINE Thread* thread() const
-  { return _thread; }
+  FOG_INLINE Thread* getThread() const { return _thread; }
 
   // [RTTI]
 
   //! @brief Static method that's used for retrieving dynamic class info.
   static const MetaClass* staticMetaClass();
   //! @brief Virtual method that's used for retrieving class info.
-  virtual const MetaClass* metaClass() const;
+  virtual const MetaClass* getMetaClass() const;
 
   //! @brief Returns class name of this object.
-  FOG_INLINE const Char8* className() const
-  { return metaClass()->name; }
+  FOG_INLINE const Char8* getClassName() const { return getMetaClass()->name; }
 
   //! @brief Returns @c true if class can be casted to @a T.
   template<typename T>
-  FOG_INLINE bool isClassOf() const
-  { return fog_object_cast<T>((Object*)this) != NULL; }
+  FOG_INLINE bool isClassOf() const { return fog_object_cast<T>((Object*)this) != NULL; }
 
   //! @brief Returns @c true if class can be casted to @a className.
   FOG_INLINE bool isClassOf(const Char8* className) const
   { return fog_object_cast_string((Object*)this, className) != NULL; }
 
-  // [Events]
+  // [Event Handlers]
 
   //! @brief Add a pure C function listener @a fn.
   bool addListener(uint32_t code, void (*fn)(Event*));
@@ -417,10 +411,11 @@ struct FOG_API Object : public Class
     //! @brief Object was posted 'DeleteLater' event.
     PostedDeleteLaterEvent = (1 << 6),
 
-    // [Fog::Widget flags]
+    // [Fog::UI flags]
 
     //! @brief Object type is @c Fog::Widget.
-    IsWidget = (1 << 16)
+    IsWidget = (1 << 16),
+    IsLayout = (1 << 17)
   };
 
   // [Event Policy]
@@ -496,8 +491,10 @@ private:
 } // Fog namespace
 
 // [fog_object_cast<Fog::Widget*>]
+namespace Fog { struct Layout; }
 namespace Fog { struct Widget; }
 
+// fog_object_cast<Fog::Widget*> specialization.
 template<>
 FOG_INLINE Fog::Widget* fog_object_cast(Fog::Object* object)
 {
@@ -510,6 +507,21 @@ FOG_INLINE const Fog::Widget* fog_object_cast(const Fog::Object* object)
 {
   FOG_ASSERT(object);
   return (Fog::Widget*)(object->isWidget() ? object : NULL);
+}
+
+// fog_object_cast<Fog::Layout*> specialization.
+template<>
+FOG_INLINE Fog::Layout* fog_object_cast(Fog::Object* object)
+{
+  FOG_ASSERT(object);
+  return (Fog::Layout*)(object->isLayout() ? object : NULL);
+}
+
+template<>
+FOG_INLINE const Fog::Layout* fog_object_cast(const Fog::Object* object)
+{
+  FOG_ASSERT(object);
+  return (Fog::Layout*)(object->isLayout() ? object : NULL);
 }
 
 //! @}

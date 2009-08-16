@@ -29,7 +29,7 @@ struct FOG_API BoxLayout : public Layout
   BoxLayout();
   virtual ~BoxLayout();
 
-  virtual void reparent();
+  virtual void reparentChildren();
 
   sysint_t indexOf(LayoutItem* item);
 

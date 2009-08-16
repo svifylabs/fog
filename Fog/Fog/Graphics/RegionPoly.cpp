@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #ifdef FOG_PRECOMP
 #include FOG_PRECOMP
 #endif
@@ -435,7 +435,7 @@ static bool createETandAET(
       CurrPt = pts++;
 
       // Find out which point is above and which is below.
-      if (PrevPt->y() > CurrPt->y())
+      if (PrevPt->getY() > CurrPt->getY())
       {
         bottom = PrevPt; top = CurrPt;
         pETEs->ClockWise = 0;
@@ -447,19 +447,19 @@ static bool createETandAET(
       }
 
       // Don't add horizontal edges to the Edge table.
-      if (bottom->y() != top->y())
+      if (bottom->getY() != top->getY())
       {
         // -1 so we don't get last scanline.
-        pETEs->ymax = bottom->y()-1;
+        pETEs->ymax = bottom->getY()-1;
 
         // Initialize integer edge algorithm.
-        dy = bottom->y() - top->y();
-        BRESINITPGONSTRUCT(dy, top->x(), bottom->x(), pETEs->bres);
+        dy = bottom->getY() - top->getY();
+        BRESINITPGONSTRUCT(dy, top->getX(), bottom->getX(), pETEs->bres);
 
-        if (!insertEdgeInET(ET, pETEs, top->y(), &pSLLBlock, &iSLLBlock)) return false;
+        if (!insertEdgeInET(ET, pETEs, top->getY(), &pSLLBlock, &iSLLBlock)) return false;
 
-        if (PrevPt->y() > ET->ymax) ET->ymax = PrevPt->y();
-        if (PrevPt->y() < ET->ymin) ET->ymin = PrevPt->y();
+        if (PrevPt->getY() > ET->ymax) ET->ymax = PrevPt->getY();
+        if (PrevPt->getY() < ET->ymin) ET->ymin = PrevPt->getY();
         pETEs++;
       }
 
@@ -595,7 +595,7 @@ static err_t ptsToRegion(Region* self,
 
   PointBlock* curPtBlock = firstPtBlock;
   Box* rects = self->_d->rects - 1;
-  sysuint_t count = 0;
+  sysuint_t length = 0;
 
   int extentsX1 = LARGE_COORDINATE;
   int extentsX2 = SMALL_COORDINATE;
@@ -609,35 +609,35 @@ static err_t ptsToRegion(Region* self,
     if (!numFullPtBlocks) i = icurPtBlock >> 1;
     for (pts = curPtBlock->pts; i--; pts += 2)
     {
-      if (pts[0].x() == pts[1].x()) continue;
-      if (count &&
-          pts[0].x() == rects->x1() &&
-          pts[0].y() == rects->y2() &&
-          pts[1].x() == rects->x2() &&
-          (count == 1 || rects[-1].y1() != rects->y1()) &&
-          (i && pts[2].y() > pts[1].y()) )
+      if (pts[0].getX() == pts[1].getX()) continue;
+      if (length &&
+          pts[0].getX() == rects->getX1() &&
+          pts[0].getY() == rects->getY2() &&
+          pts[1].getX() == rects->getX2() &&
+          (length == 1 || rects[-1].getY1() != rects->getY1()) &&
+          (i && pts[2].getY() > pts[1].getY()) )
       {
-        rects->setY2(pts[1].y() + 1);
+        rects->setY2(pts[1].getY() + 1);
         continue;
       }
-      count++;
+      length++;
       rects++;
-      rects->setX1(pts[0].x());
-      rects->setY1(pts[0].y());
-      rects->setX2(pts[1].x());
-      rects->setY2(pts[1].y() + 1);
-      if (rects->x1() < extentsX1) extentsX1 = rects->x1();
-      if (rects->x2() > extentsX2) extentsX2 = rects->x2();
+      rects->setX1(pts[0].getX());
+      rects->setY1(pts[0].getY());
+      rects->setX2(pts[1].getX());
+      rects->setY2(pts[1].getY() + 1);
+      if (rects->getX1() < extentsX1) extentsX1 = rects->getX1();
+      if (rects->getX2() > extentsX2) extentsX2 = rects->getX2();
     }
     curPtBlock = curPtBlock->next;
   }
 
-  if (count)
-    self->_d->extents.set(extentsX1, self->_d->rects[0].y1(), extentsX2, rects->y2());
+  if (length)
+    self->_d->extents.set(extentsX1, self->_d->rects[0].getY1(), extentsX2, rects->getY2());
   else
     self->_d->extents.clear();
 
-  self->_d->count = count;
+  self->_d->length = length;
   return Error::Ok;
 }
 
@@ -682,21 +682,21 @@ err_t Region::polyPolygon(const Point* src, const sysuint_t *count, sysuint_t po
   // Special case - Rectangle
   if (polygons == 1 &&
       (*count == 4 ||
-      (*count == 5 && src[4].x() == src[0].x() && src[4].y() == src[0].y())) &&
-      ( (src[0].y() == src[1].y() &&
-         src[1].x() == src[2].x() &&
-         src[2].y() == src[3].y() &&
-         src[3].x() == src[0].x()) ||
-        (src[0].x() == src[1].x() &&
-         src[1].y() == src[2].y() &&
-         src[2].x() == src[3].x() &&
-         src[3].y() == src[0].y()) ))
+      (*count == 5 && src[4].getX() == src[0].getX() && src[4].getY() == src[0].getY())) &&
+      ( (src[0].getY() == src[1].getY() &&
+         src[1].getX() == src[2].getX() &&
+         src[2].getY() == src[3].getY() &&
+         src[3].getX() == src[0].getX()) ||
+        (src[0].getX() == src[1].getX() &&
+         src[1].getY() == src[2].getY() &&
+         src[2].getX() == src[3].getX() &&
+         src[3].getY() == src[0].getY()) ))
   {
     return set(Box(
-      Math::min(src[0].x(), src[2].x()),
-      Math::min(src[0].y(), src[2].y()),
-      Math::max(src[0].x(), src[2].x()) + 1,
-      Math::max(src[0].y(), src[2].y()) + 1));
+      Math::min(src[0].getX(), src[2].getX()),
+      Math::min(src[0].getY(), src[2].getY()),
+      Math::max(src[0].getX(), src[2].getX()) + 1,
+      Math::max(src[0].getY(), src[2].getY()) + 1));
   }
 
   for (poly = total = 0; poly < polygons; poly++) total += count[poly];

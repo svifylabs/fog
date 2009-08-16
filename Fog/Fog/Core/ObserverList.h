@@ -70,7 +70,7 @@ protected:
   void _compact() const;
 
   FOG_INLINE sysuint_t _count() const
-  { return _observers.length(); }
+  { return _observers.getLength(); }
 
   FOG_INLINE void* _at(sysuint_t index) const
   { return _observers.cAt(index); }
@@ -130,7 +130,7 @@ public:
     FOG_INLINE ObserverType* next()
     {
       Vector<ObserverType*>& observers = _list.observers();
-      sysuint_t length = observers.length();
+      sysuint_t length = observers.getLength();
 
       // Advance if the current element is null
       while (_index < length && !observers.cAt(_index)) _index++;

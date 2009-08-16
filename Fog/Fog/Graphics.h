@@ -48,7 +48,7 @@
 // [Fog/Graphics Include Files]
 #include <Fog/Build/Build.h>
 
-#include <Fog/Graphics/AffineMatrix.h>
+#include <Fog/Graphics/Matrix.h>
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/ColorFilter.h>
 #include <Fog/Graphics/ColorLut.h>
@@ -70,6 +70,7 @@
 #include <Fog/Graphics/Palette.h>
 #include <Fog/Graphics/Path.h>
 #include <Fog/Graphics/Pattern.h>
+#include <Fog/Graphics/Raster.h>
 #include <Fog/Graphics/Reduce.h>
 #include <Fog/Graphics/Region.h>
 #include <Fog/Graphics/Rgba.h>

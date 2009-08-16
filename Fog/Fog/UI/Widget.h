@@ -93,23 +93,17 @@ struct FOG_API Widget : public LayoutItem
   // [Hierarchy]
 
   //! @brief Returns @c true if element is root.
-  FOG_INLINE bool isRoot() const
-  { return _parent == NULL; }
+  FOG_INLINE bool isRoot() const { return _parent == NULL; }
 
   //! @brief Returns @c true if element has parent.
-  FOG_INLINE bool hasParent() const
-  { return _parent != NULL; }
+  FOG_INLINE bool hasParent() const { return _parent != NULL; }
 
   //! @brief Returns @c true if element has children.
-  FOG_INLINE bool hasChildren() const
-  { return !_children.isEmpty(); }
+  FOG_INLINE bool hasChildren() const { return !_children.isEmpty(); }
 
-  FOG_INLINE Widget* parent() const
-  { return _parent; }
+  FOG_INLINE Vector<Widget*> getChildren() const { return _children; }
 
-  FOG_INLINE Vector<Widget*> children() const
-  { return _children; }
-
+  FOG_INLINE Widget* getParent() const { return _parent; }
   bool setParent(Widget* p);
   bool add(Widget* w);
   bool remove(Widget* w);
@@ -120,63 +114,84 @@ struct FOG_API Widget : public LayoutItem
   // [UIWindow]
 
   FOG_INLINE bool isUIWindow() const { return _uiWindow != NULL; }
-  FOG_INLINE UIWindow* uiWindow() const { return _uiWindow; }
+  FOG_INLINE UIWindow* getUIWindow() const { return _uiWindow; }
 
-  UIWindow* closestUIWindow() const;
+  UIWindow* getClosestUIWindow() const;
 
   err_t createWindow(uint32_t createFlags = 0);
   err_t destroyWindow();
 
-  String32 windowTitle() const;
-  Image windowIcon() const;
-  Point windowGranularity() const;
-
+  String32 getWindowTitle() const;
   err_t setWindowTitle(const String32& title);
+
+  Image getWindowIcon() const;
   err_t setWindowIcon(const Image& icon);
+
+  Point getWindowGranularity() const;
   err_t setWindowGranularity(const Point& pt);
 
   // [Geometry]
 
-  //! @brief Get widget bounding rectangle.
-  FOG_INLINE Rect rect() const { return _rect; }
   //! @brief Get widget position relative to parent.
-  FOG_INLINE Point position() const { return _rect.point(); }
+  FOG_INLINE const Point& getPosition() const { return _rect.getPosition(); }
   //! @brief Get widget size.
-  FOG_INLINE Size size() const { return _rect.size(); }
+  FOG_INLINE const Size& getSize() const { return _rect.getSize(); }
+  //! @brief Get widget bounding rectangle.
+  FOG_INLINE const Rect& getRect() const { return _rect; }
   //! @brief Get widget origin.
-  FOG_INLINE const Point origin() const { return _origin; }
+  FOG_INLINE const Point& getOrigin() const { return _origin; }
 
   //! @brief Get widget left position, this method is equal to @c left().
-  FOG_INLINE int x1() const { return _rect.x1(); }
+  FOG_INLINE int getX() const { return _rect.x; }
   //! @brief Get widget top position, this method is equal to @c top().
-  FOG_INLINE int y1() const { return _rect.y1(); }
+  FOG_INLINE int getY() const { return _rect.y; }
+  //! @brief Get widget width.
+  FOG_INLINE int getWidth() const { return _rect.w; }
+  //! @brief Get widget height.
+  FOG_INLINE int getHeight() const { return _rect.h; }
+
+  //! @brief Get widget left position, this method is equal to @c left().
+  FOG_INLINE int getX1() const { return _rect.x; }
+  //! @brief Get widget top position, this method is equal to @c top().
+  FOG_INLINE int getY1() const { return _rect.y; }
   //! @brief Get widget right position, this method is equal to @c right().
-  FOG_INLINE int x2() const { return _rect.x2(); }
+  FOG_INLINE int getX2() const { return _rect.x + _rect.w; }
   //! @brief Get widget bottom position, this method is equal to @c bottom().
-  FOG_INLINE int y2() const { return _rect.y2(); }
+  FOG_INLINE int getY2() const { return _rect.y + _rect.h; }
 
   //! @brief Get widget left position, this method is equal to @c x1().
-  FOG_INLINE int left() const { return _rect.x1(); }
+  FOG_INLINE int getLeft() const { return _rect.x; }
   //! @brief Get widget top position, this method is equal to @c y1().
-  FOG_INLINE int top() const { return _rect.y1(); }
+  FOG_INLINE int getTop() const { return _rect.y; }
   //! @brief Get widget right position, this method is equal to @c x2().
-  FOG_INLINE int right() const { return _rect.x2(); }
+  FOG_INLINE int getRight() const { return _rect.x + _rect.w; }
   //! @brief Get widget bottom position, this method is equal to @c y2().
-  FOG_INLINE int bottom() const { return _rect.y2(); }
+  FOG_INLINE int getBottom() const { return _rect.y + _rect.h; }
 
-  //! @brief Get widget width.
-  FOG_INLINE int width() const { return _rect.width(); }
-  //! @brief Get widget height.
-  FOG_INLINE int height() const { return _rect.height(); }
-
-  void setRect(const Rect& rect);
+  //! @brief Set widget position to @a pt.
+  //!
+  //! @note To set widget position and size together use @c setRect().
   void setPosition(const Point& pt);
-  void setSize(const Size& sz);
 
-  //! @brief Sets widget origin to @a pt.
+  //! @brief Set the widget size to @a sz.
+  //!
+  //! @note To set widget position and size together use @c setRect().
+  void setSize(const Size& size);
+
+  //! @brief Set widget position and size to @a rect.
+  void setRect(const Rect& rect);
+
+  //! @brief Set widget origin to @a pt.
   void setOrigin(const Point& pt);
 
+  //! @brief Set widget position to @a pt.
+  //!
+  //! This method is similar to @c setPosition().
   FOG_INLINE void move(const Point& pt) { setPosition(pt); }
+
+  //! @brief Set widget size to @a size.
+  //!
+  //! This method is similar to @c setSize().
   FOG_INLINE void resize(const Size& size) { setSize(size); }
 
   bool worldToClient(Point* coords) const;
@@ -186,23 +201,41 @@ struct FOG_API Widget : public LayoutItem
   // [Hit Testing]
 
   Widget* hitTest(const Point& pt) const;
-  Widget* widgetAt(const Point& pt) const;
+  Widget* getChildAt(const Point& pt, bool recursive = false) const;
 
-  // [Layout]
+  // [Layout Of Widget]
 
-  FOG_INLINE Layout* layout() const { return _layout; }
+  FOG_INLINE Layout* getLayout() const { return _layout; }
 
   void setLayout(Layout* layout);
   void deleteLayout();
   Layout* takeLayout();
 
-  // [Layout Item]
+  // [Layout Hints]
 
-  virtual void invalidateLayout() const;
+  virtual Size getSizeHint() const;
   virtual void setSizeHint(const Size& sizeHint);
-  virtual void setMinimumSize(const Size& sizeHint);
-  virtual void setMaximumSize(const Size& sizeHint);
-  virtual int heightForWidth(int width) const;
+
+  virtual Size getMinimumSize() const;
+  virtual void setMinimumSize(const Size& minSize);
+
+  virtual Size getMaximumSize() const;
+  virtual void setMaximumSize(const Size& maxSize);
+
+  // [Layout Policy]
+
+  virtual uint32_t getLayoutPolicy() const;
+  virtual void setLayoutPolicy(uint32_t policy);
+
+  // [Layout Height For Width]
+
+  virtual bool hasHeightForWidth() const;
+  virtual int getHeightForWidth(int width) const;
+
+  // [Layout State]
+
+  virtual bool isLayoutDirty() const;
+  virtual void invalidateLayout() const;
 
   // [State]
 
@@ -217,14 +250,19 @@ struct FOG_API Widget : public LayoutItem
     Enabled = 2
   };
 
-  //! @brief Returns widget state, see @c State.
-  FOG_INLINE uint32_t state() const { return _state; }
-
-  FOG_INLINE bool isEnabled() const { return state() == Enabled; }
-
-  void setEnabled(bool val = true);
+  //! @brief Get widget state, see @c State.
+  FOG_INLINE uint32_t getState() const { return _state; }
+  //! @brief Get if widget is enabled.
+  FOG_INLINE bool isEnabled() const { return _state == Enabled; }
  
+  FOG_INLINE bool isEnabledToParent() const { return _state != Disabled; }
+
+  //! @brief Set widget state to @a val.
+  void setEnabled(bool val = true);
+
+  //! @brief Set widget state to @c Enabled.
   FOG_INLINE void enable() { setEnabled(true); }
+  //! @brief Set widget state to @c Disabled.
   FOG_INLINE void disable() { setEnabled(false); }
 
   // [Visibility]
@@ -343,6 +381,8 @@ struct FOG_API Widget : public LayoutItem
 
   enum UFlags
   {
+    // [Widget Hierarchy]
+
     //! @brief Generic unspecified update flag.
     UFlagUpdate = (1 << 0),
     //! @brief Some child needs update (has generic update flag set).
@@ -350,7 +390,11 @@ struct FOG_API Widget : public LayoutItem
     //! @brief Specifies to update everything for me and all children.
     UFlagUpdateAll = (1 << 2),
 
+    // [Widget Geometry]
+
     UFlagUpdateGeometry = (1 << 3),
+
+    // [Widget Screen]
 
     //! @brief Widget needs repaint.
     UFlagRepaintWidget = (1 << 4),
@@ -376,7 +420,7 @@ struct FOG_API Widget : public LayoutItem
 
   void repaint(uint32_t repaintFlags);
 
-  // [Events]
+  // [Event Handlers]
 
   //! @brief Child event handler.
   virtual void onChildAdd(ChildEvent* e);
@@ -405,6 +449,9 @@ struct FOG_API Widget : public LayoutItem
 
   //! @brief Theme changed event handler.
   virtual void onThemeChange(ThemeEvent* e);
+
+  //! @brief @c LayoutItem event handler.
+  virtual void onLayout(LayoutEvent* e);
 
   // [Event Map]
 
@@ -436,6 +483,8 @@ struct FOG_API Widget : public LayoutItem
     fog_event(EvPaint            , onPaint           , PaintEvent     , Override)
     fog_event(EvClose            , onClose           , CloseEvent     , Override)
     fog_event(EvThemeChange      , onThemeChange     , ThemeEvent     , Override)
+    fog_event(EvLayoutSet        , onLayout          , LayoutEvent    , Override)
+    fog_event(EvLayoutRemove     , onLayout          , LayoutEvent    , Override)
   fog_event_end()
 
   // [Imaging]
@@ -454,6 +503,10 @@ protected:
 
   //! @brief Layout.
   Layout* _layout;
+
+  uint8_t _layoutPolicy;
+  bool _hasHeightForWidth;
+  mutable bool _isLayoutDirty;
 
   //! @brief Link to child that was last focus.
   Widget* _lastFocus;
@@ -504,11 +557,11 @@ private:
         FOG_WIDGET_TREE_ITERATOR_EX(__name__, __basewidget__, __conditional__, __before_traverse__, __after_traverse__, {}, {})
 
 #define FOG_WIDGET_TREE_ITERATOR_EX(__name__, __basewidget__, __conditional__, __before_traverse__, __after_traverse__, __push__, __pop__) \
-  if ((__basewidget__)->_children.length()) \
+  if ((__basewidget__)->_children.getLength()) \
   { \
     Fog::LocalStack<512> stack; \
     Fog::Widget** childCur = (Fog::Widget** )( __basewidget__->_children.cData() ); \
-    Fog::Widget** childEnd = childCur + ( __basewidget__->_children.length() ); \
+    Fog::Widget** childEnd = childCur + ( __basewidget__->_children.getLength() ); \
     Fog::Widget* child; \
     \
     for (;;) \
@@ -517,7 +570,7 @@ private:
       \
       __before_traverse__ \
       \
-      if (child->_children.length() && (__conditional__)) \
+      if (child->_children.getLength() && (__conditional__)) \
       { \
         \
         __push__ \
@@ -526,7 +579,7 @@ private:
         stack.push(childEnd); \
         \
         childCur = (Fog::Widget** )child->_children.cData(); \
-        childEnd = childCur + child->_children.length(); \
+        childEnd = childCur + child->_children.getLength(); \
         \
         continue; \
       } \

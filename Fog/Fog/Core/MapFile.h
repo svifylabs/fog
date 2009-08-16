@@ -54,32 +54,32 @@ struct FOG_API MapFile
     Loaded = 2
   };
 
-  FOG_INLINE uint32_t state() const
+  FOG_INLINE uint32_t getState() const
   { return _state; }
 
   // [Data]
 
-  FOG_INLINE const String32& fileName() const
+  FOG_INLINE const String32& getFileName() const
   { return _fileName; }
 
-  FOG_INLINE const void* data() const
+  FOG_INLINE const void* getData() const
   { return _data; }
 
-  FOG_INLINE sysuint_t size() const
+  FOG_INLINE sysuint_t getSize() const
   { return _size; }
 
   // [Handles]
 
 #if defined(FOG_OS_WINDOWS)
-  FOG_INLINE HANDLE hFileMapping() const
+  FOG_INLINE HANDLE getHFileMapping() const
   { return _hFileMapping; }
 
-  FOG_INLINE HANDLE hFile() const
+  FOG_INLINE HANDLE getHFile() const
   { return _hFile; }
 #endif // FOG_OS_WINDOWS
 
 #if defined(FOG_OS_POSIX)
-  FOG_INLINE int fd() const
+  FOG_INLINE int getFd() const
   { return _fd; }
 #endif // FOG_OS_POSIX
 

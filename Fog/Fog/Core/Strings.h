@@ -9,6 +9,7 @@
 
 // [Dependencies]
 #include <Fog/Build/Build.h>
+#include <Fog/Core/ManagedString.h>
 
 //! @addtogroup Fog_Core
 //! @{
@@ -115,18 +116,50 @@ enum STR_ID
   STR_XML__comment,
   STR_XML__document,
 
-  // [Svg]
+  // [Svg - Elements]
 
   STR_SVG_circle,
+  STR_SVG_defs,
   STR_SVG_ellipse,
   STR_SVG_g,
   STR_SVG_line,
+  STR_SVG_linearGradient,
+  STR_SVG_path,
   STR_SVG_polygon,
   STR_SVG_polyline,
+  STR_SVG_radialGradient,
   STR_SVG_rect,
-  STR_SVG_path,
+  STR_SVG_solidColor,
+  STR_SVG_stop,
+  STR_SVG_svg,
 
+  // [Svg - Attributes]
+
+  STR_SVG_cx,
+  STR_SVG_cy,
+  STR_SVG_d,
+  STR_SVG_fx,
+  STR_SVG_fy,
+  STR_SVG_gradientTransform,
+  STR_SVG_gradientUnits,
+  STR_SVG_height,
+  STR_SVG_offset,
+  STR_SVG_points,
+  STR_SVG_r,
+  STR_SVG_rx,
+  STR_SVG_ry,
+  STR_SVG_spreadMethod,
   STR_SVG_transform,
+  STR_SVG_width,
+  STR_SVG_x,
+  STR_SVG_x1,
+  STR_SVG_x2,
+  STR_SVG_xlink_href,
+  STR_SVG_y,
+  STR_SVG_y1,
+  STR_SVG_y2,
+
+  // [Svg - Attributes / Styles]
 
   STR_SVG_STYLE_NAMES,
   STR_SVG_none = STR_SVG_STYLE_NAMES,
@@ -146,6 +179,7 @@ enum STR_ID
   STR_SVG_stop_opacity,
   STR_SVG_stroke,
   STR_SVG_stroke_dasharray,
+  STR_SVG_stroke_dashoffset,
   STR_SVG_stroke_linecap,
   STR_SVG_stroke_linejoin,
   STR_SVG_stroke_miterlimit,
@@ -157,7 +191,7 @@ enum STR_ID
   STR_COUNT
 };
 
-extern FOG_API StringCache* fog_strings;
+extern FOG_API ManagedString32::Cache* fog_strings;
 
 } // Fog namespace
 

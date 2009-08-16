@@ -30,24 +30,23 @@ struct FOG_API Pattern
 
   enum Type
   {
-    Null = 0x0,
-    Solid = 0x1,
-    Texture = 0x2,
+    TypeGradientMask = 0x10,
 
-    GradientMask = 0x10,
-
-    LinearGradient = GradientMask | 0x3,
-    RadialGradient = GradientMask | 0x4,
-    ConicalGradient = GradientMask | 0x5
+    TypeNull = 0x0,
+    TypeSolid = 0x1,
+    TypeTexture = 0x2,
+    TypeLinearGradient = TypeGradientMask | 0x0,
+    TypeRadialGradient = TypeGradientMask | 0x1,
+    TypeConicalGradient = TypeGradientMask | 0x2
   };
 
   // [Spread]
 
   enum Spread
   {
-    PadSpread = 0,
-    RepeatSpread = 1,
-    ReflectSpread = 2
+    SpreadPad = 0,
+    SpreadRepeat = 1,
+    SpreadReflect = 2
   };
 
   // [Data]
@@ -96,9 +95,7 @@ struct FOG_API Pattern
 
   Pattern();
   Pattern(const Pattern& other);
-
   FOG_INLINE explicit Pattern(Data* d) : _d(d) {}
-
   ~Pattern();
 
   // [Implicit Sharing]
@@ -113,17 +110,16 @@ struct FOG_API Pattern
 
   // [Type]
 
-  FOG_INLINE uint32_t type() const { return _d->type; }
-
-  FOG_INLINE bool isNull() const { return _d->type == Null; }
-  FOG_INLINE bool isSolid() const { return _d->type == Solid; }
-  FOG_INLINE bool isTexture() const { return _d->type == Texture; }
-  FOG_INLINE bool isGradient() const { return (_d->type & 0x10) != 0; }
-  FOG_INLINE bool isLinearGradient() const { return _d->type == LinearGradient; }
-  FOG_INLINE bool isRadialGradient() const { return _d->type == RadialGradient; }
-  FOG_INLINE bool isConicalGradient() const { return _d->type == ConicalGradient; }
-
+  FOG_INLINE uint32_t getType() const { return _d->type; }
   err_t setType(uint32_t type);
+
+  FOG_INLINE bool isNull() const { return _d->type == TypeNull; }
+  FOG_INLINE bool isSolid() const { return _d->type == TypeSolid; }
+  FOG_INLINE bool isTexture() const { return _d->type == TypeTexture; }
+  FOG_INLINE bool isGradient() const { return (_d->type & TypeGradientMask) == TypeGradientMask; }
+  FOG_INLINE bool isLinearGradient() const { return _d->type == TypeLinearGradient; }
+  FOG_INLINE bool isRadialGradient() const { return _d->type == TypeRadialGradient; }
+  FOG_INLINE bool isConicalGradient() const { return _d->type == TypeConicalGradient; }
 
   // [Null]
 
@@ -131,33 +127,35 @@ struct FOG_API Pattern
 
   // [Spread]
 
-  FOG_INLINE uint32_t spread() const { return _d->spread; }
+  FOG_INLINE uint32_t getSpread() const { return _d->spread; }
   err_t setSpread(uint32_t spread);
 
   // [Start Point / End Point]
 
-  FOG_INLINE const PointF& startPoint() const { return _d->points[0]; }
-  FOG_INLINE const PointF& endPoint() const { return _d->points[1]; }
+  FOG_INLINE const PointF& getStartPoint() const { return _d->points[0]; }
+  FOG_INLINE const PointF& getEndPoint() const { return _d->points[1]; }
 
   err_t setStartPoint(const Point& pt);
-  err_t setEndPoint(const Point& pt);
-  err_t setPoints(const Point& startPt, const Point& endPt);
-
   err_t setStartPoint(const PointF& pt);
+
+  err_t setEndPoint(const Point& pt);
   err_t setEndPoint(const PointF& pt);
+
+  err_t setPoints(const Point& startPt, const Point& endPt);
   err_t setPoints(const PointF& startPt, const PointF& endPt);
 
   // [Solid]
 
-  Rgba color() const;
+  Rgba getColor() const;
   err_t setColor(const Rgba& rgba);
 
   // [Texture]
 
-  Image texture() const;
+  Image getTexture() const;
   err_t setTexture(const Image& texture);
 
   // [Gradient]
+
   FOG_INLINE double gradientRadius() const { return _d->gradientRadius; }
 
   err_t setGradientRadius(double r);
@@ -169,6 +167,8 @@ struct FOG_API Pattern
 
   Pattern& operator=(const Pattern& other);
   Pattern& operator=(const Rgba& rgba);
+
+  // [Members]
 
   FOG_DECLARE_D(Data)
 };

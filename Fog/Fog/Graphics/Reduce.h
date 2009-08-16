@@ -39,14 +39,9 @@ struct FOG_API Reduce
 
   // [Methods]
 
-  FOG_INLINE const Hash<uint32_t, uint8_t>& indexes() const
-  { return _indexes; }
-
-  FOG_INLINE const Entity* entities() const
-  { return _entities; }
-
-  FOG_INLINE uint32_t count() const
-  { return _count; }
+  FOG_INLINE const Hash<uint32_t, uint8_t>& getIndexes() const { return _indexes; }
+  FOG_INLINE const Entity* getEntities() const { return _entities; }
+  FOG_INLINE uint32_t getCount() const { return _count; }
 
   void clear();
   bool analyze(const Image& image, bool discardAlpha = false);

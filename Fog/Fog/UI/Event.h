@@ -35,7 +35,6 @@ enum EvGui
   EvChildRemove,
 
   // [LayoutEvent]
-
   EvLayoutSet,
   EvLayoutRemove,
 
@@ -88,12 +87,10 @@ enum EvGui
   EvClose,
 
   // [CheckEvent]
-
   EvCheck,
   EvUncheck,
 
   // [ThemeEvent]
-
   EvThemeChange,
 
   // Custom events, each application or library can use this space
@@ -103,31 +100,47 @@ enum EvGui
 
 struct FOG_API ChildEvent : public Event
 {
+  // [Construction / Destruction]
+
   ChildEvent(uint32_t code = 0, Widget* child = NULL);
 
+  // [Methods]
+
   FOG_INLINE Widget* child() const { return _child; }
+
+  // [Members]
 
   Widget* _child;
 };
 
 struct FOG_API LayoutEvent : public Event
 {
+  // [Construction / Destruction]
+
   LayoutEvent(uint32_t code = 0);
 };
 
 struct FOG_API StateEvent : public Event
 {
+  // [Construction / Destruction]
+
   StateEvent(uint32_t code = 0);
 };
 
 struct FOG_API VisibilityEvent : public Event
 {
+  // [Construction / Destruction]
+
   VisibilityEvent(uint32_t code = 0);
 };
 
 struct FOG_API ConfigureEvent : public Event
 {
+  // [Construction / Destruction]
+
   ConfigureEvent();
+
+  // [Methods]
 
   enum Changed
   {
@@ -139,18 +152,15 @@ struct FOG_API ConfigureEvent : public Event
   };
 
   FOG_INLINE const Rect& rect() const { return _rect; }
-  
   FOG_INLINE uint32_t changed() const { return _changed; }
-  
+
   FOG_INLINE bool changedPosition() const { return (_changed & ChangedPosition) != 0; }
-  
   FOG_INLINE bool changedSize() const { return (_changed & ChangedSize) != 0; }
-  
   FOG_INLINE bool changedWindowPosition() const { return (_changed & ChangedWindowPosition) != 0; }
-
   FOG_INLINE bool changedWindowSize() const { return (_changed & ChangedWindowSize) != 0; }
-
   FOG_INLINE bool changedOrientation() const { return (_changed & ChangedOrientation) != 0; }
+
+  // [Members]
 
   // TODO: Is this needed?
   Rect _rect;
@@ -159,37 +169,55 @@ struct FOG_API ConfigureEvent : public Event
 
 struct FOG_API OriginEvent : public Event
 {
+  // [Construction / Destruction]
+
   OriginEvent();
 
-  FOG_INLINE const Point& origin() const { return _origin; }
+  // [Methods]
+
+  FOG_INLINE const Point& getOrigin() const { return _origin; }
+
+  // [Members]
 
   Point _origin;
 };
 
 struct FOG_API FocusEvent : public Event
 {
+  // [Construction / Destruction]
+
   FocusEvent(uint32_t code = 0, uint32_t reason = FocusReasonNone);
 
-  FOG_INLINE uint32_t reason() const { return _reason; }
+  // [Members]
+
+  FOG_INLINE uint32_t getReason() const { return _reason; }
+
+  // [Methods]
 
   uint32_t _reason;
 };
 
 struct FOG_API KeyEvent : public Event
 {
+  // [Construction / Destruction]
+
   KeyEvent(uint32_t code = 0);
 
+  // [Methods]
+
   //! @brief Returns key code. See @c KeyEnum for possible ones.
-  FOG_INLINE uint32_t key() const { return _key; }
+  FOG_INLINE uint32_t getKey() const { return _key; }
   
   //! @brief Returns modifiers. See @c ModifierEnum for possible ones.
-  FOG_INLINE uint32_t modifiers() const { return _modifiers; }
+  FOG_INLINE uint32_t getModifiers() const { return _modifiers; }
   
   //! @brief Returns key code that depends to windowing system.
-  FOG_INLINE uint32_t systemCode() const { return _systemCode; }
+  FOG_INLINE uint32_t getSystemCode() const { return _systemCode; }
   
   //! @brief Returns key code translated to unicode character, can be zero if it's not possible to translate it.
-  FOG_INLINE Char32 unicode() const { return _unicode; }
+  FOG_INLINE Char32 getUnicode() const { return _unicode; }
+
+  // [Members]
 
   //! @brief Key code.
   uint32_t _key;
@@ -203,20 +231,26 @@ struct FOG_API KeyEvent : public Event
 
 struct FOG_API MouseEvent : public Event
 {
+  // [Construction / Destruction]
+
   MouseEvent(uint32_t code = 0);
 
+  // [Methods]
+
   //! @brief Returns mouse button that was pressed or released.
-  FOG_INLINE uint32_t button() const { return _button; }
+  FOG_INLINE uint32_t getButton() const { return _button; }
 
   //! @brief Returns modifierd.
-  FOG_INLINE uint32_t modifiers() const { return _modifiers; }
+  FOG_INLINE uint32_t getModifiers() const { return _modifiers; }
 
   //! @brief Returns mouse position relative to client or non-client 
   //! area (depends to event type).
-  FOG_INLINE const Point& position() const { return _position; }
+  FOG_INLINE const Point& getPosition() const { return _position; }
 
   //! @brief Get if event was generated outside of widget.
   FOG_INLINE bool isOutside() const { return _isOutside; }
+
+  // [Members]
 
   //! @brief Mouse button that was pressed or released. 
   //!
@@ -235,37 +269,54 @@ struct FOG_API MouseEvent : public Event
 
 struct FOG_API SelectionEvent : public Event
 {
+  // [Construction / Destruction]
+
   SelectionEvent(uint32_t code = 0);
 };
 
 struct FOG_API PaintEvent : public Event
 {
+  // [Construction / Destruction]
+
   PaintEvent(uint32_t code = 0);
 
-  FOG_INLINE Painter* painter() const { return _painter; }
+  // [Methods]
 
-  FOG_INLINE bool parentPainted() const { return _parentPainted; }
+  FOG_INLINE Painter* getPainter() const { return _painter; }
+  FOG_INLINE bool isParentPainted() const { return _isParentPainted; }
+
+  // [Members]
 
   Painter* _painter;
-  bool _parentPainted;
+  bool _isParentPainted;
 };
 
 struct FOG_API CloseEvent : public Event
 {
+  // [Construction / Destruction]
+
   CloseEvent();
 };
 
 struct FOG_API CheckEvent : public Event
 {
+  // [Construction / Destruction]
+
   CheckEvent(uint32_t code = EvCheck);
 
-  FOG_INLINE uint checked() const { return _checked; }
+  // [Methods]
 
-  uint _checked;
+  FOG_INLINE uint getStatus() const { return _status; }
+
+  // [Members]
+
+  uint _status;
 };
 
 struct FOG_API ThemeEvent : public Event
 {
+  // [Construction / Destruction]
+
   ThemeEvent(uint32_t code);
 };
 

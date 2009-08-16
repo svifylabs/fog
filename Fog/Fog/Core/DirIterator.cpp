@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
@@ -267,7 +267,7 @@ err_t DirIterator::open(const String32& path)
   {
     _path = pathAbs;
     _pathCache = t;
-    _pathCacheBaseLength = _pathCache.length();
+    _pathCacheBaseLength = _pathCache.getLength();
     return Error::Ok;
   }
   else

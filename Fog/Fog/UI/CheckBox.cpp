@@ -3,7 +3,7 @@
 // [Licence]
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
@@ -32,11 +32,11 @@ CheckBox::~CheckBox()
 
 void CheckBox::onMouse(MouseEvent* e)
 {
-  switch (e->code())
+  switch (e->getCode())
   {
     case EvClick:
     {
-      if (e->button() == ButtonLeft)
+      if (e->getButton() == ButtonLeft)
       {
         setChecked(_checked ^ 1);
       }
@@ -49,10 +49,10 @@ void CheckBox::onMouse(MouseEvent* e)
 
 void CheckBox::onPaint(PaintEvent* e)
 {
-  Painter* p = e->painter();
+  Painter* p = e->getPainter();
 
-  Rect bounds(0, 0, width(), height());
-  Rect chrect(1, (height() - 13) / 2, 13, 13);
+  Rect bounds(0, 0, getWidth(), getHeight());
+  Rect chrect(1, (getHeight() - 13) / 2, 13, 13);
 
   p->setSource(0xFF000000);
   p->drawRect(chrect);
@@ -62,11 +62,11 @@ void CheckBox::onPaint(PaintEvent* e)
   p->setSource(0xFFFFFFFF);
   p->fillRect(chrect);
 
-  if (checked())
+  if (getChecked())
   {
     p->setSource(0xFF000000);
     Path path;
-    double c = (double)(height() / 2);
+    double c = (double)(getHeight() / 2);
     path.moveTo(3.5, c - 1.5);
     path.lineTo(6.5, c + 3.5);
     path.lineTo(11.5, c - 4.5);
@@ -84,8 +84,8 @@ void CheckBox::onPaint(PaintEvent* e)
   }
 
   bounds.shrink(1);
-  bounds._x += 16;
-  bounds._w -= 16;
+  bounds.x += 16;
+  bounds.w -= 16;
 
   p->setSource(0xFF000000);
   p->drawText(bounds, _text, _font, TextAlignLeft);

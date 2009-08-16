@@ -33,10 +33,46 @@ struct FOG_API Layout : public LayoutItem
   Layout();
   virtual ~Layout();
 
-  LayoutItem* parentItem() const;
-  Widget* parentWidget() const;
+  // [Layout Hints]
 
-  virtual void reparent();
+  virtual Size getSizeHint() const;
+  virtual void setSizeHint(const Size& sizeHint);
+
+  virtual Size getMinimumSize() const;
+  virtual void setMinimumSize(const Size& minSize);
+
+  virtual Size getMaximumSize() const;
+  virtual void setMaximumSize(const Size& maxSize);
+
+  // [Layout Policy]
+
+  enum Policy
+  {
+    ExpandingWidth = 0x01,
+    ExpandingHeight = 0x10
+  };
+
+  virtual uint32_t getLayoutPolicy() const;
+  virtual void setLayoutPolicy(uint32_t policy);
+
+  // [Layout Height For Width]
+
+  virtual bool hasHeightForWidth() const;
+  virtual int getHeightForWidth(int width) const;
+
+  // [Layout State]
+
+  virtual bool isLayoutDirty() const;
+  virtual void invalidateLayout() const;
+
+  // [Parents]
+
+  LayoutItem* getParentItem() const;
+  Widget* getParentWidget() const;
+
+  // [Reparent]
+
+  virtual void reparentChildren() = 0;
 
   // [Event Map]
 
@@ -47,6 +83,8 @@ struct FOG_API Layout : public LayoutItem
 
 protected:
   LayoutItem* _parentItem;
+
+  bool _isLayoutDirty;
 
   friend struct Widget;
 };

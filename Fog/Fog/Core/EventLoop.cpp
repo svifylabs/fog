@@ -7,7 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
@@ -92,7 +92,7 @@ EventPump::Delegate::~Delegate()
 // [Fog::EventPump]
 // ============================================================================
 
-String32 EventLoop::type() const
+String32 EventLoop::getType() const
 {
   return _pump->_name;
 }
@@ -109,13 +109,13 @@ void EventLoop::setThreadName(const String32& threadName)
   _threadName = threadName;
 }
 
-const String32& EventLoop::threadName() const
+const String32& EventLoop::getThreadName() const
 {
   return _threadName;
 }
 
 // static
-EventLoop* EventLoop::current()
+EventLoop* EventLoop::getCurrent()
 {
   // TODO(darin): sadly, we cannot enable this yet since people call us even
   // when they have no intention of using us.

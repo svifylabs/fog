@@ -100,7 +100,7 @@ struct FOG_API Library
   //! @copydoc Doxygen::Implicit::isNull().
   FOG_INLINE bool isNull() const { return _d->handle == NULL; }
 
-  FOG_INLINE void* handle() const { return _d->handle; }
+  FOG_INLINE void* getHandle() const { return _d->handle; }
   FOG_INLINE bool isOpen() const { return _d->handle != NULL; }
 
   err_t open(const String32& fileName, uint32_t openFlags = OpenDefault);
@@ -116,9 +116,9 @@ struct FOG_API Library
   //!
   //! Return value can be @c NULL if symbol is not found or library is
   //! not open.
-  void* symbol(const char* symbolName);
+  void* getSymbol(const char* symbolName);
   //! @overload
-  void* symbol(const String32& symbolName);
+  void* getSymbol(const String32& symbolName);
 
   //! @brief Loads more symbols at the time.
   //!
@@ -134,7 +134,7 @@ struct FOG_API Library
   //! @return Count of loaded symbols, if return value is smaller than
   //! @a count parameter, @a fail parameter will be position to begin of
   //! symbol name that wasn't loaded.
-  sysuint_t symbols(void** target, const char* symbols, sysuint_t symbolsLength, sysuint_t symbolsCount, char** fail);
+  sysuint_t getSymbols(void** target, const char* symbols, sysuint_t symbolsLength, sysuint_t symbolsCount, char** fail);
 
   // [Operator Overload]
 

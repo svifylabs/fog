@@ -380,30 +380,30 @@ struct FOG_API UIBackingStore
 
   FOG_INLINE bool expired(TimeTicks now) const
   {
-    return (_width != _widthOrig || _height != _heightOrig) && (now >= _expires);
+    return (_width != _widthOrig || _height != _heightOrig) && (now >= _expireTime);
   }
 
-  FOG_INLINE uint32_t type() const { return _type; }
+  FOG_INLINE uint32_t getType() const { return _type; }
 
-  FOG_INLINE uint8_t* pixels() const { return _pixels; }
-  FOG_INLINE int width() const { return _width; }
-  FOG_INLINE int height() const { return _height; }
-  FOG_INLINE int format() const { return _format; }
-  FOG_INLINE int depth() const { return _depth; }
-  FOG_INLINE sysint_t stride() const { return _stride; }
+  FOG_INLINE uint8_t* getPixels() const { return _pixels; }
+  FOG_INLINE int getWidth() const { return _width; }
+  FOG_INLINE int getHeight() const { return _height; }
+  FOG_INLINE int getFormat() const { return _format; }
+  FOG_INLINE int getDepth() const { return _depth; }
+  FOG_INLINE sysint_t getStride() const { return _stride; }
 
-  FOG_INLINE int widthOrig() const { return _widthOrig; }
-  FOG_INLINE int heightOrig() const { return _heightOrig; }
+  FOG_INLINE int getWidthOrig() const { return _widthOrig; }
+  FOG_INLINE int getHeightOrig() const { return _heightOrig; }
 
-  FOG_INLINE uint8_t* pixelsPrimary() const { return _pixelsPrimary; }
-  FOG_INLINE sysint_t stridePrimary() const { return _stridePrimary; }
+  FOG_INLINE uint8_t* getPixelsPrimary() const { return _pixelsPrimary; }
+  FOG_INLINE sysint_t getStridePrimary() const { return _stridePrimary; }
 
-  FOG_INLINE uint8_t* pixelsSecondary() const { return _pixelsSecondary; }
-  FOG_INLINE sysint_t strideSecondary() const { return _strideSecondary; }
+  FOG_INLINE uint8_t* getPixelsSecondary() const { return _pixelsSecondary; }
+  FOG_INLINE sysint_t getStrideSecondary() const { return _strideSecondary; }
 
-  FOG_INLINE void* convertFunc() const { return _convertFunc; }
-  FOG_INLINE TimeTicks created() const { return _created; }
-  FOG_INLINE TimeTicks expire() const { return _expires; }
+  FOG_INLINE void* getConvertFunc() const { return _convertFunc; }
+  FOG_INLINE TimeTicks getCreatedTime() const { return _createdTime; }
+  FOG_INLINE TimeTicks getExpireTime() const { return _expireTime; }
 
   uint32_t _type;
 
@@ -435,8 +435,8 @@ struct FOG_API UIBackingStore
   int _convertDepth;
 
   // Time when the backing store wes created (for caching)
-  TimeTicks _created;
-  TimeTicks _expires;
+  TimeTicks _createdTime;
+  TimeTicks _expireTime;
 };
 
 } // Fog namespace

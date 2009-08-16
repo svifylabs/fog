@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #ifdef FOG_PRECOMP
 #include FOG_PRECOMP
 #endif
@@ -73,10 +73,10 @@ err_t Region::round(const Rect& r, uint xradius, uint yradius, bool fill)
   Data* selfd;
 
   // Normalize and make coordinates correct
-  int x1 = r.x1();
-  int y1 = r.y1();
-  int x2 = r.x2();
-  int y2 = r.y2();
+  int x1 = r.getX1();
+  int y1 = r.getY1();
+  int x2 = r.getX2();
+  int y2 = r.getY2();
 
   uint width;
   uint height;
@@ -175,7 +175,7 @@ err_t Region::round(const Rect& r, uint xradius, uint yradius, bool fill)
     while (yd > 0)
     {
       // Next vertical point.
-      if (rectCur != selfd->rects && rectCur[-1].x1() == lx1)
+      if (rectCur != selfd->rects && rectCur[-1].getX1() == lx1)
       {
         rectCur[-1].setY2(y1+1);
       }
@@ -209,7 +209,7 @@ err_t Region::round(const Rect& r, uint xradius, uint yradius, bool fill)
 
     // Add the inside rectangle.
     {
-      sysuint_t outside = (sysuint_t)(y1 - r.y1()) << 1;
+      sysuint_t outside = (sysuint_t)(y1 - r.getY1()) << 1;
       if (outside < height)
       {
         sysuint_t inside = height - outside;
@@ -223,12 +223,12 @@ err_t Region::round(const Rect& r, uint xradius, uint yradius, bool fill)
     // Next step is very simple, we was computed first symmetric half and
     // we need second.
     do {
-      yd = reverse->y2() - reverse->y1();
-      rectCur->set(reverse->x1(), y1, reverse->x2(), y1 + yd); y1 += yd;
+      yd = reverse->y2 - reverse->y1;
+      rectCur->set(reverse->x1, y1, reverse->x2, y1 + yd); y1 += yd;
       rectCur++;
     } while (reverse-- != selfd->rects);
 
-    selfd->count = rectCur - selfd->rects;
+    selfd->length = rectCur - selfd->rects;
   }
   else
   {
@@ -282,12 +282,12 @@ err_t Region::round(const Rect& r, uint xradius, uint yradius, bool fill)
         (*rectCur++).set(lx1, y1, lx2, y1+1);
         (*rectEnd--).set(lx1, y2-1, lx2, y2);
       }
-      else if (rectCur[-1].x2() == lx2)
+      else if (rectCur[-1].getX2() == lx2)
       {
         rectCur[-2].setY2(y1+1);
         rectCur[-1].setY2(y1+1);
-        rectEnd[1]._y1--;
-        rectEnd[2]._y1--;
+        rectEnd[1].y1--;
+        rectEnd[2].y1--;
       }
       else
       {
@@ -320,7 +320,7 @@ err_t Region::round(const Rect& r, uint xradius, uint yradius, bool fill)
     // rectangle than we need.
     reverse = rectCur-1;
 
-    yd = reverse->y2() - reverse->y1();
+    yd = reverse->y2 - reverse->y1;
 
     sysuint_t count = (sysuint_t)(rectCur - selfd->rects);
 
@@ -331,12 +331,12 @@ err_t Region::round(const Rect& r, uint xradius, uint yradius, bool fill)
       (*rectCur++).set(lx2-1, y1, lx2, y2);
       y1 = y2;
       memmove(rectCur, rectEnd + 1, sizeof(Box) * count);
-      selfd->count = (count << 1) + 2;
+      selfd->length = (count << 1) + 2;
     }
     else
     {
       memmove(rectCur, rectEnd + 1, sizeof(Box) * count);
-      selfd->count = (count << 1);
+      selfd->length = (count << 1);
     }
   }
   selfd->extents = r;

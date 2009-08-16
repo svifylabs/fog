@@ -3,7 +3,7 @@
 // [Licence]
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #ifdef FOG_PRECOMP
 #include FOG_PRECOMP
 #endif
@@ -480,7 +480,7 @@ void XmlWriter::writeNodesR(const XmlNode* node, uint depth)
     }
 
     current = current->next();
-    if (_target.length() > 512) flush();
+    if (_target.getLength() > 512) flush();
   }
 }
 

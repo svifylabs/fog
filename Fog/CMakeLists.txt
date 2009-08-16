@@ -227,11 +227,13 @@ Set(FOG_CORE_SOURCES
   ${FOG_DIR}/Fog/Core/FileSystem.cpp
   ${FOG_DIR}/Fog/Core/FileUtil.cpp
   ${FOG_DIR}/Fog/Core/Hash.cpp
+  ${FOG_DIR}/Fog/Core/HashUtil.cpp
   ${FOG_DIR}/Fog/Core/Lazy.cpp
   ${FOG_DIR}/Fog/Core/Library.cpp
   ${FOG_DIR}/Fog/Core/List.cpp
   ${FOG_DIR}/Fog/Core/Locale.cpp
   ${FOG_DIR}/Fog/Core/Lock.cpp
+  ${FOG_DIR}/Fog/Core/ManagedString.cpp
   ${FOG_DIR}/Fog/Core/MapFile.cpp
   ${FOG_DIR}/Fog/Core/Math.cpp
   ${FOG_DIR}/Fog/Core/Memory.cpp
@@ -246,7 +248,6 @@ Set(FOG_CORE_SOURCES
   ${FOG_DIR}/Fog/Core/Stream.cpp
   ${FOG_DIR}/Fog/Core/String.cpp
   ${FOG_DIR}/Fog/Core/String_gen.cpp
-  ${FOG_DIR}/Fog/Core/StringCache.cpp
   ${FOG_DIR}/Fog/Core/StringUtil.cpp
   ${FOG_DIR}/Fog/Core/StringUtil_dtoa.cpp
   ${FOG_DIR}/Fog/Core/StringUtil_gen.cpp
@@ -290,6 +291,7 @@ Set(FOG_CORE_HEADERS
   ${FOG_DIR}/Fog/Core/FileSystem.h
   ${FOG_DIR}/Fog/Core/FileUtil.h
   ${FOG_DIR}/Fog/Core/Hash.h
+  ${FOG_DIR}/Fog/Core/HashUtil.h
   ${FOG_DIR}/Fog/Core/Intrin_3dNow.h
   ${FOG_DIR}/Fog/Core/Intrin_MMX.h
   ${FOG_DIR}/Fog/Core/Intrin_SSE.h
@@ -301,6 +303,7 @@ Set(FOG_CORE_HEADERS
   ${FOG_DIR}/Fog/Core/Locale.h
   ${FOG_DIR}/Fog/Core/Lock.h
   ${FOG_DIR}/Fog/Core/LockedPtr.h
+  ${FOG_DIR}/Fog/Core/ManagedString.h
   ${FOG_DIR}/Fog/Core/MapFile.h
   ${FOG_DIR}/Fog/Core/Math.h
   ${FOG_DIR}/Fog/Core/Memory.h
@@ -320,7 +323,6 @@ Set(FOG_CORE_HEADERS
   ${FOG_DIR}/Fog/Core/Stream.h
   ${FOG_DIR}/Fog/Core/String.h
   ${FOG_DIR}/Fog/Core/String_gen.h
-  ${FOG_DIR}/Fog/Core/StringCache.h
   ${FOG_DIR}/Fog/Core/StringUtil.h
   ${FOG_DIR}/Fog/Core/StringUtil_gen.h
   ${FOG_DIR}/Fog/Core/Strings.h
@@ -374,7 +376,6 @@ SOURCE_GROUP(Xml FILES
 # =============================================================================
 
 Set(FOG_GRAPHICS_SOURCES
-  ${FOG_DIR}/Fog/Graphics/AffineMatrix.cpp
   ${FOG_DIR}/Fog/Graphics/ColorFilter.cpp
   ${FOG_DIR}/Fog/Graphics/ColorLut.cpp
   ${FOG_DIR}/Fog/Graphics/ColorMatrix.cpp
@@ -395,6 +396,7 @@ Set(FOG_GRAPHICS_SOURCES
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_JPEG.cpp
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_PCX.cpp
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_PNG.cpp
+  ${FOG_DIR}/Fog/Graphics/Matrix.cpp
   ${FOG_DIR}/Fog/Graphics/Painter.cpp
   ${FOG_DIR}/Fog/Graphics/PainterEngine.cpp
   ${FOG_DIR}/Fog/Graphics/PainterEngine_Null.cpp
@@ -412,6 +414,7 @@ Set(FOG_GRAPHICS_SOURCES
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_C_filters.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_C_gradient.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_C_pattern.cpp.h
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_C_vector.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_MMX.cpp
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_MMX_adaptor.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_MMX_base.cpp.h
@@ -420,6 +423,7 @@ Set(FOG_GRAPHICS_SOURCES
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_MMX_filters.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_MMX_gradient.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_MMX_pattern.cpp.h
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_MMX_vector.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_SSE2.cpp
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_SSE2_adaptor.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_SSE2_base.cpp.h
@@ -428,6 +432,7 @@ Set(FOG_GRAPHICS_SOURCES
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_SSE2_filters.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_SSE2_gradient.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_SSE2_pattern.cpp.h
+  ${FOG_DIR}/Fog/Graphics/Raster/Raster_SSE2_vector.cpp.h
   ${FOG_DIR}/Fog/Graphics/Reduce.cpp
   ${FOG_DIR}/Fog/Graphics/Region.cpp
   ${FOG_DIR}/Fog/Graphics/RegionPoly.cpp
@@ -438,7 +443,6 @@ Set(FOG_GRAPHICS_SOURCES
 
 Set(FOG_GRAPHICS_HEADERS
   ${FOG_DIR}/Fog/Graphics.h
-  ${FOG_DIR}/Fog/Graphics/AffineMatrix.h
   ${FOG_DIR}/Fog/Graphics/ColorFilter.h
   ${FOG_DIR}/Fog/Graphics/ColorLut.h
   ${FOG_DIR}/Fog/Graphics/ColorMatrix.h
@@ -462,6 +466,7 @@ Set(FOG_GRAPHICS_HEADERS
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_JPEG.h
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_PCX.h
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_PNG.h
+  ${FOG_DIR}/Fog/Graphics/Matrix.h
   ${FOG_DIR}/Fog/Graphics/Painter.h
   ${FOG_DIR}/Fog/Graphics/PainterEngine.h
   ${FOG_DIR}/Fog/Graphics/PainterEngine_Null.h
@@ -469,6 +474,7 @@ Set(FOG_GRAPHICS_HEADERS
   ${FOG_DIR}/Fog/Graphics/PainterUtil.h
   ${FOG_DIR}/Fog/Graphics/Palette.h
   ${FOG_DIR}/Fog/Graphics/Path.h
+  ${FOG_DIR}/Fog/Graphics/Path_p.h
   ${FOG_DIR}/Fog/Graphics/Pattern.h
   ${FOG_DIR}/Fog/Graphics/Raster.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_Bresenham.h
@@ -658,6 +664,7 @@ Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Region.cpp PROPERTIES COMPIL
 # =============================================================================
 
 Set(FOG_SVG_SOURCES
+  ${FOG_DIR}/Fog/Svg/SvgBase.cpp
   ${FOG_DIR}/Fog/Svg/SvgContext.cpp
   ${FOG_DIR}/Fog/Svg/SvgDom.cpp
   ${FOG_DIR}/Fog/Svg/SvgUtil.cpp
@@ -666,6 +673,7 @@ Set(FOG_SVG_SOURCES
 Set(FOG_SVG_HEADERS
   ${FOG_DIR}/Fog/Svg.h
   ${FOG_DIR}/Fog/Svg/Error.h
+  ${FOG_DIR}/Fog/Svg/SvgBase.h
   ${FOG_DIR}/Fog/Svg/SvgContext.h
   ${FOG_DIR}/Fog/Svg/SvgDom.h
   ${FOG_DIR}/Fog/Svg/SvgUtil.h

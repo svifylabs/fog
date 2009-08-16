@@ -10,6 +10,7 @@
 // [Dependencies]
 #include <Fog/Build/Build.h>
 #include <Fog/Core/Hash.h>
+#include <Fog/Core/ManagedString.h>
 #include <Fog/Core/String.h>
 #include <Fog/Core/Vector.h>
 
@@ -29,50 +30,98 @@ struct XmlComment;
 struct XmlDocument;
 struct XmlDomReader;
 struct XmlElement;
-struct XmlElementIdHash;
+struct XmlIdManager;
 struct XmlPI;
 struct XmlReader;
 struct XmlText;
 struct XmlWriter;
 
 // ============================================================================
-// [Fog::XmlString]
+// [Fog::XmlAttributesManager]
 // ============================================================================
 
-//! @brief Xml managed string.
-//!
-//! Managed string is special class that contains string instance and pointer
-//! to reference count. The manager is in this case XmlDocument instance defined
-//! in XmlElement who owns the managed string.
-//!
-//! There are two states of managed string:
-//! - managed - Managed string instance is connected with xml document.
-//! - unmanaged - Managed string instance is not connected with xml document.
-//!
-//! The reason why to introduce this class is memory management of xml strings
-//! for element tags and attribute names. There are only few unique element
-//! names or attributes that can be shared between element and attribute
-//! instances. If we can guarantee this, we can compare string equality only
-//! by pointers to its data (or reference count pointer @c _refCount).
-struct FOG_API XmlString
+//! @brief Hash table used in @c XmlElement to store attributes. Do not use directly.
+//! @internal
+struct FOG_API XmlAttributesManager
 {
   // [Construction / Destruction]
 
-  FOG_INLINE XmlString() :
-    _refCount(NULL) {}
-  FOG_INLINE XmlString(const String32& string) :
-    _string(string), _refCount(NULL) {}
-  FOG_INLINE ~XmlString() {}
+  XmlAttributesManager();
+  ~XmlAttributesManager();
 
-  String32 _string;
-  sysuint_t* _refCount;
+  // [Methods]
+
+  void add(XmlAttribute* a);
+  void remove(XmlAttribute* a);
+  void removeAll();
+  XmlAttribute* get(const String32& name) const;
 
 private:
-  friend struct XmlAttribute;
-  friend struct XmlDocument;
-  friend struct XmlElement;
+  void _rehash(sysuint_t capacity);
 
-  FOG_DISABLE_COPY(XmlString)
+  // [Members]
+
+  //! @brief Count of buckets.
+  sysuint_t _capacity;
+  //! @brief Count of nodes.
+  sysuint_t _length;
+
+  //! @brief Buckets.
+  XmlAttribute** _buckets;
+  //! @brief Initial buckets up to 10 attributes.
+  XmlAttribute* _bucketsBuffer[10];
+
+  //! @brief List of attributes.
+  Vector<XmlAttribute*> _list;
+
+  friend struct XmlElement;
+};
+
+// ============================================================================
+// [Fog::XmlIdManager]
+// ============================================================================
+
+//! @brief Hash table to store element IDs used by @c XmlDocument. Do not use directly.
+//! @internal
+struct FOG_API XmlIdManager
+{
+  // [Construction / Destruction]
+
+  XmlIdManager();
+  ~XmlIdManager();
+
+  // [Methods]
+
+  void add(XmlElement* e);
+  void remove(XmlElement* e);
+  XmlElement* get(const String32& id) const;
+  XmlElement* get(const Char32* idStr, sysuint_t idLen) const;
+
+private:
+  void _rehash(sysuint_t capacity);
+
+  // [Members]
+
+  //! @brief Count of buckets.
+  sysuint_t _capacity;
+  //! @brief Count of nodes.
+  sysuint_t _length;
+
+  //! @brief Count of buckets we will expand to if length exceeds _expandLength.
+  sysuint_t _expandCapacity;
+  //! @brief Count of nodes to grow.
+  sysuint_t _expandLength;
+
+  //! @brief Count of buckeds we will shrink to if length gets _shinkLength.
+  sysuint_t _shrinkCapacity;
+  //! @brief Count of nodes to shrink.
+  sysuint_t _shrinkLength;
+
+  //! @brief Buckets.
+  XmlElement** _buckets;
+  //! @brief Initial buckets up to 16 elements with id attribute
+  //! (for small documents).
+  XmlElement* _bucketsBuffer[16];
 };
 
 // ============================================================================
@@ -83,28 +132,43 @@ struct FOG_API XmlAttribute
 {
   // [Construction / Destruction]
 
-protected:
-  XmlAttribute(XmlElement* element, const String32& name);
+  XmlAttribute(XmlElement* element, const ManagedString32& name, int offset = -1);
   virtual ~XmlAttribute();
 
   // [Methods]
 
-  FOG_INLINE XmlElement* element() const { return _element; }
-  FOG_INLINE const String32& name() const { return _name._string; }
+  //! @brief Return true whether attribute is assigned with element.
+  //!
+  //! This method is only usable for embedded attributes
+  FOG_INLINE bool isAssigned() const { return _element != NULL; }
 
-  virtual String32 value() const;
+  FOG_INLINE XmlElement* getElement() const { return _element; }
+  FOG_INLINE const String32& getName() const { return _name.getString(); }
+
+  virtual String32 getValue() const;
   virtual err_t setValue(const String32& value);
 
 protected:
+
+  virtual void destroy();
+
   //! @brief Link to element that owns this attribute.
   XmlElement* _element;
   //! @brief Attribute name (managed string).
-  XmlString _name;
+  ManagedString32 _name;
+  //! @brief Next attribute in hash table managed by @c XmlAttributesManager.
+  XmlAttribute* _hashNext;
   //! @brief Attribute value (or empty if value is provided by overriden class).
   String32 _value;
 
+  //! @brief Attribute offset in XmlElement (relative to XmlElement).
+  //!
+  //! If this attribute is not embedded to the element, the _offset value is -1.
+  int _offset;
+
 private:
   friend struct XmlElement;
+  friend struct XmlAttributesManager;
 
   FOG_DISABLE_COPY(XmlAttribute)
 };
@@ -117,7 +181,7 @@ struct FOG_API XmlElement
 {
   // [Construction / Destruction]
 
-  XmlElement(const String32& tagName);
+  XmlElement(const ManagedString32& tagName);
   virtual ~XmlElement();
 
   // [Element Type]
@@ -147,17 +211,13 @@ struct FOG_API XmlElement
     //! @brief Whether element tag name can be changed.
     AllowedTag = 0x02,
     //! @brief Whether element supports attributes.
-    AllowedAttributes = 0x04,
-    //! @brief Whether element supports adding or removing of attributes.
-    //!
-    //! This flag is usually used by extensions (for example SVG).
-    AllowedAttributesAddRemove = 0x04
+    AllowedAttributes = 0x04
   };
 
   // [Type and Flags]
 
   //! @brief Return element type, see @c Type.
-  FOG_INLINE uint32_t type() const { return _type; }
+  FOG_INLINE uint32_t getType() const { return _type; }
 
   //! @brief Return true if element is @a TypeElement type.
   FOG_INLINE bool isElement() const { return (_type & TypeMask) == TypeElement; }
@@ -172,8 +232,11 @@ struct FOG_API XmlElement
   //! @brief Return true if element is @a TypeDocument type.
   FOG_INLINE bool isDocument() const { return (_type & TypeMask) == TypeDocument; }
 
+  //! @brief Return true if element is SVG extension.
   FOG_INLINE bool isSvg() const { return (_type & TypeSvgMask) != 0; }
+  //! @brief Return true if element is @c SvgElement.
   FOG_INLINE bool isSvgElement() const { return _type == TypeSvgElement; }
+  //! @brief Return true if element is @c SvgDocument.
   FOG_INLINE bool isSvgDocument() const { return _type == TypeSvgDocument; }
 
   // [Manage / Unmanage]
@@ -240,10 +303,10 @@ public:
   bool contains(XmlElement* e, bool deep = false);
 
   //! @brief Return xml document.
-  FOG_INLINE XmlDocument* document() const { return _document; }
+  FOG_INLINE XmlDocument* getDocument() const { return _document; }
 
   //! @brief Return parent node.
-  FOG_INLINE XmlElement* parent() const { return _parent; }
+  FOG_INLINE XmlElement* getParent() const { return _parent; }
 
   //! @brief Return array of child nodes.
   Vector<XmlElement*> childNodes() const;
@@ -292,32 +355,31 @@ public:
   // [Attributes]
 
   //! @brief Return true if current node contains attributes.
-  FOG_INLINE bool hasAttributes() const { return _attributes.length() != 0; }
+  FOG_INLINE bool hasAttributes() const { return _attributesManager != NULL; }
 
-  //! @brief Return array of child nodes.
-  FOG_INLINE Vector<XmlAttribute*> attributes() const { return _attributes; }
+  //! @brief Return array of attributes.
+  Vector<XmlAttribute*> attributes() const;
 
   bool hasAttribute(const String32& name) const;
-  err_t getAttribute(const String32& name, String32& value) const;
   err_t setAttribute(const String32& name, const String32& value);
+  String32 getAttribute(const String32& name) const;
   err_t removeAttribute(const String32& name);
   err_t removeAllAttributes();
 
-  virtual XmlAttribute* _createAttribute(const String32& name) const;
-
+  virtual XmlAttribute* _createAttribute(const ManagedString32& name) const;
   static void copyAttributes(XmlElement* dst, XmlElement* src);
 
   // [ID]
 
-  FOG_INLINE String32 id() const { return _id; }
+  FOG_INLINE String32 getId() const { return _id; }
   err_t setId(const String32& id);
 
   // [Element and Text]
 
-  FOG_INLINE const String32& tagName() const { return _tagName._string; }
+  FOG_INLINE const String32& getTagName() const { return _tagName.getString(); }
   virtual err_t setTagName(const String32& name);
 
-  virtual String32 textContent() const;
+  virtual String32 getTextContent() const;
   virtual err_t setTextContent(const String32& text);
 
 protected:
@@ -334,22 +396,22 @@ protected:
   XmlElement* _nextSibling;
   XmlElement* _prevSibling;
 
-  Vector<XmlAttribute*> _attributes;
   mutable Vector<XmlElement*> _children;
+  //! @brief Attributes manager.
+  XmlAttributesManager* _attributesManager;
 
   //! @brief Element tag name.
-  XmlString _tagName;
-
+  ManagedString32 _tagName;
   //! @brief Element id.
   String32 _id;
-  //! @brief Element id chain in @c XmlHashTable.
-  XmlElement* _idNext;
+  //! @brief Element id chain managed by @c XmlIdManager.
+  XmlElement* _hashNextId;
 
 private:
   friend struct XmlAttribute;
   friend struct XmlIdAttribute;
   friend struct XmlDocument;
-  friend struct XmlElementIdHash;
+  friend struct XmlIdManager;
 
   FOG_DISABLE_COPY(XmlElement)
 };
@@ -373,10 +435,10 @@ struct FOG_API XmlText : public XmlElement
 
   // [Text Specific]
 
-  virtual String32 textContent() const;
+  virtual String32 getTextContent() const;
   virtual err_t setTextContent(const String32& text);
 
-  FOG_INLINE const String32& data() const { return _data; }
+  FOG_INLINE const String32& getData() const { return _data; }
   err_t setData(const String32& data);
   err_t appendData(const String32& data);
   err_t deleteData();
@@ -403,9 +465,9 @@ struct FOG_API XmlNoTextElement : public XmlElement
 
   typedef XmlElement base;
 
-  XmlNoTextElement(const String32& tagName);
+  XmlNoTextElement(const ManagedString32& tagName);
 
-  virtual String32 textContent() const;
+  virtual String32 getTextContent() const;
   virtual err_t setTextContent(const String32& text);
 
 private:
@@ -431,7 +493,7 @@ struct FOG_API XmlComment : public XmlNoTextElement
 
   // [Comment Specific]
 
-  const String32& data() const;
+  const String32& getData() const;
   err_t setData(const String32& data);
 
 protected:
@@ -463,7 +525,7 @@ struct FOG_API XmlCDATA : public XmlNoTextElement
 
   // [CDATA Specific]
 
-  const String32& data() const;
+  const String32& getData() const;
   err_t setData(const String32& data);
 
 protected:
@@ -495,7 +557,7 @@ struct FOG_API XmlPI : public XmlNoTextElement
 
   // [Processing Instruction Specific]
 
-  const String32& data() const;
+  const String32& getData() const;
   err_t setData(const String32& data);
 
 protected:
@@ -506,49 +568,6 @@ private:
   friend struct XmlDocument;
 
   FOG_DISABLE_COPY(XmlPI)
-};
-
-// ============================================================================
-// [Fog::XmlElementIdHash]
-// ============================================================================
-
-//! @brief Hash table used in @c XmlDocument. Do not use directly.
-//! @internal
-struct FOG_API XmlElementIdHash
-{
-  // [Construction / Destruction]
-
-  XmlElementIdHash();
-  ~XmlElementIdHash();
-
-  void add(XmlElement* e);
-  void remove(XmlElement* e);
-  XmlElement* get(const String32& id) const;
-
-private:
-  void _rehash(sysuint_t capacity);
-
-  // [Members]
-
-  //! @brief Count of buckets.
-  sysuint_t _capacity;
-  //! @brief Count of nodes.
-  sysuint_t _length;
-
-  //! @brief Count of buckets we will expand to if length exceeds _expandLength.
-  sysuint_t _expandCapacity;
-  //! @brief Count of nodes to grow.
-  sysuint_t _expandLength;
-
-  //! @brief Count of buckeds we will shrink to if length gets _shinkLength.
-  sysuint_t _shrinkCapacity;
-  //! @brief Count of nodes to shrink.
-  sysuint_t _shrinkLength;
-
-  //! @brief Buckets.
-  XmlElement** _buckets;
-
-  XmlElement* _bucketsBuffer[16];
 };
 
 // ============================================================================
@@ -582,13 +601,14 @@ struct FOG_API XmlDocument : public XmlElement
 
   // [Document Extensions]
 
-  virtual XmlElement* createElement(const String32& tagName);
-  static XmlElement* createElementStatic(const String32& tagName);
+  virtual XmlElement* createElement(const ManagedString32& tagName);
+  static XmlElement* createElementStatic(const ManagedString32& tagName);
   virtual XmlDomReader* createDomReader();
 
   // [Dom]
 
   XmlElement* getElementById(const String32& id) const;
+  XmlElement* getElementById(const Utf32& id) const;
 
   // [Read]
 
@@ -603,26 +623,6 @@ struct FOG_API XmlDocument : public XmlElement
   FOG_INLINE err_t setDOCTYPE(const String32& doctype) { return _doctype.set(doctype); }
 
 protected:
-  // [Managed Strings]
-
-  //! @brief Must be called to manage @a resource string when node is inserted
-  //! into DOM where _document is not @c NULL.
-  err_t _manageString(XmlString& resource);
-
-  //! @brief Must be called to unmanage @a resource string when node is removed
-  //! from DOM where _document is not @c NULL.
-  //!
-  //! For dom operation where dom element is removed and inserted into same
-  //! document the @c _manageString() and @c _unmanageString() calls are not
-  //! needed. But ensure that no one was called or bad things happen.
-  err_t _unmanageString(XmlString& resource);
-
-  //! @brief Get managed string from @a resource. The managed string means
-  //! string that can be compared with all managed strings only by its data
-  //! pointer. If returned string is empty the managed resource does not exists
-  //! (this means that comparing will always fail).
-  String32 _getManagedString(const String32& resource);
-
   // [Members]
 
   //! @brief Document root.
@@ -632,7 +632,7 @@ protected:
   Hash<String32, sysuint_t> _managedStrings;
 
   //! @brief Hash table that contains all managed IDs.
-  XmlElementIdHash _elementIdsHash;
+  XmlIdManager _elementIdsHash;
 
   //! @brief DOCTYPE string.
   String32 _doctype;

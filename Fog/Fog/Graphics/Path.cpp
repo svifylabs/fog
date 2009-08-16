@@ -18,7 +18,7 @@
 //          http://www.antigrain.com
 //----------------------------------------------------------------------------
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #ifdef FOG_PRECOMP
 #include FOG_PRECOMP
 #endif
@@ -29,9 +29,11 @@
 #include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Std.h>
-#include <Fog/Graphics/AffineMatrix.h>
+#include <Fog/Graphics/Matrix.h>
 #include <Fog/Graphics/Error.h>
 #include <Fog/Graphics/Path.h>
+#include <Fog/Graphics/Path_p.h>
+#include <Fog/Graphics/Raster.h>
 
 // [Antigrain]
 #include "agg_basics.h"
@@ -85,7 +87,7 @@ private:
 template<typename VertexStorage>
 static err_t concatToPath(Path& dst, VertexStorage& src, unsigned path_id = 0)
 {
-  sysuint_t i, len = dst.length();
+  sysuint_t i, len = dst.getLength();
   sysuint_t step = 1024;
 
   Path::Vertex* v;
@@ -116,65 +118,6 @@ static err_t concatToPath(Path& dst, VertexStorage& src, unsigned path_id = 0)
 done:
   dst._d->length = (sysuint_t)(v - dst._d->data);
   return Error::Ok;
-}
-
-// ============================================================================
-// [Helpers]
-// ============================================================================
-
-// Coinciding points maximal distance (Epsilon).
-static const double pathVertexDistEpsilon = 1.0e-14;
-
-// See calcIntersection (Epsilon).
-static const double intersectionEpsilon = 1.0e-30;
-
-// This epsilon is used to prevent us from adding degenerate curves
-// (converging to a single point).
-// The value isn't very critical. Function arc_to_bezier() has a limit
-// of the sweep_angle. If fabs(sweep_angle) exceeds pi/2 the curve
-// becomes inaccurate. But slight exceeding is quite appropriate.
-static const double bezierArcAngleEpsilon = 0.01;
-
-static const double curveDistanceEpsilon = 1e-30;
-static const double curveCollinearityEpsilon = 1e-30;
-static const double curveAngleToleranceEpsilon = 0.01;
-
-static FOG_INLINE double calcDistance(
-  double x1, double y1, double x2, double y2)
-{
-  double dx = x2 - x1;
-  double dy = y2 - y1;
-  return sqrt(dx * dx + dy * dy);
-}
-
-static FOG_INLINE double calcSqDistance(
-  double x1, double y1, double x2, double y2)
-{
-  double dx = x2 - x1;
-  double dy = y2 - y1;
-  return dx * dx + dy * dy;
-}
-
-static FOG_INLINE bool calcIntersection(
-  double ax, double ay, double bx, double by,
-  double cx, double cy, double dx, double dy,
-  double* x, double* y)
-{
-  double num = (ay-cy) * (dx-cx) - (ax-cx) * (dy-cy);
-  double den = (bx-ax) * (dy-cy) - (by-ay) * (dx-cx);
-  if (fabs(den) < intersectionEpsilon) return false;
-  double r = num / den;
-  *x = ax + r * (bx-ax);
-  *y = ay + r * (by-ay);
-  return true;
-}
-
-static FOG_INLINE double crossProduct(
-  double x1, double y1,
-  double x2, double y2,
-  double x,  double y)
-{
-  return (x - x2) * (y2 - y1) - (y - y2) * (x2 - x1);
 }
 
 // ============================================================================
@@ -366,7 +309,7 @@ Path::~Path()
 // [Fog::Path - Type]
 // ============================================================================
 
-uint32_t Path::type() const
+uint32_t Path::getType() const
 {
   uint32_t t = _d->type;
   if (t != 0) return t;
@@ -426,6 +369,7 @@ Path::Vertex* Path::_add(sysuint_t count)
     if (!newd) return NULL;
 
     newd->length = length + count;
+    newd->type = _d->type;
     memcpy(newd->data, _d->data, length * sizeof(Vertex));
 
     AtomicBase::ptr_setXchg(&_d, newd)->deref();
@@ -499,6 +443,52 @@ void Path::clear()
 void Path::free()
 {
   AtomicBase::ptr_setXchg(&_d, sharedNull->refAlways())->deref();
+}
+
+// ============================================================================
+// [Fog::Path - Bounding Rect]
+// ============================================================================
+
+RectF Path::boundingRect() const
+{
+  sysuint_t i = _d->length;
+  Vertex* v = _d->data;
+
+  double x1 = 0.0, y1 = 0.0;
+  double x2 = 0.0, y2 = 0.0;
+
+  while (i)
+  {
+    i--;
+    if (v->cmd.isVertex())
+    {
+      x1 = v->x;
+      y1 = v->y;
+      x2 = v->x;
+      y2 = v->y;
+      v++;
+      break;
+    }
+    else
+      v++;
+  }
+
+  while (i)
+  {
+    if (v->cmd.isVertex())
+    {
+      if (x1 > v->x) x1 = v->x;
+      if (y1 > v->y) y1 = v->y;
+      if (x2 < v->x) x2 = v->x;
+      if (y2 < v->y) y2 = v->y;
+      break;
+    }
+
+    i--;
+    v++;
+  }
+
+  return RectF(x1, y1, x2 - x1, y2 - y1);
 }
 
 // ============================================================================
@@ -608,8 +598,8 @@ err_t Path::lineTo(const PointF* pts, sysuint_t count)
   for (sysuint_t i = 0; i < count; i++)
   {
     v[i].cmd = CmdLineTo;
-    v[i].x = pts[i].x();
-    v[i].y = pts[i].y();
+    v[i].x = pts[i].x;
+    v[i].y = pts[i].y;
   }
 
   return Error::Ok;
@@ -1024,20 +1014,14 @@ err_t Path::scale(double sx, double sy, bool keepStartPos)
 // [Fog::Path - ApplyMatrix]
 // ============================================================================
 
-err_t Path::applyMatrix(const AffineMatrix& matrix)
+err_t Path::applyMatrix(const Matrix& matrix)
 {
   if (!_d->length) return Error::Ok;
 
   err_t err = detach();
   if (err) return err;
 
-  sysuint_t i, len = _d->length;
-  Vertex* v = _d->data;
-
-  for (i = 0; i < len; i++)
-  {
-    if (v[i].cmd.isVertex()) matrix.transform(&v[i].x, &v[i].y);
-  }
+  Raster::functionMap->vector.pathVertexTransform(_d->data, _d->length, &matrix);
 
   return Error::Ok;
 }
@@ -1054,17 +1038,17 @@ err_t Path::addRect(const RectF& r)
   if (!v) return Error::OutOfMemory;
 
   v[0].cmd = CmdMoveTo;
-  v[0].x = r.x1();
-  v[0].y = r.y1();
+  v[0].x = r.getX1();
+  v[0].y = r.getY1();
   v[1].cmd = CmdLineTo;
-  v[1].x = r.x2();
-  v[1].y = r.y1();
+  v[1].x = r.getX2();
+  v[1].y = r.getY1();
   v[2].cmd = CmdLineTo;
-  v[2].x = r.x2();
-  v[2].y = r.y2();
+  v[2].x = r.getX2();
+  v[2].y = r.getY2();
   v[3].cmd = CmdLineTo;
-  v[3].x = r.x1();
-  v[3].y = r.y2();
+  v[3].x = r.getX1();
+  v[3].y = r.getY2();
   v[4].cmd = CmdEndPoly | CFlagClose;
   v[4].x = 0.0;
   v[4].y = 0.0;
@@ -1085,17 +1069,17 @@ err_t Path::addRects(const RectF* r, sysuint_t count)
     if (!r->isValid()) continue;
 
     v[0].cmd = CmdMoveTo;
-    v[0].x = r->x1();
-    v[0].y = r->y1();
+    v[0].x = r->getX1();
+    v[0].y = r->getY1();
     v[1].cmd = CmdLineTo;
-    v[1].x = r->x2();
-    v[1].y = r->y1();
+    v[1].x = r->getX2();
+    v[1].y = r->getY1();
     v[2].cmd = CmdLineTo;
-    v[2].x = r->x2();
-    v[2].y = r->y2();
+    v[2].x = r->getX2();
+    v[2].y = r->getY2();
     v[3].cmd = CmdLineTo;
-    v[3].x = r->x1();
-    v[3].y = r->y2();
+    v[3].x = r->getX1();
+    v[3].y = r->getY2();
     v[4].cmd = CmdEndPoly | CFlagClose;
     v[4].x = 0.0;
     v[4].y = 0.0;
@@ -1112,11 +1096,11 @@ err_t Path::addRound(const RectF& r, const PointF& radius)
 {
   if (!r.isValid()) return Error::Ok;
 
-  double rw2 = r.w() / 2.0;
-  double rh2 = r.h() / 2.0;
+  double rw2 = r.getWidth() / 2.0;
+  double rh2 = r.getHeight() / 2.0;
 
-  double rx = fabs(radius.x());
-  double ry = fabs(radius.y());
+  double rx = fabs(radius.x);
+  double ry = fabs(radius.y);
 
   if (rx > rw2) rx = rw2;
   if (ry > rh2) ry = rh2;
@@ -1124,10 +1108,10 @@ err_t Path::addRound(const RectF& r, const PointF& radius)
   if (rx == 0 || ry == 0)
     return addRect(r);
 
-  double x1 = r.x();
-  double y1 = r.y();
-  double x2 = r.x() + r.width();
-  double y2 = r.y() + r.height();
+  double x1 = r.getX1();
+  double y1 = r.getY1();
+  double x2 = r.getX2();
+  double y2 = r.getY2();
 
   err_t err = Error::Ok;
 
@@ -1153,61 +1137,61 @@ err_t Path::addEllipse(const RectF& r)
 {
   if (!r.isValid()) return Error::Ok;
 
-  double rx = r.width() / 2.0;
-  double ry = r.height() / 2.0;
-  double cx = r.x() + rx;
-  double cy = r.y() + ry;
+  double rx = r.getWidth() / 2.0;
+  double ry = r.getHeight() / 2.0;
+  double cx = r.getX() + rx;
+  double cy = r.getY() + ry;
 
   return _arcTo(cx, cy, rx, ry, 0.0, 2.0 * M_PI, CmdMoveTo, true);
 }
 
 err_t Path::addEllipse(const PointF& cp, const PointF& r)
 {
-  return _arcTo(cp.x(), cp.y(), r.x(), r.y(), 0.0, 2.0 * M_PI, CmdMoveTo, true);
+  return _arcTo(cp.getX(), cp.getY(), r.getX(), r.getY(), 0.0, 2.0 * M_PI, CmdMoveTo, true);
 }
 
 err_t Path::addArc(const RectF& r, double start, double sweep)
 {
   if (!r.isValid()) return Error::Ok;
 
-  double rx = r.width() / 2.0;
-  double ry = r.height() / 2.0;
-  double cx = r.x() + rx;
-  double cy = r.y() + ry;
+  double rx = r.getWidth() / 2.0;
+  double ry = r.getHeight() / 2.0;
+  double cx = r.getX() + rx;
+  double cy = r.getY() + ry;
 
   return _arcTo(cx, cy, rx, ry, start, sweep, CmdMoveTo, false);
 }
 
 err_t Path::addArc(const PointF& cp, const PointF& r, double start, double sweep)
 {
-  return _arcTo(cp.x(), cp.y(), r.x(), r.y(), start, sweep, CmdMoveTo, false);
+  return _arcTo(cp.getX(), cp.getY(), r.getX(), r.getY(), start, sweep, CmdMoveTo, false);
 }
 
 err_t Path::addChord(const RectF& r, double start, double sweep)
 {
   if (!r.isValid()) return Error::Ok;
 
-  double rx = r.width() / 2.0;
-  double ry = r.height() / 2.0;
-  double cx = r.x() + rx;
-  double cy = r.y() + ry;
+  double rx = r.getWidth() / 2.0;
+  double ry = r.getHeight() / 2.0;
+  double cx = r.getX() + rx;
+  double cy = r.getY() + ry;
 
   return _arcTo(cx, cy, rx, ry, start, sweep, CmdMoveTo, true);
 }
 
 err_t Path::addChord(const PointF& cp, const PointF& r, double start, double sweep)
 {
-  return _arcTo(cp.x(), cp.y(), r.x(), r.y(), start, sweep, CmdMoveTo, true);
+  return _arcTo(cp.getX(), cp.getY(), r.getX(), r.getY(), start, sweep, CmdMoveTo, true);
 }
 
 err_t Path::addPie(const RectF& r, double start, double sweep)
 {
   if (!r.isValid()) return Error::Ok;
 
-  double rx = r.width() / 2.0;
-  double ry = r.height() / 2.0;
-  double cx = r.x() + rx;
-  double cy = r.y() + ry;
+  double rx = r.getWidth() / 2.0;
+  double ry = r.getHeight() / 2.0;
+  double cx = r.getX() + rx;
+  double cy = r.getY() + ry;
 
   return addPie(PointF(cx, cy), PointF(rx, ry), start, sweep);
 }
@@ -1216,23 +1200,23 @@ err_t Path::addPie(const PointF& cp, const PointF& r, double start, double sweep
 {
   if (sweep >= M_PI*2.0) return addEllipse(cp, r);
 
-  start = fmod(start, M_PI*2.0);
-  if (start < 0) start += M_PI*2.0;
+  start = fmod(start, M_PI * 2.0);
+  if (start < 0) start += M_PI * 2.0;
 
   err_t err;
 
-  if ( (err = moveTo(cp.x(), cp.y())) ) return err;
-  if ( (err = _arcTo(cp.x(), cp.y(), r.x(), r.y(), start, sweep, CmdLineTo, true)) ) return err;
+  if ( (err = moveTo(cp.getX(), cp.getY())) ) return err;
+  if ( (err = _arcTo(cp.getX(), cp.getY(), r.getX(), r.getY(), start, sweep, CmdLineTo, true)) ) return err;
 
   return Error::Ok;
 }
 
 err_t Path::addPath(const Path& path)
 {
-  sysuint_t count = path.length();
+  sysuint_t count = path.getLength();
   if (count == 0) return Error::Ok;
 
-  uint32_t t = Math::max(type(), path.type());
+  uint32_t t = Math::max(getType(), path.getType());
 
   Vertex* v = _add(count);
   if (!v) return Error::OutOfMemory;
@@ -1251,436 +1235,6 @@ err_t Path::addPath(const Path& path)
 }
 
 // ============================================================================
-// [Fog::Path - Curves Approximation]
-// ============================================================================
-
-#define APPROXIMATE_CURVE3_RECURSION_LIMIT 32
-#define ADD_VERTEX(_cmd, _x, _y) { v->x = _x; v->y = _y; v->cmd = _cmd; v++; }
-
-struct ApproximateCurve3Data
-{
-  double x1;
-  double y1;
-  double x2;
-  double y2;
-  double x3;
-  double y3;
-};
-
-struct ApproximateCurve4Data
-{
-  double x1;
-  double y1;
-  double x2;
-  double y2;
-  double x3;
-  double y3;
-  double x4;
-  double y4;
-};
-
-static err_t approximateCurve3(
-  Path& dst,
-  double x1, double y1,
-  double x2, double y2,
-  double x3, double y3,
-  double approximationScale,
-  double angleTolerance = 0.0)
-{
-  double distanceToleranceSquare = 0.5 / approximationScale;
-  distanceToleranceSquare *= distanceToleranceSquare;
-
-  sysuint_t level = 0;
-  ApproximateCurve3Data stack[APPROXIMATE_CURVE3_RECURSION_LIMIT];
-
-  Path::Vertex* v = dst._add(APPROXIMATE_CURVE3_RECURSION_LIMIT * 2 + 1);
-  if (!v) return Error::OutOfMemory;
-
-  for (;;)
-  {
-    // Calculate all the mid-points of the line segments
-    double x12   = (x1 + x2) / 2.0;
-    double y12   = (y1 + y2) / 2.0;
-    double x23   = (x2 + x3) / 2.0;
-    double y23   = (y2 + y3) / 2.0;
-    double x123  = (x12 + x23) / 2.0;
-    double y123  = (y12 + y23) / 2.0;
-
-    double dx = x3-x1;
-    double dy = y3-y1;
-    double d = fabs(((x2 - x3) * dy - (y2 - y3) * dx));
-    double da;
-
-    if (d > curveCollinearityEpsilon)
-    {
-      // Regular case
-      if (d * d <= distanceToleranceSquare * (dx*dx + dy*dy))
-      {
-        // If the curvature doesn't exceed the distance_tolerance value
-        // we tend to finish subdivisions.
-        if (angleTolerance < curveAngleToleranceEpsilon)
-        {
-          ADD_VERTEX(Path::CmdLineTo, x123, y123);
-          goto ret;
-        }
-
-        // Angle & Cusp Condition
-        da = fabs(atan2(y3 - y2, x3 - x2) - atan2(y2 - y1, x2 - x1));
-        if (da >= M_PI) da = 2.0 * M_PI - da;
-
-        if (da < angleTolerance)
-        {
-          // Finally we can stop the recursion
-          ADD_VERTEX(Path::CmdLineTo, x123, y123);
-          goto ret;
-        }
-      }
-    }
-    else
-    {
-      // Collinear case
-      da = dx*dx + dy*dy;
-      if (da == 0)
-      {
-        d = calcSqDistance(x1, y1, x2, y2);
-      }
-      else
-      {
-        d = ((x2 - x1)*dx + (y2 - y1)*dy) / da;
-
-        if (d > 0 && d < 1)
-        {
-          // Simple collinear case, 1---2---3
-          // We can leave just two endpoints
-          goto ret;
-        }
-
-        if (d <= 0)
-          d = calcSqDistance(x2, y2, x1, y1);
-        else if (d >= 1)
-          d = calcSqDistance(x2, y2, x3, y3);
-        else
-          d = calcSqDistance(x2, y2, x1 + d*dx, y1 + d*dy);
-      }
-      if (d < distanceToleranceSquare)
-      {
-        ADD_VERTEX(Path::CmdLineTo, x2, y2);
-        goto ret;
-      }
-    }
-
-    // Continue subdivision
-    //
-    // Original code from antigrain was:
-    //   recursive_bezier(x1, y1, x12, y12, x123, y123, level + 1);
-    //   recursive_bezier(x123, y123, x23, y23, x3, y3, level + 1);
-    //
-    // First recursive subdivision will be set into x1, y1, x2, y2, x3, y3,
-    // second subdivision will be added into stack.
-
-    if (level < APPROXIMATE_CURVE3_RECURSION_LIMIT)
-    {
-      stack[level].x1 = x123;
-      stack[level].y1 = y123;
-      stack[level].x2 = x23;
-      stack[level].y2 = y23;
-      stack[level].x3 = x3;
-      stack[level].y3 = y3;
-      level++;
-
-      x2 = x12;
-      y2 = y12;
-      x3 = x123;
-      y3 = y123;
-
-      continue;
-    }
-
-ret:
-    if (level == 0) break;
-
-    level--;
-    x1 = stack[level].x1;
-    y1 = stack[level].y1;
-    x2 = stack[level].x2;
-    y2 = stack[level].y2;
-    x3 = stack[level].x3;
-    y3 = stack[level].y3;
-  }
-
-  // Add end point.
-  ADD_VERTEX(Path::CmdLineTo, x3, y3);
-
-  dst._d->length = (sysuint_t)(v - dst._d->data);
-  return Error::Ok;
-}
-
-static err_t approximateCurve4(
-  Path& dst,
-  double x1, double y1,
-  double x2, double y2,
-  double x3, double y3,
-  double x4, double y4,
-  double approximationScale,
-  double angleTolerance = 0.0,
-  double cuspLimit = 0.0)
-{
-  double distanceToleranceSquare = 0.5 / approximationScale;
-  distanceToleranceSquare *= distanceToleranceSquare;
-
-  sysuint_t level = 0;
-  ApproximateCurve4Data stack[APPROXIMATE_CURVE3_RECURSION_LIMIT];
-
-  Path::Vertex* v = dst._add(APPROXIMATE_CURVE3_RECURSION_LIMIT * 4 + 1);
-  if (!v) return Error::OutOfMemory;
-
-  for (;;)
-  {
-    // Calculate all the mid-points of the line segments
-    double x12   = (x1 + x2) / 2.0;
-    double y12   = (y1 + y2) / 2.0;
-    double x23   = (x2 + x3) / 2.0;
-    double y23   = (y2 + y3) / 2.0;
-    double x34   = (x3 + x4) / 2.0;
-    double y34   = (y3 + y4) / 2.0;
-    double x123  = (x12 + x23) / 2.0;
-    double y123  = (y12 + y23) / 2.0;
-    double x234  = (x23 + x34) / 2.0;
-    double y234  = (y23 + y34) / 2.0;
-    double x1234 = (x123 + x234) / 2.0;
-    double y1234 = (y123 + y234) / 2.0;
-
-    // Try to approximate the full cubic curve by a single straight line
-    double dx = x4-x1;
-    double dy = y4-y1;
-
-    double d2 = fabs(((x2 - x4) * dy - (y2 - y4) * dx));
-    double d3 = fabs(((x3 - x4) * dy - (y3 - y4) * dx));
-    double da1, da2, k;
-
-    switch ((int(d2 > curveCollinearityEpsilon) << 1) +
-             int(d3 > curveCollinearityEpsilon))
-    {
-      // All collinear OR p1==p4
-      case 0:
-        k = dx*dx + dy*dy;
-        if (k == 0)
-        {
-          d2 = calcSqDistance(x1, y1, x2, y2);
-          d3 = calcSqDistance(x4, y4, x3, y3);
-        }
-        else
-        {
-          k   = 1 / k;
-          da1 = x2 - x1;
-          da2 = y2 - y1;
-          d2  = k * (da1 * dx + da2 * dy);
-          da1 = x3 - x1;
-          da2 = y3 - y1;
-          d3  = k * (da1 * dx + da2 * dy);
-
-          if (d2 > 0 && d2 < 1 && d3 > 0 && d3 < 1)
-          {
-            // Simple collinear case, 1---2---3---4
-            // We can leave just two endpoints
-            goto ret;
-          }
-
-          if (d2 <= 0)
-            d2 = calcSqDistance(x2, y2, x1, y1);
-          else if (d2 >= 1)
-            d2 = calcSqDistance(x2, y2, x4, y4);
-          else
-            d2 = calcSqDistance(x2, y2, x1 + d2*dx, y1 + d2*dy);
-
-          if (d3 <= 0)
-            d3 = calcSqDistance(x3, y3, x1, y1);
-          else if (d3 >= 1)
-            d3 = calcSqDistance(x3, y3, x4, y4);
-          else
-            d3 = calcSqDistance(x3, y3, x1 + d3*dx, y1 + d3*dy);
-        }
-
-        if (d2 > d3)
-        {
-          if (d2 < distanceToleranceSquare)
-          {
-            ADD_VERTEX(Path::CmdLineTo, x2, y2);
-            goto ret;
-          }
-        }
-        else
-        {
-          if (d3 < distanceToleranceSquare)
-          {
-            ADD_VERTEX(Path::CmdLineTo, x3, y3);
-            goto ret;
-          }
-        }
-        break;
-
-    // p1,p2,p4 are collinear, p3 is significant
-    case 1:
-      if (d3 * d3 <= distanceToleranceSquare * (dx*dx + dy*dy))
-      {
-        if (angleTolerance < curveAngleToleranceEpsilon)
-        {
-          ADD_VERTEX(Path::CmdLineTo, x23, y23);
-          goto ret;
-        }
-
-        // Angle Condition
-        da1 = fabs(atan2(y4 - y3, x4 - x3) - atan2(y3 - y2, x3 - x2));
-        if (da1 >= M_PI) da1 = 2.0 * M_PI - da1;
-
-        if (da1 < angleTolerance)
-        {
-          ADD_VERTEX(Path::CmdLineTo, x2, y2);
-          ADD_VERTEX(Path::CmdLineTo, x3, y3);
-          goto ret;
-        }
-
-        if (cuspLimit != 0.0)
-        {
-          if (da1 > cuspLimit)
-          {
-            ADD_VERTEX(Path::CmdLineTo, x3, y3);
-            goto ret;
-          }
-        }
-      }
-      break;
-
-    // p1,p3,p4 are collinear, p2 is significant
-    case 2:
-      if (d2 * d2 <= distanceToleranceSquare * (dx*dx + dy*dy))
-      {
-        if (angleTolerance < curveAngleToleranceEpsilon)
-        {
-          ADD_VERTEX(Path::CmdLineTo, x23, y23);
-          goto ret;
-        }
-
-        // Angle Condition
-        da1 = fabs(atan2(y3 - y2, x3 - x2) - atan2(y2 - y1, x2 - x1));
-        if (da1 >= M_PI) da1 = 2.0 * M_PI - da1;
-
-        if (da1 < angleTolerance)
-        {
-          ADD_VERTEX(Path::CmdLineTo, x2, y2);
-          ADD_VERTEX(Path::CmdLineTo, x3, y3);
-          goto ret;
-        }
-
-        if (cuspLimit != 0.0)
-        {
-          if (da1 > cuspLimit)
-          {
-            ADD_VERTEX(Path::CmdLineTo, x3, y3);
-            goto ret;
-          }
-        }
-      }
-      break;
-
-    // Regular case
-    case 3:
-      if ((d2 + d3)*(d2 + d3) <= distanceToleranceSquare * (dx*dx + dy*dy))
-      {
-        // If the curvature doesn't exceed the distance_tolerance value
-        // we tend to finish subdivisions.
-        if (angleTolerance < curveAngleToleranceEpsilon)
-        {
-          ADD_VERTEX(Path::CmdLineTo, x23, y23);
-          goto ret;
-        }
-
-        // Angle & Cusp Condition
-        k   = atan2(y3 - y2, x3 - x2);
-        da1 = fabs(k - atan2(y2 - y1, x2 - x1));
-        da2 = fabs(atan2(y4 - y3, x4 - x3) - k);
-        if (da1 >= M_PI) da1 = 2.0 * M_PI - da1;
-        if (da2 >= M_PI) da2 = 2.0 * M_PI - da2;
-
-        if (da1 + da2 < angleTolerance)
-        {
-          // Finally we can stop the recursion
-          ADD_VERTEX(Path::CmdLineTo, x23, y23);
-          goto ret;
-        }
-
-        if (cuspLimit != 0.0)
-        {
-          if (da1 > cuspLimit)
-          {
-            ADD_VERTEX(Path::CmdLineTo, x2, y2);
-            goto ret;
-          }
-
-          if (da2 > cuspLimit)
-          {
-            ADD_VERTEX(Path::CmdLineTo, x3, y3);
-            goto ret;
-          }
-        }
-      }
-      break;
-    }
-
-    // Continue subdivision
-    //
-    // Original antigrain code:
-    //   recursive_bezier(x1, y1, x12, y12, x123, y123, x1234, y1234, level + 1);
-    //   recursive_bezier(x1234, y1234, x234, y234, x34, y34, x4, y4, level + 1);
-    //
-    // First recursive subdivision will be set into x1, y1, x2, y2, x3, y3,
-    // second subdivision will be added into stack.
-    if (level < APPROXIMATE_CURVE3_RECURSION_LIMIT)
-    {
-      stack[level].x1 = x1234;
-      stack[level].y1 = y1234;
-      stack[level].x2 = x234;
-      stack[level].y2 = y234;
-      stack[level].x3 = x34;
-      stack[level].y3 = y34;
-      stack[level].x4 = x4;
-      stack[level].y4 = y4;
-      level++;
-
-      x2 = x12;
-      y2 = y12;
-      x3 = x123;
-      y3 = y123;
-      x4 = x1234;
-      y4 = y1234;
-
-      continue;
-    }
-
-ret:
-    if (level == 0) break;
-
-    level--;
-    x1 = stack[level].x1;
-    y1 = stack[level].y1;
-    x2 = stack[level].x2;
-    y2 = stack[level].y2;
-    x3 = stack[level].x3;
-    y3 = stack[level].y3;
-    x4 = stack[level].x4;
-    y4 = stack[level].y4;
-  }
-
-  // Add end point.
-  ADD_VERTEX(Path::CmdLineTo, x4, y4);
-
-  dst._d->length = (sysuint_t)(v - dst._d->data);
-  return Error::Ok;
-}
-
-#undef ADD_VERTEX
-
-// ============================================================================
 // [Fog::Path - Flatten]
 // ============================================================================
 
@@ -1689,19 +1243,19 @@ err_t Path::flatten()
   return flatten(NULL, 1.0);
 }
 
-err_t Path::flatten(const AffineMatrix* matrix, double approximationScale)
+err_t Path::flatten(const Matrix* matrix, double approximationScale)
 {
-  if (type() == LineType) return Error::Ok;
+  if (getType() == LineType) return Error::Ok;
   return flattenTo(*this, matrix, approximationScale);
 }
 
-err_t Path::flattenTo(Path& dst, const AffineMatrix* matrix, double approximationScale) const
+err_t Path::flattenTo(Path& dst, const Matrix* matrix, double approximationScale) const
 {
   // --------------------------------------------------------------------------
   // Contains only lines (already flattened)
   // --------------------------------------------------------------------------
 
-  if (type() == LineType)
+  if (getType() == LineType)
   {
     if (this == &dst)
     {
@@ -1733,7 +1287,7 @@ err_t Path::flattenTo(Path& dst, const AffineMatrix* matrix, double approximatio
 
   dst.clear();
 
-  sysuint_t n = length();
+  sysuint_t n = getLength();
   if (n == 0) return Error::Ok;
   if (dst.reserve(n * 8)) return Error::OutOfMemory;
 
@@ -1771,7 +1325,8 @@ ensureSpace:
         dst._d->length = (sysuint_t)(dstv - dst._d->data);
 
         // Approximate curve.
-        err = approximateCurve3(dst, lastx, lasty, v[0].x, v[0].y, v[1].x, v[1].y, approximationScale);
+        err = Raster::functionMap->vector.approximateCurve3(
+          dst, lastx, lasty, v[0].x, v[0].y, v[1].x, v[1].y, approximationScale, 0.0);
         if (err) return err;
 
         lastx = v[1].x;
@@ -1794,7 +1349,8 @@ ensureSpace:
         dst._d->length = (sysuint_t)(dstv - dst._d->data);
 
         // Approximate curve.
-        err = approximateCurve4(dst, lastx, lasty, v[0].x, v[0].y, v[1].x, v[1].y, v[2].x, v[2].y, approximationScale);
+        err = Raster::functionMap->vector.approximateCurve4(
+          dst, lastx, lasty, v[0].x, v[0].y, v[1].x, v[1].y, v[2].x, v[2].y, approximationScale, 0.0, 0.0);
         if (err) return err;
 
         lastx = v[2].x;
@@ -1832,7 +1388,7 @@ ensureSpace:
         //  -1/6    1       1/6     0
         //  0       1/6     1       -1/6
         //  0       0       1       0
-        err = approximateCurve4(dst,
+        err = Raster::functionMap->vector.approximateCurve4(dst,
           x2,
           y2,
           (-x1 + 6.0 * x2 + x3) / 6.0,
@@ -1841,7 +1397,7 @@ ensureSpace:
           ( y2 + 6.0 * y3 - y4) / 6.0,
           x3,
           y3,
-          approximationScale);
+          approximationScale, 0.0, 0.0);
 
         lastx = x4;
         lasty = y4;
@@ -1882,7 +1438,7 @@ ensureSpace:
         //  0       4/6     2/6     0
         //  0       2/6     4/6     0
         //  0       1/6     4/6     1/6
-        err = approximateCurve4(dst,
+        err = Raster::functionMap->vector.approximateCurve4(dst,
           (    x1 + 4.0 * x2 + x3) / 6.0,
           (    y1 + 4.0 * y2 + y3) / 6.0,
           (4 * x2 + 2.0 * x3     ) / 6.0,
@@ -1890,7 +1446,7 @@ ensureSpace:
           (2 * x2 + 4.0 * x3     ) / 6.0,
           (2 * y2 + 4.0 * y3     ) / 6.0,
           lastx, lasty,
-          approximationScale);
+          approximationScale, 0.0, 0.0);
 
         v += 3;
         n -= 3;
@@ -1936,7 +1492,7 @@ err_t Path::dash(const Vector<double>& dashes, double startOffset, double approx
 
 err_t Path::dashTo(Path& dst, const Vector<double>& dashes, double startOffset, double approximationScale)
 {
-  if (type() != LineType)
+  if (getType() != LineType)
   {
     Path tmp;
     flattenTo(tmp, NULL, approximationScale);
@@ -3039,7 +2595,7 @@ err_t Path::stroke(const StrokeParams& strokeParams, double approximationScale)
 #if 1
 err_t Path::strokeTo(Path& dst, const StrokeParams& strokeParams, double approximationScale) const
 {
-  if (type() != LineType)
+  if (getType() != LineType)
   {
     Path tmp;
     flattenTo(tmp, NULL, approximationScale);

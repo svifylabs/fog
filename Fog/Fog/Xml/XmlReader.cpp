@@ -3,7 +3,7 @@
 // [Licence]
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #ifdef FOG_PRECOMP
 #include FOG_PRECOMP
 #endif
@@ -28,74 +28,6 @@ namespace Fog {
 // ============================================================================
 // [Fog::XmlReader - Helpers]
 // ============================================================================
-
-/*
-enum
-{
-  XML_CHAR_SPACE    = 0x01, // '\t''\r''\n'' '
-  XML_CHAR_EQUAL    = 0x02, // =
-  XML_CHAR_LT       = 0x04, // <
-  XML_CHAR_GT       = 0x08, // >
-  XML_CHAR_SLASH    = 0x10, // /
-  XML_CHAR_BRACKETS = 0x20, // []
-  XML_CHAR_QUOT     = 0x40, // '"
-  XML_CHAR_AND      = 0x80  // &
-};
-
-// Special xml characters.
-static const uint8_t xmlChars[128] = {
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 0
-  0x00, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, // 8
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 16
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 24
-  0x01, 0x00, 0x40, 0x00, 0x00, 0x00, 0x80, 0x40, // 32
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, // 40
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 48
-  0x00, 0x00, 0x00, 0x00, 0x04, 0x02, 0x08, 0x00, // 56
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 64
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 72
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 80
-  0x00, 0x00, 0x00, 0x20, 0x00, 0x20, 0x00, 0x00, // 88
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 96
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 104
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 112
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00  // 120
-};
-
-// Optimized strcspn for xml reading with mask instead of string
-static uint xmlStrCSPN(const Char32* buffer, const Char32* end, uint rejectMask)
-{
-  const Char32* start = buffer;
-
-  while (buffer < end)
-  {
-    if (buffer->ch() < 128 && (xmlChars[buffer->ch()] & rejectMask)) break;
-    buffer++;
-  }
-
-  return (sysuint_t)(buffer - start);
-}
-
-// Optimized strspn for xml reading with mask instead of string
-static uint xmlStrSPN(const Char32* buffer, const Char32* end, uint acceptMask)
-{
-  const Char32* start = buffer;
-
-  while (buffer < end)
-  {
-    if (*buffer > 127 || !(xmlChars[buffer->ch()] & acceptMask)) break;
-    buffer++;
-  }
-
-  return (sysuint_t)(buffer - start);
-}
-
-static const Char32* xmlStrCHR(const Char32* buffer, const Char32* end, Char32 uc)
-{
-  while (buffer < end && *buffer != uc) buffer++;
-  return buffer;
-}
-*/
 
 static bool xmlIsWhiteSpace(const Char32* buffer, const Char32* end)
 {
@@ -132,7 +64,7 @@ err_t XmlReader::parseStream(Stream& stream)
 {
   String8 buffer;
   stream.readAll(buffer);
-  return parseMemory(reinterpret_cast<const void*>(buffer.cData()), buffer.length());
+  return parseMemory(reinterpret_cast<const void*>(buffer.cData()), buffer.getLength());
 }
 
 err_t XmlReader::parseMemory(const void* mem, sysuint_t size)
@@ -144,7 +76,7 @@ err_t XmlReader::parseMemory(const void* mem, sysuint_t size)
   err_t err = textCodec.toUtf32(buffer, Stub8((const char*)mem, size));
   if (err) return err;
 
-  return parseString(buffer.cData(), buffer.length());
+  return parseString(buffer.cData(), buffer.getLength());
 }
 
 err_t XmlReader::parseString(const Char32* s, sysuint_t len)
@@ -202,8 +134,9 @@ cont:
           if (mark != strCur)
           {
             bool isWhiteSpace = xmlIsWhiteSpace(mark, strCur);
-            if ( (err = tempText.set(Utf32(mark, (sysuint_t)(strCur - mark))) ) ) goto end;
-            if ( (err = addText(tempText, isWhiteSpace)) ) goto end;
+
+            err = onAddText(Utf32(mark, (sysuint_t)(strCur - mark)), isWhiteSpace);
+            if (err) goto end;
           }
 
           state = StateTagBegin;
@@ -255,8 +188,8 @@ cont:
         depth++;
         element = ElementTag;
 
-        if ( (err = tempTagName.set(Utf32(markTagStart, (sysuint_t)(markTagEnd - markTagStart)))) ) goto end;
-        if ( (err = openElement(tempTagName)) ) goto end;
+        err = onAddElement(Utf32(markTagStart, (sysuint_t)(markTagEnd - markTagStart)));
+        if (err) goto end;
 
         // ... go through ...
 
@@ -341,9 +274,10 @@ cont:
         strCur++;
         state = StateTagInside;
 
-        if ( (err = tempAttrName.set(Utf32(markAttrStart, (sysuint_t)(markAttrEnd - markAttrStart)))) ) goto end;
-        if ( (err = tempAttrValue.set(Utf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart)))) ) goto end;
-        if ( (err = addAttribute(tempAttrName, tempAttrValue))) goto end;
+        err = onAddAttribute(
+          Utf32(markAttrStart, (sysuint_t)(markAttrEnd - markAttrStart)),
+          Utf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart)));
+        if (err) goto end;
 
         goto begin;
 
@@ -360,8 +294,8 @@ tagEnd:
           if (element == ElementSelfClosingTag)
           {
             depth--;
-            if ( (err = tempTagName.set(Utf32(markTagStart, (sysuint_t)(markTagEnd - markTagStart)))) ) goto end;
-            if ( (err = closeElement(tempTagName)) ) goto end;
+            err = onCloseElement(Utf32(markTagStart, (sysuint_t)(markTagEnd - markTagStart)));
+            if (err) goto end;
           }
 
           goto begin;
@@ -398,8 +332,8 @@ tagEnd:
           mark = ++strCur;
           depth--;
 
-          if ( (err = tempTagName.set(Utf32(markTagStart, (sysuint_t)(markTagEnd - markTagStart)))) ) goto end;
-          if ( (err = closeElement(tempTagName)) ) goto end;
+          err = onCloseElement(Utf32(markTagStart, (sysuint_t)(markTagEnd - markTagStart)));
+          if (err) goto end;
 
           goto begin;
         }
@@ -449,7 +383,7 @@ tagEnd:
       case StateDOCTYPE:
         if (ch.isSpace()) break;
 
-        if (doctype.length() < 2)
+        if (doctype.getLength() < 2)
         {
           if (ch.isAlpha() || ch == Char32('_'))
           {
@@ -465,7 +399,7 @@ tagEnd:
         {
           if (ch == Char32('\"'))
           {
-            if (doctype.length() < 4)
+            if (doctype.getLength() < 4)
             {
               state = StateDOCTYPEAttr;
               markDataStart = ++strCur;
@@ -480,7 +414,7 @@ tagEnd:
           if (ch == Char32('>'))
           {
 doctypeEnd:
-            if ((err = addDOCTYPE(doctype))) return err;
+            if ((err = onAddDOCTYPE(doctype))) return err;
             state = StateReady;
             mark = ++strCur;
             goto begin;
@@ -528,8 +462,8 @@ doctypeEnd:
           state = StateReady;
           mark = strCur;
 
-          if ( (err = tempData.set(Utf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart)))) ) goto end;
-          if ( (err = addPI(tempData)) ) goto end;
+          err = onAddPI(Utf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart)));
+          if (err) goto end;
 
           goto begin;
         }
@@ -557,8 +491,8 @@ doctypeEnd:
           state = StateReady;
           mark = strCur;
 
-          if ( (err = tempData.set(Utf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart)))) ) goto end;
-          if ( (err = addComment(tempData)) ) goto end;
+          err = onAddComment(Utf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart)));
+          if (err) goto end;
 
           goto begin;
         }
@@ -586,8 +520,8 @@ doctypeEnd:
           state = StateReady;
           mark = strCur;
 
-          if ( (err = tempData.set(Utf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart)))) ) goto end;
-          if ( (err = addCDATA(tempData)) ) goto end;
+          err = onAddCDATA(Utf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart)));
+          if (err) goto end;
 
           goto begin;
         }
@@ -695,9 +629,9 @@ XmlDomReader::~XmlDomReader()
 {
 }
 
-err_t XmlDomReader::openElement(const String32& tagName)
+err_t XmlDomReader::onAddElement(const Utf32& tagName)
 {
-  XmlElement* e = _document->createElement(tagName);
+  XmlElement* e = _document->createElement(ManagedString32(tagName));
   if (!e) return Error::OutOfMemory;
 
   err_t err = _current->appendChild(e);
@@ -713,11 +647,11 @@ err_t XmlDomReader::openElement(const String32& tagName)
   }
 }
 
-err_t XmlDomReader::closeElement(const String32& tagName)
+err_t XmlDomReader::onCloseElement(const Utf32& tagName)
 {
   if (_current != _document)
   {
-    _current = _current->parent();
+    _current = _current->getParent();
     return Error::Ok;
   }
   else
@@ -726,12 +660,12 @@ err_t XmlDomReader::closeElement(const String32& tagName)
   }
 }
 
-err_t XmlDomReader::addAttribute(const String32& name, const String32& value)
+err_t XmlDomReader::onAddAttribute(const Utf32& name, const Utf32& value)
 {
-  return _current->setAttribute(name, value);
+  return _current->setAttribute(ManagedString32(name), String32(value));
 }
 
-err_t XmlDomReader::addText(const String32& data, bool isWhiteSpace)
+err_t XmlDomReader::onAddText(const Utf32& data, bool isWhiteSpace)
 {
   if (_current == _document)
   {
@@ -741,7 +675,7 @@ err_t XmlDomReader::addText(const String32& data, bool isWhiteSpace)
       return Error::XmlReaderSyntaxError;
   }
 
-  XmlElement* e = new(std::nothrow) XmlText(data);
+  XmlElement* e = new(std::nothrow) XmlText(String32(data));
   if (!e) return Error::OutOfMemory;
 
   err_t err = _current->appendChild(e);
@@ -749,11 +683,11 @@ err_t XmlDomReader::addText(const String32& data, bool isWhiteSpace)
   return err;
 }
 
-err_t XmlDomReader::addCDATA(const String32& data)
+err_t XmlDomReader::onAddCDATA(const Utf32& data)
 {
   if (_current == _document) return Error::XmlDomDocumentInvalidChild;
 
-  XmlElement* e = new(std::nothrow) XmlCDATA(data);
+  XmlElement* e = new(std::nothrow) XmlCDATA(String32(data));
   if (!e) return Error::OutOfMemory;
 
   err_t err = _current->appendChild(e);
@@ -761,7 +695,7 @@ err_t XmlDomReader::addCDATA(const String32& data)
   return err;
 }
 
-err_t XmlDomReader::addDOCTYPE(const Vector<String32>& doctype)
+err_t XmlDomReader::onAddDOCTYPE(const Vector<String32>& doctype)
 {
   if (_current != _document) return Error::XmlDomDocumentInvalidChild;
 
@@ -771,9 +705,9 @@ err_t XmlDomReader::addDOCTYPE(const Vector<String32>& doctype)
   return Error::Ok;
 }
 
-err_t XmlDomReader::addPI(const String32& data)
+err_t XmlDomReader::onAddPI(const Utf32& data)
 {
-  XmlElement* e = new(std::nothrow) XmlPI(data);
+  XmlElement* e = new(std::nothrow) XmlPI(String32(data));
   if (!e) return Error::OutOfMemory;
 
   err_t err = _current->appendChild(e);
@@ -781,9 +715,9 @@ err_t XmlDomReader::addPI(const String32& data)
   return err;
 }
 
-err_t XmlDomReader::addComment(const String32& data)
+err_t XmlDomReader::onAddComment(const Utf32& data)
 {
-  XmlElement* e = new(std::nothrow) XmlComment(data);
+  XmlElement* e = new(std::nothrow) XmlComment(String32(data));
   if (!e) return Error::OutOfMemory;
 
   err_t err = _current->appendChild(e);

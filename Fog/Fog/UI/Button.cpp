@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
@@ -32,25 +32,25 @@ Button::~Button()
 
 void Button::onPaint(PaintEvent* e)
 {
-  Painter* p = e->painter();
+  Painter* p = e->getPainter();
 
-  Rect bounds(0, 0, width(), height());
+  Rect bounds(0, 0, getWidth(), getHeight());
   PainterUtil::draw3dRect(p, bounds, 0xFFFFFFFF, 0xFF000000, isDown());
 
   bounds.shrink(1);
 
   Pattern pat;
-  pat.setType(Pattern::LinearGradient);
-  pat.setSpread(Pattern::PadSpread);
+  pat.setType(Pattern::TypeLinearGradient);
+  pat.setSpread(Pattern::SpreadPad);
 
   if (!isDown())
   {
     pat.setStartPoint(Point(0, 0));
-    pat.setEndPoint(Point(0, height()));
+    pat.setEndPoint(Point(0, getHeight()));
   }
   else
   {
-    pat.setStartPoint(Point(0, height()));
+    pat.setStartPoint(Point(0, getHeight()));
     pat.setEndPoint(Point(0, 0));
   }
 

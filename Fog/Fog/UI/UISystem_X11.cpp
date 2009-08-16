@@ -38,7 +38,7 @@ namespace Fog {
 // ============================================================================
 
 #define UI_SYSTEM() \
-  reinterpret_cast<UISystemX11*>(Application::instance()->uiSystem())
+  reinterpret_cast<UISystemX11*>(Application::getInstance()->getUiSystem())
 
 // ============================================================================
 // [Fog::UISystemX11 - Error]
@@ -827,7 +827,7 @@ err_t UISystemX11::loadLibraries()
   if (_xlib.open(Ascii8("X11")) != Error::Ok)
     return Error::UISystemX11_CantLoadX11;
 
-  if (_xlib.symbols(xlibFunctions,
+  if (_xlib.getSymbols(xlibFunctions,
     X11_xlibFunctionNames, FOG_ARRAY_SIZE(X11_xlibFunctionNames),
     XlibFunctionsCount,
     (char**)NULL) != XlibFunctionsCount)
@@ -839,7 +839,7 @@ err_t UISystemX11::loadLibraries()
   if (_xext.open(Ascii8("Xext")) != Error::Ok)
     return Error::UISystemX11_CantLoadXext;
 
-  if (_xext.symbols(xextFunctions,
+  if (_xext.getSymbols(xextFunctions,
     X11_xextFunctionNames, FOG_ARRAY_SIZE(X11_xextFunctionNames),
     XextFunctionsCount,
     (char**)NULL) != XextFunctionsCount)
@@ -851,7 +851,7 @@ err_t UISystemX11::loadLibraries()
   if (_xrender.open(Ascii8("Xrender")) != Error::Ok)
     return Error::UISystemX11_CantLoadXrender;
 
-  if (_xrender.symbols(xrenderFunctions,
+  if (_xrender.getSymbols(xrenderFunctions,
     X11_xrenderFunctionNames, FOG_ARRAY_SIZE(X11_xrenderFunctionNames),
     XrenderFunctionsCount,
     (char**)NULL) != XrenderFunctionsCount)
@@ -891,10 +891,10 @@ err_t UIWindowX11::create(uint32_t createFlags)
   Display* display = uiSystem->display();
   Atom* atoms = uiSystem->atoms();
 
-  int x = _widget->x1();
-  int y = _widget->y1();
-  int w = _widget->width();
-  int h = _widget->height();
+  int x = _widget->getX();
+  int y = _widget->getY();
+  int w = _widget->getWidth();
+  int h = _widget->getHeight();
 
   if (w == 0) w++;
   if (h == 0) h++;
@@ -1058,7 +1058,7 @@ err_t UIWindowX11::move(const Point& pt)
 {
   if (!_handle) return Error::InvalidHandle;
 
-  if (_windowRect.x1() != pt.x() || _windowRect.y1() != pt.y())
+  if (_windowRect.getX() != pt.getX() || _windowRect.getY() != pt.getY())
   {
     UISystemX11* uiSystem = UI_SYSTEM();
 
@@ -1066,7 +1066,7 @@ err_t UIWindowX11::move(const Point& pt)
     if ((_xflags & XFlag_Configured) == 0)
       setMoveableHints();
 
-    uiSystem->pXMoveWindow(uiSystem->display(), (XID)handle(), pt.x(), pt.y());
+    uiSystem->pXMoveWindow(uiSystem->display(), (XID)handle(), pt.getX(), pt.getY());
   }
 
   return Error::Ok;
@@ -1075,13 +1075,13 @@ err_t UIWindowX11::move(const Point& pt)
 err_t UIWindowX11::resize(const Size& size)
 {
   if (!_handle) return Error::InvalidHandle;
-  if (size.width() <= 0 || size.height() <= 0) return Error::InvalidArgument;
+  if (size.getWidth() <= 0 || size.getHeight() <= 0) return Error::InvalidArgument;
 
-  if (_windowRect.size() != size)
+  if (_windowRect.getSize() != size)
   {
     UISystemX11* uiSystem = UI_SYSTEM();
     uiSystem->pXResizeWindow(uiSystem->display(), (XID)handle(),
-      (uint)size.width(), (uint)size.height());
+      (uint)size.getWidth(), (uint)size.getHeight());
   }
 
   return Error::Ok;
@@ -1100,10 +1100,10 @@ err_t UIWindowX11::reconfigure(const Rect& rect)
 
     UISystemX11* uiSystem = UI_SYSTEM();
     uiSystem->pXMoveResizeWindow(uiSystem->display(), (XID)handle(),
-      rect.x1(),
-      rect.y1(),
-      rect.width(),
-      rect.height());
+      rect.getX(),
+      rect.getY(),
+      rect.getWidth(),
+      rect.getHeight());
   }
 
   return Error::Ok;
@@ -1181,8 +1181,8 @@ err_t UIWindowX11::setSizeGranularity(const Point& pt)
   XSizeHints hints;
   Memory::zero(&hints, sizeof(XSizeHints));
   hints.flags = PResizeInc;
-  hints.width_inc = pt.x();
-  hints.height_inc = pt.y();
+  hints.width_inc = pt.getX();
+  hints.height_inc = pt.getY();
 
   _sizeGranularity = pt;
 
@@ -1208,8 +1208,8 @@ err_t UIWindowX11::worldToClient(Point* coords)
   UISystemX11* uiSystem = UI_SYSTEM();
   bool ok = uiSystem->pXTranslateCoordinates(uiSystem->display(),
     uiSystem->root(), (XID)handle(),
-    coords->x(), coords->y(),
-    &coords->_x, &coords->_y,
+    coords->x, coords->y,
+    &coords->x, &coords->y,
     &childRet);
 
   return (ok) ? (err_t)Error::Ok : (err_t)Error::FailedToTranslateCoordinates;
@@ -1223,8 +1223,8 @@ err_t UIWindowX11::clientToWorld(Point* coords)
   UISystemX11* uiSystem = UI_SYSTEM();
   bool ok = uiSystem->pXTranslateCoordinates(uiSystem->display(),
     (XID)handle(), uiSystem->root(),
-    coords->x(), coords->y(),
-    &coords->_x, &coords->_y,
+    coords->x, coords->y,
+    &coords->x, &coords->y,
     &childRet);
 
   return (ok) ? (err_t)Error::Ok : (err_t)Error::FailedToTranslateCoordinates;
@@ -1277,8 +1277,8 @@ void UIWindowX11::onX11Event(XEvent* xe)
       Rect clientRect(
         0,
         0,
-        windowRect.width(),
-        windowRect.height());
+        windowRect.getWidth(),
+        windowRect.getHeight());
 
       onConfigure(windowRect, clientRect);
       break;
@@ -1339,7 +1339,7 @@ __keyPressNoXIC:
 
       key = uiSystem->translateXSym(xsym);
       onKeyPress(key, uiSystem->keyToModifier(key), xe->xkey.keycode,
-        Char32(unicode.length() == 1 ? unicode.at(0).ch() : 0));
+        Char32(unicode.getLength() == 1 ? unicode.at(0).ch() : 0));
       break;
     }
 
@@ -1653,8 +1653,8 @@ __tryImage:
 
     if (_type != TypeNone)
     {
-      _created = TimeTicks::now();
-      _expires = _created + TimeDelta::fromSeconds(15);
+      _createdTime = TimeTicks::now();
+      _expireTime = _createdTime + TimeDelta::fromSeconds(15);
 
       _format = Image::FormatRGB32;
 
@@ -1764,8 +1764,8 @@ void UIBackingStoreX11::updateRects(const Box* rects, sysuint_t count)
   {
     sysuint_t i;
 
-    int bufw = width();
-    int bufh = height();
+    int bufw = getWidth();
+    int bufh = getHeight();
 
     sysint_t dstStride = _stridePrimary;
     sysint_t srcStride = _strideSecondary;
@@ -1780,10 +1780,10 @@ void UIBackingStoreX11::updateRects(const Box* rects, sysuint_t count)
 
     for (i = 0; i != count; i++)
     {
-      int x1 = rects[i].x1();
-      int y1 = rects[i].y1();
-      int x2 = rects[i].x2();
-      int y2 = rects[i].y2();
+      int x1 = rects[i].getX1();
+      int y1 = rects[i].getY1();
+      int x2 = rects[i].getX2();
+      int y2 = rects[i].getY2();
 
       // Apply clip. In rare cases rectangles can contain bigger
       // coordinates that buffers are (reason can be resizing).
@@ -1835,10 +1835,10 @@ void UIBackingStoreX11::updateRects(const Box* rects, sysuint_t count)
   {
     for (sysuint_t i = 0; i != count; i++)
     {
-      int x = rects[i].x1();
-      int y = rects[i].y1();
-      uint w = uint(rects[i].width());
-      uint h = uint(rects[i].height());
+      int x = rects[i].getX();
+      int y = rects[i].getY();
+      uint w = uint(rects[i].getWidth());
+      uint h = uint(rects[i].getHeight());
 
       uiSystem->pXPutImage(
         uiSystem->display(),
@@ -1857,7 +1857,7 @@ void UIBackingStoreX11::blitRects(XID target, const Box* rects, sysuint_t count)
   UISystemX11* uiSystem = UI_SYSTEM();
   sysuint_t i;
 
-  switch (type())
+  switch (getType())
   {
     case TypeNone:
       break;
@@ -1867,10 +1867,10 @@ void UIBackingStoreX11::blitRects(XID target, const Box* rects, sysuint_t count)
     case TypeXImageWithPixmap:
       for (i = 0; i != count; i++)
       {
-        int x = rects[i].x1();
-        int y = rects[i].y1();
-        int w = rects[i].width();
-        int h = rects[i].height();
+        int x = rects[i].getX();
+        int y = rects[i].getY();
+        int w = rects[i].getWidth();
+        int h = rects[i].getHeight();
 
         uiSystem->pXCopyArea(
           uiSystem->display(),
@@ -1886,10 +1886,10 @@ void UIBackingStoreX11::blitRects(XID target, const Box* rects, sysuint_t count)
     case TypeXImage:
       for (i = 0; i != count; i++)
       {
-        int x = rects[i].x1();
-        int y = rects[i].y1();
-        int w = rects[i].width();
-        int h = rects[i].height();
+        int x = rects[i].getX();
+        int y = rects[i].getY();
+        int w = rects[i].getWidth();
+        int h = rects[i].getHeight();
 
         uiSystem->pXPutImage(
           uiSystem->display(),

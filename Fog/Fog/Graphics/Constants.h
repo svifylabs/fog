@@ -1377,7 +1377,9 @@ enum MatrixOrder
 enum FillMode
 {
   FillNonZero = 0,
-  FillEvenOdd = 1
+  FillEvenOdd = 1,
+
+  FillModeInvalid = 2
 };
 
 // ============================================================================
@@ -1388,8 +1390,10 @@ enum FillMode
 enum LineCap
 {
   LineCapButt = 0,
-  LineCapSquare,
-  LineCapRound
+  LineCapSquare = 1,
+  LineCapRound = 2,
+
+  LineCapInvalid = 3 
 };
 
 // ============================================================================
@@ -1400,10 +1404,12 @@ enum LineCap
 enum LineJoin
 {
   LineJoinMiter = 0,
-  LineJoinMiterRevert,
-  LineJoinRound,
-  LineJoinBevel,
-  LineJoinMiterRound
+  LineJoinMiterRevert = 1,
+  LineJoinRound = 2,
+  LineJoinBevel = 3,
+  LineJoinMiterRound = 4,
+
+  LineJoinInvalid = 5
 };
 
 // ============================================================================
@@ -1414,9 +1420,11 @@ enum LineJoin
 enum InnerJoin
 {
   InnerJoinBevel = 0,
-  InnerJoinMiter,
-  InnerJoinJag,
-  InnerJoinRound
+  InnerJoinMiter = 1,
+  InnerJoinJag = 2,
+  InnerJoinRound = 3,
+
+  InnerJoinInvalid = 4
 };
 
 // ============================================================================

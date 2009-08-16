@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #ifdef FOG_PRECOMP
 #include FOG_PRECOMP
 #endif
@@ -208,12 +208,12 @@ err_t Image::setDeep(const Image& other)
     return Error::Ok;
   }
 
-  if (width() == other.width() &&
-      height() == other.height() &&
-      depth() == other.depth())
+  if (getWidth() == other.getWidth() &&
+      getHeight() == other.getHeight() &&
+      getDepth() == other.getDepth())
   {
-    sysint_t bpl = width() * bytesPerPixel();
-    sysint_t h = height();
+    sysint_t bpl = getWidth() * getBytesPerPixel();
+    sysint_t h = getHeight();
     _d->format = other._d->format;
 
     uint8_t* dstCur = _d->first;
@@ -280,7 +280,7 @@ err_t Image::convert(int format)
   }
 
   // We can optimize converting if we can do conversion to current image data.
-  if (depth() == formatToDepth(format) && isDetached() && !isReadOnly())
+  if (getDepth() == formatToDepth(format) && isDetached() && !isReadOnly())
   {
     uint8_t* dstCur = _d->first;
     sysint_t dstStride = _d->stride;
@@ -313,11 +313,11 @@ err_t Image::convert(int format)
 err_t Image::to8Bit()
 {
   if (isEmpty()) return Error::Ok;
-  if (format() == FormatI8) return Error::Ok;
+  if (getFormat() == FormatI8) return Error::Ok;
 
   err_t err;
 
-  if (format() == FormatA8)
+  if (getFormat() == FormatA8)
   {
     if ((err = forceFormat(FormatI8))) return err;
     if ((err = setPalette(Palette::greyscale()))) return err;
@@ -327,8 +327,8 @@ err_t Image::to8Bit()
 
   Reduce reducer;
 
-  int w = width();
-  int h = height();
+  int w = getWidth();
+  int h = getHeight();
 
   Image i;
   if ( (err = i.create(w, h, FormatI8)) ) return err;
@@ -350,7 +350,7 @@ err_t Image::to8Bit()
       uint8_t* dstCur = dstBase;
       uint8_t* srcCur = srcBase;
 
-      switch (format())
+      switch (getFormat())
       {
         case FormatARGB32:
         case FormatPRGB32:
@@ -380,7 +380,7 @@ err_t Image::to8Bit()
 
     Raster::ConvertDither8Fn converter = NULL;
 
-    switch (format())
+    switch (getFormat())
     {
       case FormatARGB32:
       case FormatPRGB32:
@@ -410,8 +410,8 @@ err_t Image::to8Bit(const Palette& pal)
 
   err_t err;
 
-  int w = width();
-  int h = height();
+  int w = getWidth();
+  int h = getHeight();
 
   Image i;
   if ( (err = i.create(w, h, FormatI8)) ) return err;
@@ -425,7 +425,7 @@ err_t Image::to8Bit(const Palette& pal)
 
   int y, x;
 
-  switch (format())
+  switch (getFormat())
   {
     case FormatARGB32:
     case FormatPRGB32:
@@ -463,7 +463,7 @@ err_t Image::to8Bit(const Palette& pal)
       // Build lookup table.
       uint8_t table[256];
 
-      if (format() == FormatI8)
+      if (getFormat() == FormatI8)
       {
         for (y = 0; y < 256; y++)
         {
@@ -475,7 +475,7 @@ err_t Image::to8Bit(const Palette& pal)
       {
         for (y = 0; y < 256; y++)
         {
-          uint8_t c = _d->palette.at(y).grey();
+          uint8_t c = _d->palette.at(y).getGrey();
           table[y] = pal.findColor(c, c, c);
         }
       }
@@ -505,7 +505,7 @@ err_t Image::forceFormat(int format)
   if (format <= 0 || format >= FormatCount)
     return Error::InvalidArgument;
 
-  if (depth() != formatToDepth(format))
+  if (getDepth() != formatToDepth(format))
     return Error::InvalidArgument;
   
   if (_d->format == format)
@@ -599,7 +599,7 @@ static int image_setdib(
 void Image::getDibArgb32(int x, int y, sysint_t w, void* dst) const
 {
   Raster::ConvertPlainFn converter = NULL;
-  switch (format())
+  switch (getFormat())
   {
     case FormatARGB32: converter = Raster::functionMap->convert.memcpy32; break;
     case FormatPRGB32: converter = Raster::functionMap->convert.argb32_from_prgb32; break;
@@ -614,7 +614,7 @@ void Image::getDibArgb32(int x, int y, sysint_t w, void* dst) const
 void Image::getDibArgb32_bs(int x, int y, sysint_t w, void* dst) const
 {
   Raster::ConvertPlainFn converter = NULL;
-  switch (format())
+  switch (getFormat())
   {
     case FormatARGB32: converter = Raster::functionMap->convert.bswap32; break;
     case FormatPRGB32: converter = Raster::functionMap->convert.argb32_bs_from_prgb32; break;
@@ -629,7 +629,7 @@ void Image::getDibArgb32_bs(int x, int y, sysint_t w, void* dst) const
 void Image::setDibArgb32(int x, int y, sysint_t w, const void* src)
 {
   Raster::ConvertPlainFn converter = NULL;
-  switch (format())
+  switch (getFormat())
   {
     case FormatARGB32: converter = Raster::functionMap->convert.memcpy32; break;
     case FormatPRGB32: converter = Raster::functionMap->convert.prgb32_from_argb32; break;
@@ -644,7 +644,7 @@ void Image::setDibArgb32(int x, int y, sysint_t w, const void* src)
 void Image::setDibArgb32_bs(int x, int y, sysint_t w, const void* src)
 {
   Raster::ConvertPlainFn converter = NULL;
-  switch (format())
+  switch (getFormat())
   {
     case FormatARGB32: converter = Raster::functionMap->convert.bswap32; break;
     case FormatPRGB32: converter = Raster::functionMap->convert.prgb32_from_argb32_bs; break;
@@ -659,7 +659,7 @@ void Image::setDibArgb32_bs(int x, int y, sysint_t w, const void* src)
 void Image::getDibPrgb32(int x, int y, sysint_t w, void* dst) const
 {
   Raster::ConvertPlainFn converter = NULL;
-  switch (format())
+  switch (getFormat())
   {
     case FormatARGB32: converter = Raster::functionMap->convert.prgb32_from_argb32; break;
     case FormatPRGB32: converter = Raster::functionMap->convert.memcpy32; break;
@@ -674,7 +674,7 @@ void Image::getDibPrgb32(int x, int y, sysint_t w, void* dst) const
 void Image::getDibPrgb32_bs(int x, int y, sysint_t w, void* dst) const
 {
   Raster::ConvertPlainFn converter = NULL;
-  switch (format())
+  switch (getFormat())
   {
     case FormatARGB32: converter = Raster::functionMap->convert.prgb32_bs_from_argb32; break;
     case FormatPRGB32: converter = Raster::functionMap->convert.bswap32; break;
@@ -689,7 +689,7 @@ void Image::getDibPrgb32_bs(int x, int y, sysint_t w, void* dst) const
 void Image::setDibPrgb32(int x, int y, sysint_t w, const void* src)
 {
   Raster::ConvertPlainFn converter = NULL;
-  switch (format())
+  switch (getFormat())
   {
     case FormatARGB32: converter = Raster::functionMap->convert.argb32_from_prgb32; break;
     case FormatPRGB32: converter = Raster::functionMap->convert.memcpy32; break;
@@ -704,7 +704,7 @@ void Image::setDibPrgb32(int x, int y, sysint_t w, const void* src)
 void Image::setDibPrgb32_bs(int x, int y, sysint_t w, const void* src)
 {
   Raster::ConvertPlainFn converter = NULL;
-  switch (format())
+  switch (getFormat())
   {
     case FormatARGB32: converter = Raster::functionMap->convert.argb32_from_prgb32_bs; break;
     case FormatPRGB32: converter = Raster::functionMap->convert.bswap32; break;
@@ -719,7 +719,7 @@ void Image::setDibPrgb32_bs(int x, int y, sysint_t w, const void* src)
 void Image::getDibRgb24(int x, int y, sysint_t w, void* dst) const
 {
   Raster::ConvertPlainFn converter = NULL;
-  switch (format())
+  switch (getFormat())
   {
     case FormatARGB32:
     case FormatPRGB32:
@@ -734,7 +734,7 @@ void Image::getDibRgb24(int x, int y, sysint_t w, void* dst) const
 void Image::getDibRgb24_bs(int x, int y, sysint_t w, void* dst) const
 {
   Raster::ConvertPlainFn converter = NULL;
-  switch (format())
+  switch (getFormat())
   {
     case FormatARGB32:
     case FormatPRGB32:
@@ -749,7 +749,7 @@ void Image::getDibRgb24_bs(int x, int y, sysint_t w, void* dst) const
 void Image::setDibRgb24(int x, int y, sysint_t w, const void* src)
 {
   Raster::ConvertPlainFn converter = NULL;
-  switch (format())
+  switch (getFormat())
   {
     case FormatARGB32:
     case FormatPRGB32:
@@ -764,7 +764,7 @@ void Image::setDibRgb24(int x, int y, sysint_t w, const void* src)
 void Image::setDibRgb24_bs(int x, int y, sysint_t w, const void* src)
 {
   Raster::ConvertPlainFn converter = NULL;
-  switch (format())
+  switch (getFormat())
   {
     case FormatARGB32:
     case FormatPRGB32:
@@ -779,7 +779,7 @@ void Image::setDibRgb24_bs(int x, int y, sysint_t w, const void* src)
 void Image::getDibRgb16_555(int x, int y, sysint_t w, void* dst) const
 {
   Raster::ConvertPlainFn converter = NULL;
-  switch (format())
+  switch (getFormat())
   {
     case FormatARGB32:
     case FormatPRGB32:
@@ -794,7 +794,7 @@ void Image::getDibRgb16_555(int x, int y, sysint_t w, void* dst) const
 void Image::getDibRgb16_555_bs(int x, int y, sysint_t w, void* dst) const
 {
   Raster::ConvertPlainFn converter = NULL;
-  switch (format())
+  switch (getFormat())
   {
     case FormatARGB32:
     case FormatPRGB32:
@@ -809,7 +809,7 @@ void Image::getDibRgb16_555_bs(int x, int y, sysint_t w, void* dst) const
 void Image::setDibRgb16_555(int x, int y, sysint_t w, const void* src)
 {
   Raster::ConvertPlainFn converter = NULL;
-  switch (format())
+  switch (getFormat())
   {
     case FormatARGB32:
     case FormatPRGB32:
@@ -824,7 +824,7 @@ void Image::setDibRgb16_555(int x, int y, sysint_t w, const void* src)
 void Image::setDibRgb16_555_bs(int x, int y, sysint_t w, const void* src)
 {
   Raster::ConvertPlainFn converter = NULL;
-  switch (format())
+  switch (getFormat())
   {
     case FormatARGB32:
     case FormatPRGB32:
@@ -839,7 +839,7 @@ void Image::setDibRgb16_555_bs(int x, int y, sysint_t w, const void* src)
 void Image::getDibRgb16_565(int x, int y, sysint_t w, void* dst) const
 {
   Raster::ConvertPlainFn converter = NULL;
-  switch (format())
+  switch (getFormat())
   {
     case FormatARGB32:
     case FormatPRGB32:
@@ -854,7 +854,7 @@ void Image::getDibRgb16_565(int x, int y, sysint_t w, void* dst) const
 void Image::getDibRgb16_565_bs(int x, int y, sysint_t w, void* dst) const
 {
   Raster::ConvertPlainFn converter = NULL;
-  switch (format())
+  switch (getFormat())
   {
     case FormatARGB32:
     case FormatPRGB32:
@@ -869,7 +869,7 @@ void Image::getDibRgb16_565_bs(int x, int y, sysint_t w, void* dst) const
 void Image::setDibRgb16_565(int x, int y, sysint_t w, const void* src)
 {
   Raster::ConvertPlainFn converter = NULL;
-  switch (format())
+  switch (getFormat())
   {
     case FormatARGB32:
     case FormatPRGB32:
@@ -884,7 +884,7 @@ void Image::setDibRgb16_565(int x, int y, sysint_t w, const void* src)
 void Image::setDibRgb16_565_bs(int x, int y, sysint_t w, const void* src)
 {
   Raster::ConvertPlainFn converter = NULL;
-  switch (format())
+  switch (getFormat())
   {
     case FormatARGB32:
     case FormatPRGB32:
@@ -903,7 +903,7 @@ void Image::setDibRgb16_565_bs(int x, int y, sysint_t w, const void* src)
 err_t Image::swapRgb()
 {
   if (isEmpty()) return Error::Ok;
-  if (format() == FormatA8) return Error::Ok;
+  if (getFormat() == FormatA8) return Error::Ok;
 
   err_t err = detach();
   if (err) return err;
@@ -975,8 +975,8 @@ err_t Image::swapRgba()
   if (isEmpty()) return Error::Ok;
 
   // These formats have only alpha values
-  if (format() == FormatA8) return Error::Ok;
-  if (format() == FormatRGB24) return swapRgb();
+  if (getFormat() == FormatA8) return Error::Ok;
+  if (getFormat() == FormatRGB24) return swapRgb();
 
   err_t err = detach();
   if (err) return err;
@@ -1030,7 +1030,7 @@ err_t Image::swapRgba()
 
 err_t Image::premultiply()
 {
-  if (format() == FormatARGB32) 
+  if (getFormat() == FormatARGB32) 
     return convert(FormatPRGB32);
   else
     return Error::Ok;
@@ -1038,7 +1038,7 @@ err_t Image::premultiply()
 
 err_t Image::demultiply()
 {
-  if (format() == FormatPRGB32)
+  if (getFormat() == FormatPRGB32)
     return convert(FormatARGB32);
   else
     return Error::Ok;
@@ -1052,7 +1052,7 @@ err_t Image::invert(Image& dst, const Image& src, uint32_t invertMode)
 {
   if (invertMode >= 16) return Error::InvalidArgument;
 
-  int format = src.format();
+  int format = src.getFormat();
 
   // First check for some invertion flags in source image format.
   if (src.isEmpty() ||
@@ -1066,7 +1066,7 @@ err_t Image::invert(Image& dst, const Image& src, uint32_t invertMode)
   // Destination and source can share same data.
   err_t err;
   if (dst._d != src._d)
-    err = dst.create(src.width(), src.height(), format);
+    err = dst.create(src.getWidth(), src.getHeight(), format);
   else
     err = dst.detach();
   if (err) return err;
@@ -1355,11 +1355,11 @@ err_t Image::mirror(Image& dst, const Image& src, uint32_t mirrorMode)
   if (src.isEmpty() || mirrorMode == 0) return dst.set(src);
   if (mirrorMode >= 4) return Error::InvalidArgument;
 
-  int format = src.format();
+  int format = src.getFormat();
 
   err_t err;
   if (dst._d != src._d)
-    err = dst.create(src.width(), src.height(), format);
+    err = dst.create(src.getWidth(), src.getHeight(), format);
   else
     err = dst.detach();
   if (err) return err;
@@ -1376,7 +1376,7 @@ err_t Image::mirror(Image& dst, const Image& src, uint32_t mirrorMode)
   int w = dst_d->width;
   int h = dst_d->height;
 
-  int bpp = src.bytesPerPixel();
+  int bpp = src.getBytesPerPixel();
 
   MirrorFunc func;
 
@@ -1452,7 +1452,7 @@ err_t Image::rotate(Image& dst, const Image& src, uint32_t rotateMode)
   // Destination == source?
   if (&dst == &src) return rotate(dst, Image(src), rotateMode);
 
-  err_t err = dst.create(src.height(), src.width(), src.format());
+  err_t err = dst.create(src.getHeight(), src.getWidth(), src.getFormat());
   if (err) return err;
 
   Data* dst_d = dst._d;
@@ -1479,7 +1479,7 @@ err_t Image::rotate(Image& dst, const Image& src, uint32_t rotateMode)
   sysint_t srcInc1;
   sysint_t srcInc2;
 
-  sysint_t bpp = src.bytesPerPixel();
+  sysint_t bpp = src.getBytesPerPixel();
 
   if (rotateMode == Image::Rotate90)
   {
@@ -1545,24 +1545,24 @@ Image Image::extractChannel(uint32_t channel) const
   if ((channel & (channel-1)) != channel) return i;
 
   // Requested alpha channel on A8 image?
-  if (channel == ChannelAlpha && format() == FormatA8)
+  if (channel == ChannelAlpha && getFormat() == FormatA8)
   {
     i = *this;
     return i;
   }
 
   // Create image to hold 8 bit channel.
-  if (i.create(width(), height(), FormatA8) != Error::Ok) return i;
+  if (i.create(getWidth(), getHeight(), FormatA8) != Error::Ok) return i;
 
   // We treat images without alpha channel as full opacity images.
-  if (channel == ChannelAlpha && (format() == FormatRGB32 || format() == FormatRGB24))
+  if (channel == ChannelAlpha && (getFormat() == FormatRGB32 || getFormat() == FormatRGB24))
   {
     i.clear(0xFF);
     return i;
   }
 
   // We treat A8 images as 0xAA000000 data.
-  if (channel != ChannelAlpha && format() == FormatA8)
+  if (channel != ChannelAlpha && getFormat() == FormatA8)
   {
     i.clear(0x00);
     return i;
@@ -1579,7 +1579,7 @@ Image Image::extractChannel(uint32_t channel) const
   sysint_t srcStart = 0;
   sysint_t srcInc = _d->bytesPerPixel;
 
-  switch (format())
+  switch (getFormat())
   {
     case FormatARGB32:
     case FormatPRGB32:
@@ -1605,7 +1605,7 @@ Image Image::extractChannel(uint32_t channel) const
       break;
   }
 
-  if (format() != FormatI8)
+  if (getFormat() != FormatI8)
   {
     for (y = 0; y < h; y++, dstBuf += dstStride, srcBuf += srcStride)
     {
@@ -1645,14 +1645,14 @@ err_t Image::filter(const ImageFilter& f)
 
 err_t Image::filter(const ImageFilter& f, const Rect& r)
 {
-  int w = width();
-  int h = height();
+  int w = getWidth();
+  int h = getHeight();
 
   // Clip.
-  int x1 = Math::max(r.x(), 0);
-  int y1 = Math::max(r.y(), 0);
-  int x2 = Math::min(r.x(), w);
-  int y2 = Math::min(r.y(), h);
+  int x1 = Math::max(r.getX(), 0);
+  int y1 = Math::max(r.getY(), 0);
+  int x2 = Math::min(r.getX(), w);
+  int y2 = Math::min(r.getY(), h);
 
   if (x1 >= x2 || y1 >= y2) return Error::Ok;
 
@@ -1665,21 +1665,21 @@ err_t Image::filter(const ImageFilter& f, const Rect& r)
     err_t err = detach();
     if (err) return err;
 
-    return f.filterData(xFirst(), stride(), xFirst(), stride(), w, h, format());
+    return f.filterData(xFirst(), getStride(), xFirst(), getStride(), w, h, getFormat());
   }
 }
 
 err_t Image::filter(const ColorLut& lut)
 {
-  return filter(lut, Rect(0, 0, width(), height()));
+  return filter(lut, Rect(0, 0, getWidth(), getHeight()));
 }
 
 err_t Image::filter(const ColorLut& lut, const Rect& r)
 {
-  int x1 = r.x1();
-  int y1 = r.y1();
-  int x2 = r.x2();
-  int y2 = r.y2();
+  int x1 = r.getX1();
+  int y1 = r.getY1();
+  int x2 = r.getX2();
+  int y2 = r.getY2();
 
   int w = _d->width;
   int h = _d->height;
@@ -1696,10 +1696,10 @@ err_t Image::filter(const ColorLut& lut, const Rect& r)
   err_t err = detach();
   if (err) return err;
 
-  uint8_t* dstPixels = xScanline(y1) + x1 * bytesPerPixel();
-  sysint_t dstStride = stride();
+  uint8_t* dstPixels = xScanline(y1) + x1 * getBytesPerPixel();
+  sysint_t dstStride = getStride();
 
-  Raster::ColorLutFn converter = Raster::functionMap->filter.colorLut[format()];
+  Raster::ColorLutFn converter = Raster::functionMap->filter.colorLut[getFormat()];
   const ColorLut::Table* table = &lut._d->table;
 
   for (int y = y1; y < y2; y++, dstPixels += dstStride)
@@ -1712,15 +1712,15 @@ err_t Image::filter(const ColorLut& lut, const Rect& r)
 
 err_t Image::filter(const ColorMatrix& mat)
 {
-  return filter(mat, Rect(0, 0, width(), height()));
+  return filter(mat, Rect(0, 0, getWidth(), getHeight()));
 }
 
 err_t Image::filter(const ColorMatrix& mat, const Rect& r)
 {
-  int x1 = r.x1();
-  int y1 = r.y1();
-  int x2 = r.x2();
-  int y2 = r.y2();
+  int x1 = r.getX1();
+  int y1 = r.getY1();
+  int x2 = r.getX2();
+  int y2 = r.getY2();
 
   int w = _d->width;
   int h = _d->height;
@@ -1737,10 +1737,10 @@ err_t Image::filter(const ColorMatrix& mat, const Rect& r)
   err_t err = detach();
   if (err) return err;
 
-  uint8_t* dstPixels = xScanline(y1) + x1 * bytesPerPixel();
-  sysint_t dstStride = stride();
+  uint8_t* dstPixels = xScanline(y1) + x1 * getBytesPerPixel();
+  sysint_t dstStride = getStride();
 
-  Raster::ColorMatrixFn converter = Raster::functionMap->filter.colorMatrix[format()];
+  Raster::ColorMatrixFn converter = Raster::functionMap->filter.colorMatrix[getFormat()];
   uint32_t type = mat.type();
 
   for (int y = y1; y < y2; y++, dstPixels += dstStride)
@@ -1757,32 +1757,32 @@ err_t Image::filter(const ColorMatrix& mat, const Rect& r)
 
 err_t Image::clear(Rgba c0)
 {
-  return fillRect(Rect(0, 0, width(), height()), c0, CompositeSrc);
+  return fillRect(Rect(0, 0, getWidth(), getHeight()), c0, CompositeSrc);
 }
 
 err_t Image::drawPixel(const Point& pt, Rgba c0)
 {
-  if ((uint)pt.x() >= (uint)width() || (uint)pt.y() >= (uint)height())
+  if ((uint)pt.getX() >= (uint)getWidth() || (uint)pt.getY() >= (uint)getHeight())
     return Error::Ok;
 
   err_t err = detach();
   if (err) return err;
 
-  uint8_t* dstCur = _d->first + pt.y() * _d->stride;
+  uint8_t* dstCur = _d->first + pt.getY() * _d->stride;
 
-  switch (format())
+  switch (getFormat())
   {
     case FormatARGB32:
     case FormatPRGB32:
     case FormatRGB32:
-      Raster::PixFmt_ARGB32::store(dstCur + Raster::mul4(pt.x()), c0);
+      Raster::PixFmt_ARGB32::store(dstCur + Raster::mul4(pt.getX()), c0);
       break;
     case FormatRGB24:
-      Raster::PixFmt_RGB24::store(dstCur + Raster::mul3(pt.x()), c0);
+      Raster::PixFmt_RGB24::store(dstCur + Raster::mul3(pt.getX()), c0);
       break;
     case FormatA8:
     case FormatI8:
-      dstCur[Raster::mul1(pt.x())] = (uint8_t)c0;
+      dstCur[Raster::mul1(pt.getX())] = (uint8_t)c0;
       break;
   }
 
@@ -1825,7 +1825,7 @@ err_t Image::drawLine(const Point& pt0, const Point& pt1, Rgba c0, bool lastPoin
     return Error::Ok;
 
   Raster::BresenhamLineIterator line;
-  if (!line.initAndClip(pt0.x(), pt0.y(), pt1.x(), pt1.y(), 0, 0, width()-1, height()-1))
+  if (!line.initAndClip(pt0.getX(), pt0.getY(), pt1.getX(), pt1.getY(), 0, 0, getWidth()-1, getHeight()-1))
     return Error::Ok;
 
   err_t err = detach();
@@ -1834,7 +1834,7 @@ err_t Image::drawLine(const Point& pt0, const Point& pt1, Rgba c0, bool lastPoin
   sysint_t dstStride = _d->stride;
   uint8_t* dstCur = _d->first + line.y * dstStride;
 
-  switch (format())
+  switch (getFormat())
   {
     case FormatARGB32:
     case FormatPRGB32:
@@ -1862,10 +1862,10 @@ err_t Image::fillRect(const Rect& r, Rgba c0, int op)
 {
   if ((uint32_t)op >= CompositeCount) return Error::InvalidArgument;
 
-  int x1 = r.x1();
-  int y1 = r.y1();
-  int x2 = r.x2();
-  int y2 = r.y2();
+  int x1 = r.getX1();
+  int y1 = r.getY1();
+  int x2 = r.getX2();
+  int y2 = r.getY2();
 
   int w = _d->width;
   int h = _d->height;
@@ -1889,7 +1889,7 @@ err_t Image::fillRect(const Rect& r, Rgba c0, int op)
   if (err) return err;
 
   sysint_t dstStride = _d->stride;
-  uint8_t* dstCur = _d->first + y1 * dstStride + x1 * bytesPerPixel();
+  uint8_t* dstCur = _d->first + y1 * dstStride + x1 * getBytesPerPixel();
 
   Raster::Solid source;
   source.rgba = c0;
@@ -1914,7 +1914,7 @@ err_t Image::fillRect(const Rect& r, Rgba c0, int op)
 
 err_t Image::fillQGradient(const Rect& r, Rgba c0, Rgba c1, Rgba c2, Rgba c3, int op)
 {
-  if (format() == FormatI8) return Error::InvalidFunction;
+  if (getFormat() == FormatI8) return Error::InvalidFunction;
 
   // Optimized variants.
   if (c0 == c1 && c2 == c3) return fillVGradient(r, c0, c2, op);
@@ -1922,10 +1922,10 @@ err_t Image::fillQGradient(const Rect& r, Rgba c0, Rgba c1, Rgba c2, Rgba c3, in
 
   int i;
 
-  int x1 = r.x1();
-  int y1 = r.y1();
-  int x2 = r.x2();
-  int y2 = r.y2();
+  int x1 = r.getX1();
+  int y1 = r.getY1();
+  int x2 = r.getX2();
+  int y2 = r.getY2();
 
   int w = _d->width;
   int h = _d->height;
@@ -1953,7 +1953,7 @@ err_t Image::fillQGradient(const Rect& r, Rgba c0, Rgba c1, Rgba c2, Rgba c3, in
   if (err) return err;
 
   sysint_t dstStride = _d->stride;
-  uint8_t* dstCur = _d->first + y1 * dstStride + x1 * bytesPerPixel();
+  uint8_t* dstCur = _d->first + y1 * dstStride + x1 * getBytesPerPixel();
 
   MemoryBuffer<512> memStorage;
   uint8_t* mem = (uint8_t*)memStorage.alloc(h * 2 * sizeof(uint32_t) + w * sizeof(uint32_t));
@@ -2014,15 +2014,15 @@ err_t Image::fillQGradient(const Rect& r, Rgba c0, Rgba c1, Rgba c2, Rgba c3, in
 
 err_t Image::fillHGradient(const Rect& r, Rgba c0, Rgba c1, int op)
 {
-  if (format() == FormatI8) return Error::InvalidFunction;
+  if (getFormat() == FormatI8) return Error::InvalidFunction;
   if (c0 == c1) return fillRect(r, c0, op);
 
   int i;
 
-  int x1 = r.x1();
-  int y1 = r.y1();
-  int x2 = r.x2();
-  int y2 = r.y2();
+  int x1 = r.getX1();
+  int y1 = r.getY1();
+  int x2 = r.getX2();
+  int y2 = r.getY2();
 
   int w = _d->width;
   int h = _d->height;
@@ -2047,7 +2047,7 @@ err_t Image::fillHGradient(const Rect& r, Rgba c0, Rgba c1, int op)
   if (err) return err;
 
   sysint_t dstStride = _d->stride;
-  uint8_t* dstCur = _d->first + y1 * dstStride + x1 * bytesPerPixel();
+  uint8_t* dstCur = _d->first + y1 * dstStride + x1 * getBytesPerPixel();
 
   MemoryBuffer<512> memStorage;
   uint8_t* shade0 = (uint8_t*)memStorage.alloc(w * sizeof(uint32_t));
@@ -2076,15 +2076,15 @@ err_t Image::fillHGradient(const Rect& r, Rgba c0, Rgba c1, int op)
 
 err_t Image::fillVGradient(const Rect& r, Rgba c0, Rgba c1, int op)
 {
-  if (format() == FormatI8) return Error::InvalidFunction;
+  if (getFormat() == FormatI8) return Error::InvalidFunction;
   if (c0 == c1) return fillRect(r, c0, op);
 
   int i;
 
-  int x1 = r.x1();
-  int y1 = r.y1();
-  int x2 = r.x2();
-  int y2 = r.y2();
+  int x1 = r.getX1();
+  int y1 = r.getY1();
+  int x2 = r.getX2();
+  int y2 = r.getY2();
 
   int w = _d->width;
   int h = _d->height;
@@ -2109,7 +2109,7 @@ err_t Image::fillVGradient(const Rect& r, Rgba c0, Rgba c1, int op)
   if (err) return err;
 
   sysint_t dstStride = _d->stride;
-  uint8_t* dstCur = _d->first + y1 * dstStride + x1 * bytesPerPixel();
+  uint8_t* dstCur = _d->first + y1 * dstStride + x1 * getBytesPerPixel();
 
   MemoryBuffer<512> memStorage;
   uint8_t* mem = (uint8_t*)memStorage.alloc(h * sizeof(uint32_t));
@@ -2247,8 +2247,8 @@ err_t Image::drawImage(const Point& pt, const Image& src, uint32_t op, uint32_t 
   int w = dst_d->width;
   int h = dst_d->height;
 
-  int x1 = pt.x();
-  int y1 = pt.y();
+  int x1 = pt.getX();
+  int y1 = pt.getY();
   int x2 = x1 + src_d->width;
   int y2 = y1 + src_d->height;
 
@@ -2262,7 +2262,7 @@ err_t Image::drawImage(const Point& pt, const Image& src, uint32_t op, uint32_t 
   err_t err = detach();
   if (err) return err;
 
-  return _blitImage(_d, x1, y1, src_d, x1 - pt.x(), y1 - pt.y(), x2 - x1, y2 - y1, op, opacity);
+  return _blitImage(_d, x1, y1, src_d, x1 - pt.getX(), y1 - pt.getY(), x2 - x1, y2 - y1, op, opacity);
 }
 
 err_t Image::drawImage(const Point& pt, const Image& src, const Rect& srcRect, uint32_t op, uint32_t opacity)
@@ -2274,10 +2274,10 @@ err_t Image::drawImage(const Point& pt, const Image& src, const Rect& srcRect, u
   Data* dst_d = _d;
   Data* src_d = src._d;
 
-  int srcX1 = srcRect.x1();
-  int srcY1 = srcRect.y1();
-  int srcX2 = srcRect.x2();
-  int srcY2 = srcRect.y2();
+  int srcX1 = srcRect.getX1();
+  int srcY1 = srcRect.getY1();
+  int srcX2 = srcRect.getX2();
+  int srcY2 = srcRect.getY2();
 
   if (srcX1 < 0) srcX1 = 0;
   if (srcY1 < 0) srcY1 = 0;
@@ -2286,8 +2286,8 @@ err_t Image::drawImage(const Point& pt, const Image& src, const Rect& srcRect, u
 
   if (srcX1 >= srcX2 || srcY1 >= srcY2) return Error::Ok;
 
-  int dstX1 = pt.x() + (srcX1 - srcRect.x1());
-  int dstY1 = pt.y() + (srcY1 - srcRect.y1());
+  int dstX1 = pt.getX() + (srcX1 - srcRect.getX1());
+  int dstY1 = pt.getY() + (srcY1 - srcRect.getY1());
   int dstX2 = dstX1 + (srcX2 - srcX1);
   int dstY2 = dstY1 + (srcY2 - srcY1);
 
@@ -2310,7 +2310,7 @@ err_t Image::drawImage(const Point& pt, const Image& src, const Rect& srcRect, u
 
 err_t Image::scroll(int scrollX, int scrollY)
 {
-  return scroll(scrollX, scrollY, Rect(0, 0, width(), height()));
+  return scroll(scrollX, scrollY, Rect(0, 0, getWidth(), getHeight()));
 }
 
 err_t Image::scroll(int scrollX, int scrollY, const Rect& r)
@@ -2319,10 +2319,10 @@ err_t Image::scroll(int scrollX, int scrollY, const Rect& r)
 
   Data* d = _d;
 
-  int x1 = r.x1();
-  int y1 = r.y1();
-  int x2 = r.x2();
-  int y2 = r.y2();
+  int x1 = r.getX1();
+  int y1 = r.getY1();
+  int x2 = r.getX2();
+  int y2 = r.getY2();
 
   if (x1 < 0) x1 = 0;
   if (y1 < 0) y1 = 0;
@@ -2487,7 +2487,7 @@ err_t Image::fromHBITMAP(HBITMAP hBitmap)
     dibi.bmiHeader.biCompression = BI_RGB;
     dibi.bmiHeader.biWidth = bm.bmWidth;
     dibi.bmiHeader.biHeight = bm.bmHeight;
-    dibi.bmiHeader.biBitCount = depth();
+    dibi.bmiHeader.biBitCount = getDepth();
     dibi.bmiHeader.biPlanes = 1;
     // GetDIBits(hdc, hBitmap, 0, 1, NULL, &dibi, DIB_RGB_COLORS);
 
@@ -2525,7 +2525,7 @@ err_t Image::readFile(const String32& fileName)
 
   if (mapfile.map(fileName, false) == Error::Ok)
   {
-    stream.openMemory((void*)mapfile.data(), mapfile.size(), Stream::OpenRead);
+    stream.openMemory((void*)mapfile.getData(), mapfile.getSize(), Stream::OpenRead);
     return readStream(stream, extension);
   }
   else

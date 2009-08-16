@@ -20,7 +20,7 @@ err_t getModuleFileName(HMODULE hModule, String32& dst)
 
   for (;;)
   {
-    DWORD capacity = (DWORD)t.capacity();
+    DWORD capacity = (DWORD)t.getCapacity();
     DWORD result = GetModuleFileNameW(hModule, (WCHAR*)t.mData(), capacity + 1);
 
     if (result == 0) return ::GetLastError();
@@ -32,7 +32,7 @@ err_t getModuleFileName(HMODULE hModule, String32& dst)
     }
     else
     {
-      t.reserve(t.capacity() << 1);
+      t.reserve(t.getCapacity() << 1);
     }
   }
 }

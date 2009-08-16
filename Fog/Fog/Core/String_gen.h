@@ -182,7 +182,7 @@ struct FOG_API __G_STRING
   __G_STRING(const Utf32& str);
 #endif // __G_SIZE 
 
-  __G_STRING(Data* d);
+  explicit FOG_INLINE __G_STRING(Data* d) : _d(d) {}
 
   ~__G_STRING();
 
@@ -208,7 +208,7 @@ struct FOG_API __G_STRING
   // [Flags]
   // --------------------------------------------------------------------------
 
-  //! @copydoc Doxygen::Implicit::flags().
+  //! @copydoc Doxygen::Implicit::getFlags().
   FOG_INLINE uint32_t flags() const { return _d->flags; }
   //! @copydoc Doxygen::Implicit::isNull().
   FOG_INLINE bool isNull() const { return (_d->flags & Data::IsNull) != 0; }
@@ -229,9 +229,9 @@ struct FOG_API __G_STRING
   // --------------------------------------------------------------------------
 
   //! @brief Returns count of allocated characters (capacity).
-  FOG_INLINE sysuint_t capacity() const { return _d->capacity; }
+  FOG_INLINE sysuint_t getCapacity() const { return _d->capacity; }
   //! @brief Returns count of used characters (length).
-  FOG_INLINE sysuint_t length() const { return _d->length; }
+  FOG_INLINE sysuint_t getLength() const { return _d->length; }
   //! @brief Returns @c true if string is empty (length == 0).
   FOG_INLINE bool isEmpty() const { return _d->length == 0; }
 
@@ -825,7 +825,7 @@ struct FOG_API __G_STRING
   // [Hash]
   // --------------------------------------------------------------------------
 
-  uint32_t toHashCode() const;
+  uint32_t getHashCode() const;
 
   // --------------------------------------------------------------------------
   // [Members]
@@ -862,34 +862,34 @@ struct __G_TEMPORARYSTRING : public __G_STRING
   }
 
   FOG_INLINE __G_TEMPORARYSTRING(const __G_STRING& other) :
-    __G_STRING(Data::adopt((void*)&_storage, N, AllocCanFail, other.cData(), other.length()))
+    __G_STRING(Data::adopt((void*)&_storage, N, AllocCanFail, other.cData(), other.getLength()))
   {
   }
 
   FOG_INLINE __G_TEMPORARYSTRING(const __G_TEMPORARYSTRING<N>& other) :
-    __G_STRING(Data::adopt((void*)&_storage, N, AllocCanFail, other.cData(), other.length()))
+    __G_STRING(Data::adopt((void*)&_storage, N, AllocCanFail, other.cData(), other.getLength()))
   {
   }
 
 #if __G_SIZE == 1
   FOG_INLINE __G_TEMPORARYSTRING(const Stub8& str) :
-    __G_STRING(Data::adopt((void*)&_storage, N, AllocCanFail, str.str(), str.length()))
+    __G_STRING(Data::adopt((void*)&_storage, N, AllocCanFail, str.getStr(), str.getLength()))
   {
   }
 #else
   FOG_INLINE __G_TEMPORARYSTRING(const Ascii8& str) :
-    __G_STRING(Data::adopt((void*)&_storage, N, AllocCanFail, str.str(), str.length()))
+    __G_STRING(Data::adopt((void*)&_storage, N, AllocCanFail, str.getStr(), str.getLength()))
   {
   }
 
 #if __G_SIZE == 2
   FOG_INLINE __G_TEMPORARYSTRING(const Utf16& str) :
-    __G_STRING(Data::adopt((void*)&_storage, N, AllocCanFail, str.str(), str.length()))
+    __G_STRING(Data::adopt((void*)&_storage, N, AllocCanFail, str.getStr(), str.getLength()))
   {
   }
 #else
   FOG_INLINE __G_TEMPORARYSTRING(const Utf32& str) :
-    __G_STRING(Data::adopt((void*)&_storage, N, AllocCanFail, str.str(), str.length()))
+    __G_STRING(Data::adopt((void*)&_storage, N, AllocCanFail, str.getStr(), str.getLength()))
   {
   }
 #endif // __G_SIZE
@@ -974,7 +974,7 @@ struct FOG_API __G_STRINGFILTER
 
   // [Filter Implementation]
 
-  virtual sysuint_t length() const;
+  virtual sysuint_t getLength() const;
 
   virtual Range match(
     const __G_CHAR* str, sysuint_t length,
@@ -1056,7 +1056,7 @@ struct FOG_API __G_STRINGMATCHER : public __G_STRINGFILTER
 
   // [Filter Implementation]
 
-  virtual sysuint_t length() const;
+  virtual sysuint_t getLength() const;
 
   virtual Range match(
     const __G_CHAR* str, sysuint_t length,

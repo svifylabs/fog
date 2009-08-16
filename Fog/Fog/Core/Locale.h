@@ -132,31 +132,31 @@ struct FOG_API Locale
 
   // [Data Getters]
 
-  FOG_INLINE Char32 decimalPoint() const
+  FOG_INLINE Char32 getDecimalPoint() const
   { return Char32(_d->decimalPoint); }
   
-  FOG_INLINE Char32 thousandsGroup() const
+  FOG_INLINE Char32 getThousandsGroup() const
   { return Char32(_d->thousandsGroup); }
   
-  FOG_INLINE Char32 zero() const
+  FOG_INLINE Char32 getZero() const
   { return Char32(_d->zero); }
   
-  FOG_INLINE Char32 plus() const
+  FOG_INLINE Char32 getPlus() const
   { return Char32(_d->plus); }
   
-  FOG_INLINE Char32 minus() const
+  FOG_INLINE Char32 getMinus() const
   { return Char32(_d->minus); }
   
-  FOG_INLINE Char32 space() const
+  FOG_INLINE Char32 getSpace() const
   { return Char32(_d->space); }
 
-  FOG_INLINE Char32 exponential() const
+  FOG_INLINE Char32 getExponential() const
   { return Char32(_d->exponential); }
   
-  FOG_INLINE uint32_t firstThousandsGroup() const
+  FOG_INLINE uint32_t getFirstThousandsGroup() const
   { return _d->firstThousandsGroup; }
   
-  FOG_INLINE uint32_t nextThousandsGroup() const
+  FOG_INLINE uint32_t getNextThousandsGroup() const
   { return _d->nextThousandsGroup; }
 
   // [Data Setters]

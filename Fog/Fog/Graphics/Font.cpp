@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #ifdef FOG_PRECOMP
 #include FOG_PRECOMP
 #endif
@@ -106,7 +106,7 @@ void FontCache::deleteAll()
   AutoLock locked(_lock);
   Hash<Entry, FontFace*>::MutableIterator it(_cache);
 
-  for (it.toBegin(); it.isValid(); it.remove()) it.value()->deref();
+  for (it.toStart(); it.isValid(); it.remove()) it.value()->deref();
 }
 
 // ============================================================================
@@ -235,7 +235,7 @@ err_t Font::set(const Font& other)
 
 err_t Font::getTextWidth(const String32& str, TextWidth* textWidth) const
 {
-  return _d->face->getTextWidth(str.cData(), str.length(), textWidth);
+  return _d->face->getTextWidth(str.cData(), str.getLength(), textWidth);
 }
 
 err_t Font::getTextWidth(const Char32* str, sysuint_t length, TextWidth* textWidth) const
@@ -451,7 +451,7 @@ FOG_INIT_DECLARE err_t fog_font_init(void)
 
 #if defined(FOG_OS_WINDOWS)
   // Add Windows standard font directory.
-  String32 winFonts = OS::windowsDirectory();
+  String32 winFonts = OS::getWindowsDirectory();
   FileUtil::joinPath(winFonts, winFonts, Ascii8("fonts"));
   font_local.instance().paths.append(winFonts);
 #endif // FOG_OS_WINDOWS

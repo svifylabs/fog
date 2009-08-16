@@ -78,7 +78,7 @@ namespace Fog {
 // ============================================================================
 
 #define UI_SYSTEM() \
-  reinterpret_cast<UISystemWin*>(Application::instance()->uiSystem())
+  reinterpret_cast<UISystemWin*>(Application::getInstance()->getUiSystem())
 
 static void hwndGetRect(HWND handle, Rect* out)
 {
@@ -842,13 +842,13 @@ err_t UIWindowWin::move(const Point& pt)
 {
   if (!_handle) return Error::InvalidHandle;
 
-  if (_windowRect.x1() != pt.x() || _windowRect.y1() != pt.y())
+  if ((_windowRect.getX() != pt.getX()) | (_windowRect.getY1() != pt.getY()))
   {
     MoveWindow((HWND)_handle,
-      pt.x(),
-      pt.y(), 
-      _windowRect.width(),
-      _windowRect.height(),
+      pt.getX(),
+      pt.getY(), 
+      _windowRect.getWidth(),
+      _windowRect.getHeight(),
       FALSE);
   }
 
@@ -858,15 +858,15 @@ err_t UIWindowWin::move(const Point& pt)
 err_t UIWindowWin::resize(const Size& size)
 {
   if (!_handle) return Error::InvalidHandle;
-  if (size.width() <= 0 || size.height() <= 0) return Error::InvalidArgument;
+  if ((size.getWidth() <= 0) | (size.getHeight() <= 0)) return Error::InvalidArgument;
 
-  if (_windowRect.size() != size)
+  if (_windowRect.getSize() != size)
   {
     MoveWindow((HWND)_handle,
-      _widget->x1(),
-      _widget->y1(),
-      size.width(),
-      size.height(),
+      _widget->getX(),
+      _widget->getY(),
+      size.getWidth(),
+      size.getHeight(),
       TRUE);
   }
 
@@ -881,10 +881,10 @@ err_t UIWindowWin::reconfigure(const Rect& rect)
   if (_windowRect != rect)
   {
     MoveWindow((HWND)_handle, 
-      rect.x1(),
-      rect.y1(),
-      rect.width(),
-      rect.height(),
+      rect.getX(),
+      rect.getY(),
+      rect.getWidth(),
+      rect.getHeight(),
       TRUE);
   }
 
@@ -1318,8 +1318,8 @@ bool UIBackingStoreWin::resize(int width, int height, bool cache)
 
     if (_type != TypeNone)
     {
-      _created = TimeTicks::now();
-      _expires = _created + TimeDelta::fromSeconds(15);
+      _createdTime = TimeTicks::now();
+      _expireTime = _createdTime + TimeDelta::fromSeconds(15);
 
       _format = Image::FormatRGB32;
 
@@ -1360,7 +1360,7 @@ void UIBackingStoreWin::blitRects(HDC target, const Box* rects, sysuint_t count)
 {
   sysuint_t i;
 
-  switch (type())
+  switch (getType())
   {
     case TypeNone:
       break;
@@ -1368,10 +1368,10 @@ void UIBackingStoreWin::blitRects(HDC target, const Box* rects, sysuint_t count)
     case TypeDIB:
       for (i = 0; i != count; i++)
       {
-        int x = rects[i].x1();
-        int y = rects[i].y1();
-        int w = rects[i].width();
-        int h = rects[i].height();
+        int x = rects[i].getX();
+        int y = rects[i].getY();
+        int w = rects[i].getWidth();
+        int h = rects[i].getHeight();
         
         BitBlt(target, x, y, w, h, _hdc, x, y, SRCCOPY);
       }

@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
@@ -56,7 +56,7 @@ static Fog::Static<Core_Object_Local> fog_object_local;
 FOG_CAPI_DECLARE void* fog_object_cast_helper(Fog::Object* self, const Fog::MetaClass* targetMetaClass)
 {
   FOG_ASSERT(self);
-  register const Fog::MetaClass* selfMetaClass = self->metaClass();
+  register const Fog::MetaClass* selfMetaClass = self->getMetaClass();
 
   for (;;)
   {
@@ -72,7 +72,7 @@ FOG_CAPI_DECLARE void* fog_object_cast_string(Fog::Object* self, const Fog::Char
 {
   FOG_ASSERT(self);
 
-  const Fog::MetaClass* metaClass = self->metaClass();
+  const Fog::MetaClass* metaClass = self->getMetaClass();
   uint32_t classHash = Fog::hashString(className, Fog::DetectLength);
 
   for (;;)
@@ -128,7 +128,7 @@ void Object::deleteLater()
 {
   if (!(_flags & PostedDeleteLaterEvent))
   {
-    if (!thread()) 
+    if (!getThread()) 
     {
       fog_stderr_msg("Fog::Object", "deleteLater", "Can't post DeleteLater event, because object thread has no event loop");
       return;
@@ -149,7 +149,7 @@ const MetaClass* Object::staticMetaClass()
   return &fog_object_local.instance().object_metaClass;
 }
 
-const MetaClass* Object::metaClass() const
+const MetaClass* Object::getMetaClass() const
 {
   return &fog_object_local.instance().object_metaClass;
 }
@@ -212,7 +212,7 @@ uint Object::removeListener(Object* listener)
 
   Hash<uint32_t, ObjectConnection*>::MutableIterator it(_connection);
 
-  for (it.toBegin(); it.isValid(); )
+  for (it.toStart(); it.isValid(); )
   {
     prev = NULL;
     conn = it.value();
@@ -264,7 +264,7 @@ uint Object::removeAllListeners()
 
   Hash<uint32_t, ObjectConnection*>::MutableIterator it(_connection);
 
-  for (it.toBegin(); it.isValid(); it.toNext())
+  for (it.toStart(); it.isValid(); it.toNext())
   {
     conn = it.value();
 
@@ -360,7 +360,7 @@ bool Object::_removeListener(uint32_t code, Object* listener, const void* del, u
 // TODO: Add removing possibility for currently called listeners
 void Object::_callListeners(Event* e)
 {
-  uint32_t code = e->code();
+  uint32_t code = e->getCode();
 
   ObjectConnection* conn = _connection.value(code);
   if (!conn) return;
@@ -377,7 +377,7 @@ void Object::_callListeners(Event* e)
 
 void Object::postEvent(Event* e)
 {
-  EventLoop* el = EventLoop::current();
+  EventLoop* el = EventLoop::getCurrent();
   
   if (el)
   {
@@ -429,7 +429,7 @@ void Object::sendEventById(uint32_t code)
 // but Fog::Object is exception.
 void Object::onEvent(Event* e)
 {
-  switch (e->code())
+  switch (e->getCode())
   {
     case Fog::EvCreate:
       onCreate(reinterpret_cast<CreateEvent*>(e));

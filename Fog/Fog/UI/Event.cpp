@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
@@ -123,7 +123,7 @@ SelectionEvent::SelectionEvent(uint32_t code) :
 PaintEvent::PaintEvent(uint32_t code) : 
   Event(code),
   _painter(NULL),
-  _parentPainted(0)
+  _isParentPainted(0)
 {
 }
 
@@ -142,7 +142,7 @@ CloseEvent::CloseEvent() :
 
 CheckEvent::CheckEvent(uint32_t code) : 
   Event(code),
-  _checked(code == EvCheck)
+  _status(code == EvCheck)
 {
 }
 

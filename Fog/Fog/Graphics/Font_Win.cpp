@@ -11,7 +11,7 @@
 #include <Fog/Core/Lock.h>
 #include <Fog/Core/Vector.h>
 
-#include <Fog/Graphics/AffineMatrix.h>
+#include <Fog/Graphics/Matrix.h>
 #include <Fog/Graphics/Geometry.h>
 #include <Fog/Graphics/Font_Win.h>
 #include <Fog/Graphics/Path.h>
@@ -114,10 +114,10 @@ FontFace* FontEngineWin::createFace(
   ZeroMemory(&logFont, sizeof(LOGFONT));
 
   _tfamily.set(family);
-  if (_tfamily.length() >= FOG_ARRAY_SIZE(logFont.lfFaceName)) goto fail;
+  if (_tfamily.getLength() >= FOG_ARRAY_SIZE(logFont.lfFaceName)) goto fail;
 
   CopyMemory(logFont.lfFaceName, _tfamily.cStrW(),
-    (_tfamily.length() + 1) * sizeof(WCHAR));
+    (_tfamily.getLength() + 1) * sizeof(WCHAR));
   logFont.lfHeight = -(int)size;
   logFont.lfWeight = (attributes.bold  ) ? FW_BOLD : FW_NORMAL;
   logFont.lfItalic = (attributes.italic) != 0;
@@ -174,7 +174,7 @@ static bool decompose_win32_glyph_outline(
   const uint8_t* gbuf,
   unsigned total_size,
   bool flip_y,
-  const AffineMatrix& mtx,
+  const Matrix& mtx,
   Path& path)
 {
   const uint8_t* cur_glyph = gbuf;
@@ -313,7 +313,7 @@ err_t FontFaceWin::getTextWidth(const Char32* str, sysuint_t length, TextWidth* 
   }
   else
   {
-    textWidth->advance = glyphSet.advance();
+    textWidth->advance = glyphSet.getAdvance();
     textWidth->beginWidth = 0;
     textWidth->endWidth = 0;
     return Error::Ok;
@@ -325,7 +325,7 @@ err_t FontFaceWin::getPath(const Char32* str, sysuint_t length, Path& dst)
   AutoLock locked(lock);
 
   err_t err = Error::Ok;
-  AffineMatrix matrix;
+  Matrix matrix;
 
   GLYPHMETRICS gm;
   ZeroMemory(&gm, sizeof(gm));

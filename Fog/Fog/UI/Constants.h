@@ -15,8 +15,12 @@
 
 namespace Fog {
 
-//! @brief Keys.
-enum KeyEnum
+// ============================================================================
+// [Fog::KeyCode]
+// ============================================================================
+
+//! @brief Key codes.
+enum KeyCode
 {
   KeyBackspace       = 8,
   KeyTab             = 9,
@@ -169,8 +173,12 @@ enum KeyEnum
   KeyAlt             = (1 << 31)
 };
 
-//! @brief Key modifiers.
-enum ModifierEnum
+// ============================================================================
+// [Fog::ModifierCode]
+// ============================================================================
+
+//! @brief Key modifier codes.
+enum ModifierCode
 {
   ModifierLeftShift    = 0x0001, //!< @brief Left shift.
   ModifierRightShift   = 0x0002, //!< @brief Right shift.
@@ -195,42 +203,6 @@ enum ModifierEnum
   ModifierMode         = 0x4000  //!< @brief Mode.
 };
 
-//! @brief Pointer buttons.
-enum ButtonEnum
-{
-  ButtonLeft           = 0x0001, //!< @brief Left button.
-  ButtonMiddle         = 0x0002, //!< @brief Middle button.
-  ButtonRight          = 0x0004, //!< @brief Right button.
-  ButtonInvalid        = 0xFFFF  //!< @brief Invalib button (used internally).
-};
-
-enum WheelEnum
-{
-  WheelUp              = 0x0008, //!< @brief Wheel up button.
-  WheelDown            = 0x0010  //!< @brief Wheel down button.
-};
-
-enum OrientationEnum
-{
-  OrientationHorizontal= 0,      //!< @brief Wheel down button.
-  OrientationVertical  = 1       //!< @brief Wheel up button.
-};
-
-enum CaretTypeEnum
-{
-  CaretTypeNormal      = 0,      //!< @brief Normal type of caret
-  CaretTypeOverwrite   = 1,      //!< @brief Overwrite type of caret.
-};
-
-enum FocusReasonEnum
-{
-  FocusReasonNone = 0,
-  FocusReasonMouse,
-  FocusReasonWheel,
-  FocusReasonTab,
-  FocusReasonBackTab
-};
-
 static FOG_INLINE bool isClearMod   (uint32_t mod) { return (mod & ModifierMask  ) == 0; }
 static FOG_INLINE bool isAltMod     (uint32_t mod) { return (mod & ModifierAlt   ) != 0; }
 static FOG_INLINE bool isAltOnly    (uint32_t mod) { return (mod & ModifierMask  ) == (mod & ModifierAlt); }
@@ -241,6 +213,73 @@ static FOG_INLINE bool isCtrlOnly   (uint32_t mod) { return (mod & ModifierMask 
 static FOG_INLINE bool isCapsLockMod(uint32_t mod) { return (mod & ModifierCaps  ) != 0; }
 static FOG_INLINE bool isNumLockMod (uint32_t mod) { return (mod & ModifierNum   ) != 0; }
 static FOG_INLINE bool isModeMod    (uint32_t mod) { return (mod & ModifierMode  ) != 0; }
+
+// ============================================================================
+// [Fog::ButtonCode]
+// ============================================================================
+
+//! @brief Mouse button codes.
+enum ButtonCode
+{
+  ButtonLeft           = 0x0001, //!< @brief Left button.
+  ButtonMiddle         = 0x0002, //!< @brief Middle button.
+  ButtonRight          = 0x0004, //!< @brief Right button.
+  ButtonInvalid        = 0xFFFF  //!< @brief Invalib button (used internally).
+};
+
+// ============================================================================
+// [Fog::WheelCode]
+// ============================================================================
+
+enum WheelCode
+{
+  WheelUp              = 0x0008, //!< @brief Wheel up button.
+  WheelDown            = 0x0010  //!< @brief Wheel down button.
+};
+
+// ============================================================================
+// [Fog::Orientation]
+// ============================================================================
+
+enum Orientation
+{
+  OrientationHorizontal= 0,      //!< @brief Wheel down button.
+  OrientationVertical  = 1       //!< @brief Wheel up button.
+};
+
+// ============================================================================
+// [Fog::CaretType]
+// ============================================================================
+
+enum CaretType
+{
+  CaretTypeNormal      = 0,      //!< @brief Normal type of caret
+  CaretTypeOverwrite   = 1,      //!< @brief Overwrite type of caret.
+};
+
+// ============================================================================
+// [Fog::FocusReason]
+// ============================================================================
+
+enum FocusReason
+{
+  FocusReasonNone = 0,
+  FocusReasonMouse,
+  FocusReasonWheel,
+  FocusReasonTab,
+  FocusReasonBackTab
+};
+
+// ============================================================================
+// [Fog::CheckedState]
+// ============================================================================
+
+enum CheckedState
+{
+  CheckedOff = 0,
+  CheckedOn = 1,
+  CheckedAlternate = 2
+};
 
 } // Fog namespace
 

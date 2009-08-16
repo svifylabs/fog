@@ -27,12 +27,12 @@ enum XmlError
   XmlDomManipulationNotAllowed,
   XmlDomTagChangeNotAllowed,
   XmlDomAttributesNotAllowed,
-  XmlDomAttributesAddRemoveNotAllowed,
   XmlDomNotATextNode,
   XmlDomAttributeNotFound,
   XmlDomInvalidAttribute,
   XmlDomCyclic,
   XmlDomInvalidChild,
+  XmlDomInvalidTagName,
   XmlDomDocumentHasAlreadyRoot,
 
   // [XmlReader Errors]

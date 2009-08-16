@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
@@ -138,7 +138,7 @@ struct OS_Local
 static Static<OS_Local> os_local;
 
 /*! @brief Returns the name of the host operating system. */
-String32 OS::name()
+String32 OS::getName()
 {
   String32 result;
 
@@ -155,7 +155,7 @@ String32 OS::name()
 }
 
 /*! @brief Returns the version of the host operating system. */
-String32 OS::version()
+String32 OS::getVersion()
 {
   String32 result;
 
@@ -172,7 +172,7 @@ String32 OS::version()
 }
 
 /*! @brief Return the number of bytes of physical memory on the current machine. */
-uint64_t OS::amountOfPhysicalMemory()
+uint64_t OS::getAmountOfPhysicalMemory()
 {
 #if defined(FOG_OS_WINDOWS)
   MEMORYSTATUSEX meminfo;
@@ -222,18 +222,18 @@ uint64_t OS::amountOfPhysicalMemory()
 }
 
 /*! @brief Return the number of megabytes of physical memory on the current machine. */
-uint32_t OS::amountOfPhysicalMemoryMB()
+uint32_t OS::getAmountOfPhysicalMemoryMB()
 {
-  return static_cast<uint32_t>(amountOfPhysicalMemory() / 1048576);
+  return static_cast<uint32_t>(getAmountOfPhysicalMemory() / 1048576);
 }
 
 #if defined (FOG_OS_WINDOWS)
-uint32_t OS::windowsVersion()
+uint32_t OS::getWindowsVersion()
 {
   return os_local->windowsVersion;
 }
 
-String32 OS::windowsDirectory()
+String32 OS::getWindowsDirectory()
 {
   return os_local->windowsDirectory;
 }
@@ -252,8 +252,8 @@ err_t OS::getEnv(const String32& name, String32& value)
 
   for (;;)
   {
-    sz = GetEnvironmentVariableW(nameW.cStrW(), valueW.mStrW(), valueW.capacity());
-    if (sz > valueW.capacity()) 
+    sz = GetEnvironmentVariableW(nameW.cStrW(), valueW.mStrW(), valueW.getCapacity());
+    if (sz > valueW.getCapacity()) 
     {
       if ((err = valueW.resize(sz)) == Error::Ok) continue;
     }

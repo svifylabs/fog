@@ -9,7 +9,7 @@
 // Author of AggOO (Chad M. Draper) agreed relicencing code to the MIT licence
 // that is used for Fog (original code was 3 clause BSD licence). Thanks.
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #ifdef FOG_PRECOMP
 #include FOG_PRECOMP
 #endif

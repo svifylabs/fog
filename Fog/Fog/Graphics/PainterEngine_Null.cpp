@@ -3,7 +3,7 @@
 // [Licence]
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #ifdef FOG_PRECOMP
 #include FOG_PRECOMP
 #endif
@@ -26,9 +26,9 @@ struct FOG_HIDDEN PainterEngine_Null : public PainterEngine
 
   // [Meta]
 
-  virtual int width() const { return 0; }
-  virtual int height() const { return 0; }
-  virtual int format() const { return Image::FormatNull; }
+  virtual int getWidth() const { return 0; }
+  virtual int getHeight() const { return 0; }
+  virtual int getFormat() const { return Image::FormatNull; }
 
   virtual void setMetaVariables(
     const Point& metaOrigin,
@@ -39,28 +39,28 @@ struct FOG_HIDDEN PainterEngine_Null : public PainterEngine
   virtual void setMetaOrigin(const Point& pt) {}
   virtual void setUserOrigin(const Point& pt) {}
 
+  virtual Point getMetaOrigin() const { return Point(0, 0); }
+  virtual Point getUserOrigin() const { return Point(0, 0); }
+
   virtual void translateMetaOrigin(const Point& pt) {}
   virtual void translateUserOrigin(const Point& pt) {}
 
   virtual void setUserRegion(const Rect& r) {}
   virtual void setUserRegion(const Region& r) {}
 
+  virtual Region getMetaRegion() const { return Region(); }
+  virtual Region getUserRegion() const { return Region(); }
+
+  virtual bool isMetaRegionUsed() const { return false; }
+  virtual bool isUserRegionUsed() const { return false; }
+
   virtual void resetMetaVars() {}
   virtual void resetUserVars() {}
 
-  virtual Point metaOrigin() const { return Point(0, 0); }
-  virtual Point userOrigin() const { return Point(0, 0); }
-
-  virtual Region metaRegion() const { return Region(); }
-  virtual Region userRegion() const { return Region(); }
-
-  virtual bool usedMetaRegion() const { return false; }
-  virtual bool usedUserRegion() const { return false; }
-
   // [Operator]
 
-  virtual void setOp(uint32_t op) {}
-  virtual uint32_t op() const { return 0; }
+  virtual void setOperator(uint32_t op) {}
+  virtual uint32_t getOperator() const { return 0; }
 
   // [Source]
 
@@ -72,39 +72,49 @@ struct FOG_HIDDEN PainterEngine_Null : public PainterEngine
 
   // [Parameters]
 
+  virtual void setLineParams(const LineParams& params) {}
+  virtual void getLineParams(LineParams& params) const
+  {
+    params.lineWidth = 1.0;
+    params.lineCap = LineCapSquare;
+    params.lineJoin = LineJoinMiter;
+    params.dashes.free(); 
+    params.dashOffset = 0.0;
+  }
+
   virtual void setLineWidth(double lineWidth) {}
-  virtual double lineWidth() const { return 0.0; }
+  virtual double getLineWidth() const { return 0.0; }
 
   virtual void setLineCap(uint32_t lineCap) {}
-  virtual uint32_t lineCap() const { return 0; }
+  virtual uint32_t getLineCap() const { return 0; }
 
   virtual void setLineJoin(uint32_t lineJoin) {}
-  virtual uint32_t lineJoin() const { return 0; }
+  virtual uint32_t getLineJoin() const { return 0; }
 
-  virtual void setLineDash(const double* dashes, sysuint_t count) {}
-  virtual void setLineDash(const Vector<double>& dashes) {}
-  virtual Vector<double> lineDash() const { return Vector<double>(); }
+  virtual void setDashes(const double* dashes, sysuint_t count) {}
+  virtual void setDashes(const Vector<double>& dashes) {}
+  virtual Vector<double> getDashes() const { return Vector<double>(); }
 
-  virtual void setLineDashOffset(double offset) {}
-  virtual double lineDashOffset() const { return 0.0; }
+  virtual void setDashOffset(double offset) {}
+  virtual double getDashOffset() const { return 0.0; }
 
   virtual void setMiterLimit(double miterLimit) {}
-  virtual double miterLimit() const { return 0.0; }
+  virtual double getMiterLimit() const { return 0.0; }
 
   virtual void setFillMode(uint32_t mode) {}
-  virtual uint32_t fillMode() { return FillNonZero; }
+  virtual uint32_t getFillMode() { return FillNonZero; }
 
   // [Transformations]
 
-  virtual void setMatrix(const AffineMatrix& m) {}
+  virtual void setMatrix(const Matrix& m) {}
   virtual void resetMatrix() {}
-  virtual AffineMatrix matrix() const { return AffineMatrix(); }
+  virtual Matrix getMatrix() const { return Matrix(); }
 
   virtual void rotate(double angle) {}
   virtual void scale(double sx, double sy) {}
   virtual void skew(double sx, double sy) {}
   virtual void translate(double x, double y) {}
-  virtual void affine(const AffineMatrix& m) {}
+  virtual void affine(const Matrix& m) {}
   virtual void parallelogram(double x1, double y1, double x2, double y2, const double* para) {}
   virtual void viewport(
     double worldX1,  double worldY1,  double worldX2,  double worldY2,

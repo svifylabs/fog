@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
@@ -192,19 +192,19 @@ void Library::close()
   AtomicBase::ptr_setXchg(&_d, sharedNull->refAlways())->deref();
 }
 
-void* Library::symbol(const char* symbolName)
+void* Library::getSymbol(const char* symbolName)
 {
   return platformLoadSymbol(_d->handle, symbolName);
 }
 
-void* Library::symbol(const String32& symbolName)
+void* Library::getSymbol(const String32& symbolName)
 {
   TemporaryString8<TemporaryLength> symb8;
   symb8.append(Utf32(symbolName), TextCodec::utf8());
   return platformLoadSymbol(_d->handle, symb8.cStr());
 }
 
-sysuint_t Library::symbols(void** target, const char* symbols, sysuint_t symbolsLength, sysuint_t symbolsCount, char** fail)
+sysuint_t Library::getSymbols(void** target, const char* symbols, sysuint_t symbolsLength, sysuint_t symbolsCount, char** fail)
 {
   sysuint_t i;
 

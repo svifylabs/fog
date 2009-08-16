@@ -45,17 +45,15 @@ struct FOG_API Application : public Object
   virtual void quit();
 
   //! @brief Return application event loop (can be NULL).
-  FOG_INLINE EventLoop* eventLoop() const { return _eventLoop; }
+  FOG_INLINE EventLoop* getEventLoop() const { return _eventLoop; }
 
   //! @brief Return application UI system (can be NULL).
-  FOG_INLINE UISystem* uiSystem() const { return _uiSystem; }
+  FOG_INLINE UISystem* getUiSystem() const { return _uiSystem; }
 
-  // [Application Directory / Command Line]
+  // [Application Executable / Arguments]
 
-  static err_t getApplicationExecutable(String32& dst);
-  static err_t getApplicationBaseName(String32& dst);
-  static err_t getApplicationDirectory(String32& dst);
-  static err_t getApplicationCommand(String32& dst);
+  static String32 getApplicationExecutable();
+  static Vector<String32> getApplicationArguments();
 
   // [Working Directory]
 
@@ -83,7 +81,7 @@ struct FOG_API Application : public Object
 
   // [UI / UISystem]
 
-  static FOG_INLINE Application* instance() { return _instance; }
+  static FOG_INLINE Application* getInstance() { return _instance; }
 
   static String32 detectUI();
   static UISystem* createUISystem(const String32& type);

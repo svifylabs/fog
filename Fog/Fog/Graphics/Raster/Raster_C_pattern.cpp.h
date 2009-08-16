@@ -143,24 +143,24 @@ static err_t FOG_FASTCALL pattern_texture_init(
   PatternContext* ctx, const Pattern& pattern)
 {
   Pattern::Data* d = pattern._d;
-  if (d->type != Pattern::Texture) return Error::InvalidArgument;
+  if (d->type != Pattern::TypeTexture) return Error::InvalidArgument;
   if (d->obj.texture->isEmpty()) return Error::ImageSizeIsZero;
 
   ctx->texture.texture.init(d->obj.texture.instance());
-  ctx->texture.dx = double_to_int(d->points[0].x());
-  ctx->texture.dy = double_to_int(d->points[0].y());
+  ctx->texture.dx = double_to_int(d->points[0].getX());
+  ctx->texture.dy = double_to_int(d->points[0].getY());
 
-  ctx->format = ctx->texture.texture->format();
-  ctx->depth = ctx->texture.texture->depth();
+  ctx->format = ctx->texture.texture->getFormat();
+  ctx->depth = ctx->texture.texture->getDepth();
   
   // Set fetch function.
   switch (d->spread)
   {
-    case Pattern::PadSpread:
-    case Pattern::RepeatSpread:
+    case Pattern::SpreadPad:
+    case Pattern::SpreadRepeat:
       ctx->fetch = functionMap->pattern.texture_fetch_repeat;
       break;
-    case Pattern::ReflectSpread:
+    case Pattern::SpreadReflect:
       ctx->fetch = functionMap->pattern.texture_fetch_reflect;
       break;
     default:
@@ -172,9 +172,9 @@ static err_t FOG_FASTCALL pattern_texture_init(
 
   // Copy texture variables into pattern context.
   ctx->texture.bits = ctx->texture.texture->cData();
-  ctx->texture.stride = ctx->texture.texture->stride();
-  ctx->texture.w = ctx->texture.texture->width();
-  ctx->texture.h = ctx->texture.texture->height();
+  ctx->texture.stride = ctx->texture.texture->getStride();
+  ctx->texture.w = ctx->texture.texture->getWidth();
+  ctx->texture.h = ctx->texture.texture->getHeight();
 
   ctx->initialized = true;
   return Error::Ok;
@@ -202,7 +202,7 @@ static void FOG_FASTCALL gradient_stops(
   // Sanity check.
   FOG_ASSERT(w <= size || offset <= (size - w));
 
-  sysint_t count = (sysint_t)stops.length();
+  sysint_t count = (sysint_t)stops.getLength();
   sysint_t end = offset + w;
 
   if (count == 0 || w == 0) return;
@@ -473,16 +473,16 @@ static err_t FOG_FASTCALL pattern_linear_gradient_init(
   PatternContext* ctx, const Pattern& pattern)
 {
   Pattern::Data* d = pattern._d;
-  if (d->type != Pattern::LinearGradient) return Error::InvalidArgument;
+  if (d->type != Pattern::TypeLinearGradient) return Error::InvalidArgument;
 
-  double dxd = Math::abs(d->points[1].x() - d->points[0].x());
-  double dyd = Math::abs(d->points[1].y() - d->points[0].y());
+  double dxd = Math::abs(d->points[1].getX() - d->points[0].getX());
+  double dyd = Math::abs(d->points[1].getY() - d->points[0].getY());
   double sqrtxxyy = sqrt(dxd * dxd + dyd * dyd);
 
   int64_t dx = double_to_fixed48x16(dxd);
   int64_t dy = double_to_fixed48x16(dyd);
   int64_t dmax = Math::max(dx, dy);
-  sysint_t maxSize = d->obj.gradientStops->length() * 256;
+  sysint_t maxSize = d->obj.gradientStops->getLength() * 256;
 
   sysint_t gLength = (sysint_t)((dmax >> 16) << 2);
 
@@ -491,30 +491,30 @@ static err_t FOG_FASTCALL pattern_linear_gradient_init(
 
   double scale = gLength ? sqrtxxyy / (double)gLength : 1;
 
-  ctx->linearGradient.dx = double_to_fixed48x16(d->points[0].x());
-  ctx->linearGradient.dy = double_to_fixed48x16(d->points[0].y());
+  ctx->linearGradient.dx = double_to_fixed48x16(d->points[0].getX());
+  ctx->linearGradient.dy = double_to_fixed48x16(d->points[0].getY());
 
   ctx->linearGradient.ax = double_to_fixed48x16(dxd / (scale * sqrtxxyy));
   ctx->linearGradient.ay = double_to_fixed48x16(dyd / (scale * sqrtxxyy));
 
-  if (d->points[0].x() > d->points[1].x()) ctx->linearGradient.ax = -ctx->linearGradient.ax;
-  if (d->points[0].y() > d->points[1].y()) ctx->linearGradient.ay = -ctx->linearGradient.ay;
+  if (d->points[0].getX() > d->points[1].getX()) ctx->linearGradient.ax = -ctx->linearGradient.ax;
+  if (d->points[0].getY() > d->points[1].getY()) ctx->linearGradient.ay = -ctx->linearGradient.ay;
 
   err_t err = pattern_generic_gradient_init(ctx, 
     d->obj.gradientStops.instance(), gLength,
-    d->spread == Pattern::ReflectSpread);
+    d->spread == Pattern::SpreadReflect);
   if (err) return err;
 
   // Set fetch function.
   switch (d->spread)
   {
-    case Pattern::PadSpread:
+    case Pattern::SpreadPad:
       ctx->fetch = functionMap->pattern.linear_gradient_fetch_pad;
       break;
-    case Pattern::RepeatSpread:
+    case Pattern::SpreadRepeat:
       ctx->fetch = functionMap->pattern.linear_gradient_fetch_repeat;
       break;
-    case Pattern::ReflectSpread:
+    case Pattern::SpreadReflect:
       ctx->fetch = functionMap->pattern.linear_gradient_fetch_repeat;
       break;
     default:
@@ -712,9 +712,9 @@ static err_t FOG_FASTCALL pattern_radial_gradient_init(
   PatternContext* ctx, const Pattern& pattern)
 {
   Pattern::Data* d = pattern._d;
-  if (d->type != Pattern::RadialGradient) return Error::InvalidArgument;
+  if (d->type != Pattern::TypeRadialGradient) return Error::InvalidArgument;
 
-  sysint_t gLength = 256 * d->obj.gradientStops->length();
+  sysint_t gLength = 256 * d->obj.gradientStops->getLength();
   if (gLength > 4096) gLength = 4096;
   sysint_t gAlloc = gLength;
 
@@ -726,10 +726,10 @@ static err_t FOG_FASTCALL pattern_radial_gradient_init(
   // one subpixel unit possibly in the direction to the origin (0,0)
   // and calculate the values again.
   //-----------------------------------------------------------------
-  ctx->radialGradient.dx = d->points[1].x();
-  ctx->radialGradient.dy = d->points[1].y();
-  ctx->radialGradient.fx = d->points[1].x() - d->points[0].x();
-  ctx->radialGradient.fy = d->points[1].y() - d->points[0].y();
+  ctx->radialGradient.dx = d->points[1].getX();
+  ctx->radialGradient.dy = d->points[1].getY();
+  ctx->radialGradient.fx = d->points[1].getX() - d->points[0].getX();
+  ctx->radialGradient.fy = d->points[1].getY() - d->points[0].getY();
   ctx->radialGradient.r = d->gradientRadius;
 
   ctx->radialGradient.r2  = ctx->radialGradient.r  * ctx->radialGradient.r;
@@ -748,25 +748,25 @@ static err_t FOG_FASTCALL pattern_radial_gradient_init(
 
   // Alloc twice memory for reflect spread.
   gAlloc = gLength;
-  if (d->spread == Pattern::ReflectSpread) gAlloc <<= 1;
+  if (d->spread == Pattern::SpreadReflect) gAlloc <<= 1;
 
   ctx->radialGradient.mul = (double)gLength / dd;
 
   err_t err = pattern_generic_gradient_init(ctx, 
     d->obj.gradientStops.instance(), gLength,
-    d->spread == Pattern::ReflectSpread);
+    d->spread == Pattern::SpreadReflect);
   if (err) return err;
 
   // Set fetch function.
   switch (d->spread)
   {
-    case Pattern::PadSpread:
+    case Pattern::SpreadPad:
       ctx->fetch = functionMap->pattern.radial_gradient_fetch_pad;
       break;
-    case Pattern::RepeatSpread:
+    case Pattern::SpreadRepeat:
       ctx->fetch = functionMap->pattern.radial_gradient_fetch_repeat;
       break;
-    case Pattern::ReflectSpread:
+    case Pattern::SpreadReflect:
       ctx->fetch = functionMap->pattern.radial_gradient_fetch_repeat;
       break;
     default:
@@ -820,20 +820,20 @@ static err_t FOG_FASTCALL pattern_conical_gradient_init(
   PatternContext* ctx, const Pattern& pattern)
 {
   Pattern::Data* d = pattern._d;
-  if (d->type != Pattern::ConicalGradient) return Error::InvalidArgument;
+  if (d->type != Pattern::TypeConicalGradient) return Error::InvalidArgument;
 
-  sysint_t gLength = 256 * d->obj.gradientStops->length();
+  sysint_t gLength = 256 * d->obj.gradientStops->getLength();
   if (gLength > 4096) gLength = 4096;
 
-  ctx->conicalGradient.dx = d->points[0].x();
-  ctx->conicalGradient.dy = d->points[0].y();
+  ctx->conicalGradient.dx = d->points[0].getX();
+  ctx->conicalGradient.dy = d->points[0].getY();
   ctx->conicalGradient.angle = atan2(
-    (d->points[0].x() - d->points[1].x()),
-    (d->points[0].y() - d->points[1].y())) + (M_PI/2.0);
+    (d->points[0].getX() - d->points[1].getX()),
+    (d->points[0].getY() - d->points[1].getY())) + (M_PI/2.0);
 
   err_t err = pattern_generic_gradient_init(ctx,
     d->obj.gradientStops.instance(), gLength,
-    d->spread == Pattern::ReflectSpread);
+    d->spread == Pattern::SpreadReflect);
   if (err) return err;
 
   // Set fetch function.

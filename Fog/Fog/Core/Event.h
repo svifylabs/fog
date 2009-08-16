@@ -91,9 +91,9 @@ struct FOG_API Event : Task
   };
 
   //! @brief Returns the event code, see @c Code_Enum for possible codes.
-  FOG_INLINE uint32_t code() const { return _code; }
+  FOG_INLINE uint32_t getCode() const { return _code; }
   //! @brief Returns the event flags.
-  FOG_INLINE uint32_t flags() const { return _flags; }
+  FOG_INLINE uint32_t getFlags() const { return _flags; }
 
   //! @brief Returns @c true if event was allocated on the heap.
   FOG_INLINE bool isDynamic() const { return (_flags & IsDynamic) != 0; }
@@ -119,7 +119,7 @@ struct FOG_API Event : Task
   { _flags |= IsPropagated; }
 
   //! @brief Event receiver.
-  FOG_INLINE Object* receiver() const
+  FOG_INLINE Object* getReceiver() const
   { return _receiver; }
 
   FOG_INLINE uint32_t wasDeleted() const
@@ -135,11 +135,9 @@ protected:
     return this;
   }
 
-  FOG_INLINE void setCode(uint32_t code)
-  { _code = code; }
+  FOG_INLINE void setCode(uint32_t code) { _code = code; }
 
-  FOG_INLINE void setReceiver(Object* receiver)
-  { _receiver = receiver; }
+  FOG_INLINE void setReceiver(Object* receiver) { _receiver = receiver; }
 
   // [Event members]
 
@@ -215,7 +213,7 @@ struct FOG_API TimerEvent : public Event
 {
   TimerEvent(Timer* timer = NULL);
 
-  FOG_INLINE Timer* timer() const
+  FOG_INLINE Timer* getTimer() const
   { return _timer; }
 
   virtual Event* clone();
@@ -237,7 +235,7 @@ public:
   virtual ~PropertyChangedEvent();
   virtual Event* clone() const;
 
-  FOG_INLINE const String32& name() const
+  FOG_INLINE const String32& getName() const
   { return _name; }
 
 private:

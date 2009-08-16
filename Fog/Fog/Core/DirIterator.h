@@ -68,18 +68,16 @@ struct FOG_API DirIterator
 
     Entry& operator=(const Entry& other);
 
-    FOG_INLINE const String32& name() const { return _name; }
-    FOG_INLINE uint32_t type() const { return _type; }
-    FOG_INLINE uint64_t size() const { return _size; }
+    FOG_INLINE const String32& getName() const { return _name; }
+    FOG_INLINE uint32_t getType() const { return _type; }
+    FOG_INLINE uint64_t getSize() const { return _size; }
 
 #if defined(FOG_OS_WINDOWS)
-    FOG_INLINE const WIN32_FIND_DATAW& winFindData() const
-    { return _winFindData; }
+    FOG_INLINE const WIN32_FIND_DATAW& getWinFindData() const { return _winFindData; }
 #endif // FOG_OS_WINDOWS
 
 #if defined(FOG_OS_POSIX)
-    FOG_INLINE const struct stat& statInfo() const
-    { return _statInfo; }
+    FOG_INLINE const struct stat& getStatInfo() const { return _statInfo; }
 #endif // FOG_OS_POSIX
 
     //! @brief  entry type.
@@ -122,20 +120,15 @@ struct FOG_API DirIterator
   err_t rewind();
   int64_t tell();
 
-  FOG_INLINE void setSkipDots(bool val)
-  { _skipDots = val; }
+  FOG_INLINE void setSkipDots(bool val) { _skipDots = val; }
 
-  FOG_INLINE void* handle() const
-  { return _handle; }
+  FOG_INLINE void* getHandle() const { return _handle; }
 
-  FOG_INLINE const String32& path() const
-  { return _path; }
+  FOG_INLINE const String32& getPath() const { return _path; }
 
-  FOG_INLINE bool isOpen() const 
-  { return _handle != NULL; }
+  FOG_INLINE bool isOpen() const  { return _handle != NULL; }
 
-  FOG_INLINE bool skipDots() const
-  { return _skipDots; }
+  FOG_INLINE bool skipDots() const { return _skipDots; }
 
 private:
   void* _handle;

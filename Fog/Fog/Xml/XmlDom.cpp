@@ -3,7 +3,7 @@
 // [Licence]
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #ifdef FOG_PRECOMP
 #include FOG_PRECOMP
 #endif
@@ -11,9 +11,11 @@
 // [Dependencies]
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/Hash.h>
+#include <Fog/Core/ManagedString.h>
+#include <Fog/Core/Static.h>
 #include <Fog/Core/String.h>
-#include <Fog/Core/StringCache.h>
 #include <Fog/Core/Strings.h>
+#include <Fog/Core/StringUtil.h>
 #include <Fog/Core/Vector.h>
 #include <Fog/Xml/Error.h>
 #include <Fog/Xml/XmlDom.h>
@@ -24,23 +26,156 @@
 namespace Fog {
 
 // ============================================================================
+// [Fog::XmlAttributesManager]
+// ============================================================================
+
+XmlAttributesManager::XmlAttributesManager()
+{
+  _capacity = FOG_ARRAY_SIZE(_bucketsBuffer);
+  _length = 0;
+  _buckets = _bucketsBuffer;
+
+  Memory::zero(_buckets, FOG_ARRAY_SIZE(_bucketsBuffer) * sizeof(XmlAttribute*));
+}
+
+XmlAttributesManager::~XmlAttributesManager()
+{
+  if (_buckets && _buckets != _bucketsBuffer) Memory::free(_buckets);
+}
+
+void XmlAttributesManager::add(XmlAttribute* a)
+{
+  uint32_t hashCode = a->_name.getHashCode();
+  uint32_t hashMod = hashCode % _capacity;
+
+  a->_hashNext = _buckets[hashMod];
+  _buckets[hashMod] = a;
+
+  sysuint_t expand;
+
+  if (_buckets == _bucketsBuffer)
+    expand = FOG_ARRAY_SIZE(_bucketsBuffer);
+  else
+    expand = (_capacity >> 1) + (_capacity >> 2) + (_capacity >> 3);
+
+  if (++_length >= expand) _rehash(_capacity << 1);
+  _list.append(a);
+}
+
+void XmlAttributesManager::remove(XmlAttribute* a)
+{
+  uint32_t hashCode = a->_name.getHashCode();
+  uint32_t hashMod = hashCode % _capacity;
+
+  XmlAttribute* node = _buckets[hashMod];
+  XmlAttribute* prev = NULL;
+
+  while (node)
+  {
+    if (node == a)
+    {
+      if (prev)
+        prev->_hashNext = node->_hashNext;
+      else
+        _buckets[hashMod] = node->_hashNext;
+
+      node->_hashNext = NULL;
+      _list.removeAt(_list.indexOf(node));
+
+      sysuint_t shrink;
+
+      if (_buckets == _bucketsBuffer)
+        shrink = 0;
+      else
+        shrink = (_capacity >> 2);
+
+      if (--_length <= shrink) _rehash(_capacity >> 1);
+      return;
+    }
+
+    prev = node;
+    node = node->_hashNext;
+  }
+}
+
+void XmlAttributesManager::removeAll()
+{
+  _capacity = FOG_ARRAY_SIZE(_bucketsBuffer);
+  _length = 0;
+  if (_buckets != _bucketsBuffer) Memory::free(_buckets);
+  _buckets = _bucketsBuffer;
+
+  Vector<XmlAttribute*>::ConstIterator it(_list);
+  for (it.toStart(); it.isValid(); it.toNext()) it.value()->_hashNext = NULL;
+  _list.free();
+}
+
+XmlAttribute* XmlAttributesManager::get(const String32& name) const
+{
+  uint32_t hashCode = name.getHashCode();
+  uint32_t hashMod = hashCode % _capacity;
+
+  XmlAttribute* a = _buckets[hashMod];
+  while (a)
+  {
+    if (a->getName() == name) return a;
+    a = a->_hashNext;
+  }
+  return NULL;
+}
+
+void XmlAttributesManager::_rehash(sysuint_t capacity)
+{
+  if (capacity <= FOG_ARRAY_SIZE(_bucketsBuffer))
+  {
+    capacity = FOG_ARRAY_SIZE(_bucketsBuffer);
+    if (_buckets == _bucketsBuffer) return;
+  }
+  XmlAttribute** oldBuckets = _buckets;
+  XmlAttribute** newBuckets = (capacity == FOG_ARRAY_SIZE(_bucketsBuffer))
+    ? (XmlAttribute**)_bucketsBuffer
+    : (XmlAttribute**)Memory::calloc(sizeof(XmlAttribute*) * capacity);
+  if (!newBuckets) return;
+
+  sysuint_t i, len = _capacity;
+  for (i = 0; i < len; i++)
+  {
+    XmlAttribute* node = oldBuckets[i];
+    while (node)
+    {
+      uint32_t hashMod = node->_name.getHashCode() % capacity;
+      XmlAttribute* next = node->_hashNext;
+
+      node->_hashNext = newBuckets[hashMod];
+      newBuckets[hashMod] = node;
+
+      node = next;
+    }
+  }
+
+  _capacity = capacity;
+
+  AtomicBase::ptr_setXchg(&_buckets, newBuckets);
+  if (oldBuckets != _bucketsBuffer) Memory::free(oldBuckets);
+}
+
+// ============================================================================
 // [Fog::XmlAttribute]
 // ============================================================================
 
-XmlAttribute::XmlAttribute(XmlElement* element, const String32& name) :
-  _element(element)
+XmlAttribute::XmlAttribute(XmlElement* element, const ManagedString32& name, int offset) :
+  _element(element),
+  _name(name),
+  _hashNext(NULL),
+  _offset(offset)
 {
-  // Manage attribute name
-  _name._string = name;
-  if (_element->_document) _element->_document->_manageString(_name);
 }
 
 XmlAttribute::~XmlAttribute()
 {
-  if (_element->_document) _element->_document->_unmanageString(_name);
 }
 
-String32 XmlAttribute::value() const
+String32 XmlAttribute::getValue() const
 {
   return _value;
 }
@@ -48,6 +183,19 @@ String32 XmlAttribute::value() const
 err_t XmlAttribute::setValue(const String32& value)
 {
   return _value.set(value);
+}
+
+void XmlAttribute::destroy()
+{
+  if (_offset == -1)
+  {
+    delete this;
+  }
+  else
+  {
+    _hashNext = NULL;
+    _value.free();
+  }
 }
 
 // ============================================================================
@@ -58,7 +206,7 @@ struct FOG_HIDDEN XmlIdAttribute : public XmlAttribute
 {
   // [Construction / Destruction]
 
-  XmlIdAttribute(XmlElement* element, const String32& name);
+  XmlIdAttribute(XmlElement* element, const ManagedString32& name);
   virtual ~XmlIdAttribute();
 
   // [Methods]
@@ -66,7 +214,7 @@ struct FOG_HIDDEN XmlIdAttribute : public XmlAttribute
   virtual err_t setValue(const String32& value);
 };
 
-XmlIdAttribute::XmlIdAttribute(XmlElement* element, const String32& name)
+XmlIdAttribute::XmlIdAttribute(XmlElement* element, const ManagedString32& name)
   : XmlAttribute(element, name)
 {
 }
@@ -74,7 +222,7 @@ XmlIdAttribute::XmlIdAttribute(XmlElement* element, const String32& name)
 XmlIdAttribute::~XmlIdAttribute()
 {
   XmlElement* element = _element;
-  XmlDocument* document = element->document();
+  XmlDocument* document = element->getDocument();
 
   if (document && !element->_id.isEmpty()) document->_elementIdsHash.remove(element);
   element->_id.free();
@@ -85,14 +233,14 @@ err_t XmlIdAttribute::setValue(const String32& value)
   if (_value == value) return Error::Ok;
 
   XmlElement* element = _element;
-  XmlDocument* document = element->document();
+  XmlDocument* document = element->getDocument();
 
   if (document && !element->_id.isEmpty()) document->_elementIdsHash.remove(element);
 
   // When assigning, we will generate hash code and we are omitting to call
-  // this function from XmlElementIdHash.
+  // this function from XmlIdManager.
   element->_id = value;
-  element->_id.toHashCode();
+  element->_id.getHashCode();
   _value = value;
 
   if (document && !element->_id.isEmpty()) document->_elementIdsHash.add(element);
@@ -100,153 +248,26 @@ err_t XmlIdAttribute::setValue(const String32& value)
 }
 
 // ============================================================================
-// [Fog::XmlElementIdHash]
-// ============================================================================
-
-XmlElementIdHash::XmlElementIdHash() :
-  _capacity(16),
-  _length(0),
-  _expandCapacity(64),
-  _expandLength(16),
-  _shrinkCapacity(0),
-  _shrinkLength(0),
-  _buckets(_bucketsBuffer)
-{
-  Memory::zero(_bucketsBuffer, sizeof(_bucketsBuffer));
-}
-
-XmlElementIdHash::~XmlElementIdHash()
-{
-  if (_buckets != _bucketsBuffer) Memory::free(_buckets);
-}
-
-void XmlElementIdHash::add(XmlElement* e)
-{
-  uint32_t hashCode = e->_id._d->hashCode;
-  uint32_t hashMod = hashCode % _capacity;
-
-  XmlElement* node = _buckets[hashMod];
-  XmlElement* prev = NULL;
-
-  while (node)
-  {
-    prev = node;
-    node = node->_idNext;
-  }
-
-  if (prev)
-    prev->_idNext = e;
-  else
-    _buckets[hashMod] = e;
-  if (++_length >= _expandLength) _rehash(_expandCapacity);
-}
-
-void XmlElementIdHash::remove(XmlElement* e)
-{
-  uint32_t hashCode = e->_id._d->hashCode;
-  uint32_t hashMod = hashCode % _capacity;
-
-  XmlElement* node = _buckets[hashMod];
-  XmlElement* prev = NULL;
-
-  while (node)
-  {
-    if (node == e)
-    {
-      if (prev)
-        prev->_idNext = node->_idNext;
-      else
-        _buckets[hashMod] = node->_idNext;
-
-      node->_idNext = NULL;
-      if (--_length <= _shrinkLength) _rehash(_shrinkCapacity);
-      return;
-    }
-
-    prev = node;
-    node = node->_idNext;
-  }
-}
-
-XmlElement* XmlElementIdHash::get(const String32& id) const
-{
-  uint32_t hashCode = id.toHashCode();
-  uint32_t hashMod = hashCode % _capacity;
-
-  XmlElement* node = _buckets[hashMod];
-  while (node)
-  {
-    if (node->_id == id) return node;
-    node = node->_idNext;
-  }
-  return NULL;
-}
-
-void XmlElementIdHash::_rehash(sysuint_t capacity)
-{
-  XmlElement** oldBuckets = _buckets;
-  XmlElement** newBuckets = (XmlElement**)Memory::calloc(sizeof(XmlElement*) * capacity);
-  if (!newBuckets) return;
-
-  sysuint_t i, len = _capacity;
-  for (i = 0; i < len; i++)
-  {
-    XmlElement* node = oldBuckets[i];
-    while (node)
-    {
-      uint32_t hashMod = node->_id._d->hashCode % capacity;
-      XmlElement* next = node->_idNext;
-
-      XmlElement* newCur = newBuckets[hashMod];
-      XmlElement* newPrev = NULL;
-      while (newCur) { newPrev = newCur; newCur = newCur->_idNext; }
-
-      if (newPrev)
-        newPrev->_idNext = node;
-      else
-        newBuckets[hashMod] = node;
-      node->_idNext = NULL;
-
-      node = next;
-    }
-  }
-
-  _capacity = capacity;
-
-  _expandCapacity = Hash_Abstract::_calcExpandCapacity(capacity);
-  _expandLength = (sysuint_t)((sysint_t)_capacity * 0.92);
-
-  _shrinkCapacity = Hash_Abstract::_calcShrinkCapacity(capacity);
-  _shrinkLength = (sysuint_t)((sysint_t)_shrinkCapacity * 0.70);
-
-  AtomicBase::ptr_setXchg(&_buckets, newBuckets);
-  if (oldBuckets != _bucketsBuffer) Memory::free(oldBuckets);
-}
-
-// ============================================================================
 // [Fog::XmlElement]
 // ============================================================================
 
-XmlElement::XmlElement(const String32& tagName) :
+XmlElement::XmlElement(const ManagedString32& tagName) :
   _type(TypeElement),
   _dirty(0),
   _reserved0(0),
   _reserved1(0),
-  _flags(AllowedDomManipulation |
-         AllowedTag |
-         AllowedAttributes |
-         AllowedAttributesAddRemove),
+  _flags(AllowedDomManipulation | AllowedTag | AllowedAttributes),
   _document(NULL),
   _parent(NULL),
   _firstChild(NULL),
   _lastChild(NULL),
   _nextSibling(NULL),
   _prevSibling(NULL),
+  _attributesManager(NULL),
   _tagName(tagName),
-  _idNext(NULL)
+  _hashNextId(NULL)
 {
-  if (_tagName._string.isEmpty())
-    _tagName._string = fog_strings->get(STR_XML_unnamed);
+  if (_tagName.isEmpty()) _tagName = fog_strings->getString(STR_XML_unnamed);
 }
 
 XmlElement::~XmlElement()
@@ -258,21 +279,13 @@ XmlElement::~XmlElement()
 void XmlElement::_manage(XmlDocument* doc)
 {
   FOG_ASSERT(_document == NULL);
-  FOG_ASSERT(_tagName._refCount == NULL);
 
   _document = doc;
-  _document->_manageString(_tagName);
   if (!_id.isEmpty()) _document->_elementIdsHash.add(this);
 
   if (_document->_documentRoot == NULL && isElement())
   {
     _document->_documentRoot = this;
-  }
-
-  Vector<XmlAttribute*>::ConstIterator it(_attributes);
-  for (it.toStart(); it.isValid(); it.toNext())
-  {
-    _document->_manageString(it.value()->_name);
   }
 
   XmlElement* e = _firstChild;
@@ -289,14 +302,7 @@ void XmlElement::_unmanage()
 
   if (_document->_documentRoot == this) _document->_documentRoot = NULL;
 
-  _document->_unmanageString(_tagName);
   if (!_id.isEmpty()) _document->_elementIdsHash.remove(this);
-
-  Vector<XmlAttribute*>::ConstIterator it(_attributes);
-  for (it.toStart(); it.isValid(); it.toNext())
-  {
-    _document->_unmanageString(it.value()->_name);
-  }
 
   XmlElement* e = _firstChild;
   while (e)
@@ -310,7 +316,7 @@ void XmlElement::_unmanage()
 
 XmlElement* XmlElement::clone() const
 {
-  XmlElement* e = new(std::nothrow) XmlElement(_tagName._string);
+  XmlElement* e = new(std::nothrow) XmlElement(_tagName);
   if (e) copyAttributes(e, const_cast<XmlElement*>(this));
   return e;
 }
@@ -329,7 +335,7 @@ void XmlElement::normalize()
   {
     XmlElement* next = e->_nextSibling;
 
-    if (e->type() == TypeText)
+    if (e->getType() == TypeText)
     {
       if (((XmlText *)e)->_data.isEmpty())
       {
@@ -578,27 +584,13 @@ Vector<XmlElement*> XmlElement::childNodes() const
 Vector<XmlElement*> XmlElement::childNodesByTagName(const String32& tagName) const
 {
   Vector<XmlElement*> elms;
-  XmlElement* e = _firstChild;
 
-  if (_document)
+  ManagedString32 tagNameM;
+  if (tagNameM.setIfManaged(tagName) != Error::Ok) return elms;
+
+  for (XmlElement* e = firstChild(); e; e = e->nextSibling())
   {
-    String32 tagNameM = _document->_getManagedString(tagName);
-    if (!tagNameM.isEmpty())
-    {
-      while (e)
-      {
-        if (e->_tagName._string._d == tagNameM._d) elms.append(e);
-        e = e->_nextSibling;
-      }
-    }
-  }
-  else
-  {
-    while (e)
-    {
-      if (e->_tagName._string == tagName) elms.append(e);
-      e = e->_nextSibling;
-    }
+    if (e->_tagName == tagNameM) elms.append(e);
   }
 
   return elms;
@@ -607,235 +599,117 @@ Vector<XmlElement*> XmlElement::childNodesByTagName(const String32& tagName) con
 XmlElement* XmlElement::_nextChildByTagName(XmlElement* refElement, const String32& tagName)
 {
   XmlElement* e = refElement;
-  if (e == NULL) return NULL;
+  if (e == NULL) return e;
 
-  if (e->_document)
+  while ((e = e->nextSibling()))
   {
-    String32 tagNameM = e->_document->_getManagedString(tagName);
-    if (tagNameM.isEmpty()) return NULL;
-
-    do {
-      if (e->_tagName._string._d == tagNameM._d) return e;
-    } while ((e = e->_nextSibling));
+    if (e->_tagName == tagName) break;
   }
-  else
-  {
-    do {
-      if (e->_tagName._string == tagName) return e;
-    } while ((e = e->_nextSibling));
-  }
-
-  return NULL;
+  return e;
 }
 
 XmlElement* XmlElement::_previousChildByTagName(XmlElement* refElement, const String32& tagName)
 {
   XmlElement* e = refElement;
-  if (e == NULL) return NULL;
+  if (e == NULL) return e;
 
-  if (e->_document)
+  while ((e = e->previousSibling()))
   {
-    String32 tagNameM = e->_document->_getManagedString(tagName);
-    if (tagNameM.isEmpty()) return NULL;
-
-    do {
-      if (e->_tagName._string._d == tagNameM._d) return e;
-    } while ((e = e->_nextSibling));
+    if (e->_tagName == tagName) break;
   }
-  else
-  {
-    do {
-      if (e->_tagName._string == tagName) return e;
-    } while ((e = e->_nextSibling));
-  }
-
-  return NULL;
+  return e;
 }
 
-bool XmlElement::hasAttribute(const String32& _name) const
+Vector<XmlAttribute*> XmlElement::attributes() const
 {
-  if ((_flags & AllowedAttributes) == 0) return false;
-  if (_name.isEmpty()) return false;
-
-  // If XmlElement is part of XmlDocument that manages some resources, we can
-  // use some tricks to match XmlAttribute faster without comparing strings.
-  Vector<XmlAttribute*>::ConstIterator it(_attributes);
-  if (!it.isValid()) return false;
-
-  if (_document && _attributes.length() > 4)
-  {
-    String32 name = _document->_getManagedString(name);
-    if (name.isEmpty()) return false;
-
-    do {
-      // Managed strings are shared, so we need only to compare String::Data.
-      if (it.value()->_name._string._d == name._d) return true;
-
-      it.toNext();
-    } while (it.isValid());
-  }
+  if (_attributesManager) 
+    return _attributesManager->_list;
   else
-  {
-    do {
-      if (it.value()->_name._string == _name) return true;
-
-      it.toNext();
-    } while (it.isValid());
-  }
-
-  // Not found.
-  return false;
+    return Vector<XmlAttribute*>();
 }
 
-err_t XmlElement::getAttribute(const String32& _name, String32& value) const
+bool XmlElement::hasAttribute(const String32& name) const
+{
+  if (!_attributesManager) return false;
+  return _attributesManager->get(name) != NULL;
+}
+
+err_t XmlElement::setAttribute(const String32& name, const String32& value)
 {
   if ((_flags & AllowedAttributes) == 0) return Error::XmlDomAttributesNotAllowed;
-  if (_name.isEmpty()) return Error::XmlDomInvalidAttribute;
+  if (name.isEmpty()) return Error::XmlDomInvalidAttribute;
 
-  // If XmlElement is part of XmlDocument that manages some resources, we can
-  // use some tricks to match XmlAttribute faster without comparing strings.
-  Vector<XmlAttribute*>::ConstIterator it(_attributes);
-  if (!it.isValid()) return Error::XmlDomAttributeNotFound;
+  XmlAttribute* a = NULL;
 
-  if (_document && _attributes.length() > 4)
+  if (_attributesManager == NULL)
   {
-    String32 name = _document->_getManagedString(name);
-    if (name.isEmpty()) return Error::XmlDomAttributeNotFound;
-
-    do {
-      // Managed strings are shared, so we need only to compare String::Data.
-      if (it.value()->_name._string._d == name._d)
-      {
-        return value.set(it.value()->value());
-      }
-
-      it.toNext();
-    } while (it.isValid());
+    _attributesManager = new(std::nothrow) XmlAttributesManager();
+    if (_attributesManager == NULL) return Error::OutOfMemory;
   }
   else
   {
-    do {
-      if (it.value()->_name._string == _name)
-      {
-        return value.set(it.value()->value());
-      }
-
-      it.toNext();
-    } while (it.isValid());
+    a = _attributesManager->get(name);
   }
 
-  // Not found.
-  return Error::XmlDomAttributeNotFound;
-}
-
-err_t XmlElement::setAttribute(const String32& _name, const String32& value)
-{
-  if ((_flags & AllowedAttributes) == 0) return Error::XmlDomAttributesNotAllowed;
-  if (_name.isEmpty()) return Error::XmlDomInvalidAttribute;
-
-  XmlAttribute* a;
-  if (!_attributes.isEmpty())
-  {
-    Vector<XmlAttribute*>::ConstIterator it(_attributes);
-
-    // If XmlElement is part of XmlDocument that manages some resources, we can
-    // use some tricks to match XmlAttribute faster without comparing strings.
-    if (_document && _attributes.length() > 3)
-    {
-      String32 name = _document->_getManagedString(_name);
-      if (!name.isEmpty())
-      {
-        do {
-          // Managed strings are shared, so we need only to compare String::Data.
-          if (it.value()->_name._string._d == name._d) { a = it.value(); goto done; }
-          it.toNext();
-        } while (it.isValid());
-      }
-    }
-    else
-    {
-      do {
-        if (it.value()->_name._string == _name) { a = it.value(); goto done; }
-        it.toNext();
-      } while (it.isValid());
-    }
-  }
-
-notFound:
   // Attribute not found, create new one.
-  if ((_flags & AllowedAttributesAddRemove) == 0) 
-    return Error::XmlDomAttributesAddRemoveNotAllowed;
+  if (a == NULL)
+  {
+    a = _createAttribute(ManagedString32(name));
+    if (!a) return Error::OutOfMemory;
 
-  a = _createAttribute(_name);
-  if (!a) return Error::OutOfMemory;
-  _attributes.append(a);
+    a->_element = this;
+    _attributesManager->add(a);
+  }
 
-done:
   return a->setValue(value);
+}
+
+String32 XmlElement::getAttribute(const String32& name) const
+{
+  if (!_attributesManager) return String32();
+ 
+  XmlAttribute* a = _attributesManager->get(name);
+  return a ? a->getValue() : String32();
 }
 
 err_t XmlElement::removeAttribute(const String32& name)
 {
-  if ((_flags & (AllowedAttributes | AllowedAttributesAddRemove)) != 
-                (AllowedAttributes | AllowedAttributesAddRemove))
-  {
-    if ((_flags & AllowedAttributes) == 0) return Error::XmlDomAttributesNotAllowed;
-    if ((_flags & AllowedAttributesAddRemove) == 0) return Error::XmlDomAttributesAddRemoveNotAllowed;
-  }
-
+  if ((_flags & AllowedAttributes) == 0) return Error::XmlDomAttributesNotAllowed;
   if (name.isEmpty()) return Error::XmlDomInvalidAttribute;
 
-  // If XmlElement is part of XmlDocument that manages some resources, we can
-  // use some tricks to match XmlAttribute faster without comparing strings.
-  Vector<XmlAttribute*>::ConstIterator it(_attributes);
+  if (!_attributesManager) return Error::XmlDomAttributeNotFound;
 
-  if (_document && _attributes.length() > 4)
-  {
-    String32 name = _document->_getManagedString(name);
-    if (name.isEmpty()) return Error::XmlDomAttributeNotFound;
+  XmlAttribute* a = _attributesManager->get(name);
+  if (!a) return Error::XmlDomAttributeNotFound;
 
-    do {
-      // Managed strings are shared, so we need only to compare String::Data.
-      if (it.value()->_name._string._d == name._d) goto found;
-      it.toNext();
-    } while (it.isValid());
-  }
-  else
-  {
-    do {
-      if (it.value()->_name._string == name) goto found;
-      it.toNext();
-    } while (it.isValid());
-  }
-
-  // Attribute not found.
-  return Error::XmlDomAttributeNotFound;
-
-found:
-  delete it.value();
-  _attributes.removeAt(it.index());
-
+  _attributesManager->remove(a);
+  a->destroy();
   return Error::Ok;
 }
 
 err_t XmlElement::removeAllAttributes()
 {
   if ((_flags & AllowedAttributes) == 0) return Error::XmlDomAttributesNotAllowed;
+  if (!_attributesManager) return Error::Ok;
 
-  Vector<XmlAttribute*>::ConstIterator it(_attributes);
-  do {
+  Vector<XmlAttribute*> list = _attributesManager->_list;
+
+  delete _attributesManager;
+  _attributesManager = NULL;
+
+  Vector<XmlAttribute*>::ConstIterator it(list);
+  for (it.toStart(); it.isValid(); it.toNext())
+  {
     XmlAttribute* a = (XmlAttribute*)it.value();
-    delete a;
-    it.toNext();
-  } while (it.isValid());
-  _attributes.clear();
+    a->destroy();
+  }
 
   return Error::Ok;
 }
 
-XmlAttribute* XmlElement::_createAttribute(const String32& name) const
+XmlAttribute* XmlElement::_createAttribute(const ManagedString32& name) const
 {
-  if (name == fog_strings->get(STR_XML_id))
+  if (name == fog_strings->getString(STR_XML_id))
     return new(std::nothrow) XmlIdAttribute(const_cast<XmlElement*>(this), name);
   else
     return new(std::nothrow) XmlAttribute(const_cast<XmlElement*>(this), name);
@@ -843,62 +717,44 @@ XmlAttribute* XmlElement::_createAttribute(const String32& name) const
 
 void XmlElement::copyAttributes(XmlElement* dst, XmlElement* src)
 {
-  Vector<XmlAttribute*>::ConstIterator it(src->_attributes);
-  for (it.toStart(); it.isValid(); it.toNext())
+  if (src->_attributesManager)
   {
-    dst->setAttribute(it.value()->name(), it.value()->value());
+    Vector<XmlAttribute*>::ConstIterator it(src->_attributesManager->_list);
+    for (it.toStart(); it.isValid(); it.toNext())
+    {
+      dst->setAttribute(it.value()->getName(), it.value()->getValue());
+    }
   }
 }
 
 err_t XmlElement::setId(const String32& id)
 {
-  return setAttribute(fog_strings->get(STR_XML_id), id);
+  return setAttribute(fog_strings->getString(STR_XML_id), id);
 }
 
 err_t XmlElement::setTagName(const String32& name)
 {
   if ((_flags & AllowedTag) == 0) return Error::XmlDomTagChangeNotAllowed;
-  if (name.isEmpty()) return Error::XmlDomInvalidAttribute;
+  if (name.isEmpty()) return Error::XmlDomInvalidTagName;
 
-  if (_document)
-  {
-    err_t err = _document->_unmanageString(_tagName);
-    if (err) return err;
-
-    _tagName._string = name;
-    return _document->_manageString(_tagName);
-  }
-  else
-  {
-    _tagName._string = name;
-    return Error::Ok;
-  }
+  return _tagName.set(name);
 }
 
-String32 XmlElement::textContent() const
+String32 XmlElement::getTextContent() const
 {
   // If we use the standard behavior that is in browsers, we should traverse
   // between all nodes and check for text content. I think this is right
   // behavior for us.
 
-  // first try fast-path
-  if (_firstChild == _lastChild && _firstChild->type() == TypeText)
+  // First try fast-path.
+  if (_firstChild == _lastChild && _firstChild->getType() == TypeText)
   {
     return ((XmlText*)_firstChild)->_data;
   }
   else
   {
     String32 s;
-
-    XmlElement* e = _firstChild;
-    if (e)
-    {
-      do {
-        s.append(e->textContent());
-        e = e->_nextSibling;
-      } while (e);
-    }
-
+    for (XmlElement* e = firstChild(); e; e = e->nextSibling()) s.append(e->getTextContent());
     return s;
   }
 }
@@ -906,7 +762,7 @@ String32 XmlElement::textContent() const
 err_t XmlElement::setTextContent(const String32& text)
 {
   // First try fast-path.
-  if (_firstChild == _lastChild && _firstChild->type() == TypeText)
+  if (_firstChild == _lastChild && _firstChild->getType() == TypeText)
   {
     ((XmlText*)_firstChild)->_data = text;
     return Error::Ok;
@@ -925,11 +781,11 @@ err_t XmlElement::setTextContent(const String32& text)
 // ============================================================================
 
 XmlText::XmlText(const String32& data) :
-  XmlElement(fog_strings->get(STR_XML__text)),
+  XmlElement(fog_strings->getString(STR_XML__text)),
   _data(data)
 {
   _type = TypeText;
-  _flags &= ~(AllowedTag | AllowedAttributes | AllowedAttributesAddRemove);
+  _flags &= ~(AllowedTag | AllowedAttributes);
 }
 
 XmlText::~XmlText()
@@ -941,7 +797,7 @@ XmlElement* XmlText::clone() const
   return new(std::nothrow) XmlText(_data);
 }
 
-String32 XmlText::textContent() const
+String32 XmlText::getTextContent() const
 {
   FOG_ASSERT(_type == TypeText);
   return _data;
@@ -988,12 +844,12 @@ err_t XmlText::replaceData(sysuint_t start, sysuint_t len, const String32& data)
 // [Fog::XmlNoTextElement]
 // ============================================================================
 
-XmlNoTextElement::XmlNoTextElement(const String32& tagName) :
+XmlNoTextElement::XmlNoTextElement(const ManagedString32& tagName) :
   XmlElement(tagName)
 {
 }
 
-String32 XmlNoTextElement::textContent() const
+String32 XmlNoTextElement::getTextContent() const
 {
   return String32();
 }
@@ -1008,11 +864,11 @@ err_t XmlNoTextElement::setTextContent(const String32& text)
 // ============================================================================
 
 XmlComment::XmlComment(const String32& data) :
-  XmlNoTextElement(fog_strings->get(STR_XML__comment)),
+  XmlNoTextElement(fog_strings->getString(STR_XML__comment)),
   _data(data)
 {
   _type = TypeComment;
-  _flags &= ~(AllowedTag | AllowedAttributes | AllowedAttributesAddRemove);
+  _flags &= ~(AllowedTag | AllowedAttributes);
 }
 
 XmlComment::~XmlComment()
@@ -1024,7 +880,7 @@ XmlElement* XmlComment::clone() const
   return new(std::nothrow) XmlComment(_data);
 }
 
-const String32& XmlComment::data() const
+const String32& XmlComment::getData() const
 {
   FOG_ASSERT(_type == TypeComment);
   return _data;
@@ -1041,11 +897,11 @@ err_t XmlComment::setData(const String32& data)
 // ============================================================================
 
 XmlCDATA::XmlCDATA(const String32& data) :
-  XmlNoTextElement(fog_strings->get(STR_XML__cdata)),
+  XmlNoTextElement(fog_strings->getString(STR_XML__cdata)),
   _data(data)
 {
   _type = TypeCDATA;
-  _flags &= ~(AllowedTag | AllowedAttributes | AllowedAttributesAddRemove);
+  _flags &= ~(AllowedTag | AllowedAttributes);
 }
 
 XmlCDATA::~XmlCDATA()
@@ -1057,7 +913,7 @@ XmlElement* XmlCDATA::clone() const
   return new(std::nothrow) XmlCDATA(_data);
 }
 
-const String32& XmlCDATA::data() const
+const String32& XmlCDATA::getData() const
 {
   FOG_ASSERT(_type == TypeCDATA);
   return _data;
@@ -1074,11 +930,11 @@ err_t XmlCDATA::setData(const String32& data)
 // ============================================================================
 
 XmlPI::XmlPI(const String32& data) :
-  XmlNoTextElement(fog_strings->get(STR_XML__pi)),
+  XmlNoTextElement(fog_strings->getString(STR_XML__pi)),
   _data(data)
 {
   _type = TypePI;
-  _flags &= ~(AllowedTag | AllowedAttributes | AllowedAttributesAddRemove);
+  _flags &= ~(AllowedTag | AllowedAttributes);
 }
 
 XmlPI::~XmlPI()
@@ -1090,7 +946,7 @@ XmlElement* XmlPI::clone() const
   return new(std::nothrow) XmlPI(_data);
 }
 
-const String32& XmlPI::data() const
+const String32& XmlPI::getData() const
 {
   FOG_ASSERT(_type == TypePI);
   return _data;
@@ -1103,11 +959,149 @@ err_t XmlPI::setData(const String32& data)
 }
 
 // ============================================================================
+// [Fog::XmlIdManager]
+// ============================================================================
+
+XmlIdManager::XmlIdManager() :
+  _capacity(16),
+  _length(0),
+  _expandCapacity(64),
+  _expandLength(16),
+  _shrinkCapacity(0),
+  _shrinkLength(0),
+  _buckets(_bucketsBuffer)
+{
+  Memory::zero(_bucketsBuffer, sizeof(_bucketsBuffer));
+}
+
+XmlIdManager::~XmlIdManager()
+{
+  if (_buckets != _bucketsBuffer) Memory::free(_buckets);
+}
+
+void XmlIdManager::add(XmlElement* e)
+{
+  uint32_t hashCode = e->_id._d->hashCode;
+  uint32_t hashMod = hashCode % _capacity;
+
+  XmlElement* node = _buckets[hashMod];
+  XmlElement* prev = NULL;
+
+  while (node)
+  {
+    prev = node;
+    node = node->_hashNextId;
+  }
+
+  if (prev)
+    prev->_hashNextId = e;
+  else
+    _buckets[hashMod] = e;
+  if (++_length >= _expandLength) _rehash(_expandCapacity);
+}
+
+void XmlIdManager::remove(XmlElement* e)
+{
+  uint32_t hashCode = e->_id._d->hashCode;
+  uint32_t hashMod = hashCode % _capacity;
+
+  XmlElement* node = _buckets[hashMod];
+  XmlElement* prev = NULL;
+
+  while (node)
+  {
+    if (node == e)
+    {
+      if (prev)
+        prev->_hashNextId = node->_hashNextId;
+      else
+        _buckets[hashMod] = node->_hashNextId;
+
+      node->_hashNextId = NULL;
+      if (--_length <= _shrinkLength) _rehash(_shrinkCapacity);
+      return;
+    }
+
+    prev = node;
+    node = node->_hashNextId;
+  }
+}
+
+XmlElement* XmlIdManager::get(const String32& id) const
+{
+  uint32_t hashCode = id.getHashCode();
+  uint32_t hashMod = hashCode % _capacity;
+
+  XmlElement* node = _buckets[hashMod];
+  while (node)
+  {
+    if (node->_id == id) return node;
+    node = node->_hashNextId;
+  }
+  return NULL;
+}
+
+XmlElement* XmlIdManager::get(const Char32* idStr, sysuint_t idLen) const
+{
+  uint32_t hashCode = hashString(idStr, idLen);
+  uint32_t hashMod = hashCode % _capacity;
+
+  XmlElement* node = _buckets[hashMod];
+  while (node)
+  {
+    if (node->_id._d->hashCode == hashCode && StringUtil::eq(node->_id.cData(), idStr, idLen)) return node;
+    node = node->_hashNextId;
+  }
+  return NULL;
+}
+
+void XmlIdManager::_rehash(sysuint_t capacity)
+{
+  XmlElement** oldBuckets = _buckets;
+  XmlElement** newBuckets = (XmlElement**)Memory::calloc(sizeof(XmlElement*) * capacity);
+  if (!newBuckets) return;
+
+  sysuint_t i, len = _capacity;
+  for (i = 0; i < len; i++)
+  {
+    XmlElement* node = oldBuckets[i];
+    while (node)
+    {
+      uint32_t hashMod = node->_id._d->hashCode % capacity;
+      XmlElement* next = node->_hashNextId;
+
+      XmlElement* newCur = newBuckets[hashMod];
+      XmlElement* newPrev = NULL;
+      while (newCur) { newPrev = newCur; newCur = newCur->_hashNextId; }
+
+      if (newPrev)
+        newPrev->_hashNextId = node;
+      else
+        newBuckets[hashMod] = node;
+      node->_hashNextId = NULL;
+
+      node = next;
+    }
+  }
+
+  _capacity = capacity;
+
+  _expandCapacity = Hash_Abstract::_calcExpandCapacity(capacity);
+  _expandLength = (sysuint_t)((sysint_t)_capacity * 0.92);
+
+  _shrinkCapacity = Hash_Abstract::_calcShrinkCapacity(capacity);
+  _shrinkLength = (sysuint_t)((sysint_t)_shrinkCapacity * 0.70);
+
+  AtomicBase::ptr_setXchg(&_buckets, newBuckets);
+  if (oldBuckets != _bucketsBuffer) Memory::free(oldBuckets);
+}
+
+// ============================================================================
 // [Fog::XmlDocument]
 // ============================================================================
 
 XmlDocument::XmlDocument() :
-  XmlElement(fog_strings->get(STR_XML__document)),
+  XmlElement(fog_strings->getString(STR_XML__document)),
   _documentRoot(NULL)
 {
   _type = TypeDocument;
@@ -1143,12 +1137,12 @@ XmlElement* XmlDocument::clone() const
   return doc;
 }
 
-XmlElement* XmlDocument::createElement(const String32& tagName)
+XmlElement* XmlDocument::createElement(const ManagedString32& tagName)
 {
   return createElementStatic(tagName);
 }
 
-XmlElement* XmlDocument::createElementStatic(const String32& tagName)
+XmlElement* XmlDocument::createElementStatic(const ManagedString32& tagName)
 {
   return new (std::nothrow) XmlElement(tagName);
 }
@@ -1173,6 +1167,17 @@ XmlElement* XmlDocument::getElementById(const String32& id) const
 {
   if (id.isEmpty()) return NULL;
   return _elementIdsHash.get(id);
+}
+
+XmlElement* XmlDocument::getElementById(const Utf32& id) const
+{
+  const Char32* idStr = id.getStr();
+  sysuint_t idLen = id.getLength();
+
+  if (idLen == DetectLength) idLen = StringUtil::len(idStr);
+  if (idLen == 0) return NULL;
+
+  return _elementIdsHash.get(idStr, idLen);
 }
 
 err_t XmlDocument::readFile(const String32& fileName)
@@ -1221,49 +1226,6 @@ err_t XmlDocument::readString(const String32& str)
   err_t err = reader->parseString(str);
   delete reader;
   return err;
-}
-
-err_t XmlDocument::_manageString(XmlString& resource)
-{
-  sysuint_t* rc = (sysuint_t*)_managedStrings.get(resource._string);
-
-  if (rc)
-  {
-    resource._refCount = rc;
-    (*rc)++;
-  }
-  else
-  {
-    err_t err = _managedStrings.put(resource._string, 1, true);
-    if (err) return err;
-
-    Hash<String32, sysuint_t>::Node* node = _managedStrings._getNode(resource._string);
-    node->key.squeeze();
-    resource._refCount = &node->value;
-    resource._string = node->key;
-  }
-  return Error::Ok;
-}
-
-err_t XmlDocument::_unmanageString(XmlString& resource)
-{
-  if (--(*resource._refCount) == 0)
-  {
-    _managedStrings.remove(resource._string);
-  }
-
-  resource._refCount = NULL;
-  return Error::Ok;
-}
-
-String32 XmlDocument::_getManagedString(const String32& resource)
-{
-  Hash<String32, sysuint_t>::Node* node = _managedStrings._getNode(resource);
-
-  if (node)
-    return String32(node->key);
-  else
-    return String32();
 }
 
 } // Fog namespace

@@ -199,7 +199,7 @@ struct Vector : public Sequence<T>
 
   // [Container]
 
-  FOG_INLINE sysuint_t capacity() const
+  FOG_INLINE sysuint_t getCapacity() const
   { return _d->capacity; }
 
   FOG_INLINE void reserve(sysuint_t to)
@@ -226,7 +226,7 @@ struct Vector : public Sequence<T>
   { VectorAPI<T>::append(this, data, length); }
 
   FOG_INLINE void append(const Vector<T>& other)
-  { Vector<T> t(other); append(t.cData(), t.length()); }
+  { Vector<T> t(other); append(t.cData(), t.getLength()); }
 
   FOG_INLINE void prepend(const T& element)
   { VectorAPI<T>::insert(this, 0, &element, 1); }
@@ -235,7 +235,7 @@ struct Vector : public Sequence<T>
   { VectorAPI<T>::insert(this, 0, data, length); }
 
   FOG_INLINE void prepend(const Vector<T>& other)
-  { Vector<T> t(other); prepend(t.cData(), t.length()); }
+  { Vector<T> t(other); prepend(t.cData(), t.getLength()); }
 
   FOG_INLINE void insert(sysuint_t index, const T& element)
   { VectorAPI<T>::insert(this, index, &element, 1); }
@@ -244,7 +244,7 @@ struct Vector : public Sequence<T>
   { VectorAPI<T>::insert(this, index, data, length); }
 
   FOG_INLINE void insert(sysuint_t index, const Vector<T>& other)
-  { Vector<T> t(other); insert(index, t.cData(), t.length()); }
+  { Vector<T> t(other); insert(index, t.cData(), t.getLength()); }
 
   FOG_INLINE sysuint_t remove(const T& element)
   { return removeAt(indexOf(element)); } 
@@ -262,7 +262,7 @@ struct Vector : public Sequence<T>
   { return VectorAPI<T>::replace(this, index, range, data, length); }
 
   FOG_INLINE sysuint_t replace(sysuint_t index, sysuint_t range, const Vector<T>& other)
-  { Vector<T> t(other); return replace(index, range, t.cData(), t.length()); }
+  { Vector<T> t(other); return replace(index, range, t.cData(), t.getLength()); }
 
   T takeAt(sysuint_t index)
   {
@@ -273,10 +273,10 @@ struct Vector : public Sequence<T>
   }
 
   T takeFirst() { return takeAt(0); }
-  T takeLast() { return takeAt(Sequence<T>::length()-1); }
-  T top() const { return cAt(Sequence<T>::length()-1); }
+  T takeLast() { return takeAt(Sequence<T>::getLength()-1); }
+  T top() const { return cAt(Sequence<T>::getLength()-1); }
 
-  void pop() { removeAt(Sequence<T>::length()-1, 1); }
+  void pop() { removeAt(Sequence<T>::getLength()-1, 1); }
 
   // [Operator Overload]
 

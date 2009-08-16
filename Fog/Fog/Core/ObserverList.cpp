@@ -7,7 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif // FOG_PRECOMP
@@ -58,7 +58,7 @@ void Fog::ObserverListBase::_compact() const
 {
   sysuint_t i = 0;
 
-  while (i < _observers.length())
+  while (i < _observers.getLength())
   {
     if (_observers.cAt(i) == 0)
       _observers.removeAt(i);

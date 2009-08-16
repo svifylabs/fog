@@ -174,8 +174,8 @@ struct FOG_API Image
 
   // [Flags]
 
-  //! @copydoc Doxygen::Implicit::flags().
-  FOG_INLINE uint32_t flags() const { return _d->flags; }
+  //! @copydoc Doxygen::Implicit::getFlags().
+  FOG_INLINE uint32_t getFlags() const { return _d->flags; }
   //! @copydoc Doxygen::Implicit::isDynamic().
   FOG_INLINE bool isDynamic() const { return _d->flags & Data::IsDynamic; }
   //! @copydoc Doxygen::Implicit::isSharable().
@@ -273,24 +273,24 @@ struct FOG_API Image
   // [Dimensions]
 
   //! @brief Get image width (in pixels).
-  FOG_INLINE int width() const { return _d->width; }
+  FOG_INLINE int getWidth() const { return _d->width; }
   //! @brief Get image height (in pixels).
-  FOG_INLINE int height() const { return _d->height; }
+  FOG_INLINE int getHeight() const { return _d->height; }
   //! @brief Get whether image is empty (width and height equals to zero).
   FOG_INLINE bool isEmpty() const { return _d->stride == 0; }
   //! @brief Get image stride (bytes per line).
   //!
   //! @note Stride can be 'width * bytesPerPixel', but can be also larger.
-  FOG_INLINE sysint_t stride() const { return _d->stride; }
+  FOG_INLINE sysint_t getStride() const { return _d->stride; }
 
   // [Format]
 
   //! @brief Get image format, see @c Format enumeration.
-  FOG_INLINE int format() const { return _d->format; }
+  FOG_INLINE int getFormat() const { return _d->format; }
   //! @brief Get image depth (8, 24 or 32).
-  FOG_INLINE int depth() const { return _d->depth; }
+  FOG_INLINE int getDepth() const { return _d->depth; }
   //! @brief Get image bytes per pixel.
-  FOG_INLINE int bytesPerPixel() const { return _d->bytesPerPixel; }
+  FOG_INLINE int getBytesPerPixel() const { return _d->bytesPerPixel; }
 
   //! @brief Get whether image is indexed (8-bit image with palette).
   FOG_INLINE bool isIndexed() const { return _d->format == FormatI8; }
@@ -305,8 +305,7 @@ struct FOG_API Image
   //! Please always check error value, because allocation memory for image data
   //! can fail. Also if there are invalid arguments (dimensions or format) the
   //! Error::InvalidArgument will be returned.
-  err_t create(
-    int w, int h, int format);
+  err_t create(int w, int h, int format);
   
   //! @brief Image adopt flags.
   enum AdoptFlags
@@ -353,7 +352,7 @@ struct FOG_API Image
   // [Palette]
 
   //! @brief Get image palette.
-  FOG_INLINE const Palette& palette() const { return _d->palette; }
+  FOG_INLINE const Palette& getPalette() const { return _d->palette; }
   //! @brief Set image palette.
   err_t setPalette(const Palette& palette);
   //! @brief Set image palette entries.
@@ -540,13 +539,13 @@ struct FOG_API Image
   //! @brief Check if point at a given coordinates @a x and @a y is in image.
   FOG_INLINE bool hasPoint(int x, int y) 
   { 
-    return (uint)x < (uint)width() && (uint)y < (uint)height(); 
+    return (uint)x < (uint)getWidth() && (uint)y < (uint)getHeight(); 
   }
   
   //! @brief Check if point at a given coordinates @a at is in image.
   FOG_INLINE bool hasPoint(const Point& pt) 
   { 
-    return (uint)pt.x() < (uint)width() && (uint)pt.y() < (uint)height(); 
+    return (uint)pt.x < (uint)getWidth() && (uint)pt.y < (uint)getHeight(); 
   }
 
   // [WinAPI functions]
@@ -579,8 +578,7 @@ struct FOG_API Image
 
   // [Overloaded Operators]
 
-  FOG_INLINE Image& operator=(const Image& other)
-  { set(other); return *this; }
+  FOG_INLINE Image& operator=(const Image& other) { set(other); return *this; }
 
   // [Statics]
 

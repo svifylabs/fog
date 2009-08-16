@@ -3,7 +3,7 @@
 // [Licence] 
 // MIT, See COPYING file in package
 
-// [Precompiled headers]
+// [Precompiled Headers]
 #ifdef FOG_PRECOMP
 #include FOG_PRECOMP
 #endif
@@ -163,8 +163,8 @@ err_t GlyphSet::end()
 
     int gx1 = advanceX + gd->bitmapX;
     int gy1 = advanceY + gd->bitmapY;
-    int gx2 = gx1 + gd->bitmap.width();
-    int gy2 = gy1 + gd->bitmap.height();
+    int gx2 = gx1 + gd->bitmap.getWidth();
+    int gy2 = gy1 + gd->bitmap.getHeight();
 
     if (x1 > gx1) x1 = gx1;
     if (y1 > gy1) y1 = gy1;

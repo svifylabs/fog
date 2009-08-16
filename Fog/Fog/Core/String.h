@@ -89,8 +89,8 @@ struct FOG_HIDDEN Stub8
 
   // [Methods]
 
-  FOG_INLINE const Char8* str() const { return _str; }
-  FOG_INLINE sysuint_t length() const { return _length; }
+  FOG_INLINE const Char8* getStr() const { return _str; }
+  FOG_INLINE sysuint_t getLength() const { return _length; }
 
   // [Members]
 
@@ -206,8 +206,8 @@ struct FOG_HIDDEN Utf16
 
   // [Methods]
 
-  FOG_INLINE const Char16* str() const { return _str; }
-  FOG_INLINE sysuint_t length() const { return _length; }
+  FOG_INLINE const Char16* getStr() const { return _str; }
+  FOG_INLINE sysuint_t getLength() const { return _length; }
 
   // [Members]
 
@@ -242,8 +242,8 @@ struct FOG_HIDDEN Utf32
 
   // [Methods]
 
-  FOG_INLINE const Char32* str() const { return _str; }
-  FOG_INLINE sysuint_t length() const { return _length; }
+  FOG_INLINE const Char32* getStr() const { return _str; }
+  FOG_INLINE sysuint_t getLength() const { return _length; }
 
   // [Members]
 
@@ -260,11 +260,8 @@ struct FOG_HIDDEN FormatFlags
 {
   // [Construction / Destruction]
 
-  FOG_INLINE FormatFlags(
-    sysuint_t precision = NoPrecision,
-    sysuint_t width = NoWidth,
-    uint32_t flags = NoFlags) : 
-      precision(precision), width(width), flags(flags)
+  FOG_INLINE FormatFlags(sysuint_t precision = NoPrecision, sysuint_t width = NoWidth, uint32_t flags = NoFlags) : 
+    precision(precision), width(width), flags(flags)
   {
   }
 
@@ -308,8 +305,7 @@ struct FOG_HIDDEN Range
   // [Construction / Destruction]
 
   FOG_INLINE Range() {};
-  FOG_INLINE Range(sysuint_t index, sysuint_t length = DetectLength) :
-    index(index), length(length) {}
+  FOG_INLINE Range(sysuint_t index, sysuint_t length = DetectLength) : index(index), length(length) {}
 
   // [Members]
 
@@ -342,22 +338,22 @@ struct FOG_HIDDEN Range
 namespace Fog {
 
 FOG_INLINE Stub8::Stub8(const String8& str) :
-  _str(str.cData()), _length(str.length()) {}
+  _str(str.cData()), _length(str.getLength()) {}
 
 FOG_INLINE Ascii8::Ascii8(const String8& str) :
-  Stub8(str.cData(), str.length()) {}
+  Stub8(str.cData(), str.getLength()) {}
 
 FOG_INLINE Local8::Local8(const String8& str) :
-  Stub8(str.cData(), str.length()) {}
+  Stub8(str.cData(), str.getLength()) {}
 
 FOG_INLINE Utf8::Utf8(const String8& str) :
-  Stub8(str.cData(), str.length()) {}
+  Stub8(str.cData(), str.getLength()) {}
 
 FOG_INLINE Utf16::Utf16(const String16& str) :
-  _str(str.cData()), _length(str.length()) {}
+  _str(str.cData()), _length(str.getLength()) {}
 
 FOG_INLINE Utf32::Utf32(const String32& str) :
-  _str(str.cData()), _length(str.length()) {}
+  _str(str.cData()), _length(str.getLength()) {}
 
 } // Fog namespace
 
