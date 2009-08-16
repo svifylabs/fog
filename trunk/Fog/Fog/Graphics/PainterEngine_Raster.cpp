@@ -734,12 +734,23 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
   struct FOG_HIDDEN WorkerTask : public Task
   {
     WorkerTask();
+    virtual ~WorkerTask();
 
     virtual void run();
     virtual void destroy();
 
+    // State
+    enum State
+    {
+      Running,
+      Waiting,
+      Done
+    };
+
+    Atomic<int> state;
+
     // True if worker should quit from main loop.
-    volatile int shouldQuit;
+    Atomic<int> shouldQuit;
 
     // Commands and calculations.
     volatile sysint_t currentCalculation;
@@ -747,6 +758,9 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
 
     // Worker context.
     Context ctx;
+
+    // Worker event
+    ThreadEvent event;
   };
 
   // --------------------------------------------------------------------------
@@ -763,22 +777,19 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
 
     // [Methods]
 
-    void wakeUpWaitingWorkers();
-    void wakeUpCompletedWorkers();
+    void wakeUpScheduled();
+    void wakeUpSleeping();
+    bool isCompleted();
 
     // [Members]
 
     ThreadPool* threadPool;             // Thread pool.
     sysuint_t numWorkers;               // Count of workers used in engine.
 
-    Atomic<sysuint_t> startedWorkers;   // Count of workers started (used to start).
     Atomic<sysuint_t> finishedWorkers;  // Count of workers finished (used to quit).
     Atomic<sysuint_t> waitingWorkers;   // Count of workers waiting (for calculation).
-    Atomic<sysuint_t> completedWorkers; // Count of workers that completed all tasks.
 
     Lock lock;                          // Lock for synchronization primitives.
-    ThreadCondition waitingCondition;
-    ThreadCondition completedCondition;
     ThreadCondition allFinishedCondition;
     ThreadEvent* releaseEvent;
 
@@ -1274,11 +1285,18 @@ void PainterEngine_Raster::Calculation_Path::release()
 // [Fog::PainterEngine_Raster::WorkerTask]
 // ============================================================================
 
-PainterEngine_Raster::WorkerTask::WorkerTask()
+PainterEngine_Raster::WorkerTask::WorkerTask() :
+  event(false, false)
 {
-  shouldQuit = 0;
+  state.init(Running);
+  shouldQuit.init(false);
+
   currentCalculation = 0;
   currentCommand = 0;
+}
+
+PainterEngine_Raster::WorkerTask::~WorkerTask()
+{
 }
 
 void PainterEngine_Raster::WorkerTask::run()
@@ -1290,19 +1308,18 @@ void PainterEngine_Raster::WorkerTask::run()
   int delta = ctx.delta;
 
 #if defined(FOG_DEBUG_RASTER)
-  fog_debug("Fog::Painter[Worker #%d]::run() - ThreadID=%d", ctx.id, Thread::current()->id());
+  fog_debug("Fog::Painter[Worker #%d]::run() - ThreadID=%d", ctx.id, Thread::current()->getId());
 #endif // FOG_DEBUG_RASTER
 
   for (;;)
   {
     // Do calculations and commands.
-    bool cont;
-    bool wait;
+    int cont = 0;
+    bool wait = false;
 
     do {
-      cont = false;
       wait = false;
-  
+
       // Do calculations (highest priority than commands).
       while (currentCalculation < mgr->calculationsPosition)
       {
@@ -1326,11 +1343,12 @@ void PainterEngine_Raster::WorkerTask::run()
           clc->run(&ctx);
           clc->release();
 
-          mgr->wakeUpWaitingWorkers();
+          AutoLock locked(mgr->lock);
+          mgr->wakeUpScheduled();
         }
 
         currentCalculation++;
-        cont = true;
+        cont = 0;
       }
 
       // Do command.
@@ -1365,14 +1383,14 @@ void PainterEngine_Raster::WorkerTask::run()
             if (cmd->refCount.deref()) cmd->release();
 
             currentCommand++;
-            cont = true;
+            cont = 0;
             break;
           }
 
           case Command::Skip:
           {
             currentCommand++;
-            cont = true;
+            cont = 0;
             break;
           }
 
@@ -1384,63 +1402,63 @@ void PainterEngine_Raster::WorkerTask::run()
         }
       }
 skipCommands:
-      ;
-    } while (cont);
+      cont++;
+    } while (cont < 2);
 
     {
       AutoLock locked(mgr->lock);
 
-      if (currentCalculation < mgr->calculationsPosition ||
-         (currentCommand < mgr->commandsPosition && mgr->commandsData[currentCommand]->status.get() != Command::Wait))
+      if (currentCalculation < mgr->calculationsPosition || (currentCommand < mgr->commandsPosition && !wait))
       {
         continue;
       }
 
 #if defined(FOG_DEBUG_RASTER)
-      fog_debug("Fog::Painter[Worker #%d]::run() - done (waiting=%d, completed=%d)",
+      fog_debug("Fog::Painter[Worker #%d]::run() - going to wait (currently waiting=%d)",
         ctx.id,
-        (int)mgr->waitingWorkers.get(),
-        (int)mgr->completedWorkers.get());
+        (int)mgr->waitingWorkers.get());
 #endif // FOG_DEBUG_RASTER
 
-      // Wait means that we must wait to start processing current command
-      // (it's being calculated).
-      if (wait)
+      if (mgr->waitingWorkers.addXchg(1) + 1 == mgr->numWorkers)
       {
-#if defined(FOG_DEBUG_RASTER)
-        fog_debug("Fog::Painter[Worker #%d]::run() - waiting for calculation...", ctx.id);
-#endif // FOG_DEBUG_RASTER
-
-        mgr->waitingWorkers.inc();
-
-        mgr->waitingCondition.wait();
-        mgr->wakeUpWaitingWorkers();
-      }
-      else
-      {
-#if defined(FOG_DEBUG_RASTER)
-        fog_debug("Fog::Painter[Worker #%d]::run() - waiting for new commands...", ctx.id);
-#endif // FOG_DEBUG_RASTER
-
-        if (mgr->completedWorkers.addXchg(1)+1 == mgr->numWorkers)
+        // If count of waiting workers will be now count of workers (so this is
+        // the last running one), we need to check if everything was completed
+        // and if we can fire allFinishedCondition signal.
+        if (mgr->isCompleted())
         {
 #if defined(FOG_DEBUG_RASTER)
-          fog_debug("Fog::Painter[Worker #%d]::run() - I'm last, signaling allFinished...", ctx.id);
+          fog_debug("Fog::Painter[Worker #%d]::run() - everything done, signaling allFinished...", ctx.id);
 #endif // FOG_DEBUG_RASTER
           mgr->allFinishedCondition.signal();
         }
-
-        if (shouldQuit)
+        else
         {
-#if defined(FOG_DEBUG_RASTER)
-          fog_debug("Fog::Painter[Worker #%d]::run() - quitting...", ctx.id);
-#endif // FOG_DEBUG_RASTER
-          return;
+          mgr->wakeUpScheduled();
         }
-
-        mgr->completedCondition.wait();
-        mgr->wakeUpCompletedWorkers();
       }
+
+      if (shouldQuit.get() == true && currentCommand == mgr->commandsPosition)
+      {
+#if defined(FOG_DEBUG_RASTER)
+        fog_debug("Fog::Painter[Worker #%d]::run() - quitting...", ctx.id);
+#endif // FOG_DEBUG_RASTER
+        mgr->wakeUpSleeping();
+        state.set(Done);
+        return;
+      }
+
+      state.set(Waiting);
+      {
+        AutoUnlock unlocked(mgr->lock);
+        event.wait();
+      }
+      state.set(Running);
+      mgr->waitingWorkers.dec();
+
+      if (shouldQuit.get() == true)
+        mgr->wakeUpSleeping();
+      else
+        mgr->wakeUpScheduled();
     }
   }
 }
@@ -1454,7 +1472,7 @@ void PainterEngine_Raster::WorkerTask::destroy()
   fog_debug("Fog::Painter[Worker #%d]::WorkerTask::destroy()", ctx.id);
 #endif // FOG_DEBUG_RASTER
 
-  if (mgr->finishedWorkers.addXchg(1) == mgr->numWorkers-1)
+  if (mgr->finishedWorkers.addXchg(1) + 1 == mgr->numWorkers)
   {
 #if defined(FOG_DEBUG_RASTER)
     fog_debug("Fog::Painter[Worker #%d]::WorkerTask::destroy() - I'm last...", ctx.id);
@@ -1469,8 +1487,6 @@ void PainterEngine_Raster::WorkerTask::destroy()
 // ============================================================================
 
 PainterEngine_Raster::WorkerManager::WorkerManager() :
-  waitingCondition(&lock),
-  completedCondition(&lock),
   allFinishedCondition(&lock),
   releaseEvent(NULL)
 {
@@ -1480,33 +1496,47 @@ PainterEngine_Raster::WorkerManager::~WorkerManager()
 {
 }
 
-void PainterEngine_Raster::WorkerManager::wakeUpWaitingWorkers()
+void PainterEngine_Raster::WorkerManager::wakeUpScheduled()
 {
-  sysuint_t i;
-  do {
-    i = waitingWorkers.get();
-    if (i > 0 && waitingWorkers.cmpXchg(i, i-1))
+  for (sysuint_t i = 0; i < numWorkers; i++)
+  {
+    WorkerTask* task = tasks[i].instancep();
+
+    if (task->state.get() == WorkerTask::Waiting && task->currentCommand < commandsPosition)
     {
-      AutoLock locked(lock);
-      waitingCondition.signal();
-      break;
+      task->event.signal();
+      return;
     }
-  } while (i);
+  }
 }
 
-void PainterEngine_Raster::WorkerManager::wakeUpCompletedWorkers()
+void PainterEngine_Raster::WorkerManager::wakeUpSleeping()
 {
-  sysuint_t i;
-  do {
-    i = completedWorkers.get();
-    if (i > 0 && completedWorkers.cmpXchg(i, i-1))
+  for (sysuint_t i = 0; i < numWorkers; i++)
+  {
+    WorkerTask* task = tasks[i].instancep();
+
+    if (task->state.get() == WorkerTask::Waiting)
     {
-      AutoLock locked(lock);
-      completedCondition.signal();
-      break;
+      task->event.signal();
+      return;
     }
-  } while (i);
+  }
 }
+
+bool PainterEngine_Raster::WorkerManager::isCompleted()
+{
+  sysuint_t done = 0;
+
+  for (sysuint_t i = 0; i < numWorkers; i++)
+  {
+    WorkerTask* task = tasks[i].instancep();
+    if (task->currentCommand == commandsPosition) done++;
+  }
+
+  return done == numWorkers;
+}
+
 
 // ============================================================================
 // [Fog::PainterEngine_Raster - Construction / Destruction]
@@ -2615,24 +2645,12 @@ void PainterEngine_Raster::drawImage(const Point& p, const Image& image, const R
 
 void PainterEngine_Raster::flush()
 {
-  if (!workerManager) return;
-  if (workerManager->commandsPosition == 0) return;
+  if (workerManager == NULL || workerManager->commandsPosition == 0) return;
 
-  // Broadcast.
-  if (workerManager->completedWorkers.get() > 0)
+  if (!workerManager->isCompleted())
   {
     AutoLock locked(workerManager->lock);
-#if defined(FOG_DEBUG_RASTER)
-    fog_debug("Fog::Painter::flush() - waking up...");
-#endif // FOG_DEBUG_RASTER
-    workerManager->wakeUpCompletedWorkers();
-    workerManager->wakeUpWaitingWorkers();
-  }
-
-  // Wait.
-  while (workerManager->completedWorkers.get() != workerManager->numWorkers)
-  {
-    AutoLock locked(workerManager->lock);
+    workerManager->wakeUpScheduled();
     workerManager->allFinishedCondition.wait();
   }
 
@@ -2655,13 +2673,14 @@ void PainterEngine_Raster::flushWithQuit()
 {
   FOG_ASSERT(workerManager);
 
-  AutoLock locked(workerManager->lock);
+  //AutoLock locked(workerManager->lock);
 
 #if defined(FOG_DEBUG_RASTER)
   fog_debug("Fog::Painter::flushWithQuit() - quitting...");
 #endif // FOG_DEBUG_RASTER
 
-  workerManager->wakeUpCompletedWorkers();
+  AutoLock locked(workerManager->lock);
+  workerManager->wakeUpSleeping();
 }
 
 // ============================================================================
@@ -2756,10 +2775,8 @@ void PainterEngine_Raster::setMultithreaded(bool mt)
     workerManager->threadPool = threadPool;
     workerManager->numWorkers = count;
 
-    workerManager->startedWorkers.init(0);
     workerManager->finishedWorkers.init(0);
     workerManager->waitingWorkers.init(0);
-    workerManager->completedWorkers.init(0);
 
     workerManager->commandsPosition = 0;
     workerManager->calculationsPosition = 0;
@@ -2788,13 +2805,6 @@ void PainterEngine_Raster::setMultithreaded(bool mt)
       workerManager->threads[i]->getEventLoop()->postTask(task);
     }
 
-    // Wait for threads to initialize.
-    {
-      AutoLock locked(workerManager->lock);
-      while (workerManager->completedWorkers.get() != workerManager->numWorkers)
-        workerManager->allFinishedCondition.wait();
-    }
-
 #if defined(FOG_DEBUG_RASTER)
     fog_debug("Fog::Painter::setMultithreaded() - done");
 #endif // FOG_DEBUG_RASTER
@@ -2814,7 +2824,7 @@ void PainterEngine_Raster::setMultithreaded(bool mt)
     // Release threads.
     for (i = 0; i < count; i++)
     {
-      workerManager->tasks[i]->shouldQuit = 1;
+      workerManager->tasks[i]->shouldQuit.set(true);
     }
 
     // Flush everything and wait for completion.
@@ -3276,28 +3286,25 @@ void PainterEngine_Raster::_postCommand(Command* cmd, Calculation* clc)
     flush();
   }
 
-  sysuint_t pos;
-
   if (clc)
   {
-    pos = workerManager->calculationsPosition;
+    sysuint_t pos = workerManager->calculationsPosition;
     workerManager->calculationsData[pos] = clc;
     workerManager->calculationsPosition++;
   }
 
-  pos = workerManager->commandsPosition;
-  workerManager->commandsData[pos] = cmd;
-  workerManager->commandsPosition++;
-
-  if ((pos & 15) == 0)
   {
-    AutoLock locked(workerManager->lock);
-    if (workerManager->completedWorkers.get() > 0)
+    sysuint_t pos = workerManager->commandsPosition;
+    workerManager->commandsData[pos] = cmd;
+    workerManager->commandsPosition++;
+
+    if ((pos & 15) == 0 && workerManager->waitingWorkers.get() > 0)
     {
 #if defined(FOG_DEBUG_RASTER)
       fog_debug("Fog::Painter::_postCommand() - waking up...");
 #endif // FOG_DEBUG_RASTER
-      workerManager->wakeUpCompletedWorkers();
+      AutoLock locked(workerManager->lock);
+      workerManager->wakeUpScheduled();
     }
   }
 }
