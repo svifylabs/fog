@@ -28,11 +28,10 @@ Summary could be found in [BenchmarkSummaryTable Summary Table]
 ==Intel Quad Q6600 4x2.4GHz, 8GB RAM, Gentoo Linux 64-bit (dev-cpu)==
 
 {{{
-For benchmark tool:
- - surface=640x480
- - quantity=100000
- - cpu=GenuineIntel (MMX=yes, SSE=yes, SSE2=yes, SSE3=yes)
- - cpus detected=4
+Fog benchmark tool v0.1
+
+Surface=640x480, Quantity=100000
+Intel(R) Core(TM)2 Quad CPU Q6600 @ 2.40GHz (MMX=yes, SSE=yes, SSE2=yes, SSE3=yes, cores=4)
 
 Fog - FillRect - 2057.061 [ms]
 Fog - FillRound - 3659.400 [ms]
