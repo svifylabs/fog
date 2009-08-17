@@ -21,14 +21,36 @@ static Image _sprite[4];
 
 static void loadSprites()
 {
-  _sprite[0].readFile(Ascii8("babelfish.pcx"));
-  _sprite[0].premultiply();
-  _sprite[1].readFile(Ascii8("blockdevice.pcx"));
-  _sprite[1].premultiply();
-  _sprite[2].readFile(Ascii8("drop.pcx"));
-  _sprite[2].premultiply();
-  _sprite[3].readFile(Ascii8("kweather.pcx"));
-  _sprite[3].premultiply();
+  bool spritesNotFound = false;
+  const char* spriteNames[4] = {
+    "babelfish.pcx",
+    "blockdevice.pcx",
+    "drop.pcx",
+    "kweather.pcx"
+  };
+
+  for (int i = 0; i < 4; i++)
+  {
+    if (_sprite[i].readFile(Ascii8(spriteNames[i])) != Error::Ok)
+    {
+      fog_debug("Warning: Can't load sprite './%s'", spriteNames[i]);
+      spritesNotFound = true;
+    }
+    else
+    {
+      _sprite[i].premultiply();
+    }
+  }
+
+  if (spritesNotFound)
+  {
+    fog_debug("\nDownload sprites from these locations and place them to 'bench' working directory:");
+    for (int i = 0; i < 4; i++)
+    {
+      fog_debug("  http://kobalicek.com/res/files/sprites/%s", spriteNames[i]);
+    }
+    fog_debug("\nBlitImage test will be incorrect!\n");
+  }
 }
 
 // ============================================================================
@@ -949,9 +971,9 @@ struct BenchmarkModule_Cairo_FillPattern : public BenchmarkModule_Cairo
       pat = cairo_pattern_create_radial(w/2, h/2, 250.0, 30.0, 30.0, 1.0);
     }
 
-    cairo_pattern_add_color_stop_rgba(pat, 0.0, 0, 0, 0, 1);
+    cairo_pattern_add_color_stop_rgba(pat, 0.0, 1, 1, 1, 1);
     cairo_pattern_add_color_stop_rgba(pat, 0.5, 1, 1, 0, 1);
-    cairo_pattern_add_color_stop_rgba(pat, 1.0, 1, 1, 1, 1);
+    cairo_pattern_add_color_stop_rgba(pat, 1.0, 0, 0, 0, 1);
     cairo_set_source(cr, pat);
 
     for (int a = 0; a < quantity; a++)
@@ -1017,20 +1039,39 @@ struct BenchmarkModule_Cairo_BlitImage : public BenchmarkModule_Cairo
 static void benchAll()
 {
   int w = 640, h = 480;
-  int quantity = 10000;
+  int quantity = 100000;
 
   TimeDelta totalFog;
   TimeDelta totalFogMT;
   TimeDelta totalCairo;
   TimeDelta totalGdiPlus;
 
+  // --------------------------------------------------------------------------
+  // Header
+  // --------------------------------------------------------------------------
+  static const char* yesno[2] = { "no", "yes" };
+
+  fog_debug("Starting benchmark for:");
+  fog_debug(" - surface=%dx%d", w, h);
+  fog_debug(" - quantity=%d", quantity);
+  fog_debug(" - cpu=%s (MMX=%s, SSE=%s, SSE2=%s, SSE3=%s)",
+    cpuInfo->vendor,
+    yesno[cpuInfo->hasFeature(CpuInfo::Feature_MMX)],
+    yesno[cpuInfo->hasFeature(CpuInfo::Feature_SSE)],
+    yesno[cpuInfo->hasFeature(CpuInfo::Feature_SSE2)],
+    yesno[cpuInfo->hasFeature(CpuInfo::Feature_SSE3)]);
+  fog_debug(" - cpus detected=%d", cpuInfo->numberOfProcessors);
+  fog_debug("");
+
+  // --------------------------------------------------------------------------
+  // Fog
+  // --------------------------------------------------------------------------
+
   // Fog - FillRect
   {
     BenchmarkModule_Fog_FillRect mod(w, h);
     mod.setMultithreaded(false);
     totalFog += bench(mod, quantity);
-    mod.setMultithreaded(true);
-    totalFogMT += bench(mod, quantity);
   }
 
   // Fog - FillRound
@@ -1038,8 +1079,6 @@ static void benchAll()
     BenchmarkModule_Fog_FillRound mod(w, h);
     mod.setMultithreaded(false);
     totalFog += bench(mod, quantity);
-    mod.setMultithreaded(true);
-    totalFogMT += bench(mod, quantity);
   }
 
   // Fog - FillPolygon
@@ -1047,14 +1086,11 @@ static void benchAll()
     BenchmarkModule_Fog_FillPolygon mod(w, h);
     mod.setMultithreaded(false);
     totalFog += bench(mod, quantity);
-    mod.setMultithreaded(true);
-    totalFogMT += bench(mod, quantity);
   }
 
   // Fog - FillPattern
   {
     BenchmarkModule_Fog_FillPattern mod(w, h);
-
     mod.setMultithreaded(false);
 
     mod.pattern.setType(Pattern::TypeLinearGradient);
@@ -1062,20 +1098,6 @@ static void benchAll()
 
     mod.pattern.setType(Pattern::TypeRadialGradient);
     totalFog += bench(mod, quantity);
-
-    //mod.pattern.setType(Pattern::TypeConicalGradient);
-    //totalFog += bench(mod, quantity);
-
-    mod.setMultithreaded(true);
-
-    mod.pattern.setType(Pattern::TypeLinearGradient);
-    totalFogMT += bench(mod, quantity);
-
-    mod.pattern.setType(Pattern::TypeRadialGradient);
-    totalFogMT += bench(mod, quantity);
-
-    //mod.pattern.setType(Pattern::TypeConicalGradient);
-    //totalFogMT += bench(mod, quantity);
   }
 
   // Fog - BlitImage
@@ -1083,11 +1105,62 @@ static void benchAll()
     BenchmarkModule_Fog_BlitImage mod(w, h);
     mod.setMultithreaded(false);
     totalFog += bench(mod, quantity);
+  }
+
+  fog_debug("");
+
+  // --------------------------------------------------------------------------
+  // Fog (mt)
+  // --------------------------------------------------------------------------
+
+  // Fog (mt) - FillRect
+  {
+    BenchmarkModule_Fog_FillRect mod(w, h);
     mod.setMultithreaded(true);
     totalFogMT += bench(mod, quantity);
   }
 
+  // Fog (mt) - FillRound
+  {
+    BenchmarkModule_Fog_FillRound mod(w, h);
+    mod.setMultithreaded(true);
+    totalFogMT += bench(mod, quantity);
+  }
+
+  // Fog (mt) - FillPolygon
+  {
+    BenchmarkModule_Fog_FillPolygon mod(w, h);
+    mod.setMultithreaded(true);
+    totalFogMT += bench(mod, quantity);
+  }
+
+  // Fog (mt) - FillPattern
+  {
+    BenchmarkModule_Fog_FillPattern mod(w, h);
+    mod.setMultithreaded(true);
+
+    mod.pattern.setType(Pattern::TypeLinearGradient);
+    totalFogMT += bench(mod, quantity);
+
+    mod.pattern.setType(Pattern::TypeRadialGradient);
+    totalFogMT += bench(mod, quantity);
+  }
+
+  // Fog (mt) - BlitImage
+  {
+    BenchmarkModule_Fog_BlitImage mod(w, h);
+    mod.setMultithreaded(true);
+    totalFogMT += bench(mod, quantity);
+  }
+
+  fog_debug("");
+
 #if defined(FOG_OS_WINDOWS)
+
+  // --------------------------------------------------------------------------
+  // GdiPlus
+  // --------------------------------------------------------------------------
+
   // GdiPlus - FillRect
   {
     BenchmarkModule_GDI_FillRect mod(w, h);
@@ -1117,7 +1190,14 @@ static void benchAll()
     BenchmarkModule_GDI_BlitImage mod(w, h);
     totalGdiPlus += bench(mod, quantity);
   }
+
+  fog_debug("");
+
 #else
+  // --------------------------------------------------------------------------
+  // Cairo
+  // --------------------------------------------------------------------------
+
   // Cairo - FillRect
   {
     BenchmarkModule_Cairo_FillRect mod(w, h);
@@ -1150,9 +1230,11 @@ static void benchAll()
     BenchmarkModule_Cairo_BlitImage mod(w, h);
     totalCairo += bench(mod, quantity);
   }
-#endif // FOG_OS_WINDOWS
 
   fog_debug("");
+
+#endif // FOG_OS_WINDOWS
+
   fog_debug("Summary:");
   fog_debug("Fog        - %.3f [ms]", totalFog.inMillisecondsF());
   fog_debug("Fog (mt)   - %.3f [ms]", totalFogMT.inMillisecondsF());
@@ -1169,6 +1251,8 @@ static void benchAll()
 #undef main
 int main(int argc, char* argv[])
 {
+  fog_debug("Fog benchmark tool v0.1\n");
+
 #if defined(FOG_OS_WINDOWS)
 	// Initialize GDI+
   ULONG_PTR gdiplusToken;

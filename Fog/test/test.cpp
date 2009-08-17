@@ -79,7 +79,7 @@ MyWindow::MyWindow(uint32_t createFlags) :
     if (argv.getLength() > 1)
       svg.readFile(argv.cAt(1));
     else
-      svg.readFile(Ascii8("C:/my/svg/tiger.svg"));
+      svg.readFile(Ascii8("/my/upload/svg/tiger.svg"));
   }
 }
 
@@ -160,7 +160,7 @@ void MyWindow::onPaint(PaintEvent* e)
 
   {
     SvgContext ctx(p);
-    p->scale(s, s);
+    //p->scale(s, s);
 
     //p->translate(180.0, 145.0);
     //p->scale(w/550.0, h/510.0);

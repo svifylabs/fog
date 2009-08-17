@@ -207,9 +207,16 @@ Application_Local::Application_Local()
   {
     String32 procFile;
     Stream stream;
+    err_t err;
 
     procFile.format("/proc/%u/cmdline", (uint)getpid());
-    stream.openFile(procFile, Stream::OpenRead);
+
+    err = stream.openFile(procFile, Stream::OpenRead);
+    if (err)
+    {
+      // What to do here, the /proc/pid/cmdline is not available.
+    }
+
     stream.readAll(cmdLine);
   }
 
