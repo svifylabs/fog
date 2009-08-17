@@ -14,49 +14,58 @@ Usually the benchmarks for Cairo are run under Linux, and bechmarks fog GDI+ und
 
   * FillRect - Test that will fill rectangles of 128x128 pixels. Rectangle fills are often optimized as special fastpaths, so this test will show how these special cases are optimized in library.
   * FillRound - Test that will fill rounded rectangles of 128x128 pixels and 8 radius. This test should be compared with FillRect and can tell the performance of rasterizing objects that are very similar to rectangles in size and in shape. It just reveals machinery and slowdown caused by library rasterizer.
-  * FillPath - Test that will fill random path that is not limited in coordinates (coordinates can be generated for any point that is valid in destination image).
+  * FillPolygon - Test that will fill random polygons containing 10 vertices (coordinates can be generated for any point that is valid in destination image).
   * FillPattern - Filling 128x128 rectangle by linear or radial gradient brush. When filling we are interested in getting time consumed to create fill. This is reason that filling is also done in 128x128 rectangles.
   * BlitImage - Blitting image with SrcOver (Ported & Duff) operator. This test should show how blitting engine is optimized for your CPU. Image sizes are also 128x128 and contains alpha channel.
 
-The tests are usually done to perform 100.000 operations and result is time in [ms] for each kind of operation. The (mt) comment in Fog tests means that multithreading is used for tests, the number of threads is always determined as number of CPUs (or cores). The size of destination image is usually 640x480 and pixel format is PRGB32 (premultiplied ARGB32).
+The tests are usually done to perform 100.000 operations and result is time in [ms] for each kind of operation. The (mt) comment in Fog tests means that multithreading is used for tests, the number of threads is always determined as number of CPUs (or cores). The size of destination image is usually 640x480 and pixel format is PRGB32 (premultiplied 32-bit format with alpha channel).
 
 In the future there will be probably more tests. Current tests were designed to tune Fog library, not to compare with others (this is also reason for gradient fills, image blitting and other tests).
 
 =Benchmark Results=
 Summary could be found in [BenchmarkSummaryTable Summary Table]
+
 ==Intel Quad Q6600 4x2.4GHz, 8GB RAM, Gentoo Linux 64-bit (dev-cpu)==
 
 {{{
-Fog - FillRect - 2172.017 [ms]
-Fog - FillRound - 4170.389 [ms]
-Fog - FillPath - 24735.230 [ms]
-Fog - FillPattern - LinearGradient - 2284.267 [ms]
-Fog - FillPattern - RadialGradient - 6324.541 [ms]
-Fog - BlitImage - 3947.891 [ms]
+For benchmark tool:
+ - surface=640x480
+ - quantity=100000
+ - cpu=GenuineIntel (MMX=yes, SSE=yes, SSE2=yes, SSE3=yes)
+ - cpus detected=4
 
-Fog - FillRect (mt) - 687.902 [ms]
-Fog - FillRound (mt) - 3115.886 [ms]
-Fog - FillPath (mt) - 16931.257 [ms]
-Fog - FillPattern - LinearGradient (mt) - 678.038 [ms]
-Fog - FillPattern - RadialGradient (mt) - 1651.816 [ms]
-Fog - BlitImage (mt) - 1157.787 [ms]
+Fog - FillRect - 2057.061 [ms]
+Fog - FillRound - 3659.400 [ms]
+Fog - FillPolygon - 33708.193 [ms]
+Fog - FillPattern - LinearGradient - 2665.243 [ms]
+Fog - FillPattern - RadialGradient - 6623.788 [ms]
+Fog - BlitImage - 3948.032 [ms]
 
-Cairo - FillRect - 2192.418 [ms]
-Cairo - FillRound - 12122.425 [ms]
-Cairo - FillPath - 52355.541 [ms]
-Cairo - FillPattern - LinearGradient - 24205.879 [ms]
-Cairo - FillPattern - RadialGradient - 137260.331 [ms]
-Cairo - BlitImage - 4131.858 [ms]
+Fog - FillRect (mt) - 655.907 [ms]
+Fog - FillRound (mt) - 1996.621 [ms]
+Fog - FillPolygon (mt) - 13669.000 [ms]
+Fog - FillPattern - LinearGradient (mt) - 771.105 [ms]
+Fog - FillPattern - RadialGradient (mt) - 1918.720 [ms]
+Fog - BlitImage (mt) - 1132.166 [ms]
+
+Cairo - FillRect - 2152.900 [ms]
+Cairo - FillRound - 14443.486 [ms]
+Cairo - FillPolygon - 66757.446 [ms]
+Cairo - FillPattern - LinearGradient - 24875.558 [ms]
+Cairo - FillPattern - RadialGradient - 85403.838 [ms]
+Cairo - BlitImage - 4039.170 [ms]
 
 Summary:
-Fog        - 43634.335 [ms]
-Fog (mt)   - 24222.686 [ms]
-Cairo      - 232268.452 [ms]
+Fog        - 52661.717 [ms]
+Fog (mt)   - 20143.519 [ms]
+Cairo      - 197672.398 [ms]
 }}}
 
 ==Intel Xeon E5310 8x1.6GHz, 4GB RAM, Windows Vista 32-bit==
 
 {{{
+TODO: Need to run with new benchmark tool
+
 Fog - FillRect - 3116,069 [ms]
 Fog - FillRound - 6084,969 [ms]
 Fog - FillPath - 41680,029 [ms]
@@ -87,6 +96,8 @@ GDI+       - 133026,632 [ms]
 ==Intel Atom 1.6GHz, 1GB ram, ubuntu 9.04 with kernel 2.6.28-12-netbook==
 
 {{{
+TODO: Need to run with new benchmark tool
+
 Fog - FillRect - 12658,127 [ms]
 Fog - FillRound - 18787,400 [ms]
 Fog - FillPath - 103106,142 [ms]
@@ -116,6 +127,6 @@ Cairo      - 853761,599 [ms]
 
 =Conclusion=
 
-You can see that Fog library is really fast compared to others. Currently operations like FillRect are really optimized and are tagged as complete. But there are areas where future work will be focused, and this is mainly improving path rasterizing with better parallelization. With good parallelization the FillPath(mt) test should improve from 16.000 [ms] to only 6.000 [ms] and with better rasterizer it can speedup to 3.000 [ms].
+You can see that Fog library is really fast compared to others. Currently operations like FillRect are really optimized and are tagged as complete. But there are areas where future work will be focused, and this is mainly improving path rasterization. Currently Fog library can be improved by introducing painter object pooling and better memory management.
 
-Another interesting topic is linear and radial gradient fills compared to Cairo. Fog library is able to fill gradients nearly in time needed to fill rect with constant color. This means that these fills can't be optimized to perform better. The radial gradient fill is currently optimized in SSE2 and it's about 4x faster than comparable C optimized code that is about 4x faster than unoptimized code seen in other libraries (for example AntiGrain or Cairo).
+Another interesting topic is linear and radial gradient fills compared to Cairo. Fog library is able to fill gradients nearly in time needed to fill rect with constant color. This means that these fills can't be optimized to perform better. The radial gradient fill is currently optimized in SSE2 and it's about 4x faster than comparable C optimized code that is about 4x faster than unoptimized code seen in other libraries (for example AntiGrain or Cairo) where is usually called function to calculate pixel (calling functions in heavy inner loops degrades performance a lot).
