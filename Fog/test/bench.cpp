@@ -1051,16 +1051,14 @@ static void benchAll()
   // --------------------------------------------------------------------------
   static const char* yesno[2] = { "no", "yes" };
 
-  fog_debug("Starting benchmark for:");
-  fog_debug(" - surface=%dx%d", w, h);
-  fog_debug(" - quantity=%d", quantity);
-  fog_debug(" - cpu=%s (MMX=%s, SSE=%s, SSE2=%s, SSE3=%s)",
-    cpuInfo->vendor,
+  fog_debug("Surface=%dx%d, Quantity=%d", w, h, quantity);
+  fog_debug("%s (MMX=%s, SSE=%s, SSE2=%s, SSE3=%s, cores=%u)",
+    cpuInfo->brand,
     yesno[cpuInfo->hasFeature(CpuInfo::Feature_MMX)],
     yesno[cpuInfo->hasFeature(CpuInfo::Feature_SSE)],
     yesno[cpuInfo->hasFeature(CpuInfo::Feature_SSE2)],
-    yesno[cpuInfo->hasFeature(CpuInfo::Feature_SSE3)]);
-  fog_debug(" - cpus detected=%d", cpuInfo->numberOfProcessors);
+    yesno[cpuInfo->hasFeature(CpuInfo::Feature_SSE3)],
+    cpuInfo->numberOfProcessors);
   fog_debug("");
 
   // --------------------------------------------------------------------------

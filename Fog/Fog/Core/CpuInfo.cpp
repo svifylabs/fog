@@ -17,6 +17,7 @@
 #include <Fog/Core/Constants.h>
 #include <Fog/Core/CpuInfo.h>
 #include <Fog/Core/Error.h>
+#include <Fog/Core/Math.h>
 
 #if defined(FOG_OS_WINDOWS)
 # include <windows.h>
@@ -118,12 +119,6 @@ void detectCpuInfo(CpuInfo* i)
 
   // First clear our struct
   memset(i, 0, sizeof(CpuInfo));
-
-  memcpy(i->vendor, "Unknown", 8);
-  i->numberOfProcessors = detectNumberOfProcessors();
-
-  // First clear our struct
-  memset(i, 0, sizeof(CpuInfo));
   memcpy(i->vendor, "Unknown", 8);
 
   i->numberOfProcessors = detectNumberOfProcessors();
@@ -195,10 +190,10 @@ void detectCpuInfo(CpuInfo* i)
   // gets the number of valid extended IDs.
 
   cpuid(0x80000000, &out);
+  uint32_t exIds = Math::min(out.eax, 0x80000004);
+  uint32_t* brand = reinterpret_cast<uint32_t*>(i->brand);
 
-  uint32_t exIds = out.eax;
-
-  for (a = 0x80000001; a < exIds && a <= (0x80000001); a++)
+  for (a = 0x80000001; a <= exIds; a++)
   {
     cpuid(a, &out);
 
@@ -219,13 +214,43 @@ void detectCpuInfo(CpuInfo* i)
         if (out.edx & 0x20000000U) i->features |= CpuInfo::Feature_64Bit;
         if (out.edx & 0x40000000U) i->features |= CpuInfo::Feature_3dNowExt | CpuInfo::Feature_MMXExt;
         if (out.edx & 0x80000000U) i->features |= CpuInfo::Feature_3dNow;
+        break;
 
+      case 0x80000002:
+      case 0x80000003:
+      case 0x80000004:
+        *brand++ = out.eax;
+        *brand++ = out.ebx;
+        *brand++ = out.ecx;
+        *brand++ = out.edx;
         break;
 
       // there are more informations that can be implemented in the future
     }
   }
 
+  if (exIds < 0x80000002)
+  {
+    // Set brand string to vendor if it can't be read.
+    memcpy(i->brand, i->vendor, 16);
+  }
+  else
+  {
+    // Remove extra spaces from brand string.
+    char* bDst = i->brand;
+    char* bSrc = i->brand;
+    char c;
+
+    do {
+      c = *bSrc++;
+      *bDst++ = c;
+      if (c == ' ')
+      {
+        while ((c = *bSrc) == ' ') bSrc++;
+      }
+    } while (c != '\0');
+    *bDst = '\0';
+  }
 #endif // FOG_ARCH_X86 || FOG_ARCH_X64
 }
 
