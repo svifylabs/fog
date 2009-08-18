@@ -472,7 +472,6 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
 
     // Antigrain scanline rasterizer containers.
     AggScanlineP8 slP8;
-    AggScanlineU8 slU8;
 
     // Multithreading id, offset and delta. If id is equal to -1, multithreading
     // is disabled.

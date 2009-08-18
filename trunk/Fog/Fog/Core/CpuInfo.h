@@ -62,6 +62,8 @@ struct FOG_HIDDEN CpuInfo
 {
   //! @brief Cpu short vendor string.
   char vendor[16];
+  //! @brief Cpu long vendor string (brand).
+  char brand[64];
   //! @brief Cpu family ID.
   uint32_t family;
   //! @brief Cpu model ID.
