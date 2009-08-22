@@ -950,7 +950,11 @@ enum CompositeOp
   //!
   //! Formulas for PRGB(dst), PRGB(src) colorspaces:
   //!   Dca' = Sca.Dca + Sca.(1 - Da) + Dca.(1 - Sa)
+  //!        = Sca.(Dca + 1 - Da) + Dca.(1 - Sa)
+  //!        = Dca.(Sca + 1 - Sa) + Sca.(1 - Da)
   //!   Da'  = Sa.Da + Sa.(1 - Da) + Da.(1 - Sa)
+  //!        = Sa.(Da + 1 - Da) + Da.(1 - Sa)
+  //!        = Da.(Sa + 1 - Sa) + Sa.(1 - Da)
   //!        = Sa + Da - Sa.Da
   //!
   //! Formulas for PRGB(dst), RGB(src) colorspaces:
