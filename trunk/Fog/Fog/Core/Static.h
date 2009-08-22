@@ -53,6 +53,10 @@ public:
   FOG_INLINE void init(const Static<Type>& t) { new ((void*)_storage) Type(t.instance()); }
   //! @brief Initializer with copy assignment (calls placement @c new operator).
   FOG_INLINE void init(const Type& t) { new ((void*)_storage) Type(t); }
+
+  template<typename C1>
+  FOG_INLINE void initCustom1(C1 t) { new ((void*)_storage) Type(t); }
+
   //! @brief Deinitializer (calls placement @c delete operator).
   FOG_INLINE void destroy() { ((Type*)(_storage))->~Type(); }
 
