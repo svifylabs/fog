@@ -1043,7 +1043,7 @@ XmlElement* XmlIdManager::get(const String32& id) const
 
 XmlElement* XmlIdManager::get(const Char32* idStr, sysuint_t idLen) const
 {
-  uint32_t hashCode = hashString(idStr, idLen);
+  uint32_t hashCode = HashUtil::hashString(idStr, idLen);
   uint32_t hashMod = hashCode % _capacity;
 
   XmlElement* node = _buckets[hashMod];

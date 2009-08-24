@@ -5,7 +5,7 @@
 
 #include <Fog/Core/Algorithms.h>
 #include <Fog/Core/Error.h>
-#include <Fog/Core/Hash.h>
+#include <Fog/Core/HashUtil.h>
 #include <Fog/Core/Locale.h>
 #include <Fog/Core/Sequence.h>
 #include <Fog/Core/String.h>
