@@ -71,6 +71,7 @@ struct FOG_UISYSTEM_X11_API UISystemX11 : public UISystemDefault
     Atom_WM_COMMAND,
     Atom_WM_ICON_NAME,
     Atom_WM_CHANGE_STATE,
+    Atom_WM_CLIENT_LEADER,
     Atom_MOTIF_WM_HINTS,
     Atom_WIN_LAYER,
 
@@ -403,6 +404,12 @@ struct FOG_UISYSTEM_X11_API UISystemX11 : public UISystemDefault
   };
 
   err_t loadLibraries();
+
+ // [X11 WM Support]
+
+  XID _wmClientLeader;
+
+  XID getWmClientLeader();
 };
 
 // ============================================================================

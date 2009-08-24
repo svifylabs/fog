@@ -197,96 +197,97 @@ static const char *X11_atomNames[UISystemX11::Atom_Count] =
   "WM_COMMAND",                   /* 5  */
   "WM_ICON_NAME",                 /* 6  */
   "WM_CHANGE_STATE",              /* 7  */
+  "WM_CLIENT_LEADER",             /* 8  */
 
   // motif WM hints
-  "_MOTIF_WM_HINTS",              /* 8  */
+  "_MOTIF_WM_HINTS",              /* 9  */
 
-  "_WIN_LAYER",                   /* 9  */
+  "_WIN_LAYER",                   /* 10  */
 
   // Drag and drop atoms
-  "XdndSelection",                /* 10 */
-  "XdndAware",                    /* 11 */
-  "XdndTypeList",                 /* 12 */
-  "XdndEnter",                    /* 13 */
-  "XdndPosition",                 /* 14 */
-  "XdndActionCopy",               /* 15 */
-  "XdndActionMove",               /* 16 */
-  "XdndActionPrivate",            /* 17 */
-  "XdndActionAsk",                /* 18 */
-  "XdndActionList",               /* 19 */
-  "XdndActionLink",               /* 20 */
-  "XdndActionDescription",        /* 21 */
-  "XdndProxy",                    /* 22 */
-  "XdndStatus",                   /* 23 */
-  "XdndLeave",                    /* 24 */
-  "XdndDrop",                     /* 25 */
-  "XdndFinished",                 /* 26 */
+  "XdndSelection",                /* 11 */
+  "XdndAware",                    /* 12 */
+  "XdndTypeList",                 /* 13 */
+  "XdndEnter",                    /* 14 */
+  "XdndPosition",                 /* 15 */
+  "XdndActionCopy",               /* 16 */
+  "XdndActionMove",               /* 17 */
+  "XdndActionPrivate",            /* 18 */
+  "XdndActionAsk",                /* 19 */
+  "XdndActionList",               /* 20 */
+  "XdndActionLink",               /* 21 */
+  "XdndActionDescription",        /* 22 */
+  "XdndProxy",                    /* 23 */
+  "XdndStatus",                   /* 24 */
+  "XdndLeave",                    /* 25 */
+  "XdndDrop",                     /* 26 */
+  "XdndFinished",                 /* 27 */
 
   // standartized NET atoms
-  "_NET_SUPPORTED",               /* 27 */
-  "_NET_SUPPORTING_WM_CHECK",     /* 28 */
+  "_NET_SUPPORTED",               /* 28 */
+  "_NET_SUPPORTING_WM_CHECK",     /* 29 */
 
-  "_NET_NUMBER_OF_DESKTOPS",      /* 29 */
-  "_NET_DESKTOP_GEOMETRY",        /* 30 */
-  "_NET_DESKTOP_NAMES",           /* 31 */
-  "_NET_CURRENT_DESKTOP",         /* 32 */
-  "_NET_DESKTOP_VIEWPORT",        /* 33 */
-  "_NET_WORKAREA",                /* 34 */
-  "_NET_VIRTUAL_ROOTS",           /* 35 */
+  "_NET_NUMBER_OF_DESKTOPS",      /* 30 */
+  "_NET_DESKTOP_GEOMETRY",        /* 31 */
+  "_NET_DESKTOP_NAMES",           /* 32 */
+  "_NET_CURRENT_DESKTOP",         /* 33 */
+  "_NET_DESKTOP_VIEWPORT",        /* 34 */
+  "_NET_WORKAREA",                /* 35 */
+  "_NET_VIRTUAL_ROOTS",           /* 36 */
 
-  "_NET_CLIENT_LIST",             /* 36 */
-  "_NET_CLIENT_LIST_STACKING",    /* 37 */
-  "_NET_ACTIVE_WINDOW",           /* 38 */
-  "_NET_CLOSE_WINDOW",            /* 39 */
+  "_NET_CLIENT_LIST",             /* 37 */
+  "_NET_CLIENT_LIST_STACKING",    /* 38 */
+  "_NET_ACTIVE_WINDOW",           /* 39 */
+  "_NET_CLOSE_WINDOW",            /* 40 */
 
-  "_NET_WM_MOVERESIZE",           /* 40 */
-  "_NET_WM_NAME",                 /* 41 */
-  "_NET_WM_VISIBLE_NAME",         /* 42 */
-  "_NET_WM_ICON_NAME",            /* 43 */
-  "_NET_WM_VISIBLE_ICON_NAME",    /* 44 */
-  "_NET_WM_DESKTOP",              /* 45 */
-  "_NET_WM_WINDOW_TYPE",          /* 46 */
-  "_NET_WM_STATE",                /* 47 */
-  "_NET_WM_ALLOWED_ACTIONS",      /* 48 */
-  "_NET_WM_STRUT",                /* 49 */
-  "_NET_WM_STRUT_PARTIAL",        /* 50 */
-  "_NET_WM_ICON_GEOMETRY",        /* 51 */
-  "_NET_WM_ICON",                 /* 52 */
-  "_NET_WM_PID",                  /* 53 */
-  "_NET_WM_PING",                 /* 54 */
-  "_NET_WM_USER_TIME",            /* 55 */
-  "_NET_WM_SYNC_REQUEST",         /* 56 */
+  "_NET_WM_MOVERESIZE",           /* 41 */
+  "_NET_WM_NAME",                 /* 42 */
+  "_NET_WM_VISIBLE_NAME",         /* 43 */
+  "_NET_WM_ICON_NAME",            /* 44 */
+  "_NET_WM_VISIBLE_ICON_NAME",    /* 45 */
+  "_NET_WM_DESKTOP",              /* 46 */
+  "_NET_WM_WINDOW_TYPE",          /* 47 */
+  "_NET_WM_STATE",                /* 48 */
+  "_NET_WM_ALLOWED_ACTIONS",      /* 49 */
+  "_NET_WM_STRUT",                /* 50 */
+  "_NET_WM_STRUT_PARTIAL",        /* 51 */
+  "_NET_WM_ICON_GEOMETRY",        /* 52 */
+  "_NET_WM_ICON",                 /* 53 */
+  "_NET_WM_PID",                  /* 54 */
+  "_NET_WM_PING",                 /* 55 */
+  "_NET_WM_USER_TIME",            /* 56 */
+  "_NET_WM_SYNC_REQUEST",         /* 57 */
 
-  "_NET_WM_WINDOW_TYPE_DESKTOP",  /* 57 */
-  "_NET_WM_WINDOW_TYPE_DOCK",     /* 58 */
-  "_NET_WM_WINDOW_TYPE_TOOLBAR",  /* 59 */
-  "_NET_WM_WINDOW_TYPE_MENU",     /* 60 */
-  "_NET_WM_WINDOW_TYPE_UTILITY",  /* 61 */
-  "_NET_WM_WINDOW_TYPE_SPLASH",   /* 62 */
-  "_NET_WM_WINDOW_TYPE_DIALOG",   /* 63 */
-  "_NET_WM_WINDOW_TYPE_NORMAL",   /* 64 */
+  "_NET_WM_WINDOW_TYPE_DESKTOP",  /* 58 */
+  "_NET_WM_WINDOW_TYPE_DOCK",     /* 59 */
+  "_NET_WM_WINDOW_TYPE_TOOLBAR",  /* 60 */
+  "_NET_WM_WINDOW_TYPE_MENU",     /* 61 */
+  "_NET_WM_WINDOW_TYPE_UTILITY",  /* 62 */
+  "_NET_WM_WINDOW_TYPE_SPLASH",   /* 63 */
+  "_NET_WM_WINDOW_TYPE_DIALOG",   /* 64 */
+  "_NET_WM_WINDOW_TYPE_NORMAL",   /* 65 */
 
-  "_NET_WM_STATE_MODAL",          /* 65 */
-  "_NET_WM_STATE_STICKY",         /* 66 */
-  "_NET_WM_STATE_MAXIMIZED_VERT", /* 67 */
-  "_NET_WM_STATE_MAXIMIZED_HORZ", /* 68 */
-  "_NET_WM_STATE_SHADED",         /* 69 */
-  "_NET_WM_STATE_SKIP_TASKBAR",   /* 70 */
-  "_NET_WM_STATE_SKIP_PAGER",     /* 71 */
-  "_NET_WM_STATE_HIDDEN",         /* 72 */
-  "_NET_WM_STATE_FULLSCREEN",     /* 73 */
-  "_NET_WM_STATE_ABOVE",          /* 74 */
-  "_NET_WM_STATE_BELOW",          /* 75 */
-  "_NET_WM_WINDOW_OPACITY",       /* 76 */
+  "_NET_WM_STATE_MODAL",          /* 66 */
+  "_NET_WM_STATE_STICKY",         /* 67 */
+  "_NET_WM_STATE_MAXIMIZED_VERT", /* 68 */
+  "_NET_WM_STATE_MAXIMIZED_HORZ", /* 69 */
+  "_NET_WM_STATE_SHADED",         /* 70 */
+  "_NET_WM_STATE_SKIP_TASKBAR",   /* 71 */
+  "_NET_WM_STATE_SKIP_PAGER",     /* 72 */
+  "_NET_WM_STATE_HIDDEN",         /* 73 */
+  "_NET_WM_STATE_FULLSCREEN",     /* 74 */
+  "_NET_WM_STATE_ABOVE",          /* 75 */
+  "_NET_WM_STATE_BELOW",          /* 76 */
+  "_NET_WM_WINDOW_OPACITY",       /* 77 */
 
   // Clipboard
-  "CLIPBOARD",                    /* 77 */
-  "TARGETS",                      /* 78 */
-  "COMPOUND_TEXT",                /* 79 */
-  "UTF8_STRING",                  /* 80 */
-  "FILE_NAME",                    /* 81 */
-  "STRING",                       /* 82 */
-  "TEXT",                         /* 83 */
+  "CLIPBOARD",                    /* 78 */
+  "TARGETS",                      /* 79 */
+  "COMPOUND_TEXT",                /* 80 */
+  "UTF8_STRING",                  /* 81 */
+  "FILE_NAME",                    /* 82 */
+  "STRING",                       /* 83 */
+  "TEXT",                         /* 84 */
   "INCR"
 };
 
@@ -336,6 +337,8 @@ UISystemX11::UISystemX11()
   _xButtons = 0;
   _wakeUpPipe[0] = -1;
   _wakeUpPipe[1] = -1;
+
+  _wmClientLeader = 0;
 
   // Open X11, Xext and Xrender libraries.
   if ( (err = loadLibraries()) )
@@ -892,6 +895,27 @@ err_t UISystemX11::loadLibraries()
 }
 
 // ============================================================================
+// [Fog::UISystemX11 - WM Support]
+// ============================================================================
+
+XID UISystemX11::getWmClientLeader()
+{
+  if (_wmClientLeader) return _wmClientLeader;
+
+  XSetWindowAttributes attr;
+  long clientLeader = pXCreateWindow(
+    display(), root(),
+    -1, -1, 1, 1, 0,
+    CopyFromParent, InputOutput, CopyFromParent, 0UL, &attr);
+
+  pXChangeProperty(
+    display(), clientLeader, atom(Atom_WM_CLIENT_LEADER),
+    XA_WINDOW, 32, PropModeReplace, (unsigned char* )&clientLeader, 1);
+
+  _wmClientLeader = clientLeader;
+}
+
+// ============================================================================
 // [Fog::UIWindowX11]
 // ============================================================================
 
@@ -1019,6 +1043,10 @@ err_t UIWindowX11::create(uint32_t createFlags)
   // Set _NET_WM_PID
   long pid = getpid();
   uiSystem->pXChangeProperty(display, (XID)handle(), atoms[UISystemX11::Atom_NET_WM_PID], XA_CARDINAL, 32, PropModeReplace, (unsigned char*)&pid, 1);
+
+  // Set WM_CLIENT_LEADER
+  long clientLeader = uiSystem->getWmClientLeader();
+  uiSystem->pXChangeProperty(display, (XID)handle(), atoms[UISystemX11::Atom_WM_CLIENT_LEADER], XA_WINDOW, 32, PropModeReplace, (unsigned char*)&clientLeader, 1);
 
   // Get correct window position.
   {
