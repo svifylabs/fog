@@ -123,7 +123,9 @@ struct FOG_UISYSTEM_X11_API UISystemX11 : public UISystemDefault
     Atom_NET_WM_ICON_GEOMETRY,
     Atom_NET_WM_ICON,
     Atom_NET_WM_PID,
+    Atom_NET_WM_PING,
     Atom_NET_WM_USER_TIME,
+    Atom_NET_WM_SYNC_REQUEST,
 
     Atom_NET_WM_WINDOW_TYPE_DESKTOP,
     Atom_NET_WM_WINDOW_TYPE_DOCK,
