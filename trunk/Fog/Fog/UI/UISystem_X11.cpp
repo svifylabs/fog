@@ -247,38 +247,40 @@ static const char *X11_atomNames[UISystemX11::Atom_Count] =
   "_NET_WM_ICON_GEOMETRY",        /* 52 */
   "_NET_WM_ICON",                 /* 53 */
   "_NET_WM_PID",                  /* 54 */
-  "_NET_WM_USER_TIME",            /* 55 */
+  "_NET_WM_PING",                 /* 55 */
+  "_NET_WM_USER_TIME",            /* 56 */
+  "_NET_WM_SYNC_REQUEST",         /* 57 */
 
-  "_NET_WM_WINDOW_TYPE_DESKTOP",  /* 56 */
-  "_NET_WM_WINDOW_TYPE_DOCK",     /* 57 */
-  "_NET_WM_WINDOW_TYPE_TOOLBAR",  /* 58 */
-  "_NET_WM_WINDOW_TYPE_MENU",     /* 59 */
-  "_NET_WM_WINDOW_TYPE_UTILITY",  /* 60 */
-  "_NET_WM_WINDOW_TYPE_SPLASH",   /* 61 */
-  "_NET_WM_WINDOW_TYPE_DIALOG",   /* 62 */
-  "_NET_WM_WINDOW_TYPE_NORMAL",   /* 63 */
+  "_NET_WM_WINDOW_TYPE_DESKTOP",  /* 58 */
+  "_NET_WM_WINDOW_TYPE_DOCK",     /* 59 */
+  "_NET_WM_WINDOW_TYPE_TOOLBAR",  /* 60 */
+  "_NET_WM_WINDOW_TYPE_MENU",     /* 61 */
+  "_NET_WM_WINDOW_TYPE_UTILITY",  /* 62 */
+  "_NET_WM_WINDOW_TYPE_SPLASH",   /* 63 */
+  "_NET_WM_WINDOW_TYPE_DIALOG",   /* 64 */
+  "_NET_WM_WINDOW_TYPE_NORMAL",   /* 65 */
 
-  "_NET_WM_STATE_MODAL",          /* 64 */
-  "_NET_WM_STATE_STICKY",         /* 65 */
-  "_NET_WM_STATE_MAXIMIZED_VERT", /* 66 */
-  "_NET_WM_STATE_MAXIMIZED_HORZ", /* 67 */
-  "_NET_WM_STATE_SHADED",         /* 68 */
-  "_NET_WM_STATE_SKIP_TASKBAR",   /* 69 */
-  "_NET_WM_STATE_SKIP_PAGER",     /* 70 */
-  "_NET_WM_STATE_HIDDEN",         /* 71 */
-  "_NET_WM_STATE_FULLSCREEN",     /* 72 */
-  "_NET_WM_STATE_ABOVE",          /* 73 */
-  "_NET_WM_STATE_BELOW",          /* 74 */
-  "_NET_WM_WINDOW_OPACITY",       /* 75 */
+  "_NET_WM_STATE_MODAL",          /* 66 */
+  "_NET_WM_STATE_STICKY",         /* 67 */
+  "_NET_WM_STATE_MAXIMIZED_VERT", /* 68 */
+  "_NET_WM_STATE_MAXIMIZED_HORZ", /* 69 */
+  "_NET_WM_STATE_SHADED",         /* 70 */
+  "_NET_WM_STATE_SKIP_TASKBAR",   /* 71 */
+  "_NET_WM_STATE_SKIP_PAGER",     /* 72 */
+  "_NET_WM_STATE_HIDDEN",         /* 73 */
+  "_NET_WM_STATE_FULLSCREEN",     /* 74 */
+  "_NET_WM_STATE_ABOVE",          /* 75 */
+  "_NET_WM_STATE_BELOW",          /* 76 */
+  "_NET_WM_WINDOW_OPACITY",       /* 77 */
 
   // Clipboard
-  "CLIPBOARD",                    /* 76 */
-  "TARGETS",                      /* 77 */
-  "COMPOUND_TEXT",                /* 78 */
-  "UTF8_STRING",                  /* 79 */
-  "FILE_NAME",                    /* 80 */
-  "STRING",                       /* 81 */
-  "TEXT",                         /* 82 */
+  "CLIPBOARD",                    /* 78 */
+  "TARGETS",                      /* 79 */
+  "COMPOUND_TEXT",                /* 80 */
+  "UTF8_STRING",                  /* 81 */
+  "FILE_NAME",                    /* 82 */
+  "STRING",                       /* 83 */
+  "TEXT",                         /* 84 */
   "INCR"
 };
 
@@ -411,6 +413,24 @@ UISystemX11::~UISystemX11()
 
   if (_wakeUpPipe[0]) close(_wakeUpPipe[0]);
   if (_wakeUpPipe[1]) close(_wakeUpPipe[1]);
+}
+
+// ============================================================================
+// [Fog::UISystemX11 - Helpers]
+// ============================================================================
+
+static void UISystemX11_sendClientMessage(UISystemX11* uiSystem, XWindow win, Atom atom, XTime time)
+{
+  XClientMessageEvent xe;
+
+  xe.type = XClientMessage;
+  xe.window = win;
+  xe.message_type = uiSystem->atom(UISystemX11::Atom_WM_PROTOCOLS);
+  xe.format = 32;
+  xe.data.l[0] = atom;
+  xe.data.l[1] = time;
+
+  uiSystem->pXSendEvent (uiSystem->display(), win, false, 0L, (XEvent *)&xe);
 }
 
 // ============================================================================
@@ -955,7 +975,7 @@ err_t UIWindowX11::create(uint32_t createFlags)
 
   // Atom - _NET_WM_PID
   long pid = getpid();
-  uiSystem->pXChangeProperty(display, (XID)handle(), atoms[UISystemX11::Atom_NET_WM_PID], XA_CARDINAL, 32, PropModeReplace, (uchar*)&pid, 1);
+  uiSystem->pXChangeProperty(display, (XID)handle(), atoms[UISystemX11::Atom_NET_WM_PID], XA_CARDINAL, 32, PropModeReplace, (unsigned char*)&pid, 1);
 
   // Atom - WM_DELETE_WINDOW
   uiSystem->pXSetWMProtocols(display, (XID)handle(), &atoms[UISystemX11::Atom_WM_DELETE_WINDOW], 1);
@@ -1439,10 +1459,17 @@ __keyPressNoXIC:
     {
       if (xe->xclient.message_type == uiSystem->atom(UISystemX11::Atom_WM_PROTOCOLS))
       {
-        if ((Atom)xe->xclient.data.l[0] == uiSystem->atom(UISystemX11::Atom_WM_DELETE_WINDOW))
+        Atom msg = (Atom)xe->xclient.data.l[0];
+
+        if (msg == uiSystem->atom(UISystemX11::Atom_WM_DELETE_WINDOW))
         {
           CloseEvent e;
           _widget->sendEvent(&e);
+        }
+        else if (msg == uiSystem->atom(UISystemX11::Atom_NET_WM_PING))
+        {
+          UISystemX11_sendClientMessage(uiSystem, uiSystem->_root,
+            uiSystem->atom(UISystemX11::Atom_NET_WM_PING), xe->xclient.data.l[1]);
         }
       }
       break;
