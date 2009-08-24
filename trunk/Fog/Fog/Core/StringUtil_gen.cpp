@@ -557,7 +557,7 @@ err_t atof(const __G_CHAR* str, sysuint_t length, float* dst, __G_CHAR decimalPo
 
 #ifdef INFNAN_CHECK
 #ifndef No_Hex_NaN
-static const __G_CHAR* hexnan(double *rvp, const __G_CHAR* s, const __G_CHAR* send)
+static const __G_CHAR* hexnan(DTOA_U *rvp, const __G_CHAR* s, const __G_CHAR* send)
 {
   const __G_CHAR* begin = s;
 
@@ -598,15 +598,15 @@ static const __G_CHAR* hexnan(double *rvp, const __G_CHAR* s, const __G_CHAR* se
     x[1] = (x[1] << 4) | c;
   }
 
-  if ((x[0] &= 0xfffff) || x[1])
+  if ((x[0] &= 0x000FFFFF) || x[1])
   {
-    word0(*rvp) = Exp_mask | x[0];
-    word1(*rvp) = x[1];
+    rvp->i[DTOA_DWORD_0] = x[0] | Exp_mask;
+    rvp->i[DTOA_DWORD_1] = x[1];
   }
   return s;
 }
-#endif /* No_Hex_NaN */
-#endif /* INFNAN_CHECK */
+#endif // No_Hex_NaN
+#endif // INFNAN_CHECK
 
 static BInt* BContext_s2b(BContext* context, const __G_CHAR* s, int nd0, int nd, uint32_t y9)
 {
@@ -654,7 +654,9 @@ err_t atod(const __G_CHAR* str, sysuint_t length, double* dst, __G_CHAR decimalP
   const __G_CHAR *sbegin;
   const __G_CHAR *s, *s0, *s1;
   const __G_CHAR *send;
-  double aadj, aadj1, adj, rv, rv0;
+  DTOA_U rv;
+  DTOA_U rv0;
+  double adj, aadj, aadj1;
   int32_t L;
   uint32_t y, z;
   BInt *bb, *bb1, *bd, *bd0, *bs, *delta;
@@ -674,7 +676,7 @@ err_t atod(const __G_CHAR* str, sysuint_t length, double* dst, __G_CHAR decimalP
   send = s + length;
 
   sign = nz0 = nz = 0;
-  dval(rv) = 0.0;
+  rv.d = 0.0;
 
   if (s == send) goto ret0;
 
@@ -688,7 +690,7 @@ err_t atod(const __G_CHAR* str, sysuint_t length, double* dst, __G_CHAR decimalP
     } while (s->isSpace());
   }
 
-  // parse sign
+  // Parse sign.
   if (*s == __G_CHAR('+'))
   {
     flags |= ParsedSign;
@@ -834,10 +836,8 @@ dig_done:
         }
 
         if (s - s1 > 8 || L > 19999)
-          /* Avoid confusion from exponents
-           * so large that e might overflow.
-           */
-          e = 19999; /* safe for 16 bit ints */
+          // Avoid confusion from exponents so large that e might overflow.
+          e = 19999; // safe for 16 bit ints.
         else
           e = (int)L;
         if (esign) e = -e;
@@ -854,30 +854,30 @@ exp_done:
     if (!nz && !nz0)
     {
 #ifdef INFNAN_CHECK
-      /* Check for Nan and Infinity */
+      // Check for Nan and Infinity.
       if ((c == 'i' || c == 'I') && (sysuint_t)(send - s) >= 2 &&
         eq(s+1, (const Char8*)"nf", 2, CaseInsensitive))
       {
         s += 3;
         if ((sysuint_t)(send - s) >= 5 && eq(s, (const Char8*)"inity", 5, CaseInsensitive)) s += 5;
         
-        word0(rv) = 0x7ff00000;
-        word1(rv) = 0;
+        rv.i[DTOA_DWORD_0] = 0x7FF00000;
+        rv.i[DTOA_DWORD_1] = 0;
         goto ret;
       }
       else if ((c == 'n' || c == 'N') && (sysuint_t)(send - s) >= 2 &&
         eq(s+1, (const Char8*)"an", 2, CaseInsensitive))
       {
         s += 3;
-        word0(rv) = NAN_WORD0;
-        word1(rv) = NAN_WORD1;
+        rv.i[DTOA_DWORD_0] = NAN_WORD0;
+        rv.i[DTOA_DWORD_1] = NAN_WORD1;
 #ifndef No_Hex_NaN
         if (*s == __G_CHAR('(')) /*)*/ s = hexnan(&rv, s, send);
 #endif
         goto ret;
       }
 
-#endif /* INFNAN_CHECK */
+#endif // INFNAN_CHECK
 ret0:
       s = str;
       sign = 0;
@@ -886,20 +886,20 @@ ret0:
   }
   e1 = e -= nf;
 
-  /* Now we have nd0 digits, starting at s0, followed by a
-   * decimal point, followed by nd-nd0 digits.  The number we're
-   * after is the integer represented by those digits times
-   * 10**e */
+  // Now we have nd0 digits, starting at s0, followed by a
+  // decimal point, followed by nd-nd0 digits.  The number we're
+  // after is the integer represented by those digits times
+  // 10**e
 
   if (!nd0) nd0 = nd;
   k = nd < DBL_DIG + 1 ? nd : DBL_DIG + 1;
-  dval(rv) = y;
+  rv.d = y;
   if (k > 9)
   {
 #ifdef SET_INEXACT
     if (k > DBL_DIG) oldinexact = get_inexact();
 #endif
-    dval(rv) = tens[k - 9] * dval(rv) + z;
+    rv.d = tens[k - 9] * rv.d + z;
   }
   bd0 = 0;
   if (nd <= DBL_DIG
@@ -919,44 +919,40 @@ ret0:
         goto vax_ovfl_check;
 #else
 #ifdef Honor_FLT_ROUNDS
-        /* round correctly FLT_ROUNDS = 2 or 3 */
+        // round correctly FLT_ROUNDS = 2 or 3.
         if (sign)
         {
-          rv = -rv;
+          rv.d = -rv.d;
           sign = 0;
         }
 #endif
-        /* rv = */ rounded_product(dval(rv), tens[e]);
+        /* rv = */ rounded_product(rv.d, tens[e]);
         goto ret;
 #endif
       }
       i = DBL_DIG - nd;
       if (e <= Ten_pmax + i)
       {
-        /* A fancier test would sometimes let us do
-         * this for larger i values.
-         */
+        // A fancier test would sometimes let us do this for larger i values.
 #ifdef Honor_FLT_ROUNDS
-        /* round correctly FLT_ROUNDS = 2 or 3 */
+        // round correctly FLT_ROUNDS = 2 or 3.
         if (sign)
         {
-          rv = -rv;
+          rv.d = -rv.d;
           sign = 0;
         }
 #endif
         e -= i;
-        dval(rv) *= tens[i];
+        rv.d *= tens[i];
 #ifdef VAX
-        /* VAX exponent range is so narrow we must
-         * worry about overflow here...
-         */
- vax_ovfl_check:
-        word0(rv) -= P*Exp_msk1;
-        /* rv = */ rounded_product(dval(rv), tens[e]);
-        if ((word0(rv) & Exp_mask) > Exp_msk1*(DBL_MAX_EXP+Bias-1-P)) goto ovfl;
-        word0(rv) += P*Exp_msk1;
+        // VAX exponent range is so narrow we must worry about overflow here...
+vax_ovfl_check:
+        rv.i[DTOA_DWORD_0] -= P*Exp_msk1;
+        /* rv = */ rounded_product(rv.d, tens[e]);
+        if ((rv.i[DTOA_DWORD_0] & Exp_mask) > Exp_msk1*(DBL_MAX_EXP+Bias-1-P)) goto ovfl;
+        rv.i[DTOA_DWORD_0] += P*Exp_msk1;
 #else
-        /* rv = */ rounded_product(dval(rv), tens[e]);
+        /* rv = */ rounded_product(rv.d, tens[e]);
 #endif
         goto ret;
       }
@@ -965,14 +961,14 @@ ret0:
     else if (e >= -Ten_pmax)
     {
 #ifdef Honor_FLT_ROUNDS
-      /* round correctly FLT_ROUNDS = 2 or 3 */
+      // round correctly FLT_ROUNDS = 2 or 3.
       if (sign)
       {
-        rv = -rv;
+        rv.d = -rv.d;
         sign = 0;
       }
 #endif
-      /* rv = */ rounded_quotient(dval(rv), tens[-e]);
+      /* rv = */ rounded_quotient(rv.d, tens[-e]);
       goto ret;
     }
 #endif
@@ -998,12 +994,11 @@ ret0:
 #endif
 #endif /*IEEE_Arith*/
 
-  /* Get starting approximation = rv * 10**e1 */
-
+  // Get starting approximation = rv * 10**e1.
   if (e1 > 0)
   {
     if ((i = e1 & 15))
-      dval(rv) *= tens[i];
+      rv.d *= tens[i];
     if (e1 &= ~15)
     {
       if (e1 > DBL_MAX_10_EXP)
@@ -1011,59 +1006,58 @@ ret0:
 ovfl:
         err = Error::Overflow;
 
-        /* Can't trust HUGE_VAL */
+        // Can't trust HUGE_VAL.
 #ifdef IEEE_Arith
 #ifdef Honor_FLT_ROUNDS
         switch (rounding)
         {
-          case 0: /* toward 0 */
-          case 3: /* toward -infinity */
-            word0(rv) = Big0;
-            word1(rv) = Big1;
+          case 0: // toward 0
+          case 3: // toward -infinity
+            rv.i[DTOA_DWORD_0] = Big0;
+            rv.i[DTOA_DWORD_1] = Big1;
             break;
           default:
-            word0(rv) = Exp_mask;
-            word1(rv) = 0;
+            rv.i[DTOA_DWORD_0] = Exp_mask;
+            rv.i[DTOA_DWORD_1] = 0;
         }
-#else /*Honor_FLT_ROUNDS*/
-        word0(rv) = Exp_mask;
-        word1(rv) = 0;
-#endif /*Honor_FLT_ROUNDS*/
+#else // Honor_FLT_ROUNDS
+        rv.i[DTOA_DWORD_0] = Exp_mask;
+        rv.i[DTOA_DWORD_1] = 0;
+#endif // Honor_FLT_ROUNDS
 #ifdef SET_INEXACT
-        /* set overflow bit */
-        dval(rv0) = 1e300;
-        dval(rv0) *= dval(rv0);
+        // set overflow bit
+        rv0.d = 1e300;
+        rv0.d *= rv0.d;
 #endif
-#else /*IEEE_Arith*/
-        word0(rv) = Big0;
-        word1(rv) = Big1;
-#endif /*IEEE_Arith*/
+#else // IEEE_Arith
+        rv.i[DTOA_DWORD_0] = Big0;
+        rv.i[DTOA_DWORD_1] = Big1;
+#endif // IEEE_Arith
         if (bd0) goto retfree;
         goto ret;
       }
       e1 >>= 4;
       for(j = 0; e1 > 1; j++, e1 >>= 1)
         if (e1 & 1)
-          dval(rv) *= bigtens[j];
-      /* The last multiplication could overflow. */
-      word0(rv) -= P*Exp_msk1;
-      dval(rv) *= bigtens[j];
-      if ((z = word0(rv) & Exp_mask) > Exp_msk1*(DBL_MAX_EXP+Bias-P)) goto ovfl;
+          rv.d *= bigtens[j];
+      // The last multiplication could overflow.
+      rv.i[DTOA_DWORD_0] -= P*Exp_msk1;
+      rv.d *= bigtens[j];
+      if ((z = rv.i[DTOA_DWORD_0] & Exp_mask) > Exp_msk1*(DBL_MAX_EXP+Bias-P)) goto ovfl;
       if (z > Exp_msk1*(DBL_MAX_EXP+Bias-1-P))
       {
-        /* set to largest number */
-        /* (Can't trust DBL_MAX) */
-        word0(rv) = Big0;
-        word1(rv) = Big1;
+        // set to largest number (Can't trust DBL_MAX).
+        rv.i[DTOA_DWORD_0] = Big0;
+        rv.i[DTOA_DWORD_1] = Big1;
       }
       else
-        word0(rv) += P*Exp_msk1;
+        rv.i[DTOA_DWORD_0] += P*Exp_msk1;
     }
   }
   else if (e1 < 0)
   {
     e1 = -e1;
-    if ((i = e1 & 15)) dval(rv) /= tens[i];
+    if ((i = e1 & 15)) rv.d /= tens[i];
     if (e1 >>= 4)
     {
       if (e1 >= 1 << n_bigtens) goto undfl;
@@ -1072,62 +1066,62 @@ ovfl:
         scale = 2*P;
       for(j = 0; e1 > 0; j++, e1 >>= 1)
         if (e1 & 1)
-          dval(rv) *= tinytens[j];
-      if (scale && (j = 2*P + 1 - ((word0(rv) & Exp_mask) >> Exp_shift)) > 0)
+          rv.d *= tinytens[j];
+      if (scale && (j = 2*P + 1 - ((rv.i[DTOA_DWORD_0] & Exp_mask) >> Exp_shift)) > 0)
       {
-        /* scaled rv is denormal; zap j low bits */
+        // scaled rv is denormal; zap j low bits.
         if (j >= 32)
         {
-          word1(rv) = 0;
+          rv.i[DTOA_DWORD_1] = 0;
           if (j >= 53)
-            word0(rv) = (P+2)*Exp_msk1;
+            rv.i[DTOA_DWORD_0] = (P+2)*Exp_msk1;
           else
-            word0(rv) &= 0xffffffff << (j-32);
+            rv.i[DTOA_DWORD_0] &= 0xffffffff << (j-32);
         }
         else
-          word1(rv) &= 0xffffffff << j;
+          rv.i[DTOA_DWORD_1] &= 0xffffffff << j;
       }
 #else
       for(j = 0; e1 > 1; j++, e1 >>= 1)
         if (e1 & 1)
-          dval(rv) *= tinytens[j];
+          rv.d *= tinytens[j];
 
-      /* The last multiplication could underflow. */
-      dval(rv0) = dval(rv);
-      dval(rv) *= tinytens[j];
-      if (!dval(rv))
+      // The last multiplication could underflow.
+      rv0.d = rv.d;
+      rv.d *= tinytens[j];
+      if (!rv.d)
       {
-        dval(rv) = 2.*dval(rv0);
-        dval(rv) *= tinytens[j];
+        rv.d = 2. * rv0.d;
+        rv.d *= tinytens[j];
 #endif
-        if (!dval(rv))
+        if (!rv.d)
         {
 undfl:
-          dval(rv) = 0.0;
+          rv.d = 0.0;
           err = Error::Overflow;
 
           if (bd0) goto retfree;
           goto ret;
         }
 #ifndef Avoid_Underflow
-        word0(rv) = Tiny0;
-        word1(rv) = Tiny1;
-        /* The refinement below will clean this approximation up. */
+        rv.i[DTOA_DWORD_0] = Tiny0;
+        rv.i[DTOA_DWORD_1] = Tiny1;
+        // The refinement below will clean this approximation up.
       }
 #endif
     }
   }
 
-  /* Now the hard part -- adjusting rv to the correct value.*/
+  // Now the hard part -- adjusting rv to the correct value.
 
-  /* Put digits into bd: true value = bd * 10^e */
+  // Put digits into bd: true value = bd * 10^e.
   bd0 = BContext_s2b(&context, s0, nd0, nd, y);
 
   for(;;)
   {
     bd = BContext_balloc(&context, bd0->k);
     Bcopy(bd, bd0);
-    bb = BContext_d2b(&context, dval(rv), &bbe, &bbbits); /* rv = bb * 2^bbe */
+    bb = BContext_d2b(&context, rv.d, &bbe, &bbbits); // rv = bb * 2^bbe
     bs = BContext_i2b(&context, 1);
 
     if (e >= 0)
@@ -1150,8 +1144,8 @@ undfl:
 #endif
 #ifdef Avoid_Underflow
     j = bbe - scale;
-    i = j + bbbits - 1;  /* logb(rv) */
-    if (i < Emin)  /* denormal */
+    i = j + bbbits - 1;  // logb(rv)
+    if (i < Emin)        // denormal
       j += P - Emin;
     else
       j = P + 1 - bbbits;
@@ -1164,8 +1158,8 @@ undfl:
 #endif
 #else /*Sudden_Underflow*/
     j = bbe;
-    i = j + bbbits - 1;  /* logb(rv) */
-    if (i < Emin)  /* denormal */
+    i = j + bbbits - 1;  // logb(rv)
+    if (i < Emin)        // denormal
       j += P - Emin;
     else
       j = P + 1 - bbbits;
@@ -1208,10 +1202,10 @@ undfl:
     {
       if (i < 0)
       {
-        /* Error is less than an ulp */
+        // Error is less than an ulp.
         if (!delta->x[0] && delta->wds <= 1)
         {
-          /* exact */
+          // exact.
 #ifdef SET_INEXACT
           inexact = 0;
 #endif
@@ -1228,9 +1222,9 @@ undfl:
         else if (!dsign)
         {
           adj = -1.;
-          if (!word1(rv) && !(word0(rv) & Frac_mask))
+          if (!rv.i[DTOA_DWORD_1] && !(rv.i[DTOA_DWORD_0] & Frac_mask))
           {
-            y = word0(rv) & Exp_mask;
+            y = rv.i[DTOA_DWORD_0] & Exp_mask;
 #ifdef Avoid_Underflow
             if (!scale || y > 2*P*Exp_msk1)
 #else
@@ -1243,20 +1237,25 @@ undfl:
           }
  apply_adj:
 #ifdef Avoid_Underflow
-          if (scale && (y = word0(rv) & Exp_mask) <= 2*P*Exp_msk1)
-            word0(adj) += (2*P+1)*Exp_msk1 - y;
+          if (scale && (y = rv.i[DTOA_DWORD_0] & Exp_mask) <= 2*P*Exp_msk1)
+          {
+            DTOA_U tmp;
+            tmp.d = adj;
+            tmp.i[DTOA_DWORD_0] += (2*P+1) * Exp_msk1 - y;
+            adj = tmp.d;
+          }
 #else
 #ifdef Sudden_Underflow
-          if ((word0(rv) & Exp_mask) <= P*Exp_msk1)
+          if ((rv.i[DTOA_DWORD_0] & Exp_mask) <= P*Exp_msk1)
           {
-            word0(rv) += P*Exp_msk1;
-            dval(rv) += adj*ulp(dval(rv));
-            word0(rv) -= P*Exp_msk1;
+            rv.i[DTOA_DWORD_0] += P*Exp_msk1;
+            rv.d += adj * ulp(rv.d);
+            rv.i[DTOA_DWORD_0] -= P*Exp_msk1;
           }
           else
 #endif /*Sudden_Underflow*/
 #endif /*Avoid_Underflow*/
-            dval(rv) += adj*ulp(dval(rv));
+            rv.d += adj * ulp(rv.d);
         }
         break;
       }
@@ -1265,7 +1264,7 @@ undfl:
         adj = 1.;
       if (adj <= 0x7ffffffe)
       {
-        /* adj = rounding ? ceil(adj) : floor(adj); */
+        // adj = rounding ? ceil(adj) : floor(adj);
         y = (uint32_t)adj;
         if (y != adj)
         {
@@ -1275,43 +1274,46 @@ undfl:
         }
       }
 #ifdef Avoid_Underflow
-      if (scale && (y = word0(rv) & Exp_mask) <= 2*P*Exp_msk1)
-        word0(adj) += (2*P+1)*Exp_msk1 - y;
+      if (scale && (y = rv.i[DTOA_DWORD_0] & Exp_mask) <= 2*P*Exp_msk1)
+      {
+        DTOA_U tmp;
+        tmp.d = adj;
+        tmp.i[DTOA_DWORD_0] += (2*P+1) * Exp_msk1 - y;
+        adj = tmp.d;
+      }
 #else
 #ifdef Sudden_Underflow
-      if ((word0(rv) & Exp_mask) <= P*Exp_msk1)
+      if ((rv.i[DTOA_DWORD_0] & Exp_mask) <= P*Exp_msk1)
       {
-        word0(rv) += P*Exp_msk1;
-        adj *= ulp(dval(rv));
+        rv.i[DTOA_DWORD_0] += P*Exp_msk1;
+        adj *= ulp(rv.d);
         if (dsign)
-          dval(rv) += adj;
+          rv.d += adj;
         else
-          dval(rv) -= adj;
-        word0(rv) -= P*Exp_msk1;
+          rv.d -= adj;
+        rv.i[DTOA_DWORD_0] -= P*Exp_msk1;
         goto cont;
       }
-#endif /*Sudden_Underflow*/
-#endif /*Avoid_Underflow*/
-      adj *= ulp(dval(rv));
+#endif // Sudden_Underflow
+#endif // Avoid_Underflow
+      adj *= ulp(rv.d);
       if (dsign)
-        dval(rv) += adj;
+        rv.d += adj;
       else
-        dval(rv) -= adj;
+        rv.d -= adj;
       goto cont;
     }
 #endif /*Honor_FLT_ROUNDS*/
 
     if (i < 0)
     {
-      /* Error is less than half an ulp -- check for
-       * special case of mantissa a power of two.
-       */
-      if (dsign || word1(rv) || word0(rv) & Bndry_mask
+      // Error is less than half an ulp -- check for special case of mantissa a power of two.
+      if (dsign || rv.i[DTOA_DWORD_1] || rv.i[DTOA_DWORD_0] & Bndry_mask
 #ifdef IEEE_Arith
 #ifdef Avoid_Underflow
-       || (word0(rv) & Exp_mask) <= (2*P+1)*Exp_msk1
+       || (rv.i[DTOA_DWORD_0] & Exp_mask) <= (2*P+1)*Exp_msk1
 #else
-       || (word0(rv) & Exp_mask) <= Exp_msk1
+       || (rv.i[DTOA_DWORD_0] & Exp_mask) <= Exp_msk1
 #endif
 #endif
         )
@@ -1324,7 +1326,7 @@ undfl:
       }
       if (!delta->x[0] && delta->wds <= 1)
       {
-        /* exact result */
+        // exact result.
 #ifdef SET_INEXACT
         inexact = 0;
 #endif
@@ -1336,35 +1338,35 @@ undfl:
     }
     if (i == 0)
     {
-      /* exactly half-way between */
+      // Exactly half-way between.
       if (dsign)
       {
-        if ((word0(rv) & Bndry_mask1) == Bndry_mask1 &&  word1(rv) == (
+        if ((rv.i[DTOA_DWORD_0] & Bndry_mask1) == Bndry_mask1 &&  rv.i[DTOA_DWORD_1] == (
 #ifdef Avoid_Underflow
-          (scale && (y = word0(rv) & Exp_mask) <= 2*P*Exp_msk1)
+          (scale && (y = rv.i[DTOA_DWORD_0] & Exp_mask) <= 2*P*Exp_msk1)
           ? (0xffffffff & (0xffffffff << (2*P+1-(y>>Exp_shift)))) :
 #endif
           0xffffffff))
         {
-          /* boundary case -- increment exponent */
-          word0(rv) = (word0(rv) & Exp_mask) + Exp_msk1
+          // Boundary case -- increment exponent.
+          rv.i[DTOA_DWORD_0] = (rv.i[DTOA_DWORD_0] & Exp_mask) + Exp_msk1
 #ifdef IBM
             | Exp_msk1 >> 4
 #endif
             ;
-          word1(rv) = 0;
+          rv.i[DTOA_DWORD_1] = 0;
 #ifdef Avoid_Underflow
           dsign = 0;
 #endif
           break;
         }
       }
-      else if (!(word0(rv) & Bndry_mask) && !word1(rv))
+      else if (!(rv.i[DTOA_DWORD_0] & Bndry_mask) && !rv.i[DTOA_DWORD_1])
       {
 drop_down:
-        /* boundary case -- decrement exponent */
+        // Boundary case -- decrement exponent.
 #ifdef Sudden_Underflow /*{{*/
-        L = word0(rv) & Exp_mask;
+        L = rv.i[DTOA_DWORD_0] & Exp_mask;
 #ifdef IBM
         if (L <  Exp_msk1)
 #else
@@ -1380,22 +1382,21 @@ drop_down:
 #ifdef Avoid_Underflow
         if (scale)
         {
-          L = word0(rv) & Exp_mask;
+          L = rv.i[DTOA_DWORD_0] & Exp_mask;
           if (L <= (2*P+1)*Exp_msk1)
           {
             if (L > (P+2)*Exp_msk1)
-              /* round even ==> */
-              /* accept rv */
+              // round even ==> accept rv.
               break;
-            /* rv = smallest denormal */
+            // rv = smallest denormal.
             goto undfl;
           }
         }
 #endif /*Avoid_Underflow*/
-        L = (word0(rv) & Exp_mask) - Exp_msk1;
+        L = (rv.i[DTOA_DWORD_0] & Exp_mask) - Exp_msk1;
 #endif /*Sudden_Underflow}}*/
-        word0(rv) = L | Bndry_mask1;
-        word1(rv) = 0xffffffff;
+        rv.i[DTOA_DWORD_0] = L | Bndry_mask1;
+        rv.i[DTOA_DWORD_1] = 0xffffffff;
 #ifdef IBM
         goto cont;
 #else
@@ -1403,17 +1404,17 @@ drop_down:
 #endif
       }
 #ifndef ROUND_BIASED
-      if (!(word1(rv) & LSB))
+      if (!(rv.i[DTOA_DWORD_1] & LSB))
         break;
 #endif
       if (dsign)
-        dval(rv) += ulp(dval(rv));
+        rv.d += ulp(rv.d);
 #ifndef ROUND_BIASED
       else
       {
-        dval(rv) -= ulp(dval(rv));
+        rv.d -= ulp(rv.d);
 #ifndef Sudden_Underflow
-        if (!dval(rv)) goto undfl;
+        if (!rv.d) goto undfl;
 #endif
       }
 #ifdef Avoid_Underflow
@@ -1425,19 +1426,17 @@ drop_down:
     if ((aadj = ratio(delta, bs)) <= 2.)
     {
       if (dsign) aadj = aadj1 = 1.;
-      else if (word1(rv) || word0(rv) & Bndry_mask)
+      else if (rv.i[DTOA_DWORD_1] || rv.i[DTOA_DWORD_0] & Bndry_mask)
       {
 #ifndef Sudden_Underflow
-        if (word1(rv) == Tiny1 && !word0(rv)) goto undfl;
+        if (rv.i[DTOA_DWORD_1] == Tiny1 && !rv.i[DTOA_DWORD_0]) goto undfl;
 #endif
         aadj = 1.;
         aadj1 = -1.;
       }
       else
       {
-        /* special case -- power of FLT_RADIX to be */
-        /* rounded down... */
-
+        // special case -- power of FLT_RADIX to be rounded down...
         if (aadj < 2./FLT_RADIX)
           aadj = 1./FLT_RADIX;
         else
@@ -1452,109 +1451,112 @@ drop_down:
 #ifdef Check_FLT_ROUNDS
       switch(Rounding)
       {
-        case 2: /* towards +infinity */
+        case 2: // towards +infinity
           aadj1 -= 0.5;
           break;
-        case 0: /* towards 0 */
-        case 3: /* towards -infinity */
+        case 0: // towards 0
+        case 3: // towards -infinity
           aadj1 += 0.5;
       }
 #else
       if (Flt_Rounds == 0) aadj1 += 0.5;
 #endif /*Check_FLT_ROUNDS*/
     }
-    y = word0(rv) & Exp_mask;
+    y = rv.i[DTOA_DWORD_0] & Exp_mask;
 
-    /* Check for overflow */
-
+    // Check for overflow.
     if (y == Exp_msk1*(DBL_MAX_EXP+Bias-1))
     {
-      dval(rv0) = dval(rv);
-      word0(rv) -= P*Exp_msk1;
-      adj = aadj1 * ulp(dval(rv));
-      dval(rv) += adj;
-      if ((word0(rv) & Exp_mask) >= Exp_msk1*(DBL_MAX_EXP+Bias-P))
+      rv0.d = rv.d;
+      rv.i[DTOA_DWORD_0] -= P*Exp_msk1;
+      adj = aadj1 * ulp(rv.d);
+      rv.d += adj;
+      if ((rv.i[DTOA_DWORD_0] & Exp_mask) >= Exp_msk1*(DBL_MAX_EXP+Bias-P))
       {
-        if (word0(rv0) == Big0 && word1(rv0) == Big1) goto ovfl;
-        word0(rv) = Big0;
-        word1(rv) = Big1;
+        if (rv0.i[DTOA_DWORD_0] == Big0 && rv0.i[DTOA_DWORD_1] == Big1) goto ovfl;
+        rv.i[DTOA_DWORD_0] = Big0;
+        rv.i[DTOA_DWORD_1] = Big1;
         goto cont;
       }
       else
-        word0(rv) += P*Exp_msk1;
+        rv.i[DTOA_DWORD_0] += P*Exp_msk1;
     }
     else
     {
 #ifdef Avoid_Underflow
       if (scale && y <= 2*P*Exp_msk1)
       {
+        DTOA_U tmp;
+        tmp.d = aadj1;
+
         if (aadj <= 0x7fffffff)
         {
           if ((z = (int32_t)aadj) <= 0) z = 1;
           aadj = z;
-          aadj1 = dsign ? aadj : -aadj;
+          tmp.d = dsign ? aadj : -aadj;
         }
-        word0(aadj1) += (2*P+1)*Exp_msk1 - y;
+        tmp.i[DTOA_DWORD_0] += (2*P+1)*Exp_msk1 - y;
+        aadj1 = tmp.d;
       }
-      adj = aadj1 * ulp(dval(rv));
-      dval(rv) += adj;
+      adj = aadj1 * ulp(rv.d);
+      rv.d += adj;
 #else
 #ifdef Sudden_Underflow
-      if ((word0(rv) & Exp_mask) <= P*Exp_msk1)
+      if ((rv.i[DTOA_DWORD_0] & Exp_mask) <= P*Exp_msk1)
       {
-        dval(rv0) = dval(rv);
-        word0(rv) += P*Exp_msk1;
-        adj = aadj1 * ulp(dval(rv));
-        dval(rv) += adj;
+        rv0.d = rv.d;
+        rv.i[DTOA_DWORD_0] += P*Exp_msk1;
+        adj = aadj1 * ulp(rv.d);
+        rv.d += adj;
 #ifdef IBM
-        if ((word0(rv) & Exp_mask) <  P*Exp_msk1)
+        if ((rv.i[DTOA_DWORD_0] & Exp_mask) <  P*Exp_msk1)
 #else
-        if ((word0(rv) & Exp_mask) <= P*Exp_msk1)
+        if ((rv.i[DTOA_DWORD_0] & Exp_mask) <= P*Exp_msk1)
 #endif
         {
-          if (word0(rv0) == Tiny0 && word1(rv0) == Tiny1) goto undfl;
-          word0(rv) = Tiny0;
-          word1(rv) = Tiny1;
+          if (rv0.i[DTOA_DWORD_0] == Tiny0 && rv0.i[DTOA_DWORD_1] == Tiny1) goto undfl;
+          rv.i[DTOA_DWORD_0] = Tiny0;
+          rv.i[DTOA_DWORD_1] = Tiny1;
           goto cont;
         }
         else
-          word0(rv) -= P*Exp_msk1;
+          rv.i[DTOA_DWORD_0] -= P*Exp_msk1;
       }
       else
       {
-        adj = aadj1 * ulp(dval(rv));
-        dval(rv) += adj;
+        adj = aadj1 * ulp(rv.d);
+        rv.d += adj;
       }
-#else /*Sudden_Underflow*/
-      /* Compute adj so that the IEEE rounding rules will
-       * correctly round rv + adj in some half-way cases.
-       * If rv * ulp(rv) is denormalized (i.e.,
-       * y <= (P-1)*Exp_msk1), we must adjust aadj to avoid
-       * trouble from bits lost to denormalization;
-       * example: 1.2e-307 .
-       */
+#else // Sudden_Underflow
+      // Compute adj so that the IEEE rounding rules will
+      // correctly round rv + adj in some half-way cases.
+      // If rv * ulp(rv) is denormalized (i.e.,
+      // y <= (P-1)*Exp_msk1), we must adjust aadj to avoid
+      // trouble from bits lost to denormalization;
+      // example: 1.2e-307 .
+      //
       if (y <= (P-1)*Exp_msk1 && aadj > 1.)
       {
         aadj1 = (double)(int)(aadj + 0.5);
         if (!dsign) aadj1 = -aadj1;
       }
-      adj = aadj1 * ulp(dval(rv));
-      dval(rv) += adj;
-#endif /*Sudden_Underflow*/
-#endif /*Avoid_Underflow*/
+      adj = aadj1 * ulp(rv.d);
+      rv.d += adj;
+#endif // Sudden_Underflow
+#endif // Avoid_Underflow
     }
-    z = word0(rv) & Exp_mask;
+    z = rv.i[DTOA_DWORD_0] & Exp_mask;
 #ifndef SET_INEXACT
 #ifdef Avoid_Underflow
     if (!scale)
 #endif
     if (y == z)
     {
-      /* Can we stop now? */
+      // Can we stop now?
       L = (int32_t)aadj;
       aadj -= L;
-      /* The tolerances below are conservative. */
-      if (dsign || word1(rv) || word0(rv) & Bndry_mask)
+      // The tolerances below are conservative.
+      if (dsign || rv.i[DTOA_DWORD_1] || rv.i[DTOA_DWORD_0] & Bndry_mask)
       {
         if (aadj < .4999999 || aadj > .5000001) break;
       }
@@ -1575,9 +1577,9 @@ cont:
   {
     if (!oldinexact)
     {
-      word0(rv0) = Exp_1 + (70 << Exp_shift);
-      word1(rv0) = 0;
-      dval(rv0) += 1.;
+      rv0.i[DTOA_DWORD_0] = Exp_1 + (70 << Exp_shift);
+      rv0.i[DTOA_DWORD_1] = 0;
+      rv0.d += 1.;
     }
   }
   else if (!oldinexact)
@@ -1588,20 +1590,20 @@ cont:
 #ifdef Avoid_Underflow
   if (scale)
   {
-    word0(rv0) = Exp_1 - 2*P*Exp_msk1;
-    word1(rv0) = 0;
-    dval(rv) *= dval(rv0);
+    rv0.i[DTOA_DWORD_0] = Exp_1 - 2*P*Exp_msk1;
+    rv0.i[DTOA_DWORD_1] = 0;
+    rv.d *= rv0.d;
 
-    /* try to avoid the bug of testing an 8087 register value */
-    if (word0(rv) == 0 && word1(rv) == 0) err = Error::Overflow;
+    // try to avoid the bug of testing an 8087 register value.
+    if (rv.i[DTOA_DWORD_0] == 0 && rv.i[DTOA_DWORD_1] == 0) err = Error::Overflow;
   }
-#endif /* Avoid_Underflow */
+#endif // Avoid_Underflow
 #ifdef SET_INEXACT
-  if (inexact && !(word0(rv) & Exp_mask))
+  if (inexact && !(rv.i[DTOA_DWORD_0] & Exp_mask))
   {
-    /* set underflow bit */
-    dval(rv0) = 1e-300;
-    dval(rv0) *= dval(rv0);
+    // set underflow bit.
+    rv0.d = 1e-300;
+    rv0.d *= rv0.d;
   }
 #endif
 retfree:
@@ -1617,9 +1619,9 @@ ret:
   if (parserFlags) *parserFlags = flags;
 
   if (sign)
-    *dst = -dval(rv);
+    *dst = -rv.d;
   else
-    *dst = dval(rv);
+    *dst = rv.d;
   return err;
 }
 
