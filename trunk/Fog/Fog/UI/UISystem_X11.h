@@ -246,7 +246,7 @@ struct FOG_UISYSTEM_X11_API UISystemX11 : public UISystemDefault
 
   // [X11 API]
 
-  enum { XlibFunctionsCount = 76 };
+  enum { XlibFunctionsCount = 77 };
   enum { XextFunctionsCount = 5 };
   enum { XrenderFunctionsCount = 13 };
 
@@ -309,6 +309,8 @@ struct FOG_UISYSTEM_X11_API UISystemX11 : public UISystemDefault
 
       int (*pXSetWMProtocols)(Display*, XID /* window */, Atom* /* protocols */, int /* count */);
       int (*pXGetWMProtocols)(Display*, XID /* window */, Atom** /* protocolsReturn */, int* /* countReturn */);
+
+      int (*pXSetWMProperties)(Display*, XID /* window */, XTextProperty* /* window_name*/, XTextProperty* icon_name, char** /* argv */, int /* argc */, XSizeHints* /* normal_hints*/, XWMHints* /* wm_hints */, XClassHint* /* class_hints */);
 
       int (*pXTranslateCoordinates)(Display*, XWindow /* src_w */, XWindow /* dest_w */, int /* src_x */, int /* src_y */, int* /* dest_x_return */, int* /* dest_y_return */, XWindow* /* child_return */);
       int (*pXwcTextListToTextProperty)(Display*, wchar_t** /* list */, int /* count */, XICCEncodingStyle /* style */, XTextProperty* /* textPropertyReturn */);

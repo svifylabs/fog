@@ -1101,7 +1101,7 @@ FOG_INIT_DECLARE err_t fog_bitarray_init(void)
   d->flags = BitArray::Data::IsSharable | BitArray::Data::IsNull;
   d->capacity = 0;
   d->length = 0;
-  *(uint32_t *)d->data = 0U;
+  *((uint32_t *)reinterpret_cast<void*>(d->data)) = 0U;
 
   return Error::Ok;
 }

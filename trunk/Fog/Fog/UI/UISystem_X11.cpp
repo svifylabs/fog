@@ -118,6 +118,7 @@ static const char X11_xlibFunctionNames[] =
   "XSetNormalHints\0"
   "XSetWMProtocols\0"
   "XGetWMProtocols\0"
+  "XSetWMProperties\0"
   "XTranslateCoordinates\0"
   "XwcTextListToTextProperty\0"
   "XFlush\0"
@@ -293,7 +294,7 @@ static const char *X11_atomNames[UISystemX11::Atom_Count] =
 // [Fog::UISystemX11 - Helpers]
 // ============================================================================
 
-static void UISystemX11_sendClientMessage(UISystemX11* uiSystem, XWindow win, Atom atom, XTime time)
+static void UISystemX11_sendClientMessage(UISystemX11* uiSystem, XWindow win, long mask, long l0, long l1, long l2, long l3, long l4)
 {
   XClientMessageEvent xe;
 
@@ -301,10 +302,13 @@ static void UISystemX11_sendClientMessage(UISystemX11* uiSystem, XWindow win, At
   xe.window = win;
   xe.message_type = uiSystem->atom(UISystemX11::Atom_WM_PROTOCOLS);
   xe.format = 32;
-  xe.data.l[0] = atom;
-  xe.data.l[1] = time;
+  xe.data.l[0] = l0;
+  xe.data.l[1] = l1;
+  xe.data.l[2] = l2;
+  xe.data.l[3] = l3;
+  xe.data.l[4] = l4;
 
-  uiSystem->pXSendEvent (uiSystem->display(), win, false, 0L, (XEvent *)&xe);
+  uiSystem->pXSendEvent(uiSystem->display(), win, false, mask, (XEvent *)&xe);
 }
 
 // ============================================================================
@@ -987,7 +991,29 @@ err_t UIWindowX11::create(uint32_t createFlags)
 
     // NET_WM_PING support.
     protocols[1] = atoms[UISystemX11::Atom_NET_WM_PING];
+
     uiSystem->pXSetWMProtocols(display, (XID)handle(), protocols, 2);
+  }
+
+  //
+  {
+    /*
+    XSizeHints sizeHints;
+    sizeHints.flags = USSize | PSize | PWinGravity;
+    sizeHints.x = x;
+    sizeHints.y = y;
+    sizeHints.width = w;
+    sizeHints.height = h;
+    sizeHints.win_gravity = NorthWestGravity;
+
+    XWMHints wmHints;
+    wmHints.flags = InputHint | StateHint;// | WindowGroupHint;
+    wmHints.input = true;
+    wmHints.initial_state = NormalState;
+    wmHints.window_group = 0;
+    */
+
+    uiSystem->pXSetWMProperties(display, (XID)handle(), NULL, NULL, NULL, 0, NULL, NULL, NULL);
   }
 
   // Set _NET_WM_PID
@@ -1471,19 +1497,33 @@ __keyPressNoXIC:
 
     case XClientMessage:
     {
-      if (xe->xclient.message_type == uiSystem->atom(UISystemX11::Atom_WM_PROTOCOLS))
+      // It looks that all client messages should be in 32 bit (long) format.
+      if (xe->xclient.format == 32)
       {
-        Atom msg = (Atom)xe->xclient.data.l[0];
+        // WM_PROTOCOLS messages
+        if (xe->xclient.message_type == uiSystem->atom(UISystemX11::Atom_WM_PROTOCOLS))
+        {
+          Atom msg = (Atom)xe->xclient.data.l[0];
 
-        if (msg == uiSystem->atom(UISystemX11::Atom_WM_DELETE_WINDOW))
-        {
-          CloseEvent e;
-          _widget->sendEvent(&e);
-        }
-        else if (msg == uiSystem->atom(UISystemX11::Atom_NET_WM_PING))
-        {
-          UISystemX11_sendClientMessage(uiSystem, uiSystem->_root,
-            uiSystem->atom(UISystemX11::Atom_NET_WM_PING), xe->xclient.data.l[1]);
+          if (msg == uiSystem->atom(UISystemX11::Atom_WM_DELETE_WINDOW))
+          {
+            CloseEvent e;
+            _widget->sendEvent(&e);
+          }
+          else if (msg == uiSystem->atom(UISystemX11::Atom_NET_WM_PING))
+          {
+            if (xe->xclient.window != uiSystem->_root)
+            {
+              UISystemX11_sendClientMessage(
+                uiSystem, uiSystem->_root,
+                SubstructureNotifyMask | SubstructureRedirectMask,
+                xe->xclient.data.l[0],
+                xe->xclient.data.l[1],
+                xe->xclient.data.l[2],
+                xe->xclient.data.l[3],
+                xe->xclient.data.l[4]);
+            }
+          }
         }
       }
       break;
