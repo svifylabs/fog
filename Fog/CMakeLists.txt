@@ -433,6 +433,7 @@ Set(FOG_GRAPHICS_SOURCES
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_SSE2_gradient.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_SSE2_pattern.cpp.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_SSE2_vector.cpp.h
+  ${FOG_DIR}/Fog/Graphics/Rasterizer.cpp
   ${FOG_DIR}/Fog/Graphics/Reduce.cpp
   ${FOG_DIR}/Fog/Graphics/Region.cpp
   ${FOG_DIR}/Fog/Graphics/RegionPoly.cpp
@@ -479,6 +480,7 @@ Set(FOG_GRAPHICS_HEADERS
   ${FOG_DIR}/Fog/Graphics/Raster.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_Bresenham.h
   ${FOG_DIR}/Fog/Graphics/Raster/Raster_C.h
+  ${FOG_DIR}/Fog/Graphics/Rasterizer.h
   ${FOG_DIR}/Fog/Graphics/Reduce.h
   ${FOG_DIR}/Fog/Graphics/Region.h
   ${FOG_DIR}/Fog/Graphics/Rgba.h
