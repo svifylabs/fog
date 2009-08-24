@@ -182,51 +182,38 @@ struct FOG_HIDDEN Application_Local
   Application_Local();
   ~Application_Local();
 
-  EventLoop* createEventLoop(const String32& type)
-  {
-    AutoLock locked(lock);
-    Application::EventLoopConstructor ctor = elHash.value(type, NULL);
-    return ctor ? ctor() : NULL;
-  }
+  EventLoop* createEventLoop(const String32& type);
+  void applicationArgumentsWasSet();
 };
 
 Application_Local::Application_Local()
 {
+#if defined(FOG_OS_WINDOWS)
   String32 applicationCommand;
 
-#if defined(FOG_OS_WINDOWS)
   applicationCommand.set(StubW(::GetCommandLineW()));
   parseWinCmdLine(applicationCommand, applicationArguments);
+
+  applicationArgumentsWasSet();
 #endif // FOG_OS_WINDOWS
+}
 
-#if defined(FOG_OS_POSIX)
-  // CORE TODO: Get application arguments.
+Application_Local::~Application_Local()
+{
+}
 
-  String8 cmdLine;
+EventLoop* Application_Local::createEventLoop(const String32& type)
+{
+  AutoLock locked(lock);
 
-  {
-    String32 procFile;
-    Stream stream;
-    err_t err;
+  Application::EventLoopConstructor ctor = elHash.value(type, NULL);
+  return ctor ? ctor() : NULL;
+}
 
-    procFile.format("/proc/%u/cmdline", (uint)getpid());
-
-    err = stream.openFile(procFile, Stream::OpenRead);
-    if (err)
-    {
-      // What to do here, the /proc/pid/cmdline is not available.
-    }
-
-    stream.readAll(cmdLine);
-  }
-
-  if (!cmdLine.isEmpty())
-  {
-    String32 e;
-    e.set(Local8(cmdLine.cData()));
-    FileUtil::toAbsolutePath(applicationExecutable, String32(), e);
-  }
-#endif // FOG_OS_POSIX
+void Application_Local::applicationArgumentsWasSet()
+{
+  applicationExecutable = applicationArguments.cAt(0);
+  FileUtil::toAbsolutePath(applicationExecutable, String32(), applicationExecutable);
 
   String32 applicationDirectory;
   FileUtil::extractDirectory(applicationDirectory, applicationExecutable);
@@ -237,10 +224,6 @@ Application_Local::Application_Local()
   Library::addPath(applicationDirectory, Library::PathPrepend);
 }
 
-Application_Local::~Application_Local()
-{
-}
-
 static Static<Application_Local> application_local;
 
 // ============================================================================
@@ -249,10 +232,23 @@ static Static<Application_Local> application_local;
 
 Application* Application::_instance = NULL;
 
-Application::Application(const String32& type) :
-  _eventLoop(NULL),
-  _uiSystem(NULL)
+Application::Application(const String32& type)
 {
+  _init(type);
+}
+
+Application::Application(const String32& type, int argc, char* argv[])
+{
+  fog_application_initArguments(argc, argv);
+
+  _init(type);
+}
+
+void Application::_init(const String32& type)
+{
+  _eventLoop = NULL;
+  _uiSystem = NULL;
+
   // Create UISystem by type.
   if (type.startsWith(Ascii8("UI"))) _uiSystem = createUISystem(type);
 
@@ -513,4 +509,29 @@ FOG_INIT_DECLARE void fog_application_shutdown(void)
   using namespace Fog;
 
   application_local.destroy();
+}
+
+// ============================================================================
+// [Fog::Application - initArguments]
+// ============================================================================
+
+void fog_application_initArguments(int argc, char* argv[])
+{
+  using namespace Fog;
+
+  if (argc < 1) return;
+
+  AutoLock locked(application_local->lock);
+
+  Vector<String32>& arguments = application_local->applicationArguments;
+  if (arguments.getLength() != 0) return;
+
+  for (int i = 0; i < argc; i++)
+  {
+    String32 arg;
+    arg.set(Local8(argv[i]));
+    arguments.append(arg);
+  }
+
+  application_local->applicationArgumentsWasSet();
 }

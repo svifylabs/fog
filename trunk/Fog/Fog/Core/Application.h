@@ -20,6 +20,14 @@
 //! @addtogroup Fog_Core
 //! @{
 
+//! @brief Function that should be called if application arguments are not
+//! initialized and Application object not exists or it's not kwown that
+//! it will exist in future.
+//!
+//! This method is called automatically by @c FOG_CORE_MAIN and
+//! @c FOG_UI_MAIN macros.
+FOG_API void fog_application_initArguments(int argc, char* argv[]);
+
 namespace Fog {
 
 // ============================================================================
@@ -38,7 +46,15 @@ struct UISystem;
 
 struct FOG_API Application : public Object
 {
+  //! @brief Application constructor.
   Application(const String32& type);
+  //! @brief Application constructor that allows to set argc and argv[].
+  Application(const String32& type, int argc, char* argv[]);
+
+private:
+  void _init(const String32& type);
+
+public:
   virtual ~Application();
 
   virtual err_t run();

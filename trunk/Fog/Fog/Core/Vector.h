@@ -179,20 +179,20 @@ struct Vector : public Sequence<T>
 
   FOG_INLINE const T& cAt(sysuint_t index) const
   {
-    FOG_ASSERT_X(index < Sequence<T>::length(), "Fog::Vector<T>::cAt() - Index out of range.");
+    FOG_ASSERT_X(index < Sequence<T>::getLength(), "Fog::Vector<T>::cAt() - Index out of range.");
     return _d->data[index];
   }
 
   FOG_INLINE T& mAt(sysuint_t index)
   {
-    FOG_ASSERT_X(index < Sequence<T>::length(), "Fog::Vector<T>::mAt() - Index out of range.");
+    FOG_ASSERT_X(index < Sequence<T>::getLength(), "Fog::Vector<T>::mAt() - Index out of range.");
     Sequence<T>::detach();
     return _d->data[index];
   }
 
   FOG_INLINE T& xAt(sysuint_t index)
   {
-    FOG_ASSERT_X(index < Sequence<T>::length(), "Fog::Vector<T>::xAt() - Index out of range.");
+    FOG_ASSERT_X(index < Sequence<T>::getLength(), "Fog::Vector<T>::xAt() - Index out of range.");
     FOG_ASSERT_X(Sequence<T>::isDetached(), "Fog::Vector<T>::xAt() - Non detached data.");
     return _d->data[index];
   }
@@ -256,7 +256,7 @@ struct Vector : public Sequence<T>
   { return removeAt(0, 1) == 1; }
 
   FOG_INLINE bool removeLast()
-  { return removeAt(Sequence<T>::length()-1, 1) == 1; }
+  { return removeAt(Sequence<T>::getLength()-1, 1) == 1; }
 
   FOG_INLINE sysuint_t replace(sysuint_t index, sysuint_t range, const T* data, sysuint_t length)
   { return VectorAPI<T>::replace(this, index, range, data, length); }
@@ -266,7 +266,7 @@ struct Vector : public Sequence<T>
 
   T takeAt(sysuint_t index)
   {
-    FOG_ASSERT_X(index < Sequence<T>::length(), "Fog::Vector<T>::takeAt() - Index out of range.");
+    FOG_ASSERT_X(index < Sequence<T>::getLength(), "Fog::Vector<T>::takeAt() - Index out of range.");
     T result = cData()[index];
     removeAt(index);
     return result;

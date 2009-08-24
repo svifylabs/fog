@@ -70,7 +70,6 @@ struct FOG_UISYSTEM_X11_API UISystemX11 : public UISystemDefault
     Atom_WM_NAME,
     Atom_WM_COMMAND,
     Atom_WM_ICON_NAME,
-    Atom_WM_CLIENT_MACHINE,
     Atom_WM_CHANGE_STATE,
     Atom_MOTIF_WM_HINTS,
     Atom_WIN_LAYER,

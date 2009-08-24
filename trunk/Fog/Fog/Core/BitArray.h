@@ -158,7 +158,7 @@ struct FOG_API BitArray
 
   FOG_INLINE bool at(sysuint_t index) const
   {
-    FOG_ASSERT_X(index < length(), "Fog::BitArray::at() - Index out of range.");
+    FOG_ASSERT_X(index < getLength(), "Fog::BitArray::at() - Index out of range.");
     return (bool)(_d->data[index >> 3] & (1 << (index & 7)));
   }
 
