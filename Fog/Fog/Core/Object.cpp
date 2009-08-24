@@ -14,6 +14,7 @@
 #include <Fog/Core/Event.h>
 #include <Fog/Core/EventLoop.h>
 #include <Fog/Core/Hash.h>
+#include <Fog/Core/HashUtil.h>
 #include <Fog/Core/Object.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/String.h>
@@ -24,75 +25,37 @@
 
 FOG_CVAR_DECLARE Fog::Lock* fog_object_lock;
 
-// [Forward declarations]
-// static uint32_t Core_Object_signalHash(const char* signal);
+namespace Fog {
 
-// [Fog::Object - fog_object_local variables]
-struct Core_Object_Local
+// [Fog::Object - object_local variables]
+
+struct Object_Local
 {
-  FOG_INLINE Core_Object_Local()
+  FOG_INLINE Object_Local()
   {
     static const char object_string[] = "Fog::Object";
 
     fog_object_lock = &object_lock;
 
     object_metaClass.base = NULL;
-    object_metaClass.name = (const Fog::Char8*)object_string;
-    object_metaClass.hash = Fog::hashString(
-      (const Fog::Char8*)object_string, FOG_ARRAY_SIZE(object_string)-1);
+    object_metaClass.name = (const Char8*)object_string;
+    object_metaClass.hash = HashUtil::hashString(
+      (const Char8*)object_string, FOG_ARRAY_SIZE(object_string)-1);
   }
-  FOG_INLINE ~Core_Object_Local()
+  FOG_INLINE ~Object_Local()
   {
     fog_object_lock = NULL;
   }
 
-  Fog::Lock object_lock;
-  Fog::MetaClass object_metaClass;
+  Lock object_lock;
+  MetaClass object_metaClass;
 };
-static Fog::Static<Core_Object_Local> fog_object_local;
 
-// [Fog::Object - cast]
+static Static<Object_Local> object_local;
 
-FOG_CAPI_DECLARE void* fog_object_cast_helper(Fog::Object* self, const Fog::MetaClass* targetMetaClass)
-{
-  FOG_ASSERT(self);
-  register const Fog::MetaClass* selfMetaClass = self->getMetaClass();
-
-  for (;;)
-  {
-    // compare meta classes for match. Each class has only one meta class,
-    // so pointers comparision is the best way
-    if (selfMetaClass == targetMetaClass) return (void*)self;
-    // iterate over base classes and return if there is no one
-    if ((selfMetaClass = selfMetaClass->base) == NULL) return NULL;
-  }
-}
-
-FOG_CAPI_DECLARE void* fog_object_cast_string(Fog::Object* self, const Fog::Char8* className)
-{
-  FOG_ASSERT(self);
-
-  const Fog::MetaClass* metaClass = self->getMetaClass();
-  uint32_t classHash = Fog::hashString(className, Fog::DetectLength);
-
-  for (;;)
-  {
-    // Compare hashes and string class names.
-    if (metaClass->hash == classHash && strcmp(
-      (const char*)metaClass->name, 
-      (const char*)className) == 0)
-    {
-      return (void*)self;
-    }
-
-    // Iterate over base classes and return if there is no one.
-    if ((metaClass = metaClass->base) == NULL) return NULL;
-  }
-}
-
-namespace Fog {
-
+// ============================================================================
 // [Fog::Object]
+// ============================================================================
 
 Object::Object() :
   Class(reinterpret_cast<uint32_t*>(&_flags)),
@@ -146,12 +109,12 @@ void Object::destroy()
 
 const MetaClass* Object::staticMetaClass()
 {
-  return &fog_object_local.instance().object_metaClass;
+  return &object_local.instance().object_metaClass;
 }
 
 const MetaClass* Object::getMetaClass() const
 {
-  return &fog_object_local.instance().object_metaClass;
+  return &object_local.instance().object_metaClass;
 }
 
 // [Fog::Object - id]
@@ -423,7 +386,9 @@ void Object::sendEventById(uint32_t code)
   sendEvent(&e);
 }
 
-// event handlers
+// ============================================================================
+// [Fog::Object - Event handlers]
+// ============================================================================
 
 // onEvent is normally defined by fog_event_begin() and fog_event_end() macro,
 // but Fog::Object is exception.
@@ -455,16 +420,66 @@ void Object::onPropertyChanged(PropertyChangedEvent* e)
 } // Fog namespace
 
 // ============================================================================
+// [fog_object_cast<>]
+// ============================================================================
+
+FOG_CAPI_DECLARE void* fog_object_cast_helper(Fog::Object* self, const Fog::MetaClass* targetMetaClass)
+{
+  using namespace Fog;
+
+  FOG_ASSERT(self);
+  const MetaClass* selfMetaClass = self->getMetaClass();
+
+  for (;;)
+  {
+    // compare meta classes for match. Each class has only one meta class,
+    // so pointers comparision is the best way
+    if (selfMetaClass == targetMetaClass) return (void*)self;
+    // iterate over base classes and return if there is no one
+    if ((selfMetaClass = selfMetaClass->base) == NULL) return NULL;
+  }
+}
+
+FOG_CAPI_DECLARE void* fog_object_cast_string(Fog::Object* self, const Fog::Char8* className)
+{
+  using namespace Fog;
+
+  FOG_ASSERT(self);
+
+  const MetaClass* metaClass = self->getMetaClass();
+  uint32_t classHash = HashUtil::hashString(className, DetectLength);
+
+  for (;;)
+  {
+    // Compare hashes and string class names.
+    if (metaClass->hash == classHash && strcmp(
+      (const char*)metaClass->name,
+      (const char*)className) == 0)
+    {
+      return (void*)self;
+    }
+
+    // Iterate over base classes and return if there is no one.
+    if ((metaClass = metaClass->base) == NULL) return NULL;
+  }
+}
+
+// ============================================================================
 // [Library Initializers]
 // ============================================================================
 
 FOG_INIT_DECLARE err_t fog_object_init(void)
 {
-  fog_object_local.init();
+  using namespace Fog;
+
+  object_local.init();
   return Error::Ok;
 }
 
 FOG_INIT_DECLARE void fog_object_shutdown(void)
 {
-  fog_object_local.destroy();
+  using namespace Fog;
+
+  object_local.destroy();
 }
+

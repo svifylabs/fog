@@ -135,7 +135,7 @@ struct FOG_HIDDEN ManagedString32Local
 
     Utf32 s(_s.getStr(), _s.getLength() == DetectLength ? StringUtil::len(_s.getStr()) : _s.getLength());
 
-    uint32_t hashCode = hashString(s.getStr(), s.getLength());
+    uint32_t hashCode = HashUtil::hashString(s.getStr(), s.getLength());
     uint32_t hashMod = hashCode % _capacity;
 
     Node* node = _buckets[hashMod];
@@ -229,7 +229,7 @@ struct FOG_HIDDEN ManagedString32Local
 
     Utf32 s(_s.getStr(), _s.getLength() == DetectLength ? StringUtil::len(_s.getStr()) : _s.getLength());
 
-    uint32_t hashCode = hashString(s.getStr(), s.getLength());
+    uint32_t hashCode = HashUtil::hashString(s.getStr(), s.getLength());
     uint32_t hashMod = hashCode % _capacity;
 
     Node* node = _buckets[hashMod];

@@ -4047,7 +4047,7 @@ uint32_t __G_STRING::getHashCode() const
   uint32_t h = _d->hashCode;
   if (h) return h;
 
-  return (_d->hashCode = hashData((const void*)cData(), getLength() * __G_SIZE));
+  return (_d->hashCode = HashUtil::hashString(cData(), getLength()));
 }
 
 // ============================================================================

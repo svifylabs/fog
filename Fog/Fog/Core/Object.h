@@ -13,6 +13,7 @@
 #include <Fog/Core/Char.h>
 #include <Fog/Core/Class.h>
 #include <Fog/Core/Hash.h>
+#include <Fog/Core/HashUtil.h>
 #include <Fog/Core/Delegate.h>
 #include <Fog/Core/Event.h>
 #include <Fog/Core/Thread.h>
@@ -121,7 +122,7 @@ const Fog::MetaClass* selftype::staticMetaClass() \
   { \
     metaClass.base = base::staticMetaClass(); \
     metaClass.name = (const Fog::Char8*)metaClassName; \
-    metaClass.hash = Fog::hashString( \
+    metaClass.hash = Fog::HashUtil::hashString( \
       (const Fog::Char8*)metaClassName, FOG_ARRAY_SIZE(metaClassName)-1); \
     \
     Fog::AtomicOperation<uint32_t>::set(&initialized, 1); \

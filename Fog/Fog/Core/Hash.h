@@ -1,6 +1,6 @@
 // [Fog/Core Library - C++ API]
 //
-// [Licence] 
+// [Licence]
 // MIT, See COPYING file in package
 
 // [Guard]
@@ -13,6 +13,7 @@
 #include <Fog/Build/Build.h>
 #include <Fog/Core/Char.h>
 #include <Fog/Core/Error.h>
+#include <Fog/Core/HashUtil.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/SequenceInfo.h>
 #include <Fog/Core/Static.h>
@@ -22,70 +23,8 @@
 
 namespace Fog {
 
-//! @addtogroup Fog_Core_Detail
+//! @addtogroup Fog_Core
 //! @{
-
-// ============================================================================
-// [Fog::hashData/hashString]
-// ============================================================================
-
-FOG_API uint32_t hashData(const void* data, sysuint_t size);
-
-// STANDARD hash functions for 8 bit, 16 bit and 32 bit NULL terminated
-// strings. 8 bit, 16 bit and 32 bit hashes are not compatible for strings
-// that represents same unicode data.
-FOG_API uint32_t hashString(const Char8* key, sysuint_t length);
-FOG_API uint32_t hashString(const Char16* key, sysuint_t length);
-FOG_API uint32_t hashString(const Char32* key, sysuint_t length);
-
-//! @brief Combine two hash values into one.
-static inline uint32_t combineHash(uint32_t hash1, uint32_t hash2)
-{ return hash1 + hash2; }
-
-// ============================================================================
-// [Fog::getHashCode]
-// ============================================================================
-
-template<typename T>
-inline uint32_t getHashCode(const T& key)
-{ 
-  // Default action is to call getHashCode() method
-  return key.getHashCode();
-}
-
-#define FOG_DECLARE_HASHABLE(__type__, __execute__) \
-template<> \
-inline uint32_t getHashCode<__type__>(const __type__& key) __execute__
-
-#define FOG_DECLARE_HASHABLE_PTR(__type__, __execute__) \
-template<> \
-inline uint32_t getHashCode<__type__ &>(__type__& key) __execute__ \
-\
-template<> \
-inline uint32_t getHashCode<const __type__ &>(const __type__& key) __execute__
-
-FOG_DECLARE_HASHABLE(char, { return (uint8_t)key; })
-FOG_DECLARE_HASHABLE(uint8_t, { return (uint8_t)key; })
-FOG_DECLARE_HASHABLE(int16_t, { return (uint16_t)key; })
-FOG_DECLARE_HASHABLE(uint16_t, { return (uint16_t)key; })
-FOG_DECLARE_HASHABLE(int32_t, { return (uint32_t)key; })
-FOG_DECLARE_HASHABLE(uint32_t, { return (uint32_t)key; })
-FOG_DECLARE_HASHABLE(int64_t, { return ((uint32_t)((uint64_t)(key) >> 31)) ^ (uint32_t)(key); })
-FOG_DECLARE_HASHABLE(uint64_t, { return ((uint32_t)((uint64_t)(key) >> 31)) ^ (uint32_t)(key); })
-/*
-FOG_DECLARE_HASHABLE_PTR(char*, { return hashString(reinterpret_cast<const Char8*>(key), DetectLength); })
-FOG_DECLARE_HASHABLE_PTR(uint8_t*, { return hashString(reinterpret_cast<const Char8*>(key), DetectLength); })
-FOG_DECLARE_HASHABLE_PTR(Char8*, { return hashString(key, DetectLength); })
-FOG_DECLARE_HASHABLE_PTR(Char16*, { return hashString(key, DetectLength); })
-FOG_DECLARE_HASHABLE_PTR(Char32*, { return hashString(key, DetectLength); })
-*/
-#if FOG_ARCH_BITS == 32
-template<typename T>
-inline uint32_t getHashCode(T* key) { return (uint32_t)key; }
-#else
-template<typename T>
-inline uint32_t getHashCode(T* key) { return ((uint32_t)((uint64_t)(key) >> 31)) ^ (uint32_t)(uint64_t)(key); }
-#endif // FOG_ARCH_BITS
 
 // ============================================================================
 // [Fog::Hash_Abstract]
@@ -187,11 +126,6 @@ struct FOG_API Hash_Abstract
   FOG_DECLARE_D(Data)
 };
 
-//! @}
-
-//! @addtogroup Fog_Core
-//! @{
-
 // ============================================================================
 // [Fog::Hash]
 // ============================================================================
@@ -199,12 +133,12 @@ struct FOG_API Hash_Abstract
 template<typename KeyT, typename ValueT>
 struct Hash : public Hash_Abstract
 {
-  struct Node 
+  struct Node
   {
-    FOG_INLINE Node(uint32_t hashCode, const KeyT& key) : 
+    FOG_INLINE Node(uint32_t hashCode, const KeyT& key) :
       next(NULL), hashCode(hashCode), key(key) {}
 
-    FOG_INLINE Node(uint32_t hashCode, const KeyT& key, const ValueT& value) : 
+    FOG_INLINE Node(uint32_t hashCode, const KeyT& key, const ValueT& value) :
       next(NULL), hashCode(hashCode), key(key), value(value) {}
 
     FOG_INLINE ~Node() {};
@@ -248,10 +182,10 @@ struct Hash : public Hash_Abstract
 
   Hash()
   { _d = sharedNull->ref(); }
-  
+
   Hash(const Hash<KeyT, ValueT>& other)
   { _d = other._d->ref(); }
-  
+
   ~Hash()
   { ((Data*)_d)->deref(); }
 
@@ -286,11 +220,11 @@ struct Hash : public Hash_Abstract
 
   struct ConstIterator : public Hash_Abstract::_Iterator
   {
-    FOG_INLINE ConstIterator(const Hash<KeyT, ValueT>& hash) : 
+    FOG_INLINE ConstIterator(const Hash<KeyT, ValueT>& hash) :
       _Iterator((Hash_Abstract *)&hash)
     {}
 
-    FOG_INLINE ConstIterator(const Hash<KeyT, ValueT>* hash) : 
+    FOG_INLINE ConstIterator(const Hash<KeyT, ValueT>* hash) :
       _Iterator((Hash_Abstract *)hash)
     {}
 
@@ -309,11 +243,11 @@ struct Hash : public Hash_Abstract
 
   struct MutableIterator : public Hash_Abstract::_Iterator
   {
-    FOG_INLINE MutableIterator(Hash<KeyT, ValueT>& hash) : 
+    FOG_INLINE MutableIterator(Hash<KeyT, ValueT>& hash) :
       _Iterator((Hash_Abstract *)&hash)
     { ((Hash*)_hash)->detach(); }
 
-    FOG_INLINE MutableIterator(Hash<KeyT, ValueT>* hash) : 
+    FOG_INLINE MutableIterator(Hash<KeyT, ValueT>* hash) :
       _Iterator((Hash_Abstract *)hash)
     { ((Hash*)_hash)->detach(); }
 
@@ -389,7 +323,7 @@ bool Hash<KeyT, ValueT>::contains(const KeyT& key) const
 {
   if (!_d->length) return false;
 
-  uint32_t hashCode = getHashCode(key);
+  uint32_t hashCode = HashUtil::getHashCode(key);
   uint32_t hashMod = hashCode % getCapacity();
 
   Node* node = (Node*)(_d->buckets[hashMod]);
@@ -409,7 +343,7 @@ err_t Hash<KeyT, ValueT>::put(const KeyT& key, const ValueT& value, bool replace
 
   detach();
 
-  uint32_t hashCode = getHashCode(key);
+  uint32_t hashCode = HashUtil::getHashCode(key);
   uint32_t hashMod = hashCode % getCapacity();
 
   Node* node = (Node*)(_d->buckets[hashMod]);
@@ -446,7 +380,7 @@ bool Hash<KeyT, ValueT>::remove(const KeyT& key)
 {
   if (!_d->length) return false;
 
-  uint32_t hashCode = getHashCode(key);
+  uint32_t hashCode = HashUtil::getHashCode(key);
   uint32_t hashMod = hashCode % getCapacity();
 
   Node* node = (Node*)(_d->buckets[hashMod]);
@@ -457,7 +391,7 @@ bool Hash<KeyT, ValueT>::remove(const KeyT& key)
     if (node->hashCode == hashCode && node->key == key)
     {
       if (FOG_UNLIKELY(!isDetached())) return _detach(node);
-      
+
       if (prev)
         prev->next = node->next;
       else
@@ -479,7 +413,7 @@ ValueT* Hash<KeyT, ValueT>::get(const KeyT& key) const
 {
   if (!_d->length) return NULL;
 
-  uint32_t hashCode = getHashCode(key);
+  uint32_t hashCode = HashUtil::getHashCode(key);
   uint32_t hashMod = hashCode % getCapacity();
 
   Node* node = (Node*)(_d->buckets[hashMod]);
@@ -502,7 +436,7 @@ ValueT* Hash<KeyT, ValueT>::mod(const KeyT& key)
 
   detach();
 
-  uint32_t hashCode = getHashCode(key);
+  uint32_t hashCode = HashUtil::getHashCode(key);
   uint32_t hashMod = hashCode % getCapacity();
 
   Node* node = (Node*)(_d->buckets[hashMod]);
@@ -535,7 +469,7 @@ typename Hash<KeyT, ValueT>::Node* Hash<KeyT, ValueT>::_getNode(const KeyT& key)
 {
   if (!_d->length) return NULL;
 
-  uint32_t hashCode = getHashCode(key);
+  uint32_t hashCode = HashUtil::getHashCode(key);
   uint32_t hashMod = hashCode % getCapacity();
 
   Node* node = (Node*)(_d->buckets[hashMod]);
