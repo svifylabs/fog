@@ -23,151 +23,148 @@ namespace StringUtil {
  *
  ***************************************************************/
 
-/* Please send bug reports to David M. Gay (dmg at acm dot org,
- * with " at " changed at "@" and " dot " changed to ".").  */
+// Please send bug reports to David M. Gay (dmg at acm dot org,
+// with " at " changed at "@" and " dot " changed to ".").  */
 
-/* On a machine with IEEE extended-precision registers, it is
- * necessary to specify double-precision (53-bit) rounding precision
- * before invoking strtod or dtoa.  If the machine uses (the equivalent
- * of) Intel 80x87 arithmetic, the call
- *  _control87(PC_53, MCW_PC);
- * does this with many compilers.  Whether this or another call is
- * appropriate depends on the compiler; for this to work, it may be
- * necessary to #include "float.h" or another system-dependent header
- * file.
- */
+// On a machine with IEEE extended-precision registers, it is
+// necessary to specify double-precision (53-bit) rounding precision
+// before invoking strtod or dtoa.  If the machine uses (the equivalent
+// of) Intel 80x87 arithmetic, the call
+//  _control87(PC_53, MCW_PC);
+// does this with many compilers.  Whether this or another call is
+// appropriate depends on the compiler; for this to work, it may be
+// necessary to #include "float.h" or another system-dependent header
+// file.
 
-/* strtod for IEEE-, VAX-, and IBM-arithmetic machines.
- *
- * This strtod returns a nearest machine number to the input decimal
- * string (or sets errno to ERANGE).  With IEEE arithmetic, ties are
- * broken by the IEEE round-even rule.  Otherwise ties are broken by
- * biased rounding (add half and chop).
- *
- * Inspired loosely by William D. Clinger's paper "How to Read Floating
- * Point Numbers Accurately" [Proc. ACM SIGPLAN '90, pp. 92-101].
- *
- * Modifications:
- *
- *  1. We only require IEEE, IBM, or VAX double-precision
- *    arithmetic (not IEEE double-extended).
- *  2. We get by with floating-point arithmetic in a case that
- *    Clinger missed -- when we're computing d * 10^n
- *    for a small integer d and the integer n is not too
- *    much larger than 22 (the maximum integer k for which
- *    we can represent 10^k exactly), we may be able to
- *    compute (d*10^k) * 10^(e-k) with just one roundoff.
- *  3. Rather than a bit-at-a-time adjustment of the binary
- *    result in the hard case, we use floating-point
- *    arithmetic to determine the adjustment to within
- *    one bit; only in really hard cases do we need to
- *    compute a second residual.
- *  4. Because of 3., we don't need a large table of powers of 10
- *    for ten-to-e (just some small tables, e.g. of 10^k
- *    for 0 <= k <= 22).
- */
+// strtod for IEEE-, VAX-, and IBM-arithmetic machines.
+//
+// This strtod returns a nearest machine number to the input decimal
+// string (or sets errno to ERANGE).  With IEEE arithmetic, ties are
+// broken by the IEEE round-even rule.  Otherwise ties are broken by
+// biased rounding (add half and chop).
+//
+// Inspired loosely by William D. Clinger's paper "How to Read Floating
+// Point Numbers Accurately" [Proc. ACM SIGPLAN '90, pp. 92-101].
+//
+// Modifications:
+//
+//  1. We only require IEEE, IBM, or VAX double-precision
+//    arithmetic (not IEEE double-extended).
+//  2. We get by with floating-point arithmetic in a case that
+//    Clinger missed -- when we're computing d * 10^n
+//    for a small integer d and the integer n is not too
+//    much larger than 22 (the maximum integer k for which
+//    we can represent 10^k exactly), we may be able to
+//    compute (d*10^k) * 10^(e-k) with just one roundoff.
+//  3. Rather than a bit-at-a-time adjustment of the binary
+//    result in the hard case, we use floating-point
+//    arithmetic to determine the adjustment to within
+//    one bit; only in really hard cases do we need to
+//    compute a second residual.
+//  4. Because of 3., we don't need a large table of powers of 10
+//    for ten-to-e (just some small tables, e.g. of 10^k
+//    for 0 <= k <= 22).
 
-/*
- * #define IEEE_8087 for IEEE-arithmetic machines where the least
- *  significant byte has the lowest address.
- * #define IEEE_MC68k for IEEE-arithmetic machines where the most
- *  significant byte has the lowest address.
- * #define int32_t int on machines with 32-bit ints and 64-bit longs.
- * #define IBM for IBM mainframe-style floating-point arithmetic.
- * #define VAX for VAX-style floating-point arithmetic (D_floating).
- * #define No_leftright to omit left-right logic in fast floating-point
- *  computation of dtoa.
- * #define Honor_FLT_ROUNDS if FLT_ROUNDS can assume the values 2 or 3
- *  and strtod and dtoa should round accordingly.
- * #define Check_FLT_ROUNDS if FLT_ROUNDS can assume the values 2 or 3
- *  and Honor_FLT_ROUNDS is not #defined.
- * #define RND_PRODQUOT to use rnd_prod and rnd_quot (assembly routines
- *  that use extended-precision instructions to compute rounded
- *  products and quotients) with IBM.
- * #define ROUND_BIASED for IEEE-format with biased rounding.
- * #define Inaccurate_Divide for IEEE-format with correctly rounded
- *  products but inaccurate quotients, e.g., for Intel i860.
- * #define NO_LONG_LONG on machines that do not have a "long long"
- *  integer type (of >= 64 bits).  On such machines, you can
- *  #define Just_16 to store 16 bits per 32-bit int32_t when doing
- *  high-precision integer arithmetic.  Whether this speeds things
- *  up or slows things down depends on the machine and the number
- *  being converted.  If long long is available and the name is
- *  something other than "long long", #define Llong to be the name,
- *  and if "unsigned Llong" does not work as an unsigned version of
- *  Llong, #define #ULLong to be the corresponding unsigned type.
- * #define KR_headers for old-style C function headers. --- Removed
- * #define Bad_float_h if your system lacks a float.h or if it does not
- *  define some or all of DBL_DIG, DBL_MAX_10_EXP, DBL_MAX_EXP,
- *  FLT_RADIX, FLT_ROUNDS, and DBL_MAX.
- * #define MALLOC your_malloc, where your_malloc(n) acts like malloc(n)
- *  if memory is available and otherwise does something you deem
- *  appropriate.  If MALLOC is undefined, malloc will be invoked
- *  directly -- and assumed always to succeed.
- * #define Omit_Private_Memory to omit logic (added Jan. 1998) for making
- *  memory allocations from a private pool of memory when possible.
- *  When used, the private pool is PRIVATE_MEM bytes long:  2304 bytes,
- *  unless #defined to be a different length.  This default length
- *  suffices to get rid of MALLOC calls except for unusual cases,
- *  such as decimal-to-binary conversion of a very long string of
- *  digits.  The longest string dtoa can return is about 751 bytes
- *  long.  For conversions by strtod of strings of 800 digits and
- *  all dtoa conversions in single-threaded executions with 8-byte
- *  pointers, PRIVATE_MEM >= 7400 appears to suffice; with 4-byte
- *  pointers, PRIVATE_MEM >= 7112 appears adequate.
- * #define INFNAN_CHECK on IEEE systems to cause strtod to check for
- *  Infinity and NaN (case insensitively).  On some systems (e.g.,
- *  some HP systems), it may be necessary to #define NAN_WORD0
- *  appropriately -- to the most significant word of a quiet NaN.
- *  (On HP Series 700/800 machines, -DNAN_WORD0=0x7ff40000 works.)
- *  When INFNAN_CHECK is #defined and No_Hex_NaN is not #defined,
- *  strtod also accepts (case insensitively) strings of the form
- *  NaN(x), where x is a string of hexadecimal digits and spaces;
- *  if there is only one string of hexadecimal digits, it is taken
- *  for the 52 fraction bits of the resulting NaN; if there are two
- *  or more strings of hex digits, the first is for the high 20 bits,
- *  the second and subsequent for the low 32 bits, with intervening
- *  white space ignored; but if this results in none of the 52
- *  fraction bits being on (an IEEE Infinity symbol), then NAN_WORD0
- *  and NAN_WORD1 are used instead.
- * #define MULTIPLE_THREADS if the system offers preemptively scheduled
- *  multiple threads.  In this case, you must provide (or suitably
- *  #define) two locks, acquired by ACQUIRE_DTOA_LOCK(n) and freed
- *  by FREE_DTOA_LOCK(n) for n = 0 or 1.  (The second lock, accessed
- *  in pow5mult, ensures lazy evaluation of only one copy of high
- *  powers of 5; omitting this lock would introduce a small
- *  probability of wasting memory, but would otherwise be harmless.)
- *  You must also invoke freedtoa(s) to free the value s returned by
- *  dtoa.  You may do so whether or not MULTIPLE_THREADS is #defined. --- Removed/Fixed
- * #define NO_IEEE_Scale to disable new (Feb. 1997) logic in strtod that
- *  avoids underflows on inputs whose result does not underflow.
- *  If you #define NO_IEEE_Scale on a machine that uses IEEE-format
- *  floating-point numbers and flushes underflows to zero rather
- *  than implementing gradual underflow, then you must also #define
- *  Sudden_Underflow.
- * #define YES_ALIAS to permit aliasing certain double values with
- *  arrays of ULongs.  This leads to slightly better code with
- *  some compilers and was always used prior to 19990916, but it
- *  is not strictly legal and can cause trouble with aggressively
- *  optimizing compilers (e.g., gcc 2.95.1 under -O2).
- * #define USE_LOCALE to use the current locale's decimal_point value.
- * #define SET_INEXACT if IEEE arithmetic is being used and extra
- *  computation should be done to set the inexact flag when the
- *  result is inexact and avoid setting inexact when the result
- *  is exact.  In this case, dtoa.c must be compiled in
- *  an environment, perhaps provided by #include "dtoa.c" in a
- *  suitable wrapper, that defines two functions,
- *    int get_inexact(void);
- *    void clear_inexact(void);
- *  such that get_inexact() returns a nonzero value if the
- *  inexact bit is already set, and clear_inexact() sets the
- *  inexact bit to 0.  When SET_INEXACT is #defined, strtod
- *  also does extra computations to set the underflow and overflow
- *  flags when appropriate (i.e., when the result is tiny and
- *  inexact or when it is a numeric value rounded to +-infinity).
- * #define NO_ERRNO if strtod should not assign errno = ERANGE when
- *  the result overflows to +-Infinity or underflows to 0.
- */
+// #define IEEE_8087 for IEEE-arithmetic machines where the least
+//  significant byte has the lowest address.
+// #define IEEE_MC68k for IEEE-arithmetic machines where the most
+//  significant byte has the lowest address.
+// #define int32_t int on machines with 32-bit ints and 64-bit longs.
+// #define IBM for IBM mainframe-style floating-point arithmetic.
+// #define VAX for VAX-style floating-point arithmetic (D_floating).
+// #define No_leftright to omit left-right logic in fast floating-point
+//  computation of dtoa.
+// #define Honor_FLT_ROUNDS if FLT_ROUNDS can assume the values 2 or 3
+//  and strtod and dtoa should round accordingly.
+// #define Check_FLT_ROUNDS if FLT_ROUNDS can assume the values 2 or 3
+//  and Honor_FLT_ROUNDS is not #defined.
+// #define RND_PRODQUOT to use rnd_prod and rnd_quot (assembly routines
+//  that use extended-precision instructions to compute rounded
+//  products and quotients) with IBM.
+// #define ROUND_BIASED for IEEE-format with biased rounding.
+// #define Inaccurate_Divide for IEEE-format with correctly rounded
+//  products but inaccurate quotients, e.g., for Intel i860.
+// #define NO_LONG_LONG on machines that do not have a "long long"
+//  integer type (of >= 64 bits).  On such machines, you can
+//  #define Just_16 to store 16 bits per 32-bit int32_t when doing
+//  high-precision integer arithmetic.  Whether this speeds things
+//  up or slows things down depends on the machine and the number
+//  being converted.  If long long is available and the name is
+//  something other than "long long", #define Llong to be the name,
+//  and if "unsigned Llong" does not work as an unsigned version of
+//  Llong, #define #ULLong to be the corresponding unsigned type.
+// #define KR_headers for old-style C function headers. --- Removed
+// #define Bad_float_h if your system lacks a float.h or if it does not
+//  define some or all of DBL_DIG, DBL_MAX_10_EXP, DBL_MAX_EXP,
+//  FLT_RADIX, FLT_ROUNDS, and DBL_MAX.
+// #define MALLOC your_malloc, where your_malloc(n) acts like malloc(n)
+//  if memory is available and otherwise does something you deem
+//  appropriate.  If MALLOC is undefined, malloc will be invoked
+//  directly -- and assumed always to succeed.
+// #define Omit_Private_Memory to omit logic (added Jan. 1998) for making
+//  memory allocations from a private pool of memory when possible.
+//  When used, the private pool is PRIVATE_MEM bytes long:  2304 bytes,
+//  unless #defined to be a different length.  This default length
+//  suffices to get rid of MALLOC calls except for unusual cases,
+//  such as decimal-to-binary conversion of a very long string of
+//  digits.  The longest string dtoa can return is about 751 bytes
+//  long.  For conversions by strtod of strings of 800 digits and
+//  all dtoa conversions in single-threaded executions with 8-byte
+//  pointers, PRIVATE_MEM >= 7400 appears to suffice; with 4-byte
+//  pointers, PRIVATE_MEM >= 7112 appears adequate.
+// #define INFNAN_CHECK on IEEE systems to cause strtod to check for
+//  Infinity and NaN (case insensitively).  On some systems (e.g.,
+//  some HP systems), it may be necessary to #define NAN_WORD0
+//  appropriately -- to the most significant word of a quiet NaN.
+//  (On HP Series 700/800 machines, -DNAN_WORD0=0x7ff40000 works.)
+//  When INFNAN_CHECK is #defined and No_Hex_NaN is not #defined,
+//  strtod also accepts (case insensitively) strings of the form
+//  NaN(x), where x is a string of hexadecimal digits and spaces;
+//  if there is only one string of hexadecimal digits, it is taken
+//  for the 52 fraction bits of the resulting NaN; if there are two
+//  or more strings of hex digits, the first is for the high 20 bits,
+//  the second and subsequent for the low 32 bits, with intervening
+//  white space ignored; but if this results in none of the 52
+//  fraction bits being on (an IEEE Infinity symbol), then NAN_WORD0
+//  and NAN_WORD1 are used instead.
+// #define MULTIPLE_THREADS if the system offers preemptively scheduled
+//  multiple threads.  In this case, you must provide (or suitably
+// #define) two locks, acquired by ACQUIRE_DTOA_LOCK(n) and freed
+//  by FREE_DTOA_LOCK(n) for n = 0 or 1.  (The second lock, accessed
+//  in pow5mult, ensures lazy evaluation of only one copy of high
+//  powers of 5; omitting this lock would introduce a small
+//  probability of wasting memory, but would otherwise be harmless.)
+//  You must also invoke freedtoa(s) to free the value s returned by
+//  dtoa.  You may do so whether or not MULTIPLE_THREADS is #defined. --- Removed/Fixed
+// #define NO_IEEE_Scale to disable new (Feb. 1997) logic in strtod that
+//  avoids underflows on inputs whose result does not underflow.
+//  If you #define NO_IEEE_Scale on a machine that uses IEEE-format
+//  floating-point numbers and flushes underflows to zero rather
+//  than implementing gradual underflow, then you must also #define
+//  Sudden_Underflow.
+// #define YES_ALIAS to permit aliasing certain double values with
+//  arrays of ULongs.  This leads to slightly better code with
+//  some compilers and was always used prior to 19990916, but it
+//  is not strictly legal and can cause trouble with aggressively
+//  optimizing compilers (e.g., gcc 2.95.1 under -O2).
+// #define USE_LOCALE to use the current locale's decimal_point value.
+// #define SET_INEXACT if IEEE arithmetic is being used and extra
+//  computation should be done to set the inexact flag when the
+//  result is inexact and avoid setting inexact when the result
+//  is exact.  In this case, dtoa.c must be compiled in
+//  an environment, perhaps provided by #include "dtoa.c" in a
+//  suitable wrapper, that defines two functions,
+//    int get_inexact(void);
+//    void clear_inexact(void);
+//  such that get_inexact() returns a nonzero value if the
+//  inexact bit is already set, and clear_inexact() sets the
+//  inexact bit to 0.  When SET_INEXACT is #defined, strtod
+//  also does extra computations to set the underflow and overflow
+//  flags when appropriate (i.e., when the result is tiny and
+//  inexact or when it is a numeric value rounded to +-infinity).
+// #define NO_ERRNO if strtod should not assign errno = ERANGE when
+//  the result overflows to +-Infinity or underflows to 0.
+//
 
 #if defined(FOG_DEBUG)
 #define Bug(x) fog_fail(NULL, "%s", x)
@@ -231,32 +228,24 @@ namespace StringUtil {
 #error "Exactly one of IEEE_8087, IEEE_MC68k, VAX, or IBM should be defined."
 #endif
 
-typedef union { double d; uint32_t L[2]; } U;
+union DTOA_U
+{
+  double d;
+  uint32_t i[2];
+};
 
-#ifdef YES_ALIAS
-#define dval(x) x
 #ifdef IEEE_8087
-#define word0(x) ((uint32_t *)&x)[1]
-#define word1(x) ((uint32_t *)&x)[0]
+#define DTOA_DWORD_0 1
+#define DTOA_DWORD_1 0
 #else
-#define word0(x) ((uint32_t *)&x)[0]
-#define word1(x) ((uint32_t *)&x)[1]
-#endif
-#else
-#ifdef IEEE_8087
-#define word0(x) ((U*)&x)->L[1]
-#define word1(x) ((U*)&x)->L[0]
-#else
-#define word0(x) ((U*)&x)->L[0]
-#define word1(x) ((U*)&x)->L[1]
-#endif
-#define dval(x) ((U*)&x)->d
+#define DTOA_DWORD_0 0
+#define DTOA_DWORD_1 1
 #endif
 
-/* The following definition of Storeinc is appropriate for MIPS processors.
- * An alternative that might be better on some machines is
- * #define Storeinc(a,b,c) (*a++ = b << 16 | c & 0xffff)
- */
+// The following definition of Storeinc is appropriate for MIPS processors.
+// An alternative that might be better on some machines is
+// #define Storeinc(a,b,c) (*a++ = b << 16 | c & 0xffff)
+//
 #if defined(IEEE_8087) + defined(VAX)
 #define Storeinc(a,b,c) (((unsigned short *)a)[1] = (unsigned short)b, \
 ((unsigned short *)a)[0] = (unsigned short)c, a++)
@@ -265,11 +254,11 @@ typedef union { double d; uint32_t L[2]; } U;
 ((unsigned short *)a)[1] = (unsigned short)c, a++)
 #endif
 
-/* #define P DBL_MANT_DIG */
-/* Ten_pmax = floor(P*log(2)/log(5)) */
-/* Bletch = (highest power of 2 < DBL_MAX_10_EXP) / 16 */
-/* Quick_max = floor((P-1)*log(FLT_RADIX)/log(10) - 1) */
-/* Int_max = floor(P*log(FLT_RADIX)/log(10) - 1) */
+// #define P DBL_MANT_DIG
+// Ten_pmax = floor(P*log(2)/log(5))
+// Bletch = (highest power of 2 < DBL_MAX_10_EXP) / 16
+// Quick_max = floor((P-1)*log(FLT_RADIX)/log(10) - 1)
+// Int_max = floor(P*log(FLT_RADIX)/log(10) - 1)
 
 #ifdef IEEE_Arith
 #define Exp_shift  20
@@ -448,7 +437,7 @@ static void BContext_destroy(BContext* context)
         next = bi->next;
         if ((char*)bi < context->memory || (char*)bi >= context->memory + FOG_ARRAY_SIZE(context->memory))
         {
-          Fog::Memory::free((void*)bi);
+          Memory::free((void*)bi);
         }
       }
     }
@@ -477,7 +466,7 @@ static BInt* BContext_balloc(BContext* context, int k)
     }
     else
     {
-      rv = (BInt*)Fog::Memory::xalloc(len);
+      rv = (BInt*)Memory::xalloc(len);
       context->dynamic += len;
     }
     rv->k = k;
@@ -552,9 +541,9 @@ static BInt* BContext_multadd(BContext* context, BInt *b, int m, int a)
   return b;
 }
 
-static int hi0bits(register uint32_t x)
+static int hi0bits(uint32_t x)
 {
-  register int k = 0;
+  int k = 0;
 
   if (!(x & 0xffff0000))
   {
@@ -586,8 +575,8 @@ static int hi0bits(register uint32_t x)
 
 static int lo0bits(uint32_t *y)
 {
-  register int k;
-  register uint32_t x = *y;
+  int k;
+  uint32_t x = *y;
 
   if (x & 7)
   {
@@ -956,12 +945,14 @@ static BInt* BContext_diff(BContext* context, BInt* a, BInt* b)
   return c;
 }
 
-static double ulp(double x)
+static double ulp(double _x)
 {
-  register int32_t L;
-  double a;
+  DTOA_U a, x;
+  int32_t L;
 
-  L = (word0(x) & Exp_mask) - (P-1)*Exp_msk1;
+  x.d = _x;
+
+  L = (x.i[DTOA_DWORD_0] & Exp_mask) - (P-1) * Exp_msk1;
 #ifndef Avoid_Underflow
 #ifndef Sudden_Underflow
   if (L > 0)
@@ -971,8 +962,8 @@ static double ulp(double x)
 #ifdef IBM
     L |= Exp_msk1 >> 4;
 #endif
-    word0(a) = L;
-    word1(a) = 0;
+    a.i[DTOA_DWORD_0] = L;
+    a.i[DTOA_DWORD_1] = 0;
 #ifndef Avoid_Underflow
 #ifndef Sudden_Underflow
   }
@@ -981,31 +972,32 @@ static double ulp(double x)
     L = -L >> Exp_shift;
     if (L < Exp_shift)
     {
-      word0(a) = 0x80000 >> L;
-      word1(a) = 0;
+      a.i[DTOA_DWORD_0] = 0x80000 >> L;
+      a.i[DTOA_DWORD_1] = 0;
     }
     else
     {
-      word0(a) = 0;
       L -= Exp_shift;
-      word1(a) = L >= 31 ? 1 : 1 << 31 - L;
+      a.i[DTOA_DWORD_0] = 0;
+      a.i[DTOA_DWORD_1] = L >= 31 ? 1 : 1 << 31 - L;
     }
   }
 #endif
 #endif
-  return dval(a);
+  return a.d;
 }
 
 static double b2d(BInt *a, int *e)
 {
   uint32_t *xa, *xa0, w, y, z;
   int k;
-  double d;
+  DTOA_U d;
 #ifdef VAX
-  uint32_t d0, d1;
+  uint32_t d0;
+  uint32_t d1;
 #else
-#define d0 word0(d)
-#define d1 word1(d)
+#define d0 d.i[DTOA_DWORD_0]
+#define d1 d.i[DTOA_DWORD_1]
 #endif
 
   xa0 = a->x;
@@ -1019,66 +1011,66 @@ static double b2d(BInt *a, int *e)
 #ifdef Pack_32
   if (k < Ebits)
   {
-    d0 = Exp_1 | (y >> (Ebits - k));
+    d.i[DTOA_DWORD_0] = Exp_1 | (y >> (Ebits - k));
     w = xa > xa0 ? *--xa : 0;
-    d1 = (y << (32-Ebits + k)) | (w >> (Ebits - k));
+    d.i[DTOA_DWORD_1] = (y << (32-Ebits + k)) | (w >> (Ebits - k));
     goto ret_d;
   }
   z = xa > xa0 ? *--xa : 0;
   if (k -= Ebits)
   {
-    d0 = Exp_1 | y << k | (z >> (32 - k));
+    d.i[DTOA_DWORD_0] = Exp_1 | y << k | (z >> (32 - k));
     y = xa > xa0 ? *--xa : 0;
-    d1 = (z << k) | (y >> (32 - k));
+    d.i[DTOA_DWORD_1] = (z << k) | (y >> (32 - k));
   }
   else
   {
-    d0 = Exp_1 | y;
-    d1 = z;
+    d.i[DTOA_DWORD_0] = Exp_1 | y;
+    d.i[DTOA_DWORD_1] = z;
   }
 #else
   if (k < Ebits + 16)
   {
     z = xa > xa0 ? *--xa : 0;
-    d0 = Exp_1 | (y << (k - Ebits)) | (z >> (Ebits + 16 - k));
+    d.i[DTOA_DWORD_0] = Exp_1 | (y << (k - Ebits)) | (z >> (Ebits + 16 - k));
     w = xa > xa0 ? *--xa : 0;
     y = xa > xa0 ? *--xa : 0;
-    d1 = (z << (k + 16 - Ebits)) | (w << (k - Ebits)) | (y >> (16 + Ebits - k));
+    d.i[DTOA_DWORD_1] = (z << (k + 16 - Ebits)) | (w << (k - Ebits)) | (y >> (16 + Ebits - k));
     goto ret_d;
   }
   z = xa > xa0 ? *--xa : 0;
   w = xa > xa0 ? *--xa : 0;
   k -= Ebits + 16;
-  d0 = Exp_1 | (y << (k + 16)) | (z << k) | (w >> (16 - k));
+  d.i[DTOA_DWORD_0] = Exp_1 | (y << (k + 16)) | (z << k) | (w >> (16 - k));
   y = xa > xa0 ? *--xa : 0;
-  d1 = (w << (k + 16)) | (y << k);
+  d.i[DTOA_DWORD_1] = (w << (k + 16)) | (y << k);
 #endif
- ret_d:
+
+ret_d:
 #ifdef VAX
-  word0(d) = (d0 >> 16) | (d0 << 16);
-  word1(d) = (d1 >> 16) | (d1 << 16);
-#else
-#undef d0
-#undef d1
+  d.i[DTOA_DWORD_0] = (d.i[DTOA_DWORD_0] >> 16) | (d.i[DTOA_DWORD_0] << 16);
+  d.i[DTOA_DWORD_1] = (d.i[DTOA_DWORD_1] >> 16) | (d.i[DTOA_DWORD_1] << 16);
 #endif
-  return dval(d);
+
+  return d.d;
 }
 
-static BInt* BContext_d2b(BContext* context, double d, int *e, int *bits)
+static BInt* BContext_d2b(BContext* context, double _d, int *e, int *bits)
 {
+  DTOA_U d;
+  d.d = _d;
+
   BInt *b;
   int de, k;
   uint32_t *x, y, z;
+
 #ifndef Sudden_Underflow
   int i;
 #endif
+
 #ifdef VAX
-  uint32_t d0, d1;
-  d0 = (word0(d) >> 16) | (word0(d) << 16);
-  d1 = (word1(d) >> 16) | (word1(d) << 16);
-#else
-#define d0 word0(d)
-#define d1 word1(d)
+  d.i[DTOA_DWORD_0] = (d.i[DTOA_DWORD_0] >> 16) | (d.i[DTOA_DWORD_0] << 16);
+  d.i[DTOA_DWORD_1] = (d.i[DTOA_DWORD_1] >> 16) | (d.i[DTOA_DWORD_1] << 16);
 #endif
 
 #ifdef Pack_32
@@ -1088,18 +1080,18 @@ static BInt* BContext_d2b(BContext* context, double d, int *e, int *bits)
 #endif
   x = b->x;
 
-  z = d0 & Frac_mask;
-  d0 &= 0x7fffffff;  /* clear sign bit, which we ignore */
+  z = d.i[DTOA_DWORD_0] & Frac_mask;
+  d.i[DTOA_DWORD_0] &= 0x7FFFFFFF;  // clear sign bit, which we ignore.
 #ifdef Sudden_Underflow
-  de = (int)(d0 >> Exp_shift);
+  de = (int)(d.i[DTOA_DWORD_0] >> Exp_shift);
 #ifndef IBM
   z |= Exp_msk11;
 #endif
 #else
-  if ((de = (int)(d0 >> Exp_shift))) z |= Exp_msk1;
+  if ((de = (int)(d.i[DTOA_DWORD_0] >> Exp_shift))) z |= Exp_msk1;
 #endif
 #ifdef Pack_32
-  if ((y = d1))
+  if ((y = d.i[DTOA_DWORD_1]))
   {
     if ((k = lo0bits(&y)))
     {
@@ -1127,7 +1119,7 @@ static BInt* BContext_d2b(BContext* context, double d, int *e, int *bits)
     k += 32;
   }
 #else
-  if (y = d1)
+  if (y = d.i[DTOA_DWORD_1])
   {
     if (k = lo0bits(&y))
     {
@@ -1184,7 +1176,7 @@ static BInt* BContext_d2b(BContext* context, double d, int *e, int *bits)
 #endif
 #ifdef IBM
     *e = (de - Bias - (P-1) << 2) + k;
-    *bits = 4*P + 8 - k - hi0bits(word0(d) & Frac_mask);
+    *bits = 4*P + 8 - k - hi0bits(d.i[DTOA_DWORD_0] & Frac_mask);
 #else
     *e = de - Bias - (P-1) + k;
     *bits = P - k;
@@ -1201,18 +1193,19 @@ static BInt* BContext_d2b(BContext* context, double d, int *e, int *bits)
 #endif
   }
 #endif
+
   return b;
 }
-#undef d0
-#undef d1
 
+// znacka
 static double ratio(BInt *a, BInt *b)
 {
-  double da, db;
+  DTOA_U da, db;
   int k, ka, kb;
 
-  dval(da) = b2d(a, &ka);
-  dval(db) = b2d(b, &kb);
+  da.d = b2d(a, &ka);
+  db.d = b2d(b, &kb);
+
 #ifdef Pack_32
   k = ka - kb + 32*(a->wds - b->wds);
 #else
@@ -1221,25 +1214,27 @@ static double ratio(BInt *a, BInt *b)
 #ifdef IBM
   if (k > 0)
   {
-    word0(da) += (k >> 2)*Exp_msk1;
-    if (k &= 3) dval(da) *= 1 << k;
+    da.L[DTOA_DWORD_0] += (k >> 2) * Exp_msk1;
+    if (k &= 3) da.d *= 1 << k;
   }
   else
   {
     k = -k;
-    word0(db) += (k >> 2)*Exp_msk1;
-    if (k &= 3) dval(db) *= 1 << k;
+    db.L[DTOA_DWORD_0] += (k >> 2) * Exp_msk1;
+    if (k &= 3) db.d *= 1 << k;
   }
 #else
   if (k > 0)
-    word0(da) += k*Exp_msk1;
+  {
+    da.i[DTOA_DWORD_0] += k * Exp_msk1;
+  }
   else
   {
     k = -k;
-    word0(db) += k*Exp_msk1;
+    db.i[DTOA_DWORD_0] += k * Exp_msk1;
   }
 #endif
-  return dval(da) / dval(db);
+  return da.d / db.d;
 }
 
 static const double tens[] =
@@ -1454,7 +1449,7 @@ static int quorem(BInt *b, BInt *S)
  *     something like 10^(k-15) that we must resort to the int32_t
  *     calculation.
  */
-void dtoa(double d, int mode, int ndigits, NTOAOut* out)
+void dtoa(double _d, int mode, int ndigits, NTOAOut* out)
 {
   FOG_CONTROL87_BEGIN();
 
@@ -1495,50 +1490,58 @@ void dtoa(double d, int mode, int ndigits, NTOAOut* out)
 
   BContext context;
 
+  DTOA_U d;
+  DTOA_U d2, ds, eps;
+
+  BInt *b, *b1, *delta, *mlo, *mhi, *S;
+  char *s, *s0;
+
   int negative = 0;
 
   int bbits, b2, b5, be, dig, i, ieps, ilim, ilim0, ilim1,
     j, j1, k, k0, k_check, leftright, m2, m5, s2, s5,
     spec_case, try_quick;
   int32_t L;
+
 #ifndef Sudden_Underflow
   int denorm;
   uint32_t x;
-#endif
-  BInt *b, *b1, *delta, *mlo, *mhi, *S;
-  double d2, ds, eps;
-  char *s, *s0;
+#endif // Sudden_Underflow
+
 #ifdef Honor_FLT_ROUNDS
   int rounding;
-#endif
+#endif // Honor_FLT_ROUNDS
+
 #ifdef SET_INEXACT
   int inexact, oldinexact;
-#endif
+#endif // SET_INEXACT
+
+  d.d = _d;
 
   out->result = out->buffer;
   s = s0 = (char*)out->buffer;
 
-  if (word0(d) & Sign_bit)
+  if (d.i[DTOA_DWORD_0] & Sign_bit)
   {
     /* set sign for everything, including 0's and NaNs */
     negative = 1;
-    word0(d) &= ~Sign_bit;  /* clear sign bit */
+    d.i[DTOA_DWORD_0] &= ~Sign_bit;  /* clear sign bit */
   }
 
 #if defined(IEEE_Arith) + defined(VAX)
 #ifdef IEEE_Arith
-  if ((word0(d) & Exp_mask) == Exp_mask)
+  if ((d.i[DTOA_DWORD_0] & Exp_mask) == Exp_mask)
 #else
-  if (word0(d) == 0x8000)
+  if (d.i[DTOA_DWORD_0] == 0x00008000)
 #endif
   {
     FOG_CONTROL87_END();
 
-    /* Infinity or NaN */
+    // Infinity or NaN
     out->decpt = 9999;
     out->negative = negative;
 #ifdef IEEE_Arith
-    if (!word1(d) && !(word0(d) & 0xfffff))
+    if (d.i[DTOA_DWORD_1] == 0 && (d.i[DTOA_DWORD_0] & 0x000FFFFF) == 0)
     {
       memcpy(s, "Infinity", 8);
       out->length = 8;
@@ -1554,9 +1557,10 @@ void dtoa(double d, int mode, int ndigits, NTOAOut* out)
 #endif
 
 #ifdef IBM
-  dval(d) += 0; /* normalize */
+  d.d += 0; /* normalize */
 #endif
-  if (!dval(d))
+
+  if (!d.d)
   {
     FOG_CONTROL87_END();
 
@@ -1584,41 +1588,40 @@ void dtoa(double d, int mode, int ndigits, NTOAOut* out)
   }
 #endif
 
-  b = BContext_d2b(&context, dval(d), &be, &bbits);
+  b = BContext_d2b(&context, d.d, &be, &bbits);
 #ifdef Sudden_Underflow
-  i = (int)(word0(d) >> Exp_shift1 & (Exp_mask>>Exp_shift1));
+  i = (int)(d.i[DTOA_DWORD_0] >> Exp_shift1 & (Exp_mask>>Exp_shift1));
 #else
-  if ((i = (int)(word0(d) >> Exp_shift1 & (Exp_mask>>Exp_shift1))))
+  if ((i = (int)(d.i[DTOA_DWORD_0] >> Exp_shift1 & (Exp_mask>>Exp_shift1))))
   {
 #endif
-    dval(d2) = dval(d);
-    word0(d2) &= Frac_mask1;
-    word0(d2) |= Exp_11;
+    d2.d = d.d;
+    d2.i[DTOA_DWORD_0] &= Frac_mask1;
+    d2.i[DTOA_DWORD_0] |= Exp_11;
 #ifdef IBM
-    if (j = 11 - hi0bits(word0(d2) & Frac_mask)) dval(d2) /= 1 << j;
+    if (j = 11 - hi0bits(d2.i[DTOA_DWORD_0] & Frac_mask)) d2.d /= 1 << j;
 #endif
 
-    /* log(x)  ~=~ log(1.5) + (x-1.5)/1.5
-     * log10(x)   =  log(x) / log(10)
-     *    ~=~ log(1.5)/log(10) + (x-1.5)/(1.5*log(10))
-     * log10(d) = (i-Bias)*log(2)/log(10) + log10(d2)
-     *
-     * This suggests computing an approximation k to log10(d) by
-     *
-     * k = (i - Bias)*0.301029995663981
-     *  + ( (d2-1.5)*0.289529654602168 + 0.176091259055681 );
-     *
-     * We want k to be too large rather than too small.
-     * The error in the first-order Taylor series approximation
-     * is in our favor, so we just round up the constant enough
-     * to compensate for any error in the multiplication of
-     * (i - Bias) by 0.301029995663981; since |i - Bias| <= 1077,
-     * and 1077 * 0.30103 * 2^-52 ~=~ 7.2e-14,
-     * adding 1e-13 to the constant term more than suffices.
-     * Hence we adjust the constant term to 0.1760912590558.
-     * (We could get a more accurate k by invoking log10,
-     *  but this is probably not worthwhile.)
-     */
+    // log(x)  ~=~ log(1.5) + (x-1.5)/1.5
+    // log10(x)   =  log(x) / log(10)
+    //    ~=~ log(1.5)/log(10) + (x-1.5)/(1.5*log(10))
+    // log10(d) = (i-Bias)*log(2)/log(10) + log10(d2)
+    //
+    // This suggests computing an approximation k to log10(d) by
+    //
+    // k = (i - Bias)*0.301029995663981
+    //  + ( (d2-1.5)*0.289529654602168 + 0.176091259055681 );
+    //
+    // We want k to be too large rather than too small.
+    // The error in the first-order Taylor series approximation
+    // is in our favor, so we just round up the constant enough
+    // to compensate for any error in the multiplication of
+    // (i - Bias) by 0.301029995663981; since |i - Bias| <= 1077,
+    // and 1077 * 0.30103 * 2^-52 ~=~ 7.2e-14,
+    // adding 1e-13 to the constant term more than suffices.
+    // Hence we adjust the constant term to 0.1760912590558.
+    // (We could get a more accurate k by invoking log10,
+    // but this is probably not worthwhile.)
 
     i -= Bias;
 #ifdef IBM
@@ -1630,26 +1633,26 @@ void dtoa(double d, int mode, int ndigits, NTOAOut* out)
   }
   else
   {
-    /* d is denormalized */
+    // d is denormalized
 
     i = bbits + be + (Bias + (P-1) - 1);
     x = (i > 32)
-      ? word0(d) << (64 - i) | (word1(d) >> (i - 32))
-      : word1(d) << (32 - i);
-    dval(d2) = x;
-    word0(d2) -= 31*Exp_msk1; /* adjust exponent */
+      ? (d.i[DTOA_DWORD_0] << (64 - i)) | (d.i[DTOA_DWORD_0] >> (i - 32))
+      : (d.i[DTOA_DWORD_1] << (32 - i));
+    d2.d = x;
+    d2.i[DTOA_DWORD_0] -= 31 * Exp_msk1; // adjust exponent
     i -= (Bias + (P-1) - 1) + 1;
     denorm = 1;
   }
 #endif
-  ds = (dval(d2)-1.5)*0.289529654602168 + 0.1760912590558 + i*0.301029995663981;
-  k = (int)ds;
-  if (ds < 0. && ds != k)
-    k--;  /* want k = floor(ds) */
+  ds.d = (d2.d - 1.5) * 0.289529654602168 + 0.1760912590558 + i * 0.301029995663981;
+  k = (int)ds.d;
+  if (ds.d < 0. && ds.d != k)
+    k--; // want k = floor(ds.d)
   k_check = 1;
   if (k >= 0 && k <= Ten_pmax)
   {
-    if (dval(d) < tens[k]) k--;
+    if (d.d < tens[k]) k--;
     k_check = 0;
   }
   j = bbits - i - 1;
@@ -1725,22 +1728,21 @@ void dtoa(double d, int mode, int ndigits, NTOAOut* out)
 
   if (ilim >= 0 && ilim <= Quick_max && try_quick)
   {
-    /* Try to get by with floating-point arithmetic. */
-
+    // Try to get by with floating-point arithmetic.
     i = 0;
-    dval(d2) = dval(d);
+    d2.d = d.d;
     k0 = k;
     ilim0 = ilim;
     ieps = 2; /* conservative */
     if (k > 0)
     {
-      ds = tens[k&0xf];
+      ds.d = tens[k&0xf];
       j = k >> 4;
       if (j & Bletch)
       {
         /* prevent overflows */
         j &= Bletch - 1;
-        dval(d) /= bigtens[n_bigtens-1];
+        d.d /= bigtens[n_bigtens-1];
         ieps++;
       }
       for (; j; j >>= 1, i++)
@@ -1748,42 +1750,42 @@ void dtoa(double d, int mode, int ndigits, NTOAOut* out)
         if (j & 1)
         {
           ieps++;
-          ds *= bigtens[i];
+          ds.d *= bigtens[i];
         }
       }
-      dval(d) /= ds;
+      d.d /= ds.d;
     }
     else if ((j1 = -k))
     {
-      dval(d) *= tens[j1 & 0xf];
+      d.d *= tens[j1 & 0xf];
       for (j = j1 >> 4; j; j >>= 1, i++)
       {
         if (j & 1)
         {
           ieps++;
-          dval(d) *= bigtens[i];
+          d.d *= bigtens[i];
         }
       }
     }
 
-    if (k_check && dval(d) < 1. && ilim > 0)
+    if (k_check && d.d < 1. && ilim > 0)
     {
       if (ilim1 <= 0) goto fast_failed;
       ilim = ilim1;
       k--;
-      dval(d) *= 10.0;
+      d.d *= 10.0;
       ieps++;
     }
 
-    dval(eps) = ieps*dval(d) + 7.;
-    word0(eps) -= (P-1)*Exp_msk1;
+    eps.d = ieps * d.d + 7.;
+    eps.i[DTOA_DWORD_0] -= (P-1) * Exp_msk1;
     if (ilim == 0)
     {
       S = mhi = 0;
-      dval(d) -= 5.;
-      if (dval(d) > dval(eps))
+      d.d -= 5.;
+      if (d.d > eps.d)
         goto one_digit;
-      if (dval(d) < -dval(eps))
+      if (d.d < -eps.d)
         goto no_digits;
       goto fast_failed;
     }
@@ -1793,39 +1795,39 @@ void dtoa(double d, int mode, int ndigits, NTOAOut* out)
       /* Use Steele & White method of only
        * generating digits needed.
        */
-      dval(eps) = 0.5/tens[ilim-1] - dval(eps);
+      eps.d = 0.5/tens[ilim-1] - eps.d;
       for(i = 0;;)
       {
-        L = (int32_t)dval(d);
-        dval(d) -= L;
+        L = (int32_t)d.d;
+        d.d -= L;
         *s++ = '0' + (int)L;
-        if (dval(d) < dval(eps))
+        if (d.d < eps.d)
           goto ret1;
-        if (1. - dval(d) < dval(eps))
+        if (1. - d.d < eps.d)
           goto bump_up;
         if (++i >= ilim)
           break;
-        dval(eps) *= 10.;
-        dval(d) *= 10.;
+        eps.d *= 10.;
+        d.d *= 10.;
       }
     }
     else
     {
 #endif
       /* Generate ilim digits, then fix them up. */
-      dval(eps) *= tens[ilim-1];
-      for(i = 1;; i++, dval(d) *= 10.)
+      eps.d *= tens[ilim-1];
+      for(i = 1;; i++, d.d *= 10.)
       {
-        L = (int32_t)(dval(d));
-        if (!(dval(d) -= L)) ilim = i;
+        L = (int32_t)(d.d);
+        if (!(d.d -= L)) ilim = i;
         *s++ = '0' + (int)L;
         if (i == ilim)
         {
-          if (dval(d) > 0.5 + dval(eps))
+          if (d.d > 0.5 + eps.d)
           {
             goto bump_up;
           }
-          else if (dval(d) < 0.5 - dval(eps))
+          else if (d.d < 0.5 - eps.d)
           {
             while(*--s == '0');
             s++;
@@ -1839,38 +1841,37 @@ void dtoa(double d, int mode, int ndigits, NTOAOut* out)
 #endif
 fast_failed:
     s = s0;
-    dval(d) = dval(d2);
+    d.d = d2.d;
     k = k0;
     ilim = ilim0;
   }
 
-  /* Do we have a "small" integer? */
-
+  // Do we have a "small" integer?
   if (be >= 0 && k <= Int_max)
   {
-    /* Yes. */
-    ds = tens[k];
+    // Yes.
+    ds.d = tens[k];
     if (ndigits < 0 && ilim <= 0)
     {
       S = mhi = 0;
-      if (ilim < 0 || dval(d) <= 5*ds)
+      if (ilim < 0 || d.d <= 5*ds.d)
         goto no_digits;
       goto one_digit;
     }
-    for(i = 1;; i++, dval(d) *= 10.)
+    for(i = 1;; i++, d.d *= 10.)
     {
-      L = (int32_t)(dval(d) / ds);
-      dval(d) -= L*ds;
+      L = (int32_t)(d.d / ds.d);
+      d.d -= L * ds.d;
 #ifdef Check_FLT_ROUNDS
       /* If FLT_ROUNDS == 2, L will usually be high by 1 */
-      if (dval(d) < 0)
+      if (d.d < 0)
       {
         L--;
-        dval(d) += ds;
+        d.d += ds.d;
       }
 #endif
       *s++ = '0' + (int)L;
-      if (!dval(d))
+      if (!d.d)
       {
 #ifdef SET_INEXACT
         inexact = 0;
@@ -1887,8 +1888,8 @@ fast_failed:
           case 2: goto bump_up;
         }
 #endif
-        dval(d) += dval(d);
-        if (dval(d) > ds || dval(d) == ds && L & 1)
+        d.d += d.d;
+        if (d.d > ds.d || d.d == ds.d && L & 1)
         {
 bump_up:
           while(*--s == '9')
@@ -1953,7 +1954,7 @@ bump_up:
   S = BContext_i2b(&context, 1);
   if (s5 > 0) S = BContext_pow5mult(&context, S, s5);
 
-  /* Check for special case that d is a normalized power of 2. */
+  // Check for special case that d is a normalized power of 2.
 
   spec_case = 0;
   if ((mode < 2 || leftright)
@@ -1962,26 +1963,25 @@ bump_up:
 #endif
     )
   {
-    if (!word1(d) && !(word0(d) & Bndry_mask)
+    if (!d.i[DTOA_DWORD_1] && !(d.i[DTOA_DWORD_0] & Bndry_mask)
 #ifndef Sudden_Underflow
-     && word0(d) & (Exp_mask & ~Exp_msk1)
+     && d.i[DTOA_DWORD_0] & (Exp_mask & ~Exp_msk1)
 #endif
       )
     {
-      /* The special case */
+      // The special case.
       b2 += Log2P;
       s2 += Log2P;
       spec_case = 1;
     }
   }
 
-  /* Arrange for convenient computation of quotients:
-   * shift left if necessary so divisor has 4 leading 0 bits.
-   *
-   * Perhaps we should just compute leading 28 bits of S once
-   * and for all and pass them and a shift to quorem, so it
-   * can do shifts and ors to compute the numerator for q.
-   */
+  // Arrange for convenient computation of quotients:
+  // shift left if necessary so divisor has 4 leading 0 bits.
+  //
+  // Perhaps we should just compute leading 28 bits of S once
+  // and for all and pass them and a shift to quorem, so it
+  // can do shifts and ors to compute the numerator for q.
 #ifdef Pack_32
   if ((i = ((s5 ? 32 - hi0bits(S->x[S->wds-1]) : 1) + s2) & 0x1f))
     i = 32 - i;
@@ -2059,7 +2059,7 @@ one_digit:
       j1 = delta->sign ? 1 : cmp(b, delta);
       BContext_bfree(&context, delta);
 #ifndef ROUND_BIASED
-      if (j1 == 0 && mode != 1 && !(word1(d) & 1)
+      if (j1 == 0 && mode != 1 && !(d.i[DTOA_DWORD_1] & 1)
 #ifdef Honor_FLT_ROUNDS
         && rounding >= 1
 #endif
@@ -2079,7 +2079,7 @@ one_digit:
 #endif
       if (j < 0 || j == 0 && mode != 1
 #ifndef ROUND_BIASED
-        && !(word1(d) & 1)
+        && !(d.i[DTOA_DWORD_1] & 1)
 #endif
         )
       {
@@ -2198,9 +2198,9 @@ ret:
   {
     if (!oldinexact)
     {
-      word0(d) = Exp_1 + (70 << Exp_shift);
-      word1(d) = 0;
-      dval(d) += 1.0;
+      d.i[DTOA_DWORD_0] = Exp_1 + (70 << Exp_shift);
+      d.i[DTOA_DWORD_1] = 0;
+      d.d += 1.0;
     }
   }
   else if (!oldinexact)
