@@ -1333,6 +1333,10 @@ void PainterEngine_Raster::WorkerTask::run()
 
         if (clc && AtomicOperation<Calculation*>::cmpXchg(pclc, clc, NULL))
         {
+#if defined(FOG_DEBUG_RASTER_COMMANDS)
+          fog_debug("Fog::Painter[Worker #%d]::run() - calculation %d (%p)", ctx.id, (int)currentCalculation, clc);
+#endif // FOG_DEBUG_RASTER_COMMANDS
+
           // If we are here, we won a battle with other threads
           // and Calculation* is ours.
           Command* cmd = clc->relatedTo;
@@ -1392,6 +1396,7 @@ void PainterEngine_Raster::WorkerTask::run()
           case Command::Skip:
           {
             currentCommand++;
+            if (cmd->refCount.deref()) cmd->release();
             cont = 0;
             break;
           }

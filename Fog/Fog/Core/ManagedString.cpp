@@ -43,10 +43,6 @@ struct FOG_HIDDEN ManagedString32Local
 
   FOG_INLINE ~ManagedString32Local()
   {
-    // If this assert will raise an error, there is memory leak. This is
-    // strict condition, but correct.
-    FOG_ASSERT(_length == 0);
-
     {
       Hash<String32, Cache*>::ConstIterator it(_hash);
       for (it.toStart(); it.isValid(); it.toNext())
@@ -179,7 +175,7 @@ struct FOG_HIDDEN ManagedString32Local
 
   FOG_INLINE void remove(Node* n)
   {
-    FOG_ASSERT(n != _null);
+    FOG_ASSERT(n != &_null);
 
     AutoLock locked(_lock);
 

@@ -130,7 +130,7 @@ EventLoop::EventLoop(EventPump* pump) :
   _nextSequenceNum(0)
 {
   // "should only have one event loop per thread"
-  FOG_ASSERT(!current());
+  FOG_ASSERT(!getCurrent());
   fog_eventloop_tls.set(this);
 
   if (!pump) pump = new EventPumpDefault();
@@ -139,7 +139,7 @@ EventLoop::EventLoop(EventPump* pump) :
 
 EventLoop::~EventLoop()
 {
-  FOG_ASSERT(this == current());
+  FOG_ASSERT(this == getCurrent());
 
   // Let interested parties have one last shot at accessing this.
   FOR_EACH_OBSERVER(DestructionObserver, _destructionObservers,
@@ -172,13 +172,13 @@ EventLoop::~EventLoop()
 
 void EventLoop::addDestructionObserver(DestructionObserver *obs)
 {
-  FOG_ASSERT(this == current());
+  FOG_ASSERT(this == getCurrent());
   _destructionObservers.addObserver(obs);
 }
 
 void EventLoop::removeDestructionObserver(DestructionObserver *obs)
 {
-  FOG_ASSERT(this == current());
+  FOG_ASSERT(this == getCurrent());
   _destructionObservers.removeObserver(obs);
 }
 
@@ -225,7 +225,7 @@ void EventLoop::runHandler()
 
 void EventLoop::runInternal()
 {
-  FOG_ASSERT(this == current());
+  FOG_ASSERT(this == getCurrent());
 
 #if defined(FOG_OS_WINDOWS)
   if (_state->dispatcher)
@@ -262,7 +262,7 @@ bool EventLoop::processNextDelayedNonNestableTask()
 
 void EventLoop::quit()
 {
-  FOG_ASSERT(current() == this);
+  FOG_ASSERT(getCurrent() == this);
 
   if (_state)
   {

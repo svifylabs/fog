@@ -208,6 +208,7 @@ void MyWindow::onPaint(PaintEvent* e)
 
 void MyWindow::onTimer(TimerEvent* e)
 {
+  //for (;;) {}
   //repaint(RepaintWidget);
 }
 

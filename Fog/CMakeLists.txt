@@ -111,11 +111,11 @@ EndIf(NOT FOG_HAVE_STDINT_H)
 
 If(UNIX)
   If(NOT FOG_HAVE_UNISTD_H)
-  Check_Include_Files(unistd.h FOG_HAVE_UNISTD_H)
+    Check_Include_Files(unistd.h FOG_HAVE_UNISTD_H)
   EndIf(NOT FOG_HAVE_UNISTD_H)
   
   If(NOT FOG_HAVE_FENV_H)
-  Check_Include_Files(fenv.h FOG_HAVE_FENV_H)
+    Check_Include_Files(fenv.h FOG_HAVE_FENV_H)
   EndIf(NOT FOG_HAVE_FENV_H)
 EndIf(UNIX)
 

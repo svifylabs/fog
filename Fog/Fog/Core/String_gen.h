@@ -308,7 +308,7 @@ struct FOG_API __G_STRING
 
   FOG_INLINE __G_CHAR at(sysuint_t index) const
   {
-    FOG_ASSERT_X(index < length(),
+    FOG_ASSERT_X(index < getLength(),
       __G_STRING_NAME "::at() - Index out of range.");
 
     return _d->data[index];

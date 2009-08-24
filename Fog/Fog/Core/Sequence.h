@@ -383,20 +383,20 @@ struct Sequence
 
   FOG_INLINE const T& cAt(sysuint_t index) const
   {
-    FOG_ASSERT_X(index < length(), "Fog::Sequence<T>::cAt() - Index out of range.");
+    FOG_ASSERT_X(index < getLength(), "Fog::Sequence<T>::cAt() - Index out of range.");
     return _d->data[_d->startIndex + index];
   }
 
   FOG_INLINE T& mAt(sysuint_t index)
   {
-    FOG_ASSERT_X(index < length(), "Fog::Sequence<T>::mAt() - Index out of range.");
+    FOG_ASSERT_X(index < getLength(), "Fog::Sequence<T>::mAt() - Index out of range.");
     detach();
     return _d->data[_d->startIndex + index];
   }
 
   FOG_INLINE T& xAt(sysuint_t index)
   {
-    FOG_ASSERT_X(index < length(), "Fog::Sequence<T>::xAt() - Index out of range.");
+    FOG_ASSERT_X(index < getLength(), "Fog::Sequence<T>::xAt() - Index out of range.");
     FOG_ASSERT_X(isDetached(), "Fog::Sequence<T>::xAt() - Non detached data.");
     return _d->data[_d->startIndex + index];
   }

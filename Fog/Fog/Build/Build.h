@@ -840,6 +840,11 @@ struct fog_if<false, _Then, _Else> { typedef _Else ret; };
 # include <emmintrin.h>
 #endif // FOG_HARDCODE_SSE2
 
+// Defined also in Fog/Core/Application.h. It's defined here to prevent
+// compilation errors when using FOG_CORE_MAIN() or FOG_UI_MAIN() and
+// this header file is not included.
+FOG_API void fog_application_initArguments(int argc, char* argv[]);
+
 //! Usage:
 //!
 //! FOG_UI_MAIN()
@@ -848,9 +853,20 @@ struct fog_if<false, _Then, _Else> { typedef _Else ret; };
 //!   return Fog::ExitSuccess;
 //! }
 #if defined(FOG_OS_WINDOWS)
-# define FOG_UI_MAIN() int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+#define FOG_UI_MAIN() \
+int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 #else
-# define FOG_UI_MAIN() int main(int argc, char* argv[])
+#define FOG_UI_MAIN() \
+static int _fog_main(int argc, char* argv[]); \
+\
+int main(int argc, char* argv[]) \
+{ \
+  fog_application_initArguments(argc, argv); \
+  \
+  return _fog_main(argc, argv); \
+} \
+\
+static int _fog_main(int argc, char* argv[])
 #endif
 
 // [Guard]
