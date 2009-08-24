@@ -64,7 +64,7 @@ MyWindow::MyWindow(uint32_t createFlags) :
   //button1.show();
   //add(&button1);
 
-  timer.setInterval(TimeDelta::fromMilliseconds(5));
+  timer.setInterval(TimeDelta::fromMilliseconds(1000));
   timer.addListener(EvTimer, this, &MyWindow::onTimer);
   timer.start();
 
@@ -160,7 +160,6 @@ void MyWindow::onPaint(PaintEvent* e)
 
   {
     SvgContext ctx(p);
-    //p->scale(s, s);
 
     //p->translate(180.0, 145.0);
     //p->scale(w/550.0, h/510.0);

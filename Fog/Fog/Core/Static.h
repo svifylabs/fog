@@ -58,27 +58,29 @@ public:
   FOG_INLINE void initCustom1(C1 t) { new ((void*)_storage) Type(t); }
 
   //! @brief Deinitializer (calls placement @c delete operator).
-  FOG_INLINE void destroy() { ((Type*)(_storage))->~Type(); }
+  FOG_INLINE void destroy() { getStorage()->~Type(); }
 
   //! @brief Returns instance of @c Type.
-  FOG_INLINE Type& instance() { return *((Type*)(_storage)); }
+  FOG_INLINE Type& instance() { return *getStorage(); }
   //! @brief Returns const instance of @c Type.
-  FOG_INLINE const Type& instance() const { return *((Type*)(_storage)); }
+  FOG_INLINE const Type& instance() const { return *getStorage(); }
 
   //! @brief Returns pointer to instance of @c Type.
-  FOG_INLINE Type* instancep() { return ((Type*)(_storage)); }
+  FOG_INLINE Type* instancep() { return getStorage(); }
   //! @brief Returns const pointer to instance of @c Type.
-  FOG_INLINE const Type* instancep() const { return ((Type*)(_storage)); }
+  FOG_INLINE const Type* instancep() const { return getStorage(); }
 
   //! @brief Overriden Type* operator.
-  FOG_INLINE operator Type*() { return instancep(); }
+  FOG_INLINE operator Type*() { return getStorage(); }
   //! @brief Overriden const Type* operator.
-  FOG_INLINE operator const Type*() const { return instancep(); }
+  FOG_INLINE operator const Type*() const { return getStorage(); }
 
   //! @brief Overriden -> operator.
-  FOG_INLINE Type* operator->() { return ((Type*)(_storage)); }
+  FOG_INLINE Type* operator->() { return getStorage(); }
   //! @brief Overriden const -> operator.
-  FOG_INLINE Type const* operator->() const { return ((Type const*)(_storage)); }
+  FOG_INLINE Type const* operator->() const { return getStorage(); }
+
+  FOG_INLINE Type* getStorage() const { return reinterpret_cast<Type*>((void*)(_storage)); }
 
 private:
   //! @brief Stack based storage.
