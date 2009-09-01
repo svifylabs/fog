@@ -528,7 +528,7 @@
 // ============================================================================
 
 #if defined(FOG_OS_WINDOWS)
-# define _WIN32_WINNT 0x400 // We need WinXP, 2000 or NT
+# define _WIN32_WINNT 0x500 // We need Win2000/XP+
 # include <windows.h>
 #endif
 
