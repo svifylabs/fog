@@ -148,10 +148,15 @@ FOG_INIT_DECLARE err_t fog_raster_init(void)
   }
 
   // [Install MMX optimized code if supported]
+  //
+  // Install it only if x86 architecture is used. In 64-bit mode the SSE2
+  // implementation is always better.
+#if defined(FOG_ARCH_X86)
   if (cpuInfo->hasFeature(CpuInfo::Feature_MMX))
   {
     fog_raster_init_mmx();
   }
+#endif // FOG_ARCH_X86
 
   // [Install SSE2 optimized code if supported]
   if (cpuInfo->hasFeature(CpuInfo::Feature_SSE2))
