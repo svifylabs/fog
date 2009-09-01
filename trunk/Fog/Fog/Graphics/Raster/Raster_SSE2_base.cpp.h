@@ -6,7 +6,6 @@
 // For some IDEs to enable code-assist.
 #include <Fog/Build/Build.h>
 #if defined(FOG_IDE)
-#define FOG_RASTER_INCLUDING
 #include <Fog/Graphics/Raster/Raster_C.h>
 #endif // FOG_IDE
 
