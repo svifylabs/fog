@@ -32,6 +32,7 @@
 #include <Fog/Graphics/ImageIO/ImageIO_JPEG.h>
 #include <Fog/Graphics/ImageIO/ImageIO_PCX.h>
 #include <Fog/Graphics/ImageIO/ImageIO_PNG.h>
+#include <Fog/Graphics/ImageIO/ImageIO_ICO.h>
 
 // [Provider Ininializers]
 FOG_CAPI_EXTERN void fog_imageio_bmp_init(void);
@@ -48,6 +49,9 @@ FOG_CAPI_EXTERN void fog_imageio_png_shutdown(void);
 
 FOG_CAPI_EXTERN void fog_imageio_jpeg_init(void);
 FOG_CAPI_EXTERN void fog_imageio_jpeg_shutdown(void);
+
+FOG_CAPI_EXTERN void fog_imageio_ico_init(void);
+FOG_CAPI_EXTERN void fog_imageio_ico_shutdown(void);
 
 namespace Fog {
 
@@ -443,6 +447,7 @@ FOG_INIT_DECLARE err_t fog_imageio_init(void)
   fog_imageio_gif_init();
   fog_imageio_png_init();
   fog_imageio_jpeg_init();
+  fog_imageio_ico_init();
 
   return Error::Ok;
 }
@@ -459,6 +464,7 @@ FOG_INIT_DECLARE void fog_imageio_shutdown(void)
   // Remove (and delete) all providers
   for (it.toStart(); it.isValid(); it.toNext()) delete it.value();
 
+  fog_imageio_ico_shutdown();
   fog_imageio_jpeg_shutdown();
   fog_imageio_png_shutdown();
   fog_imageio_gif_shutdown();
