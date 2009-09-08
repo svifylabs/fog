@@ -288,6 +288,20 @@ struct IcoStreamReadDevice: public StreamDevice
     virtual void close() {}
 };
 
+#include <Fog/Core/Pack.h>
+
+struct FOG_PACKED IcoDecoderReadStruct
+{
+  BmpFileHeader bmpFileHeader;
+  union
+  {
+    uint8_t pngTest[8];
+    BmpV3Header bitmapHeader;
+  };
+};
+
+#include <Fog/Core/Unpack.h>
+
 uint32_t IcoDecoderDevice::readImage(Image& image)
 {
    if (readHeader() != Error::Ok)
@@ -297,7 +311,7 @@ uint32_t IcoDecoderDevice::readImage(Image& image)
    
    if (_actualFrame == _framesCount || !_framesInfo)
    {
-     // TODO: return some nicer error code here
+     // TODO: return some nicer error code here, like ImageIO_NoMoreFrames
      return Error::ImageIO_NotAnimationFormat;
    }
    
@@ -353,26 +367,23 @@ uint32_t IcoDecoderDevice::readImage(Image& image)
    {
      static const uint8_t pngMagic[8] = { 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a };
      
-     union
-     {
-       uint8_t pngTest[8];
-       BmpV3Header bitmapHeader;
-     };
+     uint32_t entryWidth = entry->width;
+     uint32_t entryHeight = entry->height;
      
-     if (strm.read(pngTest, 8) != 8)
+     if (entryWidth == 0) entryWidth = 256;
+     if (entryHeight == 0) entryHeight = 256;
+        
+     IcoDecoderReadStruct readStruct;
+     
+     if (strm.read(readStruct.pngTest, 8) != 8)
      {
-       // problem here :-(
-       return 9664; // TODO: return some nice error code here
+       return Error::ImageIO_Truncated;
      }
      
      _currentOffset += 8;
      
-     if (Memory::eq8B(pngMagic, pngTest))
+     if (Memory::eq8B(pngMagic, readStruct.pngTest))
      {
-       // it could be PNG, use PNG decoder to read this
-       // unfortunately we get libpng depency here for ico loader :-(
-       // ? Write non-libpng based decoder ?
-       
        // Find png provider
        
        Provider* pngProvider = getProviderByExtension(Ascii8("png"));
@@ -393,7 +404,7 @@ uint32_t IcoDecoderDevice::readImage(Image& image)
        
        // create stream wrapper so that PNG decoder
        // will get png header too (_ugly hack_)
-       IcoStreamReadDevice *readDevice = new IcoStreamReadDevice(pngTest, 8, strm);
+       IcoStreamReadDevice *readDevice = new IcoStreamReadDevice(readStruct.pngTest, 8, strm);
        Stream pngStream(readDevice->ref());
        pngDecoder->attachStream(pngStream);
        // decode PNG
@@ -407,27 +418,96 @@ uint32_t IcoDecoderDevice::readImage(Image& image)
      }
      else
      {
-       // it could be bitmap, not supported for now as
-       // there is no way to use BMP decoder because of
-       // lack of bitmap file header (and even if that would
-       // be hardcoded in similar way as previous PNG signature
-       // there would be no way to load AND bitmap
-       // ? Probably read it without BMP decoder by outselves ?
+       if (strm.read(&readStruct.bitmapHeader.height, 40-8) != 40-8)
+       {
+         err = Error::ImageIO_Truncated;
+         goto __ret;
+       }
+       _currentOffset += 40-8;
        
-       // TODO: read the rest of bitmap header
-       // TODO: decode bitmap
-       err = Error::ImageIO_DecoderNotAvailable;
+       // if PNG hack is ugly, how should I call this? :-)
+       
+       // we won't convert LE to BE values on BE system as decoder
+       // will take care of that
+       
+       // Only V3 bitmap supported
+       
+       #if FOG_BYTE_ORDER == FOG_BIG_ENDIAN
+       if (Memory::bswap32(readStruct.bitmapHeader.headerSize) != 40)
+       #else
+       if (readStruct.bitmapHeader.headerSize != 40)
+       #endif
+       {
+         // to bad :-(
+         err = 56699;
+         goto __ret;
+       }
+       
+       // make "false" bitmap file header to make decoder happy
+       
+       #if FOG_BYTE_ORDER == FOG_BIG_ENDIAN
+       readStruct.bmpFileHeader.magic = 0x424du; // "BM"
+       readStruct.bmpFileHeader.fileSize = 0;
+       // we need little-endian number here
+       readStruct.bmpFileHeader.imageOffset = Memory::bswap32(54u);
+       #else
+       readStruct.bmpFileHeader.magic = 0x4d42u; // "BM"
+       readStruct.bmpFileHeader.fileSize = 0;
+       readStruct.bmpFileHeader.imageOffset = 54u;
+       #endif
+       readStruct.bmpFileHeader.reserved1 = 0;
+       readStruct.bmpFileHeader.reserved2 = 0;
+       
+       // height is set twice as big in ICO files due to mask presence
+       
+       #if FOG_BYTE_ORDER == FOG_BIG_ENDIAN
+       readStruct.bitmapHeader.height = Memory::bswap32(Memory::bswap32(readStruct.bitmapHeader.height)/2);
+       #else
+       readStruct.bitmapHeader.height /= 2;
+       #endif
+       
+       // TODO: do more checks on readStruct.bitmapHeader
+       
+       // Find bmp provider
+       
+       Provider* bmpProvider = getProviderByExtension(Ascii8("bmp"));
+       if (!bmpProvider)
+       {
+         err = Error::ImageIO_ProviderNotAvailable;
+         goto __ret;
+       }
+       
+       // Fing png decoder
+       
+       DecoderDevice* bmpDecoder = bmpProvider->createDecoder();
+       if (!bmpDecoder)
+       {
+         err = Error::ImageIO_DecoderNotAvailable;
+         goto __ret;
+       }
+       
+       // create stream wrapper so that BMP decoder
+       // will get BMP file header and bitmap header
+       IcoStreamReadDevice *readDevice = new IcoStreamReadDevice((const uint8_t*)&readStruct, 54 /* 40 + 14 */, strm);
+       Stream bmpStream(readDevice->ref());
+       bmpDecoder->attachStream(bmpStream);
+       // decode BMP
+       err = bmpDecoder->readImage(image);
+       bmpDecoder->detachStream();
+       // free decoder
+       delete bmpDecoder;
+       // add bytes readed as BMP data to current stream offset
+       _currentOffset += readDevice->_readFromParent;
+       readDevice->deref();
+       
+       // Now we should read the mask and apply it, but ...
+       // ... it remains TODO for now
      }
      
      if (err == Error::Ok)
      {
        // check the image against the entry if
        // it is correct
-       int entryWidth = (int)entry->width;
-       int entryHeight = (int)entry->height;
-       
-       if (entryWidth == 0) entryWidth = 256;
-       if (entryHeight == 0) entryHeight = 256;
        
        if (entryWidth != image.getWidth() || entryHeight != image.getHeight())
        {
