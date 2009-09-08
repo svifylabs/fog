@@ -393,6 +393,7 @@ Set(FOG_GRAPHICS_SOURCES
   ${FOG_DIR}/Fog/Graphics/ImageIO.cpp
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_BMP.cpp
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_GIF.cpp
+  ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_ICO.cpp
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_JPEG.cpp
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_PCX.cpp
   ${FOG_DIR}/Fog/Graphics/ImageIO/ImageIO_PNG.cpp
