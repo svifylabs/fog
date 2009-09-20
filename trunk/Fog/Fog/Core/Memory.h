@@ -54,39 +54,27 @@ FOG_CAPI_EXTERN void fog_memory_xchg(uint8_t* addr1, uint8_t* addr2, sysuint_t c
 
 namespace Fog {
 
+// ============================================================================
 // [Fog::Uint64Union]
+// ============================================================================
 
 union UInt64Union
 {
 #if FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
-  struct
-  {
-    uint32_t u32low;
-    uint32_t u32high;
-  };
-  struct 
-  {
-    uint32_t i32low;
-    uint32_t i32high;
-  };
+  struct { uint32_t u32low; uint32_t u32high; };
+  struct { int32_t  i32low; int32_t  i32high; };
 #else
-  struct
-  {
-    uint32_t u32high;
-    uint32_t u32low;
-  };
-  struct 
-  {
-    uint32_t i32high;
-    uint32_t i32low;
-  };
+  struct { uint32_t u32high; uint32_t u32low; };
+  struct { int32_t  i32high; int32_t  i32low; };
 #endif
 
   uint64_t u64;
   int64_t i64;
 };
 
+// ============================================================================
 // [Fog::Memory]
+// ============================================================================
 
 //! @brief Memory related functions.
 //!
