@@ -1,4 +1,7 @@
 // [Fog/Core Library - C++ API]
+
+#include "Sequence.h"
+
 //
 // [Licence] 
 // MIT, See COPYING file in package
@@ -1664,7 +1667,23 @@ ffUnsigned:
           break;
         }
 
-        // Extensions.
+        // Extensions
+        case 'W':
+        {
+          if (fieldWidth == FormatFlags::NoWidth) fieldWidth = 0;
+
+          __G_STRING* string = va_arg(ap, __G_STRING*);
+
+          const __G_CHAR* s = string->cData();
+          sysuint_t slen = string->getLength();
+          if (precision != FormatFlags::NoPrecision)  slen = Math::min(slen, precision);
+          sysuint_t fill = (fieldWidth > slen) ? fieldWidth - slen : 0;
+
+          if (fill && (directives & FormatFlags::LeftAdjusted) == 0) append(__G_CHAR(' '), fill);
+          append(__G_STRING_STUB(s, slen));
+          if (fill && (directives & FormatFlags::LeftAdjusted) != 0) append(__G_CHAR(' '), fill);
+          break;
+        }
 
         // Percent.
         case '%':
@@ -2754,7 +2773,7 @@ __G_STRING __G_STRING::justified(sysuint_t n, __G_CHAR fill, uint32_t flags) con
 }
 
 // ============================================================================
-// [Fog::String - Split]
+// [Fog::String - Split / Join]
 // ============================================================================
 
 Vector<__G_STRING> __G_STRING::split(__G_CHAR ch, uint splitBehavior, uint cs) const
@@ -2858,6 +2877,63 @@ Vector<__G_STRING> __G_STRING::split(const __G_STRINGFILTER& filter, uint splitB
     strCur += m.length;
   }
 
+  return result;
+}
+
+__G_STRING __G_STRING::join(const Sequence<__G_STRING>& seq, const __G_CHAR separator)
+{
+  __G_TEMPORARYSTRING<1> sept(separator);
+  return join(seq, sept);
+}
+
+__G_STRING __G_STRING::join(const Sequence<__G_STRING>& seq, const __G_STRING& separator)
+{
+  __G_STRING result;
+
+  sysuint_t seqLength = 0;
+  sysuint_t sepLength = separator.getLength();
+
+  Sequence<__G_STRING>::ConstIterator it(seq);
+
+  for (it.toStart(); it.isValid(); it.toNext())
+  {
+    sysuint_t len = it.value().getLength();
+
+    // Prevent for possible overflow (shouldn't normally happen)
+    if (!it.atStart())
+    {
+      if (seqLength + sepLength < seqLength) return result;
+      seqLength += sepLength;
+    }
+
+    // Prevent for possible overflow (shouldn't normally happen)
+    if (seqLength + len < seqLength) return result;
+    seqLength += len;
+  }
+
+  // Allocate memory for all strings in seq and for separators
+  if (result.reserve(seqLength) != Error::Ok) return result;
+
+  __G_CHAR* cur = result._d->data;
+  const __G_CHAR* sep = separator.cData();
+
+  // Serialize
+  for (it.toStart(); it.isValid(); it.toNext())
+  {
+    sysuint_t len = it.value().getLength();
+
+    if (!it.atStart())
+    {
+      StringUtil::copy(cur, sep, sepLength);
+      cur += sepLength;
+    }
+
+    StringUtil::copy(cur, it.value().cData(), len);
+    cur += len;
+  }
+
+  cur[0] = __G_CHAR(0);
+  result._d->length = (sysuint_t)(cur - result._d->data);
   return result;
 }
 
