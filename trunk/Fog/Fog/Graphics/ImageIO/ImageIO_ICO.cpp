@@ -58,10 +58,10 @@ IcoProvider::IcoProvider()
   _features.rgbAlpha = true;
 
   // name
-  _name = Ascii8("image/x-icon");
+  _name = fog_strings->getString(STR_GRAPHICS_ICO);
 
   // extensions
-  _extensions.append(Ascii8("ico"));
+  _extensions.append(fog_strings->getString(STR_GRAPHICS_ico));
 }
 
 IcoProvider::~IcoProvider()

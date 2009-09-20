@@ -555,12 +555,15 @@ struct FOG_API __G_STRING
   __G_STRING justified(sysuint_t n, __G_CHAR fill, uint32_t flags) const;
 
   // --------------------------------------------------------------------------
-  // [Split]
+  // [Split / Join]
   // --------------------------------------------------------------------------
 
   Vector<__G_STRING> split(__G_CHAR ch, uint splitBehavior = RemoveEmptyParts, uint cs = CaseSensitive) const;
   Vector<__G_STRING> split(const __G_STRING& pattern, uint splitBehavior = RemoveEmptyParts, uint cs = CaseSensitive) const;
   Vector<__G_STRING> split(const __G_STRINGFILTER& filter, uint splitBehavior = RemoveEmptyParts, uint cs = CaseSensitive) const;
+
+  static __G_STRING join(const Sequence<__G_STRING>& seq, const __G_CHAR separator);
+  static __G_STRING join(const Sequence<__G_STRING>& seq, const __G_STRING& separator);
 
   // --------------------------------------------------------------------------
   // [Substring]
@@ -858,6 +861,11 @@ struct __G_TEMPORARYSTRING : public __G_STRING
 
   FOG_INLINE __G_TEMPORARYSTRING() :
     __G_STRING(Data::adopt((void*)&_storage, N))
+  {
+  }
+
+  FOG_INLINE __G_TEMPORARYSTRING(const __G_CHAR& ch) :
+    __G_STRING(Data::adopt((void*)&_storage, N, AllocCanFail, &ch, 1))
   {
   }
 
