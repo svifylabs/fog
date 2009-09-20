@@ -620,7 +620,7 @@ FontFace* FontEngineFT::getDefaultFace()
 {
   FontAttributes a;
   memset(&a, 0, sizeof(FontAttributes));
-  return cachedFace(String32(Ascii8("arial")), 12, a);
+  return cachedFace(String32(Ascii8("default")), 12, a);
 }
 
 FontFace* FontEngineFT::createFace(
