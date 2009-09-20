@@ -2525,7 +2525,7 @@ err_t Image::readFile(const String32& fileName)
 
   if (mapfile.map(fileName, false) == Error::Ok)
   {
-    stream.openMemory((void*)mapfile.getData(), mapfile.getSize(), Stream::OpenRead);
+    stream.openBuffer((void*)mapfile.getData(), mapfile.getSize(), Stream::OpenRead);
     return readStream(stream, extension);
   }
   else
@@ -2598,17 +2598,27 @@ err_t Image::readStream(Stream& stream, const String32& extension)
   return readStream(stream);
 }
 
-err_t Image::readMemory(const void* data, sysuint_t size)
+err_t Image::readBuffer(const String8& buffer)
+{
+  return readBuffer(buffer.cStr(), buffer.getLength());
+}
+
+err_t Image::readBuffer(const String8& buffer, const String32& extension)
+{
+  return readBuffer(buffer.cStr(), buffer.getLength(), extension);
+}
+
+err_t Image::readBuffer(const void* buffer, sysuint_t size)
 {
   Stream stream;
-  stream.openMemory((void*)data, size, Stream::OpenRead);
+  stream.openBuffer((void*)buffer, size, Stream::OpenRead);
   return readStream(stream);
 }
 
-err_t Image::readMemory(const void* data, sysuint_t size, const String32& extension)
+err_t Image::readBuffer(const void* buffer, sysuint_t size, const String32& extension)
 {
   Stream stream;
-  stream.openMemory((void*)data, size, Stream::OpenRead);
+  stream.openBuffer((void*)buffer, size, Stream::OpenRead);
   return readStream(stream, extension);
 }
 
@@ -2655,6 +2665,16 @@ err_t Image::writeStream(Stream& stream, const String32& extension)
   }
   else
     return Error::ImageIO_ProviderNotAvailable;
+}
+
+err_t Image::writeBuffer(String8& buffer, const String32& extension)
+{
+  Stream stream;
+  err_t err = stream.openBuffer(buffer);
+  if (err) return err;
+  stream.seek(buffer.getLength(), Stream::SeekSet);
+
+  return writeStream(stream, extension);
 }
 
 // ============================================================================

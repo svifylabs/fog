@@ -132,19 +132,19 @@ void BmpDecoderDevice::reset()
 uint32_t BmpDecoderDevice::readHeader()
 {
   // don't read header more than once
-  if (headerDone()) return headerResult();
+  if (isHeaderDone()) return _headerResult;
 
   // mark header as done
   _headerDone = true;
 
   // read bmp header
-  if (stream().read(_bmpFileHeader, 14+4) != 14+4) 
+  if (_stream.read(_bmpFileHeader, 14+4) != 14+4)
   {
     return (_headerResult = Error::ImageIO_Truncated);
   }
 
   // try to match bmp mime "BM"
-  if (*(uint16_t*)(_bmpFileHeader) != FOG_MAKE_UINT16_SEQ('B', 'M')) 
+  if (_bmpFileHeader[0] != 'B' || _bmpFileHeader[1] != 'M')
   { 
     return (_headerResult = Error::ImageIO_MimeNotMatch);
   }
@@ -163,11 +163,11 @@ uint32_t BmpDecoderDevice::readHeader()
   _bmpHeaderSize = Memory::bswap32le( *(const uint32_t *)(_bmpFileHeader + 14) );
 
   // old bmp header (OS2)
-  if (bmpHeaderSize() == 12)
+  if (_bmpHeaderSize == 12)
   {
     _bmpHeaderType = OS2Header;
 
-    if (stream().read(_bmpDataHeader, 12-4) != 12-4) 
+    if (_stream.read(_bmpDataHeader, 12-4) != 12-4)
     {
       return (_headerResult = Error::ImageIO_Truncated);
     }
@@ -181,11 +181,11 @@ uint32_t BmpDecoderDevice::readHeader()
   }
 
   // Windows bmp header 
-  else if (bmpHeaderSize() == 40) 
+  else if (_bmpHeaderSize == 40)
   {
     _bmpHeaderType = WinHeader;
 
-    if (stream().read(_bmpDataHeader, 40-4) != 40-4) 
+    if (_stream.read(_bmpDataHeader, 40-4) != 40-4)
     {
       return (_headerResult = Error::ImageIO_Truncated);
     }
@@ -206,7 +206,7 @@ uint32_t BmpDecoderDevice::readHeader()
   }
 
   // check for correct depth
-  switch(depth())
+  switch(_depth)
   {
     case 1:
     case 4:
@@ -235,12 +235,12 @@ uint32_t BmpDecoderDevice::readHeader()
   _actualFrame = 0;
   _framesCount = 1;
 
-  _bmpStride = (((width() * depth() + 7) >> 3) + 3) & ~3;
+  _bmpStride = (((_width * _depth + 7) >> 3) + 3) & ~3;
 
   // OS2 header didn't define image size.
-  if (bmpImageSize() == 0) _bmpImageSize = bmpStride() * height();
+  if (_bmpImageSize == 0) _bmpImageSize = _bmpStride * _height;
 
-  switch (depth())
+  switch (_depth)
   {
     // Setup palette.
     case 1:
@@ -248,9 +248,9 @@ uint32_t BmpDecoderDevice::readHeader()
     case 8:
     {
       Rgba* pdestCur = _palette.mData();
-      sysuint_t i, nColors = (bmpOffset() - bmpHeaderSize() - 14);
+      sysuint_t i, nColors = (_bmpOffset - _bmpHeaderSize - 14);
 
-      if (bmpHeaderSize() == 12)
+      if (_bmpHeaderSize == 12)
       {
         uint8_t psrc24[768];
         uint8_t* psrc24Cur = psrc24;
@@ -258,7 +258,7 @@ uint32_t BmpDecoderDevice::readHeader()
         nColors /= 3;
         if (nColors > 256) nColors = 256;
 
-        if (stream().read(psrc24, nColors*3) != nColors*3)
+        if (_stream.read(psrc24, nColors*3) != nColors*3)
         {
           return Error::ImageIO_Truncated;
         }
@@ -273,7 +273,7 @@ uint32_t BmpDecoderDevice::readHeader()
         nColors /= 4;
         if (nColors > 256) nColors = 256;
 
-        if (stream().read(pdestCur, nColors*4) != nColors*4) 
+        if (_stream.read(pdestCur, nColors*4) != nColors*4)
         {
           return Error::ImageIO_Truncated;
         }
@@ -327,29 +327,28 @@ uint32_t BmpDecoderDevice::readHeader()
   }
 
   // Bitfields
-  if (bmpCompression() == BMP_BI_BITFIELDS && (depth() == 16 || depth() == 32))
+  if (_bmpCompression == BMP_BI_BITFIELDS && (_depth == 16 || _depth == 32))
   {
-    uint8_t masks[12];
-    int bit;
+    uint32_t masks[3];
+
+    if (_stream.read(masks, 12) != 12)
+    {
+      return (_headerResult = Error::ImageIO_Truncated);
+    }
+
+    _rMask = Memory::bswap32le(masks[0]);
+    _gMask = Memory::bswap32le(masks[1]);
+    _bMask = Memory::bswap32le(masks[2]);
 
     uint rSize = 0;
     uint gSize = 0;
     uint bSize = 0;
 
-    if (stream().read(masks, 12) != 12) 
+    for (int bit = (int)(_depth) - 1; bit >= 0; bit--)
     {
-      return (_headerResult = Error::ImageIO_Truncated);
-    }
-
-    _rMask = Memory::bswap32le( *((const uint32_t *)(masks + 0)) );
-    _gMask = Memory::bswap32le( *((const uint32_t *)(masks + 4)) );
-    _bMask = Memory::bswap32le( *((const uint32_t *)(masks + 8)) );
-
-    for (bit = (int)(depth()) - 1; bit >= 0; bit--)
-    {
-      if (bMask() & (1 << bit)) { _bShift = bit; bSize++; }
-      if (gMask() & (1 << bit)) { _gShift = bit; gSize++; }
-      if (rMask() & (1 << bit)) { _rShift = bit; rSize++; }
+      if (_bMask & (1 << bit)) { _bShift = bit; bSize++; }
+      if (_gMask & (1 << bit)) { _gShift = bit; gSize++; }
+      if (_rMask & (1 << bit)) { _rShift = bit; rSize++; }
     }
 
     _rLoss = 8 - rSize;
@@ -368,13 +367,10 @@ uint32_t BmpDecoderDevice::readHeader()
 uint32_t BmpDecoderDevice::readImage(Image& image)
 {
   // read bmp header
-  if (readHeader() != Error::Ok)
-  {
-    return headerResult();
-  }
+  if (readHeader() != Error::Ok) return _headerResult;
 
   // don't read image more than once
-  if (readerDone()) return (_readerResult = Error::ImageIO_NotAnimationFormat);
+  if (isReaderDone()) return (_readerResult = Error::ImageIO_NotAnimationFormat);
 
   // error code (default is success)
   uint32_t err = Error::Ok;
@@ -391,32 +387,32 @@ uint32_t BmpDecoderDevice::readImage(Image& image)
 
   MemoryBuffer<4096> bufferStorage;
   MemoryBuffer<4096> rleBufferStorage;
-  uint8_t* buffer = (uint8_t *)bufferStorage.alloc(bmpStride());
+  uint8_t* buffer = (uint8_t *)bufferStorage.alloc(_bmpStride);
   uint8_t* rleBuffer = NULL;
 
   // create image
-  if ( (err = image.create(width(), height(), format())) ) goto end;
+  if ( (err = image.create(_width, _height, _format)) ) goto end;
 
   stride = image.getStride();
   pixelsBegin = image._d->first;
-  pixelsCur = pixelsBegin + stride * (height() - 1);
+  pixelsCur = pixelsBegin + stride * (_height - 1);
 
   // -------------------- Conversion from 1 bit depth --------------------
 
-  if (depth() == 1)
+  if (_depth == 1)
   {
-    if (bmpCompression() == BMP_BI_RGB)
+    if (_bmpCompression == BMP_BI_RGB)
     {
       uint8_t* bufferCur;
       uint32_t b;
 
-      for (y = 0; y != height(); y++)
+      for (y = 0; y != _height; y++)
       {
-        if (stream().read(buffer, bmpStride()) != bmpStride()) goto truncated;
+        if (_stream.read(buffer, _bmpStride) != _bmpStride) goto truncated;
         bufferCur = buffer;
-        pixelsCur = pixelsBegin + (height() - y - 1) * stride;
+        pixelsCur = pixelsBegin + (_height - y - 1) * stride;
 
-        for (i = width(); i >= 8; i -= 8, pixelsCur += 8, bufferCur++)
+        for (i = _width; i >= 8; i -= 8, pixelsCur += 8, bufferCur++)
         {
           b = (uint32_t)(*bufferCur);
           ((uint8_t *)pixelsCur)[0] = (uint8_t)((b >> 7) & 1);
@@ -436,34 +432,34 @@ uint32_t BmpDecoderDevice::readImage(Image& image)
             ((uint8_t *)pixelsCur)[0] = (uint8_t)((b >> 7) & 1);
           }
         }
-        if ((y & 15) == 0) { updateProgress(y, height()); }
+        if ((y & 15) == 0) { updateProgress(y, _height); }
       }
     }
   }
 
   // -------------------- Conversion from 4 bit depth --------------------
 
-  else if (depth() == 4)
+  else if (_depth == 4)
   {
     // ==== 4 BIT RLE DECOMPRESSION BEGIN ====
-    if (bmpCompression() == BMP_BI_RLE4)
+    if (_bmpCompression == BMP_BI_RLE4)
     {
       uint8_t* rleCur;
       uint8_t* rleEnd;
       uint8_t b0;
       uint8_t b1;
 
-      if ((rleBuffer = (uint8_t *)rleBufferStorage.alloc(bmpImageSize())) == NULL) goto outOfMemory;
-      if (stream().read(rleBuffer, bmpImageSize()) != bmpImageSize()) goto truncated;
+      if ((rleBuffer = (uint8_t *)rleBufferStorage.alloc(_bmpImageSize)) == NULL) goto outOfMemory;
+      if (_stream.read(rleBuffer, _bmpImageSize) != _bmpImageSize) goto truncated;
 
       rleCur = rleBuffer;
-      rleEnd = rleBuffer + bmpImageSize();
+      rleEnd = rleBuffer + _bmpImageSize;
 
 BI_RLE_4_BEGIN:
-      if (x >= width() || y >= height()) goto rleError;
+      if (x >= _width || y >= _height) goto rleError;
 
-      pixelsCur = pixelsBegin + (height() - y - 1) * stride;
-      updateProgress(y, height());
+      pixelsCur = pixelsBegin + (_height - y - 1) * stride;
+      updateProgress(y, _height);
 
       for (;;)
       {
@@ -479,7 +475,7 @@ BI_RLE_4_BEGIN:
           uint8_t c1 = b1 & 0xF;
 
           i = b0;
-          if (i > width() - x) goto rleError;
+          if (i > _width - x) goto rleError;
 
           while (i >= 2)
           {
@@ -504,7 +500,7 @@ BI_RLE_4_BEGIN:
             default:
               i = b1;
 
-              if (i > width() - x) goto rleError;
+              if (i > _width - x) goto rleError;
               if (rleCur + (i >> 1) + (i & 1) > rleEnd) goto truncated;
 
               x += i;
@@ -531,55 +527,55 @@ BI_RLE_4_BEGIN:
     }
 
     // ==== 4 BIT RAW BEGIN ====
-    else if (bmpCompression() == BMP_BI_RGB)
+    else if (_bmpCompression == BMP_BI_RGB)
     {
       uint8_t* bufferCur;
       uint8_t b;
 
-      for (y = 0; y != height(); y++)
+      for (y = 0; y != _height; y++)
       {
-        if (stream().read(buffer, bmpStride()) != bmpStride()) goto truncated;
+        if (_stream.read(buffer, _bmpStride) != _bmpStride) goto truncated;
         bufferCur = buffer;
-        pixelsCur = pixelsBegin + (height() - y - 1) * stride;
+        pixelsCur = pixelsBegin + (_height - y - 1) * stride;
 
-        for (x = 0; x + 2 <= width(); x += 2)
+        for (x = 0; x + 2 <= _width; x += 2)
         {
           b = *bufferCur++;
           *pixelsCur++ = b >> 4;
           *pixelsCur++ = b & 0xF;
         }
-        if (x < width())
+        if (x < _width)
         {
           *pixelsCur = *bufferCur >> 4;
         }
-        if ((y & 15) == 0) updateProgress(y, height());
+        if ((y & 15) == 0) updateProgress(y, _height);
       }
     }
   }
 
   // -------------------- Conversion from 8 bit depth --------------------
 
-  else if (depth() == 8)
+  else if (_depth == 8)
   {
     // ==== 8 BIT RLE DECOMPRESSION BEGIN ====
-    if (bmpCompression() == BMP_BI_RLE8)
+    if (_bmpCompression == BMP_BI_RLE8)
     {
       uint8_t* rleCur;
       uint8_t* rleEnd;
       uint8_t b0;
       uint8_t b1;
 
-      if ((rleBuffer = (uint8_t *)rleBufferStorage.alloc(bmpImageSize())) == NULL) goto outOfMemory;
-      if (stream().read(rleBuffer, bmpImageSize()) != bmpImageSize()) goto truncated;
+      if ((rleBuffer = (uint8_t *)rleBufferStorage.alloc(_bmpImageSize)) == NULL) goto outOfMemory;
+      if (_stream.read(rleBuffer, _bmpImageSize) != _bmpImageSize) goto truncated;
 
       rleCur = rleBuffer;
-      rleEnd = rleBuffer + bmpImageSize();
+      rleEnd = rleBuffer + _bmpImageSize;
 
 BI_RLE_8_BEGIN:
-      if (x >= width() || y >= height()) goto rleError;
+      if (x >= _width || y >= _height) goto rleError;
 
-      pixelsCur = pixelsBegin + (height() - y - 1) * stride;
-      updateProgress(y, height());
+      pixelsCur = pixelsBegin + (_height - y - 1) * stride;
+      updateProgress(y, _height);
 
       for (;;)
       {
@@ -592,7 +588,7 @@ BI_RLE_8_BEGIN:
           // b0 = Length
           // b1 = Color
           i = b0;
-          if (i > width() - x) goto rleError;
+          if (i > _width - x) goto rleError;
 
           while (i--) *pixelsCur++ = b1;
         }
@@ -612,7 +608,7 @@ BI_RLE_8_BEGIN:
             default:
               i = b1;
 
-              if (i > width() - x) goto rleError;
+              if (i > _width - x) goto rleError;
               if (rleCur + i > rleEnd) goto truncated;
 
               while (i--) *pixelsCur++ = *rleCur++;
@@ -623,17 +619,17 @@ BI_RLE_8_BEGIN:
           }
         }
       }
-      updateProgress(y, height());
+      updateProgress(y, _height);
     }
 
     // ==== 8 BIT RAW BEGIN ====
-    else if (bmpCompression() == BMP_BI_RGB)
+    else if (_bmpCompression == BMP_BI_RGB)
     {
-      for (y = 0; y < height(); y++)
+      for (y = 0; y < _height; y++)
       {
-        pixelsCur = pixelsBegin + (height() - y - 1) * stride;
-        if (stream().read(pixelsCur, bmpStride()) != bmpStride()) goto truncated;
-        if ((y & 15) == 0) updateProgress(y, height());
+        pixelsCur = pixelsBegin + (_height - y - 1) * stride;
+        if (_stream.read(pixelsCur, _bmpStride) != _bmpStride) goto truncated;
+        if ((y & 15) == 0) updateProgress(y, _height);
       }
     }
   }
@@ -643,25 +639,25 @@ BI_RLE_8_BEGIN:
 #if FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
   // Direct loading.
   else if (
-    ((depth() == 32 && format() == Image::FormatARGB32) ||
-     (depth() == 32 && format() == Image::FormatRGB32)  ||
-     (depth() == 24 && format() == Image::FormatRGB24)) &&
-     rMask() == Raster::RGB32_RMask &&
-     gMask() == Raster::RGB32_GMask &&
-     bMask() == Raster::RGB32_BMask)
+    ((_depth == 32 && _format == Image::FormatARGB32) ||
+     (_depth == 32 && _format == Image::FormatRGB32)  ||
+     (_depth == 24 && _format == Image::FormatRGB24)) &&
+     _rMask == Raster::RGB32_RMask &&
+     _gMask == Raster::RGB32_GMask &&
+     _bMask == Raster::RGB32_BMask)
   {
-    sysuint_t readBytes = width() * (depth() >> 3);
-    sysuint_t tailBytes = bmpStride() - readBytes;
+    sysuint_t readBytes = _width * (_depth >> 3);
+    sysuint_t tailBytes = _bmpStride - readBytes;
 
-    for (y = 0; y < height(); y++)
+    for (y = 0; y < _height; y++)
     {
-      pixelsCur = pixelsBegin + (height() - y - 1) * stride;
-      if (stream().read(pixelsCur, readBytes) != readBytes ||
-        stream().read(buffer, tailBytes) != tailBytes)
+      pixelsCur = pixelsBegin + (_height - y - 1) * stride;
+      if (_stream.read(pixelsCur, readBytes) != readBytes ||
+          _stream.read(buffer, tailBytes) != tailBytes)
       {
         goto truncated;
       }
-      if ((y & 15) == 0) updateProgress(y, height());
+      if ((y & 15) == 0) updateProgress(y, _height);
     }
   }
 #endif // FOG_LITTLE_ENDIAN
@@ -685,7 +681,7 @@ BI_RLE_8_BEGIN:
     for (m = _bMask; (m & 1) == 0; m >>= 1) bShift++;
     while ((m & 1) == 1) bSize++;
 
-    if (depth() == 32)
+    if (_depth == 32)
     {
       _aMask = (_rMask | _gMask | _bMask) ^ 0xFFFFFFFF;
       for (m = _bMask; (m & 1) == 0; m >>= 1) aShift++;
@@ -695,10 +691,10 @@ BI_RLE_8_BEGIN:
     for (y = 0; y < _height; y++, pixelsCur += stride)
     {
       uint8_t* bufferCur = buffer;
-      pixelsCur = pixelsBegin + (height() - y - 1) * stride;
-      if (stream().read(bufferCur, _bmpStride) != _bmpStride) goto truncated;
+      pixelsCur = pixelsBegin + (_height - y - 1) * stride;
+      if (_stream.read(bufferCur, _bmpStride) != _bmpStride) goto truncated;
 
-      switch (depth())
+      switch (_depth)
       {
         case 16:
           for (m = 0; m < _width; m++, pixelsCur += 3, bufferCur += 2)
@@ -743,12 +739,12 @@ BI_RLE_8_BEGIN:
           break;
       }
 
-      if ((y & 15) == 0) updateProgress(y, height());
+      if ((y & 15) == 0) updateProgress(y, _height);
     }
   }
 
   // apply palette if needed
-  if (depth() <= 8) image.setPalette(palette());
+  if (_depth <= 8) image.setPalette(_palette);
 
   goto end;
 
@@ -871,8 +867,8 @@ uint32_t BmpEncoderDevice::writeImage(const Image& image)
   }
 
   // Write file and bmp header.
-  if (stream().write((const void *)&bmpFile, 14) != 14) goto fail;
-  if (stream().write((const void *)&bmpHeader, 40) != 40) goto fail;
+  if (_stream.write((const void *)&bmpFile, 14) != 14) goto fail;
+  if (_stream.write((const void *)&bmpHeader, 40) != 40) goto fail;
 
   switch (format)
   {
@@ -886,7 +882,7 @@ uint32_t BmpEncoderDevice::writeImage(const Image& image)
       for (uint y = 0; y != height; y++)
       {
         image.getDibArgb32_le(0, (height - 1 - y), width, buffer);
-        if (stream().write((const void *)buffer, bpl) != bpl) goto fail;
+        if (_stream.write((const void *)buffer, bpl) != bpl) goto fail;
         if ((y & 15) == 0) updateProgress(y, height);
       }
       break;
@@ -905,7 +901,7 @@ uint32_t BmpEncoderDevice::writeImage(const Image& image)
       for (int y = 0; y != height; y++)
       {
         image.getDibRgb24_le(0, (height - 1 - y), width, buffer);
-        if (stream().write(buffer, bpl) != (sysuint_t)bpl) goto fail;
+        if (_stream.write(buffer, bpl) != (sysuint_t)bpl) goto fail;
         if ((y & 15) == 0) updateProgress(y, height);
       }
       break;
@@ -923,19 +919,19 @@ uint32_t BmpEncoderDevice::writeImage(const Image& image)
         {
           pl[i] = Memory::bswap32le(i | (i << 8) | (i << 16) | (0xFF << 24));
         }
-        if (stream().write((const void*)pl, 1024) != 1024) goto fail;
+        if (_stream.write((const void*)pl, 1024) != 1024) goto fail;
       }
       else
       {
         // Standard palette.
-        if (stream().write(image.getPalette().cData(), 1024) != 1024) goto fail;
+        if (_stream.write(image.getPalette().cData(), 1024) != 1024) goto fail;
       }
 
       // Write 8 bit BMP data.
       for (int y = 0; y != height; y++)
       {
-        if (stream().write((const void *)image.cScanline(height - 1 - y), width) != width) goto fail;
-        if (stream().write((const void *)tailBytes, skip) != skip) goto fail;
+        if (_stream.write((const void *)image.cScanline(height - 1 - y), width) != width) goto fail;
+        if (_stream.write((const void *)tailBytes, skip) != skip) goto fail;
         if ((y & 15) == 0) updateProgress(y, height);
       }
       break;

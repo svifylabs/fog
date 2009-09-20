@@ -20,6 +20,10 @@ namespace Fog {
 // [Fog::StreamDevice]
 // ============================================================================
 
+//! @brief Stream device is interface used inside the Fog::Stream.
+//!
+//! It contains abstract virtual methods that can be reimplemented to make a
+//! new stream device that can be used in all functions that needs Fog::Stream.
 struct FOG_API StreamDevice
 {
   // [Construction / Destruction]
@@ -47,6 +51,8 @@ struct FOG_API StreamDevice
   virtual err_t truncate(int64_t offset) = 0;
   virtual void close() = 0;
 
+  virtual String8 getBuffer() const;
+
   // [Members]
 
   mutable Atomic<sysuint_t> refCount;
@@ -57,8 +63,13 @@ struct FOG_API StreamDevice
 // [Fog::Stream]
 // ============================================================================
 
+//! @brief Stream is IO stream implementation used in by Fog library.
 struct FOG_API Stream
 {
+  // [Data]
+
+  static StreamDevice* sharedNull;
+
   // [Construction / Destruction]
 
   Stream();
@@ -80,13 +91,13 @@ struct FOG_API Stream
     IsSeekable = (1 << 9),
     IsReadable = (1 << 10),
     IsWritable = (1 << 11),
-    IsFixed    = (1 << 12),
-    CanClose   = (1 << 13),
+    CanClose   = (1 << 12),
 
     IsFILE     = (1 << 16),
     IsHFILE    = (1 << 17),
     IsFD       = (1 << 18),
-    IsMemory   = (1 << 19)
+    IsMemory   = (1 << 19),
+    IsGrowable = (1 << 20)
   };
 
   FOG_INLINE uint32_t flags() const { return _d->flags; }
@@ -96,13 +107,13 @@ struct FOG_API Stream
   FOG_INLINE bool isSeekable() const { return (_d->flags & IsSeekable) != 0; }
   FOG_INLINE bool isReadable() const { return (_d->flags & IsReadable) != 0; }
   FOG_INLINE bool isWritable() const { return (_d->flags & IsWritable) != 0; }
-  FOG_INLINE bool isFixed()    const { return (_d->flags & IsFixed   ) != 0; }
   FOG_INLINE bool canClose()   const { return (_d->flags & CanClose  ) != 0; }
 
   FOG_INLINE bool isFILE()     const { return (_d->flags & IsFILE    ) != 0; }
   FOG_INLINE bool isHFILE()    const { return (_d->flags & IsHFILE   ) != 0; }
   FOG_INLINE bool isFD()       const { return (_d->flags & IsFD      ) != 0; }
   FOG_INLINE bool isMemory()   const { return (_d->flags & IsMemory  ) != 0; }
+  FOG_INLINE bool isGrowable() const { return (_d->flags & IsGrowable) != 0; }
 
   // [Open]
 
@@ -115,7 +126,7 @@ struct FOG_API Stream
     OpenAppend = (1 << 3),
     OpenCreate = (1 << 4),
     OpenCreatePath = (1 << 5),
-    OpenCreateOnly = (1 << 6),
+    OpenCreateOnly = (1 << 6)
   };
 
   err_t openFile(const String32& fileName, uint32_t openFlags);
@@ -129,7 +140,9 @@ struct FOG_API Stream
   err_t openFd(int fd, uint32_t openFlags, bool canClose);
 #endif // FOG_OS_POSIX
 
-  err_t openMemory(void* memory, sysuint_t size, uint32_t openFlags);
+  err_t openBuffer();
+  err_t openBuffer(const String8& buffer);
+  err_t openBuffer(void* buffer, sysuint_t size, uint32_t openFlags);
 
   // [Seek]
 
@@ -160,6 +173,17 @@ struct FOG_API Stream
 
   void close();
 
+  // [Stream Specific]
+
+  //! @brief Get stream memory buffer. This method works only on memory streams.
+  //!
+  //! If stream was open by:
+  //!   <core>openBuffer(void* buffer, sysuint_t size, uint32_t openFlags);</core>
+  //! buffer will be created for it and data will be copied to this buffer.
+  //!
+  //! If stream was open by @c String8 instance, this method will return it.
+  String8 getBuffer() const;
+
   // [Operator Overload]
 
   Stream& operator=(const Stream& other);
@@ -167,8 +191,6 @@ struct FOG_API Stream
   // [Members]
 
   FOG_DECLARE_D(StreamDevice)
-
-  static StreamDevice* sharedNull;
 };
 
 } // Fog namespace

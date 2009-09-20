@@ -125,7 +125,7 @@ FOG_API Provider* getProviderByName(const String32& name)
 
   for (; it.isValid(); it.toNext())
   {
-    if (it.value()->name() == name) return it.value();
+    if (it.value()->getName() == name) return it.value();
   }
 
   return 0;
@@ -143,7 +143,7 @@ FOG_API Provider* getProviderByExtension(const String32& extension)
 
   for (it.toStart(); it.isValid(); it.toNext())
   {
-    if (it.value()->extensions().indexOf(e) != InvalidIndex) return it.value();
+    if (it.value()->getExtensions().indexOf(e) != InvalidIndex) return it.value();
   }
 
   return 0;
@@ -296,17 +296,17 @@ void BaseDevice::updateProgress(uint32_t y, uint32_t height)
 
 bool BaseDevice::areDimensionsZero() const 
 { 
-  return width() == 0 || height() == 0; 
+  return _width == 0 || _height == 0;
 }
 
 bool BaseDevice::areDimensionsTooLarge() const 
 { 
   // check individual coordinates
   const uint32_t side = 256*256*128;
-  if (width() > side || height() > side) return true;
+  if (_width > side || _height > side) return true;
 
   // check total count of pixels
-  uint64_t total = (uint64_t)width() * (uint64_t)height();
+  uint64_t total = (uint64_t)_width * (uint64_t)_height;
   if (total >= FOG_UINT64_C(1000000000)) return true;
 
   // ok
@@ -326,7 +326,7 @@ void BaseDevice::attachStream(Stream& stream)
 
 void BaseDevice::detachStream()
 {
-  if (stream().isOpen())
+  if (_stream.isOpen())
   {
     reset();
     _stream.close();

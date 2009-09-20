@@ -295,7 +295,7 @@ void JpegDecoderDevice::reset()
 uint32_t JpegDecoderDevice::readHeader()
 {
   // Don't read header more than once.
-  if (headerDone()) return headerResult();
+  if (isHeaderDone()) return getHeaderResult();
 
   JpegLibrary* jpeg = _jpeg->get();
   if (!jpeg->ok)

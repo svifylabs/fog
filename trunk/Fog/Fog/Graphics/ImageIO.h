@@ -153,11 +153,11 @@ struct FOG_API Provider
   // [Members access]
 
   //! @brief Returns image file format name.
-  FOG_INLINE const String32& name() const { return _name; }
+  FOG_INLINE const String32& getName() const { return _name; }
   //! @brief Returns image file format extensions.
-  FOG_INLINE const Vector<String32>& extensions() const { return _extensions; }
+  FOG_INLINE const Vector<String32>& getExtensions() const { return _extensions; }
   //! @brief Returns image file format features.
-  FOG_INLINE const Features& features() const { return _features; }
+  FOG_INLINE const Features& getFeatures() const { return _features; }
 
   // [Virtuals]
 
@@ -239,33 +239,33 @@ struct FOG_API BaseDevice : public PropertiesContainer
 
   // [Members access]
 
-  FOG_INLINE Provider* provider() const { return _provider; }
-  FOG_INLINE uint32_t deviceType() const { return _deviceType; }
-  FOG_INLINE uint32_t flags() const { return _flags; }
-  FOG_INLINE bool isNone() const { return deviceType() == None; }
-  FOG_INLINE bool isEncoder() const { return (deviceType() & EncoderType) != 0; }
-  FOG_INLINE bool isDecoder() const { return (deviceType() & DecoderType) != 0; }
-  FOG_INLINE bool isProxy() const { return (deviceType() & ProxyType) != 0; }
+  FOG_INLINE Provider* getProvider() const { return _provider; }
+  FOG_INLINE uint32_t getDeviceType() const { return _deviceType; }
+  FOG_INLINE uint32_t getFlags() const { return _flags; }
+  FOG_INLINE bool isNone() const { return _deviceType == None; }
+  FOG_INLINE bool isEncoder() const { return (_deviceType & EncoderType) != 0; }
+  FOG_INLINE bool isDecoder() const { return (_deviceType & DecoderType) != 0; }
+  FOG_INLINE bool isProxy() const { return (_deviceType & ProxyType) != 0; }
 
   FOG_INLINE uint64_t attachedOffset() const { return _attachedOffset; }
-  FOG_INLINE Stream& stream() { return _stream; }
-  FOG_INLINE const Stream& stream() const { return _stream; }
+  FOG_INLINE Stream& getStream() { return _stream; }
+  FOG_INLINE const Stream& getStream() const { return _stream; }
 
-  FOG_INLINE uint32_t width() const { return _width; }
-  FOG_INLINE uint32_t height() const { return _height; }
-  FOG_INLINE uint32_t depth() const { return _depth; }
-  FOG_INLINE uint32_t planes() const { return _planes; }
+  FOG_INLINE uint32_t getWidth() const { return _width; }
+  FOG_INLINE uint32_t getHeight() const { return _height; }
+  FOG_INLINE uint32_t getDepth() const { return _depth; }
+  FOG_INLINE uint32_t getPlanes() const { return _planes; }
 
-  FOG_INLINE uint32_t actualFrame() const { return _actualFrame; }
-  FOG_INLINE uint32_t framesCount() const { return _framesCount; }
+  FOG_INLINE uint32_t getActualFrame() const { return _actualFrame; }
+  FOG_INLINE uint32_t getFramesCount() const { return _framesCount; }
 
-  FOG_INLINE int format() const { return _format; }
-  FOG_INLINE const Palette& palette() const { return _palette; }
-  FOG_INLINE const String8& comment() const { return _comment; }
+  FOG_INLINE int getFormat() const { return _format; }
+  FOG_INLINE const Palette& getPalette() const { return _palette; }
+  FOG_INLINE const String8& getComment() const { return _comment; }
 
   // [Progress]
 
-  FOG_INLINE float progress() const { return _progress; }
+  FOG_INLINE float getProgress() const { return _progress; }
 
   //! @brief Update progress to @a value.
   void updateProgress(float value);
@@ -343,10 +343,10 @@ struct FOG_API DecoderDevice : public BaseDevice
 
   // [Members access]
 
-  FOG_INLINE bool headerDone() const { return _headerDone; }
-  FOG_INLINE bool readerDone() const { return _readerDone; }
-  FOG_INLINE uint32_t headerResult() const { return _headerResult; }
-  FOG_INLINE uint32_t readerResult() const { return _readerResult; }
+  FOG_INLINE bool isHeaderDone() const { return _headerDone; }
+  FOG_INLINE bool isReaderDone() const { return _readerDone; }
+  FOG_INLINE uint32_t getHeaderResult() const { return _headerResult; }
+  FOG_INLINE uint32_t getReaderResult() const { return _readerResult; }
 
   // [Virtuals]
 
@@ -383,8 +383,8 @@ struct FOG_API EncoderDevice : public BaseDevice
 
   // [Members access]
 
-  FOG_INLINE bool headerDone() const { return _headerDone; }
-  FOG_INLINE bool writerDone() const { return _writerDone; }
+  FOG_INLINE bool isHeaderDone() const { return _headerDone; }
+  FOG_INLINE bool isWriterDone() const { return _writerDone; }
 
   FOG_INLINE void setComment(const String8& comment) { _comment = comment; }
 

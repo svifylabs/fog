@@ -152,14 +152,14 @@ void IcoDecoderDevice::reset()
 uint32_t IcoDecoderDevice::readHeader()
 {
   // don't read header more than once
-  if (headerDone()) return headerResult();
+  if (isHeaderDone()) return _headerResult;
   
   // mark header as done
   _headerDone = true;
   
   {
   	IcoHeader icoHeader;
-    if (stream().read(&icoHeader, sizeof(IcoHeader)) != sizeof(IcoHeader))
+    if (getStream().read(&icoHeader, sizeof(IcoHeader)) != sizeof(IcoHeader))
     {
       return (_headerResult = Error::ImageIO_Truncated);
     }
@@ -184,7 +184,7 @@ uint32_t IcoDecoderDevice::readHeader()
     
     _framesInfo = (IcoEntry*)Memory::alloc(memSize);
     
-    if (stream().read(_framesInfo, memSize) != memSize)
+    if (getStream().read(_framesInfo, memSize) != memSize)
     {
       Memory::free(_framesInfo);
       _framesInfo = 0;
@@ -304,10 +304,7 @@ struct FOG_PACKED IcoDecoderReadStruct
 
 uint32_t IcoDecoderDevice::readImage(Image& image)
 {
-   if (readHeader() != Error::Ok)
-   {
-     return headerResult();
-   }
+   if (readHeader() != Error::Ok) return _headerResult;
    
    if (_actualFrame == _framesCount || !_framesInfo)
    {
@@ -315,17 +312,15 @@ uint32_t IcoDecoderDevice::readImage(Image& image)
      return Error::ImageIO_NotAnimationFormat;
    }
    
-   Stream& strm = stream();
-   
    IcoEntry *entry = _framesInfo + _actualFrame;
    
    int64_t fOffset = entry->offset;
    int64_t fSize = entry->size;
    
-   if (strm.isSeekable())
+   if (_stream.isSeekable())
    {
      int64_t toSeek = fOffset - _currentOffset;
-     strm.seek(toSeek, Stream::SeekCur); // TODO: check the seek
+     _stream.seek(toSeek, Stream::SeekCur); // TODO: check the seek
      _currentOffset += toSeek;
    }
    else
@@ -347,7 +342,7 @@ uint32_t IcoDecoderDevice::readImage(Image& image)
          // following typecast should be safe as we never read more than 4096 bytes
          toRead = (sysuint_t)Math::min((int64_t)4096, toSeek);
          
-         if (strm.read(seekBuffer, toRead) != toRead)
+         if (_stream.read(seekBuffer, toRead) != toRead)
          {
            return Error::ImageIO_SeekFailure;
          }
@@ -375,7 +370,7 @@ uint32_t IcoDecoderDevice::readImage(Image& image)
         
      IcoDecoderReadStruct readStruct;
      
-     if (strm.read(readStruct.pngTest, 8) != 8)
+     if (_stream.read(readStruct.pngTest, 8) != 8)
      {
        return Error::ImageIO_Truncated;
      }
@@ -404,7 +399,7 @@ uint32_t IcoDecoderDevice::readImage(Image& image)
        
        // create stream wrapper so that PNG decoder
        // will get png header too (_ugly hack_)
-       IcoStreamReadDevice *readDevice = new IcoStreamReadDevice(readStruct.pngTest, 8, strm);
+       IcoStreamReadDevice *readDevice = new IcoStreamReadDevice(readStruct.pngTest, 8, _stream);
        Stream pngStream(readDevice->ref());
        pngDecoder->attachStream(pngStream);
        // decode PNG
@@ -418,7 +413,7 @@ uint32_t IcoDecoderDevice::readImage(Image& image)
      }
      else
      {
-       if (strm.read(&readStruct.bitmapHeader.height, 40-8) != 40-8)
+       if (_stream.read(&readStruct.bitmapHeader.height, 40-8) != 40-8)
        {
          err = Error::ImageIO_Truncated;
          goto __ret;
@@ -488,7 +483,7 @@ uint32_t IcoDecoderDevice::readImage(Image& image)
        
        // create stream wrapper so that BMP decoder
        // will get BMP file header and bitmap header
-       IcoStreamReadDevice *readDevice = new IcoStreamReadDevice((const uint8_t*)&readStruct, 54 /* 40 + 14 */, strm);
+       IcoStreamReadDevice *readDevice = new IcoStreamReadDevice((const uint8_t*)&readStruct, 54 /* 40 + 14 */, _stream);
        Stream bmpStream(readDevice->ref());
        bmpDecoder->attachStream(bmpStream);
        // decode BMP

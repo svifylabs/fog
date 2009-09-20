@@ -2516,7 +2516,7 @@ bool GifDecoderDevice::openGif()
 {
   return 
     (_context != NULL) || 
-    (stream().isOpen() && (_context = (void*)DGifOpen(&_stream)) != NULL);
+    (getStream().isOpen() && (_context = (void*)DGifOpen(&_stream)) != NULL);
 }
 
 void GifDecoderDevice::closeGif()
@@ -2531,7 +2531,7 @@ void GifDecoderDevice::closeGif()
 uint32_t GifDecoderDevice::readHeader()
 {
   // don't read header more than once
-  if (headerDone()) return headerResult();
+  if (isHeaderDone()) return _headerResult;
 
   // mark header as done
   _headerDone = true;
@@ -2556,7 +2556,7 @@ uint32_t GifDecoderDevice::readHeader()
 uint32_t GifDecoderDevice::readImage(Image& image)
 {
   // read gif header
-  if (readHeader() != Error::Ok) return headerResult();
+  if (readHeader() != Error::Ok) return getHeaderResult();
 
   GifFileType *gif = (GifFileType*)_context;
   uint32_t *ptr;

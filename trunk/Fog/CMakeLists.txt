@@ -811,8 +811,8 @@ EndIf(FOG_BUILD_MODULE_X11_EXTERNAL AND NOT WIN32)
 
 # Install
 ForEach(i ${FOG_HEADERS})
-  Get_Filename_Component(dest ${i} PATH)  
-  Install(FILES ${i} DESTINATION "include/${dest}")
+  Get_Filename_Component(dest ${i} NAME)
+  Install(FILES ${i} DESTINATION "include/Fog")
 EndForEach(i)
 
 # Build test

@@ -11,6 +11,7 @@
 // [Dependencies]
 #include <Fog/Core/FileSystem.h>
 #include <Fog/Core/FileUtil.h>
+#include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Stream.h>
 #include <Fog/Core/String.h>
@@ -64,6 +65,11 @@ StreamDevice* StreamDevice::ref() const
 void StreamDevice::deref()
 {
   if (refCount.deref()) delete this;
+}
+
+String8 StreamDevice::getBuffer() const
+{
+  return String8();
 }
 
 // ============================================================================
@@ -140,7 +146,7 @@ struct FOG_HIDDEN StreamDeviceFILE : public StreamDevice
 StreamDeviceFILE::StreamDeviceFILE(FILE* fp, uint32_t fflags) :
   fp(fp)
 {
-  flags |= fflags;
+  flags |= fflags | Stream::IsFILE | Stream::IsOpen;
 }
 
 int64_t StreamDeviceFILE::seek(int64_t offset, int whence)
@@ -201,7 +207,7 @@ struct FOG_HIDDEN StreamDeviceHANDLE : public StreamDevice
 StreamDeviceHANDLE::StreamDeviceHANDLE(HANDLE hFile, uint32_t fflags) :
   hFile(hFile)
 {
-  flags |= fflags | Stream::IsHFILE;
+  flags |= fflags | Stream::IsHFILE | Stream::IsOpen;
 }
 
 StreamDeviceHANDLE::~StreamDeviceHANDLE()
@@ -415,7 +421,7 @@ struct FOG_HIDDEN StreamDeviceFd : public StreamDevice
 StreamDeviceFd::StreamDeviceFd(int fd, uint32_t fflags) :
   fd(fd)
 {
-  flags |= Stream::IsFD | Stream::IsOpen | fflags;
+  flags |= fflags | Stream::IsFD | Stream::IsOpen;
 }
 
 StreamDeviceFd::~StreamDeviceFd()
@@ -498,7 +504,7 @@ int64_t StreamDeviceFd::tell() const
 {
   int64_t result = ::lseek64(fd, 0, SEEK_SET);
 
-  if (result < 0)
+  if (result < FOG_INT64_C(0))
     return -1;
   else
     return result;
@@ -551,6 +557,8 @@ struct FOG_HIDDEN StreamDeviceMemory : public StreamDevice
   virtual err_t truncate(int64_t offset);
   virtual void close();
 
+  virtual String8 getBuffer() const;
+
   uint8_t* data;
   sysuint_t size;
 
@@ -568,7 +576,6 @@ StreamDeviceMemory::StreamDeviceMemory(
   flags |= 
     Stream::IsOpen     |
     Stream::IsSeekable |
-    Stream::IsFixed    |
     Stream::IsMemory   |
     fflags;
 }
@@ -590,7 +597,7 @@ int64_t StreamDeviceMemory::seek(int64_t offset, int whence)
       break;
   }
 
-  if (i < 0)
+  if (i < FOG_UINT64_C(0))
   {
     cur = data;
     return -1;
@@ -641,6 +648,145 @@ err_t StreamDeviceMemory::truncate(int64_t offset)
 
 void StreamDeviceMemory::close()
 {
+}
+
+String8 StreamDeviceMemory::getBuffer() const
+{
+  String8 buffer;
+  if (buffer.reserve(size) == Error::Ok)
+    Memory::copy((void*)buffer.cStr(), (const void*)data, size);
+  return buffer;
+}
+
+// ============================================================================
+// [Fog::StreamDeviceString]
+// ============================================================================
+
+struct FOG_HIDDEN StreamDeviceString : public StreamDevice
+{
+  StreamDeviceString(String8 data, uint32_t fflags);
+  virtual ~StreamDeviceString();
+
+  virtual int64_t seek(int64_t offset, int whence);
+  virtual int64_t tell() const;
+  virtual sysuint_t read(void* buffer, sysuint_t size);
+  virtual sysuint_t write(const void* buffer, sysuint_t size);
+  virtual err_t truncate(int64_t offset);
+  virtual void close();
+
+  virtual String8 getBuffer() const;
+
+  String8 data;
+  sysuint_t pos;
+};
+
+StreamDeviceString::StreamDeviceString(String8 buffer, uint32_t fflags) :
+  data(buffer), pos(FOG_UINT64_C(0))
+{
+  flags |= fflags | Stream::IsOpen | Stream::IsSeekable | Stream::IsMemory | Stream::IsGrowable;
+}
+
+StreamDeviceString::~StreamDeviceString()
+{
+}
+
+int64_t StreamDeviceString::seek(int64_t offset, int whence)
+{
+  sysuint_t length = data.getLength();
+  int64_t i;
+
+  switch (whence)
+  {
+    case Stream::SeekSet:
+      i = offset;
+      break;
+    case Stream::SeekCur:
+      i = (int64_t)pos + offset;
+      break;
+    case Stream::SeekEnd:
+      i = (int64_t)length + offset;
+      break;
+  }
+
+  if (i < FOG_UINT64_C(0))
+  {
+    pos = 0;
+    return -1;
+  }
+  else if (i > (int64_t)length)
+  {
+    pos = length;
+    return -1;
+  }
+  else
+  {
+    pos = (sysuint_t)i;
+    return i;
+  }
+}
+
+int64_t StreamDeviceString::tell() const
+{
+  return (int64_t)pos;
+}
+
+sysuint_t StreamDeviceString::read(void* buffer, sysuint_t size)
+{
+  sysuint_t length = data.getLength();
+  sysuint_t remain = (sysuint_t)(length - pos);
+  if (size > remain) size = remain;
+
+  Memory::copy(buffer, const_cast<char*>(data.cStr()), size);
+  pos += size;
+
+  return size;
+}
+
+sysuint_t StreamDeviceString::write(const void* buffer, sysuint_t size)
+{
+  sysuint_t length = data.getLength();
+  sysuint_t overwriteSize = Math::min(length - pos, size);
+  sysuint_t appendSize = size - overwriteSize;
+
+  if (!data.tryDetach()) return 0;
+
+  const uint8_t* src = reinterpret_cast<const uint8_t*>(buffer);
+
+  if (overwriteSize)
+  {
+    Memory::copy(const_cast<char*>(data.cStr()), src, overwriteSize);
+    src += overwriteSize;
+    pos += overwriteSize;
+  }
+
+  if (appendSize)
+  {
+    if (data.append(Stub8(reinterpret_cast<const Char8*>(src), appendSize)) != Error::Ok)
+      return overwriteSize;
+    pos += appendSize;
+  }
+
+  return size;
+}
+
+err_t StreamDeviceString::truncate(int64_t offset)
+{
+  if (offset >= (int64_t)data.getLength()) return Error::Ok;
+
+  data.truncate((sysuint_t)offset);
+  if (pos > data.getLength()) pos = data.getLength();
+
+  return Error::Ok;
+}
+
+void StreamDeviceString::close()
+{
+  data.free();
+}
+
+String8 StreamDeviceString::getBuffer() const
+{
+  return data;
 }
 
 // ============================================================================
@@ -717,7 +863,7 @@ err_t Stream::openFILE(FILE* fp, uint32_t openFlags, bool canClose)
   close();
   if (fp == NULL) return Error::InvalidArgument;
 
-  uint32_t fflags = IsSeekable;
+  uint32_t fflags = IsSeekable | IsGrowable;
   if (openFlags & OpenRead ) fflags |= IsReadable;
   if (openFlags & OpenWrite) fflags |= IsWritable;
   if (canClose) fflags |= CanClose;
@@ -758,7 +904,7 @@ err_t Stream::openFd(int fd, uint32_t openFlags, bool canClose)
   close();
   if (fd < 0) return Error::InvalidArgument;
 
-  uint32_t fflags = IsSeekable;
+  uint32_t fflags = IsSeekable | IsGrowable;
   if (openFlags & OpenRead ) fflags |= IsReadable;
   if (openFlags & OpenWrite) fflags |= IsWritable;
   if (canClose) fflags |= CanClose;
@@ -771,17 +917,35 @@ err_t Stream::openFd(int fd, uint32_t openFlags, bool canClose)
 }
 #endif // FOG_OS_POSIX
 
-err_t Stream::openMemory(void* memory, sysuint_t size, uint32_t openFlags)
+err_t Stream::openBuffer()
+{
+  String8 buffer;
+  buffer.reserve(8192);
+  return openBuffer(buffer);
+}
+
+err_t Stream::openBuffer(const String8& buffer)
 {
   close();
-  if (memory == NULL) return Error::InvalidArgument;
+
+  StreamDevice* newd = new(std::nothrow) StreamDeviceString(buffer, IsReadable | IsWritable);
+  if (!newd) return Error::OutOfMemory;
+
+  AtomicBase::ptr_setXchg(&_d, newd)->deref();
+  return Error::Ok;
+}
+
+err_t Stream::openBuffer(void* buffer, sysuint_t size, uint32_t openFlags)
+{
+  close();
+  if (buffer == NULL) return Error::InvalidArgument;
 
   uint32_t fflags = 0;
 
   if (openFlags & OpenRead ) fflags |= IsReadable;
   if (openFlags & OpenWrite) fflags |= IsWritable;
 
-  StreamDevice* newd = new(std::nothrow) StreamDeviceMemory(memory, size, fflags);
+  StreamDevice* newd = new(std::nothrow) StreamDeviceMemory(buffer, size, fflags);
   if (!newd) return Error::OutOfMemory;
 
   AtomicBase::ptr_setXchg(&_d, newd)->deref();
@@ -884,6 +1048,11 @@ err_t Stream::truncate(int64_t offset)
 void Stream::close()
 {
   AtomicBase::ptr_setXchg(&_d, sharedNull->refAlways())->deref();
+}
+
+String8 Stream::getBuffer() const
+{
+  return _d->getBuffer();
 }
 
 Stream& Stream::operator=(const Stream& other)

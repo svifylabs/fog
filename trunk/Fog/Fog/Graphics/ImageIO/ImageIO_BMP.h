@@ -158,26 +158,26 @@ public:
   virtual uint32_t readHeader();
   virtual uint32_t readImage(Image& image);
 
-  FOG_INLINE uint32_t bmpHeaderType() const { return _bmpHeaderType; }
-  FOG_INLINE uint32_t bmpOffset() const { return _bmpOffset; }
-  FOG_INLINE uint32_t bmpHeaderSize() const { return _bmpHeaderSize; }
-  FOG_INLINE uint32_t bmpCompression() const { return _bmpCompression; }
-  FOG_INLINE uint32_t bmpImageSize() const { return _bmpImageSize; }
-  FOG_INLINE uint32_t bmpStride() const { return _bmpStride; }
+  FOG_INLINE uint32_t getBmpHeaderType() const { return _bmpHeaderType; }
+  FOG_INLINE uint32_t getBmpOffset() const { return _bmpOffset; }
+  FOG_INLINE uint32_t getBmpHeaderSize() const { return _bmpHeaderSize; }
+  FOG_INLINE uint32_t getBmpCompression() const { return _bmpCompression; }
+  FOG_INLINE uint32_t getBmpImageSize() const { return _bmpImageSize; }
+  FOG_INLINE uint32_t getBmpStride() const { return _bmpStride; }
 
-  FOG_INLINE uint32_t rMask() const { return _rMask; }
-  FOG_INLINE uint32_t gMask() const { return _gMask; }
-  FOG_INLINE uint32_t bMask() const { return _bMask; }
+  FOG_INLINE uint32_t getRMask() const { return _rMask; }
+  FOG_INLINE uint32_t getGMask() const { return _gMask; }
+  FOG_INLINE uint32_t getBMask() const { return _bMask; }
 
-  FOG_INLINE uint32_t rShift() const { return _rShift; }
-  FOG_INLINE uint32_t gShift() const { return _gShift; }
-  FOG_INLINE uint32_t bShift() const { return _bShift; }
+  FOG_INLINE uint32_t getRShift() const { return _rShift; }
+  FOG_INLINE uint32_t getGShift() const { return _gShift; }
+  FOG_INLINE uint32_t getBShift() const { return _bShift; }
 
-  FOG_INLINE uint32_t rLoss() const { return _rLoss; }
-  FOG_INLINE uint32_t gLoss() const { return _gLoss; }
-  FOG_INLINE uint32_t bLoss() const { return _bLoss; }
+  FOG_INLINE uint32_t getRLoss() const { return _rLoss; }
+  FOG_INLINE uint32_t getGLoss() const { return _gLoss; }
+  FOG_INLINE uint32_t getBLoss() const { return _bLoss; }
 
-  FOG_INLINE uint32_t byteSwapped16() const { return _byteSwapped16; }
+  FOG_INLINE uint32_t isByteSwapped16() const { return _byteSwapped16; }
 
 private:
   // clear everything

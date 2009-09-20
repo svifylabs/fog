@@ -377,13 +377,13 @@ void PcxDecoderDevice::reset()
 uint32_t PcxDecoderDevice::readHeader()
 {
   // don't read header more than once
-  if (headerDone()) return headerResult();
+  if (isHeaderDone()) return getHeaderResult();
 
   // mark header as done
   _headerDone = true;
 
   // read pcx header
-  if (stream().read(&_pcxFileHeader, sizeof(PcxHeader)) != sizeof(PcxHeader))
+  if (_stream.read(&_pcxFileHeader, sizeof(PcxHeader)) != sizeof(PcxHeader))
   {
     return Error::ImageIO_Truncated;
   }
@@ -430,18 +430,18 @@ uint32_t PcxDecoderDevice::readHeader()
   _framesCount = 1;
 
   // Accept only supported formats
-  switch (depth())
+  switch (getDepth())
   {
     case 1:
-      if (planes() >= 1 && planes() <= 4) break;
+      if (getPlanes() >= 1 && getPlanes() <= 4) break;
       return (_headerResult = Error::ImageIO_FormatNotSupported);
     case 4:
-      if (planes() == 1) break;
+      if (getPlanes() == 1) break;
       return (_headerResult = Error::ImageIO_FormatNotSupported);
     case 8:
-      if ((planes() == 1 || 
-         planes() == 3 || 
-         planes() == 4) && 
+      if ((getPlanes() == 1 ||
+         getPlanes() == 3 ||
+         getPlanes() == 4) &&
         pcxFileHeader().version >= 4) break;
       // Go through
     default:
@@ -451,13 +451,13 @@ uint32_t PcxDecoderDevice::readHeader()
   _format = Image::FormatI8;
 
   // standardize output for Fog::ImageIO
-  if (depth() == 8 && planes() == 4)
+  if (getDepth() == 8 && getPlanes() == 4)
   {
     _depth = 32;
     _planes = 1;
     _format = Image::FormatARGB32;
   }
-  else if (depth() == 8 && planes() == 3)
+  else if (getDepth() == 8 && getPlanes() == 3)
   {
     _depth = 24;
     _planes = 1;
@@ -475,13 +475,10 @@ uint32_t PcxDecoderDevice::readHeader()
 uint32_t PcxDecoderDevice::readImage(Image& image)
 {
   // read bmp header
-  if (readHeader() != Error::Ok)
-  {
-    return headerResult();
-  }
+  if (readHeader() != Error::Ok) return getHeaderResult();
 
   // don't read image more than once
-  if (readerDone()) return (_readerResult = Error::ImageIO_NotAnimationFormat);
+  if (isReaderDone()) return (_readerResult = Error::ImageIO_NotAnimationFormat);
 
   // error code (default is success)
   uint32_t error = Error::Ok;
@@ -517,15 +514,15 @@ uint32_t PcxDecoderDevice::readImage(Image& image)
   else
     _comment.free();
 
-  stream().readAll(dataArray);
+  _stream.readAll(dataArray);
   dataCur = (const uint8_t*)dataArray.cData();
   dataEnd = dataCur + dataArray.getLength();
 
-  if ((error = image.create(width(), height(), format()))) goto end;
+  if ((error = image.create(getWidth(), getHeight(), getFormat()))) goto end;
 
   // BitsPP: 1
   // Planes: 1, 2, 3, 4
-  if (depth() == 1)
+  if (_depth == 1)
   {
     sysuint_t plane;
     uint8_t b;
@@ -536,17 +533,17 @@ uint32_t PcxDecoderDevice::readImage(Image& image)
       goto end;
     }
 
-    for (y = 0; y != height(); y++) 
+    for (y = 0; y != _height; y++)
     {
       // Expand planes to 8 BPP
-      for (plane = 0; plane != planes(); plane++) 
+      for (plane = 0; plane != _planes; plane++)
       {
         pixelsCur = image.xScanline(y);
         mem = (uint8_t*)temporary.mem();
 
         if ((error = PCX_decodeScanline(mem, &dataCur, dataEnd, bytesPerLine, 0, 1)) != Error::Ok) goto end;
 
-        for (x = 0; x != width(); x++, pixelsCur++)
+        for (x = 0; x != _width; x++, pixelsCur++)
         {
           if ((x & 7) == 0) 
             b = *mem++;
@@ -556,13 +553,13 @@ uint32_t PcxDecoderDevice::readImage(Image& image)
           pixelsCur[0] |= ((b >> 7) & 1) << plane;
         }
       }
-      if ((y & 15) == 0) updateProgress(y, height());
+      if ((y & 15) == 0) updateProgress(y, _height);
     }
   }
 
   // BitsPP: 4
   // Planes: 1
-  else if (depth() == 4)
+  else if (_depth == 4)
   {
     if (!temporary.alloc(bytesPerLine))
     {
@@ -570,19 +567,19 @@ uint32_t PcxDecoderDevice::readImage(Image& image)
       goto end;
     }
 
-    for (y = 0; y != height(); y++) 
+    for (y = 0; y != _height; y++)
     {
       pixelsCur = image.xScanline(y);
       mem = (uint8_t*)temporary.mem();
 
       if ((error = PCX_decodeScanline(mem, &dataCur, dataEnd, bytesPerLine, 0, 1)) != Error::Ok) goto end;
 
-      for (x = 0; x != width(); x++, pixelsCur++) 
+      for (x = 0; x != _width; x++, pixelsCur++)
       {
         pixelsCur[0] = (!(x & 1)) ? ((*mem & 0xF0) >> 4) : (*mem++ & 0xF);
       }
 
-      if ((y & 15) == 0) updateProgress(y, height());
+      if ((y & 15) == 0) updateProgress(y, _height);
     }
   }
 
@@ -591,12 +588,12 @@ uint32_t PcxDecoderDevice::readImage(Image& image)
   else
   {
     sysuint_t pos[4];
-    sysuint_t ignore = bytesPerLine - width();
+    sysuint_t ignore = bytesPerLine - _width;
     sysuint_t increment;
     sysuint_t plane;
     sysuint_t planeMax = 1;
 
-    switch (depth())
+    switch (_depth)
     {
       case 8:
         pos[0] = 0;
@@ -620,31 +617,31 @@ uint32_t PcxDecoderDevice::readImage(Image& image)
         FOG_ASSERT_NOT_REACHED();
     }
 
-    for (y = 0; y != height(); y++) 
+    for (y = 0; y != _height; y++)
     {
       pixelsCur = image.xScanline(y);
       for (plane = 0; plane < planeMax; plane++)
       {
-        if ((error = PCX_decodeScanline(pixelsCur + pos[plane], &dataCur, dataEnd, width(), ignore, increment)) != Error::Ok) goto end;
+        if ((error = PCX_decodeScanline(pixelsCur + pos[plane], &dataCur, dataEnd, _width, ignore, increment)) != Error::Ok) goto end;
       }
 
-      if ((y & 15) == 0) updateProgress(y, height());
+      if ((y & 15) == 0) updateProgress(y, _height);
     }
   }
 
   // Read palette
-  if (depth() <= 8)
+  if (_depth <= 8)
   {
     uint32_t pal[256];
     uint32_t* pdest = pal;
 
-    uint nColors = 1 << (depth() * planes());
+    uint nColors = 1 << (_depth * _planes);
     bool read = true;
 
     // Setup basic palette settings.
     Memory::zero(pdest, 256 * sizeof(uint32_t));
 
-    if (depth() == 1 && planes() == 1)
+    if (_depth == 1 && _planes == 1)
     {
       PCX_fillMonoPalette(pdest);
       if (pcxFileHeader().version == 2) read = false;
@@ -655,7 +652,7 @@ uint32_t PcxDecoderDevice::readImage(Image& image)
     }
 
     // 256 color palette.
-    if (depth() == 8)
+    if (_depth == 8)
     {
       // Find 0x0C marker.
       while (dataCur != dataEnd)
@@ -711,7 +708,7 @@ uint32_t PcxDecoderDevice::readImage(Image& image)
   }
 
   // apply palette if needed
-  if (depth() <= 8) image.setPalette(_palette);
+  if (_depth <= 8) image.setPalette(_palette);
 
 end:
   if (error == Error::Ok) updateProgress(1.0);
@@ -792,17 +789,17 @@ uint32_t PcxEncoderDevice::writeImage(const Image& image)
   pcx.paletteInfo = 1;
 
   // Try to write comment
-  if (!comment().isEmpty())
+  if (!_comment.isEmpty())
   {
-    sysuint_t length = comment().getLength();
+    sysuint_t length = _comment.getLength();
     if (length > 54) length = 54;
-    memcpy(pcx.unused, (const char*)comment().cData(), length);
+    memcpy(pcx.unused, (const char*)_comment.cData(), length);
   }
 
   PCX_byteSwapHeader(&pcx);
 
   // Write pcx header
-  if (stream().write((const char *)(&pcx), sizeof(PcxHeader)) != sizeof(PcxHeader)) goto fail;
+  if (_stream.write((const char *)(&pcx), sizeof(PcxHeader)) != sizeof(PcxHeader)) goto fail;
 
   // Alloc buffers
   if (!rleenc.alloc((width << 1) + 2)) return Error::OutOfMemory;
@@ -813,7 +810,7 @@ uint32_t PcxEncoderDevice::writeImage(const Image& image)
     for (y = 0; y != height; y++)
     {
       pixels = image.cScanline(y);
-      if (!PCX_encodeScanline(stream(), (uint8_t*)rleenc.mem(), pixels, bpl, alignment, 1)) goto fail;
+      if (!PCX_encodeScanline(_stream, (uint8_t*)rleenc.mem(), pixels, bpl, alignment, 1)) goto fail;
 
       if ((y & 15) == 0) updateProgress(y, height);
     }
@@ -835,7 +832,7 @@ uint32_t PcxEncoderDevice::writeImage(const Image& image)
         PCX_convPaletteToPcx(palette + 1, (uint8_t*)image.getPalette().cData(), 256, sizeof(Rgba));
       }
 
-      if (stream().write((const char*)palette, 768+1) != 768+1) goto fail;
+      if (_stream.write((const char*)palette, 768+1) != 768+1) goto fail;
     }
   }
   // Write 24 or 32 bit RGB image
@@ -865,7 +862,7 @@ uint32_t PcxEncoderDevice::writeImage(const Image& image)
       pixels = image.cScanline(y);
       for (plane = 0; plane != nPlanes; plane++)
       {
-        if (!PCX_encodeScanline(stream(), (uint8_t*)rleenc.mem(), pixels + pos[plane], bpl, alignment, increment)) goto fail;
+        if (!PCX_encodeScanline(_stream, (uint8_t*)rleenc.mem(), pixels + pos[plane], bpl, alignment, increment)) goto fail;
       }
       if ((y & 15) == 0) updateProgress(y, height);
     }
