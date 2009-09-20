@@ -220,8 +220,6 @@ FOG_UI_MAIN()
   Application app(Ascii8("UI"));
   // fog_redirect_std_to_file("log.txt");
 
-  printf("%d\n", Error::FontCantLoadDefaultFace);
-
   MyWindow window;
   window.setSize(Size(715, 515));
   window.show();
