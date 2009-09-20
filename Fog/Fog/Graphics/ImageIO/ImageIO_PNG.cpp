@@ -277,14 +277,11 @@ void PngDecoderDevice::reset()
 uint32_t PngDecoderDevice::readHeader()
 {
   // Don't read header more than once.
-  if (headerDone()) return headerResult();
+  if (isHeaderDone()) return _headerResult;
 
   // Png library pointer
   PngLibrary* lib = _png->get();
   if (!lib->ok) return Error::ImageIO_PngLibraryNotFound;
-
-  // don't read header more than once
-  if (headerDone()) return headerResult();
 
   // mark header as done
   _headerDone = true;
@@ -293,7 +290,7 @@ uint32_t PngDecoderDevice::readHeader()
 
   if ((_headerResult = _createPngStream()) != Error::Ok)
   {
-    return headerResult();
+    return _headerResult;
   }
 
   if (setjmp(((png_structp)_png_ptr)->jmpbuf))
@@ -363,10 +360,10 @@ uint32_t PngDecoderDevice::readImage(Image& image)
   if (!lib->ok) return Error::ImageIO_PngLibraryNotFound;
 
   // read png header
-  if (readHeader() != Error::Ok) return headerResult();
+  if (readHeader() != Error::Ok) return _headerResult;
 
   // don't read image more than once
-  if (readerDone()) return (_readerResult = Error::ImageIO_NotAnimationFormat);
+  if (isReaderDone()) return (_readerResult = Error::ImageIO_NotAnimationFormat);
 
   // error code (default is success)
   uint32_t err = Error::Ok;
@@ -438,17 +435,17 @@ uint32_t PngDecoderDevice::readImage(Image& image)
     }
   }
 
-  if ((err = image.create(width(), height(), _format))) goto end;
+  if ((err = image.create(_width, _height, _format))) goto end;
 
   {
     int pass, number_passes = lib->png_set_interlace_handling(png_ptr);
     int y = 0;
     int yi = 0;
-    int ytotal = number_passes * height();
+    int ytotal = number_passes * _height;
 
     for (pass = 0; pass < number_passes; pass++)
     {
-      for (i = 0; i < height(); i++, y++, yi++)
+      for (i = 0; i < _height; i++, y++, yi++)
       {
         uint8_t* row = image._d->first + i * image.getStride();
         lib->png_read_rows(png_ptr, &row, NULL, 1);

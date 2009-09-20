@@ -8,6 +8,9 @@ LEGEND
 TODO
 ====
 
+[ ] Important
+    [ ] cmake not installs headers correctly
+
 [ ] Fog/Core:
     [ ] Remove allocPolicy and AllocPolicy enums, all detach functions must return err_t
         instead
