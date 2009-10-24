@@ -62,7 +62,8 @@ struct FOG_API Rasterizer
 
   struct CellXY;
 
-  struct CellX
+#include <Fog/Core/Pack.h>
+  struct FOG_PACKED CellX
   {
     int x;
     int cover;
@@ -72,6 +73,7 @@ struct FOG_API Rasterizer
     FOG_INLINE void set(const CellX& other);
     FOG_INLINE void set(const CellXY& other);
   };
+#include <Fog/Core/Unpack.h>
 
   struct CellXY
   {

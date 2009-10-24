@@ -59,8 +59,8 @@ Scanline32::Scanline32() :
   _coversData(NULL),
   _coversCur(NULL),
   _spansData(NULL),
-  _spanCur(const_cast<Span*>(&_zeroSpan) + 1),
-  _spanEnd(const_cast<Span*>(&_zeroSpan) + 1)
+  _spansCur(const_cast<Span*>(&_zeroSpan) + 1),
+  _spansEnd(const_cast<Span*>(&_zeroSpan) + 1)
 {
 }
 
@@ -104,8 +104,8 @@ err_t Scanline32::init(int x1, int x2)
   }
 
   _coversCur = _coversData;
-  _spanCur = _spansData;
-  _spanEnd = _spansData + _spansCapacity;
+  _spansCur = _spansData;
+  _spansEnd = _spansData + _spansCapacity;
 
   _spansCount = 0;
   return Error::Ok;
@@ -119,8 +119,8 @@ error:
   _spansCount = 0;
 
   _coversCur = NULL;
-  _spanCur = const_cast<Span*>(&_zeroSpan) + 1;
-  _spanEnd = const_cast<Span*>(&_zeroSpan) + 1;
+  _spansCur = const_cast<Span*>(&_zeroSpan) + 1;
+  _spansEnd = const_cast<Span*>(&_zeroSpan) + 1;
 
   return Error::OutOfMemory;
 }
@@ -131,8 +131,8 @@ void Scanline32::reset()
   _y = CoordInit;
 
   _coversCur = _coversData;
-  _spanCur = _spansData;
-  _spanEnd = _spansData + _spansCapacity;
+  _spansCur = _spansData;
+  _spansEnd = _spansData + _spansCapacity;
 
   _spansCount = 0;
 }
@@ -148,8 +148,8 @@ bool Scanline32::grow()
   if (!newData) return false;
 
   _spansData = newData + 1;
-  _spanCur = _spansData + _spansCapacity;
-  _spanEnd = _spansData + cap;
+  _spansCur = _spansData + _spansCapacity;
+  _spansEnd = _spansData + cap;
   _spansCapacity = cap;
   return true;
 }
