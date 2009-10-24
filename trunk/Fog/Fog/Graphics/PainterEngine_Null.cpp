@@ -115,11 +115,6 @@ struct FOG_HIDDEN PainterEngine_Null : public PainterEngine
   virtual void skew(double sx, double sy) {}
   virtual void translate(double x, double y) {}
   virtual void affine(const Matrix& m) {}
-  virtual void parallelogram(double x1, double y1, double x2, double y2, const double* para) {}
-  virtual void viewport(
-    double worldX1,  double worldY1,  double worldX2,  double worldY2,
-    double screenX1, double screenY1, double screenX2, double screenY2,
-    uint32_t viewportOption) {}
 
   virtual void worldToScreen(PointD* pt) const {}
   virtual void screenToWorld(PointD* pt) const {}

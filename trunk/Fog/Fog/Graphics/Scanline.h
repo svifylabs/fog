@@ -26,10 +26,6 @@ struct FOG_API Scanline32
   //! @brief Span.
   struct Span
   {
-    // Span() {}
-    // Span(Coord x_, Coord len_, const uint8_t* covers_) :
-    //   x(x_), len(len_), covers(covers_) {}
-
     //! @brief X position.
     Coord x;
     //! @brief Length, if negative, it's a solid span, covers is valid.

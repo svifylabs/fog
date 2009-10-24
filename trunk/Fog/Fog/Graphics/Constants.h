@@ -1432,25 +1432,6 @@ enum InnerJoin
 };
 
 // ============================================================================
-// [Fog::ViewportOption]
-// ============================================================================
-
-//! @brief Viewport option.
-enum ViewportOption
-{
-  ViewAnisotropic,
-  ViewXMinYMin,
-  ViewXMidYMin,
-  ViewXMaxYMin,
-  ViewXMinYMid,
-  ViewXMidYMid,
-  ViewXMaxYMid,
-  ViewXMinYMax,
-  ViewXMidYMax,
-  ViewXMaxYMax
-};
-
-// ============================================================================
 // [Fog::TextAlignment]
 // ============================================================================
 

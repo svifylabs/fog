@@ -147,11 +147,6 @@ struct FOG_API PainterEngine
   virtual void skew(double sx, double sy) = 0;
   virtual void translate(double x, double y) = 0;
   virtual void affine(const Matrix& m) = 0;
-  virtual void parallelogram(double x1, double y1, double x2, double y2, const double* para) = 0;
-  virtual void viewport(
-    double worldX1,  double worldY1,  double worldX2,  double worldY2,
-    double screenX1, double screenY1, double screenX2, double screenY2,
-    uint32_t viewportOption) = 0;
 
   virtual void worldToScreen(PointD* pt) const = 0;
   virtual void screenToWorld(PointD* pt) const = 0;
