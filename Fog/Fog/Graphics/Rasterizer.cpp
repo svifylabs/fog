@@ -1332,7 +1332,24 @@ static FOG_INLINE void qsortCells(Cell* start, sysuint_t num)
 
       for (; i < limit; j = i, i++)
       {
-        for (; j[1].x < j[0].x; j--)
+        // Optimization experiment for X64, not successful:
+        //
+        // int j1X = j[1].x;
+        // uint64_t j1T = ((uint64_t*)&j[1].cover)[0];
+        //
+        // for (;;) {
+        //   int j0X = j[0].x;
+        //   if (j0X < j1X) break;
+        //
+        //   j[1].x = j0X;
+        //   ((uint64_t*)&j[1].cover)[0] = ((uint64_t*)&j[0].cover)[0];
+        //
+        //   j[0].x = j1X;
+        //   ((uint64_t*)&j[0].cover)[0] = j1T;
+        //
+        //   if (j-- == base) break;
+        // }
+        for (; j[0].x >= j[1].x; j--)
         {
           swapCells(j + 1, j);
           if (j == base) break;

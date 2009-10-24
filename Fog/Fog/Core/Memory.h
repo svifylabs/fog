@@ -211,6 +211,12 @@ struct Memory
 #endif
   }
 
+  static FOG_INLINE void copy12B(void* dst, const void* src)
+  {
+    copy8B(dst, src);
+    copy4B((uint8_t*)dst + 8, (uint8_t*)src + 8);
+  }
+
   static FOG_INLINE void copy16B(void* dst, const void* src)
   {
 #if defined(FOG_HARDCODE_SSE2)
