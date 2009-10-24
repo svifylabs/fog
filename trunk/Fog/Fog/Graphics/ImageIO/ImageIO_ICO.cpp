@@ -93,7 +93,7 @@ uint32_t IcoProvider::check(const void* mem, sysuint_t length)
   
   while (remaining >= sizeof(IcoEntry))
   {
-  	fSize = Memory::bswap32le(entry->size);
+    fSize = Memory::bswap32le(entry->size);
     fOffset = Memory::bswap32le(entry->offset);
     
     if (fOffset < minOffset || fSize == 0) return 0;
@@ -158,7 +158,7 @@ uint32_t IcoDecoderDevice::readHeader()
   _headerDone = true;
   
   {
-  	IcoHeader icoHeader;
+    IcoHeader icoHeader;
     if (getStream().read(&icoHeader, sizeof(IcoHeader)) != sizeof(IcoHeader))
     {
       return (_headerResult = Error::ImageIO_Truncated);
@@ -229,18 +229,18 @@ uint32_t IcoDecoderDevice::readHeader()
 // stream after we already readed PNG signature
 struct IcoStreamReadDevice: public StreamDevice
 {
-	const uint8_t *_prereadBuffer;
+  const uint8_t *_prereadBuffer;
     sysuint_t _prereadSize;
-	Stream& _parent;
+  Stream& _parent;
     int64_t _readFromParent;
     
     IcoStreamReadDevice(const uint8_t *buf, sysuint_t bufsize, Stream& strm):
-    	_prereadBuffer(buf),
+      _prereadBuffer(buf),
         _prereadSize(bufsize),
         _parent(strm),
         _readFromParent(0)
     {
-    	flags = Stream::IsReadable | Stream::IsOpen;
+      flags = Stream::IsReadable | Stream::IsOpen;
     }
     
     virtual ~IcoStreamReadDevice() { }
@@ -249,16 +249,16 @@ struct IcoStreamReadDevice: public StreamDevice
     virtual int64_t tell() const { return 0; }
     virtual sysuint_t read(void* buffer, sysuint_t size)
     {
-    	uint8_t *mem = (uint8_t*)buffer;
+      uint8_t *mem = (uint8_t*)buffer;
         
-    	if (size == 0 || mem == 0) return 0;
+      if (size == 0 || mem == 0) return 0;
         
         sysuint_t readTotal = 0;
         sysuint_t readParent = 0;
         
         if (_prereadSize > 0)
         {
-        	sysuint_t fromPreread = Math::min(size, _prereadSize);
+          sysuint_t fromPreread = Math::min(size, _prereadSize);
             Memory::copy(mem, _prereadBuffer, fromPreread);
             _prereadSize -= fromPreread;
             _prereadBuffer += fromPreread;
@@ -269,7 +269,7 @@ struct IcoStreamReadDevice: public StreamDevice
         
         if (size > 0)
         {
-        	readParent = _parent.read(mem, size);
+          readParent = _parent.read(mem, size);
             readTotal += readParent;
             _readFromParent += (int64_t)readParent;
         }

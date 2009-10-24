@@ -72,9 +72,9 @@ static FOG_INLINE Point randPoint(int w, int h)
   return Point(rand() % w, rand() % h);
 }
 
-static FOG_INLINE PointF randPointF(int w, int h)
+static FOG_INLINE PointD randPointD(int w, int h)
 {
-  return PointF(rand() % w, rand() % h);
+  return PointD(rand() % w, rand() % h);
 }
 
 // ============================================================================
@@ -161,12 +161,12 @@ struct BenchmarkRandomizer_Polygon
 
   void prepare(int w, int h, int quantity)
   {
-    polyData = (PointF*)Memory::alloc(sizeof(PointF) * quantity * 10);
+    polyData = (PointD*)Memory::alloc(sizeof(PointD) * quantity * 10);
     rgbaData = (Rgba  *)Memory::alloc(sizeof(Rgba) * quantity);
 
     for (int a = 0; a < quantity * 10; a++)
     {
-      polyData[a] = randPointF(w, h);
+      polyData[a] = randPointD(w, h);
     }
 
     for (int a = 0; a < quantity; a++)
@@ -181,7 +181,7 @@ struct BenchmarkRandomizer_Polygon
     Memory::free(rgbaData);
   }
 
-  PointF* polyData;
+  PointD* polyData;
   Rgba* rgbaData;
 };
 
@@ -315,12 +315,12 @@ struct BenchmarkModule_Fog_FillPolygon : public BenchmarkModule_Fog
 
     for (int a = 0; a < quantity; a++)
     {
-      const PointF* polyData = &randomizer.polyData[a*10];
+      const PointD* polyData = &randomizer.polyData[a*10];
 
       Path path;
       for (int i = 0; i < 10; i++)
       {
-        PointF c0 = polyData[i];
+        PointD c0 = polyData[i];
         if (i == 0)
           path.moveTo(c0);
         else
@@ -348,7 +348,7 @@ struct BenchmarkModule_Fog_FillPattern : public BenchmarkModule_Fog
     BenchmarkModule_Fog(w, h)
   {
     pattern.setType(Pattern::TypeLinearGradient);
-    pattern.setPoints(PointF(w/2.0, h/2.0), PointF(30.0, 30.0));
+    pattern.setPoints(PointD(w/2.0, h/2.0), PointD(30.0, 30.0));
     pattern.addGradientStop(GradientStop(0.0, Rgba(0xFFFFFFFF)));
     pattern.addGradientStop(GradientStop(0.5, Rgba(0xFFFFFF00)));
     pattern.addGradientStop(GradientStop(1.0, Rgba(0xFF000000)));
@@ -603,7 +603,7 @@ struct BenchmarkModule_GDI_FillPolygon : public BenchmarkModule_GDI
 
       for (int a = 0; a < quantity; a++)
       {
-        const PointF* polyData = &randomizer.polyData[a*10];
+        const PointD* polyData = &randomizer.polyData[a*10];
 
         Gdiplus::GraphicsPath path;
         Gdiplus::PointF lines[10];
@@ -917,7 +917,7 @@ struct BenchmarkModule_Cairo_FillPolygon : public BenchmarkModule_Cairo
 
     for (int a = 0; a < quantity; a++)
     {
-      const PointF* polyData = &randomizer.polyData[a*10];
+      const PointD* polyData = &randomizer.polyData[a*10];
 
       for (int i = 0; i < 10; i++)
       {

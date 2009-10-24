@@ -45,7 +45,7 @@ void SvgContext::setDpi(double dpi)
   _translateCoordData[SvgUnitPx] = 1.0;
 }
 
-void SvgContext::drawEllipse(const PointF& cp, const PointF& r)
+void SvgContext::drawEllipse(const PointD& cp, const PointD& r)
 {
   if (_fillStyle.type != SvgPatternNone)
   {
@@ -60,7 +60,7 @@ void SvgContext::drawEllipse(const PointF& cp, const PointF& r)
   }
 }
 
-void SvgContext::drawLine(const PointF& p1, const PointF& p2)
+void SvgContext::drawLine(const PointD& p1, const PointD& p2)
 {
   if (_lineStyle.type != SvgPatternNone)
   {
@@ -69,7 +69,7 @@ void SvgContext::drawLine(const PointF& p1, const PointF& p2)
   }
 }
 
-void SvgContext::drawRect(const RectF& rect)
+void SvgContext::drawRect(const RectD& rect)
 {
   if (_fillStyle.type != SvgPatternNone)
   {
@@ -84,7 +84,7 @@ void SvgContext::drawRect(const RectF& rect)
   }
 }
 
-void SvgContext::drawRound(const RectF& rect, const PointF& r)
+void SvgContext::drawRound(const RectD& rect, const PointD& r)
 {
   if (_fillStyle.type != SvgPatternNone)
   {

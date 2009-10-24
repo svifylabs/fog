@@ -126,22 +126,22 @@ struct FOG_API UISystemDefault : public UISystem
   //! @brief Circular list of dirty windows.
   Vector<UIWindowDefault*> _dirtyList;
 
-  //! @brief Display informations.
+  //! @brief Display information.
   DisplayInfo _displayInfo;
-  //! @brief Palette informations.
+  //! @brief Palette information.
   PaletteInfo _paletteInfo;
 
   //! @brief Caret status.
   CaretStatus _caretStatus;
 
-  //! @brief Keyboard status informations.
+  //! @brief Keyboard status information.
   KeyboardStatus _keyboardStatus;
 
   //! @brief Count of mouse devices (1 is default).
   int _mouseDevices;
-  //! @brief Mouse status informations.
+  //! @brief Mouse status information.
   MouseStatus _mouseStatus;
-  //! @brief System mouse status informations.
+  //! @brief System mouse status information.
   SystemMouseStatus _systemMouseStatus;
 
   //! @brief Count of lines to scroll through mouse wheel.

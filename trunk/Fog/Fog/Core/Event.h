@@ -54,7 +54,7 @@ enum EvCore
 // [Fog::Event]
 // ============================================================================
 
-//! @brief Structure that contains informations about event.
+//! @brief Structure that contains information about event.
 //!
 //! Used together with Fog::Object event model.
 struct FOG_API Event : Task

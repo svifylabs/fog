@@ -33,7 +33,9 @@
 #include <Fog/Graphics/PainterEngine_Raster.h>
 #include <Fog/Graphics/Raster.h>
 #include <Fog/Graphics/Raster/Raster_C.h>
+#include <Fog/Graphics/Rasterizer.h>
 #include <Fog/Graphics/Rgba.h>
+#include <Fog/Graphics/Scanline.h>
 
 // [AntiGrain]
 #include "agg_alpha_mask_u8.h"
@@ -100,11 +102,6 @@ private:
   const Path::Vertex* vCur;
   const Path::Vertex* vEnd;
 };
-
-// Rasterizer and scanline storage
-typedef agg::rasterizer_scanline_aa_custom<> AggRasterizer;
-typedef agg::scanline_p8 AggScanlineP8;
-typedef agg::scanline_u8 AggScanlineU8;
 
 // ============================================================================
 // [Fog::PainterEngine_Raster]
@@ -237,13 +234,13 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
     double screenX1, double screenY1, double screenX2, double screenY2,
     uint32_t viewportOption);
 
-  virtual void worldToScreen(PointF* pt) const;
-  virtual void screenToWorld(PointF* pt) const;
+  virtual void worldToScreen(PointD* pt) const;
+  virtual void screenToWorld(PointD* pt) const;
 
   virtual void worldToScreen(double* scalar) const;
   virtual void screenToWorld(double* scalar) const;
 
-  virtual void alignPoint(PointF* pt) const;
+  virtual void alignPoint(PointD* pt) const;
 
   // --------------------------------------------------------------------------
   // [State]
@@ -270,23 +267,23 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
   // [Vector Drawing]
   // --------------------------------------------------------------------------
 
-  virtual void drawPoint(const PointF& p);
-  virtual void drawLine(const PointF& start, const PointF& end);
-  virtual void drawLine(const PointF* pts, sysuint_t count);
-  virtual void drawPolygon(const PointF* pts, sysuint_t count);
-  virtual void drawRect(const RectF& r);
-  virtual void drawRects(const RectF* r, sysuint_t count);
-  virtual void drawRound(const RectF& r, const PointF& radius);
-  virtual void drawEllipse(const PointF& cp, const PointF& r);
-  virtual void drawArc(const PointF& cp, const PointF& r, double start, double sweep);
+  virtual void drawPoint(const PointD& p);
+  virtual void drawLine(const PointD& start, const PointD& end);
+  virtual void drawLine(const PointD* pts, sysuint_t count);
+  virtual void drawPolygon(const PointD* pts, sysuint_t count);
+  virtual void drawRect(const RectD& r);
+  virtual void drawRects(const RectD* r, sysuint_t count);
+  virtual void drawRound(const RectD& r, const PointD& radius);
+  virtual void drawEllipse(const PointD& cp, const PointD& r);
+  virtual void drawArc(const PointD& cp, const PointD& r, double start, double sweep);
   virtual void drawPath(const Path& path);
 
-  virtual void fillPolygon(const PointF* pts, sysuint_t count);
-  virtual void fillRect(const RectF& r);
-  virtual void fillRects(const RectF* r, sysuint_t count);
-  virtual void fillRound(const RectF& r, const PointF& radius);
-  virtual void fillEllipse(const PointF& cp, const PointF& r);
-  virtual void fillArc(const PointF& cp, const PointF& r, double start, double sweep);
+  virtual void fillPolygon(const PointD* pts, sysuint_t count);
+  virtual void fillRect(const RectD& r);
+  virtual void fillRects(const RectD* r, sysuint_t count);
+  virtual void fillRound(const RectD& r, const PointD& radius);
+  virtual void fillEllipse(const PointD& cp, const PointD& r);
+  virtual void fillArc(const PointD& cp, const PointD& r, double start, double sweep);
   virtual void fillPath(const Path& path);
 
   // --------------------------------------------------------------------------
@@ -472,7 +469,7 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
     Raster::PatternContext* pctx;
 
     // Antigrain scanline rasterizer containers.
-    AggScanlineP8 slP8;
+    Scanline32 scanline;
 
     // Multithreading id, offset and delta. If id is equal to -1, multithreading
     // is disabled.
@@ -687,7 +684,7 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
 
     // [Members]
 
-    Static<AggRasterizer> ras;
+    Rasterizer* ras;
   };
 
   // --------------------------------------------------------------------------
@@ -862,7 +859,7 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
   // [Rasterizers]
   // --------------------------------------------------------------------------
 
-  static bool _rasterizePath(Context* ctx, AggRasterizer& ras, const Path& path, bool stroke);
+  static bool _rasterizePath(Context* ctx, Rasterizer* ras, const Path& path, bool stroke);
 
   // --------------------------------------------------------------------------
   // [Renderers]
@@ -871,7 +868,7 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
   void _renderBoxes(Context* ctx, const Box* box, sysuint_t count);
   void _renderImage(Context* ctx, const Rect& dst, const Image& image, const Rect& src);
   void _renderGlyphSet(Context* ctx, const Point& pt, const GlyphSet& glyphSet, const Box& boundingBox);
-  void _renderPath(Context* ctx, const AggRasterizer& ras);
+  void _renderPath(Context* ctx, Rasterizer* ras);
 
   // --------------------------------------------------------------------------
   // [Members]
@@ -900,7 +897,7 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
   // If we are running in single-core environment it's better to embed one
   // antigrain rasterizer in device itself (and only this rasterizer will be
   // used).
-  AggRasterizer ras;
+  Rasterizer* ras;
 
   // Multithreading
   WorkerManager* workerManager;
@@ -1036,7 +1033,7 @@ PainterEngine_Raster::CapsState& PainterEngine_Raster::CapsState::operator=(cons
 PainterEngine_Raster::Context::Context()
 {
   // Scanline must be reset before using it.
-  slP8.reset(0, 1000);
+  scanline.reset();
 
   engine = NULL;
 
@@ -1253,12 +1250,12 @@ void PainterEngine_Raster::Command_GlyphSet::release()
 
 void PainterEngine_Raster::Command_Path::run(Context* ctx)
 {
-  ctx->engine->_renderPath(ctx, ras.instance());
+  ctx->engine->_renderPath(ctx, ras);
 }
 
 void PainterEngine_Raster::Command_Path::release()
 {
-  ras.destroy();
+  Rasterizer::releaseRasterizer(ras);
 
   _releaseObjects();
   _releaseMemory();
@@ -1272,7 +1269,7 @@ void PainterEngine_Raster::Calculation_Path::run(Context* ctx)
 {
   Command_Path* cmd = reinterpret_cast<Command_Path*>(relatedTo);
 
-  bool ok = _rasterizePath(ctx, cmd->ras.instance(), path.instance(), stroke);
+  bool ok = _rasterizePath(ctx, cmd->ras, path.instance(), stroke);
   cmd->status.set(ok ? Command::Ready : Command::Skip);
 }
 
@@ -1451,7 +1448,7 @@ skipCommands:
         }
       }
 
-      if (shouldQuit.get() == true && currentCommand == mgr->commandsPosition)
+      if (shouldQuit.get() == (int)true && currentCommand == mgr->commandsPosition)
       {
 #if defined(FOG_DEBUG_RASTER_SYNCHRONIZATION)
         fog_debug("Fog::Painter[Worker #%d]::run() - quitting...", ctx.id);
@@ -1468,7 +1465,7 @@ skipCommands:
       state.set(Running);
       mgr->waitingWorkers.dec();
 
-      if (shouldQuit.get() == true)
+      if (shouldQuit.get() == (int)true)
         mgr->wakeUpSleeping(this);
       else
         mgr->wakeUpScheduled(this);
@@ -1575,7 +1572,8 @@ PainterEngine_Raster::PainterEngine_Raster(uint8_t* pixels, int width, int heigh
   ctx.clipState = new(std::nothrow) ClipState();
   ctx.capsState = new(std::nothrow) CapsState();
 
-  ras.gamma(ColorLut::linearLut);
+  ras = Rasterizer::getRasterizer();
+  // ras.gamma(ColorLut::linearLut);
 
   // Setup clip state.
   _setClipDefaults();
@@ -1606,6 +1604,7 @@ PainterEngine_Raster::~PainterEngine_Raster()
   _deleteStates();
   ctx.clipState->deref();
   ctx.capsState->deref();
+  Rasterizer::releaseRasterizer(ras);
 }
 
 // ============================================================================
@@ -2068,7 +2067,7 @@ void PainterEngine_Raster::viewport(
   _updateTransform();
 }
 
-void PainterEngine_Raster::worldToScreen(PointF* pt) const
+void PainterEngine_Raster::worldToScreen(PointD* pt) const
 {
   FOG_ASSERT(pt != NULL);
 
@@ -2076,7 +2075,7 @@ void PainterEngine_Raster::worldToScreen(PointF* pt) const
     ctx.capsState->transformations.transform(&pt->x, &pt->y);
 }
 
-void PainterEngine_Raster::screenToWorld(PointF* pt) const
+void PainterEngine_Raster::screenToWorld(PointD* pt) const
 {
   FOG_ASSERT(pt != NULL);
 
@@ -2090,8 +2089,8 @@ void PainterEngine_Raster::worldToScreen(double* scalar) const
 
   if (ctx.capsState->transformationsUsed)
   {
-    PointF p1(0, 0);
-    PointF p2(*scalar, *scalar);
+    PointD p1(0, 0);
+    PointD p2(*scalar, *scalar);
 
     PainterEngine_Raster::worldToScreen(&p1);
     PainterEngine_Raster::worldToScreen(&p2);
@@ -2109,8 +2108,8 @@ void PainterEngine_Raster::screenToWorld(double* scalar) const
 
   if (ctx.capsState->transformationsUsed)
   {
-    PointF p1(0, 0);
-    PointF p2(*scalar, *scalar);
+    PointD p1(0, 0);
+    PointD p2(*scalar, *scalar);
 
     PainterEngine_Raster::screenToWorld(&p1);
     PainterEngine_Raster::screenToWorld(&p2);
@@ -2122,7 +2121,7 @@ void PainterEngine_Raster::screenToWorld(double* scalar) const
   }
 }
 
-void PainterEngine_Raster::alignPoint(PointF* pt) const
+void PainterEngine_Raster::alignPoint(PointD* pt) const
 {
   FOG_ASSERT(pt != NULL);
 
@@ -2191,14 +2190,14 @@ void PainterEngine_Raster::clear()
 void PainterEngine_Raster::drawPoint(const Point& p)
 {
   PainterEngine_Raster::drawPoint(
-    PointF((double)p.getX() + 0.5, (double)p.getY() + 0.5));
+    PointD((double)p.getX() + 0.5, (double)p.getY() + 0.5));
 }
 
 void PainterEngine_Raster::drawLine(const Point& start, const Point& end)
 {
   PainterEngine_Raster::drawLine(
-    PointF((double)start.getX() + 0.5, (double)start.getY() + 0.5),
-    PointF((double)end.getX() + 0.5, (double)end.getY() + 0.5));
+    PointD((double)start.getX() + 0.5, (double)start.getY() + 0.5),
+    PointD((double)end.getX() + 0.5, (double)end.getY() + 0.5));
 }
 
 void PainterEngine_Raster::drawRect(const Rect& r)
@@ -2208,7 +2207,7 @@ void PainterEngine_Raster::drawRect(const Rect& r)
   if (ctx.capsState->transformationsUsed || !ctx.capsState->lineIsSimple)
   {
     PainterEngine_Raster::drawRect(
-      RectF(
+      RectD(
         (double)r.getX() + 0.5,
         (double)r.getY() + 0.5,
         (double)r.getWidth(),
@@ -2256,8 +2255,8 @@ void PainterEngine_Raster::drawRect(const Rect& r)
 void PainterEngine_Raster::drawRound(const Rect& r, const Point& radius)
 {
   PainterEngine_Raster::drawRound(
-    RectF((double)r.getX() + 0.5, (double)r.getY() + 0.5, r.getWidth(), r.getHeight()),
-    PointF((double)radius.getX(), (double)radius.getY()));
+    RectD((double)r.getX() + 0.5, (double)r.getY() + 0.5, r.getWidth(), r.getHeight()),
+    PointD((double)radius.getX(), (double)radius.getY()));
 }
 
 void PainterEngine_Raster::fillRect(const Rect& r)
@@ -2267,7 +2266,7 @@ void PainterEngine_Raster::fillRect(const Rect& r)
   if (ctx.capsState->transformationsUsed)
   {
     PainterEngine_Raster::fillRect(
-      RectF(
+      RectD(
         (double)r.getX(),
         (double)r.getY(),
         (double)r.getWidth(),
@@ -2307,7 +2306,7 @@ void PainterEngine_Raster::fillRects(const Rect* r, sysuint_t count)
     for (sysuint_t i = 0; i < count; i++)
     {
       if (r[i].isValid()) tmpPath.addRect(
-        RectF(
+        RectD(
           (double)r[i].getX(),
           (double)r[i].getY(),
           (double)r[i].getWidth(),
@@ -2346,8 +2345,8 @@ void PainterEngine_Raster::fillRects(const Rect* r, sysuint_t count)
 void PainterEngine_Raster::fillRound(const Rect& r, const Point& radius)
 {
   PainterEngine_Raster::fillRound(
-    RectF((double)r.getX(), (double)r.getY(), r.getWidth(), r.getHeight()),
-    PointF(radius.getX(), radius.getY()));
+    RectD((double)r.getX(), (double)r.getY(), r.getWidth(), r.getHeight()),
+    PointD(radius.getX(), radius.getY()));
 }
 
 void PainterEngine_Raster::fillRegion(const Region& region)
@@ -2370,7 +2369,7 @@ void PainterEngine_Raster::fillRegion(const Region& region)
 // [Fog::PainterEngine_Raster - Vector drawing]
 // ============================================================================
 
-void PainterEngine_Raster::drawPoint(const PointF& p)
+void PainterEngine_Raster::drawPoint(const PointD& p)
 {
   tmpPath.clear();
   tmpPath.moveTo(p);
@@ -2378,7 +2377,7 @@ void PainterEngine_Raster::drawPoint(const PointF& p)
   _serializePath(tmpPath, true);
 }
 
-void PainterEngine_Raster::drawLine(const PointF& start, const PointF& end)
+void PainterEngine_Raster::drawLine(const PointD& start, const PointD& end)
 {
   tmpPath.clear();
   tmpPath.moveTo(start);
@@ -2386,7 +2385,7 @@ void PainterEngine_Raster::drawLine(const PointF& start, const PointF& end)
   _serializePath(tmpPath, true);
 }
 
-void PainterEngine_Raster::drawLine(const PointF* pts, sysuint_t count)
+void PainterEngine_Raster::drawLine(const PointD* pts, sysuint_t count)
 {
   if (!count) return;
 
@@ -2399,7 +2398,7 @@ void PainterEngine_Raster::drawLine(const PointF* pts, sysuint_t count)
   _serializePath(tmpPath, true);
 }
 
-void PainterEngine_Raster::drawPolygon(const PointF* pts, sysuint_t count)
+void PainterEngine_Raster::drawPolygon(const PointD* pts, sysuint_t count)
 {
   if (!count) return;
 
@@ -2413,7 +2412,7 @@ void PainterEngine_Raster::drawPolygon(const PointF* pts, sysuint_t count)
   _serializePath(tmpPath, true);
 }
 
-void PainterEngine_Raster::drawRect(const RectF& r)
+void PainterEngine_Raster::drawRect(const RectD& r)
 {
   if (!r.isValid()) return;
 
@@ -2422,7 +2421,7 @@ void PainterEngine_Raster::drawRect(const RectF& r)
   _serializePath(tmpPath, true);
 }
 
-void PainterEngine_Raster::drawRects(const RectF* r, sysuint_t count)
+void PainterEngine_Raster::drawRects(const RectD* r, sysuint_t count)
 {
   if (!count) return;
 
@@ -2431,21 +2430,21 @@ void PainterEngine_Raster::drawRects(const RectF* r, sysuint_t count)
   _serializePath(tmpPath, true);
 }
 
-void PainterEngine_Raster::drawRound(const RectF& r, const PointF& radius)
+void PainterEngine_Raster::drawRound(const RectD& r, const PointD& radius)
 {
   tmpPath.clear();
   tmpPath.addRound(r, radius);
   _serializePath(tmpPath, true);
 }
 
-void PainterEngine_Raster::drawEllipse(const PointF& cp, const PointF& r)
+void PainterEngine_Raster::drawEllipse(const PointD& cp, const PointD& r)
 {
   tmpPath.clear();
   tmpPath.addEllipse(cp, r);
   _serializePath(tmpPath, true);
 }
 
-void PainterEngine_Raster::drawArc(const PointF& cp, const PointF& r, double start, double sweep)
+void PainterEngine_Raster::drawArc(const PointD& cp, const PointD& r, double start, double sweep)
 {
   tmpPath.clear();
   tmpPath.addArc(cp, r, start, sweep);
@@ -2457,7 +2456,7 @@ void PainterEngine_Raster::drawPath(const Path& path)
   _serializePath(path, true);
 }
 
-void PainterEngine_Raster::fillPolygon(const PointF* pts, sysuint_t count)
+void PainterEngine_Raster::fillPolygon(const PointD* pts, sysuint_t count)
 {
   if (!count) return;
 
@@ -2471,7 +2470,7 @@ void PainterEngine_Raster::fillPolygon(const PointF* pts, sysuint_t count)
   _serializePath(tmpPath, false);
 }
 
-void PainterEngine_Raster::fillRect(const RectF& r)
+void PainterEngine_Raster::fillRect(const RectD& r)
 {
   if (!r.isValid()) return;
 
@@ -2480,7 +2479,7 @@ void PainterEngine_Raster::fillRect(const RectF& r)
   _serializePath(tmpPath, false);
 }
 
-void PainterEngine_Raster::fillRects(const RectF* r, sysuint_t count)
+void PainterEngine_Raster::fillRects(const RectD* r, sysuint_t count)
 {
   if (!count) return;
 
@@ -2489,21 +2488,21 @@ void PainterEngine_Raster::fillRects(const RectF* r, sysuint_t count)
   _serializePath(tmpPath, false);
 }
 
-void PainterEngine_Raster::fillRound(const RectF& r, const PointF& radius)
+void PainterEngine_Raster::fillRound(const RectD& r, const PointD& radius)
 {
   tmpPath.clear();
   tmpPath.addRound(r, radius);
   _serializePath(tmpPath, false);
 }
 
-void PainterEngine_Raster::fillEllipse(const PointF& cp, const PointF& r)
+void PainterEngine_Raster::fillEllipse(const PointD& cp, const PointD& r)
 {
   tmpPath.clear();
   tmpPath.addEllipse(cp, r);
   _serializePath(tmpPath, false);
 }
 
-void PainterEngine_Raster::fillArc(const PointF& cp, const PointF& r, double start, double sweep)
+void PainterEngine_Raster::fillArc(const PointD& cp, const PointD& r, double start, double sweep)
 {
   tmpPath.clear();
   tmpPath.addArc(cp, r, start, sweep);
@@ -3247,8 +3246,7 @@ void PainterEngine_Raster::_serializePath(const Path& path, bool stroke)
     clc->stroke = stroke;
     cmd->status.init(Command::Wait);
     cmd->calculation = clc;
-    cmd->ras.init();
-    cmd->ras.instance().gamma(ColorLut::linearLut);
+    cmd->ras = Rasterizer::getRasterizer();
     _postCommand(cmd, clc);
   }
 }
@@ -3334,7 +3332,7 @@ void PainterEngine_Raster::_postCommand(Command* cmd, Calculation* clc)
 // ============================================================================
 
 static bool FOG_FASTCALL AggRasterizePath(
-  PainterEngine_Raster::Context* ctx, AggRasterizer& ras,
+  PainterEngine_Raster::Context* ctx, Rasterizer* ras,
   const Path& path, bool stroke)
 {
   PainterEngine_Raster::ClipState* clipState = ctx->clipState;
@@ -3361,36 +3359,31 @@ static bool FOG_FASTCALL AggRasterizePath(
     dst.applyMatrix(capsState->transformations);
   }
 
-  ras.reset();
-  ras.filling_rule(stroke ? agg::fill_even_odd : static_cast<agg::filling_rule_e>(capsState->fillMode));
-  ras.clip_box(
-    (double)clipState->clipBox.getX1(),
-    (double)clipState->clipBox.getY1(),
-    (double)clipState->clipBox.getX2(),
-    (double)clipState->clipBox.getY2());
+  ras->reset();
+  ras->setFillRule(stroke ? FillEvenOdd : capsState->fillMode);
+  ras->setClipBox(clipState->clipBox);
+  ras->addPath(dst);
+  ras->finalize();
 
-  ras.add_path(dst.cData(), dst.getLength());
-
-  ras.sort();
-  return ras.has_cells();
+  return ras->hasCells();
 }
 
-template<int BytesPerPixel, class Rasterizer, class Scanline>
-static void FOG_INLINE AggRenderPath(PainterEngine_Raster::Context* ctx, const Rasterizer& ras, Scanline& sl)
+template<int BytesPerPixel>
+static void FOG_INLINE AggRenderPath(PainterEngine_Raster::Context* ctx, Rasterizer* ras, Scanline32* scanline)
 {
   PainterEngine_Raster::ClipState* clipState = ctx->clipState;
   PainterEngine_Raster::CapsState* capsState = ctx->capsState;
 
-  sl.reset(ras.min_x(), ras.max_x());
+  if (scanline->init(ras->getCellsBounds().x1, ras->getCellsBounds().x2) != Error::Ok) return;
 
-  int y = ras.min_y();
-  int y_end = ras.max_y();
+  int y = ras->getCellsBounds().y1;
+  int y_end = ras->getCellsBounds().y2;
   int delta = ctx->delta;
 
   if (ctx->id != -1)
   {
     y = alignToDelta(y, ctx->offset, delta);
-    if (y > y_end) return;
+    if (y >= y_end) return;
   }
 
   sysint_t stride = ctx->engine->_stride;
@@ -3409,11 +3402,12 @@ static void FOG_INLINE AggRenderPath(PainterEngine_Raster::Context* ctx, const R
     Raster::SpanSolidMskConstFn span_solid_a8_const = ctx->rops->span_solid_a8_const;
     Raster::Closure* closure = &ctx->closure;
 
-    for (; y <= y_end; y += delta, pBase += stride)
+    for (; y < y_end; y += delta, pBase += stride)
     {
-      unsigned numSpans = ras.sweep_scanline(sl, y);
+      uint numSpans = ras->sweepScanline(scanline, y);
       if (numSpans == 0) continue;
-      typename Scanline::const_iterator span = sl.begin();
+
+      const Scanline32::Span* span = scanline->getSpansData();
 
       for (;;)
       {
@@ -3461,11 +3455,12 @@ static void FOG_INLINE AggRenderPath(PainterEngine_Raster::Context* ctx, const R
     Raster::SpanCompositeMskConstFn span_composite_a8_const = ctx->rops->span_composite_a8_const[pctx->format];
     Raster::Closure* closure = &ctx->closure;
 
-    for (; y <= y_end; y += delta, pBase += stride)
+    for (; y < y_end; y += delta, pBase += stride)
     {
-      unsigned numSpans = ras.sweep_scanline(sl, y);
+      uint numSpans = ras->sweepScanline(scanline, y);
       if (numSpans == 0) continue;
-      typename Scanline::const_iterator span = sl.begin();
+
+      const Scanline32::Span* span = scanline->getSpansData();
 
       for (;;)
       {
@@ -3507,7 +3502,7 @@ static void FOG_INLINE AggRenderPath(PainterEngine_Raster::Context* ctx, const R
   }
 }
 
-bool PainterEngine_Raster::_rasterizePath(Context* ctx, AggRasterizer& ras, const Path& path, bool stroke)
+bool PainterEngine_Raster::_rasterizePath(Context* ctx, Rasterizer* ras, const Path& path, bool stroke)
 {
   return AggRasterizePath(ctx, ras, path, stroke);
 }
@@ -3798,18 +3793,18 @@ void PainterEngine_Raster::_renderGlyphSet(Context* ctx, const Point& pt, const 
   }
 }
 
-void PainterEngine_Raster::_renderPath(Context* ctx, const AggRasterizer& ras)
+void PainterEngine_Raster::_renderPath(Context* ctx, Rasterizer* ras)
 {
   switch (_bpp)
   {
     case 4:
-      AggRenderPath<4, AggRasterizer, AggScanlineP8>(ctx, ras, ctx->slP8);
+      AggRenderPath<4>(ctx, ras, &ctx->scanline);
       break;
     case 3:
-      AggRenderPath<3, AggRasterizer, AggScanlineP8>(ctx, ras, ctx->slP8);
+      AggRenderPath<3>(ctx, ras, &ctx->scanline);
       break;
     case 1:
-      AggRenderPath<1, AggRasterizer, AggScanlineP8>(ctx, ras, ctx->slP8);
+      AggRenderPath<1>(ctx, ras, &ctx->scanline);
       break;
     default:
       FOG_ASSERT_NOT_REACHED();

@@ -89,8 +89,8 @@ struct Implicit
 
   //! @brief Returns object flags.
   //!
-  //! Object flags contains boolean informations about object data. There
-  //! are always informations about object allocation, shareability and
+  //! Object flags contains boolean information about object data. There
+  //! are always information about object allocation, shareability and
   //! null.
   uint32_t getFlags() const;
 

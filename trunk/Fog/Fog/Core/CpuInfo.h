@@ -39,7 +39,7 @@ union FOG_HIDDEN CpuId
 // [Fog::CpuInfo]
 // ============================================================================
 
-//! @brief Informations about CPU features.
+//! @brief Information about CPU features.
 //!
 //! Easy way to read CPU features. CPU is detected in startup time, so this class
 //! has method only to read the detected state. Use @c Cpu::features to 

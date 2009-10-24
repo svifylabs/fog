@@ -449,7 +449,7 @@ void Path::free()
 // [Fog::Path - Bounding Rect]
 // ============================================================================
 
-RectF Path::boundingRect() const
+RectD Path::boundingRect() const
 {
   sysuint_t i = _d->length;
   Vertex* v = _d->data;
@@ -488,7 +488,7 @@ RectF Path::boundingRect() const
     v++;
   }
 
-  return RectF(x1, y1, x2 - x1, y2 - y1);
+  return RectD(x1, y1, x2 - x1, y2 - y1);
 }
 
 // ============================================================================
@@ -590,7 +590,7 @@ err_t Path::lineTo(const double* x, const double* y, sysuint_t count)
   return Error::Ok;
 }
 
-err_t Path::lineTo(const PointF* pts, sysuint_t count)
+err_t Path::lineTo(const PointD* pts, sysuint_t count)
 {
   Vertex* v = _add(count);
   if (!v) return Error::OutOfMemory;
@@ -1030,7 +1030,7 @@ err_t Path::applyMatrix(const Matrix& matrix)
 // [Fog::Path - Add]
 // ============================================================================
 
-err_t Path::addRect(const RectF& r)
+err_t Path::addRect(const RectD& r)
 {
   if (!r.isValid()) return Error::Ok;
 
@@ -1056,7 +1056,7 @@ err_t Path::addRect(const RectF& r)
   return Error::Ok;
 }
 
-err_t Path::addRects(const RectF* r, sysuint_t count)
+err_t Path::addRects(const RectD* r, sysuint_t count)
 {
   if (!count) return Error::Ok;
   FOG_ASSERT(r);
@@ -1092,7 +1092,7 @@ err_t Path::addRects(const RectF* r, sysuint_t count)
   return Error::Ok;
 }
 
-err_t Path::addRound(const RectF& r, const PointF& radius)
+err_t Path::addRound(const RectD& r, const PointD& radius)
 {
   if (!r.isValid()) return Error::Ok;
 
@@ -1133,7 +1133,7 @@ err_t Path::addRound(const RectF& r, const PointF& radius)
   return err;
 }
 
-err_t Path::addEllipse(const RectF& r)
+err_t Path::addEllipse(const RectD& r)
 {
   if (!r.isValid()) return Error::Ok;
 
@@ -1145,12 +1145,12 @@ err_t Path::addEllipse(const RectF& r)
   return _arcTo(cx, cy, rx, ry, 0.0, 2.0 * M_PI, CmdMoveTo, true);
 }
 
-err_t Path::addEllipse(const PointF& cp, const PointF& r)
+err_t Path::addEllipse(const PointD& cp, const PointD& r)
 {
   return _arcTo(cp.getX(), cp.getY(), r.getX(), r.getY(), 0.0, 2.0 * M_PI, CmdMoveTo, true);
 }
 
-err_t Path::addArc(const RectF& r, double start, double sweep)
+err_t Path::addArc(const RectD& r, double start, double sweep)
 {
   if (!r.isValid()) return Error::Ok;
 
@@ -1162,12 +1162,12 @@ err_t Path::addArc(const RectF& r, double start, double sweep)
   return _arcTo(cx, cy, rx, ry, start, sweep, CmdMoveTo, false);
 }
 
-err_t Path::addArc(const PointF& cp, const PointF& r, double start, double sweep)
+err_t Path::addArc(const PointD& cp, const PointD& r, double start, double sweep)
 {
   return _arcTo(cp.getX(), cp.getY(), r.getX(), r.getY(), start, sweep, CmdMoveTo, false);
 }
 
-err_t Path::addChord(const RectF& r, double start, double sweep)
+err_t Path::addChord(const RectD& r, double start, double sweep)
 {
   if (!r.isValid()) return Error::Ok;
 
@@ -1179,12 +1179,12 @@ err_t Path::addChord(const RectF& r, double start, double sweep)
   return _arcTo(cx, cy, rx, ry, start, sweep, CmdMoveTo, true);
 }
 
-err_t Path::addChord(const PointF& cp, const PointF& r, double start, double sweep)
+err_t Path::addChord(const PointD& cp, const PointD& r, double start, double sweep)
 {
   return _arcTo(cp.getX(), cp.getY(), r.getX(), r.getY(), start, sweep, CmdMoveTo, true);
 }
 
-err_t Path::addPie(const RectF& r, double start, double sweep)
+err_t Path::addPie(const RectD& r, double start, double sweep)
 {
   if (!r.isValid()) return Error::Ok;
 
@@ -1193,10 +1193,10 @@ err_t Path::addPie(const RectF& r, double start, double sweep)
   double cx = r.getX() + rx;
   double cy = r.getY() + ry;
 
-  return addPie(PointF(cx, cy), PointF(rx, ry), start, sweep);
+  return addPie(PointD(cx, cy), PointD(rx, ry), start, sweep);
 }
 
-err_t Path::addPie(const PointF& cp, const PointF& r, double start, double sweep)
+err_t Path::addPie(const PointD& cp, const PointD& r, double start, double sweep)
 {
   if (sweep >= M_PI*2.0) return addEllipse(cp, r);
 
@@ -1363,99 +1363,6 @@ ensureSpace:
           return Error::Ok;
         else
           goto ensureSpace;
-
-      case CmdCatrom:
-      {
-        if (n <= 2) goto invalid;
-        if (v[1].cmd.cmd() != CmdCatrom ||
-            v[2].cmd.cmd() != CmdCatrom) goto invalid;
-
-        // Finalize path
-        dst._d->length = (sysuint_t)(dstv - dst._d->data);
-
-        double x1 = lastx;
-        double y1 = lasty;
-        double x2 = v[0].x;
-        double y2 = v[0].y;
-        double x3 = v[1].x;
-        double y3 = v[1].y;
-        double x4 = v[2].x;
-        double y4 = v[2].y;
-
-        // Trans. matrix Catmull-Rom to Bezier
-        //
-        //  0       1       0       0
-        //  -1/6    1       1/6     0
-        //  0       1/6     1       -1/6
-        //  0       0       1       0
-        err = Raster::functionMap->vector.approximateCurve4(dst,
-          x2,
-          y2,
-          (-x1 + 6.0 * x2 + x3) / 6.0,
-          (-y1 + 6.0 * y2 + y3) / 6.0,
-          ( x2 + 6.0 * x3 - x4) / 6.0,
-          ( y2 + 6.0 * y3 - y4) / 6.0,
-          x3,
-          y3,
-          approximationScale, 0.0, 0.0);
-
-        lastx = x4;
-        lasty = y4;
-
-        v += 3;
-        n -= 3;
-
-        if (n == 0)
-          return Error::Ok;
-        else
-          goto ensureSpace;
-      }
-
-      case CmdUBSpline:
-      {
-        if (n <= 2) goto invalid;
-        if (v[1].cmd.cmd() != CmdUBSpline ||
-            v[2].cmd.cmd() != CmdUBSpline) goto invalid;
-
-        // Finalize path
-        dst._d->length = (sysuint_t)(dstv - dst._d->data);
-
-        double x1 = lastx;
-        double y1 = lasty;
-        double x2 = v[0].x;
-        double y2 = v[0].y;
-        double x3 = v[1].x;
-        double y3 = v[1].y;
-        double x4 = v[2].x;
-        double y4 = v[2].y;
-
-        lastx = (    x2 + 4.0 * x3 + x4) / 6.0;
-        lasty = (    y2 + 4.0 * y3 + y4) / 6.0;
-
-        // Trans. matrix Uniform BSpline to Bezier
-        //
-        //  1/6     4/6     1/6     0
-        //  0       4/6     2/6     0
-        //  0       2/6     4/6     0
-        //  0       1/6     4/6     1/6
-        err = Raster::functionMap->vector.approximateCurve4(dst,
-          (    x1 + 4.0 * x2 + x3) / 6.0,
-          (    y1 + 4.0 * y2 + y3) / 6.0,
-          (4 * x2 + 2.0 * x3     ) / 6.0,
-          (4 * y2 + 2.0 * y3     ) / 6.0,
-          (2 * x2 + 4.0 * x3     ) / 6.0,
-          (2 * y2 + 4.0 * y3     ) / 6.0,
-          lastx, lasty,
-          approximationScale, 0.0, 0.0);
-
-        v += 3;
-        n -= 3;
-
-        if (n == 0)
-          return Error::Ok;
-        else
-          goto ensureSpace;
-      }
 
       default:
         dstv->x = lastx = 0.0;

@@ -132,10 +132,10 @@ void Pattern::setNull()
 err_t Pattern::setStartPoint(const Point& pt)
 {
   return setStartPoint(
-    PointF((double)pt.getX() + 0.5, (double)pt.getY() + 0.5));
+    PointD((double)pt.getX() + 0.5, (double)pt.getY() + 0.5));
 }
 
-err_t Pattern::setStartPoint(const PointF& pt)
+err_t Pattern::setStartPoint(const PointD& pt)
 {
   if (_d->points[0] == pt) return Error::Ok;
 
@@ -149,10 +149,10 @@ err_t Pattern::setStartPoint(const PointF& pt)
 err_t Pattern::setEndPoint(const Point& pt)
 {
   return setEndPoint(
-    PointF((double)pt.getX() + 0.5, (double)pt.getY() + 0.5));
+    PointD((double)pt.getX() + 0.5, (double)pt.getY() + 0.5));
 }
 
-err_t Pattern::setEndPoint(const PointF& pt)
+err_t Pattern::setEndPoint(const PointD& pt)
 {
   if (_d->points[1] == pt) return Error::Ok;
 
@@ -166,11 +166,11 @@ err_t Pattern::setEndPoint(const PointF& pt)
 err_t Pattern::setPoints(const Point& startPt, const Point& endPt)
 {
   return setPoints(
-    PointF((double)startPt.getX() + 0.5, (double)startPt.getY() + 0.5),
-    PointF((double)endPt.getX()   + 0.5, (double)endPt.getY()   + 0.5));
+    PointD((double)startPt.getX() + 0.5, (double)startPt.getY() + 0.5),
+    PointD((double)endPt.getX()   + 0.5, (double)endPt.getY()   + 0.5));
 }
 
-err_t Pattern::setPoints(const PointF& startPt, const PointF& endPt)
+err_t Pattern::setPoints(const PointD& startPt, const PointD& endPt)
 {
   if (_d->points[0] == startPt && _d->points[1] == endPt) return Error::Ok;
 

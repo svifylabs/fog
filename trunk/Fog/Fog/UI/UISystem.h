@@ -49,7 +49,7 @@ struct FOG_API UISystem : public Object
 
   // [Structures]
 
-  //! @brief Display informations.
+  //! @brief Display information.
   struct DisplayInfo
   {
     //! @brief Screen width.
@@ -70,7 +70,7 @@ struct FOG_API UISystem : public Object
     uint32_t is16BitSwapped;
   };
 
-  //! @brief Palette informations.
+  //! @brief Palette information.
   struct PaletteInfo
   {
     //! @brief Count of entities in palConv[] 2 to 256.

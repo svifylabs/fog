@@ -19,7 +19,7 @@ namespace Fog {
 // [Fog::UserInfo]
 // ============================================================================
 
-//! @brief Provides informations about user.
+//! @brief Provides information about user.
 struct FOG_API UserInfo
 {
   enum Directories

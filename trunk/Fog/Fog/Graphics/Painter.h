@@ -43,14 +43,14 @@ namespace Fog {
 //!
 //! @section Meta and user region.
 //!
-//! Painter supports two indenpendent region and origin informations that can
+//! Painter supports two indenpendent region and origin information that can
 //! be used to affect painter origin and clipping. First region and origin 
 //! informations are stored as meta region and meta origin. These variables
 //! shouldn't be changed during rendering and are used usually by windowing
 //! system to set correct origin and window clipping. If you are using Fog/UI
 //! library, never change these variables in @c Widget::onPaint() event.
 //!
-//! Second region and origin informations are stored as user region and user
+//! Second region and origin information are stored as user region and user
 //! origin. These variables are designed to be changeable by user during 
 //! rendering, so use them if it's useable for you.
 //!
@@ -105,7 +105,7 @@ struct FOG_API Painter
   //! @brief Set painter meta variables (meta origin, meta region, user origin and user region).
   //!
   //! This function were designed as an optimization for windowing systems to
-  //! set all important origin and clipping informations per one function call.
+  //! set all important origin and clipping information per one function call.
   FOG_INLINE void setMetaVariables(
     const Point& metaOrigin,
     const Region& metaRegion, 
@@ -263,9 +263,9 @@ struct FOG_API Painter
   }
 
   //! @brief Convert world coordinate into screen one (using transformation matrix).
-  FOG_INLINE void worldToScreen(PointF* pt) const { _engine->worldToScreen(pt); }
+  FOG_INLINE void worldToScreen(PointD* pt) const { _engine->worldToScreen(pt); }
   //! @brief Convert screen coordinate into world one (using transformation matrix).
-  FOG_INLINE void screenToWorld(PointF* pt) const { _engine->screenToWorld(pt); }
+  FOG_INLINE void screenToWorld(PointD* pt) const { _engine->screenToWorld(pt); }
 
   //! @brief Convert world scalar into screen one (using transformation matrix).
   FOG_INLINE void worldToScreen(double* scalar) const { _engine->worldToScreen(scalar); }
@@ -273,7 +273,7 @@ struct FOG_API Painter
   FOG_INLINE void screenToWorld(double* scalar) const { _engine->screenToWorld(scalar); }
 
   //! @brief Align point to center (X.5, Y.5) after applied all transformations.
-  FOG_INLINE void alignPoint(PointF* pt) const { _engine->alignPoint(pt); }
+  FOG_INLINE void alignPoint(PointD* pt) const { _engine->alignPoint(pt); }
 
   // [State]
 
@@ -296,23 +296,23 @@ struct FOG_API Painter
 
   // [Vector Drawing]
 
-  FOG_INLINE void drawPoint(const PointF& p) { _engine->drawPoint(p); }
-  FOG_INLINE void drawLine(const PointF& start, const PointF& end) { _engine->drawLine(start, end); }
-  FOG_INLINE void drawLine(const PointF* pts, sysuint_t count) { _engine->drawLine(pts, count); }
-  FOG_INLINE void drawPolygon(const PointF* pts, sysuint_t count) { _engine->drawPolygon(pts, count); }
-  FOG_INLINE void drawRect(const RectF& r) { _engine->drawRect(r); }
-  FOG_INLINE void drawRects(const RectF* r, sysuint_t count) { _engine->drawRects(r, count); }
-  FOG_INLINE void drawRound(const RectF& r, const PointF& radius) { _engine->drawRound(r, radius); }
-  FOG_INLINE void drawEllipse(const PointF& cp, const PointF& r) { _engine->drawEllipse(cp, r); }
-  FOG_INLINE void drawArc(const PointF& cp, const PointF& r, double start, double sweep) { _engine->drawArc(cp, r, start, sweep); }
+  FOG_INLINE void drawPoint(const PointD& p) { _engine->drawPoint(p); }
+  FOG_INLINE void drawLine(const PointD& start, const PointD& end) { _engine->drawLine(start, end); }
+  FOG_INLINE void drawLine(const PointD* pts, sysuint_t count) { _engine->drawLine(pts, count); }
+  FOG_INLINE void drawPolygon(const PointD* pts, sysuint_t count) { _engine->drawPolygon(pts, count); }
+  FOG_INLINE void drawRect(const RectD& r) { _engine->drawRect(r); }
+  FOG_INLINE void drawRects(const RectD* r, sysuint_t count) { _engine->drawRects(r, count); }
+  FOG_INLINE void drawRound(const RectD& r, const PointD& radius) { _engine->drawRound(r, radius); }
+  FOG_INLINE void drawEllipse(const PointD& cp, const PointD& r) { _engine->drawEllipse(cp, r); }
+  FOG_INLINE void drawArc(const PointD& cp, const PointD& r, double start, double sweep) { _engine->drawArc(cp, r, start, sweep); }
   FOG_INLINE void drawPath(const Path& path) { _engine->drawPath(path); }
 
-  FOG_INLINE void fillPolygon(const PointF* pts, sysuint_t count) { _engine->fillPolygon(pts, count); }
-  FOG_INLINE void fillRect(const RectF& r) { _engine->fillRect(r); }
-  FOG_INLINE void fillRects(const RectF* r, sysuint_t count) { _engine->fillRects(r, count); }
-  FOG_INLINE void fillRound(const RectF& r, const PointF& radius) { _engine->fillRound(r, radius); }
-  FOG_INLINE void fillEllipse(const PointF& cp, const PointF& r) { _engine->fillEllipse(cp, r); }
-  FOG_INLINE void fillArc(const PointF& cp, const PointF& r, double start, double sweep) { _engine->fillArc(cp, r, start, sweep); }
+  FOG_INLINE void fillPolygon(const PointD* pts, sysuint_t count) { _engine->fillPolygon(pts, count); }
+  FOG_INLINE void fillRect(const RectD& r) { _engine->fillRect(r); }
+  FOG_INLINE void fillRects(const RectD* r, sysuint_t count) { _engine->fillRects(r, count); }
+  FOG_INLINE void fillRound(const RectD& r, const PointD& radius) { _engine->fillRound(r, radius); }
+  FOG_INLINE void fillEllipse(const PointD& cp, const PointD& r) { _engine->fillEllipse(cp, r); }
+  FOG_INLINE void fillArc(const PointD& cp, const PointD& r, double start, double sweep) { _engine->fillArc(cp, r, start, sweep); }
   FOG_INLINE void fillPath(const Path& path) { _engine->fillPath(path); }
 
   // [Glyph / Text Drawing]

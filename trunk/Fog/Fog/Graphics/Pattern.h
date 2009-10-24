@@ -79,7 +79,7 @@ struct FOG_API Pattern
     mutable Atomic<sysuint_t> refCount;
     uint32_t type;
     uint32_t spread;
-    PointF points[2];
+    PointD points[2];
     double gradientRadius;
 
     union Objects {
@@ -132,17 +132,17 @@ struct FOG_API Pattern
 
   // [Start Point / End Point]
 
-  FOG_INLINE const PointF& getStartPoint() const { return _d->points[0]; }
-  FOG_INLINE const PointF& getEndPoint() const { return _d->points[1]; }
+  FOG_INLINE const PointD& getStartPoint() const { return _d->points[0]; }
+  FOG_INLINE const PointD& getEndPoint() const { return _d->points[1]; }
 
   err_t setStartPoint(const Point& pt);
-  err_t setStartPoint(const PointF& pt);
+  err_t setStartPoint(const PointD& pt);
 
   err_t setEndPoint(const Point& pt);
-  err_t setEndPoint(const PointF& pt);
+  err_t setEndPoint(const PointD& pt);
 
   err_t setPoints(const Point& startPt, const Point& endPt);
-  err_t setPoints(const PointF& startPt, const PointF& endPt);
+  err_t setPoints(const PointD& startPt, const PointD& endPt);
 
   // [Solid]
 

@@ -195,7 +195,7 @@ static bool decompose_win32_glyph_outline(
     mtx.transform(&x, &y);
 
     path.closePolygon();
-    path.moveTo(PointF(x, y));
+    path.moveTo(PointD(x, y));
 
     while (cur_poly < end_poly)
     {
@@ -210,7 +210,7 @@ static bool decompose_win32_glyph_outline(
           y = fxToDouble(pc->apfx[i].y);
           if(flip_y) y = -y;
           mtx.transform(&x, &y);
-          path.lineTo(PointF(x, y));
+          path.lineTo(PointD(x, y));
         }
       }
       
@@ -237,7 +237,7 @@ static bool decompose_win32_glyph_outline(
           if (flip_y) { y = -y; y2 = -y2; }
           mtx.transform(&x,  &y);
           mtx.transform(&x2, &y2);
-          path.curveTo(PointF(x, y), PointF(x2, y2));
+          path.curveTo(PointD(x, y), PointD(x2, y2));
         }
       }
       cur_poly += sizeof(WORD) * 2 + sizeof(POINTFX) * pc->cpfx;

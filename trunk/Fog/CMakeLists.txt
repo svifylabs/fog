@@ -441,6 +441,7 @@ Set(FOG_GRAPHICS_SOURCES
   ${FOG_DIR}/Fog/Graphics/RegionRound.cpp
   ${FOG_DIR}/Fog/Graphics/Rgba.cpp
   ${FOG_DIR}/Fog/Graphics/RgbaAnalyzer.cpp
+  ${FOG_DIR}/Fog/Graphics/Scanline.cpp
 )
 
 Set(FOG_GRAPHICS_HEADERS
@@ -486,6 +487,7 @@ Set(FOG_GRAPHICS_HEADERS
   ${FOG_DIR}/Fog/Graphics/Region.h
   ${FOG_DIR}/Fog/Graphics/Rgba.h
   ${FOG_DIR}/Fog/Graphics/RgbaAnalyzer.h
+  ${FOG_DIR}/Fog/Graphics/Scanline.h
 )
 
 # Fog/Agg Sources
