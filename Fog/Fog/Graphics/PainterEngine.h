@@ -153,13 +153,13 @@ struct FOG_API PainterEngine
     double screenX1, double screenY1, double screenX2, double screenY2,
     uint32_t viewportOption) = 0;
 
-  virtual void worldToScreen(PointF* pt) const = 0;
-  virtual void screenToWorld(PointF* pt) const = 0;
+  virtual void worldToScreen(PointD* pt) const = 0;
+  virtual void screenToWorld(PointD* pt) const = 0;
 
   virtual void worldToScreen(double* scalar) const = 0;
   virtual void screenToWorld(double* scalar) const = 0;
 
-  virtual void alignPoint(PointF* pt) const = 0;
+  virtual void alignPoint(PointD* pt) const = 0;
 
   // [State]
 
@@ -180,23 +180,23 @@ struct FOG_API PainterEngine
 
   // [Vector Drawing]
 
-  virtual void drawPoint(const PointF& p) = 0;
-  virtual void drawLine(const PointF& start, const PointF& end) = 0;
-  virtual void drawLine(const PointF* pts, sysuint_t count) = 0;
-  virtual void drawPolygon(const PointF* pts, sysuint_t count) = 0;
-  virtual void drawRect(const RectF& r) = 0;
-  virtual void drawRects(const RectF* r, sysuint_t count) = 0;
-  virtual void drawRound(const RectF& r, const PointF& radius) = 0;
-  virtual void drawEllipse(const PointF& cp, const PointF& r) = 0;
-  virtual void drawArc(const PointF& cp, const PointF& r, double start, double sweep) = 0;
+  virtual void drawPoint(const PointD& p) = 0;
+  virtual void drawLine(const PointD& start, const PointD& end) = 0;
+  virtual void drawLine(const PointD* pts, sysuint_t count) = 0;
+  virtual void drawPolygon(const PointD* pts, sysuint_t count) = 0;
+  virtual void drawRect(const RectD& r) = 0;
+  virtual void drawRects(const RectD* r, sysuint_t count) = 0;
+  virtual void drawRound(const RectD& r, const PointD& radius) = 0;
+  virtual void drawEllipse(const PointD& cp, const PointD& r) = 0;
+  virtual void drawArc(const PointD& cp, const PointD& r, double start, double sweep) = 0;
   virtual void drawPath(const Path& path) = 0;
 
-  virtual void fillPolygon(const PointF* pts, sysuint_t count) = 0;
-  virtual void fillRect(const RectF& r) = 0;
-  virtual void fillRects(const RectF* r, sysuint_t count) = 0;
-  virtual void fillRound(const RectF& r, const PointF& radius) = 0;
-  virtual void fillEllipse(const PointF& cp, const PointF& r) = 0;
-  virtual void fillArc(const PointF& cp, const PointF& r, double start, double sweep) = 0;
+  virtual void fillPolygon(const PointD* pts, sysuint_t count) = 0;
+  virtual void fillRect(const RectD& r) = 0;
+  virtual void fillRects(const RectD* r, sysuint_t count) = 0;
+  virtual void fillRound(const RectD& r, const PointD& radius) = 0;
+  virtual void fillEllipse(const PointD& cp, const PointD& r) = 0;
+  virtual void fillArc(const PointD& cp, const PointD& r, double start, double sweep) = 0;
   virtual void fillPath(const Path& path) = 0;
 
   // [Glyph / Text Drawing]

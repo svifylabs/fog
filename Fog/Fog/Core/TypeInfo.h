@@ -74,13 +74,13 @@ struct TypeInfo
     Flags = 0,
     Size = sizeof(T),
 
-    // [Basic Informations]
+    // [Basic Information]
     IsPrimitive = (Type == Fog::PrimitiveType),
     IsMoveable = (Type <= Fog::MoveableType),
     IsClass = (Type == Fog::ClassType),
     IsPointer = 0,
 
-    // [Extended Informations]
+    // [Extended Information]
     IsPOD = 0,
     IsFloat = 0,
     HasCompare = 0,
@@ -109,7 +109,7 @@ struct TypeInfo<T*>
     IsClass = (Type == Fog::ClassType),
     IsPointer = 1,
 
-    // [Extended Informations]
+    // [Extended Information]
     IsPOD = 1, // POD is comparable by default
     IsFloat = 0,
     HasCompare = 0,
@@ -131,13 +131,13 @@ struct TypeInfo_Wrapper
     Flags = (__TypeInfo__ & Fog::TypeInfoMask),
     Size = sizeof(T),
 
-    // [Basic Informations]
+    // [Basic Information]
     IsPrimitive = (Type == Fog::PrimitiveType),
     IsMoveable = (Type <= Fog::MoveableType),
     IsClass = (Type == Fog::ClassType),
     IsPointer = 0,
 
-    // [Extended Informations]
+    // [Extended Information]
     IsPOD = (__TypeInfo__ & Fog::TypeInfoIsPODType) != 0,
     IsFloat = (__TypeInfo__ & Fog::TypeInfoIsFloatType) != 0,
     HasCompare = (__TypeInfo__ & Fog::TypeInfoHasCompare) != 0,

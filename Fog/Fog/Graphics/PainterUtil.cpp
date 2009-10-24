@@ -28,12 +28,12 @@ void PainterUtil::draw3dRect(Painter* p, const Rect& r, Rgba color1, Rgba color2
   p->setLineCap(LineCapSquare);
 
   p->setSource(checked ? color2 : color1);
-  p->drawLine(PointF((double)x1   , (double)y1   ), PointF((double)x2   , (double)y1   ));
-  p->drawLine(PointF((double)x1   , (double)y1+1.), PointF((double)x1   , (double)y2-1.));
+  p->drawLine(PointD((double)x1   , (double)y1   ), PointD((double)x2   , (double)y1   ));
+  p->drawLine(PointD((double)x1   , (double)y1+1.), PointD((double)x1   , (double)y2-1.));
 
   p->setSource(checked ? color1 : color2);
-  p->drawLine(PointF((double)x2   , (double)y1+1.), PointF((double)x2   , (double)y2-1.));
-  p->drawLine(PointF((double)x1   , (double)y2   ), PointF((double)x2   , (double)y2   ));
+  p->drawLine(PointD((double)x2   , (double)y1+1.), PointD((double)x2   , (double)y2-1.));
+  p->drawLine(PointD((double)x1   , (double)y2   ), PointD((double)x2   , (double)y2   ));
 
   p->restore();
 }

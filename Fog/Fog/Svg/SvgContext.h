@@ -222,10 +222,10 @@ struct FOG_API SvgContext
     _painter->setLineParams(_lineParams);
   }
 
-  void drawEllipse(const PointF& cp, const PointF& r);
-  void drawLine(const PointF& p1, const PointF& p2);
-  void drawRect(const RectF& rect);
-  void drawRound(const RectF& rect, const PointF& r);
+  void drawEllipse(const PointD& cp, const PointD& r);
+  void drawLine(const PointD& p1, const PointD& p2);
+  void drawRect(const RectD& rect);
+  void drawRound(const RectD& rect, const PointD& r);
   void drawPath(const Path& path);
 
   // [Members]

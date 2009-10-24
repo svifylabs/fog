@@ -225,7 +225,7 @@ void detectCpuInfo(CpuInfo* i)
         *brand++ = out.edx;
         break;
 
-      // there are more informations that can be implemented in the future
+      // there are more information that can be implemented in the future
     }
   }
 

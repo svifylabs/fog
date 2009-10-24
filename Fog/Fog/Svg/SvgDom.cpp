@@ -654,7 +654,7 @@ err_t SvgElement::onApplyPattern(SvgContext* context, SvgElement* obj, int paint
   return Error::InvalidFunction;
 }
 
-err_t SvgElement::onCalcBoundingBox(RectF* box) const
+err_t SvgElement::onCalcBoundingBox(RectD* box) const
 {
   return Error::InvalidFunction;
 }
@@ -680,7 +680,7 @@ err_t SvgElement::_walkAndRender(const XmlElement* root, SvgContext* context)
   return err;
 }
 
-const RectF& SvgElement::getBoundingRect() const
+const RectD& SvgElement::getBoundingRect() const
 {
   if (_boundingRectDirty)
   {
@@ -711,7 +711,7 @@ struct FOG_HIDDEN SvgCircleElement : public SvgElement
   // [SVG Rendering]
 
   virtual err_t onRenderShape(SvgContext* context) const;
-  virtual err_t onCalcBoundingBox(RectF* box) const;
+  virtual err_t onCalcBoundingBox(RectD* box) const;
 
   // [Embedded Attributes]
 
@@ -753,7 +753,7 @@ err_t SvgCircleElement::onRenderShape(SvgContext* context) const
     double cy = a_cy.isAssigned() ? a_cy.getCoord().value : 0.0;
     double r = fabs(a_r.getCoord().value);
 
-    context->drawEllipse(PointF(cx, cy), PointF(r, r));
+    context->drawEllipse(PointD(cx, cy), PointD(r, r));
     return Error::Ok;
   }
   else
@@ -762,7 +762,7 @@ err_t SvgCircleElement::onRenderShape(SvgContext* context) const
   }
 }
 
-err_t SvgCircleElement::onCalcBoundingBox(RectF* box) const
+err_t SvgCircleElement::onCalcBoundingBox(RectD* box) const
 {
   if (a_r.isAssigned())
   {
@@ -836,7 +836,7 @@ struct FOG_HIDDEN SvgEllipseElement : public SvgElement
   // [SVG Rendering]
 
   virtual err_t onRenderShape(SvgContext* context) const;
-  virtual err_t onCalcBoundingBox(RectF* box) const;
+  virtual err_t onCalcBoundingBox(RectD* box) const;
 
   // [Embedded Attributes]
 
@@ -882,7 +882,7 @@ err_t SvgEllipseElement::onRenderShape(SvgContext* context) const
     double rx = fabs(a_rx.getCoord().value);
     double ry = fabs(a_ry.getCoord().value);
 
-    context->drawEllipse(PointF(cx, cy), PointF(rx, ry));
+    context->drawEllipse(PointD(cx, cy), PointD(rx, ry));
     return Error::Ok;
   }
   else
@@ -891,7 +891,7 @@ err_t SvgEllipseElement::onRenderShape(SvgContext* context) const
   }
 }
 
-err_t SvgEllipseElement::onCalcBoundingBox(RectF* box) const
+err_t SvgEllipseElement::onCalcBoundingBox(RectD* box) const
 {
   if (a_rx.isAssigned() && a_ry.isAssigned())
   {
@@ -970,7 +970,7 @@ struct FOG_HIDDEN SvgLineElement : public SvgElement
   // [SVG Rendering]
 
   virtual err_t onRenderShape(SvgContext* context) const;
-  virtual err_t onCalcBoundingBox(RectF* box) const;
+  virtual err_t onCalcBoundingBox(RectD* box) const;
 
   // [Embedded Attributes]
 
@@ -1016,7 +1016,7 @@ err_t SvgLineElement::onRenderShape(SvgContext* context) const
     double x2 = a_x2.getCoord().value;
     double y2 = a_y2.getCoord().value;
 
-    context->drawLine(PointF(x1, y1), PointF(x2, y2));
+    context->drawLine(PointD(x1, y1), PointD(x2, y2));
     return Error::Ok;
   }
   else
@@ -1025,7 +1025,7 @@ err_t SvgLineElement::onRenderShape(SvgContext* context) const
   }
 }
 
-err_t SvgLineElement::onCalcBoundingBox(RectF* box) const
+err_t SvgLineElement::onCalcBoundingBox(RectD* box) const
 {
   if (a_x1.isAssigned() && a_y1.isAssigned() && a_x2.isAssigned() && a_y2.isAssigned())
   {
@@ -1047,7 +1047,6 @@ err_t SvgLineElement::onCalcBoundingBox(RectF* box) const
     box->clear();
     return Error::Ok;
   }
-  return Error::NotImplemented;
 }
 
 // ============================================================================
@@ -1070,7 +1069,7 @@ struct FOG_HIDDEN SvgPathElement : public SvgElement
   // [SVG Rendering]
 
   virtual err_t onRenderShape(SvgContext* context) const;
-  virtual err_t onCalcBoundingBox(RectF* box) const;
+  virtual err_t onCalcBoundingBox(RectD* box) const;
 
   // [Embedded Attributes]
 
@@ -1112,7 +1111,7 @@ err_t SvgPathElement::onRenderShape(SvgContext* context) const
   }
 }
 
-err_t SvgPathElement::onCalcBoundingBox(RectF* box) const
+err_t SvgPathElement::onCalcBoundingBox(RectD* box) const
 {
   if (a_d.isAssigned())
   {
@@ -1147,7 +1146,7 @@ struct FOG_HIDDEN SvgPolygonElement : public SvgElement
   // [SVG Rendering]
 
   virtual err_t onRenderShape(SvgContext* context) const;
-  virtual err_t onCalcBoundingBox(RectF* box) const;
+  virtual err_t onCalcBoundingBox(RectD* box) const;
 
   // [Embedded Attributes]
 
@@ -1189,7 +1188,7 @@ err_t SvgPolygonElement::onRenderShape(SvgContext* context) const
   }
 }
 
-err_t SvgPolygonElement::onCalcBoundingBox(RectF* box) const
+err_t SvgPolygonElement::onCalcBoundingBox(RectD* box) const
 {
   if (a_points.isAssigned())
   {
@@ -1224,7 +1223,7 @@ struct FOG_HIDDEN SvgPolyLineElement : public SvgElement
   // [SVG Rendering]
 
   virtual err_t onRenderShape(SvgContext* context) const;
-  virtual err_t onCalcBoundingBox(RectF* box) const;
+  virtual err_t onCalcBoundingBox(RectD* box) const;
 
   // [Embedded Attributes]
 
@@ -1266,7 +1265,7 @@ err_t SvgPolyLineElement::onRenderShape(SvgContext* context) const
   }
 }
 
-err_t SvgPolyLineElement::onCalcBoundingBox(RectF* box) const
+err_t SvgPolyLineElement::onCalcBoundingBox(RectD* box) const
 {
   if (a_points.isAssigned())
   {
@@ -1301,7 +1300,7 @@ struct FOG_HIDDEN SvgRectElement : public SvgElement
   // [SVG Rendering]
 
   virtual err_t onRenderShape(SvgContext* context) const;
-  virtual err_t onCalcBoundingBox(RectF* box) const;
+  virtual err_t onCalcBoundingBox(RectD* box) const;
 
   // [Embedded Attributes]
 
@@ -1358,14 +1357,14 @@ err_t SvgRectElement::onRenderShape(SvgContext* context) const
     double ry = a_ry.isAssigned() ? a_ry.getCoord().value : 0.0;
 
     if (rx == 0.0 && ry == 0.0)
-      context->drawRect(RectF(x, y, w, h));
+      context->drawRect(RectD(x, y, w, h));
     else
-      context->drawRound(RectF(x, y, w, h), PointF(rx, ry));
+      context->drawRound(RectD(x, y, w, h), PointD(rx, ry));
   }
   return Error::Ok;
 }
 
-err_t SvgRectElement::onCalcBoundingBox(RectF* box) const
+err_t SvgRectElement::onCalcBoundingBox(RectD* box) const
 {
   if (a_width.isAssigned() && a_height.isAssigned())
   {
@@ -1624,19 +1623,19 @@ err_t SvgLinearGradientElement::onApplyPattern(SvgContext* context, SvgElement* 
 
     if (!a_gradientUnits.isAssigned() || a_gradientUnits.getEnum() == SvgObjectBoundingBox)
     {
-      RectF bbox = obj->getBoundingRect();
+      RectD bbox = obj->getBoundingRect();
       x1 = bbox.getX() + bbox.getWidth () * x1;
       y1 = bbox.getY() + bbox.getHeight() * y1;
       x2 = bbox.getX() + bbox.getWidth () * x2;
       y2 = bbox.getY() + bbox.getHeight() * y2;
     }
 
-    pattern.setPoints(PointF(x1, y1), PointF(x2, y2));
+    pattern.setPoints(PointD(x1, y1), PointD(x2, y2));
   }
   else
   {
-    RectF bbox = obj->getBoundingRect();
-    pattern.setPoints(PointF(bbox.getX1(), bbox.getY1()), PointF(bbox.getX2(), bbox.getY2()));
+    RectD bbox = obj->getBoundingRect();
+    pattern.setPoints(PointD(bbox.getX1(), bbox.getY1()), PointD(bbox.getX2(), bbox.getY2()));
   }
 
   // Add color stops.
@@ -1744,7 +1743,7 @@ err_t SvgRadialGradientElement::onApplyPattern(SvgContext* context, SvgElement* 
 
     if (!a_gradientUnits.isAssigned() || a_gradientUnits.getEnum() == SvgObjectBoundingBox)
     {
-      RectF bbox = obj->getBoundingRect();
+      RectD bbox = obj->getBoundingRect();
       cx = bbox.getX() + bbox.getWidth () * cx;
       cy = bbox.getY() + bbox.getHeight() * cy;
       fx = bbox.getX() + bbox.getWidth () * fx;
@@ -1752,16 +1751,16 @@ err_t SvgRadialGradientElement::onApplyPattern(SvgContext* context, SvgElement* 
       r = Math::max(bbox.getWidth(), bbox.getHeight()) * r;
     }
 
-    pattern.setPoints(PointF(cx, cy), PointF(fx, fy));
+    pattern.setPoints(PointD(cx, cy), PointD(fx, fy));
     pattern.setGradientRadius(r);
   }
   else
   {
-    RectF bbox = obj->getBoundingRect();
+    RectD bbox = obj->getBoundingRect();
     double x = bbox.getX1() + bbox.getWidth() / 2.0;
     double y = bbox.getY1() + bbox.getHeight() / 2.0; 
 
-    pattern.setPoints(PointF(x, y), PointF(x, y));
+    pattern.setPoints(PointD(x, y), PointD(x, y));
     pattern.setGradientRadius(Math::min(bbox.getWidth(), bbox.getHeight()) / 2.0);
   }
 

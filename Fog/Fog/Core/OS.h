@@ -20,7 +20,7 @@ namespace Fog {
 // [Fog::OS]
 // ============================================================================
 
-//! @brief Contains useful functions for getting system informations.
+//! @brief Contains useful functions for getting system information.
 namespace OS {
 
 //! @brief Returns the name of the host operating system.

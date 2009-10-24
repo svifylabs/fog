@@ -125,7 +125,7 @@ struct FOG_API SvgElement :
   virtual err_t onRender(SvgContext* context) const;
   virtual err_t onRenderShape(SvgContext* context) const;
   virtual err_t onApplyPattern(SvgContext* context, SvgElement* obj, int paintType) const;
-  virtual err_t onCalcBoundingBox(RectF* box) const;
+  virtual err_t onCalcBoundingBox(RectD* box) const;
 
   static err_t _walkAndRender(const XmlElement* root, SvgContext* context);
 
@@ -133,7 +133,7 @@ struct FOG_API SvgElement :
 
   FOG_INLINE uint32_t isBoundingRectDirty() const { return _boundingRectDirty; }
 
-  const RectF& getBoundingRect() const;
+  const RectD& getBoundingRect() const;
 
 protected:
   uint8_t _svgType;
@@ -145,7 +145,7 @@ protected:
   SvgStyleAttribute* _styles;
   SvgTransformAttribute* _transform;
 
-  mutable RectF _boundingBox;
+  mutable RectD _boundingBox;
 
 private:
   friend struct SvgStyleAttribute;

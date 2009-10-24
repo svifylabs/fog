@@ -168,7 +168,7 @@ struct Fixed16x16
   FOG_INLINE Fixed16x16 inv() const
   { return Fixed16x16( -_fixed ); }
 
-  // Some informations about this algorithm can be found here:
+  // Some information about this algorithm can be found here:
   // http://www.worldserver.com/turk/computergraphics/FixedSqrt.pdf
   FOG_INLINE Fixed16x16 sqrt() const
   {

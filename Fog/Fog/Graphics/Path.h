@@ -85,8 +85,6 @@ struct FOG_API Path
     CmdCurve3   = 3,
     CmdCurve4   = 4,
     CmdCurveN   = 5,
-    CmdCatrom   = 6,
-    CmdUBSpline = 7,
     CmdEndPoly  = 0xF,
     CmdMask     = 0xF
   };
@@ -272,7 +270,7 @@ struct FOG_API Path
 
   // [Bounding Rect]
 
-  RectF boundingRect() const;
+  RectD boundingRect() const;
 
   // [Start / End]
 
@@ -286,19 +284,19 @@ struct FOG_API Path
   err_t moveTo(double x, double y);
   err_t moveToRel(double dx, double dy);
 
-  FOG_INLINE err_t moveTo(const PointF& pt) { return moveTo(pt.x, pt.y); }
-  FOG_INLINE err_t moveToRel(const PointF& pt) { return moveToRel(pt.x, pt.y); }
+  FOG_INLINE err_t moveTo(const PointD& pt) { return moveTo(pt.x, pt.y); }
+  FOG_INLINE err_t moveToRel(const PointD& pt) { return moveToRel(pt.x, pt.y); }
 
   // [LineTo]
 
   err_t lineTo(double x, double y);
   err_t lineToRel(double dx, double dy);
 
-  FOG_INLINE err_t lineTo(const PointF& pt) { return lineTo(pt.x, pt.y); }
-  FOG_INLINE err_t lineToRel(const PointF& pt) { return lineToRel(pt.x, pt.y); }
+  FOG_INLINE err_t lineTo(const PointD& pt) { return lineTo(pt.x, pt.y); }
+  FOG_INLINE err_t lineToRel(const PointD& pt) { return lineToRel(pt.x, pt.y); }
 
   err_t lineTo(const double* x, const double* y, sysuint_t count);
-  err_t lineTo(const PointF* pts, sysuint_t count);
+  err_t lineTo(const PointD* pts, sysuint_t count);
 
   err_t hlineTo(double x);
   err_t hlineToRel(double dx);
@@ -313,10 +311,10 @@ struct FOG_API Path
   err_t arcTo(double cx, double cy, double rx, double ry, double start, double sweep);
   err_t arcToRel(double cx, double cy, double rx, double ry, double start, double sweep);
 
-  FOG_INLINE err_t arcTo(const PointF& cp, const PointF& r, double start, double sweep)
+  FOG_INLINE err_t arcTo(const PointD& cp, const PointD& r, double start, double sweep)
   { return arcTo(cp.x, cp.y, r.x, r.y, start, sweep); }
 
-  FOG_INLINE err_t arcToRel(const PointF& cp, const PointF& r, double start, double sweep)
+  FOG_INLINE err_t arcToRel(const PointD& cp, const PointD& r, double start, double sweep)
   { return arcToRel(cp.x, cp.y, r.x, r.y, start, sweep); }
 
   // [BezierTo]
@@ -327,16 +325,16 @@ struct FOG_API Path
   err_t curveTo(double tx, double ty);
   err_t curveToRel(double tx, double ty);
 
-  FOG_INLINE err_t curveTo(const PointF& cp, const PointF& to)
+  FOG_INLINE err_t curveTo(const PointD& cp, const PointD& to)
   { return curveTo(cp.x, cp.y, to.x, to.y); }
 
-  FOG_INLINE err_t curveToRel(const PointF& cp, const PointF& to)
+  FOG_INLINE err_t curveToRel(const PointD& cp, const PointD& to)
   { return curveToRel(cp.x, cp.y, to.x, to.y); }
 
-  FOG_INLINE err_t curveTo(const PointF& to)
+  FOG_INLINE err_t curveTo(const PointD& to)
   { return curveTo(to.x, to.y); }
 
-  FOG_INLINE err_t curveToRel(const PointF& to)
+  FOG_INLINE err_t curveToRel(const PointD& to)
   { return curveToRel(to.x, to.y); }
 
   // [CubicTo]
@@ -347,16 +345,16 @@ struct FOG_API Path
   err_t cubicTo(double cx2, double cy2, double tx, double ty);
   err_t cubicToRel(double cx2, double cy2, double tx, double ty);
 
-  FOG_INLINE err_t cubicTo(const PointF& cp1, const PointF& cp2, const PointF& to)
+  FOG_INLINE err_t cubicTo(const PointD& cp1, const PointD& cp2, const PointD& to)
   { return cubicTo(cp1.x, cp1.y, cp2.x, cp2.y, to.x, to.y); }
 
-  FOG_INLINE err_t cubicToRel(const PointF& cp1, const PointF& cp2, const PointF& to)
+  FOG_INLINE err_t cubicToRel(const PointD& cp1, const PointD& cp2, const PointD& to)
   { return cubicToRel(cp1.x, cp1.y, cp2.x, cp2.y, to.x, to.y); }
 
-  FOG_INLINE err_t cubicTo(const PointF& cp2, const PointF& to)
+  FOG_INLINE err_t cubicTo(const PointD& cp2, const PointD& to)
   { return cubicTo(cp2.x, cp2.y, to.x, to.y); }
 
-  FOG_INLINE err_t cubicToRel(const PointF& cp2, const PointF& to)
+  FOG_INLINE err_t cubicToRel(const PointD& cp2, const PointD& to)
   { return cubicToRel(cp2.x, cp2.y, to.x, to.y); }
 
   // [FlipX / FlipY]
@@ -381,31 +379,31 @@ struct FOG_API Path
   // [Complex]
 
   //! @brief Add closed rectangle into path.
-  err_t addRect(const RectF& r);
+  err_t addRect(const RectD& r);
 
-  err_t addRects(const RectF* r, sysuint_t count);
+  err_t addRects(const RectD* r, sysuint_t count);
 
-  err_t addRound(const RectF& r, const PointF& radius);
+  err_t addRound(const RectD& r, const PointD& radius);
 
   //! @brief Add Closed ellipse into path.
-  err_t addEllipse(const RectF& r);
+  err_t addEllipse(const RectD& r);
   //! @overload
-  err_t addEllipse(const PointF& cp, const PointF& r);
+  err_t addEllipse(const PointD& cp, const PointD& r);
 
   //! @brief Add arc into path.
-  err_t addArc(const RectF& r, double start, double sweep);
+  err_t addArc(const RectD& r, double start, double sweep);
   //! @overload
-  err_t addArc(const PointF& cp, const PointF& r, double start, double sweep);
+  err_t addArc(const PointD& cp, const PointD& r, double start, double sweep);
 
   //! @brief Add chord into path.
-  err_t addChord(const RectF& r, double start, double sweep);
+  err_t addChord(const RectD& r, double start, double sweep);
   //! @overload
-  err_t addChord(const PointF& cp, const PointF& r, double start, double sweep);
+  err_t addChord(const PointD& cp, const PointD& r, double start, double sweep);
 
   //! @brief Add pie into path.
-  err_t addPie(const RectF& r, double start, double sweep);
+  err_t addPie(const RectD& r, double start, double sweep);
   //! @overload
-  err_t addPie(const PointF& cp, const PointF& r, double start, double sweep);
+  err_t addPie(const PointD& cp, const PointD& r, double start, double sweep);
 
   //! @brief Add other path into path.
   err_t addPath(const Path& path);
@@ -413,15 +411,15 @@ struct FOG_API Path
   // [Inlines]
 
   //! @brief Translate each vertex in path by @a pt.
-  FOG_INLINE err_t translate(const PointF& pt)
+  FOG_INLINE err_t translate(const PointD& pt)
   { return translate(pt.x, pt.y); }
 
   //! @brief Translate each vertex in subpath @a pathId by @a pt.
-  FOG_INLINE err_t translate(const PointF& pt, sysuint_t pathId)
+  FOG_INLINE err_t translate(const PointD& pt, sysuint_t pathId)
   { return translate(pt.x, pt.y, pathId); }
 
   //! @brief Scale each vertex in path by @a pt.
-  FOG_INLINE err_t scale(const PointF& pt, bool keepStartPos = false)
+  FOG_INLINE err_t scale(const PointD& pt, bool keepStartPos = false)
   { return scale(pt.x, pt.y, keepStartPos); }
 
   // [Flatten]

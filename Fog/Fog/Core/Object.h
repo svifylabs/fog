@@ -62,7 +62,7 @@ FOG_CAPI_EXTERN void* fog_object_cast_string(Fog::Object* self, const Fog::Char8
 //! }
 //!
 //! // initialize object info, always use full name with namespace
-//! // or meta class informations will be invalid!
+//! // or meta class information will be invalid!
 //! FOG_IMPLEMENT_OBJECT(Namespace::MyObject)
 //!
 //! // source file
@@ -93,9 +93,9 @@ public: \
   \
   /* [Meta Class] */ \
   \
-  /*! @brief Static method that's used for retrieving meta class informations. */ \
+  /*! @brief Static method that's used for retrieving meta class information. */ \
   static const Fog::MetaClass* staticMetaClass(); \
-  /*! @brief Virtual method that's used for retrieving meta class informations. */ \
+  /*! @brief Virtual method that's used for retrieving meta class information. */ \
   virtual const Fog::MetaClass* metaClass() const;
 
 #define FOG_IMPLEMENT_OBJECT(selftype) \

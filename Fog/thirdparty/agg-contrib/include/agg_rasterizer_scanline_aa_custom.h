@@ -373,7 +373,7 @@ namespace agg
 
                 cover += cur_cell->cover;
 
-                //accumulate all cells with the same X
+                // accumulate all cells with the same X
                 while(--num_cells)
                 {
                     cur_cell = *++cells;
