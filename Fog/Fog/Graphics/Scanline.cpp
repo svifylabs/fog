@@ -46,8 +46,9 @@
 
 namespace Fog {
 
-// Zero span instance.
-const Scanline32::Span _zeroSpan = { 0, 0, NULL };
+// Zero span instance. This span should be in read-only memory and write
+// protected, this is the goal.
+const Scanline32::Span _zeroSpan = { INT32_MIN, 0, NULL };
 
 Scanline32::Scanline32() :
   _xEnd(CoordInit),

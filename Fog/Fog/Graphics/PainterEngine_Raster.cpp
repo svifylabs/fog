@@ -37,16 +37,6 @@
 #include <Fog/Graphics/Rgba.h>
 #include <Fog/Graphics/Scanline.h>
 
-// [AntiGrain]
-#include "agg_alpha_mask_u8.h"
-#include "agg_basics.h"
-#include "agg_scanline_p.h"
-#include "agg_scanline_u.h"
-#include "agg_scanline_bin.h"
-#include "agg_trans_viewport.h"
-
-#include "agg_rasterizer_scanline_aa_custom.h"
-
 namespace Fog {
 
 // ============================================================================
@@ -55,53 +45,6 @@ namespace Fog {
 
 // #define FOG_DEBUG_RASTER_SYNCHRONIZATION
 // #define FOG_DEBUG_RASTER_COMMANDS
-
-// ============================================================================
-// [AntiGrain]
-// ============================================================================
-
-// There are templates and classes that helps to wrap fog containers and paths
-// to AntiGrain without converting them into antigrain storage containers. This
-// way should improve performance to render larger images and complex paths,
-// but it also allows us to not depend to antigrain directly, but only
-// internally.
-
-// Wraps Fog::Path to antigrain like vertex storage.
-struct FOG_HIDDEN AggPath
-{
-  FOG_INLINE AggPath(const Path& path)
-  {
-    d = path._d;
-    rewind(0);
-  }
-
-  FOG_INLINE ~AggPath()
-  {
-  }
-
-  FOG_INLINE void rewind(unsigned index)
-  {
-    vCur = d->data + index;
-    vEnd = d->data + d->length;
-  }
-
-  FOG_INLINE unsigned vertex(double* x, double* y)
-  {
-    if (vCur == vEnd) return Path::CmdStop;
-
-    *x = vCur->x;
-    *y = vCur->y;
-
-    uint command = vCur->cmd.cmd();
-    vCur++;
-    return command;
-  }
-
-private:
-  const Path::Data* d;
-  const Path::Vertex* vCur;
-  const Path::Vertex* vEnd;
-};
 
 // ============================================================================
 // [Fog::PainterEngine_Raster]
@@ -228,11 +171,6 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
   virtual void skew(double sx, double sy);
   virtual void translate(double x, double y);
   virtual void affine(const Matrix& m);
-  virtual void parallelogram(double x1, double y1, double x2, double y2, const double* para);
-  virtual void viewport(
-    double worldX1,  double worldY1,  double worldX2,  double worldY2,
-    double screenX1, double screenY1, double screenX2, double screenY2,
-    uint32_t viewportOption);
 
   virtual void worldToScreen(PointD* pt) const;
   virtual void screenToWorld(PointD* pt) const;
@@ -2024,46 +1962,6 @@ void PainterEngine_Raster::affine(const Matrix& m)
   if (!_detachCaps()) return;
 
   ctx.capsState->transformations *= m;
-  _updateTransform();
-}
-
-void PainterEngine_Raster::parallelogram(
-  double x1, double y1, double x2, double y2, const double* para)
-{
-  if (!_detachCaps()) return;
-
-  ctx.capsState->transformations *= Matrix(x1, y1, x2, y2, para);
-  _updateTransform();
-}
-
-void PainterEngine_Raster::viewport(
-  double worldX1,  double worldY1,  double worldX2,  double worldY2,
-  double screenX1, double screenY1, double screenX2, double screenY2,
-  uint32_t viewportOption)
-{
-  if (!_detachCaps()) return;
-
-  agg::trans_viewport vp;
-
-  switch (viewportOption)
-  {
-    case ViewAnisotropic: vp.preserve_aspect_ratio(0.0, 0.0, agg::aspect_ratio_stretch); break;
-    case ViewXMinYMin:    vp.preserve_aspect_ratio(0.0, 0.0, agg::aspect_ratio_meet);    break;
-    case ViewXMidYMin:    vp.preserve_aspect_ratio(0.5, 0.0, agg::aspect_ratio_meet);    break;
-    case ViewXMaxYMin:    vp.preserve_aspect_ratio(1.0, 0.0, agg::aspect_ratio_meet);    break;
-    case ViewXMinYMid:    vp.preserve_aspect_ratio(0.0, 0.5, agg::aspect_ratio_meet);    break;
-    case ViewXMidYMid:    vp.preserve_aspect_ratio(0.5, 0.5, agg::aspect_ratio_meet);    break;
-    case ViewXMaxYMid:    vp.preserve_aspect_ratio(1.0, 0.5, agg::aspect_ratio_meet);    break;
-    case ViewXMinYMax:    vp.preserve_aspect_ratio(0.0, 1.0, agg::aspect_ratio_meet);    break;
-    case ViewXMidYMax:    vp.preserve_aspect_ratio(0.5, 1.0, agg::aspect_ratio_meet);    break;
-    case ViewXMaxYMax:    vp.preserve_aspect_ratio(1.0, 1.0, agg::aspect_ratio_meet);    break;
-  }
-
-  vp.world_viewport(worldX1,   worldY1,  worldX2,  worldY2);
-  vp.device_viewport(screenX1, screenY1, screenX2, screenY2);
-
-  agg::trans_affine aff = vp.to_affine();
-  ctx.capsState->transformations *= *((const Matrix *)&aff);
   _updateTransform();
 }
 

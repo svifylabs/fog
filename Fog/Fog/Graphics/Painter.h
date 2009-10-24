@@ -248,20 +248,6 @@ struct FOG_API Painter
   //! @brief Affine (will modify affine matrix).
   FOG_INLINE void affine(const Matrix& m) { _engine->affine(m); }
 
-  FOG_INLINE void parallelogram(double x1, double y1, double x2, double y2, const double* para)
-  { _engine->parallelogram(x1, y1, x2, y2, para); }
-
-  FOG_INLINE void viewport(
-    double worldX1,  double worldY1,  double worldX2,  double worldY2,
-    double screenX1, double screenY1, double screenX2, double screenY2,
-    uint32_t viewportOption = ViewXMidYMid)
-  {
-    _engine->viewport(
-      worldX1, worldY1, worldX2, worldY2,
-      screenX1, screenY1, screenX2, screenY2,
-      viewportOption);
-  }
-
   //! @brief Convert world coordinate into screen one (using transformation matrix).
   FOG_INLINE void worldToScreen(PointD* pt) const { _engine->worldToScreen(pt); }
   //! @brief Convert screen coordinate into world one (using transformation matrix).
