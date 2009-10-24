@@ -54,7 +54,7 @@ struct FOG_API Scanline32
 
   FOG_INLINE uint finalize(int y)
   {
-    _spansCount = (uint32_t)(_spanCur - _spansData);
+    _spansCount = (uint32_t)(_spansCur - _spansData);
     if (_spansCount) _y = y;
     return _spansCount;
   }
@@ -65,17 +65,17 @@ struct FOG_API Scanline32
 
     *_coversCur = (uint8_t)cover;
 
-    if (x == _xEnd && _spanCur[-1].len > 0)
+    if (x == _xEnd && _spansCur[-1].len > 0)
     {
-      _spanCur[-1].len++;
+      _spansCur[-1].len++;
     }
     else
     {
-      if (_spanCur == _spanEnd && !grow()) return;
-      _spanCur[0].x = Coord(x);
-      _spanCur[0].len = 1;
-      _spanCur[0].covers = _coversCur;
-      _spanCur++;
+      if (_spansCur == _spansEnd && !grow()) return;
+      _spansCur[0].x = Coord(x);
+      _spansCur[0].len = 1;
+      _spansCur[0].covers = _coversCur;
+      _spansCur++;
     }
 
     _xEnd = x + 1;
@@ -88,17 +88,17 @@ struct FOG_API Scanline32
 
     memcpy(_coversCur, covers, len * sizeof(uint8_t));
 
-    if (x == _xEnd && _spanCur[-1].len > 0)
+    if (x == _xEnd && _spansCur[-1].len > 0)
     {
-      _spanCur[-1].len += Coord(len);
+      _spansCur[-1].len += Coord(len);
     }
     else
     {
-      if (_spanCur == _spanEnd && !grow()) return;
-      _spanCur[0].x = Coord(x);
-      _spanCur[0].len = len;
-      _spanCur[0].covers = _coversCur;
-      _spanCur++;
+      if (_spansCur == _spansEnd && !grow()) return;
+      _spansCur[0].x = Coord(x);
+      _spansCur[0].len = len;
+      _spansCur[0].covers = _coversCur;
+      _spansCur++;
     }
 
     _coversCur += len;
@@ -109,18 +109,18 @@ struct FOG_API Scanline32
   {
     FOG_ASSERT(_coversData != NULL);
 
-    if (x == _xEnd && _spanCur[-1].len < 0 && _spanCur[-1].covers[0] == (uint8_t)cover)
+    if (x == _xEnd && _spansCur[-1].len < 0 && _spansCur[-1].covers[0] == (uint8_t)cover)
     {
-      _spanCur[-1].len -= (int)len;
+      _spansCur[-1].len -= (int)len;
     }
     else
     {
       *_coversCur = (uint8_t)cover;
-      if (_spanCur == _spanEnd && !grow()) return;
-      _spanCur[0].x = Coord(x);
-      _spanCur[0].len = -int(len);
-      _spanCur[0].covers = _coversCur++;
-      _spanCur++;
+      if (_spansCur == _spansEnd && !grow()) return;
+      _spansCur[0].x = Coord(x);
+      _spansCur[0].len = -int(len);
+      _spansCur[0].covers = _coversCur++;
+      _spansCur++;
     }
 
     _xEnd = x + len;
@@ -146,9 +146,9 @@ struct FOG_API Scanline32
   //! @brief Spans data.
   Span* _spansData;
   //! @brief Current span, span[-1] is always valid.
-  Span* _spanCur;
+  Span* _spansCur;
   //! @brief End of span data (this points to invalid span).
-  Span* _spanEnd;
+  Span* _spansEnd;
 
 private:
   FOG_DISABLE_COPY(Scanline32)
