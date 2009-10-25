@@ -2070,31 +2070,58 @@ void EventPumpX11::scheduleDelayedWork(const Time& delayedWorkTime)
 
 void EventPumpX11::doRunLoop()
 {
+  const sysuint_t WorkPerLoop = 2;
+
+  sysuint_t work = 0;
+
   // Inspired in EventPumpWin and ported to X11.
   for (;;)
   {
-    bool moreWorkIsPlausible = processNextXEvent();
-    if (_state->shouldQuit) break;
+    bool moreWorkIsPlausible = false;
+    bool more;
 
+    // Process XEvents. These has biggest priority.
+    do {
+      more = processNextXEvent();
+      moreWorkIsPlausible |= more;
+
+      if (_state->shouldQuit) goto end;
+    } while (more);
+
+    // doWork.
     moreWorkIsPlausible |= _state->delegate->doWork();
-    if (_state->shouldQuit) break;
+    if (_state->shouldQuit) goto end;
+    if (moreWorkIsPlausible && work < WorkPerLoop) continue;
 
+    work++;
+
+    // doDelayedWork.
     moreWorkIsPlausible |= _state->delegate->doDelayedWork(&_delayedWorkTime);
-    if (_state->shouldQuit) break;
+    if (_state->shouldQuit) goto end;
+    if (moreWorkIsPlausible && work < WorkPerLoop) continue;
 
-    if (moreWorkIsPlausible) continue;
-
-    // Call XSync, this is round-trip operation and can generate events.
-    moreWorkIsPlausible = xsync();
-    if (moreWorkIsPlausible) continue;
-
+    // doIdleWork.
+    //
     // If quit is received in nestedLoop or through runAllPending(), we will
     // quit here, because we don't want to do XSync().
-    moreWorkIsPlausible = _state->delegate->doIdleWork();
-    if (_state->shouldQuit) break;
+    moreWorkIsPlausible |= _state->delegate->doIdleWork();
+    if (_state->shouldQuit) goto end;
 
+    // Call XSync, this is round-trip operation and can generate events.
+    work = 0;
+
+    moreWorkIsPlausible |= xsync();
+    if (_state->shouldQuit) goto end;
+    // Clear work status, this is why it's here...
+    if (moreWorkIsPlausible && work < WorkPerLoop) continue;
+
+    if (moreWorkIsPlausible) continue;
+
+    // Finally wait.
     waitForWork();
   }
+end:
+  return;
 }
 
 void EventPumpX11::waitForWork()

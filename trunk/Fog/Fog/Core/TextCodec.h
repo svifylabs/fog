@@ -249,9 +249,6 @@ struct FOG_API TextCodec
   //! @brief Text codec encoding state.
   struct FOG_HIDDEN State
   {
-    //! @brief Small buffer used to remember unfinished sequences.
-    uint8_t buffer[8];
-
     //! @brief Count of bytes in buffer.
     uint32_t count;
 
@@ -265,10 +262,13 @@ struct FOG_API TextCodec
     //! For UTF-16 and UTF32 codecs.
     bool bomSwapped;
 
+    //! @brief Small buffer used to remember unfinished sequences.
+    char buffer[8];
+
     FOG_INLINE State() { clear(); }
     FOG_INLINE ~State() {}
 
-    //! @brief Clears all variables to it's constructor defaults.
+    //! @brief Clears all variables to it's constructor defaults (all zero).
     FOG_INLINE void clear() { memset(this, 0, sizeof(*this)); }
   };
 
@@ -448,14 +448,14 @@ struct FOG_API TextCodec
     BuiltInCount = 6
   };
 
-  static void* sharedBuiltIn[BuiltInCount];
+  static void* _codecs[BuiltInCount];
 
-  static FOG_INLINE const TextCodec& ascii8()     { return ((const TextCodec*)sharedBuiltIn)[BuiltInAscii]; }
-  static FOG_INLINE const TextCodec& local8()     { return ((const TextCodec*)sharedBuiltIn)[BuiltInLocal]; }
-  static FOG_INLINE const TextCodec& utf8()       { return ((const TextCodec*)sharedBuiltIn)[BuiltInUTF8 ]; }
-  static FOG_INLINE const TextCodec& utf16()      { return ((const TextCodec*)sharedBuiltIn)[BuiltInUTF16]; }
-  static FOG_INLINE const TextCodec& utf32()      { return ((const TextCodec*)sharedBuiltIn)[BuiltInUTF32]; }
-  static FOG_INLINE const TextCodec& localW()     { return ((const TextCodec*)sharedBuiltIn)[BuiltInWChar]; }
+  static FOG_INLINE const TextCodec& ascii8() { return ((const TextCodec*)_codecs)[BuiltInAscii]; }
+  static FOG_INLINE const TextCodec& local8() { return ((const TextCodec*)_codecs)[BuiltInLocal]; }
+  static FOG_INLINE const TextCodec& utf8()   { return ((const TextCodec*)_codecs)[BuiltInUTF8 ]; }
+  static FOG_INLINE const TextCodec& utf16()  { return ((const TextCodec*)_codecs)[BuiltInUTF16]; }
+  static FOG_INLINE const TextCodec& utf32()  { return ((const TextCodec*)_codecs)[BuiltInUTF32]; }
+  static FOG_INLINE const TextCodec& localW() { return ((const TextCodec*)_codecs)[BuiltInWChar]; }
 
   // --------------------------------------------------------------------------
   // [Members]

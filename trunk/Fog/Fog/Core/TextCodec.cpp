@@ -36,13 +36,13 @@
 namespace Fog {
 
 // [Fog::TextCodec]
-void* TextCodec::sharedBuiltIn[TextCodec::BuiltInCount];
+void* TextCodec::_codecs[TextCodec::BuiltInCount];
 
 // ============================================================================
 // [Fog::TextCodec - Helpers]
 // ============================================================================
 
-static sysuint_t TextCodec_addToState(TextCodec::State* state, const uint8_t* cur, const uint8_t* end)
+static sysuint_t addToState(TextCodec::State* state, const uint8_t* cur, const uint8_t* end)
 {
   FOG_ASSERT(state);
   FOG_ASSERT(state->count <= 8);
@@ -58,7 +58,7 @@ static sysuint_t TextCodec_addToState(TextCodec::State* state, const uint8_t* cu
 
 static err_t defaultReplacer(ByteArray& dst, uint32_t uc)
 {
-  return dst.format("(%X)", uc);
+  return dst.format("(u%X)", uc);
 }
 
 // ============================================================================
@@ -113,21 +113,21 @@ static TextCodec::Engine* NullCodec_create(uint32_t code, uint32_t flags, const 
 static const uint16_t TextCodec_Table_ISO_8859_1[128] =
 {
   0x0080, 0x0081, 0x0082, 0x0083, 0x0084, 0x0085, 0x0086, 0x0087,
-  0x0088, 0x0089, 0x008a, 0x008b, 0x008c, 0x008d, 0x008e, 0x008f,
+  0x0088, 0x0089, 0x008A, 0x008B, 0x008C, 0x008D, 0x008E, 0x008F,
   0x0090, 0x0091, 0x0092, 0x0093, 0x0094, 0x0095, 0x0096, 0x0097,
-  0x0098, 0x0099, 0x009a, 0x009b, 0x009c, 0x009d, 0x009e, 0x009f,
-  0x00a0, 0x00a1, 0x00a2, 0x00a3, 0x00a4, 0x00a5, 0x00a6, 0x00a7,
-  0x00a8, 0x00a9, 0x00aa, 0x00ab, 0x00ac, 0x00ad, 0x00ae, 0x00af,
-  0x00b0, 0x00b1, 0x00b2, 0x00b3, 0x00b4, 0x00b5, 0x00b6, 0x00b7,
-  0x00b8, 0x00b9, 0x00ba, 0x00bb, 0x00bc, 0x00bd, 0x00be, 0x00bf,
-  0x00c0, 0x00c1, 0x00c2, 0x00c3, 0x00c4, 0x00c5, 0x00c6, 0x00c7,
-  0x00c8, 0x00c9, 0x00ca, 0x00cb, 0x00cc, 0x00cd, 0x00ce, 0x00cf,
-  0x00d0, 0x00d1, 0x00d2, 0x00d3, 0x00d4, 0x00d5, 0x00d6, 0x00d7,
-  0x00d8, 0x00d9, 0x00da, 0x00db, 0x00dc, 0x00dd, 0x00de, 0x00df,
-  0x00e0, 0x00e1, 0x00e2, 0x00e3, 0x00e4, 0x00e5, 0x00e6, 0x00e7,
-  0x00e8, 0x00e9, 0x00ea, 0x00eb, 0x00ec, 0x00ed, 0x00ee, 0x00ef,
-  0x00f0, 0x00f1, 0x00f2, 0x00f3, 0x00f4, 0x00f5, 0x00f6, 0x00f7,
-  0x00f8, 0x00f9, 0x00fa, 0x00fb, 0x00fc, 0x00fd, 0x00fe, 0x00ff
+  0x0098, 0x0099, 0x009A, 0x009B, 0x009C, 0x009D, 0x009E, 0x009F,
+  0x00A0, 0x00A1, 0x00A2, 0x00A3, 0x00A4, 0x00A5, 0x00A6, 0x00A7,
+  0x00A8, 0x00A9, 0x00AA, 0x00AB, 0x00AC, 0x00AD, 0x00AE, 0x00AF,
+  0x00B0, 0x00B1, 0x00B2, 0x00B3, 0x00B4, 0x00B5, 0x00B6, 0x00B7,
+  0x00B8, 0x00B9, 0x00BA, 0x00BB, 0x00BC, 0x00BD, 0x00BE, 0x00BF,
+  0x00C0, 0x00C1, 0x00C2, 0x00C3, 0x00C4, 0x00C5, 0x00C6, 0x00C7,
+  0x00C8, 0x00C9, 0x00CA, 0x00CB, 0x00CC, 0x00CD, 0x00CE, 0x00CF,
+  0x00D0, 0x00D1, 0x00D2, 0x00D3, 0x00D4, 0x00D5, 0x00D6, 0x00D7,
+  0x00D8, 0x00D9, 0x00DA, 0x00DB, 0x00DC, 0x00DD, 0x00DE, 0x00DF,
+  0x00E0, 0x00E1, 0x00E2, 0x00E3, 0x00E4, 0x00E5, 0x00E6, 0x00E7,
+  0x00E8, 0x00E9, 0x00EA, 0x00EB, 0x00EC, 0x00ED, 0x00EE, 0x00EF,
+  0x00F0, 0x00F1, 0x00F2, 0x00F3, 0x00F4, 0x00F5, 0x00F6, 0x00F7,
+  0x00F8, 0x00F9, 0x00FA, 0x00FB, 0x00FC, 0x00FD, 0x00FE, 0x00FF
 };
 
 static const uint16_t TextCodec_Table_ISO_8859_2[128] =
@@ -733,61 +733,61 @@ static const uint16_t TextCodec_Table_ROMAN_8[128] =
 static const uint16_t TextCodec_Table_ARMSCII_8[128] =
 {
   0x0080, 0x0081, 0x0082, 0x0083, 0x0084, 0x0085, 0x0086, 0x0087,
-  0x0088, 0x0089, 0x008a, 0x008b, 0x008c, 0x008d, 0x008e, 0x008f,
+  0x0088, 0x0089, 0x008A, 0x008B, 0x008C, 0x008D, 0x008E, 0x008F,
   0x0090, 0x0091, 0x0092, 0x0093, 0x0094, 0x0095, 0x0096, 0x0097,
-  0x0098, 0x0099, 0x009a, 0x009b, 0x009c, 0x009d, 0x009e, 0x009f,
-  0x00a0, 0xf0a1, 0x00a7, 0x0589, 0x0029, 0x0028, 0x00bb, 0x00ab,
-  0x2014, 0x002e, 0x055d, 0x002c, 0x2010, 0x058a, 0x2026, 0x055c,
-  0x055b, 0x055e, 0x0531, 0x0561, 0x0532, 0x0562, 0x0533, 0x0563,
+  0x0098, 0x0099, 0x009A, 0x009B, 0x009C, 0x009D, 0x009E, 0x009F,
+  0x00A0, 0xF0A1, 0x00A7, 0x0589, 0x0029, 0x0028, 0x00BB, 0x00AB,
+  0x2014, 0x002E, 0x055D, 0x002C, 0x2010, 0x058A, 0x2026, 0x055C,
+  0x055B, 0x055E, 0x0531, 0x0561, 0x0532, 0x0562, 0x0533, 0x0563,
   0x0534, 0x0564, 0x0535, 0x0565, 0x0536, 0x0566, 0x0537, 0x0567,
-  0x0538, 0x0568, 0x0539, 0x0569, 0x053a, 0x056a, 0x053b, 0x056b,
-  0x053c, 0x056c, 0x053d, 0x056d, 0x053e, 0x056e, 0x053f, 0x056f,
+  0x0538, 0x0568, 0x0539, 0x0569, 0x053A, 0x056A, 0x053B, 0x056B,
+  0x053C, 0x056C, 0x053D, 0x056D, 0x053E, 0x056E, 0x053F, 0x056F,
   0x0540, 0x0570, 0x0541, 0x0571, 0x0542, 0x0572, 0x0543, 0x0573,
   0x0544, 0x0574, 0x0545, 0x0575, 0x0546, 0x0576, 0x0547, 0x0577,
-  0x0548, 0x0578, 0x0549, 0x0579, 0x054a, 0x057a, 0x054b, 0x057b,
-  0x054c, 0x057c, 0x054d, 0x057d, 0x054e, 0x057e, 0x054f, 0x057f,
+  0x0548, 0x0578, 0x0549, 0x0579, 0x054A, 0x057A, 0x054B, 0x057B,
+  0x054C, 0x057C, 0x054D, 0x057D, 0x054E, 0x057E, 0x054F, 0x057F,
   0x0550, 0x0580, 0x0551, 0x0581, 0x0552, 0x0582, 0x0553, 0x0583,
-  0x0554, 0x0584, 0x0555, 0x0585, 0x0556, 0x0586, 0x02bc, 0x0587
+  0x0554, 0x0584, 0x0555, 0x0585, 0x0556, 0x0586, 0x02BC, 0x0587
 };
 
 static const uint16_t TextCodec_Table_GEORGIAN_ACADEMY[128] =
 {
   0x0080, 0x0081, 0x0082, 0x0083, 0x0084, 0x0085, 0x0086, 0x0087,
-  0x0088, 0x0089, 0x008a, 0x008b, 0x008c, 0x008d, 0x008e, 0x008f,
+  0x0088, 0x0089, 0x008A, 0x008B, 0x008C, 0x008D, 0x008E, 0x008F,
   0x0090, 0x0091, 0x0092, 0x0093, 0x0094, 0x0095, 0x0096, 0x0097,
-  0x0098, 0x0099, 0x009a, 0x009b, 0x009c, 0x009d, 0x009e, 0x009f,
-  0x00a0, 0x00a1, 0x00a2, 0x00a3, 0x00a4, 0x00a5, 0x00a6, 0x00a7,
-  0x00a8, 0x00a9, 0x00aa, 0x00ab, 0x00ac, 0x00ad, 0x00ae, 0x00af,
-  0x00b0, 0x00b1, 0x00b2, 0x00b3, 0x00b4, 0x00b5, 0x00b6, 0x00b7,
-  0x00b8, 0x00b9, 0x00ba, 0x00bb, 0x00bc, 0x00bd, 0x00be, 0x00bf,
-  0x10d0, 0x10d1, 0x10d2, 0x10d3, 0x10d4, 0x10d5, 0x10d6, 0x10d7,
-  0x10d8, 0x10d9, 0x10da, 0x10db, 0x10dc, 0x10dd, 0x10de, 0x10df,
-  0x10e0, 0x10e1, 0x10e2, 0x10e3, 0x10e4, 0x10e5, 0x10e6, 0x10e7,
-  0x10e8, 0x10e9, 0x10ea, 0x10eb, 0x10ec, 0x10ed, 0x10ee, 0x10ef,
-  0x10f0, 0x10f1, 0x10f2, 0x10f3, 0x10f4, 0x10f5, 0x10f6, 0x00ab,
-  0x00bb, 0x2018, 0x2019, 0x201e, 0x201f, 0x00dd, 0x00de, 0x00df,
-  0x00f0, 0x00f1, 0x00f2, 0x00f3, 0x00f4, 0x00f5, 0x00f6, 0x00f7,
-  0x00f8, 0x00f9, 0x00fa, 0x00fb, 0x00fc, 0x00fd, 0x00fe, 0x00ff
+  0x0098, 0x0099, 0x009A, 0x009B, 0x009C, 0x009D, 0x009E, 0x009F,
+  0x00A0, 0x00A1, 0x00A2, 0x00A3, 0x00A4, 0x00A5, 0x00A6, 0x00A7,
+  0x00A8, 0x00A9, 0x00AA, 0x00AB, 0x00AC, 0x00AD, 0x00AE, 0x00AF,
+  0x00B0, 0x00B1, 0x00B2, 0x00B3, 0x00B4, 0x00B5, 0x00B6, 0x00B7,
+  0x00B8, 0x00B9, 0x00BA, 0x00BB, 0x00BC, 0x00BD, 0x00BE, 0x00BF,
+  0x10D0, 0x10D1, 0x10D2, 0x10D3, 0x10D4, 0x10D5, 0x10D6, 0x10D7,
+  0x10D8, 0x10D9, 0x10DA, 0x10DB, 0x10DC, 0x10DD, 0x10DE, 0x10DF,
+  0x10E0, 0x10E1, 0x10E2, 0x10E3, 0x10E4, 0x10E5, 0x10E6, 0x10E7,
+  0x10E8, 0x10E9, 0x10EA, 0x10EB, 0x10EC, 0x10ED, 0x10EE, 0x10EF,
+  0x10F0, 0x10F1, 0x10F2, 0x10F3, 0x10F4, 0x10F5, 0x10F6, 0x00AB,
+  0x00BB, 0x2018, 0x2019, 0x201E, 0x201F, 0x00DD, 0x00DE, 0x00DF,
+  0x00F0, 0x00F1, 0x00F2, 0x00F3, 0x00F4, 0x00F5, 0x00F6, 0x00F7,
+  0x00F8, 0x00F9, 0x00FA, 0x00FB, 0x00FC, 0x00FD, 0x00FE, 0x00FF
 };
 
 static const uint16_t TextCodec_Table_GEORGIAN_PS[128] =
 {
   0x0080, 0x0081, 0x0082, 0x0083, 0x0084, 0x0085, 0x0086, 0x0087,
-  0x0088, 0x0089, 0x008a, 0x008b, 0x008c, 0x008d, 0x008e, 0x008f,
+  0x0088, 0x0089, 0x008A, 0x008B, 0x008C, 0x008D, 0x008E, 0x008F,
   0x0090, 0x0091, 0x0092, 0x0093, 0x0094, 0x0095, 0x0096, 0x0097,
-  0x0098, 0x0099, 0x009a, 0x009b, 0x009c, 0x009d, 0x009e, 0x009f,
-  0x00a0, 0x00a1, 0x00a2, 0x00a3, 0x00a4, 0x00a5, 0x00a6, 0x00a7,
-  0x00a8, 0x00a9, 0x00aa, 0x00ab, 0x00ac, 0x00ad, 0x00ae, 0x00af,
-  0x00b0, 0x00b1, 0x00b2, 0x00b3, 0x00b4, 0x00b5, 0x00b6, 0x00b7,
-  0x00b8, 0x00b9, 0x00ba, 0x00bb, 0x00bc, 0x00bd, 0x00be, 0x00bf,
-  0x10d0, 0x10d1, 0x10d2, 0x10d3, 0x10d4, 0x10d5, 0x10d6, 0x10f1,
-  0x10d7, 0x10d8, 0x10d9, 0x10da, 0x10db, 0x10dc, 0x10f2, 0x10dd,
-  0x10de, 0x10df, 0x10e0, 0x10e1, 0x10e2, 0x10f3, 0x10e3, 0x10e4,
-  0x10e5, 0x10e6, 0x10e7, 0x10e8, 0x10e9, 0x10ea, 0x10eb, 0x10ec,
-  0x10ed, 0x10ee, 0x10f4, 0x10ef, 0x10f0, 0x10f5, 0x10f6, 0x00ab,
-  0x00bb, 0x2018, 0x2019, 0x201e, 0x201f, 0x00dd, 0x00de, 0x00df,
-  0x00f0, 0x00f1, 0x00f2, 0x00f3, 0x00f4, 0x00f5, 0x00f6, 0x00f7,
-  0x00f8, 0x00f9, 0x00fa, 0x00fb, 0x00fc, 0x00fd, 0x00fe, 0x00ff
+  0x0098, 0x0099, 0x009A, 0x009B, 0x009C, 0x009D, 0x009E, 0x009F,
+  0x00A0, 0x00A1, 0x00A2, 0x00A3, 0x00A4, 0x00A5, 0x00A6, 0x00A7,
+  0x00A8, 0x00A9, 0x00AA, 0x00AB, 0x00AC, 0x00AD, 0x00AE, 0x00AF,
+  0x00B0, 0x00B1, 0x00B2, 0x00B3, 0x00B4, 0x00B5, 0x00B6, 0x00B7,
+  0x00B8, 0x00B9, 0x00BA, 0x00BB, 0x00BC, 0x00BD, 0x00BE, 0x00BF,
+  0x10D0, 0x10D1, 0x10D2, 0x10D3, 0x10D4, 0x10D5, 0x10D6, 0x10F1,
+  0x10D7, 0x10D8, 0x10D9, 0x10DA, 0x10DB, 0x10DC, 0x10F2, 0x10DD,
+  0x10DE, 0x10DF, 0x10E0, 0x10E1, 0x10E2, 0x10F3, 0x10E3, 0x10E4,
+  0x10E5, 0x10E6, 0x10E7, 0x10E8, 0x10E9, 0x10EA, 0x10EB, 0x10EC,
+  0x10ED, 0x10EE, 0x10F4, 0x10EF, 0x10F0, 0x10F5, 0x10F6, 0x00AB,
+  0x00BB, 0x2018, 0x2019, 0x201E, 0x201F, 0x00DD, 0x00DE, 0x00DF,
+  0x00F0, 0x00F1, 0x00F2, 0x00F3, 0x00F4, 0x00F5, 0x00F6, 0x00F7,
+  0x00F8, 0x00F9, 0x00FA, 0x00FB, 0x00FC, 0x00FD, 0x00FE, 0x00FF
 };
 
 static const TextCodec::Page8::Decode _8BitCodec_emptyDecoder =
@@ -869,12 +869,13 @@ err_t _8BitCodec::appendFromUnicode(ByteArray& dst, const Char* src, sysuint_t l
   const Char* srcEnd = src + length;
 
   // Destination buffer.
+  sysuint_t initSize = dst.getLength();
   sysuint_t growSize = length + 1;
 
-  err_t err = dst.reserve(dst.getLength() + growSize);
+  err_t err = dst.grow(growSize);
   if (err) return err;
 
-  uint8_t* dstCur = reinterpret_cast<uint8_t*>(dst.xData()) + dst.getLength();
+  uint8_t* dstCur = reinterpret_cast<uint8_t*>(dst.xData()) + initSize;
 
   // Replacer.
   ByteArray replaceBuffer;
@@ -912,7 +913,7 @@ loop:
 
 surrogateTrail:
       uc1 = *srcCur++;
-      if (!uc1.isLeadSurrogate()) { err = Error::InvalidUtf16Sequence; goto end; }
+      if (!uc1.isTrailSurrogate()) { err = Error::InvalidUtf16Sequence; goto end; }
 
       err = replacer(replaceBuffer, Char::fromSurrogate(uc0, uc1));
       goto replace;
@@ -954,12 +955,13 @@ err_t _8BitCodec::appendToUnicode(String& dst, const void* src, sysuint_t size, 
   const uint8_t* srcEnd = srcCur + (size);
 
   // Destination Buffer.
+  sysuint_t initSize = dst.getLength();
   sysuint_t growSize = size + 1;
 
-  err_t err = dst.reserve(dst.getLength() + growSize);
+  err_t err = dst.grow(growSize);
   if (err) return err;
 
-  Char* dstCur = dst.xData() + dst.getLength();
+  Char* dstCur = dst.xData() + initSize;
 
   // Characters.
   uint16_t uc;
@@ -1042,21 +1044,19 @@ err_t UTF8Codec::appendFromUnicode(ByteArray& dst, const Char* src, sysuint_t le
   const Char* srcEnd = src + length;
 
   // Destination buffer.
+  sysuint_t initSize = dst.getLength();
   sysuint_t growSize = (length * 3) + 4;
 
-  err_t err = dst.reserve(dst.getLength() + growSize);
+  err_t err = dst.grow(growSize);
   if (err) return err;
 
-  uint8_t* dstCur = reinterpret_cast<uint8_t*>(dst.xData()) + dst.getLength();
-  sysuint_t remain = dst.getCapacity() - dst.getLength();
+  uint8_t* dstCur = reinterpret_cast<uint8_t*>(dst.xData()) + initSize;
+  sysuint_t remain = dst.getCapacity() - initSize;
 
   // Characters.
   uint32_t uc;
   Char uc0;
   Char uc1;
-
-  // 8 bit tables.
-  TextCodec::Page8::Decode* const* table = page8->decode;
 
   if (state && state->count == 2)
   {
@@ -1082,7 +1082,7 @@ loop:
 
 surrogateTrail:
       uc1 = *srcCur++;
-      if (!uc1.isLeadSurrogate()) { err = Error::InvalidUtf16Sequence; goto end; }
+      if (!uc1.isTrailSurrogate()) { err = Error::InvalidUtf16Sequence; goto end; }
 
       uc = Char::fromSurrogate(uc0, uc1);
     }
@@ -1095,9 +1095,10 @@ surrogateTrail:
     if (remain < 4)
     {
       dst.xFinalize(reinterpret_cast<char*>(dstCur));
-      if ((err = dst.reserve(dst.getLength() + (sysuint_t)(srcEnd - srcCur) * 3 + 4))) goto end;
+      initSize = dst.getLength();
+      if ((err = dst.grow((sysuint_t)(srcEnd - srcCur) * 3 + 4))) goto end;
 
-      dstCur = reinterpret_cast<uint8_t*>(dst.xData()) + dst.getLength();
+      dstCur = reinterpret_cast<uint8_t*>(dst.xData()) + initSize;
       remain = dst.getCapacity() - dst.getLength();
     }
 
@@ -1182,21 +1183,22 @@ err_t UTF8Codec::appendToUnicode(String& dst, const void* src, sysuint_t size, S
   // Destination Buffer.
   sysuint_t oldStateSize = 0;
   sysuint_t utf8Size;
+
+  sysuint_t initSize = dst.getLength();
   sysuint_t growSize = size + 1;
  
-  err_t err = dst.reserve(dst.getLength() + growSize);
+  err_t err = dst.reserve(growSize);
   if (err) return err;
 
-  Char* dstCur = dst.xData() + dst.getLength();
-  Char* dstEnd = dst.xData() + dst.getCapacity();
+  Char* dstCur = dst.xData() + initSize;
 
   // Characters
   uint32_t uc;
  
   if (state && (oldStateSize = state->count))
   {
-    const uint8_t* bufPtr = state->buffer;
-    sysuint_t bufSize = TextCodec_addToState(state, srcCur, srcEnd);
+    const uint8_t* bufPtr = reinterpret_cast<uint8_t*>(state->buffer);
+    sysuint_t bufSize = addToState(state, srcCur, srcEnd);
 
     uc = *bufPtr;
     utf8Size = utf8LengthTable[uc];
@@ -1252,6 +1254,7 @@ inputTruncated:
   {
     sysuint_t bufSize = (sysuint_t)(srcEnd - srcCur);
     memcpy(state->buffer, srcCur, bufSize);
+    state->count = bufSize;
   }
   else
   {
@@ -1289,14 +1292,204 @@ UTF16Codec::UTF16Codec(uint32_t code, uint32_t flags, const char* mime) :
 
 err_t UTF16Codec::appendFromUnicode(ByteArray& dst, const Char* src, sysuint_t length, Replacer replacer, State* state) const
 {
-  // TODO
-  return Error::NotImplemented;
+  // Length initialization and check.
+  if (length == DetectLength) length = StringUtil::len(src);
+  if (length == 0) return Error::Ok;
+
+  // Source buffer.
+  const Char* srcCur = src;
+  const Char* srcEnd = src + length;
+
+  // Destination buffer.
+  sysuint_t initSize = dst.getLength();
+  sysuint_t growSize = (length * 2) + 2;
+
+  err_t err = dst.reserve(growSize);
+  if (err) return err;
+
+  uint16_t* dstCur = reinterpret_cast<uint16_t*>(dst.xData() + initSize);
+
+  // Byte swapping.
+  bool bomSwapped = (flags & TextCodec::IsByteSwapped) != 0;
+
+  // Characters.
+  Char uc0;
+  Char uc1;
+
+  if (state && state->count == 2)
+  {
+    uc0 = reinterpret_cast<uint16_t*>(state->buffer)[0];
+    state->count = 0;
+    goto surrogateTrail;
+  }
+
+loop:
+  while (srcCur != srcEnd)
+  {
+    uc0 = *srcCur++;
+    if (uc0.isLeadSurrogate())
+    {
+      // Incomplete surrogate pair.
+      if (srcCur == srcEnd)
+      {
+        if (!state) { err = Error::InputTruncated; goto end; }
+        reinterpret_cast<uint16_t*>(state->buffer)[0] = uc0;
+        state->count = 2;
+        goto end;
+      }
+
+surrogateTrail:
+      uc1 = *srcCur++;
+      if (!uc1.isTrailSurrogate()) { err = Error::InvalidUtf16Sequence; goto end; }
+
+      // Byte swapping.
+      if (bomSwapped) { uc0 = Memory::bswap16(uc0); uc1 = Memory::bswap16(uc1); }
+
+      dstCur[0] = uc0;
+      dstCur[1] = uc1;
+      dstCur += 2;
+    }
+    else
+    {
+      // Byte swapping.
+      if (bomSwapped) { uc0 = Memory::bswap16(uc0); }
+
+      *dstCur++ = uc0;
+    }
+  }
+
+end:
+  dst.xFinalize(reinterpret_cast<char*>(dstCur));
+  return err;
 }
 
 err_t UTF16Codec::appendToUnicode(String& dst, const void* src, sysuint_t size, State* state) const
 {
-  // TODO
-  return Error::NotImplemented;
+  // Length initialization and check.
+  if (size == DetectLength) size = StringUtil::len(reinterpret_cast<const Char*>(src)) << 1;
+  if (size == 0) return Error::Ok;
+
+  // Source Buffer.
+  const uint8_t* srcCur = reinterpret_cast<const uint8_t*>(src);
+  const uint8_t* srcEnd = srcCur + (size);
+  const uint8_t* srcEndM2 = srcCur + (size) - 2;
+
+  // Destination Buffer.
+  sysuint_t oldStateSize = 0;
+
+  sysuint_t initSize = dst.getLength();
+  sysuint_t growSize = (size >> 1) + 2;
+
+  err_t err = dst.reserve(growSize);
+  if (err) return err;
+
+  Char* dstCur = dst.xData() + initSize;
+
+  // Characters.
+  Char uc0;
+  Char uc1;
+
+  // Byte swapping.
+  uint32_t byteSwap = state ? state->bomSwapped : (flags & TextCodec::IsByteSwapped) != 0;
+
+  if (state && (oldStateSize = state->count))
+  {
+    const uint8_t* bufPtr = reinterpret_cast<uint8_t*>(state->buffer);
+    sysuint_t bufSize = addToState(state, srcCur, srcEnd);
+
+    if (state->count < 2) return Error::Ok;
+
+    uc0 = reinterpret_cast<const uint16_t*>(bufPtr)[0];
+    if (byteSwap) uc0.bswap();
+
+    if (uc0.isLeadSurrogate())
+    {
+      if (state->count < 4) return Error::Ok;
+
+      uc1 = reinterpret_cast<const uint16_t*>(bufPtr)[1];
+      if (byteSwap) uc1.bswap();
+
+      srcCur -= oldStateSize;
+      state->count = 0;
+
+      goto surrogatePair;
+    }
+    else
+    {
+      srcCur -= oldStateSize;
+      state->count = 0;
+
+      goto notSurrogatePair;
+    }
+  }
+
+loop:
+  for (;;)
+  {
+    if (srcCur > srcEndM2) break;
+
+    uc0 = reinterpret_cast<const uint16_t*>(srcCur)[0];
+    if (byteSwap) uc0.bswap();
+
+    if (uc0.isLeadSurrogate())
+    {
+      if (srcCur + 2 > srcEndM2) break;
+
+      uc1 = reinterpret_cast<const uint16_t*>(srcCur)[1];
+      if (byteSwap) uc1.bswap();
+
+surrogatePair:
+      if (!uc1.isTrailSurrogate()) { err = Error::InvalidUtf16Sequence; goto end; }
+
+      dstCur[0] = uc0;
+      dstCur[1] = uc1;
+      dstCur += 2;
+      srcCur += 4;
+    }
+    else
+    {
+notSurrogatePair:
+      // BOM support.
+      if (uc0.isBomSwapped())
+      {
+        byteSwap = !byteSwap;
+      }
+      else if (uc0.isTrailSurrogate())
+      {
+        err = Error::InvalidUtf16Sequence;
+        goto end;
+      }
+      else
+      {
+        *dstCur++ = uc0;
+      }
+
+      srcCur += 2;
+    }
+  }
+
+  // We need to check if input was truncated or not. Ideally srcCur should
+  // be srcEnd.
+  if (srcCur != srcEnd)
+  {
+    // Different behavior if state is set or not.
+    if (state)
+    {
+      sysuint_t bufSize = (sysuint_t)(srcEnd - srcCur);
+      memcpy(state->buffer, srcCur, bufSize);
+      state->count = bufSize;
+    }
+    else
+    {
+      err = Error::InputTruncated;
+    }
+  }
+
+end:
+  if (state) state->bomSwapped = byteSwap;
+
+  dst.xFinalize(dstCur);
+  return err;
 }
 
 static TextCodec::Engine* UTF16Codec_create(uint32_t code, uint32_t flags, const char* mime, void*)
@@ -1308,7 +1501,7 @@ static TextCodec::Engine* UTF16Codec_create(uint32_t code, uint32_t flags, const
 // [Fog::TextCodec - UCS2Codec]
 // ============================================================================
 
-// UCS2 encoding is still used in embedded devices and Win2000.
+// UCS2 encoding is still used in embedded devices and in Win2000.
 
 struct FOG_HIDDEN UCS2Codec : public TextCodec::Engine
 {
@@ -1325,14 +1518,191 @@ UCS2Codec::UCS2Codec(uint32_t code, uint32_t flags, const char* mime) :
 
 err_t UCS2Codec::appendFromUnicode(ByteArray& dst, const Char* src, sysuint_t length, Replacer replacer, State* state) const
 {
-  // TODO
-  return Error::NotImplemented;
+  // Length initialization and check.
+  if (length == DetectLength) length = StringUtil::len(src);
+  if (length == 0) return Error::Ok;
+
+  // Source buffer.
+  const Char* srcCur = src;
+  const Char* srcEnd = src + length;
+
+  // Destination buffer.
+  sysuint_t initSize = dst.getLength();
+  sysuint_t growSize = (length * 2) + 2;
+
+  err_t err = dst.grow(growSize);
+  if (err) return err;
+
+  uint16_t* dstCur = reinterpret_cast<uint16_t*>(dst.xData() + initSize);
+
+  // Byte swapping.
+  bool bomSwapped = (flags & TextCodec::IsByteSwapped) != 0;
+
+  // Replacer.
+  ByteArray replaceBuffer;
+  if (replacer == NULL) replacer = defaultReplacer;
+
+  // Characters.
+  Char uc0;
+  Char uc1;
+
+  if (state && state->count == 2)
+  {
+    uc0 = reinterpret_cast<uint16_t*>(state->buffer)[0];
+    state->count = 0;
+    goto surrogateTrail;
+  }
+
+loop:
+  while (srcCur != srcEnd)
+  {
+    uc0 = *srcCur++;
+    if (uc0.isLeadSurrogate())
+    {
+      // Incomplete surrogate pair.
+      if (srcCur == srcEnd)
+      {
+        if (!state) { err = Error::InputTruncated; goto end; }
+        reinterpret_cast<uint16_t*>(state->buffer)[0] = uc0;
+        state->count = 2;
+        goto end;
+      }
+
+surrogateTrail:
+      uc1 = *srcCur++;
+      if (!uc1.isTrailSurrogate()) { err = Error::InvalidUtf16Sequence; goto end; }
+
+      {
+        uint32_t uc = Char::fromSurrogate(uc0, uc1);
+        sysuint_t dl;
+        sysuint_t rl;
+        if ((err = replacer(replaceBuffer, uc))) goto end;
+
+        // Need to finalize dst, append and reserve for next appending.
+        dst.xFinalize(reinterpret_cast<char*>(dstCur));
+
+        dl = dst.getLength();
+        rl = replaceBuffer.getLength();
+
+        if ((err = dst.grow(rl + (sysuint_t)(srcEnd - srcCur) * 2))) return err;
+        dstCur = reinterpret_cast<uint16_t*>(dst.xData() + dl);
+
+        StringUtil::copy(reinterpret_cast<Char*>(dstCur), replaceBuffer.cData(), dl);
+        dstCur += rl;
+      }
+    }
+    else
+    {
+      *dstCur++ = uc0;
+    }
+  }
+
+end:
+  dst.xFinalize(reinterpret_cast<char*>(dstCur));
+
+  // Byte swapping.
+  if (bomSwapped)
+  {
+    uint16_t* dstEnd = dstCur;
+    dstCur = reinterpret_cast<uint16_t*>(dst.xData() + initSize);
+    while (dstCur != dstEnd) { dstCur[0] = Memory::bswap16(dstCur[0]); dstCur++; }
+  }
+
+  return err;
 }
 
 err_t UCS2Codec::appendToUnicode(String& dst, const void* src, sysuint_t size, State* state) const
 {
-  // TODO
-  return Error::NotImplemented;
+  // Length initialization and check.
+  if (size == DetectLength) size = StringUtil::len(reinterpret_cast<const Char*>(src)) << 1;
+  if (size == 0) return Error::Ok;
+
+  // Source Buffer.
+  const uint8_t* srcCur = reinterpret_cast<const uint8_t*>(src);
+  const uint8_t* srcEnd = srcCur + (size);
+  const uint8_t* srcEndM2 = srcCur + (size) - 2;
+
+  // Destination Buffer.
+  sysuint_t oldStateSize = 0;
+  sysuint_t growSize = (size >> 1) + 2;
+
+  err_t err = dst.reserve(dst.getLength() + growSize);
+  if (err) return err;
+
+  Char* dstCur = dst.xData() + dst.getLength();
+
+  // Characters.
+  Char uc0;
+
+  // Byte swapping.
+  uint32_t byteSwap = state ? state->bomSwapped : (flags & TextCodec::IsByteSwapped) != 0;
+
+  if (state && (oldStateSize = state->count))
+  {
+    const uint8_t* bufPtr = reinterpret_cast<uint8_t*>(state->buffer);
+    sysuint_t bufSize = addToState(state, srcCur, srcEnd);
+
+    if (state->count < 2) return Error::Ok;
+
+    uc0 = reinterpret_cast<const uint16_t*>(bufPtr)[0];
+    if (byteSwap) uc0.bswap();
+
+    srcCur -= oldStateSize;
+    state->count = 0;
+
+    goto processChar;
+  }
+
+loop:
+  for (;;)
+  {
+    if (srcCur > srcEndM2) break;
+
+    uc0 = reinterpret_cast<const uint16_t*>(srcCur)[0];
+    if (byteSwap) uc0.bswap();
+
+processChar:
+    if (uc0.isSurrogatePair())
+    {
+      err = Error::InvalidUcs2Sequence;
+      goto end;
+    }
+
+    // BOM support.
+    if (uc0.isBomSwapped())
+    {
+      byteSwap = !byteSwap;
+    }
+    else
+    {
+      *dstCur++ = uc0;
+    }
+
+    srcCur += 2;
+  }
+
+  // We need to check if input was truncated or not. Ideally srcCur should
+  // be srcEnd.
+  if (srcCur != srcEnd)
+  {
+    // Different behavior if state is set or not.
+    if (state)
+    {
+      sysuint_t bufSize = (sysuint_t)(srcEnd - srcCur);
+      memcpy(state->buffer, srcCur, bufSize);
+      state->count = bufSize;
+    }
+    else
+    {
+      err = Error::InputTruncated;
+    }
+  }
+
+end:
+  if (state) state->bomSwapped = byteSwap;
+
+  dst.xFinalize(dstCur);
+  return err;
 }
 
 static TextCodec::Engine* UCS2Codec_create(uint32_t code, uint32_t flags, const char* mime, void*)
@@ -1603,7 +1973,7 @@ ret:
 // ============================================================================
 
 TextCodec::TextCodec() :
-  _d(((TextCodec*)sharedBuiltIn)[BuiltInNull]._d->ref())
+  _d(((TextCodec*)_codecs)[BuiltInNull]._d->ref())
 {
 }
 
@@ -1684,7 +2054,7 @@ TextCodec TextCodec::fromBom(const void* data, sysuint_t length)
 
 void TextCodec::free()
 {
-  AtomicBase::ptr_setXchg(&_d, ((TextCodec *)sharedBuiltIn)[BuiltInNull]._d->ref())->deref();
+  AtomicBase::ptr_setXchg(&_d, ((TextCodec *)_codecs)[BuiltInNull]._d->ref())->deref();
 }
 
 TextCodec& TextCodec::operator=(const TextCodec& other)
@@ -1778,7 +2148,7 @@ FOG_INIT_DECLARE err_t fog_textcodec_init(void)
 
   Memory::zero(deviceInstances, sizeof(void*) * TextCodec::Invalid);
 
-  TextCodec* addr = (TextCodec*)TextCodec::sharedBuiltIn;
+  TextCodec* addr = (TextCodec*)TextCodec::_codecs;
 
   // Initialize null text codec.
   new (&addr[TextCodec::BuiltInNull]) 
@@ -1814,7 +2184,7 @@ FOG_INIT_DECLARE void fog_textcodec_shutdown(void)
 {
   using namespace Fog;
 
-  TextCodec* addr = (TextCodec*)TextCodec::sharedBuiltIn;
+  TextCodec* addr = (TextCodec*)TextCodec::_codecs;
 
   addr[TextCodec::BuiltInNull].~TextCodec();
   addr[TextCodec::BuiltInAscii].~TextCodec();

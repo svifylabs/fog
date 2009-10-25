@@ -7,6 +7,64 @@
 
 using namespace Fog;
 
+struct MyPoint
+{
+  double posx;
+  double posy;
+
+  double stepx;
+  double stepy;
+
+  void setPos(double x, double y) { posx = x; posy = y; }
+  void setStep(double x, double y) { stepx = x; stepy = y; }
+
+  void randomize(int w, int h)
+  {
+    posx = rand() % w;
+    posy = rand() % h;
+
+    stepx = (double)(rand() % 300) / 50.0 + 2.0;
+    stepy = (double)(rand() % 300) / 50.0 + 2.0;
+  }
+
+  void move(const RectD& bounds)
+  {
+    posx += stepx;
+    posy += stepy;
+
+    if (posx >= bounds.getX2() || posx <= bounds.getX1()) { stepx = -stepx; posx = Math::bound(bounds.getX1(), posx, bounds.getX2()); }
+    if (posy >= bounds.getY2() || posy <= bounds.getY1()) { stepy = -stepy; posy = Math::bound(bounds.getY1(), posy, bounds.getY2()); }
+  }
+};
+
+struct MyColor
+{
+  double c[3];
+  double step[3];
+
+  void randomize()
+  {
+    for (int i = 0; i < 3; i++)
+    {
+      c[i] = (double)(rand() % 255);
+      step[i] = (double)(5.0 - (rand() % 100) / 10.0);
+    }
+  }
+
+  void move()
+  {
+    for (int i = 0; i < 3; i++)
+    {
+      c[i] += step[i];
+      if (c[i] > 255.0) { c[i] = 255.0; step[i] = -step[i]; }
+      if (c[i] < 0.0)   { c[i] = 0.0; step[i] = -step[i]; }
+
+      if ((rand() % 255) == 0) step[i] = (double)(5.0 - (rand() % 100) / 10.0);
+    }
+  }
+  Rgba toRgba() { return Rgba((int)c[0], (int)c[1], (int)c[2]); }
+};
+
 struct MyWindow : public Window
 {
   // [Fog Object System]
@@ -18,6 +76,14 @@ struct MyWindow : public Window
 
   // [Event Handlers]
   virtual void onPaint(PaintEvent* e);
+  virtual void onTimer(TimerEvent* e);
+
+  // [Members]
+  Timer timer;
+
+  enum { NumPoints = 20 };
+  MyPoint mp[NumPoints];
+  MyColor clr;
 };
 
 FOG_IMPLEMENT_OBJECT(MyWindow)
@@ -25,7 +91,14 @@ FOG_IMPLEMENT_OBJECT(MyWindow)
 MyWindow::MyWindow(uint32_t createFlags) :
   Window(createFlags)
 {
-  setWindowTitle(Ascii8("Filters"));
+  setWindowTitle(Ascii8("Testing..."));
+
+  for (sysuint_t i = 0; i < NumPoints; i++) mp[i].randomize(200, 200);
+  clr.randomize();
+
+  timer.setInterval(TimeDelta::fromMilliseconds(20));
+  timer.addListener(EvTimer, this, &MyWindow::onTimer);
+  timer.start();
 }
 
 MyWindow::~MyWindow()
@@ -38,18 +111,26 @@ void MyWindow::onPaint(PaintEvent* e)
   Painter* p = e->getPainter();
 
   double w = getWidth(), h = getHeight();
-  p->setSource(0xFFFFFFFF);
-  p->clear();
+  //p->setSource(0xFFFFFFFF);
+  //p->clear();
 
-  PointD points[4];
-  points[0].set(10, 10);
-  points[1].set(110, 50);
-  points[2].set(50, 100);
-  points[3].set(30, 30);
+  PointD points[NumPoints];
+  RectD bounds(0, 0, w, h);
+  for (sysuint_t i = 0; i < NumPoints; i++)
+  {
+    points[i].set(mp[i].posx, mp[i].posy);
+    mp[i].move(bounds);
+  }
+  clr.move();
 
-  p->setSource(0xFF000000);
+  p->setSource(clr.toRgba());
+  p->setFillMode(FillEvenOdd);
+  p->fillPolygon(points, NumPoints);
+}
 
-  p->fillPolygon(points, 4);
+void MyWindow::onTimer(TimerEvent* e)
+{
+  repaint(RepaintWidget);
 }
 
 // ============================================================================

@@ -91,6 +91,8 @@ enum CoreError
   InvalidUtf8Sequence,
   //! @brief Invalid UTF-16 sequence (surrogate pair error).
   InvalidUtf16Sequence,
+  //! @brief Invalid UCS-2 sequence (surrogate pair in UCS-2).
+  InvalidUcs2Sequence,
   //! @brief Invalid Unicode character.
   InvalidUnicodeCharacter,
   //! @brief Incomplete input buffer.

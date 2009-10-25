@@ -15,7 +15,7 @@ TODO
     [ ] Remove allocPolicy and AllocPolicy enums, all detach functions must return err_t
         instead
     [ ] Fog::RegExp - use TRex
-    [ ] Fog::String - not completed yet, add Locale support to group separators
+    [ ] Fog::String/Fog::Locale - add support for group separators
     [ ] Fog::TextCodec - not completed yet
     [ ] StringUtil::some utf functions not completed yet
     [ ] Fog::BitArray - fix
@@ -29,7 +29,7 @@ TODO
 
 [ ] Fog/Svg:
     [ ] PainterEngine_Svg
-    
+
 [ ] Painter:
     [ ] Set constant mask
     [ ] Text transform
@@ -38,7 +38,7 @@ TODO
     [ ] Text in path support
     [ ] Image scaling
     [ ] Image transform
-    [ ] Introduce setClipPath() / restoreClip()
+    [ ] Introduce setClipPath() / resetClipPath()
     [ ] Painter should implement IProperty interface.
 
 [ ] Image:
@@ -52,7 +52,7 @@ TODO
         [x] Win32
         [ ] Freetype2
     [ ] Cache size control
-    [ ] Increase granularity of X position in glyphs to 4 (0.0, 0.25, 0.50 and 0.75), because vector
+    [ ] Increase granularity of X position in glyphs to 4 (0.00, 0.25, 0.50, 0.75), because vector
         fonts can be very sensitive.
 
 [ ] Raster:
