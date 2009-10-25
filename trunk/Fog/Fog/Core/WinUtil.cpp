@@ -19,7 +19,7 @@ err_t getModuleFileName(HMODULE hModule, String& dst)
   dst.prepare(256);
   for (;;)
   {
-    DWORD capacity = (DWORD)t.getCapacity();
+    DWORD capacity = (DWORD)dst.getCapacity();
     DWORD result = GetModuleFileNameW(hModule, reinterpret_cast<wchar_t*>(dst.xData()), capacity + 1);
 
     if (result == 0) return ::GetLastError();

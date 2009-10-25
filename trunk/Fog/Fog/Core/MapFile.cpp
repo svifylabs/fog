@@ -52,13 +52,13 @@ MapFile::~MapFile()
 }
 
 #if defined(FOG_OS_WINDOWS)
-err_t MapFile::map(const String& _fileName, bool loadOnFail)
+err_t MapFile::map(const String& fileName, bool loadOnFail)
 {
   unmap();
 
   err_t err;
-  String fileName = _fileName;
-  if ((err = fileName.slashesToPosix())) return err;
+  String fileNameW(fileName);
+  if ((err = fileNameW.slashesToPosix())) return err;
 
   HANDLE hFile;
   HANDLE hFileMapping;
@@ -70,7 +70,7 @@ err_t MapFile::map(const String& _fileName, bool loadOnFail)
 
   // Try to open file.
   if ((hFile = CreateFileW(
-    reinterpret_cast<const wchar_t*>(fileName.cData()), FILE_READ_DATA, FILE_SHARE_READ,
+    reinterpret_cast<const wchar_t*>(fileNameW.cData()), FILE_READ_DATA, FILE_SHARE_READ,
     NULL, OPEN_EXISTING, 0, NULL)) == INVALID_HANDLE_VALUE)
   {
     return GetLastError();

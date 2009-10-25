@@ -192,7 +192,7 @@ Application_Local::Application_Local()
 #if defined(FOG_OS_WINDOWS)
   String applicationCommand;
 
-  applicationCommand.set(StubW(::GetCommandLineW()));
+  applicationCommand.set(reinterpret_cast<const Char*>(::GetCommandLineW()));
   parseWinCmdLine(applicationCommand, applicationArguments);
 
   applicationArgumentsWasSet();
@@ -355,7 +355,7 @@ err_t Application::setWorkingDirectory(const String& _dir)
 
   if ((err = dir.slashesToWin())) return err;
 
-  if (SetCurrentDirectoryW(reinterpret_cast<wchar_t*>(dir.cData())) == 0)
+  if (SetCurrentDirectoryW(reinterpret_cast<const wchar_t*>(dir.cData())) == 0)
     return Error::Ok;
   else
     return GetLastError();

@@ -124,7 +124,7 @@ struct OS_Local
     }
     else
     {
-      windowsDirectory.set(StubW(winDir, DetectLength));
+      windowsDirectory.set(reinterpret_cast<const Char*>(winDir));
       windowsDirectory.slashesToPosix();
     }
 #endif // FOG_OS_WINDOWS
@@ -250,7 +250,7 @@ err_t OS::getEnv(const String& name, String& value)
   for (;;)
   {
     sz = GetEnvironmentVariableW(reinterpret_cast<const wchar_t*>(name.cData()),
-      reinterpret_cast<wchar_t*>(valueW.xData()), value.getCapacity());
+      reinterpret_cast<wchar_t*>(value.xData()), value.getCapacity());
 
     if (sz == 0)
     {
@@ -291,7 +291,7 @@ err_t OS::setEnv(const String& name, const String& value)
 {
 #if defined(FOG_OS_WINDOWS)
   if (SetEnvironmentVariableW(reinterpret_cast<const wchar_t*>(name.cData()), 
-    reinterpret_cast<const wchar_t*>(value.cData()))
+    reinterpret_cast<const wchar_t*>(value.cData())))
   {
     return Error::Ok;
   }
