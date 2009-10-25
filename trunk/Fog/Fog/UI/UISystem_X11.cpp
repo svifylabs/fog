@@ -9,6 +9,7 @@
 
 // [Dependencies]
 #include <Fog/Core/Application.h>
+#include <Fog/Core/Byte.h>
 #include <Fog/Core/Math.h>
 #include <Fog/Graphics/Raster.h>
 #include <Fog/Graphics/Raster/Raster_C.h>
@@ -30,6 +31,8 @@
 
 #include <sys/utsname.h>
 #include <unistd.h>
+
+#include "Fog/Core/TextCodec.h"
 
 FOG_IMPLEMENT_OBJECT(Fog::UISystemX11)
 FOG_IMPLEMENT_OBJECT(Fog::UIWindowX11)
@@ -629,7 +632,7 @@ uint32_t UISystemX11::translateXSym(KeySym xsym) const
     case 0x0A: // Publishing
     case 0x0C: // Hebrew
     case 0x0D: // Thai
-      key = Char8((uint8_t)(xsym & 0xFF)).toAsciiLower().ch();
+      key = Byte::toLower((uint8_t)(xsym & 0xFF));
       break;
     case 0xFE:
       key = _xKeymap.odd[xsym & 0xFF];
@@ -1207,7 +1210,7 @@ err_t UIWindowX11::takeFocus()
   return Error::Ok;
 }
 
-err_t UIWindowX11::setTitle(const String32& title)
+err_t UIWindowX11::setTitle(const String& title)
 {
   if (!_handle) return Error::InvalidHandle;
 
@@ -1216,12 +1219,13 @@ err_t UIWindowX11::setTitle(const String32& title)
   XTextProperty windowProperty;
 
 #if FOG_SIZEOF_WCHAR_T == 2
-  TemporaryString16<TemporaryLength> titleW;
-  if ((err = titleW.set(title))) return err;
-  const wchar_t *titleWChar = (const wchar_t *)titleW.cStr();
+  const wchar_t *titleWChar = reinterpret_cast<const wchar_t *>(title.cData());
 #else
-  const wchar_t *titleWChar = (const wchar_t *)title.cStr();
+  TemporaryByteArray<TemporaryLength> titleW;
+  if ((err = TextCodec::utf32().appendFromUnicode(titleW, title))) return err;
+  const wchar_t *titleWChar = reinterpret_cast<const wchar_t *>(titleW.nullTerminated());
 #endif
+
   UISystemX11* uiSystem = UI_SYSTEM();
   int result = uiSystem->pXwcTextListToTextProperty(uiSystem->display(),
     (wchar_t **)&titleWChar, 1, XTextStyle, &windowProperty);
@@ -1242,7 +1246,7 @@ err_t UIWindowX11::setTitle(const String32& title)
   return err;
 }
 
-err_t UIWindowX11::getTitle(String32& title)
+err_t UIWindowX11::getTitle(String& title)
 {
   if (!_handle) return Error::InvalidHandle;
 
@@ -1382,7 +1386,7 @@ void UIWindowX11::onX11Event(XEvent* xe)
 
     case XKeyPress:
     {
-      TemporaryString32<8> unicode;
+      TemporaryString<8> unicode;
 
       KeySym xsym = 0;
       uint32_t key;
@@ -1410,7 +1414,7 @@ void UIWindowX11::onX11Event(XEvent* xe)
           case XLookupChars:
           case XLookupKeySym:
           case XLookupBoth:
-            unicode.set(StubW(buf, len));
+            unicode.setWChar(buf, len);
             break;
           default:
             goto __keyPressNoXIC;
@@ -1422,12 +1426,12 @@ __keyPressNoXIC:
         // XIC not supported...?
         char buf[15*6 + 1];
         int len = uiSystem->pXLookupString(&xe->xkey, buf, FOG_ARRAY_SIZE(buf) - 1, &xsym, 0);
-        unicode.set(Local8(buf, len));
+        TextCodec::local8().toUnicode(unicode, buf, len);
       }
 
       key = uiSystem->translateXSym(xsym);
       onKeyPress(key, uiSystem->keyToModifier(key), xe->xkey.keycode,
-        Char32(unicode.getLength() == 1 ? unicode.at(0).ch() : 0));
+        Char(unicode.getLength() == 1 ? unicode.at(0).ch() : 0));
       break;
     }
 
@@ -1436,7 +1440,7 @@ __keyPressNoXIC:
       KeySym xsym = uiSystem->pXKeycodeToKeysym(uiSystem->display(), xe->xkey.keycode, 0);
       uint32_t key = uiSystem->translateXSym(xsym);
 
-      onKeyRelease(key, uiSystem->keyToModifier(key), xe->xkey.keycode, Char32(0));
+      onKeyRelease(key, uiSystem->keyToModifier(key), xe->xkey.keycode, Char(0));
       break;
     }
 

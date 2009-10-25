@@ -10,6 +10,7 @@
 
 // [Dependencies]
 #include <Fog/Core/Assert.h>
+#include <Fog/Core/Byte.h>
 #include <Fog/Core/Char.h>
 #include <Fog/Core/Hash.h>
 #include <Fog/Core/MapFile.h>
@@ -29,7 +30,7 @@ namespace Fog {
 // [Fog::XmlReader - Helpers]
 // ============================================================================
 
-static bool xmlIsWhiteSpace(const Char32* buffer, const Char32* end)
+static bool xmlIsWhiteSpace(const Char* buffer, const Char* end)
 {
   while (buffer < end)
   {
@@ -51,7 +52,7 @@ XmlReader::~XmlReader()
 {
 }
 
-err_t XmlReader::parseFile(const String32& fileName)
+err_t XmlReader::parseFile(const String& fileName)
 {
   Stream stream;
   err_t err = stream.openFile(fileName, Stream::OpenRead);
@@ -62,7 +63,7 @@ err_t XmlReader::parseFile(const String32& fileName)
 
 err_t XmlReader::parseStream(Stream& stream)
 {
-  String8 buffer;
+  ByteArray buffer;
   stream.readAll(buffer);
   return parseMemory(reinterpret_cast<const void*>(buffer.cData()), buffer.getLength());
 }
@@ -72,35 +73,35 @@ err_t XmlReader::parseMemory(const void* mem, sysuint_t size)
   TextCodec textCodec = _detectEncoding(mem, size);
   if (textCodec.isNull()) textCodec.setCode(TextCodec::UTF8);
 
-  String32 buffer;
-  err_t err = textCodec.toUtf32(buffer, Stub8((const char*)mem, size));
+  String buffer;
+  err_t err = textCodec.toUnicode(buffer, mem, size);
   if (err) return err;
 
   return parseString(buffer.cData(), buffer.getLength());
 }
 
-err_t XmlReader::parseString(const Char32* s, sysuint_t len)
+err_t XmlReader::parseString(const Char* s, sysuint_t len)
 {
   // Check if encoded length is zero (no document).
   if (len == DetectLength) len = StringUtil::len(s);
   if (len == 0) return Error::XmlReaderNoDocument;
 
-  const Char32* strCur = s;           // Parsing buffer.
-  const Char32* strEnd = s + len;     // End of buffer.
+  const Char* strCur = s;           // Parsing buffer.
+  const Char* strEnd = s + len;     // End of buffer.
 
-  const Char32* mark = s;             // Mark to start position of currently parsed item.
+  const Char* mark = s;             // Mark to start position of currently parsed item.
 
-  const Char32* markTagStart  = NULL; // Mark to start position of currently parsed tag name.
-  const Char32* markTagEnd    = NULL; // Mark to end position of currently parsed tag name.
+  const Char* markTagStart  = NULL; // Mark to start position of currently parsed tag name.
+  const Char* markTagEnd    = NULL; // Mark to end position of currently parsed tag name.
 
-  const Char32* markAttrStart = NULL; // Mark to start of attribute.
-  const Char32* markAttrEnd   = NULL; // Mark to end of attribute.
+  const Char* markAttrStart = NULL; // Mark to start of attribute.
+  const Char* markAttrEnd   = NULL; // Mark to end of attribute.
 
-  const Char32* markDataStart = NULL; // Mark to start of data (CDATA, Comment, attribute text, ...).
-  const Char32* markDataEnd   = NULL; // Mark to end of data (CDATA, Comment, attribute text, ...).
+  const Char* markDataStart = NULL; // Mark to start of data (CDATA, Comment, attribute text, ...).
+  const Char* markDataEnd   = NULL; // Mark to end of data (CDATA, Comment, attribute text, ...).
 
-  Char32 ch;                          // Current character.
-  Char32 attr;                        // Attribute marker (' or ").
+  Char ch;                          // Current character.
+  Char attr;                        // Attribute marker (' or ").
 
   err_t err = Error::Ok;              // Current error code.
   int state = StateReady;             // Current state.
@@ -109,13 +110,13 @@ err_t XmlReader::parseString(const Char32* s, sysuint_t len)
   bool skipTagText = true;            // skip tag text...?
 
   // Temporary reusable strings.
-  String32 tempTagName;
-  String32 tempAttrName;
-  String32 tempAttrValue;
-  String32 tempText;
-  String32 tempData;
+  String tempTagName;
+  String tempAttrName;
+  String tempAttrValue;
+  String tempText;
+  String tempData;
 
-  Vector<String32> doctype;
+  Vector<String> doctype;
 
   for (;;)
   {
@@ -128,14 +129,14 @@ cont:
     {
       case StateReady:
         // If xml char has special meaning, we will process it, otherwise go away.
-        if (ch == Char32('<'))
+        if (ch == Char('<'))
         {
           // If there is text, we will call addText().
           if (mark != strCur)
           {
             bool isWhiteSpace = xmlIsWhiteSpace(mark, strCur);
 
-            err = onAddText(Utf32(mark, (sysuint_t)(strCur - mark)), isWhiteSpace);
+            err = onAddText(Utf16(mark, (sysuint_t)(strCur - mark)), isWhiteSpace);
             if (err) goto end;
           }
 
@@ -146,7 +147,7 @@ cont:
 
       case StateTagBegin:
         // Match start tag name (this is probably the most common)
-        if (ch.isAlpha() || ch == Char32('_') || ch == Char32(':'))
+        if (ch.isAlpha() || ch == Char('_') || ch == Char(':'))
         {
           state = StateTagName;
           markTagStart = strCur;
@@ -154,19 +155,19 @@ cont:
         }
 
         // Match closing tag slash.
-        if (ch.ch() == Char32('/'))
+        if (ch.ch() == Char('/'))
         {
           state = StateTagClose;
           break;
         }
 
-        if (ch.ch() == Char32('?'))
+        if (ch.ch() == Char('?'))
         {
           state = StateTagQuestionMark;
           break;
         }
 
-        if (ch.ch() == Char32('!'))
+        if (ch.ch() == Char('!'))
         {
           state = StateTagExclamationMark;
           break;
@@ -179,7 +180,7 @@ cont:
         goto end;
 
       case StateTagName:
-        if (ch.isAlnum() || ch == Char32('_') || ch == Char32(':') || ch == Char32('-') || ch == Char32('.'))
+        if (ch.isAlnum() || ch == Char('_') || ch == Char(':') || ch == Char('-') || ch == Char('.'))
           break;
 
         markTagEnd = strCur;
@@ -188,7 +189,7 @@ cont:
         depth++;
         element = ElementTag;
 
-        err = onAddElement(Utf32(markTagStart, (sysuint_t)(markTagEnd - markTagStart)));
+        err = onAddElement(Utf16(markTagStart, (sysuint_t)(markTagEnd - markTagStart)));
         if (err) goto end;
 
         // ... go through ...
@@ -197,7 +198,7 @@ cont:
         if (ch.isSpace()) break;
 
         // Check for start of xml attribute.
-        if (ch.isAlpha() || ch == Char32('_'))
+        if (ch.isAlpha() || ch == Char('_'))
         {
           markAttrStart = strCur;
           state = StateTagInsideAttrName;
@@ -208,17 +209,17 @@ cont:
         switch (element)
         {
           case ElementTag:
-            if (ch == Char32('/'))
+            if (ch == Char('/'))
             {
               element = ElementSelfClosingTag;
               state = StateTagEnd;
               strCur++;
               goto begin;
             }
-            if (ch == Char32('>')) goto tagEnd;
+            if (ch == Char('>')) goto tagEnd;
             break;
           case ElementXML:
-            if (ch == Char32('?'))
+            if (ch == Char('?'))
             {
               state = StateTagEnd;
               strCur++;
@@ -231,7 +232,7 @@ cont:
         goto end;
 
       case StateTagInsideAttrName:
-        if (ch.isAlnum()  || ch == Char32('_') || ch == Char32(':') || ch == Char32('-') || ch == Char32('.')) break;
+        if (ch.isAlnum()  || ch == Char('_') || ch == Char(':') || ch == Char('-') || ch == Char('.')) break;
 
         markAttrEnd = strCur;
 
@@ -242,7 +243,7 @@ cont:
           ch = *strCur;
         }
 
-        if (ch != Char32('=')) { err = Error::XmlReaderSyntaxError; goto end; }
+        if (ch != Char('=')) { err = Error::XmlReaderSyntaxError; goto end; }
 
         if (++strCur == strEnd) goto endOfInput;
         ch = *strCur;
@@ -254,7 +255,7 @@ cont:
           ch = *strCur;
         }
 
-        if (ch == Char32('\'') || ch == Char32('\"'))
+        if (ch == Char('\'') || ch == Char('\"'))
         {
           attr = ch;
           state = StateTagInsideAttrValue;
@@ -275,8 +276,8 @@ cont:
         state = StateTagInside;
 
         err = onAddAttribute(
-          Utf32(markAttrStart, (sysuint_t)(markAttrEnd - markAttrStart)),
-          Utf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart)));
+          Utf16(markAttrStart, (sysuint_t)(markAttrEnd - markAttrStart)),
+          Utf16(markDataStart, (sysuint_t)(markDataEnd - markDataStart)));
         if (err) goto end;
 
         goto begin;
@@ -284,7 +285,7 @@ cont:
       case StateTagEnd:
         if (ch.isSpace()) break;
 
-        if (ch == Char32('>'))
+        if (ch == Char('>'))
         {
 tagEnd:
           state = StateReady;
@@ -294,7 +295,7 @@ tagEnd:
           if (element == ElementSelfClosingTag)
           {
             depth--;
-            err = onCloseElement(Utf32(markTagStart, (sysuint_t)(markTagEnd - markTagStart)));
+            err = onCloseElement(Utf16(markTagStart, (sysuint_t)(markTagEnd - markTagStart)));
             if (err) goto end;
           }
 
@@ -305,7 +306,7 @@ tagEnd:
 
       case StateTagClose:
         // Only possible sequence here is [StartTagSequence].
-        if (ch.isAlpha() || ch == Char32('_') || ch == Char32(':'))
+        if (ch.isAlpha() || ch == Char('_') || ch == Char(':'))
         {
           state = StateTagCloseName;
           markTagStart = strCur;
@@ -316,7 +317,7 @@ tagEnd:
         goto end;
 
       case StateTagCloseName:
-        if (ch.isAlnum() || ch == Char32('_') || ch == Char32(':') || ch == Char32('-') || ch == Char32('.'))
+        if (ch.isAlnum() || ch == Char('_') || ch == Char(':') || ch == Char('-') || ch == Char('.'))
           break;
 
         state = StateTagCloseEnd;
@@ -326,13 +327,13 @@ tagEnd:
 
       case StateTagCloseEnd:
         // This is we are waiting for.
-        if (ch == Char32('>'))
+        if (ch == Char('>'))
         {
           state = StateReady;
           mark = ++strCur;
           depth--;
 
-          err = onCloseElement(Utf32(markTagStart, (sysuint_t)(markTagEnd - markTagStart)));
+          err = onCloseElement(Utf16(markTagStart, (sysuint_t)(markTagEnd - markTagStart)));
           if (err) goto end;
 
           goto begin;
@@ -345,7 +346,7 @@ tagEnd:
         goto end;
 
       case StateTagQuestionMark:
-        if ((sysuint_t)(strEnd - strCur) > 3 && StringUtil::eq(strCur, (const Char8*)"xml", 3, CaseInsensitive) && strCur[3].isSpace())
+        if ((sysuint_t)(strEnd - strCur) > 3 && StringUtil::eq(strCur, "xml", 3, CaseInsensitive) && strCur[3].isSpace())
         {
           element = ElementXML;
           state = StateTagInside;
@@ -360,13 +361,13 @@ tagEnd:
         break;
 
       case StateTagExclamationMark:
-        if ((sysuint_t)(strEnd - strCur) > 1 && StringUtil::eq(strCur, (const Char8*)"--", 2, CaseSensitive))
+        if ((sysuint_t)(strEnd - strCur) > 1 && StringUtil::eq(strCur, "--", 2, CaseSensitive))
         {
           state = StateComment;
           strCur += 3;
           goto begin;
         }
-        else if ((sysuint_t)(strEnd - strCur) > 7 && StringUtil::eq(strCur, (const Char8*)"DOCTYPE", 7, CaseInsensitive) && strCur[7].isSpace())
+        else if ((sysuint_t)(strEnd - strCur) > 7 && StringUtil::eq(strCur, "DOCTYPE", 7, CaseInsensitive) && strCur[7].isSpace())
         {
           element = ElementDOCTYPE;
           state = StateDOCTYPE;
@@ -385,7 +386,7 @@ tagEnd:
 
         if (doctype.getLength() < 2)
         {
-          if (ch.isAlpha() || ch == Char32('_'))
+          if (ch.isAlpha() || ch == Char('_'))
           {
             state = StateDOCTYPEText;
             markDataStart = ++strCur;
@@ -393,11 +394,11 @@ tagEnd:
           }
 
           // End of DOCTYPE
-          if (ch == Char32('>')) goto doctypeEnd;
+          if (ch == Char('>')) goto doctypeEnd;
         }
         else
         {
-          if (ch == Char32('\"'))
+          if (ch == Char('\"'))
           {
             if (doctype.getLength() < 4)
             {
@@ -411,7 +412,7 @@ tagEnd:
               goto end;
             }
           }
-          if (ch == Char32('>'))
+          if (ch == Char('>'))
           {
 doctypeEnd:
             if ((err = onAddDOCTYPE(doctype))) return err;
@@ -425,29 +426,29 @@ doctypeEnd:
         break;
 
       case StateDOCTYPEText:
-        if (ch.isAlnum() || ch == Char32('_') || ch == Char32(':') || ch == Char32('-') || ch == Char32('.')) break;
+        if (ch.isAlnum() || ch == Char('_') || ch == Char(':') || ch == Char('-') || ch == Char('.')) break;
         markDataEnd = strCur;
-        doctype.append(String32(Utf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart))));
+        doctype.append(Utf16(markDataStart, (sysuint_t)(markDataEnd - markDataStart)));
 
         state = StateDOCTYPE;
         goto cont;
 
       case StateDOCTYPEAttr:
-        if (ch != Char32('\"')) break;
+        if (ch != Char('\"')) break;
 
         markDataEnd = strCur;
-        doctype.append(String32(Utf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart))));
+        doctype.append(String(markDataStart, (sysuint_t)(markDataEnd - markDataStart)));
 
         state = StateDOCTYPE;
         break;
 
       case StatePI:
       {
-        const Char32* q = strEnd-1;
+        const Char* q = strEnd-1;
 
         while (strCur < q &&
-               strCur[0].ch() != Char32('?') &&
-               strCur[1].ch() != Char32('>')) strCur++;
+               strCur[0].ch() != Char('?') &&
+               strCur[1].ch() != Char('>')) strCur++;
 
         if (strCur == q)
         {
@@ -462,7 +463,7 @@ doctypeEnd:
           state = StateReady;
           mark = strCur;
 
-          err = onAddPI(Utf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart)));
+          err = onAddPI(Utf16(markDataStart, (sysuint_t)(markDataEnd - markDataStart)));
           if (err) goto end;
 
           goto begin;
@@ -471,12 +472,12 @@ doctypeEnd:
 
       case StateComment:
       {
-        const Char32* q = strEnd-2;
+        const Char* q = strEnd-2;
 
         while (strCur < q && (
-               strCur[0].ch() != Char32('-') ||
-               strCur[1].ch() != Char32('-') ||
-               strCur[2].ch() != Char32('>'))) strCur++;
+               strCur[0].ch() != Char('-') ||
+               strCur[1].ch() != Char('-') ||
+               strCur[2].ch() != Char('>'))) strCur++;
 
         if (strCur == q)
         {
@@ -491,7 +492,7 @@ doctypeEnd:
           state = StateReady;
           mark = strCur;
 
-          err = onAddComment(Utf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart)));
+          err = onAddComment(Utf16(markDataStart, (sysuint_t)(markDataEnd - markDataStart)));
           if (err) goto end;
 
           goto begin;
@@ -500,12 +501,12 @@ doctypeEnd:
 
       case StateCDATA:
       {
-        const Char32* q = strEnd-2;
+        const Char* q = strEnd-2;
 
         while (strCur < q &&
-               strCur[0].ch() != Char32(']') &&
-               strCur[1].ch() != Char32(']') &&
-               strCur[2].ch() != Char32('>')) strCur++;
+               strCur[0].ch() != Char(']') &&
+               strCur[1].ch() != Char(']') &&
+               strCur[2].ch() != Char('>')) strCur++;
 
         if (strCur == q)
         {
@@ -520,7 +521,7 @@ doctypeEnd:
           state = StateReady;
           mark = strCur;
 
-          err = onAddCDATA(Utf32(markDataStart, (sysuint_t)(markDataEnd - markDataStart)));
+          err = onAddCDATA(Utf16(markDataStart, (sysuint_t)(markDataEnd - markDataStart)));
           if (err) goto end;
 
           goto begin;
@@ -551,8 +552,8 @@ TextCodec XmlReader::_detectEncoding(const void* mem, sysuint_t size)
   TextCodec textCodec = TextCodec::fromBom(mem, size);
   if (!textCodec.isNull()) return textCodec;
 
-  const Char8* ptr = (const Char8 *)mem;
-  const Char8* end = ptr + size;
+  const char* ptr = reinterpret_cast<const char*>(mem);
+  const char* end = ptr + size;
 
   if (size < 15) goto end;
 
@@ -560,33 +561,33 @@ TextCodec XmlReader::_detectEncoding(const void* mem, sysuint_t size)
   {
     // TODO: Detect UTF16LE, UTF16BE, UTF32LE, UTF32BE
 
-    if  (ptr[0] == Char8('<') && ptr < end - 5 &&
-         ptr[1] == Char8('?') &&
-        (ptr[2] == Char8('x') || ptr[2] == Char8('X')) &&
-        (ptr[3] == Char8('m') || ptr[2] == Char8('M')) &&
-        (ptr[4] == Char8('l') || ptr[2] == Char8('L')))
+    if  (ptr[0] == '<' && ptr < end - 5 &&
+         ptr[1] == '?' &&
+        (ptr[2] == 'x' || ptr[2] == 'X') &&
+        (ptr[3] == 'm' || ptr[2] == 'M') &&
+        (ptr[4] == 'l' || ptr[2] == 'L'))
     {
       // Xml header, we are in "<?xml".
       ptr += 5;
 
       while(ptr + 9 < end)
       {
-        if (*ptr == Char8('>')) goto end;
-        if (ptr->isAsciiSpace() && StringUtil::eq(ptr + 1, (const Char8*)"encoding", 8, CaseInsensitive))
+        if (*ptr == '>') goto end;
+        if (Byte::isSpace(*ptr) && StringUtil::eq(ptr + 1, "encoding", 8, CaseInsensitive))
         {
           // We are in "<?xml ..... encoding".
-          const Char8* begin;
-          Char8 q;
+          const char* begin;
+          char q;
           ptr += 9;
 
           // Find '='.
-          while (ptr != end && *ptr != Char8('=')) ptr++;
+          while (ptr != end && *ptr != '=') ptr++;
           if (ptr == end) goto end;
 
           ptr++;
 
           // We are in "<?xml ..... encoding = "
-          while (ptr != end && ptr->isAsciiSpace()) ptr++;
+          while (ptr != end && Byte::isSpace(*ptr)) ptr++;
           if (ptr == end) goto end;
 
           q = *ptr++;
@@ -602,7 +603,7 @@ TextCodec XmlReader::_detectEncoding(const void* mem, sysuint_t size)
         ptr++;
       }
     }
-    else if (ptr[0] == Char8('<'))
+    else if (ptr[0] == '<')
     {
       // xml header not found, default encoding is UTF-8
       break;
@@ -629,9 +630,9 @@ XmlDomReader::~XmlDomReader()
 {
 }
 
-err_t XmlDomReader::onAddElement(const Utf32& tagName)
+err_t XmlDomReader::onAddElement(const Utf16& tagName)
 {
-  XmlElement* e = _document->createElement(ManagedString32(tagName));
+  XmlElement* e = _document->createElement(ManagedString(tagName));
   if (!e) return Error::OutOfMemory;
 
   err_t err = _current->appendChild(e);
@@ -647,7 +648,7 @@ err_t XmlDomReader::onAddElement(const Utf32& tagName)
   }
 }
 
-err_t XmlDomReader::onCloseElement(const Utf32& tagName)
+err_t XmlDomReader::onCloseElement(const Utf16& tagName)
 {
   if (_current != _document)
   {
@@ -660,12 +661,12 @@ err_t XmlDomReader::onCloseElement(const Utf32& tagName)
   }
 }
 
-err_t XmlDomReader::onAddAttribute(const Utf32& name, const Utf32& value)
+err_t XmlDomReader::onAddAttribute(const Utf16& name, const Utf16& value)
 {
-  return _current->setAttribute(ManagedString32(name), String32(value));
+  return _current->setAttribute(ManagedString(name), String(value));
 }
 
-err_t XmlDomReader::onAddText(const Utf32& data, bool isWhiteSpace)
+err_t XmlDomReader::onAddText(const Utf16& data, bool isWhiteSpace)
 {
   if (_current == _document)
   {
@@ -675,7 +676,7 @@ err_t XmlDomReader::onAddText(const Utf32& data, bool isWhiteSpace)
       return Error::XmlReaderSyntaxError;
   }
 
-  XmlElement* e = new(std::nothrow) XmlText(String32(data));
+  XmlElement* e = new(std::nothrow) XmlText(String(data));
   if (!e) return Error::OutOfMemory;
 
   err_t err = _current->appendChild(e);
@@ -683,11 +684,11 @@ err_t XmlDomReader::onAddText(const Utf32& data, bool isWhiteSpace)
   return err;
 }
 
-err_t XmlDomReader::onAddCDATA(const Utf32& data)
+err_t XmlDomReader::onAddCDATA(const Utf16& data)
 {
   if (_current == _document) return Error::XmlDomDocumentInvalidChild;
 
-  XmlElement* e = new(std::nothrow) XmlCDATA(String32(data));
+  XmlElement* e = new(std::nothrow) XmlCDATA(String(data));
   if (!e) return Error::OutOfMemory;
 
   err_t err = _current->appendChild(e);
@@ -695,7 +696,7 @@ err_t XmlDomReader::onAddCDATA(const Utf32& data)
   return err;
 }
 
-err_t XmlDomReader::onAddDOCTYPE(const Vector<String32>& doctype)
+err_t XmlDomReader::onAddDOCTYPE(const Vector<String>& doctype)
 {
   if (_current != _document) return Error::XmlDomDocumentInvalidChild;
 
@@ -705,9 +706,9 @@ err_t XmlDomReader::onAddDOCTYPE(const Vector<String32>& doctype)
   return Error::Ok;
 }
 
-err_t XmlDomReader::onAddPI(const Utf32& data)
+err_t XmlDomReader::onAddPI(const Utf16& data)
 {
-  XmlElement* e = new(std::nothrow) XmlPI(String32(data));
+  XmlElement* e = new(std::nothrow) XmlPI(String(data));
   if (!e) return Error::OutOfMemory;
 
   err_t err = _current->appendChild(e);
@@ -715,9 +716,9 @@ err_t XmlDomReader::onAddPI(const Utf32& data)
   return err;
 }
 
-err_t XmlDomReader::onAddComment(const Utf32& data)
+err_t XmlDomReader::onAddComment(const Utf16& data)
 {
-  XmlElement* e = new(std::nothrow) XmlComment(String32(data));
+  XmlElement* e = new(std::nothrow) XmlComment(String(data));
   if (!e) return Error::OutOfMemory;
 
   err_t err = _current->appendChild(e);

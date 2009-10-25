@@ -215,8 +215,15 @@ SOURCE_GROUP(Build FILES
 Set(FOG_CORE_SOURCES
   ${FOG_DIR}/Fog/Core/Algorithms.cpp
   ${FOG_DIR}/Fog/Core/Application.cpp
+  ${FOG_DIR}/Fog/Core/Assert.cpp
   ${FOG_DIR}/Fog/Core/BitArray.cpp
+  ${FOG_DIR}/Fog/Core/Basics.cpp
+  ${FOG_DIR}/Fog/Core/Byte.cpp
+  ${FOG_DIR}/Fog/Core/ByteArray.cpp
+  ${FOG_DIR}/Fog/Core/ByteArrayFilter.cpp
+  ${FOG_DIR}/Fog/Core/ByteArrayMatcher.cpp
   ${FOG_DIR}/Fog/Core/Char.cpp
+  ${FOG_DIR}/Fog/Core/CharUtil.cpp
   ${FOG_DIR}/Fog/Core/Class.cpp
   ${FOG_DIR}/Fog/Core/CpuInfo.cpp
   ${FOG_DIR}/Fog/Core/DirIterator.cpp
@@ -247,6 +254,8 @@ Set(FOG_CORE_SOURCES
   ${FOG_DIR}/Fog/Core/Std.cpp
   ${FOG_DIR}/Fog/Core/Stream.cpp
   ${FOG_DIR}/Fog/Core/String.cpp
+  ${FOG_DIR}/Fog/Core/StringFilter.cpp
+  ${FOG_DIR}/Fog/Core/StringMatcher.cpp
   ${FOG_DIR}/Fog/Core/String_gen.cpp
   ${FOG_DIR}/Fog/Core/StringUtil.cpp
   ${FOG_DIR}/Fog/Core/StringUtil_dtoa.cpp
@@ -276,11 +285,17 @@ Set(FOG_CORE_HEADERS
   ${FOG_DIR}/Fog/Core/Atomic.h
   ${FOG_DIR}/Fog/Core/AutoLock.h
   ${FOG_DIR}/Fog/Core/AutoUnlock.h
+  ${FOG_DIR}/Fog/Core/Basics.h
   ${FOG_DIR}/Fog/Core/BitArray.h
+  ${FOG_DIR}/Fog/Core/Byte.h
+  ${FOG_DIR}/Fog/Core/ByteArray.h
+  ${FOG_DIR}/Fog/Core/ByteArrayFilter.h
+  ${FOG_DIR}/Fog/Core/ByteArrayMatcher.h
   ${FOG_DIR}/Fog/Core/Char.h
   ${FOG_DIR}/Fog/Core/Class.h
   ${FOG_DIR}/Fog/Core/Constants.h
   ${FOG_DIR}/Fog/Core/CpuInfo.h
+  ${FOG_DIR}/Fog/Core/CharUtil.h
   ${FOG_DIR}/Fog/Core/Delegate.h
   ${FOG_DIR}/Fog/Core/DirIterator.h
   ${FOG_DIR}/Fog/Core/Error.h
@@ -322,6 +337,8 @@ Set(FOG_CORE_HEADERS
   ${FOG_DIR}/Fog/Core/Std.h
   ${FOG_DIR}/Fog/Core/Stream.h
   ${FOG_DIR}/Fog/Core/String.h
+  ${FOG_DIR}/Fog/Core/StringFilter.h
+  ${FOG_DIR}/Fog/Core/StringMatcher.h
   ${FOG_DIR}/Fog/Core/String_gen.h
   ${FOG_DIR}/Fog/Core/StringUtil.h
   ${FOG_DIR}/Fog/Core/StringUtil_gen.h

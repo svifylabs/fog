@@ -33,12 +33,12 @@ ButtonBase::~ButtonBase()
 {
 }
 
-String32 ButtonBase::getText() const
+String ButtonBase::getText() const
 {
   return _text;
 }
 
-void ButtonBase::setText(const String32& text)
+void ButtonBase::setText(const String& text)
 {
   _text = text;
 

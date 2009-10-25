@@ -71,7 +71,7 @@ struct FontEngineFTTranslator
   {
   }
 
-  FontEngineFTTranslator(const String32 &family, const String32& file)
+  FontEngineFTTranslator(const String &family, const String& file)
     : family(family), file(file)
   {
   }
@@ -80,8 +80,8 @@ struct FontEngineFTTranslator
   {
   }
 
-  String32 family;
-  String32 file;
+  String family;
+  String file;
 
   bool operator==(const FontEngineFTTranslator& other)
   { return family == other.family && file == other.file; }
@@ -102,9 +102,9 @@ struct FtFile
   /*! @brief Use count. */
   Atomic<sysuint_t> used;
   /*! @brief Absolute file path. */
-  String32 fileName;
+  String fileName;
   /*! @brief Family. */
-  String32 family;
+  String family;
   /*! @brief Map file object. */
   MapFile mapFile;
   /*! @brief Freetype face. */
@@ -116,7 +116,7 @@ struct FtFile
   /*! @brief Fixed width index. */
   uint32_t fixedWidthIndex;
 
-  FtFile(const String32& fileName, const String32& family);
+  FtFile(const String& fileName, const String& family);
   ~FtFile();
   FtFile* ref();
   void deref();
@@ -147,7 +147,7 @@ struct FontEngineFTPrivate
     fcInitialized(false),
     ftInitialized(false)
   {
-    Vector<String32> paths;
+    Vector<String> paths;
 
 #if defined(FOG_HAVE_FONTCONFIG)
     uint32_t fcStatus = fcLoad();
@@ -187,9 +187,9 @@ struct FontEngineFTPrivate
 #endif // FOG_HAVE_FONTCONFIG
   }
 
-  String32 resolveFontPath(const String32& family, uint32_t size, const FontAttributes& attributes)
+  String resolveFontPath(const String& family, uint32_t size, const FontAttributes& attributes)
   {
-    String32 result;
+    String result;
 
 #if defined(FOG_HAVE_FONTCONFIG)
     if (fcInitialized)
@@ -312,39 +312,39 @@ struct FontEngineFTPrivate
   }
 
   // adds font directories into font paths using fontconfig functions.
-  Vector<String32> fcGetFontDirectories()
+  Vector<String> fcGetFontDirectories()
   {
     FOG_ASSERT(fcInitialized);
 
-    Vector<String32> result;
+    Vector<String> result;
     FcStrList* list = pFcConfigGetFontDirs(NULL);
-    char* localDirName;
-    String32 uniDirName;
+    char* dirNameA;
+    String dirNameU;
 
-    while ((localDirName = (char*)pFcStrListNext(list)) != NULL)
+    while ((dirNameA = (char*)pFcStrListNext(list)) != NULL)
     {
-      uniDirName.set(Local8(localDirName, DetectLength));
-      if (!result.contains(uniDirName)) result.append(uniDirName);
+      TextCodec::local8().toUnicode(dirNameU, dirNameA);
+      if (!result.contains(dirNameU)) result.append(dirNameU);
     }
 
     pFcStrListDone(list);
     return result;
   }
 
-  String32 fcResolveFontPath(const String32& family, uint32_t size, const FontAttributes& attributes)
+  String fcResolveFontPath(const String& family, uint32_t size, const FontAttributes& attributes)
   {
     FOG_ASSERT(fcInitialized);
 
-    TemporaryString8<TemporaryLength> family8;
-    family8.set(family, TextCodec::local8());
+    TemporaryByteArray<TemporaryLength> family8;
+    TextCodec::local8().appendFromUnicode(family8, family);
 
     FcPattern* p1;
     FcPattern* p2;
     FcValue filename;
     FcResult res;
-    String32 result;
+    String result;
 
-    p1 = pFcNameParse((FcChar8 *)family8.cStr());
+    p1 = pFcNameParse((FcChar8 *)family8.cData());
     pFcPatternAddDouble(p1, FC_SIZE, (double)size);
 
     if (attributes.italic) pFcPatternAddInteger(p1, FC_SLANT, FC_SLANT_ITALIC);
@@ -356,7 +356,7 @@ struct FontEngineFTPrivate
     if ((p2 = pFcFontMatch(NULL, p1, &res)))
     {
       pFcPatternGet(p2, FC_FILE, 0, &filename);
-      result.set((const char*)filename.u.s, DetectLength, TextCodec::local8());
+      TextCodec::local8().toUnicode(result, (const char*)filename.u.s);
       pFcPatternDestroy(p2);
     }
 
@@ -365,11 +365,11 @@ struct FontEngineFTPrivate
     return result;
   }
 
-  Vector<String32> fcFontsList()
+  Vector<String> fcFontsList()
   {
     FOG_ASSERT(fcInitialized);
 
-    Vector<String32> result;
+    Vector<String> result;
 
     FcPattern* p;
     FcFontSet* set = NULL;
@@ -385,12 +385,12 @@ struct FontEngineFTPrivate
 
     if (set)
     {
-      String32 t;
+      String t;
 
       for (i = 0; i < set->nfont; i++)
       {
         pFcPatternGet(set->fonts[i], FC_FAMILY, 0, &val);
-        t.set((const char*)val.u.s, DetectLength, TextCodec::local8());
+        TextCodec::local8().toUnicode(t, reinterpret_cast<const char*>(val.u.s));
         if (!result.contains(t)) result.append(t);
       }
 
@@ -434,7 +434,7 @@ struct FontEngineFTPrivate
   };
 
   // Hash table that contains mapping path into FtFile* object.
-  Hash<String32, FtFile*> ftFileCache;
+  Hash<String, FtFile*> ftFileCache;
   Vector<FontEngineFTTranslator> ftTranslator;
 
   uint32_t ftLoad()
@@ -481,7 +481,7 @@ struct FontEngineFTPrivate
 
   void ftClose()
   {
-    Hash<String32, FtFile*>::MutableIterator it(ftFileCache);
+    Hash<String, FtFile*>::MutableIterator it(ftFileCache);
     for (it.toStart(); it.isValid(); it.remove())
     {
       FtFile* ftFile = it.value();
@@ -537,20 +537,20 @@ struct FontEngineFTPrivate
       sysuint_t len;
 
       len = strlen(cur);
-      String32 s0(Ascii8(cur, len));
+      String s0(Ascii8(cur, len));
       cur += len + 1;
 
       len = strlen(cur);
-      String32 s1(Ascii8(cur, len));
+      String s1(Ascii8(cur, len));
       cur += len + 1;
 
       ftTranslator.append(FontEngineFTTranslator(s0, s1));
     }
   }
 
-  Vector<String32> ftGetFontDirectories()
+  Vector<String> ftGetFontDirectories()
   {
-    Vector<String32> list;
+    Vector<String> list;
 
     // Gentoo default font paths
     list.append(Ascii8("/usr/share/fonts"));
@@ -572,11 +572,11 @@ struct FontEngineFTPrivate
     return list;
   }
 
-  String32 ftResolveFontPath(const String32& family, uint32_t size, const FontAttributes& attributes)
+  String ftResolveFontPath(const String& family, uint32_t size, const FontAttributes& attributes)
   {
     Vector<FontEngineFTTranslator>::ConstIterator it(ftTranslator);
-    String32 result;
-    Vector<String32> fontPaths = Font::fontPaths();
+    String result;
+    Vector<String> fontPaths = Font::fontPaths();
 
     for (; it.isValid(); it.toNext())
     {
@@ -612,7 +612,7 @@ FontEngineFT::~FontEngineFT()
   delete p;
 }
 
-Vector<String32> FontEngineFT::getFonts()
+Vector<String> FontEngineFT::getFonts()
 {
 }
 
@@ -620,14 +620,14 @@ FontFace* FontEngineFT::getDefaultFace()
 {
   FontAttributes a;
   memset(&a, 0, sizeof(FontAttributes));
-  return cachedFace(String32(Ascii8("default")), 12, a);
+  return cachedFace(String(Ascii8("default")), 12, a);
 }
 
 FontFace* FontEngineFT::createFace(
-  const String32& family, uint32_t size,
+  const String& family, uint32_t size,
   const FontAttributes& attributes)
 {
-  String32 fileName = p->resolveFontPath(family, size, attributes);
+  String fileName = p->resolveFontPath(family, size, attributes);
 
   if (!fileName.isEmpty())
   {
@@ -673,7 +673,7 @@ FontFaceFT::~FontFaceFT()
   if (ftFile) ftFile->deref();
 }
 
-err_t FontFaceFT::getGlyphs(const Char32* str, sysuint_t length, GlyphSet& glyphSet)
+err_t FontFaceFT::getGlyphs(const Char* str, sysuint_t length, GlyphSet& glyphSet)
 {
   err_t err;
   if ( (err = glyphSet.begin(length)) ) return err;
@@ -700,7 +700,7 @@ err_t FontFaceFT::getGlyphs(const Char32* str, sysuint_t length, GlyphSet& glyph
   return Error::Ok;
 }
 
-err_t FontFaceFT::getPath(const Char32* str, sysuint_t length, Path& dst)
+err_t FontFaceFT::getPath(const Char* str, sysuint_t length, Path& dst)
 {
   return Error::NotImplemented;
 }
@@ -888,7 +888,7 @@ fail:
   return glyphd;
 }
 
-err_t FontFaceFT::getTextWidth(const Char32* str, sysuint_t length, TextWidth* textWidth)
+err_t FontFaceFT::getTextWidth(const Char* str, sysuint_t length, TextWidth* textWidth)
 {
   TemporaryGlyphSet<128> glyphSet;
   err_t err = getGlyphs(str, length, glyphSet);
@@ -911,7 +911,7 @@ err_t FontFaceFT::getTextWidth(const Char32* str, sysuint_t length, TextWidth* t
 // [Fog::FtFile]
 // ============================================================================
 
-FtFile::FtFile(const String32& fileName, const String32& family) :
+FtFile::FtFile(const String& fileName, const String& family) :
   fileName(fileName),
   family(family),
   ftFace(NULL),
@@ -984,10 +984,10 @@ bool FtFile::load()
   }
   else
   {
-    TemporaryString8<TemporaryLength> fileName8;
-    fileName8.set(fileName, TextCodec::local8());
+    TemporaryByteArray<TemporaryLength> fileName8;
+    TextCodec::local8().appendFromUnicode(fileName8, fileName);
 
-    loadError = fepriv->pFT_New_Face(fepriv->ftLibrary, fileName8.cStr(), 0, &ftFace);
+    loadError = fepriv->pFT_New_Face(fepriv->ftLibrary, fileName8.cData(), 0, &ftFace);
   }
 
   return loadError == 0;
@@ -1115,7 +1115,7 @@ FontFace* FtFile::createFace(uint32_t size, const FontAttributes& attributes)
 // freetype font list
 // ---------------------------------------------------------------------------
 /*
-static void Fog_Font_ftAppendFontsToList(Vector<String32>* list)
+static void Fog_Font_ftAppendFontsToList(Vector<String>* list)
 {
   if (Fog_FontConfig)
   {
@@ -1127,8 +1127,8 @@ static void Fog_Font_ftAppendFontsToList(Vector<String32>* list)
     // this is not preferred case and this is only small workaround.
 
     // Make common fonts list, but check if they are available
-    Hash<String32, String32>::ConstIterator iterator(Fog_Ft->ftTranslator);
-    String32 path;
+    Hash<String, String>::ConstIterator iterator(Fog_Ft->ftTranslator);
+    String path;
 
     for (iterator.begin(); iterator.exist(); iterator.next())
     {

@@ -24,7 +24,7 @@ namespace Fog {
 struct ManagedStringCache;
 
 // ============================================================================
-// [Fog::ManagedString32]
+// [Fog::ManagedString]
 // ============================================================================
 
 //! @brief Managed string is memory effective string (managed).
@@ -48,7 +48,7 @@ struct ManagedStringCache;
 //! to change attribute name, you can only add, read or remove it).
 //!
 //! Managed string's data are immutable.
-struct FOG_API ManagedString32
+struct FOG_API ManagedString
 {
   // [Node]
 
@@ -57,7 +57,7 @@ struct FOG_API ManagedString32
   {
     // [Construction / Destruction]
 
-    FOG_INLINE Node(const String32& s) : 
+    FOG_INLINE Node(const String& s) : 
       string(s),
       next(NULL)
     {
@@ -68,8 +68,8 @@ struct FOG_API ManagedString32
       string.getHashCode();
     }
 
-    // Constructor used by @c ManagedString32::Cache.
-    FOG_INLINE Node(String32::Data* s_d) :
+    // Constructor used by @c ManagedString::Cache.
+    FOG_INLINE Node(String::Data* s_d) :
       string(s_d),
       next(NULL)
     {
@@ -86,7 +86,7 @@ struct FOG_API ManagedString32
 
     // [Methods]
 
-    FOG_INLINE const String32& getString() const { return string; }
+    FOG_INLINE const String& getString() const { return string; }
     FOG_INLINE uint32_t getHashCode() const { return string._d->hashCode; }
 
     // [Ref]
@@ -96,7 +96,7 @@ struct FOG_API ManagedString32
     // [Members]
 
     mutable Atomic<sysuint_t> refCount;
-    String32 string;
+    String string;
     Node* next;
 
   private:
@@ -105,11 +105,11 @@ struct FOG_API ManagedString32
 
   // [Construction / Destruction]
 
-  ManagedString32();
-  ManagedString32(const ManagedString32& other);
-  explicit ManagedString32(const String32& s);
-  explicit ManagedString32(const Utf32& s);
-  ~ManagedString32();
+  ManagedString();
+  ManagedString(const ManagedString& other);
+  explicit ManagedString(const String& s);
+  explicit ManagedString(const Utf16& s);
+  ~ManagedString();
 
   // [Clear]
 
@@ -117,42 +117,48 @@ struct FOG_API ManagedString32
 
   // [Setters]
 
-  err_t set(const ManagedString32& s);
-  err_t set(const String32& s);
-  err_t set(const Utf32& s);
+  err_t set(const ManagedString& s);
+  err_t set(const String& s);
+  err_t set(const Utf16& s);
 
-  err_t setIfManaged(const String32& s);
-  err_t setIfManaged(const Utf32& s);
+  FOG_INLINE err_t set(const Char* s, sysuint_t length = DetectLength) { return set(Utf16(s, length)); }
+
+  err_t setIfManaged(const String& s);
+  err_t setIfManaged(const Utf16& s);
+
+  FOG_INLINE err_t setIfManaged(const Char* s, sysuint_t length = DetectLength) { return setIfManaged(Utf16(s, length)); }
 
   // [Getters]
 
   FOG_INLINE bool isEmpty() const { return _node == sharedNull; }
   FOG_INLINE sysuint_t refCount() const { return _node->refCount.get(); }
-  FOG_INLINE const String32& getString() const { return _node->getString(); }
+  FOG_INLINE const String& getString() const { return _node->getString(); }
   FOG_INLINE uint32_t getHashCode() const { return _node->getHashCode(); }
 
   // [Operator Overload]
 
-  FOG_INLINE ManagedString32& operator=(const ManagedString32& str) { set(str); return *this; }
-  FOG_INLINE ManagedString32& operator=(const String32& str) { set(str); return *this; }
-  FOG_INLINE ManagedString32& operator=(const Utf32& str) { set(str); return *this; }
+  FOG_INLINE ManagedString& operator=(const ManagedString& str) { set(str); return *this; }
+  FOG_INLINE ManagedString& operator=(const String& str) { set(str); return *this; }
+  FOG_INLINE ManagedString& operator=(const Utf16& str) { set(str); return *this; }
 
-  FOG_INLINE bool operator==(const ManagedString32& other) { return _node == other._node; }
-  FOG_INLINE bool operator==(const String32& other) { return getString() == other; }
-  FOG_INLINE bool operator==(const Ascii8& other) { return getString() == other; }
+  FOG_INLINE bool operator==(const ManagedString& other) { return _node == other._node; }
+  FOG_INLINE bool operator==(const String& other) { return _node->string == other; }
+  FOG_INLINE bool operator==(const Ascii8& other) { return _node->string == other; }
+  FOG_INLINE bool operator==(const Utf16& other) { return _node->string == other; }
 
-  FOG_INLINE bool operator!=(const ManagedString32& other) { return _node != other._node; }
-  FOG_INLINE bool operator!=(const String32& other) { return getString() != other; }
-  FOG_INLINE bool operator!=(const Ascii8& other) { return getString() != other; }
+  FOG_INLINE bool operator!=(const ManagedString& other) { return _node != other._node; }
+  FOG_INLINE bool operator!=(const String& other) { return _node->string != other; }
+  FOG_INLINE bool operator!=(const Ascii8& other) { return _node->string != other; }
+  FOG_INLINE bool operator!=(const Utf16& other) { return _node->string != other; }
 
-  FOG_INLINE operator const String32&() const { return _node->string; }
+  FOG_INLINE operator const String&() const { return _node->string; }
 
   // [Cache]
 
   struct FOG_HIDDEN Cache
   {
-    //! @brief Private constructur used by @c ManagedString32::createCache().
-    FOG_INLINE Cache(const String32& name, sysuint_t count) : _name(name), _count(count) {}
+    //! @brief Private constructur used by @c ManagedString::createCache().
+    FOG_INLINE Cache(const String& name, sysuint_t count) : _name(name), _count(count) {}
 
     //! @brief Private destructur.
     FOG_INLINE ~Cache() {}
@@ -160,44 +166,44 @@ struct FOG_API ManagedString32
     //! @brief Returns cache name.
     //!
     //! @sa ManagedStringCache::getCacheByName().
-    FOG_INLINE const String32& getName() const { return _name; }
+    FOG_INLINE const String& getName() const { return _name; }
 
     //! @brief Return count of managed strings in cache.
     FOG_INLINE sysuint_t getCount() const { return _count; }
 
     //! @brief Return list of all managed strings in cache.
-    FOG_INLINE const ManagedString32* getList() const { return (ManagedString32 *)_data; }
+    FOG_INLINE const ManagedString* getList() const { return (ManagedString *)_data; }
 
     //! @brief Return reference to managed string at index @a i.
-    FOG_INLINE const ManagedString32& getString(sysuint_t i) const
+    FOG_INLINE const ManagedString& getString(sysuint_t i) const
     {
       FOG_ASSERT(i < _count);
-      return ((ManagedString32 *)_data)[i];
+      return ((ManagedString *)_data)[i];
     }
 
     // [Members]
 
   private:
     //! @brief Cache name.
-    String32 _name;
+    String _name;
     //! @brief Count of strings in cache.
     sysuint_t _count;
     //! @brief Continuous cache memory.
     Node* _data[1];
 
-    friend struct ManagedString32;
+    friend struct ManagedString;
   };
 
-  //! @brief Create managed string cache (@c ManagedString32::Cache).
+  //! @brief Create managed string cache (@c ManagedString::Cache).
   //!
   //! @param strings Array of strings to create. Each string ends with zero terminator.
   //! @param length Total length of @a strings with all zero terminators.
   //! @param count Count of zero terminated strings in @a strings.
   //! @param name Optional name of this collection for loadable libraries.
-  static Cache* createCache(const char* strings, sysuint_t length, sysuint_t count, const String32& name);
+  static Cache* createCache(const char* strings, sysuint_t length, sysuint_t count, const String& name);
 
   //! @brief Get managed string cache.
-  static Cache* getCacheByName(const String32& name);
+  static Cache* getCacheByName(const String& name);
 
   // [Statics]
 
@@ -212,7 +218,7 @@ struct FOG_API ManagedString32
 
 //! @}
 
-FOG_DECLARE_TYPEINFO(Fog::ManagedString32, Fog::MoveableType)
+FOG_DECLARE_TYPEINFO(Fog::ManagedString, Fog::MoveableType)
 
 // [Guard]
 #endif // _FOG_CORE_MANAGEDSTRING_H

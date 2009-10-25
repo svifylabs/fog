@@ -46,20 +46,20 @@ struct FOG_API SvgStyleAttribute : public XmlAttribute
 
   typedef XmlAttribute base;
 
-  SvgStyleAttribute(XmlElement* element, const ManagedString32& name);
+  SvgStyleAttribute(XmlElement* element, const ManagedString& name);
   virtual ~SvgStyleAttribute();
 
   // [Methods]
 
-  virtual String32 getValue() const;
-  virtual err_t setValue(const String32& value);
+  virtual String getValue() const;
+  virtual err_t setValue(const String& value);
 
   // [Styles]
 
   FOG_INLINE const Vector<SvgStyleItem>& getStyles() const { return _styles; }
 
-  String32 getStyle(const String32& name) const;
-  err_t setStyle(const String32& name, const String32& value);
+  String getStyle(const String& name) const;
+  err_t setStyle(const String& name, const String& value);
 
   // [Members]
 protected:
@@ -81,7 +81,7 @@ struct FOG_API SvgElement :
 
   typedef XmlElement base;
 
-  SvgElement(const ManagedString32& tagName, uint32_t svgType);
+  SvgElement(const ManagedString& tagName, uint32_t svgType);
   virtual ~SvgElement();
 
   // [SVG Type]
@@ -113,12 +113,12 @@ struct FOG_API SvgElement :
 
   // [Attributes]
 
-  virtual XmlAttribute* _createAttribute(const ManagedString32& name) const;
+  virtual XmlAttribute* _createAttribute(const ManagedString& name) const;
 
   // [Style]
 
-  String32 getStyle(const String32& name) const;
-  err_t setStyle(const String32& name, const String32& value);
+  String getStyle(const String& name) const;
+  err_t setStyle(const String& name, const String& value);
 
   // [SVG Rendering]
 
@@ -175,8 +175,8 @@ struct FOG_API SvgDocument :
 
   // [Document Extensions]
 
-  virtual XmlElement* createElement(const ManagedString32& tagName);
-  static XmlElement* createElementStatic(const ManagedString32& tagName);
+  virtual XmlElement* createElement(const ManagedString& tagName);
+  static XmlElement* createElementStatic(const ManagedString& tagName);
 
   // [Rendering]
 

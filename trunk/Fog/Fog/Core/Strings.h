@@ -191,7 +191,7 @@ enum STR_ID
   STR_COUNT
 };
 
-extern FOG_API ManagedString32::Cache* fog_strings;
+extern FOG_API ManagedString::Cache* fog_strings;
 
 } // Fog namespace
 

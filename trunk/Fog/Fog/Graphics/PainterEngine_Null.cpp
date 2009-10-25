@@ -167,8 +167,8 @@ struct FOG_HIDDEN PainterEngine_Null : public PainterEngine
   virtual void drawGlyph(const Point& pt, const Glyph& glyph, const Rect* clip) {}
   virtual void drawGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip) {}
 
-  virtual void drawText(const Point& p, const String32& text, const Font& font, const Rect* clip) {}
-  virtual void drawText(const Rect& r, const String32& text, const Font& font, uint32_t align, const Rect* clip) {}
+  virtual void drawText(const Point& p, const String& text, const Font& font, const Rect* clip) {}
+  virtual void drawText(const Rect& r, const String& text, const Font& font, uint32_t align, const Rect* clip) {}
 
   // [Image drawing]
 
@@ -180,8 +180,8 @@ struct FOG_HIDDEN PainterEngine_Null : public PainterEngine
 
   // [Properties]
 
-  virtual err_t setProperty(const String32& name, const Value& value) { return Error::InvalidPropertyName; }
-  virtual Value getProperty(const String32& name) const { return Value(); }
+  virtual err_t setProperty(const String& name, const Value& value) { return Error::InvalidPropertyName; }
+  virtual Value getProperty(const String& name) const { return Value(); }
 };
 
 static Static<PainterEngine_Null> _nullPainterEngine;

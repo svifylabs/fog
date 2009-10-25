@@ -14,6 +14,7 @@
 
 // [Dependencies]
 #include <Fog/Core/Assert.h>
+#include <Fog/Core/ByteArray.h>
 #include <Fog/Core/Error.h>
 #include <Fog/Core/Locale.h>
 #include <Fog/Core/String.h>
@@ -85,7 +86,7 @@ Locale::Locale(Data* d) :
 {
 }
 
-Locale::Locale(const String32& name) :
+Locale::Locale(const String& name) :
   _d(sharedNull->refAlways())
 {
   set(name);
@@ -114,12 +115,12 @@ void Locale::free()
 
 // [Set]
 
-bool Locale::set(const String32& name)
+bool Locale::set(const String& name)
 {
   char lcNameA[512];
-  if (!StringUtil::utf32ToLatin((Char8*)lcNameA, (Char32*)name.cData(), name.getLength())) return false;
+  if (!StringUtil::unicodeToLatin1(lcNameA, name.cData(), name.getLength())) return false;
 
-  TemporaryString8<128> savedLocale(Stub8(setlocale(LC_ALL, NULL)));
+  TemporaryByteArray<128> savedLocale(Str8(setlocale(LC_ALL, NULL)));
 
   if (setlocale(LC_ALL, lcNameA))
   {
@@ -132,7 +133,7 @@ bool Locale::set(const String32& name)
     free();
   }
 
-  setlocale(LC_ALL, savedLocale.cStr());
+  setlocale(LC_ALL, savedLocale.cData());
   return !isNull();
 }
 

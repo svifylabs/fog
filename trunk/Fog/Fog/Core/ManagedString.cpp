@@ -18,17 +18,17 @@
 namespace Fog {
 
 // ============================================================================
-// [Fog::ManagedString32Local]
+// [Fog::ManagedStringLocal]
 // ============================================================================
 
 #define INITIAL_CAPACITY 256
 
-struct FOG_HIDDEN ManagedString32Local
+struct FOG_HIDDEN ManagedStringLocal
 {
-  typedef ManagedString32::Node Node;
-  typedef ManagedString32::Cache Cache;
+  typedef ManagedString::Node Node;
+  typedef ManagedString::Cache Cache;
 
-  FOG_INLINE ManagedString32Local() :
+  FOG_INLINE ManagedStringLocal() :
     _capacity(INITIAL_CAPACITY),
     _length(0),
     _expandCapacity(INITIAL_CAPACITY * 2),
@@ -36,15 +36,15 @@ struct FOG_HIDDEN ManagedString32Local
     _shrinkCapacity(0),
     _shrinkLength(0),
     _buckets((Node**)Memory::calloc(INITIAL_CAPACITY * sizeof(Node*))),
-    _null(String32())
+    _null(String())
   {
-    ManagedString32::sharedNull = &_null;
+    ManagedString::sharedNull = &_null;
   }
 
-  FOG_INLINE ~ManagedString32Local()
+  FOG_INLINE ~ManagedStringLocal()
   {
     {
-      Hash<String32, Cache*>::ConstIterator it(_hash);
+      Hash<String, Cache*>::ConstIterator it(_hash);
       for (it.toStart(); it.isValid(); it.toNext())
       {
         Cache* c = it.value();
@@ -55,10 +55,10 @@ struct FOG_HIDDEN ManagedString32Local
 
     // Free allocated memory for buckets and set everything to NULL.
     Memory::free(_buckets);
-    ManagedString32::sharedNull = NULL;
+    ManagedString::sharedNull = NULL;
   }
 
-  FOG_INLINE Node* addString32(const String32& s)
+  FOG_INLINE Node* addString(const String& s)
   {
     AutoLock locked(_lock);
 
@@ -98,7 +98,7 @@ struct FOG_HIDDEN ManagedString32Local
     return node;
   }
 
-  // This function is called from @c MaagedString32::createCache().
+  // This function is called from @c MaagedString::createCache().
   FOG_INLINE Node* addNodeNoLock(Node* n)
   {
     uint32_t hashCode = n->getHashCode();
@@ -129,13 +129,17 @@ struct FOG_HIDDEN ManagedString32Local
     return n;
   }
 
-  FOG_INLINE Node* addUtf32(const Utf32& _s)
+  FOG_INLINE Node* addUtf16(const Utf16& _s)
   {
     AutoLock locked(_lock);
 
-    Utf32 s(_s.getStr(), _s.getLength() == DetectLength ? StringUtil::len(_s.getStr()) : _s.getLength());
+    const Char* s = _s.getData();
+    sysuint_t length = _s.getLength();
+    if (length == DetectLength) length = StringUtil::len(s);
 
-    uint32_t hashCode = HashUtil::hashString(s.getStr(), s.getLength());
+    FOG_ASSERT(length != 0);
+
+    uint32_t hashCode = HashUtil::hashString(s, length);
     uint32_t hashMod = hashCode % _capacity;
 
     Node* node = _buckets[hashMod];
@@ -144,7 +148,7 @@ struct FOG_HIDDEN ManagedString32Local
     while (node)
     {
       // Node is already here?
-      if (node->getHashCode() == hashCode && node->getString().eq(s))
+      if (node->getHashCode() == hashCode && node->getString().eq(Utf16(s, length)))
       {
         // This can also happen in high concurrent environment. We are trying
         // to do some work without locking and this is simply situation where
@@ -158,7 +162,7 @@ struct FOG_HIDDEN ManagedString32Local
       node = node->next;
     }
 
-    String32 str;
+    String str;
     if (str.set(s) != Error::Ok) return NULL;
 
     node = new(std::nothrow) Node(str);
@@ -207,7 +211,7 @@ struct FOG_HIDDEN ManagedString32Local
     }
   }
 
-  FOG_INLINE Node* refString32(const String32& s) const
+  FOG_INLINE Node* refString(const String& s) const
   {
     AutoLock locked(_lock);
 
@@ -223,19 +227,21 @@ struct FOG_HIDDEN ManagedString32Local
     return NULL;
   }
 
-  FOG_INLINE Node* refUtf32(const Utf32& _s) const
+  FOG_INLINE Node* refUtf16(const Utf16& _s) const
   {
     AutoLock locked(_lock);
 
-    Utf32 s(_s.getStr(), _s.getLength() == DetectLength ? StringUtil::len(_s.getStr()) : _s.getLength());
+    const Char* s = _s.getData();
+    sysuint_t length = _s.getLength();
+    if (length == DetectLength) length = StringUtil::len(s);
 
-    uint32_t hashCode = HashUtil::hashString(s.getStr(), s.getLength());
+    uint32_t hashCode = HashUtil::hashString(s, length);
     uint32_t hashMod = hashCode % _capacity;
 
     Node* node = _buckets[hashMod];
     while (node)
     {
-      if (node->getHashCode() == hashCode && node->string.eq(s)) return node->ref();
+      if (node->getHashCode() == hashCode && node->string.eq(Utf16(s, length))) return node->ref();
       node = node->next;
     }
     return NULL;
@@ -303,60 +309,60 @@ struct FOG_HIDDEN ManagedString32Local
 
   // [Managed String Cache]
 
-  Hash<String32, Cache*> _hash;
+  Hash<String, Cache*> _hash;
 };
 
-static Static<ManagedString32Local> managed_local;
+static Static<ManagedStringLocal> managed_local;
 
 // ============================================================================
-// [Fog::ManagedString32]
+// [Fog::ManagedString]
 // ============================================================================
 
-ManagedString32::Node* ManagedString32::sharedNull;
+ManagedString::Node* ManagedString::sharedNull;
 
-ManagedString32::ManagedString32() :
+ManagedString::ManagedString() :
   _node(sharedNull->ref())
 {
 }
 
-ManagedString32::ManagedString32(const ManagedString32& other) :
+ManagedString::ManagedString(const ManagedString& other) :
   _node(other._node->ref())
 {
 }
 
-ManagedString32::ManagedString32(const String32& s) :
-  _node(managed_local->addString32(s))
+ManagedString::ManagedString(const String& s) :
+  _node(managed_local->addString(s))
 {
   if (_node == NULL) _node = sharedNull->ref();
 }
 
-ManagedString32::ManagedString32(const Utf32& s) :
-  _node(managed_local->addUtf32(s))
+ManagedString::ManagedString(const Utf16& s) :
+  _node(managed_local->addUtf16(s))
 {
   if (_node == NULL) _node = sharedNull->ref();
 }
 
-ManagedString32::~ManagedString32()
+ManagedString::~ManagedString()
 {
   if (_node->refCount.deref()) managed_local->remove(_node);
 }
 
-void ManagedString32::clear()
+void ManagedString::clear()
 {
   Node* old = AtomicBase::ptr_setXchg(&_node, sharedNull->ref());
   if (old->refCount.deref()) managed_local->remove(old);
 }
 
-err_t ManagedString32::set(const ManagedString32& str)
+err_t ManagedString::set(const ManagedString& str)
 {
   Node* old = AtomicBase::ptr_setXchg(&_node, str._node->ref());
   if (old->refCount.deref()) managed_local->remove(old);
   return Error::Ok;
 }
 
-err_t ManagedString32::set(const String32& str)
+err_t ManagedString::set(const String& str)
 {
-  Node* node = managed_local->addString32(str);
+  Node* node = managed_local->addString(str);
 
   if (!node)
   {
@@ -369,9 +375,9 @@ err_t ManagedString32::set(const String32& str)
   return Error::Ok;
 }
 
-err_t ManagedString32::set(const Utf32& str)
+err_t ManagedString::set(const Utf16& str)
 {
-  Node* node = managed_local->addUtf32(str);
+  Node* node = managed_local->addUtf16(str);
 
   if (!node)
   {
@@ -384,9 +390,9 @@ err_t ManagedString32::set(const Utf32& str)
   return Error::Ok;
 }
 
-err_t ManagedString32::setIfManaged(const String32& s)
+err_t ManagedString::setIfManaged(const String& s)
 {
-  Node* node = managed_local->refString32(s);
+  Node* node = managed_local->refString(s);
   if (!node) return Error::ObjectNotExists;
 
   Node* old = AtomicBase::ptr_setXchg(&_node, node);
@@ -394,9 +400,9 @@ err_t ManagedString32::setIfManaged(const String32& s)
   return Error::Ok;
 }
 
-err_t ManagedString32::setIfManaged(const Utf32& s)
+err_t ManagedString::setIfManaged(const Utf16& s)
 {
-  Node* node = managed_local->refUtf32(s);
+  Node* node = managed_local->refUtf16(s);
   if (!node) return Error::ObjectNotExists;
 
   Node* old = AtomicBase::ptr_setXchg(&_node, node);
@@ -405,10 +411,10 @@ err_t ManagedString32::setIfManaged(const Utf32& s)
 }
 
 // ============================================================================
-// [Fog::ManagedString32::Cache]
+// [Fog::ManagedString::Cache]
 // ============================================================================
 
-ManagedString32::Cache* ManagedString32::createCache(const char* strings, sysuint_t length, sysuint_t count, const String32& name)
+ManagedString::Cache* ManagedString::createCache(const char* strings, sysuint_t length, sysuint_t count, const String& name)
 {
   if (name.isEmpty()) return NULL;
 
@@ -423,35 +429,35 @@ ManagedString32::Cache* ManagedString32::createCache(const char* strings, sysuin
   if (count == DetectLength) count = StringUtil::countOf(strings, length - 1, '\0', CaseSensitive);
 
   sysuint_t alloc =
-    // Fog::ManagedString32::Cache structure
+    // Fog::ManagedString::Cache structure
     sizeof(Cache) +
-    // Fog::ManagedString32 structure
-    sizeof(ManagedString32) * count +
-    // Fog::String32::Data structure
-    sizeof(String32::Data) * count +
-    // Fog::String32::Data contains null terminator, so we will decrement it.
-    sizeof(Char32) * (length - count) +
-    // Fog::ManagedString32::Node
+    // Fog::ManagedString structure
+    sizeof(ManagedString) * count +
+    // Fog::String::Data structure
+    sizeof(String::Data) * count +
+    // Fog::String::Data contains null terminator, so we will decrement it.
+    sizeof(Char) * (length - count) +
+    // Fog::ManagedString::Node
     sizeof(Node) * count;
 
-  if ((self = (ManagedString32::Cache*)Memory::alloc(alloc)) == NULL) return NULL;
+  if ((self = (ManagedString::Cache*)Memory::alloc(alloc)) == NULL) return NULL;
 
-  const Char8* pBeg = reinterpret_cast<const Char8*>(strings);
-  const Char8* pCur = reinterpret_cast<const Char8*>(strings);
+  const char* pBeg = strings;
+  const char* pCur = strings;
   Node** pList = self->_data;
   uint8_t* pNodes = reinterpret_cast<uint8_t*>(&self->_data[count]);
-  uint8_t* pChars = pNodes + sizeof(ManagedString32::Node) * count;
+  uint8_t* pChars = pNodes + sizeof(ManagedString::Node) * count;
   sysuint_t counter = 0;
 
   for (;;)
   {
     if (!*pCur)
     {
-      String32::Data* d = (String32::Data*)pChars;
+      String::Data* d = (String::Data*)pChars;
       sysuint_t len = (sysuint_t)(pCur - pBeg);
 
       d->refCount.init(1);
-      d->flags = String32::Data::IsSharable;
+      d->flags = String::Data::IsSharable;
       d->length = len;
       d->capacity = len;
       d->hashCode = 0;
@@ -459,7 +465,7 @@ ManagedString32::Cache* ManagedString32::createCache(const char* strings, sysuin
 
       *pList++ = managed_local->addNodeNoLock(new(pNodes) Node(d));
       pNodes += sizeof(Node);
-      pChars += String32::Data::sizeFor(len);
+      pChars += String::Data::sizeFor(len);
 
       counter++;
 
@@ -479,7 +485,7 @@ ManagedString32::Cache* ManagedString32::createCache(const char* strings, sysuin
   return self;
 }
 
-ManagedString32::Cache* ManagedString32::getCacheByName(const String32& name)
+ManagedString::Cache* ManagedString::getCacheByName(const String& name)
 {
   AutoLock locked(managed_local->_lock);
   return managed_local->_hash.value(name, NULL);

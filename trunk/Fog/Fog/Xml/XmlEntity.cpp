@@ -573,19 +573,19 @@ static FOG_INLINE int _compareEntities(const T* entity, sysuint_t length, const 
       return -1;
     }
     // character comparision
-    else if ((uint)entity[i].ch() != (uint)entityInTable[i])
+    else if (entity[i] != (uint8_t)entityInTable[i])
     {
-      return int(entity[i].ch()) - int(entityInTable[i]);
+      return (int)entity[i] - (int)(uint8_t)entityInTable[i];
     }
     i++;
   }
 }
 
 template<typename T>
-static FOG_INLINE uint32_t _decode(const T* entityName, sysuint_t entityLength)
+static FOG_INLINE Char _decode(const T* entityName, sysuint_t entityLength)
 {
   if (entityLength == DetectLength) entityLength = StringUtil::len(entityName);
-  if (entityLength == 0) return 0;
+  if (entityLength == 0) return Char(0);
 
   // Numeric entity.
   if (entityName[0] == T('#'))
@@ -603,16 +603,16 @@ static FOG_INLINE uint32_t _decode(const T* entityName, sysuint_t entityLength)
       base = 16;
     }
 
-    uint32_t val;
+    uint16_t val;
     uint32_t flags;
 
-    err_t err = StringUtil::atou32(entityName, entityLength, &val, base, NULL, &flags);
+    err_t err = StringUtil::atou16(entityName, entityLength, &val, base, NULL, &flags);
 
     // If conversion failed or parsed skipped some other characters, entity
     // is invalid.
     if (err || flags) val = 0;
 
-    return val;
+    return Char(val);
   }
 
   // Named entity - binary search in entity table.
@@ -633,7 +633,7 @@ static FOG_INLINE uint32_t _decode(const T* entityName, sysuint_t entityLength)
       // Match.
       if (result == 0)
       {
-        return basep->ch;
+        return Char(basep->ch);
       }
       // Larger... move right.
       else if (result > 0)
@@ -645,26 +645,21 @@ static FOG_INLINE uint32_t _decode(const T* entityName, sysuint_t entityLength)
     }
 
     // Not found
-    return 0;
+    return Char(0);
   }
 }
 
-uint16_t XmlEntity::decode(const Char8* entityName, sysuint_t entityLength)
+Char XmlEntity::decode(const char* entityName, sysuint_t entityLength)
 {
-  return _decode<Char8>(entityName, entityLength);
+  return _decode<char>(entityName, entityLength);
 }
 
-uint16_t XmlEntity::decode(const Char16* entityName, sysuint_t entityLength)
+Char XmlEntity::decode(const Char* entityName, sysuint_t entityLength)
 {
-  return _decode<Char16>(entityName, entityLength);
+  return _decode<Char>(entityName, entityLength);
 }
 
-uint16_t XmlEntity::decode(const Char32* entityName, sysuint_t entityLength)
-{
-  return _decode<Char32>(entityName, entityLength);
-}
-
-sysuint_t XmlEntity::encode(char* dst, Char32 _ch)
+sysuint_t XmlEntity::encode(char* dst, Char _ch)
 {
   // We first try to find named entity, it it fails, we will
   // generate hexadecimal character entity.

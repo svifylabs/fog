@@ -10,6 +10,7 @@
 
 // [Dependencies]
 #include <Fog/Core/Error.h>
+#include <Fog/Core/ByteArray.h>
 #include <Fog/Core/FileSystem.h>
 #include <Fog/Core/MapFile.h>
 #include <Fog/Core/Memory.h>
@@ -51,18 +52,13 @@ MapFile::~MapFile()
 }
 
 #if defined(FOG_OS_WINDOWS)
-err_t MapFile::map(const String32& fileName, bool loadOnFail)
+err_t MapFile::map(const String& _fileName, bool loadOnFail)
 {
   unmap();
 
   err_t err;
-
-  TemporaryString16<TemporaryLength> fileNameW;
-  if ((err = fileNameW.set(fileName)) ||
-      (err = fileNameW.slashesToPosix()))
-  {
-    return err;
-  }
+  String fileName = _fileName;
+  if ((err = fileName.slashesToPosix())) return err;
 
   HANDLE hFile;
   HANDLE hFileMapping;
@@ -74,7 +70,7 @@ err_t MapFile::map(const String32& fileName, bool loadOnFail)
 
   // Try to open file.
   if ((hFile = CreateFileW(
-    fileNameW.cStrW(), FILE_READ_DATA, FILE_SHARE_READ,
+    reinterpret_cast<const wchar_t*>(fileName.cData()), FILE_READ_DATA, FILE_SHARE_READ,
     NULL, OPEN_EXISTING, 0, NULL)) == INVALID_HANDLE_VALUE)
   {
     return GetLastError();
@@ -197,16 +193,16 @@ void MapFile::unmap()
 #endif // FOG_OS_WINDOWS
 
 #if defined(FOG_OS_POSIX)
-err_t MapFile::map(const String32& fileName, bool loadOnFail)
+err_t MapFile::map(const String& fileName, bool loadOnFail)
 {
   unmap();
 
   err_t err;
 
-  TemporaryString8<TemporaryLength> fileName8;
-  if ( (err = fileName8.set(fileName, TextCodec::local8())) ) return err;
+  TemporaryByteArray<TemporaryLength> fileName8;
+  if ((err = TextCodec::local8().appendFromUnicode(fileName8, fileName))) return err;
 
-  int fd = open(fileName8.cStr(), O_RDONLY);
+  int fd = open(fileName8.cData(), O_RDONLY);
   if (fd < 0) return errno;
 
   struct stat s;

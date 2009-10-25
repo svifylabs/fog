@@ -29,7 +29,7 @@ namespace Fog { struct Object; }
 FOG_CVAR_EXTERN Fog::Lock* fog_object_lock;
 
 FOG_CAPI_EXTERN void* fog_object_cast_helper(Fog::Object* self, const Fog::MetaClass* targetMetaClass);
-FOG_CAPI_EXTERN void* fog_object_cast_string(Fog::Object* self, const Fog::Char8* className);
+FOG_CAPI_EXTERN void* fog_object_cast_string(Fog::Object* self, const char* className);
 
 //! @addtogroup Fog_Core
 //! @{
@@ -121,9 +121,8 @@ const Fog::MetaClass* selftype::staticMetaClass() \
   if (Fog::AtomicOperation<uint32_t>::cmpXchg(&initialized, 0, 1)) \
   { \
     metaClass.base = base::staticMetaClass(); \
-    metaClass.name = (const Fog::Char8*)metaClassName; \
-    metaClass.hash = Fog::HashUtil::hashString( \
-      (const Fog::Char8*)metaClassName, FOG_ARRAY_SIZE(metaClassName)-1); \
+    metaClass.name = metaClassName; \
+    metaClass.hash = Fog::HashUtil::hashString(metaClassName, FOG_ARRAY_SIZE(metaClassName)-1); \
     \
     Fog::AtomicOperation<uint32_t>::set(&initialized, 1); \
     return &metaClass; \
@@ -232,7 +231,7 @@ struct MetaClass
   //! @brief Base meta class. Only @c Fog::Object have this value NULL.
   const MetaClass* base;
   //! @brief Object class name. 
-  const Char8* name;
+  const char* name;
   //! @brief Object class name hash.
   uint32_t hash;
 };
@@ -296,10 +295,10 @@ struct FOG_API Object : public Class
   // [Name]
 
   //! @brief Returns object name.
-  FOG_INLINE String32 getObjectName() const { return _objectName; }
+  FOG_INLINE String getObjectName() const { return _objectName; }
 
   //! @brief Sets object name.
-  void setObjectName(const String32& objectName);
+  void setObjectName(const String& objectName);
 
   // [Threading]
 
@@ -314,14 +313,14 @@ struct FOG_API Object : public Class
   virtual const MetaClass* getMetaClass() const;
 
   //! @brief Returns class name of this object.
-  FOG_INLINE const Char8* getClassName() const { return getMetaClass()->name; }
+  FOG_INLINE const char* getClassName() const { return getMetaClass()->name; }
 
   //! @brief Returns @c true if class can be casted to @a T.
   template<typename T>
   FOG_INLINE bool isClassOf() const { return fog_object_cast<T>((Object*)this) != NULL; }
 
   //! @brief Returns @c true if class can be casted to @a className.
-  FOG_INLINE bool isClassOf(const Char8* className) const
+  FOG_INLINE bool isClassOf(const char* className) const
   { return fog_object_cast_string((Object*)this, className) != NULL; }
 
   // [Event Handlers]
@@ -452,7 +451,7 @@ protected:
   //! @brief Object name.
   //!
   //! @sa _objectId
-  String32 _objectName;
+  String _objectName;
 
   //! @brief Attached listeners to this object.
   //!

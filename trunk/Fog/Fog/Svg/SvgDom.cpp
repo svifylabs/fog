@@ -20,7 +20,7 @@ namespace Fog {
 // [Fog::SvgStyleAttribute]
 // ============================================================================
 
-SvgStyleAttribute::SvgStyleAttribute(XmlElement* element, const ManagedString32& name) : 
+SvgStyleAttribute::SvgStyleAttribute(XmlElement* element, const ManagedString& name) : 
   XmlAttribute(element, name)
 {
   reinterpret_cast<SvgElement*>(element)->_styles = this;
@@ -31,18 +31,18 @@ SvgStyleAttribute::~SvgStyleAttribute()
   reinterpret_cast<SvgElement*>(_element)->_styles = NULL;
 }
 
-String32 SvgStyleAttribute::getValue() const
+String SvgStyleAttribute::getValue() const
 {
   return SvgUtil::joinStyles(_styles);
 }
 
-err_t SvgStyleAttribute::setValue(const String32& value)
+err_t SvgStyleAttribute::setValue(const String& value)
 {
   _styles = SvgUtil::parseStyles(value);
   return Error::Ok;
 }
 
-String32 SvgStyleAttribute::getStyle(const String32& name) const
+String SvgStyleAttribute::getStyle(const String& name) const
 {
   Vector<SvgStyleItem>::ConstIterator it(_styles);
   for (it.toStart(); it.isValid(); it.toNext())
@@ -52,10 +52,10 @@ String32 SvgStyleAttribute::getStyle(const String32& name) const
       return it.value().getValue();
     }
   }
-  return String32();
+  return String();
 }
 
-err_t SvgStyleAttribute::setStyle(const String32& name, const String32& value)
+err_t SvgStyleAttribute::setStyle(const String& name, const String& value)
 {
   Vector<SvgStyleItem>::ConstIterator it(_styles);
   for (it.toStart(); it.isValid(); it.toNext())
@@ -83,12 +83,12 @@ struct FOG_HIDDEN SvgTransformAttribute : public XmlAttribute
 
   typedef XmlAttribute base;
 
-  SvgTransformAttribute(XmlElement* element, const ManagedString32& name, int offset = -1);
+  SvgTransformAttribute(XmlElement* element, const ManagedString& name, int offset = -1);
   virtual ~SvgTransformAttribute();
 
   // [Methods]
 
-  virtual err_t setValue(const String32& value);
+  virtual err_t setValue(const String& value);
 
   // [Data]
 
@@ -104,7 +104,7 @@ private:
   FOG_DISABLE_COPY(SvgTransformAttribute)
 };
 
-SvgTransformAttribute::SvgTransformAttribute(XmlElement* element, const ManagedString32& name, int offset) :
+SvgTransformAttribute::SvgTransformAttribute(XmlElement* element, const ManagedString& name, int offset) :
     XmlAttribute(element, name, offset)
 {
   if (_name == fog_strings->getString(STR_SVG_transform))
@@ -121,7 +121,7 @@ SvgTransformAttribute::~SvgTransformAttribute()
   }
 }
 
-err_t SvgTransformAttribute::setValue(const String32& value)
+err_t SvgTransformAttribute::setValue(const String& value)
 {
   err_t err = _value.set(value);
   if (err) return err;
@@ -148,12 +148,12 @@ struct FOG_HIDDEN SvgCoordAttribute : public XmlAttribute
 
   typedef XmlAttribute base;
 
-  SvgCoordAttribute(XmlElement* element, const ManagedString32& name, int offset = -1);
+  SvgCoordAttribute(XmlElement* element, const ManagedString& name, int offset = -1);
   virtual ~SvgCoordAttribute();
 
   // [Methods]
 
-  virtual err_t setValue(const String32& value);
+  virtual err_t setValue(const String& value);
 
   // [Coords]
 
@@ -169,7 +169,7 @@ private:
   FOG_DISABLE_COPY(SvgCoordAttribute)
 };
 
-SvgCoordAttribute::SvgCoordAttribute(XmlElement* element, const ManagedString32& name, int offset) :
+SvgCoordAttribute::SvgCoordAttribute(XmlElement* element, const ManagedString& name, int offset) :
   XmlAttribute(element, name, offset)
 {
   _coord.value = 0.0;
@@ -180,7 +180,7 @@ SvgCoordAttribute::~SvgCoordAttribute()
 {
 }
 
-err_t SvgCoordAttribute::setValue(const String32& value)
+err_t SvgCoordAttribute::setValue(const String& value)
 {
   err_t err = _value.set(value);
   if (err) return err;
@@ -201,12 +201,12 @@ struct FOG_HIDDEN SvgOffsetAttribute : public XmlAttribute
 
   typedef XmlAttribute base;
 
-  SvgOffsetAttribute(XmlElement* element, const ManagedString32& name, int offset = -1);
+  SvgOffsetAttribute(XmlElement* element, const ManagedString& name, int offset = -1);
   virtual ~SvgOffsetAttribute();
 
   // [Methods]
 
-  virtual err_t setValue(const String32& value);
+  virtual err_t setValue(const String& value);
 
   // [Coords]
 
@@ -220,7 +220,7 @@ private:
   FOG_DISABLE_COPY(SvgOffsetAttribute)
 };
 
-SvgOffsetAttribute::SvgOffsetAttribute(XmlElement* element, const ManagedString32& name, int offset) :
+SvgOffsetAttribute::SvgOffsetAttribute(XmlElement* element, const ManagedString& name, int offset) :
   XmlAttribute(element, name, offset)
 {
   _offset = 0.0;
@@ -230,7 +230,7 @@ SvgOffsetAttribute::~SvgOffsetAttribute()
 {
 }
 
-err_t SvgOffsetAttribute::setValue(const String32& value)
+err_t SvgOffsetAttribute::setValue(const String& value)
 {
   err_t err = _value.set(value);
   if (err) return err;
@@ -238,7 +238,7 @@ err_t SvgOffsetAttribute::setValue(const String32& value)
   sysuint_t end;
   if (value.atod(&_offset, NULL, &end) == Error::Ok)
   {
-    if (end < value.getLength() && value.at(end) == Char32('%')) _offset *= 0.01;
+    if (end < value.getLength() && value.at(end) == Char('%')) _offset *= 0.01;
 
     if (_offset < 0.0) _offset = 0.0;
     if (_offset > 1.0) _offset = 1.0;
@@ -261,12 +261,12 @@ struct FOG_HIDDEN SvgPathAttribute : public XmlAttribute
 
   typedef XmlAttribute base;
 
-  SvgPathAttribute(XmlElement* element, const ManagedString32& name, int offset = -1);
+  SvgPathAttribute(XmlElement* element, const ManagedString& name, int offset = -1);
   virtual ~SvgPathAttribute();
 
   // [Methods]
 
-  virtual err_t setValue(const String32& value);
+  virtual err_t setValue(const String& value);
 
   // [Coords]
 
@@ -280,7 +280,7 @@ private:
   FOG_DISABLE_COPY(SvgPathAttribute)
 };
 
-SvgPathAttribute::SvgPathAttribute(XmlElement* element, const ManagedString32& name, int offset) :
+SvgPathAttribute::SvgPathAttribute(XmlElement* element, const ManagedString& name, int offset) :
   XmlAttribute(element, name, offset)
 {
 }
@@ -289,7 +289,7 @@ SvgPathAttribute::~SvgPathAttribute()
 {
 }
 
-err_t SvgPathAttribute::setValue(const String32& value)
+err_t SvgPathAttribute::setValue(const String& value)
 {
   err_t err = _value.set(value);
   if (err) return err;
@@ -309,12 +309,12 @@ struct FOG_HIDDEN SvgPointsAttribute : public XmlAttribute
 
   typedef XmlAttribute base;
 
-  SvgPointsAttribute(XmlElement* element, const ManagedString32& name, bool closePath, int offset = -1);
+  SvgPointsAttribute(XmlElement* element, const ManagedString& name, bool closePath, int offset = -1);
   virtual ~SvgPointsAttribute();
 
   // [Methods]
 
-  virtual err_t setValue(const String32& value);
+  virtual err_t setValue(const String& value);
 
   // [Coords]
 
@@ -329,7 +329,7 @@ private:
   FOG_DISABLE_COPY(SvgPointsAttribute)
 };
 
-SvgPointsAttribute::SvgPointsAttribute(XmlElement* element, const ManagedString32& name, bool closePath, int offset) :
+SvgPointsAttribute::SvgPointsAttribute(XmlElement* element, const ManagedString& name, bool closePath, int offset) :
   XmlAttribute(element, name, offset),
   _closePath(closePath)
 {
@@ -339,7 +339,7 @@ SvgPointsAttribute::~SvgPointsAttribute()
 {
 }
 
-err_t SvgPointsAttribute::setValue(const String32& value)
+err_t SvgPointsAttribute::setValue(const String& value)
 {
   err_t err = _value.set(value);
   if (err) return err;
@@ -382,12 +382,12 @@ struct FOG_HIDDEN SvgEnumAttribute : public XmlAttribute
 
   typedef XmlAttribute base;
 
-  SvgEnumAttribute(XmlElement* element, const ManagedString32& name, const SvgEnumList* enumList, int offset = -1);
+  SvgEnumAttribute(XmlElement* element, const ManagedString& name, const SvgEnumList* enumList, int offset = -1);
   virtual ~SvgEnumAttribute();
 
   // [Methods]
 
-  virtual err_t setValue(const String32& value);
+  virtual err_t setValue(const String& value);
 
   // [Coords]
 
@@ -402,7 +402,7 @@ private:
   FOG_DISABLE_COPY(SvgEnumAttribute)
 };
 
-SvgEnumAttribute::SvgEnumAttribute(XmlElement* element, const ManagedString32& name, const SvgEnumList* enumList, int offset) :
+SvgEnumAttribute::SvgEnumAttribute(XmlElement* element, const ManagedString& name, const SvgEnumList* enumList, int offset) :
     XmlAttribute(element, name, offset),
     _enumList(enumList),
     _valueEnum(-1)
@@ -413,7 +413,7 @@ SvgEnumAttribute::~SvgEnumAttribute()
 {
 }
 
-err_t SvgEnumAttribute::setValue(const String32& value)
+err_t SvgEnumAttribute::setValue(const String& value)
 {
   err_t err = _value.set(value);
   if (err) return err;
@@ -443,7 +443,7 @@ err_t SvgEnumAttribute::setValue(const String32& value)
 // [Fog::SvgElement]
 // ============================================================================
 
-SvgElement::SvgElement(const ManagedString32& tagName, uint32_t svgType) :
+SvgElement::SvgElement(const ManagedString& tagName, uint32_t svgType) :
   XmlElement(tagName),
   _svgType(svgType),
   _boundingRectDirty(true),
@@ -470,7 +470,7 @@ SvgElement* SvgElement::clone() const
   return e;
 }
 
-XmlAttribute* SvgElement::_createAttribute(const ManagedString32& name) const
+XmlAttribute* SvgElement::_createAttribute(const ManagedString& name) const
 {
   if (name == fog_strings->getString(STR_XML_style    )) return new(std::nothrow) SvgStyleAttribute    (const_cast<SvgElement*>(this), name);
   if (name == fog_strings->getString(STR_SVG_transform)) return new(std::nothrow) SvgTransformAttribute(const_cast<SvgElement*>(this), name);
@@ -478,19 +478,19 @@ XmlAttribute* SvgElement::_createAttribute(const ManagedString32& name) const
   return base::_createAttribute(name);
 }
 
-String32 SvgElement::getStyle(const String32& name) const
+String SvgElement::getStyle(const String& name) const
 {
   if (_styles)
     return _styles->getStyle(name);
   else
-    return String32();
+    return String();
 }
 
-err_t SvgElement::setStyle(const String32& name, const String32& value)
+err_t SvgElement::setStyle(const String& name, const String& value)
 {
   if (_styles == NULL)
   {
-    err_t err = setAttribute(fog_strings->getString(STR_XML_style), String32());
+    err_t err = setAttribute(fog_strings->getString(STR_XML_style), String());
     if (err) return err;
 
     FOG_ASSERT(_styles != NULL);
@@ -499,13 +499,13 @@ err_t SvgElement::setStyle(const String32& name, const String32& value)
   return _styles->setStyle(name, value);
 }
 
-static Utf32 parseId(const String32& url)
+static Utf16 parseId(const String& url)
 {
-  const Char32* idStr;
-  const Char32* idEnd;
-  const Char32* idMark;
+  const Char* idStr;
+  const Char* idEnd;
+  const Char* idMark;
 
-  if (url.getLength() < 7) return Utf32((const Char32*)NULL, 0);
+  if (url.getLength() < 7) return Utf16((const Char*)NULL, 0);
 
   idStr = url.cData() + 5;
   idEnd = idStr + url.getLength() - 5;
@@ -518,14 +518,14 @@ static Utf32 parseId(const String32& url)
   if (idStr == idEnd) goto bail;
 
   idMark = idStr;
-  while (*idStr != Char32(')'))
+  while (*idStr != Char(')'))
   {
     if (++idStr == idEnd) goto bail;
   }
-  return Utf32(idMark, (sysuint_t)(idStr - idMark));
+  return Utf16(idMark, (sysuint_t)(idStr - idMark));
 
 bail:
-  return Utf32((const Char32*)NULL, 0);
+  return Utf16((const Char*)NULL, 0);
 }
 
 err_t SvgElement::onRender(SvgContext* context) const
@@ -570,7 +570,7 @@ err_t SvgElement::onRender(SvgContext* context) const
                 break;
               case SvgPatternUri:
               {
-                const String32& v = item.getValue();
+                const String& v = item.getValue();
                 XmlElement* r = getDocument()->getElementById(parseId(v));
                 if (r && r->isSvg())
                 {
@@ -598,7 +598,7 @@ err_t SvgElement::onRender(SvgContext* context) const
                 break;
               case SvgPatternUri:
               {
-                const String32& v = item.getValue();
+                const String& v = item.getValue();
                 XmlElement* r = getDocument()->getElementById(parseId(v));
                 if (r && r->isSvg())
                 {
@@ -706,7 +706,7 @@ struct FOG_HIDDEN SvgCircleElement : public SvgElement
 
   // [Attributes]
 
-  virtual XmlAttribute* _createAttribute(const ManagedString32& name) const;
+  virtual XmlAttribute* _createAttribute(const ManagedString& name) const;
 
   // [SVG Rendering]
 
@@ -736,7 +736,7 @@ SvgCircleElement::~SvgCircleElement()
   removeAllAttributes();
 }
 
-XmlAttribute* SvgCircleElement::_createAttribute(const ManagedString32& name) const
+XmlAttribute* SvgCircleElement::_createAttribute(const ManagedString& name) const
 {
   if (name == fog_strings->getString(STR_SVG_cx)) return const_cast<SvgCoordAttribute*>(&a_cx);
   if (name == fog_strings->getString(STR_SVG_cy)) return const_cast<SvgCoordAttribute*>(&a_cy);
@@ -831,7 +831,7 @@ struct FOG_HIDDEN SvgEllipseElement : public SvgElement
 
   // [Attributes]
 
-  virtual XmlAttribute* _createAttribute(const ManagedString32& name) const;
+  virtual XmlAttribute* _createAttribute(const ManagedString& name) const;
 
   // [SVG Rendering]
 
@@ -863,7 +863,7 @@ SvgEllipseElement::~SvgEllipseElement()
   removeAllAttributes();
 }
 
-XmlAttribute* SvgEllipseElement::_createAttribute(const ManagedString32& name) const
+XmlAttribute* SvgEllipseElement::_createAttribute(const ManagedString& name) const
 {
   if (name == fog_strings->getString(STR_SVG_cx)) return const_cast<SvgCoordAttribute*>(&a_cx);
   if (name == fog_strings->getString(STR_SVG_cy)) return const_cast<SvgCoordAttribute*>(&a_cy);
@@ -965,7 +965,7 @@ struct FOG_HIDDEN SvgLineElement : public SvgElement
 
   // [Attributes]
 
-  virtual XmlAttribute* _createAttribute(const ManagedString32& name) const;
+  virtual XmlAttribute* _createAttribute(const ManagedString& name) const;
 
   // [SVG Rendering]
 
@@ -997,7 +997,7 @@ SvgLineElement::~SvgLineElement()
   removeAllAttributes();
 }
 
-XmlAttribute* SvgLineElement::_createAttribute(const ManagedString32& name) const
+XmlAttribute* SvgLineElement::_createAttribute(const ManagedString& name) const
 {
   if (name == fog_strings->getString(STR_SVG_x1)) return const_cast<SvgCoordAttribute*>(&a_x1);
   if (name == fog_strings->getString(STR_SVG_y1)) return const_cast<SvgCoordAttribute*>(&a_y1);
@@ -1064,7 +1064,7 @@ struct FOG_HIDDEN SvgPathElement : public SvgElement
 
   // [Attributes]
 
-  virtual XmlAttribute* _createAttribute(const ManagedString32& name) const;
+  virtual XmlAttribute* _createAttribute(const ManagedString& name) const;
 
   // [SVG Rendering]
 
@@ -1090,7 +1090,7 @@ SvgPathElement::~SvgPathElement()
   removeAllAttributes();
 }
 
-XmlAttribute* SvgPathElement::_createAttribute(const ManagedString32& name) const
+XmlAttribute* SvgPathElement::_createAttribute(const ManagedString& name) const
 {
   if (name == fog_strings->getString(STR_SVG_d)) return const_cast<SvgPathAttribute*>(&a_d);
 
@@ -1141,7 +1141,7 @@ struct FOG_HIDDEN SvgPolygonElement : public SvgElement
 
   // [Attributes]
 
-  virtual XmlAttribute* _createAttribute(const ManagedString32& name) const;
+  virtual XmlAttribute* _createAttribute(const ManagedString& name) const;
 
   // [SVG Rendering]
 
@@ -1167,7 +1167,7 @@ SvgPolygonElement::~SvgPolygonElement()
   removeAllAttributes();
 }
 
-XmlAttribute* SvgPolygonElement::_createAttribute(const ManagedString32& name) const
+XmlAttribute* SvgPolygonElement::_createAttribute(const ManagedString& name) const
 {
   if (name == fog_strings->getString(STR_SVG_points)) return const_cast<SvgPointsAttribute*>(&a_points);
 
@@ -1218,7 +1218,7 @@ struct FOG_HIDDEN SvgPolyLineElement : public SvgElement
 
   // [Attributes]
 
-  virtual XmlAttribute* _createAttribute(const ManagedString32& name) const;
+  virtual XmlAttribute* _createAttribute(const ManagedString& name) const;
 
   // [SVG Rendering]
 
@@ -1244,7 +1244,7 @@ SvgPolyLineElement::~SvgPolyLineElement()
   removeAllAttributes();
 }
 
-XmlAttribute* SvgPolyLineElement::_createAttribute(const ManagedString32& name) const
+XmlAttribute* SvgPolyLineElement::_createAttribute(const ManagedString& name) const
 {
   if (name == fog_strings->getString(STR_SVG_points)) return const_cast<SvgPointsAttribute*>(&a_points);
 
@@ -1295,7 +1295,7 @@ struct FOG_HIDDEN SvgRectElement : public SvgElement
 
   // [Attributes]
 
-  virtual XmlAttribute* _createAttribute(const ManagedString32& name) const;
+  virtual XmlAttribute* _createAttribute(const ManagedString& name) const;
 
   // [SVG Rendering]
 
@@ -1331,7 +1331,7 @@ SvgRectElement::~SvgRectElement()
   removeAllAttributes();
 }
 
-XmlAttribute* SvgRectElement::_createAttribute(const ManagedString32& name) const
+XmlAttribute* SvgRectElement::_createAttribute(const ManagedString& name) const
 {
   if (name == fog_strings->getString(STR_SVG_x     )) return const_cast<SvgCoordAttribute*>(&a_x     );
   if (name == fog_strings->getString(STR_SVG_y     )) return const_cast<SvgCoordAttribute*>(&a_y     );
@@ -1399,7 +1399,7 @@ struct FOG_HIDDEN SvgSolidColorElement : public SvgElement
 
   // [Attributes]
 
-  virtual XmlAttribute* _createAttribute(const ManagedString32& name) const;
+  virtual XmlAttribute* _createAttribute(const ManagedString& name) const;
 
   // [SVG Rendering]
 
@@ -1421,7 +1421,7 @@ SvgSolidColorElement::~SvgSolidColorElement()
   removeAllAttributes();
 }
 
-XmlAttribute* SvgSolidColorElement::_createAttribute(const ManagedString32& name) const
+XmlAttribute* SvgSolidColorElement::_createAttribute(const ManagedString& name) const
 {
   return base::_createAttribute(name);
 }
@@ -1446,7 +1446,7 @@ struct FOG_HIDDEN SvgStopElement : public SvgElement
 
   // [Attributes]
 
-  virtual XmlAttribute* _createAttribute(const ManagedString32& name) const;
+  virtual XmlAttribute* _createAttribute(const ManagedString& name) const;
 
   // [SVG Rendering]
 
@@ -1471,7 +1471,7 @@ SvgStopElement::~SvgStopElement()
   removeAllAttributes();
 }
 
-XmlAttribute* SvgStopElement::_createAttribute(const ManagedString32& name) const
+XmlAttribute* SvgStopElement::_createAttribute(const ManagedString& name) const
 {
   if (name == fog_strings->getString(STR_SVG_offset)) return const_cast<SvgOffsetAttribute*>(&a_offset);
 
@@ -1503,8 +1503,8 @@ start:
       double offset = _stop->a_offset.getOffset();
       Rgba color;
 
-      String32 stopColorValue = _stop->getStyle(fog_strings->getString(STR_SVG_stop_color));
-      String32 stopOpacityValue = _stop->getStyle(fog_strings->getString(STR_SVG_stop_opacity));
+      String stopColorValue = _stop->getStyle(fog_strings->getString(STR_SVG_stop_color));
+      String stopOpacityValue = _stop->getStyle(fog_strings->getString(STR_SVG_stop_opacity));
 
       if (SvgUtil::parseColor(stopColorValue, &color) == SvgStatusOk)
       {
@@ -1525,10 +1525,10 @@ start:
   if (!stopsParsed)
   {
     XmlElement* e;
-    String32 link = root->getAttribute(fog_strings->getString(STR_SVG_xlink_href));
+    String link = root->getAttribute(fog_strings->getString(STR_SVG_xlink_href));
 
-    if ((!link.isEmpty() && link.at(0) == Char32('#')) && 
-        (e = root->getDocument()->getElementById(Utf32(link.cData() + 1, link.getLength() - 1))))
+    if ((!link.isEmpty() && link.at(0) == Char('#')) && 
+        (e = root->getDocument()->getElementById(Utf16(link.cData() + 1, link.getLength() - 1))))
     {
       root = e;
       if (++depth == 32) return;
@@ -1548,7 +1548,7 @@ struct FOG_HIDDEN SvgLinearGradientElement : public SvgElement
 
   // [Attributes]
 
-  virtual XmlAttribute* _createAttribute(const ManagedString32& name) const;
+  virtual XmlAttribute* _createAttribute(const ManagedString& name) const;
 
   // [SVG Rendering]
 
@@ -1586,7 +1586,7 @@ SvgLinearGradientElement::~SvgLinearGradientElement()
   removeAllAttributes();
 }
 
-XmlAttribute* SvgLinearGradientElement::_createAttribute(const ManagedString32& name) const
+XmlAttribute* SvgLinearGradientElement::_createAttribute(const ManagedString& name) const
 {
   if (name == fog_strings->getString(STR_SVG_spreadMethod)) return const_cast<SvgEnumAttribute*>(&a_spreadMethod);
   if (name == fog_strings->getString(STR_SVG_gradientUnits)) return const_cast<SvgEnumAttribute*>(&a_gradientUnits);
@@ -1664,7 +1664,7 @@ struct FOG_HIDDEN SvgRadialGradientElement : public SvgElement
 
   // [Attributes]
 
-  virtual XmlAttribute* _createAttribute(const ManagedString32& name) const;
+  virtual XmlAttribute* _createAttribute(const ManagedString& name) const;
 
   // [SVG Rendering]
 
@@ -1704,7 +1704,7 @@ SvgRadialGradientElement::~SvgRadialGradientElement()
   removeAllAttributes();
 }
 
-XmlAttribute* SvgRadialGradientElement::_createAttribute(const ManagedString32& name) const
+XmlAttribute* SvgRadialGradientElement::_createAttribute(const ManagedString& name) const
 {
   if (name == fog_strings->getString(STR_SVG_spreadMethod)) return const_cast<SvgEnumAttribute*>(&a_spreadMethod);
   if (name == fog_strings->getString(STR_SVG_gradientUnits)) return const_cast<SvgEnumAttribute*>(&a_gradientUnits);
@@ -1802,12 +1802,12 @@ XmlElement* SvgDocument::clone() const
   return doc;
 }
 
-XmlElement* SvgDocument::createElement(const ManagedString32& tagName)
+XmlElement* SvgDocument::createElement(const ManagedString& tagName)
 {
   return createElementStatic(tagName);
 }
 
-XmlElement* SvgDocument::createElementStatic(const ManagedString32& tagName)
+XmlElement* SvgDocument::createElementStatic(const ManagedString& tagName)
 {
   if (tagName == fog_strings->getString(STR_SVG_circle        )) return new(std::nothrow) SvgCircleElement();
   if (tagName == fog_strings->getString(STR_SVG_defs          )) return new(std::nothrow) SvgDefsElement();

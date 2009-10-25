@@ -38,9 +38,8 @@ struct Object_Local
     fog_object_lock = &object_lock;
 
     object_metaClass.base = NULL;
-    object_metaClass.name = (const Char8*)object_string;
-    object_metaClass.hash = HashUtil::hashString(
-      (const Char8*)object_string, FOG_ARRAY_SIZE(object_string)-1);
+    object_metaClass.name = object_string;
+    object_metaClass.hash = HashUtil::hashString(object_string, FOG_ARRAY_SIZE(object_string)-1);
   }
   FOG_INLINE ~Object_Local()
   {
@@ -129,7 +128,7 @@ void Object::setObjectId(uint32_t objectId)
 
 // [Fog::Object - name]
 
-void Object::setObjectName(const String32& objectName)
+void Object::setObjectName(const String& objectName)
 {
   if (_objectName != objectName)
   {
@@ -440,7 +439,7 @@ FOG_CAPI_DECLARE void* fog_object_cast_helper(Fog::Object* self, const Fog::Meta
   }
 }
 
-FOG_CAPI_DECLARE void* fog_object_cast_string(Fog::Object* self, const Fog::Char8* className)
+FOG_CAPI_DECLARE void* fog_object_cast_string(Fog::Object* self, const char* className)
 {
   using namespace Fog;
 

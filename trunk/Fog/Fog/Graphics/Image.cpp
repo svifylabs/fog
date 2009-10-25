@@ -2509,16 +2509,15 @@ err_t Image::fromHBITMAP(HBITMAP hBitmap)
 // [Fog::Image - ImageIO]
 // ============================================================================
 
-err_t Image::readFile(const String32& fileName)
+err_t Image::readFile(const String& fileName)
 {
   err_t err;
 
   MapFile mapfile;
   Stream stream;
-  TemporaryString32<16> extension;
+  TemporaryString<16> extension;
 
-  if ((err = FileUtil::extractExtension(extension, fileName)) ||
-      (err = extension.lower()))
+  if ((err = FileUtil::extractExtension(extension, fileName)) || (err = extension.lower()))
   {
     return err;
   }
@@ -2564,7 +2563,7 @@ err_t Image::readStream(Stream& stream)
   return err;
 }
 
-err_t Image::readStream(Stream& stream, const String32& extension)
+err_t Image::readStream(Stream& stream, const String& extension)
 {
   if (!stream.isSeekable()) return Error::ImageIO_NotSeekableStream;
 
@@ -2598,14 +2597,14 @@ err_t Image::readStream(Stream& stream, const String32& extension)
   return readStream(stream);
 }
 
-err_t Image::readBuffer(const String8& buffer)
+err_t Image::readBuffer(const ByteArray& buffer)
 {
-  return readBuffer(buffer.cStr(), buffer.getLength());
+  return readBuffer(buffer.cData(), buffer.getLength());
 }
 
-err_t Image::readBuffer(const String8& buffer, const String32& extension)
+err_t Image::readBuffer(const ByteArray& buffer, const String& extension)
 {
-  return readBuffer(buffer.cStr(), buffer.getLength(), extension);
+  return readBuffer(buffer.cData(), buffer.getLength(), extension);
 }
 
 err_t Image::readBuffer(const void* buffer, sysuint_t size)
@@ -2615,14 +2614,14 @@ err_t Image::readBuffer(const void* buffer, sysuint_t size)
   return readStream(stream);
 }
 
-err_t Image::readBuffer(const void* buffer, sysuint_t size, const String32& extension)
+err_t Image::readBuffer(const void* buffer, sysuint_t size, const String& extension)
 {
   Stream stream;
   stream.openBuffer((void*)buffer, size, Stream::OpenRead);
   return readStream(stream, extension);
 }
 
-err_t Image::writeFile(const String32& fileName)
+err_t Image::writeFile(const String& fileName)
 {
   Stream stream;
 
@@ -2633,9 +2632,8 @@ err_t Image::writeFile(const String32& fileName)
     Stream::OpenTruncate   );
   if (err) return err;
 
-  TemporaryString32<16> extension;
-  if ((err = FileUtil::extractExtension(extension, fileName)) ||
-      (err = extension.lower()))
+  TemporaryString<16> extension;
+  if ((err = FileUtil::extractExtension(extension, fileName)) || (err = extension.lower()))
   {
     return err;
   }
@@ -2644,7 +2642,7 @@ err_t Image::writeFile(const String32& fileName)
   return err;
 }
 
-err_t Image::writeStream(Stream& stream, const String32& extension)
+err_t Image::writeStream(Stream& stream, const String& extension)
 {
   ImageIO::Provider* provider;
   ImageIO::EncoderDevice* encoder;
@@ -2667,7 +2665,7 @@ err_t Image::writeStream(Stream& stream, const String32& extension)
     return Error::ImageIO_ProviderNotAvailable;
 }
 
-err_t Image::writeBuffer(String8& buffer, const String32& extension)
+err_t Image::writeBuffer(ByteArray& buffer, const String& extension)
 {
   Stream stream;
   err_t err = stream.openBuffer(buffer);

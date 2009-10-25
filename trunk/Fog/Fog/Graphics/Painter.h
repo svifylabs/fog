@@ -314,11 +314,11 @@ struct FOG_API Painter
   // [Text drawing]
 
   FOG_INLINE void drawText(
-    const Point& p, const String32& text, const Font& font, const Rect* clip = NULL)
+    const Point& p, const String& text, const Font& font, const Rect* clip = NULL)
   { _engine->drawText(p, text, font, clip); }
 
   FOG_INLINE void drawText(
-    const Rect& r, const String32& text, const Font& font, uint32_t align, const Rect* clip = NULL)
+    const Rect& r, const String& text, const Font& font, uint32_t align, const Rect* clip = NULL)
   { _engine->drawText(r, text, font, align, clip); }
 
   // [Image Drawing]
@@ -332,10 +332,10 @@ struct FOG_API Painter
 
   // [Properties]
 
-  FOG_INLINE err_t setProperty(const String32& name, const Value& value)
+  FOG_INLINE err_t setProperty(const String& name, const Value& value)
   { return _engine->setProperty(name, value); }
 
-  FOG_INLINE Value getProperty(const String32& name) const
+  FOG_INLINE Value getProperty(const String& name) const
   { return _engine->getProperty(name); }
 
   // [Members]

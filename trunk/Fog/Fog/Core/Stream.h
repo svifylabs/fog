@@ -8,6 +8,7 @@
 #define _FOG_CORE_STREAM_H
 
 // [Dependencies]
+#include <Fog/Core/ByteArray.h>
 #include <Fog/Core/FileSystem.h>
 #include <Fog/Core/String.h>
 
@@ -51,7 +52,7 @@ struct FOG_API StreamDevice
   virtual err_t truncate(int64_t offset) = 0;
   virtual void close() = 0;
 
-  virtual String8 getBuffer() const;
+  virtual ByteArray getBuffer() const;
 
   // [Members]
 
@@ -129,7 +130,7 @@ struct FOG_API Stream
     OpenCreateOnly = (1 << 6)
   };
 
-  err_t openFile(const String32& fileName, uint32_t openFlags);
+  err_t openFile(const String& fileName, uint32_t openFlags);
   err_t openFILE(FILE* fp, uint32_t openFlags, bool canClose);
 
 #if defined(FOG_OS_WINDOWS)
@@ -141,7 +142,7 @@ struct FOG_API Stream
 #endif // FOG_OS_POSIX
 
   err_t openBuffer();
-  err_t openBuffer(const String8& buffer);
+  err_t openBuffer(const ByteArray& buffer);
   err_t openBuffer(void* buffer, sysuint_t size, uint32_t openFlags);
 
   // [Seek]
@@ -159,11 +160,11 @@ struct FOG_API Stream
   // [Read / Write]
 
   sysuint_t read(void* buffer, sysuint_t size);
-  sysuint_t read(String8& dst, sysuint_t size);
-  sysuint_t readAll(String8& dst, int64_t maxBytes = -1);
+  sysuint_t read(ByteArray& dst, sysuint_t size);
+  sysuint_t readAll(ByteArray& dst, int64_t maxBytes = -1);
 
   sysuint_t write(const void* buffer, sysuint_t size);
-  sysuint_t write(const String8& data);
+  sysuint_t write(const ByteArray& data);
 
   // [Truncate]
 
@@ -181,8 +182,8 @@ struct FOG_API Stream
   //!   <core>openBuffer(void* buffer, sysuint_t size, uint32_t openFlags);</core>
   //! buffer will be created for it and data will be copied to this buffer.
   //!
-  //! If stream was open by @c String8 instance, this method will return it.
-  String8 getBuffer() const;
+  //! If stream was open by @c ByteArray instance, this method will return it.
+  ByteArray getBuffer() const;
 
   // [Operator Overload]
 

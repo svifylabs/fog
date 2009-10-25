@@ -8,6 +8,7 @@
 #define _FOG_CORE_DIRITERATOR_H
 
 // [Dependencies]
+#include <Fog/Core/ByteArray.h>
 #include <Fog/Core/String.h>
 
 #if defined(FOG_OS_WINDOWS)
@@ -68,7 +69,7 @@ struct FOG_API DirIterator
 
     Entry& operator=(const Entry& other);
 
-    FOG_INLINE const String32& getName() const { return _name; }
+    FOG_INLINE const String& getName() const { return _name; }
     FOG_INLINE uint32_t getType() const { return _type; }
     FOG_INLINE uint64_t getSize() const { return _size; }
 
@@ -94,7 +95,7 @@ struct FOG_API DirIterator
     };
 
   private:
-    String32 _name;
+    String _name;
     uint32_t _type;
     uint64_t _size;
 
@@ -110,10 +111,10 @@ struct FOG_API DirIterator
   };
 
   DirIterator();
-  DirIterator(const String32& path);
+  DirIterator(const String& path);
   ~DirIterator();
 
-  err_t open(const String32& path);
+  err_t open(const String& path);
   void close();
   bool read(Entry& to);
 
@@ -124,7 +125,7 @@ struct FOG_API DirIterator
 
   FOG_INLINE void* getHandle() const { return _handle; }
 
-  FOG_INLINE const String32& getPath() const { return _path; }
+  FOG_INLINE const String& getPath() const { return _path; }
 
   FOG_INLINE bool isOpen() const  { return _handle != NULL; }
 
@@ -132,7 +133,7 @@ struct FOG_API DirIterator
 
 private:
   void* _handle;
-  String32 _path;
+  String _path;
 
   // System specific
 
@@ -143,7 +144,7 @@ private:
 #endif // FOG_OS_WINDOWS
 
 #if defined(FOG_OS_POSIX)
-  Fog::String8 _pathCache;
+  ByteArray _pathCache;
   sysuint_t _pathCacheBaseLength;
 #endif // FOG_OS_POSIX
 

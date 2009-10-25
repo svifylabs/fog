@@ -39,14 +39,14 @@ struct FOG_API IProperties
   // [Virtual Methods]
 
   //! @brief Get list of properties.
-  virtual Vector<String32> propertiesList() const = 0;
+  virtual Vector<String> propertiesList() const = 0;
   //! @brief Get info about property @a name, see @c IProperties::InfoFlags.
-  virtual int propertyInfo(const String32& name) const = 0;
+  virtual int propertyInfo(const String& name) const = 0;
 
   //! @brief Get property @a name to @a value.
-  virtual err_t getProperty(const String32& name, Value& value) const = 0;
+  virtual err_t getProperty(const String& name, Value& value) const = 0;
   //! @brief Set property @a name from @a value.
-  virtual err_t setProperty(const String32& name, const Value& value) = 0;
+  virtual err_t setProperty(const String& name, const Value& value) = 0;
 
   // [Info Flags]
 
@@ -85,17 +85,17 @@ struct FOG_API PropertiesData
 
   struct Bucket
   {
-    FOG_INLINE Bucket(const String32& name, int id) : _next(NULL), _name(name), _id(id) {}
+    FOG_INLINE Bucket(const String& name, int id) : _next(NULL), _name(name), _id(id) {}
     FOG_INLINE ~Bucket() {}
 
     Bucket* _next;
-    String32 _name;
+    String _name;
     int _id;
   };
 
   // [Init / Destroy]
 
-  err_t init(PropertiesData* parent, const Vector<String32>& properties);
+  err_t init(PropertiesData* parent, const Vector<String>& properties);
   void destroy();
 
   // [Getters]
@@ -103,14 +103,14 @@ struct FOG_API PropertiesData
   FOG_INLINE bool isInitialized() { return _offset >= 0; }
 
   FOG_INLINE PropertiesData* parent() const { return _parent; }
-  FOG_INLINE const Vector<String32>& properties() const { return _properties; }
+  FOG_INLINE const Vector<String>& properties() const { return _properties; }
   FOG_INLINE int offset() const { return _offset; }
 
   // [Find]
 
-  int find(const String32& name) const;
+  int find(const String& name) const;
 
-  FOG_INLINE int _findInline(const String32& name) const
+  FOG_INLINE int _findInline(const String& name) const
   {
     const PropertiesData* pdata = this;
     Bucket* bucket;
@@ -134,7 +134,7 @@ private:
   PropertiesData* _parent;
   //! @brief Vector that contains properties for this class and all parent
   //! classes.
-  Vector<String32> _properties;
+  Vector<String> _properties;
 
   //! @brief Embedded hash table buckets data.
   Bucket** _bucketsData;
@@ -194,15 +194,15 @@ struct FOG_API PropertiesContainer : public IProperties
 
   // [Virtual Methods]
 
-  virtual Vector<String32> propertiesList() const;
-  virtual int propertyInfo(const String32& name) const;
+  virtual Vector<String> propertiesList() const;
+  virtual int propertyInfo(const String& name) const;
 
-  virtual err_t getProperty(const String32& name, Value& value) const;
-  virtual err_t setProperty(const String32& name, const Value& value);
+  virtual err_t getProperty(const String& name, Value& value) const;
+  virtual err_t setProperty(const String& name, const Value& value);
 
   //! @brief Convert property name to property id for current class.
   //! @return Property id or -1 if failed.
-  virtual int propertyToId(const String32& name) const;
+  virtual int propertyToId(const String& name) const;
 
   //! @brief Get property data instance (one per class).
   virtual const PropertiesData* propertiesData() const;
@@ -217,7 +217,7 @@ struct FOG_API PropertiesContainer : public IProperties
   // [Member Methods]
 
   //! @brief Easy way to get property @a name, no error detection.
-  Value property(const String32& name) const;
+  Value property(const String& name) const;
   //! @brief Easy way to get property @a id, no error detection.
   Value property(int id) const;
 };

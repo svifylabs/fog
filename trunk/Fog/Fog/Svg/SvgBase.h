@@ -175,12 +175,12 @@ struct FOG_API SvgStyleItem
 
   // [Name / Value]
 
-  FOG_INLINE const String32& getName() const { return _name.getString(); }
-  err_t setName(const ManagedString32& name);
-  err_t setName(const String32& name);
+  FOG_INLINE const String& getName() const { return _name.getString(); }
+  err_t setName(const ManagedString& name);
+  err_t setName(const String& name);
 
-  FOG_INLINE const String32& getValue() const { return _value; }
-  err_t setValue(const String32& value);
+  FOG_INLINE const String& getValue() const { return _value; }
+  err_t setValue(const String& value);
 
   // [Type Control]
 
@@ -213,8 +213,8 @@ struct FOG_API SvgStyleItem
   SvgStyleItem& operator=(const SvgStyleItem& other);
 
 protected:
-  ManagedString32 _name;
-  String32 _value;
+  ManagedString _name;
+  String _value;
 
   union {
     struct {

@@ -16,7 +16,7 @@ namespace SvgUtil {
 // [Fog::SvgUtil]
 // ============================================================================
 
-static uint8_t singleHexToColorValue(Char32 c0)
+static uint8_t singleHexToColorValue(Char c0)
 {
   uint8_t i;
   if (c0.isAsciiDigit())
@@ -26,7 +26,7 @@ static uint8_t singleHexToColorValue(Char32 c0)
   return (i << 4) | i;
 }
 
-static uint8_t doubleHexToColorValue(Char32 c0, Char32 c1)
+static uint8_t doubleHexToColorValue(Char c0, Char c1)
 {
   uint8_t i;
   uint8_t j;
@@ -43,22 +43,22 @@ static uint8_t doubleHexToColorValue(Char32 c0, Char32 c1)
   return (i << 4) | j;
 }
 
-FOG_API SvgStatus parseColor(const String32& str, Rgba* dst)
+FOG_API SvgStatus parseColor(const String& str, Rgba* dst)
 {
   SvgStatus status = SvgStatusColorIsInvalid;
   Rgba color(0xFF000000);
 
-  const Char32* strCur = str.cData();
-  const Char32* strEnd = strCur + str.getLength();
+  const Char* strCur = str.cData();
+  const Char* strEnd = strCur + str.getLength();
 
   while (strCur != strEnd && strCur->isSpace()) strCur++;
   if (strCur == strEnd) goto bail;
 
   // HTML color '#RGB' or '#RRGGBB'.
-  if (*strCur == Char32('#'))
+  if (*strCur == Char('#'))
   {
-    const Char32* begin = ++strCur;
-    const Char32* end;
+    const Char* begin = ++strCur;
+    const Char* end;
     if (strCur == strEnd) goto bail;
 
     while (strCur != strEnd && strCur->isXDigit()) strCur++;
@@ -83,9 +83,9 @@ FOG_API SvgStatus parseColor(const String32& str, Rgba* dst)
     }
   }
   // CSS color 'rgb(r, g, b)'.
-  else if (*strCur == Char32('r'))
+  else if (*strCur == Char('r'))
   {
-    if (strCur + 2 < strEnd && StringUtil::eq(strCur, (const Char8*)"rgb", 3))
+    if (strCur + 2 < strEnd && StringUtil::eq(strCur, "rgb", 3))
     {
       strCur += 3;
 
@@ -97,7 +97,7 @@ FOG_API SvgStatus parseColor(const String32& str, Rgba* dst)
       }
 
       // Parse '('.
-      if (*strCur != Char32('(')) goto bail;
+      if (*strCur != Char('(')) goto bail;
       if (++strCur == strEnd) goto bail;
 
       // Parse 0-255, 0-255, 0-255.
@@ -119,7 +119,7 @@ FOG_API SvgStatus parseColor(const String32& str, Rgba* dst)
             {
               strCur++;
             }
-            else if (*strCur == Char32(','))
+            else if (*strCur == Char(','))
             {
               if (++strCur == strEnd) goto bail;
               break;
@@ -140,7 +140,7 @@ FOG_API SvgStatus parseColor(const String32& str, Rgba* dst)
         {
           strCur++;
         }
-        else if (*strCur == Char32(')'))
+        else if (*strCur == Char(')'))
         {
           strCur++;
           break;
@@ -158,16 +158,16 @@ FOG_API SvgStatus parseColor(const String32& str, Rgba* dst)
       status = SvgStatusOk;
     }
   }
-  else if (*strCur == Char32('u'))
+  else if (*strCur == Char('u'))
   {
-    if (strCur + 2 < strEnd && StringUtil::eq(strCur, (const Char8*)"url", 3))
+    if (strCur + 2 < strEnd && StringUtil::eq(strCur, "url", 3))
     {
       status = SvgStatusColorIsUri;
     }
   }
-  else if (*strCur == Char32('n'))
+  else if (*strCur == Char('n'))
   {
-    if (strCur + 3 < strEnd && StringUtil::eq(strCur, (const Char8*)"none", 4))
+    if (strCur + 3 < strEnd && StringUtil::eq(strCur, "none", 4))
     {
       status = SvgStatusColorIsNone;
     }
@@ -180,7 +180,7 @@ bail:
 
 static const char svgUnitNames[] = "cmemexinmmpcptpx";
 
-SvgCoord parseCoord(const String32& str)
+SvgCoord parseCoord(const String& str)
 {
   double d = 0.0;
   uint32_t unit = SvgUnitNotDefined;
@@ -194,12 +194,12 @@ SvgCoord parseCoord(const String32& str)
 
     if (end < str.getLength())
     {
-      sysuint_t end2 = str.indexOf(Char32(' '), CaseSensitive, Range(end));
-      Utf32 spec(str.cData() + end, (end2 == InvalidIndex ? str.getLength() : end2) - end);
+      sysuint_t end2 = str.indexOf(Char(' '), CaseSensitive, Range(end));
+      Utf16 spec(str.cData() + end, (end2 == InvalidIndex ? str.getLength() : end2) - end);
 
       if (spec.getLength() == 1)
       {
-        if (spec.getStr()[0] == Char32('%'))
+        if (spec[0] == Char('%'))
         {
           unit = SvgUnitPercent;
         }
@@ -209,7 +209,7 @@ SvgCoord parseCoord(const String32& str)
         const char* units = svgUnitNames;
         for (sysuint_t u = 1; u < SvgUnitPercent; u++, units += 2)
         {
-          if (spec.getStr()[0] == Char8(units[0]) && spec.getStr()[1] == Char8(units[1]))
+          if (spec.getData()[0] == units[0] && spec.getData()[1] == units[1])
           {
             unit = u;
             break;
@@ -223,13 +223,13 @@ SvgCoord parseCoord(const String32& str)
   return SvgCoord(d, unit);
 }
 
-SvgStatus parseMatrix(const String32& str, Matrix* dst)
+SvgStatus parseMatrix(const String& str, Matrix* dst)
 {
   SvgStatus status = SvgStatusOk;
 
-  const Char32* strCur = str.cData();
-  const Char32* strEnd = strCur + str.getLength();
-  const Char32* functionName;
+  const Char* strCur = str.cData();
+  const Char* strEnd = strCur + str.getLength();
+  const Char* functionName;
   sysuint_t functionLen;
 
   double d[6];
@@ -255,7 +255,7 @@ start:
   functionLen = (sysuint_t)(strCur - functionName);
 
   // Parse '('.
-  if (strCur[0] != Char32('(')) goto bail;
+  if (strCur[0] != Char('(')) goto bail;
   strCur++;
 
   // Parse arguments.
@@ -265,7 +265,7 @@ start:
 
     // Parse number.
     sysuint_t end;
-    if (StringUtil::atod(strCur, (sysuint_t)(strEnd - strCur), &d[d_count++], Char32('.'), &end) != Error::Ok) goto bail;    
+    if (StringUtil::atod(strCur, (sysuint_t)(strEnd - strCur), &d[d_count++], Char('.'), &end) != Error::Ok) goto bail;    
 
     strCur += end;
 
@@ -278,13 +278,13 @@ start:
       {
         strCur++;
       }
-      else if (strCur[0] == Char32(','))
+      else if (strCur[0] == Char(','))
       {
         strCur++;
         if (commaParsed) goto bail;
         commaParsed = true;
       }
-      else if (strCur[0] == Char32(')'))
+      else if (strCur[0] == Char(')'))
       {
         strCur++;
         if (commaParsed) goto bail;
@@ -302,13 +302,13 @@ start:
 done:
 
   // matrix() function.
-  if (functionLen == 6 && StringUtil::eq(functionName, (const Char8*)"matrix", 6))
+  if (functionLen == 6 && StringUtil::eq(functionName, "matrix", 6))
   {
     if (d_count != 6) goto bail;
     w.multiply(*reinterpret_cast<Matrix *>(d));
   }
   // translate() function.
-  else if (functionLen == 9 && StringUtil::eq(functionName, (const Char8*)"translate", 9))
+  else if (functionLen == 9 && StringUtil::eq(functionName, "translate", 9))
   {
     if (d_count != 1 && d_count != 2) goto bail;
 
@@ -317,7 +317,7 @@ done:
     w.translate(d[0], d[1]);
   }
   // scale() function.
-  else if (functionLen == 5 && StringUtil::eq(functionName, (const Char8*)"scale", 5))
+  else if (functionLen == 5 && StringUtil::eq(functionName, "scale", 5))
   {
     if (d_count != 1 && d_count != 2) goto bail;
 
@@ -326,7 +326,7 @@ done:
     w.scale(d[0], d[1]);
   }
   // rotate() function.
-  else if (functionLen == 6 && StringUtil::eq(functionName, (const Char8*)"rotate", 6))
+  else if (functionLen == 6 && StringUtil::eq(functionName, "rotate", 6))
   {
     if (d_count != 1 && d_count != 3) goto bail;
 
@@ -335,14 +335,14 @@ done:
     if (d_count == 3) w.translate(-d[1], -d[2]);
   }
   // skewX() function.
-  else if (functionLen == 5 && StringUtil::eq(functionName, (const Char8*)"skewX", 5))
+  else if (functionLen == 5 && StringUtil::eq(functionName, "skewX", 5))
   {
     if (d_count != 1) goto bail;
 
     w.skew(Math::deg2rad(d[0]), 0.0);
   }
   // skewY() function.
-  else if (functionLen == 5 && StringUtil::eq(functionName, (const Char8*)"skewY", 5))
+  else if (functionLen == 5 && StringUtil::eq(functionName, "skewY", 5))
   {
     if (d_count != 1) goto bail;
 
@@ -365,21 +365,21 @@ bail:
   return status;
 }
 
-Vector<SvgStyleItem> parseStyles(const String32& str)
+Vector<SvgStyleItem> parseStyles(const String& str)
 {
   Vector<SvgStyleItem> items;
 
-  const Char32* strCur = str.cData();
-  const Char32* strEnd = strCur + str.getLength();
+  const Char* strCur = str.cData();
+  const Char* strEnd = strCur + str.getLength();
 
   for (;;)
   {
     if (strCur == strEnd) break;
 
-    const Char32* styleNameBegin;
-    const Char32* styleNameEnd;
-    const Char32* styleValueBegin;
-    const Char32* styleValueEnd;
+    const Char* styleNameBegin;
+    const Char* styleNameEnd;
+    const Char* styleValueBegin;
+    const Char* styleValueEnd;
 
     err_t err;
 
@@ -391,7 +391,7 @@ Vector<SvgStyleItem> parseStyles(const String32& str)
 
     // Parse style name.
     styleNameBegin = strCur;
-    while (*strCur != Char32(':') && !strCur->isSpace())
+    while (*strCur != Char(':') && !strCur->isSpace())
     {
       if (++strCur == strEnd) goto bail;
     }
@@ -399,7 +399,7 @@ Vector<SvgStyleItem> parseStyles(const String32& str)
 
     if (strCur->isSpace())
     {
-      while (*strCur != Char32(':'))
+      while (*strCur != Char(':'))
       {
         if (++strCur == strEnd) goto bail;
       }
@@ -417,7 +417,7 @@ Vector<SvgStyleItem> parseStyles(const String32& str)
 
     // Parse style value.
     styleValueBegin = strCur;
-    while (*strCur != Char32(';'))
+    while (*strCur != Char(';'))
     {
       if (++strCur == strEnd) break;
     }
@@ -436,16 +436,16 @@ Vector<SvgStyleItem> parseStyles(const String32& str)
     SvgStyleItem item;
 
     {
-      ManagedString32 styleName;
+      ManagedString styleName;
 
-      err = styleName.set(Utf32(styleNameBegin, sysuint_t(styleNameEnd - styleNameBegin)));
+      err = styleName.set(styleNameBegin, sysuint_t(styleNameEnd - styleNameBegin));
       if (err) continue;
       item.setName(styleName);
     }
 
     {
-      String32 styleValue;
-      err = styleValue.set(Utf32(styleValueBegin, sysuint_t(styleValueEnd - styleValueBegin)));
+      String styleValue;
+      err = styleValue.set(styleValueBegin, sysuint_t(styleValueEnd - styleValueBegin));
       if (err) continue;
       item.setValue(styleValue);
     }
@@ -457,9 +457,9 @@ bail:
   return items;
 }
 
-String32 joinStyles(const Vector<SvgStyleItem>& items)
+String joinStyles(const Vector<SvgStyleItem>& items)
 {
-  String32 result;
+  String result;
 
   if (!items.isEmpty())
   {
@@ -470,31 +470,31 @@ String32 joinStyles(const Vector<SvgStyleItem>& items)
     {
       const SvgStyleItem& item = it.value();
       result.append(item.getName());
-      result.append(Char32(':'));
+      result.append(Char(':'));
       result.append(item.getValue());
-      result.append(Char32(';'));
+      result.append(Char(';'));
     }
   }
 
   return result;
 }
 
-Path parsePoints(const String32& str)
+Path parsePoints(const String& str)
 {
   Path path;
 
-  const Char32* strCur = str.cData();
-  const Char32* strEnd = strCur + str.getLength();
+  const Char* strCur = str.cData();
+  const Char* strEnd = strCur + str.getLength();
 
   return path;
 }
 
-Path parsePath(const String32& str)
+Path parsePath(const String& str)
 {
   Path path;
 
-  const Char32* strCur = str.cData();
-  const Char32* strEnd = strCur + str.getLength();
+  const Char* strCur = str.cData();
+  const Char* strEnd = strCur + str.getLength();
 
   uint32_t command;
   uint32_t position;
@@ -558,13 +558,13 @@ Path parsePath(const String32& str)
 
       // Parse number.
       sysuint_t numEnd;
-      err_t err = StringUtil::atod(strCur, (sysuint_t)(strEnd - strCur), &coords[position], Char32('.'), &numEnd);
+      err_t err = StringUtil::atod(strCur, (sysuint_t)(strEnd - strCur), &coords[position], Char('.'), &numEnd);
       if (err) goto bail;
 
       strCur += numEnd;
       if (strCur == strEnd) break;
 
-      if (*strCur == Char32(','))
+      if (*strCur == Char(','))
       {
         if (++strCur == strEnd) break;
       }

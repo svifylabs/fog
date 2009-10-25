@@ -484,7 +484,7 @@ uint32_t PcxDecoderDevice::readImage(Image& image)
   uint32_t error = Error::Ok;
 
   // Source
-  String8 dataArray;
+  ByteArray dataArray;
   const uint8_t* dataCur;
   const uint8_t* dataEnd;
 

@@ -92,16 +92,16 @@ struct FOG_API FontFace
 
   // [Abstract]
 
-  virtual err_t getGlyphs(const Char32* str, sysuint_t length, GlyphSet& glyphSet) = 0;
-  virtual err_t getTextWidth(const Char32* str, sysuint_t length, TextWidth* textWidth) = 0;
-  virtual err_t getPath(const Char32* str, sysuint_t length, Path& dst) = 0;
+  virtual err_t getGlyphs(const Char* str, sysuint_t length, GlyphSet& glyphSet) = 0;
+  virtual err_t getTextWidth(const Char* str, sysuint_t length, TextWidth* textWidth) = 0;
+  virtual err_t getPath(const Char* str, sysuint_t length, Path& dst) = 0;
   
   // [Members]
 
   //! @brief Reference count.
   mutable Atomic<sysuint_t> refCount;
 
-  String32 family;
+  String family;
   FontMetrics metrics;
   FontAttributes attributes;
 
@@ -139,7 +139,7 @@ struct FOG_API FontCache
       attributes.value = other.attributes.value;
     }
     
-    FOG_INLINE Entry(const String32& _family, uint32_t _size, const FontAttributes& _attributes) :
+    FOG_INLINE Entry(const String& _family, uint32_t _size, const FontAttributes& _attributes) :
       family(_family)
     {
       size = _size;
@@ -181,7 +181,7 @@ struct FOG_API FontCache
     // [Members]
 
     //! @brief Font family name.
-    String32 family;
+    String family;
     //! @brief Font size.
     uint32_t size;
     //! @brief Font attributes.
@@ -190,7 +190,7 @@ struct FOG_API FontCache
 
   // [Methods]
 
-  FontFace* getFace(const String32& family, uint32_t size, const FontAttributes& attrs);
+  FontFace* getFace(const String& family, uint32_t size, const FontAttributes& attrs);
   err_t putFace(FontFace* face);
 
   void deleteAll();
@@ -259,7 +259,7 @@ struct FOG_API Font
 
   // [Font family and metrics]
 
-  FOG_INLINE const String32& family() const { return _d->face->family; }
+  FOG_INLINE const String& family() const { return _d->face->family; }
   FOG_INLINE const FontMetrics& metrics() const { return _d->face->metrics; }
   FOG_INLINE uint32_t size() const { return metrics().size; }
   FOG_INLINE uint32_t ascent() const { return metrics().ascent; }
@@ -274,9 +274,9 @@ struct FOG_API Font
   FOG_INLINE bool isStrike() const { return attributes().strike != 0; }
   FOG_INLINE bool isUnderline() const { return attributes().underline != 0; }
 
-  err_t setFamily(const String32& family);
-  err_t setFamily(const String32& family, uint32_t size);
-  err_t setFamily(const String32& family, uint32_t size, const FontAttributes& attributes);
+  err_t setFamily(const String& family);
+  err_t setFamily(const String& family, uint32_t size);
+  err_t setFamily(const String& family, uint32_t size, const FontAttributes& attributes);
 
   err_t setSize(uint32_t size);
   err_t setAttributes(const FontAttributes& a);
@@ -291,10 +291,10 @@ struct FOG_API Font
 
   // [Face Methods]
 
-  err_t getTextWidth(const String32& str, TextWidth* textWidth) const;
-  err_t getTextWidth(const Char32* str, sysuint_t length, TextWidth* textWidth) const;
-  err_t getGlyphs(const Char32* str, sysuint_t length, GlyphSet& glyphSet) const;
-  err_t getPath(const Char32* str, sysuint_t length, Path& dst) const;
+  err_t getTextWidth(const String& str, TextWidth* textWidth) const;
+  err_t getTextWidth(const Char* str, sysuint_t length, TextWidth* textWidth) const;
+  err_t getGlyphs(const Char* str, sysuint_t length, GlyphSet& glyphSet) const;
+  err_t getPath(const Char* str, sysuint_t length, Path& dst) const;
 
   // [Overloaded Operators]
 
@@ -302,15 +302,15 @@ struct FOG_API Font
 
   // [Font path management functions]
 
-  static bool addFontPath(const String32& path);
-  static void addFontPaths(const Sequence<String32>& paths);
-  static bool removeFontPath(const String32& path);
-  static bool hasFontPath(const String32& path);
-  static bool findFontFile(const String32& fileName, String32& dest);
-  static Vector<String32> fontPaths();
+  static bool addFontPath(const String& path);
+  static void addFontPaths(const Sequence<String>& paths);
+  static bool removeFontPath(const String& path);
+  static bool hasFontPath(const String& path);
+  static bool findFontFile(const String& fileName, String& dest);
+  static Vector<String> fontPaths();
 
   // [Font list management]
-  static Vector<String32> fontList();
+  static Vector<String> fontList();
 
   // [Cache]
   static FontCache* _cache;
@@ -328,29 +328,29 @@ struct FOG_API FontEngine
 {
   // [Construction / Destruction]
 
-  FontEngine(const String32& name);
+  FontEngine(const String& name);
   virtual ~FontEngine();
 
   // [Abstract]
 
-  virtual Vector<String32> getFonts() = 0;
+  virtual Vector<String> getFonts() = 0;
 
   virtual FontFace* getDefaultFace() = 0;
 
   virtual FontFace* cachedFace(
-    const String32& family, uint32_t size, 
+    const String& family, uint32_t size, 
     const FontAttributes& attributes);
 
   virtual FontFace* createFace(
-    const String32& family, uint32_t size, 
+    const String& family, uint32_t size, 
     const FontAttributes& attributes) = 0;
 
-  FOG_INLINE const String32& name() const { return _name; }
+  FOG_INLINE const String& name() const { return _name; }
 
   // [Members]
 
 protected:
-  String32 _name;
+  String _name;
 
 private:
   FOG_DISABLE_COPY(FontEngine)

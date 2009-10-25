@@ -37,8 +37,8 @@ namespace Fog {
 struct Font_Local
 {
   Lock lock;
-  Vector<String32> paths;
-  Vector<String32> list;
+  Vector<String> paths;
+  Vector<String> list;
   bool listInitialized;
 };
 
@@ -83,7 +83,7 @@ FontCache::~FontCache()
   deleteAll();
 }
 
-FontFace* FontCache::getFace(const String32& family, uint32_t size, const FontAttributes& attrs)
+FontFace* FontCache::getFace(const String& family, uint32_t size, const FontAttributes& attrs)
 {
   Entry entry(family, size, attrs);
   AutoLock locked(_lock);
@@ -167,12 +167,12 @@ void Font::free()
   AtomicBase::ptr_setXchg(&_d, sharedNull->ref())->deref();
 }
 
-err_t Font::setFamily(const String32& family)
+err_t Font::setFamily(const String& family)
 {
   return _setFace(this, _engine->cachedFace(family, size(), attributes()));
 }
 
-err_t Font::setFamily(const String32& family, uint32_t size)
+err_t Font::setFamily(const String& family, uint32_t size)
 {
   return _setFace(this, _engine->cachedFace(family, size, attributes()));
 }
@@ -233,27 +233,27 @@ err_t Font::set(const Font& other)
   return Error::Ok;
 }
 
-err_t Font::getTextWidth(const String32& str, TextWidth* textWidth) const
+err_t Font::getTextWidth(const String& str, TextWidth* textWidth) const
 {
   return _d->face->getTextWidth(str.cData(), str.getLength(), textWidth);
 }
 
-err_t Font::getTextWidth(const Char32* str, sysuint_t length, TextWidth* textWidth) const
+err_t Font::getTextWidth(const Char* str, sysuint_t length, TextWidth* textWidth) const
 {
   return _d->face->getTextWidth(str, length, textWidth);
 }
 
-err_t Font::getGlyphs(const Char32* str, sysuint_t length, GlyphSet& glyphSet) const
+err_t Font::getGlyphs(const Char* str, sysuint_t length, GlyphSet& glyphSet) const
 {
   return _d->face->getGlyphs(str, length, glyphSet);
 }
 
-err_t Font::getPath(const Char32* str, sysuint_t length, Path& dst) const
+err_t Font::getPath(const Char* str, sysuint_t length, Path& dst) const
 {
   return _d->face->getPath(str, length, dst);
 }
 
-bool Font::addFontPath(const String32& path)
+bool Font::addFontPath(const String& path)
 {
   AutoLock locked(font_local.instance().lock);
 
@@ -267,14 +267,14 @@ bool Font::addFontPath(const String32& path)
     return false;
 }
 
-void Font::addFontPaths(const Sequence<String32>& paths)
+void Font::addFontPaths(const Sequence<String>& paths)
 {
   AutoLock locked(font_local.instance().lock);
 
-  Sequence<String32>::ConstIterator it(paths);
+  Sequence<String>::ConstIterator it(paths);
   for (; it.isValid(); it.toNext())
   {
-    String32 path = it.value();
+    String path = it.value();
     if (!font_local.instance().paths.contains(path) &&
         FileSystem::isDirectory(path))
     {
@@ -283,31 +283,31 @@ void Font::addFontPaths(const Sequence<String32>& paths)
   }
 }
 
-bool Font::removeFontPath(const String32& path)
+bool Font::removeFontPath(const String& path)
 {
   AutoLock locked(font_local.instance().lock);
   return font_local.instance().paths.remove(path) != 0;
 }
 
-bool Font::hasFontPath(const String32& path)
+bool Font::hasFontPath(const String& path)
 {
   AutoLock locked(font_local.instance().lock);
   return font_local.instance().paths.contains(path);
 }
 
-bool Font::findFontFile(const String32& fileName, String32& dest)
+bool Font::findFontFile(const String& fileName, String& dest)
 {
   AutoLock locked(font_local.instance().lock);
   return FileSystem::findFile(font_local.instance().paths, fileName, dest);
 }
 
-Vector<String32> Font::fontPaths()
+Vector<String> Font::fontPaths()
 {
   AutoLock locked(font_local.instance().lock);
   return font_local.instance().paths;
 }
 
-Vector<String32> Font::fontList()
+Vector<String> Font::fontList()
 {
   AutoLock locked(font_local.instance().lock);
   if (!font_local.instance().listInitialized)
@@ -357,7 +357,7 @@ Font::Data* Font::Data::copy(Data* d)
 // [Fog::FontEngine]
 // ============================================================================
 
-FontEngine::FontEngine(const Fog::String32& name) :
+FontEngine::FontEngine(const Fog::String& name) :
   _name(name)
 {
 }
@@ -367,7 +367,7 @@ FontEngine::~FontEngine()
 }
 
 FontFace* FontEngine::cachedFace(
-  const String32& family, uint32_t size, 
+  const String& family, uint32_t size, 
   const FontAttributes& attributes)
 {
   FontFace* face;
@@ -441,8 +441,8 @@ FOG_INIT_DECLARE err_t fog_font_init(void)
 
   // add $HOME and $HOME/fonts directories (standard in linux)
   // (can be for example symlink to real font path)
-  String32 home = UserInfo::directory(UserInfo::Home);
-  String32 homeFonts;
+  String home = UserInfo::directory(UserInfo::Home);
+  String homeFonts;
 
   FileUtil::joinPath(homeFonts, home, Ascii8("fonts"));
 
@@ -451,7 +451,7 @@ FOG_INIT_DECLARE err_t fog_font_init(void)
 
 #if defined(FOG_OS_WINDOWS)
   // Add Windows standard font directory.
-  String32 winFonts = OS::getWindowsDirectory();
+  String winFonts = OS::getWindowsDirectory();
   FileUtil::joinPath(winFonts, winFonts, Ascii8("fonts"));
   font_local.instance().paths.append(winFonts);
 #endif // FOG_OS_WINDOWS

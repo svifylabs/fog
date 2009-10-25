@@ -20,7 +20,7 @@
 namespace Fog {
 namespace WinUtil {
 
-FOG_API err_t getModuleFileName(HMODULE hModule, String32& dst);
+FOG_API err_t getModuleFileName(HMODULE hModule, String& dst);
 
 } // WinUtil namespace
 } // Fog namespace

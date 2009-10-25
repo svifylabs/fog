@@ -27,7 +27,7 @@ namespace Fog {
 
 struct Application;
 struct CancelableTask;
-struct String32;
+struct String;
 struct Widget;
 
 // Defined here
@@ -286,8 +286,8 @@ struct FOG_API UIWindow : public Object
 
   virtual err_t takeFocus() = 0;
 
-  virtual err_t setTitle(const String32& title) = 0;
-  virtual err_t getTitle(String32& title) = 0;
+  virtual err_t setTitle(const String& title) = 0;
+  virtual err_t getTitle(String& title) = 0;
 
   virtual err_t setIcon(const Image& icon) = 0;
   virtual err_t getIcon(Image& icon) = 0;
@@ -315,8 +315,8 @@ struct FOG_API UIWindow : public Object
 
   virtual void onFocus(bool focus) = 0;
 
-  virtual bool onKeyPress(uint32_t key, uint32_t modifier, uint32_t systemCode, Char32 unicode) = 0;
-  virtual bool onKeyRelease(uint32_t key, uint32_t modifier, uint32_t systemCode, Char32 unicode) = 0;
+  virtual bool onKeyPress(uint32_t key, uint32_t modifier, uint32_t systemCode, Char unicode) = 0;
+  virtual bool onKeyRelease(uint32_t key, uint32_t modifier, uint32_t systemCode, Char unicode) = 0;
 
   virtual void clearFocus() = 0;
   virtual void setFocus(Widget* w, uint32_t reason) = 0;

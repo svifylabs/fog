@@ -27,15 +27,15 @@ namespace Fog {
 
 namespace SvgUtil {
 
-FOG_API SvgStatus parseColor(const String32& str, Rgba* dst);
-FOG_API SvgCoord parseCoord(const String32& str);
-FOG_API SvgStatus parseMatrix(const String32& str, Matrix* dst);
+FOG_API SvgStatus parseColor(const String& str, Rgba* dst);
+FOG_API SvgCoord parseCoord(const String& str);
+FOG_API SvgStatus parseMatrix(const String& str, Matrix* dst);
 
-FOG_API Vector<SvgStyleItem> parseStyles(const String32& str);
-FOG_API String32 joinStyles(const Vector<SvgStyleItem>& items);
+FOG_API Vector<SvgStyleItem> parseStyles(const String& str);
+FOG_API String joinStyles(const Vector<SvgStyleItem>& items);
 
-FOG_API Path parsePoints(const String32& str);
-FOG_API Path parsePath(const String32& str);
+FOG_API Path parsePoints(const String& str);
+FOG_API Path parsePath(const String& str);
 
 } // SvgUtil namespace
 

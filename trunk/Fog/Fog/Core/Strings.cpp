@@ -174,7 +174,7 @@ static const char fog_strings_data[] =
   "stroke-width\0"
 };
 
-FOG_CVAR_DECLARE Fog::ManagedString32::Cache* fog_strings;
+FOG_CVAR_DECLARE Fog::ManagedString::Cache* fog_strings;
 
 } // Fog namespace
 
@@ -186,7 +186,7 @@ FOG_INIT_DECLARE err_t fog_strings_init(void)
 {
   using namespace Fog;
 
-  fog_strings = ManagedString32::createCache(
+  fog_strings = ManagedString::createCache(
     fog_strings_data,
     FOG_ARRAY_SIZE(fog_strings_data),
     STR_COUNT,

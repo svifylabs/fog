@@ -24,6 +24,9 @@ namespace HashUtil {
 // [Fog::HashUtil::hashData]
 // ===========================================================================
 
+// TODO: For our purposes too complex, we need faster function for ManagedStrings
+// and String hash tables. 
+
 // From OSSP val - Value Access <http://www.ossp.org/pkg/lib/val/>
 //
 // BJDDJ Hash Function (Bob Jenkins, Dr. Dobbs Journal):
@@ -78,7 +81,7 @@ uint32_t hashData(const void* data, sysuint_t size)
 
   // handle the last 11 bytes
   c += (uint32_t)size;
-  switch(len)
+  switch (len)
   {
     // all the case statements fall through
     case 11: c+=((ub4)k[10]<<24);
@@ -108,22 +111,16 @@ uint32_t hashData(const void* data, sysuint_t size)
 // [Fog::HashUtil::hashString]
 // ===========================================================================
 
-uint32_t hashString(const Char8* key, sysuint_t length)
+uint32_t hashString(const char* key, sysuint_t length)
 {
   if (length == DetectLength) length = StringUtil::len(key);
   return hashData((const void*)key, length);
 }
 
-uint32_t hashString(const Char16* key, sysuint_t length)
+uint32_t hashString(const Char* key, sysuint_t length)
 {
   if (length == DetectLength) length = StringUtil::len(key);
-  return hashData((const void*)key, length << 1);
-}
-
-uint32_t hashString(const Char32* key, sysuint_t length)
-{
-  if (length == DetectLength) length = StringUtil::len(key);
-  return hashData((const void*)key, length << 2);
+  return hashData((const void*)key, length * sizeof(Char));
 }
 
 } // HashUtil namespace

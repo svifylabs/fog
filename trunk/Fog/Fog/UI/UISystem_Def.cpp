@@ -1289,7 +1289,7 @@ void UIWindowDefault::onFocus(bool focus)
   }
 }
 
-bool UIWindowDefault::onKeyPress(uint32_t key, uint32_t modifier, uint32_t systemCode, Char32 unicode)
+bool UIWindowDefault::onKeyPress(uint32_t key, uint32_t modifier, uint32_t systemCode, Char unicode)
 {
   UISystemDefault* uiSystem = UI_SYSTEM();
 
@@ -1316,7 +1316,7 @@ bool UIWindowDefault::onKeyPress(uint32_t key, uint32_t modifier, uint32_t syste
   return e.isAccepted();
 }
 
-bool UIWindowDefault::onKeyRelease(uint32_t key, uint32_t modifier, uint32_t systemCode, Char32 unicode)
+bool UIWindowDefault::onKeyRelease(uint32_t key, uint32_t modifier, uint32_t systemCode, Char unicode)
 {
   UISystemDefault* uiSystem = UI_SYSTEM();
   uiSystem->_keyboardStatus.modifiers &= ~modifier;

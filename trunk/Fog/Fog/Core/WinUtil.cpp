@@ -14,25 +14,24 @@
 namespace Fog {
 namespace WinUtil {
 
-err_t getModuleFileName(HMODULE hModule, String32& dst)
+err_t getModuleFileName(HMODULE hModule, String& dst)
 {
-  TemporaryString16<1024> t;
-
+  dst.prepare(256);
   for (;;)
   {
     DWORD capacity = (DWORD)t.getCapacity();
-    DWORD result = GetModuleFileNameW(hModule, (WCHAR*)t.mData(), capacity + 1);
+    DWORD result = GetModuleFileNameW(hModule, reinterpret_cast<wchar_t*>(dst.xData()), capacity + 1);
 
     if (result == 0) return ::GetLastError();
 
     if (result <= capacity)
     {
-      t.resize(result);
-      return dst.set(t);
+      dst.resize(result);
+      return Error::Ok;
     }
     else
     {
-      t.reserve(t.getCapacity() << 1);
+      dst.reserve(dst.getCapacity() << 1);
     }
   }
 }

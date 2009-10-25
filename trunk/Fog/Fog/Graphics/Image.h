@@ -565,19 +565,19 @@ struct FOG_API Image
 
   // [Read]
 
-  err_t readFile(const String32& fileName);
+  err_t readFile(const String& fileName);
   err_t readStream(Stream& stream);
-  err_t readStream(Stream& stream, const String32& extension);
-  err_t readBuffer(const String8& buffer);
-  err_t readBuffer(const String8& buffer, const String32& extension);
+  err_t readStream(Stream& stream, const String& extension);
+  err_t readBuffer(const ByteArray& buffer);
+  err_t readBuffer(const ByteArray& buffer, const String& extension);
   err_t readBuffer(const void* buffer, sysuint_t size);
-  err_t readBuffer(const void* buffer, sysuint_t size, const String32& extension);
+  err_t readBuffer(const void* buffer, sysuint_t size, const String& extension);
 
   // [Write]
 
-  err_t writeFile(const String32& fileName);
-  err_t writeStream(Stream& stream, const String32& extension);
-  err_t writeBuffer(String8& buffer, const String32& extension);
+  err_t writeFile(const String& fileName);
+  err_t writeStream(Stream& stream, const String& extension);
+  err_t writeBuffer(ByteArray& buffer, const String& extension);
 
   // [Overloaded Operators]
 

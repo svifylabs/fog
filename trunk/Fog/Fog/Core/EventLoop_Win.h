@@ -112,7 +112,7 @@ struct FOG_API EventPumpWin : public EventPump
     virtual bool dispatch(const MSG& msg) = 0;
   };
 
-  EventPumpWin(const String32& name);
+  EventPumpWin(const String& name);
   virtual ~EventPumpWin();
 
   //! @brief Add an Observer, which will start receiving notifications 

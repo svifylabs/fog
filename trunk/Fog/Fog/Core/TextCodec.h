@@ -283,7 +283,7 @@ struct FOG_API TextCodec
   //! @param ch Unicode character to replace.
   //!
   //! @note This function can use only low 0-127 ascii characters.
-  typedef err_t (*Replacer)(String8& dst, Char32 ch);
+  typedef err_t (*Replacer)(ByteArray& dst, uint32_t ch);
 
   // --------------------------------------------------------------------------
   // [Engine]
@@ -302,10 +302,8 @@ struct FOG_API TextCodec
 
     // [Abstract]
 
-    virtual err_t appendFromUtf16(String8& dst, const void* src, sysuint_t srcBytes, Replacer replacer, State* state) const = 0;
-    virtual err_t appendFromUtf32(String8& dst, const void* src, sysuint_t srcBytes, Replacer replacer, State* state) const = 0;
-    virtual err_t appendToUtf16(String16& dst, const void* src, sysuint_t srcBytes, State* state) const = 0;
-    virtual err_t appendToUtf32(String32& dst, const void* src, sysuint_t srcBytes, State* state) const = 0;
+    virtual err_t appendFromUnicode(ByteArray& dst, const Char* src, sysuint_t length, Replacer replacer, State* state) const = 0;
+    virtual err_t appendToUnicode(String& dst, const void* src, sysuint_t size, State* state) const = 0;
 
     // [Implicit Sharing]
 
@@ -356,7 +354,7 @@ struct FOG_API TextCodec
 
   static TextCodec fromCode(uint32_t code);
   static TextCodec fromMime(const char* mime);
-  static TextCodec fromMime(const String32& mime);
+  static TextCodec fromMime(const String& mime);
   static TextCodec fromBom(const void* data, sysuint_t length);
 
   // --------------------------------------------------------------------------
@@ -372,46 +370,27 @@ struct FOG_API TextCodec
   // [Code / Flags]
   // --------------------------------------------------------------------------
 
-  FOG_INLINE uint32_t code() const
-  { return _d->code; }
-
-  FOG_INLINE uint32_t flags() const
-  { return _d->flags; }
-
-  FOG_INLINE bool isNull() const
-  { return _d->code == None; }
-
-  FOG_INLINE bool isUnicode() const
-  { return (_d->flags & IsUnicode) != 0; }
-
-  FOG_INLINE bool is8Bit() const
-  { return (_d->flags & Is8Bit) != 0; }
-
-  FOG_INLINE bool is16Bit() const
-  { return (_d->flags & Is16Bit) != 0; }
-
-  FOG_INLINE bool is32Bit() const
-  { return (_d->flags & Is32Bit) != 0; }
-
-  FOG_INLINE bool isVariableSize() const
-  { return (_d->flags & IsVariableSize) != 0; }
-
-  FOG_INLINE bool isByteSwapped() const
-  { return (_d->flags & IsByteSwapped) != 0; }
+  FOG_INLINE uint32_t code() const { return _d->code; }
+  FOG_INLINE uint32_t flags() const { return _d->flags; }
+  FOG_INLINE bool isNull() const { return _d->code == None; }
+  FOG_INLINE bool isUnicode() const { return (_d->flags & IsUnicode) != 0; }
+  FOG_INLINE bool is8Bit() const { return (_d->flags & Is8Bit) != 0; }
+  FOG_INLINE bool is16Bit() const { return (_d->flags & Is16Bit) != 0; }
+  FOG_INLINE bool is32Bit() const { return (_d->flags & Is32Bit) != 0; }
+  FOG_INLINE bool isVariableSize() const { return (_d->flags & IsVariableSize) != 0; }
+  FOG_INLINE bool isByteSwapped() const { return (_d->flags & IsByteSwapped) != 0; }
 
   // --------------------------------------------------------------------------
   // [Mime]
   // --------------------------------------------------------------------------
 
-  FOG_INLINE const char* mime() const
-  { return _d->mime; }
+  FOG_INLINE const char* mime() const { return _d->mime; }
 
   // --------------------------------------------------------------------------
   // [8 Bit Tables]
   // --------------------------------------------------------------------------
 
-  FOG_INLINE const Page8* page8() const
-  { return _d->page8; }
+  FOG_INLINE const Page8* page8() const { return _d->page8; }
 
   // --------------------------------------------------------------------------
   // [Operator Overload]
@@ -425,43 +404,27 @@ struct FOG_API TextCodec
 
   err_t setCode(uint32_t code);
   err_t setMime(const char* mime);
-  err_t setMime(const String32& mime);
+  err_t setMime(const String& mime);
 
   // --------------------------------------------------------------------------
   // [From/AppendFrom]
   // --------------------------------------------------------------------------
 
-  err_t fromUtf16(String8& dst, const Stub8& src, Replacer replacer = NULL, State* state = NULL) const;
-  err_t fromUtf16(String8& dst, const String8& src, Replacer replacer = NULL, State* state = NULL) const;
-  err_t fromUtf16(String8& dst, const String16& src, Replacer replacer = NULL, State* state = NULL) const;
+  err_t fromUnicode(ByteArray& dst, const Char* src, sysuint_t length = DetectLength, Replacer replacer = NULL, State* state = NULL) const;
+  err_t fromUnicode(ByteArray& dst, const String& src, Replacer replacer = NULL, State* state = NULL) const;
 
-  err_t fromUtf32(String8& dst, const Stub8& src, Replacer replacer = NULL, State* state = NULL) const;
-  err_t fromUtf32(String8& dst, const String8& src, Replacer replacer = NULL, State* state = NULL) const;
-  err_t fromUtf32(String8& dst, const String32& src, Replacer replacer = NULL, State* state = NULL) const;
-
-  err_t appendFromUtf16(String8& dst, const Stub8& src, Replacer replacer = NULL, State* state = NULL) const;
-  err_t appendFromUtf16(String8& dst, const String8& src, Replacer replacer = NULL, State* state = NULL) const;
-  err_t appendFromUtf16(String8& dst, const String16& src, Replacer replacer = NULL, State* state = NULL) const;
-
-  err_t appendFromUtf32(String8& dst, const Stub8& src, Replacer replacer = NULL, State* state = NULL) const;
-  err_t appendFromUtf32(String8& dst, const String8& src, Replacer replacer = NULL, State* state = NULL) const;
-  err_t appendFromUtf32(String8& dst, const String32& src, Replacer replacer = NULL, State* state = NULL) const;
+  err_t appendFromUnicode(ByteArray& dst, const Char* src, sysuint_t length = DetectLength, Replacer replacer = NULL, State* state = NULL) const;
+  err_t appendFromUnicode(ByteArray& dst, const String& src, Replacer replacer = NULL, State* state = NULL) const;
 
   // --------------------------------------------------------------------------
   // [To/AppendTo]
   // --------------------------------------------------------------------------
 
-  err_t toUtf16(String16& dst, const Stub8& src, State* state = NULL) const;
-  err_t toUtf16(String16& dst, const String8& src, State* state = NULL) const;
+  err_t toUnicode(String& dst, const void* src, sysuint_t size = DetectLength, State* state = NULL) const;
+  err_t toUnicode(String& dst, const ByteArray& src, State* state = NULL) const;
 
-  err_t toUtf32(String32& dst, const Stub8& src, State* state = NULL) const;
-  err_t toUtf32(String32& dst, const String8& src, State* state = NULL) const;
-
-  err_t appendToUtf16(String16& dst, const Stub8& src, State* state = NULL) const;
-  err_t appendToUtf16(String16& dst, const String8& src, State* state = NULL) const;
-
-  err_t appendToUtf32(String32& dst, const Stub8& src, State* state = NULL) const;
-  err_t appendToUtf32(String32& dst, const String8& src, State* state = NULL) const;
+  err_t appendToUnicode(String& dst, const void* src, sysuint_t size = DetectLength, State* state = NULL) const;
+  err_t appendToUnicode(String& dst, const ByteArray& src, State* state = NULL) const;
 
   // --------------------------------------------------------------------------
   // [BuiltIn]

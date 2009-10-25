@@ -54,7 +54,7 @@ struct FOG_API XmlAttributesManager
   void add(XmlAttribute* a);
   void remove(XmlAttribute* a);
   void removeAll();
-  XmlAttribute* get(const String32& name) const;
+  XmlAttribute* get(const String& name) const;
 
 private:
   void _rehash(sysuint_t capacity);
@@ -94,8 +94,8 @@ struct FOG_API XmlIdManager
 
   void add(XmlElement* e);
   void remove(XmlElement* e);
-  XmlElement* get(const String32& id) const;
-  XmlElement* get(const Char32* idStr, sysuint_t idLen) const;
+  XmlElement* get(const String& id) const;
+  XmlElement* get(const Char* idStr, sysuint_t idLen) const;
 
 private:
   void _rehash(sysuint_t capacity);
@@ -132,7 +132,7 @@ struct FOG_API XmlAttribute
 {
   // [Construction / Destruction]
 
-  XmlAttribute(XmlElement* element, const ManagedString32& name, int offset = -1);
+  XmlAttribute(XmlElement* element, const ManagedString& name, int offset = -1);
   virtual ~XmlAttribute();
 
   // [Methods]
@@ -143,10 +143,10 @@ struct FOG_API XmlAttribute
   FOG_INLINE bool isAssigned() const { return _element != NULL; }
 
   FOG_INLINE XmlElement* getElement() const { return _element; }
-  FOG_INLINE const String32& getName() const { return _name.getString(); }
+  FOG_INLINE const String& getName() const { return _name.getString(); }
 
-  virtual String32 getValue() const;
-  virtual err_t setValue(const String32& value);
+  virtual String getValue() const;
+  virtual err_t setValue(const String& value);
 
 protected:
 
@@ -155,11 +155,11 @@ protected:
   //! @brief Link to element that owns this attribute.
   XmlElement* _element;
   //! @brief Attribute name (managed string).
-  ManagedString32 _name;
+  ManagedString _name;
   //! @brief Next attribute in hash table managed by @c XmlAttributesManager.
   XmlAttribute* _hashNext;
   //! @brief Attribute value (or empty if value is provided by overriden class).
-  String32 _value;
+  String _value;
 
   //! @brief Attribute offset in XmlElement (relative to XmlElement).
   //!
@@ -181,7 +181,7 @@ struct FOG_API XmlElement
 {
   // [Construction / Destruction]
 
-  XmlElement(const ManagedString32& tagName);
+  XmlElement(const ManagedString& tagName);
   virtual ~XmlElement();
 
   // [Element Type]
@@ -335,22 +335,22 @@ public:
   //! @brief Return true if current node has child nodes.
   FOG_INLINE bool hasChildNodes() const { return _firstChild != NULL; }
  
-  Vector<XmlElement*> childNodesByTagName(const String32& tagName) const;
+  Vector<XmlElement*> childNodesByTagName(const String& tagName) const;
 
-  FOG_INLINE XmlElement* firstChildByTagName(const String32& tagName) const
+  FOG_INLINE XmlElement* firstChildByTagName(const String& tagName) const
   { return _nextChildByTagName(_firstChild, tagName); }
 
-  FOG_INLINE XmlElement* lastChildByTagName(const String32& tagName) const
+  FOG_INLINE XmlElement* lastChildByTagName(const String& tagName) const
   { return _previousChildByTagName(_lastChild, tagName); }
 
-  FOG_INLINE XmlElement* nextChildByTagName(const String32& tagName) const
+  FOG_INLINE XmlElement* nextChildByTagName(const String& tagName) const
   { return _nextChildByTagName(_nextSibling, tagName); }
 
-  FOG_INLINE XmlElement* previousChildByTagName(const String32& tagName) const
+  FOG_INLINE XmlElement* previousChildByTagName(const String& tagName) const
   { return _previousChildByTagName(_prevSibling, tagName); }
 
-  static XmlElement* _nextChildByTagName(XmlElement* refElement, const String32& tagName);
-  static XmlElement* _previousChildByTagName(XmlElement* refElement, const String32& tagName);
+  static XmlElement* _nextChildByTagName(XmlElement* refElement, const String& tagName);
+  static XmlElement* _previousChildByTagName(XmlElement* refElement, const String& tagName);
 
   // [Attributes]
 
@@ -360,27 +360,27 @@ public:
   //! @brief Return array of attributes.
   Vector<XmlAttribute*> attributes() const;
 
-  bool hasAttribute(const String32& name) const;
-  err_t setAttribute(const String32& name, const String32& value);
-  String32 getAttribute(const String32& name) const;
-  err_t removeAttribute(const String32& name);
+  bool hasAttribute(const String& name) const;
+  err_t setAttribute(const String& name, const String& value);
+  String getAttribute(const String& name) const;
+  err_t removeAttribute(const String& name);
   err_t removeAllAttributes();
 
-  virtual XmlAttribute* _createAttribute(const ManagedString32& name) const;
+  virtual XmlAttribute* _createAttribute(const ManagedString& name) const;
   static void copyAttributes(XmlElement* dst, XmlElement* src);
 
   // [ID]
 
-  FOG_INLINE String32 getId() const { return _id; }
-  err_t setId(const String32& id);
+  FOG_INLINE String getId() const { return _id; }
+  err_t setId(const String& id);
 
   // [Element and Text]
 
-  FOG_INLINE const String32& getTagName() const { return _tagName.getString(); }
-  virtual err_t setTagName(const String32& name);
+  FOG_INLINE const String& getTagName() const { return _tagName.getString(); }
+  virtual err_t setTagName(const String& name);
 
-  virtual String32 getTextContent() const;
-  virtual err_t setTextContent(const String32& text);
+  virtual String getTextContent() const;
+  virtual err_t setTextContent(const String& text);
 
 protected:
   uint8_t _type;
@@ -401,9 +401,9 @@ protected:
   XmlAttributesManager* _attributesManager;
 
   //! @brief Element tag name.
-  ManagedString32 _tagName;
+  ManagedString _tagName;
   //! @brief Element id.
-  String32 _id;
+  String _id;
   //! @brief Element id chain managed by @c XmlIdManager.
   XmlElement* _hashNextId;
 
@@ -426,7 +426,7 @@ struct FOG_API XmlText : public XmlElement
 
   typedef XmlElement base;
 
-  XmlText(const String32& data = String32());
+  XmlText(const String& data = String());
   virtual ~XmlText();
 
   // [Clone]
@@ -435,18 +435,18 @@ struct FOG_API XmlText : public XmlElement
 
   // [Text Specific]
 
-  virtual String32 getTextContent() const;
-  virtual err_t setTextContent(const String32& text);
+  virtual String getTextContent() const;
+  virtual err_t setTextContent(const String& text);
 
-  FOG_INLINE const String32& getData() const { return _data; }
-  err_t setData(const String32& data);
-  err_t appendData(const String32& data);
+  FOG_INLINE const String& getData() const { return _data; }
+  err_t setData(const String& data);
+  err_t appendData(const String& data);
   err_t deleteData();
-  err_t insertData(sysuint_t start, const String32& data);
-  err_t replaceData(sysuint_t start, sysuint_t len, const String32& data);
+  err_t insertData(sysuint_t start, const String& data);
+  err_t replaceData(sysuint_t start, sysuint_t len, const String& data);
 
 protected:
-  String32 _data;
+  String _data;
 
 private:
   friend struct XmlElement;
@@ -465,10 +465,10 @@ struct FOG_API XmlNoTextElement : public XmlElement
 
   typedef XmlElement base;
 
-  XmlNoTextElement(const ManagedString32& tagName);
+  XmlNoTextElement(const ManagedString& tagName);
 
-  virtual String32 getTextContent() const;
-  virtual err_t setTextContent(const String32& text);
+  virtual String getTextContent() const;
+  virtual err_t setTextContent(const String& text);
 
 private:
   FOG_DISABLE_COPY(XmlNoTextElement)
@@ -484,7 +484,7 @@ struct FOG_API XmlComment : public XmlNoTextElement
 
   typedef XmlNoTextElement base;
 
-  XmlComment(const String32& data = String32());
+  XmlComment(const String& data = String());
   virtual ~XmlComment();
 
   // [Clone]
@@ -493,11 +493,11 @@ struct FOG_API XmlComment : public XmlNoTextElement
 
   // [Comment Specific]
 
-  const String32& getData() const;
-  err_t setData(const String32& data);
+  const String& getData() const;
+  err_t setData(const String& data);
 
 protected:
-  String32 _data;
+  String _data;
 
 private:
   friend struct XmlElement;
@@ -516,7 +516,7 @@ struct FOG_API XmlCDATA : public XmlNoTextElement
 
   typedef XmlNoTextElement base;
 
-  XmlCDATA(const String32& data = String32());
+  XmlCDATA(const String& data = String());
   virtual ~XmlCDATA();
 
   // [Clone]
@@ -525,11 +525,11 @@ struct FOG_API XmlCDATA : public XmlNoTextElement
 
   // [CDATA Specific]
 
-  const String32& getData() const;
-  err_t setData(const String32& data);
+  const String& getData() const;
+  err_t setData(const String& data);
 
 protected:
-  String32 _data;
+  String _data;
 
 private:
   friend struct XmlElement;
@@ -548,7 +548,7 @@ struct FOG_API XmlPI : public XmlNoTextElement
 
   typedef XmlNoTextElement base;
 
-  XmlPI(const String32& data = String32());
+  XmlPI(const String& data = String());
   virtual ~XmlPI();
 
   // [Clone]
@@ -557,11 +557,11 @@ struct FOG_API XmlPI : public XmlNoTextElement
 
   // [Processing Instruction Specific]
 
-  const String32& getData() const;
-  err_t setData(const String32& data);
+  const String& getData() const;
+  err_t setData(const String& data);
 
 protected:
-  String32 _data;
+  String _data;
 
 private:
   friend struct XmlElement;
@@ -601,26 +601,26 @@ struct FOG_API XmlDocument : public XmlElement
 
   // [Document Extensions]
 
-  virtual XmlElement* createElement(const ManagedString32& tagName);
-  static XmlElement* createElementStatic(const ManagedString32& tagName);
+  virtual XmlElement* createElement(const ManagedString& tagName);
+  static XmlElement* createElementStatic(const ManagedString& tagName);
   virtual XmlDomReader* createDomReader();
 
   // [Dom]
 
-  XmlElement* getElementById(const String32& id) const;
-  XmlElement* getElementById(const Utf32& id) const;
+  XmlElement* getElementById(const String& id) const;
+  XmlElement* getElementById(const Utf16& id) const;
 
   // [Read]
 
-  virtual err_t readFile(const String32& fileName);
+  virtual err_t readFile(const String& fileName);
   virtual err_t readStream(Stream& stream);
   virtual err_t readMemory(const void* mem, sysuint_t size);
-  virtual err_t readString(const String32& str);
+  virtual err_t readString(const String& str);
 
   // [DOCTYPE]
 
-  FOG_INLINE const String32& getDOCTYPE() const { return _doctype; }
-  FOG_INLINE err_t setDOCTYPE(const String32& doctype) { return _doctype.set(doctype); }
+  FOG_INLINE const String& getDOCTYPE() const { return _doctype; }
+  FOG_INLINE err_t setDOCTYPE(const String& doctype) { return _doctype.set(doctype); }
 
 protected:
   // [Members]
@@ -629,13 +629,13 @@ protected:
   XmlElement* _documentRoot;
 
   //! @brief Hash table that contains all managed strings and reference counts.
-  Hash<String32, sysuint_t> _managedStrings;
+  Hash<String, sysuint_t> _managedStrings;
 
   //! @brief Hash table that contains all managed IDs.
   XmlIdManager _elementIdsHash;
 
   //! @brief DOCTYPE string.
-  String32 _doctype;
+  String _doctype;
 
 private:
   friend struct XmlAttribute;

@@ -82,23 +82,23 @@ enum Test
 };
 
 #if defined(FOG_OS_POSIX)
-static int stat(const String32& fileName, struct stat* s);
+static int stat(const String& fileName, struct stat* s);
 #endif // FOG_OS_POSIX
 
-FOG_API uint32_t testFile(const String32& fileName, uint32_t flags);
-FOG_API bool findFile(const Sequence<String32>& paths, const String32& fileName, String32& dest);
+FOG_API uint32_t testFile(const String& fileName, uint32_t flags);
+FOG_API bool findFile(const Sequence<String>& paths, const String& fileName, String& dest);
 
-static FOG_INLINE bool exists(const String32& fileName)
+static FOG_INLINE bool exists(const String& fileName)
 { return testFile(fileName, Exists) == Exists; }
 
-static FOG_INLINE bool isFile(const String32& fileName)
+static FOG_INLINE bool isFile(const String& fileName)
 { return testFile(fileName, IsFile) == IsFile; }
 
-static FOG_INLINE bool isDirectory(const String32& fileName)
+static FOG_INLINE bool isDirectory(const String& fileName)
 { return testFile(fileName, IsDirectory) == IsDirectory;}
 
-FOG_API err_t createDirectory(const String32& dir, bool recursive = true);
-FOG_API err_t deleteDirectory(const String32& dir);
+FOG_API err_t createDirectory(const String& dir, bool recursive = true);
+FOG_API err_t deleteDirectory(const String& dir);
 
 } // FileSystem namespace
 } // Fog namespace

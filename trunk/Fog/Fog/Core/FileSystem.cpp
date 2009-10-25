@@ -9,6 +9,7 @@
 #endif // FOG_PRECOMP
 
 // [Dependencies]
+#include <Fog/Core/ByteArray.h>
 #include <Fog/Core/Error.h>
 #include <Fog/Core/FileSystem.h>
 #include <Fog/Core/FileUtil.h>
@@ -39,17 +40,17 @@ namespace Fog {
 // ============================================================================
 
 #if defined(FOG_OS_WINDOWS)
-uint32_t FileSystem::testFile(const String32& fileName, uint32_t flags)
+uint32_t FileSystem::testFile(const String& fileName, uint32_t flags)
 {
   if (flags == 0) return 0;
 
-  TemporaryString16<TemporaryLength> fileNameW;
-  err_t err = fileNameW.set(fileName);
-  if (err) return 0;
+  TemporaryString<TemporaryLength> fileNameW;
+  err_t err;
+  if ((err = fileNameW.set(fileName)) || (err = fileNameW.slashesToWin())) return 0;
 
   WIN32_FILE_ATTRIBUTE_DATA fi;
 
-  if (GetFileAttributesExW(fileNameW.cStrW(), GetFileExInfoStandard, &fi))
+  if (GetFileAttributesExW(reinterpret_cast<const char wchar_t*>(fileNameW.cData()), GetFileExInfoStandard, &fi))
   {
     uint result = Exists;
     if (fi.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
@@ -67,7 +68,7 @@ uint32_t FileSystem::testFile(const String32& fileName, uint32_t flags)
       WIN32_FIND_DATAW fd;
       HANDLE r;
       
-      r = FindFirstFileW(fileNameW.cStrW(), &fd);
+      r = FindFirstFileW(reinterpret_cast<const wchar_t*>(fileNameW.cData()), &fd);
       if (r != INVALID_HANDLE_VALUE)
       {
         if (fd.dwReserved0 & IO_REPARSE_TAG_SYMLINK)
@@ -87,21 +88,20 @@ uint32_t FileSystem::testFile(const String32& fileName, uint32_t flags)
     // IsExecutable and CanExecute
     if ((flags & (FileSystem::IsExecutable | FileSystem::CanExecute)) != 0)
     {
-      TemporaryString32<16> ext;
+      TemporaryString<16> ext;
       FileUtil::extractExtension(ext, fileName);
 
-      const Char32* extStr = ext.cData();
+      const Char* extStr = ext.cData();
       sysuint_t extLength = ext.getLength();
 
       // Executable extension has usually 3 characters
       if (extLength == 3)
       {
-        if (StringUtil::eq(extStr, (const Char8*)"exe", 3, CaseInsensitive) ||
-            StringUtil::eq(extStr, (const Char8*)"com", 3, CaseInsensitive) ||
-            StringUtil::eq(extStr, (const Char8*)"bat", 3, CaseInsensitive))
+        if (StringUtil::eq(extStr, "exe", 3, CaseInsensitive) ||
+            StringUtil::eq(extStr, "com", 3, CaseInsensitive) ||
+            StringUtil::eq(extStr, "bat", 3, CaseInsensitive))
         {
-          result |= FileSystem::IsExecutable |
-                    FileSystem::CanExecute;
+          result |= FileSystem::IsExecutable | FileSystem::CanExecute;
         }
       }
     }
@@ -112,40 +112,31 @@ uint32_t FileSystem::testFile(const String32& fileName, uint32_t flags)
     return 0;
 }
 
-bool FileSystem::findFile(const Sequence<String32>& paths, const String32& fileName, String32& dst)
+bool FileSystem::findFile(const Sequence<String>& paths, const String& fileName, String& dst)
 {
-  Sequence<String32> _paths(paths);
-  Sequence<String32>::ConstIterator it(_paths);
+  Sequence<String> _paths(paths);
+  Sequence<String>::ConstIterator it(_paths);
 
   WIN32_FILE_ATTRIBUTE_DATA fi;
-  TemporaryString16<TemporaryLength> pathW;
-  TemporaryString16<TemporaryLength> fileNameW;
-
-  // Encode fileName here to avoid encoding in loop
-  err_t err;
-  if ((err = fileNameW.set(fileName)) ||
-      (err = fileNameW.slashesToWin()))
-  {
-    return err;
-  }
+  TemporaryString<TemporaryLength> path;
 
   for (it.toStart(); it.isValid(); it.toNext())
   {
-    // Set path
-    pathW.set(it.value());
+    // Set path.
+    path.setDeep(it.value());
 
-    // Append directory separator if needed
-    if (!it.value().endsWith(Ascii8("\\", 1)) || 
-        !it.value().endsWith(Ascii8("/", 1)))
+    // Append directory separator if needed.
+    if (!it.value().endsWith(Ascii8("\\", 1)) || !it.value().endsWith(Ascii8("/", 1)))
     {
-      pathW.append(Ascii8("\\", 1));
+      path.append(Char('\\'));
     }
 
-    // Append file
-    pathW.append(fileNameW);
+    // Append file. If something fail here we try to find file in next path.
+    if (path.append(fileName) != Error::Ok) continue;
+    if (path.slashesToWin() != Error::Ok) continue;
 
-    // Test
-    if (GetFileAttributesExW(pathW.cStrW(), GetFileExInfoStandard, &fi) &&
+    // Test.
+    if (GetFileAttributesExW(reinterpret_cast<const wchar_t*>(pathW.cData()), GetFileExInfoStandard, &fi) &&
       !(fi.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
     {
       return FileUtil::joinPath(dst, it.value(), fileName) == Error::Ok;
@@ -155,27 +146,23 @@ bool FileSystem::findFile(const Sequence<String32>& paths, const String32& fileN
   return false;
 }
 
-static uint createDirectoryHelper(const Char32* path, sysuint_t len)
+static uint createDirectoryHelper(const Char* path, sysuint_t len)
 {
   err_t err;
 
-  if (len == 3 &&
-    path[0].isAsciiAlpha() &&
-    path[1] == Char32(':') &&
-    path[2] == Char32('/'))
+  if (len == 3 && path[0].isAsciiAlpha() && path[1] == Char(':') && path[2] == Char('/'))
   {
+    // TODO: Maybe we should return failure if disk is not mounted.
     return Error::DirectoryAlreadyExists;
   }
 
-  TemporaryString16<TemporaryLength> pathW;
-  if ((err = pathW.set(Utf32(path, len))) ||
-      (err = pathW.slashesToWin()))
-  {
-    return err;
-  }
+  TemporaryString<TemporaryLength> pathW;
+  if ((err = pathW.set(path, len)) || (err = pathW.slashesToWin())) return err;
 
-  if (!CreateDirectoryW(pathW.cStrW(), NULL))
+  if (!CreateDirectoryW(reinterpret_cast<const wchar_t*>(pathW.cData()), NULL))
   {
+    // TODO: Move this to some helper function that will translate windows error
+    // codes into Fog error codes.
     DWORD lastError = GetLastError();
     if (lastError != ERROR_ALREADY_EXISTS)
       return lastError;
@@ -186,28 +173,28 @@ static uint createDirectoryHelper(const Char32* path, sysuint_t len)
   return Error::Ok;
 }
 
-err_t FileSystem::createDirectory(const String32& dir, bool recursive)
+err_t FileSystem::createDirectory(const String& dir, bool recursive)
 {
   if (dir.isEmpty()) return Error::InvalidArgument;
   if (!recursive) return createDirectoryHelper(dir.cData(), dir.getLength());
 
   err_t err;
-  TemporaryString32<TemporaryLength> dirAbs;
+  TemporaryString<TemporaryLength> dirAbs;
 
-  if ( (err = FileUtil::toAbsolutePath(dirAbs, String32(), dir)) ) return err;
+  if ( (err = FileUtil::toAbsolutePath(dirAbs, String(), dir)) ) return err;
 
   // FileSystem::toAbsolutePath() always normalize dir to '/', we can imagine
   // that dirAbs is absolute dir, so we need to find first two occurences
   // of '/'. Second occurece can be end of string.
-  sysuint_t i = dirAbs.indexOf(Char32('/'));
+  sysuint_t i = dirAbs.indexOf(Char('/'));
   sysuint_t length = dirAbs.getLength();
 
   if (i == InvalidIndex) return Error::InvalidArgument;
-  if (dirAbs.at(length-1) == Char32('/')) length--;
+  if (dirAbs.at(length-1) == Char('/')) length--;
 
   do {
     i++;
-    i = dirAbs.indexOf(Char32('/'), CaseSensitive, Range(i, length - i));
+    i = dirAbs.indexOf(Char('/'), CaseSensitive, Range(i, length - i));
 
     err = createDirectoryHelper(dirAbs.cData(), (i == InvalidIndex) ? length : i);
     if (err != Error::Ok && err != Error::DirectoryAlreadyExists) return err;
@@ -216,10 +203,10 @@ err_t FileSystem::createDirectory(const String32& dir, bool recursive)
   return Error::Ok;
 }
 
-err_t FileSystem::deleteDirectory(const String32& path)
+err_t FileSystem::deleteDirectory(const String& path)
 {
   err_t err;
-  TemporaryString16<TemporaryLength> pathW;
+  TemporaryString<TemporaryLength> pathW;
 
   if ((err = pathW.set(path)) ||
       (err = pathW.slashesToWin()))
@@ -227,7 +214,7 @@ err_t FileSystem::deleteDirectory(const String32& path)
     return err;
   }
 
-  if (RemoveDirectoryW(pathW.cStrW()))
+  if (RemoveDirectoryW(reinterpret_cast<const wchar_t*>(pathW.cData())))
     return Error::Ok;
   else
     return GetLastError();
@@ -235,11 +222,11 @@ err_t FileSystem::deleteDirectory(const String32& path)
 #endif // FOG_OS_WINDOWS
 
 #if defined(FOG_OS_POSIX)
-int FileSystem::stat(const String32& fileName, struct stat* s)
+int FileSystem::stat(const String& fileName, struct stat* s)
 {
-  TemporaryString8<TemporaryLength> t;
-  t.set(fileName, TextCodec::local8());
-  return ::stat(t.cStr(), s);
+  TemporaryByteArray<TemporaryLength> t;
+  TextCodec::local8().appendFromUnicode(t, fileName);
+  return ::stat(t.cData(), s);
 }
 
 static uint32_t test_stat(struct stat *s, uint32_t flags)
@@ -292,42 +279,39 @@ static uint32_t test_stat(struct stat *s, uint32_t flags)
   return result & flags;
 }
 
-uint32_t FileSystem::testFile(const String32& fileName, uint32_t flags)
+uint32_t FileSystem::testFile(const String& fileName, uint32_t flags)
 {
   if (flags == 0) return 0;
   struct stat s;
   return (stat(fileName, &s) == 0) ? test_stat(&s, flags) : 0;
 }
 
-bool FileSystem::findFile(const Sequence<String32>& paths, const String32& fileName, String32& dst)
+bool FileSystem::findFile(const Sequence<String>& paths, const String& fileName, String& dst)
 {
-  Sequence<String32> _paths(paths);
-  Sequence<String32>::ConstIterator it(_paths);
+  Sequence<String> _paths(paths);
+  Sequence<String>::ConstIterator it(_paths);
 
   struct stat s;
 
-  TemporaryString8<TemporaryLength> path8;
-  TemporaryString8<TemporaryLength> fileName8;
+  TemporaryByteArray<TemporaryLength> path8;
+  TemporaryByteArray<TemporaryLength> fileName8;
 
-  // Encode fileName here to avoid encoding in loop
-  fileName8.set(fileName, TextCodec::local8());
+  // Encode fileName here to avoid encoding in loop.
+  TextCodec::local8().appendFromUnicode(fileName8, fileName);
 
   for (it.toStart(); it.isValid(); it.toNext())
   {
-    // Append path
-    path8.set(it.value(), TextCodec::local8());
+    // Append path.
+    TextCodec::local8().fromUnicode(path8, it.value());
 
     // Append directory separator if needed
-    if (path8.getLength() && !path8.endsWith(Stub8("/", 1)))
-    {
-      path8.append(Char8('/'));
-    }
+    if (path8.getLength() && !path8.endsWith(Str8("/", 1))) path8.append('/');
 
     // Append file
     path8.append(fileName8);
 
     // Test
-    if (::stat(path8.cStr(), &s) == 0 && S_ISREG(s.st_mode))
+    if (::stat(path8.cData(), &s) == 0 && S_ISREG(s.st_mode))
     {
       return FileUtil::joinPath(dst, it.value(), fileName) == Error::Ok;
     }
@@ -335,16 +319,15 @@ bool FileSystem::findFile(const Sequence<String32>& paths, const String32& fileN
   return false;
 }
 
-static err_t createDirectoryHelper(const Char32* path, sysuint_t len)
+static err_t createDirectoryHelper(const Char* path, sysuint_t len)
 {
   if (len == 1 && path[0] == '/') return Error::DirectoryAlreadyExists;
 
+  TemporaryByteArray<TemporaryLength> path8;
   err_t err;
-  TemporaryString8<TemporaryLength> path8;
 
-  if ( (err = path8.set(Utf32(path, len), TextCodec::local8())) ) return err;
-
-  if (mkdir(path8.cStr(), S_IRWXU | S_IXGRP | S_IXOTH) == 0) return Error::Ok;
+  if ((err = TextCodec::local8().appendFromUnicode(path8, path, len))) return err;
+  if (::mkdir(path8.cData(), S_IRWXU | S_IXGRP | S_IXOTH) == 0) return Error::Ok;
 
   if (errno == EEXIST)
     return Error::DirectoryAlreadyExists;
@@ -352,29 +335,29 @@ static err_t createDirectoryHelper(const Char32* path, sysuint_t len)
     return errno;
 }
 
-err_t FileSystem::createDirectory(const String32& dir, bool recursive)
+err_t FileSystem::createDirectory(const String& dir, bool recursive)
 {
   if (dir.isEmpty()) return Error::InvalidArgument;
   if (!recursive) return createDirectoryHelper(dir.cData(), dir.getLength());
 
   err_t err;
-  TemporaryString32<TemporaryLength> dirAbs;
-  if ( (err = FileUtil::toAbsolutePath(dirAbs, String32(), dir)) ) return err;
+  TemporaryString<TemporaryLength> dirAbs;
+  if ( (err = FileUtil::toAbsolutePath(dirAbs, String(), dir)) ) return err;
 
   // FileSystem::toAbsolutePath() always normalize dir to '/', we can imagine
   // that dirAbs is absolute dir, so we need to find first two occurences
   // of '/'. Second occurece can be end of string.
   if (dirAbs.getLength() == 1 && dirAbs.at(0) == '/') return Error::DirectoryAlreadyExists;
 
-  sysuint_t i = dirAbs.indexOf(Char32('/'));
+  sysuint_t i = dirAbs.indexOf(Char('/'));
   sysuint_t length = dirAbs.getLength();
 
   if (i == InvalidIndex) return Error::InvalidArgument;
-  if (dirAbs.at(length-1) == Char32('/')) length--;
+  if (dirAbs.at(length-1) == Char('/')) length--;
 
   do {
     i++;
-    i = dirAbs.indexOf(Char32('/'), CaseSensitive, Range(i, length - i));
+    i = dirAbs.indexOf(Char('/'), CaseSensitive, Range(i, length - i));
 
     err = createDirectoryHelper(dirAbs.cData(), (i == InvalidIndex) ? length : i);
     if (err != Error::Ok && err != Error::DirectoryAlreadyExists) return err;
@@ -383,14 +366,14 @@ err_t FileSystem::createDirectory(const String32& dir, bool recursive)
   return Error::Ok;
 }
 
-err_t FileSystem::deleteDirectory(const String32& dir)
+err_t FileSystem::deleteDirectory(const String& dir)
 {
   err_t err;
-  TemporaryString8<TemporaryLength> dir8;
+  TemporaryByteArray<TemporaryLength> dir8;
 
-  if ( (err = dir8.set(dir, TextCodec::local8())) ) return err;
+  if ((err = TextCodec::local8().appendFromUnicode(dir8, dir))) return err;
 
-  if (rmdir(dir8.cStr()) == 0)
+  if (::rmdir(dir8.cData()) == 0)
     return Error::Ok;
   else
     return errno;

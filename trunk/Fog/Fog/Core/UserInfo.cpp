@@ -22,17 +22,18 @@
 // for getuid() and getgid()
 #if defined(FOG_HAVE_UNISTD_H)
 #include <unistd.h>
+#include <X11/X.h>
 #endif // FOG_HAVE_UNISTD_H
 #endif
 
 namespace Fog {
 
-static bool homeDirectory(String32& to);
+static bool homeDirectory(String& to);
 
 #if defined(FOG_OS_POSIX)
 
 // TODO: Caching?
-static bool xdgLookupDirWithFallback(const char *type, const String32& fallback, String32& result)
+static bool xdgLookupDirWithFallback(const char *type, const String& fallback, String& result)
 {
   FILE *file;
   char *home_dir, *config_home, *config_file;
@@ -138,7 +139,7 @@ static bool xdgLookupDirWithFallback(const char *type, const String32& fallback,
 
   if (user_dir)
   {
-    result.set(user_dir, DetectLength, TextCodec::local8());
+    TextCodec::local8().toUnicode(result, user_dir);
     free(user_dir);
     return true;
   }
@@ -148,7 +149,7 @@ error:
   return false;
 }
 
-static bool xdgLookupDir(const char *type, String32& result)
+static bool xdgLookupDir(const char *type, String& result)
 {
   if (!xdgLookupDirWithFallback(type, UserInfo::directory(UserInfo::Home), result))
   {
@@ -164,8 +165,9 @@ static bool xdgLookupDir(const char *type, String32& result)
 
 #elif defined(FOG_OS_WINDOWS)
 
+// TODO: Update to WChar.
 // fixed: documents, music and videos returns as home directory
-static bool registryLookupDir(const char *type, String32& to)
+static bool registryLookupDir(const char *type, String& to)
 {
   HKEY k;
   DWORD d = 0, v_type, size;
@@ -196,7 +198,7 @@ _back:
     RegQueryValueExA( k, type, NULL, NULL, (LPBYTE)buf, &size );
     if( *buf )
     {
-      to.set(buf, DetectLength, TextCodec::local8());
+      TextCodec::local8().toUnicode(to, buf);
       if( v_type == REG_EXPAND_SZ )
       {
         size = ExpandEnvironmentStringsA( buf, NULL, 0 );
@@ -206,7 +208,7 @@ _back:
           expanded = (char*)expandedStorage.alloc(size);
 
           ExpandEnvironmentStringsA(buf, expanded, size);
-          if(expanded[0]) to.set(expanded, DetectLength, TextCodec::local8());
+          if (expanded[0]) TextCodec::local8().toUnicode(Top, expanded);
         }
       }
     }
@@ -224,10 +226,10 @@ _back:
 }
 #endif // FOG_OS
 
-static bool homeDirectory(String32& to)
+static bool homeDirectory(String& to)
 {
 #if defined(FOG_OS_WINDOWS)
-  OS::getEnv(TemporaryString32<12>(Ascii8("USERPROFILE")), to);
+  OS::getEnv(TemporaryString<12>(Ascii8("USERPROFILE")), to);
   return true;
 #endif // FOG_OS_WINDOWS
 
@@ -235,7 +237,7 @@ static bool homeDirectory(String32& to)
   struct passwd *pwd = getpwuid(UserInfo::uid());
   if (pwd)
   {
-    to.set(Local8(pwd->pw_dir));
+    TextCodec::local8().toUnicode(to, pwd->pw_dir);
     return true;
   }
   else
@@ -244,12 +246,12 @@ static bool homeDirectory(String32& to)
 
     if ((s = getenv("HOME")) != 0)
     {
-      to.set(s, DetectLength, TextCodec::local8());
+      TextCodec::local8().toUnicode(to, s);
       return true;
     }
     else if ((s = getenv("TMPDIR")) != 0)
     {
-      to.set(s, DetectLength, TextCodec::local8());
+      TextCodec::local8().toUnicode(to, s);
       return false;
     }
     else
@@ -309,14 +311,14 @@ uint32_t UserInfo::gid()
 #endif // FOG_OS_POSIX
 }
 
-String32 UserInfo::directory(uint32_t dir)
+String UserInfo::directory(uint32_t dir)
 {
-  String32 to;
+  String to;
   directoryTo(dir, to);
   return to;
 }
 
-bool UserInfo::directoryTo(uint32_t dir, String32& to)
+bool UserInfo::directoryTo(uint32_t dir, String& to)
 {
   bool result;
 

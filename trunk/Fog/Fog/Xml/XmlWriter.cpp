@@ -78,7 +78,7 @@ XmlWriter::~XmlWriter()
       attributes = NULL;
 
       // === Parse tag name ===
-      const Char32* tag = strCur;
+      const Char* tag = strCur;
       uint tagLength = xmlStrCSPN(strCur, strEnd, XML_CHAR_SPACE | XML_CHAR_SLASH | XML_CHAR_GT);
 
       strCur += tagLength;
@@ -90,7 +90,7 @@ XmlWriter::~XmlWriter()
         while (strCur->isSpace()) strCur++;
 
         // Temp variable where is stored beginning of attribute name or text
-        const Char32* begin = strCur;
+        const Char* begin = strCur;
 
         strCur += xmlStrCSPN(strCur, strEnd, XML_CHAR_SPACE | XML_CHAR_EQUAL | XML_CHAR_SLASH | XML_CHAR_GT);
         if (*strCur == '=' || strCur->isSpace())
@@ -101,14 +101,14 @@ XmlWriter::~XmlWriter()
 
             a->_prev = attributes;
             a->_next = NULL;
-            a->setName( String(begin, (sysuint_t)(strCur - begin)) );
+            a->setName(String(begin, (sysuint_t)(strCur - begin)));
 
             if (attributes) attributes->_next = a;
             attributes = a;
           }
 
           // q can be " or '
-          Char32 q = *(strCur += xmlStrSPN(strCur, strEnd, XML_CHAR_SPACE | XML_CHAR_EQUAL));
+          Char q = *(strCur += xmlStrSPN(strCur, strEnd, XML_CHAR_SPACE | XML_CHAR_EQUAL));
 
           // Get attribute value
           if (q == '\"' || q == '\'')
@@ -190,7 +190,7 @@ XmlWriter::~XmlWriter()
     // ----- Comment -----
     else if (strCur + 3 <= strEnd && String::Raw::eq(strCur, "!--", 3))
     {
-      const Char32* dataStart = strCur += 3;
+      const Char* dataStart = strCur += 3;
 
       for (;;)
       {
@@ -199,8 +199,8 @@ XmlWriter::~XmlWriter()
         else strCur++;
       }
 
-      const Char32* dataEnd = strCur - 3;
-      addComment(String32(Utf32(dataStart, (sysuint_t)(dataEnd - dataStart))));
+      const Char* dataEnd = strCur - 3;
+      addComment(String(dataStart, (sysuint_t)(dataEnd - dataStart)));
     }
 
 
@@ -237,10 +237,10 @@ XmlWriter::~XmlWriter()
     // ----- <?...?> processing instructions -----
     else if (*strCur == '?')
     {
-      Char32* dataStart = ++strCur;
+      Char* dataStart = ++strCur;
 
       do {
-        strCur = xmlStrCHR(strCur, strEnd, Char32('?'));
+        strCur = xmlStrCHR(strCur, strEnd, Char('?'));
       } while (strCur && ++strCur != strEnd && *strCur != '>');
 
       // Unclosed <?
@@ -250,8 +250,8 @@ XmlWriter::~XmlWriter()
       }
       else
       {
-        const Char32* dataEnd = strCur - 3;
-        addPI(String32(Utf32(dataStart, (sysuint_t)(dataEnd - dataStart))));
+        const Char* dataEnd = strCur - 3;
+        addPI(String(dataStart, (sysuint_t)(dataEnd - dataStart)));
       }
     }
 
@@ -269,7 +269,7 @@ XmlWriter::~XmlWriter()
 
     // ----- tag character content -----
     {
-      const Char32* begin = ++strCur;
+      const Char* begin = ++strCur;
       while (strCur != strEnd && *strCur != '<') strCur++;
 
       if (strCur == strEnd) break;
@@ -278,7 +278,7 @@ XmlWriter::~XmlWriter()
       // Remove white spaces, but don't remove &..; spaces
       while (begin->isSpace()) begin++;
 
-      const Char32* tr = strCur-1;
+      const Char* tr = strCur-1;
       while (tr > begin && tr->isSpace()) tr--;
       tr++;
 
@@ -303,26 +303,26 @@ XmlWriter::~XmlWriter()
 
 #if 0
 // Decode xml &entities; into normal unicode text
-void XmlReader::decode(String& dest, const Char32* buffer, sysuint_t length)
+void XmlReader::decode(String& dest, const Char* buffer, sysuint_t length)
 {
   // This will probabbly never happen
   if (length == DetectLength) length = String::Raw::len(buffer);
 
-  const Char32* end = buffer + length;
-  Char32* p = dest._reserve(length);
+  const Char* end = buffer + length;
+  Char* p = dest._reserve(length);
 
 __begin:
   while (buffer != end)
   {
     if (*buffer == '&')
     {
-      const Char32* begin = ++buffer;
+      const Char* begin = ++buffer;
 
       while (buffer != end)
       {
         if (*buffer == ';')
         {
-          Char32 uc = XmlEntity::decode(begin, sysuint_t( buffer - begin ));
+          Char uc = XmlEntity::decode(begin, sysuint_t( buffer - begin ));
           buffer++;
           if (uc.ch())
           {
@@ -380,19 +380,14 @@ struct CORE_HIDDEN XmlWriter
   void writeNodesR(const XmlNode* node, uint depth);
   void writeAttributes(const XmlNode* node);
 
-  inline void writeRaw(const String& s)
-  { _textCodec.appendFromUtf32(_target, s); }
-
-  inline void writeStr(const String& s)
-  { _textCodec.appendFromUtf32(_target, s, &_textState); }
-
-  inline void writeChar(Char32 uc)
-  { _textCodec.appendFromUtf32(_target, &uc, sizeof(Char32)); }
+  inline void writeRaw(const String& s) { _textCodec.appendFromUtf32(_target, s); }
+  inline void writeStr(const String& s) { _textCodec.appendFromUtf32(_target, s, &_textState); }
+  inline void writeChar(Char uc) { _textCodec.appendFromUtf32(_target, &uc, sizeof(Char)); }
 
   inline void writeSpaces(sysuint_t count)
   {
     sysuint_t i;
-    for (i = 0; i != count; i++) writeChar(Char32(' '));
+    for (i = 0; i != count; i++) writeChar(Char(' '));
   }
 
   inline void flush() { _stream.write(_target); _target.clear(); }
@@ -429,25 +424,25 @@ void XmlWriter::writeNodesR(const XmlNode* node, uint depth)
       // Not self closing tag
 
       // Write <Tag [Attributes]>
-      writeChar(Char32('<'));
+      writeChar(Char('<'));
       writeStr(tag);
       writeAttributes(current);
-      writeChar(Char32('>'));
+      writeChar(Char('>'));
 
       // Write Text\n
       writeStr(current->text());
-      writeChar(Char32('\n'));
+      writeChar(Char('\n'));
 
       // Write children
       writeNodesR(current->children(), depth+1);
 
       // Write </Tag>\n
       writeSpaces(depth);
-      writeChar(Char32('<'));
-      writeChar(Char32('/'));
+      writeChar(Char('<'));
+      writeChar(Char('/'));
       writeStr(tag);
-      writeChar(Char32('>'));
-      writeChar(Char32('\n'));
+      writeChar(Char('>'));
+      writeChar(Char('\n'));
     }
     else
     {
@@ -455,27 +450,27 @@ void XmlWriter::writeNodesR(const XmlNode* node, uint depth)
       if (current->text().isEmpty())
       {
         // Write <Tag [Attributes] />\n
-        writeChar(Char32('<'));
+        writeChar(Char('<'));
         writeStr(tag);
         writeAttributes(current);
-        writeChar(Char32(' '));
-        writeChar(Char32('/'));
-        writeChar(Char32('>'));
-        writeChar(Char32('\n'));
+        writeChar(Char(' '));
+        writeChar(Char('/'));
+        writeChar(Char('>'));
+        writeChar(Char('\n'));
       }
       else
       {
         // Write <Tag [Attributes]>Text</Tag>\n
-        writeChar(Char32('<'));
+        writeChar(Char('<'));
         writeStr(tag);
         writeAttributes(current);
-        writeChar(Char32('>'));
+        writeChar(Char('>'));
         writeStr(current->text());
-        writeChar(Char32('<'));
-        writeChar(Char32('/'));
+        writeChar(Char('<'));
+        writeChar(Char('/'));
         writeStr(tag);
-        writeChar(Char32('>'));
-        writeChar(Char32('\n'));
+        writeChar(Char('>'));
+        writeChar(Char('\n'));
       }
     }
 
@@ -486,7 +481,7 @@ void XmlWriter::writeNodesR(const XmlNode* node, uint depth)
 
 void XmlWriter::writeAttributes(const XmlNode* node)
 {
-  static const Char32 q = Char32('\"');
+  static const Char q = Char('\"');
 
   const XmlAttribute* current = node->attributes();
 
@@ -495,9 +490,9 @@ void XmlWriter::writeAttributes(const XmlNode* node)
   while (current)
   {
     // Write Attribute="Text"
-    writeChar(Char32(' '));
+    writeChar(Char(' '));
     writeStr(current->name());
-    writeChar(Char32('='));
+    writeChar(Char('='));
     writeChar(q);
     writeStr(current->value());
     writeChar(q);

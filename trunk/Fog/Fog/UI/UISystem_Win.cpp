@@ -899,22 +899,17 @@ err_t UIWindowWin::takeFocus()
   return Error::Ok;
 }
 
-err_t UIWindowWin::setTitle(const String32& title)
+err_t UIWindowWin::setTitle(const String& title)
 {
   if (!_handle) return Error::InvalidHandle;
 
-  err_t err;
-  TemporaryString16<TemporaryLength> titleW;
-
-  if ( (err = titleW.set(title)) ) return err;
-
-  SetWindowTextW((HWND)_handle, titleW.cStrW());
+  SetWindowTextW((HWND)_handle, reinterpret_cast<const wchar_t*>(title.cData()));
   _title = title;
 
   return Error::Ok;
 }
 
-err_t UIWindowWin::getTitle(String32& title)
+err_t UIWindowWin::getTitle(String& title)
 {
   if (!_handle) return Error::InvalidHandle;
 
@@ -1119,7 +1114,7 @@ wheelUp:
         uiSystem->winKeyToFogKey(wParam, HIWORD(lParam)),
         modifier,
         (uint32_t)wParam,
-        Char32(uiSystem->winKeyToUnicode(wParam, HIWORD(lParam)))
+        Char(uiSystem->winKeyToUnicode(wParam, HIWORD(lParam)))
       );
 
       if (used) return 0;
@@ -1133,7 +1128,7 @@ wheelUp:
         uiSystem->winKeyToFogKey(wParam, HIWORD(lParam)),
         modifier,
         (uint32_t)wParam,
-        Char32(uiSystem->winKeyToUnicode(wParam, HIWORD(lParam)))
+        Char(uiSystem->winKeyToUnicode(wParam, HIWORD(lParam)))
       );
 
       if (used) return 0;
