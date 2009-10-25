@@ -208,7 +208,7 @@ _back:
           expanded = (char*)expandedStorage.alloc(size);
 
           ExpandEnvironmentStringsA(buf, expanded, size);
-          if (expanded[0]) TextCodec::local8().toUnicode(Top, expanded);
+          if (expanded[0]) TextCodec::local8().toUnicode(to, expanded);
         }
       }
     }

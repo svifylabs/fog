@@ -83,8 +83,8 @@ struct FOG_HIDDEN FOG_PACKED Byte
   static FOG_INLINE bool isAlpha(TYPE ch) { return CharUtil::isAsciiAlpha(ch); } \
   static FOG_INLINE bool isLower(TYPE ch) { return CharUtil::isAsciiLower(ch); } \
   static FOG_INLINE bool isUpper(TYPE ch) { return CharUtil::isAsciiUpper(ch); } \
-  static FOG_INLINE char toLower(TYPE ch) { return CharUtil::toAsciiLower(ch); } \
-  static FOG_INLINE char toUpper(TYPE ch) { return CharUtil::toAsciiUpper(ch); } \
+  static FOG_INLINE TYPE toLower(TYPE ch) { return CharUtil::toAsciiLower(ch); } \
+  static FOG_INLINE TYPE toUpper(TYPE ch) { return CharUtil::toAsciiUpper(ch); } \
   \
   static FOG_INLINE bool isSpace(TYPE ch) { return CharUtil::isAsciiSpace(ch); } \
   static FOG_INLINE bool isBlank(TYPE ch) { return CharUtil::isAsciiBlank(ch); } \

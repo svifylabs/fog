@@ -50,7 +50,7 @@ uint32_t FileSystem::testFile(const String& fileName, uint32_t flags)
 
   WIN32_FILE_ATTRIBUTE_DATA fi;
 
-  if (GetFileAttributesExW(reinterpret_cast<const char wchar_t*>(fileNameW.cData()), GetFileExInfoStandard, &fi))
+  if (GetFileAttributesExW(reinterpret_cast<const wchar_t*>(fileNameW.cData()), GetFileExInfoStandard, &fi))
   {
     uint result = Exists;
     if (fi.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
@@ -136,7 +136,7 @@ bool FileSystem::findFile(const Sequence<String>& paths, const String& fileName,
     if (path.slashesToWin() != Error::Ok) continue;
 
     // Test.
-    if (GetFileAttributesExW(reinterpret_cast<const wchar_t*>(pathW.cData()), GetFileExInfoStandard, &fi) &&
+    if (GetFileAttributesExW(reinterpret_cast<const wchar_t*>(path.cData()), GetFileExInfoStandard, &fi) &&
       !(fi.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
     {
       return FileUtil::joinPath(dst, it.value(), fileName) == Error::Ok;

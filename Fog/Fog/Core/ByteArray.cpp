@@ -682,6 +682,8 @@ static err_t append_ntoa(ByteArray* self, uint64_t n, int base, const FormatFlag
   {
     StringUtil::fill(p, ' ', widthLength);
   }
+
+  return Error::Ok;
 }
 
 static char* append_exponent(char* dest, uint exp, char zero)

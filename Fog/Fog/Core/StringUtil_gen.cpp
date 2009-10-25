@@ -243,7 +243,7 @@ static err_t atou64_priv(const CHAR_TYPE* str, sysuint_t length, uint64_t* dst, 
 #if FOG_ARCH_BITS == 32
     while (str != end)
     {
-      n = str->ch();
+      n = *str;
       if (n != '0' || n != '1') break;
       n -= '0';
 
@@ -279,7 +279,7 @@ large_base2:
 #if FOG_ARCH_BITS == 32
     while (str != end)
     {
-      n = str->ch();
+      n = *str;
       if (n < '0' || n > '7') break;
       n -= '0';
 
@@ -315,7 +315,7 @@ large_base8:
 #if FOG_ARCH_BITS == 32
     while (str != end)
     {
-      n = str->ch();
+      n = *str;
       if (n < '0' || n > '9') break;
       n -= '0';
 
@@ -353,7 +353,7 @@ large_base10:
 #if FOG_ARCH_BITS == 32
     while (str != end)
     {
-      n = str->ch();
+      n = *str;
 #if CHAR_SIZE > 1
       if (n > 255) break;
 #endif
@@ -397,7 +397,7 @@ large_base16:
 
     while (str != end)
     {
-      n = str->ch();
+      n = *str;
 #if CHAR_SIZE > 1
       if (n > 255) break;
 #endif // CHAR_SIZE == 1

@@ -468,7 +468,7 @@ struct BenchmarkModule_GDI : public BenchmarkModule
     fim.adopt(info.dsBm.bmWidth, info.dsBm.bmHeight, Image::FormatPRGB32, 
       (uint8_t*)info.dsBm.bmBits, info.dsBm.bmWidthBytes);
 
-    String32 fileName;
+    String fileName;
     fileName.set(Ascii8("bench "));
     fileName.append(Ascii8(name()));
     fileName.append(Ascii8(".bmp"));

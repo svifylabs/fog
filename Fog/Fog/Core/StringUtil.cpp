@@ -68,7 +68,8 @@ err_t validateUtf16(const Char* str, sysuint_t len, sysuint_t* invalidPos)
 
 FOG_API err_t getNumUtf8Chars(const char* str, sysuint_t len, sysuint_t* charsCount)
 {
-
+  // TODO:
+  return Error::NotImplemented;
 }
 
 FOG_API err_t getNumUtf16Chars(const Char* str, sysuint_t len, sysuint_t* charsCount)

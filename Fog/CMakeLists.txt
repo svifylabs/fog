@@ -256,11 +256,8 @@ Set(FOG_CORE_SOURCES
   ${FOG_DIR}/Fog/Core/String.cpp
   ${FOG_DIR}/Fog/Core/StringFilter.cpp
   ${FOG_DIR}/Fog/Core/StringMatcher.cpp
-  ${FOG_DIR}/Fog/Core/String_gen.cpp
   ${FOG_DIR}/Fog/Core/StringUtil.cpp
-  ${FOG_DIR}/Fog/Core/StringUtil_dtoa.cpp
   ${FOG_DIR}/Fog/Core/StringUtil_gen.cpp
-  ${FOG_DIR}/Fog/Core/StringUtil_itoa.cpp
   ${FOG_DIR}/Fog/Core/Strings.cpp
   ${FOG_DIR}/Fog/Core/Task.cpp
   ${FOG_DIR}/Fog/Core/TextCodec.cpp
@@ -339,9 +336,7 @@ Set(FOG_CORE_HEADERS
   ${FOG_DIR}/Fog/Core/String.h
   ${FOG_DIR}/Fog/Core/StringFilter.h
   ${FOG_DIR}/Fog/Core/StringMatcher.h
-  ${FOG_DIR}/Fog/Core/String_gen.h
   ${FOG_DIR}/Fog/Core/StringUtil.h
-  ${FOG_DIR}/Fog/Core/StringUtil_gen.h
   ${FOG_DIR}/Fog/Core/Strings.h
   ${FOG_DIR}/Fog/Core/Task.h
   ${FOG_DIR}/Fog/Core/TextCodec.h

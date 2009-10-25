@@ -15,6 +15,7 @@
 // [Dependencies]
 #include <Fog/Core/Application.h>
 #include <Fog/Core/Assert.h>
+#include <Fog/Core/ByteArray.h>
 #include <Fog/Core/CpuInfo.h>
 #include <Fog/Core/Event.h>
 #include <Fog/Core/Lazy.h>
