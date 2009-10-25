@@ -11,6 +11,7 @@
 // [Dependencies]
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/AutoLock.h>
+#include <Fog/Core/ByteArray.h>
 #include <Fog/Core/Constants.h>
 #include <Fog/Core/Error.h>
 #include <Fog/Core/FileSystem.h>
@@ -42,7 +43,7 @@ namespace Fog {
 struct Library_Local
 {
   Lock lock;
-  Vector<String32> paths;
+  Vector<String> paths;
 };
 
 static Static<Library_Local> library_local;
@@ -52,13 +53,18 @@ static Static<Library_Local> library_local;
 // ============================================================================
 
 #if defined(FOG_LIBRARY_WINDOWS)
-static err_t platformOpenLibrary(const String32& fileName, void** handle)
+static err_t platformOpenLibrary(const String& fileName, void** handle)
 {
+  TemporaryString<TemporaryLength> fileNameW;
   err_t err;
-  TemporaryString16<TemporaryLength> fileNameW;
-  if ( (err = fileNameW.set(fileName)) ) return err;
 
-  HMODULE hLibrary = ::LoadLibraryW(fileNameW.cStrW());
+  if ((err = fileNameW.set(fileName)) ||
+      (err = fileNameW.slashesToWin()))
+  {
+    return err;
+  }
+
+  HMODULE hLibrary = ::LoadLibraryW(reinterpret_cast<const wchar_t*>(fileNameW.cData()));
   if (!hLibrary) return GetLastError();
 
   *handle = (void*)hLibrary;
@@ -78,13 +84,13 @@ static void* platformLoadSymbol(void* handle, const char* symbol)
 #endif // FOG_LIBRARY_WINDOWS
 
 #if defined(FOG_LIBRARY_DL)
-static err_t platformOpenLibrary(const String32& fileName, void** handle)
+static err_t platformOpenLibrary(const String& fileName, void** handle)
 {
   err_t err;
-  TemporaryString8<TemporaryLength> fileName8;
-  if ( (err = fileName8.set(fileName, TextCodec::local8())) ) return err;
+  TemporaryByteArray<TemporaryLength> fileName8;
+  if ((err = TextCodec::local8().appendFromUnicode(fileName8, fileName))) return err;
 
-  void* h = (void*)dlopen(fileName8.cStr(), RTLD_NOW);
+  void* h = (void*)::dlopen(fileName8.cData(), RTLD_NOW);
   if (h == NULL) return Error::LibraryOpenFailed;
 
   *handle = h;
@@ -93,13 +99,13 @@ static err_t platformOpenLibrary(const String32& fileName, void** handle)
 
 static void platformCloseLibrary(void* handle)
 {
-  dlclose(handle);
+  ::dlclose(handle);
 }
 
 static void* platformLoadSymbol(void* handle, const char* symbol)
 {
   if (handle == NULL) return NULL;
-  return (void *)dlsym(handle, symbol);
+  return (void *)::dlsym(handle, symbol);
 }
 #endif // FOG_LIBRARY_DL
 
@@ -107,9 +113,9 @@ static void* platformLoadSymbol(void* handle, const char* symbol)
 // [Fog::Library]
 // ============================================================================
 
-const Char8* Library::systemPrefix;
-const Char8* Library::systemSuffix;
-const Char8* Library::systemExtension;
+const char* Library::systemPrefix;
+const char* Library::systemSuffix;
+const char* Library::systemExtension;
 
 Library::Library() :
   _d(sharedNull->refAlways())
@@ -121,7 +127,7 @@ Library::Library(const Library& other) :
 {
 }
 
-Library::Library(const String32& fileName, uint32_t openFlags) :
+Library::Library(const String& fileName, uint32_t openFlags) :
   _d(sharedNull->refAlways())
 {
   open(fileName, openFlags);
@@ -132,27 +138,24 @@ Library::~Library()
   _d->deref();
 }
 
-err_t Library::open(const String32& _fileName, uint32_t openFlags)
+err_t Library::open(const String& _fileName, uint32_t openFlags)
 {
   err_t err;
-  TemporaryString32<TemporaryLength> fileName;
+  TemporaryString<TemporaryLength> fileName;
   
-  if ( (err = fileName.set(_fileName))) return err;
+  if ((err = fileName.set(_fileName))) return err;
 
   if ((openFlags & OpenSystemPrefix) != 0)
   {
-    if ( (err = fileName.insert(
-      fileName.lastIndexOf(Char32('/')) + 1,
-      Ascii8(systemPrefix))) ) return err;
+    if ((err = fileName.insert(fileName.lastIndexOf(Char('/')) + 1, Ascii8(systemPrefix)))) return err;
   }
   if ((openFlags & OpenSystemSuffix) != 0)
   {
-    if ( (err = fileName.append(
-      Ascii8(systemSuffix))) ) return err;
+    if ((err = fileName.append(Ascii8(systemSuffix)))) return err;
   }
 
   void* handle;
-  if ( (err = platformOpenLibrary(fileName, &handle)) ) return err;
+  if ((err = platformOpenLibrary(fileName, &handle))) return err;
 
   Data* newd = Data::alloc();
   if (!newd)
@@ -166,17 +169,17 @@ err_t Library::open(const String32& _fileName, uint32_t openFlags)
   return Error::Ok;
 }
 
-err_t Library::openPlugin(const String32& category, const String32& fileName)
+err_t Library::openPlugin(const String& category, const String& fileName)
 {
   err_t err;
-  TemporaryString32<TemporaryLength> relative;
-  TemporaryString32<TemporaryLength> absolute;
+  TemporaryString<TemporaryLength> relative;
+  TemporaryString<TemporaryLength> absolute;
 
   if ( (err = relative.append(Ascii8(systemPrefix))) ) return err;
   if (!category.isEmpty())
   {
     if ( (err = relative.append(category)) ) return err;
-    if ( (err = relative.append(Char32('_'))) ) return err;
+    if ( (err = relative.append(Char('_'))) ) return err;
   }
   if ( (err = relative.append(fileName)) ) return err;
   if ( (err = relative.append(Ascii8(systemSuffix))) ) return err;
@@ -197,11 +200,11 @@ void* Library::getSymbol(const char* symbolName)
   return platformLoadSymbol(_d->handle, symbolName);
 }
 
-void* Library::getSymbol(const String32& symbolName)
+void* Library::getSymbol(const String& symbolName)
 {
-  TemporaryString8<TemporaryLength> symb8;
-  symb8.append(Utf32(symbolName), TextCodec::utf8());
-  return platformLoadSymbol(_d->handle, symb8.cStr());
+  TemporaryByteArray<TemporaryLength> symb8;
+  TextCodec::utf8().fromUnicode(symb8, symbolName);
+  return platformLoadSymbol(_d->handle, symb8.cData());
 }
 
 sysuint_t Library::getSymbols(void** target, const char* symbols, sysuint_t symbolsLength, sysuint_t symbolsCount, char** fail)
@@ -248,13 +251,13 @@ Library& Library::operator=(const Library& other)
 
 // [Paths]
 
-Vector<String32> Library::paths()
+Vector<String> Library::paths()
 {
   AutoLock locked(library_local.instance().lock);
   return library_local.instance().paths;
 }
 
-bool Library::addPath(const String32& path, int mode)
+bool Library::addPath(const String& path, int mode)
 {
   AutoLock locked(library_local.instance().lock);
   if (path.isEmpty()) return false;
@@ -267,13 +270,13 @@ bool Library::addPath(const String32& path, int mode)
   return true;
 }
 
-bool Library::removePath(const String32& path)
+bool Library::removePath(const String& path)
 {
   AutoLock locked(library_local.instance().lock);
   return library_local.instance().paths.remove(path) != 0;
 }
 
-bool Library::hasPath(const String32& path)
+bool Library::hasPath(const String& path)
 {
   AutoLock locked(library_local.instance().lock);
   return library_local.instance().paths.indexOf(path) != InvalidIndex;
@@ -344,9 +347,9 @@ FOG_INIT_DECLARE err_t fog_library_init(void)
 # endif
 #endif // FOG_OS_POSIX
 
-  Library::systemPrefix = (const Char8*)libraryPrefix;
-  Library::systemSuffix = (const Char8*)librarySuffix;
-  Library::systemExtension = (const Char8*)librarySuffix + 1;
+  Library::systemPrefix = libraryPrefix;
+  Library::systemSuffix = librarySuffix;
+  Library::systemExtension = librarySuffix + 1;
 
 #if defined(FOG_OS_POSIX)
 #if FOG_ARCH_BITS == 32

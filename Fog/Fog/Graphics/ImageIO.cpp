@@ -118,7 +118,7 @@ FOG_API Vector<Provider*> getProviders()
   return imageio_local->providers;
 }
 
-FOG_API Provider* getProviderByName(const String32& name)
+FOG_API Provider* getProviderByName(const String& name)
 {
   AutoLock locked(imageio_local->lock);
   ImageIO_Local::Providers::ConstIterator it(imageio_local->providers);
@@ -131,13 +131,13 @@ FOG_API Provider* getProviderByName(const String32& name)
   return 0;
 }
 
-FOG_API Provider* getProviderByExtension(const String32& extension)
+FOG_API Provider* getProviderByExtension(const String& extension)
 {
   AutoLock locked(imageio_local->lock);
   ImageIO_Local::Providers::ConstIterator it(imageio_local->providers);
 
   // Convert extension to lower case
-  TemporaryString32<16> e;
+  TemporaryString<16> e;
   e.set(extension);
   e.lower();
 
@@ -432,7 +432,7 @@ FOG_INIT_DECLARE err_t fog_imageio_init(void)
 
   imageio_local.init();
 
-  Vector<String32> properties;
+  Vector<String> properties;
   properties.append(fog_strings->getString(STR_GRAPHICS_width));
   properties.append(fog_strings->getString(STR_GRAPHICS_height));
   properties.append(fog_strings->getString(STR_GRAPHICS_depth));

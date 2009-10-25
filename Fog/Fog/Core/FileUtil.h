@@ -20,39 +20,35 @@ namespace FileUtil {
 // [Fog::FileUtil]
 // ============================================================================
 
-FOG_API err_t extractFile(String32& dst, const String32& path);
-FOG_API err_t extractDirectory(String32& dst, const String32& path);
-FOG_API err_t extractExtension(String32& dst, const String32& path);
-FOG_API err_t normalizePath(String32& dst, const String32& path);
-FOG_API err_t toAbsolutePath(String32& dst, const String32& base, const String32& path);
-FOG_API err_t joinPath(String32& dst, const String32& base, const String32& part);
+FOG_API err_t extractFile(String& dst, const String& path);
+FOG_API err_t extractDirectory(String& dst, const String& path);
+FOG_API err_t extractExtension(String& dst, const String& path);
+FOG_API err_t normalizePath(String& dst, const String& path);
+FOG_API err_t toAbsolutePath(String& dst, const String& base, const String& path);
+FOG_API err_t joinPath(String& dst, const String& base, const String& part);
 
-FOG_API bool isPathContainsFile(const String32& path, const String32& file, uint cs = CaseSensitive);
-FOG_API bool isPathContainsDirectory(const String32& path, const String32& directory, uint cs = CaseSensitive);
-FOG_API bool isPathContainsExtension(const String32& path, const String32& extension, uint cs = CaseSensitive);
-FOG_API bool isNormalizedPath(const String32& path);
-FOG_API bool isAbsolutePath(const String32& path);
+FOG_API bool isPathContainsFile(const String& path, const String& file, uint cs = CaseSensitive);
+FOG_API bool isPathContainsDirectory(const String& path, const String& directory, uint cs = CaseSensitive);
+FOG_API bool isPathContainsExtension(const String& path, const String& extension, uint cs = CaseSensitive);
+FOG_API bool isNormalizedPath(const String& path);
+FOG_API bool isAbsolutePath(const String& path);
 
-FOG_API bool testLocalName(const String32& path);
+FOG_API bool testLocalName(const String& path);
 
 #if defined(FOG_OS_WINDOWS)
-static const Char8  directorySeparator8  = Char8('\\');
-static const Char16 directorySeparator16 = Char16('\\');
-static const Char32 directorySeparator32 = Char32('\\');
+static const char directorySeparatorA = '\\';
+static const Char directorySeparatorU = Char('\\');
 
-static const Char8  pathSeparator8  = Char8(';');
-static const Char16 pathSeparator16 = Char16(';');
-static const Char32 pathSeparator32 = Char32(';');
+static const char pathSeparatorA = ';';
+static const Char pathSeparatorU = Char(';');
 #endif // FOG_OS_WINDOWS
 
 #if defined(FOG_OS_POSIX)
-static const Char8  directorySeparator8  = Char8('/');
-static const Char16 directorySeparator16 = Char16('/');
-static const Char32 directorySeparator32 = Char32('/');
+static const char directorySeparatorA = '/';
+static const Char directorySeparatorU = Char('/');
 
-static const Char8  pathSeparator8  = Char8(':');
-static const Char16 pathSeparator16 = Char16(':');
-static const Char32 pathSeparator32 = Char32(':');
+static const char pathSeparatorA = ':';
+static const Char pathSeparatorU = Char(':');
 #endif // FOG_OS_POSIX
 
 } // FileUtil namespace

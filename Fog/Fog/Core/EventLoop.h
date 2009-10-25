@@ -73,7 +73,7 @@ public:
     virtual bool doIdleWork() = 0;
   };
 
-  EventPump(const String32& name);
+  EventPump(const String& name);
   virtual ~EventPump();
 
   //! @brief The Run method is called to enter the message pump's run loop.
@@ -153,7 +153,7 @@ public:
   virtual void scheduleDelayedWork(const Time& delayedWorkTime) = 0;
 
 protected:
-  String32 _name;
+  String _name;
 
   friend struct EventLoop;
 };
@@ -293,13 +293,13 @@ public:
   ~EventLoop();
 
   //! @brief Returns the type passed to the constructor.
-  String32 getType() const;
+  String getType() const;
 
   //! @brief Optional call to connect the thread name with this loop.
-  void setThreadName(const String32& threadName);
+  void setThreadName(const String& threadName);
 
   //! @brief Return thread name.
-  const String32& getThreadName() const;
+  const String& getThreadName() const;
 
   //! @brief Return the EventLoop object for the current thread, or null if 
   //! none.
@@ -433,7 +433,7 @@ protected:
   virtual bool doIdleWork();
 
   // Event loop and pump type.
-  String32 _type;
+  String _type;
 
   // A list of tasks that need to be processed by this instance.  Note that
   // this queue is only accessed (push/pop) by our current thread.
@@ -456,7 +456,7 @@ protected:
 
   bool _exceptionRestoration;
 
-  String32 _threadName;
+  String _threadName;
 
   // A null terminated list which creates an incoming_queue of tasks that are
   // aquired under a mutex for processing on this instance's thread. These tasks

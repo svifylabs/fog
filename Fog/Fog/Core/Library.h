@@ -87,7 +87,7 @@ struct FOG_API Library
 
   Library();
   Library(const Library& other);
-  Library(const String32& fileName, uint32_t openFlags = OpenDefault);
+  Library(const String& fileName, uint32_t openFlags = OpenDefault);
   ~Library();
 
   // [Implicit Sharing]
@@ -103,13 +103,13 @@ struct FOG_API Library
   FOG_INLINE void* getHandle() const { return _d->handle; }
   FOG_INLINE bool isOpen() const { return _d->handle != NULL; }
 
-  err_t open(const String32& fileName, uint32_t openFlags = OpenDefault);
-  err_t openPlugin(const String32& category, const String32& fileName);
+  err_t open(const String& fileName, uint32_t openFlags = OpenDefault);
+  err_t openPlugin(const String& category, const String& fileName);
   void close();
 
   // Two functions for symbol name, because symbols are encoded in
   // 8 bit ASCII null terminated strings and we can avoid to use
-  // text codecs from Fog::String32 <=> ASCII string. Only reason is
+  // text codecs from Fog::String <=> ASCII string. Only reason is
   // performance, nothing more.
 
   //! @brief Returns a symbol @a symbolName from opened library. 
@@ -118,7 +118,7 @@ struct FOG_API Library
   //! not open.
   void* getSymbol(const char* symbolName);
   //! @overload
-  void* getSymbol(const String32& symbolName);
+  void* getSymbol(const String& symbolName);
 
   //! @brief Loads more symbols at the time.
   //!
@@ -142,9 +142,9 @@ struct FOG_API Library
 
   // [Statics]
 
-  static const Char8* systemPrefix;
-  static const Char8* systemSuffix;
-  static const Char8* systemExtension;
+  static const char* systemPrefix;
+  static const char* systemSuffix;
+  static const char* systemExtension;
 
   // [Paths]
 
@@ -154,10 +154,10 @@ struct FOG_API Library
     PathPrepend
   };
 
-  static Vector<String32> paths();
-  static bool addPath(const String32& path, int mode = PathAppend);
-  static bool removePath(const String32& path);
-  static bool hasPath(const String32& path);
+  static Vector<String> paths();
+  static bool addPath(const String& path, int mode = PathAppend);
+  static bool removePath(const String& path);
+  static bool hasPath(const String& path);
 
   // [Members]
 

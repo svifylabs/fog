@@ -39,12 +39,12 @@ struct FOG_API XmlReader
 
   // [Parser]
 
-  err_t parseFile(const String32& fileName);
+  err_t parseFile(const String& fileName);
   err_t parseStream(Stream& stream);
   err_t parseMemory(const void* mem, sysuint_t size);
-  err_t parseString(const Char32* str, sysuint_t len);
+  err_t parseString(const Char* str, sysuint_t len);
 
-  FOG_INLINE err_t parseString(const String32& str)
+  FOG_INLINE err_t parseString(const String& str)
   { return parseString(str.cData(), str.getLength()); }
 
   // [State]
@@ -105,15 +105,15 @@ struct FOG_API XmlReader
 
   // [Event Handlers]
 
-  virtual err_t onAddElement(const Utf32& tagName) = 0;
-  virtual err_t onCloseElement(const Utf32& tagName) = 0;
-  virtual err_t onAddAttribute(const Utf32& name, const Utf32& value) = 0;
+  virtual err_t onAddElement(const Utf16& tagName) = 0;
+  virtual err_t onCloseElement(const Utf16& tagName) = 0;
+  virtual err_t onAddAttribute(const Utf16& name, const Utf16& value) = 0;
 
-  virtual err_t onAddText(const Utf32& data, bool isWhiteSpace) = 0;
-  virtual err_t onAddCDATA(const Utf32& data) = 0;
-  virtual err_t onAddDOCTYPE(const Vector<String32>& doctype) = 0;
-  virtual err_t onAddPI(const Utf32& data) = 0;
-  virtual err_t onAddComment(const Utf32& data) = 0;
+  virtual err_t onAddText(const Utf16& data, bool isWhiteSpace) = 0;
+  virtual err_t onAddCDATA(const Utf16& data) = 0;
+  virtual err_t onAddDOCTYPE(const Vector<String>& doctype) = 0;
+  virtual err_t onAddPI(const Utf16& data) = 0;
+  virtual err_t onAddComment(const Utf16& data) = 0;
 
 protected:
   static TextCodec _detectEncoding(const void* mem, sysuint_t size);
@@ -133,15 +133,15 @@ struct FOG_API XmlDomReader : public XmlReader
 
   // [Event Handlers]
 
-  virtual err_t onAddElement(const Utf32& tagName);
-  virtual err_t onCloseElement(const Utf32& tagName);
-  virtual err_t onAddAttribute(const Utf32& name, const Utf32& value);
+  virtual err_t onAddElement(const Utf16& tagName);
+  virtual err_t onCloseElement(const Utf16& tagName);
+  virtual err_t onAddAttribute(const Utf16& name, const Utf16& value);
 
-  virtual err_t onAddText(const Utf32& data, bool isWhiteSpace);
-  virtual err_t onAddCDATA(const Utf32& data);
-  virtual err_t onAddDOCTYPE(const Vector<String32>& doctype);
-  virtual err_t onAddPI(const Utf32& data);
-  virtual err_t onAddComment(const Utf32& data);
+  virtual err_t onAddText(const Utf16& data, bool isWhiteSpace);
+  virtual err_t onAddCDATA(const Utf16& data);
+  virtual err_t onAddDOCTYPE(const Vector<String>& doctype);
+  virtual err_t onAddPI(const Utf16& data);
+  virtual err_t onAddComment(const Utf16& data);
 
   FOG_INLINE XmlDocument* getDocument() const { return _document; }
 

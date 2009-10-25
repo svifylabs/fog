@@ -35,8 +35,8 @@ struct FOG_API UserInfo
   static uint32_t uid();
   static uint32_t gid();
 
-  static String32 directory(uint32_t dir);
-  static bool directoryTo(uint32_t dir, String32& to);
+  static String directory(uint32_t dir);
+  static bool directoryTo(uint32_t dir, String& to);
 };
 
 } // Fog namespace

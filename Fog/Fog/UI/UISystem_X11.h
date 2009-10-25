@@ -444,8 +444,8 @@ struct FOG_UISYSTEM_X11_API UIWindowX11 : public UIWindowDefault
 
   virtual err_t takeFocus();
 
-  virtual err_t setTitle(const String32& title);
-  virtual err_t getTitle(String32& title);
+  virtual err_t setTitle(const String& title);
+  virtual err_t getTitle(String& title);
 
   virtual err_t setIcon(const Image& icon);
   virtual err_t getIcon(Image& icon);

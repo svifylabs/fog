@@ -39,7 +39,7 @@ struct FOG_API MapFile
 
   // [Map / Unmap]
 
-  err_t map(const String32& fileName, bool loadOnFail = true);
+  err_t map(const String& fileName, bool loadOnFail = true);
   void unmap();
 
   FOG_INLINE bool isOpen() const
@@ -59,7 +59,7 @@ struct FOG_API MapFile
 
   // [Data]
 
-  FOG_INLINE const String32& getFileName() const
+  FOG_INLINE const String& getFileName() const
   { return _fileName; }
 
   FOG_INLINE const void* getData() const
@@ -86,7 +86,7 @@ struct FOG_API MapFile
   // [Members]
 
 private:
-  String32 _fileName;
+  String _fileName;
 
   void* _data;
   sysuint_t _size;

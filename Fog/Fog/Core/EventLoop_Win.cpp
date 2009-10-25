@@ -43,7 +43,7 @@ static const int kMaxWaitObjects = MAXIMUM_WAIT_OBJECTS;
 // [Fog::EventPumpWin]
 // ============================================================================
 
-EventPumpWin::EventPumpWin(const String32& name) : 
+EventPumpWin::EventPumpWin(const String& name) : 
   EventPump(name),
   _haveWork(0),
   _state(NULL)

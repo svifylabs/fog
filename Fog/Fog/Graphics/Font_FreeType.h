@@ -37,9 +37,9 @@ struct FOG_API FontFaceFT : public FontFace
   FontFaceFT();
   virtual ~FontFaceFT();
 
-  virtual err_t getGlyphs(const Char32* str, sysuint_t length, GlyphSet& glyphSet);
-  virtual err_t getTextWidth(const Char32* str, sysuint_t length, TextWidth* textWidth);
-  virtual err_t getPath(const Char32* str, sysuint_t length, Path& dst);
+  virtual err_t getGlyphs(const Char* str, sysuint_t length, GlyphSet& glyphSet);
+  virtual err_t getTextWidth(const Char* str, sysuint_t length, TextWidth* textWidth);
+  virtual err_t getPath(const Char* str, sysuint_t length, Path& dst);
 
 private:
   Glyph::Data* renderGlyph(uint32_t uc);
@@ -58,12 +58,12 @@ struct FOG_API FontEngineFT : public FontEngine
   FontEngineFT();
   virtual ~FontEngineFT();
 
-  virtual Vector<String32> getFonts();
+  virtual Vector<String> getFonts();
 
   virtual FontFace* getDefaultFace();
 
   virtual FontFace* createFace(
-    const String32& family, uint32_t size, 
+    const String& family, uint32_t size, 
     const FontAttributes& attributes);
 };
 

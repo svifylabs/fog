@@ -93,7 +93,7 @@ public:
   static void _sleep(uint32_t ms);
 
   /*! @brief Sets the thread name visible to a debugger. This has no effect otherwise. */
-  static void _setName(const String32& name);
+  static void _setName(const String& name);
 
   //! @brief Creates a new thread.  The @c stackSize parameter can be 0 to 
   //! indicate that the default stack size should be used. Upon success,
@@ -124,7 +124,7 @@ public:
 
   //! Constructor.
   //! name is a display string to identify the thread.
-  explicit Thread(const String32& name = String32());
+  explicit Thread(const String& name = String());
 
   //! Destroys the thread, stopping it if necessary.
   //!
@@ -152,7 +152,7 @@ public:
   //! Note: This function can't be called on Windows with the loader lock held;
   //! i.e. during a DllMain, global object construction or destruction, atexit()
   //! callback.
-  virtual bool start(const String32& eventLoopType);
+  virtual bool start(const String& eventLoopType);
 
   //! Signals the thread to exit and returns once the thread has exited.  After
   //! this method returns, the Thread object is completely reset and may be used
@@ -190,7 +190,7 @@ public:
   FOG_INLINE uint32_t getId() const { return _id; }
 
   //! Get the name of this thread (for display in debugger too).
-  FOG_INLINE const String32& getName() const { return _name; }
+  FOG_INLINE const String& getName() const { return _name; }
 
   //! Returns the message loop for this thread.  Use the EventLoop's
   //! postTask methods to execute code on the thread.  This only returns
@@ -225,7 +225,7 @@ private:
   uint32_t _id;
 
   //! The name of the thread. Used for debugging purposes.
-  String32 _name;
+  String _name;
 
   //! Stack size.
   sysuint_t _stackSize;
@@ -235,12 +235,12 @@ private:
   struct StartupData
   {
     //! @brief Event loop type (string).
-    String32 eventLoopType;
+    String eventLoopType;
 
     //! @brief Used to synchronize thread startup.
     ThreadEvent event;
 
-    StartupData(const String32& eventLoopType) : 
+    StartupData(const String& eventLoopType) : 
       eventLoopType(eventLoopType),
       event(false, false)
     {

@@ -158,7 +158,7 @@ err_t ThreadPool::setMaxThreads(int maxThreads)
 
 Thread* ThreadPool::_createThread()
 {
-  String32 threadName;
+  String threadName;
   threadName.format("Fog::ThreadPool #", _numThreads);
 
   Thread* thread = new(std::nothrow) Thread(threadName);

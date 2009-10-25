@@ -145,8 +145,14 @@ struct Implicit
 #include <Fog/Core/Application.h>
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/Atomic.h>
+#include <Fog/Core/Basics.h>
 #include <Fog/Core/BitArray.h>
+#include <Fog/Core/Byte.h>
+#include <Fog/Core/ByteArray.h>
+#include <Fog/Core/ByteArrayFilter.h>
+#include <Fog/Core/ByteArrayMatcher.h>
 #include <Fog/Core/Char.h>
+#include <Fog/Core/CharUtil.h>
 #include <Fog/Core/Class.h>
 #include <Fog/Core/Constants.h>
 #include <Fog/Core/CpuInfo.h>
@@ -179,6 +185,8 @@ struct Implicit
 #include <Fog/Core/Static.h>
 #include <Fog/Core/Stream.h>
 #include <Fog/Core/String.h>
+#include <Fog/Core/StringFilter.h>
+#include <Fog/Core/StringMatcher.h>
 #include <Fog/Core/StringUtil.h>
 #include <Fog/Core/Strings.h>
 #include <Fog/Core/TextCodec.h>

@@ -210,7 +210,7 @@ struct BenchmarkModule_Fog : public BenchmarkModule
 
   FOG_NO_INLINE virtual void saveResult()
   {
-    String32 fileName;
+    String fileName;
     Image t(im);
     fileName.set(Ascii8("bench "));
     fileName.append(Ascii8(name()));

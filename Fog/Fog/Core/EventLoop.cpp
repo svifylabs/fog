@@ -67,7 +67,7 @@ namespace Fog {
 // [Fog::EventPump]
 // ============================================================================
 
-EventPump::EventPump(const String32& name) : 
+EventPump::EventPump(const String& name) : 
   _name(name)
 {
 }
@@ -92,13 +92,13 @@ EventPump::Delegate::~Delegate()
 // [Fog::EventPump]
 // ============================================================================
 
-String32 EventLoop::getType() const
+String EventLoop::getType() const
 {
   return _pump->_name;
 }
 
 // Optional call to connect the thread name with this loop.
-void EventLoop::setThreadName(const String32& threadName)
+void EventLoop::setThreadName(const String& threadName)
 {
 #if defined FOG_DEBUG
   if (!_threadName.isEmpty())
@@ -109,7 +109,7 @@ void EventLoop::setThreadName(const String32& threadName)
   _threadName = threadName;
 }
 
-const String32& EventLoop::getThreadName() const
+const String& EventLoop::getThreadName() const
 {
   return _threadName;
 }

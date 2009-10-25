@@ -215,7 +215,7 @@ struct FOG_API KeyEvent : public Event
   FOG_INLINE uint32_t getSystemCode() const { return _systemCode; }
   
   //! @brief Returns key code translated to unicode character, can be zero if it's not possible to translate it.
-  FOG_INLINE Char32 getUnicode() const { return _unicode; }
+  FOG_INLINE Char getUnicode() const { return _unicode; }
 
   // [Members]
 
@@ -226,7 +226,7 @@ struct FOG_API KeyEvent : public Event
   //! @brief System key code (OS dependent, shouldn't be used).
   uint32_t _systemCode;
   //! @brief Key code translated to unicode character, can be zero.
-  Char32 _unicode;
+  Char _unicode;
 };
 
 struct FOG_API MouseEvent : public Event

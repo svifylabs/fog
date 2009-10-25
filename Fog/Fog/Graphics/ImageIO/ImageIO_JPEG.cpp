@@ -727,7 +727,7 @@ FOG_INIT_DECLARE void fog_imageio_jpeg_init(void)
   ImageIO::_jpeg.init();
   ImageIO::addProvider(new(std::nothrow) ImageIO::JpegProvider());
 
-  Vector<String32> properties;
+  Vector<String> properties;
 
   properties.append(fog_strings->getString(STR_GRAPHICS_quality));
   FOG_INIT_PROPERTIES_CONTAINER(ImageIO::JpegEncoderDevice, ImageIO::JpegEncoderDevice::base, properties);

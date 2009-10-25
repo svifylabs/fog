@@ -32,6 +32,7 @@ FOG_INIT_FUNC(fog_memory);
 FOG_INIT_FUNC(fog_math);
 FOG_INIT_FUNC(fog_sequence);
 FOG_INIT_FUNC(fog_bitarray);
+FOG_INIT_FUNC(fog_bytearray);
 FOG_INIT_FUNC(fog_string);
 FOG_INIT_FUNC(fog_managedstring);
 FOG_INIT_FUNC(fog_textcodec);
@@ -104,6 +105,7 @@ static const FogInitEntry fog_init_entries[] =
   INIT_ENTRY(fog_math),             // Depends to Cpu
   INIT_ENTRY(fog_sequence),         // No dependency
   INIT_ENTRY(fog_bitarray),         // No dependency
+  INIT_ENTRY(fog_bytearray),        // No dependency
   INIT_ENTRY(fog_string),           // No dependency
   INIT_ENTRY(fog_textcodec),        // No dependency
   INIT_ENTRY(fog_hash),             // No dependency

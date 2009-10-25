@@ -188,8 +188,8 @@ struct FOG_API UIWindowDefault : public UIWindow
 
   virtual void onFocus(bool focus);
 
-  virtual bool onKeyPress(uint32_t key, uint32_t modifier, uint32_t systemCode, Char32 unicode);
-  virtual bool onKeyRelease(uint32_t key, uint32_t modifier, uint32_t systemCode, Char32 unicode);
+  virtual bool onKeyPress(uint32_t key, uint32_t modifier, uint32_t systemCode, Char unicode);
+  virtual bool onKeyRelease(uint32_t key, uint32_t modifier, uint32_t systemCode, Char unicode);
 
   virtual void clearFocus();
   virtual void setFocus(Widget* w, uint32_t reason);
@@ -204,7 +204,7 @@ protected:
   //! @brief Window client rectangle.
   Rect _clientRect;
   //! @brief Window title.
-  String32 _title;
+  String _title;
   //! @brief Window resize granularity.
   Point _sizeGranularity;
 };

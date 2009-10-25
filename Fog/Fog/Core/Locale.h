@@ -68,7 +68,7 @@ struct FOG_API Locale
 
     mutable Atomic<sysuint_t> refCount;
 
-    String32 name;
+    String name;
 
     union
     {
@@ -104,7 +104,7 @@ struct FOG_API Locale
   Locale();
   Locale(const Locale& other);
   explicit Locale(Data* d);
-  explicit Locale(const String32& name);
+  explicit Locale(const String& name);
   ~Locale();
 
   // [Implicit Sharing]
@@ -127,31 +127,31 @@ struct FOG_API Locale
 
   // [Set]
 
-  bool set(const String32& name);
+  bool set(const String& name);
   bool set(const Locale& other);
 
   // [Data Getters]
 
-  FOG_INLINE Char32 getDecimalPoint() const
-  { return Char32(_d->decimalPoint); }
+  FOG_INLINE Char getDecimalPoint() const
+  { return Char(_d->decimalPoint); }
   
-  FOG_INLINE Char32 getThousandsGroup() const
-  { return Char32(_d->thousandsGroup); }
+  FOG_INLINE Char getThousandsGroup() const
+  { return Char(_d->thousandsGroup); }
   
-  FOG_INLINE Char32 getZero() const
-  { return Char32(_d->zero); }
+  FOG_INLINE Char getZero() const
+  { return Char(_d->zero); }
   
-  FOG_INLINE Char32 getPlus() const
-  { return Char32(_d->plus); }
+  FOG_INLINE Char getPlus() const
+  { return Char(_d->plus); }
   
-  FOG_INLINE Char32 getMinus() const
-  { return Char32(_d->minus); }
+  FOG_INLINE Char getMinus() const
+  { return Char(_d->minus); }
   
-  FOG_INLINE Char32 getSpace() const
-  { return Char32(_d->space); }
+  FOG_INLINE Char getSpace() const
+  { return Char(_d->space); }
 
-  FOG_INLINE Char32 getExponential() const
-  { return Char32(_d->exponential); }
+  FOG_INLINE Char getExponential() const
+  { return Char(_d->exponential); }
   
   FOG_INLINE uint32_t getFirstThousandsGroup() const
   { return _d->firstThousandsGroup; }
@@ -161,25 +161,25 @@ struct FOG_API Locale
 
   // [Data Setters]
 
-  FOG_INLINE err_t setDecimalPoint(Char32 c)
+  FOG_INLINE err_t setDecimalPoint(Char c)
   { return _setChar(0, c.ch()); }
   
-  FOG_INLINE err_t setThousandsGroup(Char32 c)
+  FOG_INLINE err_t setThousandsGroup(Char c)
   { return _setChar(1, c.ch()); }
   
-  FOG_INLINE err_t setZero(Char32 c)
+  FOG_INLINE err_t setZero(Char c)
   { return _setChar(2, c.ch()); }
   
-  FOG_INLINE err_t setPlus(Char32 c)
+  FOG_INLINE err_t setPlus(Char c)
   { return _setChar(3, c.ch()); }
   
-  FOG_INLINE err_t setMinus(Char32 c)
+  FOG_INLINE err_t setMinus(Char c)
   { return _setChar(4, c.ch()); }
   
-  FOG_INLINE err_t setSpace(Char32 c)
+  FOG_INLINE err_t setSpace(Char c)
   { return _setChar(5, c.ch()); }
 
-  FOG_INLINE err_t setExponential(Char32 c)
+  FOG_INLINE err_t setExponential(Char c)
   { return _setChar(6, c.ch()); }
   
   FOG_INLINE err_t setFirstThousandsGroup(uint32_t i)

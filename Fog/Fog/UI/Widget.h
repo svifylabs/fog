@@ -121,8 +121,8 @@ struct FOG_API Widget : public LayoutItem
   err_t createWindow(uint32_t createFlags = 0);
   err_t destroyWindow();
 
-  String32 getWindowTitle() const;
-  err_t setWindowTitle(const String32& title);
+  String getWindowTitle() const;
+  err_t setWindowTitle(const String& title);
 
   Image getWindowIcon() const;
   err_t setWindowIcon(const Image& icon);

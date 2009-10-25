@@ -62,7 +62,7 @@ SvgStyleItem::~SvgStyleItem()
 {
 }
 
-err_t SvgStyleItem::setName(const ManagedString32& name)
+err_t SvgStyleItem::setName(const ManagedString& name)
 {
   _data0 = FOG_UINT64_C(0);
   _data1 = FOG_UINT64_C(0);
@@ -70,7 +70,7 @@ err_t SvgStyleItem::setName(const ManagedString32& name)
   // Match the name in string array (we get also StyleType ID).
   for (uint32_t styleId = 1; styleId < SvgStyleCount; styleId++)
   {
-    const ManagedString32& s = fog_strings->getString(STR_SVG_STYLE_NAMES + styleId);
+    const ManagedString& s = fog_strings->getString(STR_SVG_STYLE_NAMES + styleId);
     if (s == name)
     {
       FOG_ASSERT(styleId < FOG_ARRAY_SIZE(svgStyleTypeToValueType));
@@ -90,9 +90,9 @@ err_t SvgStyleItem::setName(const ManagedString32& name)
   return Error::Ok;
 }
 
-err_t SvgStyleItem::setName(const String32& name)
+err_t SvgStyleItem::setName(const String& name)
 {
-  return setName(ManagedString32(name));
+  return setName(ManagedString(name));
 }
 
 struct SvgEnumToInt 
@@ -101,7 +101,7 @@ struct SvgEnumToInt
   uint32_t value;
 };
 
-err_t SvgStyleItem::setValue(const String32& value)
+err_t SvgStyleItem::setValue(const String& value)
 {
   err_t err = _value.set(value);
   if (err) return err;

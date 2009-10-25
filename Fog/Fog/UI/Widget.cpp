@@ -161,14 +161,14 @@ err_t Widget::destroyWindow()
   return true;
 }
 
-String32 Widget::getWindowTitle() const
+String Widget::getWindowTitle() const
 {
-  String32 title;
+  String title;
   if (_uiWindow) _uiWindow->getTitle(title);
   return title;
 }
 
-err_t Widget::setWindowTitle(const String32& title)
+err_t Widget::setWindowTitle(const String& title)
 {
   if (!_uiWindow) return Error::InvalidHandle;
   return _uiWindow->setTitle(title);

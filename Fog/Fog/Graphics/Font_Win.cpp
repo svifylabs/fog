@@ -26,7 +26,7 @@ namespace Fog {
 
 struct EnumFontStruct
 {
-  Vector<String32>* fonts;
+  Vector<String>* fonts;
   HDC hdc;
   WCHAR buffer[256];
 };
@@ -62,9 +62,8 @@ static int CALLBACK enumFontCb(CONST LOGFONTW* lplf, CONST TEXTMETRICW* lpntm, D
 
   // Many of the fonts are the same family, so temporary string
   // is here better
-  TemporaryString32<TemporaryLength> name;
-
-  name.set(Utf16(lfFaceName));
+  TemporaryString<TemporaryLength> name;
+  name.set(reinterpret_cast<const Char*>(lfFaceName));
 
   if (!efs->fonts->contains(name)) efs->fonts->append(name);
   
@@ -72,9 +71,9 @@ static int CALLBACK enumFontCb(CONST LOGFONTW* lplf, CONST TEXTMETRICW* lpntm, D
   return 1;
 }
 
-Vector<String32> FontEngineWin::getFonts()
+Vector<String> FontEngineWin::getFonts()
 {
-  Vector<String32> fonts;
+  Vector<String> fonts;
   EnumFontStruct efs;
   efs.fonts = &fonts;
   efs.hdc = GetDC(NULL);
@@ -94,14 +93,13 @@ FontFace* FontEngineWin::getDefaultFace()
 {
   FontAttributes a;
   ZeroMemory(&a, sizeof(FontAttributes));
-  return cachedFace(String32(Ascii8("arial")), 12, a);
+  return cachedFace(String(Ascii8("arial")), 12, a);
 }
 
 FontFace* FontEngineWin::createFace(
-  const String32& family, uint32_t size,
+  const String& family, uint32_t size,
   const FontAttributes& attributes)
 {
-  TemporaryString16<128> _tfamily;
   FontFaceWin* face = NULL;
 
   LOGFONTW logFont;
@@ -113,11 +111,9 @@ FontFace* FontEngineWin::createFace(
   // Get LOGFONT.
   ZeroMemory(&logFont, sizeof(LOGFONT));
 
-  _tfamily.set(family);
-  if (_tfamily.getLength() >= FOG_ARRAY_SIZE(logFont.lfFaceName)) goto fail;
+  if (family.getLength() >= FOG_ARRAY_SIZE(logFont.lfFaceName)) goto fail;
 
-  CopyMemory(logFont.lfFaceName, _tfamily.cStrW(),
-    (_tfamily.getLength() + 1) * sizeof(WCHAR));
+  CopyMemory(logFont.lfFaceName, reinterpret_cast<const wchar_t*>(family.cData()), (family.getLength() + 1) * sizeof(WCHAR));
   logFont.lfHeight = -(int)size;
   logFont.lfWeight = (attributes.bold  ) ? FW_BOLD : FW_NORMAL;
   logFont.lfItalic = (attributes.italic) != 0;
@@ -263,7 +259,7 @@ FontFaceWin::~FontFaceWin()
   if (hFont) DeleteObject((HGDIOBJ)hFont);
 }
 
-err_t FontFaceWin::getGlyphs(const Char32* str, sysuint_t length, GlyphSet& glyphSet)
+err_t FontFaceWin::getGlyphs(const Char* str, sysuint_t length, GlyphSet& glyphSet)
 {
   err_t err;
   if ( (err = glyphSet.begin(length)) ) return err;
@@ -301,7 +297,7 @@ err_t FontFaceWin::getGlyphs(const Char32* str, sysuint_t length, GlyphSet& glyp
   return Error::Ok;
 }
 
-err_t FontFaceWin::getTextWidth(const Char32* str, sysuint_t length, TextWidth* textWidth)
+err_t FontFaceWin::getTextWidth(const Char* str, sysuint_t length, TextWidth* textWidth)
 {
   TemporaryGlyphSet<128> glyphSet;
   err_t err = getGlyphs(str, length, glyphSet);
@@ -320,7 +316,7 @@ err_t FontFaceWin::getTextWidth(const Char32* str, sysuint_t length, TextWidth* 
   }
 }
 
-err_t FontFaceWin::getPath(const Char32* str, sysuint_t length, Path& dst)
+err_t FontFaceWin::getPath(const Char* str, sysuint_t length, Path& dst)
 {
   AutoLock locked(lock);
 

@@ -90,7 +90,7 @@ DirIterator::DirIterator() :
   memset(&_winFindData, 0, sizeof(WIN32_FIND_DATAW));
 }
 
-DirIterator::DirIterator(const String32& path) :
+DirIterator::DirIterator(const String& path) :
   _handle(NULL),
   _position(-1),
   _fileInEntry(false),
@@ -105,16 +105,16 @@ DirIterator::~DirIterator()
   if (_handle) close();
 }
 
-err_t DirIterator::open(const String32& path)
+err_t DirIterator::open(const String& path)
 {
   if (_handle) close();
 
-  TemporaryString32<TemporaryLength> pathAbs;
-  TemporaryString16<TemporaryLength> t;
+  TemporaryString<TemporaryLength> pathAbs;
+  TemporaryString<TemporaryLength> t;
 
   err_t err;
 
-  if ((err = FileUtil::toAbsolutePath(pathAbs, String32(), path)) ||
+  if ((err = FileUtil::toAbsolutePath(pathAbs, String(), path)) ||
       (err = t.set(pathAbs)) ||
       (err = t.append(Ascii8("\\*"))) ||
       (err = t.slashesToWin()))
@@ -122,7 +122,7 @@ err_t DirIterator::open(const String32& path)
     return err;
   }
 
-  if ((_handle = (void*)FindFirstFileW(t.cStrW(), &_winFindData)) != (void*)INVALID_HANDLE_VALUE)
+  if ((_handle = (void*)FindFirstFileW(reinterpret_cast<const wchar_t*>(t.cData()), &_winFindData)) != (void*)INVALID_HANDLE_VALUE)
   {
     _path = pathAbs;
     _position = 0;
@@ -188,10 +188,9 @@ __readNext:
     to._type = Entry::File;
   }
 
-  to._size =
-    ((uint64_t)(to._winFindData.nFileSizeHigh) << 32) |
-    ((uint64_t)(to._winFindData.nFileSizeLow));
-  to._name.set(Utf16(to._winFindData.cFileName));
+  to._size = ((uint64_t)(to._winFindData.nFileSizeHigh) << 32) |
+             ((uint64_t)(to._winFindData.nFileSizeLow));
+  to._name.set(reinterpret_cast<const Char*>(to._winFindData.cFileName));
 
   return true;
 }
@@ -200,7 +199,7 @@ err_t DirIterator::rewind()
 {
   if (!_handle) return Error::InvalidHandle;
 
-  TemporaryString16<TemporaryLength> t;
+  TemporaryString<TemporaryLength> t;
 
   err_t err;
 
@@ -211,7 +210,7 @@ err_t DirIterator::rewind()
     return err;
   }
 
-  HANDLE h = FindFirstFileW(t.cStrW(), &_winFindData);
+  HANDLE h = FindFirstFileW(reinterpret_cast<const wchar_t*>(t.cData()), &_winFindData);
   if (h == INVALID_HANDLE_VALUE)
   {
     return GetLastError();
@@ -240,7 +239,7 @@ DirIterator::DirIterator() :
 {
 }
 
-DirIterator::DirIterator(const String32& path) :
+DirIterator::DirIterator(const String& path) :
   _handle(NULL),
   _skipDots(true),
   _pathCacheBaseLength(0)
@@ -253,17 +252,19 @@ DirIterator::~DirIterator()
   if (_handle) close();
 }
 
-err_t DirIterator::open(const String32& path)
+err_t DirIterator::open(const String& path)
 {
   close();
 
-  TemporaryString32<TemporaryLength> pathAbs;
-  TemporaryString8<TemporaryLength> t;
+  TemporaryString<TemporaryLength> pathAbs;
+  TemporaryByteArray<TemporaryLength> t;
 
-  FileUtil::toAbsolutePath(pathAbs, String32(), path);
-  t.set(pathAbs, TextCodec::local8());
+  err_t err;
 
-  if ((_handle = (void*)::opendir(t.cStr())) != NULL)
+  if ((err = FileUtil::toAbsolutePath(pathAbs, String(), path))) return err;
+  if ((err = TextCodec::local8().appendFromUnicode(t, pathAbs))) return err;
+
+  if ((_handle = (void*)::opendir(t.cData())) != NULL)
   {
     _path = pathAbs;
     _pathCache = t;
@@ -296,25 +297,25 @@ bool DirIterator::read(Entry& to)
   {
     const char* name = de->d_name;
 
-    // skip "." and ".."
+    // Skip "." and ".."
     if (name[0] == '.' && skipDots())
     {
       if (name[1] == '\0' || (name[1] == '.' && name[2] == '\0')) continue;
     }
 
-    // get entry name length
+    // Get entry name length.
     sysuint_t nameLength = strlen(name);
 
-    // translate entry name to unicode
-    to._name.set(name, nameLength, TextCodec::local8());
+    // Translate entry name to unicode.
+    TextCodec::local8().toUnicode(to._name, name, nameLength);
 
     _pathCache.resize(_pathCacheBaseLength);
-    _pathCache.append(Char8('/'));
-    _pathCache.append(Stub8(name, nameLength));
+    _pathCache.append('/');
+    _pathCache.append(name, nameLength);
 
     uint type = 0;
 
-    if (::stat(_pathCache.cStr(), &to._statInfo) != 0)
+    if (::stat(_pathCache.cData(), &to._statInfo) != 0)
     {
       // This is situation that's bad symbolic link (I was experienced
       // this) and there is no reason to write an error message...

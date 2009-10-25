@@ -83,16 +83,16 @@ enum CoreError
   LibraryOpenFailed,
   LibrarySymbolNotFound,
 
-  // [TextCodec Errors]
+  // [TextCodec Errors (Also StringUtil errors)]
 
   //! @brief Invalid text codec (Null) used to encode / decode string
   InvalidCodec,
   //! @brief Invalid UTF-8 sequence.
-  InvalidUtf8,
-  //! @brief Invalid UTF-16 sequence (surrogate pair)
-  InvalidUtf16,
+  InvalidUtf8Sequence,
+  //! @brief Invalid UTF-16 sequence (surrogate pair error).
+  InvalidUtf16Sequence,
   //! @brief Invalid Unicode character.
-  InvalidUnicode,
+  InvalidUnicodeCharacter,
   //! @brief Incomplete input buffer.
   InputTruncated,
   //! @brief Some characters loss during conversion (replaced by '?' or a given replacer).

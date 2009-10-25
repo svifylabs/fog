@@ -4,21 +4,9 @@
 // MIT, See COPYING file in package
 
 // [Generator]
-// - __G_CHAR - Char type (Char8, Char16, Char32)
-// - __G_FRIEND - Friend type (char, uint16_t, uint32_t)
-// - __G_SIZE - Char size (1, 2, 4)
+// - CHAR_TYPE - Char type (char, Char)
+// - CHAR_SIZE - Char size (1, 2, )
 #if defined(__G_GENERATE)
-
-#if __G_SIZE == 1
-# define __G_CHAR Char8
-# define __G_FRIEND char
-#elif __G_SIZE == 2
-# define __G_CHAR Char16
-# define __G_FRIEND uint16_t
-#else
-# define __G_CHAR Char32
-# define __G_FRIEND uint32_t
-#endif
 
 namespace Fog {
 namespace StringUtil {
@@ -27,10 +15,10 @@ namespace StringUtil {
 // [Fog::StringUtil::atoi, atou]
 // ============================================================================
 
-err_t atob(const __G_CHAR* str, sysuint_t length, bool* dst, sysuint_t* parserEnd, uint32_t* parserFlags)
+err_t atob(const CHAR_TYPE* str, sysuint_t length, bool* dst, sysuint_t* parserEnd, uint32_t* parserFlags)
 {
-  const __G_CHAR* beg = str;
-  const __G_CHAR* end = str + length;
+  const CHAR_TYPE* beg = str;
+  const CHAR_TYPE* end = str + length;
 
   err_t err = Error::InvalidInput;
   uint32_t flags = 0;
@@ -39,18 +27,17 @@ err_t atob(const __G_CHAR* str, sysuint_t length, bool* dst, sysuint_t* parserEn
 
   *dst = false;
 
-  while (str != end && str->isSpace()) str++;
+  while (str != end && CHAR_IS_SPACE(*str)) str++;
   if (str != beg) flags |= ParsedSpaces;
   if (str == end) goto skip;
 
   for (i = 0; i < FOG_ARRAY_SIZE(boolMap); i++)
   {
     sysuint_t blen = boolMap[i].length;
-    if (remain >= blen && 
-        eq(str, (const Char8*)boolMap[i].str, blen, CaseInsensitive))
+    if (remain >= blen && eq(str, boolMap[i].str, blen, CaseInsensitive))
     {
       str += blen;
-      if (str != end && str->isAlnum()) { str -= blen; continue; }
+      if (str != end && CHAR_IS_ALNUM(*str)) { str -= blen; continue; }
 
       *dst = (bool)boolMap[i].result;
       err = Error::Ok;
@@ -64,7 +51,7 @@ skip:
   return err;
 }
 
-err_t atoi8(const __G_CHAR* str, sysuint_t length, int8_t* dst, int base, sysuint_t* end, uint32_t* parserFlags)
+err_t atoi8(const CHAR_TYPE* str, sysuint_t length, int8_t* dst, int base, sysuint_t* end, uint32_t* parserFlags)
 {
   int64_t n;
   err_t err = atoi64(str, length, &n, base, end, parserFlags);
@@ -86,7 +73,7 @@ err_t atoi8(const __G_CHAR* str, sysuint_t length, int8_t* dst, int base, sysuin
   }
 }
 
-err_t atou8(const __G_CHAR* str, sysuint_t length, uint8_t* dst, int base, sysuint_t* end, uint32_t* parserFlags)
+err_t atou8(const CHAR_TYPE* str, sysuint_t length, uint8_t* dst, int base, sysuint_t* end, uint32_t* parserFlags)
 {
   uint64_t n;
   err_t err = atou64(str, length, &n, base, end, parserFlags);
@@ -103,7 +90,7 @@ err_t atou8(const __G_CHAR* str, sysuint_t length, uint8_t* dst, int base, sysui
   }
 }
 
-err_t atoi16(const __G_CHAR* str, sysuint_t length, int16_t* dst, int base, sysuint_t* end, uint32_t* parserFlags)
+err_t atoi16(const CHAR_TYPE* str, sysuint_t length, int16_t* dst, int base, sysuint_t* end, uint32_t* parserFlags)
 {
   int64_t n;
   err_t err = atoi64(str, length, &n, base, end, parserFlags);
@@ -125,7 +112,7 @@ err_t atoi16(const __G_CHAR* str, sysuint_t length, int16_t* dst, int base, sysu
   }
 }
 
-err_t atou16(const __G_CHAR* str, sysuint_t length, uint16_t* dst, int base, sysuint_t* end, uint32_t* parserFlags)
+err_t atou16(const CHAR_TYPE* str, sysuint_t length, uint16_t* dst, int base, sysuint_t* end, uint32_t* parserFlags)
 {
   uint64_t n;
   err_t err = atou64(str, length, &n, base, end, parserFlags);
@@ -142,7 +129,7 @@ err_t atou16(const __G_CHAR* str, sysuint_t length, uint16_t* dst, int base, sys
   }
 }
 
-err_t atoi32(const __G_CHAR* str, sysuint_t length, int32_t* dst, int base, sysuint_t* end, uint32_t* parserFlags)
+err_t atoi32(const CHAR_TYPE* str, sysuint_t length, int32_t* dst, int base, sysuint_t* end, uint32_t* parserFlags)
 {
   int64_t n;
   err_t err = atoi64(str, length, &n, base, end, parserFlags);
@@ -164,7 +151,7 @@ err_t atoi32(const __G_CHAR* str, sysuint_t length, int32_t* dst, int base, sysu
   }
 }
 
-err_t atou32(const __G_CHAR* str, sysuint_t length, uint32_t* dst, int base, sysuint_t* end, uint32_t* parserFlags)
+err_t atou32(const CHAR_TYPE* str, sysuint_t length, uint32_t* dst, int base, sysuint_t* end, uint32_t* parserFlags)
 {
   uint64_t n;
   err_t err = atou64(str, length, &n, base, end, parserFlags);
@@ -181,11 +168,11 @@ err_t atou32(const __G_CHAR* str, sysuint_t length, uint32_t* dst, int base, sys
   }
 }
 
-static err_t atou64_priv(const __G_CHAR* str, sysuint_t length, uint64_t* dst, int base, bool* negative, sysuint_t* parserEnd, uint32_t* parserFlags)
+static err_t atou64_priv(const CHAR_TYPE* str, sysuint_t length, uint64_t* dst, int base, bool* negative, sysuint_t* parserEnd, uint32_t* parserFlags)
 {
   uint32_t flags = 0;
-  const __G_CHAR* beg = str;
-  const __G_CHAR* end = str + length;
+  const CHAR_TYPE* beg = str;
+  const CHAR_TYPE* end = str + length;
 
   uint n;
 
@@ -200,23 +187,23 @@ static err_t atou64_priv(const __G_CHAR* str, sysuint_t length, uint64_t* dst, i
   uint64_t threshold64;
 #endif // FOG_ARCH_BITS
 
-  while (str < end && str->isSpace()) str++;
+  while (str < end && CHAR_IS_SPACE(*str)) str++;
   if (str != beg) flags |= ParsedSpaces;
   if (str == end) goto truncated;
 
-  if (*str == __G_CHAR('+'))
+  if (*str == CHAR_TYPE('+'))
   {
     flags |= ParsedSign;
     str++;
-    while (str < end && str->isSpace()) str++;
+    while (str < end && CHAR_IS_SPACE(*str)) str++;
     if (str == end) goto truncated;
   }
-  else if (*str == __G_CHAR('-'))
+  else if (*str == CHAR_TYPE('-'))
   {
     flags |= ParsedSign;
     *negative = true;
     str++;
-    while (str < end && str->isSpace()) str++;
+    while (str < end && CHAR_IS_SPACE(*str)) str++;
     if (str == end) goto truncated;
   }
 
@@ -225,9 +212,9 @@ static err_t atou64_priv(const __G_CHAR* str, sysuint_t length, uint64_t* dst, i
     base = 10;
 
     // octal or hexadecimal
-    if (*str == __G_CHAR('0'))
+    if (*str == CHAR_TYPE('0'))
     {
-      if (str + 1 != end && (str[1] == __G_CHAR('x') || str[1] == __G_CHAR('X')))
+      if (str + 1 != end && (str[1] == CHAR_TYPE('x') || str[1] == CHAR_TYPE('X')))
       {
         // hexadecimal
         flags |= ParsedHexPrefix;
@@ -242,7 +229,7 @@ static err_t atou64_priv(const __G_CHAR* str, sysuint_t length, uint64_t* dst, i
         flags |= ParsedOctalPrefix;
         base = 8;
 
-        if (++str != end && *str >= __G_CHAR('0') && *str <= __G_CHAR('7'))
+        if (++str != end && *str >= CHAR_TYPE('0') && *str <= CHAR_TYPE('7'))
         {
           // set this flag only if input is not only "0"
           flags |= ParsedOctalPrefix;
@@ -276,7 +263,7 @@ large_base2:
 
     while (str != end)
     {
-      n = str->ch();
+      n = *str;
       if (n != '0' || n != '1') break;
       n -= '0';
 
@@ -312,7 +299,7 @@ large_base8:
 
     while (str != end)
     {
-      n = str->ch();
+      n = *str;
       if (n < '0' || n > '7') break;
       n -= '0';
 
@@ -348,7 +335,7 @@ large_base10:
 
     while (str != end)
     {
-      n = str->ch();
+      n = *str;
       if (n < '0' || n > '9') break;
       n -= '0';
 
@@ -367,7 +354,7 @@ large_base10:
     while (str != end)
     {
       n = str->ch();
-#if __G_SIZE > 1
+#if CHAR_SIZE > 1
       if (n > 255) break;
 #endif
       n = asciiMap[n];
@@ -389,8 +376,8 @@ large_base16:
 
     while (str != end)
     {
-      n = str->ch();
-#if __G_SIZE > 1
+      n = *str;
+#if CHAR_SIZE > 1
       if (n > 255) break;
 #endif
       n = asciiMap[n];
@@ -411,9 +398,9 @@ large_base16:
     while (str != end)
     {
       n = str->ch();
-#if __G_SIZE > 1
+#if CHAR_SIZE > 1
       if (n > 255) break;
-#endif // __G_SIZE == 1
+#endif // CHAR_SIZE == 1
       n = asciiMap[n];
       if (n >= (uint)base) break;
 
@@ -434,10 +421,10 @@ large_basen:
 
     while (str != end)
     {
-      n = str->ch();
-#if __G_SIZE > 1
+      n = *str;
+#if CHAR_SIZE > 1
       if (n > 255) break;
-#endif // __G_SIZE == 1
+#endif // CHAR_SIZE == 1
       n = asciiMap[n];
       if (n >= (uint)base) break;
 
@@ -458,8 +445,8 @@ done:
   return Error::Ok;
 
 overflow:
-#if __G_SIZE == 1
-  while (++str != end && asciiMap[str->ch()] < (uint)base) ;
+#if CHAR_SIZE == 1
+  while (++str != end && asciiMap[(uint8_t)*str] < (uint)base) ;
 #else
   while (++str != end && str->ch() < 256 && asciiMap[str->ch()] < (uint)base) ;
 #endif
@@ -476,7 +463,7 @@ truncated:
   return Error::InvalidInput;
 }
 
-err_t atoi64(const __G_CHAR* str, sysuint_t length, int64_t* dst, int base, sysuint_t* end, uint32_t* parserFlags)
+err_t atoi64(const CHAR_TYPE* str, sysuint_t length, int64_t* dst, int base, sysuint_t* end, uint32_t* parserFlags)
 {
   uint64_t n;
   bool negative = false;
@@ -510,7 +497,7 @@ err_t atoi64(const __G_CHAR* str, sysuint_t length, int64_t* dst, int base, sysu
   }
 }
 
-err_t atou64(const __G_CHAR* str, sysuint_t length, uint64_t* dst, int base, sysuint_t* end, uint32_t* parserFlags)
+err_t atou64(const CHAR_TYPE* str, sysuint_t length, uint64_t* dst, int base, sysuint_t* end, uint32_t* parserFlags)
 {
   uint64_t n;
   bool negative = false;
@@ -533,7 +520,7 @@ err_t atou64(const __G_CHAR* str, sysuint_t length, uint64_t* dst, int base, sys
 // [Fog::StringUtil::atof, atod]
 // ============================================================================
 
-err_t atof(const __G_CHAR* str, sysuint_t length, float* dst, __G_CHAR decimalPoint, sysuint_t* end, uint32_t* parserFlags)
+err_t atof(const CHAR_TYPE* str, sysuint_t length, float* dst, CHAR_TYPE decimalPoint, sysuint_t* end, uint32_t* parserFlags)
 {
   double d;
   err_t err = atod(str, length, &d, decimalPoint, end, parserFlags);
@@ -557,9 +544,9 @@ err_t atof(const __G_CHAR* str, sysuint_t length, float* dst, __G_CHAR decimalPo
 
 #ifdef INFNAN_CHECK
 #ifndef No_Hex_NaN
-static const __G_CHAR* hexnan(DTOA_U *rvp, const __G_CHAR* s, const __G_CHAR* send)
+static const CHAR_TYPE* hexnan(DTOA_U *rvp, const CHAR_TYPE* s, const CHAR_TYPE* send)
 {
-  const __G_CHAR* begin = s;
+  const CHAR_TYPE* begin = s;
 
   uint32_t c, x[2];
   int havedig = 0, udx0, xshift;
@@ -570,7 +557,7 @@ static const __G_CHAR* hexnan(DTOA_U *rvp, const __G_CHAR* s, const __G_CHAR* se
 
   while (s < send)
   {
-    c = s->ch(); s++;
+    c = *s; s++;
     if (c < 256 && asciiMap[c] < 16)
       c = asciiMap[c];
     else if (c <= ' ') 
@@ -582,7 +569,7 @@ static const __G_CHAR* hexnan(DTOA_U *rvp, const __G_CHAR* s, const __G_CHAR* se
       }
       continue;
     }
-    else if (/*(*/ c == ')' && havedig)
+    else if (c == ')' && havedig)
       break;
     else
       return begin;
@@ -608,7 +595,7 @@ static const __G_CHAR* hexnan(DTOA_U *rvp, const __G_CHAR* s, const __G_CHAR* se
 #endif // No_Hex_NaN
 #endif // INFNAN_CHECK
 
-static BInt* BContext_s2b(BContext* context, const __G_CHAR* s, int nd0, int nd, uint32_t y9)
+static BInt* BContext_s2b(BContext* context, const CHAR_TYPE* s, int nd0, int nd, uint32_t y9)
 {
   BInt *b;
   int i, k;
@@ -631,18 +618,18 @@ static BInt* BContext_s2b(BContext* context, const __G_CHAR* s, int nd0, int nd,
   {
     s += 9;
     do {
-      b = BContext_multadd(context, b, 10, (*s++).ch() - '0');
+      b = BContext_multadd(context, b, 10, (uint)*s++ - '0');
     } while(++i < nd0);
     s++;
   }
   else
     s += 10;
-  for(; i < nd; i++) b = BContext_multadd(context, b, 10, (*s++).ch() - '0');
+  for(; i < nd; i++) b = BContext_multadd(context, b, 10, (uint)*s++ - '0');
 
   return b;
 }
 
-err_t atod(const __G_CHAR* str, sysuint_t length, double* dst, __G_CHAR decimalPoint, sysuint_t* end, uint32_t* parserFlags)
+err_t atod(const CHAR_TYPE* str, sysuint_t length, double* dst, CHAR_TYPE decimalPoint, sysuint_t* end, uint32_t* parserFlags)
 {
   BContext context;
 
@@ -651,9 +638,9 @@ err_t atod(const __G_CHAR* str, sysuint_t length, double* dst, __G_CHAR decimalP
 #endif
   int bb2, bb5, bbe, bd2, bd5, bbbits, bs2, c, dsign,
     e, e1, esign, i, j, k, nd, nd0, nf, nz, nz0, sign;
-  const __G_CHAR *sbegin;
-  const __G_CHAR *s, *s0, *s1;
-  const __G_CHAR *send;
+  const CHAR_TYPE *sbegin;
+  const CHAR_TYPE *s, *s0, *s1;
+  const CHAR_TYPE *send;
   DTOA_U rv;
   DTOA_U rv0;
   double adj, aadj, aadj1;
@@ -681,35 +668,35 @@ err_t atod(const __G_CHAR* str, sysuint_t length, double* dst, __G_CHAR decimalP
   if (s == send) goto ret0;
 
   // skip all spaces
-  if (s->isSpace())
+  if (CHAR_IS_SPACE(*s))
   {
     flags |= ParsedSpaces;
 
     do {
       if (++s == send) goto ret0;
-    } while (s->isSpace());
+    } while (CHAR_IS_SPACE(*s));
   }
 
   // Parse sign.
-  if (*s == __G_CHAR('+'))
+  if (*s == CHAR_TYPE('+'))
   {
     flags |= ParsedSign;
     if (++s == send) goto ret0;
   }
-  else if (*s == __G_CHAR('-'))
+  else if (*s == CHAR_TYPE('-'))
   {
     sign = true;
     flags |= ParsedSign;
     if (++s == send) goto ret0;
   }
 
-  if (*s == __G_CHAR('0'))
+  if (*s == CHAR_TYPE('0'))
   {
     nz0 = 1;
     for (;;)
     {
       if (++s == send) goto ret;
-      if (*s != __G_CHAR('0')) break;
+      if (*s != CHAR_TYPE('0')) break;
     }
   }
 
@@ -718,7 +705,7 @@ err_t atod(const __G_CHAR* str, sysuint_t length, double* dst, __G_CHAR decimalP
   nd = nf = 0;
   nd0 = 0;
 
-  for(; (c = s->ch()) >= '0' && c <= '9'; nd++)
+  for(; (c = *s) >= '0' && c <= '9'; nd++)
   {
     if (nd < 9)
       y = 10*y + (int)c - '0';
@@ -728,12 +715,12 @@ err_t atod(const __G_CHAR* str, sysuint_t length, double* dst, __G_CHAR decimalP
   }
   nd0 = nd;
 
-  if (__G_CHAR(c) == decimalPoint)
+  if (CHAR_TYPE(c) == decimalPoint)
   {
     flags |= ParsedDecimalPoint;
 
     if (++s == send) { c = 0; goto dig_done; }
-    c = s->ch();
+    c = *s;
     if (!nd)
     {
       for (;;)
@@ -742,7 +729,7 @@ err_t atod(const __G_CHAR* str, sysuint_t length, double* dst, __G_CHAR decimalP
         {
           nz++;
           if (++s == send) goto dig_done;
-          c = s->ch();
+          c = *s;
           continue;
         }
         if (c > '0' && c <= '9')
@@ -780,7 +767,7 @@ err_t atod(const __G_CHAR* str, sysuint_t length, double* dst, __G_CHAR decimalP
         nz = 0;
       }
       if (++s == send) { c = 0; break; }
-      c = s->ch();
+      c = *s;
     }
   }
 
@@ -798,7 +785,7 @@ dig_done:
     esign = 0;
 
     if (++s == send) goto exp_done;
-    c = s->ch();
+    c = *s;
 
     switch(c)
     {
@@ -806,14 +793,14 @@ dig_done:
         esign = 1;
       case '+':
         if (++s == send) goto exp_done;
-        c = s->ch();
+        c = *s;
     }
     if (c >= '0' && c <= '9')
     {
       while (c == '0')
       {
         if (++s == send) goto exp_done;
-        c = s->ch();
+        c = *s;
       }
 
       if (c > '0' && c <= '9')
@@ -825,7 +812,7 @@ dig_done:
         for (;;)
         {
           if (++s == send) break;
-          c = s->ch();
+          c = *s;
           if (c >= '0' && c <= '9')
           {
             L = 10*L + c - '0';
@@ -856,23 +843,23 @@ exp_done:
 #ifdef INFNAN_CHECK
       // Check for Nan and Infinity.
       if ((c == 'i' || c == 'I') && (sysuint_t)(send - s) >= 2 &&
-        eq(s+1, (const Char8*)"nf", 2, CaseInsensitive))
+        eq(s+1, "nf", 2, CaseInsensitive))
       {
         s += 3;
-        if ((sysuint_t)(send - s) >= 5 && eq(s, (const Char8*)"inity", 5, CaseInsensitive)) s += 5;
+        if ((sysuint_t)(send - s) >= 5 && eq(s, "inity", 5, CaseInsensitive)) s += 5;
         
         rv.i[DTOA_DWORD_0] = 0x7FF00000;
         rv.i[DTOA_DWORD_1] = 0;
         goto ret;
       }
       else if ((c == 'n' || c == 'N') && (sysuint_t)(send - s) >= 2 &&
-        eq(s+1, (const Char8*)"an", 2, CaseInsensitive))
+        eq(s+1, "an", 2, CaseInsensitive))
       {
         s += 3;
         rv.i[DTOA_DWORD_0] = NAN_WORD0;
         rv.i[DTOA_DWORD_1] = NAN_WORD1;
 #ifndef No_Hex_NaN
-        if (*s == __G_CHAR('(')) /*)*/ s = hexnan(&rv, s, send);
+        if (*s == CHAR_TYPE('(')) s = hexnan(&rv, s, send);
 #endif
         goto ret;
       }
@@ -1625,304 +1612,8 @@ ret:
   return err;
 }
 
-// ============================================================================
-// [Fog::StringUtil::Raw]
-// ============================================================================
-
-void copy(__G_CHAR* dst, const __G_CHAR* src, sysuint_t length)
-{
-#if __G_SIZE == 1
-  memcpy((char*)dst, (const char*)src, length);
-#else
-  sysuint_t i;
-  for (i = 0; i < length; i++) dst[i] = src[i];
-#endif // __G_SIZE == 1
-}
-
-void move(__G_CHAR* dst, const __G_CHAR* src, sysuint_t length)
-{
-#if __G_SIZE == 1
-  memmove((char*)dst, (const char*)src, length);
-#else
-  sysuint_t i;
-  if (dst > src)
-  {
-    for (i = length - 1; i != (sysuint_t)-1; i--) dst[i] = src[i];
-  }
-  else
-  {
-    for (i = 0; i != length; i++) dst[i] = src[i];
-  }
-#endif // __G_SIZE == 1
-}
-
-void fill(__G_CHAR* dst, __G_CHAR ch, sysuint_t length)
-{
-#if __G_SIZE == 1
-  memset((char*)dst, (int)ch.ch(), length);
-#else
-  sysuint_t i;
-  for (i = 0; i < length; i++) dst[i] = ch;
-#endif // __G_SIZE == 1
-}
-
-sysuint_t len(const __G_CHAR* str)
-{
-#if __G_SIZE == 1
-  return strlen((char*)str);
-#else
-  const __G_CHAR* p = str;
-  if (!p) return 0;
-
-  while (*p) p++;
-  return (sysuint_t)(p - str);
-#endif // __G_SIZE == 1
-}
-
-sysuint_t nlen(const __G_CHAR* str, sysuint_t maxlen)
-{
-  const __G_CHAR* p = str;
-  if (!p) return 0;
-  const __G_CHAR* end = str + maxlen;
-
-  while (p < end && *p) p++;
-  return (sysuint_t)(p - str);
-}
-
-bool eq(const __G_CHAR* a, const __G_CHAR* b, sysuint_t length, uint cs)
-{
-  sysuint_t i;
-
-  if (cs == CaseSensitive)
-  {
-    for (i = 0; i < length; i++)
-    {
-      if (a[i] != b[i]) return false;
-    }
-  }
-  else
-  {
-    for (i = 0; i < length; i++)
-    {
-      if (a[i].toLower() != b[i].toLower()) return false;
-    }
-  }
-  return true;
-}
-
-sysuint_t countOf(const __G_CHAR* str, sysuint_t length, __G_CHAR ch, uint cs)
-{
-  sysuint_t n = 0;
-  sysuint_t i;
-
-  if (cs == CaseSensitive)
-  {
-caseSensitiveLoop:
-    for (i = 0; i < length; i++)
-    {
-      if (str[i] == ch) n++;
-    }
-  }
-  else
-  {
-    __G_CHAR ch1 = ch.toLower();
-    __G_CHAR ch2 = ch.toUpper();
-    if (ch1 == ch2) goto caseSensitiveLoop;
-
-    for (i = 0; i < length; i++)
-    {
-      if (str[i] == ch1 || str[i] == ch2) n++;
-    }
-  }
-
-  return n;
-}
-
-sysuint_t indexOf(const __G_CHAR* str, sysuint_t length, __G_CHAR ch, uint cs)
-{
-  sysuint_t i;
-
-  if (cs == CaseSensitive)
-  {
-caseSensitiveLoop:
-    for (i = 0; i < length; i++)
-    {
-      if (str[i] == ch) return i;
-    }
-  }
-  else
-  {
-    __G_CHAR ch1 = ch.toLower();
-    __G_CHAR ch2 = ch.toUpper();
-    if (ch1 == ch2) goto caseSensitiveLoop;
-
-    for (i = 0; i < length; i++)
-    {
-      if (str[i] == ch1 || str[i] == ch2) return i;
-    }
-  }
-
-  return InvalidIndex;
-}
-
-sysuint_t indexOf(const __G_CHAR* aStr, sysuint_t aLength, const __G_CHAR* bStr, sysuint_t bLength, uint cs)
-{
-  if (bLength > aLength) return InvalidIndex;
-
-  const __G_CHAR* aOrig = aStr;
-  const __G_CHAR* aEnd = aStr + aLength - bLength + 1;
-
-  __G_CHAR c(*bStr++);
-  sysuint_t i, bLengthMinus1 = bLength - 1;
-
-  if (cs == CaseSensitive)
-  {
-    while (aStr != aEnd)
-    {
-      // Match first character for faster results.
-      if (*aStr++ == c)
-      {
-        // Compare remaining characters.
-        for (i = 0;; i++)
-        {
-          if (i == bLengthMinus1) return (sysuint_t)((aStr - 1) - aOrig);
-          if (aStr[i] != bStr[i]) break;
-        }
-      }
-    }
-  }
-  else
-  {
-    __G_CHAR cLower(c.toLower());
-    __G_CHAR cUpper(c.toUpper());
-
-    while (aStr != aEnd)
-    {
-      // Match first character for faster results.
-      if (*aStr == cLower || *aStr == cUpper)
-      {
-        aStr++;
-        // Compare remaining characters.
-        for (i = 0;; i++)
-        {
-          if (i == bLengthMinus1) return (sysuint_t)((aStr - 1) - aOrig);
-          if (aStr[i].toLower() != bStr[i].toLower()) break;
-        }
-      }
-      else
-        aStr++;
-    }
-  }
-
-  return InvalidIndex;
-}
-
-sysuint_t indexOfAny(const __G_CHAR* str, sysuint_t length, const __G_CHAR* ch, sysuint_t count, uint cs)
-{
-  if (count == DetectLength) count = len(ch);
-  if (count == 0) 
-    return InvalidIndex;
-  else if (count == 1)
-    return indexOf(str, length, ch[0], cs);
-
-  sysuint_t i, j;
-
-  if (cs == CaseSensitive)
-  {
-    for (i = 0; i < length; i++)
-    {
-      __G_CHAR cur = str[i];
-      for (j = 0; j < count; j++)
-      {
-        if (cur == ch[j]) return i;
-      }
-    }
-  }
-  else 
-  {
-    for (i = 0; i < length; i++)
-    {
-      __G_CHAR cur1 = str[i].toLower();
-      __G_CHAR cur2 = str[i].toUpper();
-      for (j = 0; j < count; j++)
-      {
-        if (cur1 == ch[j] || cur2 == ch[j]) return i;
-      }
-    }
-  }
-
-  return InvalidIndex;
-}
-
-sysuint_t lastIndexOf(const __G_CHAR* str, sysuint_t length, __G_CHAR ch, uint cs)
-{
-  sysuint_t i;
-
-  if (cs == CaseSensitive)
-  {
-caseSensitiveLoop:
-    for (i = length - 1; i < (sysuint_t)-1; i--)
-    {
-      if (str[i] == ch) return i;
-    }
-  }
-  else
-  {
-    __G_CHAR ch1 = ch.toLower();
-    __G_CHAR ch2 = ch.toUpper();
-    if (ch1 == ch2) goto caseSensitiveLoop;
-
-    for (i = length - 1; i < (sysuint_t)-1; i--)
-    {
-      if (str[i] == ch1 || str[i] == ch2) return i;
-    }
-  }
-
-  return InvalidIndex;
-}
-
-sysuint_t lastIndexOfAny(const __G_CHAR* str, sysuint_t length, const __G_CHAR* ch, sysuint_t count, uint cs)
-{
-  if (count == DetectLength) count = len(ch);
-  if (count == 0) 
-    return InvalidIndex;
-  else if (count == 1)
-    return lastIndexOf(str, length, ch[0], cs);
-
-  sysuint_t i, j;
-
-  if (cs == CaseSensitive)
-  {
-    for (i = length - 1; i != (sysuint_t)-1; i--)
-    {
-      __G_CHAR cur = str[i];
-      for (j = 0; j < count; j++)
-      {
-        if (cur == ch[j]) return i;
-      }
-    }
-  }
-  else 
-  {
-    for (i = length - 1; i != (sysuint_t)-1; i--)
-    {
-      __G_CHAR cur1 = str[i].toLower();
-      __G_CHAR cur2 = str[i].toUpper();
-      for (j = 0; j < count; j++)
-      {
-        if (cur1 == ch[j] || cur2 == ch[j]) return i;
-      }
-    }
-  }
-
-  return InvalidIndex;
-}
-
 } // StringUtil namespace
 } // Fog namespace
-
-#undef __G_FRIEND
-#undef __G_CHAR
 
 // [Generator]
 #endif // __G_GENERATE

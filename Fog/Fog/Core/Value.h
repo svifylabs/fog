@@ -39,7 +39,7 @@ struct FOG_API ValueData
   virtual err_t getInt32(int32_t* dst) const = 0;
   virtual err_t getInt64(int64_t* dst) const = 0;
   virtual err_t getDouble(double* dst) const = 0;
-  virtual err_t getString(String32* dst) const = 0;
+  virtual err_t getString(String* dst) const = 0;
 
   virtual err_t setValue(void* val) = 0;
 
@@ -62,7 +62,7 @@ struct FOG_API ValueData
   //!   - TypeNull
   //!   - TypeInteger: i.i64
   //!   - TypeDouble: i.d
-  //!   - TypeString: &raw[8] == Fog::String32*
+  //!   - TypeString: &raw[8] == Fog::String*
   union
   {
     uint8_t raw[sizeof(void*)];
@@ -103,7 +103,7 @@ struct FOG_API Value
   static Value fromInt32(int32_t val);
   static Value fromInt64(int64_t val);
   static Value fromDouble(double val);
-  static Value fromString(const String32& val);
+  static Value fromString(const String& val);
 
   static Value fromErrno();
 #if defined(FOG_OS_WINDOWS)
@@ -131,13 +131,13 @@ struct FOG_API Value
   FOG_INLINE err_t getInt32(int32_t* dst) const { return _d->getInt32(dst); }
   FOG_INLINE err_t getInt64(int64_t* dst) const { return _d->getInt64(dst); }
   FOG_INLINE err_t getDouble(double* dst) const { return _d->getDouble(dst); }
-  FOG_INLINE err_t getString(String32* dst) const { return _d->getString(dst); }
+  FOG_INLINE err_t getString(String* dst) const { return _d->getString(dst); }
 
   err_t setNull();
   err_t setInt32(int32_t val);
   err_t setInt64(int64_t val);
   err_t setDouble(double val);
-  err_t setString(const String32& val);
+  err_t setString(const String& val);
 
   // [Static Data]
 

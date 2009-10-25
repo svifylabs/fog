@@ -231,15 +231,15 @@ private:
 struct FOG_API PropertyChangedEvent : public Event
 {
 public:
-  PropertyChangedEvent(const String32& name);
+  PropertyChangedEvent(const String& name);
   virtual ~PropertyChangedEvent();
   virtual Event* clone() const;
 
-  FOG_INLINE const String32& getName() const
+  FOG_INLINE const String& getName() const
   { return _name; }
 
 private:
-  String32 _name;
+  String _name;
 };
 
 } // Fog namespace

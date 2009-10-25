@@ -9,6 +9,7 @@
 
 // [Dependencies]
 #include <Fog/Build/Build.h>
+#include <Fog/Core/ByteArray.h>
 #include <Fog/Core/Char.h>
 #include <Fog/Core/String.h>
 
@@ -50,23 +51,18 @@ struct FOG_API XmlEntity
   static FOG_INLINE sysuint_t pairsCount() { return _pairsCount; }
 
   //! @brief Decode named entity into unicode character.
-  static uint16_t decode(const Char8* entityName, sysuint_t entityLength = DetectLength);
+  static Char decode(const char* entityName, sysuint_t entityLength = DetectLength);
   //! @overload.
-  static FOG_INLINE uint16_t decode(const String8& entityName) { return decode(entityName.cData(), entityName.getLength()); }
+  static FOG_INLINE Char decode(const ByteArray& entityName) { return decode(entityName.cData(), entityName.getLength()); }
 
   //! @brief Decode named entity into unicode character.
-  static uint16_t decode(const Char16* entityName, sysuint_t entityLength = DetectLength);
+  static Char decode(const Char* entityName, sysuint_t entityLength = DetectLength);
   //! @overload.
-  static FOG_INLINE uint16_t decode(const String16& entityName) { return decode(entityName.cData(), entityName.getLength()); }
-
-  //! @brief Decode named entity into unicode character.
-  static uint16_t decode(const Char32* entityName, sysuint_t entityLength = DetectLength);
-  //! @overload.
-  static FOG_INLINE uint16_t decode(const String32& entityName) { return decode(entityName.cData(), entityName.getLength()); }
+  static FOG_INLINE Char decode(const String& entityName) { return decode(entityName.cData(), entityName.getLength()); }
 
   //! @brief Encode unicode character into named entity.
   //! @note Length of @a dest must be at least 16 characters.
-  static sysuint_t encode(char* dst, Char32 ch);
+  static sysuint_t encode(char* dst, Char ch);
 
   static const Pair* _pairs;
   static sysuint_t _pairsCount;

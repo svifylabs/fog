@@ -9,6 +9,7 @@
 #endif // FOG_PRECOMP
 
 // [Dependencies]
+#include <Fog/Core/ByteArray.h>
 #include <Fog/Core/FileSystem.h>
 #include <Fog/Core/FileUtil.h>
 #include <Fog/Core/Math.h>
@@ -67,9 +68,9 @@ void StreamDevice::deref()
   if (refCount.deref()) delete this;
 }
 
-String8 StreamDevice::getBuffer() const
+ByteArray StreamDevice::getBuffer() const
 {
-  return String8();
+  return ByteArray();
 }
 
 // ============================================================================
@@ -192,7 +193,7 @@ struct FOG_HIDDEN StreamDeviceHANDLE : public StreamDevice
   StreamDeviceHANDLE(HANDLE hFile, uint32_t fflags);
   ~StreamDeviceHANDLE();
 
-  static err_t openFile(const String32& fileName, uint32_t openFlags, StreamDevice** dst);
+  static err_t openFile(const String& fileName, uint32_t openFlags, StreamDevice** dst);
 
   virtual int64_t seek(int64_t offset, int whence);
   virtual int64_t tell() const;
@@ -214,7 +215,7 @@ StreamDeviceHANDLE::~StreamDeviceHANDLE()
 {
 }
 
-err_t StreamDeviceHANDLE::openFile(const String32& fileName, uint32_t openFlags, StreamDevice** dst)
+err_t StreamDeviceHANDLE::openFile(const String& _fileName, uint32_t openFlags, StreamDevice** dst)
 {
   FOG_ASSERT((openFlags & (Stream::OpenRead | Stream::OpenWrite)) != 0);
 
@@ -222,13 +223,9 @@ err_t StreamDeviceHANDLE::openFile(const String32& fileName, uint32_t openFlags,
 
   // Convert path to local file system string
   err_t err;
-  TemporaryString16<TemporaryLength> fileNameW;
+  String fileName = _fileName;
 
-  if ((err = fileNameW.set(fileName)) ||
-      (err = fileNameW.slashesToWin()))
-  {
-    return err;
-  }
+  if ((err = fileName.slashesToWin())) return err;
 
   DWORD dwDesiredAccess = 0;
   DWORD dwCreationDisposition = 0;
@@ -266,7 +263,7 @@ err_t StreamDeviceHANDLE::openFile(const String32& fileName, uint32_t openFlags,
   }
 
   hFile = CreateFileW(
-    fileNameW.cStrW(),         // file name
+    reinterpret_cast<const wchar_t*>(fileName.cData()),
     dwDesiredAccess,           // open mode (read / write)
     FILE_SHARE_READ | FILE_SHARE_WRITE, // share mode
     NULL,                      // security
@@ -283,7 +280,7 @@ err_t StreamDeviceHANDLE::openFile(const String32& fileName, uint32_t openFlags,
       dwError == ERROR_FILE_NOT_FOUND)
     {
       hFile = CreateFileW(
-        fileNameW.cStrW(),         // file name
+        reinterpret_cast<const wchar_t*>(fileName.cData()),
         dwDesiredAccess,           // open mode (read / write)
         FILE_SHARE_READ | FILE_SHARE_WRITE, // share mode
         NULL,                      // security
@@ -406,7 +403,7 @@ struct FOG_HIDDEN StreamDeviceFd : public StreamDevice
   StreamDeviceFd(int fd, uint32_t fflags);
   ~StreamDeviceFd();
 
-  static err_t openFile(const String32& fileName, uint32_t openFlags, StreamDevice** dst);
+  static err_t openFile(const String& fileName, uint32_t openFlags, StreamDevice** dst);
 
   virtual int64_t seek(int64_t offset, int whence);
   virtual int64_t tell() const;
@@ -429,7 +426,7 @@ StreamDeviceFd::~StreamDeviceFd()
   close();
 }
 
-err_t StreamDeviceFd::openFile(const String32& fileName, uint32_t openFlags, StreamDevice** dst)
+err_t StreamDeviceFd::openFile(const String& fileName, uint32_t openFlags, StreamDevice** dst)
 {
   FOG_ASSERT((openFlags & (Stream::OpenRead | Stream::OpenWrite)) != 0);
 
@@ -442,9 +439,9 @@ err_t StreamDeviceFd::openFile(const String32& fileName, uint32_t openFlags, Str
 
   // Convert path to local file system string
   err_t err;
-  TemporaryString8<TemporaryLength> fileName8;
+  TemporaryByteArray<TemporaryLength> fileName8;
 
-  if ((err = fileName8.set(fileName, TextCodec::local8()))) return err;
+  if ((err = TextCodec::local8().appendFromUnicode(fileName8, fileName))) return err;
 
   // Read / Write
   if ((openFlags & Stream::OpenReadWrite) == Stream::OpenReadWrite)
@@ -469,12 +466,12 @@ err_t StreamDeviceFd::openFile(const String32& fileName, uint32_t openFlags, Str
   }
 
   // Open file
-  fd = ::open64(fileName8.cStr(), fdFlags | O_LARGEFILE);
+  fd = ::open64(fileName8.cData(), fdFlags | O_LARGEFILE);
 
   // Try to create file if open failed (or create it if OpenCreate flag was set)
   if (fd < 0 && (errno == ENOENT) && (openFlags & Stream::OpenCreate) != 0)
   {
-    fd = ::open64(fileName8.cStr(), fdFlags | O_CREAT | O_LARGEFILE, 0644);
+    fd = ::open64(fileName8.cData(), fdFlags | O_CREAT | O_LARGEFILE, 0644);
   }
 
   if (fd < 0)
@@ -557,7 +554,7 @@ struct FOG_HIDDEN StreamDeviceMemory : public StreamDevice
   virtual err_t truncate(int64_t offset);
   virtual void close();
 
-  virtual String8 getBuffer() const;
+  virtual ByteArray getBuffer() const;
 
   uint8_t* data;
   sysuint_t size;
@@ -650,11 +647,11 @@ void StreamDeviceMemory::close()
 {
 }
 
-String8 StreamDeviceMemory::getBuffer() const
+ByteArray StreamDeviceMemory::getBuffer() const
 {
-  String8 buffer;
+  ByteArray buffer;
   if (buffer.reserve(size) == Error::Ok)
-    Memory::copy((void*)buffer.cStr(), (const void*)data, size);
+    Memory::copy((void*)buffer.cData(), (const void*)data, size);
   return buffer;
 }
 
@@ -664,7 +661,7 @@ String8 StreamDeviceMemory::getBuffer() const
 
 struct FOG_HIDDEN StreamDeviceString : public StreamDevice
 {
-  StreamDeviceString(String8 data, uint32_t fflags);
+  StreamDeviceString(ByteArray data, uint32_t fflags);
   virtual ~StreamDeviceString();
 
   virtual int64_t seek(int64_t offset, int whence);
@@ -674,13 +671,13 @@ struct FOG_HIDDEN StreamDeviceString : public StreamDevice
   virtual err_t truncate(int64_t offset);
   virtual void close();
 
-  virtual String8 getBuffer() const;
+  virtual ByteArray getBuffer() const;
 
-  String8 data;
+  ByteArray data;
   sysuint_t pos;
 };
 
-StreamDeviceString::StreamDeviceString(String8 buffer, uint32_t fflags) :
+StreamDeviceString::StreamDeviceString(ByteArray buffer, uint32_t fflags) :
   data(buffer), pos(FOG_UINT64_C(0))
 {
   flags |= fflags | Stream::IsOpen | Stream::IsSeekable | Stream::IsMemory | Stream::IsGrowable;
@@ -736,7 +733,7 @@ sysuint_t StreamDeviceString::read(void* buffer, sysuint_t size)
   sysuint_t remain = (sysuint_t)(length - pos);
   if (size > remain) size = remain;
 
-  Memory::copy(buffer, const_cast<char*>(data.cStr()), size);
+  Memory::copy(buffer, const_cast<char*>(data.cData()), size);
   pos += size;
 
   return size;
@@ -748,20 +745,20 @@ sysuint_t StreamDeviceString::write(const void* buffer, sysuint_t size)
   sysuint_t overwriteSize = Math::min(length - pos, size);
   sysuint_t appendSize = size - overwriteSize;
 
-  if (!data.tryDetach()) return 0;
+  if (data.detach() != Error::Ok) return 0;
 
   const uint8_t* src = reinterpret_cast<const uint8_t*>(buffer);
 
   if (overwriteSize)
   {
-    Memory::copy(const_cast<char*>(data.cStr()), src, overwriteSize);
+    Memory::copy(const_cast<char*>(data.xData()), src, overwriteSize);
     src += overwriteSize;
     pos += overwriteSize;
   }
 
   if (appendSize)
   {
-    if (data.append(Stub8(reinterpret_cast<const Char8*>(src), appendSize)) != Error::Ok)
+    if (data.append(reinterpret_cast<const char*>(src), appendSize) != Error::Ok)
       return overwriteSize;
     pos += appendSize;
   }
@@ -784,7 +781,7 @@ void StreamDeviceString::close()
   data.free();
 }
 
-String8 StreamDeviceString::getBuffer() const
+ByteArray StreamDeviceString::getBuffer() const
 {
   return data;
 }
@@ -816,7 +813,7 @@ Stream::~Stream()
   _d->deref();
 }
 
-err_t Stream::openFile(const String32& fileName, uint32_t openFlags)
+err_t Stream::openFile(const String& fileName, uint32_t openFlags)
 {
   static uint32_t createPathFlags = OpenCreate | OpenCreatePath | OpenWrite;
 
@@ -832,7 +829,7 @@ err_t Stream::openFile(const String32& fileName, uint32_t openFlags)
   // Create path if asked for.
   if ((openFlags & createPathFlags) == createPathFlags)
   {
-    TemporaryString32<TemporaryLength> dirName;
+    TemporaryString<TemporaryLength> dirName;
     if ((err = FileUtil::extractDirectory(dirName, fileName))) return err;
 
     if (!dirName.isEmpty() && dirName != Ascii8("."))
@@ -919,12 +916,12 @@ err_t Stream::openFd(int fd, uint32_t openFlags, bool canClose)
 
 err_t Stream::openBuffer()
 {
-  String8 buffer;
+  ByteArray buffer;
   buffer.reserve(8192);
   return openBuffer(buffer);
 }
 
-err_t Stream::openBuffer(const String8& buffer)
+err_t Stream::openBuffer(const ByteArray& buffer)
 {
   close();
 
@@ -967,17 +964,17 @@ sysuint_t Stream::read(void* buffer, sysuint_t size)
   return _d->read(buffer, size);
 }
 
-sysuint_t Stream::read(String8& dst, sysuint_t size)
+sysuint_t Stream::read(ByteArray& dst, sysuint_t size)
 {
-  err_t err = dst.reserve(size);
+  err_t err = dst.prepare(size);
   if (err) return 0;
 
-  sysuint_t n = _d->read((void*)dst.mStr(), size);
+  sysuint_t n = _d->read((void*)dst.xData(), size);
   dst.resize(n);
   return n;
 }
 
-sysuint_t Stream::readAll(String8& dst, int64_t maxBytes)
+sysuint_t Stream::readAll(ByteArray& dst, int64_t maxBytes)
 {
   dst.clear();
 
@@ -1035,7 +1032,7 @@ sysuint_t Stream::write(const void* buffer, sysuint_t size)
   return _d->write(buffer, size);
 }
 
-sysuint_t Stream::write(const String8& data)
+sysuint_t Stream::write(const ByteArray& data)
 {
   return _d->write((const void*)data.cData(), data.getLength());
 }
@@ -1050,7 +1047,7 @@ void Stream::close()
   AtomicBase::ptr_setXchg(&_d, sharedNull->refAlways())->deref();
 }
 
-String8 Stream::getBuffer() const
+ByteArray Stream::getBuffer() const
 {
   return _d->getBuffer();
 }

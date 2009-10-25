@@ -113,7 +113,7 @@ Event* TimerEvent::clone()
 // [Fog::PropertyChangedEvent]
 // ============================================================================
 
-PropertyChangedEvent::PropertyChangedEvent(const String32& name) :
+PropertyChangedEvent::PropertyChangedEvent(const String& name) :
   Event(EvPropertyChanged),
   _name(name)
 {

@@ -79,7 +79,7 @@ struct FOG_HIDDEN NullValueData : public ValueData
   virtual err_t getInt32(int32_t* dst) const;
   virtual err_t getInt64(int64_t* dst) const;
   virtual err_t getDouble(double* dst) const;
-  virtual err_t getString(String32* dst) const;
+  virtual err_t getString(String* dst) const;
 
   virtual err_t setValue(void* val);
 };
@@ -113,7 +113,7 @@ err_t NullValueData::getDouble(double* dst) const
   return Error::Ok;
 }
 
-err_t NullValueData::getString(String32* dst) const
+err_t NullValueData::getString(String* dst) const
 {
   dst->clear();
   return Error::Ok;
@@ -136,7 +136,7 @@ struct FOG_HIDDEN IntegerValueData : public ValueData
   virtual err_t getInt32(int32_t* dst) const;
   virtual err_t getInt64(int64_t* dst) const;
   virtual err_t getDouble(double* dst) const;
-  virtual err_t getString(String32* dst) const;
+  virtual err_t getString(String* dst) const;
 
   virtual err_t setValue(void* val);
 };
@@ -184,7 +184,7 @@ err_t IntegerValueData::getDouble(double* dst) const
   return Error::Ok;
 }
 
-err_t IntegerValueData::getString(String32* dst) const
+err_t IntegerValueData::getString(String* dst) const
 {
   dst->setInt(i64);
   return Error::Ok;
@@ -208,7 +208,7 @@ struct FOG_HIDDEN DoubleValueData : public ValueData
   virtual err_t getInt32(int32_t* dst) const;
   virtual err_t getInt64(int64_t* dst) const;
   virtual err_t getDouble(double* dst) const;
-  virtual err_t getString(String32* dst) const;
+  virtual err_t getString(String* dst) const;
 
   virtual err_t setValue(void* val);
 };
@@ -269,7 +269,7 @@ err_t DoubleValueData::getDouble(double* dst) const
   return Error::Ok;
 }
 
-err_t DoubleValueData::getString(String32* dst) const
+err_t DoubleValueData::getString(String* dst) const
 {
   dst->setDouble(d);
   return Error::Ok;
@@ -287,29 +287,29 @@ err_t DoubleValueData::setValue(void* val)
 
 struct FOG_HIDDEN StringValueData : public ValueData
 {
-  StringValueData(const String32& content);
+  StringValueData(const String& content);
   ~StringValueData();
 
   virtual err_t clone(void* dst) const;
   virtual err_t getInt32(int32_t* dst) const;
   virtual err_t getInt64(int64_t* dst) const;
   virtual err_t getDouble(double* dst) const;
-  virtual err_t getString(String32* dst) const;
+  virtual err_t getString(String* dst) const;
 
   virtual err_t setValue(void* val);
 
-  FOG_INLINE String32* str() const { return (String32*)raw; }
+  FOG_INLINE String* str() const { return (String*)raw; }
 };
 
-StringValueData::StringValueData(const String32& content) : 
+StringValueData::StringValueData(const String& content) : 
   ValueData(Value::TypeString)
 {
-  new (str()) String32(content);
+  new (str()) String(content);
 }
 
 StringValueData::~StringValueData()
 {
-  str()->~String32();  
+  str()->~String();  
 }
 
 err_t StringValueData::clone(void* dst) const
@@ -333,7 +333,7 @@ err_t StringValueData::getDouble(double* dst) const
   return str()->atod(dst);
 }
 
-err_t StringValueData::getString(String32* dst) const
+err_t StringValueData::getString(String* dst) const
 {
   dst->set(*str());
   return Error::Ok;
@@ -341,7 +341,7 @@ err_t StringValueData::getString(String32* dst) const
 
 err_t StringValueData::setValue(void* val)
 {
-  str()->set(*(String32*)val);
+  str()->set(*(String*)val);
   return Error::Ok;
 }
 
@@ -407,7 +407,7 @@ Value Value::fromDouble(double val)
       DoubleValueData(val));
 }
 
-Value Value::fromString(const String32& val)
+Value Value::fromString(const String& val)
 {
   return Value(
     new(ValueData::allocData()) 
@@ -504,7 +504,7 @@ err_t Value::setDouble(double val)
   return Error::Ok;
 }
 
-err_t Value::setString(const String32& val)
+err_t Value::setString(const String& val)
 {
   if (isDetached())
   {

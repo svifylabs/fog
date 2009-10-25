@@ -32,27 +32,23 @@ namespace HashUtil {
 
 FOG_API uint32_t hashData(const void* data, sysuint_t size);
 
-// STANDARD hash functions for 8 bit, 16 bit and 32 bit NULL terminated
-// strings. 8 bit, 16 bit and 32 bit hashes are not compatible for strings
-// that represents same unicode data.
-FOG_API uint32_t hashString(const Char8* key, sysuint_t length);
-FOG_API uint32_t hashString(const Char16* key, sysuint_t length);
-FOG_API uint32_t hashString(const Char32* key, sysuint_t length);
+// STANDARD hash functions for 8 bit and 16 bit NULL terminated strings.
+// 8 bit and 16 bit hashes are not compatible for strings that represents same
+// unicode data.
+// TODO: Invalid, hashes must be compatible between Latin1 and Utf16 strings.
+FOG_API uint32_t hashString(const char* key, sysuint_t length);
+FOG_API uint32_t hashString(const Char* key, sysuint_t length);
 
 //! @brief Combine two hash values into one.
-static FOG_INLINE uint32_t combineHash(uint32_t hash1, uint32_t hash2)
-{ return hash1 + hash2; }
+static FOG_INLINE uint32_t combineHash(uint32_t hash1, uint32_t hash2) { return hash1 + hash2; }
 
 // ============================================================================
 // [Fog::getHashCode]
 // ============================================================================
 
+// Default action is to call getHashCode() method
 template<typename T>
-FOG_INLINE uint32_t getHashCode(const T& key)
-{
-  // Default action is to call getHashCode() method
-  return key.getHashCode();
-}
+FOG_INLINE uint32_t getHashCode(const T& key) { return key.getHashCode(); }
 
 #define FOG_DECLARE_HASHABLE(__type__, __execute__) \
 template<> \
@@ -74,11 +70,9 @@ FOG_DECLARE_HASHABLE(uint32_t, { return (uint32_t)key; })
 FOG_DECLARE_HASHABLE(int64_t, { return ((uint32_t)((uint64_t)(key) >> 31)) ^ (uint32_t)(key); })
 FOG_DECLARE_HASHABLE(uint64_t, { return ((uint32_t)((uint64_t)(key) >> 31)) ^ (uint32_t)(key); })
 /*
-FOG_DECLARE_HASHABLE_PTR(char*, { return hashString(reinterpret_cast<const Char8*>(key), DetectLength); })
-FOG_DECLARE_HASHABLE_PTR(uint8_t*, { return hashString(reinterpret_cast<const Char8*>(key), DetectLength); })
-FOG_DECLARE_HASHABLE_PTR(Char8*, { return hashString(key, DetectLength); })
-FOG_DECLARE_HASHABLE_PTR(Char16*, { return hashString(key, DetectLength); })
-FOG_DECLARE_HASHABLE_PTR(Char32*, { return hashString(key, DetectLength); })
+FOG_DECLARE_HASHABLE_PTR(char*, { return hashString(key, DetectLength); })
+FOG_DECLARE_HASHABLE_PTR(uint8_t*, { return hashString(reinterpret_cast<const char*>(key), DetectLength); })
+FOG_DECLARE_HASHABLE_PTR(Char*, { return hashString(key, DetectLength); })
 */
 #if FOG_ARCH_BITS == 32
 template<typename T>

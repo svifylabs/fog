@@ -231,8 +231,8 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
   virtual void drawGlyph(const Point& pt, const Glyph& glyph, const Rect* clip);
   virtual void drawGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip);
 
-  virtual void drawText(const Point& p, const String32& text, const Font& font, const Rect* clip);
-  virtual void drawText(const Rect& r, const String32& text, const Font& font, uint32_t align, const Rect* clip);
+  virtual void drawText(const Point& p, const String& text, const Font& font, const Rect* clip);
+  virtual void drawText(const Rect& r, const String& text, const Font& font, uint32_t align, const Rect* clip);
 
   // --------------------------------------------------------------------------
   // [Image drawing]
@@ -251,8 +251,8 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
   // [Properties]
   // --------------------------------------------------------------------------
 
-  virtual err_t setProperty(const String32& name, const Value& value);
-  virtual Value getProperty(const String32& name) const;
+  virtual err_t setProperty(const String& name, const Value& value);
+  virtual Value getProperty(const String& name) const;
 
   // --------------------------------------------------------------------------
   // [Forward Declarations]
@@ -2433,7 +2433,7 @@ void PainterEngine_Raster::drawGlyphSet(const Point& pt, const GlyphSet& glyphSe
   _serializeGlyphSet(pt, glyphSet, clip);
 }
 
-void PainterEngine_Raster::drawText(const Point& pt, const String32& text, const Font& font, const Rect* clip)
+void PainterEngine_Raster::drawText(const Point& pt, const String& text, const Font& font, const Rect* clip)
 {
   TemporaryGlyphSet<128> glyphSet;
   if (font.getGlyphs(text.cData(), text.getLength(), glyphSet)) return;
@@ -2441,7 +2441,7 @@ void PainterEngine_Raster::drawText(const Point& pt, const String32& text, const
   _serializeGlyphSet(pt, glyphSet, clip);
 }
 
-void PainterEngine_Raster::drawText(const Rect& r, const String32& text, const Font& font, uint32_t align, const Rect* clip)
+void PainterEngine_Raster::drawText(const Rect& r, const String& text, const Font& font, uint32_t align, const Rect* clip)
 {
   TemporaryGlyphSet<128> glyphSet;
   if (font.getGlyphs(text.cData(), text.getLength(), glyphSet)) return;
@@ -2604,7 +2604,7 @@ void PainterEngine_Raster::flushWithQuit()
 // [Fog::PainterEngine_Raster - Properties]
 // ============================================================================
 
-err_t PainterEngine_Raster::setProperty(const String32& name, const Value& value)
+err_t PainterEngine_Raster::setProperty(const String& name, const Value& value)
 {
   err_t err = Error::InvalidPropertyName;
   int p_int;
@@ -2618,7 +2618,7 @@ err_t PainterEngine_Raster::setProperty(const String32& name, const Value& value
   return err;
 }
 
-Value PainterEngine_Raster::getProperty(const String32& name) const
+Value PainterEngine_Raster::getProperty(const String& name) const
 {
   Value result;
 

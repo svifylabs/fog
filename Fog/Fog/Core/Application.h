@@ -47,12 +47,12 @@ struct UISystem;
 struct FOG_API Application : public Object
 {
   //! @brief Application constructor.
-  Application(const String32& type);
+  Application(const String& type);
   //! @brief Application constructor that allows to set argc and argv[].
-  Application(const String32& type, int argc, char* argv[]);
+  Application(const String& type, int argc, char* argv[]);
 
 private:
-  void _init(const String32& type);
+  void _init(const String& type);
 
 public:
   virtual ~Application();
@@ -68,20 +68,20 @@ public:
 
   // [Application Executable / Arguments]
 
-  static String32 getApplicationExecutable();
-  static Vector<String32> getApplicationArguments();
+  static String getApplicationExecutable();
+  static Vector<String> getApplicationArguments();
 
   // [Working Directory]
 
-  static err_t getWorkingDirectory(String32& dir);
-  static err_t setWorkingDirectory(const String32& dir);
+  static err_t getWorkingDirectory(String& dir);
+  static err_t setWorkingDirectory(const String& dir);
 
   // [Add / Remove Event Loop]
 
   typedef EventLoop* (*EventLoopConstructor)();
 
-  static bool addEventLoopType(const String32& type, EventLoopConstructor ctor);
-  static bool removeEventLoopType(const String32& type);
+  static bool addEventLoopType(const String& type, EventLoopConstructor ctor);
+  static bool removeEventLoopType(const String& type);
 
   template<typename EventLoopT>
   struct _EventLoopCtorHelper
@@ -90,7 +90,7 @@ public:
   };
 
   template<typename EventLoopT>
-  static FOG_INLINE bool addEventLoopTypeT(const String32& type)
+  static FOG_INLINE bool addEventLoopTypeT(const String& type)
   {
     return addEventLoopType(type, _EventLoopCtorHelper<EventLoopT>::ctor);
   }
@@ -99,9 +99,9 @@ public:
 
   static FOG_INLINE Application* getInstance() { return _instance; }
 
-  static String32 detectUI();
-  static UISystem* createUISystem(const String32& type);
-  static EventLoop* createEventLoop(const String32& type);
+  static String detectUI();
+  static UISystem* createUISystem(const String& type);
+  static EventLoop* createEventLoop(const String& type);
 
   // [Members]
 

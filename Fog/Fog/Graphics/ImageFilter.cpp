@@ -679,7 +679,7 @@ FOG_INIT_DECLARE err_t fog_imagefilter_init(void)
 {
   using namespace Fog;
 
-  Vector<String32> properties;
+  Vector<String> properties;
 
   properties.clear();
   properties.append(fog_strings->getString(STR_GRAPHICS_filterType));

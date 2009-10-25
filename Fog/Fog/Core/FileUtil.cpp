@@ -10,6 +10,7 @@
 
 // [Dependencies]
 #include <Fog/Core/Application.h>
+#include <Fog/Core/ByteArray.h>
 #include <Fog/Core/Error.h>
 #include <Fog/Core/FileSystem.h>
 #include <Fog/Core/FileUtil.h>
@@ -25,13 +26,13 @@ namespace Fog {
 // ============================================================================
 
 // Copy src to dst and convert slashes to posix form
-static Char32* copyAndNorm(Char32* dst, const Char32* src, sysuint_t length)
+static Char* copyAndNorm(Char* dst, const Char* src, sysuint_t length)
 {
   for (sysuint_t i = length; i; i--)
   {
 #if defined(FOG_OS_WINDOWS)
-    Char32 ch = *src++;
-    if (FOG_UNLIKELY(ch == Char32('\\')))
+    Char ch = *src++;
+    if (FOG_UNLIKELY(ch == Char('\\')))
       *dst++ = '/';
     else
       *dst++ = ch;
@@ -43,19 +44,19 @@ static Char32* copyAndNorm(Char32* dst, const Char32* src, sysuint_t length)
   return dst;
 }
 
-static bool isDirSeparator(Char32 ch)
+static bool isDirSeparator(Char ch)
 {
-  return ch == Char32('/') || ch == Char32('\\');
+  return ch == Char('/') || ch == Char('\\');
 }
 
-err_t FileUtil::extractFile(String32& dst, const String32& path)
+err_t FileUtil::extractFile(String& dst, const String& path)
 {
-  sysuint_t index = path.lastIndexOf(Char32('/')) + 1U;
+  sysuint_t index = path.lastIndexOf(Char('/')) + 1U;
 
   if (index)
   {
-    String32 path_(path);
-    return dst.set(Utf32(path_.cData() + index, path_.getLength() - index));
+    String path_(path);
+    return dst.set(path_.cData() + index, path_.getLength() - index);
   }
   else
   {
@@ -63,16 +64,16 @@ err_t FileUtil::extractFile(String32& dst, const String32& path)
   }
 }
 
-err_t FileUtil::extractDirectory(String32& dst, const String32& _path)
+err_t FileUtil::extractDirectory(String& dst, const String& _path)
 {
-  sysuint_t index = _path.lastIndexOf(Char32('/'));
+  sysuint_t index = _path.lastIndexOf(Char('/'));
 
   // in some cases (for example path /root), index can be 0. So check for this
   // case
   if (index != InvalidIndex)
   {
-    String32 path(_path);
-    return dst.set(Utf32(path.cData(), index != 0 ? index : 1));
+    String path(_path);
+    return dst.set(path.cData(), index != 0 ? index : 1);
   }
   else
   {
@@ -81,29 +82,29 @@ err_t FileUtil::extractDirectory(String32& dst, const String32& _path)
   }
 }
 
-err_t FileUtil::extractExtension(String32& dst, const String32& _path)
+err_t FileUtil::extractExtension(String& dst, const String& _path)
 {
-  String32 path(_path);
+  String path(_path);
   dst.clear();
 
   sysuint_t pathLength = path.getLength();
   if (!pathLength) { return Error::InvalidArgument; }
 
   // Speed is important, so RAW manipulation is needed
-  const Char32* pathBegin = path.cData();
-  const Char32* pathEnd = pathBegin + pathLength;
-  const Char32* pathCur = pathEnd;
+  const Char* pathBegin = path.cData();
+  const Char* pathEnd = pathBegin + pathLength;
+  const Char* pathCur = pathEnd;
 
   do {
-    if (FOG_UNLIKELY(*--pathCur == Char32('.')))
+    if (FOG_UNLIKELY(*--pathCur == Char('.')))
     {
       if (++pathCur != pathEnd)
       {
-        return dst.set(Utf32(pathCur, sysuint_t(pathEnd - pathCur)));
+        return dst.set(pathCur, sysuint_t(pathEnd - pathCur));
       }
       break;
     }
-    else if (*pathCur == Char32('/'))
+    else if (*pathCur == Char('/'))
     {
       break;
     }
@@ -112,11 +113,11 @@ err_t FileUtil::extractExtension(String32& dst, const String32& _path)
   return Error::Ok;
 }
 
-err_t FileUtil::normalizePath(String32& dst, const String32& _path)
+err_t FileUtil::normalizePath(String& dst, const String& _path)
 {
   if (isNormalizedPath(_path)) return dst.set(_path);
 
-  String32 path(_path);
+  String path(_path);
   // we need to convert:
   // - all "//" sequences to "/"
   // - all "/./" to "/" or "BEGIN./" to ""
@@ -128,19 +129,19 @@ err_t FileUtil::normalizePath(String32& dst, const String32& _path)
   err_t err;
   if ( (err = dst.resize(pathLength)) ) return err;
 
-  Char32* dstBeg = dst.xData();
-  Char32* dstCur = dstBeg;
+  Char* dstBeg = dst.xData();
+  Char* dstCur = dstBeg;
 
-  const Char32* pathCur = path.cData();
-  const Char32* pathEnd = pathCur + pathLength;
+  const Char* pathCur = path.cData();
+  const Char* pathEnd = pathCur + pathLength;
 
-  Char32 c;
+  Char c;
 
   // Handle Windows absolute path "X:\"
 #if defined(FOG_OS_WINDOWS)
   if (pathLength > 2 &&
     pathCur[0].isAsciiAlpha() &&
-    pathCur[1] == Char32(':') &&
+    pathCur[1] == Char(':') &&
     isDirSeparator(pathCur[2]))
   {
     dstCur[0] = pathCur[0];
@@ -159,7 +160,7 @@ err_t FileUtil::normalizePath(String32& dst, const String32& _path)
     c = *pathCur++;
 
     // skip "./" from result
-    if (isDirSeparator(c) && (sysuint_t)(dstCur - dstBeg) == 1 && dstCur[-1] == Char32('.'))
+    if (isDirSeparator(c) && (sysuint_t)(dstCur - dstBeg) == 1 && dstCur[-1] == Char('.'))
     { 
       prevSlash = true; 
       dstCur--; 
@@ -174,7 +175,7 @@ err_t FileUtil::normalizePath(String32& dst, const String32& _path)
         continue;
 
       // Catch "/."
-      if (c == Char32('.'))
+      if (c == Char('.'))
       {
         register sysuint_t remain = (sysuint_t)(pathEnd - pathCur);
 
@@ -186,7 +187,7 @@ err_t FileUtil::normalizePath(String32& dst, const String32& _path)
         }
 
         // Catch "/../" -> Eat previous if is
-        if (remain > 1 && pathCur[0] == Char32('.') && isDirSeparator(pathCur[1]))
+        if (remain > 1 && pathCur[0] == Char('.') && isDirSeparator(pathCur[1]))
         {
           // We know that dstCur[-1] contains '/', so we need to
           // skip this separator and get back last directory. Only what
@@ -201,8 +202,8 @@ err_t FileUtil::normalizePath(String32& dst, const String32& _path)
           // check for "../"
           if (resultLength > 2 && 
             (dstCur - 3 == dstBeg || isDirSeparator(dstCur[-4])) &&
-            dstCur[-3] == Char32('.') &&
-            dstCur[-2] == Char32('.')) goto __inc;
+            dstCur[-3] == Char('.') &&
+            dstCur[-2] == Char('.')) goto __inc;
 
           // Now we can continue
           dstCur -= 2;
@@ -227,7 +228,7 @@ err_t FileUtil::normalizePath(String32& dst, const String32& _path)
 __inc:
     prevSlash = isDirSeparator(c);
 #if defined(FOG_OS_WINDOWS)
-    if (c == Char32('\\')) c = Char32('/');
+    if (c == Char('\\')) c = Char('/');
 #endif
     *dstCur++ = c;
   }
@@ -236,14 +237,14 @@ __inc:
   return Error::Ok;
 }
 
-err_t FileUtil::toAbsolutePath(String32& dst, const String32& base, const String32& path)
+err_t FileUtil::toAbsolutePath(String& dst, const String& base, const String& path)
 {
   if (!FileUtil::isAbsolutePath(path))
   {
     err_t err;
     if (base.isEmpty())
     {
-      TemporaryString32<TemporaryLength> working;
+      TemporaryString<TemporaryLength> working;
       if ( (err = Application::getWorkingDirectory(working)) ) return err;
       if ( (err = FileUtil::joinPath(dst, working, path)) ) return err;
     }
@@ -257,10 +258,10 @@ err_t FileUtil::toAbsolutePath(String32& dst, const String32& base, const String
     return FileUtil::normalizePath(dst, path);
 }
 
-static err_t _joinPath(String32& dst, const String32& base, const String32& part)
+static err_t _joinPath(String& dst, const String& base, const String& part)
 {
-  const Char32* d_str = base.cData();
-  const Char32* f_str = part.cData();
+  const Char* d_str = base.cData();
+  const Char* f_str = part.cData();
   sysuint_t d_length = base.getLength();
   sysuint_t f_length = part.getLength();
 
@@ -270,7 +271,7 @@ static err_t _joinPath(String32& dst, const String32& base, const String32& part
   err_t err;
   if ( (err = dst.resize(d_length + f_length + 1)) ) return err;
 
-  Char32* dstCur = dst.xData();
+  Char* dstCur = dst.xData();
   dstCur = copyAndNorm(dstCur, d_str, d_length); *dstCur++ = '/';
   dstCur = copyAndNorm(dstCur, f_str, f_length);
   dst.xFinalize();
@@ -278,27 +279,27 @@ static err_t _joinPath(String32& dst, const String32& base, const String32& part
   return Error::Ok;
 }
 
-err_t FileUtil::joinPath(String32& dst, const String32& base, const String32& part)
+err_t FileUtil::joinPath(String& dst, const String& base, const String& part)
 {
   // if base or path is shared with dst, we need to do copy
   if (dst._d == base._d || dst._d == part._d)
-    return _joinPath(dst, String32(base), String32(part));
+    return _joinPath(dst, String(base), String(part));
   else
     return _joinPath(dst, base, part);
 }
 
-bool FileUtil::isPathContainsFile(const String32& path, const String32& file, uint cs)
+bool FileUtil::isPathContainsFile(const String& path, const String& file, uint cs)
 {
-  sysuint_t index = path.lastIndexOf(Char32('/'));
+  sysuint_t index = path.lastIndexOf(Char('/'));
   sysuint_t length = path.getLength() - index;
 
   return (length == file.getLength() &&
     StringUtil::eq(path.cData() + index, file.cData(), length, cs));
 }
 
-bool FileUtil::isPathContainsDirectory(const String32& path, const String32& directory, uint cs)
+bool FileUtil::isPathContainsDirectory(const String& path, const String& directory, uint cs)
 {
-  const Char32* d_str = directory.cData();
+  const Char* d_str = directory.cData();
   sysuint_t d_length = directory.getLength();
 
   if (d_length == 0) return false;
@@ -306,21 +307,21 @@ bool FileUtil::isPathContainsDirectory(const String32& path, const String32& dir
 
   return (path.getLength() > d_length &&
     isDirSeparator(path.at(d_length)) &&
-    path.startsWith(Utf32(d_str, d_length), cs));
+    path.startsWith(Utf16(d_str, d_length), cs));
 }
 
-bool FileUtil::isPathContainsExtension(const String32& path, const String32& extension, uint cs)
+bool FileUtil::isPathContainsExtension(const String& path, const String& extension, uint cs)
 {
   sysuint_t pathLength = path.getLength();
   if (!pathLength) return false;
 
   // Speed is important, so RAW manipulation is needed
-  const Char32* pathBegin = path.cData();
-  const Char32* pathEnd = pathBegin + pathLength;
-  const Char32* pathCur = pathEnd;
+  const Char* pathBegin = path.cData();
+  const Char* pathEnd = pathBegin + pathLength;
+  const Char* pathCur = pathEnd;
 
   do {
-    if (FOG_UNLIKELY(*--pathCur == Char32('.')))
+    if (FOG_UNLIKELY(*--pathCur == Char('.')))
     {
       pathCur++;
       return ((sysuint_t)(pathEnd - pathCur) == extension.getLength() &&
@@ -334,67 +335,67 @@ bool FileUtil::isPathContainsExtension(const String32& path, const String32& ext
   return false;
 }
 
-bool FileUtil::isNormalizedPath(const String32& path)
+bool FileUtil::isNormalizedPath(const String& path)
 {
   if (!FileUtil::isAbsolutePath(path)) return false;
 
 #if defined(FOG_OS_WINDOWS)
-  const Char32* pathBegin = path.cData();
-  const Char32* pathCur = pathBegin;
-  const Char32* pathEnd = pathBegin + path.getLength();
+  const Char* pathBegin = path.cData();
+  const Char* pathCur = pathBegin;
+  const Char* pathEnd = pathBegin + path.getLength();
 
   // normalize X:\ form
-  if (pathCur[2] == Char32('\\')) return false;
+  if (pathCur[2] == Char('\\')) return false;
 
   pathCur += 3;
   while (pathCur < pathEnd)
   {
     // All "\" will be replaced to "/"
-    if (pathCur[0] == Char32('\\')) return false;
+    if (pathCur[0] == Char('\\')) return false;
 
-    if (pathCur[0] == Char32('/'))
+    if (pathCur[0] == Char('/'))
     {
       // test for "//"
-      if (pathCur[-1] == Char32('/')) return false;
-      if (pathCur[-1] == Char32('.'))
+      if (pathCur[-1] == Char('/')) return false;
+      if (pathCur[-1] == Char('.'))
       {
         // NOTE: Here is no problem with reading out of
         // buffer range, because buffer often starts with
         // "\" if we are in this loop.
 
         // test for "/./"
-        if (pathCur[-2] == Char32('/')) return false;
+        if (pathCur[-2] == Char('/')) return false;
         // test for "/../"
-        if (pathCur[-2] == Char32('.') && pathCur[-3] == Char32('/')) return false;
+        if (pathCur[-2] == Char('.') && pathCur[-3] == Char('/')) return false;
       }
     }
     pathCur++;
   }
   return true;
 #else
-  const Char32* pathBegin = path.cData();
-  const Char32* pathCur = pathBegin;
-  const Char32* pathEnd = pathBegin + path.getLength();
+  const Char* pathBegin = path.cData();
+  const Char* pathCur = pathBegin;
+  const Char* pathEnd = pathBegin + path.getLength();
 
-  if (*pathCur++ == Char32('/'))
+  if (*pathCur++ == Char('/'))
   {
     while (pathCur != pathEnd)
     {
 
-      if (pathCur[0] == Char32('/'))
+      if (pathCur[0] == Char('/'))
       {
         // test for "//"
-        if (pathCur[-1] == Char32('/')) return false;
-        if (pathCur[-1] == Char32('.'))
+        if (pathCur[-1] == Char('/')) return false;
+        if (pathCur[-1] == Char('.'))
         {
           // NOTE: Here is no problem reading out of buffer
           // range, because buffer often starts with "/" if
           // we are in this loop.
 
           // test for "/./"
-          if (pathCur[-2] == Char32('/')) return false;
+          if (pathCur[-2] == Char('/')) return false;
           // test for "/../"
-          if (pathCur[-2] == Char32('.') && pathCur[-3] == Char32('/')) return false;
+          if (pathCur[-2] == Char('.') && pathCur[-3] == Char('/')) return false;
         }
       }
       pathCur++;
@@ -406,33 +407,33 @@ bool FileUtil::isNormalizedPath(const String32& path)
 #endif
 }
 
-bool FileUtil::isAbsolutePath(const String32& path)
+bool FileUtil::isAbsolutePath(const String& path)
 {
 #if defined(FOG_OS_WINDOWS)
   // We can accept that "[A-Za-z]:/" as absolute path
   if (path.getLength() > 2)
   {
-    const Char32* pathStr = path.cData();
+    const Char* pathStr = path.cData();
     return (pathStr[0].isAsciiAlpha() &&
-      pathStr[1] == Char32(':') &&
+      pathStr[1] == Char(':') &&
       isDirSeparator(pathStr[2]));
   }
   else
     return false;
 #else
-  return (path.getLength() != 0 && path.at(0) == Char32('/'));
+  return (path.getLength() != 0 && path.at(0) == Char('/'));
 #endif
 }
 
-bool FileUtil::testLocalName(const String32& path)
+bool FileUtil::testLocalName(const String& path)
 {
 #if defined(FOG_OS_WINDOWS)
   return true;
 #else
   if (TextCodec::local8().isUnicode()) return true;
 
-  TemporaryString8<TemporaryLength> path8;
-  return (path8.set(path, TextCodec::local8()) == Error::Ok);
+  TemporaryByteArray<TemporaryLength> path8;
+  return TextCodec::local8().appendFromUnicode(path8, path) == Error::Ok;
 #endif
 }
 

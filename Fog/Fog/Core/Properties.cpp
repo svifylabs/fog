@@ -35,7 +35,7 @@ PropertiesData::~PropertiesData()
   _offset = -2;
 }
 
-err_t PropertiesData::init(PropertiesData* parent, const Vector<String32>& properties)
+err_t PropertiesData::init(PropertiesData* parent, const Vector<String>& properties)
 {
   FOG_ASSERT_X(!isInitialized(), "Fog::PropertiesData::init() - Already initialized.");
 
@@ -71,7 +71,7 @@ err_t PropertiesData::init(PropertiesData* parent, const Vector<String32>& prope
 
   for (int i = 0; i < propertiesCount; i++)
   {
-    const String32& name = properties.cAt(i);
+    const String& name = properties.cAt(i);
     uint32_t hash = name.getHashCode();
     uint32_t hidx = hash & (bucketsCount-1);
 
@@ -122,7 +122,7 @@ void PropertiesData::destroy()
   _offset = -1;
 }
 
-int PropertiesData::find(const String32& name) const
+int PropertiesData::find(const String& name) const
 {
   return _findInline(name);
 }
@@ -135,34 +135,34 @@ PropertiesContainer::PropertiesContainer()
 {
 }
 
-Vector<String32> PropertiesContainer::propertiesList() const
+Vector<String> PropertiesContainer::propertiesList() const
 {
   const PropertiesData* pdata = propertiesData();
   return pdata->_properties;
 }
 
-int PropertiesContainer::propertyInfo(const String32& name) const
+int PropertiesContainer::propertyInfo(const String& name) const
 {
   const PropertiesData* pdata = propertiesData();
   int id = pdata->_findInline(name);
   return propertyInfo(id);
 }
 
-err_t PropertiesContainer::getProperty(const String32& name, Value& value) const
+err_t PropertiesContainer::getProperty(const String& name, Value& value) const
 {
   const PropertiesData* pdata = propertiesData();
   int id = pdata->_findInline(name);
   return getProperty(id, value);
 }
 
-err_t PropertiesContainer::setProperty(const String32& name, const Value& value)
+err_t PropertiesContainer::setProperty(const String& name, const Value& value)
 {
   const PropertiesData* pdata = propertiesData();
   int id = pdata->_findInline(name);
   return setProperty(id, value);
 }
 
-int PropertiesContainer::propertyToId(const String32& name) const
+int PropertiesContainer::propertyToId(const String& name) const
 {
   const PropertiesData* pdata = propertiesData();
   return pdata->_findInline(name);
@@ -190,7 +190,7 @@ err_t PropertiesContainer::setProperty(int id, const Value& value)
   return Error::InvalidPropertyName;
 }
 
-Value PropertiesContainer::property(const String32& name) const
+Value PropertiesContainer::property(const String& name) const
 {
   const PropertiesData* pdata = propertiesData();
   int id = pdata->_findInline(name);

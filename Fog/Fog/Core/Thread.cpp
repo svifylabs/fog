@@ -103,18 +103,18 @@ static void __setThreadName(THREADNAME_INFO* info)
   }
 }
 
-void Thread::_setName(const String32& name)
+void Thread::_setName(const String& name)
 {
   // The debugger needs to be around to catch the name in the exception. If
   // there isn't a debugger, we are just needlessly throwing an exception.
   if (!::IsDebuggerPresent()) return;
 
-  TemporaryString8<256> t;
-  t.set(Utf32(name), TextCodec::local8());
+  TemporaryByteArray<256> t;
+  TextCodec::local8().appendFromUnicode(t, name);
 
   THREADNAME_INFO info;
   info.dwType = 0x1000;
-  info.szName = t.cStr();
+  info.szName = t.cData();
   info.dwThreadID = _tid();
   info.dwFlags = 0;
 
@@ -189,7 +189,7 @@ void Thread::_sleep(uint32_t ms)
     sleep_time = remaining;
 }
 
-void Thread::_setName(const String32& name)
+void Thread::_setName(const String& name)
 {
   // The POSIX standard does not provide for naming threads, and neither Linux
   // nor Mac OS X (our two POSIX targets) provide any non-portable way of doing
@@ -231,7 +231,7 @@ Thread* Thread::current()
   return thread_tls.instance().get();
 }
 
-Thread::Thread(const String32& name) : 
+Thread::Thread(const String& name) : 
   _handle(0),
   _id(0),
   _name(name),
@@ -286,7 +286,7 @@ err_t Thread::resetAffinity()
 #endif
 }
 
-bool Thread::start(const String32& eventLoopType)
+bool Thread::start(const String& eventLoopType)
 {
   FOG_ASSERT(!_eventLoop);
 

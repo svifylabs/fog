@@ -11,15 +11,22 @@
 #include <Fog/Build/Build.h>
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/Atomic.h>
+#include <Fog/Core/Basics.h>
 #include <Fog/Core/Char.h>
 #include <Fog/Core/Constants.h>
+#include <Fog/Core/Error.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/TypeInfo.h>
+
+#include <wchar.h>
 
 //! @addtogroup Fog_Core
 //! @{
 
 namespace Fog {
+
+//! @addtogroup Fog_Core
+//! @{
 
 // ============================================================================
 // [Forward Declarations]
@@ -28,349 +35,708 @@ namespace Fog {
 // foreign classes
 struct Locale;
 struct TextCodec;
+struct StringFilter;
 
 template<typename T> struct Sequence;
 template<typename T> struct Vector;
 
-// local classes defined in Core/String.h or Core/String_gen.h.
-struct Stub8;
-struct Ascii8;
-struct Local8;
-struct Utf8;
-struct Utf16;
-struct Utf32;
-
-struct String8;
-struct String16;
-struct String32;
-struct StringFilter8;
-struct StringFilter16;
-struct StringFilter32;
-struct StringMatcher8;
-struct StringMatcher16;
-struct StringMatcher32;
-
 // ============================================================================
-// [Typedefs]
+// [Fog::String]
 // ============================================================================
 
-#if FOG_SIZEOF_WCHAR_T == 2
-typedef String16 StringW;
-typedef Utf16 StubW;
+struct FOG_API String
+{
+  // --------------------------------------------------------------------------
+  // [String Data]
+  // --------------------------------------------------------------------------
+
+  //! @brief String data
+  struct FOG_API Data
+  {
+    // [Flags]
+
+    //! @brief String data flags.
+    enum
+    {
+      //! @brief Null 'd' object.
+      //!
+      //! This is very likely object that's shared between all null objects. So
+      //! normally only one data instance can has this flag set on.
+      IsNull = (1U << 0),
+
+      //! @brief String data are created on the heap.
+      //!
+      //! Object is created by function like @c Fog::Memory::alloc() or by
+      //! @c new operator. It this flag is not set, you can't delete object from
+      //! the heap and object is probabbly only temporary (short life object).
+      IsDynamic = (1U << 1),
+
+      //! @brief String data are shareable.
+      //!
+      //! Object can be directly referenced by internal method @c ref().
+      //! Sharable data are usually created on the heap and together
+      //! with this flag is set also @c IsDynamic, but it isn't prerequisite.
+      IsSharable = (1U << 2),
+
+      //! @brief String data are strong to weak assignments.
+      //!
+      //! This flag means:
+      //!   "Don't assign other data to me, instead, copy them to me!".
+      IsStrong = (1U << 3)
+    };
+
+    // [Ref]
+
+    Data* ref() const;
+    void deref();
+
+    FOG_INLINE Data* refAlways() const
+    {
+      refCount.inc();
+      return (Data*)this;
+    }
+
+    FOG_INLINE void derefInline()
+    {
+      if (refCount.deref() && (flags & IsDynamic) != 0) free(this);
+    }
+
+    // [Statics]
+
+    static Data* adopt(void* address, sysuint_t capacity);
+    static Data* adopt(void* address, sysuint_t capacity, const char* str, sysuint_t length);
+    static Data* adopt(void* address, sysuint_t capacity, const Char* str, sysuint_t length);
+
+    static Data* alloc(sysuint_t capacity);
+    static Data* alloc(sysuint_t capacity, const char* str, sysuint_t length);
+    static Data* alloc(sysuint_t capacity, const Char* str, sysuint_t length);
+
+    static Data* realloc(Data* d, sysuint_t capacity);
+    static Data* copy(const Data* d);
+    static void free(Data* d);
+
+    // [Size]
+
+    static FOG_INLINE sysuint_t sizeFor(sysuint_t capacity)
+    { return sizeof(Data) + sizeof(Char) * capacity; }
+
+    // [Members]
+
+    mutable Atomic<sysuint_t> refCount;
+
+    uint32_t flags;
+    uint32_t hashCode;
+
+    sysuint_t capacity;
+    sysuint_t length;
+
+    Char data[2];
+  };
+
+  static Static<Data> sharedNull;
+
+  // --------------------------------------------------------------------------
+  // [Typedefs]
+  // --------------------------------------------------------------------------
+
+  typedef bool (*EqFn)(const String* a, const String* b);
+  typedef int (*CompareFn)(const String* a, const String* b);
+
+  // --------------------------------------------------------------------------
+  // [Construction / Destruction]
+  // --------------------------------------------------------------------------
+
+  String();
+
+  String(Char ch, sysuint_t length);
+  String(const String& other);
+  String(const String& other1, const String& other2);
+  String(const Char* str);
+  String(const Char* str, sysuint_t length);
+
+  String(const Ascii8& str);
+  String(const Utf16& str);
+
+  explicit FOG_INLINE String(Data* d) : _d(d) {}
+
+  ~String();
+
+  // --------------------------------------------------------------------------
+  // [Implicit Sharing]
+  // --------------------------------------------------------------------------
+
+  //! @copydoc Doxygen::Implicit::refCount().
+  FOG_INLINE sysuint_t refCount() const { return _d->refCount.get(); }
+  //! @copydoc Doxygen::Implicit::isDetached().
+  FOG_INLINE bool isDetached() const { return refCount() == 1; }
+  //! @copydoc Doxygen::Implicit::detach().
+  FOG_INLINE err_t detach() { return isDetached() ? Error::Ok : _detach(); }
+
+  //! @copydoc Doxygen::Implicit::_detach().
+  err_t _detach();
+
+  // --------------------------------------------------------------------------
+  // [Flags]
+  // --------------------------------------------------------------------------
+
+  //! @copydoc Doxygen::Implicit::getFlags().
+  FOG_INLINE uint32_t flags() const { return _d->flags; }
+  //! @copydoc Doxygen::Implicit::isNull().
+  FOG_INLINE bool isNull() const { return (_d->flags & Data::IsNull) != 0; }
+  //! @copydoc Doxygen::Implicit::isDynamic().
+  FOG_INLINE bool isDynamic() const { return (_d->flags & Data::IsDynamic) != 0; }
+  //! @copydoc Doxygen::Implicit::isSharable().
+  FOG_INLINE bool isSharable() const { return (_d->flags & Data::IsSharable) != 0; }
+  //! @copydoc Doxygen::Implicit::isStrong().
+  FOG_INLINE bool isStrong() const { return (_d->flags & Data::IsStrong) != 0; }
+
+  //! @copydoc Doxygen::Implicit::setIsSharable().
+  void setIsSharable(bool val);
+  //! @copydoc Doxygen::Implicit::setIsStrong().
+  void setIsStrong(bool val);
+
+  // --------------------------------------------------------------------------
+  // [Data]
+  // --------------------------------------------------------------------------
+
+  //! @brief Returns count of allocated characters (capacity).
+  FOG_INLINE sysuint_t getCapacity() const { return _d->capacity; }
+  //! @brief Returns count of used characters (length).
+  FOG_INLINE sysuint_t getLength() const { return _d->length; }
+  //! @brief Returns @c true if string is empty (length == 0).
+  FOG_INLINE bool isEmpty() const { return _d->length == 0; }
+
+  err_t prepare(sysuint_t capacity);
+  err_t reserve(sysuint_t to);
+  err_t resize(sysuint_t to);
+  err_t grow(sysuint_t by);
+
+  void squeeze();
+  void clear();
+  void free();
+
+  //! @brief Returns const pointer to string data.
+  FOG_INLINE const Char* cData() const { return _d->data; }
+
+  //! @brief Returns mutable pointer to string data.
+  Char* mData();
+
+  FOG_INLINE Char* xData()
+  {
+    FOG_ASSERT_X(isDetached(), "Fog::String::xData() - Not detached data.");
+    return _d->data;
+  }
+
+  FOG_INLINE void xFinalize()
+  {
+    FOG_ASSERT_X(isDetached(), "Fog::String::xFinalize() - Non detached data.");
+    _d->hashCode = 0;
+    FOG_ASSERT_X(_d->data[_d->length] == Char(0), "Fog::String::xFinalize() - Null terminator corrupted.");
+  }
+
+  FOG_INLINE void xFinalize(Char* end)
+  {
+    FOG_ASSERT_X(isDetached(), "Fog::String::xFinalize() - Non detached data.");
+    _d->hashCode = 0;
+    _d->length = (sysuint_t)(end - _d->data);
+    *end = 0;
+    FOG_ASSERT_X(_d->length <= _d->capacity, "Fog::String::xFinalize() - Buffer overflow.");
+  }
+
+  FOG_INLINE const Char& at(sysuint_t index) const
+  {
+    FOG_ASSERT_X(index < getLength(), "Fog::String::at() - Index out of range.");
+    return _d->data[index];
+  }
+
+  // --------------------------------------------------------------------------
+  // [Set]
+  // --------------------------------------------------------------------------
+
+  err_t set(Char ch, sysuint_t length = 1);
+  err_t set(const Ascii8& str);
+  err_t set(const Utf16& str);
+  err_t set(const String& other);
+  err_t set(const void* str, sysuint_t size, const TextCodec& tc);
+
+  FOG_INLINE err_t set(const Char* s, sysuint_t length = DetectLength) { return set(Utf16(s, length)); }
+
+  err_t setUtf8(const char* s, sysuint_t length = DetectLength);
+  err_t setUtf32(const uint32_t* s, sysuint_t length = DetectLength);
+
+  FOG_INLINE err_t setUtf16(const uint16_t* s, sysuint_t length = DetectLength)
+  {
+    return set(reinterpret_cast<const Char*>(s), length);
+  }
+
+  FOG_INLINE err_t setWChar(const wchar_t* s, sysuint_t length = DetectLength)
+  {
+    if (sizeof(wchar_t) == 2)
+      return set(reinterpret_cast<const Char*>(s), length);
+    else
+      return setUtf32(reinterpret_cast<const uint32_t*>(s), length);
+  }
+
+  err_t setDeep(const String& other);
+
+  err_t setBool(bool b);
+
+  err_t setInt(int32_t n, int base = 10);
+  err_t setInt(uint32_t n, int base = 10);
+  err_t setInt(int64_t n, int base = 10);
+  err_t setInt(uint64_t n, int base = 10);
+
+  err_t setInt(int32_t n, int base, const FormatFlags& ff, const Locale* locale = NULL);
+  err_t setInt(uint32_t n, int base, const FormatFlags& ff, const Locale* locale = NULL);
+  err_t setInt(int64_t n, int base, const FormatFlags& ff, const Locale* locale = NULL);
+  err_t setInt(uint64_t n, int base, const FormatFlags& ff, const Locale* locale = NULL);
+
+  err_t setDouble(double d, int doubleForm = DF_SignificantDigits);
+  err_t setDouble(double d, int doubleForm, const FormatFlags& ff, const Locale* locale = NULL);
+
+  err_t format(const char* fmt, ...);
+  err_t vformat(const char* fmt, va_list ap);
+
+  err_t wformat(const String& fmt, Char lex, const Sequence<String>& args);
+  err_t wformat(const String& fmt, Char lex, const String* args, sysuint_t length);
+
+  // --------------------------------------------------------------------------
+  // [Append]
+  // --------------------------------------------------------------------------
+
+  err_t append(Char ch, sysuint_t length = 1);
+  err_t append(const Ascii8& str);
+  err_t append(const Utf16& str);
+  err_t append(const String& other);
+  err_t append(const void* str, sysuint_t size, const TextCodec& tc);
+
+  FOG_INLINE err_t append(const Char* s, sysuint_t length = DetectLength) { return append(Utf16(s, length)); }
+
+  err_t appendUtf8(const char* s, sysuint_t length = DetectLength);
+  err_t appendUtf32(const uint32_t* s, sysuint_t length);
+
+  FOG_INLINE err_t appendUtf16(const uint16_t* s, sysuint_t length = DetectLength)
+  {
+    return append(reinterpret_cast<const Char*>(s), length);
+  }
+
+  FOG_INLINE err_t appendWChar(const wchar_t* s, sysuint_t length)
+  {
+    if (sizeof(wchar_t) == 2)
+      return append(reinterpret_cast<const Char*>(s), length);
+    else
+      return appendUtf32(reinterpret_cast<const uint32_t*>(s), length);
+  }
+
+  err_t appendBool(bool b);
+  err_t appendInt(int32_t n, int base = 10);
+  err_t appendInt(uint32_t n, int base = 10);
+  err_t appendInt(int64_t n, int base = 10);
+  err_t appendInt(uint64_t n, int base = 10);
+
+  err_t appendInt(int32_t n, int base, const FormatFlags& ff, const Locale* locale = NULL);
+  err_t appendInt(uint32_t n, int base, const FormatFlags& ff, const Locale* locale = NULL);
+  err_t appendInt(int64_t n, int base, const FormatFlags& ff, const Locale* locale = NULL);
+  err_t appendInt(uint64_t n, int base, const FormatFlags& ff, const Locale* locale = NULL);
+
+  err_t appendDouble(double d, int doubleForm = DF_SignificantDigits);
+  err_t appendDouble(double d, int doubleForm, const FormatFlags& ff, const Locale* locale = NULL);
+
+  err_t appendFormat(const char* fmt, ...);
+  err_t appendVformat(const char* fmt, va_list ap);
+
+  err_t appendWformat(const String& fmt, Char lex, const Sequence<String>& args);
+  err_t appendWformat(const String& fmt, Char lex, const String* args, sysuint_t length);
+
+  // --------------------------------------------------------------------------
+  // [Prepend]
+  // --------------------------------------------------------------------------
+
+  err_t prepend(Char ch, sysuint_t length = 1);
+  err_t prepend(const Ascii8& str);
+  err_t prepend(const Utf16& str);
+  err_t prepend(const String& other);
+
+  FOG_INLINE err_t prepend(const Char* s, sysuint_t length = DetectLength) { return prepend(Utf16(s, length)); }
+
+  // --------------------------------------------------------------------------
+  // [Insert]
+  // --------------------------------------------------------------------------
+
+  err_t insert(sysuint_t index, Char ch, sysuint_t length = 1);
+  err_t insert(sysuint_t index, const Ascii8& str);
+  err_t insert(sysuint_t index, const Utf16& str);
+  err_t insert(sysuint_t index, const String& other);
+
+  FOG_INLINE err_t insert(sysuint_t index, const Char* s, sysuint_t length = DetectLength) { return insert(index, Utf16(s, length)); }
+
+  // --------------------------------------------------------------------------
+  // [Remove]
+  // --------------------------------------------------------------------------
+
+  sysuint_t remove(Char ch, uint cs = CaseSensitive, const Range& range = Range(0));
+  sysuint_t remove(const String& other, uint cs = CaseSensitive, const Range& range = Range(0));
+  sysuint_t remove(const StringFilter& filter, uint cs = CaseSensitive, const Range& range = Range(0));
+
+  sysuint_t remove(const Range& range);
+  sysuint_t remove(const Range* range, sysuint_t count);
+
+  // --------------------------------------------------------------------------
+  // [Replace]
+  // --------------------------------------------------------------------------
+
+  err_t replace(Char before, Char after, uint cs = CaseSensitive, const Range& range = Range(0));
+  err_t replace(const String& before, const String& after, uint cs = CaseSensitive, const Range& range = Range(0));
+  err_t replace(const StringFilter& filter, const String& after, uint cs = CaseSensitive, const Range& range = Range(0));
+
+  err_t replace(const Range& range, const String& replacement);
+  err_t replace(const Range* range, sysuint_t count, const Char* after, sysuint_t alen);
+
+  // --------------------------------------------------------------------------
+  // [Lower / Upper]
+  // --------------------------------------------------------------------------
+
+  err_t lower();
+  err_t upper();
+
+  String lowered() const;
+  String uppered() const;
+
+  // --------------------------------------------------------------------------
+  // [Whitespaces / Justification]
+  // --------------------------------------------------------------------------
+
+  err_t trim();
+  err_t simplify();
+  err_t truncate(sysuint_t n);
+  err_t justify(sysuint_t n, Char fill, uint32_t flags);
+
+  String trimmed() const;
+  String simplified() const;
+  String truncated(sysuint_t n) const;
+  String justified(sysuint_t n, Char fill, uint32_t flags) const;
+
+  // --------------------------------------------------------------------------
+  // [Split / Join]
+  // --------------------------------------------------------------------------
+
+  Vector<String> split(Char ch, uint splitBehavior = RemoveEmptyParts, uint cs = CaseSensitive) const;
+  Vector<String> split(const String& pattern, uint splitBehavior = RemoveEmptyParts, uint cs = CaseSensitive) const;
+  Vector<String> split(const StringFilter& filter, uint splitBehavior = RemoveEmptyParts, uint cs = CaseSensitive) const;
+
+  static String join(const Sequence<String>& seq, const Char separator);
+  static String join(const Sequence<String>& seq, const String& separator);
+
+  // --------------------------------------------------------------------------
+  // [Substring]
+  // --------------------------------------------------------------------------
+
+  String substring(const Range& range) const;
+
+  // --------------------------------------------------------------------------
+  // [Conversion]
+  // --------------------------------------------------------------------------
+
+  err_t atob(bool* dst, int base = 0, sysuint_t* end = NULL, uint32_t* parserFlags = NULL) const;
+  err_t atoi8(int8_t* dst, int base = 0, sysuint_t* end = NULL, uint32_t* parserFlags = NULL) const;
+  err_t atou8(uint8_t* dst, int base = 0, sysuint_t* end = NULL, uint32_t* parserFlags = NULL) const;
+  err_t atoi16(int16_t* dst, int base = 0, sysuint_t* end = NULL, uint32_t* parserFlags = NULL) const;
+  err_t atou16(uint16_t* dst, int base = 0, sysuint_t* end = NULL, uint32_t* parserFlags = NULL) const;
+  err_t atoi32(int32_t* dst, int base = 0, sysuint_t* end = NULL, uint32_t* parserFlags = NULL) const;
+  err_t atou32(uint32_t* dst, int base = 0, sysuint_t* end = NULL, uint32_t* parserFlags = NULL) const;
+  err_t atoi64(int64_t* dst, int base = 0, sysuint_t* end = NULL, uint32_t* parserFlags = NULL) const;
+  err_t atou64(uint64_t* dst, int base = 0, sysuint_t* end = NULL, uint32_t* parserFlags = NULL) const;
+
+#if FOG_SIZEOF_LONG == 32
+  FOG_INLINE err_t atol(long* dst, int base = 0, sysuint_t* end = NULL, uint32_t* parserFlags = NULL) const
+  { return atoi32((int32_t*)dst, base, end, parserFlags); }
+  FOG_INLINE ulong atoul(ulong* dst, uint base = 0, sysuint_t* end = NULL, uint32_t* parserFlags = NULL) const
+  { return atou32((uint32_t*)dst, base, end, parserFlags); }
 #else
-typedef String32 StringW;
-typedef Utf32 StubW;
-#endif // FOG_SIZEOF_WCHAR_T
-
-// ============================================================================
-// [Fog::Stub8]
-// ============================================================================
-
-struct FOG_HIDDEN Stub8
-{
-  // [Construction / Destruction]
-
-  explicit FOG_INLINE Stub8(
-    const char* str,
-    sysuint_t length = DetectLength) : _str((const Char8*)str), _length(length)
-  {}
-
-  explicit FOG_INLINE Stub8(
-    const uint8_t* str,
-    sysuint_t length = DetectLength) : _str((const Char8*)str), _length(length)
-  {}
-
-  explicit FOG_INLINE Stub8(
-    const Char8* str,
-    sysuint_t length = DetectLength) : _str(str), _length(length)
-  {}
-
-  explicit FOG_INLINE Stub8(const String8& str);
-
-  // [Methods]
-
-  FOG_INLINE const Char8* getStr() const { return _str; }
-  FOG_INLINE sysuint_t getLength() const { return _length; }
-
-  // [Members]
-
-private:
-  const Char8* _str;
-  sysuint_t _length;
-};
-
-// ============================================================================
-// [Fog::Ascii8]
-// ============================================================================
-
-struct FOG_HIDDEN Ascii8 : public Stub8
-{
-  // [Construction / Destruction]
-
-  explicit FOG_INLINE Ascii8(
-    const char* str,
-    sysuint_t length = DetectLength) : Stub8(str, length)
-  {}
-
-  explicit FOG_INLINE Ascii8(
-    const uint8_t* str,
-    sysuint_t length = DetectLength) : Stub8(str, length)
-  {}
-
-  explicit FOG_INLINE Ascii8(
-    const Char8* str,
-    sysuint_t length = DetectLength) : Stub8(str, length)
-  {}
-
-  explicit FOG_INLINE Ascii8(const String8& str);
-};
-
-// ============================================================================
-// [Fog::Local8]
-// ============================================================================
-
-struct FOG_HIDDEN Local8 : public Stub8
-{
-  // [Construction / Destruction]
-
-  explicit FOG_INLINE Local8(
-    const char* str,
-    sysuint_t length = DetectLength) : Stub8(str, length)
-  {}
-
-  explicit FOG_INLINE Local8(
-    const uint8_t* str,
-    sysuint_t length = DetectLength) : Stub8(str, length)
-  {}
-
-  explicit FOG_INLINE Local8(
-    const Char8* str,
-    sysuint_t length = DetectLength) : Stub8(str, length)
-  {}
-
-  explicit FOG_INLINE Local8(const String8& str);
-};
-
-// ============================================================================
-// [Fog::Utf8]
-// ============================================================================
-
-struct FOG_HIDDEN Utf8 : public Stub8
-{
-  // [Construction / Destruction]
-
-  explicit FOG_INLINE Utf8(
-    const char* str,
-    sysuint_t length = DetectLength) : Stub8(str, length)
-  {}
-
-  explicit FOG_INLINE Utf8(
-    const uint8_t* str,
-    sysuint_t length = DetectLength) : Stub8(str, length)
-  {}
-
-  explicit FOG_INLINE Utf8(
-    const Char8* str,
-    sysuint_t length = DetectLength) : Stub8(str, length)
-  {}
-
-  explicit FOG_INLINE Utf8(const String8& str);
-};
-
-// ============================================================================
-// [Fog::Utf16]
-// ============================================================================
-
-struct FOG_HIDDEN Utf16
-{
-  // [Construction / Destruction]
-
-  explicit FOG_INLINE Utf16(
-    const uint16_t* str,
-    sysuint_t length = DetectLength) : _str((const Char16*)str), _length(length)
-  {}
-
-  explicit FOG_INLINE Utf16(
-    const Char16* str,
-    sysuint_t length = DetectLength) : _str(str), _length(length)
-  {}
-
-#if FOG_SIZEOF_WCHAR_T == 2
-  explicit FOG_INLINE Utf16(
-    const wchar_t* str,
-    sysuint_t length = DetectLength) : _str((const Char16*)str), _length(length)
-  {}
+  FOG_INLINE err_t atol(long* dst, int base = 0, sysuint_t* end = NULL, uint32_t* parserFlags = NULL) const
+  { return atoi64((int64_t*)dst, base, end, parserFlags); }
+  FOG_INLINE ulong atoul(ulong* dst, uint base = 0, sysuint_t* end = NULL, uint32_t* parserFlags = NULL) const
+  { return atou64((uint64_t*)dst, base, end, parserFlags); }
 #endif
 
-  explicit FOG_INLINE Utf16(const String16& str);
-
-  // [Methods]
-
-  FOG_INLINE const Char16* getStr() const { return _str; }
-  FOG_INLINE sysuint_t getLength() const { return _length; }
-
-  // [Members]
-
-private:
-  const Char16* _str;
-  sysuint_t _length;
-};
-
-// ============================================================================
-// [Fog::Utf32]
-// ============================================================================
-
-struct FOG_HIDDEN Utf32
-{
-  // [Construction / Destruction]
-
-  explicit FOG_INLINE Utf32(const uint32_t* str, sysuint_t length = DetectLength) :
-    _str((const Char32*)str), _length(length)
-  {}
-
-  explicit FOG_INLINE Utf32(const Char32* str, sysuint_t length = DetectLength) :
-    _str(str), _length(length)
-  {}
-
-#if FOG_SIZEOF_WCHAR_T == 4
-  explicit FOG_INLINE Utf32(const wchar_t* str, sysuint_t length = DetectLength) :
-    _str((const Char32*)str), _length(length)
-  {}
+#if FOG_ARCH_BITS == 32
+  FOG_INLINE err_t atosysint(sysint_t* dst, int base = 0, sysuint_t* end = NULL, uint32_t* parserFlags = NULL) const
+  { return atoi32((int32_t*)dst, base, end, parserFlags); }
+  FOG_INLINE err_t atosysuint(sysuint_t* dst, uint base = 0, sysuint_t* end = NULL, uint32_t* parserFlags = NULL) const
+  { return atou32((uint32_t*)dst, base, end, parserFlags); }
+#else
+  FOG_INLINE err_t atosysint(sysint_t* dst, int base = 0, sysuint_t* end = NULL, uint32_t* parserFlags = NULL) const
+  { return atoi64((int64_t*)dst, base, end, parserFlags); }
+  FOG_INLINE err_t atosysuint(sysuint_t* dst, uint base = 0, sysuint_t* end = NULL, uint32_t* parserFlags = NULL) const
+  { return atou64((uint64_t*)dst, base, end, parserFlags); }
 #endif
 
-  explicit FOG_INLINE Utf32(const String32& str);
+  err_t atof(float* dst, const Locale* locale = NULL, sysuint_t* end = NULL, uint32_t* parserFlags = NULL) const;
+  err_t atod(double* dst, const Locale* locale = NULL, sysuint_t* end = NULL, uint32_t* parserFlags = NULL) const;
 
-  // [Methods]
+  // --------------------------------------------------------------------------
+  // [Contains]
+  // --------------------------------------------------------------------------
 
-  FOG_INLINE const Char32* getStr() const { return _str; }
-  FOG_INLINE sysuint_t getLength() const { return _length; }
+  bool contains(Char ch, uint cs = CaseSensitive, const Range& range = Range(0)) const;
+  bool contains(const String& pattern, uint cs = CaseSensitive, const Range& range = Range(0)) const;
+  bool contains(const StringFilter& filter, uint cs = CaseSensitive, const Range& range = Range(0)) const;
 
+  // --------------------------------------------------------------------------
+  // [CountOf]
+  // --------------------------------------------------------------------------
+
+  sysuint_t countOf(Char ch, uint cs = CaseSensitive, const Range& range = Range(0)) const;
+  sysuint_t countOf(const String& pattern, uint cs = CaseSensitive, const Range& range = Range(0)) const;
+  sysuint_t countOf(const StringFilter& filter, uint cs = CaseSensitive, const Range& range = Range(0)) const;
+
+  // --------------------------------------------------------------------------
+  // [IndexOf / LastIndexOf]
+  // --------------------------------------------------------------------------
+
+  sysuint_t indexOf(Char ch, uint cs = CaseSensitive, const Range& range = Range(0)) const;
+  sysuint_t indexOf(const String& pattern, uint cs = CaseSensitive, const Range& range = Range(0)) const;
+  sysuint_t indexOf(const StringFilter& filter, uint cs = CaseSensitive, const Range& range = Range(0)) const;
+
+  sysuint_t lastIndexOf(Char ch, uint cs = CaseSensitive, const Range& range = Range(0)) const;
+  sysuint_t lastIndexOf(const String& pattern, uint cs = CaseSensitive, const Range& range = Range(0)) const;
+  sysuint_t lastIndexOf(const StringFilter& filter, uint cs = CaseSensitive, const Range& range = Range(0)) const;
+
+  // --------------------------------------------------------------------------
+  // [StartsWith / EndsWith]
+  // --------------------------------------------------------------------------
+
+  bool startsWith(const Ascii8& str, uint cs = CaseSensitive) const;
+  bool startsWith(const Utf16& str, uint cs = CaseSensitive) const;
+  bool startsWith(const String& str, uint cs = CaseSensitive) const;
+  bool startsWith(const StringFilter& filter, uint cs = CaseSensitive) const;
+
+  FOG_INLINE bool startsWith(const Char* str, uint cs = CaseSensitive) const { return startsWith(Utf16(str), cs); }
+
+  bool endsWith(const Ascii8& str, uint cs = CaseSensitive) const;
+  bool endsWith(const Utf16& str, uint cs = CaseSensitive) const;
+  bool endsWith(const String& str, uint cs = CaseSensitive) const;
+  bool endsWith(const StringFilter& filter, uint cs = CaseSensitive) const;
+
+  FOG_INLINE bool endsWith(const Char* str, uint cs = CaseSensitive) const { return endsWith(Utf16(str), cs); }
+
+  // --------------------------------------------------------------------------
+  // [Operator Overload]
+  // --------------------------------------------------------------------------
+
+  FOG_INLINE String& operator=(Char ch) { set(ch); return *this; }
+  FOG_INLINE String& operator=(const Ascii8& str) { set(str); return *this; }
+  FOG_INLINE String& operator=(const Utf16& str) { set(str); return *this; }
+  FOG_INLINE String& operator=(const String& other) { set(other); return *this; }
+  FOG_INLINE String& operator=(const Char* str) { set(str); return *this; }
+
+  FOG_INLINE String& operator+=(Char ch) { append(ch); return *this; }
+  FOG_INLINE String& operator+=(const Ascii8& str) { append(str); return *this; }
+  FOG_INLINE String& operator+=(const Utf16& str) { append(str); return *this; }
+  FOG_INLINE String& operator+=(const String& other) { append(other); return *this; }
+  FOG_INLINE String& operator+=(const Char* str) { append(str); return *this; }
+
+  // --------------------------------------------------------------------------
+  // [ByteSwap]
+  // --------------------------------------------------------------------------
+
+  err_t bswap();
+
+  // --------------------------------------------------------------------------
+  // [Comparison]
+  // --------------------------------------------------------------------------
+
+  static bool eq(const String* a, const String* b);
+  static bool ieq(const String* a, const String* b);
+
+  static int compare(const String* a, const String* b);
+  static int icompare(const String* a, const String* b);
+
+  bool eq(const Ascii8& other, uint cs = CaseSensitive) const;
+  bool eq(const Utf16& other, uint cs = CaseSensitive) const;
+  bool eq(const String& other, uint cs = CaseSensitive) const;
+
+  int compare(const Ascii8& other, uint cs = CaseSensitive) const;
+  int compare(const Utf16& other, uint cs = CaseSensitive) const;
+  int compare(const String& other, uint cs = CaseSensitive) const;
+
+  // --------------------------------------------------------------------------
+  // [Utf16]
+  // --------------------------------------------------------------------------
+
+  err_t validateUtf16(sysuint_t* invalidPos = NULL) const;
+  err_t getNumUtf16Chars(sysuint_t* charsCount) const;
+
+  // --------------------------------------------------------------------------
+  // [FileSystem]
+  // --------------------------------------------------------------------------
+
+  err_t slashesToPosix();
+  err_t slashesToWin();
+
+  // --------------------------------------------------------------------------
+  // [Hash]
+  // --------------------------------------------------------------------------
+
+  uint32_t getHashCode() const;
+
+  // --------------------------------------------------------------------------
   // [Members]
+  // --------------------------------------------------------------------------
 
-private:
-  const Char32* _str;
-  sysuint_t _length;
+  FOG_DECLARE_D(Data)
 };
 
 // ============================================================================
-// [Fog::FormatFlags]
+// [Fog::TemporaryString<N>]
 // ============================================================================
 
-struct FOG_HIDDEN FormatFlags
+template<sysuint_t N>
+struct TemporaryString : public String
 {
-  // [Construction / Destruction]
+  // --------------------------------------------------------------------------
+  // [Temporary Storage]
+  // --------------------------------------------------------------------------
 
-  FOG_INLINE FormatFlags(sysuint_t precision = NoPrecision, sysuint_t width = NoWidth, uint32_t flags = NoFlags) : 
-    precision(precision), width(width), flags(flags)
+  // Keep 'Storage' name for this struct for Borland compiler
+  struct Storage
+  {
+    Data _d;
+    Char _str[N];
+  } _storage;
+
+  // --------------------------------------------------------------------------
+  // [Construction / Destruction]
+  // --------------------------------------------------------------------------
+
+  FOG_INLINE TemporaryString() :
+    String(Data::adopt((void*)&_storage, N))
   {
   }
 
-  // [Members]
-
-  sysuint_t precision;
-  sysuint_t width;
-  uint32_t flags;
-
-  static const sysuint_t NoPrecision = (sysuint_t)-1;
-  static const sysuint_t NoWidth     = (sysuint_t)-1;
-
-  //! @brief Number format flags.
-  enum Flags
+  FOG_INLINE TemporaryString(Char ch) :
+    String(Data::adopt((void*)&_storage, N, &ch, 1))
   {
-    //! @brief Show group separators (sprintf ' flag).
-    ThousandsGroup = (1 << 0),
-    //! @brief Align to left (sprintf '-' flag).
-    LeftAdjusted = (1 << 1),
-    //! @brief Always show sign (sprintf '+' flag).
-    ShowSign = (1 << 2),
-    //! @brief Blank character instead of positive sign (sprintf ' ' flag).
-    BlankPositive = (1 << 3),
-    //! @brief Use alternate form (sprintf '#' flag).
-    Alternate = (1 << 4),
-    //! @brief Zero padded (sprintf '0' flag).
-    ZeroPadded = (1 << 5),
-    //! @brief Capitalize number output.
-    Capitalize = (1 << 6),
-    //! @brief Capitalize E or X in number output.
-    CapitalizeEOrX = (1 << 7)
-  };
-};
+  }
 
-// ============================================================================
-// [Fog::Range]
-// ============================================================================
+  FOG_INLINE TemporaryString(const Ascii8& str) :
+    String(Data::adopt((void*)&_storage, N, str.getData(), str.getLength()))
+  {
+  }
 
-struct FOG_HIDDEN Range
-{
-  // [Construction / Destruction]
+  FOG_INLINE TemporaryString(const Utf16& str) :
+    String(Data::adopt((void*)&_storage, N, str.getData(), str.getLength()))
+  {
+  }
 
-  FOG_INLINE Range() {};
-  FOG_INLINE Range(sysuint_t index, sysuint_t length = DetectLength) : index(index), length(length) {}
+  FOG_INLINE TemporaryString(const String& other) :
+    String(Data::adopt((void*)&_storage, N, other.cData(), other.getLength()))
+  {
+  }
 
-  // [Members]
+  FOG_INLINE TemporaryString(const TemporaryString<N>& other) :
+    String(Data::adopt((void*)&_storage, N, other.cData(), other.getLength()))
+  {
+  }
 
-  sysuint_t index;
-  sysuint_t length;
+  FOG_INLINE TemporaryString(const Char* str) :
+    String(Data::adopt((void*)&_storage, N, str, DetectLength))
+  {
+  }
+
+  // safe shareable TemporaryString creation
+  FOG_INLINE TemporaryString(_CreateSharable) :
+    String(Data::adopt((void*)&_storage, N))
+  {
+    _d->flags |= Data::IsSharable;
+  }
+
+  // --------------------------------------------------------------------------
+  // [Implicit Data]
+  // --------------------------------------------------------------------------
+
+  FOG_INLINE void free()
+  {
+    if ((void*)_d != (void*)&_storage)
+    {
+      AtomicBase::ptr_setXchg(&_d, Data::adopt((void*)&_storage, N))->deref();
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // [Operator Overload]
+  // --------------------------------------------------------------------------
+
+  // These overloads are needed to succesfully use this template (or implicit
+  // conversion will break template and new string will be allocated).
+
+  FOG_INLINE TemporaryString<N>& operator=(Char ch) { set(ch); return *this; }
+  FOG_INLINE TemporaryString<N>& operator=(const Ascii8& str) { set(str); return *this; }
+  FOG_INLINE TemporaryString<N>& operator=(const Utf16& str) { set(str); return *this; }
+  FOG_INLINE TemporaryString<N>& operator=(const String& other) { set(other); return *this; }
+  FOG_INLINE TemporaryString<N>& operator=(const TemporaryString<N>& other) { set(other); return *this; }
+  FOG_INLINE TemporaryString<N>& operator=(const Char* str) { set(str); return *this; }
 };
 
 } // Fog namespace
 
 // ============================================================================
-// [Generator]
+// [Global Operator Overload]
 // ============================================================================
 
-#define __G_GENERATE
+static FOG_INLINE const Fog::String operator+(const Fog::String& a, const Fog::String& b) { return Fog::String(a, b); }
 
-#define __G_SIZE 1
-#include <Fog/Core/String_gen.h>
-#undef __G_SIZE
+static FOG_INLINE const Fog::String operator+(const Fog::String& a, const Fog::Char& b) { Fog::String t(a); t.append(b); return t; }
+static FOG_INLINE const Fog::String operator+(const Fog::Char& a, const Fog::String& b) { Fog::String t(b); t.append(a); return t; }
 
-#define __G_SIZE 2
-#include <Fog/Core/String_gen.h>
-#undef __G_SIZE
+static FOG_INLINE const Fog::String operator+(const Fog::String& a, const Fog::Ascii8& b) { Fog::String t(a); t.append(b); return t; }
+static FOG_INLINE const Fog::String operator+(const Fog::String& a, const Fog::Utf16& b) { Fog::String t(a); t.append(b); return t; }
 
-#define __G_SIZE 4
-#include <Fog/Core/String_gen.h>
-#undef __G_SIZE
+static FOG_INLINE const Fog::String operator+(const Fog::Ascii8& b, const Fog::String& a) { Fog::String t(b); t.append(a); return t; }
+static FOG_INLINE const Fog::String operator+(const Fog::Utf16& b, const Fog::String& a) { Fog::String t(b); t.append(a); return t; }
 
-#undef __G_GENERATE
+static FOG_INLINE bool operator==(const Fog::String& a, const Fog::String& b) { return  a.eq(b); }
+static FOG_INLINE bool operator!=(const Fog::String& a, const Fog::String& b) { return !a.eq(b); }
+static FOG_INLINE bool operator<=(const Fog::String& a, const Fog::String& b) { return  a.compare(b) <= 0; }
+static FOG_INLINE bool operator< (const Fog::String& a, const Fog::String& b) { return  a.compare(b) <  0; }
+static FOG_INLINE bool operator>=(const Fog::String& a, const Fog::String& b) { return  a.compare(b) >= 0; }
+static FOG_INLINE bool operator> (const Fog::String& a, const Fog::String& b) { return  a.compare(b) >  0; }
 
-namespace Fog {
+static FOG_INLINE bool operator==(const Fog::String& a, const Fog::Ascii8& b) { return  a.eq(b); }
+static FOG_INLINE bool operator!=(const Fog::String& a, const Fog::Ascii8& b) { return !a.eq(b); }
+static FOG_INLINE bool operator<=(const Fog::String& a, const Fog::Ascii8& b) { return  a.compare(b) <= 0; }
+static FOG_INLINE bool operator< (const Fog::String& a, const Fog::Ascii8& b) { return  a.compare(b) <  0; }
+static FOG_INLINE bool operator>=(const Fog::String& a, const Fog::Ascii8& b) { return  a.compare(b) >= 0; }
+static FOG_INLINE bool operator> (const Fog::String& a, const Fog::Ascii8& b) { return  a.compare(b) >  0; }
 
-FOG_INLINE Stub8::Stub8(const String8& str) :
-  _str(str.cData()), _length(str.getLength()) {}
+static FOG_INLINE bool operator==(const Fog::Ascii8& a, const Fog::String& b) { return  b.eq(a); }
+static FOG_INLINE bool operator!=(const Fog::Ascii8& a, const Fog::String& b) { return !b.eq(a); }
+static FOG_INLINE bool operator<=(const Fog::Ascii8& a, const Fog::String& b) { return  b.compare(a) >= 0; }
+static FOG_INLINE bool operator< (const Fog::Ascii8& a, const Fog::String& b) { return  b.compare(a) >  0; }
+static FOG_INLINE bool operator>=(const Fog::Ascii8& a, const Fog::String& b) { return  b.compare(a) <= 0; }
+static FOG_INLINE bool operator> (const Fog::Ascii8& a, const Fog::String& b) { return  b.compare(a) <  0; }
 
-FOG_INLINE Ascii8::Ascii8(const String8& str) :
-  Stub8(str.cData(), str.getLength()) {}
+static FOG_INLINE bool operator==(const Fog::String& a, const Fog::Utf16& b) { return  a.eq(b); }
+static FOG_INLINE bool operator!=(const Fog::String& a, const Fog::Utf16& b) { return !a.eq(b); }
+static FOG_INLINE bool operator<=(const Fog::String& a, const Fog::Utf16& b) { return  a.compare(b) <= 0; }
+static FOG_INLINE bool operator< (const Fog::String& a, const Fog::Utf16& b) { return  a.compare(b) <  0; }
+static FOG_INLINE bool operator>=(const Fog::String& a, const Fog::Utf16& b) { return  a.compare(b) >= 0; }
+static FOG_INLINE bool operator> (const Fog::String& a, const Fog::Utf16& b) { return  a.compare(b) >  0; }
 
-FOG_INLINE Local8::Local8(const String8& str) :
-  Stub8(str.cData(), str.getLength()) {}
-
-FOG_INLINE Utf8::Utf8(const String8& str) :
-  Stub8(str.cData(), str.getLength()) {}
-
-FOG_INLINE Utf16::Utf16(const String16& str) :
-  _str(str.cData()), _length(str.getLength()) {}
-
-FOG_INLINE Utf32::Utf32(const String32& str) :
-  _str(str.cData()), _length(str.getLength()) {}
-
-} // Fog namespace
+static FOG_INLINE bool operator==(const Fog::Utf16& a, const Fog::String& b) { return  b.eq(a); }
+static FOG_INLINE bool operator!=(const Fog::Utf16& a, const Fog::String& b) { return !b.eq(a); }
+static FOG_INLINE bool operator<=(const Fog::Utf16& a, const Fog::String& b) { return  b.compare(a) >= 0; }
+static FOG_INLINE bool operator< (const Fog::Utf16& a, const Fog::String& b) { return  b.compare(a) >  0; }
+static FOG_INLINE bool operator>=(const Fog::Utf16& a, const Fog::String& b) { return  b.compare(a) <= 0; }
+static FOG_INLINE bool operator> (const Fog::Utf16& a, const Fog::String& b) { return  b.compare(a) <  0; }
 
 //! @}
 
 // ============================================================================
-// [Fog::TypeInfo<T>]
+// [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::Stub8      , Fog::PrimitiveType)
-FOG_DECLARE_TYPEINFO(Fog::Ascii8     , Fog::PrimitiveType)
-FOG_DECLARE_TYPEINFO(Fog::Local8     , Fog::PrimitiveType)
-FOG_DECLARE_TYPEINFO(Fog::Utf8       , Fog::PrimitiveType)
-FOG_DECLARE_TYPEINFO(Fog::Utf16      , Fog::PrimitiveType)
-FOG_DECLARE_TYPEINFO(Fog::Utf32      , Fog::PrimitiveType)
-FOG_DECLARE_TYPEINFO(Fog::FormatFlags, Fog::PrimitiveType)
-FOG_DECLARE_TYPEINFO(Fog::Range      , Fog::PrimitiveType)
+FOG_DECLARE_TYPEINFO(Fog::String, Fog::MoveableType | Fog::TypeInfoHasCompare | Fog::TypeInfoHasEq)
 
 // [Guard]
 #endif // _FOG_CORE_STRING_H

@@ -10,7 +10,7 @@
 
 // [Dependencies]
 #include <Fog/Build/Build.h>
-
+#include <Fog/Core/ByteArray.h>
 #include <Fog/Core/Error.h>
 #include <Fog/Core/OS.h>
 #include <Fog/Core/Static.h>
@@ -45,9 +45,9 @@ struct OS_Local
 {
 #if defined(FOG_OS_WINDOWS)
   uint32_t windowsVersion;
-  String32 windowsName;
-  String32 windowsVersionString;
-  String32 windowsDirectory;
+  String windowsName;
+  String windowsVersionString;
+  String windowsDirectory;
 #endif // FOG_OS_WINDOWS
 
   OS_Local()
@@ -138,9 +138,9 @@ struct OS_Local
 static Static<OS_Local> os_local;
 
 /*! @brief Returns the name of the host operating system. */
-String32 OS::getName()
+String OS::getName()
 {
-  String32 result;
+  String result;
 
 #if defined(FOG_OS_WINDOWS)
   result = os_local->windowsName;
@@ -155,9 +155,9 @@ String32 OS::getName()
 }
 
 /*! @brief Returns the version of the host operating system. */
-String32 OS::getVersion()
+String OS::getVersion()
 {
-  String32 result;
+  String result;
 
 #if defined(FOG_OS_WINDOWS)
   result = os_local->windowsVersionString;
@@ -165,7 +165,7 @@ String32 OS::getVersion()
 
 #if defined(FOG_OS_POSIX)
   utsname info;
-  if (uname(&info) >= 0) result.set(Local8(info.release));
+  if (uname(&info) >= 0) TextCodec::local8().appendToUnicode(result, info.release);
 #endif // FOG_OS_POSIX
 
   return result;
@@ -233,53 +233,51 @@ uint32_t OS::getWindowsVersion()
   return os_local->windowsVersion;
 }
 
-String32 OS::getWindowsDirectory()
+String OS::getWindowsDirectory()
 {
   return os_local->windowsDirectory;
 }
 #endif // FOG_OS_WINDOWS
 
-err_t OS::getEnv(const String32& name, String32& value)
+err_t OS::getEnv(const String& name, String& value)
 {
 #if defined(FOG_OS_WINDOWS)
-  TemporaryString16<128> nameW;
-  TemporaryString16<128> valueW;
-
-  err_t err = nameW.set(Utf32(name));
-  if (err != Error::Ok) return err;
-
   DWORD sz;
+
+  err_t err;
+  if ((err = value.prepare(256))) return err;
 
   for (;;)
   {
-    sz = GetEnvironmentVariableW(nameW.cStrW(), valueW.mStrW(), valueW.getCapacity());
-    if (sz > valueW.getCapacity()) 
+    sz = GetEnvironmentVariableW(reinterpret_cast<const wchar_t*>(name.cData()),
+      reinterpret_cast<wchar_t*>(valueW.xData()), value.getCapacity());
+
+    if (sz == 0)
     {
-      if ((err = valueW.resize(sz)) == Error::Ok) continue;
+      return Error::GetEnvFailure;
+    }
+    else if (sz > value.getCapacity())
+    {
+      if ((err = value.prepare(sz)) == Error::Ok) continue;
+      return err;
     }
     else if (sz)
     {
-      err = value.set(StubW(valueW.cData(), sz));
+      return value.resize(sz);
     }
-    else
-    {
-      value.clear();
-      err = Error::GetEnvFailure;
-    }
-    return err;
   }
 #endif // FOG_OS_WINDOWS
 
 #if defined(FOG_OS_POSIX)
-  TemporaryString8<128> name8;
+  TemporaryByteArray<TemporaryLength> name8;
 
   err_t err;
-  if ((err = name8.set(name, TextCodec::local8()))) return err;
+  if ((err = TextCodec::local8().appendFromUnicode(name8, name))) return err;
 
-  const char* e = getenv(name8.cStr());
+  const char* e = getenv(name8.cData());
   if (e) 
   {
-    return value.set(Local8(e));
+    return TextCodec::local8().toUnicode(value, e);
   }
   else
   {
@@ -289,36 +287,34 @@ err_t OS::getEnv(const String32& name, String32& value)
 #endif
 }
 
-err_t OS::setEnv(const String32& name, const String32& value)
+err_t OS::setEnv(const String& name, const String& value)
 {
 #if defined(FOG_OS_WINDOWS)
-  TemporaryString16<128> nameW;
-  TemporaryString16<128> valueW;
-
-  err_t err;
-  if ((err = nameW.set(name))) return err;
-  if ((err = valueW.set(value))) return err;
-  
-  if (SetEnvironmentVariableW(nameW.cStrW(), valueW.cStrW()))
+  if (SetEnvironmentVariableW(reinterpret_cast<const wchar_t*>(name.cData()), 
+    reinterpret_cast<const wchar_t*>(value.cData()))
+  {
     return Error::Ok;
+  }
   else
+  {
     return Error::SetEnvFailure;
+  }
 #endif
 
 #if defined(FOG_OS_POSIX)
-  TemporaryString8<64> name8;
-  TemporaryString8<64> value8;
+  TemporaryByteArray<TemporaryLength> name8;
+  TemporaryByteArray<TemporaryLength> value8;
 
   err_t err;
   int result;
 
-  if ( (err = name8.set(name, TextCodec::local8())) ) return err;
-  if ( (err = value8.set(value, TextCodec::local8())) ) return err;
+  if ((err = TextCodec::local8().appendFromUnicode(name8, name))) return err;
+  if ((err = TextCodec::local8().appendFromUnicode(value8, value))) return err;
 
   if (value8.isEmpty())
-    result = unsetenv(name8.cStr());
+    result = unsetenv(name8.cData());
   else
-    result = setenv(name8.cStr(), value8.cStr(), 1);
+    result = setenv(name8.cData(), value8.cData(), 1);
 
   if (result != 0) err = Error::SetEnvFailure;
   return err;

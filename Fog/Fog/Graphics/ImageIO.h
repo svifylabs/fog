@@ -41,8 +41,8 @@ FOG_API bool hasProvider(Provider* provider);
 
 FOG_API Vector<Provider*> getProviders();
 
-FOG_API Provider* getProviderByName(const String32& name);
-FOG_API Provider* getProviderByExtension(const String32& extension);
+FOG_API Provider* getProviderByName(const String& name);
+FOG_API Provider* getProviderByExtension(const String& extension);
 FOG_API Provider* getProviderByMemory(void* mem, sysuint_t len);
 
 // ============================================================================
@@ -153,9 +153,9 @@ struct FOG_API Provider
   // [Members access]
 
   //! @brief Returns image file format name.
-  FOG_INLINE const String32& getName() const { return _name; }
+  FOG_INLINE const String& getName() const { return _name; }
   //! @brief Returns image file format extensions.
-  FOG_INLINE const Vector<String32>& getExtensions() const { return _extensions; }
+  FOG_INLINE const Vector<String>& getExtensions() const { return _extensions; }
   //! @brief Returns image file format features.
   FOG_INLINE const Features& getFeatures() const { return _features; }
 
@@ -167,7 +167,7 @@ struct FOG_API Provider
   //! loader will use relevance for decoders.
   virtual uint32_t check(const void* mem, sysuint_t length) = 0;
   //! @overload
-  FOG_INLINE uint32_t check(const String8& mem) { return check(mem.cData(), mem.getLength()); }
+  FOG_INLINE uint32_t check(const ByteArray& mem) { return check(mem.cData(), mem.getLength()); }
 
   virtual EncoderDevice* createEncoder();
   virtual DecoderDevice* createDecoder();
@@ -176,11 +176,11 @@ struct FOG_API Provider
 
 protected:
   //! @brief Image file format name ("BMP", "JPEG", "PNG", ...) .
-  String32 _name;
+  String _name;
   //! @brief Image file format id.
   uint32_t _id;
   //! @brief Image file format extensions ("bmp", "jpg", "jpeg", ...).
-  Vector<String32> _extensions;
+  Vector<String> _extensions;
 
   //! @brief Image file format features.
   Features _features;
@@ -261,7 +261,7 @@ struct FOG_API BaseDevice : public PropertiesContainer
 
   FOG_INLINE int getFormat() const { return _format; }
   FOG_INLINE const Palette& getPalette() const { return _palette; }
-  FOG_INLINE const String8& getComment() const { return _comment; }
+  FOG_INLINE const ByteArray& getComment() const { return _comment; }
 
   // [Progress]
 
@@ -323,7 +323,7 @@ protected:
   //! image format and decoder supports this.
   Palette _palette;
   //! @brief Comment
-  String8 _comment;
+  ByteArray _comment;
 
   //! @brief Progress, 0 to 100 [percent]
   float _progress;
@@ -386,7 +386,7 @@ struct FOG_API EncoderDevice : public BaseDevice
   FOG_INLINE bool isHeaderDone() const { return _headerDone; }
   FOG_INLINE bool isWriterDone() const { return _writerDone; }
 
-  FOG_INLINE void setComment(const String8& comment) { _comment = comment; }
+  FOG_INLINE void setComment(const ByteArray& comment) { _comment = comment; }
 
   // [Virtuals]
 
