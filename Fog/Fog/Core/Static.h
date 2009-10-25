@@ -48,14 +48,14 @@ struct Static
 {
 public:
   //! @brief Initializer (calls placement @c new operator).
-  FOG_INLINE void init() { new ((void*)_storage) Type; }
+  FOG_INLINE void init() { new (reinterpret_cast<void*>(_storage)) Type; }
   //! @brief Initializer with copy assignment (calls placement @c new operator).
-  FOG_INLINE void init(const Static<Type>& t) { new ((void*)_storage) Type(t.instance()); }
+  FOG_INLINE void init(const Static<Type>& t) { new (reinterpret_cast<void*>(_storage)) Type(t.instance()); }
   //! @brief Initializer with copy assignment (calls placement @c new operator).
-  FOG_INLINE void init(const Type& t) { new ((void*)_storage) Type(t); }
+  FOG_INLINE void init(const Type& t) { new (reinterpret_cast<void*>(_storage)) Type(t); }
 
   template<typename C1>
-  FOG_INLINE void initCustom1(C1 t) { new ((void*)_storage) Type(t); }
+  FOG_INLINE void initCustom1(C1 t) { new (reinterpret_cast<void*>(_storage)) Type(t); }
 
   //! @brief Deinitializer (calls placement @c delete operator).
   FOG_INLINE void destroy() { getStorage()->~Type(); }
@@ -80,11 +80,12 @@ public:
   //! @brief Overriden const -> operator.
   FOG_INLINE Type const* operator->() const { return getStorage(); }
 
-  FOG_INLINE Type* getStorage() const { return reinterpret_cast<Type*>((void*)(_storage)); }
+  FOG_INLINE Type* getStorage() { return reinterpret_cast<Type*>(_storage); }
+  FOG_INLINE const Type* getStorage() const { return reinterpret_cast<const Type*>(_storage); }
 
 private:
   //! @brief Stack based storage.
-  uint8_t _storage[sizeof(Type)];
+  char _storage[sizeof(Type)];
 };
 
 } // Fog namespace

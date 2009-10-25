@@ -559,7 +559,7 @@ struct UpdateTask : public CancelableTask
     if (!_valid) return;
 
     // Try to process all pending messages from event queue.
-    EventLoop::getCurrent()->runAllPending();
+    // EventLoop::getCurrent()->runAllPending();
     // Do update.
     UI_SYSTEM()->doUpdate();
   }

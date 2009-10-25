@@ -146,7 +146,19 @@ struct FOG_HIDDEN FOG_PACKED Char
   static FOG_INLINE bool isSurrogatePair(uint16_t ch) { return (ch & SurrogatePairMask) == SurrogatePairBase; }
   static FOG_INLINE bool isValid(uint16_t ch) { return (ch < 0xFFFE); }
 
+  // [BOM / BSwap]
+
+
+  FOG_INLINE bool isBom() const { return _ch == UTF16_BOM; }
+  FOG_INLINE bool isBomSwapped() const { return _ch == UTF16_BOM_Swapped; }
+
   FOG_INLINE Char& bswap() { _ch = Memory::bswap16(_ch); return *this; }
+
+  // Statics.
+  static FOG_INLINE bool isBom(uint16_t ch) { return ch == UTF16_BOM; }
+  static FOG_INLINE bool isBomSwapped(uint16_t ch) { return ch == UTF16_BOM_Swapped; }
+
+  static FOG_INLINE uint16_t bswap(uint16_t ch) { return Memory::bswap16(ch); }
 
   // [Combine]
 
