@@ -86,7 +86,7 @@ struct BenchmarkModule
   BenchmarkModule(int w, int h) : w(w), h(h) {}
   ~BenchmarkModule() {}
 
-  virtual void prepareBenchmark(int quantity) {}
+  virtual void prepareBenchmark(int sw, int sh, int quantity) {}
   virtual void finishBenchmark() {}
   virtual void doBenchmark(int quantity) = 0;
 
@@ -96,18 +96,18 @@ struct BenchmarkModule
   int w, h;
 };
 
-static TimeDelta bench(BenchmarkModule& mod, int quantity)
+static TimeDelta bench(BenchmarkModule& mod, int sw, int sh, int quantity)
 {
   // Clear random seed (so all tests will behave identically)
   srand(43);
 
-  mod.prepareBenchmark(quantity);
+  mod.prepareBenchmark(sw, sh, quantity);
   TimeTicks ticks = TimeTicks::highResNow();
   mod.doBenchmark(quantity);
   TimeDelta delta =  TimeTicks::highResNow() - ticks;
   mod.finishBenchmark();
 
-  fog_debug("%s - %.3f [ms]", mod.name(), delta.inMillisecondsF());
+  fog_debug("%s [%dx%d] -> %.3f [ms]", mod.name(), sw, sh, delta.inMillisecondsF());
   mod.saveResult();
 
   return delta;
@@ -125,14 +125,16 @@ struct BenchmarkRandomizer_Rect
     rgbaData = NULL;
   }
 
-  void prepare(int w, int h, int quantity)
+  void prepare(int w, int h, int sw, int sh, int quantity)
   {
+    int a;
+
     rectData = (Rect*)Memory::alloc(sizeof(Rect) * quantity);
     rgbaData = (Rgba*)Memory::alloc(sizeof(Rgba) * quantity);
 
-    for (int a = 0; a < quantity; a++)
+    for (a = 0; a < quantity; a++)
     {
-      rectData[a] = randRect(w, h, 128, 128);
+      rectData[a] = randRect(w, h, sw, sh);
       rgbaData[a] = randColor();
     }
   }
@@ -159,17 +161,26 @@ struct BenchmarkRandomizer_Polygon
     rgbaData = NULL;
   }
 
-  void prepare(int w, int h, int quantity)
+  void prepare(int w, int h, int sw, int sh, int quantity)
   {
+    double x = 0.0;
+    double y = 0.0;
+    int a;
+
     polyData = (PointD*)Memory::alloc(sizeof(PointD) * quantity * 10);
     rgbaData = (Rgba  *)Memory::alloc(sizeof(Rgba) * quantity);
 
-    for (int a = 0; a < quantity * 10; a++)
+    for (a = 0; a < quantity * 10; a++)
     {
-      polyData[a] = randPointD(w, h);
+      if ((a % 10) == 0)
+      {
+        x = (rand() % (w - sw));
+        y = (rand() % (h - sh));
+      }
+      polyData[a] = randPointD(sw, sh).translated(x, y);
     }
 
-    for (int a = 0; a < quantity; a++)
+    for (a = 0; a < quantity; a++)
     {
       rgbaData[a] = randColor();
     }
@@ -197,7 +208,7 @@ struct BenchmarkModule_Fog : public BenchmarkModule
     im.create(w, h, Image::FormatPRGB32);
     im.clear(0x00000000);
     p.begin(im);
-    setMultithreaded(false);
+    setEngineMode(false);
 
     for (int a = 0; a < 4; a++)
       sprite[a] = _sprite[a];
@@ -218,10 +229,10 @@ struct BenchmarkModule_Fog : public BenchmarkModule
     t.writeFile(fileName);
   }
 
-  FOG_NO_INLINE void setMultithreaded(bool mt)
+  FOG_NO_INLINE void setEngineMode(int mode)
   {
-    this->mt = mt;
-    p.setEngineMode(mt ? Painter::ModeMultithreaded : Painter::ModeSinglethreaded);
+    this->mt = mode ? true : false;
+    p.setEngineMode(mode);
   }
 
   Image im;
@@ -241,7 +252,7 @@ struct BenchmarkModule_Fog_FillRect : public BenchmarkModule_Fog
   {
   }
 
-  virtual void prepareBenchmark(int quantity) { randomizer.prepare(w, h, quantity); }
+  virtual void prepareBenchmark(int sw, int sh, int quantity) { randomizer.prepare(w, h, sw, sh, quantity); }
   virtual void finishBenchmark() { randomizer.finish(); }
 
   virtual void doBenchmark(int quantity)
@@ -272,7 +283,7 @@ struct BenchmarkModule_Fog_FillRound : public BenchmarkModule_Fog
   {
   }
 
-  virtual void prepareBenchmark(int quantity) { randomizer.prepare(w, h, quantity); }
+  virtual void prepareBenchmark(int sw, int sh, int quantity) { randomizer.prepare(w, h, sw, sh, quantity); }
   virtual void finishBenchmark() { randomizer.finish(); }
 
   virtual void doBenchmark(int quantity)
@@ -305,7 +316,7 @@ struct BenchmarkModule_Fog_FillPolygon : public BenchmarkModule_Fog
   {
   }
 
-  virtual void prepareBenchmark(int quantity) { randomizer.prepare(w, h, quantity); }
+  virtual void prepareBenchmark(int sw, int sh, int quantity) { randomizer.prepare(w, h, sw, sh, quantity); }
   virtual void finishBenchmark() { randomizer.finish(); }
 
   virtual void doBenchmark(int quantity)
@@ -355,7 +366,7 @@ struct BenchmarkModule_Fog_FillPattern : public BenchmarkModule_Fog
     pattern.setGradientRadius(250.0);
   }
 
-  virtual void prepareBenchmark(int quantity) { randomizer.prepare(w, h, quantity); }
+  virtual void prepareBenchmark(int sw, int sh, int quantity) { randomizer.prepare(w, h, sw, sh, quantity); }
   virtual void finishBenchmark() { randomizer.finish(); }
 
   virtual void doBenchmark(int quantity)
@@ -382,7 +393,7 @@ struct BenchmarkModule_Fog_FillPattern : public BenchmarkModule_Fog
       case Pattern::TypeConicalGradient: p = "ConicalGradient"; break;
     }
 
-    sprintf(buf, "Fog - FillPattern - %s%s", p, mt ? " (mt)" : "");
+    sprintf(buf, "Fog - %s%s", p, mt ? " (mt)" : "");
     return buf;
   }
 
@@ -507,7 +518,7 @@ struct BenchmarkModule_GDI_FillRect : public BenchmarkModule_GDI
   {
   }
 
-  virtual void prepareBenchmark(int quantity) { randomizer.prepare(w, h, quantity); }
+  virtual void prepareBenchmark(int sw, int sh, int quantity) { randomizer.prepare(w, h, sw, sh, quantity); }
   virtual void finishBenchmark() { randomizer.finish(); }
 
   virtual void doBenchmark(int quantity)
@@ -544,7 +555,7 @@ struct BenchmarkModule_GDI_FillRound : public BenchmarkModule_GDI
   {
   }
 
-  virtual void prepareBenchmark(int quantity) { randomizer.prepare(w, h, quantity); }
+  virtual void prepareBenchmark(int sw, int sh, int quantity) { randomizer.prepare(w, h, sw, sh, quantity); }
   virtual void finishBenchmark() { randomizer.finish(); }
 
   virtual void doBenchmark(int quantity)
@@ -590,7 +601,7 @@ struct BenchmarkModule_GDI_FillPolygon : public BenchmarkModule_GDI
   {
   }
 
-  virtual void prepareBenchmark(int quantity) { randomizer.prepare(w, h, quantity); }
+  virtual void prepareBenchmark(int sw, int sh, int quantity) { randomizer.prepare(w, h, sw, sh, quantity); }
   virtual void finishBenchmark() { randomizer.finish(); }
 
   virtual void doBenchmark(int quantity)
@@ -640,7 +651,7 @@ struct BenchmarkModule_GDI_FillPattern : public BenchmarkModule_GDI
   {
   }
 
-  virtual void prepareBenchmark(int quantity) { randomizer.prepare(w, h, quantity); }
+  virtual void prepareBenchmark(int sw, int sh, int quantity) { randomizer.prepare(w, h, sw, sh, quantity); }
   virtual void finishBenchmark() { randomizer.finish(); }
 
   virtual void doBenchmark(int quantity)
@@ -672,7 +683,7 @@ struct BenchmarkModule_GDI_FillPattern : public BenchmarkModule_GDI
     DeleteDC(dc);
   }
 
-  virtual const char* name() { return "GdiPlus - FillPattern - LinearGradient"; }
+  virtual const char* name() { return "GdiPlus - LinearGradient"; }
 
   BenchmarkRandomizer_Rect randomizer;
 };
@@ -770,7 +781,7 @@ struct BenchmarkModule_Cairo_FillRect : public BenchmarkModule_Cairo
   {
   }
 
-  virtual void prepareBenchmark(int quantity) { randomizer.prepare(w, h, quantity); }
+  virtual void prepareBenchmark(int sw, int sh, int quantity) { randomizer.prepare(w, h, sw, sh, quantity); }
   virtual void finishBenchmark() { randomizer.finish(); }
 
   virtual void doBenchmark(int quantity)
@@ -807,7 +818,7 @@ struct BenchmarkModule_Cairo_FillRound : public BenchmarkModule_Cairo
   {
   }
 
-  virtual void prepareBenchmark(int quantity) { randomizer.prepare(w, h, quantity); }
+  virtual void prepareBenchmark(int sw, int sh, int quantity) { randomizer.prepare(w, h, sw, sh, quantity); }
   virtual void finishBenchmark() { randomizer.finish(); }
 
   virtual void doBenchmark(int quantity)
@@ -907,7 +918,7 @@ struct BenchmarkModule_Cairo_FillPolygon : public BenchmarkModule_Cairo
   {
   }
 
-  virtual void prepareBenchmark(int quantity) { randomizer.prepare(w, h, quantity); }
+  virtual void prepareBenchmark(int sw, int sh, int quantity) { randomizer.prepare(w, h, sw, sh, quantity); }
   virtual void finishBenchmark() { randomizer.finish(); }
 
   virtual void doBenchmark(int quantity)
@@ -954,7 +965,7 @@ struct BenchmarkModule_Cairo_FillPattern : public BenchmarkModule_Cairo
   {
   }
 
-  virtual void prepareBenchmark(int quantity) { randomizer.prepare(w, h, quantity); }
+  virtual void prepareBenchmark(int sw, int sh, int quantity) { randomizer.prepare(w, h, sw, sh, quantity); }
   virtual void finishBenchmark() { randomizer.finish(); }
 
   virtual void doBenchmark(int quantity)
@@ -991,8 +1002,8 @@ struct BenchmarkModule_Cairo_FillPattern : public BenchmarkModule_Cairo
   {
     switch (type)
     {
-      case 0: return "Cairo - FillPattern - LinearGradient";
-      case 1: return "Cairo - FillPattern - RadialGradient";
+      case 0: return "Cairo - LinearGradient";
+      case 1: return "Cairo - RadialGradient";
     }
     return NULL;
   }
@@ -1041,6 +1052,9 @@ static void benchAll()
   int w = 640, h = 480;
   int quantity = 100000;
 
+  int s;
+  Size sizes[] = { Size(32, 32), Size(64, 64), Size(128, 128) };
+
   TimeDelta totalFog;
   TimeDelta totalFogMT;
   TimeDelta totalCairo;
@@ -1063,93 +1077,99 @@ static void benchAll()
   fog_debug("");
 
   // --------------------------------------------------------------------------
-  // Fog
+  // Fog (singlethreaded)
   // --------------------------------------------------------------------------
 
-  // Fog - FillRect
+  for (s = 0; s < FOG_ARRAY_SIZE(sizes); s++)
   {
-    BenchmarkModule_Fog_FillRect mod(w, h);
-    mod.setMultithreaded(false);
-    totalFog += bench(mod, quantity);
-  }
+    // Fog - FillRect
+    {
+      BenchmarkModule_Fog_FillRect mod(w, h);
+      mod.setEngineMode(Painter::ModeSinglethreaded);
+      totalFog += bench(mod, sizes[s].w, sizes[s].h, quantity);
+    }
 
-  // Fog - FillRound
-  {
-    BenchmarkModule_Fog_FillRound mod(w, h);
-    mod.setMultithreaded(false);
-    totalFog += bench(mod, quantity);
-  }
+    // Fog - FillRound
+    {
+      BenchmarkModule_Fog_FillRound mod(w, h);
+      mod.setEngineMode(Painter::ModeSinglethreaded);
+      totalFog += bench(mod, sizes[s].w, sizes[s].h, quantity);
+    }
 
-  // Fog - FillPolygon
-  {
-    BenchmarkModule_Fog_FillPolygon mod(w, h);
-    mod.setMultithreaded(false);
-    totalFog += bench(mod, quantity);
-  }
+    // Fog - FillPolygon
+    {
+      BenchmarkModule_Fog_FillPolygon mod(w, h);
+      mod.setEngineMode(Painter::ModeSinglethreaded);
+      totalFog += bench(mod, sizes[s].w, sizes[s].h, quantity);
+    }
 
-  // Fog - FillPattern
-  {
-    BenchmarkModule_Fog_FillPattern mod(w, h);
-    mod.setMultithreaded(false);
+    // Fog - FillPattern
+    {
+      BenchmarkModule_Fog_FillPattern mod(w, h);
+      mod.setEngineMode(Painter::ModeSinglethreaded);
 
-    mod.pattern.setType(Pattern::TypeLinearGradient);
-    totalFog += bench(mod, quantity);
+      mod.pattern.setType(Pattern::TypeLinearGradient);
+      totalFog += bench(mod, sizes[s].w, sizes[s].h, quantity);
 
-    mod.pattern.setType(Pattern::TypeRadialGradient);
-    totalFog += bench(mod, quantity);
+      mod.pattern.setType(Pattern::TypeRadialGradient);
+      totalFog += bench(mod, sizes[s].w, sizes[s].h, quantity);
+    }
   }
 
   // Fog - BlitImage
   {
     BenchmarkModule_Fog_BlitImage mod(w, h);
-    mod.setMultithreaded(false);
-    totalFog += bench(mod, quantity);
+    mod.setEngineMode(Painter::ModeSinglethreaded);
+    totalFog += bench(mod, 128, 128, quantity);
   }
 
   fog_debug("");
 
   // --------------------------------------------------------------------------
-  // Fog (mt)
+  // Fog (multithreaded)
   // --------------------------------------------------------------------------
 
-  // Fog (mt) - FillRect
+  for (s = 0; s < FOG_ARRAY_SIZE(sizes); s++)
   {
-    BenchmarkModule_Fog_FillRect mod(w, h);
-    mod.setMultithreaded(true);
-    totalFogMT += bench(mod, quantity);
+    // Fog - FillRect
+    {
+      BenchmarkModule_Fog_FillRect mod(w, h);
+      mod.setEngineMode(Painter::ModeMultithreaded);
+      totalFogMT += bench(mod, sizes[s].w, sizes[s].h, quantity);
+    }
+
+    // Fog - FillRound
+    {
+      BenchmarkModule_Fog_FillRound mod(w, h);
+      mod.setEngineMode(Painter::ModeMultithreaded);
+      totalFogMT += bench(mod, sizes[s].w, sizes[s].h, quantity);
+    }
+
+    // Fog - FillPolygon
+    {
+      BenchmarkModule_Fog_FillPolygon mod(w, h);
+      mod.setEngineMode(Painter::ModeMultithreaded);
+      totalFogMT += bench(mod, sizes[s].w, sizes[s].h, quantity);
+    }
+
+    // Fog - FillPattern
+    {
+      BenchmarkModule_Fog_FillPattern mod(w, h);
+      mod.setEngineMode(Painter::ModeMultithreaded);
+
+      mod.pattern.setType(Pattern::TypeLinearGradient);
+      totalFogMT += bench(mod, sizes[s].w, sizes[s].h, quantity);
+
+      mod.pattern.setType(Pattern::TypeRadialGradient);
+      totalFogMT += bench(mod, sizes[s].w, sizes[s].h, quantity);
+    }
   }
 
-  // Fog (mt) - FillRound
-  {
-    BenchmarkModule_Fog_FillRound mod(w, h);
-    mod.setMultithreaded(true);
-    totalFogMT += bench(mod, quantity);
-  }
-
-  // Fog (mt) - FillPolygon
-  {
-    BenchmarkModule_Fog_FillPolygon mod(w, h);
-    mod.setMultithreaded(true);
-    totalFogMT += bench(mod, quantity);
-  }
-
-  // Fog (mt) - FillPattern
-  {
-    BenchmarkModule_Fog_FillPattern mod(w, h);
-    mod.setMultithreaded(true);
-
-    mod.pattern.setType(Pattern::TypeLinearGradient);
-    totalFogMT += bench(mod, quantity);
-
-    mod.pattern.setType(Pattern::TypeRadialGradient);
-    totalFogMT += bench(mod, quantity);
-  }
-
-  // Fog (mt) - BlitImage
+  // Fog - BlitImage
   {
     BenchmarkModule_Fog_BlitImage mod(w, h);
-    mod.setMultithreaded(true);
-    totalFogMT += bench(mod, quantity);
+    mod.setEngineMode(Painter::ModeMultithreaded);
+    totalFogMT += bench(mod, 128, 128, quantity);
   }
 
   fog_debug("");
@@ -1160,34 +1180,37 @@ static void benchAll()
   // GdiPlus
   // --------------------------------------------------------------------------
 
-  // GdiPlus - FillRect
+  for (s = 0; s < FOG_ARRAY_SIZE(sizes); s++)
   {
-    BenchmarkModule_GDI_FillRect mod(w, h);
-    totalGdiPlus += bench(mod, quantity);
-  }
+    // GdiPlus - FillRect
+    {
+      BenchmarkModule_GDI_FillRect mod(w, h);
+      totalGdiPlus += bench(mod, sizes[s].w, sizes[s].h, quantity);
+    }
 
-  // GdiPlus - FillRound
-  {
-    BenchmarkModule_GDI_FillRound mod(w, h);
-    totalGdiPlus += bench(mod, quantity);
-  }
+    // GdiPlus - FillRound
+    {
+      BenchmarkModule_GDI_FillRound mod(w, h);
+      totalGdiPlus += bench(mod, sizes[s].w, sizes[s].h, quantity);
+    }
 
-  // GdiPlus - FillPolygon
-  {
-    BenchmarkModule_GDI_FillPolygon mod(w, h);
-    totalGdiPlus += bench(mod, quantity);
-  }
+    // GdiPlus - FillPolygon
+    {
+      BenchmarkModule_GDI_FillPolygon mod(w, h);
+      totalGdiPlus += bench(mod, sizes[s].w, sizes[s].h, quantity);
+    }
 
-  // GdiPlus - FillPattern
-  {
-    BenchmarkModule_GDI_FillPattern mod(w, h);
-    totalGdiPlus += bench(mod, quantity);
+    // GdiPlus - FillPattern
+    {
+      BenchmarkModule_GDI_FillPattern mod(w, h);
+      totalGdiPlus += bench(mod, sizes[s].w, sizes[s].h, quantity);
+    }
   }
 
   // GdiPlus - BlitImage
   {
     BenchmarkModule_GDI_BlitImage mod(w, h);
-    totalGdiPlus += bench(mod, quantity);
+    totalGdiPlus += bench(mod, sizes[s].w, sizes[s].h, quantity);
   }
 
   fog_debug("");
@@ -1197,37 +1220,40 @@ static void benchAll()
   // Cairo
   // --------------------------------------------------------------------------
 
-  // Cairo - FillRect
+  for (s = 0; s < FOG_ARRAY_SIZE(sizes); s++)
   {
-    BenchmarkModule_Cairo_FillRect mod(w, h);
-    totalCairo += bench(mod, quantity);
-  }
+    // Cairo - FillRect
+    {
+      BenchmarkModule_Cairo_FillRect mod(w, h);
+      totalCairo += bench(mod, sizes[s].w, sizes[s].h, quantity);
+    }
 
-  // Cairo - FillRound
-  {
-    BenchmarkModule_Cairo_FillRound mod(w, h);
-    totalCairo += bench(mod, quantity);
-  }
+    // Cairo - FillRound
+    {
+      BenchmarkModule_Cairo_FillRound mod(w, h);
+      totalCairo += bench(mod, sizes[s].w, sizes[s].h, quantity);
+    }
 
-  // Cairo - FillPolygon
-  {
-    BenchmarkModule_Cairo_FillPolygon mod(w, h);
-    totalCairo += bench(mod, quantity);
-  }
+    // Cairo - FillPolygon
+    {
+      BenchmarkModule_Cairo_FillPolygon mod(w, h);
+      totalCairo += bench(mod, sizes[s].w, sizes[s].h, quantity);
+    }
 
-  // Cairo - FillPattern
-  {
-    BenchmarkModule_Cairo_FillPattern mod(w, h);
-    totalCairo += bench(mod, quantity);
+    // Cairo - FillPattern
+    {
+      BenchmarkModule_Cairo_FillPattern mod(w, h);
+      totalCairo += bench(mod, sizes[s].w, sizes[s].h, quantity);
 
-    mod.type = 1;
-    totalCairo += bench(mod, quantity);
+      mod.type = 1;
+      totalCairo += bench(mod, sizes[s].w, sizes[s].h, quantity);
+    }
   }
 
   // Cairo - BlitImage
   {
     BenchmarkModule_Cairo_BlitImage mod(w, h);
-    totalCairo += bench(mod, quantity);
+    totalCairo += bench(mod, 128, 128, quantity);
   }
 
   fog_debug("");

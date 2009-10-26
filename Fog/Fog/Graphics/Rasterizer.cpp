@@ -132,7 +132,8 @@ struct FOG_HIDDEN LiangBarsky
 
   // Clip LiangBarsky.
   template<typename T, typename BoxT>
-  static FOG_INLINE uint clipLiangBarsky(T x1, T y1, T x2, T y2, const BoxT& clipBox, T* x, T* y)
+  static FOG_INLINE uint clipLiangBarsky(T x1, T y1, T x2, T y2, const BoxT& clipBox,
+    T* FOG_RESTRICT x, T* FOG_RESTRICT y)
   {
     const double nearzero = 1e-30;
 
@@ -265,7 +266,9 @@ struct FOG_HIDDEN LiangBarsky
 
   // Move point.
   template<typename T, typename BoxT>
-  static FOG_INLINE bool clipMovePoint(T x1, T y1, T x2, T y2, const BoxT& clipBox, T* x, T* y, uint flags)
+  static FOG_INLINE bool clipMovePoint(T x1, T y1, T x2, T y2, const BoxT& clipBox,
+    T* FOG_RESTRICT x,
+    T* FOG_RESTRICT y, uint flags)
   {
     if (flags & ClippedX)
     {
@@ -297,7 +300,9 @@ struct FOG_HIDDEN LiangBarsky
   //   (ret & 1) != 0  - First point has been moved
   //   (ret & 2) != 0  - Second point has been moved
   template<typename T, typename BoxT>
-  static FOG_INLINE unsigned clipLineSegment(T* x1, T* y1, T* x2, T* y2, const BoxT& clipBox)
+  static FOG_INLINE unsigned clipLineSegment(
+    T* FOG_RESTRICT x1, T* FOG_RESTRICT y1,
+    T* FOG_RESTRICT x2, T* FOG_RESTRICT y2, const BoxT& clipBox)
   {
     uint f1 = getClippingFlags(*x1, *y1, clipBox);
     uint f2 = getClippingFlags(*x2, *y2, clipBox);
@@ -416,10 +421,10 @@ struct FOG_HIDDEN RasterizerC : public Rasterizer
 
   virtual void finalize();
 
-  virtual uint sweepScanline(Scanline32* scanline, int y);
-
   FOG_INLINE uint calculateAlphaNonZero(int area) const;
   FOG_INLINE uint calculateAlphaEvenOdd(int area) const;
+
+  virtual uint sweepScanline(Scanline32* scanline, int y);
 
   //! @brief Whether rasterizer clipping is enabled.
   int _clipping;
@@ -501,8 +506,6 @@ void Rasterizer::addPath(const Path& path)
 // ============================================================================
 // [Fog::Rasterizer - Pooling]
 // ============================================================================
-
-static Rasterizer* rasterizerPool = NULL;
 
 Rasterizer* Rasterizer::getRasterizer()
 {
@@ -704,11 +707,9 @@ void RasterizerC::setClipBox(const Box& clipBox)
 {
   _clipping = true;
   _clipBox = clipBox;
-  _clip24x8.set(
-    clipBox.x1 << PolySubpixelShift,
-    clipBox.y1 << PolySubpixelShift,
-    clipBox.x2 << PolySubpixelShift,
-    clipBox.y2 << PolySubpixelShift);
+
+  _clip24x8.set(clipBox.x1 << PolySubpixelShift, clipBox.y1 << PolySubpixelShift,
+                clipBox.x2 << PolySubpixelShift, clipBox.y2 << PolySubpixelShift);
 }
 
 void RasterizerC::resetClipBox()
@@ -1254,7 +1255,7 @@ bool RasterizerC::finalizeCellBuffer()
 // ============================================================================
 
 template <typename T>
-static FOG_INLINE void swapCells(T* a, T* b)
+static FOG_INLINE void swapCells(T* FOG_RESTRICT a, T* FOG_RESTRICT b)
 {
   T temp;
 
@@ -1495,88 +1496,6 @@ void RasterizerC::finalize()
 // [Fog::RasterizerC - Sweep]
 // ============================================================================
 
-uint RasterizerC::sweepScanline(Scanline32* scanline, int y)
-{
-  if (y >= _cellsBounds.y2) return 0;
-
-  const RowInfo& ri = _rowsInfo[y - _cellsBounds.y1];
-
-  uint numCells = ri.count;
-  if (!numCells) return 0;
-
-  const CellX* cell = &_cellsSorted[ri.index];
-  int cover = 0;
-
-  if (scanline->init(_cellsBounds.x1, _cellsBounds.x2) != Error::Ok) return 0;
-
-  if (_fillRule == FillNonZero)
-  {
-    do {
-      int x = cell->x;
-      int area = cell->area;
-      uint alpha;
-
-      cover += cell->cover;
-
-      // Accumulate all cells with the same X.
-      while (--numCells)
-      {
-        cell++;
-        if (cell->x != x) break;
-        area  += cell->area;
-        cover += cell->cover;
-      }
-
-      if (area)
-      {
-        alpha = calculateAlphaNonZero((cover << (PolySubpixelShift + 1)) - area);
-        if (alpha) scanline->addCell(x, alpha);
-        x++;
-      }
-
-      if (numCells && cell->x > x)
-      {
-        alpha = calculateAlphaNonZero(cover << (PolySubpixelShift + 1));
-        if (alpha) scanline->addSpan(x, cell->x - x, alpha);
-      }
-    } while (numCells);
-  }
-  else
-  {
-    do {
-      int x = cell->x;
-      int area = cell->area;
-      uint alpha;
-
-      cover += cell->cover;
-
-      // Accumulate all cell with the same X.
-      while (--numCells)
-      {
-        cell++;
-        if (cell->x != x) break;
-        area  += cell->area;
-        cover += cell->cover;
-      }
-
-      if (area)
-      {
-        alpha = calculateAlphaEvenOdd((cover << (PolySubpixelShift + 1)) - area);
-        if (alpha) scanline->addCell(x, alpha);
-        x++;
-      }
-
-      if (numCells && cell->x > x)
-      {
-        alpha = calculateAlphaEvenOdd(cover << (PolySubpixelShift + 1));
-        if (alpha) scanline->addSpan(x, cell->x - x, alpha);
-      }
-    } while (numCells);
-  }
-
-  return scanline->finalize(y);
-}
-
 FOG_INLINE uint RasterizerC::calculateAlphaNonZero(int area) const
 {
   int cover = area >> (PolySubpixelShift*2 + 1 - AAShift);
@@ -1597,6 +1516,91 @@ FOG_INLINE uint RasterizerC::calculateAlphaEvenOdd(int area) const
   if (cover > AAMask) cover = AAMask;
   //return _gamma[cover];
   return cover;
+}
+
+uint RasterizerC::sweepScanline(Scanline32* scanline, int y)
+{
+  if (y >= _cellsBounds.y2) return 0;
+
+  const RowInfo& ri = _rowsInfo[y - _cellsBounds.y1];
+
+  uint numCells = ri.count;
+  if (!numCells) return 0;
+
+  const CellX* cell = &_cellsSorted[ri.index];
+  int cover = 0;
+
+  if (scanline->init(_cellsBounds.x1, _cellsBounds.x2) != Error::Ok) return 0;
+
+  if (_fillRule == FillNonZero)
+  {
+    for (;;)
+    {
+      int x = cell->x;
+      int area = cell->area;
+      uint alpha;
+
+      cover += cell->cover;
+
+      // Accumulate all cells with the same X.
+      while (--numCells)
+      {
+        cell++;
+        if (cell->x != x) break;
+        area  += cell->area;
+        cover += cell->cover;
+      }
+
+      int coversh = cover << (PolySubpixelShift + 1);
+
+      if (area)
+      {
+        if ((alpha = calculateAlphaNonZero(coversh - area))) scanline->addCell(x, alpha);
+        x++;
+      }
+
+      if (!numCells) break;
+
+      int slen = cell->x - x;
+      if (slen > 0 && (alpha = calculateAlphaNonZero(coversh))) scanline->addSpan(x, (uint)slen, alpha);
+    }
+  }
+  else
+  {
+    for (;;)
+    {
+      int x = cell->x;
+      int area = cell->area;
+      uint alpha;
+
+      cover += cell->cover;
+
+      // Accumulate all cells with the same X.
+      while (--numCells)
+      {
+        cell++;
+        if (cell->x != x) break;
+        area  += cell->area;
+        cover += cell->cover;
+      }
+
+      int coversh = cover << (PolySubpixelShift + 1);
+
+      if (area)
+      {
+        alpha = calculateAlphaEvenOdd(coversh - area);
+        if (alpha) scanline->addCell(x, alpha);
+        x++;
+      }
+
+      if (!numCells) break;
+
+      int slen = cell->x - x;
+      if (slen > 0 && (alpha = calculateAlphaNonZero(coversh))) scanline->addSpan(x, (uint)slen, alpha);
+    }
+  }
+
+  return scanline->finalize(y);
 }
 
 } // Fog namespace
