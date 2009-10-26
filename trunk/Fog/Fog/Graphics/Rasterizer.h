@@ -60,21 +60,6 @@ struct FOG_API Rasterizer
   // [Cell]
   // --------------------------------------------------------------------------
 
-  struct CellXY;
-
-#include <Fog/Core/Pack.h>
-  struct FOG_PACKED CellX
-  {
-    int x;
-    int cover;
-    int area;
-
-    FOG_INLINE void set(int _x, int _cover, int _area) { x = _x; cover = _cover; area = _area; }
-    FOG_INLINE void set(const CellX& other);
-    FOG_INLINE void set(const CellXY& other);
-  };
-#include <Fog/Core/Unpack.h>
-
   struct CellXY
   {
     int x;
@@ -85,6 +70,31 @@ struct FOG_API Rasterizer
     FOG_INLINE void set(int _x, int _y, int _cover, int _area) { x = _x; y = _y; cover = _cover; area = _area; }
     FOG_INLINE bool equalPos(int ex, int ey) const { return ((ex - x) | (ey - y)) == 0; }
   };
+
+#include <Fog/Core/Pack.h>
+  struct FOG_PACKED CellX
+  {
+    int x;
+    int cover;
+    int area;
+
+    FOG_INLINE void set(int _x, int _cover, int _area) { x = _x; cover = _cover; area = _area; }
+    
+    FOG_INLINE void set(const CellX& other)
+    {
+      x = other.x;
+      cover = other.cover;
+      area = other.area;
+    }
+
+    FOG_INLINE void set(const CellXY& other)
+    {
+      x = other.x;
+      cover = other.cover;
+      area = other.area;
+    }
+  };
+#include <Fog/Core/Unpack.h>
 
   // --------------------------------------------------------------------------
   // [CellXYBuffer]
@@ -289,20 +299,6 @@ private:
 
   FOG_DISABLE_COPY(Rasterizer)
 };
-
-FOG_INLINE void Rasterizer::CellX::set(const CellX& other)
-{
-  x = other.x;
-  cover = other.cover;
-  area = other.area;
-}
-
-FOG_INLINE void Rasterizer::CellX::set(const CellXY& other)
-{
-  x = other.x;
-  cover = other.cover;
-  area = other.area;
-}
 
 } // Fog namespace
 

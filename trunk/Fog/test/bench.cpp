@@ -47,7 +47,7 @@ static void loadSprites()
     fog_debug("\nDownload sprites from these locations and place them to 'bench' working directory:");
     for (int i = 0; i < 4; i++)
     {
-      fog_debug("  http://kobalicek.com/res/files/sprites/%s", spriteNames[i]);
+      fog_debug("  http://kobalicek.com/data/fog/sprites/%s", spriteNames[i]);
     }
     fog_debug("\nBlitImage test will be incorrect!\n");
   }
@@ -1049,6 +1049,7 @@ static void benchAll()
   // --------------------------------------------------------------------------
   // Header
   // --------------------------------------------------------------------------
+
   static const char* yesno[2] = { "no", "yes" };
 
   fog_debug("Surface=%dx%d, Quantity=%d", w, h, quantity);

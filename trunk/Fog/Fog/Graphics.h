@@ -71,10 +71,13 @@
 #include <Fog/Graphics/Path.h>
 #include <Fog/Graphics/Pattern.h>
 #include <Fog/Graphics/Raster.h>
+#include <Fog/Graphics/Rasterizer.h>
 #include <Fog/Graphics/Reduce.h>
 #include <Fog/Graphics/Region.h>
+#include <Fog/Graphics/RegionBuilder.h>
 #include <Fog/Graphics/Rgba.h>
 #include <Fog/Graphics/RgbaAnalyzer.h>
+#include <Fog/Graphics/Scanline.h>
 
 // [Guard]
 #endif // _FOG_GRAPHICS_H
