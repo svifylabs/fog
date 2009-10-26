@@ -317,6 +317,7 @@
 #define FOG_NO_INLINE
 #define FOG_NO_RETURN
 #define FOG_DEPRECATED
+#define FOG_RESTRICT
 
 #define FOG_FASTCALL
 #define FOG_STDCALL
@@ -356,6 +357,12 @@
 #define FOG_NO_INLINE __attribute__((noinline))
 #define FOG_NO_RETURN __attribute__((noreturn))
 #define FOG_DEPRECATED __attribute__((deprecated))
+
+#if (__GNUC__ >= 3)
+# define FOG_RESTRICT __restrict__
+#else
+# define FOG_RESTRICT
+#endif
 
 // 32-bit x86 calling conventions
 #ifdef FOG_ARCH_X86
@@ -435,11 +442,13 @@
 # define FOG_NO_INLINE
 # define FOG_NO_RETURN __declspec(noreturn)
 # define FOG_DEPRECATED __declspec(deprecated)
+# define FOG_RESTRICT __restrict
 #else // BORLAND
 # define FOG_INLINE inline
 # define FOG_NO_INLINE
 # define FOG_NO_RETURN
 # define FOG_DEPRECATED __declspec(deprecated)
+# define FOG_RESTRICT
 #endif
 
 #ifdef FOG_ARCH_X86
