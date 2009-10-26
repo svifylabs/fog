@@ -52,9 +52,9 @@ Set(FOG_CFLAGS_SSE3 "")
 If(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
   Set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions -fvisibility-inlines-hidden -fstrict-aliasing -Winline -Wstrict-aliasing")
   Set(FOG_CFLAGS_OPTIMIZE "")
-  #If(NOT ${CMAKE_BUILD_TYPE} MATCHES "Debug")
-    Set(FOG_CFLAGS_OPTIMIZE "-O2")
-  #EndIf(NOT ${CMAKE_BUILD_TYPE} MATCHES "Debug")
+  If(NOT ${CMAKE_BUILD_TYPE} MATCHES "Debug")
+    Set(FOG_CFLAGS_OPTIMIZE "-O3")
+  EndIf(NOT ${CMAKE_BUILD_TYPE} MATCHES "Debug")
   Set(FOG_CFLAGS_MMX "${FOG_CFLAGS_OPTIMIZE} -mmmx")
   Set(FOG_CFLAGS_SSE "${FOG_CFLAGS_OPTIMIZE} -msse")
   Set(FOG_CFLAGS_SSE2 "${FOG_CFLAGS_OPTIMIZE} -msse2")
@@ -449,6 +449,7 @@ Set(FOG_GRAPHICS_SOURCES
   ${FOG_DIR}/Fog/Graphics/Rasterizer.cpp
   ${FOG_DIR}/Fog/Graphics/Reduce.cpp
   ${FOG_DIR}/Fog/Graphics/Region.cpp
+  ${FOG_DIR}/Fog/Graphics/RegionBuilder.cpp
   ${FOG_DIR}/Fog/Graphics/RegionPoly.cpp
   ${FOG_DIR}/Fog/Graphics/RegionRound.cpp
   ${FOG_DIR}/Fog/Graphics/Rgba.cpp
@@ -497,6 +498,7 @@ Set(FOG_GRAPHICS_HEADERS
   ${FOG_DIR}/Fog/Graphics/Rasterizer.h
   ${FOG_DIR}/Fog/Graphics/Reduce.h
   ${FOG_DIR}/Fog/Graphics/Region.h
+  ${FOG_DIR}/Fog/Graphics/RegionBuilder.h
   ${FOG_DIR}/Fog/Graphics/Rgba.h
   ${FOG_DIR}/Fog/Graphics/RgbaAnalyzer.h
   ${FOG_DIR}/Fog/Graphics/Scanline.h
@@ -674,7 +676,9 @@ Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Painter.cpp PROPERTIES COMPI
 Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Raster/Raster_C.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
 Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Raster/Raster_MMX.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_MMX}")
 Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Raster/Raster_SSE2.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE2}")
+Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Rasterizer.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
 Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Region.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Scanline.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
 
 # =============================================================================
 # [Fog/Svg] Part
