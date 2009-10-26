@@ -221,7 +221,7 @@ struct BenchmarkModule_Fog : public BenchmarkModule
   FOG_NO_INLINE void setMultithreaded(bool mt)
   {
     this->mt = mt;
-    p.setProperty(Ascii8("multithreaded"), Value::fromBool(mt));
+    p.setEngineMode(mt ? Painter::ModeMultithreaded : Painter::ModeSinglethreaded);
   }
 
   Image im;

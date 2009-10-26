@@ -16,8 +16,6 @@ TODO
         instead
     [ ] Fog::RegExp - use TRex
     [ ] Fog::String/Fog::Locale - add support for group separators
-    [ ] Fog::TextCodec - not completed yet
-    [ ] StringUtil::some utf functions not completed yet
     [ ] Fog::BitArray - fix
     [ ] Temporary...<N>::free sometimes not frees the memory ?
     [ ] Join EventLoop and EventPump. Original code is different, in our code there
@@ -39,7 +37,6 @@ TODO
     [ ] Image scaling
     [ ] Image transform
     [ ] Introduce setClipPath() / resetClipPath()
-    [ ] Painter should implement IProperty interface.
 
 [ ] Image:
     [ ] Render text using Font::getGlyphs

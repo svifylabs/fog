@@ -102,7 +102,7 @@ struct FOG_HIDDEN PainterEngine_Null : public PainterEngine
   virtual double getMiterLimit() const { return 0.0; }
 
   virtual void setFillMode(uint32_t mode) {}
-  virtual uint32_t getFillMode() { return FillNonZero; }
+  virtual uint32_t getFillMode() const { return FillNonZero; }
 
   // [Transformations]
 
@@ -174,14 +174,12 @@ struct FOG_HIDDEN PainterEngine_Null : public PainterEngine
 
   virtual void drawImage(const Point& p, const Image& image, const Rect* irect) {}
 
-  // [Flush]
+  // [Multithreading]
+
+  virtual void setEngineMode(int mode, int cores = 0) {}
+  virtual int getEngineMode() const { return Painter::ModeNull; }
 
   virtual void flush() {}
-
-  // [Properties]
-
-  virtual err_t setProperty(const String& name, const Value& value) { return Error::InvalidPropertyName; }
-  virtual Value getProperty(const String& name) const { return Value(); }
 };
 
 static Static<PainterEngine_Null> _nullPainterEngine;

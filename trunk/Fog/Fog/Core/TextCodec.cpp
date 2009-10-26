@@ -1310,7 +1310,7 @@ err_t UTF16Codec::appendFromUnicode(ByteArray& dst, const Char* src, sysuint_t l
   uint16_t* dstCur = reinterpret_cast<uint16_t*>(dst.xData() + initSize);
 
   // Byte swapping.
-  bool bomSwapped = (flags & TextCodec::IsByteSwapped) != 0;
+  bool isByteSwapped = (flags & TextCodec::IsByteSwapped) != 0;
 
   // Characters.
   Char uc0;
@@ -1343,7 +1343,7 @@ surrogateTrail:
       if (!uc1.isTrailSurrogate()) { err = Error::InvalidUtf16Sequence; goto end; }
 
       // Byte swapping.
-      if (bomSwapped) { uc0 = Memory::bswap16(uc0); uc1 = Memory::bswap16(uc1); }
+      if (isByteSwapped) { uc0 = Memory::bswap16(uc0); uc1 = Memory::bswap16(uc1); }
 
       dstCur[0] = uc0;
       dstCur[1] = uc1;
@@ -1352,7 +1352,7 @@ surrogateTrail:
     else
     {
       // Byte swapping.
-      if (bomSwapped) { uc0 = Memory::bswap16(uc0); }
+      if (isByteSwapped) { uc0 = Memory::bswap16(uc0); }
 
       *dstCur++ = uc0;
     }
@@ -1390,7 +1390,7 @@ err_t UTF16Codec::appendToUnicode(String& dst, const void* src, sysuint_t size, 
   Char uc1;
 
   // Byte swapping.
-  uint32_t byteSwap = state ? state->bomSwapped : (flags & TextCodec::IsByteSwapped) != 0;
+  uint32_t isByteSwapped = (state && state->bomInitialized) ? state->bomSwapped : (flags & TextCodec::IsByteSwapped) != 0;
 
   if (state && (oldStateSize = state->count))
   {
@@ -1400,14 +1400,14 @@ err_t UTF16Codec::appendToUnicode(String& dst, const void* src, sysuint_t size, 
     if (state->count < 2) return Error::Ok;
 
     uc0 = reinterpret_cast<const uint16_t*>(bufPtr)[0];
-    if (byteSwap) uc0.bswap();
+    if (isByteSwapped) uc0.bswap();
 
     if (uc0.isLeadSurrogate())
     {
       if (state->count < 4) return Error::Ok;
 
       uc1 = reinterpret_cast<const uint16_t*>(bufPtr)[1];
-      if (byteSwap) uc1.bswap();
+      if (isByteSwapped) uc1.bswap();
 
       srcCur -= oldStateSize;
       state->count = 0;
@@ -1429,14 +1429,14 @@ loop:
     if (srcCur > srcEndM2) break;
 
     uc0 = reinterpret_cast<const uint16_t*>(srcCur)[0];
-    if (byteSwap) uc0.bswap();
+    if (isByteSwapped) uc0.bswap();
 
     if (uc0.isLeadSurrogate())
     {
       if (srcCur + 2 > srcEndM2) break;
 
       uc1 = reinterpret_cast<const uint16_t*>(srcCur)[1];
-      if (byteSwap) uc1.bswap();
+      if (isByteSwapped) uc1.bswap();
 
 surrogatePair:
       if (!uc1.isTrailSurrogate()) { err = Error::InvalidUtf16Sequence; goto end; }
@@ -1452,7 +1452,7 @@ notSurrogatePair:
       // BOM support.
       if (uc0.isBomSwapped())
       {
-        byteSwap = !byteSwap;
+        isByteSwapped = !isByteSwapped;
       }
       else if (uc0.isTrailSurrogate())
       {
@@ -1486,7 +1486,7 @@ notSurrogatePair:
   }
 
 end:
-  if (state) state->bomSwapped = byteSwap;
+  if (state) state->setBomSwapped(isByteSwapped);
 
   dst.xFinalize(dstCur);
   return err;
@@ -1536,7 +1536,7 @@ err_t UCS2Codec::appendFromUnicode(ByteArray& dst, const Char* src, sysuint_t le
   uint16_t* dstCur = reinterpret_cast<uint16_t*>(dst.xData() + initSize);
 
   // Byte swapping.
-  bool bomSwapped = (flags & TextCodec::IsByteSwapped) != 0;
+  bool isByteSwapped = (flags & TextCodec::IsByteSwapped) != 0;
 
   // Replacer.
   ByteArray replaceBuffer;
@@ -1601,7 +1601,7 @@ end:
   dst.xFinalize(reinterpret_cast<char*>(dstCur));
 
   // Byte swapping.
-  if (bomSwapped)
+  if (isByteSwapped)
   {
     uint16_t* dstEnd = dstCur;
     dstCur = reinterpret_cast<uint16_t*>(dst.xData() + initSize);
@@ -1635,7 +1635,7 @@ err_t UCS2Codec::appendToUnicode(String& dst, const void* src, sysuint_t size, S
   Char uc0;
 
   // Byte swapping.
-  uint32_t byteSwap = state ? state->bomSwapped : (flags & TextCodec::IsByteSwapped) != 0;
+  uint32_t isByteSwapped = (state && state->bomInitialized) ? state->bomSwapped : (flags & TextCodec::IsByteSwapped) != 0;
 
   if (state && (oldStateSize = state->count))
   {
@@ -1645,7 +1645,7 @@ err_t UCS2Codec::appendToUnicode(String& dst, const void* src, sysuint_t size, S
     if (state->count < 2) return Error::Ok;
 
     uc0 = reinterpret_cast<const uint16_t*>(bufPtr)[0];
-    if (byteSwap) uc0.bswap();
+    if (isByteSwapped) uc0.bswap();
 
     srcCur -= oldStateSize;
     state->count = 0;
@@ -1659,7 +1659,7 @@ loop:
     if (srcCur > srcEndM2) break;
 
     uc0 = reinterpret_cast<const uint16_t*>(srcCur)[0];
-    if (byteSwap) uc0.bswap();
+    if (isByteSwapped) uc0.bswap();
 
 processChar:
     if (uc0.isSurrogatePair())
@@ -1671,7 +1671,7 @@ processChar:
     // BOM support.
     if (uc0.isBomSwapped())
     {
-      byteSwap = !byteSwap;
+      isByteSwapped = !isByteSwapped;
     }
     else
     {
@@ -1699,7 +1699,7 @@ processChar:
   }
 
 end:
-  if (state) state->bomSwapped = byteSwap;
+  if (state) state->setBomSwapped(isByteSwapped);
 
   dst.xFinalize(dstCur);
   return err;
@@ -1729,14 +1729,172 @@ UTF32Codec::UTF32Codec(uint32_t code, uint32_t flags, const char* mime) :
 
 err_t UTF32Codec::appendFromUnicode(ByteArray& dst, const Char* src, sysuint_t length, Replacer replacer, State* state) const
 {
-  // TODO
-  return Error::NotImplemented;
+  // Length initialization and check.
+  if (length == DetectLength) length = StringUtil::len(src);
+  if (length == 0) return Error::Ok;
+
+  // Source buffer.
+  const Char* srcCur = src;
+  const Char* srcEnd = src + length;
+
+  // Destination buffer.
+  sysuint_t initSize = dst.getLength();
+  sysuint_t growSize = (length * 4) + 2;
+
+  err_t err = dst.reserve(growSize);
+  if (err) return err;
+
+  uint32_t* dstCur = reinterpret_cast<uint32_t*>(dst.xData() + initSize);
+
+  // Byte swapping.
+  bool isByteSwapped = (flags & TextCodec::IsByteSwapped) != 0;
+
+  // Characters.
+  Char uc0;
+  Char uc1;
+  uint32_t uc;
+
+  if (state && state->count == 2)
+  {
+    uc0 = reinterpret_cast<uint16_t*>(state->buffer)[0];
+    state->count = 0;
+    goto surrogateTrail;
+  }
+
+loop:
+  while (srcCur != srcEnd)
+  {
+    uc0 = *srcCur++;
+    if (uc0.isLeadSurrogate())
+    {
+      // Incomplete surrogate pair.
+      if (srcCur == srcEnd)
+      {
+        if (!state) { err = Error::InputTruncated; goto end; }
+        reinterpret_cast<uint16_t*>(state->buffer)[0] = uc0;
+        state->count = 2;
+        goto end;
+      }
+
+surrogateTrail:
+      uc1 = *srcCur++;
+      if (!uc1.isTrailSurrogate()) { err = Error::InvalidUtf16Sequence; goto end; }
+
+      uc = Char::fromSurrogate(uc0, uc1);
+    }
+    else
+    {
+      uc = uc0;
+    }
+
+    if (isByteSwapped) uc = Memory::bswap32(uc);
+    *dstCur++ = uc;
+  }
+
+end:
+  dst.xFinalize(reinterpret_cast<char*>(dstCur));
+  return err;
 }
 
 err_t UTF32Codec::appendToUnicode(String& dst, const void* src, sysuint_t size, State* state) const
 {
-  // TODO
-  return Error::NotImplemented;
+  // Length initialization and check.
+  if (size == DetectLength) size = StringUtil::len(reinterpret_cast<const uint32_t*>(src)) << 3;
+  if (size == 0) return Error::Ok;
+
+  // Source Buffer.
+  const uint8_t* srcCur = reinterpret_cast<const uint8_t*>(src);
+  const uint8_t* srcEnd = srcCur + (size);
+  const uint8_t* srcEndM4 = srcCur + (size) - 4;
+
+  // Destination Buffer.
+  sysuint_t oldStateSize = 0;
+
+  sysuint_t initSize = dst.getLength();
+  sysuint_t growSize = (size >> 1) + 2;
+
+  err_t err = dst.grow(growSize);
+  if (err) return err;
+
+  Char* dstCur = dst.xData() + initSize;
+
+  // Characters.
+  uint32_t uc;
+
+  // Byte swapping.
+  uint32_t isByteSwapped = (state && state->bomInitialized) ? state->bomSwapped : (flags & TextCodec::IsByteSwapped) != 0;
+
+  if (state && (oldStateSize = state->count))
+  {
+    const uint8_t* bufPtr = reinterpret_cast<uint8_t*>(state->buffer);
+    sysuint_t bufSize = addToState(state, srcCur, srcEnd);
+
+    if (state->count < 4) return Error::Ok;
+
+    uc = reinterpret_cast<const uint32_t*>(bufPtr)[0];
+    if (isByteSwapped) uc = Memory::bswap32(uc);
+
+    srcCur -= oldStateSize;
+    state->count = 0;
+
+    goto processChar;
+  }
+
+loop:
+  for (;;)
+  {
+    if (srcCur > srcEndM4) break;
+
+    uc = reinterpret_cast<const uint32_t*>(srcCur)[0];
+    if (isByteSwapped) uc = Memory::bswap32(uc);
+
+processChar:
+    if (uc > MaxCodePoint || (uc <= 0xFFFF && Char::isSurrogatePair((uint16_t)uc)))
+    {
+      err = Error::InvalidUnicodeCharacter;
+      goto end;
+    }
+
+    // BOM support.
+    if (uc == UTF32_BOM_Swapped)
+    {
+      isByteSwapped = !isByteSwapped;
+    }
+    else if (uc >= 0x10000)
+    {
+      Char::toSurrogatePair(uc, &dstCur[0]._ch, &dstCur[1]._ch);
+      dstCur += 2;
+    }
+    else
+    {
+      *dstCur++ = uc;
+    }
+
+    srcCur += 4;
+  }
+
+  // We need to check if input was truncated or not. Ideally srcCur should
+  // be srcEnd.
+  if (srcCur != srcEnd)
+  {
+    // Different behavior if state is set or not.
+    if (state)
+    {
+      sysuint_t bufSize = (sysuint_t)(srcEnd - srcCur);
+      memcpy(state->buffer, srcCur, bufSize);
+      state->count = bufSize;
+    }
+    else
+    {
+      err = Error::InputTruncated;
+    }
+  }
+
+end:
+  if (state) state->setBomSwapped(isByteSwapped);
+
+  dst.xFinalize(dstCur);
+  return err;
 }
 
 static TextCodec::Engine* UTF32Codec_create(uint32_t code, uint32_t flags, const char* mime, void*)
