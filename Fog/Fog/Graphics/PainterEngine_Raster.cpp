@@ -156,7 +156,7 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
   virtual double getMiterLimit() const;
 
   virtual void setFillMode(uint32_t mode);
-  virtual uint32_t getFillMode();
+  virtual uint32_t getFillMode() const;
 
   // --------------------------------------------------------------------------
   // [Transformations]
@@ -241,18 +241,14 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
   virtual void drawImage(const Point& p, const Image& image, const Rect* irect);
 
   // --------------------------------------------------------------------------
-  // [Flush]
+  // [Multithreading]
   // --------------------------------------------------------------------------
+
+  virtual void setEngineMode(int mode, int cores = 0);
+  virtual int getEngineMode() const;
 
   virtual void flush();
   void flushWithQuit();
-
-  // --------------------------------------------------------------------------
-  // [Properties]
-  // --------------------------------------------------------------------------
-
-  virtual err_t setProperty(const String& name, const Value& value);
-  virtual Value getProperty(const String& name) const;
 
   // --------------------------------------------------------------------------
   // [Forward Declarations]
@@ -743,12 +739,6 @@ struct FOG_HIDDEN PainterEngine_Raster : public PainterEngine
     volatile sysint_t calculationsPosition;
     Calculation* volatile calculationsData[MaxCalculations];
   };
-
-  // --------------------------------------------------------------------------
-  // [Multithreading]
-  // --------------------------------------------------------------------------
-
-  void setMultithreaded(bool mt);
 
   // --------------------------------------------------------------------------
   // [Helpers]
@@ -1530,14 +1520,14 @@ PainterEngine_Raster::PainterEngine_Raster(uint8_t* pixels, int width, int heigh
 #if defined(FOG_DEBUG_RASTER_SYNCHRONIZATION)
       fog_debug("Fog::Painter::new() - Image %dx%d (total %d), selected for multithreading", width, height, width * height);
 #endif // FOG_DEBUG_RASTER_SYNCHRONIZATION
-      setMultithreaded(true);
+      setEngineMode(Painter::ModeMultithreaded);
     }
   }
 }
 
 PainterEngine_Raster::~PainterEngine_Raster()
 {
-  if (workerManager) setMultithreaded(false);
+  if (workerManager) setEngineMode(Painter::ModeSinglethreaded);
 
   _deleteStates();
   ctx.clipState->deref();
@@ -1894,7 +1884,7 @@ void PainterEngine_Raster::setFillMode(uint32_t mode)
   ctx.capsState->fillMode = mode;
 }
 
-uint32_t PainterEngine_Raster::getFillMode()
+uint32_t PainterEngine_Raster::getFillMode() const
 {
   return ctx.capsState->fillMode;
 }
@@ -2555,99 +2545,26 @@ void PainterEngine_Raster::drawImage(const Point& p, const Image& image, const R
 }
 
 // ============================================================================
-// [Fog::PainterEngine_Raster - Flush]
+// [Fog::PainterEngine_Raster - Multithreading]
 // ============================================================================
 
-void PainterEngine_Raster::flush()
-{
-  if (workerManager == NULL || workerManager->commandsPosition == 0) return;
-
-  {
-    AutoLock locked(workerManager->lock);
-    if (!workerManager->isCompleted())
-    {
-      workerManager->wakeUpScheduled(NULL);
-      workerManager->allFinishedCondition.wait();
-    }
-  }
-
-  // Reset command position and local command/calculation counters
-#if defined(FOG_DEBUG_RASTER_SYNCHRONIZATION)
-  fog_debug("Fog::Painter::flush() - done");
-#endif // FOG_DEBUG_RASTER_SYNCHRONIZATION
-
-  workerManager->commandsPosition = 0;
-  workerManager->calculationsPosition = 0;
-
-  for (sysuint_t i = 0; i < workerManager->numWorkers; i++)
-  {
-    workerManager->tasks[i]->currentCommand = 0;
-    workerManager->tasks[i]->currentCalculation = 0;
-  }
-}
-
-void PainterEngine_Raster::flushWithQuit()
-{
-  FOG_ASSERT(workerManager);
-
-  //AutoLock locked(workerManager->lock);
-
-#if defined(FOG_DEBUG_RASTER_SYNCHRONIZATION)
-  fog_debug("Fog::Painter::flushWithQuit() - quitting...");
-#endif // FOG_DEBUG_RASTER_SYNCHRONIZATION
-
-  AutoLock locked(workerManager->lock);
-  workerManager->wakeUpSleeping(NULL);
-}
-
-// ============================================================================
-// [Fog::PainterEngine_Raster - Properties]
-// ============================================================================
-
-err_t PainterEngine_Raster::setProperty(const String& name, const Value& value)
-{
-  err_t err = Error::InvalidPropertyName;
-  int p_int;
-
-  if (name == Ascii8("multithreaded"))
-  {
-    if ((err = value.getInt32(&p_int)) == Error::Ok)
-      if (value.isInteger()) setMultithreaded(p_int != 0);
-  }
-
-  return err;
-}
-
-Value PainterEngine_Raster::getProperty(const String& name) const
-{
-  Value result;
-
-  if (name == Ascii8("multithreaded"))
-    result.setInt32(workerManager != NULL);
-
-  return result;
-}
-
-// ============================================================================
-// [Fog::PainterEngine_Raster - Multithreading - Start / Stop]
-// ============================================================================
-
-void PainterEngine_Raster::setMultithreaded(bool mt)
+void PainterEngine_Raster::setEngineMode(int mode, int cores)
 {
   int i;
-
-  if ((workerManager != NULL) == mt) return;
+  bool mt = (mode == Painter::ModeMultithreaded);
 
   // If worker pool is not created we can't start multithreaded rendering.
-  if (mt && !threadPool) return;
+  if (!threadPool) return;
+
+  if ((workerManager != NULL) == mt) return;
 
   // Start multithreading...
   if (mt)
   {
-    int max = Math::min<int>(cpuInfo->numberOfProcessors, MaxWorkers);
+    int max = Math::min<int>(cores > 0 ? cores : cpuInfo->numberOfProcessors, MaxWorkers);
 
 #if defined(FOG_DEBUG_RASTER_SYNCHRONIZATION)
-    fog_debug("Fog::Painter::setMultithreaded() - starting (%d threads)", max);
+    fog_debug("Fog::Painter::setEngineMode() - starting multithreading (%d threads)", max);
 #endif // FOG_DEBUG_RASTER_SYNCHRONIZATION
 
     workerManager = new(std::nothrow) WorkerManager;
@@ -2657,7 +2574,7 @@ void PainterEngine_Raster::setMultithreaded(bool mt)
     if (max < 2)
     {
 #if defined(FOG_DEBUG_RASTER_SYNCHRONIZATION)
-      fog_debug("Fog::Painter::setMultithreaded() - cpu detection says 1, switching to 2");
+      fog_debug("Fog::Painter::setEngineMode() - cpu detection says 1, switching to 2");
 #endif // FOG_DEBUG_RASTER_SYNCHRONIZATION
       max = 2;
     }
@@ -2672,7 +2589,7 @@ void PainterEngine_Raster::setMultithreaded(bool mt)
     if (i <= 1)
     {
 #if defined(FOG_DEBUG_RASTER_SYNCHRONIZATION)
-      fog_debug("Fog::Painter::setMultithreaded() - failed to get %d threads from pool, releasing...", max);
+      fog_debug("Fog::Painter::setEngineMode() - failed to get %d threads from pool, releasing...", max);
 #endif // FOG_DEBUG_RASTER_SYNCHRONIZATION
       if (workerManager->threads[0])
       {
@@ -2723,14 +2640,14 @@ void PainterEngine_Raster::setMultithreaded(bool mt)
     }
 
 #if defined(FOG_DEBUG_RASTER_SYNCHRONIZATION)
-    fog_debug("Fog::Painter::setMultithreaded() - done");
+    fog_debug("Fog::Painter::setEngineMode() - done");
 #endif // FOG_DEBUG_RASTER_SYNCHRONIZATION
   }
   // Stop multithreading
   else
   {
 #if defined(FOG_DEBUG_RASTER_SYNCHRONIZATION)
-    fog_debug("Fog::Painter::setMultithreaded() - stopping...");
+    fog_debug("Fog::Painter::setEngineMode() - stopping multithreading...");
 #endif // FOG_DEBUG_RASTER_SYNCHRONIZATION
 
     int count = workerManager->numWorkers;
@@ -2765,9 +2682,56 @@ void PainterEngine_Raster::setMultithreaded(bool mt)
     workerManager = NULL;
 
 #if defined(FOG_DEBUG_RASTER_SYNCHRONIZATION)
-    fog_debug("Fog::Painter::setMultithreaded() - done");
+    fog_debug("Fog::Painter::setEngineMode() - done");
 #endif // FOG_DEBUG_RASTER_SYNCHRONIZATION
   }
+}
+
+int PainterEngine_Raster::getEngineMode() const
+{
+  return (workerManager != NULL) ? Painter::ModeMultithreaded : Painter::ModeSinglethreaded;
+}
+
+void PainterEngine_Raster::flush()
+{
+  if (workerManager == NULL || workerManager->commandsPosition == 0) return;
+
+  {
+    AutoLock locked(workerManager->lock);
+    if (!workerManager->isCompleted())
+    {
+      workerManager->wakeUpScheduled(NULL);
+      workerManager->allFinishedCondition.wait();
+    }
+  }
+
+  // Reset command position and local command/calculation counters
+#if defined(FOG_DEBUG_RASTER_SYNCHRONIZATION)
+  fog_debug("Fog::Painter::flush() - done");
+#endif // FOG_DEBUG_RASTER_SYNCHRONIZATION
+
+  workerManager->commandsPosition = 0;
+  workerManager->calculationsPosition = 0;
+
+  for (sysuint_t i = 0; i < workerManager->numWorkers; i++)
+  {
+    workerManager->tasks[i]->currentCommand = 0;
+    workerManager->tasks[i]->currentCalculation = 0;
+  }
+}
+
+void PainterEngine_Raster::flushWithQuit()
+{
+  FOG_ASSERT(workerManager);
+
+  //AutoLock locked(workerManager->lock);
+
+#if defined(FOG_DEBUG_RASTER_SYNCHRONIZATION)
+  fog_debug("Fog::Painter::flushWithQuit() - quitting...");
+#endif // FOG_DEBUG_RASTER_SYNCHRONIZATION
+
+  AutoLock locked(workerManager->lock);
+  workerManager->wakeUpSleeping(NULL);
 }
 
 // ============================================================================

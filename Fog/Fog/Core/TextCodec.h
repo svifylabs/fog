@@ -270,6 +270,12 @@ struct FOG_API TextCodec
 
     //! @brief Clears all variables to it's constructor defaults (all zero).
     FOG_INLINE void clear() { memset(this, 0, sizeof(*this)); }
+
+    FOG_INLINE void setBomSwapped(bool swapped)
+    {
+      bomInitialized = true;
+      bomSwapped = swapped;
+    }
   };
 
   // --------------------------------------------------------------------------

@@ -81,7 +81,7 @@ struct MyWindow : public Window
   // [Members]
   Timer timer;
 
-  enum { NumPoints = 20 };
+  enum { NumPoints = 6 };
   MyPoint mp[NumPoints];
   MyColor clr;
 };

@@ -33,13 +33,29 @@ namespace StringUtil {
 
 err_t validateUtf8(const char* str, sysuint_t len, sysuint_t* invalidPos)
 {
-  // TODO
-  return 0;
+  err_t err = Error::Ok;
+  const uint8_t* strCur = reinterpret_cast<const uint8_t*>(str);
+  sysuint_t remain = len;
+
+  while (remain)
+  {
+    uint8_t c0 = strCur[0];
+
+    sysuint_t clen = utf8LengthTable[c0];
+    if (!clen) { err = Error::InvalidUtf8Sequence; break; }
+    if (remain < clen) { err = Error::InputTruncated; break; }
+
+    strCur += clen;
+    remain -= clen;
+  }
+
+  if (invalidPos) *invalidPos = (sysuint_t)(strCur - reinterpret_cast<const uint8_t*>(str));
+  return err;
 }
 
 err_t validateUtf16(const Char* str, sysuint_t len, sysuint_t* invalidPos)
 {
-  err_t error = Error::Ok;
+  err_t err = Error::Ok;
 
   const Char* srcCur = str;
   const Char* srcEnd = srcCur + len;
@@ -52,30 +68,49 @@ err_t validateUtf16(const Char* str, sysuint_t len, sysuint_t* invalidPos)
 
     if (Char::isLeadSurrogate(uc))
     {
-      if (srcCur == srcEnd) { error = Error::InputTruncated; break; }
+      if (srcCur == srcEnd) { err = Error::InputTruncated; break; }
       uc = *srcCur++;
-      if (!Char::isTrailSurrogate(uc)) { error = Error::InvalidUtf16Sequence; break; }
+      if (!Char::isTrailSurrogate(uc)) { err = Error::InvalidUtf16Sequence; break; }
     }
     else
     {
-      if (uc >= 0xFFFE) { error = Error::InvalidUnicodeCharacter; break; }
+      if (uc >= 0xFFFE) { err = Error::InvalidUnicodeCharacter; break; }
     }
   }
 
   if (invalidPos) *invalidPos = (sysuint_t)((--srcCur) - str);
-  return error;
+  return err;
 }
 
 FOG_API err_t getNumUtf8Chars(const char* str, sysuint_t len, sysuint_t* charsCount)
 {
-  // TODO:
-  return Error::NotImplemented;
+  sysuint_t num = 0;
+  err_t err = Error::Ok;
+
+  const uint8_t* strCur = reinterpret_cast<const uint8_t*>(str);
+  sysuint_t remain = len;
+
+  while (remain)
+  {
+    uint8_t c0 = strCur[0];
+
+    sysuint_t clen = utf8LengthTable[c0];
+    if (!clen) { err = Error::InvalidUtf8Sequence; break; }
+    if (remain < clen) { err = Error::InputTruncated; break; }
+
+    strCur += clen;
+    remain -= clen;
+    num++;
+  }
+
+  if (charsCount) *charsCount = num;
+  return err;
 }
 
 FOG_API err_t getNumUtf16Chars(const Char* str, sysuint_t len, sysuint_t* charsCount)
 {
   sysuint_t num = 0;
-  err_t error = Error::Ok;
+  err_t err = Error::Ok;
 
   const Char* srcCur = str;
   const Char* srcEnd = srcCur + len;
@@ -88,19 +123,19 @@ FOG_API err_t getNumUtf16Chars(const Char* str, sysuint_t len, sysuint_t* charsC
 
     if (Char::isLeadSurrogate(uc))
     {
-      if (srcCur == srcEnd) { error = Error::InputTruncated; break; }
+      if (srcCur == srcEnd) { err = Error::InputTruncated; break; }
       uc = *srcCur++;
-      if (!Char::isTrailSurrogate(uc)) { error = Error::InvalidUtf16Sequence; break; }
+      if (!Char::isTrailSurrogate(uc)) { err = Error::InvalidUtf16Sequence; break; }
     }
     else
     {
-      if (uc >= 0xFFFE) { error = Error::InvalidUnicodeCharacter; break; }
+      if (uc >= 0xFFFE) { err = Error::InvalidUnicodeCharacter; break; }
     }
     num++;
   }
 
   if (charsCount) *charsCount = num;
-  return error;
+  return err;
 }
 
 // Miscellany

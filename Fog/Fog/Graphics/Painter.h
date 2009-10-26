@@ -73,6 +73,16 @@ struct FOG_API Painter
     HintNoMultithreading = (1 << 31)
   };
 
+  // [Mode]
+
+  enum Mode
+  {
+    ModeNull = -1,
+
+    ModeSinglethreaded = 0,
+    ModeMultithreaded = 1
+  };
+
   // [Construction / Destruction]
 
   //! @brief Create null painter instance.
@@ -326,17 +336,12 @@ struct FOG_API Painter
   FOG_INLINE void drawImage(const Point& p, const Image& image, const Rect* irect = 0)
   { _engine->drawImage(p, image, irect); }
 
-  // [Flush]
+  // [Multithreading]
+
+  FOG_INLINE void setEngineMode(int mode, int cores = 0) { _engine->setEngineMode(mode, cores); }
+  FOG_INLINE int getEngineMode() const { return _engine->getEngineMode(); }
 
   FOG_INLINE void flush() { _engine->flush(); }
-
-  // [Properties]
-
-  FOG_INLINE err_t setProperty(const String& name, const Value& value)
-  { return _engine->setProperty(name, value); }
-
-  FOG_INLINE Value getProperty(const String& name) const
-  { return _engine->getProperty(name); }
 
   // [Members]
 

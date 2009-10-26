@@ -9,7 +9,6 @@
 
 // [Dependencies]
 #include <Fog/Core/String.h>
-#include <Fog/Core/Value.h>
 #include <Fog/Core/Vector.h>
 #include <Fog/Graphics/Matrix.h>
 #include <Fog/Graphics/Font.h>
@@ -134,7 +133,7 @@ struct FOG_API PainterEngine
   virtual double getMiterLimit() const = 0;
 
   virtual void setFillMode(uint32_t mode) = 0;
-  virtual uint32_t getFillMode() = 0;
+  virtual uint32_t getFillMode() const = 0;
 
   // [Transformations]
 
@@ -206,14 +205,12 @@ struct FOG_API PainterEngine
 
   virtual void drawImage(const Point& p, const Image& image, const Rect* irect) = 0;
 
-  // [Flush]
+  // [Multithreading]
+
+  virtual void setEngineMode(int mode, int cores = 0) = 0;
+  virtual int getEngineMode() const = 0;
 
   virtual void flush() = 0;
-
-  // [Properties]
-
-  virtual err_t setProperty(const String& name, const Value& value) = 0;
-  virtual Value getProperty(const String& name) const = 0;
 
 private:
   FOG_DISABLE_COPY(PainterEngine)
