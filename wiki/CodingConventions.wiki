@@ -1,0 +1,197 @@
+#summary (incomplete) overview over the coding conventions.
+#labels Phase-Implementation
+
+=Identation, Position of Keywords Characters=
+==Code Indentation==
+Code inside `{}`-Braces should be indented for 2 whitespaces. 
+Don't use tabs! 
+
+==Braces==
+Braces should always have there own line, for example: 
+{{{
+struct LocalStack
+{
+  struct Node
+  {
+    // some code here
+  };
+};
+}}}
+
+==Position of const-Keyword, Reference and Pointer character==
+The const-keyword should always appear before the value type, for example: <br>
+`const char* s = string->cData();`
+
+The reference/pointer indicating character should always appear immidiatly behind the value type, for example: <br>
+`EventLoop* createEventLoop(const String& type)`
+
+==How to correctly pass parameters to a function?==
+Instead of passing values to function, you should prefer a constant reference if the value‘s type is bigger than 4 bytes (correct?). 
+Example: <br>
+`EventLoop* createEventLoop(const String& type);` instead of <br>
+`EventLopp* createEventLoop(String type);`. <br>
+But you should although use: <br>
+`err_t setInt(int32_t n, int base)`, and not: <br>
+`err_t setInt(const int32_t& n, const int& base). <br>
+
+=Commenting=
+==Comment Style==
+Comments should always start with a //. 
+
+===Doxygen comments===
+Fog uses Doxygen in order to document the source code. Doxygen comments should look like `//!`. 
+Now, doxygen markups (e.g. `@verbatim`) can be used. For more information see Doxygen documentation. 
+
+===File comments===
+File comments should be at the top of each file. They should look like the following: 
+{{{
+    // [Fog/<MODULE> Library - C++ API]
+    //
+    // [Licence] 
+    // MIT, See COPYING file in package
+}}}
+Always also insert copyright notices if you use other open source code. 
+
+===Code Section Commenting===
+In order to name sections of code, what should actually be done very often, write the comments in formation `// [SECTION_TITLE]`. For example:
+{{{
+    // [Guard]
+    #ifndef _FOG_CORE_AUTOLOCK_H
+    #define _FOG_CORE_AUTOLOCK_H
+
+    // [Dependencies]
+    #include <Fog/Build/Build.h>
+
+    #include <Fog/Core/Assert.h>
+    #include <Fog/Core/Atomic.h>
+    #include <Fog/Core/Lock.h>
+}}}
+=Naming Conventions=
+==File names==
+C++ source files always end with `.cpp`. Headers end with `.h`. Both are always starting with an upper case letter and use camel case notation, for example: <br>
+`StringFilter.h
+StringFilter.cpp`
+
+==Include Guard==
+All headers should start with an include guard, in order to prevent multiple inclusion. It should be in the format `_<PROJECT>_<MODULE>_<FILE>_H`, for example: 
+{{{
+    #ifndef _FOG_CORE_STRINGUTIL_H
+    #define _FOG_CORE_STRINGUTIL_H`
+}}}
+
+==Namespacing==
+Everything, which belongs the Fog has to be declared inside the Fog namespace. 
+
+==Class/struct Naming==
+All classes/structs start with an uppercase letter and use camel case notation, for example:
+{{{class/struct (FOG_API) StringCache`}}}
+
+==Function Naming==
+All function start with a lowercase letter and use camel case notation, for example: 
+{{{
+    FOG_INLINE void* alloc(sysuint_t size)`
+}}}
+
+==Macro Naming==
+All letters of macros should be uppercase. Every macro should start with a FOG_. 
+
+==Member Naming==
+All private member variables always start with with a leading underscore, for example: 
+{{{
+private:
+  //! @brief Pointer to locked mutex.
+  Lock* _target;
+}}}
+=Miscellaneous=
+==0 and NULL==
+`0` is used for integers, `0.0` is used for reals, `NULL` is used for pointers, `\0` is used for chars.
+
+==Use Fog Macros!==
+===Inling functions===
+In order to inline functions, use the FOG_INLINE macro.
+
+===Macros to Determine the Operating System at compile-time===
+There are macros available, which can be used in order to determine the current operating system at compile-time.
+These are in the format `FOG_OS_<PLATFORM>`. `PLATFORM` can be: WINDOWS, POSIX, LINUX, FREEBSD, OPENBSD, NETBSD, HPUX, MACOSX. For example: 
+{{{
+    #if defined(FOG_OS_WINDOWS)
+     // do some windows stuff here
+    #else
+     // do some posix stuff here
+    #endif
+}}}
+
+===Use integer typedefs (bit like in stdint)===
+use standard C++ integer typedef as they are declared in the stdint header, which means:<br>
+`int8_t` instead of `signed char`, <br>
+`uint8_t` instead of `unsigned char`, <br>
+
+`int16_t` instead of `short`, <br>
+`uint16_t` instead of `unsigned short`, <br><br>
+
+`sysint_t` instead of `int`, <br>
+`sysuint_t` instead of `unsigned int`, <br>
+(`sysint_t` decides between 32- and 64-bit) <br>
+
+==Column length of files==
+The column length should always be 80 characters
+
+==Infinite Loops==
+When using infinite loops, they should start with for(;;). 
+=Errors=
+Return errors (by using `err_t`), don't throw them. Error codes are declared in `Error.h`. 
+Possible errors are: 
+
+==Error Range==
+ * `_CoreErrorStart`
+ * `_CoreErrorLast`
+
+==Runtime Errors==
+
+ * OutOfMemory = _CoreErrorStart
+ * NotImplemented
+ * InvalidFunction
+ * InvalidArgument
+ * InvalidHandle
+ * InvalidInput
+ * InvalidPropertyName
+ * InvalidPropertyValue
+ * Overflow
+ * PropertyIsReadOnly
+
+==IO Errors==
+ * IOInvalid
+ * IOTooBig
+ * IOEmpty
+ * IOReadOnly
+ * IOInvalidOffset
+ * IONotAFile
+ * IONotADirectory
+ * IONotFound
+ * FileSizeTooBig
+ * EmptyFile
+ * CantSeek
+ * TruncateNotSupported
+ * TruncateFailed
+ * FileNotExists
+ * DirectoryAlreadyExists
+
+==Collections==
+ * ObjectNotExists
+ * ObjectAlreadyExists
+
+==Library Errors==
+ * LibraryOpenFailed
+ * LibrarySymbolNotFound
+
+==TextCodec (StringUtil) Errors==
+ * InvalidCodec
+ * InvalidUtf8Sequence
+ * InvalidUtf16Sequence
+ * InvalidUcs2Sequence
+ * InvalidUnicodeCharacter
+ * InputTruncated
+
+==OS==
+ * GetEnvFailure 
+ * SetEnvFailure
