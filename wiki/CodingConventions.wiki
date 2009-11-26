@@ -32,7 +32,7 @@ Example: <br>
 `EventLopp* createEventLoop(String type);`. <br>
 But you should although use: <br>
 `err_t setInt(int32_t n, int base)`, and not: <br>
-`err_t setInt(const int32_t& n, const int& base). <br>
+`err_t setInt(const int32_t& n, const int& base)`. <br>
 
 =Commenting=
 ==Comment Style==
