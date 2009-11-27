@@ -87,8 +87,8 @@ In order to name sections of code, what should actually be done very often, writ
 ==File names==
 C++ source files always end with `.cpp`. Headers end with `.h`. Both are always starting with an upper case letter and use camel case notation, for example: <br>
 {{{
-   StringFilter.h
-   StringFilter.cpp
+    StringFilter.h
+    StringFilter.cpp
 }}}
 
 ==Include Guard==
@@ -109,7 +109,7 @@ Everything, which belongs the Fog has to be declared inside the Fog namespace, b
 ==Class/Struct Naming==
 All classes/structs start with an uppercase letter and use camel case notation, for example:
 {{{
-   class/struct (FOG_API) StringCache;
+    class/struct (FOG_API) StringCache;
 }}}
 
 ==Function Naming==
