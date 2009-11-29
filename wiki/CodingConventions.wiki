@@ -1,6 +1,8 @@
 #summary (incomplete) overview over the coding conventions.
 #labels Phase-Implementation
 
+<wiki:toc max_depth="3" />
+
 =Identation, Position of Keywords Characters=
 
 ==Code Indentation==
