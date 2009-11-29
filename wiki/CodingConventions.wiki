@@ -81,8 +81,9 @@ In order to name sections of code, what should actually be done very often, writ
     #include <Fog/Core/Atomic.h>
     #include <Fog/Core/Lock.h>
 }}}
+  
 
-=Naming Conventions=
+=Naming Conventions=
 
 ==File names==
 C++ source files always end with `.cpp`. Headers end with `.h`. Both are always starting with an upper case letter and use camel case notation, for example: <br>
@@ -185,50 +186,50 @@ Possible errors are:
 
 ==Runtime Errors==
 
- * OutOfMemory = _CoreErrorStart
- * NotImplemented
- * InvalidFunction
- * InvalidArgument
- * InvalidHandle
- * InvalidInput
- * InvalidPropertyName
- * InvalidPropertyValue
- * Overflow
- * PropertyIsReadOnly
+ * `OutOfMemory = _CoreErrorStart`
+ * `NotImplemented`
+ * `InvalidFunction`
+ * `InvalidArgument`
+ * `InvalidHandle`
+ * `InvalidInput`
+ * `InvalidPropertyName`
+ * `InvalidPropertyValue`
+ * `Overflow`
+ * `PropertyIsReadOnly`
 
 ==IO Errors==
- * IOInvalid
- * IOTooBig
- * IOEmpty
- * IOReadOnly
- * IOInvalidOffset
- * IONotAFile
- * IONotADirectory
- * IONotFound
- * FileSizeTooBig
- * EmptyFile
- * CantSeek
- * TruncateNotSupported
- * TruncateFailed
- * FileNotExists
- * DirectoryAlreadyExists
+ * `IOInvalid`
+ * `IOTooBig`
+ * `IOEmpty`
+ * `IOReadOnly`
+ * `IOInvalidOffset`
+ * `IONotAFile`
+ * `IONotADirectory`
+ * `IONotFound`
+ * `FileSizeTooBig`
+ * `EmptyFile`
+ * `CantSeek`
+ * `TruncateNotSupported`
+ * `TruncateFailed`
+ * `FileNotExists`
+ * `DirectoryAlreadyExists`
 
 ==Collections==
- * ObjectNotExists
- * ObjectAlreadyExists
+ * `ObjectNotExists`
+ * `ObjectAlreadyExists`
 
 ==Library Errors==
- * LibraryOpenFailed
- * LibrarySymbolNotFound
+ * `LibraryOpenFailed`
+ * `LibrarySymbolNotFound`
 
 ==TextCodec (StringUtil) Errors==
- * InvalidCodec
- * InvalidUtf8Sequence
- * InvalidUtf16Sequence
- * InvalidUcs2Sequence
- * InvalidUnicodeCharacter
- * InputTruncated
+ * `InvalidCodec`
+ * `InvalidUtf8Sequence`
+ * `InvalidUtf16Sequence`
+ * `InvalidUcs2Sequence`
+ * `InvalidUnicodeCharacter`
+ * `InputTruncated`
 
 ==OS==
- * GetEnvFailure 
- * SetEnvFailure
+ * `GetEnvFailure` 
+ * `SetEnvFailure`
