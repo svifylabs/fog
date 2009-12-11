@@ -15,7 +15,9 @@
 
 namespace Fog {
 
+// ============================================================================
 // [Fog::Task]
+// ============================================================================
 
 Task::Task() : _destroyOnFinish(true)
 {
@@ -30,15 +32,13 @@ void Task::destroy()
   delete this;
 }
 
+// ============================================================================
+// [Fog::QuitTask]
+// ============================================================================
+
 void QuitTask::run()
 {
-  EventLoop::getCurrent()->quit();
+  Thread::getCurrent()->getEventLoop()->quit();
 }
 
-void ThreadQuitTask::run()
-{
-  EventLoop::getCurrent()->quit();
-}
-
-//[Fog::]
-}
+} // Fog namespace

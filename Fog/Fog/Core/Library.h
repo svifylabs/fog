@@ -20,12 +20,6 @@
 namespace Fog {
 
 // ============================================================================
-// [Forward Declarations]
-// ============================================================================
-
-template<typename T> struct Vector;
-
-// ============================================================================
 // [Fog::Library]
 // ============================================================================
 
@@ -37,14 +31,12 @@ struct FOG_API Library
   {
     // [Ref / Deref]
 
-    Data* ref() const;
-    void deref();
-
-    Data* refAlways() const
+    FOG_INLINE Data* ref() const
     {
       refCount.inc();
       return const_cast<Data*>(this);
     }
+    void deref();
 
     static Data* alloc();
 
@@ -56,38 +48,11 @@ struct FOG_API Library
 
   static Static<Data> sharedNull;
 
-  // [Open Mode]
-
-  //! @brief Library open flags used in @c open().
-  enum OpenMode
-  {
-    //! @brief Open library with system prefix (default @c true).
-    //!
-    //! System prefix is mainly for systems like unix, where library prefix
-    //! is usually 'lib', but plugins are usually linked without this prefix,
-    //! but default is to use system prefix.
-    OpenSystemPrefix = (1 << 0),
-
-    //! @brief Open libray with system suffix (default @c true).
-    //!
-    //! System suffix = dot + library extension, for example in MS Windows
-    //! this suffix is equal to '.dll', on unix like machines this suffix
-    //! is '.so'. If you need to specify your own suffix, don't set this
-    //! flag, because if you not use open flags argument. This flag is
-    //! default.
-    OpenSystemSuffix = (1 << 1),
-
-    //! @brief Default open flags for Library constructors and @c open() methods.
-    //!
-    //! Default is to use @c OpenSystemPrefix with @c OpenSystemSuffix
-    OpenDefault = OpenSystemPrefix | OpenSystemSuffix
-  };
-
   // [Construction / Destruction]
 
   Library();
   Library(const Library& other);
-  Library(const String& fileName, uint32_t openFlags = OpenDefault);
+  Library(const String& fileName, uint32_t openFlags = LIBRARY_OPEN_DEFAULT);
   ~Library();
 
   // [Implicit Sharing]
@@ -103,7 +68,7 @@ struct FOG_API Library
   FOG_INLINE void* getHandle() const { return _d->handle; }
   FOG_INLINE bool isOpen() const { return _d->handle != NULL; }
 
-  err_t open(const String& fileName, uint32_t openFlags = OpenDefault);
+  err_t open(const String& fileName, uint32_t openFlags = LIBRARY_OPEN_DEFAULT);
   err_t openPlugin(const String& category, const String& fileName);
   void close();
 
@@ -148,14 +113,14 @@ struct FOG_API Library
 
   // [Paths]
 
-  enum AddPathMode
+  enum PATH_MODE
   {
-    PathAppend = 0,
-    PathPrepend
+    PATH_PREPEND = 0,
+    PATH_APPEND = 1
   };
 
-  static Vector<String> paths();
-  static bool addPath(const String& path, int mode = PathAppend);
+  static List<String> paths();
+  static bool addPath(const String& path, int pathMode = PATH_APPEND);
   static bool removePath(const String& path);
   static bool hasPath(const String& path);
 
@@ -220,7 +185,7 @@ static library##Interface library##_interface;
 // [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::Library, Fog::MoveableType)
+FOG_DECLARE_TYPEINFO(Fog::Library, Fog::TYPE_INFO_MOVABLE)
 
 // [Guard]
 #endif // _FOG_CORE_LIBRARY_H

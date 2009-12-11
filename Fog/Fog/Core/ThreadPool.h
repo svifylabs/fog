@@ -18,7 +18,7 @@
 namespace Fog {
 
 // ============================================================================
-// [Fog::Forward Declarations]
+// [Forward Declarations]
 // ============================================================================
 
 struct Thread;
@@ -54,6 +54,7 @@ struct FOG_API ThreadPool
 
 private:
   virtual Thread* _createThread();
+  void releaseAllAvailable();
 
   int _minThreads;
   int _maxThreads;

@@ -11,7 +11,6 @@
 // [Dependencies]
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/Constants.h>
-#include <Fog/Core/Error.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/String.h>
 #include <Fog/Core/StringUtil.h>
@@ -42,7 +41,7 @@ ValueData::~ValueData()
 {
 }
 
-void* ValueData::allocData()
+void* ValueData::allogetData()
 {
   return Memory::alloc(sizeof(ValueData));
 }
@@ -85,43 +84,43 @@ struct FOG_HIDDEN NullValueData : public ValueData
 };
 
 NullValueData::NullValueData() : 
-  ValueData(Value::TypeNull)
+  ValueData(Value::TYPE_NULL)
 {
 }
 
 err_t NullValueData::clone(void* dst) const
 {
   new(dst) NullValueData();
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t NullValueData::getInt32(int32_t* dst) const
 {
   *dst = 0;
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t NullValueData::getInt64(int64_t* dst) const
 {
   *dst = 0;
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t NullValueData::getDouble(double* dst) const
 {
   *dst = 0.0;
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t NullValueData::getString(String* dst) const
 {
   dst->clear();
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t NullValueData::setValue(void* val)
 {
-  return Error::InvalidFunction;
+  return InvalidFunction;
 }
 
 // ============================================================================
@@ -142,7 +141,7 @@ struct FOG_HIDDEN IntegerValueData : public ValueData
 };
 
 IntegerValueData::IntegerValueData(int64_t content) : 
-  ValueData(Value::TypeInteger)
+  ValueData(Value::TYPE_INTEGER)
 {
   i64 = content;
 }
@@ -150,7 +149,7 @@ IntegerValueData::IntegerValueData(int64_t content) :
 err_t IntegerValueData::clone(void* dst) const
 {
   new(dst) IntegerValueData(i64);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t IntegerValueData::getInt32(int32_t* dst) const
@@ -158,42 +157,42 @@ err_t IntegerValueData::getInt32(int32_t* dst) const
   if (i64 < INT32_MIN)
   {
     *dst = INT32_MIN;
-    return Error::Overflow;
+    return ERR_RT_OVERFLOW;
   }
   else if (i64 > INT32_MAX)
   {
     *dst = INT32_MAX;
-    return Error::Overflow;
+    return ERR_RT_OVERFLOW;
   }
   else
   {
     *dst = (int32_t)i64;
-    return Error::Ok;
+    return ERR_OK;
   }
 }
 
 err_t IntegerValueData::getInt64(int64_t* dst) const
 {
   *dst = i64;
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t IntegerValueData::getDouble(double* dst) const
 {
   *dst = (double)i64;
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t IntegerValueData::getString(String* dst) const
 {
   dst->setInt(i64);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t IntegerValueData::setValue(void* val)
 {
   i64 = *(int64_t *)val;
-  return Error::Ok;
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -214,7 +213,7 @@ struct FOG_HIDDEN DoubleValueData : public ValueData
 };
 
 DoubleValueData::DoubleValueData(double content) : 
-  ValueData(Value::TypeDouble)
+  ValueData(Value::TYPE_DOUBLE)
 {
   d = content;
 }
@@ -222,7 +221,7 @@ DoubleValueData::DoubleValueData(double content) :
 err_t DoubleValueData::clone(void* dst) const
 {
   new(dst) DoubleValueData(d);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t DoubleValueData::getInt32(int32_t* dst) const
@@ -230,17 +229,17 @@ err_t DoubleValueData::getInt32(int32_t* dst) const
   if (d < INT32_MIN)
   {
     *dst = INT32_MIN;
-    return Error::Overflow;
+    return ERR_RT_OVERFLOW;
   }
   else if (d > INT32_MAX)
   {
     *dst = INT32_MAX;
-    return Error::Overflow;
+    return ERR_RT_OVERFLOW;
   }
   else
   {
     *dst = (int32_t)d;
-    return Error::Ok;
+    return ERR_OK;
   }
 }
 
@@ -249,36 +248,36 @@ err_t DoubleValueData::getInt64(int64_t* dst) const
   if (d < INT64_MIN)
   {
     *dst = INT64_MIN;
-    return Error::Overflow;
+    return ERR_RT_OVERFLOW;
   }
   else if (d > INT64_MAX)
   {
     *dst = INT64_MAX;
-    return Error::Overflow;
+    return ERR_RT_OVERFLOW;
   }
   else
   {
     *dst = (int64_t)d;
-    return Error::Ok;
+    return ERR_OK;
   }
 }
 
 err_t DoubleValueData::getDouble(double* dst) const
 {
   *dst = d;
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t DoubleValueData::getString(String* dst) const
 {
   dst->setDouble(d);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t DoubleValueData::setValue(void* val)
 {
   d = *(double *)val;
-  return Error::Ok;
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -302,7 +301,7 @@ struct FOG_HIDDEN StringValueData : public ValueData
 };
 
 StringValueData::StringValueData(const String& content) : 
-  ValueData(Value::TypeString)
+  ValueData(Value::TYPE_STRING)
 {
   new (str()) String(content);
 }
@@ -315,7 +314,7 @@ StringValueData::~StringValueData()
 err_t StringValueData::clone(void* dst) const
 {
   new(dst) StringValueData(*str());
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t StringValueData::getInt32(int32_t* dst) const
@@ -336,13 +335,13 @@ err_t StringValueData::getDouble(double* dst) const
 err_t StringValueData::getString(String* dst) const
 {
   dst->set(*str());
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t StringValueData::setValue(void* val)
 {
   str()->set(*(String*)val);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -382,42 +381,42 @@ Value Value::null()
 Value Value::fromBool(bool val)
 {
   return Value(
-    new(ValueData::allocData()) 
+    new(ValueData::allogetData()) 
       IntegerValueData(static_cast<int64_t>(val)));
 }
 
 Value Value::fromInt32(int32_t val)
 {
   return Value(
-    new(ValueData::allocData()) 
+    new(ValueData::allogetData()) 
       IntegerValueData(static_cast<int64_t>(val)));
 }
 
 Value Value::fromInt64(int64_t val)
 {
   return Value(
-    new(ValueData::allocData()) 
+    new(ValueData::allogetData()) 
       IntegerValueData(val));
 }
 
 Value Value::fromDouble(double val)
 {
   return Value(
-    new(ValueData::allocData()) 
+    new(ValueData::allogetData()) 
       DoubleValueData(val));
 }
 
 Value Value::fromString(const String& val)
 {
   return Value(
-    new(ValueData::allocData()) 
+    new(ValueData::allogetData()) 
       StringValueData(val));
 }
 
 Value Value::fromErrno()
 {
   return Value(
-    new(ValueData::allocData()) 
+    new(ValueData::allogetData()) 
       IntegerValueData(errno));
 }
 
@@ -425,28 +424,28 @@ Value Value::fromErrno()
 Value Value::fromWinLastError()
 {
   return Value(
-    new(ValueData::allocData()) 
+    new(ValueData::allogetData()) 
       IntegerValueData(GetLastError()));
 }
 #endif // FOG_OS_WINDOWS
 
 err_t Value::detach()
 {
-  if (isDetached()) return Error::Ok;
+  if (isDetached()) return ERR_OK;
 
-  ValueData* d = (ValueData*)ValueData::allocData();
-  if (!d) return Error::OutOfMemory;
+  ValueData* d = (ValueData*)ValueData::allogetData();
+  if (!d) return ERR_RT_OUT_OF_MEMORY;
 
   _d->clone(d);
   AtomicBase::ptr_setXchg(&_d, d)->deref();
-  return Error::Ok;
+  return ERR_OK;
 }
 
-err_t Value::setNull()
+err_t Value::reset()
 {
   sharedNull->refCount.inc();
   AtomicBase::ptr_setXchg(&_d, sharedNull)->deref();
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Value::setInt32(int32_t val)
@@ -470,13 +469,13 @@ err_t Value::setInt64(int64_t val)
   }
   else
   {
-    void* p = ValueData::allocData();
-    if (!p) return Error::OutOfMemory;
+    void* p = ValueData::allogetData();
+    if (!p) return ERR_RT_OUT_OF_MEMORY;
 
     AtomicBase::ptr_setXchg(&_d, 
       reinterpret_cast<ValueData*>(new(p) IntegerValueData(val)))->deref();
   }
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Value::setDouble(double val)
@@ -495,13 +494,13 @@ err_t Value::setDouble(double val)
   }
   else
   {
-    void* p = ValueData::allocData();
-    if (!p) return Error::OutOfMemory;
+    void* p = ValueData::allogetData();
+    if (!p) return ERR_RT_OUT_OF_MEMORY;
 
     AtomicBase::ptr_setXchg(&_d,
       reinterpret_cast<ValueData*>(new(p) DoubleValueData(val)))->deref();
   }
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Value::setString(const String& val)
@@ -520,13 +519,13 @@ err_t Value::setString(const String& val)
   }
   else
   {
-    void* p = ValueData::allocData();
-    if (!p) return Error::OutOfMemory;
+    void* p = ValueData::allogetData();
+    if (!p) return ERR_RT_OUT_OF_MEMORY;
 
     AtomicBase::ptr_setXchg(&_d,
       reinterpret_cast<ValueData*>(new(p) StringValueData(val)))->deref();
   }
-  return Error::Ok;
+  return ERR_OK;
 }
 
 } // Fog namespace
@@ -542,7 +541,7 @@ FOG_INIT_DECLARE err_t fog_value_init(void)
   sharedNullData.init();
   Value::sharedNull = sharedNullData.instancep();
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 FOG_INIT_DECLARE void fog_value_shutdown(void)

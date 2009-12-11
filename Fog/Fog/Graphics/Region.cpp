@@ -4,14 +4,13 @@
 // MIT, See COPYING file in package
 
 // [Precompiled Headers]
-#ifdef FOG_PRECOMP
+#if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
-#endif
+#endif // FOG_PRECOMP
 
 // [Dependencies]
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/Constants.h>
-#include <Fog/Core/Error.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Math.h>
 #include <Fog/Core/Misc.h>
@@ -164,7 +163,7 @@ static err_t _compress(Region& r, Region& s, Region& t, uint dx, bool xdir, regi
     shift <<= 1;
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 // -----------------------------------------------------------------------
@@ -283,7 +282,7 @@ static err_t _unitePrivate(Region* dest, const Box* src1, sysuint_t count1, cons
     else
     {
       newd = Region::Data::create(minRectsNeeded);
-      if (!newd) return Error::OutOfMemory;
+      if (!newd) return ERR_RT_OUT_OF_MEMORY;
       destCur = newd->rects;
     }
   }
@@ -485,7 +484,7 @@ static err_t _unitePrivate(Region* dest, const Box* src1, sysuint_t count1, cons
     if (memOverlap && destBegin == staticBuffer) Memory::free(newd);
     dest->clear();
   }
-  return Error::Ok;
+  return ERR_OK;
 }
 
 static err_t _intersectPrivate(Region* dest, const Box* src1, sysuint_t count1, const Box* src2, sysuint_t count2, bool memOverlap)
@@ -520,7 +519,7 @@ static err_t _intersectPrivate(Region* dest, const Box* src1, sysuint_t count1, 
   // Find first rectangle that can intersect.
   for (;;)
   {
-    if (src1 == src1End || src2 == src2End) { dest->clear(); return Error::Ok; }
+    if (src1 == src1End || src2 == src2End) { dest->clear(); return ERR_OK; }
 
     if (src1->getY2() < src2->getY1()) { src1++; continue; }
     if (src2->getY2() < src1->getY1()) { src2++; continue; }
@@ -546,7 +545,7 @@ static err_t _intersectPrivate(Region* dest, const Box* src1, sysuint_t count1, 
     else
     {
       newd = Region::Data::create(minRectsNeeded);
-      if (!newd) { dest->clear(); return Error::OutOfMemory; }
+      if (!newd) { dest->clear(); return ERR_RT_OUT_OF_MEMORY; }
       destCur = newd->rects;
     }
   }
@@ -672,7 +671,7 @@ static err_t _intersectPrivate(Region* dest, const Box* src1, sysuint_t count1, 
     if (memOverlap && destBegin == staticBuffer) Memory::free(newd);
     dest->clear();
   }
-  return Error::Ok;
+  return ERR_OK;
 }
 
 static err_t _subtractPrivate(Region* dest, const Box* src1, sysuint_t count1, const Box* src2, sysuint_t count2, bool memOverlap)
@@ -707,12 +706,12 @@ static err_t _subtractPrivate(Region* dest, const Box* src1, sysuint_t count1, c
   if (memOverlap)
   {
     newd = Region::Data::create(minRectsNeeded);
-    if (!newd) { dest->clear(); return Error::OutOfMemory; }
+    if (!newd) { dest->clear(); return ERR_RT_OUT_OF_MEMORY; }
   }
   else
   {
     err_t err = dest->prepare(minRectsNeeded);
-    if (err) { dest->clear(); return Error::OutOfMemory; }
+    if (err) { dest->clear(); return ERR_RT_OUT_OF_MEMORY; }
     newd = dest->_d;
   }
 
@@ -922,12 +921,12 @@ static err_t _subtractPrivate(Region* dest, const Box* src1, sysuint_t count1, c
     if (memOverlap) Memory::free(newd);
     dest->clear();
   }
-  return Error::Ok;
+  return ERR_OK;
 
 outOfMemory:
   if (memOverlap) Memory::free(newd);
   dest->clear();
-  return Error::OutOfMemory;
+  return ERR_RT_OUT_OF_MEMORY;
 }
 
 static err_t _appendPrivate(Region* dest, const Box* src, sysuint_t length, const Box* new_extents)
@@ -1044,7 +1043,7 @@ __end:
   dest->_d->length = (sysuint_t)(destCur - destBegin);
   dest->_d->extents = *new_extents;
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -1074,11 +1073,6 @@ Region::Region(const Region& other) :
 {
 }
 
-Region::Region(Data* d) :
-  _d(d)
-{
-}
-
 Region::~Region()
 {
   _d->derefInline();
@@ -1093,18 +1087,18 @@ err_t Region::_detach()
     if (d->length > 0)
     {
       d = Data::create(d->length, &d->extents, d->rects, d->length);
-      if (!d) return Error::OutOfMemory;
+      if (!d) return ERR_RT_OUT_OF_MEMORY;
     }
     else
     {
       d = Data::create(d->length);
-      if (!d) return Error::OutOfMemory;
+      if (!d) return ERR_RT_OUT_OF_MEMORY;
       d->extents.clear();
     }
     AtomicBase::ptr_setXchg(&_d, d)->deref();
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 void Region::free()
@@ -1125,7 +1119,7 @@ err_t Region::setSharable(bool val)
       _d->flags &= ~Data::IsSharable;
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Region::setStrong(bool val)
@@ -1141,7 +1135,7 @@ err_t Region::setStrong(bool val)
       _d->flags &= ~Data::IsStrong;
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Region::reserve(sysuint_t to)
@@ -1152,7 +1146,7 @@ err_t Region::reserve(sysuint_t to)
   {
 __create:
     Data* newd = Data::create(to, &d->extents, d->rects, d->length);
-    if (!newd) return Error::OutOfMemory;
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
     AtomicBase::ptr_setXchg(&_d, newd)->derefInline();
   }
   else if (d->capacity < to)
@@ -1160,12 +1154,12 @@ __create:
     if (!(d->flags & Data::IsDynamic)) goto __create;
 
     Data* newd = (Data *)Memory::realloc(d, Data::sizeFor(to));
-    if (!newd) return Error::OutOfMemory;
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
     newd->capacity = to;
     _d = newd;
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Region::prepare(sysuint_t to)
@@ -1176,7 +1170,7 @@ err_t Region::prepare(sysuint_t to)
   {
 __create:
     Data* newd = Data::create(to);
-    if (!newd) return Error::OutOfMemory;
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
     AtomicBase::ptr_setXchg(&_d, newd)->derefInline();
   }
@@ -1185,7 +1179,7 @@ __create:
     if (!(d->flags & Data::IsDynamic)) goto __create;
 
     Data* newd = (Data *)Memory::realloc(d, Data::sizeFor(to));
-    if (!newd) return Error::OutOfMemory;
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
     newd->capacity = to;
     newd->length = 0;
@@ -1196,7 +1190,7 @@ __create:
     d->length = 0;
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 void Region::squeeze()
@@ -1235,18 +1229,18 @@ uint32_t Region::getType() const
   return t < 2 ? t : 2;
 }
 
-uint32_t Region::contains(const Point& pt) const
+int Region::hitTest(const Point& pt) const
 {
   Data* d = _d;
 
   sysuint_t i;
   sysuint_t length = d->length;
 
-  if (!length) return Out;
+  if (!length) return REGION_HITTEST_OUT;
 
   // Check if point position is in extents, if not -> Out
-  if (!(d->extents.contains(pt))) return Out;
-  if (length == 1) return In;
+  if (!(d->extents.contains(pt))) return REGION_HITTEST_OUT;
+  if (length == 1) return REGION_HITTEST_IN;
 
   // Binary search for matching position
   const Box* base = d->rects;
@@ -1267,7 +1261,7 @@ uint32_t Region::contains(const Point& pt) const
         if (x < r->getX2())
         {
           // Match
-          return In;
+          return REGION_HITTEST_IN;
         }
         else
         {
@@ -1286,21 +1280,21 @@ uint32_t Region::contains(const Point& pt) const
     }
     // else: Move left
   }
-  return Out;
+  return REGION_HITTEST_OUT;
 }
 
-uint Region::contains(const Rect& r) const
+int Region::hitTest(const Rect& r) const
 {
-  return contains(Box(r));
+  return hitTest(Box(r));
 }
 
-uint Region::contains(const Box& r) const
+int Region::hitTest(const Box& r) const
 {
   Data* d = _d;
   sysuint_t length = d->length;
 
   // This is (just) a useful optimization.
-  if (!length || !d->extents.overlaps(r)) return Out;
+  if (!length || !d->extents.overlaps(r)) return REGION_HITTEST_OUT;
 
   const Box* cur = d->rects;
   const Box* end = cur + length;
@@ -1362,7 +1356,9 @@ uint Region::contains(const Box& r) const
     }
   }
 
-  return (partIn) ? ((y < r.getY2()) ? Part : In) : Out;
+  return (partIn)
+    ? ((y < r.getY2()) ? REGION_HITTEST_PART : REGION_HITTEST_IN)
+    : REGION_HITTEST_OUT;
 }
 
 void Region::clear()
@@ -1385,7 +1381,7 @@ err_t Region::set(const Region& r)
 {
   Data* td = _d;
   Data* rd = r._d;
-  if (td == rd) return Error::Ok;
+  if (td == rd) return ERR_OK;
 
   if ((td->flags & Data::IsStrong) || !(rd->flags & Data::IsSharable))
   {
@@ -1402,12 +1398,12 @@ err_t Region::set(const Region& r)
     AtomicBase::ptr_setXchg(&_d, rd->refAlways())->derefInline();
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Region::set(const Rect& r)
 {
-  if (!r.isValid()) { clear(); return Error::Ok; }
+  if (!r.isValid()) { clear(); return ERR_OK; }
 
   err_t err = prepare(1);
   if (err) return err;
@@ -1419,12 +1415,12 @@ err_t Region::set(const Rect& r)
   newd->extents = b;
   newd->rects[0] = b;
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Region::set(const Box& r)
 {
-  if (!r.isValid()) { clear(); return Error::Ok; }
+  if (!r.isValid()) { clear(); return ERR_OK; }
 
   prepare(1);
   Data* d = _d;
@@ -1432,14 +1428,14 @@ err_t Region::set(const Box& r)
   d->extents = r;
   d->rects[0] = r;
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Region::setDeep(const Region& r)
 {
   Data* td = _d;
   Data* rd = r._d;
-  if (td == rd) return Error::Ok;
+  if (td == rd) return ERR_OK;
 
   err_t err = prepare(rd->length);
   if (err) return err;
@@ -1449,7 +1445,7 @@ err_t Region::setDeep(const Region& r)
   td->extents = rd->extents;
   _copyRects(td->rects, rd->rects, rd->length);
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Region::set(const Rect* rects, sysuint_t length)
@@ -1457,7 +1453,7 @@ err_t Region::set(const Rect* rects, sysuint_t length)
   // TODO: Not optimal.
   clear();
   for (sysuint_t i = 0; i < length; i++) unite(rects[i]);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Region::set(const Box* rects, sysuint_t length)
@@ -1465,7 +1461,7 @@ err_t Region::set(const Box* rects, sysuint_t length)
   // TODO: Not optimal.
   clear();
   for (sysuint_t i = 0; i < length; i++) unite(rects[i]);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Region::unite(const Region& r)
@@ -1474,13 +1470,13 @@ err_t Region::unite(const Region& r)
   Data* rd = r._d;
 
   // Union region is same or r is empty... -> nop
-  if (td == rd || rd->length == 0) return Error::Ok;
+  if (td == rd || rd->length == 0) return ERR_OK;
 
   // We are empty or r completely subsumes us -> set r
   if (td->length == 0 || (rd->length == 1 && rd->extents.subsumes(td->extents))) return set(r);
 
   // We completely subsumes r
-  if (td->length == 1 && rd->length == 1 && td->extents.subsumes(rd->extents)) return Error::Ok;
+  if (td->length == 1 && rd->length == 1 && td->extents.subsumes(rd->extents)) return ERR_OK;
 
   // Last optimization can be append
   const Box* sdlast = td->rects + td->length - 1;
@@ -1516,13 +1512,13 @@ err_t Region::unite(const Box& r)
 {
   Data* td = _d;
 
-  if (!r.isValid()) return Error::Ok;
+  if (!r.isValid()) return ERR_OK;
 
   // We are empty or 'r' completely subsumes us.
   if (td->length == 0 || r.subsumes(td->extents)) return set(r);
 
   // We completely subsumes src.
-  if (td->length == 1 && td->extents.subsumes(r)) return Error::Ok;
+  if (td->length == 1 && td->extents.subsumes(r)) return ERR_OK;
 
   Box ext(Math::min(td->extents.getX1(), r.getX1()),
           Math::min(td->extents.getY1(), r.getY1()),
@@ -1552,7 +1548,7 @@ err_t Region::intersect(const Region& r)
 {
   Data* td = _d;
   Data* rd = r._d;
-  err_t err = Error::Ok;
+  err_t err = ERR_OK;
 
   if (td == rd)
     ;
@@ -1572,7 +1568,7 @@ err_t Region::intersect(const Rect& r)
 err_t Region::intersect(const Box& r)
 {
   Data* td = _d;
-  err_t err = Error::Ok;
+  err_t err = ERR_OK;
 
   if (td->length == 0 || !r.isValid() || !td->extents.overlaps(r)) 
     clear();
@@ -1603,7 +1599,7 @@ err_t Region::subtract(const Region& r)
 {
   Data* td = _d;
   Data* rd = r._d;
-  err_t err = Error::Ok;
+  err_t err = ERR_OK;
 
   if (td == rd) 
     clear();
@@ -1623,7 +1619,7 @@ err_t Region::subtract(const Rect& r)
 err_t Region::subtract(const Box& r)
 {
   Data* td = _d;
-  err_t err = Error::Ok;
+  err_t err = ERR_OK;
 
   if (td->length == 0 || !r.isValid() || !td->extents.overlaps(r))
     clear();
@@ -1633,40 +1629,40 @@ err_t Region::subtract(const Box& r)
   return err;
 }
 
-err_t Region::op(const Region& r, uint _op)
+err_t Region::op(const Region& r, int _op)
 {
   switch (_op)
   {
-    case OpCopy:      return set(r);
-    case OpUnite:     return unite(r);
-    case OpIntersect: return intersect(r);
-    case OpEor:       return eor(r);
-    case OpSubtract:  return subtract(r);
+    case REGION_OP_COPY     : return set(r);
+    case REGION_OP_UNITE    : return unite(r);
+    case REGION_OP_INTERSECT: return intersect(r);
+    case REGION_OP_XOR      : return eor(r);
+    case REGION_OP_SUBTRACT : return subtract(r);
 
     default:
       FOG_ASSERT_NOT_REACHED();
-      return Error::InvalidArgument;
+      return ERR_RT_INVALID_ARGUMENT;
   }
 }
 
-err_t Region::op(const Rect& r, uint _op)
+err_t Region::op(const Rect& r, int _op)
 {
   return op(Box(r), _op);
 }
 
-err_t Region::op(const Box& r, uint _op)
+err_t Region::op(const Box& r, int _op)
 {
   switch (_op)
   {
-    case OpCopy:      return set(r);
-    case OpUnite:     return unite(r);
-    case OpIntersect: return intersect(r);
-    case OpEor:       return eor(r);
-    case OpSubtract:  return subtract(r);
+    case REGION_OP_COPY     : return set(r);
+    case REGION_OP_UNITE    : return unite(r);
+    case REGION_OP_INTERSECT: return intersect(r);
+    case REGION_OP_XOR      : return eor(r);
+    case REGION_OP_SUBTRACT : return subtract(r);
 
     default:
       FOG_ASSERT_NOT_REACHED();
-      return Error::InvalidArgument;
+      return ERR_RT_INVALID_ARGUMENT;
   }
 }
 
@@ -1754,7 +1750,7 @@ err_t Region::intersect(Region& dest, const Region& src1, const Region& src2)
   Data* destd = dest._d;
   Data* src1d = src1._d;
   Data* src2d = src2._d;
-  err_t err = Error::Ok;
+  err_t err = ERR_OK;
 
   // Trivial rejects.
   if (FOG_UNLIKELY(src1d == src2d))
@@ -1777,7 +1773,7 @@ err_t Region::eor(Region& dest, const Region& src1, const Region& src2)
   if ((err = subtract(r2, src2, src1))) return err;
   if ((err = unite(dest, r1, r2))) return err;
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Region::subtract(Region& dest, const Region& src1, const Region& src2)
@@ -1785,7 +1781,7 @@ err_t Region::subtract(Region& dest, const Region& src1, const Region& src2)
   Data* destd = dest._d;
   Data* src1d = src1._d;
   Data* src2d = src2._d;
-  err_t err = Error::Ok;
+  err_t err = ERR_OK;
 
   // Trivial rejects.
   if (src1d == src2d || src1d->length == 0) 
@@ -1795,21 +1791,21 @@ err_t Region::subtract(Region& dest, const Region& src1, const Region& src2)
   else
     err = _subtractPrivate(&dest, src1d->rects, src1d->length, src2d->rects, src2d->length, destd == src1d || destd == src2d);
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
-err_t Region::op(Region& dest, const Region& src1, const Region& src2, uint _op)
+err_t Region::op(Region& dest, const Region& src1, const Region& src2, int _op)
 {
   switch (_op)
   {
-    case OpCopy:      return set(dest, src1);
-    case OpUnite:     return unite(dest, src1, src2);
-    case OpIntersect: return intersect(dest, src1, src2);
-    case OpEor:       return eor(dest, src1, src2);
-    case OpSubtract:  return subtract(dest, src1, src2);
+    case REGION_OP_COPY     : return set(dest, src1);
+    case REGION_OP_UNITE    : return unite(dest, src1, src2);
+    case REGION_OP_INTERSECT: return intersect(dest, src1, src2);
+    case REGION_OP_XOR      : return eor(dest, src1, src2);
+    case REGION_OP_SUBTRACT : return subtract(dest, src1, src2);
     default:
       FOG_ASSERT_NOT_REACHED();
-      return Error::InvalidArgument;
+      return ERR_RT_INVALID_ARGUMENT;
   }
 }
 
@@ -1857,7 +1853,7 @@ err_t Region::translate(Region& dest, const Region& src, const Point& pt)
         src_r->getX2() + x, src_r->getY2() + y);
     }
   }
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Region::shrink(Region& dest, const Region& src, const Point& pt)
@@ -1895,7 +1891,7 @@ err_t Region::frame(Region& dest, const Region& src, const Point& pt)
       (err = r2.intersect(r1)) ||
       (err = subtract(dest, src, r2))) return err;
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 #if defined(FOG_OS_WINDOWS)
@@ -1921,7 +1917,7 @@ HRGN Region::toHRGN() const
   sysuint_t i;
   sysuint_t length = d->length;
 
-  MemoryBuffer<4096> mem;
+  LocalBuffer<4096> mem;
   RGNDATAHEADER *hdr = (RGNDATAHEADER *)mem.alloc(sizeof(RGNDATAHEADER) + length * sizeof(RECT));
   if (!hdr) return (HRGN)NULLREGION;
 
@@ -1943,15 +1939,15 @@ err_t Region::fromHRGN(HRGN hrgn)
 {
   clear();
 
-  if (hrgn == NULL) return Error::InvalidArgument;
-  if (hrgn == (HRGN)NULLREGION) return Error::Ok;
+  if (hrgn == NULL) return ERR_RT_INVALID_ARGUMENT;
+  if (hrgn == (HRGN)NULLREGION) return ERR_OK;
 
   DWORD size = GetRegionData(hrgn, 0, NULL);
   if (size == 0) return false;
 
-  MemoryBuffer<1024> mem;
+  LocalBuffer<1024> mem;
   RGNDATAHEADER *hdr = (RGNDATAHEADER *)mem.alloc(size);
-  if (hdr) return Error::OutOfMemory;
+  if (hdr) return ERR_RT_OUT_OF_MEMORY;
 
   if (!GetRegionData(hrgn, size, (RGNDATA*)hdr)) return GetLastError();
 
@@ -1965,7 +1961,7 @@ err_t Region::fromHRGN(HRGN hrgn)
     unite(Box(r->left, r->top, r->right, r->bottom));
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 #endif // FOG_OS_WINDOWS
 
@@ -2137,11 +2133,11 @@ FOG_INIT_DECLARE err_t fog_region_init(void)
   Region::Data* d = Region::sharedNull.instancep();
 
   d->refCount.init(1);
-  d->flags = Region::Data::IsSharable | Region::Data::IsNull;
+  d->flags = Region::Data::IsSharable;
   d->extents.clear();
   d->rects[0].clear();
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 FOG_INIT_DECLARE void fog_region_shutdown(void)

@@ -31,8 +31,8 @@ struct FOG_API StringFilter
 
   // [Public]
 
-  virtual Range indexOf(const Char* str, sysuint_t length, uint cs = CaseSensitive, const Range& range = Range(0)) const;
-  virtual Range lastIndexOf(const Char* str, sysuint_t length, uint cs = CaseSensitive, const Range& range = Range(0)) const;
+  virtual Range indexOf(const Char* str, sysuint_t length, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
+  virtual Range lastIndexOf(const Char* str, sysuint_t length, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
 
   // [Filter Implementation]
 

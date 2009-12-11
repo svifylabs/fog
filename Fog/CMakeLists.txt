@@ -6,16 +6,12 @@ Project(Fog C CXX)
 # [Configuration]
 # =============================================================================
 
+# Build options.
+Set(FOG_BUILD_EXAMPLES TRUE)
+Set(FOG_BUILD_UISYSTEM_X11 TRUE)
+
 Set(FOG_DIR ${CMAKE_SOURCE_DIR})
 Set(FOG_LIBRARIES "")
-Set(FOG_AGG_DIR "${FOG_DIR}/thirdparty/agg")
-Set(FOG_AGG_CONTRIB_DIR "${FOG_DIR}/thirdparty/agg-contrib")
-
-Set(TEST_BUILD TRUE)
-
-Set(FOG_BUILD_MODULE_X11_EXTERNAL TRUE)
-Set(FOG_BUILD_MODULE_X11_INTERNAL FALSE)
-
 Set(CMAKE_CXX_STANDARD_LIBRARIES "")
 
 # =============================================================================
@@ -36,8 +32,6 @@ Include(FindThreads)
 # =============================================================================
 
 Include_Directories(${FOG_DIR})
-Include_Directories(${FOG_AGG_DIR}/include)
-Include_Directories(${FOG_AGG_CONTRIB_DIR}/include)
 
 # =============================================================================
 # [CFlags]
@@ -51,9 +45,10 @@ Set(FOG_CFLAGS_SSE3 "")
 Set(FOG_CFLAGS_SSSE3 "")
 
 If(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
-  Set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions -fvisibility-inlines-hidden -fstrict-aliasing -fno-math-errno -Winline -Wstrict-aliasing")
+  ## Set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions -fvisibility-inlines-hidden -fstrict-aliasing -fno-math-errno -Winline -Wstrict-aliasing")
+  Set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions -fno-rtti -fvisibility-inlines-hidden -fstrict-aliasing -fno-math-errno -Winline")
   If(NOT ${CMAKE_BUILD_TYPE} MATCHES "Debug")
-    Set(FOG_CFLAGS_OPTIMIZE "-O3 -frename-registers")
+    Set(FOG_CFLAGS_OPTIMIZE "-O2")
   EndIf(NOT ${CMAKE_BUILD_TYPE} MATCHES "Debug")
   Set(FOG_CFLAGS_MMX "${FOG_CFLAGS_OPTIMIZE} -mmmx")
   Set(FOG_CFLAGS_SSE "${FOG_CFLAGS_OPTIMIZE} -msse")
@@ -65,11 +60,11 @@ EndIf(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
 If(MSVC)
   Set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Oi /Oy /GF /GS- /GR-")
   Set(FOG_CFLAGS_OPTIMIZE "/Ot")
-  Set(FOG_CFLAGS_MMX "")
-  Set(FOG_CFLAGS_SSE "/arch:SSE")
-  Set(FOG_CFLAGS_SSE2 "/arch:SSE2")
-  Set(FOG_CFLAGS_SSE3 "/arch:SSE2")
-  Set(FOG_CFLAGS_SSSE3 "/arch:SSE2")
+  Set(FOG_CFLAGS_MMX "${FOG_CFLAGS_OPTIMIZE}")
+  Set(FOG_CFLAGS_SSE "${FOG_CFLAGS_OPTIMIZE} /arch:SSE")
+  Set(FOG_CFLAGS_SSE2 "${FOG_CFLAGS_OPTIMIZE} /arch:SSE2")
+  Set(FOG_CFLAGS_SSE3 "${FOG_CFLAGS_OPTIMIZE} /arch:SSE2")
+  Set(FOG_CFLAGS_SSSE3 "${FOG_CFLAGS_OPTIMIZE} /arch:SSE2")
 EndIf(MSVC)
 
 # =============================================================================
@@ -170,7 +165,7 @@ Else(WIN32)
   If(HAVE_FREETYPE)
     Exec_Program(freetype-config ARGS --cflags OUTPUT_VARIABLE FREETYPE_CONFIG_OUT RETURN_VALUE FREETYPE_CONFIG_RET)
     Set(FOG_FONT_FREETYPE TRUE)
-    Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/Font_FreeType.cpp PROPERTIES COMPILE_FLAGS "${FREETYPE_CONFIG_OUT}")
+    Set_Source_Files_Properties(${FOG_DIR}/Fog/Graphics/FontEngine/FreeType.cpp PROPERTIES COMPILE_FLAGS "${FREETYPE_CONFIG_OUT}")
   EndIf(HAVE_FREETYPE)
 
   If(NOT FOG_HAVE_FONTCONFIG)
@@ -195,11 +190,10 @@ If(NOT FOG_HAVE_PNG_H)
 EndIf(NOT FOG_HAVE_PNG_H)
 
 # =============================================================================
-# [Fog/Build part]
+# [Fog/Build]
 # =============================================================================
 
 Set(FOG_BUILD_SOURCES
-  Fog/Build/Init.cpp
 )
 
 Set(FOG_BUILD_HEADERS
@@ -207,13 +201,15 @@ Set(FOG_BUILD_HEADERS
   Fog/Build/Config.h
 )
 
-SOURCE_GROUP(Build FILES ${FOG_BUILD_SOURCES} ${FOG_BUILD_HEADERS})
+SOURCE_GROUP(Build FILES
+  ${FOG_BUILD_SOURCES} ${FOG_BUILD_HEADERS}
+)
 
 # =============================================================================
-# [Fog/Core] Part
+# [Fog/Core]
 # =============================================================================
 
-Set(FOG_CORE_SOURCES
+Set(FOG_CORE_LIB_SOURCES
   Fog/Core/Algorithms.cpp
   Fog/Core/Application.cpp
   Fog/Core/Assert.cpp
@@ -225,20 +221,20 @@ Set(FOG_CORE_SOURCES
   Fog/Core/ByteArrayMatcher.cpp
   Fog/Core/Char.cpp
   Fog/Core/CharUtil.cpp
-  Fog/Core/Class.cpp
   Fog/Core/CpuInfo.cpp
   Fog/Core/DirIterator.cpp
   Fog/Core/Event.cpp
   Fog/Core/EventLoop.cpp
-  Fog/Core/EventLoop_Def.cpp
   Fog/Core/EventLoop_Win.cpp
   Fog/Core/FileSystem.cpp
   Fog/Core/FileUtil.cpp
   Fog/Core/Hash.cpp
   Fog/Core/HashUtil.cpp
+  Fog/Core/Init.cpp
   Fog/Core/Lazy.cpp
   Fog/Core/Library.cpp
   Fog/Core/List.cpp
+  Fog/Core/ListenerList.cpp
   Fog/Core/Locale.cpp
   Fog/Core/Lock.cpp
   Fog/Core/ManagedString.cpp
@@ -246,20 +242,16 @@ Set(FOG_CORE_SOURCES
   Fog/Core/Math.cpp
   Fog/Core/Memory.cpp
   Fog/Core/Misc.cpp
-  Fog/Core/OS.cpp
   Fog/Core/Object.cpp
-  Fog/Core/ObserverList.cpp
-  Fog/Core/Properties.cpp
-  Fog/Core/RefCounted.cpp
-  Fog/Core/Sequence.cpp
+  Fog/Core/OS.cpp
   Fog/Core/Std.cpp
   Fog/Core/Stream.cpp
   Fog/Core/String.cpp
   Fog/Core/StringFilter.cpp
   Fog/Core/StringMatcher.cpp
+  Fog/Core/Strings.cpp
   Fog/Core/StringUtil.cpp
   Fog/Core/StringUtil_gen.cpp
-  Fog/Core/Strings.cpp
   Fog/Core/Task.cpp
   Fog/Core/TextCodec.cpp
   Fog/Core/Thread.cpp
@@ -271,11 +263,10 @@ Set(FOG_CORE_SOURCES
   Fog/Core/Timer.cpp
   Fog/Core/UserInfo.cpp
   Fog/Core/Value.cpp
-  Fog/Core/Vector.cpp
   Fog/Core/WinUtil.cpp
 )
 
-Set(FOG_CORE_HEADERS
+Set(FOG_CORE_LIB_HEADERS
   Fog/Core.h
   Fog/Core/Algorithms.h
   Fog/Core/Application.h
@@ -290,16 +281,13 @@ Set(FOG_CORE_HEADERS
   Fog/Core/ByteArrayFilter.h
   Fog/Core/ByteArrayMatcher.h
   Fog/Core/Char.h
-  Fog/Core/Class.h
   Fog/Core/Constants.h
   Fog/Core/CpuInfo.h
   Fog/Core/CharUtil.h
   Fog/Core/Delegate.h
   Fog/Core/DirIterator.h
-  Fog/Core/Error.h
   Fog/Core/Event.h
   Fog/Core/EventLoop.h
-  Fog/Core/EventLoop_Def.h
   Fog/Core/EventLoop_Win.h
   Fog/Core/FileSystem.h
   Fog/Core/FileUtil.h
@@ -313,23 +301,18 @@ Set(FOG_CORE_HEADERS
   Fog/Core/Lazy.h
   Fog/Core/Library.h
   Fog/Core/List.h
+  Fog/Core/ListenerList.h
   Fog/Core/Locale.h
   Fog/Core/Lock.h
-  Fog/Core/LockedPtr.h
   Fog/Core/ManagedString.h
   Fog/Core/MapFile.h
   Fog/Core/Math.h
   Fog/Core/Memory.h
   Fog/Core/Misc.h
-  Fog/Core/OS.h
   Fog/Core/Object.h
-  Fog/Core/ObserverList.h
+  Fog/Core/OS.h
   Fog/Core/Pack.h
-  Fog/Core/RefCounted.h
-  Fog/Core/Properties.h
   Fog/Core/ScopedHandle.h
-  Fog/Core/ScopedPtr.h
-  Fog/Core/Sequence.h
   Fog/Core/SequenceInfo.h
   Fog/Core/Static.h
   Fog/Core/Std.h
@@ -337,8 +320,8 @@ Set(FOG_CORE_HEADERS
   Fog/Core/String.h
   Fog/Core/StringFilter.h
   Fog/Core/StringMatcher.h
-  Fog/Core/StringUtil.h
   Fog/Core/Strings.h
+  Fog/Core/StringUtil.h
   Fog/Core/Task.h
   Fog/Core/TextCodec.h
   Fog/Core/Thread.h
@@ -352,342 +335,230 @@ Set(FOG_CORE_HEADERS
   Fog/Core/Unpack.h
   Fog/Core/UserInfo.h
   Fog/Core/Value.h
-  Fog/Core/Vector.h
   Fog/Core/WinUtil.h
 )
 
-SOURCE_GROUP(Core FILES ${FOG_CORE_SOURCES} ${FOG_CORE_HEADERS})
+# Source groups
+SOURCE_GROUP(Core FILES ${FOG_CORE_LIB_SOURCES} ${FOG_CORE_LIB_HEADERS})
 
 # =============================================================================
-# [Fog/Xml] Part
+# [Fog/Graphics]
 # =============================================================================
 
-Set(FOG_XML_SOURCES
-  Fog/Xml/XmlDom.cpp
-  Fog/Xml/XmlEntity.cpp
-  Fog/Xml/XmlReader.cpp
-  Fog/Xml/XmlWriter.cpp
-)
-
-Set(FOG_XML_HEADERS
-  Fog/Xml.h
-  Fog/Xml/Error.h
-  Fog/Xml/XmlDom.h
-  Fog/Xml/XmlEntity.h
-  Fog/Xml/XmlReader.h
-  Fog/Xml/XmlWriter.h
-)
-
-SOURCE_GROUP(Xml FILES ${FOG_XML_SOURCES} ${FOG_XML_HEADERS})
-
-# =============================================================================
-# [Fog/Graphics] Part
-# =============================================================================
-
-Set(FOG_GRAPHICS_SOURCES
-  Fog/Graphics/ColorFilter.cpp
+Set(FOG_GRAPHICS_LIB_SOURCES
+  Fog/Graphics/Argb.cpp
+  Fog/Graphics/ArgbAnalyzer.cpp
+  Fog/Graphics/ArgbUtil.cpp
   Fog/Graphics/ColorLut.cpp
   Fog/Graphics/ColorMatrix.cpp
+  Fog/Graphics/ConvolutionMatrix.cpp
   Fog/Graphics/DitherMatrix.cpp
   Fog/Graphics/Font.cpp
-  Fog/Graphics/Font_FreeType.cpp
-  Fog/Graphics/Font_Win.cpp
+  Fog/Graphics/FontEngine.cpp
+  Fog/Graphics/FontManager.cpp
   Fog/Graphics/Geometry.cpp
   Fog/Graphics/Glyph.cpp
   Fog/Graphics/GlyphCache.cpp
   Fog/Graphics/GlyphSet.cpp
-  Fog/Graphics/Gradient.cpp
   Fog/Graphics/Image.cpp
   Fog/Graphics/ImageFilter.cpp
   Fog/Graphics/ImageIO.cpp
-  Fog/Graphics/ImageIO/ImageIO_BMP.cpp
-  Fog/Graphics/ImageIO/ImageIO_GIF.cpp
-  Fog/Graphics/ImageIO/ImageIO_ICO.cpp
-  Fog/Graphics/ImageIO/ImageIO_JPEG.cpp
-  Fog/Graphics/ImageIO/ImageIO_PCX.cpp
-  Fog/Graphics/ImageIO/ImageIO_PNG.cpp
   Fog/Graphics/Matrix.cpp
   Fog/Graphics/Painter.cpp
   Fog/Graphics/PainterEngine.cpp
-  Fog/Graphics/PainterEngine_Null.cpp
-  Fog/Graphics/PainterEngine_Raster.cpp
   Fog/Graphics/PainterUtil.cpp
   Fog/Graphics/Palette.cpp
   Fog/Graphics/Path.cpp
+  Fog/Graphics/PathUtil.cpp
+  Fog/Graphics/PathUtil_SSE2.cpp
   Fog/Graphics/Pattern.cpp
-  Fog/Graphics/Raster.cpp
-  Fog/Graphics/Raster/Raster_C.cpp
-  Fog/Graphics/Raster/Raster_C_base.cpp.h
-  Fog/Graphics/Raster/Raster_C_adaptor.cpp.h
-  Fog/Graphics/Raster/Raster_C_composite.cpp.h
-  Fog/Graphics/Raster/Raster_C_convert.cpp.h
-  Fog/Graphics/Raster/Raster_C_filters.cpp.h
-  Fog/Graphics/Raster/Raster_C_gradient.cpp.h
-  Fog/Graphics/Raster/Raster_C_pattern.cpp.h
-  Fog/Graphics/Raster/Raster_C_vector.cpp.h
-  Fog/Graphics/Raster/Raster_MMX.cpp
-  Fog/Graphics/Raster/Raster_MMX_adaptor.cpp.h
-  Fog/Graphics/Raster/Raster_MMX_base.cpp.h
-  Fog/Graphics/Raster/Raster_MMX_composite.cpp.h
-  Fog/Graphics/Raster/Raster_MMX_convert.cpp.h
-  Fog/Graphics/Raster/Raster_MMX_filters.cpp.h
-  Fog/Graphics/Raster/Raster_MMX_gradient.cpp.h
-  Fog/Graphics/Raster/Raster_MMX_pattern.cpp.h
-  Fog/Graphics/Raster/Raster_MMX_vector.cpp.h
-  Fog/Graphics/Raster/Raster_SSE2.cpp
-  Fog/Graphics/Raster/Raster_SSE2_adaptor.cpp.h
-  Fog/Graphics/Raster/Raster_SSE2_base.cpp.h
-  Fog/Graphics/Raster/Raster_SSE2_composite.cpp.h
-  Fog/Graphics/Raster/Raster_SSE2_convert.cpp.h
-  Fog/Graphics/Raster/Raster_SSE2_filters.cpp.h
-  Fog/Graphics/Raster/Raster_SSE2_gradient.cpp.h
-  Fog/Graphics/Raster/Raster_SSE2_pattern.cpp.h
-  Fog/Graphics/Raster/Raster_SSE2_vector.cpp.h
+  Fog/Graphics/RasterUtil.cpp
   Fog/Graphics/Rasterizer.cpp
   Fog/Graphics/Reduce.cpp
   Fog/Graphics/Region.cpp
   Fog/Graphics/RegionBuilder.cpp
   Fog/Graphics/RegionPoly.cpp
   Fog/Graphics/RegionRound.cpp
-  Fog/Graphics/Rgba.cpp
-  Fog/Graphics/RgbaAnalyzer.cpp
   Fog/Graphics/Scanline.cpp
+  Fog/Graphics/Stroker.cpp
+  Fog/Graphics/TextLayout.cpp
 )
 
-Set(FOG_GRAPHICS_HEADERS
+Set(FOG_GRAPHICS_LIB_HEADERS
   Fog/Graphics.h
-  Fog/Graphics/ColorFilter.h
+  Fog/Graphics/Argb.h
+  Fog/Graphics/ArgbAnalyzer.h
+  Fog/Graphics/ArgbUtil.h
+  Fog/Graphics/ByteUtil.h
   Fog/Graphics/ColorLut.h
   Fog/Graphics/ColorMatrix.h
   Fog/Graphics/Constants.h
+  Fog/Graphics/ConvolutionMatrix.h
   Fog/Graphics/DitherMatrix.h
-  Fog/Graphics/Error.h
   Fog/Graphics/Fixed.h
   Fog/Graphics/Font.h
-  Fog/Graphics/Font_Win.h
-  Fog/Graphics/Font_FreeType.h
+  Fog/Graphics/FontEngine.h
+  Fog/Graphics/FontManager.h
   Fog/Graphics/Geometry.h
   Fog/Graphics/Glyph.h
   Fog/Graphics/GlyphCache.h
   Fog/Graphics/GlyphSet.h
-  Fog/Graphics/Gradient.h
   Fog/Graphics/Image.h
   Fog/Graphics/ImageFilter.h
   Fog/Graphics/ImageIO.h
-  Fog/Graphics/ImageIO/ImageIO_BMP.h
-  Fog/Graphics/ImageIO/ImageIO_GIF.h
-  Fog/Graphics/ImageIO/ImageIO_JPEG.h
-  Fog/Graphics/ImageIO/ImageIO_PCX.h
-  Fog/Graphics/ImageIO/ImageIO_PNG.h
   Fog/Graphics/Matrix.h
   Fog/Graphics/Painter.h
   Fog/Graphics/PainterEngine.h
-  Fog/Graphics/PainterEngine_Null.h
-  Fog/Graphics/PainterEngine_Raster.h
   Fog/Graphics/PainterUtil.h
   Fog/Graphics/Palette.h
   Fog/Graphics/Path.h
-  Fog/Graphics/Path_p.h
+  Fog/Graphics/PathUtil.h
   Fog/Graphics/Pattern.h
-  Fog/Graphics/Raster.h
-  Fog/Graphics/Raster/Raster_Bresenham.h
-  Fog/Graphics/Raster/Raster_C.h
+  Fog/Graphics/RasterUtil.h
   Fog/Graphics/Rasterizer.h
   Fog/Graphics/Reduce.h
   Fog/Graphics/Region.h
   Fog/Graphics/RegionBuilder.h
-  Fog/Graphics/Rgba.h
-  Fog/Graphics/RgbaAnalyzer.h
   Fog/Graphics/Scanline.h
+  Fog/Graphics/Stroker.h
+  Fog/Graphics/TextLayout.h
 )
 
-# TODO: REMOVE
-# Fog/Agg Sources
-Set(FOG_AGG_SOURCES
-  ${FOG_AGG_DIR}/src/agg_arc.cpp
-  ${FOG_AGG_DIR}/src/agg_line_aa_basics.cpp
-  ${FOG_AGG_DIR}/src/agg_rounded_rect.cpp
-  ${FOG_AGG_DIR}/src/agg_sqrt_tables.cpp
-  ${FOG_AGG_DIR}/src/agg_trans_affine.cpp
-  ${FOG_AGG_DIR}/src/agg_vcgen_contour.cpp
-  ${FOG_AGG_DIR}/src/agg_vcgen_dash.cpp
-  ${FOG_AGG_DIR}/src/agg_vcgen_markers_term.cpp
-  ${FOG_AGG_DIR}/src/agg_vcgen_stroke.cpp
-  ${FOG_AGG_DIR}/src/agg_vpgen_segmentator.cpp
+Set(FOG_GRAPHICS_IMAGEIO_SOURCES
+  Fog/Graphics/ImageIO/Bmp.cpp
+  Fog/Graphics/ImageIO/Gif.cpp
+  Fog/Graphics/ImageIO/Ico.cpp
+  Fog/Graphics/ImageIO/Jpeg.cpp
+  Fog/Graphics/ImageIO/Pcx.cpp
+  Fog/Graphics/ImageIO/Png.cpp
 )
 
-Set(FOG_AGG_HEADERS
-  ${FOG_AGG_DIR}/include/agg_alpha_mask_u8.h
-  ${FOG_AGG_DIR}/include/agg_arc.h
-  ${FOG_AGG_DIR}/include/agg_array.h
-  ${FOG_AGG_DIR}/include/agg_arrowhead.h
-  ${FOG_AGG_DIR}/include/agg_basics.h
-  ${FOG_AGG_DIR}/include/agg_bezier_arc.h
-  ${FOG_AGG_DIR}/include/agg_bitset_iterator.h
-  ${FOG_AGG_DIR}/include/agg_blur.h
-  ${FOG_AGG_DIR}/include/agg_bounding_rect.h
-  ${FOG_AGG_DIR}/include/agg_bspline.h
-  ${FOG_AGG_DIR}/include/agg_clip_liang_barsky.h
-  ${FOG_AGG_DIR}/include/agg_color_gray.h
-  ${FOG_AGG_DIR}/include/agg_color_rgba.h
-  ${FOG_AGG_DIR}/include/agg_config.h
-  ${FOG_AGG_DIR}/include/agg_conv_adaptor_vcgen.h
-  ${FOG_AGG_DIR}/include/agg_conv_adaptor_vpgen.h
-  ${FOG_AGG_DIR}/include/agg_conv_bspline.h
-  ${FOG_AGG_DIR}/include/agg_conv_clip_polygon.h
-  ${FOG_AGG_DIR}/include/agg_conv_clip_polyline.h
-  ${FOG_AGG_DIR}/include/agg_conv_close_polygon.h
-  ${FOG_AGG_DIR}/include/agg_conv_concat.h
-  ${FOG_AGG_DIR}/include/agg_conv_contour.h
-  ${FOG_AGG_DIR}/include/agg_conv_curve.h
-  ${FOG_AGG_DIR}/include/agg_conv_dash.h
-  ${FOG_AGG_DIR}/include/agg_conv_gpc.h
-  ${FOG_AGG_DIR}/include/agg_conv_marker.h
-  ${FOG_AGG_DIR}/include/agg_conv_marker_adaptor.h
-  ${FOG_AGG_DIR}/include/agg_conv_segmentator.h
-  ${FOG_AGG_DIR}/include/agg_conv_shorten_path.h
-  ${FOG_AGG_DIR}/include/agg_conv_smooth_poly1.h
-  ${FOG_AGG_DIR}/include/agg_conv_stroke.h
-  ${FOG_AGG_DIR}/include/agg_conv_transform.h
-  ${FOG_AGG_DIR}/include/agg_conv_unclose_polygon.h
-  ${FOG_AGG_DIR}/include/agg_curves.h
-  ${FOG_AGG_DIR}/include/agg_dda_line.h
-  ${FOG_AGG_DIR}/include/agg_ellipse.h
-  ${FOG_AGG_DIR}/include/agg_ellipse_bresenham.h
-  ${FOG_AGG_DIR}/include/agg_embedded_raster_fonts.h
-  ${FOG_AGG_DIR}/include/agg_font_cache_manager.h
-  ${FOG_AGG_DIR}/include/agg_gamma_functions.h
-  ${FOG_AGG_DIR}/include/agg_gamma_lut.h
-  ${FOG_AGG_DIR}/include/agg_glyph_raster_bin.h
-  ${FOG_AGG_DIR}/include/agg_gradient_lut.h
-  ${FOG_AGG_DIR}/include/agg_gsv_text.h
-  ${FOG_AGG_DIR}/include/agg_image_accessors.h
-  ${FOG_AGG_DIR}/include/agg_image_filters.h
-  ${FOG_AGG_DIR}/include/agg_line_aa_basics.h
-  ${FOG_AGG_DIR}/include/agg_math.h
-  ${FOG_AGG_DIR}/include/agg_math_stroke.h
-  ${FOG_AGG_DIR}/include/agg_path_length.h
-  ${FOG_AGG_DIR}/include/agg_path_storage.h
-  ${FOG_AGG_DIR}/include/agg_path_storage_integer.h
-  ${FOG_AGG_DIR}/include/agg_pattern_filters_rgba.h
-  ${FOG_AGG_DIR}/include/agg_pixfmt_amask_adaptor.h
-  ${FOG_AGG_DIR}/include/agg_pixfmt_gray.h
-  ${FOG_AGG_DIR}/include/agg_pixfmt_rgb.h
-  ${FOG_AGG_DIR}/include/agg_pixfmt_rgba.h
-  ${FOG_AGG_DIR}/include/agg_pixfmt_rgb_packed.h
-  ${FOG_AGG_DIR}/include/agg_pixfmt_transposer.h
-  ${FOG_AGG_DIR}/include/agg_rasterizer_cells_aa.h
-  ${FOG_AGG_DIR}/include/agg_rasterizer_compound_aa.h
-  ${FOG_AGG_DIR}/include/agg_rasterizer_outline.h
-  ${FOG_AGG_DIR}/include/agg_rasterizer_outline_aa.h
-  ${FOG_AGG_DIR}/include/agg_rasterizer_scanline_aa.h
-  ${FOG_AGG_DIR}/include/agg_rasterizer_sl_clip.h
-  ${FOG_AGG_DIR}/include/agg_renderer_base.h
-  ${FOG_AGG_DIR}/include/agg_renderer_markers.h
-  ${FOG_AGG_DIR}/include/agg_renderer_mclip.h
-  ${FOG_AGG_DIR}/include/agg_renderer_outline_aa.h
-  ${FOG_AGG_DIR}/include/agg_renderer_outline_image.h
-  ${FOG_AGG_DIR}/include/agg_renderer_primitives.h
-  ${FOG_AGG_DIR}/include/agg_renderer_raster_text.h
-  ${FOG_AGG_DIR}/include/agg_renderer_scanline.h
-  ${FOG_AGG_DIR}/include/agg_rendering_buffer.h
-  ${FOG_AGG_DIR}/include/agg_rendering_buffer_dynarow.h
-  ${FOG_AGG_DIR}/include/agg_rounded_rect.h
-  ${FOG_AGG_DIR}/include/agg_scanline_bin.h
-  ${FOG_AGG_DIR}/include/agg_scanline_boolean_algebra.h
-  ${FOG_AGG_DIR}/include/agg_scanline_p.h
-  ${FOG_AGG_DIR}/include/agg_scanline_storage_aa.h
-  ${FOG_AGG_DIR}/include/agg_scanline_storage_bin.h
-  ${FOG_AGG_DIR}/include/agg_scanline_u.h
-  ${FOG_AGG_DIR}/include/agg_shorten_path.h
-  ${FOG_AGG_DIR}/include/agg_simul_eq.h
-  ${FOG_AGG_DIR}/include/agg_span_allocator.h
-  ${FOG_AGG_DIR}/include/agg_span_converter.h
-  ${FOG_AGG_DIR}/include/agg_span_gouraud.h
-  ${FOG_AGG_DIR}/include/agg_span_gouraud_gray.h
-  ${FOG_AGG_DIR}/include/agg_span_gouraud_rgba.h
-  ${FOG_AGG_DIR}/include/agg_span_gradient.h
-  ${FOG_AGG_DIR}/include/agg_span_gradient_alpha.h
-  ${FOG_AGG_DIR}/include/agg_span_gradient_contour.h
-  ${FOG_AGG_DIR}/include/agg_span_gradient_image.h
-  ${FOG_AGG_DIR}/include/agg_span_image_filter.h
-  ${FOG_AGG_DIR}/include/agg_span_image_filter_gray.h
-  ${FOG_AGG_DIR}/include/agg_span_image_filter_rgb.h
-  ${FOG_AGG_DIR}/include/agg_span_image_filter_rgba.h
-  ${FOG_AGG_DIR}/include/agg_span_interpolator_adaptor.h
-  ${FOG_AGG_DIR}/include/agg_span_interpolator_linear.h
-  ${FOG_AGG_DIR}/include/agg_span_interpolator_persp.h
-  ${FOG_AGG_DIR}/include/agg_span_interpolator_trans.h
-  ${FOG_AGG_DIR}/include/agg_span_pattern_gray.h
-  ${FOG_AGG_DIR}/include/agg_span_pattern_rgb.h
-  ${FOG_AGG_DIR}/include/agg_span_pattern_rgba.h
-  ${FOG_AGG_DIR}/include/agg_span_solid.h
-  ${FOG_AGG_DIR}/include/agg_span_subdiv_adaptor.h
-  ${FOG_AGG_DIR}/include/agg_trans_affine.h
-  ${FOG_AGG_DIR}/include/agg_trans_bilinear.h
-  ${FOG_AGG_DIR}/include/agg_trans_double_path.h
-  ${FOG_AGG_DIR}/include/agg_trans_perspective.h
-  ${FOG_AGG_DIR}/include/agg_trans_single_path.h
-  ${FOG_AGG_DIR}/include/agg_trans_viewport.h
-  ${FOG_AGG_DIR}/include/agg_trans_warp_magnifier.h
-  ${FOG_AGG_DIR}/include/agg_vcgen_bspline.h
-  ${FOG_AGG_DIR}/include/agg_vcgen_contour.h
-  ${FOG_AGG_DIR}/include/agg_vcgen_dash.h
-  ${FOG_AGG_DIR}/include/agg_vcgen_markers_term.h
-  ${FOG_AGG_DIR}/include/agg_vcgen_smooth_poly1.h
-  ${FOG_AGG_DIR}/include/agg_vcgen_stroke.h
-  ${FOG_AGG_DIR}/include/agg_vcgen_vertex_sequence.h
-  ${FOG_AGG_DIR}/include/agg_vertex_sequence.h
-  ${FOG_AGG_DIR}/include/agg_vpgen_clip_polygon.h
-  ${FOG_AGG_DIR}/include/agg_vpgen_clip_polyline.h
-  ${FOG_AGG_DIR}/include/agg_vpgen_segmentator.h
-  ${FOG_AGG_DIR}/include/util/agg_color_conv.h
-  ${FOG_AGG_DIR}/include/util/agg_color_conv_rgb16.h
-  ${FOG_AGG_DIR}/include/util/agg_color_conv_rgb8.h
-  ${FOG_AGG_CONTRIB_DIR}/include/agg_rasterizer_scanline_aa_custom.h
+Set(FOG_GRAPHICS_IMAGEIO_HEADERS
+  Fog/Graphics/ImageIO/Structures.h
 )
 
-SOURCE_GROUP(Graphics FILES ${FOG_GRAPHICS_SOURCES} ${FOG_GRAPHICS_HEADERS})
+Set(FOG_GRAPHICS_FONTENGINE_SOURCES
+  Fog/Graphics/FontEngine/FreeType.cpp
+  Fog/Graphics/FontEngine/Gdi.cpp
+  Fog/Graphics/FontEngine/Null.cpp
+)
 
-SOURCE_GROUP(3rdparty_agg FILES ${FOG_AGG_SOURCES} ${FOG_AGG_HEADERS})
+Set(FOG_GRAPHICS_FONTENGINE_HEADERS
+  Fog/Graphics/FontEngine/FreeType.h
+  Fog/Graphics/FontEngine/Gdi.h
+  Fog/Graphics/FontEngine/Null.h
+)
+
+Set(FOG_GRAPHICS_PAINTERENGINE_SOURCES
+  Fog/Graphics/PainterEngine/Null.cpp
+  Fog/Graphics/PainterEngine/Raster.cpp
+)
+
+Set(FOG_GRAPHICS_PAINTERENGINE_HEADERS
+)
+
+Set(FOG_GRAPHICS_RASTERUTIL_SOURCES
+  Fog/Graphics/RasterUtil/RasterUtil_Composite_C.h
+  Fog/Graphics/RasterUtil/RasterUtil_Composite_MMX.h
+  Fog/Graphics/RasterUtil/RasterUtil_Composite_SSE2.h
+  Fog/Graphics/RasterUtil/RasterUtil_Convert_C.h
+  Fog/Graphics/RasterUtil/RasterUtil_Convert_MMX.h
+  Fog/Graphics/RasterUtil/RasterUtil_Convert_SSE2.h
+  Fog/Graphics/RasterUtil/RasterUtil_Defs_C.h
+  Fog/Graphics/RasterUtil/RasterUtil_Defs_MMX.h
+  Fog/Graphics/RasterUtil/RasterUtil_Defs_SSE2.h
+  Fog/Graphics/RasterUtil/RasterUtil_Filters_C.h
+  Fog/Graphics/RasterUtil/RasterUtil_Filters_MMX.h
+  Fog/Graphics/RasterUtil/RasterUtil_Filters_SSE2.h
+  Fog/Graphics/RasterUtil/RasterUtil_Gradient_C.h
+  Fog/Graphics/RasterUtil/RasterUtil_Gradient_MMX.h
+  Fog/Graphics/RasterUtil/RasterUtil_Gradient_SSE2.h
+  Fog/Graphics/RasterUtil/RasterUtil_Init_C.cpp
+  Fog/Graphics/RasterUtil/RasterUtil_Init_MMX.cpp
+  Fog/Graphics/RasterUtil/RasterUtil_Init_SSE2.cpp
+  Fog/Graphics/RasterUtil/RasterUtil_Pattern_C.h
+  Fog/Graphics/RasterUtil/RasterUtil_Pattern_MMX.h
+  Fog/Graphics/RasterUtil/RasterUtil_Pattern_SSE2.h
+  Fog/Graphics/RasterUtil/RasterUtil_Scale_C.h
+  Fog/Graphics/RasterUtil/RasterUtil_Scale_MMX.h
+  Fog/Graphics/RasterUtil/RasterUtil_Scale_SSE2.h
+)
+
+Set(FOG_GRAPHICS_RASTERUTIL_HEADERS
+  Fog/Graphics/RasterUtil/RasterUtil_Bresenham.h
+  Fog/Graphics/RasterUtil/RasterUtil_C.h
+)
 
 # Optimize specific files for speed
-Set_Source_Files_Properties(Fog/Graphics/Image.cpp               PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
-Set_Source_Files_Properties(Fog/Graphics/Painter.cpp             PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
-Set_Source_Files_Properties(Fog/Graphics/Raster/Raster_C.cpp     PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
-Set_Source_Files_Properties(Fog/Graphics/Raster/Raster_MMX.cpp   PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_MMX}")
-Set_Source_Files_Properties(Fog/Graphics/Raster/Raster_SSE2.cpp  PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE2}")
-Set_Source_Files_Properties(Fog/Graphics/Rasterizer.cpp          PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
-Set_Source_Files_Properties(Fog/Graphics/Region.cpp              PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
-Set_Source_Files_Properties(Fog/Graphics/Scanline.cpp            PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/Image.cpp                      PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/Painter.cpp                    PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/PathUtil.cpp                   PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/PathUtil_SSE2.cpp              PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE2}")
+Set_Source_Files_Properties(Fog/Graphics/Rasterizer.cpp                 PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/Region.cpp                     PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/Scanline.cpp                   PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+
+Set_Source_Files_Properties(Fog/Graphics/RasterUtil/RasterUtil_C.cpp    PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/RasterUtil/RasterUtil_MMX.cpp  PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_MMX}")
+Set_Source_Files_Properties(Fog/Graphics/RasterUtil/RasterUtil_SSE2.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE2}")
+
+# Source groups
+SOURCE_GROUP(Graphics               FILES ${FOG_GRAPHICS_LIB_SOURCES}           ${FOG_GRAPHICS_LIB_HEADERS})
+SOURCE_GROUP(Graphics_ImageIO       FILES ${FOG_GRAPHICS_IMAGEIO_SOURCES}       ${FOG_GRAPHICS_IMAGEIO_HEADERS})
+SOURCE_GROUP(Graphics_FontEngine    FILES ${FOG_GRAPHICS_FONTENGINE_SOURCES}    ${FOG_GRAPHICS_FONTENGINE_HEADERS})
+SOURCE_GROUP(Graphics_PainterEngine FILES ${FOG_GRAPHICS_PAINTERENGINE_SOURCES} ${FOG_GRAPHICS_PAINTERENGINE_HEADERS})
+SOURCE_GROUP(Graphics_RasterUtil    FILES ${FOG_GRAPHICS_RASTERUTIL_SOURCES}    ${FOG_GRAPHICS_RASTERUTIL_HEADERS})
 
 # =============================================================================
-# [Fog/Svg] Part
+# [Fog/Xml]
 # =============================================================================
 
-Set(FOG_SVG_SOURCES
+Set(FOG_XML_LIB_SOURCES
+  Fog/Xml/XmlDom.cpp
+  Fog/Xml/XmlEntity.cpp
+  Fog/Xml/XmlReader.cpp
+  Fog/Xml/XmlWriter.cpp
+)
+
+Set(FOG_XML_LIB_HEADERS
+  Fog/Xml.h
+  Fog/Xml/Constants.h
+  Fog/Xml/XmlDom.h
+  Fog/Xml/XmlEntity.h
+  Fog/Xml/XmlReader.h
+  Fog/Xml/XmlWriter.h
+)
+
+SOURCE_GROUP(Xml FILES ${FOG_XML_LIB_SOURCES} ${FOG_XML_LIB_HEADERS})
+
+# =============================================================================
+# [Fog/Svg]
+# =============================================================================
+
+Set(FOG_SVG_LIB_SOURCES
   Fog/Svg/SvgBase.cpp
   Fog/Svg/SvgContext.cpp
   Fog/Svg/SvgDom.cpp
   Fog/Svg/SvgUtil.cpp
 )
 
-Set(FOG_SVG_HEADERS
+Set(FOG_SVG_LIB_HEADERS
   Fog/Svg.h
-  Fog/Svg/Error.h
+  Fog/Svg/Constants.h
   Fog/Svg/SvgBase.h
   Fog/Svg/SvgContext.h
   Fog/Svg/SvgDom.h
   Fog/Svg/SvgUtil.h
 )
 
-SOURCE_GROUP(Svg FILES ${FOG_SVG_SOURCES} ${FOG_SVG_HEADERS})
+# Source groups
+SOURCE_GROUP(Svg FILES ${FOG_SVG_LIB_SOURCES} ${FOG_SVG_LIB_HEADERS})
 
 # =============================================================================
-# [Fog/UI] Part
+# [Fog/UI]
 # =============================================================================
 
-Set(FOG_UI_SOURCES
+Set(FOG_UI_LIB_SOURCES
   Fog/UI/BoxLayout.cpp
   Fog/UI/Button.cpp
   Fog/UI/ButtonBase.cpp
@@ -697,14 +568,13 @@ Set(FOG_UI_SOURCES
   Fog/UI/Layout.cpp
   Fog/UI/LayoutItem.cpp
   Fog/UI/Theme.cpp
-  Fog/UI/Theme_Fog.cpp
   Fog/UI/UISystem.cpp
-  Fog/UI/UISystem_Def.cpp
+  Fog/UI/UISystem/Base.cpp
   Fog/UI/Widget.cpp
   Fog/UI/Window.cpp
 )
 
-Set(FOG_UI_HEADERS
+Set(FOG_UI_LIB_HEADERS
   Fog/UI.h
   Fog/UI/BoxLayout.h
   Fog/UI/Button.h
@@ -712,37 +582,46 @@ Set(FOG_UI_HEADERS
   Fog/UI/CheckBox.h
   Fog/UI/Composite.h
   Fog/UI/Constants.h
-  Fog/UI/Error.h
   Fog/UI/Event.h
   Fog/UI/Layout.h
   Fog/UI/LayoutItem.h
   Fog/UI/Theme.h
-  Fog/UI/Theme_Fog.h
   Fog/UI/UISystem.h
-  Fog/UI/UISystem_Def.h
+  Fog/UI/UISystem/Base.h
   Fog/UI/Widget.h
   Fog/UI/Window.h
-  Fog/UI/Xlib.h
+)
+
+Set(FOG_UI_THEME_SOURCES
+  Fog/UI/Theme/Default.cpp
+)
+
+Set(FOG_UI_THEME_HEADERS
+  Fog/UI/Theme/Default.h
 )
 
 Set(FOG_UI_WIN_SOURCES
-  Fog/UI/UISystem_Win.cpp
+  Fog/UI/UISystem/Win.cpp
 )
 
 Set(FOG_UI_WIN_HEADERS
-  Fog/UI/UISystem_Win.h
+  Fog/UI/UISystem/Win.h
 )
 
 Set(FOG_UI_X11_SOURCES
-  Fog/UI/UISystem_X11.cpp
+  Fog/UI/UISystem/X11.cpp
 )
 
 Set(FOG_UI_X11_HEADERS
-  Fog/UI/UISystem_X11.h
+  Fog/UI/UISystem/X11.h
+  Fog/UI/UISystem/X11Headers.h
 )
 
-SOURCE_GROUP(UI FILES
-  ${FOG_UI_SOURCES} ${FOG_UI_HEADERS}
+# Source groups
+SOURCE_GROUP(UI FILES ${FOG_UI_LIB_SOURCES} ${FOG_UI_LIB_HEADERS})
+SOURCE_GROUP(UI_Theme FILES ${FOG_UI_THEME_SOURCES} ${FOG_UI_THEME_HEADERS})
+
+SOURCE_GROUP(UI_System FILES
   ${FOG_UI_X11_SOURCES} ${FOG_UI_X11_HEADERS}
   ${FOG_UI_WIN_SOURCES} ${FOG_UI_WIN_HEADERS})
 
@@ -757,32 +636,43 @@ EndIf(WIN32)
 # [Finalize]
 # =============================================================================
 
-Set(FOG_SOURCES 
+Set(FOG_PUBLIC_SOURCES
   ${FOG_BUILD_SOURCES}
-  ${FOG_CORE_SOURCES}
-  ${FOG_XML_SOURCES}
-  ${FOG_GRAPHICS_SOURCES}
-  ${FOG_SVG_SOURCES}
-  ${FOG_UI_SOURCES}
+  ${FOG_CORE_LIB_SOURCES}
+  ${FOG_XML_LIB_SOURCES}
+  ${FOG_GRAPHICS_LIB_SOURCES}
+  ${FOG_GRAPHICS_IMAGEIO_SOURCES}
+  ${FOG_GRAPHICS_FONTENGINE_SOURCES}
+  ${FOG_GRAPHICS_PAINTERENGINE_SOURCES}
+  ${FOG_GRAPHICS_RASTERUTIL_SOURCES}
+  ${FOG_SVG_LIB_SOURCES}
+  ${FOG_UI_LIB_SOURCES}
+  ${FOG_UI_THEME_SOURCES}
 )
 
-Set(FOG_HEADERS
+Set(FOG_PRIVATE_SOURCES
+)
+
+Set(FOG_PUBLIC_HEADERS
   ${FOG_BUILD_HEADERS}
-  ${FOG_CORE_HEADERS}
-  ${FOG_XML_HEADERS}
-  ${FOG_GRAPHICS_HEADERS}
-  ${FOG_SVG_HEADERS}
-  ${FOG_UI_HEADERS}
+  ${FOG_CORE_LIB_HEADERS}
+  ${FOG_XML_LIB_HEADERS}
+  ${FOG_GRAPHICS_LIB_HEADERS}
+  ${FOG_GRAPHICS_IMAGEIO_HEADERS}
+  ${FOG_GRAPHICS_FONTENGINE_HEADERS}
+  ${FOG_GRAPHICS_PAINTERENGINE_HEADERS}
+  ${FOG_SVG_LIB_HEADERS}
+  ${FOG_UI_LIB_HEADERS}
+  ${FOG_UI_THEME_HEADERS}
 )
 
-If(FOG_BUILD_MODULE_X11_INTERNAL AND NOT WIN32)
-  Set(FOG_SOURCES ${FOG_SOURCES} ${FOG_UI_X11_SOURCES})
-  Set(FOG_HEADERS ${FOG_HEADERS} ${FOG_UI_X11_HEADERS})
-EndIf(FOG_BUILD_MODULE_X11_INTERNAL AND NOT WIN32)
+Set(FOG_PRIVATE_HEADERS
+  ${FOG_GRAPHICS_RASTERUTIL_HEADERS}
+)
 
 If(WIN32)
-  Set(FOG_SOURCES ${FOG_SOURCES} ${FOG_UI_WIN_SOURCES})
-  Set(FOG_SOURCES ${FOG_HEADERS} ${FOG_UI_WIN_HEADERS})
+  Set(FOG_PUBLIC_SOURCES ${FOG_PUBLIC_SOURCES} ${FOG_UI_WIN_SOURCES})
+  Set(FOG_PUBLIC_HEADERS ${FOG_PUBLIC_HEADERS} ${FOG_UI_WIN_HEADERS})
 EndIf(WIN32)
 
 # Write CMAKE_ #defines into Fog/Build/Config.h files
@@ -793,16 +683,13 @@ String(STRIP "${FOG_LIBRARIES}" FOG_LIBRARIES)
 
 # Unicode
 If(WIN32)
-  Add_Definitions(-DUNICODE -D_UNICODE)
+  Add_Definitions(-D_UNICODE)
 EndIf(WIN32)
 
-# TODO: Remove antigrain...
 # Library
 Add_Library(Fog SHARED
-  ${FOG_SOURCES}
-  ${FOG_HEADERS}
-  ${FOG_AGG_SOURCES}
-  ${FOG_AGG_HEADERS}
+  ${FOG_PUBLIC_SOURCES} ${FOG_PRIVATE_SOURCES}
+  ${FOG_PUBLIC_HEADERS} ${FOG_PRIVATE_HEADERS}
 )
 Install(TARGETS Fog DESTINATION lib)
 
@@ -811,34 +698,44 @@ If(WIN32)
   Target_Link_Libraries(Fog user32 gdi32 advapi32 winmm)
 EndIf(WIN32)
 
-If(FOG_BUILD_MODULE_X11_EXTERNAL AND NOT WIN32)
+If(FOG_UI_X11 AND FOG_BUILD_UISYSTEM_X11)
   Add_Library(FogUI_X11 SHARED ${FOG_UI_X11_SOURCES})
   Install(TARGETS FogUI_X11 DESTINATION lib)
 
   Target_Link_Libraries(FogUI_X11 Fog ${FOG_LIBRARIES})
-EndIf(FOG_BUILD_MODULE_X11_EXTERNAL AND NOT WIN32)
+EndIf(FOG_UI_X11 AND FOG_BUILD_UISYSTEM_X11)
 
 # Install header files.
-ForEach(i ${FOG_HEADERS})
+ForEach(i ${FOG_PUBLIC_HEADERS})
   Get_Filename_Component(path ${i} PATH)
   Install(FILES ${i} DESTINATION "include/${path}")
 EndForEach(i)
 
 # Build test
-If(TEST_BUILD)
-  Add_Executable(test WIN32 test/test.cpp)
-  Target_Link_Libraries(test Fog ${FOG_LIBRARIES})
-EndIf(TEST_BUILD)
+If(FOG_BUILD_EXAMPLES)
+  Set(FOG_EXAMPLE_SOURCES
+    FogAnim
+    FogBlur
+    FogComposite
+    FogGradients
+    FogSvgView
+    FogTest
+  )
+  ForEach(file ${FOG_EXAMPLE_SOURCES})
+    Add_Executable(${file} WIN32 Examples/${file})
+    Target_Link_Libraries(${file} Fog ${FOG_LIBRARIES})
+  EndForEach(file)
+EndIf(FOG_BUILD_EXAMPLES)
 
-If(MAKE_BENCH)
+If(FOG_BUILD_BENCH)
   If(NOT WIN32)
     Include_Directories(/usr/include/cairo)
   EndIf(NOT WIN32)
 
-  Add_Executable(bench test/bench.cpp)
-  Target_Link_Libraries(bench Fog ${FOG_LIBRARIES})
+  Add_Executable(FogBench Examples/FogBench.cpp)
+  Target_Link_Libraries(FogBench Fog ${FOG_LIBRARIES})
 
   If(NOT WIN32)
-    Target_Link_Libraries(bench cairo)
+    Target_Link_Libraries(FogBench cairo)
   EndIf(NOT WIN32)
-EndIf(MAKE_BENCH)
+EndIf(FOG_BUILD_BENCH)

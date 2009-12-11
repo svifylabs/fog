@@ -20,14 +20,14 @@ err_t getModuleFileName(HMODULE hModule, String& dst)
   for (;;)
   {
     DWORD capacity = (DWORD)dst.getCapacity();
-    DWORD result = GetModuleFileNameW(hModule, reinterpret_cast<wchar_t*>(dst.xData()), capacity + 1);
+    DWORD result = GetModuleFileNameW(hModule, reinterpret_cast<wchar_t*>(dst.getXData()), capacity + 1);
 
     if (result == 0) return ::GetLastError();
 
     if (result <= capacity)
     {
       dst.resize(result);
-      return Error::Ok;
+      return ERR_OK;
     }
     else
     {

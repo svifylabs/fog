@@ -65,7 +65,7 @@ struct AtomicOperation<T, 4>
       return value;
     #elif defined(FOG_CC_MSVC) || (defined(FOG_CC_BORLAND) && defined(FOG_OS_WINDOWS))
       return (T)InterlockedExchange((LONG volatile*)atomic, (LONG)value);
-    #else
+    #elif !defined(FOG_CC_IDE)
       #error "Fog::AtomicOperation<T, 4>::setXchg() - missing xchg implementation"
     #endif
   }
@@ -85,7 +85,7 @@ struct AtomicOperation<T, 4>
       return (bool)result;
     #elif defined(FOG_CC_MSVC) || (defined(FOG_CC_BORLAND) && defined(FOG_OS_WINDOWS))
       return (bool)(InterlockedCompareExchange((LONG*)atomic, (LONG)value, (LONG)compar) == (LONG)compar);
-    #else
+    #elif !defined(FOG_CC_IDE)
       #error "Fog::AtomicOperation<T, 4>::cmpXchg() - missing implementation"
     #endif
   }
@@ -183,7 +183,7 @@ struct AtomicOperation<T, 4>
       return result;
     #elif defined(FOG_CC_MSVC) || (defined(FOG_CC_BORLAND) && defined(FOG_OS_WINDOWS))
       return (T)InterlockedExchangeAdd((LONG*)atomic, (LONG)value);
-    #else
+    #elif !defined(FOG_CC_IDE)
       #error "Fog::AtomicOperation<T, 4>::addXchg() - missing implementation"
     #endif
   }
@@ -201,7 +201,7 @@ struct AtomicOperation<T, 4>
       return result;
     #elif defined(FOG_CC_MSVC) || (defined(FOG_CC_BORLAND) && defined(FOG_OS_WINDOWS))
       return (T)InterlockedExchangeAdd((LONG*)atomic, (LONG)((value ^ 0xFFFFFFFF) + 1U));
-    #else
+    #elif !defined(FOG_CC_IDE)
       #error "Fog::AtomicOperation<T, 4>::subXchg() - missing implementation"
     #endif
   }
@@ -259,7 +259,7 @@ struct AtomicOperation<T, 8>
       return value;
     #elif (defined(FOG_CC_MSVC) || (defined(FOG_CC_BORLAND) && defined(FOG_OS_WINDOWS)))
       return (T)InterlockedExchange64((int64_t*)atomic, (int64_t)value);
-    #else
+    #elif !defined(FOG_CC_IDE)
       #error "Fog::AtomicOperation<T, 8>::setXchg() - missing implementation"
     #endif
   }
@@ -279,7 +279,7 @@ struct AtomicOperation<T, 8>
       return (bool)result;
     #elif (defined(FOG_CC_MSVC) || (defined(FOG_CC_BORLAND) && defined(FOG_OS_WINDOWS)))
       return (bool)(InterlockedCompareExchange64((int64_t*)atomic, (int64_t)value, (int64_t)compar) == (int64_t)compar);
-    #else
+    #elif !defined(FOG_CC_IDE)
       #error "Fog::AtomicOperation<T, 8>::cmpXchg() - missing implementation"
     #endif
   }
@@ -377,7 +377,7 @@ struct AtomicOperation<T, 8>
       return result;
     #elif (defined(FOG_CC_MSVC) || (defined(FOG_CC_BORLAND) && defined(FOG_OS_WINDOWS)))
       return (T)InterlockedExchangeAdd64((int64_t*)atomic, (int64_t)value);
-    #else
+    #elif !defined(FOG_CC_IDE)
       #error "Fog::AtomicOperation<T, 8>::addXchg() - missing implementation"
     #endif
   }
@@ -395,7 +395,7 @@ struct AtomicOperation<T, 8>
       return result;
     #elif (defined(FOG_CC_MSVC) || (defined(FOG_CC_BORLAND) && defined(FOG_OS_WINDOWS)))
       return (T)InterlockedExchangeAdd64((int64_t*)atomic, (int64_t)((value ^ FOG_UINT64_C(0xFFFFFFFFFFFFFFFF)) + FOG_UINT64_C(1)));
-    #else
+    #elif !defined(FOG_CC_IDE)
       #error "Fog::AtomicOperation<T, 8>::subXchg() - missing implementation"
     #endif
   }
@@ -466,7 +466,7 @@ struct Atomic
 //! @}
 
 // [TypeInfo]
-FOG_DECLARE_TYPEINFO_TEMPLATE1(Fog::Atomic, typename, T, Fog::MoveableType)
+FOG_DECLARE_TYPEINFO_TEMPLATE1(Fog::Atomic, typename, T, Fog::TYPE_INFO_MOVABLE)
 
 // [Guard]
 #endif // _FOG_CORE_ATOMIC_H

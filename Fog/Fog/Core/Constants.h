@@ -15,76 +15,313 @@
 
 namespace Fog {
 
+// ============================================================================
 // [Fog::CreateSharable]
+// ============================================================================
 
-enum _CreateSharable { CreateSharable };
-enum _LinkerInitialized { LinkerInitialized };
+enum _CREATE_SHAREABLE { CREATE_SHAREABLE };
+enum _DONT_INITIALIZE { DONT_INITIALIZE };
 
-// [Fog::AllocPolicy]
+// ============================================================================
+// [Fog::Constants]
+// ============================================================================
 
-enum AllocPolicy { AllocCantFail = 0, AllocCanFail = 1 };
+//! @brief Detect length means that string function should first detect it length.
+static const sysuint_t DETECT_LENGTH  = (sysuint_t)-1;
+//! @brief Returned by functions like indexOf() to indicate that element wasn't
+//! found.
+static const sysuint_t INVALID_INDEX  = (sysuint_t)-1;
 
-// [Fog::Array constants]
+//! @brief Convenience value that can be used instead of zero.
+static const uint32_t  NO_FLAGS = 0;
 
-static const sysuint_t DetectLength  = (sysuint_t)-1;
-static const sysuint_t InvalidIndex  = (sysuint_t)-1;
+//! @brief how much to reserve stack for local strings in Fog library or all
+//! additional libraries
+static const sysuint_t TEMP_LENGTH = 256;
 
-// [Fog::Flags]
+// ============================================================================
+// [Fog::FORMAT_FLAGS]
+// ============================================================================
 
-static const uint32_t  NoFlags = 0;
+static const sysuint_t NO_PRECISION = (sysuint_t)-1;
+static const sysuint_t NO_WIDTH     = (sysuint_t)-1;
 
-// how much to reserve stack for local strings in Core library
-// or all additional libraries
-static const sysuint_t TemporaryLength = 256;
-
-// [Fog::CaseSensitivity]
-
-enum CaseSensitivity
+//! @brief String formatting flags.
+enum FORMAT_FLAGS
 {
-  CaseInsensitive = 0,
-  CaseSensitive = 1,
+  //! @brief Show group separators (sprintf ' flag).
+  FORMAT_THOUSANDS_GROUP = (1 << 0),
+  //! @brief Align to left (sprintf '-' flag).
+  FORMAT_LEFT_ADJUSTED = (1 << 1),
+  //! @brief Always show sign (sprintf '+' flag).
+  FORMAT_SHOW_SIGN = (1 << 2),
+  //! @brief Blank character instead of positive sign (sprintf ' ' flag).
+  FORMAT_BLANK_POSITIVE = (1 << 3),
+  //! @brief Use alternate form (sprintf '#' flag).
+  FORMAT_ALTERNATE_FORM = (1 << 4),
+  //! @brief Zero padded (sprintf '0' flag).
+  FORMAT_ZERO_PADDED = (1 << 5),
+  //! @brief Capitalize number output.
+  FORMAT_CAPITALIZE = (1 << 6),
+  //! @brief Capitalize E (floats) or X (hexadecimal) in number output.
+  FORMAT_CAPITALIZE_E_OR_X = (1 << 7)
+};
+
+// ============================================================================
+// [Fog::CASE_SENSITIVITY]
+// ============================================================================
+
+//! @brief Case sensitivity, used by @c String and @c ByteArray classes.
+enum CASE_SENSITIVITY
+{
+  //! @brief Case insensitive (search, replace, indexOf, ...).
+  CASE_INSENSITIVE = 0,
+  //! @brief Case sensitive (search, replace, indexOf, ...).
+  CASE_SENSITIVE = 1,
 
 #if defined(FOG_OS_WINDOWS)
-  FileSystemCase = CaseInsensitive
+  CASE_FILESYSTEM = CASE_INSENSITIVE
 #else
-  FileSystemCase = CaseSensitive
+  CASE_FILESYSTEM = CASE_SENSITIVE
 #endif // FOG_OS_WINDOWS
 };
 
+// ============================================================================
+// [Fog::OUTPUT_CASE]
+// ============================================================================
+
+enum OUTPUT_CASE
+{
+  OUTPUT_CASE_LOWER = 0,
+  OUTPUT_CASE_UPPER = 1
+};
+
+// ============================================================================
 // [Fog::SplitBehavior]
+// ============================================================================
 
-enum SplitBehavior
+enum SPLIT_BEHAVIOR
 {
-  KeepEmptyParts = 0,
-  RemoveEmptyParts = 1
+  SPLIT_KEEP_EMPTY_PARTS = 0,
+  SPLIT_REMOVE_EMPTY_PARTS = 1
 };
 
+// ============================================================================
 // [Fog::Justification]
-enum Justify
+// ============================================================================
+
+enum JUSTIFY
 {
-  LeftJustify = 0x1,
-  RightJustify = 0x2,
-  CenterJustify = 0x3
+  JUSTIFY_LEFT = 0x1,
+  JUSTIFY_RIGHT = 0x2,
+  JUSTIFY_CENTER = 0x3
 };
 
-// ---------------------------------------------------------------------------
-// [Enumerations]
-// ---------------------------------------------------------------------------
+// ============================================================================
+// [Fog::SORT_ORDER]
+// ============================================================================
 
-enum OrderMode
+enum SORT_ORDER
 {
-  OrderAscent = 0,
-  OrderDescent = 1
+  SORT_ORDER_ASCENT = 0,
+  SORT_ORDER_DESCENT = 1
 };
 
-enum DoubleForm
+// ============================================================================
+// [Fog::DOUBLE_FORM]
+// ============================================================================
+
+enum DOUBLE_FORM
 {
   //! @brief Decimal double form (sprintf %f).
-  DF_Decimal = 0,
+  DF_DECIMAL = 0,
   //! @brief Exponent double form (sprintf %e).
-  DF_Exponent = 1,
+  DF_EXPONENT = 1,
   //! @brief Significant digits (sprintf %g).
-  DF_SignificantDigits = 2
+  DF_SIGNIFICANT_DIGITS = 2
+};
+
+// ============================================================================
+// [Fog::LIBRARY_OPEN_MODE]
+// ============================================================================
+
+//! @brief Library open flags used in @c Library::open().
+enum LIBRARY_OPEN_MODE
+{
+  //! @brief Don't use any flags.
+  LIBRARY_OPEN_NONE = 0,
+
+  //! @brief Open library with system prefix (default @c true).
+  //!
+  //! System prefix is mainly for systems like unix, where library prefix
+  //! is usually 'lib', but plugins are usually linked without this prefix,
+  //! but default is to use system prefix.
+  LIBRARY_OPEN_SYSTEM_PREFIX = (1 << 0),
+
+  //! @brief Open libray with system suffix (default @c true).
+  //!
+  //! System suffix = dot + library extension, for example in MS Windows
+  //! this suffix is equal to '.dll', on unix like machines this suffix
+  //! is '.so'. If you need to specify your own suffix, don't set this
+  //! flag, because if you not use open flags argument. This flag is
+  //! default.
+  LIBRARY_OPEN_SYSTEM_SUFFIX = (1 << 1),
+
+  //! @brief Default open flags for Library constructors and @c Library::open()
+  //! methods.
+  //!
+  //! Default is to use @c OpenSystemPrefix with @c OpenSystemSuffix
+  LIBRARY_OPEN_DEFAULT = LIBRARY_OPEN_SYSTEM_PREFIX | LIBRARY_OPEN_SYSTEM_SUFFIX
+};
+
+// ============================================================================
+// [Fog::LOCALE_CHAR]
+// ============================================================================
+
+enum LOCALE_CHAR
+{
+  LOCALE_CHAR_DECIMAL_POINT = 0,
+  LOCALE_CHAR_THOUSANDS_GROUP = 1,
+  LOCALE_CHAR_ZERO = 2,
+  LOCALE_CHAR_PLUS = 3,
+  LOCALE_CHAR_MINUS = 4,
+  LOCALE_CHAR_SPACE = 5,
+  LOCALE_CHAR_EXPONENTIAL = 6,
+  LOCALE_CHAR_FIRST_THOUSANDS_GROUP = 7,
+  LOCALE_CHAR_NEXT_THOUSANDS_GROUP = 8,
+  LOCALE_CHAR_RESERVED = 9,
+
+  LOCALE_CHAR_INVALID
+};
+
+// ============================================================================
+// [Fog::EV_CORE]
+// ============================================================================
+
+//! @brief Core event IDs.
+enum EV_CORE_ENUM
+{
+  // [0 is reserved]
+
+  EV_NULL = 0,
+
+  // [Object events]
+
+  EV_CREATE,
+  EV_DESTROY,
+  EV_DELETE,
+  EV_TIMER,
+  EV_CHANGE_PROPERTY = 10,
+
+  //! @brief First user event.
+  EV_USER = 65536,
+
+  //! @brief Last event that can be used by all libraries.
+  //!
+  //! This number is first retrieved by Fog::Event::uid() and incremented
+  //! each time that function is called.
+  EV_UID = 10000000
+};
+
+// ============================================================================
+// [Fog::ERR_CORE]
+// ============================================================================
+
+//! @brief Single enumeration to define @c ERR_OK value.
+enum ERR_OK_ENUM
+{
+  //! @brief Function proceed without errors (success).
+  ERR_OK = 0
+};
+
+//! @brief Error codes used in Fog/Core.
+enum ERR_CORE_ENUM
+{
+  // Errors Range.
+  ERR_CORE_START = 0x00010000,
+  ERR_CORE_LAST  = 0x00010FFF,
+
+  // Runtime Errors.
+
+  ERR_RT_OUT_OF_MEMORY = ERR_CORE_START,
+  ERR_RT_NOT_IMPLEMENTED,
+
+  ERR_RT_INVALID_ARGUMENT,
+  ERR_RT_INVALID_HANDLE,
+  ERR_RT_INVALID_CONTEXT,
+
+  ERR_RT_OBJECT_NOT_FOUND,
+  ERR_RT_OBJECT_ALREADY_EXISTS,
+
+  // TODO: Validate these errors.
+  InvalidFunction,
+  InvalidInput,
+
+  ERR_RT_OVERFLOW,
+
+  // Properties.
+
+  ERR_PROPERTY_INVALID_NAME,
+  ERR_PROPERTY_INVALID_VALUE,
+  ERR_PROPERTY_IS_READ_ONLY,
+
+  // TODO: Remove these errors.
+  InvalidPropertyName,
+  InvalidPropertyValue,
+  PropertyIsReadOnly,
+
+  // IO Errors.
+
+  //IOEmpty,
+  //IOReadOnly,
+  //IONotFound,
+
+  ERR_IO_TOO_BIG,
+  ERR_IO_NOT_A_FILE,
+  ERR_IO_NOT_A_DIRECTORY,
+  ERR_IO_FILE_IS_EMPTY,
+  ERR_IO_FILE_TOO_BIG,
+
+  ERR_IO_CANT_READ,
+  ERR_IO_CANT_WRITE,
+  ERR_IO_CANT_SEEK,
+  ERR_IO_CANT_TRUNCATE,
+
+  ERR_IO_FILE_NOT_EXISTS,
+  ERR_IO_DIR_ALREADY_EXISTS,
+
+  // Library Errors.
+
+  ERR_LIB_LOAD_FAILED,
+  ERR_LIB_SYMBOL_NOT_FOUND,
+
+  // Text Errors (StringUtil, TextCodec).
+
+  //! @brief Invalid text codec (Null) used to encode / decode string
+  ERR_TEXT_INVALID_CODEC,
+  //! @brief Invalid UTF-8 sequence.
+  ERR_TEXT_INVALID_UTF8_SEQ,
+  //! @brief Invalid UTF-16 sequence (surrogate pair error).
+  ERR_TEXT_INVALID_UTF16_SEQ,
+  //! @brief Invalid UCS-2 sequence (surrogate pair in UCS-2).
+  ERR_TEXT_INVALID_UCS2_SEQ,
+  //! @brief Invalid Unicode character.
+  ERR_TEXT_INVALID_CHAR,
+  //! @brief Incomplete input buffer.
+  ERR_TEXT_INPUT_TRUNCATED,
+  //! @brief Some characters loss during conversion (replaced by '?' or a given replacer).
+  //!
+  //! This can only happen when converting unicode to non-unicode encoding.
+  ERR_TEXT_CHARACTERS_LOSS,
+
+  // Environment Errors.
+
+  ERR_ENV_GET_FAILED,
+  ERR_ENV_SET_FAILED,
+
+  // User Errors.
+  ERR_USER_NO_HOME_DIRECTORY,
+  ERR_USER_NO_XDG_DIRECTORY
 };
 
 } // Fog namespace

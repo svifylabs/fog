@@ -24,8 +24,8 @@
 
 // [Dependencies]
 #include <Fog/Core/Atomic.h>
+#include <Fog/Core/List.h>
 #include <Fog/Core/Static.h>
-#include <Fog/Core/Vector.h>
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Geometry.h>
 
@@ -41,31 +41,50 @@ namespace Fog {
 struct Matrix;
 
 // ============================================================================
-// [Fog::StrokeParams]
+// [Fog::PathCmd]
 // ============================================================================
 
-struct FOG_HIDDEN StrokeParams
+struct FOG_HIDDEN PathCmd
 {
-  FOG_INLINE StrokeParams() :
-    lineWidth(1.0),
-    miterLimit(4.0),
-    lineCap(LineCapButt),
-    lineJoin(LineJoinMiter)
-  {
-  }
+  FOG_INLINE PathCmd() {}
+  FOG_INLINE PathCmd(const PathCmd& other) : _cmd(other._cmd) {}
+  FOG_INLINE PathCmd(uint32_t cmd) : _cmd(cmd) {}
 
-  FOG_INLINE StrokeParams(double lineWidth, double miterLimit, uint32_t lineCap, uint32_t lineJoin) :
-    lineWidth(lineWidth),
-    miterLimit(miterLimit),
-    lineCap(lineCap),
-    lineJoin(lineJoin)
-  {
-  }
+  FOG_INLINE PathCmd& operator=(const PathCmd& other) { _cmd = other._cmd; return *this; }
+  FOG_INLINE PathCmd& operator=(uint32_t cmd) { _cmd = cmd; return *this; }
 
-  double lineWidth;
-  double miterLimit;
-  uint32_t lineCap;
-  uint32_t lineJoin;
+  FOG_INLINE uint32_t cmd() const { return _cmd; }
+  FOG_INLINE operator uint32_t() const { return _cmd; }
+
+  FOG_INLINE bool isVertex() const { return _cmd >= PATH_CMD_MOVE_TO && _cmd < PATH_CMD_END; }
+  FOG_INLINE bool isDrawing() const { return _cmd >= PATH_CMD_LINE_TO && _cmd < PATH_CMD_END; }
+
+  FOG_INLINE bool isStop() const { return _cmd == PATH_CMD_STOP; }
+  FOG_INLINE bool isMoveTo() const { return _cmd == PATH_CMD_MOVE_TO; }
+  FOG_INLINE bool isLineTo() const { return _cmd == PATH_CMD_LINE_TO; }
+  FOG_INLINE bool isCurve() const { return _cmd == PATH_CMD_CURVE_3 || _cmd == PATH_CMD_CURVE_4; }
+  FOG_INLINE bool isCurve3() const { return _cmd == PATH_CMD_CURVE_3; }
+  FOG_INLINE bool isCurve4() const { return _cmd == PATH_CMD_CURVE_4; }
+  FOG_INLINE bool isEndPoly() const { return (_cmd & PATH_CMD_MASK) == PATH_CMD_END; }
+  FOG_INLINE bool isClose() const { return (_cmd & ~(PATH_CFLAG_CW | PATH_CFLAG_CCW)) == (PATH_CMD_END | PATH_CFLAG_CLOSE); }
+  FOG_INLINE bool isNextPoly() const { return isStop() || isMoveTo() || isEndPoly(); }
+  FOG_INLINE bool isCW() const { return (_cmd & PATH_CFLAG_CW) != 0; }
+  FOG_INLINE bool isCCW() const { return (_cmd & PATH_CFLAG_CCW) != 0; }
+  FOG_INLINE bool isOriented() const { return (_cmd & (PATH_CFLAG_CW | PATH_CFLAG_CCW)) != 0;  }
+  FOG_INLINE bool isClosed() const { return (_cmd & PATH_CFLAG_CLOSE) != 0; }
+
+  uint32_t _cmd;
+};
+
+// ============================================================================
+// [Fog::PathVertex]
+// ============================================================================
+
+struct FOG_HIDDEN PathVertex
+{
+  PathCmd cmd;
+  double x;
+  double y;
 };
 
 // ============================================================================
@@ -75,79 +94,6 @@ struct FOG_HIDDEN StrokeParams
 //! @brief Path defines graphics path that can be filled or stroked by painter.
 struct FOG_API Path
 {
-  // [Cmd]
-
-  enum CmdEnum
-  {
-    CmdStop     = 0,
-    CmdMoveTo   = 1,
-    CmdLineTo   = 2,
-    CmdCurve3   = 3,
-    CmdCurve4   = 4,
-    CmdCurveN   = 5,
-    CmdEndPoly  = 0xF,
-    CmdMask     = 0xF
-  };
-
-  enum CFlag
-  {
-    CFlagNone  = 0,
-    CFlagCCW   = 0x10,
-    CFlagCW    = 0x20,
-    CFlagClose = 0x40,
-    CFlagMask  = 0xF0
-  };
-
-  struct FOG_HIDDEN Cmd
-  {
-    FOG_INLINE Cmd() {}
-    FOG_INLINE Cmd(const Cmd& other) : _cmd(other._cmd) {}
-    FOG_INLINE Cmd(uint32_t cmd) : _cmd(cmd) {}
-
-    FOG_INLINE Cmd& operator=(const Cmd& other) { _cmd = other._cmd; return *this; }
-    FOG_INLINE Cmd& operator=(uint32_t cmd) { _cmd = cmd; return *this; }
-
-    FOG_INLINE uint32_t cmd() const { return _cmd; }
-    FOG_INLINE operator uint32_t() { return _cmd; }
-
-    FOG_INLINE bool isVertex() const { return _cmd >= CmdMoveTo && _cmd < CmdEndPoly; }
-    FOG_INLINE bool isDrawing() const { return _cmd >= CmdLineTo && _cmd < CmdEndPoly; }
-
-    FOG_INLINE bool isStop() const { return _cmd == CmdStop; }
-    FOG_INLINE bool isMoveTo() const { return _cmd == CmdMoveTo; }
-    FOG_INLINE bool isLineTo() const { return _cmd == CmdLineTo; }
-    FOG_INLINE bool isCurve() const { return _cmd == CmdCurve3 || _cmd == CmdCurve4; }
-    FOG_INLINE bool isCurve3() const { return _cmd == CmdCurve3; }
-    FOG_INLINE bool isCurve4() const { return _cmd == CmdCurve4; }
-    FOG_INLINE bool isEndPoly() const { return (_cmd & CmdMask) == CmdEndPoly; }
-    FOG_INLINE bool isClose() const { return (_cmd & ~(CFlagCW | CFlagCCW)) == (CmdEndPoly | CFlagClose); }
-    FOG_INLINE bool isNextPoly() const { return isStop() || isMoveTo() || isEndPoly(); }
-    FOG_INLINE bool isCW() const { return (_cmd & CFlagCW) != 0; }
-    FOG_INLINE bool isCCW() const { return (_cmd & CFlagCCW) != 0; }
-    FOG_INLINE bool isOriented() const { return (_cmd & (CFlagCW | CFlagCCW)) != 0;  }
-    FOG_INLINE bool isClosed() const { return (_cmd & CFlagClose) != 0; }
-
-    uint32_t _cmd;
-  };
-
-  // [Vertex]
-
-  struct FOG_HIDDEN Vertex
-  {
-    Cmd cmd;
-    double x;
-    double y;
-  };
-
-  // [Type]
-
-  enum Type
-  {
-    UndefinedType = 0,
-    LineType = 1,
-    CurveType = 2
-  };
-
   // [Data]
 
   struct FOG_API Data
@@ -156,10 +102,9 @@ struct FOG_API Path
 
     enum Flags
     {
-      IsNull = (1 << 0),
-      IsDynamic = (1 << 1),
-      IsSharable = (1 << 2),
-      IsStrong = (1 << 3)
+      IsDynamic = (1 << 0),
+      IsSharable = (1 << 1),
+      IsStrong = (1 << 2)
     };
 
     // [Implicit Sharing]
@@ -184,10 +129,10 @@ struct FOG_API Path
 
     mutable Fog::Atomic<sysuint_t> refCount;
     uint32_t flags;
-    uint32_t type;
+    int32_t flat;
     sysuint_t capacity;
     sysuint_t length;
-    Vertex data[1];
+    PathVertex data[1];
   };
 
   static Static<Data> sharedNull;
@@ -195,9 +140,8 @@ struct FOG_API Path
   // [Construction / Destruction]
 
   Path();
-  Path(Data* d);
   Path(const Path& other);
-
+  FOG_INLINE explicit Path(Data* d) : _d(d) {}
   ~Path();
 
   // [Implicit Sharing]
@@ -205,42 +149,16 @@ struct FOG_API Path
   FOG_INLINE sysuint_t refCount() const { return _d->refCount.get(); }
   FOG_INLINE bool isDetached() const { return _d->refCount.get() == 1; }
 
-  FOG_INLINE err_t detach()
-  { return !isDetached() ? _detach() : Error::Ok; }
+  FOG_INLINE err_t detach() { return !isDetached() ? _detach() : ERR_OK; }
 
   // [Flags]
 
-  FOG_INLINE uint32_t getFlags() const
-  { return _d->flags; }
+  FOG_INLINE uint32_t getFlags() const { return _d->flags; }
 
-  FOG_INLINE bool isNull() const
-  { return (_d->flags & Data::IsNull) != 0; }
-
-  FOG_INLINE bool isDynamic() const
-  { return (_d->flags & Data::IsDynamic) != 0; }
-
-  FOG_INLINE bool isSharable() const
-  { return (_d->flags & Data::IsSharable) != 0; }
-
-  FOG_INLINE bool isStrong() const
-  { return (_d->flags & Data::IsStrong) != 0; }
-
-  // [Type]
-
-  //! @brief Get type of path.
-  //!
-  //! Type of path is probably only used by @c Painter to determine which
-  //! operations are needed to successfuly rasterize it. This method can
-  //! only return @c LineType or CurveType values. @c LineType means that path
-  //! contains only lines and no curves and @c CurveType means that path
-  //! contains lines and curves.
-  uint32_t getType() const;
-
-  //! @brief Invalidate type of path.
-  //!
-  //! This method must be called after path was manually changed by mData() or
-  //! similar methods to invalidate type of path.
-  FOG_INLINE void invalidateType() const { _d->type = UndefinedType; }
+  FOG_INLINE bool isNull() const { return _d == sharedNull.instancep(); }
+  FOG_INLINE bool isDynamic() const { return (_d->flags & Data::IsDynamic) != 0; }
+  FOG_INLINE bool isSharable() const { return (_d->flags & Data::IsSharable) != 0; }
+  FOG_INLINE bool isStrong() const { return (_d->flags & Data::IsStrong) != 0; }
 
   // [Data]
 
@@ -251,15 +169,16 @@ struct FOG_API Path
 
   FOG_INLINE bool isEmpty() const { return _d->length == 0; }
 
-  FOG_INLINE const Vertex* cData() const
+  FOG_INLINE const PathVertex* getData() const
   { return _d->data; }
 
-  FOG_INLINE Vertex* mData()
-  { return detach() == Error::Ok ? _d->data : NULL; }
+  FOG_INLINE PathVertex* getMData()
+  { return detach() == ERR_OK ? _d->data : NULL; }
 
   err_t reserve(sysuint_t capacity);
+  void squeeze();
 
-  Vertex* _add(sysuint_t count);
+  PathVertex* _add(sysuint_t count);
   err_t _detach();
 
   err_t set(const Path& other);
@@ -276,8 +195,8 @@ struct FOG_API Path
 
   err_t start(sysuint_t* index);
 
-  err_t endPoly(uint32_t cmdflags = CFlagClose);
-  err_t closePolygon(uint32_t cmdflags = CFlagNone);
+  err_t endPoly(uint32_t cmdflags = PATH_CFLAG_CLOSE);
+  err_t closePolygon(uint32_t cmdflags = PATH_CFLAG_NONE);
 
   // [MoveTo]
 
@@ -375,6 +294,9 @@ struct FOG_API Path
 
   //! @brief Apply affine matrix transformations to each vertex in path.
   err_t applyMatrix(const Matrix& matrix);
+  //! @brief Apply affine matrix transformations to vertex that starts with
+  //! @a index and their length is given in @a length.
+  err_t applyMatrix(const Matrix& matrix, sysuint_t index, sysuint_t length);
 
   // [Complex]
 
@@ -407,45 +329,38 @@ struct FOG_API Path
 
   //! @brief Add other path into path.
   err_t addPath(const Path& path);
+  err_t addPath(const Path& path, const Matrix& matrix);
 
   // [Inlines]
 
   //! @brief Translate each vertex in path by @a pt.
-  FOG_INLINE err_t translate(const PointD& pt)
-  { return translate(pt.x, pt.y); }
+  FOG_INLINE err_t translate(const PointD& pt) { return translate(pt.x, pt.y); }
 
   //! @brief Translate each vertex in subpath @a pathId by @a pt.
-  FOG_INLINE err_t translate(const PointD& pt, sysuint_t pathId)
-  { return translate(pt.x, pt.y, pathId); }
+  FOG_INLINE err_t translate(const PointD& pt, sysuint_t pathId) { return translate(pt.x, pt.y, pathId); }
 
   //! @brief Scale each vertex in path by @a pt.
-  FOG_INLINE err_t scale(const PointD& pt, bool keepStartPos = false)
-  { return scale(pt.x, pt.y, keepStartPos); }
+  FOG_INLINE err_t scale(const PointD& pt, bool keepStartPos = false) { return scale(pt.x, pt.y, keepStartPos); }
 
   // [Flatten]
 
+  // [Type]
+
+  //! @brief Get whether path is flat.
+  //!
+  //! Path is flat only if it contains only lines (no curves). To make path flat
+  //! use @c flatten() or @c flattenTo() methods.
+  bool isFlat() const;
+
+  //! @brief Invalidate type of path.
+  //!
+  //! This method must be called after path was manually changed by getMData() or
+  //! similar methods to invalidate type of path.
+  FOG_INLINE void resetFlat() const { _d->flat = -1; }
+
   err_t flatten();
   err_t flatten(const Matrix* matrix, double approximationScale = 1.0);
-
-  //! @brief Similar method to @c flatten(), but with specified destination path.
   err_t flattenTo(Path& dst, const Matrix* matrix, double approximationScale = 1.0) const;
-
-  // [Dash]
-
-  err_t dash(const Vector<double>& dashes, double startOffset, double approximationScale = 1.0);
-
-  //! @brief Similar method to @c dash(), but with specified destination path.
-  err_t dashTo(Path& dst, const Vector<double>& dashes, double startOffset, double approximationScale = 1.0);
-
-  // [Stroke]
-
-  //! @brief Stroke the path.
-  //!
-  //! @note Stroking path will also flatten it.
-  err_t stroke(const StrokeParams& strokeParams, double approximationScale = 1.0);
-
-  //! @brief Similar method to @c stroke(), but with specified destination path.
-  err_t strokeTo(Path& dst, const StrokeParams& strokeParams, double approximationScale = 1.0) const;
 
   // [Operator Overload]
 

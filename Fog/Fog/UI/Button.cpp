@@ -40,8 +40,8 @@ void Button::onPaint(PaintEvent* e)
   bounds.shrink(1);
 
   Pattern pat;
-  pat.setType(Pattern::TypeLinearGradient);
-  pat.setSpread(Pattern::SpreadPad);
+  pat.setType(PATTERN_LINEAR_GRADIENT);
+  pat.setSpread(SPREAD_PAD);
 
   if (!isDown())
   {
@@ -54,16 +54,16 @@ void Button::onPaint(PaintEvent* e)
     pat.setEndPoint(Point(0, 0));
   }
 
-  pat.addGradientStop(GradientStop(0.0, 255, 255, 255));
-  pat.addGradientStop(GradientStop(0.48, 140, 170, 255));
-  pat.addGradientStop(GradientStop(0.52, 110, 140, 255));
-  pat.addGradientStop(GradientStop(1.0, 70, 100, 255));
+  pat.addStop(ArgbStop(0.0, 255, 255, 255));
+  pat.addStop(ArgbStop(0.48, 140, 170, 255));
+  pat.addStop(ArgbStop(0.52, 110, 140, 255));
+  pat.addStop(ArgbStop(1.0, 70, 100, 255));
   p->setSource(pat);
   p->fillRect(bounds);
 
   if (isDown()) bounds.translate(1, 1);
   p->setSource(0xFF000000);
-  p->drawText(bounds, _text, _font, TextAlignCenter);
+  p->drawText(bounds, _text, _font, TEXT_ALIGN_CENTER);
 }
 
 } // Fog namespace

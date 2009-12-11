@@ -21,7 +21,7 @@ namespace Fog {
 // [Fog::Event]
 // ============================================================================
 
-static Atomic<uint32_t> uid_val = FOG_ATOMIC_SET(EvUID);
+static Atomic<uint32_t> uid_val = FOG_ATOMIC_SET(EV_UID);
 
 void Event::run()
 {
@@ -58,7 +58,7 @@ void Event::run()
 
 Event* Event::clone() const 
 {
-  return ( new Event(getCode(), getFlags()) )->_cloned(getReceiver() );
+  return ( new(std::nothrow) Event(getCode(), getFlags()) )->_cloned(getReceiver());
 }
 
 uint32_t Event::uid()
@@ -77,7 +77,7 @@ uint32_t Event::uid()
 // [Fog::CreateEvent]
 // ============================================================================
 
-CreateEvent::CreateEvent() : Event(EvCreate)
+CreateEvent::CreateEvent() : Event(EV_CREATE)
 {
 }
 
@@ -85,7 +85,7 @@ CreateEvent::CreateEvent() : Event(EvCreate)
 // [Fog::DestroyEvent]
 // ============================================================================
 
-DestroyEvent::DestroyEvent()  : Event(EvDestroy)
+DestroyEvent::DestroyEvent()  : Event(EV_DESTROY)
 {
 }
 
@@ -99,14 +99,14 @@ void DestroyEvent::run()
 // ============================================================================
 
 TimerEvent::TimerEvent(Timer* timer) : 
-  Event(EvTimer),
+  Event(EV_TIMER),
   _timer(timer)
 {
 }
 
 Event* TimerEvent::clone()
 {
-  return ( new TimerEvent(getTimer()) )->_cloned(getReceiver());
+  return ( new(std::nothrow) TimerEvent(getTimer()) )->_cloned(getReceiver());
 }
 
 // ============================================================================
@@ -114,7 +114,7 @@ Event* TimerEvent::clone()
 // ============================================================================
 
 PropertyChangedEvent::PropertyChangedEvent(const String& name) :
-  Event(EvPropertyChanged),
+  Event(EV_CHANGE_PROPERTY),
   _name(name)
 {
 }
@@ -125,7 +125,7 @@ PropertyChangedEvent::~PropertyChangedEvent()
 
 Event* PropertyChangedEvent::clone() const
 { 
-  return ( new PropertyChangedEvent(getName()) )->_cloned(getReceiver());
+  return ( new(std::nothrow) PropertyChangedEvent(getName()) )->_cloned(getReceiver());
 }
 
 } // Fog namespace

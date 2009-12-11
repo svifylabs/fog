@@ -28,19 +28,18 @@ namespace Fog {
 //! and 8 bits for fractional - see poly_subpixel_shift. This class can be 
 //! used in the following  way:
 //!
-//! 1. setFillRule(int fillRule) - optional.
+//! 1. getFillRule() / setFillRule(int fillRule) - set fill rule.
 //!
 //! 2. reset() - optional, needed only if you are reusing rasterizer.
 //!
-//! 3. move_to(x, y) / line_to(x, y) - make the polygon. One can create 
-//!    more than one contour, but each contour must consist of at least 3
-//!    vertices, i.e. move_to(x1, y1); line_to(x2, y2); line_to(x3, y3);
-//!    is the absolute minimum of vertices that define a triangle.
-//!    The algorithm does not check either the number of vertices nor
-//!    coincidence of their coordinates, but in the worst case it just 
-//!    won't draw anything.
+//! 3. addPath(path) - make the polygon. One can create more than one contour,
+//!    but each contour must consist of at least 3 vertices, is the absolute
+//!    minimum of vertices that define a triangle. The algorithm does not check
+//!    either the number of vertices nor coincidence of their coordinates, but
+//!    in the worst case it just won't draw anything.
+//!
 //!    The orger of the vertices (clockwise or counterclockwise) 
-//!    is important when using the non-zero filling rule (fill_non_zero).
+//!    is important when using the non-zero filling rule (@c FILL_NON_ZERO).
 //!    In this case the vertex order of all the contours must be the same
 //!    if you want your intersecting polygons to be without "holes".
 //!    You actually can use different vertices order. If the contours do not 
@@ -51,15 +50,16 @@ namespace Fog {
 //! setFillRule() can be called anytime before "sweeping".
 //!
 //! Rasterizers are pooled to maximize performance and decrease memory 
-//! fragmentation. If you want to create new rasterizer use 
-//! @c Rasterizer::getRasterizer() and @c Rasterizer::releaseRasterizer() 
-//! methods.
+//! fragmentation. If you want to create or free rasterizer use methods
+//! @c Rasterizer::getRasterizer() and @c Rasterizer::releaseRasterizer(),
+//! respectively.
 struct FOG_API Rasterizer
 {
   // --------------------------------------------------------------------------
   // [Cell]
   // --------------------------------------------------------------------------
 
+#include <Fog/Core/Pack.h>
   struct CellXY
   {
     int x;
@@ -70,6 +70,7 @@ struct FOG_API Rasterizer
     FOG_INLINE void set(int _x, int _y, int _cover, int _area) { x = _x; y = _y; cover = _cover; area = _area; }
     FOG_INLINE bool equalPos(int ex, int ey) const { return ((ex - x) | (ey - y)) == 0; }
   };
+#include <Fog/Core/Unpack.h>
 
 #include <Fog/Core/Pack.h>
   struct FOG_PACKED CellX
@@ -78,8 +79,13 @@ struct FOG_API Rasterizer
     int cover;
     int area;
 
-    FOG_INLINE void set(int _x, int _cover, int _area) { x = _x; cover = _cover; area = _area; }
-    
+    FOG_INLINE void set(int _x, int _cover, int _area)
+    {
+      x = _x;
+      cover = _cover;
+      area = _area;
+    }
+
     FOG_INLINE void set(const CellX& other)
     {
       x = other.x;
@@ -212,14 +218,21 @@ struct FOG_API Rasterizer
   // --------------------------------------------------------------------------
 
   virtual void addPath(const Path& path);
-  virtual void addPath(const Path::Vertex* data, sysuint_t count) = 0;
+  virtual void addPath(const PathVertex* data, sysuint_t count) = 0;
   virtual void finalize() = 0;
 
   // --------------------------------------------------------------------------
   // [Sweep]
   // --------------------------------------------------------------------------
 
+  //! @brief Sweep scanline @a y.
   virtual uint sweepScanline(Scanline32* scanline, int y) = 0;
+
+  //! @brief Enhanced version of @c sweepScanline() that contains clip boundary.
+  //!
+  //! This method is called by raster painter engine if clipping region is
+  //! complex (more than one rectangle).
+  virtual uint sweepScanline(Scanline32* scanline, int y, const Box* clip, sysuint_t count) = 0;
 
   // --------------------------------------------------------------------------
   // [Pooling]

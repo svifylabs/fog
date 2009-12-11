@@ -23,20 +23,20 @@ namespace StringUtil {
 // [Fog::StringUtil::ParserFlags]
 // ============================================================================
 
-enum ParserFlags
+enum PARSER_FLAGS
 {
   //! @brief Some spaces was parsed and skipped in input.
-  ParsedSpaces = (1 << 1),
+  PARSED_SPACES = (1 << 1),
   //! @brief Sign was parsed.
-  ParsedSign = (1 << 2),
+  PARSED_SIGN = (1 << 2),
   //! @brief @c "0" octal prefix was parsed.
-  ParsedOctalPrefix = (1 << 3),
+  PARSED_OCTAL_PREFIX = (1 << 3),
   //! @brief @c "0x" or @c "0X" hexadecimal prefix was parsed.
-  ParsedHexPrefix = (1 << 4),
+  PARSED_HEX_PREFIX = (1 << 4),
   //! @brief Decimal point was parsed.
-  ParsedDecimalPoint = (1 << 5),
+  PARSED_DECIMAL_POINT = (1 << 5),
   //! @brief Exponent (@c "E" or @c "e") was parsed.
-  ParsedExponent = (1 << 6)
+  PARSED_EXPONENT = (1 << 6)
 };
 
 // ============================================================================
@@ -60,11 +60,24 @@ FOG_INLINE void move(char* dst, const char* src, sysuint_t length) { ::memmove(d
 FOG_INLINE void fill(char* dst, char ch, sysuint_t length) { ::memset(dst, (uint8_t)ch, length); }
 
 FOG_INLINE sysuint_t len(const char* s) { return ::strlen(s); }
-// TODO: strnlen is not defined by mingw.
-// #if FOG_HAVE_STRNLEN
-FOG_INLINE sysuint_t nlen(const char* s, sysuint_t maxlen) { return ::strnlen(s, maxlen); }
-// #else
-// #endif
+
+#if defined(__MINGW32__) || defined(FOG_OS_MAC)
+FOG_INLINE sysuint_t nlen(const char* str, sysuint_t maxlen)
+{
+  const char* p = str;
+  if (!p) return 0;
+  const char* end = str + maxlen;
+
+  while (p < end && *p) p++;
+  return (sysuint_t)(p - str);
+}
+#else
+FOG_INLINE sysuint_t nlen(const char* str, sysuint_t maxlen)
+{
+  // Compiler built-ins should be always better than ours.
+  return ::strnlen(str, maxlen);
+}
+#endif
 
 FOG_API void copy(Char* dst, const Char* src, sysuint_t length);
 FOG_API void copy(Char* dst, const char* src, sysuint_t length);
@@ -77,27 +90,27 @@ FOG_API sysuint_t nlen(const Char* str, sysuint_t maxlen);
 FOG_API sysuint_t len(const uint32_t* str);
 FOG_API sysuint_t nlen(const uint32_t* str, sysuint_t maxlen);
 
-FOG_API bool eq(const char* a, const char* b, sysuint_t length, uint cs = CaseSensitive);
-FOG_API bool eq(const Char* a, const Char* b, sysuint_t length, uint cs = CaseSensitive);
-FOG_API bool eq(const Char* a, const char* b, sysuint_t length, uint cs = CaseSensitive);
+FOG_API bool eq(const char* a, const char* b, sysuint_t length, uint cs = CASE_SENSITIVE);
+FOG_API bool eq(const Char* a, const Char* b, sysuint_t length, uint cs = CASE_SENSITIVE);
+FOG_API bool eq(const Char* a, const char* b, sysuint_t length, uint cs = CASE_SENSITIVE);
 
-FOG_API sysuint_t countOf(const char* str, sysuint_t length, char ch, uint cs = CaseSensitive);
-FOG_API sysuint_t countOf(const Char* str, sysuint_t length, Char ch, uint cs = CaseSensitive);
+FOG_API sysuint_t countOf(const char* str, sysuint_t length, char ch, uint cs = CASE_SENSITIVE);
+FOG_API sysuint_t countOf(const Char* str, sysuint_t length, Char ch, uint cs = CASE_SENSITIVE);
 
-FOG_API sysuint_t indexOf(const char* str, sysuint_t length, char ch, uint cs = CaseSensitive);
-FOG_API sysuint_t indexOf(const Char* str, sysuint_t length, Char ch, uint cs = CaseSensitive);
+FOG_API sysuint_t indexOf(const char* str, sysuint_t length, char ch, uint cs = CASE_SENSITIVE);
+FOG_API sysuint_t indexOf(const Char* str, sysuint_t length, Char ch, uint cs = CASE_SENSITIVE);
 
-FOG_API sysuint_t indexOf(const char* aStr, sysuint_t aLength, const char* bStr, sysuint_t bLength, uint cs = CaseSensitive);
-FOG_API sysuint_t indexOf(const Char* aStr, sysuint_t aLength, const Char* bStr, sysuint_t bLength, uint cs = CaseSensitive);
+FOG_API sysuint_t indexOf(const char* aStr, sysuint_t aLength, const char* bStr, sysuint_t bLength, uint cs = CASE_SENSITIVE);
+FOG_API sysuint_t indexOf(const Char* aStr, sysuint_t aLength, const Char* bStr, sysuint_t bLength, uint cs = CASE_SENSITIVE);
 
-FOG_API sysuint_t indexOfAny(const char* str, sysuint_t length, const char* ch, sysuint_t count, uint cs = CaseSensitive);
-FOG_API sysuint_t indexOfAny(const Char* str, sysuint_t length, const Char* ch, sysuint_t count, uint cs = CaseSensitive);
+FOG_API sysuint_t indexOfAny(const char* str, sysuint_t length, const char* ch, sysuint_t count, uint cs = CASE_SENSITIVE);
+FOG_API sysuint_t indexOfAny(const Char* str, sysuint_t length, const Char* ch, sysuint_t count, uint cs = CASE_SENSITIVE);
 
-FOG_API sysuint_t lastIndexOf(const char* str, sysuint_t length, char ch, uint cs = CaseSensitive);
-FOG_API sysuint_t lastIndexOf(const Char* str, sysuint_t length, Char ch, uint cs = CaseSensitive);
+FOG_API sysuint_t lastIndexOf(const char* str, sysuint_t length, char ch, uint cs = CASE_SENSITIVE);
+FOG_API sysuint_t lastIndexOf(const Char* str, sysuint_t length, Char ch, uint cs = CASE_SENSITIVE);
 
-FOG_API sysuint_t lastIndexOfAny(const char* str, sysuint_t length, const char* ch, sysuint_t count, uint cs = CaseSensitive);
-FOG_API sysuint_t lastIndexOfAny(const Char* str, sysuint_t length, const Char* ch, sysuint_t count, uint cs = CaseSensitive);
+FOG_API sysuint_t lastIndexOfAny(const char* str, sysuint_t length, const char* ch, sysuint_t count, uint cs = CASE_SENSITIVE);
+FOG_API sysuint_t lastIndexOfAny(const Char* str, sysuint_t length, const Char* ch, sysuint_t count, uint cs = CASE_SENSITIVE);
 
 // ============================================================================
 // [Fog::StringUtil::NTOA]

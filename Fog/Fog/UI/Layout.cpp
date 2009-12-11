@@ -24,7 +24,7 @@ Layout::Layout() :
   _parentItem(NULL),
   _isLayoutDirty(true)
 {
-  _flags |= IsLayout;
+  _flags |= OBJ_IS_LAYOUT;
 }
 
 Layout::~Layout() 

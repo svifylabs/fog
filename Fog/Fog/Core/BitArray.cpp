@@ -12,7 +12,6 @@
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/BitArray.h>
 #include <Fog/Core/Constants.h>
-#include <Fog/Core/Error.h>
 #include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Static.h>
@@ -359,17 +358,12 @@ static void _xorBits(uint8_t* dst, sysuint_t dstBitOffset, sysuint_t _count)
 //                       (0->32, 1->32, 32->32, 33->64, etc...)
 
 BitArray::BitArray()
-  : _d(sharedNull->refAlways())
+  : _d(sharedNull->ref())
 {
 }
 
 BitArray::BitArray(const BitArray& other)
   : _d(other._d->ref())
-{
-}
-
-BitArray::BitArray(Data* d)
-  : _d(d)
 {
 }
 
@@ -384,18 +378,18 @@ err_t BitArray::_detach()
 
   if (d->refCount.get() > 1)
   {
-    d = Data::createFor(d->data, 0, d->length);
-    if (!d) return Error::OutOfMemory;
+    d = Data::create(0, d->data, 0, d->length);
+    if (!d) return ERR_RT_OUT_OF_MEMORY;
 
     AtomicBase::ptr_setXchg(&_d, d)->deref();
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 void BitArray::free()
 {
-  AtomicBase::ptr_setXchg(&_d, sharedNull->refAlways())->deref();
+  AtomicBase::ptr_setXchg(&_d, sharedNull->ref())->deref();
 }
 
 err_t BitArray::reserve(sysuint_t to)
@@ -405,72 +399,53 @@ err_t BitArray::reserve(sysuint_t to)
   if (to < d->length) to = d->length;
   to = (to + 31) & ~31;
 
-  if (d->flags & Data::IsDynamic)
+  if (d->refCount.get() > 1)
   {
-    if (d->refCount.get() > 1)
-    {
-      goto __newplace;
-    }
-    else if (to > d->capacity)
-    {
-      d = (Data *)Memory::realloc(d, sizeof(Data) - (sizeof(char) * 4) + (to >> 3));
-      if (!d) return Error::OutOfMemory;
-
-      _d = d;
-      d->capacity = to;
-    }
+    d = Data::create(to);
+    if (!d) return ERR_RT_OUT_OF_MEMORY;
+    d->length = _d->length;
+    memcpy(d->data, _d->data, (_d->length + 7) >> 3);
+    AtomicBase::ptr_setXchg(&_d, d)->deref();
   }
-  else if (d->refCount.get() > 1 || to > d->capacity)
+  else if (to > d->capacity)
   {
-    goto __newplace;
-  }
-  return Error::Ok;
+    d = (Data *)Memory::realloc(d, sizeof(Data) - (sizeof(char) * 4) + (to >> 3));
+    if (!d) return ERR_RT_OUT_OF_MEMORY;
 
-__newplace:
-  d = Data::create(to);
-  if (!d) return Error::OutOfMemory;
-  d->length = _d->length;
-  memcpy(d->data, _d->data, (_d->length + 7) >> 3);
-  AtomicBase::ptr_setXchg(&_d, d)->deref();
-  return Error::Ok;
+    _d = d;
+    d->capacity = to;
+  }
+
+  return ERR_OK;
 }
 
 err_t BitArray::resize(sysuint_t to, uint32_t fill)
 {
   Data* d = _d;
 
-  if (d->flags & Data::IsDynamic)
+  if (d->refCount.get() > 1)
   {
-    if (d->refCount.get() > 1)
-    {
-      goto __newplace;
-    }
-    else if (to > d->capacity)
-    {
-      sysuint_t c = ((to + 31) & ~31);
-      d = (Data *)Memory::realloc(d, sizeof(Data) - (sizeof(char)*4) + (c >> 3));
-      if (!d) return Error::OutOfMemory;
-      _d = d;
-      _setBits(d->data, d->length, fill, to - d->length);
-      d->capacity = c;
-    }
+    d = Data::create(to);
+    if (!d) return 0;
+    d->length = to;
+    memcpy(d->data, _d->data, ((to <= _d->length ? to : _d->length) + 7) >> 3);
+    _setBits(d->data, _d->length, fill, to - _d->length);
+    AtomicBase::ptr_setXchg(&_d, d)->deref();
+    return ERR_OK;
   }
-  else if (d->refCount.get() > 1 || to > d->capacity)
+  else if (to > d->capacity)
   {
-    goto __newplace;
+    sysuint_t c = ((to + 31) & ~31);
+    d = (Data *)Memory::realloc(d, sizeof(Data) - (sizeof(char)*4) + (c >> 3));
+    if (!d) return ERR_RT_OUT_OF_MEMORY;
+
+    _d = d;
+    d->capacity = c;
   }
 
+  _setBits(d->data, d->length, fill, to - d->length);
   d->length = to;
-  return Error::Ok;
-
-__newplace:
-  d = Data::create(to);
-  if (!d) return 0;
-  d->length = to;
-  memcpy(d->data, _d->data, ((to <= _d->length ? to : _d->length) + 7) >> 3);
-  _setBits(d->data, _d->length, fill, to - _d->length);
-  AtomicBase::ptr_setXchg(&_d, d)->deref();
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t BitArray::grow(sysuint_t by)
@@ -486,7 +461,6 @@ err_t BitArray::grow(sysuint_t by)
 void BitArray::squeeze()
 {
   Data* d = _d;
-  if (!(d->flags & Data::IsDynamic)) return;
 
   sysuint_t length = d->length;
   if (length + 31 < d->capacity)
@@ -503,10 +477,11 @@ void BitArray::squeeze()
     }
     else
     {
-      d = (Data *)Memory::xrealloc(d, sizeof(Data) - (sizeof(char) * 4) + (c >> 3));
+      d = (Data *)Memory::realloc(d, sizeof(Data) - (sizeof(char) * 4) + (c >> 3));
       if (!d) return;
 
       d->capacity = length;
+      _d = d;
     }
   }
 }
@@ -516,7 +491,7 @@ void BitArray::clear()
   Data* d = _d;
 
   if (d->refCount.get() > 1)
-    AtomicBase::ptr_setXchg(&_d, sharedNull->refAlways())->deref();
+    AtomicBase::ptr_setXchg(&_d, sharedNull->ref())->deref();
   else
     d->length = 0;
 }
@@ -526,7 +501,7 @@ err_t BitArray::setBit(sysuint_t index)
   Data* d = _d;
 
   // If index is out of bounds, return.
-  if (index >= d->length) return Error::Overflow;
+  if (index >= d->length) return ERR_RT_OVERFLOW;
 
   sysuint_t byteIndex = index >> 3;
   uint8_t byteMask = 1 << (index & 7);
@@ -535,7 +510,7 @@ err_t BitArray::setBit(sysuint_t index)
   {
     // Check if bit is set, if yes, there is nothing to to and there are not needed
     // next steps (detach and set).
-    if ((d->data[byteIndex] & byteMask) != 0) return Error::Ok;
+    if ((d->data[byteIndex] & byteMask) != 0) return ERR_OK;
 
     // Detach, if bit array data is shared (and update 'd', because it will be in new address).
     err_t err = _detach();
@@ -547,7 +522,7 @@ err_t BitArray::setBit(sysuint_t index)
   // Set bit in data.
   d->data[byteIndex] |= byteMask;
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t BitArray::setBit(sysuint_t index, uint32_t bit)
@@ -555,7 +530,7 @@ err_t BitArray::setBit(sysuint_t index, uint32_t bit)
   Data* d = _d;
 
   // If index is out of bounds, return.
-  if (index >= d->length) return Error::Overflow;
+  if (index >= d->length) return ERR_RT_OVERFLOW;
 
   sysuint_t byteIndex = index >> 3;
   uint8_t byteMask = 1 << (index & 7);
@@ -564,7 +539,7 @@ err_t BitArray::setBit(sysuint_t index, uint32_t bit)
   {
     // Check if bit is equal to demanded one, if yes, there is nothing to
     // to and there are not needed next steps (detach and set).
-    if (!!(d->data[byteIndex] & byteMask) == bit) return Error::Ok;
+    if (!!(d->data[byteIndex] & byteMask) == bit) return ERR_OK;
 
     // Detach, if bit array data is shared (and update 'd', because it will be in new address).
     err_t err = _detach();
@@ -579,7 +554,7 @@ err_t BitArray::setBit(sysuint_t index, uint32_t bit)
   else
     d->data[byteIndex] &= ~byteMask;
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t BitArray::resetBit(sysuint_t index)
@@ -587,7 +562,7 @@ err_t BitArray::resetBit(sysuint_t index)
   Data* d = _d;
 
   // If index is out of bounds, return.
-  if (index >= d->length) return Error::Overflow;
+  if (index >= d->length) return ERR_RT_OVERFLOW;
 
   sysuint_t byteIndex = index >> 3;
   uint8_t byteMask = 1 << (index & 7);
@@ -596,7 +571,7 @@ err_t BitArray::resetBit(sysuint_t index)
   {
     // Check if bit isn't set, if yes, there is nothing to to and there are not needed.
     // next steps (detach and set)
-    if ((d->data[byteIndex] & byteMask) == 0) return Error::Ok;
+    if ((d->data[byteIndex] & byteMask) == 0) return ERR_OK;
 
     // Detach, if bit array data is shared (and update 'd', because it will be in new address).
     err_t err = _detach();
@@ -608,7 +583,7 @@ err_t BitArray::resetBit(sysuint_t index)
   // Unset bit in data.
   d->data[byteIndex] &= ~byteMask;
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t BitArray::invertBit(sysuint_t index)
@@ -616,7 +591,7 @@ err_t BitArray::invertBit(sysuint_t index)
   Data* d = _d;
 
   // If index is out of bounds, return.
-  if (index >= d->length) return Error::Overflow;
+  if (index >= d->length) return ERR_RT_OVERFLOW;
 
   sysuint_t byteIndex = index >> 3;
   uint8_t byteMask = 1 << (index & 7);
@@ -633,7 +608,7 @@ err_t BitArray::invertBit(sysuint_t index)
   // Xor bit in data.
   d->data[byteIndex] ^= byteMask;
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t BitArray::fill(uint32_t bit)
@@ -642,7 +617,7 @@ err_t BitArray::fill(uint32_t bit)
   if (err) return err;
 
   memset(_d->data, bit ? 0xFF : 0x00, (getLength() + 7) >> 3);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t BitArray::fillAt(sysuint_t index, sysuint_t count, uint32_t bit)
@@ -650,16 +625,16 @@ err_t BitArray::fillAt(sysuint_t index, sysuint_t count, uint32_t bit)
   Data* d = _d;
   sysuint_t length = d->length;
 
-  if (index >= length) return Error::Overflow;
+  if (index >= length) return ERR_RT_OVERFLOW;
   if (length - index < count) count = length - index;
 
-  if (count == 0) return Error::Ok;
+  if (count == 0) return ERR_OK;
 
   err_t err = detach();
   if (err) return err;
 
   _setBits(_d->data, index, bit, count);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t BitArray::invert()
@@ -671,7 +646,7 @@ err_t BitArray::invert()
   sysuint_t i, count_div8 = (_d->length + 7) >> 3;
   for (i = 0; i != count_div8; i++) *bits++ ^= 0xFF;
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t BitArray::invertAt(sysuint_t index, sysuint_t count)
@@ -679,29 +654,33 @@ err_t BitArray::invertAt(sysuint_t index, sysuint_t count)
   Data* d = _d;
   sysuint_t length = d->length;
 
-  if (index >= length) return Error::Overflow;
+  if (index >= length) return ERR_RT_OVERFLOW;
   if (length - index < count) count = length - index;
 
-  if (count == 0) return Error::Ok;
+  if (count == 0) return ERR_OK;
 
   err_t err = detach();
   if (err) return err;
 
   _xorBits(_d->data, index, count);
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t BitArray::set(const BitArray& other)
 {
+  AtomicBase::ptr_setXchg(&_d, other._d->ref())->deref();
+  return ERR_OK;
+}
+
+err_t BitArray::setDeep(const BitArray& other)
+{
   Data* self_d = _d;
   Data* other_d = other._d;
 
-  if (self_d == other_d) return Error::Ok;
+  if (self_d == other_d) return ERR_OK;
 
-  if (self_d->refCount.get() == 1 &&
-    (self_d->flags & Data::IsStrong) &&
-    self_d->capacity >= other_d->length)
+  if (self_d->refCount.get() == 1 && self_d->capacity >= other_d->length)
   {
     sysuint_t length = other_d->length;
     _copyBits(self_d->data, 0, other_d->data, 0, length);
@@ -710,11 +689,11 @@ err_t BitArray::set(const BitArray& other)
   else
   {
     Data* d = other_d->ref();
-    if (!d) return Error::OutOfMemory;
+    if (!d) return ERR_RT_OUT_OF_MEMORY;
     AtomicBase::ptr_setXchg(&_d, d)->deref();
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t BitArray::append(uint32_t bit)
@@ -744,7 +723,7 @@ err_t BitArray::append(uint32_t bit)
     d->data[length >> 3] &= ~(1 << (length & 7));
   d->length++;
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t BitArray::append(uint32_t bit, sysuint_t count)
@@ -774,7 +753,7 @@ err_t BitArray::append(uint32_t bit, sysuint_t count)
   _setBits(d->data, before, bit, count);
   d->length = after;
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t BitArray::append(const BitArray& other)
@@ -804,7 +783,7 @@ err_t BitArray::append(const BitArray& other)
   _copyBits(d->data, before, other._d->data, 0, other.getLength());
   d->length = after;
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t BitArray::prepend(uint32_t bit)
@@ -825,19 +804,19 @@ err_t BitArray::prepend(const BitArray& other)
 err_t BitArray::insert(sysuint_t index, uint32_t bit)
 {
   // TODO
-  return Error::NotImplemented;
+  return ERR_RT_NOT_IMPLEMENTED;
 }
 
 err_t BitArray::insert(sysuint_t index, uint32_t bit, sysuint_t count)
 {
   // TODO
-  return Error::NotImplemented;
+  return ERR_RT_NOT_IMPLEMENTED;
 }
 
 err_t BitArray::insert(sysuint_t index, const BitArray& other)
 {
   // TODO
-  return Error::NotImplemented;
+  return ERR_RT_NOT_IMPLEMENTED;
 }
 
 bool BitArray::eq(const BitArray* a, const BitArray* b)
@@ -935,74 +914,9 @@ int BitArray::compare(const BitArray* a, const BitArray* b)
 // [Fog::BitArray::Data]
 // ============================================================================
 
-BitArray::Data* BitArray::Data::ref() const
-{
-  if ((flags & IsSharable) != 0)
-  {
-    refCount.inc();
-    return const_cast<Data*>(this);
-  }
-  else
-  {
-    return copy(const_cast<Data*>(this));
-  }
-}
-
 void BitArray::Data::deref()
 {
-  if (refCount.deref() && (flags & IsDynamic) != 0)
-  {
-    Memory::free(this);
-  }
-}
-
-BitArray::Data* BitArray::Data::adopt(void* address, sysuint_t capacity)
-{
-  capacity &= ~31;
-  if (capacity == 0) return BitArray::sharedNull->refAlways();
-
-  Data* d = (Data*) address;
-  d->refCount.init(1);
-  d->flags = IsStrong;
-  d->capacity = capacity;
-  d->length = 0;
-  return d;
-}
-
-BitArray::Data* BitArray::Data::adopt(void* address, sysuint_t capacity, const uint8_t* data, sysuint_t bitoffset, sysuint_t count)
-{
-  capacity &= ~31;
-  if (capacity < count) return createFor(data, bitoffset, count);
-
-  // if capacity is zero, count is equal to zero too (see previous condition)
-  if (capacity == 0) return BitArray::sharedNull->refAlways();
-
-  Data* d = (Data*) address;
-  d->refCount.init(1);
-  d->flags = IsStrong;
-  d->capacity = capacity;
-  d->length = count;
-  _copyBits(d->data, 0, data, bitoffset, count);
-  return d;
-}
-
-BitArray::Data* BitArray::Data::adopt(void* address, sysuint_t capacity, uint32_t bit, sysuint_t count)
-{
-  capacity &= ~31;
-
-  if (capacity < count) return createFor(bit, count);
-
-  if (capacity == 0) return BitArray::sharedNull->refAlways();
-
-  Data* d = (Data*) address;
-  d->refCount.init(1);
-  d->flags = Data::IsStrong;
-  d->capacity = capacity;
-  d->length = count;
-  // this is pretty easy solution here. We know that bit array starts at bitoffset 0,
-  // so we will simply memset 00000000 or 11111111 depending on 'bit' parameter.
-  Memory::set(d->data, bit ? 0xFF : 0x00, (count + 7) >> 3);
-  return d;
+  if (refCount.deref()) Memory::free(this);
 }
 
 BitArray::Data* BitArray::Data::create(sysuint_t capacity)
@@ -1014,7 +928,6 @@ BitArray::Data* BitArray::Data::create(sysuint_t capacity)
   if (!d) return NULL;
 
   d->refCount.init(1);
-  d->flags = IsDynamic | IsSharable;
   d->capacity = capacity;
   d->length = 0;
 
@@ -1030,44 +943,6 @@ BitArray::Data* BitArray::Data::create(sysuint_t capacity, const uint8_t* data, 
 
   d->length = count;
   _copyBits(d->data, 0, data, bitoffset, count);
-  return d;
-}
-
-BitArray::Data* BitArray::Data::createFor(uint32_t bit, sysuint_t count)
-{
-  Data* d = create(count);
-  if (!d) return NULL;
-
-  d->length = count;
-  // this is pretty easy solution here. We know that bit array starts at bitoffset 0,
-  // so we will somply memset 00000000 or 11111111 depending on 'bit' parameter.
-  Memory::set(d->data, bit ? 0xFF : 0x00, (count + 7) >> 3);
-
-  return d;
-}
-
-BitArray::Data* BitArray::Data::createFor(const uint8_t* data, sysuint_t bitoffset, sysuint_t count)
-{
-  Data* d = create(count);
-  if (!d) return NULL;
-
-  d->length = count;
-  _copyBits(d->data, 0, data, bitoffset, count);
-
-  return d;
-}
-
-BitArray::Data* BitArray::Data::createFor2(const uint8_t* data1, sysuint_t bitoffset1, sysuint_t count1, const uint8_t* data2, sysuint_t bitoffset2, sysuint_t count2)
-{
-  sysuint_t count = count1 + count2;
-
-  Data* d = create(count);
-  if (!d) return NULL;
-
-  d->length = count;
-  _copyBits(d->data, 0, data1, bitoffset1, count1);
-  _copyBits(d->data, count1, data2, bitoffset2, count2);
-
   return d;
 }
 
@@ -1098,12 +973,11 @@ FOG_INIT_DECLARE err_t fog_bitarray_init(void)
 
   BitArray::Data* d = BitArray::sharedNull.instancep();
   d->refCount.init(1);
-  d->flags = BitArray::Data::IsSharable | BitArray::Data::IsNull;
   d->capacity = 0;
   d->length = 0;
   *((uint32_t *)reinterpret_cast<void*>(d->data)) = 0U;
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 FOG_INIT_DECLARE void fog_bitarray_shutdown(void)

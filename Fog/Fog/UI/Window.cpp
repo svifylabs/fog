@@ -26,7 +26,7 @@ namespace Fog {
 Window::Window(uint32_t createFlags) :
   Fog::Composite(createFlags | UIWindow::CreateUIWindow)
 {
-  setFocusPolicy(StrongFocus);
+  setFocusPolicy(FOCUS_STRONG);
 }
 
 Window::~Window()

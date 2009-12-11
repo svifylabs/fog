@@ -14,7 +14,7 @@
 
 // [Dependencies]
 #include <Fog/Core/Assert.h>
-#include <Fog/Core/Error.h>
+#include <Fog/Core/Constants.h>
 #include <Fog/Core/ThreadLocalStorage.h>
 
 #if defined(FOG_OS_WINDOWS)
@@ -74,7 +74,7 @@ void** ThreadLocalStorage::initialize()
   FOG_ASSERT(TlsGetValue(_tlsKey) == NULL);
 
   // Create an array to store our data.
-  void** tlsData = new void*[ThreadLocalStorageSize];
+  void** tlsData = new(std::nothrow) void*[ThreadLocalStorageSize];
   memset(tlsData, 0, sizeof(void*[ThreadLocalStorageSize]));
   TlsSetValue(_tlsKey, tlsData);
   return tlsData;
@@ -85,7 +85,7 @@ ThreadLocalStorage::Slot::Slot(TLSDestructorFunc destructor) : _initialized(fals
   initialize(destructor);
 }
 
-ThreadLocalStorage::Slot::Slot(Fog::_LinkerInitialized)
+ThreadLocalStorage::Slot::Slot(Fog::_DONT_INITIALIZE)
 {
 }
 
@@ -230,7 +230,7 @@ ThreadLocalStorage::Slot::Slot(TLSDestructorFunc destructor) :
   initialize(destructor);
 }
 
-ThreadLocalStorage::Slot::Slot(Fog::_LinkerInitialized)
+ThreadLocalStorage::Slot::Slot(Fog::_DONT_INITIALIZE)
 {
 }
 

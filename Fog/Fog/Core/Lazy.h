@@ -12,8 +12,6 @@
 #include <Fog/Build/Build.h>
 #include <Fog/Core/Constants.h>
 
-#include <new>
-
 //! @addtogroup Fog_Core
 //! @{
 
@@ -26,14 +24,14 @@ namespace Fog {
 struct FOG_API Lazy_Abstract
 {
 public:
-  enum State
+  enum STATE
   {
-    Null = 0x0,
-    Creating = 0x1
+    STATE_NULL = 0x0,
+    STATE_CREATING_NOW = 0x1
   };
 
   Lazy_Abstract();
-  explicit Lazy_Abstract(_LinkerInitialized x);
+  explicit Lazy_Abstract(_DONT_INITIALIZE x);
   virtual ~Lazy_Abstract();
 
 protected:
@@ -53,10 +51,9 @@ template<typename T>
 struct Lazy : public Lazy_Abstract
 {
   FOG_INLINE Lazy() {}
-  explicit FOG_INLINE Lazy(_LinkerInitialized x) :
-    Lazy_Abstract(LinkerInitialized) {}
+  explicit FOG_INLINE Lazy(_DONT_INITIALIZE x) : Lazy_Abstract(DONT_INITIALIZE) {}
 
-  ~Lazy()
+  virtual ~Lazy()
   {
     // Delete and clear pointer, because Lazy_Abstract checks for it
     // and can assert if it's not NULL

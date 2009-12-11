@@ -4,9 +4,9 @@
 // MIT, See COPYING file in package
 
 // [Precompiled Headers]
-#ifdef FOG_PRECOMP
+#if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
-#endif
+#endif // FOG_PRECOMP
 
 // [Dependencies]
 #include <Fog/Graphics/DitherMatrix.h>
@@ -15,7 +15,7 @@ namespace Fog {
 
 // Dithering tables were stolen from EVAS - High performance rendering library,
 // BSD licence, main developer: Rasterman <www.rasterman.com>
-const uint8_t DitherMatrix::matrix[DitherMatrix::Size][DitherMatrix::Size] =
+const uint8_t DitherMatrix::matrix[DitherMatrix::SIZE][DitherMatrix::SIZE] =
 {
 #ifdef FOG_SMALL_DITHER
   { 0, 12,  3, 15},

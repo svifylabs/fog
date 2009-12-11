@@ -20,35 +20,35 @@ namespace Fog {
 // helpers
 struct SequenceInfo_NoInitFree
 {
-  static void init(void* _dest, sysuint_t count) { FOG_UNUSED(_dest); FOG_UNUSED(count); }
-  static void free(void* _dest, sysuint_t count) { FOG_UNUSED(_dest); FOG_UNUSED(count); }
+  static FOG_INLINE void init(void* _dest, sysuint_t count) { FOG_UNUSED(_dest); FOG_UNUSED(count); }
+  static FOG_INLINE void free(void* _dest, sysuint_t count) { FOG_UNUSED(_dest); FOG_UNUSED(count); }
 };
 
 template<sysuint_t N>
 struct SequenceInfo_MemMove
 {
-  static void move(void* _dest, const void* _src, sysuint_t count)
+  static FOG_INLINE void move(void* _dest, const void* _src, sysuint_t count)
   { memmove(_dest, _src, N*count); }
 };
 
 template<sysuint_t N>
 struct SequenceInfo_MemCopy
 {
-  static void copy(void* _dest, const void* _src, sysuint_t count)
+  static FOG_INLINE void copy(void* _dest, const void* _src, sysuint_t count)
   { memcpy(_dest, _src, N*count); }
 };
 
 template<typename T>
 struct SequenceInfo_TypeInitFree
 {
-  static void init(void* _dest, sysuint_t count)
+  static FOG_NO_INLINE void init(void* _dest, sysuint_t count)
   {
     T* dest = (T*)_dest;
     T* end = dest + count;
     while (dest != end) new (dest++) T;
   }
 
-  static void free(void* _dest, sysuint_t count)
+  static FOG_NO_INLINE void free(void* _dest, sysuint_t count)
   {
     T* dest = (T*)_dest;
     T* end = dest + count;
@@ -59,7 +59,7 @@ struct SequenceInfo_TypeInitFree
 template<typename T>
 struct SequenceInfo_TypeMove
 {
-  static void move(void* _dest, const void* _src, sysuint_t count)
+  static FOG_NO_INLINE void move(void* _dest, const void* _src, sysuint_t count)
   {
     T* dest =(T*)_dest;
     T* end = dest;
@@ -82,7 +82,7 @@ struct SequenceInfo_TypeMove
 template<typename T>
 struct SequenceInfo_TypeCopy
 {
-  static void copy(void* _dest, const void* _src, sysuint_t count)
+  static FOG_NO_INLINE void copy(void* _dest, const void* _src, sysuint_t count)
   {
     T* dest = (T*)_dest;
     T* end = dest + count;
@@ -91,7 +91,7 @@ struct SequenceInfo_TypeCopy
   }
 };
 
-// Primitive types
+// Primitive types.
 
 template<typename T>
 struct SequenceInfo_Primitive : 
@@ -101,7 +101,7 @@ struct SequenceInfo_Primitive :
 {
 };
 
-// Moveable types
+// Moveable types.
 
 template<typename T>
 struct SequenceInfo_Moveable :
@@ -111,7 +111,7 @@ struct SequenceInfo_Moveable :
 {
 };
 
-// Complex types
+// Class types.
 
 template<typename T>
 struct SequenceInfo_Complex :
@@ -138,7 +138,7 @@ struct SequenceInfoVTable
   // [Data]
 
   //! @brief Size of T
-  sysuint_t sizeOfT;
+  sysuint_t typeSize;
 
   //! @brief Init function (constructor of T)
   //!
@@ -179,22 +179,20 @@ template<typename T>
 struct SequenceInfo_Wrapper<T, 2> : public SequenceInfo_Complex<T> {};
 
 template<typename T>
-struct SequenceInfo : public SequenceInfo_Wrapper<T, TypeInfo<T>::Type>
+struct SequenceInfo : public SequenceInfo_Wrapper<T, TypeInfo<T>::TYPE>
 {
   //! @brief Returns virtual table for non-specialized templates (default).
-  static FOG_INLINE const SequenceInfoVTable* vtable()
-  {
-    static const SequenceInfoVTable data =
-    {
-      sizeof(T),
-      SequenceInfo<T>::init,
-      SequenceInfo<T>::free,
-      SequenceInfo<T>::move,
-      SequenceInfo<T>::copy
-    };
+  static const SequenceInfoVTable seqvtable;
+};
 
-    return &data; 
-  }
+template<typename T>
+const SequenceInfoVTable SequenceInfo<T>::seqvtable =
+{
+  sizeof(T),
+  SequenceInfo<T>::init,
+  SequenceInfo<T>::free,
+  SequenceInfo<T>::move,
+  SequenceInfo<T>::copy
 };
 
 } // Fog namespace
@@ -206,7 +204,7 @@ struct SequenceInfo : public SequenceInfo_Wrapper<T, TypeInfo<T>::Type>
 #define FOG_DECLARE_SEQUENCEINFO(__symbol__, __vtable__) \
 namespace Fog { \
   template <> \
-  struct SequenceInfo <__symbol__> : public SequenceInfo_Wrapper< __symbol__, TypeInfo<T>::Type > \
+  struct SequenceInfo <__symbol__> : public SequenceInfo_Wrapper< __symbol__, TypeInfo<T>::TYPE > \
   { \
     static FOG_INLINE const SequenceInfoVTable* vtable() \
     { return reinterpret_cast<const SequenceInfoVTable *>(__vtable__); } \

@@ -22,7 +22,7 @@ namespace Fog {
 
 ButtonBase::ButtonBase() : 
   Widget(),
-  _checked(CheckedOff),
+  _checked(CHECKED_OFF),
   _isMouseOver(false),
   _isMouseDown(false),
   _isSpaceDown(false)
@@ -58,7 +58,7 @@ void ButtonBase::setChecked(int value)
 
   _checked = value;
 
-  CheckEvent e(value ? EvCheck : EvUncheck);
+  CheckEvent e(value ? EV_CHECK : EV_UNCHECK);
   sendEvent(&e);
 }
 
@@ -82,76 +82,92 @@ bool ButtonBase::isDown() const
   return (_isMouseDown && _isMouseOver) || _isSpaceDown;
 }
 
-void ButtonBase::onFocus(FocusEvent* e)
+void ButtonBase::onFocusIn(FocusEvent* e)
 {
-  if (e->getCode() == EvFocusOut && _isSpaceDown) 
+  base::onFocusIn(e);
+}
+
+void ButtonBase::onFocusOut(FocusEvent* e)
+{
+  if (_isSpaceDown)
   {
     _isSpaceDown = false;
     repaint(RepaintWidget);
   }
 
-  base::onFocus(e);
+  base::onFocusOut(e);
 }
 
-void ButtonBase::onKey(KeyEvent* e)
+void ButtonBase::onKeyPress(KeyEvent* e)
 {
-  switch (e->getCode())
+  if ((e->getKey() & KEY_MASK) == KEY_SPACE)
   {
-    case EvMousePress:
-      if ((e->getKey() & KeyMask) == KeySpace)
-      {
-        _isSpaceDown = true;
-        repaint(RepaintWidget);
-        e->accept();
-        return;
-      }
-      break;
-    case EvMouseRelease:
-      if ((e->getKey() & KeyMask) == KeySpace)
-      {
-        _isSpaceDown = false;
-        repaint(RepaintWidget);
-        e->accept();
-        return;
-      }
-      break;
+    _isSpaceDown = true;
+    repaint(RepaintWidget);
+    e->accept();
+    return;
   }
 
-  base::onKey(e);
+  base::onKeyPress(e);
 }
 
-void ButtonBase::onMouse(MouseEvent* e)
+void ButtonBase::onKeyRelease(KeyEvent* e)
 {
-  switch (e->getCode())
+  if ((e->getKey() & KEY_MASK) == KEY_SPACE)
   {
-    case EvMouseIn:
-      _isMouseOver = true;
-      repaint(RepaintWidget);
-      break;
-    case EvMouseOut:
-      _isMouseOver = false;
-      repaint(RepaintWidget);
-      break;
-    case EvMousePress:
-      if (e->getButton() == ButtonLeft)
-      {
-        _isMouseDown = true;
-        repaint(RepaintWidget);
-      }
-      break;
-    case EvMouseRelease:
-      if (e->getButton() == ButtonLeft)
-      {
-        _isMouseDown = false;
-        repaint(RepaintWidget);
-      }
-      break;
+    _isSpaceDown = false;
+    repaint(RepaintWidget);
+    e->accept();
+    return;
   }
 
-  base::onMouse(e);
+  base::onKeyRelease(e);
 }
 
-void ButtonBase::onCheck(CheckEvent* e) {}
-void ButtonBase::onUncheck(CheckEvent* e) {}
+void ButtonBase::onMouseIn(MouseEvent* e)
+{
+  _isMouseOver = true;
+  repaint(RepaintWidget);
+
+  base::onMouseIn(e);
+}
+
+void ButtonBase::onMouseOut(MouseEvent* e)
+{
+  _isMouseOver = false;
+  repaint(RepaintWidget);
+
+  base::onMouseOut(e);
+}
+
+void ButtonBase::onMousePress(MouseEvent* e)
+{
+  if (e->getButton() == BUTTON_LEFT)
+  {
+    _isMouseDown = true;
+    repaint(RepaintWidget);
+  }
+
+  base::onMousePress(e);
+}
+
+void ButtonBase::onMouseRelease(MouseEvent* e)
+{
+  if (e->getButton() == BUTTON_LEFT)
+  {
+    _isMouseDown = false;
+    repaint(RepaintWidget);
+  }
+
+  base::onMouseRelease(e);
+}
+
+void ButtonBase::onCheck(CheckEvent* e)
+{
+}
+
+void ButtonBase::onUncheck(CheckEvent* e)
+{
+}
 
 } // Fog namespace

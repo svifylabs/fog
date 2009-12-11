@@ -8,8 +8,9 @@
 #define _FOG_CORE_MISC_H
 
 // [Dependencies]
-#include <Fog/Core/Assert.h>
 #include <Fog/Build/Build.h>
+#include <Fog/Core/Assert.h>
+#include <Fog/Core/Constants.h>
 #include <Fog/Core/Memory.h>
 
 namespace Fog {
@@ -31,18 +32,18 @@ namespace Fog {
 //!
 //! This template simulates the @c alloca() behavior.
 template<sysuint_t N = 0>
-struct MemoryBuffer
+struct LocalBuffer
 {
 private:
   void *_mem;
   uint8_t _storage[N];
 
 public:
-  FOG_INLINE MemoryBuffer() : _mem(0)
+  FOG_INLINE LocalBuffer() : _mem(0)
   {
   }
 
-  FOG_INLINE ~MemoryBuffer()
+  FOG_INLINE ~LocalBuffer()
   {
     _free();
   }
@@ -83,7 +84,7 @@ private:
     }
   }
 
-  FOG_DISABLE_COPY(MemoryBuffer)
+  FOG_DISABLE_COPY(LocalBuffer)
 };
 
 /*!
@@ -127,19 +128,20 @@ struct LocalStack
     while (node)
     {
       Node* next = node->next;
-      Fog::Memory::free(node);
+      Memory::free(node);
       node = next;
     }
   }
 
   template<class T>
-  FOG_INLINE LocalStack& push(T& data)
+  FOG_INLINE err_t push(T& data)
   {
     if (FOG_UNLIKELY(_current->remain < sizeof(T)))
     {
       if (_current->next == NULL)
       {
-        Node* node = (Node*)Fog::Memory::xalloc(sizeof(Node) - N + (1024*32));
+        Node* node = (Node*)Memory::alloc(sizeof(Node) - N + (1024*32));
+        if (!node) return ERR_RT_OUT_OF_MEMORY;
         node->cur = node->buffer;
         node->prev = _current;
         node->next = NULL;
@@ -157,22 +159,21 @@ struct LocalStack
     _current->cur += sizeof(T);
     _current->remain -= sizeof(T);
 
-    return *this;
+    return ERR_OK;
   }
 
   template<class T>
-  FOG_INLINE LocalStack& pop(T& data)
+  FOG_INLINE void pop(T& data)
   {
     if (FOG_UNLIKELY(_current->cur == _current->buffer))
     {
       _current = _current->prev;
     }
 
+    FOG_ASSERT(_current->cur != _current->buffer);
     _current->cur -= sizeof(T);
     _current->remain += sizeof(T);
     data = *(T *)(_current->cur);
-
-    return *this;
   }
 
   FOG_INLINE bool isEmpty() const

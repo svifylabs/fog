@@ -11,7 +11,7 @@
 #include <Fog/Core/Atomic.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Static.h>
-#include <Fog/Graphics/Rgba.h>
+#include <Fog/Graphics/Argb.h>
 
 //! @addtogroup Fog_Graphics
 //! @{
@@ -32,10 +32,10 @@ struct FOG_API Palette
 {
   // [Indexes]
 
-  enum Index
+  enum INDEX_OFFSET
   {
-    IndexARGB32 = 0,
-    IndexPRGB32 = 256
+    INDEX_ARGB32 = 0,
+    INDEX_PRGB32 = 256
   };
 
   // [Data]
@@ -61,8 +61,9 @@ struct FOG_API Palette
     // [Members]
 
     mutable Atomic<sysuint_t> refCount;
+    uint32_t isAlphaUsed;
 
-    Rgba data[512];
+    Argb data[512];
   };
 
   static Static<Data> sharedNull;
@@ -72,7 +73,7 @@ struct FOG_API Palette
 
   Palette();
   Palette(const Palette& other);
-  explicit Palette(Data* d);
+  FOG_INLINE explicit Palette(Data* d) : _d(d) {}
   ~Palette();
 
   // [Implicit Sharing]
@@ -82,7 +83,7 @@ struct FOG_API Palette
   //! @copydoc Doxygen::Implicit::isDetached().
   FOG_INLINE bool isDetached() const { return refCount() == 1; }
   //! @copydoc Doxygen::Implicit::detach().
-  FOG_INLINE err_t detach() { return (!isDetached()) ? _detach() : Error::Ok; }
+  FOG_INLINE err_t detach() { return (!isDetached()) ? _detach() : ERR_OK; }
   //! @copydoc Doxygen::Implicit::_detach().
   err_t _detach();
   //! @copydoc Doxygen::Implicit::free().
@@ -91,7 +92,7 @@ struct FOG_API Palette
   // [Data]
 
   //! @brief Returns const pointer to palette data.
-  FOG_INLINE const Rgba* cData() const
+  FOG_INLINE const Argb* getData() const
   {
     return _d->data;
   }
@@ -99,25 +100,27 @@ struct FOG_API Palette
   //! @brief Returns mutable pointer to palette data.
   //!
   //! @note If you change some data, you must call update() method.
-  FOG_INLINE Rgba* mData()
+  FOG_INLINE Argb* getMData()
   {
-    return (detach() == Error::Ok) ? _d->data : NULL;
+    return (detach() == ERR_OK) ? _d->data : NULL;
   }
 
   //! @brief Returns mutable pointer to palette data and not calls detach().
   //!
   //! @note If you change some data, you must call update() method.
-  FOG_INLINE Rgba* xData()
+  FOG_INLINE Argb* getXData()
   {
-    FOG_ASSERT_X(isDetached(), "Fog::Palette::xData() - Non detached data.");
+    FOG_ASSERT_X(isDetached(), "Fog::Palette::getXData() - Non detached data.");
     return _d->data;
   }
 
-  FOG_INLINE Rgba at(sysuint_t index) const
+  FOG_INLINE Argb at(sysuint_t index) const
   { 
     FOG_ASSERT_X(index < 256, "Fog::Palette::at() - Index out of range.");
     return _d->data[index];
   }
+
+  FOG_INLINE uint32_t isAlphaUsed() const { return _d->isAlphaUsed; }
 
   // [Operations]
 
@@ -127,21 +130,21 @@ struct FOG_API Palette
   err_t setDeep(const Palette& other);
 
   //! @brief Set palette entries starting at index @a index to @a pal.
-  err_t setRgba32(sysuint_t index, const Rgba* pal, sysuint_t count);
+  err_t setArgb32(sysuint_t index, const Argb* pal, sysuint_t count);
 
   //! @brief Set palette entries starting at index @a index to @a pal.
-  err_t setRgb32(sysuint_t index, const Rgba* pal, sysuint_t count);
+  err_t setRgb32(sysuint_t index, const Argb* pal, sysuint_t count);
 
   //! @brief Set palette entries starting at index @a index to @a pal.
   //!
-  //! Data format in @a pal is same as @c Image::FormatRGB24 (this means
+  //! Data format in @a pal is same as @c PIXEL_FORMAT_RGB24 (this means
   //! in BGR order on little endian machines and RGB order on big endian
   //! machines).
   err_t setRgb24(sysuint_t index, const uint8_t *pal, sysuint_t count);
 
   //! @brief Set palette entries starting at index @a index to @a pal.
   //!
-  //! Data format in @a pal is in reversed order as @c Image::FormatRGB24
+  //! Data format in @a pal is in reversed order as @c PIXEL_FORMAT_RGB24
   //! (this means in RGB order on little endian machines and BGR order on
   //! big endian machines).
   err_t setBgr24(sysuint_t index, const uint8_t *pal, sysuint_t count);
@@ -167,7 +170,8 @@ struct FOG_API Palette
 
   // [Statics]
 
-  static bool isGreyOnly(const Rgba* data, sysuint_t count);
+  static bool isGreyOnly(const Argb* data, sysuint_t count);
+  static bool isAlphaUsed(const Argb* data, sysuint_t count);
 
   // [Members]
 

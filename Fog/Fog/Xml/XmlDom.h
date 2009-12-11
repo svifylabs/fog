@@ -10,9 +10,10 @@
 // [Dependencies]
 #include <Fog/Build/Build.h>
 #include <Fog/Core/Hash.h>
+#include <Fog/Core/List.h>
 #include <Fog/Core/ManagedString.h>
 #include <Fog/Core/String.h>
-#include <Fog/Core/Vector.h>
+#include <Fog/Xml/Constants.h>
 
 //! @addtogroup Fog_Xml
 //! @{
@@ -72,7 +73,7 @@ private:
   XmlAttribute* _bucketsBuffer[10];
 
   //! @brief List of attributes.
-  Vector<XmlAttribute*> _list;
+  List<XmlAttribute*> _list;
 
   friend struct XmlElement;
 };
@@ -184,60 +185,30 @@ struct FOG_API XmlElement
   XmlElement(const ManagedString& tagName);
   virtual ~XmlElement();
 
-  // [Element Type]
-
-  //! @brief Element type id.
-  enum Type
-  {
-    TypeMask = 0x0F,
-    TypeElement = 0x01,
-    TypeText = 0x03,
-    TypeCDATA = 0x04,
-    TypePI = 0x07,
-    TypeComment = 0x08,
-    TypeDocument = 0x09,
-
-    TypeSvgMask = 0x10,
-    TypeSvgElement = TypeSvgMask | TypeElement,
-    TypeSvgDocument = TypeSvgMask | TypeDocument
-  };
-
-  // [Element Flags]
-
-  enum Flags
-  {
-    //! @brief Whether element can be manipulated (DOM).
-    AllowedDomManipulation = 0x01,
-    //! @brief Whether element tag name can be changed.
-    AllowedTag = 0x02,
-    //! @brief Whether element supports attributes.
-    AllowedAttributes = 0x04
-  };
-
   // [Type and Flags]
 
   //! @brief Return element type, see @c Type.
-  FOG_INLINE uint32_t getType() const { return _type; }
+  FOG_INLINE int getType() const { return _type; }
 
   //! @brief Return true if element is @a TypeElement type.
-  FOG_INLINE bool isElement() const { return (_type & TypeMask) == TypeElement; }
+  FOG_INLINE bool isElement() const { return (_type & XML_ELEMENT_MASK) == XML_ELEMENT_BASE; }
   //! @brief Return true if element is @a TypeText type.
-  FOG_INLINE bool isText() const { return (_type & TypeMask) == TypeText; }
+  FOG_INLINE bool isText() const { return (_type & XML_ELEMENT_MASK) == XML_ELEMENT_TEXT; }
   //! @brief Return true if element is @a TypeCDATA type.
-  FOG_INLINE bool isCDATA() const { return (_type & TypeMask) == TypeCDATA; }
+  FOG_INLINE bool isCDATA() const { return (_type & XML_ELEMENT_MASK) == XML_ELEMENT_CDATA; }
   //! @brief Return true if element is @a TypePI type.
-  FOG_INLINE bool isPI() const { return (_type & TypeMask) == TypePI; }
+  FOG_INLINE bool isPI() const { return (_type & XML_ELEMENT_MASK) == XML_ELEMENT_PI; }
   //! @brief Return true if element is @a TypeComment type.
-  FOG_INLINE bool isComment() const { return (_type & TypeMask) == TypeComment; }
+  FOG_INLINE bool isComment() const { return (_type & XML_ELEMENT_MASK) == XML_ELEMENT_COMMENT; }
   //! @brief Return true if element is @a TypeDocument type.
-  FOG_INLINE bool isDocument() const { return (_type & TypeMask) == TypeDocument; }
+  FOG_INLINE bool isDocument() const { return (_type & XML_ELEMENT_MASK) == XML_ELEMENT_DOCUMENT; }
 
   //! @brief Return true if element is SVG extension.
-  FOG_INLINE bool isSvg() const { return (_type & TypeSvgMask) != 0; }
+  FOG_INLINE bool isSvg() const { return (_type & SVG_ELEMENT_MASK) != 0; }
   //! @brief Return true if element is @c SvgElement.
-  FOG_INLINE bool isSvgElement() const { return _type == TypeSvgElement; }
+  FOG_INLINE bool isSvgElement() const { return _type == SVG_ELEMENT_BASE; }
   //! @brief Return true if element is @c SvgDocument.
-  FOG_INLINE bool isSvgDocument() const { return _type == TypeSvgDocument; }
+  FOG_INLINE bool isSvgDocument() const { return _type == SVG_ELEMENT_DOCUMENT; }
 
   // [Manage / Unmanage]
 
@@ -309,7 +280,7 @@ public:
   FOG_INLINE XmlElement* getParent() const { return _parent; }
 
   //! @brief Return array of child nodes.
-  Vector<XmlElement*> childNodes() const;
+  List<XmlElement*> childNodes() const;
 
   //! @brief Return first child node.
   FOG_INLINE XmlElement* firstChild() const { return _firstChild; }
@@ -335,7 +306,7 @@ public:
   //! @brief Return true if current node has child nodes.
   FOG_INLINE bool hasChildNodes() const { return _firstChild != NULL; }
  
-  Vector<XmlElement*> childNodesByTagName(const String& tagName) const;
+  List<XmlElement*> childNodesByTagName(const String& tagName) const;
 
   FOG_INLINE XmlElement* firstChildByTagName(const String& tagName) const
   { return _nextChildByTagName(_firstChild, tagName); }
@@ -358,7 +329,7 @@ public:
   FOG_INLINE bool hasAttributes() const { return _attributesManager != NULL; }
 
   //! @brief Return array of attributes.
-  Vector<XmlAttribute*> attributes() const;
+  List<XmlAttribute*> attributes() const;
 
   bool hasAttribute(const String& name) const;
   err_t setAttribute(const String& name, const String& value);
@@ -396,7 +367,7 @@ protected:
   XmlElement* _nextSibling;
   XmlElement* _prevSibling;
 
-  mutable Vector<XmlElement*> _children;
+  mutable List<XmlElement*> _children;
   //! @brief Attributes manager.
   XmlAttributesManager* _attributesManager;
 

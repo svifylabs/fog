@@ -24,12 +24,20 @@ ChildEvent::ChildEvent(uint32_t code, Widget* child) :
 {
 }
 
+ChildEvent::~ChildEvent()
+{
+}
+
 // ============================================================================
 // [Fog::LayoutEvent]
 // ============================================================================
 
 LayoutEvent::LayoutEvent(uint32_t code) :
   Event(code) 
+{
+}
+
+LayoutEvent::~LayoutEvent()
 {
 }
 
@@ -42,6 +50,10 @@ StateEvent::StateEvent(uint32_t code) :
 {
 }
 
+StateEvent::~StateEvent()
+{
+}
+
 // ============================================================================
 // [Fog::VisibilityEvent]
 // ============================================================================
@@ -51,14 +63,22 @@ VisibilityEvent::VisibilityEvent(uint32_t code) :
 {
 }
 
+VisibilityEvent::~VisibilityEvent()
+{
+}
+
 // ============================================================================
 // [Fog::ConfigureEvent]
 // ============================================================================
 
 ConfigureEvent::ConfigureEvent() : 
-  Event(EvConfigure),
+  Event(EV_CONFIGURE),
   _rect(0, 0, 0, 0),
   _changed(0)
+{
+}
+
+ConfigureEvent::~ConfigureEvent()
 {
 }
 
@@ -67,8 +87,12 @@ ConfigureEvent::ConfigureEvent() :
 // ============================================================================
 
 OriginEvent::OriginEvent() :
-  Event(EvOrigin),
+  Event(EV_ORIGIN),
   _origin(0, 0)
+{
+}
+
+OriginEvent::~OriginEvent()
 {
 }
 
@@ -81,6 +105,10 @@ FocusEvent::FocusEvent(uint32_t code, uint32_t reason) :
 {
 }
 
+FocusEvent::~FocusEvent()
+{
+}
+
 // ============================================================================
 // [Fog::KeyEvent]
 // ============================================================================
@@ -90,7 +118,12 @@ KeyEvent::KeyEvent(uint32_t code) :
   _key(0),
   _modifiers(0),
   _systemCode(0),
-  _unicode(0)
+  _unicode(0),
+  _isRepeated(false)
+{
+}
+
+KeyEvent::~KeyEvent()
 {
 }
 
@@ -103,7 +136,12 @@ MouseEvent::MouseEvent(uint32_t code) :
   _button(0),
   _modifiers(0),
   _position(-1, -1),
-  _isOutside(false)
+  _isOutside(false),
+  _isRepeated(false)
+{
+}
+
+MouseEvent::~MouseEvent()
 {
 }
 
@@ -113,6 +151,10 @@ MouseEvent::MouseEvent(uint32_t code) :
 
 SelectionEvent::SelectionEvent(uint32_t code) : 
   Event(code)
+{
+}
+
+SelectionEvent::~SelectionEvent()
 {
 }
 
@@ -127,12 +169,20 @@ PaintEvent::PaintEvent(uint32_t code) :
 {
 }
 
+PaintEvent::~PaintEvent()
+{
+}
+
 // ============================================================================
 // [Fog::CloseEvent]
 // ============================================================================
 
 CloseEvent::CloseEvent() : 
-  Event(EvClose)
+  Event(EV_CLOSE)
+{
+}
+
+CloseEvent::~CloseEvent()
 {
 }
 
@@ -142,7 +192,11 @@ CloseEvent::CloseEvent() :
 
 CheckEvent::CheckEvent(uint32_t code) : 
   Event(code),
-  _status(code == EvCheck)
+  _status(code == EV_CHECK)
+{
+}
+
+CheckEvent::~CheckEvent()
 {
 }
 
@@ -154,4 +208,9 @@ ThemeEvent::ThemeEvent(uint32_t code) :
   Event(code)
 {
 }
+
+ThemeEvent::~ThemeEvent()
+{
+}
+
 } // Fog namespace

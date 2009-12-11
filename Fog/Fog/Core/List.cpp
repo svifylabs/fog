@@ -10,16 +10,16 @@
 
 // [Dependencies]
 #include <Fog/Core/Assert.h>
-#include <Fog/Core/Error.h>
+#include <Fog/Core/Constants.h>
+#include <Fog/Core/List.h>
 #include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
-#include <Fog/Core/List.h>
 #include <Fog/Core/Std.h>
 
 namespace Fog {
 
 // ===========================================================================
-// [Debug]
+// [Fog::ListPrivate_ - Debug]
 // ===========================================================================
 
 #if defined(FOG_DEBUG)
@@ -29,78 +29,169 @@ namespace Fog {
   FOG_ASSERT((d)->startIndex + (d)->length == (d)->endIndex)
 #else
 #define FOG_LIST_VERIFY_DATA(d) \
-  FOG_NOOP
+  FOG_NOP
 #endif // FOG_DEBUG
 
 // ===========================================================================
-// [Fog::ListAPI_Base - Primitive Data Type]
+// [Fog::ListPrivate_ - Shared Null]
 // ===========================================================================
 
-static FOG_INLINE void ListAPI_Base_deref_p(SequenceUntyped::Data* d)
+Static<ListData> ListPrivate_::sharedNull;
+
+// ===========================================================================
+// [Fog::ListPrivate_ - Primitive Types]
+// ===========================================================================
+
+err_t ListPrivate_::p_detach(ListUntyped* self, sysuint_t typeSize)
 {
-  if (d->refCount.deref()) SequenceAPI_Base::_freeData((void*)d);
+  ListData* d = self->_d;
+  if (d->refCount.get() == 1) return ERR_OK;
+
+  ListData* newd;
+  sysuint_t length = d->length;
+
+  newd = (ListData*)d_alloc(typeSize, length);
+  if (!newd) return ERR_RT_OUT_OF_MEMORY;
+
+  newd->length = length;
+  newd->endIndex = length;
+  Memory::copy(newd->p, d->p, typeSize * length);
+
+  p_deref(AtomicBase::ptr_setXchg(&self->_d, newd));
+  return ERR_OK;
 }
 
-void ListAPI_Base::_reserve_p(void* self, sysuint_t sizeOfT, sysuint_t to)
+err_t ListPrivate_::p_reserve(ListUntyped* self, sysuint_t typeSize, sysuint_t to)
 {
-  SequenceUntyped::Data* d = ((SequenceUntyped*)self)->_d;
+  ListData* d = self->_d;
+  sysuint_t length = d->length;
 
-  if (d->capacity < to || d->refCount.get() > 1)
+  if (d->refCount.get() == 1 && d->capacity >= to)
   {
-    SequenceUntyped::Data* newd;
-    sysuint_t length = d->length;
+    sysuint_t remain = d->capacity - d->endIndex;
+    sysuint_t needed = to - length;
 
-    newd = (SequenceUntyped::Data*)SequenceAPI_Base::_allocData(sizeOfT, to, AllocCantFail);
-    newd->length = length;
-    newd->endIndex = length;
-    memcpy(newd->data, d->data + (d->startIndex * sizeOfT), length * sizeOfT);
+    if (remain >= needed)
+    {
+      // Nothing to do.
+      return ERR_OK;
+    }
+    else if (remain + d->startIndex > needed)
+    {
+      // We can just move data instead of alloc/copy/free.
+      //
+      // Note: Memory overlaps, but it's always safe to copy memory, becuase
+      // we are copying in 'DST < SRC' direction.
+      char* pdst = d->pstart();
 
-    ListAPI_Base_deref_p(
-      AtomicBase::ptr_setXchg(&((SequenceUntyped*)self)->_d, newd));
+      Memory::copy(pdst, d->p, length * typeSize);
+      d->startIndex = 0;
+      d->endIndex = length;
+      d->p = pdst;
+      return ERR_OK;
+    }
   }
+
+  ListData* newd = d_alloc(typeSize, to);
+  if (!newd) return ERR_RT_OUT_OF_MEMORY;
+
+  newd->length = length;
+  newd->endIndex = length;
+  Memory::copy(newd->p, d->p, length * typeSize);
+
+  p_deref(AtomicBase::ptr_setXchg(&self->_d, newd));
+  return ERR_OK;
 }
 
-void ListAPI_Base::_reserve_p(void* self, sysuint_t sizeOfT, sysuint_t left, sysuint_t right)
+err_t ListPrivate_::p_reserve(ListUntyped* self, sysuint_t typeSize, sysuint_t left, sysuint_t right)
 {
-  SequenceUntyped::Data* d = ((SequenceUntyped*)self)->_d;
+  ListData* d = self->_d;
 
   sysuint_t leftCapacity = d->startIndex;
   sysuint_t rightCapacity = d->capacity - d->endIndex;
 
-  if (leftCapacity < left || rightCapacity < right || d->refCount.get() > 1) 
+  if (leftCapacity < left || rightCapacity < right || d->refCount.get() > 1)
   {
     sysuint_t to = left + right;
     sysuint_t length = d->length;
 
-    // Overflow
-    FOG_ASSERT(to >= left);
-    FOG_ASSERT(to + length >= to);
+    // Overflow.
+    if (to < left) return ERR_RT_OUT_OF_MEMORY;
+    if (to + length < to) return ERR_RT_OUT_OF_MEMORY;
 
     to += length;
 
-    SequenceUntyped::Data* newd;
+    ListData* newd = d_alloc(typeSize, to);
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
-    newd = (SequenceUntyped::Data*)SequenceAPI_Base::_allocData(sizeOfT, to, AllocCantFail);
+    char* pdst = newd->pstart() + left * typeSize;
     newd->length = length;
     newd->startIndex = left;
     newd->endIndex = left + length;
-    memcpy(newd->data + (left * sizeOfT), d->data + (d->startIndex * sizeOfT), sizeOfT * length);
+    newd->p = pdst;
+    Memory::copy(pdst, d->p, typeSize * length);
 
-    ListAPI_Base_deref_p(
-      AtomicBase::ptr_setXchg(&((SequenceUntyped*)self)->_d, newd));
+    p_deref(AtomicBase::ptr_setXchg(&self->_d, newd));
   }
+
+  return ERR_OK;
 }
 
-void ListAPI_Base::_grow_p(void* self, sysuint_t sizeOfT, sysuint_t left, sysuint_t right)
+err_t ListPrivate_::p_resize(ListUntyped* self, sysuint_t typeSize, sysuint_t to)
 {
-  SequenceUntyped::Data* d = ((SequenceUntyped*)self)->_d;
+  ListData* d = self->_d;
+  sysuint_t length = d->length;
+  sysuint_t copy = Math::min<sysuint_t>(to, length);
+
+  if (d->refCount.get() == 1 && d->capacity >= to)
+  {
+    sysuint_t remain = d->capacity - d->endIndex;
+    sysuint_t needed = to - length;
+
+    if (remain >= needed)
+    {
+      // Nothing to do.
+      d->length = to;
+      return ERR_OK;
+    }
+    else if (remain + d->startIndex > needed)
+    {
+      // We can just move data instead of alloc/copy/free.
+      //
+      // Note: Memory overlaps, but it's always safe to copy memory, becuase
+      // we are copying in 'DST < SRC' direction.
+      char* pdst = d->pstart();
+      Memory::copy(pdst, d->p, copy * typeSize);
+
+      d->length = to;
+      d->startIndex = 0;
+      d->endIndex = to;
+      d->p = pdst;
+      return ERR_OK;
+    }
+  }
+
+  ListData* newd = d_alloc(typeSize, to);
+  if (!newd) return ERR_RT_OUT_OF_MEMORY;
+
+  newd->length = to;
+  newd->endIndex = to;
+  Memory::copy(newd->p, d->p, copy * typeSize);
+
+  p_deref(AtomicBase::ptr_setXchg(&self->_d, newd));
+  return ERR_OK;
+}
+
+err_t ListPrivate_::p_reserveoptimal(ListUntyped* self, sysuint_t typeSize, sysuint_t left, sysuint_t right)
+{
+  ListData* d = self->_d;
 
   sysuint_t leftCapacity = d->startIndex;
   sysuint_t rightCapacity = d->capacity - d->endIndex;
 
   if (leftCapacity < left || rightCapacity < right)
   {
-    // Data will be reallocated and we want to create optimal startIndex 
+    // Data will be reallocated and we want to create optimal startIndex
     // and endIndex variables.
     //
     // There are some situations that Lists are used like Vectors only
@@ -122,7 +213,9 @@ void ListAPI_Base::_grow_p(void* self, sysuint_t sizeOfT, sysuint_t left, sysuin
     sysuint_t by = left + right;
     sysuint_t after = length + by;
 
-    // Overflow
+    // TODO: Not working...
+    // Overflow.
+    /*
     if (by >= left || length >= after)
     {
       left = oldLeft;
@@ -130,137 +223,215 @@ void ListAPI_Base::_grow_p(void* self, sysuint_t sizeOfT, sysuint_t left, sysuin
       by = left + right;
       after = length + by;
 
-      FOG_ASSERT(by >= left);
-      FOG_ASSERT(length >= after);
+      if (by >= left) return ERR_RT_OUT_OF_MEMORY;
+      if (length >= after) return ERR_RT_OUT_OF_MEMORY;
     }
-    
-    sysuint_t optimal = Std::calcOptimalCapacity(sizeof(SequencePrivate::Data), sizeOfT, d->capacity, after);
+    */
+
+    sysuint_t optimal = Std::calcOptimalCapacity(sizeof(ListData), typeSize, d->length, after);
     sysuint_t distribute = optimal - length - left - right;
-    
+
     if (oldLeft > oldRight)
       left += distribute;
     else
       right += distribute;
 
-    _reserve_p(self, sizeOfT, left, right);
+    return p_reserve(self, typeSize, left, right);
   }
   else if (d->refCount.get() > 1)
   {
-    _reserve_p(self, sizeOfT, left, right);
+    return p_reserve(self, typeSize, left, right);
+  }
+  else
+  {
+    return ERR_OK;
   }
 }
 
-void ListAPI_Base::_assign_p(void* self, sysuint_t sizeOfT, const void* data, sysuint_t dataLength)
+void ListPrivate_::p_squeeze(ListUntyped* self, sysuint_t typeSize)
 {
-  SequenceAPI_Base::_clear_p(self);
-  _reserve_p(self, sizeOfT, dataLength);
+  ListData* d = self->_d;
+  sysuint_t length = d->length;
 
-  SequenceUntyped::Data* d = ((SequenceUntyped*)self)->_d;
+  if (d->capacity == length) return;
+
+  ListData* newd = (ListData*)d_alloc(typeSize, length);
+  if (!newd) return;
+
+  newd->length = length;
+  newd->endIndex = length;
+  Memory::copy(newd->p, d->p, typeSize * length);
+
+  p_deref(AtomicBase::ptr_setXchg(&self->_d, newd));
+}
+
+void ListPrivate_::p_free(ListUntyped* self)
+{
+  p_deref(AtomicBase::ptr_setXchg(&self->_d, sharedNull->ref()));
+}
+
+void ListPrivate_::p_clear(ListUntyped* self)
+{
+  ListData* d = self->_d;
+
+  if (d->length > 0)
+  {
+    if (d->refCount.get() > 1)
+    {
+      p_deref(AtomicBase::ptr_setXchg(&self->_d, sharedNull->ref()));
+    }
+    else
+    {
+      d->length = 0;
+      d->startIndex = 0;
+      d->endIndex = 0;
+      d->p = d->pstart();
+    }
+  }
+}
+
+err_t ListPrivate_::p_assign(ListUntyped* self, sysuint_t typeSize, const void* data, sysuint_t dataLength)
+{
+  ListData* d = self->_d;
+
+  if (d->capacity < dataLength || d->refCount.get() > 1)
+  {
+    ListData* newd = d_alloc(typeSize, dataLength);
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
+
+    newd->length = dataLength;
+    newd->endIndex = dataLength;
+    memcpy(newd->p, data, dataLength * typeSize);
+    p_deref(AtomicBase::ptr_setXchg(&self->_d, newd));
+    return ERR_OK;
+  }
+
   d->length = dataLength;
+  d->startIndex = 0;
   d->endIndex = dataLength;
+  d->p = d->pstart();
   FOG_LIST_VERIFY_DATA(d);
 
-  memcpy(d->data, data, dataLength * sizeOfT);
+  memcpy(d->p, data, dataLength * typeSize);
+  return ERR_OK;
 }
 
-void ListAPI_Base::_append_p(void* self, sysuint_t sizeOfT, const void* data, sysuint_t dataLength)
+err_t ListPrivate_::p_append(ListUntyped* self, sysuint_t typeSize, const void* data, sysuint_t dataLength)
 {
-  SequenceUntyped::Data* d = ((SequenceUntyped*)self)->_d;
+  ListData* d = self->_d;
 
-  if (FOG_UNLIKELY(d->capacity - d->endIndex < dataLength) || FOG_UNLIKELY(d->refCount.get() > 1))
+  if (d->capacity - d->endIndex < dataLength || d->refCount.get() > 1)
   {
-    _grow_p(self, sizeOfT, 0, dataLength);
-    d = ((SequenceUntyped*)self)->_d;
+    err_t err = p_reserveoptimal(self, typeSize, 0, dataLength);
+    if (err) return err;
+
+    d = self->_d;
   }
 
-  sysuint_t endIndex = d->endIndex;
+  sysuint_t length = d->length;
 
   d->length += dataLength;
   d->endIndex += dataLength;
   FOG_LIST_VERIFY_DATA(d);
 
-  memcpy(d->data + (endIndex * sizeOfT), data, dataLength * sizeOfT);
+  memcpy(d->p + (length * typeSize), data, dataLength * typeSize);
+  return ERR_OK;
 }
 
-void ListAPI_Base::_insert_p(void* self, sysuint_t sizeOfT, sysuint_t index, const void* data, sysuint_t dataLength)
+err_t ListPrivate_::p_insert(ListUntyped* self, sysuint_t typeSize, sysuint_t index, const void* data, sysuint_t dataLength)
 {
-  SequenceUntyped::Data* d = ((SequenceUntyped*)self)->_d;
+  ListData* d = self->_d;
 
   sysuint_t length = d->length;
-  if (index >= length) { _append_p(self, sizeOfT, data, length); return; }
+  if (index >= length) return p_append(self, typeSize, data, dataLength);
 
   sysuint_t half = length >> 1;
 
   if (index < half)
   {
-    if (FOG_UNLIKELY(d->startIndex < dataLength) || FOG_UNLIKELY(d->refCount.get() > 1))
+    if (d->startIndex < dataLength || d->refCount.get() > 1)
     {
-      _grow_p(self, sizeOfT, dataLength, 0);
-      d = ((SequenceUntyped*)self)->_d;
+      err_t err = p_reserveoptimal(self, typeSize, dataLength, 0);
+      if (err) return err;
+
+      d = self->_d;
     }
 
-    sysuint_t moveFrom = d->startIndex;
-    sysuint_t moveTo = moveFrom - dataLength;
+    char* pold = d->p;
+    char* pnew = d->p - (dataLength * typeSize);
 
     d->startIndex -= dataLength;
     d->length += dataLength;
+    d->p = pnew;
+    FOG_LIST_VERIFY_DATA(d);
 
-    memmove(d->data + (moveTo * sizeOfT), d->data + (moveFrom * sizeOfT), index * sizeOfT);
-    memcpy(d->data + ((moveTo + index) * sizeOfT), data, dataLength * sizeOfT);
+    memmove(pnew, pold, index * typeSize);
+    memcpy(pnew + (index * typeSize), data, dataLength * typeSize);
+    return ERR_OK;
   }
   else
   {
-    if (FOG_UNLIKELY(d->capacity - d->endIndex < dataLength) || FOG_UNLIKELY(d->refCount.get() > 1))
+    if (d->capacity - d->endIndex < dataLength || d->refCount.get() > 1)
     {
-      _grow_p(self, sizeOfT, 0, dataLength);
-      d = ((SequenceUntyped*)self)->_d;
+      err_t err = p_reserveoptimal(self, typeSize, 0, dataLength);
+      if (err) return err;
+
+      d = self->_d;
     }
 
-    sysuint_t moveFrom = d->startIndex + index;
-    sysuint_t moveTo = moveFrom + dataLength;
+    char* p = d->p;
 
     d->endIndex += dataLength;
     d->length += dataLength;
+    FOG_LIST_VERIFY_DATA(d);
 
-    memmove(d->data + (moveTo * sizeOfT), d->data + (moveFrom * sizeOfT), index * sizeOfT);
-    memcpy(d->data + (moveFrom * sizeOfT), data, dataLength * sizeOfT);
+    memmove(p + ((index + dataLength) * typeSize), p + (index * typeSize), (length - index) * typeSize);
+    memcpy(p + (index * typeSize), data, dataLength * typeSize);
+    return ERR_OK;
   }
 }
 
-sysuint_t ListAPI_Base::_removeAt_p(void* self, sysuint_t sizeOfT, sysuint_t index, sysuint_t range)
+err_t ListPrivate_::p_remove(ListUntyped* self, sysuint_t typeSize, sysuint_t index, sysuint_t range)
 {
-  SequenceUntyped::Data* d = ((SequenceUntyped*)self)->_d;
+  ListData* d = self->_d;
 
   sysuint_t length = d->length;
-  if (FOG_UNLIKELY(index >= length)) return 0;
+  if (index >= length) return ERR_OK;
 
-  range = Math::min(range, d->length - index);
-  if (FOG_UNLIKELY(range == 0)) return 0;
+  range = Math::min(range, length - index);
+  if (range == 0) return ERR_OK;
 
   sysuint_t newLength = length - range;
 
-  if (FOG_UNLIKELY(d->refCount.get() > 1))
+  if (d->refCount.get() > 1)
   {
-    SequenceUntyped::Data* newd;
+    ListData* newd;
 
-    newd = (SequenceUntyped::Data*)SequenceAPI_Base::_allocData(sizeOfT, newLength, AllocCantFail);
+    newd = d_alloc(typeSize, newLength);
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
+
     newd->length = newLength;
     newd->endIndex = newLength;
     FOG_LIST_VERIFY_DATA(newd);
 
-    memcpy(newd->data, d->data + (d->startIndex * sizeOfT), index * sizeOfT);
-    memcpy(newd->data + index * sizeOfT, d->data + (d->startIndex + index + range) * sizeOfT, (newLength - index) * sizeOfT);
+    char* pdst = newd->p;
+    char* psrc = d->p;
 
-    ListAPI_Base_deref_p(
-      AtomicBase::ptr_setXchg(&((SequenceUntyped*)self)->_d, newd));
+    memcpy(pdst, psrc, index * typeSize);
+    memcpy(pdst + (index * typeSize), psrc + ((index + range) * typeSize), (newLength - index) * typeSize);
+
+    p_deref(AtomicBase::ptr_setXchg(&self->_d, newd));
+    return ERR_OK;
   }
-  else
+  else if (newLength)
   {
     sysuint_t startIndex = d->startIndex;
 
     sysuint_t moveFrom = startIndex;
     sysuint_t moveTo = startIndex;
     sysuint_t moveBy;
+
+    char* pdst = d->pstart();
 
     if (index >= (length >> 1))
     {
@@ -273,129 +444,266 @@ sysuint_t ListAPI_Base::_removeAt_p(void* self, sysuint_t sizeOfT, sysuint_t ind
     else
     {
       moveTo += range;
-      moveBy = length - (index + range);
+      moveBy = index;
 
       d->startIndex += range;
+      d->p += (range * typeSize);
     }
 
     d->length = newLength;
     FOG_LIST_VERIFY_DATA(d);
 
-    memmove(d->data + moveTo * sizeOfT, d->data + moveFrom * sizeOfT, moveBy * sizeOfT);
+    memmove(pdst + moveTo * typeSize, pdst + moveFrom * typeSize, moveBy * typeSize);
+    return ERR_OK;
   }
-
-  return range;
+  else
+  {
+    d->p = d->pstart();
+    d->startIndex = 0;
+    d->endIndex = 0;
+    d->length = 0;
+    return ERR_OK;
+  }
 }
 
-sysuint_t ListAPI_Base::_replace_p(void* self, sysuint_t sizeOfT, sysuint_t index, sysuint_t range, const void* data, sysuint_t dataLength)
+err_t ListPrivate_::p_replace(ListUntyped* self, sysuint_t typeSize, sysuint_t index, sysuint_t range, const void* data, sysuint_t dataLength)
 {
-  SequenceUntyped::Data* d = ((SequenceUntyped*)self)->_d;
+  ListData* d = self->_d;
   sysuint_t d_length = d->length;
+
+  err_t err;
 
   if (Std::checkRange(d_length, index, &range))
   {
     if (dataLength == range)
     {
-      SequenceAPI_Base::_detach_p(self, sizeOfT);
+      if ((err = p_detach(self, typeSize))) return err;
 
-      d = ((SequenceUntyped*)self)->_d;
-      memcpy(d->data + (d->startIndex + index) * sizeOfT, data, dataLength * sizeOfT);
+      d = self->_d;
+      memcpy(d->p + (index * typeSize), data, dataLength * typeSize);
     }
     else if (dataLength > range)
     {
+      err_t err;
       sysuint_t diff = dataLength - range;
 
-      _insert_p(self, sizeOfT, index, data, diff);
-      SequenceAPI_Base::_detach_p(self, sizeOfT);
+      if ((err = p_insert(self, typeSize, index, data, diff))) return err;
+      if ((err = p_detach(self, typeSize))) return err;
 
-      d = ((SequenceUntyped*)self)->_d;
-      memcpy(d->data + (d->startIndex + index + diff) * sizeOfT, (const uint8_t*)data + (diff * sizeOfT), (range - diff) * sizeOfT);
+      d = self->_d;
+      memcpy(d->p + (index + diff) * typeSize,
+        reinterpret_cast<const char*>(data) + (diff * typeSize), (range - diff) * typeSize);
     }
     else
     {
       sysuint_t diff = range - dataLength;
 
-      _removeAt_p(self, sizeOfT, index, diff);
-      SequenceAPI_Base::_detach_p(self, sizeOfT);
+      if ((err = p_remove(self, typeSize, index, diff))) return err;
+      if ((err = p_detach(self, typeSize))) return err;
 
-      d = ((SequenceUntyped*)self)->_d;
-      memcpy(d->data + (d->startIndex + index) * sizeOfT, data, dataLength * sizeOfT);
+      d = self->_d;
+      memcpy(d->p + (index * typeSize), data, dataLength * typeSize);
     }
   }
 
-  return range;
+  return ERR_OK;
+}
+
+void ListPrivate_::p_deref(ListData* d)
+{
+  if (d->refCount.deref()) Memory::free(d);
 }
 
 // ===========================================================================
-// [Fog::ListAPI_Base - Class Data Type]
+// [Fog::ListPrivate_ - Class Types]
 // ===========================================================================
 
-static inline void ListAPI_Base_deref_c(SequenceUntyped::Data* d, const SequenceInfoVTable* vtable)
+err_t ListPrivate_::c_detach(ListUntyped* self, const SequenceInfoVTable* vtable)
 {
-  if (d->refCount.deref()) 
-  {
-    vtable->free(d->data + (d->startIndex * vtable->sizeOfT), d->length);
-    SequenceAPI_Base::_freeData((void*)d);
-  }
+  ListData* d = self->_d;
+  if (d->refCount.get() == 1) return ERR_OK;
+
+  ListData* newd;
+  sysuint_t length = d->length;
+  sysuint_t typeSize = vtable->typeSize;
+
+  newd = (ListData*)d_alloc(typeSize, length);
+  if (!newd) return ERR_RT_OUT_OF_MEMORY;
+
+  newd->length = length;
+  newd->endIndex = length;
+  vtable->copy(newd->p, d->p + (d->startIndex * typeSize), length);
+
+  c_deref(AtomicBase::ptr_setXchg(&self->_d, newd), vtable);
+  return ERR_OK;
 }
 
-void ListAPI_Base::_reserve_c(void* self, const SequenceInfoVTable* vtable, sysuint_t to)
+err_t ListPrivate_::c_reserve(ListUntyped* self, const SequenceInfoVTable* vtable, sysuint_t to)
 {
-  SequenceUntyped::Data* d = ((SequenceUntyped*)self)->_d;
+  ListData* d = self->_d;
+  sysuint_t length = d->length;
+  sysuint_t typeSize = vtable->typeSize;
 
-  if (d->capacity < to || d->refCount.get() > 1)
+  if (d->refCount.get() == 1 && d->capacity >= to)
   {
-    SequenceUntyped::Data* newd;
-    sysuint_t sizeOfT = vtable->sizeOfT;
-    sysuint_t length = d->length;
+    sysuint_t remain = d->capacity - d->endIndex;
+    sysuint_t needed = to - length;
 
-    newd = (SequenceUntyped::Data*)SequenceAPI_Base::_allocData(vtable->sizeOfT, to, AllocCantFail);
-    newd->length = length;
-    newd->endIndex = length;
-    vtable->copy(newd->data, d->data + (d->startIndex * sizeOfT), length);
+    if (remain >= needed)
+    {
+      // Nothing to do.
+      return ERR_OK;
+    }
+    else if (remain + d->startIndex > needed)
+    {
+      // We can just move data instead of alloc/copy/free.
+      vtable->move(d->pstart(), d->p, length);
 
-    ListAPI_Base_deref_c(
-      AtomicBase::ptr_setXchg(&((SequenceUntyped*)self)->_d, newd),
-      vtable);
+      d->startIndex = 0;
+      d->endIndex = length;
+      d->p = d->pstart();
+      return ERR_OK;
+    }
   }
+
+  ListData* newd = d_alloc(typeSize, to);
+  if (!newd) return ERR_RT_OUT_OF_MEMORY;
+
+  newd->length = length;
+  newd->endIndex = length;
+  vtable->copy(newd->p, d->p, length);
+
+  c_deref(AtomicBase::ptr_setXchg(&self->_d, newd), vtable);
+  return ERR_OK;
 }
 
-void ListAPI_Base::_reserve_c(void* self, const SequenceInfoVTable* vtable, sysuint_t left, sysuint_t right)
+err_t ListPrivate_::c_reserve(ListUntyped* self, const SequenceInfoVTable* vtable, sysuint_t left, sysuint_t right)
 {
-  SequenceUntyped::Data* d = ((SequenceUntyped*)self)->_d;
+  ListData* d = self->_d;
 
   sysuint_t leftCapacity = d->startIndex;
   sysuint_t rightCapacity = d->capacity - d->endIndex;
 
-  if (leftCapacity < left || rightCapacity < right || d->refCount.get() > 1) 
+  if (leftCapacity < left || rightCapacity < right || d->refCount.get() > 1)
   {
-    sysuint_t sizeOfT = vtable->sizeOfT;
+    sysuint_t typeSize = vtable->typeSize;
     sysuint_t to = left + right;
     sysuint_t length = d->length;
 
-    // Overflow
-    FOG_ASSERT(to >= left);
-    FOG_ASSERT(to + length >= to);
+    // Overflow.
+    if (to < left) return ERR_RT_OUT_OF_MEMORY;
+    if (to + length < to) return ERR_RT_OUT_OF_MEMORY;
 
     to += length;
 
-    SequenceUntyped::Data* newd;
+    ListData* newd = d_alloc(typeSize, to);
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
-    newd = (SequenceUntyped::Data*)SequenceAPI_Base::_allocData(sizeOfT, to, AllocCantFail);
     newd->length = length;
     newd->startIndex = left;
     newd->endIndex = left + length;
-    vtable->copy(newd->data + (left * sizeOfT), d->data + (d->startIndex * sizeOfT), length);
+    newd->p = newd->pstart() + (left * typeSize);
+    vtable->copy(newd->p, d->p, length);
 
-    ListAPI_Base_deref_c(
-      AtomicBase::ptr_setXchg(&((SequenceUntyped*)self)->_d, newd),
-      vtable);
+    c_deref(AtomicBase::ptr_setXchg(&self->_d, newd), vtable);
+  }
+
+  return ERR_OK;
+}
+
+err_t ListPrivate_::c_resize(ListUntyped* self, const SequenceInfoVTable* vtable, sysuint_t to)
+{
+  ListData* d = self->_d;
+  sysuint_t length = d->length;
+  sysuint_t copy = Math::min<sysuint_t>(to, length);
+  sysuint_t typeSize = vtable->typeSize;
+
+  if (d->refCount.get() == 1 && d->capacity >= to)
+  {
+    sysuint_t remain = d->capacity - d->endIndex;
+    sysuint_t needed = to - length;
+
+    if (remain >= needed)
+    {
+      // Nothing to do.
+      d->length = to;
+      return ERR_OK;
+    }
+    else if (remain + d->startIndex > needed)
+    {
+      // We can just move data instead of alloc/copy/free.
+      vtable->move(d->pstart(), d->p, copy);
+
+      if (length > to) vtable->free(d->p        + (copy * typeSize), length - to);
+      if (length < to) vtable->init(d->pstart() + (copy * typeSize), to - length);
+
+      d->length = to;
+      d->startIndex = 0;
+      d->endIndex = to;
+      d->p = d->pstart();
+      return ERR_OK;
+    }
+  }
+
+  ListData* newd = d_alloc(typeSize, to);
+  if (!newd) return ERR_RT_OUT_OF_MEMORY;
+
+  newd->length = to;
+  newd->endIndex = to;
+
+  vtable->copy(newd->p, d->p, copy);
+  if (length < to) vtable->init(newd->p + (to * typeSize), to - length);
+
+  c_deref(AtomicBase::ptr_setXchg(&self->_d, newd), vtable);
+  return ERR_OK;
+}
+
+void ListPrivate_::c_squeeze(ListUntyped* self, const SequenceInfoVTable* vtable)
+{
+  ListData* d = self->_d;
+  sysuint_t length = d->length;
+
+  if (d->capacity == length) return;
+
+  ListData* newd = (ListData*)d_alloc(vtable->typeSize, length);
+  if (!newd) return;
+
+  newd->length = length;
+  newd->endIndex = length;
+  vtable->copy(newd->p, d->p, length);
+
+  c_deref(AtomicBase::ptr_setXchg(&self->_d, newd), vtable);
+}
+
+void ListPrivate_::c_free(ListUntyped* self, const SequenceInfoVTable* vtable)
+{
+  c_deref(AtomicBase::ptr_setXchg(&self->_d, sharedNull->ref()), vtable);
+}
+
+void ListPrivate_::c_clear(ListUntyped* self, const SequenceInfoVTable* vtable)
+{
+  ListData* d = self->_d;
+
+  if (d->length > 0)
+  {
+    if (d->refCount.get() > 1)
+    {
+      c_free(self, vtable);
+    }
+    else
+    {
+      vtable->free(d->p, d->length);
+      d->length = 0;
+      d->startIndex = 0;
+      d->endIndex = 0;
+      d->p = d->pstart();
+    }
   }
 }
 
-void ListAPI_Base::_grow_c(void* self, const SequenceInfoVTable* vtable, sysuint_t left, sysuint_t right)
+err_t ListPrivate_::c_reserveoptimal(ListUntyped* self, const SequenceInfoVTable* vtable, sysuint_t left, sysuint_t right)
 {
-  SequenceUntyped::Data* d = ((SequenceUntyped*)self)->_d;
+  ListData* d = self->_d;
 
   sysuint_t leftCapacity = d->startIndex;
   sysuint_t rightCapacity = d->capacity - d->endIndex;
@@ -408,9 +716,8 @@ void ListAPI_Base::_grow_c(void* self, const SequenceInfoVTable* vtable, sysuint
     // There are some situations that Lists are used like Vectors only
     // for appending data. We can predict future by checking leftCapacity
     // and rightCapacity variables. leftCapacity is never larger than 0
-    // if data hasn't been prepended, inserted, removed or replaced.
-
-    sysuint_t sizeOfT = vtable->sizeOfT;
+    // if data haven't been prepended, inserted, removed or replaced.
+    sysuint_t typeSize = vtable->typeSize;
     sysuint_t length = d->length;
 
     sysuint_t leftThreshold = leftCapacity - (leftCapacity >> 1);
@@ -425,7 +732,9 @@ void ListAPI_Base::_grow_c(void* self, const SequenceInfoVTable* vtable, sysuint
     sysuint_t by = left + right;
     sysuint_t after = length + by;
 
+    // TODO: Not working...
     // Overflow
+    /*
     if (by >= left || length >= after)
     {
       left = oldLeft;
@@ -433,11 +742,12 @@ void ListAPI_Base::_grow_c(void* self, const SequenceInfoVTable* vtable, sysuint
       by = left + right;
       after = length + by;
 
-      FOG_ASSERT(by >= left);
-      FOG_ASSERT(length >= after);
+      if (by >= left) return ERR_RT_OUT_OF_MEMORY;
+      if (length >= after) return ERR_RT_OUT_OF_MEMORY;
     }
+    */
     
-    sysuint_t optimal = Std::calcOptimalCapacity(sizeof(SequencePrivate::Data), sizeOfT, d->capacity, after);
+    sysuint_t optimal = Std::calcOptimalCapacity(sizeof(ListData), typeSize, d->length, after);
     sysuint_t distribute = optimal - length - left - right;
     
     if (oldLeft > oldRight)
@@ -445,128 +755,149 @@ void ListAPI_Base::_grow_c(void* self, const SequenceInfoVTable* vtable, sysuint
     else
       right += distribute;
 
-    _reserve_c(self, vtable, left, right);
+    return c_reserve(self, vtable, left, right);
   }
   else if (d->refCount.get() > 1)
   {
-    _reserve_c(self, vtable, left, right);
+    return c_reserve(self, vtable, left, right);
+  }
+  else
+  {
+    return ERR_OK;
   }
 }
 
-void ListAPI_Base::_assign_c(void* self, const SequenceInfoVTable* vtable, const void* data, sysuint_t dataLength)
+err_t ListPrivate_::c_assign(ListUntyped* self, const SequenceInfoVTable* vtable, const void* data, sysuint_t dataLength)
 {
-  SequenceAPI_Base::_clear_c(self, vtable);
-  _reserve_c(self, vtable, 0, dataLength);
+  c_clear(self, vtable);
 
-  SequenceUntyped::Data* d = ((SequenceUntyped*)self)->_d;
+  err_t err = c_reserve(self, vtable, 0, dataLength);
+  if (err) return err;
+
+  ListData* d = self->_d;
   d->length = dataLength;
   d->endIndex = dataLength;
   FOG_LIST_VERIFY_DATA(d);
 
-  vtable->copy(d->data, data, dataLength);
+  vtable->copy(d->p, data, dataLength);
+  return ERR_OK;
 }
 
-void ListAPI_Base::_append_c(void* self, const SequenceInfoVTable* vtable, const void* data, sysuint_t dataLength)
+err_t ListPrivate_::c_append(ListUntyped* self, const SequenceInfoVTable* vtable, const void* data, sysuint_t dataLength)
 {
-  SequenceUntyped::Data* d = ((SequenceUntyped*)self)->_d;
-  sysuint_t sizeOfT = vtable->sizeOfT;
+  ListData* d = self->_d;
+  sysuint_t typeSize = vtable->typeSize;
 
-  if (FOG_UNLIKELY(d->capacity - d->length < dataLength) || FOG_UNLIKELY(d->refCount.get() > 1))
+  if (d->capacity - d->length < dataLength || d->refCount.get() > 1)
   {
-    _grow_c(self, vtable, 0, dataLength);
-    d = ((SequenceUntyped*)self)->_d;
+    err_t err = c_reserveoptimal(self, vtable, 0, dataLength);
+    if (err) return err;
+
+    d = self->_d;
   }
 
-  sysuint_t endIndex = d->endIndex;
+  sysuint_t length = d->length;
 
   d->length += dataLength;
   d->endIndex += dataLength;
   FOG_LIST_VERIFY_DATA(d);
 
-  vtable->copy(d->data + (endIndex * sizeOfT), data, dataLength);
+  vtable->copy(d->p + (length * typeSize), data, dataLength);
+  return ERR_OK;
 }
 
-void ListAPI_Base::_insert_c(void* self, const SequenceInfoVTable* vtable, sysuint_t index, const void* data, sysuint_t dataLength)
+err_t ListPrivate_::c_insert(ListUntyped* self, const SequenceInfoVTable* vtable, sysuint_t index, const void* data, sysuint_t dataLength)
 {
-  SequenceUntyped::Data* d = ((SequenceUntyped*)self)->_d;
-  sysuint_t sizeOfT = vtable->sizeOfT;
+  ListData* d = self->_d;
+  sysuint_t typeSize = vtable->typeSize;
 
   sysuint_t length = d->length;
-  if (index >= length) { _append_p(self, sizeOfT, data, length); return; }
+  if (index >= length) { return c_append(self, vtable, data, dataLength); }
 
   sysuint_t half = length >> 1;
 
   if (index < half)
   {
-    if (FOG_UNLIKELY(d->startIndex < dataLength) || FOG_UNLIKELY(d->refCount.get() > 1))
+    if (d->startIndex < dataLength || d->refCount.get() > 1)
     {
-      _grow_c(self, vtable, dataLength, 0);
-      d = ((SequenceUntyped*)self)->_d;
+      err_t err = c_reserveoptimal(self, vtable, dataLength, 0);
+      if (err) return err;
+
+      d = self->_d;
     }
 
-    sysuint_t moveFrom = d->startIndex;
-    sysuint_t moveTo = moveFrom - dataLength;
+    char* pdst = d->p - (dataLength * typeSize);
 
     d->startIndex -= dataLength;
     d->length += dataLength;
+    FOG_LIST_VERIFY_DATA(d);
 
-    vtable->move(d->data + (moveTo * sizeOfT), d->data + (moveFrom * sizeOfT), index);
-    vtable->copy(d->data + ((moveTo + index) * sizeOfT), data, dataLength);
+    vtable->move(pdst, d->p, index);
+    vtable->copy(pdst + (index * typeSize), data, dataLength);
+
+    d->p = pdst;
   }
   else
   {
-    if (FOG_UNLIKELY(d->capacity - d->endIndex < dataLength) || FOG_UNLIKELY(d->refCount.get() > 1))
+    if (d->capacity - d->endIndex < dataLength || d->refCount.get() > 1)
     {
-      _grow_c(self, vtable, 0, dataLength);
-      d = ((SequenceUntyped*)self)->_d;
+      err_t err = c_reserveoptimal(self, vtable, 0, dataLength);
+      if (err) return err;
+
+      d = self->_d;
     }
 
-    sysuint_t moveFrom = d->startIndex + index;
+    sysuint_t moveFrom = index;
     sysuint_t moveTo = moveFrom + dataLength;
 
     d->endIndex += dataLength;
     d->length += dataLength;
+    FOG_LIST_VERIFY_DATA(d);
 
-    vtable->move(d->data + (moveTo * sizeOfT), d->data + (moveFrom * sizeOfT), index);
-    vtable->copy(d->data + (moveFrom * sizeOfT), data, dataLength);
+    vtable->move(d->p + (moveTo * typeSize), d->p + (moveFrom * typeSize), length - index);
+    vtable->copy(d->p + (moveFrom * typeSize), data, dataLength);
   }
+
+  return ERR_OK;
 }
 
-sysuint_t ListAPI_Base::_removeAt_c(void* self, const SequenceInfoVTable* vtable, sysuint_t index, sysuint_t range)
+err_t ListPrivate_::c_remove(ListUntyped* self, const SequenceInfoVTable* vtable, sysuint_t index, sysuint_t range)
 {
-  SequenceUntyped::Data* d = ((SequenceUntyped*)self)->_d;
-  sysuint_t sizeOfT = vtable->sizeOfT;
+  ListData* d = self->_d;
+  sysuint_t typeSize = vtable->typeSize;
 
   sysuint_t length = d->length;
-  if (FOG_UNLIKELY(index >= length)) return 0;
+  if (index >= length) return ERR_OK;
 
   range = Math::min(range, d->length - index);
-  if (FOG_UNLIKELY(range == 0)) return 0;
+  if (range == 0) return ERR_OK;
 
   sysuint_t newLength = length - range;
 
-  if (FOG_UNLIKELY(d->refCount.get() > 1))
+  if (d->refCount.get() > 1)
   {
-    SequenceUntyped::Data* newd;
+    ListData* newd = d_alloc(typeSize, newLength);
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
-    newd = (SequenceUntyped::Data*)SequenceAPI_Base::_allocData(sizeOfT, newLength, AllocCantFail);
     newd->length = newLength;
     newd->endIndex = newLength;
     FOG_LIST_VERIFY_DATA(newd);
 
-    vtable->copy(newd->data, d->data + (d->startIndex * sizeOfT), index);
-    vtable->copy(newd->data + index * sizeOfT, d->data + (d->startIndex + index + range) * sizeOfT, newLength - index);
+    vtable->copy(newd->p, d->p, index);
+    vtable->copy(newd->p + index * typeSize, d->p + (index + range) * typeSize, newLength - index);
 
-    ListAPI_Base_deref_p(
-      AtomicBase::ptr_setXchg(&((SequenceUntyped*)self)->_d, newd));
+    c_deref(AtomicBase::ptr_setXchg(&self->_d, newd), vtable);
+    return ERR_OK;
   }
-  else
+  else if (newLength)
   {
     sysuint_t startIndex = d->startIndex;
 
     sysuint_t moveFrom = startIndex;
     sysuint_t moveTo = startIndex;
     sysuint_t moveBy;
+
+    char* pdst = d->pstart();
 
     if (index >= (length >> 1))
     {
@@ -579,34 +910,46 @@ sysuint_t ListAPI_Base::_removeAt_c(void* self, const SequenceInfoVTable* vtable
     else
     {
       moveTo += range;
-      moveBy = length - (index + range);
+      moveBy = index;
 
       d->startIndex += range;
+      d->p += range * typeSize;
     }
 
     d->length = newLength;
     FOG_LIST_VERIFY_DATA(d);
 
-    vtable->move(d->data + moveTo * sizeOfT, d->data + moveFrom * sizeOfT, moveBy);
+    vtable->free(pdst + moveTo * typeSize, range);
+    vtable->move(pdst + moveTo * typeSize, pdst + moveFrom * typeSize, moveBy);
+    return ERR_OK;
   }
-
-  return range;
+  else
+  {
+    vtable->free(d->p, length);
+    d->p = d->pstart();
+    d->startIndex = 0;
+    d->endIndex = 0;
+    d->length = 0;
+    return ERR_OK;
+  }
 }
 
-sysuint_t ListAPI_Base::_replace_c(void* self, const SequenceInfoVTable* vtable, sysuint_t index, sysuint_t range, const void* data, sysuint_t dataLength)
+err_t ListPrivate_::c_replace(ListUntyped* self, const SequenceInfoVTable* vtable, sysuint_t index, sysuint_t range, const void* data, sysuint_t dataLength)
 {
-  SequenceUntyped::Data* d = ((SequenceUntyped*)self)->_d;
-  sysuint_t sizeOfT = vtable->sizeOfT;
+  ListData* d = self->_d;
+  sysuint_t typeSize = vtable->typeSize;
   sysuint_t d_length = d->length;
+
+  err_t err;
 
   if (Std::checkRange(d_length, index, &range))
   {
     if (dataLength == range)
     {
-      SequenceAPI_Base::_detach_c(self, vtable);
+      if ((err = c_detach(self, vtable))) return err;;
 
-      d = ((SequenceUntyped*)self)->_d;
-      uint8_t* addr = d->data + (d->startIndex + index) * sizeOfT;
+      d = self->_d;
+      char* addr = d->p + (index * typeSize);
       vtable->free(addr, dataLength);
       vtable->copy(addr, data, dataLength);
     }
@@ -614,29 +957,105 @@ sysuint_t ListAPI_Base::_replace_c(void* self, const SequenceInfoVTable* vtable,
     {
       sysuint_t diff = dataLength - range;
 
-      _insert_c(self, vtable, index, data, diff);
-      SequenceAPI_Base::_detach_c(self, vtable);
+      if ((err = c_insert(self, vtable, index, data, diff))) return err;
+      if ((err = c_detach(self, vtable))) return err;
 
-      d = ((SequenceUntyped*)self)->_d;
-      uint8_t* addr = d->data + (d->startIndex + index + diff) * sizeOfT;
+      d = self->_d;
+      char* addr = d->p + ((index + diff) * typeSize);
       vtable->free(addr, range - diff);
-      vtable->copy(addr, (const uint8_t*)data + (diff * sizeOfT), range - diff);
+      vtable->copy(addr, reinterpret_cast<const char*>(data) + (diff * typeSize), range - diff);
     }
     else
     {
       sysuint_t diff = range - dataLength;
 
-      _removeAt_c(self, vtable, index, diff);
-      SequenceAPI_Base::_detach_c(self, vtable);
+      if ((err = c_remove(self, vtable, index, diff))) return err;
+      if ((err = c_detach(self, vtable))) return err;
 
-      d = ((SequenceUntyped*)self)->_d;
-      uint8_t* addr = d->data + (d->startIndex + index) * sizeOfT;
+      d = self->_d;
+      char* addr = d->p + (index * typeSize);
       vtable->free(addr, dataLength);
       vtable->copy(addr, data, dataLength);
     }
   }
 
-  return range;
+  return ERR_OK;
+}
+
+// ===========================================================================
+// [Fog::ListPrivate_ - Data Functions]
+// ===========================================================================
+
+ListData* ListPrivate_::d_alloc(sysuint_t typeSize, sysuint_t capacity)
+{
+  ListData* d = NULL;
+  sysuint_t dsize = d_getSize(typeSize, capacity);
+
+  // Alloc.
+  if (dsize == 0 || !(d = (ListData*)Memory::alloc(dsize))) return NULL;
+
+  // Init 'd'.
+  d->refCount.init(1);
+  d->capacity = capacity;
+  d->length = 0;
+  d->startIndex = 0;
+  d->endIndex = 0;
+  d->p = reinterpret_cast<char*>(d) + sizeof(ListData);
+
+  return d;
+}
+
+sysuint_t ListPrivate_::d_getSize(sysuint_t typeSize, sysuint_t capacity)
+{
+  sysuint_t dSize = sizeof(ListData);
+  sysuint_t eSize = typeSize * capacity;
+  sysuint_t _Size = dSize + eSize;
+
+  // Overflow.
+  if ((eSize / typeSize) != capacity) return 0;
+  if (_Size < eSize) return 0;
+
+  return _Size;
+}
+
+// ===========================================================================
+// [Fog::ListPrivate_ - Both]
+// ===========================================================================
+
+void ListPrivate_::c_deref(ListData* d, const SequenceInfoVTable* vtable)
+{
+  if (d->refCount.deref())
+  {
+    vtable->free(d->p, d->length);
+    Memory::free(d);
+  }
 }
 
 } // Fog namespace
+
+// ===========================================================================
+// [Library Initializers]
+// ===========================================================================
+
+FOG_INIT_DECLARE err_t fog_list_init(void)
+{
+  using namespace Fog;
+
+  ListData* d = ListPrivate_::sharedNull.instancep();
+  d->refCount.init(1);
+  d->length = 0;
+  d->capacity = 0;
+  d->startIndex = 0;
+  d->endIndex = 0;
+  d->p = d->pstart();
+
+  return ERR_OK;
+}
+
+FOG_INIT_DECLARE void fog_list_shutdown(void)
+{
+  using namespace Fog;
+
+  ListData* d = ListPrivate_::sharedNull.instancep();
+  d->refCount.dec();
+}

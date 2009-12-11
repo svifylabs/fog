@@ -4,12 +4,12 @@
 // MIT, See COPYING file in package
 
 // [Precompiled Headers]
-#ifdef FOG_PRECOMP
+#if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif
 
 // [Dependencies]
-#include <Fog/Core/Error.h>
+#include <Fog/Core/Constants.h>
 #include <Fog/Core/String.h>
 #include <Fog/Core/StringUtil.h>
 #include <Fog/Xml/XmlEntity.h>
@@ -584,7 +584,7 @@ static FOG_INLINE int _compareEntities(const T* entity, sysuint_t length, const 
 template<typename T>
 static FOG_INLINE Char _decode(const T* entityName, sysuint_t entityLength)
 {
-  if (entityLength == DetectLength) entityLength = StringUtil::len(entityName);
+  if (entityLength == DETECT_LENGTH) entityLength = StringUtil::len(entityName);
   if (entityLength == 0) return Char(0);
 
   // Numeric entity.
@@ -719,7 +719,7 @@ FOG_INIT_DECLARE err_t fog_xmlentity_init(void)
   XmlEntity::_pairs = xmlentity_pairs;
   XmlEntity::_pairsCount = FOG_ARRAY_SIZE(xmlentity_pairs);
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 FOG_INIT_DECLARE void fog_xmlentity_shutdown(void)

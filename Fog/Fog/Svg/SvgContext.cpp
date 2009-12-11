@@ -16,9 +16,9 @@ namespace Fog {
 SvgContext::SvgContext(Painter* painter) :
   _painter(painter)
 {
-  _lineStyle.type = SvgPatternNone;
-  _fillStyle.type = SvgPatternColor;
-  _fillMode = FillNonZero;
+  _lineStyle.type = SVG_PATTERN_NONE;
+  _fillStyle.type = SVG_PATTERN_COLOR;
+  _fillMode = FILL_NON_ZERO;
 
   setDpi(90.0);
 }
@@ -31,29 +31,29 @@ void SvgContext::setDpi(double dpi)
 {
   _dpi = dpi;
 
-  _translateCoordData[SvgUnitNotDefined] = 1.0;
-  _translateCoordData[SvgUnitPercent] = 1.0;
+  _translateCoordData[SVG_UNIT_NONE] = 1.0;
+  _translateCoordData[SVG_UNIT_PERCENT] = 1.0;
 
   // SVG TODO: Em and Ex units.
-  _translateCoordData[SvgUnitCm] = dpi * 0.3937007777777778;
-  _translateCoordData[SvgUnitEm] = 1.0;
-  _translateCoordData[SvgUnitEx] = 1.0;
-  _translateCoordData[SvgUnitIn] = dpi;
-  _translateCoordData[SvgUnitMm] = dpi * 0.0393700777777778;
-  _translateCoordData[SvgUnitPc] = dpi * 0.1666666666666667;
-  _translateCoordData[SvgUnitPt] = dpi * 0.0138888888888889;
-  _translateCoordData[SvgUnitPx] = 1.0;
+  _translateCoordData[SVG_UNIT_CM] = dpi * 0.3937007777777778;
+  _translateCoordData[SVG_UNIT_EM] = 1.0;
+  _translateCoordData[SVG_UNIT_EX] = 1.0;
+  _translateCoordData[SVG_UNIT_IN] = dpi;
+  _translateCoordData[SVG_UNIT_MM] = dpi * 0.0393700777777778;
+  _translateCoordData[SVG_UNIT_PC] = dpi * 0.1666666666666667;
+  _translateCoordData[SVG_UNIT_PT] = dpi * 0.0138888888888889;
+  _translateCoordData[SVG_UNIT_PX] = 1.0;
 }
 
 void SvgContext::drawEllipse(const PointD& cp, const PointD& r)
 {
-  if (_fillStyle.type != SvgPatternNone)
+  if (_fillStyle.type != SVG_PATTERN_NONE)
   {
     setupFillStyle();
     _painter->fillEllipse(cp, r);
   }
 
-  if (_lineStyle.type != SvgPatternNone)
+  if (_lineStyle.type != SVG_PATTERN_NONE)
   {
     setupStrokeStyle();
     _painter->drawEllipse(cp, r);
@@ -62,7 +62,7 @@ void SvgContext::drawEllipse(const PointD& cp, const PointD& r)
 
 void SvgContext::drawLine(const PointD& p1, const PointD& p2)
 {
-  if (_lineStyle.type != SvgPatternNone)
+  if (_lineStyle.type != SVG_PATTERN_NONE)
   {
     setupStrokeStyle();
     _painter->drawLine(p1, p2);
@@ -71,13 +71,13 @@ void SvgContext::drawLine(const PointD& p1, const PointD& p2)
 
 void SvgContext::drawRect(const RectD& rect)
 {
-  if (_fillStyle.type != SvgPatternNone)
+  if (_fillStyle.type != SVG_PATTERN_NONE)
   {
     setupFillStyle();
     _painter->fillRect(rect);
   }
 
-  if (_lineStyle.type != SvgPatternNone)
+  if (_lineStyle.type != SVG_PATTERN_NONE)
   {
     setupStrokeStyle();
     _painter->drawRect(rect);
@@ -86,13 +86,13 @@ void SvgContext::drawRect(const RectD& rect)
 
 void SvgContext::drawRound(const RectD& rect, const PointD& r)
 {
-  if (_fillStyle.type != SvgPatternNone)
+  if (_fillStyle.type != SVG_PATTERN_NONE)
   {
     setupFillStyle();
     _painter->fillRound(rect, r);
   }
 
-  if (_lineStyle.type != SvgPatternNone)
+  if (_lineStyle.type != SVG_PATTERN_NONE)
   {
     setupStrokeStyle();
     _painter->drawRound(rect, r);
@@ -101,13 +101,13 @@ void SvgContext::drawRound(const RectD& rect, const PointD& r)
 
 void SvgContext::drawPath(const Path& path)
 {
-  if (_fillStyle.type != SvgPatternNone)
+  if (_fillStyle.type != SVG_PATTERN_NONE)
   {
     setupFillStyle();
     _painter->fillPath(path);
   }
 
-  if (_lineStyle.type != SvgPatternNone)
+  if (_lineStyle.type != SVG_PATTERN_NONE)
   {
     setupStrokeStyle();
     _painter->drawPath(path);

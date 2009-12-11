@@ -121,12 +121,12 @@ struct FOG_API ManagedString
   err_t set(const String& s);
   err_t set(const Utf16& s);
 
-  FOG_INLINE err_t set(const Char* s, sysuint_t length = DetectLength) { return set(Utf16(s, length)); }
+  FOG_INLINE err_t set(const Char* s, sysuint_t length = DETECT_LENGTH) { return set(Utf16(s, length)); }
 
   err_t setIfManaged(const String& s);
   err_t setIfManaged(const Utf16& s);
 
-  FOG_INLINE err_t setIfManaged(const Char* s, sysuint_t length = DetectLength) { return setIfManaged(Utf16(s, length)); }
+  FOG_INLINE err_t setIfManaged(const Char* s, sysuint_t length = DETECT_LENGTH) { return setIfManaged(Utf16(s, length)); }
 
   // [Getters]
 
@@ -177,7 +177,7 @@ struct FOG_API ManagedString
     //! @brief Return reference to managed string at index @a i.
     FOG_INLINE const ManagedString& getString(sysuint_t i) const
     {
-      FOG_ASSERT(i < _count);
+      FOG_ASSERT_X(i < _count, "Fog::ManagedString::Cache::getString() - Index out of bounds");
       return ((ManagedString *)_data)[i];
     }
 
@@ -218,7 +218,7 @@ struct FOG_API ManagedString
 
 //! @}
 
-FOG_DECLARE_TYPEINFO(Fog::ManagedString, Fog::MoveableType)
+FOG_DECLARE_TYPEINFO(Fog::ManagedString, Fog::TYPE_INFO_MOVABLE)
 
 // [Guard]
 #endif // _FOG_CORE_MANAGEDSTRING_H

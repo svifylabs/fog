@@ -13,7 +13,6 @@
 
 // [Dependencies]
 #include <Fog/Build/Build.h>
-#include <Fog/Core/Class.h>
 #include <Fog/Core/Object.h>
 #include <Fog/Core/String.h>
 
@@ -26,7 +25,7 @@
 //!
 //! This method is called automatically by @c FOG_CORE_MAIN and
 //! @c FOG_UI_MAIN macros.
-FOG_API void fog_application_initArguments(int argc, char* argv[]);
+FOG_API void fog_arguments_init(int argc, char* argv[]);
 
 namespace Fog {
 
@@ -69,7 +68,7 @@ public:
   // [Application Executable / Arguments]
 
   static String getApplicationExecutable();
-  static Vector<String> getApplicationArguments();
+  static List<String> getApplicationArguments();
 
   // [Working Directory]
 
@@ -86,7 +85,7 @@ public:
   template<typename EventLoopT>
   struct _EventLoopCtorHelper
   {
-    static EventLoop* ctor() { return new EventLoopT(); }
+    static EventLoop* ctor() { return new(std::nothrow) EventLoopT(); }
   };
 
   template<typename EventLoopT>

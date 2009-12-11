@@ -10,8 +10,8 @@
 
 // [Dependencies]
 #include <Fog/Core/Assert.h>
+#include <Fog/Core/Constants.h>
 #include <Fog/Core/Hash.h>
-#include <Fog/Core/Error.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Std.h>
 #include <Fog/Core/String.h>
@@ -105,7 +105,7 @@ void Hash_Abstract::_Iterator::_toBegin()
   if (FOG_UNLIKELY(_hash->isEmpty()))
   {
     _node = NULL;
-    _index = InvalidIndex;
+    _index = INVALID_INDEX;
     return;
   }
 
@@ -150,7 +150,7 @@ void Hash_Abstract::_Iterator::_toNext()
   }
 
   _node = NULL;
-  _index = InvalidIndex;
+  _index = INVALID_INDEX;
 }
 
 Hash_Abstract::Node* Hash_Abstract::_Iterator::_removeCurrent()
@@ -203,7 +203,7 @@ FOG_INIT_DECLARE err_t fog_hash_init(void)
   d->shrinkLength = 0;
   d->buckets[0] = NULL;
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 FOG_INIT_DECLARE void fog_hash_shutdown(void)

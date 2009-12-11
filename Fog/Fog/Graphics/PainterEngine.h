@@ -8,8 +8,9 @@
 #define _FOG_GRAPHICS_PAINTERENGINE_H
 
 // [Dependencies]
+#include <Fog/Core/List.h>
 #include <Fog/Core/String.h>
-#include <Fog/Core/Vector.h>
+#include <Fog/Graphics/Argb.h>
 #include <Fog/Graphics/Matrix.h>
 #include <Fog/Graphics/Font.h>
 #include <Fog/Graphics/Geometry.h>
@@ -17,7 +18,6 @@
 #include <Fog/Graphics/Path.h>
 #include <Fog/Graphics/Pattern.h>
 #include <Fog/Graphics/Region.h>
-#include <Fog/Graphics/Rgba.h>
 
 //! @addtogroup Fog_Graphics
 //! @{
@@ -25,30 +25,12 @@
 namespace Fog {
 
 // ============================================================================
-// [Fog::LineParams]
+// [Forward Declarations]
 // ============================================================================
 
-struct FOG_API LineParams
-{
-  // [Construction / Destruction]
-
-  LineParams();
-  LineParams(const LineParams& other);
-  ~LineParams();
-
-  // [Operator Overload]
-
-  LineParams& operator=(const LineParams& other);
-
-  // [Members]
-
-  double lineWidth;
-  uint32_t lineCap;
-  uint32_t lineJoin;
-  double miterLimit;
-  Vector<double> dashes;
-  double dashOffset;
-};
+struct ColorFilter;
+struct StrokeParams;
+struct ImageFilter;
 
 // ============================================================================
 // [Fog::PainterEngine]
@@ -102,16 +84,23 @@ struct FOG_API PainterEngine
 
   // [Source]
 
-  virtual void setSource(const Rgba& rgba) = 0;
+  virtual void setSource(Argb argb) = 0;
   virtual void setSource(const Pattern& pattern) = 0;
+  virtual void setSource(const ColorFilter& colorFilter) = 0;
 
-  virtual Rgba sourceRgba() = 0;
-  virtual Pattern sourcePattern() = 0;
+  virtual int getSourceType() const = 0;
+  virtual Argb getSourceAsArgb() const = 0;
+  virtual Pattern getSourceAsPattern() const = 0;
 
-  // [Parameters]
+  // [Fill Parameters]
 
-  virtual void setLineParams(const LineParams& params) = 0;
-  virtual void getLineParams(LineParams& params) const = 0;
+  virtual void setFillMode(uint32_t mode) = 0;
+  virtual uint32_t getFillMode() const = 0;
+
+  // [Stroke Parameters]
+
+  virtual void setStrokeParams(const StrokeParams& strokeParams) = 0;
+  virtual void getStrokeParams(StrokeParams& strokeParams) const = 0;
 
   virtual void setLineWidth(double lineWidth) = 0;
   virtual double getLineWidth() const = 0;
@@ -123,17 +112,14 @@ struct FOG_API PainterEngine
   virtual uint32_t getLineJoin() const = 0;
 
   virtual void setDashes(const double* dashes, sysuint_t count) = 0;
-  virtual void setDashes(const Vector<double>& dashes) = 0;
-  virtual Vector<double> getDashes() const = 0;
+  virtual void setDashes(const List<double>& dashes) = 0;
+  virtual List<double> getDashes() const = 0;
 
   virtual void setDashOffset(double offset) = 0;
   virtual double getDashOffset() const = 0;
 
   virtual void setMiterLimit(double miterLimit) = 0;
   virtual double getMiterLimit() const = 0;
-
-  virtual void setFillMode(uint32_t mode) = 0;
-  virtual uint32_t getFillMode() const = 0;
 
   // [Transformations]
 
@@ -204,11 +190,12 @@ struct FOG_API PainterEngine
   // [Image Drawing]
 
   virtual void drawImage(const Point& p, const Image& image, const Rect* irect) = 0;
+  virtual void drawImage(const PointD& p, const Image& image, const Rect* irect) = 0;
 
   // [Multithreading]
 
-  virtual void setEngineMode(int mode, int cores = 0) = 0;
-  virtual int getEngineMode() const = 0;
+  virtual void setEngine(int engine, int cores = 0) = 0;
+  virtual int getEngine() const = 0;
 
   virtual void flush() = 0;
 

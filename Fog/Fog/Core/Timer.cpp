@@ -42,9 +42,7 @@ struct FOG_HIDDEN TimerTask : public Task
       // Repeat?
       if (timer)
       {
-        timer->getThread()->getEventLoop()->postDelayedTask(
-          this,
-          static_cast<int>(timer->_interval.inMilliseconds()));
+        timer->getThread()->getEventLoop()->postTask(this, true, static_cast<int>(timer->_interval.inMilliseconds()));
         _destroyOnFinish = false;
       }
       else
@@ -81,10 +79,8 @@ bool Timer::start()
 {
   stop();
 
-  _task = new TimerTask(this);
-  getThread()->getEventLoop()->postDelayedTask(
-    _task,
-    static_cast<int>(_interval.inMilliseconds()));
+  _task = new(std::nothrow) TimerTask(this);
+  getThread()->getEventLoop()->postTask(_task, true, static_cast<int>(_interval.inMilliseconds()));
   return true;
 }
 

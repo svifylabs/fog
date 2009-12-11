@@ -9,7 +9,7 @@
 #endif // FOG_PRECOMP
 
 // [Dependencies]
-#include <Fog/Core/Error.h>
+#include <Fog/Core/Constants.h>
 #include <Fog/Core/ManagedString.h>
 #include <Fog/Core/Strings.h>
 
@@ -85,16 +85,8 @@ static const char fog_strings_data[] =
   "framesCount\0"
   "progress\0"
   "quality\0"
-
-  // [Graphics - ImageFilter Properties]
-
-  "filterType\0"
-  "blurType\0"
-  "borderMode\0"
-  "borderColor\0"
-  "horizontalRadius\0"
-  "verticalRadius\0"
-  "kernel\0"
+  "compression\0"
+  "skipFileHeader\0"
 
   // [Xml]
 
@@ -172,6 +164,12 @@ static const char fog_strings_data[] =
   "stroke-miterlimit\0"
   "stroke-opacity\0"
   "stroke-width\0"
+
+  // [Platform Specific]
+
+#if defined(FOG_OS_WINDOWS)
+  "USERPROFILE\0"
+#endif // FOG_OS_WINDOWS
 };
 
 FOG_CVAR_DECLARE Fog::ManagedString::Cache* fog_strings;
@@ -193,7 +191,7 @@ FOG_INIT_DECLARE err_t fog_strings_init(void)
     Ascii8("Fog")
   );
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 FOG_INIT_DECLARE void fog_strings_shutdown(void)

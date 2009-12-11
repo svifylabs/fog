@@ -49,7 +49,7 @@ union FOG_HIDDEN CpuId
 //! Small example how to check for SSE2 support.
 //!
 //! @verbatim
-//! if (Fog::cpuInfo->hasFeature(Fog::CpuInfo::Feature_SSE2))
+//! if (Fog::cpuInfo->hasFeature(Fog::CpuInfo::FEATURE_SSE2))
 //! {
 //!   // cpu has SSE2 support
 //! }
@@ -72,80 +72,80 @@ struct FOG_HIDDEN CpuInfo
   uint32_t stepping;
   //! @brief Number of processors or cores.
   uint32_t numberOfProcessors;
-  //! @brief Cpu features bitfield, see @c AsmJit::CpuInfo::Feature enum).
+  //! @brief Cpu features bitfield, see @c AsmJit::CpuInfo::FEATURE enum).
   uint32_t features;
-  //! @brief Cpu bugs bitfield, see @c AsmJit::CpuInfo::Bug enum).
+  //! @brief Cpu bugs bitfield, see @c AsmJit::CpuInfo::BUG enum).
   uint32_t bugs;
 
   //! @brief CPU features.
-  enum Feature
+  enum FEATURE
   {
     // [X86, X64]
 
     //! @brief Cpu has RDTSC instruction.
-    Feature_RDTSC = 1U << 0,
+    FEATURE_RDTSC = 1U << 0,
     //! @brief Cpu has RDTSCP instruction.
-    Feature_RDTSCP = 1U << 1,
+    FEATURE_RDTSCP = 1U << 1,
     //! @brief Cpu has CMOV instruction (conditional move)
-    Feature_CMOV = 1U << 2,
+    FEATURE_CMOV = 1U << 2,
     //! @brief Cpu has CMPXCHG8B instruction
-    Feature_CMPXCHG8B = 1U << 3,
+    FEATURE_CMPXCHG8B = 1U << 3,
     //! @brief Cpu has CMPXCHG16B instruction (64 bit processors)
-    Feature_CMPXCHG16B = 1U << 4,
+    FEATURE_CMPXCHG16B = 1U << 4,
     //! @brief Cpu has CLFUSH instruction
-    Feature_CLFLUSH = 1U << 5,
+    FEATURE_CLFLUSH = 1U << 5,
     //! @brief Cpu has PREFETCH instruction
-    Feature_PREFETCH = 1U << 6,
+    FEATURE_PREFETCH = 1U << 6,
     //! @brief Cpu supports LAHF and SAHF instrictions.
-    Feature_LAHF_SAHF = 1U << 7,
+    FEATURE_LAHF_SAHF = 1U << 7,
     //! @brief Cpu supports FXSAVE and FXRSTOR instructions.
-    Feature_FXSR = 1U << 8,
+    FEATURE_FXSR = 1U << 8,
     //! @brief Cpu supports FXSAVE and FXRSTOR instruction optimizations (FFXSR).
-    Feature_FFXSR = 1U << 9,
+    FEATURE_FFXSR = 1U << 9,
 
     //! @brief Cpu has MMX.
-    Feature_MMX = 1U << 10,
+    FEATURE_MMX = 1U << 10,
     //! @brief Cpu has extended MMX.
-    Feature_MMXExt = 1U << 11,
+    FEATURE_MMXExt = 1U << 11,
     //! @brief Cpu has 3dNow!
-    Feature_3dNow = 1U << 12,
+    FEATURE_3dNow = 1U << 12,
     //! @brief Cpu has enchanced 3dNow!
-    Feature_3dNowExt = 1U << 13,
+    FEATURE_3dNowExt = 1U << 13,
     //! @brief Cpu has SSE.
-    Feature_SSE = 1U << 14,
+    FEATURE_SSE = 1U << 14,
     //! @brief Cpu has Misaligned SSE (MSSE).
-    Feature_MSSE = 1U << 15,
+    FEATURE_MSSE = 1U << 15,
     //! @brief Cpu has SSE2.
-    Feature_SSE2 = 1U << 16,
+    FEATURE_SSE2 = 1U << 16,
     //! @brief Cpu has SSE3.
-    Feature_SSE3 = 1U << 17,
+    FEATURE_SSE3 = 1U << 17,
     //! @brief Cpu has Supplemental SSE3 (SSSE3).
-    Feature_SSSE3 = 1U << 18,
+    FEATURE_SSSE3 = 1U << 18,
     //! @brief Cpu has SSE4.A.
-    Feature_SSE4_A = 1U << 19,
+    FEATURE_SSE4_A = 1U << 19,
     //! @brief Cpu has SSE4.1.
-    Feature_SSE4_1 = 1U << 20,
+    FEATURE_SSE4_1 = 1U << 20,
     //! @brief Cpu has SSE4.2.
-    Feature_SSE4_2 = 1U << 21,
+    FEATURE_SSE4_2 = 1U << 21,
     //! @brief Cpu has SSE5.
-    Feature_SSE5 = 1U << 22,
+    FEATURE_SSE5 = 1U << 22,
     //! @brief Cpu supports MONITOR and MWAIT instructions.
-    Feature_MotitorMWait = 1U << 23,
+    FEATURE_MotitorMWait = 1U << 23,
     //! @brief Cpu supports POPCNT instruction.
-    Feature_POPCNT = 1U << 24,
+    FEATURE_POPCNT = 1U << 24,
     //! @brief Cpu supports LZCNT instruction.
-    Feature_LZCNT  = 1U << 25,
+    FEATURE_LZCNT  = 1U << 25,
     //! @brief Cpu supports multithreading.
-    Feature_MultiThreading = 1U << 29,
+    FEATURE_MultiThreading = 1U << 29,
     //! @brief Cpu supports execute disable bit (execute protection).
-    Feature_ExecuteDisableBit = 1U << 30,
+    FEATURE_ExecuteDisableBit = 1U << 30,
     //! @brief Cpu supports 64 bits.
-    Feature_64Bit = 1U << 31
+    FEATURE_64Bit = 1U << 31
   };
 
-  enum Bug
+  enum BUG
   {
-    Bug_AmdLockMB = 1U << 0
+    BUG_AMD_LOCK_MB = 1U << 0
   };
 
   FOG_INLINE bool hasFeature(uint32_t feature)

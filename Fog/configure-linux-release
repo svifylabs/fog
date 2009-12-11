@@ -1,5 +1,5 @@
 #!/bin/sh
-mkdir build
-cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DFOG_DEBUG=0 -G"Unix Makefiles"
+mkdir Build
+cd Build
+cmake .. -DFOG_BUILD_UISYSTEM_X11=1 -DCMAKE_BUILD_TYPE=Release -G"Unix Makefiles"
 cd ..

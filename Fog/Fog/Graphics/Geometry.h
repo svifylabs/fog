@@ -356,22 +356,22 @@ struct Size
 };
 
 // ============================================================================
-// [Fog::SizeF]
+// [Fog::SizeD]
 // ============================================================================
 
-struct SizeF
+struct SizeD
 {
   // [Construction / Destruction]
 
-  FOG_INLINE SizeF() 
+  FOG_INLINE SizeD()
   {
   }
 
-  FOG_INLINE SizeF(double sw, double sh) : w(sw), h(sh)
+  FOG_INLINE SizeD(double sw, double sh) : w(sw), h(sh)
   {
   }
 
-  FOG_INLINE SizeF(const SizeF& other) : w(other.w), h(other.h)
+  FOG_INLINE SizeD(const SizeD& other) : w(other.w), h(other.h)
   {
   }
 
@@ -380,24 +380,24 @@ struct SizeF
   FOG_INLINE double getWidth() const { return w; }
   FOG_INLINE double getHeight() const { return h; }
 
-  FOG_INLINE SizeF& set(const SizeF& other)
+  FOG_INLINE SizeD& set(const SizeD& other)
   {
     w = other.w;
     h = other.h;
     return *this;
   }
 
-  FOG_INLINE SizeF& set(double sw, double sh)
+  FOG_INLINE SizeD& set(double sw, double sh)
   {
     w = sw;
     h = sh;
     return *this;
   }
 
-  FOG_INLINE SizeF& setWidth(double sw) { w = sw; return *this; }
-  FOG_INLINE SizeF& setHeight(double sh) { h = sh; return *this; }
+  FOG_INLINE SizeD& setWidth(double sw) { w = sw; return *this; }
+  FOG_INLINE SizeD& setHeight(double sh) { h = sh; return *this; }
 
-  FOG_INLINE SizeF& clear()
+  FOG_INLINE SizeD& clear()
   {
     w = 0.0;
     h = 0.0;
@@ -409,7 +409,7 @@ struct SizeF
     return (w > 0.0) & (h > 0.0);
   }
 
-  FOG_INLINE bool eq(const SizeF& other) const
+  FOG_INLINE bool eq(const SizeD& other) const
   {
     return (w == other.w) & (h == other.h);
   }
@@ -419,16 +419,16 @@ struct SizeF
     return (w == sw) & (h == sh);
   }
 
-  FOG_INLINE SizeF& adjust(double sw, double sh)
+  FOG_INLINE SizeD& adjust(double sw, double sh)
   {
     w += sw;
     h += sh;
     return *this;
   }
 
-  FOG_INLINE SizeF adjusted(double sw, double sh) const
+  FOG_INLINE SizeD adjusted(double sw, double sh) const
   {
-    return SizeF(w + sw, h + sh);
+    return SizeD(w + sw, h + sh);
   }
 
   // [Members]
@@ -742,7 +742,7 @@ struct RectD
   FOG_INLINE double getBottom() const { return y + h; }
 
   FOG_INLINE const PointD& getPosition() const { return *(const PointD *)(const void*)(&x); }
-  FOG_INLINE const SizeF& getSize() const { return *(const SizeF *)(const void*)(&w); }
+  FOG_INLINE const SizeD& getSize() const { return *(const SizeD *)(const void*)(&w); }
 
   FOG_INLINE RectD& set(double rx, double ry, double rw, double rh)
   { 
@@ -1216,11 +1216,11 @@ FOG_INLINE bool operator!=(const Fog::Size& a, const Fog::Size& b) { return !a.e
 FOG_INLINE Fog::Size operator+(const Fog::Size& a, const Fog::Size& b) { return Fog::Size(a.w + b.w, a.h + b.h); }
 FOG_INLINE Fog::Size operator-(const Fog::Size& a, const Fog::Size& b) { return Fog::Size(a.w - b.w, a.h - b.h); }
 
-FOG_INLINE bool operator==(const Fog::SizeF& a, const Fog::SizeF& b) { return  a.eq(b); }
-FOG_INLINE bool operator!=(const Fog::SizeF& a, const Fog::SizeF& b) { return !a.eq(b); }
+FOG_INLINE bool operator==(const Fog::SizeD& a, const Fog::SizeD& b) { return  a.eq(b); }
+FOG_INLINE bool operator!=(const Fog::SizeD& a, const Fog::SizeD& b) { return !a.eq(b); }
 
-FOG_INLINE Fog::SizeF operator+(const Fog::SizeF& a, const Fog::SizeF& b) { return Fog::SizeF(a.w + b.w, a.h + b.h); }
-FOG_INLINE Fog::SizeF operator-(const Fog::SizeF& a, const Fog::SizeF& b) { return Fog::SizeF(a.w - b.w, a.h - b.h); }
+FOG_INLINE Fog::SizeD operator+(const Fog::SizeD& a, const Fog::SizeD& b) { return Fog::SizeD(a.w + b.w, a.h + b.h); }
+FOG_INLINE Fog::SizeD operator-(const Fog::SizeD& a, const Fog::SizeD& b) { return Fog::SizeD(a.w - b.w, a.h - b.h); }
 
 FOG_INLINE bool operator==(const Fog::Rect& a, const Fog::Rect& b) { return  a.eq(b); }
 FOG_INLINE bool operator!=(const Fog::Rect& a, const Fog::Rect& b) { return !a.eq(b); }
@@ -1243,13 +1243,13 @@ FOG_INLINE Fog::Box operator-(const Fog::Box& a, const Fog::Point& b) { return F
 //! @}
 
 // [Fog::TypeInfo<>]
-FOG_DECLARE_TYPEINFO(Fog::Point , Fog::PrimitiveType)
-FOG_DECLARE_TYPEINFO(Fog::PointD, Fog::PrimitiveType)
-FOG_DECLARE_TYPEINFO(Fog::Size  , Fog::PrimitiveType)
-FOG_DECLARE_TYPEINFO(Fog::SizeF , Fog::PrimitiveType)
-FOG_DECLARE_TYPEINFO(Fog::Rect  , Fog::PrimitiveType)
-FOG_DECLARE_TYPEINFO(Fog::RectD , Fog::PrimitiveType)
-FOG_DECLARE_TYPEINFO(Fog::Box   , Fog::PrimitiveType)
+FOG_DECLARE_TYPEINFO(Fog::Point , Fog::TYPE_INFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::PointD, Fog::TYPE_INFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::Size  , Fog::TYPE_INFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::SizeD , Fog::TYPE_INFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::Rect  , Fog::TYPE_INFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::RectD , Fog::TYPE_INFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::Box   , Fog::TYPE_INFO_PRIMITIVE)
 
 // [Guard]
 #endif // _FOG_GRAPHICS_GEOMETRY_H

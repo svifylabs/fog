@@ -16,6 +16,17 @@
 #include <Fog/Core/Intrin_SSE.h>
 #include <emmintrin.h>
 
+// New VisualStudio2008 contains _mm_castsi128_ps() and _mm_castps_si128(), for
+// older ones we need to implement these casts ourself.
+#if defined(_MSC_VER) && (_MSC_VER <= 1400)
+// I hope that MSVC is intelligent to optimize this to NOP!
+static FOG_INLINE __m128 _mm_castsi128_ps(__m128i n) { return *(__m128 *)&n; }
+static FOG_INLINE __m128i _mm_castps_si128(__m128 n) { return *(__m128i*)&n; }
+#endif // _MSC_VER
+
+// Our extensions (can't be inline, because MSVC complains about constant expression).
+#define _mm_shuffle_epi32_f(src, imm) _mm_castsi128_ps(_mm_shuffle_epi32(_mm_castps_si128(src), imm));
+
 //! @addtogroup Fog_Core
 //! @{
 

@@ -13,19 +13,19 @@
 
 namespace Fog {
 
-void PainterUtil::draw3dRect(Painter* p, const Rect& r, Rgba color1, Rgba color2, bool checked)
+void PainterUtil::draw3dRect(Painter* p, const Rect& r, Argb color1, Argb color2, bool checked)
 {
   if (!r.isValid()) return;
 
-  double x1 = (double)r.getX1()+.5;
-  double y1 = (double)r.getY1()+.5;
-  double x2 = (double)r.getX2()-.5;
-  double y2 = (double)r.getY2()-.5;
+  double x1 = (double)r.getX1() + 0.5;
+  double y1 = (double)r.getY1() + 0.5;
+  double x2 = (double)r.getX2() - 0.5;
+  double y2 = (double)r.getY2() - 0.5;
 
   p->save();
 
   p->setLineWidth(1.0);
-  p->setLineCap(LineCapSquare);
+  p->setLineCap(LINE_CAP_SQUARE);
 
   p->setSource(checked ? color2 : color1);
   p->drawLine(PointD((double)x1   , (double)y1   ), PointD((double)x2   , (double)y1   ));

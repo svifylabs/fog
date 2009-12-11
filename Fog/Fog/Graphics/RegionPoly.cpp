@@ -4,9 +4,9 @@
 // MIT, See COPYING file in package
 
 // [Precompiled Headers]
-#ifdef FOG_PRECOMP
+#if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
-#endif
+#endif // FOG_PRECOMP
 
 // [Dependencies]
 #include <Fog/Core/Assert.h>
@@ -638,7 +638,7 @@ static err_t ptsToRegion(Region* self,
     self->_d->extents.clear();
 
   self->_d->length = length;
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Region::polygon(const Point* pts, sysuint_t count, uint fillRule)
@@ -664,19 +664,19 @@ err_t Region::polyPolygon(const Point* src, const sysuint_t *count, sysuint_t po
   sysuint_t numFullPtBlocks = 0;
   sysuint_t poly, total;
   bool fixWAET = false;
-  err_t err = Error::Ok;
+  err_t err = ERR_OK;
 
   // Checks.
   if (!count)
   {
     clear();
-    return Error::Ok;
+    return ERR_OK;
   }
 
   if (!src || !polygons) 
   {
     clear();
-    return Error::InvalidArgument;
+    return ERR_RT_INVALID_ARGUMENT;
   }
 
   // Special case - Rectangle
@@ -702,14 +702,14 @@ err_t Region::polyPolygon(const Point* src, const sysuint_t *count, sysuint_t po
   for (poly = total = 0; poly < polygons; poly++) total += count[poly];
 
   pETEs = (EdgeTableEntry *)Memory::alloc(sizeof(EdgeTableEntry) * total);
-  if (!pETEs) { clear(); return Error::OutOfMemory; }
+  if (!pETEs) { clear(); return ERR_RT_OUT_OF_MEMORY; }
 
   pts = firstPtBlock.pts;
   if (!createETandAET(count, polygons, src, &ET, &AET, pETEs, &SLLBlock)) goto outOfMemory;
   pSLL = ET.scanlines.next;
   curPtBlock = &firstPtBlock;
 
-  if (fillRule != FillNonZero)
+  if (fillRule != FILL_NON_ZERO)
   {
     // For each scanline.
     for (y = ET.ymin; y < ET.ymax; y++)
@@ -817,7 +817,7 @@ end:
   return err;
 
 outOfMemory:
-  err = Error::OutOfMemory;
+  err = ERR_RT_OUT_OF_MEMORY;
   goto end;
 }
 

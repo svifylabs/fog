@@ -13,14 +13,13 @@
 #include <Fog/Core/AutoLock.h>
 #include <Fog/Core/ByteArray.h>
 #include <Fog/Core/Constants.h>
-#include <Fog/Core/Error.h>
 #include <Fog/Core/FileSystem.h>
 #include <Fog/Core/Library.h>
+#include <Fog/Core/List.h>
 #include <Fog/Core/Lock.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/String.h>
 #include <Fog/Core/TextCodec.h>
-#include <Fog/Core/Vector.h>
 
 #if defined(FOG_LIBRARY_WINDOWS)
 #include <windows.h>
@@ -43,7 +42,7 @@ namespace Fog {
 struct Library_Local
 {
   Lock lock;
-  Vector<String> paths;
+  List<String> paths;
 };
 
 static Static<Library_Local> library_local;
@@ -55,7 +54,7 @@ static Static<Library_Local> library_local;
 #if defined(FOG_LIBRARY_WINDOWS)
 static err_t platformOpenLibrary(const String& fileName, void** handle)
 {
-  TemporaryString<TemporaryLength> fileNameW;
+  TemporaryString<TEMP_LENGTH> fileNameW;
   err_t err;
 
   if ((err = fileNameW.set(fileName)) ||
@@ -64,11 +63,11 @@ static err_t platformOpenLibrary(const String& fileName, void** handle)
     return err;
   }
 
-  HMODULE hLibrary = ::LoadLibraryW(reinterpret_cast<const wchar_t*>(fileNameW.cData()));
+  HMODULE hLibrary = ::LoadLibraryW(reinterpret_cast<const wchar_t*>(fileNameW.getData()));
   if (!hLibrary) return GetLastError();
 
   *handle = (void*)hLibrary;
-  return Error::Ok;
+  return ERR_OK;
 }
 
 static void platformCloseLibrary(void* handle)
@@ -87,14 +86,14 @@ static void* platformLoadSymbol(void* handle, const char* symbol)
 static err_t platformOpenLibrary(const String& fileName, void** handle)
 {
   err_t err;
-  TemporaryByteArray<TemporaryLength> fileName8;
+  TemporaryByteArray<TEMP_LENGTH> fileName8;
   if ((err = TextCodec::local8().appendFromUnicode(fileName8, fileName))) return err;
 
-  void* h = (void*)::dlopen(fileName8.cData(), RTLD_NOW);
-  if (h == NULL) return Error::LibraryOpenFailed;
+  void* h = (void*)::dlopen(fileName8.getData(), RTLD_NOW);
+  if (h == NULL) return ERR_LIB_LOAD_FAILED;
 
   *handle = h;
-  return Error::Ok;
+  return ERR_OK;
 }
 
 static void platformCloseLibrary(void* handle)
@@ -118,7 +117,7 @@ const char* Library::systemSuffix;
 const char* Library::systemExtension;
 
 Library::Library() :
-  _d(sharedNull->refAlways())
+  _d(sharedNull->ref())
 {
 }
 
@@ -128,7 +127,7 @@ Library::Library(const Library& other) :
 }
 
 Library::Library(const String& fileName, uint32_t openFlags) :
-  _d(sharedNull->refAlways())
+  _d(sharedNull->ref())
 {
   open(fileName, openFlags);
 }
@@ -141,15 +140,15 @@ Library::~Library()
 err_t Library::open(const String& _fileName, uint32_t openFlags)
 {
   err_t err;
-  TemporaryString<TemporaryLength> fileName;
+  TemporaryString<TEMP_LENGTH> fileName;
   
   if ((err = fileName.set(_fileName))) return err;
 
-  if ((openFlags & OpenSystemPrefix) != 0)
+  if ((openFlags & LIBRARY_OPEN_SYSTEM_PREFIX) != 0)
   {
     if ((err = fileName.insert(fileName.lastIndexOf(Char('/')) + 1, Ascii8(systemPrefix)))) return err;
   }
-  if ((openFlags & OpenSystemSuffix) != 0)
+  if ((openFlags & LIBRARY_OPEN_SYSTEM_SUFFIX) != 0)
   {
     if ((err = fileName.append(Ascii8(systemSuffix)))) return err;
   }
@@ -161,19 +160,19 @@ err_t Library::open(const String& _fileName, uint32_t openFlags)
   if (!newd)
   {
     platformCloseLibrary(handle);
-    return Error::OutOfMemory;
+    return ERR_RT_OUT_OF_MEMORY;
   }
   newd->handle = handle;
 
   AtomicBase::ptr_setXchg(&_d, newd)->deref();
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Library::openPlugin(const String& category, const String& fileName)
 {
   err_t err;
-  TemporaryString<TemporaryLength> relative;
-  TemporaryString<TemporaryLength> absolute;
+  TemporaryString<TEMP_LENGTH> relative;
+  TemporaryString<TEMP_LENGTH> absolute;
 
   if ( (err = relative.append(Ascii8(systemPrefix))) ) return err;
   if (!category.isEmpty())
@@ -187,12 +186,12 @@ err_t Library::openPlugin(const String& category, const String& fileName)
   if (FileSystem::findFile(paths(), relative, absolute))
     return open(absolute, 0);
   else
-    return Error::FileNotExists;
+    return ERR_IO_FILE_NOT_EXISTS;
 }
 
 void Library::close()
 {
-  AtomicBase::ptr_setXchg(&_d, sharedNull->refAlways())->deref();
+  AtomicBase::ptr_setXchg(&_d, sharedNull->ref())->deref();
 }
 
 void* Library::getSymbol(const char* symbolName)
@@ -202,9 +201,9 @@ void* Library::getSymbol(const char* symbolName)
 
 void* Library::getSymbol(const String& symbolName)
 {
-  TemporaryByteArray<TemporaryLength> symb8;
+  TemporaryByteArray<TEMP_LENGTH> symb8;
   TextCodec::utf8().fromUnicode(symb8, symbolName);
-  return platformLoadSymbol(_d->handle, symb8.cData());
+  return platformLoadSymbol(_d->handle, symb8.getData());
 }
 
 sysuint_t Library::getSymbols(void** target, const char* symbols, sysuint_t symbolsLength, sysuint_t symbolsCount, char** fail)
@@ -251,19 +250,19 @@ Library& Library::operator=(const Library& other)
 
 // [Paths]
 
-Vector<String> Library::paths()
+List<String> Library::paths()
 {
   AutoLock locked(library_local.instance().lock);
   return library_local.instance().paths;
 }
 
-bool Library::addPath(const String& path, int mode)
+bool Library::addPath(const String& path, int pathMode)
 {
   AutoLock locked(library_local.instance().lock);
   if (path.isEmpty()) return false;
-  if (library_local.instance().paths.indexOf(path) != InvalidIndex) return false;
+  if (library_local.instance().paths.indexOf(path) != INVALID_INDEX) return false;
 
-  if (mode == PathAppend)
+  if (pathMode == PATH_APPEND)
     library_local.instance().paths.append(path);
   else
     library_local.instance().paths.prepend(path);
@@ -279,7 +278,7 @@ bool Library::removePath(const String& path)
 bool Library::hasPath(const String& path)
 {
   AutoLock locked(library_local.instance().lock);
-  return library_local.instance().paths.indexOf(path) != InvalidIndex;
+  return library_local.instance().paths.indexOf(path) != INVALID_INDEX;
 }
 
 // ============================================================================
@@ -287,11 +286,6 @@ bool Library::hasPath(const String& path)
 // ============================================================================
 
 Static<Library::Data> Library::sharedNull;
-
-Library::Data* Library::Data::ref() const
-{
-  return refAlways();
-}
 
 void Library::Data::deref()
 {
@@ -338,7 +332,7 @@ FOG_INIT_DECLARE err_t fog_library_init(void)
 # if defined(FOG_OS_HPUX)
   static const char libraryPrefix[] = "lib";
   static const char librarySuffix[] = ".sl";
-# elif defined(FOG_OS_MACOSX)
+# elif defined(FOG_OS_MAC)
   static const char libraryPrefix[] = "lib";
   static const char librarySuffix[] = ".bundle";
 # else
@@ -361,7 +355,7 @@ FOG_INIT_DECLARE err_t fog_library_init(void)
 #endif // FOG_ARCH_BITS
 #endif // FOG_OS_POSIX
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 FOG_INIT_DECLARE void fog_library_shutdown(void)

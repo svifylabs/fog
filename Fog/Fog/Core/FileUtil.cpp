@@ -11,7 +11,7 @@
 // [Dependencies]
 #include <Fog/Core/Application.h>
 #include <Fog/Core/ByteArray.h>
-#include <Fog/Core/Error.h>
+#include <Fog/Core/Constants.h>
 #include <Fog/Core/FileSystem.h>
 #include <Fog/Core/FileUtil.h>
 #include <Fog/Core/String.h>
@@ -56,7 +56,7 @@ err_t FileUtil::extractFile(String& dst, const String& path)
   if (index)
   {
     String path_(path);
-    return dst.set(path_.cData() + index, path_.getLength() - index);
+    return dst.set(path_.getData() + index, path_.getLength() - index);
   }
   else
   {
@@ -70,15 +70,15 @@ err_t FileUtil::extractDirectory(String& dst, const String& _path)
 
   // in some cases (for example path /root), index can be 0. So check for this
   // case
-  if (index != InvalidIndex)
+  if (index != INVALID_INDEX)
   {
     String path(_path);
-    return dst.set(path.cData(), index != 0 ? index : 1);
+    return dst.set(path.getData(), index != 0 ? index : 1);
   }
   else
   {
     dst.clear();
-    return Error::Ok;
+    return ERR_OK;
   }
 }
 
@@ -88,10 +88,10 @@ err_t FileUtil::extractExtension(String& dst, const String& _path)
   dst.clear();
 
   sysuint_t pathLength = path.getLength();
-  if (!pathLength) { return Error::InvalidArgument; }
+  if (!pathLength) { return ERR_RT_INVALID_ARGUMENT; }
 
   // Speed is important, so RAW manipulation is needed
-  const Char* pathBegin = path.cData();
+  const Char* pathBegin = path.getData();
   const Char* pathEnd = pathBegin + pathLength;
   const Char* pathCur = pathEnd;
 
@@ -110,7 +110,7 @@ err_t FileUtil::extractExtension(String& dst, const String& _path)
     }
   } while (pathCur != pathBegin);
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t FileUtil::normalizePath(String& dst, const String& _path)
@@ -129,10 +129,10 @@ err_t FileUtil::normalizePath(String& dst, const String& _path)
   err_t err;
   if ( (err = dst.resize(pathLength)) ) return err;
 
-  Char* dstBeg = dst.xData();
+  Char* dstBeg = dst.getXData();
   Char* dstCur = dstBeg;
 
-  const Char* pathCur = path.cData();
+  const Char* pathCur = path.getData();
   const Char* pathEnd = pathCur + pathLength;
 
   Char c;
@@ -153,7 +153,7 @@ err_t FileUtil::normalizePath(String& dst, const String& _path)
     dstCur += 2;
     pathCur += 2;
   }
-#endif
+#endif // FOG_OS_WINDOWS
 
   while (pathCur < pathEnd)
   {
@@ -177,7 +177,7 @@ err_t FileUtil::normalizePath(String& dst, const String& _path)
       // Catch "/."
       if (c == Char('.'))
       {
-        register sysuint_t remain = (sysuint_t)(pathEnd - pathCur);
+        sysuint_t remain = (sysuint_t)(pathEnd - pathCur);
 
         // Catch "/./" -> "/"
         if (remain > 0 && isDirSeparator(pathCur[0])) 
@@ -229,12 +229,12 @@ __inc:
     prevSlash = isDirSeparator(c);
 #if defined(FOG_OS_WINDOWS)
     if (c == Char('\\')) c = Char('/');
-#endif
+#endif // FOG_OS_WINDOWS
     *dstCur++ = c;
   }
 
   dst.xFinalize(dstCur);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t FileUtil::toAbsolutePath(String& dst, const String& base, const String& path)
@@ -244,7 +244,7 @@ err_t FileUtil::toAbsolutePath(String& dst, const String& base, const String& pa
     err_t err;
     if (base.isEmpty())
     {
-      TemporaryString<TemporaryLength> working;
+      TemporaryString<TEMP_LENGTH> working;
       if ( (err = Application::getWorkingDirectory(working)) ) return err;
       if ( (err = FileUtil::joinPath(dst, working, path)) ) return err;
     }
@@ -260,8 +260,8 @@ err_t FileUtil::toAbsolutePath(String& dst, const String& base, const String& pa
 
 static err_t _joinPath(String& dst, const String& base, const String& part)
 {
-  const Char* d_str = base.cData();
-  const Char* f_str = part.cData();
+  const Char* d_str = base.getData();
+  const Char* f_str = part.getData();
   sysuint_t d_length = base.getLength();
   sysuint_t f_length = part.getLength();
 
@@ -271,12 +271,12 @@ static err_t _joinPath(String& dst, const String& base, const String& part)
   err_t err;
   if ( (err = dst.resize(d_length + f_length + 1)) ) return err;
 
-  Char* dstCur = dst.xData();
+  Char* dstCur = dst.getXData();
   dstCur = copyAndNorm(dstCur, d_str, d_length); *dstCur++ = '/';
   dstCur = copyAndNorm(dstCur, f_str, f_length);
   dst.xFinalize();
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t FileUtil::joinPath(String& dst, const String& base, const String& part)
@@ -294,12 +294,12 @@ bool FileUtil::isPathContainsFile(const String& path, const String& file, uint c
   sysuint_t length = path.getLength() - index;
 
   return (length == file.getLength() &&
-    StringUtil::eq(path.cData() + index, file.cData(), length, cs));
+    StringUtil::eq(path.getData() + index, file.getData(), length, cs));
 }
 
 bool FileUtil::isPathContainsDirectory(const String& path, const String& directory, uint cs)
 {
-  const Char* d_str = directory.cData();
+  const Char* d_str = directory.getData();
   sysuint_t d_length = directory.getLength();
 
   if (d_length == 0) return false;
@@ -316,7 +316,7 @@ bool FileUtil::isPathContainsExtension(const String& path, const String& extensi
   if (!pathLength) return false;
 
   // Speed is important, so RAW manipulation is needed
-  const Char* pathBegin = path.cData();
+  const Char* pathBegin = path.getData();
   const Char* pathEnd = pathBegin + pathLength;
   const Char* pathCur = pathEnd;
 
@@ -325,7 +325,7 @@ bool FileUtil::isPathContainsExtension(const String& path, const String& extensi
     {
       pathCur++;
       return ((sysuint_t)(pathEnd - pathCur) == extension.getLength() &&
-        StringUtil::eq(pathCur, extension.cData(), extension.getLength(), cs));
+        StringUtil::eq(pathCur, extension.getData(), extension.getLength(), cs));
     }
     else if (FOG_UNLIKELY(isDirSeparator(*pathCur)))
     {
@@ -340,7 +340,7 @@ bool FileUtil::isNormalizedPath(const String& path)
   if (!FileUtil::isAbsolutePath(path)) return false;
 
 #if defined(FOG_OS_WINDOWS)
-  const Char* pathBegin = path.cData();
+  const Char* pathBegin = path.getData();
   const Char* pathCur = pathBegin;
   const Char* pathEnd = pathBegin + path.getLength();
 
@@ -373,7 +373,7 @@ bool FileUtil::isNormalizedPath(const String& path)
   }
   return true;
 #else
-  const Char* pathBegin = path.cData();
+  const Char* pathBegin = path.getData();
   const Char* pathCur = pathBegin;
   const Char* pathEnd = pathBegin + path.getLength();
 
@@ -413,7 +413,7 @@ bool FileUtil::isAbsolutePath(const String& path)
   // We can accept that "[A-Za-z]:/" as absolute path
   if (path.getLength() > 2)
   {
-    const Char* pathStr = path.cData();
+    const Char* pathStr = path.getData();
     return (pathStr[0].isAsciiAlpha() &&
       pathStr[1] == Char(':') &&
       isDirSeparator(pathStr[2]));
@@ -432,8 +432,8 @@ bool FileUtil::testLocalName(const String& path)
 #else
   if (TextCodec::local8().isUnicode()) return true;
 
-  TemporaryByteArray<TemporaryLength> path8;
-  return TextCodec::local8().appendFromUnicode(path8, path) == Error::Ok;
+  TemporaryByteArray<TEMP_LENGTH> path8;
+  return TextCodec::local8().appendFromUnicode(path8, path) == ERR_OK;
 #endif
 }
 

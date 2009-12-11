@@ -4,7 +4,7 @@
 // MIT, See COPYING file in package
 
 // [Precompiled Headers]
-#ifdef FOG_PRECOMP
+#if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif
 
@@ -13,13 +13,13 @@
 #include <Fog/Core/Byte.h>
 #include <Fog/Core/Char.h>
 #include <Fog/Core/Hash.h>
+#include <Fog/Core/List.h>
 #include <Fog/Core/MapFile.h>
 #include <Fog/Core/Stream.h>
 #include <Fog/Core/String.h>
 #include <Fog/Core/StringUtil.h>
 #include <Fog/Core/TextCodec.h>
-#include <Fog/Core/Vector.h>
-#include <Fog/Xml/Error.h>
+#include <Fog/Xml/Constants.h>
 #include <Fog/Xml/XmlDom.h>
 #include <Fog/Xml/XmlEntity.h>
 #include <Fog/Xml/XmlReader.h>
@@ -55,7 +55,7 @@ XmlReader::~XmlReader()
 err_t XmlReader::parseFile(const String& fileName)
 {
   Stream stream;
-  err_t err = stream.openFile(fileName, Stream::OpenRead);
+  err_t err = stream.openFile(fileName, STREAM_OPEN_READ);
   if (err) return err;
 
   return parseStream(stream);
@@ -65,7 +65,7 @@ err_t XmlReader::parseStream(Stream& stream)
 {
   ByteArray buffer;
   stream.readAll(buffer);
-  return parseMemory(reinterpret_cast<const void*>(buffer.cData()), buffer.getLength());
+  return parseMemory(reinterpret_cast<const void*>(buffer.getData()), buffer.getLength());
 }
 
 err_t XmlReader::parseMemory(const void* mem, sysuint_t size)
@@ -77,14 +77,14 @@ err_t XmlReader::parseMemory(const void* mem, sysuint_t size)
   err_t err = textCodec.toUnicode(buffer, mem, size);
   if (err) return err;
 
-  return parseString(buffer.cData(), buffer.getLength());
+  return parseString(buffer.getData(), buffer.getLength());
 }
 
 err_t XmlReader::parseString(const Char* s, sysuint_t len)
 {
   // Check if encoded length is zero (no document).
-  if (len == DetectLength) len = StringUtil::len(s);
-  if (len == 0) return Error::XmlReaderNoDocument;
+  if (len == DETECT_LENGTH) len = StringUtil::len(s);
+  if (len == 0) return ERR_XML_NO_DOCUMENT;
 
   const Char* strCur = s;           // Parsing buffer.
   const Char* strEnd = s + len;     // End of buffer.
@@ -103,7 +103,7 @@ err_t XmlReader::parseString(const Char* s, sysuint_t len)
   Char ch;                          // Current character.
   Char attr;                        // Attribute marker (' or ").
 
-  err_t err = Error::Ok;              // Current error code.
+  err_t err = ERR_OK;              // Current error code.
   int state = StateReady;             // Current state.
   int element = ElementTag;           // Element type.
   int depth = 0;                      // Current depth.
@@ -116,7 +116,7 @@ err_t XmlReader::parseString(const Char* s, sysuint_t len)
   String tempText;
   String tempData;
 
-  Vector<String> doctype;
+  List<String> doctype;
 
   for (;;)
   {
@@ -176,7 +176,7 @@ cont:
         if (ch.isSpace()) break;
 
         // Syntax Error
-        err = Error::XmlReaderSyntaxError;
+        err = ERR_XML_SYNTAX_ERROR;
         goto end;
 
       case StateTagName:
@@ -228,7 +228,7 @@ cont:
             break;
         }
 
-        err = Error::XmlReaderSyntaxError;
+        err = ERR_XML_SYNTAX_ERROR;
         goto end;
 
       case StateTagInsideAttrName:
@@ -243,7 +243,7 @@ cont:
           ch = *strCur;
         }
 
-        if (ch != Char('=')) { err = Error::XmlReaderSyntaxError; goto end; }
+        if (ch != Char('=')) { err = ERR_XML_SYNTAX_ERROR; goto end; }
 
         if (++strCur == strEnd) goto endOfInput;
         ch = *strCur;
@@ -264,7 +264,7 @@ cont:
         }
         else
         {
-          err = Error::XmlReaderSyntaxError;
+          err = ERR_XML_SYNTAX_ERROR;
           goto end;
         }
 
@@ -313,7 +313,7 @@ tagEnd:
           break;
         }
 
-        err = Error::XmlReaderSyntaxError;
+        err = ERR_XML_SYNTAX_ERROR;
         goto end;
 
       case StateTagCloseName:
@@ -342,11 +342,11 @@ tagEnd:
         if (ch.isSpace()) break;
 
         // Syntax Error.
-        err = Error::XmlReaderSyntaxError;
+        err = ERR_XML_SYNTAX_ERROR;
         goto end;
 
       case StateTagQuestionMark:
-        if ((sysuint_t)(strEnd - strCur) > 3 && StringUtil::eq(strCur, "xml", 3, CaseInsensitive) && strCur[3].isSpace())
+        if ((sysuint_t)(strEnd - strCur) > 3 && StringUtil::eq(strCur, "xml", 3, CASE_INSENSITIVE) && strCur[3].isSpace())
         {
           element = ElementXML;
           state = StateTagInside;
@@ -361,13 +361,13 @@ tagEnd:
         break;
 
       case StateTagExclamationMark:
-        if ((sysuint_t)(strEnd - strCur) > 1 && StringUtil::eq(strCur, "--", 2, CaseSensitive))
+        if ((sysuint_t)(strEnd - strCur) > 1 && StringUtil::eq(strCur, "--", 2, CASE_SENSITIVE))
         {
           state = StateComment;
           strCur += 3;
           goto begin;
         }
-        else if ((sysuint_t)(strEnd - strCur) > 7 && StringUtil::eq(strCur, "DOCTYPE", 7, CaseInsensitive) && strCur[7].isSpace())
+        else if ((sysuint_t)(strEnd - strCur) > 7 && StringUtil::eq(strCur, "DOCTYPE", 7, CASE_INSENSITIVE) && strCur[7].isSpace())
         {
           element = ElementDOCTYPE;
           state = StateDOCTYPE;
@@ -377,7 +377,7 @@ tagEnd:
         }
         else
         {
-          err = Error::XmlReaderSyntaxError;
+          err = ERR_XML_SYNTAX_ERROR;
           goto end;
         }
 
@@ -408,7 +408,7 @@ tagEnd:
             }
             else
             {
-              err = Error::XmlReaderSyntaxError;
+              err = ERR_XML_SYNTAX_ERROR;
               goto end;
             }
           }
@@ -422,7 +422,7 @@ doctypeEnd:
           }
         }
 
-        err = Error::XmlReaderSyntaxError;
+        err = ERR_XML_SYNTAX_ERROR;
         break;
 
       case StateDOCTYPEText:
@@ -452,7 +452,7 @@ doctypeEnd:
 
         if (strCur == q)
         {
-          err = Error::XmlReaderSyntaxError;
+          err = ERR_XML_SYNTAX_ERROR;
           goto end;
         }
         else
@@ -481,7 +481,7 @@ doctypeEnd:
 
         if (strCur == q)
         {
-          err = Error::XmlReaderSyntaxError;
+          err = ERR_XML_SYNTAX_ERROR;
           goto end;
         }
         else
@@ -510,7 +510,7 @@ doctypeEnd:
 
         if (strCur == q)
         {
-          err = Error::XmlReaderSyntaxError;
+          err = ERR_XML_SYNTAX_ERROR;
           goto end;
         }
         else
@@ -529,7 +529,7 @@ doctypeEnd:
       }
 
       default:
-        err = Error::XmlReaderUnknown;
+        err = ERR_XML_INTERNAL;
         goto end;
     }
 
@@ -539,7 +539,7 @@ doctypeEnd:
 endOfInput:
   if (depth > 0 || state != StateReady)
   {
-    err = Error::XmlReaderSyntaxError;
+    err = ERR_XML_SYNTAX_ERROR;
   }
 
 end:
@@ -573,7 +573,7 @@ TextCodec XmlReader::_detectEncoding(const void* mem, sysuint_t size)
       while(ptr + 9 < end)
       {
         if (*ptr == '>') goto end;
-        if (Byte::isSpace(*ptr) && StringUtil::eq(ptr + 1, "encoding", 8, CaseInsensitive))
+        if (Byte::isSpace(*ptr) && StringUtil::eq(ptr + 1, "encoding", 8, CASE_INSENSITIVE))
         {
           // We are in "<?xml ..... encoding".
           const char* begin;
@@ -633,7 +633,7 @@ XmlDomReader::~XmlDomReader()
 err_t XmlDomReader::onAddElement(const Utf16& tagName)
 {
   XmlElement* e = _document->createElement(ManagedString(tagName));
-  if (!e) return Error::OutOfMemory;
+  if (!e) return ERR_RT_OUT_OF_MEMORY;
 
   err_t err = _current->appendChild(e);
   if (err)
@@ -644,7 +644,7 @@ err_t XmlDomReader::onAddElement(const Utf16& tagName)
   else
   {
     _current = e;
-    return Error::Ok;
+    return ERR_OK;
   }
 }
 
@@ -653,11 +653,11 @@ err_t XmlDomReader::onCloseElement(const Utf16& tagName)
   if (_current != _document)
   {
     _current = _current->getParent();
-    return Error::Ok;
+    return ERR_OK;
   }
   else
   {
-    return Error::XmlDomInvalidClosingTag;
+    return ERR_XML_INVALID_CLOSING_TAG;
   }
 }
 
@@ -671,13 +671,13 @@ err_t XmlDomReader::onAddText(const Utf16& data, bool isWhiteSpace)
   if (_current == _document)
   {
     if (isWhiteSpace)
-      return Error::Ok;
+      return ERR_OK;
     else
-      return Error::XmlReaderSyntaxError;
+      return ERR_XML_SYNTAX_ERROR;
   }
 
   XmlElement* e = new(std::nothrow) XmlText(String(data));
-  if (!e) return Error::OutOfMemory;
+  if (!e) return ERR_RT_OUT_OF_MEMORY;
 
   err_t err = _current->appendChild(e);
   if (err) delete e;
@@ -686,30 +686,30 @@ err_t XmlDomReader::onAddText(const Utf16& data, bool isWhiteSpace)
 
 err_t XmlDomReader::onAddCDATA(const Utf16& data)
 {
-  if (_current == _document) return Error::XmlDomDocumentInvalidChild;
+  if (_current == _document) return ERR_XML_DOCUMENT_INVALID_CHILD;
 
   XmlElement* e = new(std::nothrow) XmlCDATA(String(data));
-  if (!e) return Error::OutOfMemory;
+  if (!e) return ERR_RT_OUT_OF_MEMORY;
 
   err_t err = _current->appendChild(e);
   if (err) delete e;
   return err;
 }
 
-err_t XmlDomReader::onAddDOCTYPE(const Vector<String>& doctype)
+err_t XmlDomReader::onAddDOCTYPE(const List<String>& doctype)
 {
-  if (_current != _document) return Error::XmlDomDocumentInvalidChild;
+  if (_current != _document) return ERR_XML_DOCUMENT_INVALID_CHILD;
 
   // XML TODO:
   // return _document->setDOCTYPE(doctype);
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t XmlDomReader::onAddPI(const Utf16& data)
 {
   XmlElement* e = new(std::nothrow) XmlPI(String(data));
-  if (!e) return Error::OutOfMemory;
+  if (!e) return ERR_RT_OUT_OF_MEMORY;
 
   err_t err = _current->appendChild(e);
   if (err) delete e;
@@ -719,7 +719,7 @@ err_t XmlDomReader::onAddPI(const Utf16& data)
 err_t XmlDomReader::onAddComment(const Utf16& data)
 {
   XmlElement* e = new(std::nothrow) XmlComment(String(data));
-  if (!e) return Error::OutOfMemory;
+  if (!e) return ERR_RT_OUT_OF_MEMORY;
 
   err_t err = _current->appendChild(e);
   if (err) delete e;

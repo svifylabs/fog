@@ -44,9 +44,9 @@ struct FOG_API Timer : public Object
 
   virtual void onTimer(TimerEvent* e);
 
-  fog_event_begin()
-    fog_event(EvTimer, onTimer, TimerEvent, Override)
-  fog_event_end()
+  FOG_EVENT_BEGIN()
+    FOG_EVENT_DEF(EV_TIMER, onTimer, TimerEvent, OVERRIDE)
+  FOG_EVENT_END()
 
 protected:
   Task* _task;

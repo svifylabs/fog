@@ -43,8 +43,6 @@ struct FOG_API Locale
 
   struct FOG_API Data
   {
-    enum { N = 10 };
-
     // [Construction / Destruction]
 
     Data();
@@ -53,41 +51,19 @@ struct FOG_API Locale
 
     // [Ref / Deref]
 
-    Data* ref() const;
-    void deref();
-
-    FOG_INLINE Data* refAlways() const
+    FOG_INLINE Data* ref() const
     {
       refCount.inc();
       return const_cast<Data*>(this);
     }
 
-    static Data* copy(Data* d);
+    void deref();
 
     // [Members]
 
     mutable Atomic<sysuint_t> refCount;
-
     String name;
-
-    union
-    {
-      uint32_t data[N];
-
-      struct
-      {
-        uint32_t decimalPoint;
-        uint32_t thousandsGroup;
-        uint32_t zero;
-        uint32_t plus;
-        uint32_t minus;
-        uint32_t space;
-        uint32_t exponential;
-        uint32_t firstThousandsGroup;
-        uint32_t nextThousandsGroup;
-        uint32_t reserved;
-      };
-    };
+    uint32_t data[LOCALE_CHAR_INVALID];
   };
 
 
@@ -95,9 +71,9 @@ struct FOG_API Locale
   static Static<Data> sharedPosix;
   static Static<Data> sharedUser;
 
-  static Data* sharedNullObj;
-  static Data* sharedPosixObj;
-  static Data* sharedUserObj;
+  static Locale* sharedNullLocale;
+  static Locale* sharedPosixLocale;
+  static Locale* sharedUserLocale;
 
   // [Construction / Destruction]
 
@@ -114,7 +90,7 @@ struct FOG_API Locale
   //! @copydoc Doxygen::Implicit::isDetached().
   FOG_INLINE bool isDetached() const { return _d->refCount.get() == 1; }
   //! @copydoc Doxygen::Implicit::detach().
-  FOG_INLINE err_t detach() { return (!isDetached()) ? _detach() : Error::Ok; }
+  FOG_INLINE err_t detach() { return (!isDetached()) ? _detach() : ERR_OK; }
   //! @copydoc Doxygen::Implicit::_detach().
   err_t _detach();
   //! @copydoc Doxygen::Implicit::free().
@@ -122,92 +98,39 @@ struct FOG_API Locale
   
   // [Flags]
 
-  FOG_INLINE bool isNull()
-  { return _d == sharedNull.instancep(); }
+  FOG_INLINE bool isNull() const { return _d == sharedNull.instancep(); }
 
   // [Set]
 
   bool set(const String& name);
   bool set(const Locale& other);
 
-  // [Data Getters]
+  // [Getters / Setters]
 
-  FOG_INLINE Char getDecimalPoint() const
-  { return Char(_d->decimalPoint); }
-  
-  FOG_INLINE Char getThousandsGroup() const
-  { return Char(_d->thousandsGroup); }
-  
-  FOG_INLINE Char getZero() const
-  { return Char(_d->zero); }
-  
-  FOG_INLINE Char getPlus() const
-  { return Char(_d->plus); }
-  
-  FOG_INLINE Char getMinus() const
-  { return Char(_d->minus); }
-  
-  FOG_INLINE Char getSpace() const
-  { return Char(_d->space); }
+  FOG_INLINE Char getChar(int id) const
+  {
+    FOG_ASSERT_X((uint)id < LOCALE_CHAR_INVALID, "Fog::Locale::getChar() - Id out of range");
+    return Char(_d->data[id]);
+  }
 
-  FOG_INLINE Char getExponential() const
-  { return Char(_d->exponential); }
-  
-  FOG_INLINE uint32_t getFirstThousandsGroup() const
-  { return _d->firstThousandsGroup; }
-  
-  FOG_INLINE uint32_t getNextThousandsGroup() const
-  { return _d->nextThousandsGroup; }
+  FOG_INLINE uint32_t getValue(int id) const
+  {
+    FOG_ASSERT_X((uint)id < LOCALE_CHAR_INVALID, "Fog::Locale::getValue() - Id out of range");
+    return _d->data[id];
+  }
 
-  // [Data Setters]
-
-  FOG_INLINE err_t setDecimalPoint(Char c)
-  { return _setChar(0, c.ch()); }
-  
-  FOG_INLINE err_t setThousandsGroup(Char c)
-  { return _setChar(1, c.ch()); }
-  
-  FOG_INLINE err_t setZero(Char c)
-  { return _setChar(2, c.ch()); }
-  
-  FOG_INLINE err_t setPlus(Char c)
-  { return _setChar(3, c.ch()); }
-  
-  FOG_INLINE err_t setMinus(Char c)
-  { return _setChar(4, c.ch()); }
-  
-  FOG_INLINE err_t setSpace(Char c)
-  { return _setChar(5, c.ch()); }
-
-  FOG_INLINE err_t setExponential(Char c)
-  { return _setChar(6, c.ch()); }
-  
-  FOG_INLINE err_t setFirstThousandsGroup(uint32_t i)
-  { return _setChar(7, i); }
-  
-  FOG_INLINE err_t setNextThousandsGroup(uint32_t i)
-  { return _setChar(8, i); }
+  err_t setValue(int id, uint32_t value);
 
   // [Operator Overload]
 
-  FOG_INLINE Locale& operator=(const Locale& other)
-  { set(other); return *this; }
+  FOG_INLINE Locale& operator=(const Locale& other) { set(other); return *this; }
 
   // [Statics]
 
-  static FOG_INLINE const Locale& null()
-  { return *((Fog::Locale*)&sharedNullObj); }
+  static FOG_INLINE const Locale& null() { return *sharedNullLocale; }
+  static FOG_INLINE const Locale& posix() { return *sharedPosixLocale; }
+  static FOG_INLINE const Locale& user() { return *sharedUserLocale; }
 
-  static FOG_INLINE const Locale& posix()
-  { return *((Fog::Locale*)&sharedPosixObj); }
-  
-  static FOG_INLINE const Locale& user()
-  { return *((Fog::Locale*)&sharedUserObj); }
-
-private:
-  err_t _setChar(sysuint_t index, uint32_t uc);
-
-public:
   // [Members]
 
   FOG_DECLARE_D(Data)
@@ -221,7 +144,7 @@ public:
 // [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::Locale, Fog::MoveableType)
+FOG_DECLARE_TYPEINFO(Fog::Locale, Fog::TYPE_INFO_MOVABLE)
 
 // [Guard]
 #endif // _FOG_CORE_LOCALE_H

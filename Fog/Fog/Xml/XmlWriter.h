@@ -12,6 +12,7 @@
 #include <Fog/Core/String.h>
 #include <Fog/Core/Stream.h>
 #include <Fog/Core/TextCodec.h>
+#include <Fog/Xml/Constants.h>
 
 //! @addtogroup Fog_Xml
 //! @{

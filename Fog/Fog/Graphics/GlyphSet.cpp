@@ -4,9 +4,9 @@
 // MIT, See COPYING file in package
 
 // [Precompiled Headers]
-#ifdef FOG_PRECOMP
+#if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
-#endif
+#endif // FOG_PRECOMP
 
 // [Dependencies]
 #include <Fog/Core/Atomic.h>
@@ -20,7 +20,7 @@ namespace Fog {
 // [Statics]
 // ============================================================================
 
-static void copyGlyphs(Glyph* dst, Glyph* src, sysuint_t count)
+static void copyGlyphs(Glyph* dst, const Glyph* src, sysuint_t count)
 {
   for (sysuint_t i = 0; i < count; i++)
     dst[i]._d = src[i]._d->ref();
@@ -80,7 +80,7 @@ err_t GlyphSet::reserve(sysuint_t capacity)
   if (_d->refCount.get() > 1)
   {
     Data* newd = Data::alloc(capacity);
-    if (!newd) return Error::OutOfMemory;
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
     newd->length = _d->length;
     newd->extents = _d->extents;
@@ -88,17 +88,17 @@ err_t GlyphSet::reserve(sysuint_t capacity)
     copyGlyphs(newd->glyphs(), _d->glyphs(), _d->length);
 
     AtomicBase::ptr_setXchg(&_d, newd)->deref();
-    return Error::Ok;
+    return ERR_OK;
   }
   else
   {
     if (_d->capacity < capacity)
     {
       Data* newd = Data::realloc(_d, capacity);
-      if (!newd) return Error::OutOfMemory;
+      if (!newd) return ERR_RT_OUT_OF_MEMORY;
       _d = newd;
     }
-    return Error::Ok;
+    return ERR_OK;
   }
 }
 
@@ -113,7 +113,7 @@ err_t GlyphSet::grow(sysuint_t by)
       Std::calcOptimalCapacity(sizeof(Data), sizeof(Glyph), before, after);
 
     Data* newd = Data::alloc(optimalCapacity);
-    if (!newd) return Error::OutOfMemory;
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
     newd->length = _d->length;
     newd->extents = _d->extents;
@@ -121,7 +121,7 @@ err_t GlyphSet::grow(sysuint_t by)
     copyGlyphs(newd->glyphs(), _d->glyphs(), _d->length);
 
     AtomicBase::ptr_setXchg(&_d, newd)->deref();
-    return Error::Ok;
+    return ERR_OK;
   }
   else if (_d->capacity < after)
   {
@@ -129,12 +129,12 @@ err_t GlyphSet::grow(sysuint_t by)
       Std::calcOptimalCapacity(sizeof(Data), sizeof(Glyph), before, after);
 
     Data* newd = Data::realloc(_d, optimalCapacity);
-    if (!newd) return Error::OutOfMemory;
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
     _d = newd;
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t GlyphSet::begin(sysuint_t howMuch)
@@ -177,7 +177,7 @@ err_t GlyphSet::end()
   _d->extents.set(x1, y1, x2 - x1, y2 - y1);
   _d->advance = advanceX;
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 GlyphSet& GlyphSet::operator=(const GlyphSet& other)
@@ -249,7 +249,7 @@ GlyphSet::Data* GlyphSet::Data::realloc(Data* d, sysuint_t capacity)
   return newd;
 }
 
-GlyphSet::Data* GlyphSet::Data::copy(Data* d)
+GlyphSet::Data* GlyphSet::Data::copy(const Data* d)
 {
   if (d->length == 0) return sharedNull->refAlways();
 
@@ -281,13 +281,13 @@ FOG_INIT_DECLARE err_t fog_glyphset_init(void)
 
   GlyphSet::Data* d = GlyphSet::sharedNull.instancep();
   d->refCount.init(1);
-  d->flags = GlyphSet::Data::IsNull | GlyphSet::Data::IsSharable;
+  d->flags = GlyphSet::Data::IsSharable;
   d->capacity = 0;
   d->length = 0;
   d->extents.set(0, 0, 0, 0);
   memset(d->data, 0, sizeof(d->data));
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 FOG_INIT_DECLARE void fog_glyphset_shutdown(void)

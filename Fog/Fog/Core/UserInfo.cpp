@@ -10,9 +10,13 @@
 
 // [Dependencies]
 #include <Fog/Core/Assert.h>
+#include <Fog/Core/Byte.h>
+#include <Fog/Core/Constants.h>
+#include <Fog/Core/MapFile.h>
 #include <Fog/Core/Misc.h>
 #include <Fog/Core/OS.h>
 #include <Fog/Core/String.h>
+#include <Fog/Core/Strings.h>
 #include <Fog/Core/TextCodec.h>
 #include <Fog/Core/UserInfo.h>
 
@@ -28,187 +32,68 @@
 
 namespace Fog {
 
-static bool homeDirectory(String& to);
+static err_t getHomeDirectory(String& dst);
 
-#if defined(FOG_OS_POSIX)
+#if defined(FOG_OS_WINDOWS)
 
-// TODO: Caching?
-static bool xdgLookupDirWithFallback(const char *type, const String& fallback, String& result)
+static const char* winDirectoryNames[] =
 {
-  FILE *file;
-  char *home_dir, *config_home, *config_file;
-  char buffer[512];
-  char *user_dir;
-  char *p, *d;
-  int len;
-  int relative;
-  
-  home_dir = getenv("HOME");
-
-  if (home_dir == NULL)
-     goto error;
-
-  config_home = getenv ("XDG_CONFIG_HOME");
-  if (config_home == NULL || config_home[0] == 0)
-  {
-    config_file = (char*)malloc (strlen (home_dir) + strlen ("/.config/user-dirs.dirs") + 1);
-    strcpy (config_file, home_dir);
-    strcat (config_file, "/.config/user-dirs.dirs");
-  }
-  else
-  {
-    config_file = (char*)malloc (strlen (config_home) + strlen ("/user-dirs.dirs") + 1);
-    strcpy (config_file, config_home);
-    strcat (config_file, "/user-dirs.dirs");
-  }
-
-  file = fopen (config_file, "r");
-  free (config_file);
-  if (file == NULL)
-    goto error;
-
-  user_dir = NULL;
-  while (fgets (buffer, sizeof (buffer), file))
-  {
-    /* Remove newline at end */
-    len = strlen (buffer);
-    if (len > 0 && buffer[len-1] == '\n')
-    buffer[len-1] = 0;
-    
-    p = buffer;
-    while (*p == ' ' || *p == '\t')
-      p++;
-      
-    if (strncmp (p, "XDG_", 4) != 0)
-      continue;
-    p += 4;
-    if (strncmp (p, type, strlen (type)) != 0)
-      continue;
-    p += strlen (type);
-    if (strncmp (p, "_DIR", 4) != 0)
-      continue;
-    p += 4;
-
-    while (*p == ' ' || *p == '\t')
-      p++;
-
-    if (*p != '=')
-      continue;
-    p++;
-      
-    while (*p == ' ' || *p == '\t')
-      p++;
-
-    if (*p != '"')
-      continue;
-    p++;
-      
-    relative = 0;
-    if (strncmp (p, "$HOME/", 6) == 0)
-    {
-      p += 6;
-      relative = 1;
-    }
-    else if (*p != '/')
-    {
-      continue;
-    }
-      
-    if (relative)
-    {
-      user_dir = (char*)malloc (strlen (home_dir) + 1 + strlen (p) + 1);
-      strcpy (user_dir, home_dir);
-      strcat (user_dir, "/");
-    }
-    else
-    {
-      user_dir = (char*)malloc (strlen (p) + 1);
-      *user_dir = 0;
-    }
-      
-    d = user_dir + strlen (user_dir);
-    while (*p && *p != '"')
-    {
-      if ((*p == '\\') && (*(p+1) != 0))
-        p++;
-      *d++ = *p++;
-    }
-    *d = 0;
-  }  
-  fclose (file);
-
-  if (user_dir)
-  {
-    TextCodec::local8().toUnicode(result, user_dir);
-    free(user_dir);
-    return true;
-  }
-
-error:
-  result = fallback;
-  return false;
-}
-
-static bool xdgLookupDir(const char *type, String& result)
-{
-  if (!xdgLookupDirWithFallback(type, UserInfo::directory(UserInfo::Home), result))
-  {
-    if (strcmp(type, "DESKTOP") == 0)
-    {
-      result.append(Ascii8("/Desktop"));
-    }
-    return false;
-  }
-  else
-    return true;
-}
-
-#elif defined(FOG_OS_WINDOWS)
+  "",
+  "Desktop",
+  "Personal",
+  "My Music",
+  "My Pictures",
+  "My Video"
+};
 
 // TODO: Update to WChar.
 // fixed: documents, music and videos returns as home directory
-static bool registryLookupDir(const char *type, String& to)
+static err_t registryLookupDir(String& dst, int id)
 {
+  FOG_ASSERT(id != 0 && (uint)id < FOG_ARRAY_SIZE(winDirectoryNames));
+  FOG_ASSERT(dst.isEmpty()); // Dst should be clear.
+
   HKEY k;
   DWORD d = 0, v_type, size;
   const char *reg_path;
   bool tryShellFolders = true;
 
-  MemoryBuffer<1024> bufStorage;
-  MemoryBuffer<1024> expandedStorage;
+  LocalBuffer<1024> bufStorage;
+  LocalBuffer<1024> expandedStorage;
 
   char* buf;
   char* expanded;
-  
-  homeDirectory(to);
 
+  getHomeDirectory(dst);
+
+  const char* type = winDirectoryNames[id];
   reg_path = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders";
-  
-_back:    
-  if (RegCreateKeyExA( HKEY_CURRENT_USER, reg_path,
+
+_back:
+  if (RegCreateKeyExA(HKEY_CURRENT_USER, reg_path,
       0, NULL, REG_OPTION_NON_VOLATILE, KEY_SET_VALUE | KEY_CREATE_SUB_KEY | KEY_ENUMERATE_SUB_KEYS | KEY_EXECUTE |
-      KEY_QUERY_VALUE, NULL, &k, &d ) != ERROR_SUCCESS )
+      KEY_QUERY_VALUE, NULL, &k, &d ) != ERROR_SUCCESS)
   {
     return false;
   }
-  
-  if (RegQueryValueExA( k, type, NULL, &v_type, NULL, &size ) == ERROR_SUCCESS && size != 0 && (v_type == REG_SZ || v_type == REG_EXPAND_SZ ) )
+
+  if (RegQueryValueExA(k, type, NULL, &v_type, NULL, &size ) == ERROR_SUCCESS && size != 0 && (v_type == REG_SZ || v_type == REG_EXPAND_SZ))
   {
     buf = (char*)bufStorage.alloc((sysuint_t)size);
-    RegQueryValueExA( k, type, NULL, NULL, (LPBYTE)buf, &size );
-    if( *buf )
+    RegQueryValueExA(k, type, NULL, NULL, (LPBYTE)buf, &size);
+    if (*buf)
     {
-      TextCodec::local8().toUnicode(to, buf);
-      if( v_type == REG_EXPAND_SZ )
+      TextCodec::local8().toUnicode(dst, buf);
+      if (v_type == REG_EXPAND_SZ)
       {
-        size = ExpandEnvironmentStringsA( buf, NULL, 0 );
-        if( size )
+        size = ExpandEnvironmentStringsA(buf, NULL, 0);
+        if (size)
         {
           size += 2;
           expanded = (char*)expandedStorage.alloc(size);
 
           ExpandEnvironmentStringsA(buf, expanded, size);
-          if (expanded[0]) TextCodec::local8().toUnicode(to, expanded);
+          if (expanded[0]) TextCodec::local8().toUnicode(dst, expanded);
         }
       }
     }
@@ -224,21 +109,136 @@ _back:
   RegCloseKey(k);
   return true;
 }
-#endif // FOG_OS
+#elif defined(FOG_OS_POSIX)
 
-static bool homeDirectory(String& to)
+static const char* xdgDirectoryNames[] =
+{
+  "",
+  "XDG_DESKTOP_DIR",
+  "XDG_DOCUMENTS_DIR",
+  "XDG_MUSIC_DIR",
+  "XDG_PICTURES_DIR",
+  "XDG_VIDEOS_DIR"
+};
+
+static err_t getXdgDirectory(String& dst, int id)
+{
+  FOG_ASSERT(id != 0 && (uint)id < FOG_ARRAY_SIZE(xdgDirectoryNames));
+  FOG_ASSERT(dst.isEmpty()); // Dst should be clear.
+
+  err_t err;
+
+  String home;
+  String configFile;
+
+  if ((err = UserInfo::getDirectory(home, UserInfo::DIRECTORY_HOME))) return err;
+
+  if ((err = OS::getEnv(Ascii8("XDG_CONFIG_HOME"), configFile)) || configFile.isEmpty())
+  {
+    // XDG_CONFIG_HOME variable is not set, so guess...
+    configFile = home;
+    configFile.append(Ascii8("/.config"));
+  }
+  configFile.append(Ascii8("/user-dirs.dirs"));
+
+  const char* type = xdgDirectoryNames[id];
+  sysuint_t typeLength = strlen(type);
+
+  const char* mark;
+  const char* end;
+  const char* p;
+  sysuint_t remain;
+  int relative;
+
+  MapFile file;
+  if ((err = file.map(configFile, true))) goto fail;
+
+  // Tokenize lines and parse them.
+  p = reinterpret_cast<const char*>(file.getData());
+  end = p + file.getLength();
+  for (;;)
+  {
+    // Skip spaces and empty lines.
+    while (p != end && Byte::isSpace(*p)) p++;
+    if (p == end) break;
+
+    // We are looking for XDG_SOME_DIR="VALUE".
+    if ((sysuint_t)(end - p) <= typeLength || memcmp(p, type, typeLength) != 0)
+      goto nextLine;
+
+    p += typeLength;
+
+    // Skip spaces and tabs.
+    while (p != end && *p == ' ' || *p == '\t') p++;
+    if (p == end) break;
+
+    // Parse '='.
+    if (*p != '=')
+      goto nextLine;
+
+    // Skip spaces and tabs.
+    while (p != end && *p == ' ' || *p == '\t') p++;
+    if (p == end) break;
+
+    // Parse '"'.
+    if (*p != '\"') goto nextLine;
+    p++;
+
+    mark = p;
+    while (p != end && *p != '"' && *p != '\n') p++;
+    if (p == end || *p == '\n') continue;
+
+    // Ok, everything looks ok. We have XDG name and value, we need only to
+    // postprocess it and return. Postprocess means to parse $HOME, maybe also
+    // other environment variables?
+    relative = false;
+    remain = (sysuint_t)(p - mark);
+    if (remain == 0) goto nextLine;
+
+    if (remain >= 6 && memcmp(mark, "$HOME/", 6) == 0)
+    {
+      mark += 6;
+      remain -= 6;
+      relative = true;
+    }
+    else if (*mark != '/')
+    {
+      goto nextLine;
+    }
+
+    if (relative) { dst.setDeep(home); dst.append(Char('/')); }
+    return TextCodec::local8().appendToUnicode(dst, mark, remain);
+
+nextLine:
+    while (p != end && *p != '\n') p++;
+    if (p == end) break;
+  }
+
+fail:
+  // Just fallback to known defaults.
+  if (id == UserInfo::DIRECTORY_DESKTOP)
+  {
+    dst.set(home);
+    dst.append(Ascii8("/Desktop"));
+    return ERR_OK;
+  }
+
+  return ERR_USER_NO_XDG_DIRECTORY;
+}
+#endif
+
+static err_t getHomeDirectory(String& dst)
 {
 #if defined(FOG_OS_WINDOWS)
-  OS::getEnv(TemporaryString<12>(Ascii8("USERPROFILE")), to);
-  return true;
+  return OS::getEnv(fog_strings->getString(STR_PLATFORM_USERPROFILE), dst);
 #endif // FOG_OS_WINDOWS
 
 #if defined(FOG_OS_POSIX)
   struct passwd *pwd = getpwuid(UserInfo::uid());
   if (pwd)
   {
-    TextCodec::local8().toUnicode(to, pwd->pw_dir);
-    return true;
+    TextCodec::local8().toUnicode(dst, pwd->pw_dir);
+    return ERR_OK;
   }
   else
   {
@@ -246,48 +246,24 @@ static bool homeDirectory(String& to)
 
     if ((s = getenv("HOME")) != 0)
     {
-      TextCodec::local8().toUnicode(to, s);
-      return true;
+      TextCodec::local8().toUnicode(dst, s);
+      return ERR_OK;
     }
     else if ((s = getenv("TMPDIR")) != 0)
     {
-      TextCodec::local8().toUnicode(to, s);
-      return false;
+      TextCodec::local8().toUnicode(dst, s);
+      return ERR_USER_NO_HOME_DIRECTORY;
     }
     else
     {
-      to.set(Ascii8("/tmp"));
-      return false;
+      dst.set(Ascii8("/tmp"));
+      return ERR_USER_NO_HOME_DIRECTORY;
     }
   }
 #endif // FOG_OS_POSIX
 }
 
 // [Fog::UserInfo]
-
-#if defined(FOG_OS_WINDOWS)
-static const char* directoryNames[] =
-{
-  "",
-  "Desktop",
-  "Personal",
-  "My Music",
-  "My Pictures",
-  "My Video"
-};
-#endif // FOG_OS_WINDOWS
-
-#if defined(FOG_OS_POSIX)
-static const char* directoryNames[] =
-{
-  "",
-  "DESKTOP",
-  "DOCUMENTS",
-  "MUSIC",
-  "PICTURES",
-  "VIDEOS"
-};
-#endif // FOG_OS_POSIX
 
 uint32_t UserInfo::uid()
 {
@@ -311,42 +287,35 @@ uint32_t UserInfo::gid()
 #endif // FOG_OS_POSIX
 }
 
-String UserInfo::directory(uint32_t dir)
+err_t UserInfo::getDirectory(String& dst, int id)
 {
-  String to;
-  directoryTo(dir, to);
-  return to;
-}
+  err_t err;
 
-bool UserInfo::directoryTo(uint32_t dir, String& to)
-{
-  bool result;
+  dst.clear();
+  if ((uint)id >= (uint)DIRECTORY_INVALID) return ERR_RT_INVALID_ARGUMENT;
 
-  if (dir >= 6)
+  switch (id)
   {
-    to.clear();
-    return false;
-  }
-
-  switch (dir)
-  {
-    case UserInfo::Home:
-      result = homeDirectory(to);
+    case UserInfo::DIRECTORY_HOME:
+      err = getHomeDirectory(dst);
       break;
+
     default:
-#if  defined(FOG_OS_POSIX)
-      result = xdgLookupDir(directoryNames[dir], to);
-#elif defined(FOG_OS_WINDOWS)
-      result = registryLookupDir(directoryNames[dir], to);
+#if defined(FOG_OS_WINDOWS)
+      err = registryLookupDir(dst, id);
+#elif defined(FOG_OS_POSIX)
+      err = getXdgDirectory(dst, id);
+#else
+#     warning "Fog::UserInfo::Unknown operating system"
 #endif
       break;
   }
 
 #if defined(FOG_OS_WINDOWS)
-  to.slashesToPosix();
+  dst.slashesToPosix();
 #endif // FOG_OS_WINDOWS
 
-  return result;
+  return err;
 }
 
 } // Fog namespace

@@ -51,14 +51,14 @@ struct FOG_API XmlEntity
   static FOG_INLINE sysuint_t pairsCount() { return _pairsCount; }
 
   //! @brief Decode named entity into unicode character.
-  static Char decode(const char* entityName, sysuint_t entityLength = DetectLength);
+  static Char decode(const char* entityName, sysuint_t entityLength = DETECT_LENGTH);
   //! @overload.
-  static FOG_INLINE Char decode(const ByteArray& entityName) { return decode(entityName.cData(), entityName.getLength()); }
+  static FOG_INLINE Char decode(const ByteArray& entityName) { return decode(entityName.getData(), entityName.getLength()); }
 
   //! @brief Decode named entity into unicode character.
-  static Char decode(const Char* entityName, sysuint_t entityLength = DetectLength);
+  static Char decode(const Char* entityName, sysuint_t entityLength = DETECT_LENGTH);
   //! @overload.
-  static FOG_INLINE Char decode(const String& entityName) { return decode(entityName.cData(), entityName.getLength()); }
+  static FOG_INLINE Char decode(const String& entityName) { return decode(entityName.getData(), entityName.getLength()); }
 
   //! @brief Encode unicode character into named entity.
   //! @note Length of @a dest must be at least 16 characters.

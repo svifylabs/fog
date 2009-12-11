@@ -10,8 +10,6 @@
 // [Dependencies]
 #include <Fog/Build/Build.h>
 
-#include <new>
-
 //! @addtogroup Fog_Core
 //! @{
 

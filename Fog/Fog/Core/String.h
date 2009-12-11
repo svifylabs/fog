@@ -14,7 +14,6 @@
 #include <Fog/Core/Basics.h>
 #include <Fog/Core/Char.h>
 #include <Fog/Core/Constants.h>
-#include <Fog/Core/Error.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/TypeInfo.h>
 
@@ -37,8 +36,7 @@ struct Locale;
 struct TextCodec;
 struct StringFilter;
 
-template<typename T> struct Sequence;
-template<typename T> struct Vector;
+template<typename T> struct List;
 
 // ============================================================================
 // [Fog::String]
@@ -58,31 +56,25 @@ struct FOG_API String
     //! @brief String data flags.
     enum
     {
-      //! @brief Null 'd' object.
-      //!
-      //! This is very likely object that's shared between all null objects. So
-      //! normally only one data instance can has this flag set on.
-      IsNull = (1U << 0),
-
       //! @brief String data are created on the heap.
       //!
       //! Object is created by function like @c Fog::Memory::alloc() or by
       //! @c new operator. It this flag is not set, you can't delete object from
       //! the heap and object is probabbly only temporary (short life object).
-      IsDynamic = (1U << 1),
+      IsDynamic = (1U << 0),
 
       //! @brief String data are shareable.
       //!
       //! Object can be directly referenced by internal method @c ref().
       //! Sharable data are usually created on the heap and together
       //! with this flag is set also @c IsDynamic, but it isn't prerequisite.
-      IsSharable = (1U << 2),
+      IsSharable = (1U << 1),
 
       //! @brief String data are strong to weak assignments.
       //!
       //! This flag means:
       //!   "Don't assign other data to me, instead, copy them to me!".
-      IsStrong = (1U << 3)
+      IsStrong = (1U << 2)
     };
 
     // [Ref]
@@ -170,7 +162,7 @@ struct FOG_API String
   //! @copydoc Doxygen::Implicit::isDetached().
   FOG_INLINE bool isDetached() const { return refCount() == 1; }
   //! @copydoc Doxygen::Implicit::detach().
-  FOG_INLINE err_t detach() { return isDetached() ? Error::Ok : _detach(); }
+  FOG_INLINE err_t detach() { return isDetached() ? ERR_OK : _detach(); }
 
   //! @copydoc Doxygen::Implicit::_detach().
   err_t _detach();
@@ -180,9 +172,9 @@ struct FOG_API String
   // --------------------------------------------------------------------------
 
   //! @copydoc Doxygen::Implicit::getFlags().
-  FOG_INLINE uint32_t flags() const { return _d->flags; }
+  FOG_INLINE uint32_t getFlags() const { return _d->flags; }
   //! @copydoc Doxygen::Implicit::isNull().
-  FOG_INLINE bool isNull() const { return (_d->flags & Data::IsNull) != 0; }
+  FOG_INLINE bool isNull() const { return _d == sharedNull.instancep(); }
   //! @copydoc Doxygen::Implicit::isDynamic().
   FOG_INLINE bool isDynamic() const { return (_d->flags & Data::IsDynamic) != 0; }
   //! @copydoc Doxygen::Implicit::isSharable().
@@ -216,14 +208,14 @@ struct FOG_API String
   void free();
 
   //! @brief Returns const pointer to string data.
-  FOG_INLINE const Char* cData() const { return _d->data; }
+  FOG_INLINE const Char* getData() const { return _d->data; }
 
   //! @brief Returns mutable pointer to string data.
-  Char* mData();
+  Char* getMData();
 
-  FOG_INLINE Char* xData()
+  FOG_INLINE Char* getXData()
   {
-    FOG_ASSERT_X(isDetached(), "Fog::String::xData() - Not detached data.");
+    FOG_ASSERT_X(isDetached(), "Fog::String::getXData() - Not detached data.");
     return _d->data;
   }
 
@@ -259,17 +251,17 @@ struct FOG_API String
   err_t set(const String& other);
   err_t set(const void* str, sysuint_t size, const TextCodec& tc);
 
-  FOG_INLINE err_t set(const Char* s, sysuint_t length = DetectLength) { return set(Utf16(s, length)); }
+  FOG_INLINE err_t set(const Char* s, sysuint_t length = DETECT_LENGTH) { return set(Utf16(s, length)); }
 
-  err_t setUtf8(const char* s, sysuint_t length = DetectLength);
-  err_t setUtf32(const uint32_t* s, sysuint_t length = DetectLength);
+  err_t setUtf8(const char* s, sysuint_t length = DETECT_LENGTH);
+  err_t setUtf32(const uint32_t* s, sysuint_t length = DETECT_LENGTH);
 
-  FOG_INLINE err_t setUtf16(const uint16_t* s, sysuint_t length = DetectLength)
+  FOG_INLINE err_t setUtf16(const uint16_t* s, sysuint_t length = DETECT_LENGTH)
   {
     return set(reinterpret_cast<const Char*>(s), length);
   }
 
-  FOG_INLINE err_t setWChar(const wchar_t* s, sysuint_t length = DetectLength)
+  FOG_INLINE err_t setWChar(const wchar_t* s, sysuint_t length = DETECT_LENGTH)
   {
     if (sizeof(wchar_t) == 2)
       return set(reinterpret_cast<const Char*>(s), length);
@@ -291,13 +283,13 @@ struct FOG_API String
   err_t setInt(int64_t n, int base, const FormatFlags& ff, const Locale* locale = NULL);
   err_t setInt(uint64_t n, int base, const FormatFlags& ff, const Locale* locale = NULL);
 
-  err_t setDouble(double d, int doubleForm = DF_SignificantDigits);
+  err_t setDouble(double d, int doubleForm = DF_SIGNIFICANT_DIGITS);
   err_t setDouble(double d, int doubleForm, const FormatFlags& ff, const Locale* locale = NULL);
 
   err_t format(const char* fmt, ...);
   err_t vformat(const char* fmt, va_list ap);
 
-  err_t wformat(const String& fmt, Char lex, const Sequence<String>& args);
+  err_t wformat(const String& fmt, Char lex, const List<String>& args);
   err_t wformat(const String& fmt, Char lex, const String* args, sysuint_t length);
 
   // --------------------------------------------------------------------------
@@ -310,12 +302,12 @@ struct FOG_API String
   err_t append(const String& other);
   err_t append(const void* str, sysuint_t size, const TextCodec& tc);
 
-  FOG_INLINE err_t append(const Char* s, sysuint_t length = DetectLength) { return append(Utf16(s, length)); }
+  FOG_INLINE err_t append(const Char* s, sysuint_t length = DETECT_LENGTH) { return append(Utf16(s, length)); }
 
-  err_t appendUtf8(const char* s, sysuint_t length = DetectLength);
+  err_t appendUtf8(const char* s, sysuint_t length = DETECT_LENGTH);
   err_t appendUtf32(const uint32_t* s, sysuint_t length);
 
-  FOG_INLINE err_t appendUtf16(const uint16_t* s, sysuint_t length = DetectLength)
+  FOG_INLINE err_t appendUtf16(const uint16_t* s, sysuint_t length = DETECT_LENGTH)
   {
     return append(reinterpret_cast<const Char*>(s), length);
   }
@@ -339,13 +331,13 @@ struct FOG_API String
   err_t appendInt(int64_t n, int base, const FormatFlags& ff, const Locale* locale = NULL);
   err_t appendInt(uint64_t n, int base, const FormatFlags& ff, const Locale* locale = NULL);
 
-  err_t appendDouble(double d, int doubleForm = DF_SignificantDigits);
+  err_t appendDouble(double d, int doubleForm = DF_SIGNIFICANT_DIGITS);
   err_t appendDouble(double d, int doubleForm, const FormatFlags& ff, const Locale* locale = NULL);
 
   err_t appendFormat(const char* fmt, ...);
   err_t appendVformat(const char* fmt, va_list ap);
 
-  err_t appendWformat(const String& fmt, Char lex, const Sequence<String>& args);
+  err_t appendWformat(const String& fmt, Char lex, const List<String>& args);
   err_t appendWformat(const String& fmt, Char lex, const String* args, sysuint_t length);
 
   // --------------------------------------------------------------------------
@@ -357,7 +349,7 @@ struct FOG_API String
   err_t prepend(const Utf16& str);
   err_t prepend(const String& other);
 
-  FOG_INLINE err_t prepend(const Char* s, sysuint_t length = DetectLength) { return prepend(Utf16(s, length)); }
+  FOG_INLINE err_t prepend(const Char* s, sysuint_t length = DETECT_LENGTH) { return prepend(Utf16(s, length)); }
 
   // --------------------------------------------------------------------------
   // [Insert]
@@ -368,15 +360,15 @@ struct FOG_API String
   err_t insert(sysuint_t index, const Utf16& str);
   err_t insert(sysuint_t index, const String& other);
 
-  FOG_INLINE err_t insert(sysuint_t index, const Char* s, sysuint_t length = DetectLength) { return insert(index, Utf16(s, length)); }
+  FOG_INLINE err_t insert(sysuint_t index, const Char* s, sysuint_t length = DETECT_LENGTH) { return insert(index, Utf16(s, length)); }
 
   // --------------------------------------------------------------------------
   // [Remove]
   // --------------------------------------------------------------------------
 
-  sysuint_t remove(Char ch, uint cs = CaseSensitive, const Range& range = Range(0));
-  sysuint_t remove(const String& other, uint cs = CaseSensitive, const Range& range = Range(0));
-  sysuint_t remove(const StringFilter& filter, uint cs = CaseSensitive, const Range& range = Range(0));
+  sysuint_t remove(Char ch, uint cs = CASE_SENSITIVE, const Range& range = Range(0));
+  sysuint_t remove(const String& other, uint cs = CASE_SENSITIVE, const Range& range = Range(0));
+  sysuint_t remove(const StringFilter& filter, uint cs = CASE_SENSITIVE, const Range& range = Range(0));
 
   sysuint_t remove(const Range& range);
   sysuint_t remove(const Range* range, sysuint_t count);
@@ -385,9 +377,9 @@ struct FOG_API String
   // [Replace]
   // --------------------------------------------------------------------------
 
-  err_t replace(Char before, Char after, uint cs = CaseSensitive, const Range& range = Range(0));
-  err_t replace(const String& before, const String& after, uint cs = CaseSensitive, const Range& range = Range(0));
-  err_t replace(const StringFilter& filter, const String& after, uint cs = CaseSensitive, const Range& range = Range(0));
+  err_t replace(Char before, Char after, uint cs = CASE_SENSITIVE, const Range& range = Range(0));
+  err_t replace(const String& before, const String& after, uint cs = CASE_SENSITIVE, const Range& range = Range(0));
+  err_t replace(const StringFilter& filter, const String& after, uint cs = CASE_SENSITIVE, const Range& range = Range(0));
 
   err_t replace(const Range& range, const String& replacement);
   err_t replace(const Range* range, sysuint_t count, const Char* after, sysuint_t alen);
@@ -420,12 +412,12 @@ struct FOG_API String
   // [Split / Join]
   // --------------------------------------------------------------------------
 
-  Vector<String> split(Char ch, uint splitBehavior = RemoveEmptyParts, uint cs = CaseSensitive) const;
-  Vector<String> split(const String& pattern, uint splitBehavior = RemoveEmptyParts, uint cs = CaseSensitive) const;
-  Vector<String> split(const StringFilter& filter, uint splitBehavior = RemoveEmptyParts, uint cs = CaseSensitive) const;
+  List<String> split(Char ch, uint splitBehavior = SPLIT_REMOVE_EMPTY_PARTS, uint cs = CASE_SENSITIVE) const;
+  List<String> split(const String& pattern, uint splitBehavior = SPLIT_REMOVE_EMPTY_PARTS, uint cs = CASE_SENSITIVE) const;
+  List<String> split(const StringFilter& filter, uint splitBehavior = SPLIT_REMOVE_EMPTY_PARTS, uint cs = CASE_SENSITIVE) const;
 
-  static String join(const Sequence<String>& seq, const Char separator);
-  static String join(const Sequence<String>& seq, const String& separator);
+  static String join(const List<String>& seq, const Char separator);
+  static String join(const List<String>& seq, const String& separator);
 
   // --------------------------------------------------------------------------
   // [Substring]
@@ -478,47 +470,47 @@ struct FOG_API String
   // [Contains]
   // --------------------------------------------------------------------------
 
-  bool contains(Char ch, uint cs = CaseSensitive, const Range& range = Range(0)) const;
-  bool contains(const String& pattern, uint cs = CaseSensitive, const Range& range = Range(0)) const;
-  bool contains(const StringFilter& filter, uint cs = CaseSensitive, const Range& range = Range(0)) const;
+  bool contains(Char ch, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
+  bool contains(const String& pattern, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
+  bool contains(const StringFilter& filter, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
 
   // --------------------------------------------------------------------------
   // [CountOf]
   // --------------------------------------------------------------------------
 
-  sysuint_t countOf(Char ch, uint cs = CaseSensitive, const Range& range = Range(0)) const;
-  sysuint_t countOf(const String& pattern, uint cs = CaseSensitive, const Range& range = Range(0)) const;
-  sysuint_t countOf(const StringFilter& filter, uint cs = CaseSensitive, const Range& range = Range(0)) const;
+  sysuint_t countOf(Char ch, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
+  sysuint_t countOf(const String& pattern, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
+  sysuint_t countOf(const StringFilter& filter, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
 
   // --------------------------------------------------------------------------
   // [IndexOf / LastIndexOf]
   // --------------------------------------------------------------------------
 
-  sysuint_t indexOf(Char ch, uint cs = CaseSensitive, const Range& range = Range(0)) const;
-  sysuint_t indexOf(const String& pattern, uint cs = CaseSensitive, const Range& range = Range(0)) const;
-  sysuint_t indexOf(const StringFilter& filter, uint cs = CaseSensitive, const Range& range = Range(0)) const;
+  sysuint_t indexOf(Char ch, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
+  sysuint_t indexOf(const String& pattern, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
+  sysuint_t indexOf(const StringFilter& filter, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
 
-  sysuint_t lastIndexOf(Char ch, uint cs = CaseSensitive, const Range& range = Range(0)) const;
-  sysuint_t lastIndexOf(const String& pattern, uint cs = CaseSensitive, const Range& range = Range(0)) const;
-  sysuint_t lastIndexOf(const StringFilter& filter, uint cs = CaseSensitive, const Range& range = Range(0)) const;
+  sysuint_t lastIndexOf(Char ch, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
+  sysuint_t lastIndexOf(const String& pattern, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
+  sysuint_t lastIndexOf(const StringFilter& filter, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
 
   // --------------------------------------------------------------------------
   // [StartsWith / EndsWith]
   // --------------------------------------------------------------------------
 
-  bool startsWith(const Ascii8& str, uint cs = CaseSensitive) const;
-  bool startsWith(const Utf16& str, uint cs = CaseSensitive) const;
-  bool startsWith(const String& str, uint cs = CaseSensitive) const;
-  bool startsWith(const StringFilter& filter, uint cs = CaseSensitive) const;
+  bool startsWith(const Ascii8& str, uint cs = CASE_SENSITIVE) const;
+  bool startsWith(const Utf16& str, uint cs = CASE_SENSITIVE) const;
+  bool startsWith(const String& str, uint cs = CASE_SENSITIVE) const;
+  bool startsWith(const StringFilter& filter, uint cs = CASE_SENSITIVE) const;
 
-  FOG_INLINE bool startsWith(const Char* str, uint cs = CaseSensitive) const { return startsWith(Utf16(str), cs); }
+  FOG_INLINE bool startsWith(const Char* str, uint cs = CASE_SENSITIVE) const { return startsWith(Utf16(str), cs); }
 
-  bool endsWith(const Ascii8& str, uint cs = CaseSensitive) const;
-  bool endsWith(const Utf16& str, uint cs = CaseSensitive) const;
-  bool endsWith(const String& str, uint cs = CaseSensitive) const;
-  bool endsWith(const StringFilter& filter, uint cs = CaseSensitive) const;
+  bool endsWith(const Ascii8& str, uint cs = CASE_SENSITIVE) const;
+  bool endsWith(const Utf16& str, uint cs = CASE_SENSITIVE) const;
+  bool endsWith(const String& str, uint cs = CASE_SENSITIVE) const;
+  bool endsWith(const StringFilter& filter, uint cs = CASE_SENSITIVE) const;
 
-  FOG_INLINE bool endsWith(const Char* str, uint cs = CaseSensitive) const { return endsWith(Utf16(str), cs); }
+  FOG_INLINE bool endsWith(const Char* str, uint cs = CASE_SENSITIVE) const { return endsWith(Utf16(str), cs); }
 
   // --------------------------------------------------------------------------
   // [Operator Overload]
@@ -536,6 +528,8 @@ struct FOG_API String
   FOG_INLINE String& operator+=(const String& other) { append(other); return *this; }
   FOG_INLINE String& operator+=(const Char* str) { append(str); return *this; }
 
+  FOG_INLINE Char operator[](sysuint_t index) const { return at(index); }
+
   // --------------------------------------------------------------------------
   // [ByteSwap]
   // --------------------------------------------------------------------------
@@ -552,13 +546,13 @@ struct FOG_API String
   static int compare(const String* a, const String* b);
   static int icompare(const String* a, const String* b);
 
-  bool eq(const Ascii8& other, uint cs = CaseSensitive) const;
-  bool eq(const Utf16& other, uint cs = CaseSensitive) const;
-  bool eq(const String& other, uint cs = CaseSensitive) const;
+  bool eq(const Ascii8& other, uint cs = CASE_SENSITIVE) const;
+  bool eq(const Utf16& other, uint cs = CASE_SENSITIVE) const;
+  bool eq(const String& other, uint cs = CASE_SENSITIVE) const;
 
-  int compare(const Ascii8& other, uint cs = CaseSensitive) const;
-  int compare(const Utf16& other, uint cs = CaseSensitive) const;
-  int compare(const String& other, uint cs = CaseSensitive) const;
+  int compare(const Ascii8& other, uint cs = CASE_SENSITIVE) const;
+  int compare(const Utf16& other, uint cs = CASE_SENSITIVE) const;
+  int compare(const String& other, uint cs = CASE_SENSITIVE) const;
 
   // --------------------------------------------------------------------------
   // [Utf16]
@@ -630,22 +624,22 @@ struct TemporaryString : public String
   }
 
   FOG_INLINE TemporaryString(const String& other) :
-    String(Data::adopt((void*)&_storage, N, other.cData(), other.getLength()))
+    String(Data::adopt((void*)&_storage, N, other.getData(), other.getLength()))
   {
   }
 
   FOG_INLINE TemporaryString(const TemporaryString<N>& other) :
-    String(Data::adopt((void*)&_storage, N, other.cData(), other.getLength()))
+    String(Data::adopt((void*)&_storage, N, other.getData(), other.getLength()))
   {
   }
 
   FOG_INLINE TemporaryString(const Char* str) :
-    String(Data::adopt((void*)&_storage, N, str, DetectLength))
+    String(Data::adopt((void*)&_storage, N, str, DETECT_LENGTH))
   {
   }
 
   // safe shareable TemporaryString creation
-  FOG_INLINE TemporaryString(_CreateSharable) :
+  FOG_INLINE TemporaryString(_CREATE_SHAREABLE) :
     String(Data::adopt((void*)&_storage, N))
   {
     _d->flags |= Data::IsSharable;
@@ -736,7 +730,7 @@ static FOG_INLINE bool operator> (const Fog::Utf16& a, const Fog::String& b) { r
 // [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::String, Fog::MoveableType | Fog::TypeInfoHasCompare | Fog::TypeInfoHasEq)
+FOG_DECLARE_TYPEINFO(Fog::String, Fog::TYPE_INFO_MOVABLE | Fog::TYPE_INFO_HAS_COMPARE | Fog::TYPE_INFO_HAS_EQ)
 
 // [Guard]
 #endif // _FOG_CORE_STRING_H

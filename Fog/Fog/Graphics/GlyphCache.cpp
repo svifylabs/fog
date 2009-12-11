@@ -4,9 +4,9 @@
 // MIT, See COPYING file in package
 
 // [Precompiled Headers]
-#ifdef FOG_PRECOMP
+#if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
-#endif
+#endif // FOG_PRECOMP
 
 // [Dependencies]
 #include <Fog/Graphics/GlyphCache.h>
@@ -18,7 +18,7 @@ namespace Fog {
 // ============================================================================
 
 GlyphCache::GlyphCache() :
-  _rows(0),
+  _rows(NULL),
   _count(0)
 {
 }
@@ -39,7 +39,10 @@ bool GlyphCache::set(uint32_t uc, Entity data)
   // Realloc ROWS array if needed.
   if (FOG_UNLIKELY(ucRow >= _count))
   {
-    _rows = (Entity**)Memory::xrealloc(_rows, (ucRow + 1) * sizeof(Entity));
+    Entity** newRows = (Entity**)Memory::realloc(_rows, (ucRow + 1) * sizeof(Entity));
+    if (!newRows) return false;
+
+    _rows = newRows;
     Memory::zero(_rows + _count, (ucRow - _count + 1) * sizeof(Entity));
     _count = ucRow + 1;
   }
@@ -47,7 +50,8 @@ bool GlyphCache::set(uint32_t uc, Entity data)
   // Alloc COL array if needed.
   if (FOG_UNLIKELY(_rows[ucRow] == NULL))
   {
-    _rows[ucRow] = (Entity*)Memory::xcalloc(256 * sizeof(Entity));
+    _rows[ucRow] = (Entity*)Memory::calloc(256 * sizeof(Entity));
+    if (!_rows[ucRow]) return false;
   }
 
   _rows[ucRow][ucCol] = data;

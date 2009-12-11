@@ -22,21 +22,24 @@ namespace Fog {
 //! @brief Provides information about user.
 struct FOG_API UserInfo
 {
-  enum Directories
+  enum DIRECTORY_ID
   {
-    Home,
-    Desktop,
-    Documents,
-    Music,
-    Pictures,
-    Videos
+    DIRECTORY_HOME = 0,
+    DIRECTORY_DESKTOP = 1,
+    DIRECTORY_DOCUMENTS = 2,
+    DIRECTORY_MUSIC = 3,
+    DIRECTORY_PICTURES = 4,
+    DIRECTORY_VIDEOS = 5,
+
+    DIRECTORY_INVALID
   };
 
   static uint32_t uid();
   static uint32_t gid();
 
-  static String directory(uint32_t dir);
-  static bool directoryTo(uint32_t dir, String& to);
+  //! @brief Get user related directory, see @c DIRECTORY_ID enumeration for
+  //! possibilities.
+  static err_t getDirectory(String& dst, int id);
 };
 
 } // Fog namespace

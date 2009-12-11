@@ -17,9 +17,8 @@
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/AutoLock.h>
 #include <Fog/Core/ByteArray.h>
-#include <Fog/Core/Error.h>
+#include <Fog/Core/Constants.h>
 #include <Fog/Core/EventLoop.h>
-#include <Fog/Core/EventLoop_Def.h>
 #include <Fog/Core/FileUtil.h>
 #include <Fog/Core/Hash.h>
 #include <Fog/Core/Library.h>
@@ -33,23 +32,14 @@
 #include <Fog/UI/UISystem.h>
 
 #if defined(FOG_OS_WINDOWS)
-#include <Fog/Core/EventLoop_Win.h>
-#include <Fog/UI/UISystem_Win.h>
-#endif // FOG_OS_WINDOWS
-
-#if defined(FOG_OS_POSIX) && defined(FOG_BUILD_MODULE_X11_INTERNAL)
-#include <Fog/UI/UISystem_X11.h>
-#include <unistd.h>
-#endif // FOG_OS_POSIX
-
-#if defined(FOG_OS_WINDOWS)
+# include <Fog/UI/UISystem/Win.h>
 // windows.h is already included in Fog/Build/Build.h
-#include <io.h>
+# include <io.h>
 #else
-#include <errno.h>
-#if defined(FOG_HAVE_UNISTD_H)
-#include <unistd.h>
-#endif
+# include <errno.h>
+# if defined(FOG_HAVE_UNISTD_H)
+#  include <unistd.h>
+# endif // FOG_HAVE_UNISTD_H
 #endif
 
 namespace Fog {
@@ -60,7 +50,7 @@ namespace Fog {
 
 static void unescapeArgument(String& s)
 {
-  Char* beg = s.mData();
+  Char* beg = s.getMData();
   Char* cur = beg;
   Char* dst = beg;
 
@@ -68,9 +58,10 @@ static void unescapeArgument(String& s)
 
   while (remain)
   {
-    if (cur[0] == Char('\\') && remain > 1 && (cur[1] == Char('\"') ||
-                                                 cur[1] == Char('\'') ||
-                                                 cur[1] == Char(' ')) )
+    if (cur[0] == Char('\\') && remain > 1 &&
+       (cur[1] == Char('\"') ||
+        cur[1] == Char('\'') ||
+        cur[1] == Char(' ' ) ))
     {
       cur++;
       remain--;
@@ -83,9 +74,9 @@ static void unescapeArgument(String& s)
 }
 
 #if defined(FOG_OS_WINDOWS)
-static void parseWinCmdLine(const String& cmdLine, Vector<String>& dst)
+static void parseWinCmdLine(const String& cmdLine, List<String>& dst)
 {
-  const Char* cur = cmdLine.cData();
+  const Char* cur = cmdLine.getData();
   const Char* end = cur + cmdLine.getLength();
 
   const Char* mark;
@@ -178,7 +169,7 @@ struct FOG_HIDDEN Application_Local
   ELHash elHash;
 
   String applicationExecutable;
-  Vector<String> applicationArguments;
+  List<String> applicationArguments;
 
   Application_Local();
   ~Application_Local();
@@ -205,6 +196,12 @@ Application_Local::~Application_Local()
 
 EventLoop* Application_Local::createEventLoop(const String& type)
 {
+  if (type.startsWith(Ascii8("UI.")) && !Thread::isMainThread())
+  {
+    fog_debug("Fog::Application::createEventLoop() - Can't create UI event loop in non-main thread");
+    return NULL;
+  }
+
   AutoLock locked(lock);
 
   Application::EventLoopConstructor ctor = elHash.value(type, NULL);
@@ -213,7 +210,7 @@ EventLoop* Application_Local::createEventLoop(const String& type)
 
 void Application_Local::applicationArgumentsWasSet()
 {
-  applicationExecutable = applicationArguments.cAt(0);
+  applicationExecutable = applicationArguments.at(0);
   FileUtil::toAbsolutePath(applicationExecutable, String(), applicationExecutable);
 
   String applicationDirectory;
@@ -222,7 +219,7 @@ void Application_Local::applicationArgumentsWasSet()
   // Application directory usually contains plugins and library itself under
   // Windows, but we will add it also for posix OSes. It can help if application
   // is started from user home directory.
-  Library::addPath(applicationDirectory, Library::PathPrepend);
+  Library::addPath(applicationDirectory, Library::PATH_PREPEND);
 }
 
 static Static<Application_Local> application_local;
@@ -240,7 +237,7 @@ Application::Application(const String& type)
 
 Application::Application(const String& type, int argc, char* argv[])
 {
-  fog_application_initArguments(argc, argv);
+  fog_arguments_init(argc, argv);
 
   _init(type);
 }
@@ -261,7 +258,7 @@ void Application::_init(const String& type)
   if (_instance == NULL) _instance = this;
 
   // Set main thread event loop (can be NULL if no success).
-  Thread::mainThread()->_eventLoop = _eventLoop;
+  Thread::getMainThread()->_eventLoop = _eventLoop;
 }
 
 Application::~Application()
@@ -296,10 +293,10 @@ Application::~Application()
 
 err_t Application::run()
 {
-  if (!_eventLoop) return Error::InvalidHandle;
+  if (!_eventLoop) return ERR_RT_INVALID_HANDLE;
 
   _eventLoop->run();
-  return Error::Ok;
+  return ERR_OK;
 }
 
 void Application::quit()
@@ -318,7 +315,7 @@ String Application::getApplicationExecutable()
   return application_local->applicationExecutable;
 }
 
-Vector<String> Application::getApplicationArguments()
+List<String> Application::getApplicationArguments()
 {
   return application_local->applicationArguments;
 }
@@ -335,7 +332,7 @@ err_t Application::getWorkingDirectory(String& dst)
   dst.prepare(256);
   for (;;)
   {
-    DWORD size = GetCurrentDirectoryW(dst.getCapacity()+1, reinterpret_cast<wchar_t*>(dst.xData()));
+    DWORD size = GetCurrentDirectoryW(dst.getCapacity()+1, reinterpret_cast<wchar_t*>(dst.getXData()));
     if (size >= dst.getCapacity())
     {
       if ((err = dst.reserve(size))) return err;
@@ -355,8 +352,8 @@ err_t Application::setWorkingDirectory(const String& _dir)
 
   if ((err = dir.slashesToWin())) return err;
 
-  if (SetCurrentDirectoryW(reinterpret_cast<const wchar_t*>(dir.cData())) == 0)
-    return Error::Ok;
+  if (SetCurrentDirectoryW(reinterpret_cast<const wchar_t*>(dir.getData())) == 0)
+    return ERR_OK;
   else
     return GetLastError();
 }
@@ -366,12 +363,12 @@ err_t Application::setWorkingDirectory(const String& _dir)
 err_t Application::getWorkingDirectory(String& dst)
 {
   err_t err;
-  TemporaryByteArray<TemporaryLength> dir8;
+  TemporaryByteArray<TEMP_LENGTH> dir8;
 
   dst.clear();
   for (;;)
   {
-    const char* ptr = ::getcwd(dir8.xData(), dir8.getCapacity() + 1);
+    const char* ptr = ::getcwd(dir8.getXData(), dir8.getCapacity() + 1);
     if (ptr) return TextCodec::local8().appendToUnicode(dst, ptr);
 
     if (errno != ERANGE) return errno;
@@ -384,12 +381,12 @@ err_t Application::getWorkingDirectory(String& dst)
 err_t Application::setWorkingDirectory(const String& dir)
 {
   err_t err;
-  TemporaryByteArray<TemporaryLength> dir8;
+  TemporaryByteArray<TEMP_LENGTH> dir8;
 
   if ((err = TextCodec::local8().appendFromUnicode(dir8, dir))) return err;
 
-  if (::chdir(dir8.cData()) == 0)
-    return Error::Ok;
+  if (::chdir(dir8.getData()) == 0)
+    return ERR_OK;
   else
     return errno;
 }
@@ -438,13 +435,8 @@ UISystem* Application::createUISystem(const String& _type)
   // UI.Windows is built-in
 #if defined(FOG_OS_WINDOWS)
   if (type == Ascii8("UI.Windows"))
-    return new UISystemWin();
+    return new(std::nothrow) WinUISystem();
 #endif // FOG_OS_WINDOWS
-
-#if defined(FOG_OS_POSIX) && defined(FOG_BUILD_MODULE_X11_INTERNAL)
-  if (type == Ascii8("UI.X11"))
-    return new UISystemX11();
-#endif // FOG_OS_X11 && FOG_BUILD_MODULE_X11_INTERNAL
 
   // All other UI systems are dynamic linked libraries
   if (!type.startsWith(Ascii8("UI."))) return NULL;
@@ -487,14 +479,13 @@ FOG_INIT_DECLARE err_t fog_application_init(void)
 
   application_local.init();
 
-  Application::addEventLoopTypeT<EventLoopDefault>(Ascii8("Default"));
+  Application::addEventLoopTypeT<DefaultEventLoop>(Ascii8("Default"));
 
 #if defined(FOG_OS_WINDOWS)
-  Application::addEventLoopTypeT<EventLoopWinUI>(Ascii8("UI.Windows"));
-  Application::addEventLoopTypeT<EventLoopWinIO>(Ascii8("IO.Windows"));
+  Application::addEventLoopTypeT<WinUIEventLoop>(Ascii8("UI.Windows"));
 #endif // FOG_OS_WINDOWS
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 FOG_INIT_DECLARE void fog_application_shutdown(void)
@@ -508,7 +499,7 @@ FOG_INIT_DECLARE void fog_application_shutdown(void)
 // [Fog::Application - initArguments]
 // ============================================================================
 
-void fog_application_initArguments(int argc, char* argv[])
+void fog_arguments_init(int argc, char* argv[])
 {
   using namespace Fog;
 
@@ -516,7 +507,7 @@ void fog_application_initArguments(int argc, char* argv[])
 
   AutoLock locked(application_local->lock);
 
-  Vector<String>& arguments = application_local->applicationArguments;
+  List<String>& arguments = application_local->applicationArguments;
   if (arguments.getLength() != 0) return;
 
   for (int i = 0; i < argc; i++)

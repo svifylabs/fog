@@ -376,8 +376,8 @@ struct FOG_API TextCodec
   // [Code / Flags]
   // --------------------------------------------------------------------------
 
-  FOG_INLINE uint32_t code() const { return _d->code; }
-  FOG_INLINE uint32_t flags() const { return _d->flags; }
+  FOG_INLINE uint32_t getCode() const { return _d->code; }
+  FOG_INLINE uint32_t getFlags() const { return _d->flags; }
   FOG_INLINE bool isNull() const { return _d->code == None; }
   FOG_INLINE bool isUnicode() const { return (_d->flags & IsUnicode) != 0; }
   FOG_INLINE bool is8Bit() const { return (_d->flags & Is8Bit) != 0; }
@@ -390,13 +390,13 @@ struct FOG_API TextCodec
   // [Mime]
   // --------------------------------------------------------------------------
 
-  FOG_INLINE const char* mime() const { return _d->mime; }
+  FOG_INLINE const char* getMime() const { return _d->mime; }
 
   // --------------------------------------------------------------------------
   // [8 Bit Tables]
   // --------------------------------------------------------------------------
 
-  FOG_INLINE const Page8* page8() const { return _d->page8; }
+  FOG_INLINE const Page8* getPage8() const { return _d->page8; }
 
   // --------------------------------------------------------------------------
   // [Operator Overload]
@@ -416,20 +416,20 @@ struct FOG_API TextCodec
   // [From/AppendFrom]
   // --------------------------------------------------------------------------
 
-  err_t fromUnicode(ByteArray& dst, const Char* src, sysuint_t length = DetectLength, Replacer replacer = NULL, State* state = NULL) const;
+  err_t fromUnicode(ByteArray& dst, const Char* src, sysuint_t length = DETECT_LENGTH, Replacer replacer = NULL, State* state = NULL) const;
   err_t fromUnicode(ByteArray& dst, const String& src, Replacer replacer = NULL, State* state = NULL) const;
 
-  err_t appendFromUnicode(ByteArray& dst, const Char* src, sysuint_t length = DetectLength, Replacer replacer = NULL, State* state = NULL) const;
+  err_t appendFromUnicode(ByteArray& dst, const Char* src, sysuint_t length = DETECT_LENGTH, Replacer replacer = NULL, State* state = NULL) const;
   err_t appendFromUnicode(ByteArray& dst, const String& src, Replacer replacer = NULL, State* state = NULL) const;
 
   // --------------------------------------------------------------------------
   // [To/AppendTo]
   // --------------------------------------------------------------------------
 
-  err_t toUnicode(String& dst, const void* src, sysuint_t size = DetectLength, State* state = NULL) const;
+  err_t toUnicode(String& dst, const void* src, sysuint_t size = DETECT_LENGTH, State* state = NULL) const;
   err_t toUnicode(String& dst, const ByteArray& src, State* state = NULL) const;
 
-  err_t appendToUnicode(String& dst, const void* src, sysuint_t size = DetectLength, State* state = NULL) const;
+  err_t appendToUnicode(String& dst, const void* src, sysuint_t size = DETECT_LENGTH, State* state = NULL) const;
   err_t appendToUnicode(String& dst, const ByteArray& src, State* state = NULL) const;
 
   // --------------------------------------------------------------------------
@@ -478,8 +478,8 @@ struct FOG_API TextCodec
 // [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::TextCodec, Fog::MoveableType)
-FOG_DECLARE_TYPEINFO(Fog::TextCodec::State, Fog::PrimitiveType)
+FOG_DECLARE_TYPEINFO(Fog::TextCodec, Fog::TYPE_INFO_MOVABLE)
+FOG_DECLARE_TYPEINFO(Fog::TextCodec::State, Fog::TYPE_INFO_PRIMITIVE)
 
 // [Guard]
 #endif // _FOG_CORE_TEXTCODEC_H

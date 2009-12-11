@@ -56,11 +56,11 @@ struct FOG_API StringMatcher : public StringFilter
   //! @note The table is generated on the fly by first search call.
   struct SkipTable
   {
-    enum Status
+    enum STATUS
     {
-      Uninitialized = 0,
-      Initialized = 1,
-      Initializing = 2
+      STATUS_NOT_INITIALIZED = 0,
+      STATUS_INITIALIZING_NOW = 1,
+      STATUS_INITIALIZED = 2
     };
 
     uint data[256];
@@ -104,7 +104,7 @@ private:
 // [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::StringMatcher, Fog::MoveableType)
+FOG_DECLARE_TYPEINFO(Fog::StringMatcher, Fog::TYPE_INFO_MOVABLE)
 
 //! @}
 

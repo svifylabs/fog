@@ -10,6 +10,8 @@
 // [Dependencies]
 #include <Fog/Build/Config.h>
 
+#include <new>
+
 //! @defgroup Group_Macros Macros
 //! @brief Global Fog macros.
 
@@ -43,16 +45,13 @@
 //! all other operating systems as posix and we use posix API a lot. Differences
 //! are usually handled in places where needed (Linux/BSD/MacOSX specific code)
 
-#if !defined(FOG_OS_WINDOWS)
-# define FOG_OS_POSIX
-#endif // FOG_OS_WINDOWS
-
 //! @def FOG_OS_LINUX
 //! @brief Operating system is linux.
 
 #if !defined(FOG_OS_DEFINED) && \
     (defined(linux) || defined(__linux) || defined(__linux__))
 # define FOG_OS_DEFINED
+# define FOG_OS_POSIX
 # define FOG_OS_LINUX
 #endif // linux || __linux || __linux__
 
@@ -61,6 +60,7 @@
 
 #if !defined(FOG_OS_DEFINED) && defined(__FreeBSD__)
 # define FOG_OS_DEFINED
+# define FOG_OS_POSIX
 # define FOG_OS_FREEBSD
 #endif // __FreeBSD__
 
@@ -69,6 +69,7 @@
 
 #if !defined(FOG_OS_DEFINED) && defined(__OpenBSD__)
 # define FOG_OS_DEFINED
+# define FOG_OS_POSIX
 # define FOG_OS_OPENBSD
 #endif // __OpenBSD__
 
@@ -77,6 +78,7 @@
 
 #if !defined(FOG_OS_DEFINED) && defined(__NetBSD__)
 # define FOG_OS_DEFINED
+# define FOG_OS_POSIX
 # define FOG_OS_NETBSD
 #endif // __NetBSD__
 
@@ -85,13 +87,15 @@
 
 #if !defined(FOG_OS_DEFINED) && defined(__HPUX__)
 # define FOG_OS_DEFINED
+# define FOG_OS_POSIX
 # define FOG_OS_HPUX
 #endif // __HPUX__
 
-#if !defined(FOG_OS_DEFINED) && defined(__DARWIN__)
+#if !defined(FOG_OS_DEFINED) && (defined(__DARWIN__) || defined(__APPLE__))
 # define FOG_OS_DEFINED
-# define FOG_OS_MACOSX
-#endif // __DARWIN__
+# define FOG_OS_POSIX
+# define FOG_OS_MAC
+#endif // __DARWIN__ || __APPLE__
 
 //! @}
 
@@ -127,38 +131,11 @@
 //!
 //! Very nice method to check whether it's faster to use 64 bit arithmetics.
 
-//! @def CORE_USE_MMX
-//! @brief If defined, MMX assembly will be used if cpu has MMX feature.
-
-//! @def CORE_USE_MMX2
-//! @brief If defined, MMX2 assembly will be used if cpu has MMX2 feature.
-
-//! @def CORE_USE_3DNOW
-//! @brief If defined, 3dNow! assembly will be used if cpu has 3dNow! feature.
-
-//! @def CORE_USE_3DNOWENCH
-//! @brief If defined, enchanced 3dNow! assembly will be used if cpu has enchanced 3dNow! feature.
-
-//! @def CORE_USE_SSE
-//! @brief If defined, SSE assembly will be used if cpu has SSE feature.
-
-//! @def CORE_USE_SSE2
-//! @brief If defined, SSE2 assembly will be used if cpu has SSE2 feature.
-
-//! @def CORE_USE_SSE3
-//! @brief If defined, SSE3 assembly will be used if cpu has SSE3 feature.
-
 //! @def FOG_HARDCODE_MMX
 //! @brief If defined, MMX assembly will be hardcoded into binaries and no lower optimizations are allowed.
 
 //! @def FOG_HARDCODE_MMX2
 //! @brief If defined, MMX2 assembly will be hardcoded into binaries and no lower optimizations are allowed.
-
-//! @def FOG_HARDCODE_3DNOW
-//! @brief If defined, 3dNow! assembly will be hardcoded into binaries and no lower optimizations are allowed.
-
-//! @def FOG_HARDCODE_3DNOWENCH
-//! @brief If defined, enchanced 3dNow! assembly will be hardcoded into binaries and no lower optimizations are allowed.
 
 //! @def FOG_HARDCODE_SSE
 //! @brief If defined, SSE assembly will be hardcoded into binaries and no lower optimizations are allowed.
@@ -174,14 +151,6 @@
 
 # define FOG_ARCH_X86
 # define FOG_ARCH_BITS 32
-
-# define CORE_USE_MMX
-# define CORE_USE_MMX2
-# define CORE_USE_3DNOW
-# define CORE_USE_3DNOWENCH
-# define CORE_USE_SSE
-# define CORE_USE_SSE2
-# define CORE_USE_SSE3
 
 # if defined(__i686__)
 #  define FOG_HARDCODE_MMX
@@ -203,9 +172,6 @@
 # define FOG_ARCH_X86_64
 # define FOG_ARCH_BITS 64
 
-# define CORE_USE_SSE
-# define CORE_USE_SSE2
-# define CORE_USE_SSE3
 // x86_64 uses always SSE/SSE2
 # define FOG_HARDCODE_SSE
 # define FOG_HARDCODE_SSE2
@@ -576,8 +542,13 @@ typedef unsigned int uint32_t;
 typedef __int64 int64_t;
 typedef unsigned __int64 uint64_t;
 #else // !FOG_CC_MSVC
+# if FOG_SIZEOF_LONG == 8
+typedef long int64_t;
+typedef unsigned long uint64_t;
+# else
 typedef long long int64_t;
 typedef unsigned long long uint64_t;
+# endif
 #endif // FOG_CC_MSVC
 
 #endif // FOG_HAVE_STDINT_H
@@ -829,21 +800,21 @@ struct fog_if<false, _Then, _Else> { typedef _Else ret; };
 // [Noop]
 // ============================================================================
 
-#define FOG_NOOP ((void)0)
+#define FOG_NOP ((void)0)
 
 // ============================================================================
 // [strcasecmp / strncasecmp]
 // ============================================================================
 
-// porting to windows...
+// Porting to windows...
 //
-// sorry for undocumented porting things here, but I will place these functions
+// Sorry for undocumented porting things here, but I will place these functions
 // here instead of creating #ifdefs in code.
 #if defined(FOG_OS_WINDOWS)
 // unix like
 # define strncasecmp _strnicmp
 # define strcasecmp _stricmp
-#endif
+#endif // FOG_OS_WINDOWS
 
 #if defined(FOG_HARDCODE_SSE)
 # include <xmmintrin.h>
@@ -856,7 +827,7 @@ struct fog_if<false, _Then, _Else> { typedef _Else ret; };
 // Defined also in Fog/Core/Application.h. It's defined here to prevent
 // compilation errors when using FOG_CORE_MAIN() or FOG_UI_MAIN() and
 // this header file is not included.
-FOG_API void fog_application_initArguments(int argc, char* argv[]);
+FOG_API void fog_arguments_init(int argc, char* argv[]);
 
 //! Usage:
 //!
@@ -874,7 +845,7 @@ static int _fog_main(int argc, char* argv[]); \
 \
 int main(int argc, char* argv[]) \
 { \
-  fog_application_initArguments(argc, argv); \
+  fog_arguments_init(argc, argv); \
   \
   return _fog_main(argc, argv); \
 } \

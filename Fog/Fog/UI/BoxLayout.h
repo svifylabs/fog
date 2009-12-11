@@ -41,7 +41,7 @@ struct FOG_API BoxLayout : public Layout
   bool deleteItem(LayoutItem* item);
   bool deleteItemAt(sysint_t index);
 
-  Vector<LayoutItem*> items() const;
+  List<LayoutItem*> items() const;
 
   FOG_INLINE int margin() const { return _margin; }
   FOG_INLINE int spacing() const { return _spacing; }
@@ -50,7 +50,7 @@ struct FOG_API BoxLayout : public Layout
   void setSpacing(int spacing);
 
 protected:
-  Vector<LayoutItem*> _items;
+  List<LayoutItem*> _items;
 
   int _margin;
   int _spacing;

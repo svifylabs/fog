@@ -11,9 +11,9 @@
 #include <Fog/Core/Hash.h>
 #include <Fog/Core/Library.h>
 #include <Fog/Core/Object.h>
+#include <Fog/Graphics/Argb.h>
 #include <Fog/Graphics/Geometry.h>
 #include <Fog/Graphics/Image.h>
-#include <Fog/Graphics/Rgba.h>
 #include <Fog/UI/Constants.h>
 
 //! @addtogroup Fog_UI
@@ -85,7 +85,7 @@ struct FOG_API UISystem : public Object
   {
     Widget* widget;
     Rect rect;
-    Rgba color;
+    Argb color;
     uint32_t type;
     uint32_t animation;
   };
@@ -327,12 +327,12 @@ struct FOG_API UIWindow : public Object
 
   // [Getters]
 
-  FOG_INLINE Widget* widget() const { return _widget; }
-  FOG_INLINE void* handle() const { return _handle; }
-  FOG_INLINE UIBackingStore* backingStore() const { return _backingStore; }
+  FOG_INLINE Widget* getWidget() const { return _widget; }
+  FOG_INLINE void* getHandle() const { return _handle; }
+  FOG_INLINE UIBackingStore* getBackingStore() const { return _backingStore; }
 
-  FOG_INLINE bool dirty() const { return _dirty; }
-  FOG_INLINE bool focus() const { return _focus; }
+  FOG_INLINE bool isDirty() const { return _isDirty; }
+  FOG_INLINE bool hasFocus() const { return _hasFocus; }
 
   //! @brief Widget.
   Widget* _widget;
@@ -350,13 +350,13 @@ struct FOG_API UIWindow : public Object
   bool _visible;
 
   //! @brief Whether window has native windowing system focus.
-  bool _focus;
+  bool _hasFocus;
 
   //! @brief Whether window needs blit to screen.
-  bool _blit;
+  bool _needBlit;
 
   //! @brief Window is dirty and needs update.
-  bool _dirty;
+  bool _isDirty;
 
   friend struct UISystem;
   friend struct Widget;
@@ -448,12 +448,12 @@ struct FOG_API UIBackingStore
 // [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::UISystem::DisplayInfo, Fog::PrimitiveType)
-FOG_DECLARE_TYPEINFO(Fog::UISystem::PaletteInfo, Fog::PrimitiveType)
-FOG_DECLARE_TYPEINFO(Fog::UISystem::CaretStatus, Fog::PrimitiveType)
-FOG_DECLARE_TYPEINFO(Fog::UISystem::MouseStatus, Fog::PrimitiveType)
-FOG_DECLARE_TYPEINFO(Fog::UISystem::SystemMouseStatus, Fog::PrimitiveType)
-FOG_DECLARE_TYPEINFO(Fog::UISystem::KeyboardStatus, Fog::PrimitiveType)
+FOG_DECLARE_TYPEINFO(Fog::UISystem::DisplayInfo, Fog::TYPE_INFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::UISystem::PaletteInfo, Fog::TYPE_INFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::UISystem::CaretStatus, Fog::TYPE_INFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::UISystem::MouseStatus, Fog::TYPE_INFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::UISystem::SystemMouseStatus, Fog::TYPE_INFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::UISystem::KeyboardStatus, Fog::TYPE_INFO_PRIMITIVE)
 
 // [Guard]
 #endif // _FOG_UI_UISYSTEM_H

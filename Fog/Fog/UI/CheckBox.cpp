@@ -30,21 +30,14 @@ CheckBox::~CheckBox()
 {
 }
 
-void CheckBox::onMouse(MouseEvent* e)
+void CheckBox::onClick(MouseEvent* e)
 {
-  switch (e->getCode())
+  if (e->getButton() == BUTTON_LEFT)
   {
-    case EvClick:
-    {
-      if (e->getButton() == ButtonLeft)
-      {
-        setChecked(_checked ^ 1);
-      }
-      break;
-    }
+    setChecked(_checked ^ 1);
   }
 
-  base::onMouse(e);
+  base::onClick(e);
 }
 
 void CheckBox::onPaint(PaintEvent* e)
@@ -88,7 +81,7 @@ void CheckBox::onPaint(PaintEvent* e)
   bounds.w -= 16;
 
   p->setSource(0xFF000000);
-  p->drawText(bounds, _text, _font, TextAlignLeft);
+  p->drawText(bounds, _text, _font, TEXT_ALIGN_LEFT);
 }
 
 } // Fog namespace

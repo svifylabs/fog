@@ -30,7 +30,7 @@ struct FOG_API ValueData
   ValueData(uint32_t type);
   virtual ~ValueData();
 
-  static void* allocData();
+  static void* allogetData();
   static void freeData(void* data);
 
   // [Methods]
@@ -81,12 +81,12 @@ private:
 
 struct FOG_API Value
 {
-  enum Type
+  enum TYPE
   {
-    TypeNull = 0,
-    TypeInteger = 1,
-    TypeDouble = 2,
-    TypeString = 3
+    TYPE_NULL = 0,
+    TYPE_INTEGER = 1,
+    TYPE_DOUBLE = 2,
+    TYPE_STRING = 3
   };
 
   // [Construction / Destruction]
@@ -123,17 +123,17 @@ struct FOG_API Value
 
   uint32_t getType() const { return _d->type; }
 
-  FOG_INLINE bool isNull() const { return _d->type == TypeNull; }
-  FOG_INLINE bool isInteger() const { return _d->type == TypeInteger; }
-  FOG_INLINE bool isDouble() const { return _d->type == TypeDouble; }
-  FOG_INLINE bool isString() const { return _d->type == TypeString; }
+  FOG_INLINE bool isNull() const { return _d->type == TYPE_NULL; }
+  FOG_INLINE bool isInteger() const { return _d->type == TYPE_INTEGER; }
+  FOG_INLINE bool isDouble() const { return _d->type == TYPE_DOUBLE; }
+  FOG_INLINE bool isString() const { return _d->type == TYPE_STRING; }
 
   FOG_INLINE err_t getInt32(int32_t* dst) const { return _d->getInt32(dst); }
   FOG_INLINE err_t getInt64(int64_t* dst) const { return _d->getInt64(dst); }
   FOG_INLINE err_t getDouble(double* dst) const { return _d->getDouble(dst); }
   FOG_INLINE err_t getString(String* dst) const { return _d->getString(dst); }
 
-  err_t setNull();
+  err_t reset();
   err_t setInt32(int32_t val);
   err_t setInt64(int64_t val);
   err_t setDouble(double val);
@@ -156,7 +156,7 @@ struct FOG_API Value
 // [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::Value, Fog::MoveableType)
+FOG_DECLARE_TYPEINFO(Fog::Value, Fog::TYPE_INFO_MOVABLE)
 
 // [Guard]
 #endif // _FOG_CORE_VALUE_H

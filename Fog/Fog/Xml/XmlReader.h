@@ -12,6 +12,7 @@
 #include <Fog/Core/String.h>
 #include <Fog/Core/Stream.h>
 #include <Fog/Core/TextCodec.h>
+#include <Fog/Xml/Constants.h>
 
 //! @addtogroup Fog_Xml
 //! @{
@@ -45,7 +46,7 @@ struct FOG_API XmlReader
   err_t parseString(const Char* str, sysuint_t len);
 
   FOG_INLINE err_t parseString(const String& str)
-  { return parseString(str.cData(), str.getLength()); }
+  { return parseString(str.getData(), str.getLength()); }
 
   // [State]
 
@@ -111,7 +112,7 @@ struct FOG_API XmlReader
 
   virtual err_t onAddText(const Utf16& data, bool isWhiteSpace) = 0;
   virtual err_t onAddCDATA(const Utf16& data) = 0;
-  virtual err_t onAddDOCTYPE(const Vector<String>& doctype) = 0;
+  virtual err_t onAddDOCTYPE(const List<String>& doctype) = 0;
   virtual err_t onAddPI(const Utf16& data) = 0;
   virtual err_t onAddComment(const Utf16& data) = 0;
 
@@ -139,7 +140,7 @@ struct FOG_API XmlDomReader : public XmlReader
 
   virtual err_t onAddText(const Utf16& data, bool isWhiteSpace);
   virtual err_t onAddCDATA(const Utf16& data);
-  virtual err_t onAddDOCTYPE(const Vector<String>& doctype);
+  virtual err_t onAddDOCTYPE(const List<String>& doctype);
   virtual err_t onAddPI(const Utf16& data);
   virtual err_t onAddComment(const Utf16& data);
 

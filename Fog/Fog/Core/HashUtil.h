@@ -8,17 +8,17 @@
 #define _FOG_CORE_HASHUTIL_H
 
 // [Dependencies]
+#include <Fog/Build/Build.h>
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/Atomic.h>
-#include <Fog/Build/Build.h>
 #include <Fog/Core/Char.h>
-#include <Fog/Core/Error.h>
+#include <Fog/Core/Constants.h>
+#include <Fog/Core/List.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/SequenceInfo.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/Std.h>
 #include <Fog/Core/TypeInfo.h>
-#include <Fog/Core/Vector.h>
 
 namespace Fog {
 namespace HashUtil {
@@ -30,13 +30,40 @@ namespace HashUtil {
 // [Fog::HashUtil::hashData/hashString]
 // ============================================================================
 
+//! @brief Hash data.
+//!
+//! @param data Pointer to data sequence.
+//! @param size Size of data. You cant use DETECT_LENGTH here.
+//!
+//! @note @c hashData() and @c hashString() methods will result in different
+//! hashes, also the speed of hashString() is maximized.
 FOG_API uint32_t hashData(const void* data, sysuint_t size);
 
 // STANDARD hash functions for 8 bit and 16 bit NULL terminated strings.
-// 8 bit and 16 bit hashes are not compatible for strings that represents same
-// unicode data.
-// TODO: Invalid, hashes must be compatible between Latin1 and Utf16 strings.
+// 8 bit and 16 bit hashes are compatible between LATIN1 and UTF16 strings.
+//
+// BIG NOTE: hashString() and hashData() functions are INCOMPATIBLE!
+
+//! @brief Hash 8-bit string.
+//!
+//! @param key 8-bit string to hash.
+//! @param length Length of string or DETECT_LENGTH to detect it.
+//!
+//! @note Hashing LATIN1 and UTF16 strings produces equal hash results.
+//!
+//! @note @c hashData() and @c hashString() methods will result in different
+//! hashes, also the speed of hashString() is maximized.
 FOG_API uint32_t hashString(const char* key, sysuint_t length);
+
+//! @brief Hash 16-bit string.
+//!
+//! @param key 16-bit string to hash.
+//! @param length Length of string or DETECT_LENGTH to detect it.
+//!
+//! @note Hashing LATIN1 and UTF16 strings produces equal hash results.
+//!
+//! @note @c hashData() and @c hashString() methods will result in different
+//! hashes, also the speed of hashString() is maximized.
 FOG_API uint32_t hashString(const Char* key, sysuint_t length);
 
 //! @brief Combine two hash values into one.

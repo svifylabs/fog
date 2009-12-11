@@ -93,16 +93,8 @@ enum STR_ID
   STR_GRAPHICS_framesCount,
   STR_GRAPHICS_progress,
   STR_GRAPHICS_quality,
-
-  // [Graphics - ImageFilter Properties]
-
-  STR_GRAPHICS_filterType,
-  STR_GRAPHICS_blurType,
-  STR_GRAPHICS_borderMode,
-  STR_GRAPHICS_borderColor,
-  STR_GRAPHICS_horizontalRadius,
-  STR_GRAPHICS_verticalRadius,
-  STR_GRAPHICS_kernel,
+  STR_GRAPHICS_compression,
+  STR_GRAPHICS_skipFileHeader,
 
   // [Xml]
 
@@ -185,6 +177,11 @@ enum STR_ID
   STR_SVG_stroke_miterlimit,
   STR_SVG_stroke_opacity,
   STR_SVG_stroke_width,
+
+  // [Platform Specific]
+#if defined(FOG_OS_WINDOWS)
+  STR_PLATFORM_USERPROFILE,
+#endif // FOG_OS_WINDOWS
 
   // [Count]
 

@@ -27,7 +27,7 @@ namespace Fog {
 //!
 //! Glyph set is quite simple array that is optimized to play with font engines
 //! and painters. It uses quite optimized way how glyphs are stored and allows
-//! minimal manupulation.
+//! minimal manipulation.
 //!
 //! Typical font engine method that serializes glyphs looks like this:
 //! @code
@@ -58,25 +58,19 @@ struct FOG_API GlyphSet
     //! @brief String data flags.
     enum
     {
-      //! @brief Null 'd' object. 
-      //!
-      //! This is very likely object that's shared between all null objects. So
-      //! normally only one data instance can has this flag set on.
-      IsNull = (1U << 0),
-
       //! @brief Data are created on the heap. 
       //!
       //! Object is created by function like @c Fog::Memory::alloc() or by
       //! @c new operator. It this flag is not set, you can't delete object from
       //! the heap and object is probabbly only temporary (short life object).
-      IsDynamic = (1U << 1),
+      IsDynamic = (1U << 0),
 
       //! @brief Data are shareable.
       //!
       //! Object can be directly referenced by internal method @c ref(). 
       //! Sharable data are usually created on the heap and together 
       //! with this flag is set also @c IsDynamic, but it isn't prerequisite.
-      IsSharable = (1U << 2)
+      IsSharable = (1U << 1)
     };
 
     // [Ref / Deref]
@@ -93,15 +87,16 @@ struct FOG_API GlyphSet
     // [Glyphs]
 
     //! @brief Get glyphs data casted to <code>Glyph*</code>.
-    FOG_INLINE Glyph *glyphs()
-    { return reinterpret_cast<Glyph*>(data); }
+    FOG_INLINE Glyph *glyphs() { return reinterpret_cast<Glyph*>(data); }
+    //! @brief Get glyphs data casted to <code>const Glyph*</code>.
+    FOG_INLINE const Glyph *glyphs() const { return reinterpret_cast<const Glyph*>(data); }
 
     // [Statics]
 
     static Data* adopt(void* data, sysuint_t capacity);
     static Data* alloc(sysuint_t capacity);
     static Data* realloc(Data* d, sysuint_t capacity);
-    static Data* copy(Data* d);
+    static Data* copy(const Data* d);
     static void free(Data* d);
 
     // [Members]
@@ -119,7 +114,7 @@ struct FOG_API GlyphSet
     //! @brief Advance;
     int advance;
     //! @brief Glyphs data (inlined to this structure).
-    uint8_t data[sizeof(Glyph)];
+    char data[sizeof(Glyph)];
   };
 
   static Static<Data> sharedNull;
@@ -165,7 +160,7 @@ struct FOG_API GlyphSet
       return err;
 
     _add(gd);
-    return Error::Ok;
+    return ERR_OK;
   }
 
   //! @brief Add glyph to glyph set 
@@ -221,7 +216,7 @@ private:
 // [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::GlyphSet, Fog::MoveableType)
+FOG_DECLARE_TYPEINFO(Fog::GlyphSet, Fog::TYPE_INFO_MOVABLE)
 
 // [Guard]
 #endif // _FOG_GRAPHICS_GLYPHSET_H

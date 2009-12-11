@@ -21,7 +21,7 @@
 #endif // FOG_OS_WINDOWS
 
 #if defined(FOG_OS_POSIX)
-#ifdef FOG_OS_MACOSX
+#ifdef FOG_OS_MAC
 #include <mach/mach_time.h>
 #endif
 #include <sys/time.h>
@@ -181,7 +181,7 @@ Time Time::LocalMidnight() const
 // To work around all this, we're going to generally use timeGetTime().  We
 // will only increase the system-wide timer if we're not running on battery
 // power.  Using timeBeginPeriod(1) is a requirement in order to make our
-// message loop waits have the same resolution that our time measurements
+// event loop waits have the same resolution that our time measurements
 // do.  Otherwise, WaitForSingleObject(..., 1) will no less than 15ms when
 // there is nothing else to waken the Wait.
 
@@ -658,7 +658,7 @@ TimeTicks TimeTicks::now()
 {
   uint64_t absolute_micro;
 
-#if defined(FOG_OS_MACOSX)
+#if defined(FOG_OS_MAC)
 
   static mach_timebase_info_data_t timebase_info;
   if (timebase_info.denom == 0)

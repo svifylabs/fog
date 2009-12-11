@@ -55,9 +55,14 @@ struct FOG_API ButtonBase : public Widget
   // [Event Handlers]
 
   // Fog::Widget Events.
-  virtual void onFocus(FocusEvent* e);
-  virtual void onKey(KeyEvent* e);
-  virtual void onMouse(MouseEvent* e);
+  virtual void onFocusIn(FocusEvent* e);
+  virtual void onFocusOut(FocusEvent* e);
+  virtual void onKeyPress(KeyEvent* e);
+  virtual void onKeyRelease(KeyEvent* e);
+  virtual void onMouseIn(MouseEvent* e);
+  virtual void onMouseOut(MouseEvent* e);
+  virtual void onMousePress(MouseEvent* e);
+  virtual void onMouseRelease(MouseEvent* e);
 
   // Fog::ButtonBase Events.
   virtual void onCheck(CheckEvent* e);
@@ -65,10 +70,10 @@ struct FOG_API ButtonBase : public Widget
 
   // [Event Map]
 
-  fog_event_begin()
-    fog_event(EvCheck            , onCheck           , CheckEvent     , Override)
-    fog_event(EvUncheck          , onUncheck         , CheckEvent     , Override)
-  fog_event_end()
+  FOG_EVENT_BEGIN()
+    FOG_EVENT_DEF(EV_CHECK            , onCheck           , CheckEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EV_UNCHECK          , onUncheck         , CheckEvent     , OVERRIDE)
+  FOG_EVENT_END()
 
 protected:
   String _text;

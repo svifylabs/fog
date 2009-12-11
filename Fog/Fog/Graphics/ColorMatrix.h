@@ -17,6 +17,7 @@
 #include <Fog/Build/Build.h>
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/Constants.h>
+#include <Fog/Core/Math.h>
 #include <Fog/Graphics/Constants.h>
 
 //! @addtogroup Fog_Graphics
@@ -28,8 +29,7 @@ namespace Fog {
 // [Forward Declarations]
 // ============================================================================
 
-struct Rgba;
-struct Rgba64;
+struct Argb;
 
 // ============================================================================
 // [Fog::ColorMatrix]
@@ -42,8 +42,6 @@ struct Rgba64;
 struct FOG_API ColorMatrix
 {
   // [Construction / Destruction]
-
-  FOG_INLINE ColorMatrix(_LinkerInitialized _linkerInitialized) { FOG_UNUSED(_linkerInitialized); }
 
   FOG_INLINE ColorMatrix()
   {
@@ -65,6 +63,8 @@ struct FOG_API ColorMatrix
     _copyData(this->m, other.m);
   }
 
+  FOG_INLINE ColorMatrix(_DONT_INITIALIZE _linkerInitialized) { FOG_UNUSED(_linkerInitialized); }
+
   FOG_INLINE ColorMatrix(
     double m00, double m01, double m02, double m03, double m04,
     double m10, double m11, double m12, double m13, double m14,
@@ -84,7 +84,7 @@ struct FOG_API ColorMatrix
   //! @brief Characteristics of color matrix.
   //!
   //! Characteristics is bit mask.
-  enum Part
+  enum TYPE
   {
     //! @brief Matrix contains RGB shear part.
     //!
@@ -94,7 +94,7 @@ struct FOG_API ColorMatrix
     //!   [X X n n n]
     //!   [n n n n n]
     //!   [n n n n n]
-    PartShearRGB = 0x01,
+    TYPE_SHEAR_RGB = 0x01,
 
     //! @brief Matrix contains alpha shear part.
     //!
@@ -104,7 +104,7 @@ struct FOG_API ColorMatrix
     //!   [n n n X n]
     //!   [X X X n n]
     //!   [n n n n n]
-    PartShearAlpha = 0x02,
+    TYPE_SHEAR_ALPHA = 0x02,
 
     //! @brief Matrix contains RGBA shear part.
     //!
@@ -116,7 +116,7 @@ struct FOG_API ColorMatrix
     //!   [n n n n n]
     //!
     //! @note RGBA shear is combination of RGB and Alpha shear parts.
-    PartShearRGBA = 0x03,
+    TYPE_SHEAR_RGBA = 0x03,
 
     //! @brief Matrix contains RGB lut part.
     //!
@@ -126,7 +126,7 @@ struct FOG_API ColorMatrix
     //!   [n n X n n]
     //!   [n n n n n]
     //!   [n n n n n]
-    PartLutRGB = 0x04,
+    TYPE_LUT_RGB = 0x04,
 
     //! @brief Matrix contains RGB lut part.
     //!
@@ -136,7 +136,7 @@ struct FOG_API ColorMatrix
     //!   [n n n n n]
     //!   [n n n X n]
     //!   [n n n n n]
-    PartLutAlpha = 0x08,
+    TYPE_LUT_ALPHA = 0x08,
 
     //! @brief Matrix contains RGBA lut part.
     //!
@@ -148,7 +148,7 @@ struct FOG_API ColorMatrix
     //!   [n n n n n]
     //!
     //! @note RGBA lut is combination of RGB and Alpha lut parts.
-    PartLutRGBA = 0x0C,
+    TYPE_LUT_RGBA = 0x0C,
 
     //! @brief Matrix contains const RGB lut part (all cells are set to 1.0).
     //!
@@ -158,7 +158,7 @@ struct FOG_API ColorMatrix
     //!   [n n 1 n n]
     //!   [n n n n n]
     //!   [n n n n n]
-    PartConstRGB = 0x10,
+    TYPE_CONST_RGB = 0x10,
 
     //! @brief Matrix contains const alpha lut part (cell set to 1.0).
     //!
@@ -168,7 +168,7 @@ struct FOG_API ColorMatrix
     //!   [n n n n n]
     //!   [n n n 1 n]
     //!   [n n n n n]
-    PartConstAlpha = 0x20,
+    TYPE_CONST_ALPHA = 0x20,
 
     //! @brief Matrix contains const RGBA lut part (all cells are set to 1.0).
     //!
@@ -180,7 +180,7 @@ struct FOG_API ColorMatrix
     //!   [n n n n n]
     //!
     //! @note RGBA const lut is combination of RGB a Alpha const lut.
-    PartConstRGBA = 0x30,
+    TYPE_CONST_ARGA = 0x30,
 
     //! @brief Matrix contains RGB translation part
     //!
@@ -190,7 +190,7 @@ struct FOG_API ColorMatrix
     //!   [n n n n n]
     //!   [n n n n n]
     //!   [X X X n n]
-    PartTranslateRGB  = 0x40,
+    TYPE_TRANSLATE_RGB  = 0x40,
 
     //! @brief Matrix contains alpha translation part
     //!
@@ -200,7 +200,7 @@ struct FOG_API ColorMatrix
     //!   [n n n n n]
     //!   [n n n n n]
     //!   [n n n X n]
-    PartTranslateAlpha = 0x80,
+    TYPE_TRANSLATE_ALPHA = 0x80,
 
     //! @brief Matrix contains RGBA translation part
     //!
@@ -212,7 +212,7 @@ struct FOG_API ColorMatrix
     //!   [X X X X n]
     //!
     //! @note RGBA translation is combination of RGB and Alpha translation parts.
-    PartTranslateRGBA = 0xC0
+    TYPE_TRANSLATE_RGBA = 0xC0
   };
 
   //! @brief Determines type of color matrix.
@@ -266,7 +266,7 @@ struct FOG_API ColorMatrix
   //! @brief Subtract other matrix from this matrix.
   ColorMatrix& subtract(const ColorMatrix& other);
   //! @brief Multiply this matrix with other matrix.
-  ColorMatrix& multiply(const ColorMatrix& other, int order = MatrixOrderPrepend);
+  ColorMatrix& multiply(const ColorMatrix& other, int order = MATRIX_PREPEND);
   //! @brief Multiply this matrix with scalar.
   ColorMatrix& multiply(double scalar);
 
@@ -274,59 +274,53 @@ struct FOG_API ColorMatrix
   void transformVector(double* v) const;
 
   //! @brief Transform a @a rgb color.
-  void transformRgb(Rgba* rgb) const;
-
-  //! @brief Transform a @a rgb color.
-  void transformRgb64(Rgba64* rgb) const;
+  void transformRgb(Argb* rgb) const;
 
   //! @brief Transform a @a rgba color.
-  void transformRgba(Rgba* rgba) const;
-
-  //! @brief Transform a @a rgba color.
-  void transformRgba64(Rgba64* rgba) const;
+  void transformArgb(Argb* rgba) const;
 
   //! @brief Transform alpha value @a a.
   void transformAlpha(uint8_t* a) const;
 
   //! @brief Scale the color components of the matrix.
-  ColorMatrix& scale(double sr, double sg, double sb, double sa = 1.0, int order = MatrixOrderPrepend);
+  ColorMatrix& scale(double sr, double sg, double sb, double sa = 1.0, int order = MATRIX_PREPEND);
 
-  FOG_INLINE ColorMatrix& scaleColors(double scalar, int order = MatrixOrderPrepend)
+  FOG_INLINE ColorMatrix& scaleColors(double scalar, int order = MATRIX_PREPEND)
   { return scale(scalar, scalar, scalar, 1.0, order );}
 
-  FOG_INLINE ColorMatrix& scaleOpacity(double scalar, int order = MatrixOrderPrepend)
+  FOG_INLINE ColorMatrix& scaleOpacity(double scalar, int order = MATRIX_PREPEND)
   { return scale(1.0, 1.0, 1.0, scalar, order ); }
 
   //! @brief Translate the color components of the matrix.
-  ColorMatrix& translate(double tr, double tg, double tb, double ta = 0.0, int order = MatrixOrderPrepend);
+  ColorMatrix& translate(double tr, double tg, double tb, double ta = 0.0, int order = MATRIX_PREPEND);
 
-  FOG_INLINE ColorMatrix& translateColors(double transVal, int order = MatrixOrderPrepend)
+  FOG_INLINE ColorMatrix& translateColors(double transVal, int order = MATRIX_PREPEND)
   { return translate( transVal, transVal, transVal, 0.0, order ); }
 
-  FOG_INLINE ColorMatrix& translateOpacity(double transVal, int order = MatrixOrderPrepend)
+  FOG_INLINE ColorMatrix& translateOpacity(double transVal, int order = MATRIX_PREPEND)
   { return translate( 1.0, 1.0, 1.0, transVal, order ); }
 
-  FOG_INLINE ColorMatrix& rotateRed(double phi, int order = MatrixOrderPrepend)
+  FOG_INLINE ColorMatrix& rotateRed(double phi, int order = MATRIX_PREPEND)
   { return _rotateColor(phi, 2, 1, order); }
 
-  FOG_INLINE ColorMatrix& rotateGreen(double phi, int order = MatrixOrderPrepend)
+  FOG_INLINE ColorMatrix& rotateGreen(double phi, int order = MATRIX_PREPEND)
   { return _rotateColor(phi, 0, 2, order); }
 
-  FOG_INLINE ColorMatrix& rotateBlue(double phi, int order = MatrixOrderPrepend)
+  FOG_INLINE ColorMatrix& rotateBlue(double phi, int order = MATRIX_PREPEND)
   { return _rotateColor(phi, 1, 0, order); }
 
-  FOG_INLINE ColorMatrix& shearRed(double g, double b, int order = MatrixOrderPrepend)
+  FOG_INLINE ColorMatrix& shearRed(double g, double b, int order = MATRIX_PREPEND)
   { return _shearColor(0, 1, g, 2, b, order); }
 
-  FOG_INLINE ColorMatrix& shearGreen( double r, double b, int order = MatrixOrderPrepend)
+  FOG_INLINE ColorMatrix& shearGreen( double r, double b, int order = MATRIX_PREPEND)
   { return _shearColor(1, 0, r, 2, b, order); }
 
-  FOG_INLINE ColorMatrix& shearBlue(double r, double g, int order = MatrixOrderPrepend)
+  FOG_INLINE ColorMatrix& shearBlue(double r, double g, int order = MATRIX_PREPEND)
   { return _shearColor(2, 0, r, 1, g, order); }
 
   //! @brief Set the saturation of the matrix
   //! @remark Saturation of 0.0 yields black & white, 1.0 is neutral.
-  ColorMatrix& setSaturation(double sat, int order = MatrixOrderPrepend);
+  ColorMatrix& setSaturation(double sat, int order = MATRIX_PREPEND);
 
   //! @brief Scale the tint.
   //! @param phi [-180..180, 0 = blue]
@@ -340,18 +334,15 @@ struct FOG_API ColorMatrix
   // [Operator Overload]
 
   //! @brief Assignment operator.
-  FOG_INLINE ColorMatrix& operator=(const ColorMatrix& other)
-  { _copyData(this->m, other.m); return *this; }
+  FOG_INLINE ColorMatrix& operator=(const ColorMatrix& other) { _copyData(this->m, other.m); return *this; }
 
-  bool eq(const ColorMatrix& other, double epsilon = Math::defaultEpsilon) const;
+  bool eq(const ColorMatrix& other, double epsilon = Math::DEFAULT_EPSILON) const;
 
   //! @brief Equality operator.
-  FOG_INLINE bool operator==(const ColorMatrix& other)
-  { return eq(other); }
+  FOG_INLINE bool operator==(const ColorMatrix& other) { return eq(other); }
 
   //! @brief Inequality operator.
-  FOG_INLINE bool operator!=(const ColorMatrix& other)
-  { return !eq(other); }
+  FOG_INLINE bool operator!=(const ColorMatrix& other) { return !eq(other); }
 
   FOG_INLINE ColorMatrix& operator+=(const ColorMatrix& other) { return add(other); }
   FOG_INLINE ColorMatrix& operator-=(const ColorMatrix& other) { return subtract(other); }
@@ -365,14 +356,14 @@ struct FOG_API ColorMatrix
   //! access to the elements by using [r][c].
   FOG_INLINE double* operator[](sysuint_t row)
   {
-    FOG_ASSERT(row < 5);
+    FOG_ASSERT_X(row < 5U, "Row out of bounds");
     return m[row];
   }
 
   //! @overload.
   FOG_INLINE const double* const operator[](sysuint_t row) const
   {
-    FOG_ASSERT(row < 5);
+    FOG_ASSERT_X(row < 5U, "Row out of bounds");
     return m[row];
   }
 
@@ -399,10 +390,10 @@ private:
   //! @brief Rotate the matrix about a color axis.
   //! @note The color of the axis is unchanged, while the others are rotated 
   //! in color space.
-  ColorMatrix& _rotateColor(double phi, int x, int y, int order = MatrixOrderPrepend);
+  ColorMatrix& _rotateColor(double phi, int x, int y, int order = MATRIX_PREPEND);
 
   //! @brief Shear the matrix in one of the color planes
-  ColorMatrix& _shearColor(int x, int y1, double col1, int y2, double col2, int order = MatrixOrderPrepend);
+  ColorMatrix& _shearColor(int x, int y1, double col1, int y2, double col2, int order = MATRIX_PREPEND);
 
   //! @brief Copy matrix data from @a srt to @a dst.
   static void _copyData(void* dst, const void* src);

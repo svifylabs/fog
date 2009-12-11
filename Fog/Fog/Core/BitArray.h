@@ -12,7 +12,6 @@
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/Atomic.h>
 #include <Fog/Core/Constants.h>
-#include <Fog/Core/Error.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/TypeInfo.h>
@@ -30,68 +29,25 @@ struct FOG_API BitArray
 {
   struct FOG_API Data
   {
-    // [Flags]
-
-    //! @brief Flags.
-    enum Flags
-    {
-      //! @brief Null 'd' object.
-      //!
-      //! This is very likely object that's shared between all null objects. So
-      //! normally only one data instance can has this flag set on.
-      IsNull = (1U << 0),
-
-      //! @brief Object is created on the heap.
-      //!
-      //! Object is created by function like @c malloc() or Fog::Memory::alloc() or
-      //! by @c new operator. It this flag is not set, you can't delete object from
-      //! the heap and object is probabbly only temporary (short life).
-      IsDynamic = (1U << 1),
-
-      //! @brief Object is shareable.
-      //!
-      //! Object can be directly referenced by internal method @c ref(). Sharable
-      //! objects are usually created on the heap and together with this flag is set
-      //! also @c IsDynamic, but it couldn't be.
-      IsSharable = (1U << 2),
-
-      //! @brief Prevents destroying from assigning operations.
-      //!
-      //! This flag is usually only for @c Fog::String family classes and it
-      //! it means
-      //!   "Don't assign other object to me, instead, copy it to me directly!".
-      IsStrong = (1U << 3)
-    };
-
     // [Ref / Deref]
 
-    FOG_INLINE Data* refAlways() const
+    FOG_INLINE Data* ref() const
     {
       refCount.inc();
       return const_cast<Data*>(this);
     }
 
-    Data* ref() const;
     void deref();
-
-    static Data* adopt(void* address, sysuint_t capacity);
-    static Data* adopt(void* address, sysuint_t capacity, const uint8_t* data, sysuint_t bitoffset, sysuint_t count);
-    static Data* adopt(void* address, sysuint_t capacity, uint32_t bit, sysuint_t count);
 
     static Data* create(sysuint_t capacity);
     static Data* create(sysuint_t capacity, const uint8_t* data, sysuint_t bitoffset, sysuint_t count);
-
-    static Data* createFor(uint32_t bit, sysuint_t count);
     static Data* createFor(const uint8_t* data, sysuint_t bitoffset, sysuint_t count);
-    static Data* createFor2(const uint8_t* data1, sysuint_t bitoffset1, sysuint_t count1, const uint8_t* data2, sysuint_t bitoffset2, sysuint_t count2);
 
     static Data* copy(const Data* other);
 
     // [Members]
 
     mutable Atomic<sysuint_t> refCount;
-    uint32_t flags;
-
     sysuint_t capacity;
     sysuint_t length;
     uint8_t data[4];
@@ -103,7 +59,7 @@ struct FOG_API BitArray
 
   BitArray();
   BitArray(const BitArray& other);
-  explicit BitArray(Data* d);
+  FOG_INLINE explicit BitArray(Data* d) : _d(d) {}
   ~BitArray();
 
   // [Implicit Sharing]
@@ -113,7 +69,7 @@ struct FOG_API BitArray
   //! @copydoc Doxygen::Implicit::isDetached().
   FOG_INLINE bool isDetached() const { return refCount() == 1; }
   //! @copydoc Doxygen::Implicit::detach().
-  FOG_INLINE err_t detach() { return !isDetached() ? _detach() : (err_t)Error::Ok; }
+  FOG_INLINE err_t detach() { return !isDetached() ? _detach() : (err_t)ERR_OK; }
   //! @copydoc Doxygen::Implicit::_detach().
   err_t _detach();
   //! @copydoc Doxygen::Implicit::free().
@@ -121,21 +77,13 @@ struct FOG_API BitArray
 
   // [Flags]
 
-  //! @copydoc Doxygen::Implicit::getFlags().
-  FOG_INLINE uint32_t getFlags() const { return _d->flags; }
-  //! @copydoc Doxygen::Implicit::isDynamic().
-  FOG_INLINE bool isDynamic() const { return (_d->flags & Data::IsDynamic) != 0; }
-  //! @copydoc Doxygen::Implicit::isSharable().
-  FOG_INLINE bool isSharable() const { return (_d->flags & Data::IsSharable) != 0; }
   //! @copydoc Doxygen::Implicit::isNull().
-  FOG_INLINE bool isNull() const { return (_d->flags & Data::IsNull) != 0; }
-  //! @copydoc Doxygen::Implicit::isStrong().
-  FOG_INLINE bool isStrong() const { return (_d->flags & Data::IsStrong) != 0; }
+  FOG_INLINE bool isNull() const { return _d == sharedNull.instancep(); }
 
   // [Data]
 
   //! @brief Returns const pointer to bit array data (bits).
-  FOG_INLINE const uint8_t* cData() const
+  FOG_INLINE const uint8_t* getData() const
   {
     return _d->data;
   }
@@ -145,20 +93,20 @@ struct FOG_API BitArray
   //! To ensure that data can be overwritten, @c detach()
   //! is called internally.
 
-  FOG_INLINE uint8_t* mData()
+  FOG_INLINE uint8_t* getMData()
   {
-    return detach() == Error::Ok ? _d->data : NULL;
+    return detach() == ERR_OK ? _d->data : NULL;
   }
 
-  FOG_INLINE uint8_t* xData()
+  FOG_INLINE uint8_t* getXData()
   {
-    FOG_ASSERT_X(isDetached(), "Fog::BitArray::xData() - Non detached data.");
+    FOG_ASSERT_X(isDetached(), "Fog::BitArray::getXData() - Non detached data.");
     return _d->data;
   }
 
   FOG_INLINE bool at(sysuint_t index) const
   {
-    FOG_ASSERT_X(index < getLength(), "Fog::BitArray::at() - Index out of range.");
+    FOG_ASSERT_X(index < _d->length, "Fog::BitArray::at() - Index out of range.");
     return (bool)(_d->data[index >> 3] & (1 << (index & 7)));
   }
 
@@ -193,6 +141,7 @@ struct FOG_API BitArray
   // [Set]
 
   err_t set(const BitArray& other);
+  err_t setDeep(const BitArray& other);
 
   // [Append]
 
@@ -229,21 +178,6 @@ struct FOG_API BitArray
 
   FOG_DECLARE_D(Data)
 };
-
-// [Fog::TemporaryBitArray<N>]
-
-/*
-template<sysuint_t N>
-struct Fog::TemporaryBitArray : public Fog::BitArray
-{
-  // Keep 'Storage' name for this struct for Borland compiler
-  struct Storage
-  {
-    Fog::BitArrayData _d;
-    char _str[(N + 7) / 8];
-  } _storage;
-};
-*/
 
 } // Fog namespace
 

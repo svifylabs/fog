@@ -54,45 +54,10 @@ struct FOG_API CancelableTask : public Task
 template<typename T>
 struct DeleteTask : public CancelableTask
 {
-  explicit DeleteTask(T* obj) : _obj(obj)
-  {
-  }
+  explicit DeleteTask(T* obj) : _obj(obj) {}
 
-  virtual void run()
-  {
-    if (_obj) delete _obj;
-  }
-
-  virtual void cancel()
-  {
-    _obj = NULL;
-  }
-
-private:
-  T* _obj;
-};
-
-// ============================================================================
-// [Fog::ReleaseTask<T>]
-// ============================================================================
-
-// Task to release() an object
-template<typename T>
-struct ReleaseTask : public CancelableTask
-{
-  explicit ReleaseTask(T* obj) : _obj(obj)
-  {
-  }
-
-  virtual void run()
-  {
-    if (_obj) _obj->release();
-  }
-
-  virtual void cancel()
-  {
-    _obj = NULL;
-  }
+  virtual void run() { if (_obj) delete _obj; }
+  virtual void cancel() { _obj = NULL; }
 
 private:
   T* _obj;
@@ -105,16 +70,6 @@ private:
 // Invokes quit() on the current EventLoop when run. Useful to schedule an
 // arbitrary EventLoop to quit.
 struct FOG_API QuitTask : public Task
-{
-public:
-  virtual void run();
-};
-
-// ============================================================================
-// [Fog::ThreadQuitTask]
-// ============================================================================
-
-struct FOG_API ThreadQuitTask : public Task
 {
 public:
   virtual void run();

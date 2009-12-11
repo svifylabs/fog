@@ -27,9 +27,9 @@ FOG_API err_t normalizePath(String& dst, const String& path);
 FOG_API err_t toAbsolutePath(String& dst, const String& base, const String& path);
 FOG_API err_t joinPath(String& dst, const String& base, const String& part);
 
-FOG_API bool isPathContainsFile(const String& path, const String& file, uint cs = CaseSensitive);
-FOG_API bool isPathContainsDirectory(const String& path, const String& directory, uint cs = CaseSensitive);
-FOG_API bool isPathContainsExtension(const String& path, const String& extension, uint cs = CaseSensitive);
+FOG_API bool isPathContainsFile(const String& path, const String& file, uint cs = CASE_SENSITIVE);
+FOG_API bool isPathContainsDirectory(const String& path, const String& directory, uint cs = CASE_SENSITIVE);
+FOG_API bool isPathContainsExtension(const String& path, const String& extension, uint cs = CASE_SENSITIVE);
 FOG_API bool isNormalizedPath(const String& path);
 FOG_API bool isAbsolutePath(const String& path);
 

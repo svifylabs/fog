@@ -28,12 +28,12 @@ uint32_t UISystem::keyToModifier(uint32_t key) const
 {
   switch (key)
   {
-    case KeyLeftShift : return ModifierLeftShift;
-    case KeyRightShift: return ModifierRightShift;
-    case KeyLeftCtrl  : return ModifierLeftCtrl;
-    case KeyRightCtrl : return ModifierRightCtrl;
-    case KeyLeftAlt   : return ModifierLeftAlt;
-    case KeyRightAlt  : return ModifierRightAlt;
+    case KEY_LEFT_SHIFT : return MODIFIER_LEFT_SHIFT ;
+    case KEY_RIGHT_SHIFT: return MODIFIER_RIGHT_SHIFT;
+    case KEY_LEFT_CTRL  : return MODIFIER_LEFT_CTRL  ;
+    case KEY_RIGHT_CTRL : return MODIFIER_RIGHT_CTRL ;
+    case KEY_LEFT_ALT   : return MODIFIER_LEFT_ALT   ;
+    case KEY_RIGHT_ALT  : return MODIFIER_RIGHT_ALT  ;
   }
   return 0;
 }
@@ -48,9 +48,9 @@ UIWindow::UIWindow(Widget* widget) :
   _backingStore(NULL),
   _enabled(true),
   _visible(true),
-  _focus(false),
-  _blit(true),
-  _dirty(false)
+  _hasFocus(false),
+  _needBlit(true),
+  _isDirty(false)
 {
 }
 
@@ -77,7 +77,7 @@ void UIBackingStore::_clear()
   _pixels = NULL;
   _width = 0;
   _height = 0;
-  _format = Image::FormatNull;
+  _format = PIXEL_FORMAT_NULL;
   _depth = 0;
   _stride = 0;
 

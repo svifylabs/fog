@@ -10,9 +10,7 @@
 // [Dependencies]
 #include <Fog/Build/Build.h>
 #include <Fog/Core/Assert.h>
-#include <Fog/Core/Atomic.h>
-#include <Fog/Core/Error.h>
-#include <Fog/Core/Static.h>
+#include <Fog/Core/Constants.h>
 #include <Fog/Graphics/Constants.h>
 
 //! @addtogroup Fog_Graphics
@@ -24,8 +22,41 @@ namespace Fog {
 // [Forward Declarations]
 // ============================================================================
 
-struct Rgba;
-struct Rgba64;
+struct Argb;
+
+// ============================================================================
+// [Fog::ColorLutData]
+// ============================================================================
+
+//! @brief Color lut data.
+struct ColorLutData
+{
+  //! @brief Lookup table for red component.
+  uint8_t r[256];
+  //! @brief Lookup table for green component.
+  uint8_t g[256];
+  //! @brief Lookup table for blue component.
+  uint8_t b[256];
+  //! @brief Lookup table for alpha component.
+  uint8_t a[256];
+};
+
+// ============================================================================
+// [Fog::ColorLutFilter]
+// ============================================================================
+
+//! @brief Class that can be extended to make custom color lut filter. See
+//! ColorLut::filter() method.
+struct FOG_API ColorLutFilter
+{
+  FOG_INLINE ColorLutFilter() {}
+  FOG_INLINE ~ColorLutFilter() {}
+
+  virtual err_t filter(uint8_t* data) const = 0;
+
+private:
+  FOG_DISABLE_COPY(ColorLutFilter)
+};
 
 // ============================================================================
 // [Fog::ColorLut]
@@ -34,101 +65,27 @@ struct Rgba64;
 //! @brief Color lut.
 //!
 //! Color lut is class that stores information about color channel
-//! transformations that can be applied to an image data. The main idea is to
-//! group many transformations to this class and lets graphics backend decide
-//! if it can support particular transform directly or it will use color lut
-//! instead.
+//! transformations that can be applied to an image data.
 struct FOG_API ColorLut
 {
-  // [Table]
-
-  struct Table
-  {
-    uint8_t r[256];
-    uint8_t g[256];
-    uint8_t b[256];
-    uint8_t a[256];
-  };
-
-  // [Data]
-
-  struct FOG_API Data
-  {
-    // [Ref / Deref]
-
-    Data* ref() const;
-    void deref();
-
-    FOG_INLINE Data* refAlways() const { refCount.inc(); return const_cast<Data*>(this); }
-
-    static Data* alloc();
-    static Data* copy(const Data* other);
-
-    // [Members]
-
-    mutable Atomic<sysuint_t> refCount;
-    uint32_t type;
-    uint32_t flags;
-
-    Table table;
-  };
-
-  static Static<Data> sharedNull;
-  static const uint8_t* linearLut;
-
   // [Construction / Destruction]
 
   ColorLut();
   ColorLut(const ColorLut& other);
+  FOG_INLINE ColorLut(_DONT_INITIALIZE _linkerInitialized) { FOG_UNUSED(_linkerInitialized); }
   ~ColorLut();
 
-  // [Implicit Sharing]
+  FOG_INLINE ColorLutData* getData() { return &_data; }
+  FOG_INLINE const ColorLutData* getData() const { return &_data; }
 
-  //! @copydoc Doxygen::Implicit::refCount().
-  FOG_INLINE sysuint_t refCount() const { return _d->refCount.get(); }
-  //! @copydoc Doxygen::Implicit::isDetached().
-  FOG_INLINE bool isDetached() const { return refCount() == 1; }
-  //! @copydoc Doxygen::Implicit::detach().
-  FOG_INLINE err_t detach() { return !isDetached() ? _detach() : (err_t)Error::Ok; }
-  //! @copydoc Doxygen::Implicit::_detach().
-  err_t _detach();
-  //! @copydoc Doxygen::Implicit::free().
-  void free();
+  err_t setData(const ColorLutData* data);
+  err_t reset(int channel);
 
-  // [Type]
-
-  //! @brief Type of color lut.
-  enum Type
-  {
-    NopType = 0,
-    CustomType = 0xFF
-  };
-
-  //! @brief Get type of color lut.
-  FOG_INLINE int type() const { return _d->type; }
-
-  FOG_INLINE bool isNop() const { return _d->type == NopType; }
-
-  // [Flags]
-
-  // [Lut Tables]
-
-  FOG_INLINE const uint8_t* cRedTable  () const { return _d->table.r; }
-  FOG_INLINE const uint8_t* cGreenTable() const { return _d->table.g; }
-  FOG_INLINE const uint8_t* cBlueTable () const { return _d->table.b; }
-  FOG_INLINE const uint8_t* cAlphaTable() const { return _d->table.a; }
-
-  FOG_INLINE uint8_t* mRedTable  () { return detach() == Error::Ok ? _d->table.r : NULL; }
-  FOG_INLINE uint8_t* mGreenTable() { return detach() == Error::Ok ? _d->table.g : NULL; }
-  FOG_INLINE uint8_t* mBlueTable () { return detach() == Error::Ok ? _d->table.b : NULL; }
-  FOG_INLINE uint8_t* mAlphaTable() { return detach() == Error::Ok ? _d->table.a : NULL; }
-
-  FOG_INLINE uint8_t* xRedTable  () { FOG_ASSERT_X(isDetached(), "Fog::ColorLut::xRedTable() - Not detached data."  ); return _d->table.r; }
-  FOG_INLINE uint8_t* xGreenTable() { FOG_ASSERT_X(isDetached(), "Fog::ColorLut::xGreenTable() - Not detached data."); return _d->table.g; }
-  FOG_INLINE uint8_t* xBlueTable () { FOG_ASSERT_X(isDetached(), "Fog::ColorLut::xBlueTable() - Not detached data." ); return _d->table.b; }
-  FOG_INLINE uint8_t* xAlphaTable() { FOG_ASSERT_X(isDetached(), "Fog::ColorLut::xAlphaTable() - Not detached data."); return _d->table.a; }
-
-  // [Brightness / Contrast]
+  err_t saturate(int channel, int minThreshold, int maxThreshold);
+  err_t multiply(int channel, double by);
+  err_t add(int channel, int value);
+  err_t invert(int channel);
+  err_t filter(int channel, const ColorLutFilter& filter);
 
   // [Operator Overload]
 
@@ -136,8 +93,8 @@ struct FOG_API ColorLut
   ColorLut& operator=(const ColorLut& other);
 
   // [Members]
-
-  FOG_DECLARE_D(Data)
+protected:
+  ColorLutData _data;
 };
 
 } // Fog namespace

@@ -31,8 +31,8 @@ struct FOG_API ByteArrayFilter
 
   // [Public]
 
-  virtual Range indexOf(const char* str, sysuint_t length, uint cs = CaseSensitive, const Range& range = Range(0)) const;
-  virtual Range lastIndexOf(const char* str, sysuint_t length, uint cs = CaseSensitive, const Range& range = Range(0)) const;
+  virtual Range indexOf(const char* str, sysuint_t length, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
+  virtual Range lastIndexOf(const char* str, sysuint_t length, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
 
   // [Filter Implementation]
 

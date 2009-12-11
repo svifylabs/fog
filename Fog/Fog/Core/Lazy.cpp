@@ -23,7 +23,7 @@ Lazy_Abstract::Lazy_Abstract() : _ptr(NULL)
 {
 }
 
-Lazy_Abstract::Lazy_Abstract(_LinkerInitialized x)
+Lazy_Abstract::Lazy_Abstract(_DONT_INITIALIZE x)
 {
   FOG_UNUSED(x);
 }
@@ -39,10 +39,10 @@ void* Lazy_Abstract::_get()
   void* v = AtomicOperation<void*>::get(&_ptr);
 
   // Already created, just return it
-  if (v != NULL && v != (void*)Creating) return v;
+  if (v != NULL && v != (void*)STATE_CREATING_NOW) return v;
 
   // Create instance
-  if (AtomicOperation<void*>::cmpXchg(&_ptr, (void*)NULL, (void*)Creating))
+  if (AtomicOperation<void*>::cmpXchg(&_ptr, (void*)NULL, (void*)STATE_CREATING_NOW))
   {
     v = _create();
     AtomicOperation<void*>::set(&_ptr, v);
@@ -51,7 +51,7 @@ void* Lazy_Abstract::_get()
 
   // Race.
   // This is very rare situation, but it can happen!
-  while ((v = AtomicOperation<void*>::get(&_ptr)) == (void*)Creating)
+  while ((v = AtomicOperation<void*>::get(&_ptr)) == (void*)STATE_CREATING_NOW)
   {
     Thread::_yield();
   }

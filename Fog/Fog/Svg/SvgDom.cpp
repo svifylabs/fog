@@ -39,12 +39,12 @@ String SvgStyleAttribute::getValue() const
 err_t SvgStyleAttribute::setValue(const String& value)
 {
   _styles = SvgUtil::parseStyles(value);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 String SvgStyleAttribute::getStyle(const String& name) const
 {
-  Vector<SvgStyleItem>::ConstIterator it(_styles);
+  List<SvgStyleItem>::ConstIterator it(_styles);
   for (it.toStart(); it.isValid(); it.toNext())
   {
     if (it.value().getName() == name)
@@ -57,20 +57,17 @@ String SvgStyleAttribute::getStyle(const String& name) const
 
 err_t SvgStyleAttribute::setStyle(const String& name, const String& value)
 {
-  Vector<SvgStyleItem>::ConstIterator it(_styles);
+  List<SvgStyleItem>::MutableIterator it(_styles);
   for (it.toStart(); it.isValid(); it.toNext())
   {
-    if (it.value().getName() == name)
-    {
-      return _styles.mAt(it.index()).setValue(value);
-    }
+    if (it.value().getName() == name) return it.value().setValue(value);
   }
 
   SvgStyleItem item;
   item.setName(name);
   item.setValue(value);
   _styles.append(item);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -126,7 +123,7 @@ err_t SvgTransformAttribute::setValue(const String& value)
   err_t err = _value.set(value);
   if (err) return err;
 
-  if (SvgUtil::parseMatrix(value, &_matrix) == SvgStatusOk)
+  if (SvgUtil::parseMatrix(value, &_matrix) == ERR_OK)
   {
     _isValid = true;
   }
@@ -135,7 +132,7 @@ err_t SvgTransformAttribute::setValue(const String& value)
     _isValid = false;
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -173,7 +170,7 @@ SvgCoordAttribute::SvgCoordAttribute(XmlElement* element, const ManagedString& n
   XmlAttribute(element, name, offset)
 {
   _coord.value = 0.0;
-  _coord.unit = SvgUnitNotDefined;
+  _coord.unit = SVG_UNIT_NONE;
 }
 
 SvgCoordAttribute::~SvgCoordAttribute()
@@ -188,7 +185,7 @@ err_t SvgCoordAttribute::setValue(const String& value)
   _coord = SvgUtil::parseCoord(value);
 
   if (_element) reinterpret_cast<SvgElement*>(_element)->_boundingRectDirty = true;
-  return Error::Ok;
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -236,7 +233,7 @@ err_t SvgOffsetAttribute::setValue(const String& value)
   if (err) return err;
 
   sysuint_t end;
-  if (value.atod(&_offset, NULL, &end) == Error::Ok)
+  if (value.atod(&_offset, NULL, &end) == ERR_OK)
   {
     if (end < value.getLength() && value.at(end) == Char('%')) _offset *= 0.01;
 
@@ -248,7 +245,7 @@ err_t SvgOffsetAttribute::setValue(const String& value)
     _offset = 0.0;
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -296,7 +293,7 @@ err_t SvgPathAttribute::setValue(const String& value)
 
   _path = SvgUtil::parsePath(value);
   if (_element) reinterpret_cast<SvgElement*>(_element)->_boundingRectDirty = true;
-  return Error::Ok;
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -348,7 +345,7 @@ err_t SvgPointsAttribute::setValue(const String& value)
   if (!_path.isEmpty() && _closePath) _path.closePolygon();
 
   if (_element) reinterpret_cast<SvgElement*>(_element)->_boundingRectDirty = true;
-  return Error::Ok;
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -363,16 +360,16 @@ struct SvgEnumList
 
 static const SvgEnumList svgEnumList_gradientUnits[] =
 {
-  { "userSpaceOnUse", SvgUserSpaceOnUse },
-  { "objectBoundingBox", SvgObjectBoundingBox },
+  { "userSpaceOnUse", SVG_USER_SPACE_ON_USE },
+  { "objectBoundingBox", SVG_OBJECT_BOUNDING_BOX },
   { "", -1 }
 };
 
 static const SvgEnumList svgEnumList_spreadMethod[] =
 {
-  { "pad", Pattern::SpreadPad },
-  { "reflect", Pattern::SpreadReflect },
-  { "repeat", Pattern::SpreadRepeat },
+  { "pad", SPREAD_PAD },
+  { "reflect", SPREAD_REFLECT },
+  { "repeat", SPREAD_REPEAT },
   { "", -1 }
 };
 
@@ -436,7 +433,7 @@ err_t SvgEnumAttribute::setValue(const String& value)
     p++;
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -451,8 +448,8 @@ SvgElement::SvgElement(const ManagedString& tagName, uint32_t svgType) :
   _transform(NULL),
   _styles(NULL)
 {
-  _type |= TypeSvgMask;
-  _flags &= ~(AllowedTag);
+  _type |= SVG_ELEMENT_MASK;
+  _flags &= ~(XML_ALLOWED_TAG);
 }
 
 SvgElement::~SvgElement()
@@ -507,7 +504,7 @@ static Utf16 parseId(const String& url)
 
   if (url.getLength() < 7) return Utf16((const Char*)NULL, 0);
 
-  idStr = url.cData() + 5;
+  idStr = url.getData() + 5;
   idEnd = idStr + url.getLength() - 5;
 
   while (idStr->isSpace())
@@ -531,7 +528,7 @@ bail:
 err_t SvgElement::onRender(SvgContext* context) const
 {
   SvgContextBackup backup;
-  err_t err = Error::Ok;
+  err_t err = ERR_OK;
 
   // Before render: Apply transformations and setup styles defined in this element.
   if ((_transform != NULL && _transform->isValid()) || (_styles != NULL && !_styles->getStyles().isEmpty()))
@@ -541,7 +538,7 @@ err_t SvgElement::onRender(SvgContext* context) const
     // Transformations.
     if (_transform)
     {
-      backup._matrix.instance() = context->getPainter()->getMatrix();
+      backup._matrix = context->getPainter()->getMatrix();
       backup._matrixBackup = true;
 
       context->getPainter()->affine(_transform->getMatrix());
@@ -550,7 +547,7 @@ err_t SvgElement::onRender(SvgContext* context) const
     // Styles.
     if (_styles)
     {
-      Vector<SvgStyleItem>::ConstIterator it(_styles->getStyles());
+      List<SvgStyleItem>::ConstIterator it(_styles->getStyles());
       for (it.toStart(); it.isValid(); it.toNext())
       {
         const SvgStyleItem& item = it.value();
@@ -558,74 +555,74 @@ err_t SvgElement::onRender(SvgContext* context) const
 
         switch (item.getStyleType())
         {
-          case SvgStyleFill:
+          case SVG_STYLE_FILL:
           {
             switch (item.getPatternType())
             {
-              case SvgPatternNone:
+              case SVG_PATTERN_NONE:
                 context->setFillNone();
                 break;
-              case SvgPatternColor:
+              case SVG_PATTERN_COLOR:
                 context->setFillColor(item.getColor());
                 break;
-              case SvgPatternUri:
+              case SVG_PATTERN_URI:
               {
                 const String& v = item.getValue();
                 XmlElement* r = getDocument()->getElementById(parseId(v));
                 if (r && r->isSvg())
                 {
-                  reinterpret_cast<SvgElement*>(r)->onApplyPattern(context, const_cast<SvgElement*>(this), SvgPaintFill);
+                  reinterpret_cast<SvgElement*>(r)->onApplyPattern(context, const_cast<SvgElement*>(this), SVG_PAINT_FILL);
                 }
                 break;
               }
             }
             break;
           }
-          case SvgStyleFillRule:
+          case SVG_STYLE_FILL_RULE:
           {
             context->setFillMode(item.getEnum());
             break;
           }
-          case SvgStyleStroke:
+          case SVG_STYLE_STROKE:
           {
             switch (item.getPatternType())
             {
-              case SvgPatternNone:
-                context->setLineNone();
+              case SVG_PATTERN_NONE:
+                context->setStrokeNone();
                 break;
-              case SvgPatternColor:
-                context->setLineColor(item.getColor());
+              case SVG_PATTERN_COLOR:
+                context->setStrokeColor(item.getColor());
                 break;
-              case SvgPatternUri:
+              case SVG_PATTERN_URI:
               {
                 const String& v = item.getValue();
                 XmlElement* r = getDocument()->getElementById(parseId(v));
                 if (r && r->isSvg())
                 {
-                  reinterpret_cast<SvgElement*>(r)->onApplyPattern(context, const_cast<SvgElement*>(this), SvgPaintStroke);
+                  reinterpret_cast<SvgElement*>(r)->onApplyPattern(context, const_cast<SvgElement*>(this), SVG_PAINT_STROKE);
                 }
                 break;
               }
             }
             break;
           }
-          case SvgStyleStrokeLineCap:
+          case SVG_STYLE_STROKE_LINE_CAP:
           {
             context->setLineCap(item.getEnum());
             break;
           }
-          case SvgStyleStrokeLineJoin:
+          case SVG_STYLE_STROKE_LINE_JOIN:
           {
             context->setLineJoin(item.getEnum());
             break;
           }
-          case SvgStyleStrokeMiterLimit:
+          case SVG_STYLE_STROKE_MITER_LIMIT:
           {
             SvgCoord coord = item.getCoord();
             context->setMiterLimit(coord.value);
             break;
           }
-          case SvgStyleStrokeWidth:
+          case SVG_STYLE_STROKE_WIDTH:
           {
             SvgCoord coord = item.getCoord();
             context->setLineWidth(coord.value);
@@ -646,22 +643,22 @@ err_t SvgElement::onRender(SvgContext* context) const
 
 err_t SvgElement::onRenderShape(SvgContext* context) const
 {
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t SvgElement::onApplyPattern(SvgContext* context, SvgElement* obj, int paintType) const
 {
-  return Error::InvalidFunction;
+  return ERR_RT_INVALID_CONTEXT;
 }
 
 err_t SvgElement::onCalcBoundingBox(RectD* box) const
 {
-  return Error::InvalidFunction;
+  return ERR_RT_INVALID_CONTEXT;
 }
 
 err_t SvgElement::_walkAndRender(const XmlElement* root, SvgContext* context)
 {
-  err_t err = Error::Ok;
+  err_t err = ERR_OK;
   XmlElement* e;
 
   for (e = root->firstChild(); e; e = e->nextSibling())
@@ -724,7 +721,7 @@ private:
 };
 
 SvgCircleElement::SvgCircleElement() :
-  SvgElement(fog_strings->getString(STR_SVG_circle), SvgTypeCircle),
+  SvgElement(fog_strings->getString(STR_SVG_circle), SVG_ELEMENT_CIRCLE),
   a_cx(NULL, fog_strings->getString(STR_SVG_cx), FOG_OFFSET_OF(SvgCircleElement, a_cx)),
   a_cy(NULL, fog_strings->getString(STR_SVG_cy), FOG_OFFSET_OF(SvgCircleElement, a_cy)),
   a_r (NULL, fog_strings->getString(STR_SVG_r ), FOG_OFFSET_OF(SvgCircleElement, a_r ))
@@ -754,11 +751,11 @@ err_t SvgCircleElement::onRenderShape(SvgContext* context) const
     double r = fabs(a_r.getCoord().value);
 
     context->drawEllipse(PointD(cx, cy), PointD(r, r));
-    return Error::Ok;
+    return ERR_OK;
   }
   else
   {
-    return Error::Ok;
+    return ERR_OK;
   }
 }
 
@@ -771,12 +768,12 @@ err_t SvgCircleElement::onCalcBoundingBox(RectD* box) const
     double r = fabs(a_r.getCoord().value);
 
     box->set(cx - r, cy - r, r * 2.0, r * 2.0);
-    return Error::Ok;
+    return ERR_OK;
   }
   else
   {
     box->clear();
-    return Error::Ok;
+    return ERR_OK;
   }
 }
 
@@ -802,7 +799,7 @@ private:
 };
 
 SvgDefsElement::SvgDefsElement() : 
-  SvgElement(fog_strings->getString(STR_SVG_defs), SvgTypeDefs)
+  SvgElement(fog_strings->getString(STR_SVG_defs), SVG_ELEMENT_DEFS)
 {
 }
 
@@ -813,7 +810,7 @@ SvgDefsElement::~SvgDefsElement()
 err_t SvgDefsElement::onRender(SvgContext* context) const
 {
   // <defs> is used only to define shared resources or gradients.
-  return Error::Ok;
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -850,7 +847,7 @@ private:
 };
 
 SvgEllipseElement::SvgEllipseElement() :
-  SvgElement(fog_strings->getString(STR_SVG_ellipse), SvgTypeEllipse),
+  SvgElement(fog_strings->getString(STR_SVG_ellipse), SVG_ELEMENT_ELLIPSE),
   a_cx(NULL, fog_strings->getString(STR_SVG_cx), FOG_OFFSET_OF(SvgEllipseElement, a_cx)),
   a_cy(NULL, fog_strings->getString(STR_SVG_cy), FOG_OFFSET_OF(SvgEllipseElement, a_cy)),
   a_rx(NULL, fog_strings->getString(STR_SVG_rx), FOG_OFFSET_OF(SvgEllipseElement, a_rx)),
@@ -883,11 +880,11 @@ err_t SvgEllipseElement::onRenderShape(SvgContext* context) const
     double ry = fabs(a_ry.getCoord().value);
 
     context->drawEllipse(PointD(cx, cy), PointD(rx, ry));
-    return Error::Ok;
+    return ERR_OK;
   }
   else
   {
-    return Error::Ok;
+    return ERR_OK;
   }
 }
 
@@ -902,14 +899,14 @@ err_t SvgEllipseElement::onCalcBoundingBox(RectD* box) const
     double ry = a_ry.getDouble();
 
     box->set(cx - rx, cy - ry, rx * 2.0, ry * 2.0);
-    return Error::Ok;
+    return ERR_OK;
   }
   else
   {
     box->clear();
-    return Error::Ok;
+    return ERR_OK;
   }
-  return Error::NotImplemented;
+  return ERR_RT_NOT_IMPLEMENTED;
 }
 
 // ============================================================================
@@ -934,7 +931,7 @@ private:
 };
 
 SvgGElement::SvgGElement() :
-  SvgElement(fog_strings->getString(STR_SVG_g), SvgTypeG)
+  SvgElement(fog_strings->getString(STR_SVG_g), SVG_ELEMENT_G)
 {
 }
 
@@ -947,7 +944,7 @@ err_t SvgGElement::onRenderShape(SvgContext* context) const
   if (hasChildNodes())
     return _walkAndRender(this, context);
   else
-    return Error::Ok;
+    return ERR_OK;
 }
 
 // ============================================================================
@@ -984,7 +981,7 @@ private:
 };
 
 SvgLineElement::SvgLineElement() :
-  SvgElement(fog_strings->getString(STR_SVG_line), SvgTypeLine),
+  SvgElement(fog_strings->getString(STR_SVG_line), SVG_ELEMENT_LINE),
   a_x1(NULL, fog_strings->getString(STR_SVG_x1), FOG_OFFSET_OF(SvgLineElement, a_x1)),
   a_y1(NULL, fog_strings->getString(STR_SVG_y1), FOG_OFFSET_OF(SvgLineElement, a_y1)),
   a_x2(NULL, fog_strings->getString(STR_SVG_x2), FOG_OFFSET_OF(SvgLineElement, a_x2)),
@@ -1017,11 +1014,11 @@ err_t SvgLineElement::onRenderShape(SvgContext* context) const
     double y2 = a_y2.getCoord().value;
 
     context->drawLine(PointD(x1, y1), PointD(x2, y2));
-    return Error::Ok;
+    return ERR_OK;
   }
   else
   {
-    return Error::Ok;
+    return ERR_OK;
   }
 }
 
@@ -1040,12 +1037,12 @@ err_t SvgLineElement::onCalcBoundingBox(RectD* box) const
     double h = (y1 < y2) ? y2 - y1 : y1 - y2;
 
     box->set(x, y, w, h);
-    return Error::Ok;
+    return ERR_OK;
   }
   else
   {
     box->clear();
-    return Error::Ok;
+    return ERR_OK;
   }
 }
 
@@ -1080,7 +1077,7 @@ private:
 };
 
 SvgPathElement::SvgPathElement() :
-  SvgElement(fog_strings->getString(STR_SVG_path), SvgTypePath),
+  SvgElement(fog_strings->getString(STR_SVG_path), SVG_ELEMENT_PATH),
   a_d(NULL, fog_strings->getString(STR_SVG_d), FOG_OFFSET_OF(SvgPathElement, a_d))
 {
 }
@@ -1103,11 +1100,11 @@ err_t SvgPathElement::onRenderShape(SvgContext* context) const
   {
     const Path& path = a_d.getPath();
     context->drawPath(path);
-    return Error::Ok;
+    return ERR_OK;
   }
   else
   {
-    return Error::Ok;
+    return ERR_OK;
   }
 }
 
@@ -1117,12 +1114,12 @@ err_t SvgPathElement::onCalcBoundingBox(RectD* box) const
   {
     const Path& path = a_d.getPath();
     box->set(path.boundingRect());
-    return Error::Ok;
+    return ERR_OK;
   }
   else
   {
     box->clear();
-    return Error::Ok;
+    return ERR_OK;
   }
 }
 
@@ -1157,7 +1154,7 @@ private:
 };
 
 SvgPolygonElement::SvgPolygonElement() :
-  SvgElement(fog_strings->getString(STR_SVG_polygon), SvgTypePolygon),
+  SvgElement(fog_strings->getString(STR_SVG_polygon), SVG_ELEMENT_POLYGON),
   a_points(NULL, fog_strings->getString(STR_SVG_points), true, FOG_OFFSET_OF(SvgPolygonElement, a_points))
 {
 }
@@ -1180,11 +1177,11 @@ err_t SvgPolygonElement::onRenderShape(SvgContext* context) const
   {
     const Path& path = a_points.getPath();
     context->drawPath(path);
-    return Error::Ok;
+    return ERR_OK;
   }
   else
   {
-    return Error::Ok;
+    return ERR_OK;
   }
 }
 
@@ -1194,12 +1191,12 @@ err_t SvgPolygonElement::onCalcBoundingBox(RectD* box) const
   {
     const Path& path = a_points.getPath();
     box->set(path.boundingRect());
-    return Error::Ok;
+    return ERR_OK;
   }
   else
   {
     box->clear();
-    return Error::Ok;
+    return ERR_OK;
   }
 }
 
@@ -1234,7 +1231,7 @@ private:
 };
 
 SvgPolyLineElement::SvgPolyLineElement() :
-  SvgElement(fog_strings->getString(STR_SVG_polyline), SvgTypePolyLine),
+  SvgElement(fog_strings->getString(STR_SVG_polyline), SVG_ELEMENT_POLYLINE),
   a_points(NULL, fog_strings->getString(STR_SVG_points), false, FOG_OFFSET_OF(SvgPolygonElement, a_points))
 {
 }
@@ -1257,11 +1254,11 @@ err_t SvgPolyLineElement::onRenderShape(SvgContext* context) const
   {
     const Path& path = a_points.getPath();
     context->drawPath(path);
-    return Error::Ok;
+    return ERR_OK;
   }
   else
   {
-    return Error::Ok;
+    return ERR_OK;
   }
 }
 
@@ -1271,12 +1268,12 @@ err_t SvgPolyLineElement::onCalcBoundingBox(RectD* box) const
   {
     const Path& path = a_points.getPath();
     box->set(path.boundingRect());
-    return Error::Ok;
+    return ERR_OK;
   }
   else
   {
     box->clear();
-    return Error::Ok;
+    return ERR_OK;
   }
 }
 
@@ -1316,7 +1313,7 @@ private:
 };
 
 SvgRectElement::SvgRectElement() :
-  SvgElement(fog_strings->getString(STR_SVG_rect), SvgTypeRect),
+  SvgElement(fog_strings->getString(STR_SVG_rect), SVG_ELEMENT_RECT),
   a_x     (NULL, fog_strings->getString(STR_SVG_x     ), FOG_OFFSET_OF(SvgRectElement, a_x     )),
   a_y     (NULL, fog_strings->getString(STR_SVG_y     ), FOG_OFFSET_OF(SvgRectElement, a_y     )),
   a_width (NULL, fog_strings->getString(STR_SVG_width ), FOG_OFFSET_OF(SvgRectElement, a_width )),
@@ -1361,7 +1358,7 @@ err_t SvgRectElement::onRenderShape(SvgContext* context) const
     else
       context->drawRound(RectD(x, y, w, h), PointD(rx, ry));
   }
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t SvgRectElement::onCalcBoundingBox(RectD* box) const
@@ -1375,12 +1372,12 @@ err_t SvgRectElement::onCalcBoundingBox(RectD* box) const
     double h = a_height.getCoord().value;
 
     box->set(x, y, w, h);
-    return Error::Ok;
+    return ERR_OK;
   }
   else
   {
     box->clear();
-    return Error::Ok;
+    return ERR_OK;
   }
 }
 
@@ -1412,7 +1409,7 @@ private:
 };
 
 SvgSolidColorElement::SvgSolidColorElement() :
-  SvgElement(fog_strings->getString(STR_SVG_solidColor), SvgTypeSolidColor)
+  SvgElement(fog_strings->getString(STR_SVG_solidColor), SVG_ELEMENT_SOLID_COLOR)
 {
 }
 
@@ -1428,7 +1425,7 @@ XmlAttribute* SvgSolidColorElement::_createAttribute(const ManagedString& name) 
 
 err_t SvgSolidColorElement::onRender(SvgContext* context) const
 {
-  return Error::Ok;
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -1461,7 +1458,7 @@ private:
 };
 
 SvgStopElement::SvgStopElement() :
-  SvgElement(fog_strings->getString(STR_SVG_stop), SvgTypeStop),
+  SvgElement(fog_strings->getString(STR_SVG_stop), SVG_ELEMENT_STOP),
   a_offset(NULL, fog_strings->getString(STR_SVG_offset), FOG_OFFSET_OF(SvgStopElement, a_offset))
 {
 }
@@ -1480,14 +1477,59 @@ XmlAttribute* SvgStopElement::_createAttribute(const ManagedString& name) const
 
 err_t SvgStopElement::onRender(SvgContext* context) const
 {
-  return Error::Ok;
+  return ERR_OK;
 }
 
 // ============================================================================
-// [Fog::SvgLinearGradientElement]
+// [Fog::SvgAbstractGradientElement]
 // ============================================================================
 
-static void walkAndAddGradientStops(XmlElement* root, Pattern& pattern)
+struct FOG_HIDDEN SvgAbstractGradientElement : public SvgElement
+{
+  // [Construction / Destruction]
+
+  typedef SvgElement base;
+
+  SvgAbstractGradientElement(const ManagedString& tagName, uint32_t svgType);
+  virtual ~SvgAbstractGradientElement();
+
+  // [Attributes]
+
+  virtual XmlAttribute* _createAttribute(const ManagedString& name) const;
+
+  // [Embedded Attributes]
+
+  SvgEnumAttribute a_spreadMethod;
+  SvgEnumAttribute a_gradientUnits;
+  SvgTransformAttribute a_gradientTransform;
+
+private:
+  FOG_DISABLE_COPY(SvgAbstractGradientElement)
+};
+
+SvgAbstractGradientElement::SvgAbstractGradientElement(const ManagedString& tagName, uint32_t svgType) :
+  SvgElement(tagName, svgType),
+  a_spreadMethod(NULL, fog_strings->getString(STR_SVG_spreadMethod), svgEnumList_spreadMethod, FOG_OFFSET_OF(SvgAbstractGradientElement, a_spreadMethod)),
+  a_gradientUnits(NULL, fog_strings->getString(STR_SVG_gradientUnits), svgEnumList_gradientUnits, FOG_OFFSET_OF(SvgAbstractGradientElement, a_gradientUnits)),
+  a_gradientTransform(NULL, fog_strings->getString(STR_SVG_gradientTransform), FOG_OFFSET_OF(SvgAbstractGradientElement, a_gradientTransform))
+{
+}
+
+SvgAbstractGradientElement::~SvgAbstractGradientElement()
+{
+  removeAllAttributes();
+}
+
+XmlAttribute* SvgAbstractGradientElement::_createAttribute(const ManagedString& name) const
+{
+  if (name == fog_strings->getString(STR_SVG_spreadMethod)) return const_cast<SvgEnumAttribute*>(&a_spreadMethod);
+  if (name == fog_strings->getString(STR_SVG_gradientUnits)) return const_cast<SvgEnumAttribute*>(&a_gradientUnits);
+  if (name == fog_strings->getString(STR_SVG_gradientTransform)) return const_cast<SvgTransformAttribute*>(&a_gradientTransform);
+
+  return base::_createAttribute(name);
+}
+
+static void walkAndAddArgbStops(XmlElement* root, Pattern& pattern)
 {
   bool stopsParsed = false;
   XmlElement* stop;
@@ -1496,27 +1538,27 @@ static void walkAndAddGradientStops(XmlElement* root, Pattern& pattern)
 start:
   for (stop = root->firstChild(); stop; stop = stop->nextSibling())
   {
-    if (stop->isSvg() && reinterpret_cast<SvgElement*>(stop)->getSvgType() == SvgElement::SvgTypeStop)
+    if (stop->isSvg() && reinterpret_cast<SvgElement*>(stop)->getSvgType() == SVG_ELEMENT_STOP)
     {
       SvgStopElement* _stop = reinterpret_cast<SvgStopElement*>(stop);
 
       double offset = _stop->a_offset.getOffset();
-      Rgba color;
+      Argb color;
 
       String stopColorValue = _stop->getStyle(fog_strings->getString(STR_SVG_stop_color));
       String stopOpacityValue = _stop->getStyle(fog_strings->getString(STR_SVG_stop_opacity));
 
-      if (SvgUtil::parseColor(stopColorValue, &color) == SvgStatusOk)
+      if (SvgUtil::parseColor(stopColorValue, &color) == SVG_PATTERN_COLOR)
       {
         double opacity;
-        if (!stopOpacityValue.isEmpty() && stopOpacityValue.atod(&opacity) == Error::Ok)
+        if (!stopOpacityValue.isEmpty() && stopOpacityValue.atod(&opacity) == ERR_OK)
         {
           if (opacity < 0.0) opacity = 0.0;
           if (opacity > 1.0) opacity = 1.0;
 
           color.a = (uint8_t)(int)(opacity * 255.0);
         }
-        pattern.addGradientStop(GradientStop(offset, color));
+        pattern.addStop(ArgbStop(offset, color));
         stopsParsed = true;
       }
     }
@@ -1528,7 +1570,7 @@ start:
     String link = root->getAttribute(fog_strings->getString(STR_SVG_xlink_href));
 
     if ((!link.isEmpty() && link.at(0) == Char('#')) && 
-        (e = root->getDocument()->getElementById(Utf16(link.cData() + 1, link.getLength() - 1))))
+        (e = root->getDocument()->getElementById(Utf16(link.getData() + 1, link.getLength() - 1))))
     {
       root = e;
       if (++depth == 32) return;
@@ -1537,11 +1579,15 @@ start:
   }
 }
 
-struct FOG_HIDDEN SvgLinearGradientElement : public SvgElement
+// ============================================================================
+// [Fog::SvgLinearGradientElement]
+// ============================================================================
+
+struct FOG_HIDDEN SvgLinearGradientElement : public SvgAbstractGradientElement
 {
   // [Construction / Destruction]
 
-  typedef SvgElement base;
+  typedef SvgAbstractGradientElement base;
 
   SvgLinearGradientElement();
   virtual ~SvgLinearGradientElement();
@@ -1557,9 +1603,6 @@ struct FOG_HIDDEN SvgLinearGradientElement : public SvgElement
 
   // [Embedded Attributes]
 
-  SvgEnumAttribute a_spreadMethod;
-  SvgEnumAttribute a_gradientUnits;
-  SvgTransformAttribute a_gradientTransform;
   SvgCoordAttribute a_x1;
   SvgCoordAttribute a_y1;
   SvgCoordAttribute a_x2;
@@ -1570,10 +1613,7 @@ private:
 };
 
 SvgLinearGradientElement::SvgLinearGradientElement() :
-  SvgElement(fog_strings->getString(STR_SVG_linearGradient), SvgTypeLinearGradient),
-  a_spreadMethod(NULL, fog_strings->getString(STR_SVG_spreadMethod), svgEnumList_spreadMethod, FOG_OFFSET_OF(SvgLinearGradientElement, a_spreadMethod)),
-  a_gradientUnits(NULL, fog_strings->getString(STR_SVG_gradientUnits), svgEnumList_gradientUnits, FOG_OFFSET_OF(SvgLinearGradientElement, a_gradientUnits)),
-  a_gradientTransform(NULL, fog_strings->getString(STR_SVG_gradientTransform), FOG_OFFSET_OF(SvgLinearGradientElement, a_gradientTransform)),
+  SvgAbstractGradientElement(fog_strings->getString(STR_SVG_linearGradient), SVG_ELEMENT_LINEAR_GRADIENT),
   a_x1(NULL, fog_strings->getString(STR_SVG_x1), FOG_OFFSET_OF(SvgLinearGradientElement, a_x1)),
   a_y1(NULL, fog_strings->getString(STR_SVG_y1), FOG_OFFSET_OF(SvgLinearGradientElement, a_y1)),
   a_x2(NULL, fog_strings->getString(STR_SVG_x2), FOG_OFFSET_OF(SvgLinearGradientElement, a_x2)),
@@ -1588,9 +1628,6 @@ SvgLinearGradientElement::~SvgLinearGradientElement()
 
 XmlAttribute* SvgLinearGradientElement::_createAttribute(const ManagedString& name) const
 {
-  if (name == fog_strings->getString(STR_SVG_spreadMethod)) return const_cast<SvgEnumAttribute*>(&a_spreadMethod);
-  if (name == fog_strings->getString(STR_SVG_gradientUnits)) return const_cast<SvgEnumAttribute*>(&a_gradientUnits);
-  if (name == fog_strings->getString(STR_SVG_gradientTransform)) return const_cast<SvgTransformAttribute*>(&a_gradientTransform);
   if (name == fog_strings->getString(STR_SVG_x1)) return const_cast<SvgCoordAttribute*>(&a_x1);
   if (name == fog_strings->getString(STR_SVG_y1)) return const_cast<SvgCoordAttribute*>(&a_y1);
   if (name == fog_strings->getString(STR_SVG_x2)) return const_cast<SvgCoordAttribute*>(&a_x2);
@@ -1601,7 +1638,7 @@ XmlAttribute* SvgLinearGradientElement::_createAttribute(const ManagedString& na
 
 err_t SvgLinearGradientElement::onRender(SvgContext* context) const
 {
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t SvgLinearGradientElement::onApplyPattern(SvgContext* context, SvgElement* obj, int paintType) const
@@ -1610,54 +1647,69 @@ err_t SvgLinearGradientElement::onApplyPattern(SvgContext* context, SvgElement* 
 
   Pattern pattern;
 
-  // Set gradient type to LinearGradient.
-  pattern.setType(Pattern::TypeLinearGradient);
+  // Set gradient type to linear gradient.
+  pattern.setType(PATTERN_LINEAR_GRADIENT);
 
-  // Set start and end points - [x1, y1] and [x2, y2].
-  if (a_x1.isAssigned() && a_y1.isAssigned() && a_x2.isAssigned() && a_y2.isAssigned())
+  // Set gradient transform matrix.
+  if (a_gradientTransform.isAssigned()) pattern.setMatrix(a_gradientTransform.getMatrix());
+
+  // Set spread method.
+  if (a_spreadMethod.isAssigned()) pattern.setSpread(a_spreadMethod.getEnum());
+
+  // Setup start and end points.
+  if (!a_gradientUnits.isAssigned() || a_gradientUnits.getEnum() == SVG_OBJECT_BOUNDING_BOX)
   {
+    // BoundingBox coordinates.
+    RectD bbox = obj->getBoundingRect();
+
+    double x1 = a_x1.isAssigned() ? context->translateCoord(a_x1.getDouble(), a_x1.getUnit()) : 0.0;
+    double y1 = a_y1.isAssigned() ? context->translateCoord(a_y1.getDouble(), a_y1.getUnit()) : 0.0;
+    double x2 = a_x2.isAssigned() ? context->translateCoord(a_x2.getDouble(), a_x2.getUnit()) : 1.0;
+    double y2 = a_y2.isAssigned() ? context->translateCoord(a_y2.getDouble(), a_y2.getUnit()) : 0.0;
+
+    x1 = bbox.x + bbox.w * x1;
+    y1 = bbox.y + bbox.h * y1;
+    x2 = bbox.x + bbox.w * x2;
+    y2 = bbox.y + bbox.h * y2;
+
+    pattern.setPoints(PointD(x1, y1), PointD(x2, y2));
+  }
+  else if (a_x1.isAssigned() && a_y1.isAssigned() && a_x2.isAssigned() && a_y2.isAssigned())
+  {
+    // UserSpaceOnUse coordinates.
     double x1 = context->translateCoord(a_x1.getDouble(), a_x1.getUnit());
     double y1 = context->translateCoord(a_y1.getDouble(), a_y1.getUnit());
     double x2 = context->translateCoord(a_x2.getDouble(), a_x2.getUnit());
     double y2 = context->translateCoord(a_y2.getDouble(), a_y2.getUnit());
 
-    if (!a_gradientUnits.isAssigned() || a_gradientUnits.getEnum() == SvgObjectBoundingBox)
-    {
-      RectD bbox = obj->getBoundingRect();
-      x1 = bbox.getX() + bbox.getWidth () * x1;
-      y1 = bbox.getY() + bbox.getHeight() * y1;
-      x2 = bbox.getX() + bbox.getWidth () * x2;
-      y2 = bbox.getY() + bbox.getHeight() * y2;
-    }
-
     pattern.setPoints(PointD(x1, y1), PointD(x2, y2));
   }
   else
   {
-    RectD bbox = obj->getBoundingRect();
-    pattern.setPoints(PointD(bbox.getX1(), bbox.getY1()), PointD(bbox.getX2(), bbox.getY2()));
+    // SVG TODO: Is this error?
+    fog_debug("Fog::SvgLinearGradient - Unsupported combination...");
   }
 
   // Add color stops.
-  walkAndAddGradientStops(const_cast<SvgLinearGradientElement*>(this), pattern);
+  walkAndAddArgbStops(const_cast<SvgLinearGradientElement*>(this), pattern);
 
-  if (paintType == SvgPaintFill)
+  if (paintType == SVG_PAINT_FILL)
     context->setFillPattern(pattern);
   else
-    context->setLinePattern(pattern);
+    context->setStrokePattern(pattern);
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 // ============================================================================
 // [Fog::SvgRadialGradientElement]
 // ============================================================================
 
-struct FOG_HIDDEN SvgRadialGradientElement : public SvgElement
+struct FOG_HIDDEN SvgRadialGradientElement : public SvgAbstractGradientElement
 {
   // [Construction / Destruction]
 
-  typedef SvgElement base;
+  typedef SvgAbstractGradientElement base;
 
   SvgRadialGradientElement();
   virtual ~SvgRadialGradientElement();
@@ -1673,9 +1725,6 @@ struct FOG_HIDDEN SvgRadialGradientElement : public SvgElement
 
   // [Embedded Attributes]
 
-  SvgEnumAttribute a_spreadMethod;
-  SvgEnumAttribute a_gradientUnits;
-  SvgTransformAttribute a_gradientTransform;
   SvgCoordAttribute a_cx;
   SvgCoordAttribute a_cy;
   SvgCoordAttribute a_fx;
@@ -1687,10 +1736,7 @@ private:
 };
 
 SvgRadialGradientElement::SvgRadialGradientElement() :
-  SvgElement(fog_strings->getString(STR_SVG_radialGradient), SvgTypeRadialGradient),
-  a_spreadMethod(NULL, fog_strings->getString(STR_SVG_spreadMethod), svgEnumList_spreadMethod, FOG_OFFSET_OF(SvgRadialGradientElement, a_spreadMethod)),
-  a_gradientUnits(NULL, fog_strings->getString(STR_SVG_gradientUnits), svgEnumList_gradientUnits, FOG_OFFSET_OF(SvgRadialGradientElement, a_gradientUnits)),
-  a_gradientTransform(NULL, fog_strings->getString(STR_SVG_gradientTransform), FOG_OFFSET_OF(SvgRadialGradientElement, a_gradientTransform)),
+  SvgAbstractGradientElement(fog_strings->getString(STR_SVG_radialGradient), SVG_ELEMENT_RADIAL_GRADIENT),
   a_cx(NULL, fog_strings->getString(STR_SVG_cx), FOG_OFFSET_OF(SvgRadialGradientElement, a_cx)),
   a_cy(NULL, fog_strings->getString(STR_SVG_cy), FOG_OFFSET_OF(SvgRadialGradientElement, a_cy)),
   a_fx(NULL, fog_strings->getString(STR_SVG_fx), FOG_OFFSET_OF(SvgRadialGradientElement, a_fx)),
@@ -1706,9 +1752,6 @@ SvgRadialGradientElement::~SvgRadialGradientElement()
 
 XmlAttribute* SvgRadialGradientElement::_createAttribute(const ManagedString& name) const
 {
-  if (name == fog_strings->getString(STR_SVG_spreadMethod)) return const_cast<SvgEnumAttribute*>(&a_spreadMethod);
-  if (name == fog_strings->getString(STR_SVG_gradientUnits)) return const_cast<SvgEnumAttribute*>(&a_gradientUnits);
-  if (name == fog_strings->getString(STR_SVG_gradientTransform)) return const_cast<SvgTransformAttribute*>(&a_gradientTransform);
   if (name == fog_strings->getString(STR_SVG_cx)) return const_cast<SvgCoordAttribute*>(&a_cx);
   if (name == fog_strings->getString(STR_SVG_cy)) return const_cast<SvgCoordAttribute*>(&a_cy);
   if (name == fog_strings->getString(STR_SVG_fx)) return const_cast<SvgCoordAttribute*>(&a_fx);
@@ -1720,7 +1763,7 @@ XmlAttribute* SvgRadialGradientElement::_createAttribute(const ManagedString& na
 
 err_t SvgRadialGradientElement::onRender(SvgContext* context) const
 {
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t SvgRadialGradientElement::onApplyPattern(SvgContext* context, SvgElement* obj, int paintType) const
@@ -1729,11 +1772,36 @@ err_t SvgRadialGradientElement::onApplyPattern(SvgContext* context, SvgElement* 
 
   Pattern pattern;
 
-  // Set gradient type to LinearGradient.
-  pattern.setType(Pattern::TypeRadialGradient);
+  // Set gradient type to radial gradient.
+  pattern.setType(PATTERN_RADIAL_GRADIENT);
 
-  // Set center and focal point - [cx, cy] and [fx, fy].
-  if (a_cx.isAssigned() && a_cy.isAssigned() && a_fx.isAssigned() && a_fy.isAssigned() && a_r.isAssigned())
+  // Set gradient transform matrix.
+  if (a_gradientTransform.isAssigned()) pattern.setMatrix(a_gradientTransform.getMatrix());
+
+  // Set spread method.
+  if (a_spreadMethod.isAssigned()) pattern.setSpread(a_spreadMethod.getEnum());
+
+  // Setup start and end points.
+  if (!a_gradientUnits.isAssigned() || a_gradientUnits.getEnum() == SVG_OBJECT_BOUNDING_BOX)
+  {
+    RectD bbox = obj->getBoundingRect();
+
+    double cx = a_cx.isAssigned() ? context->translateCoord(a_cx.getDouble(), a_cx.getUnit()) : 0.5;
+    double cy = a_cy.isAssigned() ? context->translateCoord(a_cy.getDouble(), a_cy.getUnit()) : 0.5;
+    double fx = a_fx.isAssigned() ? context->translateCoord(a_fx.getDouble(), a_fx.getUnit()) : cx;
+    double fy = a_fy.isAssigned() ? context->translateCoord(a_fy.getDouble(), a_fy.getUnit()) : cy;
+    double r = a_r.isAssigned() ? context->translateCoord(a_r.getDouble(), a_r.getUnit()) : 0.5;
+
+    cx = bbox.x + bbox.w * cx;
+    cy = bbox.y + bbox.h * cy;
+    fx = bbox.x + bbox.w * fx;
+    fy = bbox.y + bbox.h * fy;
+    r = Math::min(bbox.w, bbox.h) * r;
+
+    pattern.setPoints(PointD(cx, cy), PointD(fx, fy));
+    pattern.setRadius(r);
+  }
+  else if (a_cx.isAssigned() && a_cy.isAssigned() && a_fx.isAssigned() && a_fy.isAssigned() && a_cx.isAssigned() && a_r.isAssigned())
   {
     double cx = context->translateCoord(a_cx.getDouble(), a_cx.getUnit());
     double cy = context->translateCoord(a_cy.getDouble(), a_cy.getUnit());
@@ -1741,38 +1809,24 @@ err_t SvgRadialGradientElement::onApplyPattern(SvgContext* context, SvgElement* 
     double fy = context->translateCoord(a_fy.getDouble(), a_fy.getUnit());
     double r = context->translateCoord(a_r.getDouble(), a_r.getUnit());
 
-    if (!a_gradientUnits.isAssigned() || a_gradientUnits.getEnum() == SvgObjectBoundingBox)
-    {
-      RectD bbox = obj->getBoundingRect();
-      cx = bbox.getX() + bbox.getWidth () * cx;
-      cy = bbox.getY() + bbox.getHeight() * cy;
-      fx = bbox.getX() + bbox.getWidth () * fx;
-      fy = bbox.getY() + bbox.getHeight() * fy;
-      r = Math::max(bbox.getWidth(), bbox.getHeight()) * r;
-    }
-
     pattern.setPoints(PointD(cx, cy), PointD(fx, fy));
-    pattern.setGradientRadius(r);
+    pattern.setRadius(r);
   }
   else
   {
-    RectD bbox = obj->getBoundingRect();
-    double x = bbox.getX1() + bbox.getWidth() / 2.0;
-    double y = bbox.getY1() + bbox.getHeight() / 2.0; 
-
-    pattern.setPoints(PointD(x, y), PointD(x, y));
-    pattern.setGradientRadius(Math::min(bbox.getWidth(), bbox.getHeight()) / 2.0);
+    // SVG TODO: Is this error?
+    fog_debug("Fog::SvgRadialGradient - Unsupported combination...");
   }
 
   // Add color stops.
-  walkAndAddGradientStops(const_cast<SvgRadialGradientElement*>(this), pattern);
+  walkAndAddArgbStops(const_cast<SvgRadialGradientElement*>(this), pattern);
 
-  if (paintType == SvgPaintFill)
+  if (paintType == SVG_PAINT_FILL)
     context->setFillPattern(pattern);
   else
-    context->setLinePattern(pattern);
+    context->setStrokePattern(pattern);
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -1781,7 +1835,7 @@ err_t SvgRadialGradientElement::onApplyPattern(SvgContext* context, SvgElement* 
 
 SvgDocument::SvgDocument()
 {
-  _type |= TypeSvgMask;
+  _type |= SVG_ELEMENT_MASK;
 }
 
 SvgDocument::~SvgDocument()
@@ -1796,7 +1850,7 @@ XmlElement* SvgDocument::clone() const
   for (XmlElement* ch = firstChild(); ch; ch = ch->nextSibling())
   {
     XmlElement* e = ch->clone();
-    if (e && doc->appendChild(e) != Error::Ok) delete e;
+    if (e && doc->appendChild(e) != ERR_OK) delete e;
   }
 
   return doc;

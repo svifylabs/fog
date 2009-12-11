@@ -32,6 +32,22 @@ ThreadPool::ThreadPool() :
 
 ThreadPool::~ThreadPool()
 {
+  {
+    bool used;
+    _lock.lock();
+    used = _usedThreads != NULL;
+    _lock.unlock();
+
+    if (used)
+    {
+      fog_debug("Fog::ThreadPool::~ThreadPool() - Destroying instance, but some"
+                "threads are still used, waiting...");
+
+      while (_usedThreads != NULL) Thread::_yield();
+    }
+  }
+
+  releaseAllAvailable();
 }
 
 Thread* ThreadPool::getThread(int workId)
@@ -41,7 +57,7 @@ Thread* ThreadPool::getThread(int workId)
 
   if (_unusedThreads)
   {
-    // First try to find workId if specified
+    // First try to find workId if specified.
     if (workId >= 0)
     {
       PoolEntry* cur = _unusedThreads;
@@ -153,7 +169,7 @@ int ThreadPool::numThreads() const
 err_t ThreadPool::setMaxThreads(int maxThreads)
 {
   _maxThreads = maxThreads;
-  return Error::Ok;
+  return ERR_OK;
 }
 
 Thread* ThreadPool::_createThread()
@@ -164,10 +180,30 @@ Thread* ThreadPool::_createThread()
   Thread* thread = new(std::nothrow) Thread(threadName);
   if (!thread) return NULL;
 
-  // Update statistics
+  // Update statistics.
   _numThreads++;
 
   return thread;
+}
+
+void ThreadPool::releaseAllAvailable()
+{
+  AutoLock locked(_lock);
+
+  PoolEntry* cur = _unusedThreads;
+  while (cur)
+  {
+    PoolEntry* next = cur->next;
+    Thread* thread = cur->thread;
+
+    Memory::free(cur);
+    delete thread;
+
+    cur = next;
+    _numThreads--;
+  }
+
+  _unusedThreads = NULL;
 }
 
 } // Fog namespace

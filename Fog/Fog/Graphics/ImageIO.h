@@ -8,11 +8,11 @@
 #define _FOG_GRAPHICS_IMAGEIO_H
 
 // [Dependencies]
-#include <Fog/Core/Properties.h>
+#include <Fog/Core/List.h>
+#include <Fog/Core/Object.h>
 #include <Fog/Core/Stream.h>
 #include <Fog/Core/String.h>
 #include <Fog/Core/Value.h>
-#include <Fog/Core/Vector.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/Palette.h>
 
@@ -39,11 +39,20 @@ FOG_API bool addProvider(Provider* provider);
 FOG_API bool removeProvider(Provider* provider);
 FOG_API bool hasProvider(Provider* provider);
 
-FOG_API Vector<Provider*> getProviders();
+FOG_API List<Provider*> getProviders();
 
 FOG_API Provider* getProviderByName(const String& name);
 FOG_API Provider* getProviderByExtension(const String& extension);
-FOG_API Provider* getProviderByMemory(void* mem, sysuint_t len);
+FOG_API Provider* getProviderByMime(void* mem, sysuint_t len);
+
+FOG_API DecoderDevice* createDecoderByName(const String& name, err_t* err = NULL);
+FOG_API DecoderDevice* createDecoderByExtension(const String& extension, err_t* err = NULL);
+
+FOG_API DecoderDevice* createDecoderForFile(const String& fileName, err_t* err = NULL);
+FOG_API DecoderDevice* createDecoderForStream(Stream& stream, const String& extension, err_t* err = NULL);
+
+FOG_API EncoderDevice* createEncoderByName(const String& name, err_t* err = NULL);
+FOG_API EncoderDevice* createEncoderByExtension(const String& extension, err_t* err = NULL);
 
 // ============================================================================
 // [Fog::ImageIO::Provider]
@@ -155,7 +164,7 @@ struct FOG_API Provider
   //! @brief Returns image file format name.
   FOG_INLINE const String& getName() const { return _name; }
   //! @brief Returns image file format extensions.
-  FOG_INLINE const Vector<String>& getExtensions() const { return _extensions; }
+  FOG_INLINE const List<String>& getExtensions() const { return _extensions; }
   //! @brief Returns image file format features.
   FOG_INLINE const Features& getFeatures() const { return _features; }
 
@@ -167,7 +176,7 @@ struct FOG_API Provider
   //! loader will use relevance for decoders.
   virtual uint32_t check(const void* mem, sysuint_t length) = 0;
   //! @overload
-  FOG_INLINE uint32_t check(const ByteArray& mem) { return check(mem.cData(), mem.getLength()); }
+  FOG_INLINE uint32_t check(const ByteArray& mem) { return check(mem.getData(), mem.getLength()); }
 
   virtual EncoderDevice* createEncoder();
   virtual DecoderDevice* createDecoder();
@@ -180,7 +189,7 @@ protected:
   //! @brief Image file format id.
   uint32_t _id;
   //! @brief Image file format extensions ("bmp", "jpg", "jpeg", ...).
-  Vector<String> _extensions;
+  List<String> _extensions;
 
   //! @brief Image file format features.
   Features _features;
@@ -193,59 +202,29 @@ private:
 // [Fog::ImageIO::BaseDevice]
 // ============================================================================
 
-struct FOG_API BaseDevice : public PropertiesContainer
+struct FOG_API BaseDevice : public Object
 {
-  typedef PropertiesContainer base;
+  FOG_DECLARE_OBJECT(BaseDevice, Object)
 
   // [Construction / Descruction]
 
-  BaseDevice();
+  BaseDevice(Provider* provider);
   virtual ~BaseDevice();
 
   // [Properties]
 
-  FOG_DECLARE_PROPERTIES_CONTAINER()
-
-  enum PropertyId
-  {
-    PropertyWidth,
-    PropertyHeight,
-    PropertyDepth,
-    PropertyPlanes,
-    PropertyActualFrame,
-    PropertyFramesCount,
-    PropertyProgress,
-
-    PropertyLast
-  };
-
-  virtual int propertyInfo(int id) const;
-  virtual err_t getProperty(int id, Value& value) const;
-  virtual err_t setProperty(int id, const Value& value);
-
-  // [Device Type]
-
-  enum DeviceType
-  {
-    //! @brief None, null codec or non initialized.
-    None = 0x0,
-    //! @brief Image IO Encoder.
-    EncoderType = 0x1,
-    //! @brief Image IO Decoder.
-    DecoderType = 0x2,
-    //! @brief Proxy for another image processing library.
-    ProxyType = 0x4
-  };
+  virtual err_t getProperty(const ManagedString& name, Value& value) const;
+  virtual err_t setProperty(const ManagedString& name, const Value& value);
 
   // [Members access]
 
   FOG_INLINE Provider* getProvider() const { return _provider; }
   FOG_INLINE uint32_t getDeviceType() const { return _deviceType; }
   FOG_INLINE uint32_t getFlags() const { return _flags; }
-  FOG_INLINE bool isNone() const { return _deviceType == None; }
-  FOG_INLINE bool isEncoder() const { return (_deviceType & EncoderType) != 0; }
-  FOG_INLINE bool isDecoder() const { return (_deviceType & DecoderType) != 0; }
-  FOG_INLINE bool isProxy() const { return (_deviceType & ProxyType) != 0; }
+  FOG_INLINE bool isNone() const { return _deviceType == IMAGEIO_DEVICE_NONE; }
+  FOG_INLINE bool isEncoder() const { return (_deviceType & IMAGEIO_DEVICE_ENCODER) != 0; }
+  FOG_INLINE bool isDecoder() const { return (_deviceType & IMAGEIO_DECIDE_DECODER) != 0; }
+  FOG_INLINE bool isProxy() const { return (_deviceType & IMAGEIO_DEVICE_PROXY) != 0; }
 
   FOG_INLINE uint64_t attachedOffset() const { return _attachedOffset; }
   FOG_INLINE Stream& getStream() { return _stream; }
@@ -322,11 +301,14 @@ protected:
   //! but it's not needed if image is directly loaded to different
   //! image format and decoder supports this.
   Palette _palette;
-  //! @brief Comment
+  //! @brief Comment.
   ByteArray _comment;
 
   //! @brief Progress, 0 to 100 [percent]
   float _progress;
+
+private:
+  friend struct IcoDecoderDevice;
 };
 
 // ============================================================================
@@ -336,9 +318,11 @@ protected:
 //! @brief Image IO decoder device.
 struct FOG_API DecoderDevice : public BaseDevice
 {
+  FOG_DECLARE_OBJECT(DecoderDevice, BaseDevice)
+
   // [Construction / Descruction]
 
-  DecoderDevice();
+  DecoderDevice(Provider* provider);
   virtual ~DecoderDevice();
 
   // [Members access]
@@ -350,8 +334,8 @@ struct FOG_API DecoderDevice : public BaseDevice
 
   // [Virtuals]
 
-  virtual uint32_t readHeader() = 0;
-  virtual uint32_t readImage(Image& image) = 0;
+  virtual err_t readHeader() = 0;
+  virtual err_t readImage(Image& image) = 0;
 
   // [Protected virtuals]
 protected:
@@ -376,9 +360,11 @@ protected:
 //! @brief Image IO encoder device.
 struct FOG_API EncoderDevice : public BaseDevice
 {
+  FOG_DECLARE_OBJECT(EncoderDevice, BaseDevice)
+
   // [Construction / Descruction]
 
-  EncoderDevice();
+  EncoderDevice(Provider* provider);
   virtual ~EncoderDevice();
 
   // [Members access]
@@ -391,7 +377,7 @@ struct FOG_API EncoderDevice : public BaseDevice
   // [Virtuals]
 
   virtual void detachStream();
-  virtual uint32_t writeImage(const Image& image) = 0;
+  virtual err_t writeImage(const Image& image) = 0;
 
 protected:
   virtual void reset();

@@ -36,24 +36,24 @@ FOG_API uint64_t getAmountOfPhysicalMemory();
 FOG_API uint32_t getAmountOfPhysicalMemoryMB();
 
 #if defined(FOG_OS_WINDOWS)
-enum Win_Version
+enum WIN_VERSION
 {
-  Win_Unknown    = 0,
+  WIN_VERSION_UNKNOWN    = 0,
 
-  //! @brief Set if system is WinNT based (can't be together with @c Win_98).
-  Win_NT         = 0x0001,
+  //! @brief Set if system is WinNT based (can't be together with @c WIN_VERSION_98).
+  WIN_VERSION_NT         = 0x0001,
   //! @brief Set if system is WinNT 4.x.
-  Win_NT_3       = 0x0002,
+  WIN_VERSION_NT_3       = 0x0002,
   //! @brief Set if system is WinNT 4.x.
-  Win_NT_4       = 0x0004,
+  WIN_VERSION_NT_4       = 0x0004,
   //! @brief Set if system is Windows 2000.
-  Win_2000       = 0x0008,
+  WIN_VERSION_2000       = 0x0008,
   //! @brief Set if system is Windows XP.
-  Win_XP         = 0x0010,
+  WIN_VERSION_XP         = 0x0010,
   //! @brief Set if system is Windows 2003.
-  Win_2003       = 0x0020,
+  WIN_VERSION_2003       = 0x0020,
   //! @brief Set if system is Windows Vista.
-  Win_Vista      = 0x0040
+  WIN_VERSION_VISTA      = 0x0040
 };
 
 FOG_API uint32_t getWindowsVersion();

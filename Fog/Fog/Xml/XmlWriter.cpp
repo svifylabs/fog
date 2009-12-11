@@ -4,7 +4,7 @@
 // MIT, See COPYING file in package
 
 // [Precompiled Headers]
-#ifdef FOG_PRECOMP
+#if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
 #endif
 
@@ -13,7 +13,7 @@
 #include <Fog/Core/String.h>
 #include <Fog/Core/StringUtil.h>
 #include <Fog/Core/TextCodec.h>
-#include <Fog/Xml/Error.h>
+#include <Fog/Xml/Constants.h>
 #include <Fog/Xml/XmlEntity.h>
 #include <Fog/Xml/XmlWriter.h>
 
@@ -56,10 +56,10 @@ XmlWriter::~XmlWriter()
   // ===== Find first tag =====
   for (;;)
   {
-    if (strCur == strEnd) __XML_CHAR_ERROR(Error::XmlReaderMissingRootTag);
+    if (strCur == strEnd) __XML_CHAR_ERROR(XmlReaderMissingRootTag);
     else if (strCur->isSpace()) strCur++;
     else if (*strCur == '<') break;
-    else __XML_CHAR_ERROR(Error::XmlReaderMissingRootTag);
+    else __XML_CHAR_ERROR(XmlReaderMissingRootTag);
   }
 
   // ---------------------------------------------------------------------
@@ -72,7 +72,7 @@ XmlWriter::~XmlWriter()
     // ----- New tag...? -----
     if (strCur->isAlpha() || *strCur == '_' || *strCur == ':' || *strCur > 127)
     {
-      if (!cur) __XML_CHAR_ERROR(Error::XmlReaderUnmatchedClosingTag);
+      if (!cur) __XML_CHAR_ERROR(XmlReaderUnmatchedClosingTag);
 
       // === Clean attributes ===
       attributes = NULL;
@@ -126,7 +126,7 @@ XmlWriter::~XmlWriter()
               openTag(&cur, tag, tagLength, attributes);
               closeTag(&cur);
 
-              __XML_CHAR_ERROR(Error::XmlReaderMissingAttribute);
+              __XML_CHAR_ERROR(XmlReaderMissingAttribute);
             }
 
             strCur++;
@@ -145,14 +145,14 @@ XmlWriter::~XmlWriter()
         for (;;)
         {
           // strEnd of input will cause error
-          if (++strCur == strEnd) __XML_CHAR_ERROR(Error::XmlReaderMissingTag);
+          if (++strCur == strEnd) __XML_CHAR_ERROR(XmlReaderMissingTag);
           // Skip spaces
           if (strCur->isSpace()) continue;
           // 'Only '>' is valid
           else if (*strCur == '>')
             break;
           else
-            __XML_CHAR_ERROR(Error::XmlReaderMissingTag);
+            __XML_CHAR_ERROR(XmlReaderMissingTag);
         }
       }
 
@@ -169,7 +169,7 @@ XmlWriter::~XmlWriter()
         openTag(&cur, tag, tagLength, attributes);
         closeTag(&cur);
 
-        __XML_CHAR_ERROR(Error::XmlReaderMissingTag);
+        __XML_CHAR_ERROR(XmlReaderMissingTag);
       }
 
       skipTagText = false;
@@ -179,11 +179,11 @@ XmlWriter::~XmlWriter()
     // ----- Close tag -----
     else if (*strCur == '/')
     {
-      if (!cur) __XML_CHAR_ERROR(Error::XmlReaderUnmatchedClosingTag);
+      if (!cur) __XML_CHAR_ERROR(XmlReaderUnmatchedClosingTag);
 
       closeTag(&cur);
       while (strCur != strEnd && *strCur != '>') strCur++;
-      if (strCur == strEnd) __XML_CHAR_ERROR(Error::XmlReaderMissingTag);
+      if (strCur == strEnd) __XML_CHAR_ERROR(XmlReaderMissingTag);
     }
 
 
@@ -194,7 +194,7 @@ XmlWriter::~XmlWriter()
 
       for (;;)
       {
-        if (strCur + 3 >= strEnd) __XML_CHAR_ERROR(Error::XmlReaderUnclosedComment);
+        if (strCur + 3 >= strEnd) __XML_CHAR_ERROR(XmlReaderUnclosedComment);
         else if (StringUtil::eq(strCur, "-->", 3)) { strCur += 3; break; }
         else strCur++;
       }
@@ -213,7 +213,7 @@ XmlWriter::~XmlWriter()
         //WXmlCharContent(root, D + 8, (S += 2) - D - 10, 0);
       }
       else
-        __XML_CHAR_ERROR(Error::XmlReaderUnclosedCDATA);
+        __XML_CHAR_ERROR(XmlReaderUnclosedCDATA);
 #endif
     }
 
@@ -230,7 +230,7 @@ XmlWriter::~XmlWriter()
       }
 
       // Unclosed <!DOCTYPE
-      if (strCur == strEnd) __XML_CHAR_ERROR(Error::XmlReaderUnclosedDOCTYPE);
+      if (strCur == strEnd) __XML_CHAR_ERROR(XmlReaderUnclosedDOCTYPE);
     }
 
 
@@ -246,7 +246,7 @@ XmlWriter::~XmlWriter()
       // Unclosed <?
       if (!strCur)
       {
-        __XML_CHAR_ERROR(Error::XmlReaderUnclosedPI);
+        __XML_CHAR_ERROR(XmlReaderUnclosedPI);
       }
       else
       {
@@ -292,9 +292,9 @@ XmlWriter::~XmlWriter()
   if (cur)
   {
     if (cur->tag().isEmpty())
-      __XML_CHAR_ERROR(Error::XmlReaderMissingRootTag);
+      __XML_CHAR_ERROR(XmlReaderMissingRootTag);
     else
-      __XML_CHAR_ERROR(Error::XmlReaderMissingTag);
+      __XML_CHAR_ERROR(XmlReaderMissingTag);
   }
 
   return err;
@@ -507,10 +507,10 @@ Value XmlDocument::writeFile(const String& fileName)
   Value result;
 
   result = stream.openFile(fileName,
-    Stream::Open_Write |
-    Stream::Open_Truncate |
-    Stream::Open_Create |
-    Stream::Open_CreatePath);
+    STREAM_OPEN_WRITE |
+    STREAM_OPEN_TRUNCATE |
+    STREAM_OPEN_CREATE |
+    STREAM_OPEN_CREATE_PATH);
 
   if (result.ok())
     return writeStream(stream);

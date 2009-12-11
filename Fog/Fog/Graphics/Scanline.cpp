@@ -33,15 +33,15 @@
 //----------------------------------------------------------------------------
 
 // [Precompiled Headers]
-#ifdef FOG_PRECOMP
+#if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
-#endif
+#endif // FOG_PRECOMP
 
 // [Dependencies]
-#include <Fog/Core/Error.h>
+#include <Fog/Core/Constants.h>
 #include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
-#include <Fog/Graphics/Error.h>
+#include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Scanline.h>
 
 namespace Fog {
@@ -51,8 +51,8 @@ namespace Fog {
 const Scanline32::Span _zeroSpan = { INT32_MIN, 0, NULL };
 
 Scanline32::Scanline32() :
-  _xEnd(CoordInit),
-  _y(CoordInit),
+  _xEnd(COORD_INIT),
+  _y(COORD_INIT),
   _coversCapacity(0),
   _spansCapacity(0),
   _spansCount(0),
@@ -76,8 +76,8 @@ err_t Scanline32::init(int x1, int x2)
 
   uint32_t cap;
 
-  _xEnd = CoordInit;
-  _y = CoordInit;
+  _xEnd = COORD_INIT;
+  _y = COORD_INIT;
 
   cap = Math::max(x2 - x1 + 3, 512);
   if (cap > _coversCapacity)
@@ -95,7 +95,7 @@ err_t Scanline32::init(int x1, int x2)
     _spansData = (Span*)Memory::alloc((cap + 1) * sizeof(Span));
     if (!_spansData) goto error;
 
-    _spansData[0].x = CoordInit;
+    _spansData[0].x = COORD_INIT;
     _spansData[0].len = 0;
     _spansData[0].covers = NULL;
     _spansData++;
@@ -108,7 +108,7 @@ err_t Scanline32::init(int x1, int x2)
   _spansEnd = _spansData + _spansCapacity;
 
   _spansCount = 0;
-  return Error::Ok;
+  return ERR_OK;
 
 error:
   if (_coversData) { Memory::free(_coversData); _coversData = NULL; }
@@ -122,13 +122,13 @@ error:
   _spansCur = const_cast<Span*>(&_zeroSpan) + 1;
   _spansEnd = const_cast<Span*>(&_zeroSpan) + 1;
 
-  return Error::OutOfMemory;
+  return ERR_RT_OUT_OF_MEMORY;
 }
 
 void Scanline32::reset()
 {
-  _xEnd = CoordInit;
-  _y = CoordInit;
+  _xEnd = COORD_INIT;
+  _y = COORD_INIT;
 
   _coversCur = _coversData;
   _spansCur = _spansData;

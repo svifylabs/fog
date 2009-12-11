@@ -2,111 +2,113 @@ LEGEND
 [ ] Incomplete
 [x] Completed
 [w] Working
-[D] Need discusion about usability or removing
-[L] Low priority
 
-TODO
-====
+TODO P1
+=======
 
 [ ] Fog/Core:
-    [ ] Remove allocPolicy and AllocPolicy enums, all detach functions must return err_t
-        instead
     [ ] Fog::RegExp - use TRex
     [ ] Fog::String/Fog::Locale - add support for group separators
-    [ ] Fog::BitArray - fix
     [ ] Temporary...<N>::free sometimes not frees the memory ?
-    [ ] Join EventLoop and EventPump. Original code is different, in our code there
-        is no benefit to keeping this split.
-    [ ] Remove stl dependency from EventLoop.h
+    [ ] Complete Fog::BitArray
 
 [w] Fog/Xml:
-    [ ] XmlWriter
+    [w] XmlWriter
 
 [ ] Fog/Svg:
-    [ ] PainterEngine_Svg
+    [ ] Improve support for SVG styles in attributes
+    [ ] Fix gradient rendering
 
 [ ] Painter:
     [ ] Set constant mask
-    [ ] Text transform
-    [ ] Text over path
+    [w] Text transform
+    [w] Text over path
     [ ] Patterns transform
-    [ ] Text in path support
-    [ ] Image scaling
-    [ ] Image transform
+        [ ] Linear Gradient Transform
+        [ ] Radial Gradient Transform
+        [ ] Conical Gradient Transform
     [ ] Introduce setClipPath() / resetClipPath()
+    [w] Introduce setColorFilter(), resetColorFilter()
+    [w] High-quality downscaling (transformation / scaling down)
 
 [ ] Image:
     [ ] Render text using Font::getGlyphs
-    [ ] Add ColorLUT
-        [ ] By color lut the contrast, brightness, threshold and gamma function can be implemented.
-    [ ] Scaling
 
 [ ] Font:
-    [ ] Ability to render to 'Path'
+    [w] Ability to render to 'Path'
         [x] Win32
-        [ ] Freetype2
+        [w] Freetype2
+        [w] Fix it - Kerning, Hinting
     [ ] Cache size control
-    [ ] Increase granularity of X position in glyphs to 4 (0.00, 0.25, 0.50, 0.75), because vector
-        fonts can be very sensitive.
+    [ ] Increase granularity of X position in glyphs to 3 (0.00, 0.33, 0.66), because vector
+        fonts can be very sensitive in small sizes.
 
-[ ] Raster:
-    [ ] Write C composite functions
-    [ ] Write MMX composite functions
-    [w] Write SSE2 composite functions
-    [ ] Linear gradient can be calculated by SSE2, think about it! The instructions pmax pmin, pcmpgt
-        can be used in increments
-
-[ ] ColorMatrix:
-    [ ] Add possibility to use ColorMatrix in Painter::drawImage().
+[ ] RasterUtil:
+    [ ] Write C composite functions for XRGB32 and PRGB32
+    [ ] Write C composite functions for RGB24
+    [ ] Write C composite functions for A8
+    [ ] Write MMX composite functions for XRGB32 and PRGB32
+    [ ] Write MMX composite functions for RGB24
+    [ ] Write MMX composite functions for A8
+    [x] Write SSE2 composite functions for XRGB32 and PRGB32
+    [ ] Write SSE2 composite functions for RGB24
+    [ ] Write SSE2 composite functions for A8
 
 [ ] Path:
-    [ ] Port AGG code into Fog and remove dependencies to AntiGrain
     [ ] Add fitTo(RectF)
     [ ] Add addText(Font, String32) to path
     [ ] What about warp?
 
 [ ] Image filtering:
-    [ ] Color effects (ColorMatrix, ColorLut, ...) should be grouped and result should be
-        ColorEffect class that will be able to do any color based transformations. ColorEffect
-        should be possible to set when blitting image by Fog::Painter.
-        - ColorFilter class
-    [ ] Image effects (Blur, Sharpen, ...) should be grouped and result should be
-        ImageEffect class that will be able to do any image based transformations.
-        - ImageFilter class.
+    [ ] Image filters (Blur, Sharpen, ...) should be grouped and result should be
+        ImageFilter class that will be able to do any image based transformations.
     [ ] Each effect should contain opacity value that will define blend factor of modified image
         into source image (this can be used by UI animations).
     [ ] Sharpen
     [ ] Convolve
 
 [ ] Colors:
-    [ ] Add RgbaUtil.h, RgbaUtil.cpp and implement here basic compositing (blending, ...)
+    [ ] Add ArgbUtil.h, ArgbUtil.cpp and implement here basic compositing (blending, ...)
     [ ] Add rgbToHsv, hsvToRgb
 
 [ ] Region:
-    [ ] Remove polygon() and round() generators, use Fog::Path() and rasterizer
+    [w] Remove polygon() and round() generators, use Fog::Path() and rasterizer
         instead.
-    [ ] If Path generator will be implemented, we can implement transforms operations.
+    [w] If Path generator will be implemented, we can implement transform operations.
         (Region to path, path to region)
     [ ] Add RegionBuilder class that will be very fast alternative to Region::unite()
-        for ultra count of rectangles.
-
-[ ] Optimizations:
-    [ ] Are usable 3dNow optimizations?
-    [ ] Path SSE2 curve code
-    
-[ ] UI Toolkit
-    [ ] First make basic layouts working and define them
-
-AUDIT
-=====
-
-[ ] Check for all raster conversion functions to follow these rules:
-    [ ] ARGB32 to RGB32 conversion -> premultiply and set alpha to 0xFF
-    [ ] PRGB32 to RGB32 conversion -> set alpha to 0xFF
-    [ ] Audit SRC_OVER::ARGB32 dst
+        for ultra count of rectangles, can be also used by setPath().
 
 REFACTORIZATION
 ===============
 
-[ ] All getters (get() methods) should be declared before setters (set() methods)
-[ ] Make sure that all classes are using correct getXXX() methods
+[w] All getters (get() methods) should be declared before setters (set() methods)
+[w] Make sure that all classes are using correct getXXX() methods
+[w] Some methods named clear() should be renamed to reset(), audit this (this not applies to containers, strings, etc...)
+[w] All enums and constants should be UPPERCASED.
+
+MORE TODOS:
+
+[w] Improve quality of gradient rendering, current is ok except PAD gradients where it looks really bad
+    (unaliased).
+[ ] Remove closure from RasterUtil::ops
+[ ] Fix ICO reader (BMP / PNG)
+[ ] Add ICO writer (BMP / PNG)
+[ ] Add GIF writer, rewrite GIF support
+[ ] Fix BMP transparency detection (impossible?)
+
+MORE TODOS:
+
+[ ] Default color in Svg gradient should be 0.0:black, 1.0:white if no stops are provided
+[ ] Add innerLimit and innerJoin to painter, painter engine, and all related.
+
+TODO P2
+=======
+
+[ ] Add rest of compositing operators (defined by SVG)
+
+TODO P3 - UI
+============
+
+[ ] UI Toolkit
+    [ ] First make basic layouts working and define them

@@ -15,7 +15,7 @@
 // [Dependencies]
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/ByteArray.h>
-#include <Fog/Core/Error.h>
+#include <Fog/Core/Constants.h>
 #include <Fog/Core/Locale.h>
 #include <Fog/Core/String.h>
 #include <Fog/Core/StringUtil.h>
@@ -38,22 +38,26 @@ Static<Locale::Data> Locale::sharedNull;
 Static<Locale::Data> Locale::sharedPosix;
 Static<Locale::Data> Locale::sharedUser;
 
-Locale::Data* Locale::sharedNullObj;
-Locale::Data* Locale::sharedPosixObj;
-Locale::Data* Locale::sharedUserObj;
+Locale* Locale::sharedNullLocale;
+Locale* Locale::sharedPosixLocale;
+Locale* Locale::sharedUserLocale;
+
+static Static<Locale> sharedNullL;
+static Static<Locale> sharedPosixL;
+static Static<Locale> sharedUserL;
 
 static void _setDefaults(Locale::Data* d)
 {
-  d->decimalPoint = '.';
-  d->thousandsGroup = '\0';
-  d->zero = '0';
-  d->plus = '+';
-  d->minus = '-';
-  d->space = ' ';
-  d->exponential = 'e';
-  d->firstThousandsGroup = 3;
-  d->nextThousandsGroup = 3;
-  d->reserved = 0;
+  d->data[LOCALE_CHAR_DECIMAL_POINT] = '.';
+  d->data[LOCALE_CHAR_THOUSANDS_GROUP] = '\0';
+  d->data[LOCALE_CHAR_ZERO] = '0';
+  d->data[LOCALE_CHAR_PLUS] = '+';
+  d->data[LOCALE_CHAR_MINUS] = '-';
+  d->data[LOCALE_CHAR_SPACE] = ' ';
+  d->data[LOCALE_CHAR_EXPONENTIAL] = 'e';
+  d->data[LOCALE_CHAR_FIRST_THOUSANDS_GROUP] = 3;
+  d->data[LOCALE_CHAR_NEXT_THOUSANDS_GROUP] = 3;
+  d->data[LOCALE_CHAR_RESERVED] = 0;
 }
 
 static void _setLConv(Locale::Data* d, const struct lconv* conv)
@@ -64,15 +68,15 @@ static void _setLConv(Locale::Data* d, const struct lconv* conv)
   {
     wchar_t buf[4];
 
-    if (mbstowcs(buf, conv->decimal_point, 3) == 1) d->decimalPoint   = (uint32_t)buf[0];
-    if (mbstowcs(buf, conv->thousands_sep, 3) == 1) d->thousandsGroup = (uint32_t)buf[0];
-    if (mbstowcs(buf, conv->positive_sign, 3) == 1) d->plus           = (uint32_t)buf[0];
-    if (mbstowcs(buf, conv->negative_sign, 3) == 1) d->minus          = (uint32_t)buf[0];
+    if (mbstowcs(buf, conv->decimal_point, 3) == 1) d->data[LOCALE_CHAR_DECIMAL_POINT  ] = (uint32_t)buf[0];
+    if (mbstowcs(buf, conv->thousands_sep, 3) == 1) d->data[LOCALE_CHAR_THOUSANDS_GROUP] = (uint32_t)buf[0];
+    if (mbstowcs(buf, conv->positive_sign, 3) == 1) d->data[LOCALE_CHAR_PLUS           ] = (uint32_t)buf[0];
+    if (mbstowcs(buf, conv->negative_sign, 3) == 1) d->data[LOCALE_CHAR_MINUS          ] = (uint32_t)buf[0];
   }
 }
 
 Locale::Locale() :
-  _d(sharedNull->refAlways())
+  _d(sharedNull->ref())
 {
 }
 
@@ -87,7 +91,7 @@ Locale::Locale(Data* d) :
 }
 
 Locale::Locale(const String& name) :
-  _d(sharedNull->refAlways())
+  _d(sharedNull->ref())
 {
   set(name);
 }
@@ -99,13 +103,13 @@ Locale::~Locale()
 
 err_t Locale::_detach()
 {
-  if (_d->refCount.get() == 1) return Error::Ok;
+  if (_d->refCount.get() == 1) return ERR_OK;
 
-  Data* newd = new Data(*_d);
-  if (newd) return Error::OutOfMemory;
+  Data* newd = new(std::nothrow) Data(*_d);
+  if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
   AtomicBase::ptr_setXchg(&_d, newd)->deref();
-  return Error::Ok;
+  return ERR_OK;
 }
 
 void Locale::free()
@@ -118,7 +122,7 @@ void Locale::free()
 bool Locale::set(const String& name)
 {
   char lcNameA[512];
-  if (!StringUtil::unicodeToLatin1(lcNameA, name.cData(), name.getLength())) return false;
+  if (!StringUtil::unicodeToLatin1(lcNameA, name.getData(), name.getLength())) return false;
 
   TemporaryByteArray<128> savedLocale(Str8(setlocale(LC_ALL, NULL)));
 
@@ -133,7 +137,7 @@ bool Locale::set(const String& name)
     free();
   }
 
-  setlocale(LC_ALL, savedLocale.cData());
+  setlocale(LC_ALL, savedLocale.getData());
   return !isNull();
 }
 
@@ -143,16 +147,16 @@ bool Locale::set(const Locale& other)
   return true;
 }
 
-err_t Locale::_setChar(sysuint_t index, uint32_t uc)
+err_t Locale::setValue(int id, uint32_t value)
 {
-  if (index >= Data::N) return Error::InvalidArgument;
-  if (_d->data[index] == uc) return Error::Ok;
+  if ((uint)id >= (uint)LOCALE_CHAR_INVALID) return ERR_RT_INVALID_ARGUMENT;
+  if (_d->data[id] == value) return ERR_OK;
 
   err_t err;
   if ((err = detach())) return err;
 
-  _d->data[index] = uc;
-  return Error::Ok;
+  _d->data[id] = value;
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -162,33 +166,23 @@ err_t Locale::_setChar(sysuint_t index, uint32_t uc)
 Locale::Data::Data()
 {
   refCount.init(1);
-  memset(data, 0, sizeof(uint32_t) * N);
+  memset(data, 0, sizeof(uint32_t) * LOCALE_CHAR_INVALID);
 }
 
 Locale::Data::Data(const Data& other) :
   name(other.name)
 {
   refCount.init(1);
-  memcpy(data, other.data, sizeof(uint32_t) * N);
+  memcpy(data, other.data, sizeof(uint32_t) * LOCALE_CHAR_INVALID);
 }
 
 Locale::Data::~Data()
 {
 }
 
-Locale::Data* Locale::Data::ref() const
-{
-  return refAlways();
-}
-
 void Locale::Data::deref()
 {
   if (refCount.deref()) delete this;
-}
-
-Locale::Data* Locale::Data::copy(Data* d)
-{
-  return new(std::nothrow) Data(*d);
 }
 
 } // Fog namespace
@@ -212,20 +206,20 @@ FOG_INIT_DECLARE err_t fog_locale_init(void)
   Locale::sharedUser.init();
   _setLConv(Locale::sharedUser.instancep(), localeconv());
 
-  new (&Locale::sharedNullObj ) Locale(Locale::sharedNull ->refAlways());
-  new (&Locale::sharedPosixObj) Locale(Locale::sharedPosix->refAlways());
-  new (&Locale::sharedUserObj ) Locale(Locale::sharedUser ->refAlways());
+  sharedNullL.initCustom1(Locale::sharedNull.instancep());
+  sharedPosixL.initCustom1(Locale::sharedPosix.instancep());
+  sharedUserL.initCustom1(Locale::sharedUser.instancep());
 
-  return Error::Ok;
+  Locale::sharedNullLocale = sharedNullL.instancep();
+  Locale::sharedPosixLocale = sharedPosixL.instancep();
+  Locale::sharedUserLocale = sharedUserL.instancep();
+
+  return ERR_OK;
 }
 
 FOG_INIT_DECLARE void fog_locale_shutdown(void)
 {
   using namespace Fog;
-
-  ((Locale *)&Locale::sharedNullObj )->~Locale();
-  ((Locale *)&Locale::sharedPosixObj)->~Locale();
-  ((Locale *)&Locale::sharedUserObj )->~Locale();
 
   Locale::sharedNull.destroy();
   Locale::sharedPosix.destroy();

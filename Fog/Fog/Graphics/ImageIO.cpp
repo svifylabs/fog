@@ -4,54 +4,41 @@
 // MIT, See COPYING file in package
 
 // [Precompiled Headers]
-#ifdef FOG_PRECOMP
+#if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
-#endif
+#endif // FOG_PRECOMP
 
 // [Dependencies]
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/AutoLock.h>
 #include <Fog/Core/FileSystem.h>
+#include <Fog/Core/FileUtil.h>
+#include <Fog/Core/List.h>
 #include <Fog/Core/Lock.h>
 #include <Fog/Core/ManagedString.h>
 #include <Fog/Core/MapFile.h>
 #include <Fog/Core/Memory.h>
-#include <Fog/Core/Properties.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/Std.h>
 #include <Fog/Core/Stream.h>
 #include <Fog/Core/String.h>
 #include <Fog/Core/Strings.h>
 #include <Fog/Core/TextCodec.h>
-#include <Fog/Core/Vector.h>
-
+#include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/ImageIO.h>
-#include <Fog/Graphics/ImageIO/ImageIO_BMP.h>
-#include <Fog/Graphics/ImageIO/ImageIO_GIF.h>
-#include <Fog/Graphics/ImageIO/ImageIO_JPEG.h>
-#include <Fog/Graphics/ImageIO/ImageIO_PCX.h>
-#include <Fog/Graphics/ImageIO/ImageIO_PNG.h>
-#include <Fog/Graphics/ImageIO/ImageIO_ICO.h>
 
 // [Provider Ininializers]
-FOG_CAPI_EXTERN void fog_imageio_bmp_init(void);
-FOG_CAPI_EXTERN void fog_imageio_bmp_shutdown(void);
+FOG_CAPI_EXTERN void fog_imageio_init_bmp(void);
+FOG_CAPI_EXTERN void fog_imageio_init_gif(void);
+FOG_CAPI_EXTERN void fog_imageio_init_ico(void);
+FOG_CAPI_EXTERN void fog_imageio_init_jpeg(void);
+FOG_CAPI_EXTERN void fog_imageio_init_pcx(void);
+FOG_CAPI_EXTERN void fog_imageio_init_png(void);
 
-FOG_CAPI_EXTERN void fog_imageio_pcx_init(void);
-FOG_CAPI_EXTERN void fog_imageio_pcx_shutdown(void);
-
-FOG_CAPI_EXTERN void fog_imageio_gif_init(void);
-FOG_CAPI_EXTERN void fog_imageio_gif_shutdown(void);
-
-FOG_CAPI_EXTERN void fog_imageio_png_init(void);
-FOG_CAPI_EXTERN void fog_imageio_png_shutdown(void);
-
-FOG_CAPI_EXTERN void fog_imageio_jpeg_init(void);
-FOG_CAPI_EXTERN void fog_imageio_jpeg_shutdown(void);
-
-FOG_CAPI_EXTERN void fog_imageio_ico_init(void);
-FOG_CAPI_EXTERN void fog_imageio_ico_shutdown(void);
+FOG_IMPLEMENT_OBJECT(Fog::ImageIO::BaseDevice)
+FOG_IMPLEMENT_OBJECT(Fog::ImageIO::DecoderDevice)
+FOG_IMPLEMENT_OBJECT(Fog::ImageIO::EncoderDevice)
 
 namespace Fog {
 
@@ -65,7 +52,7 @@ struct ImageIO_Local
   Lock lock;
 
   // List of providers
-  typedef Vector<ImageIO::Provider*> Providers;
+  typedef List<ImageIO::Provider*> Providers;
 
   Providers providers;
 };
@@ -83,7 +70,7 @@ FOG_API bool addProvider(Provider* provider)
 {
   AutoLock locked(imageio_local->lock);
 
-  if (imageio_local->providers.indexOf(provider) == InvalidIndex)
+  if (imageio_local->providers.indexOf(provider) == INVALID_INDEX)
   {
     imageio_local->providers.append(provider);
     return true;
@@ -97,7 +84,7 @@ FOG_API bool removeProvider(Provider* provider)
   AutoLock locked(imageio_local->lock);
   sysuint_t index = imageio_local->providers.indexOf(provider);
 
-  if (index != InvalidIndex)
+  if (index != INVALID_INDEX)
   {
     imageio_local->providers.removeAt(index);
     return true;
@@ -109,10 +96,10 @@ FOG_API bool removeProvider(Provider* provider)
 FOG_API bool hasProvider(Provider* provider)
 {
   AutoLock locked(imageio_local->lock);
-  return imageio_local->providers.indexOf(provider) != InvalidIndex;
+  return imageio_local->providers.indexOf(provider) != INVALID_INDEX;
 }
 
-FOG_API Vector<Provider*> getProviders()
+FOG_API List<Provider*> getProviders()
 {
   AutoLock locked(imageio_local->lock);
   return imageio_local->providers;
@@ -143,13 +130,13 @@ FOG_API Provider* getProviderByExtension(const String& extension)
 
   for (it.toStart(); it.isValid(); it.toNext())
   {
-    if (it.value()->getExtensions().indexOf(e) != InvalidIndex) return it.value();
+    if (it.value()->getExtensions().indexOf(e) != INVALID_INDEX) return it.value();
   }
 
   return 0;
 }
 
-FOG_API Provider* getProviderByMemory(void* mem, sysuint_t len)
+FOG_API Provider* getProviderByMime(void* mem, sysuint_t len)
 {
   if (!mem || len == 0) return 0;
 
@@ -172,6 +159,136 @@ FOG_API Provider* getProviderByMemory(void* mem, sysuint_t len)
   return bestProvider;
 }
 
+FOG_API DecoderDevice* createDecoderByName(const String& name, err_t* err_)
+{
+  err_t err = ERR_OK;
+  Provider* provider = getProviderByName(name);
+  DecoderDevice* decoder = NULL;
+
+  if (!provider) { err = ERR_IMAGEIO_NOT_AVAILABLE_PROVIDER; goto end; }
+
+  decoder = provider->createDecoder();
+  if (!decoder) { err = ERR_IMAGEIO_NOT_AVAILABLE_DECODER; goto end; }
+
+end:
+  if (err_) *err_ = err;
+  return decoder;
+}
+
+FOG_API DecoderDevice* createDecoderByExtension(const String& extension, err_t* err_)
+{
+  err_t err = ERR_OK;
+  Provider* provider = getProviderByExtension(extension);
+  DecoderDevice* decoder = NULL;
+
+  if (!provider) { err = ERR_IMAGEIO_NOT_AVAILABLE_PROVIDER; goto end; }
+
+  decoder = provider->createDecoder();
+  if (!decoder) { err = ERR_IMAGEIO_NOT_AVAILABLE_DECODER; goto end; }
+
+end:
+  if (err_) *err_ = err;
+  return decoder;
+}
+
+FOG_API DecoderDevice* createDecoderForFile(const String& fileName, err_t* err_)
+{
+  err_t err;
+
+  Stream stream;
+  String extension;
+  DecoderDevice* decoder = NULL;
+
+  err = stream.openMMap(fileName, false);
+  // MMap failed?, try to open in by normal way...
+  if (err != ERR_OK) err = stream.openFile(fileName, STREAM_OPEN_READ);
+
+  // If err is not ERR_OK then file can't be open.
+  if (err != ERR_OK) goto end;
+
+  // Extract extension to help opening from stream...
+  if ((err = FileUtil::extractExtension(extension, fileName)) || (err = extension.lower())) goto end;
+
+  // Finally, open device...
+  decoder = createDecoderForStream(stream, extension, &err);
+
+end:
+  if (err_) *err_ = err;
+  return decoder;
+}
+
+FOG_API DecoderDevice* createDecoderForStream(Stream& stream, const String& extension, err_t* err_)
+{
+  err_t err;
+
+  Provider* provider = NULL;
+  DecoderDevice* decoder = NULL;
+
+  int64_t pos;
+
+  // This is default, 128 bytes should be enough for any image file.
+  uint8_t mime[128];
+  sysuint_t readn;
+
+  if (!stream.isSeekable()) { err = ERR_IO_CANT_SEEK; goto end; }
+
+  pos = stream.tell();
+  readn = stream.read(mime, 128);
+
+  if (stream.seek(pos, STREAM_SEEK_SET) == -1) { err =  ERR_IO_CANT_SEEK; goto end; }
+
+  // First try to use extension, if fail, fallback to readStream(Stream)
+  if (!extension.isEmpty()) provider = getProviderByExtension(extension);
+
+  if (!provider) provider = ImageIO::getProviderByMime(mime, readn);
+  if (!provider) { err = ERR_IMAGEIO_NOT_AVAILABLE_PROVIDER; goto end; }
+
+  decoder = provider->createDecoder();
+  if (!decoder) { err = ERR_IMAGEIO_NOT_AVAILABLE_DECODER; goto end; }
+
+  decoder->attachStream(stream);
+
+end:
+  if (err_) *err_ = err;
+
+  // Seek to begin if failed.
+  if (err) stream.seek(pos, STREAM_SEEK_SET);
+
+  return decoder;
+}
+
+FOG_API EncoderDevice* createEncoderByName(const String& name, err_t* err_)
+{
+  err_t err = ERR_OK;
+  Provider* provider = getProviderByName(name);
+  EncoderDevice* decoder = NULL;
+
+  if (!provider) { err = ERR_IMAGEIO_NOT_AVAILABLE_PROVIDER; goto end; }
+
+  decoder = provider->createEncoder();
+  if (!decoder) { err = ERR_IMAGEIO_NOT_AVAILABLE_ENCODER; goto end; }
+
+end:
+  if (err_) *err_ = err;
+  return decoder;
+}
+
+FOG_API EncoderDevice* createEncoderByExtension(const String& extension, err_t* err_)
+{
+  err_t err = ERR_OK;
+  Provider* provider = getProviderByExtension(extension);
+  EncoderDevice* decoder = NULL;
+
+  if (!provider) { err = ERR_IMAGEIO_NOT_AVAILABLE_PROVIDER; goto end; }
+
+  decoder = provider->createEncoder();
+  if (!decoder) { err = ERR_IMAGEIO_NOT_AVAILABLE_ENCODER; goto end; }
+
+end:
+  if (err_) *err_ = err;
+  return decoder;
+}
+
 // ============================================================================
 // [Fog::ImageIO::Provider]
 // ============================================================================
@@ -179,7 +296,7 @@ FOG_API Provider* getProviderByMemory(void* mem, sysuint_t len)
 Provider::Provider()
 {
   memset(&_features, 0, sizeof(_features));
-  _id = ImageFileNone;
+  _id = IMAGEIO_FILE_NONE;
 }
 
 Provider::~Provider()
@@ -200,9 +317,9 @@ DecoderDevice* Provider::createDecoder()
 // [Fog::ImageIO::BaseDevice]
 // ============================================================================
 
-BaseDevice::BaseDevice() :
-  _provider(NULL),
-  _deviceType(BaseDevice::None),
+BaseDevice::BaseDevice(Provider* provider) :
+  _provider(provider),
+  _deviceType(IMAGEIO_DEVICE_NONE),
   _attachedOffset(FOG_UINT64_C(0)),
   _stream(),
   _width(0),
@@ -221,63 +338,33 @@ BaseDevice::~BaseDevice()
 
 // [Properties]
 
-Static<PropertiesData> BaseDevice::_propertiesData;
-
-int BaseDevice::propertyInfo(int id) const
+err_t BaseDevice::getProperty(const ManagedString& name, Value& value) const
 {
-  switch (id)
-  {
-    case PropertyWidth:
-    case PropertyHeight:
-    case PropertyDepth:
-    case PropertyPlanes:
-    case PropertyActualFrame:
-    case PropertyFramesCount:
-    case PropertyProgress:
-      return IProperties::Exists | IProperties::ReadOnly;
-    default:
-      return base::propertyInfo(id);
-  }
+  if (name == fog_strings->getString(STR_GRAPHICS_width      )) return value.setInt32(_width);
+  if (name == fog_strings->getString(STR_GRAPHICS_height     )) return value.setInt32(_height);
+  if (name == fog_strings->getString(STR_GRAPHICS_depth      )) return value.setInt32(_depth);
+  if (name == fog_strings->getString(STR_GRAPHICS_planes     )) return value.setInt32(_planes);
+  if (name == fog_strings->getString(STR_GRAPHICS_actualFrame)) return value.setInt32(_actualFrame);
+  if (name == fog_strings->getString(STR_GRAPHICS_framesCount)) return value.setInt32(_framesCount);
+  if (name == fog_strings->getString(STR_GRAPHICS_progress   )) return value.setDouble(_progress);
+
+  return base::getProperty(name, value);
 }
 
-err_t BaseDevice::setProperty(int id, const Value& value)
+err_t BaseDevice::setProperty(const ManagedString& name, const Value& value)
 {
-  switch (id)
+  if (name == fog_strings->getString(STR_GRAPHICS_width) ||
+      name == fog_strings->getString(STR_GRAPHICS_height) ||
+      name == fog_strings->getString(STR_GRAPHICS_depth) ||
+      name == fog_strings->getString(STR_GRAPHICS_planes) ||
+      name == fog_strings->getString(STR_GRAPHICS_actualFrame) ||
+      name == fog_strings->getString(STR_GRAPHICS_framesCount) ||
+      name == fog_strings->getString(STR_GRAPHICS_progress))
   {
-    case PropertyWidth:
-    case PropertyHeight:
-    case PropertyDepth:
-    case PropertyPlanes:
-    case PropertyActualFrame:
-    case PropertyFramesCount:
-    case PropertyProgress:
-      return Error::PropertyIsReadOnly;
-    default:
-      return base::setProperty(id, value);
+    return ERR_PROPERTY_IS_READ_ONLY;
   }
-}
 
-err_t BaseDevice::getProperty(int id, Value& value) const
-{
-  switch (id)
-  {
-    case PropertyWidth:
-      return value.setInt32(_width);
-    case PropertyHeight:
-      return value.setInt32(_height);
-    case PropertyDepth:
-      return value.setInt32(_depth);
-    case PropertyPlanes:
-      return value.setInt32(_planes);
-    case PropertyActualFrame:
-      return value.setInt32(_actualFrame);
-    case PropertyFramesCount:
-      return value.setInt32(_framesCount);
-    case PropertyProgress:
-      return value.setDouble(_progress);
-    default:
-      return base::getProperty(id, value);
-  }
+  return base::setProperty(name, value);
 }
 
 // [Progress]
@@ -346,7 +433,7 @@ void BaseDevice::reset()
   _framesCount = 0;
   _progress = 0.0f;
 
-  _format = Image::FormatNull;
+  _format = PIXEL_FORMAT_NULL;
   _palette.free();
   _comment.free();
 }
@@ -355,14 +442,14 @@ void BaseDevice::reset()
 // [Fog::ImageIO::DecoderDevice]
 // ============================================================================
 
-DecoderDevice::DecoderDevice() :
-  BaseDevice(),
+DecoderDevice::DecoderDevice(Provider* provider) :
+  BaseDevice(provider),
   _headerDone(false),
   _readerDone(false),
-  _headerResult(Error::Ok),
-  _readerResult(Error::Ok)
+  _headerResult(ERR_OK),
+  _readerResult(ERR_OK)
 {
-  _deviceType = DecoderType;
+  _deviceType = IMAGEIO_DECIDE_DECODER;
 }
 
 DecoderDevice::~DecoderDevice()
@@ -378,20 +465,20 @@ void DecoderDevice::reset()
   _headerDone = false;
   _readerDone = false;
 
-  _headerResult = Error::Ok;
-  _readerResult = Error::Ok;
+  _headerResult = ERR_OK;
+  _readerResult = ERR_OK;
 }
 
 // ============================================================================
 // [EncoderDevice]
 // ============================================================================
 
-EncoderDevice::EncoderDevice() :
-  BaseDevice(),
+EncoderDevice::EncoderDevice(Provider* provider) :
+  BaseDevice(provider),
   _headerDone(false),
   _writerDone(false)
 {
-  _deviceType = EncoderType;
+  _deviceType = IMAGEIO_DEVICE_ENCODER;
 }
 
 EncoderDevice::~EncoderDevice()
@@ -430,26 +517,18 @@ FOG_INIT_DECLARE err_t fog_imageio_init(void)
 {
   using namespace Fog;
 
+  // Init imageio_local.
   imageio_local.init();
 
-  Vector<String> properties;
-  properties.append(fog_strings->getString(STR_GRAPHICS_width));
-  properties.append(fog_strings->getString(STR_GRAPHICS_height));
-  properties.append(fog_strings->getString(STR_GRAPHICS_depth));
-  properties.append(fog_strings->getString(STR_GRAPHICS_planes));
-  properties.append(fog_strings->getString(STR_GRAPHICS_actualFrame));
-  properties.append(fog_strings->getString(STR_GRAPHICS_framesCount));
-  properties.append(fog_strings->getString(STR_GRAPHICS_progress));
-  FOG_INIT_PROPERTIES_CONTAINER(ImageIO::BaseDevice, ImageIO::BaseDevice::base, properties);
+  // Init all built-in providers.
+  fog_imageio_init_bmp();
+  fog_imageio_init_gif();
+  fog_imageio_init_ico();
+  fog_imageio_init_jpeg();
+  fog_imageio_init_pcx();
+  fog_imageio_init_png();
 
-  fog_imageio_bmp_init();
-  fog_imageio_pcx_init();
-  fog_imageio_gif_init();
-  fog_imageio_png_init();
-  fog_imageio_jpeg_init();
-  fog_imageio_ico_init();
-
-  return Error::Ok;
+  return ERR_OK;
 }
 
 FOG_INIT_DECLARE void fog_imageio_shutdown(void)
@@ -457,21 +536,14 @@ FOG_INIT_DECLARE void fog_imageio_shutdown(void)
   using namespace Fog;
 
   // Do not need to lock, because we are shutting down. All threads should
-  // been already joined.
-  ImageIO_Local::Providers::ConstIterator it(
-    imageio_local->providers);
-
+  // been already destroyed.
+  //
   // Remove (and delete) all providers
-  for (it.toStart(); it.isValid(); it.toNext()) delete it.value();
+  {
+    ImageIO_Local::Providers::ConstIterator it(imageio_local->providers);
+    for (it.toStart(); it.isValid(); it.toNext()) delete it.value();
+  }
 
-  fog_imageio_ico_shutdown();
-  fog_imageio_jpeg_shutdown();
-  fog_imageio_png_shutdown();
-  fog_imageio_gif_shutdown();
-  fog_imageio_pcx_shutdown();
-  fog_imageio_bmp_shutdown();
-
+  // Shutdown imageio_local.
   imageio_local.destroy();
-
-  FOG_DESTROY_PROPERTIES_CONTAINER(ImageIO::BaseDevice);
 }

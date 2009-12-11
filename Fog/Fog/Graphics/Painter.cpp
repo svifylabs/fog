@@ -4,16 +4,17 @@
 // MIT, See COPYING file in package
 
 // [Precompiled Headers]
-#ifdef FOG_PRECOMP
+#if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
-#endif
+#endif // FOG_PRECOMP
 
 // [Dependencies]
-#include <Fog/Graphics/Error.h>
+#include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Painter.h>
 #include <Fog/Graphics/PainterEngine.h>
-#include <Fog/Graphics/PainterEngine_Null.h>
-#include <Fog/Graphics/PainterEngine_Raster.h>
+
+#include <Fog/Graphics/PainterEngine/Null.h>
+#include <Fog/Graphics/PainterEngine/Raster.h>
 
 namespace Fog {
 
@@ -44,26 +45,26 @@ err_t Painter::begin(uint8_t* pixels, int width, int height, sysint_t stride, in
   end();
 
   // Check for invalid arguments.
-  if (pixels == NULL) return Error::InvalidArgument;
+  if (pixels == NULL) return ERR_RT_INVALID_ARGUMENT;
 
   // Never initialize painter for zero image.
   if (width <= 0 || height <= 0)
   {
     if (width == 0 && height == 0)
-      return Error::ImageSizeIsZero;
+      return ERR_IMAGE_ZERO_SIZE;
     else
-      return Error::ImageSizeIsInvalid;
+      return ERR_IMAGE_INVALID_SIZE;
   }
 
   // Check for valid image format.
-  if (format == Image::FormatNull || format >= Image::FormatCount) return Error::InvalidArgument;
-  if (format == Image::FormatI8) return Error::ImageFormatNotSupported;
+  if (format == PIXEL_FORMAT_NULL || (uint)format >= PIXEL_FORMAT_COUNT) return ERR_RT_INVALID_ARGUMENT;
+  if (format == PIXEL_FORMAT_I8) return ERR_IMAGE_FORMAT_NOT_SUPPORTED;
 
   PainterEngine* d = _getRasterPainterEngine(pixels, width, height, stride, format, hints);
-  if (!d) return Error::OutOfMemory;
+  if (!d) return ERR_RT_OUT_OF_MEMORY;
 
   _engine = d;
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Painter::begin(Image& image, int hints)
@@ -75,21 +76,21 @@ err_t Painter::begin(Image& image, int hints)
   err_t err = image.detach();
   if (err) return err;
 
-  if (image.isEmpty()) return Error::ImageSizeIsZero;
+  if (image.isEmpty()) return ERR_IMAGE_ZERO_SIZE;
 
   // If image is not empty, the format can't be Null.
-  FOG_ASSERT(format != Image::FormatNull);
-  if (format == Image::FormatI8) return Error::ImageFormatNotSupported;
+  FOG_ASSERT(format != PIXEL_FORMAT_NULL);
+  if (format == PIXEL_FORMAT_I8) return ERR_IMAGE_FORMAT_NOT_SUPPORTED;
 
-  uint8_t* data = image.mData();
-  if (!data) return Error::OutOfMemory;
+  uint8_t* data = image.getMData();
+  if (!data) return ERR_RT_OUT_OF_MEMORY;
 
   PainterEngine* d = _getRasterPainterEngine(
     data, image.getWidth(), image.getHeight(), image.getStride(), format, hints);
-  if (!d) return Error::OutOfMemory;
+  if (!d) return ERR_RT_OUT_OF_MEMORY;
 
   _engine = d;
-  return Error::Ok;
+  return ERR_OK;
 }
 
 void Painter::end()

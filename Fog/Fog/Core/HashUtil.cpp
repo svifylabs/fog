@@ -10,8 +10,8 @@
 
 // [Dependencies]
 #include <Fog/Core/Assert.h>
+#include <Fog/Core/Constants.h>
 #include <Fog/Core/Hash.h>
-#include <Fog/Core/Error.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Std.h>
 #include <Fog/Core/String.h>
@@ -113,14 +113,36 @@ uint32_t hashData(const void* data, sysuint_t size)
 
 uint32_t hashString(const char* key, sysuint_t length)
 {
-  if (length == DetectLength) length = StringUtil::len(key);
-  return hashData((const void*)key, length);
+  uint32_t hash = 0x12345678;
+
+  if (length == DETECT_LENGTH) length = StringUtil::len(key);
+  if (!length) return 0;
+
+  const uint8_t* k = reinterpret_cast<const uint8_t*>(key);
+
+  do {
+    uint32_t c = *k++;
+    hash ^= ((hash << 5) + (hash >> 2) + c);
+  } while (--length);
+
+  return hash;
 }
 
 uint32_t hashString(const Char* key, sysuint_t length)
 {
-  if (length == DetectLength) length = StringUtil::len(key);
-  return hashData((const void*)key, length * sizeof(Char));
+  uint32_t hash = 0x12345678;
+
+  if (length == DETECT_LENGTH) length = StringUtil::len(key);
+  if (!length) return 0;
+
+  const uint16_t* k = reinterpret_cast<const uint16_t*>(key);
+
+  do {
+    uint32_t c = *k++;
+    hash ^= ((hash << 5) + (hash >> 2) + c);
+  } while (--length);
+
+  return hash;
 }
 
 } // HashUtil namespace
