@@ -31,7 +31,7 @@ struct FOG_API CheckBox : public ButtonBase
   // [Event Handlers]
 
   // Fog::Widget Events.
-  virtual void onMouse(MouseEvent* e);
+  virtual void onClick(MouseEvent* e);
   virtual void onPaint(PaintEvent* e);
 };
 

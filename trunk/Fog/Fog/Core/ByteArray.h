@@ -13,7 +13,6 @@
 #include <Fog/Core/Atomic.h>
 #include <Fog/Core/Basics.h>
 #include <Fog/Core/Constants.h>
-#include <Fog/Core/Error.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/TypeInfo.h>
 
@@ -30,8 +29,7 @@ struct ByteArrayFilter;
 struct Locale;
 struct TextCodec;
 
-template<typename T> struct Sequence;
-template<typename T> struct Vector;
+template<typename T> struct List;
 
 // ============================================================================
 // [Fog::ByteArray]
@@ -51,31 +49,25 @@ struct FOG_API ByteArray
     //! @brief String data flags.
     enum
     {
-      //! @brief Null 'd' object.
-      //!
-      //! This is very likely object that's shared between all null objects. So
-      //! normally only one data instance can has this flag set on.
-      IsNull = (1U << 0),
-
       //! @brief String data are created on the heap.
       //!
       //! Object is created by function like @c Fog::Memory::alloc() or by
       //! @c new operator. It this flag is not set, you can't delete object from
       //! the heap and object is probabbly only temporary (short life object).
-      IsDynamic = (1U << 1),
+      IsDynamic = (1U << 0),
 
       //! @brief String data are shareable.
       //!
       //! Object can be directly referenced by internal method @c ref().
       //! Sharable data are usually created on the heap and together
       //! with this flag is set also @c IsDynamic, but it isn't prerequisite.
-      IsSharable = (1U << 2),
+      IsSharable = (1U << 1),
 
       //! @brief String data are strong to weak assignments.
       //!
       //! This flag means:
       //!   "Don't assign other data to me, instead, copy them to me!".
-      IsStrong = (1U << 3)
+      IsStrong = (1U << 2)
     };
 
     // [Ref]
@@ -160,7 +152,7 @@ struct FOG_API ByteArray
   //! @copydoc Doxygen::Implicit::isDetached().
   FOG_INLINE bool isDetached() const { return refCount() == 1; }
   //! @copydoc Doxygen::Implicit::detach().
-  FOG_INLINE err_t detach() { return isDetached() ? Error::Ok : _detach(); }
+  FOG_INLINE err_t detach() { return isDetached() ? ERR_OK : _detach(); }
 
   //! @copydoc Doxygen::Implicit::_detach().
   err_t _detach();
@@ -170,9 +162,9 @@ struct FOG_API ByteArray
   // --------------------------------------------------------------------------
 
   //! @copydoc Doxygen::Implicit::getFlags().
-  FOG_INLINE uint32_t flags() const { return _d->flags; }
+  FOG_INLINE uint32_t getFlags() const { return _d->flags; }
   //! @copydoc Doxygen::Implicit::isNull().
-  FOG_INLINE bool isNull() const { return (_d->flags & Data::IsNull) != 0; }
+  FOG_INLINE bool isNull() const { return _d == sharedNull.instancep(); }
   //! @copydoc Doxygen::Implicit::isDynamic().
   FOG_INLINE bool isDynamic() const { return (_d->flags & Data::IsDynamic) != 0; }
   //! @copydoc Doxygen::Implicit::isSharable().
@@ -206,14 +198,14 @@ struct FOG_API ByteArray
   void free();
 
   //! @brief Returns const pointer to string data.
-  FOG_INLINE const char* cData() const { return _d->data; }
+  FOG_INLINE const char* getData() const { return _d->data; }
 
   //! @brief Returns mutable pointer to string data.
-  char* mData();
+  char* getMData();
 
-  FOG_INLINE char* xData()
+  FOG_INLINE char* getXData()
   {
-    FOG_ASSERT_X(isDetached(), "Fog::ByteArray::xData() - Not detached data.");
+    FOG_ASSERT_X(isDetached(), "Fog::ByteArray::getXData() - Not detached data.");
     return _d->data;
   }
 
@@ -251,7 +243,7 @@ struct FOG_API ByteArray
   err_t set(const Str8& str);
   err_t set(const ByteArray& other);
 
-  FOG_INLINE err_t set(const char* s, sysuint_t length = DetectLength) { return set(Str8(s, length)); }
+  FOG_INLINE err_t set(const char* s, sysuint_t length = DETECT_LENGTH) { return set(Str8(s, length)); }
 
   err_t setDeep(const ByteArray& other);
 
@@ -267,7 +259,7 @@ struct FOG_API ByteArray
   err_t setInt(int64_t n, int base, const FormatFlags& ff);
   err_t setInt(uint64_t n, int base, const FormatFlags& ff);
 
-  err_t setDouble(double d, int doubleForm = DF_SignificantDigits);
+  err_t setDouble(double d, int doubleForm = DF_SIGNIFICANT_DIGITS);
   err_t setDouble(double d, int doubleForm, const FormatFlags& ff);
 
   err_t format(const char* fmt, ...);
@@ -275,7 +267,7 @@ struct FOG_API ByteArray
   err_t vformat(const char* fmt, va_list ap);
   err_t vformatc(const char* fmt, const TextCodec& tc, va_list ap);
 
-  err_t wformat(const ByteArray& fmt, char lex, const Sequence<ByteArray>& args);
+  err_t wformat(const ByteArray& fmt, char lex, const List<ByteArray>& args);
   err_t wformat(const ByteArray& fmt, char lex, const ByteArray* args, sysuint_t length);
 
   // --------------------------------------------------------------------------
@@ -286,7 +278,7 @@ struct FOG_API ByteArray
   err_t append(const Str8& other);
   err_t append(const ByteArray& other);
 
-  FOG_INLINE err_t append(const char* s, sysuint_t length = DetectLength) { return append(Str8(s, length)); }
+  FOG_INLINE err_t append(const char* s, sysuint_t length = DETECT_LENGTH) { return append(Str8(s, length)); }
 
   err_t appendBool(bool b);
   err_t appendInt(int32_t n, int base = 10);
@@ -299,7 +291,7 @@ struct FOG_API ByteArray
   err_t appendInt(int64_t n, int base, const FormatFlags& ff);
   err_t appendInt(uint64_t n, int base, const FormatFlags& ff);
 
-  err_t appendDouble(double d, int doubleForm = DF_SignificantDigits);
+  err_t appendDouble(double d, int doubleForm = DF_SIGNIFICANT_DIGITS);
   err_t appendDouble(double d, int doubleForm, const FormatFlags& ff);
 
   err_t appendFormat(const char* fmt, ...);
@@ -307,7 +299,7 @@ struct FOG_API ByteArray
   err_t appendVformat(const char* fmt, va_list ap);
   err_t appendVformatc(const char* fmt, const TextCodec& tc, va_list ap);
 
-  err_t appendWformat(const ByteArray& fmt, char lex, const Sequence<ByteArray>& args);
+  err_t appendWformat(const ByteArray& fmt, char lex, const List<ByteArray>& args);
   err_t appendWformat(const ByteArray& fmt, char lex, const ByteArray* args, sysuint_t length);
 
   // --------------------------------------------------------------------------
@@ -318,7 +310,7 @@ struct FOG_API ByteArray
   err_t prepend(const Str8& other);
   err_t prepend(const ByteArray& other);
 
-  FOG_INLINE err_t prepend(const char* s, sysuint_t length = DetectLength) { return prepend(Str8(s, length)); }
+  FOG_INLINE err_t prepend(const char* s, sysuint_t length = DETECT_LENGTH) { return prepend(Str8(s, length)); }
 
   // --------------------------------------------------------------------------
   // [Insert]
@@ -328,15 +320,15 @@ struct FOG_API ByteArray
   err_t insert(sysuint_t index, const Str8& other);
   err_t insert(sysuint_t index, const ByteArray& other);
 
-  FOG_INLINE err_t insert(sysuint_t index, const char* s, sysuint_t length = DetectLength) { return insert(index, Str8(s, length)); }
+  FOG_INLINE err_t insert(sysuint_t index, const char* s, sysuint_t length = DETECT_LENGTH) { return insert(index, Str8(s, length)); }
 
   // --------------------------------------------------------------------------
   // [Remove]
   // --------------------------------------------------------------------------
 
-  sysuint_t remove(char ch, uint cs = CaseSensitive, const Range& range = Range(0));
-  sysuint_t remove(const ByteArray& other, uint cs = CaseSensitive, const Range& range = Range(0));
-  sysuint_t remove(const ByteArrayFilter& filter, uint cs = CaseSensitive, const Range& range = Range(0));
+  sysuint_t remove(char ch, uint cs = CASE_SENSITIVE, const Range& range = Range(0));
+  sysuint_t remove(const ByteArray& other, uint cs = CASE_SENSITIVE, const Range& range = Range(0));
+  sysuint_t remove(const ByteArrayFilter& filter, uint cs = CASE_SENSITIVE, const Range& range = Range(0));
 
   sysuint_t remove(const Range& range);
   sysuint_t remove(const Range* range, sysuint_t count);
@@ -345,9 +337,9 @@ struct FOG_API ByteArray
   // [Replace]
   // --------------------------------------------------------------------------
 
-  err_t replace(char before, char after, uint cs = CaseSensitive, const Range& range = Range(0));
-  err_t replace(const ByteArray& before, const ByteArray& after, uint cs = CaseSensitive, const Range& range = Range(0));
-  err_t replace(const ByteArrayFilter& filter, const ByteArray& after, uint cs = CaseSensitive, const Range& range = Range(0));
+  err_t replace(char before, char after, uint cs = CASE_SENSITIVE, const Range& range = Range(0));
+  err_t replace(const ByteArray& before, const ByteArray& after, uint cs = CASE_SENSITIVE, const Range& range = Range(0));
+  err_t replace(const ByteArrayFilter& filter, const ByteArray& after, uint cs = CASE_SENSITIVE, const Range& range = Range(0));
 
   err_t replace(const Range& range, const ByteArray& replacement);
   err_t replace(const Range* range, sysuint_t count, const char* after, sysuint_t alen);
@@ -380,12 +372,12 @@ struct FOG_API ByteArray
   // [Split / Join]
   // --------------------------------------------------------------------------
 
-  Vector<ByteArray> split(char ch, uint splitBehavior = RemoveEmptyParts, uint cs = CaseSensitive) const;
-  Vector<ByteArray> split(const ByteArray& pattern, uint splitBehavior = RemoveEmptyParts, uint cs = CaseSensitive) const;
-  Vector<ByteArray> split(const ByteArrayFilter& filter, uint splitBehavior = RemoveEmptyParts, uint cs = CaseSensitive) const;
+  List<ByteArray> split(char ch, uint splitBehavior = SPLIT_REMOVE_EMPTY_PARTS, uint cs = CASE_SENSITIVE) const;
+  List<ByteArray> split(const ByteArray& pattern, uint splitBehavior = SPLIT_REMOVE_EMPTY_PARTS, uint cs = CASE_SENSITIVE) const;
+  List<ByteArray> split(const ByteArrayFilter& filter, uint splitBehavior = SPLIT_REMOVE_EMPTY_PARTS, uint cs = CASE_SENSITIVE) const;
 
-  static ByteArray join(const Sequence<ByteArray>& seq, const char separator);
-  static ByteArray join(const Sequence<ByteArray>& seq, const ByteArray& separator);
+  static ByteArray join(const List<ByteArray>& seq, const char separator);
+  static ByteArray join(const List<ByteArray>& seq, const ByteArray& separator);
 
   // --------------------------------------------------------------------------
   // [Substring]
@@ -438,47 +430,57 @@ struct FOG_API ByteArray
   // [Contains]
   // --------------------------------------------------------------------------
 
-  bool contains(char ch, uint cs = CaseSensitive, const Range& range = Range(0)) const;
-  bool contains(const ByteArray& pattern, uint cs = CaseSensitive, const Range& range = Range(0)) const;
-  bool contains(const ByteArrayFilter& filter, uint cs = CaseSensitive, const Range& range = Range(0)) const;
+  bool contains(char ch, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
+  bool contains(const ByteArray& pattern, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
+  bool contains(const ByteArrayFilter& filter, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
 
   // --------------------------------------------------------------------------
   // [CountOf]
   // --------------------------------------------------------------------------
 
-  sysuint_t countOf(char ch, uint cs = CaseSensitive, const Range& range = Range(0)) const;
-  sysuint_t countOf(const ByteArray& pattern, uint cs = CaseSensitive, const Range& range = Range(0)) const;
-  sysuint_t countOf(const ByteArrayFilter& filter, uint cs = CaseSensitive, const Range& range = Range(0)) const;
+  sysuint_t countOf(char ch, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
+  sysuint_t countOf(const ByteArray& pattern, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
+  sysuint_t countOf(const ByteArrayFilter& filter, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
 
   // --------------------------------------------------------------------------
   // [IndexOf / LastIndexOf]
   // --------------------------------------------------------------------------
 
-  sysuint_t indexOf(char ch, uint cs = CaseSensitive, const Range& range = Range(0)) const;
-  sysuint_t indexOf(const ByteArray& pattern, uint cs = CaseSensitive, const Range& range = Range(0)) const;
-  sysuint_t indexOf(const ByteArrayFilter& filter, uint cs = CaseSensitive, const Range& range = Range(0)) const;
+  sysuint_t indexOf(char ch, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
+  sysuint_t indexOf(const ByteArray& pattern, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
+  sysuint_t indexOf(const ByteArrayFilter& filter, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
 
-  sysuint_t lastIndexOf(char ch, uint cs = CaseSensitive, const Range& range = Range(0)) const;
-  sysuint_t lastIndexOf(const ByteArray& pattern, uint cs = CaseSensitive, const Range& range = Range(0)) const;
-  sysuint_t lastIndexOf(const ByteArrayFilter& filter, uint cs = CaseSensitive, const Range& range = Range(0)) const;
+  sysuint_t lastIndexOf(char ch, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
+  sysuint_t lastIndexOf(const ByteArray& pattern, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
+  sysuint_t lastIndexOf(const ByteArrayFilter& filter, uint cs = CASE_SENSITIVE, const Range& range = Range(0)) const;
 
   // --------------------------------------------------------------------------
   // [StartsWith / EndsWith]
   // --------------------------------------------------------------------------
 
-  bool startsWith(char ch, uint cs = CaseSensitive) const;
-  bool startsWith(const Str8& str, uint cs = CaseSensitive) const;
-  bool startsWith(const ByteArray& str, uint cs = CaseSensitive) const;
-  bool startsWith(const ByteArrayFilter& filter, uint cs = CaseSensitive) const;
+  bool startsWith(char ch, uint cs = CASE_SENSITIVE) const;
+  bool startsWith(const Str8& str, uint cs = CASE_SENSITIVE) const;
+  bool startsWith(const ByteArray& str, uint cs = CASE_SENSITIVE) const;
+  bool startsWith(const ByteArrayFilter& filter, uint cs = CASE_SENSITIVE) const;
 
-  FOG_INLINE bool startsWith(const char* str, uint cs = CaseSensitive) const { return startsWith(Str8(str), cs); }
+  FOG_INLINE bool startsWith(const char* str, uint cs = CASE_SENSITIVE) const { return startsWith(Str8(str), cs); }
 
-  bool endsWith(char ch, uint cs = CaseSensitive) const;
-  bool endsWith(const Str8& str, uint cs = CaseSensitive) const;
-  bool endsWith(const ByteArray& str, uint cs = CaseSensitive) const;
-  bool endsWith(const ByteArrayFilter& filter, uint cs = CaseSensitive) const;
+  bool endsWith(char ch, uint cs = CASE_SENSITIVE) const;
+  bool endsWith(const Str8& str, uint cs = CASE_SENSITIVE) const;
+  bool endsWith(const ByteArray& str, uint cs = CASE_SENSITIVE) const;
+  bool endsWith(const ByteArrayFilter& filter, uint cs = CASE_SENSITIVE) const;
 
-  FOG_INLINE bool endsWith(const char* str, uint cs = CaseSensitive) const { return endsWith(Str8(str), cs); }
+  FOG_INLINE bool endsWith(const char* str, uint cs = CASE_SENSITIVE) const { return endsWith(Str8(str), cs); }
+
+  // --------------------------------------------------------------------------
+  // [Hex / Base64]
+  // --------------------------------------------------------------------------
+
+  static err_t fromHex(ByteArray& dst, const ByteArray& src);
+  static err_t toHex(ByteArray& dst, const ByteArray& src, int outputCase = OUTPUT_CASE_UPPER);
+
+  static err_t fromBase64(ByteArray& dst, const ByteArray& src);
+  static err_t toBase64(ByteArray& dst, const ByteArray& src);
 
   // --------------------------------------------------------------------------
   // [Operator Overload]
@@ -494,6 +496,8 @@ struct FOG_API ByteArray
   FOG_INLINE ByteArray& operator+=(const ByteArray& other) { append(other); return *this; }
   FOG_INLINE ByteArray& operator+=(const char* str) { append(str); return *this; }
 
+  FOG_INLINE char operator[](sysuint_t index) const { return at(index); }
+
   // --------------------------------------------------------------------------
   // [Comparison]
   // --------------------------------------------------------------------------
@@ -504,15 +508,15 @@ struct FOG_API ByteArray
   static int compare(const ByteArray* a, const ByteArray* b);
   static int icompare(const ByteArray* a, const ByteArray* b);
 
-  bool eq(const Str8& other, uint cs = CaseSensitive) const;
-  bool eq(const ByteArray& other, uint cs = CaseSensitive) const;
+  bool eq(const Str8& other, uint cs = CASE_SENSITIVE) const;
+  bool eq(const ByteArray& other, uint cs = CASE_SENSITIVE) const;
 
-  FOG_INLINE bool eq(const char* other, uint cs = CaseSensitive) const { return eq(Str8(other), cs); }
+  FOG_INLINE bool eq(const char* other, uint cs = CASE_SENSITIVE) const { return eq(Str8(other), cs); }
 
-  int compare(const Str8& other, uint cs = CaseSensitive) const;
-  int compare(const ByteArray& other, uint cs = CaseSensitive) const;
+  int compare(const Str8& other, uint cs = CASE_SENSITIVE) const;
+  int compare(const ByteArray& other, uint cs = CASE_SENSITIVE) const;
 
-  FOG_INLINE int compare(const char* other, uint cs = CaseSensitive) const { return compare(Str8(other), cs); }
+  FOG_INLINE int compare(const char* other, uint cs = CASE_SENSITIVE) const { return compare(Str8(other), cs); }
 
   // --------------------------------------------------------------------------
   // [Utf8 support]
@@ -579,22 +583,22 @@ struct TemporaryByteArray : public ByteArray
   }
 
   FOG_INLINE TemporaryByteArray(const char* str) :
-    ByteArray(Data::adopt((void*)&_storage, N, str, DetectLength))
+    ByteArray(Data::adopt((void*)&_storage, N, str, DETECT_LENGTH))
   {
   }
 
   FOG_INLINE TemporaryByteArray(const ByteArray& other) :
-    ByteArray(Data::adopt((void*)&_storage, N, other.cData(), other.getLength()))
+    ByteArray(Data::adopt((void*)&_storage, N, other.getData(), other.getLength()))
   {
   }
 
   FOG_INLINE TemporaryByteArray(const TemporaryByteArray<N>& other) :
-    ByteArray(Data::adopt((void*)&_storage, N, other.cData(), other.getLength()))
+    ByteArray(Data::adopt((void*)&_storage, N, other.getData(), other.getLength()))
   {
   }
 
   // Safe shareable TemporaryByteArray creation.
-  FOG_INLINE TemporaryByteArray(_CreateSharable) :
+  FOG_INLINE TemporaryByteArray(_CREATE_SHAREABLE) :
     ByteArray(Data::adopt((void*)&_storage, N))
   {
     _d->flags |= Data::IsSharable;
@@ -684,7 +688,7 @@ static FOG_INLINE bool operator> (const char* a, const Fog::ByteArray& b) { retu
 // [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::ByteArray, Fog::MoveableType | Fog::TypeInfoHasCompare | Fog::TypeInfoHasEq)
+FOG_DECLARE_TYPEINFO(Fog::ByteArray, Fog::TYPE_INFO_MOVABLE | Fog::TYPE_INFO_HAS_COMPARE | Fog::TYPE_INFO_HAS_EQ)
 
 // [Guard]
 #endif // _FOG_CORE_BYTEARRAY_H

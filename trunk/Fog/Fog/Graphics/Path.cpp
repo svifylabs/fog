@@ -19,106 +19,22 @@
 //----------------------------------------------------------------------------
 
 // [Precompiled Headers]
-#ifdef FOG_PRECOMP
+#if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
-#endif
+#endif // FOG_PRECOMP
 
 // [Dependencies]
 #include <Fog/Core/Assert.h>
-#include <Fog/Core/Error.h>
+#include <Fog/Core/Constants.h>
 #include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Std.h>
 #include <Fog/Graphics/Matrix.h>
-#include <Fog/Graphics/Error.h>
+#include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Path.h>
-#include <Fog/Graphics/Path_p.h>
-#include <Fog/Graphics/Raster.h>
-
-// [Antigrain]
-#include "agg_basics.h"
-#include "agg_conv_dash.h"
-#include "agg_conv_stroke.h"
-#include "agg_vcgen_dash.h"
+#include <Fog/Graphics/PathUtil.h>
 
 namespace Fog {
-
-// ============================================================================
-// [AntiGrain Wrappers]
-// ============================================================================
-
-// Wraps Fog::Path to antigrain like vertex storage.
-struct FOG_HIDDEN AggPath
-{
-  FOG_INLINE AggPath(const Path& path)
-  {
-    d = path._d;
-    rewind(0);
-  }
-
-  FOG_INLINE ~AggPath()
-  {
-  }
-
-  FOG_INLINE void rewind(unsigned index)
-  {
-    vCur = d->data + index;
-    vEnd = d->data + d->length;
-  }
-
-  FOG_INLINE unsigned vertex(double* x, double* y)
-  {
-    if (vCur == vEnd) return Path::CmdStop;
-
-    *x = vCur->x;
-    *y = vCur->y;
-
-    uint command = vCur->cmd.cmd();
-    vCur++;
-    return command;
-  }
-
-private:
-  const Path::Data* d;
-  const Path::Vertex* vCur;
-  const Path::Vertex* vEnd;
-};
-
-template<typename VertexStorage>
-static err_t concatToPath(Path& dst, VertexStorage& src, unsigned path_id = 0)
-{
-  sysuint_t i, len = dst.getLength();
-  sysuint_t step = 1024;
-
-  Path::Vertex* v;
-  err_t err;
-
-  src.rewind(path_id);
-
-  for (;;)
-  {
-    if ( (err = dst.reserve(len + step)) ) return err;
-    v = dst._d->data + len;
-
-    // Concat vertexes.
-    for (i = step; i; i--, v++)
-    {
-      if ((v->cmd._cmd = src.vertex(&v->x, &v->y)) == Path::CmdStop)
-        goto done;
-    }
-
-    // If we are here it's needed to alloc more memory (really big path).
-    len += step;
-    dst._d->length = len;
-
-    // Double step until we reach 1MB.
-    if (step < 1024*1024) step <<= 1;
-  }
-
-done:
-  dst._d->length = (sysuint_t)(v - dst._d->data);
-  return Error::Ok;
-}
 
 // ============================================================================
 // [Fog::Path::Data]
@@ -155,8 +71,8 @@ Path::Data* Path::Data::copy() const
   if (!d) return NULL;
 
   d->length = length;
-  d->type = type;
-  memcpy(d->data, data, sizeof(Path::Vertex) * length);
+  d->flat = flat;
+  Memory::copy(d->data, data, sizeof(PathVertex) * length);
 
   return d;
 }
@@ -164,14 +80,14 @@ Path::Data* Path::Data::copy() const
 Path::Data* Path::Data::alloc(sysuint_t capacity)
 {
   sysuint_t dsize = 
-    sizeof(Data) - sizeof(Vertex) + capacity * sizeof(Vertex);
+    sizeof(Data) - sizeof(PathVertex) + capacity * sizeof(PathVertex);
 
   Data* d = reinterpret_cast<Data*>(Memory::alloc(dsize));
   if (!d) return NULL;
 
   d->refCount.init(1);
   d->flags = IsDynamic | IsSharable;
-  d->type = Path::LineType;
+  d->flat = true;
   d->capacity = capacity;
   d->length = 0;
 
@@ -185,7 +101,7 @@ Path::Data* Path::Data::realloc(Data* d, sysuint_t capacity)
   if (d->flags & IsDynamic)
   {
     sysuint_t dsize = 
-      sizeof(Data) - sizeof(Vertex) + capacity * sizeof(Vertex);
+      sizeof(Data) - sizeof(PathVertex) + capacity * sizeof(PathVertex);
 
     Data* newd = reinterpret_cast<Data*>(Memory::realloc((void*)d, dsize));
     if (!newd) return NULL;
@@ -198,8 +114,8 @@ Path::Data* Path::Data::realloc(Data* d, sysuint_t capacity)
     Data* newd = alloc(capacity);
 
     newd->length = d->length;
-    newd->type = d->type;
-    memcpy(newd->data, d->data, d->length * sizeof(Vertex));
+    newd->flat = d->flat;
+    Memory::copy(newd->data, d->data, d->length * sizeof(PathVertex));
     d->deref();
     return newd;
   }
@@ -209,11 +125,11 @@ Path::Data* Path::Data::realloc(Data* d, sysuint_t capacity)
 // [Fog::Path]
 // ============================================================================
 
-static FOG_INLINE Path::Cmd lastCmd(Path::Data* d)
+static FOG_INLINE PathCmd lastCmd(Path::Data* d)
 {
-  return Path::Cmd(d->length
-    ? Path::Cmd(d->data[d->length-1].cmd)
-    : Path::Cmd(Path::CmdEndPoly));
+  return PathCmd(d->length
+    ? PathCmd(d->data[d->length-1].cmd)
+    : PathCmd(PATH_CMD_END));
 }
 
 static FOG_INLINE double lastX(Path::Data* d)
@@ -228,7 +144,7 @@ static FOG_INLINE double lastY(Path::Data* d)
 
 static FOG_INLINE void relToAbsInline(Path::Data* d, double* x, double* y)
 {
-  Path::Vertex* v = d->data + d->length;
+  PathVertex* v = d->data + d->length;
 
   if (d->length && v[-1].cmd.isVertex())
   {
@@ -239,7 +155,7 @@ static FOG_INLINE void relToAbsInline(Path::Data* d, double* x, double* y)
 
 static FOG_INLINE void relToAbsInline(Path::Data* d, double* x0, double* y0, double* x1, double* y1)
 {
-  Path::Vertex* v = d->data + d->length;
+  PathVertex* v = d->data + d->length;
 
   if (d->length && v[-1].cmd.isVertex())
   {
@@ -252,7 +168,7 @@ static FOG_INLINE void relToAbsInline(Path::Data* d, double* x0, double* y0, dou
 
 static FOG_INLINE void relToAbsInline(Path::Data* d, double* x0, double* y0, double* x1, double* y1, double* x2, double* y2)
 {
-  Path::Vertex* v = d->data + d->length;
+  PathVertex* v = d->data + d->length;
 
   if (d->length && v[-1].cmd.isVertex())
   {
@@ -269,8 +185,8 @@ template<class VertexStorage>
 static err_t aggJoinPath(Path* self, VertexStorage& a)
 {
   sysuint_t i, len = a.num_vertices();
-  Path::Vertex* v = self->_add(len);
-  if (!v) return Error::OutOfMemory;
+  PathVertex* v = self->_add(len);
+  if (!v) return ERR_RT_OUT_OF_MEMORY;
 
   a.rewind(0);
   for (i = 0; i < len; i++)
@@ -278,7 +194,7 @@ static err_t aggJoinPath(Path* self, VertexStorage& a)
     v[i].cmd = a.vertex(&v[i].x, &v[i].y);
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -288,11 +204,6 @@ static err_t aggJoinPath(Path* self, VertexStorage& a)
 Path::Path()
 {
   _d = sharedNull->refAlways();
-}
-
-Path::Path(Data* d)
-{
-  _d = d;
 }
 
 Path::Path(const Path& other)
@@ -306,51 +217,44 @@ Path::~Path()
 }
 
 // ============================================================================
-// [Fog::Path - Type]
-// ============================================================================
-
-uint32_t Path::getType() const
-{
-  uint32_t t = _d->type;
-  if (t != 0) return t;
-
-  // Detection
-  const Vertex* v = _d->data;
-  sysuint_t len = _d->length;
-
-  t = LineType;
-  for (sysuint_t i = 0; i < len; i++, v++)
-  {
-    if (v->cmd.cmd() > CmdLineTo && v->cmd.cmd() < CmdMask)
-    {
-      t = CurveType;
-      break;
-    }
-  }
-
-  _d->type = t;
-  return t;
-}
-
-// ============================================================================
 // [Fog::Path - Data]
 // ============================================================================
 
 err_t Path::reserve(sysuint_t capacity)
 {
-  if (_d->refCount.get() == 1 && _d->capacity >= capacity) return Error::Ok;
+  if (_d->refCount.get() == 1 && _d->capacity >= capacity) return ERR_OK;
 
   Data* newd = Data::alloc(capacity);
-  if (!newd) return Error::OutOfMemory;
+  if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
   newd->length = _d->length;
-  memcpy(newd->data, _d->data, _d->length * sizeof(Vertex));
+  Memory::copy(newd->data, _d->data, _d->length * sizeof(PathVertex));
 
   AtomicBase::ptr_setXchg(&_d, newd)->deref();
-  return Error::Ok;
+  return ERR_OK;
 }
 
-Path::Vertex* Path::_add(sysuint_t count)
+void Path::squeeze()
+{
+  if (_d->length == _d->capacity) return;
+
+  if (_d->refCount.get() == 1)
+  {
+    Data* newd = Data::realloc(_d, _d->length);
+    if (!newd) return;
+
+    AtomicBase::ptr_setXchg(&_d, newd);
+  }
+  else
+  {
+    Data* newd = _d->copy();
+    if (!newd) return;
+
+    AtomicBase::ptr_setXchg(&_d, newd)->deref();
+  }
+}
+
+PathVertex* Path::_add(sysuint_t count)
 {
   sysuint_t length = _d->length;
   sysuint_t remain = _d->capacity - length;
@@ -363,14 +267,14 @@ Path::Vertex* Path::_add(sysuint_t count)
   else
   {
     sysuint_t optimalCapacity = 
-      Std::calcOptimalCapacity(sizeof(Data), sizeof(Vertex), length, length + count);
+      Std::calcOptimalCapacity(sizeof(Data), sizeof(PathVertex), length, length + count);
 
     Data* newd = Data::alloc(optimalCapacity);
     if (!newd) return NULL;
 
     newd->length = length + count;
-    newd->type = _d->type;
-    memcpy(newd->data, _d->data, length * sizeof(Vertex));
+    newd->flat = _d->flat;
+    Memory::copy(newd->data, _d->data, length * sizeof(PathVertex));
 
     AtomicBase::ptr_setXchg(&_d, newd)->deref();
     return newd->data + length;
@@ -379,20 +283,20 @@ Path::Vertex* Path::_add(sysuint_t count)
 
 err_t Path::_detach()
 {
-  if (isDetached()) return Error::Ok;
+  if (isDetached()) return ERR_OK;
 
   Data* newd = _d->copy();
-  if (!newd) return Error::OutOfMemory;
+  if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
   AtomicBase::ptr_setXchg(&_d, newd)->deref();
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Path::set(const Path& other)
 {
   Data* self_d = _d;
   Data* other_d = other._d;
-  if (self_d == other_d) return Error::Ok;
+  if (self_d == other_d) return ERR_OK;
 
   if ((self_d->flags & Data::IsStrong) != 0 || 
       (other_d->flags & Data::IsSharable) == 0)
@@ -402,7 +306,7 @@ err_t Path::set(const Path& other)
   else
   {
     AtomicBase::ptr_setXchg(&_d, other_d->ref())->deref();
-    return Error::Ok;
+    return ERR_OK;
   }
 }
 
@@ -411,20 +315,20 @@ err_t Path::setDeep(const Path& other)
   Data* self_d = _d;
   Data* other_d = other._d;
 
-  if (self_d == other_d) return Error::Ok;
-  if (other_d->length == 0) { clear(); return Error::Ok; }
+  if (self_d == other_d) return ERR_OK;
+  if (other_d->length == 0) { clear(); return ERR_OK; }
 
   err_t err = reserve(other_d->length);
-  if (err) { clear(); return Error::OutOfMemory; }
+  if (err) { clear(); return ERR_RT_OUT_OF_MEMORY; }
 
   self_d = _d;
   sysuint_t len = other_d->length;
 
   self_d->length = len;
-  self_d->type = other_d->type;
-  memcpy(self_d->data, other_d->data, len * sizeof(Vertex));
+  self_d->flat = other_d->flat;
+  Memory::copy(self_d->data, other_d->data, len * sizeof(PathVertex));
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 void Path::clear()
@@ -436,7 +340,7 @@ void Path::clear()
   else
   {
     _d->length = 0;
-    _d->type = LineType;
+    _d->flat = true;
   }
 }
 
@@ -452,7 +356,7 @@ void Path::free()
 RectD Path::boundingRect() const
 {
   sysuint_t i = _d->length;
-  Vertex* v = _d->data;
+  PathVertex* v = _d->data;
 
   double x1 = 0.0, y1 = 0.0;
   double x2 = 0.0, y2 = 0.0;
@@ -499,36 +403,36 @@ err_t Path::start(sysuint_t* index)
 {
   if (_d->length && !_d->data[_d->length-1].cmd.isStop())
   {
-    Vertex* v = _add(1);
-    if (!v) return Error::OutOfMemory;
+    PathVertex* v = _add(1);
+    if (!v) return ERR_RT_OUT_OF_MEMORY;
 
-    v->cmd = CmdStop;
+    v->cmd = PATH_CMD_STOP;
     v->x = 0.0;
     v->y = 0.0;
   }
 
   if (index) *index = _d->length;
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Path::endPoly(uint32_t cmdflags)
 {
   if (_d->length && _d->data[_d->length-1].cmd.isVertex())
   {
-    Vertex* v = _add(1);
-    if (!v) return Error::OutOfMemory;
+    PathVertex* v = _add(1);
+    if (!v) return ERR_RT_OUT_OF_MEMORY;
 
-    v->cmd = cmdflags | CmdEndPoly;
+    v->cmd = cmdflags | PATH_CMD_END;
     v->x = 0.0;
     v->y = 0.0;
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Path::closePolygon(uint32_t cmdflags)
 {
-  return endPoly(cmdflags | CFlagClose);
+  return endPoly(cmdflags | PATH_CFLAG_CLOSE);
 }
 
 // ============================================================================
@@ -537,14 +441,14 @@ err_t Path::closePolygon(uint32_t cmdflags)
 
 err_t Path::moveTo(double x, double y)
 {
-  Vertex* v = _add(1);
-  if (!v) return Error::OutOfMemory;
+  PathVertex* v = _add(1);
+  if (!v) return ERR_RT_OUT_OF_MEMORY;
 
-  v->cmd = CmdMoveTo;
+  v->cmd = PATH_CMD_MOVE_TO;
   v->x = x;
   v->y = y;
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Path::moveToRel(double dx, double dy)
@@ -559,14 +463,14 @@ err_t Path::moveToRel(double dx, double dy)
 
 err_t Path::lineTo(double x, double y)
 {
-  Vertex* v = _add(1);
-  if (!v) return Error::OutOfMemory;
+  PathVertex* v = _add(1);
+  if (!v) return ERR_RT_OUT_OF_MEMORY;
 
-  v->cmd = CmdLineTo;
+  v->cmd = PATH_CMD_LINE_TO;
   v->x = x;
   v->y = y;
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Path::lineToRel(double dx, double dy)
@@ -577,32 +481,32 @@ err_t Path::lineToRel(double dx, double dy)
 
 err_t Path::lineTo(const double* x, const double* y, sysuint_t count)
 {
-  Vertex* v = _add(count);
-  if (!v) return Error::OutOfMemory;
+  PathVertex* v = _add(count);
+  if (!v) return ERR_RT_OUT_OF_MEMORY;
 
   for (sysuint_t i = 0; i < count; i++)
   {
-    v[i].cmd = CmdLineTo;
+    v[i].cmd = PATH_CMD_LINE_TO;
     v[i].x = x[i];
     v[i].y = y[i];
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Path::lineTo(const PointD* pts, sysuint_t count)
 {
-  Vertex* v = _add(count);
-  if (!v) return Error::OutOfMemory;
+  PathVertex* v = _add(count);
+  if (!v) return ERR_RT_OUT_OF_MEMORY;
 
   for (sysuint_t i = 0; i < count; i++)
   {
-    v[i].cmd = CmdLineTo;
+    v[i].cmd = PATH_CMD_LINE_TO;
     v[i].x = pts[i].x;
     v[i].y = pts[i].y;
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Path::hlineTo(double x)
@@ -638,7 +542,7 @@ static void arc_to_bezier(
   double rx, double ry,
   double start,
   double sweep,
-  Path::Vertex* dst)
+  PathVertex* dst)
 {
   sweep /= 2.0;
 
@@ -663,7 +567,7 @@ static void arc_to_bezier(
 
   for (sysuint_t i = 0; i < 4; i++)
   {
-    dst[i].cmd = Path::CmdCurve4;
+    dst[i].cmd = PATH_CMD_CURVE_4;
     dst[i].x = cx + rx * (px[i] * cs - py[i] * sn);
     dst[i].y = cy + ry * (px[i] * sn + py[i] * cs);
   }
@@ -679,23 +583,23 @@ err_t Path::_arcTo(double cx, double cy, double rx, double ry, double start, dou
   // Degenerated.
   if (fabs(sweep) < 1e-10)
   {
-    Vertex* v = _add(2);
-    if (!v) return Error::OutOfMemory;
+    PathVertex* v = _add(2);
+    if (!v) return ERR_RT_OUT_OF_MEMORY;
 
     v[0].cmd = initialCommand;
     v[0].x = cx + rx * cos(start);
     v[0].y = cx + ry * sin(start);
-    v[1].cmd = CmdLineTo;
+    v[1].cmd = PATH_CMD_LINE_TO;
     v[1].x = cx + rx * cos(start + sweep);
     v[1].y = cx + ry * sin(start + sweep);
   }
   else
   {
-    Vertex* v = _add(13);
-    if (!v) return Error::OutOfMemory;
+    PathVertex* v = _add(13);
+    if (!v) return ERR_RT_OUT_OF_MEMORY;
 
-    Vertex* vstart = v;
-    Vertex* vend = v + 13;
+    PathVertex* vstart = v;
+    PathVertex* vend = v + 13;
 
     double totalSweep = 0.0;
     double localSweep = 0.0;
@@ -711,7 +615,7 @@ err_t Path::_arcTo(double cx, double cy, double rx, double ry, double start, dou
         localSweep  = -M_PI * 0.5;
         totalSweep -=  M_PI * 0.5;
 
-        if (totalSweep <= sweep + bezierArcAngleEpsilon)
+        if (totalSweep <= sweep + PathUtil::BEZIER_ARC_ANGLE_EPSILON)
         {
           localSweep = sweep - prevSweep;
           done = true;
@@ -723,7 +627,7 @@ err_t Path::_arcTo(double cx, double cy, double rx, double ry, double start, dou
         localSweep  = M_PI * 0.5;
         totalSweep += M_PI * 0.5;
 
-        if (totalSweep >= sweep - bezierArcAngleEpsilon)
+        if (totalSweep >= sweep - PathUtil::BEZIER_ARC_ANGLE_EPSILON)
         {
           localSweep = sweep - prevSweep;
           done = true;
@@ -735,25 +639,25 @@ err_t Path::_arcTo(double cx, double cy, double rx, double ry, double start, dou
       start += localSweep;
     } while (!done && v < vend);
 
-    // Setup initial command, path length and set type to CurveType.
+    // Setup initial command, path length and set flat to false.
     vstart[0].cmd = initialCommand;
     _d->length = (sysuint_t)(v - _d->data);
-    _d->type = CurveType;
+    _d->flat = false;
   }
 
   if (closePath) closePolygon();
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Path::arcTo(double cx, double cy, double rx, double ry, double start, double sweep)
 {
-  return _arcTo(cx, cy, rx, ry, start, sweep, CmdLineTo, false);
+  return _arcTo(cx, cy, rx, ry, start, sweep, PATH_CMD_LINE_TO, false);
 }
 
 err_t Path::arcToRel(double cx, double cy, double rx, double ry, double start, double sweep)
 {
   relToAbsInline(_d, &cx, &cy);
-  return _arcTo(cx, cy, rx, ry, start, sweep, CmdLineTo, false);
+  return _arcTo(cx, cy, rx, ry, start, sweep, PATH_CMD_LINE_TO, false);
 }
 
 // ============================================================================
@@ -762,18 +666,18 @@ err_t Path::arcToRel(double cx, double cy, double rx, double ry, double start, d
 
 err_t Path::curveTo(double cx, double cy, double tx, double ty)
 {
-  Vertex* v = _add(2);
-  if (!v) return Error::OutOfMemory;
+  PathVertex* v = _add(2);
+  if (!v) return ERR_RT_OUT_OF_MEMORY;
 
-  v[0].cmd = CmdCurve3;
+  v[0].cmd = PATH_CMD_CURVE_3;
   v[0].x = cx;
   v[0].y = cy;
-  v[1].cmd = CmdCurve3;
+  v[1].cmd = PATH_CMD_CURVE_3;
   v[1].x = tx;
   v[1].y = ty;
 
-  _d->type = CurveType;
-  return Error::Ok;
+  _d->flat = false;
+  return ERR_OK;
 }
 
 err_t Path::curveToRel(double cx, double cy, double tx, double ty)
@@ -784,7 +688,7 @@ err_t Path::curveToRel(double cx, double cy, double tx, double ty)
 
 err_t Path::curveTo(double tx, double ty)
 {
-  Vertex* endv = _d->data + _d->length;
+  PathVertex* endv = _d->data + _d->length;
 
   if (_d->length && endv[-1].cmd.isVertex())
   {
@@ -801,7 +705,7 @@ err_t Path::curveTo(double tx, double ty)
   }
   else
   {
-    return Error::Ok;
+    return ERR_OK;
   }
 }
 
@@ -817,21 +721,21 @@ err_t Path::curveToRel(double tx, double ty)
 
 err_t Path::cubicTo(double cx1, double cy1, double cx2, double cy2, double tx, double ty)
 {
-  Vertex* v = _add(3);
-  if (!v) return Error::OutOfMemory;
+  PathVertex* v = _add(3);
+  if (!v) return ERR_RT_OUT_OF_MEMORY;
 
-  v[0].cmd = CmdCurve4;
+  v[0].cmd = PATH_CMD_CURVE_4;
   v[0].x = cx1;
   v[0].y = cy1;
-  v[1].cmd = CmdCurve4;
+  v[1].cmd = PATH_CMD_CURVE_4;
   v[1].x = cx2;
   v[1].y = cy2;
-  v[2].cmd = CmdCurve4;
+  v[2].cmd = PATH_CMD_CURVE_4;
   v[2].x = tx;
   v[2].y = ty;
 
-  _d->type = CurveType;
-  return Error::Ok;
+  _d->flat = false;
+  return ERR_OK;
 }
 
 err_t Path::cubicToRel(double cx1, double cy1, double cx2, double cy2, double tx, double ty)
@@ -842,7 +746,7 @@ err_t Path::cubicToRel(double cx1, double cy1, double cx2, double cy2, double tx
 
 err_t Path::cubicTo(double cx2, double cy2, double tx, double ty)
 {
-  Vertex* endv = _d->data + _d->length;
+  PathVertex* endv = _d->data + _d->length;
 
   if (_d->length && endv[-1].cmd.isVertex())
   {
@@ -859,7 +763,7 @@ err_t Path::cubicTo(double cx2, double cy2, double tx, double ty)
   }
   else
   {
-    return Error::Ok;
+    return ERR_OK;
   }
 }
 
@@ -875,38 +779,38 @@ err_t Path::cubicToRel(double cx2, double cy2, double tx, double ty)
 
 err_t Path::flipX(double x1, double x2)
 {
-  if (!_d->length) return Error::Ok;
+  if (!_d->length) return ERR_OK;
 
   err_t err = detach();
   if (err) return err;
 
   sysuint_t i, len = _d->length;
-  Vertex* v = _d->data;
+  PathVertex* v = _d->data;
   
   for (i = 0; i < len; i++)
   {
     if (v[i].cmd.isVertex()) v[i].x = x2 - v[i].x + x1;
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Path::flipY(double y1, double y2)
 {
-  if (!_d->length) return Error::Ok;
+  if (!_d->length) return ERR_OK;
 
   err_t err = detach();
   if (err) return err;
 
   sysuint_t i, len = _d->length;
-  Vertex* v = _d->data;
+  PathVertex* v = _d->data;
   
   for (i = 0; i < len; i++)
   {
     if (v[i].cmd.isVertex()) v[i].y = y2 - v[i].y + y1;
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -915,13 +819,13 @@ err_t Path::flipY(double y1, double y2)
 
 err_t Path::translate(double dx, double dy)
 {
-  if (!_d->length) return Error::Ok;
+  if (!_d->length) return ERR_OK;
 
   err_t err = detach();
   if (err) return err;
   
   sysuint_t i, len = _d->length;
-  Vertex* v = _d->data;
+  PathVertex* v = _d->data;
 
   for (i = 0; i < len; i++)
   {
@@ -932,18 +836,18 @@ err_t Path::translate(double dx, double dy)
     }
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Path::translate(double dx, double dy, sysuint_t pathId)
 {
-  if (!_d->length) return Error::Ok;
+  if (!_d->length) return ERR_OK;
 
   err_t err = detach();
   if (err) return err;
 
   sysuint_t i, len = _d->length;
-  Vertex* v = _d->data;
+  PathVertex* v = _d->data;
 
   for (i = pathId; i < len; i++)
   {
@@ -955,7 +859,7 @@ err_t Path::translate(double dx, double dy, sysuint_t pathId)
     }
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -964,13 +868,13 @@ err_t Path::translate(double dx, double dy, sysuint_t pathId)
 
 err_t Path::scale(double sx, double sy, bool keepStartPos)
 {
-  if (!_d->length) return Error::Ok;
+  if (!_d->length) return ERR_OK;
 
   err_t err = detach();
   if (err) return err;
 
   sysuint_t i, len = _d->length;
-  Vertex* v = _d->data;
+  PathVertex* v = _d->data;
 
   if (keepStartPos)
   {
@@ -1007,7 +911,7 @@ err_t Path::scale(double sx, double sy, bool keepStartPos)
     }
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -1016,14 +920,24 @@ err_t Path::scale(double sx, double sy, bool keepStartPos)
 
 err_t Path::applyMatrix(const Matrix& matrix)
 {
-  if (!_d->length) return Error::Ok;
+  if (!_d->length) return ERR_OK;
 
   err_t err = detach();
   if (err) return err;
 
-  Raster::functionMap->vector.pathVertexTransform(_d->data, _d->length, &matrix);
+  PathUtil::fm.transformVertex(_d->data, _d->length, &matrix);
+  return ERR_OK;
+}
 
-  return Error::Ok;
+err_t Path::applyMatrix(const Matrix& matrix, sysuint_t index, sysuint_t length)
+{
+  if (index >= _d->length) return ERR_OK;
+
+  err_t err = detach();
+  if (err) return err;
+
+  PathUtil::fm.transformVertex(_d->data + index, Math::min(length, _d->length - index), &matrix);
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -1032,55 +946,55 @@ err_t Path::applyMatrix(const Matrix& matrix)
 
 err_t Path::addRect(const RectD& r)
 {
-  if (!r.isValid()) return Error::Ok;
+  if (!r.isValid()) return ERR_OK;
 
-  Vertex* v = _add(5);
-  if (!v) return Error::OutOfMemory;
+  PathVertex* v = _add(5);
+  if (!v) return ERR_RT_OUT_OF_MEMORY;
 
-  v[0].cmd = CmdMoveTo;
+  v[0].cmd = PATH_CMD_MOVE_TO;
   v[0].x = r.getX1();
   v[0].y = r.getY1();
-  v[1].cmd = CmdLineTo;
+  v[1].cmd = PATH_CMD_LINE_TO;
   v[1].x = r.getX2();
   v[1].y = r.getY1();
-  v[2].cmd = CmdLineTo;
+  v[2].cmd = PATH_CMD_LINE_TO;
   v[2].x = r.getX2();
   v[2].y = r.getY2();
-  v[3].cmd = CmdLineTo;
+  v[3].cmd = PATH_CMD_LINE_TO;
   v[3].x = r.getX1();
   v[3].y = r.getY2();
-  v[4].cmd = CmdEndPoly | CFlagClose;
+  v[4].cmd = PATH_CMD_END | PATH_CFLAG_CLOSE;
   v[4].x = 0.0;
   v[4].y = 0.0;
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Path::addRects(const RectD* r, sysuint_t count)
 {
-  if (!count) return Error::Ok;
+  if (!count) return ERR_OK;
   FOG_ASSERT(r);
 
-  Vertex* v = _add(count * 5);
-  if (!v) return Error::OutOfMemory;
+  PathVertex* v = _add(count * 5);
+  if (!v) return ERR_RT_OUT_OF_MEMORY;
 
   for (sysuint_t i = 0; i < count; i++, r++)
   {
     if (!r->isValid()) continue;
 
-    v[0].cmd = CmdMoveTo;
+    v[0].cmd = PATH_CMD_MOVE_TO;
     v[0].x = r->getX1();
     v[0].y = r->getY1();
-    v[1].cmd = CmdLineTo;
+    v[1].cmd = PATH_CMD_LINE_TO;
     v[1].x = r->getX2();
     v[1].y = r->getY1();
-    v[2].cmd = CmdLineTo;
+    v[2].cmd = PATH_CMD_LINE_TO;
     v[2].x = r->getX2();
     v[2].y = r->getY2();
-    v[3].cmd = CmdLineTo;
+    v[3].cmd = PATH_CMD_LINE_TO;
     v[3].x = r->getX1();
     v[3].y = r->getY2();
-    v[4].cmd = CmdEndPoly | CFlagClose;
+    v[4].cmd = PATH_CMD_END | PATH_CFLAG_CLOSE;
     v[4].x = 0.0;
     v[4].y = 0.0;
 
@@ -1089,12 +1003,12 @@ err_t Path::addRects(const RectD* r, sysuint_t count)
 
   // Return and update path length.
   _d->length = (sysuint_t)(v - _d->data);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Path::addRound(const RectD& r, const PointD& radius)
 {
-  if (!r.isValid()) return Error::Ok;
+  if (!r.isValid()) return ERR_OK;
 
   double rw2 = r.getWidth() / 2.0;
   double rh2 = r.getHeight() / 2.0;
@@ -1113,7 +1027,7 @@ err_t Path::addRound(const RectD& r, const PointD& radius)
   double x2 = r.getX2();
   double y2 = r.getY2();
 
-  err_t err = Error::Ok;
+  err_t err = ERR_OK;
 
   err |= moveTo(x1 + rx, y1);
   err |= lineTo(x2 - rx, y1);
@@ -1135,58 +1049,58 @@ err_t Path::addRound(const RectD& r, const PointD& radius)
 
 err_t Path::addEllipse(const RectD& r)
 {
-  if (!r.isValid()) return Error::Ok;
+  if (!r.isValid()) return ERR_OK;
 
   double rx = r.getWidth() / 2.0;
   double ry = r.getHeight() / 2.0;
   double cx = r.getX() + rx;
   double cy = r.getY() + ry;
 
-  return _arcTo(cx, cy, rx, ry, 0.0, 2.0 * M_PI, CmdMoveTo, true);
+  return _arcTo(cx, cy, rx, ry, 0.0, 2.0 * M_PI, PATH_CMD_MOVE_TO, true);
 }
 
 err_t Path::addEllipse(const PointD& cp, const PointD& r)
 {
-  return _arcTo(cp.getX(), cp.getY(), r.getX(), r.getY(), 0.0, 2.0 * M_PI, CmdMoveTo, true);
+  return _arcTo(cp.getX(), cp.getY(), r.getX(), r.getY(), 0.0, 2.0 * M_PI, PATH_CMD_MOVE_TO, true);
 }
 
 err_t Path::addArc(const RectD& r, double start, double sweep)
 {
-  if (!r.isValid()) return Error::Ok;
+  if (!r.isValid()) return ERR_OK;
 
   double rx = r.getWidth() / 2.0;
   double ry = r.getHeight() / 2.0;
   double cx = r.getX() + rx;
   double cy = r.getY() + ry;
 
-  return _arcTo(cx, cy, rx, ry, start, sweep, CmdMoveTo, false);
+  return _arcTo(cx, cy, rx, ry, start, sweep, PATH_CMD_MOVE_TO, false);
 }
 
 err_t Path::addArc(const PointD& cp, const PointD& r, double start, double sweep)
 {
-  return _arcTo(cp.getX(), cp.getY(), r.getX(), r.getY(), start, sweep, CmdMoveTo, false);
+  return _arcTo(cp.getX(), cp.getY(), r.getX(), r.getY(), start, sweep, PATH_CMD_MOVE_TO, false);
 }
 
 err_t Path::addChord(const RectD& r, double start, double sweep)
 {
-  if (!r.isValid()) return Error::Ok;
+  if (!r.isValid()) return ERR_OK;
 
   double rx = r.getWidth() / 2.0;
   double ry = r.getHeight() / 2.0;
   double cx = r.getX() + rx;
   double cy = r.getY() + ry;
 
-  return _arcTo(cx, cy, rx, ry, start, sweep, CmdMoveTo, true);
+  return _arcTo(cx, cy, rx, ry, start, sweep, PATH_CMD_MOVE_TO, true);
 }
 
 err_t Path::addChord(const PointD& cp, const PointD& r, double start, double sweep)
 {
-  return _arcTo(cp.getX(), cp.getY(), r.getX(), r.getY(), start, sweep, CmdMoveTo, true);
+  return _arcTo(cp.getX(), cp.getY(), r.getX(), r.getY(), start, sweep, PATH_CMD_MOVE_TO, true);
 }
 
 err_t Path::addPie(const RectD& r, double start, double sweep)
 {
-  if (!r.isValid()) return Error::Ok;
+  if (!r.isValid()) return ERR_OK;
 
   double rx = r.getWidth() / 2.0;
   double ry = r.getHeight() / 2.0;
@@ -1206,107 +1120,154 @@ err_t Path::addPie(const PointD& cp, const PointD& r, double start, double sweep
   err_t err;
 
   if ( (err = moveTo(cp.getX(), cp.getY())) ) return err;
-  if ( (err = _arcTo(cp.getX(), cp.getY(), r.getX(), r.getY(), start, sweep, CmdLineTo, true)) ) return err;
+  if ( (err = _arcTo(cp.getX(), cp.getY(), r.getX(), r.getY(), start, sweep, PATH_CMD_LINE_TO, true)) ) return err;
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Path::addPath(const Path& path)
 {
   sysuint_t count = path.getLength();
-  if (count == 0) return Error::Ok;
+  if (count == 0) return ERR_OK;
 
-  uint32_t t = Math::max(getType(), path.getType());
+  uint32_t flat = isFlat() & path.isFlat();
 
-  Vertex* v = _add(count);
-  if (!v) return Error::OutOfMemory;
+  PathVertex* dst = _add(count);
+  if (!dst) return ERR_RT_OUT_OF_MEMORY;
 
-  const Vertex* src = path.cData();
+  _d->flat = flat;
 
-  for (sysuint_t i = 0; i < count; i++, v++, src++)
+  const PathVertex* src = path.getData();
+  Memory::copy(dst, src, count * sizeof(PathVertex));
+
+  return ERR_OK;
+}
+
+err_t Path::addPath(const Path& path, const Matrix& matrix)
+{
+  if (this == &path)
   {
-    v->cmd = src->cmd;
-    v->x   = src->x;
-    v->y   = src->y;
+    Path other(path);
+    return addPath(other);
   }
-  _d->type = t;
 
-  return Error::Ok;
+  sysuint_t count = path.getLength();
+  if (count == 0) return ERR_OK;
+
+  uint32_t flat = isFlat() & path.isFlat();
+
+  PathVertex* dst = _add(count);
+  if (!dst) return ERR_RT_OUT_OF_MEMORY;
+
+  _d->flat = flat;
+
+  const PathVertex* src = path.getData();
+  PathUtil::fm.transformVertex2(dst, src, count, &matrix);
+
+  return ERR_OK;
 }
 
 // ============================================================================
 // [Fog::Path - Flatten]
 // ============================================================================
 
+bool Path::isFlat() const
+{
+  int32_t flat = _d->flat;
+  if (flat != -1) return (bool)flat;
+
+  // Detection
+  const PathVertex* v = _d->data;
+  sysuint_t len = _d->length;
+
+  flat = true;
+
+  for (sysuint_t i = 0; i < len; i++, v++)
+  {
+    if (v->cmd.cmd() > PATH_CMD_LINE_TO && v->cmd.cmd() < PATH_CMD_MASK) { flat = false; break; }
+  }
+
+  _d->flat = flat;
+  return (bool)flat;
+}
+
 err_t Path::flatten()
 {
-  return flatten(NULL, 1.0);
+  return flattenTo(*this, NULL, 1.0);
 }
 
 err_t Path::flatten(const Matrix* matrix, double approximationScale)
 {
-  if (getType() == LineType) return Error::Ok;
-  return flattenTo(*this, matrix, approximationScale);
+  return flattenTo(*this, NULL, 1.0);
 }
 
 err_t Path::flattenTo(Path& dst, const Matrix* matrix, double approximationScale) const
 {
   // --------------------------------------------------------------------------
-  // Contains only lines (already flattened)
+  // Contains only lines (flat path).
   // --------------------------------------------------------------------------
 
-  if (getType() == LineType)
+  if (isFlat())
   {
     if (this == &dst)
     {
-      if (matrix != NULL) dst.applyMatrix(*matrix);
-      return Error::Ok;
+      if (matrix != NULL)
+      {
+        return dst.applyMatrix(*matrix);
+      }
+      else
+      {
+        return ERR_OK;
+      }
     }
     else
     {
-      dst = *this;
-      if (matrix != NULL) dst.applyMatrix(*matrix);
-      return Error::Ok;
+      if (matrix != NULL)
+      {
+        dst.clear();
+        return dst.addPath(*this, *matrix);
+      }
+      else
+      {
+        return dst.set(*this);
+      }
     }
   }
 
   // --------------------------------------------------------------------------
-  // Contains curves
+  // Contains curves.
   // --------------------------------------------------------------------------
 
   // The dst argument is here mainly if we need to flatten path into different
   // one. If paths are equal, we will simply create second path and assign
   // result to first one.
-  if (this == &dst)
-  {
-    Path tmp;
-    err_t err = flattenTo(tmp, matrix, approximationScale);
-    dst = tmp;
-    return err;
-  }
+  if (this == &dst) return Path(*this).flattenTo(dst, matrix, approximationScale);
 
   dst.clear();
 
   sysuint_t n = getLength();
-  if (n == 0) return Error::Ok;
-  if (dst.reserve(n * 8)) return Error::OutOfMemory;
+  if (n == 0) return ERR_OK;
+  if (dst.reserve(n * 4)) return ERR_RT_OUT_OF_MEMORY;
 
   double lastx = 0.0;
   double lasty = 0.0;
 
-  const Vertex* v = cData();
-  Vertex* dstv;
+  const PathVertex* v = getData();
+  PathVertex* dstv;
   err_t err;
+
+  sysuint_t oldLen;
+  uint32_t oldCmd;
 
 ensureSpace:
   dstv = dst._add(n);
-  if (!dstv) return Error::OutOfMemory;
+  if (!dstv) return ERR_RT_OUT_OF_MEMORY;
 
   do {
     switch (v->cmd.cmd())
     {
-      case CmdMoveTo:
-      case CmdLineTo:
+      case PATH_CMD_MOVE_TO:
+      case PATH_CMD_LINE_TO:
         dstv->x = lastx = v->x;
         dstv->y = lasty = v->y;
         dstv->cmd = v->cmd;
@@ -1317,17 +1278,31 @@ ensureSpace:
 
         break;
 
-      case CmdCurve3:
+      case PATH_CMD_CURVE_3:
         if (n <= 1) goto invalid;
-        if (v[1].cmd.cmd() != CmdCurve3) goto invalid;
+        if (v[1].cmd.cmd() != PATH_CMD_CURVE_3) goto invalid;
 
         // Finalize path
         dst._d->length = (sysuint_t)(dstv - dst._d->data);
 
+        // If there was lineTo command, we eat it, because approximateCurve3
+        // will add it here again.
+        oldLen = INVALID_INDEX;
+        if (dst._d->length > 0)
+        {
+          oldLen = --dst._d->length;
+          const PathVertex* lastVertex = &dst._d->data[oldLen];
+
+          if (lastVertex->x == lastx && lastVertex->y == lasty)
+            oldCmd = lastVertex->cmd;
+        }
+
         // Approximate curve.
-        err = Raster::functionMap->vector.approximateCurve3(
-          dst, lastx, lasty, v[0].x, v[0].y, v[1].x, v[1].y, approximationScale, 0.0);
+        err = PathUtil::fm.approximateCurve3(dst, lastx, lasty, v[0].x, v[0].y, v[1].x, v[1].y, approximationScale, 0.0);
         if (err) return err;
+
+        // Part of fix described above.
+        if (oldLen != INVALID_INDEX) dst._d->data[oldLen].cmd = oldCmd;
 
         lastx = v[1].x;
         lasty = v[1].y;
@@ -1336,22 +1311,36 @@ ensureSpace:
         n -= 2;
 
         if (n == 0)
-          return Error::Ok;
+          return ERR_OK;
         else
           goto ensureSpace;
 
-      case CmdCurve4:
+      case PATH_CMD_CURVE_4:
         if (n <= 2) goto invalid;
-        if (v[1].cmd.cmd() != CmdCurve4 ||
-            v[2].cmd.cmd() != CmdCurve4) goto invalid;
+        if (v[1].cmd.cmd() != PATH_CMD_CURVE_4 ||
+            v[2].cmd.cmd() != PATH_CMD_CURVE_4) goto invalid;
 
         // Finalize path
         dst._d->length = (sysuint_t)(dstv - dst._d->data);
 
+        // If there was lineTo command, we eat it, because approximateCurve3
+        // will add it here again.
+        oldLen = INVALID_INDEX;
+        if (dst._d->length > 0)
+        {
+          oldLen = --dst._d->length;
+          const PathVertex* lastVertex = &dst._d->data[oldLen];
+
+          if (lastVertex->x == lastx && lastVertex->y == lasty)
+            oldCmd = lastVertex->cmd;
+        }
+
         // Approximate curve.
-        err = Raster::functionMap->vector.approximateCurve4(
-          dst, lastx, lasty, v[0].x, v[0].y, v[1].x, v[1].y, v[2].x, v[2].y, approximationScale, 0.0, 0.0);
+        err = PathUtil::fm.approximateCurve4(dst, lastx, lasty, v[0].x, v[0].y, v[1].x, v[1].y, v[2].x, v[2].y, approximationScale, 0.0, 0.0);
         if (err) return err;
+
+        // Part of fix described above.
+        if (oldLen != INVALID_INDEX) dst._d->data[oldLen].cmd = oldCmd;
 
         lastx = v[2].x;
         lasty = v[2].y;
@@ -1360,7 +1349,7 @@ ensureSpace:
         n -= 3;
 
         if (n == 0)
-          return Error::Ok;
+          return ERR_OK;
         else
           goto ensureSpace;
 
@@ -1378,1162 +1367,15 @@ ensureSpace:
   } while(n);
 
   dst._d->length = (sysuint_t)(dstv - dst._d->data);
-  dst._d->type = LineType;
+  dst._d->flat = true;
   if (matrix) dst.applyMatrix(*matrix);
-  return Error::Ok;
+  return ERR_OK;
 
 invalid:
   dst._d->length = 0;
-  dst._d->type = LineType;
-  return Error::InvalidPath;
+  dst._d->flat = true;
+  return ERR_PATH_INVALID;
 }
-
-// ============================================================================
-// [Fog::Path - Dash]
-// ============================================================================
-
-err_t Path::dash(const Vector<double>& dashes, double startOffset, double approximationScale)
-{
-  return dashTo(*this, dashes, startOffset, approximationScale);
-}
-
-err_t Path::dashTo(Path& dst, const Vector<double>& dashes, double startOffset, double approximationScale)
-{
-  if (getType() != LineType)
-  {
-    Path tmp;
-    flattenTo(tmp, NULL, approximationScale);
-    return tmp.dashTo(dst, dashes, startOffset, approximationScale);
-  }
-  else
-  {
-    AggPath src(*this);
-
-    agg::conv_dash<AggPath, agg::vcgen_dash> dasher(src);
-
-    Vector<double>::ConstIterator it(dashes);
-    for (;;)
-    {
-      double d1 = it.value(); it.toNext();
-      if (!it.isValid()) break;
-      double d2 = it.value(); it.toNext();
-      dasher.add_dash(d1, d2);
-      if (!it.isValid()) break;
-    }
-    dasher.dash_start(startOffset);
-
-    if (this == &dst)
-    {
-      Path tmp;
-      err_t err = concatToPath(tmp, dasher);
-      if (err) return err;
-      return dst.set(tmp);
-    }
-    else
-    {
-      dst.clear();
-      return concatToPath(dst, dasher);
-    }
-  }
-}
-
-// ============================================================================
-// [Fog::Path - Stroke]
-// ============================================================================
-
-// Vertex (x, y) with the distance to the next one. The last vertex has
-// distance between the last and the first points if the polygon is closed
-// and 0.0 if it's a polyline.
-struct FOG_HIDDEN PathVertexDist
-{
-  FOG_INLINE PathVertexDist() {}
-  FOG_INLINE PathVertexDist(double x_, double y_) :
-    x(x_),
-    y(y_),
-    dist(0.0)
-  {
-  }
-
-  bool operator() (const PathVertexDist& val)
-  {
-    bool ret = (dist = calcDistance(x, y, val.x, val.y)) > pathVertexDistEpsilon;
-    if (!ret) dist = 1.0 / pathVertexDistEpsilon;
-    return ret;
-  }
-
-  double x;
-  double y;
-  double dist;
-};
-
-struct FOG_HIDDEN PathStroker
-{
-  PathStroker(Path& dst, const StrokeParams& params, double approximateScale = 1.0);
-  ~PathStroker();
-
-  FOG_INLINE void add_vertex(double x, double y)
-  {
-  }
-
-  void calcCap(
-    const PathVertexDist& v0,
-    const PathVertexDist& v1,
-    double len);
-
-  void calcJoin(
-    const PathVertexDist& v0,
-    const PathVertexDist& v1,
-    const PathVertexDist& v2,
-    double len1,
-    double len2);
-
-  void calcArc(
-    double x,   double y,
-    double dx1, double dy1,
-    double dx2, double dy2);
-
-  void calcMiter(
-    const PathVertexDist& v0,
-    const PathVertexDist& v1,
-    const PathVertexDist& v2,
-    double dx1, double dy1,
-    double dx2, double dy2,
-    uint32_t lj,
-    double mlimit,
-    double dbevel);
-
-  Path& dst;
-
-  double _approximateScale;
-  double _width;
-  double _widthAbs;
-  double _widthEps;
-  double _da;
-  int _widthSign;
-  double _miterLimit;
-  double _innerMiterLimit;
-  uint32_t _lineCap;
-  uint32_t _lineJoin;
-  uint32_t _innerJoin;
-};
-
-PathStroker::PathStroker(Path& dst, const StrokeParams& params, double approximateScale) :
-  dst(dst)
-{
-  _approximateScale = approximateScale;
-  _width = params.lineWidth * 0.5;
-
-  if (_width < 0)
-  {
-    _widthAbs  = -_width;
-    _widthSign = -1;
-  }
-  else
-  {
-    _widthAbs  = _width;
-    _widthSign = 1;
-  }
-  _widthEps = _width / 1024.0;
-
-  _da = acos(_widthAbs / (_widthAbs + 0.125 / _approximateScale)) * 2;
-
-  // TODO: Add inner join and inner miter limit to painter and to StrokeParams.
-  _miterLimit = params.miterLimit; // TODO: Default is 4, add this to painter
-  _innerMiterLimit = 1.01;
-  _lineCap = params.lineCap;
-  _lineJoin = params.lineJoin;
-  _innerJoin = InnerJoinMiter;
-}
-
-PathStroker::~PathStroker()
-{
-}
-
-void PathStroker::calcArc(
-  double x,   double y,
-  double dx1, double dy1,
-  double dx2, double dy2)
-{
-  double a1 = atan2(dy1 * _widthSign, dx1 * _widthSign);
-  double a2 = atan2(dy2 * _widthSign, dx2 * _widthSign);
-  double da = _da;
-  int i, n;
-
-  add_vertex(x + dx1, y + dy1);
-  if (_widthSign > 0)
-  {
-    if (a1 > a2) a2 += 2.0 * M_PI;
-    n = int((a2 - a1) / da);
-    da = (a2 - a1) / (n + 1);
-    a1 += da;
-
-    for (i = 0; i < n; i++)
-    {
-      add_vertex(x + cos(a1) * _width, y + sin(a1) * _width);
-      a1 += da;
-    }
-  }
-  else
-  {
-    if (a1 < a2) a2 -= 2.0 * M_PI;
-    n = int((a1 - a2) / da);
-    da = (a1 - a2) / (n + 1);
-    a1 -= da;
-
-    for (i = 0; i < n; i++)
-    {
-      add_vertex(x + cos(a1) * _width, y + sin(a1) * _width);
-      a1 -= da;
-    }
-  }
-  add_vertex(x + dx2, y + dy2);
-}
-
-//-----------------------------------------------------------------------
-void PathStroker::calcMiter(
-  const PathVertexDist& v0,
-  const PathVertexDist& v1,
-  const PathVertexDist& v2,
-  double dx1, double dy1,
-  double dx2, double dy2,
-  uint32_t lj,
-  double mlimit,
-  double dbevel)
-{
-  double xi  = v1.x;
-  double yi  = v1.y;
-  double di  = 1;
-  double lim = _widthAbs * mlimit;
-  bool miter_limit_exceeded = true; // Assume the worst
-  bool intersection_failed  = true; // Assume the worst
-
-  if (calcIntersection(v0.x + dx1, v0.y - dy1,
-                       v1.x + dx1, v1.y - dy1,
-                       v1.x + dx2, v1.y - dy2,
-                       v2.x + dx2, v2.y - dy2,
-                       &xi, &yi))
-  {
-    // Calculation of the intersection succeeded
-    //---------------------
-    di = calcDistance(v1.x, v1.y, xi, yi);
-    if (di <= lim)
-    {
-      // Inside the miter limit
-      //---------------------
-      add_vertex(xi, yi);
-      miter_limit_exceeded = false;
-    }
-    intersection_failed = false;
-  }
-  else
-  {
-    // Calculation of the intersection failed, most probably
-    // the three points lie one straight line.
-    // First check if v0 and v2 lie on the opposite sides of vector:
-    // (v1.x, v1.y) -> (v1.x+dx1, v1.y-dy1), that is, the perpendicular
-    // to the line determined by vertices v0 and v1.
-    // This condition determines whether the next line segments continues
-    // the previous one or goes back.
-    //----------------
-    double x2 = v1.x + dx1;
-    double y2 = v1.y - dy1;
-    if ((crossProduct(v0.x, v0.y, v1.x, v1.y, x2, y2) < 0.0) ==
-        (crossProduct(v1.x, v1.y, v2.x, v2.y, x2, y2) < 0.0))
-    {
-      // This case means that the next segment continues
-      // the previous one (straight line)
-      //-----------------
-      add_vertex(v1.x + dx1, v1.y - dy1);
-      miter_limit_exceeded = false;
-    }
-  }
-
-  if (miter_limit_exceeded)
-  {
-    // Miter limit exceeded.
-    switch(lj)
-    {
-      case LineJoinMiterRevert:
-        // For the compatibility with SVG, PDF, etc, we use a simple bevel 
-        // join instead of "smart" bevel.
-        add_vertex(v1.x + dx1, v1.y - dy1);
-        add_vertex(v1.x + dx2, v1.y - dy2);
-        break;
-
-      case LineJoinMiterRound:
-        calcArc(v1.x, v1.y, dx1, -dy1, dx2, -dy2);
-        break;
-
-      default:
-        // If no miter-revert, calculate new dx1, dy1, dx2, dy2.
-        if (intersection_failed)
-        {
-          mlimit *= _widthSign;
-          add_vertex(v1.x + dx1 + dy1 * mlimit, v1.y - dy1 + dx1 * mlimit);
-          add_vertex(v1.x + dx2 - dy2 * mlimit, v1.y - dy2 - dx2 * mlimit);
-        }
-        else
-        {
-          double x1 = v1.x + dx1;
-          double y1 = v1.y - dy1;
-          double x2 = v1.x + dx2;
-          double y2 = v1.y - dy2;
-          di = (lim - dbevel) / (di - dbevel);
-          add_vertex(x1 + (xi - x1) * di, y1 + (yi - y1) * di);
-          add_vertex(x2 + (xi - x2) * di, y2 + (yi - y2) * di);
-        }
-        break;
-    }
-  }
-}
-
-void PathStroker::calcCap(
-  const PathVertexDist& v0,
-  const PathVertexDist& v1,
-  double len)
-{
-  // TODO
-  //vc.remove_all();
-  double ilen = 1.0 / len;
-
-  double dx1 = (v1.y - v0.y) * ilen;
-  double dy1 = (v1.x - v0.x) * ilen;
-  double dx2 = 0;
-  double dy2 = 0;
-
-  dx1 *= _width;
-  dy1 *= _width;
-
-  if (_lineCap != LineCapRound)
-  {
-    if (_lineCap == LineCapSquare)
-    {
-      dx2 = dy1 * _widthSign;
-      dy2 = dx1 * _widthSign;
-    }
-    add_vertex(v0.x - dx1 - dx2, v0.y + dy1 - dy2);
-    add_vertex(v0.x + dx1 - dx2, v0.y - dy1 - dy2);
-  }
-  else
-  {
-    int i;
-    int n = int(M_PI / _da);
-    double da = M_PI / (n + 1);
-    double a1;
-
-    add_vertex(v0.x - dx1, v0.y + dy1);
-
-    if (_widthSign > 0)
-    {
-      a1 = atan2(dy1, -dx1);
-      a1 += da;
-      for (i = 0; i < n; i++)
-      {
-        add_vertex(v0.x + cos(a1) * _width, v0.y + sin(a1) * _width);
-        a1 += da;
-      }
-    }
-    else
-    {
-      a1 = atan2(-dy1, dx1);
-      a1 -= da;
-      for (i = 0; i < n; i++)
-      {
-        add_vertex(v0.x + cos(a1) * _width, v0.y + sin(a1) * _width);
-        a1 -= da;
-      }
-    }
-    add_vertex(v0.x + dx1, v0.y - dy1);
-  }
-}
-
-void PathStroker::calcJoin(
-  const PathVertexDist& v0,
-  const PathVertexDist& v1,
-  const PathVertexDist& v2,
-  double len1,
-  double len2)
-{
-  double wilen1 = (_width / len1);
-  double wilen2 = (_width / len2);
-
-  double dx1 = (v1.y - v0.y) * wilen1;
-  double dy1 = (v1.x - v0.x) * wilen1;
-  double dx2 = (v2.y - v1.y) * wilen2;
-  double dy2 = (v2.x - v1.x) * wilen2;
-
-  // TODO:
-  //vc.remove_all();
-
-  double cp = crossProduct(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y);
-
-  if (cp != 0 && (cp > 0) == (_width > 0))
-  {
-    // Inner join
-    //---------------
-    double limit = ((len1 < len2) ? len1 : len2) / _widthAbs;
-    if (limit < _innerMiterLimit) limit = _innerMiterLimit;
-
-    switch (_innerJoin)
-    {
-      case InnerJoinBevel:
-        add_vertex(v1.x + dx1, v1.y - dy1);
-        add_vertex(v1.x + dx2, v1.y - dy2);
-        break;
-
-      case InnerJoinMiter:
-        calcMiter(v0, v1, v2, dx1, dy1, dx2, dy2, LineJoinMiterRevert, limit, 0);
-        break;
-
-      case InnerJoinJag:
-      case InnerJoinRound:
-        cp = (dx1-dx2) * (dx1-dx2) + (dy1-dy2) * (dy1-dy2);
-        if (cp < len1 * len1 && cp < len2 * len2)
-        {
-          calcMiter(v0, v1, v2, dx1, dy1, dx2, dy2, LineJoinMiterRevert, limit, 0);
-        }
-        else
-        {
-          if (_innerJoin == InnerJoinJag)
-          {
-            add_vertex(v1.x + dx1, v1.y - dy1);
-            add_vertex(v1.x,       v1.y      );
-            add_vertex(v1.x + dx2, v1.y - dy2);
-          }
-          else
-          {
-            add_vertex(v1.x + dx1, v1.y - dy1);
-            add_vertex(v1.x,       v1.y      );
-            calcArc(v1.x, v1.y, dx2, -dy2, dx1, -dy1);
-            add_vertex(v1.x,       v1.y      );
-            add_vertex(v1.x + dx2, v1.y - dy2);
-          }
-        }
-        break;
-
-      default:
-        FOG_ASSERT_NOT_REACHED();
-    }
-  }
-  else
-  {
-    // Outer join
-    //---------------
-
-    // Calculate the distance between v1 and
-    // the central point of the bevel line segment
-    //---------------
-    double dx = (dx1 + dx2) / 2;
-    double dy = (dy1 + dy2) / 2;
-    double dbevel = sqrt(dx * dx + dy * dy);
-
-    if (_lineJoin == LineJoinRound || _lineJoin == LineJoinBevel)
-    {
-      // This is an optimization that reduces the number of points
-      // in cases of almost collinear segments. If there's no
-      // visible difference between bevel and miter joins we'd rather
-      // use miter join because it adds only one point instead of two.
-      //
-      // Here we calculate the middle point between the bevel points
-      // and then, the distance between v1 and this middle point.
-      // At outer joins this distance always less than stroke width,
-      // because it's actually the height of an isosceles triangle of
-      // v1 and its two bevel points. If the difference between this
-      // width and this value is small (no visible bevel) we can
-      // add just one point.
-      //
-      // The constant in the expression makes the result approximately
-      // the same as in round joins and caps. You can safely comment
-      // out this entire "if".
-      //-------------------
-      if (_approximateScale * (_widthAbs - dbevel) < _widthEps)
-      {
-        if (calcIntersection(v0.x + dx1, v0.y - dy1,
-                             v1.x + dx1, v1.y - dy1,
-                             v1.x + dx2, v1.y - dy2,
-                             v2.x + dx2, v2.y - dy2,
-                             &dx, &dy))
-        {
-          add_vertex(dx, dy);
-        }
-        else
-        {
-          add_vertex(v1.x + dx1, v1.y - dy1);
-        }
-        return;
-      }
-    }
-
-    switch (_lineJoin)
-    {
-      case LineJoinMiter:
-      case LineJoinMiterRevert:
-      case LineJoinMiterRound:
-        calcMiter(v0, v1, v2, dx1, dy1, dx2, dy2, _lineJoin, _miterLimit, dbevel);
-        break;
-
-      case LineJoinRound:
-        calcArc(v1.x, v1.y, dx1, -dy1, dx2, -dy2);
-        break;
-
-      case LineJoinBevel:
-        add_vertex(v1.x + dx1, v1.y - dy1);
-        add_vertex(v1.x + dx2, v1.y - dy2);
-        break;
-
-      default:
-        FOG_ASSERT_NOT_REACHED();
-    }
-  }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#if 0
-
-namespace agg
-{
-
-    //------------------------------------------------------------------------
-    vcgen_stroke::vcgen_stroke() :
-        m_stroker(),
-        m_src_vertices(),
-        m_out_vertices(),
-        m_shorten(0.0),
-        m_closed(0),
-        m_status(initial),
-        m_src_vertex(0),
-        m_out_vertex(0)
-    {
-    }
-
-    //------------------------------------------------------------------------
-    void vcgen_stroke::remove_all()
-    {
-        m_src_vertices.remove_all();
-        m_closed = 0;
-        m_status = initial;
-    }
-
-    //------------------------------------------------------------------------
-    void vcgen_stroke::add_vertex(double x, double y, unsigned cmd)
-    {
-        m_status = initial;
-        if (is_move_to(cmd))
-        {
-            m_src_vertices.modify_last(PathVertexDist(x, y));
-        }
-        else
-        {
-            if (is_vertex(cmd))
-            {
-                m_src_vertices.add(PathVertexDist(x, y));
-            }
-            else
-            {
-                m_closed = get_close_flag(cmd);
-            }
-        }
-    }
-
-    //------------------------------------------------------------------------
-    void vcgen_stroke::rewind(unsigned)
-    {
-        if (m_status == initial)
-        {
-            m_src_vertices.close(m_closed != 0);
-            shorten_path(m_src_vertices, m_shorten, m_closed);
-            if (m_src_vertices.size() < 3) m_closed = 0;
-        }
-        m_status = ready;
-        m_src_vertex = 0;
-        m_out_vertex = 0;
-    }
-
-
-    //------------------------------------------------------------------------
-    unsigned vcgen_stroke::vertex(double* x, double* y)
-    {
-        unsigned cmd = path_cmd_line_to;
-        while(!is_stop(cmd))
-        {
-            switch(m_status)
-            {
-            case initial:
-                rewind(0);
-
-            case ready:
-                if (m_src_vertices.size() < 2 + unsigned(m_closed != 0))
-                {
-                    cmd = path_cmd_stop;
-                    break;
-                }
-                m_status = m_closed ? outline1 : cap1;
-                cmd = path_cmd_move_to;
-                m_src_vertex = 0;
-                m_out_vertex = 0;
-                break;
-
-            case cap1:
-                m_stroker.calcCap(m_out_vertices,
-                                  m_src_vertices[0],
-                                  m_src_vertices[1],
-                                  m_src_vertices[0].dist);
-                m_src_vertex = 1;
-                m_prev_status = outline1;
-                m_status = out_vertices;
-                m_out_vertex = 0;
-                break;
-
-            case cap2:
-                m_stroker.calcCap(m_out_vertices,
-                                  m_src_vertices[m_src_vertices.size() - 1],
-                                  m_src_vertices[m_src_vertices.size() - 2],
-                                  m_src_vertices[m_src_vertices.size() - 2].dist);
-                m_prev_status = outline2;
-                m_status = out_vertices;
-                m_out_vertex = 0;
-                break;
-
-            case outline1:
-                if (m_closed)
-                {
-                    if (m_src_vertex >= m_src_vertices.size())
-                    {
-                        m_prev_status = close_first;
-                        m_status = end_poly1;
-                        break;
-                    }
-                }
-                else
-                {
-                    if (m_src_vertex >= m_src_vertices.size() - 1)
-                    {
-                        m_status = cap2;
-                        break;
-                    }
-                }
-                m_stroker.calcJoin(m_out_vertices,
-                                   m_src_vertices.prev(m_src_vertex),
-                                   m_src_vertices.curr(m_src_vertex),
-                                   m_src_vertices.next(m_src_vertex),
-                                   m_src_vertices.prev(m_src_vertex).dist,
-                                   m_src_vertices.curr(m_src_vertex).dist);
-                ++m_src_vertex;
-                m_prev_status = m_status;
-                m_status = out_vertices;
-                m_out_vertex = 0;
-                break;
-
-            case close_first:
-                m_status = outline2;
-                cmd = path_cmd_move_to;
-
-            case outline2:
-                if (m_src_vertex <= unsigned(m_closed == 0))
-                {
-                    m_status = end_poly2;
-                    m_prev_status = stop;
-                    break;
-                }
-
-                --m_src_vertex;
-                m_stroker.calcJoin(m_out_vertices,
-                                   m_src_vertices.next(m_src_vertex),
-                                   m_src_vertices.curr(m_src_vertex),
-                                   m_src_vertices.prev(m_src_vertex),
-                                   m_src_vertices.curr(m_src_vertex).dist,
-                                   m_src_vertices.prev(m_src_vertex).dist);
-
-                m_prev_status = m_status;
-                m_status = out_vertices;
-                m_out_vertex = 0;
-                break;
-
-            case out_vertices:
-                if (m_out_vertex >= m_out_vertices.size())
-                {
-                    m_status = m_prev_status;
-                }
-                else
-                {
-                    const point_d& c = m_out_vertices[m_out_vertex++];
-                    *x = c.x;
-                    *y = c.y;
-                    return cmd;
-                }
-                break;
-
-            case end_poly1:
-                m_status = m_prev_status;
-                return path_cmd_end_poly | path_flags_close | path_flags_ccw;
-
-            case end_poly2:
-                m_status = m_prev_status;
-                return path_cmd_end_poly | path_flags_close | path_flags_cw;
-
-            case stop:
-                cmd = path_cmd_stop;
-                break;
-            }
-        }
-        return cmd;
-    }
-}
-#endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#if 0
-
-namespace agg
-{
-
-    //============================================================vcgen_stroke
-    //
-    // See Implementation agg_vcgen_stroke.cpp
-    // Stroke generator
-    //
-    //------------------------------------------------------------------------
-    class vcgen_stroke
-    {
-        enum status_e
-        {
-            initial,
-            ready,
-            cap1,
-            cap2,
-            outline1,
-            close_first,
-            outline2,
-            out_vertices,
-            end_poly1,
-            end_poly2,
-            stop
-        };
-
-    public:
-        typedef vertex_sequence<PathVertexDist, 6> vertex_storage;
-        typedef pod_bvector<point_d, 6>         coord_storage;
-
-        vcgen_stroke();
-
-        void line_cap(line_cap_e lc)     { m_stroker.line_cap(lc); }
-        void line_join(line_join_e lj)   { m_stroker.line_join(lj); }
-        void inner_join(inner_join_e ij) { m_stroker.inner_join(ij); }
-
-        line_cap_e   line_cap()   const { return m_stroker.line_cap(); }
-        line_join_e  line_join()  const { return m_stroker.line_join(); }
-        inner_join_e inner_join() const { return m_stroker.inner_join(); }
-
-        void width(double w) { m_stroker.width(w); }
-        void miter_limit(double ml) { m_stroker.miter_limit(ml); }
-        void miter_limit_theta(double t) { m_stroker.miter_limit_theta(t); }
-        void inner_miter_limit(double ml) { m_stroker.inner_miter_limit(ml); }
-        void approximation_scale(double as) { m_stroker.approximation_scale(as); }
-
-        double width() const { return m_stroker.width(); }
-        double miter_limit() const { return m_stroker.miter_limit(); }
-        double inner_miter_limit() const { return m_stroker.inner_miter_limit(); }
-        double approximation_scale() const { return m_stroker.approximation_scale(); }
-
-        void shorten(double s) { m_shorten = s; }
-        double shorten() const { return m_shorten; }
-
-        // Vertex Generator Interface
-        void remove_all();
-        void add_vertex(double x, double y, unsigned cmd);
-
-        // Vertex Source Interface
-        void     rewind(unsigned path_id);
-        unsigned vertex(double* x, double* y);
-
-    private:
-        vcgen_stroke(const vcgen_stroke&);
-        const vcgen_stroke& operator = (const vcgen_stroke&);
-
-        math_stroke<coord_storage> m_stroker;
-        vertex_storage             m_src_vertices;
-        coord_storage              m_out_vertices;
-        double                     m_shorten;
-        unsigned                   m_closed;
-        status_e                   m_status;
-        status_e                   m_prev_status;
-        unsigned                   m_src_vertex;
-        unsigned                   m_out_vertex;
-    };
-}
-#endif
-
-
-
-
-
-
-
-
-
-
-#if 0
-
-namespace agg
-{
-
-    //===========================================================shorten_path
-    template<class VertexSequence>
-    void shorten_path(VertexSequence& vs, double s, unsigned closed = 0)
-    {
-        typedef typename VertexSequence::value_type vertex_type;
-
-        if (s > 0.0 && vs.size() > 1)
-        {
-            double d;
-            int n = int(vs.size() - 2);
-            while(n)
-            {
-                d = vs[n].dist;
-                if (d > s) break;
-                vs.remove_last();
-                s -= d;
-                --n;
-            }
-            if (vs.size() < 2)
-            {
-                vs.remove_all();
-            }
-            else
-            {
-                n = vs.size() - 1;
-                vertex_type& prev = vs[n-1];
-                vertex_type& last = vs[n];
-                d = (prev.dist - s) / prev.dist;
-                double x = prev.x + (last.x - prev.x) * d;
-                double y = prev.y + (last.y - prev.y) * d;
-                last.x = x;
-                last.y = y;
-                if (!prev(last)) vs.remove_last();
-                vs.close(closed != 0);
-            }
-        }
-    }
-
-
-}
-
-#endif
-
-
-
-
-
-
-#if 0
-
-#include "agg_basics.h"
-#include "agg_vcgen_stroke.h"
-#include "agg_conv_adaptor_vcgen.h"
-
-namespace agg
-{
-
-    //-------------------------------------------------------------conv_stroke
-    template<class VertexSource, class Markers=null_markers>
-    struct conv_stroke :
-    public conv_adaptor_vcgen<VertexSource, vcgen_stroke, Markers>
-    {
-        typedef Markers marker_type;
-        typedef conv_adaptor_vcgen<VertexSource, vcgen_stroke, Markers> base_type;
-
-        conv_stroke(VertexSource& vs) :
-            conv_adaptor_vcgen<VertexSource, vcgen_stroke, Markers>(vs)
-        {
-        }
-
-        void line_cap(line_cap_e lc)     { base_type::generator().line_cap(lc);  }
-        void line_join(line_join_e lj)   { base_type::generator().line_join(lj); }
-        void inner_join(inner_join_e ij) { base_type::generator().inner_join(ij); }
-
-        line_cap_e   line_cap()   const { return base_type::generator().line_cap();  }
-        line_join_e  line_join()  const { return base_type::generator().line_join(); }
-        inner_join_e inner_join() const { return base_type::generator().inner_join(); }
-
-        void width(double w) { base_type::generator().width(w); }
-        void miter_limit(double ml) { base_type::generator().miter_limit(ml); }
-        void miter_limit_theta(double t) { base_type::generator().miter_limit_theta(t); }
-        void inner_miter_limit(double ml) { base_type::generator().inner_miter_limit(ml); }
-        void approximation_scale(double as) { base_type::generator().approximation_scale(as); }
-
-        double width() const { return base_type::generator().width(); }
-        double miter_limit() const { return base_type::generator().miter_limit(); }
-        double inner_miter_limit() const { return base_type::generator().inner_miter_limit(); }
-        double approximation_scale() const { return base_type::generator().approximation_scale(); }
-
-        void shorten(double s) { base_type::generator().shorten(s); }
-        double shorten() const { return base_type::generator().shorten(); }
-
-    private:
-       conv_stroke(const conv_stroke<VertexSource, Markers>&);
-       const conv_stroke<VertexSource, Markers>&
-           operator = (const conv_stroke<VertexSource, Markers>&);
-
-    };
-
-}
-
-#endif
-
-
-
-#if 0
-err_t Path::strokeTo(Path& dst, const StrokeParams& strokeParams, double approximationScale) const
-{
-  if (type() != LineType)
-  {
-    Path tmp;
-    flattenTo(tmp, NULL, approximationScale);
-    return tmp.strokeTo(dst, strokeParams, approximationScale);
-  }
-  else
-  {
-    if (this == &dst)
-    {
-      Path tmp;
-      err_t err = dst.strokeTo(tmp, strokeParams, approximationScale);
-      dst = tmp;
-      return err;
-    }
-
-    dst.clear();
-
-    for (;;)
-    {
-      unsigned cmd = path_cmd_line_to;
-
-      while (!is_stop(cmd))
-      {
-        switch(m_status)
-        {
-          case initial:
-            rewind(0);
-
-          case ready:
-            if (m_src_vertices.size() < 2 + unsigned(m_closed != 0))
-            {
-              cmd = path_cmd_stop;
-              break;
-            }
-            m_status = m_closed ? outline1 : cap1;
-            cmd = path_cmd_move_to;
-            m_src_vertex = 0;
-            m_out_vertex = 0;
-            break;
-
-          case cap1:
-            m_stroker.calcCap(m_out_vertices,
-                              m_src_vertices[0],
-                              m_src_vertices[1],
-                              m_src_vertices[0].dist);
-            m_src_vertex = 1;
-            m_prev_status = outline1;
-            m_status = out_vertices;
-            m_out_vertex = 0;
-            break;
-
-          case cap2:
-            m_stroker.calcCap(m_out_vertices,
-                              m_src_vertices[m_src_vertices.size() - 1],
-                              m_src_vertices[m_src_vertices.size() - 2],
-                              m_src_vertices[m_src_vertices.size() - 2].dist);
-            m_prev_status = outline2;
-            m_status = out_vertices;
-            m_out_vertex = 0;
-            break;
-
-          case outline1:
-            if (m_closed)
-            {
-              if (m_src_vertex >= m_src_vertices.size())
-              {
-                m_prev_status = close_first;
-                m_status = end_poly1;
-                break;
-              }
-            }
-            else
-            {
-              if (m_src_vertex >= m_src_vertices.size() - 1)
-              {
-                m_status = cap2;
-                break;
-              }
-            }
-            m_stroker.calcJoin(m_out_vertices,
-                               m_src_vertices.prev(m_src_vertex),
-                               m_src_vertices.curr(m_src_vertex),
-                               m_src_vertices.next(m_src_vertex),
-                               m_src_vertices.prev(m_src_vertex).dist,
-                               m_src_vertices.curr(m_src_vertex).dist);
-            ++m_src_vertex;
-            m_prev_status = m_status;
-            m_status = out_vertices;
-            m_out_vertex = 0;
-            break;
-
-          case close_first:
-            m_status = outline2;
-            cmd = path_cmd_move_to;
-
-          case outline2:
-            if (m_src_vertex <= unsigned(m_closed == 0))
-            {
-              m_status = end_poly2;
-              m_prev_status = stop;
-              break;
-            }
-
-            --m_src_vertex;
-            m_stroker.calcJoin(m_out_vertices,
-                               m_src_vertices.next(m_src_vertex),
-                               m_src_vertices.curr(m_src_vertex),
-                               m_src_vertices.prev(m_src_vertex),
-                               m_src_vertices.curr(m_src_vertex).dist,
-                               m_src_vertices.prev(m_src_vertex).dist);
-
-            m_prev_status = m_status;
-            m_status = out_vertices;
-            m_out_vertex = 0;
-            break;
-
-          case out_vertices:
-            if (m_out_vertex >= m_out_vertices.size())
-            {
-              m_status = m_prev_status;
-            }
-            else
-            {
-              const point_d& c = m_out_vertices[m_out_vertex++];
-              *x = c.x;
-              *y = c.y;
-              return cmd;
-            }
-            break;
-
-          case end_poly1:
-            m_status = m_prev_status;
-            return path_cmd_end_poly | path_flags_close | path_flags_ccw;
-
-          case end_poly2:
-            m_status = m_prev_status;
-            return path_cmd_end_poly | path_flags_close | path_flags_cw;
-
-          case stop:
-            cmd = path_cmd_stop;
-            break;
-        }
-      }
-command:
-      return cmd;
-    }
-  }
-}
-#endif
-
-
-
-
-
-
-
-
-
-
-err_t Path::stroke(const StrokeParams& strokeParams, double approximationScale)
-{
-  return strokeTo(*this, strokeParams);
-}
-
-#if 1
-err_t Path::strokeTo(Path& dst, const StrokeParams& strokeParams, double approximationScale) const
-{
-  if (getType() != LineType)
-  {
-    Path tmp;
-    flattenTo(tmp, NULL, approximationScale);
-    return tmp.strokeTo(dst, strokeParams, approximationScale);
-  }
-  else
-  {
-    AggPath src(*this);
-
-    agg::conv_stroke<AggPath> stroker(src);
-    stroker.width(strokeParams.lineWidth);
-    stroker.miter_limit(strokeParams.miterLimit);
-    stroker.line_join(static_cast<agg::line_join_e>(strokeParams.lineJoin));
-    stroker.line_cap(static_cast<agg::line_cap_e>(strokeParams.lineCap));
-    stroker.approximation_scale(approximationScale);
-
-    if (this == &dst)
-    {
-      Path tmp;
-      err_t err = concatToPath(tmp, stroker);
-      if (err) return err;
-      return dst.set(tmp);
-    }
-    else
-    {
-      dst.clear();
-      return concatToPath(dst, stroker);
-    }
-  }
-}
-#endif
 
 // ============================================================================
 // [Fog::Path - Operator Overload]
@@ -2558,16 +1400,16 @@ FOG_INIT_DECLARE err_t fog_path_init(void)
   Path::Data* d = Path::sharedNull.instancep();
 
   d->refCount.init(1);
-  d->flags |= Path::Data::IsNull | Path::Data::IsSharable;
-  d->type = Path::LineType;
+  d->flags |= Path::Data::IsSharable;
+  d->flat = true;
   d->capacity = 0;
   d->length = 0;
 
-  d->data[0].cmd._cmd = Path::CmdStop;
+  d->data[0].cmd._cmd = PATH_CMD_STOP;
   d->data[0].x = 0.0;
   d->data[0].y = 0.0;
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 FOG_INIT_DECLARE void fog_path_shutdown(void)

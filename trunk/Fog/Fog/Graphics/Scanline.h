@@ -34,7 +34,7 @@ struct FOG_API Scanline32
     uint8_t* covers;
   };
 
-  enum { CoordInit = 0x7FFFFFF0 };
+  enum { COORD_INIT = 0x7FFFFFF0 };
 
   Scanline32();
   ~Scanline32();

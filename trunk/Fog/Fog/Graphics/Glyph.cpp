@@ -4,9 +4,9 @@
 // MIT, See COPYING file in package
 
 // [Precompiled Headers]
-#ifdef FOG_PRECOMP
+#if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
-#endif
+#endif // FOG_PRECOMP
 
 // [Dependencies]
 #include <Fog/Graphics/Glyph.h>
@@ -26,8 +26,6 @@ Static<Glyph::Data> Glyph::sharedNull;
 Glyph::Data::Data() :
   bitmapX(0),
   bitmapY(0),
-  pathScaleX(0.0),
-  pathScaleY(0.0),
   beginWidth(0),
   endWidth(0),
   advance(0)
@@ -50,7 +48,7 @@ FOG_INIT_DECLARE err_t fog_glyph_init(void)
   using namespace Fog;
 
   Glyph::sharedNull.init();
-  return Error::Ok;
+  return ERR_OK;
 }
 
 FOG_INIT_DECLARE void fog_glyph_shutdown(void)

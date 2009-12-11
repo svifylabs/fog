@@ -3,9 +3,15 @@
 // [Licence]
 // MIT, See COPYING file in package
 
+// [Precompiled Headers]
+#if defined(FOG_PRECOMP)
+#include FOG_PRECOMP
+#endif // FOG_PRECOMP
+
 // [Dependencies]
 #include <Fog/Core/Assert.h>
-#include <Fog/Core/Atomic.h>
+#include <Fog/Core/Constants.h>
+#include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Graphics/ColorLut.h>
 #include <Fog/Graphics/Constants.h>
@@ -15,9 +21,6 @@ namespace Fog {
 // ============================================================================
 // [Fog::ColorLut]
 // ============================================================================
-
-Static<ColorLut::Data> ColorLut::sharedNull;
-const uint8_t* ColorLut::linearLut;
 
 static const uint8_t linearLutData[256] =
 {
@@ -41,104 +44,161 @@ static const uint8_t linearLutData[256] =
 
 ColorLut::ColorLut()
 {
-  _d = sharedNull->refAlways();
+  reset(COLOR_CHANNEL_ARGB);
 }
 
 ColorLut::ColorLut(const ColorLut& other)
 {
-  _d = other._d->ref();
+  Memory::copy(&_data, &other._data, sizeof(ColorLutData));
 }
 
 ColorLut::~ColorLut()
 {
-  _d->deref();
 }
 
-err_t ColorLut::_detach()
+err_t ColorLut::setData(const ColorLutData* data)
 {
-  if (_d->refCount.get() == 1) return Error::Ok;
+  FOG_ASSERT(data != NULL);
 
-  Data* newd = Data::copy(_d);
-  if (!newd) return Error::OutOfMemory;
-
-  AtomicBase::ptr_setXchg(&_d, newd)->deref();
-  return Error::Ok;
+  Memory::copy(&_data, data, sizeof(ColorLutData));
+  return ERR_OK;
 }
 
-void ColorLut::free()
+// ============================================================================
+// [Fog::ColorLut - Reset]
+// ============================================================================
+
+err_t ColorLut::reset(int channel)
 {
-  AtomicBase::ptr_setXchg(&_d, sharedNull->refAlways())->deref();
+  if (channel & COLOR_CHANNEL_RED  ) Memory::copy(_data.r, linearLutData, 256);
+  if (channel & COLOR_CHANNEL_GREEN) Memory::copy(_data.g, linearLutData, 256);
+  if (channel & COLOR_CHANNEL_BLUE ) Memory::copy(_data.b, linearLutData, 256);
+  if (channel & COLOR_CHANNEL_ALPHA) Memory::copy(_data.a, linearLutData, 256);
+
+  return ERR_OK;
 }
+
+// ============================================================================
+// [Fog::ColorLut - Saturate]
+// ============================================================================
+
+struct FOG_HIDDEN ColorLutSaturateFilter : public ColorLutFilter
+{
+  FOG_INLINE ColorLutSaturateFilter(uint min, uint max) : min(min), max(max) {}
+
+  virtual err_t filter(uint8_t* data) const
+  {
+    for (sysuint_t i = 0; i < 256; i++)
+      data[i] = Math::bound<uint>((uint)data[i], min, max);
+    return ERR_OK;
+  }
+
+  uint min;
+  uint max;
+};
+
+err_t ColorLut::saturate(int channel, int minThreshold, int maxThreshold)
+{
+  uint min = (uint)Math::bound<int>(minThreshold, 0, 255);
+  uint max = (uint)Math::bound<int>(maxThreshold, 0, 255);
+
+  if (max < min) return ERR_RT_INVALID_ARGUMENT;
+  return filter(channel, ColorLutSaturateFilter(min, max));
+}
+
+// ============================================================================
+// [Fog::ColorLut - Multiply]
+// ============================================================================
+
+struct FOG_HIDDEN ColorLutMultiplyFilter : public ColorLutFilter
+{
+  FOG_INLINE ColorLutMultiplyFilter(float by) : by(by) {}
+
+  virtual err_t filter(uint8_t* data) const
+  {
+    for (sysuint_t i = 0; i < 256; i++)
+      data[i] = Math::bound<uint>((uint)(int)((float)data[i] * by), 0, 255);
+    return ERR_OK;
+  }
+
+  float by;
+};
+
+err_t ColorLut::multiply(int channel, double by)
+{
+  if (by < 0.0) by = -by;
+  return filter(channel, ColorLutMultiplyFilter((float)by));
+}
+
+// ============================================================================
+// [Fog::ColorLut - Add]
+// ============================================================================
+
+struct FOG_HIDDEN ColorLutAddFilter : public ColorLutFilter
+{
+  FOG_INLINE ColorLutAddFilter(int value) : value(value) {}
+
+  virtual err_t filter(uint8_t* data) const
+  {
+    for (sysuint_t i = 0; i < 256; i++)
+      data[i] = (uint)Math::bound<int>(data[i] + value, 0, 255);
+    return ERR_OK;
+  }
+
+  int value;
+};
+
+err_t ColorLut::add(int channel, int value)
+{
+  value = Math::bound<int>(value, -255, 255);
+  if (value == 0) return ERR_OK;
+
+  return filter(channel, ColorLutAddFilter(value));
+}
+
+// ============================================================================
+// [Fog::ColorLut - Invert]
+// ============================================================================
+
+struct FOG_HIDDEN ColorLutInvertFilter : public ColorLutFilter
+{
+  FOG_INLINE ColorLutInvertFilter() {}
+
+  virtual err_t filter(uint8_t* data) const
+  {
+    for (sysuint_t i = 0; i < 256 / sizeof(sysuint_t); i++)
+      reinterpret_cast<sysuint_t*>(data)[i] = ~reinterpret_cast<sysuint_t*>(data)[i];
+    return ERR_OK;
+  }
+};
+
+err_t ColorLut::invert(int channel)
+{
+  return filter(channel, ColorLutInvertFilter());
+}
+
+// ============================================================================
+// [Fog::ColorLut - Filter]
+// ============================================================================
+
+err_t ColorLut::filter(int channel, const ColorLutFilter& f)
+{
+  err_t err = ERR_OK;
+  if ((channel & COLOR_CHANNEL_RED  ) != 0 && err == ERR_OK) err = f.filter(_data.r);
+  if ((channel & COLOR_CHANNEL_GREEN) != 0 && err == ERR_OK) err = f.filter(_data.g);
+  if ((channel & COLOR_CHANNEL_BLUE ) != 0 && err == ERR_OK) err = f.filter(_data.b);
+  if ((channel & COLOR_CHANNEL_ALPHA) != 0 && err == ERR_OK) err = f.filter(_data.a);
+  return err;
+}
+
+// ============================================================================
+// [Fog::ColorLut - Operator Overload]
+// ============================================================================
 
 ColorLut& ColorLut::operator=(const ColorLut& other)
 {
-  AtomicBase::ptr_setXchg(&_d, other._d->ref())->deref();
+  Memory::copy(&_data, &other._data, sizeof(ColorLutData));
   return *this;
 }
 
-// ============================================================================
-// [Fog::ColorLut::Data]
-// ============================================================================
-
-ColorLut::Data* ColorLut::Data::ref() const
-{
-  refCount.inc();
-  return const_cast<Data*>(this);
-}
-
-void ColorLut::Data::deref()
-{
-  if (refCount.deref()) Memory::free(this);
-}
-
-ColorLut::Data* ColorLut::Data::alloc()
-{
-  ColorLut::Data* newd = (ColorLut::Data*)Memory::alloc(sizeof(ColorLut::Data));
-  if (!newd) return NULL;
-
-  newd->refCount.init(1);
-
-  return newd;
-}
-
-ColorLut::Data* ColorLut::Data::copy(const Data* other)
-{
-  ColorLut::Data* newd = alloc();
-  if (!newd) return NULL;
-
-  newd->type = other->type;
-  newd->flags = other->flags;
-
-  Memory::copy(&newd->table, &other->table, sizeof(ColorLut::Table));
-
-  return newd;
-}
-
 } // Fog namespace
-
-// ============================================================================
-// [Library Initializers]
-// ============================================================================
-
-FOG_INIT_DECLARE err_t fog_colorlut_init(void)
-{
-  Fog::ColorLut::Data* d = Fog::ColorLut::sharedNull.instancep();
-  Fog::ColorLut::linearLut = Fog::linearLutData;
-
-  d->refCount.init(1);
-  d->type = Fog::ColorLut::NopType;
-  d->flags = 0;
-
-  Fog::Memory::copy(d->table.a, Fog::linearLutData, 256);
-  Fog::Memory::copy(d->table.r, Fog::linearLutData, 256);
-  Fog::Memory::copy(d->table.g, Fog::linearLutData, 256);
-  Fog::Memory::copy(d->table.b, Fog::linearLutData, 256);
-
-  return Error::Ok;
-}
-
-FOG_INIT_DECLARE void fog_colorlut_shutdown(void)
-{
-  Fog::ColorLut::Data* d = Fog::ColorLut::sharedNull.instancep();
-  d->refCount.dec();
-}

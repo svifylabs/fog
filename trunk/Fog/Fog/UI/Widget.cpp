@@ -10,11 +10,11 @@
 
 // [Dependencies]
 #include <Fog/Core/Application.h>
+#include <Fog/Core/List.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/String.h>
-#include <Fog/Core/Vector.h>
 #include <Fog/Graphics/Region.h>
-#include <Fog/UI/Error.h>
+#include <Fog/UI/Constants.h>
 #include <Fog/UI/Layout.h>
 #include <Fog/UI/LayoutItem.h>
 #include <Fog/UI/UISystem.h>
@@ -40,15 +40,15 @@ Widget::Widget(uint32_t createFlags) :
   _lastFocus(NULL),
   _focusLink(NULL),
   _uflags(0),
-  _state(Enabled),
-  _visibility(Hidden),
-  _focusPolicy(NoFocus),
+  _state(WIDGET_ENABLED),
+  _visibility(WIDGET_HIDDEN),
+  _focusPolicy(FOCUS_NONE),
   _hasFocus(false),
-  _orientation(OrientationHorizontal),
+  _orientation(ORIENTATION_HORIZONTAL),
   _reserved(0),
   _tabOrder(0)
 {
-  _flags |= IsWidget;
+  _flags |= OBJ_IS_WIDGET;
 
   // TODO ?
   _focusLink = NULL;
@@ -114,7 +114,7 @@ bool Widget::_add(sysuint_t index, Widget* w)
 bool Widget::_remove(sysuint_t index, Widget* w)
 {
   FOG_ASSERT(index < _children.getLength());
-  FOG_ASSERT(_children.cAt(index) == w);
+  FOG_ASSERT(_children.at(index) == w);
 
   _children.removeAt(index);
   w->_parent = NULL;
@@ -139,10 +139,10 @@ UIWindow* Widget::getClosestUIWindow() const
 
 err_t Widget::createWindow(uint32_t createFlags)
 {
-  if (_uiWindow) return Error::UIWindowAlreadyExists;
+  if (_uiWindow) return ERR_UI_WINDOW_ALREADY_EXISTS;
 
   UISystem* uiSystem = Application::getInstance()->getUiSystem();
-  if (uiSystem == NULL) return Error::UISystemNotExists;
+  if (uiSystem == NULL) return ERR_UI_NOT_INITIALIZED;
 
   _uiWindow = uiSystem->createUIWindow(this);
 
@@ -154,7 +154,7 @@ err_t Widget::createWindow(uint32_t createFlags)
 
 err_t Widget::destroyWindow()
 {
-  if (!_uiWindow) return Error::InvalidHandle;
+  if (!_uiWindow) return ERR_RT_INVALID_HANDLE;
 
   delete _uiWindow;
   _uiWindow = NULL;
@@ -170,7 +170,7 @@ String Widget::getWindowTitle() const
 
 err_t Widget::setWindowTitle(const String& title)
 {
-  if (!_uiWindow) return Error::InvalidHandle;
+  if (!_uiWindow) return ERR_RT_INVALID_HANDLE;
   return _uiWindow->setTitle(title);
 }
 
@@ -183,7 +183,7 @@ Image Widget::getWindowIcon() const
 
 err_t Widget::setWindowIcon(const Image& icon)
 {
-  if (!_uiWindow) return Error::InvalidHandle;
+  if (!_uiWindow) return ERR_RT_INVALID_HANDLE;
   return _uiWindow->setIcon(icon);
 }
 
@@ -196,7 +196,7 @@ Point Widget::getWindowGranularity() const
 
 err_t Widget::setWindowGranularity(const Point& pt)
 {
-  if (!_uiWindow) return Error::InvalidHandle;
+  if (!_uiWindow) return ERR_RT_INVALID_HANDLE;
   return _uiWindow->setSizeGranularity(pt);
 }
 
@@ -363,7 +363,7 @@ Widget* Widget::hitTest(const Point& pt) const
 
   if (x < 0 || y < 0 || x > _rect.getWidth() || y > _rect.getHeight()) return NULL;
 
-  Vector<Widget*>::ConstIterator it(_children);
+  List<Widget*>::ConstIterator it(_children);
   for (it.toEnd(); it.isValid(); it.toPrevious())
   {
     if (it.value()->_rect.contains(pt)) return it.value();
@@ -383,7 +383,7 @@ Widget* Widget::getChildAt(const Point& pt, bool recursive) const
 
 repeat:
   {
-    Vector<Widget*>::ConstIterator it(current->_children);
+    List<Widget*>::ConstIterator it(current->_children);
     for (it.toEnd(); it.isValid(); it.toPrevious())
     {
       if (it.value()->_rect.contains(pt))
@@ -420,7 +420,7 @@ void Widget::setLayout(Layout* lay)
     _layout = lay;
     lay->_parentItem = this;
 
-    LayoutEvent e(EvLayoutSet);
+    LayoutEvent e(EV_LAYOUT_SET);
     this->sendEvent(&e);
     lay->sendEvent(&e);
 
@@ -431,7 +431,7 @@ void Widget::setLayout(Layout* lay)
 void Widget::deleteLayout()
 {
   Layout* lay = takeLayout();
-  if (lay && lay->isDynamic()) delete lay;
+  if (lay) lay->destroy();
 }
 
 Layout* Widget::takeLayout()
@@ -445,7 +445,7 @@ Layout* Widget::takeLayout()
 
     invalidateLayout();
 
-    LayoutEvent e(EvLayoutRemove);
+    LayoutEvent e(EV_LAYOUT_REMOVE);
     lay->sendEvent(&e);
     this->sendEvent(&e);
   }
@@ -549,8 +549,8 @@ void Widget::invalidateLayout() const
 
 void Widget::setEnabled(bool val)
 {
-  if (val && (_state == Enabled || _state == DisabledByParent)) return;
-  if (!val && _state == Disabled) return;
+  if ( val && _state != WIDGET_DISABLED) return;
+  if (!val && _state == WIDGET_DISABLED) return;
 
   if (_uiWindow)
   {
@@ -574,8 +574,8 @@ void Widget::setEnabled(bool val)
 
 void Widget::setVisible(bool val)
 {
-  if (val && (_visibility == Visible || _visibility == HiddenByParent)) return;
-  if (!val && _visibility == Hidden) return;
+  if ( val && _visibility != WIDGET_HIDDEN) return;
+  if (!val && _visibility == WIDGET_HIDDEN) return;
 
   if (_uiWindow)
   {
@@ -647,14 +647,14 @@ void Widget::setFocusPolicy(uint32_t val)
   _focusPolicy = val;
 }
 
-Widget* Widget::getFocusableWidget(uint32_t focusable)
+Widget* Widget::getFocusableWidget(int focusable)
 {
   return NULL;
 }
 
 void Widget::takeFocus(uint32_t reason)
 {
-  if (!hasFocus() && visibility() == Visible && getState() == Enabled)
+  if (!hasFocus() && getVisibility() == WIDGET_VISIBLE && getState() == WIDGET_ENABLED)
   {
     // TODO:
     //Application::getInstance()->getUiSystem()->dispatchTakeFocus(this, reason);
@@ -663,13 +663,13 @@ void Widget::takeFocus(uint32_t reason)
 
 void Widget::giveFocusNext(uint32_t reason)
 {
-  Widget* w = getFocusableWidget(NextFocusable);
+  Widget* w = getFocusableWidget(FOCUSABLE_NEXT);
   if (w) w->takeFocus(reason);
 }
 
 void Widget::giveFocusPrevious(uint32_t reason)
 {
-  Widget* w = getFocusableWidget(PreviousFocusable);
+  Widget* w = getFocusableWidget(FOCUSABLE_PREVIOUS);
   if (w) w->takeFocus(reason);
 }
 
@@ -705,7 +705,7 @@ void Widget::update(uint32_t updateFlags)
 
   if (_uiWindow)
   {
-    if (!_uiWindow->dirty()) _uiWindow->setDirty();
+    if (!_uiWindow->isDirty()) _uiWindow->setDirty();
     return;
   }
 
@@ -717,7 +717,7 @@ void Widget::update(uint32_t updateFlags)
     w->_uflags |= UFlagUpdateChild;
     if (w->_uiWindow)
     {
-      if (!w->_uiWindow->dirty()) w->_uiWindow->setDirty();
+      if (!w->_uiWindow->isDirty()) w->_uiWindow->setDirty();
       return;
     }
     w = w->_parent;
@@ -745,11 +745,19 @@ void Widget::onChildRemove(ChildEvent* e)
 {
 }
 
-void Widget::onStateChange(StateEvent* e)
+void Widget::onEnable(StateEvent* e)
 {
 }
 
-void Widget::onVisibilityChange(VisibilityEvent* e)
+void Widget::onDisable(StateEvent* e)
+{
+}
+
+void Widget::onShow(VisibilityEvent* e)
+{
+}
+
+void Widget::onHide(VisibilityEvent* e)
 {
 }
 
@@ -757,15 +765,51 @@ void Widget::onConfigure(ConfigureEvent* e)
 {
 }
 
-void Widget::onFocus(FocusEvent* e)
+void Widget::onFocusIn(FocusEvent* e)
 {
 }
 
-void Widget::onKey(KeyEvent* e)
+void Widget::onFocusOut(FocusEvent* e)
 {
 }
 
-void Widget::onMouse(MouseEvent* e)
+void Widget::onKeyPress(KeyEvent* e)
+{
+}
+
+void Widget::onKeyRelease(KeyEvent* e)
+{
+}
+
+void Widget::onMouseIn(MouseEvent* e)
+{
+}
+
+void Widget::onMouseOut(MouseEvent* e)
+{
+}
+
+void Widget::onMouseMove(MouseEvent* e)
+{
+}
+
+void Widget::onMousePress(MouseEvent* e)
+{
+}
+
+void Widget::onMouseRelease(MouseEvent* e)
+{
+}
+
+void Widget::onClick(MouseEvent* e)
+{
+}
+
+void Widget::onDoubleClick(MouseEvent* e)
+{
+}
+
+void Widget::onWheel(MouseEvent* e)
 {
 }
 

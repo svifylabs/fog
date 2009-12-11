@@ -10,24 +10,28 @@
 
 // [Dependencies]
 #include <Fog/Core/AutoLock.h>
-#include <Fog/Core/Error.h>
+#include <Fog/Core/Constants.h>
 #include <Fog/Core/Event.h>
 #include <Fog/Core/EventLoop.h>
 #include <Fog/Core/Hash.h>
 #include <Fog/Core/HashUtil.h>
+#include <Fog/Core/List.h>
+#include <Fog/Core/ManagedString.h>
 #include <Fog/Core/Object.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/String.h>
 #include <Fog/Core/Strings.h>
 #include <Fog/Core/StringUtil.h>
 #include <Fog/Core/Thread.h>
-#include <Fog/Core/Vector.h>
+#include <Fog/Core/Value.h>
 
 FOG_CVAR_DECLARE Fog::Lock* fog_object_lock;
 
 namespace Fog {
 
-// [Fog::Object - object_local variables]
+// ============================================================================
+// [Fog::Object_Local]
+// ============================================================================
 
 struct Object_Local
 {
@@ -57,9 +61,9 @@ static Static<Object_Local> object_local;
 // ============================================================================
 
 Object::Object() :
-  Class(reinterpret_cast<uint32_t*>(&_flags)),
+  _flags(0),
   _objectId(0),
-  _thread(Thread::current()),
+  _thread(Thread::getCurrent()),
   _events(NULL)
 {
 }
@@ -88,7 +92,7 @@ Object::~Object()
 
 void Object::deleteLater()
 {
-  if (!(_flags & PostedDeleteLaterEvent))
+  if (!(_flags & OBJ_POSTED_DELETE_LATER_EVENT))
   {
     if (!getThread()) 
     {
@@ -96,17 +100,21 @@ void Object::deleteLater()
       return;
     }
 
-    _flags |= PostedDeleteLaterEvent;
-    postEvent(new DestroyEvent());
+    _flags |= OBJ_POSTED_DELETE_LATER_EVENT;
+    postEvent(new(std::nothrow) DestroyEvent());
   }
 }
 
 void Object::destroy()
 {
-  if (isDynamic()) delete this;
+  if (canDelete()) delete this;
 }
 
-const MetaClass* Object::staticMetaClass()
+// ============================================================================
+// [Fog::Object - Meta class]
+// ============================================================================
+
+const MetaClass* Object::getStaticMetaClass()
 {
   return &object_local.instance().object_metaClass;
 }
@@ -116,7 +124,9 @@ const MetaClass* Object::getMetaClass() const
   return &object_local.instance().object_metaClass;
 }
 
-// [Fog::Object - id]
+// ============================================================================
+// [Fog::Object - ID / Name]
+// ============================================================================
 
 void Object::setObjectId(uint32_t objectId)
 {
@@ -125,8 +135,6 @@ void Object::setObjectId(uint32_t objectId)
     _objectId = objectId;
   }
 }
-
-// [Fog::Object - name]
 
 void Object::setObjectName(const String& objectName)
 {
@@ -137,30 +145,72 @@ void Object::setObjectName(const String& objectName)
   }
 }
 
-// [Fog::Object - listeners]
+// ============================================================================
+// [Fog::Object - Properties]
+// ============================================================================
+
+err_t Object::getProperty(const String& name, Value& value) const
+{
+  ManagedString m_name;
+
+  if (m_name.setIfManaged(name) == ERR_RT_OBJECT_NOT_FOUND)
+    return ERR_PROPERTY_INVALID_NAME;
+
+  return getProperty(m_name, value);
+}
+
+err_t Object::setProperty(const String& name, const Value& value)
+{
+  ManagedString m_name;
+
+  if (m_name.setIfManaged(name) == ERR_RT_OBJECT_NOT_FOUND)
+    return ERR_PROPERTY_INVALID_NAME;
+
+  return setProperty(m_name, value);
+}
+
+err_t Object::getProperty(const ManagedString& name, Value& value) const
+{
+  FOG_UNUSED(name);
+  FOG_UNUSED(value);
+
+  return ERR_PROPERTY_INVALID_NAME;
+}
+
+err_t Object::setProperty(const ManagedString& name, const Value& value)
+{
+  FOG_UNUSED(name);
+  FOG_UNUSED(value);
+
+  return ERR_PROPERTY_INVALID_NAME;
+}
+
+// ============================================================================
+// [Fog::Object - Listeners]
+// ============================================================================
 
 bool Object::addListener(uint32_t code, void (*fn)(Event*))
 {
   Delegate1<Event*> del(fn);
-  return _addListener(code, NULL, (const void*)&del, EventDelegate);
+  return _addListener(code, NULL, (const void*)&del, DELEGATE_EVENT);
 }
 
 bool Object::addListener(uint32_t code, void (*fn)())
 {
   Delegate0<> del(fn);
-  return _addListener(code, NULL, (const void*)&del, VoidDelegate);
+  return _addListener(code, NULL, (const void*)&del, DELEGATE_VOID);
 }
 
 bool Object::removeListener(uint32_t code, void (*fn)(Event*))
 {
   Delegate1<Event*> del(fn);
-  return _removeListener(code, NULL, (const void*)&del, EventDelegate);
+  return _removeListener(code, NULL, (const void*)&del, DELEGATE_EVENT);
 }
 
 bool Object::removeListener(uint32_t code, void (*fn)())
 {
   Delegate0<> del(fn);
-  return _removeListener(code, NULL, (const void*)&del, VoidDelegate);
+  return _removeListener(code, NULL, (const void*)&del, DELEGATE_VOID);
 }
 
 uint Object::removeListener(Object* listener)
@@ -248,7 +298,7 @@ uint Object::removeAllListeners()
   return result;
 }
 
-// private
+// Private.
 bool Object::_addListener(uint32_t code, Object* listener, const void* del, uint32_t type)
 {
   AutoLock locked(*fog_object_lock);
@@ -266,7 +316,7 @@ bool Object::_addListener(uint32_t code, Object* listener, const void* del, uint
     } while (conn);
   }
 
-  conn = new ObjectConnection();
+  conn = new(std::nothrow) ObjectConnection;
   conn->next = NULL;
   conn->attachedObject = this;
   conn->listener = listener;
@@ -328,37 +378,41 @@ void Object::_callListeners(Event* e)
   if (!conn) return;
 
   do {
-    if (conn->type == VoidDelegate)
+    if (conn->type == DELEGATE_VOID)
       conn->delegateVoid.instance()();
     else
       conn->delegateEvent.instance()(e);
   } while ((conn = conn->next));
 }
 
-// [Fog::Object - events]
+// ============================================================================
+// [Fog::Object - Events]
+// ============================================================================
 
 void Object::postEvent(Event* e)
 {
-  EventLoop* el = EventLoop::getCurrent();
-  
-  if (el)
-  {
-    // Add event to its object queue
-    {
-      Fog::AutoLock locker(*fog_object_lock);
-      e->_prev = this->_events;
-      this->_events = e;
+  Thread* thread;
+  EventLoop* eventLoop;
 
-      e->_flags |= Event::IsPosted;
-    }
-    // Post event (event is posted as task)
-    el->postTask(e);
-  }
-  else
+  if ((thread = getThread()) == NULL) goto fail;
+  if ((eventLoop = thread->getEventLoop()) == NULL) goto fail;
+
+  // Add event to its object queue
   {
-    fog_stderr_msg("Fog::Object", "postEvent", "Can't post event to object which thread hasn't event loop.");
-    delete e;
+    Fog::AutoLock locked(*fog_object_lock);
+
+    e->_prev = this->_events;
+    this->_events = e;
+
+    e->_flags |= Event::IS_POSTED;
   }
+
+  // Post event (event is posted as task).
+  eventLoop->postTask(e);
+
+fail:
+  fog_stderr_msg("Fog::Object", "postEvent", "Can't post event to object which has no owner thread or event loop. Deleting event.");
+  delete e;
 }
 
 void Object::postEvent(uint32_t code)
@@ -389,16 +443,16 @@ void Object::sendEventById(uint32_t code)
 // [Fog::Object - Event handlers]
 // ============================================================================
 
-// onEvent is normally defined by fog_event_begin() and fog_event_end() macro,
+// onEvent is normally defined by FOG_EVENT_BEGIN() and FOG_EVENT_END() macro,
 // but Fog::Object is exception.
 void Object::onEvent(Event* e)
 {
   switch (e->getCode())
   {
-    case Fog::EvCreate:
+    case Fog::EV_CREATE:
       onCreate(reinterpret_cast<CreateEvent*>(e));
       break;
-    case Fog::EvDestroy:
+    case Fog::EV_DESTROY:
       onDestroy(reinterpret_cast<DestroyEvent*>(e));
       break;
   }
@@ -446,7 +500,7 @@ FOG_CAPI_DECLARE void* fog_object_cast_string(Fog::Object* self, const char* cla
   FOG_ASSERT(self);
 
   const MetaClass* metaClass = self->getMetaClass();
-  uint32_t classHash = HashUtil::hashString(className, DetectLength);
+  uint32_t classHash = HashUtil::hashString(className, DETECT_LENGTH);
 
   for (;;)
   {
@@ -472,7 +526,7 @@ FOG_INIT_DECLARE err_t fog_object_init(void)
   using namespace Fog;
 
   object_local.init();
-  return Error::Ok;
+  return ERR_OK;
 }
 
 FOG_INIT_DECLARE void fog_object_shutdown(void)

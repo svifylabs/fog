@@ -8,6 +8,7 @@
 #include <Fog/Core/ManagedString.h>
 #include <Fog/Core/String.h>
 #include <Fog/Core/Strings.h>
+#include <Fog/Svg/Constants.h>
 #include <Fog/Svg/SvgBase.h>
 #include <Fog/Svg/SvgUtil.h>
 
@@ -19,29 +20,29 @@ namespace Fog {
 
 static const uint8_t svgStyleTypeToValueType[] =
 {
-  /* SvgStyleNone             -> */ SvgValueNone,
-  /* SvgStyleClipPath         -> */ 0,
-  /* SvgStyleClipRule         -> */ 0,
-  /* SvgStyleEnableBackground -> */ 0,
-  /* SvgStyleFill             -> */ SvgValueColorOrPattern,
-  /* SvgStyleFillOpacity      -> */ SvgValueOpacity,
-  /* SvgStyleFillRule         -> */ SvgValueEnum,
-  /* SvgStyleFilter           -> */ 0,
-  /* SvgStyleFontFamily       -> */ SvgValueString,
-  /* SvgStyleFontSize         -> */ SvgValueCoord,
-  /* SvgStyleLetterSpacing    -> */ SvgValueCoord,
-  /* SvgStyleMask             -> */ 0,
-  /* SvgStyleOpacity          -> */ SvgValueOpacity,
-  /* SvgStyleStopColor        -> */ SvgValueColor,
-  /* SvgStyleStopOpacity      -> */ SvgValueOpacity,
-  /* SvgStyleStroke           -> */ SvgValueColorOrPattern,
-  /* SvgStyleStrokeDashArray  -> */ 0,
-  /* SvgStyleStrokeDashOffset -> */ SvgValueCoord,
-  /* SvgStyleStrokeLineCap    -> */ SvgValueEnum,
-  /* SvgStyleStrokeLineJoin   -> */ SvgValueEnum,
-  /* SvgStyleStrokeMiterLimit -> */ SvgValueCoord,
-  /* SvgStyleStrokeOpacity    -> */ SvgValueOpacity,
-  /* SvgStyleStrokeWidth      -> */ SvgValueCoord
+  /* SVG_STYLE_NONE               -> */ SVG_VALUE_NONE,
+  /* SVG_STYLE_CLIP_PATH          -> */ 0,
+  /* SVG_STYLE_CLIP_RULE          -> */ 0,
+  /* SVG_STYLE_ENABLE_BACKGROUND  -> */ 0,
+  /* SVG_STYLE_FILL               -> */ SVG_VALUE_COLOR_OR_PATTERN,
+  /* SVG_STYLE_FILL_OPACITY       -> */ SVG_VALUE_OPACITY,
+  /* SVG_STYLE_FILL_RULE          -> */ SVG_VALUE_ENUM,
+  /* SVG_STYLE_FILTER             -> */ 0,
+  /* SVG_STYLE_FONT_FAMILY        -> */ SVG_VALUE_STRING,
+  /* SVG_STYLE_FONT_SIZE          -> */ SVG_VALUE_COORD,
+  /* SVG_STYLE_LETTER_SPACING     -> */ SVG_VALUE_COORD,
+  /* SVG_STYLE_MASK               -> */ 0,
+  /* SVG_STYLE_OPACITY            -> */ SVG_VALUE_OPACITY,
+  /* SVG_STYLE_STOP_COLOR         -> */ SVG_VALUE_COLOR,
+  /* SVG_STYLE_STOP_OPACITY       -> */ SVG_VALUE_OPACITY,
+  /* SVG_STYLE_STROKE             -> */ SVG_VALUE_COLOR_OR_PATTERN,
+  /* SVG_STYLE_STROKE_DASH_ARRAY  -> */ 0,
+  /* SVG_STYLE_STROKE_DASH_OFFSET -> */ SVG_VALUE_COORD,
+  /* SVG_STYLE_STROKE_LINE_CAP    -> */ SVG_VALUE_ENUM,
+  /* SVG_STYLE_STROKE_LINE_JOIN   -> */ SVG_VALUE_ENUM,
+  /* SVG_STYLE_STROKE_MITER_LIMIT -> */ SVG_VALUE_COORD,
+  /* SVG_STYLE_STROKE_OPACITY     -> */ SVG_VALUE_OPACITY,
+  /* SVG_STYLE_STROKE_WIDTH       -> */ SVG_VALUE_COORD
 };
 
 SvgStyleItem::SvgStyleItem() :
@@ -68,7 +69,7 @@ err_t SvgStyleItem::setName(const ManagedString& name)
   _data1 = FOG_UINT64_C(0);
 
   // Match the name in string array (we get also StyleType ID).
-  for (uint32_t styleId = 1; styleId < SvgStyleCount; styleId++)
+  for (uint32_t styleId = 1; styleId < SVG_STYLE_INVALID; styleId++)
   {
     const ManagedString& s = fog_strings->getString(STR_SVG_STYLE_NAMES + styleId);
     if (s == name)
@@ -79,7 +80,7 @@ err_t SvgStyleItem::setName(const ManagedString& name)
       _valueType = svgStyleTypeToValueType[styleId];
       _name = s;
       _value.free();
-      return Error::Ok;
+      return ERR_OK;
     }
   }
 
@@ -87,7 +88,7 @@ err_t SvgStyleItem::setName(const ManagedString& name)
   // svg rendering engine.
   _name = name;
   _value.free();
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t SvgStyleItem::setName(const String& name)
@@ -108,30 +109,30 @@ err_t SvgStyleItem::setValue(const String& value)
 
   switch (_valueType)
   {
-    case SvgValueNone:
+    case SVG_VALUE_NONE:
     {
       break;
     }
 
-    case SvgValueEnum:
+    case SVG_VALUE_ENUM:
     {
       const SvgEnumToInt* choices;
 
       switch (_styleType)
       {
-        case SvgStyleFillRule:
+        case SVG_STYLE_FILL_RULE:
         {
           static const SvgEnumToInt choicesFillRule[] =
           {
-            { "nonzero", FillNonZero }, 
-            { "evenodd", FillEvenOdd },
+            { "nonzero", FILL_NON_ZERO },
+            { "evenodd", FILL_EVEN_ODD },
             { "", 0 }
           };
           choices = choicesFillRule;
           break;
         }
 
-        case SvgStyleStrokeLineCap:
+        case SVG_STYLE_STROKE_LINE_CAP:
         {
           static const SvgEnumToInt choicesStrokeLineCap[] =
           {
@@ -144,7 +145,7 @@ err_t SvgStyleItem::setValue(const String& value)
           break;
         }
 
-        case SvgStyleStrokeLineJoin:
+        case SVG_STYLE_STROKE_LINE_JOIN:
         {
           static const SvgEnumToInt choicesStrokeLineJoin[] =
           {
@@ -176,46 +177,46 @@ err_t SvgStyleItem::setValue(const String& value)
       break;
     }
 
-    case SvgValueColor:
+    case SVG_VALUE_COLOR:
     {
-      Rgba color;
-      if (SvgUtil::parseColor(value, &color) == SvgStatusOk)
+      Argb color;
+      if (SvgUtil::parseColor(value, &color) == SVG_PATTERN_COLOR)
       {
-        _kind = SvgPatternColor;
+        _kind = SVG_PATTERN_COLOR;
         _isValid = true;
         _valueU32 = color;
       }
       else
       {
-        _kind = SvgPatternColor;
+        _kind = SVG_PATTERN_COLOR;
         _isValid = false;
         _valueU32 = 0x00000000;
       }
       break;
     }
 
-    case SvgValueColorOrPattern:
+    case SVG_VALUE_COLOR_OR_PATTERN:
     {
-      Rgba color;
+      Argb color;
       switch (SvgUtil::parseColor(value, &color))
       {
-        case SvgStatusOk:
+        case SVG_PATTERN_NONE:
         {
-          _kind = SvgPatternColor;
-          _isValid = true;
-          _valueU32 = color;
-          break;
-        }
-        case SvgStatusColorIsNone:
-        {
-          _kind = SvgPatternNone;
+          _kind = SVG_PATTERN_NONE;
           _isValid = true;
           _valueU32 = 0x00000000;
           break;
         }
-        case SvgStatusColorIsUri:
+        case SVG_PATTERN_COLOR:
         {
-          _kind = SvgPatternUri;
+          _kind = SVG_PATTERN_COLOR;
+          _isValid = true;
+          _valueU32 = color;
+          break;
+        }
+        case SVG_PATTERN_URI:
+        {
+          _kind = SVG_PATTERN_URI;
           _isValid = true;
           break;
         }
@@ -229,19 +230,19 @@ err_t SvgStyleItem::setValue(const String& value)
       break;
     }
 
-    case SvgValueCoord:
+    case SVG_VALUE_COORD:
     {
       SvgCoord coord = SvgUtil::parseCoord(value);
       _valueD = coord.value;
       _kind = coord.unit;
-      _isValid = coord.unit != SvgUnitNotDefined;
+      _isValid = coord.unit != SVG_UNIT_NONE;
       break;
     }
 
-    case SvgValueOpacity:
+    case SVG_VALUE_OPACITY:
     {
       double d = 0;
-      if (value.atod(&d) == Error::Ok)
+      if (value.atod(&d) == ERR_OK)
       {
         if (d < 0.0) d = 0.0;
         if (d > 1.0) d = 1.0;
@@ -255,7 +256,7 @@ err_t SvgStyleItem::setValue(const String& value)
       break;
     }
 
-    case SvgValueString:
+    case SVG_VALUE_STRING:
     {
       _isValid = true;
       break;

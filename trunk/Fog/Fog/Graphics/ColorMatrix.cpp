@@ -10,15 +10,15 @@
 // that is used for Fog (original code was 3 clause BSD licence). Thanks.
 
 // [Precompiled Headers]
-#ifdef FOG_PRECOMP
+#if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
-#endif
+#endif // FOG_PRECOMP
 
 // [Dependencies]
-#include <Fog/Core/Error.h>
+#include <Fog/Core/Constants.h>
 #include <Fog/Core/Math.h>
+#include <Fog/Graphics/Argb.h>
 #include <Fog/Graphics/ColorMatrix.h>
-#include <Fog/Graphics/Rgba.h>
 
 namespace Fog {
 
@@ -44,7 +44,7 @@ int ColorMatrix::type() const
   //   [n n n n n]
   if (m[0][1] != 0.0 || m[0][2] != 0.0 ||
       m[1][0] != 0.0 || m[1][2] != 0.0 ||
-      m[2][0] != 0.0 || m[2][1] != 0.0) parts |= PartShearRGB;
+      m[2][0] != 0.0 || m[2][1] != 0.0) parts |= TYPE_SHEAR_RGB;
 
   // Alpha shear part is illustrated here:
   //   [n n n X n]
@@ -55,7 +55,7 @@ int ColorMatrix::type() const
   if (m[0][3] != 0.0 ||
       m[1][3] != 0.0 ||
       m[2][3] != 0.0 ||
-      m[2][0] != 0.0 || m[2][1] != 0.0 || m[2][2] != 0.0) parts |= PartShearAlpha;
+      m[2][0] != 0.0 || m[2][1] != 0.0 || m[2][2] != 0.0) parts |= TYPE_SHEAR_ALPHA;
 
   // RGB lut part is illustrated here:
   //   [X n n n n]
@@ -65,7 +65,7 @@ int ColorMatrix::type() const
   //   [n n n n n]
   if (m[0][0] != 0.0 ||
       m[1][1] != 0.0 ||
-      m[2][2] != 0.0) parts |= PartLutRGB;
+      m[2][2] != 0.0) parts |= TYPE_LUT_RGB;
 
   // Alpha lut part is illustrated here:
   //   [n n n n n]
@@ -73,7 +73,7 @@ int ColorMatrix::type() const
   //   [n n n n n]
   //   [n n n X n]
   //   [n n n n n]
-  if (m[3][3] != 0.0) parts |= PartLutAlpha;
+  if (m[3][3] != 0.0) parts |= TYPE_LUT_ALPHA;
 
   //! @brief Matrix contains const RGB lut part (all cells are set to 1.0).
   //!
@@ -85,7 +85,7 @@ int ColorMatrix::type() const
   //!   [n n n n n]
   if (m[0][0] == 1.0 &&
       m[1][1] == 1.0 &&
-      m[2][2] == 1.0) parts |= PartConstRGB;
+      m[2][2] == 1.0) parts |= TYPE_CONST_RGB;
 
   //! @brief Matrix contains const alpha lut part (cell set to 1.0).
   //!
@@ -95,7 +95,7 @@ int ColorMatrix::type() const
   //!   [n n n n n]
   //!   [n n n 1 n]
   //!   [n n n n n]
-  if (m[3][3] == 1.0) parts |= PartConstAlpha;
+  if (m[3][3] == 1.0) parts |= TYPE_CONST_ALPHA;
 
   // RGB translation part is illustrated here:
   //   [n n n n n]
@@ -103,7 +103,7 @@ int ColorMatrix::type() const
   //   [n n n n n]
   //   [n n n n n]
   //   [X X X n n]
-  if (m[4][0] != 0.0 || m[4][1] != 0.0 || m[4][2] != 0.0) parts |= PartTranslateRGB;
+  if (m[4][0] != 0.0 || m[4][1] != 0.0 || m[4][2] != 0.0) parts |= TYPE_TRANSLATE_RGB;
 
   // Alpha translation part is illustrated here:
   //   [n n n n n]
@@ -111,7 +111,7 @@ int ColorMatrix::type() const
   //   [n n n n n]
   //   [n n n n n]
   //   [n n n X n]
-  if (m[4][3] != 0.0) parts |= PartTranslateAlpha;
+  if (m[4][3] != 0.0) parts |= TYPE_TRANSLATE_ALPHA;
 
   return parts;
 }
@@ -134,14 +134,10 @@ ColorMatrix& ColorMatrix::multiply(const ColorMatrix& other, int order)
 {
   ColorMatrix save(*this);
 
-  const ColorMatrix* mat1 = &save;
-  const ColorMatrix* mat2 = &other;
+  const ColorMatrix* FOG_RESTRICT mat1 = &save;
+  const ColorMatrix* FOG_RESTRICT mat2 = &other;
 
-  if (this == &other)
-  {
-    mat2 = &other;
-  }
-  else if (order != MatrixOrderPrepend)
+  if (order == MATRIX_APPEND)
   {
     mat1 = &other;
     mat2 = &save;
@@ -187,7 +183,7 @@ ColorMatrix& ColorMatrix::multiply(double scalar)
   return *this;
 }
 
-void ColorMatrix::transformVector(double* v) const
+void ColorMatrix::transformVector(double* FOG_RESTRICT v) const
 {
   double temp[4];
 
@@ -202,7 +198,7 @@ void ColorMatrix::transformVector(double* v) const
   v[3] = temp[3];
 }
 
-void ColorMatrix::transformRgb(Rgba* clr) const
+void ColorMatrix::transformRgb(Argb* clr) const
 {
   double r = (double)clr->r;
   double g = (double)clr->g;
@@ -225,30 +221,7 @@ void ColorMatrix::transformRgb(Rgba* clr) const
   clr->b = (uint8_t)tb;
 }
 
-void ColorMatrix::transformRgb64(Rgba64* clr) const
-{
-  double r = (double)clr->r;
-  double g = (double)clr->g;
-  double b = (double)clr->b;
-
-  int tr = (int)(r * m[0][0] + g * m[1][0] + b * m[2][0] + 65535.0 * m[3][0] + m[4][0] * 65535.0 + 0.5);
-  int tg = (int)(r * m[0][1] + g * m[1][1] + b * m[2][1] + 65535.0 * m[3][1] + m[4][1] * 65535.0 + 0.5);
-  int tb = (int)(r * m[0][2] + g * m[1][2] + b * m[2][2] + 65535.0 * m[3][2] + m[4][2] * 65535.0 + 0.5);
-
-  if (tr < 0) tr = 0;
-  if (tg < 0) tg = 0;
-  if (tb < 0) tb = 0;
-
-  if (tr > 65535) tr = 65535;
-  if (tg > 65535) tg = 65535;
-  if (tb > 65535) tb = 65535;
-
-  clr->r = (uint16_t)tr;
-  clr->g = (uint16_t)tg;
-  clr->b = (uint16_t)tb;
-}
-
-void ColorMatrix::transformRgba(Rgba* clr) const
+void ColorMatrix::transformArgb(Argb* clr) const
 {
   double r = (double)clr->r;
   double g = (double)clr->g;
@@ -269,31 +242,6 @@ void ColorMatrix::transformRgba(Rgba* clr) const
   if (tg > 255) tg = 255;
   if (tb > 255) tb = 255;
   if (ta > 255) ta = 255;
-
-  clr->set(tr, tg, tb, ta);
-}
-
-void ColorMatrix::transformRgba64(Rgba64* clr) const
-{
-  double r = (double)clr->r;
-  double g = (double)clr->g;
-  double b = (double)clr->b;
-  double a = (double)clr->a;
-
-  int tr = (int)(r * m[0][0] + g * m[1][0] + b * m[2][0] + a * m[3][0] + m[4][0] * 65535.0 + 0.5);
-  int tg = (int)(r * m[0][1] + g * m[1][1] + b * m[2][1] + a * m[3][1] + m[4][1] * 65535.0 + 0.5);
-  int tb = (int)(r * m[0][2] + g * m[1][2] + b * m[2][2] + a * m[3][2] + m[4][2] * 65535.0 + 0.5);
-  int ta = (int)(r * m[0][3] + g * m[1][3] + b * m[2][3] + a * m[3][3] + m[4][3] * 65535.0 + 0.5);
-
-  if (tr < 0) tr = 0;
-  if (tg < 0) tg = 0;
-  if (tb < 0) tb = 0;
-  if (ta < 0) ta = 0;
-
-  if (tr > 65535) tr = 65535;
-  if (tg > 65535) tg = 65535;
-  if (tb > 65535) tb = 65535;
-  if (ta > 65535) ta = 65535;
 
   clr->set(tr, tg, tb, ta);
 }
@@ -394,12 +342,12 @@ void ColorMatrix::_copyData(void *_dst, const void *_src)
   memcpy(_dst, _src, sizeof(double) * 25);
 }
 
-ColorMatrix ColorMatrix::Greyscale(LinkerInitialized);
-ColorMatrix ColorMatrix::Identity(LinkerInitialized);
-ColorMatrix ColorMatrix::White(LinkerInitialized);
-ColorMatrix ColorMatrix::Zero(LinkerInitialized);
-ColorMatrix ColorMatrix::PreHue(LinkerInitialized);
-ColorMatrix ColorMatrix::PostHue(LinkerInitialized);
+ColorMatrix ColorMatrix::Greyscale(DONT_INITIALIZE);
+ColorMatrix ColorMatrix::Identity(DONT_INITIALIZE);
+ColorMatrix ColorMatrix::White(DONT_INITIALIZE);
+ColorMatrix ColorMatrix::Zero(DONT_INITIALIZE);
+ColorMatrix ColorMatrix::PreHue(DONT_INITIALIZE);
+ColorMatrix ColorMatrix::PostHue(DONT_INITIALIZE);
 
 } // Fog namespace
 
@@ -418,8 +366,8 @@ FOG_INIT_DECLARE err_t fog_colormatrix_init(void)
     lumR, lumR, lumR, 0.0, 0.0,
     lumG, lumG, lumG, 0.0, 0.0,
     lumB, lumB, lumB, 0.0, 0.0,
-    0.0      , 0.0      , 0.0      , 1.0, 0.0,
-    0.0      , 0.0      , 0.0      , 0.0, 1.0);
+    0.0 , 0.0 , 0.0 , 1.0, 0.0,
+    0.0 , 0.0 , 0.0 , 0.0, 1.0);
 
   ColorMatrix::Identity.set(
     1.0, 0.0, 0.0, 0.0, 0.0,
@@ -488,7 +436,7 @@ FOG_INIT_DECLARE err_t fog_colormatrix_init(void)
   ColorMatrix::PostHue.rotateGreen(greenRotation);
   ColorMatrix::PostHue.rotateRed(Math::deg2rad(-45.0));
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 FOG_INIT_DECLARE void fog_colormatrix_shutdown(void)

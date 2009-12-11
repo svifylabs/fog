@@ -76,45 +76,50 @@ extern FOG_API const uint8_t utf8LengthTable[256];
 // [Unicode Constants]
 // ============================================================================
 
-enum UnicodeConstants
+enum UNOCODE_CHARS
 {
-  // BOM
+  // UTF-16
 
   UTF16_BOM = 0xFEFF,
   UTF16_BOM_Swapped = 0xFFFE,
+
+  // Leading (high) surrogates are from 0xD800 - 0xDBFF.
+
+  //! @brief Leading (high) surrogate minimum (0xD800)
+  UTF16_LEAD_SURROGATE_MIN = 0xD800U,
+  //! @brief Leading (high) surrogate maximum (0xDBFF)
+  UTF16_LEAD_SURROGATE_MAX = 0xDBFFU,
+
+  UTF16_LEAD_SURROGATE_BASE = 0xD800U,
+  UTF16_LEAD_SURROGATE_MASK = 0xFC00U,
+
+  // Trailing (low) surrogates are from 0xDC00 - 0xDFFF.
+
+  //! @brief Trailing (low) surrogate minimum (0xDC00)
+  UTF16_TRAIL_SURROGATE_MIN = 0xDC00U,
+  //! @brief Trailing (low) surrogate maximum (0xDFFF)
+  UTF16_TRAIL_SURROGATE_MAX = 0xDFFFU,
+
+  UTF16_TRAIL_SURROGATE_MASK = 0xFC00U,
+  UTF16_TRAIL_SURROGATE_BASE = 0xDC00U,
+
+  UTF16_SURROGATE_PAIR_BASE = 0xD800U,
+  UTF16_SURROGATE_PAIR_MASK = 0xF800U,
+
+  // Offsets.
+
+  UTF16_LEAD_SURROGATE_OFFSET = UTF16_LEAD_SURROGATE_MIN - (0x10000U >> 10),
+  UTF16_SURROGATE_OFFSET  = 0x10000U - (UTF16_LEAD_SURROGATE_MIN << 10) - UTF16_TRAIL_SURROGATE_MIN,
+
+  // UTF-32.
+
   UTF32_BOM = 0x0000FEFF,
   UTF32_BOM_Swapped = 0x0000FEFF,
 
-  // Leading (high) surrogates are from 0xD800 - 0xDBFF
-
-  //! @brief Leading (high) surrogate minimum (0xD800)
-  LeadSurrogateMin = 0xD800U,
-  //! @brief Leading (high) surrogate maximum (0xDBFF)
-  LeadSurrogateMax = 0xDBFFU,
-
-  LeadSurrogateMask = 0xFC00U,
-  LeadSurrogateBase = 0xD800U,
-
-  // Trailing (low) surrogates are from 0xDC00 - 0xDFFF
-
-  //! @brief Trailing (low) surrogate minimum (0xDC00)
-  TrailSurrogateMin = 0xDC00U,
-  //! @brief Trailing (low) surrogate maximum (0xDFFF)
-  TrailSurrogateMax = 0xDFFFU,
-
-  TrailSurrogateMask = 0xFC00U,
-  TrailSurrogateBase = 0xDC00U,
-
-  SurrogatePairMask = 0xF800U,
-  SurrogatePairBase = 0xD800U,
-
-  // Offsets
-
-  LeadOffset       = LeadSurrogateMin - (0x10000U >> 10),
-  SurrogateOffset  = 0x10000U - (LeadSurrogateMin << 10) - TrailSurrogateMin,
+  // Unicode.
 
   //! @brief Maximum valid value for a Unicode code point
-  MaxCodePoint     = 0x0010FFFFU
+  UNICODE_LAST = 0x0010FFFFU
 };
 
 // ============================================================================
@@ -126,45 +131,45 @@ struct FOG_HIDDEN CharUtil
 {
   // [Ascii CTypes]
 
-  enum AsciiCType
+  enum ASCII_CTYPE
   {
     //! @brief Mask for all lowercase characters: <code>abcdefghijklmnopqrstuvwxyz</code>.
-    AsciiCType_Lower = (1 << 0),
+    ASCII_CTYPE_LOWER = (1 << 0),
     //! @brief Mask for all uppercase characters: <code>ABCDEFGHIJKLMNOPQRSTUVWXYZ</code>.
-    AsciiCType_Upper = (1 << 1),
+    ASCII_CTYPE_UPPER = (1 << 1),
     //! @brief Mask for all hex characters except digits: <code>abcdefABCDEF</code>.
-    AsciiCType_Hex = (1 << 2),
+    ASCII_CTYPE_HEX = (1 << 2),
     //! @brief Mask for all ascii digits: <code>0123456789</code>
-    AsciiCType_Digit = (1 << 3),
+    ASCII_CTYPE_DIGIT = (1 << 3),
     //! @brief Mask for underscore character: <code>_</code>
-    AsciiCType_Underscore = (1 << 4),
+    ASCII_CTYPE_UNDERSCORE = (1 << 4),
     //! @brief Mask for all whitespaces: <code>space \\n \\r \\t \\f \\v</code>
-    AsciiCType_Space = (1 << 5),
+    ASCII_CTYPE_SPACE = (1 << 5),
     //! @brief Mask for all puncuation characters.
-    AsciiCType_Punct = (1 << 6),
+    ASCII_CTYPE_PUNCT = (1 << 6),
 
     //! @brief Mask for all alpha characters, combines @c AsciiCType_Lower and @c AsciiCType_Upper.
-    AsciiCType_Alpha = AsciiCType_Lower | AsciiCType_Upper,
+    ASCII_CTYPE_ALPHA = ASCII_CTYPE_LOWER | ASCII_CTYPE_UPPER,
     //! @brief Mask for all alpha and numeric characters, combines @c AsciiCType_MaskAlpha and @c AsciiCType_MaskDigit.
-    AsciiCType_Alnum = AsciiCType_Alpha | AsciiCType_Digit,
+    ASCII_CTYPE_ALNUM = ASCII_CTYPE_ALPHA | ASCII_CTYPE_DIGIT,
     //! @brief Mask for all graphics characters, combines @c AsciiCType_Punct and @c AsciiCType_Alnum.
-    AsciiCType_Graph = AsciiCType_Punct | AsciiCType_Alnum,
+    ASCII_CTYPE_GRAPH = ASCII_CTYPE_PUNCT | ASCII_CTYPE_ALNUM,
     //! @brief Mask for all hex characters, combines @c AsciiCType_Digit and @c AsciiCType_Hex.
-    AsciiCType_XDigit = AsciiCType_Digit | AsciiCType_Hex
+    ASCII_CTYPE_XDIGIT = ASCII_CTYPE_DIGIT | ASCII_CTYPE_HEX
   };
 
 #define __FOG_CTYPE_ASCII_OVERLOAD(type, conditional, use) \
-  static FOG_INLINE bool isAsciiAlpha(type ch) { return (conditional) && (asciiCTypeData[use] & AsciiCType_Alpha) != 0; } \
-  static FOG_INLINE bool isAsciiAlnum(type ch) { return (conditional) && (asciiCTypeData[use] & AsciiCType_Alnum) != 0; } \
-  static FOG_INLINE bool isAsciiLower(type ch) { return (conditional) && (asciiCTypeData[use] & AsciiCType_Lower) != 0; } \
-  static FOG_INLINE bool isAsciiUpper(type ch) { return (conditional) && (asciiCTypeData[use] & AsciiCType_Upper) != 0; } \
-  static FOG_INLINE bool isAsciiDigit(type ch) { return (conditional) && (asciiCTypeData[use] & AsciiCType_Digit) != 0; } \
-  static FOG_INLINE bool isAsciiXDigit(type ch){ return (conditional) && (asciiCTypeData[use] & AsciiCType_XDigit) != 0; } \
-  static FOG_INLINE bool isAsciiSpace(type ch) { return (conditional) && (asciiCTypeData[use] & AsciiCType_Space) != 0; } \
+  static FOG_INLINE bool isAsciiAlpha(type ch) { return (conditional) && (asciiCTypeData[use] & ASCII_CTYPE_ALPHA) != 0; } \
+  static FOG_INLINE bool isAsciiAlnum(type ch) { return (conditional) && (asciiCTypeData[use] & ASCII_CTYPE_ALNUM) != 0; } \
+  static FOG_INLINE bool isAsciiLower(type ch) { return (conditional) && (asciiCTypeData[use] & ASCII_CTYPE_LOWER) != 0; } \
+  static FOG_INLINE bool isAsciiUpper(type ch) { return (conditional) && (asciiCTypeData[use] & ASCII_CTYPE_UPPER) != 0; } \
+  static FOG_INLINE bool isAsciiDigit(type ch) { return (conditional) && (asciiCTypeData[use] & ASCII_CTYPE_DIGIT) != 0; } \
+  static FOG_INLINE bool isAsciiXDigit(type ch){ return (conditional) && (asciiCTypeData[use] & ASCII_CTYPE_XDIGIT) != 0; } \
+  static FOG_INLINE bool isAsciiSpace(type ch) { return (conditional) && (asciiCTypeData[use] & ASCII_CTYPE_SPACE) != 0; } \
   static FOG_INLINE bool isAsciiBlank(type ch) { return (conditional) && (ch == ' ' || ch == '\t'); } \
-  static FOG_INLINE bool isAsciiPunct(type ch) { return (conditional) && (asciiCTypeData[use] & AsciiCType_Punct) != 0; } \
-  static FOG_INLINE bool isAsciiGraph(type ch) { return (conditional) && (asciiCTypeData[use] & AsciiCType_Graph) != 0; } \
-  static FOG_INLINE bool isAsciiPrint(type ch) { return (conditional) && ((asciiCTypeData[use] & AsciiCType_Graph) != 0 || ch == ' '); } \
+  static FOG_INLINE bool isAsciiPunct(type ch) { return (conditional) && (asciiCTypeData[use] & ASCII_CTYPE_PUNCT) != 0; } \
+  static FOG_INLINE bool isAsciiGraph(type ch) { return (conditional) && (asciiCTypeData[use] & ASCII_CTYPE_GRAPH) != 0; } \
+  static FOG_INLINE bool isAsciiPrint(type ch) { return (conditional) && ((asciiCTypeData[use] & ASCII_CTYPE_GRAPH) != 0 || ch == ' '); } \
   static FOG_INLINE bool isAsciiCntrl(type ch) { return !isAsciiPrint(ch); } \
   static FOG_INLINE type toAsciiLower(type ch) { return (conditional) ? (type)asciiCTypeToLowerData[use] : ch; } \
   static FOG_INLINE type toAsciiUpper(type ch) { return (conditional) ? (type)asciiCTypeToUpperData[use] : ch; }

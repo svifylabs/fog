@@ -8,8 +8,8 @@
 #define _FOG_GRAPHICS_PAINTERUTIL_H
 
 // [Dependencies]
+#include <Fog/Graphics/Argb.h>
 #include <Fog/Graphics/Painter.h>
-#include <Fog/Graphics/Rgba.h>
 
 //! @addtogroup Fog_Graphics
 //! @{
@@ -24,7 +24,7 @@ namespace Fog {
 //! 3d looking rectangles, etc...
 struct FOG_API PainterUtil
 {
-  static void draw3dRect(Painter* p, const Rect& r, Rgba color1, Rgba color2, bool checked = false);
+  static void draw3dRect(Painter* p, const Rect& r, Argb color1, Argb color2, bool checked = false);
 };
 
 } // Fog namespace

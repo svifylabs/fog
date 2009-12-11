@@ -13,10 +13,10 @@
 #include <Fog/Core/Delegate.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/Stream.h>
+#include <Fog/Graphics/Argb.h>
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Geometry.h>
 #include <Fog/Graphics/Palette.h>
-#include <Fog/Graphics/Rgba.h>
 
 //! @addtogroup Fog_Graphics
 //! @{
@@ -27,6 +27,7 @@ namespace Fog {
 // [Forward Declarations]
 // ============================================================================
 
+struct ColorFilter;
 struct ColorLut;
 struct ColorMatrix;
 struct ImageFilter;
@@ -38,59 +39,16 @@ struct ImageFilter;
 //! @brief Raster image container.
 struct FOG_API Image
 {
-  //! @brief Pixel format.
-  //!
-  //! @note All pixel formats are CPU endian dependent. So @c ARGB32 pixels
-  //! will be stored differenly in memory on machines with different endianness.
-  //!
-  //! @c FormatARGB32, @c FormatPRGB32
-  //! - Little endian: BBGGRRAA
-  //! - Big endian   : AARRGGBB
-  //! @c FormatRGB32 formats:
-  //! - Little endian: BBGGRRXX
-  //! - Big endian   : XXRRGGBB
-  //! @c FormatRGB24 format:
-  //! - Little endian: BBGGRR
-  //! - Big endian   : RRGGBB
-  //! @c FormatA8 format:
-  //! - no difference: AA (8 bit alpha value)
-  //! @c FormatI8 format:
-  //! - no difference: II (8 bit index value)
-  //!
-  //! @note Do not change order of this enum.
-  enum Format
-  {
-    // Don't change order of these values, it's very dependent to
-    // values that will be initialized in Image.cpp.
-
-    FormatNull = 0,
-    //! @brief 32 bit RGBA (equivalent for @c Rgba).
-    FormatARGB32 = 1,
-    //! @brief 32 bit RGBA premultiplied.
-    FormatPRGB32 = 2,
-    //! @brief 32 bit RGB (equivalent for @c Rgba without alpha channel - full opaque).
-    FormatRGB32 = 3,
-    //! @brief 24 bit RGB.
-    FormatRGB24 = 4,
-    //! @brief 8 bit alpha channel.
-    FormatA8 = 5,
-    //! @brief 8 bit indexed pixel format.
-    FormatI8 = 6,
-    //! @brief Count of image formats.
-    FormatCount = 7
-  };
-
   // [Data]
 
   struct FOG_API Data
   {
     enum
     {
-      IsNull = (1U << 0),
-      IsDynamic = (1U << 1),
-      IsSharable = (1U << 2),
-      IsStrong = (1U << 3),
-      IsReadOnly = (1U << 4)
+      IsDynamic = (1U << 0),
+      IsSharable = (1U << 1),
+      IsStrong = (1U << 2),
+      IsReadOnly = (1U << 3)
     };
 
     Data();
@@ -141,20 +99,10 @@ struct FOG_API Image
 
   static Static<Data> sharedNull;
 
-  // [Constants]
-
-  enum
-  {
-    //! @brief Maximum image width (in pixels).
-    MaxWidth = 16777215,
-    //! @brief Maximum image height (in pixels).
-    MaxHeight = 16777215
-  };
-
   // [Construction / Destruction]
 
   Image();
-  explicit Image(Data* d);
+  FOG_INLINE explicit Image(Data* d) : _d(d) {}
   Image(const Image& other);
   Image(int w, int h, int format);
   ~Image();
@@ -166,7 +114,7 @@ struct FOG_API Image
   //! @copydoc Doxygen::Implicit::isDetached().
   FOG_INLINE bool isDetached() const { return refCount() == 1 || isReadOnly(); }
   //! @copydoc Doxygen::Implicit::detach().
-  FOG_INLINE err_t detach() { return !isDetached() ? _detach() : (err_t)Error::Ok; }
+  FOG_INLINE err_t detach() { return !isDetached() ? _detach() : (err_t)ERR_OK; }
   //! @copydoc Doxygen::Implicit::_detach().
   err_t _detach();
   //! @copydoc Doxygen::Implicit::free().
@@ -176,12 +124,12 @@ struct FOG_API Image
 
   //! @copydoc Doxygen::Implicit::getFlags().
   FOG_INLINE uint32_t getFlags() const { return _d->flags; }
+  //! @copydoc Doxygen::Implicit::isNull().
+  FOG_INLINE bool isNull() const { return _d == sharedNull.instancep(); }
   //! @copydoc Doxygen::Implicit::isDynamic().
   FOG_INLINE bool isDynamic() const { return _d->flags & Data::IsDynamic; }
   //! @copydoc Doxygen::Implicit::isSharable().
   FOG_INLINE bool isSharable() const { return _d->flags & Data::IsSharable; }
-  //! @copydoc Doxygen::Implicit::isNull().
-  FOG_INLINE bool isNull() const { return _d->flags & Data::IsNull; }
   //! @copydoc Doxygen::Implicit::isStrong().
   FOG_INLINE bool isStrong() const { return _d->flags & Data::IsStrong; }
   //! @brief Returns true if image is read only.
@@ -195,7 +143,7 @@ struct FOG_API Image
   //! it's possible that this pointer will be last image scanline in cases that
   //! raster data are filled from bottom to top (Windows DIBs). So if you want
   //! to write portable code, use always @c cFirst() or @c cScanline() methods.
-  FOG_INLINE const uint8_t* cData() const
+  FOG_INLINE const uint8_t* getData() const
   {
     return _d->data;
   }
@@ -206,9 +154,9 @@ struct FOG_API Image
   //! it's possible that this pointer will be last image scanline in cases that
   //! raster data are filled from bottom to top (Windows DIBs). So if you want
   //! to write portable code, use always @c mFirst() or @c mScanline() methods.
-  FOG_INLINE uint8_t* mData()
+  FOG_INLINE uint8_t* getMData()
   {
-    return (detach() == Error::Ok) ? _d->data : NULL;
+    return (detach() == ERR_OK) ? _d->data : NULL;
   }
 
   //! @brief Get mutable pointer to image data (first byte in image buffer).
@@ -219,54 +167,54 @@ struct FOG_API Image
   //! to write portable code, use always @c xFirst() or @c xScanline() methods.
   //!
   //! @note Image must be detached to call this function.
-  FOG_INLINE uint8_t* xData()
+  FOG_INLINE uint8_t* getXData()
   {
-    FOG_ASSERT(isDetached());
+    FOG_ASSERT_X(isDetached(), "Fog::Image::getXData() - Not detached data.");
     return _d->data;
   }
 
   //! @brief Get constant pointer to image first scanline.
-  FOG_INLINE const uint8_t* cFirst() const
+  FOG_INLINE const uint8_t* getFirst() const
   {
     return _d->first;
   }
 
   //! @brief Get mutable pointer to image first scanline.
-  FOG_INLINE uint8_t* mFirst()
+  FOG_INLINE uint8_t* getMFirst()
   {
-    return (detach() == Error::Ok) ? _d->first : NULL;
+    return (detach() == ERR_OK) ? _d->first : NULL;
   }
 
   //! @brief Get constant pointer to image first scanline.
   //!
   //! @note Image must be detached to call this function.
-  FOG_INLINE uint8_t* xFirst()
+  FOG_INLINE uint8_t* getXFirst()
   {
-    FOG_ASSERT(isDetached());
+    FOG_ASSERT_X(isDetached(), "Fog::Image::getXFirst() - Not detached data.");
     return _d->first;
   }
 
   //! @brief Get constant pointer to @c i scanline.
-  FOG_INLINE const uint8_t* cScanline(uint32_t i) const
+  FOG_INLINE const uint8_t* getScanline(uint32_t i) const
   {
-    FOG_ASSERT((sysuint_t)i < (sysuint_t)_d->height);
+    FOG_ASSERT_X((sysuint_t)i < (sysuint_t)_d->height, "Fog::Image::getScanline() - Index out of range");
     return _d->first + (sysint_t)i * _d->stride;
   }
 
   //! @brief Get mutable pointer to @c i scanline.
-  FOG_INLINE uint8_t* mScanline(uint32_t i)
+  FOG_INLINE uint8_t* getMScanline(uint32_t i)
   {
-    FOG_ASSERT((sysuint_t)i < (sysuint_t)_d->height);
-    return (detach() == Error::Ok) ? _d->first + (sysint_t)i * _d->stride : NULL;
+    FOG_ASSERT_X((sysuint_t)i < (sysuint_t)_d->height, "Fog::Image::getScanline() - Index out of range");
+    return (detach() == ERR_OK) ? _d->first + (sysint_t)i * _d->stride : NULL;
   }
 
   //! @brief Get mutable pointer to @c i scanline.
   //!
   //! @note Image must be detached to call this function.
-  FOG_INLINE uint8_t* xScanline(uint32_t i)
+  FOG_INLINE uint8_t* getXScanline(uint32_t i)
   {
-    FOG_ASSERT((sysuint_t)i < (sysuint_t)_d->height);
-    FOG_ASSERT(isDetached());
+    FOG_ASSERT_X((sysuint_t)i < (sysuint_t)_d->height, "Fog::Image::getScanline() - Index out of range");
+    FOG_ASSERT_X(isDetached(), "Fog::Image::getXScanline() - Not detached data.");
     return _d->first + (sysint_t)i * _d->stride;
   }
 
@@ -285,7 +233,7 @@ struct FOG_API Image
 
   // [Format]
 
-  //! @brief Get image format, see @c Format enumeration.
+  //! @brief Get image format, see @c PIXEL_FORMAT enumeration.
   FOG_INLINE int getFormat() const { return _d->format; }
   //! @brief Get image depth (8, 24 or 32).
   FOG_INLINE int getDepth() const { return _d->depth; }
@@ -293,10 +241,10 @@ struct FOG_API Image
   FOG_INLINE int getBytesPerPixel() const { return _d->bytesPerPixel; }
 
   //! @brief Get whether image is indexed (8-bit image with palette).
-  FOG_INLINE bool isIndexed() const { return _d->format == FormatI8; }
+  FOG_INLINE bool isIndexed() const { return _d->format == PIXEL_FORMAT_I8; }
 
-  //! @brief Get whether image is premultiplied (@c FormatARGB32).
-  FOG_INLINE bool isPremultiplied() const { return _d->format == FormatPRGB32; }
+  //! @brief Get whether image is premultiplied (@c PIXEL_FORMAT_PRGB32).
+  FOG_INLINE bool isPremultiplied() const { return _d->format == PIXEL_FORMAT_PRGB32; }
 
   // [Create / Adopt]
 
@@ -304,25 +252,14 @@ struct FOG_API Image
   //!
   //! Please always check error value, because allocation memory for image data
   //! can fail. Also if there are invalid arguments (dimensions or format) the
-  //! Error::InvalidArgument will be returned.
+  //! InvalidArgument will be returned.
   err_t create(int w, int h, int format);
   
-  //! @brief Image adopt flags.
-  enum AdoptFlags
-  {
-    //! @brief Standard adopt behavior
-    NoAdoptFlags = 0x0,
-    //! @brief Adopted image will be read-only.
-    AdoptReadOnly = 0x1,
-    //! @brief Adopted image data are from bottom-to-top (Windows DIBs).
-    AdoptReversed = 0x2
-  };
-
   //! @brief Adopt memory buffer to the image.
   err_t adopt(
     int w, int h, int format,
     const uint8_t* mem, sysint_t stride,
-    uint32_t adoptFlags = NoAdoptFlags);
+    uint32_t adoptFlags = IMAGE_ADOPT_DEFAULT);
 
   // [Set]
 
@@ -356,7 +293,7 @@ struct FOG_API Image
   //! @brief Set image palette.
   err_t setPalette(const Palette& palette);
   //! @brief Set image palette entries.
-  err_t setPalette(sysuint_t index, const Rgba* rgba, sysuint_t count);
+  err_t setPalette(sysuint_t index, const Argb* rgba, sysuint_t count);
 
   // [GetDib / SetDib]
 
@@ -437,7 +374,7 @@ struct FOG_API Image
   // [Swap RGB and RGBA]
 
   err_t swapRgb();
-  err_t swapRgba();
+  err_t swapArgb();
 
   // [Premultiply / Demultiply]
 
@@ -446,92 +383,62 @@ struct FOG_API Image
 
   // [Invert]
 
-  //! @brief Invert modes used together with @c Image::invert() and @c Image::inverted() methods.
-  enum InvertMode
-  {
-    InvertNone  = 0x0,
-    InvertRed   = 0x1,
-    InvertGreen = 0x2,
-    InvertBlue  = 0x4,
-    InvertAlpha = 0x8,
-    InvertRgb   = InvertRed | InvertGreen | InvertBlue,
-    InvertRgba  = InvertRgb | InvertAlpha
-  };
-
-  static err_t invert(Image& dest, const Image& src, uint32_t invertMode);
-
-  FOG_INLINE err_t invert(uint32_t invertMode) { return invert(*this, *this, invertMode); }
+  static err_t invert(Image& dest, const Image& src, uint32_t channels);
+  FOG_INLINE err_t invert(uint32_t channels) { return invert(*this, *this, channels); }
 
   // [Mirror]
 
-  //! @brief Mirror modes used together with @c Image::mirror().
-  enum MirrorMode
-  {
-    MirrorNone       = 0x0,
-    MirrorHorizontal = 0x1,
-    MirrorVertical   = 0x2,
-    MirrorBoth       = 0x3
-  };
-
   static err_t mirror(Image& dest, const Image& src, uint32_t mirrorMode);
-
   FOG_INLINE err_t mirror(uint32_t mirrorMode) { return mirror(*this, *this, mirrorMode); }
 
   // [Rotate]
 
-  //! @brief Rotate modes used together with @c Image::rotate() methods.
-  enum RotateMode
-  {
-    Rotate0 = 0,
-    Rotate90,
-    Rotate180,
-    Rotate270
-  };
-
-  //! @brief Rotate image by 0, 90, 180 or 270 degrees, see @c RotateMode.
+  //! @brief Rotate image by 0, 90, 180 or 270 degrees, see @c IMAGE_ROTATE_MODE.
   static err_t rotate(Image& dest, const Image& src, uint32_t rotateMode);
-
-  //! @brief Rotate image by 0, 90, 180 or 270 degrees, see @c RotateMode.
+  //! @brief Rotate image by 0, 90, 180 or 270 degrees, see @c IMAGE_ROTATE_MODE.
   FOG_INLINE err_t rotate(uint32_t rotateMode) { return rotate(*this, *this, rotateMode); }
 
   // [Channel related]
 
   Image extractChannel(uint32_t channel) const;
 
-  // [Filtering]
+  // [Color Filter]
 
-  err_t filter(const ImageFilter& f);
-  err_t filter(const ImageFilter& f, const Rect& r);
+  err_t filter(const ColorFilter& f, const Rect* area = NULL);
+  err_t filter(const ColorLut& lut, const Rect* area = NULL);
+  err_t filter(const ColorMatrix& cm, const Rect* area = NULL);
 
-  err_t filter(const ColorLut& lut);
-  err_t filter(const ColorLut& lut, const Rect& r);
+  // [Image Filter]
 
-  err_t filter(const ColorMatrix& mat);
-  err_t filter(const ColorMatrix& mat, const Rect& r);
+  err_t filter(const ImageFilter& f, const Rect* area = NULL);
+
+  // [Scaling]
+
+  Image scale(const Size& to, int type = IMAGE_SCALE_SMOOTH);
 
   // [Painting]
 
-  err_t clear(Rgba c0);
+  err_t clear(Argb c0);
 
-  err_t drawPixel(const Point& pt, Rgba c0);
-  err_t drawLine(const Point& pt0, const Point& pt1, Rgba c0, bool lastPoint = true);
+  err_t drawPixel(const Point& pt, Argb c0);
+  err_t drawLine(const Point& pt0, const Point& pt1, Argb c0, bool lastPoint = true);
 
-  err_t fillRect(const Rect& r, Rgba c0, int op = CompositeSrcOver);
+  err_t fillRect(const Rect& r, Argb c0, int op = COMPOSITE_SRC_OVER);
 
-  err_t fillQGradient(const Rect& r, Rgba c0, Rgba c1, Rgba c2, Rgba c3, int op = CompositeSrcOver);
-  err_t fillHGradient(const Rect& r, Rgba c0, Rgba c1, int op = CompositeSrcOver);
-  err_t fillVGradient(const Rect& r, Rgba c0, Rgba c1, int op = CompositeSrcOver);
+  err_t fillQGradient(const Rect& r, Argb c0, Argb c1, Argb c2, Argb c3, int op = COMPOSITE_SRC_OVER);
+  err_t fillHGradient(const Rect& r, Argb c0, Argb c1, int op = COMPOSITE_SRC_OVER);
+  err_t fillVGradient(const Rect& r, Argb c0, Argb c1, int op = COMPOSITE_SRC_OVER);
 
-  err_t drawImage(const Point& pt, const Image& src, uint32_t op = CompositeSrcOver, uint32_t opacity = 255);
-  err_t drawImage(const Point& pt, const Image& src, const Rect& srcRect, uint32_t op = CompositeSrcOver, uint32_t opacity = 255);
+  err_t drawImage(const Point& pt, const Image& src, uint32_t op = COMPOSITE_SRC_OVER, uint32_t opacity = 255);
+  err_t drawImage(const Point& pt, const Image& src, const Rect& srcRect, uint32_t op = COMPOSITE_SRC_OVER, uint32_t opacity = 255);
 
   //! @brief Scroll data in image.
   //!
-  //! @note data that was scrolled out are unchanged.
+  //! @note Data that was scrolled out are unchanged.
   err_t scroll(int x, int y);
   //! @brief Scroll data in image in rectangle @a r.
   //!
-  //! @note data that was scrolled out are unchanged.
+  //! @note Data that was scrolled out are unchanged.
   err_t scroll(int x, int y, const Rect& r);
 
   // [Misc]

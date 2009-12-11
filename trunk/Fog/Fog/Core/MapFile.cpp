@@ -9,7 +9,7 @@
 #endif // FOG_PRECOMP
 
 // [Dependencies]
-#include <Fog/Core/Error.h>
+#include <Fog/Core/Constants.h>
 #include <Fog/Core/ByteArray.h>
 #include <Fog/Core/FileSystem.h>
 #include <Fog/Core/MapFile.h>
@@ -34,7 +34,7 @@ namespace Fog {
 
 MapFile::MapFile() :
   _data(NULL),
-  _size(0),
+  _length(0),
 #if defined(FOG_OS_WINDOWS)
   _hFileMapping(NULL),
   _hFile(NULL),
@@ -42,7 +42,7 @@ MapFile::MapFile() :
 #if defined(FOG_OS_POSIX)
   _fd(-1),
 #endif // FOG_OS_POSIX
-  _state(None)
+  _state(STATE_NONE)
 {
 }
 
@@ -70,7 +70,7 @@ err_t MapFile::map(const String& fileName, bool loadOnFail)
 
   // Try to open file.
   if ((hFile = CreateFileW(
-    reinterpret_cast<const wchar_t*>(fileNameW.cData()), FILE_READ_DATA, FILE_SHARE_READ,
+    reinterpret_cast<const wchar_t*>(fileNameW.getData()), FILE_READ_DATA, FILE_SHARE_READ,
     NULL, OPEN_EXISTING, 0, NULL)) == INVALID_HANDLE_VALUE)
   {
     return GetLastError();
@@ -82,7 +82,7 @@ err_t MapFile::map(const String& fileName, bool loadOnFail)
   if (szHigh) 
   {
     CloseHandle(hFile);
-    return Error::FileSizeTooBig;
+    return ERR_IO_FILE_TOO_BIG;
   }
   size = szLow;
 #else
@@ -92,7 +92,7 @@ err_t MapFile::map(const String& fileName, bool loadOnFail)
   if (size == 0)
   {
     CloseHandle(hFile);
-    return Error::EmptyFile;
+    return ERR_IO_FILE_IS_EMPTY;
   }
 
   // Create FileMapping object.
@@ -104,11 +104,11 @@ err_t MapFile::map(const String& fileName, bool loadOnFail)
     {
       _fileName = fileName;
       _data = data;
-      _size = size;
+      _length = size;
       _hFileMapping = hFileMapping;
       _hFile = hFile;
-      _state = Mapped;
-      return Error::Ok;
+      _state = STATE_MAPPED;
+      return ERR_OK;
     }
 
     err = GetLastError();
@@ -129,7 +129,7 @@ err_t MapFile::map(const String& fileName, bool loadOnFail)
   if (!data)
   {
     CloseHandle(hFile);
-    return Error::OutOfMemory;
+    return ERR_RT_OUT_OF_MEMORY;
   }
 
   static const sysuint_t chunkSize = 1024*1024*16;
@@ -161,11 +161,11 @@ err_t MapFile::map(const String& fileName, bool loadOnFail)
 
   _fileName = fileName;
   _data = data;
-  _size = size;
+  _length = size;
   _hFileMapping = NULL;
   _hFile = NULL;
-  _state = Loaded;
-  return Error::Ok;
+  _state = STATE_LOADED;
+  return ERR_OK;
 }
 
 void MapFile::unmap()
@@ -185,10 +185,10 @@ void MapFile::unmap()
 
   _fileName.clear();
   _data = NULL;
-  _size = 0UL;
+  _length = 0UL;
   _hFileMapping = NULL;
   _hFile = NULL;
-  _state = None;
+  _state = STATE_NONE;
 }
 #endif // FOG_OS_WINDOWS
 
@@ -199,10 +199,10 @@ err_t MapFile::map(const String& fileName, bool loadOnFail)
 
   err_t err;
 
-  TemporaryByteArray<TemporaryLength> fileName8;
+  TemporaryByteArray<TEMP_LENGTH> fileName8;
   if ((err = TextCodec::local8().appendFromUnicode(fileName8, fileName))) return err;
 
-  int fd = open(fileName8.cData(), O_RDONLY);
+  int fd = open(fileName8.getData(), O_RDONLY);
   if (fd < 0) return errno;
 
   struct stat s;
@@ -220,17 +220,17 @@ err_t MapFile::map(const String& fileName, bool loadOnFail)
     {
       _fileName = fileName;
       _data = mmap_data;
-      _size = (sysuint_t)s.st_size;
+      _length = (sysuint_t)s.st_size;
       _fd = fd;
-      _state = Mapped;
-      return Error::Ok;
+      _state = STATE_MAPPED;
+      return ERR_OK;
     }
 
     void* data = Memory::alloc((sysuint_t)s.st_size);
     if (!data)
     {
       close(fd);
-      return Error::OutOfMemory;
+      return ERR_RT_OUT_OF_MEMORY;
     }
 
     const sysuint_t chunkSize = 1024*1024*16;
@@ -263,10 +263,10 @@ err_t MapFile::map(const String& fileName, bool loadOnFail)
 
     _fileName = fileName;
     _data = data;
-    _size = (sysuint_t)s.st_size;
+    _length = (sysuint_t)s.st_size;
     _fd = -1;
-    _state = Loaded;
-    return Error::Ok;
+    _state = STATE_LOADED;
+    return ERR_OK;
   }
   else
   {
@@ -282,7 +282,7 @@ void MapFile::unmap()
 
   if (_fd != -1)
   {
-    munmap((char *)_data, _size);
+    munmap((char *)_data, _length);
     close(_fd);
   }
   else
@@ -292,9 +292,9 @@ void MapFile::unmap()
 
   _fileName.clear();
   _data = NULL;
-  _size = 0UL;
+  _length = 0UL;
   _fd = -1;
-  _state = None;
+  _state = STATE_NONE;
 }
 #endif // FOG_OS_POSIX
 

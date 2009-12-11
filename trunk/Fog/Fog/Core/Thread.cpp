@@ -38,7 +38,7 @@
 #include <errno.h>
 #include <sched.h>
 
-#if defined(FOG_OS_MACOSX)
+#if defined(FOG_OS_MAC)
 #include <mach/mach.h>
 #elif defined(FOG_OS_LINUX)
 #include <sys/syscall.h>
@@ -115,7 +115,7 @@ void Thread::_setName(const String& name)
 
   THREADNAME_INFO info;
   info.dwType = 0x1000;
-  info.szName = t.cData();
+  info.szName = t.getData();
   info.dwThreadID = _tid();
   info.dwFlags = 0;
 
@@ -125,7 +125,7 @@ void Thread::_setName(const String& name)
 bool Thread::_create(sysuint_t stackSize, Thread* thread)
 {
   uint flags = 0;
-  if (stackSize > 0 && OS::getWindowsVersion() >= OS::Win_XP)
+  if (stackSize > 0 && OS::getWindowsVersion() >= OS::WIN_VERSION_XP)
     flags = STACK_SIZE_PARAM_IS_A_RESERVATION;
   else
     stackSize = 0;
@@ -163,7 +163,7 @@ uint32_t Thread::_tid()
 {
   // Pthreads doesn't have the concept of a thread ID, so we have to reach down
   // into the kernel.
-#if defined(FOG_OS_MACOSX)
+#if defined(FOG_OS_MAC)
   return (uint32_t)mach_thread_self();
 #elif defined(FOG_OS_LINUX)
   return (uint32_t)syscall(__NR_gettid);
@@ -227,7 +227,7 @@ void Thread::_join(Thread* thread)
 // [Fog::Thread]
 // ============================================================================
 
-Thread* Thread::current()
+Thread* Thread::getCurrent()
 {
   return thread_tls.instance().get();
 }
@@ -259,14 +259,14 @@ err_t Thread::setAffinity(int mask)
 #if defined(FOG_OS_WINDOWS)
   DWORD_PTR result = SetThreadAffinityMask(_handle, (DWORD_PTR)mask);
   if (result == 0)
-    return Error::Ok;
+    return ERR_OK;
   else
-    return Error::InvalidArgument;
+    return ERR_RT_INVALID_ARGUMENT;
 #elif defined(FOG_OS_LINUX)
   size_t affinityMask = mask;
   return pthread_setaffinity_np(_handle, sizeof(affinityMask), (const cpu_set_t*)&affinityMask);
 #else
-  return Error::NotImplemented;
+  return ERR_RT_NOT_IMPLEMENTED;
 #endif
 }
 
@@ -276,14 +276,14 @@ err_t Thread::resetAffinity()
   size_t affinityMask = (1 << cpuInfo->numberOfProcessors) - 1;
   DWORD_PTR result = SetThreadAffinityMask(_handle, (DWORD_PTR)(affinityMask));
   if (result == 0)
-    return Error::Ok;
+    return ERR_OK;
   else
-    return Error::InvalidArgument;
+    return ERR_RT_INVALID_ARGUMENT;
 #elif defined(FOG_OS_LINUX)
   size_t affinityMask = (1 << cpuInfo->numberOfProcessors) - 1;
   return pthread_setaffinity_np(_handle, sizeof(affinityMask), (const cpu_set_t*)&affinityMask);
 #else
-  return Error::NotImplemented;
+  return ERR_RT_NOT_IMPLEMENTED;
 #endif
 }
 
@@ -315,7 +315,7 @@ void Thread::stop()
 
   // StopSoon may have already been called.
   if (_eventLoop)
-    _eventLoop->postTask(new ThreadQuitTask());
+    _eventLoop->postTask(new(std::nothrow) QuitTask());
 
   // Wait for the thread to exit.  It should already have terminated but make
   // sure this assumption is valid.
@@ -344,7 +344,7 @@ void Thread::stopSoon()
   // to someone calling Quit() on our event loop directly.
   FOG_ASSERT(_eventLoop);
 
-  _eventLoop->postTask(new ThreadQuitTask());
+  _eventLoop->postTask(new(std::nothrow) QuitTask());
 
   // The thread can't receive messages anymore.
   _eventLoop = NULL;
@@ -373,8 +373,6 @@ void Thread::main()
   if (_eventLoop)
   {
     // Event loop
-    _eventLoop->setThreadName(_name);
-
     _startupData->event.signal();
 
     // _startupData can't be touched anymore since the starting thread is now
@@ -461,7 +459,7 @@ FOG_INIT_DECLARE err_t fog_thread_init(void)
 
   thread_tls.init();
   mainThread.init();
-  return Error::Ok;
+  return ERR_OK;
 }
 
 FOG_INIT_DECLARE void fog_thread_shutdown(void)
@@ -471,3 +469,4 @@ FOG_INIT_DECLARE void fog_thread_shutdown(void)
   mainThread.destroy();
   thread_tls.destroy();
 }
+

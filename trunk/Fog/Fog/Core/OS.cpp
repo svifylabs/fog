@@ -11,7 +11,7 @@
 // [Dependencies]
 #include <Fog/Build/Build.h>
 #include <Fog/Core/ByteArray.h>
-#include <Fog/Core/Error.h>
+#include <Fog/Core/Constants.h>
 #include <Fog/Core/OS.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/String.h>
@@ -25,10 +25,10 @@
 #include <unistd.h>
 #endif // FOG_OS_POSIX
 
-#if defined(FOG_OS_MACOSX)
+#if defined(FOG_OS_MAC)
 #include <mach/mach_host.h>
 #include <mach/mach_init.h>
-#endif // FOG_OS_MACOSX
+#endif // FOG_OS_MAC
 
 // [Fog::System - Windows stuff]
 #if defined(FOG_OS_WINDOWS) && !defined(PATH_MAX)
@@ -69,17 +69,17 @@ struct OS_Local
     {
       case VER_PLATFORM_WIN32_NT:
         windowsName.set(Ascii8("WinNT"));
-        windowsVersion |= OS::Win_NT;
+        windowsVersion |= OS::WIN_VERSION_NT;
 
         // Windows NT 3.0
         if (osVersion.dwMajorVersion == 3)
         {
-          windowsVersion |= OS::Win_NT_3;
+          windowsVersion |= OS::WIN_VERSION_NT_3;
         }
         // Windows NT 4.0
         else if (osVersion.dwMajorVersion == 4)
         {
-          windowsVersion |= OS::Win_NT_4;
+          windowsVersion |= OS::WIN_VERSION_NT_4;
         }
         // Windows 2000, XP or 2003
         else if (osVersion.dwMajorVersion == 5)
@@ -87,24 +87,24 @@ struct OS_Local
           if (osVersion.dwMinorVersion == 0)
           {
             windowsName.set(Ascii8("Win2000"));
-            windowsVersion |= OS::Win_2000;
+            windowsVersion |= OS::WIN_VERSION_2000;
           }
           else if (osVersion.dwMinorVersion == 1)
           {
             windowsName.set(Ascii8("WinXP"));
-            windowsVersion |= OS::Win_XP;
+            windowsVersion |= OS::WIN_VERSION_XP;
           }
           else if (osVersion.dwMinorVersion == 2)
           {
             windowsName.set(Ascii8("Win2003"));
-            windowsVersion |= OS::Win_2003;
+            windowsVersion |= OS::WIN_VERSION_2003;
           }
         }
         // Windows Vista
         else if (osVersion.dwMajorVersion == 6)
         {
           windowsName.set(Ascii8("WinVista"));
-          windowsVersion |= OS::Win_Vista;
+          windowsVersion |= OS::WIN_VERSION_VISTA;
         }
         break;
     }
@@ -189,7 +189,7 @@ uint64_t OS::getAmountOfPhysicalMemory()
 
 #if defined(FOG_OS_POSIX)
 // _SC_PHYS_PAGES is not part of POSIX and not available on OS X
-#if defined(FOG_OS_MACOSX)
+#if defined(FOG_OS_MAC)
   struct host_basic_info hostinfo;
   mach_msg_type_number_t count = HOST_BASIC_INFO_COUNT;
   int result = host_info(mach_host_self(),
@@ -249,16 +249,16 @@ err_t OS::getEnv(const String& name, String& value)
 
   for (;;)
   {
-    sz = GetEnvironmentVariableW(reinterpret_cast<const wchar_t*>(name.cData()),
-      reinterpret_cast<wchar_t*>(value.xData()), value.getCapacity());
+    sz = GetEnvironmentVariableW(reinterpret_cast<const wchar_t*>(name.getData()),
+      reinterpret_cast<wchar_t*>(value.getXData()), value.getCapacity());
 
     if (sz == 0)
     {
-      return Error::GetEnvFailure;
+      return ERR_ENV_GET_FAILED;
     }
     else if (sz > value.getCapacity())
     {
-      if ((err = value.prepare(sz)) == Error::Ok) continue;
+      if ((err = value.prepare(sz)) == ERR_OK) continue;
       return err;
     }
     else if (sz)
@@ -269,12 +269,12 @@ err_t OS::getEnv(const String& name, String& value)
 #endif // FOG_OS_WINDOWS
 
 #if defined(FOG_OS_POSIX)
-  TemporaryByteArray<TemporaryLength> name8;
+  TemporaryByteArray<TEMP_LENGTH> name8;
 
   err_t err;
   if ((err = TextCodec::local8().appendFromUnicode(name8, name))) return err;
 
-  const char* e = getenv(name8.cData());
+  const char* e = getenv(name8.getData());
   if (e) 
   {
     return TextCodec::local8().toUnicode(value, e);
@@ -282,7 +282,7 @@ err_t OS::getEnv(const String& name, String& value)
   else
   {
     value.clear();
-    return Error::GetEnvFailure;
+    return ERR_ENV_GET_FAILED;
   }
 #endif
 }
@@ -290,20 +290,20 @@ err_t OS::getEnv(const String& name, String& value)
 err_t OS::setEnv(const String& name, const String& value)
 {
 #if defined(FOG_OS_WINDOWS)
-  if (SetEnvironmentVariableW(reinterpret_cast<const wchar_t*>(name.cData()), 
-    reinterpret_cast<const wchar_t*>(value.cData())))
+  if (SetEnvironmentVariableW(reinterpret_cast<const wchar_t*>(name.getData()), 
+    reinterpret_cast<const wchar_t*>(value.getData())))
   {
-    return Error::Ok;
+    return ERR_OK;
   }
   else
   {
-    return Error::SetEnvFailure;
+    return ERR_ENV_SET_FAILED;
   }
 #endif
 
 #if defined(FOG_OS_POSIX)
-  TemporaryByteArray<TemporaryLength> name8;
-  TemporaryByteArray<TemporaryLength> value8;
+  TemporaryByteArray<TEMP_LENGTH> name8;
+  TemporaryByteArray<TEMP_LENGTH> value8;
 
   err_t err;
   int result;
@@ -312,11 +312,11 @@ err_t OS::setEnv(const String& name, const String& value)
   if ((err = TextCodec::local8().appendFromUnicode(value8, value))) return err;
 
   if (value8.isEmpty())
-    result = unsetenv(name8.cData());
+    result = unsetenv(name8.getData());
   else
-    result = setenv(name8.cData(), value8.cData(), 1);
+    result = setenv(name8.getData(), value8.getData(), 1);
 
-  if (result != 0) err = Error::SetEnvFailure;
+  if (result != 0) err = ERR_ENV_SET_FAILED;
   return err;
 #endif
 }
@@ -332,7 +332,7 @@ FOG_INIT_DECLARE err_t fog_os_init(void)
   using namespace Fog;
 
   os_local.init();
-  return Error::Ok;
+  return ERR_OK;
 }
 
 FOG_INIT_DECLARE void fog_os_shutdown(void)

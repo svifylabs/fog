@@ -15,20 +15,19 @@
 #include <Fog/Core/ByteArray.h>
 #include <Fog/Core/ByteArrayFilter.h>
 #include <Fog/Core/ByteArrayMatcher.h>
-#include <Fog/Core/Error.h>
+#include <Fog/Core/Constants.h>
 #include <Fog/Core/HashUtil.h>
+#include <Fog/Core/List.h>
 #include <Fog/Core/Memory.h>
-#include <Fog/Core/Sequence.h>
 #include <Fog/Core/StringUtil.h>
 #include <Fog/Core/TextCodec.h>
-#include <Fog/Core/Vector.h>
 
 #include <stdarg.h>
 
 namespace Fog {
 
 // ============================================================================
-// [Fog::String - Helpers]
+// [Fog::ByteArray - Helpers]
 // ============================================================================
 
 static FOG_INLINE bool fitToRange(
@@ -48,7 +47,7 @@ static FOG_INLINE bool fitToRange(
 }
 
 // ============================================================================
-// [Fog::String - Construction / Destruction]
+// [Fog::ByteArray - Construction / Destruction]
 // ============================================================================
 
 ByteArray::ByteArray()
@@ -95,7 +94,7 @@ ByteArray::ByteArray(const char* str)
 
 ByteArray::ByteArray(const char* str, sysuint_t length)
 {
-  if (length == DetectLength) length = StringUtil::len(str);
+  if (length == DETECT_LENGTH) length = StringUtil::len(str);
 
   _d = Data::alloc(0, str, length);
   if (!_d) _d = sharedNull->refAlways();
@@ -104,7 +103,7 @@ ByteArray::ByteArray(const char* str, sysuint_t length)
 ByteArray::ByteArray(const Str8& str)
 {
   const char* s = str.getData();
-  sysuint_t length = (str.getLength() == DetectLength)
+  sysuint_t length = (str.getLength() == DETECT_LENGTH)
     ? StringUtil::len(s) : str.getLength();
 
   _d = Data::alloc(0, s, length);
@@ -117,18 +116,18 @@ ByteArray::~ByteArray()
 }
 
 // ============================================================================
-// [Fog::String - Implicit Sharing]
+// [Fog::ByteArray - Implicit Sharing]
 // ============================================================================
 
 err_t ByteArray::_detach()
 {
-  if (isDetached()) return Error::Ok;
+  if (isDetached()) return ERR_OK;
 
   Data* newd = Data::copy(_d);
-  if (!newd) return Error::OutOfMemory;
+  if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
   AtomicBase::ptr_setXchg(&_d, newd)->deref();
-  return Error::Ok;
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -172,14 +171,14 @@ err_t ByteArray::prepare(sysuint_t capacity)
     d->hashCode = 0;
     d->length = 0;
     d->data[0] = 0;
-    return Error::Ok;
+    return ERR_OK;
   }
 
   d = Data::alloc(capacity);
-  if (!d) return Error::OutOfMemory;
+  if (!d) return ERR_RT_OUT_OF_MEMORY;
 
   AtomicBase::ptr_setXchg(&_d, d)->deref();
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t ByteArray::reserve(sysuint_t to)
@@ -190,19 +189,19 @@ err_t ByteArray::reserve(sysuint_t to)
   if (_d->refCount.get() > 1)
   {
     Data* newd = Data::alloc(to, _d->data, _d->length);
-    if (!newd) return Error::OutOfMemory;
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
     AtomicBase::ptr_setXchg(&_d, newd)->deref();
   }
   else
   {
     Data* newd = Data::realloc(_d, to);
-    if (!newd) return Error::OutOfMemory;
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
     _d = newd;
   }
 done:
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t ByteArray::resize(sysuint_t to)
@@ -212,14 +211,14 @@ err_t ByteArray::resize(sysuint_t to)
   if (_d->refCount.get() > 1)
   {
     Data* newd = Data::alloc(to, _d->data, to < _d->length ? to : _d->length);
-    if (!newd) return Error::OutOfMemory;
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
     AtomicBase::ptr_setXchg(&_d, newd)->deref();
   }
   else
   {
     Data* newd = Data::realloc(_d, to);
-    if (!newd) return Error::OutOfMemory;
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
     _d = newd;
   }
@@ -228,7 +227,7 @@ done:
   _d->hashCode = 0;
   _d->length = to;
   _d->data[to] = 0;
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t ByteArray::grow(sysuint_t by)
@@ -246,7 +245,7 @@ err_t ByteArray::grow(sysuint_t by)
       sizeof(ByteArray::Data), sizeof(char), lengthBefore, lengthAfter);
 
     Data* newd = Data::alloc(optimalCapacity, _d->data, _d->length);
-    if (!newd) return Error::OutOfMemory;
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
     AtomicBase::ptr_setXchg(&_d, newd)->deref();
   }
@@ -256,7 +255,7 @@ err_t ByteArray::grow(sysuint_t by)
       sizeof(ByteArray::Data), sizeof(char), lengthBefore, lengthAfter);
 
     Data* newd = Data::realloc(_d, optimalCapacity);
-    if (!newd) return Error::OutOfMemory;
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
     _d = newd;
   }
@@ -265,7 +264,7 @@ done:
   _d->hashCode = 0;
   _d->length = lengthAfter;
   _d->data[lengthAfter] = 0;
-  return Error::Ok;
+  return ERR_OK;
 }
 
 void ByteArray::squeeze()
@@ -302,7 +301,7 @@ void ByteArray::free()
   AtomicBase::ptr_setXchg(&_d, sharedNull->refAlways())->deref();
 }
 
-char* ByteArray::mData()
+char* ByteArray::getMData()
 {
   detach();
   _d->hashCode = 0;
@@ -448,33 +447,33 @@ static char* _prepareReplace(ByteArray* self, sysuint_t index, sysuint_t range, 
 
 err_t ByteArray::set(char ch, sysuint_t length)
 {
-  if (length == DetectLength) return Error::InvalidArgument;
+  if (length == DETECT_LENGTH) return ERR_RT_INVALID_ARGUMENT;
 
   char* p = _prepareSet(this, length);
-  if (!p) return Error::OutOfMemory;
+  if (!p) return ERR_RT_OUT_OF_MEMORY;
 
   StringUtil::fill(p, ch, length);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t ByteArray::set(const Str8& str)
 {
   const char* s = str.getData();
-  sysuint_t length = (str.getLength() == DetectLength)
+  sysuint_t length = (str.getLength() == DETECT_LENGTH)
     ? StringUtil::len(s) : str.getLength();
 
   char* p = _prepareSet(this, length);
-  if (!p) return Error::OutOfMemory;
+  if (!p) return ERR_RT_OUT_OF_MEMORY;
 
   StringUtil::copy(p, s, length);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t ByteArray::set(const ByteArray& other)
 {
   Data* self_d = _d;
   Data* other_d = other._d;
-  if (self_d == other_d) return Error::Ok;
+  if (self_d == other_d) return ERR_OK;
 
   if ((self_d->flags & Data::IsStrong) != 0 || (other_d->flags & Data::IsSharable) == 0)
   {
@@ -483,7 +482,7 @@ err_t ByteArray::set(const ByteArray& other)
   else
   {
     AtomicBase::ptr_setXchg(&_d, other_d->refAlways())->derefInline();
-    return Error::Ok;
+    return ERR_OK;
   }
 }
 
@@ -491,13 +490,13 @@ err_t ByteArray::setDeep(const ByteArray& other)
 {
   Data* self_d = _d;
   Data* other_d = other._d;
-  if (self_d == other_d) return Error::Ok;
+  if (self_d == other_d) return ERR_OK;
 
   char* p = _prepareSet(this, other_d->length);
-  if (!p) return Error::OutOfMemory;
+  if (!p) return ERR_RT_OUT_OF_MEMORY;
 
-  StringUtil::copy(p, other.cData(), other.getLength());
-  return Error::Ok;
+  StringUtil::copy(p, other.getData(), other.getLength());
+  return ERR_OK;
 }
 
 err_t ByteArray::setBool(bool b)
@@ -601,10 +600,10 @@ err_t ByteArray::vformatc(const char* fmt, const TextCodec& tc, va_list ap)
   return appendVformatc(fmt, tc, ap);
 }
 
-err_t ByteArray::wformat(const ByteArray& fmt, char lex, const Sequence<ByteArray>& args)
+err_t ByteArray::wformat(const ByteArray& fmt, char lex, const List<ByteArray>& args)
 {
   clear();
-  return appendWformat(fmt, lex, args.cData(), args.getLength());
+  return appendWformat(fmt, lex, args.getData(), args.getLength());
 }
 
 err_t ByteArray::wformat(const ByteArray& fmt, char lex, const ByteArray* args, sysuint_t length)
@@ -628,12 +627,12 @@ static err_t append_ntoa(ByteArray* self, uint64_t n, int base, const FormatFlag
 
   if (out->negative)
     *prefix++ = '-';
-  else if (fmt & FormatFlags::ShowSign)
+  else if (fmt & FORMAT_SHOW_SIGN)
     *prefix++ = '+';
-  else if (fmt & FormatFlags::BlankPositive)
+  else if (fmt & FORMAT_BLANK_POSITIVE)
     *prefix++ = ' ';
 
-  if (fmt & FormatFlags::Alternate)
+  if (fmt & FORMAT_ALTERNATE_FORM)
   {
     if (base == 8)
     {
@@ -642,18 +641,18 @@ static err_t append_ntoa(ByteArray* self, uint64_t n, int base, const FormatFlag
     else if (base == 16)
     {
       *prefix++ = '0';
-      *prefix++ = (fmt & FormatFlags::CapitalizeEOrX) ? 'X' : 'x';
+      *prefix++ = (fmt & FORMAT_CAPITALIZE_E_OR_X) ? 'X' : 'x';
     }
   }
 
   sysuint_t prefixLength = (sysuint_t)(prefix - prefixBuffer);
   sysuint_t resultLength = out->length;
 
-  if (width == FormatFlags::NoWidth) width = 0;
-  if ((fmt & FormatFlags::ZeroPadded) &&
-      precision == FormatFlags::NoPrecision &&
+  if (width == NO_WIDTH) width = 0;
+  if ((fmt & FORMAT_ZERO_PADDED) &&
+      precision == NO_PRECISION &&
       width > prefixLength + resultLength) precision = width - prefixLength;
-  if (precision == FormatFlags::NoPrecision) precision = 0;
+  if (precision == NO_PRECISION) precision = 0;
 
   sysuint_t fillLength = (resultLength < precision) ? precision - resultLength : 0;
   sysuint_t fullLength = prefixLength + resultLength + fillLength;
@@ -662,10 +661,10 @@ static err_t append_ntoa(ByteArray* self, uint64_t n, int base, const FormatFlag
   fullLength += widthLength;
 
   char* p = _prepareAppend(self, fullLength);
-  if (!p) return Error::OutOfMemory;
+  if (!p) return ERR_RT_OUT_OF_MEMORY;
 
   // Left justification.
-  if (!(fmt & FormatFlags::LeftAdjusted))
+  if (!(fmt & FORMAT_LEFT_ADJUSTED))
   {
     StringUtil::fill(p, ' ', widthLength); p += widthLength;
   }
@@ -678,12 +677,12 @@ static err_t append_ntoa(ByteArray* self, uint64_t n, int base, const FormatFlag
   StringUtil::copy(p, out->result, resultLength); p += resultLength;
 
   // Right justification.
-  if (fmt & FormatFlags::LeftAdjusted)
+  if (fmt & FORMAT_LEFT_ADJUSTED)
   {
     StringUtil::fill(p, ' ', widthLength);
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 static char* append_exponent(char* dest, uint exp, char zero)
@@ -699,13 +698,13 @@ static char* append_exponent(char* dest, uint exp, char zero)
 
 err_t ByteArray::append(char ch, sysuint_t length)
 {
-  if (length == DetectLength) return Error::InvalidArgument;
+  if (length == DETECT_LENGTH) return ERR_RT_INVALID_ARGUMENT;
 
   char* p = _prepareAppend(this, length);
-  if (!p) return Error::OutOfMemory;
+  if (!p) return ERR_RT_OUT_OF_MEMORY;
 
   StringUtil::fill(p, ch, length);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t ByteArray::append(const Str8& other)
@@ -713,13 +712,13 @@ err_t ByteArray::append(const Str8& other)
   const char* s = other.getData();
   sysuint_t length = other.getLength();
 
-  if (length == DetectLength) length = StringUtil::len(s);
+  if (length == DETECT_LENGTH) length = StringUtil::len(s);
 
   char* p = _prepareAppend(this, length);
-  if (!p) return Error::OutOfMemory;
+  if (!p) return ERR_RT_OUT_OF_MEMORY;
 
   StringUtil::copy(p, s, length);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t ByteArray::append(const ByteArray& _other)
@@ -729,10 +728,10 @@ err_t ByteArray::append(const ByteArray& _other)
   ByteArray other(_other);
 
   char* p = _prepareAppend(this, other.getLength());
-  if (!p) return Error::OutOfMemory;
+  if (!p) return ERR_RT_OUT_OF_MEMORY;
 
-  StringUtil::copy(p, other.cData(), other.getLength());
-  return Error::Ok;
+  StringUtil::copy(p, other.getData(), other.getLength());
+  return ERR_OK;
 }
 
 err_t ByteArray::appendBool(bool b)
@@ -773,7 +772,7 @@ err_t ByteArray::appendInt(uint32_t n, int base, const FormatFlags& ff)
 err_t ByteArray::appendInt(int64_t n, int base, const FormatFlags& ff)
 {
   StringUtil::NTOAOut out;
-  StringUtil::itoa(n, base, (ff.flags & FormatFlags::Capitalize) != 0, &out);
+  StringUtil::itoa(n, base, (ff.flags & FORMAT_CAPITALIZE) != 0, &out);
 
   return append_ntoa(this, (uint64_t)n, base, ff, &out);
 }
@@ -781,7 +780,7 @@ err_t ByteArray::appendInt(int64_t n, int base, const FormatFlags& ff)
 err_t ByteArray::appendInt(uint64_t n, int base, const FormatFlags& ff)
 {
   StringUtil::NTOAOut out;
-  StringUtil::utoa(n, base, (ff.flags & FormatFlags::Capitalize) != 0, &out);
+  StringUtil::utoa(n, base, (ff.flags & FORMAT_CAPITALIZE) != 0, &out);
 
   return append_ntoa(this, n, base, ff, &out);
 }
@@ -796,7 +795,7 @@ namespace StringUtil { FOG_HIDDEN double _mprec_log10(int dig); }
 
 err_t ByteArray::appendDouble(double d, int doubleForm, const FormatFlags& ff)
 {
-  err_t err = Error::Ok;
+  err_t err = ERR_OK;
 
   StringUtil::NTOAOut out;
 
@@ -816,19 +815,19 @@ err_t ByteArray::appendDouble(double d, int doubleForm, const FormatFlags& ff)
   char* dest;
   char sign = 0;
 
-  if (precision == FormatFlags::NoPrecision) precision = 6;
+  if (precision == NO_PRECISION) precision = 6;
 
   if (d < 0.0)
     { sign = '-'; d = -d; }
-  else if (fmt & FormatFlags::ShowSign)
+  else if (fmt & FORMAT_SHOW_SIGN)
     sign = '+';
-  else if (fmt & FormatFlags::BlankPositive)
+  else if (fmt & FORMAT_BLANK_POSITIVE)
     sign = ' ';
 
   if (sign != 0) append(sign);
 
   // Decimal form
-  if (doubleForm == DF_Decimal)
+  if (doubleForm == DF_DECIMAL)
   {
     StringUtil::dtoa(d, 2, precision, &out);
 
@@ -843,13 +842,13 @@ err_t ByteArray::appendDouble(double d, int doubleForm, const FormatFlags& ff)
     if (decpt > 0) i += (sysuint_t)decpt;
 
     if ( (err = reserve(getLength() + i)) ) return err;
-    dest = xData() + getLength();
+    dest = getXData() + getLength();
 
     while (bufCur != bufEnd && decpt > 0) { *dest++ = *bufCur++; decpt--; }
     // Even if not in buffer
     while (decpt > 0) { *dest++ = '0'; decpt--; }
 
-    if ((fmt & FormatFlags::Alternate) != 0 || bufCur != bufEnd)
+    if ((fmt & FORMAT_ALTERNATE_FORM) != 0 || bufCur != bufEnd)
     {
       if (bufCur == out.result) *dest++ = '0';
       *dest++ = '.';
@@ -864,7 +863,7 @@ err_t ByteArray::appendDouble(double d, int doubleForm, const FormatFlags& ff)
     xFinalize(dest);
   }
   // Exponential form
-  else if (doubleForm == DF_Exponent)
+  else if (doubleForm == DF_EXPONENT)
   {
 __exponentialForm:
     StringUtil::dtoa(d, 2, precision + 1, &out);
@@ -874,13 +873,13 @@ __exponentialForm:
 
     // reserve some space for number, we need +X.{PRECISION}e+123
     if ( (err = reserve(getLength() + precision + 10)) ) return err;
-    dest = xData() + getLength();
+    dest = getXData() + getLength();
 
     bufCur = out.result;
     bufEnd = bufCur + out.length;
 
     *dest++ = *bufCur++;
-    if ((fmt & FormatFlags::Alternate) != 0 || precision != 0) *dest++ = '.';
+    if ((fmt & FORMAT_ALTERNATE_FORM) != 0 || precision != 0) *dest++ = '.';
     while (bufCur != bufEnd && precision > 0)
     {
       *dest++ = *bufCur++;
@@ -889,13 +888,13 @@ __exponentialForm:
 
     // Add trailing zeroes to fill out to ndigits unless this is
     // DF_SignificantDigits
-    if (doubleForm == DF_Exponent)
+    if (doubleForm == DF_EXPONENT)
     {
       for (i = precision; i; i--) *dest++ = '0';
     }
 
     // Add the exponent.
-    *dest++ = (ff.flags & FormatFlags::CapitalizeEOrX) ? 'E' : 'e';
+    *dest++ = (ff.flags & FORMAT_CAPITALIZE_E_OR_X) ? 'E' : 'e';
     decpt--;
     if (decpt < 0)
       { *dest++ = '-'; decpt = -decpt; }
@@ -934,7 +933,7 @@ __exponentialForm:
     if (decpt > 0) i += (sysuint_t)decpt;
 
     if ( (err = reserve(getLength() + i)) ) return err;
-    dest = save = xData() + getLength();
+    dest = save = getXData() + getLength();
 
     bufCur = out.result;
     bufEnd = bufCur + out.length;
@@ -943,7 +942,7 @@ __exponentialForm:
     // Even if not in buffer
     while (decpt > 0 && precision > 0) { *dest++ = '0'; decpt--; precision--; }
 
-    if ((fmt & FormatFlags::Alternate) != 0 || bufCur != bufEnd)
+    if ((fmt & FORMAT_ALTERNATE_FORM) != 0 || bufCur != bufEnd)
     {
       if (dest == save) *dest++ = '0';
       *dest++ = '.';
@@ -968,9 +967,9 @@ __ret:
   {
     sysuint_t fill = width - numberLength;
 
-    if ((fmt & FormatFlags::LeftAdjusted) == 0)
+    if ((fmt & FORMAT_LEFT_ADJUSTED) == 0)
     {
-      if (savedPrecision == FormatFlags::NoPrecision)
+      if (savedPrecision == NO_PRECISION)
         err |= insert(beginLength + (sign != 0), '0', fill);
       else
         err |= insert(beginLength, ' ', fill);
@@ -987,8 +986,6 @@ err_t ByteArray::appendFormat(const char* fmt, ...)
 {
   FOG_ASSERT(fmt);
 
-  clear();
-
   va_list ap;
   va_start(ap, fmt);
   err_t err = appendVformat(fmt, ap);
@@ -1000,8 +997,6 @@ err_t ByteArray::appendFormat(const char* fmt, ...)
 err_t ByteArray::appendFormatc(const char* fmt, const TextCodec& tc, ...)
 {
   FOG_ASSERT(fmt);
-
-  clear();
 
   va_list ap;
   va_start(ap, tc);
@@ -1034,7 +1029,7 @@ err_t ByteArray::appendVformatc(const char* fmt, const TextCodec& tc, va_list ap
   }                                                  \
 }
 
-  if (fmt == NULL) return Error::InvalidArgument;
+  if (fmt == NULL) return ERR_RT_INVALID_ARGUMENT;
 
   const char* fmtBeginChunk = fmt;
   uint32_t c;
@@ -1048,8 +1043,8 @@ err_t ByteArray::appendVformatc(const char* fmt, const TextCodec& tc, va_list ap
     {
       uint directives = 0;
       uint sizeFlags = 0;
-      sysuint_t fieldWidth = FormatFlags::NoWidth;
-      sysuint_t precision = FormatFlags::NoPrecision;
+      sysuint_t fieldWidth = NO_WIDTH;
+      sysuint_t precision = NO_PRECISION;
       uint base = 10;
 
       if (fmtBeginChunk != fmt) append(Ascii8(fmtBeginChunk, (sysuint_t)(fmt - fmtBeginChunk)));
@@ -1059,12 +1054,12 @@ err_t ByteArray::appendVformatc(const char* fmt, const TextCodec& tc, va_list ap
       {
         c = (uint8_t)*(++fmt);
 
-        if      (c == '#')  directives |= FormatFlags::Alternate;
-        else if (c == '0')  directives |= FormatFlags::ZeroPadded;
-        else if (c == '-')  directives |= FormatFlags::LeftAdjusted;
-        else if (c == ' ')  directives |= FormatFlags::BlankPositive;
-        else if (c == '+')  directives |= FormatFlags::ShowSign;
-        else if (c == '\'') directives |= FormatFlags::ThousandsGroup;
+        if      (c == '#')  directives |= FORMAT_ALTERNATE_FORM;
+        else if (c == '0')  directives |= FORMAT_ZERO_PADDED;
+        else if (c == '-')  directives |= FORMAT_LEFT_ADJUSTED;
+        else if (c == ' ')  directives |= FORMAT_BLANK_POSITIVE;
+        else if (c == '+')  directives |= FORMAT_SHOW_SIGN;
+        else if (c == '\'') directives |= FORMAT_THOUSANDS_GROUP;
         else break;
       }
 
@@ -1106,15 +1101,15 @@ err_t ByteArray::appendVformatc(const char* fmt, const TextCodec& tc, va_list ap
       // Parse argument type.
       enum
       {
-        Arg_Size_H   = 0x01,
-        Arg_Size_HH  = 0x02,
-        Arg_Size_L   = 0x04,
-        Arg_Size_LL  = 0x08,
-        Arg_Size_M   = 0x10,
+        ARG_SIZE_H   = 0x01,
+        ARG_SIZE_HH  = 0x02,
+        ARG_SIZE_L   = 0x04,
+        ARG_SIZE_LL  = 0x08,
+        ARG_SIZE_M   = 0x10,
 #if (CORE_ARCH_BITS == 32)
-        Arg_Size_64  = Arg_Size_LL
+        ARG_SIZE_64  = ARG_SIZE_LL
 #else
-        Arg_Size_64  = Arg_Size_L
+        ARG_SIZE_64  = ARG_SIZE_L
 #endif
       };
 
@@ -1125,18 +1120,18 @@ err_t ByteArray::appendVformatc(const char* fmt, const TextCodec& tc, va_list ap
         if (c == 'h')
         {
           c = (uint8_t)*(++fmt);
-          sizeFlags |= Arg_Size_HH;
+          sizeFlags |= ARG_SIZE_HH;
         }
         else
         {
-          sizeFlags |= Arg_Size_H;
+          sizeFlags |= ARG_SIZE_H;
         }
       }
       // 'L'.
       else if (c == 'L')
       {
         c = (uint8_t)*(++fmt);
-        sizeFlags |= Arg_Size_LL;
+        sizeFlags |= ARG_SIZE_LL;
       }
       // 'l' and 'll'.
       else if (c == 'l')
@@ -1145,42 +1140,42 @@ err_t ByteArray::appendVformatc(const char* fmt, const TextCodec& tc, va_list ap
         if (c == 'l')
         {
           c = (uint8_t)*(++fmt);
-          sizeFlags |= Arg_Size_LL;
+          sizeFlags |= ARG_SIZE_LL;
         }
         else
         {
-          sizeFlags |= Arg_Size_L;
+          sizeFlags |= ARG_SIZE_L;
         }
       }
       // 'j'.
       else if (c == 'j')
       {
         c = (uint8_t)*(++fmt);
-        sizeFlags |= Arg_Size_LL;
+        sizeFlags |= ARG_SIZE_LL;
       }
       // 'z'.
       else if (c == 'z' || c == 'Z')
       {
         c = (uint8_t)*(++fmt);
         if (sizeof(size_t) > sizeof(long))
-          sizeFlags |= Arg_Size_LL;
+          sizeFlags |= ARG_SIZE_LL;
         else if (sizeof(size_t) > sizeof(int))
-          sizeFlags |= Arg_Size_L;
+          sizeFlags |= ARG_SIZE_L;
       }
       // 't'.
       else if (c == 't')
       {
         c = (uint8_t)*(++fmt);
         if (sizeof(ptrdiff_t) > sizeof(long))
-          sizeFlags |= Arg_Size_LL;
+          sizeFlags |= ARG_SIZE_LL;
         else if (sizeof(ptrdiff_t) > sizeof(int))
-          sizeFlags |= Arg_Size_L;
+          sizeFlags |= ARG_SIZE_L;
       }
       // 'M' = max type (Core extension).
       else if (c == 'M')
       {
         c = (uint8_t)*(++fmt);
-        sizeFlags |= Arg_Size_M;
+        sizeFlags |= ARG_SIZE_M;
       }
 
       // Parse conversion character.
@@ -1190,9 +1185,9 @@ err_t ByteArray::appendVformatc(const char* fmt, const TextCodec& tc, va_list ap
         case 'd':
         case 'i':
         {
-          int64_t i = (sizeFlags >= Arg_Size_64) ? va_arg(ap, int64_t) : va_arg(ap, int32_t);
+          int64_t i = (sizeFlags >= ARG_SIZE_64) ? va_arg(ap, int64_t) : va_arg(ap, int32_t);
 
-          if (precision == FormatFlags::NoPrecision && fieldWidth == FormatFlags::NoWidth && directives == 0)
+          if (precision == NO_PRECISION && fieldWidth == NO_WIDTH && directives == 0)
             appendInt(i, base);
           else
             appendInt(i, base, FormatFlags(precision, fieldWidth, directives));
@@ -1204,15 +1199,15 @@ err_t ByteArray::appendVformatc(const char* fmt, const TextCodec& tc, va_list ap
           base = 8;
           goto ffUnsigned;
         case 'X':
-          directives |= FormatFlags::Capitalize;
+          directives |= FORMAT_CAPITALIZE;
         case 'x':
           base = 16;
         case 'u':
 ffUnsigned:
         {
-          uint64_t i = (sizeFlags >= Arg_Size_64) ? va_arg(ap, uint64_t) : va_arg(ap, uint32_t);
+          uint64_t i = (sizeFlags >= ARG_SIZE_64) ? va_arg(ap, uint64_t) : va_arg(ap, uint32_t);
 
-          if (precision == FormatFlags::NoPrecision && fieldWidth == FormatFlags::NoWidth && directives == 0)
+          if (precision == NO_PRECISION && fieldWidth == NO_WIDTH && directives == 0)
             appendInt(i, base);
           else
             appendInt(i, base, FormatFlags(precision, fieldWidth, directives));
@@ -1223,7 +1218,7 @@ ffUnsigned:
         case 'F':
         case 'E':
         case 'G':
-          directives |= FormatFlags::CapitalizeEOrX;
+          directives |= FORMAT_CAPITALIZE_E_OR_X;
         case 'f':
         case 'e':
         case 'g':
@@ -1232,11 +1227,11 @@ ffUnsigned:
           uint doubleForm = 0; // Be quite
 
           if (c == 'e' || c == 'E')
-            doubleForm = DF_Exponent;
+            doubleForm = DF_EXPONENT;
           else if (c == 'f' || c == 'F')
-            doubleForm = DF_Decimal;
+            doubleForm = DF_DECIMAL;
           else if (c == 'g' || c == 'G')
-            doubleForm = DF_SignificantDigits;
+            doubleForm = DF_SIGNIFICANT_DIGITS;
 
           i = va_arg(ap, double);
           appendDouble(i, doubleForm, FormatFlags(precision, fieldWidth, directives));
@@ -1245,83 +1240,83 @@ ffUnsigned:
 
         // Characters (latin1 or unicode...).
         case 'C':
-          sizeFlags |= Arg_Size_L;
+          sizeFlags |= ARG_SIZE_L;
         case 'c':
         {
-          if (precision == FormatFlags::NoPrecision) precision = 1;
-          if (fieldWidth == FormatFlags::NoWidth) fieldWidth = 0;
+          if (precision == NO_PRECISION) precision = 1;
+          if (fieldWidth == NO_WIDTH) fieldWidth = 0;
 
           sysuint_t fill = (fieldWidth > precision) ? fieldWidth - precision : 0;
 
-          if (fill && (directives & FormatFlags::LeftAdjusted) == 0) append(char(' '), fill);
+          if (fill && (directives & FORMAT_LEFT_ADJUSTED) == 0) append(char(' '), fill);
           append(char(va_arg(ap, uint)), precision);
-          if (fill && (directives & FormatFlags::LeftAdjusted) != 0) append(char(' '), fill);
+          if (fill && (directives & FORMAT_LEFT_ADJUSTED) != 0) append(char(' '), fill);
           break;
         }
 
         // Strings.
         case 'S':
 #if FOG_SIZEOF_WCHAR_T == 2
-          sizeFlags |= Arg_Size_L;
+          sizeFlags |= ARG_SIZE_L;
 #else
-          sizeFlags |= Arg_Size_LL;
+          sizeFlags |= ARG_SIZE_LL;
 #endif
         case 's':
-          if (fieldWidth == FormatFlags::NoWidth) fieldWidth = 0;
+          if (fieldWidth == NO_WIDTH) fieldWidth = 0;
 
           // TODO: Not correct.
-          if (sizeFlags >= Arg_Size_LL)
+          if (sizeFlags >= ARG_SIZE_LL)
           {
 #if 0
             // UTF-32 string (uint32_t*).
             const uint32_t* s = va_arg(ap, const uint32_t*);
-            sysuint_t slen = (precision != FormatFlags::NoPrecision)
+            sysuint_t slen = (precision != NO_PRECISION)
               ? (sysuint_t)StringUtil::nlen(s, precision)
               : (sysuint_t)StringUtil::len(s);
             sysuint_t fill = (fieldWidth > slen) ? fieldWidth - slen : 0;
 
-            if (fill && (directives & FormatFlags::LeftAdjusted) == 0) append(' ', fill);
+            if (fill && (directives & FORMAT_LEFT_ADJUSTED) == 0) append(' ', fill);
             append(Utf32(s, slen), tc);
-            if (fill && (directives & FormatFlags::LeftAdjusted) != 0) append(' ', fill);
+            if (fill && (directives & FORMAT_LEFT_ADJUSTED) != 0) append(' ', fill);
 #endif
           }
-          else if (sizeFlags >= Arg_Size_L)
+          else if (sizeFlags >= ARG_SIZE_L)
           {
 #if 0
             // UTF-16 string (uint16_t*).
             const Char* s = va_arg(ap, const Char*);
-            sysuint_t slen = (precision != FormatFlags::NoPrecision)
+            sysuint_t slen = (precision != NO_PRECISION)
               ? (sysuint_t)StringUtil::nlen(s, precision)
               : (sysuint_t)StringUtil::len(s);
             sysuint_t fill = (fieldWidth > slen) ? fieldWidth - slen : 0;
 
-            if (fill && (directives & FormatFlags::LeftAdjusted) == 0) append(' ', fill);
+            if (fill && (directives & FORMAT_LEFT_ADJUSTED) == 0) append(' ', fill);
             append(Utf16(s, slen), tc);
-            if (fill && (directives & FormatFlags::LeftAdjusted) != 0) append(' ', fill);
+            if (fill && (directives & FORMAT_LEFT_ADJUSTED) != 0) append(' ', fill);
 #endif
           }
           else
           {
             // 8-bit string (char*).
             const char* s = va_arg(ap, const char*);
-            sysuint_t slen = (precision != FormatFlags::NoPrecision)
+            sysuint_t slen = (precision != NO_PRECISION)
               ? (sysuint_t)StringUtil::nlen(s, precision)
               : (sysuint_t)StringUtil::len(s);
             sysuint_t fill = (fieldWidth > slen) ? fieldWidth - slen : 0;
 
-            if (fill && (directives & FormatFlags::LeftAdjusted) == 0) append(' ', fill);
+            if (fill && (directives & FORMAT_LEFT_ADJUSTED) == 0) append(' ', fill);
             append(s, slen);
-            if (fill && (directives & FormatFlags::LeftAdjusted) != 0) append(' ', fill);
+            if (fill && (directives & FORMAT_LEFT_ADJUSTED) != 0) append(' ', fill);
           }
           break;
 
         // Pointer.
         case 'p':
-          directives |= FormatFlags::Alternate;
+          directives |= FORMAT_ALTERNATE_FORM;
 #if FOG_ARCH_BITS == 32
           sizeFlags = 0;
 #elif FOG_ARCH_BITS == 64
-          sizeFlags = Arg_Size_LL;
+          sizeFlags = ARG_SIZE_LL;
 #endif // FOG_ARCH_BITS
           goto ffUnsigned;
 
@@ -1331,11 +1326,11 @@ ffUnsigned:
           void* pointer = va_arg(ap, void*);
           sysuint_t n = getLength() - beginLength;
           switch (sizeFlags) {
-            case Arg_Size_M:
-            case Arg_Size_LL: *(uint64_t *)pointer = (uint64_t)(n); break;
-            case Arg_Size_L:  *(ulong    *)pointer = (ulong   )(n); break;
-            case Arg_Size_HH: *(uchar    *)pointer = (uchar   )(n); break;
-            case Arg_Size_H:  *(uint16_t *)pointer = (uint16_t)(n); break;
+            case ARG_SIZE_M:
+            case ARG_SIZE_LL: *(uint64_t *)pointer = (uint64_t)(n); break;
+            case ARG_SIZE_L:  *(ulong    *)pointer = (ulong   )(n); break;
+            case ARG_SIZE_HH: *(uchar    *)pointer = (uchar   )(n); break;
+            case ARG_SIZE_H:  *(uint16_t *)pointer = (uint16_t)(n); break;
             default:          *(uint     *)pointer = (uint    )(n); break;
           }
           break;
@@ -1344,18 +1339,18 @@ ffUnsigned:
         // Extensions
         case 'W':
         {
-          if (fieldWidth == FormatFlags::NoWidth) fieldWidth = 0;
+          if (fieldWidth == NO_WIDTH) fieldWidth = 0;
 
           ByteArray* string = va_arg(ap, ByteArray*);
 
-          const char* s = string->cData();
+          const char* s = string->getData();
           sysuint_t slen = string->getLength();
-          if (precision != FormatFlags::NoPrecision)  slen = Math::min(slen, precision);
+          if (precision != NO_PRECISION)  slen = Math::min(slen, precision);
           sysuint_t fill = (fieldWidth > slen) ? fieldWidth - slen : 0;
 
-          if (fill && (directives & FormatFlags::LeftAdjusted) == 0) append(char(' '), fill);
+          if (fill && (directives & FORMAT_LEFT_ADJUSTED) == 0) append(char(' '), fill);
           append(Str8(s, slen));
-          if (fill && (directives & FormatFlags::LeftAdjusted) != 0) append(char(' '), fill);
+          if (fill && (directives & FORMAT_LEFT_ADJUSTED) != 0) append(char(' '), fill);
           break;
         }
 
@@ -1382,23 +1377,23 @@ end:
 
     fmt++;
   }
-  return Error::Ok;
+  return ERR_OK;
 
 #undef __VFORMAT_PARSE_NUMBER
 }
 
-err_t ByteArray::appendWformat(const ByteArray& fmt, char lex, const Sequence<ByteArray>& args)
+err_t ByteArray::appendWformat(const ByteArray& fmt, char lex, const List<ByteArray>& args)
 {
-  return appendWformat(fmt, lex, args.cData(), args.getLength());
+  return appendWformat(fmt, lex, args.getData(), args.getLength());
 }
 
 err_t ByteArray::appendWformat(const ByteArray& fmt, char lex, const ByteArray* args, sysuint_t length)
 {
-  const char* fmtBeg = fmt.cData();
+  const char* fmtBeg = fmt.getData();
   const char* fmtEnd = fmtBeg + fmt.getLength();
   const char* fmtCur;
 
-  err_t err = Error::Ok;
+  err_t err = ERR_OK;
 
   for (fmtCur = fmtBeg; fmtCur != fmtEnd; )
   {
@@ -1463,13 +1458,13 @@ err_t ByteArray::prepend(const ByteArray& other)
 
 err_t ByteArray::insert(sysuint_t index, char ch, sysuint_t length)
 {
-  if (length == DetectLength) return Error::InvalidArgument;
+  if (length == DETECT_LENGTH) return ERR_RT_INVALID_ARGUMENT;
 
   char* p = _prepareInsert(this, index, length);
-  if (!p) return Error::OutOfMemory;
+  if (!p) return ERR_RT_OUT_OF_MEMORY;
 
   StringUtil::fill(p, ch, length);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t ByteArray::insert(sysuint_t index, const Str8& other)
@@ -1477,13 +1472,13 @@ err_t ByteArray::insert(sysuint_t index, const Str8& other)
   const char* s = other.getData();
   sysuint_t length = other.getLength();
 
-  if (length == DetectLength) length = StringUtil::len(s);
+  if (length == DETECT_LENGTH) length = StringUtil::len(s);
 
   char* p = _prepareInsert(this, index, length);
-  if (!p) return Error::OutOfMemory;
+  if (!p) return ERR_RT_OUT_OF_MEMORY;
 
   StringUtil::copy(p, s, length);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t ByteArray::insert(sysuint_t index, const ByteArray& _other)
@@ -1491,14 +1486,14 @@ err_t ByteArray::insert(sysuint_t index, const ByteArray& _other)
   ByteArray other(_other);
 
   char* p = _prepareInsert(this, index, other.getLength());
-  if (!p) return Error::OutOfMemory;
+  if (!p) return ERR_RT_OUT_OF_MEMORY;
 
-  StringUtil::copy(p, other.cData(), other.getLength());
-  return Error::Ok;
+  StringUtil::copy(p, other.getData(), other.getLength());
+  return ERR_OK;
 }
 
 // ============================================================================
-// [Fog::String - Remove]
+// [Fog::ByteArray - Remove]
 // ============================================================================
 
 sysuint_t ByteArray::remove(const Range& range)
@@ -1547,7 +1542,7 @@ sysuint_t ByteArray::remove(char ch, uint cs, const Range& range)
   char* strEnd = strCur + rlen;
   char* destCur;
 
-  if (cs == CaseSensitive)
+  if (cs == CASE_SENSITIVE)
   {
 caseSensitive:
     while (strCur != strEnd)
@@ -1563,7 +1558,7 @@ caseSensitiveRemove:
       rstart = strCur - strBeg;
       rlen = strEnd - strCur;
 
-      if (detach() != Error::Ok) return 0;
+      if (detach() != ERR_OK) return 0;
       d = _d;
 
       strBeg = d->data;
@@ -1600,7 +1595,7 @@ caseInsensitiveRemove:
       rstart = strCur - strBeg;
       rlen = strEnd - strCur;
 
-      if (detach() != Error::Ok) return 0;
+      if (detach() != ERR_OK) return 0;
       d = _d;
 
       strBeg = d->data;
@@ -1645,8 +1640,8 @@ sysuint_t ByteArray::remove(const ByteArray& other, uint cs, const Range& range)
   else
   {
     // Match using naive algorithm.
-    const char* aStr = cData();
-    const char* bStr = other.cData();
+    const char* aStr = getData();
+    const char* bStr = other.getData();
 
     sysuint_t aLength = getLength();
     sysuint_t bLength = len;
@@ -1659,7 +1654,7 @@ sysuint_t ByteArray::remove(const ByteArray& other, uint cs, const Range& range)
     for (;;)
     {
       sysuint_t i = StringUtil::indexOf(aStr + rpos, rend - rpos, bStr, bLength);
-      if (i == InvalidIndex) break;
+      if (i == INVALID_INDEX) break;
       rpos += i;
 
       ranges[count].index = rpos;
@@ -1678,22 +1673,22 @@ sysuint_t ByteArray::remove(const ByteArrayFilter& filter, uint cs, const Range&
   sysuint_t rstart, rlen;
   if (!fitToRange(*this, &rstart, &rlen, range)) return 0;
 
-  const char* str = cData();
+  const char* str = getData();
   sysuint_t len = getLength();
   sysuint_t rend = rstart + rlen;
 
-  Vector<Range> ranges;
+  List<Range> ranges;
 
   for (;;)
   {
     Range r = filter.indexOf(str, len, cs, Range(rstart, rstart - rend));
-    if (r.index == InvalidIndex) break;
+    if (r.index == INVALID_INDEX) break;
 
     ranges.append(r);
     rstart = r.index + r.length;
   }
 
-  return remove(ranges.cData(), ranges.getLength());
+  return remove(ranges.getData(), ranges.getLength());
 }
 
 sysuint_t ByteArray::remove(const Range* range, sysuint_t count)
@@ -1739,18 +1734,18 @@ sysuint_t ByteArray::remove(const Range* range, sysuint_t count)
 
     i = 0;
     char* dstData = newd->data;
-    char* srcData = _d->data;
+    char* srgetData = _d->data;
 
     sysuint_t dstPos = range[0].index;
     sysuint_t srcPos = dstPos;
 
-    StringUtil::copy(dstData, srcData, dstPos);
+    StringUtil::copy(dstData, srgetData, dstPos);
 
     do {
       srcPos += range[i].length;
       sysuint_t j = ((++i == count) ? len : range[i].index) - srcPos;
 
-      StringUtil::copy(dstData + dstPos, srcData + srcPos, j);
+      StringUtil::copy(dstData + dstPos, srgetData + srcPos, j);
 
       dstPos += j;
       srcPos += j;
@@ -1765,22 +1760,22 @@ sysuint_t ByteArray::remove(const Range* range, sysuint_t count)
 }
 
 // ============================================================================
-// [Fog::String - Replace]
+// [Fog::ByteArray - Replace]
 // ============================================================================
 
 err_t ByteArray::replace(const Range& range, const ByteArray& replacement)
 {
   sysuint_t rstart, rlen;
-  if (!fitToRange(*this, &rstart, &rlen, range)) return Error::Ok;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return ERR_OK;
 
-  const char* replacementData = replacement.cData();
+  const char* replacementData = replacement.getData();
   sysuint_t replacementLength = replacement.getLength();
 
   if (_d->refCount.get() == 1 && _d != replacement._d)
   {
     char* s = _d->data + rstart;
     sysuint_t lengthAfter = _d->length - rlen + replacementLength;
-    if (lengthAfter < _d->length) return Error::Overflow;
+    if (lengthAfter < _d->length) return ERR_RT_OVERFLOW;
 
     if (_d->capacity >= lengthAfter)
     {
@@ -1790,7 +1785,7 @@ err_t ByteArray::replace(const Range& range, const ByteArray& replacement)
       _d->length = lengthAfter;
       _d->hashCode = 0;
       _d->data[lengthAfter] = 0;
-      return Error::Ok;
+      return ERR_OK;
     }
   }
 
@@ -1801,7 +1796,7 @@ err_t ByteArray::replace(const Range& range, const ByteArray& replacement)
 err_t ByteArray::replace(char before, char after, uint cs, const Range& range)
 {
   sysuint_t rstart, rlen;
-  if (!fitToRange(*this, &rstart, &rlen, range)) return Error::Ok;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return ERR_OK;
 
   Data* d = _d;
   sysuint_t length = d->length;
@@ -1809,7 +1804,7 @@ err_t ByteArray::replace(char before, char after, uint cs, const Range& range)
   char* strCur = d->data + rstart;
   char* strEnd = strCur + rlen;
 
-  if (cs == CaseSensitive)
+  if (cs == CASE_SENSITIVE)
   {
 caseSensitive:
     while (strCur != strEnd)
@@ -1817,7 +1812,7 @@ caseSensitive:
       if (*strCur == before) goto caseSensitiveReplace;
       strCur++;
     }
-    return Error::Ok;
+    return ERR_OK;
 
 caseSensitiveReplace:
     if (d->refCount.get() > 1)
@@ -1852,7 +1847,7 @@ caseSensitiveReplace:
       if (*strCur == beforeLower || *strCur == beforeUpper) goto caseInsensitiveReplace;
       strCur++;
     }
-    return Error::Ok;
+    return ERR_OK;
 
 caseInsensitiveReplace:
     if (d->refCount.get() > 1)
@@ -1876,7 +1871,7 @@ caseInsensitiveReplace:
     }
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t ByteArray::replace(const ByteArray& before, const ByteArray& after, uint cs, const Range& range)
@@ -1898,8 +1893,8 @@ err_t ByteArray::replace(const ByteArray& before, const ByteArray& after, uint c
   else
   {
     // Match using naive algorithm.
-    const char* aStr = cData();
-    const char* bStr = before.cData();
+    const char* aStr = getData();
+    const char* bStr = before.getData();
 
     sysuint_t aLength = getLength();
     sysuint_t bLength = len;
@@ -1912,7 +1907,7 @@ err_t ByteArray::replace(const ByteArray& before, const ByteArray& after, uint c
     for (;;)
     {
       sysuint_t i = StringUtil::indexOf(aStr + rpos, rend - rpos, bStr, bLength);
-      if (i == InvalidIndex) break;
+      if (i == INVALID_INDEX) break;
       rpos += i;
 
       ranges[count].index = rpos;
@@ -1922,7 +1917,7 @@ err_t ByteArray::replace(const ByteArray& before, const ByteArray& after, uint c
       rpos += bLength;
     }
 
-    return replace(ranges, count, after.cData(), after.getLength());
+    return replace(ranges, count, after.getData(), after.getLength());
   }
 }
 
@@ -1931,22 +1926,22 @@ err_t ByteArray::replace(const ByteArrayFilter& filter, const ByteArray& after, 
   sysuint_t rstart, rlen;
   if (!fitToRange(*this, &rstart, &rlen, range)) return 0;
 
-  const char* str = cData();
+  const char* str = getData();
   sysuint_t len = getLength();
   sysuint_t rend = rstart + rlen;
 
-  Vector<Range> ranges;
+  List<Range> ranges;
 
   for (;;)
   {
     Range r = filter.indexOf(str, len, cs, Range(rstart, rstart - rend));
-    if (r.index == InvalidIndex) break;
+    if (r.index == INVALID_INDEX) break;
 
     ranges.append(r);
     rstart = r.index + r.length;
   }
 
-  return replace(ranges.cData(), ranges.getLength(), after.cData(), after.getLength());
+  return replace(ranges.getData(), ranges.getLength(), after.getData(), after.getLength());
 }
 
 err_t ByteArray::replace(const Range* m, sysuint_t mcount, const char* after, sysuint_t alen)
@@ -1954,7 +1949,7 @@ err_t ByteArray::replace(const Range* m, sysuint_t mcount, const char* after, sy
   sysuint_t i;
   sysuint_t pos = 0;
   sysuint_t len = getLength();
-  const char* cur = cData();
+  const char* cur = getData();
 
   // Get total count of characters we remove.
   sysuint_t mTotal = 0;
@@ -1967,7 +1962,7 @@ err_t ByteArray::replace(const Range* m, sysuint_t mcount, const char* after, sy
   sysuint_t lenAfter = len - mTotal + aTotal;
 
   Data* newd = Data::alloc(lenAfter);
-  if (!newd) return Error::OutOfMemory;
+  if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
   char* p = newd->data;
   sysuint_t remain = lenAfter;
@@ -2007,15 +2002,15 @@ err_t ByteArray::replace(const Range* m, sysuint_t mcount, const char* after, sy
   newd->data[lenAfter] = 0;
 
   AtomicBase::ptr_setXchg(&_d, newd)->deref();
-  return Error::Ok;
+  return ERR_OK;
 
 overflow:
   newd->deref();
-  return Error::Overflow;
+  return ERR_RT_OVERFLOW;
 }
 
 // ============================================================================
-// [Fog::String - Lower / Upper]
+// [Fog::ByteArray - Lower / Upper]
 // ============================================================================
 
 err_t ByteArray::lower()
@@ -2029,7 +2024,7 @@ err_t ByteArray::lower()
   {
     if (Byte::isUpper(*strCur)) goto modify;
   }
-  return Error::Ok;
+  return ERR_OK;
 
 modify:
   {
@@ -2046,7 +2041,7 @@ modify:
     for (; strCur != strEnd; strCur++) *strCur = Byte::toLower(*strCur);
   }
   d->hashCode = 0;
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t ByteArray::upper()
@@ -2060,7 +2055,7 @@ err_t ByteArray::upper()
   {
     if (Byte::isLower(*strCur)) goto modify;
   }
-  return Error::Ok;
+  return ERR_OK;
 
 modify:
   {
@@ -2077,7 +2072,7 @@ modify:
     for (; strCur != strEnd; strCur++) *strCur = Byte::toUpper(*strCur);
   }
   d->hashCode = 0;
-  return Error::Ok;
+  return ERR_OK;
 }
 
 ByteArray ByteArray::lowered() const
@@ -2095,7 +2090,7 @@ ByteArray ByteArray::uppered() const
 }
 
 // ============================================================================
-// [Fog::String - Whitespaces / Justification]
+// [Fog::ByteArray - Whitespaces / Justification]
 // ============================================================================
 
 err_t ByteArray::trim()
@@ -2103,7 +2098,7 @@ err_t ByteArray::trim()
   Data* d = _d;
   sysuint_t len = d->length;
 
-  if (!len) return Error::Ok;
+  if (!len) return ERR_OK;
 
   const char* strCur = d->data;
   const char* strEnd = strCur + len;
@@ -2117,7 +2112,7 @@ err_t ByteArray::trim()
     if (d->refCount.get() > 1)
     {
       Data* newd = Data::alloc(len, strCur, len);
-      if (!newd) return Error::OutOfMemory;
+      if (!newd) return ERR_RT_OUT_OF_MEMORY;
       AtomicBase::ptr_setXchg(&_d, newd)->deref();
     }
     else
@@ -2129,7 +2124,7 @@ err_t ByteArray::trim()
     }
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t ByteArray::simplify()
@@ -2137,7 +2132,7 @@ err_t ByteArray::simplify()
   Data* d = _d;
   sysuint_t len = d->length;
 
-  if (!len) return Error::Ok;
+  if (!len) return ERR_OK;
 
   const char* strBeg;
   const char* strCur = d->data;
@@ -2158,7 +2153,7 @@ err_t ByteArray::simplify()
   {
     if (Byte::isSpace(strCur[0]) && Byte::isSpace(strCur[1])) goto simp;
   }
-  return Error::Ok;
+  return ERR_OK;
 
 simp:
   strCur = strBeg;
@@ -2173,7 +2168,7 @@ simp:
   if (d->refCount.get() > 1)
   {
     Data* newd = Data::alloc((sysuint_t)(strEnd - strCur));
-    if (!newd) return Error::OutOfMemory;
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
     _d = newd;
   }
   else
@@ -2195,18 +2190,18 @@ simp:
 
   d->deref();
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t ByteArray::truncate(sysuint_t n)
 {
   Data* d = _d;
-  if (d->length <= n) return Error::Ok;
+  if (d->length <= n) return ERR_OK;
 
   if (d->refCount.get() > 1)
   {
     Data* newd = Data::alloc(n, d->data, n);
-    if (!newd) return Error::OutOfMemory;
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
     AtomicBase::ptr_setXchg(&_d, newd)->deref();
   }
   else
@@ -2215,7 +2210,7 @@ err_t ByteArray::truncate(sysuint_t n)
     d->data[d->length] = 0;
     d->hashCode = 0;
   }
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t ByteArray::justify(sysuint_t n, char fill, uint32_t flags)
@@ -2223,22 +2218,22 @@ err_t ByteArray::justify(sysuint_t n, char fill, uint32_t flags)
   Data* d = _d;
   sysuint_t length = d->length;
 
-  if (n <= length) return Error::Ok;
+  if (n <= length) return ERR_OK;
 
   sysuint_t t = n - length;
   sysuint_t left = 0;
   sysuint_t right = 0;
 
-  if ((flags & CenterJustify) == CenterJustify)
+  if ((flags & JUSTIFY_CENTER) == JUSTIFY_CENTER)
   {
     left = t >> 1;
     right = t - left;
   }
-  else if ((flags & LeftJustify) == LeftJustify)
+  else if ((flags & JUSTIFY_LEFT) == JUSTIFY_LEFT)
   {
     right = t;
   }
-  else if ((flags & RightJustify) == RightJustify)
+  else if ((flags & JUSTIFY_RIGHT) == JUSTIFY_RIGHT)
   {
     left = t;
   }
@@ -2278,12 +2273,12 @@ ByteArray ByteArray::justified(sysuint_t n, char fill, uint32_t flags) const
 }
 
 // ============================================================================
-// [Fog::String - Split / Join]
+// [Fog::ByteArray - Split / Join]
 // ============================================================================
 
-Vector<ByteArray> ByteArray::split(char ch, uint splitBehavior, uint cs) const
+List<ByteArray> ByteArray::split(char ch, uint splitBehavior, uint cs) const
 {
-  Vector<ByteArray> result;
+  List<ByteArray> result;
   Data* d = _d;
 
   if (d->length == 0) return result;
@@ -2292,7 +2287,7 @@ Vector<ByteArray> ByteArray::split(char ch, uint splitBehavior, uint cs) const
   const char* strCur = strBeg;
   const char* strEnd = strCur + d->length;
 
-  if (cs == CaseSensitive)
+  if (cs == CASE_SENSITIVE)
   {
 __caseSensitive:
     for (;;)
@@ -2300,7 +2295,7 @@ __caseSensitive:
       if (strCur == strEnd || *strCur == ch)
       {
         sysuint_t splitLength = (sysuint_t)(strCur - strBeg);
-        if ((splitLength == 0 && splitBehavior == KeepEmptyParts) || splitLength != 0)
+        if ((splitLength == 0 && splitBehavior == SPLIT_KEEP_EMPTY_PARTS) || splitLength != 0)
         {
           result.append(ByteArray(strBeg, splitLength));
         }
@@ -2322,7 +2317,7 @@ __caseSensitive:
       if (strCur == strEnd || *strCur == cLower || *strCur == cUpper)
       {
         sysuint_t splitLength = (sysuint_t)(strCur - strBeg);
-        if ((splitLength == 0 && splitBehavior == KeepEmptyParts) || splitLength != 0)
+        if ((splitLength == 0 && splitBehavior == SPLIT_KEEP_EMPTY_PARTS) || splitLength != 0)
         {
           result.append(ByteArray(strBeg, splitLength));
         }
@@ -2336,13 +2331,13 @@ __caseSensitive:
   return result;
 }
 
-Vector<ByteArray> ByteArray::split(const ByteArray& pattern, uint splitBehavior, uint cs) const
+List<ByteArray> ByteArray::split(const ByteArray& pattern, uint splitBehavior, uint cs) const
 {
   sysuint_t plen = pattern.getLength();
 
   if (!plen)
   {
-    Vector<ByteArray> result;
+    List<ByteArray> result;
     result.append(*this);
     return result;
   }
@@ -2357,9 +2352,9 @@ Vector<ByteArray> ByteArray::split(const ByteArray& pattern, uint splitBehavior,
   }
 }
 
-Vector<ByteArray> ByteArray::split(const ByteArrayFilter& filter, uint splitBehavior, uint cs) const
+List<ByteArray> ByteArray::split(const ByteArrayFilter& filter, uint splitBehavior, uint cs) const
 {
-  Vector<ByteArray> result;
+  List<ByteArray> result;
   Data* d = _d;
 
   sysuint_t length = d->length;
@@ -2371,12 +2366,12 @@ Vector<ByteArray> ByteArray::split(const ByteArrayFilter& filter, uint splitBeha
   {
     sysuint_t remain = (sysuint_t)(strEnd - strCur);
     Range m = filter.match(strCur, remain, cs, Range(0, remain));
-    sysuint_t splitLength = (m.index != InvalidIndex) ? m.index : remain;
+    sysuint_t splitLength = (m.index != INVALID_INDEX) ? m.index : remain;
 
-    if ((splitLength == 0 && splitBehavior == KeepEmptyParts) || splitLength != 0)
+    if ((splitLength == 0 && splitBehavior == SPLIT_KEEP_EMPTY_PARTS) || splitLength != 0)
       result.append(ByteArray(strCur, splitLength));
 
-    if (m.index == InvalidIndex) break;
+    if (m.index == INVALID_INDEX) break;
 
     strCur += m.index;
     strCur += m.length;
@@ -2385,20 +2380,20 @@ Vector<ByteArray> ByteArray::split(const ByteArrayFilter& filter, uint splitBeha
   return result;
 }
 
-ByteArray ByteArray::join(const Sequence<ByteArray>& seq, const char separator)
+ByteArray ByteArray::join(const List<ByteArray>& seq, const char separator)
 {
   TemporaryByteArray<1> sept(separator);
   return join(seq, sept);
 }
 
-ByteArray ByteArray::join(const Sequence<ByteArray>& seq, const ByteArray& separator)
+ByteArray ByteArray::join(const List<ByteArray>& seq, const ByteArray& separator)
 {
   ByteArray result;
 
   sysuint_t seqLength = 0;
   sysuint_t sepLength = separator.getLength();
 
-  Sequence<ByteArray>::ConstIterator it(seq);
+  List<ByteArray>::ConstIterator it(seq);
 
   for (it.toStart(); it.isValid(); it.toNext())
   {
@@ -2417,10 +2412,10 @@ ByteArray ByteArray::join(const Sequence<ByteArray>& seq, const ByteArray& separ
   }
 
   // Allocate memory for all strings in seq and for separators
-  if (result.reserve(seqLength) != Error::Ok) return result;
+  if (result.reserve(seqLength) != ERR_OK) return result;
 
   char* cur = result._d->data;
-  const char* sep = separator.cData();
+  const char* sep = separator.getData();
 
   // Serialize
   for (it.toStart(); it.isValid(); it.toNext())
@@ -2433,7 +2428,7 @@ ByteArray ByteArray::join(const Sequence<ByteArray>& seq, const ByteArray& separ
       cur += sepLength;
     }
 
-    StringUtil::copy(cur, it.value().cData(), len);
+    StringUtil::copy(cur, it.value().getData(), len);
     cur += len;
   }
 
@@ -2443,7 +2438,7 @@ ByteArray ByteArray::join(const Sequence<ByteArray>& seq, const ByteArray& separ
 }
 
 // ============================================================================
-// [Fog::String - Substring]
+// [Fog::ByteArray - Substring]
 // ============================================================================
 
 ByteArray ByteArray::substring(const Range& range) const
@@ -2451,103 +2446,103 @@ ByteArray ByteArray::substring(const Range& range) const
   ByteArray ret;
 
   sysuint_t rstart, rlen;
-  if (fitToRange(*this, &rstart, &rlen, range)) ret.set(Str8(cData() + rstart, rlen));
+  if (fitToRange(*this, &rstart, &rlen, range)) ret.set(Str8(getData() + rstart, rlen));
 
   return ret;
 }
 
 // ============================================================================
-// [Fog::String - Conversion]
+// [Fog::ByteArray - Conversion]
 // ============================================================================
 
 err_t ByteArray::atob(bool* dst, int base, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atob(cData(), getLength(), dst, end, parserFlags);
+  return StringUtil::atob(getData(), getLength(), dst, end, parserFlags);
 }
 
 err_t ByteArray::atoi8(int8_t* dst, int base, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atoi8(cData(), getLength(), dst, base, end, parserFlags);
+  return StringUtil::atoi8(getData(), getLength(), dst, base, end, parserFlags);
 }
 
 err_t ByteArray::atou8(uint8_t* dst, int base, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atou8(cData(), getLength(), dst, base, end, parserFlags);
+  return StringUtil::atou8(getData(), getLength(), dst, base, end, parserFlags);
 }
 
 err_t ByteArray::atoi16(int16_t* dst, int base, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atoi16(cData(), getLength(), dst, base, end, parserFlags);
+  return StringUtil::atoi16(getData(), getLength(), dst, base, end, parserFlags);
 }
 
 err_t ByteArray::atou16(uint16_t* dst, int base, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atou16(cData(), getLength(), dst, base, end, parserFlags);
+  return StringUtil::atou16(getData(), getLength(), dst, base, end, parserFlags);
 }
 
 err_t ByteArray::atoi32(int32_t* dst, int base, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atoi32(cData(), getLength(), dst, base, end, parserFlags);
+  return StringUtil::atoi32(getData(), getLength(), dst, base, end, parserFlags);
 }
 
 err_t ByteArray::atou32(uint32_t* dst, int base, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atou32(cData(), getLength(), dst, base, end, parserFlags);
+  return StringUtil::atou32(getData(), getLength(), dst, base, end, parserFlags);
 }
 
 err_t ByteArray::atoi64(int64_t* dst, int base, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atoi64(cData(), getLength(), dst, base, end, parserFlags);
+  return StringUtil::atoi64(getData(), getLength(), dst, base, end, parserFlags);
 }
 
 err_t ByteArray::atou64(uint64_t* dst, int base, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atou64(cData(), getLength(), dst, base, end, parserFlags);
+  return StringUtil::atou64(getData(), getLength(), dst, base, end, parserFlags);
 }
 
 err_t ByteArray::atof(float* dst, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atof(cData(), getLength(), dst, '.', end, parserFlags);
+  return StringUtil::atof(getData(), getLength(), dst, '.', end, parserFlags);
 }
 
 err_t ByteArray::atod(double* dst, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atod(cData(), getLength(), dst, '.', end, parserFlags);
+  return StringUtil::atod(getData(), getLength(), dst, '.', end, parserFlags);
 }
 
 // ============================================================================
-// [Fog::String - Contains]
+// [Fog::ByteArray - Contains]
 // ============================================================================
 
 bool ByteArray::contains(char ch, uint cs, const Range& range) const
 {
   sysuint_t rstart, rlen;
   if (fitToRange(*this, &rstart, &rlen, range))
-    return StringUtil::indexOf(cData() + rstart, rlen, ch, cs) != InvalidIndex;
+    return StringUtil::indexOf(getData() + rstart, rlen, ch, cs) != INVALID_INDEX;
   else
     return false;
 }
 
 bool ByteArray::contains(const ByteArray& pattern, uint cs, const Range& range) const
 {
-  return indexOf(pattern, cs, range) != InvalidIndex;
+  return indexOf(pattern, cs, range) != INVALID_INDEX;
 }
 
 bool ByteArray::contains(const ByteArrayFilter& filter, uint cs, const Range& range) const
 {
-  Range m = filter.indexOf(cData(), getLength(), cs, range);
-  return m.index != InvalidIndex;
+  Range m = filter.indexOf(getData(), getLength(), cs, range);
+  return m.index != INVALID_INDEX;
 }
 
 // ============================================================================
-// [Fog::String - CountOf]
+// [Fog::ByteArray - CountOf]
 // ============================================================================
 
 sysuint_t ByteArray::countOf(char ch, uint cs, const Range& range) const
 {
   sysuint_t rstart, rlen;
   if (fitToRange(*this, &rstart, &rlen, range))
-    return StringUtil::countOf(cData() + rstart, rlen, ch, cs);
+    return StringUtil::countOf(getData() + rstart, rlen, ch, cs);
   else
     return 0;
 }
@@ -2572,8 +2567,8 @@ sysuint_t ByteArray::countOf(const ByteArray& pattern, uint cs, const Range& ran
   else
   {
     // Match using naive algorithm.
-    const char* aStr = cData();
-    const char* bStr = pattern.cData();
+    const char* aStr = getData();
+    const char* bStr = pattern.getData();
 
     sysuint_t aLength = getLength();
     sysuint_t bLength = len;
@@ -2586,7 +2581,7 @@ sysuint_t ByteArray::countOf(const ByteArray& pattern, uint cs, const Range& ran
     for (;;)
     {
       sysuint_t i = StringUtil::indexOf(aStr + rpos, rend - rpos, bStr, bLength);
-      if (i == InvalidIndex) break;
+      if (i == INVALID_INDEX) break;
       rpos += i;
 
       count++;
@@ -2602,7 +2597,7 @@ sysuint_t ByteArray::countOf(const ByteArrayFilter& filter, uint cs, const Range
   sysuint_t rstart, rlen;
   if (!fitToRange(*this, &rstart, &rlen, range)) return 0;
 
-  const char* str = cData();
+  const char* str = getData();
   sysuint_t len = getLength();
   sysuint_t rend = rstart + rlen;
   sysuint_t count = 0;
@@ -2610,7 +2605,7 @@ sysuint_t ByteArray::countOf(const ByteArrayFilter& filter, uint cs, const Range
   for (;;)
   {
     Range r = filter.indexOf(str, len, cs, Range(rstart, rstart - rend));
-    if (r.index == InvalidIndex) break;
+    if (r.index == INVALID_INDEX) break;
 
     count++;
     rstart = r.index + r.length;
@@ -2620,25 +2615,25 @@ sysuint_t ByteArray::countOf(const ByteArrayFilter& filter, uint cs, const Range
 }
 
 // ============================================================================
-// [Fog::String - IndexOf / LastIndexOf]
+// [Fog::ByteArray - IndexOf / LastIndexOf]
 // ============================================================================
 
 sysuint_t ByteArray::indexOf(char ch, uint cs, const Range& range) const
 {
   sysuint_t rstart, rlen;
-  if (!fitToRange(*this, &rstart, &rlen, range)) return InvalidIndex;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return INVALID_INDEX;
 
-  sysuint_t i = StringUtil::indexOf(cData() + rstart, rlen, ch, cs);
-  return i != InvalidIndex ? i + rstart : i;
+  sysuint_t i = StringUtil::indexOf(getData() + rstart, rlen, ch, cs);
+  return i != INVALID_INDEX ? i + rstart : i;
 }
 
 sysuint_t ByteArray::indexOf(const ByteArray& pattern, uint cs, const Range& range) const
 {
   sysuint_t rstart, rlen;
-  if (!fitToRange(*this, &rstart, &rlen, range)) return InvalidIndex;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return INVALID_INDEX;
 
   sysuint_t len = pattern.getLength();
-  if (len == 0) return InvalidIndex;
+  if (len == 0) return INVALID_INDEX;
   if (len == 1) return indexOf(pattern.at(0), cs, range);
 
   if (rlen >= 256)
@@ -2652,36 +2647,36 @@ sysuint_t ByteArray::indexOf(const ByteArray& pattern, uint cs, const Range& ran
   else
   {
     // Match using naive algorithm.
-    sysuint_t i = StringUtil::indexOf(cData() + rstart, rlen, pattern.cData(), len, cs);
-    return (i == InvalidIndex) ? i : i + rstart;
+    sysuint_t i = StringUtil::indexOf(getData() + rstart, rlen, pattern.getData(), len, cs);
+    return (i == INVALID_INDEX) ? i : i + rstart;
   }
 }
 
 sysuint_t ByteArray::indexOf(const ByteArrayFilter& filter, uint cs, const Range& range) const
 {
   sysuint_t rstart, rlen;
-  if (!fitToRange(*this, &rstart, &rlen, range)) return InvalidIndex;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return INVALID_INDEX;
 
-  Range m = filter.match(cData(), getLength(), cs, Range(rstart, rlen));
+  Range m = filter.match(getData(), getLength(), cs, Range(rstart, rlen));
   return m.index;
 }
 
 sysuint_t ByteArray::lastIndexOf(char ch, uint cs, const Range& range) const
 {
   sysuint_t rstart, rlen;
-  if (!fitToRange(*this, &rstart, &rlen, range)) return InvalidIndex;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return INVALID_INDEX;
 
-  sysuint_t i = StringUtil::lastIndexOf(cData() + rstart, rlen, ch, cs);
-  return i != InvalidIndex ? i + rstart : i;
+  sysuint_t i = StringUtil::lastIndexOf(getData() + rstart, rlen, ch, cs);
+  return i != INVALID_INDEX ? i + rstart : i;
 }
 
 sysuint_t ByteArray::lastIndexOf(const ByteArray& pattern, uint cs, const Range& range) const
 {
   sysuint_t rstart, rlen;
-  if (!fitToRange(*this, &rstart, &rlen, range)) return InvalidIndex;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return INVALID_INDEX;
 
   sysuint_t len = pattern.getLength();
-  if (len == 0) return InvalidIndex;
+  if (len == 0) return INVALID_INDEX;
   if (len == 1) return lastIndexOf(pattern.at(0), cs, range);
 
   if (rlen >= 256)
@@ -2695,15 +2690,15 @@ sysuint_t ByteArray::lastIndexOf(const ByteArray& pattern, uint cs, const Range&
   else
   {
     // Match using naive algorithm.
-    const char* aData = cData();
-    const char* bData = pattern.cData();
+    const char* aData = getData();
+    const char* bData = pattern.getData();
 
-    sysuint_t result = InvalidIndex;
+    sysuint_t result = INVALID_INDEX;
 
     for (;;)
     {
       sysuint_t i = StringUtil::indexOf(aData + rstart, rlen, bData, len);
-      if (i == InvalidIndex) break;
+      if (i == INVALID_INDEX) break;
 
       result = i + rstart;
 
@@ -2718,14 +2713,14 @@ sysuint_t ByteArray::lastIndexOf(const ByteArray& pattern, uint cs, const Range&
 sysuint_t ByteArray::lastIndexOf(const ByteArrayFilter& filter, uint cs, const Range& range) const
 {
   sysuint_t rstart, rlen;
-  if (!fitToRange(*this, &rstart, &rlen, range)) return InvalidIndex;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return INVALID_INDEX;
 
-  sysuint_t result = InvalidIndex;
+  sysuint_t result = INVALID_INDEX;
 
   for (;;)
   {
-    Range m = filter.match(cData(), getLength(), cs, Range(rstart, rlen));
-    if (m.index == InvalidIndex) break;
+    Range m = filter.match(getData(), getLength(), cs, Range(rstart, rlen));
+    if (m.index == INVALID_INDEX) break;
 
     result = m.index;
 
@@ -2738,7 +2733,7 @@ sysuint_t ByteArray::lastIndexOf(const ByteArrayFilter& filter, uint cs, const R
 }
 
 // ============================================================================
-// [Fog::String - StartsWith / EndsWith]
+// [Fog::ByteArray - StartsWith / EndsWith]
 // ============================================================================
 
 bool ByteArray::startsWith(char ch, uint cs) const
@@ -2751,22 +2746,22 @@ bool ByteArray::startsWith(const Str8& str, uint cs) const
   const char* s = str.getData();
   sysuint_t length = str.getLength();
 
-  if (length == DetectLength) length = StringUtil::len(s);
-  return getLength() >= length && StringUtil::eq(cData() + getLength() - length, s, length, cs);
+  if (length == DETECT_LENGTH) length = StringUtil::len(s);
+  return getLength() >= length && StringUtil::eq(getData() + getLength() - length, s, length, cs);
 }
 
 bool ByteArray::startsWith(const ByteArray& str, uint cs) const
 {
   return getLength() >= str.getLength() &&
-    StringUtil::eq(cData(), str.cData(), str.getLength(), cs);
+    StringUtil::eq(getData(), str.getData(), str.getLength(), cs);
 }
 
 bool ByteArray::startsWith(const ByteArrayFilter& filter, uint cs) const
 {
   sysuint_t flen = filter.getLength();
 
-  if (flen == InvalidIndex) flen = getLength();
-  return filter.match(cData(), getLength(), cs, Range(0, flen)).index == 0;
+  if (flen == INVALID_INDEX) flen = getLength();
+  return filter.match(getData(), getLength(), cs, Range(0, flen)).index == 0;
 }
 
 bool ByteArray::endsWith(char ch, uint cs) const
@@ -2779,29 +2774,29 @@ bool ByteArray::endsWith(const Str8& str, uint cs) const
   const char* s = str.getData();
   sysuint_t length = str.getLength();
 
-  if (length == DetectLength) length = StringUtil::len(s);
-  return getLength() >= length && StringUtil::eq(cData() + getLength() - length, s, length, cs);
+  if (length == DETECT_LENGTH) length = StringUtil::len(s);
+  return getLength() >= length && StringUtil::eq(getData() + getLength() - length, s, length, cs);
 }
 
 bool ByteArray::endsWith(const ByteArray& str, uint cs) const
 {
   return getLength() >= str.getLength() &&
-    StringUtil::eq(cData() + getLength() - str.getLength(), str.cData(), str.getLength(), cs);
+    StringUtil::eq(getData() + getLength() - str.getLength(), str.getData(), str.getLength(), cs);
 }
 
 bool ByteArray::endsWith(const ByteArrayFilter& filter, uint cs) const
 {
   sysuint_t flen = filter.getLength();
 
-  if (flen == InvalidIndex)
+  if (flen == INVALID_INDEX)
   {
     sysuint_t i = 0;
     sysuint_t len = getLength();
 
     for (;;)
     {
-      Range r = filter.match(cData(), len, cs, Range(i));
-      if (r.index == InvalidIndex) return false;
+      Range r = filter.match(getData(), len, cs, Range(i));
+      if (r.index == INVALID_INDEX) return false;
       if (r.index + r.length == len) return true;
 
       i = r.index + 1;
@@ -2811,12 +2806,209 @@ bool ByteArray::endsWith(const ByteArrayFilter& filter, uint cs) const
   {
     return flen <= getLength() &&
       filter.match(
-        cData() + getLength() - flen, getLength(), cs, Range(0, flen)).index == 0;
+        getData() + getLength() - flen, getLength(), cs, Range(0, flen)).index == 0;
   }
 }
 
 // ============================================================================
-// [Fog::String - Comparison]
+// [Fog::ByteArray - Hex / Base64]
+// ============================================================================
+
+err_t ByteArray::fromHex(ByteArray& dst, const ByteArray& src)
+{
+  sysuint_t srcLength = src.getLength();
+
+  sysuint_t growBy = (srcLength >> 1) + (srcLength & 1);
+  err_t err = dst.prepare(growBy);
+
+  if (err) return err;
+
+  uint8_t* dstCur = reinterpret_cast<uint8_t*>(dst.getXData());
+  const uint8_t* srcCur = reinterpret_cast<const uint8_t*>(src.getData());
+
+  uint8_t c0 = 0xFF;
+  uint8_t c1;
+
+  for (sysuint_t i = srcLength; i; i--)
+  {
+    c1 = *srcCur++;
+
+    if (c1 >= '0' && c1 <= '9')
+      c1 -= '0';
+    else if (c1 >= 'a' && c1 <= 'f')
+      c1 -= ('a' - 10);
+    else if (c1 >= 'A' && c1 <= 'F')
+      c1 -= ('A' + 10);
+    else
+      continue;
+
+    if (c0 == 0xFF)
+    {
+      c0 = c1;
+    }
+    else
+    {
+      *dstCur++ = (c0 << 4) | c1;
+      c0 = 0xFF;
+    }
+  }
+
+  dst.xFinalize(reinterpret_cast<char*>(dstCur));
+  return ERR_OK;
+}
+
+err_t ByteArray::toHex(ByteArray& dst, const ByteArray& src, int outputCase)
+{
+  sysuint_t srcLength = src.getLength();
+
+  sysuint_t growBy = srcLength << 1;
+  if (growBy < srcLength) return ERR_RT_OUT_OF_MEMORY;
+  err_t err = dst.prepare(growBy);
+
+  if (err) return err;
+
+  uint8_t* dstCur = reinterpret_cast<uint8_t*>(dst.getXData());
+  const uint8_t* srcCur = reinterpret_cast<const uint8_t*>(src.getData());
+
+  uint8_t c0;
+  uint8_t c1;
+
+  uint8_t hx = (outputCase == OUTPUT_CASE_LOWER)
+    ? (uint8_t)'a' - ((uint8_t)'9' + 1U)
+    : (uint8_t)'A' - ((uint8_t)'9' + 1U);
+
+  for (sysuint_t i = srcLength; i; i--)
+  {
+    c0 = *srcCur++;
+    c1 = c0;
+
+    c0 >>= 4;
+    c1 &= 0x0F;
+
+    c0 += '0';
+    c1 += '0';
+
+    if (c0 > (uint8_t)'9') c0 += hx;
+    if (c1 > (uint8_t)'9') c1 += hx;
+
+    dstCur[0] = c0;
+    dstCur[1] = c1;
+    dstCur += 2;
+  }
+
+  dst.xFinalize(reinterpret_cast<char*>(dstCur));
+  return ERR_OK;
+}
+
+err_t ByteArray::fromBase64(ByteArray& dst, const ByteArray& src)
+{
+  sysuint_t srcLength = src.getLength();
+
+  sysuint_t growBy = (srcLength / 4) * 3 + 3;
+  err_t err = dst.prepare(growBy);
+
+  if (err) return err;
+
+  uint8_t* dstCur = reinterpret_cast<uint8_t*>(dst.getXData());
+  const uint8_t* srcCur = reinterpret_cast<const uint8_t*>(src.getData());
+
+  uint32_t accum = 0;
+  uint32_t bits = 0;
+  uint32_t c0;
+
+  for (sysuint_t i = srcLength; i; i--)
+  {
+    c0 = *srcCur++;
+
+    if (c0 >= '0' && c0 <= '9')
+      c0 -= ('0' - 52);
+    else if (c0 >= 'a' && c0 <= 'z')
+      c0 -= ('a' - 26);
+    else if (c0 >= 'A' && c0 <= 'Z')
+      c0 -= 'A';
+    else if (c0 == '+')
+      c0 = 62;
+    else if (c0 == '/')
+      c0 = 63;
+    else
+      continue;
+
+    accum = (accum << 6) | c0;
+    if (bits >= 2)
+    {
+      bits -= 2;
+      *dstCur++ = (uint8_t)(accum >> bits);
+    }
+    else
+    {
+      bits += 6;
+    }
+  }
+
+  dst.xFinalize(reinterpret_cast<char*>(dstCur));
+  return ERR_OK;
+}
+
+err_t ByteArray::toBase64(ByteArray& dst, const ByteArray& src)
+{
+  static const char base64table[] =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  static const char pad = '=';
+
+  sysuint_t srcLength = src.getLength();
+
+  sysuint_t growBy = (sysuint_t)( ((uint64_t)srcLength * 4) / 3 + 3 );
+  if (growBy < srcLength) return ERR_RT_OUT_OF_MEMORY;
+  err_t err = dst.prepare(growBy);
+
+  if (err) return err;
+
+  char* dstCur = dst.getXData();
+  const uint8_t* srcCur = reinterpret_cast<const uint8_t*>(src.getData());
+
+  sysuint_t i = srcLength;
+
+  while (i >= 3)
+  {
+    uint8_t c0 = srcCur[0];
+    uint8_t c1 = srcCur[1];
+    uint8_t c2 = srcCur[2];
+
+    dstCur[0] = base64table[((c0 & 0xFC) >> 2)];
+    dstCur[1] = base64table[((c0 & 0x03) << 4) + ((c1 & 0xF0) >> 4)];
+    dstCur[2] = base64table[((c1 & 0x0F) << 2) + ((c2 & 0xC0) >> 6)];
+    dstCur[3] = base64table[((c2 & 0x3f))];
+
+    srcCur += 3;
+    dstCur += 4;
+
+    i -= 3;
+  }
+
+  if (i)
+  {
+    uint8_t c0 = srcCur[0];
+    uint8_t c1 = (i > 1) ? srcCur[1] : 0;
+    uint8_t c2 = (i > 2) ? srcCur[2] : 0;
+
+    dstCur[0] = base64table[((c0 & 0xFC) >> 2)];
+    dstCur[1] = base64table[((c0 & 0x03) << 4) + ((c1 & 0xF0) >> 4)];
+    dstCur[2] = (i > 1) ? base64table[((c1 & 0x0F) << 2) + ((c2 & 0xC0) >> 6)]
+                        : pad;
+    // 'i' shouldn't be larger than 2, but...
+    dstCur[3] = (i > 2) ? base64table[((c2 & 0x3f))]
+                        : pad;
+
+    dstCur += 4;
+    i -= 3;
+  }
+
+  dst.xFinalize(dstCur);
+  return ERR_OK;
+}
+
+// ============================================================================
+// [Fog::ByteArray - Comparison]
 // ============================================================================
 
 bool ByteArray::eq(const ByteArray* a, const ByteArray* b)
@@ -2825,7 +3017,7 @@ bool ByteArray::eq(const ByteArray* a, const ByteArray* b)
   sysuint_t blen = b->getLength();
   if (alen != blen) return false;
 
-  return StringUtil::eq(a->cData(), b->cData(), alen, CaseSensitive);
+  return StringUtil::eq(a->getData(), b->getData(), alen, CASE_SENSITIVE);
 }
 
 bool ByteArray::ieq(const ByteArray* a, const ByteArray* b)
@@ -2834,15 +3026,15 @@ bool ByteArray::ieq(const ByteArray* a, const ByteArray* b)
   sysuint_t blen = b->getLength();
   if (alen != blen) return false;
 
-  return StringUtil::eq(a->cData(), b->cData(), alen, CaseInsensitive);
+  return StringUtil::eq(a->getData(), b->getData(), alen, CASE_INSENSITIVE);
 }
 
 int ByteArray::compare(const ByteArray* a, const ByteArray* b)
 {
   sysuint_t aLen = a->getLength();
   sysuint_t bLen = b->getLength();
-  const uint8_t* aCur = reinterpret_cast<const uint8_t*>(a->cData());
-  const uint8_t* bCur = reinterpret_cast<const uint8_t*>(b->cData());
+  const uint8_t* aCur = reinterpret_cast<const uint8_t*>(a->getData());
+  const uint8_t* bCur = reinterpret_cast<const uint8_t*>(b->getData());
   const uint8_t* aEnd = reinterpret_cast<const uint8_t*>(aCur + aLen);
 
   int c;
@@ -2858,8 +3050,8 @@ int ByteArray::icompare(const ByteArray* a, const ByteArray* b)
 {
   sysuint_t aLen = a->getLength();
   sysuint_t bLen = b->getLength();
-  const uint8_t* aCur = reinterpret_cast<const uint8_t*>(a->cData());
-  const uint8_t* bCur = reinterpret_cast<const uint8_t*>(b->cData());
+  const uint8_t* aCur = reinterpret_cast<const uint8_t*>(a->getData());
+  const uint8_t* bCur = reinterpret_cast<const uint8_t*>(b->getData());
   const uint8_t* aEnd = reinterpret_cast<const uint8_t*>(aCur + aLen);
 
   int c;
@@ -2874,12 +3066,12 @@ int ByteArray::icompare(const ByteArray* a, const ByteArray* b)
 bool ByteArray::eq(const Str8& other, uint cs) const
 {
   sysuint_t len = other.getLength();
-  if (len == DetectLength)
+  if (len == DETECT_LENGTH)
   {
-    const uint8_t* aCur = reinterpret_cast<const uint8_t*>(cData());
+    const uint8_t* aCur = reinterpret_cast<const uint8_t*>(getData());
     const uint8_t* bCur = reinterpret_cast<const uint8_t*>(other.getData());
 
-    if (cs == CaseSensitive)
+    if (cs == CASE_SENSITIVE)
     {
       for (sysuint_t i = getLength(); i; i--, aCur++, bCur++)
       {
@@ -2898,27 +3090,27 @@ bool ByteArray::eq(const Str8& other, uint cs) const
     return *bCur == 0;
   }
   else
-    return getLength() == len && StringUtil::eq(cData(), other.getData(), len, cs);
+    return getLength() == len && StringUtil::eq(getData(), other.getData(), len, cs);
 }
 
 bool ByteArray::eq(const ByteArray& other, uint cs) const
 {
-  return getLength() == other.getLength() && StringUtil::eq(cData(), other.cData(), getLength(), cs);
+  return getLength() == other.getLength() && StringUtil::eq(getData(), other.getData(), getLength(), cs);
 }
 
 int ByteArray::compare(const Str8& other, uint cs) const
 {
   sysuint_t aLen = getLength();
   sysuint_t bLen = other.getLength();
-  const uint8_t* aCur = reinterpret_cast<const uint8_t*>(cData());
+  const uint8_t* aCur = reinterpret_cast<const uint8_t*>(getData());
   const uint8_t* aEnd = reinterpret_cast<const uint8_t*>(aCur + aLen);
   const uint8_t* bCur = reinterpret_cast<const uint8_t*>(other.getData());
 
   int c;
 
-  if (bLen == DetectLength)
+  if (bLen == DETECT_LENGTH)
   {
-    if (cs == CaseSensitive)
+    if (cs == CASE_SENSITIVE)
     {
       for (;;)
       {
@@ -2943,7 +3135,7 @@ int ByteArray::compare(const Str8& other, uint cs) const
   {
     if (bLen < aLen) aEnd = aCur + bLen;
 
-    if (cs == CaseSensitive)
+    if (cs == CASE_SENSITIVE)
     {
       for (; aCur != aEnd; aCur++, bCur++)
         if ((c = (int)*aCur - (int)*bCur)) return c;
@@ -2962,14 +3154,14 @@ int ByteArray::compare(const ByteArray& other, uint cs) const
 {
   sysuint_t aLen = getLength();
   sysuint_t bLen = other.getLength();
-  const uint8_t* aCur = reinterpret_cast<const uint8_t*>(cData());
+  const uint8_t* aCur = reinterpret_cast<const uint8_t*>(getData());
   const uint8_t* aEnd = reinterpret_cast<const uint8_t*>(aCur + aLen);
-  const uint8_t* bCur = reinterpret_cast<const uint8_t*>(other.cData());
+  const uint8_t* bCur = reinterpret_cast<const uint8_t*>(other.getData());
 
   int c;
   if (bLen < aLen) aEnd = aCur + bLen;
 
-  if (cs == CaseSensitive)
+  if (cs == CASE_SENSITIVE)
   {
     for (; aCur != aEnd; aCur++, bCur++)
       if ((c = (int)(uint8_t)*aCur - (int)(uint8_t)*bCur)) return c;
@@ -2989,12 +3181,12 @@ int ByteArray::compare(const ByteArray& other, uint cs) const
 
 err_t ByteArray::validateUtf8(sysuint_t* invalidPos) const
 {
-  return StringUtil::validateUtf8(cData(), getLength());
+  return StringUtil::validateUtf8(getData(), getLength());
 }
 
 err_t ByteArray::getNumUtf8Chars(sysuint_t* charsCount) const
 {
-  return StringUtil::getNumUtf8Chars(cData(), getLength(), charsCount);
+  return StringUtil::getNumUtf8Chars(getData(), getLength(), charsCount);
 }
 
 // ============================================================================
@@ -3020,7 +3212,7 @@ uint32_t ByteArray::getHashCode() const
   uint32_t h = _d->hashCode;
   if (h) return h;
 
-  return (_d->hashCode = HashUtil::hashString(cData(), getLength()));
+  return (_d->hashCode = HashUtil::hashString(getData(), getLength()));
 }
 
 // ============================================================================
@@ -3057,7 +3249,7 @@ ByteArray::Data* ByteArray::Data::adopt(void* address, sysuint_t capacity)
 
 ByteArray::Data* ByteArray::Data::adopt(void* address, sysuint_t capacity, const char* str, sysuint_t length)
 {
-  if (length == DetectLength) length = StringUtil::len(str);
+  if (length == DETECT_LENGTH) length = StringUtil::len(str);
 
   if (length <= capacity)
   {
@@ -3095,7 +3287,7 @@ ByteArray::Data* ByteArray::Data::alloc(sysuint_t capacity)
 
 ByteArray::Data* ByteArray::Data::alloc(sysuint_t capacity, const char* str, sysuint_t length)
 {
-  if (length == DetectLength) length = StringUtil::len(str);
+  if (length == DETECT_LENGTH) length = StringUtil::len(str);
   if (length > capacity) capacity = length;
 
   if (capacity == 0) return ByteArray::sharedNull->refAlways();
@@ -3155,13 +3347,13 @@ FOG_INIT_DECLARE err_t fog_bytearray_init(void)
 
   ByteArray::Data* d = ByteArray::sharedNull.instancep();
   d->refCount.init(1);
-  d->flags |= ByteArray::Data::IsNull | ByteArray::Data::IsSharable;
+  d->flags |= ByteArray::Data::IsSharable;
   d->hashCode = 0;
   d->capacity = 0;
   d->length = 0;
   memset(d->data, 0, sizeof(d->data));
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 FOG_INIT_DECLARE void fog_bytearray_shutdown(void)

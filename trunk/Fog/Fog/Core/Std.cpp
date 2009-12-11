@@ -15,7 +15,6 @@
 // [Dependencies]
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/Constants.h>
-#include <Fog/Core/Error.h>
 #include <Fog/Core/Math.h>
 #include <Fog/Core/Std.h>
 
@@ -108,14 +107,6 @@ FOG_CAPI_DECLARE void fog_debug(const char* format, ...)
   va_end(ap);
 }
 
-FOG_CAPI_DECLARE void FOG_NO_RETURN fog_assertion(const char* file, int line, const char* msg)
-{
-  fog_stderr_msg(NULL, NULL, "Assertion failure: %s\nFile: %s\nLine: %d\n", msg ? msg :"", file, line);
-
-  fog_failed = 1;
-  exit(EXIT_FAILURE);
-}
-
 FOG_CAPI_DECLARE void FOG_NO_RETURN fog_fail(const char* format, ...)
 {
   va_list ap;
@@ -138,17 +129,6 @@ FOG_CAPI_DECLARE void fog_sleep(uint32_t msecs)
 #else
 #error "fog_sleep - Not implemented"
 #endif
-}
-
-FOG_CAPI_DECLARE sysuint_t fog_strnlen(const char* str, sysuint_t maxlen)
-{
-  register const char* strCur = str;
-  register const char* strEnd = str + maxlen;
-  for (; strCur != strEnd; strCur++)
-  {
-    if (*strCur == 0) break;
-  }
-  return (sysuint_t)(strCur - str);
 }
 
 // Copyright (c) 1992, 1993
@@ -190,10 +170,10 @@ static FOG_INLINE char* fog_qsort_med3(char* a, char* b, char* c, fog_qsort_call
 #define fog_qsort_swapcode(TYPE, parmi, parmj, n) \
 { \
   sysint_t i = (n) / sizeof (TYPE); \
-  register TYPE *pi = (TYPE *) (parmi); \
-  register TYPE *pj = (TYPE *) (parmj); \
+  TYPE *pi = (TYPE *) (parmi); \
+  TYPE *pj = (TYPE *) (parmj); \
   do { \
-    register TYPE t = *pi; \
+    TYPE t = *pi; \
     *pi++ = *pj; \
     *pj++ = t; \
   } while (--i > 0); \
@@ -409,6 +389,8 @@ sysuint_t calcOptimalCapacity(sysuint_t sizeof_d, sysuint_t sizeof_element, sysu
 
 FOG_INIT_DECLARE err_t fog_std_init(void)
 {
+  using namespace Fog;
+
   fog_stdfile = NULL;
   fog_stdout = stdout;
   fog_stderr = stderr;
@@ -416,10 +398,12 @@ FOG_INIT_DECLARE err_t fog_std_init(void)
 
   setlocale(LC_ALL, "");
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 FOG_INIT_DECLARE void fog_std_shutdown(void)
 {
+  using namespace Fog;
+
   if (fog_stdfile) fclose(fog_stdfile);
 }

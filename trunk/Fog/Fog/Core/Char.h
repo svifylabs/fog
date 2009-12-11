@@ -141,9 +141,9 @@ struct FOG_HIDDEN FOG_PACKED Char
   FOG_INLINE bool isValid() const { return isValid(_ch); }
 
   // Statics.
-  static FOG_INLINE bool isLeadSurrogate(uint16_t ch) { return (ch & LeadSurrogateMask) == LeadSurrogateBase; }
-  static FOG_INLINE bool isTrailSurrogate(uint16_t ch) { return (ch & TrailSurrogateMask) == TrailSurrogateBase; }
-  static FOG_INLINE bool isSurrogatePair(uint16_t ch) { return (ch & SurrogatePairMask) == SurrogatePairBase; }
+  static FOG_INLINE bool isLeadSurrogate(uint16_t ch) { return (ch & UTF16_LEAD_SURROGATE_MASK) == UTF16_LEAD_SURROGATE_BASE; }
+  static FOG_INLINE bool isTrailSurrogate(uint16_t ch) { return (ch & UTF16_TRAIL_SURROGATE_MASK) == UTF16_TRAIL_SURROGATE_BASE; }
+  static FOG_INLINE bool isSurrogatePair(uint16_t ch) { return (ch & UTF16_SURROGATE_PAIR_MASK) == UTF16_SURROGATE_PAIR_BASE; }
   static FOG_INLINE bool isValid(uint16_t ch) { return (ch < 0xFFFE); }
 
   // [BOM / BSwap]
@@ -169,8 +169,8 @@ struct FOG_HIDDEN FOG_PACKED Char
   static FOG_INLINE uint32_t fromSurrogate(uint16_t uc0, uint16_t uc1)
   {
     return (uint32_t)(
-      0x10000U + (((uint32_t)uc0 - LeadSurrogateMin) << 10) +
-                 ( (uint32_t)uc1 - (LeadSurrogateMax + 1U)));
+      0x10000U + (((uint32_t)uc0 - UTF16_LEAD_SURROGATE_MIN) << 10) +
+                 ( (uint32_t)uc1 - (UTF16_LEAD_SURROGATE_MAX + 1U)));
   }
 
   static FOG_INLINE void toSurrogatePair(uint32_t uc, uint16_t* uc0, uint16_t* uc1)
@@ -234,6 +234,6 @@ __FOG_CHAR_MAKE_ARITH_OVERLOAD(int16_t a, (uint16_t)a, const Fog::Char& b, b._ch
 // [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::Char, Fog::PrimitiveType)
+FOG_DECLARE_TYPEINFO(Fog::Char, Fog::TYPE_INFO_PRIMITIVE)
 
 #endif // _FOG_CORE_CHAR_H

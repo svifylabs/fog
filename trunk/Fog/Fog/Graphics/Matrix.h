@@ -38,6 +38,12 @@
 namespace Fog {
 
 // ============================================================================
+// [Forward Declarations]
+// ============================================================================
+
+struct PointD;
+
+// ============================================================================
 // [Fog::Matrix]
 // ============================================================================
 
@@ -68,12 +74,12 @@ namespace Fog {
 //!    rotate(30), scaleX(2.0), scaleY(1.5), move(100,100)
 //!    will have exactly the same result as the following matrix transformations:
 //!
-//!      Fog::Matrix m;
-//!      m *= Fog::Matrix::fromRotation(30);
-//!      m *= Fog::Matrix::fromScale(2.0, 1.5);
-//!      m *= Fog::Matrix::fromTranslation(100, 100);
+//!    Fog::Matrix m;
+//!    m *= Fog::Matrix::fromRotation(30);
+//!    m *= Fog::Matrix::fromScale(2.0, 1.5);
+//!    m *= Fog::Matrix::fromTranslation(100, 100);
 //!
-//!      m.transform(&x, &y);
+//!    m.transform(&x, &y);
 //!
 //! What is the good of it? In real life we will set-up the matrix only once
 //! and then transform many points, let alone the convenience to set any
@@ -107,6 +113,8 @@ struct FOG_API Matrix
     tx  = 0.0; ty  = 0.0;
   }
 
+  FOG_INLINE Matrix(const _DONT_INITIALIZE &) {}
+
   //! @brief Create custom matrix.
   FOG_INLINE Matrix(
     double m0, double m1, double m2, 
@@ -125,7 +133,7 @@ struct FOG_API Matrix
     tx  = m[4]; ty  = m[5];
   }
 
-  //! @brief Rectangle to a parallelogram..
+  //! @brief Rectangle to a parallelogram.
   FOG_INLINE Matrix(double x1, double y1, double x2, double y2, const double* parl)
   {
     rectToParl(x1, y1, x2, y2, parl);
@@ -152,10 +160,10 @@ struct FOG_API Matrix
   //! @brief Create scaling matrix.
   static Matrix fromScale(double x, double y);
 
-  //! @brief Create translation matrix
+  //! @brief Create translation matrix.
   static Matrix fromTranslation(double x, double y);
 
-  //! @brief Create skewing (shear) matrix
+  //! @brief Create skewing (shear) matrix.
   static Matrix fromSkew(double x, double y);
 
   //! @brief Create line segment matrix - rotate, scale and translate, 
@@ -189,7 +197,7 @@ struct FOG_API Matrix
 
   // [Operations]
 
-  //! @brief Reset - load an identity matrix
+  //! @brief Reset - load an identity matrix.
   Matrix& reset();
 
   // Direct transformations operations
@@ -199,84 +207,85 @@ struct FOG_API Matrix
   Matrix& scale(double x, double y);
   Matrix& skew(double x, double y);
 
-  //! @brief Multiply matrix by another one
-  Matrix& multiply(const Matrix& m);
+  //! @brief Multiply matrix by @a m.
+  Matrix& multiply(const Matrix& m, int order = MATRIX_APPEND);
 
-  //! @brief Multiply matrix to inverse of another one
-  Matrix& multiplyInv(const Matrix& m);
+  //! @brief Return matrix multiplied by @a m.
+  Matrix multiplied(const Matrix& m, int order = MATRIX_APPEND) const;
 
-  //! @brief Multiply "m" to "this" and assign the result to "this"
-  Matrix& premultiply(const Matrix& m);
-
-  //! @brief Multiply inverse of "m" to "this" and assign the result to "this"
-  Matrix& premultiplyInv(const Matrix& m);
+  //! @brief Multiply matrix by inverted @a m.
+  Matrix& multiplyInv(const Matrix& m, int order = MATRIX_APPEND);
 
   //! @brief Invert matrix. Do not try to invert degenerate matrices,
   //! there's no check for validity. If you set scale to 0 and 
   //! then try to invert matrix, expect unpredictable result.
   Matrix& invert();
 
-  //! @brief Mirroring around X
+  //! @brief Return inverted matrix.
+  Matrix inverted() const;
+
+  //! @brief Mirroring around X.
   Matrix& flipX();
 
-  //! @brief Mirroring around Y
+  //! @brief Mirroring around Y.
   Matrix& flipY();
+
+  //! @brief Get type of matrix.
+  //!
+  //! You can use type of matrix to optimize matrix operations.
+  int getType() const;
 
   // [Load / Store]
 
-  //! @brief Store matrix to an array [6] of double
+  //! @brief Store matrix to an array [6] of double.
   FOG_INLINE void storeTo(double* m) const
   {
-    m[0] = sx; m[1] = shy; m[2] = shx;
-    m[3] = sy; m[4] = tx ; m[5] = ty ;
+    m[0] = sx ; m[1] = shy;
+    m[2] = shx; m[3] = sy ;
+    m[4] = tx ; m[5] = ty ;
   }
 
-  //! @brief Load matrix from an array [6] of double
+  //! @brief Load matrix from an array [6] of double.
   FOG_INLINE Matrix& loadFrom(const double* m)
   {
-    sx = m[0]; shy = m[1]; shx = m[2];
-    sy = m[3]; tx  = m[4]; ty  = m[5];
+    sx  = m[0]; shy = m[1];
+    shx = m[2]; sy  = m[3];
+    tx  = m[4]; ty  = m[5];
+
     return *this;
   }
 
   // [Operators]
   
-  //! @brief Multiply the matrix by another one
-  FOG_INLINE Matrix& operator*=(const Matrix& m)
-  { return multiply(m); }
+  //! @brief Multiply the matrix by another one.
+  FOG_INLINE Matrix& operator*=(const Matrix& m) { return multiply(m); }
 
-  //! @brief Multiply the matrix by inverse of another one
-  FOG_INLINE Matrix& operator/=(const Matrix& m)
-  { return multiplyInv(m); }
+  //! @brief Multiply the matrix by inverse of another one.
+  FOG_INLINE Matrix& operator/=(const Matrix& m) { return multiplyInv(m); }
 
   //! @brief Multiply the matrix by another one and return
   //! the result in a separete matrix.
-  FOG_INLINE Matrix operator*(const Matrix& m)
-  { return Matrix(*this).multiply(m); }
+  FOG_INLINE Matrix operator*(const Matrix& m) { return Matrix(*this).multiply(m); }
 
   //! @brief Multiply the matrix by inverse of another one 
   //! and return the result in a separete matrix.
-  FOG_INLINE Matrix operator/(const Matrix& m)
-  { return Matrix(*this).multiplyInv(m); }
+  FOG_INLINE Matrix operator/(const Matrix& m) { return Matrix(*this).multiplyInv(m); }
 
-  //! @brief Calculate and return the inverse matrix
-  FOG_INLINE Matrix operator~() const
-  { Matrix ret = *this; return ret.invert(); }
+  //! @brief Calculate and return the inverse matrix.
+  FOG_INLINE Matrix operator~() const { return inverted(); }
 
-  //! @brief Equal operator with default epsilon
-  FOG_INLINE bool operator==(const Matrix& m) const
-  { return isEqual(m, Math::defaultEpsilon); }
+  //! @brief Equal operator with default epsilon.
+  FOG_INLINE bool operator==(const Matrix& m) const { return isEqual(m, Math::DEFAULT_EPSILON); }
 
-  //! @brief Not Equal operator with default epsilon
-  FOG_INLINE bool operator!=(const Matrix& m) const
-  { return !isEqual(m, Math::defaultEpsilon); }
+  //! @brief Not Equal operator with default epsilon.
+  FOG_INLINE bool operator!=(const Matrix& m) const { return !isEqual(m, Math::DEFAULT_EPSILON); }
 
   // [Transformations]
 
-  //! @brief Direct transformation of x and y
+  //! @brief Direct transformation of x and y.
   void transform(double* x, double* y) const;
 
-  //! @brief Direct transformation of x and y, 2x2 matrix only, no translation
+  //! @brief Direct transformation of x and y, 2x2 matrix only, no translation.
   void transform2x2(double* x, double* y) const;
 
   //! @brief Inverse transformation of x and y. It works slower than
@@ -284,29 +293,31 @@ struct FOG_API Matrix
   //! invert() the matrix and then use direct transformations. 
   void transformInv(double* x, double* y) const;
 
+  //! @brief Transform an array of points.
+  void transformPoints(PointD* dst, const PointD* src, sysuint_t count) const;
+
   // [Auxiliary]
 
   //! @brief Calculate the determinant of matrix.
-  FOG_INLINE double determinant() const
-  { return sx * sy - shy * shx; }
+  FOG_INLINE double determinant() const { return sx * sy - shy * shx; }
 
   //! @brief Calculate the reciprocal of the determinant.
   double determinantReciprocal() const;
 
   //! @brief Get the average scale (by X and Y). 
   //!
-  //! Basically used to calculate the approximation_scale when
-  //! decomposinting curves into line segments.
+  //! Basically used to calculate the approximation scale when decomposinting
+  //! curves into line segments.
   double scale() const;
 
   //! @brief Check to see if the matrix is not degenerate.
-  bool isValid(double epsilon = Math::defaultEpsilon) const;
+  bool isValid(double epsilon = Math::DEFAULT_EPSILON) const;
 
   //! @brief Check to see if it's an identity matrix.
-  bool isIdentity(double epsilon = Math::defaultEpsilon) const;
+  bool isIdentity(double epsilon = Math::DEFAULT_EPSILON) const;
 
   //! @brief Check to see if two matrices are equal.
-  bool isEqual(const Matrix& m, double epsilon = Math::defaultEpsilon) const;
+  bool isEqual(const Matrix& m, double epsilon = Math::DEFAULT_EPSILON) const;
 
   //! @brief Determine the major parameters. Use with caution considering 
   //! possible degenerate cases.
@@ -323,7 +334,9 @@ struct FOG_API Matrix
     struct {
       // Never change order of these variables, they are accessed through SSE2
       // fast paths without referencing (directly from m[] pointer).
-      double sx, shy, shx, sy, tx, ty;
+      double sx, shy;
+      double shx, sy;
+      double tx, ty;
     };
   };
 };
@@ -334,7 +347,7 @@ struct FOG_API Matrix
 // [Fog::TypeInfo<T>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::Matrix, Fog::PrimitiveType)
+FOG_DECLARE_TYPEINFO(Fog::Matrix, Fog::TYPE_INFO_PRIMITIVE)
 
 //! @}
 

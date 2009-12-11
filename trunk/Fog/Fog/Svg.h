@@ -21,7 +21,7 @@
 // [Fog/Svg Include Files]
 #include <Fog/Build/Build.h>
 
-#include <Fog/Svg/Error.h>
+#include <Fog/Svg/Constants.h>
 #include <Fog/Svg/SvgBase.h>
 #include <Fog/Svg/SvgContext.h>
 #include <Fog/Svg/SvgDom.h>

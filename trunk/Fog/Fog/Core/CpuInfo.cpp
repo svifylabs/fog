@@ -16,7 +16,6 @@
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/Constants.h>
 #include <Fog/Core/CpuInfo.h>
-#include <Fog/Core/Error.h>
 #include <Fog/Core/Math.h>
 
 #if defined(FOG_OS_WINDOWS)
@@ -148,22 +147,22 @@ void detectCpuInfo(CpuInfo* i)
     i->model  += ((out.eax >> 16) & 0x0F) << 4;
   }
 
-  if (out.ecx & 0x00000001U) i->features |= CpuInfo::Feature_SSE3;
-  if (out.ecx & 0x00000008U) i->features |= CpuInfo::Feature_MotitorMWait;
-  if (out.ecx & 0x00000200U) i->features |= CpuInfo::Feature_SSSE3;
-  if (out.ecx & 0x00002000U) i->features |= CpuInfo::Feature_CMPXCHG16B;
-  if (out.ecx & 0x00080000U) i->features |= CpuInfo::Feature_SSE4_1;
-  if (out.ecx & 0x00100000U) i->features |= CpuInfo::Feature_SSE4_2;
-  if (out.ecx & 0x00800000U) i->features |= CpuInfo::Feature_POPCNT;
+  if (out.ecx & 0x00000001U) i->features |= CpuInfo::FEATURE_SSE3;
+  if (out.ecx & 0x00000008U) i->features |= CpuInfo::FEATURE_MotitorMWait;
+  if (out.ecx & 0x00000200U) i->features |= CpuInfo::FEATURE_SSSE3;
+  if (out.ecx & 0x00002000U) i->features |= CpuInfo::FEATURE_CMPXCHG16B;
+  if (out.ecx & 0x00080000U) i->features |= CpuInfo::FEATURE_SSE4_1;
+  if (out.ecx & 0x00100000U) i->features |= CpuInfo::FEATURE_SSE4_2;
+  if (out.ecx & 0x00800000U) i->features |= CpuInfo::FEATURE_POPCNT;
 
-  if (out.edx & 0x00000010U) i->features |= CpuInfo::Feature_RDTSC;
-  if (out.edx & 0x00000100U) i->features |= CpuInfo::Feature_CMPXCHG8B;
-  if (out.edx & 0x00008000U) i->features |= CpuInfo::Feature_CMOV;
-  if (out.edx & 0x00800000U) i->features |= CpuInfo::Feature_MMX;
-  if (out.edx & 0x01000000U) i->features |= CpuInfo::Feature_FXSR;
-  if (out.edx & 0x02000000U) i->features |= CpuInfo::Feature_SSE | CpuInfo::Feature_MMXExt;
-  if (out.edx & 0x04000000U) i->features |= CpuInfo::Feature_SSE | CpuInfo::Feature_SSE2;
-  if (out.edx & 0x10000000U) i->features |= CpuInfo::Feature_MultiThreading;
+  if (out.edx & 0x00000010U) i->features |= CpuInfo::FEATURE_RDTSC;
+  if (out.edx & 0x00000100U) i->features |= CpuInfo::FEATURE_CMPXCHG8B;
+  if (out.edx & 0x00008000U) i->features |= CpuInfo::FEATURE_CMOV;
+  if (out.edx & 0x00800000U) i->features |= CpuInfo::FEATURE_MMX;
+  if (out.edx & 0x01000000U) i->features |= CpuInfo::FEATURE_FXSR;
+  if (out.edx & 0x02000000U) i->features |= CpuInfo::FEATURE_SSE | CpuInfo::FEATURE_MMXExt;
+  if (out.edx & 0x04000000U) i->features |= CpuInfo::FEATURE_SSE | CpuInfo::FEATURE_SSE2;
+  if (out.edx & 0x10000000U) i->features |= CpuInfo::FEATURE_MultiThreading;
 
   if (strcmp(i->vendor, "AuthenticAMD") == 0 && 
       (out.edx & 0x10000000U))
@@ -183,7 +182,7 @@ void detectCpuInfo(CpuInfo* i)
   if (strcmp(i->vendor, "AuthenticAMD") == 0 && 
       i->family == 15 && i->model >= 32 && i->model <= 63) 
   {
-    i->bugs |= CpuInfo::Bug_AmdLockMB;
+    i->bugs |= CpuInfo::BUG_AMD_LOCK_MB;
   }
 
   // Calling cpuid with 0x80000000 as the in argument
@@ -200,20 +199,20 @@ void detectCpuInfo(CpuInfo* i)
     switch (a)
     {
       case 0x80000001:
-        if (out.ecx & 0x00000001U) i->features |= CpuInfo::Feature_LAHF_SAHF;
-        if (out.ecx & 0x00000020U) i->features |= CpuInfo::Feature_LZCNT;
-        if (out.ecx & 0x00000040U) i->features |= CpuInfo::Feature_SSE4_A;
-        if (out.ecx & 0x00000080U) i->features |= CpuInfo::Feature_MSSE;
-        if (out.ecx & 0x00000100U) i->features |= CpuInfo::Feature_PREFETCH;
-        if (out.ecx & 0x00000800U) i->features |= CpuInfo::Feature_SSE5;
+        if (out.ecx & 0x00000001U) i->features |= CpuInfo::FEATURE_LAHF_SAHF;
+        if (out.ecx & 0x00000020U) i->features |= CpuInfo::FEATURE_LZCNT;
+        if (out.ecx & 0x00000040U) i->features |= CpuInfo::FEATURE_SSE4_A;
+        if (out.ecx & 0x00000080U) i->features |= CpuInfo::FEATURE_MSSE;
+        if (out.ecx & 0x00000100U) i->features |= CpuInfo::FEATURE_PREFETCH;
+        if (out.ecx & 0x00000800U) i->features |= CpuInfo::FEATURE_SSE5;
 
-        if (out.edx & 0x00100000U) i->features |= CpuInfo::Feature_ExecuteDisableBit;
-        if (out.edx & 0x00200000U) i->features |= CpuInfo::Feature_FFXSR;
-        if (out.edx & 0x00400000U) i->features |= CpuInfo::Feature_MMXExt;
-        if (out.edx & 0x08000000U) i->features |= CpuInfo::Feature_RDTSCP;
-        if (out.edx & 0x20000000U) i->features |= CpuInfo::Feature_64Bit;
-        if (out.edx & 0x40000000U) i->features |= CpuInfo::Feature_3dNowExt | CpuInfo::Feature_MMXExt;
-        if (out.edx & 0x80000000U) i->features |= CpuInfo::Feature_3dNow;
+        if (out.edx & 0x00100000U) i->features |= CpuInfo::FEATURE_ExecuteDisableBit;
+        if (out.edx & 0x00200000U) i->features |= CpuInfo::FEATURE_FFXSR;
+        if (out.edx & 0x00400000U) i->features |= CpuInfo::FEATURE_MMXExt;
+        if (out.edx & 0x08000000U) i->features |= CpuInfo::FEATURE_RDTSCP;
+        if (out.edx & 0x20000000U) i->features |= CpuInfo::FEATURE_64Bit;
+        if (out.edx & 0x40000000U) i->features |= CpuInfo::FEATURE_3dNowExt | CpuInfo::FEATURE_MMXExt;
+        if (out.edx & 0x80000000U) i->features |= CpuInfo::FEATURE_3dNow;
         break;
 
       case 0x80000002:
@@ -268,7 +267,7 @@ FOG_INIT_DECLARE err_t fog_cpuinfo_init(void)
   cpuInfo = &staticCpuInfo;
   detectCpuInfo(cpuInfo);
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 FOG_INIT_DECLARE void fog_cpuinfo_shutdown(void)

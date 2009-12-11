@@ -36,16 +36,16 @@ struct FOG_API DitherMatrix
   enum {
 #ifdef FOG_SMALL_DITHER
     /*! @brief Size of dithering table. */
-    Size = 4,        // Always 2^N
-    Bits = 4,        // Count of bits used per element
-    Div = 16,
-    Mask = Size - 1
+    SIZE = 4,        // Always 2^N
+    BITS = 4,        // Count of bits used per element
+    DIV = 16,
+    MASK = SIZE - 1
 #else
     /*! @brief Size of dithering table. */
-    Size = 128,      // Always 2^N
-    Bits = 6,        // Count of bits used per element
-    Div = 64,
-    Mask = Size - 1
+    SIZE = 128,      // Always 2^N
+    BITS = 6,        // Count of bits used per element
+    DIV = 64,
+    MASK = SIZE - 1
 #endif // FOG_SMALL_DITHER
   };
 
@@ -53,7 +53,7 @@ struct FOG_API DitherMatrix
 
   // To find correct position in dithering table, use this formula:
   // table[X & Mask][Y & Mask]
-  static const uint8_t matrix[Size][Size];
+  static const uint8_t matrix[SIZE][SIZE];
 
   // [Helpers]
   //
@@ -64,7 +64,7 @@ struct FOG_API DitherMatrix
   template<typename T>
   static FOG_INLINE T shf_arg(const T& t)
   {
-    return Bits - (8 - t);
+    return BITS - (8 - t);
   }
 
   /*! @brief Shifting dither helper. */

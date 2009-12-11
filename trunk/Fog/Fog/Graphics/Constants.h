@@ -13,7 +13,97 @@
 namespace Fog {
 
 // ============================================================================
-// [Fog::CompositeOp]
+// [Fog::ALPHA_TYPE]
+// ============================================================================
+
+//! @brief Results from some color analyze functions.
+//!
+//! Usualy used to optimize image processing, because algorithm
+//! for full opaque image is always better that generic algorithm
+//! for image with alpha channel.
+enum ALPHA_TYPE
+{
+  //! @brief Alpha values are not constant.
+  ALPHA_VARIANT = -1,
+  //! @brief All alpha values are transparent (0).
+  ALPHA_TRANSPARENT = 0,
+  //! @brief All alpha values are opaque (255).
+  ALPHA_OPAQUE = 255
+};
+
+// ============================================================================
+// [Fog::BLUR_TYPE]
+// ============================================================================
+
+//! @brief Type of blur, see @c ImageFilter.
+enum BLUR_TYPE
+{
+  //! @brief Box blur type.
+  //!
+  //! Box blur is very bad looking blur, but it's fastest blur implemented
+  //! in Fog library. Fog small radius it's quite good looking one. Box blur
+  //! result looks very agressive.
+  BLUR_BOX = 0,
+
+  //! @brief Linear blur (the default one).
+  //!
+  //! Linear blur provides very good looking blur with optimal performance.
+  BLUR_LINEAR = 1,
+
+  //! @brief Gaussian blur type.
+  //!
+  //! Gaussian blur uses gaussian function to setup convolution matrix. It's
+  //! slowest blur in Fog library, but the quality is excellent.
+  BLUR_GAUSSIAN = 2,
+
+  //! @brief Used to catch invalid arguments.
+  BLUR_INVALID
+};
+
+static double BLUR_MAX_RADIUS = 255.0;
+
+// ============================================================================
+// [Fog::BORDER_EXTEND_MODE]
+// ============================================================================
+
+//! @brief Border extend mode used in image filtering (convolution and blurs).
+enum BORDER_EXTEND_MODE
+{
+  //! @brief Borders are extended using pad.
+  BORDER_EXTEND_PAD = 0,
+
+  //! @brief Borders are extended using repead.
+  BORDER_EXTEND_REPEAT = 1,
+
+  //! @brief Borders are extended using reflect.
+  BORDER_EXTEND_REFLECT = 2,
+
+  //! @brief Borders are extended by custom single color.
+  BORDER_EXTEND_COLOR = 3,
+
+  //! @brief Used to catch invalid arguments.
+  BORDER_EXTEND_INVALID = 4
+};
+
+// ============================================================================
+// [Fog::COLOR_CHANNEL_TYPE]
+// ============================================================================
+
+//! @brief Argb color channels.
+enum COLOR_CHANNEL_TYPE
+{
+  COLOR_CHANNEL_RED = 0x1,
+  COLOR_CHANNEL_GREEN = 0x2,
+  COLOR_CHANNEL_BLUE = 0x4,
+  COLOR_CHANNEL_ALPHA = 0x8,
+  COLOR_CHANNEL_RGB = COLOR_CHANNEL_RED | COLOR_CHANNEL_GREEN | COLOR_CHANNEL_BLUE,
+  COLOR_CHANNEL_ARGB = COLOR_CHANNEL_RGB | COLOR_CHANNEL_ALPHA,
+
+  COLOR_CHANNEL_COUNT = COLOR_CHANNEL_ARGB + 1
+};
+
+// ============================================================================
+// [Fog::COMPOSITE_OP]
 // ============================================================================
 
 //! @brief Image compositing operator.
@@ -21,7 +111,7 @@ namespace Fog {
 //! @note Many values and formulas are from antigrain and from SVG specification
 //! that can be found here: 
 //! - http://www.w3.org/TR/2004/WD-SVG12-20041027/rendering.html
-enum CompositeOp
+enum COMPOSITE_OP
 {
   // --------------------------------------------------------------------------
   // [SRC]
@@ -43,7 +133,7 @@ enum CompositeOp
   //!   Msk:
   //!
   //!   Dca' = Sca.m + Dca.(1 - m)
-  //!   Da'  = Sa.m + Da.(1-m)
+  //!   Da'  = Sa.m + Da.(1 - m)
   //!
   //! Formulas for PRGB(dst), RGB(src) colorspaces (SRC):
   //!   Dca' = Sc
@@ -53,33 +143,6 @@ enum CompositeOp
   //!
   //!   Dca' = Sc.m + Dca.(1 - m)
   //!   Da'  = 1.m + Da.(1 - m)
-  //!
-  //! Formulas for ARGB(dst), PRGB(src) colorspaces (SRC):
-  //!   Dc'  = Sca / Da'
-  //!   Da'  = Sa
-  //!
-  //!   Msk:
-  //!
-  //!   Dc'  = (Sca.m + Dc.Da.(1 - m)) / Da'
-  //!   Da'  = Sa.m + Da.(1 - m)
-  //!
-  //! Formulas for ARGB(dst), ARGB(src) colorspaces (SRC):
-  //!   Dc'  = Sc
-  //!   Da'  = Sa
-  //!
-  //!   Msk:
-  //!
-  //!   Dc'  = (Sc.Sa.m + Dc.Da.(1 - m)) / Da'
-  //!   Da'  = Sa.m + Da.(1 - m)
-  //!
-  //! Formulas for ARGB(dst), RGB(src) colorspaces (SRC):
-  //!   Dc'  = Sc
-  //!   Da'  = 1
-  //!
-  //!   Msk:
-  //!
-  //!   Dc'  = (Sc.m + Dc.Da.(1 - m)) / Da'
-  //!   Da'  = m + Da.(1 - m)
   //!
   //! Formulas for RGB(dst), PRGB(src) colorspaces (SRC):
   //!   Dc'  = Sca
@@ -101,7 +164,7 @@ enum CompositeOp
   //!   Msk:
   //!
   //!   Da'  = Sa.m + Da.(1 - m)
-  CompositeSrc = 0,
+  COMPOSITE_SRC = 0,
 
   // --------------------------------------------------------------------------
   // [DST]
@@ -119,18 +182,6 @@ enum CompositeOp
   //!   Dca' = Dca
   //!   Da'  = Da
   //!
-  //! Formulas for ARGB(dst), PRGB(src) colorspaces (NOP):
-  //!   Dc'  = Dc
-  //!   Da'  = Da
-  //!
-  //! Formulas for ARGB(dst), ARGB(src) colorspaces (NOP):
-  //!   Dc'  = Dc
-  //!   Da'  = Da
-  //!
-  //! Formulas for ARGB(dst), RGB(src) colorspaces (NOP):
-  //!   Dc'  = Dc
-  //!   Da'  = Da
-  //!
   //! Formulas for RGB(dst), PRGB(src) colorspaces (NOP):
   //!   Dc'  = Dc
   //!
@@ -139,7 +190,7 @@ enum CompositeOp
   //!
   //! Formulas for A(dst), A(src) colorspaces (NOP):
   //!   Da'  = Da
-  CompositeDest,
+  COMPOSITE_DST,
 
   // --------------------------------------------------------------------------
   // [SRC_OVER]
@@ -170,38 +221,6 @@ enum CompositeOp
   //!   Dca' = Sc.m + Dca.(1 - m)
   //!   Da'  = 1.m + Da.(1 - m)
   //!
-  //! Formulas for ARGB(dst), PRGB(src) colorspaces (SRC_OVER):
-  //!   Dc'  = (Sca + Dc.Da.(1 - Sa)) / Da'
-  //!   Da'  = Sa + Da.(1 - Sa)
-  //!
-  //!   Msk:
-  //!
-  //!   Dc'  = ((Sca + Dc.Da.(1 - Sa)).m + Dc.Da.(1 - m)) / Da'
-  //!        = (Sca.m + Dc.Da.(1 - Sa.m)) / Da'
-  //!   Da'  = (Sa + Da.(1 - Sa)).m + Da .(1 - m)
-  //!        = Sa.m + Da.(1 - Sa.m)
-  //!
-  //! Formulas for ARGB(dst), ARGB(src) colorspaces (SRC_OVER):
-  //!   Dc'  = (Sc.Sa + Dc.Da.(1 - Sa)) / Da'
-  //!        = (Da.(Dc - Dc.Sa) + Sa.Sc) / Da'
-  //!   Da'  = Sa + Da.(1 - Sa)
-  //!
-  //!   Msk:
-  //!
-  //!   Dc'  = ((Sc.Sa + Dc.Da.(1 - Sa)).m + Dc.Da.(1 - m)) / Da'
-  //!        = (Sc.Sa.m + Dc.Da.(1 - Sa.m)) / Da'
-  //!   Da'  = (Sa + Da.(1 - Sa)).m + Da .(1 - m)
-  //!        = Sa.m + Da.(1 - Sa.m)
-  //!
-  //! Formulas for ARGB(dst), RGB(src) colorspaces (SRC):
-  //!   Dc'  = Sc
-  //!   Da'  = 1
-  //!
-  //!   Msk:
-  //!
-  //!   Dca' = (Sc.m + Dc.Da.(1 - m)) / Da'
-  //!   Da'  = 1.m + Da.(1 - m)
-  //!
   //! Formulas for RGB(dst), PRGB(src) colorspaces (SRC):
   //!   Dc'  = Sca
   //!
@@ -225,7 +244,7 @@ enum CompositeOp
   //!
   //! If the source is full opaque (Sa == 1.0 or there is no alpha), it 
   //! replaces the destination.
-  CompositeSrcOver,
+  COMPOSITE_SRC_OVER,
 
   // --------------------------------------------------------------------------
   // [DST_OVER]
@@ -234,7 +253,7 @@ enum CompositeOp
   //! @brief The destination is composited over the source and the result 
   //! replaces the destination. 
   //!
-  //! Formulas for PRGB(dst), PRGB(src) colorspaces:
+  //! Formulas for PRGB(dst), PRGB(src) colorspaces (DST_OVER):
   //!   Dca' = Dca.Sa + Sca.(1 - Da) + Dca.(1 - Sa)
   //!        = Dca + Sca.(1 - Da)
   //!   Da'  = Da.Sa + Sa.(1 - Da) + Da.(1 - Sa)
@@ -246,57 +265,30 @@ enum CompositeOp
   //!   Dca' = (Dca + Sca.(1 - Da)).m + Dca.(1 - m)   => Dca + Sca.(1 - Da).m
   //!   Da'  = (Da  + Sa .(1 - Da)).m + Da .(1 - m)   => Da  + Sa .(1 - Da).m
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces:
+  //! Formulas for PRGB(dst), RGB(src) colorspaces (DST_OVER):
   //!   Dca' = Dca + Sc.(1 - Da)
   //!   Da'  = 1
   //!
   //!   Msk:
   //!
   //!   Dca' = Dca + Sc.m.(1 - Da)
-  //!   Da'  = Da + Sa.m.(1 - Da)
+  //!   Da'  = Da + m.(1 - Da)
   //!
-  //! Formulas for ARGB(dst), PRGB(src) colorspaces:
-  //!   Dc'  = (Dc.Da + Sca.(1 - Da)) / Da'
-  //!   Da'  = Da + Sa.(1 - Da)
-  //!
-  //!   Msk:
-  //!
-  //!   Dc'  = (Dc.Da + Sca.m.(1 - Da)) / Da'
-  //!   Da'  = Da + Sa.m.(1 - Da)
-  //!
-  //! Formulas for ARGB(dst), ARGB(src) colorspaces:
-  //!   Dc'  = (Dc.Da + Sc.Sa.(1 - Da)) / Da'
-  //!   Da'  = Da + Sa.(1 - Da)
-  //!
-  //!   Msk:
-  //!
-  //!   Dc'  = (Dc.Da + Sc.Sa.m.(1 - Da)) / Da'
-  //!   Da'  = Da + Sa.m.(1 - Da)
-  //!
-  //! Formulas for ARGB(dst), RGB(src) colorspaces:
-  //!   Dc'  = Dc.Da + Sc.(1 - Da) -> LERP(Dc, Sc, Da)
-  //!   Da'  = 1
-  //!
-  //!   Msk:
-  //!
-  //!   Dca' = (Dc.Da + Sc.m.(1 - Da)) / Da'
-  //!   Da'  = Da + m.(1-Da) 
-  //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces:
+  //! Formulas for RGB(dst), PRGB(src) colorspaces (NOP):
   //!   Dc'  = Dc
   //!
   //!   Msk:
   //!
   //!   Dc ' = Dc
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces:
+  //! Formulas for RGB(dst), RGB(src) colorspaces (NOP):
   //!   Dc'  = Dc
   //!
   //!   Msk:
   //!
   //!   Dc ' = Dc
   //!
-  //! Formulas for A(dst), A(src) colorspaces:
+  //! Formulas for A(dst), A(src) colorspaces (SRC_OVER):
   //!   Da'  = Da + Sa.(1 - Da) (standard formula used many times)
   //!
   //!   Msk:
@@ -305,7 +297,7 @@ enum CompositeOp
   //!
   //! If the destination is full opaque (Da == 1.0 or there is no aplha), there
   //! is no change.
-  CompositeDestOver,
+  COMPOSITE_DST_OVER,
 
   // --------------------------------------------------------------------------
   // [SRC_IN]
@@ -323,7 +315,7 @@ enum CompositeOp
   //!   Dca' = Sca.Da.m + Dca.(1 - m)
   //!   Da'  = Sa .Da.m + Da .(1 - m)
   //! 
-  //! Formulas for PRGB(dst), RGB(src) colorspaces (?):
+  //! Formulas for PRGB(dst), RGB(src) colorspaces (SRC_IN):
   //!   Dca' = Sc.Da
   //!   Da'  = Da
   //!
@@ -332,33 +324,6 @@ enum CompositeOp
   //!   Dca' = Sc.Da.m + Dca.(1 - m)
   //!   Da'  = 1 .Da.m + Da .(1 - m)
   //!        = Da
-  //!
-  //! Formulas for ARGB(dst), PRGB(src) colorspaces (SRC_IN):
-  //!   Dc'  = Sca/Sa
-  //!   Da'  = Sa.Da
-  //!
-  //!   Msk:
-  //!
-  //!   Dc'  = (Sca.Da.m + Dc.Da.(1 - m)) / Da'
-  //!   Da'  = Sa.Da.m + Da .(1 - m)
-  //!
-  //! Formulas for ARGB(dst), ARGB(src) colorspaces (SRC_IN):
-  //!   Dc'  = Sc
-  //!   Da'  = Sa.Da
-  //!
-  //!   Msk:
-  //!
-  //!   Dc'  = (Sc.Sa.Da.m + Dc.Da.(1 - m)) / Da'
-  //!   Da'  = Sa.Da.m + Da.(1 - m)
-  //!
-  //! Formulas for ARGB(dst), RGB(src) colorspaces (?):
-  //!   Dc'  = Sc
-  //!   Da'  = Da
-  //!
-  //!   Msk:
-  //!
-  //!   Dc'  = (Sc.m + Dc.(1 - m))
-  //!   Da'  = Da.m + Da.(1 - m) => Da
   //!
   //! Formulas for RGB(dst), PRGB(src) colorspaces (SRC):
   //!   Dc'  = Sca
@@ -381,7 +346,7 @@ enum CompositeOp
   //!
   //!   Da'  = Sa.Da.m + Da.(1 - m)
   //!        = Da.(Sa.m + 1 - m)
-  CompositeSrcIn,
+  COMPOSITE_SRC_IN,
 
   // --------------------------------------------------------------------------
   // [DST_IN]
@@ -390,7 +355,7 @@ enum CompositeOp
   //! @brief The part of the destination lying inside of the source replaces
   //! the destination. 
   //!
-  //! Formulas for PRGB(dst), PRGB(src) colorspaces (SRC IN):
+  //! Formulas for PRGB(dst), PRGB(src) colorspaces (DST_IN):
   //!   Dca' = Dca.Sa
   //!   Da'  = Da.Sa
   //!
@@ -403,29 +368,7 @@ enum CompositeOp
   //!   Dca' = Dca
   //!   Da'  = Da
   //!
-  //! Formulas for ARGB(dst), PRGB(src) colorspaces (SRC IN):
-  //!   Dc'  = Dc
-  //!   Da'  = Da.Sa
-  //!
-  //!   Msk:
-  //!
-  //!   Dc'  = (Dc.Sa.m + Dc.(1 - m)) / Da'
-  //!   Da'  = Sa.m + (1 - m)
-  //!
-  //! Formulas for ARGB(dst), ARGB(src) colorspaces (SRC IN):
-  //!   Dc'  = Dc
-  //!   Da'  = Da.Sa
-  //!
-  //!   Msk:
-  //!
-  //!   Dc'  = (Dc.Sa.m + Dc.(1 - m)) / Da'
-  //!   Da'  = Sa.m + (1 - m)
-  //!
-  //! Formulas for ARGB(dst), RGB(src) colorspaces (NOP):
-  //!   Dc'  = Dc
-  //!   Da'  = Da
-  //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces (CLEAR):
+  //! Formulas for RGB(dst), PRGB(src) colorspaces (DST_IN):
   //!   Dc'  = Dc.Sa
   //!
   //!   Msk:
@@ -442,7 +385,7 @@ enum CompositeOp
   //!
   //!   Da'  = Sa.Da.m + Da.(1 - m)
   //!        = Da.(Sa.m + 1 - m)
-  CompositeDestIn,
+  COMPOSITE_DST_IN,
 
   // --------------------------------------------------------------------------
   // [SRC_OUT]
@@ -460,7 +403,7 @@ enum CompositeOp
   //!   Dca' = Sca.(1 - Da).m + Dca.(1 - m)
   //!   Da'  = Sa.(1 - Da).m + Da.(1 - m)
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces (?):
+  //! Formulas for PRGB(dst), RGB(src) colorspaces (SRC_OUT):
   //!   Dca' = Sc.(1 - Da)
   //!   Da'  = (1 - Da)
   //!
@@ -468,33 +411,6 @@ enum CompositeOp
   //!
   //!   Dca' = Sc.(1 - Da).m + Dca.(1 - m)
   //!   Da'  = (1 - Da).m + Da.(m - 1)
-  //!
-  //! Formulas for ARGB(dst), PRGB(src) colorspaces (SRC_OUT):
-  //!   Dc'  = (Sca/Sa).(1 - Da)
-  //!   Da'  = Sa.(1 - Da)
-  //!
-  //!   Msk:
-  //!
-  //!   Dca' = (Sca.(1 - Da).m + Dc.Da.(1 - m)) / Da'
-  //!   Da'  = Sa.(1 - Da).m + Da.(1 - m)
-  //!
-  //! Formulas for ARGB(dst), ARGB(src) colorspaces (SRC_OUT):
-  //!   Dc'  = Sc
-  //!   Da'  = Sa.(1 - Da)
-  //!
-  //!   Msk:
-  //!
-  //!   Dca' = (Sc.Sa.(1 - Da).m + Dc.Da.(1 - m)) / Da'
-  //!   Da'  = Sa.(1 - Da).m + Da.(1 - m)
-  //!
-  //! Formulas for ARGB(dst), RGB(src) colorspaces (?):
-  //!   Dc'  = Sc
-  //!   Da'  = (1 - Da)
-  //!
-  //!   Msk:
-  //!
-  //!   Dca' = (Sc.(1 - Da).m + Dc.Da.(1 - m)) / Da'
-  //!   Da'  = 1.(1 - Da).m + Da.(1 - m)
   //!
   //! Formulas for RGB(dst), PRGB(src) colorspaces (CLEAR):
   //!   Dc'  = 0
@@ -516,7 +432,7 @@ enum CompositeOp
   //!   Msk:
   //!
   //!   Da'  = Sa.(1 - Da).m + Da.(1 - m)
-  CompositeSrcOut,
+  COMPOSITE_SRC_OUT,
 
   // --------------------------------------------------------------------------
   // [DST_OUT]
@@ -525,16 +441,16 @@ enum CompositeOp
   //! @brief The part of the destination lying outside of the source replaces
   //! the destination. 
   //!
-  //! Formulas for PRGB(dst), PRGB(src) colorspaces (SRC_OUT):
+  //! Formulas for PRGB(dst), PRGB(src) colorspaces (DST_OUT):
   //!   Dca' = Dca.(1 - Sa)
   //!   Da'  = Da.(1 - Sa)
   //!
   //!   Msk:
   //!
-  //!   Dca' = Dca.(1 - Sa).m + Dca.(1 - m)  
-  //!        = Dca - Sa.m
+  //!   Dca' = Dca.(1 - Sa).m + Dca.(1 - m)
+  //!        = Dca.(1 - Sa.m)
   //!   Da'  = Da.(1 - Sa).m + Da.(1 - m)
-  //!        = Da - Sa.m
+  //!        = Da.(1 - Sa.m)
   //!
   //! Formulas for PRGB(dst), RGB(src) colorspaces (CLEAR):
   //!   Dca' = 0
@@ -545,40 +461,12 @@ enum CompositeOp
   //!   Dca' = Dca.(m - 1)
   //!   Da'  = Da.(m - 1)
   //!
-  //! Formulas for ARGB(dst), PRGB(src) colorspaces (SRC_OUT):
-  //!   Dc'  = Dc
-  //!   Da'  = Da.(1 - Sa)
+  //! Formulas for RGB(dst), PRGB(src) colorspaces (DST_OUT):
+  //!   Dc'  = Dc.(1 - Sa)
   //!
   //!   Msk:
   //!
-  //!   Dc'  = Dc
-  //!   Da'  = Da - Sa.m
-  //!
-  //! Formulas for ARGB(dst), ARGB(src) colorspaces (SRC_OUT):
-  //!   Dc'  = Dc
-  //!   Da'  = Da.(1 - Sa)
-  //!
-  //!   Msk:
-  //!
-  //!   Dc'  = Dc
-  //!   Da'  = Da - Sa.m
-  //!
-  //! Formulas for ARGB(dst), RGB(src) colorspaces (CLEAR):
-  //!   Dc'  = 0
-  //!   Da'  = 0
-  //!
-  //!   Msk:
-  //!
-  //!   Dca' = Dc.(m - 1)
-  //!   Da'  = Da.(m - 1)
-  //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces (CLEAR):
-  //!   Dc'  = 0
-  //!
-  //!   Msk:
-  //!
-  //!   Dc'  = Dc.(m - 1)
-  //!   Da'  = Da.(m - 1)
+  //!   Dc'  = Dc.(1 - Sa.m)
   //!
   //! Formulas for RGB(dst), RGB(src) colorspaces (CLEAR):
   //!   Dc'  = 0
@@ -588,9 +476,9 @@ enum CompositeOp
   //!   Dc'  = Dc.(m - 1)
   //!   Da'  = Da.(m - 1)
   //!
-  //! Formulas for A(dst), A(src) colorspaces (SRC_OUT):
+  //! Formulas for A(dst), A(src) colorspaces (DST_OUT):
   //!   Da'  = Da.(1 - Sa)
-  CompositeDestOut,
+  COMPOSITE_DST_OUT,
 
   // --------------------------------------------------------------------------
   // [SRC_ATOP]
@@ -613,56 +501,25 @@ enum CompositeOp
   //!   Da'  = Sa.Da.m + Da.(1 - Sa.m)
   //!        = Da
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces (?):
+  //! Formulas for PRGB(dst), RGB(src) colorspaces (SRC_IN):
   //!   Dca' = Sc.Da
   //!   Da'  = Da
   //!
   //!   Msk:
   //!
-  //!   Dca' = Sc.Da.m + Dca.(1 - m)
-  //!   Da'  = 1.Da.m + Da.(1 - m)
+  //!   Dca' = (Sc.Da + Dca.(1 - Sa)).m - Dca.(1 - m)
+  //!        = Sc.Da.m + Dca.(1 - Sa).m - Dca.(1 - m)
+  //!        = Sc.Da.m + Dca.(1 - Sa.m)
+  //!   Da'  = (Da + Da.(1 - 1)).m - Da.(1 - m)
+  //!        = Da.m + Da.(1 - m)
   //!        = Da
   //!
-  //! Formulas for ARGB(dst), PRGB(src) colorspaces (ATOP):
-  //!   Dc'  = Sca + Dc.(1 - Sa)
-  //!   Da'  = Da
-  //!
-  //!   Msk:
-  //!
-  //!   Dc'  = ((Sca.Da + Dc.Da.(1 - Sa)).m + Dc.Da.(1 - m)) / Da'
-  //!        = (Sca.Da.m + Dc.Da.(1 - Sa).m + Dc.Da.(1 - m)) / Da'
-  //!        = Sca.m + Dc.(1 - Sa.m)
-  //!   Da'  = Sa.Da.m + Da.(1 - Sa.m)
-  //!        = Da
-  //!
-  //! Formulas for ARGB(dst), ARGB(src) colorspaces (ATOP):
-  //!   Dc'  = Sc.Sa + Dc.(1 - Sa)
-  //!   Da'  = Da
-  //!
-  //!   Msk:
-  //!
-  //!   Dc'  = ((Sc.Sa.Da + Dc.Da.(1 - Sa)).m + Dc.Da.(1 - m)) / Da'
-  //!        = (Sc.Sa.Da.m + Dc.Da.(1 - Sa).m + Dc.Da.(1 - m)) / Da'
-  //!        = Sc.Sa.m + Dc.(1 - Sa.m)
-  //!   Da'  = Sa.Da.m + Da.(1 - Sa.m)
-  //!        = Da
-  //!
-  //! Formulas for ARGB(dst), RGB(src) colorspaces (ATOP):
-  //!   Dc'  = Sc
-  //!   Da'  = Da
-  //!
-  //!   Msk:
-  //!
-  //!   Dc'  = Sc.m + Dc.(1 - m)
-  //!   Da'  = Da.m + Da.(1 - m)
-  //!        = Da
-  //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces (?):
+  //! Formulas for RGB(dst), PRGB(src) colorspaces (SRC_OVER):
   //!   Dc'  = Sca + Dc.(1 - Sa)
   //!
   //!   Msk:
   //!
-  //!   Dc'  = (Sca + Dc.(1 - Sa)).m + Dc.(1 - m)
+  //!   Dc'  = Sca.m + Dc.(1 - Sa.m)
   //!
   //! Formulas for RGB(dst), RGB(src) colorspaces (SRC):
   //!   Dc'  = Sc
@@ -673,7 +530,7 @@ enum CompositeOp
   //!
   //! Formulas for A(dst), A(src) colorspaces (NOP):
   //!   Da'  = Da
-  CompositeSrcAtop,
+  COMPOSITE_SRC_ATOP,
 
   // --------------------------------------------------------------------------
   // [DST_ATOP]
@@ -682,7 +539,7 @@ enum CompositeOp
   //! @brief The part of the destination lying inside of the source is 
   //! composited over the source and replaces the destination. 
   //!
-  //! Formulas for PRGB(dst), PRGB(src) colorspaces:
+  //! Formulas for PRGB(dst), PRGB(src) colorspaces (DST_ATOP):
   //!   Dca' = Dca.Sa + Sca.(1 - Da)
   //!   Da'  = Da.Sa + Sa.(1 - Da)
   //!        = Sa.(Da + 1 - Da)
@@ -693,46 +550,32 @@ enum CompositeOp
   //!   Dca' = (Dca.Sa + Sca.(1 - Da)).m + Dca.(1 - m)
   //!   Da'  = (Da.Sa + Sa.(1 - Da)).m + Da.(1 - m)
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces:
+  //! Formulas for PRGB(dst), RGB(src) colorspaces (DST_OVER):
   //!   Dca' = Dca + Sc.(1 - Da)
   //!   Da'  = 1
   //!
   //!   Msk:
   //!
-  //!   Dca' = (Dca + Sc.(1 - Da)).m + Dca.(1 - m)
-  //!        = Dca + Sc.m.(1 - Da)
-  //!   Da'  = Da + 1.m.(1 - Da)
+  //!   Dca' = Dca + Sc.m.(1 - Da)
+  //!   Da'  = Da + m.(1 - Da)
   //!
-  //! Formulas for ARGB(dst), PRGB(src) colorspaces:
-  //!   Dc'  = Dc.Da + (Sca/Sa).(1 - Da)
+  //! Formulas for RGB(dst), PRGB(src) colorspaces (DST_IN):
+  //!   Dc'  = Dc.Sa
+  //!
+  //!   Msk:
+  //!
+  //!   Dca' = Dc.Sa.m + Dc.(1 - m)
+  //!
+  //! Formulas for RGB(dst), RGB(src) colorspaces (NOP):
+  //!   Dc'  = Dc
+  //!
+  //! Formulas for A(dst), A(src) colorspaces (SRC):
   //!   Da'  = Sa
   //!
   //!   Msk:
   //!
-  //!   Dc'  = ((Dc.Da.Sa + Sca.(1 - Da)).m + Dc.Da.(1 - m)) / Da'
-  //!        = (Dc.Da.Sa.m + Sca.m - Sca.Da.m + Dc.Da - Dc.Da.m) / Da'
-  //!        = (Dc.Da.(Sa.m + 1 - m) + Sca.m.(1 - Da)) / Da'
-  //!   Da'  = Da.(Sa.m + 1 - m) + Sa.m.(1 - Da)
-  //!        = Sa.m + Da - Da.m
-  //!        = Sa.m + Da.(1 - m)
-  //!
-  //! Formulas for ARGB(dst), ARGB(src) colorspaces:
-  //!   Dc'  = Dc.Da + Sc.(1 - Da)
-  //!   Da'  = Sa
-  //!
-  //! Formulas for ARGB(dst), RGB(src) colorspaces:
-  //!   Dc'  = Dc.Da + Sc.(1 - Da)
-  //!   Da'  = 1
-  //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces:
-  //!   Dc'  = Dc.Sa
-  //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces:
-  //!   Dc'  = Dc
-  //!
-  //! Formulas for A(dst), A(src) colorspaces:
-  //!   Da'  = Sa
-  CompositeDestAtop,
+  //!   Da'  = Sa.m + Da.(1 - m)
+  COMPOSITE_DST_ATOP,
 
   // --------------------------------------------------------------------------
   // [XOR]
@@ -748,39 +591,31 @@ enum CompositeOp
   //!
   //!   Msk:
   //!
-  //!   Dca' = (Sca.(1 - Da) + Dca.(1 - Sa)).m + Dca.(1 - m)
-  //!   Da'  = (Sa .(1 - Da) + Da .(1 - Sa)).m + Da .(1 - m)
+  //!   Dca' = Sca.m.(1 - Da) + Dca.(1 - Sa.m)
+  //!   Da'  = Sa.m.(1 - Da) + Da.(1 - Sa.m)
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces:
+  //! Formulas for PRGB(dst), RGB(src) colorspaces (SRC_OUT):
   //!   Dca' = Sc.(1 - Da)
   //!   Da'  = (1 - Da)
   //!
   //!   Msk:
   //!
-  //!   Dca' = Sc.(1 - Da).m + Dca.(1 - m)
-  //!   Da'  = (1 - Da).m + Da.(m - 1)
+  //!   Dca' = Sc.m.(1 - Da) + Dca.(1 - m)
+  //!   Da'  = 1.m.(1 - Da) + Da.(1 - m)
   //!
-  //! Formulas for ARGB(dst), PRGB(src) colorspaces:
-  //!   Dc'  = (Sca.(1 - Da) + Dc.Da.(1 - Sa))/Da'
-  //!   Da'  = Sa.(1 - Da) + Da.(1 - Sa)
-  //!
-  //! Formulas for ARGB(dst), ARGB(src) colorspaces:
-  //!   Dc'  = (Sc.Sa.(1 - Da) + Dc.Da.(1 - Sa))/Da'
-  //!   Da'  = Sa.(1 - Da) + Da.(1 - Sa)
-  //!
-  //! Formulas for ARGB(dst), RGB(src) colorspaces:
-  //!   Dc'  = Sc
-  //!   Da'  = (1 - Da)
-  //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces:
+  //! Formulas for RGB(dst), PRGB(src) colorspaces (DST_OUT):
   //!   Dc'  = Dc.(1 - Sa)
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces:
+  //!   Msk:
+  //!
+  //!   Dc'  = Dc.(1 - Sa.m)
+  //!
+  //! Formulas for RGB(dst), RGB(src) colorspaces (CLEAR):
   //!   Dc'  = 0
   //!
-  //! Formulas for A(dst), A(src) colorspaces:
+  //! Formulas for A(dst), A(src) colorspaces (XOR):
   //!   Da'  = Sa.(1 - Da) + Da.(1 - Sa)
-  CompositeXor,
+  COMPOSITE_XOR,
 
   // --------------------------------------------------------------------------
   // [CLEAR]
@@ -806,33 +641,6 @@ enum CompositeOp
   //!   Dca' = Dca.(1 - m)
   //!   Da'  = Da .(1 - m)
   //!
-  //! Formulas for ARGB(dst), PRGB(src) colorspaces (CLEAR):
-  //!   Dc'  = 0
-  //!   Da'  = 0
-  //!
-  //!   Msk:
-  //!
-  //!   Dc'  = Dc
-  //!   Da'  = Da .(1 - m)
-  //!
-  //! Formulas for ARGB(dst), ARGB(src) colorspaces (CLEAR):
-  //!   Dc'  = 0
-  //!   Da'  = 0
-  //!
-  //!   Msk:
-  //!
-  //!   Dc'  = Dc
-  //!   Da'  = Da .(1 - m)
-  //!
-  //! Formulas for ARGB(dst), RGB(src) colorspaces (CLEAR):
-  //!   Dc'  = 0
-  //!   Da'  = 0
-  //!
-  //!   Msk:
-  //!
-  //!   Dc'  = Dc
-  //!   Da'  = Da .(1 - m)
-  //!
   //! Formulas for RGB(dst), PRGB(src) colorspaces (CLEAR):
   //!   Dc'  = 0
   //!
@@ -853,11 +661,11 @@ enum CompositeOp
   //!   Msk:
   //!
   //!   Da'  = Da.(1 - m)
-  CompositeClear,
+  COMPOSITE_CLEAR,
 
   //! @brief The source is added to the destination and replaces the destination.
   //!
-  //! Formulas for PRGB(dst), PRGB(src) colorspaces:
+  //! Formulas for PRGB(dst), PRGB(src) colorspaces (ADD):
   //!   Dca' = Sca.Da + Dca.Sa + Sca.(1 - Da) + Dca.(1 - Sa)
   //!        = Sca + Dca
   //!   Da'  = Sa.Da + Da.Sa + Sa.(1 - Da) + Da.(1 - Sa)
@@ -870,36 +678,41 @@ enum CompositeOp
   //!   Da'  = Sa.m + Da.m + Da.(1 - m)
   //!        = Sa.m + Da
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces:
+  //! Formulas for PRGB(dst), RGB(src) colorspaces (ADD):
   //!   Dca' = Sc + Dca
   //!   Da'  = 1
   //!
-  //! Formulas for ARGB(dst), PRGB(src) colorspaces:
-  //!   Dc'  = (Sca + Dc.Da) / Da'
-  //!   Da'  = Sa + Da
+  //!   Msk:
   //!
-  //! Formulas for ARGB(dst), ARGB(src) colorspaces:
-  //!   Dc'  = (Sc.Sa + Dc.Da) / Da'
-  //!   Da'  = Sa + Da
+  //!   Dca' = Sc.m + Dca
+  //!   Da'  = m + Da
   //!
-  //! Formulas for ARGB(dst), RGB(src) colorspaces:
-  //!   Dc'  = Sc + Dc.Da
-  //!   Da'  = 1
-  //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces:
+  //! Formulas for RGB(dst), PRGB(src) colorspaces (ADD):
   //!   Dc'  = Sca + Dc
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces:
+  //!   Msk:
+  //!
+  //!   Dc'  = Sca.m + Dc
+  //!
+  //! Formulas for RGB(dst), RGB(src) colorspaces (ADD):
   //!   Dc'  = Sc + Dc
   //!
-  //! Formulas for A(dst), A(src) colorspaces:
+  //!   Msk:
+  //!
+  //!   Dc'  = Sc.m + Dc
+  //!
+  //! Formulas for A(dst), A(src) colorspaces (ADD):
   //!   Da'  = Sa + Da
-  CompositeAdd,
+  //!
+  //!   Msk:
+  //!
+  //!   Da'  = Sa.m + Da
+  COMPOSITE_ADD,
 
   //! @brief The source is subtracted from the destination and replaces 
   //! the destination.
   //!
-  //! Formulas for PRGB(dst), PRGB(src) colorspaces:
+  //! Formulas for PRGB(dst), PRGB(src) colorspaces (SUBTRACT):
   //!   Dca' = Dca - Sca
   //!   Da'  = 1 - (1 - Sa).(1 - Da)
   //!        = Sa + Da - Sa.Da
@@ -911,544 +724,1077 @@ enum CompositeOp
   //!   Da'  = Da + Sa.m - Sa.m.Da
   //!        = Da + Sa.m - (1 - Da)
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces:
+  //! Formulas for PRGB(dst), RGB(src) colorspaces (SUBTRACT):
   //!   Dca' = Dca - Sa
   //!   Da'  = 1
   //!
-  //! Formulas for ARGB(dst), PRGB(src) colorspaces:
-  //!   Dc'  = (Dc.Da - Sca) / Da'
-  //!   Da'  = Sa + Da.(1 - Sa)
-  //!
-  //! Formulas for ARGB(dst), ARGB(src) colorspaces:
-  //!   Dc'  = (Dc.Da - Sc.Sa) / Da'
-  //!   Da'  = Sa + Da.(1 - Sa)
-  //!
-  //! Formulas for ARGB(dst), RGB(src) colorspaces:
-  //!   Dc'  = Dc.Da - Sc
-  //!   Da'  = 1 
-  //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces:
+  //! Formulas for RGB(dst), PRGB(src) colorspaces (SUBTRACT):
   //!   Dc'  = Dc - Sca
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces:
+  //! Formulas for RGB(dst), RGB(src) colorspaces (SUBTRACT):
   //!   Dc'  = Dc - Sc
   //!
-  //! Formulas for A(dst), A(src) colorspaces:
+  //! Formulas for A(dst), A(src) colorspaces (SRC_OVER):
   //!   Da'  = Da + Sa.(1 - Da) (standard formula used many times)
   //!
   //!   Msk:
   //!
   //!   Da'  = Da + Sa.m.(1 - Da)
-  CompositeSubtract,
+  COMPOSITE_SUBTRACT,
+
+#if 0
+  // TODO: Currently not supported!
 
   //! @brief The source is multiplied by the destination and replaces 
-  //! the destination
+  //! the destination.
   //!
   //! The resultant color is always at least as dark as either of the two 
   //! constituent colors. Multiplying any color with black produces black.
   //! Multiplying any color with white leaves the original color unchanged.
   //!
-  //! Formulas for PRGB(dst), PRGB(src) colorspaces:
+  //! Formulas for PRGB(dst), PRGB(src) colorspaces (MULTIPLY):
   //!   Dca' = Sca.Dca + Sca.(1 - Da) + Dca.(1 - Sa)
-  //!        = Sca.(Dca + 1 - Da) + Dca.(1 - Sa)
-  //!        = Dca.(Sca + 1 - Sa) + Sca.(1 - Da)
   //!   Da'  = Sa.Da + Sa.(1 - Da) + Da.(1 - Sa)
-  //!        = Sa.(Da + 1 - Da) + Da.(1 - Sa)
-  //!        = Da.(Sa + 1 - Sa) + Sa.(1 - Da)
-  //!        = Sa + Da - Sa.Da
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces:
+  //!   Msk:
+  //!
+  //!   Dca' = (Dca.(Sca + 1 - Sa) + Sca.(1 - Da)).m + Dca.(1 - m)
+  //!          (Dca.(Sca + 1 - Sa).m + Sca.(1 - Da).m + Dca.(1 - m)
+  //!
+  //!   Da'  = (Da.(Sa + 1 - Sa) + Sa.(1 - Da)).m + Da.(1 - m)
+  //!
+  //! Formulas for PRGB(dst), RGB(src) colorspaces (MULTIPLY):
   //!   Dca' = Sc.Dca + Sc.(1 - Da)
   //!   Da'  = 1
   //!
-  //! Formulas for ARGB(dst), PRGB(src) colorspaces:
-  //!   Dc'  = (Sca.Dc.Da + Sca.(1 - Da) + Dc.Da.(1 - Sa)) / Da'
-  //!   Da'  = Sa.Da + Sa.(1 - Da) + Da.(1 - Sa)
-  //!        = Sa + Da - Sa.Da
+  //!   Msk:
   //!
-  //! Formulas for ARGB(dst), ARGB(src) colorspaces:
-  //!   Dc'  = (Sc.Sa.Dc.Da + Sc.Sa.(1 - Da) + Dc.Da.(1 - Sa)) / Da'
-  //!   Da'  = Sa.Da + Sa.(1 - Da) + Da.(1 - Sa)
-  //!        = Sa + Da - Sa.Da
+  //!   Dca' = (Sc.Dca + Sc.(1 - Da)).m + Dca.(1 - m)
+  //!   Da'  = m + Da.(1 - m)
   //!
-  //! Formulas for ARGB(dst), RGB(src) colorspaces:
-  //!   Dc'  = Sc.Dc.Da + Sc.(1 - Da)
-  //!        = Sc.(Dc.Da + (1 - Da))
-  //!        = Sc + Sc.Da(1 - Dc)
-  //!   Da'  = 1
-  //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces:
+  //! Formulas for RGB(dst), PRGB(src) colorspaces (MULTIPLY):
   //!   Dc'  = Sca.Dc + Dc.(1 - Sa)
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces:
+  //!   Msk:
+  //!
+  //!   Dc'  = Dc + Dc.(Sca.m - Sa.m)
+  //!
+  //! Formulas for RGB(dst), RGB(src) colorspaces (MULTIPLY):
   //!   Dc'  = Sc.Dc
   //!
-  //! Formulas for A(dst), A(src) colorspaces:
+  //!   Msk:
+  //!
+  //!   Dc'  = (Sc.Dc.m) + Dc.(1 - m)
+  //!        = Dc.(Sc.m + 1 - m)
+  //!
+  //! Formulas for A(dst), A(src) colorspaces (SRC_OVER):
   //!   Da'  = Da + Sa.(1 - Da) (standard formula used many times)
   //!
   //!   Msk:
   //!
   //!   Da'  = Da + Sa.m.(1 - Da)
-  CompositeMultiply,
+  COMPOSITE_MULTIPLY,
+#endif
 
   //! @brief The source and destination are complemented and then multiplied 
-  //! and then replace the destination
+  //! and then replace the destination.
   //!
-  //! Formulas for PRGB(dst), PRGB(src) colorspaces:
-  //!   Dca' = (Sca.Da + Dca.Sa - Sca.Dca) + Sca.(1 - Da) + Dca.(1 - Sa)
-  //!        = Sca + Dca - Sca.Dca
-  //!        = Dca + Sca.(1 - Dca)
-  //!        = Sca + Dca.(1 - Sca)
-  //!   Da'  = Sa + Da - Sa.Da
-  //!        = Da + Sa.(1 - Da) = Sa + Da.(1 - Sa)
+  //! Formulas for PRGB(dst), PRGB(src) colorspaces (SCREEN):
+  //!   Dca' = Sca + Dca.(1 - Sca)
+  //!   Da'  = Sa + Da.(1 - Sa)
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces:
-  //!   Dca' = Sc + Dca - Sc.Dca
-  //!        = Dca + Sc.(1 - Dca)
-  //!        = Sc + Dca.(1 - Sc)
+  //!   Msk:
+  //!
+  //!   Dca' = Sca.m + Dca.(1 - Sca.m)
+  //!   Da'  = Sa.m + Da.(1 - Sa.m)
+  //!
+  //! Formulas for PRGB(dst), RGB(src) colorspaces (SCREEN):
+  //!   Dca' = Sc + Dca.(1 - Sc)
   //!   Da'  = 1
   //!
-  //! Formulas for ARGB(dst), PRGB(src) colorspaces:
-  //!   Dc'  = (Dc.Da + Sca.(1 - Dc.Da)) / Da'
-  //!   Da'  = Da + Sa.(1 - Da)
+  //!   Msk:
   //!
-  //! Formulas for ARGB(dst), ARGB(src) colorspaces:
-  //!   Dc'  = (Dc.Da + Sc.Sa.(1 - Dc.Da)) / Da'
-  //!   Da'  = Da + Sa.(1 - Da)
+  //!   Dca' = Sc.m + Dca.(1 - Sc.m)
+  //!   Da'  = m + Da.(1 - m)
   //!
-  //! Formulas for ARGB(dst), RGB(src) colorspaces:
-  //!   Dc'  = Sc + Dc.Da - Sc.Dc.Da
-  //!        = Sc + Dc.Da.(1 - Sc)
-  //!   Da'  = 1
+  //! Formulas for RGB(dst), PRGB(src) colorspaces (SCREEN):
+  //!   Dc'  = Sca + Dc.(1 - Sca)
   //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces:
-  //!   Dc'  = Sca + Dc - Sca.Dc
-  //!        = Sca + Dc.(1 - Sca)
-  //!        = Dc + Sca.(1 - Dc)
+  //!   Msk:
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces:
-  //!   Dc'  = Sc + Dc - Sc.Dc
-  //!        = Sc + Dc.(1 - Sc)
+  //!   Dca' = Sca.m + Dc.(1 - Sca.m)
   //!
-  //! Formulas for A(dst), A(src) colorspaces:
+  //! Formulas for RGB(dst), RGB(src) colorspaces (SCREEN):
+  //!   Dc'  = Sc + Dc.(1 - Sc)
+  //!
+  //!   Msk:
+  //!
+  //!   Dc'  = Sc.m + Dc.(1 - Sc.m)
+  //!
+  //! Formulas for A(dst), A(src) colorspaces (SRC_OVER):
   //!   Da'  = Da + Sa.(1 - Da) (standard formula used many times)
   //!
   //!   Msk:
   //!
   //!   Da'  = Da + Sa.m.(1 - Da)
-  CompositeScreen,
+  COMPOSITE_SCREEN,
 
   //! @brief Selects the darker of the destination and source colors. The 
   //! destination is replaced with the source when the source is darker,
   //! otherwise it is left unchanged.
   //!
-  //! Formulas for PRGB(dst), PRGB(src) colorspaces:
+  //! Formulas for PRGB(dst), PRGB(src) colorspaces (DARKEN):
   //!   Dca' = min(Sca.Da, Dca.Sa) + Sca.(1 - Da) + Dca.(1 - Sa)
   //!   Da'  = min(Sa.Da, Da.Sa) + Sa.(1 - Da) + Da.(1 - Sa)
   //!        = Sa.Da + Sa - Sa.Da + Da - Sa.Da
   //!        = Sa + Da - Sa.Da
   //!
-  //!   OR: if (Sca.Da < Dca.Sa) Src-Over() else Dst-Over()
+  //!   ALTERNATIVE: if (Sca.Da < Dca.Sa) Src-Over() else Dst-Over()
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces:
+  //!   Msk:
+  //!
+  //!   Dca' = (min(Sca.Da, Dca.Sa) + Sca.(1 - Da) + Dca.(1 - Sa)).m + Dca.(1 - m)
+  //!          min(Sca.Da.m, Dca.Sa.m) + Sca.m.(1 - Da) +  Dca.(1 - Sa.m)
+  //!   Da'  = (min(Sa.Da, Da.Sa) + Sa.(1 - Da) + Da.(1 - Sa)).m + Da.(1 - m)
+  //!          min(Sa.Da.m, Da.Sa.m) + Sa.m.(1 - Da) +  Da.(1 - Sa.m)
+  //!
+  //! Formulas for PRGB(dst), RGB(src) colorspaces (DARKEN):
   //!   Dca' = min(Sc.Da, Dca) + Sc.(1 - Da)
   //!   Da'  = 1
   //!
-  //! Formulas for ARGB(dst), PRGB(src) colorspaces:
-  //!   Dc'  = min(Sca.Da, Dc.Da.Sa) + Sca.(1 - Da) + Dc.Da.(1 - Sa)
-  //!   Da'  = min(Sa.Da, Da.Sa) + Sa.(1 - Da) + Da.(1 - Sa)
+  //!   Msk:
   //!
-  //! Formulas for ARGB(dst), ARGB(src) colorspaces:
-  //!   Dc'  = Sa.Da.min(Sc, Dc) + Sc.Sa.(1 - Da) + Dc.Da.(1 - Sa)
-  //!   Da'  = Sa.Da + Sa.(1 - Da) + Da.(1 - Sa)
+  //!   Dca' = min(Da.m, Dca.m) + Sc.m.(1 - Da) +  Dca.(1 - m)
+  //!   Da'  = min(Da.m, Da.m) + 1.m.(1 - Da) +  Da.(1 - m)
   //!
-  //! Formulas for ARGB(dst), RGB(src) colorspaces:
-  //!   Dc'  = min(Sc.Da, Dc.Da) + Sc.(1 - Da)
-  //!   Da'  = 1
-  //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces:
+  //! Formulas for RGB(dst), PRGB(src) colorspaces (DARKEN):
   //!   Dc'  = min(Sca, Dc.Sa) + Dc.(1 - Sa)
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces:
+  //!   Msk:
+  //!
+  //!   Dc'  = min(Sca.m, Dc.Sa.m) + Dc.(1 - Sa.m)
+  //!
+  //! Formulas for RGB(dst), RGB(src) colorspaces (DARKEN):
   //!   Dc'  = min(Sc, Dc)
   //!
-  //! Formulas for A(dst), A(src) colorspaces:
+  //!   Msk:
+  //!
+  //!   Dc'  = (min(Sc, Dc)).m + Dc.(1 - m)
+  //!
+  //! Formulas for A(dst), A(src) colorspaces (SRC_OVER):
   //!   Da'  = Da + Sa.(1 - Da) (standard formula used many times)
   //!
   //!   Msk:
   //!
   //!   Da'  = Da + Sa.m.(1 - Da)
-  CompositeDarken,
+  COMPOSITE_DARKEN,
 
   //! @brief Selects the lighter of the destination and source colors. The
   //! destination is replaced with the source when the source is lighter, 
   //! otherwise it is left unchanged.
   //!
-  //! Formulas for PRGB(dst), PRGB(src) colorspaces:
+  //! Formulas for PRGB(dst), PRGB(src) colorspaces (LIGHTEN):
   //!   Dca' = max(Sca.Da, Dca.Sa) + Sca.(1 - Da) + Dca.(1 - Sa)
   //!   Da'  = max(Sa.Da, Da.Sa) + Sa.(1 - Da) + Da.(1 - Sa)
   //!        = Sa.Da + Sa - Sa.Da + Da - Sa.Da
   //!        = Sa + Da - Sa.Da
   //!
-  //!   OR: if (Sca.Da > Dca.Sa) Src-Over() else Dst-Over()
+  //!   ALTERNATIVE: if (Sca.Da > Dca.Sa) Src-Over() else Dst-Over()
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces:
+  //!   Msk:
+  //!
+  //!   Dca' = (max(Sca.Da, Dca.Sa) + Sca.(1 - Da) + Dca.(1 - Sa)).m + Dca.(1 - m)
+  //!          max(Sca.Da.m, Dca.Sa.m) + Sca.m.(1 - Da) +  Dca.(1 - Sa.m)
+  //!   Da'  = (max(Sa.Da, Da.Sa) + Sa.(1 - Da) + Da.(1 - Sa)).m + Da.(1 - m)
+  //!          max(Sa.Da.m, Da.Sa.m) + Sa.m.(1 - Da) +  Da.(1 - Sa.m)
+  //!
+  //! Formulas for PRGB(dst), RGB(src) colorspaces (LIGHTEN):
   //!   Dca' = max(Sc.Da, Dca) + Sc.(1 - Da)
   //!   Da'  = 1
   //!
-  //! Formulas for ARGB(dst), PRGB(src) colorspaces:
-  //!   Dc'  =
-  //!   Da'  =
+  //!   Msk:
   //!
-  //! Formulas for ARGB(dst), ARGB(src) colorspaces:
-  //!   Dc'  =
-  //!   Da'  =
+  //!   Dca' = max(Da.m, Dca.m) + Sc.m.(1 - Da) +  Dca.(1 - m)
+  //!   Da'  = max(Da.m, Da.m) + 1.m.(1 - Da) +  Da.(1 - m)
   //!
-  //! Formulas for ARGB(dst), RGB(src) colorspaces:
-  //!   Dc'  = max(Sc.Da, Dc.Da) + Sc.(1 - Da)
-  //!   Da'  = 1
-  //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces:
+  //! Formulas for RGB(dst), PRGB(src) colorspaces (LIGHTEN):
   //!   Dc'  = max(Sca, Dc.Sa) + Dc.(1 - Sa)
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces:
+  //!   Msk:
+  //!
+  //!   Dc'  = max(Sca.m, Dc.Sa.m) + Dc.(1 - Sa.m)
+  //!
+  //! Formulas for RGB(dst), RGB(src) colorspaces (LIGHTEN):
   //!   Dc'  = max(Sc, Dc)
   //!
-  //! Formulas for A(dst), A(src) colorspaces:
+  //!   Msk:
+  //!
+  //!   Dc'  = (max(Sc, Dc)).m + Dc.(1 - m)
+  //!
+  //! Formulas for A(dst), A(src) colorspaces (SRC_OVER):
   //!   Da'  = Da + Sa.(1 - Da) (standard formula used many times)
   //!
   //!   Msk:
   //!
   //!   Da'  = Da + Sa.m.(1 - Da)
-  CompositeLighten,
+  COMPOSITE_LIGHTEN,
 
   //! @brief Subtracts the darker of the two constituent colors from the 
   //! lighter. Painting with white inverts the destination color. Painting
   //! with black produces no change.
   //!
-  //! Formulas for PRGB(dst), PRGB(src) colorspaces:
+  //! Formulas for PRGB(dst), PRGB(src) colorspaces (DIFFERENCE):
   //!   Dca' = abs(Dca.Sa - Sca.Da) + Sca.(1 - Da) + Dca.(1 - Sa)
-  //!   Dca' = Sca + Dca - 2.min(Sca.Da, Dca.Sa)
-  //!   Da'  = Sa + Da - min(Sa.Da, Da.Sa)
+  //!        = Dca + Sca - 2.min(Sca.Da, Dca.Sa)
+  //!   Da'  = abs(Da.Sa - Sa.Da) + Sa.(1 - Da) + Da.(1 - Sa)
+  //!        = Sa + Da - min(Sa.Da, Da.Sa)
   //!        = Sa + Da - Sa.Da
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces:
-  //!   Dca' = abs(Dca - Sc.Da) + Sc.(1 - Da)
-  //!   Dca' = Sc + Dca - 2.min(Sc.Da, Dca)
-  //!   Da'  = 1
+  //!   Msk:
   //!
-  //! Formulas for ARGB(dst), PRGB(src) colorspaces:
-  //!   Dc'  =
-  //!   Da'  =
+  //!   Dca' = (abs(Dca.Sa - Sca.Da) + Sca.(1 - Da) + Dca.(1 - Sa)).m + Dca.(1 - m)
+  //!        = (Sca + Dca - 2.min(Sca.Da, Dca.Sa)).m + Dca.(1 - m)
+  //!        = Dca + (Sca - 2.min(Sca.Da, Dca.Sa)).m
+  //!        = Dca + Sca.m - 2.min(Sca.Da.m, Dca.Sa.m)
+  //!   Da'  = (Sa + Da - min(Sa.Da, Da.Sa)).m + Da.(1 - m)
+  //!        = Da + (Sa - min(Sa.Da, Da.Sa)).m
+  //!        = Da + Sa.m - min(Sa.Da.m, Da.Sa.m)
   //!
-  //! Formulas for ARGB(dst), ARGB(src) colorspaces:
-  //!   Dc'  =
-  //!   Da'  =
+  //! Formulas for PRGB(dst), RGB(src) colorspaces (DIFFERENCE):
+  //!   Dca' = abs(Dca.Sa - Sc.Da) + Sca.(1 - Da) + Dca
+  //!        = Dca + Sc - 2.min(Sc.Da, Dca.1)
+  //!   Da'  = abs(Da.1 - 1.Da) + 1.(1 - Da) + Da
+  //!        = 1 + Da - min(1.Da, Da.1)
+  //!        = 1
   //!
-  //! Formulas for ARGB(dst), RGB(src) colorspaces:
-  //!   Dc'  = abs(Dc.Da - Sc.Da) + Sc.(1 - Da)
-  //!        = Da.abs(Dc - Sc) + Sc.(1 - Da)
-  //!   Dc'  = Sc + Dc.Da - 2.min(Sc.Da, Dc.Da)
-  //!        = Sc + Dc.Da - 2.min(Sc, Dc)*Da
-  //!        = Sc + Da.(Dc - 2.min(Sc, Dc))
-  //!   Da'  = 1
+  //!   Msk:
   //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces:
+  //!   Dca' = (abs(Dca.Sa - Sca.Da) + Sca.(1 - Da) + Dca.(1 - Sa)).m + Dca.(1 - m)
+  //!        = (Sca + Dca - 2.min(Sca.Da, Dca.Sa)).m + Dca.(1 - m)
+  //!        = Dca + (Sca - 2.min(Sca.Da, Dca.Sa)).m
+  //!        = Dca + Sca.m - 2.min(Sca.Da.m, Dca.Sa.m)
+  //!   Da'  = (abs(Da.Sa - Sa.Da) + Sa.(1 - Da) + Da.(1 - Sa)).m + Da.(1 - m)
+  //!        = (Sa + Da - 2.min(Sa.Da, Da.Sa)).m + Da.(1 - m)
+  //!        = Da + (Sa - 2.min(Sa.Da, Da.Sa)).m
+  //!        = Da + Sa.m - 2.min(Sa.Da.m, Da.Sa.m)
+  //!
+  //! Formulas for RGB(dst), PRGB(src) colorspaces (DIFFERENCE):
   //!   Dc'  = abs(Dc.Sa - Sca) + Dc.(1 - Sa)
-  //!   Dc'  = Sca + Dc - 2.min(Sca, Dc.Sa)
+  //!        = Sca + Dc - 2.min(Sca, Dc.Sa)
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces:
-  //!   Dc'  = abs(Dc - Sc)
+  //!   Msk:
   //!
-  //! Formulas for A(dst), A(src) colorspaces:
+  //!   Dc'  = (abs(Dc.Sa - Sca) + Dc.(1 - Sa)).m + Dc.(1 - m)
+  //!        = abs(Dc.Sa.m - Sca.m) + Dc.(1 - Sa.m)
+  //!   Dc'  = (Sca + Dc - 2.min(Sca, Dc.Sa)).m + Dc.(1 - m)
+  //!        = Sca.m + Dc - 2.min(Sca.m, Dc.Sa.m)
+  //!
+  //! Formulas for RGB(dst), RGB(src) colorspaces (DIFFERENCE):
+  //!   Dc'  = Dc + Sc - 2.min(Sc, Dc)
+  //!        = abs(Dc - Sc)
+  //!
+  //!   Msk:
+  //!
+  //!   Dc'  = abs(Dc - Sc).m + Dc.(1 - m)
+  //!        = abs(Dc.m - Sc.m) + Dc.(1 - m)
+  //!   Dc'  = (Sc + Dc - 2.min(Sc, Dc)).m + Dc.(1 - m)
+  //!        = Sc.m + Dc - 2.min(Sc.m, Dc.m)
+  //!
+  //! Formulas for A(dst), A(src) colorspaces (SRC_OVER):
   //!   Da'  = Da + Sa.(1 - Da) (standard formula used many times)
   //!
   //!   Msk:
   //!
   //!   Da'  = Da + Sa.m.(1 - Da)
-  CompositeDifference,
+  COMPOSITE_DIFFERENCE,
 
   //! @brief Produces an effect similar to that of 'difference', but appears
   //! as lower contrast. Painting with white inverts the destination color.
   //! Painting with black produces no change.
   //!
   //! Formulas for PRGB(dst), PRGB(src) colorspaces:
-  //!   Dca' = (Sca.Da + Dca.Sa - 2.Sca.Dca) + Sca.(1 - Da) + Dca.(1 - Sa)
-  //!          Sca + Dca - 2.Sca.Dca
-  //!   Da'  = (Sa.Da + Da.Sa - 2.Sa.Da) + Sa.(1 - Da) + Da.(1 - Sa)
-  //!        = Sa - Sa.Da + Da - Da.Sa = Sa + Da - 2.Sa.Da
-  //!          [Substitute 2.Sa.Da with Sa.Da]
-  //!        = Sa + Da - Sa.Da
+  //!   Dca' = Sca.Da + Dca - 2.Sca.Dca
+  //!   Da'  = Sa + Da - Sa.Da
+  //!
+  //!   Msk:
+  //!
+  //!   Dca' = Sca.m.Da + Dca - 2.Sca.m.Dca
+  //!   Da'  = Sa.m + Da - Sa.m.Da
   //!
   //! Formulas for PRGB(dst), RGB(src) colorspaces:
-  //!   Dca' = Sc + Dca - 2.Sc.Dca
-  //!        = Dca - Sc.(1 - 2.Dca)
+  //!   Dca' = Sc.Da + Dca - 2.Sc.Dca
   //!   Da'  = 1
   //!
-  //! Formulas for ARGB(dst), PRGB(src) colorspaces:
-  //!   Dc'  =
-  //!   Da'  =
+  //!   Msk:
   //!
-  //! Formulas for ARGB(dst), ARGB(src) colorspaces:
-  //!   Dc'  =
-  //!   Da'  =
-  //!
-  //! Formulas for ARGB(dst), RGB(src) colorspaces:
-  //!   Dc'  = Sc + Dc.Da - 2.Sc.Dc.Da
-  //!        = Dc.Da - Sc.(1 - 2.Dc.Da)
-  //!   Da'  = 1
+  //!   Dca' = Sc.m.Da + Dca - 2.Sc.m.Dca
+  //!   Da'  = m + Da - m.Da
   //!
   //! Formulas for RGB(dst), PRGB(src) colorspaces:
-  //!   Dc'  = Sca + Dc - 2.Sca.Dc 
-  //!        = Dc + Sca.(1 - 2.Dc)
+  //!   Dc'  = Sca + Dc - 2.Sca.Dc
+  //!
+  //!   Msk:
+  //!
+  //!   Dc'  = Sca.m + Dc - 2.Sca.m.Dc
   //!
   //! Formulas for RGB(dst), RGB(src) colorspaces:
   //!   Dc'  = Sc + Dc - 2.Sc.Dc
-  //!        = Dc + Sc.(1 - 2.Dc)
   //!
-  //! Formulas for A(dst), A(src) colorspaces:
+  //!   Msk:
+  //!
+  //!   Dc'  = Sc.m.Da + Dc - 2.Sc.m.Dc
+  //!
+  //! Formulas for A(dst), A(src) colorspaces (SRC_OVER):
   //!   Da'  = Da + Sa.(1 - Da) (standard formula used many times)
   //!
   //!   Msk:
   //!
   //!   Da'  = Da + Sa.m.(1 - Da)
-  CompositeExclusion,
+  COMPOSITE_EXCLUSION,
 
   //! @brief Invert.
   //!
-  //! Formulas for PRGB(dst), PRGB(src) colorspaces:
+  //! Formulas for PRGB(dst), PRGB(src) colorspaces (INVERT):
   //!   Dca' = (Da - Dca) * Sa + Dca.(1 - Sa)
-  //!   Da'  = Sa + (Da - Da) * Sa + Da - Sa.Da
-  //!        = Sa + Da - Sa.Da
+  //!   Da'  = (1) * Sa + Da.(1 - Sa)
   //!
-  //! For calculation this formula is best:
-  //!   Dca' = (Da - Dca) * Sa + Dca.(1 - Sa)
-  //!   Da'  = (1 + Da - Da) * Sa + Da.(1 - Sa)
+  //!   Msk:
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces:
+  //!   Dca' = ((Da - Dca) * Sa + Dca.(1 - Sa)).m + Dca.(1 - m)
+  //!        = (Da - Dca) * Sa.m + Dca.(1 - Sa.m)
+  //!   Da'  = (1) * Sa.m + Da.(1 - Sa.m)
+  //!
+  //! Formulas for PRGB(dst), RGB(src) colorspaces (INVERT):
   //!   Dca' = (Da - Dca)
   //!   Da'  = 1
   //!
-  //! Formulas for ARGB(dst), PRGB(src) colorspaces:
-  //!   Dc'  =
-  //!   Da'  =
+  //!   Msk:
   //!
-  //! Formulas for ARGB(dst), ARGB(src) colorspaces:
-  //!   Dc'  =
-  //!   Da'  =
+  //!   Dca' = (Da - Dca).m + Dca.(1 - m)
+  //!          Da.m - Dca.m + Dca.(1 - m)
+  //!   Da'  = m - Da.(1 - m)
   //!
-  //! Formulas for ARGB(dst), RGB(src) colorspaces:
-  //!   Dc'  = Da.(1 - Dc)
-  //!   Da'  = 1
-  //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces:
+  //! Formulas for RGB(dst), PRGB(src) colorspaces (INVERT):
   //!   Dc'  = (1 - Dc) * Sa + Dc.(1 - Sa)
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces:
+  //!   Msk:
+  //!
+  //!   Dc'  = (1 - Dc).Sa.m + Dc.(1 - Sa.m)
+  //!
+  //! Formulas for RGB(dst), RGB(src) colorspaces (INVERT):
   //!   Dc'  = 1 - Dc
   //!
-  //! Formulas for A(dst), A(src) colorspaces:
+  //!   Msk:
+  //!
+  //!   Dc'  = (1 - Dc).m + Dc.(1 - m)
+  //!
+  //! Formulas for A(dst), A(src) colorspaces (SRC_OVER):
   //!   Da'  = Da + Sa.(1 - Da) (standard formula used many times)
   //!
   //!   Msk:
   //!
   //!   Da'  = Da + Sa.m.(1 - Da)
-  CompositeInvert,
+  COMPOSITE_INVERT,
 
   //! @brief Invert RGB.
   //!
   //! Formulas for PRGB(dst), PRGB(src) colorspaces:
   //!   Dca' = (Da - Dca) * Sca + Dca.(1 - Sa)
-  //!   Da'  = Sa + (Da - Da) * Sa + Da - Da.Sa
-  //!        = Sa + Da - Sa.Da
+  //!   Da'  = (1) * Sa + Da.(1 - Sa)
   //!
-  //! For calculation this formula is best:
-  //!   Dca' = (Da - Dca) * Sca + Dca.(1 - Sa)
-  //!   Da'  = (1 + Da - Da) * Sa + Da.(1 - Sa)
+  //!   Msk:
+  //!
+  //!   Dca' = (Da - Dca) * Sca.m + Dca.(1 - Sa.m)
+  //!   Da'  = (1) * Sa.m + Da.(1 - Sa.m)
   //!
   //! Formulas for PRGB(dst), RGB(src) colorspaces:
   //!   Dca' = (Da - Dca) * Sc
   //!   Da'  = 1
   //!
-  //! Formulas for ARGB(dst), PRGB(src) colorspaces:
-  //!   Dc'  =
-  //!   Da'  =
+  //!   Msk:
   //!
-  //! Formulas for ARGB(dst), ARGB(src) colorspaces:
-  //!   Dc'  =
-  //!   Da'  =
-  //!
-  //! Formulas for ARGB(dst), RGB(src) colorspaces:
-  //!   Dc'  = (Da.(1 - Dc)) * Sc
-  //!   Da'  = 1
+  //!   Dca' = (Da - Dca) * Sc.m + Dca.(1 - Sa.m)
+  //!   Da'  = (1) * Sa.m + Da.(1 - Sa.m)
   //!
   //! Formulas for RGB(dst), PRGB(src) colorspaces:
   //!   Dc'  = (1 - Dc) * Sca + Dc.(1 - Sa)
   //!
+  //!   Msk:
+  //!
+  //!   Dc'  = (1 - Dc) * Sca.m + Dc.(1 - Sa.m)
+  //!
   //! Formulas for RGB(dst), RGB(src) colorspaces:
   //!   Dc'  = (1 - Dc) * Sc
   //!
-  //! Formulas for A(dst), A(src) colorspaces:
+  //!   Msk:
+  //!
+  //!   Dca' = (1 - Dc) * Sc.m + Dc.(1 - Sa.m)
+  //!
+  //! Formulas for A(dst), A(src) colorspaces (SRC_OVER):
   //!   Da'  = Da + Sa.(1 - Da) (standard formula used many times)
   //!
   //!   Msk:
   //!
   //!   Da'  = Da + Sa.m.(1 - Da)
-  CompositeInvertRgb,
+  COMPOSITE_INVERT_RGB,
 
   //! @brief Count of compositing operators (this is not a valid operator).
-  CompositeCount
-};
-
-//! @brief Results from some color analyze functions.
-//!
-//! Usualy used to optimize image processing, because algorithm
-//! for full opaque image is always better that generic algorithm
-//! for image with alpha channel.
-enum
-{
-  //! @brief Alpha values are not constant.
-  VariableAlpha = -1,
-  //! @brief All alpha values are transparent (0).
-  TransparentAlpha = 0,
-  //! @brief All alpha values are opaque (255).
-  OpaqueAlpha = 255
+  COMPOSITE_COUNT
 };
 
 // ============================================================================
-// [Fog::ImageFile]
+// [Fog::PIXEL_FORMAT]
+// ============================================================================
+
+//! @brief Pixel format.
+//!
+//! @note All pixel formats are CPU endian dependent. So @c ARGB32 pixels
+//! will be stored differenly in memory on machines with different endianness.
+//!
+//! @c PIXEL_FORMAT_ARGB32, @c PIXEL_FORMAT_PRGB32:
+//! - Little endian: BBGGRRAA
+//! - Big endian   : AARRGGBB
+//! @c PIXEL_FORMAT_XRGB32:
+//! - Little endian: BBGGRRXX
+//! - Big endian   : XXRRGGBB
+//! @c PIXEL_FORMAT_RGB24:
+//! - Little endian: BBGGRR
+//! - Big endian   : RRGGBB
+//! @c PIXEL_FORMAT_A8:
+//! - no difference: AA (8 bit alpha value)
+//! @c PIXEL_FORMAT_I8:
+//! - no difference: II (8 bit index value to palette)
+enum PIXEL_FORMAT
+{
+  //! @brief Null format.
+  PIXEL_FORMAT_NULL = 0,
+  //! @brief 32 bit RGBA premultiplied.
+  PIXEL_FORMAT_PRGB32 = 1,
+  //! @brief 32 bit RGBA (equivalent to @c Argb).
+  PIXEL_FORMAT_ARGB32 = 2,
+  //! @brief 32 bit RGB (equivalent for @c Argb without alpha channel - full opaque).
+  PIXEL_FORMAT_XRGB32 = 3,
+  //! @brief 24 bit RGB.
+  PIXEL_FORMAT_RGB24 = 4,
+  //! @brief 8 bit alpha channel.
+  PIXEL_FORMAT_A8 = 5,
+  //! @brief 8 bit indexed pixel format.
+  PIXEL_FORMAT_I8 = 6,
+  //! @brief Count of pixel formats.
+  PIXEL_FORMAT_COUNT = 7
+};
+
+// ============================================================================
+// [Fog::ARGB32_MASK]
+// ============================================================================
+
+static const uint32_t ARGB32_RMASK = 0x00FF0000U;
+static const uint32_t ARGB32_GMASK = 0x0000FF00U;
+static const uint32_t ARGB32_BMASK = 0x000000FFU;
+static const uint32_t ARGB32_AMASK = 0xFF000000U;
+
+// ============================================================================
+// [Fog::ARGB32_SHIFT]
+// ============================================================================
+
+enum ARGB32_SHIFT
+{
+  ARGB32_RSHIFT = 16U,
+  ARGB32_GSHIFT =  8U,
+  ARGB32_BSHIFT =  0U,
+  ARGB32_ASHIFT = 24U
+};
+
+// ============================================================================
+// [Fog::ARGB32_BYTEPOS]
+// ============================================================================
+
+enum ARGB32_BYTEPOS
+{
+#if FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
+  ARGB32_RBYTE = 2,
+  ARGB32_GBYTE = 1,
+  ARGB32_BBYTE = 0,
+  ARGB32_ABYTE = 3
+#else // FOG_BYTE_ORDER == FOG_BIG_ENDIAN
+  ARGB32_RBYTE = 1,
+  ARGB32_GBYTE = 2,
+  ARGB32_BBYTE = 3,
+  ARGB32_ABYTE = 0
+#endif // FOG_BYTE_ORDER
+};
+
+// ============================================================================
+// [Fog::RGB24_BYTEPOS]
+// ============================================================================
+
+enum RGB24_BYTEPOS
+{
+#if FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
+  RGB24_RBYTE = 2,
+  RGB24_GBYTE = 1,
+  RGB24_BBYTE = 0
+#else // FOG_BYTE_ORDER == FOG_BIG_ENDIAN
+  RGB24_RBYTE = 0,
+  RGB24_GBYTE = 1,
+  RGB24_BBYTE = 2
+#endif // FOG_BYTE_ORDER
+};
+
+// ============================================================================
+// [Fog::IMAGE_LIMITS]
+// ============================================================================
+
+//! @brief Image limits.
+enum IMAGE_LIMITS
+{
+  //! @brief Maximum image width (in pixels).
+  IMAGE_MAX_WIDTH = 16777215,
+  //! @brief Maximum image height (in pixels).
+  IMAGE_MAX_HEIGHT = 16777215
+};
+
+// ============================================================================
+// [Fog::IMAGE_ADOPT]
+// ============================================================================
+
+//! @brief Image adopt flags.
+enum IMAGE_ADOPT
+{
+  //! @brief Standard adopt behavior
+  IMAGE_ADOPT_DEFAULT = 0x0,
+  //! @brief Adopted image will be read-only.
+  IMAGE_ATOPT_READ_ONLY = 0x1,
+  //! @brief Adopted image data are from bottom-to-top (Windows DIBs).
+  IMAGE_ADOPT_REVERSED = 0x2
+};
+
+// ============================================================================
+// [Fog::IMAGE_MIRROR_MODE]
+// ============================================================================
+
+//! @brief Mirror modes used together with @c Image::mirror().
+enum IMAGE_MIRROR_MODE
+{
+  IMAGE_MIRROR_NONE       = 0x0,
+  IMAGE_MIRROR_HORIZONTAL = 0x1,
+  IMAGE_MIRROR_VERTICAL   = 0x2,
+  IMAGE_MIRROR_BOTH       = 0x3
+};
+
+// ============================================================================
+// [Fog::IMAGE_ROTATE_MODE]
+// ============================================================================
+
+//! @brief Rotate modes used together with @c Image::rotate() methods.
+enum IMAGE_ROTATE_MODE
+{
+  IMAGE_ROTATE_0   = 0x0,
+  IMAGE_ROTATE_90  = 0x1,
+  IMAGE_ROTATE_180 = 0x2,
+  IMAGE_ROTATE_270 = 0x3
+};
+
+// ============================================================================
+// [Fog::IMAGE_SCALE]
+// ============================================================================
+
+//! @brief Scale filter that can be using with @c Image::scale() or set in
+//! painter.
+enum IMAGE_SCALE
+{
+  IMAGE_SCALE_NEAREST = 0,
+  IMAGE_SCALE_SMOOTH = 1
+};
+
+// ============================================================================
+// [Fog::IMAGE_FILTER_TYPE]
+// ============================================================================
+
+//! @brief Type of image filter, see @c ImageFilter and @c ColorFilter classes.
+enum IMAGE_FILTER_TYPE
+{
+  //! @brief Image filter is null (NOP).
+  IMAGE_FILTER_NONE = 0,
+
+  // [ColorFilter filters]
+
+  //! @brief @c ColorMatrix image filter.
+  IMAGE_FILTER_COLORMATRIX = 1,
+  //! @brief @c ColorLut image filter.
+  IMAGE_FILTER_COLORLUT = 2,
+
+  // [ImageFilter filters]
+
+  //! @brief Image filter is box blur.
+  IMAGE_FILTER_BLUR = 3,
+  //! @brief Image filter is convolution.
+  IMAGE_FILTER_CONVOLUTION = 4
+};
+
+// ============================================================================
+// [Fog::IMAGE_FILTER_CHARACTERISTICS]
+// ============================================================================
+
+//! @brief Characteristics of image filter.
+//!
+//! Characteristics can be used to improve performance of filters by @c Painter.
+enum IMAGE_FILTER_CHARACTERISTICS
+{
+  //! @brief Image filter does only color transformations.
+  //!
+  //! This flag must set all color filter, because it's very useful hint that
+  //! enables very good code optimizations inside @c Painter and @c Image classes.
+  IMAGE_FILTER_COLOR_TRANSFORM = 0x0001,
+
+  //! @brief Image filter can extend image boundary (blur and convolution filters).
+  IMAGE_FILTER_CAN_EXTEND = 0x0002,
+
+  //! @brief Image filter constains standard processing mechanism - one pass.
+  IMAGE_FILTER_ENTIRE_PROCESSING = 0x0004,
+
+  //! @brief When doing entire processing the destination and source buffers
+  //! can be shared (dst and src pointers can point to same location).
+  IMAGE_FILTER_ENTIRE_MEM_EQUAL = 0x0008,
+
+  //! @brief Image filter does vertical processing of image.
+  //!
+  //! This bit is set for all blur/convolution filters. Performance of filter is
+  //! usually degraded, because filter processing function needs to access pixels
+  //! in different scanlines (cache misses, etc...).
+  //!
+  //! @note Vertical processing can be combined with horizontal processing and
+  //! painter tries to make this combination efficient.
+  IMAGE_FILTER_VERT_PROCESSING = 0x0010,
+
+  //! @brief When doing vertical processing the destination and source buffers
+  //! can be shared (dst and src pointers can point to same location).
+  IMAGE_FILTER_VERT_MEM_EQUAL = 0x0020,
+
+  //! @brief Image filter does horizontal processing of image.
+  //!
+  //! If filter needs only horizontal (no IMAGE_FILTER_VERT_PROCESSING bit is set)
+  //! then processing it can be very efficient in multithreaded painter engine.
+  IMAGE_FILTER_HORZ_PROCESSING = 0x0040,
+
+  //! @brief When doing vertical processing the destination and source buffers
+  //! can be shared (dst and src pointers can point to same location).
+  IMAGE_FILTER_HORZ_MEM_EQUAL = 0x0080,
+
+  //! @brief Contains both, @c IMAGE_FILTER_VERT_PROCESSING and @c IMAGE_FILTER_HORZ_PROCESSING
+  //! flags.
+  IMAGE_FILTER_HV_PROCESSING =
+    IMAGE_FILTER_VERT_PROCESSING |
+    IMAGE_FILTER_HORZ_PROCESSING ,
+
+  //! @brief Image filter supports @c PIXEL_FORMAT_PRGB32.
+  //!
+  //! If filters not supports this format the image data must be first converted
+  //! to @c PIXEL_FORMAT_ARGB32, processed and then converted back.
+  IMAGE_FILTER_SUPPORTS_PRGB32 = 0x0100,
+
+  //! @brief Image filter supports @c PIXEL_FORMAT_ARGB32.
+  //!
+  //! @note This flag should be always set (or at least IMAGE_FILTER_FORMAT_PRGB32)!
+  IMAGE_FILTER_SUPPORTS_ARGB32 = 0x0200,
+
+  //! @brief Image filter supports @c PIXEL_FORMAT_XRGB32.
+  //!
+  //! @note This flag should be always set!
+  IMAGE_FILTER_SUPPORTS_XRGB32 = 0x0400,
+
+  //! @brief Image filter supports @c PIXEL_FORMAT_RGB24.
+  //!
+  //! If filters not supports this format the image data must be first converted
+  //! to @c PIXEL_FORMAT_XRGB32, processed and then converted back.
+  IMAGE_FILTER_SUPPORTS_RGB24 = 0x0800,
+
+  //! @brief Image filter supports @c PIXEL_FORMAT_A8.
+  //!
+  //! @note This flag should be always set!
+  IMAGE_FILTER_SUPPORTS_A8 = 0x1000
+};
+
+// ============================================================================
+// [Fog::IMAGEIO_FILE_TYPE]
+// ============================================================================
+
+enum IMAGEIO_DEVICE_TYPE
+{
+  //! @brief None, null codec or non initialized.
+  IMAGEIO_DEVICE_NONE = 0x0,
+  //! @brief Image IO Encoder.
+  IMAGEIO_DEVICE_ENCODER = 0x1,
+  //! @brief Image IO Decoder.
+  IMAGEIO_DECIDE_DECODER = 0x2,
+  //! @brief Proxy for another image processing library.
+  IMAGEIO_DEVICE_PROXY = 0x4
+};
+
+// ============================================================================
+// [Fog::IMAGEIO_FILE_TYPE]
 // ============================================================================
 
 //! @brief Image file IDs.
-enum ImageFile
+enum IMAGEIO_FILE_TYPE
 {
-  ImageFileNone = 0,
+  IMAGEIO_FILE_NONE = 0,
 
-  ImageFileANI,
-  ImageFileAPNG,
-  ImageFileBMP,
-  ImageFileFLI,
-  ImageFileFLC,
-  ImageFileGIF,
-  ImageFileICO,
-  ImageFileJPEG,
-  ImageFileLBM,
-  ImageFileMNG,
-  ImageFilePCX,
-  ImageFilePNG,
-  ImageFilePNM,
-  ImageFileTGA,
-  ImageFileTIFF,
-  ImageFileXBM,
-  ImageFileXPM,
+  IMAGEIO_FILE_ANI,
+  IMAGEIO_FILE_APNG,
+  IMAGEIO_FILE_BMP,
+  IMAGEIO_FILE_FLI,
+  IMAGEIO_FILE_FLC,
+  IMAGEIO_FILE_GIF,
+  IMAGEIO_FILE_ICO,
+  IMAGEIO_FILE_JPEG,
+  IMAGEIO_FILE_LBM,
+  IMAGEIO_FILE_MNG,
+  IMAGEIO_FILE_PCX,
+  IMAGEIO_FILE_PNG,
+  IMAGEIO_FILE_PNM,
+  IMAGEIO_FILE_TGA,
+  IMAGEIO_FILE_TIFF,
+  IMAGEIO_FILE_XBM,
+  IMAGEIO_FILE_XPM,
 
-  ImageFileOther = 65536
+  IMAGEIO_FILE_CUSTOM = 65536
 };
 
 // ============================================================================
-// [Fog::Channel]
+// [Fog::MATRIX_DATA]
 // ============================================================================
 
-//! @brief Rgba color channels.
-enum Channel
+//! @brief Matrix data offsets.
+enum MATRIX_DATA
 {
-  ChannelRed = 0x1,
-  ChannelGreen = 0x2,
-  ChannelBlue = 0x4,
-  ChannelAlpha = 0x8,
-  ChannelRGB = ChannelRed | ChannelGreen | ChannelBlue,
-  ChannelRGBA = ChannelRGB | ChannelAlpha,
-
-  ChannelCount = ChannelRGBA + 1
+  //! @brief Scale X offset.
+  MATRIX_SX = 0,
+  //! @brief Scale Y offset.
+  MATRIX_SY = 3,
+  //! @brief Shear X offset.
+  MATRIX_SHX = 2,
+  //! @brief Shear Y offset.
+  MATRIX_SHY = 1,
+  //! @brief Translate X offset.
+  MATRIX_TX = 4,
+  //! @brief Translate Y offset.
+  MATRIX_TY = 5
 };
 
 // ============================================================================
-// [Fog::MatrixOrder]
+// [Fog::MATRIX_ORDER]
 // ============================================================================
 
 //! @brief Matrix multiply ordering.
-enum MatrixOrder
+enum MATRIX_ORDER
 {
-  MatrixOrderPrepend = 0,
-  MatrixOrderAppend = 1
+  MATRIX_PREPEND = 0,
+  MATRIX_APPEND = 1
 };
 
 // ============================================================================
-// [Fog::FillMode]
+// [Fog::MATRIX_TYPE]
+// ============================================================================
+
+//! @brief Matrix type bit masks.
+enum MATRIX_TYPE
+{
+  MATRIX_TYPE_IDENTITY = 0x00,
+  MATRIX_TYPE_TRANSLATE = 0x01,
+  MATRIX_TYPE_SCALE = 0x02,
+  MATRIX_TYPE_SHEAR = 0x04
+};
+
+// ============================================================================
+// [Fog::Fill Constants]
 // ============================================================================
 
 //! @brief Fill mode.
-enum FillMode
+enum FILL_MODE
 {
-  FillNonZero = 0,
-  FillEvenOdd = 1,
+  //! @brief Fill using non-zero rule.
+  FILL_NON_ZERO = 0,
+  //! @brief Fill using even-odd rule.
+  FILL_EVEN_ODD = 1,
+  //! @brief Initial (default) fill rule for painter and rasterizer.
+  FILL_DEFAULT = FILL_EVEN_ODD,
 
-  FillModeInvalid = 2
+  //! @brief Used to catch invalid arguments.
+  FILL_INVALID = 2
 };
 
 // ============================================================================
-// [Fog::LineCap]
+// [Fog::Stroke Constants]
 // ============================================================================
+
+static const double LINE_WIDTH_DEFAULT = 1.0;
+static const double MITER_LIMIT_DEFAULT = 4.0;
+static const double INNER_LIMIT_DEFAULT = 1.01;
+static const double DASH_OFFSET_DEFAULT = 0.0;
 
 //! @brief Line cap.
-enum LineCap
+enum LINE_CAP
 {
-  LineCapButt = 0,
-  LineCapSquare = 1,
-  LineCapRound = 2,
+  LINE_CAP_BUTT = 0,
+  LINE_CAP_SQUARE = 1,
+  LINE_CAP_ROUND = 2,
+  LINE_CAP_DEFAULT = LINE_CAP_BUTT,
 
-  LineCapInvalid = 3 
+  //! @brief Used to catch invalid arguments.
+  LINE_CAP_INVALID = 3
 };
-
-// ============================================================================
-// [Fog::LineJoin]
-// ============================================================================
 
 //! @brief Line join.
-enum LineJoin
+enum LINE_JOIN
 {
-  LineJoinMiter = 0,
-  LineJoinMiterRevert = 1,
-  LineJoinRound = 2,
-  LineJoinBevel = 3,
-  LineJoinMiterRound = 4,
+  LINE_JOIN_MITER = 0,
+  LINE_JOIN_MITER_REVERT = 1,
+  LINE_JOIN_ROUND = 2,
+  LINE_JOIN_BEVEL = 3,
+  LINE_JOIN_MITER_ROUND = 4,
+  LINE_JOIN_DEFAULT = LINE_JOIN_MITER,
 
-  LineJoinInvalid = 5
+  //! @brief Used to catch invalid arguments.
+  LINE_JOIN_INVALID = 5
 };
-
-// ============================================================================
-// [Fog::InnerJoin]
-// ============================================================================
 
 //! @brief Inner join.
-enum InnerJoin
+enum INNER_JOIN
 {
-  InnerJoinBevel = 0,
-  InnerJoinMiter = 1,
-  InnerJoinJag = 2,
-  InnerJoinRound = 3,
+  INNER_JOIN_BEVEL = 0,
+  INNER_JOIN_MITER = 1,
+  INNER_JOIN_JAG = 2,
+  INNER_JOIN_ROUND = 3,
+  INNER_JOIN_DEFAULT = INNER_JOIN_MITER,
 
-  InnerJoinInvalid = 4
+  //! @brief Used to catch invalid arguments.
+  INNER_JOIN_INVALID = 4
 };
 
 // ============================================================================
-// [Fog::TextAlignment]
+// [Fog::PAINTER]
+// ============================================================================
+
+//! @brief Type of source assigned in @c Painter or @c PainterEngine.
+enum PAINTER_SOURCE_TYPE
+{
+  //! @brief Painter source is ARGB color, see @c Painter::setSource(Argb argb).
+  PAINTER_SOURCE_ARGB = 0,
+  //! @brief Painter source is pattern color, see @c Painter::setPattern(const Pattern& pattern).
+  PAINTER_SOURCE_PATTERN = 1,
+  //! @brief Painter source is color filter, see @c Painter::setSource(const ColorFilter& colorFilter).
+  PAINTER_SOURCE_COLOR_FILTER = 2
+};
+
+// ============================================================================
+// [Fog::PAINTER_ENGINE]
+// ============================================================================
+
+//! @brief Type of painter engine.
+enum PAINTER_ENGINE
+{
+  //! @brief Null painter engine.
+  PAINTER_ENGINE_NULL = 0,
+
+  //! @brief Singlethreaded raster painter engine.
+  PAINTER_ENGINE_RASTER_ST = 1,
+  //! @brief Multithreaded raster painter engine.
+  PAINTER_ENGINE_RASTER_MT = 2
+};
+
+// ============================================================================
+// [Fog::PAINTER_HINTS]
+// ============================================================================
+
+//! @brief Painter hints that can be set during painter initialization.
+//!
+//! Currently this is mainly to turn multithreading off.
+enum PAINTER_HINTS
+{
+  //! @brief Do not use multithreading.
+  PAINTER_HINT_NO_MT = 0x0001
+};
+
+// ============================================================================
+// [Fog::PATH_CMD_TYPE]
+// ============================================================================
+
+enum PATH_CMD
+{
+  PATH_CMD_STOP = 0,
+  PATH_CMD_MOVE_TO = 1,
+  PATH_CMD_LINE_TO = 2,
+  PATH_CMD_CURVE_3 = 3,
+  PATH_CMD_CURVE_4 = 4,
+  PATH_CMD_END = 0xF,
+  PATH_CMD_MASK = 0xF
+};
+
+enum PATH_CMD_FLAGS
+{
+  PATH_CFLAG_NONE = 0,
+  PATH_CFLAG_CCW = 0x10,
+  PATH_CFLAG_CW = 0x20,
+  PATH_CFLAG_CLOSE = 0x40,
+  PATH_CFLAG_MASK = 0xF0
+};
+
+// ============================================================================
+// [Fog::PATTERN_TYPE]
+// ============================================================================
+
+enum PATTERN_TYPE
+{
+  PATTERN_NULL = 0x0,
+  PATTERN_SOLID = 0x1,
+  PATTERN_TEXTURE = 0x2,
+
+  PATTERN_GRADIENT_MASK = 0x10,
+
+  PATTERN_LINEAR_GRADIENT = PATTERN_GRADIENT_MASK | 0x0,
+  PATTERN_RADIAL_GRADIENT = PATTERN_GRADIENT_MASK | 0x1,
+  PATTERN_CONICAL_GRADIENT = PATTERN_GRADIENT_MASK | 0x2
+};
+
+// ============================================================================
+// [Fog::REGION_TYPE]
+// ============================================================================
+
+//! @brief Region type.
+enum REGION_TYPE
+{
+  //! @brief Region is empty.
+  REGION_TYPE_EMPTY = 0,
+  //! @brief Region has only one rectangle (rectangular).
+  REGION_TYPE_SIMPLE = 1,
+  //! @brief Region has more YX sorted rectangles.
+  REGION_TYPE_COMPLEX = 2
+};
+
+// ============================================================================
+// [Fog::REGION_OP]
+// ============================================================================
+
+//! @brief Region ops.
+enum REGION_OP
+{
+  //! @brief Copy.*/
+  REGION_OP_COPY = 0,
+  //! @brief Union (OR)
+  REGION_OP_UNITE = 1,
+  //! @brief Intersection (AND).
+  REGION_OP_INTERSECT = 2,
+  //! @brief eXclusive or (XOR).
+  REGION_OP_EOR = 3,
+  //! @brief eXclusive or (XOR).
+  REGION_OP_XOR = 3,
+  //! @brief Subtraction (Difference).
+  REGION_OP_SUBTRACT = 4
+};
+
+// ============================================================================
+// [Fog::REGION_HITTEST]
+// ============================================================================
+
+//! @brief Region hit-testing.
+enum REGION_HITTEST
+{
+  //! @brief Object isn't in region (point, rectangle or another region).
+  REGION_HITTEST_OUT = 0,
+  //! @brief Object is in region (point, rectangle or another region).
+  REGION_HITTEST_IN = 1,
+  //! @brief Object is partially in region (point, rectangle or another region).
+  REGION_HITTEST_PART = 2
+};
+
+// ============================================================================
+// [Fog::SPREAD_TYPE]
+// ============================================================================
+
+enum SPREAD_TYPE
+{
+  SPREAD_PAD     = 0,
+  SPREAD_REPEAT  = 1,
+  SPREAD_REFLECT = 2
+};
+
+// ============================================================================
+// [Fog::TEXT_ALIGN]
 // ============================================================================
 
 //! @brief Text alignment
-enum TextAlign
+enum TEXT_ALIGN
 {
-  TextAlignLeft        = 0x01,
-  TextAlignRight       = 0x02,
-  TextAlignHCenter     = 0x03,
-  TextAlignHMask       = 0x03,
+  TEXT_ALIGN_LEFT        = 0x01,
+  TEXT_ALIGN_RIGHT       = 0x02,
+  TEXT_ALIGN_HCENTER     = 0x03,
+  TEXT_ALIGN_HMASK       = 0x03,
 
-  TextAlignTop         = 0x10,
-  TextAlignBottom      = 0x20,
-  TextAlignVCenter     = 0x30,
-  TextAlignVMask       = 0x30,
+  TEXT_ALIGN_TOP         = 0x10,
+  TEXT_ALIGN_BOTTOM      = 0x20,
+  TEXT_ALIGN_VCENTER     = 0x30,
+  TEXT_ALIGN_VMASK       = 0x30,
 
-  TextAlignCenter      = TextAlignVCenter | TextAlignHCenter
+  TEXT_ALIGN_CENTER      = TEXT_ALIGN_VCENTER | TEXT_ALIGN_HCENTER
+};
+
+// ============================================================================
+// [Fog::ERR_GRAPHICS]
+// ============================================================================
+
+//! @brief Error codes used in Fog/Graphics.
+enum ERR_GRAPHICS_ENUM
+{
+  // [Errors Range]
+  ERR_GRAPHICS_START = 0x00011100,
+  ERR_GRAPHICS_LAST  = 0x000111FF,
+
+  // Path Errors.
+
+  ERR_PATH_INVALID = ERR_GRAPHICS_START,
+
+  // Image, ImageFilter, ImageIO And Painter Errors.
+
+  ERR_IMAGE_ZERO_SIZE,
+  ERR_IMAGE_INVALID_SIZE,
+  ERR_IMAGE_TOO_LARGE_SIZE,
+
+  ERR_IMAGE_FORMAT_NOT_SUPPORTED,
+
+  ERR_IMAGEIO_INTERNAL_ERROR,
+
+  ERR_IMAGEIO_NOT_AVAILABLE_PROVIDER,
+  ERR_IMAGEIO_NOT_AVAILABLE_DECODER,
+  ERR_IMAGEIO_NOT_AVAILABLE_ENCODER,
+
+  ERR_IMAGEIO_UNSUPPORTED_FORMAT,
+  ERR_IMAGEIO_TERMINATED,
+  ERR_IMAGEIO_TRUNCATED,
+
+  ERR_IMAGEIO_MIME_NOT_MATCH,
+  ERR_IMAGEIO_MALFORMED_HEADER,
+  ERR_IMAGEIO_MALFORMED_RLE,
+  ERR_IMAGEIO_NO_MORE_FRAMES,
+
+  ERR_IMAGEIO_LIBJPEG_NOT_LOADED,
+  ERR_IMAGEIO_LIBJPEG_ERROR,
+
+  ERR_IMAGEIO_LIBPNG_NOT_LOADED,
+  ERR_IMAGEIO_LIBPNG_ERROR,
+
+  // Font Errors.
+
+  ERR_FONT_INVALID_FACE,
+  ERR_FONT_INVALID_DATA,
+  ERR_FONT_CANT_LOAD_DEFAULT_FACE,
+  ERR_FONT_CANT_GET_OUTLINE,
+
+  ERR_FONT_FONTCONFIG_NOT_LOADED,
+  ERR_FONT_FONTCONFIG_INIT_FAILED,
+
+  ERR_FONT_FREETYPE_NOT_LOADED,
+  ERR_FONT_FREETYPE_INIT_FAILED
 };
 
 } // Fog namespace

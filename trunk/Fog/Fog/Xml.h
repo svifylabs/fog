@@ -21,7 +21,7 @@
 // [Fog/Xml Include Files]
 #include <Fog/Build/Build.h>
 
-#include <Fog/Xml/Error.h>
+#include <Fog/Xml/Constants.h>
 #include <Fog/Xml/XmlDom.h>
 #include <Fog/Xml/XmlEntity.h>
 #include <Fog/Xml/XmlReader.h>

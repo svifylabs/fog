@@ -20,7 +20,7 @@
 namespace Fog {
 
 // ============================================================================
-// [Fog::Forward Declarations]
+// [Forward Declarations]
 // ============================================================================
 
 struct Layout;
@@ -62,10 +62,10 @@ struct FOG_API LayoutItem : public Object
 
   // [Event Map]
 
-  fog_event_begin()
-    fog_event(EvLayoutSet        , onLayout          , LayoutEvent    , Override)
-    fog_event(EvLayoutRemove     , onLayout          , LayoutEvent    , Override)
-  fog_event_end()
+  FOG_EVENT_BEGIN()
+    FOG_EVENT_DEF(EV_LAYOUT_SET        , onLayout          , LayoutEvent    , Override)
+    FOG_EVENT_DEF(EV_LAYOUT_REMOVE     , onLayout          , LayoutEvent    , Override)
+  FOG_EVENT_END()
 
 protected:
   Size _sizeHint;
@@ -101,12 +101,6 @@ struct FOG_API LayoutItem : public Object
 
   // [Layout Policy]
 
-  enum Policy
-  {
-    ExpandingWidth = 0x01,
-    ExpandingHeight = 0x10
-  };
-
   virtual uint32_t getLayoutPolicy() const = 0;
   virtual void setLayoutPolicy(uint32_t policy) = 0;
 
@@ -126,10 +120,10 @@ struct FOG_API LayoutItem : public Object
 
   // [Event Map]
 
-  fog_event_begin()
-    fog_event(EvLayoutSet        , onLayout          , LayoutEvent    , Override)
-    fog_event(EvLayoutRemove     , onLayout          , LayoutEvent    , Override)
-  fog_event_end()
+  FOG_EVENT_BEGIN()
+    FOG_EVENT_DEF(EV_LAYOUT_SET        , onLayout          , LayoutEvent    , OVERRIDE)
+    FOG_EVENT_DEF(EV_LAYOUT_REMOVE     , onLayout          , LayoutEvent    , OVERRIDE)
+  FOG_EVENT_END()
 };
 
 } // Fog namespace

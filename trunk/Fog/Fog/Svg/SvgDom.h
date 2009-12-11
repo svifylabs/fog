@@ -56,14 +56,14 @@ struct FOG_API SvgStyleAttribute : public XmlAttribute
 
   // [Styles]
 
-  FOG_INLINE const Vector<SvgStyleItem>& getStyles() const { return _styles; }
+  FOG_INLINE const List<SvgStyleItem>& getStyles() const { return _styles; }
 
   String getStyle(const String& name) const;
   err_t setStyle(const String& name, const String& value);
 
   // [Members]
 protected:
-  Vector<SvgStyleItem> _styles;
+  List<SvgStyleItem> _styles;
 
 private:
   FOG_DISABLE_COPY(SvgStyleAttribute)
@@ -84,28 +84,7 @@ struct FOG_API SvgElement :
   SvgElement(const ManagedString& tagName, uint32_t svgType);
   virtual ~SvgElement();
 
-  // [SVG Type]
-
-  enum SvgType
-  {
-    SvgTypeNone,
-
-    SvgTypeCircle,
-    SvgTypeDefs,
-    SvgTypeEllipse,
-    SvgTypeG,
-    SvgTypeLine,
-    SvgTypeLinearGradient,
-    SvgTypePath,
-    SvgTypePolygon,
-    SvgTypePolyLine,
-    SvgTypeRadialGradient,
-    SvgTypeRect,
-    SvgTypeSolidColor,
-    SvgTypeStop
-  };
-
-  FOG_INLINE uint32_t getSvgType() const { return _svgType; }
+  FOG_INLINE int getSvgType() const { return _svgType; }
 
   // [Clone]
 

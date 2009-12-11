@@ -28,7 +28,6 @@ struct FOG_API Glyph
   // [Data]
 
   struct FOG_API Data
-
   {
     // [Construction / Destruction]
 
@@ -60,16 +59,6 @@ struct FOG_API Glyph
     //! @brief Bitmap Y offset.
     int bitmapY;
 
-    //! @brief Glyph vector data.
-    Path path;
-    //! @brief Path scale factor for X coordinates.
-    double pathScaleX;
-    //! @brief Path scale factor for Y coordinates.
-    double pathScaleY;
-
-    //! @brief Glyph flags.
-    uint32_t flags;
-
     //! @brief Begin width.
     int beginWidth;
     //! @brief End width.
@@ -83,18 +72,11 @@ struct FOG_API Glyph
 
   // [Flags]
 
-  enum Flags
-  {
-    ContainsBitmapData = (1 << 0),
-    ContainsVectorData = (1 << 1)
-  };
-
   static Static<Data> sharedNull;
 
   // [Construction / Destruction]
 
   FOG_INLINE Glyph() : _d(sharedNull.instancep()->ref())  {}
-
   FOG_INLINE Glyph(const Glyph& other) : _d(other._d->ref())  {}
 
   FOG_INLINE explicit Glyph(Data* d) : _d(d)  {}
@@ -111,10 +93,6 @@ struct FOG_API Glyph
   FOG_INLINE const Image& getBitmap() const { return _d->bitmap; }
   FOG_INLINE int getBitmapX() const { return _d->bitmapX; }
   FOG_INLINE int getBitmapY() const { return _d->bitmapY; }
-
-  FOG_INLINE const Path& getPath() const { return _d->path; }
-  FOG_INLINE double getPathScaleX() const { return _d->pathScaleX; }
-  FOG_INLINE double getPathScaleY() const { return _d->pathScaleY; }
 
   FOG_INLINE int getBeginWidth() const { return _d->beginWidth; }
   FOG_INLINE int getEndWidth() const { return _d->endWidth; }
@@ -138,7 +116,7 @@ struct FOG_API Glyph
 // [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::Glyph, Fog::MoveableType)
+FOG_DECLARE_TYPEINFO(Fog::Glyph, Fog::TYPE_INFO_MOVABLE)
 
 // [Guard]
 #endif // _FOG_GRAPHICS_GLYPH_H

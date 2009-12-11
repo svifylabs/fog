@@ -9,7 +9,7 @@
 
 // [Dependencies]
 #include <Fog/Core/Atomic.h>
-#include <Fog/Core/Error.h>
+#include <Fog/Core/Constants.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Graphics/Geometry.h>
@@ -31,7 +31,7 @@ struct FOG_API Region
   {
     // [Ref / Deref]
 
-    FOG_INLINE Data* refAlways() { refCount.inc(); return const_cast<Data*>(this); }
+    FOG_INLINE Data* refAlways() const { refCount.inc(); return const_cast<Data*>(this); }
     FOG_INLINE void derefInline() { if (refCount.deref() && (flags & IsDynamic) != 0) Memory::free(this); }
 
     Data* ref() const;
@@ -54,31 +54,25 @@ struct FOG_API Region
     //! @brief String data flags.
     enum Flags
     {
-      //! @brief Null 'd' object. 
-      //!
-      //! This is very likely object that's shared between all null objects. So
-      //! normally only one data instance can has this flag set on.
-      IsNull = (1U << 0),
-
       //! @brief String data are created on the heap. 
       //!
       //! Object is created by function like @c Fog::Memory::alloc() or by
       //! @c new operator. It this flag is not set, you can't delete object from
       //! the heap and object is probabbly only temporary (short life object).
-      IsDynamic = (1U << 1),
+      IsDynamic = (1U << 0),
 
       //! @brief String data are shareable.
       //!
       //! Object can be directly referenced by internal method @c ref(). 
       //! Sharable data are usually created on the heap and together 
       //! with this flag is set also @c IsDynamic, but it isn't prerequisite.
-      IsSharable = (1U << 2),
+      IsSharable = (1U << 1),
 
       //! @brief String data are strong to weak assignments.
       //!
       //! This flag means:
       //!   "Don't assign other data to me, instead, copy them to me!".
-      IsStrong = (1U << 3)
+      IsStrong = (1U << 2)
     };
 
     // [Members]
@@ -106,7 +100,7 @@ struct FOG_API Region
   Region(const Region& other);
   explicit Region(const Box& rect);
   explicit Region(const Rect& rect);
-  explicit Region(Data* d);
+  FOG_INLINE explicit Region(Data* d) : _d(d) {}
   ~Region();
 
   // [Implicit Sharing]
@@ -116,7 +110,7 @@ struct FOG_API Region
   //! @copydoc Doxygen::Implicit::isDetached().
   FOG_INLINE bool isDetached() const { return refCount() == 1; }
   //! @copydoc Doxygen::Implicit::detach().
-  FOG_INLINE err_t detach() { return !isDetached() ? _detach() : (err_t)Error::Ok; }
+  FOG_INLINE err_t detach() { return !isDetached() ? _detach() : (err_t)ERR_OK; }
   //! @copydoc Doxygen::Implicit::_detach().
   err_t _detach();
   //! @copydoc Doxygen::Implicit::free().
@@ -126,12 +120,12 @@ struct FOG_API Region
 
   //! @copydoc Doxygen::Implicit::getFlags().
   FOG_INLINE uint32_t getFlags() const { return _d->flags; }
+  //! @copydoc Doxygen::Implicit::isNull().
+  FOG_INLINE bool isNull() const { return _d == sharedNull.instancep(); }
   //! @copydoc Doxygen::Implicit::isDynamic().
   FOG_INLINE bool isDynamic() const { return (_d->flags & Data::IsDynamic) != 0; }
   //! @copydoc Doxygen::Implicit::isSharable().
   FOG_INLINE bool isSharable() const { return (_d->flags & Data::IsSharable) != 0; }
-  //! @copydoc Doxygen::Implicit::isNull().
-  FOG_INLINE bool isNull() const { return (_d->flags & Data::IsNull) != 0; }
   //! @copydoc Doxygen::Implicit::isStrong().
   FOG_INLINE bool isStrong() const { return (_d->flags & Data::IsStrong) != 0; }
 
@@ -141,15 +135,15 @@ struct FOG_API Region
   // [Data]
 
   //! @brief Get const pointer to region data.
-  FOG_INLINE const Box* cData() const  { return _d->rects; }
+  FOG_INLINE const Box* getData() const  { return _d->rects; }
 
   //! @brief Get read / write pointer to region data.
-  FOG_INLINE Box* mData() { return detach() == Error::Ok ? _d->rects : (Box*)NULL; }
+  FOG_INLINE Box* getMData() { return detach() == ERR_OK ? _d->rects : (Box*)NULL; }
 
   //! @brief Get read / write pointer to region data.
-  FOG_INLINE Box* xData() 
+  FOG_INLINE Box* getXData() 
   {
-    FOG_ASSERT_X(isDetached(), "Fog::Region::xData() - Not detached");
+    FOG_ASSERT_X(isDetached(), "Fog::Region::getXData() - Not detached");
     return _d->rects; 
   }
 
@@ -171,29 +165,17 @@ struct FOG_API Region
   err_t prepare(sysuint_t to);
   void squeeze();
 
+  //! @brief Get type of region, see @c REGION_TYPE enum for possible values.
   uint32_t getType() const;
 
   // [Contains]
 
-  //! @brief Region testing.
-  enum Contains
-  {
-    //! @brief Object isn't in region (point, rectangle or another region).
-    Out = 0,
-    //! @brief Object is in region (point, rectangle or another region).
-    In = 1,
-    //! @brief Object is partially in region (point, rectangle or another region).
-    Part = 2
-  };
+  //! @brief Tests if a given point is in region, see @c REGION_HITTEST enum.
+  int hitTest(const Point& pt) const;
+  FOG_INLINE int hitTest(int x, int y) const { return hitTest(Point(x, y)); }
 
-  //! @brief Tests if a given point is in region.
-  //! @return @c In if region contains a given point, otherwise @c Out.
-  uint32_t contains(const Point& pt) const;
-
-  FOG_INLINE uint32_t contains(int x, int y) const { return contains(Point(x, y)); }
-
-  uint contains(const Rect& r) const;
-  uint contains(const Box& r) const;
+  int hitTest(const Rect& r) const;
+  int hitTest(const Box& r) const;
 
   //! @brief Removes all rectagnels from region.
   void clear();
@@ -232,9 +214,9 @@ struct FOG_API Region
   err_t subtract(const Rect& r);
   err_t subtract(const Box& r);
 
-  err_t op(const Region& r, uint _op);
-  err_t op(const Rect& r, uint _op);
-  err_t op(const Box& r, uint _op);
+  err_t op(const Region& r, int _op);
+  err_t op(const Rect& r, int _op);
+  err_t op(const Box& r, int _op);
 
   err_t translate(const Point& pt);
 
@@ -260,7 +242,7 @@ struct FOG_API Region
   static err_t intersect(Region& dest, const Region& src1, const Region& src2);
   static err_t eor(Region& dest, const Region& src1, const Region& src2);
   static err_t subtract(Region& dest, const Region& src1, const Region& src2);
-  static err_t op(Region& dest, const Region& src1, const Region& src2, uint _op);
+  static err_t op(Region& dest, const Region& src1, const Region& src2, int _op);
   static err_t translate(Region& dest, const Region& src, const Point& pt);
   static err_t shrink(Region& dest, const Region& src, const Point& pt);
   static err_t frame(Region& dest, const Region& src, const Point& pt);
@@ -295,34 +277,6 @@ struct FOG_API Region
   HRGN toHRGN() const;
   err_t fromHRGN(HRGN hrgn);
 #endif // FOG_OS_WINDOWS
-
-  //! @brief Region type.
-  enum Type
-  {
-    //! @brief Region is empty
-    TypeEmpty = 0,
-    //! @brief Region has only one rectangle (rectangular).
-    TypeSimple = 1,
-    //! @brief Region has more YX sorted rectangles.
-    TypeComplex = 2
-  };
-
-  //! @brief Region ops.
-  enum Op
-  {
-    //! @brief Copy.*/
-    OpCopy = 0,
-    //! @brief Union (OR)
-    OpUnite = 1,
-    //! @brief Intersection (AND).
-    OpIntersect = 2,
-    //! @brief eXclusive or (XOR).
-    OpEor = 3,
-    //! @brief eXclusive or (XOR).
-    OpXor = 3,
-    //! @brief Subtraction (Difference).
-    OpSubtract = 4
-  };
 
   // [Members]
 
@@ -425,7 +379,7 @@ FOG_INLINE bool operator!=(const Fog::Region& src1, const Fog::Region& src2) { r
 // [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::Region, Fog::MoveableType)
+FOG_DECLARE_TYPEINFO(Fog::Region, Fog::TYPE_INFO_MOVABLE)
 
 // [Guard]
 #endif // _FOG_GRAPHICS_REGION_H

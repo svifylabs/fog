@@ -4,9 +4,9 @@
 // MIT, See COPYING file in package
 
 // [Precompiled Headers]
-#ifdef FOG_PRECOMP
+#if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
-#endif
+#endif // FOG_PRECOMP
 
 // [Dependencies]
 #include <Fog/Core/Assert.h>
@@ -88,7 +88,7 @@ err_t Region::round(const Rect& r, uint xradius, uint yradius, bool fill)
   if (x1 >= x2 || y1 >= y2)
   {
     clear();
-    return Error::InvalidArgument;
+    return ERR_RT_INVALID_ARGUMENT;
   }
 
   width  = (uint)(x2 - x1);
@@ -340,11 +340,11 @@ err_t Region::round(const Rect& r, uint xradius, uint yradius, bool fill)
     }
   }
   selfd->extents = r;
-  return Error::Ok;
+  return ERR_OK;
 
 _clear:
   clear();
-  return Error::Ok;
+  return ERR_OK;
 }
 
 } // Fog namespace

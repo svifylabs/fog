@@ -21,34 +21,34 @@ namespace Fog {
 
 //! @brief Types for @c Fog::TypeInfo, use together with
 //! @c FOG_DECLARE_TYPEINFO macro.
-enum TypeInfoType
+enum TYPE_INFO
 {
   //! @brief Simple data type like @c int, @c long, ...
   //!
   //! Simple data can be copyed from one memory location into another.
-  PrimitiveType = 0,
+  TYPE_INFO_PRIMITIVE = 0,
 
   //! @brief Moveable data type line @c Fog::String, ...
   //!
   //! Moveable data type can't be copyed to another location, but
   //! can be moved in memory.
-  MoveableType = 1,
+  TYPE_INFO_MOVABLE = 1,
 
   //! @brief Class data type. 
   //!
   //! Means that class cannot be moved to another location.
-  ClassType = 2
+  TYPE_INFO_CLASS = 2
 };
 
 //! @brief Additional flags for FOG_DECLARE_TYPEINFO. All flags are cleared in
 //! in @c Fog::TypeInfo<T> template.
-enum TypeInfoFlags
+enum TYPE_INFO_FLAGS
 {
-  TypeInfoIsPODType   = 0x00000100,
-  TypeInfoIsFloatType = 0x00000200,
-  TypeInfoHasCompare  = 0x00000400,
-  TypeInfoHasEq       = 0x00000800,
-  TypeInfoMask        = 0xFFFFFF00
+  TYPE_INFO_IS_POD_TYPE   = 0x00000100,
+  TYPE_INFO_IS_FLOAT_TYPE = 0x00000200,
+  TYPE_INFO_HAS_COMPARE   = 0x00000400,
+  TYPE_INFO_HAS_EQ        = 0x00000800,
+  TYPE_INFO_MASK          = 0xFFFFFF00
 };
 
 // [Fog::TypeInfo_CompareFn and Fog::TypeInfo_EqFn]
@@ -69,22 +69,21 @@ struct TypeInfo
   // TypeInfo constants
   enum
   {
-    // [Type and Size - Generic type is always ClassType]
-    Type = Fog::ClassType,
-    Flags = 0,
-    Size = sizeof(T),
+    // [Type - Generic type is always ClassType]
+    TYPE = TYPE_INFO_CLASS,
+    FLAGS = 0,
 
     // [Basic Information]
-    IsPrimitive = (Type == Fog::PrimitiveType),
-    IsMoveable = (Type <= Fog::MoveableType),
-    IsClass = (Type == Fog::ClassType),
-    IsPointer = 0,
+    IS_PRIMITIVE = (TYPE == TYPE_INFO_PRIMITIVE),
+    IS_MOVABLE = (TYPE <= TYPE_INFO_MOVABLE),
+    IS_CLASS = (TYPE == TYPE_INFO_CLASS),
+    IS_POINTER = 0,
 
     // [Extended Information]
-    IsPOD = 0,
-    IsFloat = 0,
-    HasCompare = 0,
-    HasEq = 0
+    IS_POD = 0,
+    IS_FLOAT = 0,
+    HAS_COMPARE = 0,
+    HAS_EQ = 0
   };
 
   typedef bool (*EqFn)(const T* a, const T* b);
@@ -98,22 +97,21 @@ struct TypeInfo<T*>
   // TypeInfo constants
   enum
   {
-    // [Type and Size - Pointer is always simple type]
-    Type = Fog::PrimitiveType,
-    Flags = Fog::TypeInfoIsPODType,
-    Size = sizeof(T*),
+    // [Type - Pointer is always simple type]
+    TYPE = TYPE_INFO_PRIMITIVE,
+    FLAGS = TYPE_INFO_IS_POD_TYPE,
 
-    // [Type and Size - Generic type is always ClassType]
-    IsPrimitive = (Type == Fog::PrimitiveType),
-    IsMoveable = (Type <= Fog::MoveableType),
-    IsClass = (Type == Fog::ClassType),
-    IsPointer = 1,
+    // [Type - Generic type is always ClassType]
+    IS_PRIMITIVE = (TYPE == TYPE_INFO_PRIMITIVE),
+    IS_MOVABLE = (TYPE <= TYPE_INFO_MOVABLE),
+    IS_CLASS = (TYPE == TYPE_INFO_CLASS),
+    IS_POINTER = 1,
 
     // [Extended Information]
-    IsPOD = 1, // POD is comparable by default
-    IsFloat = 0,
-    HasCompare = 0,
-    HasEq = 0
+    IS_POD = 1, // POD is comparable by default
+    IS_FLOAT = 0,
+    HAS_COMPARE = 0,
+    HAS_EQ = 0
   };
 
   typedef bool (*EqFn)(const T** a, const T** b);
@@ -126,22 +124,21 @@ struct TypeInfo_Wrapper
 {
   // TypeInfo constants
   enum {
-    // [Type and Size - Based on __TypeInfo__]
-    Type = (__TypeInfo__ & ~Fog::TypeInfoMask),
-    Flags = (__TypeInfo__ & Fog::TypeInfoMask),
-    Size = sizeof(T),
+    // [Type - Based on __TypeInfo__]
+    TYPE = (__TypeInfo__ & ~TYPE_INFO_MASK),
+    FLAGS = (__TypeInfo__ & TYPE_INFO_MASK),
 
     // [Basic Information]
-    IsPrimitive = (Type == Fog::PrimitiveType),
-    IsMoveable = (Type <= Fog::MoveableType),
-    IsClass = (Type == Fog::ClassType),
-    IsPointer = 0,
+    IS_PRIMITIVE = (TYPE == TYPE_INFO_PRIMITIVE),
+    IS_MOVABLE = (TYPE <= TYPE_INFO_MOVABLE),
+    IS_CLASS = (TYPE == TYPE_INFO_CLASS),
+    IS_POINTER = 0,
 
     // [Extended Information]
-    IsPOD = (__TypeInfo__ & Fog::TypeInfoIsPODType) != 0,
-    IsFloat = (__TypeInfo__ & Fog::TypeInfoIsFloatType) != 0,
-    HasCompare = (__TypeInfo__ & Fog::TypeInfoHasCompare) != 0,
-    HasEq = (__TypeInfo__ & Fog::TypeInfoHasEq) != 0
+    IS_POD = (__TypeInfo__ & TYPE_INFO_IS_POD_TYPE) != 0,
+    IS_FLOAT = (__TypeInfo__ & TYPE_INFO_IS_FLOAT_TYPE) != 0,
+    HAS_COMPARE = (__TypeInfo__ & TYPE_INFO_HAS_COMPARE) != 0,
+    HAS_EQ = (__TypeInfo__ & TYPE_INFO_HAS_EQ) != 0
   };
 
   typedef bool (*EqFn)(const T* a, const T* b);
@@ -196,7 +193,7 @@ struct TypeInfo_Compare_Wrapper_POD :
   public TypeInfo_Compare_Default<T> {};
 
 template<typename T>
-struct TypeInfo_Compare_Wrapper_POD<T, Fog::TypeInfoIsPODType /* and not Fog::TypeInfoIsFloatType */> : 
+struct TypeInfo_Compare_Wrapper_POD<T, Fog::TYPE_INFO_IS_POD_TYPE /* and not Fog::TYPE_INFO_IS_FLOAT_TYPE */> :
   // Defaults to TypeInfo_Compare_Integral, implementation for integral types
   public TypeInfo_Compare_Integral<T> {};
 
@@ -207,12 +204,12 @@ struct TypeInfo_Compare_Wrapper :
 
 template<typename T>
 struct TypeInfo_Compare_Wrapper<T, 0> : 
-  public TypeInfo_Compare_Wrapper_POD<T, TypeInfo<T>::Flags & (Fog::TypeInfoIsPODType | Fog::TypeInfoIsFloatType)> {};
+  public TypeInfo_Compare_Wrapper_POD<T, TypeInfo<T>::FLAGS & (Fog::TYPE_INFO_IS_POD_TYPE | Fog::TYPE_INFO_IS_FLOAT_TYPE)> {};
 
 // TypeInfo_Compare_Wrapper_HasCompare
 template<typename T, uint __HasCompare__>
 struct TypeInfo_Compare_Wrapper_HasCompare : 
-  public TypeInfo_Compare_Wrapper<T, TypeInfo<T>::Type> {};
+  public TypeInfo_Compare_Wrapper<T, TypeInfo<T>::TYPE> {};
 
 template<typename T>
 struct TypeInfo_Compare_Wrapper_HasCompare<T, 1> : 
@@ -223,7 +220,7 @@ struct TypeInfo_Compare_Wrapper_HasCompare<T, 1> :
 // TypeInfo_Compare
 template<typename T>
 struct TypeInfo_Compare : 
-  public TypeInfo_Compare_Wrapper_HasCompare<T, TypeInfo<T>::HasCompare> {};
+  public TypeInfo_Compare_Wrapper_HasCompare<T, TypeInfo<T>::HAS_COMPARE> {};
 
 // ===========================================================================
 // [Fog::TypeInfo - Eq
@@ -232,10 +229,7 @@ struct TypeInfo_Compare :
 template<typename T>
 struct TypeInfo_Eq_Default
 {
-  static bool eq(const T* a, const T* b)
-  {
-    return *a == *b;
-  }
+  static bool eq(const T* a, const T* b) { return *a == *b; }
 };
 
 // TypeInfo_Eq_Wrapper
@@ -246,7 +240,7 @@ struct TypeInfo_Eq_Wrapper :
 // TypeInfo_Eq_Wrapper_HasEq
 template<typename T, uint __HasEq__>
 struct TypeInfo_Eq_Wrapper_HasEq : 
-  public TypeInfo_Eq_Wrapper<T, TypeInfo<T>::Type> {};
+  public TypeInfo_Eq_Wrapper<T, TypeInfo<T>::TYPE> {};
 
 template<typename T>
 struct TypeInfo_Eq_Wrapper_HasEq<T, 1> : 
@@ -257,7 +251,7 @@ struct TypeInfo_Eq_Wrapper_HasEq<T, 1> :
 // TypeInfo_Eq
 template<typename T>
 struct TypeInfo_Eq : 
-  public TypeInfo_Eq_Wrapper_HasEq<T, TypeInfo<T>::HasEq> {};
+  public TypeInfo_Eq_Wrapper_HasEq<T, TypeInfo<T>::HAS_EQ> {};
 
 // ===========================================================================
 // [Fog::TypeInfo - Macros]
@@ -339,27 +333,27 @@ struct TypeInfo < __symbol__<A1, A2, A3, A4, A5, A6, A7, A8, A9, A10> > : public
 // [Fog::TypeInfo - Built-In]
 // ===========================================================================
 
-FOG_DECLARE_TYPEINFO(int8_t, Fog::PrimitiveType | Fog::TypeInfoIsPODType)
-FOG_DECLARE_TYPEINFO(uint8_t, Fog::PrimitiveType | Fog::TypeInfoIsPODType)
-FOG_DECLARE_TYPEINFO(int16_t, Fog::PrimitiveType | Fog::TypeInfoIsPODType)
-FOG_DECLARE_TYPEINFO(uint16_t, Fog::PrimitiveType | Fog::TypeInfoIsPODType)
-FOG_DECLARE_TYPEINFO(int32_t, Fog::PrimitiveType | Fog::TypeInfoIsPODType)
-FOG_DECLARE_TYPEINFO(uint32_t, Fog::PrimitiveType | Fog::TypeInfoIsPODType)
-FOG_DECLARE_TYPEINFO(int64_t, Fog::PrimitiveType | Fog::TypeInfoIsPODType)
-FOG_DECLARE_TYPEINFO(uint64_t, Fog::PrimitiveType | Fog::TypeInfoIsPODType)
+FOG_DECLARE_TYPEINFO(int8_t, Fog::TYPE_INFO_PRIMITIVE | Fog::TYPE_INFO_IS_POD_TYPE)
+FOG_DECLARE_TYPEINFO(uint8_t, Fog::TYPE_INFO_PRIMITIVE | Fog::TYPE_INFO_IS_POD_TYPE)
+FOG_DECLARE_TYPEINFO(int16_t, Fog::TYPE_INFO_PRIMITIVE | Fog::TYPE_INFO_IS_POD_TYPE)
+FOG_DECLARE_TYPEINFO(uint16_t, Fog::TYPE_INFO_PRIMITIVE | Fog::TYPE_INFO_IS_POD_TYPE)
+FOG_DECLARE_TYPEINFO(int32_t, Fog::TYPE_INFO_PRIMITIVE | Fog::TYPE_INFO_IS_POD_TYPE)
+FOG_DECLARE_TYPEINFO(uint32_t, Fog::TYPE_INFO_PRIMITIVE | Fog::TYPE_INFO_IS_POD_TYPE)
+FOG_DECLARE_TYPEINFO(int64_t, Fog::TYPE_INFO_PRIMITIVE | Fog::TYPE_INFO_IS_POD_TYPE)
+FOG_DECLARE_TYPEINFO(uint64_t, Fog::TYPE_INFO_PRIMITIVE | Fog::TYPE_INFO_IS_POD_TYPE)
 
-FOG_DECLARE_TYPEINFO(float, Fog::PrimitiveType | Fog::TypeInfoIsPODType | Fog::TypeInfoIsFloatType)
-FOG_DECLARE_TYPEINFO(double, Fog::PrimitiveType | Fog::TypeInfoIsPODType | Fog::TypeInfoIsFloatType)
+FOG_DECLARE_TYPEINFO(float, Fog::TYPE_INFO_PRIMITIVE | Fog::TYPE_INFO_IS_POD_TYPE | Fog::TYPE_INFO_IS_FLOAT_TYPE)
+FOG_DECLARE_TYPEINFO(double, Fog::TYPE_INFO_PRIMITIVE | Fog::TYPE_INFO_IS_POD_TYPE | Fog::TYPE_INFO_IS_FLOAT_TYPE)
 
 #if !defined(FOG_CC_BORLAND)
 // char is same as int8_t or uint8_t for borland compiler
-FOG_DECLARE_TYPEINFO(char, Fog::PrimitiveType | Fog::TypeInfoIsPODType)
+FOG_DECLARE_TYPEINFO(char, Fog::TYPE_INFO_PRIMITIVE | Fog::TYPE_INFO_IS_POD_TYPE)
 #endif // FOG_CC_BORLAND
 
 // TODO: long and ulong checking
 #if !(defined(FOG_CC_GNU) && FOG_ARCH_BITS == 64)
-FOG_DECLARE_TYPEINFO(long, Fog::PrimitiveType | Fog::TypeInfoIsPODType)
-FOG_DECLARE_TYPEINFO(ulong, Fog::PrimitiveType | Fog::TypeInfoIsPODType)
+FOG_DECLARE_TYPEINFO(long, Fog::TYPE_INFO_PRIMITIVE | Fog::TYPE_INFO_IS_POD_TYPE)
+FOG_DECLARE_TYPEINFO(ulong, Fog::TYPE_INFO_PRIMITIVE | Fog::TYPE_INFO_IS_POD_TYPE)
 #endif // long / ulong
 
 // TODO: wchar_t

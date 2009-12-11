@@ -26,15 +26,11 @@ FOG_CAPI_EXTERN void fog_stdxxx_vmsg(FILE* fp, const char* namespaceStr, const c
 FOG_CAPI_EXTERN bool fog_redirect_std_to_file(const char* fileName);
 
 FOG_CAPI_EXTERN void fog_debug(const char* format, ...);
-FOG_CAPI_EXTERN void FOG_NO_RETURN fog_assertion(const char* file, int line, const char* msg);
 FOG_CAPI_EXTERN void FOG_NO_RETURN fog_fail(const char* format, ...);
 
 FOG_CAPI_EXTERN void fog_sleep(uint32_t msecs);
 
 typedef int (*fog_qsort_callback)(const void*, const void*);
-
-// Compatibility for MinGW
-FOG_CAPI_EXTERN sysuint_t fog_strnlen(const char* str, sysuint_t maxlen);
 
 FOG_CAPI_EXTERN void fog_qsort(void *a, sysuint_t n, sysuint_t es, fog_qsort_callback compar);
 FOG_CAPI_EXTERN void *fog_bsearch(const void *key, const void *base, sysuint_t nmemb, sysuint_t size, fog_qsort_callback compar);

@@ -4,53 +4,14 @@
 // MIT, See COPYING file in package
 
 // [Precompiled Headers]
-#ifdef FOG_PRECOMP
+#if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
-#endif
+#endif // FOG_PRECOMP
 
 // [Dependencies]
 #include <Fog/Graphics/PainterEngine.h>
 
 namespace Fog {
-
-// ============================================================================
-// [Fog::LineParams]
-// ============================================================================
-
-LineParams::LineParams()
-{
-  lineWidth = 1.0;
-  lineCap = LineCapButt;
-  lineJoin = LineJoinMiter;
-  miterLimit = 4.0;
-  dashOffset = 0.0;
-}
-
-LineParams::LineParams(const LineParams& other) :
-  lineWidth(other.lineWidth),
-  lineCap(other.lineCap),
-  lineJoin(other.lineJoin),
-  miterLimit(other.miterLimit),
-  dashes(other.dashes),
-  dashOffset(other.dashOffset)
-{
-}
-
-LineParams::~LineParams()
-{
-}
-
-LineParams& LineParams::operator=(const LineParams& other)
-{
-  lineWidth = other.lineWidth;
-  lineCap = other.lineCap;
-  lineJoin = other.lineJoin;
-  miterLimit = other.miterLimit;
-  dashes = other.dashes;
-  dashOffset = other.dashOffset;
-
-  return *this;
-}
 
 // ============================================================================
 // [Fog::PainterEngine]

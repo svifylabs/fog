@@ -16,11 +16,11 @@
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/AutoLock.h>
 #include <Fog/Core/AutoUnlock.h>
-#include <Fog/Core/Error.h>
+#include <Fog/Core/Constants.h>
+#include <Fog/Core/List.h>
 #include <Fog/Core/Lock.h>
 #include <Fog/Core/ThreadCondition.h>
 #include <Fog/Core/Time.h>
-#include <Fog/Core/Vector.h>
 
 #if defined(FOG_OS_WINDOWS)
 #include <windows.h>
@@ -280,7 +280,7 @@ void ThreadCondition::timedWait(const TimeDelta& maxTime)
 void ThreadCondition::broadcast()
 {
   // See FAQ-question-10.
-  Vector<HANDLE> handles;
+  List<HANDLE> handles;
   {
     AutoLock locked(_internalLock);
     if (_waitingList.isEmpty()) return;
@@ -328,7 +328,7 @@ ThreadCondition::CVEvent* ThreadCondition::getEventForWaiting()
   if (0 == _recyclingListSize)
   {
     FOG_ASSERT(_recyclingList.isEmpty());
-    cv_event = new CVEvent();
+    cv_event = new(std::nothrow) CVEvent();
     cv_event->initListElement();
     _allocationCounter++;
     FOG_ASSERT(cv_event->handle());

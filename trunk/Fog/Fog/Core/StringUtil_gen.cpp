@@ -20,7 +20,7 @@ err_t atob(const CHAR_TYPE* str, sysuint_t length, bool* dst, sysuint_t* parserE
   const CHAR_TYPE* beg = str;
   const CHAR_TYPE* end = str + length;
 
-  err_t err = Error::InvalidInput;
+  err_t err = InvalidInput;
   uint32_t flags = 0;
   sysuint_t i;
   sysuint_t remain = (sysuint_t)(end - str);
@@ -28,19 +28,19 @@ err_t atob(const CHAR_TYPE* str, sysuint_t length, bool* dst, sysuint_t* parserE
   *dst = false;
 
   while (str != end && CHAR_IS_SPACE(*str)) str++;
-  if (str != beg) flags |= ParsedSpaces;
+  if (str != beg) flags |= PARSED_SPACES;
   if (str == end) goto skip;
 
   for (i = 0; i < FOG_ARRAY_SIZE(boolMap); i++)
   {
     sysuint_t blen = boolMap[i].length;
-    if (remain >= blen && eq(str, boolMap[i].str, blen, CaseInsensitive))
+    if (remain >= blen && eq(str, boolMap[i].str, blen, CASE_INSENSITIVE))
     {
       str += blen;
       if (str != end && CHAR_IS_ALNUM(*str)) { str -= blen; continue; }
 
       *dst = (bool)boolMap[i].result;
-      err = Error::Ok;
+      err = ERR_OK;
       break;
     }
   }
@@ -59,12 +59,12 @@ err_t atoi8(const CHAR_TYPE* str, sysuint_t length, int8_t* dst, int base, sysui
   if (n < INT8_MIN)
   {
     *dst = INT8_MIN;
-    return Error::Overflow;
+    return ERR_RT_OVERFLOW;
   }
   else if (n > INT8_MAX)
   {
     *dst = INT8_MAX;
-    return Error::Overflow;
+    return ERR_RT_OVERFLOW;
   }
   else
   {
@@ -81,7 +81,7 @@ err_t atou8(const CHAR_TYPE* str, sysuint_t length, uint8_t* dst, int base, sysu
   if (n > UINT8_MAX)
   {
     *dst = UINT8_MAX;
-    return Error::Overflow;
+    return ERR_RT_OVERFLOW;
   }
   else
   {
@@ -98,12 +98,12 @@ err_t atoi16(const CHAR_TYPE* str, sysuint_t length, int16_t* dst, int base, sys
   if (n < INT16_MIN)
   {
     *dst = INT16_MIN;
-    return Error::Overflow;
+    return ERR_RT_OVERFLOW;
   }
   else if (n > INT16_MAX)
   {
     *dst = INT16_MAX;
-    return Error::Overflow;
+    return ERR_RT_OVERFLOW;
   }
   else
   {
@@ -120,7 +120,7 @@ err_t atou16(const CHAR_TYPE* str, sysuint_t length, uint16_t* dst, int base, sy
   if (n > UINT16_MAX)
   {
     *dst = UINT16_MAX;
-    return Error::Overflow;
+    return ERR_RT_OVERFLOW;
   }
   else
   {
@@ -137,12 +137,12 @@ err_t atoi32(const CHAR_TYPE* str, sysuint_t length, int32_t* dst, int base, sys
   if (n < INT32_MIN)
   {
     *dst = INT32_MIN;
-    return Error::Overflow;
+    return ERR_RT_OVERFLOW;
   }
   else if (n > INT32_MAX)
   {
     *dst = INT32_MAX;
-    return Error::Overflow;
+    return ERR_RT_OVERFLOW;
   }
   else
   {
@@ -159,7 +159,7 @@ err_t atou32(const CHAR_TYPE* str, sysuint_t length, uint32_t* dst, int base, sy
   if (n > UINT32_MAX)
   {
     *dst = UINT32_MAX;
-    return Error::Overflow;
+    return ERR_RT_OVERFLOW;
   }
   else
   {
@@ -188,19 +188,19 @@ static err_t atou64_priv(const CHAR_TYPE* str, sysuint_t length, uint64_t* dst, 
 #endif // FOG_ARCH_BITS
 
   while (str < end && CHAR_IS_SPACE(*str)) str++;
-  if (str != beg) flags |= ParsedSpaces;
+  if (str != beg) flags |= PARSED_SPACES;
   if (str == end) goto truncated;
 
   if (*str == CHAR_TYPE('+'))
   {
-    flags |= ParsedSign;
+    flags |= PARSED_SIGN;
     str++;
     while (str < end && CHAR_IS_SPACE(*str)) str++;
     if (str == end) goto truncated;
   }
   else if (*str == CHAR_TYPE('-'))
   {
-    flags |= ParsedSign;
+    flags |= PARSED_SIGN;
     *negative = true;
     str++;
     while (str < end && CHAR_IS_SPACE(*str)) str++;
@@ -217,7 +217,7 @@ static err_t atou64_priv(const CHAR_TYPE* str, sysuint_t length, uint64_t* dst, 
       if (str + 1 != end && (str[1] == CHAR_TYPE('x') || str[1] == CHAR_TYPE('X')))
       {
         // hexadecimal
-        flags |= ParsedHexPrefix;
+        flags |= PARSED_HEX_PREFIX;
         base = 16;
 
         str += 2;
@@ -226,13 +226,13 @@ static err_t atou64_priv(const CHAR_TYPE* str, sysuint_t length, uint64_t* dst, 
       else
       {
         // octal
-        flags |= ParsedOctalPrefix;
+        flags |= PARSED_OCTAL_PREFIX;
         base = 8;
 
         if (++str != end && *str >= CHAR_TYPE('0') && *str <= CHAR_TYPE('7'))
         {
           // set this flag only if input is not only "0"
-          flags |= ParsedOctalPrefix;
+          flags |= PARSED_OCTAL_PREFIX;
         }
       }
     }
@@ -442,7 +442,7 @@ done:
   *dst = res64;
   if (parserEnd) *parserEnd = (sysuint_t)(str - beg);
   if (parserFlags) *parserFlags = flags;
-  return Error::Ok;
+  return ERR_OK;
 
 overflow:
 #if CHAR_SIZE == 1
@@ -454,13 +454,13 @@ overflow:
   *dst = UINT64_MAX;
   if (parserEnd) *parserEnd = (sysuint_t)(str - beg);
   if (parserFlags) *parserFlags = flags;
-  return Error::Overflow;
+  return ERR_RT_OVERFLOW;
 
 truncated:
   *dst = 0;
   if (parserEnd) *parserEnd = length;
   if (parserFlags) *parserFlags = flags;
-  return Error::InvalidInput;
+  return InvalidInput;
 }
 
 err_t atoi64(const CHAR_TYPE* str, sysuint_t length, int64_t* dst, int base, sysuint_t* end, uint32_t* parserFlags)
@@ -474,7 +474,7 @@ err_t atoi64(const CHAR_TYPE* str, sysuint_t length, int64_t* dst, int base, sys
     if (n > (uint64_t)INT64_MAX+1U)
     {
       *dst = INT64_MIN;
-      return Error::Overflow;
+      return ERR_RT_OVERFLOW;
     }
     else
     {
@@ -487,7 +487,7 @@ err_t atoi64(const CHAR_TYPE* str, sysuint_t length, int64_t* dst, int base, sys
     if (n > INT64_MAX)
     {
       *dst = INT64_MAX;
-      return Error::Overflow;
+      return ERR_RT_OVERFLOW;
     }
     else
     {
@@ -507,7 +507,7 @@ err_t atou64(const CHAR_TYPE* str, sysuint_t length, uint64_t* dst, int base, sy
   if (negative && n)
   {
     *dst = 0;
-    return Error::Overflow;
+    return ERR_RT_OVERFLOW;
   }
   else
   {
@@ -528,12 +528,12 @@ err_t atof(const CHAR_TYPE* str, sysuint_t length, float* dst, CHAR_TYPE decimal
   if (d > FLOAT_MAX)
   {
     *dst = FLOAT_MAX;
-    return Error::Overflow;
+    return ERR_RT_OVERFLOW;
   }
   else if (d < FLOAT_MIN)
   {
     *dst = FLOAT_MIN;
-    return Error::Overflow;
+    return ERR_RT_OVERFLOW;
   }
   else
   {
@@ -654,7 +654,7 @@ err_t atod(const CHAR_TYPE* str, sysuint_t length, double* dst, CHAR_TYPE decima
   int rounding;
 #endif
 
-  err_t err = Error::Ok;
+  err_t err = ERR_OK;
   uint32_t flags = 0;
 
   BContext_init(&context);
@@ -670,7 +670,7 @@ err_t atod(const CHAR_TYPE* str, sysuint_t length, double* dst, CHAR_TYPE decima
   // skip all spaces
   if (CHAR_IS_SPACE(*s))
   {
-    flags |= ParsedSpaces;
+    flags |= PARSED_SPACES;
 
     do {
       if (++s == send) goto ret0;
@@ -680,13 +680,13 @@ err_t atod(const CHAR_TYPE* str, sysuint_t length, double* dst, CHAR_TYPE decima
   // Parse sign.
   if (*s == CHAR_TYPE('+'))
   {
-    flags |= ParsedSign;
+    flags |= PARSED_SIGN;
     if (++s == send) goto ret0;
   }
   else if (*s == CHAR_TYPE('-'))
   {
     sign = true;
-    flags |= ParsedSign;
+    flags |= PARSED_SIGN;
     if (++s == send) goto ret0;
   }
 
@@ -717,7 +717,7 @@ err_t atod(const CHAR_TYPE* str, sysuint_t length, double* dst, CHAR_TYPE decima
 
   if (CHAR_TYPE(c) == decimalPoint)
   {
-    flags |= ParsedDecimalPoint;
+    flags |= PARSED_DECIMAL_POINT;
 
     if (++s == send) { c = 0; goto dig_done; }
     c = *s;
@@ -775,7 +775,7 @@ dig_done:
   e = 0;
   if (c == 'e' || c == 'E')
   {
-    flags |= ParsedExponent;
+    flags |= PARSED_EXPONENT;
 
     if (!nd && !nz && !nz0)
     {
@@ -843,17 +843,17 @@ exp_done:
 #ifdef INFNAN_CHECK
       // Check for Nan and Infinity.
       if ((c == 'i' || c == 'I') && (sysuint_t)(send - s) >= 2 &&
-        eq(s+1, "nf", 2, CaseInsensitive))
+        eq(s+1, "nf", 2, CASE_INSENSITIVE))
       {
         s += 3;
-        if ((sysuint_t)(send - s) >= 5 && eq(s, "inity", 5, CaseInsensitive)) s += 5;
+        if ((sysuint_t)(send - s) >= 5 && eq(s, "inity", 5, CASE_INSENSITIVE)) s += 5;
         
         rv.i[DTOA_DWORD_0] = 0x7FF00000;
         rv.i[DTOA_DWORD_1] = 0;
         goto ret;
       }
       else if ((c == 'n' || c == 'N') && (sysuint_t)(send - s) >= 2 &&
-        eq(s+1, "an", 2, CaseInsensitive))
+        eq(s+1, "an", 2, CASE_INSENSITIVE))
       {
         s += 3;
         rv.i[DTOA_DWORD_0] = NAN_WORD0;
@@ -991,7 +991,7 @@ vax_ovfl_check:
       if (e1 > DBL_MAX_10_EXP)
       {
 ovfl:
-        err = Error::Overflow;
+        err = ERR_RT_OVERFLOW;
 
         // Can't trust HUGE_VAL.
 #ifdef IEEE_Arith
@@ -1085,7 +1085,7 @@ ovfl:
         {
 undfl:
           rv.d = 0.0;
-          err = Error::Overflow;
+          err = ERR_RT_OVERFLOW;
 
           if (bd0) goto retfree;
           goto ret;
@@ -1582,7 +1582,7 @@ cont:
     rv.d *= rv0.d;
 
     // try to avoid the bug of testing an 8087 register value.
-    if (rv.i[DTOA_DWORD_0] == 0 && rv.i[DTOA_DWORD_1] == 0) err = Error::Overflow;
+    if (rv.i[DTOA_DWORD_0] == 0 && rv.i[DTOA_DWORD_1] == 0) err = ERR_RT_OVERFLOW;
   }
 #endif // Avoid_Underflow
 #ifdef SET_INEXACT

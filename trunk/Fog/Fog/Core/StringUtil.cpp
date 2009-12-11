@@ -6,7 +6,7 @@
 #include <Fog/Core/Byte.h>
 #include <Fog/Core/Char.h>
 #include <Fog/Core/CharUtil.h>
-#include <Fog/Core/Error.h>
+#include <Fog/Core/Constants.h>
 #include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Std.h>
@@ -15,6 +15,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <setjmp.h>
 
 #if defined(FOG_HAVE_FLOAT_H)
 #include <float.h>
@@ -33,7 +34,7 @@ namespace StringUtil {
 
 err_t validateUtf8(const char* str, sysuint_t len, sysuint_t* invalidPos)
 {
-  err_t err = Error::Ok;
+  err_t err = ERR_OK;
   const uint8_t* strCur = reinterpret_cast<const uint8_t*>(str);
   sysuint_t remain = len;
 
@@ -42,8 +43,8 @@ err_t validateUtf8(const char* str, sysuint_t len, sysuint_t* invalidPos)
     uint8_t c0 = strCur[0];
 
     sysuint_t clen = utf8LengthTable[c0];
-    if (!clen) { err = Error::InvalidUtf8Sequence; break; }
-    if (remain < clen) { err = Error::InputTruncated; break; }
+    if (!clen) { err = ERR_TEXT_INVALID_UTF8_SEQ; break; }
+    if (remain < clen) { err = ERR_TEXT_INPUT_TRUNCATED; break; }
 
     strCur += clen;
     remain -= clen;
@@ -55,7 +56,7 @@ err_t validateUtf8(const char* str, sysuint_t len, sysuint_t* invalidPos)
 
 err_t validateUtf16(const Char* str, sysuint_t len, sysuint_t* invalidPos)
 {
-  err_t err = Error::Ok;
+  err_t err = ERR_OK;
 
   const Char* srcCur = str;
   const Char* srcEnd = srcCur + len;
@@ -63,18 +64,18 @@ err_t validateUtf16(const Char* str, sysuint_t len, sysuint_t* invalidPos)
 
   for (;;)
   {
-    if (srcCur == srcEnd) return Error::Ok;
+    if (srcCur == srcEnd) return ERR_OK;
     uc = *srcCur++;
 
     if (Char::isLeadSurrogate(uc))
     {
-      if (srcCur == srcEnd) { err = Error::InputTruncated; break; }
+      if (srcCur == srcEnd) { err = ERR_TEXT_INPUT_TRUNCATED; break; }
       uc = *srcCur++;
-      if (!Char::isTrailSurrogate(uc)) { err = Error::InvalidUtf16Sequence; break; }
+      if (!Char::isTrailSurrogate(uc)) { err = ERR_TEXT_INVALID_UTF16_SEQ; break; }
     }
     else
     {
-      if (uc >= 0xFFFE) { err = Error::InvalidUnicodeCharacter; break; }
+      if (uc >= 0xFFFE) { err = ERR_TEXT_INVALID_CHAR; break; }
     }
   }
 
@@ -85,7 +86,7 @@ err_t validateUtf16(const Char* str, sysuint_t len, sysuint_t* invalidPos)
 FOG_API err_t getNumUtf8Chars(const char* str, sysuint_t len, sysuint_t* charsCount)
 {
   sysuint_t num = 0;
-  err_t err = Error::Ok;
+  err_t err = ERR_OK;
 
   const uint8_t* strCur = reinterpret_cast<const uint8_t*>(str);
   sysuint_t remain = len;
@@ -95,8 +96,8 @@ FOG_API err_t getNumUtf8Chars(const char* str, sysuint_t len, sysuint_t* charsCo
     uint8_t c0 = strCur[0];
 
     sysuint_t clen = utf8LengthTable[c0];
-    if (!clen) { err = Error::InvalidUtf8Sequence; break; }
-    if (remain < clen) { err = Error::InputTruncated; break; }
+    if (!clen) { err = ERR_TEXT_INVALID_UTF8_SEQ; break; }
+    if (remain < clen) { err = ERR_TEXT_INPUT_TRUNCATED; break; }
 
     strCur += clen;
     remain -= clen;
@@ -110,7 +111,7 @@ FOG_API err_t getNumUtf8Chars(const char* str, sysuint_t len, sysuint_t* charsCo
 FOG_API err_t getNumUtf16Chars(const Char* str, sysuint_t len, sysuint_t* charsCount)
 {
   sysuint_t num = 0;
-  err_t err = Error::Ok;
+  err_t err = ERR_OK;
 
   const Char* srcCur = str;
   const Char* srcEnd = srcCur + len;
@@ -123,13 +124,13 @@ FOG_API err_t getNumUtf16Chars(const Char* str, sysuint_t len, sysuint_t* charsC
 
     if (Char::isLeadSurrogate(uc))
     {
-      if (srcCur == srcEnd) { err = Error::InputTruncated; break; }
+      if (srcCur == srcEnd) { err = ERR_TEXT_INPUT_TRUNCATED; break; }
       uc = *srcCur++;
-      if (!Char::isTrailSurrogate(uc)) { err = Error::InvalidUtf16Sequence; break; }
+      if (!Char::isTrailSurrogate(uc)) { err = ERR_TEXT_INVALID_UTF16_SEQ; break; }
     }
     else
     {
-      if (uc >= 0xFFFE) { err = Error::InvalidUnicodeCharacter; break; }
+      if (uc >= 0xFFFE) { err = ERR_TEXT_INVALID_CHAR; break; }
     }
     num++;
   }
@@ -233,7 +234,7 @@ bool eq(const char* a, const char* b, sysuint_t length, uint cs)
 {
   sysuint_t i;
 
-  if (cs == CaseSensitive)
+  if (cs == CASE_SENSITIVE)
   {
     for (i = 0; i < length; i++)
     {
@@ -254,7 +255,7 @@ bool eq(const Char* a, const Char* b, sysuint_t length, uint cs)
 {
   sysuint_t i;
 
-  if (cs == CaseSensitive)
+  if (cs == CASE_SENSITIVE)
   {
     for (i = 0; i < length; i++)
     {
@@ -274,7 +275,7 @@ bool eq(const Char* a, const Char* b, sysuint_t length, uint cs)
 bool eq(const Char* a, const char* b, sysuint_t length, uint cs)
 {
   sysuint_t i;
-  if (cs == CaseSensitive)
+  if (cs == CASE_SENSITIVE)
   {
     for (i = 0; i < length; i++)
     {
@@ -296,7 +297,7 @@ sysuint_t countOf(const char* str, sysuint_t length, char ch, uint cs)
   sysuint_t n = 0;
   sysuint_t i;
 
-  if (cs == CaseSensitive)
+  if (cs == CASE_SENSITIVE)
   {
 caseSensitiveLoop:
     for (i = 0; i < length; i++)
@@ -324,7 +325,7 @@ sysuint_t countOf(const Char* str, sysuint_t length, Char ch, uint cs)
   sysuint_t n = 0;
   sysuint_t i;
 
-  if (cs == CaseSensitive)
+  if (cs == CASE_SENSITIVE)
   {
 caseSensitiveLoop:
     for (i = 0; i < length; i++)
@@ -351,7 +352,7 @@ sysuint_t indexOf(const char* str, sysuint_t length, char ch, uint cs)
 {
   sysuint_t i;
 
-  if (cs == CaseSensitive)
+  if (cs == CASE_SENSITIVE)
   {
 caseSensitiveLoop:
     for (i = 0; i < length; i++)
@@ -371,14 +372,14 @@ caseSensitiveLoop:
     }
   }
 
-  return InvalidIndex;
+  return INVALID_INDEX;
 }
 
 sysuint_t indexOf(const Char* str, sysuint_t length, Char ch, uint cs)
 {
   sysuint_t i;
 
-  if (cs == CaseSensitive)
+  if (cs == CASE_SENSITIVE)
   {
 caseSensitiveLoop:
     for (i = 0; i < length; i++)
@@ -398,12 +399,12 @@ caseSensitiveLoop:
     }
   }
 
-  return InvalidIndex;
+  return INVALID_INDEX;
 }
 
 sysuint_t indexOf(const char* aStr, sysuint_t aLength, const char* bStr, sysuint_t bLength, uint cs)
 {
-  if (bLength > aLength) return InvalidIndex;
+  if (bLength > aLength) return INVALID_INDEX;
 
   const char* aOrig = aStr;
   const char* aEnd = aStr + aLength - bLength + 1;
@@ -413,7 +414,7 @@ sysuint_t indexOf(const char* aStr, sysuint_t aLength, const char* bStr, sysuint
 
   char c = *bStr++;
 
-  if (cs == CaseSensitive)
+  if (cs == CASE_SENSITIVE)
   {
     while (aStr != aEnd)
     {
@@ -452,12 +453,12 @@ sysuint_t indexOf(const char* aStr, sysuint_t aLength, const char* bStr, sysuint
     }
   }
 
-  return InvalidIndex;
+  return INVALID_INDEX;
 }
 
 sysuint_t indexOf(const Char* aStr, sysuint_t aLength, const Char* bStr, sysuint_t bLength, uint cs)
 {
-  if (bLength > aLength) return InvalidIndex;
+  if (bLength > aLength) return INVALID_INDEX;
 
   const Char* aOrig = aStr;
   const Char* aEnd = aStr + aLength - bLength + 1;
@@ -467,7 +468,7 @@ sysuint_t indexOf(const Char* aStr, sysuint_t aLength, const Char* bStr, sysuint
 
   Char c(*bStr++);
 
-  if (cs == CaseSensitive)
+  if (cs == CASE_SENSITIVE)
   {
     while (aStr != aEnd)
     {
@@ -506,20 +507,20 @@ sysuint_t indexOf(const Char* aStr, sysuint_t aLength, const Char* bStr, sysuint
     }
   }
 
-  return InvalidIndex;
+  return INVALID_INDEX;
 }
 
 sysuint_t indexOfAny(const char* str, sysuint_t length, const char* ch, sysuint_t count, uint cs)
 {
-  if (count == DetectLength) count = len(ch);
+  if (count == DETECT_LENGTH) count = len(ch);
   if (count == 0)
-    return InvalidIndex;
+    return INVALID_INDEX;
   else if (count == 1)
     return indexOf(str, length, ch[0], cs);
 
   sysuint_t i, j;
 
-  if (cs == CaseSensitive)
+  if (cs == CASE_SENSITIVE)
   {
     for (i = 0; i < length; i++)
     {
@@ -543,20 +544,20 @@ sysuint_t indexOfAny(const char* str, sysuint_t length, const char* ch, sysuint_
     }
   }
 
-  return InvalidIndex;
+  return INVALID_INDEX;
 }
 
 sysuint_t indexOfAny(const Char* str, sysuint_t length, const Char* ch, sysuint_t count, uint cs)
 {
-  if (count == DetectLength) count = len(ch);
+  if (count == DETECT_LENGTH) count = len(ch);
   if (count == 0)
-    return InvalidIndex;
+    return INVALID_INDEX;
   else if (count == 1)
     return indexOf(str, length, ch[0], cs);
 
   sysuint_t i, j;
 
-  if (cs == CaseSensitive)
+  if (cs == CASE_SENSITIVE)
   {
     for (i = 0; i < length; i++)
     {
@@ -580,14 +581,14 @@ sysuint_t indexOfAny(const Char* str, sysuint_t length, const Char* ch, sysuint_
     }
   }
 
-  return InvalidIndex;
+  return INVALID_INDEX;
 }
 
 sysuint_t lastIndexOf(const char* str, sysuint_t length, char ch, uint cs)
 {
   sysuint_t i;
 
-  if (cs == CaseSensitive)
+  if (cs == CASE_SENSITIVE)
   {
 caseSensitiveLoop:
     for (i = length - 1; i < (sysuint_t)-1; i--)
@@ -607,14 +608,14 @@ caseSensitiveLoop:
     }
   }
 
-  return InvalidIndex;
+  return INVALID_INDEX;
 }
 
 sysuint_t lastIndexOf(const Char* str, sysuint_t length, Char ch, uint cs)
 {
   sysuint_t i;
 
-  if (cs == CaseSensitive)
+  if (cs == CASE_SENSITIVE)
   {
 caseSensitiveLoop:
     for (i = length - 1; i < (sysuint_t)-1; i--)
@@ -634,20 +635,20 @@ caseSensitiveLoop:
     }
   }
 
-  return InvalidIndex;
+  return INVALID_INDEX;
 }
 
 sysuint_t lastIndexOfAny(const char* str, sysuint_t length, const char* ch, sysuint_t count, uint cs)
 {
-  if (count == DetectLength) count = len(ch);
+  if (count == DETECT_LENGTH) count = len(ch);
   if (count == 0)
-    return InvalidIndex;
+    return INVALID_INDEX;
   else if (count == 1)
     return lastIndexOf(str, length, ch[0], cs);
 
   sysuint_t i, j;
 
-  if (cs == CaseSensitive)
+  if (cs == CASE_SENSITIVE)
   {
     for (i = length - 1; i != (sysuint_t)-1; i--)
     {
@@ -671,20 +672,20 @@ sysuint_t lastIndexOfAny(const char* str, sysuint_t length, const char* ch, sysu
     }
   }
 
-  return InvalidIndex;
+  return INVALID_INDEX;
 }
 
 sysuint_t lastIndexOfAny(const Char* str, sysuint_t length, const Char* ch, sysuint_t count, uint cs)
 {
-  if (count == DetectLength) count = len(ch);
+  if (count == DETECT_LENGTH) count = len(ch);
   if (count == 0)
-    return InvalidIndex;
+    return INVALID_INDEX;
   else if (count == 1)
     return lastIndexOf(str, length, ch[0], cs);
 
   sysuint_t i, j;
 
-  if (cs == CaseSensitive)
+  if (cs == CASE_SENSITIVE)
   {
     for (i = length - 1; i != (sysuint_t)-1; i--)
     {
@@ -708,7 +709,7 @@ sysuint_t lastIndexOfAny(const Char* str, sysuint_t length, const Char* ch, sysu
     }
   }
 
-  return InvalidIndex;
+  return INVALID_INDEX;
 }
 
 // ============================================================================
@@ -1342,7 +1343,14 @@ struct BContext
   char* memoryNext;
   uint remain;
   uint dynamic;
-  char memory[5124*sizeof(double)];
+
+  // Where to escape if allocation failed.
+  jmp_buf escape;
+
+  // This memory was 5124 bytes * sizeof(double). It's 40kB of memory and I
+  // think it's much more actually needed. Decreased to 1kB.
+  // - Petr.
+  char memory[1024];
 };
 
 static void BContext_init(BContext* context)
@@ -1361,7 +1369,7 @@ static void BContext_init(BContext* context)
 
 static void BContext_destroy(BContext* context)
 {
-  // only free if there are dynamic block(s)
+  // Only free if there are dynamic block(s).
   if (context->dynamic)
   {
     BInt* bi;
@@ -1404,7 +1412,8 @@ static BInt* BContext_balloc(BContext* context, int k)
     }
     else
     {
-      rv = (BInt*)Memory::xalloc(len);
+      rv = (BInt*)Memory::alloc(len);
+      if (!rv) longjmp(context->escape, 1);
       context->dynamic += len;
     }
     rv->k = k;
@@ -1596,7 +1605,7 @@ static BInt* BContext_mult(BContext* context, BInt* a, BInt* b)
   wc = wa + wb;
   if (wc > a->maxwds) k++;
   c = BContext_balloc(context, k);
-  for(x = c->x, xa = x + wc; x < xa; x++) *x = 0;
+  for (x = c->x, xa = x + wc; x < xa; x++) *x = 0;
   xa = a->x;
   xae = xa + wa;
   xb = b->x;
@@ -2511,6 +2520,17 @@ void dtoa(double _d, int mode, int ndigits, NTOAOut* out)
   }
 
   BContext_init(&context);
+  if (setjmp(context.escape))
+  {
+    out->result = out->buffer;
+    out->result[0] = '0';
+    out->result[1] = '\0';
+    out->length = 1;
+    out->decpt = 1;
+
+    BContext_destroy(&context);
+    return;
+  }
 
 #ifdef SET_INEXACT
   try_quick = oldinexact = get_inexact();
@@ -2956,6 +2976,7 @@ bump_up:
       ilim = ilim1;
     }
   }
+
   if (ilim <= 0 && (mode == 3 || mode == 5))
   {
     if (ilim < 0 || cmp(b,S = BContext_multadd(&context, S, 5, 0)) <= 0)
@@ -2970,6 +2991,7 @@ one_digit:
     k++;
     goto ret;
   }
+
   if (leftright)
   {
     if (m2 > 0) mhi = BContext_lshift(&context, mhi, m2);

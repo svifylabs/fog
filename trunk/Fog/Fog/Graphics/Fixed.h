@@ -29,8 +29,8 @@ struct Fixed16x16
 {
   // [Important constants]
 
-  enum { Bits = 16 };
-  enum { One = 1 << Bits };
+  enum { BITS = 16 };
+  enum { ONE = 1 << BITS };
 
   // [Constructors / From methods]
 
@@ -42,7 +42,7 @@ struct Fixed16x16
   {}
 
   static FOG_INLINE Fixed16x16 fromInt(int val)
-  { return Fixed16x16( val << Bits ); }
+  { return Fixed16x16( val << BITS ); }
 
   static FOG_INLINE Fixed16x16 fromFixed(int val)
   { return Fixed16x16( val ); }
@@ -51,23 +51,23 @@ struct Fixed16x16
   { return Fixed16x16( val._fixed ); }
 
   static FOG_INLINE Fixed16x16 fromFloat(float val)
-  { return Fixed16x16( (int)(val * (float)One + (val < 0 ? -0.5 : 0.5)) ); }
+  { return Fixed16x16( (int)(val * (float)ONE + (val < 0 ? -0.5 : 0.5)) ); }
 
   static FOG_INLINE Fixed16x16 fromDouble(double val)
-  { return Fixed16x16( (int)(val * (double)One + (val < 0 ? -0.5 : 0.5)) ); }
+  { return Fixed16x16( (int)(val * (double)ONE + (val < 0 ? -0.5 : 0.5)) ); }
 
   // [To methods]
   FOG_INLINE int toInt() const
-  { return _fixed >> Bits; }
+  { return _fixed >> BITS; }
 
   FOG_INLINE int toIntRound() const
-  { return (_fixed + (One >> 1)) >> Bits; }
+  { return (_fixed + (ONE >> 1)) >> BITS; }
 
   FOG_INLINE float toFloat() const
-  { return (float)_fixed / (float)One; }
+  { return (float)_fixed / (float)ONE; }
 
   FOG_INLINE double toDouble() const
-  { return (double)_fixed / (double)One; }
+  { return (double)_fixed / (double)ONE; }
 
   // [Value]
 
@@ -75,18 +75,18 @@ struct Fixed16x16
   { return _fixed; }
 
   FOG_INLINE int32_t fraction() const
-  { return _fixed & (One - 1); }
+  { return _fixed & (ONE - 1); }
 
   // [Basic operations]
 
   FOG_INLINE Fixed16x16& add(int a)
-  { _fixed += (a << Bits); return *this; }
+  { _fixed += (a << BITS); return *this; }
 
   FOG_INLINE Fixed16x16& add(Fixed16x16 a)
   { _fixed += a._fixed; return *this; }
 
   FOG_INLINE Fixed16x16& sub(int a)
-  { _fixed -= (a << Bits); return *this; }
+  { _fixed -= (a << BITS); return *this; }
 
   FOG_INLINE Fixed16x16& sub(Fixed16x16 a)
   { _fixed -= a._fixed; return *this; }
@@ -127,13 +127,13 @@ struct Fixed16x16
   { return div(a); }
 
   FOG_INLINE Fixed16x16 operator+(int a)
-  { return Fixed16x16( _fixed + (a << Bits) ); }
+  { return Fixed16x16( _fixed + (a << BITS) ); }
 
   FOG_INLINE Fixed16x16 operator+(Fixed16x16 a)
   { return Fixed16x16( _fixed + a._fixed ); }
 
   FOG_INLINE Fixed16x16 operator-(int a)
-  { return Fixed16x16( _fixed - (a << Bits) ); }
+  { return Fixed16x16( _fixed - (a << BITS) ); }
 
   FOG_INLINE Fixed16x16 operator-(Fixed16x16 a)
   { return Fixed16x16( _fixed - a._fixed ); }

@@ -31,7 +31,7 @@ namespace Fog {
 //! To start painting to an image or raw memory buffer use @c Painter constructor
 //! or call @c begin() method with your raw buffer or @c Image instance. After 
 //! you called @c begin() method that succeeded (check if return value is 
-//! @c Fog::Error::Ok) you can start painting. If you no longer need painter
+//! @c Fog::ERR_OK) you can start painting. If you no longer need painter
 //! instance delete it (by @c delete operator or static destructor) or call
 //! @c end() method.
 //!
@@ -62,27 +62,6 @@ namespace Fog {
 //! TODO
 struct FOG_API Painter 
 {
-  // [Hints]
-
-  //! @brief Hints that can be set during painter initialization.
-  //!
-  //! Currently this is mainly useable to turn multithreading off.
-  enum Hints
-  {
-    //! @brief Do not use multithreading.
-    HintNoMultithreading = (1 << 31)
-  };
-
-  // [Mode]
-
-  enum Mode
-  {
-    ModeNull = -1,
-
-    ModeSinglethreaded = 0,
-    ModeMultithreaded = 1
-  };
-
   // [Construction / Destruction]
 
   //! @brief Create null painter instance.
@@ -167,37 +146,49 @@ struct FOG_API Painter
 
   //! @brief Set compositing operator.
   //!
-  //! See @c CompositeOp enumeration for operators and their descriptions.
+  //! See @c COMPOSITE_OP enumeration for operators and their descriptions.
   FOG_INLINE void setOperator(uint32_t op) { _engine->setOperator(op); }
   //! @brief Get compositing operator.
   //!
-  //! See @c CompositeOp enumeration for operators and their descriptions.
+  //! See @c COMPOSITE_OP enumeration for operators and their descriptions.
   FOG_INLINE uint32_t getOperator() const { return _engine->getOperator(); }
 
   // [Source]
 
   //! @brief Set source as solid @a rgba color.
-  FOG_INLINE void setSource(const Rgba& rgba) { _engine->setSource(rgba); }
+  FOG_INLINE void setSource(Argb argb) { _engine->setSource(argb); }
   //! @brief Set source as pattern @a pattern.
   FOG_INLINE void setSource(const Pattern& pattern) { _engine->setSource(pattern); }
+  //! @brief Set source as color filter @a colorFilter.
+  FOG_INLINE void setSource(const ColorFilter& colorFilter) { _engine->setSource(colorFilter); }
 
-  //! @brief Get source color as @c Rgba instance.
+  //! @brief Get source type, see @c PAINTER_SOURCE_TYPE.
+  FOG_INLINE int getSourceType() const { return _engine->getSourceType(); }
+
+  //! @brief Get source color as @c Argb instance.
   //!
-  //! If current source isn't solid color, the @c Rgba(0x00000000) color is
+  //! If current source isn't solid color, the @c Argb(0x00000000) color is
   //! returned.
-  FOG_INLINE Rgba sourceRgba() const { return _engine->sourceRgba(); }
+  FOG_INLINE Argb getSourceAsArgb() const { return _engine->getSourceAsArgb(); }
   //! @brief Get source pattern.
   //!
-  //! If source color was set through @c setSource(const Rgba& rgba) method,
+  //! If source color was set through @c setSource(Argb argb) method,
   //! pattern is auto-created.
-  FOG_INLINE Pattern sourcePattern() const { return _engine->sourcePattern(); }
+  FOG_INLINE Pattern getSourceAsPattern() const { return _engine->getSourceAsPattern(); }
 
-  // [Parameters]
+  // [Fill Parameters]
+
+  //! @brief Set fill mode, see @c FillMode enumeration.
+  FOG_INLINE void setFillMode(uint32_t mode) { _engine->setFillMode(mode); }
+  //! @brief Get fill mode, see @c FillMode enumeration.
+  FOG_INLINE uint32_t getFillMode() const { return _engine->getFillMode(); }
+
+  // [Stroke Parameters]
 
   //! @brief Set line parameters.
-  FOG_INLINE void setLineParams(const LineParams& params) { _engine->setLineParams(params); }
+  FOG_INLINE void setStrokeParams(const StrokeParams& strokeParams) { _engine->setStrokeParams(strokeParams); }
   //! @brief Get line parameters.
-  FOG_INLINE void getLineParams(LineParams& params) const { return _engine->getLineParams(params); }
+  FOG_INLINE void getStrokeParams(StrokeParams& strokeParams) const { return _engine->getStrokeParams(strokeParams); }
 
   //! @brief Set line width.
   //!
@@ -217,11 +208,11 @@ struct FOG_API Painter
   FOG_INLINE uint32_t getLineJoin() const { return _engine->getLineJoin(); }
 
   //! @brief Set line dash.
-  FOG_INLINE void setDashes(const Vector<double>& dashes) { _engine->setDashes(dashes); }
+  FOG_INLINE void setDashes(const List<double>& dashes) { _engine->setDashes(dashes); }
   //! @overload.
   FOG_INLINE void setDashes(const double* dashes, sysuint_t count) { _engine->setDashes(dashes, count); }
   //! @brief Set line dash.
-  FOG_INLINE Vector<double> getDashes() const { return _engine->getDashes(); }
+  FOG_INLINE List<double> getDashes() const { return _engine->getDashes(); }
 
   //! @brief Set line dash offset.
   FOG_INLINE void setDashOffset(double offset) { _engine->setDashOffset(offset); }
@@ -232,11 +223,6 @@ struct FOG_API Painter
   FOG_INLINE void setMiterLimit(double miterLimit) { _engine->setMiterLimit(miterLimit); }
   //! @brief Get line miter limit.
   FOG_INLINE double getMiterLimit() const { return _engine->getMiterLimit(); }
-
-  //! @brief Set fill mode, see @c FillMode enumeration.
-  FOG_INLINE void setFillMode(uint32_t mode) { _engine->setFillMode(mode); }
-  //! @brief Get fill mode, see @c FillMode enumeration.
-  FOG_INLINE uint32_t getFillMode() { return _engine->getFillMode(); }
 
   // [Transformations]
 
@@ -313,22 +299,18 @@ struct FOG_API Painter
 
   // [Glyph / Text Drawing]
 
-  FOG_INLINE void drawGlyph(
-    const Point& pt, const Glyph& glyph, const Rect* clip = 0)
+  FOG_INLINE void drawGlyph(const Point& pt, const Glyph& glyph, const Rect* clip = 0)
   { _engine->drawGlyph(pt, glyph, clip); }
 
-  FOG_INLINE void drawGlyphSet(
-    const Point& pt, const GlyphSet& glyphSet, const Rect* clip = 0)
+  FOG_INLINE void drawGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip = 0)
   { _engine->drawGlyphSet(pt, glyphSet, clip); }
 
   // [Text drawing]
 
-  FOG_INLINE void drawText(
-    const Point& p, const String& text, const Font& font, const Rect* clip = NULL)
+  FOG_INLINE void drawText(const Point& p, const String& text, const Font& font, const Rect* clip = NULL)
   { _engine->drawText(p, text, font, clip); }
 
-  FOG_INLINE void drawText(
-    const Rect& r, const String& text, const Font& font, uint32_t align, const Rect* clip = NULL)
+  FOG_INLINE void drawText(const Rect& r, const String& text, const Font& font, uint32_t align, const Rect* clip = NULL)
   { _engine->drawText(r, text, font, align, clip); }
 
   // [Image Drawing]
@@ -336,10 +318,13 @@ struct FOG_API Painter
   FOG_INLINE void drawImage(const Point& p, const Image& image, const Rect* irect = 0)
   { _engine->drawImage(p, image, irect); }
 
+  FOG_INLINE void drawImage(const PointD& p, const Image& image, const Rect* irect = 0)
+  { _engine->drawImage(p, image, irect); }
+
   // [Multithreading]
 
-  FOG_INLINE void setEngineMode(int mode, int cores = 0) { _engine->setEngineMode(mode, cores); }
-  FOG_INLINE int getEngineMode() const { return _engine->getEngineMode(); }
+  FOG_INLINE void setEngine(int mode, int cores = 0) { _engine->setEngine(mode, cores); }
+  FOG_INLINE int getEngine() const { return _engine->getEngine(); }
 
   FOG_INLINE void flush() { _engine->flush(); }
 

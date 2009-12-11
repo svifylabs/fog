@@ -28,8 +28,8 @@ static void buildTable(StringMatcher::SkipTable* skipTable, const Char* ps, sysu
   FOG_ASSERT(plen >= UINT_MAX);
 
   if (skipTable->status.cmpXchg(
-    StringMatcher::SkipTable::Uninitialized,
-    StringMatcher::SkipTable::Initializing))
+    StringMatcher::SkipTable::STATUS_NOT_INITIALIZED,
+    StringMatcher::SkipTable::STATUS_INITIALIZING_NOW))
   {
     // Init skip table.
     sysuint_t a = 32; // 256 / 8
@@ -45,7 +45,7 @@ static void buildTable(StringMatcher::SkipTable* skipTable, const Char* ps, sysu
 
     data = skipTable->data;
 
-    if (cs == CaseSensitive)
+    if (cs == CASE_SENSITIVE)
     {
       while (i--)
       {
@@ -59,18 +59,18 @@ static void buildTable(StringMatcher::SkipTable* skipTable, const Char* ps, sysu
         data[ps->toLower().ch() & 0xFF] = (uint)i; ps++;
       }
     }
-    skipTable->status.set(StringMatcher::SkipTable::Initialized);
+    skipTable->status.set(StringMatcher::SkipTable::STATUS_INITIALIZED);
     return;
   }
 
   // Wait...another thread creating the table...
-  while (skipTable->status.get() != StringMatcher::SkipTable::Initialized) Thread::_yield();
+  while (skipTable->status.get() != StringMatcher::SkipTable::STATUS_INITIALIZED) Thread::_yield();
 }
 
 StringMatcher::StringMatcher()
 {
-  _skipTable[CaseInsensitive].status.init(SkipTable::Uninitialized);
-  _skipTable[CaseSensitive  ].status.init(SkipTable::Uninitialized);
+  _skipTable[CASE_INSENSITIVE].status.init(SkipTable::STATUS_NOT_INITIALIZED);
+  _skipTable[CASE_SENSITIVE  ].status.init(SkipTable::STATUS_NOT_INITIALIZED);
 }
 
 StringMatcher::StringMatcher(const String& pattern)
@@ -93,10 +93,10 @@ err_t StringMatcher::setPattern(const String& pattern)
   if ( (err = _pattern.set(pattern)) ) return err;
 
   // Mark tables as uninitialized.
-  _skipTable[CaseInsensitive].status.set(SkipTable::Uninitialized);
-  _skipTable[CaseSensitive  ].status.set(SkipTable::Uninitialized);
+  _skipTable[CASE_INSENSITIVE].status.set(SkipTable::STATUS_NOT_INITIALIZED);
+  _skipTable[CASE_SENSITIVE  ].status.set(SkipTable::STATUS_NOT_INITIALIZED);
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t StringMatcher::setPattern(const StringMatcher& matcher)
@@ -110,44 +110,44 @@ err_t StringMatcher::setPattern(const StringMatcher& matcher)
   // Copy skip tables if they are initialized.
   for (sysuint_t i = 0; i != 2; i++)
   {
-    if (srcSkipTable[i].status.get() == SkipTable::Initialized)
+    if (srcSkipTable[i].status.get() == SkipTable::STATUS_INITIALIZED)
     {
-      dstSkipTable[i].status.set(SkipTable::Initialized);
+      dstSkipTable[i].status.set(SkipTable::STATUS_INITIALIZED);
       memcpy(&dstSkipTable[i].data, &srcSkipTable[i].data, sizeof(uint) * 256);
     }
     else
-      dstSkipTable[i].status.set(SkipTable::Uninitialized);
+      dstSkipTable[i].status.set(SkipTable::STATUS_NOT_INITIALIZED);
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 Range StringMatcher::match(const Char* str, sysuint_t length, uint cs, const Range& range) const
 {
-  FOG_ASSERT(length != DetectLength);
+  FOG_ASSERT(length != DETECT_LENGTH);
   FOG_ASSERT(range.index <= length);
   FOG_ASSERT(length - range.index >= range.length);
 
   sysuint_t patternLength = _pattern.getLength();
 
   // simple reject
-  if (patternLength == 0 || patternLength > length) return InvalidIndex;
+  if (patternLength == 0 || patternLength > length) return INVALID_INDEX;
 
   // we want 0 or 1
   cs = !!cs;
 
   const Char* strCur = str + range.index;
-  const Char* patternStr = _pattern.cData();
+  const Char* patternStr = _pattern.getData();
 
   // Simple 'Char' search.
   if (patternLength == 1)
   {
     sysuint_t i = StringUtil::indexOf(strCur, range.length, patternStr[0], cs);
-    if (i != InvalidIndex) i += range.index;
+    if (i != INVALID_INDEX) i += range.index;
     return i;
   }
 
-  if (_skipTable[cs].status.get() != StringMatcher::SkipTable::Initialized)
+  if (_skipTable[cs].status.get() != StringMatcher::SkipTable::STATUS_INITIALIZED)
   {
     buildTable(const_cast<SkipTable*>(&_skipTable[cs]), patternStr, patternLength, cs);
   }
@@ -161,7 +161,7 @@ Range StringMatcher::match(const Char* str, sysuint_t length, uint cs, const Ran
   strCur     += patternLength - 1;
   remain     -= patternLength - 1;
 
-  if (cs == CaseSensitive)
+  if (cs == CASE_SENSITIVE)
   {
     for (;;)
     {
@@ -220,7 +220,7 @@ Range StringMatcher::match(const Char* str, sysuint_t length, uint cs, const Ran
     }
   }
 
-  return Range(InvalidIndex);
+  return Range(INVALID_INDEX);
 }
 
 sysuint_t StringMatcher::getLength() const

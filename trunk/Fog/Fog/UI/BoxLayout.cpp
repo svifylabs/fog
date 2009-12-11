@@ -33,7 +33,7 @@ void BoxLayout::reparentChildren()
   Widget* parent = getParentWidget();
   if (!parent) return;
 
-  Vector<LayoutItem*>::ConstIterator it(_items);
+  List<LayoutItem*>::ConstIterator it(_items);
   for (it.toStart(); it.isValid(); it.toNext())
   {
     Widget* w = fog_object_cast<Widget*>(it.value());
@@ -50,6 +50,7 @@ sysint_t BoxLayout::indexOf(LayoutItem* item)
 
 bool BoxLayout::addItem(LayoutItem* item)
 {
+  // TODO: What about adding single item multiple times?
   _items.append(item);
 
   invalidateLayout();
@@ -58,7 +59,8 @@ bool BoxLayout::addItem(LayoutItem* item)
 
 bool BoxLayout::addItemAt(sysint_t index, LayoutItem* item)
 {
-  if (_items.getLength() > (sysuint_t)index) return false;
+  // TODO: Is this correct?
+  if ((sysuint_t)index > _items.getLength()) return false;
   _items.insert(index, item);
 
   invalidateLayout();
@@ -67,8 +69,8 @@ bool BoxLayout::addItemAt(sysint_t index, LayoutItem* item)
 
 LayoutItem* BoxLayout::takeAt(sysint_t index)
 {
-  if (_items.getLength() >= (sysuint_t)index) return NULL;
-  LayoutItem* item = _items.takeAt((sysuint_t)index);
+  if ((sysuint_t)index >= _items.getLength()) return NULL;
+  LayoutItem* item = _items.take((sysuint_t)index);
 
   invalidateLayout();
   return item;
@@ -84,11 +86,11 @@ bool BoxLayout::deleteItemAt(sysint_t index)
   LayoutItem* item = takeAt(index);
   if (!item) return false;
 
-  if (item->isDynamic()) delete item;
+  item->destroy();
   return true;
 }
 
-Vector<LayoutItem*> BoxLayout::items() const
+List<LayoutItem*> BoxLayout::items() const
 {
   return _items;
 }

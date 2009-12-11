@@ -9,8 +9,8 @@
 #endif // FOG_PRECOMP
 
 // [Dependencies]
+#include <Fog/Core/Constants.h>
 #include <Fog/Core/DirIterator.h>
-#include <Fog/Core/Error.h>
 #include <Fog/Core/FileSystem.h>
 #include <Fog/Core/FileUtil.h>
 #include <Fog/Core/String.h>
@@ -33,14 +33,14 @@
 namespace Fog {
 
 // ============================================================================
-// [Fog::DirIterator::Entry]
+// [Fog::DirEntry]
 // ============================================================================
 
-DirIterator::Entry::Entry() 
+DirEntry::DirEntry()
 {
 }
 
-DirIterator::Entry::Entry(const Entry& other) :
+DirEntry::DirEntry(const DirEntry& other) :
   _name(other._name),
   _type(other._type),
   _size(other._size)
@@ -54,11 +54,11 @@ DirIterator::Entry::Entry(const Entry& other) :
 #endif // FOG_OS_POSIX
 }
 
-DirIterator::Entry::~Entry()
+DirEntry::~DirEntry()
 {
 }
 
-DirIterator::Entry& DirIterator::Entry::operator=(const Entry& other)
+DirEntry& DirEntry::operator=(const DirEntry& other)
 {
   _name = other._name;
   _type = other._type;
@@ -109,8 +109,8 @@ err_t DirIterator::open(const String& path)
 {
   if (_handle) close();
 
-  TemporaryString<TemporaryLength> pathAbs;
-  TemporaryString<TemporaryLength> t;
+  TemporaryString<TEMP_LENGTH> pathAbs;
+  TemporaryString<TEMP_LENGTH> t;
 
   err_t err;
 
@@ -122,13 +122,13 @@ err_t DirIterator::open(const String& path)
     return err;
   }
 
-  if ((_handle = (void*)FindFirstFileW(reinterpret_cast<const wchar_t*>(t.cData()), &_winFindData)) != (void*)INVALID_HANDLE_VALUE)
+  if ((_handle = (void*)FindFirstFileW(reinterpret_cast<const wchar_t*>(t.getData()), &_winFindData)) != (void*)INVALID_HANDLE_VALUE)
   {
     _path = pathAbs;
     _position = 0;
     _fileInEntry = true;
 
-    return Error::Ok;
+    return ERR_OK;
   }
   else 
   {
@@ -149,7 +149,7 @@ void DirIterator::close()
   memset(&_winFindData, 0, sizeof(WIN32_FIND_DATAW));
 }
 
-bool DirIterator::read(Entry& to)
+bool DirIterator::read(DirEntry& to)
 {
   if (!_handle) return false;
 
@@ -170,7 +170,7 @@ __readNext:
   // we have valid file entry in to._winFindData
   if (to._winFindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) 
   {
-    to._type = Entry::Directory;
+    to._type = DirEntry::TYPE_DIRECTORY;
 
     // Skip "." and ".."
     if (_skipDots)
@@ -185,7 +185,7 @@ __readNext:
   }
   else
   {
-    to._type = Entry::File;
+    to._type = DirEntry::TYPE_FILE;
   }
 
   to._size = ((uint64_t)(to._winFindData.nFileSizeHigh) << 32) |
@@ -197,9 +197,9 @@ __readNext:
 
 err_t DirIterator::rewind()
 {
-  if (!_handle) return Error::InvalidHandle;
+  if (!_handle) return ERR_RT_INVALID_HANDLE;
 
-  TemporaryString<TemporaryLength> t;
+  TemporaryString<TEMP_LENGTH> t;
 
   err_t err;
 
@@ -210,7 +210,7 @@ err_t DirIterator::rewind()
     return err;
   }
 
-  HANDLE h = FindFirstFileW(reinterpret_cast<const wchar_t*>(t.cData()), &_winFindData);
+  HANDLE h = FindFirstFileW(reinterpret_cast<const wchar_t*>(t.getData()), &_winFindData);
   if (h == INVALID_HANDLE_VALUE)
   {
     return GetLastError();
@@ -221,7 +221,7 @@ err_t DirIterator::rewind()
   _position = 0;
   _fileInEntry = true;
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 int64_t DirIterator::tell()
@@ -256,20 +256,20 @@ err_t DirIterator::open(const String& path)
 {
   close();
 
-  TemporaryString<TemporaryLength> pathAbs;
-  TemporaryByteArray<TemporaryLength> t;
+  TemporaryString<TEMP_LENGTH> pathAbs;
+  TemporaryByteArray<TEMP_LENGTH> t;
 
   err_t err;
 
   if ((err = FileUtil::toAbsolutePath(pathAbs, String(), path))) return err;
   if ((err = TextCodec::local8().appendFromUnicode(t, pathAbs))) return err;
 
-  if ((_handle = (void*)::opendir(t.cData())) != NULL)
+  if ((_handle = (void*)::opendir(t.getData())) != NULL)
   {
     _path = pathAbs;
     _pathCache = t;
     _pathCacheBaseLength = _pathCache.getLength();
-    return Error::Ok;
+    return ERR_OK;
   }
   else
   {
@@ -288,7 +288,7 @@ void DirIterator::close()
   _pathCacheBaseLength = 0;
 }
 
-bool DirIterator::read(Entry& to)
+bool DirIterator::read(DirEntry& to)
 {
   if (!_handle) return false;
 
@@ -315,7 +315,7 @@ bool DirIterator::read(Entry& to)
 
     uint type = 0;
 
-    if (::stat(_pathCache.cData(), &to._statInfo) != 0)
+    if (::stat(_pathCache.getData(), &to._statInfo) != 0)
     {
       // This is situation that's bad symbolic link (I was experienced
       // this) and there is no reason to write an error message...
@@ -323,27 +323,27 @@ bool DirIterator::read(Entry& to)
     else
     {
       // S_ISXXX are posix macros to get easy file type...
-      if (S_ISREG(to._statInfo.st_mode)) type |= Entry::File;
-      if (S_ISDIR(to._statInfo.st_mode)) type |= Entry::Directory;
+      if (S_ISREG(to._statInfo.st_mode)) type |= DirEntry::TYPE_FILE;
+      if (S_ISDIR(to._statInfo.st_mode)) type |= DirEntry::TYPE_DIRECTORY;
 #if defined(S_ISCHR)
-      if (S_ISCHR(to._statInfo.st_mode)) type |= Entry::CharacterDevice;
+      if (S_ISCHR(to._statInfo.st_mode)) type |= DirEntry::TYPE_CHAR_DEVICE;
 #endif
 #if defined(S_ISBLK)
-      if (S_ISBLK(to._statInfo.st_mode)) type |= Entry::BlockDevice;
+      if (S_ISBLK(to._statInfo.st_mode)) type |= DirEntry::TYPE_BLOCK_DEVICE;
 #endif
 #if defined(S_ISFIFO)
-      if (S_ISFIFO(to._statInfo.st_mode)) type |= Entry::Fifo;
+      if (S_ISFIFO(to._statInfo.st_mode)) type |= DirEntry::TYPE_FIFO;
 #endif
 #if defined(S_ISLNK)
-      if (S_ISLNK(to._statInfo.st_mode)) type |= Entry::Link;
+      if (S_ISLNK(to._statInfo.st_mode)) type |= DirEntry::TYPE_LINK;
 #endif
 #if defined(S_ISSOCK)
-      if (S_ISSOCK(to._statInfo.st_mode)) type |= Entry::Socket;
+      if (S_ISSOCK(to._statInfo.st_mode)) type |= DirEntry::TYPE_SOCKET;
 #endif
     }
 
     to._type = type;
-    if (type == Entry::File)
+    if (type == DirEntry::TYPE_FILE)
       to._size = to._statInfo.st_size;
     else
       to._size = 0;
@@ -355,10 +355,10 @@ bool DirIterator::read(Entry& to)
 
 err_t DirIterator::rewind()
 {
-  if (!_handle) return Error::InvalidHandle;
+  if (!_handle) return ERR_RT_INVALID_HANDLE;
 
   ::rewinddir((DIR*)(_handle));
-  return Error::Ok;
+  return ERR_OK;
 }
 
 int64_t DirIterator::tell()

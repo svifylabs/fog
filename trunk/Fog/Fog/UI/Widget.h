@@ -16,10 +16,10 @@
 #include <Fog/Core/Object.h>
 #include <Fog/Core/Thread.h>
 #include <Fog/Core/Time.h>
-#include <Fog/Core/Vector.h>
 #include <Fog/Graphics/Font.h>
 #include <Fog/Graphics/Geometry.h>
 #include <Fog/Graphics/Painter.h>
+#include <Fog/UI/Constants.h>
 #include <Fog/UI/Event.h>
 #include <Fog/UI/LayoutItem.h>
 
@@ -101,9 +101,9 @@ struct FOG_API Widget : public LayoutItem
   //! @brief Returns @c true if element has children.
   FOG_INLINE bool hasChildren() const { return !_children.isEmpty(); }
 
-  FOG_INLINE Vector<Widget*> getChildren() const { return _children; }
-
+  FOG_INLINE List<Widget*> getChildren() const { return _children; }
   FOG_INLINE Widget* getParent() const { return _parent; }
+
   bool setParent(Widget* p);
   bool add(Widget* w);
   bool remove(Widget* w);
@@ -239,79 +239,58 @@ struct FOG_API Widget : public LayoutItem
 
   // [State]
 
-  //! @brief Widget state.
-  enum State
-  {
-    //! @brief Widget is disabled.
-    Disabled = 0,
-    //! @brief Widget is enabled, but parent is disabled and this makes control disabled.
-    DisabledByParent = 1,
-    //! @brief Widget is enabled and it parent too.
-    Enabled = 2
-  };
-
-  //! @brief Get widget state, see @c State.
+  //! @brief Get widget state, see @c WIDGET_STATE.
   FOG_INLINE uint32_t getState() const { return _state; }
-  //! @brief Get if widget is enabled.
-  FOG_INLINE bool isEnabled() const { return _state == Enabled; }
- 
-  FOG_INLINE bool isEnabledToParent() const { return _state != Disabled; }
+  //! @brief Get whether widget is enabled.
+  FOG_INLINE bool isEnabled() const { return _state == WIDGET_ENABLED; }
+  //! @brief Get whether widget is enabled to parent.
+  FOG_INLINE bool isEnabledToParent() const { return _state != WIDGET_DISABLED; }
 
   //! @brief Set widget state to @a val.
   void setEnabled(bool val = true);
 
-  //! @brief Set widget state to @c Enabled.
+  //! @brief Set widget state to @c WIDGET_ENABLED.
   FOG_INLINE void enable() { setEnabled(true); }
-  //! @brief Set widget state to @c Disabled.
+  //! @brief Set widget state to @c WIDGET_DISABLED.
   FOG_INLINE void disable() { setEnabled(false); }
 
   // [Visibility]
 
-  //! @brief Widget visibility
-  enum Visibility
-  {
-    //! @brief Widget is hidden.
-    Hidden = 0,
-    //! @brief Widget is hidden by parent that's not visible.
-    HiddenByParent = 1,
-    //! @brief Widget is visible.
-    Visible = 2,
-  };
-
   //! @brief Returns widget visibility, see @c Visibility_Enum.
-  FOG_INLINE uint32_t visibility() const { return _visibility; }
+  FOG_INLINE uint32_t getVisibility() const { return _visibility; }
 
-  FOG_INLINE bool isVisible() const { return visibility() == Visible; }
+  //! @brief Get whether widget is visible.
+  FOG_INLINE bool isVisible() const { return _visibility == WIDGET_VISIBLE; }
+  //! @brief Get whether widget is visible to parent.
+  FOG_INLINE bool isVisibleToParent() const { return _state != WIDGET_HIDDEN; }
 
+  //! @brief Set widget visibility to @a val.
   void setVisible(bool val = true);
   
+  //! @brief Show widget (set it's visibility to true).
   FOG_INLINE void show() { setVisible(true); }
+  //! @brief Show widget (set it's visibility to false).
   FOG_INLINE void hide() { setVisible(false); }
 
   // [Orientation]
 
   //! @brief Returns widget orientation, see @c OrientationEnum.
-  FOG_INLINE uint32_t orientation() const
-  { return _orientation; }
+  FOG_INLINE uint32_t orientation() const { return _orientation; }
 
   //! @brief Returns @c true if widget orientation is horizontal (default).
-  FOG_INLINE bool isHorizontal() const
-  { return orientation() == OrientationHorizontal; }
+  FOG_INLINE bool isHorizontal() const { return orientation() == ORIENTATION_HORIZONTAL; }
 
   //! @brief Returns @c true if widget orientation is vertical.
-  FOG_INLINE bool isVertical() const
-  { return orientation() == OrientationVertical; }
+  FOG_INLINE bool isVertical() const { return orientation() == ORIENTATION_VERTICAL; }
 
   //! @brief Sets widget orientation.
   void setOrientation(uint32_t val);
 
   //! @brief Sets widget orientation to horizontal (@c OrientationHorizontal).
-  FOG_INLINE void setHorizontal()
-  { setOrientation(OrientationHorizontal); }
+  FOG_INLINE void setHorizontal() { setOrientation(ORIENTATION_HORIZONTAL); }
 
   //! @brief Sets widget orientation to vertical (@c OrientationVertical).
-  FOG_INLINE void setVertical() 
-  { setOrientation(OrientationVertical); }
+  FOG_INLINE void setVertical()  { setOrientation(ORIENTATION_VERTICAL); }
 
   // [Caret]
 
@@ -322,57 +301,33 @@ struct FOG_API Widget : public LayoutItem
   // [Tab Order]
 
   //! @brief Returns widget tab order.
-  FOG_INLINE int tabOrder() const { return _tabOrder; }
+  FOG_INLINE int getTabOrder() const { return _tabOrder; }
 
   //! @brief Sets widget tab order.
   void setTabOrder(int tabOrder);
 
   // [Focus]
 
-  enum Focusable
-  {
-    NextFocusable = 0,
-    PreviousFocusable = 1
-  };
-
-  //! @brief Focus masks used in @c FocusPolicy
-  enum FocusMask
-  {
-    TabFocusMask     = (1 << 0),
-    ClickFocusMask   = (1 << 1),
-    WheelFocusMask   = (1 << 2)
-  };
-
-  //! @brief Focus policy
-  enum FocusPolicy
-  {
-    NoFocus = 0,
-    TabFocus = TabFocusMask,
-    ClickFocus = ClickFocusMask,
-    StrongFocus = TabFocus | ClickFocus,
-    WheelFocus = StrongFocus | WheelFocusMask
-  };
-
-  FOG_INLINE uint32_t focusPolicy() const { return _focusPolicy; }
+  FOG_INLINE uint32_t getFocusPolicy() const { return _focusPolicy; }
 
   void setFocusPolicy(uint32_t val);
 
   FOG_INLINE bool hasFocus() const { return _hasFocus; }
 
-  virtual Widget* getFocusableWidget(uint32_t focusable);
+  virtual Widget* getFocusableWidget(int focusable);
 
   //! @brief Takes client focus for this widget.
-  void takeFocus(uint32_t reason = FocusReasonNone);
+  void takeFocus(uint32_t reason = FOCUS_REASON_NONE);
 
-  void giveFocusNext(uint32_t reason = FocusReasonNone);
-  void giveFocusPrevious(uint32_t reason = FocusReasonNone);
+  void giveFocusNext(uint32_t reason = FOCUS_REASON_NONE);
+  void giveFocusPrevious(uint32_t reason = FOCUS_REASON_NONE);
 
   Widget* _findFocus() const;
 
   // [Font]
 
   //! @brief Get widget font.
-  FOG_INLINE Font font() const { return _font; }
+  FOG_INLINE Font getFont() const { return _font; }
 
   //! @brief Set widget font.
   void setFont(const Font& font);
@@ -427,17 +382,39 @@ struct FOG_API Widget : public LayoutItem
   //! @brief Child event handler.
   virtual void onChildRemove(ChildEvent* e);
   //! @brief State event handler.
-  virtual void onStateChange(StateEvent* e);
+  virtual void onEnable(StateEvent* e);
+  //! @brief State event handler.
+  virtual void onDisable(StateEvent* e);
   //! @brief Visibility event handler.
-  virtual void onVisibilityChange(VisibilityEvent* e);
+  virtual void onShow(VisibilityEvent* e);
+  //! @brief Visibility event handler.
+  virtual void onHide(VisibilityEvent* e);
   //! @brief Configure event handler.
   virtual void onConfigure(ConfigureEvent* e);
-  //! @brief Focus event handler.
-  virtual void onFocus(FocusEvent* e);
+  //! @brief Focus in event handler.
+  virtual void onFocusIn(FocusEvent* e);
+  //! @brief Focus out event handler.
+  virtual void onFocusOut(FocusEvent* e);
   //! @brief Keyboard event handler.
-  virtual void onKey(KeyEvent* e);
-  //! @brief Mouse event handler.
-  virtual void onMouse(MouseEvent* e);
+  virtual void onKeyPress(KeyEvent* e);
+  //! @brief Keyboard event handler.
+  virtual void onKeyRelease(KeyEvent* e);
+  //! @brief Mouse in event handler.
+  virtual void onMouseIn(MouseEvent* e);
+  //! @brief Mouse out event handler.
+  virtual void onMouseOut(MouseEvent* e);
+  //! @brief Mouse moveevent handler.
+  virtual void onMouseMove(MouseEvent* e);
+  //! @brief Mouse press event handler.
+  virtual void onMousePress(MouseEvent* e);
+  //! @brief Mouse release event handler.
+  virtual void onMouseRelease(MouseEvent* e);
+  //! @brief Click event handler.
+  virtual void onClick(MouseEvent* e);
+  //! @brief Double click event handler.
+  virtual void onDoubleClick(MouseEvent* e);
+  //! @brief Wheel event handler.
+  virtual void onWheel(MouseEvent* e);
   //! @brief Selection event handler.
   virtual void onSelection(SelectionEvent* e);
 
@@ -455,43 +432,42 @@ struct FOG_API Widget : public LayoutItem
 
   // [Event Map]
 
-  fog_event_begin()
-    fog_event(EvChildAdd         , onChildAdd        , ChildEvent     , Override)
-    fog_event(EvChildRemove      , onChildRemove     , ChildEvent     , Override)
-    fog_event(EvEnable           , onStateChange     , StateEvent     , Override)
-    fog_event(EvDisable          , onStateChange     , StateEvent     , Override)
-    fog_event(EvDisableByParent  , onStateChange     , StateEvent     , Override)
-    fog_event(EvShow             , onVisibilityChange, VisibilityEvent, Override)
-    fog_event(EvHide             , onVisibilityChange, VisibilityEvent, Override)
-    fog_event(EvHideByParent     , onVisibilityChange, VisibilityEvent, Override)
-    fog_event(EvConfigure        , onConfigure       , ConfigureEvent , Override)
-    fog_event(EvFocusIn          , onFocus           , FocusEvent     , Override)
-    fog_event(EvFocusOut         , onFocus           , FocusEvent     , Override)
-    fog_event(EvKeyPress         , onKey             , KeyEvent       , Override)
-    fog_event(EvKeyRelease       , onKey             , KeyEvent       , Override)
-    fog_event(EvMouseIn          , onMouse           , MouseEvent     , Override)
-    fog_event(EvMouseOut         , onMouse           , MouseEvent     , Override)
-    fog_event(EvMouseMove        , onMouse           , MouseEvent     , Override)
-    fog_event(EvMousePress       , onMouse           , MouseEvent     , Override)
-    fog_event(EvMousePressRepeated, onMouse          , MouseEvent     , Override)
-    fog_event(EvMouseRelease     , onMouse           , MouseEvent     , Override)
-    fog_event(EvClick            , onMouse           , MouseEvent     , Override)
-    fog_event(EvDoubleClick      , onMouse           , MouseEvent     , Override)
-    fog_event(EvWheel            , onMouse           , MouseEvent     , Override)
-    fog_event(EvClearSelection   , onSelection       , SelectionEvent , Override)
-    fog_event(EvSelectionRequired, onSelection       , SelectionEvent , Override)
-    fog_event(EvPaint            , onPaint           , PaintEvent     , Override)
-    fog_event(EvClose            , onClose           , CloseEvent     , Override)
-    fog_event(EvThemeChange      , onThemeChange     , ThemeEvent     , Override)
-    fog_event(EvLayoutSet        , onLayout          , LayoutEvent    , Override)
-    fog_event(EvLayoutRemove     , onLayout          , LayoutEvent    , Override)
-  fog_event_end()
+  FOG_EVENT_BEGIN()
+    FOG_EVENT_DEF(EV_CHILD_ADD           , onChildAdd        , ChildEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EV_CHILD_REMOVE        , onChildRemove     , ChildEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EV_ENABLE              , onEnable          , StateEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EV_DISABLE             , onDisable         , StateEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EV_DISABLE_BY_PARENT   , onDisable         , StateEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EV_SHOW                , onShow            , VisibilityEvent, OVERRIDE)
+    FOG_EVENT_DEF(EV_HIDE                , onHide            , VisibilityEvent, OVERRIDE)
+    FOG_EVENT_DEF(EV_HIDE_BY_PARENT      , onHide            , VisibilityEvent, OVERRIDE)
+    FOG_EVENT_DEF(EV_CONFIGURE           , onConfigure       , ConfigureEvent , OVERRIDE)
+    FOG_EVENT_DEF(EV_FOCUS_IN            , onFocusIn         , FocusEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EV_FOCUS_OUT           , onFocusOut        , FocusEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EV_KEY_PRESS           , onKeyPress        , KeyEvent       , OVERRIDE)
+    FOG_EVENT_DEF(EV_KEY_RELEASE         , onKeyRelease      , KeyEvent       , OVERRIDE)
+    FOG_EVENT_DEF(EV_MOUSE_IN            , onMouseIn         , MouseEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EV_MOUSE_OUT           , onMouseOut        , MouseEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EV_MOUSE_MOVE          , onMouseMove       , MouseEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EV_MOUSE_PRESS         , onMousePress      , MouseEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EV_MOUSE_RELEASE       , onMouseRelease    , MouseEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EV_CLICK               , onClick           , MouseEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EV_DOUBLE_CLICK        , onDoubleClick     , MouseEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EV_WHEEL               , onWheel           , MouseEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EV_CLEAR_SELECTION     , onSelection       , SelectionEvent , OVERRIDE)
+    FOG_EVENT_DEF(EV_SELECTION_REQUIRED  , onSelection       , SelectionEvent , OVERRIDE)
+    FOG_EVENT_DEF(EV_PAINT               , onPaint           , PaintEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EV_CLOSE               , onClose           , CloseEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EV_THEME               , onThemeChange     , ThemeEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EV_LAYOUT_SET          , onLayout          , LayoutEvent    , OVERRIDE)
+    FOG_EVENT_DEF(EV_LAYOUT_REMOVE       , onLayout          , LayoutEvent    , OVERRIDE)
+  FOG_EVENT_END()
 
   // [Imaging]
 
 protected:
   Widget* _parent;
-  Vector<Widget*> _children;
+  List<Widget*> _children;
 
   //! @brief Native window data.
   UIWindow* _uiWindow;
@@ -537,9 +513,9 @@ private:
   friend struct Application;
   friend struct Window;
   friend struct UIWindow;
-  friend struct UIWindowDefault;
+  friend struct BaseUIWindow;
   friend struct UISystem;
-  friend struct UISystemDefault;
+  friend struct BaseUISystem;
 };
 
 } // Fog namespace
@@ -560,7 +536,7 @@ private:
   if ((__basewidget__)->_children.getLength()) \
   { \
     Fog::LocalStack<512> stack; \
-    Fog::Widget** childCur = (Fog::Widget** )( __basewidget__->_children.cData() ); \
+    Fog::Widget** childCur = (Fog::Widget** )( __basewidget__->_children.getData() ); \
     Fog::Widget** childEnd = childCur + ( __basewidget__->_children.getLength() ); \
     Fog::Widget* child; \
     \
@@ -578,7 +554,7 @@ private:
         stack.push(childCur); \
         stack.push(childEnd); \
         \
-        childCur = (Fog::Widget** )child->_children.cData(); \
+        childCur = (Fog::Widget** )child->_children.getData(); \
         childEnd = childCur + child->_children.getLength(); \
         \
         continue; \

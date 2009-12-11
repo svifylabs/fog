@@ -8,18 +8,18 @@
 #define _FOG_CORE_HASH_H
 
 // [Dependencies]
+#include <Fog/Build/Build.h>
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/Atomic.h>
-#include <Fog/Build/Build.h>
 #include <Fog/Core/Char.h>
-#include <Fog/Core/Error.h>
+#include <Fog/Core/Constants.h>
 #include <Fog/Core/HashUtil.h>
+#include <Fog/Core/List.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/SequenceInfo.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/Std.h>
 #include <Fog/Core/TypeInfo.h>
-#include <Fog/Core/Vector.h>
 
 namespace Fog {
 
@@ -89,13 +89,13 @@ struct FOG_API Hash_Abstract
     FOG_INLINE _Iterator(Hash_Abstract& hash) :
       _hash(&hash),
       _node(NULL),
-      _index(InvalidIndex)
+      _index(INVALID_INDEX)
     {}
 
     FOG_INLINE _Iterator(Hash_Abstract* hash) :
       _hash(hash),
       _node(NULL),
-      _index(InvalidIndex)
+      _index(INVALID_INDEX)
     {}
 
     FOG_INLINE bool isValid() const
@@ -209,8 +209,8 @@ struct Hash : public Hash_Abstract
   ValueT value(const KeyT& key) const;
   ValueT value(const KeyT& key, const ValueT& defaultValue) const;
 
-  Vector<KeyT> keys() const;
-  Vector<KeyT> keys(const ValueT& value) const;
+  List<KeyT> keys() const;
+  List<KeyT> keys(const ValueT& value) const;
 
   Hash<KeyT, ValueT>& operator=(const Hash<KeyT, ValueT>& other)
   { ((Data*)AtomicBase::ptr_setXchg(&_d, other._d->ref()))->deref(); return *this; }
@@ -290,7 +290,7 @@ bool Hash<KeyT, ValueT>::_detach(Node* exclude)
       if (FOG_LIKELY(node != exclude))
       {
         uint32_t hashMod = node->hashCode % bc;
-        Node* n = new Node(node->hashCode, node->key, node->value);
+        Node* n = new(std::nothrow) Node(node->hashCode, node->key, node->value);
         if (FOG_UNLIKELY(!n)) goto alloc_fail;
 
         n->next = (Node*)newd->buckets[hashMod];
@@ -339,7 +339,7 @@ bool Hash<KeyT, ValueT>::contains(const KeyT& key) const
 template<typename KeyT, typename ValueT>
 err_t Hash<KeyT, ValueT>::put(const KeyT& key, const ValueT& value, bool replace)
 {
-  if (!_d->length && !_rehash(32)) return Error::OutOfMemory;
+  if (!_d->length && !_rehash(32)) return ERR_RT_OUT_OF_MEMORY;
 
   detach();
 
@@ -358,13 +358,13 @@ err_t Hash<KeyT, ValueT>::put(const KeyT& key, const ValueT& value, bool replace
 
   if (node)
   {
-    if (!replace) return Error::ObjectAlreadyExists;
+    if (!replace) return ERR_RT_OBJECT_ALREADY_EXISTS;
     node->value = value;
   }
   else
   {
     node = new(std::nothrow) Node(hashCode, key, value);
-    if (!node) return Error::OutOfMemory;
+    if (!node) return ERR_RT_OUT_OF_MEMORY;
 
     if (prev)
       prev->next = node;
@@ -372,7 +372,7 @@ err_t Hash<KeyT, ValueT>::put(const KeyT& key, const ValueT& value, bool replace
       _d->buckets[hashMod] = node;
     if (++_d->length >= _d->expandLength) _rehash(_d->expandCapacity);
   }
-  return Error::Ok;
+  return ERR_OK;
 }
 
 template<typename KeyT, typename ValueT>
@@ -497,9 +497,9 @@ ValueT Hash<KeyT, ValueT>::value(const KeyT& key, const ValueT& defaultValue) co
 }
 
 template<typename KeyT, typename ValueT>
-Vector<KeyT> Hash<KeyT, ValueT>::keys() const
+List<KeyT> Hash<KeyT, ValueT>::keys() const
 {
-  Vector<KeyT> result;
+  List<KeyT> result;
   sysuint_t i, len = _d->capacity;
 
   result.reserve(len);
@@ -518,9 +518,9 @@ Vector<KeyT> Hash<KeyT, ValueT>::keys() const
 }
 
 template<typename KeyT, typename ValueT>
-Vector<KeyT> Hash<KeyT, ValueT>::keys(const ValueT& value) const
+List<KeyT> Hash<KeyT, ValueT>::keys(const ValueT& value) const
 {
-  Vector<KeyT> result;
+  List<KeyT> result;
   sysuint_t i, len = _d->capacity;
   for (i = 0; i < len; i++)
   {
@@ -547,7 +547,7 @@ Vector<KeyT> Hash<KeyT, ValueT>::keys(const ValueT& value) const
 FOG_DECLARE_TYPEINFO_TEMPLATE2(Fog::Hash,
   typename, KeyT,
   typename, ValueT,
-  Fog::MoveableType)
+  Fog::TYPE_INFO_MOVABLE)
 
 // [Guard]
 #endif // _FOG_CORE_HASH_H

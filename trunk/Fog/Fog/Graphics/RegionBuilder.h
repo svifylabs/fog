@@ -25,18 +25,7 @@ struct Region;
 // [Fog::RegionBuilder]
 // ============================================================================
 
-struct FOG_API RegionBuilder
-{
-  // [Construction / Destruction]
-
-  RegionBuilder();
-  ~RegionBuilder();
-
-  // [Members]
-
-private:
-  FOG_DISABLE_COPY(RegionBuilder)
-};
+struct FOG_API RegionBuilder {};
 
 } // Fog namespace
 

@@ -126,8 +126,7 @@ struct Implicit
   //!
   //! This flag is set only by template versions of original objects.
   //! For example @c Fog::TemporaryString<> templates sets this flag to 
-  //! true, but @c Fog::String family classes never sets this flag to 
-  //! @c true.
+  //! true, but @c Fog::String family classes never set this flag.
   bool isStrong() const;
 };
 
@@ -153,7 +152,6 @@ struct Implicit
 #include <Fog/Core/ByteArrayMatcher.h>
 #include <Fog/Core/Char.h>
 #include <Fog/Core/CharUtil.h>
-#include <Fog/Core/Class.h>
 #include <Fog/Core/Constants.h>
 #include <Fog/Core/CpuInfo.h>
 #include <Fog/Core/Delegate.h>
@@ -175,12 +173,7 @@ struct Implicit
 #include <Fog/Core/Misc.h>
 #include <Fog/Core/OS.h>
 #include <Fog/Core/Object.h>
-#include <Fog/Core/ObserverList.h>
-#include <Fog/Core/Properties.h>
-#include <Fog/Core/RefCounted.h>
 #include <Fog/Core/ScopedHandle.h>
-#include <Fog/Core/ScopedPtr.h>
-#include <Fog/Core/Sequence.h>
 #include <Fog/Core/SequenceInfo.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/Stream.h>
@@ -200,8 +193,6 @@ struct Implicit
 #include <Fog/Core/TypeInfo.h>
 #include <Fog/Core/UserInfo.h>
 #include <Fog/Core/Value.h>
-#include <Fog/Core/Vector.h>
-#include <Fog/Core/WinUtil.h>
 
 // [Guard]
 #endif // _FOG_CORE_H

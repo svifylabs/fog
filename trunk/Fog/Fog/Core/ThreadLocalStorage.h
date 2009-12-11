@@ -107,7 +107,7 @@ public:
 
     // This constructor should be used for statics.
     // It returns an uninitialized Slot.
-    explicit Slot(_LinkerInitialized x);
+    explicit Slot(_DONT_INITIALIZE x);
 
     // Set up the TLS slot.  Called by the constructor.
     // 'destructor' is a pointer to a function to perform per-thread cleanup of

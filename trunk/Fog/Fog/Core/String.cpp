@@ -13,17 +13,16 @@
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/Byte.h>
 #include <Fog/Core/ByteArray.h>
-#include <Fog/Core/Error.h>
+#include <Fog/Core/Constants.h>
 #include <Fog/Core/HashUtil.h>
+#include <Fog/Core/List.h>
 #include <Fog/Core/Locale.h>
 #include <Fog/Core/Memory.h>
-#include <Fog/Core/Sequence.h>
 #include <Fog/Core/String.h>
 #include <Fog/Core/StringFilter.h>
 #include <Fog/Core/StringMatcher.h>
 #include <Fog/Core/StringUtil.h>
 #include <Fog/Core/TextCodec.h>
-#include <Fog/Core/Vector.h>
 
 #include <stdarg.h>
 
@@ -97,7 +96,7 @@ String::String(const Char* str)
 
 String::String(const Char* str, sysuint_t length)
 {
-  if (length == DetectLength) length = StringUtil::len(str);
+  if (length == DETECT_LENGTH) length = StringUtil::len(str);
 
   _d = Data::alloc(0, str, length);
   if (!_d) _d = sharedNull->refAlways();
@@ -106,7 +105,7 @@ String::String(const Char* str, sysuint_t length)
 String::String(const Ascii8& str)
 {
   const char* s = str.getData();
-  sysuint_t length = (str.getLength() == DetectLength)
+  sysuint_t length = (str.getLength() == DETECT_LENGTH)
     ? StringUtil::len(s) : str.getLength();
 
   _d = Data::alloc(0, s, length);
@@ -130,13 +129,13 @@ String::~String()
 
 err_t String::_detach()
 {
-  if (isDetached()) return Error::Ok;
+  if (isDetached()) return ERR_OK;
 
   Data* newd = Data::copy(_d);
-  if (!newd) return Error::OutOfMemory;
+  if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
   AtomicBase::ptr_setXchg(&_d, newd)->deref();
-  return Error::Ok;
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -180,14 +179,14 @@ err_t String::prepare(sysuint_t capacity)
     d->hashCode = 0;
     d->length = 0;
     d->data[0] = 0;
-    return Error::Ok;
+    return ERR_OK;
   }
 
   d = Data::alloc(capacity);
-  if (!d) return Error::OutOfMemory;
+  if (!d) return ERR_RT_OUT_OF_MEMORY;
 
   AtomicBase::ptr_setXchg(&_d, d)->deref();
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t String::reserve(sysuint_t to)
@@ -198,19 +197,19 @@ err_t String::reserve(sysuint_t to)
   if (_d->refCount.get() > 1)
   {
     Data* newd = Data::alloc(to, _d->data, _d->length);
-    if (!newd) return Error::OutOfMemory;
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
     AtomicBase::ptr_setXchg(&_d, newd)->deref();
   }
   else
   {
     Data* newd = Data::realloc(_d, to);
-    if (!newd) return Error::OutOfMemory;
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
     _d = newd;
   }
 done:
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t String::resize(sysuint_t to)
@@ -220,14 +219,14 @@ err_t String::resize(sysuint_t to)
   if (_d->refCount.get() > 1)
   {
     Data* newd = Data::alloc(to, _d->data, to < _d->length ? to : _d->length);
-    if (!newd) return Error::OutOfMemory;
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
     AtomicBase::ptr_setXchg(&_d, newd)->deref();
   }
   else
   {
     Data* newd = Data::realloc(_d, to);
-    if (!newd) return Error::OutOfMemory;
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
     _d = newd;
   }
@@ -236,7 +235,7 @@ done:
   _d->hashCode = 0;
   _d->length = to;
   _d->data[to] = 0;
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t String::grow(sysuint_t by)
@@ -254,7 +253,7 @@ err_t String::grow(sysuint_t by)
       sizeof(String::Data), sizeof(Char), lengthBefore, lengthAfter);
 
     Data* newd = Data::alloc(optimalCapacity, _d->data, _d->length);
-    if (!newd) return Error::OutOfMemory;
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
     AtomicBase::ptr_setXchg(&_d, newd)->deref();
   }
@@ -264,7 +263,7 @@ err_t String::grow(sysuint_t by)
       sizeof(String::Data), sizeof(Char), lengthBefore, lengthAfter);
 
     Data* newd = Data::realloc(_d, optimalCapacity);
-    if (!newd) return Error::OutOfMemory;
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
     _d = newd;
   }
@@ -273,7 +272,7 @@ done:
   _d->hashCode = 0;
   _d->length = lengthAfter;
   _d->data[lengthAfter] = 0;
-  return Error::Ok;
+  return ERR_OK;
 }
 
 void String::squeeze()
@@ -310,7 +309,7 @@ void String::free()
   AtomicBase::ptr_setXchg(&_d, sharedNull->refAlways())->deref();
 }
 
-Char* String::mData()
+Char* String::getMData()
 {
   detach();
   _d->hashCode = 0;
@@ -450,46 +449,46 @@ static Char* _prepareReplace(String* self, sysuint_t index, sysuint_t range, sys
 
 err_t String::set(Char ch, sysuint_t length)
 {
-  if (length == DetectLength) return Error::InvalidArgument;
+  if (length == DETECT_LENGTH) return ERR_RT_INVALID_ARGUMENT;
 
   Char* p = _prepareSet(this, length);
-  if (!p) return Error::OutOfMemory;
+  if (!p) return ERR_RT_OUT_OF_MEMORY;
 
   StringUtil::fill(p, ch, length);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t String::set(const Ascii8& str)
 {
   const char* s = str.getData();
-  sysuint_t length = (str.getLength() == DetectLength)
+  sysuint_t length = (str.getLength() == DETECT_LENGTH)
     ? StringUtil::len(s) : str.getLength();
 
   Char* p = _prepareSet(this, length);
-  if (!p) return Error::OutOfMemory;
+  if (!p) return ERR_RT_OUT_OF_MEMORY;
 
   StringUtil::copy(p, s, length);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t String::set(const Utf16& str)
 {
   const Char* s = str.getData();
-  sysuint_t length = (str.getLength() == DetectLength)
+  sysuint_t length = (str.getLength() == DETECT_LENGTH)
     ? StringUtil::len(s) : str.getLength();
 
   Char* p = _prepareSet(this, length);
-  if (!p) return Error::OutOfMemory;
+  if (!p) return ERR_RT_OUT_OF_MEMORY;
 
   StringUtil::copy(p, s, length);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t String::set(const String& other)
 {
   Data* self_d = _d;
   Data* other_d = other._d;
-  if (self_d == other_d) return Error::Ok;
+  if (self_d == other_d) return ERR_OK;
 
   if ((self_d->flags & Data::IsStrong) != 0 || (other_d->flags & Data::IsSharable) == 0)
   {
@@ -498,7 +497,7 @@ err_t String::set(const String& other)
   else
   {
     AtomicBase::ptr_setXchg(&_d, other_d->refAlways())->derefInline();
-    return Error::Ok;
+    return ERR_OK;
   }
 }
 
@@ -523,13 +522,13 @@ err_t String::setDeep(const String& other)
 {
   Data* self_d = _d;
   Data* other_d = other._d;
-  if (self_d == other_d) return Error::Ok;
+  if (self_d == other_d) return ERR_OK;
 
   Char* p = _prepareSet(this, other_d->length);
-  if (!p) return Error::OutOfMemory;
+  if (!p) return ERR_RT_OUT_OF_MEMORY;
 
-  StringUtil::copy(p, other.cData(), other.getLength());
-  return Error::Ok;
+  StringUtil::copy(p, other.getData(), other.getLength());
+  return ERR_OK;
 }
 
 err_t String::setBool(bool b)
@@ -615,10 +614,10 @@ err_t String::vformat(const char* fmt, va_list ap)
   return appendVformat(fmt, ap);
 }
 
-err_t String::wformat(const String& fmt, Char lex, const Sequence<String>& args)
+err_t String::wformat(const String& fmt, Char lex, const List<String>& args)
 {
   clear();
-  return appendWformat(fmt, lex, args.cData(), args.getLength());
+  return appendWformat(fmt, lex, args.getData(), args.getLength());
 }
 
 err_t String::wformat(const String& fmt, Char lex, const String* args, sysuint_t length)
@@ -643,13 +642,13 @@ static err_t append_ntoa(String* self, uint64_t n, int base, const FormatFlags& 
   uint32_t fmt = ff.flags;
 
   if (out->negative)
-    *prefix++ = l.getMinus();
-  else if (fmt & FormatFlags::ShowSign)
-    *prefix++ = l.getPlus();
-  else if (fmt & FormatFlags::BlankPositive)
-    *prefix++ = l.getSpace();
+    *prefix++ = l.getChar(LOCALE_CHAR_MINUS);
+  else if (fmt & FORMAT_SHOW_SIGN)
+    *prefix++ = l.getChar(LOCALE_CHAR_PLUS);
+  else if (fmt & FORMAT_BLANK_POSITIVE)
+    *prefix++ = l.getChar(LOCALE_CHAR_SPACE);
 
-  if (fmt & FormatFlags::Alternate)
+  if (fmt & FORMAT_ALTERNATE_FORM)
   {
     if (base == 8)
     {
@@ -658,18 +657,18 @@ static err_t append_ntoa(String* self, uint64_t n, int base, const FormatFlags& 
     else if (base == 16)
     {
       *prefix++ = '0';
-      *prefix++ = (fmt & FormatFlags::CapitalizeEOrX) ? 'X' : 'x';
+      *prefix++ = (fmt & FORMAT_CAPITALIZE_E_OR_X) ? 'X' : 'x';
     }
   }
 
   sysuint_t prefixLength = (sysuint_t)(prefix - prefixBuffer);
   sysuint_t resultLength = out->length;
 
-  if (width == FormatFlags::NoWidth) width = 0;
-  if ((fmt & FormatFlags::ZeroPadded) &&
-      precision == FormatFlags::NoPrecision &&
+  if (width == NO_WIDTH) width = 0;
+  if ((fmt & FORMAT_ZERO_PADDED) &&
+      precision == NO_PRECISION &&
       width > prefixLength + resultLength) precision = width - prefixLength;
-  if (precision == FormatFlags::NoPrecision) precision = 0;
+  if (precision == NO_PRECISION) precision = 0;
 
   sysuint_t fillLength = (resultLength < precision) ? precision - resultLength : 0;
   sysuint_t fullLength = prefixLength + resultLength + fillLength;
@@ -678,10 +677,10 @@ static err_t append_ntoa(String* self, uint64_t n, int base, const FormatFlags& 
   fullLength += widthLength;
 
   Char* p = _prepareAppend(self, fullLength);
-  if (!p) return Error::OutOfMemory;
+  if (!p) return ERR_RT_OUT_OF_MEMORY;
 
   // Left justification
-  if (!(fmt & FormatFlags::LeftAdjusted))
+  if (!(fmt & FORMAT_LEFT_ADJUSTED))
   {
     StringUtil::fill(p, Char(' '), widthLength); p += widthLength;
   }
@@ -690,12 +689,13 @@ static err_t append_ntoa(String* self, uint64_t n, int base, const FormatFlags& 
   StringUtil::copy(p, prefixBuffer, prefixLength); p += prefixLength;
 
   // Body
-  if (base == 10 && l.getZero() != Char('0'))
-  {
-    StringUtil::fill(p, l.getZero(), fillLength); p += fillLength;
+  Char zero = l.getChar(LOCALE_CHAR_ZERO);
 
+  if (base == 10 && zero != Char('0'))
+  {
+    StringUtil::fill(p, zero, fillLength); p += fillLength;
     for (sysuint_t i = 0; i != resultLength; i++)
-      p[i] = l.getZero() + Char((uint8_t)out->result[i] - (uint8_t)'0');
+      p[i] = zero + Char((uint8_t)out->result[i] - (uint8_t)'0');
     p += resultLength;
   }
   else
@@ -705,10 +705,12 @@ static err_t append_ntoa(String* self, uint64_t n, int base, const FormatFlags& 
   }
 
   // Right justification
-  if (fmt & FormatFlags::LeftAdjusted)
+  if (fmt & FORMAT_LEFT_ADJUSTED)
   {
     StringUtil::fill(p, Char(' '), widthLength);
   }
+
+  return ERR_OK;
 }
 
 static Char* append_exponent(Char* dest, uint exp, Char zero)
@@ -724,39 +726,39 @@ static Char* append_exponent(Char* dest, uint exp, Char zero)
 
 err_t String::append(Char ch, sysuint_t length)
 {
-  if (length == DetectLength) return Error::InvalidArgument;
+  if (length == DETECT_LENGTH) return ERR_RT_INVALID_ARGUMENT;
 
   Char* p = _prepareAppend(this, length);
-  if (!p) return Error::OutOfMemory;
+  if (!p) return ERR_RT_OUT_OF_MEMORY;
 
   StringUtil::fill(p, ch, length);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t String::append(const Ascii8& str)
 {
   const char* s = str.getData();
-  sysuint_t length = (str.getLength() == DetectLength)
+  sysuint_t length = (str.getLength() == DETECT_LENGTH)
     ? StringUtil::len(s) : str.getLength();
 
   Char* p = _prepareAppend(this, length);
-  if (!p) return Error::OutOfMemory;
+  if (!p) return ERR_RT_OUT_OF_MEMORY;
 
   StringUtil::copy(p, s, length);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t String::append(const Utf16& str)
 {
   const Char* s = str.getData();
-  sysuint_t length = (str.getLength() == DetectLength)
+  sysuint_t length = (str.getLength() == DETECT_LENGTH)
     ? StringUtil::len(s) : str.getLength();
 
   Char* p = _prepareAppend(this, length);
-  if (!p) return Error::OutOfMemory;
+  if (!p) return ERR_RT_OUT_OF_MEMORY;
 
   StringUtil::copy(p, s, length);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t String::append(const String& _other)
@@ -766,10 +768,10 @@ err_t String::append(const String& _other)
   String other(_other);
 
   Char* p = _prepareAppend(this, other.getLength());
-  if (!p) return Error::OutOfMemory;
+  if (!p) return ERR_RT_OUT_OF_MEMORY;
 
-  StringUtil::copy(p, other.cData(), other.getLength());
-  return Error::Ok;
+  StringUtil::copy(p, other.getData(), other.getLength());
+  return ERR_OK;
 }
 
 err_t String::append(const void* str, sysuint_t size, const TextCodec& tc)
@@ -779,8 +781,8 @@ err_t String::append(const void* str, sysuint_t size, const TextCodec& tc)
 
 err_t String::appendUtf8(const char* str, sysuint_t length)
 {
-  if (length == DetectLength) length = StringUtil::len(str);
-  if (length == 0) return Error::Ok;
+  if (length == DETECT_LENGTH) length = StringUtil::len(str);
+  if (length == 0) return ERR_OK;
   
   sysuint_t i = length;
 
@@ -796,7 +798,7 @@ err_t String::appendUtf8(const char* str, sysuint_t length)
 
     if (i < utf8Size)
     {
-      err = Error::InputTruncated;
+      err = ERR_TEXT_INPUT_TRUNCATED;
       goto end;
     }
 
@@ -804,7 +806,7 @@ err_t String::appendUtf8(const char* str, sysuint_t length)
     {
       // Invalid UTF-8 Sequence.
       case 0:
-        err = Error::InvalidUtf8Sequence;
+        err = ERR_TEXT_INVALID_UTF8_SEQ;
         goto end;
       case 1:
         break;
@@ -827,18 +829,18 @@ err_t String::appendUtf8(const char* str, sysuint_t length)
            |  (uint32_t(str[3]) - 128U);
         break;
       default:
-        err = Error::InvalidUtf8Sequence;
+        err = ERR_TEXT_INVALID_UTF8_SEQ;
         goto end;
     }
 
-    if (uc >= 0x10000U && uc <= MaxCodePoint)
+    if (uc >= 0x10000U && uc <= UNICODE_LAST)
     {
       Char::toSurrogatePair(uc, &dstCur[0]._ch, &dstCur[1]._ch);
       dstCur += 2;
     }
     else if (Char::isSurrogatePair(uc) && uc >= 0xFFFE)
     {
-      err = Error::InvalidUnicodeCharacter;
+      err = ERR_TEXT_INVALID_CHAR;
       break;
     }
     else
@@ -857,8 +859,8 @@ end:
 
 err_t String::appendUtf32(const uint32_t* str, sysuint_t length)
 {
-  if (length == DetectLength) length = StringUtil::len(str);
-  if (length == 0) return Error::Ok;
+  if (length == DETECT_LENGTH) length = StringUtil::len(str);
+  if (length == 0) return ERR_OK;
 
   sysuint_t i = length;
   err_t err;
@@ -876,14 +878,14 @@ reallocBuffer:
   {
     uint32_t uc = *str;
 
-    if (uc >= 0x10000U && uc <= MaxCodePoint)
+    if (uc >= 0x10000U && uc <= UNICODE_LAST)
     {
       Char::toSurrogatePair(uc, &dstCur[0]._ch, &dstCur[1]._ch);
       dstCur += 2;
     }
     else if (Char::isSurrogatePair(uc) && uc >= 0xFFFE)
     {
-      err = Error::InvalidUnicodeCharacter;
+      err = ERR_TEXT_INVALID_CHAR;
       break;
     }
     else
@@ -938,7 +940,7 @@ err_t String::appendInt(uint32_t n, int base, const FormatFlags& ff, const Local
 err_t String::appendInt(int64_t n, int base, const FormatFlags& ff, const Locale* locale)
 {
   StringUtil::NTOAOut out;
-  StringUtil::itoa(n, base, (ff.flags & FormatFlags::Capitalize) != 0, &out);
+  StringUtil::itoa(n, base, (ff.flags & FORMAT_CAPITALIZE) != 0, &out);
 
   return append_ntoa(this, (uint64_t)n, base, ff, locale, &out);
 }
@@ -946,7 +948,7 @@ err_t String::appendInt(int64_t n, int base, const FormatFlags& ff, const Locale
 err_t String::appendInt(uint64_t n, int base, const FormatFlags& ff, const Locale* locale)
 {
   StringUtil::NTOAOut out;
-  StringUtil::utoa(n, base, (ff.flags & FormatFlags::Capitalize) != 0, &out);
+  StringUtil::utoa(n, base, (ff.flags & FORMAT_CAPITALIZE) != 0, &out);
 
   return append_ntoa(this, n, base, ff, locale, &out);
 }
@@ -961,7 +963,7 @@ namespace StringUtil { FOG_HIDDEN double _mprec_log10(int dig); }
 
 err_t String::appendDouble(double d, int doubleForm, const FormatFlags& ff, const Locale* locale)
 {
-  err_t err = Error::Ok;
+  err_t err = ERR_OK;
   const Locale& l = locale ? *locale : Locale::posix();
 
   StringUtil::NTOAOut out;
@@ -981,21 +983,21 @@ err_t String::appendDouble(double d, int doubleForm, const FormatFlags& ff, cons
 
   Char* dest;
   Char sign = Char('\0');
-  Char zero = l.getZero() - Char('0');
+  Char zero = l.getChar(LOCALE_CHAR_ZERO) - Char('0');
 
-  if (precision == FormatFlags::NoPrecision) precision = 6;
+  if (precision == NO_PRECISION) precision = 6;
 
   if (d < 0.0)
-    { sign = l.getMinus(); d = -d; }
-  else if (fmt & FormatFlags::ShowSign)
-    sign = l.getPlus();
-  else if (fmt & FormatFlags::BlankPositive)
-    sign = l.getSpace();
+    { sign = l.getChar(LOCALE_CHAR_MINUS); d = -d; }
+  else if (fmt & FORMAT_SHOW_SIGN)
+    sign = l.getChar(LOCALE_CHAR_PLUS);
+  else if (fmt & FORMAT_BLANK_POSITIVE)
+    sign = l.getChar(LOCALE_CHAR_SPACE);
 
   if (sign) append(sign);
 
   // Decimal form
-  if (doubleForm == DF_Decimal)
+  if (doubleForm == DF_DECIMAL)
   {
     StringUtil::dtoa(d, 2, precision, &out);
 
@@ -1010,16 +1012,16 @@ err_t String::appendDouble(double d, int doubleForm, const FormatFlags& ff, cons
     if (decpt > 0) i += (sysuint_t)decpt;
 
     if ( (err = reserve(getLength() + i)) ) return err;
-    dest = xData() + getLength();
+    dest = getXData() + getLength();
 
     while (bufCur != bufEnd && decpt > 0) { *dest++ = zero + Char(*bufCur++); decpt--; }
     // Even if not in buffer
     while (decpt > 0) { *dest++ = zero + Char('0'); decpt--; }
 
-    if ((fmt & FormatFlags::Alternate) != 0 || bufCur != bufEnd)
+    if ((fmt & FORMAT_ALTERNATE_FORM) != 0 || bufCur != bufEnd)
     {
       if (bufCur == reinterpret_cast<uint8_t*>(out.result)) *dest++ = zero + Char('0');
-      *dest++ = l.getDecimalPoint();
+      *dest++ = l.getChar(LOCALE_CHAR_DECIMAL_POINT);
       while (decpt < 0 && precision > 0) { *dest++ = zero + Char('0'); decpt++; precision--; }
 
       // Print rest of stuff
@@ -1031,7 +1033,7 @@ err_t String::appendDouble(double d, int doubleForm, const FormatFlags& ff, cons
     xFinalize(dest);
   }
   // Exponential form
-  else if (doubleForm == DF_Exponent)
+  else if (doubleForm == DF_EXPONENT)
   {
 __exponentialForm:
     StringUtil::dtoa(d, 2, precision + 1, &out);
@@ -1041,13 +1043,15 @@ __exponentialForm:
 
     // reserve some space for number, we need +X.{PRECISION}e+123
     if ( (err = reserve(getLength() + precision + 10)) ) return err;
-    dest = xData() + getLength();
+    dest = getXData() + getLength();
 
     bufCur = reinterpret_cast<uint8_t*>(out.result);
     bufEnd = bufCur + out.length;
 
     *dest++ = zero + Char(*bufCur++);
-    if ((fmt & FormatFlags::Alternate) != 0 || precision != 0) *dest++ = l.getDecimalPoint();
+    if ((fmt & FORMAT_ALTERNATE_FORM) != 0 || precision != 0)
+      *dest++ = l.getChar(LOCALE_CHAR_DECIMAL_POINT);
+
     while (bufCur != bufEnd && precision > 0)
     {
       *dest++ = zero + Char(*bufCur++);
@@ -1056,18 +1060,18 @@ __exponentialForm:
 
     // Add trailing zeroes to fill out to ndigits unless this is
     // DF_SignificantDigits
-    if (doubleForm == DF_Exponent)
+    if (doubleForm == DF_EXPONENT)
     {
       for (i = precision; i; i--) *dest++ = zero + Char('0');
     }
 
     // Add the exponent.
-    *dest++ = l.getExponential();
+    *dest++ = l.getChar(LOCALE_CHAR_EXPONENTIAL);
     decpt--;
     if (decpt < 0)
-      { *dest++ = l.getMinus(); decpt = -decpt; }
+      { *dest++ = l.getChar(LOCALE_CHAR_MINUS); decpt = -decpt; }
     else
-      *dest++ = l.getPlus();
+      *dest++ = l.getChar(LOCALE_CHAR_PLUS);
 
     dest = append_exponent(dest, decpt, zero + Char('0'));
 
@@ -1101,7 +1105,7 @@ __exponentialForm:
     if (decpt > 0) i += (sysuint_t)decpt;
 
     if ( (err = reserve(getLength() + i)) ) return err;
-    dest = save = xData() + getLength();
+    dest = save = getXData() + getLength();
 
     bufCur = reinterpret_cast<uint8_t*>(out.result);
     bufEnd = bufCur + out.length;
@@ -1110,10 +1114,10 @@ __exponentialForm:
     // Even if not in buffer
     while (decpt > 0 && precision > 0) { *dest++ = zero + Char('0'); decpt--; precision--; }
 
-    if ((fmt & FormatFlags::Alternate) != 0 || bufCur != bufEnd)
+    if ((fmt & FORMAT_ALTERNATE_FORM) != 0 || bufCur != bufEnd)
     {
       if (dest == save) *dest++ = zero + Char('0');
-      *dest++ = l.getDecimalPoint();
+      *dest++ = l.getChar(LOCALE_CHAR_DECIMAL_POINT);
       while (decpt < 0 && precision > 0) { *dest++ = zero + Char('0'); decpt++; precision--; }
 
       // Print rest of stuff
@@ -1135,9 +1139,9 @@ __ret:
   {
     sysuint_t fill = width - numberLength;
 
-    if ((fmt & FormatFlags::LeftAdjusted) == 0)
+    if ((fmt & FORMAT_LEFT_ADJUSTED) == 0)
     {
-      if (savedPrecision == FormatFlags::NoPrecision)
+      if (savedPrecision == NO_PRECISION)
         err |= insert(beginLength + (sign.ch() != 0), zero + Char('0'), fill);
       else
         err |= insert(beginLength, Char(' '), fill);
@@ -1153,8 +1157,6 @@ __ret:
 err_t String::appendFormat(const char* fmt, ...)
 {
   FOG_ASSERT(fmt);
-
-  clear();
 
   va_list ap;
   va_start(ap, fmt);
@@ -1182,7 +1184,7 @@ err_t String::appendVformat(const char* fmt, va_list ap)
   }                                                  \
 }
 
-  if (fmt == NULL) return Error::InvalidArgument;
+  if (fmt == NULL) return ERR_RT_INVALID_ARGUMENT;
 
   const char* fmtBeginChunk = fmt;
   uint32_t c;
@@ -1196,8 +1198,8 @@ err_t String::appendVformat(const char* fmt, va_list ap)
     {
       uint directives = 0;
       uint sizeFlags = 0;
-      sysuint_t fieldWidth = FormatFlags::NoWidth;
-      sysuint_t precision = FormatFlags::NoPrecision;
+      sysuint_t fieldWidth = NO_WIDTH;
+      sysuint_t precision = NO_PRECISION;
       uint base = 10;
 
       if (fmtBeginChunk != fmt) append(Ascii8(fmtBeginChunk, (sysuint_t)(fmt - fmtBeginChunk)));
@@ -1207,12 +1209,12 @@ err_t String::appendVformat(const char* fmt, va_list ap)
       {
         c = (uint8_t)*(++fmt);
 
-        if      (c == '#')  directives |= FormatFlags::Alternate;
-        else if (c == '0')  directives |= FormatFlags::ZeroPadded;
-        else if (c == '-')  directives |= FormatFlags::LeftAdjusted;
-        else if (c == ' ')  directives |= FormatFlags::BlankPositive;
-        else if (c == '+')  directives |= FormatFlags::ShowSign;
-        else if (c == '\'') directives |= FormatFlags::ThousandsGroup;
+        if      (c == '#')  directives |= FORMAT_ALTERNATE_FORM;
+        else if (c == '0')  directives |= FORMAT_ZERO_PADDED;
+        else if (c == '-')  directives |= FORMAT_LEFT_ADJUSTED;
+        else if (c == ' ')  directives |= FORMAT_BLANK_POSITIVE;
+        else if (c == '+')  directives |= FORMAT_SHOW_SIGN;
+        else if (c == '\'') directives |= FORMAT_THOUSANDS_GROUP;
         else break;
       }
 
@@ -1254,15 +1256,15 @@ err_t String::appendVformat(const char* fmt, va_list ap)
       // Parse argument type.
       enum
       {
-        Arg_Size_H   = 0x01,
-        Arg_Size_HH  = 0x02,
-        Arg_Size_L   = 0x04,
-        Arg_Size_LL  = 0x08,
-        Arg_Size_M   = 0x10,
+        ARG_SIZE_H   = 0x01,
+        ARG_SIZE_HH  = 0x02,
+        ARG_SIZE_L   = 0x04,
+        ARG_SIZE_LL  = 0x08,
+        ARG_SIZE_M   = 0x10,
 #if (CORE_ARCH_BITS == 32)
-        Arg_Size_64  = Arg_Size_LL
+        ARG_SIZE_64  = ARG_SIZE_LL
 #else
-        Arg_Size_64  = Arg_Size_L
+        ARG_SIZE_64  = ARG_SIZE_L
 #endif
       };
 
@@ -1273,18 +1275,18 @@ err_t String::appendVformat(const char* fmt, va_list ap)
         if (c == 'h')
         {
           c = (uint8_t)*(++fmt);
-          sizeFlags |= Arg_Size_HH;
+          sizeFlags |= ARG_SIZE_HH;
         }
         else
         {
-          sizeFlags |= Arg_Size_H;
+          sizeFlags |= ARG_SIZE_H;
         }
       }
       // 'L'.
       else if (c == 'L')
       {
         c = (uint8_t)*(++fmt);
-        sizeFlags |= Arg_Size_LL;
+        sizeFlags |= ARG_SIZE_LL;
       }
       // 'l' and 'll'.
       else if (c == 'l')
@@ -1293,42 +1295,42 @@ err_t String::appendVformat(const char* fmt, va_list ap)
         if (c == 'l')
         {
           c = (uint8_t)*(++fmt);
-          sizeFlags |= Arg_Size_LL;
+          sizeFlags |= ARG_SIZE_LL;
         }
         else
         {
-          sizeFlags |= Arg_Size_L;
+          sizeFlags |= ARG_SIZE_L;
         }
       }
       // 'j'.
       else if (c == 'j')
       {
         c = (uint8_t)*(++fmt);
-        sizeFlags |= Arg_Size_LL;
+        sizeFlags |= ARG_SIZE_LL;
       }
       // 'z'.
       else if (c == 'z' || c == 'Z')
       {
         c = (uint8_t)*(++fmt);
         if (sizeof(size_t) > sizeof(long))
-          sizeFlags |= Arg_Size_LL;
+          sizeFlags |= ARG_SIZE_LL;
         else if (sizeof(size_t) > sizeof(int))
-          sizeFlags |= Arg_Size_L;
+          sizeFlags |= ARG_SIZE_L;
       }
       // 't'.
       else if (c == 't')
       {
         c = (uint8_t)*(++fmt);
         if (sizeof(ptrdiff_t) > sizeof(long))
-          sizeFlags |= Arg_Size_LL;
+          sizeFlags |= ARG_SIZE_LL;
         else if (sizeof(ptrdiff_t) > sizeof(int))
-          sizeFlags |= Arg_Size_L;
+          sizeFlags |= ARG_SIZE_L;
       }
       // 'M' = max type (Core extension).
       else if (c == 'M')
       {
         c = (uint8_t)*(++fmt);
-        sizeFlags |= Arg_Size_M;
+        sizeFlags |= ARG_SIZE_M;
       }
 
       // Parse conversion character.
@@ -1338,9 +1340,9 @@ err_t String::appendVformat(const char* fmt, va_list ap)
         case 'd':
         case 'i':
         {
-          int64_t i = (sizeFlags >= Arg_Size_64) ? va_arg(ap, int64_t) : va_arg(ap, int32_t);
+          int64_t i = (sizeFlags >= ARG_SIZE_64) ? va_arg(ap, int64_t) : va_arg(ap, int32_t);
 
-          if (precision == FormatFlags::NoPrecision && fieldWidth == FormatFlags::NoWidth && directives == 0)
+          if (precision == NO_PRECISION && fieldWidth == NO_WIDTH && directives == 0)
             appendInt(i, base);
           else
             appendInt(i, base, FormatFlags(precision, fieldWidth, directives));
@@ -1352,15 +1354,15 @@ err_t String::appendVformat(const char* fmt, va_list ap)
           base = 8;
           goto ffUnsigned;
         case 'X':
-          directives |= FormatFlags::Capitalize;
+          directives |= FORMAT_CAPITALIZE;
         case 'x':
           base = 16;
         case 'u':
 ffUnsigned:
         {
-          uint64_t i = (sizeFlags >= Arg_Size_64) ? va_arg(ap, uint64_t) : va_arg(ap, uint32_t);
+          uint64_t i = (sizeFlags >= ARG_SIZE_64) ? va_arg(ap, uint64_t) : va_arg(ap, uint32_t);
 
-          if (precision == FormatFlags::NoPrecision && fieldWidth == FormatFlags::NoWidth && directives == 0)
+          if (precision == NO_PRECISION && fieldWidth == NO_WIDTH && directives == 0)
             appendInt(i, base);
           else
             appendInt(i, base, FormatFlags(precision, fieldWidth, directives));
@@ -1371,7 +1373,7 @@ ffUnsigned:
         case 'F':
         case 'E':
         case 'G':
-          directives |= FormatFlags::CapitalizeEOrX;
+          directives |= FORMAT_CAPITALIZE_E_OR_X;
         case 'f':
         case 'e':
         case 'g':
@@ -1380,11 +1382,11 @@ ffUnsigned:
           uint doubleForm = 0; // Be quite
 
           if (c == 'e' || c == 'E')
-            doubleForm = DF_Exponent;
+            doubleForm = DF_EXPONENT;
           else if (c == 'f' || c == 'F')
-            doubleForm = DF_Decimal;
+            doubleForm = DF_DECIMAL;
           else if (c == 'g' || c == 'G')
-            doubleForm = DF_SignificantDigits;
+            doubleForm = DF_SIGNIFICANT_DIGITS;
 
           i = va_arg(ap, double);
           appendDouble(i, doubleForm, FormatFlags(precision, fieldWidth, directives));
@@ -1393,37 +1395,37 @@ ffUnsigned:
 
         // Characters (latin1 or unicode...).
         case 'C':
-          sizeFlags |= Arg_Size_L;
+          sizeFlags |= ARG_SIZE_L;
         case 'c':
         {
-          if (precision == FormatFlags::NoPrecision) precision = 1;
-          if (fieldWidth == FormatFlags::NoWidth) fieldWidth = 0;
+          if (precision == NO_PRECISION) precision = 1;
+          if (fieldWidth == NO_WIDTH) fieldWidth = 0;
 
           sysuint_t fill = (fieldWidth > precision) ? fieldWidth - precision : 0;
 
-          if (fill && (directives & FormatFlags::LeftAdjusted) == 0) append(Char(' '), fill);
+          if (fill && (directives & FORMAT_LEFT_ADJUSTED) == 0) append(Char(' '), fill);
           append(Char(va_arg(ap, uint)), precision);
-          if (fill && (directives & FormatFlags::LeftAdjusted) != 0) append(Char(' '), fill);
+          if (fill && (directives & FORMAT_LEFT_ADJUSTED) != 0) append(Char(' '), fill);
           break;
         }
 
         // Strings.
         case 'S':
 #if FOG_SIZEOF_WCHAR_T == 2
-          sizeFlags |= Arg_Size_L;
+          sizeFlags |= ARG_SIZE_L;
 #else
-          sizeFlags |= Arg_Size_LL;
+          sizeFlags |= ARG_SIZE_LL;
 #endif
         case 's':
-          if (fieldWidth == FormatFlags::NoWidth) fieldWidth = 0;
+          if (fieldWidth == NO_WIDTH) fieldWidth = 0;
 
           // TODO: Not correct.
-          if (sizeFlags >= Arg_Size_LL)
+          if (sizeFlags >= ARG_SIZE_LL)
           {
 #if 0
             // UTF-32 string (uint32_t*).
             const uint32_t* s = va_arg(ap, const uint32_t*);
-            sysuint_t slen = (precision != FormatFlags::NoPrecision)
+            sysuint_t slen = (precision != NO_PRECISION)
               ? (sysuint_t)StringUtil::nlen(s, precision)
               : (sysuint_t)StringUtil::len(s);
 
@@ -1433,50 +1435,53 @@ ffUnsigned:
             slen = s16.getLength();
             sysuint_t fill = (fieldWidth > slen) ? fieldWidth - slen : 0;
 
-            if (fill && (directives & FormatFlags::LeftAdjusted) == 0) append(Char(' '), fill);
+            if (fill && (directives & FORMAT_LEFT_ADJUSTED) == 0) append(Char(' '), fill);
             append(s16);
-            if (fill && (directives & FormatFlags::LeftAdjusted) != 0) append(Char(' '), fill);
+            if (fill && (directives & FORMAT_LEFT_ADJUSTED) != 0) append(Char(' '), fill);
 #endif
           }
-          else if (sizeFlags >= Arg_Size_L)
+          else if (sizeFlags >= ARG_SIZE_L)
           {
 #if 0
             // UTF-16 string (Char*).
             const Char* s = va_arg(ap, const Char*);
-            sysuint_t slen = (precision != FormatFlags::NoPrecision)
+            sysuint_t slen = (precision != NO_PRECISION)
               ? (sysuint_t)StringUtil::nlen(s, precision)
               : (sysuint_t)StringUtil::len(s);
             sysuint_t fill = (fieldWidth > slen) ? fieldWidth - slen : 0;
 
-            if (fill && (directives & FormatFlags::LeftAdjusted) == 0) append(Char(' '), fill);
+            if (fill && (directives & FORMAT_LEFT_ADJUSTED) == 0) append(Char(' '), fill);
             append(s, slen);
-            if (fill && (directives & FormatFlags::LeftAdjusted) != 0) append(Char(' '), fill);
+            if (fill && (directives & FORMAT_LEFT_ADJUSTED) != 0) append(Char(' '), fill);
 #endif
           }
           else
           {
-#if 0
             // 8-bit string (char*).
+            TemporaryString<TEMP_LENGTH> str;
+
             const char* s = va_arg(ap, const char*);
-            sysuint_t slen = (precision != FormatFlags::NoPrecision)
+            sysuint_t slen = (precision != NO_PRECISION)
               ? (sysuint_t)StringUtil::nlen(s, precision)
               : (sysuint_t)StringUtil::len(s);
+
+            TextCodec::local8().appendToUnicode(str, s, slen);
+            slen = str.getLength();
             sysuint_t fill = (fieldWidth > slen) ? fieldWidth - slen : 0;
 
-            if (fill && (directives & FormatFlags::LeftAdjusted) == 0) append(Char(' '), fill);
-            append(Local8(s, slen));
-            if (fill && (directives & FormatFlags::LeftAdjusted) != 0) append(Char(' '), fill);
-#endif
+            if (fill && (directives & FORMAT_LEFT_ADJUSTED) == 0) append(Char(' '), fill);
+            append(str);
+            if (fill && (directives & FORMAT_LEFT_ADJUSTED) != 0) append(Char(' '), fill);
           }
           break;
 
         // Pointer.
         case 'p':
-          directives |= FormatFlags::Alternate;
+          directives |= FORMAT_ALTERNATE_FORM;
 #if FOG_ARCH_BITS == 32
           sizeFlags = 0;
 #elif FOG_ARCH_BITS == 64
-          sizeFlags = Arg_Size_LL;
+          sizeFlags = ARG_SIZE_LL;
 #endif // FOG_ARCH_BITS
           goto ffUnsigned;
 
@@ -1486,11 +1491,11 @@ ffUnsigned:
           void* pointer = va_arg(ap, void*);
           sysuint_t n = getLength() - beginLength;
           switch (sizeFlags) {
-            case Arg_Size_M:
-            case Arg_Size_LL: *(uint64_t *)pointer = (uint64_t)(n); break;
-            case Arg_Size_L:  *(ulong    *)pointer = (ulong   )(n); break;
-            case Arg_Size_HH: *(uchar    *)pointer = (uchar   )(n); break;
-            case Arg_Size_H:  *(uint16_t *)pointer = (uint16_t)(n); break;
+            case ARG_SIZE_M:
+            case ARG_SIZE_LL: *(uint64_t *)pointer = (uint64_t)(n); break;
+            case ARG_SIZE_L:  *(ulong    *)pointer = (ulong   )(n); break;
+            case ARG_SIZE_HH: *(uchar    *)pointer = (uchar   )(n); break;
+            case ARG_SIZE_H:  *(uint16_t *)pointer = (uint16_t)(n); break;
             default:          *(uint     *)pointer = (uint    )(n); break;
           }
           break;
@@ -1499,18 +1504,18 @@ ffUnsigned:
         // Extensions
         case 'W':
         {
-          if (fieldWidth == FormatFlags::NoWidth) fieldWidth = 0;
+          if (fieldWidth == NO_WIDTH) fieldWidth = 0;
 
           String* string = va_arg(ap, String*);
 
-          const Char* s = string->cData();
+          const Char* s = string->getData();
           sysuint_t slen = string->getLength();
-          if (precision != FormatFlags::NoPrecision)  slen = Math::min(slen, precision);
+          if (precision != NO_PRECISION)  slen = Math::min(slen, precision);
           sysuint_t fill = (fieldWidth > slen) ? fieldWidth - slen : 0;
 
-          if (fill && (directives & FormatFlags::LeftAdjusted) == 0) append(Char(' '), fill);
+          if (fill && (directives & FORMAT_LEFT_ADJUSTED) == 0) append(Char(' '), fill);
           append(Utf16(s, slen));
-          if (fill && (directives & FormatFlags::LeftAdjusted) != 0) append(Char(' '), fill);
+          if (fill && (directives & FORMAT_LEFT_ADJUSTED) != 0) append(Char(' '), fill);
           break;
         }
 
@@ -1537,23 +1542,23 @@ end:
 
     fmt++;
   }
-  return Error::Ok;
+  return ERR_OK;
 
 #undef __VFORMAT_PARSE_NUMBER
 }
 
-err_t String::appendWformat(const String& fmt, Char lex, const Sequence<String>& args)
+err_t String::appendWformat(const String& fmt, Char lex, const List<String>& args)
 {
-  return appendWformat(fmt, lex, args.cData(), args.getLength());
+  return appendWformat(fmt, lex, args.getData(), args.getLength());
 }
 
 err_t String::appendWformat(const String& fmt, Char lex, const String* args, sysuint_t length)
 {
-  const Char* fmtBeg = fmt.cData();
+  const Char* fmtBeg = fmt.getData();
   const Char* fmtEnd = fmtBeg + fmt.getLength();
   const Char* fmtCur;
 
-  err_t err = Error::Ok;
+  err_t err = ERR_OK;
 
   for (fmtCur = fmtBeg; fmtCur != fmtEnd; )
   {
@@ -1623,39 +1628,39 @@ err_t String::prepend(const String& other)
 
 err_t String::insert(sysuint_t index, Char ch, sysuint_t length)
 {
-  if (length == DetectLength) return Error::InvalidArgument;
+  if (length == DETECT_LENGTH) return ERR_RT_INVALID_ARGUMENT;
 
   Char* p = _prepareInsert(this, index, length);
-  if (!p) return Error::OutOfMemory;
+  if (!p) return ERR_RT_OUT_OF_MEMORY;
 
   StringUtil::fill(p, ch, length);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t String::insert(sysuint_t index, const Ascii8& str)
 {
   const char* s = str.getData();
-  sysuint_t length = (str.getLength() == DetectLength)
+  sysuint_t length = (str.getLength() == DETECT_LENGTH)
     ? StringUtil::len(s) : str.getLength();
 
   Char* p = _prepareInsert(this, index, length);
-  if (!p) return Error::OutOfMemory;
+  if (!p) return ERR_RT_OUT_OF_MEMORY;
 
   StringUtil::copy(p, s, length);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t String::insert(sysuint_t index, const Utf16& str)
 {
   const Char* s = str.getData();
-  sysuint_t length = (str.getLength() == DetectLength)
+  sysuint_t length = (str.getLength() == DETECT_LENGTH)
     ? StringUtil::len(s) : str.getLength();
 
   Char* p = _prepareInsert(this, index, length);
-  if (!p) return Error::OutOfMemory;
+  if (!p) return ERR_RT_OUT_OF_MEMORY;
 
   StringUtil::copy(p, s, length);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t String::insert(sysuint_t index, const String& _other)
@@ -1663,10 +1668,10 @@ err_t String::insert(sysuint_t index, const String& _other)
   String other(_other);
 
   Char* p = _prepareInsert(this, index, other.getLength());
-  if (!p) return Error::OutOfMemory;
+  if (!p) return ERR_RT_OUT_OF_MEMORY;
 
-  StringUtil::copy(p, other.cData(), other.getLength());
-  return Error::Ok;
+  StringUtil::copy(p, other.getData(), other.getLength());
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -1719,7 +1724,7 @@ sysuint_t String::remove(Char ch, uint cs, const Range& range)
   Char* strEnd = strCur + rlen;
   Char* destCur;
 
-  if (cs == CaseSensitive)
+  if (cs == CASE_SENSITIVE)
   {
 caseSensitive:
     while (strCur != strEnd)
@@ -1735,7 +1740,7 @@ caseSensitiveRemove:
       rstart = strCur - strBeg;
       rlen = strEnd - strCur;
 
-      if (detach() != Error::Ok) return 0;
+      if (detach() != ERR_OK) return 0;
 
       d = _d;
 
@@ -1773,7 +1778,7 @@ caseInsensitiveRemove:
       rstart = strCur - strBeg;
       rlen = strEnd - strCur;
 
-      if (detach() != Error::Ok) return 0;
+      if (detach() != ERR_OK) return 0;
       d = _d;
 
       strBeg = d->data;
@@ -1818,8 +1823,8 @@ sysuint_t String::remove(const String& other, uint cs, const Range& range)
   else
   {
     // Match using naive algorithm.
-    const Char* aStr = cData();
-    const Char* bStr = other.cData();
+    const Char* aStr = getData();
+    const Char* bStr = other.getData();
 
     sysuint_t aLength = getLength();
     sysuint_t bLength = len;
@@ -1832,7 +1837,7 @@ sysuint_t String::remove(const String& other, uint cs, const Range& range)
     for (;;)
     {
       sysuint_t i = StringUtil::indexOf(aStr + rpos, rend - rpos, bStr, bLength);
-      if (i == InvalidIndex) break;
+      if (i == INVALID_INDEX) break;
       rpos += i;
 
       ranges[count].index = rpos;
@@ -1851,22 +1856,22 @@ sysuint_t String::remove(const StringFilter& filter, uint cs, const Range& range
   sysuint_t rstart, rlen;
   if (!fitToRange(*this, &rstart, &rlen, range)) return 0;
 
-  const Char* str = cData();
+  const Char* str = getData();
   sysuint_t len = getLength();
   sysuint_t rend = rstart + rlen;
 
-  Vector<Range> ranges;
+  List<Range> ranges;
 
   for (;;)
   {
     Range r = filter.indexOf(str, len, cs, Range(rstart, rstart - rend));
-    if (r.index == InvalidIndex) break;
+    if (r.index == INVALID_INDEX) break;
 
     ranges.append(r);
     rstart = r.index + r.length;
   }
 
-  return remove(ranges.cData(), ranges.getLength());
+  return remove(ranges.getData(), ranges.getLength());
 }
 
 sysuint_t String::remove(const Range* range, sysuint_t count)
@@ -1912,18 +1917,18 @@ sysuint_t String::remove(const Range* range, sysuint_t count)
 
     i = 0;
     Char* dstData = newd->data;
-    Char* srcData = _d->data;
+    Char* srgetData = _d->data;
 
     sysuint_t dstPos = range[0].index;
     sysuint_t srcPos = dstPos;
 
-    StringUtil::copy(dstData, srcData, dstPos);
+    StringUtil::copy(dstData, srgetData, dstPos);
 
     do {
       srcPos += range[i].length;
       sysuint_t j = ((++i == count) ? len : range[i].index) - srcPos;
 
-      StringUtil::copy(dstData + dstPos, srcData + srcPos, j);
+      StringUtil::copy(dstData + dstPos, srgetData + srcPos, j);
 
       dstPos += j;
       srcPos += j;
@@ -1944,16 +1949,16 @@ sysuint_t String::remove(const Range* range, sysuint_t count)
 err_t String::replace(const Range& range, const String& replacement)
 {
   sysuint_t rstart, rlen;
-  if (!fitToRange(*this, &rstart, &rlen, range)) return Error::Ok;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return ERR_OK;
 
-  const Char* replacementData = replacement.cData();
+  const Char* replacementData = replacement.getData();
   sysuint_t replacementLength = replacement.getLength();
 
   if (_d->refCount.get() == 1 && _d != replacement._d)
   {
     Char* s = _d->data + rstart;
     sysuint_t lengthAfter = _d->length - rlen + replacementLength;
-    if (lengthAfter < _d->length) return Error::Overflow;
+    if (lengthAfter < _d->length) return ERR_RT_OVERFLOW;
 
     if (_d->capacity >= lengthAfter)
     {
@@ -1963,7 +1968,7 @@ err_t String::replace(const Range& range, const String& replacement)
       _d->length = lengthAfter;
       _d->hashCode = 0;
       _d->data[lengthAfter] = 0;
-      return Error::Ok;
+      return ERR_OK;
     }
   }
 
@@ -1975,7 +1980,7 @@ err_t String::replace(Char before, Char after,
   uint cs, const Range& range)
 {
   sysuint_t rstart, rlen;
-  if (!fitToRange(*this, &rstart, &rlen, range)) return Error::Ok;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return ERR_OK;
 
   Data* d = _d;
   sysuint_t length = d->length;
@@ -1983,7 +1988,7 @@ err_t String::replace(Char before, Char after,
   Char* strCur = d->data + rstart;
   Char* strEnd = strCur + rlen;
 
-  if (cs == CaseSensitive)
+  if (cs == CASE_SENSITIVE)
   {
 caseSensitive:
     while (strCur != strEnd)
@@ -1991,7 +1996,7 @@ caseSensitive:
       if (*strCur == before) goto caseSensitiveReplace;
       strCur++;
     }
-    return Error::Ok;
+    return ERR_OK;
 
 caseSensitiveReplace:
     if (d->refCount.get() > 1)
@@ -2026,7 +2031,7 @@ caseSensitiveReplace:
       if (*strCur == beforeLower || *strCur == beforeUpper) goto caseInsensitiveReplace;
       strCur++;
     }
-    return Error::Ok;
+    return ERR_OK;
 
 caseInsensitiveReplace:
     if (d->refCount.get() > 1)
@@ -2050,7 +2055,7 @@ caseInsensitiveReplace:
     }
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t String::replace(const String& before, const String& after,
@@ -2073,8 +2078,8 @@ err_t String::replace(const String& before, const String& after,
   else
   {
     // Match using naive algorithm.
-    const Char* aStr = cData();
-    const Char* bStr = before.cData();
+    const Char* aStr = getData();
+    const Char* bStr = before.getData();
 
     sysuint_t aLength = getLength();
     sysuint_t bLength = len;
@@ -2087,7 +2092,7 @@ err_t String::replace(const String& before, const String& after,
     for (;;)
     {
       sysuint_t i = StringUtil::indexOf(aStr + rpos, rend - rpos, bStr, bLength);
-      if (i == InvalidIndex) break;
+      if (i == INVALID_INDEX) break;
       rpos += i;
 
       ranges[count].index = rpos;
@@ -2097,7 +2102,7 @@ err_t String::replace(const String& before, const String& after,
       rpos += bLength;
     }
 
-    return replace(ranges, count, after.cData(), after.getLength());
+    return replace(ranges, count, after.getData(), after.getLength());
   }
 }
 
@@ -2107,22 +2112,22 @@ err_t String::replace(const StringFilter& filter, const String& after,
   sysuint_t rstart, rlen;
   if (!fitToRange(*this, &rstart, &rlen, range)) return 0;
 
-  const Char* str = cData();
+  const Char* str = getData();
   sysuint_t len = getLength();
   sysuint_t rend = rstart + rlen;
 
-  Vector<Range> ranges;
+  List<Range> ranges;
 
   for (;;)
   {
     Range r = filter.indexOf(str, len, cs, Range(rstart, rstart - rend));
-    if (r.index == InvalidIndex) break;
+    if (r.index == INVALID_INDEX) break;
 
     ranges.append(r);
     rstart = r.index + r.length;
   }
 
-  return replace(ranges.cData(), ranges.getLength(), after.cData(), after.getLength());
+  return replace(ranges.getData(), ranges.getLength(), after.getData(), after.getLength());
 }
 
 err_t String::replace(const Range* m, sysuint_t mcount, const Char* after, sysuint_t alen)
@@ -2130,7 +2135,7 @@ err_t String::replace(const Range* m, sysuint_t mcount, const Char* after, sysui
   sysuint_t i;
   sysuint_t pos = 0;
   sysuint_t len = getLength();
-  const Char* cur = cData();
+  const Char* cur = getData();
 
   // Get total count of characters we remove.
   sysuint_t mTotal = 0;
@@ -2143,7 +2148,7 @@ err_t String::replace(const Range* m, sysuint_t mcount, const Char* after, sysui
   sysuint_t lenAfter = len - mTotal + aTotal;
 
   Data* newd = Data::alloc(lenAfter);
-  if (!newd) return Error::OutOfMemory;
+  if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
   Char* p = newd->data;
   sysuint_t remain = lenAfter;
@@ -2183,11 +2188,11 @@ err_t String::replace(const Range* m, sysuint_t mcount, const Char* after, sysui
   newd->data[lenAfter] = 0;
 
   AtomicBase::ptr_setXchg(&_d, newd)->deref();
-  return Error::Ok;
+  return ERR_OK;
 
 overflow:
   newd->deref();
-  return Error::Overflow;
+  return ERR_RT_OVERFLOW;
 }
 
 // ============================================================================
@@ -2205,7 +2210,7 @@ err_t String::lower()
   {
     if (strCur->isUpper()) goto modify;
   }
-  return Error::Ok;
+  return ERR_OK;
 
 modify:
   {
@@ -2225,7 +2230,7 @@ modify:
     }
   }
   d->hashCode = 0;
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t String::upper()
@@ -2239,7 +2244,7 @@ err_t String::upper()
   {
     if (strCur->isLower()) goto modify;
   }
-  return Error::Ok;
+  return ERR_OK;
 
 modify:
   {
@@ -2259,7 +2264,7 @@ modify:
     }
   }
   d->hashCode = 0;
-  return Error::Ok;
+  return ERR_OK;
 }
 
 String String::lowered() const
@@ -2285,7 +2290,7 @@ err_t String::trim()
   Data* d = _d;
   sysuint_t len = d->length;
 
-  if (!len) return Error::Ok;
+  if (!len) return ERR_OK;
 
   const Char* strCur = d->data;
   const Char* strEnd = strCur + len;
@@ -2299,7 +2304,7 @@ err_t String::trim()
     if (d->refCount.get() > 1)
     {
       Data* newd = Data::alloc(len, strCur, len);
-      if (!newd) return Error::OutOfMemory;
+      if (!newd) return ERR_RT_OUT_OF_MEMORY;
       AtomicBase::ptr_setXchg(&_d, newd)->deref();
     }
     else
@@ -2311,7 +2316,7 @@ err_t String::trim()
     }
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t String::simplify()
@@ -2319,7 +2324,7 @@ err_t String::simplify()
   Data* d = _d;
   sysuint_t len = d->length;
 
-  if (!len) return Error::Ok;
+  if (!len) return ERR_OK;
 
   const Char* strBeg;
   const Char* strCur = d->data;
@@ -2340,7 +2345,7 @@ err_t String::simplify()
   {
     if (strCur[0].isSpace() && strCur[1].isSpace()) goto simp;
   }
-  return Error::Ok;
+  return ERR_OK;
 
 simp:
   strCur = strBeg;
@@ -2355,7 +2360,7 @@ simp:
   if (d->refCount.get() > 1)
   {
     Data* newd = Data::alloc((sysuint_t)(strEnd - strCur));
-    if (!newd) return Error::OutOfMemory;
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
     _d = newd;
   }
   else
@@ -2377,18 +2382,18 @@ simp:
 
   d->deref();
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t String::truncate(sysuint_t n)
 {
   Data* d = _d;
-  if (d->length <= n) return Error::Ok;
+  if (d->length <= n) return ERR_OK;
 
   if (d->refCount.get() > 1)
   {
     Data* newd = Data::alloc(n, d->data, n);
-    if (!newd) return Error::OutOfMemory;
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
     AtomicBase::ptr_setXchg(&_d, newd)->deref();
   }
   else
@@ -2397,7 +2402,7 @@ err_t String::truncate(sysuint_t n)
     d->data[d->length] = 0;
     d->hashCode = 0;
   }
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t String::justify(sysuint_t n, Char fill, uint32_t flags)
@@ -2405,22 +2410,22 @@ err_t String::justify(sysuint_t n, Char fill, uint32_t flags)
   Data* d = _d;
   sysuint_t length = d->length;
 
-  if (n <= length) return Error::Ok;
+  if (n <= length) return ERR_OK;
 
   sysuint_t t = n - length;
   sysuint_t left = 0;
   sysuint_t right = 0;
 
-  if ((flags & CenterJustify) == CenterJustify)
+  if ((flags & JUSTIFY_CENTER) == JUSTIFY_CENTER)
   {
     left = t >> 1;
     right = t - left;
   }
-  else if ((flags & LeftJustify) == LeftJustify)
+  else if ((flags & JUSTIFY_LEFT) == JUSTIFY_LEFT)
   {
     right = t;
   }
-  else if ((flags & RightJustify) == RightJustify)
+  else if ((flags & JUSTIFY_RIGHT) == JUSTIFY_RIGHT)
   {
     left = t;
   }
@@ -2463,9 +2468,9 @@ String String::justified(sysuint_t n, Char fill, uint32_t flags) const
 // [Fog::String - Split / Join]
 // ============================================================================
 
-Vector<String> String::split(Char ch, uint splitBehavior, uint cs) const
+List<String> String::split(Char ch, uint splitBehavior, uint cs) const
 {
-  Vector<String> result;
+  List<String> result;
   Data* d = _d;
 
   if (d->length == 0) return result;
@@ -2474,7 +2479,7 @@ Vector<String> String::split(Char ch, uint splitBehavior, uint cs) const
   const Char* strCur = strBeg;
   const Char* strEnd = strCur + d->length;
 
-  if (cs == CaseSensitive)
+  if (cs == CASE_SENSITIVE)
   {
 __caseSensitive:
     for (;;)
@@ -2482,7 +2487,7 @@ __caseSensitive:
       if (strCur == strEnd || *strCur == ch)
       {
         sysuint_t splitLength = (sysuint_t)(strCur - strBeg);
-        if ((splitLength == 0 && splitBehavior == KeepEmptyParts) || splitLength != 0)
+        if ((splitLength == 0 && splitBehavior == SPLIT_KEEP_EMPTY_PARTS) || splitLength != 0)
         {
           result.append(String(strBeg, splitLength));
         }
@@ -2504,7 +2509,7 @@ __caseSensitive:
       if (strCur == strEnd || *strCur == cLower || *strCur == cUpper)
       {
         sysuint_t splitLength = (sysuint_t)(strCur - strBeg);
-        if ((splitLength == 0 && splitBehavior == KeepEmptyParts) || splitLength != 0)
+        if ((splitLength == 0 && splitBehavior == SPLIT_KEEP_EMPTY_PARTS) || splitLength != 0)
         {
           result.append(String(strBeg, splitLength));
         }
@@ -2518,13 +2523,13 @@ __caseSensitive:
   return result;
 }
 
-Vector<String> String::split(const String& pattern, uint splitBehavior, uint cs) const
+List<String> String::split(const String& pattern, uint splitBehavior, uint cs) const
 {
   sysuint_t plen = pattern.getLength();
 
   if (!plen)
   {
-    Vector<String> result;
+    List<String> result;
     result.append(*this);
     return result;
   }
@@ -2539,9 +2544,9 @@ Vector<String> String::split(const String& pattern, uint splitBehavior, uint cs)
   }
 }
 
-Vector<String> String::split(const StringFilter& filter, uint splitBehavior, uint cs) const
+List<String> String::split(const StringFilter& filter, uint splitBehavior, uint cs) const
 {
-  Vector<String> result;
+  List<String> result;
   Data* d = _d;
 
   sysuint_t length = d->length;
@@ -2553,12 +2558,12 @@ Vector<String> String::split(const StringFilter& filter, uint splitBehavior, uin
   {
     sysuint_t remain = (sysuint_t)(strEnd - strCur);
     Range m = filter.match(strCur, remain, cs, Range(0, remain));
-    sysuint_t splitLength = (m.index != InvalidIndex) ? m.index : remain;
+    sysuint_t splitLength = (m.index != INVALID_INDEX) ? m.index : remain;
 
-    if ((splitLength == 0 && splitBehavior == KeepEmptyParts) || splitLength != 0)
+    if ((splitLength == 0 && splitBehavior == SPLIT_KEEP_EMPTY_PARTS) || splitLength != 0)
       result.append(String(strCur, splitLength));
 
-    if (m.index == InvalidIndex) break;
+    if (m.index == INVALID_INDEX) break;
 
     strCur += m.index;
     strCur += m.length;
@@ -2567,20 +2572,20 @@ Vector<String> String::split(const StringFilter& filter, uint splitBehavior, uin
   return result;
 }
 
-String String::join(const Sequence<String>& seq, const Char separator)
+String String::join(const List<String>& seq, const Char separator)
 {
   TemporaryString<1> sept(separator);
   return join(seq, sept);
 }
 
-String String::join(const Sequence<String>& seq, const String& separator)
+String String::join(const List<String>& seq, const String& separator)
 {
   String result;
 
   sysuint_t seqLength = 0;
   sysuint_t sepLength = separator.getLength();
 
-  Sequence<String>::ConstIterator it(seq);
+  List<String>::ConstIterator it(seq);
 
   for (it.toStart(); it.isValid(); it.toNext())
   {
@@ -2599,10 +2604,10 @@ String String::join(const Sequence<String>& seq, const String& separator)
   }
 
   // Allocate memory for all strings in seq and for separators
-  if (result.reserve(seqLength) != Error::Ok) return result;
+  if (result.reserve(seqLength) != ERR_OK) return result;
 
   Char* cur = result._d->data;
-  const Char* sep = separator.cData();
+  const Char* sep = separator.getData();
 
   // Serialize
   for (it.toStart(); it.isValid(); it.toNext())
@@ -2615,7 +2620,7 @@ String String::join(const Sequence<String>& seq, const String& separator)
       cur += sepLength;
     }
 
-    StringUtil::copy(cur, it.value().cData(), len);
+    StringUtil::copy(cur, it.value().getData(), len);
     cur += len;
   }
 
@@ -2633,7 +2638,7 @@ String String::substring(const Range& range) const
   String ret;
 
   sysuint_t rstart, rlen;
-  if (fitToRange(*this, &rstart, &rlen, range)) ret.set(Utf16(cData() + rstart, rlen));
+  if (fitToRange(*this, &rstart, &rlen, range)) ret.set(Utf16(getData() + rstart, rlen));
 
   return ret;
 }
@@ -2644,63 +2649,63 @@ String String::substring(const Range& range) const
 
 err_t String::atob(bool* dst, int base, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atob(cData(), getLength(), dst, end, parserFlags);
+  return StringUtil::atob(getData(), getLength(), dst, end, parserFlags);
 }
 
 err_t String::atoi8(int8_t* dst, int base, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atoi8(cData(), getLength(), dst, base, end, parserFlags);
+  return StringUtil::atoi8(getData(), getLength(), dst, base, end, parserFlags);
 }
 
 err_t String::atou8(uint8_t* dst, int base, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atou8(cData(), getLength(), dst, base, end, parserFlags);
+  return StringUtil::atou8(getData(), getLength(), dst, base, end, parserFlags);
 }
 
 err_t String::atoi16(int16_t* dst, int base, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atoi16(cData(), getLength(), dst, base, end, parserFlags);
+  return StringUtil::atoi16(getData(), getLength(), dst, base, end, parserFlags);
 }
 
 err_t String::atou16(uint16_t* dst, int base, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atou16(cData(), getLength(), dst, base, end, parserFlags);
+  return StringUtil::atou16(getData(), getLength(), dst, base, end, parserFlags);
 }
 
 err_t String::atoi32(int32_t* dst, int base, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atoi32(cData(), getLength(), dst, base, end, parserFlags);
+  return StringUtil::atoi32(getData(), getLength(), dst, base, end, parserFlags);
 }
 
 err_t String::atou32(uint32_t* dst, int base, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atou32(cData(), getLength(), dst, base, end, parserFlags);
+  return StringUtil::atou32(getData(), getLength(), dst, base, end, parserFlags);
 }
 
 err_t String::atoi64(int64_t* dst, int base, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atoi64(cData(), getLength(), dst, base, end, parserFlags);
+  return StringUtil::atoi64(getData(), getLength(), dst, base, end, parserFlags);
 }
 
 err_t String::atou64(uint64_t* dst, int base, sysuint_t* end, uint32_t* parserFlags) const
 {
-  return StringUtil::atou64(cData(), getLength(), dst, base, end, parserFlags);
+  return StringUtil::atou64(getData(), getLength(), dst, base, end, parserFlags);
 }
 
 err_t String::atof(float* dst, const Locale* locale, sysuint_t* end, uint32_t* parserFlags) const
 {
   if (locale == NULL) locale = &Locale::posix();
 
-  return StringUtil::atof(cData(), getLength(), dst,
-    Char(locale->getDecimalPoint().ch()), end, parserFlags);
+  return StringUtil::atof(getData(), getLength(), dst,
+    locale->getChar(LOCALE_CHAR_DECIMAL_POINT), end, parserFlags);
 }
 
 err_t String::atod(double* dst, const Locale* locale, sysuint_t* end, uint32_t* parserFlags) const
 {
   if (locale == NULL) locale = &Locale::posix();
 
-  return StringUtil::atod(cData(), getLength(), dst,
-    Char(locale->getDecimalPoint().ch()), end, parserFlags);
+  return StringUtil::atod(getData(), getLength(), dst,
+    locale->getChar(LOCALE_CHAR_DECIMAL_POINT), end, parserFlags);
 }
 
 // ============================================================================
@@ -2712,7 +2717,7 @@ bool String::contains(Char ch,
 {
   sysuint_t rstart, rlen;
   if (fitToRange(*this, &rstart, &rlen, range))
-    return StringUtil::indexOf(cData() + rstart, rlen, ch, cs) != InvalidIndex;
+    return StringUtil::indexOf(getData() + rstart, rlen, ch, cs) != INVALID_INDEX;
   else
     return false;
 }
@@ -2720,14 +2725,14 @@ bool String::contains(Char ch,
 bool String::contains(const String& pattern,
   uint cs, const Range& range) const
 {
-  return indexOf(pattern, cs, range) != InvalidIndex;
+  return indexOf(pattern, cs, range) != INVALID_INDEX;
 }
 
 bool String::contains(const StringFilter& filter,
   uint cs, const Range& range) const
 {
-  Range m = filter.indexOf(cData(), getLength(), cs, range);
-  return m.index != InvalidIndex;
+  Range m = filter.indexOf(getData(), getLength(), cs, range);
+  return m.index != INVALID_INDEX;
 }
 
 // ============================================================================
@@ -2739,7 +2744,7 @@ sysuint_t String::countOf(Char ch,
 {
   sysuint_t rstart, rlen;
   if (fitToRange(*this, &rstart, &rlen, range))
-    return StringUtil::countOf(cData() + rstart, rlen, ch, cs);
+    return StringUtil::countOf(getData() + rstart, rlen, ch, cs);
   else
     return 0;
 }
@@ -2765,8 +2770,8 @@ sysuint_t String::countOf(const String& pattern,
   else
   {
     // Match using naive algorithm.
-    const Char* aStr = cData();
-    const Char* bStr = pattern.cData();
+    const Char* aStr = getData();
+    const Char* bStr = pattern.getData();
 
     sysuint_t aLength = getLength();
     sysuint_t bLength = len;
@@ -2779,7 +2784,7 @@ sysuint_t String::countOf(const String& pattern,
     for (;;)
     {
       sysuint_t i = StringUtil::indexOf(aStr + rpos, rend - rpos, bStr, bLength);
-      if (i == InvalidIndex) break;
+      if (i == INVALID_INDEX) break;
       rpos += i;
 
       count++;
@@ -2796,7 +2801,7 @@ sysuint_t String::countOf(const StringFilter& filter,
   sysuint_t rstart, rlen;
   if (!fitToRange(*this, &rstart, &rlen, range)) return 0;
 
-  const Char* str = cData();
+  const Char* str = getData();
   sysuint_t len = getLength();
   sysuint_t rend = rstart + rlen;
   sysuint_t count = 0;
@@ -2804,7 +2809,7 @@ sysuint_t String::countOf(const StringFilter& filter,
   for (;;)
   {
     Range r = filter.indexOf(str, len, cs, Range(rstart, rstart - rend));
-    if (r.index == InvalidIndex) break;
+    if (r.index == INVALID_INDEX) break;
 
     count++;
     rstart = r.index + r.length;
@@ -2821,20 +2826,20 @@ sysuint_t String::indexOf(Char ch,
   uint cs, const Range& range) const
 {
   sysuint_t rstart, rlen;
-  if (!fitToRange(*this, &rstart, &rlen, range)) return InvalidIndex;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return INVALID_INDEX;
 
-  sysuint_t i = StringUtil::indexOf(cData() + rstart, rlen, ch, cs);
-  return i != InvalidIndex ? i + rstart : i;
+  sysuint_t i = StringUtil::indexOf(getData() + rstart, rlen, ch, cs);
+  return i != INVALID_INDEX ? i + rstart : i;
 }
 
 sysuint_t String::indexOf(const String& pattern,
   uint cs, const Range& range) const
 {
   sysuint_t rstart, rlen;
-  if (!fitToRange(*this, &rstart, &rlen, range)) return InvalidIndex;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return INVALID_INDEX;
 
   sysuint_t len = pattern.getLength();
-  if (len == 0) return InvalidIndex;
+  if (len == 0) return INVALID_INDEX;
   if (len == 1) return indexOf(pattern.at(0), cs, range);
 
   if (rlen >= 256)
@@ -2848,8 +2853,8 @@ sysuint_t String::indexOf(const String& pattern,
   else
   {
     // Match using naive algorithm.
-    sysuint_t i = StringUtil::indexOf(cData() + rstart, rlen, pattern.cData(), len, cs);
-    return (i == InvalidIndex) ? i : i + rstart;
+    sysuint_t i = StringUtil::indexOf(getData() + rstart, rlen, pattern.getData(), len, cs);
+    return (i == INVALID_INDEX) ? i : i + rstart;
   }
 }
 
@@ -2857,9 +2862,9 @@ sysuint_t String::indexOf(const StringFilter& filter,
   uint cs, const Range& range) const
 {
   sysuint_t rstart, rlen;
-  if (!fitToRange(*this, &rstart, &rlen, range)) return InvalidIndex;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return INVALID_INDEX;
 
-  Range m = filter.match(cData(), getLength(), cs, Range(rstart, rlen));
+  Range m = filter.match(getData(), getLength(), cs, Range(rstart, rlen));
   return m.index;
 }
 
@@ -2867,20 +2872,20 @@ sysuint_t String::lastIndexOf(Char ch,
   uint cs, const Range& range) const
 {
   sysuint_t rstart, rlen;
-  if (!fitToRange(*this, &rstart, &rlen, range)) return InvalidIndex;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return INVALID_INDEX;
 
-  sysuint_t i = StringUtil::lastIndexOf(cData() + rstart, rlen, ch, cs);
-  return i != InvalidIndex ? i + rstart : i;
+  sysuint_t i = StringUtil::lastIndexOf(getData() + rstart, rlen, ch, cs);
+  return i != INVALID_INDEX ? i + rstart : i;
 }
 
 sysuint_t String::lastIndexOf(const String& pattern,
   uint cs, const Range& range) const
 {
   sysuint_t rstart, rlen;
-  if (!fitToRange(*this, &rstart, &rlen, range)) return InvalidIndex;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return INVALID_INDEX;
 
   sysuint_t len = pattern.getLength();
-  if (len == 0) return InvalidIndex;
+  if (len == 0) return INVALID_INDEX;
   if (len == 1) return lastIndexOf(pattern.at(0), cs, range);
 
   if (rlen >= 256)
@@ -2894,15 +2899,15 @@ sysuint_t String::lastIndexOf(const String& pattern,
   else
   {
     // Match using naive algorithm.
-    const Char* aData = cData();
-    const Char* bData = pattern.cData();
+    const Char* aData = getData();
+    const Char* bData = pattern.getData();
 
-    sysuint_t result = InvalidIndex;
+    sysuint_t result = INVALID_INDEX;
 
     for (;;)
     {
       sysuint_t i = StringUtil::indexOf(aData + rstart, rlen, bData, len);
-      if (i == InvalidIndex) break;
+      if (i == INVALID_INDEX) break;
 
       result = i + rstart;
 
@@ -2918,14 +2923,14 @@ sysuint_t String::lastIndexOf(const StringFilter& filter,
   uint cs, const Range& range) const
 {
   sysuint_t rstart, rlen;
-  if (!fitToRange(*this, &rstart, &rlen, range)) return InvalidIndex;
+  if (!fitToRange(*this, &rstart, &rlen, range)) return INVALID_INDEX;
 
-  sysuint_t result = InvalidIndex;
+  sysuint_t result = INVALID_INDEX;
 
   for (;;)
   {
-    Range m = filter.match(cData(), getLength(), cs, Range(rstart, rlen));
-    if (m.index == InvalidIndex) break;
+    Range m = filter.match(getData(), getLength(), cs, Range(rstart, rlen));
+    if (m.index == INVALID_INDEX) break;
 
     result = m.index;
 
@@ -2945,72 +2950,72 @@ bool String::startsWith(const Ascii8& str, uint cs) const
 {
   const char* s = str.getData();
   sysuint_t len = str.getLength();
-  if (len == DetectLength) len = StringUtil::len(s);
+  if (len == DETECT_LENGTH) len = StringUtil::len(s);
 
-  return getLength() >= len && StringUtil::eq(cData(), s, len, cs);
+  return getLength() >= len && StringUtil::eq(getData(), s, len, cs);
 }
 
 bool String::startsWith(const Utf16& str, uint cs) const
 {
   const Char* s = str.getData();
   sysuint_t len = str.getLength();
-  if (len == DetectLength) len = StringUtil::len(s);
+  if (len == DETECT_LENGTH) len = StringUtil::len(s);
 
-  return getLength() >= len && StringUtil::eq(cData(), s, len, cs);
+  return getLength() >= len && StringUtil::eq(getData(), s, len, cs);
 }
 
 bool String::startsWith(const String& str, uint cs) const
 {
   return getLength() >= str.getLength() &&
-    StringUtil::eq(cData(), str.cData(), str.getLength(), cs);
+    StringUtil::eq(getData(), str.getData(), str.getLength(), cs);
 }
 
 bool String::startsWith(const StringFilter& filter, uint cs) const
 {
   sysuint_t flen = filter.getLength();
 
-  if (flen == InvalidIndex) flen = getLength();
-  return filter.match(cData(), getLength(), cs, Range(0, flen)).index == 0;
+  if (flen == INVALID_INDEX) flen = getLength();
+  return filter.match(getData(), getLength(), cs, Range(0, flen)).index == 0;
 }
 
 bool String::endsWith(const Ascii8& str, uint cs) const
 {
   const char* s = str.getData();
   sysuint_t len = str.getLength();
-  if (len == DetectLength) len = StringUtil::len(s);
+  if (len == DETECT_LENGTH) len = StringUtil::len(s);
 
-  return getLength() >= len && StringUtil::eq(cData() + getLength() - len, s, len, cs);
+  return getLength() >= len && StringUtil::eq(getData() + getLength() - len, s, len, cs);
 }
 
 bool String::endsWith(const Utf16& str, uint cs) const
 {
   const Char* s = str.getData();
   sysuint_t len = str.getLength();
-  if (len == DetectLength) len = StringUtil::len(s);
+  if (len == DETECT_LENGTH) len = StringUtil::len(s);
 
   return getLength() >= len &&
-    StringUtil::eq(cData() + getLength() - len, s, len, cs);
+    StringUtil::eq(getData() + getLength() - len, s, len, cs);
 }
 
 bool String::endsWith(const String& str, uint cs) const
 {
   return getLength() >= str.getLength() &&
-    StringUtil::eq(cData() + getLength() - str.getLength(), str.cData(), str.getLength(), cs);
+    StringUtil::eq(getData() + getLength() - str.getLength(), str.getData(), str.getLength(), cs);
 }
 
 bool String::endsWith(const StringFilter& filter, uint cs) const
 {
   sysuint_t flen = filter.getLength();
 
-  if (flen == InvalidIndex)
+  if (flen == INVALID_INDEX)
   {
     sysuint_t i = 0;
     sysuint_t len = getLength();
 
     for (;;)
     {
-      Range r = filter.match(cData(), len, cs, Range(i));
-      if (r.index == InvalidIndex) return false;
+      Range r = filter.match(getData(), len, cs, Range(i));
+      if (r.index == INVALID_INDEX) return false;
       if (r.index + r.length == len) return true;
 
       i = r.index + 1;
@@ -3020,7 +3025,7 @@ bool String::endsWith(const StringFilter& filter, uint cs) const
   {
     return flen <= getLength() &&
       filter.match(
-        cData() + getLength() - flen, getLength(), cs, Range(0, flen)).index == 0;
+        getData() + getLength() - flen, getLength(), cs, Range(0, flen)).index == 0;
   }
 }
 
@@ -3030,7 +3035,7 @@ bool String::endsWith(const StringFilter& filter, uint cs) const
 
 err_t String::bswap()
 {
-  if (getLength() == 0) return Error::Ok;
+  if (getLength() == 0) return ERR_OK;
 
   err_t err;
   if ((err = detach())) return err;
@@ -3040,7 +3045,7 @@ err_t String::bswap()
   for (i = 0; i < len; i++) ch[i].bswap();
 
   _d->hashCode = 0;
-  return Error::Ok;
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -3053,7 +3058,7 @@ bool String::eq(const String* a, const String* b)
   sysuint_t blen = b->getLength();
   if (alen != blen) return false;
 
-  return StringUtil::eq(a->cData(), b->cData(), alen, CaseSensitive);
+  return StringUtil::eq(a->getData(), b->getData(), alen, CASE_SENSITIVE);
 }
 
 bool String::ieq(const String* a, const String* b)
@@ -3062,15 +3067,15 @@ bool String::ieq(const String* a, const String* b)
   sysuint_t blen = b->getLength();
   if (alen != blen) return false;
 
-  return StringUtil::eq(a->cData(), b->cData(), alen, CaseInsensitive);
+  return StringUtil::eq(a->getData(), b->getData(), alen, CASE_INSENSITIVE);
 }
 
 int String::compare(const String* a, const String* b)
 {
   sysuint_t aLen = a->getLength();
   sysuint_t bLen = b->getLength();
-  const Char* aCur = a->cData();
-  const Char* bCur = b->cData();
+  const Char* aCur = a->getData();
+  const Char* bCur = b->getData();
   const Char* aEnd = aCur + aLen;
 
   int c;
@@ -3087,8 +3092,8 @@ int String::icompare(const String* a, const String* b)
 {
   sysuint_t aLen = a->getLength();
   sysuint_t bLen = b->getLength();
-  const Char* aCur = a->cData();
-  const Char* bCur = b->cData();
+  const Char* aCur = a->getData();
+  const Char* bCur = b->getData();
   const Char* aEnd = aCur + aLen;
 
   int c;
@@ -3104,12 +3109,12 @@ int String::icompare(const String* a, const String* b)
 bool String::eq(const Ascii8& other, uint cs) const
 {
   sysuint_t len = other.getLength();
-  if (len == DetectLength)
+  if (len == DETECT_LENGTH)
   {
-    const Char* aCur = cData();
+    const Char* aCur = getData();
     const char* bCur = other.getData();
 
-    if (cs == CaseSensitive)
+    if (cs == CASE_SENSITIVE)
     {
       for (sysuint_t i = getLength(); i; i--, aCur++, bCur++)
       {
@@ -3128,18 +3133,18 @@ bool String::eq(const Ascii8& other, uint cs) const
     return *bCur == 0;
   }
   else
-    return getLength() == len && StringUtil::eq(cData(), other.getData(), len, cs);
+    return getLength() == len && StringUtil::eq(getData(), other.getData(), len, cs);
 }
 
 bool String::eq(const Utf16& other, uint cs) const
 {
   sysuint_t len = other.getLength();
-  if (len == DetectLength)
+  if (len == DETECT_LENGTH)
   {
-    const Char* aCur = cData();
+    const Char* aCur = getData();
     const Char* bCur = other.getData();
 
-    if (cs == CaseSensitive)
+    if (cs == CASE_SENSITIVE)
     {
       for (sysuint_t i = getLength(); i; i--, aCur++, bCur++)
       {
@@ -3158,28 +3163,28 @@ bool String::eq(const Utf16& other, uint cs) const
     return bCur->ch() == 0;
   }
   else
-    return getLength() == len && StringUtil::eq(cData(), other.getData(), len, cs);
+    return getLength() == len && StringUtil::eq(getData(), other.getData(), len, cs);
 }
 
 bool String::eq(const String& other, uint cs) const
 {
   return getLength() == other.getLength() &&
-    StringUtil::eq(cData(), other.cData(), getLength(), cs);
+    StringUtil::eq(getData(), other.getData(), getLength(), cs);
 }
 
 int String::compare(const Ascii8& other, uint cs) const
 {
   sysuint_t aLen = getLength();
   sysuint_t bLen = other.getLength();
-  const Char* aCur = cData();
+  const Char* aCur = getData();
   const Char* aEnd = aCur + aLen;
   const char* bCur = other.getData();
 
   int c;
 
-  if (bLen == DetectLength)
+  if (bLen == DETECT_LENGTH)
   {
-    if (cs == CaseSensitive)
+    if (cs == CASE_SENSITIVE)
     {
       for (;;)
       {
@@ -3204,7 +3209,7 @@ int String::compare(const Ascii8& other, uint cs) const
   {
     if (bLen < aLen) aEnd = aCur + bLen;
 
-    if (cs == CaseSensitive)
+    if (cs == CASE_SENSITIVE)
     {
       for (; aCur != aEnd; aCur++, bCur++)
         if ((c = (int)aCur->ch() - (int)(uint8_t)*bCur)) return c;
@@ -3223,15 +3228,15 @@ int String::compare(const Utf16& other, uint cs) const
 {
   sysuint_t aLen = getLength();
   sysuint_t bLen = other.getLength();
-  const Char* aCur = cData();
+  const Char* aCur = getData();
   const Char* aEnd = aCur + aLen;
   const Char* bCur = other.getData();
 
   int c;
 
-  if (bLen == DetectLength)
+  if (bLen == DETECT_LENGTH)
   {
-    if (cs == CaseSensitive)
+    if (cs == CASE_SENSITIVE)
     {
       for (;;)
       {
@@ -3256,7 +3261,7 @@ int String::compare(const Utf16& other, uint cs) const
   {
     if (bLen < aLen) aEnd = aCur + bLen;
 
-    if (cs == CaseSensitive)
+    if (cs == CASE_SENSITIVE)
     {
       for (; aCur != aEnd; aCur++, bCur++)
         if ((c = (int)aCur->ch() - (int)bCur->ch())) return c;
@@ -3275,14 +3280,14 @@ int String::compare(const String& other, uint cs) const
 {
   sysuint_t aLen = getLength();
   sysuint_t bLen = other.getLength();
-  const Char* aCur = cData();
+  const Char* aCur = getData();
   const Char* aEnd = aCur + aLen;
-  const Char* bCur = other.cData();
+  const Char* bCur = other.getData();
 
   int c;
   if (bLen < aLen) aEnd = aCur + bLen;
 
-  if (cs == CaseSensitive)
+  if (cs == CASE_SENSITIVE)
   {
     for (; aCur != aEnd; aCur++, bCur++)
       if ((c = (int)aCur->ch() - (int)bCur->ch())) return c;
@@ -3302,12 +3307,12 @@ int String::compare(const String& other, uint cs) const
 
 err_t String::validateUtf16(sysuint_t* invalidPos) const
 {
-  return StringUtil::validateUtf16(cData(), getLength());
+  return StringUtil::validateUtf16(getData(), getLength());
 }
 
 err_t String::getNumUtf16Chars(sysuint_t* charsCount) const
 {
-  return StringUtil::getNumUtf16Chars(cData(), getLength(), charsCount);
+  return StringUtil::getNumUtf16Chars(getData(), getLength(), charsCount);
 }
 
 // ============================================================================
@@ -3333,7 +3338,7 @@ uint32_t String::getHashCode() const
   uint32_t h = _d->hashCode;
   if (h) return h;
 
-  return (_d->hashCode = HashUtil::hashString(cData(), getLength()));
+  return (_d->hashCode = HashUtil::hashString(getData(), getLength()));
 }
 
 // ============================================================================
@@ -3370,7 +3375,7 @@ String::Data* String::Data::adopt(void* address, sysuint_t capacity)
 
 String::Data* String::Data::adopt(void* address, sysuint_t capacity, const char* str, sysuint_t length)
 {
-  if (length == DetectLength) length = StringUtil::len(str);
+  if (length == DETECT_LENGTH) length = StringUtil::len(str);
 
   if (length <= capacity)
   {
@@ -3388,7 +3393,7 @@ String::Data* String::Data::adopt(void* address, sysuint_t capacity, const char*
 
 String::Data* String::Data::adopt(void* address, sysuint_t capacity, const Char* str, sysuint_t length)
 {
-  if (length == DetectLength) length = StringUtil::len(str);
+  if (length == DETECT_LENGTH) length = StringUtil::len(str);
 
   if (length <= capacity)
   {
@@ -3426,7 +3431,7 @@ String::Data* String::Data::alloc(sysuint_t capacity)
 
 String::Data* String::Data::alloc(sysuint_t capacity, const char* str, sysuint_t length)
 {
-  if (length == DetectLength) length = StringUtil::len(str);
+  if (length == DETECT_LENGTH) length = StringUtil::len(str);
   if (length > capacity) capacity = length;
 
   if (capacity == 0) return String::sharedNull->refAlways();
@@ -3443,7 +3448,7 @@ String::Data* String::Data::alloc(sysuint_t capacity, const char* str, sysuint_t
 
 String::Data* String::Data::alloc(sysuint_t capacity, const Char* str, sysuint_t length)
 {
-  if (length == DetectLength) length = StringUtil::len(str);
+  if (length == DETECT_LENGTH) length = StringUtil::len(str);
   if (length > capacity) capacity = length;
 
   if (capacity == 0) return String::sharedNull->refAlways();
@@ -3503,13 +3508,13 @@ FOG_INIT_DECLARE err_t fog_string_init(void)
 
   String::Data* d = String::sharedNull.instancep();
   d->refCount.init(1);
-  d->flags |= String::Data::IsNull | String::Data::IsSharable;
+  d->flags |= String::Data::IsSharable;
   d->hashCode = 0;
   d->capacity = 0;
   d->length = 0;
   memset(d->data, 0, sizeof(d->data));
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 FOG_INIT_DECLARE void fog_string_shutdown(void)

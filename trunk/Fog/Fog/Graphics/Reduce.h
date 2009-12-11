@@ -30,7 +30,7 @@ struct FOG_API Reduce
 
   // [Entity]
 
-  //! @brief Rgba entity with usage information.
+  //! @brief Argb entity with usage information.
   struct Entity
   {
     uint32_t key;

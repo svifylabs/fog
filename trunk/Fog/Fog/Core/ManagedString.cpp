@@ -135,7 +135,7 @@ struct FOG_HIDDEN ManagedStringLocal
 
     const Char* s = _s.getData();
     sysuint_t length = _s.getLength();
-    if (length == DetectLength) length = StringUtil::len(s);
+    if (length == DETECT_LENGTH) length = StringUtil::len(s);
 
     FOG_ASSERT(length != 0);
 
@@ -163,7 +163,7 @@ struct FOG_HIDDEN ManagedStringLocal
     }
 
     String str;
-    if (str.set(s) != Error::Ok) return NULL;
+    if (str.set(s) != ERR_OK) return NULL;
 
     node = new(std::nothrow) Node(str);
     if (!node) return node;
@@ -233,7 +233,7 @@ struct FOG_HIDDEN ManagedStringLocal
 
     const Char* s = _s.getData();
     sysuint_t length = _s.getLength();
-    if (length == DetectLength) length = StringUtil::len(s);
+    if (length == DETECT_LENGTH) length = StringUtil::len(s);
 
     uint32_t hashCode = HashUtil::hashString(s, length);
     uint32_t hashMod = hashCode % _capacity;
@@ -357,7 +357,7 @@ err_t ManagedString::set(const ManagedString& str)
 {
   Node* old = AtomicBase::ptr_setXchg(&_node, str._node->ref());
   if (old->refCount.deref()) managed_local->remove(old);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t ManagedString::set(const String& str)
@@ -367,12 +367,12 @@ err_t ManagedString::set(const String& str)
   if (!node)
   {
     clear();
-    return Error::OutOfMemory;
+    return ERR_RT_OUT_OF_MEMORY;
   }
 
   Node* old = AtomicBase::ptr_setXchg(&_node, node);
   if (old->refCount.deref()) managed_local->remove(old);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t ManagedString::set(const Utf16& str)
@@ -382,32 +382,32 @@ err_t ManagedString::set(const Utf16& str)
   if (!node)
   {
     clear();
-    return Error::OutOfMemory;
+    return ERR_RT_OUT_OF_MEMORY;
   }
 
   Node* old = AtomicBase::ptr_setXchg(&_node, node);
   if (old->refCount.deref()) managed_local->remove(old);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t ManagedString::setIfManaged(const String& s)
 {
   Node* node = managed_local->refString(s);
-  if (!node) return Error::ObjectNotExists;
+  if (!node) return ERR_RT_OBJECT_NOT_FOUND;
 
   Node* old = AtomicBase::ptr_setXchg(&_node, node);
   if (old->refCount.deref()) managed_local->remove(old);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t ManagedString::setIfManaged(const Utf16& s)
 {
   Node* node = managed_local->refUtf16(s);
-  if (!node) return Error::ObjectNotExists;
+  if (!node) return ERR_RT_OBJECT_NOT_FOUND;
 
   Node* old = AtomicBase::ptr_setXchg(&_node, node);
   if (old->refCount.deref()) managed_local->remove(old);
-  return Error::Ok;
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -426,7 +426,7 @@ ManagedString::Cache* ManagedString::createCache(const char* strings, sysuint_t 
   // NOTE, sizeof() always gives size with null terminator, so for example
   // char[] a = "abc" will give us 4 ! This is reason why we are decrementing
   // it here.
-  if (count == DetectLength) count = StringUtil::countOf(strings, length - 1, '\0', CaseSensitive);
+  if (count == DETECT_LENGTH) count = StringUtil::countOf(strings, length - 1, '\0', CASE_SENSITIVE);
 
   sysuint_t alloc =
     // Fog::ManagedString::Cache structure
@@ -502,7 +502,7 @@ FOG_INIT_DECLARE err_t fog_managedstring_init(void)
   using namespace Fog;
 
   managed_local.init();
-  return Error::Ok;
+  return ERR_OK;
 }
 
 FOG_INIT_DECLARE void fog_managedstring_shutdown(void)

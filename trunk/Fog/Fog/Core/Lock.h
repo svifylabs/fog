@@ -12,8 +12,9 @@
 
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/Atomic.h>
-#include <Fog/Core/TypeInfo.h>
 #include <Fog/Core/Constants.h>
+#include <Fog/Core/Static.h>
+#include <Fog/Core/TypeInfo.h>
 
 #if defined(FOG_OS_WINDOWS)
 #include <windows.h>
@@ -27,7 +28,7 @@
 //! @{
 
 #if defined(FOG_OS_POSIX)
-FOG_CVAR_EXTERN pthread_mutexattr_t lock_recursive_attrs;
+FOG_CVAR_EXTERN pthread_mutexattr_t fog_lock_recursive_attrs;
 #endif // FOG_OS_POSIX
 
 namespace Fog {
@@ -63,7 +64,7 @@ public:
     // InitializeCriticalSectionAndSpinCount(&_handle, 2000);
 #endif // FOG_OS_WINDOWS
 #if defined(FOG_OS_POSIX)
-    pthread_mutex_init(&_handle, &lock_recursive_attrs);
+    pthread_mutex_init(&_handle, &fog_lock_recursive_attrs);
 #endif // FOG_OS_POSIX
   }
 
@@ -124,6 +125,12 @@ private:
 };
 
 } // Fog namespace
+
+//! @brief Lock used when you need to initialize something only once.
+extern FOG_API Fog::Static<Fog::Lock> fog_once_lock;
+
+#define FOG_ONCE_LOCK() fog_once_lock->lock()
+#define FOG_ONCE_UNLOCK() fog_once_lock->unlock()
 
 //! @}
 

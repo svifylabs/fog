@@ -33,39 +33,39 @@
 //----------------------------------------------------------------------------
 
 // [Precompiled Headers]
-#ifdef FOG_PRECOMP
+#if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
-#endif
+#endif // FOG_PRECOMP
 
 // [Dependencies]
 #include <Fog/Core/AutoLock.h>
 #include <Fog/Core/Lock.h>
 #include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
-#include <Fog/Graphics/Error.h>
+#include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Rasterizer.h>
-
-#include <new>
 
 namespace Fog {
 
-enum PolySubpixelEnum
+enum POLY_SUBPIXEL_ENUM
 {
-  PolySubpixelShift = 8,
-  PolySubpixelScale = 1 << PolySubpixelShift,
-  PolySubpixelMask  = PolySubpixelScale-1,
-  // poly_max_coord = (1 << 30) - 1
-
-  RasterizerQSortThreshold = 9
+  POLY_SUBPIXEL_SHIFT = 8,                        // 8
+  POLY_SUBPIXEL_SCALE = 1 << POLY_SUBPIXEL_SHIFT, // 256
+  POLY_SUBPIXEL_MASK  = POLY_SUBPIXEL_SCALE-1,    // 255
 };
 
-enum AAScaleEnum
+enum AA_SCALE_ENUM
 {
-  AAShift  = 8,            // 8
-  AAScale  = 1 << AAShift, // 256
-  AAMask   = AAScale - 1,  // 255
-  AAScale2 = AAScale * 2,  // 512
-  AAMask2  = AAScale2 - 1  // 511
+  AA_SHIFT   = 8,              // 8
+  AA_SCALE   = 1 << AA_SHIFT,  // 256
+  AA_MASK    = AA_SCALE - 1,   // 255
+  AA_SCALE_2 = AA_SCALE * 2,   // 512
+  AA_MASK_2  = AA_SCALE_2 - 1  // 511
+};
+
+enum
+{
+  RASTERIZER_QSORT_THRESHOLD = 9
 };
 
 struct FOG_HIDDEN RasterizerUtil
@@ -77,21 +77,21 @@ struct FOG_HIDDEN RasterizerUtil
   static FOG_INLINE uint uceil(double v) { return uint(ceil(v)); }
 
   static FOG_INLINE int mulDiv(double a, double b, double c) { return iround(a * b / c); }
-  static FOG_INLINE int upscale(double v) { return iround(v * PolySubpixelScale); }
+  static FOG_INLINE int upscale(double v) { return iround(v * POLY_SUBPIXEL_SCALE); }
 };
 
 // Liang-Barsky clipping.
 struct FOG_HIDDEN LiangBarsky
 {
   // Clipping flags.
-  enum Flags
+  enum FLAGS
   {
-    ClippedX1 = 0x4,
-    ClippedX2 = 0x1,
-    ClippedY1 = 0x8,
-    ClippedY2 = 0x2,
-    ClippedX  = ClippedX1 | ClippedX2,
-    ClippedY  = ClippedY1 | ClippedY2
+    CLIPPED_X1 = 0x4,
+    CLIPPED_X2 = 0x1,
+    CLIPPED_Y1 = 0x8,
+    CLIPPED_Y2 = 0x2,
+    CLIPPED_X  = CLIPPED_X1 | CLIPPED_X2,
+    CLIPPED_Y  = CLIPPED_Y1 | CLIPPED_Y2
   };
 
   //----------------------------------------------------------clipping_flags
@@ -270,22 +270,22 @@ struct FOG_HIDDEN LiangBarsky
     T* FOG_RESTRICT x,
     T* FOG_RESTRICT y, uint flags)
   {
-    if (flags & ClippedX)
+    if (flags & CLIPPED_X)
     {
       if (x1 == x2) return false;
 
-      T bound = (flags & ClippedX1) ? clipBox.x1 : clipBox.x2;
+      T bound = (flags & CLIPPED_X1) ? clipBox.x1 : clipBox.x2;
       *y = (T)(double(bound - x1) * (y2 - y1) / (x2 - x1) + y1);
       *x = bound;
     }
 
     flags = getClippingFlagsY(*y, clipBox);
 
-    if (flags & ClippedY)
+    if (flags & CLIPPED_Y)
     {
       if (y1 == y2) return false;
 
-      T bound = (flags & ClippedY1) ? clipBox.y1 : clipBox.y2;
+      T bound = (flags & CLIPPED_Y1) ? clipBox.y1 : clipBox.y2;
       *x = (T)(double(bound - y1) * (x2 - x1) / (y2 - y1) + x1);
       *y = bound;
     }
@@ -312,8 +312,8 @@ struct FOG_HIDDEN LiangBarsky
     if ((f2 | f1) == 0) return 0;
 
     // Fully clipped
-    if ((f1 & ClippedX) != 0 && (f1 & ClippedX) == (f2 & ClippedX)) return 4;
-    if ((f1 & ClippedY) != 0 && (f1 & ClippedY) == (f2 & ClippedY)) return 4;
+    if ((f1 & CLIPPED_X) != 0 && (f1 & CLIPPED_X) == (f2 & CLIPPED_X)) return 4;
+    if ((f1 & CLIPPED_Y) != 0 && (f1 & CLIPPED_Y) == (f2 & CLIPPED_Y)) return 4;
 
     T tx1 = *x1;
     T ty1 = *y1;
@@ -375,10 +375,10 @@ static Static<RasterizerLocal> rasterizer_local;
 //! only in Fog.
 //!
 //! This is custom rasterizer that can be used in multithreaded environment
-//! from multiple threads. Method sweep_scanline() from antigrain 
+//! from multiple threads. Method sweepScanline() from antigrain
 //! agg::rasterizer_scanline_aa<> template was replaced to method that accepts
 //! y coordinate and it's tagged as const. After you serialize your content use
-//! new sweep_scanline() method with you own Y coordinate.
+//! new sweepScanline() method with you own Y coordinate.
 //!
 //! To use this rasterizer you must first set gamma table that will be used. In
 //! multithreaded environment recomputing gamma table in each thread command
@@ -404,7 +404,7 @@ struct FOG_HIDDEN RasterizerC : public Rasterizer
   virtual void setError(err_t error);
   virtual void resetError();
 
-  virtual void addPath(const Path::Vertex* data, sysuint_t count);
+  virtual void addPath(const PathVertex* data, sysuint_t count);
   void closePolygon();
 
   void clipLine(int24x8_t x1, int24x8_t y1, int24x8_t x2, int24x8_t y2, uint f1, uint f2);
@@ -425,6 +425,7 @@ struct FOG_HIDDEN RasterizerC : public Rasterizer
   FOG_INLINE uint calculateAlphaEvenOdd(int area) const;
 
   virtual uint sweepScanline(Scanline32* scanline, int y);
+  virtual uint sweepScanline(Scanline32* scanline, int y, const Box* clip, sysuint_t count);
 
   //! @brief Whether rasterizer clipping is enabled.
   int _clipping;
@@ -471,10 +472,10 @@ private:
 Rasterizer::Rasterizer()
 {
   _clipBox.clear();
-  _error = Error::Ok;
+  _error = ERR_OK;
 
   // Defaults.
-  _fillRule = FillEvenOdd;
+  _fillRule = FILL_EVEN_ODD;
   _finalized = false;
   _autoClose = true;
 
@@ -500,7 +501,7 @@ Rasterizer::~Rasterizer()
 
 void Rasterizer::addPath(const Path& path)
 {
-  addPath(path.cData(), path.getLength());
+  addPath(path.getData(), path.getLength());
 }
 
 // ============================================================================
@@ -638,7 +639,7 @@ void RasterizerC::pooled()
   reset();
 
   // Defaults.
-  _fillRule = FillEvenOdd;
+  _fillRule = FILL_EVEN_ODD;
   _autoClose = true;
 
   if (_bufferFirst != _bufferLast)
@@ -657,7 +658,7 @@ void RasterizerC::pooled()
 
 void RasterizerC::reset()
 {
-  _error = Error::Ok;
+  _error = ERR_OK;
 
   _clipping = false;
   _clipBox.clear();
@@ -708,8 +709,8 @@ void RasterizerC::setClipBox(const Box& clipBox)
   _clipping = true;
   _clipBox = clipBox;
 
-  _clip24x8.set(clipBox.x1 << PolySubpixelShift, clipBox.y1 << PolySubpixelShift,
-                clipBox.x2 << PolySubpixelShift, clipBox.y2 << PolySubpixelShift);
+  _clip24x8.set(clipBox.x1 << POLY_SUBPIXEL_SHIFT, clipBox.y1 << POLY_SUBPIXEL_SHIFT,
+                clipBox.x2 << POLY_SUBPIXEL_SHIFT, clipBox.y2 << POLY_SUBPIXEL_SHIFT);
 }
 
 void RasterizerC::resetClipBox()
@@ -730,14 +731,14 @@ void RasterizerC::setError(err_t error)
 
 void RasterizerC::resetError()
 {
-  _error = Error::Ok;
+  _error = ERR_OK;
 }
 
 // ============================================================================
 // [Fog::RasterizerC - Commands]
 // ============================================================================
 
-void RasterizerC::addPath(const Path::Vertex* data, sysuint_t count)
+void RasterizerC::addPath(const PathVertex* data, sysuint_t count)
 {
   sysuint_t i;
 
@@ -745,10 +746,10 @@ void RasterizerC::addPath(const Path::Vertex* data, sysuint_t count)
   {
     for (i = count; i; i--, data++)
     {
-      Path::Cmd cmd = data->cmd;
+      PathCmd cmd = data->cmd;
 
       // CmdLineTo is first, because it's most used command.
-      if (cmd == Path::CmdLineTo)
+      if (cmd == PATH_CMD_LINE_TO)
       {
         int24x8_t x2 = RasterizerUtil::upscale(data->x);
         int24x8_t y2 = RasterizerUtil::upscale(data->y);
@@ -759,7 +760,7 @@ void RasterizerC::addPath(const Path::Vertex* data, sysuint_t count)
         _y1 = y2;
         _f1 = f2;
       }
-      else if (cmd == Path::CmdMoveTo)
+      else if (cmd == PATH_CMD_MOVE_TO)
       {
         if (_autoClose && (_x1 != _startX1 || _y1 != _startY1))
           clipLine(_x1, _y1, _startX1, _startY1, _f1, _startF1);
@@ -779,10 +780,10 @@ void RasterizerC::addPath(const Path::Vertex* data, sysuint_t count)
   {
     for (i = count; i; i--, data++)
     {
-      Path::Cmd cmd = data->cmd.cmd();
+      PathCmd cmd = data->cmd.cmd();
 
       // CmdLineTo is first, because it's most used command.
-      if (cmd == Path::CmdLineTo)
+      if (cmd == PATH_CMD_LINE_TO)
       {
         int24x8_t x2 = RasterizerUtil::upscale(data->x);
         int24x8_t y2 = RasterizerUtil::upscale(data->y);
@@ -791,7 +792,7 @@ void RasterizerC::addPath(const Path::Vertex* data, sysuint_t count)
         _x1 = x2;
         _y1 = y2;
       }
-      else if (cmd == Path::CmdMoveTo)
+      else if (cmd == PATH_CMD_MOVE_TO)
       {
         if (_autoClose && (_x1 != _startX1 || _y1 != _startY1))
           renderLine(_x1, _y1, _startX1, _startY1);
@@ -958,7 +959,7 @@ FOG_INLINE void RasterizerC::clipLineY(int24x8_t x1, int24x8_t y1, int24x8_t x2,
 
 void RasterizerC::renderLine(int24x8_t x1, int24x8_t y1, int24x8_t x2, int24x8_t y2)
 {
-  enum DXLimitEnum { DXLimit = 16384 << PolySubpixelShift };
+  enum DXLimitEnum { DXLimit = 16384 << POLY_SUBPIXEL_SHIFT };
 
   int dx = x2 - x1;
 
@@ -972,12 +973,12 @@ void RasterizerC::renderLine(int24x8_t x1, int24x8_t y1, int24x8_t x2, int24x8_t
   }
 
   int dy = y2 - y1;
-  int ex1 = x1 >> PolySubpixelShift;
-  int ex2 = x2 >> PolySubpixelShift;
-  int ey1 = y1 >> PolySubpixelShift;
-  int ey2 = y2 >> PolySubpixelShift;
-  int fy1 = y1 & PolySubpixelMask;
-  int fy2 = y2 & PolySubpixelMask;
+  int ex1 = x1 >> POLY_SUBPIXEL_SHIFT;
+  int ex2 = x2 >> POLY_SUBPIXEL_SHIFT;
+  int ey1 = y1 >> POLY_SUBPIXEL_SHIFT;
+  int ey2 = y2 >> POLY_SUBPIXEL_SHIFT;
+  int fy1 = y1 & POLY_SUBPIXEL_MASK;
+  int fy2 = y2 & POLY_SUBPIXEL_MASK;
 
   int x_from, x_to;
   int p, rem, mod, lift, delta, first, incr;
@@ -1007,11 +1008,11 @@ void RasterizerC::renderLine(int24x8_t x1, int24x8_t y1, int24x8_t x2, int24x8_t
   incr = 1;
   if (dx == 0)
   {
-    int ex = x1 >> PolySubpixelShift;
-    int two_fx = (x1 - (ex << PolySubpixelShift)) << 1;
+    int ex = x1 >> POLY_SUBPIXEL_SHIFT;
+    int two_fx = (x1 - (ex << POLY_SUBPIXEL_SHIFT)) << 1;
     int area;
 
-    first = PolySubpixelScale;
+    first = POLY_SUBPIXEL_SCALE;
     if (dy < 0) { first = 0; incr  = -1; }
 
     x_from = x1;
@@ -1024,7 +1025,7 @@ void RasterizerC::renderLine(int24x8_t x1, int24x8_t y1, int24x8_t x2, int24x8_t
     ey1 += incr;
     setCurCell(ex, ey1);
 
-    delta = first + first - PolySubpixelScale;
+    delta = first + first - POLY_SUBPIXEL_SCALE;
     area = two_fx * delta;
     while (ey1 != ey2)
     {
@@ -1035,15 +1036,15 @@ void RasterizerC::renderLine(int24x8_t x1, int24x8_t y1, int24x8_t x2, int24x8_t
       setCurCell(ex, ey1);
     }
     // renderHLine(ey1, x_from, PolySubpixelScale - first, x_from, fy2);
-    delta = fy2 - PolySubpixelScale + first;
+    delta = fy2 - POLY_SUBPIXEL_SCALE + first;
     _cell.cover += delta;
     _cell.area  += two_fx * delta;
     return;
   }
 
-  // Ok, we have to render several hlines.
-  p     = (PolySubpixelScale - fy1) * dx;
-  first = PolySubpixelScale;
+  // ERR_OK, we have to render several hlines.
+  p     = (POLY_SUBPIXEL_SCALE - fy1) * dx;
+  first = POLY_SUBPIXEL_SCALE;
 
   if (dy < 0)
   {
@@ -1062,11 +1063,11 @@ void RasterizerC::renderLine(int24x8_t x1, int24x8_t y1, int24x8_t x2, int24x8_t
   renderHLine(ey1, x1, fy1, x_from, first);
 
   ey1 += incr;
-  setCurCell(x_from >> PolySubpixelShift, ey1);
+  setCurCell(x_from >> POLY_SUBPIXEL_SHIFT, ey1);
 
   if (ey1 != ey2)
   {
-    p     = PolySubpixelScale * dx;
+    p     = POLY_SUBPIXEL_SCALE * dx;
     lift  = p / dy;
     rem   = p % dy;
 
@@ -1080,22 +1081,22 @@ void RasterizerC::renderLine(int24x8_t x1, int24x8_t y1, int24x8_t x2, int24x8_t
       if (mod >= 0) { mod -= dy; delta++; }
 
       x_to = x_from + delta;
-      renderHLine(ey1, x_from, PolySubpixelScale - first, x_to, first);
+      renderHLine(ey1, x_from, POLY_SUBPIXEL_SCALE - first, x_to, first);
       x_from = x_to;
 
       ey1 += incr;
-      setCurCell(x_from >> PolySubpixelShift, ey1);
+      setCurCell(x_from >> POLY_SUBPIXEL_SHIFT, ey1);
     }
   }
-  renderHLine(ey1, x_from, PolySubpixelScale - first, x2, fy2);
+  renderHLine(ey1, x_from, POLY_SUBPIXEL_SCALE - first, x2, fy2);
 }
 
 FOG_INLINE void RasterizerC::renderHLine(int ey, int24x8_t x1, int24x8_t y1, int24x8_t x2, int24x8_t y2)
 {
-  int ex1 = x1 >> PolySubpixelShift;
-  int ex2 = x2 >> PolySubpixelShift;
-  int fx1 = x1 & PolySubpixelMask;
-  int fx2 = x2 & PolySubpixelMask;
+  int ex1 = x1 >> POLY_SUBPIXEL_SHIFT;
+  int ex2 = x2 >> POLY_SUBPIXEL_SHIFT;
+  int fx1 = x1 & POLY_SUBPIXEL_MASK;
+  int fx2 = x2 & POLY_SUBPIXEL_MASK;
 
   int delta, p, first, dx;
   int incr, lift, mod, rem;
@@ -1116,9 +1117,9 @@ FOG_INLINE void RasterizerC::renderHLine(int ey, int24x8_t x1, int24x8_t y1, int
     return;
   }
 
-  // Ok, we'll have to render a run of adjacent cells on the same hline...
-  p     = (PolySubpixelScale - fx1) * (y2 - y1);
-  first = PolySubpixelScale;
+  // ERR_OK, we'll have to render a run of adjacent cells on the same hline...
+  p     = (POLY_SUBPIXEL_SCALE - fx1) * (y2 - y1);
+  first = POLY_SUBPIXEL_SCALE;
   incr  = 1;
 
   dx = x2 - x1;
@@ -1145,7 +1146,7 @@ FOG_INLINE void RasterizerC::renderHLine(int ey, int24x8_t x1, int24x8_t y1, int
 
   if (ex1 != ex2)
   {
-    p     = PolySubpixelScale * (y2 - y1 + delta);
+    p     = POLY_SUBPIXEL_SCALE * (y2 - y1 + delta);
     lift  = p / dx;
     rem   = p % dx;
 
@@ -1159,7 +1160,7 @@ FOG_INLINE void RasterizerC::renderHLine(int ey, int24x8_t x1, int24x8_t y1, int
       if (mod >= 0) { mod -= dx; delta++; }
 
       _cell.cover += delta;
-      _cell.area  += PolySubpixelScale * delta;
+      _cell.area  += POLY_SUBPIXEL_SCALE * delta;
       y1  += delta;
       ex1 += incr;
       setCurCell(ex1, ey);
@@ -1168,7 +1169,7 @@ FOG_INLINE void RasterizerC::renderHLine(int ey, int24x8_t x1, int24x8_t y1, int
 
   delta = y2 - y1;
   _cell.cover += delta;
-  _cell.area  += (fx2 + PolySubpixelScale - first) * delta;
+  _cell.area  += (fx2 + POLY_SUBPIXEL_SCALE - first) * delta;
 }
 
 FOG_INLINE void RasterizerC::addCurCell()
@@ -1235,7 +1236,7 @@ bool RasterizerC::nextCellBuffer()
 
   // Set error to out of memory, rasterization is over.
 error:
-  if (_error != Error::OutOfMemory) setError(Error::OutOfMemory);
+  if (_error != ERR_RT_OUT_OF_MEMORY) setError(ERR_RT_OUT_OF_MEMORY);
   return false;
 }
 
@@ -1284,7 +1285,7 @@ static FOG_INLINE void qsortCells(Cell* start, sysuint_t num)
     Cell* j;
     Cell* pivot;
 
-    if (len > RasterizerQSortThreshold)
+    if (len > RASTERIZER_QSORT_THRESHOLD)
     {
       // We use base + len/2 as the pivot.
       pivot = base + len / 2;
@@ -1429,7 +1430,7 @@ void RasterizerC::finalize()
   // Report error if something failed.
   if (!_cellsSorted || !_rowsInfo)
   {
-    setError(Error::OutOfMemory);
+    setError(ERR_RT_OUT_OF_MEMORY);
     return;
   }
 
@@ -1498,22 +1499,22 @@ void RasterizerC::finalize()
 
 FOG_INLINE uint RasterizerC::calculateAlphaNonZero(int area) const
 {
-  int cover = area >> (PolySubpixelShift*2 + 1 - AAShift);
+  int cover = area >> (POLY_SUBPIXEL_SHIFT*2 + 1 - AA_SHIFT);
 
   if (cover < 0) cover = -cover;
-  if (cover > AAMask) cover = AAMask;
+  if (cover > AA_MASK) cover = AA_MASK;
   //return _gamma[cover];
   return cover;
 }
 
 FOG_INLINE uint RasterizerC::calculateAlphaEvenOdd(int area) const
 {
-  int cover = area >> (PolySubpixelShift*2 + 1 - AAShift);
+  int cover = area >> (POLY_SUBPIXEL_SHIFT*2 + 1 - AA_SHIFT);
 
   if (cover < 0) cover = -cover;
-  cover &= AAMask2;
-  if (cover > AAScale) cover = AAScale2 - cover;
-  if (cover > AAMask) cover = AAMask;
+  cover &= AA_MASK_2;
+  if (cover > AA_SCALE) cover = AA_SCALE_2 - cover;
+  if (cover > AA_MASK) cover = AA_MASK;
   //return _gamma[cover];
   return cover;
 }
@@ -1530,38 +1531,38 @@ uint RasterizerC::sweepScanline(Scanline32* scanline, int y)
   const CellX* cell = &_cellsSorted[ri.index];
   int cover = 0;
 
-  if (scanline->init(_cellsBounds.x1, _cellsBounds.x2) != Error::Ok) return 0;
+  if (scanline->init(_cellsBounds.x1, _cellsBounds.x2) != ERR_OK) return 0;
 
-  if (_fillRule == FillNonZero)
+  int x, cellX = cell->x;
+  int area;
+  uint alpha;
+
+  if (_fillRule == FILL_NON_ZERO)
   {
     for (;;)
     {
-      int x = cell->x;
-      int area = cell->area;
-      uint alpha;
-
+      x = cellX;
+      area = cell->area;
       cover += cell->cover;
 
       // Accumulate all cells with the same X.
       while (--numCells)
       {
         cell++;
-        if (cell->x != x) break;
+        if ((cellX = cell->x) != x) break;
         area  += cell->area;
         cover += cell->cover;
       }
 
-      int coversh = cover << (PolySubpixelShift + 1);
-
+      int coversh = cover << (POLY_SUBPIXEL_SHIFT + 1);
       if (area)
       {
         if ((alpha = calculateAlphaNonZero(coversh - area))) scanline->addCell(x, alpha);
         x++;
       }
-
       if (!numCells) break;
 
-      int slen = cell->x - x;
+      int slen = cellX - x;
       if (slen > 0 && (alpha = calculateAlphaNonZero(coversh))) scanline->addSpan(x, (uint)slen, alpha);
     }
   }
@@ -1569,37 +1570,196 @@ uint RasterizerC::sweepScanline(Scanline32* scanline, int y)
   {
     for (;;)
     {
-      int x = cell->x;
-      int area = cell->area;
-      uint alpha;
-
+      x = cellX;
+      area = cell->area;
       cover += cell->cover;
 
       // Accumulate all cells with the same X.
       while (--numCells)
       {
         cell++;
-        if (cell->x != x) break;
+        if ((cellX = cell->x) != x) break;
         area  += cell->area;
         cover += cell->cover;
       }
 
-      int coversh = cover << (PolySubpixelShift + 1);
-
+      int coversh = cover << (POLY_SUBPIXEL_SHIFT + 1);
       if (area)
       {
-        alpha = calculateAlphaEvenOdd(coversh - area);
-        if (alpha) scanline->addCell(x, alpha);
+        if ((alpha = calculateAlphaEvenOdd(coversh - area))) scanline->addCell(x, alpha);
         x++;
       }
-
       if (!numCells) break;
 
-      int slen = cell->x - x;
-      if (slen > 0 && (alpha = calculateAlphaNonZero(coversh))) scanline->addSpan(x, (uint)slen, alpha);
+      int slen = cellX - x;
+      if (slen > 0 && (alpha = calculateAlphaEvenOdd(coversh))) scanline->addSpan(x, (uint)slen, alpha);
     }
   }
 
+  return scanline->finalize(y);
+}
+
+uint RasterizerC::sweepScanline(Scanline32* scanline, int y, const Box* clip, sysuint_t count)
+{
+  if (y >= _cellsBounds.y2) return 0;
+
+  const RowInfo& ri = _rowsInfo[y - _cellsBounds.y1];
+
+  uint numCells = ri.count;
+  if (!numCells) return 0;
+
+  const CellX* cell = &_cellsSorted[ri.index];
+  int cover = 0;
+
+  if (scanline->init(_cellsBounds.x1, _cellsBounds.x2) != ERR_OK) return 0;
+
+  int x, cellX = cell->x;
+  int area;
+  uint alpha;
+
+  // Clipping support.
+  const Box* clipEnd = clip + count;
+  if (clip == clipEnd) return 0;
+  // Clip end point (not part of clip span).
+  int clipEndX = clip->x2;
+  int clipStartX;
+
+  // Advance clip.
+  while (clipEndX <= cellX)
+  {
+    if (++clip == clipEnd) return 0;
+    clipEndX = clip->x2;
+  }
+  clipStartX = clip->x1;
+  FOG_ASSERT(cellX < clipEndX);
+
+  if (_fillRule == FILL_NON_ZERO)
+  {
+    for (;;)
+    {
+      x = cellX;
+      area = cell->area;
+      cover += cell->cover;
+
+      // Accumulate all cells with the same X.
+      while (--numCells)
+      {
+        cell++;
+        if ((cellX = cell->x) != x) break;
+        area  += cell->area;
+        cover += cell->cover;
+      }
+
+      int coversh = cover << (POLY_SUBPIXEL_SHIFT + 1);
+      if (area)
+      {
+        if (clipStartX <= x && (alpha = calculateAlphaNonZero(coversh - area)))
+        {
+          scanline->addCell(x, alpha);
+        }
+        if (++x == clipEndX)
+        {
+          if (++clip == clipEnd) goto end;
+          clipEndX = clip->x2;
+          clipStartX = clip->x1;
+          x = clip->x1;
+        }
+      }
+      if (!numCells) break;
+
+      if (x < clipStartX) x = clipStartX;
+      if (cellX > x && (alpha = calculateAlphaNonZero(coversh)))
+      {
+        for (;;)
+        {
+          int slen = Math::min(cellX, clipEndX) - x;
+          scanline->addSpan(x, (uint)slen, alpha);
+          x += slen;
+          if (x == clipEndX)
+          {
+            if (++clip == clipEnd) goto end;
+            clipEndX = clip->x2;
+            clipStartX = clip->x1;
+            if (clipStartX <= cellX) { x = clipStartX; continue; }
+          }
+          break;
+        }
+      }
+
+      // Advance clip pointer.
+      while (cellX >= clipEndX)
+      {
+        if (++clip == clipEnd) goto end;
+        clipEndX = clip->x2;
+        clipStartX = clip->x1;
+      }
+    }
+  }
+  else
+  {
+    for (;;)
+    {
+      x = cellX;
+      area = cell->area;
+      cover += cell->cover;
+
+      // Accumulate all cells with the same X.
+      while (--numCells)
+      {
+        cell++;
+        if ((cellX = cell->x) != x) break;
+        area  += cell->area;
+        cover += cell->cover;
+      }
+
+      int coversh = cover << (POLY_SUBPIXEL_SHIFT + 1);
+      if (area)
+      {
+        // Here we are always in clip pointer.
+        if (clipStartX <= x && (alpha = calculateAlphaEvenOdd(coversh - area)))
+        {
+          scanline->addCell(x, alpha);
+        }
+        if (++x == clipEndX)
+        {
+          if (++clip == clipEnd) goto end;
+          clipEndX = clip->x2;
+          clipStartX = clip->x1;
+          x = clip->x1;
+        }
+      }
+      if (!numCells) break;
+
+      if (x < clipStartX) x = clipStartX;
+      if (cellX > x && (alpha = calculateAlphaEvenOdd(coversh)))
+      {
+        for (;;)
+        {
+          int slen = Math::min(cellX, clipEndX) - x;
+          scanline->addSpan(x, (uint)slen, alpha);
+          x += slen;
+          if (x == clipEndX)
+          {
+            if (++clip == clipEnd) goto end;
+            clipEndX = clip->x2;
+            clipStartX = clip->x1;
+            if (clipStartX <= cellX) { x = clipStartX; continue; }
+          }
+          break;
+        }
+      }
+
+      // Advance clip pointer.
+      while (cellX >= clipEndX)
+      {
+        if (++clip == clipEnd) goto end;
+        clipEndX = clip->x2;
+        clipStartX = clip->x1;
+      }
+    }
+  }
+
+end:
   return scanline->finalize(y);
 }
 
@@ -1614,7 +1774,7 @@ FOG_INIT_DECLARE err_t fog_rasterizer_init(void)
   using namespace Fog;
 
   rasterizer_local.init();
-  return Error::Ok;
+  return ERR_OK;
 }
 
 FOG_INIT_DECLARE void fog_rasterizer_shutdown(void)

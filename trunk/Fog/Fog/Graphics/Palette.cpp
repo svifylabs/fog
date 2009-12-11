@@ -4,16 +4,16 @@
 // MIT, See COPYING file in package
 
 // [Precompiled Headers]
-#ifdef FOG_PRECOMP
+#if defined(FOG_PRECOMP)
 #include FOG_PRECOMP
-#endif
+#endif // FOG_PRECOMP
 
 // [Dependencies]
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Graphics/Palette.h>
-#include <Fog/Graphics/Raster.h>
+#include <Fog/Graphics/RasterUtil.h>
 
 namespace Fog {
 
@@ -26,7 +26,6 @@ Static<Palette::Data> Palette::sharedGrey;
 
 Palette::Palette() : _d(sharedNull->refAlways()) {}
 Palette::Palette(const Palette& other) : _d(other._d->refAlways()) {}
-Palette::Palette(Data* d) : _d(d) {}
 
 Palette::~Palette()
 {
@@ -35,13 +34,13 @@ Palette::~Palette()
 
 err_t Palette::_detach()
 {
-  if (isDetached()) return Error::Ok;
+  if (isDetached()) return ERR_OK;
 
   Data* newd = Data::copy(_d);
-  if (!newd) return Error::OutOfMemory;
+  if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
   AtomicBase::ptr_setXchg(&_d, newd)->deref();
-  return Error::Ok;
+  return ERR_OK;
 }
 
 void Palette::free()
@@ -52,7 +51,7 @@ void Palette::free()
 void Palette::clear()
 {
   if (isDetached())
-    Memory::zero(_d->data, 512 * sizeof(Rgba));
+    Memory::zero(_d->data, 512 * sizeof(Argb));
   else
     AtomicBase::ptr_setXchg(&_d, sharedNull->refAlways())->deref();
 }
@@ -60,7 +59,7 @@ void Palette::clear()
 err_t Palette::set(const Palette& other)
 {
   AtomicBase::ptr_setXchg(&_d, other._d->ref())->deref();
-  return Error::Ok;
+  return ERR_OK;
 }
 
 err_t Palette::setDeep(const Palette& other)
@@ -68,83 +67,116 @@ err_t Palette::setDeep(const Palette& other)
   err_t err = detach();
   if (err) return err;
 
-  Memory::copy(_d->data, other._d->data, 256 * 2 * sizeof(Rgba));
-  return Error::Ok;
+  Memory::copy(_d->data, other._d->data, 256 * 2 * sizeof(Argb));
+  return ERR_OK;
 }
 
-err_t Palette::setRgba32(sysuint_t index, const Rgba* pal, sysuint_t count)
+err_t Palette::setArgb32(sysuint_t index, const Argb* pal, sysuint_t count)
 {
-  if (index > 255 || count == 0) return Error::InvalidArgument;
+  if (index > 255 || count == 0) return ERR_RT_INVALID_ARGUMENT;
   if (256 - index > count) count = 256 - index;
 
   err_t err = detach();
   if (err) return err;
 
+  uint32_t oldContainsAlpha = _d->isAlphaUsed ? isAlphaUsed(_d->data + INDEX_ARGB32 + index, count) : false;
+  uint32_t newContainsAlpha = isAlphaUsed(pal, count);
+
   // Copy data to palette.
-  Memory::copy(_d->data + IndexARGB32 + index, pal, sizeof(Rgba) * count);
+  Memory::copy(_d->data + INDEX_ARGB32 + index, pal, sizeof(Argb) * count);
 
   // Premultiply.
-  Raster::functionMap->convert.prgb32_from_argb32(
-    (uint8_t*)(_d->data + IndexPRGB32 + index), 
-    (uint8_t*)(_d->data + IndexARGB32 + index), count, NULL);
+  if (newContainsAlpha)
+  {
+    RasterUtil::functionMap->convert.prgb32_from_argb32(
+      reinterpret_cast<uint8_t*>(_d->data + INDEX_PRGB32 + index),
+      reinterpret_cast<const uint8_t*>(pal), count, NULL);
+  }
+  else
+  {
+    RasterUtil::functionMap->convert.memcpy32(
+      reinterpret_cast<uint8_t*>(_d->data + INDEX_PRGB32 + index),
+      reinterpret_cast<const uint8_t*>(pal), count, NULL);
+  }
 
-  return Error::Ok;
+  if (oldContainsAlpha && !newContainsAlpha)
+  {
+    _d->isAlphaUsed = isAlphaUsed(_d->data, 256);
+  }
+  else if (!oldContainsAlpha && newContainsAlpha)
+  {
+    _d->isAlphaUsed = true;
+  }
+
+  return ERR_OK;
 }
 
-err_t Palette::setRgb32(sysuint_t index, const Rgba* pal, sysuint_t count)
+err_t Palette::setRgb32(sysuint_t index, const Argb* pal, sysuint_t count)
 {
-  if (index > 255 || count == 0) return Error::InvalidArgument;
+  if (index > 255 || count == 0) return ERR_RT_INVALID_ARGUMENT;
   if (256 - index > count) count = 256 - index;
 
   err_t err = detach();
   if (err) return err;
 
   // Copy data to palette.
-  uint32_t* p = (uint32_t*)(_d->data + index);
-  for (sysuint_t i = count; i; i--, p++, pal++)
-  {
-    uint32_t c0 = pal[0] | 0xFF000000;
-    p[IndexARGB32] = c0;
-    p[IndexPRGB32] = c0;
-  }
+  uint32_t updateAlpha = _d->isAlphaUsed ? isAlphaUsed(_d->data + INDEX_ARGB32 + index, count) : 0;
 
-  return Error::Ok;
+  RasterUtil::functionMap->convert.argb32_from_rgb32(
+    reinterpret_cast<uint8_t*>(_d->data + INDEX_ARGB32 + index),
+    reinterpret_cast<const uint8_t*>(pal), count, NULL);
+  RasterUtil::functionMap->convert.argb32_from_rgb32(
+    reinterpret_cast<uint8_t*>(_d->data + INDEX_PRGB32 + index),
+    reinterpret_cast<const uint8_t*>(pal), count, NULL);
+
+  if (updateAlpha) _d->isAlphaUsed = isAlphaUsed(_d->data, 256);
+  return ERR_OK;
 }
 
 err_t Palette::setRgb24(sysuint_t index, const uint8_t* pal, sysuint_t count)
 {
-  if (index > 255 || count == 0) return Error::InvalidArgument;
+  if (index > 255 || count == 0) return ERR_RT_INVALID_ARGUMENT;
   if (256 - index > count) count = 256 - index;
 
   err_t err = detach();
   if (err) return err;
 
-  // Copy data to palette.
-  Raster::functionMap->convert.rgb32_from_rgb24((uint8_t*)(_d->data + IndexARGB32 + index), pal, count, NULL);
-  Raster::functionMap->convert.rgb32_from_rgb24((uint8_t*)(_d->data + IndexPRGB32 + index), pal, count, NULL);
+  uint32_t updateAlpha = _d->isAlphaUsed ? isAlphaUsed(_d->data + INDEX_ARGB32 + index, count) : 0;
 
-  return Error::Ok;
+  // Copy data to palette.
+  RasterUtil::functionMap->convert.rgb32_from_rgb24(
+    reinterpret_cast<uint8_t*>(_d->data + INDEX_ARGB32 + index), pal, count, NULL);
+  RasterUtil::functionMap->convert.rgb32_from_rgb24(
+    reinterpret_cast<uint8_t*>(_d->data + INDEX_PRGB32 + index), pal, count, NULL);
+
+  if (updateAlpha) _d->isAlphaUsed = isAlphaUsed(_d->data, 256);
+  return ERR_OK;
 }
 
 err_t Palette::setBgr24(sysuint_t index, const uint8_t* pal, sysuint_t count)
 {
-  if (index > 255 || count == 0) return Error::InvalidArgument;
+  if (index > 255 || count == 0) return ERR_RT_INVALID_ARGUMENT;
   if (256 - index > count) count = 256 - index;
 
   err_t err = detach();
   if (err) return err;
 
-  // Copy data to palette.
-  Raster::functionMap->convert.rgb32_from_bgr24((uint8_t*)(_d->data + IndexARGB32 + index), pal, count, NULL);
-  Raster::functionMap->convert.rgb32_from_bgr24((uint8_t*)(_d->data + IndexPRGB32 + index), pal, count, NULL);
+  uint32_t updateAlpha = _d->isAlphaUsed ? isAlphaUsed(_d->data + INDEX_ARGB32 + index, count) : 0;
 
-  return Error::Ok;
+  // Copy data to palette.
+  RasterUtil::functionMap->convert.rgb32_from_bgr24(
+    reinterpret_cast<uint8_t*>(_d->data + INDEX_ARGB32 + index), pal, count, NULL);
+  RasterUtil::functionMap->convert.rgb32_from_bgr24(
+    reinterpret_cast<uint8_t*>(_d->data + INDEX_PRGB32 + index), pal, count, NULL);
+
+  if (updateAlpha) _d->isAlphaUsed = isAlphaUsed(_d->data, 256);
+  return ERR_OK;
 }
 
 uint8_t Palette::findColor(uint8_t r, uint8_t g, uint8_t b) const
 {
   sysuint_t i, best = 0;
-  const Rgba* data = _d->data;
+  const Argb* data = _d->data;
   int smallest = INT_MAX;
 
   for (i = 0; i < 256; i++, data++)
@@ -166,10 +198,23 @@ uint8_t Palette::findColor(uint8_t r, uint8_t g, uint8_t b) const
 
 void Palette::update()
 {
+  uint32_t alpha = isAlphaUsed(_d->data + INDEX_ARGB32, 256);
+
   // Premultiply all.
-  Raster::functionMap->convert.prgb32_from_argb32(
-    (uint8_t*)(_d->data + IndexPRGB32), 
-    (uint8_t*)(_d->data + IndexARGB32), 256, NULL);
+  if (alpha)
+  {
+    RasterUtil::functionMap->convert.prgb32_from_argb32(
+      (uint8_t*)(_d->data + INDEX_PRGB32),
+      (uint8_t*)(_d->data + INDEX_ARGB32), 256, NULL);
+  }
+  else
+  {
+    RasterUtil::functionMap->convert.memcpy32(
+      (uint8_t*)(_d->data + INDEX_PRGB32),
+      (uint8_t*)(_d->data + INDEX_ARGB32), 256, NULL);
+  }
+
+  _d->isAlphaUsed = alpha;
 }
 
 Palette Palette::greyscale()
@@ -183,7 +228,7 @@ Palette Palette::colorCube(int nr, int ng, int nb)
   if (pal.detach()) return pal;
   if (nr <= 0 || ng <= 0 || nb <= 0) return pal;
 
-  Rgba* data = pal._d->data;
+  Argb* data = pal._d->data;
 
   int i = 0, r, g, b;
 
@@ -201,9 +246,9 @@ Palette Palette::colorCube(int nr, int ng, int nb)
         if (ng > 1) palg = (g * 255) / (ng - 1);
         if (nb > 1) palb = (b * 255) / (nb - 1);
 
-        Rgba color(palr, palg, palb);
-        data[IndexARGB32 + i] = color;
-        data[IndexPRGB32 + i] = color;
+        Argb color(palr, palg, palb);
+        data[INDEX_ARGB32 + i] = color;
+        data[INDEX_PRGB32 + i] = color;
 
         if (++i == 256) goto end;
       }
@@ -215,7 +260,7 @@ end:
 }
 
 // static
-bool Palette::isGreyOnly(const Rgba* data, sysuint_t count)
+bool Palette::isGreyOnly(const Argb* data, sysuint_t count)
 {
   sysuint_t i;
 
@@ -225,6 +270,16 @@ bool Palette::isGreyOnly(const Rgba* data, sysuint_t count)
   }
 
   return i == 0;
+}
+
+bool Palette::isAlphaUsed(const Argb* data, sysuint_t count)
+{
+  for (int i = 0; i < 256; i++)
+  {
+    if (data[i].a != 0xFF) return true;
+  }
+
+  return false;
 }
 
 // ============================================================================
@@ -259,7 +314,7 @@ Palette::Data* Palette::Data::copy(const Data* other)
 
   if (d)
   {
-    Memory::copy(d->data, other->data, sizeof(Rgba) * 512);
+    Memory::copy(d->data, other->data, sizeof(Argb) * 512);
   }
 
   return d;
@@ -276,6 +331,7 @@ FOG_INIT_DECLARE err_t fog_palette_init(void)
   using namespace Fog;
 
   Palette::Data* d;
+  uint32_t i, c0;
 
   Palette::sharedNull;
   Palette::sharedGrey;
@@ -283,19 +339,25 @@ FOG_INIT_DECLARE err_t fog_palette_init(void)
   // Setup null palette;
   d = Palette::sharedNull.instancep();
   d->refCount.init(1);
-  Memory::zero(d->data, 512 * sizeof(Rgba));
+  Memory::zero(d->data, 512 * sizeof(Argb));
+
+  for (i = 0, c0 = 0xFF000000; i < 256; i++)
+  {
+    d->data[Palette::INDEX_ARGB32 + i] = c0;
+    d->data[Palette::INDEX_PRGB32 + i] = c0;
+  }
 
   // Setup grey palette;
   d = Palette::sharedGrey.instancep();
   d->refCount.init(1);
 
-  for (uint32_t i = 256, c0 = 0xFF000000; i; i--, c0 += 0x00010101)
+  for (i = 0, c0 = 0xFF000000; i < 256; i++, c0 += 0x00010101)
   {
-    d->data[Palette::IndexARGB32 + i] = c0;
-    d->data[Palette::IndexPRGB32 + i] = c0;
+    d->data[Palette::INDEX_ARGB32 + i] = c0;
+    d->data[Palette::INDEX_PRGB32 + i] = c0;
   }
 
-  return Error::Ok;
+  return ERR_OK;
 }
 
 FOG_INIT_DECLARE void fog_palette_shutdown(void)

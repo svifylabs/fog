@@ -9,10 +9,11 @@
 
 // [Dependencies]
 #include <Fog/Core/Static.h>
+#include <Fog/Graphics/Argb.h>
+#include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Geometry.h>
-#include <Fog/Graphics/Gradient.h>
 #include <Fog/Graphics/Image.h>
-#include <Fog/Graphics/Rgba.h>
+#include <Fog/Graphics/Matrix.h>
 
 //! @addtogroup Fog_Graphics
 //! @{
@@ -24,31 +25,16 @@ namespace Fog {
 // ============================================================================
 
 //! @brief Pattern can be used to define stroke or fill source when painting.
+//!
+//! Pattern is class that can be used to define these types of sources:
+//! - Null - NOP (no source, no painting...).
+//! - Solid color - Everything is painted by solid color.
+//! - Texture - Raster texture is used as a source.
+//! - Linear gradient - Linear gradient defined between two points.
+//! - Radial gradient - Radial gradient defined by one circle, radius and focal point.
+//! - Conical gradient - Conical gradient - atan() function is used.
 struct FOG_API Pattern
 {
-  // [Type]
-
-  enum Type
-  {
-    TypeGradientMask = 0x10,
-
-    TypeNull = 0x0,
-    TypeSolid = 0x1,
-    TypeTexture = 0x2,
-    TypeLinearGradient = TypeGradientMask | 0x0,
-    TypeRadialGradient = TypeGradientMask | 0x1,
-    TypeConicalGradient = TypeGradientMask | 0x2
-  };
-
-  // [Spread]
-
-  enum Spread
-  {
-    SpreadPad = 0,
-    SpreadRepeat = 1,
-    SpreadReflect = 2
-  };
-
   // [Data]
 
   struct FOG_API Data
@@ -76,16 +62,34 @@ struct FOG_API Pattern
 
     // [Members]
 
+    //! @brief Reference count.
     mutable Atomic<sysuint_t> refCount;
-    uint32_t type;
-    uint32_t spread;
-    PointD points[2];
-    double gradientRadius;
 
+    //! @brief pattern type, see @c PATTERN_TYPE enum.
+    int type;
+    //! @brief Pattern spread, see @c SPREAD_TYPE enum.
+    int spread;
+
+    //! @brief Start and end points. These values have different meaning for
+    //! each pattern type:
+    //! - Null and Solid - Not used, should be zeros.
+    //! - Texture - points[0] is texture offset (starting point).
+    //! - Linear gradient - points[0 to 1] is start and end point.
+    //! - Radial gradient - points[0] is circle center point, points[1] is focal point.
+    //! - Conical gradient - points[0] is center point.
+    PointD points[2];
+    //! @brief Used only for PATTERN_RADIAL_GRADIENT - circle radius.
+    double radius;
+
+    //! @brief Pattern transformation matrix.
+    Matrix matrix;
+
+    //! @brief Embedded objects in pattern, this can be solid color, raster
+    //! texture data and gradient stops.
     union Objects {
-      Static<Rgba> rgba;
+      Static<Argb> rgba;
       Static<Image> texture;
-      Static<GradientStops> gradientStops;
+      Static<List<ArgbStop> > stops;
     } obj;
   };
 
@@ -103,32 +107,45 @@ struct FOG_API Pattern
   FOG_INLINE sysuint_t refCount() const { return _d->refCount.get(); }
   FOG_INLINE sysuint_t isDetached() const { return _d->refCount.get() == 1; }
 
-  FOG_INLINE err_t detach() { return (_d->refCount.get() > 1) ? _detach() : Error::Ok; }
+  FOG_INLINE err_t detach() { return (_d->refCount.get() > 1) ? _detach() : ERR_OK; }
   err_t _detach();
 
   void free();
 
   // [Type]
 
-  FOG_INLINE uint32_t getType() const { return _d->type; }
-  err_t setType(uint32_t type);
+  FOG_INLINE int getType() const { return _d->type; }
+  err_t setType(int type);
 
-  FOG_INLINE bool isNull() const { return _d->type == TypeNull; }
-  FOG_INLINE bool isSolid() const { return _d->type == TypeSolid; }
-  FOG_INLINE bool isTexture() const { return _d->type == TypeTexture; }
-  FOG_INLINE bool isGradient() const { return (_d->type & TypeGradientMask) == TypeGradientMask; }
-  FOG_INLINE bool isLinearGradient() const { return _d->type == TypeLinearGradient; }
-  FOG_INLINE bool isRadialGradient() const { return _d->type == TypeRadialGradient; }
-  FOG_INLINE bool isConicalGradient() const { return _d->type == TypeConicalGradient; }
+  FOG_INLINE bool isNull() const { return _d->type == PATTERN_NULL; }
+  FOG_INLINE bool isSolid() const { return _d->type == PATTERN_SOLID; }
+  FOG_INLINE bool isTexture() const { return _d->type == PATTERN_TEXTURE; }
+  FOG_INLINE bool isGradient() const { return (_d->type & PATTERN_GRADIENT_MASK) == PATTERN_GRADIENT_MASK; }
+  FOG_INLINE bool isLinearGradient() const { return _d->type == PATTERN_LINEAR_GRADIENT; }
+  FOG_INLINE bool isRadialGradient() const { return _d->type == PATTERN_RADIAL_GRADIENT; }
+  FOG_INLINE bool isConicalGradient() const { return _d->type == PATTERN_CONICAL_GRADIENT; }
 
   // [Null]
 
-  void setNull();
+  void reset();
 
   // [Spread]
 
-  FOG_INLINE uint32_t getSpread() const { return _d->spread; }
-  err_t setSpread(uint32_t spread);
+  FOG_INLINE int getSpread() const { return _d->spread; }
+  err_t setSpread(int spread);
+
+  // [Matrix]
+
+  FOG_INLINE const Matrix& getMatrix() const { return _d->matrix; }
+  err_t setMatrix(const Matrix& matrix);
+  err_t resetMatrix();
+
+  err_t translate(double x, double y);
+  err_t rotate(double a);
+  err_t scale(double s);
+  err_t scale(double x, double y);
+  err_t skew(double x, double y);
+  err_t multiply(const Matrix& m, int order = MATRIX_PREPEND);
 
   // [Start Point / End Point]
 
@@ -146,8 +163,8 @@ struct FOG_API Pattern
 
   // [Solid]
 
-  Rgba getColor() const;
-  err_t setColor(const Rgba& rgba);
+  Argb getColor() const;
+  err_t setColor(const Argb& rgba);
 
   // [Texture]
 
@@ -156,17 +173,19 @@ struct FOG_API Pattern
 
   // [Gradient]
 
-  FOG_INLINE double gradientRadius() const { return _d->gradientRadius; }
+  FOG_INLINE double getRadius() const { return _d->radius; }
+  err_t setRadius(double r);
 
-  err_t setGradientRadius(double r);
-  err_t setGradientStops(const GradientStops& stops);
-  err_t resetGradientStops();
-  err_t addGradientStop(const GradientStop& stop);
+  List<ArgbStop> getStops() const;
+  err_t setStops(const List<ArgbStop>& stops);
+
+  err_t resetStops();
+  err_t addStop(const ArgbStop& stop);
 
   // [Operator Overload]
 
   Pattern& operator=(const Pattern& other);
-  Pattern& operator=(const Rgba& rgba);
+  Pattern& operator=(const Argb& rgba);
 
   // [Members]
 

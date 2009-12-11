@@ -44,14 +44,6 @@ struct FOG_API Layout : public LayoutItem
   virtual Size getMaximumSize() const;
   virtual void setMaximumSize(const Size& maxSize);
 
-  // [Layout Policy]
-
-  enum Policy
-  {
-    ExpandingWidth = 0x01,
-    ExpandingHeight = 0x10
-  };
-
   virtual uint32_t getLayoutPolicy() const;
   virtual void setLayoutPolicy(uint32_t policy);
 
@@ -76,10 +68,10 @@ struct FOG_API Layout : public LayoutItem
 
   // [Event Map]
 
-  fog_event_begin()
-    fog_event(EvLayoutItemAdd    , onLayout          , LayoutEvent    , Override)
-    fog_event(EvLayoutItemRemove , onLayout          , LayoutEvent    , Override)
-  fog_event_end()
+  FOG_EVENT_BEGIN()
+    FOG_EVENT_DEF(EV_LAYOUT_ITEM_ADD    , onLayout          , LayoutEvent    , OVERRIDE)
+    FOG_EVENT_DEF(EV_LAYOUT_ITEM_REMOVE , onLayout          , LayoutEvent    , OVERRIDE)
+  FOG_EVENT_END()
 
 protected:
   LayoutItem* _parentItem;

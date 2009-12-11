@@ -25,11 +25,6 @@ FOG_CAPI_EXTERN void* fog_memory_alloc(sysuint_t size);
 FOG_CAPI_EXTERN void* fog_memory_calloc(sysuint_t size);
 FOG_CAPI_EXTERN void* fog_memory_realloc(void* addr, sysuint_t size);
 FOG_CAPI_EXTERN void* fog_memory_reallocf(void* addr, sysuint_t size);
-
-FOG_CAPI_EXTERN void* fog_memory_xalloc(sysuint_t size);
-FOG_CAPI_EXTERN void* fog_memory_xcalloc(sysuint_t size);
-FOG_CAPI_EXTERN void* fog_memory_xrealloc(void* addr, sysuint_t size);
-
 FOG_CAPI_EXTERN void fog_memory_free(void *addr);
 
 FOG_CAPI_EXTERN void* fog_memory_dup(void *addr, sysuint_t size);
@@ -80,7 +75,7 @@ union UInt64Union
 //!
 //! @c new() and @c delete() in @c Core namespace are modified to call
 //! @c Memory::xmalloc() and @c Memory::free().
-struct Memory
+struct FOG_HIDDEN Memory
 {
   // [Alloc / Free]
 
@@ -102,21 +97,6 @@ struct Memory
   static FOG_INLINE void* reallocf(void* addr, sysuint_t size)
   {
     return fog_memory_reallocf(addr, size);
-  }
-
-  static FOG_INLINE void* xalloc(sysuint_t size)
-  {
-    return fog_memory_xalloc(size);
-  }
-
-  static FOG_INLINE void* xcalloc(sysuint_t size)
-  {
-    return fog_memory_xcalloc(size);
-  }
-
-  static FOG_INLINE void* xrealloc(void* addr, sysuint_t size)
-  {
-    return fog_memory_xrealloc(addr, size);
   }
 
   static FOG_INLINE void free(void* addr)
@@ -430,7 +410,7 @@ struct Memory
 
   static FOG_INLINE void xchg1B(void* a, void* b)
   {
-    register uint8_t t0 = ((uint8_t*)a)[0];
+    uint8_t t0 = ((uint8_t*)a)[0];
 
     ((uint8_t*)a)[0] = ((uint8_t*)b)[0];
 
@@ -439,7 +419,7 @@ struct Memory
 
   static FOG_INLINE void xchg2B(void* a, void* b)
   {
-    register uint16_t t0 = ((uint16_t*)a)[0];
+    uint16_t t0 = ((uint16_t*)a)[0];
 
     ((uint16_t*)a)[0] = ((uint16_t*)b)[0];
 
@@ -448,8 +428,8 @@ struct Memory
 
   static FOG_INLINE void xchg3B(void* a, void* b)
   {
-    register uint16_t t0 = ((uint16_t*)a)[0];
-    register uint8_t  t1 = ((uint8_t *)a)[2];
+    uint16_t t0 = ((uint16_t*)a)[0];
+    uint8_t  t1 = ((uint8_t *)a)[2];
 
     ((uint16_t*)a)[0] = ((uint16_t*)b)[0];
     ((uint8_t *)a)[2] = ((uint8_t *)b)[2];
@@ -460,7 +440,7 @@ struct Memory
 
   static FOG_INLINE void xchg4B(void* a, void* b)
   {
-    register uint32_t t0 = ((uint32_t*)a)[0];
+    uint32_t t0 = ((uint32_t*)a)[0];
 
     ((uint32_t*)a)[0] = ((uint32_t*)b)[0];
 
@@ -470,14 +450,14 @@ struct Memory
   static FOG_INLINE void xchg8B(void* a, void* b)
   {
 #if FOG_ARCH_BITS == 64
-    register uint64_t t0 = ((uint64_t*)a)[0];
+    uint64_t t0 = ((uint64_t*)a)[0];
 
     ((uint64_t*)a)[0] = ((uint64_t*)b)[0];
 
     ((uint64_t*)b)[0] = t0;
 #else
-    register uint32_t t0 = ((uint32_t*)a)[0];
-    register uint32_t t1 = ((uint32_t*)a)[1];
+    uint32_t t0 = ((uint32_t*)a)[0];
+    uint32_t t1 = ((uint32_t*)a)[1];
 
     ((uint32_t*)a)[0] = ((uint32_t*)b)[0];
     ((uint32_t*)a)[1] = ((uint32_t*)b)[1];

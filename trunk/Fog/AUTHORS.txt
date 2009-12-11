@@ -9,6 +9,7 @@ Contributors
 Jaroslav Smid <jardasmid@gmail.com>
 
 Other libraries and source code used in Fog (always BSD/MIT/Public Domain)
+(See COPYING file)
 ==========================================================================
 
 Fog/Core
@@ -21,26 +22,26 @@ Unicode support - Ultimate++ <http://www.ultimatepp.com>.
 Fog/Graphics
 ============
 
-AffineMatrix - AGG version 2.4 <http://www.antigrain.com>.
-ColorMatrix - AggOO <http://www.dratek.com/>.
-DitherMatrix - Evas <http://www.enlightenment.org>.
-ImageFilter::StackBlur - Mario Klingemann <http://incubator.quasimondo.com/processing/fast_blur_deluxe.php>.
-ImageIO::GIF - GifLib <http://sourceforge.net/projects/libungif>.
-Path - AGG version 2.4 <http://www.antigrain.com>.
-Rasterizer - AGG version 2.4 <http://www.antigrain.com>.
+Affine matrix - AGG version 2.4 <http://www.antigrain.com>.
+Color matrix - AggOO <http://www.dratek.com/>.
+Dither matrix - Evas <http://www.enlightenment.org>.
+Gif - GifLib <http://sourceforge.net/projects/libungif>.
+Linear blur - Mario Klingemann <http://incubator.quasimondo.com/processing/fast_blur_deluxe.php>.
 Region - XOrg <http://www.x.org>.
+Rasterizer - AGG version 2.4 <http://www.antigrain.com>.
+Path - AGG version 2.4 <http://www.antigrain.com>.
 
 Fog/Svg
 =======
 
-None currently.
+None.
 
 Fog/UI
 ======
 
-None currently.
+None.
 
 Fog/Xml
 =======
 
-None currently.
+None.
