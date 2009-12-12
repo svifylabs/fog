@@ -113,7 +113,6 @@ private:
 
 PngLibrary::PngLibrary() : err(0xFFFFFFFF)
 {
-  init();
 }
 
 PngLibrary::~PngLibrary()
@@ -178,7 +177,7 @@ err_t PngLibrary::init()
   }
 
   const char* badSymbol;
-  if (dll.getSymbols(addr, symbols, FOG_ARRAY_SIZE(symbols), NUM_SYMBOLS, (char**)NULL) != NUM_SYMBOLS)
+  if (dll.getSymbols(addr, symbols, FOG_ARRAY_SIZE(symbols), NUM_SYMBOLS, (char**)&badSymbol) != NUM_SYMBOLS)
   {
     // Some symbol failed to load? Inform about it.
     fog_debug("Fog::ImageIO::PngLibrary::init() - Can't load symbol '%s'.", badSymbol);

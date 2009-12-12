@@ -380,9 +380,13 @@ static char* _prepareInsert(ByteArray* self, sysuint_t index, sysuint_t length)
 
   sysuint_t lengthBefore = d->length;
   sysuint_t lengthAfter = lengthBefore + length;
+  sysuint_t moveBy;
 
   if (index > lengthBefore) index = lengthBefore;
+  // If data length is zero we can just skip all this machinery.
   if (FOG_UNLIKELY(!length)) goto skip;
+
+  moveBy = lengthBefore - index;
 
   if (d->refCount.get() > 1 || d->capacity < lengthAfter)
   {
@@ -393,8 +397,13 @@ static char* _prepareInsert(ByteArray* self, sysuint_t index, sysuint_t length)
     if (!d) return NULL;
 
     StringUtil::copy(
-      d->data + index + length, self->_d->data + index, lengthBefore - index);
+      d->data + index + length, self->_d->data + index, moveBy);
     AtomicBase::ptr_setXchg(&self->_d, d)->derefInline();
+  }
+  else
+  {
+    StringUtil::move(
+      d->data + index + length, d->data + index, moveBy);
   }
 
   d->hashCode = 0;
