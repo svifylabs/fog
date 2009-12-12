@@ -20,33 +20,24 @@
 namespace Fog {
 
 // ============================================================================
+// [Fog::LibraryData]
+// ============================================================================
+
+struct FOG_HIDDEN LibraryData
+{
+  // [Members]
+
+  mutable Atomic<sysuint_t> refCount;
+  void* handle;
+};
+
+// ============================================================================
 // [Fog::Library]
 // ============================================================================
 
 struct FOG_API Library
 {
-  // [Data]
-
-  struct FOG_API Data
-  {
-    // [Ref / Deref]
-
-    FOG_INLINE Data* ref() const
-    {
-      refCount.inc();
-      return const_cast<Data*>(this);
-    }
-    void deref();
-
-    static Data* alloc();
-
-    // [Members]
-
-    mutable Atomic<sysuint_t> refCount;
-    void* handle;
-  };
-
-  static Static<Data> sharedNull;
+  static Static<LibraryData> sharedNull;
 
   // [Construction / Destruction]
 
@@ -105,12 +96,6 @@ struct FOG_API Library
 
   Library& operator=(const Library& other);
 
-  // [Statics]
-
-  static const char* systemPrefix;
-  static const char* systemSuffix;
-  static const char* systemExtension;
-
   // [Paths]
 
   enum PATH_MODE
@@ -124,9 +109,14 @@ struct FOG_API Library
   static bool removePath(const String& path);
   static bool hasPath(const String& path);
 
+  // [System]
+
+  static String getSystemPrefix();
+  static List<String> getSystemExtensions();
+
   // [Members]
 
-  FOG_DECLARE_D(Data)
+  FOG_DECLARE_D(LibraryData)
 };
 
 // ============================================================================

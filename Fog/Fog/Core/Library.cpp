@@ -43,22 +43,24 @@ struct Library_Local
 {
   Lock lock;
   List<String> paths;
+
+  String prefix;
+  List<String> extensions;
 };
 
 static Static<Library_Local> library_local;
 
 // ============================================================================
-// [Fog::Library - Platform support]
+// [Fog::Library - Platform]
 // ============================================================================
 
 #if defined(FOG_LIBRARY_WINDOWS)
-static err_t platformOpenLibrary(const String& fileName, void** handle)
+static err_t systemOpenLibrary(const String& fileName, void** handle)
 {
   TemporaryString<TEMP_LENGTH> fileNameW;
   err_t err;
 
-  if ((err = fileNameW.set(fileName)) ||
-      (err = fileNameW.slashesToWin()))
+  if ((err = fileNameW.set(fileName)) || (err = fileNameW.slashesToWin()))
   {
     return err;
   }
@@ -70,12 +72,12 @@ static err_t platformOpenLibrary(const String& fileName, void** handle)
   return ERR_OK;
 }
 
-static void platformCloseLibrary(void* handle)
+static void systemCloseLibrary(void* handle)
 {
   ::FreeLibrary((HMODULE)handle);
 }
 
-static void* platformLoadSymbol(void* handle, const char* symbol)
+static void* systemLoadSymbol(void* handle, const char* symbol)
 {
   if (handle == NULL) return NULL;
   return (void*)GetProcAddress((HINSTANCE)handle, symbol);
@@ -83,9 +85,10 @@ static void* platformLoadSymbol(void* handle, const char* symbol)
 #endif // FOG_LIBRARY_WINDOWS
 
 #if defined(FOG_LIBRARY_DL)
-static err_t platformOpenLibrary(const String& fileName, void** handle)
+static err_t systemOpenLibrary(const String& fileName, void** handle)
 {
   err_t err;
+
   TemporaryByteArray<TEMP_LENGTH> fileName8;
   if ((err = TextCodec::local8().appendFromUnicode(fileName8, fileName))) return err;
 
@@ -96,12 +99,12 @@ static err_t platformOpenLibrary(const String& fileName, void** handle)
   return ERR_OK;
 }
 
-static void platformCloseLibrary(void* handle)
+static void systemCloseLibrary(void* handle)
 {
   ::dlclose(handle);
 }
 
-static void* platformLoadSymbol(void* handle, const char* symbol)
+static void* systemLoadSymbol(void* handle, const char* symbol)
 {
   if (handle == NULL) return NULL;
   return (void *)::dlsym(handle, symbol);
@@ -109,101 +112,166 @@ static void* platformLoadSymbol(void* handle, const char* symbol)
 #endif // FOG_LIBRARY_DL
 
 // ============================================================================
+// [Fog::LibraryData]
+// ============================================================================
+
+static LibraryData* newLibraryData(void* handle)
+{
+  LibraryData* d = reinterpret_cast<LibraryData*>(Memory::alloc(sizeof(LibraryData)));
+  if (!d) return NULL;
+
+  d->refCount.init(1);
+  d->handle = handle;
+  return d;
+}
+
+static LibraryData* refLibraryData(LibraryData* d)
+{
+  d->refCount.inc();
+  return d;
+}
+
+static void derefLibraryData(LibraryData* d)
+{
+  if (d->refCount.deref())
+  {
+    if (d->handle) systemCloseLibrary(d->handle);
+    Memory::free(d);
+  }
+}
+
+// ============================================================================
 // [Fog::Library]
 // ============================================================================
 
-const char* Library::systemPrefix;
-const char* Library::systemSuffix;
-const char* Library::systemExtension;
+Static<LibraryData> Library::sharedNull;
 
 Library::Library() :
-  _d(sharedNull->ref())
+  _d(refLibraryData(sharedNull.instancep()))
 {
 }
 
 Library::Library(const Library& other) :
-  _d(other._d->ref())
+  _d(refLibraryData(other._d))
 {
 }
 
 Library::Library(const String& fileName, uint32_t openFlags) :
-  _d(sharedNull->ref())
+  _d(refLibraryData(sharedNull.instancep()))
 {
   open(fileName, openFlags);
 }
 
 Library::~Library()
 {
-  _d->deref();
+  derefLibraryData(_d);
 }
 
 err_t Library::open(const String& _fileName, uint32_t openFlags)
 {
+  close();
+
   err_t err;
+  err_t libOpenError = ERR_LIB_LOAD_FAILED;
+
   TemporaryString<TEMP_LENGTH> fileName;
-  
-  if ((err = fileName.set(_fileName))) return err;
+  List<String> extensions = library_local->extensions;
 
-  if ((openFlags & LIBRARY_OPEN_SYSTEM_PREFIX) != 0)
+  for (sysuint_t i = 0; i < extensions.getLength(); i++)
   {
-    if ((err = fileName.insert(fileName.lastIndexOf(Char('/')) + 1, Ascii8(systemPrefix)))) return err;
-  }
-  if ((openFlags & LIBRARY_OPEN_SYSTEM_SUFFIX) != 0)
-  {
-    if ((err = fileName.append(Ascii8(systemSuffix)))) return err;
+    if ( (err = fileName.setDeep(_fileName)) ) goto fail;
+
+    if ((openFlags & LIBRARY_OPEN_SYSTEM_PREFIX) != 0)
+    {
+      if ( (err = fileName.insert(fileName.lastIndexOf(Char('/')) + 1, library_local->prefix)) ) goto fail;
+    }
+    if ((openFlags & LIBRARY_OPEN_SYSTEM_SUFFIX) != 0)
+    {
+      if ( (err = fileName.append(Char('.'))) || (err = fileName.append(extensions.at(i))) ) goto fail;
+    }
+
+    void* handle;
+    if ((libOpenError = systemOpenLibrary(fileName, &handle)))
+    {
+      if (openFlags & LIBRARY_OPEN_SYSTEM_SUFFIX) continue;
+      goto end;
+    }
+
+    LibraryData* newd = newLibraryData(handle);
+    if (!newd)
+    {
+      systemCloseLibrary(handle);
+      return ERR_RT_OUT_OF_MEMORY;
+    }
+
+    derefLibraryData(AtomicBase::ptr_setXchg(&_d, newd));
+    return ERR_OK;
   }
 
-  void* handle;
-  if ((err = platformOpenLibrary(fileName, &handle))) return err;
+end:
+  err = libOpenError;
 
-  Data* newd = Data::alloc();
-  if (!newd)
-  {
-    platformCloseLibrary(handle);
-    return ERR_RT_OUT_OF_MEMORY;
-  }
-  newd->handle = handle;
-
-  AtomicBase::ptr_setXchg(&_d, newd)->deref();
-  return ERR_OK;
+fail:
+  return err;
 }
 
 err_t Library::openPlugin(const String& category, const String& fileName)
 {
+  close();
+
   err_t err;
+  err_t libOpenError = ERR_LIB_LOAD_FAILED;
+
   TemporaryString<TEMP_LENGTH> relative;
   TemporaryString<TEMP_LENGTH> absolute;
 
-  if ( (err = relative.append(Ascii8(systemPrefix))) ) return err;
-  if (!category.isEmpty())
-  {
-    if ( (err = relative.append(category)) ) return err;
-    if ( (err = relative.append(Char('_'))) ) return err;
-  }
-  if ( (err = relative.append(fileName)) ) return err;
-  if ( (err = relative.append(Ascii8(systemSuffix))) ) return err;
+  List<String> extensions = library_local->extensions;
 
-  if (FileSystem::findFile(paths(), relative, absolute))
-    return open(absolute, 0);
-  else
-    return ERR_IO_FILE_NOT_EXISTS;
+  for (sysuint_t i = 0; i < extensions.getLength(); i++)
+  {
+    if ( (err = relative.setDeep(library_local->prefix)) ) goto fail;
+    if (!category.isEmpty())
+    {
+      if ((err = relative.append(category)) ||
+          (err = relative.append(Char('_')))) goto fail;
+    }
+    if ((err = relative.append(fileName)) ||
+        (err = relative.append(Char('.'))) ||
+        (err = relative.append(extensions.at(i))) ) goto fail;
+
+    if (FileSystem::findFile(paths(), relative, absolute))
+    {
+      if ((libOpenError = open(absolute, 0)) == ERR_OK) return ERR_OK;
+    }
+    else
+    {
+      libOpenError = ERR_IO_FILE_NOT_EXISTS;
+    }
+  }
+
+  err = libOpenError;
+
+fail:
+  return err;
 }
 
 void Library::close()
 {
-  AtomicBase::ptr_setXchg(&_d, sharedNull->ref())->deref();
+  derefLibraryData(
+    AtomicBase::ptr_setXchg(&_d, refLibraryData(sharedNull.instancep()))
+  );
 }
 
 void* Library::getSymbol(const char* symbolName)
 {
-  return platformLoadSymbol(_d->handle, symbolName);
+  return systemLoadSymbol(_d->handle, symbolName);
 }
 
 void* Library::getSymbol(const String& symbolName)
 {
   TemporaryByteArray<TEMP_LENGTH> symb8;
   TextCodec::utf8().fromUnicode(symb8, symbolName);
-  return platformLoadSymbol(_d->handle, symb8.getData());
+  return systemLoadSymbol(_d->handle, symb8.getData());
 }
 
 sysuint_t Library::getSymbols(void** target, const char* symbols, sysuint_t symbolsLength, sysuint_t symbolsCount, char** fail)
@@ -227,7 +295,7 @@ sysuint_t Library::getSymbols(void** target, const char* symbols, sysuint_t symb
       if (*symbolsCur++ == 0) break;
     }
 
-    if ((address = platformLoadSymbol(handle, current)) == NULL)
+    if ((address = systemLoadSymbol(handle, current)) == NULL)
     {
       if (fail) *fail = (char*)current;
       goto end;
@@ -240,15 +308,21 @@ end:
   return i;
 }
 
-// [Operator Overload]
+// ============================================================================
+// [Fog::Library::Operator Overload]
+// ============================================================================
 
 Library& Library::operator=(const Library& other)
 {
-  AtomicBase::ptr_setXchg(&_d, other._d->ref())->deref();
+  derefLibraryData(
+    AtomicBase::ptr_setXchg(&_d, refLibraryData(other._d))
+  );
   return *this;
 }
 
-// [Paths]
+// ============================================================================
+// [Fog::Library::Paths]
+// ============================================================================
 
 List<String> Library::paths()
 {
@@ -282,29 +356,17 @@ bool Library::hasPath(const String& path)
 }
 
 // ============================================================================
-// [Fog::Library::Data]
+// [Fog::Library::System]
 // ============================================================================
 
-Static<Library::Data> Library::sharedNull;
-
-void Library::Data::deref()
+String Library::getSystemPrefix()
 {
-  if (refCount.deref())
-  {
-    if (handle) platformCloseLibrary(handle);
-    Memory::free(this);
-  }
+  return library_local->prefix;
 }
 
-Library::Data* Library::Data::alloc()
+List<String> Library::getSystemExtensions()
 {
-  Data* d = (Data*)Memory::alloc(sizeof(Data));
-  if (!d) return NULL;
-
-  d->refCount.init(1);
-  d->handle = NULL;
-
-  return d;
+  return library_local->extensions;
 }
 
 } // Fog namespace
@@ -318,32 +380,32 @@ FOG_INIT_DECLARE err_t fog_library_init(void)
   using namespace Fog;
 
   Library::sharedNull.init();
-  Library::Data* d = Library::sharedNull.instancep();
+  LibraryData* d = Library::sharedNull.instancep();
   d->refCount.init(1);
   d->handle = NULL;
 
   library_local.init();
 
 #if defined(FOG_OS_WINDOWS)
-  static const char libraryPrefix[] = "";
-  static const char librarySuffix[] = ".dll";
+  // There is no system prefix under Windows (empty).
+  library_local->extensions.append(Ascii8("dll"));
 #endif // FOG_OS_WINDOWS
+
 #if defined(FOG_OS_POSIX)
 # if defined(FOG_OS_HPUX)
-  static const char libraryPrefix[] = "lib";
-  static const char librarySuffix[] = ".sl";
+  library_local->prefix.set(Ascii8("lib"));
+  library_local->extensions.append(Ascii8("sl"));
 # elif defined(FOG_OS_MAC)
-  static const char libraryPrefix[] = "lib";
-  static const char librarySuffix[] = ".bundle";
+  library_local->prefix.set(Ascii8("lib"));
+  // It seems that there are used three library extensions under MAC:
+  library_local->extensions.append(Ascii8("bundle"));
+  library_local->extensions.append(Ascii8("dylib"));
+  library_local->extensions.append(Ascii8("so"));
 # else
-  static const char libraryPrefix[] = "lib";
-  static const char librarySuffix[] = ".so";
+  library_local->prefix.set(Ascii8("lib"));
+  library_local->extensions.append(Ascii8("so"));
 # endif
 #endif // FOG_OS_POSIX
-
-  Library::systemPrefix = libraryPrefix;
-  Library::systemSuffix = librarySuffix;
-  Library::systemExtension = librarySuffix + 1;
 
 #if defined(FOG_OS_POSIX)
 #if FOG_ARCH_BITS == 32
@@ -363,7 +425,5 @@ FOG_INIT_DECLARE void fog_library_shutdown(void)
   using namespace Fog;
 
   library_local.destroy();
-
   Library::sharedNull.instancep()->refCount.dec();
-  Library::sharedNull.destroy();
 }

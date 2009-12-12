@@ -189,13 +189,11 @@ void MyWindow::onPaint(PaintEvent* e)
 
   // Create path that will contain rounded rectangle.
   Path path;
-  path.addRound(RectD(x, y, w, h), PointD(50.0, 50.0));
-/*
+  //path.addRound(RectD(x, y, w, h), PointD(50.0, 50.0));
   path.moveTo(100, 100);
   path.cubicTo(150, 120, 180, 100, 200, 200);
   path.lineTo(50, 230);
   path.lineTo(140, 280);
-*/
 
   // Create linear gradient pattern.
   Pattern pattern;
