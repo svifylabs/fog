@@ -176,62 +176,56 @@ The column length should always be 80 characters. If your code uses many inlines
 When using infinite loops, they should start with `for (;;)`.
 
 =Errors=
-Return errors (by using `err_t`), don't throw them. Error codes are declared in `Error.h`.
+Return errors (by using `err_t`), don't throw them. Error codes are declared in `Constants.h`.
 
-TODO(Petr): Error codes were uppercased, I will fix this after my commit.
+Possible error codes are: 
 
-Possible errors are: 
+==Core/Runtime Errors==
 
-==Error Range==
- * `_CoreErrorStart`
- * `_CoreErrorLast`
+ * `ERR_RT_OUT_OF_MEMORY`
+ * `ERR_RT_NOT_IMPLEMENTED`
+ * `ERR_RT_INVALID_ARGUMENT`
+ * `ERR_RT_INVALID_HANDLE`
+ * `ERR_RT_INVALID_CONTEXT`
+ * `ERR_RT_OBJECT_NOT_FOUND`
+ * `ERR_RT_OBJECT_ALREADY_EXISTS`
+ * `ERR_RT_OVERFLOW`
 
-==Runtime Errors==
+==Core/Property Errors==
+ * `ERR_PROPERTY_INVALID_NAME`
+ * `ERR_PROPERTY_INVALID_VALUE`
+ * `ERR_PROPERTY_IS_READ_ONLY`
 
- * `OutOfMemory = _CoreErrorStart`
- * `NotImplemented`
- * `InvalidFunction`
- * `InvalidArgument`
- * `InvalidHandle`
- * `InvalidInput`
- * `InvalidPropertyName`
- * `InvalidPropertyValue`
- * `Overflow`
- * `PropertyIsReadOnly`
+==Core/IO Errors==
+ * `ERR_IO_TOO_BIG`
+ * `ERR_IO_NOT_A_FILE`
+ * `ERR_IO_NOT_A_DIRECTORY`
+ * `ERR_IO_FILE_IS_EMPTY`
+ * `ERR_IO_FILE_TOO_BIG`
+ * `ERR_IO_CANT_READ`
+ * `ERR_IO_CANT_WRITE`
+ * `ERR_IO_CANT_SEEK`
+ * `ERR_IO_CANT_TRUNCATE`
+ * `ERR_IO_FILE_NOT_EXISTS`
+ * `ERR_IO_DIR_ALREADY_EXISTS`
 
-==IO Errors==
- * `IOInvalid`
- * `IOTooBig`
- * `IOEmpty`
- * `IOReadOnly`
- * `IOInvalidOffset`
- * `IONotAFile`
- * `IONotADirectory`
- * `IONotFound`
- * `FileSizeTooBig`
- * `EmptyFile`
- * `CantSeek`
- * `TruncateNotSupported`
- * `TruncateFailed`
- * `FileNotExists`
- * `DirectoryAlreadyExists`
+==Core/Library Errors=
+ * `ERR_LIB_LOAD_FAILED`
+ * `ERR_LIB_SYMBOL_NOT_FOUND`
 
-==Collections==
- * `ObjectNotExists`
- * `ObjectAlreadyExists`
+==Core/Text Errors==
+ * `ERR_TEXT_INVALID_CODEC`
+ * `ERR_TEXT_INVALID_UTF8_SEQ`
+ * `ERR_TEXT_INVALID_UTF16_SEQ`
+ * `ERR_TEXT_INVALID_UCS2_SEQ`
+ * `ERR_TEXT_INVALID_CHAR`
+ * `ERR_TEXT_INPUT_TRUNCATED`
+ * `ERR_TEXT_CHARACTERS_LOSS`
 
-==Library Errors==
- * `LibraryOpenFailed`
- * `LibrarySymbolNotFound`
+==Core/Environment Errors==
+ * `ERR_ENV_GET_FAILED`
+ * `ERR_ENV_SET_FAILED`
 
-==TextCodec (StringUtil) Errors==
- * `InvalidCodec`
- * `InvalidUtf8Sequence`
- * `InvalidUtf16Sequence`
- * `InvalidUcs2Sequence`
- * `InvalidUnicodeCharacter`
- * `InputTruncated`
-
-==OS==
- * `GetEnvFailure` 
- * `SetEnvFailure`
+==Core/User Errors==
+ * `ERR_USER_NO_HOME_DIRECTORY`
+ * `ERR_USER_NO_XDG_DIRECTORY`
