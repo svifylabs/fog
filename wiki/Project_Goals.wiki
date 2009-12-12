@@ -1,44 +1,45 @@
-#summary Fog goals and philosophy
+#summary Fog-Framework goals and philosophy
 #labels Featured
 
 =Introduction=
 
-Each project has goals. There were always reasons why to write software library and Fog isn't different in this area. There are many libraries for computer graphics, some pure raster based and some vector based. Each developer that want to create an application with user interface or visualization must choose set of libraries that will be used to do the job. Todays computers are powerful and difference between slow and fast code is day by day smaller so slower libraries are used in areas where it wasn't been possible to do few years ago.
+There are many libraries for computer graphics, some pure raster based and some vector based. Each developer that want to create an application with user interface or visualization must choose set of libraries that will be used to do the job. Today's computers are so powerful and difference between slow and fast code is day by day smaller. This is reason why some libraries are terrible slow and there is nobody working on optimizations if it's really not necessary.
 
-Main idea when creating library today is to make work done early. Time is money and companies or open source developers don't want to spend too much time writing optimized code that will be 20% faster than baseline. I accept these reasons, but I want to spend my time by optimizing code for these 20% and designing API that will allow more than it. Currently Fog library is designed to be fast, but the API must be as simple and powerful as other libraries.
+Fog-Framework is different. When library was in designing state the main and most important requirement was performance, integration and easy-of-use API. This is reason why Fog-Framework contains many classes not strictly related to computer graphics.
 
-=Project goals=
+=Design Notes=
 
-For general goals see the list:
+ * Library depends only to libraries that are installed on target operating system by default.
+   * Under Windows only WinAPI is used (other libraries like libpng can be used too, but you must first install them).
+   * Under Linux/BSD/MAC only freetype2, libjpeg and libpng libraries are needed (and libjpeg and libpng support can be disabled). By default Fog also tries to use fontconfig.
+ * Library is not using C++ stl library.
+ * Library is compiled without rtti (no dynamic casts) and without exceptions.
+ * Design of library allows any time to replace specific parts (vector engine, raster engines, blitters, effects, etc...)
+ * Use of modern CPU features (MMX, SSE2). Currently Fog library contains strong SSE2 optimizations and tricks to do draw things faster.
+ * Multithreading - This was key feature when designing the library. Fog painter is designed to be able to use threads for rasterization and blitting pipelines. Currently the design is not complete, but the thread management is very good and results are very promising
+ * API should be easy-to-use, but powerful.
+ * Do not depend to X11 under Linux/BSD.
 
-  * Platform abstraction library that will help to write crossplatform code (Fog/Core)
-  * Vector graphics library that will be fast enough to draw user interface without flicker (Fog/Graphics)
-  * User interface library that will use everything described here to do best job (Fog/UI)
+=Libraries=
 
-Because Fog is not pure graphics library and contains platform specific code not related to graphics at all there is also requierement that it can be used in server side to generate graphics by server scripts. This means that Fog library can't depend to X11 under linux and BSDs. This is solved through UISystem plugins.
+Fog-Framework currently contains these libraries:
 
-Also if we talk about Fog in context of graphics libraries, the goals are:
-  * Design of library should allow any time to replace one part of it (vector engines, raster engines, blitters, effects, etc...)
-  * Use of modern CPU features (MMX, SSE2). Currently Fog library contains strong SSE2 optimizations and tricks to do draw things faster
-  * Multithreading - This was key feature when designing the library. Fog painter is designed to be able to use threads for rasterization and blitting pipelines. Currently the design is not complete, but the thread management is very good and results are very promising
+  * Fog/Core - Platform abstraction library.
+  * Fog/Graphics - 2d graphics API.
+  * Fog/UI - Platform independent UI toolkit.
+  * Fog/Xml - XML parser and DOM.
+  * Fog/Svg - SVG parser and DOM.
+
+Because Fog-Framework is not pure graphics library and it contains platform specific code and code not related to graphics at all, there is also requirement that it can't depend to X11 (this is solved by UI/plugin). This enables to use Fog-Framework as server-side rendering engine.
 
 =Maturity / Stability=
 
-Fog library is not mature nor stable. It's in design state and will be probably long time. Only contributors and interested people can speedup this process. Writing platform indenpendent code is time consuming and writing fastest possible code is very time consuming, but library is growing and one day it will be mature and prepared for everyone.
+Fog-Framework is currently not mature library, but last few months huge amount of work was done. Currently there is only one person actively working on Fog-Framework, so it's hard to say when there will be first real version.
 
-=Licence=
+=License=
 
-Fog library is distributed under MIT licence. This means that any project can use Fog source code and you can for example create your graphics library based on Fog. Everything is possible and this will never change. I'm not lawyer, I'm interested developer who want to make source code public for everyone. Only what I want is to keep my name (and all who helped me) connected with Fog library sources.
+Fog-Framework is distributed under MIT license. This means that any project can use Fog source code and you can for example create your graphics library based on Fog. This means that Fog-Framework is not only ideal for open-source projects, but it's also ideal for commercial products (there are no licensing issues).
 
 =Help wanted=
 
-Currently I'm only developer of Fog, AsmJit and BlitJit projects. The work is time consuming and I can't do this fulltime. There were a lot of work done, but must be also done in future. If you are interested about these projects and you want to help with all this work, contact me.
-
-You can also help by joining mailing list and start talking about library. Please post what you want to use Fog library for. The design is not over and everything can change to fit you company or personal needs.
-
-Also one possibility to support fog is donation. If you want to donate Fog project, please contact me. I never got donation so my account is not prepared for this, but this can change.
-
-Thanks for all interested and impressed people.
-
-- Petr Kobalicek
-  (Author of Fog, AsmJit, BlitJit libraries)
+Currently I'm only developer of Fog-Framework. I'm working hard on this library and my dream is to release stable, full-featured version without TODO items in list. If you feel that you can help me with this work, please let me know.
