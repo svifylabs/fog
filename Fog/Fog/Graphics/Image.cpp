@@ -1901,27 +1901,27 @@ err_t Image::clear(Argb c0)
 
 err_t Image::drawPixel(const Point& pt, Argb c0)
 {
-  if ((uint)pt.getX() >= (uint)getWidth() || (uint)pt.getY() >= (uint)getHeight())
+  if ((uint)pt.x >= (uint)getWidth() || (uint)pt.y >= (uint)getHeight())
     return ERR_OK;
 
   err_t err = detach();
   if (err) return err;
 
-  uint8_t* dstCur = _d->first + pt.getY() * _d->stride;
+  uint8_t* dstCur = _d->first + pt.y * _d->stride;
 
   switch (getFormat())
   {
     case PIXEL_FORMAT_ARGB32:
     case PIXEL_FORMAT_PRGB32:
     case PIXEL_FORMAT_XRGB32:
-      RasterUtil::PixFmt_ARGB32::store(dstCur + ByteUtil::mul4(pt.getX()), c0);
+      RasterUtil::PixFmt_ARGB32::store(dstCur + ByteUtil::mul4(pt.x), c0);
       break;
     case PIXEL_FORMAT_RGB24:
-      RasterUtil::PixFmt_RGB24::store(dstCur + ByteUtil::mul3(pt.getX()), c0);
+      RasterUtil::PixFmt_RGB24::store(dstCur + ByteUtil::mul3(pt.x), c0);
       break;
     case PIXEL_FORMAT_A8:
     case PIXEL_FORMAT_I8:
-      dstCur[ByteUtil::mul1(pt.getX())] = (uint8_t)c0;
+      dstCur[pt.x] = (uint8_t)c0;
       break;
   }
 
@@ -2706,10 +2706,10 @@ err_t Image::writeFile(const String& fileName)
   Stream stream;
 
   err_t err = stream.openFile(fileName, 
-    STREAM_OPEN_WRITE      |
-    STREAM_OPEN_CREATE     |
+    STREAM_OPEN_WRITE       |
+    STREAM_OPEN_CREATE      |
     STREAM_OPEN_CREATE_PATH |
-    STREAM_OPEN_TRUNCATE   );
+    STREAM_OPEN_TRUNCATE    );
   if (err) return err;
 
   TemporaryString<16> extension;

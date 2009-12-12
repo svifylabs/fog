@@ -11191,7 +11191,7 @@ struct FOG_HIDDEN CompositeExclusionSSE2 :
     __m128i y0xmm, y1xmm;
 
     pix_expand_alpha_2x2W(y0xmm, a0xmm, y1xmm, a1xmm);
-    pix_fill_alpha_2x2W(y0xmm, y0xmm);
+    pix_fill_alpha_2x2W(y0xmm, y1xmm);
     pix_multiply_2x2W(x0xmm, a0xmm, b0xmm, x1xmm, a1xmm, b1xmm);
     pix_multiply_2x2W(y0xmm, y0xmm, b0xmm, y1xmm, y1xmm, b1xmm);
 

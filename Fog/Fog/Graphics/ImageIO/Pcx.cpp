@@ -739,7 +739,7 @@ err_t PcxDecoderDevice::readImage(Image& image)
     {
       for (x = 0; x < nColors; x++) 
       {
-        pdest[x] = Argb(dataCur[0], dataCur[1], dataCur[2]);
+        pdest[x] = Argb(0xFF, dataCur[0], dataCur[1], dataCur[2]);
         dataCur += 3;
       }
     }

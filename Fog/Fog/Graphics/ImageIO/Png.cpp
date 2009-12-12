@@ -636,7 +636,6 @@ err_t PngEncoderDevice::writeImage(const Image& image)
   int          height = image.getHeight();
   int          y;
   png_bytep    row_ptr;
-  int          compression;
 
   // Step 0: Simple reject
   if (!width || !height)
