@@ -225,7 +225,6 @@ Set(FOG_CORE_LIB_SOURCES
   Fog/Core/DirIterator.cpp
   Fog/Core/Event.cpp
   Fog/Core/EventLoop.cpp
-  Fog/Core/EventLoop_Win.cpp
   Fog/Core/FileSystem.cpp
   Fog/Core/FileUtil.cpp
   Fog/Core/Hash.cpp
@@ -288,7 +287,6 @@ Set(FOG_CORE_LIB_HEADERS
   Fog/Core/DirIterator.h
   Fog/Core/Event.h
   Fog/Core/EventLoop.h
-  Fog/Core/EventLoop_Win.h
   Fog/Core/FileSystem.h
   Fog/Core/FileUtil.h
   Fog/Core/Hash.h
