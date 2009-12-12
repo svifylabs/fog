@@ -59,7 +59,7 @@ struct MyColor
       if ((rand() % 255) == 0) step[i] = (double)(5.0 - (rand() % 100) / 20.0);
     }
   }
-  Argb toArgb() { return Argb((int)c[0], (int)c[1], (int)c[2]); }
+  Argb toArgb() { return Argb(0xFF, (int)c[0], (int)c[1], (int)c[2]); }
 };
 
 struct MyWindow : public Window

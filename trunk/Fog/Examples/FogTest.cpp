@@ -176,7 +176,7 @@ void MyWindow::onPaint(PaintEvent* e)
   p->drawPath(a);
   //p->drawRound(Rect(100, 100, 200, 200), Point(50, 50));
 */
-
+#if 1
   // Clear everything to white.
   p->setSource(Argb(0xFFFFFFFF));
   p->clear();
@@ -210,8 +210,9 @@ void MyWindow::onPaint(PaintEvent* e)
 
   // Stroke path using solid black color.
   p->setSource(Argb(0xFF000000));
-  p->setLineWidth(30);
+  p->setLineWidth(2);
   p->drawPath(path);
+#endif
 
 /*
   p->setOperator(COMPOSITE_SRC_OVER);

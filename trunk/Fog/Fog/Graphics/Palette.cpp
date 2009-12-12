@@ -246,7 +246,7 @@ Palette Palette::colorCube(int nr, int ng, int nb)
         if (ng > 1) palg = (g * 255) / (ng - 1);
         if (nb > 1) palb = (b * 255) / (nb - 1);
 
-        Argb color(palr, palg, palb);
+        Argb color(0xFF, palr, palg, palb);
         data[INDEX_ARGB32 + i] = color;
         data[INDEX_PRGB32 + i] = color;
 

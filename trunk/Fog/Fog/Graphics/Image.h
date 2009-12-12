@@ -297,9 +297,6 @@ struct FOG_API Image
 
   // [GetDib / SetDib]
 
-  typedef void (Image::*GetDibFunc)(int x, int y, sysint_t w, void* dst) const;
-  typedef void (Image::*SetDibFunc)(int x, int y, sysint_t w, const void* src);
-
   void getDibArgb32(int x, int y, sysint_t w, void* dst) const;
   void getDibArgb32_bs(int x, int y, sysint_t w, void* dst) const;
 

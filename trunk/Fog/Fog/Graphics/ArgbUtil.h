@@ -80,7 +80,7 @@ static FOG_INLINE uint32_t getGrey(uint32_t c)
 }
 
 // ============================================================================
-// [Fog::Raster - Premultiply / Demultiply]
+// [Fog::ArgbUtil - Premultiply / Demultiply]
 // ============================================================================
 
 //! @brief Return premultiplied color (@c PIXEL_FORMAT_PRGB32) in @a x given in
@@ -146,6 +146,12 @@ static FOG_INLINE uint32_t demultiply(uint32_t x)
 
   return r | g | b | (a << 24);
 }
+
+// ============================================================================
+// [Fog::ArgbUtil - ARGB <-> AHSV]
+// ============================================================================
+
+FOG_API uint32_t argbFromAhsv(float a, float h, float s, float v);
 
 } // ArgbUtil namespace
 } // Fog namespace

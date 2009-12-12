@@ -57,12 +57,12 @@ struct FOG_PACKED Argb
   FOG_INLINE Argb() {}
   FOG_INLINE Argb(uint32_t _value) : value(_value) {}
 
-  FOG_INLINE Argb(uint8_t _r, uint8_t _g, uint8_t _b, uint8_t _a = 0xFF) :
+  FOG_INLINE Argb(uint8_t _a, uint8_t _r, uint8_t _g, uint8_t _b) :
     value(
+      ((uint32_t)(_a) << ARGB32_ASHIFT) |
       ((uint32_t)(_r) << ARGB32_RSHIFT) |
       ((uint32_t)(_g) << ARGB32_GSHIFT) |
-      ((uint32_t)(_b) << ARGB32_BSHIFT) |
-      ((uint32_t)(_a) << ARGB32_ASHIFT) )
+      ((uint32_t)(_b) << ARGB32_BSHIFT) )
   {}
 
   FOG_INLINE Argb(const Argb& rgba) :
@@ -73,21 +73,22 @@ struct FOG_PACKED Argb
 
   FOG_INLINE Argb& set(const Argb& rgba) { value = rgba.value; return* this; }
   FOG_INLINE Argb& set(uint32_t rgba) { value = rgba; return* this; }
-  FOG_INLINE Argb& set(uint8_t _r, uint8_t _g, uint8_t _b, uint8_t _a = 0xFF)
+  FOG_INLINE Argb& set(uint8_t _a, uint8_t _r, uint8_t _g, uint8_t _b)
   {
-    value = (((uint32_t)(_r) << ARGB32_RSHIFT) |
+    value = (((uint32_t)(_a) << ARGB32_ASHIFT) |
+             ((uint32_t)(_r) << ARGB32_RSHIFT) |
              ((uint32_t)(_g) << ARGB32_GSHIFT) |
-             ((uint32_t)(_b) << ARGB32_BSHIFT) |
-             ((uint32_t)(_a) << ARGB32_ASHIFT) );
+             ((uint32_t)(_b) << ARGB32_BSHIFT) );
     return* this;
   }
 
   // [Channels]
 
+  FOG_INLINE uint32_t getAlpha() const { return a; }
   FOG_INLINE uint32_t getRed  () const { return r; }
   FOG_INLINE uint32_t getGreen() const { return g; }
   FOG_INLINE uint32_t getBlue () const { return b; }
-  FOG_INLINE uint32_t getAlpha() const { return a; }
+
   FOG_INLINE uint32_t getGrey () const { return getGrey(value); }
   FOG_INLINE uint32_t getValue() const { return value; }
 
@@ -109,10 +110,10 @@ struct FOG_PACKED Argb
 
   // [Static]
 
+  static FOG_INLINE uint32_t getAlpha(uint32_t rgba) { return (rgba & ARGB32_AMASK) >> ARGB32_ASHIFT; }
   static FOG_INLINE uint32_t getRed  (uint32_t rgba) { return (rgba & ARGB32_RMASK) >> ARGB32_RSHIFT; }
   static FOG_INLINE uint32_t getGreen(uint32_t rgba) { return (rgba & ARGB32_GMASK) >> ARGB32_GSHIFT; }
   static FOG_INLINE uint32_t getBlue (uint32_t rgba) { return (rgba & ARGB32_BMASK) >> ARGB32_BSHIFT; }
-  static FOG_INLINE uint32_t getAlpha(uint32_t rgba) { return (rgba & ARGB32_AMASK) >> ARGB32_ASHIFT; }
 
   static FOG_INLINE uint32_t getGrey(uint32_t rgba) { return ArgbUtil::getGrey(rgba); }
 
