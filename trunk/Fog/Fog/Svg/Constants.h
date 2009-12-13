@@ -167,6 +167,9 @@ enum ERR_SVG_ENUM
   ERR_SVG_LAST  = 0x000111FF,
 
   // Svg Errors.
+
+  //! @brief Error set if svg embedded data are not in base64 format.
+  ERR_SVG_UNSUPPORTED_DATA_ENCODING = ERR_SVG_START
 };
 
 } // Fog namespace

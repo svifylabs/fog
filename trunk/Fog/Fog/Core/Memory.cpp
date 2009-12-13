@@ -94,11 +94,11 @@ static void fog_memdbg_init(void)
 
 static void fog_memdbg_shutdown(void)
 {
-  fog_stderr_msg("Fog::MemDbg", "shutdown", "Total blocks allocated: %llu [Count].", (uint64_t)fog_memdbg_blocks_total);
-  fog_stderr_msg("Fog::MemDbg", "shutdown", "Total memory allocated: %llu [Bytes].", (uint64_t)fog_memdbg_heapalloc_total);
+  fog_stderr_msg("Fog::MemDbg", "shutdown", "Total memory allocations: %llu [Count].", (uint64_t)fog_memdbg_blocks_total);
+  fog_stderr_msg("Fog::MemDbg", "shutdown", "Total allocated size: %llu [Bytes].", (uint64_t)fog_memdbg_heapalloc_total);
 
-  fog_stderr_msg("Fog::MemDbg", "shutdown", "Max blocks allocated: %llu [Count].", (uint64_t)fog_memdbg_blocks_max);
-  fog_stderr_msg("Fog::MemDbg", "shutdown", "Max memory allocated: %llu [Bytes].", (uint64_t)fog_memdbg_heapalloc_max);
+  fog_stderr_msg("Fog::MemDbg", "shutdown", "Maximum memory allocations at time: %llu [Count].", (uint64_t)fog_memdbg_blocks_max);
+  fog_stderr_msg("Fog::MemDbg", "shutdown", "Maximum memory size at time: %llu [Bytes].", (uint64_t)fog_memdbg_heapalloc_max);
 
   // only show debug information if application wasn't fail.
   if (fog_failed == 0) fog_memdbg_leaks();
@@ -196,7 +196,7 @@ static void fog_memdbg_leaks(void)
       {
         bool doDump = true;
 
-        fprintf(fog_stderr, "At %p of %llu bytes", node->addr, (uint64_t)node->size);
+        fprintf(fog_stderr, "At %p of %u bytes", node->addr, (uint)node->size);
 
         // Fog uses implicit sharing that usually only needs to alloc
         // memory of pointer size in case that implicit shared object

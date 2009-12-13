@@ -513,18 +513,49 @@ String SvgImageLinkAttribute::getValue() const
 
 err_t SvgImageLinkAttribute::setValue(const String& value)
 {
+  err_t err = ERR_OK;
+
   if (value.startsWith(Ascii8("data:")))
   {
-    if (value.startsWith(Ascii8("data:image/png;base64,")))
+    sysuint_t semicolon = value.indexOf(Char(';'));
+    sysuint_t separator = value.indexOf(Char(','));
+
+    if (semicolon != INVALID_INDEX && separator != INVALID_INDEX)
     {
-      err_t err = ERR_OK;
+      String type = value.substring(Range(5, semicolon - 5));
+      String extension;
+      String encoding = value.substring(Range(semicolon + 1, separator - semicolon - 1));
 
       ByteArray memio;
       Stream stream;
 
-      err |= StringUtil::fromBase64(memio, value.getData() + 22, value.getLength() - 22);
+      if (type == Ascii8("image/png"))
+      {
+        extension = fog_strings->getString(STR_GRAPHICS_png);
+      }
+      else if (type == Ascii8("image/jpeg"))
+      {
+        extension = fog_strings->getString(STR_GRAPHICS_jpeg);
+      }
+      else
+      {
+        // Standard talks only about PNG and JPEG, but we can use any attached
+        // image that can be decoded by ImageIO.
+      }
+
+      if (encoding == Ascii8("base64"))
+      {
+        err |= StringUtil::fromBase64(memio, value.getData() + separator + 1, value.getLength() - separator - 1);
+      }
+      else
+      {
+        // Maybe in future something else will be supported by SVG. For now
+        // this is error.
+        return ERR_SVG_UNSUPPORTED_DATA_ENCODING;
+      }
+
       err |= stream.openBuffer(memio);
-      err |= _image.readStream(stream, Ascii8("png"));
+      err |= _image.readStream(stream, extension);
 
       if (err)
       {
@@ -541,13 +572,10 @@ err_t SvgImageLinkAttribute::setValue(const String& value)
       }
     }
   }
-  else
-  {
-    return _value.set(value);
-  }
 
+  err = _value.set(value);
   if (_element) reinterpret_cast<SvgElement*>(_element)->_boundingRectDirty = true;
-  return ERR_OK;
+  return err;
 }
 
 // ============================================================================
@@ -2009,13 +2037,13 @@ err_t SvgImageElement::onRender(SvgContext* context) const
     double x = a_x.isAssigned() ? a_x.getCoord().value : 0.0;
     double y = a_y.isAssigned() ? a_y.getCoord().value : 0.0;
 
-    // TODO: Fix the api to provide floating point version.
     context->drawImage(PointD(x, y), a_href._image);
+    return ERR_OK;
   }
   else
   {
     // TODO: Error code?
-    return ERR_RT_NOT_IMPLEMENTED;
+    return ERR_OK;
   }
 }
 
