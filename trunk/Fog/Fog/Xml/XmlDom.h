@@ -38,47 +38,6 @@ struct XmlText;
 struct XmlWriter;
 
 // ============================================================================
-// [Fog::XmlAttributesManager]
-// ============================================================================
-
-//! @brief Hash table used in @c XmlElement to store attributes. Do not use directly.
-//! @internal
-struct FOG_API XmlAttributesManager
-{
-  // [Construction / Destruction]
-
-  XmlAttributesManager();
-  ~XmlAttributesManager();
-
-  // [Methods]
-
-  void add(XmlAttribute* a);
-  void remove(XmlAttribute* a);
-  void removeAll();
-  XmlAttribute* get(const String& name) const;
-
-private:
-  void _rehash(sysuint_t capacity);
-
-  // [Members]
-
-  //! @brief Count of buckets.
-  sysuint_t _capacity;
-  //! @brief Count of nodes.
-  sysuint_t _length;
-
-  //! @brief Buckets.
-  XmlAttribute** _buckets;
-  //! @brief Initial buckets up to 10 attributes.
-  XmlAttribute* _bucketsBuffer[10];
-
-  //! @brief List of attributes.
-  List<XmlAttribute*> _list;
-
-  friend struct XmlElement;
-};
-
-// ============================================================================
 // [Fog::XmlIdManager]
 // ============================================================================
 
@@ -157,19 +116,16 @@ protected:
   XmlElement* _element;
   //! @brief Attribute name (managed string).
   ManagedString _name;
-  //! @brief Next attribute in hash table managed by @c XmlAttributesManager.
-  XmlAttribute* _hashNext;
   //! @brief Attribute value (or empty if value is provided by overriden class).
   String _value;
 
-  //! @brief Attribute offset in XmlElement (relative to XmlElement).
+  //! @brief Attribute offset in @c XmlElement (relative to @c XmlElement).
   //!
   //! If this attribute is not embedded to the element, the _offset value is -1.
   int _offset;
 
 private:
   friend struct XmlElement;
-  friend struct XmlAttributesManager;
 
   FOG_DISABLE_COPY(XmlAttribute)
 };
@@ -326,7 +282,7 @@ public:
   // [Attributes]
 
   //! @brief Return true if current node contains attributes.
-  FOG_INLINE bool hasAttributes() const { return _attributesManager != NULL; }
+  FOG_INLINE bool hasAttributes() const { return !_attributes.isEmpty(); }
 
   //! @brief Return array of attributes.
   List<XmlAttribute*> attributes() const;
@@ -335,7 +291,9 @@ public:
   err_t setAttribute(const String& name, const String& value);
   String getAttribute(const String& name) const;
   err_t removeAttribute(const String& name);
+
   err_t removeAllAttributes();
+  err_t _removeAllAttributesAlways();
 
   virtual XmlAttribute* _createAttribute(const ManagedString& name) const;
   static void copyAttributes(XmlElement* dst, XmlElement* src);
@@ -367,9 +325,10 @@ protected:
   XmlElement* _nextSibling;
   XmlElement* _prevSibling;
 
+  //! @brief Children.
   mutable List<XmlElement*> _children;
-  //! @brief Attributes manager.
-  XmlAttributesManager* _attributesManager;
+  //! @brief Attributes.
+  List<XmlAttribute*> _attributes;
 
   //! @brief Element tag name.
   ManagedString _tagName;

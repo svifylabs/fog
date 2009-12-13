@@ -60,6 +60,11 @@ void SvgContext::drawEllipse(const PointD& cp, const PointD& r)
   }
 }
 
+void SvgContext::drawImage(const PointD& pt, const Image& im)
+{
+  _painter->drawImage(pt, im);
+}
+
 void SvgContext::drawLine(const PointD& p1, const PointD& p2)
 {
   if (_lineStyle.type != SVG_PATTERN_NONE)

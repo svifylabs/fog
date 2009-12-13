@@ -199,6 +199,8 @@ struct FOG_API String
   FOG_INLINE bool isEmpty() const { return _d->length == 0; }
 
   err_t prepare(sysuint_t capacity);
+  Char* beginManipulation(sysuint_t max, int outputMode);
+
   err_t reserve(sysuint_t to);
   err_t resize(sysuint_t to);
   err_t grow(sysuint_t by);

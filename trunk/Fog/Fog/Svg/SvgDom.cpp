@@ -7,6 +7,7 @@
 #include <Fog/Core/Char.h>
 #include <Fog/Core/String.h>
 #include <Fog/Core/Strings.h>
+#include <Fog/Core/StringUtil.h>
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/Painter.h>
@@ -15,6 +16,12 @@
 #include <Fog/Svg/SvgUtil.h>
 
 namespace Fog {
+
+// ============================================================================
+// [Fog::Forward Declarations]
+// ============================================================================
+
+struct SvgImageElement;
 
 // ============================================================================
 // [Fog::SvgStyleAttribute]
@@ -437,6 +444,113 @@ err_t SvgEnumAttribute::setValue(const String& value)
 }
 
 // ============================================================================
+// [Fog::SvgCoordAttribute]
+// ============================================================================
+
+struct FOG_HIDDEN SvgImageLinkAttribute : public XmlAttribute
+{
+  // [Construction / Destruction]
+
+  typedef XmlAttribute base;
+
+  SvgImageLinkAttribute(XmlElement* element, const ManagedString& name, int offset = -1);
+  virtual ~SvgImageLinkAttribute();
+
+  // [Methods]
+
+  virtual String getValue() const;
+  virtual err_t setValue(const String& value);
+
+  // [Image]
+
+  FOG_INLINE void setImage(const Image& image) { _image = image; }
+  FOG_INLINE const Image& getImage() const { return _image; }
+
+  // [Members]
+protected:
+  Image _image;
+  bool _embedded;
+
+private:
+  friend struct SvgImageElement;
+
+  FOG_DISABLE_COPY(SvgImageLinkAttribute)
+};
+
+SvgImageLinkAttribute::SvgImageLinkAttribute(XmlElement* element, const ManagedString& name, int offset) :
+  XmlAttribute(element, name, offset),
+  _embedded(false)
+{
+}
+
+SvgImageLinkAttribute::~SvgImageLinkAttribute()
+{
+}
+
+String SvgImageLinkAttribute::getValue() const
+{
+  if (_embedded)
+  {
+    err_t err = ERR_OK;
+
+    String dst;
+    Stream memio;
+
+    err |= dst.append(Ascii8("data:image/png;base64,"));
+    err |= memio.openBuffer();
+
+    _image.writeStream(memio, Ascii8("png"));
+    err |= StringUtil::toBase64(dst, memio.getBuffer(), OUTPUT_MODE_APPEND);
+
+    if (err) dst.free();
+    return dst;
+  }
+  else
+  {
+    return _value;
+  }
+}
+
+err_t SvgImageLinkAttribute::setValue(const String& value)
+{
+  if (value.startsWith(Ascii8("data:")))
+  {
+    if (value.startsWith(Ascii8("data:image/png;base64,")))
+    {
+      err_t err = ERR_OK;
+
+      ByteArray memio;
+      Stream stream;
+
+      err |= StringUtil::fromBase64(memio, value.getData() + 22, value.getLength() - 22);
+      err |= stream.openBuffer(memio);
+      err |= _image.readStream(stream, Ascii8("png"));
+
+      if (err)
+      {
+        // Something evil happened. I don't know what to do now, because image
+        // seems to be corrupted or unsupported.
+        _value.set(value);
+        _image.free();
+        _embedded = false;
+      }
+      else
+      {
+        _value.free();
+        _embedded = true;
+      }
+    }
+  }
+  else
+  {
+    return _value.set(value);
+  }
+
+  if (_element) reinterpret_cast<SvgElement*>(_element)->_boundingRectDirty = true;
+  return ERR_OK;
+}
+
+// ============================================================================
 // [Fog::SvgElement]
 // ============================================================================
 
@@ -457,7 +571,7 @@ SvgElement::~SvgElement()
   // Remove all attributes here, because SvgStyleAttribute casts XmlElement
   // to SvgElement and if we destroy it in XmlElement it's too late.
   // (SvgElement data are no longer valid)
-  removeAllAttributes();
+  _removeAllAttributesAlways();
 }
 
 SvgElement* SvgElement::clone() const
@@ -730,7 +844,7 @@ SvgCircleElement::SvgCircleElement() :
 
 SvgCircleElement::~SvgCircleElement()
 {
-  removeAllAttributes();
+  _removeAllAttributesAlways();
 }
 
 XmlAttribute* SvgCircleElement::_createAttribute(const ManagedString& name) const
@@ -857,7 +971,7 @@ SvgEllipseElement::SvgEllipseElement() :
 
 SvgEllipseElement::~SvgEllipseElement()
 {
-  removeAllAttributes();
+  _removeAllAttributesAlways();
 }
 
 XmlAttribute* SvgEllipseElement::_createAttribute(const ManagedString& name) const
@@ -991,7 +1105,7 @@ SvgLineElement::SvgLineElement() :
 
 SvgLineElement::~SvgLineElement()
 {
-  removeAllAttributes();
+  _removeAllAttributesAlways();
 }
 
 XmlAttribute* SvgLineElement::_createAttribute(const ManagedString& name) const
@@ -1084,7 +1198,7 @@ SvgPathElement::SvgPathElement() :
 
 SvgPathElement::~SvgPathElement()
 {
-  removeAllAttributes();
+  _removeAllAttributesAlways();
 }
 
 XmlAttribute* SvgPathElement::_createAttribute(const ManagedString& name) const
@@ -1161,7 +1275,7 @@ SvgPolygonElement::SvgPolygonElement() :
 
 SvgPolygonElement::~SvgPolygonElement()
 {
-  removeAllAttributes();
+  _removeAllAttributesAlways();
 }
 
 XmlAttribute* SvgPolygonElement::_createAttribute(const ManagedString& name) const
@@ -1238,7 +1352,7 @@ SvgPolyLineElement::SvgPolyLineElement() :
 
 SvgPolyLineElement::~SvgPolyLineElement()
 {
-  removeAllAttributes();
+  _removeAllAttributesAlways();
 }
 
 XmlAttribute* SvgPolyLineElement::_createAttribute(const ManagedString& name) const
@@ -1325,7 +1439,7 @@ SvgRectElement::SvgRectElement() :
 
 SvgRectElement::~SvgRectElement()
 {
-  removeAllAttributes();
+  _removeAllAttributesAlways();
 }
 
 XmlAttribute* SvgRectElement::_createAttribute(const ManagedString& name) const
@@ -1415,7 +1529,7 @@ SvgSolidColorElement::SvgSolidColorElement() :
 
 SvgSolidColorElement::~SvgSolidColorElement()
 {
-  removeAllAttributes();
+  _removeAllAttributesAlways();
 }
 
 XmlAttribute* SvgSolidColorElement::_createAttribute(const ManagedString& name) const
@@ -1465,7 +1579,7 @@ SvgStopElement::SvgStopElement() :
 
 SvgStopElement::~SvgStopElement()
 {
-  removeAllAttributes();
+  _removeAllAttributesAlways();
 }
 
 XmlAttribute* SvgStopElement::_createAttribute(const ManagedString& name) const
@@ -1517,7 +1631,7 @@ SvgAbstractGradientElement::SvgAbstractGradientElement(const ManagedString& tagN
 
 SvgAbstractGradientElement::~SvgAbstractGradientElement()
 {
-  removeAllAttributes();
+  _removeAllAttributesAlways();
 }
 
 XmlAttribute* SvgAbstractGradientElement::_createAttribute(const ManagedString& name) const
@@ -1623,7 +1737,7 @@ SvgLinearGradientElement::SvgLinearGradientElement() :
 
 SvgLinearGradientElement::~SvgLinearGradientElement()
 {
-  removeAllAttributes();
+  _removeAllAttributesAlways();
 }
 
 XmlAttribute* SvgLinearGradientElement::_createAttribute(const ManagedString& name) const
@@ -1747,7 +1861,7 @@ SvgRadialGradientElement::SvgRadialGradientElement() :
 
 SvgRadialGradientElement::~SvgRadialGradientElement()
 {
-  removeAllAttributes();
+  _removeAllAttributesAlways();
 }
 
 XmlAttribute* SvgRadialGradientElement::_createAttribute(const ManagedString& name) const
@@ -1801,12 +1915,12 @@ err_t SvgRadialGradientElement::onApplyPattern(SvgContext* context, SvgElement* 
     pattern.setPoints(PointD(cx, cy), PointD(fx, fy));
     pattern.setRadius(r);
   }
-  else if (a_cx.isAssigned() && a_cy.isAssigned() && a_fx.isAssigned() && a_fy.isAssigned() && a_cx.isAssigned() && a_r.isAssigned())
+  else if (a_cx.isAssigned() && a_cy.isAssigned() && a_cx.isAssigned() && a_r.isAssigned())
   {
     double cx = context->translateCoord(a_cx.getDouble(), a_cx.getUnit());
     double cy = context->translateCoord(a_cy.getDouble(), a_cy.getUnit());
-    double fx = context->translateCoord(a_fx.getDouble(), a_fx.getUnit());
-    double fy = context->translateCoord(a_fy.getDouble(), a_fy.getUnit());
+    double fx = a_fx.isAssigned() ? context->translateCoord(a_fx.getDouble(), a_fx.getUnit()) : cx;
+    double fy = a_fy.isAssigned() ? context->translateCoord(a_fy.getDouble(), a_fy.getUnit()) : cy;
     double r = context->translateCoord(a_r.getDouble(), a_r.getUnit());
 
     pattern.setPoints(PointD(cx, cy), PointD(fx, fy));
@@ -1830,6 +1944,82 @@ err_t SvgRadialGradientElement::onApplyPattern(SvgContext* context, SvgElement* 
 }
 
 // ============================================================================
+// [Fog::SvgImageElement]
+// ============================================================================
+
+struct FOG_HIDDEN SvgImageElement : public SvgElement
+{
+  // [Construction / Destruction]
+
+  typedef SvgElement base;
+
+  SvgImageElement();
+  virtual ~SvgImageElement();
+
+  // [Attributes]
+
+  virtual XmlAttribute* _createAttribute(const ManagedString& name) const;
+
+  // [SVG Rendering]
+
+  virtual err_t onRender(SvgContext* context) const;
+
+  // [Embedded Attributes]
+
+  SvgCoordAttribute a_x;
+  SvgCoordAttribute a_y;
+  SvgCoordAttribute a_width;
+  SvgCoordAttribute a_height;
+  SvgImageLinkAttribute a_href;
+
+private:
+  FOG_DISABLE_COPY(SvgImageElement)
+};
+
+SvgImageElement::SvgImageElement() :
+  SvgElement(fog_strings->getString(STR_SVG_image), SVG_ELEMENT_IMAGE),
+  a_x(NULL, fog_strings->getString(STR_SVG_x), FOG_OFFSET_OF(SvgImageElement, a_x)),
+  a_y(NULL, fog_strings->getString(STR_SVG_y), FOG_OFFSET_OF(SvgImageElement, a_y)),
+  a_width(NULL, fog_strings->getString(STR_SVG_width), FOG_OFFSET_OF(SvgImageElement, a_width)),
+  a_height(NULL, fog_strings->getString(STR_SVG_height), FOG_OFFSET_OF(SvgImageElement, a_height)),
+  a_href(NULL, fog_strings->getString(STR_SVG_xlink_href), FOG_OFFSET_OF(SvgImageElement, a_href))
+{
+}
+
+SvgImageElement::~SvgImageElement()
+{
+  _removeAllAttributesAlways();
+}
+
+XmlAttribute* SvgImageElement::_createAttribute(const ManagedString& name) const
+{
+  if (name == fog_strings->getString(STR_SVG_x)) return const_cast<SvgCoordAttribute*>(&a_x);
+  if (name == fog_strings->getString(STR_SVG_y)) return const_cast<SvgCoordAttribute*>(&a_y);
+  if (name == fog_strings->getString(STR_SVG_width)) return const_cast<SvgCoordAttribute*>(&a_width);
+  if (name == fog_strings->getString(STR_SVG_height)) return const_cast<SvgCoordAttribute*>(&a_height);
+  if (name == fog_strings->getString(STR_SVG_xlink_href)) return const_cast<SvgImageLinkAttribute*>(&a_href);
+
+  return base::_createAttribute(name);
+}
+
+err_t SvgImageElement::onRender(SvgContext* context) const
+{
+  if (a_href._embedded)
+  {
+    double x = a_x.isAssigned() ? a_x.getCoord().value : 0.0;
+    double y = a_y.isAssigned() ? a_y.getCoord().value : 0.0;
+
+    // TODO: Fix the api to provide floating point version.
+    context->drawImage(PointD(x, y), a_href._image);
+  }
+  else
+  {
+    // TODO: Error code?
+    return ERR_RT_NOT_IMPLEMENTED;
+  }
+}
+
+// ============================================================================
 // [Fog::SvgDocument]
 // ============================================================================
 
@@ -1850,10 +2040,14 @@ XmlElement* SvgDocument::clone() const
   for (XmlElement* ch = firstChild(); ch; ch = ch->nextSibling())
   {
     XmlElement* e = ch->clone();
-    if (e && doc->appendChild(e) != ERR_OK) delete e;
+    if (e && doc->appendChild(e) != ERR_OK) { delete e; goto fail; }
   }
 
   return doc;
+
+fail:
+  delete doc;
+  return NULL;
 }
 
 XmlElement* SvgDocument::createElement(const ManagedString& tagName)
@@ -1867,6 +2061,7 @@ XmlElement* SvgDocument::createElementStatic(const ManagedString& tagName)
   if (tagName == fog_strings->getString(STR_SVG_defs          )) return new(std::nothrow) SvgDefsElement();
   if (tagName == fog_strings->getString(STR_SVG_ellipse       )) return new(std::nothrow) SvgEllipseElement();
   if (tagName == fog_strings->getString(STR_SVG_g             )) return new(std::nothrow) SvgGElement();
+  if (tagName == fog_strings->getString(STR_SVG_image         )) return new(std::nothrow) SvgImageElement();
   if (tagName == fog_strings->getString(STR_SVG_line          )) return new(std::nothrow) SvgLineElement();
   if (tagName == fog_strings->getString(STR_SVG_linearGradient)) return new(std::nothrow) SvgLinearGradientElement();
   if (tagName == fog_strings->getString(STR_SVG_path          )) return new(std::nothrow) SvgPathElement();

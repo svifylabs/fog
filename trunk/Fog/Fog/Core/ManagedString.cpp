@@ -163,7 +163,7 @@ struct FOG_HIDDEN ManagedStringLocal
     }
 
     String str;
-    if (str.set(s) != ERR_OK) return NULL;
+    if (str.set(Utf16(s, length)) != ERR_OK) return NULL;
 
     node = new(std::nothrow) Node(str);
     if (!node) return node;

@@ -26,147 +26,12 @@
 namespace Fog {
 
 // ============================================================================
-// [Fog::XmlAttributesManager]
-// ============================================================================
-
-XmlAttributesManager::XmlAttributesManager()
-{
-  _capacity = FOG_ARRAY_SIZE(_bucketsBuffer);
-  _length = 0;
-  _buckets = _bucketsBuffer;
-
-  Memory::zero(_buckets, FOG_ARRAY_SIZE(_bucketsBuffer) * sizeof(XmlAttribute*));
-}
-
-XmlAttributesManager::~XmlAttributesManager()
-{
-  if (_buckets && _buckets != _bucketsBuffer) Memory::free(_buckets);
-}
-
-void XmlAttributesManager::add(XmlAttribute* a)
-{
-  uint32_t hashCode = a->_name.getHashCode();
-  uint32_t hashMod = hashCode % _capacity;
-
-  a->_hashNext = _buckets[hashMod];
-  _buckets[hashMod] = a;
-
-  sysuint_t expand;
-
-  if (_buckets == _bucketsBuffer)
-    expand = FOG_ARRAY_SIZE(_bucketsBuffer);
-  else
-    expand = (_capacity >> 1) + (_capacity >> 2) + (_capacity >> 3);
-
-  if (++_length >= expand) _rehash(_capacity << 1);
-  _list.append(a);
-}
-
-void XmlAttributesManager::remove(XmlAttribute* a)
-{
-  uint32_t hashCode = a->_name.getHashCode();
-  uint32_t hashMod = hashCode % _capacity;
-
-  XmlAttribute* node = _buckets[hashMod];
-  XmlAttribute* prev = NULL;
-
-  while (node)
-  {
-    if (node == a)
-    {
-      if (prev)
-        prev->_hashNext = node->_hashNext;
-      else
-        _buckets[hashMod] = node->_hashNext;
-
-      node->_hashNext = NULL;
-      _list.removeAt(_list.indexOf(node));
-
-      sysuint_t shrink;
-
-      if (_buckets == _bucketsBuffer)
-        shrink = 0;
-      else
-        shrink = (_capacity >> 2);
-
-      if (--_length <= shrink) _rehash(_capacity >> 1);
-      return;
-    }
-
-    prev = node;
-    node = node->_hashNext;
-  }
-}
-
-void XmlAttributesManager::removeAll()
-{
-  _capacity = FOG_ARRAY_SIZE(_bucketsBuffer);
-  _length = 0;
-  if (_buckets != _bucketsBuffer) Memory::free(_buckets);
-  _buckets = _bucketsBuffer;
-
-  List<XmlAttribute*>::ConstIterator it(_list);
-  for (it.toStart(); it.isValid(); it.toNext()) it.value()->_hashNext = NULL;
-  _list.free();
-}
-
-XmlAttribute* XmlAttributesManager::get(const String& name) const
-{
-  uint32_t hashCode = name.getHashCode();
-  uint32_t hashMod = hashCode % _capacity;
-
-  XmlAttribute* a = _buckets[hashMod];
-  while (a)
-  {
-    if (a->getName() == name) return a;
-    a = a->_hashNext;
-  }
-  return NULL;
-}
-
-void XmlAttributesManager::_rehash(sysuint_t capacity)
-{
-  if (capacity <= FOG_ARRAY_SIZE(_bucketsBuffer))
-  {
-    capacity = FOG_ARRAY_SIZE(_bucketsBuffer);
-    if (_buckets == _bucketsBuffer) return;
-  }
-  XmlAttribute** oldBuckets = _buckets;
-  XmlAttribute** newBuckets = (capacity == FOG_ARRAY_SIZE(_bucketsBuffer))
-    ? (XmlAttribute**)_bucketsBuffer
-    : (XmlAttribute**)Memory::calloc(sizeof(XmlAttribute*) * capacity);
-  if (!newBuckets) return;
-
-  sysuint_t i, len = _capacity;
-  for (i = 0; i < len; i++)
-  {
-    XmlAttribute* node = oldBuckets[i];
-    while (node)
-    {
-      uint32_t hashMod = node->_name.getHashCode() % capacity;
-      XmlAttribute* next = node->_hashNext;
-
-      node->_hashNext = newBuckets[hashMod];
-      newBuckets[hashMod] = node;
-
-      node = next;
-    }
-  }
-
-  _capacity = capacity;
-
-  AtomicBase::ptr_setXchg(&_buckets, newBuckets);
-  if (oldBuckets != _bucketsBuffer) Memory::free(oldBuckets);
-}
-
-// ============================================================================
 // [Fog::XmlAttribute]
 // ============================================================================
 
 XmlAttribute::XmlAttribute(XmlElement* element, const ManagedString& name, int offset) :
   _element(element),
   _name(name),
-  _hashNext(NULL),
   _offset(offset)
 {
 }
@@ -193,7 +58,6 @@ void XmlAttribute::destroy()
   }
   else
   {
-    _hashNext = NULL;
     _value.free();
   }
 }
@@ -263,7 +127,6 @@ XmlElement::XmlElement(const ManagedString& tagName) :
   _lastChild(NULL),
   _nextSibling(NULL),
   _prevSibling(NULL),
-  _attributesManager(NULL),
   _tagName(tagName),
   _hashNextId(NULL)
 {
@@ -274,6 +137,7 @@ XmlElement::~XmlElement()
 {
   if (_firstChild) deleteAll();
   if (_parent) unlink();
+  _removeAllAttributesAlways();
 }
 
 void XmlElement::_manage(XmlDocument* doc)
@@ -622,43 +486,57 @@ XmlElement* XmlElement::_previousChildByTagName(XmlElement* refElement, const St
 
 List<XmlAttribute*> XmlElement::attributes() const
 {
-  if (_attributesManager) 
-    return _attributesManager->_list;
-  else
-    return List<XmlAttribute*>();
+  return _attributes;
 }
 
 bool XmlElement::hasAttribute(const String& name) const
 {
-  if (!_attributesManager) return false;
-  return _attributesManager->get(name) != NULL;
+  sysuint_t i, len = _attributes.getLength();
+  if (!len) return false;
+  
+  ManagedString managedName;
+  if (managedName.setIfManaged(name) != ERR_OK) return false;
+
+  XmlAttribute** attrs = (XmlAttribute**)_attributes.getData();
+  for (i = 0; i < len; i++)
+  {
+    if (attrs[i]->_name == managedName) return true;
+  }
+
+  return false;
 }
 
 err_t XmlElement::setAttribute(const String& name, const String& value)
 {
   if ((_flags & XML_ALLOWED_ATTRIBUTES) == 0) return ERR_XML_ATTRIBUTES_NOT_ALLOWED;
-  if (name.isEmpty()) return ERR_XML_INVALID_ATTRIBUTE;
 
-  XmlAttribute* a = NULL;
+  err_t err;
+  ManagedString managedName;
 
-  if (_attributesManager == NULL)
+  if (managedName.setIfManaged(name) == ERR_OK)
   {
-    _attributesManager = new(std::nothrow) XmlAttributesManager();
-    if (_attributesManager == NULL) return ERR_RT_OUT_OF_MEMORY;
+    sysuint_t i, len = _attributes.getLength();
+    XmlAttribute** attrs = (XmlAttribute**)_attributes.getData();
+    for (i = 0; i < len; i++)
+    {
+      if (attrs[i]->_name == managedName) return attrs[i]->setValue(value);
+    }
   }
   else
   {
-    a = _attributesManager->get(name);
+    if (name.isEmpty()) return ERR_XML_INVALID_ATTRIBUTE;
+    if ((err = managedName.set(name))) return err;
   }
 
   // Attribute not found, create new one.
-  if (a == NULL)
-  {
-    a = _createAttribute(ManagedString(name));
-    if (!a) return ERR_RT_OUT_OF_MEMORY;
+  XmlAttribute* a = _createAttribute(managedName);
+  if (!a) return ERR_RT_OUT_OF_MEMORY;
+  a->_element = this;
 
-    a->_element = this;
-    _attributesManager->add(a);
+  if ((err = _attributes.append(a)))
+  {
+    a->destroy();
+    return err;
   }
 
   return a->setValue(value);
@@ -666,41 +544,64 @@ err_t XmlElement::setAttribute(const String& name, const String& value)
 
 String XmlElement::getAttribute(const String& name) const
 {
-  if (!_attributesManager) return String();
- 
-  XmlAttribute* a = _attributesManager->get(name);
-  return a ? a->getValue() : String();
+  sysuint_t i, len = _attributes.getLength();
+  if (!len) return String();
+
+  ManagedString managedName;
+  if (managedName.setIfManaged(name) != ERR_OK) return String();
+
+  XmlAttribute** attrs = (XmlAttribute**)_attributes.getData();
+  for (i = 0; i < len; i++)
+  {
+    if (attrs[i]->_name == managedName) return attrs[i]->getValue();
+  }
+
+  return String();
 }
 
 err_t XmlElement::removeAttribute(const String& name)
 {
   if ((_flags & XML_ALLOWED_ATTRIBUTES) == 0) return ERR_XML_ATTRIBUTES_NOT_ALLOWED;
-  if (name.isEmpty()) return ERR_XML_INVALID_ATTRIBUTE;
 
-  if (!_attributesManager) return ERR_XML_ATTRIBUTE_NOT_EXISTS;
+  sysuint_t i, len = _attributes.getLength();
+  if (!len) return ERR_XML_ATTRIBUTE_NOT_EXISTS;
 
-  XmlAttribute* a = _attributesManager->get(name);
-  if (!a) return ERR_XML_ATTRIBUTE_NOT_EXISTS;
+  ManagedString managedName;
+  if (managedName.setIfManaged(name) != ERR_OK) return ERR_XML_ATTRIBUTE_NOT_EXISTS;
 
-  _attributesManager->remove(a);
-  a->destroy();
-  return ERR_OK;
+  XmlAttribute** attrs = (XmlAttribute**)_attributes.getData();
+  for (i = 0; i < len; i++)
+  {
+    XmlAttribute* a = attrs[i];
+    if (a->_name == managedName)
+    {
+      _attributes.removeAt(i);
+      a->destroy();
+      return ERR_OK;
+    }
+  }
+
+  return ERR_XML_ATTRIBUTE_NOT_EXISTS;
 }
 
 err_t XmlElement::removeAllAttributes()
 {
   if ((_flags & XML_ALLOWED_ATTRIBUTES) == 0) return ERR_XML_ATTRIBUTES_NOT_ALLOWED;
-  if (!_attributesManager) return ERR_OK;
+  return _removeAllAttributesAlways();
+}
 
-  List<XmlAttribute*> list = _attributesManager->_list;
+err_t XmlElement::_removeAllAttributesAlways()
+{
+  sysuint_t i, len = _attributes.getLength();
+  if (!len) return ERR_OK;
 
-  delete _attributesManager;
-  _attributesManager = NULL;
+  List<XmlAttribute*> attributes = _attributes;
+  _attributes.free();
 
-  List<XmlAttribute*>::ConstIterator it(list);
-  for (it.toStart(); it.isValid(); it.toNext())
+  XmlAttribute** attrs = (XmlAttribute**)attributes.getData();
+  for (i = 0; i < len; i++)
   {
-    XmlAttribute* a = (XmlAttribute*)it.value();
+    XmlAttribute* a = attrs[i];
     a->destroy();
   }
 
@@ -717,13 +618,11 @@ XmlAttribute* XmlElement::_createAttribute(const ManagedString& name) const
 
 void XmlElement::copyAttributes(XmlElement* dst, XmlElement* src)
 {
-  if (src->_attributesManager)
+  sysuint_t i, len = src->_attributes.getLength();
+  XmlAttribute** attrs = (XmlAttribute**)src->_attributes.getData();
+  for (i = 0; i < len; i++)
   {
-    List<XmlAttribute*>::ConstIterator it(src->_attributesManager->_list);
-    for (it.toStart(); it.isValid(); it.toNext())
-    {
-      dst->setAttribute(it.value()->getName(), it.value()->getValue());
-    }
+    dst->setAttribute(attrs[i]->getName(), attrs[i]->getValue());
   }
 }
 
@@ -1107,7 +1006,7 @@ XmlDocument::XmlDocument() :
   _type = XML_ELEMENT_DOCUMENT;
   _flags &= ~(XML_ALLOWED_DOM_MANIPULATION | XML_ALLOWED_TAG);
 
-  // We will link to self.
+  // Link to self.
   _document = this;
 }
 
@@ -1116,7 +1015,7 @@ XmlDocument::~XmlDocument()
   // Here is important to release all managed resources. Normally this is done
   // in XmlElement destructor, but if we go there, the managed hash table will
   // not exist at this time and segfault will occur. So destroy everything here.
-  removeAllAttributes();
+  _removeAllAttributesAlways();
   deleteAll();
 
   // And clear _document pointer

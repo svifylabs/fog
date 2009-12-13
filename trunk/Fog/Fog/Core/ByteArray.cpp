@@ -181,6 +181,61 @@ err_t ByteArray::prepare(sysuint_t capacity)
   return ERR_OK;
 }
 
+char* ByteArray::beginManipulation(sysuint_t max, int outputMode)
+{
+  Data* d = _d;
+
+  if (outputMode == OUTPUT_MODE_SET)
+  {
+    if (d->refCount.get() == 1 && d->capacity >= max)
+    {
+      d->hashCode = 0;
+      d->length = 0;
+      d->data[0] = 0;
+      return d->data;
+    }
+    d = Data::alloc(max);
+    if (!d) return NULL;
+
+    AtomicBase::ptr_setXchg(&_d, d)->deref();
+    return d->data;
+  }
+  else
+  {
+    sysuint_t length = d->length;
+    sysuint_t newmax = length + max;
+
+    // Overflow.
+    if (length > newmax) return NULL;
+
+    if (d->refCount.get() == 1 && d->capacity >= newmax)
+      return d->data + length;
+
+    if (d->refCount.get() > 1)
+    {
+      sysuint_t optimalCapacity = Std::calcOptimalCapacity(
+        sizeof(ByteArray::Data), sizeof(char), length, newmax);
+
+      d = Data::alloc(optimalCapacity, d->data, d->length);
+      if (!d) return NULL;
+
+      AtomicBase::ptr_setXchg(&_d, d)->deref();
+      return d->data + length;
+    }
+    else
+    {
+      sysuint_t optimalCapacity = Std::calcOptimalCapacity(
+        sizeof(ByteArray::Data), sizeof(char), length, newmax);
+
+      d = Data::realloc(_d, optimalCapacity);
+      if (!d) return NULL;
+
+      _d = d;
+      return d->data + length;
+    }
+  }
+}
+
 err_t ByteArray::reserve(sysuint_t to)
 {
   if (to < _d->length) to = _d->length;
@@ -2817,203 +2872,6 @@ bool ByteArray::endsWith(const ByteArrayFilter& filter, uint cs) const
       filter.match(
         getData() + getLength() - flen, getLength(), cs, Range(0, flen)).index == 0;
   }
-}
-
-// ============================================================================
-// [Fog::ByteArray - Hex / Base64]
-// ============================================================================
-
-err_t ByteArray::fromHex(ByteArray& dst, const ByteArray& src)
-{
-  sysuint_t srcLength = src.getLength();
-
-  sysuint_t growBy = (srcLength >> 1) + (srcLength & 1);
-  err_t err = dst.prepare(growBy);
-
-  if (err) return err;
-
-  uint8_t* dstCur = reinterpret_cast<uint8_t*>(dst.getXData());
-  const uint8_t* srcCur = reinterpret_cast<const uint8_t*>(src.getData());
-
-  uint8_t c0 = 0xFF;
-  uint8_t c1;
-
-  for (sysuint_t i = srcLength; i; i--)
-  {
-    c1 = *srcCur++;
-
-    if (c1 >= '0' && c1 <= '9')
-      c1 -= '0';
-    else if (c1 >= 'a' && c1 <= 'f')
-      c1 -= ('a' - 10);
-    else if (c1 >= 'A' && c1 <= 'F')
-      c1 -= ('A' + 10);
-    else
-      continue;
-
-    if (c0 == 0xFF)
-    {
-      c0 = c1;
-    }
-    else
-    {
-      *dstCur++ = (c0 << 4) | c1;
-      c0 = 0xFF;
-    }
-  }
-
-  dst.xFinalize(reinterpret_cast<char*>(dstCur));
-  return ERR_OK;
-}
-
-err_t ByteArray::toHex(ByteArray& dst, const ByteArray& src, int outputCase)
-{
-  sysuint_t srcLength = src.getLength();
-
-  sysuint_t growBy = srcLength << 1;
-  if (growBy < srcLength) return ERR_RT_OUT_OF_MEMORY;
-  err_t err = dst.prepare(growBy);
-
-  if (err) return err;
-
-  uint8_t* dstCur = reinterpret_cast<uint8_t*>(dst.getXData());
-  const uint8_t* srcCur = reinterpret_cast<const uint8_t*>(src.getData());
-
-  uint8_t c0;
-  uint8_t c1;
-
-  uint8_t hx = (outputCase == OUTPUT_CASE_LOWER)
-    ? (uint8_t)'a' - ((uint8_t)'9' + 1U)
-    : (uint8_t)'A' - ((uint8_t)'9' + 1U);
-
-  for (sysuint_t i = srcLength; i; i--)
-  {
-    c0 = *srcCur++;
-    c1 = c0;
-
-    c0 >>= 4;
-    c1 &= 0x0F;
-
-    c0 += '0';
-    c1 += '0';
-
-    if (c0 > (uint8_t)'9') c0 += hx;
-    if (c1 > (uint8_t)'9') c1 += hx;
-
-    dstCur[0] = c0;
-    dstCur[1] = c1;
-    dstCur += 2;
-  }
-
-  dst.xFinalize(reinterpret_cast<char*>(dstCur));
-  return ERR_OK;
-}
-
-err_t ByteArray::fromBase64(ByteArray& dst, const ByteArray& src)
-{
-  sysuint_t srcLength = src.getLength();
-
-  sysuint_t growBy = (srcLength / 4) * 3 + 3;
-  err_t err = dst.prepare(growBy);
-
-  if (err) return err;
-
-  uint8_t* dstCur = reinterpret_cast<uint8_t*>(dst.getXData());
-  const uint8_t* srcCur = reinterpret_cast<const uint8_t*>(src.getData());
-
-  uint32_t accum = 0;
-  uint32_t bits = 0;
-  uint32_t c0;
-
-  for (sysuint_t i = srcLength; i; i--)
-  {
-    c0 = *srcCur++;
-
-    if (c0 >= '0' && c0 <= '9')
-      c0 -= ('0' - 52);
-    else if (c0 >= 'a' && c0 <= 'z')
-      c0 -= ('a' - 26);
-    else if (c0 >= 'A' && c0 <= 'Z')
-      c0 -= 'A';
-    else if (c0 == '+')
-      c0 = 62;
-    else if (c0 == '/')
-      c0 = 63;
-    else
-      continue;
-
-    accum = (accum << 6) | c0;
-    if (bits >= 2)
-    {
-      bits -= 2;
-      *dstCur++ = (uint8_t)(accum >> bits);
-    }
-    else
-    {
-      bits += 6;
-    }
-  }
-
-  dst.xFinalize(reinterpret_cast<char*>(dstCur));
-  return ERR_OK;
-}
-
-err_t ByteArray::toBase64(ByteArray& dst, const ByteArray& src)
-{
-  static const char base64table[] =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-  static const char pad = '=';
-
-  sysuint_t srcLength = src.getLength();
-
-  sysuint_t growBy = (sysuint_t)( ((uint64_t)srcLength * 4) / 3 + 3 );
-  if (growBy < srcLength) return ERR_RT_OUT_OF_MEMORY;
-  err_t err = dst.prepare(growBy);
-
-  if (err) return err;
-
-  char* dstCur = dst.getXData();
-  const uint8_t* srcCur = reinterpret_cast<const uint8_t*>(src.getData());
-
-  sysuint_t i = srcLength;
-
-  while (i >= 3)
-  {
-    uint8_t c0 = srcCur[0];
-    uint8_t c1 = srcCur[1];
-    uint8_t c2 = srcCur[2];
-
-    dstCur[0] = base64table[((c0 & 0xFC) >> 2)];
-    dstCur[1] = base64table[((c0 & 0x03) << 4) + ((c1 & 0xF0) >> 4)];
-    dstCur[2] = base64table[((c1 & 0x0F) << 2) + ((c2 & 0xC0) >> 6)];
-    dstCur[3] = base64table[((c2 & 0x3f))];
-
-    srcCur += 3;
-    dstCur += 4;
-
-    i -= 3;
-  }
-
-  if (i)
-  {
-    uint8_t c0 = srcCur[0];
-    uint8_t c1 = (i > 1) ? srcCur[1] : 0;
-    uint8_t c2 = (i > 2) ? srcCur[2] : 0;
-
-    dstCur[0] = base64table[((c0 & 0xFC) >> 2)];
-    dstCur[1] = base64table[((c0 & 0x03) << 4) + ((c1 & 0xF0) >> 4)];
-    dstCur[2] = (i > 1) ? base64table[((c1 & 0x0F) << 2) + ((c2 & 0xC0) >> 6)]
-                        : pad;
-    // 'i' shouldn't be larger than 2, but...
-    dstCur[3] = (i > 2) ? base64table[((c2 & 0x3f))]
-                        : pad;
-
-    dstCur += 4;
-    i -= 3;
-  }
-
-  dst.xFinalize(dstCur);
-  return ERR_OK;
 }
 
 // ============================================================================

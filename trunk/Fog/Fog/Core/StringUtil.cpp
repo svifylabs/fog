@@ -4,12 +4,14 @@
 // MIT, See COPYING file in package
 
 #include <Fog/Core/Byte.h>
+#include <Fog/Core/ByteArray.h>
 #include <Fog/Core/Char.h>
 #include <Fog/Core/CharUtil.h>
 #include <Fog/Core/Constants.h>
 #include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Std.h>
+#include <Fog/Core/String.h>
 #include <Fog/Core/StringUtil.h>
 
 #include <errno.h>
@@ -3176,6 +3178,326 @@ ret:
 
   BContext_destroy(&context);
   FOG_CONTROL87_END();
+}
+
+// ============================================================================
+// [Fog::StringUtil - Hex / Base64]
+// ============================================================================
+
+err_t fromHex(ByteArray& dst, const ByteArray& src, int outputMode)
+{
+  sysuint_t srcLength = src.getLength();
+  sysuint_t growBy = (srcLength >> 1) + (srcLength & 1);
+
+  uint8_t* dstCur = reinterpret_cast<uint8_t*>(dst.beginManipulation(growBy, outputMode));
+  if (!dstCur) return ERR_RT_OUT_OF_MEMORY;
+  const uint8_t* srcCur = reinterpret_cast<const uint8_t*>(src.getData());
+
+  uint8_t c0 = 0xFF;
+  uint8_t c1;
+
+  for (sysuint_t i = srcLength; i; i--)
+  {
+    c1 = *srcCur++;
+
+    if (c1 >= '0' && c1 <= '9')
+      c1 -= '0';
+    else if (c1 >= 'a' && c1 <= 'f')
+      c1 -= ('a' - 10);
+    else if (c1 >= 'A' && c1 <= 'F')
+      c1 -= ('A' + 10);
+    else
+      continue;
+
+    if (c0 == 0xFF)
+    {
+      c0 = c1;
+    }
+    else
+    {
+      *dstCur++ = (c0 << 4) | c1;
+      c0 = 0xFF;
+    }
+  }
+
+  dst.xFinalize(reinterpret_cast<char*>(dstCur));
+  return ERR_OK;
+}
+
+err_t toHex(ByteArray& dst, const ByteArray& src, int outputMode, int outputCase)
+{
+  sysuint_t srcLength = src.getLength();
+  sysuint_t growBy = srcLength << 1;
+  if (growBy < srcLength) return ERR_RT_OUT_OF_MEMORY;
+
+  uint8_t* dstCur = reinterpret_cast<uint8_t*>(dst.beginManipulation(growBy, outputMode));
+  if (!dstCur) return ERR_RT_OUT_OF_MEMORY;
+  const uint8_t* srcCur = reinterpret_cast<const uint8_t*>(src.getData());
+
+  uint8_t c0;
+  uint8_t c1;
+
+  uint8_t hx = (outputCase == OUTPUT_CASE_LOWER)
+    ? (uint8_t)'a' - ((uint8_t)'9' + 1U)
+    : (uint8_t)'A' - ((uint8_t)'9' + 1U);
+
+  for (sysuint_t i = srcLength; i; i--)
+  {
+    c0 = *srcCur++;
+    c1 = c0;
+
+    c0 >>= 4;
+    c1 &= 0x0F;
+
+    c0 += '0';
+    c1 += '0';
+
+    if (c0 > (uint8_t)'9') c0 += hx;
+    if (c1 > (uint8_t)'9') c1 += hx;
+
+    dstCur[0] = c0;
+    dstCur[1] = c1;
+    dstCur += 2;
+  }
+
+  dst.xFinalize(reinterpret_cast<char*>(dstCur));
+  return ERR_OK;
+}
+
+err_t fromBase64(ByteArray& dst, const ByteArray& src, int outputMode)
+{
+  if (&dst == &src)
+  {
+    ByteArray copy(src);
+    return fromBase64(dst, copy.getData(), copy.getLength(), outputMode);
+  }
+  else
+  {
+    return fromBase64(dst, src.getData(), src.getLength(), outputMode);
+  }
+}
+
+err_t fromBase64(ByteArray& dst, const String& src, int outputMode)
+{
+  return fromBase64(dst, src.getData(), src.getLength(), outputMode);
+}
+
+err_t fromBase64(ByteArray& dst, const char* src, sysuint_t srcLength, int outputMode)
+{
+  if (srcLength == DETECT_LENGTH) srcLength == len(src);
+  sysuint_t growBy = (srcLength / 4) * 3 + 3;
+
+  uint8_t* dstCur = reinterpret_cast<uint8_t*>(dst.beginManipulation(growBy, outputMode));
+  if (!dstCur) return ERR_RT_OUT_OF_MEMORY;
+  const uint8_t* srcCur = reinterpret_cast<const uint8_t*>(src);
+
+  uint32_t accum = 0;
+  uint32_t bits = 0;
+  uint32_t c0;
+
+  for (sysuint_t i = srcLength; i; i--)
+  {
+    c0 = *srcCur++;
+
+    if (c0 >= '0' && c0 <= '9')
+      c0 -= ('0' - 52);
+    else if (c0 >= 'a' && c0 <= 'z')
+      c0 -= ('a' - 26);
+    else if (c0 >= 'A' && c0 <= 'Z')
+      c0 -= 'A';
+    else if (c0 == '+')
+      c0 = 62;
+    else if (c0 == '/')
+      c0 = 63;
+    else
+      continue;
+
+    accum = (accum << 6) | c0;
+    if (bits >= 2)
+    {
+      bits -= 2;
+      *dstCur++ = (uint8_t)(accum >> bits);
+    }
+    else
+    {
+      bits += 6;
+    }
+  }
+
+  dst.xFinalize(reinterpret_cast<char*>(dstCur));
+  return ERR_OK;
+}
+
+err_t fromBase64(ByteArray& dst, const Char* src, sysuint_t srcLength, int outputMode)
+{
+  if (srcLength == DETECT_LENGTH) srcLength == len(src);
+  sysuint_t growBy = (srcLength / 4) * 3 + 3;
+
+  uint8_t* dstCur = reinterpret_cast<uint8_t*>(dst.beginManipulation(growBy, outputMode));
+  if (!dstCur) return ERR_RT_OUT_OF_MEMORY;
+  const Char* srcCur = src;
+
+  uint32_t accum = 0;
+  uint32_t bits = 0;
+  uint32_t c0;
+
+  for (sysuint_t i = srcLength; i; i--)
+  {
+    c0 = *srcCur++;
+
+    if (c0 >= '0' && c0 <= '9')
+      c0 -= ('0' - 52);
+    else if (c0 >= 'a' && c0 <= 'z')
+      c0 -= ('a' - 26);
+    else if (c0 >= 'A' && c0 <= 'Z')
+      c0 -= 'A';
+    else if (c0 == '+')
+      c0 = 62;
+    else if (c0 == '/')
+      c0 = 63;
+    else
+      continue;
+
+    accum = (accum << 6) | c0;
+    if (bits >= 2)
+    {
+      bits -= 2;
+      *dstCur++ = (uint8_t)(accum >> bits);
+    }
+    else
+    {
+      bits += 6;
+    }
+  }
+
+  dst.xFinalize(reinterpret_cast<char*>(dstCur));
+  return ERR_OK;
+}
+
+static const char base64table[] =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+static const char pad = '=';
+
+err_t toBase64(ByteArray& dst, const ByteArray& src, int outputMode)
+{
+  if (&dst == &src)
+  {
+    ByteArray copy(src);
+    return toBase64(dst, copy.getData(), copy.getLength(), outputMode);
+  }
+  else
+  {
+    return toBase64(dst, src.getData(), src.getLength(), outputMode);
+  }
+}
+
+err_t toBase64(String& dst, const ByteArray& src, int outputMode)
+{
+  return toBase64(dst, src.getData(), src.getLength(), outputMode);
+}
+
+err_t toBase64(ByteArray& dst, const char* src, sysuint_t srcLength, int outputMode)
+{
+  if (srcLength == DETECT_LENGTH) srcLength = len(src);
+
+  sysuint_t growBy = (sysuint_t)( ((uint64_t)srcLength * 4) / 3 + 3 );
+  if (growBy < srcLength) return ERR_RT_OUT_OF_MEMORY;
+
+  char* dstCur = dst.beginManipulation(growBy, outputMode);
+  if (!dstCur) return ERR_RT_OUT_OF_MEMORY;
+  const uint8_t* srcCur = reinterpret_cast<const uint8_t*>(src);
+
+  sysuint_t i = srcLength;
+
+  while (i >= 3)
+  {
+    uint8_t c0 = srcCur[0];
+    uint8_t c1 = srcCur[1];
+    uint8_t c2 = srcCur[2];
+
+    dstCur[0] = base64table[((c0 & 0xFC) >> 2)];
+    dstCur[1] = base64table[((c0 & 0x03) << 4) + ((c1 & 0xF0) >> 4)];
+    dstCur[2] = base64table[((c1 & 0x0F) << 2) + ((c2 & 0xC0) >> 6)];
+    dstCur[3] = base64table[((c2 & 0x3f))];
+
+    srcCur += 3;
+    dstCur += 4;
+
+    i -= 3;
+  }
+
+  if (i)
+  {
+    uint8_t c0 = srcCur[0];
+    uint8_t c1 = (i > 1) ? srcCur[1] : 0;
+    uint8_t c2 = (i > 2) ? srcCur[2] : 0;
+
+    dstCur[0] = base64table[((c0 & 0xFC) >> 2)];
+    dstCur[1] = base64table[((c0 & 0x03) << 4) + ((c1 & 0xF0) >> 4)];
+    dstCur[2] = (i > 1) ? base64table[((c1 & 0x0F) << 2) + ((c2 & 0xC0) >> 6)]
+                        : pad;
+    // 'i' shouldn't be larger than 2, but...
+    dstCur[3] = (i > 2) ? base64table[((c2 & 0x3f))]
+                        : pad;
+
+    dstCur += 4;
+    i -= 3;
+  }
+
+  dst.xFinalize(dstCur);
+  return ERR_OK;
+}
+
+err_t toBase64(String& dst, const char* src, sysuint_t srcLength, int outputMode)
+{
+  if (srcLength == DETECT_LENGTH) srcLength = len(src);
+
+  sysuint_t growBy = (sysuint_t)( ((uint64_t)srcLength * 4) / 3 + 3 );
+  if (growBy < srcLength) return ERR_RT_OUT_OF_MEMORY;
+
+  Char* dstCur = dst.beginManipulation(growBy, outputMode);
+  if (!dstCur) return ERR_RT_OUT_OF_MEMORY;
+  const uint8_t* srcCur = reinterpret_cast<const uint8_t*>(src);
+
+  sysuint_t i = srcLength;
+
+  while (i >= 3)
+  {
+    uint8_t c0 = srcCur[0];
+    uint8_t c1 = srcCur[1];
+    uint8_t c2 = srcCur[2];
+
+    dstCur[0] = base64table[((c0 & 0xFC) >> 2)];
+    dstCur[1] = base64table[((c0 & 0x03) << 4) + ((c1 & 0xF0) >> 4)];
+    dstCur[2] = base64table[((c1 & 0x0F) << 2) + ((c2 & 0xC0) >> 6)];
+    dstCur[3] = base64table[((c2 & 0x3f))];
+
+    srcCur += 3;
+    dstCur += 4;
+
+    i -= 3;
+  }
+
+  if (i)
+  {
+    uint8_t c0 = srcCur[0];
+    uint8_t c1 = (i > 1) ? srcCur[1] : 0;
+    uint8_t c2 = (i > 2) ? srcCur[2] : 0;
+
+    dstCur[0] = base64table[((c0 & 0xFC) >> 2)];
+    dstCur[1] = base64table[((c0 & 0x03) << 4) + ((c1 & 0xF0) >> 4)];
+    dstCur[2] = (i > 1) ? base64table[((c1 & 0x0F) << 2) + ((c2 & 0xC0) >> 6)]
+                        : pad;
+    // 'i' shouldn't be larger than 2, but...
+    dstCur[3] = (i > 2) ? base64table[((c2 & 0x3f))]
+                        : pad;
+
+    dstCur += 4;
+    i -= 3;
+  }
+
+  dst.xFinalize(dstCur);
+  return ERR_OK;
 }
 
 } // StringUtil namespace

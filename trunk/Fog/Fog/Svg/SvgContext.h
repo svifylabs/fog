@@ -225,6 +225,7 @@ struct FOG_API SvgContext
   }
 
   void drawEllipse(const PointD& cp, const PointD& r);
+  void drawImage(const PointD& pt, const Image& im);
   void drawLine(const PointD& p1, const PointD& p2);
   void drawRect(const RectD& rect);
   void drawRound(const RectD& rect, const PointD& r);

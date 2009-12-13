@@ -189,6 +189,61 @@ err_t String::prepare(sysuint_t capacity)
   return ERR_OK;
 }
 
+Char* String::beginManipulation(sysuint_t max, int outputMode)
+{
+  Data* d = _d;
+
+  if (outputMode == OUTPUT_MODE_SET)
+  {
+    if (d->refCount.get() == 1 && d->capacity >= max)
+    {
+      d->hashCode = 0;
+      d->length = 0;
+      d->data[0] = 0;
+      return d->data;
+    }
+    d = Data::alloc(max);
+    if (!d) return NULL;
+
+    AtomicBase::ptr_setXchg(&_d, d)->deref();
+    return d->data;
+  }
+  else
+  {
+    sysuint_t length = d->length;
+    sysuint_t newmax = length + max;
+
+    // Overflow.
+    if (length > newmax) return NULL;
+
+    if (d->refCount.get() == 1 && d->capacity >= newmax)
+      return d->data + length;
+
+    if (d->refCount.get() > 1)
+    {
+      sysuint_t optimalCapacity = Std::calcOptimalCapacity(
+        sizeof(ByteArray::Data), sizeof(Char), length, newmax);
+
+      d = Data::alloc(optimalCapacity, d->data, d->length);
+      if (!d) return NULL;
+
+      AtomicBase::ptr_setXchg(&_d, d)->deref();
+      return d->data + length;
+    }
+    else
+    {
+      sysuint_t optimalCapacity = Std::calcOptimalCapacity(
+        sizeof(ByteArray::Data), sizeof(Char), length, newmax);
+
+      d = Data::realloc(_d, optimalCapacity);
+      if (!d) return NULL;
+
+      _d = d;
+      return d->data + length;
+    }
+  }
+}
+
 err_t String::reserve(sysuint_t to)
 {
   if (to < _d->length) to = _d->length;

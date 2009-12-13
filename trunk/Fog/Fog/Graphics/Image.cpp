@@ -2701,7 +2701,7 @@ err_t Image::readBuffer(const void* buffer, sysuint_t size, const String& extens
   return readStream(stream, extension);
 }
 
-err_t Image::writeFile(const String& fileName)
+err_t Image::writeFile(const String& fileName) const
 {
   Stream stream;
 
@@ -2722,7 +2722,7 @@ err_t Image::writeFile(const String& fileName)
   return err;
 }
 
-err_t Image::writeStream(Stream& stream, const String& extension)
+err_t Image::writeStream(Stream& stream, const String& extension) const
 {
   ImageIO::Provider* provider;
   ImageIO::EncoderDevice* encoder;
@@ -2745,7 +2745,7 @@ err_t Image::writeStream(Stream& stream, const String& extension)
     return ERR_IMAGEIO_NOT_AVAILABLE_PROVIDER;
 }
 
-err_t Image::writeBuffer(ByteArray& buffer, const String& extension)
+err_t Image::writeBuffer(ByteArray& buffer, const String& extension) const
 {
   Stream stream;
   err_t err = stream.openBuffer(buffer);
