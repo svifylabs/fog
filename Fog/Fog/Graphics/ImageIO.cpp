@@ -219,7 +219,7 @@ end:
 
 FOG_API DecoderDevice* createDecoderForStream(Stream& stream, const String& extension, err_t* err_)
 {
-  err_t err;
+  err_t err = ERR_OK;
 
   Provider* provider = NULL;
   DecoderDevice* decoder = NULL;
