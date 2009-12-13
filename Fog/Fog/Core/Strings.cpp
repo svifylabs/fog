@@ -106,6 +106,7 @@ static const char fog_strings_data[] =
   "defs\0"
   "ellipse\0"
   "g\0"
+  "image\0"
   "line\0"
   "linearGradient\0"
   "path\0"

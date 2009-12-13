@@ -2658,6 +2658,14 @@ struct FOG_HIDDEN PatternC
       return functionMap->pattern.solid_init(ctx, ArgbUtil::premultiply(d->obj.stops->at(0).rgba));
     }
 
+    // If points are equal, we will fill everything by last color. This is
+    // defined in SVG.
+    if (Math::feq(d->points[0].x, d->points[1].x) &&
+        Math::feq(d->points[0].y, d->points[1].y))
+    {
+      return functionMap->pattern.solid_init(ctx, ArgbUtil::premultiply(d->obj.stops->at(d->obj.stops->getLength() -1).rgba));
+    }
+
     // FIXME: TODO: Not correct code
 #if 0
     Matrix m = pattern.getMatrix().multiplied(matrix);
@@ -3175,6 +3183,15 @@ struct FOG_HIDDEN PatternC
     Pattern::Data* d = pattern._d;
     if (d->type != PATTERN_RADIAL_GRADIENT) return ERR_RT_INVALID_ARGUMENT;
 
+    if (d->obj.stops->getLength() == 0)
+    {
+      return functionMap->pattern.solid_init(ctx, 0x00000000);
+    }
+    if (d->obj.stops->getLength() == 1)
+    {
+      return functionMap->pattern.solid_init(ctx, ArgbUtil::premultiply(d->obj.stops->at(0).rgba));
+    }
+
     Matrix m = pattern.getMatrix().multiplied(matrix);
 
     PointD points[2];
@@ -3448,6 +3465,15 @@ struct FOG_HIDDEN PatternC
   {
     Pattern::Data* d = pattern._d;
     if (d->type != PATTERN_CONICAL_GRADIENT) return ERR_RT_INVALID_ARGUMENT;
+
+    if (d->obj.stops->getLength() == 0)
+    {
+      return functionMap->pattern.solid_init(ctx, 0x00000000);
+    }
+    if (d->obj.stops->getLength() == 1)
+    {
+      return functionMap->pattern.solid_init(ctx, ArgbUtil::premultiply(d->obj.stops->at(0).rgba));
+    }
 
     Matrix m = pattern.getMatrix().multiplied(matrix);
 

@@ -479,9 +479,9 @@ struct FOG_API Image
 
   // [Write]
 
-  err_t writeFile(const String& fileName);
-  err_t writeStream(Stream& stream, const String& extension);
-  err_t writeBuffer(ByteArray& buffer, const String& extension);
+  err_t writeFile(const String& fileName) const;
+  err_t writeStream(Stream& stream, const String& extension) const;
+  err_t writeBuffer(ByteArray& buffer, const String& extension) const;
 
   // [Overloaded Operators]
 

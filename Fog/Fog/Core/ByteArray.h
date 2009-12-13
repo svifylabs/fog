@@ -189,6 +189,8 @@ struct FOG_API ByteArray
   FOG_INLINE bool isEmpty() const { return _d->length == 0; }
 
   err_t prepare(sysuint_t capacity);
+  char* beginManipulation(sysuint_t max, int outputMode);
+
   err_t reserve(sysuint_t to);
   err_t resize(sysuint_t to);
   err_t grow(sysuint_t by);
@@ -471,16 +473,6 @@ struct FOG_API ByteArray
   bool endsWith(const ByteArrayFilter& filter, uint cs = CASE_SENSITIVE) const;
 
   FOG_INLINE bool endsWith(const char* str, uint cs = CASE_SENSITIVE) const { return endsWith(Str8(str), cs); }
-
-  // --------------------------------------------------------------------------
-  // [Hex / Base64]
-  // --------------------------------------------------------------------------
-
-  static err_t fromHex(ByteArray& dst, const ByteArray& src);
-  static err_t toHex(ByteArray& dst, const ByteArray& src, int outputCase = OUTPUT_CASE_UPPER);
-
-  static err_t fromBase64(ByteArray& dst, const ByteArray& src);
-  static err_t toBase64(ByteArray& dst, const ByteArray& src);
 
   // --------------------------------------------------------------------------
   // [Operator Overload]

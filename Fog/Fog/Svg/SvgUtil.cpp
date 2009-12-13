@@ -532,6 +532,8 @@ Path parsePath(const String& str)
       case 'a': count = 7; break;
       case 'C':
       case 'c': count = 6; break;
+      case 'H':
+      case 'h': count = 1; break;
       case 'L':
       case 'l': count = 2; break;
       case 'M':
@@ -542,6 +544,8 @@ Path parsePath(const String& str)
       case 's': count = 4; break;
       case 'T':
       case 't': count = 2; break;
+      case 'V':
+      case 'v': count = 1; break;
       case 'Z':
       case 'z': count = 0; break;
 
@@ -591,6 +595,13 @@ Path parsePath(const String& str)
         path.cubicToRel(coords[0], coords[1], coords[2], coords[3], coords[4], coords[5]);
         break;
 
+      case 'H':
+        path.hlineTo(coords[0]);
+        break;
+      case 'h':
+        path.hlineToRel(coords[0]);
+        break;
+
       case 'L':
         path.lineTo(coords[0], coords[1]);
         break;
@@ -624,6 +635,13 @@ Path parsePath(const String& str)
         break;
       case 't':
         path.curveToRel(coords[0], coords[1]);
+        break;
+
+      case 'V':
+        path.vlineTo(coords[0]);
+        break;
+      case 'v':
+        path.vlineToRel(coords[0]);
         break;
 
       case 'Z': 

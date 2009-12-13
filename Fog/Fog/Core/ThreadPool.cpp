@@ -40,7 +40,7 @@ ThreadPool::~ThreadPool()
 
     if (used)
     {
-      fog_debug("Fog::ThreadPool::~ThreadPool() - Destroying instance, but some"
+      fog_debug("Fog::ThreadPool::~ThreadPool() - Destroying instance, but some "
                 "threads are still used, waiting...");
 
       while (_usedThreads != NULL) Thread::_yield();

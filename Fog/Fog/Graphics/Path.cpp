@@ -1254,7 +1254,7 @@ err_t Path::flattenTo(Path& dst, const Matrix* matrix, double approximationScale
 
   const PathVertex* v = getData();
   PathVertex* dstv;
-  err_t err;
+  err_t err = ERR_OK;
 
   sysuint_t oldLen;
   uint32_t oldCmd;
@@ -1299,7 +1299,7 @@ ensureSpace:
 
         // Approximate curve.
         err = PathUtil::fm.approximateCurve3(dst, lastx, lasty, v[0].x, v[0].y, v[1].x, v[1].y, approximationScale, 0.0);
-        if (err) return err;
+        if (err) goto end;
 
         // Part of fix described above.
         if (oldLen != INVALID_INDEX) dst._d->data[oldLen].cmd = oldCmd;
@@ -1311,7 +1311,7 @@ ensureSpace:
         n -= 2;
 
         if (n == 0)
-          return ERR_OK;
+          goto end;
         else
           goto ensureSpace;
 
@@ -1337,7 +1337,7 @@ ensureSpace:
 
         // Approximate curve.
         err = PathUtil::fm.approximateCurve4(dst, lastx, lasty, v[0].x, v[0].y, v[1].x, v[1].y, v[2].x, v[2].y, approximationScale, 0.0, 0.0);
-        if (err) return err;
+        if (err) goto end;
 
         // Part of fix described above.
         if (oldLen != INVALID_INDEX) dst._d->data[oldLen].cmd = oldCmd;
@@ -1349,7 +1349,7 @@ ensureSpace:
         n -= 3;
 
         if (n == 0)
-          return ERR_OK;
+          goto end;
         else
           goto ensureSpace;
 
@@ -1367,9 +1367,10 @@ ensureSpace:
   } while(n);
 
   dst._d->length = (sysuint_t)(dstv - dst._d->data);
+end:
   dst._d->flat = true;
   if (matrix) dst.applyMatrix(*matrix);
-  return ERR_OK;
+  return err;
 
 invalid:
   dst._d->length = 0;

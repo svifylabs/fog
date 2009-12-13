@@ -114,6 +114,7 @@ enum STR_ID
   STR_SVG_defs,
   STR_SVG_ellipse,
   STR_SVG_g,
+  STR_SVG_image,
   STR_SVG_line,
   STR_SVG_linearGradient,
   STR_SVG_path,

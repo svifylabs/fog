@@ -742,7 +742,7 @@ sysuint_t ByteArrayStreamDevice::read(void* buffer, sysuint_t size)
   sysuint_t remain = (sysuint_t)(length - pos);
   if (size > remain) size = remain;
 
-  Memory::copy(buffer, const_cast<char*>(data.getData()), size);
+  Memory::copy(buffer, const_cast<char*>(data.getData() + pos), size);
   pos += size;
 
   return size;
@@ -760,7 +760,7 @@ sysuint_t ByteArrayStreamDevice::write(const void* buffer, sysuint_t size)
 
   if (overwriteSize)
   {
-    Memory::copy(const_cast<char*>(data.getXData()), src, overwriteSize);
+    Memory::copy(const_cast<char*>(data.getXData() + pos), src, overwriteSize);
     src += overwriteSize;
     pos += overwriteSize;
   }

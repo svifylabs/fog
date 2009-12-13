@@ -12,6 +12,7 @@
 #include <Fog/Core/Assert.h>
 #include <Fog/Core/AutoLock.h>
 #include <Fog/Core/Constants.h>
+#include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Lock.h>
 #include <Fog/Core/Static.h>
@@ -24,7 +25,7 @@
 // [Fog::MemDbg]
 // ===========================================================================
 
-// Should be defined by cmake.
+// Should be defined by cmake if needed.
 // #define FOG_DEBUG_MEMORY
 
 #if defined(FOG_DEBUG_MEMORY)
@@ -38,10 +39,14 @@ struct MemDbgNode
 static Fog::Static<Fog::Lock> fog_memdbg_lock;
 
 static uint fog_memdbg_state;
-static uint64_t fog_memdbg_blocks;
-static uint64_t fog_memdbg_blockstotal;
-static uint64_t fog_memdbg_heapallocsize;
-static uint64_t fog_memdbg_heapalloctotal;
+
+static uint64_t fog_memdbg_blocks_current;
+static uint64_t fog_memdbg_blocks_total;
+static uint64_t fog_memdbg_blocks_max;
+
+static uint64_t fog_memdbg_heapalloc_current;
+static uint64_t fog_memdbg_heapalloc_total;
+static uint64_t fog_memdbg_heapalloc_max;
 
 // This is small non-growing hash table, it's more better than single linked lists
 static MemDbgNode** fog_memdbg_nodes;
@@ -62,17 +67,23 @@ static FOG_INLINE uint32_t fog_memdbg_hash(void* addr)
 #endif
 }
 
+static void fog_memdbg_clear_statistics(void)
+{
+  fog_memdbg_blocks_current = 0;
+  fog_memdbg_blocks_total = 0;
+  fog_memdbg_blocks_max = 0;
+
+  fog_memdbg_heapalloc_current = 0;
+  fog_memdbg_heapalloc_total = 0;
+  fog_memdbg_heapalloc_total = 0;
+}
+
 static void fog_memdbg_init(void)
 {
   fog_memdbg_lock.init();
 
   fog_memdbg_state = 1;
-
-  fog_memdbg_blocks = 0;
-  fog_memdbg_blockstotal = 0;
-
-  fog_memdbg_heapallocsize = 0;
-  fog_memdbg_heapalloctotal = 0;
+  fog_memdbg_clear_statistics();
 
   fog_memdbg_nodes = (MemDbgNode**)calloc(1, sizeof(void*) * FOG_MEMDBG_TABLE_SIZE);
   if (fog_memdbg_nodes == NULL)
@@ -83,20 +94,19 @@ static void fog_memdbg_init(void)
 
 static void fog_memdbg_shutdown(void)
 {
-  fog_stderr_msg("Fog::MemDbg", "shutdown", "Allocations: %llu.", fog_memdbg_blockstotal);
-  fog_stderr_msg("Fog::MemDbg", "shutdown", "Total: %llu.", fog_memdbg_heapalloctotal);
+  fog_stderr_msg("Fog::MemDbg", "shutdown", "Total blocks allocated: %llu [Count].", (uint64_t)fog_memdbg_blocks_total);
+  fog_stderr_msg("Fog::MemDbg", "shutdown", "Total memory allocated: %llu [Bytes].", (uint64_t)fog_memdbg_heapalloc_total);
+
+  fog_stderr_msg("Fog::MemDbg", "shutdown", "Max blocks allocated: %llu [Count].", (uint64_t)fog_memdbg_blocks_max);
+  fog_stderr_msg("Fog::MemDbg", "shutdown", "Max memory allocated: %llu [Bytes].", (uint64_t)fog_memdbg_heapalloc_max);
 
   // only show debug information if application wasn't fail.
   if (fog_failed == 0) fog_memdbg_leaks();
 
   free((void*)fog_memdbg_nodes);
+
   fog_memdbg_state = 0;
-
-  fog_memdbg_blocks = 0;
-  fog_memdbg_blockstotal = 0;
-
-  fog_memdbg_heapallocsize = 0;
-  fog_memdbg_heapalloctotal = 0;
+  fog_memdbg_clear_statistics();
 
   fog_memdbg_lock.destroy();
 }
@@ -114,10 +124,14 @@ static void fog_memdbg_add(void* addr, sysuint_t size)
 
     node->next = fog_memdbg_nodes[fog_memdbg_hash(addr)];
     fog_memdbg_nodes[fog_memdbg_hash(addr)] = node;
-    fog_memdbg_blocks++;
-    fog_memdbg_blockstotal++;
-    fog_memdbg_heapallocsize += size;
-    fog_memdbg_heapalloctotal += size;
+
+    fog_memdbg_blocks_current++;
+    fog_memdbg_blocks_total++;
+    fog_memdbg_blocks_max = Fog::Math::max(fog_memdbg_blocks_max, fog_memdbg_blocks_current);
+
+    fog_memdbg_heapalloc_current += size;
+    fog_memdbg_heapalloc_total += size;
+    fog_memdbg_heapalloc_max = Fog::Math::max(fog_memdbg_heapalloc_max, fog_memdbg_heapalloc_current);
 
     fog_memdbg_lock->unlock();
   }
@@ -143,8 +157,8 @@ static void fog_memdbg_remove(void* addr)
       else
         fog_memdbg_nodes[fog_memdbg_hash(addr)] = node->next;
 
-      fog_memdbg_blocks--;
-      fog_memdbg_heapallocsize -= node->size;
+      fog_memdbg_blocks_current--;
+      fog_memdbg_heapalloc_current -= node->size;
 
       free(node);
       fog_memdbg_lock->unlock();
@@ -169,9 +183,9 @@ static void fog_memdbg_leaks(void)
 {
   fog_memdbg_lock->lock();
 
-  if (fog_memdbg_blocks > 0)
+  if (fog_memdbg_blocks_current > 0)
   {
-    fog_stderr_msg("Fog::MemDbg", "leaks", "Detected %llu memory leak(s), size:%llu bytes.", fog_memdbg_blocks, fog_memdbg_heapallocsize);
+    fog_stderr_msg("Fog::MemDbg", "leaks", "Detected %llu memory leak(s), size:%llu bytes.", fog_memdbg_blocks_current, fog_memdbg_heapalloc_current);
 
     sysuint_t i;
     MemDbgNode* node;
@@ -195,12 +209,12 @@ static void fog_memdbg_leaks(void)
           // Find if its a pointer.
           if (fog_memdbg_find(link))
           {
-            fprintf(fog_stderr, " -> %p (pointer found)", link );
+            fprintf(fog_stderr, " -> %p (pointer found)", link);
             doDump = false;
           }
           else
           {
-            fprintf(fog_stderr, " -> %p (pointer not found)", link );
+            fprintf(fog_stderr, " -> %p (pointer not found)", link);
           }
         }
 
@@ -265,6 +279,11 @@ static void fog_memdbg_dump(void* addr, sysuint_t size)
 
 FOG_CAPI_DECLARE void* fog_memory_alloc(sysuint_t size)
 {
+  if (size == 9096)
+  {
+    fog_debug("");
+  }
+
   if (FOG_LIKELY(size))
   {
     void* addr = malloc(size);

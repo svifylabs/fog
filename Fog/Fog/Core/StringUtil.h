@@ -17,6 +17,14 @@
 //! @{
 
 namespace Fog {
+
+// ============================================================================
+// [Fog::StringUtil::Forward Declarations]
+// ============================================================================
+
+struct ByteArray;
+struct String;
+
 namespace StringUtil {
 
 // ============================================================================
@@ -165,6 +173,25 @@ FOG_API err_t atou64(const Char* str, sysuint_t length, uint64_t* dst, int base 
 
 FOG_API err_t atof(const Char* str, sysuint_t length, float* dst, Char decimalPoint = Char('.'), sysuint_t* end = NULL, uint32_t* parserFlags = NULL);
 FOG_API err_t atod(const Char* str, sysuint_t length, double* dst, Char decimalPoint = Char('.'), sysuint_t* end = NULL, uint32_t* parserFlags = NULL);
+
+// ============================================================================
+// [Fog::StringUtil::Hex / Base64]
+// ============================================================================
+
+FOG_API err_t fromHex(ByteArray& dst, const ByteArray& src, int outputMode = OUTPUT_MODE_SET);
+FOG_API err_t toHex(ByteArray& dst, const ByteArray& src, int outputMode = OUTPUT_MODE_SET, int outputCase = OUTPUT_CASE_UPPER);
+
+FOG_API err_t fromBase64(ByteArray& dst, const ByteArray& src, int outputMode = OUTPUT_MODE_SET);
+FOG_API err_t fromBase64(ByteArray& dst, const String& src, int outputMode = OUTPUT_MODE_SET);
+
+FOG_API err_t fromBase64(ByteArray& dst, const char* src, sysuint_t srcLength, int outputMode = OUTPUT_MODE_SET);
+FOG_API err_t fromBase64(ByteArray& dst, const Char* src, sysuint_t srcLength, int outputMode = OUTPUT_MODE_SET);
+
+FOG_API err_t toBase64(ByteArray& dst, const ByteArray& src, int outputMode = OUTPUT_MODE_SET);
+FOG_API err_t toBase64(String& dst, const ByteArray& src, int outputMode = OUTPUT_MODE_SET);
+
+FOG_API err_t toBase64(ByteArray& dst, const char* src, sysuint_t srcLength, int outputMode = OUTPUT_MODE_SET);
+FOG_API err_t toBase64(String& dst, const char* src, sysuint_t srcLength, int outputMode = OUTPUT_MODE_SET);
 
 } // StringUtil namespace
 } // Fog namespace

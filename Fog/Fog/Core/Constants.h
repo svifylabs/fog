@@ -87,6 +87,16 @@ enum CASE_SENSITIVITY
 };
 
 // ============================================================================
+// [Fog::OUTPUT_MODE]
+// ============================================================================
+
+enum OUTPUT_MODE
+{
+  OUTPUT_MODE_SET = 0,
+  OUTPUT_MODE_APPEND = 1
+};
+
+// ============================================================================
 // [Fog::OUTPUT_CASE]
 // ============================================================================
 
@@ -241,7 +251,7 @@ enum ERR_CORE_ENUM
   ERR_CORE_START = 0x00010000,
   ERR_CORE_LAST  = 0x00010FFF,
 
-  // Runtime Errors.
+  // Runtime errors.
 
   ERR_RT_OUT_OF_MEMORY = ERR_CORE_START,
   ERR_RT_NOT_IMPLEMENTED,
@@ -259,16 +269,11 @@ enum ERR_CORE_ENUM
 
   ERR_RT_OVERFLOW,
 
-  // Properties.
+  // Property errors.
 
   ERR_PROPERTY_INVALID_NAME,
   ERR_PROPERTY_INVALID_VALUE,
   ERR_PROPERTY_IS_READ_ONLY,
-
-  // TODO: Remove these errors.
-  InvalidPropertyName,
-  InvalidPropertyValue,
-  PropertyIsReadOnly,
 
   // IO Errors.
 
