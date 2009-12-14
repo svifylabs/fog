@@ -529,31 +529,84 @@
 
 // Standard C/C++ defs
 #if !defined(FOG_HAVE_STDINT_H)
+
+// We are trying to be compatible with everything defined by standard compilers.
+// So we will define some macros that says that these types were defined so
+// standard compliant compiler should understand them.
+#if !defined(__int8_t_defined)
+# define __int8_t_defined
 typedef signed char int8_t;
+#endif // __int8_t_defined
+
+#if !defined(__uint8_t_defined)
+# define __uint8_t_defined
 typedef unsigned char uint8_t;
+#endif // __uint8_t_defined
 
+#if !defined(__int16_t_defined)
+# define __int16_t_defined
 typedef short int16_t;
-typedef unsigned short uint16_t;
+#endif // __int16_t_defined
 
+#if !defined(__uint16_t_defined)
+# define __uint16_t_defined
+typedef unsigned short uint16_t;
+#endif // __uint16_t_defined
+
+#if !defined(__int32_t_defined)
+# define __int32_t_defined
 typedef int int32_t;
+#endif // __int32_t_defined
+
+#if !defined(__uint32_t_defined)
+# define __uint32_t_defined
 typedef unsigned int uint32_t;
+#endif // __uint32_t_defined
 
 #if defined(FOG_CC_MSVC)
+
+# if !defined(__int64_t_defined)
+#  define __int64_t_defined
 typedef __int64 int64_t;
+# endif // __int64_t_defined
+
+# if !defined(__uint64_t_defined)
+#  define __uint64_t_defined
 typedef unsigned __int64 uint64_t;
+# endif // __uint64_t_defined
+
 #else // !FOG_CC_MSVC
 # if FOG_SIZEOF_LONG == 8
+
+#  if !defined(__int64_t_defined)
+#   define __int64_t_defined
 typedef long int64_t;
+#  endif // __int64_t_defined
+
+#  if !defined(__uint64_t_defined)
+#   define __uint64_t_defined
 typedef unsigned long uint64_t;
+#  endif // __uint64_t_defined
+
 # else
+
+#  if !defined(__int64_t_defined)
+#   define __int64_t_defined
 typedef long long int64_t;
+#  endif // __int64_t_defined
+
+#  if !defined(__uint64_t_defined)
+#   define __uint64_t_defined
 typedef unsigned long long uint64_t;
+#  endif // __uint64_t_defined
+
 # endif
 #endif // FOG_CC_MSVC
 
 #endif // FOG_HAVE_STDINT_H
 
-// uchar, ushort, uint and ulong
+// uchar, ushort, uint and ulong.
+// - these typedefs should never conflict!
 typedef unsigned char uchar;
 typedef unsigned short ushort;
 typedef unsigned int uint;

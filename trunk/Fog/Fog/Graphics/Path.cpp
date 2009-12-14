@@ -385,7 +385,6 @@ RectD Path::boundingRect() const
       if (y1 > v->y) y1 = v->y;
       if (x2 < v->x) x2 = v->x;
       if (y2 < v->y) y2 = v->y;
-      break;
     }
 
     i--;
@@ -544,7 +543,7 @@ static void arcToBezier(
   double sweep,
   PathVertex* dst)
 {
-  sweep /= 2.0;
+  sweep *= 0.5;
 
   double x0 = cos(sweep);
   double y0 = sin(sweep);
@@ -552,6 +551,9 @@ static void arcToBezier(
   double ty = y0 - tx * x0 / y0;
   double px[4];
   double py[4];
+
+  double sn = sin(start + sweep);
+  double cs = cos(start + sweep);
 
   px[0] =  x0;
   py[0] = -y0;
@@ -561,9 +563,6 @@ static void arcToBezier(
   py[2] =  ty;
   px[3] =  x0;
   py[3] =  y0;
-
-  double sn = sin(start + sweep);
-  double cs = cos(start + sweep);
 
   for (sysuint_t i = 0; i < 4; i++)
   {
