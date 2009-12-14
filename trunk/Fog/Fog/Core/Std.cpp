@@ -266,7 +266,7 @@ loop:
     pc -= es;
   }
 
-  // Switch to insertion sort
+  // Switch to insertion sort.
   if (swap_cnt == 0) {
     for (pm = (char *) a + es; pm < (char *) a + n * es; pm += es)
       for (pl = pm; pl > (char *) a && compar(pl - es, pl) > 0; pl -= es)
@@ -282,7 +282,7 @@ loop:
   if ((sysuint_t)(r = pb - pa) > es) fog_qsort(a, (sysuint_t)r / es, es, compar);
   if ((sysuint_t)(r = pd - pc) > es)
   {
-    // Iterate rather than recurse to save stack space
+    // Iterate rather than recurse to save stack space.
     a = pn - r;
     n = r / es;
     goto loop;

@@ -137,7 +137,7 @@ XmlElement::~XmlElement()
 {
   if (_firstChild) deleteAll();
   if (_parent) unlink();
-  _removeAllAttributesAlways();
+  _removeAttributes();
 }
 
 void XmlElement::_manage(XmlDocument* doc)
@@ -181,7 +181,7 @@ void XmlElement::_unmanage()
 XmlElement* XmlElement::clone() const
 {
   XmlElement* e = new(std::nothrow) XmlElement(_tagName);
-  if (e) copyAttributes(e, const_cast<XmlElement*>(this));
+  if (e) _copyAttributes(e, const_cast<XmlElement*>(this));
   return e;
 }
 
@@ -509,121 +509,44 @@ bool XmlElement::hasAttribute(const String& name) const
 err_t XmlElement::setAttribute(const String& name, const String& value)
 {
   if ((_flags & XML_ALLOWED_ATTRIBUTES) == 0) return ERR_XML_ATTRIBUTES_NOT_ALLOWED;
+  if (name.isEmpty()) return ERR_XML_INVALID_ATTRIBUTE;
 
-  err_t err;
   ManagedString managedName;
+  err_t err = managedName.set(name);
+  if (err) return err;
 
-  if (managedName.setIfManaged(name) == ERR_OK)
-  {
-    sysuint_t i, len = _attributes.getLength();
-    XmlAttribute** attrs = (XmlAttribute**)_attributes.getData();
-    for (i = 0; i < len; i++)
-    {
-      if (attrs[i]->_name == managedName) return attrs[i]->setValue(value);
-    }
-  }
-  else
-  {
-    if (name.isEmpty()) return ERR_XML_INVALID_ATTRIBUTE;
-    if ((err = managedName.set(name))) return err;
-  }
-
-  // Attribute not found, create new one.
-  XmlAttribute* a = _createAttribute(managedName);
-  if (!a) return ERR_RT_OUT_OF_MEMORY;
-  a->_element = this;
-
-  if ((err = _attributes.append(a)))
-  {
-    a->destroy();
-    return err;
-  }
-
-  return a->setValue(value);
+  return _setAttribute(managedName, value);
 }
 
 String XmlElement::getAttribute(const String& name) const
 {
-  sysuint_t i, len = _attributes.getLength();
-  if (!len) return String();
-
   ManagedString managedName;
   if (managedName.setIfManaged(name) != ERR_OK) return String();
 
-  XmlAttribute** attrs = (XmlAttribute**)_attributes.getData();
-  for (i = 0; i < len; i++)
-  {
-    if (attrs[i]->_name == managedName) return attrs[i]->getValue();
-  }
-
-  return String();
+  return _getAttribute(managedName);
 }
 
 err_t XmlElement::removeAttribute(const String& name)
 {
   if ((_flags & XML_ALLOWED_ATTRIBUTES) == 0) return ERR_XML_ATTRIBUTES_NOT_ALLOWED;
 
-  sysuint_t i, len = _attributes.getLength();
-  if (!len) return ERR_XML_ATTRIBUTE_NOT_EXISTS;
-
   ManagedString managedName;
   if (managedName.setIfManaged(name) != ERR_OK) return ERR_XML_ATTRIBUTE_NOT_EXISTS;
 
-  XmlAttribute** attrs = (XmlAttribute**)_attributes.getData();
-  for (i = 0; i < len; i++)
-  {
-    XmlAttribute* a = attrs[i];
-    if (a->_name == managedName)
-    {
-      _attributes.removeAt(i);
-      a->destroy();
-      return ERR_OK;
-    }
-  }
-
-  return ERR_XML_ATTRIBUTE_NOT_EXISTS;
+  return _removeAttribute(managedName);
 }
 
-err_t XmlElement::removeAllAttributes()
+err_t XmlElement::removeAttributes()
 {
   if ((_flags & XML_ALLOWED_ATTRIBUTES) == 0) return ERR_XML_ATTRIBUTES_NOT_ALLOWED;
-  return _removeAllAttributesAlways();
-}
 
-err_t XmlElement::_removeAllAttributesAlways()
-{
-  sysuint_t i, len = _attributes.getLength();
-  if (!len) return ERR_OK;
-
-  List<XmlAttribute*> attributes = _attributes;
-  _attributes.free();
-
-  XmlAttribute** attrs = (XmlAttribute**)attributes.getData();
-  for (i = 0; i < len; i++)
+  sysuint_t i = 0;
+  while (i < _attributes.getLength())
   {
-    XmlAttribute* a = attrs[i];
-    a->destroy();
+    if (_removeAttribute(_attributes.at(i)->_name) != ERR_OK) i++;
   }
 
   return ERR_OK;
-}
-
-XmlAttribute* XmlElement::_createAttribute(const ManagedString& name) const
-{
-  if (name == fog_strings->getString(STR_XML_id))
-    return new(std::nothrow) XmlIdAttribute(const_cast<XmlElement*>(this), name);
-  else
-    return new(std::nothrow) XmlAttribute(const_cast<XmlElement*>(this), name);
-}
-
-void XmlElement::copyAttributes(XmlElement* dst, XmlElement* src)
-{
-  sysuint_t i, len = src->_attributes.getLength();
-  XmlAttribute** attrs = (XmlAttribute**)src->_attributes.getData();
-  for (i = 0; i < len; i++)
-  {
-    dst->setAttribute(attrs[i]->getName(), attrs[i]->getValue());
-  }
 }
 
 err_t XmlElement::setId(const String& id)
@@ -672,6 +595,99 @@ err_t XmlElement::setTextContent(const String& text)
     XmlText* e = new(std::nothrow) XmlText(text);
     if (!e) return ERR_RT_OUT_OF_MEMORY;
     return appendChild(e);
+  }
+}
+
+err_t XmlElement::_setAttribute(const ManagedString& name, const String& value)
+{
+  sysuint_t i, len = _attributes.getLength();
+  XmlAttribute** attrs = (XmlAttribute**)_attributes.getData();
+
+  for (i = 0; i < len; i++)
+  {
+    if (attrs[i]->_name == name) return attrs[i]->setValue(value);
+  }
+
+  // Attribute not found, create new one.
+  XmlAttribute* a = _createAttribute(name);
+  if (!a) return ERR_RT_OUT_OF_MEMORY;
+  a->_element = this;
+
+  err_t err = _attributes.append(a);
+  if (err != ERR_OK)
+  {
+    a->destroy();
+    return err;
+  }
+
+  return a->setValue(value);
+}
+
+String XmlElement::_getAttribute(const ManagedString& name) const
+{
+  sysuint_t i, len = _attributes.getLength();
+
+  XmlAttribute** attrs = (XmlAttribute**)_attributes.getData();
+  for (i = 0; i < len; i++)
+  {
+    if (attrs[i]->_name == name) return attrs[i]->getValue();
+  }
+
+  return String();
+}
+
+err_t XmlElement::_removeAttribute(const ManagedString& name)
+{
+  sysuint_t i, len = _attributes.getLength();
+  XmlAttribute** attrs = (XmlAttribute**)_attributes.getData();
+
+  for (i = 0; i < len; i++)
+  {
+    XmlAttribute* a = attrs[i];
+    if (a->_name == name)
+    {
+      _attributes.removeAt(i);
+      a->destroy();
+      return ERR_OK;
+    }
+  }
+
+  return ERR_XML_ATTRIBUTE_NOT_EXISTS;
+}
+
+err_t XmlElement::_removeAttributes()
+{
+  sysuint_t i, len = _attributes.getLength();
+  if (!len) return ERR_OK;
+
+  List<XmlAttribute*> attributes = _attributes;
+  _attributes.free();
+
+  XmlAttribute** attrs = (XmlAttribute**)attributes.getData();
+  for (i = 0; i < len; i++)
+  {
+    XmlAttribute* a = attrs[i];
+    a->destroy();
+  }
+
+  return ERR_OK;
+}
+
+XmlAttribute* XmlElement::_createAttribute(const ManagedString& name) const
+{
+  if (name == fog_strings->getString(STR_XML_id))
+    return new(std::nothrow) XmlIdAttribute(const_cast<XmlElement*>(this), name);
+  else
+    return new(std::nothrow) XmlAttribute(const_cast<XmlElement*>(this), name);
+}
+
+void XmlElement::_copyAttributes(XmlElement* dst, XmlElement* src)
+{
+  sysuint_t i, len = src->_attributes.getLength();
+  XmlAttribute** attrs = (XmlAttribute**)src->_attributes.getData();
+  for (i = 0; i < len; i++)
+  {
+    dst->setAttribute(attrs[i]->getName(), attrs[i]->getValue());
   }
 }
 
@@ -1015,7 +1031,7 @@ XmlDocument::~XmlDocument()
   // Here is important to release all managed resources. Normally this is done
   // in XmlElement destructor, but if we go there, the managed hash table will
   // not exist at this time and segfault will occur. So destroy everything here.
-  _removeAllAttributesAlways();
+  _removeAttributes();
   deleteAll();
 
   // And clear _document pointer

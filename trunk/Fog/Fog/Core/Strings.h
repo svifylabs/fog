@@ -155,8 +155,7 @@ enum STR_ID
   // [Svg - Attributes / Styles]
 
   STR_SVG_STYLE_NAMES,
-  STR_SVG_none = STR_SVG_STYLE_NAMES,
-  STR_SVG_clip_path,
+  STR_SVG_clip_path = STR_SVG_STYLE_NAMES,
   STR_SVG_clip_rule,
   STR_SVG_enable_background,
   STR_SVG_fill,

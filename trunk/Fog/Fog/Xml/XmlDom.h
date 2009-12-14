@@ -109,7 +109,6 @@ struct FOG_API XmlAttribute
   virtual err_t setValue(const String& value);
 
 protected:
-
   virtual void destroy();
 
   //! @brief Link to element that owns this attribute.
@@ -292,11 +291,7 @@ public:
   String getAttribute(const String& name) const;
   err_t removeAttribute(const String& name);
 
-  err_t removeAllAttributes();
-  err_t _removeAllAttributesAlways();
-
-  virtual XmlAttribute* _createAttribute(const ManagedString& name) const;
-  static void copyAttributes(XmlElement* dst, XmlElement* src);
+  err_t removeAttributes();
 
   // [ID]
 
@@ -310,6 +305,14 @@ public:
 
   virtual String getTextContent() const;
   virtual err_t setTextContent(const String& text);
+
+  virtual err_t _setAttribute(const ManagedString& name, const String& value);
+  virtual String _getAttribute(const ManagedString& name) const;
+  virtual err_t _removeAttribute(const ManagedString& name);
+  virtual err_t _removeAttributes();
+
+  virtual XmlAttribute* _createAttribute(const ManagedString& name) const;
+  static void _copyAttributes(XmlElement* dst, XmlElement* src);
 
 protected:
   uint8_t _type;

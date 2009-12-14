@@ -23,8 +23,8 @@ namespace Fog {
 // [Forward Declarations]
 // ============================================================================
 
+struct SvgElement;
 struct SvgContext;
-struct SvgTransformAttribute;
 
 // ============================================================================
 // [Fog::ISvgObject]
@@ -33,40 +33,6 @@ struct SvgTransformAttribute;
 struct FOG_API ISvgObject
 {
   virtual err_t onRender(SvgContext* context) const = 0;
-};
-
-// ============================================================================
-// [Fog::SvgStyleAttribute]
-// ============================================================================
-
-//! @brief Attribute used for the svg styles.
-struct FOG_API SvgStyleAttribute : public XmlAttribute
-{
-  // [Construction / Destruction]
-
-  typedef XmlAttribute base;
-
-  SvgStyleAttribute(XmlElement* element, const ManagedString& name);
-  virtual ~SvgStyleAttribute();
-
-  // [Methods]
-
-  virtual String getValue() const;
-  virtual err_t setValue(const String& value);
-
-  // [Styles]
-
-  FOG_INLINE const List<SvgStyleItem>& getStyles() const { return _styles; }
-
-  String getStyle(const String& name) const;
-  err_t setStyle(const String& name, const String& value);
-
-  // [Members]
-protected:
-  List<SvgStyleItem> _styles;
-
-private:
-  FOG_DISABLE_COPY(SvgStyleAttribute)
 };
 
 // ============================================================================
@@ -94,11 +60,6 @@ struct FOG_API SvgElement :
 
   virtual XmlAttribute* _createAttribute(const ManagedString& name) const;
 
-  // [Style]
-
-  String getStyle(const String& name) const;
-  err_t setStyle(const String& name, const String& value);
-
   // [SVG Rendering]
 
   virtual err_t onRender(SvgContext* context) const;
@@ -107,6 +68,11 @@ struct FOG_API SvgElement :
   virtual err_t onCalcBoundingBox(RectD* box) const;
 
   static err_t _walkAndRender(const XmlElement* root, SvgContext* context);
+
+  // [SVG/CSS Styles]
+
+  virtual String getStyle(const String& name) const;
+  virtual err_t setStyle(const String& name, const String& value);
 
   // [SVG Implementation]
 
@@ -121,15 +87,9 @@ public:
   uint16_t _unused;
 
 protected:
-  SvgStyleAttribute* _styles;
-  SvgTransformAttribute* _transform;
-
-  mutable RectD _boundingBox;
+  mutable RectD _boundingRect;
 
 private:
-  friend struct SvgStyleAttribute;
-  friend struct SvgTransformAttribute;
-
   FOG_DISABLE_COPY(SvgElement)
 };
 

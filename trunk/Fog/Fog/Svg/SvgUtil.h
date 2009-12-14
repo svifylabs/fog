@@ -22,27 +22,51 @@ namespace Fog {
 //! @{
 
 // ============================================================================
-// [Svg::Util]
+// [Fog::SvgUtil]
 // ============================================================================
 
 namespace SvgUtil {
 
+// ============================================================================
+// [Fog::SvgUtil - Color & Opacity]
+// ============================================================================
+
 //! @brief Parse SVG color and save it to @a dst. This method can also check
 //! whether a given string is 'none' or URI to pattern definition.
 //!
-//! @return One of @c SVG_PATTERN_TYPE enumeration value is returned.
+//! @return One of @c SVG_SOURCE_TYPE enumeration value is returned.
 FOG_API int parseColor(const String& str, Argb* dst);
+
+//! @brief Serialize SVG color using #RRGGBB notation.
+FOG_API err_t serializeColor(String& dst, Argb color);
+
+//! @brief Parse SVG opacity value: 0.0 to 1.0 or 0% to 100% and clamp it if.
+//! needed.
+FOG_API err_t parseOpacity(const String& str, double* dst);
+
+// ============================================================================
+// [Fog::SvgUtil - Matrix]
+// ============================================================================
 
 //! @brief Parse SVG matrix and save it to @a dst.
 FOG_API err_t parseMatrix(const String& str, Matrix* dst);
 
+// ============================================================================
+// [Fog::SvgUtil - Coordinates]
+// ============================================================================
+
 //! @brief Parse SVG coorinate and return it.
 FOG_API SvgCoord parseCoord(const String& str);
 
-FOG_API List<SvgStyleItem> parseStyles(const String& str);
-FOG_API String joinStyles(const List<SvgStyleItem>& items);
+//! @brief Serialize SVG coordinate to string.
+FOG_API err_t serializeCoord(String& dst, const SvgCoord& coord);
+
+// ============================================================================
+// [Fog::SvgUtil - Paths]
+// ============================================================================
 
 FOG_API Path parsePoints(const String& str);
+
 FOG_API Path parsePath(const String& str);
 
 } // SvgUtil namespace

@@ -201,80 +201,101 @@ struct FOG_API Path
   // [MoveTo]
 
   err_t moveTo(double x, double y);
-  err_t moveToRel(double dx, double dy);
+  err_t moveRel(double dx, double dy);
 
   FOG_INLINE err_t moveTo(const PointD& pt) { return moveTo(pt.x, pt.y); }
-  FOG_INLINE err_t moveToRel(const PointD& pt) { return moveToRel(pt.x, pt.y); }
+  FOG_INLINE err_t moveRel(const PointD& pt) { return moveRel(pt.x, pt.y); }
 
   // [LineTo]
 
   err_t lineTo(double x, double y);
-  err_t lineToRel(double dx, double dy);
+  err_t lineRel(double dx, double dy);
 
   FOG_INLINE err_t lineTo(const PointD& pt) { return lineTo(pt.x, pt.y); }
-  FOG_INLINE err_t lineToRel(const PointD& pt) { return lineToRel(pt.x, pt.y); }
+  FOG_INLINE err_t lineRel(const PointD& pt) { return lineRel(pt.x, pt.y); }
 
   err_t lineTo(const double* x, const double* y, sysuint_t count);
   err_t lineTo(const PointD* pts, sysuint_t count);
 
   err_t hlineTo(double x);
-  err_t hlineToRel(double dx);
+  err_t hlineRel(double dx);
 
   err_t vlineTo(double y);
-  err_t vlineToRel(double dy);
+  err_t vlineRel(double dy);
 
   // [ArcTo]
 
   err_t _arcTo(double cx, double cy, double rx, double ry, double start, double sweep, uint initialCommand, bool closePath);
+  err_t _svgArcTo(
+    double rx, double ry,
+    double angle,
+    bool largeArcFlag,
+    bool sweepFlag,
+    double x2, double y2,
+    uint initialCommand, bool closePath);
 
   err_t arcTo(double cx, double cy, double rx, double ry, double start, double sweep);
-  err_t arcToRel(double cx, double cy, double rx, double ry, double start, double sweep);
+  err_t arcRel(double cx, double cy, double rx, double ry, double start, double sweep);
 
   FOG_INLINE err_t arcTo(const PointD& cp, const PointD& r, double start, double sweep)
   { return arcTo(cp.x, cp.y, r.x, r.y, start, sweep); }
 
-  FOG_INLINE err_t arcToRel(const PointD& cp, const PointD& r, double start, double sweep)
-  { return arcToRel(cp.x, cp.y, r.x, r.y, start, sweep); }
+  FOG_INLINE err_t arcRel(const PointD& cp, const PointD& r, double start, double sweep)
+  { return arcRel(cp.x, cp.y, r.x, r.y, start, sweep); }
+
+  err_t svgArcTo(
+    double rx, double ry,
+    double angle,
+    bool largeArcFlag,
+    bool sweepFlag,
+    double x2, double y2);
+
+  err_t svgArcRel(
+    double rx, double ry,
+    double angle,
+    bool largeArcFlag,
+    bool sweepFlag,
+    double x2, double y2);
 
   // [BezierTo]
 
   err_t curveTo(double cx, double cy, double tx, double ty);
-  err_t curveToRel(double cx, double cy, double tx, double ty);
+  err_t curveRel(double cx, double cy, double tx, double ty);
 
   err_t curveTo(double tx, double ty);
-  err_t curveToRel(double tx, double ty);
+  err_t curveRel(double tx, double ty);
 
   FOG_INLINE err_t curveTo(const PointD& cp, const PointD& to)
   { return curveTo(cp.x, cp.y, to.x, to.y); }
 
-  FOG_INLINE err_t curveToRel(const PointD& cp, const PointD& to)
-  { return curveToRel(cp.x, cp.y, to.x, to.y); }
+  FOG_INLINE err_t curveRel(const PointD& cp, const PointD& to)
+  { return curveRel(cp.x, cp.y, to.x, to.y); }
 
   FOG_INLINE err_t curveTo(const PointD& to)
   { return curveTo(to.x, to.y); }
 
-  FOG_INLINE err_t curveToRel(const PointD& to)
-  { return curveToRel(to.x, to.y); }
+  FOG_INLINE err_t curveRel(const PointD& to)
+  { return curveRel(to.x, to.y); }
 
   // [CubicTo]
 
   err_t cubicTo(double cx1, double cy1, double cx2, double cy2, double tx, double ty);
-  err_t cubicToRel(double cx1, double cy1, double cx2, double cy2, double tx, double ty);
+  err_t cubicRel(double cx1, double cy1, double cx2, double cy2, double tx, double ty);
 
   err_t cubicTo(double cx2, double cy2, double tx, double ty);
-  err_t cubicToRel(double cx2, double cy2, double tx, double ty);
+  err_t cubicRel(double cx2, double cy2, double tx, double ty);
 
   FOG_INLINE err_t cubicTo(const PointD& cp1, const PointD& cp2, const PointD& to)
   { return cubicTo(cp1.x, cp1.y, cp2.x, cp2.y, to.x, to.y); }
 
-  FOG_INLINE err_t cubicToRel(const PointD& cp1, const PointD& cp2, const PointD& to)
-  { return cubicToRel(cp1.x, cp1.y, cp2.x, cp2.y, to.x, to.y); }
+  FOG_INLINE err_t cubicRel(const PointD& cp1, const PointD& cp2, const PointD& to)
+  { return cubicRel(cp1.x, cp1.y, cp2.x, cp2.y, to.x, to.y); }
 
   FOG_INLINE err_t cubicTo(const PointD& cp2, const PointD& to)
   { return cubicTo(cp2.x, cp2.y, to.x, to.y); }
 
-  FOG_INLINE err_t cubicToRel(const PointD& cp2, const PointD& to)
-  { return cubicToRel(cp2.x, cp2.y, to.x, to.y); }
+  FOG_INLINE err_t cubicRel(const PointD& cp2, const PointD& to)
+  { return cubicRel(cp2.x, cp2.y, to.x, to.y); }
 
   // [FlipX / FlipY]
 

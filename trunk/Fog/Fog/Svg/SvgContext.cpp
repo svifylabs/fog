@@ -16,8 +16,8 @@ namespace Fog {
 SvgContext::SvgContext(Painter* painter) :
   _painter(painter)
 {
-  _lineStyle.type = SVG_PATTERN_NONE;
-  _fillStyle.type = SVG_PATTERN_COLOR;
+  _lineStyle.type = SVG_SOURCE_NONE;
+  _fillStyle.type = SVG_SOURCE_COLOR;
   _fillMode = FILL_NON_ZERO;
 
   setDpi(90.0);
@@ -47,13 +47,13 @@ void SvgContext::setDpi(double dpi)
 
 void SvgContext::drawEllipse(const PointD& cp, const PointD& r)
 {
-  if (_fillStyle.type != SVG_PATTERN_NONE)
+  if (_fillStyle.type != SVG_SOURCE_NONE)
   {
     setupFillStyle();
     _painter->fillEllipse(cp, r);
   }
 
-  if (_lineStyle.type != SVG_PATTERN_NONE)
+  if (_lineStyle.type != SVG_SOURCE_NONE)
   {
     setupStrokeStyle();
     _painter->drawEllipse(cp, r);
@@ -67,7 +67,7 @@ void SvgContext::drawImage(const PointD& pt, const Image& im)
 
 void SvgContext::drawLine(const PointD& p1, const PointD& p2)
 {
-  if (_lineStyle.type != SVG_PATTERN_NONE)
+  if (_lineStyle.type != SVG_SOURCE_NONE)
   {
     setupStrokeStyle();
     _painter->drawLine(p1, p2);
@@ -76,13 +76,13 @@ void SvgContext::drawLine(const PointD& p1, const PointD& p2)
 
 void SvgContext::drawRect(const RectD& rect)
 {
-  if (_fillStyle.type != SVG_PATTERN_NONE)
+  if (_fillStyle.type != SVG_SOURCE_NONE)
   {
     setupFillStyle();
     _painter->fillRect(rect);
   }
 
-  if (_lineStyle.type != SVG_PATTERN_NONE)
+  if (_lineStyle.type != SVG_SOURCE_NONE)
   {
     setupStrokeStyle();
     _painter->drawRect(rect);
@@ -91,13 +91,13 @@ void SvgContext::drawRect(const RectD& rect)
 
 void SvgContext::drawRound(const RectD& rect, const PointD& r)
 {
-  if (_fillStyle.type != SVG_PATTERN_NONE)
+  if (_fillStyle.type != SVG_SOURCE_NONE)
   {
     setupFillStyle();
     _painter->fillRound(rect, r);
   }
 
-  if (_lineStyle.type != SVG_PATTERN_NONE)
+  if (_lineStyle.type != SVG_SOURCE_NONE)
   {
     setupStrokeStyle();
     _painter->drawRound(rect, r);
@@ -106,13 +106,13 @@ void SvgContext::drawRound(const RectD& rect, const PointD& r)
 
 void SvgContext::drawPath(const Path& path)
 {
-  if (_fillStyle.type != SVG_PATTERN_NONE)
+  if (_fillStyle.type != SVG_SOURCE_NONE)
   {
     setupFillStyle();
     _painter->fillPath(path);
   }
 
-  if (_lineStyle.type != SVG_PATTERN_NONE)
+  if (_lineStyle.type != SVG_SOURCE_NONE)
   {
     setupStrokeStyle();
     _painter->drawPath(path);

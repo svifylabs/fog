@@ -48,7 +48,7 @@ struct FOG_API SvgContext
     // [Construction / Destruction]
 
     FOG_INLINE Style() :
-      type(SVG_PATTERN_COLOR),
+      type(SVG_SOURCE_COLOR),
       opacity(1.0),
       color(0xFF000000)
     {
@@ -113,18 +113,18 @@ struct FOG_API SvgContext
 
   FOG_INLINE void setFillNone()
   {
-    _fillStyle.type = SVG_PATTERN_NONE;
+    _fillStyle.type = SVG_SOURCE_NONE;
   }
 
   FOG_INLINE void setFillColor(Argb color)
   {
-    _fillStyle.type = SVG_PATTERN_COLOR;
+    _fillStyle.type = SVG_SOURCE_COLOR;
     _fillStyle.color = color;
   }
 
   FOG_INLINE void setFillPattern(const Pattern& pattern)
   {
-    _fillStyle.type = SVG_PATTERN_URI;
+    _fillStyle.type = SVG_SOURCE_URI;
     _fillStyle.pattern = pattern;
   }
 
@@ -147,18 +147,18 @@ struct FOG_API SvgContext
 
   FOG_INLINE void setStrokeNone()
   {
-    _lineStyle.type = SVG_PATTERN_NONE;
+    _lineStyle.type = SVG_SOURCE_NONE;
   }
 
   FOG_INLINE void setStrokeColor(Argb color)
   {
-    _lineStyle.type = SVG_PATTERN_COLOR;
+    _lineStyle.type = SVG_SOURCE_COLOR;
     _lineStyle.color = color;
   }
 
   FOG_INLINE void setStrokePattern(const Pattern& pattern)
   {
-    _lineStyle.type = SVG_PATTERN_URI;
+    _lineStyle.type = SVG_SOURCE_URI;
     _lineStyle.pattern = pattern;
   }
 
@@ -206,7 +206,7 @@ struct FOG_API SvgContext
 
   FOG_INLINE void setupFillStyle()
   {
-    if (_fillStyle.type == SVG_PATTERN_COLOR)
+    if (_fillStyle.type == SVG_SOURCE_COLOR)
       _painter->setSource(_fillStyle.color);
     else
       _painter->setSource(_fillStyle.pattern);
@@ -216,7 +216,7 @@ struct FOG_API SvgContext
 
   FOG_INLINE void setupStrokeStyle()
   {
-    if (_lineStyle.type == SVG_PATTERN_COLOR)
+    if (_lineStyle.type == SVG_SOURCE_COLOR)
       _painter->setSource(_lineStyle.color);
     else
       _painter->setSource(_lineStyle.pattern);
