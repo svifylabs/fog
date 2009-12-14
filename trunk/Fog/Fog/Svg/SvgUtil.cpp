@@ -181,7 +181,7 @@ static const SvgNamedColor svgNamedColors[] =
 
 static int svgNamedColorCmp(const void* a, const void* b)
 {
-  reinterpret_cast<const String*>(a)->compare(
+  return reinterpret_cast<const String*>(a)->compare(
     Ascii8((reinterpret_cast<const SvgNamedColor *>(b))->name));
 }
 
