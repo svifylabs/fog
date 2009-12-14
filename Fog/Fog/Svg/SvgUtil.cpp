@@ -14,8 +14,176 @@ namespace Fog {
 namespace SvgUtil {
 
 // ============================================================================
-// [Fog::SvgUtil]
+// [Fog::SvgUtil - Color & Opacity]
 // ============================================================================
+
+#include <Fog/Core/Pack.h>
+struct FOG_PACKED SvgNamedColor
+{
+  char name[22];
+  uint32_t value;
+};
+#include <Fog/Core/Unpack.h>
+
+#define __SVG_COLOR(R, G, B) \
+  ( 0xFF000000U | (((uint32_t)R) << 16) | (((uint32_t)G) << 8) | ((uint32_t)B) )
+static const SvgNamedColor svgNamedColors[] =
+{
+  { "aliceblue",             __SVG_COLOR(240,248,255) },
+  { "antiquewhite",          __SVG_COLOR(250,235,215) },
+  { "aqua",                  __SVG_COLOR(0,255,255) },
+  { "aquamarine",            __SVG_COLOR(127,255,212) },
+  { "azure",                 __SVG_COLOR(240,255,255) },
+  { "beige",                 __SVG_COLOR(245,245,220) },
+  { "bisque",                __SVG_COLOR(255,228,196) },
+  { "black",                 __SVG_COLOR(0,0,0) },
+  { "blanchedalmond",        __SVG_COLOR(255,235,205) },
+  { "blue",                  __SVG_COLOR(0,0,255) },
+  { "blueviolet",            __SVG_COLOR(138,43,226) },
+  { "brown",                 __SVG_COLOR(165,42,42) },
+  { "burlywood",             __SVG_COLOR(222,184,135) },
+  { "cadetblue",             __SVG_COLOR(95,158,160) },
+  { "chartreuse",            __SVG_COLOR(127,255,0) },
+  { "chocolate",             __SVG_COLOR(210,105,30) },
+  { "coral",                 __SVG_COLOR(255,127,80) },
+  { "cornflowerblue",        __SVG_COLOR(100,149,237) },
+  { "cornsilk",              __SVG_COLOR(255,248,220) },
+  { "crimson",               __SVG_COLOR(220,20,60) },
+  { "cyan",                  __SVG_COLOR(0,255,255) },
+  { "darkblue",              __SVG_COLOR(0,0,139) },
+  { "darkcyan",              __SVG_COLOR(0,139,139) },
+  { "darkgoldenrod",         __SVG_COLOR(184,134,11) },
+  { "darkgray",              __SVG_COLOR(169,169,169) },
+  { "darkgreen",             __SVG_COLOR(0,100,0) },
+  { "darkgrey",              __SVG_COLOR(169,169,169) },
+  { "darkkhaki",             __SVG_COLOR(189,183,107) },
+  { "darkmagenta",           __SVG_COLOR(139,0,139) },
+  { "darkolivegreen",        __SVG_COLOR(85,107,47) },
+  { "darkorange",            __SVG_COLOR(255,140,0) },
+  { "darkorchid",            __SVG_COLOR(153,50,204) },
+  { "darkred",               __SVG_COLOR(139,0,0) },
+  { "darksalmon",            __SVG_COLOR(233,150,122) },
+  { "darkseagreen",          __SVG_COLOR(143,188,143) },
+  { "darkslateblue",         __SVG_COLOR(72,61,139) },
+  { "darkslategray",         __SVG_COLOR(47,79,79) },
+  { "darkslategrey",         __SVG_COLOR(47,79,79) },
+  { "darkturquoise",         __SVG_COLOR(0,206,209) },
+  { "darkviolet",            __SVG_COLOR(148,0,211) },
+  { "deeppink",              __SVG_COLOR(255,20,147) },
+  { "deepskyblue",           __SVG_COLOR(0,191,255) },
+  { "dimgray",               __SVG_COLOR(105,105,105) },
+  { "dimgrey",               __SVG_COLOR(105,105,105) },
+  { "dodgerblue",            __SVG_COLOR(30,144,255) },
+  { "firebrick",             __SVG_COLOR(178,34,34) },
+  { "floralwhite",           __SVG_COLOR(255,250,240) },
+  { "forestgreen",           __SVG_COLOR(34,139,34) },
+  { "fuchsia",               __SVG_COLOR(255,0,255) },
+  { "gainsboro",             __SVG_COLOR(220,220,220) },
+  { "ghostwhite",            __SVG_COLOR(248,248,255) },
+  { "gold",                  __SVG_COLOR(255,215,0) },
+  { "goldenrod",             __SVG_COLOR(218,165,32) },
+  { "gray",                  __SVG_COLOR(128,128,128) },
+  { "green",                 __SVG_COLOR(0,128,0) },
+  { "greenyellow",           __SVG_COLOR(173,255,47) },
+  { "grey",                  __SVG_COLOR(128,128,128) },
+  { "honeydew",              __SVG_COLOR(240,255,240) },
+  { "hotpink",               __SVG_COLOR(255,105,180) },
+  { "indianred",             __SVG_COLOR(205,92,92) },
+  { "indigo",                __SVG_COLOR(75,0,130) },
+  { "ivory",                 __SVG_COLOR(255,255,240) },
+  { "khaki",                 __SVG_COLOR(240,230,140) },
+  { "lavender",              __SVG_COLOR(230,230,250) },
+  { "lavenderblush",         __SVG_COLOR(255,240,245) },
+  { "lawngreen",             __SVG_COLOR(124,252,0) },
+  { "lemonchiffon",          __SVG_COLOR(255,250,205) },
+  { "lightblue",             __SVG_COLOR(173,216,230) },
+  { "lightcoral",            __SVG_COLOR(240,128,128) },
+  { "lightcyan",             __SVG_COLOR(224,255,255) },
+  { "lightgoldenrodyellow",  __SVG_COLOR(250,250,210) },
+  { "lightgray",             __SVG_COLOR(211,211,211) },
+  { "lightgreen",            __SVG_COLOR(144,238,144) },
+  { "lightgrey",             __SVG_COLOR(211,211,211) },
+  { "lightpink",             __SVG_COLOR(255,182,193) },
+  { "lightsalmon",           __SVG_COLOR(255,160,122) },
+  { "lightseagreen",         __SVG_COLOR(32,178,170) },
+  { "lightskyblue",          __SVG_COLOR(135,206,250) },
+  { "lightslategray",        __SVG_COLOR(119,136,153) },
+  { "lightslategrey",        __SVG_COLOR(119,136,153) },
+  { "lightsteelblue",        __SVG_COLOR(176,196,222) },
+  { "lightyellow",           __SVG_COLOR(255,255,224) },
+  { "lime",                  __SVG_COLOR(0,255,0) },
+  { "limegreen",             __SVG_COLOR(50,205,50) },
+  { "linen",                 __SVG_COLOR(250,240,230) },
+  { "magenta",               __SVG_COLOR(255,0,255) },
+  { "maroon",                __SVG_COLOR(128,0,0) },
+  { "mediumaquamarine",      __SVG_COLOR(102,205,170) },
+  { "mediumblue",            __SVG_COLOR(0,0,205) },
+  { "mediumorchid",          __SVG_COLOR(186,85,211) },
+  { "mediumpurple",          __SVG_COLOR(147,112,219) },
+  { "mediumseagreen",        __SVG_COLOR(60,179,113) },
+  { "mediumslateblue",       __SVG_COLOR(123,104,238) },
+  { "mediumspringgreen",     __SVG_COLOR(0,250,154) },
+  { "mediumturquoise",       __SVG_COLOR(72,209,204) },
+  { "mediumvioletred",       __SVG_COLOR(199,21,133) },
+  { "midnightblue",          __SVG_COLOR(25,25,112) },
+  { "mintcream",             __SVG_COLOR(245,255,250) },
+  { "mistyrose",             __SVG_COLOR(255,228,225) },
+  { "moccasin",              __SVG_COLOR(255,228,181) },
+  { "navajowhite",           __SVG_COLOR(255,222,173) },
+  { "navy",                  __SVG_COLOR(0,0,128) },
+  { "oldlace",               __SVG_COLOR(253,245,230) },
+  { "olive",                 __SVG_COLOR(128,128,0) },
+  { "olivedrab",             __SVG_COLOR(107,142,35) },
+  { "orange",                __SVG_COLOR(255,165,0) },
+  { "orangered",             __SVG_COLOR(255,69,0) },
+  { "orchid",                __SVG_COLOR(218,112,214) },
+  { "palegoldenrod",         __SVG_COLOR(238,232,170) },
+  { "palegreen",             __SVG_COLOR(152,251,152) },
+  { "paleturquoise",         __SVG_COLOR(175,238,238) },
+  { "palevioletred",         __SVG_COLOR(219,112,147) },
+  { "papayawhip",            __SVG_COLOR(255,239,213) },
+  { "peachpuff",             __SVG_COLOR(255,218,185) },
+  { "peru",                  __SVG_COLOR(205,133,63) },
+  { "pink",                  __SVG_COLOR(255,192,203) },
+  { "plum",                  __SVG_COLOR(221,160,221) },
+  { "powderblue",            __SVG_COLOR(176,224,230) },
+  { "purple",                __SVG_COLOR(128,0,128) },
+  { "red",                   __SVG_COLOR(255,0,0) },
+  { "rosybrown",             __SVG_COLOR(188,143,143) },
+  { "royalblue",             __SVG_COLOR(65,105,225) },
+  { "saddlebrown",           __SVG_COLOR(139,69,19) },
+  { "salmon",                __SVG_COLOR(250,128,114) },
+  { "sandybrown",            __SVG_COLOR(244,164,96) },
+  { "seagreen",              __SVG_COLOR(46,139,87) },
+  { "seashell",              __SVG_COLOR(255,245,238) },
+  { "sienna",                __SVG_COLOR(160,82,45) },
+  { "silver",                __SVG_COLOR(192,192,192) },
+  { "skyblue",               __SVG_COLOR(135,206,235) },
+  { "slateblue",             __SVG_COLOR(106,90,205) },
+  { "slategray",             __SVG_COLOR(112,128,144) },
+  { "slategrey",             __SVG_COLOR(112,128,144) },
+  { "snow",                  __SVG_COLOR(255,250,250) },
+  { "springgreen",           __SVG_COLOR(0,255,127) },
+  { "steelblue",             __SVG_COLOR(70,130,180) },
+  { "tan",                   __SVG_COLOR(210,180,140) },
+  { "teal",                  __SVG_COLOR(0,128,128) },
+  { "thistle",               __SVG_COLOR(216,191,216) },
+  { "tomato",                __SVG_COLOR(255,99,71) },
+  { "turquoise",             __SVG_COLOR(64,224,208) },
+  { "violet",                __SVG_COLOR(238,130,238) },
+  { "wheat",                 __SVG_COLOR(245,222,179) },
+  { "white",                 __SVG_COLOR(255,255,255) },
+  { "whitesmoke",            __SVG_COLOR(245,245,245) },
+  { "yellow",                __SVG_COLOR(255,255,0) },
+  { "yellowgreen",           __SVG_COLOR(154,205,50) }
+};
+#undef __SVG_COLOR
+
+static int svgNamedColorCmp(const void* a, const void* b)
+{
+  reinterpret_cast<const String*>(a)->compare(
+    Ascii8((reinterpret_cast<const SvgNamedColor *>(b))->name));
+}
 
 static uint8_t singleHexToColorValue(Char c0)
 {
@@ -46,7 +214,7 @@ static uint8_t doubleHexToColorValue(Char c0, Char c1)
 
 FOG_API int parseColor(const String& str, Argb* dst)
 {
-  int status = SVG_PATTERN_INVALID;
+  int status = SVG_SOURCE_INVALID;
   Argb color(0xFF000000);
 
   const Char* strCur = str.getData();
@@ -72,7 +240,7 @@ FOG_API int parseColor(const String& str, Argb* dst)
       color.g = singleHexToColorValue(begin[1]);
       color.b = singleHexToColorValue(begin[2]);
 
-      status = SVG_PATTERN_COLOR;
+      status = SVG_SOURCE_COLOR;
     }
     else if (len == 6)
     {
@@ -80,97 +248,101 @@ FOG_API int parseColor(const String& str, Argb* dst)
       color.g = doubleHexToColorValue(begin[2], begin[3]);
       color.b = doubleHexToColorValue(begin[4], begin[5]);
 
-      status = SVG_PATTERN_COLOR;
+      status = SVG_SOURCE_COLOR;
     }
   }
   // CSS color 'rgb(r, g, b)'.
-  else if (*strCur == Char('r'))
+  else if (*strCur == Char('r') && strCur + 2 < strEnd && StringUtil::eq(strCur, "rgb", 3))
   {
-    if (strCur + 2 < strEnd && StringUtil::eq(strCur, "rgb", 3))
+    strCur += 3;
+
+    // Skip spaces.
+    for (;;) {
+      if (strCur == strEnd) goto bail;
+      else if (strCur->isSpace()) strCur++;
+      else break;
+    }
+
+    // Parse '('.
+    if (*strCur != Char('(')) goto bail;
+    if (++strCur == strEnd) goto bail;
+
+    // Parse 0-255, 0-255, 0-255.
+    uint8_t c[3];
+    for (sysuint_t i = 0; i < 3; i++)
     {
-      strCur += 3;
+      // Parse 8-bit number
+      sysuint_t end;
+      if (StringUtil::atou8(strCur, (sysuint_t)(strEnd - strCur), &c[i], 10, &end) != ERR_OK) goto bail;
+      strCur += end;
 
-      // Skip spaces.
-      for (;;) {
-        if (strCur == strEnd) goto bail;
-        else if (strCur->isSpace()) strCur++;
-        else break;
-      }
-
-      // Parse '('.
-      if (*strCur != Char('(')) goto bail;
-      if (++strCur == strEnd) goto bail;
-
-      // Parse 0-255, 0-255, 0-255.
-      uint8_t c[3];
-      for (sysuint_t i = 0; i < 3; i++)
+      // Skip spaces and parse ','.
+      if (i < 2)
       {
-        // Parse 8-bit number
-        sysuint_t end;
-        if (StringUtil::atou8(strCur, (sysuint_t)(strEnd - strCur), &c[i], 10, &end) != ERR_OK) goto bail;
-        strCur += end;
-        
-        // Skip spaces and parse ','.
-        if (i < 2)
-        {
-          for (;;) {
-            if (strCur == strEnd) goto bail;
+        for (;;) {
+          if (strCur == strEnd) goto bail;
 
-            if (strCur->isSpace())
-            {
-              strCur++;
-            }
-            else if (*strCur == Char(','))
-            {
-              if (++strCur == strEnd) goto bail;
-              break;
-            }
-            else
-            {
-              goto bail;
-            }
+          if (strCur->isSpace())
+          {
+            strCur++;
+          }
+          else if (*strCur == Char(','))
+          {
+            if (++strCur == strEnd) goto bail;
+            break;
+          }
+          else
+          {
+            goto bail;
           }
         }
       }
+    }
 
-      // Skip spaces and parse ')'
-      for (;;) {
-        if (strCur == strEnd) goto bail;
+    // Skip spaces and parse ')'
+    for (;;) {
+      if (strCur == strEnd) goto bail;
 
-        if (strCur->isSpace())
-        {
-          strCur++;
-        }
-        else if (*strCur == Char(')'))
-        {
-          strCur++;
-          break;
-        }
-        else
-        {
-          goto bail;
-        }
+      if (strCur->isSpace())
+      {
+        strCur++;
       }
-
-      color.r = c[0];
-      color.g = c[1];
-      color.b = c[2];
-
-      status = SVG_PATTERN_COLOR;
+      else if (*strCur == Char(')'))
+      {
+        strCur++;
+        break;
+      }
+      else
+      {
+        goto bail;
+      }
     }
+
+    color.r = c[0];
+    color.g = c[1];
+    color.b = c[2];
+
+    status = SVG_SOURCE_COLOR;
   }
-  else if (*strCur == Char('u'))
+  else if (*strCur == Char('u') && strCur + 2 < strEnd && StringUtil::eq(strCur, "url", 3))
   {
-    if (strCur + 2 < strEnd && StringUtil::eq(strCur, "url", 3))
-    {
-      status = SVG_PATTERN_URI;
-    }
+    status = SVG_SOURCE_URI;
   }
-  else if (*strCur == Char('n'))
+  else if (*strCur == Char('n') && strCur + 3 < strEnd && StringUtil::eq(strCur, "none", 4))
   {
-    if (strCur + 3 < strEnd && StringUtil::eq(strCur, "none", 4))
+    status = SVG_SOURCE_NONE;
+  }
+  else
+  {
+    // Try to parse named color.
+    const SvgNamedColor* match = reinterpret_cast<const SvgNamedColor*>(fog_bsearch(
+      &str, svgNamedColors, FOG_ARRAY_SIZE(svgNamedColors),
+      sizeof(SvgNamedColor), svgNamedColorCmp));
+
+    if (match)
     {
-      status = SVG_PATTERN_NONE;
+      color = match->value;
+      status = SVG_SOURCE_COLOR;
     }
   }
 
@@ -178,6 +350,62 @@ bail:
   *dst = color;
   return status;
 }
+
+err_t serializeColor(String& dst, Argb color)
+{
+  err_t err;
+
+  if ((err = dst.append(Char('#'))) ||
+      (err = dst.appendInt(color.value, 16, FormatFlags(6, 6)))) return err;
+
+  return err;
+}
+
+err_t parseOpacity(const String& str, double* dst)
+{
+  sysuint_t end;
+  double d = 0.0;
+  err_t err = str.atod(&d, NULL, &end);
+
+  if (err == ERR_OK)
+  {
+    // Parse '%'.
+    if (end < str.getLength())
+    {
+      const Char* strCur = str.getData();
+      const Char* strEnd = strCur + str.getLength();
+
+      strCur += end;
+
+      do {
+        Char c = *strCur;
+        if (c.isSpace()) continue;
+
+        if (c == Char('%'))
+        {
+          d *= 0.01;
+          return ERR_OK;
+        }
+        else
+        {
+          return ERR_OK;
+        }
+      } while (++strCur != strEnd);
+    }
+
+    // Clamp value to 0.0 -> 1.0 including.
+    if (d < 0.0) d = 0.0;
+    else if (d > 1.0) d = 1.0;
+
+    *dst = d;
+  }
+
+  return err;
+}
+
+// ============================================================================
+// [Fog::SvgUtil - Matrix]
+// ============================================================================
 
 err_t parseMatrix(const String& str, Matrix* dst)
 {
@@ -246,7 +474,7 @@ start:
         if (commaParsed) goto end;
         else goto done;
       }
-      else if (strCur[0].isAsciiDigit())
+      else if (strCur[0].isAsciiDigit() || strCur[0] == Char('-') || strCur[0] == Char('+'))
       {
         break;
       }
@@ -321,6 +549,10 @@ end:
   return status;
 }
 
+// ============================================================================
+// [Fog::SvgUtil - Coordinates]
+// ============================================================================
+
 static const char svgUnitNames[] = "cmemexinmmpcptpx";
 
 SvgCoord parseCoord(const String& str)
@@ -366,119 +598,21 @@ SvgCoord parseCoord(const String& str)
   return SvgCoord(d, unit);
 }
 
-List<SvgStyleItem> parseStyles(const String& str)
+err_t serializeCoord(String& dst, const SvgCoord& coord)
 {
-  List<SvgStyleItem> items;
+  err_t err;
 
-  const Char* strCur = str.getData();
-  const Char* strEnd = strCur + str.getLength();
+  if ((err = dst.appendDouble(coord.value))) return err;
 
-  for (;;)
-  {
-    if (strCur == strEnd) break;
+  if ((coord.unit < SVG_UNIT_INVALID || coord.unit != SVG_UNIT_NONE) &&
+      (err = dst.append(Ascii8(&svgUnitNames[coord.unit * 2], 2)))) return err;
 
-    const Char* styleNameBegin;
-    const Char* styleNameEnd;
-    const Char* styleValueBegin;
-    const Char* styleValueEnd;
-
-    err_t err;
-
-    // Skip spaces.
-    while (strCur->isSpace())
-    {
-      if (++strCur == strEnd) goto bail;
-    }
-
-    // Parse style name.
-    styleNameBegin = strCur;
-    while (*strCur != Char(':') && !strCur->isSpace())
-    {
-      if (++strCur == strEnd) goto bail;
-    }
-    styleNameEnd = strCur;
-
-    if (strCur->isSpace())
-    {
-      while (*strCur != Char(':'))
-      {
-        if (++strCur == strEnd) goto bail;
-      }
-    }
-
-    // Skip ':'
-    if (++strCur == strEnd) goto bail;
-
-
-    // Skip spaces.
-    while (strCur->isSpace())
-    {
-      if (++strCur == strEnd) goto bail;
-    }
-
-    // Parse style value.
-    styleValueBegin = strCur;
-    while (*strCur != Char(';'))
-    {
-      if (++strCur == strEnd) break;
-    }
-    styleValueEnd = strCur;
-
-    // Remove trailing spaces.
-    //
-    // We can't cause buffer underflow, because we already parsed ':' that's
-    // not space.
-    while (styleValueEnd[-1].isSpace()) styleValueEnd--;
-
-    // Skip ';'
-    if (strCur != strEnd) strCur++;
-
-    // Done, create item
-    SvgStyleItem item;
-
-    {
-      ManagedString styleName;
-
-      err = styleName.set(styleNameBegin, sysuint_t(styleNameEnd - styleNameBegin));
-      if (err) continue;
-      item.setName(styleName);
-    }
-
-    {
-      String styleValue;
-      err = styleValue.set(styleValueBegin, sysuint_t(styleValueEnd - styleValueBegin));
-      if (err) continue;
-      item.setValue(styleValue);
-    }
-
-    items.append(item);
-  }
-
-bail:
-  return items;
+  return ERR_OK;
 }
 
-String joinStyles(const List<SvgStyleItem>& items)
-{
-  String result;
-
-  if (!items.isEmpty())
-  {
-    result.reserve(128);
-
-    List<SvgStyleItem>::ConstIterator it(items);
-    for (it.toStart(); it.isValid(); it.toNext())
-    {
-      const SvgStyleItem& item = it.value();
-      result.append(item.getName());
-      result.append(Char(':'));
-      result.append(item.getValue());
-      result.append(Char(';'));
-    }
-  }
-
-  return result;
-}
+// ============================================================================
+// [Fog::SvgUtil - Paths]
+// ============================================================================
 
 Path parsePoints(const String& str)
 {
@@ -486,6 +620,8 @@ Path parsePoints(const String& str)
 
   const Char* strCur = str.getData();
   const Char* strEnd = strCur + str.getLength();
+
+  // SVG TODO:
 
   return path;
 }
@@ -523,7 +659,11 @@ Path parsePath(const String& str)
     else
     {
       command = strCur->ch();
-      if (++strCur == strEnd) goto bail;
+      if (++strCur == strEnd) 
+      {
+        if (command == 'Z' || command == 'z') goto close;
+        goto bail;
+      }
     }
 
     switch (command)
@@ -577,75 +717,86 @@ Path parsePath(const String& str)
       }
     }
 
-    if (path.isEmpty()) path.reserve(64);
-
     switch (command)
     {
       case 'A':
-        // SVG TODO:
+        path.svgArcTo(
+          coords[0], coords[1],
+          coords[2],
+          (bool)(int)coords[3],
+          (bool)(int)coords[4],
+          coords[5],
+          coords[6]);
         break;
       case 'a':
-        // SVG TODO:
+        path.svgArcRel(
+          coords[0], coords[1],
+          coords[2],
+          (bool)(int)coords[3],
+          (bool)(int)coords[4],
+          coords[5],
+          coords[6]);
         break;
 
       case 'C':
         path.cubicTo(coords[0], coords[1], coords[2], coords[3], coords[4], coords[5]);
         break;
       case 'c':
-        path.cubicToRel(coords[0], coords[1], coords[2], coords[3], coords[4], coords[5]);
+        path.cubicRel(coords[0], coords[1], coords[2], coords[3], coords[4], coords[5]);
         break;
 
       case 'H':
         path.hlineTo(coords[0]);
         break;
       case 'h':
-        path.hlineToRel(coords[0]);
+        path.hlineRel(coords[0]);
         break;
 
       case 'L':
         path.lineTo(coords[0], coords[1]);
         break;
       case 'l':
-        path.lineToRel(coords[0], coords[1]);
+        path.lineRel(coords[0], coords[1]);
         break;
 
       case 'M':
         path.moveTo(coords[0], coords[1]);
         break;
       case 'm':
-        path.moveToRel(coords[0], coords[1]);
+        path.moveRel(coords[0], coords[1]);
         break;
 
       case 'Q':
         path.curveTo(coords[0], coords[1], coords[2], coords[3]);
         break;
       case 'q':
-        path.curveToRel(coords[0], coords[1], coords[2], coords[3]);
+        path.curveRel(coords[0], coords[1], coords[2], coords[3]);
         break;
 
       case 'S':
         path.cubicTo(coords[0], coords[1], coords[2], coords[3]);
         break;
       case 's':
-        path.cubicToRel(coords[0], coords[1], coords[2], coords[3]);
+        path.cubicRel(coords[0], coords[1], coords[2], coords[3]);
         break;
 
       case 'T':
         path.curveTo(coords[0], coords[1]);
         break;
       case 't':
-        path.curveToRel(coords[0], coords[1]);
+        path.curveRel(coords[0], coords[1]);
         break;
 
       case 'V':
         path.vlineTo(coords[0]);
         break;
       case 'v':
-        path.vlineToRel(coords[0]);
+        path.vlineRel(coords[0]);
         break;
 
       case 'Z': 
       case 'z':
+close:
         path.closePolygon();
         break;
     }

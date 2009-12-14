@@ -142,7 +142,6 @@ static const char fog_strings_data[] =
   "y1\0"
   "y2\0"
 
-  "none\0"
   "clip-path\0"
   "clip-rule\0"
   "enable-background\0"

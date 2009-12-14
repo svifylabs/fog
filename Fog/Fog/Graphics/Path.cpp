@@ -451,7 +451,7 @@ err_t Path::moveTo(double x, double y)
   return ERR_OK;
 }
 
-err_t Path::moveToRel(double dx, double dy)
+err_t Path::moveRel(double dx, double dy)
 {
   relToAbsInline(_d, &dx, &dy);
   return moveTo(dx, dy);
@@ -473,7 +473,7 @@ err_t Path::lineTo(double x, double y)
   return ERR_OK;
 }
 
-err_t Path::lineToRel(double dx, double dy)
+err_t Path::lineRel(double dx, double dy)
 {
   relToAbsInline(_d, &dx, &dy);
   return lineTo(dx, dy);
@@ -514,7 +514,7 @@ err_t Path::hlineTo(double x)
   return lineTo(x, lastY(_d));
 }
 
-err_t Path::hlineToRel(double dx)
+err_t Path::hlineRel(double dx)
 {
   double dy = 0.0;
   relToAbsInline(_d, &dx, &dy);
@@ -526,7 +526,7 @@ err_t Path::vlineTo(double y)
   return lineTo(lastX(_d), y);
 }
 
-err_t Path::vlineToRel(double dy)
+err_t Path::vlineRel(double dy)
 {
   double dx = 0.0;
   relToAbsInline(_d, &dx, &dy);
@@ -537,7 +537,7 @@ err_t Path::vlineToRel(double dy)
 // [Fog::Path - ArcTo]
 // ============================================================================
 
-static void arc_to_bezier(
+static void arcToBezier(
   double cx, double cy,
   double rx, double ry,
   double start,
@@ -588,10 +588,10 @@ err_t Path::_arcTo(double cx, double cy, double rx, double ry, double start, dou
 
     v[0].cmd = initialCommand;
     v[0].x = cx + rx * cos(start);
-    v[0].y = cx + ry * sin(start);
+    v[0].y = cy + ry * sin(start);
     v[1].cmd = PATH_CMD_LINE_TO;
     v[1].x = cx + rx * cos(start + sweep);
-    v[1].y = cx + ry * sin(start + sweep);
+    v[1].y = cy + ry * sin(start + sweep);
   }
   else
   {
@@ -634,7 +634,7 @@ err_t Path::_arcTo(double cx, double cy, double rx, double ry, double start, dou
         }
       }
 
-      arc_to_bezier(cx, cy, rx, ry, start, localSweep, v-1);
+      arcToBezier(cx, cy, rx, ry, start, localSweep, v-1);
       v += 3;
       start += localSweep;
     } while (!done && v < vend);
@@ -649,15 +649,162 @@ err_t Path::_arcTo(double cx, double cy, double rx, double ry, double start, dou
   return ERR_OK;
 }
 
+err_t Path::_svgArcTo(
+  double rx, double ry,
+  double angle,
+  bool largeArcFlag,
+  bool sweepFlag,
+  double x2, double y2,
+  uint initialCommand, bool closePath)
+{
+  // Mark current length (will be position where the first bezier would start).
+  sysuint_t mark = getLength();
+
+  bool radiiOk = true;
+  double x0, y0;
+
+  // Get initial (x0, y0).
+  PathVertex* vertex = _d->data + mark - 1;
+  if (!mark || !vertex->cmd.isVertex())
+  {
+    x0 = 0.0;
+    y0 = 0.0;
+  }
+  else
+  {
+    x0 = vertex->x;
+    y0 = vertex->y;
+  }
+
+  // Normalize radius.
+  if (rx < 0.0) rx = -rx;
+  if (ry < 0.0) ry = -ry;
+
+  // Calculate the middle point between the current and the final points.
+  double dx2 = (x0 - x2) / 2.0;
+  double dy2 = (y0 - y2) / 2.0;
+
+  double cos_a = cos(angle);
+  double sin_a = sin(angle);
+
+  // Calculate (x1, y1).
+  double x1 =  cos_a * dx2 + sin_a * dy2;
+  double y1 = -sin_a * dx2 + cos_a * dy2;
+
+  // Ensure radii are large enough.
+  double prx = rx * rx;
+  double pry = ry * ry;
+  double px1 = x1 * x1;
+  double py1 = y1 * y1;
+
+  // Check that radii are large enough.
+  double radiiCheck = px1 / prx + py1 / pry;
+
+  if (radiiCheck > 1.0)
+  {
+    rx = sqrt(radiiCheck) * rx;
+    ry = sqrt(radiiCheck) * ry;
+    prx = rx * rx;
+    pry = ry * ry;
+    if (radiiCheck > 10.0) radiiOk = false;
+  }
+
+  // Calculate (cx1, cy1).
+  double sign = (largeArcFlag == sweepFlag) ? -1.0 : 1.0;
+  double sq   = (prx*pry - prx*py1 - pry*px1) / (prx*py1 + pry*px1);
+  double coef = sign * sqrt((sq < 0) ? 0 : sq);
+  double cx1  = coef *  ((rx * y1) / ry);
+  double cy1  = coef * -((ry * x1) / rx);
+
+  // Calculate (cx, cy) from (cx1, cy1).
+  double sx2 = (x0 + x2) / 2.0;
+  double sy2 = (y0 + y2) / 2.0;
+  double cx = sx2 + (cos_a * cx1 - sin_a * cy1);
+  double cy = sy2 + (sin_a * cx1 + cos_a * cy1);
+
+  // Calculate the start_angle (angle1) and the sweep_angle (dangle).
+  double ux =  (x1 - cx1) / rx;
+  double uy =  (y1 - cy1) / ry;
+  double vx = (-x1 - cx1) / rx;
+  double vy = (-y1 - cy1) / ry;
+  double p, n;
+
+  // Calculate the angle start.
+  n = sqrt(ux*ux + uy*uy);
+  p = ux; // (1 * ux) + (0 * uy)
+  sign = (uy < 0) ? -1.0 : 1.0;
+  double v = p / n;
+  if (v < -1.0) v = -1.0;
+  if (v >  1.0) v =  1.0;
+  double start_angle = sign * acos(v);
+
+  // Calculate the sweep angle.
+  n = sqrt((ux*ux + uy*uy) * (vx*vx + vy*vy));
+  p = ux * vx + uy * vy;
+  sign = (ux * vy - uy * vx < 0) ? -1.0 : 1.0;
+  v = p / n;
+  if (v < -1.0) v = -1.0;
+  if (v >  1.0) v =  1.0;
+  double sweep_angle = sign * acos(v);
+
+  if (!sweepFlag && sweep_angle > 0)
+    sweep_angle -= M_PI * 2.0;
+  else if (sweepFlag && sweep_angle < 0)
+    sweep_angle += M_PI * 2.0;
+
+  // We can now build and transform the resulting arc.
+  Matrix matrix = Matrix::fromRotation(angle);
+  matrix *= Matrix::fromTranslation(cx, cy);
+
+  err_t err = _arcTo(0.0, 0.0, rx, ry, start_angle, sweep_angle, initialCommand, false);
+  if (err) return err;
+
+  // This can't fail. Path must be already detached.
+  err = applyMatrix(matrix, mark, DETECT_LENGTH);
+  FOG_ASSERT(err == ERR_OK);
+
+  // We must make sure that the starting and ending points exactly coincide
+  // with the initial (x0, y0) and (x2, y2).
+  //
+  // This comment is from AntiGrain, we actually need only to fix end point.
+  vertex = _d->data + getLength() - 1;
+  vertex->x = x2;
+  vertex->y = y2;
+
+  if (closePath) closePolygon();
+  return ERR_OK;
+}
+
 err_t Path::arcTo(double cx, double cy, double rx, double ry, double start, double sweep)
 {
   return _arcTo(cx, cy, rx, ry, start, sweep, PATH_CMD_LINE_TO, false);
 }
 
-err_t Path::arcToRel(double cx, double cy, double rx, double ry, double start, double sweep)
+err_t Path::arcRel(double cx, double cy, double rx, double ry, double start, double sweep)
 {
   relToAbsInline(_d, &cx, &cy);
   return _arcTo(cx, cy, rx, ry, start, sweep, PATH_CMD_LINE_TO, false);
+}
+
+err_t Path::svgArcTo(
+  double rx, double ry,
+  double angle,
+  bool largeArcFlag,
+  bool sweepFlag,
+  double x2, double y2)
+{
+  return _svgArcTo(rx, ry, angle, largeArcFlag, sweepFlag, x2, y2, PATH_CMD_LINE_TO, false);
+}
+
+err_t Path::svgArcRel(
+  double rx, double ry,
+  double angle,
+  bool largeArcFlag,
+  bool sweepFlag,
+  double x2, double y2)
+{
+  relToAbsInline(_d, &x2, &y2);
+  return _svgArcTo(rx, ry, angle, largeArcFlag, sweepFlag, x2, y2, PATH_CMD_LINE_TO, false);
 }
 
 // ============================================================================
@@ -680,7 +827,7 @@ err_t Path::curveTo(double cx, double cy, double tx, double ty)
   return ERR_OK;
 }
 
-err_t Path::curveToRel(double cx, double cy, double tx, double ty)
+err_t Path::curveRel(double cx, double cy, double tx, double ty)
 {
   relToAbsInline(_d, &cx, &cy, &tx, &ty);
   return curveTo(cx, cy, tx, ty);
@@ -709,7 +856,7 @@ err_t Path::curveTo(double tx, double ty)
   }
 }
 
-err_t Path::curveToRel(double tx, double ty)
+err_t Path::curveRel(double tx, double ty)
 {
   relToAbsInline(_d, &tx, &ty);
   return curveTo(tx, ty);
@@ -738,7 +885,7 @@ err_t Path::cubicTo(double cx1, double cy1, double cx2, double cy2, double tx, d
   return ERR_OK;
 }
 
-err_t Path::cubicToRel(double cx1, double cy1, double cx2, double cy2, double tx, double ty)
+err_t Path::cubicRel(double cx1, double cy1, double cx2, double cy2, double tx, double ty)
 {
   relToAbsInline(_d, &cx1, &cy1, &cx2, &cy2, &tx, &ty);
   return cubicTo(cx1, cy1, cx2, cy2, tx, ty);
@@ -767,7 +914,7 @@ err_t Path::cubicTo(double cx2, double cy2, double tx, double ty)
   }
 }
 
-err_t Path::cubicToRel(double cx2, double cy2, double tx, double ty)
+err_t Path::cubicRel(double cx2, double cy2, double tx, double ty)
 {
   relToAbsInline(_d, &cx2, &cy2, &tx, &ty);
   return cubicTo(cx2, cy2, tx, ty);

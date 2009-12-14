@@ -70,16 +70,14 @@ enum SVG_PAINT_TYPE
 };
 
 // ============================================================================
-// [Fog::SVG_STYLE_TYPE]
+// [Fog::SVG_STYLE_ID]
 // ============================================================================
 
-enum SVG_STYLE_TYPE
+enum SVG_STYLE_ID
 {
   // When adding value here, it's important to add value to Fog/Core/Strings.h
   // and Fog/Core/Strings.cpp. There are static strings for style names.
-  SVG_STYLE_NONE = 0,
-
-  SVG_STYLE_CLIP_PATH,
+  SVG_STYLE_CLIP_PATH = 0,
   SVG_STYLE_CLIP_RULE,
   SVG_STYLE_ENABLE_BACKGROUND,
   SVG_STYLE_FILL,
@@ -133,16 +131,16 @@ enum SVG_VALUE_TYPE
 };
 
 // ============================================================================
-// [Fog::SVG_PATTERN_TYPE]
+// [Fog::SVG_SOURCE_TYPE]
 // ============================================================================
 
-enum SVG_PATTERN_TYPE
+enum SVG_SOURCE_TYPE
 {
-  SVG_PATTERN_NONE = 0,
-  SVG_PATTERN_COLOR = 1,
-  SVG_PATTERN_URI = 2,
+  SVG_SOURCE_NONE = 0,
+  SVG_SOURCE_COLOR = 1,
+  SVG_SOURCE_URI = 2,
 
-  SVG_PATTERN_INVALID
+  SVG_SOURCE_INVALID
 };
 
 // ============================================================================
@@ -168,8 +166,12 @@ enum ERR_SVG_ENUM
 
   // Svg Errors.
 
+  //! @brief Invalid style name.
+  ERR_SVG_INVALID_STYLE_NAME,
+  //! @brief Invalid style value.
+  ERR_SVG_INVALID_STYLE_VALUE,
   //! @brief Error set if svg embedded data are not in base64 format.
-  ERR_SVG_UNSUPPORTED_DATA_ENCODING = ERR_SVG_START
+  ERR_SVG_INVALID_DATA_ENCODING = ERR_SVG_START
 };
 
 } // Fog namespace
