@@ -3284,7 +3284,7 @@ err_t fromBase64(ByteArray& dst, const String& src, int outputMode)
 
 err_t fromBase64(ByteArray& dst, const char* src, sysuint_t srcLength, int outputMode)
 {
-  if (srcLength == DETECT_LENGTH) srcLength == len(src);
+  if (srcLength == DETECT_LENGTH) srcLength = len(src);
   sysuint_t growBy = (srcLength / 4) * 3 + 3;
 
   uint8_t* dstCur = reinterpret_cast<uint8_t*>(dst.beginManipulation(growBy, outputMode));
@@ -3330,7 +3330,7 @@ err_t fromBase64(ByteArray& dst, const char* src, sysuint_t srcLength, int outpu
 
 err_t fromBase64(ByteArray& dst, const Char* src, sysuint_t srcLength, int outputMode)
 {
-  if (srcLength == DETECT_LENGTH) srcLength == len(src);
+  if (srcLength == DETECT_LENGTH) srcLength = len(src);
   sysuint_t growBy = (srcLength / 4) * 3 + 3;
 
   uint8_t* dstCur = reinterpret_cast<uint8_t*>(dst.beginManipulation(growBy, outputMode));
