@@ -8,7 +8,7 @@ This page contains informations from Fog benchmark tool. Benchmarks are designed
   * GDI+
   * Cairo
 
-Usually the benchmarks for Cairo are run under Linux, and bechmarks fog GDI+ under Windows. You can also try the benchmark by configuring fog using 'configure-bench' command. It will build 'bench' file that can be run to do the tests.
+Usually the benchmarks for Cairo are run under Linux, and bechmarks fog GDI+ under Windows. You can also try the benchmark by configuring fog using 'configure-bench' command. It will build 'FogBench' file that can be run to do the tests.
 
 =Benchmark Tests=
 
