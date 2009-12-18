@@ -102,6 +102,7 @@ static const char fog_strings_data[] =
 
   // [Svg]
 
+  "none\0"
   "circle\0"
   "defs\0"
   "ellipse\0"
@@ -110,6 +111,7 @@ static const char fog_strings_data[] =
   "line\0"
   "linearGradient\0"
   "path\0"
+  "pattern\0"
   "polygon\0"
   "polyline\0"
   "radialGradient\0"
@@ -117,6 +119,11 @@ static const char fog_strings_data[] =
   "solidColor\0"
   "stop\0"
   "svg\0"
+  "text\0"
+  "textPath\0"
+  "tref\0"
+  "tspan\0"
+  "use\0"
 
   "cx\0"
   "cy\0"

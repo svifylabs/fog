@@ -8,7 +8,7 @@
 
 #if defined(FOG_IDE)
 #include <Fog/Graphics/RasterUtil/RasterUtil_Defs_C.h>
-#include <Fog/Graphics/RasterUtil/RasterUtil_Convert_C.h>
+#include <Fog/Graphics/RasterUtil/RasterUtil_Dib_C.h>
 #endif // FOG_IDE
 
 namespace Fog {
@@ -190,45 +190,6 @@ namespace RasterUtil {
   dstCur += 4; \
 }
 
-#define TEXTURE_C_INTERPOLATE_BILINEAR_24() \
-{ \
-  int px0 = fx >> 16; \
-  int py0 = fy >> 16; \
-  \
-  int px1 = px0 + 1; \
-  int py1 = py0 + 1; \
-  \
-  uint32_t pix_x0y0; \
-  uint32_t pix_x1y0; \
-  uint32_t pix_x0y1; \
-  uint32_t pix_x1y1; \
-  \
-  if (FOG_UNLIKELY(py1 >= th)) py1 -= th; \
-  if (FOG_UNLIKELY(px1 >= tw)) px1 -= tw; \
-  \
-  const uint8_t* src0 = srcBits + py0 * srcStride; \
-  const uint8_t* src1 = srcBits + py1 * srcStride; \
-  \
-  uint weightx = (fx >> 8) & 0xFF; \
-  uint weighty = (fy >> 8) & 0xFF; \
-  \
-  uint w_x0y0 = ((256 - weightx) * (256 - weighty)) >> 8; \
-  uint w_x1y0 = ((weightx      ) * (256 - weighty)) >> 8; \
-  \
-  uint w_x0y1 = ((256 - weightx) * (weighty)) >> 8; \
-  uint w_x1y1 = ((weightx      ) * (weighty)) >> 8; \
-  \
-  pix_x0y0 = PixFmt_RGB24::fetch(src0 + px0 * 3); \
-  pix_x1y0 = PixFmt_RGB24::fetch(src0 + px1 * 3); \
-  pix_x0y1 = PixFmt_RGB24::fetch(src1 + px0 * 3); \
-  pix_x1y1 = PixFmt_RGB24::fetch(src1 + px1 * 3); \
-  \
-  PATTERN_C_INTERPOLATE_32_4(((uint32_t*)dstCur)[0], \
-    pix_x0y0, w_x0y0, pix_x1y0, w_x1y0, \
-    pix_x0y1, w_x0y1, pix_x1y1, w_x1y1); \
-  dstCur += 4; \
-}
-
 #define TEXTURE_C_INTERPOLATE_BILINEAR_8() \
 { \
   int px0 = fx >> 16; \
@@ -350,7 +311,6 @@ struct FOG_HIDDEN PatternC
         ctx->depth = 32;
         break;
       case PIXEL_FORMAT_XRGB32:
-      case PIXEL_FORMAT_RGB24:
         ctx->format = PIXEL_FORMAT_XRGB32;
         ctx->depth = 32;
         break;
@@ -533,55 +493,6 @@ struct FOG_HIDDEN PatternC
     return dst;
   }
 
-  static uint8_t* FOG_FASTCALL texture_fetch_exact_repeat_24(
-    PatternContext* ctx,
-    uint8_t* dst, int x, int y, int w)
-  {
-    FOG_ASSERT(w);
-
-    uint8_t* dstCur = dst;
-
-    int tw = ctx->texture.w;
-    int th = ctx->texture.h;
-
-    x -= ctx->texture.dx;
-    y -= ctx->texture.dy;
-
-    if (x < 0) x = (x % tw) + tw;
-    if (x >= tw) x %= tw;
-
-    if (y < 0) y = (y % th) + th;
-    if (y >= th) y %= th;
-
-    const uint8_t* srcBase = ctx->texture.bits + y * ctx->texture.stride;
-    const uint8_t* srcCur;
-
-    int i;
-
-    srcCur = srcBase + ByteUtil::mul3(x);
-
-    // Return image buffer if span fits to it (this is very efficient
-    // optimization for short spans or large textures).
-    i = Math::min(tw - x, w);
-
-    for (;;)
-    {
-      w -= i;
-
-      do {
-        ((uint32_t*)dstCur)[0] = PixFmt_RGB24::fetch(srcCur);
-        dstCur += 4;
-        srcCur += 3;
-      } while (--i);
-      if (!w) break;
-
-      i = Math::min(w, tw);
-      srcCur = srcBase;
-    }
-
-    return dst;
-  }
-
   static uint8_t* FOG_FASTCALL texture_fetch_exact_repeat_a8(
     PatternContext* ctx,
     uint8_t* dst, int x, int y, int w)
@@ -714,73 +625,6 @@ struct FOG_HIDDEN PatternC
           ((uint32_t*)dstCur)[0] = ((const uint32_t*)srcCur)[0];
           dstCur += 4;
           srcCur += 4;
-        } while (--i);
-      }
-    } while (w);
-
-    return dst;
-  }
-
-  static uint8_t* FOG_FASTCALL texture_fetch_exact_reflect_24(
-    PatternContext* ctx,
-    uint8_t* dst, int x, int y, int w)
-  {
-    FOG_ASSERT(w);
-
-    uint8_t* dstCur = dst;
-
-    int tw = ctx->texture.w;
-    int th = ctx->texture.h;
-
-    int tw2 = tw << 1;
-    int th2 = th << 1;
-
-    x -= ctx->texture.dx;
-    y -= ctx->texture.dy;
-
-    if (x < 0) x = (x % tw2) + tw2;
-    if (x >= tw2) x %= tw2;
-
-    if (y < 0) y = (y % th2) + th2;
-    if (y >= th2) y %= th2;
-
-    // Modify Y if reflected (if it lies in second section).
-    if (y >= th) y = th2 - y - 1;
-
-    const uint8_t* srcBase = ctx->texture.bits + y * ctx->texture.stride;
-    const uint8_t* srcCur;
-
-    do {
-      // Reflect mode.
-      if (x >= tw)
-      {
-        int i = Math::min(tw2 - x, w);
-
-        srcCur = srcBase + ByteUtil::mul3(tw2 - x - 1);
-
-        w -= i;
-        x = 0;
-
-        do {
-          ((uint32_t*)dstCur)[0] = PixFmt_RGB24::fetch(srcCur);
-          dstCur += 4;
-          srcCur -= 3;
-        } while (--i);
-      }
-      // Repeat mode.
-      else
-      {
-        int i = Math::min(tw - x, w);
-
-        srcCur = srcBase + ByteUtil::mul3(x);
-
-        w -= i;
-        x += i;
-
-        do {
-          ((uint32_t*)dstCur)[0] = PixFmt_RGB24::fetch(srcCur);
-          dstCur += 4;
-          srcCur += 3;
         } while (--i);
       }
     } while (w);
@@ -1001,73 +845,6 @@ struct FOG_HIDDEN PatternC
     return dst;
   }
 
-  static uint8_t* FOG_FASTCALL texture_fetch_subx0_repeat_24(
-    PatternContext* ctx,
-    uint8_t* dst, int x, int y, int w)
-  {
-    FOG_ASSERT(w);
-
-    uint8_t* dstCur = dst;
-
-    int tw = ctx->texture.w;
-    int th = ctx->texture.h;
-
-    uint fY0X0 = ctx->texture.fY1X0;
-    uint fY0X1 = ctx->texture.fY1X1;
-
-    x -= ctx->texture.dx + 1;
-    y -= ctx->texture.dy;
-
-    if (x < 0) x = (x % tw) + tw;
-    if (x >= tw) x %= tw;
-
-    if (y < 0) y = (y % th) + th;
-    if (y >= th) y %= th;
-
-    const uint8_t* srcBase = ctx->texture.bits + y * ctx->texture.stride;
-    const uint8_t* srcCur = srcBase + ByteUtil::mul3(x);
-
-    uint32_t back_0 = PixFmt_RGB24::fetch(srcCur);
-
-    srcCur += 4;
-
-    if (++x == tw)
-    {
-      x = 0;
-      srcCur = srcBase;
-    }
-
-    int r = Math::min(w, tw);
-    int i = Math::min(tw - x, r);
-
-    w -= r;
-
-    // Fetch only texture width line.
-    for (;;)
-    {
-      r -= i;
-
-      do {
-        PATTERN_C_INTERPOLATE_32_2(
-          ((uint32_t*)dstCur)[0],
-          back_0                               , fY0X0,
-          back_0 = PixFmt_RGB24::fetch(srcCur) , fY0X1);
-
-        dstCur += 4;
-        srcCur += 3;
-      } while (--i);
-      if (!r) break;
-
-      i = Math::min(r, tw);
-      srcCur = srcBase;
-    }
-
-    // Fetch the rest.
-    if (w) _texture_do_repeat_32(dstCur, tw, w);
-
-    return dst;
-  }
-
   static uint8_t* FOG_FASTCALL texture_fetch_subx0_reflect_32(
     PatternContext* ctx,
     uint8_t* dst, int x, int y, int w)
@@ -1169,107 +946,6 @@ struct FOG_HIDDEN PatternC
     return dst;
   }
 
-  static uint8_t* FOG_FASTCALL texture_fetch_subx0_reflect_24(
-    PatternContext* ctx,
-    uint8_t* dst, int x, int y, int w)
-  {
-    FOG_ASSERT(w);
-
-    uint8_t* dstCur = dst;
-
-    int tw = ctx->texture.w;
-    int th = ctx->texture.h;
-
-    int tw2 = tw << 1;
-    int th2 = th << 1;
-
-    uint fY0X0 = ctx->texture.fY1X0;
-    uint fY0X1 = ctx->texture.fY1X1;
-
-    x -= ctx->texture.dx + 1;
-    y -= ctx->texture.dy;
-
-    if (x < 0) x = (x % tw2) + tw2;
-    if (x >= tw2) x %= tw2;
-
-    if (y < 0) y = (y % th2) + th2;
-    if (y >= th2) y %= th2;
-
-    // Modify Y if reflected (if it lies in second section).
-    if (y >= th) y = th2 - y - 1;
-
-    const uint8_t* srcBase = ctx->texture.bits + y * ctx->texture.stride;
-    const uint8_t* srcCur;
-
-    uint32_t back_0;
-
-    if (x >= tw)
-    {
-      // Reflect mode.
-      srcCur = srcBase + ByteUtil::mul3(tw2 - x - 1);
-    }
-    else
-    {
-      // Repeat mode.
-      srcCur = srcBase + ByteUtil::mul3(x);
-    }
-
-    back_0 = PixFmt_RGB24::fetch(srcCur);
-    if (++x >= tw2) x -= tw2;
-
-    int r = Math::min(w, tw2);
-    w -= r;
-
-    // Fetch only texture width line * 2.
-    do {
-      // Reflect mode.
-      if (x >= tw)
-      {
-        int i = Math::min(tw2 - x, r);
-
-        srcCur = srcBase + ByteUtil::mul3(tw2 - x - 1);
-
-        r -= i;
-        x = 0;
-
-        do {
-          PATTERN_C_INTERPOLATE_32_2(
-            ((uint32_t*)dstCur)[0],
-            back_0                               , fY0X0,
-            back_0 = PixFmt_RGB24::fetch(srcCur) , fY0X1);
-
-          dstCur += 4;
-          srcCur -= 3;
-        } while (--i);
-      }
-      // Repeat mode.
-      else
-      {
-        int i = Math::min(tw - x, r);
-
-        srcCur = srcBase + ByteUtil::mul3(x);
-
-        r -= i;
-        x += i;
-
-        do {
-          PATTERN_C_INTERPOLATE_32_2(
-            ((uint32_t*)dstCur)[0],
-            back_0                               , fY0X0,
-            back_0 = PixFmt_RGB24::fetch(srcCur) , fY0X1);
-
-          dstCur += 4;
-          srcCur += 3;
-        } while (--i);
-      }
-    } while (r);
-
-    // Fetch the rest.
-    if (w) _texture_do_repeat_32(dstCur, tw2, w);
-
-    return dst;
-  }
-
   static uint8_t* FOG_FASTCALL texture_fetch_sub0y_repeat_32(
     PatternContext* ctx,
     uint8_t* dst, int x, int y, int w)
@@ -1319,69 +995,6 @@ struct FOG_HIDDEN PatternC
         dstCur += 4;
         srcCur0 += 4;
         srcCur1 += 4;
-      } while (--i);
-      if (!r) break;
-
-      i = Math::min(r, tw);
-      srcCur0 = srcBase0;
-      srcCur1 = srcBase1;
-    }
-
-    // Fetch the rest.
-    if (w) _texture_do_repeat_32(dstCur, tw, w);
-
-    return dst;
-  }
-
-  static uint8_t* FOG_FASTCALL texture_fetch_sub0y_repeat_24(
-    PatternContext* ctx,
-    uint8_t* dst, int x, int y, int w)
-  {
-    FOG_ASSERT(w);
-
-    uint8_t* dstCur = dst;
-
-    int tw = ctx->texture.w;
-    int th = ctx->texture.h;
-
-    uint fY0X0 = ctx->texture.fY0X1;
-    uint fY1X0 = ctx->texture.fY1X1;
-
-    x -= ctx->texture.dx;
-    y -= ctx->texture.dy + 1;
-
-    if (x < 0) x = (x % tw) + tw;
-    if (x >= tw) x %= tw;
-
-    if (y < 0) y = (y % th) + th;
-    if (y >= th) y %= th;
-
-    const uint8_t* srcBase0 = ctx->texture.bits + y * ctx->texture.stride;
-    const uint8_t* srcBase1 = srcBase0 + ctx->texture.stride;
-    if (y + 1 >= th) srcBase1 = ctx->texture.bits;
-
-    const uint8_t* srcCur0 = srcBase0 + ByteUtil::mul3(x);
-    const uint8_t* srcCur1 = srcBase1 + ByteUtil::mul3(x);
-
-    int r = Math::min(w, tw);
-    int i = Math::min(tw - x, r);
-
-    w -= r;
-
-    // Fetch only texture width line.
-    for (;;)
-    {
-      r -= i;
-
-      do {
-        PATTERN_C_INTERPOLATE_32_2(
-          ((uint32_t*)dstCur)[0],
-          PixFmt_RGB24::fetch(srcCur0), fY0X0,
-          PixFmt_RGB24::fetch(srcCur1), fY1X0);
-
-        dstCur += 4;
-        srcCur0 += 3;
-        srcCur1 += 3;
       } while (--i);
       if (!r) break;
 
@@ -1500,110 +1113,6 @@ struct FOG_HIDDEN PatternC
     return dst;
   }
 
-  static uint8_t* FOG_FASTCALL texture_fetch_sub0y_reflect_24(
-    PatternContext* ctx,
-    uint8_t* dst, int x, int y, int w)
-  {
-    FOG_ASSERT(w);
-
-    uint8_t* dstCur = dst;
-
-    int tw = ctx->texture.w;
-    int th = ctx->texture.h;
-
-    int tw2 = tw << 1;
-    int th2 = th << 1;
-
-    uint fY0X0 = ctx->texture.fY0X1;
-    uint fY1X0 = ctx->texture.fY1X1;
-
-    x -= ctx->texture.dx;
-    y -= ctx->texture.dy + 1;
-
-    if (x < 0) x = (x % tw2) + tw2;
-    if (x >= tw2) x %= tw2;
-
-    if (y < 0) y = (y % th2) + th2;
-    if (y >= th2) y %= th2;
-
-    int y1 = y + 1;
-
-    // Modify Y if reflected (if it lies in second section).
-    if (y >= th)
-    {
-      y = th2 - y - 1;
-
-      y1 = y - 1;
-      if (y1 < 0) y1 = 0;
-    }
-    else
-    {
-      if (y1 >= th) y1 = th2 - y1 - 1;
-    }
-
-    const uint8_t* srcBase0 = ctx->texture.bits + y * ctx->texture.stride;
-    const uint8_t* srcBase1 = ctx->texture.bits + y1 * ctx->texture.stride;
-
-    const uint8_t* srcCur0 = srcBase0 + ByteUtil::mul3(x);
-    const uint8_t* srcCur1 = srcBase1 + ByteUtil::mul3(x);
-
-    int r = Math::min(w, tw2);
-    w -= r;
-
-    // Fetch only texture width line * 2.
-    do {
-      // Reflect mode.
-      if (x >= tw)
-      {
-        int i = Math::min(tw2 - x, r);
-
-        srcCur0 = srcBase0 + ByteUtil::mul3(tw2 - x - 1);
-        srcCur1 = srcBase1 + ByteUtil::mul3(tw2 - x - 1);
-
-        r -= i;
-        x = 0;
-
-        do {
-          PATTERN_C_INTERPOLATE_32_2(
-            ((uint32_t*)dstCur)[0],
-            PixFmt_RGB24::fetch(srcCur0), fY0X0,
-            PixFmt_RGB24::fetch(srcCur1), fY1X0);
-
-          dstCur += 4;
-          srcCur0 -= 3;
-          srcCur1 -= 3;
-        } while (--i);
-      }
-      // Repeat mode.
-      else
-      {
-        int i = Math::min(tw - x, r);
-
-        srcCur0 = srcBase0 + ByteUtil::mul3(x);
-        srcCur1 = srcBase1 + ByteUtil::mul3(x);
-
-        r -= i;
-        x += i;
-
-        do {
-          PATTERN_C_INTERPOLATE_32_2(
-            ((uint32_t*)dstCur)[0],
-            PixFmt_RGB24::fetch(srcCur0), fY0X0,
-            PixFmt_RGB24::fetch(srcCur1), fY1X0);
-
-          dstCur += 4;
-          srcCur0 += 3;
-          srcCur1 += 3;
-        } while (--i);
-      }
-    } while (r);
-
-    // Fetch the rest.
-    if (w) _texture_do_repeat_32(dstCur, tw2, w);
-
-    return dst;
-  }
-
   static uint8_t* FOG_FASTCALL texture_fetch_subxy_repeat_32(
     PatternContext* ctx,
     uint8_t* dst, int x, int y, int w)
@@ -1669,85 +1178,6 @@ struct FOG_HIDDEN PatternC
         dstCur += 4;
         srcCur0 += 4;
         srcCur1 += 4;
-      } while (--i);
-      if (!r) break;
-
-      i = Math::min(r, tw);
-      srcCur0 = srcBase0;
-      srcCur1 = srcBase1;
-    }
-
-    // Fetch the rest.
-    if (w) _texture_do_repeat_32(dstCur, tw, w);
-
-    return dst;
-  }
-
-  static uint8_t* FOG_FASTCALL texture_fetch_subxy_repeat_24(
-    PatternContext* ctx,
-    uint8_t* dst, int x, int y, int w)
-  {
-    FOG_ASSERT(w);
-
-    uint8_t* dstCur = dst;
-
-    int tw = ctx->texture.w;
-    int th = ctx->texture.h;
-
-    uint fY0X0 = ctx->texture.fY0X0;
-    uint fY0X1 = ctx->texture.fY0X1;
-    uint fY1X0 = ctx->texture.fY1X0;
-    uint fY1X1 = ctx->texture.fY1X1;
-
-    x -= ctx->texture.dx + 1;
-    y -= ctx->texture.dy + 1;
-
-    if (x < 0) x = (x % tw) + tw;
-    if (x >= tw) x %= tw;
-
-    if (y < 0) y = (y % th) + th;
-    if (y >= th) y %= th;
-
-    const uint8_t* srcBase0 = ctx->texture.bits + y * ctx->texture.stride;
-    const uint8_t* srcBase1 = srcBase0 + ctx->texture.stride;
-    if (y + 1 >= th) srcBase1 = ctx->texture.bits;
-
-    const uint8_t* srcCur0 = srcBase0 + ByteUtil::mul3(x);
-    const uint8_t* srcCur1 = srcBase1 + ByteUtil::mul3(x);
-
-    uint32_t back_0 = PixFmt_RGB24::fetch(srcCur0);
-    uint32_t back_1 = PixFmt_RGB24::fetch(srcCur1);
-
-    srcCur0 += 4;
-    srcCur1 += 4;
-
-    if (++x == tw)
-    {
-      x = 0;
-      srcCur0 = srcBase0;
-      srcCur1 = srcBase1;
-    }
-
-    int r = Math::min(w, tw);
-    int i = Math::min(tw - x, r);
-
-    w -= r;
-
-    // Fetch only texture width line.
-    for (;;)
-    {
-      r -= i;
-
-      do {
-        PATTERN_C_INTERPOLATE_32_4(((uint32_t*)dstCur)[0],
-          back_0, fY0X0,
-          back_1, fY1X0,
-          back_0 = PixFmt_RGB24::fetch(srcCur0), fY0X1,
-          back_1 = PixFmt_RGB24::fetch(srcCur1), fY1X1);
-
-        dstCur += 4;
-        srcCur0 += 3;
-        srcCur1 += 3;
       } while (--i);
       if (!r) break;
 
@@ -1891,135 +1321,6 @@ struct FOG_HIDDEN PatternC
     return dst;
   }
 
-  static uint8_t* FOG_FASTCALL texture_fetch_subxy_reflect_24(
-    PatternContext* ctx,
-    uint8_t* dst, int x, int y, int w)
-  {
-    FOG_ASSERT(w);
-
-    uint8_t* dstCur = dst;
-
-    int tw = ctx->texture.w;
-    int th = ctx->texture.h;
-
-    int tw2 = tw << 1;
-    int th2 = th << 1;
-
-    uint fY0X0 = ctx->texture.fY0X0;
-    uint fY0X1 = ctx->texture.fY0X1;
-    uint fY1X0 = ctx->texture.fY1X0;
-    uint fY1X1 = ctx->texture.fY1X1;
-
-    x -= ctx->texture.dx + 1;
-    y -= ctx->texture.dy + 1;
-
-    if (x < 0) x = (x % tw2) + tw2;
-    if (x >= tw2) x %= tw2;
-
-    if (y < 0) y = (y % th2) + th2;
-    if (y >= th2) y %= th2;
-
-    int y1 = y + 1;
-
-    // Modify Y if reflected (if it lies in second section).
-    if (y >= th)
-    {
-      y = th2 - y - 1;
-
-      y1 = y - 1;
-      if (y1 < 0) y1 = 0;
-    }
-    else
-    {
-      if (y1 >= th) y1 = th2 - y1 - 1;
-    }
-
-    const uint8_t* srcBase0 = ctx->texture.bits + y * ctx->texture.stride;
-    const uint8_t* srcBase1 = ctx->texture.bits + y1 * ctx->texture.stride;
-
-    const uint8_t* srcCur0;
-    const uint8_t* srcCur1;
-
-    uint32_t back_0;
-    uint32_t back_1;
-
-    if (x >= tw)
-    {
-      // Reflect mode.
-      srcCur0 = srcBase0 + ByteUtil::mul3(tw2 - x - 1);
-      srcCur1 = srcBase1 + ByteUtil::mul3(tw2 - x - 1);
-    }
-    else
-    {
-      // Repeat mode.
-      srcCur0 = srcBase0 + ByteUtil::mul3(x);
-      srcCur1 = srcBase1 + ByteUtil::mul3(x);
-    }
-
-    back_0 = PixFmt_RGB24::fetch(srcCur0);
-    back_1 = PixFmt_RGB24::fetch(srcCur1);
-
-    if (++x >= tw2) x -= tw2;
-
-    int r = Math::min(w, tw2);
-    w -= r;
-
-    // Fetch only texture width line * 2.
-    do {
-      // Reflect mode.
-      if (x >= tw)
-      {
-        int i = Math::min(tw2 - x, r);
-
-        srcCur0 = srcBase0 + ByteUtil::mul3(tw2 - x - 1);
-        srcCur1 = srcBase1 + ByteUtil::mul3(tw2 - x - 1);
-
-        r -= i;
-        x = 0;
-
-        do {
-          PATTERN_C_INTERPOLATE_32_4(((uint32_t*)dstCur)[0],
-            back_0, fY0X0,
-            back_1, fY1X0,
-            back_0 = PixFmt_RGB24::fetch(srcCur0), fY0X1,
-            back_1 = PixFmt_RGB24::fetch(srcCur1), fY1X1);
-
-          dstCur += 4;
-          srcCur0 -= 3;
-          srcCur1 -= 3;
-        } while (--i);
-      }
-      // Repeat mode.
-      else
-      {
-        int i = Math::min(tw - x, r);
-
-        srcCur0 = srcBase0 + ByteUtil::mul3(x);
-        srcCur1 = srcBase1 + ByteUtil::mul3(x);
-
-        r -= i;
-        x += i;
-
-        do {
-          PATTERN_C_INTERPOLATE_32_4(((uint32_t*)dstCur)[0],
-            back_0, fY0X0,
-            back_1, fY1X0,
-            back_0 = PixFmt_RGB24::fetch(srcCur0), fY0X1,
-            back_1 = PixFmt_RGB24::fetch(srcCur1), fY1X1);
-
-          dstCur += 4;
-          srcCur0 += 3;
-          srcCur1 += 3;
-        } while (--i);
-      }
-    } while (r);
-
-    // Fetch the rest.
-    if (w) _texture_do_repeat_32(dstCur, tw2, w);
-
-    return dst;
-  }
-
   // --------------------------------------------------------------------------
   // [Texture - Transform - Nearest]
   // --------------------------------------------------------------------------
@@ -2062,58 +1363,6 @@ struct FOG_HIDDEN PatternC
       int py0 = fy >> 16;
 
       ((uint32_t*)dstCur)[0] = READ_32(srcBits + py0 * srcStride + px0 * 4);
-      dstCur += 4;
-
-      fx += dx;
-      fy += dy;
-
-      if (fx >= fxmax) fx -= fxmax;
-      if (fy >= fymax) fy -= fymax;
-      if (fx < 0) fx += fxmax;
-      if (fy < 0) fy += fymax;
-    } while (--i);
-
-    return dst;
-  }
-
-  static uint8_t* FOG_FASTCALL texture_fetch_transform_nearest_repeat_24(
-    PatternContext* ctx,
-    uint8_t* dst, int x, int y, int w)
-  {
-    FOG_ASSERT(w);
-
-    uint8_t* dstCur = dst;
-
-    double rx = (double)x + 0.5;
-    double ry = (double)y + 0.5;
-
-    int tw = ctx->texture.w;
-    int th = ctx->texture.h;
-
-    int fx = double_to_fixed16x16(rx * ctx->m[MATRIX_SX ] + ry * ctx->m[MATRIX_SHX] - ctx->m[MATRIX_TX]) - 0x8000;
-    int fy = double_to_fixed16x16(rx * ctx->m[MATRIX_SHY] + ry * ctx->m[MATRIX_SY ] - ctx->m[MATRIX_TY]) - 0x8000;
-
-    int dx = double_to_fixed16x16(ctx->m[MATRIX_SX]);
-    int dy = double_to_fixed16x16(ctx->m[MATRIX_SHY]);
-
-    int fxmax = tw << 16;
-    int fymax = th << 16;
-
-    if (fx < 0 || fx >= fxmax) { fx %= fxmax; if (fx < 0) fx += fxmax; }
-    if (fy < 0 || fy >= fymax) { fy %= fymax; if (fy < 0) fy += fymax; }
-
-    if (dx <= -fxmax || dx >= fxmax) { dx %= fxmax; }
-    if (dy <= -fymax || dy >= fymax) { dy %= fymax; }
-
-    const uint8_t* srcBits = ctx->texture.bits;
-    sysint_t srcStride = ctx->texture.stride;
-
-    int i = w;
-    do {
-      int px0 = fx >> 16;
-      int py0 = fy >> 16;
-
-      ((uint32_t*)dstCur)[0] = PixFmt_RGB24::fetch(srcBits + py0 * srcStride + px0 * 3);
       dstCur += 4;
 
       fx += dx;
@@ -2261,98 +1510,6 @@ struct FOG_HIDDEN PatternC
     {
       do {
         TEXTURE_C_INTERPOLATE_BILINEAR_32()
-
-        fx += dx;
-        fy += dy;
-
-        if (fx < 0) fx += fxmax;
-        if (fy < 0) fy += fymax;
-      } while (--i);
-    }
-
-    // Fetch the rest.
-    // if (w) _texture_do_repeat(dstCur, ctx->texture.w, w);
-
-    return dst;
-  }
-
-  static uint8_t* FOG_FASTCALL texture_fetch_transform_bilinear_repeat_24(
-    PatternContext* ctx,
-    uint8_t* dst, int x, int y, int w)
-  {
-    FOG_ASSERT(w);
-
-    uint8_t* dstCur = dst;
-
-    double rx = (double)x + 0.5;
-    double ry = (double)y + 0.5;
-
-    int tw = ctx->texture.w;
-    int th = ctx->texture.h;
-
-    int fx = double_to_fixed16x16(rx * ctx->m[MATRIX_SX ] + ry * ctx->m[MATRIX_SHX] - ctx->m[MATRIX_TX]);
-    int fy = double_to_fixed16x16(rx * ctx->m[MATRIX_SHY] + ry * ctx->m[MATRIX_SY ] - ctx->m[MATRIX_TY]);
-
-    int dx = double_to_fixed16x16(ctx->m[MATRIX_SX]);
-    int dy = double_to_fixed16x16(ctx->m[MATRIX_SHY]);
-
-    int fxmax = tw << 16;
-    int fymax = th << 16;
-
-    fx -= 0x8000;
-    fy -= 0x8000;
-
-    if (fx < 0 || fx >= fxmax) { fx %= fxmax; if (fx < 0) fx += fxmax; }
-    if (fy < 0 || fy >= fymax) { fy %= fymax; if (fy < 0) fy += fymax; }
-
-    if (dx <= -fxmax || dx >= fxmax) { dx %= fxmax; }
-    if (dy <= -fymax || dy >= fymax) { dy %= fymax; }
-
-    const uint8_t* srcBits = ctx->texture.bits;
-    sysint_t srcStride = ctx->texture.stride;
-
-    int i = w;
-
-    if (dx >= 0 && dy >= 0)
-    {
-      do {
-        TEXTURE_C_INTERPOLATE_BILINEAR_24()
-
-        fx += dx;
-        fy += dy;
-
-        if (fx >= fxmax) fx -= fxmax;
-        if (fy >= fymax) fy -= fymax;
-      } while (--i);
-    }
-    else if (dx >= 0 && dy < 0)
-    {
-      do {
-        TEXTURE_C_INTERPOLATE_BILINEAR_24()
-
-        fx += dx;
-        fy += dy;
-
-        if (fx >= fxmax) fx -= fxmax;
-        if (fy < 0) fy += fymax;
-      } while (--i);
-    }
-    else if (dx < 0 && dy >= 0)
-    {
-      do {
-        TEXTURE_C_INTERPOLATE_BILINEAR_24()
-
-        fx += dx;
-        fy += dy;
-
-        if (fx < 0) fx += fxmax;
-        if (fy >= fymax) fy -= fymax;
-      } while (--i);
-    }
-    else // if (dx < 0 && dy < 0)
-    {
-      do {
-        TEXTURE_C_INTERPOLATE_BILINEAR_24()
 
         fx += dx;
         fy += dy;
@@ -2517,8 +1674,7 @@ struct FOG_HIDDEN PatternC
 
     generic_gradient_stops(
       (uint8_t*)ctx->genericGradient.colors, stops,
-      hasAlpha ? functionMap->gradient.gradient_prgb32
-               : functionMap->gradient.gradient_rgb32,
+      functionMap->interpolate.gradient[ctx->format],
       0, (int)gLength, (int)gLength, false);
 
     ctx->genericGradient.colorsAlloc = gAlloc;

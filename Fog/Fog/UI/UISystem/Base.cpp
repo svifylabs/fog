@@ -693,15 +693,17 @@ void BaseUISystem::doUpdateWindow(UIWindow* window)
   // set abnormal large width or height (in cases that backing store is cached)
   // we can tell painter to use multithreading in small areas (that we don't
   // want).
-  painter.begin(
-    window->_backingStore->getPixels(),
-    Math::min(window->_backingStore->getWidth(), topSize.getWidth()),
-    Math::min(window->_backingStore->getHeight(), topSize.getHeight()),
-    window->_backingStore->getStride(),
-    window->_backingStore->getFormat(),
+  {
+    ImageBuffer buffer;
+    buffer.data = window->_backingStore->getPixels();
+    buffer.width = Math::min(window->_backingStore->getWidth(), topSize.getWidth());
+    buffer.height = Math::min(window->_backingStore->getHeight(), topSize.getHeight());
+    buffer.stride = window->_backingStore->getStride();
+    buffer.format = window->_backingStore->getFormat();
+
     // FIXME: Remove that hint, it's only for current testing.
-    0 // PAINTER_HINT_NO_MT
-  );
+    painter.begin(buffer, 0/*PAINTER_HINT_NO_MT*/);
+  }
 
   if ((uflags & Widget::UFlagUpdateAll) != 0)
   {

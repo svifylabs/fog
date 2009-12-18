@@ -108,13 +108,13 @@ err_t Locale::_detach()
   Data* newd = new(std::nothrow) Data(*_d);
   if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
-  AtomicBase::ptr_setXchg(&_d, newd)->deref();
+  atomicPtrXchg(&_d, newd)->deref();
   return ERR_OK;
 }
 
 void Locale::free()
 {
-  AtomicBase::ptr_setXchg(&_d, sharedNull->ref())->deref();
+  atomicPtrXchg(&_d, sharedNull->ref())->deref();
 }
 
 // [Set]
@@ -143,7 +143,7 @@ bool Locale::set(const String& name)
 
 bool Locale::set(const Locale& other)
 {
-  AtomicBase::ptr_setXchg(&_d, other._d->ref())->deref();
+  atomicPtrXchg(&_d, other._d->ref())->deref();
   return true;
 }
 

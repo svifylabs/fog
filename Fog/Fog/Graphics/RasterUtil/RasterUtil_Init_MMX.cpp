@@ -36,9 +36,9 @@
 // [Raster_MMX]
 #include <Fog/Graphics/RasterUtil/RasterUtil_C.h>
 #include <Fog/Graphics/RasterUtil/RasterUtil_Defs_MMX.h>
-#include <Fog/Graphics/RasterUtil/RasterUtil_Convert_MMX.h>
 #include <Fog/Graphics/RasterUtil/RasterUtil_Composite_MMX.h>
-#include <Fog/Graphics/RasterUtil/RasterUtil_Gradient_MMX.h>
+#include <Fog/Graphics/RasterUtil/RasterUtil_Dib_MMX.h>
+#include <Fog/Graphics/RasterUtil/RasterUtil_Interpolate_MMX.h>
 #include <Fog/Graphics/RasterUtil/RasterUtil_Pattern_MMX.h>
 #include <Fog/Graphics/RasterUtil/RasterUtil_Scale_MMX.h>
 #include <Fog/Graphics/RasterUtil/RasterUtil_Filters_MMX.h>
@@ -54,7 +54,7 @@ FOG_INIT_DECLARE void fog_raster_init_mmx(void)
 
   FunctionMap* m = functionMap;
 
-  m->gradient.gradient_argb32 = GradientMMX::gradient_argb32;
+  m->interpolate.gradient[PIXEL_FORMAT_ARGB32] = InterpolateMMX::gradient_argb32;
 }
 
 #endif // FOG_ARCH_X86

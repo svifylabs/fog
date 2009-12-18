@@ -263,10 +263,6 @@ enum ERR_CORE_ENUM
   ERR_RT_OBJECT_NOT_FOUND,
   ERR_RT_OBJECT_ALREADY_EXISTS,
 
-  // TODO: Validate these errors.
-  InvalidFunction,
-  InvalidInput,
-
   ERR_RT_OVERFLOW,
 
   // Property errors.
@@ -301,6 +297,9 @@ enum ERR_CORE_ENUM
   ERR_LIB_SYMBOL_NOT_FOUND,
 
   // Text Errors (StringUtil, TextCodec).
+
+  //! @brief Invalid text input (converting strings to numbers).
+  ERR_TEXT_INVALID_INPUT,
 
   //! @brief Invalid text codec (Null) used to encode / decode string
   ERR_TEXT_INVALID_CODEC,

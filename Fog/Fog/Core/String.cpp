@@ -134,7 +134,7 @@ err_t String::_detach()
   Data* newd = Data::copy(_d);
   if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
-  AtomicBase::ptr_setXchg(&_d, newd)->deref();
+  atomicPtrXchg(&_d, newd)->deref();
   return ERR_OK;
 }
 
@@ -185,7 +185,7 @@ err_t String::prepare(sysuint_t capacity)
   d = Data::alloc(capacity);
   if (!d) return ERR_RT_OUT_OF_MEMORY;
 
-  AtomicBase::ptr_setXchg(&_d, d)->deref();
+  atomicPtrXchg(&_d, d)->deref();
   return ERR_OK;
 }
 
@@ -205,7 +205,7 @@ Char* String::beginManipulation(sysuint_t max, int outputMode)
     d = Data::alloc(max);
     if (!d) return NULL;
 
-    AtomicBase::ptr_setXchg(&_d, d)->deref();
+    atomicPtrXchg(&_d, d)->deref();
     return d->data;
   }
   else
@@ -227,7 +227,7 @@ Char* String::beginManipulation(sysuint_t max, int outputMode)
       d = Data::alloc(optimalCapacity, d->data, d->length);
       if (!d) return NULL;
 
-      AtomicBase::ptr_setXchg(&_d, d)->deref();
+      atomicPtrXchg(&_d, d)->deref();
       return d->data + length;
     }
     else
@@ -254,7 +254,7 @@ err_t String::reserve(sysuint_t to)
     Data* newd = Data::alloc(to, _d->data, _d->length);
     if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
-    AtomicBase::ptr_setXchg(&_d, newd)->deref();
+    atomicPtrXchg(&_d, newd)->deref();
   }
   else
   {
@@ -276,7 +276,7 @@ err_t String::resize(sysuint_t to)
     Data* newd = Data::alloc(to, _d->data, to < _d->length ? to : _d->length);
     if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
-    AtomicBase::ptr_setXchg(&_d, newd)->deref();
+    atomicPtrXchg(&_d, newd)->deref();
   }
   else
   {
@@ -310,7 +310,7 @@ err_t String::grow(sysuint_t by)
     Data* newd = Data::alloc(optimalCapacity, _d->data, _d->length);
     if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
-    AtomicBase::ptr_setXchg(&_d, newd)->deref();
+    atomicPtrXchg(&_d, newd)->deref();
   }
   else
   {
@@ -342,7 +342,7 @@ void String::squeeze()
   {
     Data* newd = Data::alloc(0, _d->data, _d->length);
     if (!newd) return;
-    AtomicBase::ptr_setXchg(&_d, newd)->deref();
+    atomicPtrXchg(&_d, newd)->deref();
   }
 }
 
@@ -350,7 +350,7 @@ void String::clear()
 {
   if (_d->refCount.get() > 1)
   {
-    AtomicBase::ptr_setXchg(&_d, sharedNull->refAlways())->deref();
+    atomicPtrXchg(&_d, sharedNull->refAlways())->deref();
     return;
   }
 
@@ -361,7 +361,7 @@ void String::clear()
 
 void String::free()
 {
-  AtomicBase::ptr_setXchg(&_d, sharedNull->refAlways())->deref();
+  atomicPtrXchg(&_d, sharedNull->refAlways())->deref();
 }
 
 Char* String::getMData()
@@ -380,7 +380,7 @@ static Char* _prepareSet(String* self, sysuint_t length)
   {
     d = String::Data::alloc(length);
     if (!d) return NULL;
-    AtomicBase::ptr_setXchg(&self->_d, d)->derefInline();
+    atomicPtrXchg(&self->_d, d)->derefInline();
   }
   else if (d->capacity < length)
   {
@@ -412,7 +412,7 @@ static Char* _prepareAppend(String* self, sysuint_t length)
   {
     d = String::Data::alloc(lengthAfter, d->data, d->length);
     if (!d) return NULL;
-    AtomicBase::ptr_setXchg(&self->_d, d)->derefInline();
+    atomicPtrXchg(&self->_d, d)->derefInline();
   }
   else if (d->capacity < lengthAfter)
   {
@@ -455,7 +455,7 @@ static Char* _prepareInsert(String* self, sysuint_t index, sysuint_t length)
 
     StringUtil::copy(
       d->data + index + length, self->_d->data + index, moveBy);
-    AtomicBase::ptr_setXchg(&self->_d, d)->derefInline();
+    atomicPtrXchg(&self->_d, d)->derefInline();
   }
   else
   {
@@ -493,7 +493,7 @@ static Char* _prepareReplace(String* self, sysuint_t index, sysuint_t range, sys
     StringUtil::copy(
       d->data + index + replacementLength,
       self->_d->data + index + range, lengthBefore - index - range);
-    AtomicBase::ptr_setXchg(&self->_d, d)->derefInline();
+    atomicPtrXchg(&self->_d, d)->derefInline();
   }
   else
   {
@@ -561,7 +561,7 @@ err_t String::set(const String& other)
   }
   else
   {
-    AtomicBase::ptr_setXchg(&_d, other_d->refAlways())->derefInline();
+    atomicPtrXchg(&_d, other_d->refAlways())->derefInline();
     return ERR_OK;
   }
 }
@@ -1762,7 +1762,7 @@ sysuint_t String::remove(const Range& range)
     newd->length = lenAfter;
     newd->data[lenAfter] = 0;
 
-    AtomicBase::ptr_setXchg(&_d, newd)->deref();
+    atomicPtrXchg(&_d, newd)->deref();
   }
   else
   {
@@ -2002,7 +2002,7 @@ sysuint_t String::remove(const Range* range, sysuint_t count)
     newd->length = lengthAfter;
     newd->data[lengthAfter] = 0;
 
-    AtomicBase::ptr_setXchg(&_d, newd)->deref();
+    atomicPtrXchg(&_d, newd)->deref();
   }
   return count;
 }
@@ -2252,7 +2252,7 @@ err_t String::replace(const Range* m, sysuint_t mcount, const Char* after, sysui
   newd->length = lenAfter;
   newd->data[lenAfter] = 0;
 
-  AtomicBase::ptr_setXchg(&_d, newd)->deref();
+  atomicPtrXchg(&_d, newd)->deref();
   return ERR_OK;
 
 overflow:
@@ -2370,7 +2370,7 @@ err_t String::trim()
     {
       Data* newd = Data::alloc(len, strCur, len);
       if (!newd) return ERR_RT_OUT_OF_MEMORY;
-      AtomicBase::ptr_setXchg(&_d, newd)->deref();
+      atomicPtrXchg(&_d, newd)->deref();
     }
     else
     {
@@ -2459,7 +2459,7 @@ err_t String::truncate(sysuint_t n)
   {
     Data* newd = Data::alloc(n, d->data, n);
     if (!newd) return ERR_RT_OUT_OF_MEMORY;
-    AtomicBase::ptr_setXchg(&_d, newd)->deref();
+    atomicPtrXchg(&_d, newd)->deref();
   }
   else
   {

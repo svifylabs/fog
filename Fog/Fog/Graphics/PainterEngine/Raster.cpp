@@ -76,7 +76,7 @@ struct FOG_HIDDEN RasterPainterEngine : public PainterEngine
   // [Construction / Destruction]
   // --------------------------------------------------------------------------
 
-  RasterPainterEngine(uint8_t* pixels, int width, int height, sysint_t stride, int format, int hints);
+  RasterPainterEngine(const ImageBuffer& buffer, int hints);
   virtual ~RasterPainterEngine();
 
   // --------------------------------------------------------------------------
@@ -1009,7 +1009,6 @@ RasterPainterEngine::Context::Context()
   rops = NULL;
   pctx = NULL;
 
-  closure.closure = NULL;
   closure.dstPalette = NULL;
   closure.srcPalette = NULL;
 
@@ -1234,6 +1233,7 @@ void RasterPainterEngine::Command_Path::release()
 void RasterPainterEngine::Calculation_Path::run(Context* ctx)
 {
   Command_Path* cmd = reinterpret_cast<Command_Path*>(relatedTo);
+  cmd->ras = Rasterizer::getRasterizer();
 
   bool ok = _rasterizePath(ctx, cmd->ras, path.instance(), stroke);
   cmd->status.set(ok ? Command::Ready : Command::Skip);
@@ -1286,7 +1286,7 @@ void RasterPainterEngine::WorkerTask::run()
       wait = false;
 
       // Do calculations (highest priority than commands).
-      while (currentCalculation < mgr->calculationsPosition)
+      if (currentCalculation < mgr->calculationsPosition)
       {
         // Here is high thread concurrency and we are doing this without locking,
         // atomic operations helps us to get Calculation* or NULL. If we get NULL,
@@ -1307,7 +1307,6 @@ void RasterPainterEngine::WorkerTask::run()
           ctx.capsState = cmd->capsState;
           ctx.rops = cmd->rops;
           ctx.pctx = cmd->pctx;
-          ctx.closure.closure = ctx.rops->closure;
 
           clc->run(&ctx);
           clc->release();
@@ -1321,7 +1320,7 @@ void RasterPainterEngine::WorkerTask::run()
       }
 
       // Do command.
-      while (currentCommand < mgr->commandsPosition)
+      if (currentCommand < mgr->commandsPosition)
       {
         Command* cmd = mgr->commandsData[currentCommand];
 
@@ -1346,7 +1345,6 @@ void RasterPainterEngine::WorkerTask::run()
             ctx.capsState = cmd->capsState;
             ctx.rops = cmd->rops;
             ctx.pctx = cmd->pctx;
-            ctx.closure.closure = ctx.rops->closure;
 
             cmd->run(&ctx);
             if (cmd->refCount.deref()) cmd->release();
@@ -1374,7 +1372,7 @@ void RasterPainterEngine::WorkerTask::run()
 skipCommands:
       cont++;
       // We try two times to get work before we wait or quit.
-    } while (cont < 2);
+    } while (cont <= 2);
 
     {
       AutoLock locked(mgr->lock);
@@ -1525,13 +1523,13 @@ bool RasterPainterEngine::WorkerManager::isCompleted()
 
 ThreadPool* RasterPainterEngine::threadPool;
 
-RasterPainterEngine::RasterPainterEngine(uint8_t* pixels, int width, int height, sysint_t stride, int format, int hints) :
-  _metaRaster(pixels),
-  _stride(stride),
-  _metaWidth(width),
-  _metaHeight(height),
-  _format(format),
-  _bpp(Image::formatToBytesPerPixel(format)),
+RasterPainterEngine::RasterPainterEngine(const ImageBuffer& buffer, int hints) :
+  _metaRaster(buffer.data),
+  _stride(buffer.stride),
+  _metaWidth(buffer.width),
+  _metaHeight(buffer.height),
+  _format(buffer.format),
+  _bpp(Image::formatToBytesPerPixel(buffer.format)),
   workerManager(NULL)
 {
   ctx.engine = this;
@@ -1547,11 +1545,11 @@ RasterPainterEngine::RasterPainterEngine(uint8_t* pixels, int width, int height,
   // Setup caps state.
   _setCapsDefaults();
 
-  // Setup multithreading if possible. If the painting buffer if too small, we
-  // will not use multithreading, because it has no sense.
+  // Setup multithreading if possible. If the painting buffer if too small,
+  // we will not use multithreading, because it has no sense.
   if (cpuInfo->numberOfProcessors > 1 && (hints & PAINTER_HINT_NO_MT) == 0)
   {
-    sysuint_t total = (sysuint_t)width * (sysuint_t)height;
+    sysuint_t total = (sysuint_t)buffer.width * (sysuint_t)buffer.height;
 
     if (total >= MIN_SIZE_THRESHOLD)
     {
@@ -1744,7 +1742,6 @@ void RasterPainterEngine::setOperator(uint32_t op)
 
   ctx.capsState->op = op;
   ctx.rops = RasterUtil::getRasterOps(_format, (int)op);
-  ctx.closure.closure = ctx.rops->closure;
 }
 
 uint32_t RasterPainterEngine::getOperator() const
@@ -2172,7 +2169,6 @@ void RasterPainterEngine::restore()
   ctx.capsState = s.capsState;
   ctx.rops = s.rops;
   ctx.pctx = s.pctx;
-  ctx.closure.closure = ctx.rops->closure;
 }
 
 // ============================================================================
@@ -2975,8 +2971,8 @@ void RasterPainterEngine::_setCapsDefaults()
   ctx.capsState->destroySourceData();
   ctx.capsState->op = COMPOSITE_SRC_OVER;
   ctx.capsState->sourceType = PAINTER_SOURCE_ARGB;
-  ctx.capsState->solid.argb = 0xFFFFFFFF;
-  ctx.capsState->solid.prgb = 0xFFFFFFFF;
+  ctx.capsState->solid.argb = 0xFF000000;
+  ctx.capsState->solid.prgb = 0xFF000000;
 
   ctx.capsState->fillMode = FILL_NON_ZERO;
   ctx.capsState->strokeParams.reset();;
@@ -2987,7 +2983,6 @@ void RasterPainterEngine::_setCapsDefaults()
   ctx.capsState->transformationsUsed = false;
 
   ctx.rops = RasterUtil::getRasterOps(_format, ctx.capsState->op);
-  ctx.closure.closure = ctx.rops->closure;
 }
 
 RasterUtil::PatternContext* RasterPainterEngine::_getPatternContext()
@@ -3074,7 +3069,7 @@ bool RasterPainterEngine::_detachClip()
   ClipState* newd = new(std::nothrow) ClipState(*ctx.clipState);
   if (newd == NULL) return false;
 
-  AtomicBase::ptr_setXchg(&ctx.clipState, newd)->deref();
+  atomicPtrXchg(&ctx.clipState, newd)->deref();
   return true;
 }
 
@@ -3085,7 +3080,7 @@ bool RasterPainterEngine::_detachCaps()
   CapsState* newd = new(std::nothrow) CapsState(*ctx.capsState);
   if (newd == NULL) return false;
 
-  AtomicBase::ptr_setXchg(&ctx.capsState, newd)->deref();
+  atomicPtrXchg(&ctx.capsState, newd)->deref();
   return true;
 }
 
@@ -3232,7 +3227,7 @@ void RasterPainterEngine::_serializePath(const Path& path, bool stroke)
     clc->stroke = stroke;
     cmd->status.init(Command::Wait);
     cmd->calculation = clc;
-    cmd->ras = Rasterizer::getRasterizer();
+    cmd->ras = NULL; // Will be initialized by calculation.
     _postCommand(cmd, clc);
   }
 }
@@ -4170,9 +4165,9 @@ sourceColorFilterClipEnd:
 // [Public API]
 // ============================================================================
 
-PainterEngine* _getRasterPainterEngine(uint8_t* pixels, int width, int height, sysint_t stride, int format, int hints)
+PainterEngine* _getRasterPainterEngine(const ImageBuffer& buffer, int hints)
 {
-  return new(std::nothrow) RasterPainterEngine(pixels, width, height, stride, format, hints);
+  return new(std::nothrow) RasterPainterEngine(buffer, hints);
 }
 
 } // Fog namespace

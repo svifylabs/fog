@@ -622,7 +622,7 @@ FOG_INLINE const Fog::Layout* fog_object_cast(const Fog::Object* object)
 // [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::ObjectConnection, Fog::TYPE_INFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::ObjectConnection, Fog::TYPEINFO_PRIMITIVE)
 
 // [Guard]
 #endif // _FOG_CORE_OBJECT_H

@@ -277,7 +277,7 @@ struct FOG_HIDDEN ManagedStringLocal
     _shrinkCapacity = Hash_Abstract::_calcShrinkCapacity(capacity);
     _shrinkLength = (sysuint_t)((sysint_t)_shrinkCapacity * 0.70);
 
-    AtomicBase::ptr_setXchg(&_buckets, newBuckets);
+    atomicPtrXchg(&_buckets, newBuckets);
     if (oldBuckets) Memory::free(oldBuckets);
   }
 
@@ -349,13 +349,13 @@ ManagedString::~ManagedString()
 
 void ManagedString::clear()
 {
-  Node* old = AtomicBase::ptr_setXchg(&_node, sharedNull->ref());
+  Node* old = atomicPtrXchg(&_node, sharedNull->ref());
   if (old->refCount.deref()) managed_local->remove(old);
 }
 
 err_t ManagedString::set(const ManagedString& str)
 {
-  Node* old = AtomicBase::ptr_setXchg(&_node, str._node->ref());
+  Node* old = atomicPtrXchg(&_node, str._node->ref());
   if (old->refCount.deref()) managed_local->remove(old);
   return ERR_OK;
 }
@@ -370,7 +370,7 @@ err_t ManagedString::set(const String& str)
     return ERR_RT_OUT_OF_MEMORY;
   }
 
-  Node* old = AtomicBase::ptr_setXchg(&_node, node);
+  Node* old = atomicPtrXchg(&_node, node);
   if (old->refCount.deref()) managed_local->remove(old);
   return ERR_OK;
 }
@@ -385,7 +385,7 @@ err_t ManagedString::set(const Utf16& str)
     return ERR_RT_OUT_OF_MEMORY;
   }
 
-  Node* old = AtomicBase::ptr_setXchg(&_node, node);
+  Node* old = atomicPtrXchg(&_node, node);
   if (old->refCount.deref()) managed_local->remove(old);
   return ERR_OK;
 }
@@ -395,7 +395,7 @@ err_t ManagedString::setIfManaged(const String& s)
   Node* node = managed_local->refString(s);
   if (!node) return ERR_RT_OBJECT_NOT_FOUND;
 
-  Node* old = AtomicBase::ptr_setXchg(&_node, node);
+  Node* old = atomicPtrXchg(&_node, node);
   if (old->refCount.deref()) managed_local->remove(old);
   return ERR_OK;
 }
@@ -405,7 +405,7 @@ err_t ManagedString::setIfManaged(const Utf16& s)
   Node* node = managed_local->refUtf16(s);
   if (!node) return ERR_RT_OBJECT_NOT_FOUND;
 
-  Node* old = AtomicBase::ptr_setXchg(&_node, node);
+  Node* old = atomicPtrXchg(&_node, node);
   if (old->refCount.deref()) managed_local->remove(old);
   return ERR_OK;
 }

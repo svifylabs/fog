@@ -70,14 +70,8 @@ enum
 
 struct FOG_HIDDEN RasterizerUtil
 {
-  static FOG_INLINE int iround(double v) { return int((v < 0.0) ? v - 0.5 : v + 0.5); }
-  static FOG_INLINE int uround(double v) { return uint(v + 0.5); }
-
-  static FOG_INLINE uint ufloor(double v) { return uint(v); }
-  static FOG_INLINE uint uceil(double v) { return uint(ceil(v)); }
-
-  static FOG_INLINE int mulDiv(double a, double b, double c) { return iround(a * b / c); }
-  static FOG_INLINE int upscale(double v) { return iround(v * POLY_SUBPIXEL_SCALE); }
+  static FOG_INLINE int mulDiv(double a, double b, double c) { return Math::iround(a * b / c); }
+  static FOG_INLINE int upscale(double v) { return Math::iround(v * POLY_SUBPIXEL_SCALE); }
 };
 
 // Liang-Barsky clipping.
@@ -347,7 +341,7 @@ struct FOG_HIDDEN RasterizerLocal
   RasterizerLocal() : 
     rasterizers(NULL),
     cellBuffers(NULL),
-    cellsBufferCapacity(4092)
+    cellsBufferCapacity(2048)
   {
   }
 
@@ -418,6 +412,8 @@ struct FOG_HIDDEN RasterizerC : public Rasterizer
 
   bool nextCellBuffer();
   bool finalizeCellBuffer();
+
+  void freeXYCellBuffers(bool all);
 
   virtual void finalize();
 
@@ -642,17 +638,21 @@ void RasterizerC::pooled()
   _fillRule = FILL_EVEN_ODD;
   _autoClose = true;
 
-  if (_bufferFirst != _bufferLast)
+  freeXYCellBuffers(false);
+
+  // If this rasterizer was used for something really big, we will free the
+  // memory
+  if (_cellsCapacity > 1024)
   {
-    // Release all cell buffers except first.
-    Rasterizer::releaseCellXYBuffer(_bufferFirst->next);
-
-    // Last cell is now first cell.
-    _bufferLast = _bufferFirst;
-
-    // Zero links.
-    _bufferFirst->next = NULL;
-    _bufferFirst->prev = NULL;
+    Memory::free(_cellsSorted);
+    _cellsSorted = NULL;
+    _cellsCapacity = 0;
+  }
+  if (_rowsCapacity > 1024)
+  {
+    Memory::free(_rowsInfo);
+    _rowsInfo = NULL;
+    _rowsCapacity = 0;
   }
 }
 
@@ -1251,6 +1251,31 @@ bool RasterizerC::finalizeCellBuffer()
   return true;
 }
 
+void RasterizerC::freeXYCellBuffers(bool all)
+{
+  if (_bufferFirst != _bufferLast)
+  {
+    // Release all cell buffers except first.
+    CellXYBuffer* candidate = (all) ? _bufferFirst : _bufferFirst->next;
+    Rasterizer::releaseCellXYBuffer(_bufferFirst->next);
+
+    // Last cell is now first cell.
+    if (all)
+    {
+      _bufferFirst = NULL;
+      _bufferLast = NULL;
+    }
+    else
+    {
+      _bufferLast = _bufferFirst;
+
+      // Zero links.
+      _bufferFirst->next = NULL;
+      _bufferFirst->prev = NULL;
+    }
+  }
+}
+
 // ============================================================================
 // [Fog::RasterizerC - Finalize]
 // ============================================================================
@@ -1410,7 +1435,7 @@ void RasterizerC::finalize()
   if (_cellsCapacity < _cellsCount)
   {
     // Reserve a bit more if initial value is too small.
-    sysuint_t cap = Math::max(_cellsCount, (sysuint_t)1024);
+    sysuint_t cap = Math::max(_cellsCount, (sysuint_t)256);
 
     if (_cellsSorted) Memory::free(_cellsSorted);
     _cellsSorted = (CellX*)Memory::alloc(sizeof(CellX) * cap);
@@ -1420,7 +1445,7 @@ void RasterizerC::finalize()
   if (_rowsCapacity < rows)
   {
     // Reserve a bit more if initial value is too small.
-    sysuint_t cap = Math::max(rows, (sysuint_t)1024);
+    sysuint_t cap = Math::max(rows, (sysuint_t)256);
 
     if (_rowsInfo) Memory::free(_rowsInfo);
     _rowsInfo = (RowInfo*)Memory::alloc(sizeof(RowInfo) * cap);
@@ -1488,6 +1513,9 @@ void RasterizerC::finalize()
     const RowInfo& ri = _rowsInfo[i];
     if (ri.count > 1) qsortCells(_cellsSorted + ri.index, ri.count);
   }
+
+  // Free unused cell buffers.
+  freeXYCellBuffers(false);
 
   // Mark rasterizer as sorted.
   _finalized = true;

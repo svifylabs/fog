@@ -101,7 +101,7 @@ struct FOG_API Glyph
   // [Operator Overload]
 
   FOG_INLINE Glyph& operator=(const Glyph& other)
-  { AtomicBase::ptr_setXchg(&_d, other._d->ref())->deref(); return *this; }
+  { atomicPtrXchg(&_d, other._d->ref())->deref(); return *this; }
 
   // [Members]
 
@@ -116,7 +116,7 @@ struct FOG_API Glyph
 // [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::Glyph, Fog::TYPE_INFO_MOVABLE)
+FOG_DECLARE_TYPEINFO(Fog::Glyph, Fog::TYPEINFO_MOVABLE)
 
 // [Guard]
 #endif // _FOG_GRAPHICS_GLYPH_H

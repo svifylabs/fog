@@ -40,6 +40,15 @@
 # define _ftelli64 ftell
 #endif
 
+// Under BSD anc MAC the functions with "64" suffix are not defined. Standard
+// functions are using 64-bit offset by default.
+#if defined(FOG_OS_BSD) || defined(FOG_OS_MAC)
+#define open64 open
+#define lseek64 lseek
+#define ftruncate64 ftruncate
+#define O_LARGEFILE 0
+#endif
+
 namespace Fog {
 
 // ============================================================================
@@ -911,7 +920,7 @@ err_t Stream::openFile(const String& fileName, uint32_t openFlags)
 
   if (err) return err;
 
-  AtomicBase::ptr_setXchg(&_d, newd)->deref();
+  atomicPtrXchg(&_d, newd)->deref();
   return ERR_OK;
 }
 
@@ -929,7 +938,7 @@ err_t Stream::openMMap(const String& fileName, bool loadOnFail)
     return err;
   }
 
-  AtomicBase::ptr_setXchg<StreamDevice>(&_d, newd)->deref();
+  atomicPtrXchg<StreamDevice>(&_d, newd)->deref();
   return ERR_OK;
 }
 
@@ -946,7 +955,7 @@ err_t Stream::openFILE(FILE* fp, uint32_t openFlags, bool canClose)
   StreamDevice* newd = new(std::nothrow) FILEStreamDevice(fp, fflags);
   if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
-  AtomicBase::ptr_setXchg(&_d, newd)->deref();
+  atomicPtrXchg(&_d, newd)->deref();
   return ERR_OK;
 }
 
@@ -968,7 +977,7 @@ err_t Stream::openHANDLE(HANDLE hFile, uint32_t openFlags, bool canClose)
   StreamDevice* newd = new(std::nothrow) HANDLEStreamDevice(hFile, fflags);
   if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
-  AtomicBase::ptr_setXchg(&_d, newd)->deref();
+  atomicPtrXchg(&_d, newd)->deref();
   return ERR_OK;
 }
 #endif // FOG_OS_WINDOWS
@@ -987,7 +996,7 @@ err_t Stream::openFd(int fd, uint32_t openFlags, bool canClose)
   StreamDevice* newd = new(std::nothrow) FdStreamDevice(fd, fflags);
   if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
-  AtomicBase::ptr_setXchg(&_d, newd)->deref();
+  atomicPtrXchg(&_d, newd)->deref();
   return ERR_OK;
 }
 #endif // FOG_OS_POSIX
@@ -1007,7 +1016,7 @@ err_t Stream::openBuffer(const ByteArray& buffer)
     STREAM_IS_READABLE | STREAM_IS_WRITABLE);
   if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
-  AtomicBase::ptr_setXchg(&_d, newd)->deref();
+  atomicPtrXchg(&_d, newd)->deref();
   return ERR_OK;
 }
 
@@ -1024,7 +1033,7 @@ err_t Stream::openBuffer(void* buffer, sysuint_t size, uint32_t openFlags)
   StreamDevice* newd = new(std::nothrow) MemoryStreamDevice(buffer, size, fflags);
   if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
-  AtomicBase::ptr_setXchg(&_d, newd)->deref();
+  atomicPtrXchg(&_d, newd)->deref();
   return ERR_OK;
 }
 
@@ -1123,7 +1132,7 @@ err_t Stream::truncate(int64_t offset)
 
 void Stream::close()
 {
-  AtomicBase::ptr_setXchg(&_d, sharedNull->refAlways())->deref();
+  atomicPtrXchg(&_d, sharedNull->refAlways())->deref();
 }
 
 ByteArray Stream::getBuffer() const
@@ -1133,7 +1142,7 @@ ByteArray Stream::getBuffer() const
 
 Stream& Stream::operator=(const Stream& other)
 {
-  AtomicBase::ptr_setXchg(&_d, other._d->ref())->deref();
+  atomicPtrXchg(&_d, other._d->ref())->deref();
   return *this;
 }
 

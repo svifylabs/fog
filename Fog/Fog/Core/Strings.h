@@ -110,6 +110,7 @@ enum STR_ID
 
   // [Svg - Elements]
 
+  STR_SVG_none,
   STR_SVG_circle,
   STR_SVG_defs,
   STR_SVG_ellipse,
@@ -118,6 +119,7 @@ enum STR_ID
   STR_SVG_line,
   STR_SVG_linearGradient,
   STR_SVG_path,
+  STR_SVG_pattern,
   STR_SVG_polygon,
   STR_SVG_polyline,
   STR_SVG_radialGradient,
@@ -125,6 +127,11 @@ enum STR_ID
   STR_SVG_solidColor,
   STR_SVG_stop,
   STR_SVG_svg,
+  STR_SVG_text,
+  STR_SVG_textPath,
+  STR_SVG_tref,
+  STR_SVG_tspan,
+  STR_SVG_use,
 
   // [Svg - Attributes]
 

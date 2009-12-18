@@ -21,7 +21,7 @@ namespace Fog {
 
 enum SVG_ELEMENT_TYPE
 {
-  SVG_ELEMENT_NONE,
+  SVG_ELEMENT_NONE = 0,
 
   SVG_ELEMENT_CIRCLE,
   SVG_ELEMENT_DEFS,
@@ -31,12 +31,18 @@ enum SVG_ELEMENT_TYPE
   SVG_ELEMENT_LINE,
   SVG_ELEMENT_LINEAR_GRADIENT,
   SVG_ELEMENT_PATH,
+  SVG_ELEMENT_PATTERN,
   SVG_ELEMENT_POLYGON,
   SVG_ELEMENT_POLYLINE,
   SVG_ELEMENT_RADIAL_GRADIENT,
   SVG_ELEMENT_RECT,
   SVG_ELEMENT_SOLID_COLOR,
-  SVG_ELEMENT_STOP
+  SVG_ELEMENT_STOP,
+  SVG_ELEMENT_TEXT,
+  SVG_ELEMENT_TEXT_PATH,
+  SVG_ELEMENT_TREF,
+  SVG_ELEMENT_TSPAN,
+  SVG_ELEMENT_USE
 };
 
 // ============================================================================
@@ -101,33 +107,6 @@ enum SVG_STYLE_ID
   SVG_STYLE_STROKE_WIDTH,
 
   SVG_STYLE_INVALID
-};
-
-// ============================================================================
-// [Fog::SVG_VALUE_TYPE]
-// ============================================================================
-
-//! @brief Svg value types.
-enum SVG_VALUE_TYPE
-{
-  //! @brief Value is nothing special (not recognized style).
-  SVG_VALUE_NONE = 0,
-
-  //! @brief Value is enumeration. To get it use @c getValue() or @c getValueAsUInt32().
-  SVG_VALUE_ENUM,
-  //! @brief Value is color. To get it use @c getValue() or @c getValueAsUInt32().
-  SVG_VALUE_COLOR,
-  //! @brief Value is color or url (for gradients).
-  SVG_VALUE_COLOR_OR_PATTERN,
-  //! @brief Value is string. To get it use @c getValue() or @c getValueAsDouble()
-  //! and @c unitType().
-  SVG_VALUE_COORD,
-  //! @brief Value is opacity. To get it use @c getValue() or @c getValueAsDouble().
-  SVG_VALUE_OPACITY,
-  //! @brief Value is string. To get it use @c getValue().
-  SVG_VALUE_STRING,
-
-  SVG_VALUE_INVALID
 };
 
 // ============================================================================

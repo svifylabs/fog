@@ -143,8 +143,9 @@ ColorLutFilterEngine::ColorLutFilterEngine(const ColorLutData& lutData) :
   setColorLut(lutData);
 
   characteristics |=
-    IMAGE_FILTER_SUPPORTS_ARGB32 | IMAGE_FILTER_SUPPORTS_XRGB32 |
-    IMAGE_FILTER_SUPPORTS_RGB24  | IMAGE_FILTER_SUPPORTS_A8     ;
+    IMAGE_FILTER_SUPPORTS_ARGB32 | 
+    IMAGE_FILTER_SUPPORTS_XRGB32 |
+    IMAGE_FILTER_SUPPORTS_A8     ;
 }
 
 ColorFilterFn ColorLutFilterEngine::getColorFilterFn(int format) const
@@ -197,8 +198,9 @@ ColorMatrixFilterEngine::ColorMatrixFilterEngine(const ColorMatrixFilterEngine& 
 
   characteristics |=
     IMAGE_FILTER_SUPPORTS_PRGB32 |
-    IMAGE_FILTER_SUPPORTS_ARGB32 | IMAGE_FILTER_SUPPORTS_XRGB32 |
-    IMAGE_FILTER_SUPPORTS_RGB24  | IMAGE_FILTER_SUPPORTS_A8     ;
+    IMAGE_FILTER_SUPPORTS_ARGB32 |
+    IMAGE_FILTER_SUPPORTS_XRGB32 |
+    IMAGE_FILTER_SUPPORTS_A8     ;
 }
 
 ColorMatrixFilterEngine::ColorMatrixFilterEngine(const ColorMatrix& cm) :
@@ -208,8 +210,9 @@ ColorMatrixFilterEngine::ColorMatrixFilterEngine(const ColorMatrix& cm) :
 
   characteristics |=
     IMAGE_FILTER_SUPPORTS_PRGB32 |
-    IMAGE_FILTER_SUPPORTS_ARGB32 | IMAGE_FILTER_SUPPORTS_XRGB32 |
-    IMAGE_FILTER_SUPPORTS_RGB24  | IMAGE_FILTER_SUPPORTS_A8     ;
+    IMAGE_FILTER_SUPPORTS_ARGB32 |
+    IMAGE_FILTER_SUPPORTS_XRGB32 |
+    IMAGE_FILTER_SUPPORTS_A8     ;
 }
 
 ColorFilterFn ColorMatrixFilterEngine::getColorFilterFn(int format) const
@@ -386,8 +389,9 @@ void BlurFilterEngine::update()
 
   // Supported pixel formats - Note there is not PRGB32.
   characteristics |=
-    IMAGE_FILTER_SUPPORTS_ARGB32 | IMAGE_FILTER_SUPPORTS_XRGB32 |
-    IMAGE_FILTER_SUPPORTS_RGB24  | IMAGE_FILTER_SUPPORTS_A8     ;
+    IMAGE_FILTER_SUPPORTS_ARGB32 |
+    IMAGE_FILTER_SUPPORTS_XRGB32 |
+    IMAGE_FILTER_SUPPORTS_A8     ;
 }
 
 // ============================================================================
@@ -463,7 +467,7 @@ err_t ImageFilterBase::setColorLut(const ColorLut& colorLut)
     ImageFilterEngine* e = new(std::nothrow) ColorLutFilterEngine(*colorLut.getData());
     if (e == NULL) return ERR_RT_OUT_OF_MEMORY;
 
-    AtomicBase::ptr_setXchg(&_d, e)->deref();
+    atomicPtrXchg(&_d, e)->deref();
     return ERR_OK;
   }
 }
@@ -481,7 +485,7 @@ err_t ImageFilterBase::setColorMatrix(const ColorMatrix& colorMatrix)
     ImageFilterEngine* e = new(std::nothrow) ColorMatrixFilterEngine(colorMatrix);
     if (e == NULL) return ERR_RT_OUT_OF_MEMORY;
 
-    AtomicBase::ptr_setXchg(&_d, e)->deref();
+    atomicPtrXchg(&_d, e)->deref();
     return ERR_OK;
   }
 }
@@ -499,14 +503,14 @@ err_t ImageFilterBase::setBlur(const BlurParams& params)
     ImageFilterEngine* e = new(std::nothrow) BlurFilterEngine(params);
     if (e == NULL) return ERR_RT_OUT_OF_MEMORY;
 
-    AtomicBase::ptr_setXchg(&_d, e)->deref();
+    atomicPtrXchg(&_d, e)->deref();
     return ERR_OK;
   }
 }
 
 err_t ImageFilterBase::setOther(const ImageFilterBase& other)
 {
-  AtomicBase::ptr_setXchg(&_d, other._d->ref())->deref();
+  atomicPtrXchg(&_d, other._d->ref())->deref();
   return ERR_OK;
 }
 

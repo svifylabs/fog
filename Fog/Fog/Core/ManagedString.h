@@ -218,7 +218,7 @@ struct FOG_API ManagedString
 
 //! @}
 
-FOG_DECLARE_TYPEINFO(Fog::ManagedString, Fog::TYPE_INFO_MOVABLE)
+FOG_DECLARE_TYPEINFO(Fog::ManagedString, Fog::TYPEINFO_MOVABLE)
 
 // [Guard]
 #endif // _FOG_CORE_MANAGEDSTRING_H

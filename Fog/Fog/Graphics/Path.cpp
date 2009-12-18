@@ -230,7 +230,7 @@ err_t Path::reserve(sysuint_t capacity)
   newd->length = _d->length;
   Memory::copy(newd->data, _d->data, _d->length * sizeof(PathVertex));
 
-  AtomicBase::ptr_setXchg(&_d, newd)->deref();
+  atomicPtrXchg(&_d, newd)->deref();
   return ERR_OK;
 }
 
@@ -243,14 +243,14 @@ void Path::squeeze()
     Data* newd = Data::realloc(_d, _d->length);
     if (!newd) return;
 
-    AtomicBase::ptr_setXchg(&_d, newd);
+    atomicPtrXchg(&_d, newd);
   }
   else
   {
     Data* newd = _d->copy();
     if (!newd) return;
 
-    AtomicBase::ptr_setXchg(&_d, newd)->deref();
+    atomicPtrXchg(&_d, newd)->deref();
   }
 }
 
@@ -276,7 +276,7 @@ PathVertex* Path::_add(sysuint_t count)
     newd->flat = _d->flat;
     Memory::copy(newd->data, _d->data, length * sizeof(PathVertex));
 
-    AtomicBase::ptr_setXchg(&_d, newd)->deref();
+    atomicPtrXchg(&_d, newd)->deref();
     return newd->data + length;
   }
 }
@@ -288,7 +288,7 @@ err_t Path::_detach()
   Data* newd = _d->copy();
   if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
-  AtomicBase::ptr_setXchg(&_d, newd)->deref();
+  atomicPtrXchg(&_d, newd)->deref();
   return ERR_OK;
 }
 
@@ -305,7 +305,7 @@ err_t Path::set(const Path& other)
   }
   else
   {
-    AtomicBase::ptr_setXchg(&_d, other_d->ref())->deref();
+    atomicPtrXchg(&_d, other_d->ref())->deref();
     return ERR_OK;
   }
 }
@@ -335,7 +335,7 @@ void Path::clear()
 {
   if (_d->refCount.get() > 1)
   {
-    AtomicBase::ptr_setXchg(&_d, sharedNull->refAlways())->deref();
+    atomicPtrXchg(&_d, sharedNull->refAlways())->deref();
   }
   else
   {
@@ -346,7 +346,7 @@ void Path::clear()
 
 void Path::free()
 {
-  AtomicBase::ptr_setXchg(&_d, sharedNull->refAlways())->deref();
+  atomicPtrXchg(&_d, sharedNull->refAlways())->deref();
 }
 
 // ============================================================================

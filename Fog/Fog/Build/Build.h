@@ -61,6 +61,7 @@
 #if !defined(FOG_OS_DEFINED) && defined(__FreeBSD__)
 # define FOG_OS_DEFINED
 # define FOG_OS_POSIX
+# define FOG_OS_BSD
 # define FOG_OS_FREEBSD
 #endif // __FreeBSD__
 
@@ -70,6 +71,7 @@
 #if !defined(FOG_OS_DEFINED) && defined(__OpenBSD__)
 # define FOG_OS_DEFINED
 # define FOG_OS_POSIX
+# define FOG_OS_BSD
 # define FOG_OS_OPENBSD
 #endif // __OpenBSD__
 
@@ -79,6 +81,7 @@
 #if !defined(FOG_OS_DEFINED) && defined(__NetBSD__)
 # define FOG_OS_DEFINED
 # define FOG_OS_POSIX
+# define FOG_OS_BSD
 # define FOG_OS_NETBSD
 #endif // __NetBSD__
 
@@ -319,18 +322,20 @@
 #elif defined(__GNUC__)
 #define FOG_CC_GNU __GNUC__
 
+// Standard attributes/
 #define FOG_INLINE inline __attribute__((always_inline))
 #define FOG_NO_INLINE __attribute__((noinline))
 #define FOG_NO_RETURN __attribute__((noreturn))
 #define FOG_DEPRECATED __attribute__((deprecated))
 
+// Restrict support.
 #if (__GNUC__ >= 3)
 # define FOG_RESTRICT __restrict__
 #else
 # define FOG_RESTRICT
 #endif
 
-// 32-bit x86 calling conventions
+// 32-bit x86 calling conventions.
 #ifdef FOG_ARCH_X86
 # define FOG_FASTCALL __attribute__((regparm(3)))
 # define FOG_STDCALL __attribute__((stdcall))
@@ -341,6 +346,10 @@
 # define FOG_CDECL
 #endif
 
+// Features setup.
+#define FOG_CC_HAVE_PARTIAL_TEMPLATE_SPECIALIZATION
+
+// Visibility.
 #if __GNUC__ >= 4
 # define FOG_HIDDEN __attribute__((visibility("default")))
 #else
@@ -358,21 +367,21 @@
 # define FOG_DLL_EXPORT
 #endif
 
-#define FOG_LIKELY(exp)   __builtin_expect(!!(exp), 1)
+// Likely / unlikely.
+#define FOG_LIKELY(exp) __builtin_expect(!!(exp), 1)
 #define FOG_UNLIKELY(exp) __builtin_expect(!!(exp), 0)
 
-#define FOG_UNUSED(a)     (void)(a)
-#define FOG_ALIGN(__n__)  __attribute__((aligned(__n__)))
+// Unused.
+#define FOG_UNUSED(a) (void)(a)
 
+// Align.
+#define FOG_ALIGN(__n__) __attribute__((aligned(__n__)))
+
+// Macro begin / end.
 #define FOG_BEGIN_MACRO ({
 #define FOG_END_MACRO })
 
-#if defined(Fog_EXPORTS)
-# define FOG_API FOG_DLL_EXPORT
-#else
-# define FOG_API FOG_DLL_IMPORT
-#endif // Fog_EXPORTS
-
+// Variables.
 #if defined(__MINGW32__)
 # define FOG_CVAR_EXTERN_BASE(api) extern "C" api
 # define FOG_CVAR_DECLARE_BASE(api) 
@@ -381,11 +390,20 @@
 # define FOG_CVAR_DECLARE_BASE(api) 
 #endif // __MINGW32__
 
+// C API.
 #define FOG_CAPI_EXTERN_BASE(api) extern "C" api
 #define FOG_CAPI_DECLARE_BASE(api) extern "C" api
 
+// C API - static initializers we can hide them...
 #define FOG_INIT_EXTERN_BASE(api) extern "C" FOG_HIDDEN
 #define FOG_INIT_DECLARE_BASE(api) extern "C" FOG_HIDDEN
+
+// API.
+#if defined(Fog_EXPORTS)
+# define FOG_API FOG_DLL_EXPORT
+#else
+# define FOG_API FOG_DLL_IMPORT
+#endif // Fog_EXPORTS
 
 // [Compiler - Borland C++ Builder or MSVC]
 
@@ -399,10 +417,19 @@
 // 0x0550 C++ Builder 5
 // 0x0560 C++ Builder 6
 # define FOG_CC_BORLAND __BORLANDC__
-#else // _MSVC_VER
+#else // _MSC_VER
+// The naming convenion for Microsoft compiler is:
+// 1000 - Visual C++ 4
+// 1100 - Visual C++ 5
+// 1200 - Visual C++ 6
+// 1300 - Visual C++ .NET
+// 1310 - Visual C++ .NET 2003
+// 1400 - Visual C++ 2005
+// 1500 - Visual C++ 2008
 # define FOG_CC_MSVC _MSC_VER
 #endif // __BORLANDC__
 
+// Standard attributes.
 #if defined(FOG_CC_MSVC)
 # define FOG_INLINE __forceinline
 # define FOG_NO_INLINE
@@ -417,6 +444,7 @@
 # define FOG_RESTRICT
 #endif
 
+// 32-bit x86 calling conventions.
 #ifdef FOG_ARCH_X86
 # define FOG_FASTCALL __fastcall
 # define FOG_STDCALL __stdcall
@@ -427,30 +455,45 @@
 # define FOG_CDECL
 #endif
 
+// Features setup.
+#if defined(FOG_CC_MSVC)
+# if _MSC_VER >= 1300
+#  define FOG_CC_HAVE_PARTIAL_TEMPLATE_SPECIALIZATION
+# endif
+#else
+// Has Borland compiler partial template specialization?
+#endif
+
+// Visibility.
 #define FOG_HIDDEN
 
+// API.
 #define FOG_DLL_IMPORT __declspec(dllimport)
 #define FOG_DLL_EXPORT __declspec(dllexport)
 
+// Likely / unlikely.
 #define FOG_LIKELY(exp) (exp)
 #define FOG_UNLIKELY(exp) (exp)
 
+// Unused.
 #define FOG_UNUSED(a) (void)(a)
 
+// Align.
 #if defined(FOG_CC_MSVC)
 # define FOG_ALIGN(__n__) __declspec(align(__n__))
 #else // BORLAND
 # define FOG_ALIGN(__n__)
 #endif
 
+// Macro begin / end.
 #define FOG_BEGIN_MACRO do {
 #define FOG_END_MACRO } while (0)
 
-// Variables
+// Variables.
 #define FOG_CVAR_EXTERN_BASE(api) extern "C" api
 #define FOG_CVAR_DECLARE_BASE(api) api
 
-// C API
+// C API.
 #define FOG_CAPI_EXTERN_BASE(api) extern "C" api
 #define FOG_CAPI_DECLARE_BASE(api) extern "C" api
 
@@ -472,7 +515,7 @@
 # pragma warn -8066 // unrecheable code
 #endif // FOG_CC_MSVC
 
-// Unsupported compiler
+// Unsupported compiler?
 #else
 # error "Unsupported compiler"
 #endif
@@ -487,6 +530,7 @@
 # define FOG_API FOG_DLL_IMPORT
 #endif
 
+// Fog API Visibility.
 #define FOG_CVAR_EXTERN FOG_CVAR_EXTERN_BASE(FOG_API)
 #define FOG_CVAR_DECLARE FOG_CVAR_DECLARE_BASE(FOG_API)
 
@@ -842,12 +886,14 @@ typedef int int24x8_t;
                ((uint64_t)(byte0) << 56) )
 #endif
 
+/*
 //! @brief Templated if.
 template <bool _Condition, class _Then, class _Else>
 struct fog_if { typedef _Then ret; };
 
 template <class _Then, class _Else>
 struct fog_if<false, _Then, _Else> { typedef _Else ret; };
+*/
 
 // ============================================================================
 // [Noop]

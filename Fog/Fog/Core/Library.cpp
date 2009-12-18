@@ -204,7 +204,7 @@ err_t Library::open(const String& _fileName, uint32_t openFlags)
       return ERR_RT_OUT_OF_MEMORY;
     }
 
-    derefLibraryData(AtomicBase::ptr_setXchg(&_d, newd));
+    derefLibraryData(atomicPtrXchg(&_d, newd));
     return ERR_OK;
   }
 
@@ -258,7 +258,7 @@ fail:
 void Library::close()
 {
   derefLibraryData(
-    AtomicBase::ptr_setXchg(&_d, refLibraryData(sharedNull.instancep()))
+    atomicPtrXchg(&_d, refLibraryData(sharedNull.instancep()))
   );
 }
 
@@ -315,7 +315,7 @@ end:
 Library& Library::operator=(const Library& other)
 {
   derefLibraryData(
-    AtomicBase::ptr_setXchg(&_d, refLibraryData(other._d))
+    atomicPtrXchg(&_d, refLibraryData(other._d))
   );
   return *this;
 }

@@ -144,7 +144,7 @@ struct FOG_API Locale
 // [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::Locale, Fog::TYPE_INFO_MOVABLE)
+FOG_DECLARE_TYPEINFO(Fog::Locale, Fog::TYPEINFO_MOVABLE)
 
 // [Guard]
 #endif // _FOG_CORE_LOCALE_H

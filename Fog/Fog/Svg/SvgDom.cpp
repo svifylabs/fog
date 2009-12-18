@@ -1071,13 +1071,13 @@ XmlAttribute* SvgElement::_createAttribute(const ManagedString& name) const
   return base::_createAttribute(name);
 }
 
-static Utf16 parseId(const String& url)
+static Utf16 parseCssLinkId(const String& url)
 {
   const Char* idStr;
   const Char* idEnd;
   const Char* idMark;
 
-  if (url.getLength() < 7) return Utf16((const Char*)NULL, 0);
+  if (url.getLength() < 7) goto bail;
 
   idStr = url.getData() + 5;
   idEnd = idStr + url.getLength() - 5;
@@ -1087,12 +1087,41 @@ static Utf16 parseId(const String& url)
     if (++idStr == idEnd) goto bail;
   }
 
-  if (idStr == idEnd) goto bail;
-
   idMark = idStr;
   while (*idStr != Char(')'))
   {
     if (++idStr == idEnd) goto bail;
+  }
+  return Utf16(idMark, (sysuint_t)(idStr - idMark));
+
+bail:
+  return Utf16((const Char*)NULL, 0);
+}
+
+static Utf16 parseHtmlLinkId(const String& url)
+{
+  const Char* idStr;
+  const Char* idEnd;
+  const Char* idMark;
+  Char c;
+
+  if (url.getLength() < 2) goto bail;
+
+  idStr = url.getData();
+  idEnd = idStr + url.getLength();
+
+  if (*idStr != Char('#')) goto bail;
+  idStr++;
+
+  while (idStr->isSpace())
+  {
+    if (++idStr == idEnd) goto bail;
+  }
+
+  idMark = idStr;
+  while ((c = *idStr).isAlnum() || c == Char('_'))
+  {
+    if (++idStr == idEnd) break;
   }
   return Utf16(idMark, (sysuint_t)(idStr - idMark));
 
@@ -1292,7 +1321,7 @@ err_t SvgStyledElement::onRender(SvgContext* context) const
           }
           case SVG_SOURCE_URI:
           {
-            XmlElement* r = getDocument()->getElementById(parseId(a_style._fillUri));
+            XmlElement* r = getDocument()->getElementById(parseCssLinkId(a_style._fillUri));
             if (r && r->isSvg())
             {
               reinterpret_cast<SvgElement*>(r)->onApplyPattern(context, const_cast<SvgStyledElement*>(this), SVG_PAINT_FILL);
@@ -1334,7 +1363,7 @@ err_t SvgStyledElement::onRender(SvgContext* context) const
           }
           case SVG_SOURCE_URI:
           {
-            XmlElement* r = getDocument()->getElementById(parseId(a_style._strokeUri));
+            XmlElement* r = getDocument()->getElementById(parseCssLinkId(a_style._strokeUri));
             if (r && r->isSvg())
             {
               reinterpret_cast<SvgElement*>(r)->onApplyPattern(context, const_cast<SvgStyledElement*>(this), SVG_PAINT_STROKE);
@@ -1471,6 +1500,8 @@ err_t SvgCircleElement::onRenderShape(SvgContext* context) const
     double cy = a_cy.isAssigned() ? a_cy.getCoord().value : 0.0;
     double r = fabs(a_r.getCoord().value);
 
+    if (r <= 0.0) return ERR_OK;
+
     context->drawEllipse(PointD(cx, cy), PointD(r, r));
     return ERR_OK;
   }
@@ -1488,14 +1519,15 @@ err_t SvgCircleElement::onCalcBoundingBox(RectD* box) const
     double cy = a_cy.isAssigned() ? a_cy.getCoord().value : 0.0;
     double r = fabs(a_r.getCoord().value);
 
+    if (r <= 0.0) goto fail;
+
     box->set(cx - r, cy - r, r * 2.0, r * 2.0);
     return ERR_OK;
   }
-  else
-  {
-    box->clear();
-    return ERR_OK;
-  }
+
+fail:
+  box->clear();
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -1602,6 +1634,8 @@ err_t SvgEllipseElement::onRenderShape(SvgContext* context) const
     double rx = fabs(a_rx.getCoord().value);
     double ry = fabs(a_ry.getCoord().value);
 
+    if (rx <= 0.0 || ry <= 0.0) return ERR_OK;
+
     context->drawEllipse(PointD(cx, cy), PointD(rx, ry));
     return ERR_OK;
   }
@@ -1621,15 +1655,15 @@ err_t SvgEllipseElement::onCalcBoundingBox(RectD* box) const
     double rx = a_rx.getDouble();
     double ry = a_ry.getDouble();
 
+    if (rx <= 0.0 || ry <= 0.0) goto fail;
+
     box->set(cx - rx, cy - ry, rx * 2.0, ry * 2.0);
     return ERR_OK;
   }
-  else
-  {
-    box->clear();
-    return ERR_OK;
-  }
-  return ERR_RT_NOT_IMPLEMENTED;
+
+fail:
+  box->clear();
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -1730,44 +1764,29 @@ XmlAttribute* SvgLineElement::_createAttribute(const ManagedString& name) const
 
 err_t SvgLineElement::onRenderShape(SvgContext* context) const
 {
-  if (a_x1.isAssigned() && a_y1.isAssigned() && a_x2.isAssigned() && a_y2.isAssigned())
-  {
-    double x1 = a_x1.getCoord().value;
-    double y1 = a_y1.getCoord().value;
-    double x2 = a_x2.getCoord().value;
-    double y2 = a_y2.getCoord().value;
+  double x1 = a_x1.isAssigned() ? a_x1.getCoord().value : 0.0;
+  double y1 = a_y1.isAssigned() ? a_y1.getCoord().value : 0.0;
+  double x2 = a_x2.isAssigned() ? a_x2.getCoord().value : 0.0;
+  double y2 = a_y2.isAssigned() ? a_y2.getCoord().value : 0.0;
 
-    context->drawLine(PointD(x1, y1), PointD(x2, y2));
-    return ERR_OK;
-  }
-  else
-  {
-    return ERR_OK;
-  }
+  context->drawLine(PointD(x1, y1), PointD(x2, y2));
+  return ERR_OK;
 }
 
 err_t SvgLineElement::onCalcBoundingBox(RectD* box) const
 {
-  if (a_x1.isAssigned() && a_y1.isAssigned() && a_x2.isAssigned() && a_y2.isAssigned())
-  {
-    double x1 = a_x1.getCoord().value;
-    double y1 = a_y1.getCoord().value;
-    double x2 = a_x2.getCoord().value;
-    double y2 = a_y2.getCoord().value;
+  double x1 = a_x1.isAssigned() ? a_x1.getCoord().value : 0.0;
+  double y1 = a_y1.isAssigned() ? a_y1.getCoord().value : 0.0;
+  double x2 = a_x2.isAssigned() ? a_x2.getCoord().value : 0.0;
+  double y2 = a_y2.isAssigned() ? a_y2.getCoord().value : 0.0;
 
-    double x = (x1 < x2) ? x1 : x2;
-    double y = (y1 < y2) ? y1 : y2;
-    double w = (x1 < x2) ? x2 - x1 : x1 - x2;
-    double h = (y1 < y2) ? y2 - y1 : y1 - y2;
+  double x = (x1 < x2) ? x1 : x2;
+  double y = (y1 < y2) ? y1 : y2;
+  double w = (x1 < x2) ? x2 - x1 : x1 - x2;
+  double h = (y1 < y2) ? y2 - y1 : y1 - y2;
 
-    box->set(x, y, w, h);
-    return ERR_OK;
-  }
-  else
-  {
-    box->clear();
-    return ERR_OK;
-  }
+  box->set(x, y, w, h);
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -2068,20 +2087,26 @@ err_t SvgRectElement::onRenderShape(SvgContext* context) const
 {
   if (a_width.isAssigned() && a_height.isAssigned())
   {
-    double x = a_x.isAssigned() ? a_x.getCoord().value : 0.0;
-    double y = a_y.isAssigned() ? a_y.getCoord().value : 0.0;
-
     double w = a_width.getCoord().value;
     double h = a_height.getCoord().value;
+    if (w <= 0.0 || h <= 0.0) goto fail;
+
+    double x = a_x.isAssigned() ? a_x.getCoord().value : 0.0;
+    double y = a_y.isAssigned() ? a_y.getCoord().value : 0.0;
 
     double rx = a_rx.isAssigned() ? a_rx.getCoord().value : 0.0;
     double ry = a_ry.isAssigned() ? a_ry.getCoord().value : 0.0;
 
-    if (rx == 0.0 && ry == 0.0)
+    if (!a_rx.isAssigned() && a_ry.isAssigned()) rx = ry;
+    if (!a_ry.isAssigned() && a_rx.isAssigned()) ry = rx;
+
+    if (rx <= 0.0 || ry <= 0.0)
       context->drawRect(RectD(x, y, w, h));
     else
       context->drawRound(RectD(x, y, w, h), PointD(rx, ry));
   }
+
+fail:
   return ERR_OK;
 }
 
@@ -2089,20 +2114,74 @@ err_t SvgRectElement::onCalcBoundingBox(RectD* box) const
 {
   if (a_width.isAssigned() && a_height.isAssigned())
   {
-    double x = a_x.isAssigned() ? a_x.getCoord().value : 0.0;
-    double y = a_y.isAssigned() ? a_y.getCoord().value : 0.0;
-
     double w = a_width.getCoord().value;
     double h = a_height.getCoord().value;
+    if (w < 0.0 || h < 0.0) goto fail;
+
+    double x = a_x.isAssigned() ? a_x.getCoord().value : 0.0;
+    double y = a_y.isAssigned() ? a_y.getCoord().value : 0.0;
 
     box->set(x, y, w, h);
     return ERR_OK;
   }
-  else
+
+fail:
+  box->clear();
+  return ERR_OK;
+}
+
+// ============================================================================
+// [Fog::SvgUseElement]
+// ============================================================================
+
+struct FOG_HIDDEN SvgUseElement : public SvgStyledElement
+{
+  // [Construction / Destruction]
+
+  typedef SvgStyledElement base;
+
+  SvgUseElement();
+  virtual ~SvgUseElement();
+
+  // [SVG Rendering]
+
+  virtual err_t onRenderShape(SvgContext* context) const;
+  virtual err_t onCalcBoundingBox(RectD* box) const;
+
+  // [Embedded Attributes]
+
+private:
+  FOG_DISABLE_COPY(SvgUseElement)
+};
+
+SvgUseElement::SvgUseElement() :
+  SvgStyledElement(fog_strings->getString(STR_SVG_rect), SVG_ELEMENT_USE)
+{
+}
+
+SvgUseElement::~SvgUseElement()
+{
+  _removeAttributes();
+}
+
+err_t SvgUseElement::onRenderShape(SvgContext* context) const
+{
+  String link = _getAttribute(fog_strings->getString(STR_SVG_xlink_href));
+  XmlElement* ref = getDocument()->getElementById(parseHtmlLinkId(link));
+
+  if (ref && ref->isSvgElement())
   {
-    box->clear();
+    reinterpret_cast<SvgElement*>(ref)->onRender(context);
     return ERR_OK;
   }
+
+  return ERR_OK;
+}
+
+err_t SvgUseElement::onCalcBoundingBox(RectD* box) const
+{
+  box->clear();
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -2285,7 +2364,7 @@ start:
   if (!stopsParsed)
   {
     XmlElement* e;
-    String link = root->getAttribute(fog_strings->getString(STR_SVG_xlink_href));
+    String link = root->_getAttribute(fog_strings->getString(STR_SVG_xlink_href));
 
     if ((!link.isEmpty() && link.at(0) == Char('#')) && 
         (e = root->getDocument()->getElementById(Utf16(link.getData() + 1, link.getLength() - 1))))
@@ -2675,6 +2754,7 @@ XmlElement* SvgDocument::createElementStatic(const ManagedString& tagName)
   if (tagName == fog_strings->getString(STR_SVG_rect          )) return new(std::nothrow) SvgRectElement();
   if (tagName == fog_strings->getString(STR_SVG_solidColor    )) return new(std::nothrow) SvgSolidColorElement();
   if (tagName == fog_strings->getString(STR_SVG_stop          )) return new(std::nothrow) SvgStopElement();
+  if (tagName == fog_strings->getString(STR_SVG_use           )) return new(std::nothrow) SvgUseElement();
 
   // If element is not SVG, use base class to create a default element
   // for the given tagName.

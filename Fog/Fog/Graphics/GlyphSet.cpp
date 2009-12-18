@@ -59,7 +59,7 @@ void GlyphSet::clear()
 
   if (_d->refCount.get() > 1)
   {
-    AtomicBase::ptr_setXchg(&_d, sharedNull->refAlways())->deref();
+    atomicPtrXchg(&_d, sharedNull->refAlways())->deref();
   }
   else
   {
@@ -72,7 +72,7 @@ void GlyphSet::clear()
 
 void GlyphSet::free()
 {
-  AtomicBase::ptr_setXchg(&_d, sharedNull->refAlways())->deref();
+  atomicPtrXchg(&_d, sharedNull->refAlways())->deref();
 }
 
 err_t GlyphSet::reserve(sysuint_t capacity)
@@ -87,7 +87,7 @@ err_t GlyphSet::reserve(sysuint_t capacity)
     newd->advance = _d->advance;
     copyGlyphs(newd->glyphs(), _d->glyphs(), _d->length);
 
-    AtomicBase::ptr_setXchg(&_d, newd)->deref();
+    atomicPtrXchg(&_d, newd)->deref();
     return ERR_OK;
   }
   else
@@ -120,7 +120,7 @@ err_t GlyphSet::grow(sysuint_t by)
     newd->advance = _d->advance;
     copyGlyphs(newd->glyphs(), _d->glyphs(), _d->length);
 
-    AtomicBase::ptr_setXchg(&_d, newd)->deref();
+    atomicPtrXchg(&_d, newd)->deref();
     return ERR_OK;
   }
   else if (_d->capacity < after)
@@ -182,7 +182,7 @@ err_t GlyphSet::end()
 
 GlyphSet& GlyphSet::operator=(const GlyphSet& other)
 {
-  AtomicBase::ptr_setXchg(&_d, other._d->ref())->deref();
+  atomicPtrXchg(&_d, other._d->ref())->deref();
   return *this;
 }
 

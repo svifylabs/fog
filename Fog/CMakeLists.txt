@@ -118,6 +118,18 @@ If(UNIX)
   EndIf(NOT FOG_HAVE_FENV_H)
 EndIf(UNIX)
 
+# =============================================================================
+# [Windows specific setup]
+# =============================================================================
+
+# Unicode
+If(WIN32)
+  Add_Definitions(-D_UNICODE)
+EndIf(WIN32)
+
+If(WIN32)
+  Target_Link_Libraries(Fog user32 gdi32 advapi32 winmm)
+EndIf(WIN32)
 
 # =============================================================================
 # [Dynamic loadable library support]
@@ -150,9 +162,10 @@ EndIf(CMAKE_THREAD_LIBS_INIT)
 # [Include rt library under linux]
 # =============================================================================
 
-If(NOT WIN32)
+# Library rt is Linux specific (not included in BSD/MAC).
+If(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   Set(FOG_LIBRARIES "${FOG_LIBRARIES} -lrt")
-EndIf(NOT WIN32)
+EndIf(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 # =============================================================================
 # [Fontconfig and Freetype2 support]
@@ -334,6 +347,10 @@ Set(FOG_CORE_LIB_HEADERS
   Fog/Core/UserInfo.h
   Fog/Core/Value.h
   Fog/Core/WinUtil.h
+
+  Fog/Core/Arch/Atomic_gcc_x86x64.h
+  Fog/Core/Arch/Atomic_msc_intrin.h
+  Fog/Core/Arch/Atomic_msc_x86.h
 )
 
 # Source groups
@@ -453,27 +470,29 @@ Set(FOG_GRAPHICS_PAINTERENGINE_SOURCES
 )
 
 Set(FOG_GRAPHICS_PAINTERENGINE_HEADERS
+  Fog/Graphics/PainterEngine/Null.h
+  Fog/Graphics/PainterEngine/Raster.h
 )
 
 Set(FOG_GRAPHICS_RASTERUTIL_SOURCES
   Fog/Graphics/RasterUtil/RasterUtil_Composite_C.h
   Fog/Graphics/RasterUtil/RasterUtil_Composite_MMX.h
   Fog/Graphics/RasterUtil/RasterUtil_Composite_SSE2.h
-  Fog/Graphics/RasterUtil/RasterUtil_Convert_C.h
-  Fog/Graphics/RasterUtil/RasterUtil_Convert_MMX.h
-  Fog/Graphics/RasterUtil/RasterUtil_Convert_SSE2.h
   Fog/Graphics/RasterUtil/RasterUtil_Defs_C.h
   Fog/Graphics/RasterUtil/RasterUtil_Defs_MMX.h
   Fog/Graphics/RasterUtil/RasterUtil_Defs_SSE2.h
+  Fog/Graphics/RasterUtil/RasterUtil_Dib_C.h
+  Fog/Graphics/RasterUtil/RasterUtil_Dib_MMX.h
+  Fog/Graphics/RasterUtil/RasterUtil_Dib_SSE2.h
   Fog/Graphics/RasterUtil/RasterUtil_Filters_C.h
   Fog/Graphics/RasterUtil/RasterUtil_Filters_MMX.h
   Fog/Graphics/RasterUtil/RasterUtil_Filters_SSE2.h
-  Fog/Graphics/RasterUtil/RasterUtil_Gradient_C.h
-  Fog/Graphics/RasterUtil/RasterUtil_Gradient_MMX.h
-  Fog/Graphics/RasterUtil/RasterUtil_Gradient_SSE2.h
   Fog/Graphics/RasterUtil/RasterUtil_Init_C.cpp
   Fog/Graphics/RasterUtil/RasterUtil_Init_MMX.cpp
   Fog/Graphics/RasterUtil/RasterUtil_Init_SSE2.cpp
+  Fog/Graphics/RasterUtil/RasterUtil_Interpolate_C.h
+  Fog/Graphics/RasterUtil/RasterUtil_Interpolate_MMX.h
+  Fog/Graphics/RasterUtil/RasterUtil_Interpolate_SSE2.h
   Fog/Graphics/RasterUtil/RasterUtil_Pattern_C.h
   Fog/Graphics/RasterUtil/RasterUtil_Pattern_MMX.h
   Fog/Graphics/RasterUtil/RasterUtil_Pattern_SSE2.h
@@ -676,32 +695,8 @@ EndIf(WIN32)
 # Write CMAKE_ #defines into Fog/Build/Config.h files
 Configure_File(${FOG_DIR}/Fog/Build/Config.h.cmake ${FOG_DIR}/Fog/Build/Config.h)
 
-# Trim
+# Trim libraries string (come compilers can complain to extra whitespaces).
 String(STRIP "${FOG_LIBRARIES}" FOG_LIBRARIES)
-
-# Unicode
-If(WIN32)
-  Add_Definitions(-D_UNICODE)
-EndIf(WIN32)
-
-# Library
-Add_Library(Fog SHARED
-  ${FOG_PUBLIC_SOURCES} ${FOG_PRIVATE_SOURCES}
-  ${FOG_PUBLIC_HEADERS} ${FOG_PRIVATE_HEADERS}
-)
-Install(TARGETS Fog DESTINATION lib)
-
-Target_Link_Libraries(Fog ${FOG_LIBRARIES})
-If(WIN32)
-  Target_Link_Libraries(Fog user32 gdi32 advapi32 winmm)
-EndIf(WIN32)
-
-If(FOG_UI_X11 AND FOG_BUILD_UISYSTEM_X11)
-  Add_Library(FogUI_X11 SHARED ${FOG_UI_X11_SOURCES})
-  Install(TARGETS FogUI_X11 DESTINATION lib)
-
-  Target_Link_Libraries(FogUI_X11 Fog ${FOG_LIBRARIES})
-EndIf(FOG_UI_X11 AND FOG_BUILD_UISYSTEM_X11)
 
 # Install header files.
 ForEach(i ${FOG_PUBLIC_HEADERS})
@@ -709,7 +704,22 @@ ForEach(i ${FOG_PUBLIC_HEADERS})
   Install(FILES ${i} DESTINATION "include/${path}")
 EndForEach(i)
 
-# Build test
+# Build Fog library.
+Add_Library(Fog SHARED
+  ${FOG_PUBLIC_SOURCES} ${FOG_PRIVATE_SOURCES}
+  ${FOG_PUBLIC_HEADERS} ${FOG_PRIVATE_HEADERS}
+)
+Target_Link_Libraries(Fog ${FOG_LIBRARIES})
+Install(TARGETS Fog DESTINATION lib)
+
+# Build FogUI_X11 plugin.
+If(FOG_UI_X11 AND FOG_BUILD_UISYSTEM_X11)
+  Add_Library(FogUI_X11 SHARED ${FOG_UI_X11_SOURCES})
+  Target_Link_Libraries(FogUI_X11 Fog ${FOG_LIBRARIES})
+  Install(TARGETS FogUI_X11 DESTINATION lib)
+EndIf(FOG_UI_X11 AND FOG_BUILD_UISYSTEM_X11)
+
+# Build examples.
 If(FOG_BUILD_EXAMPLES)
   Set(FOG_EXAMPLE_SOURCES
     FogAnim
@@ -725,6 +735,7 @@ If(FOG_BUILD_EXAMPLES)
   EndForEach(file)
 EndIf(FOG_BUILD_EXAMPLES)
 
+# Build benchmark.
 If(FOG_BUILD_BENCH)
   If(NOT WIN32)
     Include_Directories(/usr/include/cairo)

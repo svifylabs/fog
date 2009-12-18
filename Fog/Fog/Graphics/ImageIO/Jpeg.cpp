@@ -382,6 +382,8 @@ err_t JpegDecoderDevice::readHeader()
   // Don't read header more than once.
   if (isHeaderDone()) return getHeaderResult();
 
+  err_t err = ERR_OK;
+
   struct jpeg_decompress_struct cinfo;
   MyJpegSourceMgr srcmgr;
   MyJpegErrorMgr jerr;
@@ -393,9 +395,8 @@ err_t JpegDecoderDevice::readHeader()
 
   if (setjmp(jerr.escape))
   {
-    // error
-    jpeg.destroy_decompress(&cinfo);
-    return (_headerResult = ERR_IMAGEIO_LIBJPEG_ERROR);
+    err = ERR_IMAGEIO_LIBJPEG_ERROR;
+    goto fail;
   }
 
   jpeg.create_decompress(&cinfo, /* version */ 62, sizeof(struct jpeg_decompress_struct));
@@ -425,16 +426,21 @@ err_t JpegDecoderDevice::readHeader()
     case JCS_GRAYSCALE:
       _depth = 8;
       break;
-    case JCS_RGB:
+    default:
       _depth = 24;
       break;
-    default:
-      jpeg.destroy_decompress(&cinfo);
-      return (_headerResult = ERR_IMAGEIO_UNSUPPORTED_FORMAT);
   }
 
+  // Check for too large dimensions.
+  if (areDimensionsTooLarge())
+  {
+    err = ERR_IMAGE_TOO_LARGE;
+    goto fail;
+  }
+
+fail:
   jpeg.destroy_decompress(&cinfo);
-  return (_headerResult = ERR_OK);
+  return (_headerResult = err);
 }
 
 // ===========================================================================
@@ -446,13 +452,18 @@ err_t JpegDecoderDevice::readImage(Image& image)
   JpegLibrary& jpeg = reinterpret_cast<JpegProvider*>(_provider)->_jpegLibrary;
   FOG_ASSERT(jpeg.err == ERR_OK);
 
+  err_t err = ERR_OK;
+
   struct jpeg_decompress_struct cinfo;
   MyJpegSourceMgr srcmgr;
   MyJpegErrorMgr jerr;
   JSAMPROW rowptr[1];
-  Image::Data* image_d;
-  err_t error = ERR_OK;
-  int format = PIXEL_FORMAT_RGB24;
+
+  int format = PIXEL_FORMAT_XRGB32;
+  int bpp = 3;
+
+  LocalBuffer<1024> bufferStorage;
+  uint8_t* buffer = NULL;
 
   // Create a decompression structure and load the header.
   cinfo.err = jpeg.std_error(&jerr.errmgr);
@@ -480,6 +491,20 @@ err_t JpegDecoderDevice::readImage(Image& image)
 
   jpeg.read_header(&cinfo, true);
   jpeg.calc_output_dimensions(&cinfo);
+
+  _width = cinfo.output_width;
+  _height = cinfo.output_height;
+  _planes = 1;
+  _actualFrame = 0;
+  _framesCount = 1;
+
+  // Check for too large dimensions.
+  if (areDimensionsTooLarge())
+  {
+    err = ERR_IMAGE_TOO_LARGE;
+    goto end;
+  }
+
   jpeg.start_decompress(&cinfo);
 
   // Set 8 or 24-bit output.
@@ -487,16 +512,17 @@ err_t JpegDecoderDevice::readImage(Image& image)
   {
     if (cinfo.output_components != 1)
     {
-      error = ERR_IMAGEIO_UNSUPPORTED_FORMAT;
+      err = ERR_IMAGEIO_UNSUPPORTED_FORMAT;
       goto end;
     }
     format = PIXEL_FORMAT_I8;
+    bpp = 1;
   }
   else if (cinfo.out_color_space == JCS_RGB)
   {
     if (cinfo.output_components != 3)
     {
-      error = ERR_IMAGEIO_UNSUPPORTED_FORMAT;
+      err = ERR_IMAGEIO_UNSUPPORTED_FORMAT;
       goto end;
     }
   }
@@ -507,29 +533,46 @@ err_t JpegDecoderDevice::readImage(Image& image)
   }
 
   // Resize our image to jpeg size.
-  if ((error = image.create(cinfo.output_width, cinfo.output_height, format))) goto end;
+  if ((err = image.create(_width, _height, format))) goto end;
   if (format == PIXEL_FORMAT_I8) image.setPalette(Palette::greyscale());
 
-  image_d = image._d;
-
-  while (cinfo.output_scanline < cinfo.output_height)
+  if (format == PIXEL_FORMAT_I8)
   {
-    rowptr[0] = (JSAMPROW)(uint8_t *)image_d->first + cinfo.output_scanline * image_d->stride;
-    jpeg.read_scanlines(&cinfo, rowptr, (JDIMENSION)1);
+    Image::Data* image_d = image._d;
 
-    // JPEG data are in big endian format.
-#if FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
-    RasterUtil::functionMap->convert.bswap24(rowptr[0], rowptr[0], cinfo.output_width, NULL);
-#endif // FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
+    // Directly load into the image buffer.
+    while (cinfo.output_scanline < cinfo.output_height)
+    {
+      rowptr[0] = (JSAMPROW)(image_d->first + cinfo.output_scanline * image_d->stride);
+      jpeg.read_scanlines(&cinfo, rowptr, (JDIMENSION)1);
 
-    if ((cinfo.output_scanline & 15) == 0)
-      updateProgress(cinfo.output_scanline, cinfo.output_height);
+      if ((cinfo.output_scanline & 15) == 0)
+        updateProgress(cinfo.output_scanline, cinfo.output_height);
+    }
   }
+  else
+  {
+    buffer = reinterpret_cast<uint8_t*>(bufferStorage.alloc(_width * bpp));
+    if (buffer == NULL) { err = ERR_RT_OUT_OF_MEMORY; goto end; }
+
+    // Load to temporary buffer and convert data to an image compatible format.
+    rowptr[0] = (JSAMPROW)buffer;
+
+    while (cinfo.output_scanline < cinfo.output_height)
+    {
+      jpeg.read_scanlines(&cinfo, rowptr, (JDIMENSION)1);
+      image.setDib(0, cinfo.output_scanline, _width, DIB_FORMAT_RGB24_BE, buffer);
+
+      if ((cinfo.output_scanline & 15) == 0)
+        updateProgress(cinfo.output_scanline, cinfo.output_height);
+    }
+  }
+
   jpeg.finish_decompress(&cinfo);
 
 end:
   jpeg.destroy_decompress(&cinfo);
-  return error;
+  return err;
 }
 
 // ===========================================================================
@@ -742,19 +785,21 @@ err_t JpegEncoderDevice::writeImage(const Image& image)
     }
     else
     {
-      image.getDibRgb24_be(0, cinfo.next_scanline, width, buffer);
+      image.getDib(0, cinfo.next_scanline, width, DIB_FORMAT_RGB24_BE, buffer);
     }
 
     jpeg.write_scanlines(&cinfo, row, 1);
-    if (cinfo.next_scanline & 15) updateProgress(cinfo.next_scanline, cinfo.image_height);
+
+    if (cinfo.next_scanline & 15)
+      updateProgress(cinfo.next_scanline, cinfo.image_height);
   }
 
   // Step 6: Finish compression
 
   jpeg.finish_compress(&cinfo);
 
-  // Step 7: release JPEG compression object
 end:
+  // Step 7: release JPEG compression object
 
   // This is an important step since it will release a good deal of memory.
   jpeg.destroy_compress(&cinfo);

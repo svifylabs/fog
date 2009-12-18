@@ -8,7 +8,7 @@
 
 #if defined(FOG_IDE)
 #include <Fog/Graphics/RasterUtil/RasterUtil_Defs_SSE2.h>
-#include <Fog/Graphics/RasterUtil/RasterUtil_Convert_SSE2.h>
+#include <Fog/Graphics/RasterUtil/RasterUtil_Dib_SSE2.h>
 #endif // FOG_IDE
 
 namespace Fog {
@@ -209,18 +209,6 @@ struct CompositeBaseFuncsSSE2
   // -------------------------------------------------------------------------
   // [CompositeBaseFuncsSSE2 - PRGB32]
   // -------------------------------------------------------------------------
-
-  static void FOG_FASTCALL prgb32_pixel(
-    uint8_t* dst, const Solid* src, const Closure* closure)
-  {
-    __m128i dst0xmm;
-    __m128i src0xmm;
-
-    pix_load4(dst0xmm, dst);
-    pix_load4(src0xmm, &src->prgb);
-    OP::prgb32_op_prgb32_packed_1x1B(dst0xmm, dst0xmm, src0xmm);
-    pix_store4(dst, dst0xmm);
-  }
 
   static void FOG_FASTCALL prgb32_cspan(
     uint8_t* dst, const Solid* src, sysint_t w, const Closure* closure)
@@ -473,85 +461,9 @@ struct CompositeBaseFuncsSSE2
     BLIT_SSE2_32x4_LARGE_END(blt)
   }
 
-  static void FOG_FASTCALL prgb32_vspan_rgb24(
-    uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
-  {
-    BLIT_SSE2_32x4_INIT(dst, w)
-
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
-      __m128i dst0xmm;
-      __m128i src0xmm;
-
-      pix_load4(dst0xmm, dst);
-      src0xmm = _mm_cvtsi32_si128(PixFmt_RGB24::fetch(src));
-
-      if (OP::PROC & COMPOSITE_PROC_PRGB32_OP_XRGB32_PREF_0xFF) pix_fill_alpha_1x4B(src0xmm);
-
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
-      {
-        OP::prgb32_op_xrgb32_PREF_packed_1x1B(dst0xmm, dst0xmm, src0xmm);
-      }
-      else
-      {
-        pix_unpack_1x1W(src0xmm, src0xmm);
-        pix_unpack_1x1W(dst0xmm, dst0xmm);
-        OP::prgb32_op_xrgb32_PREF_unpacked_1x1W(dst0xmm, dst0xmm, src0xmm);
-        pix_pack_1x1W(dst0xmm, dst0xmm);
-      }
-      pix_store4(dst, dst0xmm);
-
-      dst += 4;
-      src += 3;
-    BLIT_SSE2_32x4_SMALL_END(blt)
-
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
-      __m128i dst0xmm;
-      __m128i src0xmm, src1xmm;
-
-      pix_load16a(dst0xmm, dst);
-      pix_fetch_rgb24_2x2W(src0xmm, src1xmm, src);
-
-      if (OP::PROC & COMPOSITE_PROC_PRGB32_OP_XRGB32_PREF_0xFF)
-      {
-        pix_fill_alpha_2x2W(src0xmm, src1xmm);
-      }
-
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
-      {
-        pix_pack_2x2W(src0xmm, src0xmm, src1xmm);
-        OP::prgb32_op_xrgb32_PREF_packed_1x4B(dst0xmm, dst0xmm, src0xmm);
-      }
-      else
-      {
-        __m128i dst1xmm;
-
-        pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
-        OP::prgb32_op_xrgb32_PREF_unpacked_2x2W(dst0xmm, dst0xmm, src0xmm, dst1xmm, dst1xmm, src0xmm);
-        pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
-      }
-
-      pix_store16a(dst, dst0xmm);
-
-      dst += 16;
-      src += 12;
-    BLIT_SSE2_32x4_LARGE_END(blt)
-  }
-
   // -------------------------------------------------------------------------
   // [CompositeBaseFuncsSSE2 - XRGB32]
   // -------------------------------------------------------------------------
-
-  static void FOG_FASTCALL xrgb32_pixel(
-    uint8_t* dst, const Solid* src, const Closure* closure)
-  {
-    __m128i dst0xmm;
-    __m128i src0xmm;
-
-    pix_load4(dst0xmm, dst);
-    pix_load4(src0xmm, &src->prgb);
-    OP::xrgb32_op_prgb32_packed_1x1B(dst0xmm, dst0xmm, src0xmm);
-    pix_store4(dst, dst0xmm);
-  }
 
   static void FOG_FASTCALL xrgb32_cspan(
     uint8_t* dst, const Solid* src, sysint_t w, const Closure* closure)
@@ -797,63 +709,6 @@ struct CompositeBaseFuncsSSE2
       dst += 16;
     BLIT_SSE2_32x4_LARGE_END(blt)
   }
-
-  static void FOG_FASTCALL xrgb32_vspan_rgb24(
-    uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
-  {
-    BLIT_SSE2_32x4_INIT(dst, w)
-
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
-      __m128i dst0xmm;
-      __m128i src0xmm;
-
-      pix_load4(dst0xmm, dst);
-      src0xmm = _mm_cvtsi32_si128(PixFmt_RGB24::fetch(src));
-
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
-      {
-        OP::xrgb32_op_xrgb32_packed_1x1B(dst0xmm, dst0xmm, src0xmm);
-      }
-      else
-      {
-        pix_unpack_1x1W(src0xmm, src0xmm);
-        pix_unpack_1x1W(dst0xmm, dst0xmm);
-        OP::xrgb32_op_xrgb32_unpacked_1x1W(dst0xmm, dst0xmm, src0xmm);
-        pix_pack_1x1W(dst0xmm, dst0xmm);
-      }
-      pix_store4(dst, dst0xmm);
-
-      dst += 4;
-      src += 3;
-    BLIT_SSE2_32x4_SMALL_END(blt)
-
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
-      __m128i dst0xmm;
-      __m128i src0xmm, src1xmm;
-
-      pix_load16a(dst0xmm, dst);
-      pix_fetch_rgb24_2x2W(src0xmm, src1xmm, src);
-
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
-      {
-        pix_pack_2x2W(src0xmm, src0xmm, src1xmm);
-        OP::xrgb32_op_xrgb32_packed_1x4B(dst0xmm, dst0xmm, src0xmm);
-      }
-      else
-      {
-        __m128i dst1xmm;
-
-        pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
-        OP::xrgb32_op_xrgb32_unpacked_2x2W(dst0xmm, dst0xmm, src0xmm, dst1xmm, dst1xmm, src0xmm);
-        pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
-      }
-
-      pix_store16a(dst, dst0xmm);
-
-      dst += 16;
-      src += 12;
-    BLIT_SSE2_32x4_LARGE_END(blt)
-  }
 };
 
 // This template implements compositing of BOUND operators.
@@ -863,33 +718,6 @@ struct CompositeMaskInSSE2
   // -------------------------------------------------------------------------
   // [CompositeMaskInSSE2 - PRGB32]
   // -------------------------------------------------------------------------
-
-  static void FOG_FASTCALL prgb32_pixel_a8(
-    uint8_t* dst, const Solid* src, uint32_t msk0, const Closure* closure)
-  {
-    __m128i dst0xmm;
-    __m128i src0xmm;
-    __m128i msk0xmm;
-
-    pix_load4(src0xmm, &src->prgb);
-    pix_load4(dst0xmm, dst);
-    pix_expand_mask_1x1W(msk0xmm, msk0);
-    pix_unpack_1x1W(src0xmm, src0xmm);
-    pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
-
-    if (OP::MODE == COMPOSITE_MODE_PACKED)
-    {
-      pix_pack_1x1W(src0xmm, src0xmm);
-      OP::prgb32_op_prgb32_packed_1x1B(dst0xmm, dst0xmm, src0xmm);
-    }
-    else
-    {
-      pix_unpack_1x1W(dst0xmm, dst0xmm);
-      OP::prgb32_op_prgb32_packed_1x1B(dst0xmm, dst0xmm, src0xmm);
-      pix_pack_1x1W(dst0xmm, dst0xmm);
-    }
-    pix_store4(dst, dst0xmm);
-  }
 
   static void FOG_FASTCALL prgb32_cspan_a8(
     uint8_t* dst, const Solid* src, const uint8_t* msk, sysint_t w, const Closure* closure)
@@ -1287,86 +1115,6 @@ struct CompositeMaskInSSE2
     BLIT_SSE2_32x4_LARGE_END(blt)
   }
 
-  static void FOG_FASTCALL prgb32_vspan_rgb24_a8(
-    uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w, const Closure* closure)
-  {
-    BLIT_SSE2_32x4_INIT(dst, w)
-
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
-      __m128i src0xmm;
-      __m128i dst0xmm;
-      __m128i msk0xmm;
-
-      uint32_t msk0 = READ_8(msk);
-      if (msk0 != 0x00)
-      {
-        src0xmm = _mm_cvtsi32_si128(PixFmt_RGB24::fetch(src));
-        pix_load4(dst0xmm, dst);
-        pix_fill_alpha_1x4B(src0xmm);
-        pix_expand_mask_1x1W(msk0xmm, msk0);
-
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
-        {
-          pix_unpack_1x1W(src0xmm, src0xmm);
-          pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
-          pix_pack_1x1W(src0xmm, src0xmm);
-          OP::prgb32_op_prgb32_packed_1x1B(dst0xmm, dst0xmm, src0xmm);
-        }
-        else
-        {
-          pix_unpack_1x1W(src0xmm, src0xmm);
-          pix_unpack_1x1W(dst0xmm, dst0xmm);
-          pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
-          OP::prgb32_op_prgb32_unpacked_1x1W(dst0xmm, dst0xmm, src0xmm);
-          pix_pack_1x1W(dst0xmm, dst0xmm);
-        }
-        pix_store4(dst, dst0xmm);
-      }
-
-      src += 3;
-      dst += 4;
-      msk += 1;
-    BLIT_SSE2_32x4_SMALL_END(blt)
-
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
-      __m128i src0xmm, src1xmm;
-      __m128i dst0xmm;
-
-      uint32_t msk0 = READ_32(msk);
-      if (msk0 != 0x00000000)
-      {
-        pix_fetch_rgb24_2x2W(src0xmm, src1xmm, src);
-        pix_load16a(dst0xmm, dst);
-
-        {
-          __m128i msk0xmm, msk1xmm;
-          pix_fill_alpha_2x2W(src0xmm, src1xmm);
-          pix_expand_mask_2x2W(msk0xmm, msk1xmm, msk0);
-          pix_multiply_2x2W(src0xmm, src0xmm, msk0xmm, src1xmm, src1xmm, msk1xmm);
-        }
-
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
-        {
-          pix_pack_2x2W(src0xmm, src0xmm, src1xmm);
-          OP::prgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, src0xmm);
-        }
-        else
-        {
-          __m128i dst1xmm;
-
-          pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
-          OP::prgb32_op_prgb32_unpacked_2x2W(dst0xmm, dst0xmm, src0xmm, dst1xmm, dst1xmm, src1xmm);
-          pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
-        }
-        pix_store16a(dst, dst0xmm);
-      }
-
-      src += 12;
-      dst += 16;
-      msk += 4;
-    BLIT_SSE2_32x4_LARGE_END(blt)
-  }
-
   static void FOG_FASTCALL prgb32_vspan_prgb32_a8_const(
     uint8_t* dst, const uint8_t* src, uint32_t msk0, sysint_t w, const Closure* closure)
   {
@@ -1597,102 +1345,9 @@ struct CompositeMaskInSSE2
     BLIT_SSE2_32x4_LARGE_END(blt)
   }
 
-  static void FOG_FASTCALL prgb32_vspan_rgb24_a8_const(
-    uint8_t* dst, const uint8_t* src, uint32_t msk0, sysint_t w, const Closure* closure)
-  {
-    __m128i msk0xmm;
-    pix_expand_mask_1x1W(msk0xmm, msk0);
-    pix_expand_pixel_1x2W(msk0xmm, msk0xmm);
-
-    BLIT_SSE2_32x4_INIT(dst, w)
-
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
-      __m128i src0xmm;
-      __m128i dst0xmm;
-
-      src0xmm = _mm_cvtsi32_si128(PixFmt_RGB24::fetch(src));
-      pix_load4(dst0xmm, dst);
-      pix_fill_alpha_1x4B(src0xmm);
-
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
-      {
-        pix_unpack_1x1W(src0xmm, src0xmm);
-        pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
-        pix_pack_1x1W(src0xmm, src0xmm);
-        OP::prgb32_op_prgb32_packed_1x1B(dst0xmm, dst0xmm, src0xmm);
-      }
-      else
-      {
-        pix_unpack_1x1W(src0xmm, src0xmm);
-        pix_unpack_1x1W(dst0xmm, dst0xmm);
-        pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
-        OP::prgb32_op_prgb32_unpacked_1x1W(dst0xmm, dst0xmm, src0xmm);
-        pix_pack_1x1W(dst0xmm, dst0xmm);
-      }
-      pix_store4(dst, dst0xmm);
-
-      src += 3;
-      dst += 4;
-    BLIT_SSE2_32x4_SMALL_END(blt)
-
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
-      __m128i src0xmm, src1xmm;
-      __m128i dst0xmm;
-
-      pix_fetch_rgb24_2x2W(src0xmm, src1xmm, src);
-      pix_load16a(dst0xmm, dst);
-      pix_multiply_2x2W(src0xmm, src0xmm, msk0xmm, src1xmm, src1xmm, msk0xmm);
-
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
-      {
-        pix_pack_2x2W(src0xmm, src0xmm, src1xmm);
-        OP::prgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, src0xmm);
-      }
-      else
-      {
-        __m128i dst1xmm;
-
-        pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
-        OP::prgb32_op_prgb32_unpacked_2x2W(dst0xmm, dst0xmm, src0xmm, dst1xmm, dst1xmm, src1xmm);
-        pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
-      }
-      pix_store16a(dst, dst0xmm);
-
-      src += 12;
-      dst += 16;
-    BLIT_SSE2_32x4_LARGE_END(blt)
-  }
-
   // -------------------------------------------------------------------------
   // [CompositeMaskInSSE2 - XRGB32]
   // -------------------------------------------------------------------------
-
-  static void FOG_FASTCALL xrgb32_pixel_a8(
-    uint8_t* dst, const Solid* src, uint32_t msk0, const Closure* closure)
-  {
-    __m128i dst0xmm;
-    __m128i src0xmm;
-    __m128i msk0xmm;
-
-    pix_load4(src0xmm, &src->prgb);
-    pix_load4(dst0xmm, dst);
-    pix_expand_mask_1x1W(msk0xmm, msk0);
-    pix_unpack_1x1W(src0xmm, src0xmm);
-    pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
-
-    if (OP::MODE == COMPOSITE_MODE_PACKED)
-    {
-      pix_pack_1x1W(src0xmm, src0xmm);
-      OP::xrgb32_op_prgb32_packed_1x1B(dst0xmm, dst0xmm, src0xmm);
-    }
-    else
-    {
-      pix_unpack_1x1W(dst0xmm, dst0xmm);
-      OP::xrgb32_op_prgb32_packed_1x1B(dst0xmm, dst0xmm, src0xmm);
-      pix_pack_1x1W(dst0xmm, dst0xmm);
-    }
-    pix_store4(dst, dst0xmm);
-  }
 
   static void FOG_FASTCALL xrgb32_cspan_a8(
     uint8_t* dst, const Solid* src, const uint8_t* msk, sysint_t w, const Closure* closure)
@@ -2090,86 +1745,6 @@ struct CompositeMaskInSSE2
     BLIT_SSE2_32x4_LARGE_END(blt)
   }
 
-  static void FOG_FASTCALL xrgb32_vspan_rgb24_a8(
-    uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w, const Closure* closure)
-  {
-    BLIT_SSE2_32x4_INIT(dst, w)
-
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
-      __m128i src0xmm;
-      __m128i dst0xmm;
-      __m128i msk0xmm;
-
-      uint32_t msk0 = READ_8(msk);
-      if (msk0 != 0x00)
-      {
-        src0xmm = _mm_cvtsi32_si128(PixFmt_RGB24::fetch(src));
-        pix_load4(dst0xmm, dst);
-        pix_fill_alpha_1x4B(src0xmm);
-        pix_expand_mask_1x1W(msk0xmm, msk0);
-
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
-        {
-          pix_unpack_1x1W(src0xmm, src0xmm);
-          pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
-          pix_pack_1x1W(src0xmm, src0xmm);
-          OP::xrgb32_op_prgb32_packed_1x1B(dst0xmm, dst0xmm, src0xmm);
-        }
-        else
-        {
-          pix_unpack_1x1W(src0xmm, src0xmm);
-          pix_unpack_1x1W(dst0xmm, dst0xmm);
-          pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
-          OP::xrgb32_op_prgb32_unpacked_1x1W(dst0xmm, dst0xmm, src0xmm);
-          pix_pack_1x1W(dst0xmm, dst0xmm);
-        }
-        pix_store4(dst, dst0xmm);
-      }
-
-      src += 3;
-      dst += 4;
-      msk += 1;
-    BLIT_SSE2_32x4_SMALL_END(blt)
-
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
-      __m128i src0xmm, src1xmm;
-      __m128i dst0xmm;
-
-      uint32_t msk0 = READ_32(msk);
-      if (msk0 != 0x00000000)
-      {
-        pix_fetch_rgb24_2x2W(src0xmm, src1xmm, src);
-        pix_load16a(dst0xmm, dst);
-
-        {
-          __m128i msk0xmm, msk1xmm;
-          pix_fill_alpha_2x2W(src0xmm, src1xmm);
-          pix_expand_mask_2x2W(msk0xmm, msk1xmm, msk0);
-          pix_multiply_2x2W(src0xmm, src0xmm, msk0xmm, src1xmm, src1xmm, msk1xmm);
-        }
-
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
-        {
-          pix_pack_2x2W(src0xmm, src0xmm, src1xmm);
-          OP::xrgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, src0xmm);
-        }
-        else
-        {
-          __m128i dst1xmm;
-
-          pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
-          OP::xrgb32_op_prgb32_unpacked_2x2W(dst0xmm, dst0xmm, src0xmm, dst1xmm, dst1xmm, src1xmm);
-          pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
-        }
-        pix_store16a(dst, dst0xmm);
-      }
-
-      src += 12;
-      dst += 16;
-      msk += 4;
-    BLIT_SSE2_32x4_LARGE_END(blt)
-  }
-
   static void FOG_FASTCALL xrgb32_vspan_prgb32_a8_const(
     uint8_t* dst, const uint8_t* src, uint32_t msk0, sysint_t w, const Closure* closure)
   {
@@ -2416,73 +1991,6 @@ struct CompositeMaskInSSE2
       dst += 16;
     BLIT_SSE2_32x4_LARGE_END(blt)
   }
-
-  static void FOG_FASTCALL xrgb32_vspan_rgb24_a8_const(
-    uint8_t* dst, const uint8_t* src, uint32_t msk0, sysint_t w, const Closure* closure)
-  {
-    __m128i msk0xmm;
-    pix_expand_mask_1x1W(msk0xmm, msk0);
-    pix_expand_pixel_1x2W(msk0xmm, msk0xmm);
-
-    BLIT_SSE2_32x4_INIT(dst, w)
-
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
-      __m128i src0xmm;
-      __m128i dst0xmm;
-
-      src0xmm = _mm_cvtsi32_si128(PixFmt_RGB24::fetch(src));
-      pix_load4(dst0xmm, dst);
-
-      pix_fill_alpha_1x4B(src0xmm);
-
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
-      {
-        pix_unpack_1x1W(src0xmm, src0xmm);
-        pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
-        pix_pack_1x1W(src0xmm, src0xmm);
-        OP::xrgb32_op_prgb32_packed_1x1B(dst0xmm, dst0xmm, src0xmm);
-      }
-      else
-      {
-        pix_unpack_1x1W(src0xmm, src0xmm);
-        pix_unpack_1x1W(dst0xmm, dst0xmm);
-        pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
-        OP::xrgb32_op_prgb32_unpacked_1x1W(dst0xmm, dst0xmm, src0xmm);
-        pix_pack_1x1W(dst0xmm, dst0xmm);
-      }
-      pix_store4(dst, dst0xmm);
-
-      src += 3;
-      dst += 4;
-    BLIT_SSE2_32x4_SMALL_END(blt)
-
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
-      __m128i src0xmm, src1xmm;
-      __m128i dst0xmm;
-
-      pix_fetch_rgb24_2x2W(src0xmm, src1xmm, src);
-      pix_load16a(dst0xmm, dst);
-      pix_multiply_2x2W(src0xmm, src0xmm, msk0xmm, src1xmm, src1xmm, msk0xmm);
-
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
-      {
-        pix_pack_2x2W(src0xmm, src0xmm, src1xmm);
-        OP::xrgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, src0xmm);
-      }
-      else
-      {
-        __m128i dst1xmm;
-
-        pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
-        OP::xrgb32_op_prgb32_unpacked_2x2W(dst0xmm, dst0xmm, src0xmm, dst1xmm, dst1xmm, src1xmm);
-        pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
-      }
-      pix_store16a(dst, dst0xmm);
-
-      src += 12;
-      dst += 16;
-    BLIT_SSE2_32x4_LARGE_END(blt)
-  }
 };
 
 // This template implements compositing of UNBOUND operators.
@@ -2492,31 +2000,6 @@ struct CompositeMaskLerpInSSE2
   // -------------------------------------------------------------------------
   // [CompositeSrcSSE2 - PRGB32]
   // -------------------------------------------------------------------------
-
-  static void FOG_FASTCALL prgb32_pixel_a8(
-    uint8_t* dst, const Solid* src, uint32_t msk0, const Closure* closure)
-  {
-    __m128i dst0xmm;
-    __m128i src0xmm;
-    __m128i msk0xmm;
-
-    pix_load4(src0xmm, &src->prgb);
-    pix_load4(dst0xmm, dst);
-
-    pix_unpack_1x1W(src0xmm, src0xmm);
-    pix_unpack_1x1W(dst0xmm, dst0xmm);
-
-    pix_expand_mask_1x1W(msk0xmm, msk0);
-    pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
-    pix_negate_1x1W(msk0xmm, msk0xmm);
-    pix_multiply_1x1W(msk0xmm, msk0xmm, dst0xmm);
-
-    OP::prgb32_op_prgb32_packed_1x1B(dst0xmm, dst0xmm, src0xmm);
-    pix_adds_1x1W(dst0xmm, dst0xmm, msk0xmm);
-
-    pix_pack_1x1W(dst0xmm, dst0xmm);
-    pix_store4(dst, dst0xmm);
-  }
 
   static void FOG_FASTCALL prgb32_cspan_a8(
     uint8_t* dst, const Solid* src, const uint8_t* msk, sysint_t w, const Closure* closure)
@@ -2873,77 +2356,6 @@ struct CompositeMaskLerpInSSE2
     BLIT_SSE2_32x4_LARGE_END(blt)
   }
 
-  static void FOG_FASTCALL prgb32_vspan_rgb24_a8(
-    uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w, const Closure* closure)
-  {
-    BLIT_SSE2_32x4_INIT(dst, w)
-
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
-      __m128i src0xmm;
-      __m128i dst0xmm;
-      __m128i msk0xmm;
-
-      uint32_t msk0 = READ_8(msk);
-      if (msk0 != 0x00)
-      {
-        src0xmm = _mm_cvtsi32_si128(PixFmt_RGB24::fetch(src) | 0xFF000000);
-        pix_load4(dst0xmm, dst);
-        pix_expand_mask_1x1W(msk0xmm, msk0);
-        pix_unpack_1x1W(src0xmm, src0xmm);
-        pix_unpack_1x1W(dst0xmm, dst0xmm);
-        src0xmm = _mm_or_si128(src0xmm, _mm_shuffle_epi32(dst0xmm, _MM_SHUFFLE(1, 0, 3, 2)));
-        pix_expand_pixel_1x2W(msk0xmm, msk0xmm);
-        pix_negate_1x2W_hi(msk0xmm, msk0xmm);
-
-        // HI = DST * (1 - M)
-        // LO = SRC * M
-        pix_multiply_1x2W(src0xmm, src0xmm, msk0xmm);
-
-        OP::prgb32_op_prgb32_unpacked_1x1W(dst0xmm, dst0xmm, src0xmm);
-
-        src0xmm = _mm_shuffle_epi32(src0xmm, _MM_SHUFFLE(1, 0, 3, 2));
-        pix_adds_1x1W(dst0xmm, dst0xmm, src0xmm);
-        pix_pack_1x1W(dst0xmm, dst0xmm);
-        pix_store4(dst, dst0xmm);
-      }
-
-      src += 3;
-      dst += 4;
-      msk += 1;
-    BLIT_SSE2_32x4_SMALL_END(blt)
-
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
-      __m128i src0xmm, src1xmm;
-      __m128i dst0xmm, dst1xmm;
-      __m128i msk0xmm, msk1xmm;
-
-      uint32_t msk0 = READ_32(msk);
-      if (msk0 != 0x00000000)
-      {
-        pix_fetch_rgb24_2x2W(src0xmm, src1xmm, src);
-        pix_load16a(dst0xmm, dst);
-
-        pix_expand_mask_2x2W(msk0xmm, msk1xmm, msk0);
-        pix_fill_alpha_2x2W(src0xmm, src1xmm);
-        pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
-        pix_multiply_2x2W(src0xmm, src0xmm, msk0xmm, src1xmm, src1xmm, msk1xmm);
-        pix_negate_2x2W(msk0xmm, msk0xmm, msk1xmm, msk1xmm);
-        pix_multiply_2x2W(msk0xmm, msk0xmm, dst0xmm, msk1xmm, msk1xmm, dst1xmm);
-        pix_pack_2x2W(msk0xmm, msk0xmm, msk1xmm);
-
-        OP::prgb32_op_prgb32_unpacked_2x2W(dst0xmm, dst0xmm, src0xmm, dst1xmm, dst1xmm, src1xmm);
-
-        pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
-        pix_adds_1x4B(dst0xmm, dst0xmm, msk0xmm);
-        pix_store16a(dst, dst0xmm);
-      }
-
-      src += 12;
-      dst += 16;
-      msk += 4;
-    BLIT_SSE2_32x4_LARGE_END(blt)
-  }
-
   static void FOG_FASTCALL prgb32_vspan_prgb32_a8_const(
     uint8_t* dst, const uint8_t* src, uint32_t msk0, sysint_t w, const Closure* closure)
   {
@@ -3174,105 +2586,9 @@ struct CompositeMaskLerpInSSE2
     BLIT_SSE2_32x4_LARGE_END(blt)
   }
 
-  static void FOG_FASTCALL prgb32_vspan_rgb24_a8_const(
-    uint8_t* dst, const uint8_t* src, uint32_t msk0, sysint_t w, const Closure* closure)
-  {
-    __m128i msk0xmm;
-    __m128i inv0xmm;
-
-    pix_expand_mask_1x1W(msk0xmm, msk0);
-    pix_expand_pixel_1x2W(msk0xmm, msk0xmm);
-    pix_negate_1x2W(inv0xmm, msk0xmm);
-
-    BLIT_SSE2_32x4_INIT(dst, w)
-
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
-      __m128i src0xmm;
-      __m128i dst0xmm;
-      __m128i tmp0xmm = msk0xmm;
-
-      src0xmm = _mm_cvtsi32_si128(PixFmt_RGB24::fetch(src) | 0xFF000000);
-      pix_load4(dst0xmm, dst);
-
-      pix_unpack_1x1W(src0xmm, src0xmm);
-      pix_unpack_1x1W(dst0xmm, dst0xmm);
-      src0xmm = _mm_or_si128(src0xmm, _mm_shuffle_epi32(dst0xmm, _MM_SHUFFLE(1, 0, 3, 2)));
-      pix_negate_1x2W_hi(tmp0xmm, tmp0xmm);
-
-      // HI = DST * (1 - M)
-      // LO = SRC * M
-      pix_multiply_1x2W(src0xmm, src0xmm, tmp0xmm);
-
-      OP::prgb32_op_prgb32_unpacked_1x1W(dst0xmm, dst0xmm, src0xmm);
-
-      src0xmm = _mm_shuffle_epi32(src0xmm, _MM_SHUFFLE(1, 0, 3, 2));
-      pix_adds_1x1W(dst0xmm, dst0xmm, src0xmm);
-      pix_pack_1x1W(dst0xmm, dst0xmm);
-      pix_store4(dst, dst0xmm);
-
-      src += 3;
-      dst += 4;
-    BLIT_SSE2_32x4_SMALL_END(blt)
-
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
-      __m128i src0xmm, src1xmm;
-      __m128i dst0xmm, dst1xmm;
-      __m128i tmp0xmm, tmp1xmm;
-
-      pix_fetch_rgb24_2x2W(src0xmm, src1xmm, src);
-      pix_load16a(dst0xmm, dst);
-
-      pix_fill_alpha_2x2W(src0xmm, src1xmm);
-      pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
-
-      pix_multiply_2x2W(src0xmm, src0xmm, msk0xmm, src1xmm, src1xmm, msk0xmm);
-
-      tmp0xmm = inv0xmm;
-      tmp1xmm = inv0xmm;
-
-      pix_multiply_2x2W(tmp0xmm, tmp0xmm, dst0xmm, tmp1xmm, tmp1xmm, dst1xmm);
-      pix_pack_2x2W(tmp0xmm, tmp0xmm, tmp1xmm);
-
-      OP::prgb32_op_prgb32_unpacked_2x2W(dst0xmm, dst0xmm, src0xmm, dst1xmm, dst1xmm, src1xmm);
-
-      pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
-      pix_adds_1x4B(dst0xmm, dst0xmm, tmp0xmm);
-      pix_store16a(dst, dst0xmm);
-
-      src += 12;
-      dst += 16;
-    BLIT_SSE2_32x4_LARGE_END(blt)
-  }
-
   // -------------------------------------------------------------------------
   // [CompositeSrcSSE2 - XRGB32]
   // -------------------------------------------------------------------------
-
-  static void FOG_FASTCALL xrgb32_pixel_a8(
-    uint8_t* dst, const Solid* src, uint32_t msk0, const Closure* closure)
-  {
-    __m128i dst0xmm;
-    __m128i src0xmm;
-    __m128i msk0xmm;
-    __m128i inv0xmm;
-
-    pix_load4(src0xmm, &src->prgb);
-    pix_load4(dst0xmm, dst);
-
-    pix_unpack_1x1W(src0xmm, src0xmm);
-    pix_unpack_1x1W(dst0xmm, dst0xmm);
-
-    pix_expand_mask_1x1W(msk0xmm, msk0);
-    pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
-    pix_negate_1x1W(msk0xmm, msk0xmm);
-    pix_multiply_1x1W(msk0xmm, msk0xmm, dst0xmm);
-
-    OP::xrgb32_op_prgb32_packed_1x1B(dst0xmm, dst0xmm, src0xmm);
-    pix_adds_1x1W(dst0xmm, dst0xmm, msk0xmm);
-
-    pix_pack_1x1W(dst0xmm, dst0xmm);
-    pix_store4(dst, dst0xmm);
-  }
 
   static void FOG_FASTCALL xrgb32_cspan_a8(
     uint8_t* dst, const Solid* src, const uint8_t* msk, sysint_t w, const Closure* closure)
@@ -3629,77 +2945,6 @@ struct CompositeMaskLerpInSSE2
     BLIT_SSE2_32x4_LARGE_END(blt)
   }
 
-  static void FOG_FASTCALL xrgb32_vspan_rgb24_a8(
-    uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w, const Closure* closure)
-  {
-    BLIT_SSE2_32x4_INIT(dst, w)
-
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
-      __m128i src0xmm;
-      __m128i dst0xmm;
-      __m128i msk0xmm;
-
-      uint32_t msk0 = READ_8(msk);
-      if (msk0 != 0x00)
-      {
-        src0xmm = _mm_cvtsi32_si128(PixFmt_RGB24::fetch(src) | 0xFF000000);
-        pix_load4(dst0xmm, dst);
-        pix_expand_mask_1x1W(msk0xmm, msk0);
-        pix_unpack_1x1W(src0xmm, src0xmm);
-        pix_unpack_1x1W(dst0xmm, dst0xmm);
-        src0xmm = _mm_or_si128(src0xmm, _mm_shuffle_epi32(dst0xmm, _MM_SHUFFLE(1, 0, 3, 2)));
-        pix_expand_pixel_1x2W(msk0xmm, msk0xmm);
-        pix_negate_1x2W_hi(msk0xmm, msk0xmm);
-
-        // HI = DST * (1 - M)
-        // LO = SRC * M
-        pix_multiply_1x2W(src0xmm, src0xmm, msk0xmm);
-
-        OP::xrgb32_op_prgb32_unpacked_1x1W(dst0xmm, dst0xmm, src0xmm);
-
-        src0xmm = _mm_shuffle_epi32(src0xmm, _MM_SHUFFLE(1, 0, 3, 2));
-        pix_adds_1x1W(dst0xmm, dst0xmm, src0xmm);
-        pix_pack_1x1W(dst0xmm, dst0xmm);
-        pix_store4(dst, dst0xmm);
-      }
-
-      src += 3;
-      dst += 4;
-      msk += 1;
-    BLIT_SSE2_32x4_SMALL_END(blt)
-
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
-      __m128i src0xmm, src1xmm;
-      __m128i dst0xmm, dst1xmm;
-      __m128i msk0xmm, msk1xmm;
-
-      uint32_t msk0 = READ_32(msk);
-      if (msk0 != 0x00000000)
-      {
-        pix_fetch_rgb24_2x2W(src0xmm, src1xmm, src);
-        pix_load16a(dst0xmm, dst);
-
-        pix_expand_mask_2x2W(msk0xmm, msk1xmm, msk0);
-        pix_fill_alpha_2x2W(src0xmm, src1xmm);
-        pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
-        pix_multiply_2x2W(src0xmm, src0xmm, msk0xmm, src1xmm, src1xmm, msk1xmm);
-        pix_negate_2x2W(msk0xmm, msk0xmm, msk1xmm, msk1xmm);
-        pix_multiply_2x2W(msk0xmm, msk0xmm, dst0xmm, msk1xmm, msk1xmm, dst1xmm);
-        pix_pack_2x2W(msk0xmm, msk0xmm, msk1xmm);
-
-        OP::xrgb32_op_prgb32_unpacked_2x2W(dst0xmm, dst0xmm, src0xmm, dst1xmm, dst1xmm, src1xmm);
-
-        pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
-        pix_adds_1x4B(dst0xmm, dst0xmm, msk0xmm);
-        pix_store16a(dst, dst0xmm);
-      }
-
-      src += 12;
-      dst += 16;
-      msk += 4;
-    BLIT_SSE2_32x4_LARGE_END(blt)
-  }
-
   static void FOG_FASTCALL xrgb32_vspan_prgb32_a8_const(
     uint8_t* dst, const uint8_t* src, uint32_t msk0, sysint_t w, const Closure* closure)
   {
@@ -3929,76 +3174,6 @@ struct CompositeMaskLerpInSSE2
       dst += 16;
     BLIT_SSE2_32x4_LARGE_END(blt)
   }
-
-  static void FOG_FASTCALL xrgb32_vspan_rgb24_a8_const(
-    uint8_t* dst, const uint8_t* src, uint32_t msk0, sysint_t w, const Closure* closure)
-  {
-    __m128i msk0xmm;
-    __m128i inv0xmm;
-
-    pix_expand_mask_1x1W(msk0xmm, msk0);
-    pix_expand_pixel_1x2W(msk0xmm, msk0xmm);
-    pix_negate_1x2W(inv0xmm, msk0xmm);
-
-    BLIT_SSE2_32x4_INIT(dst, w)
-
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
-      __m128i src0xmm;
-      __m128i dst0xmm;
-      __m128i tmp0xmm = msk0xmm;
-
-      src0xmm = _mm_cvtsi32_si128(PixFmt_RGB24::fetch(src) | 0xFF000000);
-      pix_load4(dst0xmm, dst);
-
-      pix_unpack_1x1W(src0xmm, src0xmm);
-      pix_unpack_1x1W(dst0xmm, dst0xmm);
-      src0xmm = _mm_or_si128(src0xmm, _mm_shuffle_epi32(dst0xmm, _MM_SHUFFLE(1, 0, 3, 2)));
-      pix_negate_1x2W_hi(tmp0xmm, tmp0xmm);
-
-      // HI = DST * (1 - M)
-      // LO = SRC * M
-      pix_multiply_1x2W(src0xmm, src0xmm, tmp0xmm);
-
-      OP::xrgb32_op_prgb32_unpacked_1x1W(dst0xmm, dst0xmm, src0xmm);
-
-      src0xmm = _mm_shuffle_epi32(src0xmm, _MM_SHUFFLE(1, 0, 3, 2));
-      pix_adds_1x1W(dst0xmm, dst0xmm, src0xmm);
-      pix_pack_1x1W(dst0xmm, dst0xmm);
-      pix_store4(dst, dst0xmm);
-
-      src += 4;
-      dst += 4;
-    BLIT_SSE2_32x4_SMALL_END(blt)
-
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
-      __m128i src0xmm, src1xmm;
-      __m128i dst0xmm, dst1xmm;
-      __m128i tmp0xmm, tmp1xmm;
-
-      pix_fetch_rgb24_2x2W(src0xmm, src1xmm, src);
-      pix_load16a(dst0xmm, dst);
-
-      pix_fill_alpha_2x2W(src0xmm, src1xmm);
-      pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
-
-      pix_multiply_2x2W(src0xmm, src0xmm, msk0xmm, src1xmm, src1xmm, msk0xmm);
-
-      tmp0xmm = inv0xmm;
-      tmp1xmm = inv0xmm;
-
-      pix_multiply_2x2W(tmp0xmm, tmp0xmm, dst0xmm, tmp1xmm, tmp1xmm, dst1xmm);
-      pix_pack_2x2W(tmp0xmm, tmp0xmm, tmp1xmm);
-
-      OP::xrgb32_op_prgb32_unpacked_2x2W(dst0xmm, dst0xmm, src0xmm, dst1xmm, dst1xmm, src1xmm);
-
-      pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
-      pix_adds_1x4B(dst0xmm, dst0xmm, tmp0xmm);
-      pix_store16a(dst, dst0xmm);
-
-      src += 16;
-      dst += 16;
-    BLIT_SSE2_32x4_LARGE_END(blt)
-  }
 };
 
 // ############################################################################
@@ -4014,31 +3189,6 @@ struct FOG_HIDDEN CompositeSrcSSE2
   // -------------------------------------------------------------------------
   // [CompositeSrcSSE2 - PRGB32]
   // -------------------------------------------------------------------------
-
-  static void FOG_FASTCALL prgb32_pixel(
-    uint8_t* dst, const Solid* src, const Closure* closure)
-  {
-    uint32_t src0 = src->prgb;
-    ((uint32_t*)dst)[0] = src0;
-  }
-
-  static void FOG_FASTCALL prgb32_pixel_a8(
-    uint8_t* dst, const Solid* src, uint32_t msk0, const Closure* closure)
-  {
-    __m128i src0xmm;
-    __m128i dst0xmm;
-    __m128i a0xmm;
-
-    pix_load4(dst0xmm, dst);
-    pix_load4(src0xmm, &src->prgb);
-
-    pix_unpack_1x1W(src0xmm, src0xmm);
-    pix_unpack_1x1W(dst0xmm, dst0xmm);
-    pix_expand_mask_1x1W(a0xmm, msk0);
-    pix_lerp_1x1W(dst0xmm, src0xmm, a0xmm);
-    pix_pack_1x1W(dst0xmm, dst0xmm);
-    pix_store4(dst, dst0xmm);
-  }
 
   static void FOG_FASTCALL prgb32_cspan(
     uint8_t* dst, const Solid* src, sysint_t w, const Closure* closure)
@@ -4396,75 +3546,6 @@ struct FOG_HIDDEN CompositeSrcSSE2
     BLIT_SSE2_32x4_LARGE_END(blt)
   }
 
-  static void FOG_FASTCALL prgb32_vspan_rgb24_a8(
-    uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w, const Closure* closure)
-  {
-    BLIT_SSE2_32x4_INIT(dst, w);
-
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
-      __m128i src0xmm;
-      __m128i dst0xmm;
-      __m128i a0xmm;
-
-      uint32_t msk0 = READ_8(msk);
-      if (msk0 != 0x00)
-      {
-        uint32_t src0 = PixFmt_RGB24::fetch(src);
-
-        if (msk0 != 0xFF)
-        {
-          pix_load4(dst0xmm, dst);
-          pix_unpack_1x1W(src0xmm, src0);
-          pix_unpack_1x1W(dst0xmm, dst0xmm);
-          pix_expand_mask_1x1W(a0xmm, msk0);
-          pix_lerp_1x1W(dst0xmm, src0xmm, a0xmm);
-          pix_pack_1x1W(dst0xmm, dst0xmm);
-          pix_store4(dst, dst0xmm);
-        }
-        else
-        {
-          ((uint32_t*)dst)[0] = src0;
-        }
-      }
-
-      dst += 4;
-      src += 3;
-      msk += 1;
-    BLIT_SSE2_32x4_SMALL_END(blt)
-
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
-      __m128i src0xmm, src1xmm;
-      __m128i dst0xmm, dst1xmm;
-      __m128i a0xmm, a1xmm;
-
-      uint32_t msk0 = READ_32(msk);
-
-      if (msk0 != 0x00000000)
-      {
-        pix_fetch_rgb24_2x2W(src0xmm, src1xmm, src);
-
-        if (msk0 != 0xFFFFFFFF)
-        {
-          pix_load16a(dst0xmm, dst);
-          pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
-          pix_expand_mask_2x2W(a0xmm, a1xmm, msk0);
-          pix_lerp_2x2W(dst0xmm, src0xmm, a0xmm, dst1xmm, src1xmm, a1xmm);
-          pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
-          pix_store16a(dst, dst0xmm);
-        }
-        else
-        {
-          pix_pack_2x2W(src0xmm, src0xmm, src1xmm);
-          pix_store16a(dst, src0xmm);
-        }
-      }
-
-      dst += 16;
-      src += 12;
-      msk += 4;
-    BLIT_SSE2_32x4_LARGE_END(blt)
-  }
-
   static void FOG_FASTCALL prgb32_vspan_a8_a8(
     uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w, const Closure* closure)
   {
@@ -4738,47 +3819,6 @@ struct FOG_HIDDEN CompositeSrcSSE2
     BLIT_SSE2_32x4_LARGE_END(blt)
   }
 
-  static void FOG_FASTCALL prgb32_vspan_rgb24_a8_const(
-    uint8_t* dst, const uint8_t* src, uint32_t msk0, sysint_t w, const Closure* closure)
-  {
-    __m128i m0xmm, im0xmm;
-    pix_expand_mask_1x1W(m0xmm, msk0);
-    pix_expand_pixel_1x2W(m0xmm, m0xmm);
-    pix_negate_1x2W(im0xmm, m0xmm);
-
-    BLIT_SSE2_32x4_INIT(dst, w);
-
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
-      __m128i src0xmm;
-      __m128i dst0xmm;
-
-      pix_load4(dst0xmm, dst);
-      pix_unpack_1x1W(src0xmm, PixFmt_RGB24::fetch(src));
-      pix_unpack_1x1W(dst0xmm, dst0xmm);
-      pix_lerp_ialpha_1x1W(dst0xmm, src0xmm, m0xmm, im0xmm);
-      pix_pack_1x1W(dst0xmm, dst0xmm);
-      pix_store4(dst, dst0xmm);
-
-      dst += 4;
-      src += 3;
-    BLIT_SSE2_32x4_SMALL_END(blt)
-
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
-      __m128i src0xmm, src1xmm;
-      __m128i dst0xmm, dst1xmm;
-
-      pix_fetch_rgb24_2x2W(src0xmm, src1xmm, src);
-      pix_load16a(dst0xmm, dst);
-      pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
-      pix_lerp_ialpha_2x2W(dst0xmm, src0xmm, m0xmm, im0xmm, dst1xmm, src1xmm, m0xmm, im0xmm);
-      pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
-      pix_store16a(dst, dst0xmm);
-
-      dst += 16;
-      src += 12;
-    BLIT_SSE2_32x4_LARGE_END(blt)
-  }
-
   static void FOG_FASTCALL prgb32_vspan_a8_a8_const(
     uint8_t* dst, const uint8_t* src, uint32_t msk0, sysint_t w, const Closure* closure)
   {
@@ -4871,33 +3911,6 @@ struct FOG_HIDDEN CompositeSrcSSE2
   // -------------------------------------------------------------------------
   // [CompositeSrcSSE2 - XRGB32]
   // -------------------------------------------------------------------------
-
-  static void FOG_FASTCALL xrgb32_pixel(
-    uint8_t* dst, const Solid* src, const Closure* closure)
-  {
-    uint32_t src0 = src->prgb | 0xFF000000;
-    ((uint32_t*)dst)[0] = src0;
-  }
-
-  static void FOG_FASTCALL xrgb32_pixel_a8(
-    uint8_t* dst, const Solid* src, uint32_t msk0, const Closure* closure)
-  {
-    uint32_t src0 = src->prgb | 0xFF000000;
-
-    __m128i src0xmm;
-    __m128i dst0xmm;
-    __m128i a0xmm;
-
-    pix_load4(src0xmm, &src->argb);
-    pix_load4(dst0xmm, dst);
-    dst0xmm = _mm_or_si128(dst0xmm, Mask_FF000000FF000000_FF000000FF000000);
-    pix_expand_mask_1x1W(a0xmm, msk0);
-    pix_unpack_1x1W(src0xmm, src0xmm);
-    pix_unpack_1x1W(dst0xmm, dst0xmm);
-    pix_lerp_1x1W(dst0xmm, src0xmm, a0xmm);
-    pix_pack_1x1W(dst0xmm, dst0xmm);
-    pix_store4(dst, dst0xmm);
-  }
 
   static void FOG_FASTCALL xrgb32_cspan(
     uint8_t* dst, const Solid* src, sysint_t w, const Closure* closure)
@@ -5200,83 +4213,6 @@ struct FOG_HIDDEN CompositeSrcSSE2
     BLIT_SSE2_32x4_LARGE_END(blt)
   }
 
-  static void FOG_FASTCALL xrgb32_vspan_rgb24_a8(
-    uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w, const Closure* closure)
-  {
-    BLIT_SSE2_32x4_INIT(dst, w)
-
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
-      __m128i src0xmm;
-      __m128i dst0xmm;
-      __m128i a0xmm;
-
-      uint32_t msk0 = READ_8(msk);
-
-      if (msk0 != 0x00)
-      {
-        uint32_t src0 = PixFmt_RGB24::fetch(src);
-
-        if (msk0 == 0xFF)
-        {
-          ((uint32_t*)dst)[0] = src0;
-        }
-        else
-        {
-          pix_load4(dst0xmm, dst);
-          dst0xmm = _mm_or_si128(dst0xmm, Mask_FF000000FF000000_FF000000FF000000);
-          pix_unpack_1x1W(dst0xmm, dst0xmm);
-          pix_unpack_1x1W(src0xmm, src0);
-
-          pix_expand_mask_1x1W(a0xmm, msk0);
-          pix_fill_alpha_1x1W(src0xmm);
-          pix_multiply_1x1W(src0xmm, src0xmm, a0xmm);
-          pix_over_1x1W(dst0xmm, src0xmm, a0xmm);
-          pix_pack_1x1W(dst0xmm, dst0xmm);
-          pix_store4(dst, dst0xmm);
-        }
-      }
-
-      dst += 4;
-      src += 3;
-      msk += 1;
-    BLIT_SSE2_32x4_SMALL_END(blt)
-
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
-      __m128i src0xmm, src1xmm;
-      __m128i dst0xmm, dst1xmm;
-      __m128i a0xmm, a1xmm;
-
-      uint32_t msk0 = ((uint32_t*)msk)[0];
-
-      if (msk0 != 0x00000000)
-      {
-        pix_fetch_rgb24_2x2W(src0xmm, src1xmm, src);
-        if (msk0 == 0xFFFFFFFF)
-        {
-          pix_pack_2x2W(dst0xmm, src0xmm, src1xmm);
-          pix_store16a(dst, dst0xmm);
-        }
-        else
-        {
-          pix_load16a(dst0xmm, dst);
-          dst0xmm = _mm_or_si128(dst0xmm, Mask_FF000000FF000000_FF000000FF000000);
-
-          pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
-          pix_expand_mask_2x2W(a0xmm, a1xmm, msk0);
-          pix_fill_alpha_2x2W(src0xmm, src1xmm);
-          pix_multiply_2x2W(src0xmm, src0xmm, a0xmm, src1xmm, src1xmm, a1xmm);
-          pix_over_2x2W(dst0xmm, src0xmm, a0xmm, dst1xmm, src1xmm, a1xmm);
-          pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
-          pix_store16a(dst, dst0xmm);
-        }
-      }
-
-      dst += 16;
-      src += 12;
-      msk += 4;
-    BLIT_SSE2_32x4_LARGE_END(blt)
-  }
-
   static void FOG_FASTCALL xrgb32_vspan_i8_a8(
     uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w, const Closure* closure)
   {
@@ -5447,56 +4383,6 @@ struct FOG_HIDDEN CompositeSrcSSE2
     BLIT_SSE2_32x4_LARGE_END(blt)
   }
 
-  static void FOG_FASTCALL xrgb32_vspan_rgb24_a8_const(
-    uint8_t* dst, const uint8_t* src, uint32_t msk0, sysint_t w, const Closure* closure)
-  {
-    __m128i m0xmm, im0xmm;
-    pix_expand_mask_1x1W(m0xmm, msk0);
-    pix_expand_pixel_1x2W(m0xmm, m0xmm);
-    pix_negate_1x2W(im0xmm, m0xmm);
-
-    BLIT_SSE2_32x4_INIT(dst, w);
-
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
-      __m128i src0xmm;
-      __m128i dst0xmm;
-
-      uint32_t src0 = PixFmt_RGB24::fetch(src) | 0xFF000000;
-
-      pix_load4(dst0xmm, dst);
-      dst0xmm = _mm_or_si128(dst0xmm, Mask_FF000000FF000000_FF000000FF000000);
-      pix_unpack_1x1W(src0xmm, src0);
-      pix_unpack_1x1W(dst0xmm, dst0xmm);
-
-      pix_multiply_1x1W(src0xmm, src0xmm, m0xmm);
-      pix_over_ialpha_1x1W(dst0xmm, src0xmm, im0xmm);
-      pix_pack_1x1W(dst0xmm, dst0xmm);
-
-      pix_store4(dst, dst0xmm);
-
-      dst += 4;
-      src += 4;
-    BLIT_SSE2_32x4_SMALL_END(blt)
-
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
-      __m128i src0xmm, src1xmm;
-      __m128i dst0xmm, dst1xmm;
-
-      pix_load16a(dst0xmm, dst);
-      dst0xmm = _mm_or_si128(dst0xmm, Mask_FF000000FF000000_FF000000FF000000);
-      pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
-      pix_fetch_rgb24_2x2W(src0xmm, src1xmm, src);
-      pix_multiply_2x2W(src0xmm, src0xmm, m0xmm, src1xmm, src1xmm, m0xmm);
-      pix_over_ialpha_2x2W(dst0xmm, src0xmm, im0xmm, dst1xmm, src1xmm, im0xmm);
-      pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
-
-      pix_store16a(dst, dst0xmm);
-
-      dst += 16;
-      src += 16;
-    BLIT_SSE2_32x4_LARGE_END(blt)
-  }
-
   static void FOG_FASTCALL xrgb32_vspan_i8_a8_const(
     uint8_t* dst, const uint8_t* src, uint32_t msk0, sysint_t w, const Closure* closure)
   {
@@ -5608,56 +4494,6 @@ struct FOG_HIDDEN CompositeSrcOverSSE2
   // -------------------------------------------------------------------------
   // [CompositeSrcOverSSE2 - PRGB32]
   // -------------------------------------------------------------------------
-
-  static void FOG_FASTCALL prgb32_pixel(
-    uint8_t* dst, const Solid* src, const Closure* closure)
-  {
-    uint32_t src0 = src->prgb;
-
-    if (ArgbUtil::isAlpha0xFF(src0))
-    {
-      ((uint32_t*)dst)[0] = src0;
-    }
-    else
-    {
-      __m128i src0xmm;
-      __m128i dst0xmm;
-
-      pix_unpack_1x1W(src0xmm, src0);
-      pix_load4(dst0xmm, dst);
-      pix_unpack_1x1W(dst0xmm, dst0xmm);
-      pix_over_1x1W(dst0xmm, src0xmm);
-      pix_pack_1x1W(dst0xmm, dst0xmm);
-      pix_store4(dst, dst0xmm);
-    }
-  }
-
-  static void FOG_FASTCALL prgb32_pixel_a8(
-    uint8_t* dst, const Solid* src, uint32_t msk0, const Closure* closure)
-  {
-    uint32_t src0 = src->prgb;
-
-    if (ArgbUtil::isAlpha0xFF(src0) & (msk0 == 0xFF))
-    {
-      ((uint32_t*)dst)[0] = src0;
-    }
-    else
-    {
-      __m128i src0xmm;
-      __m128i dst0xmm;
-      __m128i a0xmm;
-
-      pix_unpack_1x1W(src0xmm, src0);
-      pix_unpack_1x1W(a0xmm, msk0);
-      pix_expand_alpha_rev_1x1W(a0xmm, a0xmm);
-      pix_load4(dst0xmm, dst);
-      pix_unpack_1x1W(dst0xmm, dst0xmm);
-      pix_multiply_1x1W(src0xmm, src0xmm, a0xmm);
-      pix_over_1x1W(dst0xmm, src0xmm);
-      pix_pack_1x1W(dst0xmm, dst0xmm);
-      pix_store4(dst, dst0xmm);
-    }
-  }
 
   static void FOG_FASTCALL prgb32_cspan(
     uint8_t* dst, const Solid* src, sysint_t w, const Closure* closure)
@@ -6234,81 +5070,6 @@ struct FOG_HIDDEN CompositeSrcOverSSE2
     BLIT_SSE2_32x4_LARGE_END(blt)
   }
 
-  static void FOG_FASTCALL prgb32_vspan_rgb24_a8(
-    uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w, const Closure* closure)
-  {
-    BLIT_SSE2_32x4_INIT(dst, w)
-
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
-      __m128i src0xmm;
-      __m128i dst0xmm;
-      __m128i a0xmm;
-
-      uint32_t msk0 = READ_8(msk);
-
-      if (msk0 != 0x00)
-      {
-        uint32_t src0 = PixFmt_RGB24::fetch(src);
-
-        if (msk0 != 0xFF)
-        {
-          pix_load4(dst0xmm, dst);
-          pix_unpack_1x1W(dst0xmm, dst0xmm);
-          pix_unpack_1x1W(src0xmm, src0);
-
-          pix_expand_mask_1x1W(a0xmm, msk0);
-          pix_fill_alpha_1x1W(src0xmm);
-          pix_multiply_1x1W(src0xmm, src0xmm, a0xmm);
-          pix_over_1x1W(dst0xmm, src0xmm, a0xmm);
-          pix_pack_1x1W(dst0xmm, dst0xmm);
-          pix_store4(dst, dst0xmm);
-        }
-        else
-        {
-          ((uint32_t*)dst)[0] = src0;
-        }
-      }
-
-      dst += 4;
-      src += 3;
-      msk += 1;
-    BLIT_SSE2_32x4_SMALL_END(blt)
-
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
-      __m128i src0xmm, src1xmm;
-      __m128i dst0xmm, dst1xmm;
-      __m128i a0xmm, a1xmm;
-
-      uint32_t msk0 = ((uint32_t*)msk)[0];
-
-      if (msk0 != 0x00000000)
-      {
-        pix_fetch_rgb24_2x2W(src0xmm, src1xmm, src);
-        if (msk0 != 0xFFFFFFFF)
-        {
-          pix_load16a(dst0xmm, dst);
-
-          pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
-          pix_expand_mask_2x2W(a0xmm, a1xmm, msk0);
-          pix_fill_alpha_2x2W(src0xmm, src1xmm);
-          pix_multiply_2x2W(src0xmm, src0xmm, a0xmm, src1xmm, src1xmm, a1xmm);
-          pix_over_2x2W(dst0xmm, src0xmm, a0xmm, dst1xmm, src1xmm, a1xmm);
-          pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
-          pix_store16a(dst, dst0xmm);
-        }
-        else
-        {
-          pix_pack_2x2W(dst0xmm, src0xmm, src1xmm);
-          pix_store16a(dst, dst0xmm);
-        }
-      }
-
-      dst += 16;
-      src += 12;
-      msk += 4;
-    BLIT_SSE2_32x4_LARGE_END(blt)
-  }
-
   static void FOG_FASTCALL prgb32_vspan_argb32_a8_const(
     uint8_t* dst, const uint8_t* src, uint32_t msk0, sysint_t w, const Closure* closure)
   {
@@ -6550,54 +5311,6 @@ struct FOG_HIDDEN CompositeSrcOverSSE2
     BLIT_SSE2_32x4_LARGE_END(blt)
   }
 
-  static void FOG_FASTCALL prgb32_vspan_rgb24_a8_const(
-    uint8_t* dst, const uint8_t* src, uint32_t msk0, sysint_t w, const Closure* closure)
-  {
-    __m128i m0xmm, im0xmm;
-    pix_expand_mask_1x1W(m0xmm, msk0);
-    pix_expand_pixel_1x2W(m0xmm, m0xmm);
-    pix_negate_1x2W(im0xmm, m0xmm);
-
-    BLIT_SSE2_32x4_INIT(dst, w);
-
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
-      __m128i src0xmm;
-      __m128i dst0xmm;
-
-      uint32_t src0 = PixFmt_RGB24::fetch(src) | 0xFF000000;
-
-      pix_load4(dst0xmm, dst);
-      pix_unpack_1x1W(src0xmm, src0);
-      pix_unpack_1x1W(dst0xmm, dst0xmm);
-
-      pix_multiply_1x1W(src0xmm, src0xmm, m0xmm);
-      pix_over_ialpha_1x1W(dst0xmm, src0xmm, im0xmm);
-      pix_pack_1x1W(dst0xmm, dst0xmm);
-
-      pix_store4(dst, dst0xmm);
-
-      dst += 4;
-      src += 3;
-    BLIT_SSE2_32x4_SMALL_END(blt)
-
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
-      __m128i src0xmm, src1xmm;
-      __m128i dst0xmm, dst1xmm;
-
-      pix_load16a(dst0xmm, dst);
-      pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
-      pix_fetch_rgb24_2x2W(src0xmm, src1xmm, src);
-      pix_multiply_2x2W(src0xmm, src0xmm, m0xmm, src1xmm, src1xmm, m0xmm);
-      pix_over_ialpha_2x2W(dst0xmm, src0xmm, im0xmm, dst1xmm, src1xmm, im0xmm);
-      pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
-
-      pix_store16a(dst, dst0xmm);
-
-      dst += 16;
-      src += 12;
-    BLIT_SSE2_32x4_LARGE_END(blt)
-  }
-
   // -------------------------------------------------------------------------
   // [CompositeSrcOverSSE2 - XRGB32]
   // -------------------------------------------------------------------------
@@ -6621,34 +5334,6 @@ struct FOG_HIDDEN CompositeSrcOverSSE2
       dst0xmm = _mm_or_si128(dst0xmm, Mask_FF000000FF000000_FF000000FF000000);
       pix_unpack_1x1W(src0xmm, src0xmm);
       pix_unpack_1x1W(dst0xmm, dst0xmm);
-      pix_over_1x1W(dst0xmm, src0xmm);
-      pix_pack_1x1W(dst0xmm, dst0xmm);
-      pix_store4(dst, dst0xmm);
-    }
-  }
-
-  static void FOG_FASTCALL xrgb32_pixel_a8(
-    uint8_t* dst, const Solid* src, uint32_t msk0, const Closure* closure)
-  {
-    uint32_t src0 = src->prgb;
-
-    if (ArgbUtil::isAlpha0xFF(src0) & (msk0 == 0xFF))
-    {
-      ((uint32_t*)dst)[0] = src0;
-    }
-    else
-    {
-      __m128i src0xmm;
-      __m128i dst0xmm;
-      __m128i a0xmm;
-
-      pix_load4(src0xmm, &src->prgb);
-      pix_load4(dst0xmm, dst);
-      pix_expand_mask_1x1W(a0xmm, msk0);
-      dst0xmm = _mm_or_si128(dst0xmm, Mask_FF000000FF000000_FF000000FF000000);
-      pix_unpack_1x1W(src0xmm, src0xmm);
-      pix_unpack_1x1W(dst0xmm, dst0xmm);
-      pix_multiply_1x1W(src0xmm, src0xmm, a0xmm);
       pix_over_1x1W(dst0xmm, src0xmm);
       pix_pack_1x1W(dst0xmm, dst0xmm);
       pix_store4(dst, dst0xmm);
@@ -7521,49 +6206,6 @@ struct CompositeSrcInSSE2
   // [CompositeSrcInSSE2 - PRGB32]
   // -------------------------------------------------------------------------
 
-  static void FOG_FASTCALL prgb32_pixel(
-    uint8_t* dst, const Solid* src, const Closure* closure)
-  {
-    __m128i dst0xmm;
-    __m128i src0xmm;
-
-    pix_load4(dst0xmm, dst);
-    pix_load4(src0xmm, &src->prgb);
-
-    pix_expand_alpha_1x1W(dst0xmm, dst0xmm);
-    pix_multiply_1x1W(dst0xmm, dst0xmm, src0xmm);
-
-    pix_store4(dst, dst0xmm);
-  }
-
-  static void FOG_FASTCALL prgb32_pixel_a8(
-    uint8_t* dst, const Solid* src, uint32_t msk0, const Closure* closure)
-  {
-    __m128i dst0xmm;
-    __m128i src0xmm;
-    __m128i msk0xmm;
-
-    pix_load4(src0xmm, &src->prgb);
-    pix_load4(dst0xmm, dst);
-
-    pix_unpack_1x1W(src0xmm, src0xmm);
-    pix_unpack_1x1W(dst0xmm, dst0xmm);
-
-    pix_expand_alpha_1x1W(msk0xmm, dst0xmm);
-    pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
-
-    pix_expand_mask_1x1W(msk0xmm, msk0);
-    pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
-
-    pix_negate_1x1W(msk0xmm, msk0xmm);
-    pix_multiply_1x1W(dst0xmm, dst0xmm, msk0xmm);
-
-    pix_adds_1x1W(dst0xmm, dst0xmm, src0xmm);
-
-    pix_pack_1x1W(dst0xmm, dst0xmm);
-    pix_store4(dst, dst0xmm);
-  }
-
   static void FOG_FASTCALL prgb32_cspan(
     uint8_t* dst, const Solid* src, sysint_t w, const Closure* closure)
   {
@@ -7877,52 +6519,6 @@ struct CompositeSrcInSSE2
     BLIT_SSE2_32x4_LARGE_END(blt)
   }
 
-  static void FOG_FASTCALL prgb32_vspan_rgb24(
-    uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
-  {
-    BLIT_SSE2_32x4_INIT(dst, w)
-
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
-      __m128i dst0xmm;
-      __m128i src0xmm;
-
-      pix_load4(dst0xmm, dst);
-      src0xmm = _mm_cvtsi32_si128(PixFmt_RGB24::fetch(src) | 0xFF000000);
-
-      pix_unpack_1x1W(src0xmm, src0xmm);
-      pix_unpack_1x1W(dst0xmm, dst0xmm);
-
-      pix_expand_alpha_1x1W(dst0xmm, dst0xmm);
-      pix_multiply_1x1W(dst0xmm, dst0xmm, src0xmm);
-
-      pix_pack_1x1W(dst0xmm, dst0xmm);
-      pix_store4(dst, dst0xmm);
-
-      dst += 4;
-      src += 3;
-    BLIT_SSE2_32x4_SMALL_END(blt)
-
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
-      __m128i dst0xmm, dst1xmm;
-      __m128i src0xmm, src1xmm;
-
-      pix_load16a(dst0xmm, dst);
-      pix_fetch_rgb24_2x2W(src0xmm, src1xmm, src);
-      pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
-
-      pix_fill_alpha_2x2W(src0xmm, src1xmm);
-
-      pix_expand_alpha_2x2W(dst0xmm, dst0xmm, dst1xmm, dst1xmm);
-      pix_multiply_2x2W(dst0xmm, dst0xmm, src0xmm, dst1xmm, dst1xmm, src1xmm);
-
-      pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
-      pix_store16a(dst, dst0xmm);
-
-      dst += 16;
-      src += 12;
-    BLIT_SSE2_32x4_LARGE_END(blt)
-  }
-
   static void FOG_FASTCALL prgb32_vspan_prgb32_a8(
     uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w, const Closure* closure)
   {
@@ -8151,83 +6747,6 @@ struct CompositeSrcInSSE2
     BLIT_SSE2_32x4_LARGE_END(blt)
   }
 
-  static void FOG_FASTCALL prgb32_vspan_rgb24_a8(
-    uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w, const Closure* closure)
-  {
-    BLIT_SSE2_32x4_INIT(dst, w)
-
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
-      __m128i src0xmm;
-      __m128i dst0xmm;
-      __m128i msk0xmm;
-
-      uint32_t msk0 = READ_8(msk);
-      if (msk0 != 0x00)
-      {
-        src0xmm = _mm_cvtsi32_si128(PixFmt_RGB24::fetch(src) | 0xFF000000);
-        pix_load4(dst0xmm, dst);
-
-        pix_unpack_1x1W(src0xmm, src0xmm);
-        pix_unpack_1x1W(dst0xmm, dst0xmm);
-
-        pix_expand_alpha_1x1W(msk0xmm, dst0xmm);
-        pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
-
-        pix_expand_mask_1x1W(msk0xmm, msk0);
-        pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
-
-        pix_negate_1x1W(msk0xmm, msk0xmm);
-        pix_multiply_1x1W(dst0xmm, dst0xmm, msk0xmm);
-
-        pix_adds_1x1W(dst0xmm, dst0xmm, src0xmm);
-
-        pix_pack_1x1W(dst0xmm, dst0xmm);
-        pix_store4(dst, dst0xmm);
-      }
-
-      src += 3;
-      dst += 4;
-      msk += 1;
-    BLIT_SSE2_32x4_SMALL_END(blt)
-
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
-      __m128i src0xmm, src1xmm;
-      __m128i dst0xmm, dst1xmm;
-      __m128i msk0xmm, msk1xmm;
-
-      uint32_t msk0 = READ_32(msk);
-      if (msk0 != 0x00000000)
-      {
-        pix_fetch_rgb24_2x2W(src0xmm, src1xmm, src);
-        pix_load16a(dst0xmm, dst);
-        pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
-
-        pix_fill_alpha_2x2W(src0xmm, src1xmm);
-
-        pix_unpack_2x2W(src0xmm, src1xmm, src0xmm);
-        pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
-
-        pix_expand_alpha_2x2W(msk0xmm, dst0xmm, msk1xmm, dst1xmm);
-        pix_multiply_2x2W(src0xmm, src0xmm, msk0xmm, dst1xmm, dst1xmm, msk1xmm);
-
-        pix_expand_mask_2x2W(msk0xmm, msk1xmm, msk0);
-        pix_multiply_2x2W(src0xmm, src0xmm, msk0xmm, src1xmm, dst1xmm, msk1xmm);
-
-        pix_negate_2x2W(msk0xmm, msk0xmm, msk1xmm, msk1xmm);
-        pix_multiply_2x2W(dst0xmm, dst0xmm, msk0xmm, dst1xmm, dst1xmm, msk1xmm);
-
-        pix_adds_2x2W(dst0xmm, dst0xmm, src0xmm, dst1xmm, dst1xmm, src1xmm);
-
-        pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
-        pix_store16a(dst, dst0xmm);
-      }
-
-      src += 12;
-      dst += 16;
-      msk += 4;
-    BLIT_SSE2_32x4_LARGE_END(blt)
-  }
-
   static void FOG_FASTCALL prgb32_vspan_prgb32_a8_const(
     uint8_t* dst, const uint8_t* src, uint32_t msk0, sysint_t w, const Closure* closure)
   {
@@ -8418,67 +6937,6 @@ struct CompositeSrcInSSE2
       dst += 16;
     BLIT_SSE2_32x4_LARGE_END(blt)
   }
-
-  static void FOG_FASTCALL prgb32_vspan_rgb24_a8_const(
-    uint8_t* dst, const uint8_t* src, uint32_t msk0, sysint_t w, const Closure* closure)
-  {
-    __m128i msk0xmm;
-    __m128i inv0xmm;
-
-    pix_expand_mask_1x1W(msk0xmm, msk0);
-    pix_expand_pixel_1x2W(msk0xmm, msk0xmm);
-    pix_negate_1x2W(inv0xmm, msk0xmm);
-
-    BLIT_SSE2_32x4_INIT(dst, w)
-
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
-      __m128i src0xmm;
-      __m128i dst0xmm;
-      __m128i tmp0xmm;
-
-      src0xmm = _mm_cvtsi32_si128(PixFmt_RGB24::fetch(src) | 0xFF000000);
-      pix_load4(dst0xmm, dst);
-
-      pix_unpack_1x1W(src0xmm, src0xmm);
-      pix_unpack_1x1W(dst0xmm, dst0xmm);
-
-      pix_expand_alpha_1x1W(tmp0xmm, dst0xmm);
-      pix_multiply_1x1W(src0xmm, src0xmm, tmp0xmm);
-      pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
-      pix_multiply_1x1W(dst0xmm, dst0xmm, inv0xmm);
-      pix_adds_1x1W(dst0xmm, dst0xmm, src0xmm);
-
-      pix_pack_1x1W(dst0xmm, dst0xmm);
-      pix_store4(dst, dst0xmm);
-
-      src += 3;
-      dst += 4;
-    BLIT_SSE2_32x4_SMALL_END(blt)
-
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
-      __m128i src0xmm, src1xmm;
-      __m128i dst0xmm, dst1xmm;
-      __m128i tmp0xmm, tmp1xmm;
-
-      pix_fetch_rgb24_2x2W(src0xmm, src1xmm, src);
-      pix_load16a(dst0xmm, dst);
-
-      pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
-      pix_fill_alpha_2x2W(src0xmm, src1xmm);
-
-      pix_expand_alpha_2x2W(tmp0xmm, dst0xmm, tmp1xmm, dst1xmm);
-      pix_multiply_2x2W(src0xmm, src0xmm, tmp0xmm, src0xmm, src0xmm, tmp1xmm);
-      pix_multiply_2x2W(src0xmm, src0xmm, msk0xmm, src1xmm, src1xmm, msk0xmm);
-      pix_multiply_2x2W(dst0xmm, dst0xmm, inv0xmm, dst1xmm, dst1xmm, inv0xmm);
-      pix_adds_2x2W(dst0xmm, dst0xmm, src0xmm, dst0xmm, dst0xmm, src0xmm);
-
-      pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
-      pix_store16a(dst, dst0xmm);
-
-      src += 12;
-      dst += 16;
-    BLIT_SSE2_32x4_LARGE_END(blt)
-  }
 };
 
 // ============================================================================
@@ -8490,44 +6948,6 @@ struct CompositeDstInSSE2
   // -------------------------------------------------------------------------
   // [CompositeDstInSSE2 - PRGB32]
   // -------------------------------------------------------------------------
-
-  static void FOG_FASTCALL prgb32_pixel(
-    uint8_t* dst, const Solid* src, const Closure* closure)
-  {
-    __m128i dst0xmm;
-    __m128i src0xmm;
-
-    pix_load4(dst0xmm, dst);
-    pix_load4(src0xmm, &src->prgb);
-
-    pix_expand_alpha_1x1W(src0xmm, src0xmm);
-    pix_multiply_1x1W(dst0xmm, dst0xmm, src0xmm);
-
-    pix_store4(dst, dst0xmm);
-  }
-
-  static void FOG_FASTCALL prgb32_pixel_a8(
-    uint8_t* dst, const Solid* src, uint32_t msk0, const Closure* closure)
-  {
-    __m128i dst0xmm;
-    __m128i src0xmm;
-    __m128i msk0xmm;
-
-    pix_load4(src0xmm, &src->prgb);
-    pix_load4(dst0xmm, dst);
-    pix_expand_mask_1x1W(msk0xmm, msk0);
-    pix_unpack_1x1W(src0xmm, src0xmm);
-    pix_unpack_1x1W(dst0xmm, dst0xmm);
-
-    pix_expand_alpha_1x1W(src0xmm, src0xmm);
-    pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
-    pix_negate_1x1W(msk0xmm, msk0xmm);
-    pix_adds_1x1W(src0xmm, src0xmm, msk0xmm);
-    pix_multiply_1x1W(dst0xmm, dst0xmm, src0xmm);
-
-    pix_pack_1x1W(dst0xmm, dst0xmm);
-    pix_store4(dst, dst0xmm);
-  }
 
   static void FOG_FASTCALL prgb32_cspan(
     uint8_t* dst, const Solid* src, sysint_t w, const Closure* closure)
@@ -8961,44 +7381,6 @@ struct CompositeDstOutSSE2
   // -------------------------------------------------------------------------
   // [CompositeDstOutSSE2 - PRGB32]
   // -------------------------------------------------------------------------
-
-  static void FOG_FASTCALL prgb32_pixel(
-    uint8_t* dst, const Solid* src, const Closure* closure)
-  {
-    __m128i dst0xmm;
-    __m128i src0xmm;
-
-    pix_load4(dst0xmm, dst);
-    pix_load4(src0xmm, &src->prgb);
-
-    pix_expand_alpha_1x1W(src0xmm, src0xmm);
-    pix_negate_1x1W(src0xmm, src0xmm);
-    pix_multiply_1x1W(dst0xmm, dst0xmm, src0xmm);
-
-    pix_store4(dst, dst0xmm);
-  }
-
-  static void FOG_FASTCALL prgb32_pixel_a8(
-    uint8_t* dst, const Solid* src, uint32_t msk0, const Closure* closure)
-  {
-    __m128i dst0xmm;
-    __m128i src0xmm;
-    __m128i msk0xmm;
-
-    pix_load4(src0xmm, &src->prgb);
-    pix_load4(dst0xmm, dst);
-    pix_expand_mask_1x1W(msk0xmm, msk0);
-    pix_unpack_1x1W(src0xmm, src0xmm);
-    pix_unpack_1x1W(dst0xmm, dst0xmm);
-
-    pix_expand_alpha_1x1W(src0xmm, src0xmm);
-    pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
-    pix_negate_1x1W(src0xmm, src0xmm);
-    pix_multiply_1x1W(dst0xmm, dst0xmm, src0xmm);
-
-    pix_pack_1x1W(dst0xmm, dst0xmm);
-    pix_store4(dst, dst0xmm);
-  }
 
   static void FOG_FASTCALL prgb32_cspan(
     uint8_t* dst, const Solid* src, sysint_t w, const Closure* closure)
@@ -9652,30 +8034,6 @@ struct FOG_HIDDEN CompositeClearSSE2
   // [CompositeClearSSE2 - PRGB32]
   // -------------------------------------------------------------------------
 
-  static void FOG_FASTCALL prgb32_pixel(
-    uint8_t* dst, const Solid* src, const Closure* closure)
-  {
-    FOG_UNUSED(src);
-
-    ((uint32_t*)dst)[0] = 0x00000000;
-  }
-
-  static void FOG_FASTCALL prgb32_pixel_a8(
-    uint8_t* dst, const Solid* src, uint32_t msk0, const Closure* closure)
-  {
-    FOG_UNUSED(src);
-
-    __m128i dst0xmm;
-    __m128i a0xmm;
-
-    pix_load4(dst0xmm, dst);
-    pix_expand_mask_1x1W(a0xmm, msk0);
-    pix_negate_1x1W(a0xmm, a0xmm);
-    pix_multiply_1x1W(dst0xmm, dst0xmm, a0xmm);
-    pix_pack_1x1W(dst0xmm, dst0xmm);
-    pix_store4(dst, dst0xmm);
-  }
-
   static void FOG_FASTCALL prgb32_cspan(
     uint8_t* dst, const Solid* src, sysint_t w, const Closure* closure)
   {
@@ -9797,31 +8155,6 @@ struct FOG_HIDDEN CompositeClearSSE2
   // -------------------------------------------------------------------------
   // [CompositeClearSSE2 - XRGB32]
   // -------------------------------------------------------------------------
-
-  static void FOG_FASTCALL xrgb32_pixel(
-    uint8_t* dst, const Solid* src, const Closure* closure)
-  {
-    FOG_UNUSED(src);
-
-    ((uint32_t*)dst)[0] = 0xFF000000;
-  }
-
-  static void FOG_FASTCALL xrgb32_pixel_a8(
-    uint8_t* dst, const Solid* src, uint32_t msk0, const Closure* closure)
-  {
-    FOG_UNUSED(src);
-
-    __m128i dst0xmm;
-    __m128i a0xmm;
-
-    pix_load4(dst0xmm, dst);
-    pix_expand_mask_1x1W(a0xmm, msk0);
-    pix_negate_1x1W(a0xmm, a0xmm);
-    pix_multiply_1x1W(dst0xmm, dst0xmm, a0xmm);
-    pix_pack_1x1W(dst0xmm, dst0xmm);
-    dst0xmm = _mm_or_si128(dst0xmm, Mask_FF000000FF000000_FF000000FF000000);
-    pix_store4(dst, dst0xmm);
-  }
 
   static void FOG_FASTCALL xrgb32_cspan(
     uint8_t* dst, const Solid* src, sysint_t w, const Closure* closure)

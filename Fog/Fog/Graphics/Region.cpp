@@ -1095,7 +1095,7 @@ err_t Region::_detach()
       if (!d) return ERR_RT_OUT_OF_MEMORY;
       d->extents.clear();
     }
-    AtomicBase::ptr_setXchg(&_d, d)->deref();
+    atomicPtrXchg(&_d, d)->deref();
   }
 
   return ERR_OK;
@@ -1103,7 +1103,7 @@ err_t Region::_detach()
 
 void Region::free()
 {
-  AtomicBase::ptr_setXchg(&_d, sharedNull.instancep()->refAlways())->derefInline();
+  atomicPtrXchg(&_d, sharedNull.instancep()->refAlways())->derefInline();
 }
 
 err_t Region::setSharable(bool val)
@@ -1147,7 +1147,7 @@ err_t Region::reserve(sysuint_t to)
 __create:
     Data* newd = Data::create(to, &d->extents, d->rects, d->length);
     if (!newd) return ERR_RT_OUT_OF_MEMORY;
-    AtomicBase::ptr_setXchg(&_d, newd)->derefInline();
+    atomicPtrXchg(&_d, newd)->derefInline();
   }
   else if (d->capacity < to)
   {
@@ -1172,7 +1172,7 @@ __create:
     Data* newd = Data::create(to);
     if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
-    AtomicBase::ptr_setXchg(&_d, newd)->derefInline();
+    atomicPtrXchg(&_d, newd)->derefInline();
   }
   else if (d->capacity < to)
   {
@@ -1210,7 +1210,7 @@ void Region::squeeze()
       d->length = length;
       d->extents = _d->extents;
       _copyRects(d->rects, _d->rects, length);
-      AtomicBase::ptr_setXchg(&_d, d)->deref();
+      atomicPtrXchg(&_d, d)->deref();
     }
     else
     {
@@ -1368,7 +1368,7 @@ void Region::clear()
 
   if (d->refCount.get() > 0)
   {
-    AtomicBase::ptr_setXchg(&_d, sharedNull.instancep()->refAlways())->derefInline();
+    atomicPtrXchg(&_d, sharedNull.instancep()->refAlways())->derefInline();
   }
   else
   {
@@ -1395,7 +1395,7 @@ err_t Region::set(const Region& r)
   }
   else
   {
-    AtomicBase::ptr_setXchg(&_d, rd->refAlways())->derefInline();
+    atomicPtrXchg(&_d, rd->refAlways())->derefInline();
   }
 
   return ERR_OK;

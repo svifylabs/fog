@@ -431,7 +431,7 @@ struct FOG_HIDDEN FontTranslatorRecord
 
 // This is ugly...
 }
-FOG_DECLARE_TYPEINFO(Fog::FontTranslatorRecord, Fog::TYPE_INFO_MOVABLE)
+FOG_DECLARE_TYPEINFO(Fog::FontTranslatorRecord, Fog::TYPEINFO_MOVABLE)
 namespace Fog {
 
 struct FOG_HIDDEN FontTranslator

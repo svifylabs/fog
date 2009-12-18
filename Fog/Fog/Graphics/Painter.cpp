@@ -40,53 +40,50 @@ Painter::~Painter()
   if (_engine != sharedNull) delete _engine;
 }
 
-err_t Painter::begin(uint8_t* pixels, int width, int height, sysint_t stride, int format, int hints)
+err_t Painter::begin(Image& image, int hints)
 {
   end();
 
-  // Check for invalid arguments.
-  if (pixels == NULL) return ERR_RT_INVALID_ARGUMENT;
+  if (image.isEmpty()) return ERR_IMAGE_INVALID_SIZE;
 
-  // Never initialize painter for zero image.
-  if (width <= 0 || height <= 0)
-  {
-    if (width == 0 && height == 0)
-      return ERR_IMAGE_ZERO_SIZE;
-    else
-      return ERR_IMAGE_INVALID_SIZE;
-  }
+  // If image is not empty, the format can't be Null.
+  int format = image.getFormat();
+  if (format == PIXEL_FORMAT_I8) return ERR_IMAGE_UNSUPPORTED_FORMAT;
 
-  // Check for valid image format.
-  if (format == PIXEL_FORMAT_NULL || (uint)format >= PIXEL_FORMAT_COUNT) return ERR_RT_INVALID_ARGUMENT;
-  if (format == PIXEL_FORMAT_I8) return ERR_IMAGE_FORMAT_NOT_SUPPORTED;
+  err_t err = image.detach();
+  if (err) return err;
 
-  PainterEngine* d = _getRasterPainterEngine(pixels, width, height, stride, format, hints);
+  Image::Data* image_d = image._d;
+  ImageBuffer buffer;
+
+  buffer.width = image_d->width;
+  buffer.height = image_d->height;
+  buffer.format = image_d->format;
+  buffer.stride = image_d->stride;
+  buffer.data = image_d->first;
+
+  PainterEngine* d = _getRasterPainterEngine(buffer, hints);
   if (!d) return ERR_RT_OUT_OF_MEMORY;
 
   _engine = d;
   return ERR_OK;
 }
 
-err_t Painter::begin(Image& image, int hints)
+err_t Painter::begin(const ImageBuffer& buffer, int hints)
 {
-  int format = image.getFormat();
-
   end();
 
-  err_t err = image.detach();
-  if (err) return err;
+  // Check for invalid arguments.
+  if (buffer.data == NULL) return ERR_RT_INVALID_ARGUMENT;
 
-  if (image.isEmpty()) return ERR_IMAGE_ZERO_SIZE;
+  // Never initialize painter for zero image.
+  if (buffer.width <= 0 || buffer.height <= 0) return ERR_IMAGE_INVALID_SIZE;
 
-  // If image is not empty, the format can't be Null.
-  FOG_ASSERT(format != PIXEL_FORMAT_NULL);
-  if (format == PIXEL_FORMAT_I8) return ERR_IMAGE_FORMAT_NOT_SUPPORTED;
+  // Check for valid image format.
+  if ((uint)buffer.format >= PIXEL_FORMAT_COUNT) return ERR_RT_INVALID_ARGUMENT;
+  if ((uint)buffer.format == PIXEL_FORMAT_I8) return ERR_IMAGE_UNSUPPORTED_FORMAT;
 
-  uint8_t* data = image.getMData();
-  if (!data) return ERR_RT_OUT_OF_MEMORY;
-
-  PainterEngine* d = _getRasterPainterEngine(
-    data, image.getWidth(), image.getHeight(), image.getStride(), format, hints);
+  PainterEngine* d = _getRasterPainterEngine(buffer, hints);
   if (!d) return ERR_RT_OUT_OF_MEMORY;
 
   _engine = d;

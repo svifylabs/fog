@@ -78,8 +78,8 @@ struct FOG_API Painter
 
   // [Begin / End]
 
-  err_t begin(uint8_t* pixels, int width, int height, sysint_t stride, int format, int hints = 0);
   err_t begin(Image& image, int hints = 0);
+  err_t begin(const ImageBuffer& buffer, int hints = 0);
   void end();
 
   // [Meta]

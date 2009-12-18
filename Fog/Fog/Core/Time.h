@@ -524,9 +524,9 @@ FOG_INLINE TimeTicks TimeDelta::operator+(TimeTicks t) const
 // Fog::TypeInfo<>
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::Time, Fog::TYPE_INFO_PRIMITIVE)
-FOG_DECLARE_TYPEINFO(Fog::TimeDelta, Fog::TYPE_INFO_PRIMITIVE)
-FOG_DECLARE_TYPEINFO(Fog::TimeTicks, Fog::TYPE_INFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::Time, Fog::TYPEINFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::TimeDelta, Fog::TYPEINFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::TimeTicks, Fog::TYPEINFO_PRIMITIVE)
 
 // [Guard]
 #endif // _FOG_CORE_TIME_H

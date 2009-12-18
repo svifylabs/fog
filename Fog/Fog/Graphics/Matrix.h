@@ -347,7 +347,7 @@ struct FOG_API Matrix
 // [Fog::TypeInfo<T>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::Matrix, Fog::TYPE_INFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::Matrix, Fog::TYPEINFO_PRIMITIVE)
 
 //! @}
 

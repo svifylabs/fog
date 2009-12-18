@@ -68,6 +68,7 @@ struct FOG_API Palette
 
   static Static<Data> sharedNull;
   static Static<Data> sharedGrey;
+  static Static<Data> sharedA8;
 
   // [Construction / Destruction]
 
@@ -133,21 +134,7 @@ struct FOG_API Palette
   err_t setArgb32(sysuint_t index, const Argb* pal, sysuint_t count);
 
   //! @brief Set palette entries starting at index @a index to @a pal.
-  err_t setRgb32(sysuint_t index, const Argb* pal, sysuint_t count);
-
-  //! @brief Set palette entries starting at index @a index to @a pal.
-  //!
-  //! Data format in @a pal is same as @c PIXEL_FORMAT_RGB24 (this means
-  //! in BGR order on little endian machines and RGB order on big endian
-  //! machines).
-  err_t setRgb24(sysuint_t index, const uint8_t *pal, sysuint_t count);
-
-  //! @brief Set palette entries starting at index @a index to @a pal.
-  //!
-  //! Data format in @a pal is in reversed order as @c PIXEL_FORMAT_RGB24
-  //! (this means in RGB order on little endian machines and BGR order on
-  //! big endian machines).
-  err_t setBgr24(sysuint_t index, const uint8_t *pal, sysuint_t count);
+  err_t setXrgb32(sysuint_t index, const Argb* pal, sysuint_t count);
 
   uint8_t findColor(uint8_t r, uint8_t g, uint8_t b) const;
 
@@ -158,6 +145,7 @@ struct FOG_API Palette
   // [Static Constructors]
 
   static Palette greyscale();
+  static Palette a8();
   static Palette colorCube(int r, int g, int b);
 
   // [Overloaded Operators]

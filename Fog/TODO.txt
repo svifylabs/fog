@@ -16,11 +16,10 @@ TODO P1
     [w] XmlWriter
 
 [ ] Fog/Svg:
-    [ ] Improve support for SVG styles in attributes
     [ ] Fix gradient rendering
 
 [ ] Painter:
-    [ ] Set constant mask
+    [ ] Set global opacity
     [w] Text transform
     [w] Text over path
     [ ] Patterns transform
@@ -45,13 +44,10 @@ TODO P1
 
 [ ] RasterUtil:
     [ ] Write C composite functions for XRGB32 and PRGB32
-    [ ] Write C composite functions for RGB24
     [ ] Write C composite functions for A8
     [ ] Write MMX composite functions for XRGB32 and PRGB32
-    [ ] Write MMX composite functions for RGB24
     [ ] Write MMX composite functions for A8
     [x] Write SSE2 composite functions for XRGB32 and PRGB32
-    [ ] Write SSE2 composite functions for RGB24
     [ ] Write SSE2 composite functions for A8
 
 [ ] Path:
@@ -91,7 +87,6 @@ MORE TODOS:
 
 [w] Improve quality of gradient rendering, current is ok except PAD gradients where it looks really bad
     (unaliased).
-[ ] Remove closure from RasterUtil::ops
 [ ] Fix ICO reader (BMP / PNG)
 [ ] Add ICO writer (BMP / PNG)
 [ ] Add GIF writer, rewrite GIF support
@@ -106,6 +101,13 @@ TODO P2
 =======
 
 [ ] Add rest of compositing operators (defined by SVG)
+    [ ] ColorBurn
+    [ ] ColorDodge
+    [ ] HardLight
+    [ ] SoftLight
+    [ ] Overlay
+    [ ] Multiply
+    [ ] Arithmetic, with parameters!
 
 TODO P3 - UI
 ============

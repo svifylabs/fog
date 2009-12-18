@@ -34,7 +34,7 @@ struct EventLoopPendingTask;
 
 }
 
-FOG_DECLARE_TYPEINFO(Fog::EventLoopPendingTask, Fog::TYPE_INFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::EventLoopPendingTask, Fog::TYPEINFO_PRIMITIVE)
 
 namespace Fog {
 

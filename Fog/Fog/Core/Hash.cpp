@@ -92,7 +92,7 @@ bool Hash_Abstract::_rehash(sysuint_t bc)
   }
 
   newd->length = _d->length;
-  Data* old = AtomicBase::ptr_setXchg(&_d, newd);
+  Data* old = atomicPtrXchg(&_d, newd);
 
   old->refCount.dec();
   if (old != sharedNull.instancep()) _freeData(old);

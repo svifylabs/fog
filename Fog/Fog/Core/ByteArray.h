@@ -604,7 +604,7 @@ struct TemporaryByteArray : public ByteArray
   {
     if ((void*)_d != (void*)&_storage)
     {
-      AtomicBase::ptr_setXchg(&_d, Data::adopt((void*)&_storage, N))->deref();
+      atomicPtrXchg(&_d, Data::adopt((void*)&_storage, N))->deref();
     }
   }
 
@@ -680,7 +680,7 @@ static FOG_INLINE bool operator> (const char* a, const Fog::ByteArray& b) { retu
 // [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::ByteArray, Fog::TYPE_INFO_MOVABLE | Fog::TYPE_INFO_HAS_COMPARE | Fog::TYPE_INFO_HAS_EQ)
+FOG_DECLARE_TYPEINFO(Fog::ByteArray, Fog::TYPEINFO_MOVABLE | Fog::TYPEINFO_HAS_COMPARE | Fog::TYPEINFO_HAS_EQ)
 
 // [Guard]
 #endif // _FOG_CORE_BYTEARRAY_H

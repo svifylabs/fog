@@ -18,6 +18,10 @@
 
 namespace Fog {
 
+// ============================================================================
+// [Forward Declarations]
+// ============================================================================
+
 // Used in function map prototypes.
 struct BlurParams;
 struct ColorMatrix;
@@ -26,6 +30,10 @@ struct Matrix;
 struct Pattern;
 struct SymmetricConvolveParamsF;
 struct SymmetricConvolveParamsI;
+
+namespace RasterUtil { struct PatternContext; }
+namespace RasterUtil { struct Solid; }
+
 
 namespace RasterUtil {
 
@@ -43,11 +51,9 @@ extern FOG_API const uint8_t linear_blur8_shr[255];  // [255]
 //! @brief Solid source for raster based compositing.
 struct Solid
 {
-  // TODO: Remove non-premultiplied, we are completely moved to premultiplied
-  // colorspace for painting.
-  //! @brief Non-premultiplied RGBA color.
+  //! @brief 32-bit ARGB color, non-premultiplied.
   uint32_t argb;
-  //! @brief Premultiplied RGBA color.
+  //! @brief 32-bit ARGB color, premultiplied.
   uint32_t prgb;
 };
 
@@ -55,8 +61,6 @@ struct Solid
 //! method.
 struct Closure
 {
-  //! @brief Compositing object or NULL if not used.
-  const void* closure;
   //! @brief If source pixels are indexed, here is link to 256 color entries.
   const Argb* srcPalette;
   //! @brief If destination pixels are indexed, here is link to 256 color entries.
@@ -66,6 +70,9 @@ struct Closure
 // ============================================================================
 // [Fog::RasterUtil - Prototypes - Convert]
 // ============================================================================
+
+typedef void (FOG_FASTCALL *VSpanFn)(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure);
 
 typedef void (FOG_FASTCALL *ConvertPlainFn)(
   uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure);
@@ -87,8 +94,6 @@ typedef void (FOG_FASTCALL *GradientSpanFn)(
 // ============================================================================
 // [Fog::RasterUtil - Prototypes - Pattern]
 // ============================================================================
-
-struct PatternContext;
 
 typedef err_t (FOG_FASTCALL *PatternContextSolidInitFn)(
   PatternContext* ctx, uint32_t prgb);
@@ -296,11 +301,6 @@ typedef void (FOG_FASTCALL *SymmetricConvolveIntFn)(
 // [Fog::RasterUtil - Prototypes - Composite]
 // ============================================================================
 
-typedef void (FOG_FASTCALL *PixelFn)(
-  uint8_t* dst, const Solid* src, const Closure* closure);
-typedef void (FOG_FASTCALL *PixelMskFn)(
-  uint8_t* dst, const Solid* src, uint32_t msk, const Closure* closure);
-
 typedef void (FOG_FASTCALL *CSpanFn)(
   uint8_t* dst, const Solid* src, sysint_t w, const Closure* closure);
 typedef void (FOG_FASTCALL *CSpanMskFn)(
@@ -327,154 +327,62 @@ typedef void (FOG_FASTCALL *VSpanMskConstFn)(
 //! is not needed to check for these features in higher level API.
 struct FunctionMap
 {
-  // [Convert]
+  // [Dib]
 
-  struct ConvertFuncs
+  struct DibFuncs
   {
     // [ByteSwap]
 
-    ConvertPlainFn bswap16;
-    ConvertPlainFn bswap24;
-    ConvertPlainFn bswap32;
+    // Fast byteswap methods.
+    VSpanFn bswap16;
+    VSpanFn bswap24;
+    VSpanFn bswap32;
 
     // [MemCpy]
 
-    ConvertPlainFn memcpy8;
-    ConvertPlainFn memcpy16;
-    ConvertPlainFn memcpy24;
-    ConvertPlainFn memcpy32;
+    // Fast memcpy methods.
+    VSpanFn memcpy8;
+    VSpanFn memcpy16;
+    VSpanFn memcpy24;
+    VSpanFn memcpy32;
 
-    // TODO: These conversion functions should be in some [][] array, an enum
-    // describing foreign formats should be introduced. This leads to switch of
-    // doom.
+    // [Convert]
 
-    // [Axxx32 Dest]
+    // Note: We are declaring this array as DIB_FORMAT_COUNT * DIB_FORMAT_COUNT,
+    // but it's allowed to use it only by these directions:
+    //
+    // -  [PIXEL_FORMAT_X] <- [DIB_FORMAT_X]
+    // -  [DIB_FORMAT_X] <- [PIXEL_FORMAT_X]
+    //
+    // The reason is that we never convert one dib format to another, instead
+    // we always convert out pixel format to dib or vica versa.
+    VSpanFn convert[DIB_FORMAT_COUNT][DIB_FORMAT_COUNT];
 
-    ConvertPlainFn axxx32_from_xxxx32;
-    ConvertPlainFn axxx32_from_a8;
-    ConvertPlainFn axxx32_bs_from_a8;
+    // [Dither]
 
-    // [Argb32 Dest]
+    ConvertDither8Fn i8rgb232_from_xrgb32_dither;
+    ConvertDither8Fn i8rgb222_from_xrgb32_dither;
+    ConvertDither8Fn i8rgb111_from_xrgb32_dither;
 
-    ConvertPlainFn argb32_from_prgb32;
-    ConvertPlainFn argb32_from_prgb32_bs;
-    ConvertPlainFn argb32_from_rgb32;
-    ConvertPlainFn argb32_from_rgb32_bs;
-    ConvertPlainFn argb32_from_i8;
+    ConvertDither16Fn rgb16_555_native_from_xrgb32_dither;
+    ConvertDither16Fn rgb16_565_native_from_xrgb32_dither;
 
-    ConvertPlainFn argb32_bs_from_rgb32;
-    ConvertPlainFn argb32_bs_from_prgb32;
-    ConvertPlainFn argb32_bs_from_i8;
-
-    // [Prgb32 Dest]
-
-    ConvertPlainFn prgb32_from_argb32;
-    ConvertPlainFn prgb32_from_argb32_bs;
-    ConvertPlainFn prgb32_from_i8;
-
-    ConvertPlainFn prgb32_bs_from_argb32;
-    ConvertPlainFn prgb32_bs_from_i8;
-
-    // [Rgb32 Dest]
-
-    ConvertPlainFn rgb32_from_argb32;
-    ConvertPlainFn rgb32_from_argb32_bs;
-    ConvertPlainFn rgb32_from_rgb24;
-    ConvertPlainFn rgb32_from_bgr24;
-    ConvertPlainFn rgb32_from_rgb16_5550;
-    ConvertPlainFn rgb32_from_rgb16_5550_bs;
-    ConvertPlainFn rgb32_from_rgb16_5650;
-    ConvertPlainFn rgb32_from_rgb16_5650_bs;
-    ConvertPlainFn rgb32_from_i8;
-
-    ConvertPlainFn rgb32_bs_from_rgb24;
-
-    // [Rgb24/Bgr24 Dest]
-
-    ConvertPlainFn rgb24_from_rgb32;
-    ConvertPlainFn rgb24_from_rgb32_bs;
-    ConvertPlainFn rgb24_from_rgb16_5550;
-    ConvertPlainFn rgb24_from_rgb16_5550_bs;
-    ConvertPlainFn rgb24_from_rgb16_5650;
-    ConvertPlainFn rgb24_from_rgb16_5650_bs;
-    ConvertPlainFn rgb24_from_i8;
-
-    ConvertPlainFn bgr24_from_rgb32;
-    ConvertPlainFn bgr24_from_i8;
-
-    // [Rgb16 Dest]
-
-    ConvertPlainFn rgb16_5550_from_rgb32;
-    ConvertPlainFn rgb16_5550_from_rgb24;
-    ConvertPlainFn rgb16_5550_from_i8;
-
-    ConvertPlainFn rgb16_5650_from_rgb32;
-    ConvertPlainFn rgb16_5650_from_rgb24;
-    ConvertPlainFn rgb16_5650_from_i8;
-
-    ConvertPlainFn rgb16_5550_bs_from_rgb32;
-    ConvertPlainFn rgb16_5550_bs_from_rgb24;
-    ConvertPlainFn rgb16_5550_bs_from_i8;
-
-    ConvertPlainFn rgb16_5650_bs_from_rgb32;
-    ConvertPlainFn rgb16_5650_bs_from_rgb24;
-    ConvertPlainFn rgb16_5650_bs_from_i8;
-
-    // [A8 Dest]
-
-    ConvertPlainFn a8_from_axxx32;
-    ConvertPlainFn a8_from_axxx32_bs;
-    ConvertPlainFn a8_from_i8;
-
-    // [Greyscale]
-
-    ConvertPlainFn greyscale8_from_rgb32;
-    ConvertPlainFn greyscale8_from_rgb24;
-    ConvertPlainFn greyscale8_from_bgr24;
-    ConvertPlainFn greyscale8_from_i8;
-
-    ConvertPlainFn rgb32_from_greyscale8;
-    ConvertPlainFn rgb24_from_greyscale8;
-
-    // [Dithering]
-
-    ConvertDither8Fn i8rgb232_from_rgb32_dither;
-    ConvertDither8Fn i8rgb222_from_rgb32_dither;
-    ConvertDither8Fn i8rgb111_from_rgb32_dither;
-
-    ConvertDither8Fn i8rgb232_from_rgb24_dither;
-    ConvertDither8Fn i8rgb222_from_rgb24_dither;
-    ConvertDither8Fn i8rgb111_from_rgb24_dither;
-
-    ConvertDither16Fn rgb16_5550_from_rgb32_dither;
-    ConvertDither16Fn rgb16_5550_from_rgb24_dither;
-
-    ConvertDither16Fn rgb16_5650_from_rgb32_dither;
-    ConvertDither16Fn rgb16_5650_from_rgb24_dither;
-
-    ConvertDither16Fn rgb16_5550_bs_from_rgb32_dither;
-    ConvertDither16Fn rgb16_5550_bs_from_rgb24_dither;
-
-    ConvertDither16Fn rgb16_5650_bs_from_rgb32_dither;
-    ConvertDither16Fn rgb16_5650_bs_from_rgb24_dither;
+    ConvertDither16Fn rgb16_555_swapped_from_xrgb32_dither;
+    ConvertDither16Fn rgb16_565_swapped_from_xrgb32_dither;
   };
 
-  ConvertFuncs convert;
+  DibFuncs dib;
 
-  // [Gradient]
+  // [Interpolation]
 
-  struct GradientFuncs
+  struct InterpolationFuncs
   {
-    // [GradientSpan]
+    // [Gradient]
 
-    GradientSpanFn gradient_argb32;
-    GradientSpanFn gradient_prgb32;
-    GradientSpanFn gradient_rgb32;
-    GradientSpanFn gradient_rgb24;
-    GradientSpanFn gradient_a8;
+    GradientSpanFn gradient[PIXEL_FORMAT_COUNT];
   };
 
-  GradientFuncs gradient;
+  InterpolationFuncs interpolate;
 
   // [Pattern]
 
@@ -486,6 +394,9 @@ struct FunctionMap
     // It's possible that some pattern is badly initialized or it's allowed
     // null data so the solid color will be used. Also for images with ultra
     // scaling the solid color is good choice.
+    // 
+    // Painter engine should always use solid color fastpath if pattern
+    // degrades to solid color.
     PatternContextSolidInitFn solid_init;
     PatternContextFetchFn solid_fetch;
 
@@ -516,10 +427,12 @@ struct FunctionMap
     // [Linear Gradient]
 
     PatternContextInitFn linear_gradient_init;
+
     // Exact is non-antialiased gradient rendering, also used in antialiased
     // mode for vertical and horizontal gradients.
     PatternContextFetchFn linear_gradient_fetch_exact_pad;
     PatternContextFetchFn linear_gradient_fetch_exact_repeat;
+
     // Subpixel accurate gradient rendering.
     PatternContextFetchFn linear_gradient_fetch_subxy_pad;
     PatternContextFetchFn linear_gradient_fetch_subxy_repeat;
@@ -578,15 +491,6 @@ struct FunctionMap
 
   struct RasterFuncs
   {
-    // [Closure]
-
-    const void* closure;
-
-    // [Pixel]
-
-    PixelFn pixel;
-    PixelMskFn pixel_a8;
-
     // [Span Solid]
 
     CSpanFn cspan;
