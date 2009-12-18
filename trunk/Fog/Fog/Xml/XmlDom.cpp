@@ -1007,7 +1007,7 @@ void XmlIdManager::_rehash(sysuint_t capacity)
   _shrinkCapacity = Hash_Abstract::_calcShrinkCapacity(capacity);
   _shrinkLength = (sysuint_t)((sysint_t)_shrinkCapacity * 0.70);
 
-  AtomicBase::ptr_setXchg(&_buckets, newBuckets);
+  atomicPtrXchg(&_buckets, newBuckets);
   if (oldBuckets != _bucketsBuffer) Memory::free(oldBuckets);
 }
 

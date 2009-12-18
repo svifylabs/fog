@@ -1157,31 +1157,135 @@ enum COMPOSITE_OP
 //! @c PIXEL_FORMAT_XRGB32:
 //! - Little endian: BBGGRRXX
 //! - Big endian   : XXRRGGBB
-//! @c PIXEL_FORMAT_RGB24:
-//! - Little endian: BBGGRR
-//! - Big endian   : RRGGBB
 //! @c PIXEL_FORMAT_A8:
 //! - no difference: AA (8 bit alpha value)
 //! @c PIXEL_FORMAT_I8:
 //! - no difference: II (8 bit index value to palette)
+//!
+//! @sa @c PIXEL_FORMAT_EXTENDED.
 enum PIXEL_FORMAT
 {
-  //! @brief Null format.
-  PIXEL_FORMAT_NULL = 0,
-  //! @brief 32 bit RGBA premultiplied.
-  PIXEL_FORMAT_PRGB32 = 1,
-  //! @brief 32 bit RGBA (equivalent to @c Argb).
-  PIXEL_FORMAT_ARGB32 = 2,
-  //! @brief 32 bit RGB (equivalent for @c Argb without alpha channel - full opaque).
-  PIXEL_FORMAT_XRGB32 = 3,
-  //! @brief 24 bit RGB.
-  PIXEL_FORMAT_RGB24 = 4,
-  //! @brief 8 bit alpha channel.
-  PIXEL_FORMAT_A8 = 5,
-  //! @brief 8 bit indexed pixel format.
-  PIXEL_FORMAT_I8 = 6,
+  //! @brief 32-bit RGBA, premultiplied.
+  PIXEL_FORMAT_PRGB32 = 0,
+
+  //! @brief 32-bit RGBA, non-premultiplied.
+  //!
+  //! Eequivalent to @c Argb.
+  PIXEL_FORMAT_ARGB32 = 1,
+
+  //! @brief 32-bit XRGB, no alpha.
+  //!
+  //! equivalent to @c Argb, where alpha is set to 255).
+  PIXEL_FORMAT_XRGB32 = 2,
+
+  //! @brief 8-bit alpha channel only.
+  PIXEL_FORMAT_A8 = 3,
+
+  //! @brief 8-bit indexed pixel format.
+  PIXEL_FORMAT_I8 = 4,
+
   //! @brief Count of pixel formats.
-  PIXEL_FORMAT_COUNT = 7
+  PIXEL_FORMAT_COUNT = 5,
+
+  //! @brief Null pixel format (used only by empty images).
+  PIXEL_FORMAT_NULL = 0xFF
+};
+
+// ============================================================================
+// [Fog::DIB_FORMAT]
+// ============================================================================
+
+//! @brief Device independent pixel formats that can be used by Image::getDib()
+//! and Image::setDib() methods. These formats can't be used by @c Image itself.
+enum DIB_FORMAT
+{
+  //! @brief 32-bit RGBA, premultiplied (compatible to @c PIXEL_FORMAT_PRGB32)
+  DIB_FORMAT_PRGB32_NATIVE = 0,
+
+  //! @brief 32-bit RGBA, non-premultiplied (compatible to @c PIXEL_FORMAT_ARGB32).
+  //!
+  //! Eequivalent to @c Argb.
+  DIB_FORMAT_ARGB32_NATIVE = 1,
+
+  //! @brief 32-bit XRGB, no alpha (compatible to @c PIXEL_FORMAT_XRGB32).
+  //!
+  //! equivalent to @c Argb, where alpha is set to 255).
+  DIB_FORMAT_XRGB32_NATIVE = 2,
+
+  //! @brief 8-bit alpha channel (compatible to @c PIXEL_FORMAT_A8).
+  DIB_FORMAT_A8 = 3,
+
+  //! @brief 8-bit indexed pixel format (compatible to @c PIXEL_FORMAT_I8).
+  DIB_FORMAT_I8 = 4,
+
+  //! @brief 32-bit RGBA, premultiplied, byteswapped.
+  DIB_FORMAT_PRGB32_SWAPPED = 5,
+
+  //! @brief 32-bit RGBA, non-premultiplied, byteswapped.
+  DIB_FORMAT_ARGB32_SWAPPED = 6,
+
+  //! @brief 32-bit XRGB, no alpha, byteswapped.
+  DIB_FORMAT_XRGB32_SWAPPED = 7,
+
+  //! @brief 24-bit RGB in native endian format.
+  //!
+  //! If your target machine is little endian, individual pixels in buffer are
+  //! encoded in BGRBGRBGR... form, while on big endian machines the order is
+  //! reversed: RGBRGBRGB.
+  DIB_FORMAT_RGB24_NATIVE = 8,
+
+  //! @brief 24-bit RGB in byte-swapped endian format.
+  DIB_FORMAT_RGB24_SWAPPED = 9,
+
+  //! @brief 16-bit RGB in 5-6-5 form.
+  DIB_FORMAT_RGB16_565_NATIVE = 10,
+
+  //! @brief 16-bit RGB in 5-6-5 form, but byteswapped.
+  //!
+  //! see @c DIB_FORMAT_RGB16_565_NATIVE.
+  DIB_FORMAT_RGB16_565_SWAPPED = 11,
+
+  //! @brief 16-bit RGB in 5-5-5 form, one bit is unused and ignored (it's set
+  //! to zero by fog DIB routines).
+  DIB_FORMAT_RGB16_555_NATIVE = 12,
+
+  //! @brief 16-bit RGB in 5-5-5 form, but byteswapped.
+  //!
+  //! see @c DIB_FORMAT_RGB16_555_NATIVE.
+  DIB_FORMAT_RGB16_555_SWAPPED = 13,
+
+  //! @brief 8-bit greyscale, no alpha.
+  DIB_FORMAT_GREY8 = 14,
+
+  //! @brief Count of DIB formats.
+  DIB_FORMAT_COUNT = 15,
+
+  // Convenience formats.
+
+#if FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
+# define __DIB_FORMAT_SWITCH(name, le, be) name = le
+#else
+# define __DIB_FORMAT_SWITCH(name, le, be) name = le
+#endif // FOG_BYTE_ORDER
+
+  __DIB_FORMAT_SWITCH(DIB_FORMAT_PRGB32_LE, DIB_FORMAT_PRGB32_NATIVE, DIB_FORMAT_PRGB32_SWAPPED),
+  __DIB_FORMAT_SWITCH(DIB_FORMAT_ARGB32_LE, DIB_FORMAT_ARGB32_NATIVE, DIB_FORMAT_ARGB32_SWAPPED),
+  __DIB_FORMAT_SWITCH(DIB_FORMAT_XRGB32_LE, DIB_FORMAT_XRGB32_NATIVE, DIB_FORMAT_XRGB32_SWAPPED),
+
+  __DIB_FORMAT_SWITCH(DIB_FORMAT_PRGB32_BE, DIB_FORMAT_PRGB32_SWAPPED, DIB_FORMAT_PRGB32_NATIVE),
+  __DIB_FORMAT_SWITCH(DIB_FORMAT_ARGB32_BE, DIB_FORMAT_ARGB32_SWAPPED, DIB_FORMAT_ARGB32_NATIVE),
+  __DIB_FORMAT_SWITCH(DIB_FORMAT_XRGB32_BE, DIB_FORMAT_XRGB32_SWAPPED, DIB_FORMAT_XRGB32_NATIVE),
+
+  __DIB_FORMAT_SWITCH(DIB_FORMAT_RGB24_LE, DIB_FORMAT_RGB24_NATIVE, DIB_FORMAT_RGB24_SWAPPED),
+  __DIB_FORMAT_SWITCH(DIB_FORMAT_RGB24_BE, DIB_FORMAT_RGB24_SWAPPED, DIB_FORMAT_RGB24_NATIVE),
+
+  __DIB_FORMAT_SWITCH(DIB_FORMAT_RGB16_555_LE, DIB_FORMAT_RGB16_555_NATIVE, DIB_FORMAT_RGB16_555_SWAPPED),
+  __DIB_FORMAT_SWITCH(DIB_FORMAT_RGB16_565_LE, DIB_FORMAT_RGB16_565_NATIVE, DIB_FORMAT_RGB16_565_SWAPPED),
+
+  __DIB_FORMAT_SWITCH(DIB_FORMAT_RGB16_555_BE, DIB_FORMAT_RGB16_555_SWAPPED, DIB_FORMAT_RGB16_555_NATIVE),
+  __DIB_FORMAT_SWITCH(DIB_FORMAT_RGB16_565_BE, DIB_FORMAT_RGB16_565_SWAPPED, DIB_FORMAT_RGB16_565_NATIVE)
+
+#undef __DIB_FORMAT_SWITCH
 };
 
 // ============================================================================
@@ -1221,23 +1325,6 @@ enum ARGB32_BYTEPOS
   ARGB32_GBYTE = 2,
   ARGB32_BBYTE = 3,
   ARGB32_ABYTE = 0
-#endif // FOG_BYTE_ORDER
-};
-
-// ============================================================================
-// [Fog::RGB24_BYTEPOS]
-// ============================================================================
-
-enum RGB24_BYTEPOS
-{
-#if FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
-  RGB24_RBYTE = 2,
-  RGB24_GBYTE = 1,
-  RGB24_BBYTE = 0
-#else // FOG_BYTE_ORDER == FOG_BIG_ENDIAN
-  RGB24_RBYTE = 0,
-  RGB24_GBYTE = 1,
-  RGB24_BBYTE = 2
 #endif // FOG_BYTE_ORDER
 };
 
@@ -1383,9 +1470,7 @@ enum IMAGE_FILTER_CHARACTERISTICS
 
   //! @brief Contains both, @c IMAGE_FILTER_VERT_PROCESSING and @c IMAGE_FILTER_HORZ_PROCESSING
   //! flags.
-  IMAGE_FILTER_HV_PROCESSING =
-    IMAGE_FILTER_VERT_PROCESSING |
-    IMAGE_FILTER_HORZ_PROCESSING ,
+  IMAGE_FILTER_HV_PROCESSING = IMAGE_FILTER_VERT_PROCESSING | IMAGE_FILTER_HORZ_PROCESSING ,
 
   //! @brief Image filter supports @c PIXEL_FORMAT_PRGB32.
   //!
@@ -1403,16 +1488,10 @@ enum IMAGE_FILTER_CHARACTERISTICS
   //! @note This flag should be always set!
   IMAGE_FILTER_SUPPORTS_XRGB32 = 0x0400,
 
-  //! @brief Image filter supports @c PIXEL_FORMAT_RGB24.
-  //!
-  //! If filters not supports this format the image data must be first converted
-  //! to @c PIXEL_FORMAT_XRGB32, processed and then converted back.
-  IMAGE_FILTER_SUPPORTS_RGB24 = 0x0800,
-
   //! @brief Image filter supports @c PIXEL_FORMAT_A8.
   //!
   //! @note This flag should be always set!
-  IMAGE_FILTER_SUPPORTS_A8 = 0x1000
+  IMAGE_FILTER_SUPPORTS_A8 = 0x0800
 };
 
 // ============================================================================
@@ -1754,13 +1833,13 @@ enum ERR_GRAPHICS_ENUM
 
   ERR_PATH_INVALID = ERR_GRAPHICS_START,
 
-  // Image, ImageFilter, ImageIO And Painter Errors.
+  // Image, ImageFilter, ImageIO and Painter Errors.
 
-  ERR_IMAGE_ZERO_SIZE,
   ERR_IMAGE_INVALID_SIZE,
-  ERR_IMAGE_TOO_LARGE_SIZE,
+  ERR_IMAGE_INVALID_FORMAT,
+  ERR_IMAGE_TOO_LARGE,
 
-  ERR_IMAGE_FORMAT_NOT_SUPPORTED,
+  ERR_IMAGE_UNSUPPORTED_FORMAT,
 
   ERR_IMAGEIO_INTERNAL_ERROR,
 

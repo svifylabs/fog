@@ -147,7 +147,7 @@ struct FOG_API Font
 // [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::Font, Fog::TYPE_INFO_MOVABLE)
+FOG_DECLARE_TYPEINFO(Fog::Font, Fog::TYPEINFO_MOVABLE)
 
 // [Guard]
 #endif // _FOG_GRAPHICS_FONT_H

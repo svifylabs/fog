@@ -960,7 +960,7 @@ static FOG_INLINE void pix_demultiply_1x1W_srcbuf(__m128i& dst0, const __m128i& 
   __m128i recip;
   uint32_t index;
 
-  index = srcBuf[RGB32_AByte];
+  index = srcBuf[ARGB32_ABYTE];
 
   pix_load8(recip, (int8_t*)ArgbUtil::demultiply_reciprocal_table_w + index * 8);
   dst0 = _mm_slli_epi16(dst0, 8);
@@ -973,8 +973,8 @@ static FOG_INLINE void pix_demultiply_2x2W_srcbuf(__m128i& dst0, const __m128i& 
   uint32_t index0;
   uint32_t index1;
 
-  index0 = srcBuf[RGB32_AByte];
-  index1 = srcBuf[RGB32_AByte+4];
+  index0 = srcBuf[ARGB32_ABYTE];
+  index1 = srcBuf[ARGB32_ABYTE + 4];
 
   pix_load8(recip0, (int8_t*)ArgbUtil::demultiply_reciprocal_table_w + index0 * 8);
   pix_load8(recip1, (int8_t*)ArgbUtil::demultiply_reciprocal_table_w + index1 * 8);
@@ -987,8 +987,8 @@ static FOG_INLINE void pix_demultiply_2x2W_srcbuf(__m128i& dst0, const __m128i& 
 
   dst0 = _mm_mulhi_epu16(dst0, recip0);
 
-  index0 = srcBuf[RGB32_AByte+8];
-  index1 = srcBuf[RGB32_AByte+12];
+  index0 = srcBuf[ARGB32_ABYTE + 8];
+  index1 = srcBuf[ARGB32_ABYTE + 12];
 
   pix_load8(recip0, (int8_t*)ArgbUtil::demultiply_reciprocal_table_w + index0 * 8);
   pix_load8(recip1, (int8_t*)ArgbUtil::demultiply_reciprocal_table_w + index1 * 8);

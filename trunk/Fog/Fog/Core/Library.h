@@ -175,7 +175,7 @@ static library##Interface library##_interface;
 // [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::Library, Fog::TYPE_INFO_MOVABLE)
+FOG_DECLARE_TYPEINFO(Fog::Library, Fog::TYPEINFO_MOVABLE)
 
 // [Guard]
 #endif // _FOG_CORE_LIBRARY_H

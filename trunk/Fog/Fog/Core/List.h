@@ -355,7 +355,7 @@ struct List
   { return ListPrivate<T>::assign(element); }
 
   FOG_INLINE err_t assign(const List<T>& other)
-  { ListPrivate<T>::deref(AtomicBase::ptr_setXchg(&_d, other._d->ref())); return ERR_OK; }
+  { ListPrivate<T>::deref(atomicPtrXchg(&_d, other._d->ref())); return ERR_OK; }
 
   FOG_INLINE err_t set(sysuint_t index, const T& element)
   {
@@ -532,12 +532,12 @@ struct List
 
   FOG_INLINE void swapWith(List& other)
   {
-    other._d = AtomicBase::ptr_setXchg(&_d, other._d);
+    other._d = atomicPtrXchg(&_d, other._d);
   }
 
   FOG_NO_INLINE err_t sort()
   {
-    return sort(TypeInfo_Compare<T>::compare);
+    return sort(TypeCmp<T>::compare);
   }
 
   FOG_NO_INLINE err_t sort(ElementCompareFn compar)
@@ -764,7 +764,7 @@ struct List
 // [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO_TEMPLATE1(Fog::List, typename, T, Fog::TYPE_INFO_MOVABLE)
+FOG_DECLARE_TYPEINFO_TEMPLATE1(Fog::List, typename, T, Fog::TYPEINFO_MOVABLE)
 
 // [Guard]
 #endif // _FOG_CORE_LIST_H

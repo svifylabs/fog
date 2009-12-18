@@ -15,7 +15,7 @@
 
 namespace Fog {
 
-FOG_API PainterEngine* _getRasterPainterEngine(uint8_t* pixels, int width, int height, sysint_t stride, int format, int hints);
+FOG_API PainterEngine* _getRasterPainterEngine(const ImageBuffer& buffer, int hints);
 
 } // Fog namespace
 

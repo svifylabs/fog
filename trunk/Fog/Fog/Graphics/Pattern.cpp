@@ -42,13 +42,13 @@ err_t Pattern::_detach()
   Data* newd = new(std::nothrow) Data(*_d);
   if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
-  AtomicBase::ptr_setXchg(&_d, newd)->deref();
+  atomicPtrXchg(&_d, newd)->deref();
   return ERR_OK;
 }
 
 void Pattern::free()
 {
-  AtomicBase::ptr_setXchg(&_d, sharedNull->ref())->deref();
+  atomicPtrXchg(&_d, sharedNull->ref())->deref();
 }
 
 err_t Pattern::setType(int type)
@@ -96,7 +96,7 @@ err_t Pattern::setType(int type)
     else if (type & PATTERN_GRADIENT_MASK)
       newd->obj.stops.init();
 
-    AtomicBase::ptr_setXchg(&_d, newd)->deref();
+    atomicPtrXchg(&_d, newd)->deref();
   }
   return ERR_OK;
 }
@@ -105,7 +105,7 @@ void Pattern::reset()
 {
   if (_d->refCount.get() > 1)
   {
-    AtomicBase::ptr_setXchg(&_d, sharedNull->ref())->deref();
+    atomicPtrXchg(&_d, sharedNull->ref())->deref();
   }
   else
   {
@@ -292,7 +292,7 @@ err_t Pattern::setColor(const Argb& rgba)
     newd->matrix = _d->matrix;
     newd->obj.rgba->set(rgba);
 
-    AtomicBase::ptr_setXchg(&_d, newd)->deref();
+    atomicPtrXchg(&_d, newd)->deref();
     return ERR_OK;
   }
 }
@@ -329,7 +329,7 @@ err_t Pattern::setTexture(const Image& texture)
     newd->matrix = _d->matrix;
     newd->obj.texture.init(texture);
 
-    AtomicBase::ptr_setXchg(&_d, newd)->deref();
+    atomicPtrXchg(&_d, newd)->deref();
     return ERR_OK;
   }
 }
@@ -406,7 +406,7 @@ err_t Pattern::addStop(const ArgbStop& stop)
 
 Pattern& Pattern::operator=(const Pattern& other)
 {
-  AtomicBase::ptr_setXchg(&_d, other._d->ref())->deref();
+  atomicPtrXchg(&_d, other._d->ref())->deref();
   return *this;
 }
 

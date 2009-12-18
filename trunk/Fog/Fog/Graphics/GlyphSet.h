@@ -216,7 +216,7 @@ private:
 // [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::GlyphSet, Fog::TYPE_INFO_MOVABLE)
+FOG_DECLARE_TYPEINFO(Fog::GlyphSet, Fog::TYPEINFO_MOVABLE)
 
 // [Guard]
 #endif // _FOG_GRAPHICS_GLYPHSET_H

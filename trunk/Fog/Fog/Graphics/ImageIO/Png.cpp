@@ -412,13 +412,13 @@ err_t PngDecoderDevice::readHeader()
   // Check for zero dimensions.
   if (areDimensionsZero())
   {
-    return (_headerResult = ERR_IMAGE_ZERO_SIZE);
+    return (_headerResult = ERR_IMAGE_INVALID_SIZE);
   }
 
   // Check for too large dimensions.
   if (areDimensionsTooLarge())
   {
-    return (_headerResult = ERR_IMAGE_TOO_LARGE_SIZE);
+    return (_headerResult = ERR_IMAGE_TOO_LARGE);
   }
 
   // Png contains only one image.
@@ -701,7 +701,6 @@ err_t PngEncoderDevice::writeImage(const Image& image)
       break;
     }
     case PIXEL_FORMAT_XRGB32:
-    case PIXEL_FORMAT_RGB24:
     {
       png.set_IHDR(png_ptr, info_ptr, width, height, 8,
         PNG_COLOR_TYPE_RGB, png_ptr->interlaced,
@@ -746,19 +745,18 @@ err_t PngEncoderDevice::writeImage(const Image& image)
   png.set_shift(png_ptr, &sig_bit);
   png.set_packing(png_ptr);
 
+  row_ptr = (png_bytep)buffer;
+
   for (y = 0; y < height; y++)
   {
     switch (format)
     {
       case PIXEL_FORMAT_ARGB32:
       case PIXEL_FORMAT_PRGB32:
-        row_ptr = (png_bytep)buffer;
-        image.getDibArgb32(0, y, width, buffer);
+        image.getDib(0, y, width, DIB_FORMAT_ARGB32_NATIVE, buffer);
         break;
       case PIXEL_FORMAT_XRGB32:
-      case PIXEL_FORMAT_RGB24:
-        row_ptr = (png_bytep)buffer;
-        image.getDibRgb24_be(0, y, width, buffer);
+        image.getDib(0, y, width, DIB_FORMAT_RGB24_BE, buffer);
         break;
       case PIXEL_FORMAT_I8:
         row_ptr = (png_bytep)image.getFirst() + y * image.getStride();

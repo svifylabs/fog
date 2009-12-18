@@ -59,14 +59,14 @@ err_t Font::_detach()
   {
     Data* newd = Data::copy(_d);
     if (!newd) return ERR_RT_OUT_OF_MEMORY;
-    AtomicBase::ptr_setXchg(&_d, newd)->deref();
+    atomicPtrXchg(&_d, newd)->deref();
   }
   return ERR_OK;
 }
 
 void Font::free()
 {
-  AtomicBase::ptr_setXchg(&_d, sharedNull->ref())->deref();
+  atomicPtrXchg(&_d, sharedNull->ref())->deref();
 }
 
 err_t Font::setFamily(const String& family)
@@ -131,7 +131,7 @@ err_t Font::setUnderline(bool val)
 
 err_t Font::set(const Font& other)
 {
-  AtomicBase::ptr_setXchg(&_d, other._d->ref())->deref();
+  atomicPtrXchg(&_d, other._d->ref())->deref();
   return ERR_OK;
 }
 

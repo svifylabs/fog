@@ -393,11 +393,11 @@ struct FOG_HIDDEN SymmetricConvolveParamsF
 // [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::BlurParams, Fog::TYPE_INFO_PRIMITIVE)
-FOG_DECLARE_TYPEINFO(Fog::ColorFilter, Fog::TYPE_INFO_MOVABLE)
-FOG_DECLARE_TYPEINFO(Fog::ConvolveParams, Fog::TYPE_INFO_MOVABLE)
-FOG_DECLARE_TYPEINFO(Fog::ImageFilter, Fog::TYPE_INFO_MOVABLE)
-FOG_DECLARE_TYPEINFO(Fog::SymmetricConvolveParamsF, Fog::TYPE_INFO_MOVABLE)
+FOG_DECLARE_TYPEINFO(Fog::BlurParams, Fog::TYPEINFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::ColorFilter, Fog::TYPEINFO_MOVABLE)
+FOG_DECLARE_TYPEINFO(Fog::ConvolveParams, Fog::TYPEINFO_MOVABLE)
+FOG_DECLARE_TYPEINFO(Fog::ImageFilter, Fog::TYPEINFO_MOVABLE)
+FOG_DECLARE_TYPEINFO(Fog::SymmetricConvolveParamsF, Fog::TYPEINFO_MOVABLE)
 
 // [Guard]
 #endif // _FOG_GRAPHICS_IMAGEFILTER_H

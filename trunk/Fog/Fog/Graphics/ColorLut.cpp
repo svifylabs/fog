@@ -95,6 +95,9 @@ struct FOG_HIDDEN ColorLutSaturateFilter : public ColorLutFilter
 
   uint min;
   uint max;
+
+private:
+  FOG_DISABLE_COPY(ColorLutSaturateFilter)
 };
 
 err_t ColorLut::saturate(int channel, int minThreshold, int maxThreshold)
@@ -122,6 +125,9 @@ struct FOG_HIDDEN ColorLutMultiplyFilter : public ColorLutFilter
   }
 
   float by;
+
+private:
+  FOG_DISABLE_COPY(ColorLutMultiplyFilter)
 };
 
 err_t ColorLut::multiply(int channel, double by)
@@ -146,6 +152,9 @@ struct FOG_HIDDEN ColorLutAddFilter : public ColorLutFilter
   }
 
   int value;
+
+private:
+  FOG_DISABLE_COPY(ColorLutAddFilter)
 };
 
 err_t ColorLut::add(int channel, int value)
@@ -170,6 +179,9 @@ struct FOG_HIDDEN ColorLutInvertFilter : public ColorLutFilter
       reinterpret_cast<sysuint_t*>(data)[i] = ~reinterpret_cast<sysuint_t*>(data)[i];
     return ERR_OK;
   }
+
+private:
+  FOG_DISABLE_COPY(ColorLutInvertFilter)
 };
 
 err_t ColorLut::invert(int channel)

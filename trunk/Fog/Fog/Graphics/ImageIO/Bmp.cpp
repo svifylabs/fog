@@ -372,13 +372,13 @@ err_t BmpDecoderDevice::readHeader()
   // Check for zero dimensions.
   if (areDimensionsZero())
   {
-    return (_headerResult = ERR_IMAGE_ZERO_SIZE);
+    return (_headerResult = ERR_IMAGE_INVALID_SIZE);
   }
 
   // Check for too large dimensions.
   if (areDimensionsTooLarge())
   {
-    return (_headerResult = ERR_IMAGE_TOO_LARGE_SIZE);
+    return (_headerResult = ERR_IMAGE_TOO_LARGE);
   }
 
   // Bmp contains only one image.
@@ -459,7 +459,7 @@ err_t BmpDecoderDevice::readHeader()
       gMask = 0x03E0; gShift =  5; gLoss = 3;
       bMask = 0x001F; bShift =  0; bLoss = 3;
 
-      _format = PIXEL_FORMAT_RGB24;
+      _format = PIXEL_FORMAT_XRGB32;
       break;
 
     // Setup 24-bit RGB.
@@ -473,7 +473,7 @@ err_t BmpDecoderDevice::readHeader()
       gMask = 0x0000FF00; gShift =  8;
       bMask = 0x00FF0000; bShift = 16;
 #endif // FOG_BYTE_ORDER
-      _format = PIXEL_FORMAT_RGB24;
+      _format = PIXEL_FORMAT_XRGB32;
       break;
 
     // Setup 32-bit RGB (It's possible that alpha-channel is active).
@@ -675,8 +675,8 @@ BI_RLE_4_BEGIN:
 
         if (b0)
         {
-          // b0 = Length
-          // b1 = 2 Colors
+          // b0 = Length.
+          // b1 = 2 Colors.
           uint8_t c0 = b1 >> 4;
           uint8_t c1 = b1 & 0xF;
 
@@ -693,7 +693,7 @@ BI_RLE_4_BEGIN:
         }
         else
         {
-          // b1 = Chunk type
+          // b1 = Chunk type.
           switch (b1)
           {
             case BMP_RLE_NEXT_LINE: x = 0; y++; goto BI_RLE_4_BEGIN;
@@ -703,7 +703,7 @@ BI_RLE_4_BEGIN:
               x += *rleCur++;
               y += *rleCur++;
               goto BI_RLE_4_BEGIN;
-            // FILL BITS (b1 == length)
+            // FILL BITS (b1 == length).
             default:
             {
               uint8_t* backup = rleCur;
@@ -797,14 +797,14 @@ BI_RLE_8_BEGIN:
 
         if (b0)
         {
-          // b0 = Length
-          // b1 = Color
+          // b0 = Length.
+          // b1 = Color.
           i = Math::min<uint32_t>(b0, _width - x);
           while (i--) *pixelsCur++ = b1;
         }
         else 
         {
-          // b1 = Chunk type
+          // b1 = Chunk type.
           switch (b1)
           {
             case BMP_RLE_NEXT_LINE: x = 0; y++; goto BI_RLE_8_BEGIN;
@@ -814,7 +814,7 @@ BI_RLE_8_BEGIN:
               x += *rleCur++;
               y += *rleCur++; 
               goto BI_RLE_8_BEGIN;
-            // FILL BITS (b1 == length)
+            // FILL BITS (b1 == length).
             default:
             {
               uint8_t* backup = rleCur;
@@ -853,11 +853,8 @@ BI_RLE_8_BEGIN:
   // Direct loading.
   else if (
     ((_depth == 32 && _format == PIXEL_FORMAT_ARGB32) ||
-     (_depth == 32 && _format == PIXEL_FORMAT_XRGB32) ||
-     (_depth == 24 && _format == PIXEL_FORMAT_RGB24)) &&
-     rMask == ARGB32_RMASK &&
-     gMask == ARGB32_GMASK &&
-     bMask == ARGB32_BMASK)
+     (_depth == 32 && _format == PIXEL_FORMAT_XRGB32)) &&
+     (rMask == ARGB32_RMASK && gMask == ARGB32_GMASK && bMask == ARGB32_BMASK))
   {
     sysuint_t readBytes = _width * (_depth >> 3);
     sysuint_t tailBytes = bmpStride - readBytes;
@@ -898,9 +895,10 @@ BI_RLE_8_BEGIN:
             uint32_t pixg = ((pix & gMask) >> gShift) << gLoss;
             uint32_t pixb = ((pix & bMask) >> bShift) << bLoss;
 
-            pixelsCur[RGB24_RBYTE] = pixr |= (pixr >> rAdjust);
-            pixelsCur[RGB24_GBYTE] = pixg |= (pixg >> gAdjust);
-            pixelsCur[RGB24_BBYTE] = pixb |= (pixb >> bAdjust);
+            pixelsCur[ARGB32_RBYTE] = pixr |= (pixr >> rAdjust);
+            pixelsCur[ARGB32_GBYTE] = pixg |= (pixg >> gAdjust);
+            pixelsCur[ARGB32_BBYTE] = pixb |= (pixb >> bAdjust);
+            pixelsCur[ARGB32_ABYTE] = 0xFF;
           }
           break;
         }
@@ -910,9 +908,10 @@ BI_RLE_8_BEGIN:
           // 24 bit fields are not supported, standard format is BGR.
           for (x = 0; x < _width; x++, pixelsCur += 3, bufferCur += 3)
           {
-            pixelsCur[RGB24_BBYTE] = bufferCur[0];
-            pixelsCur[RGB24_GBYTE] = bufferCur[1];
-            pixelsCur[RGB24_RBYTE] = bufferCur[2];
+            pixelsCur[ARGB32_BBYTE] = bufferCur[0];
+            pixelsCur[ARGB32_GBYTE] = bufferCur[1];
+            pixelsCur[ARGB32_RBYTE] = bufferCur[2];
+            pixelsCur[ARGB32_ABYTE] = 0xFF;
           }
           break;
         }
@@ -1078,7 +1077,6 @@ err_t BmpEncoderDevice::writeImage(const Image& image)
     }
 
     case PIXEL_FORMAT_XRGB32:
-    case PIXEL_FORMAT_RGB24:
     {
       uint imageSize;
 
@@ -1109,6 +1107,12 @@ err_t BmpEncoderDevice::writeImage(const Image& image)
       bmpDataHeader.winv3.imageSize    = Memory::bswap32le(imageSize);
       break;
     }
+
+    default:
+    {
+      err = ERR_IMAGE_UNSUPPORTED_FORMAT;
+      goto fail;
+    }
   }
 
   // Write file and bmp header.
@@ -1126,7 +1130,7 @@ err_t BmpEncoderDevice::writeImage(const Image& image)
       // Write 32 bit BMP data (ARGB32 non-premultiplied).
       for (uint y = 0; y != height; y++)
       {
-        image.getDibArgb32_le(0, (height - 1 - y), width, buffer);
+        image.getDib(0, (height - 1 - y), width, DIB_FORMAT_ARGB32_LE, buffer);
         if (_stream.write((const void *)buffer, bpl) != bpl) goto fail;
         if ((y & 15) == 0) updateProgress(y, height);
       }
@@ -1134,7 +1138,6 @@ err_t BmpEncoderDevice::writeImage(const Image& image)
     }
 
     case PIXEL_FORMAT_XRGB32:
-    case PIXEL_FORMAT_RGB24:
     {
       uint8_t* buffer = (uint8_t *)bufferLocal.alloc(bpl + skip);
       if (!buffer) { err = ERR_RT_OUT_OF_MEMORY; goto end; }
@@ -1146,7 +1149,7 @@ err_t BmpEncoderDevice::writeImage(const Image& image)
       // Write 24-bit BMP data (BGR format).
       for (int y = 0; y != height; y++)
       {
-        image.getDibRgb24_le(0, (height - 1 - y), width, buffer);
+        image.getDib(0, (height - 1 - y), width, DIB_FORMAT_RGB24_LE, buffer);
         if (_stream.write(buffer, bpl) != (sysuint_t)bpl) goto fail;
         if ((y & 15) == 0) updateProgress(y, height);
       }

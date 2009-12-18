@@ -187,6 +187,8 @@ void MyWindow::onPaint(PaintEvent* e)
   double w = 300.0;
   double h = 300.0;
 
+  p->translate(_subx, _suby);
+
   // Create path that will contain rounded rectangle.
   Path path;
   //path.addRound(RectD(x, y, w, h), PointD(50.0, 50.0));

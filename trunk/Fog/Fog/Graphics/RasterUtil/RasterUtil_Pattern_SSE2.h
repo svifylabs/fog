@@ -8,7 +8,7 @@
 
 #if defined(FOG_IDE)
 #include <Fog/Graphics/RasterUtil/RasterUtil_Defs_SSE2.h>
-#include <Fog/Graphics/RasterUtil/RasterUtil_Convert_SSE2.h>
+#include <Fog/Graphics/RasterUtil/RasterUtil_Dib_SSE2.h>
 #endif // FOG_IDE
 
 namespace Fog {

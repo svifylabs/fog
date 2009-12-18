@@ -379,7 +379,7 @@ FOG_INLINE bool operator!=(const Fog::Region& src1, const Fog::Region& src2) { r
 // [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::Region, Fog::TYPE_INFO_MOVABLE)
+FOG_DECLARE_TYPEINFO(Fog::Region, Fog::TYPEINFO_MOVABLE)
 
 // [Guard]
 #endif // _FOG_GRAPHICS_REGION_H

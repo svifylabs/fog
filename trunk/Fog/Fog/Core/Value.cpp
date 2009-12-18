@@ -120,7 +120,7 @@ err_t NullValueData::getString(String* dst) const
 
 err_t NullValueData::setValue(void* val)
 {
-  return InvalidFunction;
+  return ERR_RT_INVALID_CONTEXT;
 }
 
 // ============================================================================
@@ -369,7 +369,7 @@ Value::~Value()
 
 Value& Value::operator=(const Value& other)
 {
-  AtomicBase::ptr_setXchg(&_d, other._d->ref())->deref();
+  atomicPtrXchg(&_d, other._d->ref())->deref();
   return *this;
 }
 
@@ -437,14 +437,14 @@ err_t Value::detach()
   if (!d) return ERR_RT_OUT_OF_MEMORY;
 
   _d->clone(d);
-  AtomicBase::ptr_setXchg(&_d, d)->deref();
+  atomicPtrXchg(&_d, d)->deref();
   return ERR_OK;
 }
 
 err_t Value::reset()
 {
   sharedNull->refCount.inc();
-  AtomicBase::ptr_setXchg(&_d, sharedNull)->deref();
+  atomicPtrXchg(&_d, sharedNull)->deref();
   return ERR_OK;
 }
 
@@ -472,7 +472,7 @@ err_t Value::setInt64(int64_t val)
     void* p = ValueData::allogetData();
     if (!p) return ERR_RT_OUT_OF_MEMORY;
 
-    AtomicBase::ptr_setXchg(&_d, 
+    atomicPtrXchg(&_d, 
       reinterpret_cast<ValueData*>(new(p) IntegerValueData(val)))->deref();
   }
   return ERR_OK;
@@ -497,7 +497,7 @@ err_t Value::setDouble(double val)
     void* p = ValueData::allogetData();
     if (!p) return ERR_RT_OUT_OF_MEMORY;
 
-    AtomicBase::ptr_setXchg(&_d,
+    atomicPtrXchg(&_d,
       reinterpret_cast<ValueData*>(new(p) DoubleValueData(val)))->deref();
   }
   return ERR_OK;
@@ -522,7 +522,7 @@ err_t Value::setString(const String& val)
     void* p = ValueData::allogetData();
     if (!p) return ERR_RT_OUT_OF_MEMORY;
 
-    AtomicBase::ptr_setXchg(&_d,
+    atomicPtrXchg(&_d,
       reinterpret_cast<ValueData*>(new(p) StringValueData(val)))->deref();
   }
   return ERR_OK;

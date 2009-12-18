@@ -234,6 +234,6 @@ __FOG_CHAR_MAKE_ARITH_OVERLOAD(int16_t a, (uint16_t)a, const Fog::Char& b, b._ch
 // [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::Char, Fog::TYPE_INFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::Char, Fog::TYPEINFO_PRIMITIVE)
 
 #endif // _FOG_CORE_CHAR_H

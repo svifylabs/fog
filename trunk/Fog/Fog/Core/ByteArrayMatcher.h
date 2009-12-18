@@ -107,7 +107,7 @@ private:
 // [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::ByteArrayMatcher, Fog::TYPE_INFO_MOVABLE)
+FOG_DECLARE_TYPEINFO(Fog::ByteArrayMatcher, Fog::TYPEINFO_MOVABLE)
 
 // [Guard]
 #endif // _FOG_CORE_BYTEARRAYMATCHER_H

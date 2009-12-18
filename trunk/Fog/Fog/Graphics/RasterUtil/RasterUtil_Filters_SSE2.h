@@ -8,8 +8,8 @@
 
 #if defined(FOG_IDE)
 #include <Fog/Graphics/RasterUtil/RasterUtil_Defs_SSE2.h>
-#include <Fog/Graphics/RasterUtil/RasterUtil_Convert_SSE2.h>
 #include <Fog/Graphics/RasterUtil/RasterUtil_Composite_SSE2.h>
+#include <Fog/Graphics/RasterUtil/RasterUtil_Dib_SSE2.h>
 #endif // FOG_IDE
 
 //----------------------------------------------------------------------------
@@ -447,53 +447,6 @@ struct FOG_HIDDEN FilterSSE2
 
       pix_pack_from_float(pix, result);
       pix_store4(dst, pix);
-    }
-  }
-
-  static void FOG_FASTCALL color_matrix_rgb24(
-    uint8_t* dst, const uint8_t* src, sysuint_t width, const float m[5][5])
-  {
-    __m128 cf0 = _mm_set_ps(255.0f, 0.0f, 0.0f, 0.0f);
-    __m128 cf255 = _mm_set1_ps(255.0f);
-
-    __m128 pr = _loadColorMatrixRow(m[0]);
-    __m128 pg = _loadColorMatrixRow(m[1]);
-    __m128 pb = _loadColorMatrixRow(m[2]);
-    __m128 pa = _loadColorMatrixRow(m[3]);
-    __m128 pt = _mm_mul_ps(_loadColorMatrixRow(m[4]), cf255);
-
-    pt = _mm_add_ps(pt, _mm_mul_ps(pa, cf255));
-
-    for (sysuint_t i = width; i; i--, dst += 3, src += 3)
-    {
-      __m128i pix;
-      __m128 pixf;
-      __m128 pixt;
-      __m128 result;
-
-      pix = _mm_cvtsi32_si128(PixFmt_RGB24::fetch(dst));
-      pix = _mm_or_si128(pix, Mask_FF000000FF000000_FF000000FF000000);
-      pix_unpack_to_float(pixf, pix);
-
-      result = pt;
-
-      pixt = _mm_shuffle_epi32_f(pixf, _MM_SHUFFLE(2, 2, 2, 2));
-      pixt = _mm_mul_ps(pixt, pr);
-      result = _mm_add_ps(result, pixt);
-
-      pixt = _mm_shuffle_epi32_f(pixf, _MM_SHUFFLE(1, 1, 1, 1));
-      pixt = _mm_mul_ps(pixt, pg);
-      result = _mm_add_ps(result, pixt);
-
-      pixt = _mm_shuffle_epi32_f(pixf, _MM_SHUFFLE(0, 0, 0, 0));
-      pixt = _mm_mul_ps(pixt, pb);
-      result = _mm_add_ps(result, pixt);
-
-      result = _mm_max_ps(result, cf0);
-      result = _mm_min_ps(result, cf255);
-
-      pix_pack_from_float(pix, result);
-      PixFmt_RGB24::store(dst, _mm_cvtsi128_si32(pix));
     }
   }
 

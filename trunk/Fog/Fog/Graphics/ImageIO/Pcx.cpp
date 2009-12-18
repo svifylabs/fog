@@ -375,7 +375,7 @@ static void PCX_applyPalette(uint8_t* pixels, sysuint_t count, const uint32_t* p
   }
 }
 
-static void PCX_convPaletteToPcx(uint8_t* dest, const uint8_t* src, sysuint_t count, sysuint_t entrySize)
+static void PCX_convertPaletteToPcx(uint8_t* dest, const uint8_t* src, sysuint_t count, sysuint_t entrySize)
 {
   for (sysuint_t i = 0; i != count; i++, dest += 3, src += entrySize)
   {
@@ -456,13 +456,13 @@ err_t PcxDecoderDevice::readHeader()
   // Check for zero dimensions.
   if (areDimensionsZero())
   {
-    return (_headerResult = ERR_IMAGE_ZERO_SIZE);
+    return (_headerResult = ERR_IMAGE_INVALID_SIZE);
   }
 
   // Check for too large dimensions.
   if (areDimensionsTooLarge())
   {
-    return (_headerResult = ERR_IMAGE_TOO_LARGE_SIZE);
+    return (_headerResult = ERR_IMAGE_TOO_LARGE);
   }
 
   // Pcx contains only one image.
@@ -501,7 +501,7 @@ err_t PcxDecoderDevice::readHeader()
   {
     _depth = 24;
     _planes = 1;
-    _format = PIXEL_FORMAT_RGB24;
+    _format = PIXEL_FORMAT_XRGB32;
   }
 
   // Success.
@@ -640,9 +640,9 @@ err_t PcxDecoderDevice::readImage(Image& image)
         increment = 1;
         break;
       case 24:
-        pos[0] = RGB24_RBYTE;
-        pos[1] = RGB24_GBYTE;
-        pos[2] = RGB24_BBYTE;
+        pos[0] = ARGB32_RBYTE;
+        pos[1] = ARGB32_GBYTE;
+        pos[2] = ARGB32_BBYTE;
         increment = 3;
         planeMax = 3;
       case 32:
@@ -744,7 +744,7 @@ err_t PcxDecoderDevice::readImage(Image& image)
       }
     }
 
-    _palette.setRgb32(0, (Argb*)pal, 256);
+    _palette.setXrgb32(0, (Argb*)pal, 256);
   }
 
   // apply palette if needed
@@ -788,7 +788,7 @@ err_t PcxEncoderDevice::writeImage(const Image& image)
 
   const uint8_t* pixels;
 
-  if (!width || !height) return ERR_IMAGE_ZERO_SIZE;
+  if (!width || !height) return ERR_IMAGE_INVALID_SIZE;
 
   version = 5;
   bitsPerPixel = 8;
@@ -797,10 +797,7 @@ err_t PcxEncoderDevice::writeImage(const Image& image)
 
   // PCX not supports alpha channel in palette so we must use ARGB32 format if
   // palette alpha channel is used.
-  if (format == PIXEL_FORMAT_I8 && image.getPalette().isAlphaUsed())
-  {
-    format = PIXEL_FORMAT_ARGB32;
-  }
+  if (image.getPalette().isAlphaUsed()) format = PIXEL_FORMAT_ARGB32;
 
   switch (format)
   {
@@ -809,7 +806,6 @@ err_t PcxEncoderDevice::writeImage(const Image& image)
       nPlanes = 4;
       break;
     case PIXEL_FORMAT_XRGB32:
-    case PIXEL_FORMAT_RGB24:
       nPlanes = 3;
       break;
     case PIXEL_FORMAT_A8:
@@ -878,14 +874,14 @@ err_t PcxEncoderDevice::writeImage(const Image& image)
       // Standard indexed image.
       else
       {
-        PCX_convPaletteToPcx(palette + 1, (uint8_t*)image.getPalette().getData(), 256, sizeof(Argb));
+        PCX_convertPaletteToPcx(palette + 1, (uint8_t*)image.getPalette().getData(), 256, sizeof(Argb));
       }
 
       if (_stream.write((const char*)palette, 768+1) != 768+1) goto fail;
     }
   }
   // Write 8 bit image as ARGB32 image (alpha channel in palette used).
-  if (image.getDepth() == 8 && format == PIXEL_FORMAT_ARGB32)
+  else if (image.getDepth() == 8 && format == PIXEL_FORMAT_ARGB32)
   {
     LocalBuffer<1024> bufferLocal;
 
@@ -903,7 +899,7 @@ err_t PcxEncoderDevice::writeImage(const Image& image)
 
     for (y = 0; y != height; y++)
     {
-      image.getDibArgb32(0, y, width, buffer);
+      image.getDib(0, y, width, DIB_FORMAT_ARGB32_NATIVE, buffer);
       for (plane = 0; plane != nPlanes; plane++)
       {
         if (!PCX_encodeScanline(_stream, (uint8_t*)rleenc.mem(), buffer + pos[plane], bpl, alignment, increment)) goto fail;
@@ -918,20 +914,10 @@ err_t PcxEncoderDevice::writeImage(const Image& image)
     sysint_t plane;
     sysint_t increment = image.getBytesPerPixel();
 
-    if (image.getDepth() == 32)
-    {
-      pos[0] = ARGB32_RBYTE;
-      pos[1] = ARGB32_GBYTE;
-      pos[2] = ARGB32_BBYTE;
-      pos[3] = ARGB32_ABYTE;
-    }
-    else
-    {
-      pos[0] = RGB24_RBYTE;
-      pos[1] = RGB24_GBYTE;
-      pos[2] = RGB24_BBYTE;
-      pos[3] = 0;
-    }
+    pos[0] = ARGB32_RBYTE;
+    pos[1] = ARGB32_GBYTE;
+    pos[2] = ARGB32_BBYTE;
+    pos[3] = ARGB32_ABYTE;
 
     for (y = 0; y != height; y++)
     {

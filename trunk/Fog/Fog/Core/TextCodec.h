@@ -478,8 +478,8 @@ struct FOG_API TextCodec
 // [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::TextCodec, Fog::TYPE_INFO_MOVABLE)
-FOG_DECLARE_TYPEINFO(Fog::TextCodec::State, Fog::TYPE_INFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::TextCodec, Fog::TYPEINFO_MOVABLE)
+FOG_DECLARE_TYPEINFO(Fog::TextCodec::State, Fog::TYPEINFO_PRIMITIVE)
 
 // [Guard]
 #endif // _FOG_CORE_TEXTCODEC_H

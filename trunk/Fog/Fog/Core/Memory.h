@@ -10,7 +10,7 @@
 // [Dependencies]
 #include <Fog/Build/Build.h>
 
-#if defined(FOG_CC_MSVC)
+#if defined(FOG_CC_MSVC) && FOG_CC_MSVC >= 1400
 #pragma intrinsic (_byteswap_ushort, _byteswap_ulong, _byteswap_uint64)
 #endif // FOG_CC_MSVC
 
@@ -101,7 +101,7 @@ struct FOG_HIDDEN Memory
 
   static FOG_INLINE void free(void* addr)
   {
-    return fog_memory_free(addr);
+    fog_memory_free(addr);
   }
 
   // [Memory operations]
@@ -563,6 +563,14 @@ struct FOG_HIDDEN Memory
 #elif defined(FOG_CC_GNU) && defined(__M68000__)
     __asm__("rorw #8,%0" : "=d" (x) :  "0" (x) : "cc");
     return x;
+#elif defined(FOG_CC_MSVC) && FOG_CC_MSVC < 1400
+    // Asm version for Visual C++ without intrinsics support.
+    __asm {
+      mov ax, x;
+      xchg al, ah;
+      mov x, ax;
+    }
+    return x;
 #elif defined(FOG_CC_MSVC)
     return _byteswap_ushort(x);
 #else
@@ -590,10 +598,15 @@ struct FOG_HIDDEN Memory
         "swap %0\n\t"
         "ror #8,%0" : "=d" (x) :  "0" (x) : "cc");
     return x;
+#elif defined(FOG_CC_MSVC) && FOG_CC_MSVC < 1400
+    // Asm version for Visual C++ without intrinsics support.
+    __asm {
+      mov eax, x;
+      bswap eax;
+      mov x, eax;
+    }
+    return x;
 #elif defined(FOG_CC_MSVC) && (FOG_ARCH_BITS == 32)
-    // I'm not sure about this intrinsics for the 64 bit platform,
-    // Microsoft documentation says that it's long, but long should
-    // be 64 bit on 64 bit arch...
     return _byteswap_ulong(x);
 #else
     return (
@@ -616,7 +629,7 @@ struct FOG_HIDDEN Memory
 #elif defined(FOG_CC_GNU) && defined(FOG_ARCH_X86_64)
     __asm__("bswapq %0" : "=r" (x) : "0" (x));
     return x;
-#elif defined(FOG_CC_MSVC)
+#elif defined(FOG_CC_MSVC) && FOG_CC_MSVC >= 1400
     return _byteswap_uint64(x);
 #else
     uint32_t hi, lo;

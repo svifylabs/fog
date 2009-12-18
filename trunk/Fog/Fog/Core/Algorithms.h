@@ -18,26 +18,16 @@
 namespace Fog {
 
 // ============================================================================
-// [Fog::QSortBase]
-// ============================================================================
-
-struct FOG_API QSortBase
-{
-  static void* _med3(void* a, void* b, void* c, TypeInfo_CompareFn compar);
-};
-
-// ============================================================================
 // [Fog::QSort<T>]
 // ============================================================================
 
 //! @brief Quick sort algorithm implemented as C++ template.
 template<typename T>
-struct QSort : public QSortBase
+struct QSort
 {
-public:
   typedef int (*CompareFn)(const T* a, const T* b);
 
-  static void sort(T* a, sysuint_t n, CompareFn compar = TypeInfo_Compare<T>::compare);
+  static FOG_NO_INLINE void sort(T* a, sysuint_t n, CompareFn compar = TypeCmp<T>::compare);
 
 private:
   static FOG_INLINE T* med3(T* a, T* b, T* c, CompareFn compar);
@@ -48,7 +38,12 @@ private:
 template<typename T>
 FOG_INLINE T* QSort<T>::med3(T* a, T* b, T* c, CompareFn compar)
 {
-  return (T*)_med3((void*)a, (void*)b, (void*)c, (TypeInfo_CompareFn)compar);
+  int cmp_ab = compar(a, b);
+  int cmp_bc = compar(b, c);
+  int cmp_ac = compar(a, c);
+
+  return cmp_ab < 0 ? (cmp_bc < 0 ? b : (cmp_ac < 0 ? c : a))
+                    : (cmp_bc > 0 ? b : (cmp_ac < 0 ? a : c));
 }
 
 template<typename T>
@@ -73,7 +68,7 @@ void QSort<T>::sort(T* a, sysuint_t n, CompareFn compar)
 loop:
   swap_cnt = 0;
 
-  // Insertion sort
+  // Insertion sort.
   if (n < 7)
   {
     for (pm = a + 1; pm < a + n; pm++)
@@ -134,7 +129,7 @@ loop:
     pc--;
   }
 
-  // Insertion sort
+  // Insertion sort.
   if (swap_cnt == 0)
   {
     for (pm = a + 1; pm < a + n; pm++)
@@ -154,7 +149,7 @@ loop:
   if ((r = (sysint_t)(pb - pa)) > 1) sort(a, (sysuint_t)r, compar);
   if ((r = (sysint_t)(pd - pc)) > 1)
   {
-    // Iterate rather than recurse to save stack space
+    // Iterate rather than recurse to save stack space.
     a = pn - r;
     n = r;
     goto loop;

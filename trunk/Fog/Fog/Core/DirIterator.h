@@ -161,7 +161,7 @@ private:
 // [Fog::TypeInfo<T>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::DirEntry, Fog::TYPE_INFO_MOVABLE)
+FOG_DECLARE_TYPEINFO(Fog::DirEntry, Fog::TYPEINFO_MOVABLE)
 
 // [Guard]
 #endif // _FOG_CORE_DIRITERATOR_H

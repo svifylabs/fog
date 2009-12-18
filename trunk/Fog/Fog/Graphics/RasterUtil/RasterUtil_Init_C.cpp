@@ -28,9 +28,9 @@
 // [Raster_C]
 #include <Fog/Graphics/RasterUtil/RasterUtil_C.h>
 #include <Fog/Graphics/RasterUtil/RasterUtil_Defs_C.h>
-#include <Fog/Graphics/RasterUtil/RasterUtil_Convert_C.h>
 #include <Fog/Graphics/RasterUtil/RasterUtil_Composite_C.h>
-#include <Fog/Graphics/RasterUtil/RasterUtil_Gradient_C.h>
+#include <Fog/Graphics/RasterUtil/RasterUtil_Dib_C.h>
+#include <Fog/Graphics/RasterUtil/RasterUtil_Interpolate_C.h>
 #include <Fog/Graphics/RasterUtil/RasterUtil_Pattern_C.h>
 #include <Fog/Graphics/RasterUtil/RasterUtil_Scale_C.h>
 #include <Fog/Graphics/RasterUtil/RasterUtil_Filters_C.h>
@@ -44,8 +44,6 @@ static void fog_raster_set_nops(Fog::RasterUtil::FunctionMap::RasterFuncs* ops)
   using namespace Fog;
   using namespace Fog::RasterUtil;
 
-  ops->pixel = CompositeNopC::pixel;
-  ops->pixel_a8 = CompositeNopC::pixel_a8;
   ops->cspan = CompositeNopC::cspan;
   ops->cspan_a8 = CompositeNopC::cspan_a8;
   ops->cspan_a8_const = CompositeNopC::cspan_a8_const;
@@ -53,21 +51,18 @@ static void fog_raster_set_nops(Fog::RasterUtil::FunctionMap::RasterFuncs* ops)
   ops->vspan[PIXEL_FORMAT_ARGB32] = (VSpanFn)CompositeNopC::cspan;
   ops->vspan[PIXEL_FORMAT_PRGB32] = (VSpanFn)CompositeNopC::cspan;
   ops->vspan[PIXEL_FORMAT_XRGB32] = (VSpanFn)CompositeNopC::cspan;
-  ops->vspan[PIXEL_FORMAT_RGB24] = (VSpanFn)CompositeNopC::cspan;
   ops->vspan[PIXEL_FORMAT_A8] = (VSpanFn)CompositeNopC::cspan;
   ops->vspan[PIXEL_FORMAT_I8] = (VSpanFn)CompositeNopC::cspan;
 
   ops->vspan_a8[PIXEL_FORMAT_ARGB32] = (VSpanMskFn)CompositeNopC::cspan_a8;
   ops->vspan_a8[PIXEL_FORMAT_PRGB32] = (VSpanMskFn)CompositeNopC::cspan_a8;
   ops->vspan_a8[PIXEL_FORMAT_XRGB32] = (VSpanMskFn)CompositeNopC::cspan_a8;
-  ops->vspan_a8[PIXEL_FORMAT_RGB24] = (VSpanMskFn)CompositeNopC::cspan_a8;
   ops->vspan_a8[PIXEL_FORMAT_A8] = (VSpanMskFn)CompositeNopC::cspan_a8;
   ops->vspan_a8[PIXEL_FORMAT_I8] = (VSpanMskFn)CompositeNopC::cspan_a8;
 
   ops->vspan_a8_const[PIXEL_FORMAT_ARGB32] = (VSpanMskConstFn)CompositeNopC::cspan_a8_const;
   ops->vspan_a8_const[PIXEL_FORMAT_PRGB32] = (VSpanMskConstFn)CompositeNopC::cspan_a8_const;
   ops->vspan_a8_const[PIXEL_FORMAT_XRGB32] = (VSpanMskConstFn)CompositeNopC::cspan_a8_const;
-  ops->vspan_a8_const[PIXEL_FORMAT_RGB24] = (VSpanMskConstFn)CompositeNopC::cspan_a8_const;
   ops->vspan_a8_const[PIXEL_FORMAT_A8] = (VSpanMskConstFn)CompositeNopC::cspan_a8_const;
   ops->vspan_a8_const[PIXEL_FORMAT_I8] = (VSpanMskConstFn)CompositeNopC::cspan_a8_const;
 }
@@ -79,135 +74,163 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
 
   FunctionMap* m = functionMap;
 
-  // [Convert - ByteSwap]
+  // [Dib - ByteSwap]
 
-  m->convert.bswap16 = ConvertC::bswap16;
-  m->convert.bswap24 = ConvertC::bswap24;
-  m->convert.bswap32 = ConvertC::bswap32;
+  m->dib.bswap16 = DibC::bswap16;
+  m->dib.bswap24 = DibC::bswap24;
+  m->dib.bswap32 = DibC::bswap32;
 
-  // [Convert - MemCpy]
+  // [Dib - MemCpy]
 
-  m->convert.memcpy8 = ConvertC::memcpy8;
-  m->convert.memcpy16 = ConvertC::memcpy16;
-  m->convert.memcpy24 = ConvertC::memcpy24;
-  m->convert.memcpy32 = ConvertC::memcpy32;
+  m->dib.memcpy8 = DibC::memcpy8;
+  m->dib.memcpy16 = DibC::memcpy16;
+  m->dib.memcpy24 = DibC::memcpy24;
+  m->dib.memcpy32 = DibC::memcpy32;
 
-  // [Convert - Axxx32 Dest]
+  // [Dib - Convert]
 
-  m->convert.axxx32_from_xxxx32 = ConvertC::axxx32_from_xxxx32;
-  m->convert.axxx32_from_a8 = ConvertC::axxx32_from_a8;
-  m->convert.axxx32_bs_from_a8 = ConvertC::axxx32_bs_from_a8;
+  m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_PRGB32_NATIVE    ] = DibC::memcpy32;
+  m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_ARGB32_NATIVE    ] = DibC::prgb32_from_argb32;
+  m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_XRGB32_NATIVE    ] = DibC::frgb32_from_xrgb32;
+  m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_A8               ] = DibC::azzz32_from_a8;
+  m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_I8               ] = DibC::prgb32_from_i8;
+  m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_PRGB32_SWAPPED   ] = DibC::bswap32;
+  m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_ARGB32_SWAPPED   ] = DibC::prgb32_from_argb32_swapped;
+  m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_XRGB32_SWAPPED   ] = DibC::frgb32_from_xrgb32_swapped;
+  m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_RGB24_NATIVE     ] = DibC::frgb32_from_rgb24_native;
+  m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_RGB24_SWAPPED    ] = DibC::frgb32_from_rgb24_swapped;
+  m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_RGB16_565_NATIVE ] = DibC::frgb32_from_rgb16_565_native;
+  m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_RGB16_565_SWAPPED] = DibC::frgb32_from_rgb16_565_swapped;
+  m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_RGB16_555_NATIVE ] = DibC::frgb32_from_rgb16_555_native;
+  m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_RGB16_555_SWAPPED] = DibC::frgb32_from_rgb16_555_swapped;
+  m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_GREY8            ] = DibC::frgb32_from_grey8;
 
-  // [Convert - Argb32 Dest]
+  m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_PRGB32_NATIVE    ] = DibC::argb32_from_prgb32;
+  m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_ARGB32_NATIVE    ] = DibC::memcpy32;
+  m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_XRGB32_NATIVE    ] = DibC::frgb32_from_xrgb32;
+  m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_A8               ] = DibC::azzz32_from_a8;
+  m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_I8               ] = DibC::argb32_from_i8;
+  m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_PRGB32_SWAPPED   ] = DibC::argb32_from_prgb32_swapped;
+  m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_ARGB32_SWAPPED   ] = DibC::bswap32;
+  m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_XRGB32_SWAPPED   ] = DibC::frgb32_from_xrgb32_swapped;
+  m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_RGB24_NATIVE     ] = DibC::frgb32_from_rgb24_native;
+  m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_RGB24_SWAPPED    ] = DibC::frgb32_from_rgb24_swapped;
+  m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_RGB16_565_NATIVE ] = DibC::frgb32_from_rgb16_565_native;
+  m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_RGB16_565_SWAPPED] = DibC::frgb32_from_rgb16_565_swapped;
+  m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_RGB16_555_NATIVE ] = DibC::frgb32_from_rgb16_555_native;
+  m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_RGB16_555_SWAPPED] = DibC::frgb32_from_rgb16_555_swapped;
+  m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_GREY8            ] = DibC::frgb32_from_grey8;
 
-  m->convert.argb32_from_prgb32 = ConvertC::argb32_from_prgb32;
-  m->convert.argb32_from_prgb32_bs = ConvertC::argb32_from_prgb32_bs;
-  m->convert.argb32_from_rgb32 = ConvertC::axxx32_from_xxxx32;
-  m->convert.argb32_from_rgb32_bs = ConvertC::argb32_from_rgb32_bs;
-  m->convert.argb32_from_i8 = ConvertC::argb32_from_i8;
+  m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_PRGB32_NATIVE    ] = DibC::frgb32_from_xrgb32;
+  m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_ARGB32_NATIVE    ] = DibC::frgb32_from_argb32;
+  m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_XRGB32_NATIVE    ] = DibC::frgb32_from_xrgb32;
+  m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_A8               ] = DibC::fzzz32_from_null;
+  m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_I8               ] = DibC::frgb32_from_i8;
+  m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_PRGB32_SWAPPED   ] = DibC::frgb32_from_xrgb32_swapped;
+  m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_ARGB32_SWAPPED   ] = DibC::frgb32_from_argb32_swapped;
+  m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_XRGB32_SWAPPED   ] = DibC::bswap32;
+  m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_RGB24_NATIVE     ] = DibC::frgb32_from_rgb24_native;
+  m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_RGB24_SWAPPED    ] = DibC::frgb32_from_rgb24_swapped;
+  m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_RGB16_565_NATIVE ] = DibC::frgb32_from_rgb16_565_native;
+  m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_RGB16_565_SWAPPED] = DibC::frgb32_from_rgb16_565_swapped;
+  m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_RGB16_555_NATIVE ] = DibC::frgb32_from_rgb16_555_native;
+  m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_RGB16_555_SWAPPED] = DibC::frgb32_from_rgb16_555_swapped;
+  m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_GREY8            ] = DibC::frgb32_from_grey8;
 
-  m->convert.argb32_bs_from_rgb32 = ConvertC::argb32_bs_from_rgb32;
-  m->convert.argb32_bs_from_prgb32 = ConvertC::argb32_bs_from_prgb32;
-  m->convert.argb32_bs_from_i8 = ConvertC::argb32_bs_from_i8;
+  m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_PRGB32_NATIVE    ] = DibC::a8_from_axxx32;
+  m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_ARGB32_NATIVE    ] = DibC::a8_from_axxx32;
+  m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_XRGB32_NATIVE    ] = DibC::f8_from_null;
+  m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_A8               ] = DibC::memcpy8;
+  m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_I8               ] = DibC::a8_from_i8;
+  m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_PRGB32_SWAPPED   ] = DibC::a8_from_axxx32_swapped;
+  m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_ARGB32_SWAPPED   ] = DibC::a8_from_axxx32_swapped;
+  m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_XRGB32_SWAPPED   ] = DibC::f8_from_null;
+  m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_RGB24_NATIVE     ] = DibC::f8_from_null;
+  m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_RGB24_SWAPPED    ] = DibC::f8_from_null;
+  m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_RGB16_565_NATIVE ] = DibC::f8_from_null;
+  m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_RGB16_565_SWAPPED] = DibC::f8_from_null;
+  m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_RGB16_555_NATIVE ] = DibC::f8_from_null;
+  m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_RGB16_555_SWAPPED] = DibC::f8_from_null;
+  m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_GREY8            ] = DibC::f8_from_null;
 
-  // [Convert - Prgb32 Dest]
+  m->dib.convert[DIB_FORMAT_PRGB32_SWAPPED   ][PIXEL_FORMAT_PRGB32] = DibC::bswap32;
+  m->dib.convert[DIB_FORMAT_PRGB32_SWAPPED   ][PIXEL_FORMAT_ARGB32] = DibC::prgb32_swapped_from_argb32;
+  m->dib.convert[DIB_FORMAT_PRGB32_SWAPPED   ][PIXEL_FORMAT_XRGB32] = DibC::frgb32_swapped_from_xrgb32;
+  m->dib.convert[DIB_FORMAT_PRGB32_SWAPPED   ][PIXEL_FORMAT_A8    ] = DibC::azzz32_swapped_from_a8;
+  m->dib.convert[DIB_FORMAT_PRGB32_SWAPPED   ][PIXEL_FORMAT_I8    ] = DibC::prgb32_swapped_from_i8;
 
-  m->convert.prgb32_from_argb32 = ConvertC::prgb32_from_argb32;
-  m->convert.prgb32_from_argb32_bs = ConvertC::prgb32_from_argb32_bs;
-  m->convert.prgb32_from_i8 = ConvertC::prgb32_from_i8;
+  m->dib.convert[DIB_FORMAT_ARGB32_SWAPPED   ][PIXEL_FORMAT_PRGB32] = DibC::argb32_swapped_from_prgb32;
+  m->dib.convert[DIB_FORMAT_ARGB32_SWAPPED   ][PIXEL_FORMAT_ARGB32] = DibC::bswap32;
+  m->dib.convert[DIB_FORMAT_ARGB32_SWAPPED   ][PIXEL_FORMAT_XRGB32] = DibC::frgb32_swapped_from_xrgb32;
+  m->dib.convert[DIB_FORMAT_ARGB32_SWAPPED   ][PIXEL_FORMAT_A8    ] = DibC::azzz32_swapped_from_a8;
+  m->dib.convert[DIB_FORMAT_ARGB32_SWAPPED   ][PIXEL_FORMAT_I8    ] = DibC::argb32_swapped_from_i8;
 
-  m->convert.prgb32_bs_from_argb32 = ConvertC::prgb32_bs_from_argb32;
-  m->convert.prgb32_bs_from_i8 = ConvertC::prgb32_bs_from_i8;
+  m->dib.convert[DIB_FORMAT_XRGB32_SWAPPED   ][PIXEL_FORMAT_PRGB32] = DibC::frgb32_swapped_from_xrgb32;
+  m->dib.convert[DIB_FORMAT_XRGB32_SWAPPED   ][PIXEL_FORMAT_ARGB32] = DibC::frgb32_swapped_from_argb32;
+  m->dib.convert[DIB_FORMAT_XRGB32_SWAPPED   ][PIXEL_FORMAT_XRGB32] = DibC::frgb32_swapped_from_xrgb32;
+  m->dib.convert[DIB_FORMAT_XRGB32_SWAPPED   ][PIXEL_FORMAT_A8    ] = DibC::fzzz32_swapped_from_null;
+  m->dib.convert[DIB_FORMAT_XRGB32_SWAPPED   ][PIXEL_FORMAT_I8    ] = DibC::frgb32_swapped_from_i8;
 
-  // [Convert - Rgb32 Dest]
+  m->dib.convert[DIB_FORMAT_RGB24_NATIVE     ][PIXEL_FORMAT_PRGB32] = DibC::rgb24_native_from_xrgb32;
+  m->dib.convert[DIB_FORMAT_RGB24_NATIVE     ][PIXEL_FORMAT_ARGB32] = DibC::rgb24_native_from_argb32;
+  m->dib.convert[DIB_FORMAT_RGB24_NATIVE     ][PIXEL_FORMAT_XRGB32] = DibC::rgb24_native_from_xrgb32;
+  m->dib.convert[DIB_FORMAT_RGB24_NATIVE     ][PIXEL_FORMAT_A8    ] = DibC::zzz24_from_null;
+  m->dib.convert[DIB_FORMAT_RGB24_NATIVE     ][PIXEL_FORMAT_I8    ] = DibC::rgb24_native_from_i8;
 
-  m->convert.rgb32_from_argb32 = ConvertC::rgb32_from_argb32;
-  m->convert.rgb32_from_argb32_bs = ConvertC::rgb32_from_argb32_bs;
-  m->convert.rgb32_from_rgb24 = ConvertC::rgb32_from_rgb24;
-  m->convert.rgb32_from_bgr24 = ConvertC::rgb32_from_bgr24;
-  m->convert.rgb32_from_rgb16_5550 = ConvertC::rgb32_from_rgb16_5550;
-  m->convert.rgb32_from_rgb16_5550_bs = ConvertC::rgb32_from_rgb16_5550_bs;
-  m->convert.rgb32_from_rgb16_5650 = ConvertC::rgb32_from_rgb16_5650;
-  m->convert.rgb32_from_rgb16_5650_bs = ConvertC::rgb32_from_rgb16_5650_bs;
-  m->convert.rgb32_from_i8 = ConvertC::rgb32_from_i8;
+  m->dib.convert[DIB_FORMAT_RGB24_SWAPPED    ][PIXEL_FORMAT_PRGB32] = DibC::rgb24_swapped_from_xrgb32;
+  m->dib.convert[DIB_FORMAT_RGB24_SWAPPED    ][PIXEL_FORMAT_ARGB32] = DibC::rgb24_swapped_from_argb32;
+  m->dib.convert[DIB_FORMAT_RGB24_SWAPPED    ][PIXEL_FORMAT_XRGB32] = DibC::rgb24_swapped_from_xrgb32;
+  m->dib.convert[DIB_FORMAT_RGB24_SWAPPED    ][PIXEL_FORMAT_A8    ] = DibC::zzz24_from_null;
+  m->dib.convert[DIB_FORMAT_RGB24_SWAPPED    ][PIXEL_FORMAT_I8    ] = DibC::rgb24_swapped_from_i8;
 
-  m->convert.rgb32_bs_from_rgb24 = ConvertC::rgb32_bs_from_rgb24;
+  m->dib.convert[DIB_FORMAT_RGB16_565_NATIVE ][PIXEL_FORMAT_PRGB32] = DibC::rgb16_565_native_from_xrgb32;
+  m->dib.convert[DIB_FORMAT_RGB16_565_NATIVE ][PIXEL_FORMAT_ARGB32] = DibC::rgb16_565_native_from_argb32;
+  m->dib.convert[DIB_FORMAT_RGB16_565_NATIVE ][PIXEL_FORMAT_XRGB32] = DibC::rgb16_565_native_from_xrgb32;
+  m->dib.convert[DIB_FORMAT_RGB16_565_NATIVE ][PIXEL_FORMAT_A8    ] = DibC::zzz16_from_null;
+  m->dib.convert[DIB_FORMAT_RGB16_565_NATIVE ][PIXEL_FORMAT_I8    ] = DibC::rgb16_565_native_from_i8;
 
-  // [Convert - Rgb24/Bgr24 Dest]
+  m->dib.convert[DIB_FORMAT_RGB16_565_SWAPPED][PIXEL_FORMAT_PRGB32] = DibC::rgb16_565_swapped_from_xrgb32;
+  m->dib.convert[DIB_FORMAT_RGB16_565_SWAPPED][PIXEL_FORMAT_ARGB32] = DibC::rgb16_565_swapped_from_argb32;
+  m->dib.convert[DIB_FORMAT_RGB16_565_SWAPPED][PIXEL_FORMAT_XRGB32] = DibC::rgb16_565_swapped_from_xrgb32;
+  m->dib.convert[DIB_FORMAT_RGB16_565_SWAPPED][PIXEL_FORMAT_A8    ] = DibC::zzz16_from_null;
+  m->dib.convert[DIB_FORMAT_RGB16_565_SWAPPED][PIXEL_FORMAT_I8    ] = DibC::rgb16_565_swapped_from_i8;
 
-  m->convert.rgb24_from_rgb32 = ConvertC::rgb24_from_rgb32;
-  m->convert.rgb24_from_rgb32_bs = ConvertC::rgb24_from_rgb32_bs;
-  m->convert.rgb24_from_rgb16_5550 = ConvertC::rgb24_from_rgb16_5550;
-  m->convert.rgb24_from_rgb16_5550_bs = ConvertC::rgb24_from_rgb16_5550_bs;
-  m->convert.rgb24_from_rgb16_5650 = ConvertC::rgb24_from_rgb16_5650;
-  m->convert.rgb24_from_rgb16_5650_bs = ConvertC::rgb24_from_rgb16_5650_bs;
-  m->convert.rgb24_from_i8 = ConvertC::rgb24_from_i8;
+  m->dib.convert[DIB_FORMAT_RGB16_555_NATIVE ][PIXEL_FORMAT_PRGB32] = DibC::rgb16_555_native_from_xrgb32;
+  m->dib.convert[DIB_FORMAT_RGB16_555_NATIVE ][PIXEL_FORMAT_ARGB32] = DibC::rgb16_555_native_from_argb32;
+  m->dib.convert[DIB_FORMAT_RGB16_555_NATIVE ][PIXEL_FORMAT_XRGB32] = DibC::rgb16_555_native_from_xrgb32;
+  m->dib.convert[DIB_FORMAT_RGB16_555_NATIVE ][PIXEL_FORMAT_A8    ] = DibC::zzz16_from_null;
+  m->dib.convert[DIB_FORMAT_RGB16_555_NATIVE ][PIXEL_FORMAT_I8    ] = DibC::rgb16_555_native_from_i8;
 
-  m->convert.bgr24_from_rgb32 = ConvertC::bgr24_from_rgb32;
-  m->convert.bgr24_from_i8 = ConvertC::bgr24_from_i8;
+  m->dib.convert[DIB_FORMAT_RGB16_555_SWAPPED][PIXEL_FORMAT_PRGB32] = DibC::rgb16_555_swapped_from_xrgb32;
+  m->dib.convert[DIB_FORMAT_RGB16_555_SWAPPED][PIXEL_FORMAT_ARGB32] = DibC::rgb16_555_swapped_from_argb32;
+  m->dib.convert[DIB_FORMAT_RGB16_555_SWAPPED][PIXEL_FORMAT_XRGB32] = DibC::rgb16_555_swapped_from_xrgb32;
+  m->dib.convert[DIB_FORMAT_RGB16_555_SWAPPED][PIXEL_FORMAT_A8    ] = DibC::zzz16_from_null;
+  m->dib.convert[DIB_FORMAT_RGB16_555_SWAPPED][PIXEL_FORMAT_I8    ] = DibC::rgb16_555_swapped_from_i8;
 
-  // [Convert - Rgb16 Dest]
+  m->dib.convert[DIB_FORMAT_GREY8            ][PIXEL_FORMAT_PRGB32] = DibC::grey8_from_xrgb32;
+  m->dib.convert[DIB_FORMAT_GREY8            ][PIXEL_FORMAT_ARGB32] = DibC::grey8_from_argb32;
+  m->dib.convert[DIB_FORMAT_GREY8            ][PIXEL_FORMAT_XRGB32] = DibC::grey8_from_xrgb32;
+  m->dib.convert[DIB_FORMAT_GREY8            ][PIXEL_FORMAT_A8    ] = DibC::z8_from_null;
+  m->dib.convert[DIB_FORMAT_GREY8            ][PIXEL_FORMAT_I8    ] = DibC::grey8_from_i8;
 
-  m->convert.rgb16_5550_from_rgb32 = ConvertC::rgb16_5550_from_rgb32;
-  m->convert.rgb16_5550_from_rgb24 = ConvertC::rgb16_5550_from_rgb24;
-  m->convert.rgb16_5550_from_i8 = ConvertC::rgb16_5550_from_i8;
+  // [Dib - Dither]
 
-  m->convert.rgb16_5650_from_rgb32 = ConvertC::rgb16_5650_from_rgb32;
-  m->convert.rgb16_5650_from_rgb24 = ConvertC::rgb16_5650_from_rgb24;
-  m->convert.rgb16_5650_from_i8 = ConvertC::rgb16_5650_from_i8;
+  m->dib.i8rgb232_from_xrgb32_dither = DibC::i8rgb232_from_xrgb32_dither;
+  m->dib.i8rgb222_from_xrgb32_dither = DibC::i8rgb222_from_xrgb32_dither;
+  m->dib.i8rgb111_from_xrgb32_dither = DibC::i8rgb111_from_xrgb32_dither;
 
-  m->convert.rgb16_5550_bs_from_rgb32 = ConvertC::rgb16_5550_bs_from_rgb32;
-  m->convert.rgb16_5550_bs_from_rgb24 = ConvertC::rgb16_5550_bs_from_rgb24;
-  m->convert.rgb16_5550_bs_from_i8 = ConvertC::rgb16_5550_bs_from_i8;
+  m->dib.rgb16_555_native_from_xrgb32_dither = DibC::rgb16_555_native_from_xrgb32_dither;
+  m->dib.rgb16_565_native_from_xrgb32_dither = DibC::rgb16_565_native_from_xrgb32_dither;
 
-  m->convert.rgb16_5650_bs_from_rgb32 = ConvertC::rgb16_5650_bs_from_rgb32;
-  m->convert.rgb16_5650_bs_from_rgb24 = ConvertC::rgb16_5650_bs_from_rgb24;
-  m->convert.rgb16_5650_bs_from_i8 = ConvertC::rgb16_5650_bs_from_i8;
+  m->dib.rgb16_555_swapped_from_xrgb32_dither = DibC::rgb16_555_swapped_from_xrgb32_dither;
+  m->dib.rgb16_565_swapped_from_xrgb32_dither = DibC::rgb16_565_swapped_from_xrgb32_dither;
 
-  // [Convert - A8 Dest]
+  // [Gradient - Interpolation]
 
-  m->convert.a8_from_axxx32 = ConvertC::a8_from_axxx32;
-  m->convert.a8_from_i8 = ConvertC::a8_from_i8;
-
-  // [Convert - Greyscale]
-
-  m->convert.greyscale8_from_rgb32 = ConvertC::greyscale8_from_rgb32;
-  m->convert.greyscale8_from_rgb24 = ConvertC::greyscale8_from_rgb24;
-  m->convert.greyscale8_from_bgr24 = ConvertC::greyscale8_from_bgr24;
-  m->convert.greyscale8_from_i8 = ConvertC::greyscale8_from_i8;
-
-  m->convert.rgb32_from_greyscale8 = ConvertC::rgb32_from_greyscale8;
-  m->convert.rgb24_from_greyscale8 = ConvertC::rgb24_from_greyscale8;
-
-  // [Convert - Dithering]
-
-  m->convert.i8rgb232_from_rgb32_dither = ConvertC::i8rgb232_from_rgb32_dither;
-  m->convert.i8rgb222_from_rgb32_dither = ConvertC::i8rgb222_from_rgb32_dither;
-  m->convert.i8rgb111_from_rgb32_dither = ConvertC::i8rgb111_from_rgb32_dither;
-
-  m->convert.i8rgb232_from_rgb24_dither = ConvertC::i8rgb232_from_rgb24_dither;
-  m->convert.i8rgb222_from_rgb24_dither = ConvertC::i8rgb222_from_rgb24_dither;
-  m->convert.i8rgb111_from_rgb24_dither = ConvertC::i8rgb111_from_rgb24_dither;
-
-  m->convert.rgb16_5550_from_rgb32_dither = ConvertC::rgb16_5550_from_rgb32_dither;
-  m->convert.rgb16_5550_from_rgb24_dither = ConvertC::rgb16_5550_from_rgb24_dither;
-
-  m->convert.rgb16_5650_from_rgb32_dither = ConvertC::rgb16_5650_from_rgb32_dither;
-  m->convert.rgb16_5650_from_rgb24_dither = ConvertC::rgb16_5650_from_rgb24_dither;
-
-  m->convert.rgb16_5550_bs_from_rgb32_dither = ConvertC::rgb16_5550_bs_from_rgb32_dither;
-  m->convert.rgb16_5550_bs_from_rgb24_dither = ConvertC::rgb16_5550_bs_from_rgb24_dither;
-
-  m->convert.rgb16_5650_bs_from_rgb32_dither = ConvertC::rgb16_5650_bs_from_rgb32_dither;
-  m->convert.rgb16_5650_bs_from_rgb24_dither = ConvertC::rgb16_5650_bs_from_rgb24_dither;
-
-  // [Gradient - Gradient]
-
-  m->gradient.gradient_argb32 = GradientC::gradient_argb32;
-  m->gradient.gradient_prgb32 = GradientC::gradient_prgb32;
-  m->gradient.gradient_rgb32 = GradientC::gradient_rgb32;
-  m->gradient.gradient_rgb24 = GradientC::gradient_rgb24;
-  m->gradient.gradient_a8 = GradientC::gradient_a8;
+  m->interpolate.gradient[PIXEL_FORMAT_PRGB32] = InterpolateC::gradient_prgb32;
+  m->interpolate.gradient[PIXEL_FORMAT_ARGB32] = InterpolateC::gradient_argb32;
+  m->interpolate.gradient[PIXEL_FORMAT_XRGB32] = InterpolateC::gradient_xrgb32;
+  m->interpolate.gradient[PIXEL_FORMAT_A8] = InterpolateC::gradient_a8;
 
   // [Pattern - Solid]
 
@@ -220,53 +243,43 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   m->pattern.texture_fetch_exact_repeat[PIXEL_FORMAT_PRGB32] = PatternC::texture_fetch_exact_repeat_32;
   m->pattern.texture_fetch_exact_repeat[PIXEL_FORMAT_ARGB32] = PatternC::texture_fetch_exact_repeat_32;
   m->pattern.texture_fetch_exact_repeat[PIXEL_FORMAT_XRGB32] = PatternC::texture_fetch_exact_repeat_32;
-  m->pattern.texture_fetch_exact_repeat[PIXEL_FORMAT_RGB24] = PatternC::texture_fetch_exact_repeat_24;
 
   m->pattern.texture_fetch_exact_reflect[PIXEL_FORMAT_PRGB32] = PatternC::texture_fetch_exact_reflect_32;
   m->pattern.texture_fetch_exact_reflect[PIXEL_FORMAT_ARGB32] = PatternC::texture_fetch_exact_reflect_32;
   m->pattern.texture_fetch_exact_reflect[PIXEL_FORMAT_XRGB32] = PatternC::texture_fetch_exact_reflect_32;
-  m->pattern.texture_fetch_exact_reflect[PIXEL_FORMAT_RGB24] = PatternC::texture_fetch_exact_reflect_24;
 
   m->pattern.texture_fetch_subx0_repeat[PIXEL_FORMAT_PRGB32] = PatternC::texture_fetch_subx0_repeat_32;
   m->pattern.texture_fetch_subx0_repeat[PIXEL_FORMAT_ARGB32] = PatternC::texture_fetch_subx0_repeat_32;
   m->pattern.texture_fetch_subx0_repeat[PIXEL_FORMAT_XRGB32] = PatternC::texture_fetch_subx0_repeat_32;
-  m->pattern.texture_fetch_subx0_repeat[PIXEL_FORMAT_RGB24] = PatternC::texture_fetch_subx0_repeat_24;
 
   m->pattern.texture_fetch_subx0_reflect[PIXEL_FORMAT_PRGB32] = PatternC::texture_fetch_subx0_reflect_32;
   m->pattern.texture_fetch_subx0_reflect[PIXEL_FORMAT_ARGB32] = PatternC::texture_fetch_subx0_reflect_32;
   m->pattern.texture_fetch_subx0_reflect[PIXEL_FORMAT_XRGB32] = PatternC::texture_fetch_subx0_reflect_32;
-  m->pattern.texture_fetch_subx0_reflect[PIXEL_FORMAT_RGB24] = PatternC::texture_fetch_subx0_reflect_24;
 
   m->pattern.texture_fetch_sub0y_repeat[PIXEL_FORMAT_PRGB32] = PatternC::texture_fetch_sub0y_repeat_32;
   m->pattern.texture_fetch_sub0y_repeat[PIXEL_FORMAT_ARGB32] = PatternC::texture_fetch_sub0y_repeat_32;
   m->pattern.texture_fetch_sub0y_repeat[PIXEL_FORMAT_XRGB32] = PatternC::texture_fetch_sub0y_repeat_32;
-  m->pattern.texture_fetch_sub0y_repeat[PIXEL_FORMAT_RGB24] = PatternC::texture_fetch_sub0y_repeat_24;
 
   m->pattern.texture_fetch_sub0y_reflect[PIXEL_FORMAT_PRGB32] = PatternC::texture_fetch_sub0y_reflect_32;
   m->pattern.texture_fetch_sub0y_reflect[PIXEL_FORMAT_ARGB32] = PatternC::texture_fetch_sub0y_reflect_32;
   m->pattern.texture_fetch_sub0y_reflect[PIXEL_FORMAT_XRGB32] = PatternC::texture_fetch_sub0y_reflect_32;
-  m->pattern.texture_fetch_sub0y_reflect[PIXEL_FORMAT_RGB24] = PatternC::texture_fetch_sub0y_reflect_24;
 
   m->pattern.texture_fetch_subxy_repeat[PIXEL_FORMAT_PRGB32] = PatternC::texture_fetch_subxy_repeat_32;
   m->pattern.texture_fetch_subxy_repeat[PIXEL_FORMAT_ARGB32] = PatternC::texture_fetch_subxy_repeat_32;
   m->pattern.texture_fetch_subxy_repeat[PIXEL_FORMAT_XRGB32] = PatternC::texture_fetch_subxy_repeat_32;
-  m->pattern.texture_fetch_subxy_repeat[PIXEL_FORMAT_RGB24] = PatternC::texture_fetch_subxy_repeat_24;
 
   m->pattern.texture_fetch_subxy_reflect[PIXEL_FORMAT_PRGB32] = PatternC::texture_fetch_subxy_reflect_32;
   m->pattern.texture_fetch_subxy_reflect[PIXEL_FORMAT_ARGB32] = PatternC::texture_fetch_subxy_reflect_32;
   m->pattern.texture_fetch_subxy_reflect[PIXEL_FORMAT_XRGB32] = PatternC::texture_fetch_subxy_reflect_32;
-  m->pattern.texture_fetch_subxy_reflect[PIXEL_FORMAT_RGB24] = PatternC::texture_fetch_subxy_reflect_24;
 
   m->pattern.texture_fetch_transform_nearest_repeat[PIXEL_FORMAT_PRGB32] = PatternC::texture_fetch_transform_nearest_repeat_32;
   m->pattern.texture_fetch_transform_nearest_repeat[PIXEL_FORMAT_ARGB32] = PatternC::texture_fetch_transform_nearest_repeat_32;
   m->pattern.texture_fetch_transform_nearest_repeat[PIXEL_FORMAT_XRGB32] = PatternC::texture_fetch_transform_nearest_repeat_32;
-  m->pattern.texture_fetch_transform_nearest_repeat[PIXEL_FORMAT_RGB24] = PatternC::texture_fetch_transform_nearest_repeat_24;
   m->pattern.texture_fetch_transform_nearest_repeat[PIXEL_FORMAT_A8] = PatternC::texture_fetch_transform_nearest_repeat_a8;
 
   m->pattern.texture_fetch_transform_bilinear_repeat[PIXEL_FORMAT_PRGB32] = PatternC::texture_fetch_transform_bilinear_repeat_32;
   m->pattern.texture_fetch_transform_bilinear_repeat[PIXEL_FORMAT_ARGB32] = PatternC::texture_fetch_transform_bilinear_repeat_32;
   m->pattern.texture_fetch_transform_bilinear_repeat[PIXEL_FORMAT_XRGB32] = PatternC::texture_fetch_transform_bilinear_repeat_32;
-  m->pattern.texture_fetch_transform_bilinear_repeat[PIXEL_FORMAT_RGB24] = PatternC::texture_fetch_transform_bilinear_repeat_24;
   m->pattern.texture_fetch_transform_bilinear_repeat[PIXEL_FORMAT_A8] = PatternC::texture_fetch_transform_bilinear_repeat_a8;
 
   // [Pattern - Linear Gradient]
@@ -298,7 +311,6 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   m->filter.color_lut[PIXEL_FORMAT_PRGB32] = FilterC::color_lut_prgb32;
   m->filter.color_lut[PIXEL_FORMAT_ARGB32] = FilterC::color_lut_argb32;
   m->filter.color_lut[PIXEL_FORMAT_XRGB32] = FilterC::color_lut_xrgb32;
-  m->filter.color_lut[PIXEL_FORMAT_RGB24] = FilterC::color_lut_rgb24;
   m->filter.color_lut[PIXEL_FORMAT_A8] = FilterC::color_lut_a8;
 
   // [Filter - ColorMatrix]
@@ -306,7 +318,6 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   m->filter.color_matrix[PIXEL_FORMAT_PRGB32] = FilterC::color_matrix_prgb32;
   m->filter.color_matrix[PIXEL_FORMAT_ARGB32] = FilterC::color_matrix_argb32;
   m->filter.color_matrix[PIXEL_FORMAT_XRGB32] = FilterC::color_matrix_xrgb32;
-  m->filter.color_matrix[PIXEL_FORMAT_RGB24] = FilterC::color_matrix_rgb24;
   m->filter.color_matrix[PIXEL_FORMAT_A8] = FilterC::color_matrix_a8;
 
   // [Filters - CopyArea]
@@ -314,7 +325,6 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   m->filter.copy_area[PIXEL_FORMAT_PRGB32] = FilterC::copy_area_32;
   m->filter.copy_area[PIXEL_FORMAT_ARGB32] = FilterC::copy_area_32;
   m->filter.copy_area[PIXEL_FORMAT_XRGB32] = FilterC::copy_area_32;
-  m->filter.copy_area[PIXEL_FORMAT_RGB24] = FilterC::copy_area_24;
   m->filter.copy_area[PIXEL_FORMAT_A8] = FilterC::copy_area_8;
   m->filter.copy_area[PIXEL_FORMAT_I8] = FilterC::copy_area_8;
 
@@ -324,8 +334,6 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   m->filter.box_blur_v[PIXEL_FORMAT_ARGB32] = FilterC::box_blur_v_argb32;
   m->filter.box_blur_h[PIXEL_FORMAT_XRGB32] = FilterC::box_blur_h_xrgb32;
   m->filter.box_blur_v[PIXEL_FORMAT_XRGB32] = FilterC::box_blur_v_xrgb32;
-  m->filter.box_blur_h[PIXEL_FORMAT_RGB24] = FilterC::box_blur_h_rgb24;
-  m->filter.box_blur_v[PIXEL_FORMAT_RGB24] = FilterC::box_blur_v_rgb24;
   m->filter.box_blur_h[PIXEL_FORMAT_A8] = FilterC::box_blur_h_a8;
   m->filter.box_blur_v[PIXEL_FORMAT_A8] = FilterC::box_blur_v_a8;
 
@@ -335,8 +343,6 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   m->filter.linear_blur_v[PIXEL_FORMAT_ARGB32] = FilterC::linear_blur_v_argb32;
   m->filter.linear_blur_h[PIXEL_FORMAT_XRGB32] = FilterC::linear_blur_h_argb32;
   m->filter.linear_blur_v[PIXEL_FORMAT_XRGB32] = FilterC::linear_blur_v_argb32;
-  m->filter.linear_blur_h[PIXEL_FORMAT_RGB24] = FilterC::linear_blur_h_rgb24;
-  m->filter.linear_blur_v[PIXEL_FORMAT_RGB24] = FilterC::linear_blur_v_rgb24;
   m->filter.linear_blur_h[PIXEL_FORMAT_A8] = FilterC::linear_blur_h_a8;
   m->filter.linear_blur_v[PIXEL_FORMAT_A8] = FilterC::linear_blur_v_a8;
 
@@ -346,36 +352,28 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   m->filter.symmetric_convolve_float_v[PIXEL_FORMAT_ARGB32] = FilterC::symmetric_convolve_float_v_argb32;
   m->filter.symmetric_convolve_float_h[PIXEL_FORMAT_XRGB32] = FilterC::symmetric_convolve_float_h_argb32;
   m->filter.symmetric_convolve_float_v[PIXEL_FORMAT_XRGB32] = FilterC::symmetric_convolve_float_v_argb32;
-  m->filter.symmetric_convolve_float_h[PIXEL_FORMAT_RGB24] = FilterC::symmetric_convolve_float_h_rgb24;
-  m->filter.symmetric_convolve_float_v[PIXEL_FORMAT_RGB24] = FilterC::symmetric_convolve_float_v_rgb24;
   m->filter.symmetric_convolve_float_h[PIXEL_FORMAT_A8] = FilterC::symmetric_convolve_float_h_a8;
   m->filter.symmetric_convolve_float_v[PIXEL_FORMAT_A8] = FilterC::symmetric_convolve_float_v_a8;
 
   // [Composite - Src]
 
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = ConvertC::memcpy32;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = ConvertC::prgb32_from_argb32;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = ConvertC::axxx32_from_xxxx32;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_RGB24] = ConvertC::rgb32_from_rgb24;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_I8] = ConvertC::prgb32_from_i8;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_A8] = ConvertC::axxx32_from_a8;
+  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = DibC::memcpy32;
+  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = DibC::prgb32_from_argb32;
+  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = DibC::frgb32_from_xrgb32;
+  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_I8] = DibC::prgb32_from_i8;
+  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_A8] = DibC::azzz32_from_a8;
 
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_ARGB32].vspan[PIXEL_FORMAT_PRGB32] = ConvertC::argb32_from_prgb32;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_ARGB32].vspan[PIXEL_FORMAT_ARGB32] = ConvertC::memcpy32;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_ARGB32].vspan[PIXEL_FORMAT_XRGB32] = ConvertC::axxx32_from_xxxx32;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_ARGB32].vspan[PIXEL_FORMAT_RGB24] = ConvertC::rgb32_from_rgb24;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_ARGB32].vspan[PIXEL_FORMAT_I8] = ConvertC::argb32_from_i8;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_ARGB32].vspan[PIXEL_FORMAT_A8] = ConvertC::axxx32_from_a8;
+  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_ARGB32].vspan[PIXEL_FORMAT_PRGB32] = DibC::argb32_from_prgb32;
+  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_ARGB32].vspan[PIXEL_FORMAT_ARGB32] = DibC::memcpy32;
+  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_ARGB32].vspan[PIXEL_FORMAT_XRGB32] = DibC::frgb32_from_xrgb32;
+  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_ARGB32].vspan[PIXEL_FORMAT_I8] = DibC::argb32_from_i8;
+  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_ARGB32].vspan[PIXEL_FORMAT_A8] = DibC::azzz32_from_a8;
 
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = ConvertC::axxx32_from_xxxx32;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = ConvertC::rgb32_from_argb32;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = ConvertC::memcpy32;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_RGB24] = ConvertC::rgb32_from_rgb24;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_I8] = ConvertC::rgb32_from_i8;
-
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_RGB24].vspan[PIXEL_FORMAT_XRGB32] = ConvertC::rgb24_from_rgb32;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_RGB24].vspan[PIXEL_FORMAT_PRGB32] = ConvertC::rgb24_from_rgb32;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_RGB24].vspan[PIXEL_FORMAT_I8] = ConvertC::rgb24_from_i8;
+  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = DibC::frgb32_from_xrgb32;
+  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = DibC::frgb32_from_argb32;
+  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = DibC::memcpy32;
+  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_I8] = DibC::frgb32_from_i8;
+  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_A8] = DibC::fzzz32_from_null;
 
   // TODO
 
@@ -384,7 +382,6 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   fog_raster_set_nops(&m->raster[COMPOSITE_DST][PIXEL_FORMAT_ARGB32]);
   fog_raster_set_nops(&m->raster[COMPOSITE_DST][PIXEL_FORMAT_PRGB32]);
   fog_raster_set_nops(&m->raster[COMPOSITE_DST][PIXEL_FORMAT_XRGB32]);
-  fog_raster_set_nops(&m->raster[COMPOSITE_DST][PIXEL_FORMAT_RGB24]);
   fog_raster_set_nops(&m->raster[COMPOSITE_DST][PIXEL_FORMAT_A8]);
   fog_raster_set_nops(&m->raster[COMPOSITE_DST][PIXEL_FORMAT_I8]);
 
@@ -395,7 +392,6 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   // [Composite - DstOver]
 
   fog_raster_set_nops(&m->raster[COMPOSITE_DST_OVER][PIXEL_FORMAT_XRGB32]);
-  fog_raster_set_nops(&m->raster[COMPOSITE_DST_OVER][PIXEL_FORMAT_RGB24]);
 
   // TODO
 
@@ -406,22 +402,12 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   // [Composite - DstIn]
 
   m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = (VSpanFn)CompositeNopC::cspan;
-  m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_RGB24] = (VSpanFn)CompositeNopC::cspan;
-
   m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = (VSpanMskFn)CompositeNopC::cspan_a8;
-  m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_RGB24] = (VSpanMskFn)CompositeNopC::cspan_a8;
-
   m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = (VSpanMskConstFn)CompositeNopC::cspan_a8_const;
-  m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_RGB24] = (VSpanMskConstFn)CompositeNopC::cspan_a8_const;
 
   m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = (VSpanFn)CompositeNopC::cspan;
-  m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_RGB24] = (VSpanFn)CompositeNopC::cspan;
-
   m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = (VSpanMskFn)CompositeNopC::cspan_a8;
-  m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_RGB24] = (VSpanMskFn)CompositeNopC::cspan_a8;
-
   m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = (VSpanMskConstFn)CompositeNopC::cspan_a8_const;
-  m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_RGB24] = (VSpanMskConstFn)CompositeNopC::cspan_a8_const;
 
   // TODO
 
@@ -440,13 +426,8 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   // [Composite - DstAtop]
 
   m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = (VSpanFn)CompositeNopC::cspan;
-  m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_RGB24] = (VSpanFn)CompositeNopC::cspan;
-
   m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = (VSpanMskFn)CompositeNopC::cspan_a8;
-  m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_RGB24] = (VSpanMskFn)CompositeNopC::cspan_a8;
-
   m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = (VSpanMskConstFn)CompositeNopC::cspan_a8_const;
-  m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_RGB24] = (VSpanMskConstFn)CompositeNopC::cspan_a8_const;
 
   fog_raster_set_nops(&m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_A8]);
 

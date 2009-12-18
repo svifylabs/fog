@@ -39,7 +39,7 @@ struct FOG_HIDDEN FOG_PACKED SvgCoord
 
 } // Fog namespace
 
-FOG_DECLARE_TYPEINFO(Fog::SvgCoord, Fog::TYPE_INFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::SvgCoord, Fog::TYPEINFO_PRIMITIVE)
 
 // [Guard]
 #endif // _FOG_SVG_SVGBASE_H

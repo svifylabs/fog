@@ -197,8 +197,8 @@ struct FOG_HIDDEN ArgbStop
 
 //! @}
 
-FOG_DECLARE_TYPEINFO(Fog::Argb, Fog::TYPE_INFO_PRIMITIVE)
-FOG_DECLARE_TYPEINFO(Fog::ArgbStop, Fog::TYPE_INFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::Argb, Fog::TYPEINFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::ArgbStop, Fog::TYPEINFO_PRIMITIVE)
 
 static FOG_INLINE bool operator==(const Fog::ArgbStop& a, const Fog::ArgbStop& b) { return a.offset == b.offset && a.rgba == b.rgba; }
 static FOG_INLINE bool operator!=(const Fog::ArgbStop& a, const Fog::ArgbStop& b) { return a.offset != b.offset || a.rgba != b.rgba; }

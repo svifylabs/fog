@@ -1803,24 +1803,34 @@ __tryImage:
           // 8-bit dithering
           case 8:
             if (rMask == 0x60 && gMask == 0x1C && bMask == 0x03)
-              _convertFunc = (void*)RasterUtil::functionMap->convert.i8rgb232_from_rgb32_dither;
+              _convertFunc = (void*)RasterUtil::functionMap->dib.i8rgb232_from_xrgb32_dither;
             else if (rMask == 0x30 && gMask == 0x0C && bMask == 0x03)
-              _convertFunc = (void*)RasterUtil::functionMap->convert.i8rgb222_from_rgb32_dither;
+              _convertFunc = (void*)RasterUtil::functionMap->dib.i8rgb222_from_xrgb32_dither;
             else if (rMask == 0x04 && gMask == 0x02 && bMask == 0x01)
-              _convertFunc = (void*)RasterUtil::functionMap->convert.i8rgb111_from_rgb32_dither;
+              _convertFunc = (void*)RasterUtil::functionMap->dib.i8rgb111_from_xrgb32_dither;
             break;
           // 16-bit dithering
           case 16:
             if (rMask == 0x7C00 && gMask == 0x03E0 && bMask == 0x001F)
-              _convertFunc = (void*)RasterUtil::functionMap->convert.rgb16_5550_from_rgb32_dither;
+            {
+              if (uiSystem->_displayInfo.is16BitSwapped)
+                _convertFunc = (void*)RasterUtil::functionMap->dib.rgb16_555_swapped_from_xrgb32_dither;
+              else
+                _convertFunc = (void*)RasterUtil::functionMap->dib.rgb16_555_native_from_xrgb32_dither;
+            }
             else if (rMask == 0xF800 && gMask == 0x07E0 && bMask == 0x001F)
-              _convertFunc = (void*)RasterUtil::functionMap->convert.rgb16_5650_from_rgb32_dither;
+            {
+              if (uiSystem->_displayInfo.is16BitSwapped)
+                _convertFunc = (void*)RasterUtil::functionMap->dib.rgb16_565_swapped_from_xrgb32_dither;
+              else
+                _convertFunc = (void*)RasterUtil::functionMap->dib.rgb16_565_native_from_xrgb32_dither;
+            }
             break;
           case 24:
-            _convertFunc = (void*)RasterUtil::functionMap->convert.rgb24_from_rgb32;
+            _convertFunc = (void*)RasterUtil::functionMap->dib.convert[DIB_FORMAT_RGB24_NATIVE][PIXEL_FORMAT_XRGB32];
             break;
           case 32:
-            _convertFunc = (void*)RasterUtil::functionMap->convert.memcpy32;
+            _convertFunc = (void*)RasterUtil::functionMap->dib.memcpy32;
             break;
         }
 

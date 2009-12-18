@@ -8,7 +8,7 @@
 
 #if defined(FOG_IDE)
 #include <Fog/Graphics/RasterUtil/RasterUtil_Defs_C.h>
-#include <Fog/Graphics/RasterUtil/RasterUtil_Convert_C.h>
+#include <Fog/Graphics/RasterUtil/RasterUtil_Dib_C.h>
 #endif // FOG_IDE
 
 namespace Fog {

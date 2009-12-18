@@ -562,9 +562,15 @@ struct BenchmarkModule_GDI : public BenchmarkModule
     DIBSECTION dibs;
     GetObject(im, sizeof(DIBSECTION), &dibs);
 
+    ImageBuffer buffer;
+    buffer.width = dibs.dsBm.bmWidth;
+    buffer.height = dibs.dsBm.bmHeight;
+    buffer.format = PIXEL_FORMAT_PRGB32;
+    buffer.stride = dibs.dsBm.bmWidthBytes;
+    buffer.data = (uint8_t*)dibs.dsBm.bmBits;
+
     Image fim;
-    fim.adopt(dibs.dsBm.bmWidth, dibs.dsBm.bmHeight, PIXEL_FORMAT_PRGB32, 
-      (uint8_t*)dibs.dsBm.bmBits, dibs.dsBm.bmWidthBytes);
+    fim.adopt(buffer);
     fim.writeFile(fileName);
   }
 
@@ -706,8 +712,8 @@ struct BenchmarkModule_GDI_FillPolygon : public BenchmarkModule_GDI
         Gdiplus::PointF lines[10];
         for (int i = 0; i < 10; i++)
         {
-          lines[i].X = polyData[i].getX();
-          lines[i].Y = polyData[i].getY();
+          lines[i].X = (Gdiplus::REAL)polyData[i].getX();
+          lines[i].Y = (Gdiplus::REAL)polyData[i].getY();
         }
         path.AddLines(lines, 10);
         path.CloseFigure();

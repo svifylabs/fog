@@ -213,7 +213,7 @@ struct Hash : public Hash_Abstract
   List<KeyT> keys(const ValueT& value) const;
 
   Hash<KeyT, ValueT>& operator=(const Hash<KeyT, ValueT>& other)
-  { ((Data*)AtomicBase::ptr_setXchg(&_d, other._d->ref()))->deref(); return *this; }
+  { ((Data*)atomicPtrXchg(&_d, other._d->ref()))->deref(); return *this; }
 
   FOG_INLINE ValueT* operator[](const KeyT& key)
   { return mod(key); }
@@ -303,7 +303,7 @@ bool Hash<KeyT, ValueT>::_detach(Node* exclude)
   newd->length = _d->length;
   if (exclude) newd->length--;
 
-  ((Data*)AtomicBase::ptr_setXchg(&_d, (Hash_Abstract::Data*)newd))->deref();
+  ((Data*)atomicPtrXchg(&_d, (Hash_Abstract::Data*)newd))->deref();
   return true;
 
 alloc_fail:
@@ -315,7 +315,7 @@ alloc_fail:
 template<typename KeyT, typename ValueT>
 void Hash<KeyT, ValueT>::clear()
 {
-  ((Data*)AtomicBase::ptr_setXchg(&_d, sharedNull->ref()))->deref();
+  ((Data*)atomicPtrXchg(&_d, sharedNull->ref()))->deref();
 }
 
 template<typename KeyT, typename ValueT>
@@ -547,7 +547,7 @@ List<KeyT> Hash<KeyT, ValueT>::keys(const ValueT& value) const
 FOG_DECLARE_TYPEINFO_TEMPLATE2(Fog::Hash,
   typename, KeyT,
   typename, ValueT,
-  Fog::TYPE_INFO_MOVABLE)
+  Fog::TYPEINFO_MOVABLE)
 
 // [Guard]
 #endif // _FOG_CORE_HASH_H

@@ -98,52 +98,24 @@ bool Reduce::analyze(const Image& image, bool discardAlpha)
   else
   {
     Hash<uint32_t, uint64_t> hash;
+    bool fillalpha = (image.getFormat() == PIXEL_FORMAT_XRGB32) || discardAlpha;
 
-    if (image.getDepth() == 24)
+    for (y = 0; y < h; y++)
     {
-      for (y = 0; y < h; y++)
+      for (x = 0, p = (const uint8_t*)image.getScanline(y); x < w; x++, p += 4)
       {
-        for (x = 0, p = (const uint8_t*)image.getScanline(y); x < w; x++, p += 3)
-        {
-          uint32_t c = 
-            ((uint32_t)p[RGB24_RBYTE] << ARGB32_RSHIFT) |
-            ((uint32_t)p[RGB24_GBYTE] << ARGB32_GSHIFT) |
-            ((uint32_t)p[RGB24_BBYTE] << ARGB32_BSHIFT) |
-            ARGB32_AMASK;
+        uint32_t c = *(const uint32_t *)p;
+        if (fillalpha) c |= ARGB32_AMASK;
 
-          // Increase count of 'c' if hash already contains it
-          if (hash.contains(c))
-            (*hash[c])++;
-          // Create new node if there are not 256 colors already
-          else if (hash.getLength() < 256)
-            hash.put(c, 1);
-          // Finished, no color reduction possible
-          else
-            return false;
-        }
-      }
-    }
-    else
-    {
-      bool fillalpha = (image.getFormat() == PIXEL_FORMAT_XRGB32) || discardAlpha;
-
-      for (y = 0; y < h; y++)
-      {
-        for (x = 0, p = (const uint8_t*)image.getScanline(y); x < w; x++, p += 4)
-        {
-          uint32_t c = *(const uint32_t *)p;
-          if (fillalpha) c |= ARGB32_AMASK;
-
-          // Increase count of 'c' if hash already contains it
-          if (hash.contains(c))
-            (*hash[c])++;
-          // Create new node if there are not 256 colors already
-          else if (hash.getLength() < 256)
-            hash.put(c, 1);
-          // Finished, no color reduction possible
-          else
-            return false;
-        }
+        // Increase count of 'c' if hash already contains it
+        if (hash.contains(c))
+          (*hash[c])++;
+        // Create new node if there are not 256 colors already
+        else if (hash.getLength() < 256)
+          hash.put(c, 1);
+        // Finished, no color reduction possible
+        else
+          return false;
       }
     }
 

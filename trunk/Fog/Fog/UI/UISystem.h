@@ -448,12 +448,12 @@ struct FOG_API UIBackingStore
 // [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::UISystem::DisplayInfo, Fog::TYPE_INFO_PRIMITIVE)
-FOG_DECLARE_TYPEINFO(Fog::UISystem::PaletteInfo, Fog::TYPE_INFO_PRIMITIVE)
-FOG_DECLARE_TYPEINFO(Fog::UISystem::CaretStatus, Fog::TYPE_INFO_PRIMITIVE)
-FOG_DECLARE_TYPEINFO(Fog::UISystem::MouseStatus, Fog::TYPE_INFO_PRIMITIVE)
-FOG_DECLARE_TYPEINFO(Fog::UISystem::SystemMouseStatus, Fog::TYPE_INFO_PRIMITIVE)
-FOG_DECLARE_TYPEINFO(Fog::UISystem::KeyboardStatus, Fog::TYPE_INFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::UISystem::DisplayInfo, Fog::TYPEINFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::UISystem::PaletteInfo, Fog::TYPEINFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::UISystem::CaretStatus, Fog::TYPEINFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::UISystem::MouseStatus, Fog::TYPEINFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::UISystem::SystemMouseStatus, Fog::TYPEINFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::UISystem::KeyboardStatus, Fog::TYPEINFO_PRIMITIVE)
 
 // [Guard]
 #endif // _FOG_UI_UISYSTEM_H

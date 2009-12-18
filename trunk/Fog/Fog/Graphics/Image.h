@@ -33,6 +33,22 @@ struct ColorMatrix;
 struct ImageFilter;
 
 // ============================================================================
+// [Fog::ImageBuffer]
+// ============================================================================
+
+//! @brief Structure that holds information about raster image.
+//!
+//! Use it together with @c Image::adopt() or by @c Painter::begin() methods.
+struct ImageBuffer
+{
+  int width;
+  int height;
+  int format;
+  sysint_t stride;
+  uint8_t* data;
+};
+
+// ============================================================================
 // [Fog::Image]
 // ============================================================================
 
@@ -254,12 +270,9 @@ struct FOG_API Image
   //! can fail. Also if there are invalid arguments (dimensions or format) the
   //! InvalidArgument will be returned.
   err_t create(int w, int h, int format);
-  
+
   //! @brief Adopt memory buffer to the image.
-  err_t adopt(
-    int w, int h, int format,
-    const uint8_t* mem, sysint_t stride,
-    uint32_t adoptFlags = IMAGE_ADOPT_DEFAULT);
+  err_t adopt(const ImageBuffer& buffers, uint32_t adoptFlags = IMAGE_ADOPT_DEFAULT);
 
   // [Set]
 
@@ -297,76 +310,8 @@ struct FOG_API Image
 
   // [GetDib / SetDib]
 
-  void getDibArgb32(int x, int y, sysint_t w, void* dst) const;
-  void getDibArgb32_bs(int x, int y, sysint_t w, void* dst) const;
-
-  void setDibArgb32(int x, int y, sysint_t w, const void* src);
-  void setDibArgb32_bs(int x, int y, sysint_t w, const void* src);
-
-  void getDibPrgb32(int x, int y, sysint_t w, void* dst) const;
-  void getDibPrgb32_bs(int x, int y, sysint_t w, void* dst) const;
-
-  void setDibPrgb32(int x, int y, sysint_t w, const void* src);
-  void setDibPrgb32_bs(int x, int y, sysint_t w, const void* src);
-
-  void getDibRgb24(int x, int y, sysint_t w, void* dst) const;
-  void getDibRgb24_bs(int x, int y, sysint_t w, void* dst) const;
-
-  void setDibRgb24(int x, int y, sysint_t w, const void* src);
-  void setDibRgb24_bs(int x, int y, sysint_t w, const void* src);
-
-  void getDibRgb16_555(int x, int y, sysint_t w, void* dst) const;
-  void getDibRgb16_555_bs(int x, int y, sysint_t w, void* dst) const;
-
-  void setDibRgb16_555(int x, int y, sysint_t w, const void* src);
-  void setDibRgb16_555_bs(int x, int y, sysint_t w, const void* src);
-
-  void getDibRgb16_565(int x, int y, sysint_t w, void* dst) const;
-  void getDibRgb16_565_bs(int x, int y, sysint_t w, void* dst) const;
-
-  void setDibRgb16_565(int x, int y, sysint_t w, const void* src);
-  void setDibRgb16_565_bs(int x, int y, sysint_t w, const void* src);
-
-#if FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
-# define DIBFN_LE(fn) fn
-# define DIBFN_BE(fn) fn##_bs
-#else
-# define DIBFN_LE(fn) fn##_bs
-# define DIBFN_BE(fn) fn
-#endif
-
-  FOG_INLINE void getDibArgb32_le(int x, int y, sysint_t w, void* dst) const { DIBFN_LE(getDibArgb32)(x, y, w, dst); }
-  FOG_INLINE void getDibArgb32_be(int x, int y, sysint_t w, void* dst) const { DIBFN_BE(getDibArgb32)(x, y, w, dst); }
-
-  FOG_INLINE void setDibArgb32_le(int x, int y, sysint_t w, const void* src) { DIBFN_LE(setDibArgb32)(x, y, w, src); }
-  FOG_INLINE void setDibArgb32_be(int x, int y, sysint_t w, const void* src) { DIBFN_BE(setDibArgb32)(x, y, w, src); }
-
-  FOG_INLINE void getDibPrgb32_le(int x, int y, sysint_t w, void* dst) const { DIBFN_LE(getDibPrgb32)(x, y, w, dst); }
-  FOG_INLINE void getDibPrgb32_be(int x, int y, sysint_t w, void* dst) const { DIBFN_BE(getDibPrgb32)(x, y, w, dst); }
-
-  FOG_INLINE void setDibPrgb32_le(int x, int y, sysint_t w, const void* src) { DIBFN_LE(setDibPrgb32)(x, y, w, src); }
-  FOG_INLINE void setDibPrgb32_be(int x, int y, sysint_t w, const void* src) { DIBFN_BE(setDibPrgb32)(x, y, w, src); }
-
-  FOG_INLINE void getDibRgb24_le(int x, int y, sysint_t w, void* dst) const { DIBFN_LE(getDibRgb24)(x, y, w, dst); }
-  FOG_INLINE void getDibRgb24_be(int x, int y, sysint_t w, void* dst) const { DIBFN_BE(getDibRgb24)(x, y, w, dst); }
-
-  FOG_INLINE void setDibRgb24_le(int x, int y, sysint_t w, const void* src) { DIBFN_LE(setDibRgb24)(x, y, w, src); }
-  FOG_INLINE void setDibRgb24_be(int x, int y, sysint_t w, const void* src) { DIBFN_BE(setDibRgb24)(x, y, w, src); }
-
-  FOG_INLINE void getDibRgb16_555_le(int x, int y, sysint_t w, void* dst) const { DIBFN_LE(getDibRgb16_555)(x, y, w, dst); }
-  FOG_INLINE void getDibRgb16_555_be(int x, int y, sysint_t w, void* dst) const { DIBFN_BE(getDibRgb16_555)(x, y, w, dst); }
-
-  FOG_INLINE void setDibRgb16_555_le(int x, int y, sysint_t w, const void* src) { DIBFN_LE(setDibRgb16_555)(x, y, w, src); }
-  FOG_INLINE void setDibRgb16_555_be(int x, int y, sysint_t w, const void* src) { DIBFN_BE(setDibRgb16_555)(x, y, w, src); }
-
-  FOG_INLINE void getDibRgb16_565_le(int x, int y, sysint_t w, void* dst) const { DIBFN_LE(getDibRgb16_565)(x, y, w, dst); }
-  FOG_INLINE void getDibRgb16_565_be(int x, int y, sysint_t w, void* dst) const { DIBFN_BE(getDibRgb16_565)(x, y, w, dst); }
-
-  FOG_INLINE void setDibRgb16_565_le(int x, int y, sysint_t w, const void* src) { DIBFN_LE(setDibRgb16_565)(x, y, w, src); }
-  FOG_INLINE void setDibRgb16_565_be(int x, int y, sysint_t w, const void* src) { DIBFN_BE(setDibRgb16_565)(x, y, w, src); }
-
-#undef DIBFN_LE
-#undef DIBFN_BE
+  err_t getDib(int x, int y, uint w, int dibFormat, void* dst) const;
+  err_t setDib(int x, int y, uint w, int dibFormat, const void* src);
 
   // [Swap RGB and RGBA]
 

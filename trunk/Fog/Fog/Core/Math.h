@@ -175,15 +175,18 @@ namespace Math {
 
 //! @brief Returns lower number of @a a and @a b
 template<typename T>
-static FOG_INLINE const T& min(const T& a, const T& b) { return (a < b) ? a : b; }
+static FOG_INLINE const T& min(const T& a, const T& b)
+{ return (a < b) ? a : b; }
 
 //! @brief Returns higher number of @a a and @a b
 template<typename T>
-static FOG_INLINE const T& max(const T& a, const T& b) { return (a > b) ? a : b; }
+static FOG_INLINE const T& max(const T& a, const T& b)
+{ return (a > b) ? a : b; }
 
 //! @brief Returns value @a val saturated between @a min and @a max.
 template<typename T>
-static FOG_INLINE const T& bound(const T& val, const T& min, const T& max) { return val < max ? (val > min ? val : min) : max; }
+static FOG_INLINE const T& bound(const T& val, const T& min, const T& max)
+{ return val < max ? (val > min ? val : min) : max; }
 
 // ============================================================================
 // [Fog::Math - Abs]
@@ -191,7 +194,8 @@ static FOG_INLINE const T& bound(const T& val, const T& min, const T& max) { ret
 
 //! @brief Returns absolute value of @a a
 template<typename T>
-static FOG_INLINE T abs(const T& a) { return (a >= 0) ? a : -a; }
+static FOG_INLINE T abs(const T& a)
+{ return (a >= 0) ? a : -a; }
 
 // ============================================================================
 // [Fog::Math - Floating point ops with epsilon]
@@ -201,7 +205,73 @@ static FOG_INLINE T abs(const T& a) { return (a >= 0) ? a : -a; }
 static const double DEFAULT_EPSILON = 1e-14;
 
 template<typename T>
-static FOG_INLINE bool feq(T a, T b, T epsilon = 0.000001) { return fabs(a - b) <= epsilon; }
+static FOG_INLINE bool feq(T a, T b, T epsilon = 0.000001)
+{ return fabs(a - b) <= epsilon; }
+
+// ============================================================================
+// [Fog::Math - Float <-> Integer]
+// ============================================================================
+
+// We define these optimized rounding methods to make conversion from floats
+// as fast as possible. There is danger that if there is set incorrect rounding
+// mode then we can get something we not expect (incorrect rounding).
+#if defined(FOG_CC_MSVC) && FOG_ARCH_BITS == 32 && (!defined(_M_IX86_FP) || _M_IX86_FP < 2)
+FOG_INLINE int iround(float v)
+{
+  int t;
+  __asm {
+    fld dword ptr [v]
+    fistp dword ptr [t]
+    mov eax, dword ptr [t]
+  }
+  return t;
+}
+
+FOG_INLINE uint uround(float v)
+{
+  uint t;
+  __asm {
+    fld dword ptr [v]
+    fistp dword ptr [t]
+    mov eax, dword ptr [t]
+  }
+  return t;
+}
+
+FOG_INLINE int iround(double v)
+{
+  int t;
+  __asm {
+    fld qword ptr [v]
+    fistp dword ptr [t]
+    mov eax, dword ptr [t]
+  }
+  return t;
+}
+
+FOG_INLINE uint uround(double v)
+{
+  unsigned t;
+  __asm {
+    fld qword ptr [v]
+    fistp dword ptr [t]
+    mov eax, dword ptr [t]
+  }
+  return t;
+}
+#else
+static FOG_INLINE int iround(float v) { return (int)((v < 0.0f) ? v - 0.5f : v + 0.5f); }
+static FOG_INLINE uint uround(float v) { return (uint)(int)(v + 0.5f); }
+
+static FOG_INLINE int iround(double v) { return (int)((v < 0.0) ? v - 0.5 : v + 0.5); }
+static FOG_INLINE uint uround(double v) { return (uint)(int)(v + 0.5); }
+#endif 
+
+static FOG_INLINE int ifloor(double v) { return iround(::floor(v)); }
+static FOG_INLINE int iceil(double v) { return iround(::ceil(v)); }
+
+static FOG_INLINE uint ufloor(double v) { return uround(::floor(v)); }
+static FOG_INLINE uint uceil(double v) { return uround(::ceil(v)); }
 
 // ============================================================================
 // [Fog::Math - Degrees <-> Radians]
@@ -217,8 +287,8 @@ static FOG_INLINE double rad2deg(double rad) { return rad * (180.0 / M_PI); }
 // [Fog::Math - Trigonometric Functions]
 // ============================================================================
 
-// static FOG_INLINE float sin(float rad) { return ::sin(rad); }
-// static FOG_INLINE float cos(float rad) { return ::cos(rad); }
+// static FOG_INLINE float sin(float rad) { return ::sinf(rad); }
+// static FOG_INLINE float cos(float rad) { return ::cosf(rad); }
 
 } // Math namespace
 } // Fog namespace

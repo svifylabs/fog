@@ -57,7 +57,7 @@ err_t ListPrivate_::p_detach(ListUntyped* self, sysuint_t typeSize)
   newd->endIndex = length;
   Memory::copy(newd->p, d->p, typeSize * length);
 
-  p_deref(AtomicBase::ptr_setXchg(&self->_d, newd));
+  p_deref(atomicPtrXchg(&self->_d, newd));
   return ERR_OK;
 }
 
@@ -99,7 +99,7 @@ err_t ListPrivate_::p_reserve(ListUntyped* self, sysuint_t typeSize, sysuint_t t
   newd->endIndex = length;
   Memory::copy(newd->p, d->p, length * typeSize);
 
-  p_deref(AtomicBase::ptr_setXchg(&self->_d, newd));
+  p_deref(atomicPtrXchg(&self->_d, newd));
   return ERR_OK;
 }
 
@@ -131,7 +131,7 @@ err_t ListPrivate_::p_reserve(ListUntyped* self, sysuint_t typeSize, sysuint_t l
     newd->p = pdst;
     Memory::copy(pdst, d->p, typeSize * length);
 
-    p_deref(AtomicBase::ptr_setXchg(&self->_d, newd));
+    p_deref(atomicPtrXchg(&self->_d, newd));
   }
 
   return ERR_OK;
@@ -178,7 +178,7 @@ err_t ListPrivate_::p_resize(ListUntyped* self, sysuint_t typeSize, sysuint_t to
   newd->endIndex = to;
   Memory::copy(newd->p, d->p, copy * typeSize);
 
-  p_deref(AtomicBase::ptr_setXchg(&self->_d, newd));
+  p_deref(atomicPtrXchg(&self->_d, newd));
   return ERR_OK;
 }
 
@@ -262,12 +262,12 @@ void ListPrivate_::p_squeeze(ListUntyped* self, sysuint_t typeSize)
   newd->endIndex = length;
   Memory::copy(newd->p, d->p, typeSize * length);
 
-  p_deref(AtomicBase::ptr_setXchg(&self->_d, newd));
+  p_deref(atomicPtrXchg(&self->_d, newd));
 }
 
 void ListPrivate_::p_free(ListUntyped* self)
 {
-  p_deref(AtomicBase::ptr_setXchg(&self->_d, sharedNull->ref()));
+  p_deref(atomicPtrXchg(&self->_d, sharedNull->ref()));
 }
 
 void ListPrivate_::p_clear(ListUntyped* self)
@@ -278,7 +278,7 @@ void ListPrivate_::p_clear(ListUntyped* self)
   {
     if (d->refCount.get() > 1)
     {
-      p_deref(AtomicBase::ptr_setXchg(&self->_d, sharedNull->ref()));
+      p_deref(atomicPtrXchg(&self->_d, sharedNull->ref()));
     }
     else
     {
@@ -302,7 +302,7 @@ err_t ListPrivate_::p_assign(ListUntyped* self, sysuint_t typeSize, const void* 
     newd->length = dataLength;
     newd->endIndex = dataLength;
     memcpy(newd->p, data, dataLength * typeSize);
-    p_deref(AtomicBase::ptr_setXchg(&self->_d, newd));
+    p_deref(atomicPtrXchg(&self->_d, newd));
     return ERR_OK;
   }
 
@@ -420,7 +420,7 @@ err_t ListPrivate_::p_remove(ListUntyped* self, sysuint_t typeSize, sysuint_t in
     memcpy(pdst, psrc, index * typeSize);
     memcpy(pdst + (index * typeSize), psrc + ((index + range) * typeSize), (newLength - index) * typeSize);
 
-    p_deref(AtomicBase::ptr_setXchg(&self->_d, newd));
+    p_deref(atomicPtrXchg(&self->_d, newd));
     return ERR_OK;
   }
   else if (newLength)
@@ -534,7 +534,7 @@ err_t ListPrivate_::c_detach(ListUntyped* self, const SequenceInfoVTable* vtable
   newd->endIndex = length;
   vtable->copy(newd->p, d->p + (d->startIndex * typeSize), length);
 
-  c_deref(AtomicBase::ptr_setXchg(&self->_d, newd), vtable);
+  c_deref(atomicPtrXchg(&self->_d, newd), vtable);
   return ERR_OK;
 }
 
@@ -573,7 +573,7 @@ err_t ListPrivate_::c_reserve(ListUntyped* self, const SequenceInfoVTable* vtabl
   newd->endIndex = length;
   vtable->copy(newd->p, d->p, length);
 
-  c_deref(AtomicBase::ptr_setXchg(&self->_d, newd), vtable);
+  c_deref(atomicPtrXchg(&self->_d, newd), vtable);
   return ERR_OK;
 }
 
@@ -605,7 +605,7 @@ err_t ListPrivate_::c_reserve(ListUntyped* self, const SequenceInfoVTable* vtabl
     newd->p = newd->pstart() + (left * typeSize);
     vtable->copy(newd->p, d->p, length);
 
-    c_deref(AtomicBase::ptr_setXchg(&self->_d, newd), vtable);
+    c_deref(atomicPtrXchg(&self->_d, newd), vtable);
   }
 
   return ERR_OK;
@@ -654,7 +654,7 @@ err_t ListPrivate_::c_resize(ListUntyped* self, const SequenceInfoVTable* vtable
   vtable->copy(newd->p, d->p, copy);
   if (length < to) vtable->init(newd->p + (to * typeSize), to - length);
 
-  c_deref(AtomicBase::ptr_setXchg(&self->_d, newd), vtable);
+  c_deref(atomicPtrXchg(&self->_d, newd), vtable);
   return ERR_OK;
 }
 
@@ -672,12 +672,12 @@ void ListPrivate_::c_squeeze(ListUntyped* self, const SequenceInfoVTable* vtable
   newd->endIndex = length;
   vtable->copy(newd->p, d->p, length);
 
-  c_deref(AtomicBase::ptr_setXchg(&self->_d, newd), vtable);
+  c_deref(atomicPtrXchg(&self->_d, newd), vtable);
 }
 
 void ListPrivate_::c_free(ListUntyped* self, const SequenceInfoVTable* vtable)
 {
-  c_deref(AtomicBase::ptr_setXchg(&self->_d, sharedNull->ref()), vtable);
+  c_deref(atomicPtrXchg(&self->_d, sharedNull->ref()), vtable);
 }
 
 void ListPrivate_::c_clear(ListUntyped* self, const SequenceInfoVTable* vtable)
@@ -886,7 +886,7 @@ err_t ListPrivate_::c_remove(ListUntyped* self, const SequenceInfoVTable* vtable
     vtable->copy(newd->p, d->p, index);
     vtable->copy(newd->p + index * typeSize, d->p + (index + range) * typeSize, newLength - index);
 
-    c_deref(AtomicBase::ptr_setXchg(&self->_d, newd), vtable);
+    c_deref(atomicPtrXchg(&self->_d, newd), vtable);
     return ERR_OK;
   }
   else if (newLength)

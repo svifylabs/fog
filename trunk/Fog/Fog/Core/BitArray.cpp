@@ -381,7 +381,7 @@ err_t BitArray::_detach()
     d = Data::create(0, d->data, 0, d->length);
     if (!d) return ERR_RT_OUT_OF_MEMORY;
 
-    AtomicBase::ptr_setXchg(&_d, d)->deref();
+    atomicPtrXchg(&_d, d)->deref();
   }
 
   return ERR_OK;
@@ -389,7 +389,7 @@ err_t BitArray::_detach()
 
 void BitArray::free()
 {
-  AtomicBase::ptr_setXchg(&_d, sharedNull->ref())->deref();
+  atomicPtrXchg(&_d, sharedNull->ref())->deref();
 }
 
 err_t BitArray::reserve(sysuint_t to)
@@ -405,7 +405,7 @@ err_t BitArray::reserve(sysuint_t to)
     if (!d) return ERR_RT_OUT_OF_MEMORY;
     d->length = _d->length;
     memcpy(d->data, _d->data, (_d->length + 7) >> 3);
-    AtomicBase::ptr_setXchg(&_d, d)->deref();
+    atomicPtrXchg(&_d, d)->deref();
   }
   else if (to > d->capacity)
   {
@@ -430,7 +430,7 @@ err_t BitArray::resize(sysuint_t to, uint32_t fill)
     d->length = to;
     memcpy(d->data, _d->data, ((to <= _d->length ? to : _d->length) + 7) >> 3);
     _setBits(d->data, _d->length, fill, to - _d->length);
-    AtomicBase::ptr_setXchg(&_d, d)->deref();
+    atomicPtrXchg(&_d, d)->deref();
     return ERR_OK;
   }
   else if (to > d->capacity)
@@ -473,7 +473,7 @@ void BitArray::squeeze()
 
       d->length = length;
       memcpy(d->data, _d->data, (length + 7) >> 3);
-      AtomicBase::ptr_setXchg(&_d, d)->deref();
+      atomicPtrXchg(&_d, d)->deref();
     }
     else
     {
@@ -491,7 +491,7 @@ void BitArray::clear()
   Data* d = _d;
 
   if (d->refCount.get() > 1)
-    AtomicBase::ptr_setXchg(&_d, sharedNull->ref())->deref();
+    atomicPtrXchg(&_d, sharedNull->ref())->deref();
   else
     d->length = 0;
 }
@@ -669,7 +669,7 @@ err_t BitArray::invertAt(sysuint_t index, sysuint_t count)
 
 err_t BitArray::set(const BitArray& other)
 {
-  AtomicBase::ptr_setXchg(&_d, other._d->ref())->deref();
+  atomicPtrXchg(&_d, other._d->ref())->deref();
   return ERR_OK;
 }
 
@@ -690,7 +690,7 @@ err_t BitArray::setDeep(const BitArray& other)
   {
     Data* d = other_d->ref();
     if (!d) return ERR_RT_OUT_OF_MEMORY;
-    AtomicBase::ptr_setXchg(&_d, d)->deref();
+    atomicPtrXchg(&_d, d)->deref();
   }
 
   return ERR_OK;

@@ -126,7 +126,7 @@ err_t ByteArray::_detach()
   Data* newd = Data::copy(_d);
   if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
-  AtomicBase::ptr_setXchg(&_d, newd)->deref();
+  atomicPtrXchg(&_d, newd)->deref();
   return ERR_OK;
 }
 
@@ -177,7 +177,7 @@ err_t ByteArray::prepare(sysuint_t capacity)
   d = Data::alloc(capacity);
   if (!d) return ERR_RT_OUT_OF_MEMORY;
 
-  AtomicBase::ptr_setXchg(&_d, d)->deref();
+  atomicPtrXchg(&_d, d)->deref();
   return ERR_OK;
 }
 
@@ -197,7 +197,7 @@ char* ByteArray::beginManipulation(sysuint_t max, int outputMode)
     d = Data::alloc(max);
     if (!d) return NULL;
 
-    AtomicBase::ptr_setXchg(&_d, d)->deref();
+    atomicPtrXchg(&_d, d)->deref();
     return d->data;
   }
   else
@@ -219,7 +219,7 @@ char* ByteArray::beginManipulation(sysuint_t max, int outputMode)
       d = Data::alloc(optimalCapacity, d->data, d->length);
       if (!d) return NULL;
 
-      AtomicBase::ptr_setXchg(&_d, d)->deref();
+      atomicPtrXchg(&_d, d)->deref();
       return d->data + length;
     }
     else
@@ -246,7 +246,7 @@ err_t ByteArray::reserve(sysuint_t to)
     Data* newd = Data::alloc(to, _d->data, _d->length);
     if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
-    AtomicBase::ptr_setXchg(&_d, newd)->deref();
+    atomicPtrXchg(&_d, newd)->deref();
   }
   else
   {
@@ -268,7 +268,7 @@ err_t ByteArray::resize(sysuint_t to)
     Data* newd = Data::alloc(to, _d->data, to < _d->length ? to : _d->length);
     if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
-    AtomicBase::ptr_setXchg(&_d, newd)->deref();
+    atomicPtrXchg(&_d, newd)->deref();
   }
   else
   {
@@ -302,7 +302,7 @@ err_t ByteArray::grow(sysuint_t by)
     Data* newd = Data::alloc(optimalCapacity, _d->data, _d->length);
     if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
-    AtomicBase::ptr_setXchg(&_d, newd)->deref();
+    atomicPtrXchg(&_d, newd)->deref();
   }
   else
   {
@@ -334,7 +334,7 @@ void ByteArray::squeeze()
   {
     Data* newd = Data::alloc(0, _d->data, _d->length);
     if (!newd) return;
-    AtomicBase::ptr_setXchg(&_d, newd)->deref();
+    atomicPtrXchg(&_d, newd)->deref();
   }
 }
 
@@ -342,7 +342,7 @@ void ByteArray::clear()
 {
   if (_d->refCount.get() > 1)
   {
-    AtomicBase::ptr_setXchg(&_d, sharedNull->refAlways())->deref();
+    atomicPtrXchg(&_d, sharedNull->refAlways())->deref();
     return;
   }
 
@@ -353,7 +353,7 @@ void ByteArray::clear()
 
 void ByteArray::free()
 {
-  AtomicBase::ptr_setXchg(&_d, sharedNull->refAlways())->deref();
+  atomicPtrXchg(&_d, sharedNull->refAlways())->deref();
 }
 
 char* ByteArray::getMData()
@@ -380,7 +380,7 @@ static char* _prepareSet(ByteArray* self, sysuint_t length)
   {
     d = ByteArray::Data::alloc(length);
     if (!d) return NULL;
-    AtomicBase::ptr_setXchg(&self->_d, d)->derefInline();
+    atomicPtrXchg(&self->_d, d)->derefInline();
   }
   else if (d->capacity < length)
   {
@@ -410,7 +410,7 @@ static char* _prepareAppend(ByteArray* self, sysuint_t length)
   {
     d = ByteArray::Data::alloc(lengthAfter, d->data, d->length);
     if (!d) return NULL;
-    AtomicBase::ptr_setXchg(&self->_d, d)->derefInline();
+    atomicPtrXchg(&self->_d, d)->derefInline();
   }
   else if (d->capacity < lengthAfter)
   {
@@ -453,7 +453,7 @@ static char* _prepareInsert(ByteArray* self, sysuint_t index, sysuint_t length)
 
     StringUtil::copy(
       d->data + index + length, self->_d->data + index, moveBy);
-    AtomicBase::ptr_setXchg(&self->_d, d)->derefInline();
+    atomicPtrXchg(&self->_d, d)->derefInline();
   }
   else
   {
@@ -490,7 +490,7 @@ static char* _prepareReplace(ByteArray* self, sysuint_t index, sysuint_t range, 
     StringUtil::copy(
       d->data + index + replacementLength,
       self->_d->data + index + range, lengthBefore - index - range);
-    AtomicBase::ptr_setXchg(&self->_d, d)->derefInline();
+    atomicPtrXchg(&self->_d, d)->derefInline();
   }
   else
   {
@@ -545,7 +545,7 @@ err_t ByteArray::set(const ByteArray& other)
   }
   else
   {
-    AtomicBase::ptr_setXchg(&_d, other_d->refAlways())->derefInline();
+    atomicPtrXchg(&_d, other_d->refAlways())->derefInline();
     return ERR_OK;
   }
 }
@@ -1579,7 +1579,7 @@ sysuint_t ByteArray::remove(const Range& range)
     newd->length = lenAfter;
     newd->data[lenAfter] = 0;
 
-    AtomicBase::ptr_setXchg(&_d, newd)->deref();
+    atomicPtrXchg(&_d, newd)->deref();
   }
   else
   {
@@ -1818,7 +1818,7 @@ sysuint_t ByteArray::remove(const Range* range, sysuint_t count)
     newd->length = lengthAfter;
     newd->data[lengthAfter] = 0;
 
-    AtomicBase::ptr_setXchg(&_d, newd)->deref();
+    atomicPtrXchg(&_d, newd)->deref();
   }
   return count;
 }
@@ -2065,7 +2065,7 @@ err_t ByteArray::replace(const Range* m, sysuint_t mcount, const char* after, sy
   newd->length = lenAfter;
   newd->data[lenAfter] = 0;
 
-  AtomicBase::ptr_setXchg(&_d, newd)->deref();
+  atomicPtrXchg(&_d, newd)->deref();
   return ERR_OK;
 
 overflow:
@@ -2177,7 +2177,7 @@ err_t ByteArray::trim()
     {
       Data* newd = Data::alloc(len, strCur, len);
       if (!newd) return ERR_RT_OUT_OF_MEMORY;
-      AtomicBase::ptr_setXchg(&_d, newd)->deref();
+      atomicPtrXchg(&_d, newd)->deref();
     }
     else
     {
@@ -2266,7 +2266,7 @@ err_t ByteArray::truncate(sysuint_t n)
   {
     Data* newd = Data::alloc(n, d->data, n);
     if (!newd) return ERR_RT_OUT_OF_MEMORY;
-    AtomicBase::ptr_setXchg(&_d, newd)->deref();
+    atomicPtrXchg(&_d, newd)->deref();
   }
   else
   {

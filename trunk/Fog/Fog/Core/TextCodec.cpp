@@ -2225,12 +2225,12 @@ TextCodec TextCodec::fromBom(const void* data, sysuint_t length)
 
 void TextCodec::free()
 {
-  AtomicBase::ptr_setXchg(&_d, ((TextCodec *)_codecs)[BuiltInNull]._d->ref())->deref();
+  atomicPtrXchg(&_d, ((TextCodec *)_codecs)[BuiltInNull]._d->ref())->deref();
 }
 
 TextCodec& TextCodec::operator=(const TextCodec& other)
 {
-  AtomicBase::ptr_setXchg(&_d, other._d->ref())->deref();
+  atomicPtrXchg(&_d, other._d->ref())->deref();
   return *this;
 }
 
@@ -2239,7 +2239,7 @@ err_t TextCodec::setCode(uint32_t code)
   err_t err = ERR_OK;
   if (code >= Invalid) { code = 0; err = ERR_TEXT_INVALID_CODEC; }
 
-  AtomicBase::ptr_setXchg(&_d, getEngine(code))->deref();
+  atomicPtrXchg(&_d, getEngine(code))->deref();
   return err;
 }
 

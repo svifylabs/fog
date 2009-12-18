@@ -76,7 +76,7 @@ err_t ConvolutionMatrixI::setData(int width, int height, const ValueType* data)
   if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
   Memory::copy(newd->m, data, (sysuint_t)width * (sysuint_t)height * (sysuint_t)sizeof(ValueType));
-  AtomicBase::ptr_setXchg(&_d, newd)->deref();
+  atomicPtrXchg(&_d, newd)->deref();
   return ERR_OK;
 }
 
@@ -87,7 +87,7 @@ err_t ConvolutionMatrixI::create(int width, int height)
   Data* newd = Data::alloc(width, height);
   if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
-  AtomicBase::ptr_setXchg(&_d, newd)->deref();
+  atomicPtrXchg(&_d, newd)->deref();
   return ERR_OK;
 }
 
@@ -120,7 +120,7 @@ err_t ConvolutionMatrixI::extend(int width, int height, ValueType value)
     for (x = width; x; x--) *dstCur++ = value;
   }
 
-  AtomicBase::ptr_setXchg(&_d, newd)->deref();
+  atomicPtrXchg(&_d, newd)->deref();
   return ERR_OK;
 }
 
@@ -175,7 +175,7 @@ err_t ConvolutionMatrixI::fill(const Rect& rect, ValueType value)
 
 ConvolutionMatrixI& ConvolutionMatrixI::operator=(const ConvolutionMatrixI& other)
 {
-  AtomicBase::ptr_setXchg(&_d, other._d->ref())->deref();
+  atomicPtrXchg(&_d, other._d->ref())->deref();
   return *this;
 }
 

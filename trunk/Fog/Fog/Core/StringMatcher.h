@@ -104,7 +104,7 @@ private:
 // [Fog::TypeInfo<>]
 // ============================================================================
 
-FOG_DECLARE_TYPEINFO(Fog::StringMatcher, Fog::TYPE_INFO_MOVABLE)
+FOG_DECLARE_TYPEINFO(Fog::StringMatcher, Fog::TYPEINFO_MOVABLE)
 
 //! @}
 
