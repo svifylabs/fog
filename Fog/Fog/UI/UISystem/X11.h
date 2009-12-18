@@ -1,6 +1,6 @@
 // [Gui library - C++ API]
 //
-// [Licence] 
+// [Licence]
 // MIT, See COPYING file in package
 
 // [Guard]

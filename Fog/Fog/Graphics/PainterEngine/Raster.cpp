@@ -373,7 +373,7 @@ struct FOG_HIDDEN RasterPainterEngine : public PainterEngine
   {
     ClipState* clipState;
     CapsState* capsState;
-    RasterUtil::FunctionMap::RasterFuncs* rops;
+    RasterUtil::FunctionMap::CompositeFuncs* rops;
     RasterUtil::PatternContext* pctx;
   };
 
@@ -404,7 +404,7 @@ struct FOG_HIDDEN RasterPainterEngine : public PainterEngine
     CapsState* capsState;
 
     // Raster functions.
-    RasterUtil::FunctionMap::RasterFuncs* rops;
+    RasterUtil::FunctionMap::CompositeFuncs* rops;
     // Raster closure.
     RasterUtil::Closure closure;
 
@@ -523,7 +523,7 @@ struct FOG_HIDDEN RasterPainterEngine : public PainterEngine
     ClipState* clipState;
     CapsState* capsState;
 
-    RasterUtil::FunctionMap::RasterFuncs* rops;
+    RasterUtil::FunctionMap::CompositeFuncs* rops;
     RasterUtil::PatternContext* pctx;
 
     // [Status]
@@ -3723,11 +3723,13 @@ void RasterPainterEngine::_renderPath(Context* ctx, Rasterizer* ras)
     // Solid source type.
     case PAINTER_SOURCE_ARGB:
     {
-      const RasterUtil::Solid* source = &capsState->solid;
+      RasterUtil::CSpanScanlineFn blitter = ctx->rops->cspan_a8_scanline;
 
-      RasterUtil::CSpanFn cspan = ctx->rops->cspan;
-      RasterUtil::CSpanMskFn cspan_a8 = ctx->rops->cspan_a8;
-      RasterUtil::CSpanMskConstFn cspan_a8_const = ctx->rops->cspan_a8_const;
+      //RasterUtil::CSpanFn cspan = ctx->rops->cspan;
+      //RasterUtil::CSpanMskFn cspan_a8 = ctx->rops->cspan_a8;
+      //RasterUtil::CSpanMskConstFn cspan_a8_const = ctx->rops->cspan_a8_const;
+
+      const RasterUtil::Solid* source = &capsState->solid;
       RasterUtil::Closure* closure = &ctx->closure;
 
       if (clipState->clipSimple)
@@ -3738,8 +3740,9 @@ void RasterPainterEngine::_renderPath(Context* ctx, Rasterizer* ras)
           uint numSpans = ras->sweepScanline(scanline, y);
           if (numSpans == 0) continue;
 
+          blitter(pBase, source, scanline->getSpansData(), numSpans, closure);
+/*
           const Scanline32::Span* span = scanline->getSpansData();
-
           for (;;)
           {
             int x = span->x;
@@ -3770,6 +3773,7 @@ void RasterPainterEngine::_renderPath(Context* ctx, Rasterizer* ras)
             if (--numSpans == 0) break;
             ++span;
           }
+*/
         }
       }
       else
@@ -3820,6 +3824,8 @@ sourceArgbClipAdvance:
           uint numSpans = ras->sweepScanline(scanline, y, clipCur, clipLen);
           if (numSpans == 0) continue;
 
+          blitter(pBase, source, scanline->getSpansData(), numSpans, closure);
+/*
           const Scanline32::Span* span = scanline->getSpansData();
 
           for (;;)
@@ -3852,6 +3858,7 @@ sourceArgbClipAdvance:
             if (--numSpans == 0) break;
             ++span;
           }
+*/
         }
       }
       break;
@@ -4022,9 +4029,9 @@ sourcePatternClipAdvance:
       ColorFilterFn cspan = cfEngine->getColorFilterFn(format);
 
       RasterUtil::VSpanMskFn vspan_a8 =
-        RasterUtil::functionMap->raster[COMPOSITE_SRC][format].vspan_a8[format];
+        RasterUtil::functionMap->composite[COMPOSITE_SRC][format].vspan_a8[format];
       RasterUtil::VSpanMskConstFn vspan_a8_const =
-        RasterUtil::functionMap->raster[COMPOSITE_SRC][format].vspan_a8_const[format];
+        RasterUtil::functionMap->composite[COMPOSITE_SRC][format].vspan_a8_const[format];
 
       if (clipState->clipSimple)
       {

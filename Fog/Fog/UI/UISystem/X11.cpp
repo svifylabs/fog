@@ -1777,7 +1777,7 @@ __tryImage:
       // Now image is created and we must check if we have correct
       // depth and pixel format, if not, we must create secondary
       // buffer that will be used for conversion
-      sysint_t secondaryStride = (sysint_t)targetWidth << 2;
+      sysint_t secondaryStride = (sysint_t)targetWidth * 4;
 
       if (targetStride != secondaryStride)
       {
@@ -1927,14 +1927,14 @@ void X11UIBackingStore::updateRects(const Box* rects, sysuint_t count)
         case 8:
           while (y1 < y2)
           {
-            ((RasterUtil::ConvertDither8Fn)_convertFunc)(dstCur, srcCur, w, Point(x1, y1), palConv);
+            ((RasterUtil::Dither8Fn)_convertFunc)(dstCur, srcCur, w, Point(x1, y1), palConv);
             y1++;
           }
           break;
         case 16:
           while (y1 < y2)
           {
-            ((RasterUtil::ConvertDither16Fn)_convertFunc)(dstCur, srcCur, w, Point(x1, y1));
+            ((RasterUtil::Dither16Fn)_convertFunc)(dstCur, srcCur, w, Point(x1, y1));
             y1++;
           }
           break;
@@ -1942,7 +1942,7 @@ void X11UIBackingStore::updateRects(const Box* rects, sysuint_t count)
         case 32:
           while (y1 < y2)
           {
-            ((RasterUtil::ConvertPlainFn)_convertFunc)(dstCur, srcCur, w, NULL);
+            ((RasterUtil::VSpanFn)_convertFunc)(dstCur, srcCur, w, NULL);
             y1++;
           }
           break;

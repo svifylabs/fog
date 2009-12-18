@@ -1,6 +1,6 @@
 // [Fog/Graphics library - C++ API]
 //
-// [Licence] 
+// [Licence]
 // MIT, See COPYING file in package
 
 // [Guard]
@@ -15,6 +15,7 @@
 #include <Fog/Graphics/Geometry.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/Path.h>
+#include <Fog/Graphics/Scanline.h>
 
 namespace Fog {
 
@@ -24,6 +25,7 @@ namespace Fog {
 
 // Used in function map prototypes.
 struct BlurParams;
+struct ColorLut;
 struct ColorMatrix;
 struct ConvolveParams;
 struct Matrix;
@@ -31,11 +33,97 @@ struct Pattern;
 struct SymmetricConvolveParamsF;
 struct SymmetricConvolveParamsI;
 
-namespace RasterUtil { struct PatternContext; }
-namespace RasterUtil { struct Solid; }
-
-
 namespace RasterUtil {
+
+struct Closure;
+struct PatternContext;
+struct Solid;
+
+// ============================================================================
+// [Fog::RasterUtil - Prototypes - Dither]
+// ============================================================================
+
+typedef void (FOG_FASTCALL *Dither8Fn)(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Point& origin, const uint8_t* palConv);
+
+typedef void (FOG_FASTCALL *Dither16Fn)(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Point& origin);
+
+// ============================================================================
+// [Fog::RasterUtil - Prototypes - Interpolate]
+// ============================================================================
+
+typedef void (FOG_FASTCALL *InterpolateArgbFn)(
+  uint8_t* dst, uint32_t c0, uint32_t c1,
+  sysint_t w, sysint_t x1, sysint_t x2);
+
+// ============================================================================
+// [Fog::RasterUtil - Prototypes - Pattern]
+// ============================================================================
+
+typedef err_t (FOG_FASTCALL *PatternInitFn)(
+  PatternContext* ctx,
+  const Pattern& pattern, const Matrix& matrix);
+
+typedef err_t (FOG_FASTCALL *PatternInitSolidFn)(
+  PatternContext* ctx, uint32_t prgb);
+
+typedef uint8_t* (FOG_FASTCALL *PatternFetchFn)(
+  PatternContext* ctx,
+  uint8_t* dst, int x, int y, int w);
+
+typedef void (FOG_FASTCALL *PatternDestroyFn)(
+  PatternContext* ctx);
+
+typedef err_t (FOG_FASTCALL *ScaleInitFn)(
+  PatternContext* ctx,
+  const Image* im, int dw, int dh, int filter);
+
+// ============================================================================
+// [Fog::RasterUtil - Prototypes - Filter]
+// ============================================================================
+
+typedef void (FOG_FASTCALL *ColorLutFn)(
+  uint8_t* dst, const uint8_t* src, sysuint_t width, const ColorLutData* lut);
+
+typedef void (FOG_FASTCALL *ColorMatrixFn)(
+  uint8_t* dst, const uint8_t* src, sysuint_t width, const ColorMatrix* cm);
+
+typedef void (FOG_FASTCALL *CopyAreaFn)(
+  uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
+  sysuint_t w, sysuint_t h, sysint_t offset, const void* context);
+
+typedef void (FOG_FASTCALL *BlurFn)(
+  uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
+  sysuint_t w, sysuint_t h, sysint_t offset, const BlurParams* params);
+
+typedef void (FOG_FASTCALL *SymmetricConvolveFloatFn)(
+  uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
+  sysuint_t w, sysuint_t h, sysint_t offset, const SymmetricConvolveParamsF* params);
+
+typedef void (FOG_FASTCALL *SymmetricConvolveIntFn)(
+  uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
+  sysuint_t w, sysuint_t h, sysint_t offset, const SymmetricConvolveParamsI* params);
+
+// ============================================================================
+// [Fog::RasterUtil - Prototypes - Composite]
+// ============================================================================
+
+typedef void (FOG_FASTCALL *CSpanFn)(
+  uint8_t* dst, const Solid* src, sysint_t w, const Closure* closure);
+typedef void (FOG_FASTCALL *CSpanMskFn)(
+  uint8_t* dst, const Solid* src, const uint8_t* msk, sysint_t w, const Closure* closure);
+typedef void (FOG_FASTCALL *CSpanMskConstFn)(
+  uint8_t* dst, const Solid* src, uint32_t msk, sysint_t w, const Closure* closure);
+typedef void (FOG_FASTCALL *CSpanScanlineFn)(
+  uint8_t* dst, const Solid* src, const Scanline32::Span* spans, sysuint_t numSpans, const Closure* closure);
+
+typedef void (FOG_FASTCALL *VSpanFn)(
+  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure);
+typedef void (FOG_FASTCALL *VSpanMskFn)(
+  uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w, const Closure* closure);
+typedef void (FOG_FASTCALL *VSpanMskConstFn)(
+  uint8_t* dst, const uint8_t* src, uint32_t msk, sysint_t w, const Closure* closure);
 
 // ============================================================================
 // [Fog::RasterUtil - Data]
@@ -48,7 +136,7 @@ extern FOG_API const uint8_t linear_blur8_shr[255];  // [255]
 // [Fog::RasterUtil - Structures]
 // ============================================================================
 
-//! @brief Solid source for raster based compositing.
+//! @brief Solid source color for image compositing.
 struct Solid
 {
   //! @brief 32-bit ARGB color, non-premultiplied.
@@ -67,62 +155,19 @@ struct Closure
   const Argb* dstPalette;
 };
 
-// ============================================================================
-// [Fog::RasterUtil - Prototypes - Convert]
-// ============================================================================
-
-typedef void (FOG_FASTCALL *VSpanFn)(
-  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure);
-
-typedef void (FOG_FASTCALL *ConvertPlainFn)(
-  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure);
-
-typedef void (FOG_FASTCALL *ConvertDither8Fn)(
-  uint8_t* dst, const uint8_t* src, sysint_t w, const Point& origin, const uint8_t* palConv);
-
-typedef void (FOG_FASTCALL *ConvertDither16Fn)(
-  uint8_t* dst, const uint8_t* src, sysint_t w, const Point& origin);
-
-// ============================================================================
-// [Fog::RasterUtil - Prototypes - Gradient]
-// ============================================================================
-
-typedef void (FOG_FASTCALL *GradientSpanFn)(
-  uint8_t* dst, uint32_t c0, uint32_t c1,
-  sysint_t w, sysint_t x1, sysint_t x2);
-
-// ============================================================================
-// [Fog::RasterUtil - Prototypes - Pattern]
-// ============================================================================
-
-typedef err_t (FOG_FASTCALL *PatternContextSolidInitFn)(
-  PatternContext* ctx, uint32_t prgb);
-
-typedef err_t (FOG_FASTCALL *PatternContextInitFn)(
-  PatternContext* ctx,
-  const Pattern& pattern, const Matrix& matrix);
-
-typedef uint8_t* (FOG_FASTCALL *PatternContextFetchFn)(
-  PatternContext* ctx,
-  uint8_t* dst, int x, int y, int w);
-
-typedef void (FOG_FASTCALL *PatternContextDestroyFn)(
-  PatternContext* ctx);
-
-typedef err_t (FOG_FASTCALL *ScaleInitFn)(
-  PatternContext* ctx,
-  const Image* im, int dw, int dh, int filter);
-
+//! @brief Context that is used to render patterns.
+//!
+//! Context contains method that can render pattern span at specific coordinate.
 struct PatternContext
 {
   //! @brief Reference count.
   Atomic<sysuint_t> refCount;
 
   //! @brief Fetch function.
-  PatternContextFetchFn fetch;
+  PatternFetchFn fetch;
   //! @brief Destroy function (you must call it if reference count was decreased
   //! to zero).
-  PatternContextDestroyFn destroy;
+  PatternDestroyFn destroy;
 
   //! @brief true if this context is initialized and must be destroyed using
   //! @c destroy() function.
@@ -272,50 +317,6 @@ struct PatternContext
 };
 
 // ============================================================================
-// [Fog::RasterUtil - Prototypes - Filter]
-// ============================================================================
-
-typedef void (FOG_FASTCALL *ColorLutFn)(
-  uint8_t* dst, const uint8_t* src, sysuint_t width, const ColorLutData* lut);
-
-typedef void (FOG_FASTCALL *ColorMatrixFn)(
-  uint8_t* dst, const uint8_t* src, sysuint_t width, const float m[5][5]);
-
-typedef void (FOG_FASTCALL *CopyAreaFn)(
-  uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
-  sysuint_t w, sysuint_t h, sysint_t offset, const void* context);
-
-typedef void (FOG_FASTCALL *BlurFn)(
-  uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
-  sysuint_t w, sysuint_t h, sysint_t offset, const BlurParams* params);
-
-typedef void (FOG_FASTCALL *SymmetricConvolveFloatFn)(
-  uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
-  sysuint_t w, sysuint_t h, sysint_t offset, const SymmetricConvolveParamsF* params);
-
-typedef void (FOG_FASTCALL *SymmetricConvolveIntFn)(
-  uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
-  sysuint_t w, sysuint_t h, sysint_t offset, const SymmetricConvolveParamsI* params);
-
-// ============================================================================
-// [Fog::RasterUtil - Prototypes - Composite]
-// ============================================================================
-
-typedef void (FOG_FASTCALL *CSpanFn)(
-  uint8_t* dst, const Solid* src, sysint_t w, const Closure* closure);
-typedef void (FOG_FASTCALL *CSpanMskFn)(
-  uint8_t* dst, const Solid* src, const uint8_t* msk, sysint_t w, const Closure* closure);
-typedef void (FOG_FASTCALL *CSpanMskConstFn)(
-  uint8_t* dst, const Solid* src, uint32_t msk, sysint_t w, const Closure* closure);
-
-typedef void (FOG_FASTCALL *VSpanFn)(
-  uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure);
-typedef void (FOG_FASTCALL *VSpanMskFn)(
-  uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w, const Closure* closure);
-typedef void (FOG_FASTCALL *VSpanMskConstFn)(
-  uint8_t* dst, const uint8_t* src, uint32_t msk, sysint_t w, const Closure* closure);
-
-// ============================================================================
 // [Fog::RasterUtil - Function Map]
 // ============================================================================
 
@@ -360,29 +361,29 @@ struct FunctionMap
 
     // [Dither]
 
-    ConvertDither8Fn i8rgb232_from_xrgb32_dither;
-    ConvertDither8Fn i8rgb222_from_xrgb32_dither;
-    ConvertDither8Fn i8rgb111_from_xrgb32_dither;
+    Dither8Fn i8rgb232_from_xrgb32_dither;
+    Dither8Fn i8rgb222_from_xrgb32_dither;
+    Dither8Fn i8rgb111_from_xrgb32_dither;
 
-    ConvertDither16Fn rgb16_555_native_from_xrgb32_dither;
-    ConvertDither16Fn rgb16_565_native_from_xrgb32_dither;
+    Dither16Fn rgb16_555_native_from_xrgb32_dither;
+    Dither16Fn rgb16_565_native_from_xrgb32_dither;
 
-    ConvertDither16Fn rgb16_555_swapped_from_xrgb32_dither;
-    ConvertDither16Fn rgb16_565_swapped_from_xrgb32_dither;
+    Dither16Fn rgb16_555_swapped_from_xrgb32_dither;
+    Dither16Fn rgb16_565_swapped_from_xrgb32_dither;
   };
 
   DibFuncs dib;
 
   // [Interpolation]
 
-  struct InterpolationFuncs
+  struct InterpolateFuncs
   {
     // [Gradient]
 
-    GradientSpanFn gradient[PIXEL_FORMAT_COUNT];
+    InterpolateArgbFn gradient[PIXEL_FORMAT_COUNT];
   };
 
-  InterpolationFuncs interpolate;
+  InterpolateFuncs interpolate;
 
   // [Pattern]
 
@@ -397,56 +398,56 @@ struct FunctionMap
     // 
     // Painter engine should always use solid color fastpath if pattern
     // degrades to solid color.
-    PatternContextSolidInitFn solid_init;
-    PatternContextFetchFn solid_fetch;
+    PatternInitSolidFn solid_init;
+    PatternFetchFn solid_fetch;
 
     // [Texture]
 
-    PatternContextInitFn texture_init;
+    PatternInitFn texture_init;
     // Exact, no transform.
-    PatternContextFetchFn texture_fetch_exact_repeat[PIXEL_FORMAT_COUNT];
-    PatternContextFetchFn texture_fetch_exact_reflect[PIXEL_FORMAT_COUNT];
+    PatternFetchFn texture_fetch_exact_repeat[PIXEL_FORMAT_COUNT];
+    PatternFetchFn texture_fetch_exact_reflect[PIXEL_FORMAT_COUNT];
     // Subpixel accurate, no transform.
-    PatternContextFetchFn texture_fetch_subx0_repeat[PIXEL_FORMAT_COUNT];
-    PatternContextFetchFn texture_fetch_subx0_reflect[PIXEL_FORMAT_COUNT];
-    PatternContextFetchFn texture_fetch_sub0y_repeat[PIXEL_FORMAT_COUNT];
-    PatternContextFetchFn texture_fetch_sub0y_reflect[PIXEL_FORMAT_COUNT];
-    PatternContextFetchFn texture_fetch_subxy_repeat[PIXEL_FORMAT_COUNT];
-    PatternContextFetchFn texture_fetch_subxy_reflect[PIXEL_FORMAT_COUNT];
+    PatternFetchFn texture_fetch_subx0_repeat[PIXEL_FORMAT_COUNT];
+    PatternFetchFn texture_fetch_subx0_reflect[PIXEL_FORMAT_COUNT];
+    PatternFetchFn texture_fetch_sub0y_repeat[PIXEL_FORMAT_COUNT];
+    PatternFetchFn texture_fetch_sub0y_reflect[PIXEL_FORMAT_COUNT];
+    PatternFetchFn texture_fetch_subxy_repeat[PIXEL_FORMAT_COUNT];
+    PatternFetchFn texture_fetch_subxy_reflect[PIXEL_FORMAT_COUNT];
     // Transform, nearest.
-    PatternContextFetchFn texture_fetch_transform_nearest_repeat[PIXEL_FORMAT_COUNT];
+    PatternFetchFn texture_fetch_transform_nearest_repeat[PIXEL_FORMAT_COUNT];
     // Transform, bilinear.
-    PatternContextFetchFn texture_fetch_transform_bilinear_repeat[PIXEL_FORMAT_COUNT];
+    PatternFetchFn texture_fetch_transform_bilinear_repeat[PIXEL_FORMAT_COUNT];
 
     // [Scale]
 
     ScaleInitFn scale_init;
-    PatternContextFetchFn scale_fetch_nearest[PIXEL_FORMAT_COUNT];
-    PatternContextFetchFn scale_fetch_bilinear[PIXEL_FORMAT_COUNT];
+    PatternFetchFn scale_fetch_nearest[PIXEL_FORMAT_COUNT];
+    PatternFetchFn scale_fetch_bilinear[PIXEL_FORMAT_COUNT];
 
     // [Linear Gradient]
 
-    PatternContextInitFn linear_gradient_init;
+    PatternInitFn linear_gradient_init;
 
     // Exact is non-antialiased gradient rendering, also used in antialiased
     // mode for vertical and horizontal gradients.
-    PatternContextFetchFn linear_gradient_fetch_exact_pad;
-    PatternContextFetchFn linear_gradient_fetch_exact_repeat;
+    PatternFetchFn linear_gradient_fetch_exact_pad;
+    PatternFetchFn linear_gradient_fetch_exact_repeat;
 
     // Subpixel accurate gradient rendering.
-    PatternContextFetchFn linear_gradient_fetch_subxy_pad;
-    PatternContextFetchFn linear_gradient_fetch_subxy_repeat;
+    PatternFetchFn linear_gradient_fetch_subxy_pad;
+    PatternFetchFn linear_gradient_fetch_subxy_repeat;
 
     // [Radial Gradient]
 
-    PatternContextInitFn radial_gradient_init;
-    PatternContextFetchFn radial_gradient_fetch_pad;
-    PatternContextFetchFn radial_gradient_fetch_repeat;
+    PatternInitFn radial_gradient_init;
+    PatternFetchFn radial_gradient_fetch_pad;
+    PatternFetchFn radial_gradient_fetch_repeat;
 
     // [Conical Gradient]
 
-    PatternContextInitFn conical_gradient_init;
-    PatternContextFetchFn conical_gradient_fetch;
+    PatternInitFn conical_gradient_init;
+    PatternFetchFn conical_gradient_fetch;
   };
 
   PatternFuncs pattern;
@@ -489,13 +490,14 @@ struct FunctionMap
 
   // [Composite]
 
-  struct RasterFuncs
+  struct CompositeFuncs
   {
     // [Span Solid]
 
     CSpanFn cspan;
     CSpanMskFn cspan_a8;
     CSpanMskConstFn cspan_a8_const;
+    CSpanScanlineFn cspan_a8_scanline;
 
     // [Span Composite]
 
@@ -504,12 +506,12 @@ struct FunctionMap
     VSpanMskConstFn vspan_a8_const[PIXEL_FORMAT_COUNT];
   };
 
-  RasterFuncs raster[COMPOSITE_COUNT][PIXEL_FORMAT_COUNT];
+  CompositeFuncs composite[COMPOSITE_COUNT][PIXEL_FORMAT_COUNT];
 };
 
 extern FOG_API FunctionMap* functionMap;
 
-FOG_API FunctionMap::RasterFuncs* getRasterOps(int format, int op);
+FOG_API FunctionMap::CompositeFuncs* getRasterOps(int format, int op);
 
 } // RasterUtil namespace
 } // Fog namespace

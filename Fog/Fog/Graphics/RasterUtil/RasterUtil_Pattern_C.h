@@ -754,7 +754,7 @@ struct FOG_HIDDEN PatternC
   {
     FOG_ASSERT(w);
 
-    uint8_t* base = dst - (linew << 2);
+    uint8_t* base = dst - (linew * 4);
 
     uint8_t* srcCur = base;
     uint8_t* dstCur = dst;
@@ -1721,7 +1721,7 @@ struct FOG_HIDDEN PatternC
 
   static void FOG_FASTCALL generic_gradient_stops(
     uint8_t* dst, const List<ArgbStop>& stops,
-    GradientSpanFn gradientSpan,
+    InterpolateArgbFn gradientSpan,
     int offset, int size, int w,
     bool reverse)
   {

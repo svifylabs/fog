@@ -1,6 +1,6 @@
 // [Fog/Graphics Library - C++ API]
 //
-// [Licence] 
+// [Licence]
 // MIT, See COPYING file in package
 
 // For some IDEs to enable code-assist.
@@ -123,12 +123,12 @@ struct FOG_HIDDEN FilterC
   // --------------------------------------------------------------------------
 
   static void FOG_FASTCALL color_matrix_prgb32(
-    uint8_t* dst, const uint8_t* src, sysuint_t width, const float m[5][5])
+    uint8_t* dst, const uint8_t* src, sysuint_t width, const ColorMatrix* cm)
   {
-    float dr = m[4][0] * 255.0f + 0.5f;
-    float dg = m[4][1] * 255.0f + 0.5f;
-    float db = m[4][2] * 255.0f + 0.5f;
-    float da = m[4][3] * 255.0f + 0.5f;
+    float dr = cm->m[4][0] * 255.0f + 0.5f;
+    float dg = cm->m[4][1] * 255.0f + 0.5f;
+    float db = cm->m[4][2] * 255.0f + 0.5f;
+    float da = cm->m[4][3] * 255.0f + 0.5f;
 
     for (sysuint_t i = width; i; i--, dst += 4, src += 4)
     {
@@ -140,32 +140,27 @@ struct FOG_HIDDEN FilterC
       float fb = (float)src[ARGB32_BBYTE] * demul;
       float fa = (float)pa;
 
-      int tr = (int)(fr * m[0][0] + fg * m[1][0] + fb * m[2][0] + fa * m[3][0] + dr);
-      int tg = (int)(fr * m[0][1] + fg * m[1][1] + fb * m[2][1] + fa * m[3][1] + dg);
-      int tb = (int)(fr * m[0][2] + fg * m[1][2] + fb * m[2][2] + fa * m[3][2] + db);
-      int ta = (int)(fr * m[0][3] + fg * m[1][3] + fb * m[2][3] + fa * m[3][3] + da);
+      int tr = (int)(fr * cm->m[0][0] + fg * cm->m[1][0] + fb * cm->m[2][0] + fa * cm->m[3][0] + dr);
+      int tg = (int)(fr * cm->m[0][1] + fg * cm->m[1][1] + fb * cm->m[2][1] + fa * cm->m[3][1] + dg);
+      int tb = (int)(fr * cm->m[0][2] + fg * cm->m[1][2] + fb * cm->m[2][2] + fa * cm->m[3][2] + db);
+      int ta = (int)(fr * cm->m[0][3] + fg * cm->m[1][3] + fb * cm->m[2][3] + fa * cm->m[3][3] + da);
 
-      if (tr < 0) tr = 0;
-      if (tg < 0) tg = 0;
-      if (tb < 0) tb = 0;
-      if (ta < 0) ta = 0;
-
-      if (tr > 255) tr = 255;
-      if (tg > 255) tg = 255;
-      if (tb > 255) tb = 255;
-      if (ta > 255) ta = 255;
+      tr = Math::bound<int>(tr, 0, 255);
+      tg = Math::bound<int>(tg, 0, 255);
+      tb = Math::bound<int>(tb, 0, 255);
+      ta = Math::bound<int>(ta, 0, 255);
 
       ((uint32_t*)dst)[0] = ArgbUtil::premultiply(ta, tr, tg, tb);
     }
   }
 
   static void FOG_FASTCALL color_matrix_argb32(
-    uint8_t* dst, const uint8_t* src, sysuint_t width, const float m[5][5])
+    uint8_t* dst, const uint8_t* src, sysuint_t width, const ColorMatrix* cm)
   {
-    float dr = m[4][0] * 255.0f + 0.5f;
-    float dg = m[4][1] * 255.0f + 0.5f;
-    float db = m[4][2] * 255.0f + 0.5f;
-    float da = m[4][3] * 255.0f + 0.5f;
+    float dr = cm->m[4][0] * 255.0f + 0.5f;
+    float dg = cm->m[4][1] * 255.0f + 0.5f;
+    float db = cm->m[4][2] * 255.0f + 0.5f;
+    float da = cm->m[4][3] * 255.0f + 0.5f;
 
     for (sysuint_t i = width; i; i--, dst += 4, src += 4)
     {
@@ -174,31 +169,26 @@ struct FOG_HIDDEN FilterC
       float fb = (float)src[ARGB32_BBYTE];
       float fa = (float)src[ARGB32_ABYTE];
 
-      int tr = (int)(fr * m[0][0] + fg * m[1][0] + fb * m[2][0] + fa * m[3][0] + dr);
-      int tg = (int)(fr * m[0][1] + fg * m[1][1] + fb * m[2][1] + fa * m[3][1] + dg);
-      int tb = (int)(fr * m[0][2] + fg * m[1][2] + fb * m[2][2] + fa * m[3][2] + db);
-      int ta = (int)(fr * m[0][3] + fg * m[1][3] + fb * m[2][3] + fa * m[3][3] + da);
+      int tr = (int)(fr * cm->m[0][0] + fg * cm->m[1][0] + fb * cm->m[2][0] + fa * cm->m[3][0] + dr);
+      int tg = (int)(fr * cm->m[0][1] + fg * cm->m[1][1] + fb * cm->m[2][1] + fa * cm->m[3][1] + dg);
+      int tb = (int)(fr * cm->m[0][2] + fg * cm->m[1][2] + fb * cm->m[2][2] + fa * cm->m[3][2] + db);
+      int ta = (int)(fr * cm->m[0][3] + fg * cm->m[1][3] + fb * cm->m[2][3] + fa * cm->m[3][3] + da);
 
-      if (tr < 0) tr = 0;
-      if (tg < 0) tg = 0;
-      if (tb < 0) tb = 0;
-      if (ta < 0) ta = 0;
-
-      if (tr > 255) tr = 255;
-      if (tg > 255) tg = 255;
-      if (tb > 255) tb = 255;
-      if (ta > 255) ta = 255;
+      tr = Math::bound<int>(tr, 0, 255);
+      tg = Math::bound<int>(tg, 0, 255);
+      tb = Math::bound<int>(tb, 0, 255);
+      ta = Math::bound<int>(ta, 0, 255);
 
       ((uint32_t*)dst)[0] = Argb::make(ta, tr, tg, tb);
     }
   }
 
   static void FOG_FASTCALL color_matrix_xrgb32(
-    uint8_t* dst, const uint8_t* src, sysuint_t width, const float m[5][5])
+    uint8_t* dst, const uint8_t* src, sysuint_t width, const ColorMatrix* cm)
   {
-    float dr = (m[3][0] + m[4][0]) * 255.0f + 0.5f;
-    float dg = (m[3][1] + m[4][1]) * 255.0f + 0.5f;
-    float db = (m[3][2] + m[4][2]) * 255.0f + 0.5f;
+    float dr = (cm->m[3][0] + cm->m[4][0]) * 255.0f + 0.5f;
+    float dg = (cm->m[3][1] + cm->m[4][1]) * 255.0f + 0.5f;
+    float db = (cm->m[3][2] + cm->m[4][2]) * 255.0f + 0.5f;
 
     for (sysuint_t i = width; i; i--, dst += 4, src += 4)
     {
@@ -206,34 +196,28 @@ struct FOG_HIDDEN FilterC
       float fg = (float)src[ARGB32_GBYTE];
       float fb = (float)src[ARGB32_BBYTE];
 
-      int tr = (int)(fr * m[0][0] + fg * m[1][0] + fb * m[2][0] + dr);
-      int tg = (int)(fr * m[0][1] + fg * m[1][1] + fb * m[2][1] + dg);
-      int tb = (int)(fr * m[0][2] + fg * m[1][2] + fb * m[2][2] + db);
+      int tr = (int)(fr * cm->m[0][0] + fg * cm->m[1][0] + fb * cm->m[2][0] + dr);
+      int tg = (int)(fr * cm->m[0][1] + fg * cm->m[1][1] + fb * cm->m[2][1] + dg);
+      int tb = (int)(fr * cm->m[0][2] + fg * cm->m[1][2] + fb * cm->m[2][2] + db);
 
-      if (tr < 0) tr = 0;
-      if (tg < 0) tg = 0;
-      if (tb < 0) tb = 0;
-
-      if (tr > 255) tr = 255;
-      if (tg > 255) tg = 255;
-      if (tb > 255) tb = 255;
+      tr = Math::bound<int>(tr, 0, 255);
+      tg = Math::bound<int>(tg, 0, 255);
+      tb = Math::bound<int>(tb, 0, 255);
 
       ((uint32_t*)dst)[0] = Argb::make(0xFF, tr, tg, tb);
     }
   }
 
   static void FOG_FASTCALL color_matrix_a8(
-    uint8_t* dst, const uint8_t* src, sysuint_t width, const float m[5][5])
+    uint8_t* dst, const uint8_t* src, sysuint_t width, const ColorMatrix* cm)
   {
-    float da = m[4][3] * 255.0f + 0.5f;
-    float xa = m[3][3];
+    float da = cm->m[4][3] * 255.0f + 0.5f;
+    float xa = cm->m[3][3];
 
     for (sysuint_t i = width; i; i--, dst++, src++)
     {
       int ta = (int)((float)src[0] * xa + da);
-      if (ta < 0) ta = 0;
-      if (ta > 255) ta = 255;
-
+      ta = Math::bound<int>(ta, 0, 255);
       dst[0] = ta;
     }
   }
