@@ -112,9 +112,10 @@ err_t ColorLut::saturate(int channel, int minThreshold, int maxThreshold)
 {
   uint min = (uint)Math::bound<int>(minThreshold, 0, 255);
   uint max = (uint)Math::bound<int>(maxThreshold, 0, 255);
-
   if (max < min) return ERR_RT_INVALID_ARGUMENT;
-  return filter(channel, ColorLutSaturateFilter(min, max));
+
+  ColorLutSaturateFilter f(min, max);
+  return filter(channel, f);
 }
 
 // ============================================================================
@@ -142,7 +143,9 @@ private:
 err_t ColorLut::multiply(int channel, double by)
 {
   if (by < 0.0) by = -by;
-  return filter(channel, ColorLutMultiplyFilter((float)by));
+
+  ColorLutMultiplyFilter f((float)by);
+  return filter(channel, f);
 }
 
 // ============================================================================
@@ -172,7 +175,8 @@ err_t ColorLut::add(int channel, int value)
   value = Math::bound<int>(value, -255, 255);
   if (value == 0) return ERR_OK;
 
-  return filter(channel, ColorLutAddFilter(value));
+  ColorLutAddFilter f(value);
+  return filter(channel, f);
 }
 
 // ============================================================================
@@ -197,7 +201,8 @@ private:
 
 err_t ColorLut::invert(int channel)
 {
-  return filter(channel, ColorLutInvertFilter());
+  ColorLutInvertFilter f;
+  return filter(channel, f);
 }
 
 // ============================================================================
