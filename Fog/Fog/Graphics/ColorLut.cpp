@@ -19,6 +19,13 @@
 namespace Fog {
 
 // ============================================================================
+// [Fog::ColorLutFilter]
+// ============================================================================
+
+ColorLutFilter::ColorLutFilter() {}
+ColorLutFilter::~ColorLutFilter() {}
+
+// ============================================================================
 // [Fog::ColorLut]
 // ============================================================================
 
@@ -85,6 +92,7 @@ err_t ColorLut::reset(int channel)
 struct FOG_HIDDEN ColorLutSaturateFilter : public ColorLutFilter
 {
   FOG_INLINE ColorLutSaturateFilter(uint min, uint max) : min(min), max(max) {}
+  virtual ~ColorLutSaturateFilter() {}
 
   virtual err_t filter(uint8_t* data) const
   {
@@ -116,6 +124,7 @@ err_t ColorLut::saturate(int channel, int minThreshold, int maxThreshold)
 struct FOG_HIDDEN ColorLutMultiplyFilter : public ColorLutFilter
 {
   FOG_INLINE ColorLutMultiplyFilter(float by) : by(by) {}
+  virtual ~ColorLutMultiplyFilter() {}
 
   virtual err_t filter(uint8_t* data) const
   {
@@ -143,6 +152,7 @@ err_t ColorLut::multiply(int channel, double by)
 struct FOG_HIDDEN ColorLutAddFilter : public ColorLutFilter
 {
   FOG_INLINE ColorLutAddFilter(int value) : value(value) {}
+  virtual ~ColorLutAddFilter() {}
 
   virtual err_t filter(uint8_t* data) const
   {
@@ -172,6 +182,7 @@ err_t ColorLut::add(int channel, int value)
 struct FOG_HIDDEN ColorLutInvertFilter : public ColorLutFilter
 {
   FOG_INLINE ColorLutInvertFilter() {}
+  virtual ~ColorLutInvertFilter() {}
 
   virtual err_t filter(uint8_t* data) const
   {
