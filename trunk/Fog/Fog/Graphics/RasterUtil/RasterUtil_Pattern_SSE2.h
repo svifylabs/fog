@@ -1,6 +1,6 @@
 // [Fog/Graphics Library - C++ API]
 //
-// [Licence] 
+// [Licence]
 // MIT, See COPYING file in package
 
 // For some IDEs to enable code-assist.

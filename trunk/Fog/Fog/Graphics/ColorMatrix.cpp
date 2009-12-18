@@ -1,6 +1,6 @@
 // [Fog/Graphics Library - C++ API]
 //
-// [Licence] 
+// [Licence]
 // MIT, See COPYING file in package
 
 // AggOO - Version 0.1
@@ -24,9 +24,9 @@ namespace Fog {
 
 // The luminance color weights are close to the values of the NTSC color
 // weights, but these values are preferable.
-static const double lumR = 0.3086;
-static const double lumG = 0.6094;
-static const double lumB = 0.0820;
+static const float lumR = 0.3086f;
+static const float lumG = 0.6094f;
+static const float lumB = 0.0820f;
 
 // ============================================================================
 // [Fog::ColorMatrix]
@@ -42,9 +42,9 @@ int ColorMatrix::type() const
   //   [X X n n n]
   //   [n n n n n]
   //   [n n n n n]
-  if (m[0][1] != 0.0 || m[0][2] != 0.0 ||
-      m[1][0] != 0.0 || m[1][2] != 0.0 ||
-      m[2][0] != 0.0 || m[2][1] != 0.0) parts |= TYPE_SHEAR_RGB;
+  if (m[0][1] != 0.0f || m[0][2] != 0.0f ||
+      m[1][0] != 0.0f || m[1][2] != 0.0f ||
+      m[2][0] != 0.0f || m[2][1] != 0.0f) parts |= TYPE_SHEAR_RGB;
 
   // Alpha shear part is illustrated here:
   //   [n n n X n]
@@ -52,10 +52,10 @@ int ColorMatrix::type() const
   //   [n n n X n]
   //   [X X X n n]
   //   [n n n n n]
-  if (m[0][3] != 0.0 ||
-      m[1][3] != 0.0 ||
-      m[2][3] != 0.0 ||
-      m[2][0] != 0.0 || m[2][1] != 0.0 || m[2][2] != 0.0) parts |= TYPE_SHEAR_ALPHA;
+  if (m[0][3] != 0.0f ||
+      m[1][3] != 0.0f ||
+      m[2][3] != 0.0f ||
+      m[2][0] != 0.0f || m[2][1] != 0.0f || m[2][2] != 0.0f) parts |= TYPE_SHEAR_ALPHA;
 
   // RGB lut part is illustrated here:
   //   [X n n n n]
@@ -63,9 +63,9 @@ int ColorMatrix::type() const
   //   [n n X n n]
   //   [n n n n n]
   //   [n n n n n]
-  if (m[0][0] != 0.0 ||
-      m[1][1] != 0.0 ||
-      m[2][2] != 0.0) parts |= TYPE_LUT_RGB;
+  if (m[0][0] != 0.0f ||
+      m[1][1] != 0.0f ||
+      m[2][2] != 0.0f) parts |= TYPE_LUT_RGB;
 
   // Alpha lut part is illustrated here:
   //   [n n n n n]
@@ -73,7 +73,7 @@ int ColorMatrix::type() const
   //   [n n n n n]
   //   [n n n X n]
   //   [n n n n n]
-  if (m[3][3] != 0.0) parts |= TYPE_LUT_ALPHA;
+  if (m[3][3] != 0.0f) parts |= TYPE_LUT_ALPHA;
 
   //! @brief Matrix contains const RGB lut part (all cells are set to 1.0).
   //!
@@ -83,9 +83,9 @@ int ColorMatrix::type() const
   //!   [n n 1 n n]
   //!   [n n n n n]
   //!   [n n n n n]
-  if (m[0][0] == 1.0 &&
-      m[1][1] == 1.0 &&
-      m[2][2] == 1.0) parts |= TYPE_CONST_RGB;
+  if (m[0][0] == 1.0f &&
+      m[1][1] == 1.0f &&
+      m[2][2] == 1.0f) parts |= TYPE_CONST_RGB;
 
   //! @brief Matrix contains const alpha lut part (cell set to 1.0).
   //!
@@ -95,7 +95,7 @@ int ColorMatrix::type() const
   //!   [n n n n n]
   //!   [n n n 1 n]
   //!   [n n n n n]
-  if (m[3][3] == 1.0) parts |= TYPE_CONST_ALPHA;
+  if (m[3][3] == 1.0f) parts |= TYPE_CONST_ALPHA;
 
   // RGB translation part is illustrated here:
   //   [n n n n n]
@@ -103,7 +103,7 @@ int ColorMatrix::type() const
   //   [n n n n n]
   //   [n n n n n]
   //   [X X X n n]
-  if (m[4][0] != 0.0 || m[4][1] != 0.0 || m[4][2] != 0.0) parts |= TYPE_TRANSLATE_RGB;
+  if (m[4][0] != 0.0f || m[4][1] != 0.0f || m[4][2] != 0.0f) parts |= TYPE_TRANSLATE_RGB;
 
   // Alpha translation part is illustrated here:
   //   [n n n n n]
@@ -111,7 +111,7 @@ int ColorMatrix::type() const
   //   [n n n n n]
   //   [n n n n n]
   //   [n n n X n]
-  if (m[4][3] != 0.0) parts |= TYPE_TRANSLATE_ALPHA;
+  if (m[4][3] != 0.0f) parts |= TYPE_TRANSLATE_ALPHA;
 
   return parts;
 }
@@ -176,16 +176,16 @@ ColorMatrix& ColorMatrix::multiply(const ColorMatrix& other, int order)
   return *this;
 }
 
-ColorMatrix& ColorMatrix::multiply(double scalar)
+ColorMatrix& ColorMatrix::multiply(float scalar)
 {
   for (sysuint_t i = 0; i < 25; i++)
     arr[i] *= scalar;
   return *this;
 }
 
-void ColorMatrix::transformVector(double* FOG_RESTRICT v) const
+void ColorMatrix::transformVector(float* FOG_RESTRICT v) const
 {
-  double temp[4];
+  float temp[4];
 
   temp[0] = v[0] * m[0][0] + v[1] * m[1][0] + v[2] * m[2][0] + v[3] * m[3][0] + m[4][0];
   temp[1] = v[0] * m[0][1] + v[1] * m[1][1] + v[2] * m[2][1] + v[3] * m[3][1] + m[4][1];
@@ -200,21 +200,17 @@ void ColorMatrix::transformVector(double* FOG_RESTRICT v) const
 
 void ColorMatrix::transformRgb(Argb* clr) const
 {
-  double r = (double)clr->r;
-  double g = (double)clr->g;
-  double b = (double)clr->b;
+  float r = (float)clr->r;
+  float g = (float)clr->g;
+  float b = (float)clr->b;
 
-  int tr = (int)(r * m[0][0] + g * m[1][0] + b * m[2][0] + 255.0 * m[3][0] + m[4][0] * 255.0 + 0.5);
-  int tg = (int)(r * m[0][1] + g * m[1][1] + b * m[2][1] + 255.0 * m[3][1] + m[4][1] * 255.0 + 0.5);
-  int tb = (int)(r * m[0][2] + g * m[1][2] + b * m[2][2] + 255.0 * m[3][2] + m[4][2] * 255.0 + 0.5);
+  int tr = Math::iround(r * m[0][0] + g * m[1][0] + b * m[2][0] + 255.0f * m[3][0] + m[4][0] * 255.0f);
+  int tg = Math::iround(r * m[0][1] + g * m[1][1] + b * m[2][1] + 255.0f * m[3][1] + m[4][1] * 255.0f);
+  int tb = Math::iround(r * m[0][2] + g * m[1][2] + b * m[2][2] + 255.0f * m[3][2] + m[4][2] * 255.0f);
 
-  if (tr < 0) tr = 0;
-  if (tg < 0) tg = 0;
-  if (tb < 0) tb = 0;
-
-  if (tr > 255) tr = 255;
-  if (tg > 255) tg = 255;
-  if (tb > 255) tb = 255;
+  tr = Math::bound<int>(tr, 0, 255);
+  tg = Math::bound<int>(tg, 0, 255);
+  tb = Math::bound<int>(tb, 0, 255);
 
   clr->r = (uint8_t)tr;
   clr->g = (uint8_t)tg;
@@ -223,40 +219,34 @@ void ColorMatrix::transformRgb(Argb* clr) const
 
 void ColorMatrix::transformArgb(Argb* clr) const
 {
-  double r = (double)clr->r;
-  double g = (double)clr->g;
-  double b = (double)clr->b;
-  double a = (double)clr->a;
+  float r = (float)clr->r;
+  float g = (float)clr->g;
+  float b = (float)clr->b;
+  float a = (float)clr->a;
 
-  int tr = (int)(r * m[0][0] + g * m[1][0] + b * m[2][0] + a * m[3][0] + m[4][0] * 255.0 + 0.5);
-  int tg = (int)(r * m[0][1] + g * m[1][1] + b * m[2][1] + a * m[3][1] + m[4][1] * 255.0 + 0.5);
-  int tb = (int)(r * m[0][2] + g * m[1][2] + b * m[2][2] + a * m[3][2] + m[4][2] * 255.0 + 0.5);
-  int ta = (int)(r * m[0][3] + g * m[1][3] + b * m[2][3] + a * m[3][3] + m[4][3] * 255.0 + 0.5);
+  int tr = Math::iround(r * m[0][0] + g * m[1][0] + b * m[2][0] + a * m[3][0] + m[4][0] * 255.0f);
+  int tg = Math::iround(r * m[0][1] + g * m[1][1] + b * m[2][1] + a * m[3][1] + m[4][1] * 255.0f);
+  int tb = Math::iround(r * m[0][2] + g * m[1][2] + b * m[2][2] + a * m[3][2] + m[4][2] * 255.0f);
+  int ta = Math::iround(r * m[0][3] + g * m[1][3] + b * m[2][3] + a * m[3][3] + m[4][3] * 255.0f);
 
-  if (tr < 0) tr = 0;
-  if (tg < 0) tg = 0;
-  if (tb < 0) tb = 0;
-  if (ta < 0) ta = 0;
-
-  if (tr > 255) tr = 255;
-  if (tg > 255) tg = 255;
-  if (tb > 255) tb = 255;
-  if (ta > 255) ta = 255;
+  tr = Math::bound<int>(tr, 0, 255);
+  tg = Math::bound<int>(tg, 0, 255);
+  tb = Math::bound<int>(tb, 0, 255);
+  ta = Math::bound<int>(ta, 0, 255);
 
   clr->set(tr, tg, tb, ta);
 }
 
 void ColorMatrix::transformAlpha(uint8_t* a) const
 {
-  int ta = (int)((double)*a * m[3][3] + m[4][3] * 255.0 + 0.5);
+  int ta = Math::iround((float)*a * m[3][3] + m[4][3] * 255.0f);
 
-  if (ta < 0) ta = 0;
-  if (ta > 255) ta = 255;
+  ta = Math::bound<int>(ta, 0, 255);
 
   *a = (uint8_t)ta;
 }
 
-ColorMatrix& ColorMatrix::scale(double sr, double sg, double sb, double sa, int order)
+ColorMatrix& ColorMatrix::scale(float sa, float sr, float sg, float sb, int order)
 {
   ColorMatrix mod;
   mod[0][0] = sr;
@@ -266,7 +256,7 @@ ColorMatrix& ColorMatrix::scale(double sr, double sg, double sb, double sa, int 
   return multiply(mod, order);
 }
 
-ColorMatrix& ColorMatrix::translate(double tr, double tg, double tb, double ta, int order)
+ColorMatrix& ColorMatrix::translate(float ta, float tr, float tg, float tb, int order)
 {
   ColorMatrix mod;
   mod[4][0] = tr;
@@ -276,39 +266,39 @@ ColorMatrix& ColorMatrix::translate(double tr, double tg, double tb, double ta, 
   return multiply(mod, order);
 }
 
-ColorMatrix& ColorMatrix::setSaturation(double sat, int order)
+ColorMatrix& ColorMatrix::setSaturation(float sat, int order)
 {
   // If the saturation is 1.0, then this matrix remains unchanged.
   // If the saturation is 0.0, each color is scaled by its luminance
-  double satComplement  = 1.0 - sat;
-  double satComplementR = lumR * satComplement;
-  double satComplementG = lumG * satComplement;
-  double satComplementB = lumB * satComplement;
+  float satComplement  = 1.0f - sat;
+  float satComplementR = lumR * satComplement;
+  float satComplementG = lumG * satComplement;
+  float satComplementB = lumB * satComplement;
 
   // Create the matrix:
   ColorMatrix mod(
-      satComplementR + sat, satComplementR, satComplementR, 0.0, 0.0,
-      satComplementG, satComplementG + sat, satComplementG, 0.0, 0.0,
-      satComplementB, satComplementB, satComplementB + sat, 0.0, 0.0,
-      0.0, 0.0, 0.0, 1.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 1.0 );
+      satComplementR + sat, satComplementR, satComplementR, 0.0f, 0.0f,
+      satComplementG, satComplementG + sat, satComplementG, 0.0f, 0.0f,
+      satComplementB, satComplementB, satComplementB + sat, 0.0f, 0.0f,
+      0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+      0.0f, 0.0f, 0.0f, 0.0f, 1.0f );
 
   return multiply(mod, order);
 }
 
-ColorMatrix& ColorMatrix::setTint(double phi, double amount)
+ColorMatrix& ColorMatrix::setTint(float phi, float amount)
 {
   // Rotate the hue, scale the blue and rotate back.
-  return rotateHue(phi).scale(1.0, 1.0, 1.0 + amount, 1.0).rotateHue(-phi);
+  return rotateHue(phi).scale(1.0f, 1.0f, 1.0f, 1.0f + amount).rotateHue(-phi);
 }
 
-ColorMatrix& ColorMatrix::rotateHue(double phi)
+ColorMatrix& ColorMatrix::rotateHue(float phi)
 {
   // Rotate the gray vector to the blue axis and rotate around the blue axis.
   return multiply(PreHue).rotateBlue(phi).multiply(PostHue);
 }
 
-bool ColorMatrix::eq(const ColorMatrix& other, double epsilon) const
+bool ColorMatrix::eq(const ColorMatrix& other, float epsilon) const
 {
   for (sysuint_t i = 0; i < 25; i++)
     if (!Math::feq(arr[i], other.arr[i], epsilon)) return false;
@@ -316,10 +306,10 @@ bool ColorMatrix::eq(const ColorMatrix& other, double epsilon) const
   return true;
 }
 
-ColorMatrix& ColorMatrix::_rotateColor(double phi, int x, int y, int order)
+ColorMatrix& ColorMatrix::_rotateColor(float phi, int x, int y, int order)
 {
-  double pi_sin = sin(phi);
-  double pi_cos = cos(phi);
+  float pi_sin = Math::sin(phi);
+  float pi_cos = Math::cos(phi);
 
   ColorMatrix mod;
   mod.m[x][x] =  pi_cos;
@@ -329,7 +319,7 @@ ColorMatrix& ColorMatrix::_rotateColor(double phi, int x, int y, int order)
   return multiply(mod, order);
 }
 
-ColorMatrix& ColorMatrix::_shearColor(int x, int y1, double col1, int y2, double col2, int order)
+ColorMatrix& ColorMatrix::_shearColor(int x, int y1, float col1, int y2, float col2, int order)
 {
   ColorMatrix mod;
   mod.m[y1][x] = col1;
@@ -339,7 +329,7 @@ ColorMatrix& ColorMatrix::_shearColor(int x, int y1, double col1, int y2, double
 
 void ColorMatrix::_copyData(void *_dst, const void *_src)
 {
-  memcpy(_dst, _src, sizeof(double) * 25);
+  memcpy(_dst, _src, sizeof(float) * 25);
 }
 
 ColorMatrix ColorMatrix::Greyscale(DONT_INITIALIZE);
@@ -363,32 +353,32 @@ FOG_INIT_DECLARE err_t fog_colormatrix_init(void)
   // Gilles Khouzam) to use the NTSC color values.  The version in the FAQ
   // used 0.3, 0.59, and 0.11, so it was close...
   ColorMatrix::Greyscale.set(
-    lumR, lumR, lumR, 0.0, 0.0,
-    lumG, lumG, lumG, 0.0, 0.0,
-    lumB, lumB, lumB, 0.0, 0.0,
-    0.0 , 0.0 , 0.0 , 1.0, 0.0,
-    0.0 , 0.0 , 0.0 , 0.0, 1.0);
+    lumR, lumR, lumR, 0.0f, 0.0f,
+    lumG, lumG, lumG, 0.0f, 0.0f,
+    lumB, lumB, lumB, 0.0f, 0.0f,
+    0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+    0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
 
   ColorMatrix::Identity.set(
-    1.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 1.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 1.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 1.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 1.0);
+    1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+    0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+    0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+    0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
 
   ColorMatrix::White.set(
-    1.0, 1.0, 1.0, 0.0, 0.0,
-    1.0, 1.0, 1.0, 0.0, 0.0,
-    1.0, 1.0, 1.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 1.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 1.0);
+    1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+    1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+    1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+    0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+    0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
 
   ColorMatrix::Zero.set(
-    0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0);
+    0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
 
   ColorMatrix::PreHue = ColorMatrix::Identity;
   ColorMatrix::PostHue = ColorMatrix::Identity;
@@ -402,7 +392,7 @@ FOG_INIT_DECLARE err_t fog_colormatrix_init(void)
   // gave better results than 39.182655, I wonder where the higher
   // value came from...  If you want to use 39.182655, simply
   // change the value of greenRotation below.
-  const double greenRotation(Math::deg2rad(35.26439));
+  const float greenRotation(Math::deg2rad(35.26439f));
 
   // Rotating the hue requires several matrix multiplications.  To
   // speed things up a bit, use two static matrices (pre and post
@@ -410,7 +400,7 @@ FOG_INIT_DECLARE err_t fog_colormatrix_init(void)
 
   // Prepare the preHue matrix
   // Rotate the gray vector in the red plane:
-  ColorMatrix::PreHue.rotateRed(Math::deg2rad(45.0));
+  ColorMatrix::PreHue.rotateRed(Math::deg2rad(45.0f));
 
   // Rotate again in the green plane so it coinsides with the
   // blue axis:
@@ -418,14 +408,15 @@ FOG_INIT_DECLARE err_t fog_colormatrix_init(void)
 
   // Shear the blue plane, in order to keep the color luminance
   // constant:
-  double lum[4] = { lumR, lumG, lumB, 1.0 };
+  float lum[4] = { lumR, lumG, lumB, 1.0f };
 
   // Transform by the luminance vector:
   ColorMatrix::PreHue.transformVector(lum);
 
   // Calculate the red and green factors:
-  double shearRed   = lum[0] / lum[2];
-  double shearGreen = lum[1] / lum[2];
+  float shearRcp = 1.0f / lum[2];
+  float shearRed   = lum[0] * shearRcp;
+  float shearGreen = lum[1] * shearRcp;
 
   // Shear the blue plane:
   ColorMatrix::PreHue.shearBlue(shearRed, shearGreen);
@@ -434,7 +425,7 @@ FOG_INIT_DECLARE err_t fog_colormatrix_init(void)
   // preHue matrix
   ColorMatrix::PostHue.shearBlue(-shearRed, -shearGreen);
   ColorMatrix::PostHue.rotateGreen(greenRotation);
-  ColorMatrix::PostHue.rotateRed(Math::deg2rad(-45.0));
+  ColorMatrix::PostHue.rotateRed(Math::deg2rad(-45.0f));
 
   return ERR_OK;
 }

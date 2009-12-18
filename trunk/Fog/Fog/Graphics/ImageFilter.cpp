@@ -1,6 +1,6 @@
 // [Fog/Graphics Library - C++ API]
 //
-// [Licence] 
+// [Licence]
 // MIT, See COPYING file in package
 
 // [Precompiled Headers]
@@ -185,17 +185,13 @@ struct FOG_HIDDEN ColorMatrixFilterEngine : public ImageFilterEngine
 
   void setColorMatrix(const ColorMatrix& other);
 
-  union {
-    float cm[5][5];
-    float arr[25];
-  };
+  ColorMatrix cm;
 };
 
 ColorMatrixFilterEngine::ColorMatrixFilterEngine(const ColorMatrixFilterEngine& other) :
-  ImageFilterEngine(IMAGE_FILTER_COLORMATRIX)
+  ImageFilterEngine(IMAGE_FILTER_COLORMATRIX),
+  cm(other.cm)
 {
-  for (sysint_t i = 0; i < 25; i++) arr[i] = other.arr[i];
-
   characteristics |=
     IMAGE_FILTER_SUPPORTS_PRGB32 |
     IMAGE_FILTER_SUPPORTS_ARGB32 |
@@ -204,10 +200,9 @@ ColorMatrixFilterEngine::ColorMatrixFilterEngine(const ColorMatrixFilterEngine& 
 }
 
 ColorMatrixFilterEngine::ColorMatrixFilterEngine(const ColorMatrix& cm) :
-  ImageFilterEngine(IMAGE_FILTER_COLORMATRIX)
+  ImageFilterEngine(IMAGE_FILTER_COLORMATRIX),
+  cm(cm)
 {
-  setColorMatrix(cm);
-
   characteristics |=
     IMAGE_FILTER_SUPPORTS_PRGB32 |
     IMAGE_FILTER_SUPPORTS_ARGB32 |
@@ -223,7 +218,7 @@ ColorFilterFn ColorMatrixFilterEngine::getColorFilterFn(int format) const
 
 const void* ColorMatrixFilterEngine::getContext() const
 {
-  return reinterpret_cast<const void*>(cm);
+  return reinterpret_cast<const void*>(&cm);
 }
 
 ImageFilterEngine* ColorMatrixFilterEngine::clone() const
@@ -233,7 +228,7 @@ ImageFilterEngine* ColorMatrixFilterEngine::clone() const
 
 void ColorMatrixFilterEngine::setColorMatrix(const ColorMatrix& other)
 {
-  for (sysint_t i = 0; i < 25; i++) arr[i] = (float)other.arr[i];
+  cm = other;
 }
 
 // ============================================================================
@@ -441,8 +436,7 @@ err_t ImageFilterBase::getColorMatrix(ColorMatrix& colorMatrix) const
 {
   if (_d->type != IMAGE_FILTER_COLORMATRIX) return ERR_RT_INVALID_CONTEXT;
 
-  for (sysint_t i = 0; i < 25; i++) colorMatrix.arr[i] =
-    reinterpret_cast<ColorMatrixFilterEngine*>(_d)->arr[i];
+  colorMatrix = reinterpret_cast<ColorMatrixFilterEngine*>(_d)->cm;
   return ERR_OK;
 }
 

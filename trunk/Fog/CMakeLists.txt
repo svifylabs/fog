@@ -128,7 +128,7 @@ If(WIN32)
 EndIf(WIN32)
 
 If(WIN32)
-  Target_Link_Libraries(Fog user32 gdi32 advapi32 winmm)
+  Set(FOG_LIBRARIES ${FOG_LIBRARIES} user32 gdi32 advapi32 winmm)
 EndIf(WIN32)
 
 # =============================================================================

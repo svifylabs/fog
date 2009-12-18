@@ -1,6 +1,6 @@
 // [Fog/Graphics Library - C++ API]
 //
-// [Licence] 
+// [Licence]
 // MIT, See COPYING file in package
 
 // For some IDEs to enable code-assist.
@@ -100,8 +100,8 @@ group: \
 
 #define BLIT_SSE2_32x4_SMALL_END(group) \
     } while (--_i); \
-    if (!w) return; \
-  } \
+    if (!w) goto group##_end; \
+  }
 
 #define BLIT_SSE2_32x4_LARGE_BEGIN(group) \
   do {
@@ -110,7 +110,8 @@ group: \
   } while (--w); \
   \
   if ((_i = _j)) goto group; \
-  return;
+group##_end: \
+  ;
 
 // 8-bit entities:
 
@@ -147,7 +148,7 @@ group: \
 
 #define BLIT_SSE2_8x4_SMALL_END(group) \
     } while (--_i); \
-    if (!w) return; \
+    if (!w) goto group##_end; \
   } \
 
 #define BLIT_SSE2_8x4_LARGE_BEGIN(group) \
@@ -157,7 +158,8 @@ group: \
   } while (--w); \
   \
   if ((_i = _j)) goto group; \
-  return;
+group##_end: \
+  ;
 
 #define BLIT_SSE2_8x16_INIT(_dst, _w) \
   sysuint_t _i = (sysuint_t)_w; \
@@ -192,7 +194,7 @@ group: \
 
 #define BLIT_SSE2_8x16_SMALL_END(group) \
     } while (--_i); \
-    if (!w) return; \
+    if (!w) goto group##_end; \
   } \
 
 #define BLIT_SSE2_8x16_LARGE_BEGIN(group) \
@@ -202,7 +204,48 @@ group: \
   } while (--w); \
   \
   if ((_i = _j)) goto group; \
-  return;
+group##_end: \
+  ;
+
+#define BLIT_SSE2_GENERIC_END(group) \
+group##_end: \
+  ;
+
+// Macros to help creating cspan_a8_scanline blitting functions.
+#define BLIT_SSE2_CSPAN_SCANLINE_STEP1_BEGIN(BPP) \
+  const Scanline32::Span* span = spans; \
+  uint8_t* dstBase = dst; \
+  \
+  for (;;) \
+  { \
+    sysint_t x = span->x; \
+    sysint_t w = span->len; \
+    \
+    dst = dstBase + x * BPP;
+
+#define BLIT_SSE2_CSPAN_SCANLINE_STEP2_CONST() \
+    if (FOG_UNLIKELY(w < 0)) \
+    { \
+      w = -w; \
+      FOG_ASSERT(w > 0); \
+      \
+      uint32_t msk0 = (uint32_t)*(span->covers);
+
+#define BLIT_SSE2_CSPAN_SCANLINE_STEP3_MASK() \
+      if (--numSpans == 0) break; \
+      ++span; \
+    } \
+    else \
+    { \
+      FOG_ASSERT(w > 0); \
+      \
+      const uint8_t* msk = span->covers;
+
+#define BLIT_SSE2_CSPAN_SCANLINE_STEP4_END() \
+      if (--numSpans == 0) break; \
+      ++span; \
+    } \
+  }
 
 // ============================================================================
 // [Fog::Raster_SSE2 - Constants]
@@ -729,16 +772,22 @@ static FOG_INLINE void pix_expand_mask_1x1W(
 }
 
 static FOG_INLINE void pix_expand_mask_2x2W(
-  __m128i& dst0, __m128i& dst1, uint32_t msk)
+  __m128i& dst0, __m128i& dst1, const __m128i& msk0)
 {
-  dst0 = _mm_cvtsi32_si128(msk);
-  pix_unpack_1x1W(dst0, dst0);
+  pix_unpack_1x1W(dst0, msk0);
   dst0 = _mm_shuffle_epi32(dst0, _MM_SHUFFLE(1, 0, 1, 0));
 
   dst1 = _mm_shufflelo_epi16(dst0, _MM_SHUFFLE(2, 2, 2, 2));
   dst0 = _mm_shufflelo_epi16(dst0, _MM_SHUFFLE(0, 0, 0, 0));
   dst1 = _mm_shufflehi_epi16(dst1, _MM_SHUFFLE(3, 3, 3, 3));
   dst0 = _mm_shufflehi_epi16(dst0, _MM_SHUFFLE(1, 1, 1, 1));
+}
+
+static FOG_INLINE void pix_expand_mask_2x2W(
+  __m128i& dst0, __m128i& dst1, uint32_t msk)
+{
+  dst0 = _mm_cvtsi32_si128(msk);
+  pix_expand_mask_2x2W(dst0, dst1, dst0);
 }
 
 static FOG_INLINE void pix_expand_mask_1x1D(

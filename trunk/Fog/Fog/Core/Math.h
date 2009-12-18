@@ -1,6 +1,6 @@
 // [Fog/Core Library - C++ API]
 //
-// [Licence] 
+// [Licence]
 // MIT, See COPYING file in package
 
 // [Guard]
@@ -287,8 +287,11 @@ static FOG_INLINE double rad2deg(double rad) { return rad * (180.0 / M_PI); }
 // [Fog::Math - Trigonometric Functions]
 // ============================================================================
 
-// static FOG_INLINE float sin(float rad) { return ::sinf(rad); }
-// static FOG_INLINE float cos(float rad) { return ::cosf(rad); }
+static FOG_INLINE float sin(float rad) { return ::sinf(rad); }
+static FOG_INLINE float cos(float rad) { return ::cosf(rad); }
+
+static FOG_INLINE double sin(double rad) { return ::sin(rad); }
+static FOG_INLINE double cos(double rad) { return ::cos(rad); }
 
 } // Math namespace
 } // Fog namespace

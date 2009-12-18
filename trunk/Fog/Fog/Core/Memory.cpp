@@ -1,6 +1,6 @@
 // [Fog/Core Library - C++ API]
 //
-// [Licence] 
+// [Licence]
 // MIT, See COPYING file in package
 
 // [Precompiled Headers]
@@ -279,11 +279,6 @@ static void fog_memdbg_dump(void* addr, sysuint_t size)
 
 FOG_CAPI_DECLARE void* fog_memory_alloc(sysuint_t size)
 {
-  if (size == 9096)
-  {
-    fog_debug("");
-  }
-
   if (FOG_LIKELY(size))
   {
     void* addr = malloc(size);

@@ -1,6 +1,6 @@
 // [Fog/Graphics Library - C++ API]
 //
-// [Licence] 
+// [Licence]
 // MIT, See COPYING file in package
 
 // For some IDEs to enable code-assist.
@@ -72,18 +72,18 @@ struct FOG_HIDDEN FilterSSE2
   }
 
   static void FOG_FASTCALL color_matrix_prgb32(
-    uint8_t* dst, const uint8_t* src, sysuint_t width, const float m[5][5])
+    uint8_t* dst, const uint8_t* src, sysuint_t width, const ColorMatrix* cm)
   {
     __m128 cf0 = _mm_set1_ps(0.0f);
     __m128 cf255 = _mm_set1_ps(255.0f);
     __m128 cf1div255mul = _mm_set_ps(0.0f, 1.0f / 255.0f, 1.0f / 255.0f, 1.0f / 255.0f);
     __m128 cf1div255add = _mm_set_ps(1.0f, 0.0f, 0.0f, 0.0f);
 
-    __m128 pr = _loadColorMatrixRow(m[0]);
-    __m128 pg = _loadColorMatrixRow(m[1]);
-    __m128 pb = _loadColorMatrixRow(m[2]);
-    __m128 pa = _loadColorMatrixRow(m[3]);
-    __m128 pt = _mm_mul_ps(_loadColorMatrixRow(m[4]), cf255);
+    __m128 pr = _loadColorMatrixRow(cm->m[0]);
+    __m128 pg = _loadColorMatrixRow(cm->m[1]);
+    __m128 pb = _loadColorMatrixRow(cm->m[2]);
+    __m128 pa = _loadColorMatrixRow(cm->m[3]);
+    __m128 pt = _mm_mul_ps(_loadColorMatrixRow(cm->m[4]), cf255);
 
     for (sysuint_t i = width >> 1; i; i--, dst += 8, src += 8)
     {
@@ -228,16 +228,16 @@ struct FOG_HIDDEN FilterSSE2
   }
 
   static void FOG_FASTCALL color_matrix_argb32(
-    uint8_t* dst, const uint8_t* src, sysuint_t width, const float m[5][5])
+    uint8_t* dst, const uint8_t* src, sysuint_t width, const ColorMatrix* cm)
   {
     __m128 cf0 = _mm_set1_ps(0.0f);
     __m128 cf255 = _mm_set1_ps(255.0f);
 
-    __m128 pr = _loadColorMatrixRow(m[0]);
-    __m128 pg = _loadColorMatrixRow(m[1]);
-    __m128 pb = _loadColorMatrixRow(m[2]);
-    __m128 pa = _loadColorMatrixRow(m[3]);
-    __m128 pt = _mm_mul_ps(_loadColorMatrixRow(m[4]), cf255);
+    __m128 pr = _loadColorMatrixRow(cm->m[0]);
+    __m128 pg = _loadColorMatrixRow(cm->m[1]);
+    __m128 pb = _loadColorMatrixRow(cm->m[2]);
+    __m128 pa = _loadColorMatrixRow(cm->m[3]);
+    __m128 pt = _mm_mul_ps(_loadColorMatrixRow(cm->m[4]), cf255);
 
     for (sysuint_t i = width >> 1; i; i--, dst += 8, src += 8)
     {
@@ -343,16 +343,16 @@ struct FOG_HIDDEN FilterSSE2
   }
 
   static void FOG_FASTCALL color_matrix_xrgb32(
-    uint8_t* dst, const uint8_t* src, sysuint_t width, const float m[5][5])
+    uint8_t* dst, const uint8_t* src, sysuint_t width, const ColorMatrix* cm)
   {
     __m128 cf0 = _mm_set1_ps(0.0f);
     __m128 cf255 = _mm_set1_ps(255.0f);
 
-    __m128 pr = _loadColorMatrixRow(m[0]);
-    __m128 pg = _loadColorMatrixRow(m[1]);
-    __m128 pb = _loadColorMatrixRow(m[2]);
-    __m128 pa = _loadColorMatrixRow(m[3]);
-    __m128 pt = _mm_mul_ps(_loadColorMatrixRow(m[4]), cf255);
+    __m128 pr = _loadColorMatrixRow(cm->m[0]);
+    __m128 pg = _loadColorMatrixRow(cm->m[1]);
+    __m128 pb = _loadColorMatrixRow(cm->m[2]);
+    __m128 pa = _loadColorMatrixRow(cm->m[3]);
+    __m128 pt = _mm_mul_ps(_loadColorMatrixRow(cm->m[4]), cf255);
 
     pt = _mm_add_ps(pt, _mm_mul_ps(pa, cf255));
 
@@ -451,15 +451,15 @@ struct FOG_HIDDEN FilterSSE2
   }
 
   static void FOG_FASTCALL color_matrix_a8(
-    uint8_t* dst, const uint8_t* src, sysuint_t width, const float m[5][5])
+    uint8_t* dst, const uint8_t* src, sysuint_t width, const ColorMatrix* cm)
   {
     sysuint_t i;
 
     __m128 cf0 = _mm_set_ps(0.0f, 0.0f, 0.0f, 0.0f);
     __m128 cf255 = _mm_set1_ps(255.0f);
 
-    __m128 pa = _mm_set1_ps(m[3][3]);
-    __m128 pt = _mm_set1_ps(m[4][3]);
+    __m128 pa = _mm_set1_ps(cm->m[3][3]);
+    __m128 pt = _mm_set1_ps(cm->m[4][3]);
 
     pt = _mm_mul_ps(pa, cf255);
 

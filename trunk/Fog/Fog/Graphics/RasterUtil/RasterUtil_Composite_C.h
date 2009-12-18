@@ -1,6 +1,6 @@
 // [Fog/Graphics Library - C++ API]
 //
-// [Licence] 
+// [Licence]
 // MIT, See COPYING file in package
 
 // For some IDEs to enable code-assist.
@@ -20,23 +20,6 @@ namespace RasterUtil {
 
 struct FOG_HIDDEN CompositeNopC
 {
-  static void FOG_FASTCALL pixel(
-    uint8_t* dst, const Solid* src, const Closure* closure)
-  {
-    FOG_UNUSED(dst);
-    FOG_UNUSED(src);
-    FOG_UNUSED(closure);
-  }
-
-  static void FOG_FASTCALL pixel_a8(
-    uint8_t* dst, const Solid* src, uint32_t msk, const Closure* closure)
-  {
-    FOG_UNUSED(dst);
-    FOG_UNUSED(src);
-    FOG_UNUSED(msk);
-    FOG_UNUSED(closure);
-  }
-
   static void FOG_FASTCALL cspan(
     uint8_t* dst, const Solid* src, sysint_t w, const Closure* closure)
   {
@@ -63,6 +46,16 @@ struct FOG_HIDDEN CompositeNopC
     FOG_UNUSED(src);
     FOG_UNUSED(msk0);
     FOG_UNUSED(w);
+    FOG_UNUSED(closure);
+  }
+
+  static void FOG_FASTCALL cspan_a8_scanline(
+    uint8_t* dst, const Solid* src, const Scanline32::Span* spans, sysuint_t numSpans, const Closure* closure)
+  {
+    FOG_UNUSED(dst);
+    FOG_UNUSED(src);
+    FOG_UNUSED(spans);
+    FOG_UNUSED(numSpans);
     FOG_UNUSED(closure);
   }
 };

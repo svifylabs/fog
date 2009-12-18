@@ -1,6 +1,6 @@
 // [Fog/Graphics Library - C++ API]
 //
-// [Licence] 
+// [Licence]
 // MIT, See COPYING file in package
 
 // [Precompiled Headers]
@@ -249,7 +249,7 @@ err_t Image::convert(int format)
   int h = d->height;
   int y;
 
-  RasterUtil::FunctionMap::RasterFuncs* ops = RasterUtil::getRasterOps(targetFormat, COMPOSITE_SRC);
+  RasterUtil::FunctionMap::CompositeFuncs* ops = RasterUtil::getRasterOps(targetFormat, COMPOSITE_SRC);
   RasterUtil::VSpanFn blitter = ops->vspan[sourceFormat];
 
   RasterUtil::Closure closure;
@@ -368,7 +368,7 @@ err_t Image::to8Bit()
     uint8_t palConv[256];
     for (y = 0; y < 256; y++) palConv[y] = y;
 
-    RasterUtil::ConvertDither8Fn converter = NULL;
+    RasterUtil::Dither8Fn converter = NULL;
 
     switch (getFormat())
     {
@@ -943,7 +943,7 @@ static void FOG_FASTCALL mirror_flip_src_is_dst_32(uint8_t* dst, uint8_t* src, s
   sysuint_t x = w;
   if (src == dst) x >>= 1;
 
-  src += ((w - 1) << 2);
+  src += ((w - 1) * 4);
   for (; x; x--, dst += 4, src -= 4) Memory::xchg4B(dst, src);
 }
 
@@ -1258,7 +1258,7 @@ Image Image::extractChannel(uint32_t channel) const
       uint8_t* dstCur = dstBuf;
       const uint8_t* srcCur = srcBuf;
 
-      dstCur[0] = pal[srcCur[0] << 2];
+      dstCur[0] = pal[srcCur[0] * 4];
       dstCur++;
       srcCur++;
     }
@@ -1330,10 +1330,13 @@ err_t Image::filter(const ColorLut& lut, const Rect* area)
 
 err_t Image::filter(const ColorMatrix& cm, const Rect* area)
 {
-  ColorFilter cf;
-  cf.setColorMatrix(cm);
+  Box abox(0, 0, getWidth(), getHeight());
+  if (area) abox.set(area->getX1(), area->getY1(), area->getX2(), area->getY2());
 
-  return filter(cf, area);
+  ColorFilterFn fn = (ColorFilterFn)RasterUtil::functionMap->filter.color_matrix[getFormat()];
+  if (!fn) return ERR_IMAGE_UNSUPPORTED_FORMAT;
+
+  return applyColorFilter(*this, abox, fn, &cm);
 }
 
 // ============================================================================
@@ -1385,7 +1388,7 @@ static err_t applyImageFilter(Image& im, const Box& box, const ImageFilter& filt
   // Demultiply if needed.
   if (imgf == PIXEL_FORMAT_PRGB32 && (filterCharacteristics & IMAGE_FILTER_SUPPORTS_PRGB32) == 0)
   {
-    RasterUtil::ConvertPlainFn conv = RasterUtil::functionMap->dib.convert[PIXEL_FORMAT_ARGB32][PIXEL_FORMAT_PRGB32];
+    RasterUtil::VSpanFn conv = RasterUtil::functionMap->dib.convert[PIXEL_FORMAT_ARGB32][PIXEL_FORMAT_PRGB32];
     for (int y = h; y; y--, imCur += imStride) conv(imCur, imCur, w, NULL);
 
     imCur = imBegin;
@@ -1433,7 +1436,7 @@ static err_t applyImageFilter(Image& im, const Box& box, const ImageFilter& filt
   // Premultiply if demultiplied.
   if (imgf == PIXEL_FORMAT_PRGB32 && (filterCharacteristics & IMAGE_FILTER_SUPPORTS_PRGB32) == 0)
   {
-    RasterUtil::ConvertPlainFn conv = RasterUtil::functionMap->dib.convert[PIXEL_FORMAT_PRGB32][PIXEL_FORMAT_ARGB32];
+    RasterUtil::VSpanFn conv = RasterUtil::functionMap->dib.convert[PIXEL_FORMAT_PRGB32][PIXEL_FORMAT_ARGB32];
     for (int y = h; y; y--, imCur += imStride) conv(imCur, imCur, w, NULL);
   }
 
@@ -1614,7 +1617,7 @@ err_t Image::fillRect(const Rect& r, Argb c0, int op)
   if (x2 > w) x2 = w;
   if (y2 > h) y2 = h;
 
-  RasterUtil::FunctionMap::RasterFuncs* ops = RasterUtil::getRasterOps(fmt, op);
+  RasterUtil::FunctionMap::CompositeFuncs* ops = RasterUtil::getRasterOps(fmt, op);
   if (ops == NULL) return ERR_RT_NOT_IMPLEMENTED;
 
   if ((w = x2 - x1) <= 0) return ERR_OK;
@@ -1677,7 +1680,7 @@ err_t Image::fillQGradient(const Rect& r, Argb c0, Argb c1, Argb c2, Argb c3, in
   if (x2 > w) x2 = w;
   if (y2 > h) y2 = h;
 
-  RasterUtil::FunctionMap::RasterFuncs* ops = RasterUtil::getRasterOps(fmt, op);
+  RasterUtil::FunctionMap::CompositeFuncs* ops = RasterUtil::getRasterOps(fmt, op);
   if (ops == NULL) return ERR_RT_NOT_IMPLEMENTED;
 
   if ((w = x2 - x1) <= 0) return ERR_OK;
@@ -1697,7 +1700,7 @@ err_t Image::fillQGradient(const Rect& r, Argb c0, Argb c1, Argb c2, Argb c3, in
   uint8_t* shade1 = shade0 + h * sizeof(uint32_t);
   uint8_t* shadeW = shade1 + h * sizeof(uint32_t);
 
-  RasterUtil::GradientSpanFn gradientSpan;
+  RasterUtil::InterpolateArgbFn gradientSpan;
 
   // Interpolate vertical lines (c0 to c2 and c1 to c3).
   gradientSpan = RasterUtil::functionMap->interpolate.gradient[PIXEL_FORMAT_ARGB32];
@@ -1769,7 +1772,7 @@ err_t Image::fillHGradient(const Rect& r, Argb c0, Argb c1, int op)
   if (x2 > w) x2 = w;
   if (y2 > h) y2 = h;
 
-  RasterUtil::FunctionMap::RasterFuncs* ops = RasterUtil::getRasterOps(fmt, op);
+  RasterUtil::FunctionMap::CompositeFuncs* ops = RasterUtil::getRasterOps(fmt, op);
   if (ops == NULL) return ERR_RT_NOT_IMPLEMENTED;
 
   if ((w = x2 - x1) <= 0) return ERR_OK;
@@ -1785,7 +1788,7 @@ err_t Image::fillHGradient(const Rect& r, Argb c0, Argb c1, int op)
   uint8_t* shade0 = (uint8_t*)memStorage.alloc(w * sizeof(uint32_t));
   if (!shade0) return ERR_RT_OUT_OF_MEMORY;
 
-  RasterUtil::GradientSpanFn gradientSpan =
+  RasterUtil::InterpolateArgbFn gradientSpan =
     fmt == PIXEL_FORMAT_PRGB32
       ? RasterUtil::functionMap->interpolate.gradient[PIXEL_FORMAT_PRGB32]
       : RasterUtil::functionMap->interpolate.gradient[PIXEL_FORMAT_ARGB32];
@@ -1829,7 +1832,7 @@ err_t Image::fillVGradient(const Rect& r, Argb c0, Argb c1, int op)
   if (x2 > w) x2 = w;
   if (y2 > h) y2 = h;
 
-  RasterUtil::FunctionMap::RasterFuncs* ops = RasterUtil::getRasterOps(fmt, op);
+  RasterUtil::FunctionMap::CompositeFuncs* ops = RasterUtil::getRasterOps(fmt, op);
   if (ops == NULL) return ERR_RT_NOT_IMPLEMENTED;
 
   if ((w = x2 - x1) <= 0) return ERR_OK;
@@ -1847,7 +1850,7 @@ err_t Image::fillVGradient(const Rect& r, Argb c0, Argb c1, int op)
 
   uint8_t* shade0 = mem;
 
-  RasterUtil::GradientSpanFn gradientSpan = RasterUtil::functionMap->interpolate.gradient[PIXEL_FORMAT_ARGB32];
+  RasterUtil::InterpolateArgbFn gradientSpan = RasterUtil::functionMap->interpolate.gradient[PIXEL_FORMAT_ARGB32];
   gradientSpan(shade0, c0, c1, h, 0, h);
 
   RasterUtil::CSpanFn blitter = ops->cspan;
@@ -1900,7 +1903,7 @@ static err_t _blitImage(
   dstPixels += dstX * dstD->bytesPerPixel;
   srcPixels += srcX * srcD->bytesPerPixel;
 
-  RasterUtil::FunctionMap::RasterFuncs* ops = RasterUtil::getRasterOps(dstD->format, op);
+  RasterUtil::FunctionMap::CompositeFuncs* ops = RasterUtil::getRasterOps(dstD->format, op);
 
   RasterUtil::Closure closure;
   closure.dstPalette = dstD->palette.getData();
@@ -1916,7 +1919,7 @@ static err_t _blitImage(
     uint8_t* buf = (uint8_t*)bufStorage.alloc(bufSize);
     if (!buf) return ERR_RT_OUT_OF_MEMORY;
 
-    RasterUtil::ConvertPlainFn copy = RasterUtil::functionMap->dib.memcpy8;
+    RasterUtil::VSpanFn copy = RasterUtil::functionMap->dib.memcpy8;
 
     if (opacity >= 255)
     {
@@ -2517,7 +2520,7 @@ Image::Data* Image::Data::copy(const Data* other)
     const uint8_t *srcPixels = other->first;
 
     sysint_t w = d->width;
-    RasterUtil::ConvertPlainFn copy;
+    RasterUtil::VSpanFn copy;
 
     switch (d->depth)
     {

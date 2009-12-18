@@ -1,6 +1,6 @@
 // [Fog/Graphics Library - C++ API]
 //
-// [Licence] 
+// [Licence]
 // MIT, See COPYING file in package
 
 // [Precompiled Headers]
@@ -71,12 +71,12 @@ FunctionMap* functionMap;
 // [Fog::RasterUtil - getRasterOps]
 // ============================================================================
 
-FunctionMap::RasterFuncs* getRasterOps(int format, int op)
+FunctionMap::CompositeFuncs* getRasterOps(int format, int op)
 {
   FOG_ASSERT((uint)format < (uint)PIXEL_FORMAT_COUNT);
   FOG_ASSERT((uint)op < (uint)COMPOSITE_COUNT);
 
-  return &functionMap->raster[op][format];
+  return &functionMap->composite[op][format];
 }
 
 } // RasterUtil namespace

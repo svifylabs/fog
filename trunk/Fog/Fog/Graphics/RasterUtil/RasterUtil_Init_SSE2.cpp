@@ -285,49 +285,51 @@ FOG_INIT_DECLARE void fog_raster_init_sse2(void)
 
   // [Composite - Src]
 
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].cspan = CompositeSrcSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeSrcSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeSrcSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].cspan = CompositeSrcSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeSrcSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeSrcSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].cspan_a8_scanline = CompositeSrcSSE2::prgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = DibSSE2::memcpy32;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = DibSSE2::prgb32_from_argb32;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = DibSSE2::frgb32_from_xrgb32;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_A8] = DibSSE2::azzz32_from_a8;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_I8] = DibSSE2::prgb32_from_i8;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = DibSSE2::memcpy32;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = DibSSE2::prgb32_from_argb32;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = DibSSE2::frgb32_from_xrgb32;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_A8] = DibSSE2::azzz32_from_a8;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_I8] = DibSSE2::prgb32_from_i8;
 
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeSrcSSE2::prgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeSrcSSE2::prgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeSrcSSE2::prgb32_vspan_xrgb32_a8;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_A8] = CompositeSrcSSE2::prgb32_vspan_a8_a8;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_I8] = CompositeSrcSSE2::prgb32_vspan_i8_a8;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeSrcSSE2::prgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeSrcSSE2::prgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeSrcSSE2::prgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_A8] = CompositeSrcSSE2::prgb32_vspan_a8_a8;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_I8] = CompositeSrcSSE2::prgb32_vspan_i8_a8;
 
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeSrcSSE2::prgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeSrcSSE2::prgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeSrcSSE2::prgb32_vspan_xrgb32_a8_const;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_A8] = CompositeSrcSSE2::prgb32_vspan_a8_a8_const;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_I8] = CompositeSrcSSE2::prgb32_vspan_i8_a8_const;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeSrcSSE2::prgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeSrcSSE2::prgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeSrcSSE2::prgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_A8] = CompositeSrcSSE2::prgb32_vspan_a8_a8_const;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_I8] = CompositeSrcSSE2::prgb32_vspan_i8_a8_const;
 
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].cspan = CompositeSrcSSE2::xrgb32_cspan;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeSrcSSE2::xrgb32_cspan_a8;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeSrcSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].cspan = CompositeSrcSSE2::xrgb32_cspan;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeSrcSSE2::xrgb32_cspan_a8;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeSrcSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].cspan_a8_scanline = CompositeSrcSSE2::xrgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = DibSSE2::frgb32_from_xrgb32;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = DibSSE2::frgb32_from_argb32;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = DibSSE2::memcpy32;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_A8] = (VSpanFn)CompositeClearSSE2::xrgb32_cspan;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_I8] = DibSSE2::frgb32_from_i8;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = DibSSE2::frgb32_from_xrgb32;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = DibSSE2::frgb32_from_argb32;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = DibSSE2::memcpy32;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_A8] = (VSpanFn)CompositeClearSSE2::xrgb32_cspan;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_I8] = DibSSE2::frgb32_from_i8;
 
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeSrcSSE2::xrgb32_vspan_xrgb32_a8;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeSrcSSE2::xrgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeSrcSSE2::xrgb32_vspan_xrgb32_a8;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_A8] = (VSpanMskFn)CompositeClearSSE2::xrgb32_cspan_a8;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_I8] = CompositeSrcSSE2::xrgb32_vspan_i8_a8;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeSrcSSE2::xrgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeSrcSSE2::xrgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeSrcSSE2::xrgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_A8] = (VSpanMskFn)CompositeClearSSE2::xrgb32_cspan_a8;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_I8] = CompositeSrcSSE2::xrgb32_vspan_i8_a8;
 
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeSrcSSE2::xrgb32_vspan_xrgb32_a8_const;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeSrcSSE2::xrgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeSrcSSE2::xrgb32_vspan_xrgb32_a8_const;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_A8] = (VSpanMskConstFn)CompositeClearSSE2::xrgb32_cspan_a8_const;
-  m->raster[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_I8] = CompositeSrcSSE2::xrgb32_vspan_i8_a8_const;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeSrcSSE2::xrgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeSrcSSE2::xrgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeSrcSSE2::xrgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_A8] = (VSpanMskConstFn)CompositeClearSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_I8] = CompositeSrcSSE2::xrgb32_vspan_i8_a8_const;
 
   // [Composite - Dst]
 
@@ -337,655 +339,690 @@ FOG_INIT_DECLARE void fog_raster_init_sse2(void)
 
   // [Composite - SrcOver]
 
-  m->raster[COMPOSITE_SRC_OVER][PIXEL_FORMAT_PRGB32].cspan = CompositeSrcOverSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_SRC_OVER][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeSrcOverSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_SRC_OVER][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeSrcOverSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SRC_OVER][PIXEL_FORMAT_PRGB32].cspan = CompositeSrcOverSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_SRC_OVER][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeSrcOverSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_SRC_OVER][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeSrcOverSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SRC_OVER][PIXEL_FORMAT_PRGB32].cspan_a8_scanline = CompositeSrcOverSSE2::prgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeSrcOverSSE2::prgb32_vspan_prgb32;
-  m->raster[COMPOSITE_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeSrcOverSSE2::prgb32_vspan_argb32;
-  m->raster[COMPOSITE_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = DibSSE2::frgb32_from_xrgb32;
+  m->composite[COMPOSITE_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeSrcOverSSE2::prgb32_vspan_prgb32;
+  m->composite[COMPOSITE_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeSrcOverSSE2::prgb32_vspan_argb32;
+  m->composite[COMPOSITE_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = DibSSE2::frgb32_from_xrgb32;
 
-  m->raster[COMPOSITE_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeSrcOverSSE2::prgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeSrcOverSSE2::prgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeSrcOverSSE2::prgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeSrcOverSSE2::prgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeSrcOverSSE2::prgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeSrcOverSSE2::prgb32_vspan_xrgb32_a8;
 
-  m->raster[COMPOSITE_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeSrcOverSSE2::prgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeSrcOverSSE2::prgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeSrcOverSSE2::prgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeSrcOverSSE2::prgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeSrcOverSSE2::prgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeSrcOverSSE2::prgb32_vspan_xrgb32_a8_const;
 
-  m->raster[COMPOSITE_SRC_OVER][PIXEL_FORMAT_XRGB32].cspan = CompositeSrcOverSSE2::xrgb32_cspan;
-  m->raster[COMPOSITE_SRC_OVER][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeSrcOverSSE2::xrgb32_cspan_a8;
-  m->raster[COMPOSITE_SRC_OVER][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeSrcOverSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SRC_OVER][PIXEL_FORMAT_XRGB32].cspan = CompositeSrcOverSSE2::xrgb32_cspan;
+  m->composite[COMPOSITE_SRC_OVER][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeSrcOverSSE2::xrgb32_cspan_a8;
+  m->composite[COMPOSITE_SRC_OVER][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeSrcOverSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SRC_OVER][PIXEL_FORMAT_XRGB32].cspan_a8_scanline = CompositeSrcOverSSE2::xrgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_SRC_OVER][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeSrcOverSSE2::xrgb32_vspan_argb32;
-  m->raster[COMPOSITE_SRC_OVER][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeSrcOverSSE2::xrgb32_vspan_prgb32;
-  m->raster[COMPOSITE_SRC_OVER][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = DibSSE2::memcpy32;
+  m->composite[COMPOSITE_SRC_OVER][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeSrcOverSSE2::xrgb32_vspan_argb32;
+  m->composite[COMPOSITE_SRC_OVER][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeSrcOverSSE2::xrgb32_vspan_prgb32;
+  m->composite[COMPOSITE_SRC_OVER][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = DibSSE2::memcpy32;
 
-  m->raster[COMPOSITE_SRC_OVER][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeSrcOverSSE2::xrgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_SRC_OVER][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeSrcOverSSE2::xrgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_SRC_OVER][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeSrcSSE2::xrgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_SRC_OVER][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeSrcOverSSE2::xrgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_SRC_OVER][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeSrcOverSSE2::xrgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_SRC_OVER][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeSrcSSE2::xrgb32_vspan_xrgb32_a8;
 
-  m->raster[COMPOSITE_SRC_OVER][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeSrcOverSSE2::xrgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_SRC_OVER][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeSrcOverSSE2::xrgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_SRC_OVER][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeSrcSSE2::xrgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_SRC_OVER][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeSrcOverSSE2::xrgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_SRC_OVER][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeSrcOverSSE2::xrgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_SRC_OVER][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeSrcSSE2::xrgb32_vspan_xrgb32_a8_const;
 
   // [Composite - DstOver]
 
-  m->raster[COMPOSITE_DST_OVER][PIXEL_FORMAT_PRGB32].cspan = CompositeDstOverSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_DST_OVER][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeDstOverSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_DST_OVER][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeDstOverSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_DST_OVER][PIXEL_FORMAT_PRGB32].cspan = CompositeDstOverSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_DST_OVER][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeDstOverSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_DST_OVER][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeDstOverSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_DST_OVER][PIXEL_FORMAT_PRGB32].cspan_a8_scanline = CompositeDstOverSSE2::prgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_DST_OVER][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeDstOverSSE2::prgb32_vspan_prgb32;
-  m->raster[COMPOSITE_DST_OVER][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeDstOverSSE2::prgb32_vspan_argb32;
-  m->raster[COMPOSITE_DST_OVER][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeDstOverSSE2::prgb32_vspan_xrgb32;
+  m->composite[COMPOSITE_DST_OVER][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeDstOverSSE2::prgb32_vspan_prgb32;
+  m->composite[COMPOSITE_DST_OVER][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeDstOverSSE2::prgb32_vspan_argb32;
+  m->composite[COMPOSITE_DST_OVER][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeDstOverSSE2::prgb32_vspan_xrgb32;
 
-  m->raster[COMPOSITE_DST_OVER][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeDstOverSSE2::prgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_DST_OVER][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeDstOverSSE2::prgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_DST_OVER][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeDstOverSSE2::prgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_DST_OVER][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeDstOverSSE2::prgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_DST_OVER][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeDstOverSSE2::prgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_DST_OVER][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeDstOverSSE2::prgb32_vspan_xrgb32_a8;
 
-  m->raster[COMPOSITE_DST_OVER][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeDstOverSSE2::prgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_DST_OVER][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeDstOverSSE2::prgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_DST_OVER][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeDstOverSSE2::prgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_DST_OVER][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeDstOverSSE2::prgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_DST_OVER][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeDstOverSSE2::prgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_DST_OVER][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeDstOverSSE2::prgb32_vspan_xrgb32_a8_const;
 
   // PIXEL_FORMAT_XRGB32 - NOP (already set by RasterUtil_Init_C.cpp).
 
   // [Composite - SrcIn]
 
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_PRGB32].cspan = CompositeSrcInSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeSrcInSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeSrcInSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_PRGB32].cspan = CompositeSrcInSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeSrcInSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeSrcInSSE2::prgb32_cspan_a8_const;
+//  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_PRGB32].cspan_a8_scanline = CompositeSrcInSSE2::prgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeSrcInSSE2::prgb32_vspan_prgb32;
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeSrcInSSE2::prgb32_vspan_argb32;
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeSrcInSSE2::prgb32_vspan_xrgb32;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeSrcInSSE2::prgb32_vspan_prgb32;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeSrcInSSE2::prgb32_vspan_argb32;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeSrcInSSE2::prgb32_vspan_xrgb32;
 
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeSrcInSSE2::prgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeSrcInSSE2::prgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeSrcInSSE2::prgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeSrcInSSE2::prgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeSrcInSSE2::prgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeSrcInSSE2::prgb32_vspan_xrgb32_a8;
 
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeSrcInSSE2::prgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeSrcInSSE2::prgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeSrcInSSE2::prgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeSrcInSSE2::prgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeSrcInSSE2::prgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeSrcInSSE2::prgb32_vspan_xrgb32_a8_const;
 
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].cspan = CompositeSrcSSE2::xrgb32_cspan;
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeSrcSSE2::xrgb32_cspan_a8;
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeSrcSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].cspan = CompositeSrcSSE2::xrgb32_cspan;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeSrcSSE2::xrgb32_cspan_a8;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeSrcSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].cspan_a8_scanline = CompositeSrcSSE2::xrgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = DibSSE2::frgb32_from_argb32;
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = DibSSE2::frgb32_from_xrgb32;
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = DibSSE2::memcpy32;
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_A8] = (VSpanFn)CompositeClearSSE2::xrgb32_cspan;
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_I8] = DibSSE2::frgb32_from_i8;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = DibSSE2::frgb32_from_argb32;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = DibSSE2::frgb32_from_xrgb32;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = DibSSE2::memcpy32;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_A8] = (VSpanFn)CompositeClearSSE2::xrgb32_cspan;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_I8] = DibSSE2::frgb32_from_i8;
 
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeSrcSSE2::xrgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeSrcSSE2::xrgb32_vspan_xrgb32_a8;
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeSrcSSE2::xrgb32_vspan_xrgb32_a8;
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_A8] = (VSpanMskFn)CompositeClearSSE2::xrgb32_cspan_a8;
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_I8] = CompositeSrcSSE2::xrgb32_vspan_i8_a8;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeSrcSSE2::xrgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeSrcSSE2::xrgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeSrcSSE2::xrgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_A8] = (VSpanMskFn)CompositeClearSSE2::xrgb32_cspan_a8;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_I8] = CompositeSrcSSE2::xrgb32_vspan_i8_a8;
 
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeSrcSSE2::xrgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeSrcSSE2::xrgb32_vspan_xrgb32_a8_const;
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeSrcSSE2::xrgb32_vspan_xrgb32_a8_const;
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_A8] = (VSpanMskConstFn)CompositeClearSSE2::xrgb32_cspan_a8_const;
-  m->raster[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_I8] = CompositeSrcSSE2::xrgb32_vspan_i8_a8_const;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeSrcSSE2::xrgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeSrcSSE2::xrgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeSrcSSE2::xrgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_A8] = (VSpanMskConstFn)CompositeClearSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SRC_IN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_I8] = CompositeSrcSSE2::xrgb32_vspan_i8_a8_const;
 
   // [Composite - DstIn]
 
-  m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].cspan = CompositeDstInSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeDstInSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeDstInSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].cspan = CompositeDstInSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeDstInSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeDstInSSE2::prgb32_cspan_a8_const;
+//  m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].cspan_a8_scanline = CompositeDstInSSE2::prgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32;
-  m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32;
-//m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = NOP;
+  m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32;
+  m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32;
+//m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = NOP;
 
-  m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32_a8;
-  m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32_a8;
-//m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = NOP;
+  m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32_a8;
+  m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32_a8;
+//m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = NOP;
 
-  m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32_a8_const;
-  m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32_a8_const;
-//m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = NOP;
+  m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32_a8_const;
+  m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32_a8_const;
+//m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = NOP;
 
-  m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].cspan = CompositeDstInSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeDstInSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeDstInSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].cspan = CompositeDstInSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeDstInSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeDstInSSE2::prgb32_cspan_a8_const;
+//  m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].cspan_a8_scanline = CompositeDstInSSE2::prgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32;
-  m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32;
-//m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = NOP;
+  m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32;
+  m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32;
+//m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = NOP;
 
-  m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32_a8;
-  m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32_a8;
-//m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = NOP;
+  m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32_a8;
+  m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32_a8;
+//m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = NOP;
 
-  m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32_a8_const;
-  m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32_a8_const;
-//m->raster[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = NOP;
+  m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32_a8_const;
+  m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32_a8_const;
+//m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = NOP;
 
   // [Composite - SrcOut]
 
-  m->raster[COMPOSITE_SRC_OUT][PIXEL_FORMAT_PRGB32].cspan = CompositeSrcOutSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_SRC_OUT][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeSrcOutSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_SRC_OUT][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeSrcOutSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SRC_OUT][PIXEL_FORMAT_PRGB32].cspan = CompositeSrcOutSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_SRC_OUT][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeSrcOutSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_SRC_OUT][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeSrcOutSSE2::prgb32_cspan_a8_const;
+//  m->composite[COMPOSITE_SRC_OUT][PIXEL_FORMAT_PRGB32].cspan_a8_scanline = CompositeSrcOutSSE2::prgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_SRC_OUT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeSrcOutSSE2::prgb32_vspan_prgb32;
-  m->raster[COMPOSITE_SRC_OUT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeSrcOutSSE2::prgb32_vspan_argb32;
-  m->raster[COMPOSITE_SRC_OUT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeSrcOutSSE2::prgb32_vspan_xrgb32;
+  m->composite[COMPOSITE_SRC_OUT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeSrcOutSSE2::prgb32_vspan_prgb32;
+  m->composite[COMPOSITE_SRC_OUT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeSrcOutSSE2::prgb32_vspan_argb32;
+  m->composite[COMPOSITE_SRC_OUT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeSrcOutSSE2::prgb32_vspan_xrgb32;
 
-  m->raster[COMPOSITE_SRC_OUT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeSrcOutSSE2::prgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_SRC_OUT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeSrcOutSSE2::prgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_SRC_OUT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeSrcOutSSE2::prgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_SRC_OUT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeSrcOutSSE2::prgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_SRC_OUT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeSrcOutSSE2::prgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_SRC_OUT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeSrcOutSSE2::prgb32_vspan_xrgb32_a8;
 
-  m->raster[COMPOSITE_SRC_OUT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeSrcOutSSE2::prgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_SRC_OUT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeSrcOutSSE2::prgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_SRC_OUT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeSrcOutSSE2::prgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_SRC_OUT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeSrcOutSSE2::prgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_SRC_OUT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeSrcOutSSE2::prgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_SRC_OUT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeSrcOutSSE2::prgb32_vspan_xrgb32_a8_const;
 
-  m->raster[COMPOSITE_SRC_OUT][PIXEL_FORMAT_XRGB32].cspan = CompositeClearSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_SRC_OUT][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeClearSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_SRC_OUT][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeClearSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SRC_OUT][PIXEL_FORMAT_XRGB32].cspan = CompositeClearSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_SRC_OUT][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeClearSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_SRC_OUT][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeClearSSE2::prgb32_cspan_a8_const;
+//  m->composite[COMPOSITE_SRC_OUT][PIXEL_FORMAT_XRGB32].cspan_a8_scanline = CompositeClearSSE2::prgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_SRC_OUT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = (VSpanFn)CompositeClearSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_SRC_OUT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = (VSpanFn)CompositeClearSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_SRC_OUT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = (VSpanFn)CompositeClearSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_SRC_OUT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = (VSpanFn)CompositeClearSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_SRC_OUT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = (VSpanFn)CompositeClearSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_SRC_OUT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = (VSpanFn)CompositeClearSSE2::prgb32_cspan;
 
-  m->raster[COMPOSITE_SRC_OUT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = (VSpanMskFn)CompositeClearSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_SRC_OUT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = (VSpanMskFn)CompositeClearSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_SRC_OUT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = (VSpanMskFn)CompositeClearSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_SRC_OUT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = (VSpanMskFn)CompositeClearSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_SRC_OUT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = (VSpanMskFn)CompositeClearSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_SRC_OUT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = (VSpanMskFn)CompositeClearSSE2::prgb32_cspan_a8;
 
-  m->raster[COMPOSITE_SRC_OUT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = (VSpanMskConstFn)CompositeClearSSE2::prgb32_cspan_a8_const;
-  m->raster[COMPOSITE_SRC_OUT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = (VSpanMskConstFn)CompositeClearSSE2::prgb32_cspan_a8_const;
-  m->raster[COMPOSITE_SRC_OUT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = (VSpanMskConstFn)CompositeClearSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SRC_OUT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = (VSpanMskConstFn)CompositeClearSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SRC_OUT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = (VSpanMskConstFn)CompositeClearSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SRC_OUT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = (VSpanMskConstFn)CompositeClearSSE2::prgb32_cspan_a8_const;
 
   // [Composite - DstOut]
 
-  m->raster[COMPOSITE_DST_OUT][PIXEL_FORMAT_PRGB32].cspan = CompositeDstOutSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_DST_OUT][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeDstOutSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_DST_OUT][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeDstOutSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_DST_OUT][PIXEL_FORMAT_PRGB32].cspan = CompositeDstOutSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_DST_OUT][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeDstOutSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_DST_OUT][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeDstOutSSE2::prgb32_cspan_a8_const;
+//  m->composite[COMPOSITE_DST_OUT][PIXEL_FORMAT_PRGB32].cspan_a8_scanline = CompositeDstOutSSE2::prgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_DST_OUT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32;
-  m->raster[COMPOSITE_DST_OUT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32;
-  m->raster[COMPOSITE_DST_OUT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = (VSpanFn)CompositeClearSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_DST_OUT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32;
+  m->composite[COMPOSITE_DST_OUT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32;
+  m->composite[COMPOSITE_DST_OUT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = (VSpanFn)CompositeClearSSE2::prgb32_cspan;
 
-  m->raster[COMPOSITE_DST_OUT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32_a8;
-  m->raster[COMPOSITE_DST_OUT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32_a8;
-  m->raster[COMPOSITE_DST_OUT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = (VSpanMskFn)CompositeClearSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_DST_OUT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32_a8;
+  m->composite[COMPOSITE_DST_OUT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32_a8;
+  m->composite[COMPOSITE_DST_OUT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = (VSpanMskFn)CompositeClearSSE2::prgb32_cspan_a8;
 
-  m->raster[COMPOSITE_DST_OUT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32_a8_const;
-  m->raster[COMPOSITE_DST_OUT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32_a8_const;
-  m->raster[COMPOSITE_DST_OUT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = (VSpanMskConstFn)CompositeClearSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_DST_OUT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32_a8_const;
+  m->composite[COMPOSITE_DST_OUT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32_a8_const;
+  m->composite[COMPOSITE_DST_OUT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = (VSpanMskConstFn)CompositeClearSSE2::prgb32_cspan_a8_const;
 
-  m->raster[COMPOSITE_DST_OUT][PIXEL_FORMAT_XRGB32].cspan = CompositeDstOutSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_DST_OUT][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeDstOutSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_DST_OUT][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeDstOutSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_DST_OUT][PIXEL_FORMAT_XRGB32].cspan = CompositeDstOutSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_DST_OUT][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeDstOutSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_DST_OUT][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeDstOutSSE2::prgb32_cspan_a8_const;
+//  m->composite[COMPOSITE_DST_OUT][PIXEL_FORMAT_XRGB32].cspan_a8_scanline = CompositeDstOutSSE2::prgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_DST_OUT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32;
-  m->raster[COMPOSITE_DST_OUT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32;
-  m->raster[COMPOSITE_DST_OUT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = (VSpanFn)CompositeClearSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_DST_OUT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32;
+  m->composite[COMPOSITE_DST_OUT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32;
+  m->composite[COMPOSITE_DST_OUT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = (VSpanFn)CompositeClearSSE2::prgb32_cspan;
 
-  m->raster[COMPOSITE_DST_OUT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32_a8;
-  m->raster[COMPOSITE_DST_OUT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32_a8;
-  m->raster[COMPOSITE_DST_OUT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = (VSpanMskFn)CompositeClearSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_DST_OUT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32_a8;
+  m->composite[COMPOSITE_DST_OUT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32_a8;
+  m->composite[COMPOSITE_DST_OUT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = (VSpanMskFn)CompositeClearSSE2::prgb32_cspan_a8;
 
-  m->raster[COMPOSITE_DST_OUT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32_a8_const;
-  m->raster[COMPOSITE_DST_OUT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32_a8_const;
-  m->raster[COMPOSITE_DST_OUT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = (VSpanMskConstFn)CompositeClearSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_DST_OUT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32_a8_const;
+  m->composite[COMPOSITE_DST_OUT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32_a8_const;
+  m->composite[COMPOSITE_DST_OUT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = (VSpanMskConstFn)CompositeClearSSE2::prgb32_cspan_a8_const;
 
   // [Composite - SrcAtop]
 
-  m->raster[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_PRGB32].cspan = CompositeSrcAtopSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeSrcAtopSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeSrcAtopSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_PRGB32].cspan = CompositeSrcAtopSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeSrcAtopSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeSrcAtopSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_PRGB32].cspan_a8_scanline = CompositeSrcAtopSSE2::prgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeSrcAtopSSE2::prgb32_vspan_prgb32;
-  m->raster[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeSrcAtopSSE2::prgb32_vspan_argb32;
-  m->raster[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeSrcInSSE2::prgb32_vspan_xrgb32;
+  m->composite[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeSrcAtopSSE2::prgb32_vspan_prgb32;
+  m->composite[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeSrcAtopSSE2::prgb32_vspan_argb32;
+  m->composite[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeSrcInSSE2::prgb32_vspan_xrgb32;
 
-  m->raster[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeSrcAtopSSE2::prgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeSrcAtopSSE2::prgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeSrcInSSE2::prgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeSrcAtopSSE2::prgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeSrcAtopSSE2::prgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeSrcInSSE2::prgb32_vspan_xrgb32_a8;
 
-  m->raster[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeSrcAtopSSE2::prgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeSrcAtopSSE2::prgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeSrcInSSE2::prgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeSrcAtopSSE2::prgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeSrcAtopSSE2::prgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeSrcInSSE2::prgb32_vspan_xrgb32_a8_const;
 
-  m->raster[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_XRGB32].cspan = CompositeSrcOverSSE2::xrgb32_cspan;
-  m->raster[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeSrcOverSSE2::xrgb32_cspan_a8;
-  m->raster[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeSrcOverSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_XRGB32].cspan = CompositeSrcOverSSE2::xrgb32_cspan;
+  m->composite[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeSrcOverSSE2::xrgb32_cspan_a8;
+  m->composite[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeSrcOverSSE2::xrgb32_cspan_a8_const;
+//  m->composite[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_XRGB32].cspan_a8_scanline = CompositeSrcOverSSE2::xrgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeSrcOverSSE2::xrgb32_vspan_prgb32;
-  m->raster[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeSrcOverSSE2::xrgb32_vspan_argb32;
-  m->raster[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = DibSSE2::memcpy32;
+  m->composite[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeSrcOverSSE2::xrgb32_vspan_prgb32;
+  m->composite[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeSrcOverSSE2::xrgb32_vspan_argb32;
+  m->composite[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = DibSSE2::memcpy32;
 
-  m->raster[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeSrcOverSSE2::xrgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeSrcOverSSE2::xrgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeSrcSSE2::xrgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeSrcOverSSE2::xrgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeSrcOverSSE2::xrgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeSrcSSE2::xrgb32_vspan_xrgb32_a8;
 
-  m->raster[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeSrcOverSSE2::xrgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeSrcOverSSE2::xrgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeSrcSSE2::xrgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeSrcOverSSE2::xrgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeSrcOverSSE2::xrgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_SRC_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeSrcSSE2::xrgb32_vspan_xrgb32_a8_const;
 
   // PIXEL_FORMAT_A8     - NOP (already set by RasterUtil_Init_C.cpp).
 
   // [Composite - DstAtop]
 
-  m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_PRGB32].cspan = CompositeDstAtopSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeDstAtopSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeDstAtopSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_PRGB32].cspan = CompositeDstAtopSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeDstAtopSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeDstAtopSSE2::prgb32_cspan_a8_const;
+//  m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_PRGB32].cspan_a8_scanline = CompositeDstAtopSSE2::prgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeDstAtopSSE2::prgb32_vspan_prgb32;
-  m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeDstAtopSSE2::prgb32_vspan_argb32;
-  m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeDstOverSSE2::prgb32_vspan_xrgb32;
+  m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeDstAtopSSE2::prgb32_vspan_prgb32;
+  m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeDstAtopSSE2::prgb32_vspan_argb32;
+  m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeDstOverSSE2::prgb32_vspan_xrgb32;
 
-  m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeDstAtopSSE2::prgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeDstAtopSSE2::prgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeDstOverSSE2::prgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeDstAtopSSE2::prgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeDstAtopSSE2::prgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeDstOverSSE2::prgb32_vspan_xrgb32_a8;
 
-  m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeDstAtopSSE2::prgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeDstAtopSSE2::prgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeDstOverSSE2::prgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeDstAtopSSE2::prgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeDstAtopSSE2::prgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeDstOverSSE2::prgb32_vspan_xrgb32_a8_const;
 
-  m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].cspan = CompositeDstInSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeDstInSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeDstInSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].cspan = CompositeDstInSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeDstInSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeDstInSSE2::prgb32_cspan_a8_const;
+//  m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_PRGB32].cspan_a8_scanline = CompositeDstInSSE2::prgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32;
-  m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32;
-//m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = NOP;
+  m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32;
+  m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32;
+//m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = NOP;
 
-  m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32_a8;
-  m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32_a8;
-//m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = NOP;
+  m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32_a8;
+  m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32_a8;
+//m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = NOP;
 
-  m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32_a8_const;
-  m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32_a8_const;
-//m->raster[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = NOP;
+  m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32_a8_const;
+  m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeDstInSSE2::prgb32_vspan_prgb32_or_argb32_a8_const;
+//m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = NOP;
 
   // [Composite - Xor]
 
-  // TODO
+  m->composite[COMPOSITE_XOR][PIXEL_FORMAT_PRGB32].cspan = CompositeXorSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_XOR][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeXorSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_XOR][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeXorSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_XOR][PIXEL_FORMAT_PRGB32].cspan_a8_scanline = CompositeXorSSE2::prgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_XOR][PIXEL_FORMAT_PRGB32].cspan = CompositeXorSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_XOR][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeXorSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_XOR][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeXorSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_XOR][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeXorSSE2::prgb32_vspan_prgb32;
+  m->composite[COMPOSITE_XOR][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeXorSSE2::prgb32_vspan_argb32;
+  m->composite[COMPOSITE_XOR][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeSrcOutSSE2::prgb32_vspan_xrgb32;
 
-  m->raster[COMPOSITE_XOR][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeXorSSE2::prgb32_vspan_prgb32;
-  m->raster[COMPOSITE_XOR][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeXorSSE2::prgb32_vspan_argb32;
-  m->raster[COMPOSITE_XOR][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeSrcOutSSE2::prgb32_vspan_xrgb32;
+  m->composite[COMPOSITE_XOR][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeXorSSE2::prgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_XOR][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeXorSSE2::prgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_XOR][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeSrcOutSSE2::prgb32_vspan_xrgb32_a8;
 
-  m->raster[COMPOSITE_XOR][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeXorSSE2::prgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_XOR][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeXorSSE2::prgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_XOR][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeSrcOutSSE2::prgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_XOR][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeXorSSE2::prgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_XOR][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeXorSSE2::prgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_XOR][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeSrcOutSSE2::prgb32_vspan_xrgb32_a8_const;
 
-  m->raster[COMPOSITE_XOR][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeXorSSE2::prgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_XOR][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeXorSSE2::prgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_XOR][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeSrcOutSSE2::prgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_XOR][PIXEL_FORMAT_XRGB32].cspan = CompositeDstOutSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_XOR][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeDstOutSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_XOR][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeDstOutSSE2::prgb32_cspan_a8_const;
+//  m->composite[COMPOSITE_XOR][PIXEL_FORMAT_XRGB32].cspan_a8_scanline = CompositeDstOutSSE2::prgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_XOR][PIXEL_FORMAT_XRGB32].cspan = CompositeDstOutSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_XOR][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeDstOutSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_XOR][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeDstOutSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_XOR][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32;
+  m->composite[COMPOSITE_XOR][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32;
+  m->composite[COMPOSITE_XOR][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = (VSpanFn)CompositeClearSSE2::xrgb32_cspan;
 
-  m->raster[COMPOSITE_XOR][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32;
-  m->raster[COMPOSITE_XOR][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32;
-  m->raster[COMPOSITE_XOR][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = (VSpanFn)CompositeClearSSE2::xrgb32_cspan;
+  m->composite[COMPOSITE_XOR][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32_a8;
+  m->composite[COMPOSITE_XOR][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32_a8;
+  m->composite[COMPOSITE_XOR][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = (VSpanMskFn)CompositeClearSSE2::xrgb32_cspan_a8;
 
-  m->raster[COMPOSITE_XOR][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32_a8;
-  m->raster[COMPOSITE_XOR][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32_a8;
-  m->raster[COMPOSITE_XOR][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = (VSpanMskFn)CompositeClearSSE2::xrgb32_cspan_a8;
-
-  m->raster[COMPOSITE_XOR][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32_a8_const;
-  m->raster[COMPOSITE_XOR][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32_a8_const;
-  m->raster[COMPOSITE_XOR][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = (VSpanMskConstFn)CompositeClearSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_XOR][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32_a8_const;
+  m->composite[COMPOSITE_XOR][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeDstOutSSE2::prgb32_vspan_prgb32_or_argb32_a8_const;
+  m->composite[COMPOSITE_XOR][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = (VSpanMskConstFn)CompositeClearSSE2::xrgb32_cspan_a8_const;
 
   // [Composite - Clear]
 
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].cspan = CompositeClearSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeClearSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeClearSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].cspan = CompositeClearSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeClearSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeClearSSE2::prgb32_cspan_a8_const;
+//  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].cspan_a8_scanline = CompositeClearSSE2::prgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = (VSpanFn)CompositeClearSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = (VSpanFn)CompositeClearSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = (VSpanFn)CompositeClearSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_A8] = (VSpanFn)CompositeClearSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_I8] = (VSpanFn)CompositeClearSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = (VSpanFn)CompositeClearSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = (VSpanFn)CompositeClearSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = (VSpanFn)CompositeClearSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_A8] = (VSpanFn)CompositeClearSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_I8] = (VSpanFn)CompositeClearSSE2::prgb32_cspan;
 
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = (VSpanMskFn)CompositeClearSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = (VSpanMskFn)CompositeClearSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = (VSpanMskFn)CompositeClearSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_A8] = (VSpanMskFn)CompositeClearSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_I8] = (VSpanMskFn)CompositeClearSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = (VSpanMskFn)CompositeClearSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = (VSpanMskFn)CompositeClearSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = (VSpanMskFn)CompositeClearSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_A8] = (VSpanMskFn)CompositeClearSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_I8] = (VSpanMskFn)CompositeClearSSE2::prgb32_cspan_a8;
 
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = (VSpanMskConstFn)CompositeClearSSE2::prgb32_cspan_a8_const;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = (VSpanMskConstFn)CompositeClearSSE2::prgb32_cspan_a8_const;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = (VSpanMskConstFn)CompositeClearSSE2::prgb32_cspan_a8_const;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_A8] = (VSpanMskConstFn)CompositeClearSSE2::prgb32_cspan_a8_const;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_I8] = (VSpanMskConstFn)CompositeClearSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = (VSpanMskConstFn)CompositeClearSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = (VSpanMskConstFn)CompositeClearSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = (VSpanMskConstFn)CompositeClearSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_A8] = (VSpanMskConstFn)CompositeClearSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_I8] = (VSpanMskConstFn)CompositeClearSSE2::prgb32_cspan_a8_const;
 
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].cspan = CompositeClearSSE2::xrgb32_cspan;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeClearSSE2::xrgb32_cspan_a8;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeClearSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].cspan = CompositeClearSSE2::xrgb32_cspan;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeClearSSE2::xrgb32_cspan_a8;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeClearSSE2::xrgb32_cspan_a8_const;
+//  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].cspan_a8_scanline = CompositeClearSSE2::xrgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = (VSpanFn)CompositeClearSSE2::xrgb32_cspan;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = (VSpanFn)CompositeClearSSE2::xrgb32_cspan;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = (VSpanFn)CompositeClearSSE2::xrgb32_cspan;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_A8] = (VSpanFn)CompositeClearSSE2::xrgb32_cspan;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_I8] = (VSpanFn)CompositeClearSSE2::xrgb32_cspan;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = (VSpanFn)CompositeClearSSE2::xrgb32_cspan;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = (VSpanFn)CompositeClearSSE2::xrgb32_cspan;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = (VSpanFn)CompositeClearSSE2::xrgb32_cspan;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_A8] = (VSpanFn)CompositeClearSSE2::xrgb32_cspan;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_I8] = (VSpanFn)CompositeClearSSE2::xrgb32_cspan;
 
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = (VSpanMskFn)CompositeClearSSE2::xrgb32_cspan_a8;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = (VSpanMskFn)CompositeClearSSE2::xrgb32_cspan_a8;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = (VSpanMskFn)CompositeClearSSE2::xrgb32_cspan_a8;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_A8] = (VSpanMskFn)CompositeClearSSE2::xrgb32_cspan_a8;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_I8] = (VSpanMskFn)CompositeClearSSE2::xrgb32_cspan_a8;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = (VSpanMskFn)CompositeClearSSE2::xrgb32_cspan_a8;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = (VSpanMskFn)CompositeClearSSE2::xrgb32_cspan_a8;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = (VSpanMskFn)CompositeClearSSE2::xrgb32_cspan_a8;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_A8] = (VSpanMskFn)CompositeClearSSE2::xrgb32_cspan_a8;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_I8] = (VSpanMskFn)CompositeClearSSE2::xrgb32_cspan_a8;
 
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = (VSpanMskConstFn)CompositeClearSSE2::xrgb32_cspan_a8_const;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = (VSpanMskConstFn)CompositeClearSSE2::xrgb32_cspan_a8_const;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = (VSpanMskConstFn)CompositeClearSSE2::xrgb32_cspan_a8_const;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_A8] = (VSpanMskConstFn)CompositeClearSSE2::xrgb32_cspan_a8_const;
-  m->raster[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_I8] = (VSpanMskConstFn)CompositeClearSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = (VSpanMskConstFn)CompositeClearSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = (VSpanMskConstFn)CompositeClearSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = (VSpanMskConstFn)CompositeClearSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_A8] = (VSpanMskConstFn)CompositeClearSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_CLEAR][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_I8] = (VSpanMskConstFn)CompositeClearSSE2::xrgb32_cspan_a8_const;
 
   // [Composite - Add]
 
-  m->raster[COMPOSITE_ADD][PIXEL_FORMAT_PRGB32].cspan = CompositeAddSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_ADD][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeAddSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_ADD][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeAddSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_PRGB32].cspan = CompositeAddSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeAddSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeAddSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_PRGB32].cspan_a8_scanline = CompositeAddSSE2::prgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_ADD][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeAddSSE2::prgb32_vspan_prgb32;
-  m->raster[COMPOSITE_ADD][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeAddSSE2::prgb32_vspan_argb32;
-  m->raster[COMPOSITE_ADD][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeAddSSE2::prgb32_vspan_xrgb32;
+  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeAddSSE2::prgb32_vspan_prgb32;
+  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeAddSSE2::prgb32_vspan_argb32;
+  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeAddSSE2::prgb32_vspan_xrgb32;
 
-  m->raster[COMPOSITE_ADD][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeAddSSE2::prgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_ADD][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeAddSSE2::prgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_ADD][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeAddSSE2::prgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeAddSSE2::prgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeAddSSE2::prgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeAddSSE2::prgb32_vspan_xrgb32_a8;
 
-  m->raster[COMPOSITE_ADD][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeAddSSE2::prgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_ADD][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeAddSSE2::prgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_ADD][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeAddSSE2::prgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeAddSSE2::prgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeAddSSE2::prgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeAddSSE2::prgb32_vspan_xrgb32_a8_const;
 
-  m->raster[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].cspan = CompositeAddSSE2::xrgb32_cspan;
-  m->raster[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeAddSSE2::xrgb32_cspan_a8;
-  m->raster[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeAddSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].cspan = CompositeAddSSE2::xrgb32_cspan;
+  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeAddSSE2::xrgb32_cspan_a8;
+  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeAddSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].cspan_a8_scanline = CompositeAddSSE2::xrgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeAddSSE2::xrgb32_vspan_prgb32;
-  m->raster[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeAddSSE2::xrgb32_vspan_argb32;
-  m->raster[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeAddSSE2::xrgb32_vspan_xrgb32;
+  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeAddSSE2::xrgb32_vspan_prgb32;
+  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeAddSSE2::xrgb32_vspan_argb32;
+  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeAddSSE2::xrgb32_vspan_xrgb32;
 
-  m->raster[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeAddSSE2::xrgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeAddSSE2::xrgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeAddSSE2::xrgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeAddSSE2::xrgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeAddSSE2::xrgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeAddSSE2::xrgb32_vspan_xrgb32_a8;
 
-  m->raster[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeAddSSE2::xrgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeAddSSE2::xrgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeAddSSE2::xrgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeAddSSE2::xrgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeAddSSE2::xrgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeAddSSE2::xrgb32_vspan_xrgb32_a8_const;
 
   // [Composite - Subtract]
 
-  m->raster[COMPOSITE_SUBTRACT][PIXEL_FORMAT_PRGB32].cspan = CompositeSubtractSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_SUBTRACT][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeSubtractSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_SUBTRACT][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeSubtractSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SUBTRACT][PIXEL_FORMAT_PRGB32].cspan = CompositeSubtractSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_SUBTRACT][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeSubtractSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_SUBTRACT][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeSubtractSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SUBTRACT][PIXEL_FORMAT_PRGB32].cspan_a8_scanline = CompositeSubtractSSE2::prgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_SUBTRACT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeSubtractSSE2::prgb32_vspan_prgb32;
-  m->raster[COMPOSITE_SUBTRACT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeSubtractSSE2::prgb32_vspan_argb32;
-  m->raster[COMPOSITE_SUBTRACT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeSubtractSSE2::prgb32_vspan_xrgb32;
+  m->composite[COMPOSITE_SUBTRACT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeSubtractSSE2::prgb32_vspan_prgb32;
+  m->composite[COMPOSITE_SUBTRACT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeSubtractSSE2::prgb32_vspan_argb32;
+  m->composite[COMPOSITE_SUBTRACT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeSubtractSSE2::prgb32_vspan_xrgb32;
 
-  m->raster[COMPOSITE_SUBTRACT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeSubtractSSE2::prgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_SUBTRACT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeSubtractSSE2::prgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_SUBTRACT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeSubtractSSE2::prgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_SUBTRACT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeSubtractSSE2::prgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_SUBTRACT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeSubtractSSE2::prgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_SUBTRACT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeSubtractSSE2::prgb32_vspan_xrgb32_a8;
 
-  m->raster[COMPOSITE_SUBTRACT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeSubtractSSE2::prgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_SUBTRACT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeSubtractSSE2::prgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_SUBTRACT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeSubtractSSE2::prgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_SUBTRACT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeSubtractSSE2::prgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_SUBTRACT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeSubtractSSE2::prgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_SUBTRACT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeSubtractSSE2::prgb32_vspan_xrgb32_a8_const;
 
-  m->raster[COMPOSITE_SUBTRACT][PIXEL_FORMAT_XRGB32].cspan = CompositeSubtractSSE2::xrgb32_cspan;
-  m->raster[COMPOSITE_SUBTRACT][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeSubtractSSE2::xrgb32_cspan_a8;
-  m->raster[COMPOSITE_SUBTRACT][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeSubtractSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SUBTRACT][PIXEL_FORMAT_XRGB32].cspan = CompositeSubtractSSE2::xrgb32_cspan;
+  m->composite[COMPOSITE_SUBTRACT][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeSubtractSSE2::xrgb32_cspan_a8;
+  m->composite[COMPOSITE_SUBTRACT][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeSubtractSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SUBTRACT][PIXEL_FORMAT_XRGB32].cspan_a8_scanline = CompositeSubtractSSE2::xrgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_SUBTRACT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeSubtractSSE2::xrgb32_vspan_prgb32;
-  m->raster[COMPOSITE_SUBTRACT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeSubtractSSE2::xrgb32_vspan_argb32;
-  m->raster[COMPOSITE_SUBTRACT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeSubtractSSE2::xrgb32_vspan_xrgb32;
+  m->composite[COMPOSITE_SUBTRACT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeSubtractSSE2::xrgb32_vspan_prgb32;
+  m->composite[COMPOSITE_SUBTRACT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeSubtractSSE2::xrgb32_vspan_argb32;
+  m->composite[COMPOSITE_SUBTRACT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeSubtractSSE2::xrgb32_vspan_xrgb32;
 
-  m->raster[COMPOSITE_SUBTRACT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeSubtractSSE2::xrgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_SUBTRACT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeSubtractSSE2::xrgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_SUBTRACT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeSubtractSSE2::xrgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_SUBTRACT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeSubtractSSE2::xrgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_SUBTRACT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeSubtractSSE2::xrgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_SUBTRACT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeSubtractSSE2::xrgb32_vspan_xrgb32_a8;
 
-  m->raster[COMPOSITE_SUBTRACT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeSubtractSSE2::xrgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_SUBTRACT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeSubtractSSE2::xrgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_SUBTRACT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeSubtractSSE2::xrgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_SUBTRACT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeSubtractSSE2::xrgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_SUBTRACT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeSubtractSSE2::xrgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_SUBTRACT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeSubtractSSE2::xrgb32_vspan_xrgb32_a8_const;
 
   // [Composite - Screen]
 
-  m->raster[COMPOSITE_SCREEN][PIXEL_FORMAT_PRGB32].cspan = CompositeScreenSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_SCREEN][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeScreenSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_SCREEN][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeScreenSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SCREEN][PIXEL_FORMAT_PRGB32].cspan = CompositeScreenSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_SCREEN][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeScreenSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_SCREEN][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeScreenSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SCREEN][PIXEL_FORMAT_PRGB32].cspan_a8_scanline = CompositeScreenSSE2::prgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_SCREEN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeScreenSSE2::prgb32_vspan_prgb32;
-  m->raster[COMPOSITE_SCREEN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeScreenSSE2::prgb32_vspan_argb32;
-  m->raster[COMPOSITE_SCREEN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeScreenSSE2::prgb32_vspan_xrgb32;
+  m->composite[COMPOSITE_SCREEN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeScreenSSE2::prgb32_vspan_prgb32;
+  m->composite[COMPOSITE_SCREEN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeScreenSSE2::prgb32_vspan_argb32;
+  m->composite[COMPOSITE_SCREEN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeScreenSSE2::prgb32_vspan_xrgb32;
 
-  m->raster[COMPOSITE_SCREEN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeScreenSSE2::prgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_SCREEN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeScreenSSE2::prgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_SCREEN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeScreenSSE2::prgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_SCREEN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeScreenSSE2::prgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_SCREEN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeScreenSSE2::prgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_SCREEN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeScreenSSE2::prgb32_vspan_xrgb32_a8;
 
-  m->raster[COMPOSITE_SCREEN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeScreenSSE2::prgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_SCREEN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeScreenSSE2::prgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_SCREEN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeScreenSSE2::prgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_SCREEN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeScreenSSE2::prgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_SCREEN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeScreenSSE2::prgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_SCREEN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeScreenSSE2::prgb32_vspan_xrgb32_a8_const;
 
-  m->raster[COMPOSITE_SCREEN][PIXEL_FORMAT_XRGB32].cspan = CompositeScreenSSE2::xrgb32_cspan;
-  m->raster[COMPOSITE_SCREEN][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeScreenSSE2::xrgb32_cspan_a8;
-  m->raster[COMPOSITE_SCREEN][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeScreenSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SCREEN][PIXEL_FORMAT_XRGB32].cspan = CompositeScreenSSE2::xrgb32_cspan;
+  m->composite[COMPOSITE_SCREEN][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeScreenSSE2::xrgb32_cspan_a8;
+  m->composite[COMPOSITE_SCREEN][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeScreenSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_SCREEN][PIXEL_FORMAT_XRGB32].cspan_a8_scanline = CompositeScreenSSE2::xrgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_SCREEN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeScreenSSE2::xrgb32_vspan_prgb32;
-  m->raster[COMPOSITE_SCREEN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeScreenSSE2::xrgb32_vspan_argb32;
-  m->raster[COMPOSITE_SCREEN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeScreenSSE2::xrgb32_vspan_xrgb32;
+  m->composite[COMPOSITE_SCREEN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeScreenSSE2::xrgb32_vspan_prgb32;
+  m->composite[COMPOSITE_SCREEN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeScreenSSE2::xrgb32_vspan_argb32;
+  m->composite[COMPOSITE_SCREEN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeScreenSSE2::xrgb32_vspan_xrgb32;
 
-  m->raster[COMPOSITE_SCREEN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeScreenSSE2::xrgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_SCREEN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeScreenSSE2::xrgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_SCREEN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeScreenSSE2::xrgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_SCREEN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeScreenSSE2::xrgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_SCREEN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeScreenSSE2::xrgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_SCREEN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeScreenSSE2::xrgb32_vspan_xrgb32_a8;
 
-  m->raster[COMPOSITE_SCREEN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeScreenSSE2::xrgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_SCREEN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeScreenSSE2::xrgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_SCREEN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeScreenSSE2::xrgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_SCREEN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeScreenSSE2::xrgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_SCREEN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeScreenSSE2::xrgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_SCREEN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeScreenSSE2::xrgb32_vspan_xrgb32_a8_const;
 
   // [Composite - Darken]
 
-  m->raster[COMPOSITE_DARKEN][PIXEL_FORMAT_PRGB32].cspan = CompositeDarkenSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_DARKEN][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeDarkenSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_DARKEN][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeDarkenSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_DARKEN][PIXEL_FORMAT_PRGB32].cspan = CompositeDarkenSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_DARKEN][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeDarkenSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_DARKEN][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeDarkenSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_DARKEN][PIXEL_FORMAT_PRGB32].cspan_a8_scanline = CompositeDarkenSSE2::prgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_DARKEN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeDarkenSSE2::prgb32_vspan_prgb32;
-  m->raster[COMPOSITE_DARKEN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeDarkenSSE2::prgb32_vspan_argb32;
-  m->raster[COMPOSITE_DARKEN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeDarkenSSE2::prgb32_vspan_xrgb32;
+  m->composite[COMPOSITE_DARKEN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeDarkenSSE2::prgb32_vspan_prgb32;
+  m->composite[COMPOSITE_DARKEN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeDarkenSSE2::prgb32_vspan_argb32;
+  m->composite[COMPOSITE_DARKEN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeDarkenSSE2::prgb32_vspan_xrgb32;
 
-  m->raster[COMPOSITE_DARKEN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeDarkenSSE2::prgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_DARKEN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeDarkenSSE2::prgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_DARKEN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeDarkenSSE2::prgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_DARKEN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeDarkenSSE2::prgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_DARKEN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeDarkenSSE2::prgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_DARKEN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeDarkenSSE2::prgb32_vspan_xrgb32_a8;
 
-  m->raster[COMPOSITE_DARKEN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeDarkenSSE2::prgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_DARKEN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeDarkenSSE2::prgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_DARKEN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeDarkenSSE2::prgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_DARKEN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeDarkenSSE2::prgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_DARKEN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeDarkenSSE2::prgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_DARKEN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeDarkenSSE2::prgb32_vspan_xrgb32_a8_const;
 
-  m->raster[COMPOSITE_DARKEN][PIXEL_FORMAT_XRGB32].cspan = CompositeDarkenSSE2::xrgb32_cspan;
-  m->raster[COMPOSITE_DARKEN][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeDarkenSSE2::xrgb32_cspan_a8;
-  m->raster[COMPOSITE_DARKEN][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeDarkenSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_DARKEN][PIXEL_FORMAT_XRGB32].cspan = CompositeDarkenSSE2::xrgb32_cspan;
+  m->composite[COMPOSITE_DARKEN][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeDarkenSSE2::xrgb32_cspan_a8;
+  m->composite[COMPOSITE_DARKEN][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeDarkenSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_DARKEN][PIXEL_FORMAT_XRGB32].cspan_a8_scanline = CompositeDarkenSSE2::xrgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_DARKEN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeDarkenSSE2::xrgb32_vspan_prgb32;
-  m->raster[COMPOSITE_DARKEN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeDarkenSSE2::xrgb32_vspan_argb32;
-  m->raster[COMPOSITE_DARKEN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeDarkenSSE2::xrgb32_vspan_xrgb32;
+  m->composite[COMPOSITE_DARKEN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeDarkenSSE2::xrgb32_vspan_prgb32;
+  m->composite[COMPOSITE_DARKEN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeDarkenSSE2::xrgb32_vspan_argb32;
+  m->composite[COMPOSITE_DARKEN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeDarkenSSE2::xrgb32_vspan_xrgb32;
 
-  m->raster[COMPOSITE_DARKEN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeDarkenSSE2::xrgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_DARKEN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeDarkenSSE2::xrgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_DARKEN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeDarkenSSE2::xrgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_DARKEN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeDarkenSSE2::xrgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_DARKEN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeDarkenSSE2::xrgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_DARKEN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeDarkenSSE2::xrgb32_vspan_xrgb32_a8;
 
-  m->raster[COMPOSITE_DARKEN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeDarkenSSE2::xrgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_DARKEN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeDarkenSSE2::xrgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_DARKEN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeDarkenSSE2::xrgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_DARKEN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeDarkenSSE2::xrgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_DARKEN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeDarkenSSE2::xrgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_DARKEN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeDarkenSSE2::xrgb32_vspan_xrgb32_a8_const;
 
   // [Composite - Lighten]
 
-  m->raster[COMPOSITE_LIGHTEN][PIXEL_FORMAT_PRGB32].cspan = CompositeLightenSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_LIGHTEN][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeLightenSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_LIGHTEN][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeLightenSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_LIGHTEN][PIXEL_FORMAT_PRGB32].cspan = CompositeLightenSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_LIGHTEN][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeLightenSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_LIGHTEN][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeLightenSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_LIGHTEN][PIXEL_FORMAT_PRGB32].cspan_a8_scanline = CompositeLightenSSE2::prgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_LIGHTEN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeLightenSSE2::prgb32_vspan_prgb32;
-  m->raster[COMPOSITE_LIGHTEN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeLightenSSE2::prgb32_vspan_argb32;
-  m->raster[COMPOSITE_LIGHTEN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeLightenSSE2::prgb32_vspan_xrgb32;
+  m->composite[COMPOSITE_LIGHTEN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeLightenSSE2::prgb32_vspan_prgb32;
+  m->composite[COMPOSITE_LIGHTEN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeLightenSSE2::prgb32_vspan_argb32;
+  m->composite[COMPOSITE_LIGHTEN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeLightenSSE2::prgb32_vspan_xrgb32;
 
-  m->raster[COMPOSITE_LIGHTEN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeLightenSSE2::prgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_LIGHTEN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeLightenSSE2::prgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_LIGHTEN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeLightenSSE2::prgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_LIGHTEN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeLightenSSE2::prgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_LIGHTEN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeLightenSSE2::prgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_LIGHTEN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeLightenSSE2::prgb32_vspan_xrgb32_a8;
 
-  m->raster[COMPOSITE_LIGHTEN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeLightenSSE2::prgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_LIGHTEN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeLightenSSE2::prgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_LIGHTEN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeLightenSSE2::prgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_LIGHTEN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeLightenSSE2::prgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_LIGHTEN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeLightenSSE2::prgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_LIGHTEN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeLightenSSE2::prgb32_vspan_xrgb32_a8_const;
 
-  m->raster[COMPOSITE_LIGHTEN][PIXEL_FORMAT_XRGB32].cspan = CompositeLightenSSE2::xrgb32_cspan;
-  m->raster[COMPOSITE_LIGHTEN][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeLightenSSE2::xrgb32_cspan_a8;
-  m->raster[COMPOSITE_LIGHTEN][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeLightenSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_LIGHTEN][PIXEL_FORMAT_XRGB32].cspan = CompositeLightenSSE2::xrgb32_cspan;
+  m->composite[COMPOSITE_LIGHTEN][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeLightenSSE2::xrgb32_cspan_a8;
+  m->composite[COMPOSITE_LIGHTEN][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeLightenSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_LIGHTEN][PIXEL_FORMAT_XRGB32].cspan_a8_scanline = CompositeLightenSSE2::xrgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_LIGHTEN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeLightenSSE2::xrgb32_vspan_prgb32;
-  m->raster[COMPOSITE_LIGHTEN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeLightenSSE2::xrgb32_vspan_argb32;
-  m->raster[COMPOSITE_LIGHTEN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeLightenSSE2::xrgb32_vspan_xrgb32;
+  m->composite[COMPOSITE_LIGHTEN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeLightenSSE2::xrgb32_vspan_prgb32;
+  m->composite[COMPOSITE_LIGHTEN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeLightenSSE2::xrgb32_vspan_argb32;
+  m->composite[COMPOSITE_LIGHTEN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeLightenSSE2::xrgb32_vspan_xrgb32;
 
-  m->raster[COMPOSITE_LIGHTEN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeLightenSSE2::xrgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_LIGHTEN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeLightenSSE2::xrgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_LIGHTEN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeLightenSSE2::xrgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_LIGHTEN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeLightenSSE2::xrgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_LIGHTEN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeLightenSSE2::xrgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_LIGHTEN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeLightenSSE2::xrgb32_vspan_xrgb32_a8;
 
-  m->raster[COMPOSITE_LIGHTEN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeLightenSSE2::xrgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_LIGHTEN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeLightenSSE2::xrgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_LIGHTEN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeLightenSSE2::xrgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_LIGHTEN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeLightenSSE2::xrgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_LIGHTEN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeLightenSSE2::xrgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_LIGHTEN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeLightenSSE2::xrgb32_vspan_xrgb32_a8_const;
 
   // [Composite - Difference]
 
-  m->raster[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_PRGB32].cspan = CompositeDifferenceSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeDifferenceSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeDifferenceSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_PRGB32].cspan = CompositeDifferenceSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeDifferenceSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeDifferenceSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_PRGB32].cspan_a8_scanline = CompositeDifferenceSSE2::prgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeDifferenceSSE2::prgb32_vspan_prgb32;
-  m->raster[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeDifferenceSSE2::prgb32_vspan_argb32;
-  m->raster[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeDifferenceSSE2::prgb32_vspan_xrgb32;
+  m->composite[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeDifferenceSSE2::prgb32_vspan_prgb32;
+  m->composite[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeDifferenceSSE2::prgb32_vspan_argb32;
+  m->composite[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeDifferenceSSE2::prgb32_vspan_xrgb32;
 
-  m->raster[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeDifferenceSSE2::prgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeDifferenceSSE2::prgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeDifferenceSSE2::prgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeDifferenceSSE2::prgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeDifferenceSSE2::prgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeDifferenceSSE2::prgb32_vspan_xrgb32_a8;
 
-  m->raster[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeDifferenceSSE2::prgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeDifferenceSSE2::prgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeDifferenceSSE2::prgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeDifferenceSSE2::prgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeDifferenceSSE2::prgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeDifferenceSSE2::prgb32_vspan_xrgb32_a8_const;
 
-  m->raster[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_XRGB32].cspan = CompositeDifferenceSSE2::xrgb32_cspan;
-  m->raster[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeDifferenceSSE2::xrgb32_cspan_a8;
-  m->raster[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeDifferenceSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_XRGB32].cspan = CompositeDifferenceSSE2::xrgb32_cspan;
+  m->composite[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeDifferenceSSE2::xrgb32_cspan_a8;
+  m->composite[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeDifferenceSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_XRGB32].cspan_a8_scanline = CompositeDifferenceSSE2::xrgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeDifferenceSSE2::xrgb32_vspan_prgb32;
-  m->raster[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeDifferenceSSE2::xrgb32_vspan_argb32;
-  m->raster[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeDifferenceSSE2::xrgb32_vspan_xrgb32;
+  m->composite[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeDifferenceSSE2::xrgb32_vspan_prgb32;
+  m->composite[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeDifferenceSSE2::xrgb32_vspan_argb32;
+  m->composite[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeDifferenceSSE2::xrgb32_vspan_xrgb32;
 
-  m->raster[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeDifferenceSSE2::xrgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeDifferenceSSE2::xrgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeDifferenceSSE2::xrgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeDifferenceSSE2::xrgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeDifferenceSSE2::xrgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeDifferenceSSE2::xrgb32_vspan_xrgb32_a8;
 
-  m->raster[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeDifferenceSSE2::xrgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeDifferenceSSE2::xrgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeDifferenceSSE2::xrgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeDifferenceSSE2::xrgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeDifferenceSSE2::xrgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_DIFFERENCE][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeDifferenceSSE2::xrgb32_vspan_xrgb32_a8_const;
 
   // [Composite - Exclusion]
 
-  m->raster[COMPOSITE_EXCLUSION][PIXEL_FORMAT_PRGB32].cspan = CompositeExclusionSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_EXCLUSION][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeExclusionSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_EXCLUSION][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeExclusionSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_EXCLUSION][PIXEL_FORMAT_PRGB32].cspan = CompositeExclusionSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_EXCLUSION][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeExclusionSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_EXCLUSION][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeExclusionSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_EXCLUSION][PIXEL_FORMAT_PRGB32].cspan_a8_scanline = CompositeExclusionSSE2::prgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_EXCLUSION][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeExclusionSSE2::prgb32_vspan_prgb32;
-  m->raster[COMPOSITE_EXCLUSION][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeExclusionSSE2::prgb32_vspan_argb32;
-  m->raster[COMPOSITE_EXCLUSION][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeExclusionSSE2::prgb32_vspan_xrgb32;
+  m->composite[COMPOSITE_EXCLUSION][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeExclusionSSE2::prgb32_vspan_prgb32;
+  m->composite[COMPOSITE_EXCLUSION][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeExclusionSSE2::prgb32_vspan_argb32;
+  m->composite[COMPOSITE_EXCLUSION][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeExclusionSSE2::prgb32_vspan_xrgb32;
 
-  m->raster[COMPOSITE_EXCLUSION][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeExclusionSSE2::prgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_EXCLUSION][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeExclusionSSE2::prgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_EXCLUSION][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeExclusionSSE2::prgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_EXCLUSION][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeExclusionSSE2::prgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_EXCLUSION][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeExclusionSSE2::prgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_EXCLUSION][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeExclusionSSE2::prgb32_vspan_xrgb32_a8;
 
-  m->raster[COMPOSITE_EXCLUSION][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeExclusionSSE2::prgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_EXCLUSION][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeExclusionSSE2::prgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_EXCLUSION][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeExclusionSSE2::prgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_EXCLUSION][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeExclusionSSE2::prgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_EXCLUSION][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeExclusionSSE2::prgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_EXCLUSION][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeExclusionSSE2::prgb32_vspan_xrgb32_a8_const;
 
-  m->raster[COMPOSITE_EXCLUSION][PIXEL_FORMAT_XRGB32].cspan = CompositeExclusionSSE2::xrgb32_cspan;
-  m->raster[COMPOSITE_EXCLUSION][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeExclusionSSE2::xrgb32_cspan_a8;
-  m->raster[COMPOSITE_EXCLUSION][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeExclusionSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_EXCLUSION][PIXEL_FORMAT_XRGB32].cspan = CompositeExclusionSSE2::xrgb32_cspan;
+  m->composite[COMPOSITE_EXCLUSION][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeExclusionSSE2::xrgb32_cspan_a8;
+  m->composite[COMPOSITE_EXCLUSION][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeExclusionSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_EXCLUSION][PIXEL_FORMAT_XRGB32].cspan_a8_scanline = CompositeExclusionSSE2::xrgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_EXCLUSION][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeExclusionSSE2::xrgb32_vspan_prgb32;
-  m->raster[COMPOSITE_EXCLUSION][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeExclusionSSE2::xrgb32_vspan_argb32;
-  m->raster[COMPOSITE_EXCLUSION][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeExclusionSSE2::xrgb32_vspan_xrgb32;
+  m->composite[COMPOSITE_EXCLUSION][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeExclusionSSE2::xrgb32_vspan_prgb32;
+  m->composite[COMPOSITE_EXCLUSION][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeExclusionSSE2::xrgb32_vspan_argb32;
+  m->composite[COMPOSITE_EXCLUSION][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeExclusionSSE2::xrgb32_vspan_xrgb32;
 
-  m->raster[COMPOSITE_EXCLUSION][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeExclusionSSE2::xrgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_EXCLUSION][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeExclusionSSE2::xrgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_EXCLUSION][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeExclusionSSE2::xrgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_EXCLUSION][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeExclusionSSE2::xrgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_EXCLUSION][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeExclusionSSE2::xrgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_EXCLUSION][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeExclusionSSE2::xrgb32_vspan_xrgb32_a8;
 
-  m->raster[COMPOSITE_EXCLUSION][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeExclusionSSE2::xrgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_EXCLUSION][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeExclusionSSE2::xrgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_EXCLUSION][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeExclusionSSE2::xrgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_EXCLUSION][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeExclusionSSE2::xrgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_EXCLUSION][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeExclusionSSE2::xrgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_EXCLUSION][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeExclusionSSE2::xrgb32_vspan_xrgb32_a8_const;
 
   // [Composite - Invert]
 
-  m->raster[COMPOSITE_INVERT][PIXEL_FORMAT_PRGB32].cspan = CompositeInvertSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_INVERT][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeInvertSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_INVERT][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeInvertSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_INVERT][PIXEL_FORMAT_PRGB32].cspan = CompositeInvertSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_INVERT][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeInvertSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_INVERT][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeInvertSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_INVERT][PIXEL_FORMAT_PRGB32].cspan_a8_scanline = CompositeInvertSSE2::prgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_INVERT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeInvertSSE2::prgb32_vspan_prgb32;
-  m->raster[COMPOSITE_INVERT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeInvertSSE2::prgb32_vspan_argb32;
-  m->raster[COMPOSITE_INVERT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeInvertSSE2::prgb32_vspan_xrgb32;
+  m->composite[COMPOSITE_INVERT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeInvertSSE2::prgb32_vspan_prgb32;
+  m->composite[COMPOSITE_INVERT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeInvertSSE2::prgb32_vspan_argb32;
+  m->composite[COMPOSITE_INVERT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeInvertSSE2::prgb32_vspan_xrgb32;
 
-  m->raster[COMPOSITE_INVERT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeInvertSSE2::prgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_INVERT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeInvertSSE2::prgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_INVERT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeInvertSSE2::prgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_INVERT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeInvertSSE2::prgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_INVERT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeInvertSSE2::prgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_INVERT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeInvertSSE2::prgb32_vspan_xrgb32_a8;
 
-  m->raster[COMPOSITE_INVERT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeInvertSSE2::prgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_INVERT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeInvertSSE2::prgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_INVERT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeInvertSSE2::prgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_INVERT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeInvertSSE2::prgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_INVERT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeInvertSSE2::prgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_INVERT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeInvertSSE2::prgb32_vspan_xrgb32_a8_const;
 
-  m->raster[COMPOSITE_INVERT][PIXEL_FORMAT_XRGB32].cspan = CompositeInvertSSE2::xrgb32_cspan;
-  m->raster[COMPOSITE_INVERT][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeInvertSSE2::xrgb32_cspan_a8;
-  m->raster[COMPOSITE_INVERT][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeInvertSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_INVERT][PIXEL_FORMAT_XRGB32].cspan = CompositeInvertSSE2::xrgb32_cspan;
+  m->composite[COMPOSITE_INVERT][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeInvertSSE2::xrgb32_cspan_a8;
+  m->composite[COMPOSITE_INVERT][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeInvertSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_INVERT][PIXEL_FORMAT_XRGB32].cspan_a8_scanline = CompositeInvertSSE2::xrgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_INVERT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeInvertSSE2::xrgb32_vspan_prgb32;
-  m->raster[COMPOSITE_INVERT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeInvertSSE2::xrgb32_vspan_argb32;
-  m->raster[COMPOSITE_INVERT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeInvertSSE2::xrgb32_vspan_xrgb32;
+  m->composite[COMPOSITE_INVERT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeInvertSSE2::xrgb32_vspan_prgb32;
+  m->composite[COMPOSITE_INVERT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeInvertSSE2::xrgb32_vspan_argb32;
+  m->composite[COMPOSITE_INVERT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeInvertSSE2::xrgb32_vspan_xrgb32;
 
-  m->raster[COMPOSITE_INVERT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeInvertSSE2::xrgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_INVERT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeInvertSSE2::xrgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_INVERT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeInvertSSE2::xrgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_INVERT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeInvertSSE2::xrgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_INVERT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeInvertSSE2::xrgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_INVERT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeInvertSSE2::xrgb32_vspan_xrgb32_a8;
 
-  m->raster[COMPOSITE_INVERT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeInvertSSE2::xrgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_INVERT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeInvertSSE2::xrgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_INVERT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeInvertSSE2::xrgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_INVERT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeInvertSSE2::xrgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_INVERT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeInvertSSE2::xrgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_INVERT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeInvertSSE2::xrgb32_vspan_xrgb32_a8_const;
 
   // [Composite - InvertRgb]
 
-  m->raster[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_PRGB32].cspan = CompositeInvertRgbSSE2::prgb32_cspan;
-  m->raster[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeInvertRgbSSE2::prgb32_cspan_a8;
-  m->raster[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeInvertRgbSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_PRGB32].cspan = CompositeInvertRgbSSE2::prgb32_cspan;
+  m->composite[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeInvertRgbSSE2::prgb32_cspan_a8;
+  m->composite[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeInvertRgbSSE2::prgb32_cspan_a8_const;
+  m->composite[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_PRGB32].cspan_a8_scanline = CompositeInvertRgbSSE2::prgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeInvertRgbSSE2::prgb32_vspan_prgb32;
-  m->raster[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeInvertRgbSSE2::prgb32_vspan_argb32;
-  m->raster[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeInvertRgbSSE2::prgb32_vspan_xrgb32;
+  m->composite[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeInvertRgbSSE2::prgb32_vspan_prgb32;
+  m->composite[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeInvertRgbSSE2::prgb32_vspan_argb32;
+  m->composite[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeInvertRgbSSE2::prgb32_vspan_xrgb32;
 
-  m->raster[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeInvertRgbSSE2::prgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeInvertRgbSSE2::prgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeInvertRgbSSE2::prgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeInvertRgbSSE2::prgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeInvertRgbSSE2::prgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeInvertRgbSSE2::prgb32_vspan_xrgb32_a8;
 
-  m->raster[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeInvertRgbSSE2::prgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeInvertRgbSSE2::prgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeInvertRgbSSE2::prgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeInvertRgbSSE2::prgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeInvertRgbSSE2::prgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeInvertRgbSSE2::prgb32_vspan_xrgb32_a8_const;
 
-  m->raster[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_XRGB32].cspan = CompositeInvertRgbSSE2::xrgb32_cspan;
-  m->raster[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeInvertRgbSSE2::xrgb32_cspan_a8;
-  m->raster[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeInvertRgbSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_XRGB32].cspan = CompositeInvertRgbSSE2::xrgb32_cspan;
+  m->composite[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeInvertRgbSSE2::xrgb32_cspan_a8;
+  m->composite[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_XRGB32].cspan_a8_const = CompositeInvertRgbSSE2::xrgb32_cspan_a8_const;
+  m->composite[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_XRGB32].cspan_a8_scanline = CompositeInvertRgbSSE2::xrgb32_cspan_a8_scanline;
 
-  m->raster[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeInvertRgbSSE2::xrgb32_vspan_prgb32;
-  m->raster[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeInvertRgbSSE2::xrgb32_vspan_argb32;
-  m->raster[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeInvertRgbSSE2::xrgb32_vspan_xrgb32;
+  m->composite[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeInvertRgbSSE2::xrgb32_vspan_prgb32;
+  m->composite[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeInvertRgbSSE2::xrgb32_vspan_argb32;
+  m->composite[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeInvertRgbSSE2::xrgb32_vspan_xrgb32;
 
-  m->raster[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeInvertRgbSSE2::xrgb32_vspan_prgb32_a8;
-  m->raster[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeInvertRgbSSE2::xrgb32_vspan_argb32_a8;
-  m->raster[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeInvertRgbSSE2::xrgb32_vspan_xrgb32_a8;
+  m->composite[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeInvertRgbSSE2::xrgb32_vspan_prgb32_a8;
+  m->composite[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeInvertRgbSSE2::xrgb32_vspan_argb32_a8;
+  m->composite[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeInvertRgbSSE2::xrgb32_vspan_xrgb32_a8;
 
-  m->raster[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeInvertRgbSSE2::xrgb32_vspan_prgb32_a8_const;
-  m->raster[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeInvertRgbSSE2::xrgb32_vspan_argb32_a8_const;
-  m->raster[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeInvertRgbSSE2::xrgb32_vspan_xrgb32_a8_const;
+  m->composite[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeInvertRgbSSE2::xrgb32_vspan_prgb32_a8_const;
+  m->composite[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeInvertRgbSSE2::xrgb32_vspan_argb32_a8_const;
+  m->composite[COMPOSITE_INVERT_RGB][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeInvertRgbSSE2::xrgb32_vspan_xrgb32_a8_const;
 }
