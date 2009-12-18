@@ -49,8 +49,8 @@ struct ColorLutData
 //! ColorLut::filter() method.
 struct FOG_API ColorLutFilter
 {
-  FOG_INLINE ColorLutFilter() {}
-  FOG_INLINE ~ColorLutFilter() {}
+  ColorLutFilter();
+  virtual ~ColorLutFilter();
 
   virtual err_t filter(uint8_t* data) const = 0;
 
