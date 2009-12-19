@@ -5859,37 +5859,19 @@ struct FOG_HIDDEN CompositeSrcOverSSE2
     BLIT_SSE2_32x4_SMALL_END(blt)
 
     BLIT_SSE2_32x4_LARGE_BEGIN(blt)
-      // This is heavily optimized inner loop of SRC_OVER operator. This is
-      // invention that comes from BlitJit project and this code was translated
-      // originally from BlitJit code generator. If C++ compiler is smart then
-      // this code is limit what you can do while using 4-pixels per time.
       __m128i src0xmm;
       __m128i alp0xmm, alp1xmm;
       __m128i dst0xmm, dst1xmm;
 
-      uint srcMsk0;
-      uint srcMsk1;
-
       pix_load16u(src0xmm, src);
-      
-      alp0xmm = _mm_cmpeq_epi8(alp0xmm, alp0xmm);
-      alp1xmm = _mm_setzero_si128();
 
-      alp0xmm = _mm_cmpeq_epi8(alp0xmm, src0xmm);
-      alp1xmm = _mm_cmpeq_epi8(alp1xmm, src0xmm);
+      BLIT_SSE2_TEST_4_PRGB_PIXELS(src0xmm, alp0xmm, alp1xmm, blt_fill, blt_away)
 
-      srcMsk0 = (uint)_mm_movemask_epi8(alp0xmm);
-      srcMsk1 = (uint)_mm_movemask_epi8(alp1xmm);
-      alp0xmm = _mm_shuffle_epi32(src0xmm, _MM_SHUFFLE(3, 2, 1, 0));
-      srcMsk0 &= 0x8888;
-
-      if (srcMsk1 == 0xFFFF) goto blt_away;
-      if (srcMsk0 == 0x8888) goto blt_fill;
-
-      alp0xmm = _mm_xor_si128(alp0xmm, Mask_FF000000FF000000_FF000000FF000000);
       pix_load16a(dst0xmm, dst);
-      pix_unpack_2x2W(alp0xmm, alp1xmm, alp0xmm);
+      alp0xmm = _mm_shuffle_epi32(src0xmm, _MM_SHUFFLE(3, 2, 1, 0));
+      alp0xmm = _mm_xor_si128(alp0xmm, Mask_FF000000FF000000_FF000000FF000000);
       pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
+      pix_unpack_2x2W(alp0xmm, alp1xmm, alp0xmm);
       pix_expand_alpha_2x2W(alp0xmm, alp0xmm, alp1xmm, alp1xmm);
       pix_multiply_2x2W(alp0xmm, alp0xmm, dst0xmm, alp1xmm, alp1xmm, dst1xmm);
       pix_pack_2x2W(alp0xmm, alp0xmm, alp1xmm);
@@ -6853,35 +6835,17 @@ blt_away:
     BLIT_SSE2_32x4_SMALL_END(blt)
 
     BLIT_SSE2_32x4_LARGE_BEGIN(blt)
-      // This is heavily optimized inner loop of SRC_OVER operator. This is
-      // invention that comes from BlitJit project and this code was translated
-      // originally from BlitJit code generator. If C++ compiler is smart then
-      // this code is limit what you can do while using 4-pixels per time.
       __m128i src0xmm;
       __m128i alp0xmm, alp1xmm;
       __m128i dst0xmm, dst1xmm;
 
-      uint srcMsk0;
-      uint srcMsk1;
-
       pix_load16u(src0xmm, src);
 
-      alp0xmm = _mm_cmpeq_epi8(alp0xmm, alp0xmm);
-      alp1xmm = _mm_setzero_si128();
+      BLIT_SSE2_TEST_4_PRGB_PIXELS(src0xmm, alp0xmm, alp1xmm, blt_fill, blt_away)
 
-      alp0xmm = _mm_cmpeq_epi8(alp0xmm, src0xmm);
-      alp1xmm = _mm_cmpeq_epi8(alp1xmm, src0xmm);
-
-      srcMsk0 = (uint)_mm_movemask_epi8(alp0xmm);
-      srcMsk1 = (uint)_mm_movemask_epi8(alp1xmm);
-      alp0xmm = _mm_shuffle_epi32(src0xmm, _MM_SHUFFLE(3, 2, 1, 0));
-      srcMsk0 &= 0x8888;
-
-      if (srcMsk1 == 0xFFFF) goto blt_away;
-      if (srcMsk0 == 0x8888) goto blt_fill;
-
-      alp0xmm = _mm_xor_si128(alp0xmm, Mask_FF000000FF000000_FF000000FF000000);
       pix_load16a(dst0xmm, dst);
+      alp0xmm = _mm_shuffle_epi32(src0xmm, _MM_SHUFFLE(3, 2, 1, 0));
+      alp0xmm = _mm_xor_si128(alp0xmm, Mask_FF000000FF000000_FF000000FF000000);
       pix_fill_alpha_1x4B(dst0xmm);
       pix_unpack_2x2W(alp0xmm, alp1xmm, alp0xmm);
       pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
