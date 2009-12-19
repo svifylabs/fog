@@ -128,7 +128,7 @@ struct ApproximateCurve4Data
 // [Fog::PathUtil::Function Map]
 // ============================================================================
 
-struct FOG_HIDDEN FunctionMap
+struct FunctionMap
 {
   typedef void (FOG_FASTCALL *TransformVertexFn)(PathVertex* data, sysuint_t count, const Matrix* matrix);
   typedef void (FOG_FASTCALL *TransformVertex2Fn)(PathVertex* dst, const PathVertex* src, sysuint_t count, const Matrix* matrix);

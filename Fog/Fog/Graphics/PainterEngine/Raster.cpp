@@ -3725,10 +3725,6 @@ void RasterPainterEngine::_renderPath(Context* ctx, Rasterizer* ras)
     {
       RasterUtil::CSpanScanlineFn blitter = ctx->rops->cspan_a8_scanline;
 
-      //RasterUtil::CSpanFn cspan = ctx->rops->cspan;
-      //RasterUtil::CSpanMskFn cspan_a8 = ctx->rops->cspan_a8;
-      //RasterUtil::CSpanMskConstFn cspan_a8_const = ctx->rops->cspan_a8_const;
-
       const RasterUtil::Solid* source = &capsState->solid;
       RasterUtil::Closure* closure = &ctx->closure;
 
@@ -3741,39 +3737,6 @@ void RasterPainterEngine::_renderPath(Context* ctx, Rasterizer* ras)
           if (numSpans == 0) continue;
 
           blitter(pBase, source, scanline->getSpansData(), numSpans, closure);
-/*
-          const Scanline32::Span* span = scanline->getSpansData();
-          for (;;)
-          {
-            int x = span->x;
-            int len = span->len;
-
-            pCur = pBase + x * _bpp;
-
-            if (len > 0)
-            {
-              cspan_a8(pCur, source, span->covers, (unsigned)len, closure);
-            }
-            else
-            {
-              len = -len;
-              FOG_ASSERT(len > 0);
-
-              uint32_t cover = (uint32_t)*(span->covers);
-              if (cover == 0xFF)
-              {
-                cspan(pCur, source, len, closure);
-              }
-              else
-              {
-                cspan_a8_const(pCur, source, cover, len, closure);
-              }
-            }
-
-            if (--numSpans == 0) break;
-            ++span;
-          }
-*/
         }
       }
       else
@@ -3825,40 +3788,6 @@ sourceArgbClipAdvance:
           if (numSpans == 0) continue;
 
           blitter(pBase, source, scanline->getSpansData(), numSpans, closure);
-/*
-          const Scanline32::Span* span = scanline->getSpansData();
-
-          for (;;)
-          {
-            int x = span->x;
-            int len = span->len;
-
-            pCur = pBase + x * _bpp;
-
-            if (len > 0)
-            {
-              cspan_a8(pCur, source, span->covers, (unsigned)len, closure);
-            }
-            else
-            {
-              len = -len;
-              FOG_ASSERT(len > 0);
-
-              uint32_t cover = (uint32_t)*(span->covers);
-              if (cover == 0xFF)
-              {
-                cspan(pCur, source, len, closure);
-              }
-              else
-              {
-                cspan_a8_const(pCur, source, cover, len, closure);
-              }
-            }
-
-            if (--numSpans == 0) break;
-            ++span;
-          }
-*/
         }
       }
       break;

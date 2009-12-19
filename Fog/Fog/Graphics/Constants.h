@@ -221,12 +221,12 @@ enum COMPOSITE_OP
   //!   Dca' = Sc.m + Dca.(1 - m)
   //!   Da'  = 1.m + Da.(1 - m)
   //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces (SRC):
-  //!   Dc'  = Sca
+  //! Formulas for RGB(dst), PRGB(src) colorspaces (SRC_OVER):
+  //!   Dc'  = Sca + Dc.(1 - Sa)
   //!
   //!   Msk:
   //!
-  //!   Da'  = Sca.m + Dc.(1 - m)
+  //!   Da'  = Sca.m + Dc.(1 - Sa.m)
   //!
   //! Formulas for RGB(dst), RGB(src) colorspaces (SRC):
   //!   Dc'  = Sc

@@ -31,7 +31,9 @@ static void loadSprites()
     "kweather.pcx"
   };
 
-  for (int i = 0; i < NUM_SPRITES; i++)
+  int i;
+
+  for (i = 0; i < NUM_SPRITES; i++)
   {
     if (_sprite[i].readFile(Ascii8(spriteNames[i])) != ERR_OK)
     {
@@ -46,8 +48,8 @@ static void loadSprites()
 
   if (spritesNotFound)
   {
-    fog_debug("\nDownload sprites from these locations and place them to 'bench' working directory:");
-    for (int i = 0; i < NUM_SPRITES; i++)
+    fog_debug("\nDownload sprites from these locations and place them to 'FogBench' working directory:");
+    for (i = 0; i < NUM_SPRITES; i++)
     {
       fog_debug("  http://kobalicek.com/data/fog/sprites/%s", spriteNames[i]);
     }
@@ -1218,9 +1220,9 @@ static TimeDelta bench(BenchmarkModule& mod, int sw, int sh, int quantity)
   ByteArray info = mod.getInfo();
 
   if (sw == 0 || sh == 0)
-    s.format("%-25s -> %.3f [ms]", info.getData(), delta.inMillisecondsF());
+    s.format("%-26s -> %.3f [ms]", info.getData(), delta.inMillisecondsF());
   else
-    s.format("%-25s [%dx%d] -> %.3f [ms]", info.getData(), sw, sh, delta.inMillisecondsF());
+    s.format("%-26s [%dx%d] -> %.3f [ms]", info.getData(), sw, sh, delta.inMillisecondsF());
 
   fog_debug(s.getData());
   mod.saveResult(sw, sh);
@@ -1371,6 +1373,7 @@ static void benchAll()
   fog_debug("");
 
 #else
+#if 0
   // --------------------------------------------------------------------------
   // Cairo
   // --------------------------------------------------------------------------
@@ -1418,7 +1421,7 @@ static void benchAll()
   }
 
   fog_debug("");
-
+#endif
 #endif // FOG_OS_WINDOWS
 
   fog_debug("Summary:");

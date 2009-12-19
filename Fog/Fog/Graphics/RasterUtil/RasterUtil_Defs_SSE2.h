@@ -801,11 +801,16 @@ static FOG_INLINE void pix_expand_mask_1x1D(
 static FOG_INLINE void pix_multiply_1x1W(
   __m128i& dst0, const __m128i& data0, const __m128i& alpha0)
 {
+/*
   __m128i t0;
 
   t0 = _mm_mullo_epi16(data0, alpha0);
   t0 = _mm_adds_epu16(t0, Mask_0080008000800080_0080008000800080);
   dst0 = _mm_mulhi_epu16(t0, Mask_0101010101010101_0101010101010101);
+*/
+  dst0 = _mm_mullo_epi16(data0, alpha0);
+  dst0 = _mm_adds_epu16(dst0, Mask_0080008000800080_0080008000800080);
+  dst0 = _mm_mulhi_epu16(dst0, Mask_0101010101010101_0101010101010101);
 }
 
 static FOG_INLINE void pix_multiply_1x2W(
@@ -818,6 +823,7 @@ static FOG_INLINE void pix_multiply_2x2W(
   __m128i& dst0, const __m128i& data0, const __m128i& alpha0,
   __m128i& dst1, const __m128i& data1, const __m128i& alpha1)
 {
+/*
   __m128i t0, t1;
 
   t0 = _mm_mullo_epi16(data0, alpha0);
@@ -826,6 +832,13 @@ static FOG_INLINE void pix_multiply_2x2W(
   t1 = _mm_adds_epu16(t1, Mask_0080008000800080_0080008000800080);
   dst0 = _mm_mulhi_epu16(t0, Mask_0101010101010101_0101010101010101);
   dst1 = _mm_mulhi_epu16(t1, Mask_0101010101010101_0101010101010101);
+*/
+  dst0 = _mm_mullo_epi16(data0, alpha0);
+  dst1 = _mm_mullo_epi16(data1, alpha1);
+  dst0 = _mm_adds_epu16(dst0, Mask_0080008000800080_0080008000800080);
+  dst1 = _mm_adds_epu16(dst1, Mask_0080008000800080_0080008000800080);
+  dst0 = _mm_mulhi_epu16(dst0, Mask_0101010101010101_0101010101010101);
+  dst1 = _mm_mulhi_epu16(dst1, Mask_0101010101010101_0101010101010101);
 }
 
 // Fill Alpha.

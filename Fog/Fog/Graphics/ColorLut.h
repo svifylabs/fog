@@ -79,8 +79,8 @@ struct FOG_API ColorLut
   FOG_INLINE const ColorLutData* getData() const { return &_data; }
 
   err_t setData(const ColorLutData* data);
-  err_t reset(int channel);
 
+  err_t reset(int channel);
   err_t saturate(int channel, int minThreshold, int maxThreshold);
   err_t multiply(int channel, double by);
   err_t add(int channel, int value);
