@@ -2312,12 +2312,12 @@ struct CompositeMaskLerpInSSE2
         pix_load16a(dst0xmm, dst);
         pix_expand_mask_2x2W(msk0xmm, msk1xmm, msk0);
         pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
-        pix_negate_2x2W(inv0xmm, msk0xmm, inv0xmm, msk1xmm);
+        pix_negate_2x2W(inv0xmm, msk0xmm, inv1xmm, msk1xmm);
         pix_multiply_2x2W(msk0xmm, msk0xmm, src0xmm, msk1xmm, msk1xmm, src0xmm);
-        pix_multiply_2x2W(inv0xmm, inv0xmm, dst0xmm, inv0xmm, inv0xmm, dst1xmm);
+        pix_multiply_2x2W(inv0xmm, inv0xmm, dst0xmm, inv1xmm, inv1xmm, dst1xmm);
         pix_pack_2x2W(inv0xmm, inv0xmm, inv1xmm);
 
-        OP::prgb32_op_prgb32_unpacked_2x2W(dst0xmm, dst0xmm, msk0xmm, dst1xmm, dst1xmm, msk0xmm);
+        OP::prgb32_op_prgb32_unpacked_2x2W(dst0xmm, dst0xmm, msk0xmm, dst1xmm, dst1xmm, msk1xmm);
 
         pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
         pix_adds_1x4B(dst0xmm, dst0xmm, inv0xmm);
@@ -2381,6 +2381,119 @@ struct CompositeMaskLerpInSSE2
 
       dst += 16;
     BLIT_SSE2_32x4_LARGE_END(blt)
+  }
+  
+  static void FOG_FASTCALL prgb32_cspan_a8_scanline(
+    uint8_t* dst, const Solid* src, const Scanline32::Span* spans, sysuint_t numSpans, const Closure* closure)
+  {
+    BLIT_SSE2_CSPAN_SCANLINE_STEP1_BEGIN(4)
+
+    __m128i src0xmm;
+
+    pix_load4(src0xmm, &src->prgb);
+    pix_expand_pixel_1x4B(src0xmm, src0xmm);
+    pix_unpack_1x2W(src0xmm, src0xmm);
+
+    // Const mask.
+    BLIT_SSE2_CSPAN_SCANLINE_STEP2_CONST()
+    {
+      __m128i msk0xmm;
+      __m128i inv0xmm;
+
+      pix_expand_mask_1x1W(inv0xmm, msk0);
+      pix_expand_pixel_1x2W(inv0xmm, inv0xmm);
+      pix_multiply_1x2W(msk0xmm, src0xmm, inv0xmm);
+      pix_negate_1x2W(inv0xmm, inv0xmm);
+
+      BLIT_SSE2_32x4_INIT(dst, w)
+
+      BLIT_SSE2_32x4_SMALL_BEGIN(bltConst)
+        __m128i dst0xmm;
+        __m128i tmp0xmm;
+
+        pix_load4(dst0xmm, dst);
+        pix_unpack_1x1W(dst0xmm, dst0xmm);
+        pix_multiply_1x1W(tmp0xmm, dst0xmm, inv0xmm);
+
+        OP::prgb32_op_prgb32_unpacked_1x1W(dst0xmm, dst0xmm, msk0xmm);
+
+        pix_adds_1x1W(dst0xmm, dst0xmm, tmp0xmm);
+        pix_pack_1x1W(dst0xmm, dst0xmm);
+        pix_store4(dst, dst0xmm);
+
+        dst += 4;
+      BLIT_SSE2_32x4_SMALL_END(bltConst)
+
+      BLIT_SSE2_32x4_LARGE_BEGIN(bltConst)
+        __m128i dst0xmm, dst1xmm;
+        __m128i tmp0xmm, tmp1xmm;
+
+        pix_load16a(dst0xmm, dst);
+        pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
+        pix_multiply_2x2W(tmp0xmm, dst0xmm, inv0xmm, tmp1xmm, dst1xmm, inv0xmm);
+        pix_pack_2x2W(tmp0xmm, tmp0xmm, tmp1xmm);
+
+        OP::prgb32_op_prgb32_unpacked_2x2W(dst0xmm, dst0xmm, msk0xmm, dst1xmm, dst1xmm, msk0xmm);
+
+        pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
+        pix_adds_1x4B(dst0xmm, dst0xmm, tmp0xmm);
+        pix_store16a(dst, dst0xmm);
+
+        dst += 16;
+      BLIT_SSE2_32x4_LARGE_END(bltConst)
+    }
+    // Variable mask.
+    BLIT_SSE2_CSPAN_SCANLINE_STEP3_MASK()
+    {
+      BLIT_SSE2_32x4_INIT(dst, w)
+
+      BLIT_SSE2_32x4_SMALL_BEGIN(bltMask)
+        __m128i dst0xmm;
+        __m128i msk0xmm;
+        __m128i inv0xmm;
+
+        pix_load4(dst0xmm, dst);
+        pix_expand_mask_1x1W(msk0xmm, READ_8(msk));
+        pix_unpack_1x1W(dst0xmm, dst0xmm);
+        pix_negate_1x1W(inv0xmm, msk0xmm);
+        pix_multiply_1x1W(msk0xmm, msk0xmm, src0xmm);
+        pix_multiply_1x1W(inv0xmm, inv0xmm, dst0xmm);
+
+        OP::prgb32_op_prgb32_unpacked_1x1W(dst0xmm, dst0xmm, msk0xmm);
+
+        pix_adds_1x1W(dst0xmm, dst0xmm, inv0xmm);
+        pix_pack_1x1W(dst0xmm, dst0xmm);
+        pix_store4(dst, dst0xmm);
+
+        dst += 4;
+        msk += 1;
+      BLIT_SSE2_32x4_SMALL_END(bltMask)
+
+      BLIT_SSE2_32x4_LARGE_BEGIN(bltMask)
+        __m128i dst0xmm, dst1xmm;
+        __m128i msk0xmm, msk1xmm;
+        __m128i inv0xmm, inv1xmm;
+
+        pix_load16a(dst0xmm, dst);
+        pix_load4(msk0xmm, msk);
+        pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
+        pix_expand_mask_2x2W(msk0xmm, msk1xmm, msk0xmm);
+        pix_negate_2x2W(inv0xmm, msk0xmm, inv1xmm, msk1xmm);
+        pix_multiply_2x2W(msk0xmm, msk0xmm, src0xmm, msk1xmm, msk1xmm, src0xmm);
+        pix_multiply_2x2W(inv0xmm, inv0xmm, dst0xmm, inv1xmm, inv1xmm, dst1xmm);
+        pix_pack_2x2W(inv0xmm, inv0xmm, inv1xmm);
+
+        OP::prgb32_op_prgb32_unpacked_2x2W(dst0xmm, dst0xmm, msk0xmm, dst1xmm, dst1xmm, msk1xmm);
+
+        pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
+        pix_adds_1x4B(dst0xmm, dst0xmm, inv0xmm);
+        pix_store16a(dst, dst0xmm);
+
+        dst += 16;
+        msk += 4;
+      BLIT_SSE2_32x4_LARGE_END(bltMask)
+    }
+    BLIT_SSE2_CSPAN_SCANLINE_STEP4_END()
   }
 
   static void FOG_FASTCALL prgb32_vspan_prgb32_a8(
@@ -2901,12 +3014,12 @@ struct CompositeMaskLerpInSSE2
         pix_load16a(dst0xmm, dst);
         pix_expand_mask_2x2W(msk0xmm, msk1xmm, msk0);
         pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
-        pix_negate_2x2W(inv0xmm, msk0xmm, inv0xmm, msk1xmm);
+        pix_negate_2x2W(inv0xmm, msk0xmm, inv1xmm, msk1xmm);
         pix_multiply_2x2W(msk0xmm, msk0xmm, src0xmm, msk1xmm, msk1xmm, src0xmm);
-        pix_multiply_2x2W(inv0xmm, inv0xmm, dst0xmm, inv0xmm, inv0xmm, dst1xmm);
+        pix_multiply_2x2W(inv0xmm, inv0xmm, dst0xmm, inv1xmm, inv1xmm, dst1xmm);
         pix_pack_2x2W(inv0xmm, inv0xmm, inv1xmm);
 
-        OP::xrgb32_op_prgb32_unpacked_2x2W(dst0xmm, dst0xmm, msk0xmm, dst1xmm, dst1xmm, msk0xmm);
+        OP::xrgb32_op_prgb32_unpacked_2x2W(dst0xmm, dst0xmm, msk0xmm, dst1xmm, dst1xmm, msk1xmm);
 
         pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
         pix_adds_1x4B(dst0xmm, dst0xmm, inv0xmm);
@@ -2970,6 +3083,119 @@ struct CompositeMaskLerpInSSE2
 
       dst += 16;
     BLIT_SSE2_32x4_LARGE_END(blt)
+  }
+
+  static void FOG_FASTCALL xrgb32_cspan_a8_scanline(
+    uint8_t* dst, const Solid* src, const Scanline32::Span* spans, sysuint_t numSpans, const Closure* closure)
+  {
+    BLIT_SSE2_CSPAN_SCANLINE_STEP1_BEGIN(4)
+
+    __m128i src0xmm;
+
+    pix_load4(src0xmm, &src->prgb);
+    pix_expand_pixel_1x4B(src0xmm, src0xmm);
+    pix_unpack_1x2W(src0xmm, src0xmm);
+
+    // Const mask.
+    BLIT_SSE2_CSPAN_SCANLINE_STEP2_CONST()
+    {
+      __m128i msk0xmm;
+      __m128i inv0xmm;
+
+      pix_expand_mask_1x1W(inv0xmm, msk0);
+      pix_expand_pixel_1x2W(inv0xmm, inv0xmm);
+      pix_multiply_1x2W(msk0xmm, src0xmm, inv0xmm);
+      pix_negate_1x2W(inv0xmm, inv0xmm);
+
+      BLIT_SSE2_32x4_INIT(dst, w)
+
+      BLIT_SSE2_32x4_SMALL_BEGIN(bltConst)
+        __m128i dst0xmm;
+        __m128i tmp0xmm;
+
+        pix_load4(dst0xmm, dst);
+        pix_unpack_1x1W(dst0xmm, dst0xmm);
+        pix_multiply_1x1W(tmp0xmm, dst0xmm, inv0xmm);
+
+        OP::xrgb32_op_prgb32_unpacked_1x1W(dst0xmm, dst0xmm, msk0xmm);
+
+        pix_adds_1x1W(dst0xmm, dst0xmm, tmp0xmm);
+        pix_pack_1x1W(dst0xmm, dst0xmm);
+        pix_store4(dst, dst0xmm);
+
+        dst += 4;
+      BLIT_SSE2_32x4_SMALL_END(bltConst)
+
+      BLIT_SSE2_32x4_LARGE_BEGIN(bltConst)
+        __m128i dst0xmm, dst1xmm;
+        __m128i tmp0xmm, tmp1xmm;
+
+        pix_load16a(dst0xmm, dst);
+        pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
+        pix_multiply_2x2W(tmp0xmm, dst0xmm, inv0xmm, tmp1xmm, dst1xmm, inv0xmm);
+        pix_pack_2x2W(tmp0xmm, tmp0xmm, tmp1xmm);
+
+        OP::xrgb32_op_prgb32_unpacked_2x2W(dst0xmm, dst0xmm, msk0xmm, dst1xmm, dst1xmm, msk0xmm);
+
+        pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
+        pix_adds_1x4B(dst0xmm, dst0xmm, tmp0xmm);
+        pix_store16a(dst, dst0xmm);
+
+        dst += 16;
+      BLIT_SSE2_32x4_LARGE_END(bltConst)
+    }
+    // Variable mask.
+    BLIT_SSE2_CSPAN_SCANLINE_STEP3_MASK()
+    {
+      BLIT_SSE2_32x4_INIT(dst, w)
+
+      BLIT_SSE2_32x4_SMALL_BEGIN(bltMask)
+        __m128i dst0xmm;
+        __m128i msk0xmm;
+        __m128i inv0xmm;
+
+        pix_load4(dst0xmm, dst);
+        pix_expand_mask_1x1W(msk0xmm, READ_8(msk));
+        pix_unpack_1x1W(dst0xmm, dst0xmm);
+        pix_negate_1x1W(inv0xmm, msk0xmm);
+        pix_multiply_1x1W(msk0xmm, msk0xmm, src0xmm);
+        pix_multiply_1x1W(inv0xmm, inv0xmm, dst0xmm);
+
+        OP::xrgb32_op_prgb32_unpacked_1x1W(dst0xmm, dst0xmm, msk0xmm);
+
+        pix_adds_1x1W(dst0xmm, dst0xmm, inv0xmm);
+        pix_pack_1x1W(dst0xmm, dst0xmm);
+        pix_store4(dst, dst0xmm);
+
+        dst += 4;
+        msk += 1;
+      BLIT_SSE2_32x4_SMALL_END(bltMask)
+
+      BLIT_SSE2_32x4_LARGE_BEGIN(bltMask)
+        __m128i dst0xmm, dst1xmm;
+        __m128i msk0xmm, msk1xmm;
+        __m128i inv0xmm, inv1xmm;
+
+        pix_load16a(dst0xmm, dst);
+        pix_load4(msk0xmm, msk);
+        pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
+        pix_expand_mask_2x2W(msk0xmm, msk1xmm, msk0xmm);
+        pix_negate_2x2W(inv0xmm, msk0xmm, inv1xmm, msk1xmm);
+        pix_multiply_2x2W(msk0xmm, msk0xmm, src0xmm, msk1xmm, msk1xmm, src0xmm);
+        pix_multiply_2x2W(inv0xmm, inv0xmm, dst0xmm, inv1xmm, inv1xmm, dst1xmm);
+        pix_pack_2x2W(inv0xmm, inv0xmm, inv1xmm);
+
+        OP::xrgb32_op_prgb32_unpacked_2x2W(dst0xmm, dst0xmm, msk0xmm, dst1xmm, dst1xmm, msk1xmm);
+
+        pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
+        pix_adds_1x4B(dst0xmm, dst0xmm, inv0xmm);
+        pix_store16a(dst, dst0xmm);
+
+        dst += 16;
+        msk += 4;
+      BLIT_SSE2_32x4_LARGE_END(bltMask)
+    }
+    BLIT_SSE2_CSPAN_SCANLINE_STEP4_END()
   }
 
   static void FOG_FASTCALL xrgb32_vspan_prgb32_a8(
@@ -5616,7 +5842,7 @@ struct FOG_HIDDEN CompositeSrcOverSSE2
 
       uint32_t src0 = READ_32(src);
 
-      if (src0)
+      if (FOG_LIKELY(src0))
       {
         pix_load4(dst0xmm, dst);
         pix_unpack_1x1W(src0xmm, src0);
@@ -5633,33 +5859,44 @@ struct FOG_HIDDEN CompositeSrcOverSSE2
     BLIT_SSE2_32x4_SMALL_END(blt)
 
     BLIT_SSE2_32x4_LARGE_BEGIN(blt)
-      __m128i src0xmm, src1xmm;
+      // This is heavily optimized inner loop of SRC_OVER operator. This is
+      // invention that comes from BlitJit project and this code was translated
+      // originally from BlitJit code generator. If C++ compiler is smart then
+      // this code is limit what you can do while using 4-pixels per time.
+      __m128i src0xmm;
+      __m128i alp0xmm, alp1xmm;
       __m128i dst0xmm, dst1xmm;
-      __m128i a0xmm, a1xmm;
+
+      uint srcMsk0;
+      uint srcMsk1;
 
       pix_load16u(src0xmm, src);
-      uint32_t src0a = pix_pack_alpha_to_uint32(src0xmm);
+      
+      alp0xmm = _mm_cmpeq_epi8(alp0xmm, alp0xmm);
+      alp1xmm = _mm_setzero_si128();
 
-      if (src0a != 0x00000000)
-      {
-        if (src0a != 0xFFFFFFFF)
-        {
-          pix_load16a(dst0xmm, dst);
+      alp0xmm = _mm_cmpeq_epi8(alp0xmm, src0xmm);
+      alp1xmm = _mm_cmpeq_epi8(alp1xmm, src0xmm);
 
-          pix_unpack_2x2W(src0xmm, src1xmm, src0xmm);
-          pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
-          pix_expand_alpha_2x2W(a0xmm, src0xmm, a1xmm, src1xmm);
-          pix_over_2x2W(dst0xmm, src0xmm, a0xmm, dst1xmm, src1xmm, a1xmm);
-          pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
+      srcMsk0 = (uint)_mm_movemask_epi8(alp0xmm);
+      srcMsk1 = (uint)_mm_movemask_epi8(alp1xmm);
+      alp0xmm = _mm_shuffle_epi32(src0xmm, _MM_SHUFFLE(3, 2, 1, 0));
+      srcMsk0 &= 0x8888;
 
-          pix_store16a(dst, dst0xmm);
-        }
-        else
-        {
-          pix_store16a(dst, src0xmm);
-        }
-      }
+      if (srcMsk1 == 0xFFFF) goto blt_away;
+      if (srcMsk0 == 0x8888) goto blt_fill;
 
+      alp0xmm = _mm_xor_si128(alp0xmm, Mask_FF000000FF000000_FF000000FF000000);
+      pix_load16a(dst0xmm, dst);
+      pix_unpack_2x2W(alp0xmm, alp1xmm, alp0xmm);
+      pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
+      pix_expand_alpha_2x2W(alp0xmm, alp0xmm, alp1xmm, alp1xmm);
+      pix_multiply_2x2W(alp0xmm, alp0xmm, dst0xmm, alp1xmm, alp1xmm, dst1xmm);
+      pix_pack_2x2W(alp0xmm, alp0xmm, alp1xmm);
+      pix_adds_1x4B(src0xmm, src0xmm, alp0xmm);
+blt_fill:
+      pix_store16a(dst, src0xmm);
+blt_away:
       dst += 16;
       src += 16;
     BLIT_SSE2_32x4_LARGE_END(blt)
@@ -6598,7 +6835,7 @@ struct FOG_HIDDEN CompositeSrcOverSSE2
 
       uint32_t src0 = READ_32(src);
 
-      if (src0)
+      if (FOG_LIKELY(src0))
       {
         pix_load4(dst0xmm, dst);
         pix_fill_alpha_1x1B(dst0xmm);
@@ -6616,34 +6853,45 @@ struct FOG_HIDDEN CompositeSrcOverSSE2
     BLIT_SSE2_32x4_SMALL_END(blt)
 
     BLIT_SSE2_32x4_LARGE_BEGIN(blt)
-      __m128i src0xmm, src1xmm;
+      // This is heavily optimized inner loop of SRC_OVER operator. This is
+      // invention that comes from BlitJit project and this code was translated
+      // originally from BlitJit code generator. If C++ compiler is smart then
+      // this code is limit what you can do while using 4-pixels per time.
+      __m128i src0xmm;
+      __m128i alp0xmm, alp1xmm;
       __m128i dst0xmm, dst1xmm;
-      __m128i a0xmm, a1xmm;
+
+      uint srcMsk0;
+      uint srcMsk1;
 
       pix_load16u(src0xmm, src);
-      uint32_t src0a = pix_pack_alpha_to_uint32(src0xmm);
 
-      if (src0a != 0x00000000)
-      {
-        if (src0a == 0xFFFFFFFF)
-        {
-          pix_store16a(dst, src0xmm);
-        }
-        else
-        {
-          pix_load16a(dst0xmm, dst);
-          pix_fill_alpha_1x4B(dst0xmm);
+      alp0xmm = _mm_cmpeq_epi8(alp0xmm, alp0xmm);
+      alp1xmm = _mm_setzero_si128();
 
-          pix_unpack_2x2W(src0xmm, src1xmm, src0xmm);
-          pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
-          pix_expand_alpha_2x2W(a0xmm, src0xmm, a1xmm, src1xmm);
-          pix_over_2x2W(dst0xmm, src0xmm, a0xmm, dst1xmm, src1xmm, a1xmm);
-          pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
+      alp0xmm = _mm_cmpeq_epi8(alp0xmm, src0xmm);
+      alp1xmm = _mm_cmpeq_epi8(alp1xmm, src0xmm);
 
-          pix_store16a(dst, dst0xmm);
-        }
-      }
+      srcMsk0 = (uint)_mm_movemask_epi8(alp0xmm);
+      srcMsk1 = (uint)_mm_movemask_epi8(alp1xmm);
+      alp0xmm = _mm_shuffle_epi32(src0xmm, _MM_SHUFFLE(3, 2, 1, 0));
+      srcMsk0 &= 0x8888;
 
+      if (srcMsk1 == 0xFFFF) goto blt_away;
+      if (srcMsk0 == 0x8888) goto blt_fill;
+
+      alp0xmm = _mm_xor_si128(alp0xmm, Mask_FF000000FF000000_FF000000FF000000);
+      pix_load16a(dst0xmm, dst);
+      pix_fill_alpha_1x4B(dst0xmm);
+      pix_unpack_2x2W(alp0xmm, alp1xmm, alp0xmm);
+      pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
+      pix_expand_alpha_2x2W(alp0xmm, alp0xmm, alp1xmm, alp1xmm);
+      pix_multiply_2x2W(alp0xmm, alp0xmm, dst0xmm, alp1xmm, alp1xmm, dst1xmm);
+      pix_pack_2x2W(alp0xmm, alp0xmm, alp1xmm);
+      pix_adds_1x4B(src0xmm, src0xmm, alp0xmm);
+blt_fill:
+      pix_store16a(dst, src0xmm);
+blt_away:
       dst += 16;
       src += 16;
     BLIT_SSE2_32x4_LARGE_END(blt)
@@ -7145,8 +7393,8 @@ struct CompositeSrcInSSE2
     __m128i src0xmm;
 
     pix_load4(src0xmm, &src->prgb);
-    pix_unpack_1x1W(src0xmm, src0xmm);
-    pix_expand_pixel_1x2W(src0xmm, src0xmm);
+    pix_expand_pixel_1x4B(src0xmm, src0xmm);
+    pix_unpack_1x2W(src0xmm, src0xmm);
 
     BLIT_SSE2_32x4_INIT(dst, w)
 
@@ -7265,6 +7513,129 @@ struct CompositeSrcInSSE2
 
       dst += 16;
     BLIT_SSE2_32x4_LARGE_END(blt)
+  }
+
+  static void FOG_FASTCALL prgb32_cspan_a8_scanline(
+    uint8_t* dst, const Solid* src, const Scanline32::Span* spans, sysuint_t numSpans, const Closure* closure)
+  {
+    BLIT_SSE2_CSPAN_SCANLINE_STEP1_BEGIN(4)
+
+    __m128i src0xmm;
+
+    pix_load4(src0xmm, &src->prgb);
+    pix_expand_pixel_1x4B(src0xmm, src0xmm);
+    pix_unpack_1x2W(src0xmm, src0xmm);
+
+    // Const mask.
+    BLIT_SSE2_CSPAN_SCANLINE_STEP2_CONST()
+    {
+      __m128i msrc0xmm;
+      __m128i minv0xmm;
+
+      pix_expand_mask_1x1W(msrc0xmm, msk0);
+      pix_expand_pixel_1x2W(msrc0xmm, msrc0xmm);
+      pix_negate_1x2W(minv0xmm, msrc0xmm);
+      pix_multiply_1x2W(msrc0xmm, msrc0xmm, src0xmm);
+
+      BLIT_SSE2_32x4_INIT(dst, w)
+
+      BLIT_SSE2_32x4_SMALL_BEGIN(bltConst)
+        __m128i dst0xmm;
+        __m128i tmp0xmm;
+
+        pix_load4(dst0xmm, dst);
+        pix_unpack_1x1W(dst0xmm, dst0xmm);
+
+        pix_expand_alpha_1x1W(tmp0xmm, dst0xmm);
+        pix_multiply_1x1W(tmp0xmm, tmp0xmm, msrc0xmm);
+        pix_multiply_1x1W(dst0xmm, dst0xmm, minv0xmm);
+        pix_adds_1x1W(dst0xmm, dst0xmm, tmp0xmm);
+
+        pix_pack_1x1W(dst0xmm, dst0xmm);
+        pix_store4(dst, dst0xmm);
+
+        dst += 4;
+      BLIT_SSE2_32x4_SMALL_END(bltConst)
+
+      BLIT_SSE2_32x4_LARGE_BEGIN(bltConst)
+        __m128i dst0xmm, dst1xmm;
+        __m128i tmp0xmm, tmp1xmm;
+
+        pix_load16a(dst0xmm, dst);
+        pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
+
+        pix_expand_alpha_2x2W(tmp0xmm, dst0xmm, tmp1xmm, dst1xmm);
+        pix_multiply_2x2W(tmp0xmm, tmp0xmm, msrc0xmm, tmp1xmm, tmp1xmm, msrc0xmm);
+        pix_multiply_2x2W(dst0xmm, dst0xmm, minv0xmm, dst1xmm, dst1xmm, minv0xmm);
+        pix_adds_2x2W(dst0xmm, dst0xmm, tmp0xmm, dst1xmm, dst1xmm, tmp1xmm);
+
+        pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
+        pix_store16a(dst, dst0xmm);
+
+        dst += 16;
+      BLIT_SSE2_32x4_LARGE_END(bltConst)
+    }
+    // Variable mask.
+    BLIT_SSE2_CSPAN_SCANLINE_STEP3_MASK()
+    {
+      BLIT_SSE2_32x4_INIT(dst, w)
+
+      BLIT_SSE2_32x4_SMALL_BEGIN(blt)
+        uint32_t msk0 = READ_8(msk);
+
+        __m128i dst0xmm;
+        __m128i msk0xmm;
+        __m128i tmp0xmm;
+
+        pix_load4(dst0xmm, dst);
+        pix_unpack_1x1W(dst0xmm, dst0xmm);
+
+        pix_expand_alpha_1x1W(tmp0xmm, dst0xmm);
+        pix_multiply_1x1W(tmp0xmm, tmp0xmm, src0xmm);
+
+        pix_expand_mask_1x1W(msk0xmm, msk0);
+        pix_multiply_1x1W(tmp0xmm, tmp0xmm, msk0xmm);
+
+        pix_negate_1x1W(msk0xmm, msk0xmm);
+        pix_multiply_1x1W(dst0xmm, dst0xmm, msk0xmm);
+
+        pix_adds_1x1W(dst0xmm, dst0xmm, tmp0xmm);
+
+        pix_pack_1x1W(dst0xmm, dst0xmm);
+        pix_store4(dst, dst0xmm);
+
+        dst += 4;
+        msk += 1;
+      BLIT_SSE2_32x4_SMALL_END(blt)
+
+      BLIT_SSE2_32x4_LARGE_BEGIN(blt)
+        __m128i dst0xmm, dst1xmm;
+        __m128i msk0xmm, msk1xmm;
+        __m128i tmp0xmm, tmp1xmm;
+
+        pix_load16a(dst0xmm, dst);
+        pix_load4(msk0xmm, msk);
+        pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
+
+        pix_expand_alpha_2x2W(tmp0xmm, dst0xmm, tmp1xmm, dst1xmm);
+        pix_multiply_2x2W(tmp0xmm, tmp0xmm, src0xmm, tmp1xmm, tmp1xmm, src0xmm);
+
+        pix_expand_mask_2x2W(msk0xmm, msk1xmm, msk0xmm);
+        pix_multiply_2x2W(tmp0xmm, tmp0xmm, msk0xmm, tmp1xmm, tmp1xmm, msk1xmm);
+
+        pix_negate_2x2W(msk0xmm, msk0xmm, msk1xmm, msk1xmm);
+        pix_multiply_2x2W(dst0xmm, dst0xmm, msk0xmm, dst1xmm, dst1xmm, msk1xmm);
+
+        pix_adds_2x2W(dst0xmm, dst0xmm, tmp0xmm, dst1xmm, dst1xmm, tmp1xmm);
+
+        pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
+        pix_store16a(dst, dst0xmm);
+
+        dst += 16;
+        msk += 4;
+      BLIT_SSE2_32x4_LARGE_END(blt)
+    }
+    BLIT_SSE2_CSPAN_SCANLINE_STEP4_END()
   }
 
   static void FOG_FASTCALL prgb32_vspan_prgb32(
@@ -8000,6 +8371,114 @@ struct CompositeDstInSSE2
     BLIT_SSE2_32x4_LARGE_END(blt)
   }
 
+  static void FOG_FASTCALL prgb32_cspan_a8_scanline(
+    uint8_t* dst, const Solid* src, const Scanline32::Span* spans, sysuint_t numSpans, const Closure* closure)
+  {
+    BLIT_SSE2_CSPAN_SCANLINE_STEP1_BEGIN(4)
+
+    __m128i src0xmm;
+
+    pix_load4(src0xmm, &src->prgb);
+    pix_expand_pixel_1x4B(src0xmm, src0xmm);
+    pix_unpack_1x2W(src0xmm, src0xmm);
+    pix_expand_alpha_1x2W(src0xmm, src0xmm);
+
+    // Const mask.
+    BLIT_SSE2_CSPAN_SCANLINE_STEP2_CONST()
+    {
+      __m128i msk0xmm;
+      {
+        __m128i inv0xmm;
+
+        pix_expand_mask_1x1W(msk0xmm, msk0);
+        pix_negate_1x1W(inv0xmm, msk0xmm);
+        pix_multiply_1x1W(msk0xmm, msk0xmm, src0xmm);
+        pix_adds_1x1W(msk0xmm, msk0xmm, inv0xmm);
+
+        pix_expand_pixel_1x2W(msk0xmm, msk0xmm);
+      }
+
+      BLIT_SSE2_32x4_INIT(dst, w)
+
+      BLIT_SSE2_32x4_SMALL_BEGIN(bltConst)
+        __m128i dst0xmm;
+
+        pix_load4(dst0xmm, dst);
+        pix_unpack_1x1W(dst0xmm, dst0xmm);
+
+        pix_multiply_1x1W(dst0xmm, dst0xmm, msk0xmm);
+
+        pix_pack_1x1W(dst0xmm, dst0xmm);
+        pix_store4(dst, dst0xmm);
+
+        dst += 4;
+      BLIT_SSE2_32x4_SMALL_END(bltConst)
+
+      BLIT_SSE2_32x4_LARGE_BEGIN(bltConst)
+        __m128i dst0xmm, dst1xmm;
+
+        pix_load16a(dst0xmm, dst);
+        pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
+
+        pix_multiply_2x2W(dst0xmm, dst0xmm, msk0xmm, dst1xmm, dst1xmm, msk0xmm);
+
+        pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
+        pix_store16a(dst, dst0xmm);
+
+        dst += 16;
+      BLIT_SSE2_32x4_LARGE_END(bltConst)
+    }
+    // Variable mask.
+    BLIT_SSE2_CSPAN_SCANLINE_STEP3_MASK()
+    {
+      BLIT_SSE2_32x4_INIT(dst, w)
+
+      BLIT_SSE2_32x4_SMALL_BEGIN(blt)
+        __m128i dst0xmm;
+        __m128i msk0xmm;
+        __m128i inv0xmm;
+
+        pix_load4(dst0xmm, dst);
+        pix_expand_mask_1x1W(msk0xmm, READ_8(msk));
+        pix_unpack_1x1W(dst0xmm, dst0xmm);
+
+        pix_negate_1x1W(inv0xmm, msk0xmm);
+        pix_multiply_1x1W(msk0xmm, msk0xmm, src0xmm);
+        pix_adds_1x1W(msk0xmm, msk0xmm, inv0xmm);
+        pix_multiply_1x1W(dst0xmm, dst0xmm, msk0xmm);
+
+        pix_pack_1x1W(dst0xmm, dst0xmm);
+        pix_store4(dst, dst0xmm);
+
+        dst += 4;
+        msk += 1;
+      BLIT_SSE2_32x4_SMALL_END(blt)
+
+      BLIT_SSE2_32x4_LARGE_BEGIN(blt)
+        __m128i dst0xmm, dst1xmm;
+        __m128i msk0xmm, msk1xmm;
+        __m128i inv0xmm, inv1xmm;
+
+        pix_load16a(dst0xmm, dst);
+        pix_load4(msk0xmm, msk);
+        pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
+        pix_expand_mask_2x2W(msk0xmm, msk1xmm, msk0xmm);
+
+        pix_negate_2x2W(inv0xmm, msk0xmm, inv1xmm, msk1xmm);
+        pix_multiply_2x2W(msk0xmm, msk0xmm, src0xmm, msk1xmm, msk1xmm, src0xmm);
+        pix_adds_2x2W(msk0xmm, msk0xmm, inv0xmm, msk1xmm, msk1xmm, inv1xmm);
+        pix_multiply_2x2W(dst0xmm, dst0xmm, msk0xmm, dst1xmm, dst1xmm, msk1xmm);
+
+        pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
+        pix_store16a(dst, dst0xmm);
+
+        dst += 16;
+        msk += 4;
+      BLIT_SSE2_32x4_LARGE_END(blt)
+    }
+    BLIT_SSE2_CSPAN_SCANLINE_STEP4_END()
+  }
+
   static void FOG_FASTCALL prgb32_vspan_prgb32_or_argb32(
     uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
   {
@@ -8420,6 +8899,104 @@ struct CompositeDstOutSSE2
 
       dst += 16;
     BLIT_SSE2_32x4_LARGE_END(blt)
+  }
+
+  static void FOG_FASTCALL prgb32_cspan_a8_scanline(
+    uint8_t* dst, const Solid* src, const Scanline32::Span* spans, sysuint_t numSpans, const Closure* closure)
+  {
+    __m128i src0xmm;
+
+    pix_load4(src0xmm, &src->prgb);
+    pix_unpack_1x1W(src0xmm, src0xmm);
+    pix_expand_alpha_1x1W(src0xmm, src0xmm);
+    pix_expand_pixel_1x2W(src0xmm, src0xmm);
+
+    BLIT_SSE2_CSPAN_SCANLINE_STEP1_BEGIN(4)
+
+    // Const mask.
+    BLIT_SSE2_CSPAN_SCANLINE_STEP2_CONST()
+    {
+      __m128i minv0xmm;
+      pix_expand_mask_1x1W(minv0xmm, msk0);
+      pix_expand_pixel_1x2W(minv0xmm, minv0xmm);
+      pix_multiply_1x2W(minv0xmm, minv0xmm, src0xmm);
+      pix_negate_1x2W(minv0xmm, minv0xmm);
+
+      BLIT_SSE2_32x4_INIT(dst, w)
+
+      BLIT_SSE2_32x4_SMALL_BEGIN(bltConst)
+        __m128i dst0xmm;
+
+        pix_load4(dst0xmm, dst);
+        pix_unpack_1x1W(dst0xmm, dst0xmm);
+
+        pix_multiply_1x1W(dst0xmm, dst0xmm, minv0xmm);
+
+        pix_pack_1x1W(dst0xmm, dst0xmm);
+        pix_store4(dst, dst0xmm);
+
+        dst += 4;
+      BLIT_SSE2_32x4_SMALL_END(bltConst)
+
+      BLIT_SSE2_32x4_LARGE_BEGIN(bltConst)
+        __m128i dst0xmm, dst1xmm;
+
+        pix_load16a(dst0xmm, dst);
+        pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
+
+        pix_multiply_2x2W(dst0xmm, dst0xmm, minv0xmm, dst1xmm, dst1xmm, minv0xmm);
+
+        pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
+        pix_store16a(dst, dst0xmm);
+
+        dst += 16;
+      BLIT_SSE2_32x4_LARGE_END(bltConst)
+    }
+    // Variable mask.
+    BLIT_SSE2_CSPAN_SCANLINE_STEP3_MASK()
+    {
+      BLIT_SSE2_32x4_INIT(dst, w)
+
+      BLIT_SSE2_32x4_SMALL_BEGIN(bltMask)
+        __m128i dst0xmm;
+        __m128i msk0xmm;
+
+        pix_load4(dst0xmm, dst);
+        pix_expand_mask_1x1W(msk0xmm, READ_8(msk));
+        pix_unpack_1x1W(dst0xmm, dst0xmm);
+
+        pix_multiply_1x1W(msk0xmm, msk0xmm, src0xmm);
+        pix_negate_1x1W(msk0xmm, msk0xmm);
+        pix_multiply_1x1W(dst0xmm, dst0xmm, msk0xmm);
+
+        pix_pack_1x1W(dst0xmm, dst0xmm);
+        pix_store4(dst, dst0xmm);
+
+        dst += 4;
+        msk += 1;
+      BLIT_SSE2_32x4_SMALL_END(bltMask)
+
+      BLIT_SSE2_32x4_LARGE_BEGIN(bltMask)
+        __m128i dst0xmm, dst1xmm;
+        __m128i msk0xmm, msk1xmm;
+
+        pix_load16a(dst0xmm, dst);
+        pix_load4(msk0xmm, msk);
+        pix_expand_mask_2x2W(msk0xmm, msk1xmm, msk0xmm);
+        pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
+
+        pix_multiply_2x2W(msk0xmm, msk0xmm, src0xmm, msk1xmm, msk1xmm, src0xmm);
+        pix_negate_2x2W(msk0xmm, msk0xmm, msk1xmm, msk1xmm);
+        pix_multiply_2x2W(dst0xmm, dst0xmm, msk0xmm, dst1xmm, dst1xmm, msk1xmm);
+
+        pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
+        pix_store16a(dst, dst0xmm);
+
+        dst += 16;
+        msk += 4;
+      BLIT_SSE2_32x4_LARGE_END(bltMask)
+    }
+    BLIT_SSE2_CSPAN_SCANLINE_STEP4_END()
   }
 
   static void FOG_FASTCALL prgb32_vspan_prgb32_or_argb32(
@@ -9011,10 +9588,12 @@ struct FOG_HIDDEN CompositeClearSSE2
   static void FOG_FASTCALL prgb32_cspan_a8_const(
     uint8_t* dst, const Solid* src, uint32_t msk0, sysint_t w, const Closure* closure)
   {
+    FOG_UNUSED(src);
+
     __m128i m0xmm;
     pix_expand_mask_1x1W(m0xmm, msk0);
     pix_expand_pixel_1x2W(m0xmm, m0xmm);
-    pix_negate_1x1W(m0xmm, m0xmm);
+    pix_negate_1x2W(m0xmm, m0xmm);
 
     BLIT_SSE2_32x4_INIT(dst, w)
 
@@ -9041,6 +9620,105 @@ struct FOG_HIDDEN CompositeClearSSE2
 
       dst += 16;
     BLIT_SSE2_32x4_LARGE_END(blt)
+  }
+
+  static void FOG_FASTCALL prgb32_cspan_a8_scanline(
+    uint8_t* dst, const Solid* src, const Scanline32::Span* spans, sysuint_t numSpans, const Closure* closure)
+  {
+    FOG_UNUSED(src);
+    __m128i src0xmm = _mm_setzero_si128();
+
+    BLIT_SSE2_CSPAN_SCANLINE_STEP1_BEGIN(4)
+
+    // Const mask.
+    BLIT_SSE2_CSPAN_SCANLINE_STEP2_CONST()
+    {
+      if (msk0 == 0xFF)
+      {
+        BLIT_SSE2_32x4_INIT(dst, w)
+
+        BLIT_SSE2_32x4_SMALL_BEGIN(bltTrans)
+          pix_store4(dst, src0xmm);
+          dst += 4;
+        BLIT_SSE2_32x4_SMALL_END(bltTrans)
+
+        BLIT_SSE2_32x4_LARGE_BEGIN(bltTrans)
+          pix_store16a(dst, src0xmm);
+          dst += 16;
+        BLIT_SSE2_32x4_LARGE_END(bltTrans)
+      }
+      else
+      {
+        __m128i msk0xmm;
+        pix_expand_mask_1x1W(msk0xmm, msk0);
+        pix_expand_pixel_1x2W(msk0xmm, msk0xmm);
+        pix_negate_1x2W(msk0xmm, msk0xmm);
+
+        BLIT_SSE2_32x4_INIT(dst, w)
+
+        BLIT_SSE2_32x4_SMALL_BEGIN(bltConst)
+          __m128i dst0xmm;
+
+          pix_load4(dst0xmm, dst);
+          pix_unpack_1x1W(dst0xmm, dst0xmm);
+          pix_multiply_1x1W(dst0xmm, dst0xmm, msk0xmm);
+          pix_pack_1x1W(dst0xmm, dst0xmm);
+          pix_store4(dst, dst0xmm);
+
+          dst += 4;
+        BLIT_SSE2_32x4_SMALL_END(bltConst)
+
+        BLIT_SSE2_32x4_LARGE_BEGIN(bltConst)
+          __m128i dst0xmm, dst1xmm;
+
+          pix_load16a(dst0xmm, dst);
+          pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
+          pix_multiply_2x2W(dst0xmm, dst0xmm, msk0xmm, dst1xmm, dst1xmm, msk0xmm);
+          pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
+          pix_store16a(dst, dst0xmm);
+
+          dst += 16;
+        BLIT_SSE2_32x4_LARGE_END(bltConst)
+      }
+    }
+    // Variable mask.
+    BLIT_SSE2_CSPAN_SCANLINE_STEP3_MASK()
+    {
+      BLIT_SSE2_32x4_INIT(dst, w)
+
+      BLIT_SSE2_32x4_SMALL_BEGIN(bltMask)
+        __m128i dst0xmm;
+        __m128i msk0xmm;
+
+        pix_load4(dst0xmm, dst);
+        pix_expand_mask_1x1W(msk0xmm, READ_8(msk));
+        pix_negate_1x1W(msk0xmm, msk0xmm);
+        pix_multiply_1x1W(dst0xmm, dst0xmm, msk0xmm);
+        pix_pack_1x1W(dst0xmm, dst0xmm);
+        pix_store4(dst, dst0xmm);
+
+        dst += 4;
+        msk += 1;
+      BLIT_SSE2_32x4_SMALL_END(bltMask)
+
+      BLIT_SSE2_32x4_LARGE_BEGIN(bltMask)
+        __m128i dst0xmm, dst1xmm;
+        __m128i msk0xmm, msk1xmm;
+
+        pix_load16a(dst0xmm, dst);
+        pix_load4(msk0xmm, msk);
+        pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
+        pix_expand_mask_2x2W(msk0xmm, msk1xmm, msk0xmm);
+        pix_negate_2x2W(msk0xmm, msk0xmm, msk1xmm, msk1xmm);
+        pix_multiply_2x2W(dst0xmm, dst0xmm, msk0xmm, dst1xmm, dst1xmm, msk1xmm);
+        pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
+        pix_store16a(dst, dst0xmm);
+
+        dst += 16;
+        msk += 4;
+      BLIT_SSE2_32x4_LARGE_END(bltMask)
+    }
+    BLIT_SSE2_CSPAN_SCANLINE_STEP4_END()
   }
 
   // -------------------------------------------------------------------------
@@ -9166,6 +9844,109 @@ struct FOG_HIDDEN CompositeClearSSE2
 
       dst += 16;
     BLIT_SSE2_32x4_LARGE_END(blt)
+  }
+
+  static void FOG_FASTCALL xrgb32_cspan_a8_scanline(
+    uint8_t* dst, const Solid* src, const Scanline32::Span* spans, sysuint_t numSpans, const Closure* closure)
+  {
+    FOG_UNUSED(src);
+    __m128i src0xmm = Mask_FF000000FF000000_FF000000FF000000;
+
+    BLIT_SSE2_CSPAN_SCANLINE_STEP1_BEGIN(4)
+
+    // Const mask.
+    BLIT_SSE2_CSPAN_SCANLINE_STEP2_CONST()
+    {
+      if (msk0 == 0xFF)
+      {
+        BLIT_SSE2_32x4_INIT(dst, w)
+
+        BLIT_SSE2_32x4_SMALL_BEGIN(bltTrans)
+          pix_store4(dst, src0xmm);
+          dst += 4;
+        BLIT_SSE2_32x4_SMALL_END(bltTrans)
+
+        BLIT_SSE2_32x4_LARGE_BEGIN(bltTrans)
+          pix_store16a(dst, src0xmm);
+          dst += 16;
+        BLIT_SSE2_32x4_LARGE_END(bltTrans)
+      }
+      else
+      {
+        __m128i msk0xmm;
+        pix_expand_mask_1x1W(msk0xmm, msk0);
+        pix_expand_pixel_1x2W(msk0xmm, msk0xmm);
+        pix_negate_1x2W(msk0xmm, msk0xmm);
+
+        BLIT_SSE2_32x4_INIT(dst, w)
+
+        BLIT_SSE2_32x4_SMALL_BEGIN(bltConst)
+          __m128i dst0xmm;
+
+          pix_load4(dst0xmm, dst);
+          pix_unpack_1x1W(dst0xmm, dst0xmm);
+          pix_multiply_1x1W(dst0xmm, dst0xmm, msk0xmm);
+          pix_pack_1x1W(dst0xmm, dst0xmm);
+          pix_fill_alpha_1x1B(dst0xmm);
+          pix_store4(dst, dst0xmm);
+
+          dst += 4;
+        BLIT_SSE2_32x4_SMALL_END(bltConst)
+
+        BLIT_SSE2_32x4_LARGE_BEGIN(bltConst)
+          __m128i dst0xmm, dst1xmm;
+
+          pix_load16a(dst0xmm, dst);
+          pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
+          pix_multiply_2x2W(dst0xmm, dst0xmm, msk0xmm, dst1xmm, dst1xmm, msk0xmm);
+          pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
+          pix_fill_alpha_1x4B(dst0xmm);
+          pix_store16a(dst, dst0xmm);
+
+          dst += 16;
+        BLIT_SSE2_32x4_LARGE_END(bltConst)
+      }
+    }
+    // Variable mask.
+    BLIT_SSE2_CSPAN_SCANLINE_STEP3_MASK()
+    {
+      BLIT_SSE2_32x4_INIT(dst, w)
+
+      BLIT_SSE2_32x4_SMALL_BEGIN(bltMask)
+        __m128i dst0xmm;
+        __m128i msk0xmm;
+
+        pix_load4(dst0xmm, dst);
+        pix_expand_mask_1x1W(msk0xmm, READ_8(msk));
+        pix_negate_1x1W(msk0xmm, msk0xmm);
+        pix_multiply_1x1W(dst0xmm, dst0xmm, msk0xmm);
+        pix_pack_1x1W(dst0xmm, dst0xmm);
+        pix_fill_alpha_1x1B(dst0xmm);
+        pix_store4(dst, dst0xmm);
+
+        dst += 4;
+        msk += 1;
+      BLIT_SSE2_32x4_SMALL_END(bltMask)
+
+      BLIT_SSE2_32x4_LARGE_BEGIN(bltMask)
+        __m128i dst0xmm, dst1xmm;
+        __m128i msk0xmm, msk1xmm;
+
+        pix_load16a(dst0xmm, dst);
+        pix_load4(msk0xmm, msk);
+        pix_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
+        pix_expand_mask_2x2W(msk0xmm, msk1xmm, msk0xmm);
+        pix_negate_2x2W(msk0xmm, msk0xmm, msk1xmm, msk1xmm);
+        pix_multiply_2x2W(dst0xmm, dst0xmm, msk0xmm, dst1xmm, dst1xmm, msk1xmm);
+        pix_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
+        pix_fill_alpha_1x4B(dst0xmm);
+        pix_store16a(dst, dst0xmm);
+
+        dst += 16;
+        msk += 4;
+      BLIT_SSE2_32x4_LARGE_END(bltMask)
+    }
+    BLIT_SSE2_CSPAN_SCANLINE_STEP4_END()
   }
 };
 
