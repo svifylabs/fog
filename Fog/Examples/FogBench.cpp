@@ -1373,7 +1373,6 @@ static void benchAll()
   fog_debug("");
 
 #else
-#if 0
   // --------------------------------------------------------------------------
   // Cairo
   // --------------------------------------------------------------------------
@@ -1421,7 +1420,6 @@ static void benchAll()
   }
 
   fog_debug("");
-#endif
 #endif // FOG_OS_WINDOWS
 
   fog_debug("Summary:");
