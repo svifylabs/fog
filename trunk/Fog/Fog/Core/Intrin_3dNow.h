@@ -3,17 +3,13 @@
 // [Licence]
 // MIT, See COPYING file in package
 
-// Copyright (c) 2006-2008 The Chromium Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
 // [Guard]
 #ifndef _FOG_CPU_INTRIN_3DNOW_H
 #define _FOG_CPU_INTRIN_3DNOW_H
 
 // [Dependencies]
 #include <Fog/Build/Build.h>
-#include <Fog/Cpu/Intrin_MMX.h>
+#include <Fog/Core/Intrin_MMX.h>
 #include <mm3dnow.h>
 
 //! @addtogroup Fog_Core

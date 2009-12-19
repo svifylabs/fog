@@ -212,6 +212,38 @@ group##_end: \
   ;
 
 // Macros to help creating cspan_a8_scanline blitting functions.
+//
+// Purpose of this macro is to simplify making such functions. This inner loop
+// is quite optimized so don't worry about it. You need only to create code
+// that will be added after:
+//
+//   BLIT_SSE2_CSPAN_SCANLINE_STEP2_CONST and
+//   BLIT_SSE2_CSPAN_SCANLINE_STEP3_MASK.
+//
+// Typical code looks like this:
+//
+//    BLIT_SSE2_CSPAN_SCANLINE_STEP1_BEGIN(4)
+//
+//    Initialize your code for filling, unpack pixels, etc...
+//
+//    // Const mask.
+//    BLIT_SSE2_CSPAN_SCANLINE_STEP2_CONST()
+//    {
+//      'dst'  - Destination pointer where to write pixels.
+//      'w'    - Count of pixels to write (width).
+//      'msk0' - Constant pixels mask (you can check for common case that
+//               is 0xFF, never check for 0x00 - this never happens here).
+//    }
+//    // Variable mask.
+//    BLIT_SSE2_CSPAN_SCANLINE_STEP3_MASK()
+//    {
+//      'dst'  - Destination pointer where to write pixels.
+//      'w'    - Count of pixels to write (width).
+//      'msk'  - Pointer to mask array (A8 array). Omit checks for nulls and
+//               full opaque pixels here, this happens rarely.
+//    }
+//    BLIT_SSE2_CSPAN_SCANLINE_STEP4_END()
+
 #define BLIT_SSE2_CSPAN_SCANLINE_STEP1_BEGIN(BPP) \
   const Scanline32::Span* span = spans; \
   uint8_t* dstBase = dst; \
@@ -245,6 +277,28 @@ group##_end: \
       if (--numSpans == 0) break; \
       ++span; \
     } \
+  }
+
+// This is heavily optimized inner loop test for all opaque pixels or all
+// transparent ones. This is invention that comes from BlitJit project and
+// this code was translated originally from BlitJit code generator. If C++
+// compiler is smart then this code is limit what you can do while using
+// 4-pixels per time.
+#define BLIT_SSE2_TEST_4_PRGB_PIXELS(__src0xmm, __tmp0xmm, __tmp1xmm, __L_fill, __L_away) \
+  _mm_ext_fill_si128(__tmp0xmm); \
+  __tmp1xmm = _mm_setzero_si128(); \
+  \
+  __tmp0xmm = _mm_cmpeq_epi8(__tmp0xmm, __src0xmm); \
+  __tmp1xmm = _mm_cmpeq_epi8(__tmp1xmm, __src0xmm); \
+  \
+  { \
+    register uint __srcMsk0 = (uint)_mm_movemask_epi8(__tmp0xmm); \
+    register uint __srcMsk1 = (uint)_mm_movemask_epi8(__tmp1xmm); \
+    \
+    __srcMsk0 &= 0x8888; \
+    \
+    if (__srcMsk1 == 0xFFFF) goto __L_away; \
+    if (__srcMsk0 == 0x8888) goto __L_fill; \
   }
 
 // ============================================================================

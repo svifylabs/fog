@@ -3,10 +3,6 @@
 // [Licence]
 // MIT, See COPYING file in package
 
-// Copyright (c) 2006-2008 The Chromium Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
 // [Guard]
 #ifndef _FOG_CORE_INTRIN_SSE2_H
 #define _FOG_CORE_INTRIN_SSE2_H
@@ -26,6 +22,19 @@ static FOG_INLINE __m128i _mm_castps_si128(__m128 n) { return *(__m128i*)&n; }
 
 // Our extensions (can't be inline, because MSVC complains about constant expression).
 #define _mm_shuffle_epi32_f(src, imm) _mm_castsi128_ps(_mm_shuffle_epi32(_mm_castps_si128(src), imm));
+
+// Fix for stupid msvc debugger feature that will assert you if you want to fill
+// xmm register by ones using _mm_cmpeq_epi8() on currently uninitialized variable.
+//
+// In release mode it's ok so we add setzero() call only in debug builds.
+#if defined(_MSC_VER) && (defined(DEBUG) || defined(_DEBUG) || defined(FOG_DEBUG))
+# define _mm_ext_fill_si128(__var) \
+  __var = _mm_setzero_si128(); \
+  __var = _mm_cmpeq_epi8(__var, __var)
+#else
+# define _mm_ext_fill_si128(__var) \
+  __var = _mm_cmpeq_epi8(__var, __var)
+#endif
 
 //! @addtogroup Fog_Core
 //! @{
