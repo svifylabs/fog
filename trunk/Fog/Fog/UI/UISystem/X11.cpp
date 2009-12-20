@@ -340,24 +340,27 @@ X11UISystem::X11UISystem()
   // Open X11, Xext and Xrender libraries.
   if ( (err = loadLibraries()) )
   {
+    fog_stderr_msg("Fog::X11UISystem", "X11UISystem", "Can't load X11 libraries.");
     return;
   }
 
   // X locale support.
   if (!pXSupportsLocale())
   {
-    fog_stderr_msg("Fog::X11UISystem", "X11UISystem", "X does not support locale");
+    fog_stderr_msg("Fog::X11UISystem", "X11UISystem", "X does not support locale.");
   }
-  else {
+  else
+  {
     char* localeModifiers;
     if ( !(localeModifiers = pXSetLocaleModifiers("")) )
     {
-      fog_stderr_msg("Fog::X11UISystem", "X11UISystem", "Can't set X locale modifiers");
+      fog_stderr_msg("Fog::X11UISystem", "X11UISystem", "Can't set X locale modifiers.");
     }
   }
 
   if ((_display = pXOpenDisplay("")) == NULL)
   {
+    fog_stderr_msg("Fog::X11UISystem", "X11UISystem", "Can't open display.");
     err = ERR_UI_CANT_OPEN_DISPLAY;
     return;
   }
@@ -378,8 +381,8 @@ X11UISystem::X11UISystem()
   // Create wakeup pipe.
   if (pipe(_wakeUpPipe) < 0)
   {
-    err = ERR_UI_CANT_CREATE_PIPE;
     fog_debug("Fog::X11UISystem::X11UISystem() - Can't create wakeup pipe (errno=%d).", errno);
+    err = ERR_UI_CANT_CREATE_PIPE;
     goto fail;
   }
 
@@ -393,6 +396,7 @@ X11UISystem::X11UISystem()
   // Alloc colormap for 4, 8 bit depth
   if (_displayInfo.depth <= 8 && !createColormap())
   {
+    fog_debug("Fog::X11UISystem::X11UISystem() - Can't create colormap.");
     err = ERR_UI_CANT_CREATE_COLORMAP;
     goto fail;
   }
@@ -614,10 +618,10 @@ uint32_t X11UISystem::translateXSym(KeySym xsym) const
       key = 0;
 #ifdef SunXK_F36
       if (xsym == SunXK_F36) key = KeyF11;
-#endif
+#endif // SunXK_F36
 #ifdef SunXK_F37
       if (xsym == SunXK_F37) key = KeyF12;
-#endif
+#endif // SunXK_F37
       break;
 
     case 0x00: // Latin 1
@@ -1257,12 +1261,14 @@ err_t X11UIWindow::setIcon(const Image& icon)
 {
   if (!_handle) return ERR_RT_INVALID_HANDLE;
 
+  return ERR_RT_NOT_IMPLEMENTED;
 }
 
 err_t X11UIWindow::getIcon(Image& icon)
 {
   if (!_handle) return ERR_RT_INVALID_HANDLE;
 
+  return ERR_RT_NOT_IMPLEMENTED;
 }
 
 err_t X11UIWindow::setSizeGranularity(const Point& pt)
@@ -1271,6 +1277,12 @@ err_t X11UIWindow::setSizeGranularity(const Point& pt)
 
   XSizeHints hints;
   Memory::zero(&hints, sizeof(XSizeHints));
+
+  // TODO:
+  // hints.flags = PBaseSize;
+  // hints.base_width = baseWidth;
+  // hints.base_height = baseHeight;
+
   hints.flags = PResizeInc;
   hints.width_inc = pt.getX();
   hints.height_inc = pt.getY();
