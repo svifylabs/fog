@@ -416,9 +416,7 @@ String Application::detectUI()
 {
 #if defined(FOG_OS_WINDOWS)
   return Ascii8("UI.Windows");
-#endif // FOG_OS_WINDOWS
-
-#if defined(FOG_OS_POSIX)
+#elif defined(FOG_OS_POSIX)
   return Ascii8("UI.X11");
 #endif // FOG_OS_POSIX
 }

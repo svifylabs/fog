@@ -301,6 +301,24 @@ group##_end: \
     if (__srcMsk0 == 0x8888) goto __L_fill; \
   }
 
+#define BLIT_SSE2_TEST_4_ARGB_PIXELS(__src0xmm, __tmp0xmm, __tmp1xmm, __L_fill, __L_away) \
+  __tmp1xmm = _mm_setzero_si128(); \
+  _mm_ext_fill_si128(__tmp0xmm); \
+  \
+  __tmp1xmm = _mm_cmpeq_epi8(__tmp1xmm, __src0xmm); \
+  __tmp0xmm = _mm_cmpeq_epi8(__tmp0xmm, __src0xmm); \
+  \
+  { \
+    register uint __srcMsk1 = (uint)_mm_movemask_epi8(__tmp1xmm); \
+    register uint __srcMsk0 = (uint)_mm_movemask_epi8(__tmp0xmm); \
+    \
+    __srcMsk1 &= 0x8888; \
+    __srcMsk0 &= 0x8888; \
+    \
+    if (__srcMsk1 == 0x8888) goto __L_away; \
+    if (__srcMsk0 == 0x8888) goto __L_fill; \
+  }
+
 // ============================================================================
 // [Fog::Raster_SSE2 - Constants]
 // ============================================================================

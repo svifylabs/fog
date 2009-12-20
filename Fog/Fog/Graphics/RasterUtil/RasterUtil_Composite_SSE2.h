@@ -6081,6 +6081,7 @@ blt_away:
       __m128i a0xmm, a1xmm;
 
       pix_load16u(src0xmm, src);
+
       uint32_t src0a = pix_pack_alpha_to_uint32(src0xmm);
 
       if (src0a != 0x00000000)
