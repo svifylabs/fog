@@ -409,13 +409,18 @@ FOG_INIT_DECLARE err_t fog_library_init(void)
 
 #if defined(FOG_OS_POSIX)
 #if FOG_ARCH_BITS == 32
-  library_local.instance().paths.append(Ascii8("/usr/lib"));
-  library_local.instance().paths.append(Ascii8("/usr/local/lib"));
+  library_local->paths.append(Ascii8("/usr/lib"));
+  library_local->paths.append(Ascii8("/usr/local/lib"));
 #else
-  library_local.instance().paths.append(Ascii8("/usr/lib64"));
-  library_local.instance().paths.append(Ascii8("/usr/local/lib64"));
+  library_local->paths.append(Ascii8("/usr/lib64"));
+  library_local->paths.append(Ascii8("/usr/local/lib64"));
 #endif // FOG_ARCH_BITS
 #endif // FOG_OS_POSIX
+
+#if defined(FOG_OS_MAC)
+  // The default path of MacPorts.
+  library_local->paths.append(Ascii8("/opt/local/lib"));
+#endif // FOG_OS_MAC
 
   return ERR_OK;
 }
@@ -425,5 +430,5 @@ FOG_INIT_DECLARE void fog_library_shutdown(void)
   using namespace Fog;
 
   library_local.destroy();
-  Library::sharedNull.instancep()->refCount.dec();
+  Library::sharedNull->refCount.dec();
 }
