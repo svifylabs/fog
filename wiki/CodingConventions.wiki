@@ -1,5 +1,5 @@
+#summary (incomplete) overview over the coding conventions.
 #labels Phase-Implementation
-mnb #summary (incomplete) overview over the coding conventions.
 
 ==Identation, Braces, Position of Keywords==
 *Code Indentation* Code inside `{}`-Braces should be indented for 2 whitespaces. 
