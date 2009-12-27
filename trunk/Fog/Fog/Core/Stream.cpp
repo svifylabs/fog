@@ -240,7 +240,7 @@ err_t HANDLEStreamDevice::openFile(const String& _fileName, uint32_t openFlags, 
 
   uint32_t createPathFlags = 
     STREAM_OPEN_CREATE     |
-    STREAM_OPEN_CREATE_PATH |
+    STREAM_OPEN_CREATE_PATH|
     STREAM_OPEN_WRITE      ;
 
   uint32_t fflags = STREAM_IS_OPEN | STREAM_IS_SEEKABLE | STREAM_IS_CLOSABLE;
