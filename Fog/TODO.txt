@@ -30,9 +30,6 @@ TODO P1
     [w] Introduce setColorFilter(), resetColorFilter()
     [w] High-quality downscaling (transformation / scaling down)
 
-[ ] Image:
-    [ ] Render text using Font::getGlyphs
-
 [ ] Font:
     [w] Ability to render to 'Path'
         [x] Win32
@@ -58,8 +55,8 @@ TODO P1
 [ ] Image filtering:
     [ ] Image filters (Blur, Sharpen, ...) should be grouped and result should be
         ImageFilter class that will be able to do any image based transformations.
-    [ ] Each effect should contain opacity value that will define blend factor of modified image
-        into source image (this can be used by UI animations).
+    [ ] Each effect should contain opacity value that will define blend factor of
+        modified image into source image (this can be used by UI animations).
     [ ] Sharpen
     [ ] Convolve
 

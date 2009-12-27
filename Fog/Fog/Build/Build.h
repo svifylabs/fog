@@ -574,6 +574,27 @@
 // Standard C/C++ defs
 #if !defined(FOG_HAVE_STDINT_H)
 
+#if defined(_MSC_VER)
+
+#if (_MSC_VER < 1300)
+typedef char int8_t;
+typedef short int16_t;
+typedef int int32_t;
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
+#else
+typedef __int8 int8_t;
+typedef __int16 int16_t;
+typedef __int32 int32_t;
+typedef __int64 int64_t;
+typedef unsigned __int8 uint8_t;
+typedef unsigned __int16 uint16_t;
+typedef unsigned __int32 uint32_t;
+typedef unsigned __int64 uint64_t;
+#endif
+
+#else // !defined(_MSC_VER)
 // We are trying to be compatible with everything defined by standard compilers.
 // So we will define some macros that says that these types were defined so
 // standard compliant compiler should understand them.
@@ -607,46 +628,33 @@ typedef int int32_t;
 typedef unsigned int uint32_t;
 #endif // __uint32_t_defined
 
-#if defined(FOG_CC_MSVC)
+#if FOG_SIZEOF_LONG == 8
 
 # if !defined(__int64_t_defined)
 #  define __int64_t_defined
-typedef __int64 int64_t;
+typedef long int64_t;
 # endif // __int64_t_defined
 
 # if !defined(__uint64_t_defined)
 #  define __uint64_t_defined
-typedef unsigned __int64 uint64_t;
+typedef unsigned long uint64_t;
 # endif // __uint64_t_defined
 
-#else // !FOG_CC_MSVC
-# if FOG_SIZEOF_LONG == 8
+#else
 
-#  if !defined(__int64_t_defined)
-#   define __int64_t_defined
-typedef long int64_t;
-#  endif // __int64_t_defined
-
-#  if !defined(__uint64_t_defined)
-#   define __uint64_t_defined
-typedef unsigned long uint64_t;
-#  endif // __uint64_t_defined
-
-# else
-
-#  if !defined(__int64_t_defined)
-#   define __int64_t_defined
+# if !defined(__int64_t_defined)
+#  define __int64_t_defined
 typedef long long int64_t;
-#  endif // __int64_t_defined
+# endif // __int64_t_defined
 
-#  if !defined(__uint64_t_defined)
-#   define __uint64_t_defined
+# if !defined(__uint64_t_defined)
+#  define __uint64_t_defined
 typedef unsigned long long uint64_t;
-#  endif // __uint64_t_defined
+# endif // __uint64_t_defined
 
-# endif
-#endif // FOG_CC_MSVC
+#endif
 
+#endif // !_MSC_VER
 #endif // FOG_HAVE_STDINT_H
 
 // uchar, ushort, uint and ulong.

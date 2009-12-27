@@ -126,9 +126,9 @@ struct AtomicInt64
     return (bool)(_MSINTRIN_(InterlockedCompareExchange64)((int64_t*)atomic, (int64_t)value, (int64_t)compar) == (int64_t)compar);
   }
   
-  static FOG_INLINE int64_t get(int64_t* atomic)
+  static FOG_INLINE int64_t get(const int64_t* atomic)
   {
-    return *(volatile int64_t *)atomic;
+    return *(volatile const int64_t *)atomic;
   }
   
   static FOG_INLINE void inc(int64_t* atomic)

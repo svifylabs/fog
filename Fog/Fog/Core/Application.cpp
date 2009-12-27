@@ -340,6 +340,7 @@ err_t Application::getWorkingDirectory(String& dst)
     }
     else
     {
+      dst.resize(size);
       return dst.slashesToPosix();
     }
   }

@@ -176,14 +176,14 @@ static uint createDirectoryHelper(const Char* path, sysuint_t len)
 err_t FileSystem::createDirectory(const String& dir, bool recursive)
 {
   if (dir.isEmpty()) return ERR_RT_INVALID_ARGUMENT;
-  if (!recursive) return createDirectoryHelper(dir.getData(), dir.getLength());
 
   err_t err;
   TemporaryString<TEMP_LENGTH> dirAbs;
 
   if ( (err = FileUtil::toAbsolutePath(dirAbs, String(), dir)) ) return err;
+  if (!recursive) return createDirectoryHelper(dirAbs.getData(), dirAbs.getLength());
 
-  // FileSystem::toAbsolutePath() always normalize dir to '/', we can imagine
+  // FileSystem::toAbsolutePath() always normalize dir to 'X:/', we can imagine
   // that dirAbs is absolute dir, so we need to find first two occurences
   // of '/'. Second occurece can be end of string.
   sysuint_t i = dirAbs.indexOf(Char('/'));

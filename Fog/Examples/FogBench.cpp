@@ -11,13 +11,16 @@
 #include <Fog/Core.h>
 #include <Fog/Graphics.h>
 
-using namespace Fog;
+#include <stdio.h>
+#include <stdlib.h>
 
-#define NUM_SPRITES 4
+using namespace Fog;
 
 // ============================================================================
 // [Sprites]
 // ============================================================================
+
+#define NUM_SPRITES 4
 
 static Image _sprite[NUM_SPRITES];
 
@@ -53,13 +56,29 @@ static void loadSprites()
     {
       fog_debug("  http://kobalicek.com/data/fog/sprites/%s", spriteNames[i]);
     }
-    fog_debug("\nBlitImage test will be incorrect!\n");
+    fog_debug("\nImage tests will be incorrect!\n");
   }
 }
 
 // ============================================================================
-// [Tools]
+// [Logging]
 // ============================================================================
+
+static void log(const String& s)
+{
+  ByteArray b;
+  TextCodec::local8().fromUnicode(b, s);
+  fprintf(stderr, "%s", b.getData());
+}
+
+// ============================================================================
+// [Randomizer Tools]
+// ============================================================================
+
+static FOG_INLINE double randDouble()
+{
+  return (double)(rand() & (0xFFFF>>1)) / (double)(0xFFFF>>1);
+}
 
 static FOG_INLINE uint32_t randColor()
 {
@@ -78,1143 +97,1572 @@ static FOG_INLINE Point randPoint(int w, int h)
 
 static FOG_INLINE PointD randPointD(int w, int h)
 {
-  return PointD(rand() % w, rand() % h);
+  return PointD(randDouble() * (double)w, randDouble() * (double)h);
 }
 
 // ============================================================================
-// [BenchmarkModule]
+// [Randomizer_Argb]
 // ============================================================================
 
-struct BenchmarkModule
+struct Randomizer_Argb
 {
-  BenchmarkModule(int w, int h) : w(w), h(h) {}
-  ~BenchmarkModule() {}
+  Randomizer_Argb();
+  ~Randomizer_Argb();
 
-  virtual void prepareBenchmark(int sw, int sh, int quantity) {}
-  virtual void finishBenchmark() {}
-  virtual void doBenchmark(int quantity) = 0;
+  void init(int quantity);
+  void free();
 
-  virtual void saveResult(int sw, int sh) = 0;
+  Argb* data;
+};
+
+Randomizer_Argb::Randomizer_Argb() : data(NULL) {}
+Randomizer_Argb::~Randomizer_Argb() { free(); }
+
+void Randomizer_Argb::init(int quantity)
+{
+  free();
+  data = (Argb*)Memory::alloc(sizeof(Argb) * quantity);
+  for (int a = 0; a < quantity; a++) data[a] = randColor();
+}
+
+void Randomizer_Argb::free()
+{
+  Memory::free(data);
+  data = NULL;
+}
+
+// ============================================================================
+// [Randomizer_Number]
+// ============================================================================
+
+struct Randomizer_Number
+{
+  Randomizer_Number();
+  ~Randomizer_Number();
+
+  void init(int quantity, int min_, int max_);
+  void free();
+
+  int* data;
+};
+
+Randomizer_Number::Randomizer_Number() : data(NULL) {}
+Randomizer_Number::~Randomizer_Number() { free(); }
+
+void Randomizer_Number::init(int quantity, int min_, int max_)
+{
+  free();
+  data = (int*)Memory::alloc(sizeof(int) * quantity);
+
+  for (int a = 0; a < quantity; a++)
+  {
+    data[a] = (int)(randDouble() * (double)(max_ - min_) + min_);
+  }
+}
+
+void Randomizer_Number::free()
+{
+  Memory::free(data);
+  data = NULL;
+}
+
+// ============================================================================
+// [Randomizer_Rect]
+// ============================================================================
+
+struct Randomizer_Rect
+{
+  Randomizer_Rect();
+  ~Randomizer_Rect();
+
+  void init(int quantity, int w, int h, int sw, int sh);
+  void free();
+
+  Rect* data;
+};
+
+Randomizer_Rect::Randomizer_Rect() : data(NULL) {}
+Randomizer_Rect::~Randomizer_Rect() { free(); }
+
+void Randomizer_Rect::init(int quantity, int w, int h, int sw, int sh)
+{
+  free();
+  data = (Rect*)Memory::alloc(sizeof(Rect) * quantity);
+  for (int a = 0; a < quantity; a++) data[a] = randRect(w, h, sw, sh);
+}
+
+void Randomizer_Rect::free()
+{
+  Memory::free(data);
+  data = NULL;
+}
+
+// ============================================================================
+// [Randomizer_Polygon]
+// ============================================================================
+
+struct Randomizer_Polygon
+{
+  Randomizer_Polygon();
+  ~Randomizer_Polygon();
+
+  void init(int quantity, int w, int h, int sw, int sh);
+  void free();
+
+  PointD* data;
+};
+
+Randomizer_Polygon::Randomizer_Polygon() : data(NULL) {}
+Randomizer_Polygon::~Randomizer_Polygon() { free(); }
+
+void Randomizer_Polygon::init(int quantity, int w, int h, int sw, int sh)
+{
+  free();
+  data = (PointD*)Memory::alloc(sizeof(PointD) * quantity * 10);
+
+  double x = 0.0;
+  double y = 0.0;
+
+  for (int a = 0; a < quantity * 10; a++)
+  {
+    if ((a % 10) == 0)
+    {
+      x = randDouble() * (double)(w - sw);
+      y = randDouble() * (double)(h - sh);
+    }
+    data[a] = randPointD(sw, sh).translated(x, y);
+  }
+}
+
+void Randomizer_Polygon::free()
+{
+  Memory::free(data);
+  data = NULL;
+}
+
+// ============================================================================
+// [AbstractModule]
+// ============================================================================
+
+struct AbstractModule
+{
+  AbstractModule(int w, int h);
+  virtual ~AbstractModule();
+
+  virtual void prepare(int quantity, int sw, int sh);
+  virtual void finish();
+  virtual void bench(int quantity) = 0;
+
+  virtual void save(int sw, int sh);
 
   virtual ByteArray getEngine() = 0;
   virtual ByteArray getType() = 0;
   
-  virtual ByteArray getInfo()
-  {
-    ByteArray i = getEngine();
-    i.append(" - ");
-    i.append(getType());
-    return i;
-  }
+  virtual ByteArray getInfo();
 
   int w, h;
-};
 
-// ============================================================================
-// [BenchmarkRandomizer_Rect]
-// ============================================================================
-
-struct BenchmarkRandomizer_Rect
-{
-  BenchmarkRandomizer_Rect()
-  {
-    rectData = NULL;
-    rgbaData = NULL;
-  }
-
-  void prepare(int w, int h, int sw, int sh, int quantity)
-  {
-    int a;
-
-    rectData = (Rect*)Memory::alloc(sizeof(Rect) * quantity);
-    rgbaData = (Argb*)Memory::alloc(sizeof(Argb) * quantity);
-
-    for (a = 0; a < quantity; a++)
-    {
-      rectData[a] = randRect(w, h, sw, sh);
-      rgbaData[a] = randColor();
-    }
-  }
-
-  void finish()
-  {
-    Memory::free(rectData);
-    Memory::free(rgbaData);
-  }
-
-  Rect* rectData;
-  Argb* rgbaData;
-};
-
-// ============================================================================
-// [BenchmarkRandomizer_Polygon]
-// ============================================================================
-
-struct BenchmarkRandomizer_Polygon
-{
-  BenchmarkRandomizer_Polygon()
-  {
-    polyData = NULL;
-    rgbaData = NULL;
-  }
-
-  void prepare(int w, int h, int sw, int sh, int quantity)
-  {
-    double x = 0.0;
-    double y = 0.0;
-    int a;
-
-    polyData = (PointD*)Memory::alloc(sizeof(PointD) * quantity * 10);
-    rgbaData = (Argb  *)Memory::alloc(sizeof(Argb) * quantity);
-
-    for (a = 0; a < quantity * 10; a++)
-    {
-      if ((a % 10) == 0)
-      {
-        x = (rand() % (w - sw));
-        y = (rand() % (h - sh));
-      }
-      polyData[a] = randPointD(sw, sh).translated(x, y);
-    }
-
-    for (a = 0; a < quantity; a++)
-    {
-      rgbaData[a] = randColor();
-    }
-  }
-
-  void finish()
-  {
-    Memory::free(polyData);
-    Memory::free(rgbaData);
-  }
-
-  PointD* polyData;
-  Argb* rgbaData;
-};
-
-// ============================================================================
-// [BenchmarkModule_Fog]
-// ============================================================================
-
-struct BenchmarkModule_Fog : public BenchmarkModule
-{
-  FOG_NO_INLINE BenchmarkModule_Fog(int w, int h) :
-    BenchmarkModule(w, h)
-  {
-    im.create(w, h, PIXEL_FORMAT_PRGB32);
-    im.clear(0x00000000);
-    p.begin(im);
-    setEngine(PAINTER_ENGINE_RASTER_ST);
-
-    for (int a = 0; a < NUM_SPRITES; a++)
-    {
-      sprite[a] = _sprite[a];
-    }
-  }
-
-  FOG_NO_INLINE virtual ~BenchmarkModule_Fog()
-  {
-    p.end();
-  }
-
-  FOG_NO_INLINE virtual void saveResult(int sw, int sh)
-  {
-    String fileName;
-    ByteArray info = getInfo();
-
-    fileName.set(Ascii8("Images/Bench - "));
-    fileName.append(Ascii8(info.getData(), info.getLength()));
-    if (sw && sh) fileName.appendFormat(" [%dx%d]", sw, sh);
-    fileName.append(Ascii8(".bmp"));
-
-    Image t(im);
-    t.writeFile(fileName);
-  }
-
-  FOG_NO_INLINE virtual ByteArray getEngine()
-  {
-    ByteArray info;
-    info.format("Fog (%s)", mt ? "mt" : "st");
-    return info;
-  }
-
-  FOG_NO_INLINE void setEngine(int engine)
-  {
-    this->mt = (engine == PAINTER_ENGINE_RASTER_MT);
-    p.setEngine(engine);
-  }
-
-  Image im;
+  Image screen;
   Image sprite[4];
+};
+
+AbstractModule::AbstractModule(int w, int h) : w(w), h(h)
+{
+  screen.create(w, h, PIXEL_FORMAT_PRGB32);
+  screen.clear(0x00000000);
+
+  for (int a = 0; a < NUM_SPRITES; a++) sprite[a] = _sprite[a];
+}
+
+AbstractModule::~AbstractModule()
+{
+}
+
+void AbstractModule::prepare(int quantity, int sw, int sh) {}
+void AbstractModule::finish() {}
+
+void AbstractModule::save(int sw, int sh)
+{
+  String fileName;
+  ByteArray info = getInfo();
+
+  fileName.set(Ascii8("Images/Bench - "));
+  fileName.append(Ascii8(info.getData(), info.getLength()));
+  if (sw && sh) fileName.appendFormat(" [%dx%d]", sw, sh);
+  fileName.append(Ascii8(".bmp"));
+
+  Image t(screen);
+  t.forceFormat(PIXEL_FORMAT_XRGB32);
+  t.writeFile(fileName);
+}
+
+ByteArray AbstractModule::getInfo()
+{
+  ByteArray i = getEngine();
+  i.append(" - ");
+  i.append(getType());
+  return i;
+}
+
+// ============================================================================
+// [FogModule]
+// ============================================================================
+
+struct FogModule : public AbstractModule
+{
+  FogModule(int w, int h);
+  virtual ~FogModule();
+
+  virtual ByteArray getEngine();
+  void setEngine(int engine);
+
   Painter p;
   bool mt;
 };
 
-// ============================================================================
-// [BenchmarkModule_Fog_FillRect]
-// ============================================================================
-
-struct BenchmarkModule_Fog_FillRect : public BenchmarkModule_Fog
+FogModule::FogModule(int w, int h) : AbstractModule(w, h)
 {
-  BenchmarkModule_Fog_FillRect(int w, int h) :
-    BenchmarkModule_Fog(w, h)
-  {
-  }
+  p.begin(screen);
+  setEngine(PAINTER_ENGINE_RASTER_ST);
+}
 
-  virtual void prepareBenchmark(int sw, int sh, int quantity) { randomizer.prepare(w, h, sw, sh, quantity); }
-  virtual void finishBenchmark() { randomizer.finish(); }
+FogModule::~FogModule()
+{
+}
 
-  virtual void doBenchmark(int quantity)
-  {
-    p.save();
-    for (int a = 0; a < quantity; a++)
-    {
-      p.setSource(randomizer.rgbaData[a]);
-      p.fillRect(randomizer.rectData[a]);
-    }
-    p.restore();
-    p.flush();
-  }
+ByteArray FogModule::getEngine()
+{
+  ByteArray info;
+  info.format("Fog (%s)", mt ? "mt" : "st");
+  return info;
+}
 
-  virtual ByteArray getType() { return ByteArray("FillRect"); }
+void FogModule::setEngine(int engine)
+{
+  this->mt = (engine == PAINTER_ENGINE_RASTER_MT);
+  p.setEngine(engine);
+}
 
-  BenchmarkRandomizer_Rect randomizer;
+// ============================================================================
+// [FogModule_FillRect]
+// ============================================================================
+
+struct FogModule_FillRect : public FogModule
+{
+  FogModule_FillRect(int w, int h);
+  virtual ~FogModule_FillRect();
+
+  virtual void prepare(int quantity, int sw, int sh);
+  virtual void finish();
+
+  virtual void bench(int quantity);
+  virtual ByteArray getType();
+
+  Randomizer_Rect r_rect;
+  Randomizer_Argb r_argb;
 };
 
-// ============================================================================
-// [BenchmarkModule_Fog_FillRound]
-// ============================================================================
+FogModule_FillRect::FogModule_FillRect(int w, int h) : FogModule(w, h) {}
+FogModule_FillRect::~FogModule_FillRect() {}
 
-struct BenchmarkModule_Fog_FillRound : public BenchmarkModule_Fog
+void FogModule_FillRect::prepare(int quantity, int sw, int sh)
 {
-  BenchmarkModule_Fog_FillRound(int w, int h) :
-    BenchmarkModule_Fog(w, h)
+  r_rect.init(quantity, w, h, sw, sh);
+  r_argb.init(quantity);
+}
+
+void FogModule_FillRect::finish()
+{
+  r_rect.free();
+  r_argb.free();
+}
+
+void FogModule_FillRect::bench(int quantity)
+{
+  p.save();
+
+  for (int a = 0; a < quantity; a++)
   {
+    p.setSource(r_argb.data[a]);
+    p.fillRect(r_rect.data[a]);
   }
 
-  virtual void prepareBenchmark(int sw, int sh, int quantity) { randomizer.prepare(w, h, sw, sh, quantity); }
-  virtual void finishBenchmark() { randomizer.finish(); }
+  p.restore();
+  p.flush();
+}
 
-  virtual void doBenchmark(int quantity)
-  {
-    p.save();
-    for (int a = 0; a < quantity; a++)
-    {
-      p.setSource(randomizer.rgbaData[a]);
-      p.fillRound(randomizer.rectData[a], Point(8, 8));
-    }
-    p.restore();
-    p.flush();
-  }
+ByteArray FogModule_FillRect::getType()
+{
+  return ByteArray("FillRect");
+}
 
-  virtual ByteArray getType() { return ByteArray("FillRound"); }
+// ============================================================================
+// [FogModule_FillRound]
+// ============================================================================
 
-  BenchmarkRandomizer_Rect randomizer;
+struct FogModule_FillRound : public FogModule_FillRect
+{
+  FogModule_FillRound(int w, int h);
+  virtual ~FogModule_FillRound();
+
+  virtual void bench(int quantity);
+  virtual ByteArray getType();
+
+  Randomizer_Rect randomizer;
 };
 
-// ============================================================================
-// [BenchmarkModule_Fog_FillPolygon]
-// ============================================================================
+FogModule_FillRound::FogModule_FillRound(int w, int h) : FogModule_FillRect(w, h) {}
+FogModule_FillRound::~FogModule_FillRound() {}
 
-struct BenchmarkModule_Fog_FillPolygon : public BenchmarkModule_Fog
+void FogModule_FillRound::bench(int quantity)
 {
-  BenchmarkRandomizer_Polygon randomizer;
+  p.save();
 
-  BenchmarkModule_Fog_FillPolygon(int w, int h) :
-    BenchmarkModule_Fog(w, h)
+  for (int a = 0; a < quantity; a++)
   {
+    p.setSource(r_argb.data[a]);
+    p.fillRound(r_rect.data[a], Point(8, 8));
   }
 
-  virtual void prepareBenchmark(int sw, int sh, int quantity) { randomizer.prepare(w, h, sw, sh, quantity); }
-  virtual void finishBenchmark() { randomizer.finish(); }
+  p.restore();
+  p.flush();
+}
 
-  virtual void doBenchmark(int quantity)
-  {
-    p.save();
-    p.setFillMode(FILL_EVEN_ODD);
+ByteArray FogModule_FillRound::getType()
+{
+  return ByteArray("FillRound");
+}
 
-    for (int a = 0; a < quantity; a++)
-    {
-      const PointD* polyData = &randomizer.polyData[a*10];
+// ============================================================================
+// [FogModule_FillPolygon]
+// ============================================================================
 
-      Path path;
-      for (int i = 0; i < 10; i++)
-      {
-        PointD c0 = polyData[i];
-        if (i == 0)
-          path.moveTo(c0);
-        else
-          path.lineTo(c0);
-      }
+struct FogModule_FillPolygon : public FogModule
+{
+  FogModule_FillPolygon(int w, int h);
+  virtual ~FogModule_FillPolygon();
 
-      p.setSource(randomizer.rgbaData[a]);
-      p.fillPath(path);
-    }
+  virtual void prepare(int quantity, int sw, int sh);
+  virtual void finish();
 
-    p.restore();
-    p.flush();
-  }
+  virtual void bench(int quantity);
+  virtual ByteArray getType();
 
-  virtual ByteArray getType() { return ByteArray("FillPolygon"); }
+  Randomizer_Polygon r_poly;
+  Randomizer_Argb r_argb;
 };
 
-// ============================================================================
-// [BenchmarkModule_Fog_FillPattern]
-// ============================================================================
+FogModule_FillPolygon::FogModule_FillPolygon(int w, int h) : FogModule(w, h) {}
+FogModule_FillPolygon::~FogModule_FillPolygon() {}
 
-struct BenchmarkModule_Fog_FillPattern : public BenchmarkModule_Fog
+void FogModule_FillPolygon::prepare(int quantity, int sw, int sh)
 {
-  BenchmarkModule_Fog_FillPattern(int w, int h) :
-    BenchmarkModule_Fog(w, h)
-  {
-    pattern.setType(PATTERN_LINEAR_GRADIENT);
-    pattern.setPoints(PointD(w/2.0, h/2.0), PointD(30.0, 30.0));
-    pattern.addStop(ArgbStop(0.0, Argb(0xFFFFFFFF)));
-    pattern.addStop(ArgbStop(0.5, Argb(0xFFFFFF00)));
-    pattern.addStop(ArgbStop(1.0, Argb(0xFF000000)));
-    pattern.setRadius(250.0);
-  }
+  r_poly.init(quantity, w, h, sw, sh);
+  r_argb.init(quantity);
+}
 
-  virtual void prepareBenchmark(int sw, int sh, int quantity) { randomizer.prepare(w, h, sw, sh, quantity); }
-  virtual void finishBenchmark() { randomizer.finish(); }
+void FogModule_FillPolygon::finish()
+{
+  r_poly.free();
+  r_argb.free();
+}
 
-  virtual void doBenchmark(int quantity)
+void FogModule_FillPolygon::bench(int quantity)
+{
+  p.save();
+  p.setFillMode(FILL_EVEN_ODD);
+
+  for (int a = 0; a < quantity; a++)
   {
-    p.save();
-    p.setSource(pattern);
-    for (int a = 0; a < quantity; a++)
+    const PointD* polyData = &r_poly.data[a * 10];
+
+    Path path;
+    for (int i = 0; i < 10; i++)
     {
-      p.fillRect(randomizer.rectData[a]);
-    }
-    p.restore();
-    p.flush();
-  }
-
-  virtual ByteArray getType()
-  {
-    const char* p = "";
-
-    switch (pattern.getType())
-    {
-      case PATTERN_TEXTURE: p = "Texture"; break;
-      case PATTERN_LINEAR_GRADIENT: p = "LinearGradient"; break;
-      case PATTERN_RADIAL_GRADIENT: p = "RadialGradient"; break;
-      case PATTERN_CONICAL_GRADIENT: p = "ConicalGradient"; break;
+      PointD c0 = polyData[i];
+      if (i == 0)
+        path.moveTo(c0);
+      else
+        path.lineTo(c0);
     }
 
-    return ByteArray(p);
+    p.setSource(r_argb.data[a]);
+    p.fillPath(path);
   }
+
+  p.restore();
+  p.flush();
+}
+
+ByteArray FogModule_FillPolygon::getType()
+{
+  return ByteArray("FillPolygon");
+}
+
+// ============================================================================
+// [FogModule_FillPattern]
+// ============================================================================
+
+struct FogModule_FillPattern : public FogModule
+{
+  FogModule_FillPattern(int w, int h);
+  virtual ~FogModule_FillPattern();
+
+  virtual void prepare(int quantity, int sw, int sh);
+  virtual void finish();
+
+  void setupPattern(int type);
+
+  virtual void bench(int quantity);
+  virtual ByteArray getType();
 
   Pattern pattern;
-  char buf[1024];
 
-  BenchmarkRandomizer_Rect randomizer;
+  Randomizer_Rect r_rect;
 };
 
-// ============================================================================
-// [BenchmarkModule_Fog_BlitImage]
-// ============================================================================
-
-struct BenchmarkModule_Fog_BlitImage : public BenchmarkModule_Fog
+FogModule_FillPattern::FogModule_FillPattern(int w, int h) : FogModule(w, h)
 {
-  BenchmarkModule_Fog_BlitImage(int w, int h) :
-    BenchmarkModule_Fog(w, h)
+  setupPattern(PATTERN_LINEAR_GRADIENT);
+}
+
+FogModule_FillPattern::~FogModule_FillPattern()
+{
+}
+
+void FogModule_FillPattern::prepare(int quantity, int sw, int sh)
+{
+  r_rect.init(quantity, w, h, sw, sh);
+}
+
+void FogModule_FillPattern::finish()
+{
+  r_rect.free();
+}
+
+void FogModule_FillPattern::setupPattern(int type)
+{
+  pattern.setType(type);
+
+  if (type == PATTERN_LINEAR_GRADIENT)
   {
+    pattern.setPoints(PointD(w/2.0, h/2.0), PointD(30.0, 30.0));
+  }
+  else
+  {
+    pattern.setPoints(PointD(w/2.0, h/2.0), PointD(w/3.0, h/3.0));
+    pattern.setRadius(w/4.0);
   }
 
-  virtual void prepareBenchmark(int sw, int sh, int quantity)
+  pattern.addStop(ArgbStop(0.0, Argb(0xFFFFFFFF)));
+  pattern.addStop(ArgbStop(0.5, Argb(0xFFFFFF00)));
+  pattern.addStop(ArgbStop(1.0, Argb(0xFF000000)));
+}
+
+void FogModule_FillPattern::bench(int quantity)
+{
+  p.save();
+  p.setSource(pattern);
+
+  for (int a = 0; a < quantity; a++)
   {
-    randomizer.prepare(w, h, sw, sh, quantity);
-    for (int a = 0; a < 4; a++) images[a] = sprite[a].scale(Size(sw, sh));
+    p.fillRect(r_rect.data[a]);
   }
 
-  virtual void finishBenchmark() { randomizer.finish(); }
+  p.restore();
+  p.flush();
+}
 
-  virtual void doBenchmark(int quantity)
+ByteArray FogModule_FillPattern::getType()
+{
+  const char* p = "";
+
+  switch (pattern.getType())
   {
-    p.save();
-    for (int a = 0; a < quantity; a++)
-    {
-      p.drawImage(randomizer.rectData[a].getPosition(), images[randomizer.rgbaData[a].value % NUM_SPRITES]);
-    }
-    p.restore();
-    p.flush();
+    case PATTERN_SOLID: p = "Solid"; break;
+    case PATTERN_TEXTURE: p = "Texture"; break;
+    case PATTERN_LINEAR_GRADIENT: p = "LinearGradient"; break;
+    case PATTERN_RADIAL_GRADIENT: p = "RadialGradient"; break;
+    case PATTERN_CONICAL_GRADIENT: p = "ConicalGradient"; break;
   }
 
-  virtual ByteArray getType() { return ByteArray("BlitImage"); }
+  return ByteArray(p);
+}
 
-  BenchmarkRandomizer_Rect randomizer;
+// ============================================================================
+// [FogModule_Image]
+// ============================================================================
+
+struct FogModule_Image : public FogModule
+{
+  FogModule_Image(int w, int h);
+  virtual ~FogModule_Image();
+
+  virtual void prepare(int quantity, int sw, int sh);
+  virtual void finish();
+
+  virtual void bench(int quantity);
+  virtual ByteArray getType();
+
+  Randomizer_Rect r_rect;
+  Randomizer_Number r_numb;
+
   Image images[NUM_SPRITES];
 };
 
-// ============================================================================
-// [BenchmarkModule_Fog_BlitImageAffine]
-// ============================================================================
+FogModule_Image::FogModule_Image(int w, int h) : FogModule(w, h) {}
+FogModule_Image::~FogModule_Image() {}
 
-struct BenchmarkModule_Fog_BlitImageAffine : public BenchmarkModule_Fog_BlitImage
+void FogModule_Image::prepare(int quantity, int sw, int sh)
 {
-  BenchmarkModule_Fog_BlitImageAffine(int w, int h) :
-    BenchmarkModule_Fog_BlitImage(w, h)
+  r_rect.init(quantity, w, h, sw, sh);
+  r_numb.init(quantity, 0, NUM_SPRITES - 1);
+
+  for (int a = 0; a < 4; a++) images[a] = sprite[a].scale(Size(sw, sh));
+}
+
+void FogModule_Image::finish()
+{
+  r_rect.free();
+  r_numb.free();
+}
+
+void FogModule_Image::bench(int quantity)
+{
+  p.save();
+
+  for (int a = 0; a < quantity; a++)
   {
+    p.drawImage(r_rect.data[a].getPosition(), images[r_numb.data[a]]);
   }
 
-  virtual void doBenchmark(int quantity)
-  {
-    p.save();
-    double rot = 0.0;
-    for (int a = 0; a < quantity; a++, rot += 0.01)
-    {
-      Matrix m;
-      m.rotate(rot);
-      p.setMatrix(m);
-      p.drawImage(randomizer.rectData[a].getPosition(), images[randomizer.rgbaData[a].value % NUM_SPRITES]);
-    }
-    p.restore();
-    p.flush();
-  }
+  p.restore();
+  p.flush();
+}
 
-  virtual ByteArray getType() { return ByteArray("BlitImageAffine"); }
+ByteArray FogModule_Image::getType()
+{
+  return ByteArray("Image");
+}
+
+// ============================================================================
+// [FogModule_ImageAffine]
+// ============================================================================
+
+struct FogModule_ImageAffine : public FogModule_Image
+{
+  FogModule_ImageAffine(int w, int h);
+  virtual ~FogModule_ImageAffine();
+
+  virtual void bench(int quantity);
+  virtual ByteArray getType();
 };
 
-// ============================================================================
-// [BenchmarkModule_Fog_RasterText]
-// ============================================================================
+FogModule_ImageAffine::FogModule_ImageAffine(int w, int h) : FogModule_Image(w, h) {}
+FogModule_ImageAffine::~FogModule_ImageAffine() {}
 
-struct BenchmarkModule_Fog_RasterText : public BenchmarkModule_Fog
+void FogModule_ImageAffine::bench(int quantity)
 {
-  BenchmarkModule_Fog_RasterText(int w, int h) :
-    BenchmarkModule_Fog(w, h)
+  p.save();
+
+  double cx = (double)w / 2.0;
+  double cy = (double)h / 2.0;
+  double rot = 0.0;
+
+  for (int a = 0; a < quantity; a++, rot += 0.01)
   {
+    Matrix m;
+    m.translate(cx, cy);
+    m.rotate(rot);
+    m.translate(-cx, -cy);
+
+    p.setMatrix(m);
+    p.drawImage(r_rect.data[a].getPosition(), images[r_numb.data[a]]);
   }
 
-  virtual void prepareBenchmark(int sw, int sh, int quantity) { randomizer.prepare(w, h, sw, sh, quantity); }
-  virtual void finishBenchmark() { randomizer.finish(); }
+  p.restore();
+  p.flush();
+}
 
-  virtual void doBenchmark(int quantity)
-  {
-    String text(Ascii8("abcdef"));
-    Font font;
+ByteArray FogModule_ImageAffine::getType()
+{
+  return ByteArray("ImageAffine");
+}
 
-    p.save();
-    for (int a = 0; a < quantity; a++)
-    {
-      p.setSource(randomizer.rgbaData[a]);
-      p.drawText(randomizer.rectData[a].getPosition(), text, font);
-    }
-    p.restore();
-    p.flush();
-  }
+// ============================================================================
+// [FogModule_RasterText]
+// ============================================================================
 
-  virtual ByteArray getType() { return ByteArray("RasterText"); }
+struct FogModule_RasterText : public FogModule
+{
+  FogModule_RasterText(int w, int h);
+  virtual ~FogModule_RasterText();
 
-  BenchmarkRandomizer_Rect randomizer;
+  virtual void prepare(int quantity, int sw, int sh);
+  virtual void finish();
+
+  virtual void bench(int quantity);
+  virtual ByteArray getType();
+
+  Randomizer_Rect r_rect;
+  Randomizer_Argb r_argb;
 };
+
+FogModule_RasterText::FogModule_RasterText(int w, int h) : FogModule(w, h) {}
+FogModule_RasterText::~FogModule_RasterText() {}
+
+void FogModule_RasterText::prepare(int quantity, int sw, int sh)
+{
+  r_rect.init(quantity, w, h, sw, sh);
+  r_argb.init(quantity);
+}
+
+void FogModule_RasterText::finish()
+{
+  r_rect.free();
+  r_argb.free();
+}
+
+void FogModule_RasterText::bench(int quantity)
+{
+  p.save();
+
+  String text(Ascii8("abcdef"));
+  Font font;
+
+  for (int a = 0; a < quantity; a++)
+  {
+    p.setSource(r_argb.data[a]);
+    p.drawText(r_rect.data[a].getPosition(), text, font);
+  }
+
+  p.restore();
+  p.flush();
+}
+
+ByteArray FogModule_RasterText::getType()
+{
+  return ByteArray("RasterText");
+}
+
+// ============================================================================
+// [GdiPlusModule]
+// ============================================================================
 
 #if defined(FOG_OS_WINDOWS)
 
-// ============================================================================
-// [BenchmarkModule_GDI]
-// ============================================================================
-
-struct BenchmarkModule_GDI : public BenchmarkModule
+struct GdiPlusModule : public AbstractModule
 {
-  BenchmarkModule_GDI(int w, int h) :
-    BenchmarkModule(w, h)
-  {
-    im = createDibSection(w, h);
-    HDC dc = CreateCompatibleDC(NULL);
-    SelectObject(dc, (HGDIOBJ)im);
-    RECT r;
-    r.top = 0;
-    r.left = 0;
-    r.bottom = h;
-    r.right = w;
-    FillRect(dc, &r, (HBRUSH)GetStockObject(BLACK_BRUSH));
-    DeleteDC(dc);
+  GdiPlusModule(int w, int h);
+  virtual ~GdiPlusModule();
 
-    for (int a = 0; a < NUM_SPRITES; a++)
-    {
-      sprite[a] = createDibSection(128, 128);
-      DIBSECTION info;
-      GetObject(sprite[a], sizeof(DIBSECTION), &info);
+  Gdiplus::Bitmap* screen_gdip;
+  Gdiplus::Bitmap* sprite_gdip[4];
 
-      memcpy(info.dsBm.bmBits, _sprite[a].getFirst(),
-        _sprite[a].getWidth() * _sprite[a].getHeight() * 4);
-    }
-  }
-
-  virtual ~BenchmarkModule_GDI()
-  {
-    DeleteObject(im);
-
-    for (int a = 0; a < NUM_SPRITES; a++) DeleteObject(sprite[a]);
-  }
-
-  virtual void saveResult(int sw, int sh)
-  {
-    String fileName;
-    ByteArray info = getInfo();
-
-    fileName.set(Ascii8("Images/Bench - "));
-    fileName.append(Ascii8(info.getData(), info.getLength()));
-    if (sw && sh) fileName.appendFormat(" [%dx%d]", sw, sh);
-    fileName.append(Ascii8(".bmp"));
-
-    DIBSECTION dibs;
-    GetObject(im, sizeof(DIBSECTION), &dibs);
-
-    ImageBuffer buffer;
-    buffer.width = dibs.dsBm.bmWidth;
-    buffer.height = dibs.dsBm.bmHeight;
-    buffer.format = PIXEL_FORMAT_PRGB32;
-    buffer.stride = dibs.dsBm.bmWidthBytes;
-    buffer.data = (uint8_t*)dibs.dsBm.bmBits;
-
-    Image fim;
-    fim.adopt(buffer);
-    fim.writeFile(fileName);
-  }
-
-  HBITMAP im;
-  HBITMAP sprite[NUM_SPRITES];
-
-  static HBITMAP createDibSection(int w, int h)
-  {
-    // Create bitmap information
-    BITMAPINFO bmi;
-    ZeroMemory(&bmi, sizeof(bmi));
-    bmi.bmiHeader.biSize        = sizeof(bmi.bmiHeader);
-    bmi.bmiHeader.biWidth       = w;
-    // Negative means from top to bottom
-    bmi.bmiHeader.biHeight      = -h;
-    bmi.bmiHeader.biPlanes      = 1;
-    bmi.bmiHeader.biBitCount    = 32;
-    bmi.bmiHeader.biCompression = BI_RGB;
-
-    uint8_t* pixels;
-    return CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, (void**)&pixels, NULL, 0);
-  }
-
-  virtual ByteArray getEngine() { return ByteArray("GDI+"); }
+  virtual ByteArray getEngine();
 };
 
-// ============================================================================
-// [BenchmarkModule_GDI_FillRect]
-// ============================================================================
-
-struct BenchmarkModule_GDI_FillRect : public BenchmarkModule_GDI
+GdiPlusModule::GdiPlusModule(int w, int h) : AbstractModule(w, h)
 {
-  BenchmarkModule_GDI_FillRect(int w, int h) :
-    BenchmarkModule_GDI(w, h)
+  screen_gdip = new Gdiplus::Bitmap(
+    screen.getWidth(),
+    screen.getHeight(), 
+    screen.getStride(),
+    PixelFormat32bppPARGB,
+    (BYTE*)screen.getData());
+
+  for (int a = 0; a < NUM_SPRITES; a++)
   {
+    sprite_gdip[a] = new Gdiplus::Bitmap(
+      sprite[a].getWidth(),
+      sprite[a].getHeight(), 
+      sprite[a].getStride(),
+      PixelFormat32bppPARGB,
+      (BYTE*)sprite[a].getData());
   }
+}
 
-  virtual void prepareBenchmark(int sw, int sh, int quantity) { randomizer.prepare(w, h, sw, sh, quantity); }
-  virtual void finishBenchmark() { randomizer.finish(); }
+GdiPlusModule::~GdiPlusModule()
+{
+  delete screen_gdip;
 
-  virtual void doBenchmark(int quantity)
-  {
-    HDC dc = CreateCompatibleDC(NULL);
-    SelectObject(dc, im);
-    {
-      Gdiplus::Graphics gr(dc);
+  for (int a = 0; a < NUM_SPRITES; a++) delete sprite_gdip[a];
+}
 
-      for (int a = 0; a < quantity; a++)
-      {
-        Rect r = randomizer.rectData[a];
-        Gdiplus::Color c(randomizer.rgbaData[a]);
-        Gdiplus::SolidBrush br(c);
-        gr.FillRectangle((Gdiplus::Brush*)&br, r.getX(), r.getY(), r.getWidth(), r.getHeight());
-      }
-    }
-    DeleteDC(dc);
-  }
+ByteArray GdiPlusModule::getEngine()
+{
+  return ByteArray("GDI+");
+}
 
-  virtual ByteArray getType() { return ByteArray("FillRect"); }
+// ============================================================================
+// [GdiPlusModule_FillRect]
+// ============================================================================
 
-  BenchmarkRandomizer_Rect randomizer;
+struct GdiPlusModule_FillRect : public GdiPlusModule
+{
+  GdiPlusModule_FillRect(int w, int h);
+  virtual ~GdiPlusModule_FillRect();
+
+  virtual void prepare(int quantity, int sw, int sh);
+  virtual void finish();
+
+  virtual void bench(int quantity);
+  virtual ByteArray getType();
+
+  Randomizer_Rect r_rect;
+  Randomizer_Argb r_argb;
 };
 
-// ============================================================================
-// [BenchmarkModule_GDI_FillRound]
-// ============================================================================
+GdiPlusModule_FillRect::GdiPlusModule_FillRect(int w, int h) : GdiPlusModule(w, h) {}
+GdiPlusModule_FillRect::~GdiPlusModule_FillRect() {}
 
-struct BenchmarkModule_GDI_FillRound : public BenchmarkModule_GDI
+void GdiPlusModule_FillRect::prepare(int quantity, int sw, int sh)
 {
-  BenchmarkModule_GDI_FillRound(int w, int h) :
-    BenchmarkModule_GDI(w, h)
+  r_rect.init(quantity, w, h, sw, sh);
+  r_argb.init(quantity);
+}
+
+void GdiPlusModule_FillRect::finish()
+{
+  r_rect.free();
+  r_argb.free();
+}
+
+void GdiPlusModule_FillRect::bench(int quantity)
+{
+  Gdiplus::Graphics gr(screen_gdip);
+
+  for (int a = 0; a < quantity; a++)
   {
+    Rect r = r_rect.data[a];
+
+    Gdiplus::Color c(r_argb.data[a]);
+    Gdiplus::SolidBrush br(c);
+
+    gr.FillRectangle((Gdiplus::Brush*)&br, r.x, r.y, r.w, r.h);
   }
+}
 
-  virtual void prepareBenchmark(int sw, int sh, int quantity) { randomizer.prepare(w, h, sw, sh, quantity); }
-  virtual void finishBenchmark() { randomizer.finish(); }
+ByteArray GdiPlusModule_FillRect::getType()
+{
+  return ByteArray("FillRect");
+}
 
-  virtual void doBenchmark(int quantity)
-  {
-    HDC dc = CreateCompatibleDC(NULL);
-    SelectObject(dc, im);
+// ============================================================================
+// [GdiPlusModule_FillRound]
+// ============================================================================
 
-    {
-      Gdiplus::Graphics gr(dc);
-      gr.SetSmoothingMode(Gdiplus::SmoothingModeHighQuality);
+struct GdiPlusModule_FillRound : public GdiPlusModule_FillRect
+{
+  GdiPlusModule_FillRound(int w, int h);
+  virtual ~GdiPlusModule_FillRound();
 
-      for (int a = 0; a < quantity; a++)
-      {
-        Rect r = randomizer.rectData[a];
-        int d = 8;
-        Gdiplus::Color c(randomizer.rgbaData[a]);
-        Gdiplus::SolidBrush br(c);
+  virtual void bench(int quantity);
+  virtual ByteArray getType();
 
-        Gdiplus::GraphicsPath path;
-		    path.AddArc(r.getX(), r.getY(), d, d, 180, 90);
-		    path.AddArc(r.getX() + r.getWidth() - d, r.getY(), d, d, 270, 90);
-		    path.AddArc(r.getX() + r.getWidth() - d, r.getY() + r.getHeight() - d, d, d, 0, 90);
-		    path.AddArc(r.getX(), r.getY() + r.getHeight() - d, d, d, 90, 90);
-        path.AddLine(r.getX(), r.getY() + r.getHeight() - d, r.getX(), r.getY() + d/2);
-        gr.FillPath((Gdiplus::Brush*)&br, &path);
-      }
-    }
-
-    DeleteDC(dc);
-  }
-
-  virtual ByteArray getType() { return ByteArray("FillRound"); }
-
-  BenchmarkRandomizer_Rect randomizer;
+  Randomizer_Rect randomizer;
 };
 
-// ============================================================================
-// [BenchmarkModule_GDI_FillPolygon]
-// ============================================================================
+GdiPlusModule_FillRound::GdiPlusModule_FillRound(int w, int h) : GdiPlusModule_FillRect(w, h) {}
+GdiPlusModule_FillRound::~GdiPlusModule_FillRound() {}
 
-struct BenchmarkModule_GDI_FillPolygon : public BenchmarkModule_GDI
+void GdiPlusModule_FillRound::bench(int quantity)
 {
-  BenchmarkModule_GDI_FillPolygon(int w, int h) :
-    BenchmarkModule_GDI(w, h)
+  Gdiplus::Graphics gr(screen_gdip);
+  gr.SetSmoothingMode(Gdiplus::SmoothingModeHighQuality);
+
+  for (int a = 0; a < quantity; a++)
   {
+    Rect r = r_rect.data[a];
+
+    Gdiplus::Color c(r_argb.data[a]);
+    Gdiplus::SolidBrush br(c);
+
+    Gdiplus::REAL r_x = (Gdiplus::REAL)r.x - (Gdiplus::REAL)0.5;
+    Gdiplus::REAL r_y = (Gdiplus::REAL)r.y - (Gdiplus::REAL)0.5;
+    Gdiplus::REAL r_w = (Gdiplus::REAL)r.w;
+    Gdiplus::REAL r_h = (Gdiplus::REAL)r.h;
+    Gdiplus::REAL d = 8;
+
+    Gdiplus::GraphicsPath path;
+    path.AddArc(r_x, r_y, d, d, 180.0f, 90.0f);
+    path.AddArc(r_x + r_w - d, r_y, d, d, 270.0f, 90.0f);
+    path.AddArc(r_x + r_w - d, r_y + r_h - d, d, d, 0.0f, 90.0f);
+    path.AddArc(r_x, r_y + r_h - d, d, d, 90.0f, 90.0f);
+    path.AddLine(r_x, r_y + r_h - d, r_x, r_y + d/2);
+    gr.FillPath((Gdiplus::Brush*)&br, &path);
   }
+}
 
-  virtual void prepareBenchmark(int sw, int sh, int quantity) { randomizer.prepare(w, h, sw, sh, quantity); }
-  virtual void finishBenchmark() { randomizer.finish(); }
+ByteArray GdiPlusModule_FillRound::getType()
+{
+  return ByteArray("FillRound");
+}
 
-  virtual void doBenchmark(int quantity)
-  {
-    HDC dc = CreateCompatibleDC(NULL);
-    SelectObject(dc, im);
-    {
-      Gdiplus::Graphics gr(dc);
-      gr.SetSmoothingMode(Gdiplus::SmoothingModeHighQuality);
+// ============================================================================
+// [GdiPlusModule_FillPolygon]
+// ============================================================================
 
-      for (int a = 0; a < quantity; a++)
-      {
-        const PointD* polyData = &randomizer.polyData[a*10];
+struct GdiPlusModule_FillPolygon : public GdiPlusModule
+{
+  GdiPlusModule_FillPolygon(int w, int h);
+  virtual ~GdiPlusModule_FillPolygon();
 
-        Gdiplus::GraphicsPath path;
-        Gdiplus::PointF lines[10];
-        for (int i = 0; i < 10; i++)
-        {
-          lines[i].X = (Gdiplus::REAL)polyData[i].getX();
-          lines[i].Y = (Gdiplus::REAL)polyData[i].getY();
-        }
-        path.AddLines(lines, 10);
-        path.CloseFigure();
+  virtual void prepare(int quantity, int sw, int sh);
+  virtual void finish();
 
-        Gdiplus::Color c(randomizer.rgbaData[a]);
-        Gdiplus::SolidBrush br(c);
+  virtual void bench(int quantity);
+  virtual ByteArray getType();
 
-        gr.FillPath((Gdiplus::Brush*)&br, &path);
-      }
-    }
-    DeleteDC(dc);
-  }
-
-  virtual ByteArray getType() { return ByteArray("FillPolygon"); }
-
-  BenchmarkRandomizer_Polygon randomizer;
+  Randomizer_Polygon r_poly;
+  Randomizer_Argb r_argb;
 };
 
-// ============================================================================
-// [BenchmarkModule_GDI_FillPattern]
-// ============================================================================
+GdiPlusModule_FillPolygon::GdiPlusModule_FillPolygon(int w, int h) : GdiPlusModule(w, h) {}
+GdiPlusModule_FillPolygon::~GdiPlusModule_FillPolygon() {}
 
-struct BenchmarkModule_GDI_FillPattern : public BenchmarkModule_GDI
+void GdiPlusModule_FillPolygon::prepare(int quantity, int sw, int sh)
 {
-  BenchmarkModule_GDI_FillPattern(int w, int h) :
-    BenchmarkModule_GDI(w, h)
+  r_poly.init(quantity, w, h, sw, sh);
+  r_argb.init(quantity);
+}
+
+void GdiPlusModule_FillPolygon::finish()
+{
+  r_poly.free();
+  r_argb.free();
+}
+
+void GdiPlusModule_FillPolygon::bench(int quantity)
+{
+  Gdiplus::Graphics gr(screen_gdip);
+  gr.SetSmoothingMode(Gdiplus::SmoothingModeHighQuality);
+
+  for (int a = 0; a < quantity; a++)
   {
-  }
+    const PointD* polyData = &r_poly.data[a*10];
 
-  virtual void prepareBenchmark(int sw, int sh, int quantity) { randomizer.prepare(w, h, sw, sh, quantity); }
-  virtual void finishBenchmark() { randomizer.finish(); }
-
-  virtual void doBenchmark(int quantity)
-  {
-    HDC dc = CreateCompatibleDC(NULL);
-
-    SelectObject(dc, im);
+    Gdiplus::GraphicsPath path;
+    Gdiplus::PointF lines[10];
+    for (int i = 0; i < 10; i++)
     {
-      Gdiplus::Graphics gr(dc);
-      Gdiplus::LinearGradientBrush br(
-        Gdiplus::PointF(w/2.0, h/2.0), Gdiplus::PointF(30.0, 30.0), 
-        Gdiplus::Color(0xFFFFFFFF), Gdiplus::Color(0xFF000000));
-      Gdiplus::Color clr[3];
-      clr[0].SetValue(0xFFFFFFFF);
-      clr[1].SetValue(0xFFFFFF00);
-      clr[2].SetValue(0xFF000000);
-      Gdiplus::REAL stops[3];
-      stops[0] = 0.0;
-      stops[1] = 0.5;
-      stops[2] = 1.0;
-      br.SetInterpolationColors(clr, stops, 3);
-
-      for (int a = 0; a < quantity; a++)
-      {
-        Rect r = randomizer.rectData[a];
-        gr.FillRectangle((Gdiplus::Brush*)&br, r.getX(), r.getY(), r.getWidth(), r.getHeight());
-      }
+      lines[i].X = (Gdiplus::REAL)polyData[i].x - (Gdiplus::REAL)0.5;
+      lines[i].Y = (Gdiplus::REAL)polyData[i].y - (Gdiplus::REAL)0.5;
     }
-    DeleteDC(dc);
+    path.AddLines(lines, 10);
+    path.CloseFigure();
+
+    Gdiplus::Color c(r_argb.data[a]);
+    Gdiplus::SolidBrush br(c);
+
+    gr.FillPath((Gdiplus::Brush*)&br, &path);
   }
+}
 
-  virtual ByteArray getType() { return ByteArray("LinearGradient"); }
+ByteArray GdiPlusModule_FillPolygon::getType()
+{
+  return ByteArray("FillPolygon");
+}
 
-  BenchmarkRandomizer_Rect randomizer;
+// ============================================================================
+// [GdiPlusModule_FillPattern]
+// ============================================================================
+
+struct GdiPlusModule_FillPattern : public GdiPlusModule
+{
+  GdiPlusModule_FillPattern(int w, int h);
+  virtual ~GdiPlusModule_FillPattern();
+
+  virtual void prepare(int quantity, int sw, int sh);
+  virtual void finish();
+
+  void setupPattern(int type);
+
+  virtual void bench(int quantity);
+  virtual ByteArray getType();
+
+  Randomizer_Rect r_rect;
+  int type;
+  Gdiplus::Brush* brush;
 };
 
-// ============================================================================
-// [BenchmarkModule_GDI_BlitImage]
-// ============================================================================
+GdiPlusModule_FillPattern::GdiPlusModule_FillPattern(int w, int h) :
+  GdiPlusModule(w, h), brush(NULL), type(PATTERN_NULL) {}
+GdiPlusModule_FillPattern::~GdiPlusModule_FillPattern() { if (brush) delete brush; }
 
-struct BenchmarkModule_GDI_BlitImage : public BenchmarkModule_GDI
+void GdiPlusModule_FillPattern::prepare(int quantity, int sw, int sh)
 {
-  BenchmarkModule_GDI_BlitImage(int w, int h) :
-    BenchmarkModule_GDI(w, h)
+  r_rect.init(quantity, w, h, sw, sh);
+}
+
+void GdiPlusModule_FillPattern::finish()
+{
+  r_rect.free();
+}
+
+void GdiPlusModule_FillPattern::setupPattern(int type_)
+{
+  if (brush) delete brush;
+
+  type = type_;
+
+  Gdiplus::Color clr[3];
+  Gdiplus::REAL stops[3];
+
+  stops[0] = 0.0; clr[0].SetValue(0xFFFFFFFF);
+  stops[1] = 0.5; clr[1].SetValue(0xFFFFFF00);
+  stops[2] = 1.0; clr[2].SetValue(0xFF000000);
+
+  if (type_ == PATTERN_LINEAR_GRADIENT)
   {
+    Gdiplus::LinearGradientBrush* mybrush = new Gdiplus::LinearGradientBrush(
+      Gdiplus::PointF((Gdiplus::REAL)(w/2.0), (Gdiplus::REAL)(h/2.0)),
+      Gdiplus::PointF(30.0f, 30.0f), 
+      Gdiplus::Color(0xFFFFFFFF), Gdiplus::Color(0xFF000000));
+    mybrush->SetInterpolationColors(clr, stops, 3);
+
+    brush = mybrush;
+  }
+  else
+  {
+    float cx = w / 2.0f;
+    float cy = h / 2.0f;
+    float r = w / 4.0f;
+
+    Gdiplus::GraphicsPath path;
+    path.AddEllipse(Gdiplus::RectF(cx - r, cy - r, r * 2.0f, r * 2.0f));
+
+    Gdiplus::PathGradientBrush* mybrush = new Gdiplus::PathGradientBrush(&path);
+    mybrush->SetInterpolationColors(clr, stops, 3);
+    mybrush->SetCenterPoint(Gdiplus::PointF(w / 3.0f, h / 3.0f));
+
+    brush = mybrush;
+  }
+}
+
+void GdiPlusModule_FillPattern::bench(int quantity)
+{
+  Gdiplus::Graphics gr(screen_gdip);
+
+  for (int a = 0; a < quantity; a++)
+  {
+    Rect r = r_rect.data[a];
+    gr.FillRectangle(brush, r.x, r.y, r.w, r.h);
+  }
+}
+
+ByteArray GdiPlusModule_FillPattern::getType()
+{
+  const char* p = "";
+
+  switch (type)
+  {
+    case PATTERN_SOLID: p = "Solid"; break;
+    case PATTERN_TEXTURE: p = "Texture"; break;
+    case PATTERN_LINEAR_GRADIENT: p = "LinearGradient"; break;
+    case PATTERN_RADIAL_GRADIENT: p = "RadialGradient"; break;
+    case PATTERN_CONICAL_GRADIENT: p = "ConicalGradient"; break;
   }
 
-  virtual void prepareBenchmark(int sw, int sh, int quantity)
-  {
-    randomizer.prepare(w, h, sw, sh, quantity);
-  }
+  return ByteArray(p);
+}
 
-  virtual void finishBenchmark() { randomizer.finish(); }
+// ============================================================================
+// [GdiPlusModule_Image]
+// ============================================================================
 
-  virtual void doBenchmark(int quantity)
-  {
-    HDC dc = CreateCompatibleDC(NULL);
+struct GdiPlusModule_Image : public GdiPlusModule
+{
+  GdiPlusModule_Image(int w, int h);
+  virtual ~GdiPlusModule_Image();
 
-    SelectObject(dc, im);
-    {
-      Gdiplus::Graphics gr(dc);
-      Gdiplus::Bitmap* bm[NUM_SPRITES];
+  virtual void prepare(int quantity, int sw, int sh);
+  virtual void finish();
 
-      int a;
+  virtual void bench(int quantity);
+  virtual ByteArray getType();
 
-      for (a = 0; a < NUM_SPRITES; a++)
-      {
-        bm[a] = new Gdiplus::Bitmap(
-          _sprite[a].getWidth(), 
-          _sprite[a].getHeight(),
-          _sprite[a].getStride(),
-          PixelFormat32bppPARGB,
-          (BYTE*)_sprite[a].getFirst());
-      }
+  Randomizer_Rect r_rect;
+  Randomizer_Number r_numb;
 
-      for (a = 0; a < quantity; a++)
-      {
-        int x = randomizer.rectData[a].x;
-        int y = randomizer.rectData[a].y;
-        gr.DrawImage(bm[randomizer.rgbaData[a].value % NUM_SPRITES], x, y);
-      }
-
-      for (a = 0; a < NUM_SPRITES; a++)
-      {
-        delete bm[a];
-      }
-    }
-    DeleteDC(dc);
-  }
-
-  virtual ByteArray getType() { return ByteArray("BlitImage"); }
-
-  BenchmarkRandomizer_Rect randomizer;
+  Image images[NUM_SPRITES];
+  Gdiplus::Bitmap* images_gdip[NUM_SPRITES];
 };
 
-#else
+GdiPlusModule_Image::GdiPlusModule_Image(int w, int h) : GdiPlusModule(w, h) {}
+GdiPlusModule_Image::~GdiPlusModule_Image() {}
 
-// ============================================================================
-// [BenchmarkModule_Cairo]
-// ============================================================================
-
-struct BenchmarkModule_Cairo : public BenchmarkModule_Fog
+void GdiPlusModule_Image::prepare(int quantity, int sw, int sh)
 {
-  BenchmarkModule_Cairo(int w, int h) :
-    BenchmarkModule_Fog(w, h)
+  r_rect.init(quantity, w, h, sw, sh);
+  r_numb.init(quantity, 0, NUM_SPRITES - 1);
+
+  for (int a = 0; a < 4; a++)
   {
-    cim = cairo_image_surface_create_for_data(
-      (unsigned char*)im.getFirst(), CAIRO_FORMAT_ARGB32,
-      im.getWidth(), im.getHeight(), im.getStride());
+    images[a] = sprite[a].scale(Size(sw, sh));
+    images_gdip[a] = new Gdiplus::Bitmap(
+      images[a].getWidth(),
+      images[a].getHeight(), 
+      images[a].getStride(),
+      PixelFormat32bppPARGB,
+      (BYTE*)images[a].getData());
   }
+}
 
-  virtual ~BenchmarkModule_Cairo()
+void GdiPlusModule_Image::finish()
+{
+  r_rect.free();
+  r_numb.free();
+
+  for (int a = 0; a < 4; a++)
   {
-    cairo_surface_destroy(cim);
+    delete images_gdip[a];
   }
+}
 
-  virtual ByteArray getEngine() { return ByteArray("Cairo"); }
+void GdiPlusModule_Image::bench(int quantity)
+{
+  Gdiplus::Graphics gr(screen_gdip);
 
-  cairo_surface_t* cim;
+  for (int a = 0; a < quantity; a++)
+  {
+    int x = r_rect.data[a].x;
+    int y = r_rect.data[a].y;
+    gr.DrawImage(images_gdip[r_numb.data[a]], x, y);
+  }
+}
+
+ByteArray GdiPlusModule_Image::getType()
+{
+  return ByteArray("Image");
+}
+
+// ============================================================================
+// [GdiPlusModule_Image]
+// ============================================================================
+
+struct GdiPlusModule_ImageAffine : public GdiPlusModule_Image
+{
+  GdiPlusModule_ImageAffine(int w, int h);
+  virtual ~GdiPlusModule_ImageAffine();
+
+  virtual void bench(int quantity);
+  virtual ByteArray getType();
 };
 
-// ============================================================================
-// [BenchmarkModule_Cairo_FillRect]
-// ============================================================================
+GdiPlusModule_ImageAffine::GdiPlusModule_ImageAffine(int w, int h) : GdiPlusModule_Image(w, h) {}
+GdiPlusModule_ImageAffine::~GdiPlusModule_ImageAffine() {}
 
-struct BenchmarkModule_Cairo_FillRect : public BenchmarkModule_Cairo
+void GdiPlusModule_ImageAffine::bench(int quantity)
 {
-  BenchmarkModule_Cairo_FillRect(int w, int h) :
-    BenchmarkModule_Cairo(w, h)
+  Gdiplus::Graphics gr(screen_gdip);
+
+  float rot = 0.0f;
+
+  for (int a = 0; a < quantity; a++, rot += 0.01f)
   {
+    int x = r_rect.data[a].x;
+    int y = r_rect.data[a].y;
+
+    gr.ResetTransform();
+    gr.TranslateTransform((Gdiplus::REAL)-x, (Gdiplus::REAL)-y, Gdiplus::MatrixOrderAppend);
+    gr.RotateTransform(rot, Gdiplus::MatrixOrderAppend);
+    gr.TranslateTransform((Gdiplus::REAL)x, (Gdiplus::REAL)y, Gdiplus::MatrixOrderAppend);
+
+    gr.DrawImage(images_gdip[r_numb.data[a]], x, y);
   }
+}
 
-  virtual void prepareBenchmark(int sw, int sh, int quantity) { randomizer.prepare(w, h, sw, sh, quantity); }
-  virtual void finishBenchmark() { randomizer.finish(); }
+ByteArray GdiPlusModule_ImageAffine::getType()
+{
+  return ByteArray("ImageAffine");
+}
 
-  virtual void doBenchmark(int quantity)
-  {
-    cairo_t* cr = cairo_create(cim);
+#endif
 
-    for (int a = 0; a < quantity; a++)
-    {
-      Rect r = randomizer.rectData[a];
-      Argb c(randomizer.rgbaData[a]);
+// ============================================================================
+// [CairoModule]
+// ============================================================================
 
-      cairo_set_source_rgba(cr,
-        (double)c.r / 255.0, (double)c.g / 255.0, (double)c.b / 255.0, (double)c.a / 255.0);
-      cairo_rectangle(cr, r.getX(), r.getY(), r.getWidth(), r.getHeight());
-      cairo_fill(cr);
-    }
+#if defined(FOG_OS_POSIX)
 
-    cairo_destroy(cr);
-  }
+struct CairoModule : public FogModule
+{
+  CairoModule(int w, int h);
+  virtual ~CairoModule();
 
-  virtual ByteArray getType() { return ByteArray("FillRect"); }
+  virtual ByteArray getEngine();
 
-  BenchmarkRandomizer_Rect randomizer;
+  cairo_surface_t* screen_cairo;
 };
 
-// ============================================================================
-// [BenchmarkModule_Cairo_FillRound]
-// ============================================================================
-
-struct BenchmarkModule_Cairo_FillRound : public BenchmarkModule_Cairo
+CairoModule::CairoModule(int w, int h) : FogModule(w, h)
 {
-  BenchmarkModule_Cairo_FillRound(int w, int h) :
-    BenchmarkModule_Cairo(w, h)
+  screen_cairo = cairo_image_surface_create_for_data(
+    (unsigned char*)screen.getFirst(),
+    CAIRO_FORMAT_ARGB32,
+    screen.getWidth(),
+    screen.getHeight(),
+    screen.getStride());
+}
+
+CairoModule::~CairoModule()
+{
+  cairo_surface_destroy(screen_cairo);
+}
+
+ByteArray CairoModule::getEngine()
+{
+  return ByteArray("Cairo");
+}
+
+// ============================================================================
+// [CairoModule_FillRect]
+// ============================================================================
+
+struct CairoModule_FillRect : public CairoModule
+{
+  CairoModule_FillRect(int w, int h);
+  virtual ~CairoModule_FillRect();
+
+  virtual void prepare(int quantity, int sw, int sh);
+  virtual void finish();
+
+  virtual void bench(int quantity);
+  virtual ByteArray getType();
+
+  Randomizer_Rect r_rect;
+  Randomizer_Argb r_argb;
+};
+
+CairoModule_FillRect::CairoModule_FillRect(int w, int h) : CairoModule(w, h) {}
+CairoModule_FillRect::~CairoModule_FillRect() {}
+
+void CairoModule_FillRect::prepare(int quantity, int sw, int sh)
+{
+  r_rect.init(quantity, w, h, sw, sh);
+  r_argb.init(quantity);
+}
+
+void CairoModule_FillRect::finish()
+{
+  r_rect.free();
+  r_argb.free();
+}
+
+void CairoModule_FillRect::bench(int quantity)
+{
+  cairo_t* cr = cairo_create(screen_cairo);
+
+  for (int a = 0; a < quantity; a++)
   {
+    Rect r(r_rect.data[a]);
+    Argb c(r_argb.data[a]);
+
+    cairo_set_source_rgba(cr,
+      (double)c.r / 255.0,
+      (double)c.g / 255.0,
+      (double)c.b / 255.0,
+      (double)c.a / 255.0);
+    cairo_rectangle(cr, r.x, r.y, r.w, r.h);
+    cairo_fill(cr);
   }
 
-  virtual void prepareBenchmark(int sw, int sh, int quantity) { randomizer.prepare(w, h, sw, sh, quantity); }
-  virtual void finishBenchmark() { randomizer.finish(); }
+  cairo_destroy(cr);
+}
 
-  virtual void doBenchmark(int quantity)
+ByteArray CairoModule_FillRect::getType()
+{
+  return ByteArray("FillRect");
+}
+
+// ============================================================================
+// [CairoModule_FillRound]
+// ============================================================================
+
+struct CairoModule_FillRound : public CairoModule_FillRect
+{
+  CairoModule_FillRound(int w, int h);
+  virtual ~CairoModule_FillRound();
+
+  virtual void bench(int quantity);
+  ByteArray getType();
+
+  void addRound(cairo_t* cr, Rect rect, double radius);
+};
+
+CairoModule_FillRound::CairoModule_FillRound(int w, int h) : CairoModule_FillRect(w, h) {}
+CairoModule_FillRound::~CairoModule_FillRound() {}
+
+void CairoModule_FillRound::bench(int quantity)
+{
+  cairo_t* cr = cairo_create(screen_cairo);
+
+  for (int a = 0; a < quantity; a++)
   {
-    cairo_t* cr = cairo_create(cim);
+    Rect r(r_rect.data[a]);
+    Argb c(r_argb.data[a]);
 
-    for (int a = 0; a < quantity; a++)
-    {
-      Rect r = randomizer.rectData[a];
-      Argb c(randomizer.rgbaData[a]);
-
-      addRound(cr, r, 8);
-      cairo_set_source_rgba(cr,
-        (double)c.r / 255.0, (double)c.g / 255.0, (double)c.b / 255.0, (double)c.a / 255.0);
-      cairo_fill(cr);
-    }
-
-    cairo_destroy(cr);
+    cairo_set_source_rgba(cr,
+      (double)c.r / 255.0,
+      (double)c.g / 255.0,
+      (double)c.b / 255.0,
+      (double)c.a / 255.0);
+    addRound(cr, r, 8);
+    cairo_fill(cr);
   }
 
-  FOG_INLINE void addRound(cairo_t* cr, Rect rect, double radius)
+  cairo_destroy(cr);
+}
+
+ByteArray CairoModule_FillRound::getType()
+{
+  return ByteArray("FillRound");
+}
+
+void CairoModule_FillRound::addRound(cairo_t* cr, Rect rect, double radius)
+{
+  double x0 = rect.x;
+  double y0 = rect.y;
+  double rect_width = rect.w;
+  double rect_height = rect.h;
+
+  double x1 = x0 + rect_width;
+  double y1 = y0 + rect_height;
+
+  radius *= 2.0;
+
+  if (!rect_width || !rect_height) return;
+
+  if (rect_width / 2 < radius)
   {
-    double x0 = rect.getX();
-    double y0 = rect.getY();
-    double rect_width = rect.getWidth();
-    double rect_height = rect.getHeight();
-
-    double x1 = x0 + rect_width;
-    double y1 = y0 + rect_height;
-
-    radius *= 2.0;
-
-    if (!rect_width || !rect_height)
-      return;
-
-    if (rect_width/2<radius)
+    if (rect_height / 2 < radius)
     {
-      if (rect_height/2<radius)
-      {
-        cairo_move_to(cr, x0, (y0 + y1)/2);
-        cairo_curve_to(cr, x0 ,y0, x0, y0, (x0 + x1)/2, y0);
-        cairo_curve_to(cr, x1, y0, x1, y0, x1, (y0 + y1)/2);
-        cairo_curve_to(cr, x1, y1, x1, y1, (x1 + x0)/2, y1);
-        cairo_curve_to(cr, x0, y1, x0, y1, x0, (y0 + y1)/2);
-      }
-      else
-      {
-        cairo_move_to(cr, x0, y0 + radius);
-        cairo_curve_to(cr, x0 ,y0, x0, y0, (x0 + x1)/2, y0);
-        cairo_curve_to(cr, x1, y0, x1, y0, x1, y0 + radius);
-        cairo_line_to(cr, x1 , y1 - radius);
-        cairo_curve_to(cr, x1, y1, x1, y1, (x1 + x0)/2, y1);
-        cairo_curve_to(cr, x0, y1, x0, y1, x0, y1- radius);
-      }
+      cairo_move_to(cr, x0, (y0 + y1)/2);
+      cairo_curve_to(cr, x0 ,y0, x0, y0, (x0 + x1)/2, y0);
+      cairo_curve_to(cr, x1, y0, x1, y0, x1, (y0 + y1)/2);
+      cairo_curve_to(cr, x1, y1, x1, y1, (x1 + x0)/2, y1);
+      cairo_curve_to(cr, x0, y1, x0, y1, x0, (y0 + y1)/2);
     }
     else
     {
-      if (rect_height/2<radius)
-      {
-        cairo_move_to(cr, x0, (y0 + y1)/2);
-        cairo_curve_to(cr, x0 , y0, x0 , y0, x0 + radius, y0);
-        cairo_line_to(cr, x1 - radius, y0);
-        cairo_curve_to(cr, x1, y0, x1, y0, x1, (y0 + y1)/2);
-        cairo_curve_to(cr, x1, y1, x1, y1, x1 - radius, y1);
-        cairo_line_to(cr, x0 + radius, y1);
-        cairo_curve_to(cr, x0, y1, x0, y1, x0, (y0 + y1)/2);
-      }
+      cairo_move_to(cr, x0, y0 + radius);
+      cairo_curve_to(cr, x0 ,y0, x0, y0, (x0 + x1)/2, y0);
+      cairo_curve_to(cr, x1, y0, x1, y0, x1, y0 + radius);
+      cairo_line_to(cr, x1 , y1 - radius);
+      cairo_curve_to(cr, x1, y1, x1, y1, (x1 + x0)/2, y1);
+      cairo_curve_to(cr, x0, y1, x0, y1, x0, y1- radius);
+    }
+  }
+  else
+  {
+    if (rect_height / 2 < radius)
+    {
+      cairo_move_to(cr, x0, (y0 + y1)/2);
+      cairo_curve_to(cr, x0 , y0, x0 , y0, x0 + radius, y0);
+      cairo_line_to(cr, x1 - radius, y0);
+      cairo_curve_to(cr, x1, y0, x1, y0, x1, (y0 + y1)/2);
+      cairo_curve_to(cr, x1, y1, x1, y1, x1 - radius, y1);
+      cairo_line_to(cr, x0 + radius, y1);
+      cairo_curve_to(cr, x0, y1, x0, y1, x0, (y0 + y1)/2);
+    }
+    else
+    {
+      cairo_move_to(cr, x0, y0 + radius);
+      cairo_curve_to(cr, x0 , y0, x0 , y0, x0 + radius, y0);
+      cairo_line_to(cr, x1 - radius, y0);
+      cairo_curve_to(cr, x1, y0, x1, y0, x1, y0 + radius);
+      cairo_line_to(cr, x1 , y1 - radius);
+      cairo_curve_to(cr, x1, y1, x1, y1, x1 - radius, y1);
+      cairo_line_to(cr, x0 + radius, y1);
+      cairo_curve_to(cr, x0, y1, x0, y1, x0, y1- radius);
+    }
+  }
+  cairo_close_path(cr);
+}
+
+// ============================================================================
+// [CairoModule_FillPolygon]
+// ============================================================================
+
+struct CairoModule_FillPolygon : public CairoModule
+{
+  CairoModule_FillPolygon(int w, int h);
+  virtual ~CairoModule_FillPolygon();
+
+  virtual void prepare(int quantity, int sw, int sh);
+  virtual void finish();
+
+  virtual void bench(int quantity);
+  virtual ByteArray getType();
+
+  Randomizer_Polygon r_poly;
+  Randomizer_Argb r_argb;
+};
+
+CairoModule_FillPolygon::CairoModule_FillPolygon(int w, int h) : CairoModule(w, h) {}
+CairoModule_FillPolygon::~CairoModule_FillPolygon() {}
+
+void CairoModule_FillPolygon::prepare(int quantity, int sw, int sh)
+{
+  r_poly.init(quantity, w, h, sw, sh);
+  r_argb.init(quantity);
+}
+
+void CairoModule_FillPolygon::finish()
+{
+  r_poly.free();
+  r_argb.free();
+}
+
+void CairoModule_FillPolygon::bench(int quantity)
+{
+  cairo_t* cr = cairo_create(screen_cairo);
+  cairo_set_fill_rule(cr, CAIRO_FILL_RULE_EVEN_ODD);
+
+  for (int a = 0; a < quantity; a++)
+  {
+    Argb c = r_argb.data[a];
+    cairo_set_source_rgba(cr,
+      (double)c.r / 255.0,
+      (double)c.g / 255.0,
+      (double)c.b / 255.0,
+      (double)c.a / 255.0);
+
+    const PointD* polyData = &r_poly.data[a*10];
+    for (int i = 0; i < 10; i++)
+    {
+      if (i == 0)
+        cairo_move_to(cr, polyData[i].x, polyData[i].y);
       else
-      {
-        cairo_move_to(cr, x0, y0 + radius);
-        cairo_curve_to(cr, x0 , y0, x0 , y0, x0 + radius, y0);
-        cairo_line_to(cr, x1 - radius, y0);
-        cairo_curve_to(cr, x1, y0, x1, y0, x1, y0 + radius);
-        cairo_line_to(cr, x1 , y1 - radius);
-        cairo_curve_to(cr, x1, y1, x1, y1, x1 - radius, y1);
-        cairo_line_to(cr, x0 + radius, y1);
-        cairo_curve_to(cr, x0, y1, x0, y1, x0, y1- radius);
-      }
+        cairo_line_to(cr, polyData[i].x, polyData[i].y);
     }
     cairo_close_path(cr);
+    cairo_fill(cr);
   }
 
-  virtual ByteArray getType() { return ByteArray("FillRound"); }
+  cairo_destroy(cr);
+}
 
-  BenchmarkRandomizer_Rect randomizer;
-};
-
-
-// ============================================================================
-// [BenchmarkModule_Cairo_FillPolygon]
-// ============================================================================
-
-struct BenchmarkModule_Cairo_FillPolygon : public BenchmarkModule_Cairo
+ByteArray CairoModule_FillPolygon::getType()
 {
-  BenchmarkModule_Cairo_FillPolygon(int w, int h) :
-    BenchmarkModule_Cairo(w, h)
-  {
-  }
-
-  virtual void prepareBenchmark(int sw, int sh, int quantity) { randomizer.prepare(w, h, sw, sh, quantity); }
-  virtual void finishBenchmark() { randomizer.finish(); }
-
-  virtual void doBenchmark(int quantity)
-  {
-    cairo_t* cr = cairo_create(cim);
-    cairo_set_fill_rule(cr, CAIRO_FILL_RULE_EVEN_ODD);
-
-    for (int a = 0; a < quantity; a++)
-    {
-      const PointD* polyData = &randomizer.polyData[a*10];
-
-      for (int i = 0; i < 10; i++)
-      {
-        if (i == 0)
-          cairo_move_to(cr, polyData[i].getX(), polyData[i].getY());
-        else
-          cairo_line_to(cr, polyData[i].getX(), polyData[i].getY());
-      }
-      cairo_close_path(cr);
-
-      Argb c = randomizer.rgbaData[a];
-      cairo_set_source_rgba(cr,
-        (double)c.r / 255.0, (double)c.g / 255.0, (double)c.b / 255.0, (double)c.a / 255.0);
-      cairo_fill(cr);
-    }
-
-    cairo_destroy(cr);
-  }
-
-  virtual ByteArray getType() { return ByteArray("FillPolygon"); }
-
-  BenchmarkRandomizer_Polygon randomizer;
-};
+  return ByteArray("FillPolygon");
+}
 
 // ============================================================================
-// [BenchmarkModule_FillPattern]
+// [AbstractModule_FillPattern]
 // ============================================================================
 
-struct BenchmarkModule_Cairo_FillPattern : public BenchmarkModule_Cairo
+struct CairoModule_FillPattern : public CairoModule
 {
-  BenchmarkModule_Cairo_FillPattern(int w, int h) :
-    BenchmarkModule_Cairo(w, h),
-    type(0)
-  {
-  }
+  CairoModule_FillPattern(int w, int h);
+  virtual ~CairoModule_FillPattern();
 
-  virtual void prepareBenchmark(int sw, int sh, int quantity) { randomizer.prepare(w, h, sw, sh, quantity); }
-  virtual void finishBenchmark() { randomizer.finish(); }
+  virtual void prepare(int quantity, int sw, int sh);
+  virtual void finish();
 
-  virtual void doBenchmark(int quantity)
-  {
-    cairo_t* cr = cairo_create(cim);
-    cairo_pattern_t *pat;
+  virtual void bench(int quantity);
+  virtual ByteArray getType();
 
-    if (type == 0)
-    {
-      pat = cairo_pattern_create_linear(w/2, h/2, 30.0, 30.0);
-    }
-    else if (type == 1)
-    {
-      pat = cairo_pattern_create_radial(w/2, h/2, 250.0, 30.0, 30.0, 1.0);
-    }
-
-    cairo_pattern_add_color_stop_rgba(pat, 0.0, 1, 1, 1, 1);
-    cairo_pattern_add_color_stop_rgba(pat, 0.5, 1, 1, 0, 1);
-    cairo_pattern_add_color_stop_rgba(pat, 1.0, 0, 0, 0, 1);
-    cairo_set_source(cr, pat);
-
-    for (int a = 0; a < quantity; a++)
-    {
-      Rect r = randomizer.rectData[a];
-      cairo_rectangle(cr, r.getX(), r.getY(), r.getWidth(), r.getHeight());
-      cairo_fill(cr);
-    }
-
-    cairo_destroy(cr);
-    cairo_pattern_destroy(pat);
-  }
-
-  virtual ByteArray getType()
-  {
-    switch (type)
-    {
-      case 0: return ByteArray("LinearGradient");
-      case 1: return ByteArray("RadialGradient");
-      default: return ByteArray("");
-    }
-  }
-
+  Randomizer_Rect r_rect;
   int type;
-
-  BenchmarkRandomizer_Rect randomizer;
 };
 
-// ============================================================================
-// [BenchmarkModule_Cairo_BlitImage]
-// ============================================================================
-
-struct BenchmarkModule_Cairo_BlitImage : public BenchmarkModule_Cairo
+CairoModule_FillPattern::CairoModule_FillPattern(int w, int h) :
+  CairoModule(w, h),
+  type(0)
 {
-  BenchmarkModule_Cairo_BlitImage(int w, int h) :
-    BenchmarkModule_Cairo(w, h)
+}
+
+CairoModule_FillPattern::~CairoModule_FillPattern()
+{
+}
+
+void CairoModule_FillPattern::prepare(int quantity, int sw, int sh)
+{
+  r_rect.init(quantity, w, h, sw, sh);
+}
+
+void CairoModule_FillPattern::finish()
+{
+  r_rect.free();
+}
+
+void CairoModule_FillPattern::bench(int quantity)
+{
+  cairo_t* cr = cairo_create(screen_cairo);
+  cairo_pattern_t *pat;
+
+  if (type == 0)
   {
+    pat = cairo_pattern_create_linear(w/2, h/2, 30.0, 30.0);
+  }
+  else if (type == 1)
+  {
+    pat = cairo_pattern_create_radial(w/2, h/2, 250.0, 30.0, 30.0, 1.0);
   }
 
-  virtual void prepareBenchmark(int sw, int sh, int quantity)
-  {
-    randomizer.prepare(w, h, sw, sh, quantity);
+  cairo_pattern_add_color_stop_rgba(pat, 0.0, 1, 1, 1, 1);
+  cairo_pattern_add_color_stop_rgba(pat, 0.5, 1, 1, 0, 1);
+  cairo_pattern_add_color_stop_rgba(pat, 1.0, 0, 0, 0, 1);
+  cairo_set_source(cr, pat);
 
-    for (int a = 0; a < NUM_SPRITES; a++)
-    {
-      images[a] = sprite[a].scale(Size(sw, sh));
-      cimages[a] = cairo_image_surface_create_for_data(
-        (unsigned char*)images[a].getFirst(), CAIRO_FORMAT_ARGB32,
-        images[a].getWidth(), images[a].getHeight(), images[a].getStride());
-    }
+  for (int a = 0; a < quantity; a++)
+  {
+    Rect r = r_rect.data[a];
+    cairo_rectangle(cr, r.x, r.y, r.w, r.h);
+    cairo_fill(cr);
   }
 
-  virtual void finishBenchmark()
+  cairo_destroy(cr);
+  cairo_pattern_destroy(pat);
+}
+
+ByteArray CairoModule_FillPattern::getType()
+{
+  switch (type)
   {
-    randomizer.finish();
-
-    for (int a = 0; a < NUM_SPRITES; a++)
-    {
-      cairo_surface_destroy(cimages[a]);
-    }
+    case 0: return ByteArray("LinearGradient");
+    case 1: return ByteArray("RadialGradient");
+    default: return ByteArray("");
   }
+}
 
-  virtual void doBenchmark(int quantity)
-  {
-    cairo_t* cr = cairo_create(cim);
+// ============================================================================
+// [CairoModule_Image]
+// ============================================================================
 
-    for (int a = 0; a < quantity; a++)
-    {
-      int x = randomizer.rectData[a].x;
-      int y = randomizer.rectData[a].y;
-      cairo_set_source_surface(cr, cimages[randomizer.rgbaData[a].value % NUM_SPRITES], x, y);
-      cairo_paint(cr);
-    }
+struct CairoModule_Image : public CairoModule
+{
+  CairoModule_Image(int w, int h);
+  virtual ~CairoModule_Image();
 
-    cairo_destroy(cr);
-  }
+  virtual void prepare(int quantity, int sw, int sh);
+  virtual void finish();
 
-  virtual ByteArray getType() { return ByteArray("BlitImage"); }
+  virtual void bench(int quantity);
+  virtual ByteArray getType();
 
-  BenchmarkRandomizer_Rect randomizer;
+  Randomizer_Rect r_rect;
+  Randomizer_Number r_numb;
 
   Image images[NUM_SPRITES];
-  cairo_surface_t* cimages[NUM_SPRITES];
+  cairo_surface_t* images_cairo[NUM_SPRITES];
 };
 
-// ============================================================================
-// [BenchmarkModule_Cairo_BlitImageAffine]
-// ============================================================================
+CairoModule_Image::CairoModule_Image(int w, int h) : CairoModule(w, h) {}
+CairoModule_Image::~CairoModule_Image() {}
 
-struct BenchmarkModule_Cairo_BlitImageAffine : public BenchmarkModule_Cairo_BlitImage
+void CairoModule_Image::prepare(int quantity, int sw, int sh)
 {
-  BenchmarkModule_Cairo_BlitImageAffine(int w, int h) :
-    BenchmarkModule_Cairo_BlitImage(w, h)
+  r_rect.init(quantity, w, h, sw, sh);
+  r_numb.init(quantity, 0, NUM_SPRITES - 1);
+
+  for (int a = 0; a < NUM_SPRITES; a++)
   {
+    images[a] = sprite[a].scale(Size(sw, sh));
+    images_cairo[a] = cairo_image_surface_create_for_data(
+      (unsigned char*)images[a].getFirst(),
+      CAIRO_FORMAT_ARGB32,
+      images[a].getWidth(),
+      images[a].getHeight(),
+      images[a].getStride());
+  }
+}
+
+void CairoModule_Image::finish()
+{
+  r_rect.free();
+  r_numb.free();
+
+  for (int a = 0; a < NUM_SPRITES; a++)
+  {
+    cairo_surface_destroy(images_cairo[a]);
+  }
+}
+
+void CairoModule_Image::bench(int quantity)
+{
+  cairo_t* cr = cairo_create(screen_cairo);
+
+  for (int a = 0; a < quantity; a++)
+  {
+    int x = r_rect.data[a].x;
+    int y = r_rect.data[a].y;
+    cairo_set_source_surface(cr, images_cairo[r_numb.data[a]], x, y);
+    cairo_paint(cr);
   }
 
-  virtual void doBenchmark(int quantity)
-  {
-    cairo_t* cr = cairo_create(cim);
+  cairo_destroy(cr);
+}
 
-    double rot = 0.0;
-    for (int a = 0; a < quantity; a++, rot += 0.01)
-    {
-      int x = randomizer.rectData[a].x;
-      int y = randomizer.rectData[a].y;
-      cairo_rotate(cr, rot);
-      cairo_set_source_surface(cr, cimages[randomizer.rgbaData[a].value % NUM_SPRITES], x, y);
-      cairo_paint(cr);
-      cairo_identity_matrix(cr);
-    }
+ByteArray CairoModule_Image::getType()
+{
+  return ByteArray("Image");
+}
 
-    cairo_destroy(cr);
-  }
+// ============================================================================
+// [CairoModule_ImageAffine]
+// ============================================================================
 
-  virtual ByteArray getType() { return ByteArray("BlitImageAffine"); }
+struct CairoModule_ImageAffine : public CairoModule_Image
+{
+  CairoModule_ImageAffine(int w, int h);
+  virtual ~CairoModule_ImageAffine();
+
+  virtual void bench(int quantity);
+  virtual ByteArray getType();
 };
+
+CairoModule_ImageAffine::CairoModule_ImageAffine(int w, int h) : CairoModule_Image(w, h) {}
+CairoModule_ImageAffine::~CairoModule_ImageAffine() {}
+
+void CairoModule_ImageAffine::bench(int quantity)
+{
+  cairo_t* cr = cairo_create(screen_cairo);
+
+  double cx = (double)w / 2.0;
+  double cy = (double)h / 2.0;
+  double rot = 0.0;
+
+  for (int a = 0; a < quantity; a++, rot += 0.01)
+  {
+    int x = r_rect.data[a].x;
+    int y = r_rect.data[a].y;
+
+    cairo_identity_matrix(cr);
+    cairo_translate(cr, cx, cy);
+    cairo_rotate(cr, rot);
+    cairo_translate(cr, -cx, -cy);
+
+    cairo_set_source_surface(cr, images_cairo[r_numb.data[a]], x, y);
+    cairo_paint(cr);
+  }
+
+  cairo_destroy(cr);
+}
+
+ByteArray CairoModule_ImageAffine::getType()
+{
+  return ByteArray("ImageAffine");
+}
 
 #endif 
 
 // ============================================================================
-// [benchAll]
+// [Bench]
 // ============================================================================
 
-static TimeDelta bench(BenchmarkModule& mod, int sw, int sh, int quantity)
+static TimeDelta bench(AbstractModule& mod, int sw, int sh, int quantity)
 {
   // Clear random seed (so all tests will behave identically)
   srand(43);
 
-  mod.prepareBenchmark(sw, sh, quantity);
+  mod.prepare(quantity, sw, sh);
   TimeTicks ticks = TimeTicks::highResNow();
-  mod.doBenchmark(quantity);
+  mod.bench(quantity);
   TimeDelta delta =  TimeTicks::highResNow() - ticks;
-  mod.finishBenchmark();
+  mod.finish();
 
   ByteArray s;
   ByteArray info = mod.getInfo();
@@ -1225,7 +1673,7 @@ static TimeDelta bench(BenchmarkModule& mod, int sw, int sh, int quantity)
     s.format("%-26s [%dx%d] -> %.3f [ms]", info.getData(), sw, sh, delta.inMillisecondsF());
 
   fog_debug(s.getData());
-  mod.saveResult(sw, sh);
+  mod.save(sw, sh);
 
   return delta;
 }
@@ -1275,47 +1723,48 @@ static void benchAll()
     {
       // Fog - FillRect
       {
-        BenchmarkModule_Fog_FillRect mod(w, h);
+        FogModule_FillRect mod(w, h);
         mod.setEngine(engine);
         totalFog[engine] += bench(mod, sizes[s].w, sizes[s].h, quantity);
       }
 
       // Fog - FillRound
       {
-        BenchmarkModule_Fog_FillRound mod(w, h);
+        FogModule_FillRound mod(w, h);
         mod.setEngine(engine);
         totalFog[engine] += bench(mod, sizes[s].w, sizes[s].h, quantity);
       }
 
       // Fog - FillPolygon
       {
-        BenchmarkModule_Fog_FillPolygon mod(w, h);
+        FogModule_FillPolygon mod(w, h);
         mod.setEngine(engine);
         totalFog[engine] += bench(mod, sizes[s].w, sizes[s].h, quantity);
       }
 
       // Fog - FillPattern
       {
-        BenchmarkModule_Fog_FillPattern mod(w, h);
+        FogModule_FillPattern mod(w, h);
         mod.setEngine(engine);
 
-        mod.pattern.setType(PATTERN_LINEAR_GRADIENT);
+        mod.setupPattern(PATTERN_LINEAR_GRADIENT);
         totalFog[engine] += bench(mod, sizes[s].w, sizes[s].h, quantity);
+#if 0
+        mod.setupPattern(PATTERN_RADIAL_GRADIENT);
+        totalFog[engine] += bench(mod, sizes[s].w, sizes[s].h, quantity);
+#endif
+      }
 
-        mod.pattern.setType(PATTERN_RADIAL_GRADIENT);
+      // Fog - Image
+      {
+        FogModule_Image mod(w, h);
+        mod.setEngine(engine);
         totalFog[engine] += bench(mod, sizes[s].w, sizes[s].h, quantity);
       }
 
-      // Fog - BlitImage
+      // Fog - ImageAffine
       {
-        BenchmarkModule_Fog_BlitImage mod(w, h);
-        mod.setEngine(engine);
-        totalFog[engine] += bench(mod, sizes[s].w, sizes[s].h, quantity);
-      }
-
-      // Fog - BlitImageAffine
-      {
-        BenchmarkModule_Fog_BlitImageAffine mod(w, h);
+        FogModule_ImageAffine mod(w, h);
         mod.setEngine(engine);
         totalFog[engine] += bench(mod, sizes[s].w, sizes[s].h, quantity);
       }
@@ -1323,7 +1772,7 @@ static void benchAll()
 
     // Fog - RasterText
     {
-      BenchmarkModule_Fog_RasterText mod(w, h);
+      FogModule_RasterText mod(w, h);
       mod.setEngine(engine);
       totalFog[engine] += bench(mod, 0, 0, quantity);
     }
@@ -1341,31 +1790,44 @@ static void benchAll()
   {
     // GdiPlus - FillRect
     {
-      BenchmarkModule_GDI_FillRect mod(w, h);
+      GdiPlusModule_FillRect mod(w, h);
       totalGdiPlus += bench(mod, sizes[s].w, sizes[s].h, quantity);
     }
 
     // GdiPlus - FillRound
     {
-      BenchmarkModule_GDI_FillRound mod(w, h);
+      GdiPlusModule_FillRound mod(w, h);
       totalGdiPlus += bench(mod, sizes[s].w, sizes[s].h, quantity);
     }
 
     // GdiPlus - FillPolygon
     {
-      BenchmarkModule_GDI_FillPolygon mod(w, h);
+      GdiPlusModule_FillPolygon mod(w, h);
       totalGdiPlus += bench(mod, sizes[s].w, sizes[s].h, quantity);
     }
 
     // GdiPlus - FillPattern
     {
-      BenchmarkModule_GDI_FillPattern mod(w, h);
+      GdiPlusModule_FillPattern mod(w, h);
+
+      mod.setupPattern(PATTERN_LINEAR_GRADIENT);
+      totalGdiPlus += bench(mod, sizes[s].w, sizes[s].h, quantity);
+
+#if 0
+      mod.setupPattern(PATTERN_RADIAL_GRADIENT);
+      totalGdiPlus += bench(mod, sizes[s].w, sizes[s].h, quantity);
+#endif
+    }
+
+    // GdiPlus - Image
+    {
+      GdiPlusModule_Image mod(w, h);
       totalGdiPlus += bench(mod, sizes[s].w, sizes[s].h, quantity);
     }
 
-    // GdiPlus - BlitImage
+    // GdiPlus - ImageAffine
     {
-      BenchmarkModule_GDI_BlitImage mod(w, h);
+      GdiPlusModule_ImageAffine mod(w, h);
       totalGdiPlus += bench(mod, sizes[s].w, sizes[s].h, quantity);
     }
   }
@@ -1381,40 +1843,42 @@ static void benchAll()
   {
     // Cairo - FillRect
     {
-      BenchmarkModule_Cairo_FillRect mod(w, h);
+      CairoModule_FillRect mod(w, h);
       totalCairo += bench(mod, sizes[s].w, sizes[s].h, quantity);
     }
 
     // Cairo - FillRound
     {
-      BenchmarkModule_Cairo_FillRound mod(w, h);
+      CairoModule_FillRound mod(w, h);
       totalCairo += bench(mod, sizes[s].w, sizes[s].h, quantity);
     }
 
     // Cairo - FillPolygon
     {
-      BenchmarkModule_Cairo_FillPolygon mod(w, h);
+      CairoModule_FillPolygon mod(w, h);
       totalCairo += bench(mod, sizes[s].w, sizes[s].h, quantity);
     }
 
     // Cairo - FillPattern
     {
-      BenchmarkModule_Cairo_FillPattern mod(w, h);
+      CairoModule_FillPattern mod(w, h);
       totalCairo += bench(mod, sizes[s].w, sizes[s].h, quantity);
 
+#if 0
       mod.type = 1;
       totalCairo += bench(mod, sizes[s].w, sizes[s].h, quantity);
+#endif
     }
 
-    // Cairo - BlitImage
+    // Cairo - Image
     {
-      BenchmarkModule_Cairo_BlitImage mod(w, h);
+      CairoModule_Image mod(w, h);
       totalCairo += bench(mod, sizes[s].w, sizes[s].h, quantity);
     }
 
-    // Cairo - BlitImageAffine
+    // Cairo - ImageAffine
     {
-      BenchmarkModule_Cairo_BlitImageAffine mod(w, h);
+      CairoModule_ImageAffine mod(w, h);
       totalCairo += bench(mod, sizes[s].w, sizes[s].h, quantity);
     }
   }
