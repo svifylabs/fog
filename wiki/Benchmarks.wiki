@@ -16,17 +16,12 @@ Usually the benchmarks for Cairo are run under Linux, and bechmarks fog GDI+ und
 
 There are several tests that should show performance of invididual graphics operations.
 
-  * FillRect - Fill rectangles aligned to pixel grid by single color. These rectangle fills are often optimized as special fast-paths, so this test will show how these special cases are optimized in tested libraries.
-
-  * FillRound - Fill rounded rectangles by single color. Rectangles are aligned to the pixel grid, but rounds are anti-aliased. This test should reveal the cost of using rasterizer pipeline.
-
-  * FillPolygon - Fill polygons by single color. Polygons are created using 10 random vertices and they usually contain intersections.
-
-  * FillPattern - Fill rectangles aligned to pixel grid by linear gradient pattern. This test was designed to show linear gradient performance only (this is reason why fill is aligned).
-
-  * Image - Blend images aligned to pixel grid. Test to show image blending performance.
-
-  * ImageAffine - Blend rotated images. Test to show image transform performance.
+  * *FillRect* - Fill rectangles aligned to pixel grid by single color. These rectangle fills are often optimized as special fast-paths, so this test will show how these special cases are optimized in tested libraries.
+  * *FillRound* - Fill rounded rectangles by single color. Rectangles are aligned to the pixel grid, but rounds are anti-aliased. This test should reveal the cost of using rasterizer pipeline.
+  * *FillPolygon* - Fill polygons by single color. Polygons are created using 10 random vertices and they usually contain intersections.
+  * *FillPattern* - Fill rectangles aligned to pixel grid by linear gradient pattern. This test was designed to show linear gradient performance only (this is reason why fill is aligned).
+  * *Image* - Blend images aligned to pixel grid. Test to show image blending performance.
+  * *ImageAffine* - Blend rotated images. Test to show image transform performance.
 
 The tests are usually configured to do 100.000 operations and result is time in [ms] for each kind of operation (this means that smaller is better). The (mt) comment in Fog tests means that multithreading is used for tests, the number of threads is always determined as number of CPUs (or cores). The size of destination image is usually 640x480 and pixel format is PRGB32 (premultiplied 32-bit format with alpha channel).
 
