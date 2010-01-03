@@ -1,4 +1,4 @@
-#summary (incomplete) overview over the coding conventions.
+#summary How to write code for Fog.
 #labels Phase-Implementation
 
 ==Identation, Braces, Position of Keywords==
@@ -15,6 +15,18 @@ struct LocalStack
   };
 };
 }}}
+
+If the statement inside a loop or an `if`-statement merely consists of one line, it should be all written in the same line. <br>
+Behind the *if-, for-, while-keywords* is always a whitespace.
+{{{
+if (object.isNull()) return ERR_SOMETHING;
+
+for (;;)
+{
+  // do something infinite here
+}
+}}}
+
 
 The *const-Keyword* should always appear before the value type, for example: <br>
 `const char* s = string->getData();`
@@ -117,14 +129,15 @@ Everything, which belongs the Fog has to be declared inside the *Fog namespace*,
 Sometimes private variables are declared as public, but contains underscore. Reason is that there are many C functions inside Fog library (for example C implementation, SSE2 implementation, etc...) and these functions need access to class members.
 
 ==`0`, `0.0`, `NULL` and `\0`==
-`0` is used for integers, `0.0` is used for reals, `NULL` is used for pointers, `\0` or Char('\0') is used for chars.
+`0` is used for integers, `0.0` is used for reals, `NULL` is used for pointers, `\0` or `Char('\0')` is used for chars.
 
 ==Inling functions==
-In order to inline functions, use the FOG_INLINE macro. Notice that FOG_INLINE macro expands to compiler dependent way how to tell compiler to always inline a given code. If you don't want to inline code, but you want to declare it in header (for example in template) use FOG_NO_INLINE macro.
+In order to inline functions, use the `FOG_INLINE` macro. Notice that `FOG_INLINE` macro expands to compiler dependent way how to tell compiler to always inline a given code. If you don't want to inline code, but you want to declare it in header (for example in template) use `FOG_NO_INLINE` macro.
 
 ==OS Determining==
 There are macros available, which can be used in order to determine the current operating system at compile-time.
-These are in the format `FOG_OS_<PLATFORM>`. `PLATFORM` can be: WINDOWS, POSIX, LINUX, FREEBSD, OPENBSD, NETBSD, HPUX, MAC. For example: 
+These are in the format `FOG_OS_<PLATFORM>`. `PLATFORM` can be: `WINDOWS`, `POSIX`, `LINUX`, `FREEBSD`, `OPENBSD`, `NETBSD`, `HPUX` or `MAC`. <br>
+Example: 
 {{{
     #if defined(FOG_OS_WINDOWS)
      // do some windows stuff here
