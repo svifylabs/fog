@@ -2646,6 +2646,7 @@ struct FOG_HIDDEN SvgImageElement : public SvgStyledElement
   // [SVG Rendering]
 
   virtual err_t onRender(SvgContext* context) const;
+  virtual err_t onRenderShape(SvgContext* context) const;
 
   // [Embedded Attributes]
 
@@ -2686,6 +2687,34 @@ XmlAttribute* SvgImageElement::_createAttribute(const ManagedString& name) const
 }
 
 err_t SvgImageElement::onRender(SvgContext* context) const
+{
+  err_t err = ERR_OK;
+
+  Matrix backupMatrix(DONT_INITIALIZE);
+  bool transformed = a_transform.isAssigned() & a_transform.isValid();
+
+  // There is only transformation that can be applied to the image.
+  if (transformed)
+  {
+    backupMatrix = context->getPainter()->getMatrix();
+    context->getPainter()->transform(a_transform.getMatrix());
+  }
+
+  // Render image.
+  err = onRenderShape(context);
+
+  // There is only transformation that can be applied to the image.
+  if (transformed)
+  {
+    context->getPainter()->setMatrix(backupMatrix);
+  }
+
+  // After render: SvgContextBackup destructor will restore SvgContext state
+  // if modified.
+  return err;
+}
+
+err_t SvgImageElement::onRenderShape(SvgContext* context) const
 {
   if (a_href._embedded)
   {

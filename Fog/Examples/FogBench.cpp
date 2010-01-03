@@ -1769,14 +1769,14 @@ static void benchAll()
         totalFog[engine] += bench(mod, sizes[s].w, sizes[s].h, quantity);
       }
     }
-
+#if 0
     // Fog - RasterText
     {
       FogModule_RasterText mod(w, h);
       mod.setEngine(engine);
       totalFog[engine] += bench(mod, 0, 0, quantity);
     }
-
+#endif
     fog_debug("");
   }
 
