@@ -2198,8 +2198,9 @@ double RasterPainterEngine::getMiterLimit() const
 #define RASTER_AFTER_MATRIX_OP(__clipState__, __capsState__) \
   __capsState__->transformTranslateSaved.x = __capsState__->transform.tx; \
   __capsState__->transformTranslateSaved.y = __capsState__->transform.ty; \
+  \
   __capsState__->transform.tx += (double)__clipState__->workOrigin.x; \
-  __capsState__->transform.ty += (double)__clipState__->workOrigin.y; \
+  __capsState__->transform.ty += (double)__clipState__->workOrigin.y;
 
 void RasterPainterEngine::setMatrix(const Matrix& m)
 {
@@ -2254,7 +2255,7 @@ void RasterPainterEngine::rotate(double angle, int order)
   capsState->transform.rotate(angle, order);
   RASTER_AFTER_MATRIX_OP(clipState, capsState)
 
-  _updateTransform(true);
+  _updateTransform(false);
 }
 
 void RasterPainterEngine::scale(double sx, double sy)
@@ -2268,7 +2269,7 @@ void RasterPainterEngine::scale(double sx, double sy)
   capsState->transform.scale(sx, sy);
   RASTER_AFTER_MATRIX_OP(clipState, capsState)
 
-  _updateTransform(true);
+  _updateTransform(false);
 }
 
 void RasterPainterEngine::skew(double sx, double sy, int order)
@@ -2282,7 +2283,7 @@ void RasterPainterEngine::skew(double sx, double sy, int order)
   capsState->transform.skew(sx, sy, order);
   RASTER_AFTER_MATRIX_OP(clipState, capsState)
 
-  _updateTransform(true);
+  _updateTransform(false);
 }
 
 void RasterPainterEngine::translate(double x, double y, int order)
@@ -2387,9 +2388,9 @@ void RasterPainterEngine::restore()
   _derefClipState(ctx.clipState);
   _derefCapsState(ctx.capsState);
 
-  if (ctx.pctx && ctx.pctx->refCount.deref())
+  if (ctx.pctx)
   {
-    if (ctx.pctx->initialized) ctx.pctx->destroy(ctx.pctx);
+    if (ctx.pctx->initialized && ctx.pctx->refCount.deref()) ctx.pctx->destroy(ctx.pctx);
     allocator.free(ctx.pctx);
   }
 
@@ -2910,6 +2911,8 @@ void RasterPainterEngine::drawText(const Rect& r, const String& text, const Font
 
 void RasterPainterEngine::blitImage(const Point& p, const Image& image, const Rect* irect)
 {
+  if (image.isEmpty()) return;
+
   CapsState* capsState = ctx.capsState;
   ClipState* clipState = ctx.clipState;
 
@@ -2925,9 +2928,7 @@ void RasterPainterEngine::blitImage(const Point& p, const Image& image, const Re
     if (irect == NULL)
     {
       dstw = image.getWidth();
-      if (dstw == 0) return;
       dsth = image.getHeight();
-      if (dsth == 0) return;
     }
     else
     {
@@ -2990,6 +2991,8 @@ void RasterPainterEngine::blitImage(const Point& p, const Image& image, const Re
 
 void RasterPainterEngine::blitImage(const PointD& p, const Image& image, const Rect* irect)
 {
+  if (image.isEmpty()) return;
+
   _serializeImageAffine(p, image, irect);
 }
 
@@ -3366,7 +3369,8 @@ RasterUtil::PatternContext* RasterPainterEngine::_getPatternContext()
 {
   CapsState* capsState = ctx.capsState;
 
-  // Sanity, calling _getPatternContext() for solid source is not allowed.
+  // Sanity, calling _getPatternContext() for other than pattern source is not
+  // allowed.
   FOG_ASSERT(capsState->sourceType == PAINTER_SOURCE_PATTERN);
 
   RasterUtil::PatternContext* pctx = ctx.pctx;
@@ -3606,6 +3610,9 @@ void RasterPainterEngine::_serializeImageAffine(const PointD& pt, const Image& i
       // Render path using specific pattern context.
       _renderPath(&ctx, ras, true);
 
+      // Destroy pattern context.
+      imagectx.destroy(&imagectx);
+
       // Restore old pattern context.
       ctx.pctx = oldpctx;
     }
@@ -3632,10 +3639,9 @@ void RasterPainterEngine::_serializeImageAffine(const PointD& pt, const Image& i
     if (!imagectx) return;
 
     imagectx->initialized = false;
-
     RasterUtil::functionMap->pattern.texture_init_blit(
       imagectx, image, matrix, SPREAD_PAD, ctx.capsState->imageInterpolation);
-    ctx.pctx = imagectx;
+    imagectx->refCount.init(1);
 
     Command_Path* cmd = _createCommand<Command_Path>(sizeof(Command_Path), imagectx);
     if (!cmd)

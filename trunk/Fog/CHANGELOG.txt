@@ -7,7 +7,9 @@
   code that could set raster to invalid memory location is gone, instead there is now
   quite evil matrix manipulation to make meta and user origin fast.
 - Added some new Region methods to do more (intersectAndClip and translateAndClip),
-  these methods are used mainly by RasterPaintEngine
+  these methods are used mainly by RasterPaintEngine.
+- Fixed image transform in SvgDom.
+- Fixed bugs related to matrix transforms in raster paint engine.
 
 2010-01-01
 - Welcome to 2010.

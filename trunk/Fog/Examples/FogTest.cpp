@@ -217,9 +217,9 @@ void MyWindow::onPaint(PaintEvent* e)
 
   p->save();
   Image img; img.readFile(Ascii8("babelfish.pcx"));
-  //p->translate(-120, -120);
+  //p->translate(100, 100);
   p->rotate(_rotate);
-  //p->translate(230, 230);
+  //p->translate(-100, -100);
   p->drawImage(PointD(50.5, 50.5), img);
   p->restore();
 #endif
