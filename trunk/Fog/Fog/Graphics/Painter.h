@@ -62,7 +62,9 @@ namespace Fog {
 //! TODO
 struct FOG_API Painter 
 {
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   //! @brief Create null painter instance.
   Painter();
@@ -76,13 +78,17 @@ struct FOG_API Painter
   //! (it will call @c end() method).
   ~Painter();
 
+  // --------------------------------------------------------------------------
   // [Begin / End]
+  // --------------------------------------------------------------------------
 
   err_t begin(Image& image, int hints = 0);
   err_t begin(const ImageBuffer& buffer, int hints = 0);
   void end();
 
-  // [Meta]
+  // --------------------------------------------------------------------------
+  // [Width / Height / Format]
+  // --------------------------------------------------------------------------
 
   //! @brief Get painter width in pixels (width returned is width passed to @c begin() method).
   FOG_INLINE int getWidth() const { return _engine->getWidth(); }
@@ -90,6 +96,10 @@ struct FOG_API Painter
   FOG_INLINE int getHeight() const { return _engine->getHeight(); }
   //! @brief Get painter format  (format returned is format passed to @c begin() method).
   FOG_INLINE int getFormat() const { return _engine->getFormat(); }
+
+  // --------------------------------------------------------------------------
+  // [Meta]
+  // --------------------------------------------------------------------------
 
   //! @brief Set painter meta variables (meta origin, meta region, user origin and user region).
   //!
@@ -142,18 +152,22 @@ struct FOG_API Painter
   //! @brief Tells if current user region is used (calling @c resetUserVars() will unuse it).
   FOG_INLINE bool isUserRegionUsed() const { return _engine->isUserRegionUsed(); }
 
+  // --------------------------------------------------------------------------
   // [Operator]
+  // --------------------------------------------------------------------------
 
   //! @brief Set compositing operator.
   //!
   //! See @c COMPOSITE_OP enumeration for operators and their descriptions.
-  FOG_INLINE void setOperator(uint32_t op) { _engine->setOperator(op); }
+  FOG_INLINE void setOperator(int op) { _engine->setOperator(op); }
   //! @brief Get compositing operator.
   //!
   //! See @c COMPOSITE_OP enumeration for operators and their descriptions.
-  FOG_INLINE uint32_t getOperator() const { return _engine->getOperator(); }
+  FOG_INLINE int getOperator() const { return _engine->getOperator(); }
 
+  // --------------------------------------------------------------------------
   // [Source]
+  // --------------------------------------------------------------------------
 
   //! @brief Set source as solid @a rgba color.
   FOG_INLINE void setSource(Argb argb) { _engine->setSource(argb); }
@@ -176,14 +190,27 @@ struct FOG_API Painter
   //! pattern is auto-created.
   FOG_INLINE Pattern getSourceAsPattern() const { return _engine->getSourceAsPattern(); }
 
+  // --------------------------------------------------------------------------
+  // [Hints]
+  // --------------------------------------------------------------------------
+
+  //! @brief Set painter hint, see @c PAINTER_HINT.
+  FOG_INLINE void setHint(int hint, int value) { _engine->setHint(hint, value); }
+  //! @brief Get painter hint, see @c PAINTER_HINT.
+  FOG_INLINE int getHint(int hint) const { return _engine->getHint(hint); }
+
+  // --------------------------------------------------------------------------
   // [Fill Parameters]
+  // --------------------------------------------------------------------------
 
   //! @brief Set fill mode, see @c FillMode enumeration.
-  FOG_INLINE void setFillMode(uint32_t mode) { _engine->setFillMode(mode); }
+  FOG_INLINE void setFillMode(int mode) { _engine->setFillMode(mode); }
   //! @brief Get fill mode, see @c FillMode enumeration.
-  FOG_INLINE uint32_t getFillMode() const { return _engine->getFillMode(); }
+  FOG_INLINE int getFillMode() const { return _engine->getFillMode(); }
 
+  // --------------------------------------------------------------------------
   // [Stroke Parameters]
+  // --------------------------------------------------------------------------
 
   //! @brief Set line parameters.
   FOG_INLINE void setStrokeParams(const StrokeParams& strokeParams) { _engine->setStrokeParams(strokeParams); }
@@ -198,14 +225,14 @@ struct FOG_API Painter
   FOG_INLINE double getLineWidth() const { return _engine->getLineWidth(); }
 
   //! @brief Set line cap.
-  FOG_INLINE void setLineCap(uint32_t lineCap) { _engine->setLineCap(lineCap);}
+  FOG_INLINE void setLineCap(int lineCap) { _engine->setLineCap(lineCap);}
   //! @brief Get line cap.
-  FOG_INLINE uint32_t getLineCap() const { return _engine->getLineCap(); }
+  FOG_INLINE int getLineCap() const { return _engine->getLineCap(); }
 
   //! @brief Set line join.
-  FOG_INLINE void setLineJoin(uint32_t lineJoin) { _engine->setLineJoin(lineJoin); }
+  FOG_INLINE void setLineJoin(int lineJoin) { _engine->setLineJoin(lineJoin); }
   //! @brief Get line join.
-  FOG_INLINE uint32_t getLineJoin() const { return _engine->getLineJoin(); }
+  FOG_INLINE int getLineJoin() const { return _engine->getLineJoin(); }
 
   //! @brief Set line dash.
   FOG_INLINE void setDashes(const List<double>& dashes) { _engine->setDashes(dashes); }
@@ -224,47 +251,50 @@ struct FOG_API Painter
   //! @brief Get line miter limit.
   FOG_INLINE double getMiterLimit() const { return _engine->getMiterLimit(); }
 
+  // --------------------------------------------------------------------------
   // [Transformations]
+  // --------------------------------------------------------------------------
 
-  //! @brief Set affine matrix to @a m, discarding current transformations.
+  //! @brief Set current working matrix to @a m.
   FOG_INLINE void setMatrix(const Matrix& m) { _engine->setMatrix(m); }
-  //! @brief Discard current transformations.
+  //! @brief Reset current working matrix (to identity).
   FOG_INLINE void resetMatrix() { _engine->resetMatrix(); }
-  //! @brief Get current affine matrix used for transformations.
+  //! @brief Get current working matrix.
   FOG_INLINE Matrix getMatrix() const { return _engine->getMatrix(); }
 
-  //! @brief Rotate (will modify affine matrix).
-  FOG_INLINE void rotate(double angle) { _engine->rotate(angle); }
-  //! @brief Scale (will modify affine matrix).
+  //! @brief Rotate current working matrix .
+  FOG_INLINE void rotate(double angle, int order = MATRIX_PREPEND) { _engine->rotate(angle, order); }
+  //! @brief Scale current working matrix.
+  FOG_INLINE void scale(double s) { _engine->scale(s, s); }
+  //! @brief Scale current working matrix.
   FOG_INLINE void scale(double sx, double sy) { _engine->scale(sx, sy); }
-  //! @brief Skew (will modify affine matrix).
-  FOG_INLINE void skew(double sx, double sy) { _engine->skew(sx, sy); }
-  //! @brief Translate (will modify affine matrix).
-  FOG_INLINE void translate(double x, double y) { _engine->translate(x, y); }
-  //! @brief Affine (will modify affine matrix).
-  FOG_INLINE void affine(const Matrix& m) { _engine->affine(m); }
+  //! @brief Skew current working matrix.
+  FOG_INLINE void skew(double sx, double sy, int order = MATRIX_PREPEND) { _engine->skew(sx, sy, order); }
+  //! @brief Translate current working matrix.
+  FOG_INLINE void translate(double x, double y, int order = MATRIX_PREPEND) { _engine->translate(x, y, order); }
+  //! @brief Transform current working matrix.
+  FOG_INLINE void transform(const Matrix& m, int order = MATRIX_PREPEND) { _engine->transform(m, order); }
 
   //! @brief Convert world coordinate into screen one (using transformation matrix).
   FOG_INLINE void worldToScreen(PointD* pt) const { _engine->worldToScreen(pt); }
   //! @brief Convert screen coordinate into world one (using transformation matrix).
   FOG_INLINE void screenToWorld(PointD* pt) const { _engine->screenToWorld(pt); }
 
-  //! @brief Convert world scalar into screen one (using transformation matrix).
-  FOG_INLINE void worldToScreen(double* scalar) const { _engine->worldToScreen(scalar); }
-  //! @brief Convert screen scalar into world one (using transformation matrix).
-  FOG_INLINE void screenToWorld(double* scalar) const { _engine->screenToWorld(scalar); }
-
   //! @brief Align point to center (X.5, Y.5) after applied all transformations.
   FOG_INLINE void alignPoint(PointD* pt) const { _engine->alignPoint(pt); }
 
+  // --------------------------------------------------------------------------
   // [State]
+  // --------------------------------------------------------------------------
 
   //! @brief Save current painter state.
   FOG_INLINE void save() { _engine->save(); }
   //! @brief Restore current painter state.
   FOG_INLINE void restore() { _engine->restore(); }
 
+  // --------------------------------------------------------------------------
   // [Raster Drawing]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE void clear() { _engine->clear(); }
   FOG_INLINE void drawPoint(const Point& p) { _engine->drawPoint(p); }
@@ -276,7 +306,9 @@ struct FOG_API Painter
   FOG_INLINE void fillRound(const Rect& r, const Point& radius) { _engine->fillRound(r, radius); }
   FOG_INLINE void fillRegion(const Region& region) { _engine->fillRegion(region); }
 
+  // --------------------------------------------------------------------------
   // [Vector Drawing]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE void drawPoint(const PointD& p) { _engine->drawPoint(p); }
   FOG_INLINE void drawLine(const PointD& start, const PointD& end) { _engine->drawLine(start, end); }
@@ -297,7 +329,9 @@ struct FOG_API Painter
   FOG_INLINE void fillArc(const PointD& cp, const PointD& r, double start, double sweep) { _engine->fillArc(cp, r, start, sweep); }
   FOG_INLINE void fillPath(const Path& path) { _engine->fillPath(path); }
 
+  // --------------------------------------------------------------------------
   // [Glyph / Text Drawing]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE void drawGlyph(const Point& pt, const Glyph& glyph, const Rect* clip = 0)
   { _engine->drawGlyph(pt, glyph, clip); }
@@ -305,7 +339,9 @@ struct FOG_API Painter
   FOG_INLINE void drawGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip = 0)
   { _engine->drawGlyphSet(pt, glyphSet, clip); }
 
+  // --------------------------------------------------------------------------
   // [Text drawing]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE void drawText(const Point& p, const String& text, const Font& font, const Rect* clip = NULL)
   { _engine->drawText(p, text, font, clip); }
@@ -313,22 +349,28 @@ struct FOG_API Painter
   FOG_INLINE void drawText(const Rect& r, const String& text, const Font& font, uint32_t align, const Rect* clip = NULL)
   { _engine->drawText(r, text, font, align, clip); }
 
+  // --------------------------------------------------------------------------
   // [Image Drawing]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE void drawImage(const Point& p, const Image& image, const Rect* irect = 0)
-  { _engine->drawImage(p, image, irect); }
+  { _engine->blitImage(p, image, irect); }
 
   FOG_INLINE void drawImage(const PointD& p, const Image& image, const Rect* irect = 0)
-  { _engine->drawImage(p, image, irect); }
+  { _engine->blitImage(p, image, irect); }
 
+  // --------------------------------------------------------------------------
   // [Multithreading]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE void setEngine(int mode, int cores = 0) { _engine->setEngine(mode, cores); }
   FOG_INLINE int getEngine() const { return _engine->getEngine(); }
 
   FOG_INLINE void flush() { _engine->flush(); }
 
+  // --------------------------------------------------------------------------
   // [Members]
+  // --------------------------------------------------------------------------
 
   PainterEngine* _engine;
 

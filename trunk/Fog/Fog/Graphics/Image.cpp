@@ -1463,7 +1463,7 @@ err_t Image::filter(const ImageFilter& f, const Rect* area)
 // [Fog::Image - Scaling]
 // ============================================================================
 
-Image Image::scale(const Size& to, int type)
+Image Image::scale(const Size& to, int interpolationType)
 {
   Image dst;
 
@@ -1477,7 +1477,7 @@ Image Image::scale(const Size& to, int type)
   if (dst.create(to.w, to.h, getFormat()) != ERR_OK) return dst;
 
   RasterUtil::PatternContext ctx;
-  err_t err = RasterUtil::functionMap->pattern.scale_init(&ctx, this, to.w, to.h, type);
+  err_t err = RasterUtil::functionMap->pattern.texture_init_scale(&ctx, *this, to.w, to.h, interpolationType);
   if (err != ERR_OK) { dst.free(); return dst; }
 
   uint8_t* dstData = (uint8_t*)dst.getData();
@@ -1598,7 +1598,7 @@ err_t Image::drawLine(const Point& pt0, const Point& pt1, Argb c0, bool lastPoin
 
 err_t Image::fillRect(const Rect& r, Argb c0, int op)
 {
-  if ((uint32_t)op >= COMPOSITE_COUNT) return ERR_RT_INVALID_ARGUMENT;
+  if ((uint)op >= COMPOSITE_COUNT) return ERR_RT_INVALID_ARGUMENT;
 
   int x1 = r.getX1();
   int y1 = r.getY1();
@@ -1967,9 +1967,10 @@ static err_t _blitImage(
   return ERR_OK;
 }
 
+// TODO: Operator should be 'int'.
 err_t Image::drawImage(const Point& pt, const Image& src, uint32_t op, uint32_t opacity)
 {
-  if (op >= COMPOSITE_COUNT) return ERR_RT_INVALID_ARGUMENT;
+  if ((uint)op >= COMPOSITE_COUNT) return ERR_RT_INVALID_ARGUMENT;
   if (opacity == 0) return ERR_OK;
 
   Data* dst_d = _d;
@@ -1996,9 +1997,10 @@ err_t Image::drawImage(const Point& pt, const Image& src, uint32_t op, uint32_t 
   return _blitImage(_d, x1, y1, src_d, x1 - pt.getX(), y1 - pt.getY(), x2 - x1, y2 - y1, op, opacity);
 }
 
+// TODO: Operator should be 'int'.
 err_t Image::drawImage(const Point& pt, const Image& src, const Rect& srcRect, uint32_t op, uint32_t opacity)
 {
-  if (op >= COMPOSITE_COUNT) return ERR_RT_INVALID_ARGUMENT;
+  if ((uint)op >= COMPOSITE_COUNT) return ERR_RT_INVALID_ARGUMENT;
   if (!srcRect.isValid()) return ERR_OK;
   if (opacity == 0) return ERR_OK;
 

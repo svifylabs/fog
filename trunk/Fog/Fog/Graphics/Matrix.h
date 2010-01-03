@@ -31,6 +31,7 @@
 #include <Fog/Core/Math.h>
 #include <Fog/Core/TypeInfo.h>
 #include <Fog/Graphics/Constants.h>
+#include <Fog/Graphics/Geometry.h>
 
 //! @addtogroup Fog_Graphics
 //! @{
@@ -155,16 +156,16 @@ struct FOG_API Matrix
   static Matrix fromRotation(double a);
 
   //! @brief Create scaling matrix.
-  static Matrix fromScale(double s);
+  static Matrix fromScaling(double s);
 
   //! @brief Create scaling matrix.
-  static Matrix fromScale(double x, double y);
+  static Matrix fromScaling(double x, double y);
 
   //! @brief Create translation matrix.
   static Matrix fromTranslation(double x, double y);
 
   //! @brief Create skewing (shear) matrix.
-  static Matrix fromSkew(double x, double y);
+  static Matrix fromSkewing(double x, double y);
 
   //! @brief Create line segment matrix - rotate, scale and translate, 
   //! associating 0...dist with line segment x1, y1, x2, y2.
@@ -201,11 +202,11 @@ struct FOG_API Matrix
   Matrix& reset();
 
   // Direct transformations operations
-  Matrix& translate(double x, double y);
-  Matrix& rotate(double a);
-  Matrix& scale(double s);
+  Matrix& translate(double x, double y, int order = MATRIX_PREPEND);
+  Matrix& rotate(double a, int order = MATRIX_PREPEND);
+  Matrix& scale(double a);
   Matrix& scale(double x, double y);
-  Matrix& skew(double x, double y);
+  Matrix& skew(double x, double y, int order = MATRIX_PREPEND);
 
   //! @brief Multiply matrix by @a m.
   Matrix& multiply(const Matrix& m, int order = MATRIX_APPEND);
@@ -258,18 +259,18 @@ struct FOG_API Matrix
   // [Operators]
   
   //! @brief Multiply the matrix by another one.
-  FOG_INLINE Matrix& operator*=(const Matrix& m) { return multiply(m); }
+  FOG_INLINE Matrix& operator*=(const Matrix& m) { return multiply(m, MATRIX_APPEND); }
 
   //! @brief Multiply the matrix by inverse of another one.
-  FOG_INLINE Matrix& operator/=(const Matrix& m) { return multiplyInv(m); }
+  FOG_INLINE Matrix& operator/=(const Matrix& m) { return multiplyInv(m, MATRIX_APPEND); }
 
   //! @brief Multiply the matrix by another one and return
   //! the result in a separete matrix.
-  FOG_INLINE Matrix operator*(const Matrix& m) { return Matrix(*this).multiply(m); }
+  FOG_INLINE Matrix operator*(const Matrix& m) { return Matrix(*this).multiply(m, MATRIX_APPEND); }
 
   //! @brief Multiply the matrix by inverse of another one 
   //! and return the result in a separete matrix.
-  FOG_INLINE Matrix operator/(const Matrix& m) { return Matrix(*this).multiplyInv(m); }
+  FOG_INLINE Matrix operator/(const Matrix& m) { return Matrix(*this).multiplyInv(m, MATRIX_APPEND); }
 
   //! @brief Calculate and return the inverse matrix.
   FOG_INLINE Matrix operator~() const { return inverted(); }
@@ -283,32 +284,37 @@ struct FOG_API Matrix
   // [Transformations]
 
   //! @brief Direct transformation of x and y.
-  void transform(double* x, double* y) const;
+  void transformPoint(double* x, double* y) const;
 
-  //! @brief Direct transformation of x and y, 2x2 matrix only, no translation.
-  void transform2x2(double* x, double* y) const;
+  //! @brief Direct transformation of x and y without translation.
+  void transformVector(double* x, double* y) const;
 
-  //! @brief Inverse transformation of x and y. It works slower than
-  //! the direct transformation. For massive operations it's better to 
-  //! invert() the matrix and then use direct transformations. 
-  void transformInv(double* x, double* y) const;
+  //! @brief Inverse transformation of x and y.
+  //!
+  //! It works slower than the direct transformation. For more operations it's
+  //! always better to @c invert() the matrix and then use @c transformPoint().
+  void inverseTransformPoint(double* x, double* y) const;
+
+  //! @brief Inverse transformation of x and y without translation.
+  //!
+  //! It works slower than the direct transformation. For more operations it's
+  //! always better to @c invert() the matrix and then use @c inverseTransformVector().
+  void inverseTransformVector(double* x, double* y) const;
+
+  //! @overload
+  FOG_INLINE void transformPoint(PointD* p) { return transformPoint(&p->x, &p->y); }
+  //! @overload
+  FOG_INLINE void transformVector(PointD* v) { return transformVector(&v->x, &v->y); }
+
+  //! @overload
+  FOG_INLINE void inverseTransformPoint(PointD* p) { return inverseTransformPoint(&p->x, &p->y); }
+  //! @overload
+  FOG_INLINE void inverseTransformVector(PointD* v) { return inverseTransformVector(&v->x, &v->y); }
 
   //! @brief Transform an array of points.
   void transformPoints(PointD* dst, const PointD* src, sysuint_t count) const;
 
   // [Auxiliary]
-
-  //! @brief Calculate the determinant of matrix.
-  FOG_INLINE double determinant() const { return sx * sy - shy * shx; }
-
-  //! @brief Calculate the reciprocal of the determinant.
-  double determinantReciprocal() const;
-
-  //! @brief Get the average scale (by X and Y). 
-  //!
-  //! Basically used to calculate the approximation scale when decomposinting
-  //! curves into line segments.
-  double scale() const;
 
   //! @brief Check to see if the matrix is not degenerate.
   bool isValid(double epsilon = Math::DEFAULT_EPSILON) const;
@@ -319,13 +325,28 @@ struct FOG_API Matrix
   //! @brief Check to see if two matrices are equal.
   bool isEqual(const Matrix& m, double epsilon = Math::DEFAULT_EPSILON) const;
 
-  //! @brief Determine the major parameters. Use with caution considering 
-  //! possible degenerate cases.
-  double rotation() const;
+  //! @brief Calculate the determinant of matrix.
+  FOG_INLINE double getDeterminant() const { return sx * sy - shy * shx; }
 
-  void translation(double* dx, double* dy) const;
-  void scaling(double* x, double* y) const;
-  void scalingAbs(double* x, double* y) const;
+  //! @brief Calculate the reciprocal of the determinant.
+  FOG_INLINE double getDeterminantReciprocal() const { return 1.0 / (sx * sy - shy * shx); }
+
+  //! @brief Get translation part of matrix.
+  PointD getTranslation() const;
+
+  //! @brief Get rotation. Use with caution considering possible degenerate cases.
+  double getRotation() const;
+
+  //! @brief Get scaling.
+  PointD getScaling() const;
+
+  //! @brief Get the average scale (by X and Y).
+  //!
+  //! Basically used to calculate the approximation scale when decomposinting
+  //! curves into line segments.
+  double getAverageScaling() const;
+
+  PointD getAbsoluteScaling() const;
 
   // [Members]
 

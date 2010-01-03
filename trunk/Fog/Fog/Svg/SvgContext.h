@@ -128,9 +128,9 @@ struct FOG_API SvgContext
     _fillStyle.pattern = pattern;
   }
 
-  FOG_INLINE void setFillMode(uint32_t rule)
+  FOG_INLINE void setFillMode(int mode)
   {
-    _fillMode = rule;
+    _fillMode = mode;
   }
 
   // [Line Parameters]
@@ -172,12 +172,12 @@ struct FOG_API SvgContext
     _strokeParams.setLineWidth(lineWidth);
   }
 
-  FOG_INLINE void setLineCap(uint32_t lineCap)
+  FOG_INLINE void setLineCap(int lineCap)
   {
     _strokeParams.setLineCap(lineCap);
   }
 
-  FOG_INLINE void setLineJoin(uint32_t lineJoin)
+  FOG_INLINE void setLineJoin(int lineJoin)
   {
     _strokeParams.setLineJoin(lineJoin);
   }
@@ -238,7 +238,7 @@ struct FOG_API SvgContext
   Style _fillStyle;
   Style _lineStyle;
   StrokeParams _strokeParams;
-  uint32_t _fillMode;
+  int _fillMode;
 
   double _dpi;
   double _translateCoordData[SVG_UNIT_INVALID];

@@ -61,23 +61,33 @@ typedef void (FOG_FASTCALL *InterpolateArgbFn)(
 // [Fog::RasterUtil - Prototypes - Pattern]
 // ============================================================================
 
+// Generic.
 typedef err_t (FOG_FASTCALL *PatternInitFn)(
-  PatternContext* ctx,
-  const Pattern& pattern, const Matrix& matrix);
-
-typedef err_t (FOG_FASTCALL *PatternInitSolidFn)(
-  PatternContext* ctx, uint32_t prgb);
-
-typedef uint8_t* (FOG_FASTCALL *PatternFetchFn)(
-  PatternContext* ctx,
-  uint8_t* dst, int x, int y, int w);
+  PatternContext* ctx, const Pattern& pattern, const Matrix& matrix);
 
 typedef void (FOG_FASTCALL *PatternDestroyFn)(
   PatternContext* ctx);
 
-typedef err_t (FOG_FASTCALL *ScaleInitFn)(
-  PatternContext* ctx,
-  const Image* im, int dw, int dh, int filter);
+typedef uint8_t* (FOG_FASTCALL *PatternFetchFn)(
+  PatternContext* ctx, uint8_t* dst, int x, int y, int w);
+
+// Solid.
+typedef err_t (FOG_FASTCALL *SolidInitFn)(
+  PatternContext* ctx, uint32_t prgb);
+
+// Texture.
+typedef err_t (FOG_FASTCALL *TextureInitFn)(
+  PatternContext* ctx, const Pattern& pattern, const Matrix& matrix, int interpolationType);
+
+typedef err_t (FOG_FASTCALL *TextureInitBlitFn)(
+  PatternContext* ctx, const Image& image, const Matrix& matrix, int spread, int interpolationType);
+
+typedef err_t (FOG_FASTCALL *TextureInitScaleFn)(
+  PatternContext* ctx, const Image& image, int dw, int dh, int interpolationType);
+
+// Gradient.
+typedef err_t (FOG_FASTCALL *GradientInitFn)(
+  PatternContext* ctx, const Pattern& pattern, const Matrix& matrix, int interpolationType);
 
 // ============================================================================
 // [Fog::RasterUtil - Prototypes - Filter]
@@ -398,15 +408,19 @@ struct FunctionMap
     // 
     // Painter engine should always use solid color fastpath if pattern
     // degrades to solid color.
-    PatternInitSolidFn solid_init;
+    SolidInitFn solid_init;
     PatternFetchFn solid_fetch;
 
     // [Texture]
 
-    PatternInitFn texture_init;
+    TextureInitFn texture_init;
+    TextureInitBlitFn texture_init_blit;
+    TextureInitScaleFn texture_init_scale;
+
     // Exact, no transform.
     PatternFetchFn texture_fetch_exact_repeat[PIXEL_FORMAT_COUNT];
     PatternFetchFn texture_fetch_exact_reflect[PIXEL_FORMAT_COUNT];
+
     // Subpixel accurate, no transform.
     PatternFetchFn texture_fetch_subx0_repeat[PIXEL_FORMAT_COUNT];
     PatternFetchFn texture_fetch_subx0_reflect[PIXEL_FORMAT_COUNT];
@@ -414,20 +428,20 @@ struct FunctionMap
     PatternFetchFn texture_fetch_sub0y_reflect[PIXEL_FORMAT_COUNT];
     PatternFetchFn texture_fetch_subxy_repeat[PIXEL_FORMAT_COUNT];
     PatternFetchFn texture_fetch_subxy_reflect[PIXEL_FORMAT_COUNT];
+
     // Transform, nearest.
     PatternFetchFn texture_fetch_transform_nearest_repeat[PIXEL_FORMAT_COUNT];
     // Transform, bilinear.
     PatternFetchFn texture_fetch_transform_bilinear_repeat[PIXEL_FORMAT_COUNT];
 
-    // [Scale]
-
-    ScaleInitFn scale_init;
-    PatternFetchFn scale_fetch_nearest[PIXEL_FORMAT_COUNT];
-    PatternFetchFn scale_fetch_bilinear[PIXEL_FORMAT_COUNT];
+    // Scale, nearest.
+    PatternFetchFn texture_fetch_scale_nearest[PIXEL_FORMAT_COUNT];
+    // Scale, bilinear.
+    PatternFetchFn texture_fetch_scale_bilinear[PIXEL_FORMAT_COUNT];
 
     // [Linear Gradient]
 
-    PatternInitFn linear_gradient_init;
+    GradientInitFn linear_gradient_init;
 
     // Exact is non-antialiased gradient rendering, also used in antialiased
     // mode for vertical and horizontal gradients.
@@ -440,13 +454,13 @@ struct FunctionMap
 
     // [Radial Gradient]
 
-    PatternInitFn radial_gradient_init;
+    GradientInitFn radial_gradient_init;
     PatternFetchFn radial_gradient_fetch_pad;
     PatternFetchFn radial_gradient_fetch_repeat;
 
     // [Conical Gradient]
 
-    PatternInitFn conical_gradient_init;
+    GradientInitFn conical_gradient_init;
     PatternFetchFn conical_gradient_fetch;
   };
 
@@ -511,7 +525,17 @@ struct FunctionMap
 
 extern FOG_API FunctionMap* functionMap;
 
-FOG_API FunctionMap::CompositeFuncs* getRasterOps(int format, int op);
+// ============================================================================
+// [Fog::RasterUtil - getRasterOps]
+// ============================================================================
+
+FOG_INLINE FunctionMap::CompositeFuncs* getRasterOps(int format, int op)
+{
+  FOG_ASSERT((uint)format < PIXEL_FORMAT_COUNT);
+  FOG_ASSERT((uint)op < COMPOSITE_COUNT);
+
+  return &functionMap->composite[op][format];
+}
 
 } // RasterUtil namespace
 } // Fog namespace

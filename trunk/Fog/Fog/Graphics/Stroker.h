@@ -46,21 +46,76 @@ struct StrokerPrivate;
 // [Fog::StrokeParams]
 // ============================================================================
 
-struct FOG_API StrokeParams
+struct FOG_HIDDEN StrokeParams
 {
   // [Construction / Destruction]
 
-  StrokeParams();
-  StrokeParams(const StrokeParams& other);
-  ~StrokeParams();
+  FOG_INLINE StrokeParams() :
+    _lineWidth(LINE_WIDTH_DEFAULT),
+    _miterLimit(MITER_LIMIT_DEFAULT),
+    _innerLimit(INNER_LIMIT_DEFAULT),
+
+    _lineCap(LINE_CAP_DEFAULT),
+    _lineJoin(LINE_JOIN_DEFAULT),
+    _innerJoin(INNER_JOIN_DEFAULT),
+
+    _dashOffset(DASH_OFFSET_DEFAULT)
+  {
+
+  }
+
+  FOG_INLINE StrokeParams(const StrokeParams& other) :
+    _lineWidth(other._lineWidth),
+    _miterLimit(other._miterLimit),
+    _innerLimit(other._innerLimit),
+
+    _lineCap(other._lineCap),
+    _lineJoin(other._lineJoin),
+    _innerJoin(other._innerJoin),
+
+    _dashes(other._dashes),
+    _dashOffset(other._dashOffset)
+  {
+
+  }
+
+  FOG_INLINE ~StrokeParams()
+  {
+  }
 
   // [Operator Overload]
 
-  StrokeParams& operator=(const StrokeParams& other);
+  FOG_INLINE StrokeParams& operator=(const StrokeParams& other)
+  {
+    _lineWidth = other._lineWidth;
+    _miterLimit = other._miterLimit;
+    _innerLimit = other._innerLimit;
+
+    _lineCap = other._lineCap;
+    _lineJoin = other._lineJoin;
+    _innerJoin = other._innerJoin;
+
+    _dashes = other._dashes;
+    _dashOffset = other._dashOffset;
+
+    return *this;
+  }
 
   // [Reset]
 
-  void reset();
+  FOG_INLINE void reset()
+  {
+    _lineWidth = LINE_WIDTH_DEFAULT;
+    _miterLimit = MITER_LIMIT_DEFAULT;
+    _innerLimit = INNER_LIMIT_DEFAULT;
+
+    _lineCap = LINE_CAP_DEFAULT;
+    _lineJoin = LINE_JOIN_DEFAULT;
+    _innerJoin = INNER_JOIN_DEFAULT;
+
+    _dashes.free();
+    _dashOffset = DASH_OFFSET_DEFAULT;
+  }
 
   // [Getters / Setters]
 

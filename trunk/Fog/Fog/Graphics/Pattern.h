@@ -140,12 +140,12 @@ struct FOG_API Pattern
   err_t setMatrix(const Matrix& matrix);
   err_t resetMatrix();
 
-  err_t translate(double x, double y);
-  err_t rotate(double a);
+  err_t translate(double x, double y, int order = MATRIX_PREPEND);
+  err_t rotate(double a, int order = MATRIX_PREPEND);
   err_t scale(double s);
   err_t scale(double x, double y);
-  err_t skew(double x, double y);
-  err_t multiply(const Matrix& m, int order = MATRIX_PREPEND);
+  err_t skew(double x, double y, int order = MATRIX_PREPEND);
+  err_t transform(const Matrix& m, int order = MATRIX_PREPEND);
 
   // [Start Point / End Point]
 

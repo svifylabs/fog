@@ -533,8 +533,8 @@ struct FOG_HIDDEN PatternSSE2
     int tw = ctx->texture.w;
     int th = ctx->texture.h;
 
-    int fx = double_to_fixed16x16(rx * ctx->m[MATRIX_SX ] + ry * ctx->m[MATRIX_SHX] - ctx->m[MATRIX_TX]);
-    int fy = double_to_fixed16x16(rx * ctx->m[MATRIX_SHY] + ry * ctx->m[MATRIX_SY ] - ctx->m[MATRIX_TY]);
+    int fx = double_to_fixed16x16(rx * ctx->m[MATRIX_SX ] + ry * ctx->m[MATRIX_SHX] + ctx->m[MATRIX_TX]);
+    int fy = double_to_fixed16x16(rx * ctx->m[MATRIX_SHY] + ry * ctx->m[MATRIX_SY ] + ctx->m[MATRIX_TY]);
 
     int dx = double_to_fixed16x16(ctx->m[MATRIX_SX]);
     int dy = double_to_fixed16x16(ctx->m[MATRIX_SHY]);

@@ -1138,7 +1138,7 @@ ByteArray GdiPlusModule_Image::getType()
 }
 
 // ============================================================================
-// [GdiPlusModule_Image]
+// [GdiPlusModule_ImageAffine]
 // ============================================================================
 
 struct GdiPlusModule_ImageAffine : public GdiPlusModule_Image
@@ -1165,9 +1165,9 @@ void GdiPlusModule_ImageAffine::bench(int quantity)
     int y = r_rect.data[a].y;
 
     gr.ResetTransform();
-    gr.TranslateTransform((Gdiplus::REAL)-x, (Gdiplus::REAL)-y, Gdiplus::MatrixOrderAppend);
-    gr.RotateTransform(rot, Gdiplus::MatrixOrderAppend);
-    gr.TranslateTransform((Gdiplus::REAL)x, (Gdiplus::REAL)y, Gdiplus::MatrixOrderAppend);
+    gr.TranslateTransform((Gdiplus::REAL)x, (Gdiplus::REAL)y);
+    gr.RotateTransform(rot);
+    gr.TranslateTransform((Gdiplus::REAL)-x, (Gdiplus::REAL)-y);
 
     gr.DrawImage(images_gdip[r_numb.data[a]], x, y);
   }
