@@ -1,5 +1,5 @@
 #summary How to write code for Fog.
-#labels Phase-Implementation
+#labels Phase-Implementation,Featured
 
 ==Identation, Braces, Position of Keywords==
 *Code Indentation* Code inside `{}`-Braces should be indented for 2 whitespaces. 
