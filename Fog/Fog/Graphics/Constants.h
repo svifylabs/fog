@@ -32,6 +32,19 @@ enum ALPHA_TYPE
 };
 
 // ============================================================================
+// [Fog::ANTI_ALIASING_TYPE]
+// ============================================================================
+
+//! @brief Anti-aliasing type.
+enum ANTI_ALIASING_TYPE
+{
+  ANTI_ALIASING_NONE = 0,
+  ANTI_ALIASING_SMOOTH = 1,
+
+  ANTI_ALIASING_INVALID = 2
+};
+
+// ============================================================================
 // [Fog::BLUR_TYPE]
 // ============================================================================
 
@@ -1383,18 +1396,6 @@ enum IMAGE_ROTATE_MODE
 };
 
 // ============================================================================
-// [Fog::IMAGE_SCALE]
-// ============================================================================
-
-//! @brief Scale filter that can be using with @c Image::scale() or set in
-//! painter.
-enum IMAGE_SCALE
-{
-  IMAGE_SCALE_NEAREST = 0,
-  IMAGE_SCALE_SMOOTH = 1
-};
-
-// ============================================================================
 // [Fog::IMAGE_FILTER_TYPE]
 // ============================================================================
 
@@ -1406,10 +1407,10 @@ enum IMAGE_FILTER_TYPE
 
   // [ColorFilter filters]
 
-  //! @brief @c ColorMatrix image filter.
-  IMAGE_FILTER_COLORMATRIX = 1,
   //! @brief @c ColorLut image filter.
-  IMAGE_FILTER_COLORLUT = 2,
+  IMAGE_FILTER_COLORLUT = 1,
+  //! @brief @c ColorMatrix image filter.
+  IMAGE_FILTER_COLORMATRIX = 2,
 
   // [ImageFilter filters]
 
@@ -1538,6 +1539,20 @@ enum IMAGEIO_FILE_TYPE
   IMAGEIO_FILE_XPM,
 
   IMAGEIO_FILE_CUSTOM = 65536
+};
+
+// ============================================================================
+// [Fog::INTERPOLATION_TYPE]
+// ============================================================================
+
+//! @brief Scale filter that can be using with @c Image::scale() or set in
+//! painter.
+enum INTERPOLATION_TYPE
+{
+  INTERPOLATION_NEAREST = 0,
+  INTERPOLATION_SMOOTH = 1,
+
+  INTERPOLATION_INVALID = 2
 };
 
 // ============================================================================
@@ -1683,16 +1698,24 @@ enum PAINTER_ENGINE
 };
 
 // ============================================================================
-// [Fog::PAINTER_HINTS]
+// [Fog::PAINTER_HINT]
 // ============================================================================
 
 //! @brief Painter hints that can be set during painter initialization.
 //!
 //! Currently this is mainly to turn multithreading off.
-enum PAINTER_HINTS
+enum PAINTER_HINT_OLD
 {
   //! @brief Do not use multithreading.
   PAINTER_HINT_NO_MT = 0x0001
+};
+
+enum PAINTER_HINT
+{
+  PAINTER_HINT_NONE = 0,
+  PAINTER_HINT_ANTIALIASING_QUALITY = 1,
+  PAINTER_HINT_IMAGE_INTERPOLATION = 2,
+  PAINTER_HINT_GRADIENT_INTERPOLATION = 3
 };
 
 // ============================================================================

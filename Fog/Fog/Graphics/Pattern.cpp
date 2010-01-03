@@ -150,21 +150,21 @@ err_t Pattern::resetMatrix()
   return ERR_OK;
 }
 
-err_t Pattern::translate(double x, double y)
+err_t Pattern::translate(double x, double y, int order)
 {
   err_t err;
   if ( (err = detach()) ) return err;
 
-  _d->matrix.translate(x, y);
+  _d->matrix.translate(x, y, order);
   return ERR_OK;
 }
 
-err_t Pattern::rotate(double a)
+err_t Pattern::rotate(double a, int order)
 {
   err_t err;
   if ( (err = detach()) ) return err;
 
-  _d->matrix.rotate(a);
+  _d->matrix.rotate(a, order);
   return ERR_OK;
 }
 
@@ -186,16 +186,16 @@ err_t Pattern::scale(double x, double y)
   return ERR_OK;
 }
 
-err_t Pattern::skew(double x, double y)
+err_t Pattern::skew(double x, double y, int order)
 {
   err_t err;
   if ( (err = detach()) ) return err;
 
-  _d->matrix.skew(x, y);
+  _d->matrix.skew(x, y, order);
   return ERR_OK;
 }
 
-err_t Pattern::multiply(const Matrix& m, int order)
+err_t Pattern::transform(const Matrix& m, int order)
 {
   err_t err;
   if ( (err = detach()) ) return err;

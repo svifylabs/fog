@@ -237,11 +237,14 @@ struct FOG_HIDDEN PatternC
   static err_t FOG_FASTCALL solid_init(
     PatternContext* ctx, uint32_t prgb)
   {
+    // Solid fill is always using 32-bit format. We degrade to XRGB32 if alpha
+    // channel is 0xFF (fully opaque).
     ctx->format = ArgbUtil::isAlpha0xFF(prgb)
       ? PIXEL_FORMAT_XRGB32
       : PIXEL_FORMAT_PRGB32;
     ctx->depth = 32;
 
+    // TODO: What about solid.argb?
     ctx->solid.prgb = prgb;
     ctx->fetch = solid_fetch;
     ctx->destroy = solid_destroy;
@@ -280,23 +283,35 @@ struct FOG_HIDDEN PatternC
   // --------------------------------------------------------------------------
 
   static err_t FOG_FASTCALL texture_init(
-    PatternContext* ctx, const Pattern& pattern, const Matrix& matrix)
+    PatternContext* ctx, const Pattern& pattern, const Matrix& matrix, int interpolationType)
   {
     Pattern::Data* d = pattern._d;
-    if (d->type != PATTERN_TEXTURE) return ERR_RT_INVALID_ARGUMENT;
 
-    if (d->obj.texture->isEmpty())
-    {
-      return functionMap->pattern.solid_init(ctx, 0x00000000);
-    }
+    // Only PATTERN_TEXTURE type pattern can be passed to texture_init().
+    FOG_ASSERT(d->type == PATTERN_TEXTURE);
 
+    // If texture is empty image we tread it as 0x00000000 solid color.
+    if (d->obj.texture->isEmpty()) return functionMap->pattern.solid_init(ctx, 0x00000000);
+
+    // Multiply pattern matrix with a given matrix (painter transformations).
     Matrix m = pattern.getMatrix().multiplied(matrix);
-    m.storeTo(ctx->m);
 
-    ctx->texture.texture.init(d->obj.texture.instance());
+    // Call texture_init_blit() which will initialize the context.
+    return texture_init_blit(ctx, d->obj.texture.instance(), m, d->spread, interpolationType);
+  }
 
-    int format = ctx->texture.texture->getFormat();
-    bool isTransformed = (!Math::feq(m.sx, 1.0) || !Math::feq(m.sy, 1.0) || !Math::feq(m.shx, 0.0) || !Math::feq(m.shy, 0.0));
+  static err_t FOG_FASTCALL texture_init_blit(
+    PatternContext* ctx, const Image& image, const Matrix& matrix, int spread, int interpolationType)
+  {
+    // Only valid images can be passed to texture_init_blit.
+    FOG_ASSERT(!image.isEmpty());
+
+    int format = image.getFormat();
+    bool isTransformed = (!Math::feq(matrix.sx, 1.0) || !Math::feq(matrix.shy, 0.0) ||
+                          !Math::feq(matrix.sy, 1.0) || !Math::feq(matrix.shx, 0.0) );
+
+    matrix.inverted().storeTo(ctx->m);
+    ctx->texture.texture.init(image);
 
     switch (format)
     {
@@ -322,8 +337,8 @@ struct FOG_HIDDEN PatternC
 
     if (!isTransformed)
     {
-      int64_t startx = double_to_fixed48x16(m.tx);
-      int64_t starty = double_to_fixed48x16(m.ty);
+      int64_t startx = double_to_fixed48x16(matrix.tx);
+      int64_t starty = double_to_fixed48x16(matrix.ty);
 
       uint fx = (int)(startx >> 8) & 0xFF;
       uint fy = (int)(starty >> 8) & 0xFF;
@@ -340,7 +355,7 @@ struct FOG_HIDDEN PatternC
         ctx->texture.fY1X1 = 0;
 
         // Set fetch function.
-        switch (d->spread)
+        switch (spread)
         {
           case SPREAD_PAD:
           default:
@@ -368,7 +383,7 @@ struct FOG_HIDDEN PatternC
         ctx->texture.fY1X1 = ((256 - fy) * (256 - fx)) >> 8;
 
         // Set fetch function.
-        switch (d->spread)
+        switch (spread)
         {
           case SPREAD_PAD:
           default:
@@ -401,7 +416,7 @@ struct FOG_HIDDEN PatternC
       // Transform.
 
       // Set fetch function.
-      switch (d->spread)
+      switch (spread)
       {
         case SPREAD_PAD:
         default:
@@ -1339,8 +1354,8 @@ struct FOG_HIDDEN PatternC
     int tw = ctx->texture.w;
     int th = ctx->texture.h;
 
-    int fx = double_to_fixed16x16(rx * ctx->m[MATRIX_SX ] + ry * ctx->m[MATRIX_SHX] - ctx->m[MATRIX_TX]) - 0x8000;
-    int fy = double_to_fixed16x16(rx * ctx->m[MATRIX_SHY] + ry * ctx->m[MATRIX_SY ] - ctx->m[MATRIX_TY]) - 0x8000;
+    int fx = double_to_fixed16x16(rx * ctx->m[MATRIX_SX ] + ry * ctx->m[MATRIX_SHX] + ctx->m[MATRIX_TX]) - 0x8000;
+    int fy = double_to_fixed16x16(rx * ctx->m[MATRIX_SHY] + ry * ctx->m[MATRIX_SY ] + ctx->m[MATRIX_TY]) - 0x8000;
 
     int dx = double_to_fixed16x16(ctx->m[MATRIX_SX]);
     int dy = double_to_fixed16x16(ctx->m[MATRIX_SHY]);
@@ -1391,8 +1406,8 @@ struct FOG_HIDDEN PatternC
     int tw = ctx->texture.w;
     int th = ctx->texture.h;
 
-    int fx = double_to_fixed16x16(rx * ctx->m[MATRIX_SX ] + ry * ctx->m[MATRIX_SHX] - ctx->m[MATRIX_TX]) - 0x8000;
-    int fy = double_to_fixed16x16(rx * ctx->m[MATRIX_SHY] + ry * ctx->m[MATRIX_SY ] - ctx->m[MATRIX_TY]) - 0x8000;
+    int fx = double_to_fixed16x16(rx * ctx->m[MATRIX_SX ] + ry * ctx->m[MATRIX_SHX] + ctx->m[MATRIX_TX]) - 0x8000;
+    int fy = double_to_fixed16x16(rx * ctx->m[MATRIX_SHY] + ry * ctx->m[MATRIX_SY ] + ctx->m[MATRIX_TY]) - 0x8000;
 
     int dx = double_to_fixed16x16(ctx->m[MATRIX_SX]);
     int dy = double_to_fixed16x16(ctx->m[MATRIX_SHY]);
@@ -1447,8 +1462,8 @@ struct FOG_HIDDEN PatternC
     int tw = ctx->texture.w;
     int th = ctx->texture.h;
 
-    int fx = double_to_fixed16x16(rx * ctx->m[MATRIX_SX ] + ry * ctx->m[MATRIX_SHX] - ctx->m[MATRIX_TX]);
-    int fy = double_to_fixed16x16(rx * ctx->m[MATRIX_SHY] + ry * ctx->m[MATRIX_SY ] - ctx->m[MATRIX_TY]);
+    int fx = double_to_fixed16x16(rx * ctx->m[MATRIX_SX ] + ry * ctx->m[MATRIX_SHX] + ctx->m[MATRIX_TX]);
+    int fy = double_to_fixed16x16(rx * ctx->m[MATRIX_SHY] + ry * ctx->m[MATRIX_SY ] + ctx->m[MATRIX_TY]);
 
     int dx = double_to_fixed16x16(ctx->m[MATRIX_SX]);
     int dy = double_to_fixed16x16(ctx->m[MATRIX_SHY]);
@@ -1539,8 +1554,8 @@ struct FOG_HIDDEN PatternC
     int tw = ctx->texture.w;
     int th = ctx->texture.h;
 
-    int fx = double_to_fixed16x16(rx * ctx->m[MATRIX_SX ] + ry * ctx->m[MATRIX_SHX] - ctx->m[MATRIX_TX]);
-    int fy = double_to_fixed16x16(rx * ctx->m[MATRIX_SHY] + ry * ctx->m[MATRIX_SY ] - ctx->m[MATRIX_TY]);
+    int fx = double_to_fixed16x16(rx * ctx->m[MATRIX_SX ] + ry * ctx->m[MATRIX_SHX] + ctx->m[MATRIX_TX]);
+    int fy = double_to_fixed16x16(rx * ctx->m[MATRIX_SHY] + ry * ctx->m[MATRIX_SY ] + ctx->m[MATRIX_TY]);
 
     int dx = double_to_fixed16x16(ctx->m[MATRIX_SX]);
     int dy = double_to_fixed16x16(ctx->m[MATRIX_SHY]);
@@ -1800,7 +1815,7 @@ struct FOG_HIDDEN PatternC
   // --------------------------------------------------------------------------
 
   static err_t FOG_FASTCALL linear_gradient_init(
-    PatternContext* ctx, const Pattern& pattern, const Matrix& matrix)
+    PatternContext* ctx, const Pattern& pattern, const Matrix& matrix, int interpolationType)
   {
     Pattern::Data* d = pattern._d;
     if (d->type != PATTERN_LINEAR_GRADIENT) return ERR_RT_INVALID_ARGUMENT;
@@ -1923,7 +1938,7 @@ struct FOG_HIDDEN PatternC
     double px = d->points[0].x;
     double py = d->points[0].y;
 
-    m.transform(&px, &py);
+    m.transformPoint(&px, &py);
 
     double vx = d->points[1].x - d->points[0].x;
     double vy = d->points[1].y - d->points[0].y;
@@ -2334,7 +2349,7 @@ struct FOG_HIDDEN PatternC
   // --------------------------------------------------------------------------
 
   static err_t FOG_FASTCALL radial_gradient_init(
-    PatternContext* ctx, const Pattern& pattern, const Matrix& matrix)
+    PatternContext* ctx, const Pattern& pattern, const Matrix& matrix, int interpolationType)
   {
     Pattern::Data* d = pattern._d;
     if (d->type != PATTERN_RADIAL_GRADIENT) return ERR_RT_INVALID_ARGUMENT;
@@ -2617,7 +2632,7 @@ struct FOG_HIDDEN PatternC
   // --------------------------------------------------------------------------
 
   static err_t FOG_FASTCALL conical_gradient_init(
-    PatternContext* ctx, const Pattern& pattern, const Matrix& matrix)
+    PatternContext* ctx, const Pattern& pattern, const Matrix& matrix, int interpolationType)
   {
     Pattern::Data* d = pattern._d;
     if (d->type != PATTERN_CONICAL_GRADIENT) return ERR_RT_INVALID_ARGUMENT;

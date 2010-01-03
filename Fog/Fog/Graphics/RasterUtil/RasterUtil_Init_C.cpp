@@ -241,6 +241,9 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   // [Pattern - Texture]
 
   m->pattern.texture_init = PatternC::texture_init;
+  m->pattern.texture_init_blit = PatternC::texture_init_blit;
+  m->pattern.texture_init_scale = ScaleC::texture_init_scale;
+
   m->pattern.texture_fetch_exact_repeat[PIXEL_FORMAT_PRGB32] = PatternC::texture_fetch_exact_repeat_32;
   m->pattern.texture_fetch_exact_repeat[PIXEL_FORMAT_ARGB32] = PatternC::texture_fetch_exact_repeat_32;
   m->pattern.texture_fetch_exact_repeat[PIXEL_FORMAT_XRGB32] = PatternC::texture_fetch_exact_repeat_32;
@@ -283,6 +286,14 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   m->pattern.texture_fetch_transform_bilinear_repeat[PIXEL_FORMAT_XRGB32] = PatternC::texture_fetch_transform_bilinear_repeat_32;
   m->pattern.texture_fetch_transform_bilinear_repeat[PIXEL_FORMAT_A8] = PatternC::texture_fetch_transform_bilinear_repeat_a8;
 
+  m->pattern.texture_fetch_scale_nearest[PIXEL_FORMAT_PRGB32] = ScaleC::texture_fetch_scale_argb32_nn;
+  m->pattern.texture_fetch_scale_nearest[PIXEL_FORMAT_ARGB32] = ScaleC::texture_fetch_scale_argb32_nn;
+  m->pattern.texture_fetch_scale_nearest[PIXEL_FORMAT_XRGB32] = ScaleC::texture_fetch_scale_argb32_nn;
+
+  m->pattern.texture_fetch_scale_bilinear[PIXEL_FORMAT_PRGB32] = ScaleC::texture_fetch_scale_argb32_aa;
+  m->pattern.texture_fetch_scale_bilinear[PIXEL_FORMAT_ARGB32] = ScaleC::texture_fetch_scale_argb32_aa;
+  m->pattern.texture_fetch_scale_bilinear[PIXEL_FORMAT_XRGB32] = ScaleC::texture_fetch_scale_argb32_aa;
+
   // [Pattern - Linear Gradient]
 
   m->pattern.linear_gradient_init = PatternC::linear_gradient_init;
@@ -301,11 +312,6 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
 
   m->pattern.conical_gradient_init = PatternC::conical_gradient_init;
   m->pattern.conical_gradient_fetch = PatternC::conical_gradient_fetch;
-
-  // [Scale]
-
-  m->pattern.scale_init = ScaleC::scale_init;
-  //m->pattern.scale_fetch = ScaleC::scale_fetch;
 
   // [Filter - ColorLut]
 

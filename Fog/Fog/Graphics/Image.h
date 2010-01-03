@@ -356,7 +356,7 @@ struct FOG_API Image
 
   // [Scaling]
 
-  Image scale(const Size& to, int type = IMAGE_SCALE_SMOOTH);
+  Image scale(const Size& to, int interpolationType = INTERPOLATION_SMOOTH);
 
   // [Painting]
 

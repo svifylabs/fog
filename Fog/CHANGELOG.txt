@@ -1,2 +1,14 @@
-2009-04-09
-- Started new branch
+2010-01-03
+- Added image transform to Painter.
+- Fixed image transform (matrix inversion).
+- Added possibility to set matrix multiply order to - Pattern, Painter, Matrix.
+- Renamed some methods related to image drawing - blitImage instead of drawImage, ...
+- RasterPaintEngine now contains theoretically correct raster management, the buggy
+  code that could set raster to invalid memory location is gone, instead there is now
+  quite evil matrix manipulation to make meta and user origin fast.
+- Added some new Region methods to do more (intersectAndClip and translateAndClip),
+  these methods are used mainly by RasterPaintEngine
+
+2010-01-01
+- Welcome to 2010.
+- Changelog started.

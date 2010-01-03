@@ -49,7 +49,7 @@ MyWindow::MyWindow(uint32_t createFlags) :
 
   i[0].convert(PIXEL_FORMAT_PRGB32);
   i[1].convert(PIXEL_FORMAT_PRGB32);
-  //i[0] = i[0].scale(Size(32, 32), IMAGE_SCALE_SMOOTH);
+  //i[0] = i[0].scale(Size(32, 32), INTERPOLATION_SMOOTH);
 
   _subx = 0.0;
   _suby = 0.0;
@@ -122,6 +122,8 @@ void MyWindow::onPaint(PaintEvent* e)
 
   p->setSource(0xFF3F3FFF);
   p->clear();
+
+  p->setOperator(COMPOSITE_SRC);
 /*
   Region reg;
   reg.unite(Rect(0, 0, 200, 25));
@@ -212,6 +214,14 @@ void MyWindow::onPaint(PaintEvent* e)
   p->setSource(Argb(0xFF000000));
   p->setLineWidth(2);
   p->drawPath(path);
+
+  p->save();
+  Image img; img.readFile(Ascii8("babelfish.pcx"));
+  //p->translate(-120, -120);
+  p->rotate(_rotate);
+  //p->translate(230, 230);
+  p->drawImage(PointD(50.5, 50.5), img);
+  p->restore();
 #endif
 
 /*

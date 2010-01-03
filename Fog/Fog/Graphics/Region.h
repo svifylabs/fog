@@ -237,15 +237,22 @@ struct FOG_API Region
 
   bool eq(const Region& other) const;
 
-  static err_t set(Region& dest, const Region& src);
-  static err_t unite(Region& dest, const Region& src1, const Region& src2);
-  static err_t intersect(Region& dest, const Region& src1, const Region& src2);
-  static err_t eor(Region& dest, const Region& src1, const Region& src2);
-  static err_t subtract(Region& dest, const Region& src1, const Region& src2);
-  static err_t op(Region& dest, const Region& src1, const Region& src2, int _op);
-  static err_t translate(Region& dest, const Region& src, const Point& pt);
-  static err_t shrink(Region& dest, const Region& src, const Point& pt);
-  static err_t frame(Region& dest, const Region& src, const Point& pt);
+  static err_t set(Region& dst, const Region& src);
+  static err_t unite(Region& dst, const Region& src1, const Region& src2);
+  static err_t intersect(Region& dst, const Region& src1, const Region& src2);
+  static err_t eor(Region& dst, const Region& src1, const Region& src2);
+  static err_t subtract(Region& dst, const Region& src1, const Region& src2);
+  static err_t op(Region& dst, const Region& src1, const Region& src2, int _op);
+  static err_t translate(Region& dst, const Region& src, const Point& pt);
+  static err_t shrink(Region& dst, const Region& src, const Point& pt);
+  static err_t frame(Region& dst, const Region& src, const Point& pt);
+
+  //! @brief Special method that will intersect two regions and clip box.
+  //!
+  //! @note Calling this method is faster than doing these operations individually.
+  static err_t intersectAndClip(Region& dst, const Region& src1Region, const Region& src2Region, const Box& clip);
+
+  static err_t translateAndClip(Region& dst, const Region& src1Region, const Point& pt, const Box& clip);
 
   // Overloaded operators
 

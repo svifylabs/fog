@@ -29,6 +29,7 @@ TODO P1
     [ ] Introduce setClipPath() / resetClipPath()
     [w] Introduce setColorFilter(), resetColorFilter()
     [w] High-quality downscaling (transformation / scaling down)
+    [ ] Finalize image transform, (SPREAD_PAD is really needed to be implemented)
 
 [ ] Font:
     [w] Ability to render to 'Path'
@@ -69,8 +70,6 @@ TODO P1
         instead.
     [w] If Path generator will be implemented, we can implement transform operations.
         (Region to path, path to region)
-    [ ] Add RegionBuilder class that will be very fast alternative to Region::unite()
-        for ultra count of rectangles, can be also used by setPath().
 
 REFACTORIZATION
 ===============
@@ -92,7 +91,9 @@ MORE TODOS:
 MORE TODOS:
 
 [ ] Default color in Svg gradient should be 0.0:black, 1.0:white if no stops are provided
-[ ] Add innerLimit and innerJoin to painter, painter engine, and all related.
+[ ] Add innerLimit and innerJoin to painter, paint engine, and all related.
+[ ] Rename PainterEngine to PaintEngine (and all related classes).
+[ ] Add startJoin and endJoin to stroke params, painter, paint engine and all related.
 
 TODO P2
 =======

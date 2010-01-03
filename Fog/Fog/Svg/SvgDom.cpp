@@ -1297,7 +1297,7 @@ err_t SvgStyledElement::onRender(SvgContext* context) const
       backup._matrix = context->getPainter()->getMatrix();
       backup._matrixBackup = true;
 
-      context->getPainter()->affine(a_transform.getMatrix());
+      context->getPainter()->transform(a_transform.getMatrix());
     }
 
     // Setup fill parameters.

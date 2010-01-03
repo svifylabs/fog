@@ -753,7 +753,7 @@ err_t Path::_svgArcTo(
 
   // We can now build and transform the resulting arc.
   Matrix matrix = Matrix::fromRotation(angle);
-  matrix *= Matrix::fromTranslation(cx, cy);
+  matrix.translate(cx, cy, MATRIX_APPEND);
 
   err_t err = _arcTo(0.0, 0.0, rx, ry, start_angle, sweep_angle, initialCommand, false);
   if (err) return err;

@@ -35,12 +35,12 @@ Matrix Matrix::fromRotation(double a)
   return Matrix(aCos, aSin, -aSin, aCos, 0.0, 0.0);
 }
 
-Matrix Matrix::fromScale(double s)
+Matrix Matrix::fromScaling(double s)
 {
   return Matrix(s, 0.0, 0.0, s, 0.0, 0.0);
 }
 
-Matrix Matrix::fromScale(double x, double y)
+Matrix Matrix::fromScaling(double x, double y)
 {
   return Matrix(x, 0.0, 0.0, y, 0.0, 0.0);
 }
@@ -50,7 +50,7 @@ Matrix Matrix::fromTranslation(double x, double y)
   return Matrix(1.0, 0.0, 0.0, 1.0, x, y);
 }
 
-Matrix Matrix::fromSkew(double x, double y)
+Matrix Matrix::fromSkewing(double x, double y)
 {
   return Matrix(1.0, tan(y), tan(x), 1.0, 0.0, 0.0);
 }
@@ -61,12 +61,10 @@ Matrix Matrix::fromLineSegment(double x1, double y1, double x2, double y2, doubl
 
   double dx = x2 - x1;
   double dy = y2 - y1;
-  if (dist > 0.0)
-  {
-    m.multiply(fromScale(sqrt(dx * dx + dy * dy) / dist));
-  }
-  m.multiply(fromRotation(atan2(dy, dx)));
-  m.multiply(fromTranslation(x1, y1));
+
+  if (dist > 0.0) m.scale(sqrt(dx * dx + dy * dy) / dist);
+  m.rotate(atan2(dy, dx), MATRIX_APPEND);
+  m.translate(x1, y1, MATRIX_APPEND);
 
   return m;
 }
@@ -107,7 +105,7 @@ Matrix& Matrix::parlToParl(const double* src, const double* dst)
       dst[3] - dst[1],
       dst[4] - dst[0],
       dst[5] - dst[1],
-      dst[0], dst[1]));
+      dst[0], dst[1]), MATRIX_APPEND);
 
   return *this;
 }
@@ -144,37 +142,66 @@ Matrix& Matrix::reset()
   return *this;
 }
 
-Matrix& Matrix::translate(double x, double y)
+Matrix& Matrix::translate(double x, double y, int order)
 {
-  tx += x;
-  ty += y; 
+  if (order == MATRIX_APPEND)
+  {
+    tx += x;
+    ty += y;
+  }
+  else
+  {
+    tx += x * sx  + y * shx;
+    ty += x * shy + y * sy ;
+  }
+
   return *this;
 }
 
-Matrix& Matrix::rotate(double a)
+Matrix& Matrix::rotate(double a, int order)
 {
-  double ca = cos(a); 
-  double sa = sin(a);
-  double t0 = sx  * ca - shy * sa;
-  double t2 = shx * ca - sy * sa;
-  double t4 = tx  * ca - ty * sa;
-  shy = sx  * sa + shy * ca;
-  sy  = shx * sa + sy * ca; 
-  ty  = tx  * sa + ty * ca;
-  sx  = t0;
-  shx = t2;
-  tx  = t4;
+  double aSin = sin(a);
+  double aCos = cos(a);
+
+  if (order == MATRIX_APPEND)
+  {
+    double t0 = sx  * aCos + shy * -aSin;
+    double t2 = shx * aCos + sy  * -aSin;
+    double t4 = tx  * aCos + ty  * -aSin;
+
+    shy = sx  * aSin + shy * aCos;
+    sy  = shx * aSin + sy  * aCos;
+    ty  = tx  * aSin + ty  * aCos;
+
+    sx  = t0;
+    shx = t2;
+    tx  = t4;
+  }
+  else
+  {
+    double t0 = sx  * aCos  + shx * aSin;
+    double t1 = shy * aCos  + sy  * aSin;
+
+    shx = sx  * -aSin + shx * aCos;
+    sy  = shy * -aSin + sy  * aCos;
+
+    sx  = t0;
+    shy = t1;
+  }
+
   return *this;
 }
 
-Matrix& Matrix::scale(double s)
+Matrix& Matrix::scale(double a)
 {
-  sx  *= s;
-  shx *= s;
-  tx  *= s;
-  shy *= s;
-  sy  *= s;
-  ty  *= s;
+  sx  *= a;
+  shx *= a;
+  tx  *= a;
+
+  shy *= a;
+  sy  *= a;
+  ty  *= a;
+
   return *this;
 }
 
@@ -183,15 +210,46 @@ Matrix& Matrix::scale(double x, double y)
   sx  *= x;
   shx *= x;
   tx  *= x;
+
   shy *= y;
   sy  *= y;
   ty  *= y;
+
   return *this;
 }
 
-Matrix& Matrix::skew(double x, double y)
+Matrix& Matrix::skew(double x, double y, int order)
 {
-  return multiply(Matrix::fromSkew(x, y));
+  double xTan = tan(x);
+  double yTan = tan(y);
+
+  if (order == MATRIX_APPEND)
+  {
+    double t0 = sx  + shy * xTan;
+    double t2 = shx + sy  * xTan;
+    double t4 = tx  + ty  * xTan;
+
+    shy = sx  * yTan + shy;
+    sy  = shx * yTan + sy ;
+    ty  = tx  * yTan + ty ;
+
+    sx  = t0;
+    shx = t2;
+    tx  = t4;
+  }
+  else
+  {
+    double t0 = sx  + shx * yTan;
+    double t1 = shy + sy  * yTan;
+
+    shx = sx  * xTan + shx;
+    sy  = shy * xTan + sy ;
+
+    sx  = t0;
+    shy = t1;
+  }
+
+  return *this;
 }
 
 Matrix& Matrix::multiply(const Matrix& m, int order)
@@ -212,17 +270,17 @@ Matrix& Matrix::multiply(const Matrix& m, int order)
   }
   else
   {
-    double t0 = m.sx  * sx + m.shy * shx;
-    double t2 = m.shx * sx + m.sy  * shx;
-    double t4 = m.tx  * sx + m.ty  * shx + tx;
+    tx = sx  * m.tx  + shx * m.ty + tx;
+    ty = shy * m.tx  + sy  * m.ty + ty;
 
-    shy = m.sx  * shy + m.shy * sy;
-    sy  = m.shx * shy + m.sy  * sy;
-    ty  = m.tx  * shy + m.ty  * sy + ty;
+    double t0 = sx  * m.sx  + shx * m.shy;
+    double t1 = shy * m.sx  + sy  * m.shy;
+
+    shx = sx  * m.shx + shx * m.sy;
+    sy  = shy * m.shx + sy  * m.sy;
 
     sx  = t0;
-    shx = t2;
-    tx  = t4;
+    shy = t1;
   }
 
   return *this;
@@ -262,7 +320,7 @@ Matrix& Matrix::invert()
 {
   double d, t0, t4;
 
-  d  = determinantReciprocal();
+  d  = getDeterminantReciprocal();
 
   t0  =  sy  * d;
   sy  =  sx  * d;
@@ -283,7 +341,7 @@ Matrix Matrix::inverted() const
   Matrix result(DONT_INITIALIZE);
   double d;
 
-  d  = determinantReciprocal();
+  d  = getDeterminantReciprocal();
 
   result.sx  =  sy  * d;
   result.sy  =  sx  * d;
@@ -330,7 +388,7 @@ int Matrix::getType() const
   return type;
 }
 
-void Matrix::transform(double* x, double* y) const
+void Matrix::transformPoint(double* x, double* y) const
 {
   double _x = *x;
   double _y = *y;
@@ -339,7 +397,7 @@ void Matrix::transform(double* x, double* y) const
   *y = _x * shy + _y * sy  + ty;
 }
 
-void Matrix::transform2x2(double* x, double* y) const
+void Matrix::transformVector(double* x, double* y) const
 {
   double _x = *x;
   double _y = *y;
@@ -348,11 +406,21 @@ void Matrix::transform2x2(double* x, double* y) const
   *y = _x * shy + _y * sy;
 }
 
-void Matrix::transformInv(double* x, double* y) const
+void Matrix::inverseTransformPoint(double* x, double* y) const
 {
-  double d = determinantReciprocal();
+  double d = getDeterminantReciprocal();
   double a = (*x - tx) * d;
   double b = (*y - ty) * d;
+
+  *x = a * sy - b * shx;
+  *y = b * sx - a * shy;
+}
+
+void Matrix::inverseTransformVector(double* x, double* y) const
+{
+  double d = getDeterminantReciprocal();
+  double a = (*x) * d;
+  double b = (*y) * d;
 
   *x = a * sy - b * shx;
   *y = b * sx - a * shy;
@@ -368,18 +436,6 @@ void Matrix::transformPoints(PointD* dst, const PointD* src, sysuint_t count) co
     dst[i].x = x * sx  + y * shx + tx;
     dst[i].y = x * shy + y * sy  + ty;
   }
-}
-
-double Matrix::determinantReciprocal() const
-{
-  return 1.0 / (sx * sy - shy * shx);
-}
-
-double Matrix::scale() const
-{
-  double x = 0.707106781 * sx  + 0.707106781 * shx;
-  double y = 0.707106781 * shy + 0.707106781 * sy;
-  return sqrt(x * x + y * y);
 }
 
 bool Matrix::isValid(double epsilon) const
@@ -407,46 +463,43 @@ bool Matrix::isEqual(const Matrix& m, double epsilon) const
          Math::feq(ty,  m.ty,  epsilon);
 }
 
-double Matrix::rotation() const
+PointD Matrix::getTranslation() const
 {
-  double x1 = 0.0;
-  double y1 = 0.0;
-  double x2 = 1.0;
-  double y2 = 0.0;
-  transform(&x1, &y1);
-  transform(&x2, &y2);
-
-  return atan2(y2-y1, x2-x1);
+  return PointD(tx, ty);
 }
 
-void Matrix::translation(double* dx, double* dy) const
+double Matrix::getRotation() const
 {
-  *dx = tx;
-  *dy = ty;
+  return atan2(shy, sx);
 }
 
-void Matrix::scaling(double* x, double* y) const
+PointD Matrix::getScaling() const
 {
-  double x1 = 0.0;
-  double y1 = 0.0;
-  double x2 = 1.0;
-  double y2 = 1.0;
+  Matrix t(this->multiplied(fromRotation(-getRotation())));
 
-  Matrix t(*this);
-  t *= fromRotation(-rotation());
-  t.transform(&x1, &y1);
-  t.transform(&x2, &y2);
-  *x = x2 - x1;
-  *y = y2 - y1;
+  double x = t.sx + t.shx;
+  double y = t.shy + t.sy;
+
+  return PointD(x, y);
 }
 
-void Matrix::scalingAbs(double* x, double* y) const
+double Matrix::getAverageScaling() const
+{
+  double x = 0.707106781 * (sx + shx);
+  double y = 0.707106781 * (shy + sy);
+
+  return sqrt(x * x + y * y);
+}
+
+PointD Matrix::getAbsoluteScaling() const
 {
   // Used to calculate scaling coefficients in image resampling. 
   // When there is considerable shear this method gives us much
   // better estimation than just sx, sy.
-  *x = sqrt(sx  * sx  + shx * shx);
-  *y = sqrt(shy * shy + sy  * sy);
+  double x = sqrt(sx  * sx  + shx * shx);
+  double y = sqrt(shy * shy + sy  * sy);
+
+  return PointD(x, y);
 }
 
 } // Fog namespace

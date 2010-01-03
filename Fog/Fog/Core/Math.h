@@ -173,15 +173,27 @@ namespace Math {
 #undef abs
 #endif // abs
 
-//! @brief Returns lower number of @a a and @a b
+//! @brief Returns lower number of @a a and @a b.
 template<typename T>
 static FOG_INLINE const T& min(const T& a, const T& b)
 { return (a < b) ? a : b; }
 
-//! @brief Returns higher number of @a a and @a b
+//! @brief Returns higher number of @a a and @a b.
 template<typename T>
 static FOG_INLINE const T& max(const T& a, const T& b)
 { return (a > b) ? a : b; }
+
+//! @brief Returns lower number of @a a, @a b and @a c.
+//! @overload.
+template<typename T>
+static FOG_INLINE const T& min(const T& a, const T& b, const T& c)
+{ return (a < b) ? ((a > c) ? c : a) : ((b > c) ? c : b); }
+
+//! @brief Returns higher number of @a a, @a b and @a c.
+//! @overload.
+template<typename T>
+static FOG_INLINE const T& max(const T& a, const T& b, const T& c)
+{ return (a > b) ? ((a < c) ? c : a) : ((b < c) ? c : b); }
 
 //! @brief Returns value @a val saturated between @a min and @a max.
 template<typename T>

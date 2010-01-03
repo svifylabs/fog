@@ -489,7 +489,7 @@ done:
   if (functionLen == 6 && StringUtil::eq(functionName, "matrix", 6))
   {
     if (d_count != 6) goto end;
-    w.multiply(*reinterpret_cast<Matrix *>(d));
+    w.multiply(*reinterpret_cast<Matrix *>(d), MATRIX_PREPEND);
   }
   // translate() function.
   else if (functionLen == 9 && StringUtil::eq(functionName, "translate", 9))
@@ -498,7 +498,7 @@ done:
 
     // If ty is not provided, it's assumed to be zero.
     if (d_count == 1) d[1] = 0.0;
-    w.translate(d[0], d[1]);
+    w.translate(d[0], d[1], MATRIX_PREPEND);
   }
   // scale() function.
   else if (functionLen == 5 && StringUtil::eq(functionName, "scale", 5))
@@ -514,23 +514,23 @@ done:
   {
     if (d_count != 1 && d_count != 3) goto end;
 
-    if (d_count == 3) w.translate(d[1], d[2]);
-    w.rotate(Math::deg2rad(d[0]));
-    if (d_count == 3) w.translate(-d[1], -d[2]);
+    if (d_count == 3) w.translate(d[1], d[2], MATRIX_PREPEND);
+    w.rotate(Math::deg2rad(d[0]), MATRIX_PREPEND);
+    if (d_count == 3) w.translate(-d[1], -d[2], MATRIX_PREPEND);
   }
   // skewX() function.
   else if (functionLen == 5 && StringUtil::eq(functionName, "skewX", 5))
   {
     if (d_count != 1) goto end;
 
-    w.skew(Math::deg2rad(d[0]), 0.0);
+    w.skew(Math::deg2rad(d[0]), 0.0, MATRIX_PREPEND);
   }
   // skewY() function.
   else if (functionLen == 5 && StringUtil::eq(functionName, "skewY", 5))
   {
     if (d_count != 1) goto end;
 
-    w.skew(0.0, Math::deg2rad(d[0]));
+    w.skew(0.0, Math::deg2rad(d[0]), MATRIX_PREPEND);
   }
   else
   {

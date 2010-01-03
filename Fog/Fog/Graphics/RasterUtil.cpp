@@ -67,18 +67,6 @@ static FunctionMap functionMapData;
 
 FunctionMap* functionMap;
 
-// ============================================================================
-// [Fog::RasterUtil - getRasterOps]
-// ============================================================================
-
-FunctionMap::CompositeFuncs* getRasterOps(int format, int op)
-{
-  FOG_ASSERT((uint)format < (uint)PIXEL_FORMAT_COUNT);
-  FOG_ASSERT((uint)op < (uint)COMPOSITE_COUNT);
-
-  return &functionMap->composite[op][format];
-}
-
 } // RasterUtil namespace
 } // Fog namespace
 

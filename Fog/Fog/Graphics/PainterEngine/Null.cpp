@@ -23,14 +23,24 @@ namespace Fog {
 
 struct FOG_HIDDEN NullPainterEngine : public PainterEngine
 {
+  // --------------------------------------------------------------------------
+  // [Construction / Destruction]
+  // --------------------------------------------------------------------------
+
   NullPainterEngine() {}
   virtual ~NullPainterEngine() {}
 
-  // [Meta]
+  // --------------------------------------------------------------------------
+  // [Width / Height / Format]
+  // --------------------------------------------------------------------------
 
   virtual int getWidth() const { return 0; }
   virtual int getHeight() const { return 0; }
   virtual int getFormat() const { return PIXEL_FORMAT_NULL; }
+
+  // --------------------------------------------------------------------------
+  // [Meta]
+  // --------------------------------------------------------------------------
 
   virtual void setMetaVariables(const Point& metaOrigin, const Region& metaRegion, bool useMetaRegion, bool reset) {}
 
@@ -55,12 +65,16 @@ struct FOG_HIDDEN NullPainterEngine : public PainterEngine
   virtual void resetMetaVars() {}
   virtual void resetUserVars() {}
 
+  // --------------------------------------------------------------------------
   // [Operator]
+  // --------------------------------------------------------------------------
 
-  virtual void setOperator(uint32_t op) {}
-  virtual uint32_t getOperator() const { return 0; }
+  virtual void setOperator(int op) {}
+  virtual int getOperator() const { return 0; }
 
+  // --------------------------------------------------------------------------
   // [Source]
+  // --------------------------------------------------------------------------
 
   virtual void setSource(Argb argb) {}
   virtual void setSource(const Pattern& pattern) {}
@@ -70,12 +84,23 @@ struct FOG_HIDDEN NullPainterEngine : public PainterEngine
   virtual Argb getSourceAsArgb() const { return Argb(0); }
   virtual Pattern getSourceAsPattern() const { return Pattern(); }
 
+  // --------------------------------------------------------------------------
+  // [Hints]
+  // --------------------------------------------------------------------------
+
+  virtual void setHint(int hint, int value) {}
+  virtual int getHint(int hint) const { return -1; }
+
+  // --------------------------------------------------------------------------
   // [Fill Parameters]
+  // --------------------------------------------------------------------------
 
-  virtual void setFillMode(uint32_t mode) {}
-  virtual uint32_t getFillMode() const { return FILL_NON_ZERO; }
+  virtual void setFillMode(int mode) {}
+  virtual int getFillMode() const { return FILL_NON_ZERO; }
 
+  // --------------------------------------------------------------------------
   // [Stroke Parameters]
+  // --------------------------------------------------------------------------
 
   virtual void setStrokeParams(const StrokeParams& strokeParams) {}
   virtual void getStrokeParams(StrokeParams& strokeParams) const { strokeParams.reset(); }
@@ -83,11 +108,11 @@ struct FOG_HIDDEN NullPainterEngine : public PainterEngine
   virtual void setLineWidth(double lineWidth) {}
   virtual double getLineWidth() const { return 0.0; }
 
-  virtual void setLineCap(uint32_t lineCap) {}
-  virtual uint32_t getLineCap() const { return 0; }
+  virtual void setLineCap(int lineCap) {}
+  virtual int getLineCap() const { return 0; }
 
-  virtual void setLineJoin(uint32_t lineJoin) {}
-  virtual uint32_t getLineJoin() const { return 0; }
+  virtual void setLineJoin(int lineJoin) {}
+  virtual int getLineJoin() const { return 0; }
 
   virtual void setDashes(const double* dashes, sysuint_t count) {}
   virtual void setDashes(const List<double>& dashes) {}
@@ -99,32 +124,35 @@ struct FOG_HIDDEN NullPainterEngine : public PainterEngine
   virtual void setMiterLimit(double miterLimit) {}
   virtual double getMiterLimit() const { return 0.0; }
 
+  // --------------------------------------------------------------------------
   // [Transformations]
+  // --------------------------------------------------------------------------
 
   virtual void setMatrix(const Matrix& m) {}
   virtual void resetMatrix() {}
   virtual Matrix getMatrix() const { return Matrix(); }
 
-  virtual void rotate(double angle) {}
+  virtual void rotate(double angle, int order) {}
   virtual void scale(double sx, double sy) {}
-  virtual void skew(double sx, double sy) {}
-  virtual void translate(double x, double y) {}
-  virtual void affine(const Matrix& m) {}
+  virtual void skew(double sx, double sy, int order) {}
+  virtual void translate(double x, double y, int order) {}
+  virtual void transform(const Matrix& m, int order) {}
 
   virtual void worldToScreen(PointD* pt) const {}
   virtual void screenToWorld(PointD* pt) const {}
 
-  virtual void worldToScreen(double* scalar) const {}
-  virtual void screenToWorld(double* scalar) const {}
-
   virtual void alignPoint(PointD* pt) const {}
 
+  // --------------------------------------------------------------------------
   // [State]
+  // --------------------------------------------------------------------------
 
   virtual void save() {}
   virtual void restore() {}
 
+  // --------------------------------------------------------------------------
   // [Raster Drawing]
+  // --------------------------------------------------------------------------
 
   virtual void clear() {}
   virtual void drawPoint(const Point& p) {}
@@ -136,7 +164,9 @@ struct FOG_HIDDEN NullPainterEngine : public PainterEngine
   virtual void fillRound(const Rect& r, const Point& radius) {}
   virtual void fillRegion(const Region& region) {}
 
+  // --------------------------------------------------------------------------
   // [Vector Drawing]
+  // --------------------------------------------------------------------------
 
   virtual void drawPoint(const PointD& p) {}
   virtual void drawLine(const PointD& start, const PointD& end) {}
@@ -157,7 +187,9 @@ struct FOG_HIDDEN NullPainterEngine : public PainterEngine
   virtual void fillArc(const PointD& cp, const PointD& r, double start, double sweep) {}
   virtual void fillPath(const Path& path) {}
 
+  // --------------------------------------------------------------------------
   // [Glyph / Text Drawing]
+  // --------------------------------------------------------------------------
 
   virtual void drawGlyph(const Point& pt, const Glyph& glyph, const Rect* clip) {}
   virtual void drawGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip) {}
@@ -165,12 +197,16 @@ struct FOG_HIDDEN NullPainterEngine : public PainterEngine
   virtual void drawText(const Point& p, const String& text, const Font& font, const Rect* clip) {}
   virtual void drawText(const Rect& r, const String& text, const Font& font, uint32_t align, const Rect* clip) {}
 
+  // --------------------------------------------------------------------------
   // [Image drawing]
+  // --------------------------------------------------------------------------
 
-  virtual void drawImage(const Point& p, const Image& image, const Rect* irect) {}
-  virtual void drawImage(const PointD& p, const Image& image, const Rect* irect) {}
+  virtual void blitImage(const Point& p, const Image& image, const Rect* irect) {}
+  virtual void blitImage(const PointD& p, const Image& image, const Rect* irect) {}
 
+  // --------------------------------------------------------------------------
   // [Multithreading]
+  // --------------------------------------------------------------------------
 
   virtual void setEngine(int engine, int cores = 0) {}
   virtual int getEngine() const { return PAINTER_ENGINE_NULL; }

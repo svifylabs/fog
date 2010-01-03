@@ -178,12 +178,12 @@ struct FOG_HIDDEN ScaleC
     return p;
   }
 
-  static err_t FOG_FASTCALL scale_init(PatternContext* ctx, const Image* im, int dw, int dh, int filter)
+  static err_t FOG_FASTCALL texture_init_scale(PatternContext* ctx, const Image& image, int dw, int dh, int interpolationType)
   {
     Memory::zero(&ctx->scale, sizeof(ctx->scale));
 
-    int sw = im->getWidth();
-    int sh = im->getHeight();
+    int sw = image.getWidth();
+    int sh = image.getHeight();
 
     ctx->scale.sw = sw;
     ctx->scale.sh = sh;
@@ -194,10 +194,10 @@ struct FOG_HIDDEN ScaleC
     ctx->scale.xpoints = calcXPoints(sw, dw);
     if (!ctx->scale.xpoints) goto fail;
 
-    ctx->scale.ypoints = calcYPoints((uint32_t*)im->getData(), sw, sh, dh);
+    ctx->scale.ypoints = calcYPoints((uint32_t*)image.getData(), sw, sh, dh);
     if (!ctx->scale.ypoints) goto fail;
 
-    if (filter == IMAGE_SCALE_SMOOTH)
+    if (interpolationType == INTERPOLATION_SMOOTH)
     {
       ctx->scale.xapoints = calcAPoints(sw, dw, (ctx->scale.xup_yup & 0x1) == 0x1);
       if (!ctx->scale.xapoints) goto fail;
@@ -205,11 +205,11 @@ struct FOG_HIDDEN ScaleC
       ctx->scale.yapoints = calcAPoints(sh, dh, (ctx->scale.xup_yup & 0x2) == 0x2);
       if (!ctx->scale.yapoints) goto fail;
 
-      ctx->fetch = scale_argb32_aa;
+      ctx->fetch = texture_fetch_scale_argb32_aa;
     }
     else
     {
-      ctx->fetch = scale_argb32_nn;
+      ctx->fetch = texture_fetch_scale_argb32_nn;
     }
 
     ctx->destroy = scale_destroy;
@@ -230,7 +230,7 @@ fail:
   }
 
   // Scale by pixel sampling only.
-  static uint8_t* FOG_FASTCALL scale_argb32_nn(PatternContext* ctx, uint8_t* dst, int x, int y, int w)
+  static uint8_t* FOG_FASTCALL texture_fetch_scale_argb32_nn(PatternContext* ctx, uint8_t* dst, int x, int y, int w)
   {
     FOG_ASSERT(w);
 
@@ -274,7 +274,7 @@ fail:
   }
 
   // Scale by area sampling.
-  static uint8_t* FOG_FASTCALL scale_argb32_aa(PatternContext* ctx, uint8_t* dst, int x, int y, int w)
+  static uint8_t* FOG_FASTCALL texture_fetch_scale_argb32_aa(PatternContext* ctx, uint8_t* dst, int x, int y, int w)
   {
     FOG_ASSERT(w);
 
