@@ -8,14 +8,14 @@
 #define _FOG_GRAPHICS_PAINTERENGINE_RASTER_H
 
 // [Dependencies]
-#include <Fog/Graphics/PainterEngine.h>
+#include <Fog/Graphics/PaintEngine.h>
 
 //! @addtogroup Fog_Graphics
 //! @{
 
 namespace Fog {
 
-FOG_API PainterEngine* _getRasterPainterEngine(const ImageBuffer& buffer, int hints);
+FOG_API PaintEngine* _getRasterPaintEngine(const ImageBuffer& buffer, int hints);
 
 } // Fog namespace
 

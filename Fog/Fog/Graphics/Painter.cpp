@@ -11,10 +11,10 @@
 // [Dependencies]
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Painter.h>
-#include <Fog/Graphics/PainterEngine.h>
+#include <Fog/Graphics/PaintEngine.h>
 
-#include <Fog/Graphics/PainterEngine/Null.h>
-#include <Fog/Graphics/PainterEngine/Raster.h>
+#include <Fog/Graphics/PaintEngine/Null.h>
+#include <Fog/Graphics/PaintEngine/Raster.h>
 
 namespace Fog {
 
@@ -22,7 +22,7 @@ namespace Fog {
 // [Fog::Painter]
 // ============================================================================
 
-PainterEngine* Painter::sharedNull;
+PaintEngine* Painter::sharedNull;
 
 Painter::Painter()
 {
@@ -62,7 +62,7 @@ err_t Painter::begin(Image& image, int hints)
   buffer.stride = image_d->stride;
   buffer.data = image_d->first;
 
-  PainterEngine* d = _getRasterPainterEngine(buffer, hints);
+  PaintEngine* d = _getRasterPaintEngine(buffer, hints);
   if (!d) return ERR_RT_OUT_OF_MEMORY;
 
   _engine = d;
@@ -83,7 +83,7 @@ err_t Painter::begin(const ImageBuffer& buffer, int hints)
   if ((uint)buffer.format >= PIXEL_FORMAT_COUNT) return ERR_RT_INVALID_ARGUMENT;
   if ((uint)buffer.format == PIXEL_FORMAT_I8) return ERR_IMAGE_UNSUPPORTED_FORMAT;
 
-  PainterEngine* d = _getRasterPainterEngine(buffer, hints);
+  PaintEngine* d = _getRasterPaintEngine(buffer, hints);
   if (!d) return ERR_RT_OUT_OF_MEMORY;
 
   _engine = d;

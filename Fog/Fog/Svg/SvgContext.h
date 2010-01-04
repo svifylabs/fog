@@ -10,7 +10,7 @@
 // [Dependencies]
 #include <Fog/Core/Static.h>
 #include <Fog/Graphics/Painter.h>
-#include <Fog/Graphics/PainterEngine.h>
+#include <Fog/Graphics/PaintEngine.h>
 #include <Fog/Graphics/Stroker.h>
 #include <Fog/Svg/Constants.h>
 #include <Fog/Svg/SvgDom.h>

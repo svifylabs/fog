@@ -702,7 +702,7 @@ void BaseUISystem::doUpdateWindow(UIWindow* window)
     buffer.format = window->_backingStore->getFormat();
 
     // FIXME: Remove that hint, it's only for current testing.
-    painter.begin(buffer, PAINTER_HINT_NO_MT);
+    painter.begin(buffer, 0/*PAINTER_HINT_NO_MT*/);
   }
 
   if ((uflags & Widget::UFlagUpdateAll) != 0)

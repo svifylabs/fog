@@ -196,6 +196,18 @@ struct FOG_API Matrix
   Matrix& rectToParl(double x1, double y1, double x2, double y2, const double* parl);
   Matrix& parlToRect(const double* parl, double x1, double y1, double x2, double y2);
 
+  // [Set]
+
+  Matrix& set(
+    double m0, double m1, double m2,
+    double m3, double m4, double m5)
+  {
+    sx  = m0; shy = m1;
+    shx = m2; sy  = m3;
+    tx  = m4; ty  = m5;
+    return *this;
+  }
+
   // [Operations]
 
   //! @brief Reset - load an identity matrix.

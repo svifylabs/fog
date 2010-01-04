@@ -68,7 +68,7 @@
 #include <Fog/Graphics/ImageIO.h>
 #include <Fog/Graphics/Matrix.h>
 #include <Fog/Graphics/Painter.h>
-#include <Fog/Graphics/PainterEngine.h>
+#include <Fog/Graphics/PaintEngine.h>
 #include <Fog/Graphics/PainterUtil.h>
 #include <Fog/Graphics/Palette.h>
 #include <Fog/Graphics/Path.h>
@@ -78,7 +78,6 @@
 #include <Fog/Graphics/Rasterizer.h>
 #include <Fog/Graphics/Reduce.h>
 #include <Fog/Graphics/Region.h>
-#include <Fog/Graphics/RegionBuilder.h>
 #include <Fog/Graphics/Scanline.h>
 #include <Fog/Graphics/Stroker.h>
 #include <Fog/Graphics/TextLayout.h>

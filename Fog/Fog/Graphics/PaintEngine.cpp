@@ -9,15 +9,15 @@
 #endif // FOG_PRECOMP
 
 // [Dependencies]
-#include <Fog/Graphics/PainterEngine.h>
+#include <Fog/Graphics/PaintEngine.h>
 
 namespace Fog {
 
 // ============================================================================
-// [Fog::PainterEngine]
+// [Fog::PaintEngine]
 // ============================================================================
 
-PainterEngine::PainterEngine() {}
-PainterEngine::~PainterEngine() {}
+PaintEngine::PaintEngine() {}
+PaintEngine::~PaintEngine() {}
 
 } // Fog namespace

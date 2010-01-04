@@ -13,22 +13,22 @@
 #include <Fog/Graphics/Painter.h>
 #include <Fog/Graphics/Stroker.h>
 
-#include <Fog/Graphics/PainterEngine/Null.h>
+#include <Fog/Graphics/PaintEngine/Null.h>
 
 namespace Fog {
 
 // ============================================================================
-// [Fog::NullPainterEngine]
+// [Fog::NullPaintEngine]
 // ============================================================================
 
-struct FOG_HIDDEN NullPainterEngine : public PainterEngine
+struct FOG_HIDDEN NullPaintEngine : public PaintEngine
 {
   // --------------------------------------------------------------------------
   // [Construction / Destruction]
   // --------------------------------------------------------------------------
 
-  NullPainterEngine() {}
-  virtual ~NullPainterEngine() {}
+  NullPaintEngine() {}
+  virtual ~NullPaintEngine() {}
 
   // --------------------------------------------------------------------------
   // [Width / Height / Format]
@@ -214,11 +214,11 @@ struct FOG_HIDDEN NullPainterEngine : public PainterEngine
   virtual void flush() {}
 };
 
-static Static<NullPainterEngine> _nullPainterEngine;
+static Static<NullPaintEngine> _nullPaintEngine;
 
-PainterEngine* _getNullPainterEngine()
+PaintEngine* _getNullPaintEngine()
 {
-  return _nullPainterEngine.instancep();
+  return _nullPaintEngine.instancep();
 }
 
 } // Fog namespace
@@ -231,8 +231,8 @@ FOG_INIT_DECLARE err_t fog_painter_null_init(void)
 {
   using namespace Fog;
 
-  _nullPainterEngine.init();
-  Painter::sharedNull = _nullPainterEngine.instancep();
+  _nullPaintEngine.init();
+  Painter::sharedNull = _nullPaintEngine.instancep();
 
   return ERR_OK;
 }
@@ -241,6 +241,6 @@ FOG_INIT_DECLARE void fog_painter_null_shutdown(void)
 {
   using namespace Fog;
 
-  _nullPainterEngine.destroy();
+  _nullPaintEngine.destroy();
   Painter::sharedNull = NULL;
 }

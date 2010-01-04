@@ -1,3 +1,7 @@
+2010-01-04
+- Renamed PainterEngine to PaintEngine
+- Fixed RasterPaintEngine clipping again
+
 2010-01-03
 - Added image transform to Painter.
 - Fixed image transform (matrix inversion).

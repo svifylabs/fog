@@ -181,8 +181,8 @@ struct FOG_HIDDEN ArgbStop
   FOG_INLINE ArgbStop() {}
   FOG_INLINE ArgbStop(double offset, Argb rgba) :
     offset(offset), rgba(rgba) {}
-  FOG_INLINE ArgbStop(double offset, uint8_t r, uint8_t g, uint8_t b, uint8_t a = 0xFF) : 
-    offset(offset), rgba(Argb(r, g, b, a)) {}
+  FOG_INLINE ArgbStop(double offset, uint8_t a, uint8_t r, uint8_t g, uint8_t b) :
+    offset(offset), rgba(Argb(a, r, g, b)) {}
   FOG_INLINE ArgbStop(const ArgbStop& other) :
     offset(other.offset), rgba(other.rgba) {}
 
