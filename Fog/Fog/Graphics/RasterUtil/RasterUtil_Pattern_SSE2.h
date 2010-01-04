@@ -257,8 +257,6 @@ namespace RasterUtil {
     pix_load8(__pix_x01_y1, src1); \
   } \
   \
-  fprintf(stderr, "fx=%d fy=%d\n", (fx & 0xFF00) >> 8, (fy & 0xFF00) >> 8); \
-  \
   __wx0 = _mm_cvtsi32_si128(fx); \
   __wy0 = _mm_cvtsi32_si128(fy); \
   \
