@@ -1468,14 +1468,6 @@ void RasterPaintEngine::WorkerTask::run()
         {
           case Command::Ready:
           {
-            // If meta origin or user origin is set, it's needed to calculate new
-            // (correct) offset variable or different threads can paint into the
-            // same area.
-            int workerOffset = (id - cmd->clipState->workOrigin.y) % delta;
-            if (workerOffset < 0) workerOffset += delta;
-
-            ctx.offset = workerOffset;
-
             ctx.layer = cmd->layer;
             ctx.clipState = cmd->clipState;
             ctx.capsState = cmd->capsState;
@@ -2914,10 +2906,10 @@ void RasterPaintEngine::blitImage(const Point& p, const Image& image, const Rect
   if (image.isEmpty()) return;
 
   CapsState* capsState = ctx.capsState;
-  ClipState* clipState = ctx.clipState;
-
   if (capsState->transformType == TRANSFORM_TRANSLATE_EXACT)
   {
+    ClipState* clipState = ctx.clipState;
+
     int srcx = 0;
     int srcy = 0;
     int dstx = p.x + capsState->transformTranslateInt.x;
@@ -2992,6 +2984,87 @@ void RasterPaintEngine::blitImage(const Point& p, const Image& image, const Rect
 void RasterPaintEngine::blitImage(const PointD& p, const Image& image, const Rect* irect)
 {
   if (image.isEmpty()) return;
+
+  CapsState* capsState = ctx.capsState;
+  if (capsState->transformType <= TRANSFORM_TRANSLATE_SUBPX)
+  {
+    int64_t xbig = (int64_t)((p.x + capsState->transform.tx) * 256.0);
+    int64_t ybig = (int64_t)((p.y + capsState->transform.ty) * 256.0);
+
+    int xf = (int)(xbig & 0xFF);
+    int yf = (int)(ybig & 0xFF);
+
+    if (xf == 0x00 && yf == 0x00)
+    {
+      ClipState* clipState = ctx.clipState;
+
+      int srcx = 0;
+      int srcy = 0;
+      int dstx = (int)(xbig >> 8);
+      int dsty = (int)(ybig >> 8);
+      int dstw;
+      int dsth;
+
+      if (irect == NULL)
+      {
+        dstw = image.getWidth();
+        dsth = image.getHeight();
+      }
+      else
+      {
+        if (!irect->isValid()) return;
+
+        srcx = irect->x;
+        if (srcx < 0) return;
+        srcy = irect->y;
+        if (srcy < 0) return;
+
+        dstw = Math::min(image.getWidth(), irect->getWidth());
+        if (dstw == 0) return;
+        dsth = Math::min(image.getHeight(), irect->getHeight());
+        if (dsth == 0) return;
+      }
+
+      int d;
+
+      if ((uint)(d = dstx - clipState->clipBox.getX1()) >= (uint)clipState->clipBox.getWidth())
+      {
+        if (d < 0)
+        {
+          if ((dstw += d) <= 0) return;
+          dstx = 0;
+          srcx = -d;
+        }
+        else
+        {
+          return;
+        }
+      }
+
+      if ((uint)(d = dsty - clipState->clipBox.getY1()) >= (uint)clipState->clipBox.getHeight())
+      {
+        if (d < 0)
+        {
+          if ((dsth += d) <= 0) return;
+          dsty = 0;
+          srcy = -d;
+        }
+        else
+        {
+          return;
+        }
+      }
+
+      if ((d = clipState->clipBox.getX2() - dstx) < dstw) dstw = d;
+      if ((d = clipState->clipBox.getY2() - dsty) < dsth) dsth = d;
+
+      Rect dst(dstx, dsty, dstw, dsth);
+      Rect src(srcx, srcy, dstw, dsth);
+      _serializeImage(dst, image, src);
+
+      return;
+    }
+  }
 
   _serializeImageAffine(p, image, irect);
 }
