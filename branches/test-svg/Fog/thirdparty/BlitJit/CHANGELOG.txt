@@ -1,7 +1,0 @@
-2009-04-05
-- Cleaned up code
-- Added composite / fill loop abstraction (now it's very easy to create complex
-  loops)
-- Some compositing code moved directly to generator
-- Rewritten memcpy and memset for new compositing loops
-- Rewritten composite32_SSE2 for new compositing loops
