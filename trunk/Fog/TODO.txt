@@ -92,7 +92,6 @@ MORE TODOS:
 
 [ ] Default color in Svg gradient should be 0.0:black, 1.0:white if no stops are provided
 [ ] Add innerLimit and innerJoin to painter, paint engine, and all related.
-[ ] Rename PainterEngine to PaintEngine (and all related classes).
 [ ] Add startJoin and endJoin to stroke params, painter, paint engine and all related.
 
 TODO P2

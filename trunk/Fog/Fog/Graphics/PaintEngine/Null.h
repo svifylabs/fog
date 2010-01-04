@@ -8,14 +8,14 @@
 #define _FOG_GRAPHICS_PAINTERENGINE_NULL_H
 
 // [Dependencies]
-#include <Fog/Graphics/PainterEngine.h>
+#include <Fog/Graphics/PaintEngine.h>
 
 //! @addtogroup Fog_Graphics
 //! @{
 
 namespace Fog {
 
-FOG_API PainterEngine* _getNullPainterEngine();
+FOG_API PaintEngine* _getNullPaintEngine();
 
 } // Fog namespace
 

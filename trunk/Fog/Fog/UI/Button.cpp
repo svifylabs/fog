@@ -54,10 +54,10 @@ void Button::onPaint(PaintEvent* e)
     pat.setEndPoint(Point(0, 0));
   }
 
-  pat.addStop(ArgbStop(0.0, 255, 255, 255));
-  pat.addStop(ArgbStop(0.48, 140, 170, 255));
-  pat.addStop(ArgbStop(0.52, 110, 140, 255));
-  pat.addStop(ArgbStop(1.0, 70, 100, 255));
+  pat.addStop(ArgbStop(0.00, 0xFFFFFFFF));
+  pat.addStop(ArgbStop(0.48, 0xFF8CAAFF));
+  pat.addStop(ArgbStop(0.52, 0xFF6E8CFF));
+  pat.addStop(ArgbStop(1.00, 0xFF4664FF));
   p->setSource(pat);
   p->fillRect(bounds);
 

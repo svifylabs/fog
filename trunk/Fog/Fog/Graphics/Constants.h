@@ -1670,7 +1670,7 @@ enum INNER_JOIN
 // [Fog::PAINTER]
 // ============================================================================
 
-//! @brief Type of source assigned in @c Painter or @c PainterEngine.
+//! @brief Type of source assigned in @c Painter or @c PaintEngine.
 enum PAINTER_SOURCE_TYPE
 {
   //! @brief Painter source is ARGB color, see @c Painter::setSource(Argb argb).

@@ -380,7 +380,7 @@ Set(FOG_GRAPHICS_LIB_SOURCES
   Fog/Graphics/ImageIO.cpp
   Fog/Graphics/Matrix.cpp
   Fog/Graphics/Painter.cpp
-  Fog/Graphics/PainterEngine.cpp
+  Fog/Graphics/PaintEngine.cpp
   Fog/Graphics/PainterUtil.cpp
   Fog/Graphics/Palette.cpp
   Fog/Graphics/Path.cpp
@@ -391,12 +391,12 @@ Set(FOG_GRAPHICS_LIB_SOURCES
   Fog/Graphics/Rasterizer.cpp
   Fog/Graphics/Reduce.cpp
   Fog/Graphics/Region.cpp
-  Fog/Graphics/RegionBuilder.cpp
   Fog/Graphics/RegionPoly.cpp
   Fog/Graphics/RegionRound.cpp
   Fog/Graphics/Scanline.cpp
   Fog/Graphics/Stroker.cpp
   Fog/Graphics/TextLayout.cpp
+  Fog/Graphics/TextOnPath.cpp
 )
 
 Set(FOG_GRAPHICS_LIB_HEADERS
@@ -423,7 +423,7 @@ Set(FOG_GRAPHICS_LIB_HEADERS
   Fog/Graphics/ImageIO.h
   Fog/Graphics/Matrix.h
   Fog/Graphics/Painter.h
-  Fog/Graphics/PainterEngine.h
+  Fog/Graphics/PaintEngine.h
   Fog/Graphics/PainterUtil.h
   Fog/Graphics/Palette.h
   Fog/Graphics/Path.h
@@ -433,10 +433,10 @@ Set(FOG_GRAPHICS_LIB_HEADERS
   Fog/Graphics/Rasterizer.h
   Fog/Graphics/Reduce.h
   Fog/Graphics/Region.h
-  Fog/Graphics/RegionBuilder.h
   Fog/Graphics/Scanline.h
   Fog/Graphics/Stroker.h
   Fog/Graphics/TextLayout.h
+  Fog/Graphics/TextOnPath.h
 )
 
 Set(FOG_GRAPHICS_IMAGEIO_SOURCES
@@ -464,14 +464,14 @@ Set(FOG_GRAPHICS_FONTENGINE_HEADERS
   Fog/Graphics/FontEngine/Null.h
 )
 
-Set(FOG_GRAPHICS_PAINTERENGINE_SOURCES
-  Fog/Graphics/PainterEngine/Null.cpp
-  Fog/Graphics/PainterEngine/Raster.cpp
+Set(FOG_GRAPHICS_PAINTENGINE_SOURCES
+  Fog/Graphics/PaintEngine/Null.cpp
+  Fog/Graphics/PaintEngine/Raster.cpp
 )
 
-Set(FOG_GRAPHICS_PAINTERENGINE_HEADERS
-  Fog/Graphics/PainterEngine/Null.h
-  Fog/Graphics/PainterEngine/Raster.h
+Set(FOG_GRAPHICS_PAINTENGINE_HEADERS
+  Fog/Graphics/PaintEngine/Null.h
+  Fog/Graphics/PaintEngine/Raster.h
 )
 
 Set(FOG_GRAPHICS_RASTERUTIL_SOURCES
@@ -520,11 +520,11 @@ Set_Source_Files_Properties(Fog/Graphics/RasterUtil/RasterUtil_MMX.cpp  PROPERTI
 Set_Source_Files_Properties(Fog/Graphics/RasterUtil/RasterUtil_SSE2.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE2}")
 
 # Source groups
-SOURCE_GROUP(Graphics               FILES ${FOG_GRAPHICS_LIB_SOURCES}           ${FOG_GRAPHICS_LIB_HEADERS})
-SOURCE_GROUP(Graphics_ImageIO       FILES ${FOG_GRAPHICS_IMAGEIO_SOURCES}       ${FOG_GRAPHICS_IMAGEIO_HEADERS})
-SOURCE_GROUP(Graphics_FontEngine    FILES ${FOG_GRAPHICS_FONTENGINE_SOURCES}    ${FOG_GRAPHICS_FONTENGINE_HEADERS})
-SOURCE_GROUP(Graphics_PainterEngine FILES ${FOG_GRAPHICS_PAINTERENGINE_SOURCES} ${FOG_GRAPHICS_PAINTERENGINE_HEADERS})
-SOURCE_GROUP(Graphics_RasterUtil    FILES ${FOG_GRAPHICS_RASTERUTIL_SOURCES}    ${FOG_GRAPHICS_RASTERUTIL_HEADERS})
+SOURCE_GROUP(Graphics               FILES ${FOG_GRAPHICS_LIB_SOURCES}         ${FOG_GRAPHICS_LIB_HEADERS})
+SOURCE_GROUP(Graphics_ImageIO       FILES ${FOG_GRAPHICS_IMAGEIO_SOURCES}     ${FOG_GRAPHICS_IMAGEIO_HEADERS})
+SOURCE_GROUP(Graphics_FontEngine    FILES ${FOG_GRAPHICS_FONTENGINE_SOURCES}  ${FOG_GRAPHICS_FONTENGINE_HEADERS})
+SOURCE_GROUP(Graphics_PaintEngine   FILES ${FOG_GRAPHICS_PAINTENGINE_SOURCES} ${FOG_GRAPHICS_PAINTENGINE_HEADERS})
+SOURCE_GROUP(Graphics_RasterUtil    FILES ${FOG_GRAPHICS_RASTERUTIL_SOURCES}  ${FOG_GRAPHICS_RASTERUTIL_HEADERS})
 
 # =============================================================================
 # [Fog/Xml]
@@ -660,7 +660,7 @@ Set(FOG_PUBLIC_SOURCES
   ${FOG_GRAPHICS_LIB_SOURCES}
   ${FOG_GRAPHICS_IMAGEIO_SOURCES}
   ${FOG_GRAPHICS_FONTENGINE_SOURCES}
-  ${FOG_GRAPHICS_PAINTERENGINE_SOURCES}
+  ${FOG_GRAPHICS_PAINTENGINE_SOURCES}
   ${FOG_GRAPHICS_RASTERUTIL_SOURCES}
   ${FOG_SVG_LIB_SOURCES}
   ${FOG_UI_LIB_SOURCES}
@@ -677,7 +677,7 @@ Set(FOG_PUBLIC_HEADERS
   ${FOG_GRAPHICS_LIB_HEADERS}
   ${FOG_GRAPHICS_IMAGEIO_HEADERS}
   ${FOG_GRAPHICS_FONTENGINE_HEADERS}
-  ${FOG_GRAPHICS_PAINTERENGINE_HEADERS}
+  ${FOG_GRAPHICS_PAINTENGINE_HEADERS}
   ${FOG_SVG_LIB_HEADERS}
   ${FOG_UI_LIB_HEADERS}
   ${FOG_UI_THEME_HEADERS}

@@ -8,7 +8,7 @@
 #define _FOG_GRAPHICS_PAINTER_H
 
 // [Dependencies]
-#include <Fog/Graphics/PainterEngine.h>
+#include <Fog/Graphics/PaintEngine.h>
 
 //! @addtogroup Fog_Graphics
 //! @{
@@ -372,9 +372,9 @@ struct FOG_API Painter
   // [Members]
   // --------------------------------------------------------------------------
 
-  PainterEngine* _engine;
+  PaintEngine* _engine;
 
-  static PainterEngine* sharedNull;
+  static PaintEngine* sharedNull;
 
 private:
   FOG_DISABLE_COPY(Painter);

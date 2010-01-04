@@ -1156,7 +1156,10 @@ GdiPlusModule_ImageAffine::~GdiPlusModule_ImageAffine() {}
 void GdiPlusModule_ImageAffine::bench(int quantity)
 {
   Gdiplus::Graphics gr(screen_gdip);
+  gr.SetInterpolationMode(Gdiplus::InterpolationModeBilinear);
 
+  float cx = (float)w / 2.0;
+  float cy = (float)h / 2.0;
   float rot = 0.0f;
 
   for (int a = 0; a < quantity; a++, rot += 0.01f)
@@ -1165,9 +1168,9 @@ void GdiPlusModule_ImageAffine::bench(int quantity)
     int y = r_rect.data[a].y;
 
     gr.ResetTransform();
-    gr.TranslateTransform((Gdiplus::REAL)x, (Gdiplus::REAL)y);
-    gr.RotateTransform(rot);
-    gr.TranslateTransform((Gdiplus::REAL)-x, (Gdiplus::REAL)-y);
+    gr.TranslateTransform((Gdiplus::REAL)cx, (Gdiplus::REAL)cy);
+    gr.RotateTransform(Math::rad2deg(rot));
+    gr.TranslateTransform((Gdiplus::REAL)-cx, (Gdiplus::REAL)-cy);
 
     gr.DrawImage(images_gdip[r_numb.data[a]], x, y);
   }
@@ -1681,7 +1684,7 @@ static TimeDelta bench(AbstractModule& mod, int sw, int sh, int quantity)
 static void benchAll()
 {
   int w = 640, h = 480;
-  int quantity = 100000;
+  int quantity = 1000;
 
   int engine;
   int s;

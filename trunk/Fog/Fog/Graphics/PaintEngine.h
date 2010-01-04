@@ -33,20 +33,20 @@ struct StrokeParams;
 struct ImageFilter;
 
 // ============================================================================
-// [Fog::PainterEngine]
+// [Fog::PaintEngine]
 // ============================================================================
 
 //! @brief Painter engine is @c Painter backend.
 //!
 //! See @c Painter all virtual members documentation.
-struct FOG_API PainterEngine
+struct FOG_API PaintEngine
 {
   // --------------------------------------------------------------------------
   // [Construction / Destruction]
   // --------------------------------------------------------------------------
 
-  PainterEngine();
-  virtual ~PainterEngine() = 0;
+  PaintEngine();
+  virtual ~PaintEngine() = 0;
 
   // --------------------------------------------------------------------------
   // [Width / Height / Format]
@@ -236,7 +236,7 @@ struct FOG_API PainterEngine
   virtual void flush() = 0;
 
 private:
-  FOG_DISABLE_COPY(PainterEngine)
+  FOG_DISABLE_COPY(PaintEngine)
 };
 
 } // Fog namespace
