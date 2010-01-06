@@ -216,8 +216,7 @@ struct FOG_API Matrix
   // Direct transformations operations
   Matrix& translate(double x, double y, int order = MATRIX_PREPEND);
   Matrix& rotate(double a, int order = MATRIX_PREPEND);
-  Matrix& scale(double a);
-  Matrix& scale(double x, double y);
+  Matrix& scale(double x, double y, int order = MATRIX_PREPEND);
   Matrix& skew(double x, double y, int order = MATRIX_PREPEND);
 
   //! @brief Multiply matrix by @a m.

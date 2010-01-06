@@ -28,7 +28,7 @@ struct FOG_API Scanline32
   {
     //! @brief X position.
     Coord x;
-    //! @brief Length, if negative, it's a solid span, covers is valid.
+    //! @brief Length, if negative, it's a solid span, covers are valid.
     Coord len;
     //! @brief Covers.
     uint8_t* covers;
@@ -78,8 +78,8 @@ struct FOG_API Scanline32
       _spansCur++;
     }
 
-    _xEnd = x + 1;
     _coversCur++;
+    _xEnd = x + 1;
   }
 
   FOG_INLINE void addCells(int x, uint len, const uint8_t* covers)
@@ -109,20 +109,39 @@ struct FOG_API Scanline32
   {
     FOG_ASSERT(_coversData != NULL);
 
-    if (x == _xEnd && _spansCur[-1].len < 0 && _spansCur[-1].covers[0] == (uint8_t)cover)
+    if (x == _xEnd)
     {
-      _spansCur[-1].len -= (int)len;
-    }
-    else
-    {
-      *_coversCur = (uint8_t)cover;
-      if (_spansCur == _spansEnd && !grow()) return;
-      _spansCur[0].x = Coord(x);
-      _spansCur[0].len = -int(len);
-      _spansCur[0].covers = _coversCur++;
-      _spansCur++;
+      if (_spansCur[-1].len > 0)
+      {
+        // We are not interested about small spans, if span is relatively
+        // small we just add it as vspan (with individual cover values).
+        if (len < 4)
+        {
+          _spansCur[-1].len += Coord((int)len);
+          do {
+            *_coversCur++ = (uint8_t)cover;
+          } while (--len);
+          goto end;
+        }
+      }
+      else
+      {
+        if (_spansCur[-1].covers[0] == (uint8_t)cover)
+        {
+          _spansCur[-1].len -= Coord((int)len);
+          goto end;
+        }
+      }
     }
 
+    if (_spansCur == _spansEnd && !grow()) return;
+    *_coversCur = (uint8_t)cover;
+    _spansCur[0].x = Coord(x);
+    _spansCur[0].len = -Coord(int(len));
+    _spansCur[0].covers = _coversCur++;
+    _spansCur++;
+
+end:
     _xEnd = x + len;
   }
 

@@ -133,7 +133,7 @@ struct FOG_HIDDEN NullPaintEngine : public PaintEngine
   virtual Matrix getMatrix() const { return Matrix(); }
 
   virtual void rotate(double angle, int order) {}
-  virtual void scale(double sx, double sy) {}
+  virtual void scale(double sx, double sy, int order) {}
   virtual void skew(double sx, double sy, int order) {}
   virtual void translate(double x, double y, int order) {}
   virtual void transform(const Matrix& m, int order) {}

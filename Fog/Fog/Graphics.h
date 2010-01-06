@@ -55,6 +55,7 @@
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/ColorLut.h>
 #include <Fog/Graphics/ColorMatrix.h>
+#include <Fog/Graphics/ConvolutionMatrix.h>
 #include <Fog/Graphics/DitherMatrix.h>
 #include <Fog/Graphics/Fixed.h>
 #include <Fog/Graphics/Font.h>
@@ -69,9 +70,10 @@
 #include <Fog/Graphics/Matrix.h>
 #include <Fog/Graphics/Painter.h>
 #include <Fog/Graphics/PaintEngine.h>
-#include <Fog/Graphics/PainterUtil.h>
+#include <Fog/Graphics/PaintUtil.h>
 #include <Fog/Graphics/Palette.h>
 #include <Fog/Graphics/Path.h>
+#include <Fog/Graphics/PathTransform.h>
 #include <Fog/Graphics/PathUtil.h>
 #include <Fog/Graphics/Pattern.h>
 #include <Fog/Graphics/RasterUtil.h>
@@ -81,6 +83,7 @@
 #include <Fog/Graphics/Scanline.h>
 #include <Fog/Graphics/Stroker.h>
 #include <Fog/Graphics/TextLayout.h>
+#include <Fog/Graphics/TextOnPath.h>
 
 // [Guard]
 #endif // _FOG_GRAPHICS_H

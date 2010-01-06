@@ -10,7 +10,7 @@
 
 // [Dependencies]
 #include <Fog/Graphics/Painter.h>
-#include <Fog/Graphics/PainterUtil.h>
+#include <Fog/Graphics/PaintUtil.h>
 #include <Fog/UI/Button.h>
 
 FOG_IMPLEMENT_OBJECT(Fog::Button)
@@ -35,7 +35,7 @@ void Button::onPaint(PaintEvent* e)
   Painter* p = e->getPainter();
 
   Rect bounds(0, 0, getWidth(), getHeight());
-  PainterUtil::draw3dRect(p, bounds, 0xFFFFFFFF, 0xFF000000, isDown());
+  PaintUtil::draw3dRect(p, bounds, 0xFFFFFFFF, 0xFF000000, isDown());
 
   bounds.shrink(1);
 

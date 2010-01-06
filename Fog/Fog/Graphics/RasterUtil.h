@@ -218,9 +218,16 @@ struct PatternContext
     // Must be destroyed when context is destroyed and its type is texture.
     Static<Image> texture;
 
-    // Increments, f...
+    // dx & dy.
+    //
+    // - Exact and subpixel mode - translation point.
+    // - Affine transformation - One step in 16.16 fixed point.
     int dx;
     int dy;
+
+    // Used for affine transformation, in 16.16 fp.
+    int fxmax;
+    int fymax;
 
     // Subpixel offset at 1.0 scale ratio (used if isTransformed is false).
     uint fY0X0;

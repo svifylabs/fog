@@ -319,7 +319,7 @@ struct FOG_HIDDEN RasterPaintEngine : public PaintEngine
   virtual Matrix getMatrix() const;
 
   virtual void rotate(double angle, int order);
-  virtual void scale(double sx, double sy);
+  virtual void scale(double sx, double sy, int order);
   virtual void skew(double sx, double sy, int order);
   virtual void translate(double x, double y, int order);
   virtual void transform(const Matrix& m, int order);
@@ -2250,7 +2250,7 @@ void RasterPaintEngine::rotate(double angle, int order)
   _updateTransform(false);
 }
 
-void RasterPaintEngine::scale(double sx, double sy)
+void RasterPaintEngine::scale(double sx, double sy, int order)
 {
   if (!_detachCaps()) return;
 
@@ -2258,7 +2258,7 @@ void RasterPaintEngine::scale(double sx, double sy)
   CapsState* capsState = ctx.capsState;
 
   RASTER_BEFORE_MATRIX_OP(clipState, capsState)
-  capsState->transform.scale(sx, sy);
+  capsState->transform.scale(sx, sy, order);
   RASTER_AFTER_MATRIX_OP(clipState, capsState)
 
   _updateTransform(false);
@@ -2397,8 +2397,17 @@ void RasterPaintEngine::restore()
 
 void RasterPaintEngine::clear()
 {
-  const Region& r = ctx.clipState->workRegion;
-  _serializeBoxes(r.getData(), r.getLength());
+  ClipState* clipState = ctx.clipState;
+
+  if (clipState->clipSimple)
+  {
+    _serializeBoxes(&clipState->clipBox, 1);
+  }
+  else
+  {
+    const Region& r = clipState->workRegion;
+    _serializeBoxes(r.getData(), r.getLength());
+  }
 }
 
 void RasterPaintEngine::drawPoint(const Point& p)
@@ -2455,7 +2464,14 @@ void RasterPaintEngine::drawRect(const Rect& r)
       }
     }
 
-    Region::intersect(boxISect, box, clipState->workRegion);
+    if (clipState->clipSimple)
+    {
+      Region::translateAndClip(boxISect, box, Point(0, 0), clipState->clipBox);
+    }
+    else
+    {
+      Region::intersect(boxISect, box, clipState->workRegion);
+    }
     _serializeBoxes(boxISect.getData(), boxISect.getLength());
   }
 }

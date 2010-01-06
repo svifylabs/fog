@@ -62,7 +62,11 @@ Matrix Matrix::fromLineSegment(double x1, double y1, double x2, double y2, doubl
   double dx = x2 - x1;
   double dy = y2 - y1;
 
-  if (dist > 0.0) m.scale(sqrt(dx * dx + dy * dy) / dist);
+  if (dist > 0.0)
+  {
+    double s = sqrt(dx * dx + dy * dy) / dist;
+    m.scale(s, s, MATRIX_APPEND);
+  }
   m.rotate(atan2(dy, dx), MATRIX_APPEND);
   m.translate(x1, y1, MATRIX_APPEND);
 
@@ -192,28 +196,19 @@ Matrix& Matrix::rotate(double a, int order)
   return *this;
 }
 
-Matrix& Matrix::scale(double a)
-{
-  sx  *= a;
-  shx *= a;
-  tx  *= a;
-
-  shy *= a;
-  sy  *= a;
-  ty  *= a;
-
-  return *this;
-}
-
-Matrix& Matrix::scale(double x, double y)
+Matrix& Matrix::scale(double x, double y, int order)
 {
   sx  *= x;
-  shx *= x;
-  tx  *= x;
-
-  shy *= y;
   sy  *= y;
-  ty  *= y;
+
+  shx *= x;
+  shy *= y;
+
+  if (order == MATRIX_APPEND)
+  {
+    tx  *= x;
+    ty  *= y;
+  }
 
   return *this;
 }

@@ -151,79 +151,6 @@ namespace RasterUtil {
 
 #endif
 
-#define TEXTURE_C_INTERPOLATE_BILINEAR_32() \
-{ \
-  int px0 = fx >> 16; \
-  int py0 = fy >> 16; \
-  \
-  int px1 = px0 + 1; \
-  int py1 = py0 + 1; \
-  \
-  uint32_t pix_x0y0; \
-  uint32_t pix_x1y0; \
-  uint32_t pix_x0y1; \
-  uint32_t pix_x1y1; \
-  \
-  if (FOG_UNLIKELY(py1 >= th)) py1 -= th; \
-  if (FOG_UNLIKELY(px1 >= tw)) px1 -= tw; \
-  \
-  const uint8_t* src0 = srcBits + py0 * srcStride; \
-  const uint8_t* src1 = srcBits + py1 * srcStride; \
-  \
-  uint weightx = (fx >> 8) & 0xFF; \
-  uint weighty = (fy >> 8) & 0xFF; \
-  \
-  uint w_x0y0 = ((256 - weightx) * (256 - weighty)) >> 8; \
-  uint w_x1y0 = ((weightx      ) * (256 - weighty)) >> 8; \
-  \
-  uint w_x0y1 = ((256 - weightx) * (weighty)) >> 8; \
-  uint w_x1y1 = ((weightx      ) * (weighty)) >> 8; \
-  \
-  pix_x0y0 = READ_32(src0 + px0 * 4); \
-  pix_x1y0 = READ_32(src0 + px1 * 4); \
-  pix_x0y1 = READ_32(src1 + px0 * 4); \
-  pix_x1y1 = READ_32(src1 + px1 * 4); \
-  \
-  PATTERN_C_INTERPOLATE_32_4(((uint32_t*)dstCur)[0], \
-    pix_x0y0, w_x0y0, pix_x1y0, w_x1y0, \
-    pix_x0y1, w_x0y1, pix_x1y1, w_x1y1); \
-  dstCur += 4; \
-}
-
-#define TEXTURE_C_INTERPOLATE_BILINEAR_8() \
-{ \
-  int px0 = fx >> 16; \
-  int py0 = fy >> 16; \
-  \
-  int px1 = px0 + 1; \
-  int py1 = py0 + 1; \
-  \
-  uint32_t pix_y0; \
-  uint32_t pix_y1; \
-  \
-  if (FOG_UNLIKELY(py1 >= th)) py1 -= th; \
-  if (FOG_UNLIKELY(px1 >= tw)) px1 -= tw; \
-  \
-  const uint8_t* src0 = srcBits + py0 * srcStride; \
-  const uint8_t* src1 = srcBits + py1 * srcStride; \
-  \
-  uint weightx = (fx >> 8) & 0xFF; \
-  uint weighty = (fy >> 8) & 0xFF; \
-  \
-  uint weightinvx = 256 - weightx; \
-  uint weightinvy = 256 - weighty; \
-  \
-  pix_y0 = ((uint)src0[px0] * weightinvx) + ((uint)src0[px1] * weightx); \
-  pix_y1 = ((uint)src1[px0] * weightinvx) + ((uint)src1[px1] * weightx); \
-  \
-  pix_y0 *= weightinvy; \
-  pix_y1 *= weighty; \
-  \
-  dstCur[0] = (uint8_t)((pix_y0 + pix_y1) >> 16); \
-  \
-  dstCur += 1; \
-}
-
 // ============================================================================
 // [Fog::RasterUtil::C - Pattern]
 // ============================================================================
@@ -310,7 +237,6 @@ struct FOG_HIDDEN PatternC
     bool isTransformed = (!Math::feq(matrix.sx, 1.0) || !Math::feq(matrix.shy, 0.0) ||
                           !Math::feq(matrix.sy, 1.0) || !Math::feq(matrix.shx, 0.0) );
 
-    matrix.inverted().storeTo(ctx->m);
     ctx->texture.texture.init(image);
 
     switch (format)
@@ -334,6 +260,12 @@ struct FOG_HIDDEN PatternC
         ctx->depth = 8;
         break;
     }
+
+    // Copy texture variables into pattern context.
+    ctx->texture.bits = ctx->texture.texture->getData();
+    ctx->texture.stride = ctx->texture.texture->getStride();
+    ctx->texture.w = ctx->texture.texture->getWidth();
+    ctx->texture.h = ctx->texture.texture->getHeight();
 
     if (!isTransformed)
     {
@@ -414,6 +346,25 @@ struct FOG_HIDDEN PatternC
     else
     {
       // Transform.
+      matrix.inverted().storeTo(ctx->m);
+
+      // Inner loop increments and bounds (16.16 fixed point).
+      {
+        int dx = double_to_fixed16x16(ctx->m[MATRIX_SX]);
+        int dy = double_to_fixed16x16(ctx->m[MATRIX_SHY]);
+
+        int fxmax = ctx->texture.w << 16;
+        int fymax = ctx->texture.h << 16;
+
+        if ((dx <= -fxmax) | (dx >= fxmax)) { dx %= fxmax; }
+        if ((dy <= -fymax) | (dy >= fymax)) { dy %= fymax; }
+
+        ctx->texture.dx = dx;
+        ctx->texture.dy = dy;
+
+        ctx->texture.fxmax = fxmax;
+        ctx->texture.fymax = fymax;
+      }
 
       // Set fetch function.
       switch (spread)
@@ -433,12 +384,6 @@ struct FOG_HIDDEN PatternC
 
     // Set destroy function.
     ctx->destroy = texture_destroy;
-
-    // Copy texture variables into pattern context.
-    ctx->texture.bits = ctx->texture.texture->getData();
-    ctx->texture.stride = ctx->texture.texture->getStride();
-    ctx->texture.w = ctx->texture.texture->getWidth();
-    ctx->texture.h = ctx->texture.texture->getHeight();
 
     ctx->initialized = true;
     return ERR_OK;
@@ -1462,14 +1407,14 @@ struct FOG_HIDDEN PatternC
     int tw = ctx->texture.w;
     int th = ctx->texture.h;
 
+    int dx = ctx->texture.dx;
+    int dy = ctx->texture.dy;
+
     int fx = double_to_fixed16x16(rx * ctx->m[MATRIX_SX ] + ry * ctx->m[MATRIX_SHX] + ctx->m[MATRIX_TX]);
     int fy = double_to_fixed16x16(rx * ctx->m[MATRIX_SHY] + ry * ctx->m[MATRIX_SY ] + ctx->m[MATRIX_TY]);
 
-    int dx = double_to_fixed16x16(ctx->m[MATRIX_SX]);
-    int dy = double_to_fixed16x16(ctx->m[MATRIX_SHY]);
-
-    int fxmax = tw << 16;
-    int fymax = th << 16;
+    int fxmax = ctx->texture.fxmax;
+    int fymax = ctx->texture.fymax;
 
     fx -= 0x8000;
     fy -= 0x8000;
@@ -1477,18 +1422,54 @@ struct FOG_HIDDEN PatternC
     if (fx < 0 || fx >= fxmax) { fx %= fxmax; if (fx < 0) fx += fxmax; }
     if (fy < 0 || fy >= fymax) { fy %= fymax; if (fy < 0) fy += fymax; }
 
-    if (dx <= -fxmax || dx >= fxmax) { dx %= fxmax; }
-    if (dy <= -fymax || dy >= fymax) { dy %= fymax; }
-
     const uint8_t* srcBits = ctx->texture.bits;
     sysint_t srcStride = ctx->texture.stride;
 
     int i = w;
 
+    #define TEXTURE_INTERPOLATE_BILINEAR_32() \
+    { \
+      int px0 = fx >> 16; \
+      int py0 = fy >> 16; \
+      \
+      int px1 = px0 + 1; \
+      int py1 = py0 + 1; \
+      \
+      uint32_t pix_x0y0; \
+      uint32_t pix_x1y0; \
+      uint32_t pix_x0y1; \
+      uint32_t pix_x1y1; \
+      \
+      if (FOG_UNLIKELY(py1 >= th)) py1 -= th; \
+      if (FOG_UNLIKELY(px1 >= tw)) px1 -= tw; \
+      \
+      const uint8_t* src0 = srcBits + py0 * srcStride; \
+      const uint8_t* src1 = srcBits + py1 * srcStride; \
+      \
+      uint weightx = (fx >> 8) & 0xFF; \
+      uint weighty = (fy >> 8) & 0xFF; \
+      \
+      uint w_x0y0 = ((256 - weightx) * (256 - weighty)) >> 8; \
+      uint w_x1y0 = ((weightx      ) * (256 - weighty)) >> 8; \
+      \
+      uint w_x0y1 = ((256 - weightx) * (weighty)) >> 8; \
+      uint w_x1y1 = ((weightx      ) * (weighty)) >> 8; \
+      \
+      pix_x0y0 = READ_32(src0 + px0 * 4); \
+      pix_x1y0 = READ_32(src0 + px1 * 4); \
+      pix_x0y1 = READ_32(src1 + px0 * 4); \
+      pix_x1y1 = READ_32(src1 + px1 * 4); \
+      \
+      PATTERN_C_INTERPOLATE_32_4(((uint32_t*)dstCur)[0], \
+        pix_x0y0, w_x0y0, pix_x1y0, w_x1y0, \
+        pix_x0y1, w_x0y1, pix_x1y1, w_x1y1); \
+      dstCur += 4; \
+    }
+
     if (dx >= 0 && dy >= 0)
     {
       do {
-        TEXTURE_C_INTERPOLATE_BILINEAR_32()
+        TEXTURE_INTERPOLATE_BILINEAR_32()
 
         fx += dx;
         fy += dy;
@@ -1500,7 +1481,7 @@ struct FOG_HIDDEN PatternC
     else if (dx >= 0 && dy < 0)
     {
       do {
-        TEXTURE_C_INTERPOLATE_BILINEAR_32()
+        TEXTURE_INTERPOLATE_BILINEAR_32()
 
         fx += dx;
         fy += dy;
@@ -1512,7 +1493,7 @@ struct FOG_HIDDEN PatternC
     else if (dx < 0 && dy >= 0)
     {
       do {
-        TEXTURE_C_INTERPOLATE_BILINEAR_32()
+        TEXTURE_INTERPOLATE_BILINEAR_32()
 
         fx += dx;
         fy += dy;
@@ -1524,7 +1505,7 @@ struct FOG_HIDDEN PatternC
     else // if (dx < 0 && dy < 0)
     {
       do {
-        TEXTURE_C_INTERPOLATE_BILINEAR_32()
+        TEXTURE_INTERPOLATE_BILINEAR_32()
 
         fx += dx;
         fy += dy;
@@ -1533,6 +1514,8 @@ struct FOG_HIDDEN PatternC
         if (fy < 0) fy += fymax;
       } while (--i);
     }
+
+    #undef TEXTURE_INTERPOLATE_BILINEAR_32
 
     // Fetch the rest.
     // if (w) _texture_do_repeat(dstCur, ctx->texture.w, w);
@@ -1554,14 +1537,14 @@ struct FOG_HIDDEN PatternC
     int tw = ctx->texture.w;
     int th = ctx->texture.h;
 
+    int dx = ctx->texture.dx;
+    int dy = ctx->texture.dy;
+
     int fx = double_to_fixed16x16(rx * ctx->m[MATRIX_SX ] + ry * ctx->m[MATRIX_SHX] + ctx->m[MATRIX_TX]);
     int fy = double_to_fixed16x16(rx * ctx->m[MATRIX_SHY] + ry * ctx->m[MATRIX_SY ] + ctx->m[MATRIX_TY]);
 
-    int dx = double_to_fixed16x16(ctx->m[MATRIX_SX]);
-    int dy = double_to_fixed16x16(ctx->m[MATRIX_SHY]);
-
-    int fxmax = tw << 16;
-    int fymax = th << 16;
+    int fxmax = ctx->texture.fxmax;
+    int fymax = ctx->texture.fymax;
 
     fx -= 0x8000;
     fy -= 0x8000;
@@ -1569,18 +1552,49 @@ struct FOG_HIDDEN PatternC
     if (fx < 0 || fx >= fxmax) { fx %= fxmax; if (fx < 0) fx += fxmax; }
     if (fy < 0 || fy >= fymax) { fy %= fymax; if (fy < 0) fy += fymax; }
 
-    if (dx <= -fxmax || dx >= fxmax) { dx %= fxmax; }
-    if (dy <= -fymax || dy >= fymax) { dy %= fymax; }
-
     const uint8_t* srcBits = ctx->texture.bits;
     sysint_t srcStride = ctx->texture.stride;
 
     int i = w;
 
+    #define TEXTURE_INTERPOLATE_BILINEAR_8() \
+    { \
+      int px0 = fx >> 16; \
+      int py0 = fy >> 16; \
+      \
+      int px1 = px0 + 1; \
+      int py1 = py0 + 1; \
+      \
+      uint32_t pix_y0; \
+      uint32_t pix_y1; \
+      \
+      if (FOG_UNLIKELY(py1 >= th)) py1 -= th; \
+      if (FOG_UNLIKELY(px1 >= tw)) px1 -= tw; \
+      \
+      const uint8_t* src0 = srcBits + py0 * srcStride; \
+      const uint8_t* src1 = srcBits + py1 * srcStride; \
+      \
+      uint weightx = (fx >> 8) & 0xFF; \
+      uint weighty = (fy >> 8) & 0xFF; \
+      \
+      uint weightinvx = 256 - weightx; \
+      uint weightinvy = 256 - weighty; \
+      \
+      pix_y0 = ((uint)src0[px0] * weightinvx) + ((uint)src0[px1] * weightx); \
+      pix_y1 = ((uint)src1[px0] * weightinvx) + ((uint)src1[px1] * weightx); \
+      \
+      pix_y0 *= weightinvy; \
+      pix_y1 *= weighty; \
+      \
+      dstCur[0] = (uint8_t)((pix_y0 + pix_y1) >> 16); \
+      \
+      dstCur += 1; \
+    }
+
     if (dx >= 0 && dy >= 0)
     {
       do {
-        TEXTURE_C_INTERPOLATE_BILINEAR_8()
+        TEXTURE_INTERPOLATE_BILINEAR_8()
 
         fx += dx;
         fy += dy;
@@ -1592,7 +1606,7 @@ struct FOG_HIDDEN PatternC
     else if (dx >= 0 && dy < 0)
     {
       do {
-        TEXTURE_C_INTERPOLATE_BILINEAR_8()
+        TEXTURE_INTERPOLATE_BILINEAR_8()
 
         fx += dx;
         fy += dy;
@@ -1604,7 +1618,7 @@ struct FOG_HIDDEN PatternC
     else if (dx < 0 && dy >= 0)
     {
       do {
-        TEXTURE_C_INTERPOLATE_BILINEAR_8()
+        TEXTURE_INTERPOLATE_BILINEAR_8()
 
         fx += dx;
         fy += dy;
@@ -1616,7 +1630,7 @@ struct FOG_HIDDEN PatternC
     else // if (dx < 0 && dy < 0)
     {
       do {
-        TEXTURE_C_INTERPOLATE_BILINEAR_8()
+        TEXTURE_INTERPOLATE_BILINEAR_8()
 
         fx += dx;
         fy += dy;
@@ -1625,6 +1639,8 @@ struct FOG_HIDDEN PatternC
         if (fy < 0) fy += fymax;
       } while (--i);
     }
+
+    #undef TEXTURE_INTERPOLATE_BILINEAR_8
 
     // Fetch the rest.
     // if (w) _texture_do_repeat(dstCur, ctx->texture.w, w);

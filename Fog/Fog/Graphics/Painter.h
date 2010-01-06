@@ -265,9 +265,7 @@ struct FOG_API Painter
   //! @brief Rotate current working matrix .
   FOG_INLINE void rotate(double angle, int order = MATRIX_PREPEND) { _engine->rotate(angle, order); }
   //! @brief Scale current working matrix.
-  FOG_INLINE void scale(double s) { _engine->scale(s, s); }
-  //! @brief Scale current working matrix.
-  FOG_INLINE void scale(double sx, double sy) { _engine->scale(sx, sy); }
+  FOG_INLINE void scale(double sx, double sy, int order = MATRIX_PREPEND) { _engine->scale(sx, sy, order); }
   //! @brief Skew current working matrix.
   FOG_INLINE void skew(double sx, double sy, int order = MATRIX_PREPEND) { _engine->skew(sx, sy, order); }
   //! @brief Translate current working matrix.

@@ -48,10 +48,13 @@ err_t TextOnPath::transform(Path& dst, const Path& src) const
 err_t TextOnPath::setPath(const Path& path, const Matrix* matrix)
 {
   // Use larger scaling factor to increase path on path precision.
-  static const double scaleFactor = 3.0;
+  double scalingFactor = 3.0;
+  if (matrix) scalingFactor *= matrix->getAverageScaling();
 
-  err_t err = path.flattenTo(_path, matrix, (matrix ? matrix->getAverageScaling() : 1.0) * scaleFactor);
+  err_t err = path.flattenSubPathTo(_path, 0, matrix, scalingFactor);
   if (err) return err;
+
+  if (_path.isEmpty()) return ERR_OK;
 
   _dist.resize(_path.getLength());
 
@@ -61,6 +64,7 @@ err_t TextOnPath::setPath(const Path& path, const Matrix* matrix)
 err_t TextOnPath::setBaseLength(double baseLength)
 {
   _baseLength = baseLength;
+  return ERR_OK;
 }
 
 } // Fog namespace
