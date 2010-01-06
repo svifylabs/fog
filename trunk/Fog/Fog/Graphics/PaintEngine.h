@@ -155,7 +155,7 @@ struct FOG_API PaintEngine
   virtual Matrix getMatrix() const = 0;
 
   virtual void rotate(double angle, int order) = 0;
-  virtual void scale(double sx, double sy) = 0;
+  virtual void scale(double sx, double sy, int order) = 0;
   virtual void skew(double sx, double sy, int order) = 0;
   virtual void translate(double x, double y, int order) = 0;
   virtual void transform(const Matrix& m, int order) = 0;

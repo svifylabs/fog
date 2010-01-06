@@ -1684,7 +1684,7 @@ static TimeDelta bench(AbstractModule& mod, int sw, int sh, int quantity)
 static void benchAll()
 {
   int w = 640, h = 480;
-  int quantity = 1000;
+  int quantity = 100000;
 
   int engine;
   int s;

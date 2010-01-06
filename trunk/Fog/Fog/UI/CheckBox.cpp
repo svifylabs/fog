@@ -10,7 +10,7 @@
 
 // [Dependencies]
 #include <Fog/Graphics/Painter.h>
-#include <Fog/Graphics/PainterUtil.h>
+#include <Fog/Graphics/PaintUtil.h>
 #include <Fog/UI/CheckBox.h>
 
 FOG_IMPLEMENT_OBJECT(Fog::CheckBox)

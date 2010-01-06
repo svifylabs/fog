@@ -169,10 +169,6 @@ namespace Math {
 #undef bound
 #endif // bound
 
-#if defined(abs)
-#undef abs
-#endif // abs
-
 //! @brief Returns lower number of @a a and @a b.
 template<typename T>
 static FOG_INLINE const T& min(const T& a, const T& b)
@@ -203,6 +199,10 @@ static FOG_INLINE const T& bound(const T& val, const T& min, const T& max)
 // ============================================================================
 // [Fog::Math - Abs]
 // ============================================================================
+
+#if defined(abs)
+#undef abs
+#endif // abs
 
 //! @brief Returns absolute value of @a a
 template<typename T>

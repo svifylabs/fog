@@ -168,21 +168,12 @@ err_t Pattern::rotate(double a, int order)
   return ERR_OK;
 }
 
-err_t Pattern::scale(double s)
+err_t Pattern::scale(double x, double y, int order)
 {
   err_t err;
   if ( (err = detach()) ) return err;
 
-  _d->matrix.scale(s);
-  return ERR_OK;
-}
-
-err_t Pattern::scale(double x, double y)
-{
-  err_t err;
-  if ( (err = detach()) ) return err;
-
-  _d->matrix.scale(x, y);
+  _d->matrix.scale(x, y, order);
   return ERR_OK;
 }
 

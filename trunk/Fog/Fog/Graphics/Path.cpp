@@ -353,7 +353,7 @@ void Path::free()
 // [Fog::Path - Bounding Rect]
 // ============================================================================
 
-RectD Path::boundingRect() const
+RectD Path::getBoundingRect() const
 {
   sysuint_t i = _d->length;
   PathVertex* v = _d->data;
@@ -392,6 +392,28 @@ RectD Path::boundingRect() const
   }
 
   return RectD(x1, y1, x2 - x1, y2 - y1);
+}
+
+// ============================================================================
+// [Fog::Path - SubPath]
+// ============================================================================
+
+sysuint_t Path::getSubPathLength(sysuint_t subPathId) const
+{
+  const Path::Data* d = _d;
+
+  sysuint_t length = d->length;
+  if (subPathId >= length) return 0;
+
+  const PathVertex* cur = d->data + subPathId + 1;;
+  const PathVertex* end = d->data + length;
+
+  while (cur < end)
+  {
+    if (cur->cmd.isMoveTo()) break;
+  }
+
+  return (sysuint_t)(cur - d->data);
 }
 
 // ============================================================================
@@ -1347,86 +1369,47 @@ err_t Path::flatten(const Matrix* matrix, double approximationScale)
   return flattenTo(*this, NULL, 1.0);
 }
 
-err_t Path::flattenTo(Path& dst, const Matrix* matrix, double approximationScale) const
+static err_t _flattenData(Path& dst, const PathVertex* data, sysuint_t count, const Matrix* matrix, double approximationScale)
 {
-  // --------------------------------------------------------------------------
-  // Contains only lines (flat path).
-  // --------------------------------------------------------------------------
-
-  if (isFlat())
-  {
-    if (this == &dst)
-    {
-      if (matrix != NULL)
-      {
-        return dst.applyMatrix(*matrix);
-      }
-      else
-      {
-        return ERR_OK;
-      }
-    }
-    else
-    {
-      if (matrix != NULL)
-      {
-        dst.clear();
-        return dst.addPath(*this, *matrix);
-      }
-      else
-      {
-        return dst.set(*this);
-      }
-    }
-  }
-
-  // --------------------------------------------------------------------------
-  // Contains curves.
-  // --------------------------------------------------------------------------
-
-  // The dst argument is here mainly if we need to flatten path into different
-  // one. If paths are equal, we will simply create second path and assign
-  // result to first one.
-  if (this == &dst) return Path(*this).flattenTo(dst, matrix, approximationScale);
-
   dst.clear();
+  if (count == 0) return ERR_OK;
 
-  sysuint_t n = getLength();
-  if (n == 0) return ERR_OK;
-  if (dst.reserve(n * 4)) return ERR_RT_OUT_OF_MEMORY;
+  err_t err = ERR_OK;
+  sysuint_t grow = count * 4;
+
+  if (grow < count) return ERR_RT_OUT_OF_MEMORY;
+  if (dst.reserve(grow)) return ERR_RT_OUT_OF_MEMORY;
+
+  PathVertex* dstv;
 
   double lastx = 0.0;
   double lasty = 0.0;
-
-  const PathVertex* v = getData();
-  PathVertex* dstv;
-  err_t err = ERR_OK;
 
   sysuint_t oldLen;
   uint32_t oldCmd;
 
 ensureSpace:
-  dstv = dst._add(n);
+  dstv = dst._add(count);
   if (!dstv) return ERR_RT_OUT_OF_MEMORY;
 
   do {
-    switch (v->cmd.cmd())
+    switch (data->cmd.cmd())
     {
       case PATH_CMD_MOVE_TO:
       case PATH_CMD_LINE_TO:
-        dstv->x = lastx = v->x;
-        dstv->y = lasty = v->y;
-        dstv->cmd = v->cmd;
+        dstv->x = lastx = data->x;
+        dstv->y = lasty = data->y;
+        dstv->cmd = data->cmd;
 
-        v++;
+        data++;
         dstv++;
-        n--;
+        count--;
 
         break;
 
       case PATH_CMD_CURVE_3:
-        if (n <= 1) goto invalid;
-        if (v[1].cmd.cmd() != PATH_CMD_CURVE_3) goto invalid;
+        if (count <= 1) goto invalid;
+        if (data[1].cmd.cmd() != PATH_CMD_CURVE_3) goto invalid;
 
         // Finalize path
         dst._d->length = (sysuint_t)(dstv - dst._d->data);
@@ -1444,27 +1427,27 @@ ensureSpace:
         }
 
         // Approximate curve.
-        err = PathUtil::fm.approximateCurve3(dst, lastx, lasty, v[0].x, v[0].y, v[1].x, v[1].y, approximationScale, 0.0);
+        err = PathUtil::fm.approximateCurve3(dst, lastx, lasty, data[0].x, data[0].y, data[1].x, data[1].y, approximationScale, 0.0);
         if (err) goto end;
 
         // Part of fix described above.
         if (oldLen != INVALID_INDEX) dst._d->data[oldLen].cmd = oldCmd;
 
-        lastx = v[1].x;
-        lasty = v[1].y;
+        lastx = data[1].x;
+        lasty = data[1].y;
 
-        v += 2;
-        n -= 2;
+        data += 2;
+        count -= 2;
 
-        if (n == 0)
+        if (count == 0)
           goto end;
         else
           goto ensureSpace;
 
       case PATH_CMD_CURVE_4:
-        if (n <= 2) goto invalid;
-        if (v[1].cmd.cmd() != PATH_CMD_CURVE_4 ||
-            v[2].cmd.cmd() != PATH_CMD_CURVE_4) goto invalid;
+        if (count <= 2) goto invalid;
+        if (data[1].cmd.cmd() != PATH_CMD_CURVE_4 ||
+            data[2].cmd.cmd() != PATH_CMD_CURVE_4) goto invalid;
 
         // Finalize path
         dst._d->length = (sysuint_t)(dstv - dst._d->data);
@@ -1482,19 +1465,19 @@ ensureSpace:
         }
 
         // Approximate curve.
-        err = PathUtil::fm.approximateCurve4(dst, lastx, lasty, v[0].x, v[0].y, v[1].x, v[1].y, v[2].x, v[2].y, approximationScale, 0.0, 0.0);
+        err = PathUtil::fm.approximateCurve4(dst, lastx, lasty, data[0].x, data[0].y, data[1].x, data[1].y, data[2].x, data[2].y, approximationScale, 0.0, 0.0);
         if (err) goto end;
 
         // Part of fix described above.
         if (oldLen != INVALID_INDEX) dst._d->data[oldLen].cmd = oldCmd;
 
-        lastx = v[2].x;
-        lasty = v[2].y;
+        lastx = data[2].x;
+        lasty = data[2].y;
 
-        v += 3;
-        n -= 3;
+        data += 3;
+        count -= 3;
 
-        if (n == 0)
+        if (count == 0)
           goto end;
         else
           goto ensureSpace;
@@ -1502,15 +1485,15 @@ ensureSpace:
       default:
         dstv->x = lastx = 0.0;
         dstv->y = lasty = 0.0;
-        dstv->cmd = v->cmd;
+        dstv->cmd = data->cmd;
 
-        v++;
+        data++;
         dstv++;
-        n--;
+        count--;
 
         break;
     }
-  } while(n);
+  } while(count);
 
   dst._d->length = (sysuint_t)(dstv - dst._d->data);
 end:
@@ -1524,14 +1507,96 @@ invalid:
   return ERR_PATH_INVALID;
 }
 
-// ============================================================================
-// [Fog::Path - Operator Overload]
-// ============================================================================
-
-Path& Path::operator=(const Path& other)
+err_t Path::flattenTo(Path& dst, const Matrix* matrix, double approximationScale) const
 {
-  set(other);
-  return *this;
+  // --------------------------------------------------------------------------
+  // Contains only lines (flat path).
+  // --------------------------------------------------------------------------
+
+  if (isFlat())
+  {
+    if (this == &dst)
+    {
+      if (!matrix) return ERR_OK;
+      return dst.applyMatrix(*matrix);
+    }
+    else
+    {
+      if (!matrix) return dst.set(*this);
+
+      dst.clear();
+      return dst.addPath(*this, *matrix);
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // Contains curves.
+  // --------------------------------------------------------------------------
+
+  // The dst argument is here mainly if we need to flatten path into different
+  // one. If paths are equal, we will simply create second path and assign
+  // result to first one.
+  if (this == &dst)
+  {
+    Path tmp(*this);
+    return _flattenData(dst, tmp.getData(), tmp.getLength(), matrix, approximationScale);
+  }
+  else
+  {
+    return _flattenData(dst, getData(), getLength(), matrix, approximationScale);
+  }
+}
+
+err_t Path::flattenSubPathTo(Path& dst, sysuint_t subPathId, const Matrix* matrix, double approximationScale) const
+{
+  sysuint_t len = getSubPathLength(subPathId);
+
+  // --------------------------------------------------------------------------
+  // No sub-path.
+  // --------------------------------------------------------------------------
+
+  if (!len)
+  {
+    if (this != &dst) dst.clear();
+    return ERR_OK;
+  }
+
+  // --------------------------------------------------------------------------
+  // Contains only lines (flat path).
+  // --------------------------------------------------------------------------
+
+  if (isFlat())
+  {
+    if (this == &dst)
+    {
+      if (!matrix) return ERR_OK;
+      return dst.applyMatrix(*matrix);
+    }
+    else
+    {
+      if (!matrix) return dst.set(*this);
+
+      dst.clear();
+      return dst.addPath(*this, *matrix);
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // Contains curves.
+  // --------------------------------------------------------------------------
+
+  // The dst argument is here mainly if we need to flatten path into different
+  // one. If paths are equal, we will simply create second path and assign
+  // result to first one.
+  if (this == &dst)
+  {
+    Path tmp(*this);
+    return _flattenData(dst, tmp._d->data + subPathId, len, matrix, approximationScale);
+  }
+  else
+  {
+    return _flattenData(dst, _d->data + subPathId, len, matrix, approximationScale);
+  }
 }
 
 } // Fog namespace

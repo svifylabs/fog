@@ -15,18 +15,16 @@
 //! @{
 
 namespace Fog {
+namespace PaintUtil {
 
 // ============================================================================
-// [Fog::PainterUtil]
+// [Fog::PaintUtil]
 // ============================================================================
 
-//! @brief Static class that provides painting of basic UI primitives like
-//! 3d looking rectangles, etc...
-struct FOG_API PainterUtil
-{
-  static void draw3dRect(Painter* p, const Rect& r, Argb color1, Argb color2, bool checked = false);
-};
+//! @brief Paint stroked 3d-looking rectangle using two colors.
+FOG_API void draw3dRect(Painter* p, const Rect& r, Argb color1, Argb color2, bool checked = false);
 
+} // PaintUtil namespace
 } // Fog namespace
 
 //! @}

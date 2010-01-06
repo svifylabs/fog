@@ -1856,7 +1856,7 @@ err_t SvgPathElement::onCalcBoundingBox(RectD* box) const
   if (a_d.isAssigned())
   {
     const Path& path = a_d.getPath();
-    box->set(path.boundingRect());
+    box->set(path.getBoundingRect());
     return ERR_OK;
   }
   else
@@ -1933,7 +1933,7 @@ err_t SvgPolygonElement::onCalcBoundingBox(RectD* box) const
   if (a_points.isAssigned())
   {
     const Path& path = a_points.getPath();
-    box->set(path.boundingRect());
+    box->set(path.getBoundingRect());
     return ERR_OK;
   }
   else
@@ -2010,7 +2010,7 @@ err_t SvgPolyLineElement::onCalcBoundingBox(RectD* box) const
   if (a_points.isAssigned())
   {
     const Path& path = a_points.getPath();
-    box->set(path.boundingRect());
+    box->set(path.getBoundingRect());
     return ERR_OK;
   }
   else
