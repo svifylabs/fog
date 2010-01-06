@@ -381,9 +381,10 @@ Set(FOG_GRAPHICS_LIB_SOURCES
   Fog/Graphics/Matrix.cpp
   Fog/Graphics/Painter.cpp
   Fog/Graphics/PaintEngine.cpp
-  Fog/Graphics/PainterUtil.cpp
+  Fog/Graphics/PaintUtil.cpp
   Fog/Graphics/Palette.cpp
   Fog/Graphics/Path.cpp
+  Fog/Graphics/PathTransform.cpp
   Fog/Graphics/PathUtil.cpp
   Fog/Graphics/PathUtil_SSE2.cpp
   Fog/Graphics/Pattern.cpp
@@ -424,10 +425,11 @@ Set(FOG_GRAPHICS_LIB_HEADERS
   Fog/Graphics/Matrix.h
   Fog/Graphics/Painter.h
   Fog/Graphics/PaintEngine.h
-  Fog/Graphics/PainterUtil.h
+  Fog/Graphics/PaintUtil.h
   Fog/Graphics/Palette.h
   Fog/Graphics/Path.h
   Fog/Graphics/PathUtil.h
+  Fog/Graphics/PathTransform.h
   Fog/Graphics/Pattern.h
   Fog/Graphics/RasterUtil.h
   Fog/Graphics/Rasterizer.h
