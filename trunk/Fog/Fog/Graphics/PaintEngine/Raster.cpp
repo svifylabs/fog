@@ -3660,7 +3660,7 @@ void RasterPaintEngine::_serializeImage(const Rect& dst, const Image& image, con
   // Multithreaded.
   else
   {
-    Command_Image* cmd = _createCommand<Command_Image>();
+    Command_Image* cmd = _createCommand<Command_Image>(sizeof(Command_Image), NULL);
     if (!cmd) return;
 
     cmd->dst = dst;
