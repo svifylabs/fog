@@ -323,8 +323,8 @@ struct FOG_API ColorMatrix
   ColorMatrix& setSaturation(float sat, int order = MATRIX_PREPEND);
 
   //! @brief Scale the tint.
-  //! @param phi [-180..180, 0 = blue]
-  //! @param amount [-1.0..1.0, 0 = neutral]
+  //! @param phi [-PI to PI, 0 = blue]
+  //! @param amount [-1.0 to 1.0, 0 = neutral]
   ColorMatrix& setTint(float phi, float amount);
 
   //! @brief Rotate the hue about the gray axis.

@@ -87,12 +87,10 @@ private:
   FOG_DISABLE_COPY(LocalBuffer)
 };
 
-/*!
-  @brief Fast and secure stack implementation for critical routines.
-
-  This stack class allocates some memory on the <b>stack</b> and if
-  it's needed it allocs blocks of memory on the heap.
-*/
+//! @brief Fast and secure stack implementation for critical routines.
+//!
+//! This stack class allocates some memory on the <b>stack</b> and if
+//! it's needed it allocs blocks of memory on the heap.
 template<ulong N>
 struct LocalStack
 {

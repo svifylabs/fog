@@ -63,7 +63,8 @@ struct FOG_HIDDEN StrokerPrivate
   void calcCap(
     const PathVertex& v0,
     const PathVertex& v1,
-    double len);
+    double len,
+    int cap);
 
   void calcJoin(
     const PathVertex& v0,
@@ -250,7 +251,11 @@ void StrokerPrivate::calcArc(
 
     for (i = 0; i < n; i++)
     {
-      addVertex(x + cos(a1) * stroker._w, y + sin(a1) * stroker._w);
+      double a1Sin;
+      double a1Cos;
+      Math::sincos(a1, &a1Sin, &a1Cos);
+
+      addVertex(x + a1Cos * stroker._w, y + a1Sin * stroker._w);
       a1 += da;
     }
   }
@@ -263,7 +268,11 @@ void StrokerPrivate::calcArc(
 
     for (i = 0; i < n; i++)
     {
-      addVertex(x + cos(a1) * stroker._w, y + sin(a1) * stroker._w);
+      double a1Sin;
+      double a1Cos;
+      Math::sincos(a1, &a1Sin, &a1Cos);
+
+      addVertex(x + a1Cos * stroker._w, y + a1Sin * stroker._w);
       a1 -= da;
     }
   }
@@ -363,58 +372,128 @@ void StrokerPrivate::calcMiter(
 void StrokerPrivate::calcCap(
   const PathVertex& v0,
   const PathVertex& v1,
-  double len)
+  double len,
+  int cap)
 {
   double ilen = 1.0 / len;
 
   double dx1 = (v1.y - v0.y) * ilen;
   double dy1 = (v1.x - v0.x) * ilen;
-  double dx2 = 0;
-  double dy2 = 0;
 
   dx1 *= stroker._w;
   dy1 *= stroker._w;
 
-  if (stroker._params._lineCap != LINE_CAP_ROUND)
+  switch (cap)
   {
-    if (stroker._params._lineCap == LINE_CAP_SQUARE)
+    case LINE_CAP_BUTT:
     {
-      dx2 = dy1 * stroker._wSign;
-      dy2 = dx1 * stroker._wSign;
+      addVertex(v0.x - dx1, v0.y + dy1);
+      addVertex(v0.x + dx1, v0.y - dy1);
+      break;
     }
-    addVertex(v0.x - dx1 - dx2, v0.y + dy1 - dy2);
-    addVertex(v0.x + dx1 - dx2, v0.y - dy1 - dy2);
-  }
-  else
-  {
-    int i;
-    int n = int(M_PI / stroker._da);
-    double da = M_PI / (n + 1);
-    double a1;
 
-    addVertex(v0.x - dx1, v0.y + dy1);
-
-    if (stroker._wSign > 0)
+    case LINE_CAP_SQUARE:
     {
-      a1 = atan2(dy1, -dx1);
-      a1 += da;
+      double dx2 = dy1 * stroker._wSign;
+      double dy2 = dx1 * stroker._wSign;
+
+      addVertex(v0.x - dx1 - dx2, v0.y + dy1 - dy2);
+      addVertex(v0.x + dx1 - dx2, v0.y - dy1 - dy2);
+      break;
+    }
+
+    case LINE_CAP_ROUND:
+    {
+      int i;
+      int n = int(M_PI / stroker._da);
+      double da = M_PI / (n + 1);
+      double a1;
+
+      addVertex(v0.x - dx1, v0.y + dy1);
+
+      if (stroker._wSign > 0)
+      {
+        a1 = atan2(dy1, -dx1) + da;
+      }
+      else
+      {
+        da = -da;
+        a1 = atan2(-dy1, dx1) + da;
+      }
+
       for (i = 0; i < n; i++)
       {
-        addVertex(v0.x + cos(a1) * stroker._w, v0.y + sin(a1) * stroker._w);
+        double a1_sin;
+        double a1_cos;
+        Math::sincos(a1, &a1_sin, &a1_cos);
+
+        addVertex(v0.x + a1_cos * stroker._w, v0.y + a1_sin * stroker._w);
         a1 += da;
       }
+
+      addVertex(v0.x + dx1, v0.y - dy1);
+      break;
     }
-    else
+
+    case LINE_CAP_ROUND_REVERT:
     {
-      a1 = atan2(-dy1, dx1);
-      a1 -= da;
+      int i;
+      int n = int(M_PI / stroker._da);
+      double da = M_PI / (n + 1);
+      double a1;
+
+      double dx2 = dy1 * stroker._wSign;
+      double dy2 = dx1 * stroker._wSign;
+
+      double vx = v0.x - dx2;
+      double vy = v0.y - dy2;
+
+      addVertex(vx - dx1, vy + dy1);
+
+      if (stroker._wSign > 0)
+      {
+        da = -da;
+        a1 = atan2(dy1, -dx1) + da;
+      }
+      else
+      {
+        a1 = atan2(-dy1, dx1) + da;
+      }
+
       for (i = 0; i < n; i++)
       {
-        addVertex(v0.x + cos(a1) * stroker._w, v0.y + sin(a1) * stroker._w);
-        a1 -= da;
+        double a1_sin;
+        double a1_cos;
+        Math::sincos(a1, &a1_sin, &a1_cos);
+
+        addVertex(vx + a1_cos * stroker._w, vy + a1_sin * stroker._w);
+        a1 += da;
       }
+
+      addVertex(vx + dx1, vy - dy1);
+      break;
     }
-    addVertex(v0.x + dx1, v0.y - dy1);
+
+    case LINE_CAP_TRIANGLE:
+    {
+      double dx2 = dy1 * stroker._wSign;
+      double dy2 = dx1 * stroker._wSign;
+
+      addVertex(v0.x - dx1, v0.y + dy1);
+      addVertex(v0.x - dx2, v0.y - dy2);
+      addVertex(v0.x + dx1, v0.y - dy1);
+      break;
+    }
+
+    case LINE_CAP_TRIANGLE_REVERT:
+    {
+      double dx2 = dy1 * stroker._wSign;
+      double dy2 = dx1 * stroker._wSign;
+
+      addVertex(v0.x - dx1 - dx2, v0.y + dy1 - dy2);
+      addVertex(v0.x, v0.y);
+      addVertex(v0.x + dx1 - dx2, v0.y - dy1 - dy2);
+    }
   }
 }
 
@@ -657,7 +736,7 @@ err_t StrokerPrivate::stroke(const PathVertex* src, sysuint_t count, bool outlin
       if (i == I_FIRST)
       {
         // Start cap.
-        calcCap(cur[0], cur[1], dist[0]);
+        calcCap(cur[0], cur[1], dist[0], stroker._params._startCap);
       }
       else if (i != I_LAST)
       {
@@ -671,7 +750,7 @@ err_t StrokerPrivate::stroke(const PathVertex* src, sysuint_t count, bool outlin
       if (i == I_LAST)
       {
         // End cap.
-        calcCap(cur[0], cur[-1], dist[-1]);
+        calcCap(cur[0], cur[-1], dist[-1], stroker._params._endCap);
       }
       else if (i != I_FIRST)
       {

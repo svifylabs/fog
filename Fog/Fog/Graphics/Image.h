@@ -371,8 +371,8 @@ struct FOG_API Image
   err_t fillHGradient(const Rect& r, Argb c0, Argb c1, int op = COMPOSITE_SRC_OVER);
   err_t fillVGradient(const Rect& r, Argb c0, Argb c1, int op = COMPOSITE_SRC_OVER);
 
-  err_t drawImage(const Point& pt, const Image& src, uint32_t op = COMPOSITE_SRC_OVER, uint32_t opacity = 255);
-  err_t drawImage(const Point& pt, const Image& src, const Rect& srcRect, uint32_t op = COMPOSITE_SRC_OVER, uint32_t opacity = 255);
+  err_t blitImage(const Point& pt, const Image& src, uint32_t op = COMPOSITE_SRC_OVER, uint32_t opacity = 255);
+  err_t blitImage(const Point& pt, const Image& src, const Rect& srcRect, uint32_t op = COMPOSITE_SRC_OVER, uint32_t opacity = 255);
 
   //! @brief Scroll data in image.
   //!

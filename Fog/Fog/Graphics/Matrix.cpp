@@ -22,6 +22,7 @@
 //
 //----------------------------------------------------------------------------
 
+#include <Fog/Core/Math.h>
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Geometry.h>
 #include <Fog/Graphics/Matrix.h>
@@ -30,8 +31,10 @@ namespace Fog {
 
 Matrix Matrix::fromRotation(double a)
 {
-  double aSin = sin(a);
-  double aCos = cos(a);
+  double aSin;
+  double aCos;
+  Math::sincos(a, &aSin, &aCos);
+
   return Matrix(aCos, aSin, -aSin, aCos, 0.0, 0.0);
 }
 
@@ -83,7 +86,11 @@ Matrix Matrix::fromReflectionUnit(double ux, double uy)
 
 Matrix Matrix::fromReflection(double a)
 {
-  return fromReflectionUnit(cos(a), sin(a));
+  double aSin;
+  double aCos;
+
+  Math::sincos(a, &aSin, &aCos);
+  return fromReflectionUnit(aCos, aSin);
 }
 
 Matrix Matrix::fromReflection(double x, double y)
@@ -164,8 +171,9 @@ Matrix& Matrix::translate(double x, double y, int order)
 
 Matrix& Matrix::rotate(double a, int order)
 {
-  double aSin = sin(a);
-  double aCos = cos(a);
+  double aSin;
+  double aCos;
+  Math::sincos(a, &aSin, &aCos);
 
   if (order == MATRIX_APPEND)
   {

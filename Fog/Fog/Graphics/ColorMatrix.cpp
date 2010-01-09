@@ -308,14 +308,15 @@ bool ColorMatrix::eq(const ColorMatrix& other, float epsilon) const
 
 ColorMatrix& ColorMatrix::_rotateColor(float phi, int x, int y, int order)
 {
-  float pi_sin = Math::sin(phi);
-  float pi_cos = Math::cos(phi);
+  float phiSin;
+  float phiCos;
+  Math::sincos(phi, &phiSin, &phiCos);
 
   ColorMatrix mod;
-  mod.m[x][x] =  pi_cos;
-  mod.m[x][y] = -pi_sin;
-  mod.m[y][x] =  pi_sin;
-  mod.m[y][y] =  pi_cos;
+  mod.m[x][x] =  phiCos;
+  mod.m[x][y] = -phiSin;
+  mod.m[y][x] =  phiSin;
+  mod.m[y][y] =  phiCos;
   return multiply(mod, order);
 }
 

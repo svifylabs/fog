@@ -35,13 +35,13 @@ struct FOG_API DitherMatrix
 
   enum {
 #ifdef FOG_SMALL_DITHER
-    /*! @brief Size of dithering table. */
+    //! @brief Size of dithering table.
     SIZE = 4,        // Always 2^N
     BITS = 4,        // Count of bits used per element
     DIV = 16,
     MASK = SIZE - 1
 #else
-    /*! @brief Size of dithering table. */
+    //! @brief Size of dithering table.
     SIZE = 128,      // Always 2^N
     BITS = 6,        // Count of bits used per element
     DIV = 64,
@@ -60,14 +60,14 @@ struct FOG_API DitherMatrix
   // Helpers that helps us to use this dithering table for
   // more image types and bit depths
 
-  /*! @brief Shifting argument helper. */
+  //! @brief Shifting argument helper.
   template<typename T>
   static FOG_INLINE T shf_arg(const T& t)
   {
     return BITS - (8 - t);
   }
 
-  /*! @brief Shifting dither helper. */
+  //! @brief Shifting dither helper.
   template<typename T>
   static FOG_INLINE T shf_dither(T value, int shift)
   {

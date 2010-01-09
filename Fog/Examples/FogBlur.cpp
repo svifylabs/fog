@@ -110,7 +110,7 @@ void MyWindow::paintImage(Painter* p, const Point& pos, const Image& im, const S
 
   p->drawText(Rect(x, y, 130, 20), name, getFont(), TEXT_ALIGN_CENTER);
   p->drawRect(Rect(x, y + 20, 130, 130));
-  p->drawImage(Point(x + 1, y + 21), im);
+  p->blitImage(Point(x + 1, y + 21), im);
 }
 
 // ============================================================================

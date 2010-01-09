@@ -45,7 +45,7 @@ struct FOG_API ArgbAnalyzer
     sysuint_t count)
   {
     return analyzeAlpha((const uint8_t*)data, count,
-      FOG_OFFSET_OF(ArgbStop, rgba) + ARGB32_ABYTE,
+      FOG_OFFSET_OF(ArgbStop, argb) + ARGB32_ABYTE,
       sizeof(ArgbStop));
   }
 

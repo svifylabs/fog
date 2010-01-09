@@ -286,6 +286,49 @@ static FOG_INLINE uint ufloor(double v) { return uround(::floor(v)); }
 static FOG_INLINE uint uceil(double v) { return uround(::ceil(v)); }
 
 // ============================================================================
+// [Fog::Math - Double <-> Fixed point]
+// ============================================================================
+
+//! @brief Helper union used to convert double to fixed point integer.
+union DoubleAndInt
+{
+  //! @brief Double data.
+  double d;
+
+  //! @brief Int32[2] data.
+  int32_t i32[2];
+#if FOG_BYTE_ORDER == FOG_LITTLE_ENDIAN
+  //! @brief Int32 individual data.
+  int32_t i32_0, i32_1;
+#else
+  //! @brief Int32 individual data.
+  int32_t i32_1, i32_0;
+#endif
+
+  //! @brief Int64 data.
+  int64_t i64;
+};
+
+static FOG_INLINE int doubleToInt(double d)
+{
+  return (int)d;
+}
+
+static FOG_INLINE int16x16_t doubleToFixed16x16(double d)
+{
+  // The euqivalent code should be:
+  // return (int32_t)(d * 65536.0);
+  DoubleAndInt data;
+  data.d = d + 103079215104.0;
+  return data.i32_0;
+}
+
+static FOG_INLINE int48x16_t doubleToFixed48x16(double d)
+{
+  return (int64_t)(d * 65536.0);
+}
+
+// ============================================================================
 // [Fog::Math - Degrees <-> Radians]
 // ============================================================================
 
@@ -304,6 +347,30 @@ static FOG_INLINE float cos(float rad) { return ::cosf(rad); }
 
 static FOG_INLINE double sin(double rad) { return ::sin(rad); }
 static FOG_INLINE double cos(double rad) { return ::cos(rad); }
+
+#if defined(FOG_CC_GNU)
+static FOG_INLINE void sincos(float rad, float* sinResult, float* cosResult)
+{
+  ::sincosf(rad, sinResult, cosResult);
+}
+
+static FOG_INLINE void sincos(double rad, double* sinResult, double* cosResult)
+{
+  ::sincos(rad, sinResult, cosResult);
+}
+#else
+static FOG_INLINE void sincos(float rad, float* sinResult, float* cosResult)
+{
+  *sinResult = sin(rad);
+  *cosResult = cos(rad);
+}
+
+static FOG_INLINE void sincos(double rad, double* sinResult, double* cosResult)
+{
+  *sinResult = sin(rad);
+  *cosResult = cos(rad);
+}
+#endif
 
 } // Math namespace
 } // Fog namespace

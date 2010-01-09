@@ -43,17 +43,54 @@ FunctionMap fm;
 // [Fog::PathUtil::Transformations]
 // ============================================================================
 
+static void FOG_FASTCALL translateVertex(PathVertex* data, sysuint_t length, const PointD* pt)
+{
+  double tx = pt->x;
+  double ty = pt->y;
+
+  for (sysuint_t i = length; i; i--, data++)
+  {
+    if (data->cmd.isVertex())
+    {
+      data->x += tx;
+      data->y += ty;
+    }
+  }
+}
+
+static void FOG_FASTCALL translateVertex2(PathVertex* FOG_RESTRICT dst, const PathVertex* FOG_RESTRICT src, sysuint_t length, const PointD* pt)
+{
+  double tx = pt->x;
+  double ty = pt->y;
+
+  for (sysuint_t i = length; i; i--, dst++, src++)
+  {
+    PathCmd cmd = src->cmd;
+    double x = src->x;
+    double y = src->y;
+
+    dst->cmd = cmd;
+    if (cmd.isVertex())
+    {
+      x += tx;
+      y += ty;
+    }
+    dst->x = x;
+    dst->y = y;
+  }
+}
+
 static void FOG_FASTCALL transformVertex(PathVertex* data, sysuint_t length, const Matrix* matrix)
 {
   for (sysuint_t i = length; i; i--, data++)
   {
     if (data->cmd.isVertex())
     {
-      double nx = data->x * matrix->sx  + data->y * matrix->shx + matrix->tx;
-      double ny = data->x * matrix->shy + data->y * matrix->sy  + matrix->ty;
+      double x = data->x;
+      double y = data->y;
 
-      data->x = nx;
-      data->y = ny;
+      data->x = x * matrix->sx  + y * matrix->shx + matrix->tx;
+      data->y = x * matrix->shy + y * matrix->sy  + matrix->ty;
     }
   }
 }
@@ -63,20 +100,20 @@ static void FOG_FASTCALL transformVertex2(PathVertex* FOG_RESTRICT dst, const Pa
   for (sysuint_t i = length; i; i--, dst++, src++)
   {
     PathCmd cmd = src->cmd;
+    double x = src->x;
+    double y = src->x;
 
     dst->cmd = cmd;
+
     if (cmd.isVertex())
     {
-      double nx = src->x * matrix->sx  + src->y * matrix->shx + matrix->tx;
-      double ny = src->x * matrix->shy + src->y * matrix->sy  + matrix->ty;
-
-      dst->x = nx;
-      dst->y = ny;
+      dst->x = x * matrix->sx  + y * matrix->shx + matrix->tx;
+      dst->y = x * matrix->shy + y * matrix->sy  + matrix->ty;
     }
     else
     {
-      dst->x = src->x;
-      dst->y = src->y;
+      dst->x = x;
+      dst->y = y;
     }
   }
 }
@@ -528,14 +565,22 @@ FOG_INIT_DECLARE err_t fog_pathutil_init(void)
   using namespace Fog;
 
   // Install C optimized code (default).
+  PathUtil::fm.translateVertex = PathUtil::translateVertex;
+  PathUtil::fm.translateVertex2 = PathUtil::translateVertex2;
+
   PathUtil::fm.transformVertex = PathUtil::transformVertex;
   PathUtil::fm.transformVertex2 = PathUtil::transformVertex2;
+
   PathUtil::fm.approximateCurve3 = PathUtil::approximateCurve3;
   PathUtil::fm.approximateCurve4 = PathUtil::approximateCurve4;
 
   // Install SSE2 optimized code if supported.
 #if defined(FOG_ARCH_X86) || defined(FOG_ARCH_X86_64)
+#if !defined(FOG_HARDCODE_SSE2)
   if (cpuInfo->hasFeature(CpuInfo::FEATURE_SSE2)) fog_pathutil_init_sse2();
+#else
+  fog_pathutil_init_sse2();
+#endif
 #endif // FOG_ARCH_X86 || FOG_ARCH_X86_64
 
   return ERR_OK;

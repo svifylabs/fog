@@ -6,6 +6,44 @@
 
 using namespace Fog;
 
+/*
+// ============================================================================
+// [Specialized 4 vertex polygon rasterizer]
+// ============================================================================
+
+static void rasterize4v(ImageBuffer& buf, const PointD* points)
+{
+
+}
+
+static Image test4v()
+{
+  Image image(320, 200, PIXEL_FORMAT_PRGB32);
+  ImageBuffer ibuf;
+
+  ibuf.width = image.getWidth();
+  ibuf.height = image.getHeight();
+  ibuf.stride = image.getStride();
+  ibuf.format = image.getFormat();
+  ibuf.data = (uint8_t*)image.getData();
+
+  PointD points[4];
+  points[0].set(10.5, 10.5);
+  points[1].set(100.5, 20.5);
+  points[2].set(70.5, 100.5);
+  points[3].set(40.5, 40.5);
+
+  image.clear(Argb(0xFFFFFFFF));
+  rasterize4v(ibuf, points);
+}
+*/
+
+
+
+
+
+
+
 // This is for MY testing:)
 
 struct MyWindow : public Window
@@ -43,12 +81,21 @@ MyWindow::MyWindow(uint32_t createFlags) :
   i[0].readFile(Ascii8("babelfish.png"));
   i[1].readFile(Ascii8("kweather.png"));
 
+  i[0].convert(PIXEL_FORMAT_PRGB32);
+  i[1].convert(PIXEL_FORMAT_PRGB32);
+
+  {
+    Painter p(i[0]);
+
+    p.setSource(0xFFFFFFFF);
+    p.setOperator(COMPOSITE_DST_OVER);
+    p.clear();
+  }
+
   // i[0].readFile(Ascii8("texture0.bmp"));
   //i[0].readFile(Ascii8("/my/upload/bmpsuite/g04.bmp"));
   //i[0].readFile(Ascii8("/my/upload/bmpsuite/icons_fullset.png"));
 
-  i[0].convert(PIXEL_FORMAT_PRGB32);
-  i[1].convert(PIXEL_FORMAT_PRGB32);
   //i[0] = i[0].scale(Size(32, 32), INTERPOLATION_SMOOTH);
 
   _subx = 0.0;
@@ -113,7 +160,7 @@ void MyWindow::onKeyPress(KeyEvent* e)
       _scale += 0.01;
       break;
     case KEY_SPACE:
-      _spread = (_spread == SPREAD_REPEAT) ? SPREAD_REFLECT : SPREAD_REPEAT;
+      if (++_spread >= SPREAD_INVALID) _spread = 0;
       break;
   }
 
@@ -187,6 +234,38 @@ void MyWindow::onPaint(PaintEvent* e)
   //p->drawRound(Rect(100, 100, 200, 200), Point(50, 50));
 */
 #if 1
+  /*
+  Pattern pat;
+  pat.setSpread(SPREAD_PAD);
+  pat.setTexture(i[0]);
+  pat.rotate(_rotate);
+  pat.translate(_subx, _suby);
+  pat.setSpread(SPREAD_NONE);
+  p->setSource(pat);
+  p->clear();
+   */
+
+  Pattern pat;
+  List<ArgbStop> stops;
+  stops.append(ArgbStop(0.0, 0xFFFFFFFF));
+  stops.append(ArgbStop(1.0, 0xFFFF0000));
+  Gradient gradient(PATTERN_LINEAR_GRADIENT, _spread, PointD(100.0, 100.0), PointD(200.0, 200.0), stops);
+  pat.setGradient(gradient);
+  p->setSource(pat);
+  p->rotate(_rotate);
+  p->clear();
+
+
+/*
+  p->save();
+  p->rotate(_rotate);
+  p->translate(200 + _subx, _suby);
+  p->blitImage(PointD(0.0, 0.0), i[0]);
+  p->restore();
+*/
+#endif
+
+#if 0
   // Clear everything to white.
   p->setSource(Argb(0xFFFFFFFF));
   p->clear();
@@ -228,7 +307,7 @@ void MyWindow::onPaint(PaintEvent* e)
   //p->translate(100, 100);
   p->rotate(_rotate);
   //p->translate(-100, -100);
-  p->drawImage(PointD(50.5, 50.5), img);
+  p->blitImage(PointD(50.5, 50.5), img);
   p->restore();
 #endif
 
@@ -328,7 +407,7 @@ void MyWindow::onPaint(PaintEvent* e)
     while (decoder->readImage(ii) == ERR_OK)
     {
       ii.convert(PIXEL_FORMAT_PRGB32);
-      p->drawImage(Point(x, y), ii);
+      p->blitImage(Point(x, y), ii);
       y += ii.getHeight();
     }
     delete decoder;
@@ -380,7 +459,7 @@ void MyWindow::paintImage(Painter* p, const Point& pos, const Image& im, const S
 
   p->drawText(Rect(x, y, 130, 20), name, getFont(), TEXT_ALIGN_CENTER);
   p->drawRect(Rect(x, y + 20, 130, 130));
-  p->drawImage(Point(x + 1, y + 21), im);
+  p->blitImage(Point(x + 1, y + 21), im);
 }
 
 // ============================================================================

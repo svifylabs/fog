@@ -1633,19 +1633,22 @@ enum LINE_CAP
   LINE_CAP_BUTT = 0,
   LINE_CAP_SQUARE = 1,
   LINE_CAP_ROUND = 2,
+  LINE_CAP_ROUND_REVERT = 3,
+  LINE_CAP_TRIANGLE = 4,
+  LINE_CAP_TRIANGLE_REVERT = 5,
   LINE_CAP_DEFAULT = LINE_CAP_BUTT,
 
   //! @brief Used to catch invalid arguments.
-  LINE_CAP_INVALID = 3
+  LINE_CAP_INVALID = 6
 };
 
 //! @brief Line join.
 enum LINE_JOIN
 {
   LINE_JOIN_MITER = 0,
-  LINE_JOIN_MITER_REVERT = 1,
-  LINE_JOIN_ROUND = 2,
-  LINE_JOIN_BEVEL = 3,
+  LINE_JOIN_ROUND = 1,
+  LINE_JOIN_BEVEL = 2,
+  LINE_JOIN_MITER_REVERT = 3,
   LINE_JOIN_MITER_ROUND = 4,
   LINE_JOIN_DEFAULT = LINE_JOIN_MITER,
 
@@ -1656,10 +1659,10 @@ enum LINE_JOIN
 //! @brief Inner join.
 enum INNER_JOIN
 {
-  INNER_JOIN_BEVEL = 0,
-  INNER_JOIN_MITER = 1,
-  INNER_JOIN_JAG = 2,
-  INNER_JOIN_ROUND = 3,
+  INNER_JOIN_MITER = 0,
+  INNER_JOIN_BEVEL = 1,
+  INNER_JOIN_ROUND = 2,
+  INNER_JOIN_JAG = 3,
   INNER_JOIN_DEFAULT = INNER_JOIN_MITER,
 
   //! @brief Used to catch invalid arguments.
@@ -1816,9 +1819,11 @@ enum REGION_HITTEST
 
 enum SPREAD_TYPE
 {
-  SPREAD_PAD     = 0,
-  SPREAD_REPEAT  = 1,
-  SPREAD_REFLECT = 2
+  SPREAD_NONE    = 0,
+  SPREAD_PAD     = 1,
+  SPREAD_REPEAT  = 2,
+  SPREAD_REFLECT = 3,
+  SPREAD_INVALID = 4
 };
 
 // ============================================================================

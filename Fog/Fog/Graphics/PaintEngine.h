@@ -91,68 +91,74 @@ struct FOG_API PaintEngine
   // [Operator]
   // --------------------------------------------------------------------------
 
-  virtual void setOperator(int op) = 0;
   virtual int getOperator() const = 0;
+  virtual void setOperator(int op) = 0;
 
   // --------------------------------------------------------------------------
   // [Source]
   // --------------------------------------------------------------------------
 
+  virtual int getSourceType() const = 0;
+
+  virtual err_t getSourceArgb(Argb& argb) const = 0;
+  virtual err_t getSourcePattern(Pattern& pattern) const = 0;
+
   virtual void setSource(Argb argb) = 0;
   virtual void setSource(const Pattern& pattern) = 0;
   virtual void setSource(const ColorFilter& colorFilter) = 0;
-
-  virtual int getSourceType() const = 0;
-  virtual Argb getSourceAsArgb() const = 0;
-  virtual Pattern getSourceAsPattern() const = 0;
 
   // --------------------------------------------------------------------------
   // [Hints]
   // --------------------------------------------------------------------------
 
-  virtual void setHint(int hint, int value) = 0;
   virtual int getHint(int hint) const = 0;
+  virtual void setHint(int hint, int value) = 0;
 
   // --------------------------------------------------------------------------
   // [Fill Parameters]
   // --------------------------------------------------------------------------
 
-  virtual void setFillMode(int mode) = 0;
   virtual int getFillMode() const = 0;
+  virtual void setFillMode(int mode) = 0;
 
   // --------------------------------------------------------------------------
   // [Stroke Parameters]
   // --------------------------------------------------------------------------
 
-  virtual void setStrokeParams(const StrokeParams& strokeParams) = 0;
   virtual void getStrokeParams(StrokeParams& strokeParams) const = 0;
+  virtual void setStrokeParams(const StrokeParams& strokeParams) = 0;
 
-  virtual void setLineWidth(double lineWidth) = 0;
   virtual double getLineWidth() const = 0;
+  virtual void setLineWidth(double lineWidth) = 0;
 
-  virtual void setLineCap(int lineCap) = 0;
-  virtual int getLineCap() const = 0;
+  virtual int getStartCap() const = 0;
+  virtual void setStartCap(int startCap) = 0;
 
-  virtual void setLineJoin(int lineJoin) = 0;
+  virtual int getEndCap() const = 0;
+  virtual void setEndCap(int endCap) = 0;
+
+  virtual void setLineCaps(int lineCap) = 0;
+
   virtual int getLineJoin() const = 0;
+  virtual void setLineJoin(int lineJoin) = 0;
 
+  virtual double getMiterLimit() const = 0;
+  virtual void setMiterLimit(double miterLimit) = 0;
+
+  virtual List<double> getDashes() const = 0;
   virtual void setDashes(const double* dashes, sysuint_t count) = 0;
   virtual void setDashes(const List<double>& dashes) = 0;
-  virtual List<double> getDashes() const = 0;
 
-  virtual void setDashOffset(double offset) = 0;
   virtual double getDashOffset() const = 0;
-
-  virtual void setMiterLimit(double miterLimit) = 0;
-  virtual double getMiterLimit() const = 0;
+  virtual void setDashOffset(double offset) = 0;
 
   // --------------------------------------------------------------------------
   // [Transformations]
   // --------------------------------------------------------------------------
 
+  virtual Matrix getMatrix() const = 0;
   virtual void setMatrix(const Matrix& m) = 0;
   virtual void resetMatrix() = 0;
-  virtual Matrix getMatrix() const = 0;
 
   virtual void rotate(double angle, int order) = 0;
   virtual void scale(double sx, double sy, int order) = 0;
@@ -230,8 +236,8 @@ struct FOG_API PaintEngine
   // [Multithreading]
   // --------------------------------------------------------------------------
 
-  virtual void setEngine(int engine, int cores = 0) = 0;
   virtual int getEngine() const = 0;
+  virtual void setEngine(int engine, int cores = 0) = 0;
 
   virtual void flush() = 0;
 

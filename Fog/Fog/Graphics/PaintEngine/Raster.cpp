@@ -255,68 +255,74 @@ struct FOG_HIDDEN RasterPaintEngine : public PaintEngine
   // [Operator]
   // --------------------------------------------------------------------------
 
-  virtual void setOperator(int op);
   virtual int getOperator() const;
+  virtual void setOperator(int op);
 
   // --------------------------------------------------------------------------
   // [Source]
   // --------------------------------------------------------------------------
 
+  virtual int getSourceType() const;
+
+  virtual err_t getSourceArgb(Argb& argb) const;
+  virtual err_t getSourcePattern(Pattern& pattern) const;
+
   virtual void setSource(Argb argb);
   virtual void setSource(const Pattern& pattern);
   virtual void setSource(const ColorFilter& colorFilter);
-
-  virtual int getSourceType() const;
-  virtual Argb getSourceAsArgb() const;
-  virtual Pattern getSourceAsPattern() const;
 
   // --------------------------------------------------------------------------
   // [Hints]
   // --------------------------------------------------------------------------
 
-  virtual void setHint(int hint, int value);
   virtual int getHint(int hint) const;
+  virtual void setHint(int hint, int value);
 
   // --------------------------------------------------------------------------
   // [Fill Parameters]
   // --------------------------------------------------------------------------
 
-  virtual void setFillMode(int mode);
   virtual int getFillMode() const;
+  virtual void setFillMode(int mode);
 
   // --------------------------------------------------------------------------
   // [Stroke Parameters]
   // --------------------------------------------------------------------------
 
-  virtual void setStrokeParams(const StrokeParams& strokeParams);
   virtual void getStrokeParams(StrokeParams& strokeParams) const;
+  virtual void setStrokeParams(const StrokeParams& strokeParams);
 
-  virtual void setLineWidth(double lineWidth);
   virtual double getLineWidth() const;
+  virtual void setLineWidth(double lineWidth);
 
-  virtual void setLineCap(int lineCap);
-  virtual int getLineCap() const;
+  virtual int getStartCap() const;
+  virtual void setStartCap(int startCap);
 
-  virtual void setLineJoin(int lineJoin);
+  virtual int getEndCap() const;
+  virtual void setEndCap(int endCap);
+
+  virtual void setLineCaps(int lineCaps);
+
   virtual int getLineJoin() const;
+  virtual void setLineJoin(int lineJoin);
 
+  virtual double getMiterLimit() const;
+  virtual void setMiterLimit(double miterLimit);
+
+  virtual List<double> getDashes() const;
   virtual void setDashes(const double* dashes, sysuint_t count);
   virtual void setDashes(const List<double>& dashes);
-  virtual List<double> getDashes() const;
 
-  virtual void setDashOffset(double offset);
   virtual double getDashOffset() const;
-
-  virtual void setMiterLimit(double miterLimit);
-  virtual double getMiterLimit() const;
+  virtual void setDashOffset(double offset);
 
   // --------------------------------------------------------------------------
   // [Transformations]
   // --------------------------------------------------------------------------
 
+  virtual Matrix getMatrix() const;
   virtual void setMatrix(const Matrix& m);
   virtual void resetMatrix();
-  virtual Matrix getMatrix() const;
 
   virtual void rotate(double angle, int order);
   virtual void scale(double sx, double sy, int order);
@@ -394,8 +400,8 @@ struct FOG_HIDDEN RasterPaintEngine : public PaintEngine
   // [Multithreading]
   // --------------------------------------------------------------------------
 
-  virtual void setEngine(int engine, int cores = 0);
   virtual int getEngine() const;
+  virtual void setEngine(int engine, int cores = 0);
 
   virtual void flush();
   void flushWithQuit();
@@ -1867,6 +1873,11 @@ bool RasterPaintEngine::isUserRegionUsed() const
 // [Fog::RasterPaintEngine - Operator]
 // ============================================================================
 
+int RasterPaintEngine::getOperator() const
+{
+  return ctx.capsState->op;
+}
+
 void RasterPaintEngine::setOperator(int op)
 {
   if ((ctx.capsState->op == op) | ((uint)op >= COMPOSITE_COUNT)) return;
@@ -1876,14 +1887,45 @@ void RasterPaintEngine::setOperator(int op)
   ctx.capsState->rops = RasterUtil::getRasterOps(ctx.layer->format, op);
 }
 
-int RasterPaintEngine::getOperator() const
-{
-  return ctx.capsState->op;
-}
-
 // ============================================================================
 // [Fog::RasterPaintEngine - Source]
 // ============================================================================
+
+int RasterPaintEngine::getSourceType() const
+{
+  return ctx.capsState->sourceType;
+}
+
+err_t RasterPaintEngine::getSourceArgb(Argb& argb) const
+{
+  switch (ctx.capsState->sourceType)
+  {
+    case PAINTER_SOURCE_ARGB:
+      argb.set(ctx.capsState->solid.argb);
+      return ERR_OK;
+
+    default:
+      argb.set(0x00000000);
+      return ERR_RT_INVALID_CONTEXT;
+  }
+}
+
+err_t RasterPaintEngine::getSourcePattern(Pattern& pattern) const
+{
+  switch (ctx.capsState->sourceType)
+  {
+    case PAINTER_SOURCE_ARGB:
+      return pattern.setColor(ctx.capsState->solid.argb);
+
+    case PAINTER_SOURCE_PATTERN:
+      pattern = ctx.capsState->pattern.instance();
+      return ERR_OK;
+
+    default:
+      pattern.reset();
+      return ERR_RT_INVALID_CONTEXT;
+  }
+}
 
 void RasterPaintEngine::setSource(Argb argb)
 {
@@ -1968,42 +2010,27 @@ done:
   ;
 }
 
-int RasterPaintEngine::getSourceType() const
-{
-  return ctx.capsState->sourceType;
-}
-
-Argb RasterPaintEngine::getSourceAsArgb() const
-{
-  switch (ctx.capsState->sourceType)
-  {
-    case PAINTER_SOURCE_ARGB:
-      return Argb(ctx.capsState->solid.argb);
-    default:
-      return Argb(0x00000000);
-  }
-}
-
-Pattern RasterPaintEngine::getSourceAsPattern() const
-{
-  Pattern pattern;
-
-  switch (ctx.capsState->sourceType)
-  {
-    case PAINTER_SOURCE_ARGB:
-      pattern.setColor(ctx.capsState->solid.argb);
-      break;
-    case PAINTER_SOURCE_PATTERN:
-      pattern = ctx.capsState->pattern.instance();
-      break;
-  }
-
-  return pattern;
-}
-
 // ============================================================================
 // [Fog::RasterPaintEngine - Hints]
 // ============================================================================
+
+int RasterPaintEngine::getHint(int hint) const
+{
+  switch (hint)
+  {
+    case PAINTER_HINT_ANTIALIASING_QUALITY:
+      return ctx.capsState->aaQuality;
+
+    case PAINTER_HINT_IMAGE_INTERPOLATION:
+      return ctx.capsState->imageInterpolation;
+
+    case PAINTER_HINT_GRADIENT_INTERPOLATION:
+      return ctx.capsState->gradientInterpolation;
+
+    default:
+      return -1;
+  }
+}
 
 void RasterPaintEngine::setHint(int hint, int value)
 {
@@ -2035,27 +2062,14 @@ void RasterPaintEngine::setHint(int hint, int value)
   }
 }
 
-int RasterPaintEngine::getHint(int hint) const
-{
-  switch (hint)
-  {
-    case PAINTER_HINT_ANTIALIASING_QUALITY:
-      return ctx.capsState->aaQuality;
-
-    case PAINTER_HINT_IMAGE_INTERPOLATION:
-      return ctx.capsState->imageInterpolation;
-
-    case PAINTER_HINT_GRADIENT_INTERPOLATION:
-      return ctx.capsState->gradientInterpolation;
-
-    default:
-      return -1;
-  }
-}
-
 // ============================================================================
 // [Fog::RasterPaintEngine - Fill Parameters]
 // ============================================================================
+
+int RasterPaintEngine::getFillMode() const
+{
+  return ctx.capsState->fillMode;
+}
 
 void RasterPaintEngine::setFillMode(int mode)
 {
@@ -2065,14 +2079,14 @@ void RasterPaintEngine::setFillMode(int mode)
   ctx.capsState->fillMode = mode;
 }
 
-int RasterPaintEngine::getFillMode() const
-{
-  return ctx.capsState->fillMode;
-}
-
 // ============================================================================
 // [Fog::RasterPaintEngine - Stroke Parameters]
 // ============================================================================
+
+void RasterPaintEngine::getStrokeParams(StrokeParams& strokeParams) const
+{
+  strokeParams = ctx.capsState->strokeParams;
+}
 
 void RasterPaintEngine::setStrokeParams(const StrokeParams& strokeParams)
 {
@@ -2080,15 +2094,16 @@ void RasterPaintEngine::setStrokeParams(const StrokeParams& strokeParams)
 
   ctx.capsState->strokeParams = strokeParams;
 
-  if (ctx.capsState->strokeParams.getLineCap() >= LINE_CAP_INVALID) ctx.capsState->strokeParams.setLineCap(LINE_CAP_DEFAULT);
+  if (ctx.capsState->strokeParams.getStartCap() >= LINE_CAP_INVALID) ctx.capsState->strokeParams.setStartCap(LINE_CAP_DEFAULT);
+  if (ctx.capsState->strokeParams.getEndCap() >= LINE_CAP_INVALID) ctx.capsState->strokeParams.setEndCap(LINE_CAP_DEFAULT);
   if (ctx.capsState->strokeParams.getLineJoin() >= LINE_JOIN_INVALID) ctx.capsState->strokeParams.setLineJoin(LINE_JOIN_DEFAULT);
 
   _updateLineWidth();
 }
 
-void RasterPaintEngine::getStrokeParams(StrokeParams& strokeParams) const
+double RasterPaintEngine::getLineWidth() const
 {
-  strokeParams = ctx.capsState->strokeParams;
+  return ctx.capsState->strokeParams.getLineWidth();
 }
 
 void RasterPaintEngine::setLineWidth(double lineWidth)
@@ -2100,22 +2115,45 @@ void RasterPaintEngine::setLineWidth(double lineWidth)
   _updateLineWidth();
 }
 
-double RasterPaintEngine::getLineWidth() const
+int RasterPaintEngine::getStartCap() const
 {
-  return ctx.capsState->strokeParams.getLineWidth();
+  return ctx.capsState->strokeParams.getStartCap();
 }
 
-void RasterPaintEngine::setLineCap(int lineCap)
+void RasterPaintEngine::setStartCap(int startCap)
 {
-  if ((ctx.capsState->strokeParams.getLineCap() == lineCap) | ((uint)lineCap >= LINE_CAP_INVALID)) return;
+  if ((ctx.capsState->strokeParams.getStartCap() == startCap) | ((uint)startCap >= LINE_CAP_INVALID)) return;
   if (!_detachCaps()) return;
 
-  ctx.capsState->strokeParams.setLineCap(lineCap);
+  ctx.capsState->strokeParams.setStartCap(startCap);
 }
 
-int RasterPaintEngine::getLineCap() const
+int RasterPaintEngine::getEndCap() const
 {
-  return ctx.capsState->strokeParams.getLineCap();
+  return ctx.capsState->strokeParams.getEndCap();
+}
+
+void RasterPaintEngine::setEndCap(int endCap)
+{
+  if ((ctx.capsState->strokeParams.getEndCap() == endCap) | ((uint)endCap >= LINE_CAP_INVALID)) return;
+  if (!_detachCaps()) return;
+
+  ctx.capsState->strokeParams.setEndCap(endCap);
+}
+
+void RasterPaintEngine::setLineCaps(int lineCaps)
+{
+  if ((ctx.capsState->strokeParams.getStartCap() == lineCaps) |
+      (ctx.capsState->strokeParams.getEndCap() == lineCaps) |
+      ((uint)lineCaps >= LINE_CAP_INVALID)) return;
+  if (!_detachCaps()) return;
+
+  ctx.capsState->strokeParams.setLineCaps(lineCaps);
+}
+
+int RasterPaintEngine::getLineJoin() const
+{
+  return ctx.capsState->strokeParams.getLineJoin();
 }
 
 void RasterPaintEngine::setLineJoin(int lineJoin)
@@ -2126,9 +2164,22 @@ void RasterPaintEngine::setLineJoin(int lineJoin)
   ctx.capsState->strokeParams.setLineJoin(lineJoin);
 }
 
-int RasterPaintEngine::getLineJoin() const
+double RasterPaintEngine::getMiterLimit() const
 {
-  return ctx.capsState->strokeParams.getLineJoin();
+  return ctx.capsState->strokeParams.getMiterLimit();
+}
+
+void RasterPaintEngine::setMiterLimit(double miterLimit)
+{
+  if (ctx.capsState->strokeParams.getMiterLimit() == miterLimit) return;
+  if (!_detachCaps()) return;
+
+  ctx.capsState->strokeParams.setMiterLimit(miterLimit);
+}
+
+List<double> RasterPaintEngine::getDashes() const
+{
+  return ctx.capsState->strokeParams.getDashes();
 }
 
 void RasterPaintEngine::setDashes(const double* dashes, sysuint_t count)
@@ -2147,9 +2198,9 @@ void RasterPaintEngine::setDashes(const List<double>& dashes)
   _updateLineWidth();
 }
 
-List<double> RasterPaintEngine::getDashes() const
+double RasterPaintEngine::getDashOffset() const
 {
-  return ctx.capsState->strokeParams.getDashes();
+  return ctx.capsState->strokeParams.getDashOffset();
 }
 
 void RasterPaintEngine::setDashOffset(double offset)
@@ -2159,24 +2210,6 @@ void RasterPaintEngine::setDashOffset(double offset)
 
   ctx.capsState->strokeParams.setDashOffset(offset);
   _updateLineWidth();
-}
-
-double RasterPaintEngine::getDashOffset() const
-{
-  return ctx.capsState->strokeParams.getDashOffset();
-}
-
-void RasterPaintEngine::setMiterLimit(double miterLimit)
-{
-  if (ctx.capsState->strokeParams.getMiterLimit() == miterLimit) return;
-  if (!_detachCaps()) return;
-
-  ctx.capsState->strokeParams.setMiterLimit(miterLimit);
-}
-
-double RasterPaintEngine::getMiterLimit() const
-{
-  return ctx.capsState->strokeParams.getMiterLimit();
 }
 
 // ============================================================================
@@ -2472,7 +2505,9 @@ void RasterPaintEngine::drawRect(const Rect& r)
     {
       Region::intersect(boxISect, box, clipState->workRegion);
     }
-    _serializeBoxes(boxISect.getData(), boxISect.getLength());
+
+    sysuint_t len = boxISect.getLength();
+    if (len) _serializeBoxes(boxISect.getData(), len);
   }
 }
 
@@ -3392,7 +3427,10 @@ void RasterPaintEngine::_updateTransform(bool translationOnly)
   }
 
   // Free pattern context, because transform was changed.
-  if (capsState->sourceType == PAINTER_SOURCE_PATTERN) _resetPatternContext();
+  if (ctx.pctx && ctx.pctx->initialized)
+  {
+    _resetPatternContext();
+  }
 }
 
 void RasterPaintEngine::_setClipDefaults()

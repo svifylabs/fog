@@ -54,11 +54,10 @@ struct FOG_HIDDEN StrokeParams
     _lineWidth(LINE_WIDTH_DEFAULT),
     _miterLimit(MITER_LIMIT_DEFAULT),
     _innerLimit(INNER_LIMIT_DEFAULT),
-
-    _lineCap(LINE_CAP_DEFAULT),
+    _startCap(LINE_CAP_DEFAULT),
+    _endCap(LINE_CAP_DEFAULT),
     _lineJoin(LINE_JOIN_DEFAULT),
     _innerJoin(INNER_JOIN_DEFAULT),
-
     _dashOffset(DASH_OFFSET_DEFAULT)
   {
 
@@ -68,15 +67,10 @@ struct FOG_HIDDEN StrokeParams
     _lineWidth(other._lineWidth),
     _miterLimit(other._miterLimit),
     _innerLimit(other._innerLimit),
-
-    _lineCap(other._lineCap),
-    _lineJoin(other._lineJoin),
-    _innerJoin(other._innerJoin),
-
+    _params(other._params),
     _dashes(other._dashes),
     _dashOffset(other._dashOffset)
   {
-
   }
 
   FOG_INLINE ~StrokeParams()
@@ -90,11 +84,7 @@ struct FOG_HIDDEN StrokeParams
     _lineWidth = other._lineWidth;
     _miterLimit = other._miterLimit;
     _innerLimit = other._innerLimit;
-
-    _lineCap = other._lineCap;
-    _lineJoin = other._lineJoin;
-    _innerJoin = other._innerJoin;
-
+    _params = other._params;
     _dashes = other._dashes;
     _dashOffset = other._dashOffset;
 
@@ -108,11 +98,10 @@ struct FOG_HIDDEN StrokeParams
     _lineWidth = LINE_WIDTH_DEFAULT;
     _miterLimit = MITER_LIMIT_DEFAULT;
     _innerLimit = INNER_LIMIT_DEFAULT;
-
-    _lineCap = LINE_CAP_DEFAULT;
+    _startCap = LINE_CAP_DEFAULT;
+    _endCap = LINE_CAP_DEFAULT;
     _lineJoin = LINE_JOIN_DEFAULT;
     _innerJoin = INNER_JOIN_DEFAULT;
-
     _dashes.free();
     _dashOffset = DASH_OFFSET_DEFAULT;
   }
@@ -122,8 +111,11 @@ struct FOG_HIDDEN StrokeParams
   FOG_INLINE double getLineWidth() const { return _lineWidth; }
   FOG_INLINE double getMiterLimit() const { return _miterLimit; }
 
-  FOG_INLINE int getLineCap() const { return _lineCap; }
-  FOG_INLINE int getLineJoin() const { return _lineJoin; }
+  FOG_INLINE int getStartCap() const { return (int)_startCap; }
+  FOG_INLINE int getEndCap() const { return (int)_endCap; }
+
+  FOG_INLINE int getLineJoin() const { return (int)_lineJoin; }
+  FOG_INLINE int getInnerJoin() const { return (int)_innerJoin; }
 
   FOG_INLINE const List<double>& getDashes() const { return _dashes; }
   FOG_INLINE double getDashOffset() const { return _dashOffset; }
@@ -132,9 +124,12 @@ struct FOG_HIDDEN StrokeParams
   FOG_INLINE void setMiterLimit(double miterLimit) { _miterLimit = miterLimit; }
   FOG_INLINE void setInnerLimit(double innerLimit) { _innerLimit = innerLimit; }
 
-  FOG_INLINE void setLineCap(int lineCap) { _lineCap = lineCap; }
-  FOG_INLINE void setLineJoin(int lineJoin) { _lineJoin = lineJoin; }
-  FOG_INLINE void setInnerJoin(int innerJoin) { _innerJoin = innerJoin; }
+  FOG_INLINE void setStartCap(int startCap) { _startCap = (uint8_t)startCap; }
+  FOG_INLINE void setEndCap(int endCap) { _endCap = (uint8_t)endCap; }
+  FOG_INLINE void setLineCaps(int lineCaps) { _startCap = _endCap = (uint8_t)lineCaps; }
+
+  FOG_INLINE void setLineJoin(int lineJoin) { _lineJoin = (uint8_t)lineJoin; }
+  FOG_INLINE void setInnerJoin(int innerJoin) { _innerJoin = (uint8_t)innerJoin; }
 
   FOG_INLINE void setDashes(const List<double>& dashes) { _dashes = dashes; }
   FOG_INLINE void setDashes(const double* dashes, sysuint_t length)
@@ -150,9 +145,18 @@ struct FOG_HIDDEN StrokeParams
   double _miterLimit;
   double _innerLimit;
 
-  int _lineCap;
-  int _lineJoin;
-  int _innerJoin;
+  union
+  {
+    struct
+    {
+      uint8_t _startCap;
+      uint8_t _endCap;
+
+      uint8_t _lineJoin;
+      uint8_t _innerJoin;
+    };
+    uint32_t _params;
+  };
 
   List<double> _dashes;
   double _dashOffset;

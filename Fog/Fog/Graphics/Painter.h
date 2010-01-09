@@ -24,7 +24,7 @@ namespace Fog {
 //! Painter is high level class that can be used to draw into the images or raw
 //! memory buffers. Fog painter is state based and each rendering call depends
 //! to current painter state that can be changed by methods like @c setLineWidth(),
-//! @c setLineCap(), @c setOperator(), etc...
+//! @c setLineCaps(), @c setOperator(), etc...
 //!
 //! @section Beginning and finalizing rendering.
 //!
@@ -156,25 +156,19 @@ struct FOG_API Painter
   // [Operator]
   // --------------------------------------------------------------------------
 
-  //! @brief Set compositing operator.
-  //!
-  //! See @c COMPOSITE_OP enumeration for operators and their descriptions.
-  FOG_INLINE void setOperator(int op) { _engine->setOperator(op); }
   //! @brief Get compositing operator.
   //!
   //! See @c COMPOSITE_OP enumeration for operators and their descriptions.
   FOG_INLINE int getOperator() const { return _engine->getOperator(); }
 
+  //! @brief Set compositing operator.
+  //!
+  //! See @c COMPOSITE_OP enumeration for operators and their descriptions.
+  FOG_INLINE void setOperator(int op) { _engine->setOperator(op); }
+
   // --------------------------------------------------------------------------
   // [Source]
   // --------------------------------------------------------------------------
-
-  //! @brief Set source as solid @a rgba color.
-  FOG_INLINE void setSource(Argb argb) { _engine->setSource(argb); }
-  //! @brief Set source as pattern @a pattern.
-  FOG_INLINE void setSource(const Pattern& pattern) { _engine->setSource(pattern); }
-  //! @brief Set source as color filter @a colorFilter.
-  FOG_INLINE void setSource(const ColorFilter& colorFilter) { _engine->setSource(colorFilter); }
 
   //! @brief Get source type, see @c PAINTER_SOURCE_TYPE.
   FOG_INLINE int getSourceType() const { return _engine->getSourceType(); }
@@ -183,84 +177,99 @@ struct FOG_API Painter
   //!
   //! If current source isn't solid color, the @c Argb(0x00000000) color is
   //! returned.
-  FOG_INLINE Argb getSourceAsArgb() const { return _engine->getSourceAsArgb(); }
+  FOG_INLINE err_t getSourceArgb(Argb& argb) const { return _engine->getSourceArgb(argb); }
   //! @brief Get source pattern.
   //!
   //! If source color was set through @c setSource(Argb argb) method,
   //! pattern is auto-created.
-  FOG_INLINE Pattern getSourceAsPattern() const { return _engine->getSourceAsPattern(); }
+  FOG_INLINE err_t getSourcePattern(Pattern& pattern) const { return _engine->getSourcePattern(pattern); }
+
+  //! @brief Set source as solid @a rgba color.
+  FOG_INLINE void setSource(Argb argb) { _engine->setSource(argb); }
+  //! @brief Set source as pattern @a pattern.
+  FOG_INLINE void setSource(const Pattern& pattern) { _engine->setSource(pattern); }
+  //! @brief Set source as color filter @a colorFilter.
+  FOG_INLINE void setSource(const ColorFilter& colorFilter) { _engine->setSource(colorFilter); }
 
   // --------------------------------------------------------------------------
   // [Hints]
   // --------------------------------------------------------------------------
 
-  //! @brief Set painter hint, see @c PAINTER_HINT.
-  FOG_INLINE void setHint(int hint, int value) { _engine->setHint(hint, value); }
   //! @brief Get painter hint, see @c PAINTER_HINT.
   FOG_INLINE int getHint(int hint) const { return _engine->getHint(hint); }
+  //! @brief Set painter hint, see @c PAINTER_HINT.
+  FOG_INLINE void setHint(int hint, int value) { _engine->setHint(hint, value); }
 
   // --------------------------------------------------------------------------
   // [Fill Parameters]
   // --------------------------------------------------------------------------
 
-  //! @brief Set fill mode, see @c FillMode enumeration.
-  FOG_INLINE void setFillMode(int mode) { _engine->setFillMode(mode); }
   //! @brief Get fill mode, see @c FillMode enumeration.
   FOG_INLINE int getFillMode() const { return _engine->getFillMode(); }
+  //! @brief Set fill mode, see @c FillMode enumeration.
+  FOG_INLINE void setFillMode(int mode) { _engine->setFillMode(mode); }
 
   // --------------------------------------------------------------------------
   // [Stroke Parameters]
   // --------------------------------------------------------------------------
 
-  //! @brief Set line parameters.
-  FOG_INLINE void setStrokeParams(const StrokeParams& strokeParams) { _engine->setStrokeParams(strokeParams); }
   //! @brief Get line parameters.
   FOG_INLINE void getStrokeParams(StrokeParams& strokeParams) const { return _engine->getStrokeParams(strokeParams); }
+  //! @brief Set line parameters.
+  FOG_INLINE void setStrokeParams(const StrokeParams& strokeParams) { _engine->setStrokeParams(strokeParams); }
 
+  //! @brief Get line width.
+  FOG_INLINE double getLineWidth() const { return _engine->getLineWidth(); }
   //! @brief Set line width.
   //!
   //! @note Line width is scaled by affine transformations.
   FOG_INLINE void setLineWidth(double lineWidth) { _engine->setLineWidth(lineWidth); }
-  //! @brief Get line width.
-  FOG_INLINE double getLineWidth() const { return _engine->getLineWidth(); }
 
-  //! @brief Set line cap.
-  FOG_INLINE void setLineCap(int lineCap) { _engine->setLineCap(lineCap);}
-  //! @brief Get line cap.
-  FOG_INLINE int getLineCap() const { return _engine->getLineCap(); }
+  //! @brief Get line start cap.
+  FOG_INLINE int getStartCap() const { return _engine->getStartCap(); }
+  //! @brief Set line start cap.
+  FOG_INLINE void setStartCap(int startCap) { _engine->setStartCap(startCap);}
 
-  //! @brief Set line join.
-  FOG_INLINE void setLineJoin(int lineJoin) { _engine->setLineJoin(lineJoin); }
+  //! @brief Get line end cap.
+  FOG_INLINE int getEndCap() const { return _engine->getEndCap(); }
+  //! @brief Set line end cap.
+  FOG_INLINE void setEndCap(int endCap) { _engine->setEndCap(endCap);}
+
+  //! @brief Set line start and end caps.
+  FOG_INLINE void setLineCaps(int lineCaps) { _engine->setLineCaps(lineCaps);}
+
   //! @brief Get line join.
   FOG_INLINE int getLineJoin() const { return _engine->getLineJoin(); }
+  //! @brief Set line join.
+  FOG_INLINE void setLineJoin(int lineJoin) { _engine->setLineJoin(lineJoin); }
 
+  //! @brief Get line miter limit.
+  FOG_INLINE double getMiterLimit() const { return _engine->getMiterLimit(); }
+  //! @brief Set line miter limit.
+  FOG_INLINE void setMiterLimit(double miterLimit) { _engine->setMiterLimit(miterLimit); }
+
+  //! @brief Set line dash.
+  FOG_INLINE List<double> getDashes() const { return _engine->getDashes(); }
   //! @brief Set line dash.
   FOG_INLINE void setDashes(const List<double>& dashes) { _engine->setDashes(dashes); }
   //! @overload.
   FOG_INLINE void setDashes(const double* dashes, sysuint_t count) { _engine->setDashes(dashes, count); }
-  //! @brief Set line dash.
-  FOG_INLINE List<double> getDashes() const { return _engine->getDashes(); }
 
-  //! @brief Set line dash offset.
-  FOG_INLINE void setDashOffset(double offset) { _engine->setDashOffset(offset); }
   //! @brief Get line dash offset.
   FOG_INLINE double getDashOffset() const { return _engine->getDashOffset(); }
-
-  //! @brief Set line miter limit.
-  FOG_INLINE void setMiterLimit(double miterLimit) { _engine->setMiterLimit(miterLimit); }
-  //! @brief Get line miter limit.
-  FOG_INLINE double getMiterLimit() const { return _engine->getMiterLimit(); }
+  //! @brief Set line dash offset.
+  FOG_INLINE void setDashOffset(double offset) { _engine->setDashOffset(offset); }
 
   // --------------------------------------------------------------------------
   // [Transformations]
   // --------------------------------------------------------------------------
 
+  //! @brief Get current working matrix.
+  FOG_INLINE Matrix getMatrix() const { return _engine->getMatrix(); }
   //! @brief Set current working matrix to @a m.
   FOG_INLINE void setMatrix(const Matrix& m) { _engine->setMatrix(m); }
   //! @brief Reset current working matrix (to identity).
   FOG_INLINE void resetMatrix() { _engine->resetMatrix(); }
-  //! @brief Get current working matrix.
-  FOG_INLINE Matrix getMatrix() const { return _engine->getMatrix(); }
 
   //! @brief Rotate current working matrix .
   FOG_INLINE void rotate(double angle, int order = MATRIX_PREPEND) { _engine->rotate(angle, order); }
@@ -351,18 +360,18 @@ struct FOG_API Painter
   // [Image Drawing]
   // --------------------------------------------------------------------------
 
-  FOG_INLINE void drawImage(const Point& p, const Image& image, const Rect* irect = 0)
+  FOG_INLINE void blitImage(const Point& p, const Image& image, const Rect* irect = 0)
   { _engine->blitImage(p, image, irect); }
 
-  FOG_INLINE void drawImage(const PointD& p, const Image& image, const Rect* irect = 0)
+  FOG_INLINE void blitImage(const PointD& p, const Image& image, const Rect* irect = 0)
   { _engine->blitImage(p, image, irect); }
 
   // --------------------------------------------------------------------------
   // [Multithreading]
   // --------------------------------------------------------------------------
 
-  FOG_INLINE void setEngine(int mode, int cores = 0) { _engine->setEngine(mode, cores); }
   FOG_INLINE int getEngine() const { return _engine->getEngine(); }
+  FOG_INLINE void setEngine(int mode, int cores = 0) { _engine->setEngine(mode, cores); }
 
   FOG_INLINE void flush() { _engine->flush(); }
 

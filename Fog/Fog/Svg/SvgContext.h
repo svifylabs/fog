@@ -172,9 +172,9 @@ struct FOG_API SvgContext
     _strokeParams.setLineWidth(lineWidth);
   }
 
-  FOG_INLINE void setLineCap(int lineCap)
+  FOG_INLINE void setLineCaps(int lineCaps)
   {
-    _strokeParams.setLineCap(lineCap);
+    _strokeParams.setLineCaps(lineCaps);
   }
 
   FOG_INLINE void setLineJoin(int lineJoin)
@@ -225,11 +225,12 @@ struct FOG_API SvgContext
   }
 
   void drawEllipse(const PointD& cp, const PointD& r);
-  void drawImage(const PointD& pt, const Image& im);
   void drawLine(const PointD& p1, const PointD& p2);
   void drawRect(const RectD& rect);
   void drawRound(const RectD& rect, const PointD& r);
   void drawPath(const Path& path);
+
+  void blitImage(const PointD& pt, const Image& im);
 
   // [Members]
 

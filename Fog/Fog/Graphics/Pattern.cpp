@@ -88,6 +88,7 @@ err_t Pattern::setType(int type)
     newd->spread = _d->spread;
     newd->points[0] = _d->points[0];
     newd->points[1] = _d->points[1];
+    newd->points[2] = _d->points[2];
     newd->radius = 0.0;
     newd->matrix = _d->matrix;
     
@@ -114,16 +115,17 @@ void Pattern::reset()
     _d->spread = SPREAD_PAD;
     _d->points[0].set(0.0, 0.0);
     _d->points[1].set(0.0, 0.0);
+    _d->points[2].set(0.0, 0.0);
     _d->radius = 0.0;
     _d->matrix.reset();
-    _d->obj.rgba.instance().set(0x00000000);
+    _d->obj.argb.instance().set(0x00000000);
   }
 }
 
 err_t Pattern::setSpread(int spread)
 {
   if (_d->spread == spread) return ERR_OK;
-  if ((uint)spread > 2) return ERR_RT_INVALID_ARGUMENT;
+  if ((uint)spread >= SPREAD_INVALID) return ERR_RT_INVALID_ARGUMENT;
 
   err_t err;
   if ( (err = detach()) ) return err;
@@ -248,26 +250,28 @@ err_t Pattern::setPoints(const PointD& startPt, const PointD& endPt)
   return ERR_OK;
 }
 
-// [Solid]
+// ============================================================================
+// [Fog::Pattern - Solid]
+// ============================================================================
 
 Argb Pattern::getColor() const
 {
   if (isSolid())
-    return _d->obj.rgba.instance();
+    return _d->obj.argb.instance();
   else
     return Argb(0x00000000);
 }
 
-err_t Pattern::setColor(const Argb& rgba)
+err_t Pattern::setColor(const Argb& argb)
 {
   err_t err;
 
   if (isSolid())
   {
-    if (_d->obj.rgba.instance() == rgba) return ERR_OK;
+    if (_d->obj.argb.instance() == argb) return ERR_OK;
     if ( (err = detach()) ) return err;
 
-    _d->obj.rgba->set(rgba);
+    _d->obj.argb->set(argb);
     return ERR_OK;
   }
   else
@@ -279,16 +283,19 @@ err_t Pattern::setColor(const Argb& rgba)
     newd->spread = _d->spread;
     newd->points[0] = _d->points[0];
     newd->points[1] = _d->points[1];
+    newd->points[2] = _d->points[2];
     newd->radius = 0.0;
     newd->matrix = _d->matrix;
-    newd->obj.rgba->set(rgba);
+    newd->obj.argb->set(argb);
 
     atomicPtrXchg(&_d, newd)->deref();
     return ERR_OK;
   }
 }
 
-// [Texture]
+// ============================================================================
+// [Fog::Pattern - Texture]
+// ============================================================================
 
 Image Pattern::getTexture() const
 {
@@ -316,6 +323,7 @@ err_t Pattern::setTexture(const Image& texture)
     newd->spread = _d->spread;
     newd->points[0] = _d->points[0];
     newd->points[1] = _d->points[1];
+    newd->points[2] = _d->points[2];
     newd->radius = 0.0;
     newd->matrix = _d->matrix;
     newd->obj.texture.init(texture);
@@ -325,7 +333,57 @@ err_t Pattern::setTexture(const Image& texture)
   }
 }
 
-// [Gradient]
+// ============================================================================
+// [Fog::Pattern - Gradient]
+// ============================================================================
+
+Gradient Pattern::getGradient() const
+{
+  Data* d = _d;
+
+  if (d->type & PATTERN_GRADIENT_MASK)
+  {
+    return Gradient(d->type, d->spread, d->points[0], d->points[1], d->obj.stops.instance());
+  }
+  else
+  {
+    return Gradient();
+  }
+}
+
+err_t Pattern::setGradient(const Gradient& gradient)
+{
+  err_t err;
+
+  if (isGradient())
+  {
+    if ( (err = detach()) ) return err;
+
+    _d->type = gradient._type;
+    _d->spread = gradient._spread;
+    _d->points[0] = gradient._start;
+    _d->points[1] = gradient._end;
+    _d->radius = gradient._radius;
+    _d->obj.stops.instance() = gradient.getStops();
+
+    return ERR_OK;
+  }
+  else
+  {
+    Data* newd = new(std::nothrow) Data();
+    if (!newd) return ERR_RT_OUT_OF_MEMORY;
+
+    newd->type = gradient._type;
+    newd->spread = gradient._spread;
+    newd->points[0] = gradient._start;
+    newd->points[1] = gradient._end;
+    newd->radius = gradient._radius;
+    newd->obj.stops.init(gradient._stops);
+
+    atomicPtrXchg(&_d, newd)->deref();
+    return ERR_OK;
+  }
+}
 
 err_t Pattern::setRadius(double r)
 {
@@ -381,7 +439,7 @@ err_t Pattern::addStop(const ArgbStop& stop)
   {
     if (it.value().offset == s.offset)
     {
-      it.value().rgba = s.rgba;
+      it.value().argb = s.argb;
       return ERR_OK;
     }
     else if (it.value().offset > s.offset)
@@ -418,8 +476,9 @@ Pattern::Data::Data()
   spread = SPREAD_PAD;
   points[0].set(0.0, 0.0);
   points[1].set(0.0, 0.0);
+  points[2].set(0.0, 0.0);
   radius = 0.0;
-  obj.rgba->set(0x00000000);
+  obj.argb->set(0x00000000);
 }
 
 Pattern::Data::Data(const Data& other) :
@@ -431,11 +490,24 @@ Pattern::Data::Data(const Data& other) :
   refCount.init(1);
   points[0] = other.points[0];
   points[1] = other.points[1];
+  points[2] = other.points[2];
 
-  if (type == PATTERN_TEXTURE)
-    obj.texture.init(other.obj.texture.instance());
-  else if (type & PATTERN_GRADIENT_MASK)
-    obj.stops.init(other.obj.stops.instance());
+  switch (type)
+  {
+    case PATTERN_SOLID:
+      obj.argb.init(other.obj.argb.instance());
+      break;
+    case PATTERN_TEXTURE:
+      obj.texture.init(other.obj.texture.instance());
+      break;
+    case PATTERN_LINEAR_GRADIENT:
+    case PATTERN_RADIAL_GRADIENT:
+    case PATTERN_CONICAL_GRADIENT:
+      obj.stops.init(other.obj.stops.instance());
+      break;
+    default:
+      break;
+  }
 }
 
 Pattern::Data::~Data()
