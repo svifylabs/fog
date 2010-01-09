@@ -395,6 +395,8 @@ struct FOG_API Path
 
   //! @brief Add path.
   err_t addPath(const Path& path);
+  //! @brief Add translated path.
+  err_t addPath(const Path& path, const PointD& pt);
   //! @brief Add transformed path.
   err_t addPath(const Path& path, const Matrix& matrix);
 

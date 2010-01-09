@@ -567,15 +567,18 @@ static void arcToBezier(
 {
   sweep *= 0.5;
 
-  double x0 = cos(sweep);
-  double y0 = sin(sweep);
+  double x0;
+  double y0;
+  Math::sincos(sweep, &x0, &y0);
+
   double tx = (1.0 - x0) * (4.0 / 3.0);
   double ty = y0 - tx * x0 / y0;
   double px[4];
   double py[4];
 
-  double sn = sin(start + sweep);
-  double cs = cos(start + sweep);
+  double sn;
+  double cs;
+  Math::sincos(start + sweep, &sn, &cs);
 
   px[0] =  x0;
   py[0] = -y0;
@@ -607,12 +610,18 @@ err_t Path::_arcTo(double cx, double cy, double rx, double ry, double start, dou
     PathVertex* v = _add(2);
     if (!v) return ERR_RT_OUT_OF_MEMORY;
 
+    double aSin;
+    double aCos;
+
+    Math::sincos(start, &aSin, &aCos);
     v[0].cmd = initialCommand;
-    v[0].x = cx + rx * cos(start);
-    v[0].y = cy + ry * sin(start);
+    v[0].x = cx + rx * aCos;
+    v[0].y = cy + ry * aSin;
+
+    Math::sincos(start + sweep, &aSin, &aCos);
     v[1].cmd = PATH_CMD_LINE_TO;
-    v[1].x = cx + rx * cos(start + sweep);
-    v[1].y = cy + ry * sin(start + sweep);
+    v[1].x = cx + rx * aCos;
+    v[1].y = cy + ry * aSin;
   }
   else
   {
@@ -705,12 +714,13 @@ err_t Path::_svgArcTo(
   double dx2 = (x0 - x2) / 2.0;
   double dy2 = (y0 - y2) / 2.0;
 
-  double cos_a = cos(angle);
-  double sin_a = sin(angle);
+  double aSin;
+  double aCos;
+  Math::sincos(angle, &aSin, &aCos);
 
   // Calculate (x1, y1).
-  double x1 =  cos_a * dx2 + sin_a * dy2;
-  double y1 = -sin_a * dx2 + cos_a * dy2;
+  double x1 =  aCos * dx2 + aSin * dy2;
+  double y1 = -aSin * dx2 + aCos * dy2;
 
   // Ensure radii are large enough.
   double prx = rx * rx;
@@ -740,8 +750,8 @@ err_t Path::_svgArcTo(
   // Calculate (cx, cy) from (cx1, cy1).
   double sx2 = (x0 + x2) / 2.0;
   double sy2 = (y0 + y2) / 2.0;
-  double cx = sx2 + (cos_a * cx1 - sin_a * cy1);
-  double cy = sy2 + (sin_a * cx1 + cos_a * cy1);
+  double cx = sx2 + (aCos * cx1 - aSin * cy1);
+  double cy = sy2 + (aSin * cx1 + aCos * cy1);
 
   // Calculate the start_angle (angle1) and the sweep_angle (dangle).
   double ux =  (x1 - cx1) / rx;
@@ -1311,12 +1321,36 @@ err_t Path::addPath(const Path& path)
   return ERR_OK;
 }
 
+err_t Path::addPath(const Path& path, const PointD& pt)
+{
+  if (this == &path)
+  {
+    Path other(path);
+    return addPath(other, pt);
+  }
+
+  sysuint_t count = path.getLength();
+  if (count == 0) return ERR_OK;
+
+  uint32_t flat = isFlat() & path.isFlat();
+
+  PathVertex* dst = _add(count);
+  if (!dst) return ERR_RT_OUT_OF_MEMORY;
+
+  _d->flat = flat;
+
+  const PathVertex* src = path.getData();
+  PathUtil::fm.translateVertex2(dst, src, count, &pt);
+
+  return ERR_OK;
+}
+
 err_t Path::addPath(const Path& path, const Matrix& matrix)
 {
   if (this == &path)
   {
     Path other(path);
-    return addPath(other);
+    return addPath(other, matrix);
   }
 
   sysuint_t count = path.getLength();

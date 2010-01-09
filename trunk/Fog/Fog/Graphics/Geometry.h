@@ -30,7 +30,9 @@ struct Box;
 
 struct FOG_HIDDEN Point
 {
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE Point()
   {
@@ -53,7 +55,9 @@ struct FOG_HIDDEN Point
     }
   }
 
-  // [Methods]
+  // --------------------------------------------------------------------------
+  // [Get / Set]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE int getX() const { return x; }
   FOG_INLINE int getY() const { return y; }
@@ -82,12 +86,20 @@ struct FOG_HIDDEN Point
   FOG_INLINE Point& setX(int px) { x = px; return *this; }
   FOG_INLINE Point& setY(int py) { y = py; return *this; }
 
+  // --------------------------------------------------------------------------
+  // [Clear]
+  // --------------------------------------------------------------------------
+
   FOG_INLINE Point& clear() 
   { 
     x = 0; 
     y = 0; 
     return *this;
   }
+
+  // --------------------------------------------------------------------------
+  // [Translate]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE Point& translate(int px, int py)
   {
@@ -103,6 +115,20 @@ struct FOG_HIDDEN Point
     return *this;
   }
 
+  FOG_INLINE Point translated(int px, int py) const
+  {
+    return Point(x + px, y + py);
+  }
+
+  FOG_INLINE Point translated(const Point& other) const
+  {
+    return Point(x + other.x, y + other.y);
+  }
+
+  // --------------------------------------------------------------------------
+  // [Negate]
+  // --------------------------------------------------------------------------
+
   FOG_INLINE Point& negate()
   {
     x = -x;
@@ -110,19 +136,14 @@ struct FOG_HIDDEN Point
     return *this;
   }
 
-  FOG_INLINE Point& operator+=(const Point& other)
+  FOG_INLINE Point negated() const
   {
-    x += other.x;
-    y += other.y;
-    return *this;
+    return Point(-x, -y);
   }
 
-  FOG_INLINE Point& operator-=(const Point& other) 
-  {
-    x -= other.x;
-    y -= other.y;
-    return *this;
-  }
+  // --------------------------------------------------------------------------
+  // [Equality]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE bool eq(int px, int py) const
   {
@@ -137,22 +158,34 @@ struct FOG_HIDDEN Point
       return (x == other.x) & (y == other.y);
   }
 
-  FOG_INLINE Point translated(int px, int py) const
+  // --------------------------------------------------------------------------
+  // [Operator Overload]
+  // --------------------------------------------------------------------------
+
+  FOG_INLINE Point& operator+=(const Point& other)
   {
-    return Point(x + px, y + py);
+    x += other.x;
+    y += other.y;
+    return *this;
   }
 
-  FOG_INLINE Point translated(const Point& other) const
+  FOG_INLINE Point& operator-=(const Point& other)
   {
-    return Point(x + other.x, y + other.y);
+    x -= other.x;
+    y -= other.y;
+    return *this;
   }
 
-  FOG_INLINE Point negated() const 
+  FOG_INLINE Point& operator=(const Point& other)
   {
-    return Point(-x, -y);
+    x = other.x;
+    y = other.y;
+    return *this;
   }
 
+  // --------------------------------------------------------------------------
   // [Members]
+  // --------------------------------------------------------------------------
 
   int x;
   int y;
@@ -164,7 +197,9 @@ struct FOG_HIDDEN Point
 
 struct PointD
 {
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE PointD()
   {
@@ -178,7 +213,13 @@ struct PointD
   {
   }
 
-  // [Methods]
+  FOG_INLINE PointD(const Point& other) : x((double)other.x), y((double)other.y)
+  {
+  }
+
+  // --------------------------------------------------------------------------
+  // [Get / Set]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE double getX() const { return x; }
   FOG_INLINE double getY() const { return y; }
@@ -187,6 +228,13 @@ struct PointD
   {
     x = other.x;
     y = other.y;
+    return *this;
+  }
+
+  FOG_INLINE PointD& set(const Point& other)
+  {
+    x = (double)other.x;
+    y = (double)other.y;
     return *this;
   }
 
@@ -200,12 +248,20 @@ struct PointD
   FOG_INLINE PointD& setX(double px) { x = px; return *this; }
   FOG_INLINE PointD& setY(double py) { y = py; return *this; }
 
+  // --------------------------------------------------------------------------
+  // [Clear]
+  // --------------------------------------------------------------------------
+
   FOG_INLINE PointD& clear()
   { 
     x = 0.0;
     y = 0.0;
     return *this;
   }
+
+  // --------------------------------------------------------------------------
+  // [Translate]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE PointD& translate(double px, double py)
   {
@@ -221,35 +277,11 @@ struct PointD
     return *this;
   }
 
-  FOG_INLINE PointD& negate()
+  FOG_INLINE PointD& translate(const Point& other)
   {
-    x = -x;
-    y = -y;
+    x += (double)other.x;
+    y += (double)other.y;
     return *this;
-  }
-
-  FOG_INLINE PointD& operator+=(const PointD& other) 
-  {
-    x += other.x;
-    y += other.y;
-    return *this;
-  }
-  
-  FOG_INLINE PointD& operator-=(const PointD& other) 
-  { 
-    x -= other.x;
-    y -= other.y;
-    return *this;
-  }
-
-  FOG_INLINE bool eq(double px, double py) const
-  { 
-    return (x == px) & (y == py);
-  }
-
-  FOG_INLINE bool eq(const PointD& other) const
-  {
-    return (x == other.x) & (y == other.y);
   }
 
   FOG_INLINE PointD translated(double px, double py)
@@ -262,12 +294,76 @@ struct PointD
     return PointD(x + other.x, y + other.y);
   }
 
-  FOG_INLINE PointD negated() const 
+  FOG_INLINE PointD translated(const Point& other)
+  {
+    return PointD(x + (double)other.x, y + (double)other.y);
+  }
+
+  // --------------------------------------------------------------------------
+  // [Negate]
+  // --------------------------------------------------------------------------
+
+  FOG_INLINE PointD& negate()
+  {
+    x = -x;
+    y = -y;
+    return *this;
+  }
+
+  FOG_INLINE PointD negated() const
   {
     return PointD(-x, -y);
   }
 
+  // --------------------------------------------------------------------------
+  // [Equality]
+  // --------------------------------------------------------------------------
+
+  FOG_INLINE bool eq(double px, double py) const
+  {
+    return (x == px) & (y == py);
+  }
+
+  FOG_INLINE bool eq(const PointD& other) const
+  {
+    return (x == other.x) & (y == other.y);
+  }
+
+  // --------------------------------------------------------------------------
+  // [Operator Overload]
+  // --------------------------------------------------------------------------
+
+  FOG_INLINE PointD& operator+=(const PointD& other) 
+  {
+    x += other.x;
+    y += other.y;
+    return *this;
+  }
+  
+  FOG_INLINE PointD& operator+=(const Point& other)
+  {
+    x += (double)other.x;
+    y += (double)other.y;
+    return *this;
+  }
+
+  FOG_INLINE PointD& operator-=(const PointD& other) 
+  { 
+    x -= other.x;
+    y -= other.y;
+    return *this;
+  }
+
+  FOG_INLINE PointD& operator-=(const Point& other)
+  {
+    x -= (double)other.x;
+    y -= (double)other.y;
+    return *this;
+  }
+
+  // --------------------------------------------------------------------------
   // [Members]
+  // --------------------------------------------------------------------------
 
   double x;
   double y;
@@ -279,7 +375,9 @@ struct PointD
 
 struct Size
 {
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE Size()
   {
@@ -293,7 +391,9 @@ struct Size
   {
   }
 
-  // [Methods]
+  // --------------------------------------------------------------------------
+  // [Get / Set]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE int getWidth() const { return w; }
   FOG_INLINE int getHeight() const { return h; }
@@ -315,6 +415,10 @@ struct Size
   FOG_INLINE Size& setWidth(int sw) { w = sw; return *this; }
   FOG_INLINE Size& setHeight(int sh) { h = sh; return *this; }
 
+  // --------------------------------------------------------------------------
+  // [Clear]
+  // --------------------------------------------------------------------------
+
   FOG_INLINE Size& clear()
   {
     w = 0;
@@ -322,11 +426,19 @@ struct Size
     return *this;
   }
 
+  // --------------------------------------------------------------------------
+  // [Valid]
+  // --------------------------------------------------------------------------
+
   FOG_INLINE bool isValid() const
   {
     return (w > 0) & (h > 0);
   }
   
+  // --------------------------------------------------------------------------
+  // [Equality]
+  // --------------------------------------------------------------------------
+
   FOG_INLINE bool eq(const Size& other) const
   {
     return (w == other.w) & (h == other.h);
@@ -336,6 +448,10 @@ struct Size
   {
     return (w == sw) && (h == sh);
   }
+
+  // --------------------------------------------------------------------------
+  // [Adjust]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE Size& adjust(int sw, int sh)
   {
@@ -349,7 +465,9 @@ struct Size
     return Size(w + sw, h + sh);
   }
 
+  // --------------------------------------------------------------------------
   // [Members]
+  // --------------------------------------------------------------------------
 
   int w;
   int h;
@@ -361,7 +479,9 @@ struct Size
 
 struct SizeD
 {
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE SizeD()
   {
@@ -375,7 +495,9 @@ struct SizeD
   {
   }
 
-  // [Methods]
+  // --------------------------------------------------------------------------
+  // [Get / Set]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE double getWidth() const { return w; }
   FOG_INLINE double getHeight() const { return h; }
@@ -397,6 +519,10 @@ struct SizeD
   FOG_INLINE SizeD& setWidth(double sw) { w = sw; return *this; }
   FOG_INLINE SizeD& setHeight(double sh) { h = sh; return *this; }
 
+  // --------------------------------------------------------------------------
+  // [Clear]
+  // --------------------------------------------------------------------------
+
   FOG_INLINE SizeD& clear()
   {
     w = 0.0;
@@ -404,10 +530,18 @@ struct SizeD
     return *this; 
   }
 
+  // --------------------------------------------------------------------------
+  // [Valid]
+  // --------------------------------------------------------------------------
+
   FOG_INLINE bool isValid() const
   {
     return (w > 0.0) & (h > 0.0);
   }
+
+  // --------------------------------------------------------------------------
+  // [Equality]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE bool eq(const SizeD& other) const
   {
@@ -418,6 +552,10 @@ struct SizeD
   {
     return (w == sw) & (h == sh);
   }
+
+  // --------------------------------------------------------------------------
+  // [Adjust]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE SizeD& adjust(double sw, double sh)
   {
@@ -431,7 +569,9 @@ struct SizeD
     return SizeD(w + sw, h + sh);
   }
 
+  // --------------------------------------------------------------------------
   // [Members]
+  // --------------------------------------------------------------------------
 
   double w;
   double h;
@@ -443,7 +583,9 @@ struct SizeD
 
 struct Rect
 {
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE Rect()
   {
@@ -459,10 +601,12 @@ struct Rect
   {
   }
 
-  // [Methods]
-
   // defined later
   FOG_INLINE explicit Rect(const Box& box);
+
+  // --------------------------------------------------------------------------
+  // [Get / Set]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE int getX() const { return x; }
   FOG_INLINE int getY() const { return y; }
@@ -525,10 +669,11 @@ struct Rect
   FOG_INLINE Rect& setRight(int x2) { w = x2 - x; return *this; }
   FOG_INLINE Rect& setBottom(int y2) { h = y2 - y; return *this; }
 
-  FOG_INLINE Rect& translate(int rx, int ry) { x += rx; y += ry; return *this; }
-  FOG_INLINE Rect& translate(const Point& p) { x += p.x; y += p.y; return *this; }
+  // --------------------------------------------------------------------------
+  // [Clear]
+  // --------------------------------------------------------------------------
 
-  FOG_INLINE Rect& clear() 
+  FOG_INLINE Rect& clear()
   {
     if (sizeof(Rect) == 16)
     {
@@ -544,19 +689,19 @@ struct Rect
     return *this;
   }
 
-  FOG_INLINE Rect& operator+=(const Point& p) 
-  { 
-    x += p.x;
-    y += p.y;
-    return *this;
-  }
-  
-  FOG_INLINE Rect& operator-=(const Point& p) 
-  { 
-    x -= p.x;
-    y -= p.y;
-    return *this;
-  }
+  // --------------------------------------------------------------------------
+  // [Translate]
+  // --------------------------------------------------------------------------
+
+  FOG_INLINE Rect& translate(int rx, int ry) { x += rx; y += ry; return *this; }
+  FOG_INLINE Rect& translate(const Point& p) { x += p.x; y += p.y; return *this; }
+
+  FOG_INLINE Rect translated(int rx, int ry) { return Rect(x + rx, y + ry, w, h); }
+  FOG_INLINE Rect translated(const Point& p) { return Rect(x + p.x, y + p.y, w, h); }
+
+  // --------------------------------------------------------------------------
+  // [Algebra]
+  // --------------------------------------------------------------------------
 
   //! @brief Checks if two rectangles overlap.
   //! @return @c true if two rectangles overlap, @c false if two rectangles
@@ -573,6 +718,33 @@ struct Rect
     return ((r.getX1() >= getX1()) & (r.getX2() <= getX2()) &
             (r.getY1() >= getY1()) & (r.getY2() <= getY2()) );
   }
+
+  static FOG_INLINE bool intersect(Rect& dest, const Rect& src1, const Rect& src2)
+  {
+    int xx = Math::max(src1.getX1(), src2.getX1());
+    int yy = Math::max(src1.getY1(), src2.getY1());
+
+    dest.set(
+      xx,
+      yy,
+      Math::min(src1.getX2(), src2.getX2()) - xx,
+      Math::min(src1.getY2(), src2.getY2()) - yy);
+    return dest.isValid();
+  }
+
+  static FOG_INLINE void unite(Rect& dst, const Rect& src1, const Rect& src2)
+  {
+    int x1 = Math::min(src1.x, src2.x);
+    int y1 = Math::min(src1.y, src2.y);
+    int x2 = Math::max(src1.x + src1.w, src2.x + src2.w);
+    int y2 = Math::max(src1.y + src1.h, src2.y + src2.h);
+
+    dst.set(x1, y1, x2 - x1, y2 - y1);
+  }
+
+  // --------------------------------------------------------------------------
+  // [HitTest]
+  // --------------------------------------------------------------------------
 
   //! @brief Returns @c true if given point is in rectangle.
   //! @brief x Point x coordinate.
@@ -594,6 +766,10 @@ struct Rect
             (pt.x <  getX2()) & (pt.y <  getY2()) );
   }
 
+  // --------------------------------------------------------------------------
+  // [Valid]
+  // --------------------------------------------------------------------------
+
   //! @brief Returns @c true if rectangle is valid.
   //!
   //! Rectangle is only valid if @c x2 is greater than @c x1 and @c y2 is
@@ -602,6 +778,10 @@ struct Rect
   {
     return (w > 0) & (h > 0);
   }
+
+  // --------------------------------------------------------------------------
+  // [Equality]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE bool eq(int px, int py, int pw, int ph) const
   {
@@ -616,7 +796,11 @@ struct Rect
       return (x == other.x) & (y == other.y) & (w == other.w) & (h == other.h);
   }
 
-  //! @brief Shrinks rectangle by @c n coordinates.
+  // --------------------------------------------------------------------------
+  // [Shrink / Expand]
+  // --------------------------------------------------------------------------
+
+  //! @brief Shrink rectangle by @c n.
   FOG_INLINE Rect& shrink(int n)
   {
     x += n;
@@ -628,7 +812,7 @@ struct Rect
     return *this;
   }
 
-  /*! @brief Expands rectangle by @c n coordinates. */
+  //! @brief Expand rectangle by @c n.
   FOG_INLINE Rect& expand(int n)
   {
     x -= n;
@@ -639,6 +823,10 @@ struct Rect
 
     return *this;
   }
+
+  // --------------------------------------------------------------------------
+  // [Adjust]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE Rect& adjust(int px, int py)
   {
@@ -676,20 +864,27 @@ struct Rect
     return Rect(x + px1, y + py1, w - px1 - px2, h - py1 - py2);
   }
 
-  static FOG_INLINE bool intersect(Rect& dest, const Rect& src1, const Rect& src2)
-  {
-    int xx = Math::max(src1.getX1(), src2.getX1());
-    int yy = Math::max(src1.getY1(), src2.getY1());
+  // --------------------------------------------------------------------------
+  // [Operator Overload]
+  // --------------------------------------------------------------------------
 
-    dest.set(
-      xx,
-      yy,
-      Math::min(src1.getX2(), src2.getX2()) - xx,
-      Math::min(src1.getY2(), src2.getY2()) - yy);
-    return dest.isValid();
+  FOG_INLINE Rect& operator+=(const Point& p)
+  {
+    x += p.x;
+    y += p.y;
+    return *this;
   }
 
+  FOG_INLINE Rect& operator-=(const Point& p)
+  {
+    x -= p.x;
+    y -= p.y;
+    return *this;
+  }
+
+  // --------------------------------------------------------------------------
   // [Members]
+  // --------------------------------------------------------------------------
 
   int x;
   int y;
@@ -703,7 +898,9 @@ struct Rect
 
 struct RectD
 {
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE RectD()
   {
@@ -724,7 +921,9 @@ struct RectD
   {
   }
 
-  // [Methods]
+  // --------------------------------------------------------------------------
+  // [Get / Set]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE double getX() const { return x; }
   FOG_INLINE double getY() const { return y; }
@@ -777,6 +976,10 @@ struct RectD
   FOG_INLINE RectD& setRight(double x2) { w = x2 - x; return *this; }
   FOG_INLINE RectD& setBottom(double y2) { h = y2 - y; return *this; }
 
+  // --------------------------------------------------------------------------
+  // [Clear]
+  // --------------------------------------------------------------------------
+
   FOG_INLINE RectD& clear() 
   {
     x = 0.0;
@@ -786,6 +989,10 @@ struct RectD
 
     return *this;
   }
+
+  // --------------------------------------------------------------------------
+  // [Translate]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE RectD& translate(double px, double py)
   {
@@ -801,6 +1008,15 @@ struct RectD
     return *this;
   }
 
+  FOG_INLINE RectD translated(double px, double py) const
+  {
+    return RectD(x + px, y + py, w, h);
+  }
+
+  // --------------------------------------------------------------------------
+  // [Adjust]
+  // --------------------------------------------------------------------------
+
   FOG_INLINE RectD& adjust(double px, double py)
   {
     x += px;
@@ -814,19 +1030,14 @@ struct RectD
     return *this;
   }
 
-  FOG_INLINE RectD& operator+=(const PointD& other) 
-  { 
-    x += other.x;
-    y += other.y;
-    return *this;
+  FOG_INLINE RectD adjusted(double px, double py) const
+  {
+    return RectD(x + px, y + py, w - px - px, h - py - py);
   }
-  
-  FOG_INLINE RectD& operator-=(const PointD& other) 
-  { 
-    x -= other.x;
-    y -= other.y;
-    return *this;
-  }
+
+  // --------------------------------------------------------------------------
+  // [Algebra]
+  // --------------------------------------------------------------------------
 
   //! @brief Checks if two rectangles overlap.
   //! @return @c true if two rectangles overlap, @c false if two rectangles
@@ -843,6 +1054,28 @@ struct RectD
     return ((r.getX1() >= getX1()) & (r.getX2() <= getX2()) &
             (r.getY1() >= getY1()) & (r.getY2() <= getY2()) );
   }
+
+  static FOG_INLINE bool intersect(RectD& dest, const RectD& src1, const RectD& src2)
+  {
+    dest.x = Math::max(src1.getX1(), src2.getX1());
+    dest.y = Math::max(src1.getY1(), src2.getY1());
+    dest.w = Math::min(src1.getX2(), src2.getX2()) - dest.x;
+    dest.h = Math::min(src1.getY2(), src2.getY2()) - dest.y;
+
+    return dest.isValid();
+  }
+
+  static FOG_INLINE void unite(RectD& dest, const RectD& src1, const RectD& src2)
+  {
+    dest.x = Math::min(src1.getX1(), src2.getX1());
+    dest.y = Math::min(src1.getY1(), src2.getY1());
+    dest.w = Math::max(src1.getX2(), src2.getX2()) - dest.x;
+    dest.h = Math::max(src1.getY2(), src2.getY2()) - dest.y;
+  }
+
+  // --------------------------------------------------------------------------
+  // [HitTest]
+  // --------------------------------------------------------------------------
 
   //! @brief Returns @c true if given point is in rectangle.
   //! @brief x Point x coordinate.
@@ -867,6 +1100,10 @@ struct RectD
     return ((ix >= 0) & (ix < w) & (iy >= 0) & (iy < h));
   }
 
+  // --------------------------------------------------------------------------
+  // [Valid]
+  // --------------------------------------------------------------------------
+
   //! @brief Returns @c true if rectangle is valid.
   //!
   //! Rectangle is only valid if it's width and height is equal or larger
@@ -875,6 +1112,10 @@ struct RectD
   {
     return ((w > 0.0) & (h > 0.0));
   }
+
+  // --------------------------------------------------------------------------
+  // [Equality]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE bool eq(double px, double py, double pw, double ph) const
   {
@@ -886,53 +1127,27 @@ struct RectD
     return (x == other.x) & (y == other.y) & (w == other.w) & (h == other.h);
   }
 
-  FOG_INLINE RectD translated(double px, double py) const
+  // --------------------------------------------------------------------------
+  // [Operator Overload]
+  // --------------------------------------------------------------------------
+
+  FOG_INLINE RectD& operator+=(const PointD& other)
   {
-    return RectD(x + px, y + py, w, h);
+    x += other.x;
+    y += other.y;
+    return *this;
   }
 
-  FOG_INLINE RectD adjusted(double px, double py) const
+  FOG_INLINE RectD& operator-=(const PointD& other)
   {
-    return RectD(x + px, y + py, w - px - px, h - py - py);
+    x -= other.x;
+    y -= other.y;
+    return *this;
   }
 
-  static FOG_INLINE bool intersect(RectD& dest, const RectD& src1, const RectD& src2)
-  {
-    double src1x1 = src1.getX1();
-    double src1y1 = src1.getY1();
-    double src1x2 = src1.getX2();
-    double src1y2 = src1.getY2();
-    double src2x1 = src2.getX1();
-    double src2y1 = src2.getY1();
-    double src2x2 = src2.getX2();
-    double src2y2 = src2.getY2();
-
-    dest.x = Math::max(src1x1, src2x1);
-    dest.y = Math::max(src1y1, src2y1);
-    dest.w = Math::min(src1x2, src2x2) - dest.x;
-    dest.h = Math::min(src1y2, src2y2) - dest.y;
-
-    return dest.isValid();
-  }
-
-  static FOG_INLINE void unite(RectD& dest, const RectD& src1, const RectD& src2)
-  {
-    double src1x1 = src1.getX1();
-    double src1y1 = src1.getY1();
-    double src1x2 = src1.getX2();
-    double src1y2 = src1.getY2();
-    double src2x1 = src2.getX1();
-    double src2y1 = src2.getY1();
-    double src2x2 = src2.getX2();
-    double src2y2 = src2.getY2();
-
-    dest.x = Math::min(src1x1, src2x1);
-    dest.y = Math::min(src1y1, src2y1);
-    dest.w = Math::max(src1x2, src2x2) - dest.x;
-    dest.h = Math::max(src1y2, src2y2) - dest.y;
-  }
-
+  // --------------------------------------------------------------------------
   // [Members]
+  // --------------------------------------------------------------------------
 
   double x;
   double y;
@@ -946,7 +1161,9 @@ struct RectD
 
 struct Box
 {
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE Box() 
   {
@@ -962,11 +1179,13 @@ struct Box
   {
   }
 
-  // [Methods]
-  
   // defined later
   FOG_INLINE Box(const Rect& other);
 
+  // --------------------------------------------------------------------------
+  // [Get / Set]
+  // --------------------------------------------------------------------------
+  
   FOG_INLINE int getX() const { return x1; }
   FOG_INLINE int getY() const { return y1; }
   FOG_INLINE int getWidth() const { return x2 - x1; }
@@ -977,8 +1196,8 @@ struct Box
   FOG_INLINE int getX2() const { return x2; }
   FOG_INLINE int getY2() const { return y2; }
 
-  FOG_INLINE Point position() const { return Point(x1, y1); }
-  FOG_INLINE Size size() const { return Size(x2 - x1, y2 - y1); }
+  FOG_INLINE Point getPosition() const { return Point(x1, y1); }
+  FOG_INLINE Size getSize() const { return Size(x2 - x1, y2 - y1); }
 
   FOG_INLINE Box& set(const Box &other) 
   { 
@@ -1016,6 +1235,30 @@ struct Box
   FOG_INLINE Box& setX2(int px2) { x2 = px2; return *this; }
   FOG_INLINE Box& setY2(int py2) { y2 = py2; return *this; }
 
+  // --------------------------------------------------------------------------
+  // [Clear]
+  // --------------------------------------------------------------------------
+
+  FOG_INLINE Box& clear()
+  {
+    if (sizeof(Box) == 16)
+    {
+      Memory::zero16B(static_cast<void*>(this));
+    }
+    else
+    {
+      x1 = 0;
+      y1 = 0;
+      x2 = 0;
+      y2 = 0;
+    }
+    return *this;
+  }
+
+  // --------------------------------------------------------------------------
+  // [Translate]
+  // --------------------------------------------------------------------------
+
   FOG_INLINE Box& translate(int px, int py)
   { 
     x1 += px;
@@ -1031,22 +1274,6 @@ struct Box
     y1 += pt.y;
     x2 += pt.x;
     y2 += pt.y;
-    return *this;
-  }
-
-  FOG_INLINE Box& clear() 
-  {
-    if (sizeof(Box) == 16)
-    {
-      Memory::zero16B(static_cast<void*>(this));
-    }
-    else
-    {
-      x1 = 0; 
-      y1 = 0; 
-      x2 = 0; 
-      y2 = 0; 
-    }
     return *this;
   }
 
@@ -1068,6 +1295,10 @@ struct Box
     return *this;
   }
 
+  // --------------------------------------------------------------------------
+  // [Algebra]
+  // --------------------------------------------------------------------------
+
   //! @brief Checks if two rectangles overlap.
   //! @return @c true if two rectangles overlap, @c false if two rectangles
   //! do not overlap. Remember, x2() and y2() coords aren't in the rectangle.
@@ -1077,12 +1308,36 @@ struct Box
               ((x1 - r.x2) ^ (x2-r.x1)) ) < 0);
   }
 
-  /*! @brief Returns @c true if rectangle completely subsumes @a r. */
+  //! @brief Returns @c true if rectangle completely subsumes @a r.
   FOG_INLINE bool subsumes(const Box& r) const
   {
     return ((r.x1 >= x1) & (r.x2 <= x2) &
             (r.y1 >= y1) & (r.y2 <= y2) );
   }
+
+  static FOG_INLINE bool intersect(Box& dest, const Box& src1, const Box& src2)
+  {
+#if defined(FOG_HARDCODE_SSE2)
+    static const uint32_t FOG_ALIGN(16) c0[4] = { 0x00000000, 0x00000000, 0xFFFFFFFF, 0xFFFFFFFF };
+
+    __m128i xmm0 = _mm_loadu_si128((__m128i *)(&src1));
+    __m128i xmm1 = _mm_loadu_si128((__m128i *)(&src2));
+    __m128i xmm2 = _mm_xor_si128(_mm_cmpgt_epi32(xmm0, xmm1), _mm_load_si128((__m128i *)(void*)(&c0[0])));
+    xmm0 = _mm_and_si128(xmm0, xmm2);
+    xmm2 = _mm_andnot_si128(xmm2, xmm1);
+    _mm_storeu_si128((__m128i *)(&dest), _mm_or_si128(xmm0, xmm2));
+#else
+    dest.set(Math::max(src1.x1, src2.x1),
+             Math::max(src1.y1, src2.y1),
+             Math::min(src1.x2, src2.x2),
+             Math::min(src1.y2, src2.y2));
+#endif // FOG_HARDCODE_SSE2
+    return dest.isValid();
+  }
+
+  // --------------------------------------------------------------------------
+  // [HitTest]
+  // --------------------------------------------------------------------------
 
   //! @brief Returns @c true if given point is in rectangle.
   //! @brief x Point x coordinate.
@@ -1102,6 +1357,10 @@ struct Box
     return ((pt.x >= x1) & (pt.y >= y1) & (pt.x < x2) & (pt.y < y2));
   }
 
+  // --------------------------------------------------------------------------
+  // [Valid]
+  // --------------------------------------------------------------------------
+
   //! @brief Returns @c true if rectangle is valid.
   //!
   //! Rectangle is only valid if @c x2 is greater than @c x1 and @c y2 is
@@ -1110,6 +1369,10 @@ struct Box
   {
     return (x2 > x1) & (y2 > y1);
   }
+
+  // --------------------------------------------------------------------------
+  // [Equality]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE bool eq(int px1, int py1, int px2, int py2) const
   {
@@ -1123,6 +1386,10 @@ struct Box
     else
       return (x1 == other.x1) & (y1 == other.y1) & (x2 == other.x2) & (y2 == other.y2);
   }
+
+  // --------------------------------------------------------------------------
+  // [Shrink / Expand]
+  // --------------------------------------------------------------------------
 
   //! @brief Shrinks rectangle by @c n coordinates.
   FOG_INLINE Box& shrink(int n)
@@ -1146,27 +1413,9 @@ struct Box
     return *this;
   }
 
-  static FOG_INLINE bool intersect(Box& dest, const Box& src1, const Box& src2)
-  {
-#if defined(FOG_HARDCODE_SSE2)
-    static const uint32_t FOG_ALIGN(16) c0[4] = { 0x00000000, 0x00000000, 0xFFFFFFFF, 0xFFFFFFFF };
-
-    __m128i xmm0 = _mm_loadu_si128((__m128i *)(&src1));
-    __m128i xmm1 = _mm_loadu_si128((__m128i *)(&src2));
-    __m128i xmm2 = _mm_xor_si128(_mm_cmpgt_epi32(xmm0, xmm1), _mm_load_si128((__m128i *)(void*)(&c0[0])));
-    xmm0 = _mm_and_si128(xmm0, xmm2);
-    xmm2 = _mm_andnot_si128(xmm2, xmm1);
-    _mm_storeu_si128((__m128i *)(&dest), _mm_or_si128(xmm0, xmm2));
-#else
-    dest.set(Math::max(src1.x1, src2.x1),
-             Math::max(src1.y1, src2.y1),
-             Math::min(src1.x2, src2.x2),
-             Math::min(src1.y2, src2.y2));
-#endif // FOG_HARDCODE_SSE2
-    return dest.isValid();
-  }
-
+  // --------------------------------------------------------------------------
   // [Members]
+  // --------------------------------------------------------------------------
 
   int x1;
   int y1;

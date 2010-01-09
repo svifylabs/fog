@@ -25,7 +25,7 @@ namespace Fog {
 
 #include <Fog/Core/Pack.h>
 //! @brief Stores 32 bit RGBA color entity (8 bits for each channel).
-struct FOG_PACKED Argb
+struct FOG_HIDDEN FOG_PACKED Argb
 {
   // [Enums]
 
@@ -176,21 +176,32 @@ struct FOG_PACKED Argb
 struct FOG_HIDDEN ArgbStop
 {
   double offset;
-  Argb rgba;
+  Argb argb;
 
   FOG_INLINE ArgbStop() {}
-  FOG_INLINE ArgbStop(double offset, Argb rgba) :
-    offset(offset), rgba(rgba) {}
+  FOG_INLINE ArgbStop(double offset, Argb argb) :
+    offset(offset), argb(argb) {}
   FOG_INLINE ArgbStop(double offset, uint8_t a, uint8_t r, uint8_t g, uint8_t b) :
-    offset(offset), rgba(Argb(a, r, g, b)) {}
+    offset(offset), argb(Argb(a, r, g, b)) {}
   FOG_INLINE ArgbStop(const ArgbStop& other) :
-    offset(other.offset), rgba(other.rgba) {}
+    offset(other.offset), argb(other.argb) {}
 
   FOG_INLINE ArgbStop& operator=(const ArgbStop& other)
-  { offset = other.offset; rgba = other.rgba; return *this; }
+  { offset = other.offset; argb = other.argb; return *this; }
 
   FOG_INLINE void normalize()
   { offset = Math::bound<double>(offset, 0.0, 1.0); }
+};
+
+// ============================================================================
+// [Fog::ArgbVertex]
+// ============================================================================
+
+struct FOG_HIDDEN ArgbVertex
+{
+  double x;
+  double y;
+  Argb argb;
 };
 
 } // Fog namespace
@@ -199,13 +210,14 @@ struct FOG_HIDDEN ArgbStop
 
 FOG_DECLARE_TYPEINFO(Fog::Argb, Fog::TYPEINFO_PRIMITIVE)
 FOG_DECLARE_TYPEINFO(Fog::ArgbStop, Fog::TYPEINFO_PRIMITIVE)
+FOG_DECLARE_TYPEINFO(Fog::ArgbVertex, Fog::TYPEINFO_PRIMITIVE)
 
-static FOG_INLINE bool operator==(const Fog::ArgbStop& a, const Fog::ArgbStop& b) { return a.offset == b.offset && a.rgba == b.rgba; }
-static FOG_INLINE bool operator!=(const Fog::ArgbStop& a, const Fog::ArgbStop& b) { return a.offset != b.offset || a.rgba != b.rgba; }
-static FOG_INLINE bool operator< (const Fog::ArgbStop& a, const Fog::ArgbStop& b) { return a.offset <  b.offset || (a.offset == b.offset && a.rgba <  b.rgba); }
-static FOG_INLINE bool operator<=(const Fog::ArgbStop& a, const Fog::ArgbStop& b) { return a.offset <  b.offset || (a.offset == b.offset && a.rgba <= b.rgba); }
-static FOG_INLINE bool operator> (const Fog::ArgbStop& a, const Fog::ArgbStop& b) { return a.offset >  b.offset || (a.offset == b.offset && a.rgba >  b.rgba); }
-static FOG_INLINE bool operator>=(const Fog::ArgbStop& a, const Fog::ArgbStop& b) { return a.offset >  b.offset || (a.offset == b.offset && a.rgba >= b.rgba); }
+static FOG_INLINE bool operator==(const Fog::ArgbStop& a, const Fog::ArgbStop& b) { return a.offset == b.offset && a.argb == b.argb; }
+static FOG_INLINE bool operator!=(const Fog::ArgbStop& a, const Fog::ArgbStop& b) { return a.offset != b.offset || a.argb != b.argb; }
+static FOG_INLINE bool operator< (const Fog::ArgbStop& a, const Fog::ArgbStop& b) { return a.offset <  b.offset || (a.offset == b.offset && a.argb <  b.argb); }
+static FOG_INLINE bool operator<=(const Fog::ArgbStop& a, const Fog::ArgbStop& b) { return a.offset <  b.offset || (a.offset == b.offset && a.argb <= b.argb); }
+static FOG_INLINE bool operator> (const Fog::ArgbStop& a, const Fog::ArgbStop& b) { return a.offset >  b.offset || (a.offset == b.offset && a.argb >  b.argb); }
+static FOG_INLINE bool operator>=(const Fog::ArgbStop& a, const Fog::ArgbStop& b) { return a.offset >  b.offset || (a.offset == b.offset && a.argb >= b.argb); }
 
 // [Guard]
 #endif // _FOG_GRAPHICS_ARGB_H

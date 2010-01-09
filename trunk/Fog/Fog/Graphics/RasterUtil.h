@@ -425,21 +425,17 @@ struct FunctionMap
     TextureInitScaleFn texture_init_scale;
 
     // Exact, no transform.
-    PatternFetchFn texture_fetch_exact_repeat[PIXEL_FORMAT_COUNT];
-    PatternFetchFn texture_fetch_exact_reflect[PIXEL_FORMAT_COUNT];
+    PatternFetchFn texture_fetch_exact[PIXEL_FORMAT_COUNT][4];
 
     // Subpixel accurate, no transform.
-    PatternFetchFn texture_fetch_subx0_repeat[PIXEL_FORMAT_COUNT];
-    PatternFetchFn texture_fetch_subx0_reflect[PIXEL_FORMAT_COUNT];
-    PatternFetchFn texture_fetch_sub0y_repeat[PIXEL_FORMAT_COUNT];
-    PatternFetchFn texture_fetch_sub0y_reflect[PIXEL_FORMAT_COUNT];
-    PatternFetchFn texture_fetch_subxy_repeat[PIXEL_FORMAT_COUNT];
-    PatternFetchFn texture_fetch_subxy_reflect[PIXEL_FORMAT_COUNT];
+    PatternFetchFn texture_fetch_subx0[PIXEL_FORMAT_COUNT][4];
+    PatternFetchFn texture_fetch_sub0y[PIXEL_FORMAT_COUNT][4];
+    PatternFetchFn texture_fetch_subxy[PIXEL_FORMAT_COUNT][4];
 
     // Transform, nearest.
-    PatternFetchFn texture_fetch_transform_nearest_repeat[PIXEL_FORMAT_COUNT];
+    PatternFetchFn texture_fetch_transform_nearest[PIXEL_FORMAT_COUNT][4];
     // Transform, bilinear.
-    PatternFetchFn texture_fetch_transform_bilinear_repeat[PIXEL_FORMAT_COUNT];
+    PatternFetchFn texture_fetch_transform_bilinear[PIXEL_FORMAT_COUNT][4];
 
     // Scale, nearest.
     PatternFetchFn texture_fetch_scale_nearest[PIXEL_FORMAT_COUNT];
@@ -452,18 +448,15 @@ struct FunctionMap
 
     // Exact is non-antialiased gradient rendering, also used in antialiased
     // mode for vertical and horizontal gradients.
-    PatternFetchFn linear_gradient_fetch_exact_pad;
-    PatternFetchFn linear_gradient_fetch_exact_repeat;
+    PatternFetchFn linear_gradient_fetch_exact[4];
 
     // Subpixel accurate gradient rendering.
-    PatternFetchFn linear_gradient_fetch_subxy_pad;
-    PatternFetchFn linear_gradient_fetch_subxy_repeat;
+    PatternFetchFn linear_gradient_fetch_subxy[4];
 
     // [Radial Gradient]
 
     GradientInitFn radial_gradient_init;
-    PatternFetchFn radial_gradient_fetch_pad;
-    PatternFetchFn radial_gradient_fetch_repeat;
+    PatternFetchFn radial_gradient_fetch[4];
 
     // [Conical Gradient]
 

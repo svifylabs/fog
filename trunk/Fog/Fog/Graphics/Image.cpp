@@ -1517,11 +1517,11 @@ err_t Image::drawPixel(const Point& pt, Argb c0)
     case PIXEL_FORMAT_ARGB32:
     case PIXEL_FORMAT_PRGB32:
     case PIXEL_FORMAT_XRGB32:
-      ((uint32_t*)dstCur + ByteUtil::mul4(pt.x))[0] = c0;
+      ((uint32_t*)dstCur)[(uint)pt.x] = c0;
       break;
     case PIXEL_FORMAT_A8:
     case PIXEL_FORMAT_I8:
-      dstCur[pt.x] = (uint8_t)c0;
+      dstCur[(uint)pt.x] = (uint8_t)c0;
       break;
     default:
       FOG_ASSERT_NOT_REACHED();
@@ -1968,7 +1968,7 @@ static err_t _blitImage(
 }
 
 // TODO: Operator should be 'int'.
-err_t Image::drawImage(const Point& pt, const Image& src, uint32_t op, uint32_t opacity)
+err_t Image::blitImage(const Point& pt, const Image& src, uint32_t op, uint32_t opacity)
 {
   if ((uint)op >= COMPOSITE_COUNT) return ERR_RT_INVALID_ARGUMENT;
   if (opacity == 0) return ERR_OK;
@@ -1998,7 +1998,7 @@ err_t Image::drawImage(const Point& pt, const Image& src, uint32_t op, uint32_t 
 }
 
 // TODO: Operator should be 'int'.
-err_t Image::drawImage(const Point& pt, const Image& src, const Rect& srcRect, uint32_t op, uint32_t opacity)
+err_t Image::blitImage(const Point& pt, const Image& src, const Rect& srcRect, uint32_t op, uint32_t opacity)
 {
   if ((uint)op >= COMPOSITE_COUNT) return ERR_RT_INVALID_ARGUMENT;
   if (!srcRect.isValid()) return ERR_OK;

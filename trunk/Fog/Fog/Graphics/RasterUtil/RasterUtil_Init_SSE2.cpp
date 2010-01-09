@@ -237,26 +237,29 @@ FOG_INIT_DECLARE void fog_raster_init_sse2(void)
 
   // [Pattern - Texture]
 
-  m->pattern.texture_fetch_exact_repeat[PIXEL_FORMAT_PRGB32] = PatternSSE2::texture_fetch_exact_repeat_32;
-  m->pattern.texture_fetch_exact_repeat[PIXEL_FORMAT_ARGB32] = PatternSSE2::texture_fetch_exact_repeat_32;
-  m->pattern.texture_fetch_exact_repeat[PIXEL_FORMAT_XRGB32] = PatternSSE2::texture_fetch_exact_repeat_32;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_PRGB32][SPREAD_REPEAT] = PatternSSE2::texture_fetch_exact_repeat_32;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_ARGB32][SPREAD_REPEAT] = PatternSSE2::texture_fetch_exact_repeat_32;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_XRGB32][SPREAD_REPEAT] = PatternSSE2::texture_fetch_exact_repeat_32;
 
-  m->pattern.texture_fetch_exact_reflect[PIXEL_FORMAT_PRGB32] = PatternSSE2::texture_fetch_exact_reflect_32;
-  m->pattern.texture_fetch_exact_reflect[PIXEL_FORMAT_ARGB32] = PatternSSE2::texture_fetch_exact_reflect_32;
-  m->pattern.texture_fetch_exact_reflect[PIXEL_FORMAT_XRGB32] = PatternSSE2::texture_fetch_exact_reflect_32;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_PRGB32][SPREAD_REFLECT] = PatternSSE2::texture_fetch_exact_reflect_32;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_ARGB32][SPREAD_REFLECT] = PatternSSE2::texture_fetch_exact_reflect_32;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_XRGB32][SPREAD_REFLECT] = PatternSSE2::texture_fetch_exact_reflect_32;
 
-  m->pattern.texture_fetch_transform_bilinear_repeat[PIXEL_FORMAT_PRGB32] = PatternSSE2::texture_fetch_transform_bilinear_repeat_32;
-  m->pattern.texture_fetch_transform_bilinear_repeat[PIXEL_FORMAT_ARGB32] = PatternSSE2::texture_fetch_transform_bilinear_repeat_32;
-  m->pattern.texture_fetch_transform_bilinear_repeat[PIXEL_FORMAT_XRGB32] = PatternSSE2::texture_fetch_transform_bilinear_repeat_32;
+  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_PRGB32][SPREAD_REPEAT] = PatternSSE2::texture_fetch_transform_bilinear_repeat_32;
+  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_ARGB32][SPREAD_REPEAT] = PatternSSE2::texture_fetch_transform_bilinear_repeat_32;
+  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_XRGB32][SPREAD_REPEAT] = PatternSSE2::texture_fetch_transform_bilinear_repeat_32;
 
   // [Pattern - Linear Gradient]
 
-  m->pattern.linear_gradient_fetch_subxy_pad = PatternSSE2::linear_gradient_fetch_subxy_pad;
-  m->pattern.linear_gradient_fetch_subxy_repeat = PatternSSE2::linear_gradient_fetch_subxy_repeat;
+  m->pattern.linear_gradient_fetch_subxy[SPREAD_NONE] = PatternSSE2::linear_gradient_fetch_subxy_pad;
+  m->pattern.linear_gradient_fetch_subxy[SPREAD_PAD] = PatternSSE2::linear_gradient_fetch_subxy_pad;
+  m->pattern.linear_gradient_fetch_subxy[SPREAD_REPEAT] = PatternSSE2::linear_gradient_fetch_subxy_repeat;
+  m->pattern.linear_gradient_fetch_subxy[SPREAD_REFLECT] = PatternSSE2::linear_gradient_fetch_subxy_repeat;
 
   // [Pattern - Radial Gradient]
 
-  m->pattern.radial_gradient_fetch_pad = PatternSSE2::radial_gradient_fetch_pad;
+  m->pattern.radial_gradient_fetch[SPREAD_NONE] = PatternSSE2::radial_gradient_fetch_pad;
+  m->pattern.radial_gradient_fetch[SPREAD_PAD] = PatternSSE2::radial_gradient_fetch_pad;
 
   // [Filters - ColorMatrix]
 

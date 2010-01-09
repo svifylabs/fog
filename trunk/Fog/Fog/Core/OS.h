@@ -23,16 +23,16 @@ namespace Fog {
 //! @brief Contains useful functions for getting system information.
 namespace OS {
 
-//! @brief Returns the name of the host operating system.
+//! @brief Get the name of the host operating system.
 FOG_API String getName();
 
-//! @brief Returns the version of the host operating system.
+//! @brief Get the version of the host operating system.
 FOG_API String getVersion();
 
-//! @brief Return the number of bytes of physical memory on the current machine.
+//! @brief Get the number of bytes of physical memory on the current machine.
 FOG_API uint64_t getAmountOfPhysicalMemory();
 
-//! @brief Return the number of megabytes of physical memory on the current machine.
+//! @brief Get the number of megabytes of physical memory on the current machine.
 FOG_API uint32_t getAmountOfPhysicalMemoryMB();
 
 #if defined(FOG_OS_WINDOWS)

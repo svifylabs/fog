@@ -137,7 +137,6 @@ struct OS_Local
 
 static Static<OS_Local> os_local;
 
-/*! @brief Returns the name of the host operating system. */
 String OS::getName()
 {
   String result;
@@ -154,7 +153,6 @@ String OS::getName()
   return result;
 }
 
-/*! @brief Returns the version of the host operating system. */
 String OS::getVersion()
 {
   String result;
@@ -171,7 +169,6 @@ String OS::getVersion()
   return result;
 }
 
-/*! @brief Return the number of bytes of physical memory on the current machine. */
 uint64_t OS::getAmountOfPhysicalMemory()
 {
 #if defined(FOG_OS_WINDOWS)
@@ -221,7 +218,6 @@ uint64_t OS::getAmountOfPhysicalMemory()
 #endif // FOG_OS_POSIX
 }
 
-/*! @brief Return the number of megabytes of physical memory on the current machine. */
 uint32_t OS::getAmountOfPhysicalMemoryMB()
 {
   return static_cast<uint32_t>(getAmountOfPhysicalMemory() / 1048576);

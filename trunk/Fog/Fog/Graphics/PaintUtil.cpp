@@ -26,7 +26,7 @@ void draw3dRect(Painter* p, const Rect& r, Argb color1, Argb color2, bool checke
   p->save();
 
   p->setLineWidth(1.0);
-  p->setLineCap(LINE_CAP_SQUARE);
+  p->setLineCaps(LINE_CAP_SQUARE);
 
   p->setSource(checked ? color2 : color1);
   p->drawLine(PointD((double)x1   , (double)y1   ), PointD((double)x2   , (double)y1   ));

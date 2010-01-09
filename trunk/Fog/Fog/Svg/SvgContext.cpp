@@ -60,11 +60,6 @@ void SvgContext::drawEllipse(const PointD& cp, const PointD& r)
   }
 }
 
-void SvgContext::drawImage(const PointD& pt, const Image& im)
-{
-  _painter->drawImage(pt, im);
-}
-
 void SvgContext::drawLine(const PointD& p1, const PointD& p2)
 {
   if (_lineStyle.type != SVG_SOURCE_NONE)
@@ -117,6 +112,11 @@ void SvgContext::drawPath(const Path& path)
     setupStrokeStyle();
     _painter->drawPath(path);
   }
+}
+
+void SvgContext::blitImage(const PointD& pt, const Image& im)
+{
+  _painter->blitImage(pt, im);
 }
 
 } // Fog namespace

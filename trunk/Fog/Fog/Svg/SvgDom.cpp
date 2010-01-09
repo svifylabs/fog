@@ -1375,7 +1375,7 @@ err_t SvgStyledElement::onRender(SvgContext* context) const
 
       if (styleMask & (1 << SVG_STYLE_STROKE_LINE_CAP))
       {
-        context->setLineCap(a_style._strokeLineCap);
+        context->setLineCaps(a_style._strokeLineCap);
       }
 
       if (styleMask & (1 << SVG_STYLE_STROKE_LINE_JOIN))
@@ -2721,7 +2721,7 @@ err_t SvgImageElement::onRenderShape(SvgContext* context) const
     double x = a_x.isAssigned() ? a_x.getCoord().value : 0.0;
     double y = a_y.isAssigned() ? a_y.getCoord().value : 0.0;
 
-    context->drawImage(PointD(x, y), a_href._image);
+    context->blitImage(PointD(x, y), a_href._image);
     return ERR_OK;
   }
   else

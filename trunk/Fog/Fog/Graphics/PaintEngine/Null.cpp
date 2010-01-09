@@ -69,68 +69,73 @@ struct FOG_HIDDEN NullPaintEngine : public PaintEngine
   // [Operator]
   // --------------------------------------------------------------------------
 
+  virtual int getOperator() const { return COMPOSITE_SRC_OVER; }
   virtual void setOperator(int op) {}
-  virtual int getOperator() const { return 0; }
 
   // --------------------------------------------------------------------------
   // [Source]
   // --------------------------------------------------------------------------
 
+  virtual int getSourceType() const { return PAINTER_SOURCE_ARGB; }
+  virtual err_t getSourceArgb(Argb& argb) const { argb.set(0x00000000); return ERR_RT_INVALID_CONTEXT; }
+  virtual err_t getSourcePattern(Pattern& pattern) const { pattern.reset(); return ERR_RT_INVALID_CONTEXT; }
+
   virtual void setSource(Argb argb) {}
   virtual void setSource(const Pattern& pattern) {}
   virtual void setSource(const ColorFilter& colorFilter) {}
-
-  virtual int getSourceType() const { return PAINTER_SOURCE_ARGB; }
-  virtual Argb getSourceAsArgb() const { return Argb(0); }
-  virtual Pattern getSourceAsPattern() const { return Pattern(); }
 
   // --------------------------------------------------------------------------
   // [Hints]
   // --------------------------------------------------------------------------
 
-  virtual void setHint(int hint, int value) {}
   virtual int getHint(int hint) const { return -1; }
+  virtual void setHint(int hint, int value) {}
 
   // --------------------------------------------------------------------------
   // [Fill Parameters]
   // --------------------------------------------------------------------------
 
+  virtual int getFillMode() const { return FILL_DEFAULT; }
   virtual void setFillMode(int mode) {}
-  virtual int getFillMode() const { return FILL_NON_ZERO; }
 
   // --------------------------------------------------------------------------
   // [Stroke Parameters]
   // --------------------------------------------------------------------------
 
-  virtual void setStrokeParams(const StrokeParams& strokeParams) {}
   virtual void getStrokeParams(StrokeParams& strokeParams) const { strokeParams.reset(); }
+  virtual void setStrokeParams(const StrokeParams& strokeParams) {}
 
-  virtual void setLineWidth(double lineWidth) {}
   virtual double getLineWidth() const { return 0.0; }
+  virtual void setLineWidth(double lineWidth) {}
 
-  virtual void setLineCap(int lineCap) {}
-  virtual int getLineCap() const { return 0; }
+  virtual int getStartCap() const { return 0; }
+  virtual void setStartCap(int startCap) {}
 
-  virtual void setLineJoin(int lineJoin) {}
+  virtual int getEndCap() const { return 0; }
+  virtual void setEndCap(int endCap) {}
+
+  virtual void setLineCaps(int lineCaps) {}
+
   virtual int getLineJoin() const { return 0; }
+  virtual void setLineJoin(int lineJoin) {}
 
+  virtual double getMiterLimit() const { return 0.0; }
+  virtual void setMiterLimit(double miterLimit) {}
+
+  virtual List<double> getDashes() const { return List<double>(); }
   virtual void setDashes(const double* dashes, sysuint_t count) {}
   virtual void setDashes(const List<double>& dashes) {}
-  virtual List<double> getDashes() const { return List<double>(); }
 
-  virtual void setDashOffset(double offset) {}
   virtual double getDashOffset() const { return 0.0; }
-
-  virtual void setMiterLimit(double miterLimit) {}
-  virtual double getMiterLimit() const { return 0.0; }
+  virtual void setDashOffset(double offset) {}
 
   // --------------------------------------------------------------------------
   // [Transformations]
   // --------------------------------------------------------------------------
 
+  virtual Matrix getMatrix() const { return Matrix(); }
   virtual void setMatrix(const Matrix& m) {}
   virtual void resetMatrix() {}
-  virtual Matrix getMatrix() const { return Matrix(); }
 
   virtual void rotate(double angle, int order) {}
   virtual void scale(double sx, double sy, int order) {}
@@ -208,8 +213,8 @@ struct FOG_HIDDEN NullPaintEngine : public PaintEngine
   // [Multithreading]
   // --------------------------------------------------------------------------
 
-  virtual void setEngine(int engine, int cores = 0) {}
   virtual int getEngine() const { return PAINTER_ENGINE_NULL; }
+  virtual void setEngine(int engine, int cores = 0) {}
 
   virtual void flush() {}
 };

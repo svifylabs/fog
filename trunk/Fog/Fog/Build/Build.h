@@ -675,8 +675,9 @@ typedef uint64_t sysuint_t;
 #endif
 
 // fixed point integer types.
-typedef int int16x16_t;
-typedef int int24x8_t;
+typedef int32_t int16x16_t;
+typedef int32_t int24x8_t;
+typedef int64_t int48x16_t;
 
 #if defined(FOG_OS_WINDOWS) && !defined(FOG_CC_GNU)
 # define FOG_INT64_C(num) num##i64

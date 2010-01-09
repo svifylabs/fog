@@ -244,47 +244,79 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   m->pattern.texture_init_blit = PatternC::texture_init_blit;
   m->pattern.texture_init_scale = ScaleC::texture_init_scale;
 
-  m->pattern.texture_fetch_exact_repeat[PIXEL_FORMAT_PRGB32] = PatternC::texture_fetch_exact_repeat_32;
-  m->pattern.texture_fetch_exact_repeat[PIXEL_FORMAT_ARGB32] = PatternC::texture_fetch_exact_repeat_32;
-  m->pattern.texture_fetch_exact_repeat[PIXEL_FORMAT_XRGB32] = PatternC::texture_fetch_exact_repeat_32;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_PRGB32][SPREAD_NONE] = PatternC::texture_fetch_exact_none_32;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_ARGB32][SPREAD_NONE] = PatternC::texture_fetch_exact_none_32;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_XRGB32][SPREAD_NONE] = PatternC::texture_fetch_exact_none_32;
 
-  m->pattern.texture_fetch_exact_reflect[PIXEL_FORMAT_PRGB32] = PatternC::texture_fetch_exact_reflect_32;
-  m->pattern.texture_fetch_exact_reflect[PIXEL_FORMAT_ARGB32] = PatternC::texture_fetch_exact_reflect_32;
-  m->pattern.texture_fetch_exact_reflect[PIXEL_FORMAT_XRGB32] = PatternC::texture_fetch_exact_reflect_32;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_PRGB32][SPREAD_PAD] = PatternC::texture_fetch_exact_pad_32;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_ARGB32][SPREAD_PAD] = PatternC::texture_fetch_exact_pad_32;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_XRGB32][SPREAD_PAD] = PatternC::texture_fetch_exact_pad_32;
 
-  m->pattern.texture_fetch_subx0_repeat[PIXEL_FORMAT_PRGB32] = PatternC::texture_fetch_subx0_repeat_32;
-  m->pattern.texture_fetch_subx0_repeat[PIXEL_FORMAT_ARGB32] = PatternC::texture_fetch_subx0_repeat_32;
-  m->pattern.texture_fetch_subx0_repeat[PIXEL_FORMAT_XRGB32] = PatternC::texture_fetch_subx0_repeat_32;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_PRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_exact_repeat_32;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_ARGB32][SPREAD_REPEAT] = PatternC::texture_fetch_exact_repeat_32;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_XRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_exact_repeat_32;
 
-  m->pattern.texture_fetch_subx0_reflect[PIXEL_FORMAT_PRGB32] = PatternC::texture_fetch_subx0_reflect_32;
-  m->pattern.texture_fetch_subx0_reflect[PIXEL_FORMAT_ARGB32] = PatternC::texture_fetch_subx0_reflect_32;
-  m->pattern.texture_fetch_subx0_reflect[PIXEL_FORMAT_XRGB32] = PatternC::texture_fetch_subx0_reflect_32;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_PRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_exact_reflect_32;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_ARGB32][SPREAD_REFLECT] = PatternC::texture_fetch_exact_reflect_32;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_XRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_exact_reflect_32;
 
-  m->pattern.texture_fetch_sub0y_repeat[PIXEL_FORMAT_PRGB32] = PatternC::texture_fetch_sub0y_repeat_32;
-  m->pattern.texture_fetch_sub0y_repeat[PIXEL_FORMAT_ARGB32] = PatternC::texture_fetch_sub0y_repeat_32;
-  m->pattern.texture_fetch_sub0y_repeat[PIXEL_FORMAT_XRGB32] = PatternC::texture_fetch_sub0y_repeat_32;
+  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_PRGB32][SPREAD_PAD] = PatternC::texture_fetch_subx0_pad_32;
+  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_ARGB32][SPREAD_PAD] = PatternC::texture_fetch_subx0_pad_32;
+  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_XRGB32][SPREAD_PAD] = PatternC::texture_fetch_subx0_pad_32;
 
-  m->pattern.texture_fetch_sub0y_reflect[PIXEL_FORMAT_PRGB32] = PatternC::texture_fetch_sub0y_reflect_32;
-  m->pattern.texture_fetch_sub0y_reflect[PIXEL_FORMAT_ARGB32] = PatternC::texture_fetch_sub0y_reflect_32;
-  m->pattern.texture_fetch_sub0y_reflect[PIXEL_FORMAT_XRGB32] = PatternC::texture_fetch_sub0y_reflect_32;
+  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_PRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_subx0_repeat_32;
+  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_ARGB32][SPREAD_REPEAT] = PatternC::texture_fetch_subx0_repeat_32;
+  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_XRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_subx0_repeat_32;
 
-  m->pattern.texture_fetch_subxy_repeat[PIXEL_FORMAT_PRGB32] = PatternC::texture_fetch_subxy_repeat_32;
-  m->pattern.texture_fetch_subxy_repeat[PIXEL_FORMAT_ARGB32] = PatternC::texture_fetch_subxy_repeat_32;
-  m->pattern.texture_fetch_subxy_repeat[PIXEL_FORMAT_XRGB32] = PatternC::texture_fetch_subxy_repeat_32;
+  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_PRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_subx0_reflect_32;
+  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_ARGB32][SPREAD_REFLECT] = PatternC::texture_fetch_subx0_reflect_32;
+  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_XRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_subx0_reflect_32;
 
-  m->pattern.texture_fetch_subxy_reflect[PIXEL_FORMAT_PRGB32] = PatternC::texture_fetch_subxy_reflect_32;
-  m->pattern.texture_fetch_subxy_reflect[PIXEL_FORMAT_ARGB32] = PatternC::texture_fetch_subxy_reflect_32;
-  m->pattern.texture_fetch_subxy_reflect[PIXEL_FORMAT_XRGB32] = PatternC::texture_fetch_subxy_reflect_32;
+  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_PRGB32][SPREAD_PAD] = PatternC::texture_fetch_sub0y_pad_32;
+  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_ARGB32][SPREAD_PAD] = PatternC::texture_fetch_sub0y_pad_32;
+  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_XRGB32][SPREAD_PAD] = PatternC::texture_fetch_sub0y_pad_32;
 
-  m->pattern.texture_fetch_transform_nearest_repeat[PIXEL_FORMAT_PRGB32] = PatternC::texture_fetch_transform_nearest_repeat_32;
-  m->pattern.texture_fetch_transform_nearest_repeat[PIXEL_FORMAT_ARGB32] = PatternC::texture_fetch_transform_nearest_repeat_32;
-  m->pattern.texture_fetch_transform_nearest_repeat[PIXEL_FORMAT_XRGB32] = PatternC::texture_fetch_transform_nearest_repeat_32;
-  m->pattern.texture_fetch_transform_nearest_repeat[PIXEL_FORMAT_A8] = PatternC::texture_fetch_transform_nearest_repeat_a8;
+  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_PRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_sub0y_repeat_32;
+  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_ARGB32][SPREAD_REPEAT] = PatternC::texture_fetch_sub0y_repeat_32;
+  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_XRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_sub0y_repeat_32;
 
-  m->pattern.texture_fetch_transform_bilinear_repeat[PIXEL_FORMAT_PRGB32] = PatternC::texture_fetch_transform_bilinear_repeat_32;
-  m->pattern.texture_fetch_transform_bilinear_repeat[PIXEL_FORMAT_ARGB32] = PatternC::texture_fetch_transform_bilinear_repeat_32;
-  m->pattern.texture_fetch_transform_bilinear_repeat[PIXEL_FORMAT_XRGB32] = PatternC::texture_fetch_transform_bilinear_repeat_32;
-  m->pattern.texture_fetch_transform_bilinear_repeat[PIXEL_FORMAT_A8] = PatternC::texture_fetch_transform_bilinear_repeat_a8;
+  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_PRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_sub0y_reflect_32;
+  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_ARGB32][SPREAD_REFLECT] = PatternC::texture_fetch_sub0y_reflect_32;
+  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_XRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_sub0y_reflect_32;
+
+  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_PRGB32][SPREAD_PAD] = PatternC::texture_fetch_subxy_pad_32;
+  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_ARGB32][SPREAD_PAD] = PatternC::texture_fetch_subxy_pad_32;
+  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_XRGB32][SPREAD_PAD] = PatternC::texture_fetch_subxy_pad_32;
+
+  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_PRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_subxy_repeat_32;
+  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_ARGB32][SPREAD_REPEAT] = PatternC::texture_fetch_subxy_repeat_32;
+  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_XRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_subxy_repeat_32;
+
+  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_PRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_subxy_reflect_32;
+  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_ARGB32][SPREAD_REFLECT] = PatternC::texture_fetch_subxy_reflect_32;
+  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_XRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_subxy_reflect_32;
+
+  m->pattern.texture_fetch_transform_nearest[PIXEL_FORMAT_PRGB32][SPREAD_PAD] = PatternC::texture_fetch_transform_nearest_pad_32;
+  m->pattern.texture_fetch_transform_nearest[PIXEL_FORMAT_ARGB32][SPREAD_PAD] = PatternC::texture_fetch_transform_nearest_pad_32;
+  m->pattern.texture_fetch_transform_nearest[PIXEL_FORMAT_XRGB32][SPREAD_PAD] = PatternC::texture_fetch_transform_nearest_pad_32;
+
+  m->pattern.texture_fetch_transform_nearest[PIXEL_FORMAT_PRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_transform_nearest_repeat_32;
+  m->pattern.texture_fetch_transform_nearest[PIXEL_FORMAT_ARGB32][SPREAD_REPEAT] = PatternC::texture_fetch_transform_nearest_repeat_32;
+  m->pattern.texture_fetch_transform_nearest[PIXEL_FORMAT_XRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_transform_nearest_repeat_32;
+  m->pattern.texture_fetch_transform_nearest[PIXEL_FORMAT_A8][SPREAD_REPEAT] = PatternC::texture_fetch_transform_nearest_repeat_a8;
+
+  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_PRGB32][SPREAD_NONE] = PatternC::texture_fetch_transform_bilinear_none_32;
+  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_ARGB32][SPREAD_NONE] = PatternC::texture_fetch_transform_bilinear_none_32;
+  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_XRGB32][SPREAD_NONE] = PatternC::texture_fetch_transform_bilinear_none_32;
+
+  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_PRGB32][SPREAD_PAD] = PatternC::texture_fetch_transform_bilinear_pad_32;
+  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_ARGB32][SPREAD_PAD] = PatternC::texture_fetch_transform_bilinear_pad_32;
+  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_XRGB32][SPREAD_PAD] = PatternC::texture_fetch_transform_bilinear_pad_32;
+
+  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_PRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_transform_bilinear_repeat_32;
+  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_ARGB32][SPREAD_REPEAT] = PatternC::texture_fetch_transform_bilinear_repeat_32;
+  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_XRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_transform_bilinear_repeat_32;
+  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_A8][SPREAD_REPEAT] = PatternC::texture_fetch_transform_bilinear_repeat_a8;
 
   m->pattern.texture_fetch_scale_nearest[PIXEL_FORMAT_PRGB32] = ScaleC::texture_fetch_scale_argb32_nn;
   m->pattern.texture_fetch_scale_nearest[PIXEL_FORMAT_ARGB32] = ScaleC::texture_fetch_scale_argb32_nn;
@@ -297,20 +329,30 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   // [Pattern - Linear Gradient]
 
   m->pattern.linear_gradient_init = PatternC::linear_gradient_init;
-  m->pattern.linear_gradient_fetch_exact_pad = PatternC::linear_gradient_fetch_exact_pad;
-  m->pattern.linear_gradient_fetch_exact_repeat = PatternC::linear_gradient_fetch_exact_repeat;
-  m->pattern.linear_gradient_fetch_subxy_pad = PatternC::linear_gradient_fetch_subxy_pad;
-  m->pattern.linear_gradient_fetch_subxy_repeat = PatternC::linear_gradient_fetch_subxy_repeat;
+
+  m->pattern.linear_gradient_fetch_exact[SPREAD_NONE] = PatternC::linear_gradient_fetch_exact_pad;
+  m->pattern.linear_gradient_fetch_exact[SPREAD_PAD] = PatternC::linear_gradient_fetch_exact_pad;
+  m->pattern.linear_gradient_fetch_exact[SPREAD_REPEAT] = PatternC::linear_gradient_fetch_exact_repeat;
+  m->pattern.linear_gradient_fetch_exact[SPREAD_REFLECT] = PatternC::linear_gradient_fetch_exact_repeat;
+
+  m->pattern.linear_gradient_fetch_subxy[SPREAD_NONE] = PatternC::linear_gradient_fetch_subxy_pad;
+  m->pattern.linear_gradient_fetch_subxy[SPREAD_PAD] = PatternC::linear_gradient_fetch_subxy_pad;
+  m->pattern.linear_gradient_fetch_subxy[SPREAD_REPEAT] = PatternC::linear_gradient_fetch_subxy_repeat;
+  m->pattern.linear_gradient_fetch_subxy[SPREAD_REFLECT] = PatternC::linear_gradient_fetch_subxy_repeat;
 
   // [Pattern - Radial Gradient]
 
   m->pattern.radial_gradient_init = PatternC::radial_gradient_init;
-  m->pattern.radial_gradient_fetch_pad = PatternC::radial_gradient_fetch_pad;
-  m->pattern.radial_gradient_fetch_repeat = PatternC::radial_gradient_fetch_repeat;
+
+  m->pattern.radial_gradient_fetch[SPREAD_NONE] = PatternC::radial_gradient_fetch_pad;
+  m->pattern.radial_gradient_fetch[SPREAD_PAD] = PatternC::radial_gradient_fetch_pad;
+  m->pattern.radial_gradient_fetch[SPREAD_REPEAT] = PatternC::radial_gradient_fetch_repeat;
+  m->pattern.radial_gradient_fetch[SPREAD_REFLECT] = PatternC::radial_gradient_fetch_repeat;
 
   // [Pattern - Conical Gradient]
 
   m->pattern.conical_gradient_init = PatternC::conical_gradient_init;
+
   m->pattern.conical_gradient_fetch = PatternC::conical_gradient_fetch;
 
   // [Filter - ColorLut]

@@ -1,6 +1,23 @@
+2010-01-09
+- Added Path::addPath(const Path& path, const PointD& pt).
+- Improved SSE2 vertex transform code.
+- Added LINE_CAP_TRIANGLE, LINE_CAP_ROUND_REVERT, LINE_CAP_TRIANGLE_REVERT caps.
+- Added startCap and endCap support in path stroking (stroker and painter related).
+- Renamed missing methods from drawImage() to blitImage().
+- Added SPREAD_NONE, will be used later (not complete task).
+
+2010-01-06
+- Fixed wrong assertion in RasterPaintEngine.
+
+2010-01-05
+- Renamed PainterUtil to PaintUtil.
+- Fixed matrix.scale() in PainterEngine, Pattern and Matrix (this
+  function now accepts the order parameter).
+- Added small scanline generator optimization.
+
 2010-01-04
-- Renamed PainterEngine to PaintEngine
-- Fixed RasterPaintEngine clipping again
+- Renamed PainterEngine to PaintEngine.
+- Fixed RasterPaintEngine clipping again.
 
 2010-01-03
 - Added image transform to Painter.

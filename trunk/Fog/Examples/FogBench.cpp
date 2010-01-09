@@ -633,7 +633,7 @@ void FogModule_Image::bench(int quantity)
 
   for (int a = 0; a < quantity; a++)
   {
-    p.drawImage(r_rect.data[a].getPosition(), images[r_numb.data[a]]);
+    p.blitImage(r_rect.data[a].getPosition(), images[r_numb.data[a]]);
   }
 
   p.restore();
@@ -677,7 +677,7 @@ void FogModule_ImageAffine::bench(int quantity)
     m.translate(-cx, -cy);
 
     p.setMatrix(m);
-    p.drawImage(r_rect.data[a].getPosition(), images[r_numb.data[a]]);
+    p.blitImage(r_rect.data[a].getPosition(), images[r_numb.data[a]]);
   }
 
   p.restore();

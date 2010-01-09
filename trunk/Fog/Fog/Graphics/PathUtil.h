@@ -130,6 +130,9 @@ struct ApproximateCurve4Data
 
 struct FunctionMap
 {
+  typedef void (FOG_FASTCALL *TranslateVertexFn)(PathVertex* data, sysuint_t count, const PointD* pt);
+  typedef void (FOG_FASTCALL *TranslateVertex2Fn)(PathVertex* dst, const PathVertex* src, sysuint_t count, const PointD* pt);
+
   typedef void (FOG_FASTCALL *TransformVertexFn)(PathVertex* data, sysuint_t count, const Matrix* matrix);
   typedef void (FOG_FASTCALL *TransformVertex2Fn)(PathVertex* dst, const PathVertex* src, sysuint_t count, const Matrix* matrix);
 
@@ -151,8 +154,12 @@ struct FunctionMap
     double angleTolerance,
     double cuspLimit);
 
+  TranslateVertexFn translateVertex;
+  TranslateVertex2Fn translateVertex2;
+
   TransformVertexFn transformVertex;
   TransformVertex2Fn transformVertex2;
+
   ApproximateCurve3Fn approximateCurve3;
   ApproximateCurve4Fn approximateCurve4;
 };

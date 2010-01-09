@@ -375,6 +375,7 @@ Set(FOG_GRAPHICS_LIB_SOURCES
   Fog/Graphics/Glyph.cpp
   Fog/Graphics/GlyphCache.cpp
   Fog/Graphics/GlyphSet.cpp
+  Fog/Graphics/Gradient.cpp
   Fog/Graphics/Image.cpp
   Fog/Graphics/ImageFilter.cpp
   Fog/Graphics/ImageIO.cpp
@@ -419,6 +420,7 @@ Set(FOG_GRAPHICS_LIB_HEADERS
   Fog/Graphics/Glyph.h
   Fog/Graphics/GlyphCache.h
   Fog/Graphics/GlyphSet.h
+  Fog/Graphics/Gradient.h
   Fog/Graphics/Image.h
   Fog/Graphics/ImageFilter.h
   Fog/Graphics/ImageIO.h

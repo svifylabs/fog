@@ -230,14 +230,14 @@ struct FOG_HIDDEN PatternSSE2
     int tw = ctx->texture.w;
     int th = ctx->texture.h;
 
-    x -= ctx->texture.dx;
-    y -= ctx->texture.dy;
+    x += ctx->texture.dx;
+    y += ctx->texture.dy;
 
-    if (x < 0) x = (x % tw) + tw;
-    if (x >= tw) x %= tw;
+    if ((x >= tw) | (x <= -tw)) x %= tw;
+    if ((y >= th) | (y <= -th)) y %= th;
 
-    if (y < 0) y = (y % th) + th;
-    if (y >= th) y %= th;
+    if (x < 0) x += tw;
+    if (y < 0) y += th;
 
     const uint8_t* srcBase = ctx->texture.bits + y * ctx->texture.stride;
     const uint8_t* srcCur;
@@ -313,14 +313,14 @@ struct FOG_HIDDEN PatternSSE2
     int tw2 = tw << 1;
     int th2 = th << 1;
 
-    x -= ctx->texture.dx;
-    y -= ctx->texture.dy;
+    x += ctx->texture.dx;
+    y += ctx->texture.dy;
 
-    if (x < 0) x = (x % tw2) + tw2;
-    if (x >= tw2) x %= tw2;
+    if ((x >= tw2) | (x <= -tw2)) x %= tw2;
+    if ((y >= th2) | (y <= -th2)) y %= th2;
 
-    if (y < 0) y = (y % th2) + th2;
-    if (y >= th2) y %= th2;
+    if (x < 0) x += tw2;
+    if (y < 0) y += th2;
 
     // Modify Y if reflected (if it lies in second section).
     if (y >= th) y = th2 - y - 1;
@@ -450,8 +450,8 @@ struct FOG_HIDDEN PatternSSE2
     int dx = ctx->texture.dx;
     int dy = ctx->texture.dy;
 
-    int fx = double_to_fixed16x16(rx * ctx->m[MATRIX_SX ] + ry * ctx->m[MATRIX_SHX] + ctx->m[MATRIX_TX]);
-    int fy = double_to_fixed16x16(rx * ctx->m[MATRIX_SHY] + ry * ctx->m[MATRIX_SY ] + ctx->m[MATRIX_TY]);
+    int fx = Math::doubleToFixed16x16(rx * ctx->m[MATRIX_SX ] + ry * ctx->m[MATRIX_SHX] + ctx->m[MATRIX_TX]);
+    int fy = Math::doubleToFixed16x16(rx * ctx->m[MATRIX_SHY] + ry * ctx->m[MATRIX_SY ] + ctx->m[MATRIX_TY]);
 
     int fxmax = ctx->texture.fxmax;
     int fymax = ctx->texture.fymax;
@@ -459,8 +459,11 @@ struct FOG_HIDDEN PatternSSE2
     fx -= 0x8000;
     fy -= 0x8000;
 
-    if (fx < 0 || fx >= fxmax) { fx %= fxmax; if (fx < 0) fx += fxmax; }
-    if (fy < 0 || fy >= fymax) { fy %= fymax; if (fy < 0) fy += fymax; }
+    if ((fx <= -fxmax) | (fx >= fxmax)) fx %= fxmax;
+    if ((fy <= -fymax) | (fy >= fymax)) fy %= fymax;
+
+    if (fx < 0) fx += fxmax;
+    if (fy < 0) fy += fymax;
 
     const uint8_t* srcBits = ctx->texture.bits;
     sysint_t srcStride = ctx->texture.stride;
@@ -715,11 +718,11 @@ struct FOG_HIDDEN PatternSSE2
     const uint32_t* colors = (const uint32_t*)ctx->linearGradient.colors;
     sysint_t colorsLength = ctx->linearGradient.colorsLength;
 
-    int ax = double_to_fixed16x16(ctx->linearGradient.ax);
-    int64_t yy = double_to_fixed48x16(
+    int ax = Math::doubleToFixed16x16(ctx->linearGradient.ax);
+    int64_t yy = Math::doubleToFixed48x16(
       ((double)x - ctx->linearGradient.dx) * ctx->linearGradient.ax +
       ((double)y - ctx->linearGradient.dy) * ctx->linearGradient.ay );
-    int64_t yy_max = double_to_fixed48x16(ctx->linearGradient.dist);
+    int64_t yy_max = Math::doubleToFixed48x16(ctx->linearGradient.dist);
 
     uint32_t color0 = colors[-1];
     uint32_t color1 = colors[colorsLength];
@@ -828,9 +831,9 @@ struct FOG_HIDDEN PatternSSE2
 
     // Not needed to use 64-bit integers for SPREAD_REPEAT, because we can
     // normalize input coordinates to always fit to this data-type.
-    int yy_max = double_to_fixed16x16(ctx->linearGradient.dist);
-    int ax = double_to_fixed16x16(ctx->linearGradient.ax);
-    int yy = (int)((double_to_fixed48x16(
+    int yy_max = Math::doubleToFixed16x16(ctx->linearGradient.dist);
+    int ax = Math::doubleToFixed16x16(ctx->linearGradient.ax);
+    int yy = (int)((Math::doubleToFixed48x16(
       ((double)x - ctx->linearGradient.dx) * ctx->linearGradient.ax +
       ((double)y - ctx->linearGradient.dy) * ctx->linearGradient.ay )) % yy_max);
     if (yy < 0) yy += yy_max;
