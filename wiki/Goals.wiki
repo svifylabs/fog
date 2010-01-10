@@ -1,4 +1,4 @@
-#summary Goals and philosophy
+#summary Goals and philosophy.
 #labels Featured
 
 =Introduction=
