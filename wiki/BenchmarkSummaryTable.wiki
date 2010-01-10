@@ -1,4 +1,4 @@
-#summary Summary table of the benchmarks on different systems
+#summary Summary table of the benchmarks on different systems (obsolete).
 
 TODO: Needs uprading for new benchmarking tool.
 
