@@ -134,6 +134,13 @@ Sometimes private variables are declared as public, but contains underscore. Rea
 ==Inling functions==
 In order to inline functions, use the `FOG_INLINE` macro. Notice that `FOG_INLINE` macro expands to compiler dependent way how to tell compiler to always inline a given code. If you don't want to inline code, but you want to declare it in header (for example in template) use `FOG_NO_INLINE` macro.
 
+==Parameter order==
+If possible: first destination parameter, then source parameter.<br>
+For example:
+{{{
+    static void pathFromCGPath(ApplyInfo& dst, CGPathRef src);
+}}}
+
 ==OS Determining==
 There are macros available, which can be used in order to determine the current operating system at compile-time.
 These are in the format `FOG_OS_<PLATFORM>`. `PLATFORM` can be: `WINDOWS`, `POSIX`, `LINUX`, `FREEBSD`, `OPENBSD`, `NETBSD`, `HPUX` or `MAC`. <br>
@@ -220,3 +227,42 @@ Possible error codes are:
 ==Core/User Errors==
  * `ERR_USER_NO_HOME_DIRECTORY`
  * `ERR_USER_NO_XDG_DIRECTORY`
+
+==Graphics/Path Errors==
+ * `ERR_PATH_INVALID`
+
+== Graphics/Image, ImageFilter, ImageIO and Painter Errors==
+ * `ERR_IMAGE_INVALID_SIZE`
+ * `ERR_IMAGE_INVALID_FORMAT`
+ * `ERR_IMAGE_TOO_LARGE`
+ * `ERR_IMAGE_UNSUPPORTED_FORMAT`
+ * `ERR_IMAGEIO_INTERNAL_ERROR`
+ * `ERR_IMAGEIO_NOT_AVAILABLE_PROVIDER`
+ * `ERR_IMAGEIO_NOT_AVAILABLE_DECODER`
+ * `ERR_IMAGEIO_NOT_AVAILABLE_ENCODER`
+ * `ERR_IMAGEIO_UNSUPPORTED_FORMAT`
+ * `ERR_IMAGEIO_TERMINATED`
+ * `ERR_IMAGEIO_TRUNCATED`
+
+ * `ERR_IMAGEIO_MIME_NOT_MATCH`
+ * `ERR_IMAGEIO_MALFORMED_HEADER`
+ * `ERR_IMAGEIO_MALFORMED_RLE` 
+ * `ERR_IMAGEIO_NO_MORE_FRAMES`
+
+ * `ERR_IMAGEIO_LIBJPEG_NOT_LOADED`
+ * `ERR_IMAGEIO_LIBJPEG_ERROR`
+
+ * `ERR_IMAGEIO_LIBPNG_NOT_LOADED`
+ * `ERR_IMAGEIO_LIBPNG_ERROR`
+
+==Graphics/Font Errors==
+ * `ERR_FONT_INVALID_FACE`
+ * `ERR_FONT_INVALID_DATA`
+ * `ERR_FONT_CANT_LOAD_DEFAULT_FACE`
+ * `ERR_FONT_CANT_GET_OUTLINE`
+
+ * `ERR_FONT_FONTCONFIG_NOT_LOADED`
+ * `ERR_FONT_FONTCONFIG_INIT_FAILED`
+
+ * `ERR_FONT_FREETYPE_NOT_LOADED`
+ * `ERR_FONT_FREETYPE_INIT_FAILED`
