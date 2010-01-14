@@ -315,7 +315,7 @@ String SvgStyleAttribute::getStyle(int styleId) const
       break;
 
     case SVG_STYLE_CLIP_RULE:
-      FOG_ASSERT(_clipRule < FILL_INVALID);
+      FOG_ASSERT(_clipRule < FILL_MODE_COUNT);
       result.set(Ascii8(svgEnumList_fillRule[_clipRule].name));
       break;
 
@@ -343,7 +343,7 @@ String SvgStyleAttribute::getStyle(int styleId) const
       break;
 
     case SVG_STYLE_FILL_RULE:
-      FOG_ASSERT(_fillRule < FILL_INVALID);
+      FOG_ASSERT(_fillRule < FILL_MODE_COUNT);
       result.set(Ascii8(svgEnumList_fillRule[_fillRule].name));
       break;
 
@@ -403,12 +403,12 @@ String SvgStyleAttribute::getStyle(int styleId) const
       break;
 
     case SVG_STYLE_STROKE_LINE_CAP:
-      FOG_ASSERT(_strokeLineCap < FILL_INVALID);
+      FOG_ASSERT(_strokeLineCap < FILL_MODE_COUNT);
       result.set(Ascii8(svgEnumList_strokeLineCap[_strokeLineCap].name));
       break;
 
     case SVG_STYLE_STROKE_LINE_JOIN:
-      FOG_ASSERT(_strokeLineJoin < FILL_INVALID);
+      FOG_ASSERT(_strokeLineJoin < FILL_MODE_COUNT);
       result.set(Ascii8(svgEnumList_strokeLineJoin[_strokeLineJoin].name));
       break;
 

@@ -522,6 +522,8 @@ err_t FontTranslator::initCustomDefinitions()
 err_t FontTranslator::addCustomDefinitions(const char* defs)
 {
   const char* cur = defs;
+  String s0;
+  String s1;
 
   for (;;)
   {
@@ -534,7 +536,7 @@ err_t FontTranslator::addCustomDefinitions(const char* defs)
     uint8_t italic = false;
 
     len = strlen(cur);
-    String s0(Ascii8(cur, len));
+    s0.set(Ascii8(cur, len));
     cur += len + 1;
 
     len = strlen(cur);
@@ -546,7 +548,7 @@ err_t FontTranslator::addCustomDefinitions(const char* defs)
     cur += len + 1;
     len = strlen(cur);
 
-    String s1(Ascii8(cur, len));
+    s1.set(Ascii8(cur, len));
     cur += len + 1;
 
     err_t err = _records.append(FontTranslatorRecord(s0, s1, bold, italic));

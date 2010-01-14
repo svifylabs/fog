@@ -1,3 +1,10 @@
+2010-01-14
+- Improved performance of blitImage() when using affine transformations and subpixel
+  placement (see new code ImageAffineBound).
+- Added operator characteristics that can be used by raster paint engine.
+- Renamed COMPOSITE_... enum to OPERATOR_... enum.
+- Fixed OPERATOR_CLEAR SSE2 code.
+
 2010-01-09
 - Added Path::addPath(const Path& path, const PointD& pt).
 - Improved SSE2 vertex transform code.

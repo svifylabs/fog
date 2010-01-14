@@ -38,11 +38,11 @@ void MyWindow::onPaint(PaintEvent* e)
 
   Painter* p = e->getPainter();
 
-  p->setOperator(COMPOSITE_SRC);
+  p->setOperator(OPERATOR_SRC);
   p->setSource(0xFF000000);
   p->clear();
 
-  p->setOperator(COMPOSITE_SRC_OVER);
+  p->setOperator(OPERATOR_SRC_OVER);
 
   Pattern pat;
   SizeD size(128.0, 128.0);

@@ -366,6 +366,7 @@ Set(FOG_GRAPHICS_LIB_SOURCES
   Fog/Graphics/ArgbUtil.cpp
   Fog/Graphics/ColorLut.cpp
   Fog/Graphics/ColorMatrix.cpp
+  Fog/Graphics/Constants.cpp
   Fog/Graphics/ConvolutionMatrix.cpp
   Fog/Graphics/DitherMatrix.cpp
   Fog/Graphics/Font.cpp

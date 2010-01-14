@@ -229,6 +229,9 @@ struct PatternContext
     int fxmax;
     int fymax;
 
+    int fxrewind;
+    int fyrewind;
+
     // Subpixel offset at 1.0 scale ratio (used if isTransformed is false).
     uint fY0X0;
     uint fY0X1;
@@ -520,7 +523,7 @@ struct FunctionMap
     VSpanMskConstFn vspan_a8_const[PIXEL_FORMAT_COUNT];
   };
 
-  CompositeFuncs composite[COMPOSITE_COUNT][PIXEL_FORMAT_COUNT];
+  CompositeFuncs composite[OPERATOR_COUNT][PIXEL_FORMAT_COUNT];
 };
 
 extern FOG_API FunctionMap* functionMap;
@@ -532,7 +535,7 @@ extern FOG_API FunctionMap* functionMap;
 FOG_INLINE FunctionMap::CompositeFuncs* getRasterOps(int format, int op)
 {
   FOG_ASSERT((uint)format < PIXEL_FORMAT_COUNT);
-  FOG_ASSERT((uint)op < COMPOSITE_COUNT);
+  FOG_ASSERT((uint)op < OPERATOR_COUNT);
 
   return &functionMap->composite[op][format];
 }

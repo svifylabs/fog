@@ -78,8 +78,8 @@ MyWindow::MyWindow(uint32_t createFlags) :
 {
   setWindowTitle(Ascii8("Testing..."));
 
-  i[0].readFile(Ascii8("babelfish.png"));
-  i[1].readFile(Ascii8("kweather.png"));
+  i[0].readFile(Ascii8("babelfish.pcx"));
+  i[1].readFile(Ascii8("kweather.pcx"));
 
   i[0].convert(PIXEL_FORMAT_PRGB32);
   i[1].convert(PIXEL_FORMAT_PRGB32);
@@ -88,7 +88,7 @@ MyWindow::MyWindow(uint32_t createFlags) :
     Painter p(i[0]);
 
     p.setSource(0xFFFFFFFF);
-    p.setOperator(COMPOSITE_DST_OVER);
+    p.setOperator(OPERATOR_DST_OVER);
     p.clear();
   }
 
@@ -108,9 +108,7 @@ MyWindow::MyWindow(uint32_t createFlags) :
 
   Button* button = new Button();
   add(button);
-  button->setPosition(Point(10, 10));
-  //button->setRect(Rect(40, 40, 100, 20));
-  button->setSize(Size(100, 20));
+  button->setRect(Rect(40, 40, 100, 20));
   button->setText(Ascii8("Push me"));
   button->show();
 }
@@ -134,6 +132,18 @@ void MyWindow::onKeyPress(KeyEvent* e)
       break;
     case KEY_DOWN:
       _suby += 0.05;
+      break;
+    case KEY_LEFT | KEY_CTRL:
+      _subx -= 5;
+      break;
+    case KEY_RIGHT | KEY_CTRL:
+      _subx += 5;
+      break;
+    case KEY_UP | KEY_CTRL:
+      _suby -= 5;
+      break;
+    case KEY_DOWN | KEY_CTRL:
+      _suby += 5;
       break;
     case KEY_Q:
       _rotate -= 0.01;
@@ -160,7 +170,7 @@ void MyWindow::onKeyPress(KeyEvent* e)
       _scale += 0.01;
       break;
     case KEY_SPACE:
-      if (++_spread >= SPREAD_INVALID) _spread = 0;
+      if (++_spread >= SPREAD_COUNT) _spread = 0;
       break;
   }
 
@@ -173,12 +183,12 @@ void MyWindow::onPaint(PaintEvent* e)
   TimeTicks ticks = TimeTicks::highResNow();
   Painter* p = e->getPainter();
 
-  p->setOperator(COMPOSITE_SRC);
+  p->setOperator(OPERATOR_SRC);
 
   p->setSource(0xFF3F3FFF);
   p->clear();
 
-  p->setOperator(COMPOSITE_SRC);
+  p->setOperator(OPERATOR_SRC);
 /*
   Region reg;
   reg.unite(Rect(0, 0, 200, 25));
@@ -234,17 +244,18 @@ void MyWindow::onPaint(PaintEvent* e)
   //p->drawRound(Rect(100, 100, 200, 200), Point(50, 50));
 */
 #if 1
-  /*
+/*
   Pattern pat;
-  pat.setSpread(SPREAD_PAD);
   pat.setTexture(i[0]);
+  pat.setSpread(_spread);
+  pat.translate(200, 200);
   pat.rotate(_rotate);
   pat.translate(_subx, _suby);
-  pat.setSpread(SPREAD_NONE);
+  // p->setHint(PAINTER_HINT_IMAGE_INTERPOLATION, INTERPOLATION_NEAREST);
   p->setSource(pat);
   p->clear();
-   */
-
+*/
+/*
   Pattern pat;
   List<ArgbStop> stops;
   stops.append(ArgbStop(0.0, 0xFFFFFFFF));
@@ -254,15 +265,40 @@ void MyWindow::onPaint(PaintEvent* e)
   p->setSource(pat);
   p->rotate(_rotate);
   p->clear();
-
-
+*/
 /*
   p->save();
-  p->rotate(_rotate);
-  p->translate(200 + _subx, _suby);
-  p->blitImage(PointD(0.0, 0.0), i[0]);
+  StrokeParams params;
+  params.setLineWidth(40.0);
+  params.setLineJoin(LINE_JOIN_ROUND);
+  params.setStartCap(LINE_CAP_ROUND_REVERT);
+  params.setEndCap(LINE_CAP_ROUND);
+  //params.setInnerJoin(INNER_JOIN_ROUND);
+  //params.setInnerLimit(111.9);
+  p->setStrokeParams(params);
+  p->setSource(Argb(0xFF000000));
+
+  Path path;
+  path.moveTo(50.0, 50.0);
+  path.lineTo(200.0, 70.0);
+  path.lineTo(145.0, 300.0);
+  path.lineTo(getWidth() - 30.0, getHeight() - 30.0);
+  p->drawPath(path);
+
   p->restore();
 */
+
+  p->save();
+  p->setOperator(OPERATOR_SRC_OVER);
+  p->setSource(Argb(0xFFFF0000));
+  p->translate(170 + _subx, 170 + _suby);
+  p->rotate(_rotate);
+  p->blitImage(PointD(0.0, 0.0), i[0]);
+
+  //p->setOperator(OPERATOR_SRC_OUT);
+  //p->blitImage(PointD(0.0, 0.0), i[0]);
+  p->restore();
+
 #endif
 
 #if 0
@@ -312,7 +348,7 @@ void MyWindow::onPaint(PaintEvent* e)
 #endif
 
 /*
-  p->setOperator(COMPOSITE_SRC_OVER);
+  p->setOperator(OPERATOR_SRC_OVER);
   p->setSource(0xFFFFFFFF);
 
   PointD points[2];
@@ -375,11 +411,11 @@ void MyWindow::onPaint(PaintEvent* e)
 */
   //p->drawText(Point(mp[0].posx, mp[0].posy), Ascii8("TEST"), Font());
 /*
-  p->setOperator(COMPOSITE_SRC);
+  p->setOperator(OPERATOR_SRC);
   p->setSource(0xFF000000);
   p->clear();
 
-  p->setOperator(COMPOSITE_SRC_OVER);
+  p->setOperator(OPERATOR_SRC_OVER);
   p->setSource(0xFFFFFFFF);
 
   Font font;
@@ -429,7 +465,7 @@ void MyWindow::onPaint(PaintEvent* e)
 */
 
 /*
-  p->setOperator(COMPOSITE_SRC_OVER);
+  p->setOperator(OPERATOR_SRC_OVER);
   p->translate(mp[0].posx, mp[0].posy);
 
   SvgDocument svg;
@@ -442,7 +478,7 @@ void MyWindow::onPaint(PaintEvent* e)
 
   TimeDelta delta = TimeTicks::highResNow() - ticks;
 
-  p->setOperator(COMPOSITE_SRC_OVER);
+  p->setOperator(OPERATOR_SRC_OVER);
   p->setSource(0xFFFFFFFF);
   p->fillRect(Rect(0, 0, 2000, getFont().getHeight()));
   p->setSource(0xFF000000);

@@ -433,6 +433,289 @@ struct FOG_HIDDEN PatternSSE2
   // [Texture - Transform - Bilinear]
   // --------------------------------------------------------------------------
 
+  static FOG_INLINE void _vector_affine_sse2(__m128d& m_x_y, const double* m)
+  {
+    __m128d m_y_x = _mm_shuffle_pd(m_x_y, m_x_y, _MM_SHUFFLE2(0, 1));
+
+    __m128d m_sx_sy = _mm_set_pd(m[MATRIX_SY], m[MATRIX_SX]);
+    __m128d m_shx_shy = _mm_set_pd(m[MATRIX_SHY], m[MATRIX_SHX]);
+    __m128d m_tx_ty = _mm_loadu_pd(&m[MATRIX_TX]);
+
+    m_x_y = _mm_mul_pd(m_x_y, m_sx_sy);
+    m_y_x = _mm_mul_pd(m_y_x, m_shx_shy);
+    m_x_y = _mm_add_pd(m_x_y, m_tx_ty);
+    m_x_y = _mm_add_pd(m_x_y, m_y_x);
+  }
+
+  static FOG_INLINE void _vector_fetch_centered_sse2(__m128d& xy, int x, int y)
+  {
+    xy = _mm_add_pd(_mm_cvtepi32_pd(_mm_set_epi32(0, 0, y, x)), MaskD_0_5_0_5);
+  }
+
+  static FOG_INLINE void _vector_fetch_transformed_sse2(__m128d& fxfy, int x, int y, const double* m)
+  {
+    _vector_fetch_centered_sse2(fxfy, x, y);
+    _vector_affine_sse2(fxfy, m);
+    fxfy = _mm_mul_pd(fxfy, MaskD_65536_0_65536_0);
+    fxfy = _mm_sub_pd(fxfy, MaskD_32768_0_32768_0);
+  }
+
+  static FOG_INLINE void _vector_fetch_transformed_sse2(int& fx, int& fy, int x, int y, const double* m)
+  {
+    __m128d fxfy_d;
+    _vector_fetch_transformed_sse2(fxfy_d, x, y, m);
+    __m128i fxfy = _mm_cvtpd_epi32(fxfy_d);
+
+    fx = _mm_cvtsi128_si32(fxfy); fxfy = _mm_shuffle_epi32(fxfy, _MM_SHUFFLE(0, 1, 0, 1));
+    fy = _mm_cvtsi128_si32(fxfy);
+  }
+
+  static uint8_t* FOG_FASTCALL texture_fetch_transform_bilinear_none_32(
+    PatternContext* ctx,
+    uint8_t* dst, int x, int y, int w)
+  {
+    FOG_ASSERT(w);
+
+    uint8_t* dstCur = dst;
+
+    int tw = ctx->texture.w;
+    int th = ctx->texture.h;
+
+    int dx = ctx->texture.dx;
+    int dy = ctx->texture.dy;
+
+    int fx;
+    int fy;
+    _vector_fetch_transformed_sse2(fx, fy, x, y, ctx->m);
+
+    const uint8_t* srcBits = ctx->texture.bits;
+    sysint_t srcStride = ctx->texture.stride;
+
+    tw--;
+    th--;
+
+    int i = w;
+
+    do {
+      int px0 = fx >> 16;
+      int py0 = fy >> 16;
+
+      __m128i __pix_x01_y0;
+      __m128i __pix_x01_y1;
+
+      __m128i __wx0;
+      __m128i __wy0;
+      __m128i __ww0;
+
+      const uint8_t* src0 = srcBits + py0 * srcStride + px0 * 4;
+
+      if (FOG_UNLIKELY(((uint)py0 >= (uint)th) | ((uint)px0 >= (uint)tw)))
+      {
+        __pix_x01_y0 = _mm_setzero_si128();
+        __pix_x01_y1 = _mm_setzero_si128();
+
+        __wx0 = _mm_setzero_si128();
+        __wy0 = _mm_setzero_si128();
+
+        if ((uint)py0 <= (uint)th)
+        {
+          if ((uint)px0     <= (uint)tw) pix_load4(__pix_x01_y0, src0    );
+          if ((uint)px0 + 1 <= (uint)tw) pix_load4(__wx0       , src0 + 4);
+        }
+
+        py0++;
+        src0 += srcStride;
+
+        if ((uint)py0 <= (uint)th)
+        {
+          if ((uint)px0     <= (uint)tw) pix_load4(__pix_x01_y1, src0    );
+          if ((uint)px0 + 1 <= (uint)tw) pix_load4(__wy0       , src0 + 4);
+        }
+
+        __wx0 = _mm_shuffle_epi32(__wx0, _MM_SHUFFLE(3, 2, 0, 1));
+        __wy0 = _mm_shuffle_epi32(__wy0, _MM_SHUFFLE(3, 2, 0, 1));
+
+        __pix_x01_y0 = _mm_or_si128(__pix_x01_y0, __wx0);
+        __pix_x01_y1 = _mm_or_si128(__pix_x01_y1, __wy0);
+      }
+      else
+      {
+        pix_load8(__pix_x01_y0, src0);
+        pix_load8(__pix_x01_y1, src0 + srcStride);
+      }
+
+      __wx0 = _mm_shuffle_epi32(__pix_x01_y0, _MM_SHUFFLE(0, 1, 1, 0));
+      __wy0 = _mm_shuffle_epi32(__pix_x01_y1, _MM_SHUFFLE(1, 0, 1, 0));
+      __wx0 = _mm_cmpeq_epi32(__wx0, __wy0);
+      if (_mm_movemask_epi8(__wx0) == 0xFFFF) goto done;
+
+      __wx0 = _mm_cvtsi32_si128(fx);
+      __wy0 = _mm_cvtsi32_si128(fy);
+
+      __wx0 = _mm_shufflelo_epi16(__wx0, _MM_SHUFFLE(0, 0, 0, 0));
+      __wy0 = _mm_shufflelo_epi16(__wy0, _MM_SHUFFLE(0, 0, 0, 0));
+
+      __wx0 = _mm_shuffle_epi32(__wx0, _MM_SHUFFLE(1, 0, 1, 0));
+      __wy0 = _mm_shuffle_epi32(__wy0, _MM_SHUFFLE(1, 0, 1, 0));
+
+      __wx0 = _mm_srli_epi16(__wx0, 8);
+      pix_unpack_1x1W(__pix_x01_y0, __pix_x01_y0);
+      __wy0 = _mm_srli_epi16(__wy0, 8);
+      __wx0 = _mm_xor_si128(__wx0, Mask_0000000000000000_FFFFFFFFFFFFFFFF);
+      pix_unpack_1x1W(__pix_x01_y1, __pix_x01_y1);
+      __wx0 = _mm_add_epi16(__wx0, Mask_0000000000000000_0101010101010101);
+
+      __ww0 = _mm_mullo_epi16(__wx0, __wy0);
+      __wy0 = _mm_xor_si128(__wy0, Mask_FFFFFFFFFFFFFFFF_FFFFFFFFFFFFFFFF);
+      __ww0 = _mm_srli_epi16(__ww0, 8);
+      __wy0 = _mm_add_epi16(__wy0, Mask_0101010101010101_0101010101010101);
+
+      __wx0 = _mm_slli_epi16(__wx0, 4);
+      __wy0 = _mm_slli_epi16(__wy0, 4);
+
+      __pix_x01_y1 = _mm_mullo_epi16(__pix_x01_y1, __ww0);
+      __wy0 = _mm_mulhi_epi16(__wy0, __wx0);
+      __pix_x01_y0 = _mm_mullo_epi16(__pix_x01_y0, __wy0);
+
+      __pix_x01_y0 = _mm_add_epi16(__pix_x01_y0, __pix_x01_y1);
+      __pix_x01_y1 = _mm_shuffle_epi32(__pix_x01_y0, _MM_SHUFFLE(1, 0, 3, 2));
+      __pix_x01_y0 = _mm_add_epi16(__pix_x01_y0, __pix_x01_y1);
+
+      __pix_x01_y0 = _mm_srli_epi16(__pix_x01_y0, 8);
+
+      pix_pack_1x1W(__pix_x01_y0, __pix_x01_y0);
+done:
+      pix_store4(dstCur, __pix_x01_y0);
+      dstCur += 4;
+
+      fx += dx;
+      fy += dy;
+    } while (--i);
+
+    return dst;
+  }
+
+  static uint8_t* FOG_FASTCALL texture_fetch_transform_bilinear_pad_32(
+    PatternContext* ctx,
+    uint8_t* dst, int x, int y, int w)
+  {
+    FOG_ASSERT(w);
+
+    uint8_t* dstCur = dst;
+
+    int tw = ctx->texture.w;
+    int th = ctx->texture.h;
+
+    int dx = ctx->texture.dx;
+    int dy = ctx->texture.dy;
+
+    int fx;
+    int fy;
+    _vector_fetch_transformed_sse2(fx, fy, x, y, ctx->m);
+
+    const uint8_t* srcBits = ctx->texture.bits;
+    sysint_t srcStride = ctx->texture.stride;
+
+    tw--;
+    th--;
+
+    int i = w;
+
+    do {
+      int px0 = fx >> 16;
+      int py0 = fy >> 16;
+
+      __m128i __pix_x01_y0;
+      __m128i __pix_x01_y1;
+
+      __m128i __wx0;
+      __m128i __wy0;
+      __m128i __ww0;
+
+      if (FOG_UNLIKELY(((uint)py0 >= (uint)th) | ((uint)px0 >= (uint)tw)))
+      {
+        int px1 = px0 + 1;
+        int py1 = py0 + 1;
+
+        if (px0 < 0) { px0 = px1 = 0; } else if (px0 >= tw) { px0 = px1 = tw; }
+        if (py0 < 0) { py0 = py1 = 0; } else if (py0 >= th) { py0 = py1 = th; }
+
+        const uint8_t* src0;
+
+        src0 = srcBits + (uint)py0 * srcStride;
+        pix_load4(__pix_x01_y0, src0    );
+        pix_load4(__wx0       , src0 + 4);
+
+        src0 = srcBits + (uint)py1 * srcStride;
+        pix_load4(__pix_x01_y1, src0    );
+        pix_load4(__wy0       , src0 + 4);
+
+        __wx0 = _mm_shuffle_epi32(__wx0, _MM_SHUFFLE(3, 2, 0, 1));
+        __wy0 = _mm_shuffle_epi32(__wy0, _MM_SHUFFLE(3, 2, 0, 1));
+
+        __pix_x01_y0 = _mm_or_si128(__pix_x01_y0, __wx0);
+        __pix_x01_y1 = _mm_or_si128(__pix_x01_y1, __wy0);
+      }
+      else
+      {
+        const uint8_t* src0 = srcBits + py0 * srcStride + px0 * 4;
+
+        pix_load8(__pix_x01_y0, src0);
+        pix_load8(__pix_x01_y1, src0 + srcStride);
+      }
+
+      __wx0 = _mm_shuffle_epi32(__pix_x01_y0, _MM_SHUFFLE(0, 1, 1, 0));
+      __wy0 = _mm_shuffle_epi32(__pix_x01_y1, _MM_SHUFFLE(1, 0, 1, 0));
+      __wx0 = _mm_cmpeq_epi32(__wx0, __wy0);
+      if (_mm_movemask_epi8(__wx0) == 0xFFFF) goto done;
+
+      __wx0 = _mm_cvtsi32_si128(fx);
+      __wy0 = _mm_cvtsi32_si128(fy);
+
+      __wx0 = _mm_shufflelo_epi16(__wx0, _MM_SHUFFLE(0, 0, 0, 0));
+      __wy0 = _mm_shufflelo_epi16(__wy0, _MM_SHUFFLE(0, 0, 0, 0));
+
+      __wx0 = _mm_shuffle_epi32(__wx0, _MM_SHUFFLE(1, 0, 1, 0));
+      __wy0 = _mm_shuffle_epi32(__wy0, _MM_SHUFFLE(1, 0, 1, 0));
+
+      __wx0 = _mm_srli_epi16(__wx0, 8);
+      pix_unpack_1x1W(__pix_x01_y0, __pix_x01_y0);
+      __wy0 = _mm_srli_epi16(__wy0, 8);
+      __wx0 = _mm_xor_si128(__wx0, Mask_0000000000000000_FFFFFFFFFFFFFFFF);
+      pix_unpack_1x1W(__pix_x01_y1, __pix_x01_y1);
+      __wx0 = _mm_add_epi16(__wx0, Mask_0000000000000000_0101010101010101);
+
+      __ww0 = _mm_mullo_epi16(__wx0, __wy0);
+      __wy0 = _mm_xor_si128(__wy0, Mask_FFFFFFFFFFFFFFFF_FFFFFFFFFFFFFFFF);
+      __ww0 = _mm_srli_epi16(__ww0, 8);
+      __wy0 = _mm_add_epi16(__wy0, Mask_0101010101010101_0101010101010101);
+
+      __wx0 = _mm_slli_epi16(__wx0, 4);
+      __wy0 = _mm_slli_epi16(__wy0, 4);
+
+      __pix_x01_y1 = _mm_mullo_epi16(__pix_x01_y1, __ww0);
+      __wy0 = _mm_mulhi_epi16(__wy0, __wx0);
+      __pix_x01_y0 = _mm_mullo_epi16(__pix_x01_y0, __wy0);
+
+      __pix_x01_y0 = _mm_add_epi16(__pix_x01_y0, __pix_x01_y1);
+      __pix_x01_y1 = _mm_shuffle_epi32(__pix_x01_y0, _MM_SHUFFLE(1, 0, 3, 2));
+      __pix_x01_y0 = _mm_add_epi16(__pix_x01_y0, __pix_x01_y1);
+
+      __pix_x01_y0 = _mm_srli_epi16(__pix_x01_y0, 8);
+
+      pix_pack_1x1W(__pix_x01_y0, __pix_x01_y0);
+done:
+      pix_store4(dstCur, __pix_x01_y0);
+      dstCur += 4;
+
+      fx += dx;
+      fy += dy;
+    } while (--i);
+
+    return dst;
+  }
+
+#if 1
   static uint8_t* FOG_FASTCALL texture_fetch_transform_bilinear_repeat_32(
     PatternContext* ctx,
     uint8_t* dst, int x, int y, int w)
@@ -441,23 +724,21 @@ struct FOG_HIDDEN PatternSSE2
 
     uint8_t* dstCur = dst;
 
-    double rx = (double)x + 0.5;
-    double ry = (double)y + 0.5;
-
     int tw = ctx->texture.w;
     int th = ctx->texture.h;
 
     int dx = ctx->texture.dx;
     int dy = ctx->texture.dy;
 
-    int fx = Math::doubleToFixed16x16(rx * ctx->m[MATRIX_SX ] + ry * ctx->m[MATRIX_SHX] + ctx->m[MATRIX_TX]);
-    int fy = Math::doubleToFixed16x16(rx * ctx->m[MATRIX_SHY] + ry * ctx->m[MATRIX_SY ] + ctx->m[MATRIX_TY]);
+    int fx;
+    int fy;
+    _vector_fetch_transformed_sse2(fx, fy, x, y, ctx->m);
 
     int fxmax = ctx->texture.fxmax;
     int fymax = ctx->texture.fymax;
 
-    fx -= 0x8000;
-    fy -= 0x8000;
+    int fxrewind = ctx->texture.fxrewind;
+    int fyrewind = ctx->texture.fyrewind;
 
     if ((fx <= -fxmax) | (fx >= fxmax)) fx %= fxmax;
     if ((fy <= -fymax) | (fy >= fymax)) fy %= fymax;
@@ -472,236 +753,251 @@ struct FOG_HIDDEN PatternSSE2
     th--;
 
     int i = w;
-/*
-    #define TEXTURE_INTERPOLATE_BILINEAR_32() \
-    { \
-      int px0 = fx >> 16; \
-      int py0 = fy >> 16; \
-      \
-      int px1 = px0 + 1; \
-      int py1 = py0 + 1; \
-      \
-      __m128i __pix_x01_y0; \
-      __m128i __pix_x01_y1; \
-      \
-      __m128i __wx0; \
-      __m128i __wy0; \
-      __m128i __ww0; \
-      \
-      if (FOG_UNLIKELY(py1 >= th | px1 >= tw)) \
-      { \
-        if (px1 >= tw) px1 -= tw; \
-        if (py1 >= th) py1 -= th; \
-        \
-        const uint8_t* src0 = srcBits + py0 * srcStride; \
-        const uint8_t* src1 = srcBits + py1 * srcStride; \
-        \
-        pix_load4(__pix_x01_y0, src0 + px0 * 4); \
-        pix_load4(__pix_x01_y1, src1 + px0 * 4); \
-        \
-        pix_load4(__wx0, src0 + px1 * 4); \
-        pix_load4(__wy0, src1 + px1 * 4); \
-        \
-        __wx0 = _mm_shuffle_epi32(__wx0, _MM_SHUFFLE(3, 2, 0, 1)); \
-        __wy0 = _mm_shuffle_epi32(__wy0, _MM_SHUFFLE(3, 2, 0, 1)); \
-        \
-        __pix_x01_y0 = _mm_or_si128(__pix_x01_y0, __wx0); \
-        __pix_x01_y1 = _mm_or_si128(__pix_x01_y1, __wy0); \
-      } \
-      else \
-      { \
-        const uint8_t* src0 = srcBits + px0 * 4; \
-        const uint8_t* src1 = src0 + py1 * srcStride; \
-        \
-        src0 += py0 * srcStride; \
-        \
-        pix_load8(__pix_x01_y0, src0); \
-        pix_load8(__pix_x01_y1, src1); \
-      } \
-      \
-      __wx0 = _mm_cvtsi32_si128(fx); \
-      __wy0 = _mm_cvtsi32_si128(fy); \
-      \
-      __wx0 = _mm_shufflelo_epi16(__wx0, _MM_SHUFFLE(0, 0, 0, 0)); \
-      __wy0 = _mm_shufflelo_epi16(__wy0, _MM_SHUFFLE(0, 0, 0, 0)); \
-      \
-      __wx0 = _mm_shuffle_epi32(__wx0, _MM_SHUFFLE(1, 0, 1, 0)); \
-      __wy0 = _mm_shuffle_epi32(__wy0, _MM_SHUFFLE(1, 0, 1, 0)); \
-      \
-      __wx0 = _mm_srli_epi16(__wx0, 8); \
-      pix_unpack_1x1W(__pix_x01_y0, __pix_x01_y0); \
-      __wy0 = _mm_srli_epi16(__wy0, 8); \
-      __wx0 = _mm_xor_si128(__wx0, Mask_0000000000000000_FFFFFFFFFFFFFFFF); \
-      pix_unpack_1x1W(__pix_x01_y1, __pix_x01_y1); \
-      __wx0 = _mm_add_epi16(__wx0, Mask_0000000000000000_0101010101010101); \
-      \
-      __ww0 = _mm_mullo_epi16(__wx0, __wy0); \
-      __wy0 = _mm_xor_si128(__wy0, Mask_FFFFFFFFFFFFFFFF_FFFFFFFFFFFFFFFF); \
-      __ww0 = _mm_srli_epi16(__ww0, 8); \
-      __wy0 = _mm_add_epi16(__wy0, Mask_0101010101010101_0101010101010101); \
-      \
-      __wy0 = _mm_slli_epi16(__wy0, 4); \
-      __wx0 = _mm_slli_epi16(__wx0, 4); \
-      \
-      __pix_x01_y1 = _mm_mullo_epi16(__pix_x01_y1, __ww0); \
-      __wy0 = _mm_mulhi_epi16(__wy0, __wx0); \
-      __pix_x01_y0 = _mm_mullo_epi16(__pix_x01_y0, __wy0); \
-      \
-      __pix_x01_y0 = _mm_add_epi16(__pix_x01_y0, __pix_x01_y1); \
-      __pix_x01_y1 = _mm_shuffle_epi32(__pix_x01_y0, _MM_SHUFFLE(1, 0, 3, 2)); \
-      __pix_x01_y0 = _mm_add_epi16(__pix_x01_y0, __pix_x01_y1); \
-      \
-      __pix_x01_y0 = _mm_srli_epi16(__pix_x01_y0, 8); \
-      \
-      pix_pack_1x1W(__pix_x01_y0, __pix_x01_y0); \
-      pix_store4(dstCur, __pix_x01_y0); \
-      \
-      dstCur += 4; \
-    }
-*/
-    #define TEXTURE_INTERPOLATE_BILINEAR_32() \
-    { \
-      int px0 = fx >> 16; \
-      int py0 = fy >> 16; \
-      \
-      __m128i __pix_x01_y0; \
-      __m128i __pix_x01_y1; \
-      \
-      __m128i __wx0; \
-      __m128i __wy0; \
-      __m128i __ww0; \
-      \
-      const uint8_t* src0 = srcBits + py0 * srcStride; \
-      \
-      if (FOG_UNLIKELY((py0 >= th) | (px0 >= tw))) \
-      { \
-        const uint8_t* src1 = src0 + srcStride; \
-        if (py0 >= th) src1 = srcBits; \
-        \
-        if (px0 >= tw) \
-        { \
-          pix_load4(__pix_x01_y0, src0 + px0 * 4); \
-          pix_load4(__pix_x01_y1, src1 + px0 * 4); \
-          \
-          pix_load4(__wx0, src0); \
-          pix_load4(__wy0, src1); \
-          \
-          __wx0 = _mm_shuffle_epi32(__wx0, _MM_SHUFFLE(3, 2, 0, 1)); \
-          __wy0 = _mm_shuffle_epi32(__wy0, _MM_SHUFFLE(3, 2, 0, 1)); \
-          \
-          __pix_x01_y0 = _mm_or_si128(__pix_x01_y0, __wx0); \
-          __pix_x01_y1 = _mm_or_si128(__pix_x01_y1, __wy0); \
-        } \
-        else \
-        { \
-          pix_load8(__pix_x01_y0, src0); \
-          pix_load8(__pix_x01_y1, src1); \
-        } \
-      } \
-      else \
-      { \
-        src0 += px0 * 4; \
-        \
-        pix_load8(__pix_x01_y0, src0); \
-        pix_load8(__pix_x01_y1, src0 + srcStride); \
-      } \
-      \
-      __wx0 = _mm_cvtsi32_si128(fx); \
-      __wy0 = _mm_cvtsi32_si128(fy); \
-      \
-      __wx0 = _mm_shufflelo_epi16(__wx0, _MM_SHUFFLE(0, 0, 0, 0)); \
-      __wy0 = _mm_shufflelo_epi16(__wy0, _MM_SHUFFLE(0, 0, 0, 0)); \
-      \
-      __wx0 = _mm_shuffle_epi32(__wx0, _MM_SHUFFLE(1, 0, 1, 0)); \
-      __wy0 = _mm_shuffle_epi32(__wy0, _MM_SHUFFLE(1, 0, 1, 0)); \
-      \
-      __wx0 = _mm_srli_epi16(__wx0, 8); \
-      pix_unpack_1x1W(__pix_x01_y0, __pix_x01_y0); \
-      __wy0 = _mm_srli_epi16(__wy0, 8); \
-      __wx0 = _mm_xor_si128(__wx0, Mask_0000000000000000_FFFFFFFFFFFFFFFF); \
-      pix_unpack_1x1W(__pix_x01_y1, __pix_x01_y1); \
-      __wx0 = _mm_add_epi16(__wx0, Mask_0000000000000000_0101010101010101); \
-      \
-      __ww0 = _mm_mullo_epi16(__wx0, __wy0); \
-      __wy0 = _mm_xor_si128(__wy0, Mask_FFFFFFFFFFFFFFFF_FFFFFFFFFFFFFFFF); \
-      __ww0 = _mm_srli_epi16(__ww0, 8); \
-      __wy0 = _mm_add_epi16(__wy0, Mask_0101010101010101_0101010101010101); \
-      \
-      __wy0 = _mm_slli_epi16(__wy0, 4); \
-      __wx0 = _mm_slli_epi16(__wx0, 4); \
-      \
-      __pix_x01_y1 = _mm_mullo_epi16(__pix_x01_y1, __ww0); \
-      __wy0 = _mm_mulhi_epi16(__wy0, __wx0); \
-      __pix_x01_y0 = _mm_mullo_epi16(__pix_x01_y0, __wy0); \
-      \
-      __pix_x01_y0 = _mm_add_epi16(__pix_x01_y0, __pix_x01_y1); \
-      __pix_x01_y1 = _mm_shuffle_epi32(__pix_x01_y0, _MM_SHUFFLE(1, 0, 3, 2)); \
-      __pix_x01_y0 = _mm_add_epi16(__pix_x01_y0, __pix_x01_y1); \
-      \
-      __pix_x01_y0 = _mm_srli_epi16(__pix_x01_y0, 8); \
-      \
-      pix_pack_1x1W(__pix_x01_y0, __pix_x01_y0); \
-      pix_store4(dstCur, __pix_x01_y0); \
-      \
-      dstCur += 4; \
-    }
 
-    if (dx >= 0 && dy >= 0)
-    {
-      do {
-        TEXTURE_INTERPOLATE_BILINEAR_32()
+    do {
+      int px0 = fx >> 16;
+      int py0 = fy >> 16;
 
-        fx += dx;
-        fy += dy;
+      __m128i __pix_x01_y0;
+      __m128i __pix_x01_y1;
 
-        if (FOG_UNLIKELY(fx >= fxmax)) fx -= fxmax;
-        if (FOG_UNLIKELY(fy >= fymax)) fy -= fymax;
-      } while (--i);
-    }
-    else if (dx >= 0 && dy < 0)
-    {
-      do {
-        TEXTURE_INTERPOLATE_BILINEAR_32()
+      __m128i __wx0;
+      __m128i __wy0;
+      __m128i __ww0;
 
-        fx += dx;
-        fy += dy;
+      const uint8_t* src0 = srcBits + (uint)py0 * srcStride;
 
-        if (FOG_UNLIKELY(fx >= fxmax)) fx -= fxmax;
-        if (FOG_UNLIKELY(fy < 0)) fy += fymax;
-      } while (--i);
-    }
-    else if (dx < 0 && dy >= 0)
-    {
-      do {
-        TEXTURE_INTERPOLATE_BILINEAR_32()
+      if (FOG_UNLIKELY(((uint)py0 >= (uint)th) | ((uint)px0 >= (uint)tw)))
+      {
+        const uint8_t* src1 = src0 + srcStride;
+        if (py0 >= th) src1 = srcBits;
 
-        fx += dx;
-        fy += dy;
+        if (px0 >= tw)
+        {
+          pix_load4(__pix_x01_y0, src0 + (uint)px0 * 4);
+          pix_load4(__pix_x01_y1, src1 + (uint)px0 * 4);
 
-        if (FOG_UNLIKELY(fx < 0)) fx += fxmax;
-        if (FOG_UNLIKELY(fy >= fymax)) fy -= fymax;
-      } while (--i);
-    }
-    else // if (dx < 0 && dy < 0)
-    {
-      do {
-        TEXTURE_INTERPOLATE_BILINEAR_32()
+          pix_load4(__wx0, src0);
+          pix_load4(__wy0, src1);
 
-        fx += dx;
-        fy += dy;
+          __wx0 = _mm_shuffle_epi32(__wx0, _MM_SHUFFLE(3, 2, 0, 1));
+          __wy0 = _mm_shuffle_epi32(__wy0, _MM_SHUFFLE(3, 2, 0, 1));
 
-        if (FOG_UNLIKELY(fx < 0)) fx += fxmax;
-        if (FOG_UNLIKELY(fy < 0)) fy += fymax;
-      } while (--i);
-    }
+          __pix_x01_y0 = _mm_or_si128(__pix_x01_y0, __wx0);
+          __pix_x01_y1 = _mm_or_si128(__pix_x01_y1, __wy0);
+        }
+        else
+        {
+          pix_load8(__pix_x01_y0, src0);
+          pix_load8(__pix_x01_y1, src1);
+        }
+      }
+      else
+      {
+        src0 += (uint)px0 * 4;
 
-    #undef TEXTURE_INTERPOLATE_BILINEAR_32
+        pix_load8(__pix_x01_y0, src0);
+        pix_load8(__pix_x01_y1, src0 + srcStride);
+      }
 
-    // Fetch the rest.
-    // if (w) _texture_do_repeat(dstCur, ctx->texture.w, w);
+      __wx0 = _mm_shuffle_epi32(__pix_x01_y0, _MM_SHUFFLE(0, 1, 1, 0));
+      __wy0 = _mm_shuffle_epi32(__pix_x01_y1, _MM_SHUFFLE(1, 0, 1, 0));
+      __wx0 = _mm_cmpeq_epi32(__wx0, __wy0);
+      if (_mm_movemask_epi8(__wx0) == 0xFFFF) goto done;
+
+      __wx0 = _mm_cvtsi32_si128(fx);
+      __wy0 = _mm_cvtsi32_si128(fy);
+
+      __wx0 = _mm_shufflelo_epi16(__wx0, _MM_SHUFFLE(0, 0, 0, 0));
+      __wy0 = _mm_shufflelo_epi16(__wy0, _MM_SHUFFLE(0, 0, 0, 0));
+
+      __wx0 = _mm_shuffle_epi32(__wx0, _MM_SHUFFLE(1, 0, 1, 0));
+      __wy0 = _mm_shuffle_epi32(__wy0, _MM_SHUFFLE(1, 0, 1, 0));
+
+      __wx0 = _mm_srli_epi16(__wx0, 8);
+      pix_unpack_1x1W(__pix_x01_y0, __pix_x01_y0);
+      __wy0 = _mm_srli_epi16(__wy0, 8);
+      __wx0 = _mm_xor_si128(__wx0, Mask_0000000000000000_FFFFFFFFFFFFFFFF);
+      pix_unpack_1x1W(__pix_x01_y1, __pix_x01_y1);
+      __wx0 = _mm_add_epi16(__wx0, Mask_0000000000000000_0101010101010101);
+
+      __ww0 = _mm_mullo_epi16(__wx0, __wy0);
+      __wy0 = _mm_xor_si128(__wy0, Mask_FFFFFFFFFFFFFFFF_FFFFFFFFFFFFFFFF);
+      __ww0 = _mm_srli_epi16(__ww0, 8);
+      __wy0 = _mm_add_epi16(__wy0, Mask_0101010101010101_0101010101010101);
+
+      __wx0 = _mm_slli_epi16(__wx0, 4);
+      __wy0 = _mm_slli_epi16(__wy0, 4);
+
+      __pix_x01_y1 = _mm_mullo_epi16(__pix_x01_y1, __ww0);
+      __wy0 = _mm_mulhi_epi16(__wy0, __wx0);
+      __pix_x01_y0 = _mm_mullo_epi16(__pix_x01_y0, __wy0);
+
+      __pix_x01_y0 = _mm_add_epi16(__pix_x01_y0, __pix_x01_y1);
+      __pix_x01_y1 = _mm_shuffle_epi32(__pix_x01_y0, _MM_SHUFFLE(1, 0, 3, 2));
+      __pix_x01_y0 = _mm_add_epi16(__pix_x01_y0, __pix_x01_y1);
+
+      __pix_x01_y0 = _mm_srli_epi16(__pix_x01_y0, 8);
+
+      pix_pack_1x1W(__pix_x01_y0, __pix_x01_y0);
+done:
+      pix_store4(dstCur, __pix_x01_y0);
+      dstCur += 4;
+
+      fx += dx;
+      fy += dy;
+
+      if (FOG_UNLIKELY((uint)fx >= (uint)fxmax)) fx += fxrewind;
+      if (FOG_UNLIKELY((uint)fy >= (uint)fymax)) fy += fyrewind;
+    } while (--i);
 
     return dst;
   }
+#endif
+
+#if 0
+  static uint8_t* FOG_FASTCALL texture_fetch_transform_bilinear_repeat_32(
+    PatternContext* ctx,
+    uint8_t* dst, int x, int y, int w)
+  {
+    FOG_ASSERT(w);
+
+    uint8_t* dstCur = dst;
+
+    __m128i m_x_y;
+    __m128i m_dx_dy;
+    __m128i m_fxmax_fymax;
+    __m128i m_fxrew_fyrew;
+
+    pix_load8(m_dx_dy, &ctx->texture.dx);
+    pix_load8(m_fxmax_fymax, &ctx->texture.fxmax);
+    pix_load8(m_fxrew_fyrew, &ctx->texture.fxrewind);
+
+    pix_expand_pixel_1x2W(m_dx_dy, m_dx_dy);
+    pix_expand_pixel_1x2W(m_fxmax_fymax, m_fxmax_fymax);
+    pix_expand_pixel_1x2W(m_fxrew_fyrew, m_fxrew_fyrew);
+
+    m_fxmax_fymax = _mm_sub_epi32(m_fxmax_fymax, Mask_0000000100000001_0000000100000001);
+
+    {
+      __m128d m_x_y_d;
+
+      _vector_fetch_transformed_sse2(m_x_y_d, x, y, ctx->m);
+      m_x_y = _mm_cvtpd_epi32(m_x_y_d);
+
+      int fx;
+      int fy;
+
+      fx = _mm_cvtsi128_si32(m_x_y);
+      m_x_y = _mm_shuffle_epi32(m_x_y, _MM_SHUFFLE(0, 1, 0, 1));
+      fy = _mm_cvtsi128_si32(m_x_y);
+
+      int fxmax = ctx->texture.fxmax;
+      int fymax = ctx->texture.fymax;
+
+      if ((fx <= -fxmax) | (fx >= fxmax)) fx %= fxmax;
+      if ((fy <= -fymax) | (fy >= fymax)) fy %= fymax;
+
+      if (fx < 0) fx += fxmax;
+      if (fy < 0) fy += fymax;
+
+      m_x_y = _mm_set_epi32(fy, fx, fy, fx);
+      m_x_y = _mm_add_epi32(m_x_y, Mask_0001000000010000_0000000000000000);
+
+      m_x_y = _mm_add_epi32(
+        m_x_y,
+        _mm_and_si128(
+          _mm_or_si128(
+            _mm_cmplt_epi32(m_x_y, _mm_setzero_si128()),
+            _mm_cmpgt_epi32(m_x_y, m_fxmax_fymax)),
+          m_fxrew_fyrew));
+    }
+
+    const uint8_t* srcBits = ctx->texture.bits;
+    sysint_t srcStride = ctx->texture.stride;
+
+    int i = w;
+
+    do {
+      __m128i m_w = _mm_srli_epi32(m_x_y, 16);
+      m_w = _mm_packs_epi32(m_w, m_w);
+
+      uint64_t pos = (uint64_t)_mm_cvtsi128_si64(m_w);
+      sysuint_t px0 = (uint)(pos & 0xFFFF); pos >>= 16;
+      sysuint_t py0 = (uint)(pos & 0xFFFF); pos >>= 16;
+      sysuint_t px1 = (uint)(pos & 0xFFFF); pos >>= 16;
+      sysuint_t py1 = (uint)(pos);
+
+      __m128i __pix_x01_y0;
+      __m128i __pix_x01_y1;
+
+      __m128i __wx0;
+      __m128i __wy0;
+      __m128i __ww0;
+
+      const uint8_t* src = srcBits + py0 * srcStride;
+      pix_load4(__pix_x01_y0, src + px0 * 4);
+      pix_load4(__wx0, src + px1 * 4);
+
+      src = srcBits + py1 * srcStride;
+      pix_load4(__pix_x01_y1, src + px0 * 4);
+      pix_load4(__wy0, src + px1 * 4);
+
+      __wx0 = _mm_shuffle_epi32(__wx0, _MM_SHUFFLE(3, 2, 0, 1));
+      __wy0 = _mm_shuffle_epi32(__wy0, _MM_SHUFFLE(3, 2, 0, 1));
+
+      __pix_x01_y0 = _mm_or_si128(__pix_x01_y0, __wx0);
+      __pix_x01_y1 = _mm_or_si128(__pix_x01_y1, __wy0);
+
+      __wx0 = _mm_shufflelo_epi16(m_x_y, _MM_SHUFFLE(0, 0, 0, 0));
+      __wy0 = _mm_shufflelo_epi16(m_x_y, _MM_SHUFFLE(2, 2, 2, 2));
+
+      __wx0 = _mm_shuffle_epi32(__wx0, _MM_SHUFFLE(1, 0, 1, 0));
+      __wy0 = _mm_shuffle_epi32(__wy0, _MM_SHUFFLE(1, 0, 1, 0));
+
+      __wx0 = _mm_srli_epi16(__wx0, 8);
+      pix_unpack_1x1W(__pix_x01_y0, __pix_x01_y0);
+      __wy0 = _mm_srli_epi16(__wy0, 8);
+      __wx0 = _mm_xor_si128(__wx0, Mask_0000000000000000_FFFFFFFFFFFFFFFF);
+      pix_unpack_1x1W(__pix_x01_y1, __pix_x01_y1);
+      __wx0 = _mm_add_epi16(__wx0, Mask_0000000000000000_0101010101010101);
+
+      __ww0 = _mm_mullo_epi16(__wx0, __wy0);
+      __wy0 = _mm_xor_si128(__wy0, Mask_FFFFFFFFFFFFFFFF_FFFFFFFFFFFFFFFF);
+      __ww0 = _mm_srli_epi16(__ww0, 8);
+      __wy0 = _mm_add_epi16(__wy0, Mask_0101010101010101_0101010101010101);
+
+      __wy0 = _mm_slli_epi16(__wy0, 4);
+      __wx0 = _mm_slli_epi16(__wx0, 4);
+
+      __pix_x01_y1 = _mm_mullo_epi16(__pix_x01_y1, __ww0);
+      __wy0 = _mm_mulhi_epi16(__wy0, __wx0);
+      __pix_x01_y0 = _mm_mullo_epi16(__pix_x01_y0, __wy0);
+
+      __pix_x01_y0 = _mm_add_epi16(__pix_x01_y0, __pix_x01_y1);
+      __pix_x01_y1 = _mm_shuffle_epi32(__pix_x01_y0, _MM_SHUFFLE(1, 0, 3, 2));
+      __pix_x01_y0 = _mm_add_epi16(__pix_x01_y0, __pix_x01_y1);
+
+      __pix_x01_y0 = _mm_srli_epi16(__pix_x01_y0, 8);
+
+      pix_pack_1x1W(__pix_x01_y0, __pix_x01_y0);
+      pix_store4(dstCur, __pix_x01_y0);
+
+      dstCur += 4;
+
+      m_x_y = _mm_add_epi32(m_x_y, m_dx_dy);
+      m_x_y = _mm_add_epi32(
+        m_x_y,
+        _mm_and_si128(
+          _mm_or_si128(
+            _mm_cmpgt_epi32(_mm_setzero_si128(), m_x_y),
+            _mm_cmpgt_epi32(m_x_y, m_fxmax_fymax)),
+          m_fxrew_fyrew));
+    } while (--i);
+
+    return dst;
+  }
+#endif
 
   // --------------------------------------------------------------------------
   // [Gradient - Linear]

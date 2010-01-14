@@ -22,18 +22,18 @@ namespace RasterUtil {
 //
 // - "PACKED"        - Compositing is done in packed (8-bit) entities (SRC/ADD OPERATOR).
 // - "UNPACKED"      - Need to unpack pixels to 16 bit entities before compositing.
-#define COMPOSITE_MODE_PACKED 0x0
-#define COMPOSITE_MODE_UNPACKED 0x1
+#define OPERATOR_MODE_PACKED 0x0
+#define OPERATOR_MODE_UNPACKED 0x1
 
 // Compositing proc.
 //
 // - "ALL"           - Process all pixels (each pixel will change DST - SRC OPERATOR).
 // - "SRC_NON_ZERO"  - Only non-zero SRC alpha will modify DST.
 // - "DST_NON_ZERO"  - Only non-zero DST alpha will modify DST. All OUT operators.
-#define COMPOSITE_PROC_ALL 0x0
-#define COMPOSITE_PROC_SRC_NON_ZERO 0x1
-#define COMPOSITE_PROC_DST_NON_ZERO 0x2
-#define COMPOSITE_PROC_PRGB32_OP_XRGB32_PREF_0xFF 0x4
+#define OPERATOR_PROC_ALL 0x0
+#define OPERATOR_PROC_SRC_NON_ZERO 0x1
+#define OPERATOR_PROC_DST_NON_ZERO 0x2
+#define OPERATOR_PROC_PRGB32_OP_XRGB32_PREF_0xFF 0x4
 
 template<typename OP>
 struct CompositeCommonSSE2
@@ -76,7 +76,7 @@ struct CompositeCommonSSE2
   static FOG_INLINE void prgb32_op_xrgb32_PREF_packed_1x1B(
     __m128i& dst0xmm, const __m128i& a0xmm, const __m128i& b0xmm)
   {
-    if (OP::PROC & COMPOSITE_PROC_PRGB32_OP_XRGB32_PREF_0xFF)
+    if (OP::PROC & OPERATOR_PROC_PRGB32_OP_XRGB32_PREF_0xFF)
       OP::prgb32_op_xrgb32_0xFF_packed_1x1B(dst0xmm, a0xmm, b0xmm);
     else
       OP::prgb32_op_xrgb32_0xXX_packed_1x1B(dst0xmm, a0xmm, b0xmm);
@@ -146,7 +146,7 @@ struct CompositeCommonSSE2
   static FOG_INLINE void prgb32_op_xrgb32_PREF_packed_1x4B(
     __m128i& dst0xmm, const __m128i& a0xmm, const __m128i& b0xmm)
   {
-    if (OP::PROC & COMPOSITE_PROC_PRGB32_OP_XRGB32_PREF_0xFF)
+    if (OP::PROC & OPERATOR_PROC_PRGB32_OP_XRGB32_PREF_0xFF)
       OP::prgb32_op_xrgb32_0xFF_packed_1x4B(dst0xmm, a0xmm, b0xmm);
     else
       OP::prgb32_op_xrgb32_0xXX_packed_1x4B(dst0xmm, a0xmm, b0xmm);
@@ -183,7 +183,7 @@ struct CompositeCommonSSE2
   static FOG_INLINE void prgb32_op_xrgb32_PREF_unpacked_1x1W(
     __m128i& dst0xmm, const __m128i& a0xmm, const __m128i& b0xmm)
   {
-    if (OP::PROC & COMPOSITE_PROC_PRGB32_OP_XRGB32_PREF_0xFF)
+    if (OP::PROC & OPERATOR_PROC_PRGB32_OP_XRGB32_PREF_0xFF)
       OP::prgb32_op_xrgb32_0xFF_unpacked_1x1W(dst0xmm, a0xmm, b0xmm);
     else
       OP::prgb32_op_xrgb32_0xXX_unpacked_1x1W(dst0xmm, a0xmm, b0xmm);
@@ -194,7 +194,7 @@ struct CompositeCommonSSE2
     __m128i& dst0xmm, const __m128i& a0xmm, const __m128i& b0xmm,
     __m128i& dst1xmm, const __m128i& a1xmm, const __m128i& b1xmm)
   {
-    if (OP::PROC & COMPOSITE_PROC_PRGB32_OP_XRGB32_PREF_0xFF)
+    if (OP::PROC & OPERATOR_PROC_PRGB32_OP_XRGB32_PREF_0xFF)
       OP::prgb32_op_xrgb32_0xFF_unpacked_2x2W(dst0xmm, a0xmm, b0xmm, dst1xmm, a1xmm, b1xmm);
     else
       OP::prgb32_op_xrgb32_0xXX_unpacked_2x2W(dst0xmm, a0xmm, b0xmm, dst1xmm, a1xmm, b1xmm);
@@ -217,7 +217,7 @@ struct CompositeBaseFuncsSSE2
 
     pix_load4(src0xmm, &src->prgb);
 
-    if (OP::MODE == COMPOSITE_MODE_PACKED)
+    if (OP::MODE == OPERATOR_MODE_PACKED)
     {
       pix_expand_pixel_1x4B(src0xmm, src0xmm);
     }
@@ -230,7 +230,7 @@ struct CompositeBaseFuncsSSE2
     BLIT_SSE2_32x4_INIT(dst, w)
 
     BLIT_SSE2_32x4_SMALL_BEGIN(blt)
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         __m128i dst0xmm;
 
@@ -255,7 +255,7 @@ struct CompositeBaseFuncsSSE2
     BLIT_SSE2_32x4_LARGE_BEGIN(blt)
       __m128i dst0xmm;
       pix_load16a(dst0xmm, dst);
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         OP::prgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, src0xmm);
       }
@@ -284,7 +284,7 @@ struct CompositeBaseFuncsSSE2
       pix_load4(src0xmm, src);
       pix_load4(dst0xmm, dst);
 
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         OP::prgb32_op_prgb32_packed_1x1B(dst0xmm, dst0xmm, src0xmm);
       }
@@ -308,7 +308,7 @@ struct CompositeBaseFuncsSSE2
       pix_load16u(src0xmm, src);
       pix_load16a(dst0xmm, dst);
 
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         OP::prgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, src0xmm);
       }
@@ -341,7 +341,7 @@ struct CompositeBaseFuncsSSE2
       pix_load4(src0xmm, src);
       pix_load4(dst0xmm, dst);
 
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         pix_unpack_1x1W(src0xmm, src0xmm);
         pix_premultiply_1x1W(src0xmm, src0xmm);
@@ -366,7 +366,7 @@ struct CompositeBaseFuncsSSE2
       __m128i src0xmm;
       __m128i dst0xmm;
 
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         __m128i src1xmm;
 
@@ -412,9 +412,9 @@ struct CompositeBaseFuncsSSE2
       pix_load4(src0xmm, src);
       pix_load4(dst0xmm, dst);
 
-      if (OP::PROC & COMPOSITE_PROC_PRGB32_OP_XRGB32_PREF_0xFF) pix_fill_alpha_1x4B(src0xmm);
+      if (OP::PROC & OPERATOR_PROC_PRGB32_OP_XRGB32_PREF_0xFF) pix_fill_alpha_1x4B(src0xmm);
 
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         OP::prgb32_op_xrgb32_PREF_packed_1x1B(dst0xmm, dst0xmm, src0xmm);
       }
@@ -438,9 +438,9 @@ struct CompositeBaseFuncsSSE2
       pix_load16u(src0xmm, src);
       pix_load16a(dst0xmm, dst);
 
-      if (OP::PROC & COMPOSITE_PROC_PRGB32_OP_XRGB32_PREF_0xFF) pix_fill_alpha_1x4B(src0xmm);
+      if (OP::PROC & OPERATOR_PROC_PRGB32_OP_XRGB32_PREF_0xFF) pix_fill_alpha_1x4B(src0xmm);
 
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         OP::prgb32_op_xrgb32_PREF_packed_1x4B(dst0xmm, dst0xmm, src0xmm);
       }
@@ -472,7 +472,7 @@ struct CompositeBaseFuncsSSE2
 
     pix_load4(src0xmm, &src->prgb);
 
-    if (OP::MODE == COMPOSITE_MODE_PACKED)
+    if (OP::MODE == OPERATOR_MODE_PACKED)
     {
       pix_expand_pixel_1x4B(src0xmm, src0xmm);
     }
@@ -485,7 +485,7 @@ struct CompositeBaseFuncsSSE2
     BLIT_SSE2_32x4_INIT(dst, w)
 
     BLIT_SSE2_32x4_SMALL_BEGIN(blt)
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         __m128i dst0xmm;
 
@@ -510,7 +510,7 @@ struct CompositeBaseFuncsSSE2
     BLIT_SSE2_32x4_LARGE_BEGIN(blt)
       __m128i dst0xmm;
       pix_load16a(dst0xmm, dst);
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         OP::xrgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, src0xmm);
       }
@@ -539,7 +539,7 @@ struct CompositeBaseFuncsSSE2
       pix_load4(src0xmm, src);
       pix_load4(dst0xmm, dst);
 
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         OP::xrgb32_op_prgb32_packed_1x1B(dst0xmm, dst0xmm, src0xmm);
       }
@@ -562,7 +562,7 @@ struct CompositeBaseFuncsSSE2
       pix_load16u(src0xmm, src);
       pix_load16a(dst0xmm, dst);
 
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         OP::xrgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, src0xmm);
       }
@@ -595,7 +595,7 @@ struct CompositeBaseFuncsSSE2
       pix_load4(src0xmm, src);
       pix_load4(dst0xmm, dst);
 
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         pix_unpack_1x1W(src0xmm, src0xmm);
         pix_premultiply_1x1W(src0xmm, src0xmm);
@@ -620,7 +620,7 @@ struct CompositeBaseFuncsSSE2
       __m128i src0xmm;
       __m128i dst0xmm;
 
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         __m128i src1xmm;
 
@@ -665,7 +665,7 @@ struct CompositeBaseFuncsSSE2
       pix_load4(src0xmm, src);
       pix_load4(dst0xmm, dst);
 
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         OP::xrgb32_op_xrgb32_packed_1x1B(dst0xmm, dst0xmm, src0xmm);
       }
@@ -689,7 +689,7 @@ struct CompositeBaseFuncsSSE2
       pix_load16u(src0xmm, src);
       pix_load16a(dst0xmm, dst);
 
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         OP::xrgb32_op_xrgb32_packed_1x4B(dst0xmm, dst0xmm, src0xmm);
       }
@@ -742,7 +742,7 @@ struct CompositeMaskInSSE2
         pix_expand_mask_1x1W(msk0xmm, msk0);
         pix_multiply_1x1W(msk0xmm, msk0xmm, src0xmm);
 
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
+        if (OP::MODE == OPERATOR_MODE_PACKED)
         {
           pix_pack_1x1W(msk0xmm, msk0xmm);
           OP::prgb32_op_prgb32_packed_1x1B(dst0xmm, dst0xmm, msk0xmm);
@@ -771,7 +771,7 @@ struct CompositeMaskInSSE2
         pix_expand_mask_2x2W(msk0xmm, msk1xmm, msk0);
         pix_multiply_2x2W(msk0xmm, msk0xmm, src0xmm, msk1xmm, msk1xmm, src0xmm);
 
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
+        if (OP::MODE == OPERATOR_MODE_PACKED)
         {
           pix_pack_2x2W(msk0xmm, msk0xmm, msk1xmm);
           OP::prgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, msk0xmm);
@@ -806,7 +806,7 @@ struct CompositeMaskInSSE2
       pix_multiply_1x2W(src0xmm, src0xmm, msk0xmm);
     }
 
-    if (OP::MODE == COMPOSITE_MODE_PACKED)
+    if (OP::MODE == OPERATOR_MODE_PACKED)
     {
       pix_pack_1x1W(src0xmm, src0xmm);
     }
@@ -814,7 +814,7 @@ struct CompositeMaskInSSE2
     BLIT_SSE2_32x4_INIT(dst, w)
 
     BLIT_SSE2_32x4_SMALL_BEGIN(blt)
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         __m128i dst0xmm;
 
@@ -839,7 +839,7 @@ struct CompositeMaskInSSE2
     BLIT_SSE2_32x4_LARGE_BEGIN(blt)
       __m128i dst0xmm;
       pix_load16a(dst0xmm, dst);
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         OP::prgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, src0xmm);
       }
@@ -876,7 +876,7 @@ struct CompositeMaskInSSE2
       pix_expand_pixel_1x2W(msk0xmm, msk0xmm);
       pix_multiply_1x2W(msk0xmm, msk0xmm, src0xmm);
 
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         pix_pack_1x1W(msk0xmm, msk0xmm);
       }
@@ -884,7 +884,7 @@ struct CompositeMaskInSSE2
       BLIT_SSE2_32x4_INIT(dst, w)
 
       BLIT_SSE2_32x4_SMALL_BEGIN(bltConst)
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
+        if (OP::MODE == OPERATOR_MODE_PACKED)
         {
           __m128i dst0xmm;
 
@@ -909,7 +909,7 @@ struct CompositeMaskInSSE2
       BLIT_SSE2_32x4_LARGE_BEGIN(bltConst)
         __m128i dst0xmm;
         pix_load16a(dst0xmm, dst);
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
+        if (OP::MODE == OPERATOR_MODE_PACKED)
         {
           OP::prgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, msk0xmm);
         }
@@ -940,7 +940,7 @@ struct CompositeMaskInSSE2
         pix_expand_mask_1x1W(msk0xmm, msk0);
         pix_multiply_1x1W(msk0xmm, msk0xmm, src0xmm);
 
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
+        if (OP::MODE == OPERATOR_MODE_PACKED)
         {
           pix_pack_1x1W(msk0xmm, msk0xmm);
           OP::prgb32_op_prgb32_packed_1x1B(dst0xmm, dst0xmm, msk0xmm);
@@ -966,7 +966,7 @@ struct CompositeMaskInSSE2
         pix_expand_mask_2x2W(msk0xmm, msk1xmm, msk0xmm);
         pix_multiply_2x2W(msk0xmm, msk0xmm, src0xmm, msk1xmm, msk1xmm, src0xmm);
 
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
+        if (OP::MODE == OPERATOR_MODE_PACKED)
         {
           pix_pack_2x2W(msk0xmm, msk0xmm, msk1xmm);
           OP::prgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, msk0xmm);
@@ -1004,7 +1004,7 @@ struct CompositeMaskInSSE2
         pix_load4(dst0xmm, dst);
         pix_expand_mask_1x1W(msk0xmm, msk0);
 
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
+        if (OP::MODE == OPERATOR_MODE_PACKED)
         {
           pix_unpack_1x1W(src0xmm, src0xmm);
           pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
@@ -1044,7 +1044,7 @@ struct CompositeMaskInSSE2
           pix_multiply_2x2W(src0xmm, src0xmm, msk0xmm, src1xmm, src1xmm, msk1xmm);
         }
 
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
+        if (OP::MODE == OPERATOR_MODE_PACKED)
         {
           pix_pack_2x2W(src0xmm, src0xmm, src1xmm);
           OP::prgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, src0xmm);
@@ -1092,7 +1092,7 @@ struct CompositeMaskInSSE2
           pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
         }
 
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
+        if (OP::MODE == OPERATOR_MODE_PACKED)
         {
           pix_pack_1x1W(src0xmm, src0xmm);
           OP::prgb32_op_prgb32_packed_1x1B(dst0xmm, dst0xmm, src0xmm);
@@ -1144,7 +1144,7 @@ struct CompositeMaskInSSE2
           pix_multiply_2x2W(src0xmm, src0xmm, msk0xmm, src1xmm, src1xmm, msk1xmm);
         }
 
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
+        if (OP::MODE == OPERATOR_MODE_PACKED)
         {
           pix_pack_2x2W(src0xmm, src0xmm, src1xmm);
           OP::prgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, src0xmm);
@@ -1184,7 +1184,7 @@ struct CompositeMaskInSSE2
         pix_fill_alpha_1x4B(src0xmm);
         pix_expand_mask_1x1W(msk0xmm, msk0);
 
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
+        if (OP::MODE == OPERATOR_MODE_PACKED)
         {
           pix_unpack_1x1W(src0xmm, src0xmm);
           pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
@@ -1224,7 +1224,7 @@ struct CompositeMaskInSSE2
           pix_multiply_2x2W(src0xmm, src0xmm, msk0xmm, src1xmm, src1xmm, msk1xmm);
         }
 
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
+        if (OP::MODE == OPERATOR_MODE_PACKED)
         {
           pix_pack_2x2W(src0xmm, src0xmm, src1xmm);
           OP::prgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, src0xmm);
@@ -1262,7 +1262,7 @@ struct CompositeMaskInSSE2
       pix_load4(src0xmm, src);
       pix_load4(dst0xmm, dst);
 
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         pix_unpack_1x1W(src0xmm, src0xmm);
         pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
@@ -1293,7 +1293,7 @@ struct CompositeMaskInSSE2
       pix_unpack_2x2W(src0xmm, src1xmm, src0xmm);
       pix_multiply_2x2W(src0xmm, src0xmm, msk0xmm, src1xmm, src1xmm, msk0xmm);
 
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         pix_pack_2x2W(src0xmm, src0xmm, src1xmm);
         OP::prgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, src0xmm);
@@ -1340,7 +1340,7 @@ struct CompositeMaskInSSE2
         pix_multiply_1x1W(src0xmm, src0xmm, a0xmm);
       }
 
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         pix_pack_1x1W(src0xmm, src0xmm);
         OP::prgb32_op_prgb32_packed_1x1B(dst0xmm, dst0xmm, src0xmm);
@@ -1385,7 +1385,7 @@ struct CompositeMaskInSSE2
         pix_multiply_2x2W(src0xmm, src0xmm, tmp0xmm, src1xmm, src1xmm, tmp1xmm);
       }
 
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         pix_pack_2x2W(src0xmm, src0xmm, src1xmm);
         OP::prgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, src0xmm);
@@ -1423,7 +1423,7 @@ struct CompositeMaskInSSE2
 
       pix_fill_alpha_1x4B(src0xmm);
 
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         pix_unpack_1x1W(src0xmm, src0xmm);
         pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
@@ -1456,7 +1456,7 @@ struct CompositeMaskInSSE2
       pix_unpack_2x2W(src0xmm, src1xmm, src0xmm);
       pix_multiply_2x2W(src0xmm, src0xmm, msk0xmm, src1xmm, src1xmm, msk0xmm);
 
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         pix_pack_2x2W(src0xmm, src0xmm, src1xmm);
         OP::prgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, src0xmm);
@@ -1503,7 +1503,7 @@ struct CompositeMaskInSSE2
         pix_expand_mask_1x1W(msk0xmm, msk0);
         pix_multiply_1x1W(msk0xmm, msk0xmm, src0xmm);
 
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
+        if (OP::MODE == OPERATOR_MODE_PACKED)
         {
           pix_pack_1x1W(msk0xmm, msk0xmm);
           OP::xrgb32_op_prgb32_packed_1x1B(dst0xmm, dst0xmm, msk0xmm);
@@ -1532,7 +1532,7 @@ struct CompositeMaskInSSE2
         pix_expand_mask_2x2W(msk0xmm, msk1xmm, msk0);
         pix_multiply_2x2W(msk0xmm, msk0xmm, src0xmm, msk1xmm, msk1xmm, src0xmm);
 
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
+        if (OP::MODE == OPERATOR_MODE_PACKED)
         {
           pix_pack_2x2W(msk0xmm, msk0xmm, msk1xmm);
           OP::xrgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, msk0xmm);
@@ -1567,7 +1567,7 @@ struct CompositeMaskInSSE2
       pix_multiply_1x2W(src0xmm, src0xmm, msk0xmm);
     }
 
-    if (OP::MODE == COMPOSITE_MODE_PACKED)
+    if (OP::MODE == OPERATOR_MODE_PACKED)
     {
       pix_pack_1x1W(src0xmm, src0xmm);
     }
@@ -1575,7 +1575,7 @@ struct CompositeMaskInSSE2
     BLIT_SSE2_32x4_INIT(dst, w)
 
     BLIT_SSE2_32x4_SMALL_BEGIN(blt)
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         __m128i dst0xmm;
 
@@ -1600,7 +1600,7 @@ struct CompositeMaskInSSE2
     BLIT_SSE2_32x4_LARGE_BEGIN(blt)
       __m128i dst0xmm;
       pix_load16a(dst0xmm, dst);
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         OP::xrgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, src0xmm);
       }
@@ -1637,7 +1637,7 @@ struct CompositeMaskInSSE2
       pix_expand_pixel_1x2W(msk0xmm, msk0xmm);
       pix_multiply_1x2W(msk0xmm, msk0xmm, src0xmm);
 
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         pix_pack_1x1W(msk0xmm, msk0xmm);
       }
@@ -1645,7 +1645,7 @@ struct CompositeMaskInSSE2
       BLIT_SSE2_32x4_INIT(dst, w)
 
       BLIT_SSE2_32x4_SMALL_BEGIN(bltConst)
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
+        if (OP::MODE == OPERATOR_MODE_PACKED)
         {
           __m128i dst0xmm;
 
@@ -1670,7 +1670,7 @@ struct CompositeMaskInSSE2
       BLIT_SSE2_32x4_LARGE_BEGIN(bltConst)
         __m128i dst0xmm;
         pix_load16a(dst0xmm, dst);
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
+        if (OP::MODE == OPERATOR_MODE_PACKED)
         {
           OP::xrgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, msk0xmm);
         }
@@ -1701,7 +1701,7 @@ struct CompositeMaskInSSE2
         pix_expand_mask_1x1W(msk0xmm, msk0);
         pix_multiply_1x1W(msk0xmm, msk0xmm, src0xmm);
 
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
+        if (OP::MODE == OPERATOR_MODE_PACKED)
         {
           pix_pack_1x1W(msk0xmm, msk0xmm);
           OP::xrgb32_op_prgb32_packed_1x1B(dst0xmm, dst0xmm, msk0xmm);
@@ -1727,7 +1727,7 @@ struct CompositeMaskInSSE2
         pix_expand_mask_2x2W(msk0xmm, msk1xmm, msk0xmm);
         pix_multiply_2x2W(msk0xmm, msk0xmm, src0xmm, msk1xmm, msk1xmm, src0xmm);
 
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
+        if (OP::MODE == OPERATOR_MODE_PACKED)
         {
           pix_pack_2x2W(msk0xmm, msk0xmm, msk1xmm);
           OP::xrgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, msk0xmm);
@@ -1765,7 +1765,7 @@ struct CompositeMaskInSSE2
         pix_load4(dst0xmm, dst);
         pix_expand_mask_1x1W(msk0xmm, msk0);
 
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
+        if (OP::MODE == OPERATOR_MODE_PACKED)
         {
           pix_unpack_1x1W(src0xmm, src0xmm);
           pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
@@ -1805,7 +1805,7 @@ struct CompositeMaskInSSE2
           pix_multiply_2x2W(src0xmm, src0xmm, msk0xmm, src1xmm, src1xmm, msk1xmm);
         }
 
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
+        if (OP::MODE == OPERATOR_MODE_PACKED)
         {
           pix_pack_2x2W(src0xmm, src0xmm, src1xmm);
           OP::xrgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, src0xmm);
@@ -1853,7 +1853,7 @@ struct CompositeMaskInSSE2
           pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
         }
 
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
+        if (OP::MODE == OPERATOR_MODE_PACKED)
         {
           pix_pack_1x1W(src0xmm, src0xmm);
           OP::xrgb32_op_prgb32_packed_1x1B(dst0xmm, dst0xmm, src0xmm);
@@ -1905,7 +1905,7 @@ struct CompositeMaskInSSE2
           pix_multiply_2x2W(src0xmm, src0xmm, msk0xmm, src1xmm, src1xmm, msk1xmm);
         }
 
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
+        if (OP::MODE == OPERATOR_MODE_PACKED)
         {
           pix_pack_2x2W(src0xmm, src0xmm, src1xmm);
           OP::xrgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, src0xmm);
@@ -1945,7 +1945,7 @@ struct CompositeMaskInSSE2
         pix_fill_alpha_1x4B(src0xmm);
         pix_expand_mask_1x1W(msk0xmm, msk0);
 
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
+        if (OP::MODE == OPERATOR_MODE_PACKED)
         {
           pix_unpack_1x1W(src0xmm, src0xmm);
           pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
@@ -1985,7 +1985,7 @@ struct CompositeMaskInSSE2
           pix_multiply_2x2W(src0xmm, src0xmm, msk0xmm, src1xmm, src1xmm, msk1xmm);
         }
 
-        if (OP::MODE == COMPOSITE_MODE_PACKED)
+        if (OP::MODE == OPERATOR_MODE_PACKED)
         {
           pix_pack_2x2W(src0xmm, src0xmm, src1xmm);
           OP::xrgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, src0xmm);
@@ -2023,7 +2023,7 @@ struct CompositeMaskInSSE2
       pix_load4(src0xmm, src);
       pix_load4(dst0xmm, dst);
 
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         pix_unpack_1x1W(src0xmm, src0xmm);
         pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
@@ -2054,7 +2054,7 @@ struct CompositeMaskInSSE2
       pix_unpack_2x2W(src0xmm, src1xmm, src0xmm);
       pix_multiply_2x2W(src0xmm, src0xmm, msk0xmm, src1xmm, src1xmm, msk0xmm);
 
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         pix_pack_2x2W(src0xmm, src0xmm, src1xmm);
         OP::xrgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, src0xmm);
@@ -2101,7 +2101,7 @@ struct CompositeMaskInSSE2
         pix_multiply_1x1W(src0xmm, src0xmm, a0xmm);
       }
 
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         pix_pack_1x1W(src0xmm, src0xmm);
         OP::xrgb32_op_prgb32_packed_1x1B(dst0xmm, dst0xmm, src0xmm);
@@ -2163,7 +2163,7 @@ struct CompositeMaskInSSE2
         pix_multiply_2x2W(src0xmm, src0xmm, tmp0xmm, src1xmm, src1xmm, tmp1xmm);
       }
 
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         pix_pack_2x2W(src0xmm, src0xmm, src1xmm);
         OP::xrgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, src0xmm);
@@ -2201,7 +2201,7 @@ struct CompositeMaskInSSE2
 
       pix_fill_alpha_1x4B(src0xmm);
 
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         pix_unpack_1x1W(src0xmm, src0xmm);
         pix_multiply_1x1W(src0xmm, src0xmm, msk0xmm);
@@ -2234,7 +2234,7 @@ struct CompositeMaskInSSE2
       pix_unpack_2x2W(src0xmm, src1xmm, src0xmm);
       pix_multiply_2x2W(src0xmm, src0xmm, msk0xmm, src1xmm, src1xmm, msk0xmm);
 
-      if (OP::MODE == COMPOSITE_MODE_PACKED)
+      if (OP::MODE == OPERATOR_MODE_PACKED)
       {
         pix_pack_2x2W(src0xmm, src0xmm, src1xmm);
         OP::xrgb32_op_prgb32_packed_1x4B(dst0xmm, dst0xmm, src0xmm);
@@ -5190,8 +5190,8 @@ struct FOG_HIDDEN CompositeSrcOverSSE2 :
   public CompositeMaskInSSE2<CompositeSrcOverSSE2>
 {
   // Operator definitions.
-  enum { MODE = COMPOSITE_MODE_UNPACKED };
-  enum { PROC = COMPOSITE_PROC_SRC_NON_ZERO };
+  enum { MODE = OPERATOR_MODE_UNPACKED };
+  enum { PROC = OPERATOR_PROC_SRC_NON_ZERO };
 
   // Template.
 
@@ -5455,7 +5455,7 @@ struct FOG_HIDDEN CompositeSrcOverSSE2
     __m128i m0xmm;
 
     pix_load4(src0xmm, &src->prgb);
-    pix_unpack_1x2W(src0xmm, src0xmm);
+    pix_unpack_1x1W(src0xmm, src0xmm);
     pix_expand_mask_1x1W(m0xmm, msk0);
     pix_multiply_1x1W(src0xmm, src0xmm, m0xmm);
     pix_expand_alpha_1x1W(m0xmm, src0xmm);
@@ -5505,8 +5505,8 @@ struct FOG_HIDDEN CompositeSrcOverSSE2
     __m128i src0xmm;
 
     pix_load4(src0orig, &src->prgb);
+    pix_expand_pixel_1x4B(src0orig, src0orig);
     pix_unpack_1x1W(src0xmm, src0orig);
-    pix_expand_pixel_1x2W(src0xmm, src0xmm);
 
     // Const mask.
     BLIT_SSE2_CSPAN_SCANLINE_STEP2_CONST()
@@ -7207,8 +7207,8 @@ struct FOG_HIDDEN CompositeDstOverSSE2 :
   public CompositeMaskInSSE2<CompositeDstOverSSE2>
 {
   // Operator definitions.
-  enum { MODE = COMPOSITE_MODE_UNPACKED };
-  enum { PROC = COMPOSITE_PROC_DST_NON_ZERO };
+  enum { MODE = OPERATOR_MODE_UNPACKED };
+  enum { PROC = OPERATOR_PROC_DST_NON_ZERO };
 
   // PRGB32 destination.
   static FOG_INLINE void prgb32_op_prgb32_unpacked_1x1W(
@@ -8619,7 +8619,7 @@ struct FOG_HIDDEN CompositeSrcOutSSE2 :
   public CompositeMaskLerpInSSE2<CompositeSrcOutSSE2>
 {
   // Operator definitions.
-  enum { MODE = COMPOSITE_MODE_UNPACKED };
+  enum { MODE = OPERATOR_MODE_UNPACKED };
   enum { PROC = 0 };
 
   // Template.
@@ -8654,12 +8654,14 @@ struct FOG_HIDDEN CompositeSrcOutSSE2 :
     __m128i& dst0xmm, const __m128i& a0xmm, const __m128i& b0xmm)
   {
     // NOT USED!
+    FOG_ASSERT(0);
   }
 
   static FOG_INLINE void xrgb32_op_prgb32_unpacked_1x1W(
     __m128i& dst0xmm, const __m128i& a0xmm, const __m128i& b0xmm)
   {
     // NOT USED!
+    FOG_ASSERT(0);
   }
 
   static FOG_INLINE void prgb32_op_prgb32_unpacked_2x2W(
@@ -8697,6 +8699,7 @@ struct FOG_HIDDEN CompositeSrcOutSSE2 :
     __m128i& dst1xmm, const __m128i& a1xmm, const __m128i& b1xmm)
   {
     // NOT USED!
+    FOG_ASSERT(0);
   }
 
   static FOG_INLINE void xrgb32_op_prgb32_unpacked_2x2W(
@@ -8704,6 +8707,7 @@ struct FOG_HIDDEN CompositeSrcOutSSE2 :
     __m128i& dst1xmm, const __m128i& a1xmm, const __m128i& b1xmm)
   {
     // NOT USED!
+    FOG_ASSERT(0);
   }
 };
 
@@ -9137,9 +9141,9 @@ struct FOG_HIDDEN CompositeSrcAtopSSE2 :
   public CompositeMaskInSSE2<CompositeSrcAtopSSE2>
 {
   // Operator definitions.
-  enum { MODE = COMPOSITE_MODE_UNPACKED };
-  enum { PROC = COMPOSITE_PROC_SRC_NON_ZERO |
-                COMPOSITE_PROC_PRGB32_OP_XRGB32_PREF_0xFF
+  enum { MODE = OPERATOR_MODE_UNPACKED };
+  enum { PROC = OPERATOR_PROC_SRC_NON_ZERO |
+                OPERATOR_PROC_PRGB32_OP_XRGB32_PREF_0xFF
   };
 
   // Template.
@@ -9241,7 +9245,7 @@ struct FOG_HIDDEN CompositeDstAtopSSE2 :
   public CompositeMaskLerpInSSE2<CompositeDstAtopSSE2>
 {
   // Operator definitions.
-  enum { MODE = COMPOSITE_MODE_UNPACKED };
+  enum { MODE = OPERATOR_MODE_UNPACKED };
   enum { PROC = 0 };
 
   // Template.
@@ -9341,8 +9345,8 @@ struct FOG_HIDDEN CompositeXorSSE2 :
   public CompositeMaskInSSE2<CompositeXorSSE2>
 {
   // Operator definitions.
-  enum { MODE = COMPOSITE_MODE_UNPACKED };
-  enum { PROC = COMPOSITE_PROC_DST_NON_ZERO };
+  enum { MODE = OPERATOR_MODE_UNPACKED };
+  enum { PROC = OPERATOR_PROC_DST_NON_ZERO };
 
   // PRGB32 destination.
   static FOG_INLINE void prgb32_op_prgb32_unpacked_1x1W(
@@ -9510,6 +9514,7 @@ struct FOG_HIDDEN CompositeClearSSE2
           __m128i a0xmm;
 
           pix_load4(dst0xmm, dst);
+          pix_unpack_1x1W(dst0xmm, dst0xmm);
           pix_expand_mask_1x1W(a0xmm, msk0);
           pix_negate_1x1W(a0xmm, a0xmm);
           pix_multiply_1x1W(dst0xmm, dst0xmm, a0xmm);
@@ -9656,6 +9661,7 @@ struct FOG_HIDDEN CompositeClearSSE2
         __m128i msk0xmm;
 
         pix_load4(dst0xmm, dst);
+        pix_unpack_1x1W(dst0xmm, dst0xmm);
         pix_expand_mask_1x1W(msk0xmm, READ_8(msk));
         pix_negate_1x1W(msk0xmm, msk0xmm);
         pix_multiply_1x1W(dst0xmm, dst0xmm, msk0xmm);
@@ -9733,6 +9739,7 @@ struct FOG_HIDDEN CompositeClearSSE2
           __m128i a0xmm;
 
           pix_load4(dst0xmm, dst);
+          pix_unpack_1x1W(dst0xmm, dst0xmm);
           pix_expand_mask_1x1W(a0xmm, msk0);
           pix_negate_1x1W(a0xmm, a0xmm);
           pix_multiply_1x1W(dst0xmm, dst0xmm, a0xmm);
@@ -9882,6 +9889,7 @@ struct FOG_HIDDEN CompositeClearSSE2
         __m128i msk0xmm;
 
         pix_load4(dst0xmm, dst);
+        pix_unpack_1x1W(dst0xmm, dst0xmm);
         pix_expand_mask_1x1W(msk0xmm, READ_8(msk));
         pix_negate_1x1W(msk0xmm, msk0xmm);
         pix_multiply_1x1W(dst0xmm, dst0xmm, msk0xmm);
@@ -9925,8 +9933,8 @@ struct FOG_HIDDEN CompositeAddSSE2 :
   public CompositeMaskInSSE2<CompositeAddSSE2>
 {
   // Operator definitions.
-  enum { MODE = COMPOSITE_MODE_PACKED };
-  enum { PROC = COMPOSITE_PROC_SRC_NON_ZERO };
+  enum { MODE = OPERATOR_MODE_PACKED };
+  enum { PROC = OPERATOR_PROC_SRC_NON_ZERO };
 
   // Template.
   static FOG_INLINE void prgb32_op_prgb32_packed_1x1B(
@@ -10075,8 +10083,8 @@ struct FOG_HIDDEN CompositeSubtractSSE2 :
   public CompositeMaskInSSE2<CompositeSubtractSSE2>
 {
   // Operator definitions.
-  enum { MODE = COMPOSITE_MODE_PACKED };
-  enum { PROC = COMPOSITE_PROC_SRC_NON_ZERO };
+  enum { MODE = OPERATOR_MODE_PACKED };
+  enum { PROC = OPERATOR_PROC_SRC_NON_ZERO };
 
   // Template.
   static FOG_INLINE void prgb32_op_prgb32_packed_1x1B(
@@ -10293,8 +10301,8 @@ struct FOG_HIDDEN CompositeMultiplySSE2 :
   public CompositeMaskInSSE2<CompositeMultiplySSE2>
 {
   // Operator definitions.
-  enum { MODE = COMPOSITE_MODE_UNPACKED };
-  enum { PROC = COMPOSITE_PROC_SRC_NON_ZERO };
+  enum { MODE = OPERATOR_MODE_UNPACKED };
+  enum { PROC = OPERATOR_PROC_SRC_NON_ZERO };
 
   // Template.
   static FOG_INLINE void prgb32_op_prgb32_unpacked_1x1W(
@@ -10419,8 +10427,8 @@ struct FOG_HIDDEN CompositeScreenSSE2 :
   public CompositeMaskInSSE2<CompositeScreenSSE2>
 {
   // Operator definitions.
-  enum { MODE = COMPOSITE_MODE_UNPACKED };
-  enum { PROC = COMPOSITE_PROC_SRC_NON_ZERO };
+  enum { MODE = OPERATOR_MODE_UNPACKED };
+  enum { PROC = OPERATOR_PROC_SRC_NON_ZERO };
 
   // Template.
   static FOG_INLINE void prgb32_op_prgb32_unpacked_1x1W(
@@ -10545,8 +10553,8 @@ struct FOG_HIDDEN CompositeDarkenSSE2 :
   public CompositeMaskInSSE2<CompositeDarkenSSE2>
 {
   // Operator definitions.
-  enum { MODE = COMPOSITE_MODE_UNPACKED };
-  enum { PROC = COMPOSITE_PROC_SRC_NON_ZERO };
+  enum { MODE = OPERATOR_MODE_UNPACKED };
+  enum { PROC = OPERATOR_PROC_SRC_NON_ZERO };
 
   // Template.
   static FOG_INLINE void prgb32_op_prgb32_unpacked_1x1W(
@@ -10717,8 +10725,8 @@ struct FOG_HIDDEN CompositeLightenSSE2 :
   public CompositeMaskInSSE2<CompositeLightenSSE2>
 {
   // Operator definitions.
-  enum { MODE = COMPOSITE_MODE_UNPACKED };
-  enum { PROC = COMPOSITE_PROC_SRC_NON_ZERO };
+  enum { MODE = OPERATOR_MODE_UNPACKED };
+  enum { PROC = OPERATOR_PROC_SRC_NON_ZERO };
 
   // Template.
   static FOG_INLINE void prgb32_op_prgb32_unpacked_1x1W(
@@ -10889,8 +10897,8 @@ struct FOG_HIDDEN CompositeDifferenceSSE2 :
   public CompositeMaskInSSE2<CompositeDifferenceSSE2>
 {
   // Operator definitions.
-  enum { MODE = COMPOSITE_MODE_UNPACKED };
-  enum { PROC = COMPOSITE_PROC_SRC_NON_ZERO };
+  enum { MODE = OPERATOR_MODE_UNPACKED };
+  enum { PROC = OPERATOR_PROC_SRC_NON_ZERO };
 
   // Template.
   static FOG_INLINE void prgb32_op_prgb32_unpacked_1x1W(
@@ -11075,8 +11083,8 @@ struct FOG_HIDDEN CompositeExclusionSSE2 :
   public CompositeMaskInSSE2<CompositeExclusionSSE2>
 {
   // Operator definitions.
-  enum { MODE = COMPOSITE_MODE_UNPACKED };
-  enum { PROC = COMPOSITE_PROC_SRC_NON_ZERO };
+  enum { MODE = OPERATOR_MODE_UNPACKED };
+  enum { PROC = OPERATOR_PROC_SRC_NON_ZERO };
 
   // Template.
   static FOG_INLINE void prgb32_op_prgb32_unpacked_1x1W(
@@ -11281,8 +11289,8 @@ struct FOG_HIDDEN CompositeInvertSSE2 :
   public CompositeMaskInSSE2<CompositeInvertSSE2>
 {
   // Operator definitions.
-  enum { MODE = COMPOSITE_MODE_UNPACKED };
-  enum { PROC = COMPOSITE_PROC_SRC_NON_ZERO };
+  enum { MODE = OPERATOR_MODE_UNPACKED };
+  enum { PROC = OPERATOR_PROC_SRC_NON_ZERO };
 
   // Template.
   static FOG_INLINE void prgb32_op_prgb32_unpacked_1x1W(
@@ -11406,8 +11414,8 @@ struct FOG_HIDDEN CompositeInvertRgbSSE2 :
   public CompositeMaskInSSE2<CompositeInvertRgbSSE2>
 {
   // Operator definitions.
-  enum { MODE = COMPOSITE_MODE_UNPACKED };
-  enum { PROC = COMPOSITE_PROC_SRC_NON_ZERO };
+  enum { MODE = OPERATOR_MODE_UNPACKED };
+  enum { PROC = OPERATOR_PROC_SRC_NON_ZERO };
 
   // Template.
   static FOG_INLINE void prgb32_op_prgb32_unpacked_1x1W(

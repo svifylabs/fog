@@ -158,12 +158,12 @@ struct FOG_API Painter
 
   //! @brief Get compositing operator.
   //!
-  //! See @c COMPOSITE_OP enumeration for operators and their descriptions.
+  //! See @c OPERATOR_TYPE enumeration for operators and their descriptions.
   FOG_INLINE int getOperator() const { return _engine->getOperator(); }
 
   //! @brief Set compositing operator.
   //!
-  //! See @c COMPOSITE_OP enumeration for operators and their descriptions.
+  //! See @c OPERATOR_TYPE enumeration for operators and their descriptions.
   FOG_INLINE void setOperator(int op) { _engine->setOperator(op); }
 
   // --------------------------------------------------------------------------

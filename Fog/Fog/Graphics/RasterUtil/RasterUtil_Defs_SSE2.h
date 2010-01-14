@@ -346,6 +346,7 @@ static __m128i Mask_0000000000000000_0101010101010101;
 
 // D masks
 static __m128i Mask_0001000000000000_0000000000000000;
+static __m128i Mask_0001000000010000_0000000000000000;
 
 // Float masks
 static __m128  Mask_7FFFFFFF7FFFFFFF_7FFFFFFF7FFFFFFF;
@@ -354,6 +355,10 @@ static __m128i Mask_3F80000000000000_0000000000000000;
 
 // Double masks
 static __m128d Mask_7FFFFFFFFFFFFFFF_7FFFFFFFFFFFFFFF;
+static __m128d MaskD_0_5_0_5;
+static __m128d MaskD_1_0_1_0;
+static __m128d MaskD_65536_0_65536_0;
+static __m128d MaskD_32768_0_32768_0;
 
 // ============================================================================
 // [Fog::Raster_SSE2 - Helpers]

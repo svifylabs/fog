@@ -249,7 +249,7 @@ err_t Image::convert(int format)
   int h = d->height;
   int y;
 
-  RasterUtil::FunctionMap::CompositeFuncs* ops = RasterUtil::getRasterOps(targetFormat, COMPOSITE_SRC);
+  RasterUtil::FunctionMap::CompositeFuncs* ops = RasterUtil::getRasterOps(targetFormat, OPERATOR_SRC);
   RasterUtil::VSpanFn blitter = ops->vspan[sourceFormat];
 
   RasterUtil::Closure closure;
@@ -1499,7 +1499,7 @@ Image Image::scale(const Size& to, int interpolationType)
 
 err_t Image::clear(Argb c0)
 {
-  return fillRect(Rect(0, 0, getWidth(), getHeight()), c0, COMPOSITE_SRC);
+  return fillRect(Rect(0, 0, getWidth(), getHeight()), c0, OPERATOR_SRC);
 }
 
 err_t Image::drawPixel(const Point& pt, Argb c0)
@@ -1598,7 +1598,7 @@ err_t Image::drawLine(const Point& pt0, const Point& pt1, Argb c0, bool lastPoin
 
 err_t Image::fillRect(const Rect& r, Argb c0, int op)
 {
-  if ((uint)op >= COMPOSITE_COUNT) return ERR_RT_INVALID_ARGUMENT;
+  if ((uint)op >= OPERATOR_COUNT) return ERR_RT_INVALID_ARGUMENT;
 
   int x1 = r.getX1();
   int y1 = r.getY1();
@@ -1610,7 +1610,7 @@ err_t Image::fillRect(const Rect& r, Argb c0, int op)
   int fmt = _d->format;
 
   bool solid = (c0 & 0xFF000000) == 0xFF000000;
-  if (op == COMPOSITE_SRC_OVER && solid) op = COMPOSITE_SRC;
+  if (op == OPERATOR_SRC_OVER && solid) op = OPERATOR_SRC;
 
   if (x1 < 0) x1 = 0;
   if (y1 < 0) y1 = 0;
@@ -1673,7 +1673,7 @@ err_t Image::fillQGradient(const Rect& r, Argb c0, Argb c1, Argb c2, Argb c3, in
                (c2 & 0xFF000000) == 0xFF000000 &&
                (c3 & 0xFF000000) == 0xFF000000 ;
   int sourceFormat = solid ? PIXEL_FORMAT_XRGB32 : PIXEL_FORMAT_ARGB32;
-  if (op == COMPOSITE_SRC_OVER && solid) op = COMPOSITE_SRC;
+  if (op == OPERATOR_SRC_OVER && solid) op = OPERATOR_SRC;
 
   if (x1 < 0) x1 = 0;
   if (y1 < 0) y1 = 0;
@@ -1720,7 +1720,7 @@ err_t Image::fillQGradient(const Rect& r, Argb c0, Argb c1, Argb c2, Argb c3, in
     case PIXEL_FORMAT_XRGB32:
       // If operator is CompositeSrc, we will directly render gradient spans
       // into image buffer (this is fastest possible gradient rendering).
-      if (op == COMPOSITE_SRC)
+      if (op == OPERATOR_SRC)
       {
         for (i = 0; i < h; i++, dstCur += dstStride, shade0 += sizeof(uint32_t), shade1 += sizeof(uint32_t))
         {
@@ -1765,7 +1765,7 @@ err_t Image::fillHGradient(const Rect& r, Argb c0, Argb c1, int op)
   int fmt = _d->format;
 
   bool solid = ArgbUtil::isAlpha0xFF(c0) && ArgbUtil::isAlpha0xFF(c1);
-  if (op == COMPOSITE_SRC_OVER && solid) op = COMPOSITE_SRC;
+  if (op == OPERATOR_SRC_OVER && solid) op = OPERATOR_SRC;
 
   if (x1 < 0) x1 = 0;
   if (y1 < 0) y1 = 0;
@@ -1825,7 +1825,7 @@ err_t Image::fillVGradient(const Rect& r, Argb c0, Argb c1, int op)
   int fmt = _d->format;
 
   bool solid = ArgbUtil::isAlpha0xFF(c0) && ArgbUtil::isAlpha0xFF(c1);
-  if (op == COMPOSITE_SRC_OVER && solid) op = COMPOSITE_SRC;
+  if (op == OPERATOR_SRC_OVER && solid) op = OPERATOR_SRC;
 
   if (x1 < 0) x1 = 0;
   if (y1 < 0) y1 = 0;
@@ -1970,7 +1970,7 @@ static err_t _blitImage(
 // TODO: Operator should be 'int'.
 err_t Image::blitImage(const Point& pt, const Image& src, uint32_t op, uint32_t opacity)
 {
-  if ((uint)op >= COMPOSITE_COUNT) return ERR_RT_INVALID_ARGUMENT;
+  if ((uint)op >= OPERATOR_COUNT) return ERR_RT_INVALID_ARGUMENT;
   if (opacity == 0) return ERR_OK;
 
   Data* dst_d = _d;
@@ -2000,7 +2000,7 @@ err_t Image::blitImage(const Point& pt, const Image& src, uint32_t op, uint32_t 
 // TODO: Operator should be 'int'.
 err_t Image::blitImage(const Point& pt, const Image& src, const Rect& srcRect, uint32_t op, uint32_t opacity)
 {
-  if ((uint)op >= COMPOSITE_COUNT) return ERR_RT_INVALID_ARGUMENT;
+  if ((uint)op >= OPERATOR_COUNT) return ERR_RT_INVALID_ARGUMENT;
   if (!srcRect.isValid()) return ERR_OK;
   if (opacity == 0) return ERR_OK;
 

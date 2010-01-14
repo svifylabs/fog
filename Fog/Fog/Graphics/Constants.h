@@ -41,7 +41,7 @@ enum ANTI_ALIASING_TYPE
   ANTI_ALIASING_NONE = 0,
   ANTI_ALIASING_SMOOTH = 1,
 
-  ANTI_ALIASING_INVALID = 2
+  ANTI_ALIASING_COUNT = 2
 };
 
 // ============================================================================
@@ -70,7 +70,7 @@ enum BLUR_TYPE
   BLUR_GAUSSIAN = 2,
 
   //! @brief Used to catch invalid arguments.
-  BLUR_INVALID
+  BLUR_COUNT
 };
 
 static double BLUR_MAX_RADIUS = 255.0;
@@ -95,7 +95,7 @@ enum BORDER_EXTEND_MODE
   BORDER_EXTEND_COLOR = 3,
 
   //! @brief Used to catch invalid arguments.
-  BORDER_EXTEND_INVALID = 4
+  BORDER_EXTEND_COUNT = 4
 };
 
 // ============================================================================
@@ -116,7 +116,7 @@ enum COLOR_CHANNEL_TYPE
 };
 
 // ============================================================================
-// [Fog::COMPOSITE_OP]
+// [Fog::OPERATOR_TYPE]
 // ============================================================================
 
 //! @brief Image compositing operator.
@@ -124,7 +124,7 @@ enum COLOR_CHANNEL_TYPE
 //! @note Many values and formulas are from antigrain and from SVG specification
 //! that can be found here: 
 //! - http://www.w3.org/TR/2004/WD-SVG12-20041027/rendering.html
-enum COMPOSITE_OP
+enum OPERATOR_TYPE
 {
   // --------------------------------------------------------------------------
   // [SRC]
@@ -177,7 +177,7 @@ enum COMPOSITE_OP
   //!   Msk:
   //!
   //!   Da'  = Sa.m + Da.(1 - m)
-  COMPOSITE_SRC = 0,
+  OPERATOR_SRC = 0,
 
   // --------------------------------------------------------------------------
   // [DST]
@@ -203,7 +203,7 @@ enum COMPOSITE_OP
   //!
   //! Formulas for A(dst), A(src) colorspaces (NOP):
   //!   Da'  = Da
-  COMPOSITE_DST,
+  OPERATOR_DST,
 
   // --------------------------------------------------------------------------
   // [SRC_OVER]
@@ -257,7 +257,7 @@ enum COMPOSITE_OP
   //!
   //! If the source is full opaque (Sa == 1.0 or there is no alpha), it 
   //! replaces the destination.
-  COMPOSITE_SRC_OVER,
+  OPERATOR_SRC_OVER,
 
   // --------------------------------------------------------------------------
   // [DST_OVER]
@@ -310,7 +310,7 @@ enum COMPOSITE_OP
   //!
   //! If the destination is full opaque (Da == 1.0 or there is no aplha), there
   //! is no change.
-  COMPOSITE_DST_OVER,
+  OPERATOR_DST_OVER,
 
   // --------------------------------------------------------------------------
   // [SRC_IN]
@@ -359,7 +359,7 @@ enum COMPOSITE_OP
   //!
   //!   Da'  = Sa.Da.m + Da.(1 - m)
   //!        = Da.(Sa.m + 1 - m)
-  COMPOSITE_SRC_IN,
+  OPERATOR_SRC_IN,
 
   // --------------------------------------------------------------------------
   // [DST_IN]
@@ -398,7 +398,7 @@ enum COMPOSITE_OP
   //!
   //!   Da'  = Sa.Da.m + Da.(1 - m)
   //!        = Da.(Sa.m + 1 - m)
-  COMPOSITE_DST_IN,
+  OPERATOR_DST_IN,
 
   // --------------------------------------------------------------------------
   // [SRC_OUT]
@@ -445,7 +445,7 @@ enum COMPOSITE_OP
   //!   Msk:
   //!
   //!   Da'  = Sa.(1 - Da).m + Da.(1 - m)
-  COMPOSITE_SRC_OUT,
+  OPERATOR_SRC_OUT,
 
   // --------------------------------------------------------------------------
   // [DST_OUT]
@@ -491,7 +491,7 @@ enum COMPOSITE_OP
   //!
   //! Formulas for A(dst), A(src) colorspaces (DST_OUT):
   //!   Da'  = Da.(1 - Sa)
-  COMPOSITE_DST_OUT,
+  OPERATOR_DST_OUT,
 
   // --------------------------------------------------------------------------
   // [SRC_ATOP]
@@ -543,7 +543,7 @@ enum COMPOSITE_OP
   //!
   //! Formulas for A(dst), A(src) colorspaces (NOP):
   //!   Da'  = Da
-  COMPOSITE_SRC_ATOP,
+  OPERATOR_SRC_ATOP,
 
   // --------------------------------------------------------------------------
   // [DST_ATOP]
@@ -588,7 +588,7 @@ enum COMPOSITE_OP
   //!   Msk:
   //!
   //!   Da'  = Sa.m + Da.(1 - m)
-  COMPOSITE_DST_ATOP,
+  OPERATOR_DST_ATOP,
 
   // --------------------------------------------------------------------------
   // [XOR]
@@ -628,7 +628,7 @@ enum COMPOSITE_OP
   //!
   //! Formulas for A(dst), A(src) colorspaces (XOR):
   //!   Da'  = Sa.(1 - Da) + Da.(1 - Sa)
-  COMPOSITE_XOR,
+  OPERATOR_XOR,
 
   // --------------------------------------------------------------------------
   // [CLEAR]
@@ -674,7 +674,7 @@ enum COMPOSITE_OP
   //!   Msk:
   //!
   //!   Da'  = Da.(1 - m)
-  COMPOSITE_CLEAR,
+  OPERATOR_CLEAR,
 
   //! @brief The source is added to the destination and replaces the destination.
   //!
@@ -720,7 +720,7 @@ enum COMPOSITE_OP
   //!   Msk:
   //!
   //!   Da'  = Sa.m + Da
-  COMPOSITE_ADD,
+  OPERATOR_ADD,
 
   //! @brief The source is subtracted from the destination and replaces 
   //! the destination.
@@ -753,7 +753,7 @@ enum COMPOSITE_OP
   //!   Msk:
   //!
   //!   Da'  = Da + Sa.m.(1 - Da)
-  COMPOSITE_SUBTRACT,
+  OPERATOR_SUBTRACT,
 
 #if 0
   // TODO: Currently not supported!
@@ -806,7 +806,7 @@ enum COMPOSITE_OP
   //!   Msk:
   //!
   //!   Da'  = Da + Sa.m.(1 - Da)
-  COMPOSITE_MULTIPLY,
+  OPERATOR_MULTIPLY,
 #endif
 
   //! @brief The source and destination are complemented and then multiplied 
@@ -850,7 +850,7 @@ enum COMPOSITE_OP
   //!   Msk:
   //!
   //!   Da'  = Da + Sa.m.(1 - Da)
-  COMPOSITE_SCREEN,
+  OPERATOR_SCREEN,
 
   //! @brief Selects the darker of the destination and source colors. The 
   //! destination is replaced with the source when the source is darker,
@@ -900,7 +900,7 @@ enum COMPOSITE_OP
   //!   Msk:
   //!
   //!   Da'  = Da + Sa.m.(1 - Da)
-  COMPOSITE_DARKEN,
+  OPERATOR_DARKEN,
 
   //! @brief Selects the lighter of the destination and source colors. The
   //! destination is replaced with the source when the source is lighter, 
@@ -950,7 +950,7 @@ enum COMPOSITE_OP
   //!   Msk:
   //!
   //!   Da'  = Da + Sa.m.(1 - Da)
-  COMPOSITE_LIGHTEN,
+  OPERATOR_LIGHTEN,
 
   //! @brief Subtracts the darker of the two constituent colors from the 
   //! lighter. Painting with white inverts the destination color. Painting
@@ -1019,7 +1019,7 @@ enum COMPOSITE_OP
   //!   Msk:
   //!
   //!   Da'  = Da + Sa.m.(1 - Da)
-  COMPOSITE_DIFFERENCE,
+  OPERATOR_DIFFERENCE,
 
   //! @brief Produces an effect similar to that of 'difference', but appears
   //! as lower contrast. Painting with white inverts the destination color.
@@ -1063,7 +1063,7 @@ enum COMPOSITE_OP
   //!   Msk:
   //!
   //!   Da'  = Da + Sa.m.(1 - Da)
-  COMPOSITE_EXCLUSION,
+  OPERATOR_EXCLUSION,
 
   //! @brief Invert.
   //!
@@ -1107,7 +1107,7 @@ enum COMPOSITE_OP
   //!   Msk:
   //!
   //!   Da'  = Da + Sa.m.(1 - Da)
-  COMPOSITE_INVERT,
+  OPERATOR_INVERT,
 
   //! @brief Invert RGB.
   //!
@@ -1149,10 +1149,40 @@ enum COMPOSITE_OP
   //!   Msk:
   //!
   //!   Da'  = Da + Sa.m.(1 - Da)
-  COMPOSITE_INVERT_RGB,
+  OPERATOR_INVERT_RGB,
 
   //! @brief Count of compositing operators (this is not a valid operator).
-  COMPOSITE_COUNT
+  OPERATOR_COUNT
+};
+
+// ============================================================================
+// [Fog::OPERATOR_CHARACTERISTICS]
+// ============================================================================
+
+//! @brief Operator characteristics (used internally by @c PaintEngine).
+//!
+//! Characteristics are always stored in bitfield.
+enum OPERATOR_CHARACTERISTICS
+{
+  //! @brief Operator uses destination color value.
+  OPERATOR_CHAR_DST_C_USED = (1 << 0),
+  //! @brief Operator uses destination alpha value.
+  OPERATOR_CHAR_DST_A_USED = (1 << 1),
+  //! @brief Operator uses source color value.
+  OPERATOR_CHAR_SRC_C_USED = (1 << 2),
+  //! @brief Operator uses source alpha value.
+  OPERATOR_CHAR_SRC_A_USED = (1 << 3),
+  //! @brief Operator is nop (@c OPERATOR_DST).
+  OPERATOR_CHAR_NOP = (1 << 4),
+  //! @brief Operator is bound.
+  //!
+  //! Bound operators means that it's possible to multiply pixel by weight value
+  //! and compositing operation will be still valid (this is related to
+  //! compositing using external mask).
+  //!
+  //! Typical bound operator is @c OPERATOR_SRC_OVER, but for example
+  //! @c OPERATOR_SRC is not bound.
+  OPERATOR_CHAR_BOUND = (1 << 5)
 };
 
 // ============================================================================
@@ -1615,7 +1645,7 @@ enum FILL_MODE
   FILL_DEFAULT = FILL_EVEN_ODD,
 
   //! @brief Used to catch invalid arguments.
-  FILL_INVALID = 2
+  FILL_MODE_COUNT = 2
 };
 
 // ============================================================================
@@ -1639,7 +1669,7 @@ enum LINE_CAP
   LINE_CAP_DEFAULT = LINE_CAP_BUTT,
 
   //! @brief Used to catch invalid arguments.
-  LINE_CAP_INVALID = 6
+  LINE_CAP_COUNT = 6
 };
 
 //! @brief Line join.
@@ -1653,7 +1683,7 @@ enum LINE_JOIN
   LINE_JOIN_DEFAULT = LINE_JOIN_MITER,
 
   //! @brief Used to catch invalid arguments.
-  LINE_JOIN_INVALID = 5
+  LINE_JOIN_COUNT = 5
 };
 
 //! @brief Inner join.
@@ -1666,7 +1696,7 @@ enum INNER_JOIN
   INNER_JOIN_DEFAULT = INNER_JOIN_MITER,
 
   //! @brief Used to catch invalid arguments.
-  INNER_JOIN_INVALID = 4
+  INNER_JOIN_COUNT = 4
 };
 
 // ============================================================================
@@ -1819,11 +1849,11 @@ enum REGION_HITTEST
 
 enum SPREAD_TYPE
 {
-  SPREAD_NONE    = 0,
-  SPREAD_PAD     = 1,
-  SPREAD_REPEAT  = 2,
+  SPREAD_NONE = 0,
+  SPREAD_PAD = 1,
+  SPREAD_REPEAT = 2,
   SPREAD_REFLECT = 3,
-  SPREAD_INVALID = 4
+  SPREAD_COUNT = 4
 };
 
 // ============================================================================
@@ -1903,6 +1933,8 @@ enum ERR_GRAPHICS_ENUM
   ERR_FONT_FREETYPE_NOT_LOADED,
   ERR_FONT_FREETYPE_INIT_FAILED
 };
+
+extern FOG_API uint32_t OperatorCharacteristics[OPERATOR_COUNT];
 
 } // Fog namespace
 

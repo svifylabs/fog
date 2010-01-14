@@ -45,6 +45,15 @@ namespace RasterUtil {
   DST = (uint32_t)((pixT0 >> 8) | (pixT0 >> 32)); \
 }
 
+#define PATTERN_C_INTERPOLATE_32_2_WITH_ZERO(DST, SRC0, WEIGHT0) \
+{ \
+  ByteUtil::byte1x4 pixT0; \
+  ByteUtil::byte1x4_unpack_0213(pixT0, (SRC0)); \
+  pixT0 *= (uint)(WEIGHT0); \
+  pixT0 &= FOG_UINT64_C(0xFF00FF00FF00FF00); \
+  DST = (uint32_t)((pixT0 >> 8) | (pixT0 >> 32)); \
+}
+
 #define PATTERN_C_INTERPOLATE_32_4(DST, SRC0, WEIGHT0, SRC1, WEIGHT1, SRC2, WEIGHT2, SRC3, WEIGHT3) \
 { \
   ByteUtil::byte1x4 pixT0; \
@@ -84,17 +93,32 @@ namespace RasterUtil {
   ByteUtil::byte2x2_unpack_0213(pixT1_0, pixT1_1, (SRC1)); \
   \
   __weight = WEIGHT0; \
-  \
   pixT0_0 *= __weight; \
   pixT0_1 *= __weight; \
   \
   __weight = WEIGHT1; \
-  \
   pixT1_0 *= __weight; \
   pixT1_1 *= __weight; \
   \
   pixT0_0 += pixT1_0; \
   pixT0_1 += pixT1_1; \
+  \
+  pixT0_0 = (pixT0_0 >> 8) & 0x00FF00FF; \
+  pixT0_1 = (pixT0_1     ) & 0xFF00FF00; \
+  \
+  DST = pixT0_0 | pixT0_1; \
+}
+
+#define PATTERN_C_INTERPOLATE_32_2_WITH_ZERO(DST, SRC0, WEIGHT0) \
+{ \
+  uint __weight; \
+  \
+  ByteUtil::byte1x2 pixT0_0, pixT0_1; \
+  ByteUtil::byte2x2_unpack_0213(pixT0_0, pixT0_1, (SRC0)); \
+  \
+  __weight = WEIGHT0; \
+  pixT0_0 *= __weight; \
+  pixT0_1 *= __weight; \
   \
   pixT0_0 = (pixT0_0 >> 8) & 0x00FF00FF; \
   pixT0_1 = (pixT0_1     ) & 0xFF00FF00; \
@@ -113,12 +137,10 @@ namespace RasterUtil {
   ByteUtil::byte2x2_unpack_0213(pixT1_0, pixT1_1, (SRC1)); \
   \
   __weight = (WEIGHT0); \
-  \
   pixT0_0 *= __weight; \
   pixT0_1 *= __weight; \
   \
   __weight = (WEIGHT1); \
-  \
   pixT1_0 *= __weight; \
   pixT1_1 *= __weight; \
   \
@@ -128,7 +150,6 @@ namespace RasterUtil {
   ByteUtil::byte2x2_unpack_0213(pixT1_0, pixT1_1, (SRC2)); \
   \
   __weight = (WEIGHT2); \
-  \
   pixT1_0 *= __weight; \
   pixT1_1 *= __weight; \
   \
@@ -138,7 +159,6 @@ namespace RasterUtil {
   ByteUtil::byte2x2_unpack_0213(pixT1_0, pixT1_1, (SRC3)); \
   \
   __weight = (WEIGHT3); \
-  \
   pixT1_0 *= __weight; \
   pixT1_1 *= __weight; \
   \
@@ -154,11 +174,133 @@ namespace RasterUtil {
 #endif
 
 // ============================================================================
+// [Fog::RasterUtil::C - Fetch]
+// ============================================================================
+
+struct FOG_HIDDEN PF_XRGB32
+{
+  static FOG_INLINE uint32_t fetch(const uint8_t* p) { return READ_32(p) | 0xFF000000; }
+};
+
+struct FOG_HIDDEN PF_ARGB32
+{
+  static FOG_INLINE uint32_t fetch(const uint8_t* p) { return ArgbUtil::premultiply(READ_32(p)); }
+};
+
+struct FOG_HIDDEN PF_PRGB32
+{
+  static FOG_INLINE uint32_t fetch(const uint8_t* p) { return READ_32(p); }
+};
+
+// ============================================================================
 // [Fog::RasterUtil::C - Pattern]
 // ============================================================================
 
 struct FOG_HIDDEN PatternC
 {
+  // --------------------------------------------------------------------------
+  // [Helpers - For making repeat patterns and fills]
+  // --------------------------------------------------------------------------
+
+  static void FOG_FASTCALL _do_repeat_32(uint8_t* dst, int linew, int w)
+  {
+    FOG_ASSERT(w > 0);
+
+    uint8_t* base = dst - (linew * 4);
+
+    uint8_t* srcCur = base;
+    uint8_t* dstCur = dst;
+
+    int i;
+
+    for (;;)
+    {
+      i = Math::min(linew, w);
+      w -= i;
+
+      i -= 4;
+      while (i >= 0)
+      {
+        Memory::copy16B(dstCur, srcCur);
+
+        dstCur += 16;
+        srcCur += 16;
+        i -= 4;
+      }
+      i += 4;
+
+      while (i)
+      {
+        ((uint32_t*)dstCur)[0] = READ_32(srcCur);
+        dstCur += 4;
+        srcCur += 4;
+        i--;
+      }
+      if (!w) break;
+
+      srcCur = base;
+      linew <<= 1;
+    }
+  }
+
+  static void FOG_FASTCALL _do_repeat_8(uint8_t* dst, int linew, int w)
+  {
+    FOG_ASSERT(w > 0);
+
+    uint8_t* base = dst - (linew * 4);
+
+    uint8_t* srcCur = base;
+    uint8_t* dstCur = dst;
+
+    int i;
+
+    for (;;)
+    {
+      i = Math::min(linew, w);
+      w -= i;
+
+      memcpy(dstCur, srcCur, i);
+      dstCur += i;
+      if (!w) break;
+
+      srcCur = base;
+      linew <<= 1;
+    }
+  }
+
+  static FOG_INLINE uint8_t* _do_fill_32(uint8_t* dstCur, uint32_t c0, int w)
+  {
+    FOG_ASSERT(w > 0);
+
+    while ((w -= 4) >= 0)
+    {
+      ((uint32_t*)dstCur)[0] = c0;
+      ((uint32_t*)dstCur)[1] = c0;
+      ((uint32_t*)dstCur)[2] = c0;
+      ((uint32_t*)dstCur)[3] = c0;
+
+      dstCur += 16;
+    }
+    w += 4;
+
+    while (w)
+    {
+      ((uint32_t*)dstCur)[0] = c0;
+      dstCur += 4;
+      w--;
+    }
+
+    return dstCur;
+  }
+
+  static FOG_INLINE uint8_t* _do_fill_8(uint8_t* dstCur, uint32_t c0, int w)
+  {
+    FOG_ASSERT(w > 0);
+
+    memset(dstCur, (int)c0, (uint)w);
+    return dstCur + w;
+  }
+
   // --------------------------------------------------------------------------
   // [Solid]
   // --------------------------------------------------------------------------
@@ -234,7 +376,7 @@ struct FOG_HIDDEN PatternC
   {
     // Only valid images can be passed to texture_init_blit.
     FOG_ASSERT(!image.isEmpty());
-    FOG_ASSERT((uint)spread < SPREAD_INVALID);
+    FOG_ASSERT((uint)spread < SPREAD_COUNT);
 
     int format = image.getFormat();
     bool isTransformed = (!Math::feq(matrix.sx, 1.0) || !Math::feq(matrix.shy, 0.0) ||
@@ -245,18 +387,16 @@ struct FOG_HIDDEN PatternC
     switch (format)
     {
       case PIXEL_FORMAT_PRGB32:
+      case PIXEL_FORMAT_ARGB32:
       case PIXEL_FORMAT_I8:
       default:
         ctx->format = PIXEL_FORMAT_PRGB32;
         ctx->depth = 32;
         break;
-      case PIXEL_FORMAT_ARGB32:
-        // TODO: Should be PRGB32.
-        ctx->format = PIXEL_FORMAT_ARGB32;
-        ctx->depth = 32;
-        break;
       case PIXEL_FORMAT_XRGB32:
-        ctx->format = PIXEL_FORMAT_XRGB32;
+        ctx->format = (spread == SPREAD_NONE)
+          ? PIXEL_FORMAT_PRGB32
+          : PIXEL_FORMAT_XRGB32;
         ctx->depth = 32;
         break;
       case PIXEL_FORMAT_A8:
@@ -289,8 +429,8 @@ struct FOG_HIDDEN PatternC
       if (interpolationType == INTERPOLATION_NEAREST)
       {
         // TODO: Check if it's correct.
-        if (fx < 128) ctx->texture.dx--;
-        if (fy < 128) ctx->texture.dy--;
+        if (fx < 128) ctx->texture.dx++;
+        if (fy < 128) ctx->texture.dy++;
         exact = true;
       }
 
@@ -343,6 +483,13 @@ struct FOG_HIDDEN PatternC
         int fxmax = ctx->texture.w << 16;
         int fymax = ctx->texture.h << 16;
 
+        if (spread == SPREAD_REFLECT)
+        {
+          fxmax *= 2;
+          fymax *= 2;
+        }
+
+        // dx/dy can't be smaller than -fxmax/-fymax or larger than fxmax/fymax.
         if ((dx <= -fxmax) | (dx >= fxmax)) { dx %= fxmax; }
         if ((dy <= -fymax) | (dy >= fymax)) { dy %= fymax; }
 
@@ -351,6 +498,10 @@ struct FOG_HIDDEN PatternC
 
         ctx->texture.fxmax = fxmax;
         ctx->texture.fymax = fymax;
+
+        // Rewind is used when fx/fy exceeds fxmax/fymax.
+        ctx->texture.fxrewind = (dx > 0) ? -fxmax : fxmax;
+        ctx->texture.fyrewind = (dy > 0) ? -fymax : fymax;
       }
 
       // Set fetch function.
@@ -377,59 +528,10 @@ struct FOG_HIDDEN PatternC
   }
 
   // --------------------------------------------------------------------------
-  // [Texture - Helpers]
-  // --------------------------------------------------------------------------
-
-  // All exact and subpixel fetchers are using same trick:
-  //
-  // If we are fetching very line larger than image width, we can improve speed
-  // by using previously fetched and interpolated pixels. Of course this applies
-  // only to non-scaled texture fetchers (exact, subx0, sub0y, subxy) or to
-  // scaled fetchers where the aspect ratio is good.
-  //
-  // The helper method for repeating is here:
-  static void FOG_FASTCALL _texture_do_repeat_32(uint8_t* dst, int linew, int w)
-  {
-    FOG_ASSERT(w);
-
-    uint8_t* base = dst - (linew * 4);
-
-    uint8_t* srcCur = base;
-    uint8_t* dstCur = dst;
-
-    int i;
-
-    for (;;)
-    {
-      i = Math::min(linew, w);
-      w -= i;
-
-      do {
-        ((uint32_t*)dstCur)[0] = ((const uint32_t*)srcCur)[0];
-        dstCur += 4;
-        srcCur += 4;
-      } while (--i);
-      if (!w) break;
-
-      srcCur = base;
-      linew <<= 1;
-    }
-  }
-
-  static FOG_INLINE uint8_t* _texture_do_fill_32(uint8_t* dstCur, uint32_t c0, int w)
-  {
-    do {
-      ((uint32_t*)dstCur)[0] = c0;
-      dstCur += 4;
-    } while (--w);
-
-    return dstCur;
-  }
-
-  // --------------------------------------------------------------------------
   // [Texture - Exact]
   // --------------------------------------------------------------------------
 
+  template<typename PF32>
   static uint8_t* FOG_FASTCALL texture_fetch_exact_none_32(
     PatternContext* ctx,
     uint8_t* dst, int x, int y, int w)
@@ -446,7 +548,7 @@ struct FOG_HIDDEN PatternC
 
     if ((uint)y >= (uint)th)
     {
-      _texture_do_fill_32(dstCur, 0x00000000, w);
+      _do_fill_32(dstCur, 0x00000000, w);
       return dst;
     }
 
@@ -462,7 +564,7 @@ struct FOG_HIDDEN PatternC
       x = 0;
       w -= i;
 
-      dstCur = _texture_do_fill_32(dstCur, 0x00000000, i);
+      dstCur = _do_fill_32(dstCur, 0x00000000, i);
       if (!w) return dst;
     }
     // Or return image buffer if span fits to it.
@@ -479,7 +581,7 @@ struct FOG_HIDDEN PatternC
       w -= i;
 
       do {
-        ((uint32_t*)dstCur)[0] = ((const uint32_t*)srcCur)[0];
+        ((uint32_t*)dstCur)[0] = PF32::fetch(srcCur);
         dstCur += 4;
         srcCur += 4;
       } while (--i);
@@ -488,12 +590,13 @@ struct FOG_HIDDEN PatternC
 
     // Fetch after.
     {
-      dstCur = _texture_do_fill_32(dstCur, 0x00000000, w);
+      dstCur = _do_fill_32(dstCur, 0x00000000, w);
     }
 
     return dst;
   }
 
+  template<typename PF32>
   static uint8_t* FOG_FASTCALL texture_fetch_exact_pad_32(
     PatternContext* ctx,
     uint8_t* dst, int x, int y, int w)
@@ -523,8 +626,8 @@ struct FOG_HIDDEN PatternC
       x = 0;
       w -= i;
 
-      uint32_t c0 = ((const uint32_t*)srcCur)[0];
-      dstCur = _texture_do_fill_32(dstCur, c0, i);
+      uint32_t c0 = PF32::fetch(srcCur);
+      dstCur = _do_fill_32(dstCur, c0, i);
       if (!w) return dst;
     }
     // Or return image buffer if span fits to it.
@@ -541,7 +644,7 @@ struct FOG_HIDDEN PatternC
       w -= i;
 
       do {
-        ((uint32_t*)dstCur)[0] = ((const uint32_t*)srcCur)[0];
+        ((uint32_t*)dstCur)[0] = PF32::fetch(srcCur);
         dstCur += 4;
         srcCur += 4;
       } while (--i);
@@ -550,13 +653,14 @@ struct FOG_HIDDEN PatternC
 
     // Fetch after.
     {
-      uint32_t c0 = ((const uint32_t*)srcBase)[tw - 1];
-      dstCur = _texture_do_fill_32(dstCur, c0, w);
+      uint32_t c0 = PF32::fetch(srcBase + (uint)tw * 4 - 4);
+      dstCur = _do_fill_32(dstCur, c0, w);
     }
 
     return dst;
   }
 
+  template<typename PF32>
   static uint8_t* FOG_FASTCALL texture_fetch_exact_repeat_32(
     PatternContext* ctx,
     uint8_t* dst, int x, int y, int w)
@@ -595,7 +699,7 @@ struct FOG_HIDDEN PatternC
       w -= i;
 
       do {
-        ((uint32_t*)dstCur)[0] = ((const uint32_t*)srcCur)[0];
+        ((uint32_t*)dstCur)[0] = PF32::fetch(srcCur);
         dstCur += 4;
         srcCur += 4;
       } while (--i);
@@ -677,6 +781,7 @@ struct FOG_HIDDEN PatternC
     return dst;
   }
 
+  template<typename PF32>
   static uint8_t* FOG_FASTCALL texture_fetch_exact_reflect_32(
     PatternContext* ctx,
     uint8_t* dst, int x, int y, int w)
@@ -721,7 +826,7 @@ struct FOG_HIDDEN PatternC
         x = 0;
 
         do {
-          ((uint32_t*)dstCur)[0] = ((const uint32_t*)srcCur)[0];
+          ((uint32_t*)dstCur)[0] = PF32::fetch(srcCur);
           dstCur += 4;
           srcCur -= 4;
         } while (--i);
@@ -737,7 +842,7 @@ struct FOG_HIDDEN PatternC
         x += i;
 
         do {
-          ((uint32_t*)dstCur)[0] = ((const uint32_t*)srcCur)[0];
+          ((uint32_t*)dstCur)[0] = PF32::fetch(srcCur);
           dstCur += 4;
           srcCur += 4;
         } while (--i);
@@ -857,6 +962,89 @@ struct FOG_HIDDEN PatternC
   // [Texture - SubXY]
   // --------------------------------------------------------------------------
 
+  template<typename PF32>
+  static uint8_t* FOG_FASTCALL texture_fetch_subx0_none_32(
+    PatternContext* ctx,
+    uint8_t* dst, int x, int y, int w)
+  {
+    FOG_ASSERT(w);
+
+    uint8_t* dstCur = dst;
+
+    int tw = ctx->texture.w;
+    int th = ctx->texture.h;
+
+    uint fY0X0 = ctx->texture.fY1X0;
+    uint fY0X1 = ctx->texture.fY1X1;
+
+    y += ctx->texture.dy;
+    x += ctx->texture.dx;
+
+    if ((y < 0) | (y >= th))
+    {
+      _do_fill_32(dstCur, 0x00000000, w);
+      return dst;
+    }
+
+    const uint8_t* srcBase = ctx->texture.bits + y * ctx->texture.stride;
+    const uint8_t* srcCur = srcBase;
+
+    uint32_t back_0 = 0x00000000;
+    int i;
+
+    // Fetch before.
+    if (x < 0)
+    {
+      i = Math::min(-x, w);
+      w -= i;
+      x = 0;
+
+      dstCur = _do_fill_32(dstCur, back_0, i);
+
+      if (w) goto doFill;
+      else return dst;
+    }
+    // Fetch texture.
+    else if (x <= tw)
+    {
+      if (x > 0)
+      {
+        srcCur += ByteUtil::mul4((uint)x);
+        back_0 = PF32::fetch(srcCur - 4);
+      }
+
+doFill:
+      i = Math::min(tw - x, w);
+      w -= i;
+
+      while (i)
+      {
+        PATTERN_C_INTERPOLATE_32_2(
+          ((uint32_t*)dstCur)[0],
+          back_0                      , fY0X0,
+          back_0 = PF32::fetch(srcCur), fY0X1)
+
+        dstCur += 4;
+        srcCur += 4;
+        i--;
+      }
+
+      // Interpolate last pixel on the row.
+      if (!w) return dst;
+      PATTERN_C_INTERPOLATE_32_2_WITH_ZERO(((uint32_t*)dstCur)[0], back_0, fY0X0)
+
+      dstCur += 4;
+      if (!--w) return dst;
+    }
+
+skipFill:
+    // Fetch after.
+    if (w) dstCur = _do_fill_32(dstCur, 0x00000000, w);
+
+    return dst;
+  }
+
+  template<typename PF32>
   static uint8_t* FOG_FASTCALL texture_fetch_subx0_pad_32(
     PatternContext* ctx,
     uint8_t* dst, int x, int y, int w)
@@ -890,8 +1078,8 @@ struct FOG_HIDDEN PatternC
       w -= i;
       x = 1;
 
-      back_0 = ((uint32_t*)srcCur)[0];
-      dstCur = _texture_do_fill_32(dstCur, back_0, i);
+      back_0 = PF32::fetch(srcCur);
+      dstCur = _do_fill_32(dstCur, back_0, i);
       srcCur += 4;
 
       if (w) goto doFill;
@@ -902,7 +1090,7 @@ struct FOG_HIDDEN PatternC
     {
       srcCur += ByteUtil::mul4(x);
 
-      back_0 = ((const uint32_t*)srcCur)[0];
+      back_0 = PF32::fetch(srcCur);
       srcCur += 4;
       if (++x == tw) goto skipFill;
 
@@ -913,8 +1101,8 @@ doFill:
       do {
         PATTERN_C_INTERPOLATE_32_2(
           ((uint32_t*)dstCur)[0],
-          back_0                               , fY0X0,
-          back_0 = ((const uint32_t*)srcCur)[0], fY0X1);
+          back_0                      , fY0X0,
+          back_0 = PF32::fetch(srcCur), fY0X1);
 
         dstCur += 4;
         srcCur += 4;
@@ -924,11 +1112,12 @@ doFill:
 
 skipFill:
     // Fetch after.
-    if (w) dstCur = _texture_do_fill_32(dstCur, ((uint32_t*)srcBase)[tw - 1], w);
+    if (w) dstCur = _do_fill_32(dstCur, PF32::fetch(srcBase + (uint)tw * 4 - 4), w);
 
     return dst;
   }
 
+  template<typename PF32>
   static uint8_t* FOG_FASTCALL texture_fetch_subx0_repeat_32(
     PatternContext* ctx,
     uint8_t* dst, int x, int y, int w)
@@ -955,7 +1144,7 @@ skipFill:
     const uint8_t* srcBase = ctx->texture.bits + y * ctx->texture.stride;
     const uint8_t* srcCur = srcBase + ByteUtil::mul4(x);
 
-    uint32_t back_0 = ((const uint32_t*)srcCur)[0];
+    uint32_t back_0 = PF32::fetch(srcCur);
 
     srcCur += 4;
 
@@ -978,8 +1167,8 @@ skipFill:
       do {
         PATTERN_C_INTERPOLATE_32_2(
           ((uint32_t*)dstCur)[0],
-          back_0                               , fY0X0,
-          back_0 = ((const uint32_t*)srcCur)[0], fY0X1);
+          back_0                      , fY0X0,
+          back_0 = PF32::fetch(srcCur), fY0X1);
 
         dstCur += 4;
         srcCur += 4;
@@ -991,11 +1180,12 @@ skipFill:
     }
 
     // Fetch the rest.
-    if (w) _texture_do_repeat_32(dstCur, tw, w);
+    if (w) _do_repeat_32(dstCur, tw, w);
 
     return dst;
   }
 
+  template<typename PF32>
   static uint8_t* FOG_FASTCALL texture_fetch_subx0_reflect_32(
     PatternContext* ctx,
     uint8_t* dst, int x, int y, int w)
@@ -1041,7 +1231,7 @@ skipFill:
       srcCur = srcBase + ByteUtil::mul4(x);
     }
 
-    back_0 = ((const uint32_t*)srcCur)[0];
+    back_0 = PF32::fetch(srcCur);
     if (++x >= tw2) x -= tw2;
 
     int r = Math::min(w, tw2);
@@ -1062,8 +1252,8 @@ skipFill:
         do {
           PATTERN_C_INTERPOLATE_32_2(
             ((uint32_t*)dstCur)[0],
-            back_0                               , fY0X0,
-            back_0 = ((const uint32_t*)srcCur)[0], fY0X1);
+            back_0                      , fY0X0,
+            back_0 = PF32::fetch(srcCur), fY0X1);
 
           dstCur += 4;
           srcCur -= 4;
@@ -1082,8 +1272,8 @@ skipFill:
         do {
           PATTERN_C_INTERPOLATE_32_2(
             ((uint32_t*)dstCur)[0],
-            back_0                               , fY0X0,
-            back_0 = ((const uint32_t*)srcCur)[0], fY0X1);
+            back_0                      , fY0X0,
+            back_0 = PF32::fetch(srcCur), fY0X1);
 
           dstCur += 4;
           srcCur += 4;
@@ -1092,11 +1282,131 @@ skipFill:
     } while (r);
 
     // Fetch the rest.
-    if (w) _texture_do_repeat_32(dstCur, tw2, w);
+    if (w) _do_repeat_32(dstCur, tw2, w);
 
     return dst;
   }
 
+  template<typename PF32>
+  static uint8_t* FOG_FASTCALL texture_fetch_sub0y_none_32(
+    PatternContext* ctx,
+    uint8_t* dst, int x, int y, int w)
+  {
+    FOG_ASSERT(w);
+
+    uint8_t* dstCur = dst;
+
+    int tw = ctx->texture.w;
+    int th = ctx->texture.h;
+
+    uint fY0X0 = ctx->texture.fY0X1;
+    uint fY1X0 = ctx->texture.fY1X1;
+
+    x += ctx->texture.dx;
+    y += ctx->texture.dy - 1;
+
+    if ((y < -1) | (y >= th))
+    {
+      _do_fill_32(dstCur, 0x00000000, w);
+      return dst;
+    }
+    else if (y == -1 || y == th - 1)
+    {
+      // This is Y border case, we need to interpolate with zero.
+
+      // Swap weight if (y == -1).
+      if (y < 0) { fY0X0 = fY1X0; y++; }
+      const uint8_t* srcBase = ctx->texture.bits + y * ctx->texture.stride;
+
+      int i;
+
+      // Fetch before.
+      if (x < 0)
+      {
+        i = Math::min(-x, w);
+        x = 0;
+        w -= i;
+
+        dstCur = _do_fill_32(dstCur, 0x00000000, i);
+        if (!w) return dst;
+      }
+
+      // Fetch texture.
+      if (x < tw)
+      {
+        const uint8_t* srcCur = srcBase + ByteUtil::mul4(x);
+
+        i = Math::min(tw - x, w);
+        w -= i;
+
+        do {
+          PATTERN_C_INTERPOLATE_32_2_WITH_ZERO(
+            ((uint32_t*)dstCur)[0],
+            PF32::fetch(srcCur), fY0X0)
+
+          dstCur += 4;
+          srcCur += 4;
+        } while (--i);
+        if (!w) return dst;
+      }
+
+      // Fetch the rest.
+      {
+        dstCur = _do_fill_32(dstCur, 0x00000000, w);
+      }
+
+      return dst;
+    }
+    else
+    {
+      const uint8_t* srcBase0 = ctx->texture.bits + y * ctx->texture.stride;
+      const uint8_t* srcBase1 = srcBase0 + ctx->texture.stride;
+
+      int i;
+
+      // Fetch before.
+      if (x < 0)
+      {
+        i = Math::min(-x, w);
+        x = 0;
+        w -= i;
+
+        dstCur = _do_fill_32(dstCur, 0x00000000, i);
+        if (!w) return dst;
+      }
+
+      // Fetch texture.
+      if (x < tw)
+      {
+        const uint8_t* srcCur0 = srcBase0 + ByteUtil::mul4(x);
+        const uint8_t* srcCur1 = srcBase1 + ByteUtil::mul4(x);
+
+        i = Math::min(tw - x, w);
+        w -= i;
+
+        do {
+          PATTERN_C_INTERPOLATE_32_2(
+            ((uint32_t*)dstCur)[0],
+            PF32::fetch(srcCur0), fY0X0,
+            PF32::fetch(srcCur1), fY1X0);
+
+          dstCur += 4;
+          srcCur0 += 4;
+          srcCur1 += 4;
+        } while (--i);
+        if (!w) return dst;
+      }
+
+      // Fetch the rest.
+      {
+        dstCur = _do_fill_32(dstCur, 0x00000000, w);
+      }
+
+      return dst;
+    }
+  }
+
+  template<typename PF32>
   static uint8_t* FOG_FASTCALL texture_fetch_sub0y_pad_32(
     PatternContext* ctx,
     uint8_t* dst, int x, int y, int w)
@@ -1131,8 +1441,8 @@ skipFill:
         x = 0;
         w -= i;
 
-        uint32_t c0 = ((const uint32_t*)srcBase)[0];
-        dstCur = _texture_do_fill_32(dstCur, c0, i);
+        uint32_t c0 = PF32::fetch(srcBase);
+        dstCur = _do_fill_32(dstCur, c0, i);
         if (!w) return dst;
       }
       // Or return image buffer if span fits to it.
@@ -1149,7 +1459,7 @@ skipFill:
         w -= i;
 
         do {
-          ((uint32_t*)dstCur)[0] = ((const uint32_t*)srcCur)[0];
+          ((uint32_t*)dstCur)[0] = PF32::fetch(srcCur);
           dstCur += 4;
           srcCur += 4;
         } while (--i);
@@ -1158,8 +1468,8 @@ skipFill:
 
       // Fetch after.
       {
-        uint32_t c0 = ((const uint32_t*)srcBase)[tw - 1];
-        dstCur = _texture_do_fill_32(dstCur, c0, w);
+        uint32_t c0 = PF32::fetch(srcBase + tw * 4 - 4);
+        dstCur = _do_fill_32(dstCur, c0, w);
       }
 
       return dst;
@@ -1180,10 +1490,10 @@ skipFill:
 
         uint32_t c0;
         PATTERN_C_INTERPOLATE_32_2(c0,
-          ((const uint32_t*)srcBase0)[0], fY0X0,
-          ((const uint32_t*)srcBase1)[0], fY1X0);
+          PF32::fetch(srcBase0), fY0X0,
+          PF32::fetch(srcBase1), fY1X0);
 
-        dstCur = _texture_do_fill_32(dstCur, c0, i);
+        dstCur = _do_fill_32(dstCur, c0, i);
         if (!w) return dst;
       }
 
@@ -1199,8 +1509,8 @@ skipFill:
         do {
           PATTERN_C_INTERPOLATE_32_2(
             ((uint32_t*)dstCur)[0],
-            ((const uint32_t*)srcCur0)[0], fY0X0,
-            ((const uint32_t*)srcCur1)[0], fY1X0);
+            PF32::fetch(srcCur0), fY0X0,
+            PF32::fetch(srcCur1), fY1X0);
 
           dstCur += 4;
           srcCur0 += 4;
@@ -1213,15 +1523,16 @@ skipFill:
       {
         uint32_t c0;
         PATTERN_C_INTERPOLATE_32_2(c0,
-          ((const uint32_t*)srcBase0)[tw - 1], fY0X0,
-          ((const uint32_t*)srcBase1)[tw - 1], fY1X0);
-        dstCur = _texture_do_fill_32(dstCur, c0, w);
+          PF32::fetch(srcBase0 + (uint)tw * 4 - 4), fY0X0,
+          PF32::fetch(srcBase1 + (uint)tw * 4 - 4), fY1X0);
+        dstCur = _do_fill_32(dstCur, c0, w);
       }
 
       return dst;
     }
   }
 
+  template<typename PF32>
   static uint8_t* FOG_FASTCALL texture_fetch_sub0y_repeat_32(
     PatternContext* ctx,
     uint8_t* dst, int x, int y, int w)
@@ -1265,8 +1576,8 @@ skipFill:
       do {
         PATTERN_C_INTERPOLATE_32_2(
           ((uint32_t*)dstCur)[0],
-          ((const uint32_t*)srcCur0)[0], fY0X0,
-          ((const uint32_t*)srcCur1)[0], fY1X0);
+          PF32::fetch(srcCur0), fY0X0,
+          PF32::fetch(srcCur1), fY1X0);
 
         dstCur += 4;
         srcCur0 += 4;
@@ -1280,11 +1591,12 @@ skipFill:
     }
 
     // Fetch the rest.
-    if (w) _texture_do_repeat_32(dstCur, tw, w);
+    if (w) _do_repeat_32(dstCur, tw, w);
 
     return dst;
   }
 
+  template<typename PF32>
   static uint8_t* FOG_FASTCALL texture_fetch_sub0y_reflect_32(
     PatternContext* ctx,
     uint8_t* dst, int x, int y, int w)
@@ -1351,8 +1663,8 @@ skipFill:
         do {
           PATTERN_C_INTERPOLATE_32_2(
             ((uint32_t*)dstCur)[0],
-            ((const uint32_t*)srcCur0)[0], fY0X0,
-            ((const uint32_t*)srcCur1)[0], fY1X0);
+            PF32::fetch(srcCur0), fY0X0,
+            PF32::fetch(srcCur1), fY1X0);
 
           dstCur += 4;
           srcCur0 -= 4;
@@ -1373,8 +1685,8 @@ skipFill:
         do {
           PATTERN_C_INTERPOLATE_32_2(
             ((uint32_t*)dstCur)[0],
-            ((const uint32_t*)srcCur0)[0], fY0X0,
-            ((const uint32_t*)srcCur1)[0], fY1X0);
+            PF32::fetch(srcCur0), fY0X0,
+            PF32::fetch(srcCur1), fY1X0);
 
           dstCur += 4;
           srcCur0 += 4;
@@ -1384,12 +1696,171 @@ skipFill:
     } while (r);
 
     // Fetch the rest.
-    if (w) _texture_do_repeat_32(dstCur, tw2, w);
+    if (w) _do_repeat_32(dstCur, tw2, w);
 
     return dst;
   }
 
   // znacka
+  template<typename PF32>
+  static uint8_t* FOG_FASTCALL texture_fetch_subxy_none_32(
+    PatternContext* ctx,
+    uint8_t* dst, int x, int y, int w)
+  {
+    FOG_ASSERT(w);
+
+    uint8_t* dstCur = dst;
+
+    int tw = ctx->texture.w;
+    int th = ctx->texture.h;
+
+    uint fY0X0 = ctx->texture.fY0X0;
+    uint fY0X1 = ctx->texture.fY0X1;
+    uint fY1X0 = ctx->texture.fY1X0;
+    uint fY1X1 = ctx->texture.fY1X1;
+
+    y += ctx->texture.dy - 1;
+    x += ctx->texture.dx;
+
+    if ((y < -1) | (y >= th))
+    {
+      _do_fill_32(dstCur, 0x00000000, w);
+      return dst;
+    }
+    else if ((y < 0) | (y >= th - 1))
+    {
+      if (y < 0) { y++; fY0X0 = fY1X0; fY0X1 = fY1X1; }
+
+      const uint8_t* srcBase = ctx->texture.bits + y * ctx->texture.stride;
+      const uint8_t* srcCur = srcBase;
+
+      uint32_t back_0 = 0x00000000;
+      int i;
+
+      // Fetch before.
+      if (x < 0)
+      {
+        i = Math::min(-x, w);
+        w -= i;
+        x = 0;
+
+        dstCur = _do_fill_32(dstCur, back_0, i);
+
+        if (w) goto doFill_2;
+        else return dst;
+      }
+      // Fetch texture.
+      else if (x <= tw)
+      {
+        if (x > 0)
+        {
+          srcCur += ByteUtil::mul4(x);
+          back_0 = PF32::fetch(srcCur - 4);
+        }
+
+doFill_2:
+        i = Math::min(tw - x, w);
+        w -= i;
+
+        while (i)
+        {
+          PATTERN_C_INTERPOLATE_32_2(
+            ((uint32_t*)dstCur)[0],
+            back_0                      , fY0X0,
+            back_0 = PF32::fetch(srcCur), fY0X1)
+
+          dstCur += 4;
+          srcCur += 4;
+          i--;
+        }
+
+        // Interpolate last pixel on the row.
+        if (!w) return dst;
+        PATTERN_C_INTERPOLATE_32_2_WITH_ZERO(((uint32_t*)dstCur)[0], back_0, fY0X0)
+
+        dstCur += 4;
+        if (!--w) return dst;
+      }
+
+      // Fetch after.
+      dstCur = _do_fill_32(dstCur, 0x00000000, w);
+
+      return dst;
+    }
+    else
+    {
+      if (y < 0) { y++; fY0X0 = fY1X0; fY0X1 = fY1X1; }
+
+      const uint8_t* srcBase = ctx->texture.bits + y * ctx->texture.stride;
+      const uint8_t* srcCur0 = srcBase;
+      const uint8_t* srcCur1 = srcBase + ctx->texture.stride;
+
+      uint32_t back_0 = 0x00000000;
+      uint32_t back_1 = 0x00000000;
+      int i;
+
+      // Fetch before.
+      if (x < 0)
+      {
+        i = Math::min(-x, w);
+        w -= i;
+        x = 0;
+
+        dstCur = _do_fill_32(dstCur, back_0, i);
+
+        if (w) goto doFill_4;
+        else return dst;
+      }
+      // Fetch texture.
+      else if (x <= tw)
+      {
+        if (x > 0)
+        {
+          srcCur0 += ByteUtil::mul4(x);
+          srcCur1 += ByteUtil::mul4(x);
+
+          back_0 = PF32::fetch(srcCur0 - 4);
+          back_1 = PF32::fetch(srcCur1 - 4);
+        }
+
+doFill_4:
+        i = Math::min(tw - x, w);
+        w -= i;
+
+        while (i)
+        {
+          PATTERN_C_INTERPOLATE_32_4(
+            ((uint32_t*)dstCur)[0],
+            back_0                       , fY0X0,
+            back_0 = PF32::fetch(srcCur0), fY0X1,
+            back_1                       , fY1X0,
+            back_1 = PF32::fetch(srcCur1), fY1X1)
+
+          dstCur += 4;
+          srcCur0 += 4;
+          srcCur1 += 4;
+          i--;
+        }
+
+        // Interpolate last pixel on the row.
+        if (!w) return dst;
+        PATTERN_C_INTERPOLATE_32_2(
+          ((uint32_t*)dstCur)[0],
+          back_0, fY0X0,
+          back_1, fY1X0)
+
+        dstCur += 4;
+        if (!--w) return dst;
+      }
+
+      // Fetch after.
+      dstCur = _do_fill_32(dstCur, 0x00000000, w);
+
+      return dst;
+    }
+  }
+
+  template<typename PF32>
   static uint8_t* FOG_FASTCALL texture_fetch_subxy_pad_32(
     PatternContext* ctx,
     uint8_t* dst, int x, int y, int w)
@@ -1429,8 +1900,8 @@ skipFill:
         w -= i;
         x = 1;
 
-        back_0 = ((uint32_t*)srcCur)[0];
-        dstCur = _texture_do_fill_32(dstCur, back_0, i);
+        back_0 = PF32::fetch(srcCur);
+        dstCur = _do_fill_32(dstCur, back_0, i);
         srcCur += 4;
 
         if (w) goto doFill_2;
@@ -1441,7 +1912,7 @@ skipFill:
       {
         srcCur += ByteUtil::mul4(x);
 
-        back_0 = ((const uint32_t*)srcCur)[0];
+        back_0 = PF32::fetch(srcCur);
         srcCur += 4;
         if (++x == tw) goto skipFill_2;
 
@@ -1452,8 +1923,8 @@ doFill_2:
         do {
           PATTERN_C_INTERPOLATE_32_2(
             ((uint32_t*)dstCur)[0],
-            back_0                               , fY0X0,
-            back_0 = ((const uint32_t*)srcCur)[0], fY0X1);
+            back_0                      , fY0X0,
+            back_0 = PF32::fetch(srcCur), fY0X1);
 
           dstCur += 4;
           srcCur += 4;
@@ -1463,7 +1934,7 @@ doFill_2:
 
 skipFill_2:
       // Fetch after.
-      if (w) dstCur = _texture_do_fill_32(dstCur, ((uint32_t*)srcBase)[tw - 1], w);
+      if (w) dstCur = _do_fill_32(dstCur, PF32::fetch(srcBase + (uint)tw * 4 - 4), w);
 
       return dst;
     }
@@ -1485,12 +1956,12 @@ skipFill_2:
         x = 0;
         w -= i;
 
-        back_0 = ((uint32_t*)srcBase0)[0];
-        back_1 = ((uint32_t*)srcBase1)[0];
+        back_0 = PF32::fetch(srcBase0);
+        back_1 = PF32::fetch(srcBase1);
 
         uint32_t c0;
         PATTERN_C_INTERPOLATE_32_2(c0, back_0, fY0X0 + fY0X1, back_1, fY1X0 + fY1X1);
-        dstCur = _texture_do_fill_32(dstCur, c0, i);
+        dstCur = _do_fill_32(dstCur, c0, i);
         if (!w) return dst;
         else goto doFill_4;
       }
@@ -1499,8 +1970,8 @@ skipFill_2:
         srcCur0 += ByteUtil::mul4(x);
         srcCur1 += ByteUtil::mul4(x);
 
-        back_0 = ((const uint32_t*)srcCur0)[0];
-        back_1 = ((const uint32_t*)srcCur1)[0];
+        back_0 = PF32::fetch(srcCur0);
+        back_1 = PF32::fetch(srcCur1);
 doFill_4:
         srcCur0 += 4;
         srcCur1 += 4;
@@ -1512,8 +1983,8 @@ doFill_4:
           PATTERN_C_INTERPOLATE_32_4(((uint32_t*)dstCur)[0],
             back_0, fY0X0,
             back_1, fY1X0,
-            back_0 = ((const uint32_t*)srcCur0)[0], fY0X1,
-            back_1 = ((const uint32_t*)srcCur1)[0], fY1X1);
+            back_0 = PF32::fetch(srcCur0), fY0X1,
+            back_1 = PF32::fetch(srcCur1), fY1X1);
 
           dstCur += 4;
           srcCur0 += 4;
@@ -1523,21 +1994,22 @@ doFill_4:
       }
       else
       {
-        back_0 = ((uint32_t*)srcBase0)[tw - 1];
-        back_1 = ((uint32_t*)srcBase1)[tw - 1];
+        back_0 = PF32::fetch(srcBase0 + (uint)tw * 4 - 4);
+        back_1 = PF32::fetch(srcBase1 + (uint)tw * 4 - 4);
       }
 
       // Fetch the rest.
       {
         uint32_t c0;
         PATTERN_C_INTERPOLATE_32_2(c0, back_0, fY0X0 + fY0X1, back_1, fY1X0 + fY1X1)
-        _texture_do_fill_32(dstCur, c0, w);
+        _do_fill_32(dstCur, c0, w);
       }
     }
 
     return dst;
   }
 
+  template<typename PF32>
   static uint8_t* FOG_FASTCALL texture_fetch_subxy_repeat_32(
     PatternContext* ctx,
     uint8_t* dst, int x, int y, int w)
@@ -1570,8 +2042,8 @@ doFill_4:
     const uint8_t* srcCur0 = srcBase0 + ByteUtil::mul4(x);
     const uint8_t* srcCur1 = srcBase1 + ByteUtil::mul4(x);
 
-    uint32_t back_0 = ((const uint32_t*)srcCur0)[0];
-    uint32_t back_1 = ((const uint32_t*)srcCur1)[0];
+    uint32_t back_0 = PF32::fetch(srcCur0);
+    uint32_t back_1 = PF32::fetch(srcCur1);
 
     srcCur0 += 4;
     srcCur1 += 4;
@@ -1597,8 +2069,8 @@ doFill_4:
         PATTERN_C_INTERPOLATE_32_4(((uint32_t*)dstCur)[0],
           back_0, fY0X0,
           back_1, fY1X0,
-          back_0 = ((const uint32_t*)srcCur0)[0], fY0X1,
-          back_1 = ((const uint32_t*)srcCur1)[0], fY1X1);
+          back_0 = PF32::fetch(srcCur0), fY0X1,
+          back_1 = PF32::fetch(srcCur1), fY1X1);
 
         dstCur += 4;
         srcCur0 += 4;
@@ -1612,11 +2084,12 @@ doFill_4:
     }
 
     // Fetch the rest.
-    if (w) _texture_do_repeat_32(dstCur, tw, w);
+    if (w) _do_repeat_32(dstCur, tw, w);
 
     return dst;
   }
 
+  template<typename PF32>
   static uint8_t* FOG_FASTCALL texture_fetch_subxy_reflect_32(
     PatternContext* ctx,
     uint8_t* dst, int x, int y, int w)
@@ -1682,8 +2155,8 @@ doFill_4:
       srcCur1 = srcBase1 + ByteUtil::mul4(x);
     }
 
-    back_0 = ((const uint32_t*)srcCur0)[0];
-    back_1 = ((const uint32_t*)srcCur1)[0];
+    back_0 = PF32::fetch(srcCur0);
+    back_1 = PF32::fetch(srcCur1);
 
     if (++x >= tw2) x -= tw2;
 
@@ -1707,8 +2180,8 @@ doFill_4:
           PATTERN_C_INTERPOLATE_32_4(((uint32_t*)dstCur)[0],
             back_0, fY0X0,
             back_1, fY1X0,
-            back_0 = ((const uint32_t*)srcCur0)[0], fY0X1,
-            back_1 = ((const uint32_t*)srcCur1)[0], fY1X1);
+            back_0 = PF32::fetch(srcCur0), fY0X1,
+            back_1 = PF32::fetch(srcCur1), fY1X1);
 
           dstCur += 4;
           srcCur0 -= 4;
@@ -1730,8 +2203,8 @@ doFill_4:
           PATTERN_C_INTERPOLATE_32_4(((uint32_t*)dstCur)[0],
             back_0, fY0X0,
             back_1, fY1X0,
-            back_0 = ((const uint32_t*)srcCur0)[0], fY0X1,
-            back_1 = ((const uint32_t*)srcCur1)[0], fY1X1);
+            back_0 = PF32::fetch(srcCur0), fY0X1,
+            back_1 = PF32::fetch(srcCur1), fY1X1);
 
           dstCur += 4;
           srcCur0 += 4;
@@ -1741,7 +2214,7 @@ doFill_4:
     } while (r);
 
     // Fetch the rest.
-    if (w) _texture_do_repeat_32(dstCur, tw2, w);
+    if (w) _do_repeat_32(dstCur, tw2, w);
 
     return dst;
   }
@@ -1750,7 +2223,8 @@ doFill_4:
   // [Texture - Transform - Nearest]
   // --------------------------------------------------------------------------
 
-  static uint8_t* FOG_FASTCALL texture_fetch_transform_nearest_pad_32(
+  template<typename PF32>
+  static uint8_t* FOG_FASTCALL texture_fetch_transform_nearest_none_32(
     PatternContext* ctx,
     uint8_t* dst, int x, int y, int w)
   {
@@ -1779,13 +2253,16 @@ doFill_4:
     int i = w;
 
     do {
+      uint32_t c0 = 0x00000000;
       int px0 = fx >> 16;
       int py0 = fy >> 16;
 
-      if (px0 < 0) px0 = 0; else if (px0 >= tw) px0 = tw - 1;
-      if (py0 < 0) py0 = 0; else if (py0 >= th) py0 = th - 1;
+      if (FOG_LIKELY(((uint)px0 < tw) & ((uint)py0) < th))
+      {
+        c0 = PF32::fetch(srcBits + (uint)py0 * srcStride + (uint)px0 * 4);
+      }
 
-      ((uint32_t*)dstCur)[0] = READ_32(srcBits + py0 * srcStride + px0 * 4);
+      ((uint32_t*)dstCur)[0] = c0;
       dstCur += 4;
 
       fx += dx;
@@ -1795,6 +2272,56 @@ doFill_4:
     return dst;
   }
 
+  template<typename PF32>
+  static uint8_t* FOG_FASTCALL texture_fetch_transform_nearest_pad_32(
+    PatternContext* ctx,
+    uint8_t* dst, int x, int y, int w)
+  {
+    FOG_ASSERT(w);
+
+    uint8_t* dstCur = dst;
+
+    double rx = (double)x + 0.5;
+    double ry = (double)y + 0.5;
+
+    int tw = ctx->texture.w;
+    int th = ctx->texture.h;
+
+    int fx = Math::doubleToFixed16x16(rx * ctx->m[MATRIX_SX ] + ry * ctx->m[MATRIX_SHX] + ctx->m[MATRIX_TX]);
+    int fy = Math::doubleToFixed16x16(rx * ctx->m[MATRIX_SHY] + ry * ctx->m[MATRIX_SY ] + ctx->m[MATRIX_TY]);
+
+    int dx = ctx->texture.dx;
+    int dy = ctx->texture.dy;
+
+    fx -= 0x8000;
+    fy -= 0x8000;
+
+    const uint8_t* srcBits = ctx->texture.bits;
+    sysint_t srcStride = ctx->texture.stride;
+
+    int i = w;
+
+    tw--;
+    th--;
+
+    do {
+      int px0 = fx >> 16;
+      int py0 = fy >> 16;
+
+      if (px0 < 0) px0 = 0; else if (px0 > tw) px0 = tw;
+      if (py0 < 0) py0 = 0; else if (py0 > th) py0 = th;
+
+      ((uint32_t*)dstCur)[0] = PF32::fetch(srcBits + (uint)py0 * srcStride + (uint)px0 * 4);
+      dstCur += 4;
+
+      fx += dx;
+      fy += dy;
+    } while (--i);
+
+    return dst;
+  }
+
+  template<typename PF32>
   static uint8_t* FOG_FASTCALL texture_fetch_transform_nearest_repeat_32(
     PatternContext* ctx,
     uint8_t* dst, int x, int y, int w)
@@ -1815,6 +2342,9 @@ doFill_4:
     int fxmax = ctx->texture.fxmax;
     int fymax = ctx->texture.fymax;
 
+    int fxrewind = ctx->texture.fxrewind;
+    int fyrewind = ctx->texture.fyrewind;
+
     fx -= 0x8000;
     fy -= 0x8000;
 
@@ -1832,16 +2362,14 @@ doFill_4:
       int px0 = fx >> 16;
       int py0 = fy >> 16;
 
-      ((uint32_t*)dstCur)[0] = READ_32(srcBits + py0 * srcStride + px0 * 4);
+      ((uint32_t*)dstCur)[0] = PF32::fetch(srcBits + (uint)py0 * srcStride + (uint)px0 * 4);
       dstCur += 4;
 
       fx += dx;
       fy += dy;
 
-      if (fx >= fxmax) fx -= fxmax;
-      if (fy >= fymax) fy -= fymax;
-      if (fx < 0) fx += fxmax;
-      if (fy < 0) fy += fymax;
+      if (FOG_UNLIKELY((uint)fx >= (uint)fxmax)) fx += fxrewind;
+      if (FOG_UNLIKELY((uint)fy >= (uint)fymax)) fy += fyrewind;
     } while (--i);
 
     return dst;
@@ -1867,6 +2395,9 @@ doFill_4:
     int fxmax = ctx->texture.fxmax;
     int fymax = ctx->texture.fymax;
 
+    int fxrewind = ctx->texture.fxrewind;
+    int fyrewind = ctx->texture.fyrewind;
+
     fx -= 0x8000;
     fy -= 0x8000;
 
@@ -1884,16 +2415,77 @@ doFill_4:
       int px0 = fx >> 16;
       int py0 = fy >> 16;
 
-      dstCur[0] = READ_8(srcBits + py0 * srcStride + px0);
+      dstCur[0] = READ_8(srcBits + (uint)py0 * srcStride + (uint)px0);
       dstCur += 1;
 
       fx += dx;
       fy += dy;
 
-      if (fx >= fxmax) fx -= fxmax;
-      if (fy >= fymax) fy -= fymax;
-      if (fx < 0) fx += fxmax;
-      if (fy < 0) fy += fymax;
+      if (FOG_UNLIKELY((uint)fx >= (uint)fxmax)) fx += fxrewind;
+      if (FOG_UNLIKELY((uint)fy >= (uint)fymax)) fy += fyrewind;
+    } while (--i);
+
+    return dst;
+  }
+
+  template<typename PF32>
+  static uint8_t* FOG_FASTCALL texture_fetch_transform_nearest_reflect_32(
+    PatternContext* ctx,
+    uint8_t* dst, int x, int y, int w)
+  {
+    FOG_ASSERT(w);
+
+    uint8_t* dstCur = dst;
+
+    double rx = (double)x + 0.5;
+    double ry = (double)y + 0.5;
+
+    int fx = Math::doubleToFixed16x16(rx * ctx->m[MATRIX_SX ] + ry * ctx->m[MATRIX_SHX] + ctx->m[MATRIX_TX]);
+    int fy = Math::doubleToFixed16x16(rx * ctx->m[MATRIX_SHY] + ry * ctx->m[MATRIX_SY ] + ctx->m[MATRIX_TY]);
+
+    int dx = ctx->texture.dx;
+    int dy = ctx->texture.dy;
+
+    int fxmax = ctx->texture.fxmax;
+    int fymax = ctx->texture.fymax;
+
+    int fxrewind = ctx->texture.fxrewind;
+    int fyrewind = ctx->texture.fyrewind;
+
+    int tw = ctx->texture.w;
+    int th = ctx->texture.h;
+
+    int tw2 = tw * 2 - 1;
+    int th2 = th * 2 - 1;
+
+    fx -= 0x8000;
+    fy -= 0x8000;
+
+    if (fx <= -fxmax || fx >= fxmax) fx %= fxmax;
+    if (fy <= -fymax || fy >= fymax) fy %= fymax;
+
+    if (fx < 0) fx += fxmax;
+    if (fy < 0) fy += fymax;
+
+    const uint8_t* srcBits = ctx->texture.bits;
+    sysint_t srcStride = ctx->texture.stride;
+
+    int i = w;
+    do {
+      int px0 = fx >> 16;
+      int py0 = fy >> 16;
+
+      if (px0 >= tw) px0 = tw2 - px0;
+      if (py0 >= th) py0 = th2 - py0;
+
+      ((uint32_t*)dstCur)[0] = PF32::fetch(srcBits + (uint)py0 * srcStride + (uint)px0 * 4);
+      dstCur += 4;
+
+      fx += dx;
+      fy += dy;
+
+      if (FOG_UNLIKELY((uint)fx >= (uint)fxmax)) fx += fxrewind;
+      if (FOG_UNLIKELY((uint)fy >= (uint)fymax)) fy += fyrewind;
     } while (--i);
 
     return dst;
@@ -1903,6 +2495,7 @@ doFill_4:
   // [Texture - Transform - Bilinear]
   // --------------------------------------------------------------------------
 
+  template<typename PF32>
   static uint8_t* FOG_FASTCALL texture_fetch_transform_bilinear_none_32(
     PatternContext* ctx,
     uint8_t* dst, int x, int y, int w)
@@ -1934,85 +2527,75 @@ doFill_4:
     tw--;
     th--;
 
-    #define TEXTURE_INTERPOLATE_BILINEAR_32() \
-    { \
-      int px0 = fx >> 16; \
-      int py0 = fy >> 16; \
-      \
-      uint32_t pix_x0y0; \
-      uint32_t pix_x1y0; \
-      uint32_t pix_x0y1; \
-      uint32_t pix_x1y1; \
-      \
-      if (FOG_UNLIKELY(((uint)px0 >= (uint)tw) | ((uint)py0 >= (uint)th))) \
-      { \
-        int px1 = px0 + 1; \
-        \
-        if (((uint)py0 <= (uint)th)) \
-        { \
-          const uint8_t* src0 = srcBits + py0 * srcStride; \
-          \
-          pix_x0y0 = (((uint)px0 <= (uint)tw)) ? READ_32(src0 + (uint)px0 * 4) : 0x00000000; \
-          pix_x1y0 = (((uint)px1 <= (uint)tw)) ? READ_32(src0 + (uint)px1 * 4) : 0x00000000; \
-        } \
-        else \
-        { \
-          pix_x0y0 = 0x00000000; \
-          pix_x1y0 = 0x00000000; \
-        } \
-        \
-        py0++; \
-        if (((uint)py0 <= (uint)th)) \
-        { \
-          const uint8_t* src0 = srcBits + py0 * srcStride; \
-          \
-          pix_x0y1 = (((uint)px0 <= (uint)tw)) ? READ_32(src0 + (uint)px0 * 4) : 0x00000000; \
-          pix_x1y1 = (((uint)px1 <= (uint)tw)) ? READ_32(src0 + (uint)px1 * 4) : 0x00000000; \
-        } \
-        else \
-        { \
-          pix_x0y1 = 0x00000000; \
-          pix_x1y1 = 0x00000000; \
-        } \
-      } \
-      else \
-      { \
-        const uint8_t* src0 = srcBits + py0 * srcStride + px0 * 4; \
-        \
-        pix_x0y0 = READ_32(src0    ); \
-        pix_x1y0 = READ_32(src0 + 4); \
-        src0 += srcStride; \
-        pix_x0y1 = READ_32(src0    ); \
-        pix_x1y1 = READ_32(src0 + 4); \
-      } \
-      \
-      uint weightx = (fx >> 8) & 0xFF; \
-      uint weighty = (fy >> 8) & 0xFF; \
-      \
-      uint w_x0y0 = ((256 - weightx) * (256 - weighty)) >> 8; \
-      uint w_x1y0 = ((weightx      ) * (256 - weighty)) >> 8; \
-      \
-      uint w_x0y1 = ((256 - weightx) * (weighty)) >> 8; \
-      uint w_x1y1 = ((weightx      ) * (weighty)) >> 8; \
-      \
-      PATTERN_C_INTERPOLATE_32_4(((uint32_t*)dstCur)[0], \
-        pix_x0y0, w_x0y0, pix_x1y0, w_x1y0, \
-        pix_x0y1, w_x0y1, pix_x1y1, w_x1y1); \
-      dstCur += 4; \
-    }
-
     do {
-      TEXTURE_INTERPOLATE_BILINEAR_32()
+      int px0 = fx >> 16;
+      int py0 = fy >> 16;
+
+      uint32_t pix_x0y0;
+      uint32_t pix_x1y0;
+      uint32_t pix_x0y1;
+      uint32_t pix_x1y1;
+
+      if (FOG_UNLIKELY(((uint)px0 >= (uint)tw) | ((uint)py0 >= (uint)th)))
+      {
+        int px1 = px0 + 1;
+
+        if (((uint)py0 <= (uint)th))
+        {
+          const uint8_t* src0 = srcBits + py0 * srcStride;
+
+          pix_x0y0 = (((uint)px0 <= (uint)tw)) ? PF32::fetch(src0 + (uint)px0 * 4) : 0x00000000;
+          pix_x1y0 = (((uint)px1 <= (uint)tw)) ? PF32::fetch(src0 + (uint)px1 * 4) : 0x00000000;
+        }
+        else
+        {
+          pix_x0y0 = 0x00000000;
+          pix_x1y0 = 0x00000000;
+        }
+
+        py0++;
+        if (((uint)py0 <= (uint)th))
+        {
+          const uint8_t* src0 = srcBits + py0 * srcStride;
+
+          pix_x0y1 = (((uint)px0 <= (uint)tw)) ? PF32::fetch(src0 + (uint)px0 * 4) : 0x00000000;
+          pix_x1y1 = (((uint)px1 <= (uint)tw)) ? PF32::fetch(src0 + (uint)px1 * 4) : 0x00000000;
+        }
+        else
+        {
+          pix_x0y1 = 0x00000000;
+          pix_x1y1 = 0x00000000;
+        }
+      }
+      else
+      {
+        const uint8_t* src0 = srcBits + py0 * srcStride + px0 * 4;
+
+        pix_x0y0 = PF32::fetch(src0    );
+        pix_x1y0 = PF32::fetch(src0 + 4);
+        src0 += srcStride;
+        pix_x0y1 = PF32::fetch(src0    );
+        pix_x1y1 = PF32::fetch(src0 + 4);
+      }
+
+      uint weightx = (fx >> 8) & 0xFF;
+      uint weighty = (fy >> 8) & 0xFF;
+
+      PATTERN_C_INTERPOLATE_32_4(((uint32_t*)dstCur)[0],
+        pix_x0y0, ((0x100 - weightx) * (0x100 - weighty)) >> 8,
+        pix_x1y0, ((weightx        ) * (0x100 - weighty)) >> 8,
+        pix_x0y1, ((0x100 - weightx) * (weighty        )) >> 8,
+        pix_x1y1, ((weightx        ) * (weighty        )) >> 8);
+      dstCur += 4;
 
       fx += dx;
       fy += dy;
     } while (--i);
 
-    #undef TEXTURE_INTERPOLATE_BILINEAR_32
-
     return dst;
   }
 
+  template<typename PF32>
   static uint8_t* FOG_FASTCALL texture_fetch_transform_bilinear_pad_32(
     PatternContext* ctx,
     uint8_t* dst, int x, int y, int w)
@@ -2044,70 +2627,60 @@ doFill_4:
     tw--;
     th--;
 
-    #define TEXTURE_INTERPOLATE_BILINEAR_32() \
-    { \
-      int px0 = fx >> 16; \
-      int py0 = fy >> 16; \
-      \
-      uint32_t pix_x0y0; \
-      uint32_t pix_x1y0; \
-      uint32_t pix_x0y1; \
-      uint32_t pix_x1y1; \
-      \
-      if (FOG_UNLIKELY(((uint)px0 >= (uint)tw) | ((uint)py0 >= (uint)th))) \
-      { \
-        int px1 = px0 + 1; \
-        int py1 = py0 + 1; \
-        \
-        if (px0 < 0) { px0 = px1 = 0; } else if (px0 >= tw) { px0 = px1 = tw; } \
-        if (py0 < 0) { py0 = py1 = 0; } else if (py0 >= th) { py0 = py1 = th; } \
-        \
-        const uint8_t* src0 = srcBits + py0 * srcStride; \
-        const uint8_t* src1 = srcBits + py1 * srcStride; \
-        \
-        pix_x0y0 = READ_32(src0 + px0 * 4); \
-        pix_x1y0 = READ_32(src0 + px1 * 4); \
-        pix_x0y1 = READ_32(src1 + px0 * 4); \
-        pix_x1y1 = READ_32(src1 + px1 * 4); \
-      } \
-      else \
-      { \
-        const uint8_t* src0 = srcBits + py0 * srcStride + px0 * 4; \
-        \
-        pix_x0y0 = READ_32(src0    ); \
-        pix_x1y0 = READ_32(src0 + 4); \
-        src0 += srcStride; \
-        pix_x0y1 = READ_32(src0    ); \
-        pix_x1y1 = READ_32(src0 + 4); \
-      } \
-      \
-      uint weightx = (fx >> 8) & 0xFF; \
-      uint weighty = (fy >> 8) & 0xFF; \
-      \
-      uint w_x0y0 = ((256 - weightx) * (256 - weighty)) >> 8; \
-      uint w_x1y0 = ((weightx      ) * (256 - weighty)) >> 8; \
-      \
-      uint w_x0y1 = ((256 - weightx) * (weighty)) >> 8; \
-      uint w_x1y1 = ((weightx      ) * (weighty)) >> 8; \
-      \
-      PATTERN_C_INTERPOLATE_32_4(((uint32_t*)dstCur)[0], \
-        pix_x0y0, w_x0y0, pix_x1y0, w_x1y0, \
-        pix_x0y1, w_x0y1, pix_x1y1, w_x1y1); \
-      dstCur += 4; \
-    }
-
     do {
-      TEXTURE_INTERPOLATE_BILINEAR_32()
+      int px0 = fx >> 16;
+      int py0 = fy >> 16;
+
+      uint32_t pix_x0y0;
+      uint32_t pix_x1y0;
+      uint32_t pix_x0y1;
+      uint32_t pix_x1y1;
+
+      if (FOG_UNLIKELY(((uint)px0 >= (uint)tw) | ((uint)py0 >= (uint)th)))
+      {
+        int px1 = px0 + 1;
+        int py1 = py0 + 1;
+
+        if (px0 < 0) { px0 = px1 = 0; } else if (px0 >= tw) { px0 = px1 = tw; }
+        if (py0 < 0) { py0 = py1 = 0; } else if (py0 >= th) { py0 = py1 = th; }
+
+        const uint8_t* src0 = srcBits + (uint)py0 * srcStride;
+        const uint8_t* src1 = srcBits + (uint)py1 * srcStride;
+
+        pix_x0y0 = PF32::fetch(src0 + (uint)px0 * 4);
+        pix_x1y0 = PF32::fetch(src0 + (uint)px1 * 4);
+        pix_x0y1 = PF32::fetch(src1 + (uint)px0 * 4);
+        pix_x1y1 = PF32::fetch(src1 + (uint)px1 * 4);
+      }
+      else
+      {
+        const uint8_t* src0 = srcBits + py0 * srcStride + px0 * 4;
+
+        pix_x0y0 = PF32::fetch(src0    );
+        pix_x1y0 = PF32::fetch(src0 + 4);
+        src0 += srcStride;
+        pix_x0y1 = PF32::fetch(src0    );
+        pix_x1y1 = PF32::fetch(src0 + 4);
+      }
+
+      uint weightx = (fx >> 8) & 0xFF;
+      uint weighty = (fy >> 8) & 0xFF;
+
+      PATTERN_C_INTERPOLATE_32_4(((uint32_t*)dstCur)[0],
+        pix_x0y0, ((0x100 - weightx) * (0x100 - weighty)) >> 8,
+        pix_x1y0, ((weightx        ) * (0x100 - weighty)) >> 8,
+        pix_x0y1, ((0x100 - weightx) * (weighty        )) >> 8,
+        pix_x1y1, ((weightx        ) * (weighty        )) >> 8);
+      dstCur += 4;
 
       fx += dx;
       fy += dy;
     } while (--i);
 
-    #undef TEXTURE_INTERPOLATE_BILINEAR_32
-
     return dst;
   }
 
+  template<typename PF32>
   static uint8_t* FOG_FASTCALL texture_fetch_transform_bilinear_repeat_32(
     PatternContext* ctx,
     uint8_t* dst, int x, int y, int w)
@@ -2131,6 +2704,9 @@ doFill_4:
     int fxmax = ctx->texture.fxmax;
     int fymax = ctx->texture.fymax;
 
+    int fxrewind = ctx->texture.fxrewind;
+    int fyrewind = ctx->texture.fyrewind;
+
     fx -= 0x8000;
     fy -= 0x8000;
 
@@ -2145,95 +2721,45 @@ doFill_4:
 
     int i = w;
 
-    #define TEXTURE_INTERPOLATE_BILINEAR_32() \
-    { \
-      int px0 = fx >> 16; \
-      int py0 = fy >> 16; \
-      \
-      int px1 = px0 + 1; \
-      int py1 = py0 + 1; \
-      \
-      uint32_t pix_x0y0; \
-      uint32_t pix_x1y0; \
-      uint32_t pix_x0y1; \
-      uint32_t pix_x1y1; \
-      \
-      if (FOG_UNLIKELY(py1 >= th)) py1 -= th; \
-      if (FOG_UNLIKELY(px1 >= tw)) px1 -= tw; \
-      \
-      const uint8_t* src0 = srcBits + py0 * srcStride; \
-      const uint8_t* src1 = srcBits + py1 * srcStride; \
-      \
-      uint weightx = (fx >> 8) & 0xFF; \
-      uint weighty = (fy >> 8) & 0xFF; \
-      \
-      uint w_x0y0 = ((256 - weightx) * (256 - weighty)) >> 8; \
-      uint w_x1y0 = ((weightx      ) * (256 - weighty)) >> 8; \
-      \
-      uint w_x0y1 = ((256 - weightx) * (weighty)) >> 8; \
-      uint w_x1y1 = ((weightx      ) * (weighty)) >> 8; \
-      \
-      pix_x0y0 = READ_32(src0 + px0 * 4); \
-      pix_x1y0 = READ_32(src0 + px1 * 4); \
-      pix_x0y1 = READ_32(src1 + px0 * 4); \
-      pix_x1y1 = READ_32(src1 + px1 * 4); \
-      \
-      PATTERN_C_INTERPOLATE_32_4(((uint32_t*)dstCur)[0], \
-        pix_x0y0, w_x0y0, pix_x1y0, w_x1y0, \
-        pix_x0y1, w_x0y1, pix_x1y1, w_x1y1); \
-      dstCur += 4; \
-    }
+    do {
+      int px0 = fx >> 16;
+      int py0 = fy >> 16;
 
-    if (dx >= 0 && dy >= 0)
-    {
-      do {
-        TEXTURE_INTERPOLATE_BILINEAR_32()
+      int px1 = px0 + 1;
+      int py1 = py0 + 1;
 
-        fx += dx;
-        fy += dy;
+      uint32_t pix_x0y0;
+      uint32_t pix_x1y0;
+      uint32_t pix_x0y1;
+      uint32_t pix_x1y1;
 
-        if (fx >= fxmax) fx -= fxmax;
-        if (fy >= fymax) fy -= fymax;
-      } while (--i);
-    }
-    else if (dx >= 0 && dy < 0)
-    {
-      do {
-        TEXTURE_INTERPOLATE_BILINEAR_32()
+      if (FOG_UNLIKELY(py1 >= th)) py1 -= th;
+      if (FOG_UNLIKELY(px1 >= tw)) px1 -= tw;
 
-        fx += dx;
-        fy += dy;
+      const uint8_t* src0 = srcBits + (uint)py0 * srcStride;
+      const uint8_t* src1 = srcBits + (uint)py1 * srcStride;
 
-        if (fx >= fxmax) fx -= fxmax;
-        if (fy < 0) fy += fymax;
-      } while (--i);
-    }
-    else if (dx < 0 && dy >= 0)
-    {
-      do {
-        TEXTURE_INTERPOLATE_BILINEAR_32()
+      uint weightx = (fx >> 8) & 0xFF;
+      uint weighty = (fy >> 8) & 0xFF;
 
-        fx += dx;
-        fy += dy;
+      pix_x0y0 = PF32::fetch(src0 + px0 * 4);
+      pix_x1y0 = PF32::fetch(src0 + px1 * 4);
+      pix_x0y1 = PF32::fetch(src1 + px0 * 4);
+      pix_x1y1 = PF32::fetch(src1 + px1 * 4);
 
-        if (fx < 0) fx += fxmax;
-        if (fy >= fymax) fy -= fymax;
-      } while (--i);
-    }
-    else // if (dx < 0 && dy < 0)
-    {
-      do {
-        TEXTURE_INTERPOLATE_BILINEAR_32()
+      PATTERN_C_INTERPOLATE_32_4(((uint32_t*)dstCur)[0],
+        pix_x0y0, ((0x100 - weightx) * (0x100 - weighty)) >> 8,
+        pix_x1y0, ((weightx        ) * (0x100 - weighty)) >> 8,
+        pix_x0y1, ((0x100 - weightx) * (weighty        )) >> 8,
+        pix_x1y1, ((weightx        ) * (weighty        )) >> 8);
+      dstCur += 4;
 
-        fx += dx;
-        fy += dy;
+      fx += dx;
+      fy += dy;
 
-        if (fx < 0) fx += fxmax;
-        if (fy < 0) fy += fymax;
-      } while (--i);
-    }
-
-    #undef TEXTURE_INTERPOLATE_BILINEAR_32
+      if (FOG_UNLIKELY((uint)fx >= (uint)fxmax)) fx += fxrewind;
+      if (FOG_UNLIKELY((uint)fy >= (uint)fymax)) fy += fyrewind;
+    } while (--i);
 
     return dst;
   }
@@ -2261,6 +2787,9 @@ doFill_4:
     int fxmax = ctx->texture.fxmax;
     int fymax = ctx->texture.fymax;
 
+    int fxrewind = ctx->texture.fxrewind;
+    int fyrewind = ctx->texture.fyrewind;
+
     fx -= 0x8000;
     fy -= 0x8000;
 
@@ -2275,93 +2804,128 @@ doFill_4:
 
     int i = w;
 
-    #define TEXTURE_INTERPOLATE_BILINEAR_8() \
-    { \
-      int px0 = fx >> 16; \
-      int py0 = fy >> 16; \
-      \
-      int px1 = px0 + 1; \
-      int py1 = py0 + 1; \
-      \
-      uint32_t pix_y0; \
-      uint32_t pix_y1; \
-      \
-      if (FOG_UNLIKELY(py1 >= th)) py1 -= th; \
-      if (FOG_UNLIKELY(px1 >= tw)) px1 -= tw; \
-      \
-      const uint8_t* src0 = srcBits + py0 * srcStride; \
-      const uint8_t* src1 = srcBits + py1 * srcStride; \
-      \
-      uint weightx = (fx >> 8) & 0xFF; \
-      uint weighty = (fy >> 8) & 0xFF; \
-      \
-      uint weightinvx = 256 - weightx; \
-      uint weightinvy = 256 - weighty; \
-      \
-      pix_y0 = ((uint)src0[px0] * weightinvx) + ((uint)src0[px1] * weightx); \
-      pix_y1 = ((uint)src1[px0] * weightinvx) + ((uint)src1[px1] * weightx); \
-      \
-      pix_y0 *= weightinvy; \
-      pix_y1 *= weighty; \
-      \
-      dstCur[0] = (uint8_t)((pix_y0 + pix_y1) >> 16); \
-      \
-      dstCur += 1; \
-    }
+    do {
+      int px0 = fx >> 16;
+      int py0 = fy >> 16;
 
-    if (dx >= 0 && dy >= 0)
-    {
-      do {
-        TEXTURE_INTERPOLATE_BILINEAR_8()
+      int px1 = px0 + 1;
+      int py1 = py0 + 1;
 
-        fx += dx;
-        fy += dy;
+      uint32_t pix_y0;
+      uint32_t pix_y1;
 
-        if (fx >= fxmax) fx -= fxmax;
-        if (fy >= fymax) fy -= fymax;
-      } while (--i);
-    }
-    else if (dx >= 0 && dy < 0)
-    {
-      do {
-        TEXTURE_INTERPOLATE_BILINEAR_8()
+      if (FOG_UNLIKELY(py1 >= th)) py1 -= th;
+      if (FOG_UNLIKELY(px1 >= tw)) px1 -= tw;
 
-        fx += dx;
-        fy += dy;
+      const uint8_t* src0 = srcBits + (uint)py0 * srcStride;
+      const uint8_t* src1 = srcBits + (uint)py1 * srcStride;
 
-        if (fx >= fxmax) fx -= fxmax;
-        if (fy < 0) fy += fymax;
-      } while (--i);
-    }
-    else if (dx < 0 && dy >= 0)
-    {
-      do {
-        TEXTURE_INTERPOLATE_BILINEAR_8()
+      uint weightx = (fx >> 8) & 0xFF;
+      uint weighty = (fy >> 8) & 0xFF;
 
-        fx += dx;
-        fy += dy;
+      uint weightinvx = 256 - weightx;
+      uint weightinvy = 256 - weighty;
 
-        if (fx < 0) fx += fxmax;
-        if (fy >= fymax) fy -= fymax;
-      } while (--i);
-    }
-    else // if (dx < 0 && dy < 0)
-    {
-      do {
-        TEXTURE_INTERPOLATE_BILINEAR_8()
+      pix_y0 = ((uint)src0[px0] * weightinvx) + ((uint)src0[px1] * weightx);
+      pix_y1 = ((uint)src1[px0] * weightinvx) + ((uint)src1[px1] * weightx);
 
-        fx += dx;
-        fy += dy;
+      pix_y0 *= weightinvy;
+      pix_y1 *= weighty;
 
-        if (fx < 0) fx += fxmax;
-        if (fy < 0) fy += fymax;
-      } while (--i);
-    }
+      dstCur[0] = (uint8_t)((pix_y0 + pix_y1) >> 16);
 
-    #undef TEXTURE_INTERPOLATE_BILINEAR_8
+      dstCur += 1;
 
-    // Fetch the rest.
-    // if (w) _texture_do_repeat(dstCur, ctx->texture.w, w);
+      fx += dx;
+      fy += dy;
+
+      if (FOG_UNLIKELY((uint)fx >= (uint)fxmax)) fx += fxrewind;
+      if (FOG_UNLIKELY((uint)fy >= (uint)fymax)) fy += fyrewind;
+    } while (--i);
+
+    return dst;
+  }
+
+  template<typename PF32>
+  static uint8_t* FOG_FASTCALL texture_fetch_transform_bilinear_reflect_32(
+    PatternContext* ctx,
+    uint8_t* dst, int x, int y, int w)
+  {
+    FOG_ASSERT(w);
+
+    uint8_t* dstCur = dst;
+
+    double rx = (double)x + 0.5;
+    double ry = (double)y + 0.5;
+
+    int tw = ctx->texture.w;
+    int th = ctx->texture.h;
+
+    int tw2 = tw * 2 - 1;
+    int th2 = th * 2 - 1;
+
+    int dx = ctx->texture.dx;
+    int dy = ctx->texture.dy;
+
+    int fx = Math::doubleToFixed16x16(rx * ctx->m[MATRIX_SX ] + ry * ctx->m[MATRIX_SHX] + ctx->m[MATRIX_TX]);
+    int fy = Math::doubleToFixed16x16(rx * ctx->m[MATRIX_SHY] + ry * ctx->m[MATRIX_SY ] + ctx->m[MATRIX_TY]);
+
+    int fxmax = ctx->texture.fxmax;
+    int fymax = ctx->texture.fymax;
+
+    int fxrewind = ctx->texture.fxrewind;
+    int fyrewind = ctx->texture.fyrewind;
+
+    fx -= 0x8000;
+    fy -= 0x8000;
+
+    if ((fx <= -fxmax) | (fx >= fxmax)) fx %= fxmax;
+    if ((fy <= -fymax) | (fy >= fymax)) fy %= fymax;
+
+    if (fx < 0) fx += fxmax;
+    if (fy < 0) fy += fymax;
+
+    const uint8_t* srcBits = ctx->texture.bits;
+    sysint_t srcStride = ctx->texture.stride;
+
+    int i = w;
+
+    do {
+      int px0 = fx >> 16;
+      int py0 = fy >> 16;
+
+      int px1 = px0 + 1;
+      int py1 = py0 + 1;
+
+      if (FOG_UNLIKELY(px0 >= tw)) px0 = tw2 - px0;
+      if (FOG_UNLIKELY(py0 >= th)) py0 = th2 - py0;
+      if (FOG_UNLIKELY(px1 >= tw)) { px1 = tw2 - px1; if (FOG_UNLIKELY(px1 < 0)) px1 = 0; }
+      if (FOG_UNLIKELY(py1 >= th)) { py1 = th2 - py1; if (FOG_UNLIKELY(py1 < 0)) py1 = 0; }
+
+      const uint8_t* src0 = srcBits + (uint)py0 * srcStride;
+      const uint8_t* src1 = srcBits + (uint)py1 * srcStride;
+
+      uint weightx = (fx >> 8) & 0xFF;
+      uint weighty = (fy >> 8) & 0xFF;
+
+      uint32_t pix_x0y0 = PF32::fetch(src0 + px0 * 4);
+      uint32_t pix_x1y0 = PF32::fetch(src0 + px1 * 4);
+      uint32_t pix_x0y1 = PF32::fetch(src1 + px0 * 4);
+      uint32_t pix_x1y1 = PF32::fetch(src1 + px1 * 4);
+
+      PATTERN_C_INTERPOLATE_32_4(((uint32_t*)dstCur)[0],
+        pix_x0y0, ((0x100 - weightx) * (0x100 - weighty)) >> 8,
+        pix_x1y0, ((weightx        ) * (0x100 - weighty)) >> 8,
+        pix_x0y1, ((0x100 - weightx) * (weighty        )) >> 8,
+        pix_x1y1, ((weightx        ) * (weighty        )) >> 8);
+      dstCur += 4;
+
+      fx += dx;
+      fy += dy;
+
+      if (FOG_UNLIKELY((uint)fx >= (uint)fxmax)) fx += fxrewind;
+      if (FOG_UNLIKELY((uint)fy >= (uint)fymax)) fy += fyrewind;
+    } while (--i);
 
     return dst;
   }
@@ -2396,7 +2960,7 @@ doFill_4:
   {
     // Never initialize this if there are no stops or only single one (solid color).
     FOG_ASSERT(stops.getLength() >= 2);
-    FOG_ASSERT((uint)spread < SPREAD_INVALID);
+    FOG_ASSERT((uint)spread < SPREAD_COUNT);
 
     bool hasAlpha = (spread == SPREAD_NONE) ? true : ArgbAnalyzer::analyzeAlpha(stops) != 0xFF;
 
@@ -2911,13 +3475,8 @@ doFill_4:
     else
     {
       // Horizontal line.
-      uint32_t color = colors[yy >> 16];
-
-      do {
-        ((uint32_t*)dstCur)[0] = color;
-        if (!(--w)) goto end;
-        dstCur += 4;
-      } while (true);
+      uint32_t c0 = colors[yy >> 16];
+      _do_fill_32(dstCur, c0, w);
     }
 
   end:
