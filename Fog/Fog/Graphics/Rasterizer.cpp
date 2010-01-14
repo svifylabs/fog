@@ -1253,13 +1253,13 @@ bool RasterizerC::finalizeCellBuffer()
 
 void RasterizerC::freeXYCellBuffers(bool all)
 {
-  if (_bufferFirst != _bufferLast)
+  if (_bufferFirst != NULL)
   {
     // Release all cell buffers except first.
     CellXYBuffer* candidate = (all) ? _bufferFirst : _bufferFirst->next;
-    Rasterizer::releaseCellXYBuffer(_bufferFirst->next);
+    if (!candidate) return;
 
-    // Last cell is now first cell.
+    Rasterizer::releaseCellXYBuffer(candidate);
     if (all)
     {
       _bufferFirst = NULL;
@@ -1267,6 +1267,7 @@ void RasterizerC::freeXYCellBuffers(bool all)
     }
     else
     {
+      // First cell is now last cell.
       _bufferLast = _bufferFirst;
 
       // Zero links.

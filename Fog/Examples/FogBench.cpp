@@ -1,12 +1,20 @@
 #include <Fog/Build/Build.h>
 
 #if defined(FOG_OS_WINDOWS)
+#define FOG_BENCH_GDIPLUS
+#else
+#define FOG_BENCH_CAIRO
+#endif
+
+#if defined(FOG_BENCH_GDIPLUS)
 #include <windows.h>
 #include <gdiplus.h>
 #pragma comment(lib, "gdiplus.lib")
-#else
+#endif // FOG_BENCH_HDIPLUS
+
+#if defined(FOG_BENCH_CAIRO)
 #include <cairo/cairo.h>
-#endif // FOG_OS_WINDOWS
+#endif // FOG_BENCH_CAIRO
 
 #include <Fog/Core.h>
 #include <Fog/Graphics.h>
@@ -794,7 +802,7 @@ ByteArray FogModule_RasterText::getType()
 // [GdiPlusModule]
 // ============================================================================
 
-#if defined(FOG_OS_WINDOWS)
+#if defined(FOG_BENCH_GDIPLUS)
 
 struct GdiPlusModule : public AbstractModule
 {
@@ -1271,13 +1279,13 @@ ByteArray GdiPlusModule_ImageAffine::getType()
   return ByteArray("ImageAffine");
 }
 
-#endif
+#endif // FOG_BENCH_GDIPLUS
 
 // ============================================================================
 // [CairoModule]
 // ============================================================================
 
-#if defined(FOG_OS_POSIX)
+#if defined(FOG_BENCH_CAIRO)
 
 struct CairoModule : public FogModule
 {
@@ -1791,7 +1799,7 @@ ByteArray CairoModule_ImageAffine::getType()
   return ByteArray("ImageAffine");
 }
 
-#endif 
+#endif // FOG_BENCH_CAIRO
 
 // ============================================================================
 // [Bench]
@@ -1838,8 +1846,6 @@ static void benchAll()
   };
 
   TimeDelta totalFog[3];
-  TimeDelta totalCairo;
-  TimeDelta totalGdiPlus;
 
   // --------------------------------------------------------------------------
   // Header
@@ -1931,11 +1937,13 @@ static void benchAll()
     fog_debug("");
   }
 
-#if defined(FOG_OS_WINDOWS)
-
   // --------------------------------------------------------------------------
   // GdiPlus
   // --------------------------------------------------------------------------
+
+#if defined(FOG_BENCH_GDIPLUS)
+
+  TimeDelta totalGdiPlus;
 
   for (s = 0; s < FOG_ARRAY_SIZE(sizes); s++)
   {
@@ -1990,11 +1998,14 @@ static void benchAll()
   }
 
   fog_debug("");
+#endif // FOG_BENCH_GDIPLUS
 
-#else
   // --------------------------------------------------------------------------
   // Cairo
   // --------------------------------------------------------------------------
+
+#if defined(FOG_BENCH_CAIRO)
+  TimeDelta totalCairo;
 
   for (s = 0; s < FOG_ARRAY_SIZE(sizes); s++)
   {
@@ -2047,16 +2058,19 @@ static void benchAll()
   }
 
   fog_debug("");
-#endif // FOG_OS_WINDOWS
+#endif // FOG_BENCH_CAIRO
 
   fog_debug("Summary:");
   fog_debug("Fog (st)   - %.3f [ms]", totalFog[1].inMillisecondsF());
   fog_debug("Fog (mt)   - %.3f [ms]", totalFog[2].inMillisecondsF());
-#if defined(FOG_OS_WINDOWS)
+
+#if defined(FOG_BENCH_GDIPLUS)
   fog_debug("GDI+       - %.3f [ms]", totalGdiPlus.inMillisecondsF());
-#else
+#endif // FOG_BENCH_GDIPLUS
+
+#if defined(FOG_BENCH_CAIRO)
   fog_debug("Cairo      - %.3f [ms]", totalCairo.inMillisecondsF());
-#endif // FOG_OS_WINDOWS
+#endif // FOG_BENCH_CAIRO
 }
 
 // ============================================================================
@@ -2067,22 +2081,22 @@ int main(int argc, char* argv[])
 {
   fog_debug("Fog benchmark tool v0.1\n");
 
-#if defined(FOG_OS_WINDOWS)
+#if defined(FOG_BENCH_GDIPLUS)
 	// Initialize GDI+
   ULONG_PTR gdiplusToken;
 	Gdiplus::GdiplusStartupInput gdiplusStartupInput;
 	Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
-#endif // FOG_OS_WINDOWS
+#endif // FOG_BENCH_GDIPLUS
 
   loadSprites();
   benchAll();
 
-#if defined(FOG_OS_WINDOWS)
+#if defined(FOG_BENCH_GDIPLUS)
 	// Shutdown GDI+
   Gdiplus::GdiplusShutdown(gdiplusToken);
 
   system("pause");
-#endif // FOG_OS_WINDOWS
+#endif // FOG_BENCH_GDIPLUS
 
   return 0;
 }
