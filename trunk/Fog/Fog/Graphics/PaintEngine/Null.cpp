@@ -69,7 +69,7 @@ struct FOG_HIDDEN NullPaintEngine : public PaintEngine
   // [Operator]
   // --------------------------------------------------------------------------
 
-  virtual int getOperator() const { return COMPOSITE_SRC_OVER; }
+  virtual int getOperator() const { return OPERATOR_SRC_OVER; }
   virtual void setOperator(int op) {}
 
   // --------------------------------------------------------------------------

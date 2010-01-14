@@ -125,7 +125,7 @@ void Pattern::reset()
 err_t Pattern::setSpread(int spread)
 {
   if (_d->spread == spread) return ERR_OK;
-  if ((uint)spread >= SPREAD_INVALID) return ERR_RT_INVALID_ARGUMENT;
+  if ((uint)spread >= SPREAD_COUNT) return ERR_RT_INVALID_ARGUMENT;
 
   err_t err;
   if ( (err = detach()) ) return err;

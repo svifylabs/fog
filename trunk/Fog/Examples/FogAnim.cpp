@@ -119,11 +119,11 @@ void MyWindow::onPaint(PaintEvent* e)
   path.closePolygon();
 
   p->setSource((clr.toArgb() & 0x00FFFFFF) | 0x0F000000);
-  p->setOperator(COMPOSITE_SCREEN);
+  p->setOperator(OPERATOR_SCREEN);
   p->setFillMode(FILL_EVEN_ODD);
   p->fillPath(path);
 
-  p->setOperator(COMPOSITE_SUBTRACT);
+  p->setOperator(OPERATOR_SUBTRACT);
   p->setSource(0x0280FF8F);
   p->fillRect(Rect(0, 0, getWidth(), getHeight()));
 }

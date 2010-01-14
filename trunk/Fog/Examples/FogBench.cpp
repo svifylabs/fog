@@ -397,6 +397,51 @@ ByteArray FogModule_FillRect::getType()
 }
 
 // ============================================================================
+// [FogModule_FillRectAffine]
+// ============================================================================
+
+struct FogModule_FillRectAffine : public FogModule_FillRect
+{
+  FogModule_FillRectAffine(int w, int h);
+  virtual ~FogModule_FillRectAffine();
+
+  virtual void bench(int quantity);
+  virtual ByteArray getType();
+};
+
+FogModule_FillRectAffine::FogModule_FillRectAffine(int w, int h) : FogModule_FillRect(w, h) {}
+FogModule_FillRectAffine::~FogModule_FillRectAffine() {}
+
+void FogModule_FillRectAffine::bench(int quantity)
+{
+  p.save();
+
+  double cx = (double)w / 2.0;
+  double cy = (double)h / 2.0;
+  double rot = 0.0;
+
+  for (int a = 0; a < quantity; a++, rot += 0.01)
+  {
+    Matrix m;
+    m.translate(cx, cy);
+    m.rotate(rot);
+    m.translate(-cx, -cy);
+
+    p.setMatrix(m);
+    p.setSource(r_argb.data[a]);
+    p.fillRect(r_rect.data[a]);
+  }
+
+  p.restore();
+  p.flush();
+}
+
+ByteArray FogModule_FillRectAffine::getType()
+{
+  return ByteArray("FillRectAffine");
+}
+
+// ============================================================================
 // [FogModule_FillRound]
 // ============================================================================
 
@@ -849,6 +894,51 @@ ByteArray GdiPlusModule_FillRect::getType()
 }
 
 // ============================================================================
+// [GdiPlusModule_FillRectAffine]
+// ============================================================================
+
+struct GdiPlusModule_FillRectAffine : public GdiPlusModule_FillRect
+{
+  GdiPlusModule_FillRectAffine(int w, int h);
+  virtual ~GdiPlusModule_FillRectAffine();
+
+  virtual void bench(int quantity);
+  virtual ByteArray getType();
+};
+
+GdiPlusModule_FillRectAffine::GdiPlusModule_FillRectAffine(int w, int h) : GdiPlusModule_FillRect(w, h) {}
+GdiPlusModule_FillRectAffine::~GdiPlusModule_FillRectAffine() {}
+
+void GdiPlusModule_FillRectAffine::bench(int quantity)
+{
+  Gdiplus::Graphics gr(screen_gdip);
+
+  float cx = (float)w / 2.0;
+  float cy = (float)h / 2.0;
+  float rot = 0.0f;
+
+  for (int a = 0; a < quantity; a++, rot += 0.01f)
+  {
+    Rect r = r_rect.data[a];
+
+    gr.ResetTransform();
+    gr.TranslateTransform((Gdiplus::REAL)cx, (Gdiplus::REAL)cy);
+    gr.RotateTransform(Math::rad2deg(rot));
+    gr.TranslateTransform((Gdiplus::REAL)-cx, (Gdiplus::REAL)-cy);
+
+    Gdiplus::Color c(r_argb.data[a]);
+    Gdiplus::SolidBrush br(c);
+
+    gr.FillRectangle((Gdiplus::Brush*)&br, r.x, r.y, r.w, r.h);
+  }
+}
+
+ByteArray GdiPlusModule_FillRectAffine::getType()
+{
+  return ByteArray("FillRectAffine");
+}
+
+// ============================================================================
 // [GdiPlusModule_FillRound]
 // ============================================================================
 
@@ -1277,6 +1367,57 @@ void CairoModule_FillRect::bench(int quantity)
 ByteArray CairoModule_FillRect::getType()
 {
   return ByteArray("FillRect");
+}
+
+// ============================================================================
+// [CairoModule_FillRectAffine]
+// ============================================================================
+
+struct CairoModule_FillRectAffine : public CairoModule_FillRect
+{
+  CairoModule_FillRectAffine(int w, int h);
+  virtual ~CairoModule_FillRectAffine();
+
+  virtual void bench(int quantity);
+  virtual ByteArray getType();
+};
+
+CairoModule_FillRectAffine::CairoModule_FillRectAffine(int w, int h) : CairoModule_FillRect(w, h) {}
+CairoModule_FillRectAffine::~CairoModule_FillRectAffine() {}
+
+void CairoModule_FillRectAffine::bench(int quantity)
+{
+  cairo_t* cr = cairo_create(screen_cairo);
+
+  double cx = (double)w / 2.0;
+  double cy = (double)h / 2.0;
+  double rot = 0.0;
+
+  for (int a = 0; a < quantity; a++, rot += 0.01)
+  {
+    Rect r(r_rect.data[a]);
+    Argb c(r_argb.data[a]);
+
+    cairo_identity_matrix(cr);
+    cairo_translate(cr, cx, cy);
+    cairo_rotate(cr, rot);
+    cairo_translate(cr, -cx, -cy);
+
+    cairo_set_source_rgba(cr,
+      (double)c.r / 255.0,
+      (double)c.g / 255.0,
+      (double)c.b / 255.0,
+      (double)c.a / 255.0);
+    cairo_rectangle(cr, r.x, r.y, r.w, r.h);
+    cairo_fill(cr);
+  }
+
+  cairo_destroy(cr);
+}
+
+ByteArray CairoModule_FillRectAffine::getType()
+{
+  return ByteArray("FillRectAffine");
 }
 
 // ============================================================================
@@ -1731,6 +1872,13 @@ static void benchAll()
         totalFog[engine] += bench(mod, sizes[s].w, sizes[s].h, quantity);
       }
 
+      // Fog - FillRectAffine
+      {
+        FogModule_FillRectAffine mod(w, h);
+        mod.setEngine(engine);
+        totalFog[engine] += bench(mod, sizes[s].w, sizes[s].h, quantity);
+      }
+
       // Fog - FillRound
       {
         FogModule_FillRound mod(w, h);
@@ -1797,6 +1945,12 @@ static void benchAll()
       totalGdiPlus += bench(mod, sizes[s].w, sizes[s].h, quantity);
     }
 
+    // GdiPlus - FillRectAffine
+    {
+      GdiPlusModule_FillRectAffine mod(w, h);
+      totalGdiPlus += bench(mod, sizes[s].w, sizes[s].h, quantity);
+    }
+
     // GdiPlus - FillRound
     {
       GdiPlusModule_FillRound mod(w, h);
@@ -1847,6 +2001,12 @@ static void benchAll()
     // Cairo - FillRect
     {
       CairoModule_FillRect mod(w, h);
+      totalCairo += bench(mod, sizes[s].w, sizes[s].h, quantity);
+    }
+
+    // Cairo - FillRectAffine
+    {
+      CairoModule_FillRectAffine mod(w, h);
       totalCairo += bench(mod, sizes[s].w, sizes[s].h, quantity);
     }
 

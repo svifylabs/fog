@@ -55,7 +55,7 @@ struct FOG_HIDDEN Gradient
 
   FOG_INLINE Gradient(int type, int spread, const PointD& start, const PointD& end, const List<ArgbStop>& stops) :
     _type((type < PATTERN_LINEAR_GRADIENT) | (type > PATTERN_CONICAL_GRADIENT) ? PATTERN_LINEAR_GRADIENT : type),
-    _spread((uint)spread >= SPREAD_INVALID ? SPREAD_PAD : spread),
+    _spread((uint)spread >= SPREAD_COUNT ? SPREAD_PAD : spread),
     _start(start),
     _end(end),
     _radius(0.0),
@@ -65,7 +65,7 @@ struct FOG_HIDDEN Gradient
 
   FOG_INLINE Gradient(int type, int spread, const PointD& start, const PointD& end, double radius, const List<ArgbStop>& stops) :
     _type((type < PATTERN_LINEAR_GRADIENT) | (type > PATTERN_CONICAL_GRADIENT) ? PATTERN_LINEAR_GRADIENT : type),
-    _spread((uint)spread >= SPREAD_INVALID ? SPREAD_PAD : spread),
+    _spread((uint)spread >= SPREAD_COUNT ? SPREAD_PAD : spread),
     _start(start),
     _end(end),
     _radius(radius),
@@ -103,7 +103,7 @@ struct FOG_HIDDEN Gradient
 
   FOG_INLINE void setSpread(int spread)
   {
-    if ((uint)spread >= SPREAD_INVALID) return;
+    if ((uint)spread >= SPREAD_COUNT) return;
     _spread = spread;
   }
 

@@ -63,39 +63,39 @@ void MyWindow::onPaint(PaintEvent* e)
 {
   Painter* p = e->getPainter();
 
-  p->setOperator(COMPOSITE_SRC);
+  p->setOperator(OPERATOR_SRC);
   p->setSource(0xFF000000);
   p->clear();
 
-  p->setOperator(COMPOSITE_SRC_OVER);
+  p->setOperator(OPERATOR_SRC_OVER);
   p->setSource(0xFFFFFFFF);
 
-  const char* opname[COMPOSITE_COUNT];
+  const char* opname[OPERATOR_COUNT];
 
-  opname[COMPOSITE_SRC       ] = "src";
-  opname[COMPOSITE_DST       ] = "dst";
-  opname[COMPOSITE_SRC_OVER  ] = "src-over";
-  opname[COMPOSITE_DST_OVER  ] = "dst-over";
-  opname[COMPOSITE_SRC_IN    ] = "src-in";
-  opname[COMPOSITE_DST_IN    ] = "dst-in";
-  opname[COMPOSITE_SRC_OUT   ] = "src-out";
-  opname[COMPOSITE_DST_OUT   ] = "dst-out";
-  opname[COMPOSITE_SRC_ATOP  ] = "src-atop";
-  opname[COMPOSITE_DST_ATOP  ] = "dst-atop";
-  opname[COMPOSITE_XOR       ] = "xor";
-  opname[COMPOSITE_CLEAR     ] = "clear";
-  opname[COMPOSITE_ADD       ] = "add";
-  opname[COMPOSITE_SUBTRACT  ] = "subtract";
-  opname[COMPOSITE_SCREEN    ] = "screen";
-  opname[COMPOSITE_DARKEN    ] = "darken";
-  opname[COMPOSITE_LIGHTEN   ] = "lighten";
-  opname[COMPOSITE_DIFFERENCE] = "difference";
-  opname[COMPOSITE_EXCLUSION ] = "exclusion";
-  opname[COMPOSITE_INVERT    ] = "invert";
-  opname[COMPOSITE_INVERT_RGB] = "invert-rgb";
+  opname[OPERATOR_SRC       ] = "src";
+  opname[OPERATOR_DST       ] = "dst";
+  opname[OPERATOR_SRC_OVER  ] = "src-over";
+  opname[OPERATOR_DST_OVER  ] = "dst-over";
+  opname[OPERATOR_SRC_IN    ] = "src-in";
+  opname[OPERATOR_DST_IN    ] = "dst-in";
+  opname[OPERATOR_SRC_OUT   ] = "src-out";
+  opname[OPERATOR_DST_OUT   ] = "dst-out";
+  opname[OPERATOR_SRC_ATOP  ] = "src-atop";
+  opname[OPERATOR_DST_ATOP  ] = "dst-atop";
+  opname[OPERATOR_XOR       ] = "xor";
+  opname[OPERATOR_CLEAR     ] = "clear";
+  opname[OPERATOR_ADD       ] = "add";
+  opname[OPERATOR_SUBTRACT  ] = "subtract";
+  opname[OPERATOR_SCREEN    ] = "screen";
+  opname[OPERATOR_DARKEN    ] = "darken";
+  opname[OPERATOR_LIGHTEN   ] = "lighten";
+  opname[OPERATOR_DIFFERENCE] = "difference";
+  opname[OPERATOR_EXCLUSION ] = "exclusion";
+  opname[OPERATOR_INVERT    ] = "invert";
+  opname[OPERATOR_INVERT_RGB] = "invert-rgb";
 
   int x = 0, y = 0;
-  for (int a = 0; a < COMPOSITE_COUNT; a++)
+  for (int a = 0; a < OPERATOR_COUNT; a++)
   {
     Image im(i[1]);
     im.blitImage(Point(0, 0), i[0], a, _opacity);

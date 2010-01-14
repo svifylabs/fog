@@ -244,79 +244,103 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   m->pattern.texture_init_blit = PatternC::texture_init_blit;
   m->pattern.texture_init_scale = ScaleC::texture_init_scale;
 
-  m->pattern.texture_fetch_exact[PIXEL_FORMAT_PRGB32][SPREAD_NONE] = PatternC::texture_fetch_exact_none_32;
-  m->pattern.texture_fetch_exact[PIXEL_FORMAT_ARGB32][SPREAD_NONE] = PatternC::texture_fetch_exact_none_32;
-  m->pattern.texture_fetch_exact[PIXEL_FORMAT_XRGB32][SPREAD_NONE] = PatternC::texture_fetch_exact_none_32;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_PRGB32][SPREAD_NONE] = PatternC::texture_fetch_exact_none_32<PF_PRGB32>;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_ARGB32][SPREAD_NONE] = PatternC::texture_fetch_exact_none_32<PF_ARGB32>;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_XRGB32][SPREAD_NONE] = PatternC::texture_fetch_exact_none_32<PF_XRGB32>;
 
-  m->pattern.texture_fetch_exact[PIXEL_FORMAT_PRGB32][SPREAD_PAD] = PatternC::texture_fetch_exact_pad_32;
-  m->pattern.texture_fetch_exact[PIXEL_FORMAT_ARGB32][SPREAD_PAD] = PatternC::texture_fetch_exact_pad_32;
-  m->pattern.texture_fetch_exact[PIXEL_FORMAT_XRGB32][SPREAD_PAD] = PatternC::texture_fetch_exact_pad_32;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_PRGB32][SPREAD_PAD] = PatternC::texture_fetch_exact_pad_32<PF_PRGB32>;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_ARGB32][SPREAD_PAD] = PatternC::texture_fetch_exact_pad_32<PF_ARGB32>;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_XRGB32][SPREAD_PAD] = PatternC::texture_fetch_exact_pad_32<PF_PRGB32>;
 
-  m->pattern.texture_fetch_exact[PIXEL_FORMAT_PRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_exact_repeat_32;
-  m->pattern.texture_fetch_exact[PIXEL_FORMAT_ARGB32][SPREAD_REPEAT] = PatternC::texture_fetch_exact_repeat_32;
-  m->pattern.texture_fetch_exact[PIXEL_FORMAT_XRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_exact_repeat_32;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_PRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_exact_repeat_32<PF_PRGB32>;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_ARGB32][SPREAD_REPEAT] = PatternC::texture_fetch_exact_repeat_32<PF_ARGB32>;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_XRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_exact_repeat_32<PF_PRGB32>;
 
-  m->pattern.texture_fetch_exact[PIXEL_FORMAT_PRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_exact_reflect_32;
-  m->pattern.texture_fetch_exact[PIXEL_FORMAT_ARGB32][SPREAD_REFLECT] = PatternC::texture_fetch_exact_reflect_32;
-  m->pattern.texture_fetch_exact[PIXEL_FORMAT_XRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_exact_reflect_32;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_PRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_exact_reflect_32<PF_PRGB32>;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_ARGB32][SPREAD_REFLECT] = PatternC::texture_fetch_exact_reflect_32<PF_ARGB32>;
+  m->pattern.texture_fetch_exact[PIXEL_FORMAT_XRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_exact_reflect_32<PF_PRGB32>;
 
-  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_PRGB32][SPREAD_PAD] = PatternC::texture_fetch_subx0_pad_32;
-  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_ARGB32][SPREAD_PAD] = PatternC::texture_fetch_subx0_pad_32;
-  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_XRGB32][SPREAD_PAD] = PatternC::texture_fetch_subx0_pad_32;
+  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_PRGB32][SPREAD_NONE] = PatternC::texture_fetch_subx0_none_32<PF_PRGB32>;
+  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_ARGB32][SPREAD_NONE] = PatternC::texture_fetch_subx0_none_32<PF_ARGB32>;
+  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_XRGB32][SPREAD_NONE] = PatternC::texture_fetch_subx0_none_32<PF_XRGB32>;
 
-  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_PRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_subx0_repeat_32;
-  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_ARGB32][SPREAD_REPEAT] = PatternC::texture_fetch_subx0_repeat_32;
-  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_XRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_subx0_repeat_32;
+  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_PRGB32][SPREAD_PAD] = PatternC::texture_fetch_subx0_pad_32<PF_PRGB32>;
+  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_ARGB32][SPREAD_PAD] = PatternC::texture_fetch_subx0_pad_32<PF_ARGB32>;
+  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_XRGB32][SPREAD_PAD] = PatternC::texture_fetch_subx0_pad_32<PF_PRGB32>;
 
-  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_PRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_subx0_reflect_32;
-  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_ARGB32][SPREAD_REFLECT] = PatternC::texture_fetch_subx0_reflect_32;
-  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_XRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_subx0_reflect_32;
+  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_PRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_subx0_repeat_32<PF_PRGB32>;
+  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_ARGB32][SPREAD_REPEAT] = PatternC::texture_fetch_subx0_repeat_32<PF_ARGB32>;
+  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_XRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_subx0_repeat_32<PF_PRGB32>;
 
-  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_PRGB32][SPREAD_PAD] = PatternC::texture_fetch_sub0y_pad_32;
-  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_ARGB32][SPREAD_PAD] = PatternC::texture_fetch_sub0y_pad_32;
-  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_XRGB32][SPREAD_PAD] = PatternC::texture_fetch_sub0y_pad_32;
+  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_PRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_subx0_reflect_32<PF_PRGB32>;
+  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_ARGB32][SPREAD_REFLECT] = PatternC::texture_fetch_subx0_reflect_32<PF_ARGB32>;
+  m->pattern.texture_fetch_subx0[PIXEL_FORMAT_XRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_subx0_reflect_32<PF_PRGB32>;
 
-  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_PRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_sub0y_repeat_32;
-  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_ARGB32][SPREAD_REPEAT] = PatternC::texture_fetch_sub0y_repeat_32;
-  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_XRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_sub0y_repeat_32;
+  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_PRGB32][SPREAD_NONE] = PatternC::texture_fetch_sub0y_none_32<PF_PRGB32>;
+  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_ARGB32][SPREAD_NONE] = PatternC::texture_fetch_sub0y_none_32<PF_ARGB32>;
+  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_XRGB32][SPREAD_NONE] = PatternC::texture_fetch_sub0y_none_32<PF_XRGB32>;
 
-  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_PRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_sub0y_reflect_32;
-  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_ARGB32][SPREAD_REFLECT] = PatternC::texture_fetch_sub0y_reflect_32;
-  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_XRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_sub0y_reflect_32;
+  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_PRGB32][SPREAD_PAD] = PatternC::texture_fetch_sub0y_pad_32<PF_PRGB32>;
+  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_ARGB32][SPREAD_PAD] = PatternC::texture_fetch_sub0y_pad_32<PF_ARGB32>;
+  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_XRGB32][SPREAD_PAD] = PatternC::texture_fetch_sub0y_pad_32<PF_PRGB32>;
 
-  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_PRGB32][SPREAD_PAD] = PatternC::texture_fetch_subxy_pad_32;
-  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_ARGB32][SPREAD_PAD] = PatternC::texture_fetch_subxy_pad_32;
-  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_XRGB32][SPREAD_PAD] = PatternC::texture_fetch_subxy_pad_32;
+  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_PRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_sub0y_repeat_32<PF_PRGB32>;
+  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_ARGB32][SPREAD_REPEAT] = PatternC::texture_fetch_sub0y_repeat_32<PF_ARGB32>;
+  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_XRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_sub0y_repeat_32<PF_PRGB32>;
 
-  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_PRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_subxy_repeat_32;
-  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_ARGB32][SPREAD_REPEAT] = PatternC::texture_fetch_subxy_repeat_32;
-  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_XRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_subxy_repeat_32;
+  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_PRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_sub0y_reflect_32<PF_PRGB32>;
+  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_ARGB32][SPREAD_REFLECT] = PatternC::texture_fetch_sub0y_reflect_32<PF_ARGB32>;
+  m->pattern.texture_fetch_sub0y[PIXEL_FORMAT_XRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_sub0y_reflect_32<PF_PRGB32>;
 
-  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_PRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_subxy_reflect_32;
-  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_ARGB32][SPREAD_REFLECT] = PatternC::texture_fetch_subxy_reflect_32;
-  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_XRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_subxy_reflect_32;
+  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_PRGB32][SPREAD_NONE] = PatternC::texture_fetch_subxy_none_32<PF_PRGB32>;
+  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_ARGB32][SPREAD_NONE] = PatternC::texture_fetch_subxy_none_32<PF_ARGB32>;
+  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_XRGB32][SPREAD_NONE] = PatternC::texture_fetch_subxy_none_32<PF_XRGB32>;
 
-  m->pattern.texture_fetch_transform_nearest[PIXEL_FORMAT_PRGB32][SPREAD_PAD] = PatternC::texture_fetch_transform_nearest_pad_32;
-  m->pattern.texture_fetch_transform_nearest[PIXEL_FORMAT_ARGB32][SPREAD_PAD] = PatternC::texture_fetch_transform_nearest_pad_32;
-  m->pattern.texture_fetch_transform_nearest[PIXEL_FORMAT_XRGB32][SPREAD_PAD] = PatternC::texture_fetch_transform_nearest_pad_32;
+  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_PRGB32][SPREAD_PAD] = PatternC::texture_fetch_subxy_pad_32<PF_PRGB32>;
+  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_ARGB32][SPREAD_PAD] = PatternC::texture_fetch_subxy_pad_32<PF_ARGB32>;
+  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_XRGB32][SPREAD_PAD] = PatternC::texture_fetch_subxy_pad_32<PF_PRGB32>;
 
-  m->pattern.texture_fetch_transform_nearest[PIXEL_FORMAT_PRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_transform_nearest_repeat_32;
-  m->pattern.texture_fetch_transform_nearest[PIXEL_FORMAT_ARGB32][SPREAD_REPEAT] = PatternC::texture_fetch_transform_nearest_repeat_32;
-  m->pattern.texture_fetch_transform_nearest[PIXEL_FORMAT_XRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_transform_nearest_repeat_32;
+  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_PRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_subxy_repeat_32<PF_PRGB32>;
+  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_ARGB32][SPREAD_REPEAT] = PatternC::texture_fetch_subxy_repeat_32<PF_ARGB32>;
+  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_XRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_subxy_repeat_32<PF_PRGB32>;
+
+  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_PRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_subxy_reflect_32<PF_PRGB32>;
+  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_ARGB32][SPREAD_REFLECT] = PatternC::texture_fetch_subxy_reflect_32<PF_ARGB32>;
+  m->pattern.texture_fetch_subxy[PIXEL_FORMAT_XRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_subxy_reflect_32<PF_PRGB32>;
+
+  m->pattern.texture_fetch_transform_nearest[PIXEL_FORMAT_PRGB32][SPREAD_NONE] = PatternC::texture_fetch_transform_nearest_none_32<PF_PRGB32>;
+  m->pattern.texture_fetch_transform_nearest[PIXEL_FORMAT_ARGB32][SPREAD_NONE] = PatternC::texture_fetch_transform_nearest_none_32<PF_ARGB32>;
+  m->pattern.texture_fetch_transform_nearest[PIXEL_FORMAT_XRGB32][SPREAD_NONE] = PatternC::texture_fetch_transform_nearest_none_32<PF_PRGB32>;
+
+  m->pattern.texture_fetch_transform_nearest[PIXEL_FORMAT_PRGB32][SPREAD_PAD] = PatternC::texture_fetch_transform_nearest_pad_32<PF_PRGB32>;
+  m->pattern.texture_fetch_transform_nearest[PIXEL_FORMAT_ARGB32][SPREAD_PAD] = PatternC::texture_fetch_transform_nearest_pad_32<PF_ARGB32>;
+  m->pattern.texture_fetch_transform_nearest[PIXEL_FORMAT_XRGB32][SPREAD_PAD] = PatternC::texture_fetch_transform_nearest_pad_32<PF_PRGB32>;
+
+  m->pattern.texture_fetch_transform_nearest[PIXEL_FORMAT_PRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_transform_nearest_repeat_32<PF_PRGB32>;
+  m->pattern.texture_fetch_transform_nearest[PIXEL_FORMAT_ARGB32][SPREAD_REPEAT] = PatternC::texture_fetch_transform_nearest_repeat_32<PF_ARGB32>;
+  m->pattern.texture_fetch_transform_nearest[PIXEL_FORMAT_XRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_transform_nearest_repeat_32<PF_PRGB32>;
   m->pattern.texture_fetch_transform_nearest[PIXEL_FORMAT_A8][SPREAD_REPEAT] = PatternC::texture_fetch_transform_nearest_repeat_a8;
 
-  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_PRGB32][SPREAD_NONE] = PatternC::texture_fetch_transform_bilinear_none_32;
-  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_ARGB32][SPREAD_NONE] = PatternC::texture_fetch_transform_bilinear_none_32;
-  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_XRGB32][SPREAD_NONE] = PatternC::texture_fetch_transform_bilinear_none_32;
+  m->pattern.texture_fetch_transform_nearest[PIXEL_FORMAT_PRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_transform_nearest_reflect_32<PF_PRGB32>;
+  m->pattern.texture_fetch_transform_nearest[PIXEL_FORMAT_ARGB32][SPREAD_REFLECT] = PatternC::texture_fetch_transform_nearest_reflect_32<PF_ARGB32>;
+  m->pattern.texture_fetch_transform_nearest[PIXEL_FORMAT_XRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_transform_nearest_reflect_32<PF_PRGB32>;
 
-  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_PRGB32][SPREAD_PAD] = PatternC::texture_fetch_transform_bilinear_pad_32;
-  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_ARGB32][SPREAD_PAD] = PatternC::texture_fetch_transform_bilinear_pad_32;
-  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_XRGB32][SPREAD_PAD] = PatternC::texture_fetch_transform_bilinear_pad_32;
+  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_PRGB32][SPREAD_NONE] = PatternC::texture_fetch_transform_bilinear_none_32<PF_PRGB32>;
+  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_ARGB32][SPREAD_NONE] = PatternC::texture_fetch_transform_bilinear_none_32<PF_ARGB32>;
+  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_XRGB32][SPREAD_NONE] = PatternC::texture_fetch_transform_bilinear_none_32<PF_XRGB32>;
 
-  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_PRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_transform_bilinear_repeat_32;
-  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_ARGB32][SPREAD_REPEAT] = PatternC::texture_fetch_transform_bilinear_repeat_32;
-  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_XRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_transform_bilinear_repeat_32;
+  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_PRGB32][SPREAD_PAD] = PatternC::texture_fetch_transform_bilinear_pad_32<PF_PRGB32>;
+  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_ARGB32][SPREAD_PAD] = PatternC::texture_fetch_transform_bilinear_pad_32<PF_ARGB32>;
+  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_XRGB32][SPREAD_PAD] = PatternC::texture_fetch_transform_bilinear_pad_32<PF_PRGB32>;
+
+  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_PRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_transform_bilinear_repeat_32<PF_PRGB32>;
+  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_ARGB32][SPREAD_REPEAT] = PatternC::texture_fetch_transform_bilinear_repeat_32<PF_ARGB32>;
+  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_XRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_transform_bilinear_repeat_32<PF_PRGB32>;
   m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_A8][SPREAD_REPEAT] = PatternC::texture_fetch_transform_bilinear_repeat_a8;
+
+  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_PRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_transform_bilinear_reflect_32<PF_PRGB32>;
+  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_ARGB32][SPREAD_REFLECT] = PatternC::texture_fetch_transform_bilinear_reflect_32<PF_ARGB32>;
+  m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_XRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_transform_bilinear_reflect_32<PF_PRGB32>;
 
   m->pattern.texture_fetch_scale_nearest[PIXEL_FORMAT_PRGB32] = ScaleC::texture_fetch_scale_argb32_nn;
   m->pattern.texture_fetch_scale_nearest[PIXEL_FORMAT_ARGB32] = ScaleC::texture_fetch_scale_argb32_nn;
@@ -406,33 +430,33 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
 
   // [Composite - Src]
 
-  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = DibC::memcpy32;
-  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = DibC::prgb32_from_argb32;
-  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = DibC::frgb32_from_xrgb32;
-  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_I8] = DibC::prgb32_from_i8;
-  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_A8] = DibC::azzz32_from_a8;
+  m->composite[OPERATOR_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = DibC::memcpy32;
+  m->composite[OPERATOR_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = DibC::prgb32_from_argb32;
+  m->composite[OPERATOR_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = DibC::frgb32_from_xrgb32;
+  m->composite[OPERATOR_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_I8] = DibC::prgb32_from_i8;
+  m->composite[OPERATOR_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_A8] = DibC::azzz32_from_a8;
 
-  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_ARGB32].vspan[PIXEL_FORMAT_PRGB32] = DibC::argb32_from_prgb32;
-  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_ARGB32].vspan[PIXEL_FORMAT_ARGB32] = DibC::memcpy32;
-  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_ARGB32].vspan[PIXEL_FORMAT_XRGB32] = DibC::frgb32_from_xrgb32;
-  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_ARGB32].vspan[PIXEL_FORMAT_I8] = DibC::argb32_from_i8;
-  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_ARGB32].vspan[PIXEL_FORMAT_A8] = DibC::azzz32_from_a8;
+  m->composite[OPERATOR_SRC][PIXEL_FORMAT_ARGB32].vspan[PIXEL_FORMAT_PRGB32] = DibC::argb32_from_prgb32;
+  m->composite[OPERATOR_SRC][PIXEL_FORMAT_ARGB32].vspan[PIXEL_FORMAT_ARGB32] = DibC::memcpy32;
+  m->composite[OPERATOR_SRC][PIXEL_FORMAT_ARGB32].vspan[PIXEL_FORMAT_XRGB32] = DibC::frgb32_from_xrgb32;
+  m->composite[OPERATOR_SRC][PIXEL_FORMAT_ARGB32].vspan[PIXEL_FORMAT_I8] = DibC::argb32_from_i8;
+  m->composite[OPERATOR_SRC][PIXEL_FORMAT_ARGB32].vspan[PIXEL_FORMAT_A8] = DibC::azzz32_from_a8;
 
-  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = DibC::frgb32_from_xrgb32;
-  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = DibC::frgb32_from_argb32;
-  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = DibC::memcpy32;
-  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_I8] = DibC::frgb32_from_i8;
-  m->composite[COMPOSITE_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_A8] = DibC::fzzz32_from_null;
+  m->composite[OPERATOR_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = DibC::frgb32_from_xrgb32;
+  m->composite[OPERATOR_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = DibC::frgb32_from_argb32;
+  m->composite[OPERATOR_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = DibC::memcpy32;
+  m->composite[OPERATOR_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_I8] = DibC::frgb32_from_i8;
+  m->composite[OPERATOR_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_A8] = DibC::fzzz32_from_null;
 
   // TODO
 
   // [Composite - Dst]
 
-  fog_raster_set_nops(&m->composite[COMPOSITE_DST][PIXEL_FORMAT_ARGB32]);
-  fog_raster_set_nops(&m->composite[COMPOSITE_DST][PIXEL_FORMAT_PRGB32]);
-  fog_raster_set_nops(&m->composite[COMPOSITE_DST][PIXEL_FORMAT_XRGB32]);
-  fog_raster_set_nops(&m->composite[COMPOSITE_DST][PIXEL_FORMAT_A8]);
-  fog_raster_set_nops(&m->composite[COMPOSITE_DST][PIXEL_FORMAT_I8]);
+  fog_raster_set_nops(&m->composite[OPERATOR_DST][PIXEL_FORMAT_ARGB32]);
+  fog_raster_set_nops(&m->composite[OPERATOR_DST][PIXEL_FORMAT_PRGB32]);
+  fog_raster_set_nops(&m->composite[OPERATOR_DST][PIXEL_FORMAT_XRGB32]);
+  fog_raster_set_nops(&m->composite[OPERATOR_DST][PIXEL_FORMAT_A8]);
+  fog_raster_set_nops(&m->composite[OPERATOR_DST][PIXEL_FORMAT_I8]);
 
   // [Composite - SrcOver]
 
@@ -440,7 +464,7 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
 
   // [Composite - DstOver]
 
-  fog_raster_set_nops(&m->composite[COMPOSITE_DST_OVER][PIXEL_FORMAT_XRGB32]);
+  fog_raster_set_nops(&m->composite[OPERATOR_DST_OVER][PIXEL_FORMAT_XRGB32]);
 
   // TODO
 
@@ -450,13 +474,13 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
 
   // [Composite - DstIn]
 
-  m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = (VSpanFn)CompositeNopC::cspan;
-  m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = (VSpanMskFn)CompositeNopC::cspan_a8;
-  m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = (VSpanMskConstFn)CompositeNopC::cspan_a8_const;
+  m->composite[OPERATOR_DST_IN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = (VSpanFn)CompositeNopC::cspan;
+  m->composite[OPERATOR_DST_IN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = (VSpanMskFn)CompositeNopC::cspan_a8;
+  m->composite[OPERATOR_DST_IN][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = (VSpanMskConstFn)CompositeNopC::cspan_a8_const;
 
-  m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = (VSpanFn)CompositeNopC::cspan;
-  m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = (VSpanMskFn)CompositeNopC::cspan_a8;
-  m->composite[COMPOSITE_DST_IN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = (VSpanMskConstFn)CompositeNopC::cspan_a8_const;
+  m->composite[OPERATOR_DST_IN][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = (VSpanFn)CompositeNopC::cspan;
+  m->composite[OPERATOR_DST_IN][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = (VSpanMskFn)CompositeNopC::cspan_a8;
+  m->composite[OPERATOR_DST_IN][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = (VSpanMskConstFn)CompositeNopC::cspan_a8_const;
 
   // TODO
 
@@ -474,11 +498,11 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
 
   // [Composite - DstAtop]
 
-  m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = (VSpanFn)CompositeNopC::cspan;
-  m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = (VSpanMskFn)CompositeNopC::cspan_a8;
-  m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = (VSpanMskConstFn)CompositeNopC::cspan_a8_const;
+  m->composite[OPERATOR_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = (VSpanFn)CompositeNopC::cspan;
+  m->composite[OPERATOR_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = (VSpanMskFn)CompositeNopC::cspan_a8;
+  m->composite[OPERATOR_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = (VSpanMskConstFn)CompositeNopC::cspan_a8_const;
 
-  fog_raster_set_nops(&m->composite[COMPOSITE_DST_ATOP][PIXEL_FORMAT_A8]);
+  fog_raster_set_nops(&m->composite[OPERATOR_DST_ATOP][PIXEL_FORMAT_A8]);
 
   // TODO
 
@@ -492,9 +516,9 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
 
   // [Composite - Add]
 
-  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_A8] = (VSpanFn)CompositeNopC::cspan;
-  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_A8] = (VSpanMskFn)CompositeNopC::cspan_a8;
-  m->composite[COMPOSITE_ADD][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_A8] = (VSpanMskConstFn)CompositeNopC::cspan_a8_const;
+  m->composite[OPERATOR_ADD][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_A8] = (VSpanFn)CompositeNopC::cspan;
+  m->composite[OPERATOR_ADD][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_A8] = (VSpanMskFn)CompositeNopC::cspan_a8;
+  m->composite[OPERATOR_ADD][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_A8] = (VSpanMskConstFn)CompositeNopC::cspan_a8_const;
 
   // TODO
 }
