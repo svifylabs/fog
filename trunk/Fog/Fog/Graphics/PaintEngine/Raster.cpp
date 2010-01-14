@@ -345,9 +345,6 @@ struct FOG_HIDDEN RasterPaintCapsState
   //! @brief Reference count.
   mutable Atomic<sysuint_t> refCount;
 
-  // //! @brief Dirty flags, see @c RasterPaintEngine::DIRTY_CAPS.
-  // int dirty;
-
   union
   {
     struct
@@ -503,7 +500,8 @@ struct RasterRenderImageAffineBound
   // [Members]
 
   RasterUtil::PatternContext ictx;
-  Point pts[4];
+  PointD pts[4];
+  int pty[4];
 
   int leftStart;
   int leftDirection;
@@ -1377,70 +1375,58 @@ bool RasterRenderImageAffineBound::init(const Image& image, const Matrix& matrix
 
   // Transform points and convert to integers.
   {
-    PointD ptd[4];
     double w = (double)image.getWidth();
     double h = (double)image.getHeight();
 
-    ptd[0].set(0.0, 0.0);
-    ptd[1].set(w  , 0.0);
-    ptd[2].set(w  , h  );
-    ptd[3].set(0.0, h  );
+    pts[0].set(0.0, 0.0);
+    pts[1].set(w+1, 0.0);
+    pts[2].set(w+1, h+1);
+    pts[3].set(0.0, h+1);
 
-    matrix.transformPoints(ptd, ptd, 4);
-    for (i = 0; i < 4; i++) pts[i].set((int)ptd[i].x, (int)ptd[i].y);
+    matrix.transformPoints(pts, pts, 4);
+
+    // Calculate min/max and top/bottom point indexes.
+    leftStart = 0;
+    rightStart = 0;
+
+    double xmind = pts[0].x;
+    double ymind = pts[0].y;
+    double xmaxd = pts[0].x;
+    double ymaxd = pts[0].y;
+
+    for (i = 1; i < 4; i++)
+    {
+      double x = pts[i].x;
+      double y = pts[i].y;
+
+      if (x < xmind) { xmind = x; }
+      if (y < ymind) { ymind = y; leftStart = i; }
+
+      if (x > xmaxd) { xmaxd = x; }
+      if (y > ymaxd) { ymaxd = y; }
+    }
+
+    for (i = 0; i < 4; i++) pty[i] = (int)floor(pts[i].y);
+
+    xmin = (int)floor(xmind);
+    ymin = (int)floor(ymind);
+    xmax = (int)floor(xmaxd);
+    ymax = (int)floor(ymaxd);
   }
-
-  // Calculate min/max and top/bottom point indexes.
-  leftStart = 0;
-  rightStart = 0;
-
-  xmin = pts[0].x;
-  ymin = pts[0].y;
-  xmax = pts[0].x;
-  ymax = pts[0].y;
-
-  for (i = 1; i < 4; i++)
-  {
-    int x = pts[i].x;
-    int y = pts[i].y;
-
-    if (x < xmin) { xmin = x; }
-    if (y < ymin) { ymin = y; leftStart = i; }
-
-    if (x > xmax) { xmax = x; }
-    if (y > ymax) { ymax = y; }
-  }
-
-  // Aling min/max to next pixel.
-  for (i == 0; i < 4; i++)
-  {
-    if (pts[i].x == xmin)
-      pts[i].x--;
-    else if (pts[i].x == xmax)
-      pts[i].x++;
-
-    if (pts[i].y == ymin)
-      pts[i].y--;
-    else if (pts[i].y == ymax)
-      pts[i].y++;
-  }
-
-  xmin--;
-  ymin--;
-  xmax++;
-  ymax++;
 
   // Save ymin to ytop, ymin may be overriden by bounding box intersection and
   // we need top most vertex Y to be saved.
   ytop = ymin;
 
+  // Now get left and right direction. If left and right vertexes are not the
+  // same we need to find and assign them.
   rightStart = leftStart;
 
   int neighbourIndex;
   int neighbourDir;
 
-  if ((pts[(neighbourIndex = (leftStart + (neighbourDir = -1)) & 3)].y == ymin) ||
-      (pts[(neighbourIndex = (leftStart + (neighbourDir =  1)) & 3)].y == ymin) )
+  if ((pty[(neighbourIndex = (leftStart + (neighbourDir = -1)) & 3)] == ymin) ||
+      (pty[(neighbourIndex = (leftStart + (neighbourDir =  1)) & 3)] == ymin) )
   {
     if (pts[neighbourIndex].x < pts[leftStart].x)
     {
@@ -1469,7 +1455,7 @@ bool RasterRenderImageAffineBound::init(const Image& image, const Matrix& matrix
     }
   }
 
-  // Get bounding box.
+  // Get bounding box and clip.
   Box bbox;
   bbox.x1 = (int)xmin;
   bbox.y1 = (int)ymin;
@@ -1481,11 +1467,11 @@ bool RasterRenderImageAffineBound::init(const Image& image, const Matrix& matrix
   if (!Box::intersect(bbox, bbox, clipBox)) return false;
 
   // Fix ymin/ymax and xmin/xmax.
-  ymin = bbox.y1;
-  ymax = bbox.y2;
-
   xmin = bbox.x1;
+  ymin = bbox.y1;
+
   xmax = bbox.x2;
+  ymax = bbox.y2;
 
   if (RasterUtil::functionMap->pattern.texture_init_blit(
     &ictx, image, matrix, SPREAD_NONE, interpolationType) != ERR_OK)
@@ -1525,24 +1511,30 @@ void RasterRenderImageAffineBound::render(RasterPaintContext* ctx)
   // antialiasing (we don't need to antialias here, because compositing
   // operator is bound so the pattern fetched will do it - SPREAD_NONE).
 
-  // Current Y.
-  int y = ytop;
-
   // Current vertices (index).
   int iLeft = leftStart;
   int iRight = rightStart;
 
-  // Current left/right X.
-  int x1Left = pts[leftStart].x;
-  int x1Right = pts[rightStart].x;
+  // Current Y.
+  int y = ytop;
 
   // Dest Y.
-  int y2Left = y;
-  int y2Right = y;
+  int y2LeftAligned = y;
+  int y2RightAligned = y;
+
+  double y1Left = pts[leftStart].y;
+  double y1Right = pts[rightStart].y;
+
+  double y2Left = y1Left;
+  double y2Right = y1Right;
+
+  // Current left/right X.
+  double x1Left = pts[leftStart].x;
+  double x1Right = pts[rightStart].x;
 
   // Dest left/right X.
-  int x2Left = x1Left;
-  int x2Right = x1Right;
+  double x2Left = x1Left;
+  double x2Right = x1Right;
 
   double dxLeft;
   double dxRight;
@@ -1553,8 +1545,8 @@ void RasterRenderImageAffineBound::render(RasterPaintContext* ctx)
   double slopeLeft;
   double slopeRight;
 
-  double xLeft;
-  double xRight;
+  bool reconfigureLeft = true;
+  bool reconfigureRight = true;
 
   // Painting pointers / structures.
   sysint_t stride = layer->stride;
@@ -1574,7 +1566,7 @@ void RasterRenderImageAffineBound::render(RasterPaintContext* ctx)
     for (;;)
     {
       // Reconfigure left line.
-      if (y2Left == y)
+      if (reconfigureLeft)
       {
         // Advance current left point.
         iLeft += leftDirection;
@@ -1582,48 +1574,61 @@ void RasterRenderImageAffineBound::render(RasterPaintContext* ctx)
 
         // Advance.
         x1Left = x2Left;
+        y1Left = y2Left;
+
         x2Left = pts[iLeft].x;
         y2Left = pts[iLeft].y;
 
-        // Calculate dda.
-        dxLeft = (double)(x2Left - x1Left);
-        dyLeft = (double)(y2Left - y);
-        slopeLeft = (y2Left != y) ? (dxLeft / dyLeft) : 0.0;
+        y2LeftAligned = pty[iLeft] + 1;
 
-        xLeft = (double)x1Left - Math::abs(slopeLeft) - 1.0;
+        // Calculate dda.
+        dxLeft = (x2Left - x1Left);
+        dyLeft = (y2Left - y1Left);
+        slopeLeft = dyLeft > Math::DEFAULT_EPSILON ? (dxLeft / dyLeft) : 0.0;
+
+        x1Left -= Math::abs(slopeLeft) + 0.5;
+        x1Left += slopeLeft * ((double)y - y1Left);
       }
 
       // Reconfigure right line.
-      if (y2Right == y)
+      if (reconfigureRight)
       {
         iRight += rightDirection;
         iRight &= 3;
 
         // Advance.
         x1Right = x2Right;
+        y1Right = y2Right;
+
         x2Right = pts[iRight].x;
         y2Right = pts[iRight].y;
 
-        // Calculate dda.
-        dxRight = (double)(x2Right - x1Right);
-        dyRight = (double)(y2Right - y);
-        slopeRight = (y2Right != y) ? (dxRight / dyRight) : 0.0;
+        y2RightAligned = pty[iRight] + 1;
 
-        xRight = (double)x1Right + Math::abs(slopeRight) + 2.0;
+        // Calculate dda.
+        dxRight = (x2Right - x1Right);
+        dyRight = (y2Right - y1Right);
+        slopeRight = dyRight > Math::DEFAULT_EPSILON ? (dxRight / dyRight) : 0.0;
+
+        x1Right += Math::abs(slopeRight) + 1.5;
+        x1Right += slopeRight * ((double)y - y1Right);
       }
 
       // Clip (in case that this is first iteration).
       if (y < ymin)
       {
-        int maxSkipToY = Math::min(y2Left, y2Right, ymin);
+        int maxSkipToY = Math::min(y2LeftAligned, y2RightAligned, ymin);
         int deltaY = maxSkipToY - y;
         if (deltaY < 0) break;
 
         // Advance.
         y += deltaY;
         if (y >= ymax) break;
-        xLeft += slopeLeft * deltaY;
-        xRight += slopeRight * deltaY;
+        x1Left += slopeLeft * deltaY;
+        x1Right += slopeRight * deltaY;
+
+        reconfigureLeft = (y == y2LeftAligned);
+        reconfigureRight = (y == y2RightAligned);
 
         if (y == ymin) pCur = pBase + (sysint_t)y * stride;
         continue;
@@ -1634,11 +1639,12 @@ void RasterRenderImageAffineBound::render(RasterPaintContext* ctx)
       }
 
       // Fetch image scanlines and composite them with target buffer.
-      int yStop = Math::min(y2Left, y2Right, ymax);
+      int yStop = Math::min(y2LeftAligned, y2RightAligned, ymax);
+
       for (;;)
       {
-        int xiLeft = (int)xLeft;
-        int xiRight = (int)xRight;
+        int xiLeft = (int)x1Left;
+        int xiRight = (int)x1Right;
 
         if (xiLeft < xmin) xiLeft = xmin;
         if (xiRight > xmax) xiRight = xmax;
@@ -1647,18 +1653,23 @@ void RasterRenderImageAffineBound::render(RasterPaintContext* ctx)
         {
           int w = xiRight - xiLeft;
           // Fetch pattern and composite.
+          // capsState->rops->cspan(pCur + (uint)xiLeft * 4, &capsState->solid, w, NULL);
           vspan(pCur + (uint)xiLeft * 4,
             ictx.fetch(&ictx, pBuf, xiLeft, y, w),
             (sysuint_t)w, &closure);
         }
 
-        xLeft += slopeLeft;
-        xRight += slopeRight;
+        x1Left += slopeLeft;
+        x1Right += slopeRight;
 
         pCur += stride;
         if (++y >= yStop) break;
       }
       if (y >= ymax) break;
+
+      // Set flags for reconfiguring.
+      reconfigureLeft = (yStop == y2LeftAligned);
+      reconfigureRight = (yStop == y2RightAligned);
     }
   }
   else
@@ -1678,7 +1689,7 @@ void RasterRenderImageAffineBound::render(RasterPaintContext* ctx)
     for (;;)
     {
       // Reconfigure left line.
-      if (y2Left == y)
+      if (reconfigureLeft)
       {
         // Advance current left point.
         iLeft += leftDirection;
@@ -1686,42 +1697,52 @@ void RasterRenderImageAffineBound::render(RasterPaintContext* ctx)
 
         // Advance.
         x1Left = x2Left;
+        y1Left = y2Left;
+
         x2Left = pts[iLeft].x;
         y2Left = pts[iLeft].y;
 
+        y2LeftAligned = pty[iLeft] + 1;
+
         // Calculate dda.
-        dxLeft = (double)(x2Left - x1Left);
-        dyLeft = (double)(y2Left - y);
-        slopeLeft = (y2Left != y) ? (dxLeft / dyLeft) : 0.0;
+        dxLeft = (x2Left - x1Left);
+        dyLeft = (y2Left - y1Left);
+        slopeLeft = dyLeft > Math::DEFAULT_EPSILON ? (dxLeft / dyLeft) : 0.0;
         slopeLeftWithDelta = slopeLeft * delta;
 
-        xLeft = (double)x1Left - Math::abs(slopeLeft) + 0.5;
+        x1Left -= Math::abs(slopeLeft) + 0.5;
+        x1Left += slopeLeft * ((double)y - y1Left);
       }
 
       // Reconfigure right line.
-      if (y2Right == y)
+      if (reconfigureRight)
       {
         iRight += rightDirection;
         iRight &= 3;
 
         // Advance.
         x1Right = x2Right;
+        y1Right = y2Right;
+
         x2Right = pts[iRight].x;
         y2Right = pts[iRight].y;
 
+        y2RightAligned = pty[iRight] + 1;
+
         // Calculate dda.
-        dxRight = (double)(x2Right - x1Right);
-        dyRight = (double)(y2Right - y);
-        slopeRight = (y2Right != y) ? (dxRight / dyRight) : 0.0;
+        dxRight = (x2Right - x1Right);
+        dyRight = (y2Right - y1Right);
+        slopeRight = dyRight > Math::DEFAULT_EPSILON ? (dxRight / dyRight) : 0.0;
         slopeRightWithDelta = slopeRight * delta;
 
-        xRight = (double)x1Right + Math::abs(slopeRight) + 1.5;
+        x1Right += Math::abs(slopeRight) + 1.5;
+        x1Right += slopeRight * ((double)y - y1Right);
       }
 
       // Clip.
       if (y < ymin)
       {
-        int maxSkipToY = Math::min(y2Left, y2Right, ymin);
+        int maxSkipToY = Math::min(y2LeftAligned, y2RightAligned, ymin);
         int deltaY = maxSkipToY - y;
         if (deltaY < 0) break;
 
@@ -1729,8 +1750,11 @@ void RasterRenderImageAffineBound::render(RasterPaintContext* ctx)
         y += deltaY;
         if (y >= ymax) break;
 
-        xLeft += slopeLeft * deltaY;
-        xRight += slopeRight * deltaY;
+        x1Left += slopeLeft * deltaY;
+        x1Right += slopeRight * deltaY;
+
+        reconfigureLeft = (y == y2LeftAligned);
+        reconfigureRight = (y == y2RightAligned);
 
         if (y == ymin)
         {
@@ -1744,11 +1768,11 @@ void RasterRenderImageAffineBound::render(RasterPaintContext* ctx)
       }
 
       // Fetch image scanlines and composite them with target buffer.
-      int yStop = Math::min(y2Left, y2Right, ymax);
+      int yStop = Math::min(y2LeftAligned, y2RightAligned, ymax);
       for (;;)
       {
-        int xiLeft = (int)xLeft;
-        int xiRight = (int)xRight;
+        int xiLeft = (int)x1Left;
+        int xiRight = (int)x1Right;
 
         if (xiLeft < xmin) xiLeft = xmin;
         if (xiRight > xmax) xiRight = xmax;
@@ -1762,8 +1786,8 @@ void RasterRenderImageAffineBound::render(RasterPaintContext* ctx)
             (sysuint_t)w, &closure);
         }
 
-        xLeft += slopeLeftWithDelta;
-        xRight += slopeRightWithDelta;
+        x1Left += slopeLeftWithDelta;
+        x1Right += slopeRightWithDelta;
 
         pCur += strideWithDelta;
         y += delta;
@@ -1774,13 +1798,17 @@ void RasterRenderImageAffineBound::render(RasterPaintContext* ctx)
       // Go back if we traversed out of the vertex.
       yStop = y - yStop;
 
+      ymin = y;
+      y -= yStop;
+
+      // Set flags for reconfiguring.
+      reconfigureLeft = (yStop == y2LeftAligned);
+      reconfigureRight = (yStop == y2RightAligned);
+
       if (yStop)
       {
-        ymin = y;
-
-        y -= yStop;
-        xLeft -= slopeLeft * yStop;
-        xRight -= slopeRight * yStop;
+        x1Left -= slopeLeft * yStop;
+        x1Right -= slopeRight * yStop;
       }
     }
   }
