@@ -1,3 +1,18 @@
+2010-01-18
+- Added operator characteristics, will be used later by raster paint engine.
+- Refactorized and rewritten Fog::ByteUtil.
+- Rasterizer, Scanline, DitherMatrix classes are not exported from now.
+- Added _p suffix to header files that won't be installed (and can't be used by apps).
+- Added 32-bit C code for image compositing (Now Fog library can be
+  used by any 32/64-bit architecture).
+- Added OPERATOR_MULTIPLY
+- Rewritten paths and path storage. Path is now stored as array of commands
+  and array of vertices, this allows to simplify path transformation methods,
+  rasterizer, and it's also better for memory usage (because command is now 
+  only uint8_t).
+- Path::add... methods now supports direction argument that can be used to
+  set the direction of object being added.
+
 2010-01-14
 - Improved performance of blitImage() when using affine transformations and subpixel
   placement (see new code ImageAffineBound).
