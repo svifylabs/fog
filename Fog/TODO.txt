@@ -29,7 +29,6 @@ TODO P1
     [ ] Introduce setClipPath() / resetClipPath()
     [w] Introduce setColorFilter(), resetColorFilter()
     [w] High-quality downscaling (transformation / scaling down)
-    [ ] Finalize image transform, (SPREAD_PAD is really needed to be implemented)
     [ ] irect is not used when serializing images using affine transform.
         This rectangle should be also added to pattern (texture).
 
@@ -54,8 +53,6 @@ TODO P1
     [ ] Add fitTo(RectF)
     [ ] Add addText(Font, String32) to path
     [ ] What about warp?
-    [ ] Add path direction enum (PATH_DIRECTION_CW, PATH_DIRECTION_CCW), 
-        and use it in methods like addRect, addRound, ...
 
 [ ] Image filtering:
     [ ] Image filters (Blur, Sharpen, ...) should be grouped and result should be
@@ -96,7 +93,6 @@ MORE TODOS:
 
 [ ] Default color in Svg gradient should be 0.0:black, 1.0:white if no stops are provided
 [ ] Add innerLimit and innerJoin to painter, paint engine, and all related.
-[x] Add startJoin and endJoin to stroke params, painter, paint engine and all related.
 
 TODO P2
 =======
@@ -107,8 +103,9 @@ TODO P2
     [ ] HardLight
     [ ] SoftLight
     [ ] Overlay
-    [ ] Multiply
     [ ] Arithmetic, with parameters!
+[ ] Specialize SRC_OVER and CLEAR operators in C implementation
+    (current generic implementation is very slow).
 
 TODO P3 - UI
 ============
