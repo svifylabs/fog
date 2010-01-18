@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - C++ API]
+// [Fog/Graphics Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -11,7 +11,10 @@
 #ifndef _FOG_GRAPHICS_H
 #define _FOG_GRAPHICS_H
 
-// [There is only documentation]
+// ============================================================================
+// [Fog/Graphics Documentation]
+// ============================================================================
+
 #if defined(_DOXYGEN)
 //! @defgroup Fog_Graphics Fog/Graphics library API.
 //!
@@ -45,19 +48,18 @@
 
 #endif // _DOXYGEN
 
+// ============================================================================
 // [Fog/Graphics Include Files]
+// ============================================================================
+
 #include <Fog/Build/Build.h>
 
 #include <Fog/Graphics/Argb.h>
-#include <Fog/Graphics/ArgbAnalyzer.h>
 #include <Fog/Graphics/ArgbUtil.h>
-#include <Fog/Graphics/ByteUtil.h>
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/ColorLut.h>
 #include <Fog/Graphics/ColorMatrix.h>
 #include <Fog/Graphics/ConvolutionMatrix.h>
-#include <Fog/Graphics/DitherMatrix.h>
-#include <Fog/Graphics/Fixed.h>
 #include <Fog/Graphics/Font.h>
 #include <Fog/Graphics/FontEngine.h>
 #include <Fog/Graphics/FontManager.h>
@@ -76,11 +78,8 @@
 #include <Fog/Graphics/PathTransform.h>
 #include <Fog/Graphics/PathUtil.h>
 #include <Fog/Graphics/Pattern.h>
-#include <Fog/Graphics/RasterUtil.h>
-#include <Fog/Graphics/Rasterizer.h>
 #include <Fog/Graphics/Reduce.h>
 #include <Fog/Graphics/Region.h>
-#include <Fog/Graphics/Scanline.h>
 #include <Fog/Graphics/Stroker.h>
 #include <Fog/Graphics/TextLayout.h>
 #include <Fog/Graphics/TextOnPath.h>

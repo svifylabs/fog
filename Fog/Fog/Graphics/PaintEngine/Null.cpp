@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - C++ API]
+// [Fog/Graphics Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -13,7 +13,7 @@
 #include <Fog/Graphics/Painter.h>
 #include <Fog/Graphics/Stroker.h>
 
-#include <Fog/Graphics/PaintEngine/Null.h>
+#include <Fog/Graphics/PaintEngine/Null_p.h>
 
 namespace Fog {
 

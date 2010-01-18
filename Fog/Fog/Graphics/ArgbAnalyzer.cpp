@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - C++ API]
+// [Fog/Graphics Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -9,8 +9,8 @@
 #endif // FOG_PRECOMP
 
 // [Dependencies]
-#include <Fog/Graphics/Constants.h>
-#include <Fog/Graphics/ArgbAnalyzer.h>
+#include <Fog/Graphics/Constants_p.h>
+#include <Fog/Graphics/ArgbAnalyzer_p.h>
 
 namespace Fog {
 

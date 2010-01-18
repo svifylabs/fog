@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - C++ API]
+// [Fog/Graphics Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -14,26 +14,27 @@
 #include <Fog/Core/Misc.h>
 #include <Fog/Graphics/Argb.h>
 #include <Fog/Graphics/ArgbUtil.h>
+#include <Fog/Graphics/ByteUtil_p.h>
 #include <Fog/Graphics/ColorLut.h>
 #include <Fog/Graphics/ColorMatrix.h>
-#include <Fog/Graphics/Constants.h>
-#include <Fog/Graphics/DitherMatrix.h>
+#include <Fog/Graphics/Constants_p.h>
+#include <Fog/Graphics/DitherMatrix_p.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/ImageFilter.h>
 #include <Fog/Graphics/Matrix.h>
 #include <Fog/Graphics/Path.h>
 #include <Fog/Graphics/Pattern.h>
-#include <Fog/Graphics/RasterUtil.h>
+#include <Fog/Graphics/RasterUtil_p.h>
 
 // [Raster_SSE2]
-#include <Fog/Graphics/RasterUtil/RasterUtil_C.h>
-#include <Fog/Graphics/RasterUtil/RasterUtil_Defs_SSE2.h>
-#include <Fog/Graphics/RasterUtil/RasterUtil_Composite_SSE2.h>
-#include <Fog/Graphics/RasterUtil/RasterUtil_Dib_SSE2.h>
-#include <Fog/Graphics/RasterUtil/RasterUtil_Interpolate_SSE2.h>
-#include <Fog/Graphics/RasterUtil/RasterUtil_Pattern_SSE2.h>
-#include <Fog/Graphics/RasterUtil/RasterUtil_Scale_SSE2.h>
-#include <Fog/Graphics/RasterUtil/RasterUtil_Filters_SSE2.h>
+#include <Fog/Graphics/RasterUtil/RasterUtil_C_p.h>
+#include <Fog/Graphics/RasterUtil/RasterUtil_Defs_SSE2_p.h>
+#include <Fog/Graphics/RasterUtil/RasterUtil_Composite_SSE2_p.h>
+#include <Fog/Graphics/RasterUtil/RasterUtil_Dib_SSE2_p.h>
+#include <Fog/Graphics/RasterUtil/RasterUtil_Interpolate_SSE2_p.h>
+#include <Fog/Graphics/RasterUtil/RasterUtil_Pattern_SSE2_p.h>
+#include <Fog/Graphics/RasterUtil/RasterUtil_Scale_SSE2_p.h>
+#include <Fog/Graphics/RasterUtil/RasterUtil_Filters_SSE2_p.h>
 
 // ============================================================================
 // [Library Initializers]
@@ -244,6 +245,8 @@ FOG_INIT_DECLARE void fog_raster_init_sse2(void)
 
   // [Pattern - Texture]
 
+  // TODO: None, Pad
+
   m->pattern.texture_fetch_exact[PIXEL_FORMAT_PRGB32][SPREAD_REPEAT] = PatternSSE2::texture_fetch_exact_repeat_32;
   m->pattern.texture_fetch_exact[PIXEL_FORMAT_ARGB32][SPREAD_REPEAT] = PatternSSE2::texture_fetch_exact_repeat_32;
   m->pattern.texture_fetch_exact[PIXEL_FORMAT_XRGB32][SPREAD_REPEAT] = PatternSSE2::texture_fetch_exact_repeat_32;
@@ -263,6 +266,8 @@ FOG_INIT_DECLARE void fog_raster_init_sse2(void)
   m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_PRGB32][SPREAD_REPEAT] = PatternSSE2::texture_fetch_transform_bilinear_repeat_32;
   m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_ARGB32][SPREAD_REPEAT] = PatternSSE2::texture_fetch_transform_bilinear_repeat_32;
   m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_XRGB32][SPREAD_REPEAT] = PatternSSE2::texture_fetch_transform_bilinear_repeat_32;
+
+  // TODO: Reflect
 
   // [Pattern - Linear Gradient]
 
@@ -294,15 +299,20 @@ FOG_INIT_DECLARE void fog_raster_init_sse2(void)
   // [Filters - LinearBlur]
 
   m->filter.linear_blur_h[PIXEL_FORMAT_ARGB32] = FilterSSE2::linear_blur_h_argb32;
+  m->filter.linear_blur_h[PIXEL_FORMAT_XRGB32] = FilterSSE2::linear_blur_h_argb32;
+
   m->filter.linear_blur_v[PIXEL_FORMAT_ARGB32] = FilterSSE2::linear_blur_v_argb32;
+  m->filter.linear_blur_v[PIXEL_FORMAT_XRGB32] = FilterSSE2::linear_blur_v_argb32;
 
   // [Filters - SymmetricConvolveFloat]
 
   m->filter.symmetric_convolve_float_h[PIXEL_FORMAT_ARGB32] = FilterSSE2::symmetric_convolve_float_h_argb32;
+  m->filter.symmetric_convolve_float_h[PIXEL_FORMAT_XRGB32] = FilterSSE2::symmetric_convolve_float_h_argb32;
   m->filter.symmetric_convolve_float_v[PIXEL_FORMAT_ARGB32] = FilterSSE2::symmetric_convolve_float_v_argb32;
+  m->filter.symmetric_convolve_float_v[PIXEL_FORMAT_XRGB32] = FilterSSE2::symmetric_convolve_float_v_argb32;
 
   // [Composite - Src]
-
+#if 1
   m->composite[OPERATOR_SRC][PIXEL_FORMAT_PRGB32].cspan = CompositeSrcSSE2::prgb32_cspan;
   m->composite[OPERATOR_SRC][PIXEL_FORMAT_PRGB32].cspan_a8 = CompositeSrcSSE2::prgb32_cspan_a8;
   m->composite[OPERATOR_SRC][PIXEL_FORMAT_PRGB32].cspan_a8_const = CompositeSrcSSE2::prgb32_cspan_a8_const;
@@ -348,12 +358,6 @@ FOG_INIT_DECLARE void fog_raster_init_sse2(void)
   m->composite[OPERATOR_SRC][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeSrcSSE2::xrgb32_vspan_xrgb32_a8_const;
   m->composite[OPERATOR_SRC][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_A8] = (VSpanMskConstFn)CompositeClearSSE2::xrgb32_cspan_a8_const;
   m->composite[OPERATOR_SRC][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_I8] = CompositeSrcSSE2::xrgb32_vspan_i8_a8_const;
-
-  // [Composite - Dst]
-
-  // PIXEL_FORMAT_PRGB32 - NOP (already set by RasterUtil_Init_C.cpp).
-  // PIXEL_FORMAT_XRGB32 - NOP (already set by RasterUtil_Init_C.cpp).
-  // PIXEL_FORMAT_A8     - NOP (already set by RasterUtil_Init_C.cpp).
 
   // [Composite - SrcOver]
 
@@ -980,15 +984,15 @@ FOG_INIT_DECLARE void fog_raster_init_sse2(void)
   m->composite[OPERATOR_INVERT][PIXEL_FORMAT_PRGB32].cspan_a8_scanline = CompositeInvertSSE2::prgb32_cspan_a8_scanline;
 
   m->composite[OPERATOR_INVERT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeInvertSSE2::prgb32_vspan_prgb32;
-  m->composite[OPERATOR_INVERT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeInvertSSE2::prgb32_vspan_argb32;
+  m->composite[OPERATOR_INVERT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeInvertSSE2::prgb32_vspan_prgb32;
   m->composite[OPERATOR_INVERT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeInvertSSE2::prgb32_vspan_xrgb32;
 
   m->composite[OPERATOR_INVERT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeInvertSSE2::prgb32_vspan_prgb32_a8;
-  m->composite[OPERATOR_INVERT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeInvertSSE2::prgb32_vspan_argb32_a8;
+  m->composite[OPERATOR_INVERT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeInvertSSE2::prgb32_vspan_prgb32_a8;
   m->composite[OPERATOR_INVERT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeInvertSSE2::prgb32_vspan_xrgb32_a8;
 
   m->composite[OPERATOR_INVERT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeInvertSSE2::prgb32_vspan_prgb32_a8_const;
-  m->composite[OPERATOR_INVERT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeInvertSSE2::prgb32_vspan_argb32_a8_const;
+  m->composite[OPERATOR_INVERT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeInvertSSE2::prgb32_vspan_prgb32_a8_const;
   m->composite[OPERATOR_INVERT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeInvertSSE2::prgb32_vspan_xrgb32_a8_const;
 
   m->composite[OPERATOR_INVERT][PIXEL_FORMAT_XRGB32].cspan = CompositeInvertSSE2::xrgb32_cspan;
@@ -997,15 +1001,15 @@ FOG_INIT_DECLARE void fog_raster_init_sse2(void)
   m->composite[OPERATOR_INVERT][PIXEL_FORMAT_XRGB32].cspan_a8_scanline = CompositeInvertSSE2::xrgb32_cspan_a8_scanline;
 
   m->composite[OPERATOR_INVERT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeInvertSSE2::xrgb32_vspan_prgb32;
-  m->composite[OPERATOR_INVERT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeInvertSSE2::xrgb32_vspan_argb32;
+  m->composite[OPERATOR_INVERT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeInvertSSE2::xrgb32_vspan_prgb32;
   m->composite[OPERATOR_INVERT][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = CompositeInvertSSE2::xrgb32_vspan_xrgb32;
 
   m->composite[OPERATOR_INVERT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeInvertSSE2::xrgb32_vspan_prgb32_a8;
-  m->composite[OPERATOR_INVERT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeInvertSSE2::xrgb32_vspan_argb32_a8;
+  m->composite[OPERATOR_INVERT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeInvertSSE2::xrgb32_vspan_prgb32_a8;
   m->composite[OPERATOR_INVERT][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeInvertSSE2::xrgb32_vspan_xrgb32_a8;
 
   m->composite[OPERATOR_INVERT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeInvertSSE2::xrgb32_vspan_prgb32_a8_const;
-  m->composite[OPERATOR_INVERT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeInvertSSE2::xrgb32_vspan_argb32_a8_const;
+  m->composite[OPERATOR_INVERT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeInvertSSE2::xrgb32_vspan_prgb32_a8_const;
   m->composite[OPERATOR_INVERT][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeInvertSSE2::xrgb32_vspan_xrgb32_a8_const;
 
   // [Composite - InvertRgb]
@@ -1043,4 +1047,5 @@ FOG_INIT_DECLARE void fog_raster_init_sse2(void)
   m->composite[OPERATOR_INVERT_RGB][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeInvertRgbSSE2::xrgb32_vspan_prgb32_a8_const;
   m->composite[OPERATOR_INVERT_RGB][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeInvertRgbSSE2::xrgb32_vspan_argb32_a8_const;
   m->composite[OPERATOR_INVERT_RGB][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeInvertRgbSSE2::xrgb32_vspan_xrgb32_a8_const;
+#endif
 }

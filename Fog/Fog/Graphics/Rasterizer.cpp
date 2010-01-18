@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - C++ API]
+// [Fog/Graphics Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -43,7 +43,7 @@
 #include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Graphics/Constants.h>
-#include <Fog/Graphics/Rasterizer.h>
+#include <Fog/Graphics/Rasterizer_p.h>
 
 namespace Fog {
 
@@ -360,7 +360,7 @@ struct FOG_HIDDEN RasterizerLocal
 static Static<RasterizerLocal> rasterizer_local;
 
 // ============================================================================
-// [Fog::RasterizerC]
+// [Fog::AnalyticRasterizer]
 // ============================================================================
 
 //! @brief Rasterizer implementation in C.
@@ -384,10 +384,10 @@ static Static<RasterizerLocal> rasterizer_local;
 //!
 //! Contribution by Petr Kobalicek <kobalicek.petr@gmail.com>,
 //! This contribution follows antigrain licence (Public Domain).
-struct FOG_HIDDEN RasterizerC : public Rasterizer
+struct FOG_HIDDEN AnalyticRasterizer : public Rasterizer
 {
-  RasterizerC();
-  virtual ~RasterizerC();
+  AnalyticRasterizer();
+  virtual ~AnalyticRasterizer();
 
   virtual void pooled();
   virtual void reset();
@@ -398,7 +398,7 @@ struct FOG_HIDDEN RasterizerC : public Rasterizer
   virtual void setError(err_t error);
   virtual void resetError();
 
-  virtual void addPath(const PathVertex* data, sysuint_t count);
+  virtual void addPath(const Path& path);
   void closePolygon();
 
   void clipLine(int24x8_t x1, int24x8_t y1, int24x8_t x2, int24x8_t y2, uint f1, uint f2);
@@ -458,7 +458,7 @@ struct FOG_HIDDEN RasterizerC : public Rasterizer
   CellXY _cell;
 
 private:
-  FOG_DISABLE_COPY(RasterizerC)
+  FOG_DISABLE_COPY(AnalyticRasterizer)
 };
 
 // ============================================================================
@@ -492,15 +492,6 @@ Rasterizer::~Rasterizer()
 }
 
 // ============================================================================
-// [Fog::Rasterizer - Commands]
-// ============================================================================
-
-void Rasterizer::addPath(const Path& path)
-{
-  addPath(path.getData(), path.getLength());
-}
-
-// ============================================================================
 // [Fog::Rasterizer - Pooling]
 // ============================================================================
 
@@ -517,7 +508,7 @@ Rasterizer* Rasterizer::getRasterizer()
   }
   else
   {
-    rasterizer = new(std::nothrow) RasterizerC();
+    rasterizer = new(std::nothrow) AnalyticRasterizer();
   }
 
   return rasterizer;
@@ -614,10 +605,10 @@ void Rasterizer::cleanup()
 }
 
 // ============================================================================
-// [Fog::RasterizerC - Construction / Destruction]
+// [Fog::AnalyticRasterizer - Construction / Destruction]
 // ============================================================================
 
-RasterizerC::RasterizerC()
+AnalyticRasterizer::AnalyticRasterizer()
 {
   _bufferFirst = Rasterizer::getCellXYBuffer();
   _bufferLast = _bufferFirst;
@@ -625,12 +616,12 @@ RasterizerC::RasterizerC()
   reset();
 }
 
-RasterizerC::~RasterizerC()
+AnalyticRasterizer::~AnalyticRasterizer()
 {
   if (_bufferFirst) Rasterizer::releaseCellXYBuffer(_bufferFirst);
 }
 
-void RasterizerC::pooled()
+void AnalyticRasterizer::pooled()
 {
   reset();
 
@@ -656,7 +647,7 @@ void RasterizerC::pooled()
   }
 }
 
-void RasterizerC::reset()
+void AnalyticRasterizer::reset()
 {
   _error = ERR_OK;
 
@@ -701,10 +692,10 @@ void RasterizerC::reset()
 }
 
 // ============================================================================
-// [Fog::RasterizerC - Clipping]
+// [Fog::AnalyticRasterizer - Clipping]
 // ============================================================================
 
-void RasterizerC::setClipBox(const Box& clipBox)
+void AnalyticRasterizer::setClipBox(const Box& clipBox)
 {
   _clipping = true;
   _clipBox = clipBox;
@@ -713,7 +704,7 @@ void RasterizerC::setClipBox(const Box& clipBox)
                 clipBox.x2 << POLY_SUBPIXEL_SHIFT, clipBox.y2 << POLY_SUBPIXEL_SHIFT);
 }
 
-void RasterizerC::resetClipBox()
+void AnalyticRasterizer::resetClipBox()
 {
   _clipping = false;
   _clipBox.clear();
@@ -721,38 +712,41 @@ void RasterizerC::resetClipBox()
 }
 
 // ============================================================================
-// [Fog::RasterizerC - Commands]
+// [Fog::AnalyticRasterizer - Commands]
 // ============================================================================
 
-void RasterizerC::setError(err_t error)
+void AnalyticRasterizer::setError(err_t error)
 {
   _error = error;
 }
 
-void RasterizerC::resetError()
+void AnalyticRasterizer::resetError()
 {
   _error = ERR_OK;
 }
 
 // ============================================================================
-// [Fog::RasterizerC - Commands]
+// [Fog::AnalyticRasterizer - Commands]
 // ============================================================================
 
-void RasterizerC::addPath(const PathVertex* data, sysuint_t count)
+void AnalyticRasterizer::addPath(const Path& path)
 {
-  sysuint_t i;
+  sysuint_t i = path.getLength();
+  if (!i) return;
+
+  const uint8_t* commands = path.getCommands();
+  const PointD* vertices = path.getVertices();
 
   if (_clipping)
   {
-    for (i = count; i; i--, data++)
-    {
-      PathCmd cmd = data->cmd;
+    do {
+      uint8_t cmd = commands[0];
 
       // CmdLineTo is first, because it's most used command.
-      if (cmd == PATH_CMD_LINE_TO)
+      if (PathCmd::isLineTo(cmd))
       {
-        int24x8_t x2 = RasterizerUtil::upscale(data->x);
-        int24x8_t y2 = RasterizerUtil::upscale(data->y);
+        int24x8_t x2 = RasterizerUtil::upscale(vertices->x);
+        int24x8_t y2 = RasterizerUtil::upscale(vertices->y);
         uint f2 = LiangBarsky::getClippingFlags(x2, y2, _clip24x8);
 
         clipLine(_x1, _y1, x2, y2, _f1, f2);
@@ -760,56 +754,97 @@ void RasterizerC::addPath(const PathVertex* data, sysuint_t count)
         _y1 = y2;
         _f1 = f2;
       }
-      else if (cmd == PATH_CMD_MOVE_TO)
+      else if (PathCmd::isMoveTo(cmd))
       {
         if (_autoClose && (_x1 != _startX1 || _y1 != _startY1))
+        {
           clipLine(_x1, _y1, _startX1, _startY1, _f1, _startF1);
+        }
 
-        _x1 = _startX1 = RasterizerUtil::upscale(data->x);
-        _y1 = _startY1 = RasterizerUtil::upscale(data->y);
+        _x1 = _startX1 = RasterizerUtil::upscale(vertices->x);
+        _y1 = _startY1 = RasterizerUtil::upscale(vertices->y);
         _f1 = _startF1 = LiangBarsky::getClippingFlags(_x1, _y1, _clip24x8);
       }
-      else if (cmd.isStop())
+      else if (PathCmd::isClose(cmd))
       {
         if (_x1 != _startX1 || _y1 != _startY1)
+        {
           clipLine(_x1, _y1, _startX1, _startY1, _f1, _startF1);
+        }
+
+        _x1 = _startX1;
+        _y1 = _startY1;
+        _f1 = _startF1;
       }
-    }
+      else if (PathCmd::isStop(cmd))
+      {
+        _startX1 = 0;
+        _startY1 = 0;
+        _startF1 = 0;
+
+        _x1 = 0;
+        _y1 = 0;
+        _f1 = 0;
+      }
+
+      commands++;
+      vertices++;
+    } while (--i);
   }
   else
   {
-    for (i = count; i; i--, data++)
-    {
-      PathCmd cmd = data->cmd.cmd();
+    do {
+      uint8_t cmd = commands[0];
 
       // CmdLineTo is first, because it's most used command.
-      if (cmd == PATH_CMD_LINE_TO)
+      if (PathCmd::isLineTo(cmd))
       {
-        int24x8_t x2 = RasterizerUtil::upscale(data->x);
-        int24x8_t y2 = RasterizerUtil::upscale(data->y);
+        int24x8_t x2 = RasterizerUtil::upscale(vertices->x);
+        int24x8_t y2 = RasterizerUtil::upscale(vertices->y);
 
         renderLine(_x1, _y1, x2, y2);
         _x1 = x2;
         _y1 = y2;
       }
-      else if (cmd == PATH_CMD_MOVE_TO)
+      else if (PathCmd::isMoveTo(cmd))
       {
         if (_autoClose && (_x1 != _startX1 || _y1 != _startY1))
+        {
           renderLine(_x1, _y1, _startX1, _startY1);
+        }
 
-        _x1 = _startX1 = RasterizerUtil::upscale(data->x);
-        _y1 = _startY1 = RasterizerUtil::upscale(data->y);
+        _x1 = _startX1 = RasterizerUtil::upscale(vertices->x);
+        _y1 = _startY1 = RasterizerUtil::upscale(vertices->y);
       }
-      else if (cmd.isStop())
+      else if (PathCmd::isClose(cmd))
       {
         if (_x1 != _startX1 || _y1 != _startY1)
+        {
           renderLine(_x1, _y1, _startX1, _startY1);
+        }
+
+        _x1 = _startX1;
+        _y1 = _startY1;
+        _f1 = _startF1;
       }
-    }
+      else if (PathCmd::isStop(cmd))
+      {
+        _startX1 = 0;
+        _startY1 = 0;
+        _startF1 = 0;
+
+        _x1 = 0;
+        _y1 = 0;
+        _f1 = 0;
+      }
+
+      commands++;
+      vertices++;
+    } while (--i);
   }
 }
 
-void RasterizerC::closePolygon()
+void AnalyticRasterizer::closePolygon()
 {
   if (_x1 != _startX1 || _y1 != _startY1)
   {
@@ -821,10 +856,10 @@ void RasterizerC::closePolygon()
 }
 
 // ============================================================================
-// [Fog::RasterizerC - Clipper]
+// [Fog::AnalyticRasterizer - Clipper]
 // ============================================================================
 
-void RasterizerC::clipLine(int24x8_t x1, int24x8_t y1, int24x8_t x2, int24x8_t y2, uint f1, uint f2)
+void AnalyticRasterizer::clipLine(int24x8_t x1, int24x8_t y1, int24x8_t x2, int24x8_t y2, uint f1, uint f2)
 {
   // Invisible by Y.
   if ((f1 & 10) == (f2 & 10) && (f1 & 10) != 0) return;
@@ -905,7 +940,7 @@ void RasterizerC::clipLine(int24x8_t x1, int24x8_t y1, int24x8_t x2, int24x8_t y
   }
 }
 
-FOG_INLINE void RasterizerC::clipLineY(int24x8_t x1, int24x8_t y1, int24x8_t x2, int24x8_t y2, uint f1, uint f2)
+FOG_INLINE void AnalyticRasterizer::clipLineY(int24x8_t x1, int24x8_t y1, int24x8_t x2, int24x8_t y2, uint f1, uint f2)
 {
   f1 &= 10;
   f2 &= 10;
@@ -954,10 +989,10 @@ FOG_INLINE void RasterizerC::clipLineY(int24x8_t x1, int24x8_t y1, int24x8_t x2,
 }
 
 // ============================================================================
-// [Fog::RasterizerC - Render]
+// [Fog::AnalyticRasterizer - Render]
 // ============================================================================
 
-void RasterizerC::renderLine(int24x8_t x1, int24x8_t y1, int24x8_t x2, int24x8_t y2)
+void AnalyticRasterizer::renderLine(int24x8_t x1, int24x8_t y1, int24x8_t x2, int24x8_t y2)
 {
   enum DXLimitEnum { DXLimit = 16384 << POLY_SUBPIXEL_SHIFT };
 
@@ -968,8 +1003,8 @@ void RasterizerC::renderLine(int24x8_t x1, int24x8_t y1, int24x8_t x2, int24x8_t
     int cx = (x1 + x2) >> 1;
     int cy = (y1 + y2) >> 1;
 
-    RasterizerC::renderLine(x1, y1, cx, cy);
-    RasterizerC::renderLine(cx, cy, x2, y2);
+    AnalyticRasterizer::renderLine(x1, y1, cx, cy);
+    AnalyticRasterizer::renderLine(cx, cy, x2, y2);
   }
 
   int dy = y2 - y1;
@@ -1091,7 +1126,7 @@ void RasterizerC::renderLine(int24x8_t x1, int24x8_t y1, int24x8_t x2, int24x8_t
   renderHLine(ey1, x_from, POLY_SUBPIXEL_SCALE - first, x2, fy2);
 }
 
-FOG_INLINE void RasterizerC::renderHLine(int ey, int24x8_t x1, int24x8_t y1, int24x8_t x2, int24x8_t y2)
+FOG_INLINE void AnalyticRasterizer::renderHLine(int ey, int24x8_t x1, int24x8_t y1, int24x8_t x2, int24x8_t y2)
 {
   int ex1 = x1 >> POLY_SUBPIXEL_SHIFT;
   int ex2 = x2 >> POLY_SUBPIXEL_SHIFT;
@@ -1172,7 +1207,7 @@ FOG_INLINE void RasterizerC::renderHLine(int ey, int24x8_t x1, int24x8_t y1, int
   _cell.area  += (fx2 + POLY_SUBPIXEL_SCALE - first) * delta;
 }
 
-FOG_INLINE void RasterizerC::addCurCell()
+FOG_INLINE void AnalyticRasterizer::addCurCell()
 {
   if (_cell.area | _cell.cover)
   {
@@ -1184,7 +1219,7 @@ FOG_INLINE void RasterizerC::addCurCell()
   }
 }
 
-FOG_INLINE void RasterizerC::setCurCell(int x, int y)
+FOG_INLINE void AnalyticRasterizer::setCurCell(int x, int y)
 {
   if (!_cell.equalPos(x, y))
   {
@@ -1196,7 +1231,7 @@ FOG_INLINE void RasterizerC::setCurCell(int x, int y)
   }
 }
 
-bool RasterizerC::nextCellBuffer()
+bool AnalyticRasterizer::nextCellBuffer()
 {
   // If there is no buffer we quietly do nothing.
   if (!_bufferCurrent) goto error;
@@ -1240,7 +1275,7 @@ error:
   return false;
 }
 
-bool RasterizerC::finalizeCellBuffer()
+bool AnalyticRasterizer::finalizeCellBuffer()
 {
   // If there is no buffer we quietly do nothing.
   if (!_bufferCurrent) return false;
@@ -1251,7 +1286,7 @@ bool RasterizerC::finalizeCellBuffer()
   return true;
 }
 
-void RasterizerC::freeXYCellBuffers(bool all)
+void AnalyticRasterizer::freeXYCellBuffers(bool all)
 {
   if (_bufferFirst != NULL)
   {
@@ -1278,7 +1313,7 @@ void RasterizerC::freeXYCellBuffers(bool all)
 }
 
 // ============================================================================
-// [Fog::RasterizerC - Finalize]
+// [Fog::AnalyticRasterizer - Finalize]
 // ============================================================================
 
 template <typename T>
@@ -1398,7 +1433,7 @@ static FOG_INLINE void qsortCells(Cell* start, sysuint_t num)
   }
 }
 
-void RasterizerC::finalize()
+void AnalyticRasterizer::finalize()
 {
   // Perform sort only the first time.
   if (_finalized) return;
@@ -1523,10 +1558,10 @@ void RasterizerC::finalize()
 }
 
 // ============================================================================
-// [Fog::RasterizerC - Sweep]
+// [Fog::AnalyticRasterizer - Sweep]
 // ============================================================================
 
-FOG_INLINE uint RasterizerC::calculateAlphaNonZero(int area) const
+FOG_INLINE uint AnalyticRasterizer::calculateAlphaNonZero(int area) const
 {
   int cover = area >> (POLY_SUBPIXEL_SHIFT*2 + 1 - AA_SHIFT);
 
@@ -1536,7 +1571,7 @@ FOG_INLINE uint RasterizerC::calculateAlphaNonZero(int area) const
   return cover;
 }
 
-FOG_INLINE uint RasterizerC::calculateAlphaEvenOdd(int area) const
+FOG_INLINE uint AnalyticRasterizer::calculateAlphaEvenOdd(int area) const
 {
   int cover = area >> (POLY_SUBPIXEL_SHIFT*2 + 1 - AA_SHIFT);
 
@@ -1548,7 +1583,7 @@ FOG_INLINE uint RasterizerC::calculateAlphaEvenOdd(int area) const
   return cover;
 }
 
-uint RasterizerC::sweepScanline(Scanline32* scanline, int y)
+uint AnalyticRasterizer::sweepScanline(Scanline32* scanline, int y)
 {
   if (y >= _cellsBounds.y2) return 0;
 
@@ -1628,7 +1663,7 @@ uint RasterizerC::sweepScanline(Scanline32* scanline, int y)
   return scanline->finalize(y);
 }
 
-uint RasterizerC::sweepScanline(Scanline32* scanline, int y, const Box* clip, sysuint_t count)
+uint AnalyticRasterizer::sweepScanline(Scanline32* scanline, int y, const Box* clip, sysuint_t count)
 {
   if (y >= _cellsBounds.y2) return 0;
 

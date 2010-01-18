@@ -1,0 +1,318 @@
+// [Fog/Graphics library - Private API]
+//
+// [Licence]
+// MIT, See COPYING file in package
+
+// [Guard]
+#ifndef _FOG_GRAPHICS_RASTERIZER_P_H
+#define _FOG_GRAPHICS_RASTERIZER_P_H
+
+// [Dependencies]
+#include <Fog/Build/Build.h>
+#include <Fog/Graphics/Constants.h>
+#include <Fog/Graphics/Geometry.h>
+#include <Fog/Graphics/Path.h>
+#include <Fog/Graphics/Scanline_p.h>
+
+namespace Fog {
+
+// ============================================================================
+// [Fog::Rasterizer]
+// ============================================================================
+
+//! Scanline polygon rasterizer.
+//!
+//! Polygon rasterizer that is used to render filled polygons with 
+//! high-quality Anti-Aliasing. Internally, by default, the class uses 
+//! integer coordinates in format 24.8, i.e. 24 bits for integer part 
+//! and 8 bits for fractional - see poly_subpixel_shift. This class can be 
+//! used in the following  way:
+//!
+//! 1. getFillRule() / setFillRule(int fillRule) - set fill rule.
+//!
+//! 2. reset() - optional, needed only if you are reusing rasterizer.
+//!
+//! 3. addPath(path) - make the polygon. One can create more than one contour,
+//!    but each contour must consist of at least 3 vertices, is the absolute
+//!    minimum of vertices that define a triangle. The algorithm does not check
+//!    either the number of vertices nor coincidence of their coordinates, but
+//!    in the worst case it just won't draw anything.
+//!
+//!    The orger of the vertices (clockwise or counterclockwise) 
+//!    is important when using the non-zero filling rule (@c FILL_NON_ZERO).
+//!    In this case the vertex order of all the contours must be the same
+//!    if you want your intersecting polygons to be without "holes".
+//!    You actually can use different vertices order. If the contours do not 
+//!    intersect each other the order is not important anyway. If they do, 
+//!    contours with the same vertex order will be rendered without "holes" 
+//!    while the intersecting contours with different orders will have "holes".
+//!
+//! setFillRule() can be called anytime before "sweeping".
+//!
+//! Rasterizers are pooled to maximize performance and decrease memory 
+//! fragmentation. If you want to create or free rasterizer use methods
+//! @c Rasterizer::getRasterizer() and @c Rasterizer::releaseRasterizer(),
+//! respectively.
+struct FOG_HIDDEN Rasterizer
+{
+  // --------------------------------------------------------------------------
+  // [Cell]
+  // --------------------------------------------------------------------------
+
+#include <Fog/Core/Pack.h>
+  struct CellXY
+  {
+    int x;
+    int y;
+    int cover;
+    int area;
+
+    FOG_INLINE void set(int _x, int _y, int _cover, int _area) { x = _x; y = _y; cover = _cover; area = _area; }
+    FOG_INLINE bool equalPos(int ex, int ey) const { return ((ex - x) | (ey - y)) == 0; }
+  };
+#include <Fog/Core/Unpack.h>
+
+#include <Fog/Core/Pack.h>
+  struct FOG_PACKED CellX
+  {
+    int x;
+    int cover;
+    int area;
+
+    FOG_INLINE void set(int _x, int _cover, int _area)
+    {
+      x = _x;
+      cover = _cover;
+      area = _area;
+    }
+
+    FOG_INLINE void set(const CellX& other)
+    {
+      x = other.x;
+      cover = other.cover;
+      area = other.area;
+    }
+
+    FOG_INLINE void set(const CellXY& other)
+    {
+      x = other.x;
+      cover = other.cover;
+      area = other.area;
+    }
+  };
+#include <Fog/Core/Unpack.h>
+
+  // --------------------------------------------------------------------------
+  // [CellXYBuffer]
+  // --------------------------------------------------------------------------
+
+  //! @brief Cell buffer.
+  struct CellXYBuffer
+  {
+    CellXYBuffer* prev;
+    CellXYBuffer* next;
+    sysuint_t capacity;
+    sysuint_t count;
+    CellXY cells[1];
+  };
+
+  // --------------------------------------------------------------------------
+  // [RowInfo]
+  // --------------------------------------------------------------------------
+
+  //! @brief Lookup table that contains index and count of cells in sorted cells
+  //! buffer. Each index to this table represents one row.
+  struct RowInfo
+  {
+    sysuint_t index;
+    sysuint_t count;
+  };
+
+  // --------------------------------------------------------------------------
+  // [Construction / Destruction]
+  // --------------------------------------------------------------------------
+
+  Rasterizer();
+  virtual ~Rasterizer();
+
+  //! @brief Called before rasterizer is pooled. Default implementation is NOP.
+  virtual void pooled() = 0;
+
+  //! @brief Reset rasterizer.
+  virtual void reset() = 0;
+
+  // --------------------------------------------------------------------------
+  // [Clipping]
+  // --------------------------------------------------------------------------
+
+  FOG_INLINE const Box& getClipBox() const { return _clipBox; }
+
+  virtual void setClipBox(const Box& clipBox) = 0;
+  virtual void resetClipBox() = 0;
+
+  // --------------------------------------------------------------------------
+  // [Error]
+  // --------------------------------------------------------------------------
+
+  FOG_INLINE err_t getError() { return _error; }
+
+  virtual void setError(err_t error) = 0;
+  virtual void resetError() = 0;
+
+  // --------------------------------------------------------------------------
+  // [Fill rule]
+  // --------------------------------------------------------------------------
+
+  FOG_INLINE int getFillRule() const { return _fillRule; }
+  FOG_INLINE void setFillRule(int fillRule) { _fillRule = fillRule; }
+
+  // --------------------------------------------------------------------------
+  // [Finalized]
+  // --------------------------------------------------------------------------
+
+  FOG_INLINE bool finalized() const { return _finalized; }
+
+  // --------------------------------------------------------------------------
+  // [Auto-close]
+  // --------------------------------------------------------------------------
+
+  FOG_INLINE bool getAutoClose() const { return _autoClose; }
+  FOG_INLINE void setAutoClose(bool autoClose) { _autoClose = autoClose; }
+
+  // --------------------------------------------------------------------------
+  // [Cells / Rows]
+  // --------------------------------------------------------------------------
+
+  //! @brief Get sorted cells.
+  //!
+  //! @note This method is only valid after finalize() call.
+  FOG_INLINE const CellX* getCellsSorted() const { return _cellsSorted; }
+
+  //! @brief Get count of cells in _cellsSorted array.
+  //!
+  //! @note This method is only valid after finalize() call.
+  FOG_INLINE sysuint_t getCellsCount() const { return _cellsCount; }
+
+  //! @brief Get bounds of rasterized cells.
+  //!
+  //! @note This method is only valid after finalize() call.
+  FOG_INLINE const Box& getCellsBounds() const { return _cellsBounds; }
+
+  //! @brief Get whether there are cells in rasterizer.
+  //!
+  //! @note This method is only valid after finalize() call.
+  FOG_INLINE bool hasCells() const { return _cellsCount != 0; }
+
+  //! @brief Rows info (index and count of cells in row).
+  //!
+  //! @note This method is only valid after finalize() call.
+  FOG_INLINE const RowInfo* getRowsInfo() const { return _rowsInfo; }
+
+  //! @brief Get count of rows in _rowsInfo array.
+  //!
+  //! @note This method is only valid after finalize() call.
+  FOG_INLINE sysuint_t getRowsCount() const { return _cellsBounds.y2 - _cellsBounds.y1; }
+
+  // --------------------------------------------------------------------------
+  // [Commands]
+  // --------------------------------------------------------------------------
+
+  virtual void addPath(const Path& path) = 0;
+  virtual void finalize() = 0;
+
+  // --------------------------------------------------------------------------
+  // [Sweep]
+  // --------------------------------------------------------------------------
+
+  //! @brief Sweep scanline @a y.
+  virtual uint sweepScanline(Scanline32* scanline, int y) = 0;
+
+  //! @brief Enhanced version of @c sweepScanline() that contains clip boundary.
+  //!
+  //! This method is called by raster painter engine if clipping region is
+  //! complex (more than one rectangle).
+  virtual uint sweepScanline(Scanline32* scanline, int y, const Box* clip, sysuint_t count) = 0;
+
+  // --------------------------------------------------------------------------
+  // [Pooling]
+  // --------------------------------------------------------------------------
+
+  //! @brief Get rasterizer instance.
+  static Rasterizer* getRasterizer();
+  //! @brief Release rasterizer instance.
+  static void releaseRasterizer(Rasterizer* rasterizer);
+
+  //! @brief Get cell buffer instance.
+  static CellXYBuffer* getCellXYBuffer();
+  //! @brief Release cell buffer instance.
+  static void releaseCellXYBuffer(CellXYBuffer* cellBuffer);
+
+  //! @brief Free all pooled rasterizer and cell buffer instances.
+  static void cleanup();
+
+  // --------------------------------------------------------------------------
+  // [Members]
+  // --------------------------------------------------------------------------
+
+protected:
+  //! @brief Clip bounding box (always must be valid, initialy set to zero).
+  Box _clipBox;
+
+  //! @brief Cells bounding box (min / max).
+  Box _cellsBounds;
+
+  //! @brief Rasterizer error code.
+  err_t _error;
+
+  //! @brief Fill rule;
+  int _fillRule;
+
+  //! @brief Whether rasterizer is finalized.
+  bool _finalized;
+
+  //! @brief Whether auto close path on moveTo command.
+  bool _autoClose;
+
+  //! @brief Sorted cells.
+  //!
+  //! @note This value is only valid after finalize() call.
+  CellX* _cellsSorted;
+
+  //! @brief Sorted cells array capacity.
+  //!
+  //! @note This value is only valid after finalize() call.
+  sysuint_t _cellsCapacity;
+
+  //! @brief Total count of cells in all buffers.
+  //!
+  //! @note This value is updated only by reset(), nextCellBuffer() and 
+  //! finalizeCellBuffer() methods, it not contains exact cells count until
+  //! one of these methods isn't called.
+  //!
+  //! @note This value is only valid after finalize() call.
+  sysuint_t _cellsCount;
+
+  //! @brief Rows info (index and count of cells in row).
+  //!
+  //! @note This value is only valid after finalize() call.
+  RowInfo* _rowsInfo;
+
+  //! @brief Rows array capacity.
+  //!
+  //! @note This value is only valid after finalize() call.
+  sysuint_t _rowsCapacity;
+
+private:
+  //! @brief Link to next pooled @c Rasterizer instance. Always NULL when you 
+  //! get rasterizer by @c Rasterizer::getRasterizer() method.
+  //!
+  //! @internal
+  Rasterizer* _poolNext;
+
+  FOG_DISABLE_COPY(Rasterizer)
+};
+
+} // Fog namespace
+
+// [Guard]
+#endif // _FOG_GRAPHICS_RASTERIZER_P_H

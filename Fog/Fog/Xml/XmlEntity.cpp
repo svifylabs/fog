@@ -1,4 +1,4 @@
-// [Fog/Xml Library - C++ API]
+// [Fog/Xml Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -16,7 +16,7 @@
 #include <Fog/Core/Constants.h>
 #include <Fog/Core/String.h>
 #include <Fog/Core/StringUtil.h>
-#include <Fog/Xml/XmlEntity.h>
+#include <Fog/Xml/XmlEntity_p.h>
 
 namespace Fog {
 
@@ -25,7 +25,7 @@ namespace Fog {
 // ============================================================================
 
 // keep sorted order, this table is binary searched!
-static const Fog::XmlEntity::Pair xmlentity_pairs[] =
+static const XmlEntity::Pair xmlentity_pairs[] =
 {
   { "AElig",     198   },
   { "Aacute",    193   },
@@ -287,7 +287,7 @@ static const Fog::XmlEntity::Pair xmlentity_pairs[] =
 };
 
 // keep sorted order, this table is binary searched!
-static const Fog::XmlEntity::PairRev xmlentity_pairs_rev[] =
+static const XmlEntity::PairRev xmlentity_pairs_rev[] =
 {
   { 34, 197 },
   { 38, 67 },

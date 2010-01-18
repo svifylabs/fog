@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - C++ API]
+// [Fog/Graphics Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -61,15 +61,15 @@ struct FOG_HIDDEN StrokerPrivate
   }
 
   void calcCap(
-    const PathVertex& v0,
-    const PathVertex& v1,
+    const PointD& v0,
+    const PointD& v1,
     double len,
     int cap);
 
   void calcJoin(
-    const PathVertex& v0,
-    const PathVertex& v1,
-    const PathVertex& v2,
+    const PointD& v0,
+    const PointD& v1,
+    const PointD& v2,
     double len1,
     double len2);
 
@@ -79,16 +79,16 @@ struct FOG_HIDDEN StrokerPrivate
     double dx2, double dy2);
 
   void calcMiter(
-    const PathVertex& v0,
-    const PathVertex& v1,
-    const PathVertex& v2,
+    const PointD& v0,
+    const PointD& v1,
+    const PointD& v2,
     double dx1, double dy1,
     double dx2, double dy2,
     int lineJoin,
     double mlimit,
     double dbevel);
 
-  err_t stroke(const PathVertex* src, sysuint_t count, bool outline);
+  err_t stroke(const PointD* src, sysuint_t count, bool outline);
 
   const Stroker& stroker;
   Path& dst;
@@ -173,55 +173,64 @@ err_t Stroker::stroke(Path& dst, const Path& src) const
   dst.clear();
   StrokerPrivate p(*this, dst);
 
+  const uint8_t* commands = src.getCommands();
+  const PointD* vertices = src.getVertices();
+
   // Traverse path, find moveTo / lineTo segments and stroke them.
-  const PathVertex* subStart = NULL;
-  const PathVertex* cur = src.getData();
+  const uint8_t* subCommand = NULL;
+  const uint8_t* curCommand = commands;
   sysuint_t remain = src.getLength();
 
   while (remain)
   {
-    PathCmd cmd = cur->cmd;
+    uint8_t cmd = curCommand[0];
 
     // LineTo is most used command here, so it's first.
-    if (cmd.isLineTo())
+    if (PathCmd::isLineTo(cmd))
     {
       // Nothing here...
     }
-    else if (cmd.isMoveTo())
+    else if (PathCmd::isMoveTo(cmd))
     {
       // Send path to stroker if there is something.
-      if (subStart != NULL && subStart != cur)
+      if (subCommand != NULL && subCommand != curCommand)
       {
-        sysuint_t subLength = (sysuint_t)(cur - subStart);
-        if ((err = p.stroke(subStart, subLength, false))) return err;
+        sysuint_t subStart = (sysuint_t)(subCommand - commands);
+        sysuint_t subLength = (sysuint_t)(curCommand - subCommand);
+
+        if ((err = p.stroke(vertices + subStart, subLength, false))) return err;
       }
 
       // Advance to new subpath.
-      subStart = cur;
+      subCommand = curCommand;
     }
-    else if (cmd.isClose())
+    else if (PathCmd::isClose(cmd) || PathCmd::isStop(cmd))
     {
       // Send path to stroker if there is something.
-      if (subStart != NULL)
+      if (subCommand != NULL)
       {
-        sysuint_t subLength = (sysuint_t)(cur - subStart);
-        if ((err = p.stroke(subStart, subLength, true))) return err;
+        sysuint_t subStart = (sysuint_t)(subCommand - commands);
+        sysuint_t subLength = (sysuint_t)(curCommand - subCommand);
+
+        if ((err = p.stroke(vertices + subStart, subLength, PathCmd::isClose(cmd)))) return err;
       }
 
       // We clear beginning mark, because we expect PATH_MOVE_TO command from now.
-      subStart = NULL;
+      subCommand = NULL;
     }
 
-    cur++;
+    curCommand++;
     remain--;
   }
 
   // Send path to stroker if there is something (this is last path not 
   // stopped by command).
-  if (subStart != NULL && subStart != cur)
+  if (subCommand != NULL && subCommand != curCommand)
   {
-    sysuint_t subLength = (sysuint_t)(cur - subStart);
-    if ((err = p.stroke(subStart, subLength, false))) return err;
+    sysuint_t subStart = (sysuint_t)(subCommand - commands);
+    sysuint_t subLength = (sysuint_t)(curCommand - subCommand);
+
+    if ((err = p.stroke(vertices + subStart, subLength, false))) return err;
   }
 
   return ERR_OK;
@@ -280,9 +289,9 @@ void StrokerPrivate::calcArc(
 }
 
 void StrokerPrivate::calcMiter(
-  const PathVertex& v0,
-  const PathVertex& v1,
-  const PathVertex& v2,
+  const PointD& v0,
+  const PointD& v1,
+  const PointD& v2,
   double dx1, double dy1,
   double dx2, double dy2,
   int lineJoin,
@@ -370,8 +379,8 @@ void StrokerPrivate::calcMiter(
 }
 
 void StrokerPrivate::calcCap(
-  const PathVertex& v0,
-  const PathVertex& v1,
+  const PointD& v0,
+  const PointD& v1,
   double len,
   int cap)
 {
@@ -498,9 +507,9 @@ void StrokerPrivate::calcCap(
 }
 
 void StrokerPrivate::calcJoin(
-  const PathVertex& v0,
-  const PathVertex& v1,
-  const PathVertex& v2,
+  const PointD& v0,
+  const PointD& v1,
+  const PointD& v2,
   double len1,
   double len2)
 {
@@ -634,9 +643,9 @@ void StrokerPrivate::calcJoin(
   }
 }
 
-err_t StrokerPrivate::stroke(const PathVertex* src, sysuint_t count, bool outline)
+err_t StrokerPrivate::stroke(const PointD* src, sysuint_t count, bool outline)
 {
-  const PathVertex* cur;
+  const PointD* cur;
   sysuint_t i;
   sysuint_t moveToPosition0 = dst.getLength();
   sysuint_t moveToPosition1 = INVALID_INDEX;
@@ -682,7 +691,7 @@ err_t StrokerPrivate::stroke(const PathVertex* src, sysuint_t count, bool outlin
   // If something goes wrong:)
   // for (i = 0; i < count; i++)
   // {
-  //  fog_debug("CMD: %d (%g %g)", src[i].cmd.cmd(), src[i].x, src[i].y);
+  //  fog_debug("Vertex [%g, %g]", src[i].x, src[i].y);
   // }
 
   // TODO: This is not complete. Since path can contain two equal vertices
@@ -715,7 +724,7 @@ err_t StrokerPrivate::stroke(const PathVertex* src, sysuint_t count, bool outlin
     }
 
     calcJoin(cur[0], cur[1], src[0], dist[0], dist[1]);
-    dst.closePolygon(PATH_CFLAG_CLOSE | PATH_CFLAG_CCW);
+    dst.closePolygon(PATH_CMD_FLAG_CLOSE | PATH_CMD_FLAG_CCW);
 
     moveToPosition1 = dst.getLength();
     calcJoin(src[0], src[count-1], src[count-2], d, distances[count - 2]);
@@ -725,7 +734,7 @@ err_t StrokerPrivate::stroke(const PathVertex* src, sysuint_t count, bool outlin
     }
     calcJoin(cur[1], cur[0], src[count-1], dist[0], d);
 
-    dst.closePolygon(PATH_CFLAG_CLOSE | PATH_CFLAG_CW);
+    dst.closePolygon(PATH_CMD_FLAG_CLOSE | PATH_CMD_FLAG_CW);
   }
   else
   {
@@ -762,9 +771,9 @@ err_t StrokerPrivate::stroke(const PathVertex* src, sysuint_t count, bool outlin
 
   // Fix path adding PATH_CMD_MOVE_TO commands at begin of each outline. This
   // allowed us to simplify addVertex() inline using only PATH_CMD_LINE_TO.
-  PathVertex* dstData = const_cast<PathVertex*>(dst.getData());
-  if (moveToPosition0 < dst.getLength()) dstData[moveToPosition0].cmd = PATH_CMD_MOVE_TO;
-  if (moveToPosition1 < dst.getLength()) dstData[moveToPosition1].cmd = PATH_CMD_MOVE_TO;
+  uint8_t* dstCommands = const_cast<uint8_t*>(dst.getCommands());
+  if (moveToPosition0 < dst.getLength()) dstCommands[moveToPosition0] = PATH_CMD_MOVE_TO;
+  if (moveToPosition1 < dst.getLength()) dstCommands[moveToPosition1] = PATH_CMD_MOVE_TO;
 
   return ERR_OK;
 }

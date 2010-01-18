@@ -1,4 +1,4 @@
-// [Fog/Xml Library - C++ API]
+// [Fog/Xml Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -19,7 +19,7 @@
 #include <Fog/Core/StringUtil.h>
 #include <Fog/Xml/Constants.h>
 #include <Fog/Xml/XmlDom.h>
-#include <Fog/Xml/XmlEntity.h>
+#include <Fog/Xml/XmlEntity_p.h>
 #include <Fog/Xml/XmlReader.h>
 #include <Fog/Xml/XmlWriter.h>
 

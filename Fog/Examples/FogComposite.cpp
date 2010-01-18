@@ -86,6 +86,7 @@ void MyWindow::onPaint(PaintEvent* e)
   opname[OPERATOR_CLEAR     ] = "clear";
   opname[OPERATOR_ADD       ] = "add";
   opname[OPERATOR_SUBTRACT  ] = "subtract";
+  opname[OPERATOR_MULTIPLY  ] = "multiply";
   opname[OPERATOR_SCREEN    ] = "screen";
   opname[OPERATOR_DARKEN    ] = "darken";
   opname[OPERATOR_LIGHTEN   ] = "lighten";

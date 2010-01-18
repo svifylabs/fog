@@ -185,8 +185,6 @@ Time Time::LocalMidnight() const
 // do.  Otherwise, WaitForSingleObject(..., 1) will no less than 15ms when
 // there is nothing else to waken the Wait.
 
-// #include "base/system_monitor.h"
-
 namespace {
 
 // From MSDN, FILETIME "Contains a 64-bit value representing the number of
