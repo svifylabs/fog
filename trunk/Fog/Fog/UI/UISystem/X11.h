@@ -1,4 +1,4 @@
-// [Gui library - C++ API]
+// [Gui library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package

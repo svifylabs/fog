@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - C++ API]
+// [Fog/Graphics Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -1029,7 +1029,7 @@ doClose:
   }
 
 end:
-  if (mtx) path.applyMatrix(*mtx, subPathIndex, DETECT_LENGTH);
+  if (mtx) path.applyMatrix(*mtx, Range(subPathIndex, DETECT_LENGTH));
   return err;
 }
 

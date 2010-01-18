@@ -1,4 +1,4 @@
-// [Fog/UI Library - C++ API]
+// [Fog/UI Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -11,7 +11,10 @@
 #ifndef _FOG_UI_H
 #define _FOG_UI_H
 
-// [There is only documentation]
+// ============================================================================
+// [Fog/UI Documentation]
+// ============================================================================
+
 #if defined(_DOXYGEN)
 //! @defgroup Fog_UI Fog/UI library API.
 //!
@@ -26,7 +29,10 @@
 //! This module contains specific part of UI system for X Window System (xlib).
 #endif // _DOXYGEN
 
+// ============================================================================
 // [Fog/UI Include Files]
+// ============================================================================
+
 #include <Fog/Build/Build.h>
 
 #include <Fog/UI/BoxLayout.h>

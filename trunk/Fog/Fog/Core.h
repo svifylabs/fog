@@ -1,4 +1,4 @@
-// [Fog/Core Library - C++ API]
+// [Fog/Core Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -12,11 +12,10 @@
 #endif // _MSVC
 
 // ============================================================================
-// [Fog::Documentation]
+// [Fog/Core Documentation]
 // ============================================================================
 
 #if defined(_DOXYGEN)
-
 //! @mainpage Fog Library Documentation
 //!
 //! @section Main_Page_Intro Introduction

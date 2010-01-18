@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - C++ API]
+// [Fog/Graphics Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -9,7 +9,7 @@
 #endif // FOG_PRECOMP
 
 // [Dependencies]
-#include <Fog/Graphics/DitherMatrix.h>
+#include <Fog/Graphics/DitherMatrix_p.h>
 
 namespace Fog {
 

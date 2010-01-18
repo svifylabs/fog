@@ -1,11 +1,11 @@
-// [Fog/Graphics Library - C++ API]
+// [Fog/Graphics Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
 
 // [Dependencies]
 #include <Fog/Graphics/Constants.h>
-#include <Fog/Graphics/FontEngine/Null.h>
+#include <Fog/Graphics/FontEngine/Null_p.h>
 #include <Fog/Graphics/TextLayout.h>
 
 namespace Fog {

@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - C++ API]
+// [Fog/Graphics Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -37,173 +37,12 @@
 namespace Fog {
 
 // ============================================================================
-// [Fog::Path::Data]
-// ============================================================================
-
-Static<Path::Data> Path::sharedNull;
-
-Path::Data* Path::Data::ref() const
-{
-  if (flags & IsSharable)
-  {
-    refCount.inc();
-    return const_cast<Data*>(this);
-  }
-  else
-  {
-    return copy();
-  }
-}
-
-void Path::Data::deref()
-{
-  if (refCount.deref() && (flags & IsDynamic) != 0) 
-  {
-    Memory::free((void*)this);
-  }
-}
-
-Path::Data* Path::Data::copy() const
-{
-  if (!length) return refAlways();
-
-  Data* d = alloc(length);
-  if (!d) return NULL;
-
-  d->length = length;
-  d->flat = flat;
-  Memory::copy(d->data, data, sizeof(PathVertex) * length);
-
-  return d;
-}
-
-Path::Data* Path::Data::alloc(sysuint_t capacity)
-{
-  sysuint_t dsize = 
-    sizeof(Data) - sizeof(PathVertex) + capacity * sizeof(PathVertex);
-
-  Data* d = reinterpret_cast<Data*>(Memory::alloc(dsize));
-  if (!d) return NULL;
-
-  d->refCount.init(1);
-  d->flags = IsDynamic | IsSharable;
-  d->flat = true;
-  d->capacity = capacity;
-  d->length = 0;
-
-  return d;
-}
-
-Path::Data* Path::Data::realloc(Data* d, sysuint_t capacity)
-{
-  FOG_ASSERT(d->length <= capacity);
-
-  if (d->flags & IsDynamic)
-  {
-    sysuint_t dsize = 
-      sizeof(Data) - sizeof(PathVertex) + capacity * sizeof(PathVertex);
-
-    Data* newd = reinterpret_cast<Data*>(Memory::realloc((void*)d, dsize));
-    if (!newd) return NULL;
-
-    newd->capacity = capacity;
-    return newd;
-  }
-  else
-  {
-    Data* newd = alloc(capacity);
-
-    newd->length = d->length;
-    newd->flat = d->flat;
-    Memory::copy(newd->data, d->data, d->length * sizeof(PathVertex));
-    d->deref();
-    return newd;
-  }
-}
-
-// ============================================================================
-// [Fog::Path]
-// ============================================================================
-
-static FOG_INLINE PathCmd lastCmd(Path::Data* d)
-{
-  return PathCmd(d->length
-    ? PathCmd(d->data[d->length-1].cmd)
-    : PathCmd(PATH_CMD_END));
-}
-
-static FOG_INLINE double lastX(Path::Data* d)
-{
-  return d->length ? d->data[d->length-1].x : 0.0;
-}
-
-static FOG_INLINE double lastY(Path::Data* d)
-{
-  return d->length ? d->data[d->length-1].y : 0.0;
-}
-
-static FOG_INLINE void relToAbsInline(Path::Data* d, double* x, double* y)
-{
-  PathVertex* v = d->data + d->length;
-
-  if (d->length && v[-1].cmd.isVertex())
-  {
-    *x += v[-1].x;
-    *y += v[-1].y;
-  }
-}
-
-static FOG_INLINE void relToAbsInline(Path::Data* d, double* x0, double* y0, double* x1, double* y1)
-{
-  PathVertex* v = d->data + d->length;
-
-  if (d->length && v[-1].cmd.isVertex())
-  {
-    *x0 += v[-1].x;
-    *y0 += v[-1].y;
-    *x1 += v[-1].x;
-    *y1 += v[-1].y;
-  }
-}
-
-static FOG_INLINE void relToAbsInline(Path::Data* d, double* x0, double* y0, double* x1, double* y1, double* x2, double* y2)
-{
-  PathVertex* v = d->data + d->length;
-
-  if (d->length && v[-1].cmd.isVertex())
-  {
-    *x0 += v[-1].x;
-    *y0 += v[-1].y;
-    *x1 += v[-1].x;
-    *y1 += v[-1].y;
-    *x2 += v[-1].x;
-    *y2 += v[-1].y;
-  }
-}
-
-template<class VertexStorage>
-static err_t aggJoinPath(Path* self, VertexStorage& a)
-{
-  sysuint_t i, len = a.num_vertices();
-  PathVertex* v = self->_add(len);
-  if (!v) return ERR_RT_OUT_OF_MEMORY;
-
-  a.rewind(0);
-  for (i = 0; i < len; i++)
-  {
-    v[i].cmd = a.vertex(&v[i].x, &v[i].y);
-  }
-
-  return ERR_OK;
-}
-
-// ============================================================================
 // [Fog::Path - Construction / Destruction]
 // ============================================================================
 
 Path::Path()
 {
-  _d = sharedNull->refAlways();
+  _d = sharedNull->ref();
 }
 
 Path::Path(const Path& other)
@@ -217,6 +56,141 @@ Path::~Path()
 }
 
 // ============================================================================
+// [Fog::Path - Implicit Sharing]
+// ============================================================================
+
+Static<PathData> Path::sharedNull;
+
+static FOG_INLINE sysuint_t _getPathDataSize(sysuint_t capacity)
+{
+  sysuint_t s = sizeof(PathData);
+
+  // Align to 8 bytes (we align pointer to PointD).
+  s += capacity * sizeof(uint8_t);
+  s += capacity * sizeof(PointD);
+
+  return s;
+}
+
+static FOG_INLINE void _updatePathDataPointers(PathData* d, sysuint_t capacity)
+{
+  d->vertices = reinterpret_cast<PointD*>(
+    reinterpret_cast<uint8_t*>(d) + sizeof(PathData) + (((capacity + 7) & ~7) * sizeof(uint8_t)));
+}
+
+PathData* Path::_allocData(sysuint_t capacity)
+{
+  sysuint_t dsize = _getPathDataSize(capacity);
+
+  PathData* d = reinterpret_cast<PathData*>(Memory::alloc(dsize));
+  if (!d) return NULL;
+
+  d->refCount.init(1);
+  d->flat = 1;
+  d->capacity = capacity;
+  d->length = 0;
+  _updatePathDataPointers(d, capacity);
+
+  return d;
+}
+
+// tady
+PathData* Path::_reallocData(PathData* d, sysuint_t capacity)
+{
+  FOG_ASSERT(d->length <= capacity);
+  sysuint_t dsize = _getPathDataSize(capacity);
+
+  PathData* newd = reinterpret_cast<PathData*>(Memory::alloc(dsize));
+  if (!newd) return NULL;
+
+  sysuint_t length = d->length;
+
+  newd->refCount.init(1);
+  newd->flat = d->flat;
+  newd->capacity = capacity;
+  newd->length = length;
+  _updatePathDataPointers(newd, capacity);
+
+  Memory::copy(newd->commands, d->commands, length * sizeof(uint8_t));
+  Memory::copy(newd->vertices, d->vertices, length * sizeof(PointD));
+
+  d->deref();
+  return newd;
+}
+
+PathData* Path::_copyData(const PathData* d)
+{
+  sysuint_t length = d->length;
+  if (!length) return sharedNull->ref();
+
+  PathData* newd = _allocData(length);
+  if (!newd) return NULL;
+
+  newd->length = length;
+  newd->flat = d->flat;
+
+  Memory::copy(newd->commands, d->commands, length * sizeof(uint8_t));
+  Memory::copy(newd->vertices, d->vertices, length * sizeof(PointD));
+
+  return newd;
+}
+
+// ============================================================================
+// [Fog::Path - Helpers]
+// ============================================================================
+
+static FOG_INLINE void _relativeToAbsolute(PathData* d, double* x, double* y)
+{
+  sysuint_t last = d->length;
+  if (!last) return;
+
+  last--;
+
+  uint8_t cmd = d->commands[last];
+  if (!PathCmd::isVertex(cmd)) return;
+
+  const PointD& pt = d->vertices[last];
+  *x += pt.x;
+  *y += pt.y;
+}
+
+static FOG_INLINE void _relativeToAbsolute(PathData* d, double* x0, double* y0, double* x1, double* y1)
+{
+  sysuint_t last = d->length;
+  if (!last) return;
+
+  last--;
+
+  uint8_t cmd = d->commands[last];
+  if (!PathCmd::isVertex(cmd)) return;
+
+  const PointD& pt = d->vertices[last];
+  *x0 += pt.x;
+  *y0 += pt.y;
+  *x1 += pt.x;
+  *y1 += pt.y;
+}
+
+static FOG_INLINE void _relativeToAbsolute(PathData* d, double* x0, double* y0, double* x1, double* y1, double* x2, double* y2)
+{
+  sysuint_t last = d->length;
+  if (!last) return;
+
+  last--;
+
+  uint8_t cmd = d->commands[last];
+  if (!PathCmd::isVertex(cmd)) return;
+
+  const PointD& pt = d->vertices[last];
+  *x0 += pt.x;
+  *y0 += pt.y;
+  *x1 += pt.x;
+  *y1 += pt.y;
+  *x2 += pt.x;
+  *y2 += pt.y;
+}
+
+// ============================================================================
 // [Fog::Path - Data]
 // ============================================================================
 
@@ -224,11 +198,16 @@ err_t Path::reserve(sysuint_t capacity)
 {
   if (_d->refCount.get() == 1 && _d->capacity >= capacity) return ERR_OK;
 
-  Data* newd = Data::alloc(capacity);
+  sysuint_t length = _d->length;
+  if (capacity < length) capacity = length;
+
+  PathData* newd = _allocData(capacity);
   if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
-  newd->length = _d->length;
-  Memory::copy(newd->data, _d->data, _d->length * sizeof(PathVertex));
+  newd->length = length;
+
+  Memory::copy(newd->commands, _d->commands, length * sizeof(uint8_t));
+  Memory::copy(newd->vertices, _d->vertices, length * sizeof(PointD));
 
   atomicPtrXchg(&_d, newd)->deref();
   return ERR_OK;
@@ -240,21 +219,21 @@ void Path::squeeze()
 
   if (_d->refCount.get() == 1)
   {
-    Data* newd = Data::realloc(_d, _d->length);
+    PathData* newd = _reallocData(_d, _d->length);
     if (!newd) return;
 
     atomicPtrXchg(&_d, newd);
   }
   else
   {
-    Data* newd = _d->copy();
+    PathData* newd = _copyData(_d);
     if (!newd) return;
 
     atomicPtrXchg(&_d, newd)->deref();
   }
 }
 
-PathVertex* Path::_add(sysuint_t count)
+sysuint_t Path::_add(sysuint_t count)
 {
   sysuint_t length = _d->length;
   sysuint_t remain = _d->capacity - length;
@@ -262,22 +241,24 @@ PathVertex* Path::_add(sysuint_t count)
   if (_d->refCount.get() == 1 && count <= remain)
   {
     _d->length += count;
-    return _d->data + length;
+    return length;
   }
   else
   {
-    sysuint_t optimalCapacity = 
-      Std::calcOptimalCapacity(sizeof(Data), sizeof(PathVertex), length, length + count);
+    sysuint_t optimalCapacity =
+      Std::calcOptimalCapacity(sizeof(PathData), sizeof(PointD) + sizeof(uint8_t), length, length + count);
 
-    Data* newd = Data::alloc(optimalCapacity);
-    if (!newd) return NULL;
+    PathData* newd = _allocData(optimalCapacity);
+    if (!newd) return INVALID_INDEX;
 
     newd->length = length + count;
     newd->flat = _d->flat;
-    Memory::copy(newd->data, _d->data, length * sizeof(PathVertex));
+
+    Memory::copy(newd->commands, _d->commands, length * sizeof(uint8_t));
+    Memory::copy(newd->vertices, _d->vertices, length * sizeof(PointD));
 
     atomicPtrXchg(&_d, newd)->deref();
-    return newd->data + length;
+    return length;
   }
 }
 
@@ -285,7 +266,7 @@ err_t Path::_detach()
 {
   if (isDetached()) return ERR_OK;
 
-  Data* newd = _d->copy();
+  PathData* newd = _copyData(_d);
   if (!newd) return ERR_RT_OUT_OF_MEMORY;
 
   atomicPtrXchg(&_d, newd)->deref();
@@ -294,26 +275,16 @@ err_t Path::_detach()
 
 err_t Path::set(const Path& other)
 {
-  Data* self_d = _d;
-  Data* other_d = other._d;
-  if (self_d == other_d) return ERR_OK;
+  if (_d == other._d) return ERR_OK;
 
-  if ((self_d->flags & Data::IsStrong) != 0 || 
-      (other_d->flags & Data::IsSharable) == 0)
-  {
-    return setDeep(other);
-  }
-  else
-  {
-    atomicPtrXchg(&_d, other_d->ref())->deref();
-    return ERR_OK;
-  }
+  atomicPtrXchg(&_d, other._d->ref())->deref();
+  return ERR_OK;
 }
 
 err_t Path::setDeep(const Path& other)
 {
-  Data* self_d = _d;
-  Data* other_d = other._d;
+  PathData* self_d = _d;
+  PathData* other_d = other._d;
 
   if (self_d == other_d) return ERR_OK;
   if (other_d->length == 0) { clear(); return ERR_OK; }
@@ -322,11 +293,13 @@ err_t Path::setDeep(const Path& other)
   if (err) { clear(); return ERR_RT_OUT_OF_MEMORY; }
 
   self_d = _d;
-  sysuint_t len = other_d->length;
+  sysuint_t length = other_d->length;
 
-  self_d->length = len;
+  self_d->length = length;
   self_d->flat = other_d->flat;
-  Memory::copy(self_d->data, other_d->data, len * sizeof(PathVertex));
+
+  Memory::copy(self_d->commands, other_d->commands, length * sizeof(uint8_t));
+  Memory::copy(self_d->vertices, other_d->vertices, length * sizeof(PointD));
 
   return ERR_OK;
 }
@@ -335,18 +308,18 @@ void Path::clear()
 {
   if (_d->refCount.get() > 1)
   {
-    atomicPtrXchg(&_d, sharedNull->refAlways())->deref();
+    atomicPtrXchg(&_d, sharedNull->ref())->deref();
   }
   else
   {
     _d->length = 0;
-    _d->flat = true;
+    _d->flat = 1;
   }
 }
 
 void Path::free()
 {
-  atomicPtrXchg(&_d, sharedNull->refAlways())->deref();
+  atomicPtrXchg(&_d, sharedNull->ref())->deref();
 }
 
 // ============================================================================
@@ -356,7 +329,9 @@ void Path::free()
 RectD Path::getBoundingRect() const
 {
   sysuint_t i = _d->length;
-  PathVertex* v = _d->data;
+
+  const uint8_t* commands = _d->commands;
+  const PointD* vertices = _d->vertices;
 
   double x1 = 0.0, y1 = 0.0;
   double x2 = 0.0, y2 = 0.0;
@@ -364,31 +339,37 @@ RectD Path::getBoundingRect() const
   while (i)
   {
     i--;
-    if (v->cmd.isVertex())
+    if (PathCmd::isVertex(commands[0]))
     {
-      x1 = v->x;
-      y1 = v->y;
-      x2 = v->x;
-      y2 = v->y;
-      v++;
+      x1 = vertices[0].x;
+      y1 = vertices[0].y;
+      x2 = vertices[0].x;
+      y2 = vertices[0].y;
+
+      commands++;
+      vertices++;
       break;
     }
     else
-      v++;
+    {
+      commands++;
+      vertices++;
+    }
   }
 
   while (i)
   {
-    if (v->cmd.isVertex())
+    if (PathCmd::isVertex(commands[0]))
     {
-      if (x1 > v->x) x1 = v->x;
-      if (y1 > v->y) y1 = v->y;
-      if (x2 < v->x) x2 = v->x;
-      if (y2 < v->y) y2 = v->y;
+      if (x1 > vertices[0].x) x1 = vertices[0].x;
+      if (y1 > vertices[0].y) y1 = vertices[0].y;
+      if (x2 < vertices[0].x) x2 = vertices[0].x;
+      if (y2 < vertices[0].y) y2 = vertices[0].y;
     }
 
     i--;
-    v++;
+    commands++;
+    vertices++;
   }
 
   return RectD(x1, y1, x2 - x1, y2 - y1);
@@ -400,20 +381,22 @@ RectD Path::getBoundingRect() const
 
 sysuint_t Path::getSubPathLength(sysuint_t subPathId) const
 {
-  const Path::Data* d = _d;
-
-  sysuint_t length = d->length;
+  sysuint_t length = _d->length;
   if (subPathId >= length) return 0;
 
-  const PathVertex* cur = d->data + subPathId + 1;;
-  const PathVertex* end = d->data + length;
+  sysuint_t i = length - subPathId;
 
-  while (cur < end)
-  {
-    if (cur->cmd.isMoveTo()) break;
-  }
+  const uint8_t* commands = _d->commands + subPathId;
+  const PointD* vertices = _d->vertices + subPathId;
 
-  return (sysuint_t)(cur - d->data);
+  do {
+    if (PathCmd::isMoveTo(commands[0])) break;
+
+    commands++;
+    vertices++;
+  } while (++i < length);
+
+  return i - subPathId;
 }
 
 // ============================================================================
@@ -422,38 +405,42 @@ sysuint_t Path::getSubPathLength(sysuint_t subPathId) const
 
 err_t Path::start(sysuint_t* index)
 {
-  if (_d->length && !_d->data[_d->length-1].cmd.isStop())
+  if (_d->length && !PathCmd::isStop(_d->commands[_d->length-1]))
   {
-    PathVertex* v = _add(1);
-    if (!v) return ERR_RT_OUT_OF_MEMORY;
+    sysuint_t pos = _add(1);
+    if (pos == INVALID_INDEX) return ERR_RT_OUT_OF_MEMORY;
 
-    v->cmd = PATH_CMD_STOP;
-    v->x = 0.0;
-    v->y = 0.0;
+    uint8_t* commands = _d->commands + pos;
+    PointD* vertices = _d->vertices + pos;
+
+    commands[0] = PATH_CMD_STOP;
+    vertices[0].set(NAN, NAN);
   }
 
   if (index) *index = _d->length;
   return ERR_OK;
 }
 
-err_t Path::endPoly(uint32_t cmdflags)
+err_t Path::endPoly(uint32_t flags)
 {
-  if (_d->length && _d->data[_d->length-1].cmd.isVertex())
+  if (_d->length && PathCmd::isVertex(_d->commands[_d->length-1]))
   {
-    PathVertex* v = _add(1);
-    if (!v) return ERR_RT_OUT_OF_MEMORY;
+    sysuint_t pos = _add(1);
+    if (pos == INVALID_INDEX) return ERR_RT_OUT_OF_MEMORY;
 
-    v->cmd = cmdflags | PATH_CMD_END;
-    v->x = 0.0;
-    v->y = 0.0;
+    uint8_t* commands = _d->commands + pos;
+    PointD* vertices = _d->vertices + pos;
+
+    commands[0] = PATH_CMD_END | flags;
+    vertices[0].set(NAN, NAN);
   }
 
   return ERR_OK;
 }
 
-err_t Path::closePolygon(uint32_t cmdflags)
+err_t Path::closePolygon(uint32_t flags)
 {
-  return endPoly(cmdflags | PATH_CFLAG_CLOSE);
+  return endPoly(flags | PATH_CMD_FLAG_CLOSE);
 }
 
 // ============================================================================
@@ -462,19 +449,21 @@ err_t Path::closePolygon(uint32_t cmdflags)
 
 err_t Path::moveTo(double x, double y)
 {
-  PathVertex* v = _add(1);
-  if (!v) return ERR_RT_OUT_OF_MEMORY;
+  sysuint_t pos = _add(1);
+  if (pos == INVALID_INDEX) return ERR_RT_OUT_OF_MEMORY;
 
-  v->cmd = PATH_CMD_MOVE_TO;
-  v->x = x;
-  v->y = y;
+  uint8_t* commands = _d->commands + pos;
+  PointD* vertices = _d->vertices + pos;
+
+  commands[0] = PATH_CMD_MOVE_TO;
+  vertices[0].set(x, y);
 
   return ERR_OK;
 }
 
 err_t Path::moveRel(double dx, double dy)
 {
-  relToAbsInline(_d, &dx, &dy);
+  _relativeToAbsolute(_d, &dx, &dy);
   return moveTo(dx, dy);
 }
 
@@ -484,32 +473,36 @@ err_t Path::moveRel(double dx, double dy)
 
 err_t Path::lineTo(double x, double y)
 {
-  PathVertex* v = _add(1);
-  if (!v) return ERR_RT_OUT_OF_MEMORY;
+  sysuint_t pos = _add(1);
+  if (pos == INVALID_INDEX) return ERR_RT_OUT_OF_MEMORY;
 
-  v->cmd = PATH_CMD_LINE_TO;
-  v->x = x;
-  v->y = y;
+  uint8_t* commands = _d->commands + pos;
+  PointD* vertices = _d->vertices + pos;
+
+  commands[0] = PATH_CMD_LINE_TO;
+  vertices[0].set(x, y);
 
   return ERR_OK;
 }
 
 err_t Path::lineRel(double dx, double dy)
 {
-  relToAbsInline(_d, &dx, &dy);
+  _relativeToAbsolute(_d, &dx, &dy);
   return lineTo(dx, dy);
 }
 
 err_t Path::lineTo(const double* x, const double* y, sysuint_t count)
 {
-  PathVertex* v = _add(count);
-  if (!v) return ERR_RT_OUT_OF_MEMORY;
+  sysuint_t pos = _add(count);
+  if (pos == INVALID_INDEX) return ERR_RT_OUT_OF_MEMORY;
+
+  uint8_t* commands = _d->commands + pos;
+  PointD* vertices = _d->vertices + pos;
 
   for (sysuint_t i = 0; i < count; i++)
   {
-    v[i].cmd = PATH_CMD_LINE_TO;
-    v[i].x = x[i];
-    v[i].y = y[i];
+    commands[i] = PATH_CMD_LINE_TO;
+    vertices[i].set(x[i], y[i]);
   }
 
   return ERR_OK;
@@ -517,14 +510,16 @@ err_t Path::lineTo(const double* x, const double* y, sysuint_t count)
 
 err_t Path::lineTo(const PointD* pts, sysuint_t count)
 {
-  PathVertex* v = _add(count);
-  if (!v) return ERR_RT_OUT_OF_MEMORY;
+  sysuint_t pos = _add(count);
+  if (pos == INVALID_INDEX) return ERR_RT_OUT_OF_MEMORY;
+
+  uint8_t* commands = _d->commands + pos;
+  PointD* vertices = _d->vertices + pos;
 
   for (sysuint_t i = 0; i < count; i++)
   {
-    v[i].cmd = PATH_CMD_LINE_TO;
-    v[i].x = pts[i].x;
-    v[i].y = pts[i].y;
+    commands[i] = PATH_CMD_LINE_TO;
+    vertices[i].set(pts[i]);
   }
 
   return ERR_OK;
@@ -532,25 +527,37 @@ err_t Path::lineTo(const PointD* pts, sysuint_t count)
 
 err_t Path::hlineTo(double x)
 {
-  return lineTo(x, lastY(_d));
+  sysuint_t last = _d->length;
+
+  double y = 0.0;
+  if (last > 0 && PathCmd::isVertex(_d->commands[--last])) y += _d->vertices[last].y;
+
+  return lineTo(x, y);
 }
 
 err_t Path::hlineRel(double dx)
 {
   double dy = 0.0;
-  relToAbsInline(_d, &dx, &dy);
+  _relativeToAbsolute(_d, &dx, &dy);
+
   return lineTo(dx, dy);
 }
 
 err_t Path::vlineTo(double y)
 {
-  return lineTo(lastX(_d), y);
+  sysuint_t last = _d->length;
+
+  double x = 0.0;
+  if (last > 0 && PathCmd::isVertex(_d->commands[--last])) x += _d->vertices[last].x;
+
+  return lineTo(x, y);
 }
 
 err_t Path::vlineRel(double dy)
 {
   double dx = 0.0;
-  relToAbsInline(_d, &dx, &dy);
+  _relativeToAbsolute(_d, &dx, &dy);
+
   return lineTo(dx, dy);
 }
 
@@ -558,12 +565,12 @@ err_t Path::vlineRel(double dy)
 // [Fog::Path - ArcTo]
 // ============================================================================
 
-static void arcToBezier(
+static void _arcToBezier(
   double cx, double cy,
   double rx, double ry,
   double start,
   double sweep,
-  PathVertex* dst)
+  PointD* dst)
 {
   sweep *= 0.5;
 
@@ -591,13 +598,12 @@ static void arcToBezier(
 
   for (sysuint_t i = 0; i < 4; i++)
   {
-    dst[i].cmd = PATH_CMD_CURVE_4;
-    dst[i].x = cx + rx * (px[i] * cs - py[i] * sn);
-    dst[i].y = cy + ry * (px[i] * sn + py[i] * cs);
+    dst[i].set(cx + rx * (px[i] * cs - py[i] * sn),
+               cy + ry * (px[i] * sn + py[i] * cs));
   }
 }
 
-err_t Path::_arcTo(double cx, double cy, double rx, double ry, double start, double sweep, uint initialCommand, bool closePath)
+err_t Path::_arcTo(double cx, double cy, double rx, double ry, double start, double sweep, uint8_t initialCommand, bool closePath)
 {
   start = fmod(start, 2.0 * M_PI);
 
@@ -607,36 +613,43 @@ err_t Path::_arcTo(double cx, double cy, double rx, double ry, double start, dou
   // Degenerated.
   if (fabs(sweep) < 1e-10)
   {
-    PathVertex* v = _add(2);
-    if (!v) return ERR_RT_OUT_OF_MEMORY;
+    sysuint_t pos = _add(2);
+    if (pos == INVALID_INDEX) return ERR_RT_OUT_OF_MEMORY;
+
+    uint8_t* commands = _d->commands + pos;
+    PointD* vertices = _d->vertices + pos;
 
     double aSin;
     double aCos;
 
     Math::sincos(start, &aSin, &aCos);
-    v[0].cmd = initialCommand;
-    v[0].x = cx + rx * aCos;
-    v[0].y = cy + ry * aSin;
+    commands[0] = initialCommand;
+    vertices[0].set(cx + rx * aCos, cy + ry * aSin);
 
     Math::sincos(start + sweep, &aSin, &aCos);
-    v[1].cmd = PATH_CMD_LINE_TO;
-    v[1].x = cx + rx * aCos;
-    v[1].y = cy + ry * aSin;
+    commands[1] = PATH_CMD_LINE_TO;
+    vertices[1].set(cx + rx * aCos, cy + ry * aSin);
   }
   else
   {
-    PathVertex* v = _add(13);
-    if (!v) return ERR_RT_OUT_OF_MEMORY;
+    sysuint_t pos = _add(13);
+    if (pos == INVALID_INDEX) return ERR_RT_OUT_OF_MEMORY;
 
-    PathVertex* vstart = v;
-    PathVertex* vend = v + 13;
+    uint8_t* commands = _d->commands + pos;
+    PointD* vertices = _d->vertices + pos;
 
     double totalSweep = 0.0;
     double localSweep = 0.0;
     double prevSweep;
     bool done = false;
 
-    v++;
+    commands[0] = initialCommand;
+
+    commands++;
+    vertices++;
+
+    // 4 arcs are the maximum;
+    sysuint_t remain = 4;
 
     do {
       if (sweep < 0.0)
@@ -664,15 +677,20 @@ err_t Path::_arcTo(double cx, double cy, double rx, double ry, double start, dou
         }
       }
 
-      arcToBezier(cx, cy, rx, ry, start, localSweep, v-1);
-      v += 3;
-      start += localSweep;
-    } while (!done && v < vend);
+      _arcToBezier(cx, cy, rx, ry, start, localSweep, vertices - 1);
+      commands[0] = PATH_CMD_CURVE_4;
+      commands[1] = PATH_CMD_CURVE_4;
+      commands[2] = PATH_CMD_CURVE_4;
 
-    // Setup initial command, path length and set flat to false.
-    vstart[0].cmd = initialCommand;
-    _d->length = (sysuint_t)(v - _d->data);
-    _d->flat = false;
+      commands += 3;
+      vertices += 3;
+
+      start += localSweep;
+    } while (!done && --remain);
+
+    // Fix path length and set flat to false.
+    _d->length = (sysuint_t)(commands - _d->commands);
+    _d->flat = 0;
   }
 
   if (closePath) closePolygon();
@@ -685,25 +703,20 @@ err_t Path::_svgArcTo(
   bool largeArcFlag,
   bool sweepFlag,
   double x2, double y2,
-  uint initialCommand, bool closePath)
+  uint8_t initialCommand, bool closePath)
 {
   // Mark current length (will be position where the first bezier would start).
-  sysuint_t mark = getLength();
+  sysuint_t mark = _d->length;
 
   bool radiiOk = true;
-  double x0, y0;
+  double x0 = 0.0, y0 = 0.0;
 
   // Get initial (x0, y0).
-  PathVertex* vertex = _d->data + mark - 1;
-  if (!mark || !vertex->cmd.isVertex())
+  if (mark && PathCmd::isVertex(_d->commands[mark - 1]))
   {
-    x0 = 0.0;
-    y0 = 0.0;
-  }
-  else
-  {
-    x0 = vertex->x;
-    y0 = vertex->y;
+    const PointD* vertex = _d->vertices + mark - 1;
+    x0 = vertex[0].x;
+    y0 = vertex[0].y;
   }
 
   // Normalize radius.
@@ -767,7 +780,7 @@ err_t Path::_svgArcTo(
   double v = p / n;
   if (v < -1.0) v = -1.0;
   if (v >  1.0) v =  1.0;
-  double start_angle = sign * acos(v);
+  double startAngle = sign * acos(v);
 
   // Calculate the sweep angle.
   n = sqrt((ux*ux + uy*uy) * (vx*vx + vy*vy));
@@ -776,34 +789,40 @@ err_t Path::_svgArcTo(
   v = p / n;
   if (v < -1.0) v = -1.0;
   if (v >  1.0) v =  1.0;
-  double sweep_angle = sign * acos(v);
+  double sweepAngle = sign * acos(v);
 
-  if (!sweepFlag && sweep_angle > 0)
-    sweep_angle -= M_PI * 2.0;
-  else if (sweepFlag && sweep_angle < 0)
-    sweep_angle += M_PI * 2.0;
+  if (!sweepFlag && sweepAngle > 0)
+    sweepAngle -= M_PI * 2.0;
+  else if (sweepFlag && sweepAngle < 0)
+    sweepAngle += M_PI * 2.0;
 
-  // We can now build and transform the resulting arc.
-  Matrix matrix = Matrix::fromRotation(angle);
-  matrix.translate(cx, cy, MATRIX_APPEND);
-
-  err_t err = _arcTo(0.0, 0.0, rx, ry, start_angle, sweep_angle, initialCommand, false);
+  err_t err = _arcTo(0.0, 0.0, rx, ry, startAngle, sweepAngle, initialCommand, false);
   if (err) return err;
 
-  // This can't fail. Path must be already detached.
-  err = applyMatrix(matrix, mark, DETECT_LENGTH);
-  FOG_ASSERT(err == ERR_OK);
+  // If no error was reported then _arcTo had to add almost two vertices, for
+  // matrix transform and fixing the end point we need almost one.
+  FOG_ASSERT(_d->length > 0);
+
+  // We can now build and transform the resulting arc.
+  {
+    Matrix matrix = Matrix::fromRotation(angle);
+    matrix.translate(cx, cy, MATRIX_APPEND);
+    PathUtil::transformPoints(_d->vertices + mark + 1, _d->length - mark - 1, &matrix);
+  }
 
   // We must make sure that the starting and ending points exactly coincide
   // with the initial (x0, y0) and (x2, y2).
   //
-  // This comment is from AntiGrain, we actually need only to fix end point.
-  vertex = _d->data + getLength() - 1;
-  vertex->x = x2;
-  vertex->y = y2;
+  // This comment was originally from AntiGrain, we actually need only to fix
+  // the end point.
+  {
+    PointD* vertex = _d->vertices + _d->length - 1;
+    vertex->x = x2;
+    vertex->y = y2;
+  }
 
-  if (closePath) closePolygon();
-  return ERR_OK;
+  if (closePath) err = closePolygon();
+  return err;
 }
 
 err_t Path::arcTo(double cx, double cy, double rx, double ry, double start, double sweep)
@@ -813,7 +832,7 @@ err_t Path::arcTo(double cx, double cy, double rx, double ry, double start, doub
 
 err_t Path::arcRel(double cx, double cy, double rx, double ry, double start, double sweep)
 {
-  relToAbsInline(_d, &cx, &cy);
+  _relativeToAbsolute(_d, &cx, &cy);
   return _arcTo(cx, cy, rx, ry, start, sweep, PATH_CMD_LINE_TO, false);
 }
 
@@ -834,62 +853,64 @@ err_t Path::svgArcRel(
   bool sweepFlag,
   double x2, double y2)
 {
-  relToAbsInline(_d, &x2, &y2);
+  _relativeToAbsolute(_d, &x2, &y2);
   return _svgArcTo(rx, ry, angle, largeArcFlag, sweepFlag, x2, y2, PATH_CMD_LINE_TO, false);
 }
 
 // ============================================================================
-// [Fog::Path - BezierTo]
+// [Fog::Path - CurveTo]
 // ============================================================================
 
 err_t Path::curveTo(double cx, double cy, double tx, double ty)
 {
-  PathVertex* v = _add(2);
-  if (!v) return ERR_RT_OUT_OF_MEMORY;
+  sysuint_t pos = _add(2);
+  if (pos == INVALID_INDEX) return ERR_RT_OUT_OF_MEMORY;
 
-  v[0].cmd = PATH_CMD_CURVE_3;
-  v[0].x = cx;
-  v[0].y = cy;
-  v[1].cmd = PATH_CMD_CURVE_3;
-  v[1].x = tx;
-  v[1].y = ty;
+  uint8_t* commands = _d->commands + pos;
+  PointD* vertices = _d->vertices + pos;
 
-  _d->flat = false;
+  commands[0] = PATH_CMD_CURVE_3;
+  commands[1] = PATH_CMD_CURVE_3;
+
+  vertices[0].set(cx, cy);
+  vertices[1].set(tx, ty);
+
+  // Path is no longer flat.
+  _d->flat = 0;
+
   return ERR_OK;
 }
 
 err_t Path::curveRel(double cx, double cy, double tx, double ty)
 {
-  relToAbsInline(_d, &cx, &cy, &tx, &ty);
+  _relativeToAbsolute(_d, &cx, &cy, &tx, &ty);
   return curveTo(cx, cy, tx, ty);
 }
 
 err_t Path::curveTo(double tx, double ty)
 {
-  PathVertex* endv = _d->data + _d->length;
+  sysuint_t length = _d->length;
+  if (!length || !PathCmd::isVertex(_d->commands[--length])) return ERR_OK;
 
-  if (_d->length && endv[-1].cmd.isVertex())
+  const PointD* vertex = _d->vertices + length;
+
+  double cx = vertex[0].x;
+  double cy = vertex[0].y;
+
+  if (length && PathCmd::isCurve(_d->commands[--length]))
   {
-    double cx = endv[-1].x;
-    double cy = endv[-1].y;
-
-    if (_d->length >= 2 && endv[-2].cmd.isCurve())
-    {
-      cx += endv[-1].x - endv[-2].x;
-      cy += endv[-1].y - endv[-2].y;
-    }
-
-    return curveTo(cx, cy, tx, ty);
+    cx += cx;
+    cy += cy;
+    cx -= vertex[-1].x;
+    cy -= vertex[-1].y;
   }
-  else
-  {
-    return ERR_OK;
-  }
+
+  return curveTo(cx, cy, tx, ty);
 }
 
 err_t Path::curveRel(double tx, double ty)
 {
-  relToAbsInline(_d, &tx, &ty);
+  _relativeToAbsolute(_d, &tx, &ty);
   return curveTo(tx, ty);
 }
 
@@ -899,55 +920,56 @@ err_t Path::curveRel(double tx, double ty)
 
 err_t Path::cubicTo(double cx1, double cy1, double cx2, double cy2, double tx, double ty)
 {
-  PathVertex* v = _add(3);
-  if (!v) return ERR_RT_OUT_OF_MEMORY;
+  sysuint_t pos = _add(3);
+  if (pos == INVALID_INDEX) return ERR_RT_OUT_OF_MEMORY;
 
-  v[0].cmd = PATH_CMD_CURVE_4;
-  v[0].x = cx1;
-  v[0].y = cy1;
-  v[1].cmd = PATH_CMD_CURVE_4;
-  v[1].x = cx2;
-  v[1].y = cy2;
-  v[2].cmd = PATH_CMD_CURVE_4;
-  v[2].x = tx;
-  v[2].y = ty;
+  uint8_t* commands = _d->commands + pos;
+  PointD* vertices = _d->vertices + pos;
 
-  _d->flat = false;
+  commands[0] = PATH_CMD_CURVE_4;
+  commands[1] = PATH_CMD_CURVE_4;
+  commands[2] = PATH_CMD_CURVE_4;
+
+  vertices[0].set(cx1, cy1);
+  vertices[1].set(cx2, cy2);
+  vertices[2].set(tx, ty);
+
+  // Path is no longer flat.
+  _d->flat = 0;
+
   return ERR_OK;
 }
 
 err_t Path::cubicRel(double cx1, double cy1, double cx2, double cy2, double tx, double ty)
 {
-  relToAbsInline(_d, &cx1, &cy1, &cx2, &cy2, &tx, &ty);
+  _relativeToAbsolute(_d, &cx1, &cy1, &cx2, &cy2, &tx, &ty);
   return cubicTo(cx1, cy1, cx2, cy2, tx, ty);
 }
 
 err_t Path::cubicTo(double cx2, double cy2, double tx, double ty)
 {
-  PathVertex* endv = _d->data + _d->length;
+  sysuint_t length = _d->length;
+  if (!length || !PathCmd::isVertex(_d->commands[--length])) return ERR_OK;
 
-  if (_d->length && endv[-1].cmd.isVertex())
+  const PointD* vertex = _d->vertices + length;
+
+  double cx1 = vertex[0].x;
+  double cy1 = vertex[0].y;
+
+  if (length && PathCmd::isCurve(_d->commands[--length]))
   {
-    double cx1 = endv[-1].x;
-    double cy1 = endv[-1].y;
-
-    if (_d->length >= 2 && endv[-2].cmd.isCurve())
-    {
-      cx1 += endv[-1].x - endv[-2].x;
-      cy1 += endv[-1].y - endv[-2].y;
-    }
-
-    return cubicTo(cx1, cy1, cx2, cy2, tx, ty);
+    cx1 += cx1;
+    cy1 += cy1;
+    cx1 -= vertex[-1].x;
+    cy1 -= vertex[-1].y;
   }
-  else
-  {
-    return ERR_OK;
-  }
+
+  return cubicTo(cx1, cy1, cx2, cy2, tx, ty);
 }
 
 err_t Path::cubicRel(double cx2, double cy2, double tx, double ty)
 {
-  relToAbsInline(_d, &cx2, &cy2, &tx, &ty);
+  _relativeToAbsolute(_d, &cx2, &cy2, &tx, &ty);
   return cubicTo(cx2, cy2, tx, ty);
 }
 
@@ -957,36 +979,38 @@ err_t Path::cubicRel(double cx2, double cy2, double tx, double ty)
 
 err_t Path::flipX(double x1, double x2)
 {
-  if (!_d->length) return ERR_OK;
+  sysuint_t i = _d->length;
+  if (!i) return ERR_OK;
 
   err_t err = detach();
   if (err) return err;
 
-  sysuint_t i, len = _d->length;
-  PathVertex* v = _d->data;
-  
-  for (i = 0; i < len; i++)
-  {
-    if (v[i].cmd.isVertex()) v[i].x = x2 - v[i].x + x1;
-  }
+  double x = x1 + x2;
+  PointD* vertices = _d->vertices;
+
+  do {
+    vertices[0].x = x - vertices[0].x;
+    vertices++;
+  } while (--i);
 
   return ERR_OK;
 }
 
 err_t Path::flipY(double y1, double y2)
 {
-  if (!_d->length) return ERR_OK;
+  sysuint_t i = _d->length;
+  if (!i) return ERR_OK;
 
   err_t err = detach();
   if (err) return err;
 
-  sysuint_t i, len = _d->length;
-  PathVertex* v = _d->data;
-  
-  for (i = 0; i < len; i++)
-  {
-    if (v[i].cmd.isVertex()) v[i].y = y2 - v[i].y + y1;
-  }
+  double y = y1 + y2;
+  PointD* vertices = _d->vertices;
+
+  do {
+    vertices[0].y = y - vertices[0].y;
+    vertices++;
+  } while (--i);
 
   return ERR_OK;
 }
@@ -997,45 +1021,42 @@ err_t Path::flipY(double y1, double y2)
 
 err_t Path::translate(double dx, double dy)
 {
-  if (!_d->length) return ERR_OK;
+  sysuint_t i = _d->length;
+  if (!i) return ERR_OK;
 
   err_t err = detach();
   if (err) return err;
-  
-  sysuint_t i, len = _d->length;
-  PathVertex* v = _d->data;
 
-  for (i = 0; i < len; i++)
-  {
-    if (v[i].cmd.isVertex())
-    {
-      v[i].x += dx;
-      v[i].y += dy;
-    }
-  }
+  PointD* vertices = _d->vertices;
+
+  do {
+    vertices[0].translate(dx, dy);
+    vertices++;
+  } while (--i);
 
   return ERR_OK;
 }
 
-err_t Path::translate(double dx, double dy, sysuint_t pathId)
+err_t Path::translateSubPath(sysuint_t subPathId, double dx, double dy)
 {
-  if (!_d->length) return ERR_OK;
+  if (subPathId >= _d->length) return ERR_RT_INVALID_ARGUMENT;
+
+  sysuint_t i = _d->length;
+  if (!i) return ERR_OK;
 
   err_t err = detach();
   if (err) return err;
 
-  sysuint_t i, len = _d->length;
-  PathVertex* v = _d->data;
+  uint8_t* commands = _d->commands;
+  PointD* vertices = _d->vertices;
 
-  for (i = pathId; i < len; i++)
-  {
-    if (v[i].cmd.isStop()) break;
-    if (v[i].cmd.isVertex())
-    {
-      v[i].x += dx;
-      v[i].y += dy;
-    }
-  }
+  do {
+    if (PathCmd::isStop(commands[0])) break;
+    vertices[0].translate(dx, dy);
+
+    commands++;
+    vertices++;
+  } while (--i);
 
   return ERR_OK;
 }
@@ -1046,47 +1067,47 @@ err_t Path::translate(double dx, double dy, sysuint_t pathId)
 
 err_t Path::scale(double sx, double sy, bool keepStartPos)
 {
-  if (!_d->length) return ERR_OK;
+  sysuint_t i = _d->length;
+  if (!i) return ERR_OK;
 
   err_t err = detach();
   if (err) return err;
 
-  sysuint_t i, len = _d->length;
-  PathVertex* v = _d->data;
+  PointD* vertices = _d->vertices;
 
   if (keepStartPos)
   {
-    double px = v[0].x;
-    double py = v[0].y;
+    uint8_t* commands = _d->commands;
+    double tx = 0.0;
+    double ty = 0.0;
 
-    for (i = 1; i < len; i++)
-    {
-      if (v[i].cmd.isVertex())
-      {
-        if (v[i].x < px) px = v[i].x;
-        if (v[i].y < py) py = v[i].y;
-      }
-    }
+    do {
+      if (PathCmd::isVertex(commands[0])) break;
 
-    for (i = 0; i < len; i++)
-    {
-      if (v[i].cmd.isVertex())
-      {
-        v[i].x = (v[i].x - px) * sx + px;
-        v[i].y = (v[i].y - py) * sy + py;
-      }
-    }
+      commands++;
+      vertices++;
+    } while (--i);
+
+    if (!i) return ERR_OK;
+
+    double dx = tx - tx * sx;
+    double dy = ty - ty * sy;
+
+    do {
+      vertices[0].x *= sx;
+      vertices[0].y *= sy;
+      vertices[0].x += dx;
+      vertices[0].y += dy;
+      vertices++;
+    } while (--i);
   }
   else
   {
-    for (i = 0; i < len; i++)
-    {
-      if (v[i].cmd.isVertex())
-      {
-        v[i].x *= sx;
-        v[i].y *= sy;
-      }
-    }
+    do {
+      vertices[0].x *= sx;
+      vertices[0].y *= sy;
+      vertices++;
+    } while (--i);
   }
 
   return ERR_OK;
@@ -1103,18 +1124,19 @@ err_t Path::applyMatrix(const Matrix& matrix)
   err_t err = detach();
   if (err) return err;
 
-  PathUtil::fm.transformVertex(_d->data, _d->length, &matrix);
+  PathUtil::transformPoints(_d->vertices, _d->length, &matrix);
   return ERR_OK;
 }
 
-err_t Path::applyMatrix(const Matrix& matrix, sysuint_t index, sysuint_t length)
+err_t Path::applyMatrix(const Matrix& matrix, const Range& range)
 {
-  if (index >= _d->length) return ERR_OK;
+  sysuint_t length = _d->length;
+  if (range.index >= length) return ERR_OK;
 
   err_t err = detach();
   if (err) return err;
 
-  PathUtil::fm.transformVertex(_d->data + index, Math::min(length, _d->length - index), &matrix);
+  PathUtil::transformPoints(_d->vertices + range.index, Math::min(range.length, length - range.index), &matrix);
   return ERR_OK;
 }
 
@@ -1122,74 +1144,132 @@ err_t Path::applyMatrix(const Matrix& matrix, sysuint_t index, sysuint_t length)
 // [Fog::Path - Add]
 // ============================================================================
 
-err_t Path::addRect(const RectD& r)
+err_t Path::addRect(const RectD& r, int direction)
 {
   if (!r.isValid()) return ERR_OK;
 
-  PathVertex* v = _add(5);
-  if (!v) return ERR_RT_OUT_OF_MEMORY;
+  sysuint_t pos = _add(5);
+  if (pos == INVALID_INDEX) return ERR_RT_OUT_OF_MEMORY;
 
-  v[0].cmd = PATH_CMD_MOVE_TO;
-  v[0].x = r.getX1();
-  v[0].y = r.getY1();
-  v[1].cmd = PATH_CMD_LINE_TO;
-  v[1].x = r.getX2();
-  v[1].y = r.getY1();
-  v[2].cmd = PATH_CMD_LINE_TO;
-  v[2].x = r.getX2();
-  v[2].y = r.getY2();
-  v[3].cmd = PATH_CMD_LINE_TO;
-  v[3].x = r.getX1();
-  v[3].y = r.getY2();
-  v[4].cmd = PATH_CMD_END | PATH_CFLAG_CLOSE;
-  v[4].x = 0.0;
-  v[4].y = 0.0;
+  uint8_t* commands = _d->commands + pos;
+  PointD* vertices = _d->vertices + pos;
+
+  if (direction == PATH_DIRECTION_CW)
+  {
+    commands[0] = PATH_CMD_MOVE_TO;
+    commands[1] = PATH_CMD_LINE_TO;
+    commands[2] = PATH_CMD_LINE_TO;
+    commands[3] = PATH_CMD_LINE_TO;
+    commands[4] = PATH_CMD_END | PATH_CMD_FLAG_CLOSE;
+
+    vertices[0].x = r.x;
+    vertices[0].y = r.y;
+    vertices[1].x = r.x + r.w;
+    vertices[1].y = r.y;
+    vertices[2].x = r.x + r.w;
+    vertices[2].y = r.y + r.h;
+    vertices[3].x = r.x;
+    vertices[3].y = r.y + r.h;
+    vertices[4].x = NAN;
+    vertices[4].y = NAN;
+  }
+  else
+  {
+    commands[0] = PATH_CMD_MOVE_TO;
+    commands[1] = PATH_CMD_LINE_TO;
+    commands[2] = PATH_CMD_LINE_TO;
+    commands[3] = PATH_CMD_LINE_TO;
+    commands[4] = PATH_CMD_END | PATH_CMD_FLAG_CLOSE;
+
+    vertices[0].x = r.x;
+    vertices[0].y = r.y;
+    vertices[1].x = r.x;
+    vertices[1].y = r.y + r.h;
+    vertices[2].x = r.x + r.w;
+    vertices[2].y = r.y + r.h;
+    vertices[3].x = r.x + r.w;
+    vertices[3].y = r.y;
+    vertices[4].x = NAN;
+    vertices[4].y = NAN;
+  }
 
   return ERR_OK;
 }
 
-err_t Path::addRects(const RectD* r, sysuint_t count)
+err_t Path::addRects(const RectD* r, sysuint_t count, int direction)
 {
   if (!count) return ERR_OK;
   FOG_ASSERT(r);
 
-  PathVertex* v = _add(count * 5);
-  if (!v) return ERR_RT_OUT_OF_MEMORY;
+  sysuint_t pos = _add(count * 5);
+  if (pos == INVALID_INDEX) return ERR_RT_OUT_OF_MEMORY;
 
-  for (sysuint_t i = 0; i < count; i++, r++)
+  uint8_t* commands = _d->commands + pos;
+  PointD* vertices = _d->vertices + pos;
+
+  if (direction == PATH_DIRECTION_CW)
   {
-    if (!r->isValid()) continue;
+    for (sysuint_t i = 0; i < count; i++, r++)
+    {
+      if (!r->isValid()) continue;
 
-    v[0].cmd = PATH_CMD_MOVE_TO;
-    v[0].x = r->getX1();
-    v[0].y = r->getY1();
-    v[1].cmd = PATH_CMD_LINE_TO;
-    v[1].x = r->getX2();
-    v[1].y = r->getY1();
-    v[2].cmd = PATH_CMD_LINE_TO;
-    v[2].x = r->getX2();
-    v[2].y = r->getY2();
-    v[3].cmd = PATH_CMD_LINE_TO;
-    v[3].x = r->getX1();
-    v[3].y = r->getY2();
-    v[4].cmd = PATH_CMD_END | PATH_CFLAG_CLOSE;
-    v[4].x = 0.0;
-    v[4].y = 0.0;
+      commands[0] = PATH_CMD_MOVE_TO;
+      commands[1] = PATH_CMD_LINE_TO;
+      commands[2] = PATH_CMD_LINE_TO;
+      commands[3] = PATH_CMD_LINE_TO;
+      commands[4] = PATH_CMD_END | PATH_CMD_FLAG_CLOSE;
 
-    v += 5;
+      vertices[0].x = r->x;
+      vertices[0].y = r->y;
+      vertices[1].x = r->x + r->w;
+      vertices[1].y = r->y;
+      vertices[2].x = r->x + r->w;
+      vertices[2].y = r->y + r->h;
+      vertices[3].x = r->x;
+      vertices[3].y = r->y + r->h;
+      vertices[4].x = NAN;
+      vertices[4].y = NAN;
+
+      commands += 5;
+      vertices += 5;
+    }
+  }
+  else
+  {
+    for (sysuint_t i = 0; i < count; i++, r++)
+    {
+      if (!r->isValid()) continue;
+
+      commands[0] = PATH_CMD_MOVE_TO;
+      commands[1] = PATH_CMD_LINE_TO;
+      commands[2] = PATH_CMD_LINE_TO;
+      commands[3] = PATH_CMD_LINE_TO;
+      commands[4] = PATH_CMD_END | PATH_CMD_FLAG_CLOSE;
+
+      vertices[0].x = r->x;
+      vertices[0].y = r->y;
+      vertices[1].x = r->x;
+      vertices[1].y = r->y + r->h;
+      vertices[2].x = r->x + r->w;
+      vertices[2].y = r->y + r->h;
+      vertices[3].x = r->x + r->w;
+      vertices[3].y = r->y;
+      vertices[4].x = NAN;
+      vertices[4].y = NAN;
+    }
   }
 
   // Return and update path length.
-  _d->length = (sysuint_t)(v - _d->data);
+  _d->length = (sysuint_t)(commands - _d->commands);
   return ERR_OK;
 }
 
-err_t Path::addRound(const RectD& r, const PointD& radius)
+err_t Path::addRound(const RectD& r, const PointD& radius, int direction)
 {
   if (!r.isValid()) return ERR_OK;
 
-  double rw2 = r.getWidth() / 2.0;
-  double rh2 = r.getHeight() / 2.0;
+  double rw2 = r.w / 2.0;
+  double rh2 = r.h / 2.0;
 
   double rx = fabs(radius.x);
   double ry = fabs(radius.y);
@@ -1197,108 +1277,146 @@ err_t Path::addRound(const RectD& r, const PointD& radius)
   if (rx > rw2) rx = rw2;
   if (ry > rh2) ry = rh2;
 
-  if (rx == 0 || ry == 0)
-    return addRect(r);
+  if (rx == 0 || ry == 0) return addRect(r, direction);
 
-  double x1 = r.getX1();
-  double y1 = r.getY1();
-  double x2 = r.getX2();
-  double y2 = r.getY2();
+  double x1 = r.x;
+  double y1 = r.y;
+  double x2 = r.x + r.w;
+  double y2 = r.y + r.h;
 
   err_t err = ERR_OK;
 
-  err |= moveTo(x1 + rx, y1);
-  err |= lineTo(x2 - rx, y1);
-  err |= arcTo(x2 - rx, y1 + ry, rx, ry, M_PI * 1.5, M_PI * 0.5);
+  if (direction == PATH_DIRECTION_CW)
+  {
+    err |= moveTo(x1 + rx, y1);
 
-  err |= lineTo(x2, y2 - ry);
-  err |= arcTo(x2 - rx, y2 - ry, rx, ry, M_PI * 0.0, M_PI * 0.5);
+    err |= lineTo(x2 - rx, y1);
+    err |= arcTo(x2 - rx, y1 + ry, rx, ry, M_PI * 1.5, M_PI * 0.5);
 
-  err |= lineTo(x1 + rx, y2);
-  err |= arcTo(x1 + rx, y2 - ry, rx, ry, M_PI * 0.5, M_PI * 0.5);
+    err |= lineTo(x2, y2 - ry);
+    err |= arcTo(x2 - rx, y2 - ry, rx, ry, M_PI * 0.0, M_PI * 0.5);
 
-  err |= lineTo(x1, y1 + ry);
-  err |= arcTo(x1 + rx, y1 + ry, rx, ry, M_PI * 1.0, M_PI * 0.5);
+    err |= lineTo(x1 + rx, y2);
+    err |= arcTo(x1 + rx, y2 - ry, rx, ry, M_PI * 0.5, M_PI * 0.5);
+
+    err |= lineTo(x1, y1 + ry);
+    err |= arcTo(x1 + rx, y1 + ry, rx, ry, M_PI * 1.0, M_PI * 0.5);
+  }
+  else
+  {
+    err |= moveTo(x1 + rx, y1);
+
+    err |= arcTo(x1, y1 + ry, rx, ry, M_PI * 1.0, M_PI * -0.5);
+    err |= lineTo(x1, y2 - ry);
+
+    err |= arcTo(x1 + rx, y2, rx, ry, M_PI * 0.5, M_PI * -0.5);
+    err |= lineTo(x2 - rx, y2);
+
+    err |= arcTo(x2, y2 - ry, rx, ry, M_PI * 0.0, M_PI * -0.5);
+    err |= lineTo(x2, y1 + ry);
+
+    err |= arcTo(x2 - rx, y1, rx, ry, M_PI * 1.5, M_PI * -0.5);
+  }
 
   err |= closePolygon();
 
   return err;
 }
 
-err_t Path::addEllipse(const RectD& r)
+err_t Path::addEllipse(const RectD& r, int direction)
 {
   if (!r.isValid()) return ERR_OK;
 
-  double rx = r.getWidth() / 2.0;
-  double ry = r.getHeight() / 2.0;
-  double cx = r.getX() + rx;
-  double cy = r.getY() + ry;
+  double rx = r.w / 2.0;
+  double ry = r.h / 2.0;
+  double cx = r.x + rx;
+  double cy = r.y + ry;
 
-  return _arcTo(cx, cy, rx, ry, 0.0, 2.0 * M_PI, PATH_CMD_MOVE_TO, true);
+  if (direction == PATH_DIRECTION_CW)
+  {
+    return _arcTo(cx, cy, rx, ry, 0.0, M_PI * 2.0, PATH_CMD_MOVE_TO, true);
+  }
+  else
+  {
+    return _arcTo(cx, cy, rx, ry, 0.0, M_PI * -2.0, PATH_CMD_MOVE_TO, true);
+  }
 }
 
-err_t Path::addEllipse(const PointD& cp, const PointD& r)
+err_t Path::addEllipse(const PointD& cp, const PointD& r, int direction)
 {
-  return _arcTo(cp.getX(), cp.getY(), r.getX(), r.getY(), 0.0, 2.0 * M_PI, PATH_CMD_MOVE_TO, true);
+  if (direction == PATH_DIRECTION_CW)
+  {
+    return _arcTo(cp.x, cp.y, r.x, r.y, 0.0, M_PI * -2.0, PATH_CMD_MOVE_TO, true);
+  }
+  else
+  {
+    return _arcTo(cp.x, cp.y, r.x, r.y, 0.0, M_PI * -2.0, PATH_CMD_MOVE_TO, true);
+  }
 }
 
-err_t Path::addArc(const RectD& r, double start, double sweep)
+err_t Path::addArc(const RectD& r, double start, double sweep, int direction)
 {
   if (!r.isValid()) return ERR_OK;
 
-  double rx = r.getWidth() / 2.0;
-  double ry = r.getHeight() / 2.0;
-  double cx = r.getX() + rx;
-  double cy = r.getY() + ry;
+  double rx = r.w / 2.0;
+  double ry = r.h / 2.0;
+  double cx = r.x + rx;
+  double cy = r.y + ry;
 
+  if (direction == PATH_DIRECTION_CCW) { start += sweep; sweep = -sweep; }
   return _arcTo(cx, cy, rx, ry, start, sweep, PATH_CMD_MOVE_TO, false);
 }
 
-err_t Path::addArc(const PointD& cp, const PointD& r, double start, double sweep)
+err_t Path::addArc(const PointD& cp, const PointD& r, double start, double sweep, int direction)
 {
-  return _arcTo(cp.getX(), cp.getY(), r.getX(), r.getY(), start, sweep, PATH_CMD_MOVE_TO, false);
+  if (direction == PATH_DIRECTION_CCW) { start += sweep; sweep = -sweep; }
+  return _arcTo(cp.x, cp.y, r.x, r.y, start, sweep, PATH_CMD_MOVE_TO, false);
 }
 
-err_t Path::addChord(const RectD& r, double start, double sweep)
+err_t Path::addChord(const RectD& r, double start, double sweep, int direction)
 {
   if (!r.isValid()) return ERR_OK;
 
-  double rx = r.getWidth() / 2.0;
-  double ry = r.getHeight() / 2.0;
-  double cx = r.getX() + rx;
-  double cy = r.getY() + ry;
+  double rx = r.w / 2.0;
+  double ry = r.h / 2.0;
+  double cx = r.x + rx;
+  double cy = r.y + ry;
 
+  if (direction == PATH_DIRECTION_CCW) { start += sweep; sweep = -sweep; }
   return _arcTo(cx, cy, rx, ry, start, sweep, PATH_CMD_MOVE_TO, true);
 }
 
-err_t Path::addChord(const PointD& cp, const PointD& r, double start, double sweep)
+err_t Path::addChord(const PointD& cp, const PointD& r, double start, double sweep, int direction)
 {
-  return _arcTo(cp.getX(), cp.getY(), r.getX(), r.getY(), start, sweep, PATH_CMD_MOVE_TO, true);
+  if (direction == PATH_DIRECTION_CCW) { start += sweep; sweep = -sweep; }
+  return _arcTo(cp.x, cp.y, r.x, r.y, start, sweep, PATH_CMD_MOVE_TO, true);
 }
 
-err_t Path::addPie(const RectD& r, double start, double sweep)
+err_t Path::addPie(const RectD& r, double start, double sweep, int direction)
 {
   if (!r.isValid()) return ERR_OK;
 
-  double rx = r.getWidth() / 2.0;
-  double ry = r.getHeight() / 2.0;
-  double cx = r.getX() + rx;
-  double cy = r.getY() + ry;
+  double rx = r.w / 2.0;
+  double ry = r.h / 2.0;
+  double cx = r.x + rx;
+  double cy = r.y + ry;
 
   return addPie(PointD(cx, cy), PointD(rx, ry), start, sweep);
 }
 
-err_t Path::addPie(const PointD& cp, const PointD& r, double start, double sweep)
+err_t Path::addPie(const PointD& cp, const PointD& r, double start, double sweep, int direction)
 {
-  if (sweep >= M_PI*2.0) return addEllipse(cp, r);
+  if (sweep >= M_PI*2.0) return addEllipse(cp, r, direction);
+
+  if (direction == PATH_DIRECTION_CCW) { start += sweep; sweep = -sweep; }
 
   start = fmod(start, M_PI * 2.0);
   if (start < 0) start += M_PI * 2.0;
 
   err_t err;
 
-  if ( (err = moveTo(cp.getX(), cp.getY())) ) return err;
-  if ( (err = _arcTo(cp.getX(), cp.getY(), r.getX(), r.getY(), start, sweep, PATH_CMD_LINE_TO, true)) ) return err;
+  if ( (err = moveTo(cp.x, cp.y)) ) return err;
+  if ( (err = _arcTo(cp.x, cp.y, r.x, r.y, start, sweep, PATH_CMD_LINE_TO, true)) ) return err;
 
   return ERR_OK;
 }
@@ -1308,63 +1426,51 @@ err_t Path::addPath(const Path& path)
   sysuint_t count = path.getLength();
   if (count == 0) return ERR_OK;
 
-  uint32_t flat = isFlat() & path.isFlat();
+  int flat = isFlat() & path.isFlat();
 
-  PathVertex* dst = _add(count);
-  if (!dst) return ERR_RT_OUT_OF_MEMORY;
+  sysuint_t pos = _add(count);
+  if (pos == INVALID_INDEX) return ERR_RT_OUT_OF_MEMORY;
+
+  Memory::copy(_d->commands + pos, path._d->commands, count * sizeof(uint8_t));
+  Memory::copy(_d->vertices + pos, path._d->vertices, count * sizeof(PointD));
 
   _d->flat = flat;
-
-  const PathVertex* src = path.getData();
-  Memory::copy(dst, src, count * sizeof(PathVertex));
 
   return ERR_OK;
 }
 
 err_t Path::addPath(const Path& path, const PointD& pt)
 {
-  if (this == &path)
-  {
-    Path other(path);
-    return addPath(other, pt);
-  }
-
   sysuint_t count = path.getLength();
   if (count == 0) return ERR_OK;
 
-  uint32_t flat = isFlat() & path.isFlat();
+  int flat = isFlat() & path.isFlat();
 
-  PathVertex* dst = _add(count);
-  if (!dst) return ERR_RT_OUT_OF_MEMORY;
+  sysuint_t pos = _add(count);
+  if (pos == INVALID_INDEX) return ERR_RT_OUT_OF_MEMORY;
+
+  Memory::copy(_d->commands + pos, path._d->commands, count * sizeof(uint8_t));
+  PathUtil::translatePoints(_d->vertices + pos, path._d->vertices, count, &pt);
 
   _d->flat = flat;
-
-  const PathVertex* src = path.getData();
-  PathUtil::fm.translateVertex2(dst, src, count, &pt);
 
   return ERR_OK;
 }
 
 err_t Path::addPath(const Path& path, const Matrix& matrix)
 {
-  if (this == &path)
-  {
-    Path other(path);
-    return addPath(other, matrix);
-  }
-
   sysuint_t count = path.getLength();
   if (count == 0) return ERR_OK;
 
-  uint32_t flat = isFlat() & path.isFlat();
+  int flat = isFlat() & path.isFlat();
 
-  PathVertex* dst = _add(count);
-  if (!dst) return ERR_RT_OUT_OF_MEMORY;
+  sysuint_t pos = _add(count);
+  if (pos == INVALID_INDEX) return ERR_RT_OUT_OF_MEMORY;
+
+  Memory::copy(_d->commands + pos, path._d->commands, count * sizeof(uint8_t));
+  PathUtil::transformPoints(_d->vertices + pos, path._d->vertices, count, &matrix);
 
   _d->flat = flat;
-
-  const PathVertex* src = path.getData();
-  PathUtil::fm.transformVertex2(dst, src, count, &matrix);
 
   return ERR_OK;
 }
@@ -1375,18 +1481,15 @@ err_t Path::addPath(const Path& path, const Matrix& matrix)
 
 bool Path::isFlat() const
 {
-  int32_t flat = _d->flat;
+  int flat = _d->flat;
   if (flat != -1) return (bool)flat;
 
-  // Detection
-  const PathVertex* v = _d->data;
-  sysuint_t len = _d->length;
+  const uint8_t* commands = _d->commands;
+  sysuint_t i = _d->length;
 
-  flat = true;
-
-  for (sysuint_t i = 0; i < len; i++, v++)
+  for (flat = true; i; i--, commands++)
   {
-    if (v->cmd.cmd() > PATH_CMD_LINE_TO && v->cmd.cmd() < PATH_CMD_MASK) { flat = false; break; }
+    if (PathCmd::isCurve(commands[0])) { flat = false; break; }
   }
 
   _d->flat = flat;
@@ -1403,142 +1506,186 @@ err_t Path::flatten(const Matrix* matrix, double approximationScale)
   return flattenTo(*this, NULL, 1.0);
 }
 
-static err_t _flattenData(Path& dst, const PathVertex* data, sysuint_t count, const Matrix* matrix, double approximationScale)
+static err_t _flattenData(
+  Path& dst,
+  const uint8_t* srcCommands, const PointD* srcVertices, sysuint_t srcCount,
+  const Matrix* matrix, double approximationScale)
 {
   dst.clear();
-  if (count == 0) return ERR_OK;
+  if (srcCount == 0) return ERR_OK;
 
   err_t err = ERR_OK;
-  sysuint_t grow = count * 4;
+  sysuint_t initialLength = dst.getLength();
+  sysuint_t grow = srcCount * 4;
 
-  if (grow < count) return ERR_RT_OUT_OF_MEMORY;
+  if (grow < srcCount) return ERR_RT_OUT_OF_MEMORY;
   if (dst.reserve(grow)) return ERR_RT_OUT_OF_MEMORY;
 
-  PathVertex* dstv;
+  uint8_t* dstCommands;
+  PointD* dstVertices;
 
   double lastx = 0.0;
   double lasty = 0.0;
 
-  sysuint_t oldLen;
-  uint32_t oldCmd;
-
+  // Encuse space and update dstCommands / dstVertices pointers.
 ensureSpace:
-  dstv = dst._add(count);
-  if (!dstv) return ERR_RT_OUT_OF_MEMORY;
+  {
+    sysuint_t pos = dst._add(srcCount);
+
+    if (pos == INVALID_INDEX)
+    {
+      err = ERR_RT_OUT_OF_MEMORY;
+      goto error;
+    }
+
+    dstCommands = dst._d->commands + pos;
+    dstVertices = dst._d->vertices + pos;
+  }
 
   do {
-    switch (data->cmd.cmd())
+    switch (srcCommands[0])
     {
       case PATH_CMD_MOVE_TO:
       case PATH_CMD_LINE_TO:
-        dstv->x = lastx = data->x;
-        dstv->y = lasty = data->y;
-        dstv->cmd = data->cmd;
+      {
+        dstCommands[0] = srcCommands[0];
+        dstVertices[0].x = lastx = srcVertices[0].x;
+        dstVertices[0].y = lasty = srcVertices[0].y;
 
-        data++;
-        dstv++;
-        count--;
+        dstCommands++;
+        dstVertices++;
+
+        srcCommands++;
+        srcVertices++;
+        srcCount--;
 
         break;
+      }
 
       case PATH_CMD_CURVE_3:
-        if (count <= 1) goto invalid;
-        if (data[1].cmd.cmd() != PATH_CMD_CURVE_3) goto invalid;
+      {
+        if (srcCount <= 1) goto invalid;
+        if (srcCommands[1] != PATH_CMD_CURVE_3) goto invalid;
 
-        // Finalize path
-        dst._d->length = (sysuint_t)(dstv - dst._d->data);
+        sysuint_t dstLength = (sysuint_t)(dstCommands - dst._d->commands);
+        uint8_t initialCommand = PATH_CMD_LINE_TO;
 
-        // If there was lineTo command, we eat it, because approximateCurve3
-        // will add it here again.
-        oldLen = INVALID_INDEX;
-        if (dst._d->length > 0)
+        // Get the last command that will be set as first command by
+        // approximation function.
+        if (dstLength > 0 && PathCmd::isVertex(dstCommands[-1]))
         {
-          oldLen = --dst._d->length;
-          const PathVertex* lastVertex = &dst._d->data[oldLen];
-
-          if (lastVertex->x == lastx && lastVertex->y == lasty)
-            oldCmd = lastVertex->cmd;
+          //initialCommand = dstCommands[-1];
+          //dstLength--;
+        }
+        else
+        {
+          initialCommand = PATH_CMD_MOVE_TO;
         }
 
+        // Finalize path.
+        dst._d->length = dstLength;
+
         // Approximate curve.
-        err = PathUtil::fm.approximateCurve3(dst, lastx, lasty, data[0].x, data[0].y, data[1].x, data[1].y, approximationScale, 0.0);
-        if (err) goto end;
+        err = PathUtil::functionMap.approximateCurve3(
+          dst,
+          lastx, lasty,
+          srcVertices[0].x, srcVertices[0].y,
+          srcVertices[1].x, srcVertices[1].y,
+          initialCommand,
+          approximationScale, 0.0);
+        if (err) goto error;
 
-        // Part of fix described above.
-        if (oldLen != INVALID_INDEX) dst._d->data[oldLen].cmd = oldCmd;
+        lastx = srcVertices[1].x;
+        lasty = srcVertices[1].y;
 
-        lastx = data[1].x;
-        lasty = data[1].y;
+        srcCommands += 2;
+        srcVertices += 2;
+        srcCount -= 2;
 
-        data += 2;
-        count -= 2;
-
-        if (count == 0)
+        if (srcCount == 0)
           goto end;
         else
           goto ensureSpace;
+      }
 
       case PATH_CMD_CURVE_4:
-        if (count <= 2) goto invalid;
-        if (data[1].cmd.cmd() != PATH_CMD_CURVE_4 ||
-            data[2].cmd.cmd() != PATH_CMD_CURVE_4) goto invalid;
+      {
+        if (srcCount <= 2) goto invalid;
+        if (srcCommands[1] != PATH_CMD_CURVE_4 ||
+            srcCommands[2] != PATH_CMD_CURVE_4) goto invalid;
 
-        // Finalize path
-        dst._d->length = (sysuint_t)(dstv - dst._d->data);
+        sysuint_t dstLength = (sysuint_t)(dstCommands - dst._d->commands);
+        uint8_t initialCommand = PATH_CMD_LINE_TO;
 
-        // If there was lineTo command, we eat it, because approximateCurve3
-        // will add it here again.
-        oldLen = INVALID_INDEX;
-        if (dst._d->length > 0)
+        // Get the last command that will be set as first command by
+        // approximation function.
+        if (dstLength > 0 && PathCmd::isVertex(dstCommands[-1]))
         {
-          oldLen = --dst._d->length;
-          const PathVertex* lastVertex = &dst._d->data[oldLen];
-
-          if (lastVertex->x == lastx && lastVertex->y == lasty)
-            oldCmd = lastVertex->cmd;
+          //initialCommand = dstCommands[-1];
+          //dstLength--;
+        }
+        else
+        {
+          initialCommand = PATH_CMD_MOVE_TO;
         }
 
+        // Finalize path.
+        dst._d->length = dstLength;
+
         // Approximate curve.
-        err = PathUtil::fm.approximateCurve4(dst, lastx, lasty, data[0].x, data[0].y, data[1].x, data[1].y, data[2].x, data[2].y, approximationScale, 0.0, 0.0);
-        if (err) goto end;
+        err = PathUtil::functionMap.approximateCurve4(
+          dst,
+          lastx, lasty,
+          srcVertices[0].x, srcVertices[0].y,
+          srcVertices[1].x, srcVertices[1].y,
+          srcVertices[2].x, srcVertices[2].y,
+          initialCommand,
+          approximationScale, 0.0, 0.0);
+        if (err) goto error;
 
-        // Part of fix described above.
-        if (oldLen != INVALID_INDEX) dst._d->data[oldLen].cmd = oldCmd;
+        lastx = srcVertices[2].x;
+        lasty = srcVertices[2].y;
 
-        lastx = data[2].x;
-        lasty = data[2].y;
+        srcCommands += 3;
+        srcVertices += 3;
+        srcCount -= 3;
 
-        data += 3;
-        count -= 3;
-
-        if (count == 0)
+        if (srcCount == 0)
           goto end;
         else
           goto ensureSpace;
+      }
 
       default:
-        dstv->x = lastx = 0.0;
-        dstv->y = lasty = 0.0;
-        dstv->cmd = data->cmd;
+      {
+        dstCommands[0] = srcCommands[0];
+        dstVertices[0].x = srcVertices[0].x;
+        dstVertices[0].y = srcVertices[0].y;
 
-        data++;
-        dstv++;
-        count--;
+        dstCommands++;
+        dstVertices++;
+
+        srcCommands++;
+        srcVertices++;
+        srcCount--;
 
         break;
+      }
     }
-  } while(count);
+  } while(srcCount);
 
-  dst._d->length = (sysuint_t)(dstv - dst._d->data);
+  dst._d->length = (sysuint_t)(dstCommands - dst._d->commands);
 end:
-  dst._d->flat = true;
   if (matrix) dst.applyMatrix(*matrix);
   return err;
 
 invalid:
   dst._d->length = 0;
-  dst._d->flat = true;
   return ERR_PATH_INVALID;
+
+error:
+  dst._d->length = initialLength;
+  return err;
 }
 
 err_t Path::flattenTo(Path& dst, const Matrix* matrix, double approximationScale) const
@@ -1573,11 +1720,18 @@ err_t Path::flattenTo(Path& dst, const Matrix* matrix, double approximationScale
   if (this == &dst)
   {
     Path tmp(*this);
-    return _flattenData(dst, tmp.getData(), tmp.getLength(), matrix, approximationScale);
+
+    return _flattenData(dst,
+      tmp.getCommands(),
+      tmp.getVertices(),
+      tmp.getLength(), matrix, approximationScale);
   }
   else
   {
-    return _flattenData(dst, getData(), getLength(), matrix, approximationScale);
+    return _flattenData(dst,
+      getCommands(),
+      getVertices(),
+      getLength(), matrix, approximationScale);
   }
 }
 
@@ -1625,11 +1779,18 @@ err_t Path::flattenSubPathTo(Path& dst, sysuint_t subPathId, const Matrix* matri
   if (this == &dst)
   {
     Path tmp(*this);
-    return _flattenData(dst, tmp._d->data + subPathId, len, matrix, approximationScale);
+
+    return _flattenData(dst,
+      tmp.getCommands() + subPathId,
+      tmp.getVertices() + subPathId,
+      len, matrix, approximationScale);
   }
   else
   {
-    return _flattenData(dst, _d->data + subPathId, len, matrix, approximationScale);
+    return _flattenData(dst,
+      getCommands() + subPathId,
+      getVertices() + subPathId,
+      len, matrix, approximationScale);
   }
 }
 
@@ -1643,17 +1804,12 @@ FOG_INIT_DECLARE err_t fog_path_init(void)
 {
   using namespace Fog;
 
-  Path::Data* d = Path::sharedNull.instancep();
+  PathData* d = Path::sharedNull.instancep();
 
   d->refCount.init(1);
-  d->flags |= Path::Data::IsSharable;
   d->flat = true;
   d->capacity = 0;
   d->length = 0;
-
-  d->data[0].cmd._cmd = PATH_CMD_STOP;
-  d->data[0].x = 0.0;
-  d->data[0].y = 0.0;
 
   return ERR_OK;
 }

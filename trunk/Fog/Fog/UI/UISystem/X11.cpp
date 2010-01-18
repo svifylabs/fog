@@ -1,4 +1,4 @@
-// [Fog/UI Library - C++ API]
+// [Fog/UI Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -9,12 +9,11 @@
 #include <Fog/Core/Byte.h>
 #include <Fog/Core/Math.h>
 #include <Fog/Core/TextCodec.h>
-#include <Fog/Graphics/RasterUtil.h>
+#include <Fog/Graphics/RasterUtil_p.h>
+#include <Fog/Graphics/RasterUtil/RasterUtil_C_p.h>
 #include <Fog/UI/Constants.h>
-#include <Fog/UI/Widget.h>
-
-#include <Fog/Graphics/RasterUtil/RasterUtil_C.h>
 #include <Fog/UI/UISystem/X11.h>
+#include <Fog/UI/Widget.h>
 
 // [Shared memory and IPC]
 #include <errno.h>

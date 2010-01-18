@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - C++ API]
+// [Fog/Graphics Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -17,7 +17,7 @@
 #include <Fog/Graphics/ColorLut.h>
 #include <Fog/Graphics/ColorMatrix.h>
 #include <Fog/Graphics/ImageFilter.h>
-#include <Fog/Graphics/RasterUtil.h>
+#include <Fog/Graphics/RasterUtil_p.h>
 
 namespace Fog {
 

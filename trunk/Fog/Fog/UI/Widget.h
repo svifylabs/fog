@@ -1,4 +1,4 @@
-// [Fog/UI Library - C++ API]
+// [Fog/UI Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package

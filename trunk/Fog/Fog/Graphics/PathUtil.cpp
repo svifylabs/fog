@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - C++ API]
+// [Fog/Graphics Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -37,84 +37,36 @@ namespace PathUtil {
 // [Fog::PathUtil::Function Map]
 // ============================================================================
 
-FunctionMap fm;
+FunctionMap functionMap;
 
 // ============================================================================
 // [Fog::PathUtil::Transformations]
 // ============================================================================
 
-static void FOG_FASTCALL translateVertex(PathVertex* data, sysuint_t length, const PointD* pt)
-{
-  double tx = pt->x;
-  double ty = pt->y;
-
-  for (sysuint_t i = length; i; i--, data++)
-  {
-    if (data->cmd.isVertex())
-    {
-      data->x += tx;
-      data->y += ty;
-    }
-  }
-}
-
-static void FOG_FASTCALL translateVertex2(PathVertex* FOG_RESTRICT dst, const PathVertex* FOG_RESTRICT src, sysuint_t length, const PointD* pt)
+static void FOG_FASTCALL translatePointsD(PointD* dst, const PointD* src, sysuint_t length, const PointD* pt)
 {
   double tx = pt->x;
   double ty = pt->y;
 
   for (sysuint_t i = length; i; i--, dst++, src++)
   {
-    PathCmd cmd = src->cmd;
     double x = src->x;
     double y = src->y;
 
-    dst->cmd = cmd;
-    if (cmd.isVertex())
-    {
-      x += tx;
-      y += ty;
-    }
-    dst->x = x;
-    dst->y = y;
+    dst->x = x + tx;
+    dst->y = y + ty;
   }
 }
 
-static void FOG_FASTCALL transformVertex(PathVertex* data, sysuint_t length, const Matrix* matrix)
-{
-  for (sysuint_t i = length; i; i--, data++)
-  {
-    if (data->cmd.isVertex())
-    {
-      double x = data->x;
-      double y = data->y;
-
-      data->x = x * matrix->sx  + y * matrix->shx + matrix->tx;
-      data->y = x * matrix->shy + y * matrix->sy  + matrix->ty;
-    }
-  }
-}
-
-static void FOG_FASTCALL transformVertex2(PathVertex* FOG_RESTRICT dst, const PathVertex* FOG_RESTRICT src, sysuint_t length, const Matrix* matrix)
+static void FOG_FASTCALL transformPointsD(PointD* dst, const PointD* src, sysuint_t length, const Matrix* matrix)
 {
   for (sysuint_t i = length; i; i--, dst++, src++)
   {
-    PathCmd cmd = src->cmd;
     double x = src->x;
     double y = src->x;
 
-    dst->cmd = cmd;
-
-    if (cmd.isVertex())
-    {
-      dst->x = x * matrix->sx  + y * matrix->shx + matrix->tx;
-      dst->y = x * matrix->shy + y * matrix->sy  + matrix->ty;
-    }
-    else
-    {
-      dst->x = x;
-      dst->y = y;
-    }
+    dst->x = x * matrix->sx  + y * matrix->shx + matrix->tx;
+    dst->y = x * matrix->shy + y * matrix->sy  + matrix->ty;
   }
 }
 
@@ -123,7 +75,7 @@ static void FOG_FASTCALL transformVertex2(PathVertex* FOG_RESTRICT dst, const Pa
 // ============================================================================
 
 #define VERTEX_INITIAL_SIZE 256
-#define ADD_VERTEX(_cmd, _x, _y) { v->x = _x; v->y = _y; v->cmd = _cmd; v++; }
+#define ADD_VERTEX(_x, _y) { curVertex->set(_x, _y); curVertex++; }
 
 enum { APPROXIMATE_CURVE3_RECURSION_LIMIT = 32 };
 enum { APPROXIMATE_CURVE4_RECURSION_LIMIT = 32 };
@@ -133,27 +85,43 @@ static err_t FOG_FASTCALL approximateCurve3(
   double x1, double y1,
   double x2, double y2,
   double x3, double y3,
+  uint8_t initialCommand,
   double approximationScale,
   double angleTolerance = 0.0)
 {
   double distanceToleranceSquare = 0.5 / approximationScale;
   distanceToleranceSquare *= distanceToleranceSquare;
 
+  sysuint_t initialLength = dst._d->length;
   sysuint_t level = 0;
+
+  PointD* curVertex;
+  PointD* endVertex;
+
   ApproximateCurve3Data stack[APPROXIMATE_CURVE3_RECURSION_LIMIT];
 
-  PathVertex* v;
-  PathVertex* vend;
-
 realloc:
-  v = dst._add(VERTEX_INITIAL_SIZE);
-  if (!v) return ERR_RT_OUT_OF_MEMORY;
-  vend = v + VERTEX_INITIAL_SIZE - 1;
+  {
+    sysuint_t pos = dst._add(VERTEX_INITIAL_SIZE);
+    if (pos == INVALID_INDEX)
+    {
+      // Purge dst length to its initial state.
+      if (dst._d->length != initialLength) dst._d->length = initialLength;
+      return ERR_RT_OUT_OF_MEMORY;
+    }
+
+    curVertex = dst._d->vertices + pos;
+    endVertex = curVertex + VERTEX_INITIAL_SIZE - 1;
+  }
 
   for (;;)
   {
-    // Realloc if needed.
-    if (v >= vend) { dst._d->length = (sysuint_t)(v - dst._d->data); goto realloc; }
+    // Realloc if needed, but update length if need to do.
+    if (curVertex >= endVertex)
+    {
+      dst._d->length = (sysuint_t)(curVertex - dst._d->vertices);
+      goto realloc;
+    }
 
     // Calculate all the mid-points of the line segments.
     double x12   = (x1 + x2) / 2.0;
@@ -177,7 +145,7 @@ realloc:
         // we tend to finish subdivisions.
         if (angleTolerance < CURVE_ANGLE_TOLERANCE_EPSILON)
         {
-          ADD_VERTEX(PATH_CMD_LINE_TO, x123, y123);
+          ADD_VERTEX(x123, y123);
           goto ret;
         }
 
@@ -188,7 +156,7 @@ realloc:
         if (da < angleTolerance)
         {
           // Finally we can stop the recursion.
-          ADD_VERTEX(PATH_CMD_LINE_TO, x123, y123);
+          ADD_VERTEX(x123, y123);
           goto ret;
         }
       }
@@ -221,7 +189,7 @@ realloc:
       }
       if (d < distanceToleranceSquare)
       {
-        ADD_VERTEX(PATH_CMD_LINE_TO, x2, y2);
+        ADD_VERTEX(x2, y2);
         goto ret;
       }
     }
@@ -252,6 +220,10 @@ realloc:
 
       continue;
     }
+    else
+    {
+      if (isnan(x123)) goto invalidNumber;
+    }
 
 ret:
     if (level == 0) break;
@@ -266,12 +238,39 @@ ret:
   }
 
   // Add end point.
-  ADD_VERTEX(PATH_CMD_LINE_TO, x3, y3);
+  ADD_VERTEX(x3, y3);
 
-  dst._d->length = (sysuint_t)(v - dst._d->data);
-  FOG_ASSERT(dst._d->capacity >= dst._d->length);
+  {
+    // Update dst length.
+    sysuint_t length = (sysuint_t)(curVertex - dst._d->vertices);
+    dst._d->length = length;
+
+    // Make sure we are not out of bounds.
+    FOG_ASSERT(dst._d->capacity >= length);
+
+    // Fill initial and MoveTo commands.
+    uint8_t* commands = dst._d->commands + initialLength;
+    sysuint_t i = length - initialLength;
+
+    if (i)
+    {
+      *commands++ = initialCommand;
+      i--;
+    }
+
+    while (i)
+    {
+      *commands++ = PATH_CMD_LINE_TO;
+      i--;
+    }
+  }
 
   return ERR_OK;
+
+invalidNumber:
+  // Purge dst length to its initial state.
+  if (dst._d->length != initialLength) dst._d->length = initialLength;
+  return ERR_PATH_INVALID;
 }
 
 static err_t FOG_FASTCALL approximateCurve4(
@@ -280,6 +279,7 @@ static err_t FOG_FASTCALL approximateCurve4(
   double x2, double y2,
   double x3, double y3,
   double x4, double y4,
+  uint8_t initialCommand,
   double approximationScale,
   double angleTolerance = 0.0,
   double cuspLimit = 0.0)
@@ -287,21 +287,36 @@ static err_t FOG_FASTCALL approximateCurve4(
   double distanceToleranceSquare = 0.5 / approximationScale;
   distanceToleranceSquare *= distanceToleranceSquare;
 
+  sysuint_t initialLength = dst._d->length;
   sysuint_t level = 0;
+
+  PointD* curVertex;
+  PointD* endVertex;
+
   ApproximateCurve4Data stack[APPROXIMATE_CURVE4_RECURSION_LIMIT];
 
-  PathVertex* v;
-  PathVertex* vend;
-
 realloc:
-  v = dst._add(VERTEX_INITIAL_SIZE);
-  if (!v) return ERR_RT_OUT_OF_MEMORY;
-  vend = v + VERTEX_INITIAL_SIZE - 2;
+  {
+    sysuint_t pos = dst._add(VERTEX_INITIAL_SIZE);
+    if (pos == INVALID_INDEX)
+    {
+      // Purge dst length to its initial state.
+      if (dst._d->length != initialLength) dst._d->length = initialLength;
+      return ERR_RT_OUT_OF_MEMORY;
+    }
+
+    curVertex = dst._d->vertices + pos;
+    endVertex = curVertex + VERTEX_INITIAL_SIZE - 2;
+  }
 
   for (;;)
   {
     // Realloc if needed.
-    if (v >= vend) { dst._d->length = (sysuint_t)(v - dst._d->data); goto realloc; }
+    if (curVertex >= endVertex)
+    {
+      dst._d->length = (sysuint_t)(curVertex - dst._d->vertices);
+      goto realloc;
+    }
 
     // Calculate all the mid-points of the line segments.
     double x12   = (x1 + x2) / 2.0;
@@ -372,7 +387,7 @@ realloc:
         {
           if (d2 < distanceToleranceSquare)
           {
-            ADD_VERTEX(PATH_CMD_LINE_TO, x2, y2);
+            ADD_VERTEX(x2, y2);
             goto ret;
           }
         }
@@ -380,7 +395,7 @@ realloc:
         {
           if (d3 < distanceToleranceSquare)
           {
-            ADD_VERTEX(PATH_CMD_LINE_TO, x3, y3);
+            ADD_VERTEX(x3, y3);
             goto ret;
           }
         }
@@ -392,7 +407,7 @@ realloc:
       {
         if (angleTolerance < CURVE_ANGLE_TOLERANCE_EPSILON)
         {
-          ADD_VERTEX(PATH_CMD_LINE_TO, x23, y23);
+          ADD_VERTEX(x23, y23);
           goto ret;
         }
 
@@ -402,8 +417,8 @@ realloc:
 
         if (da1 < angleTolerance)
         {
-          ADD_VERTEX(PATH_CMD_LINE_TO, x2, y2);
-          ADD_VERTEX(PATH_CMD_LINE_TO, x3, y3);
+          ADD_VERTEX(x2, y2);
+          ADD_VERTEX(x3, y3);
           goto ret;
         }
 
@@ -411,7 +426,7 @@ realloc:
         {
           if (da1 > cuspLimit)
           {
-            ADD_VERTEX(PATH_CMD_LINE_TO, x3, y3);
+            ADD_VERTEX(x3, y3);
             goto ret;
           }
         }
@@ -424,7 +439,7 @@ realloc:
       {
         if (angleTolerance < CURVE_ANGLE_TOLERANCE_EPSILON)
         {
-          ADD_VERTEX(PATH_CMD_LINE_TO, x23, y23);
+          ADD_VERTEX(x23, y23);
           goto ret;
         }
 
@@ -434,8 +449,8 @@ realloc:
 
         if (da1 < angleTolerance)
         {
-          ADD_VERTEX(PATH_CMD_LINE_TO, x2, y2);
-          ADD_VERTEX(PATH_CMD_LINE_TO, x3, y3);
+          ADD_VERTEX(x2, y2);
+          ADD_VERTEX(x3, y3);
           goto ret;
         }
 
@@ -443,7 +458,7 @@ realloc:
         {
           if (da1 > cuspLimit)
           {
-            ADD_VERTEX(PATH_CMD_LINE_TO, x3, y3);
+            ADD_VERTEX(x3, y3);
             goto ret;
           }
         }
@@ -458,7 +473,7 @@ realloc:
         // we tend to finish subdivisions.
         if (angleTolerance < CURVE_ANGLE_TOLERANCE_EPSILON)
         {
-          ADD_VERTEX(PATH_CMD_LINE_TO, x23, y23);
+          ADD_VERTEX(x23, y23);
           goto ret;
         }
 
@@ -472,7 +487,7 @@ realloc:
         if (da1 + da2 < angleTolerance)
         {
           // Finally we can stop the recursion.
-          ADD_VERTEX(PATH_CMD_LINE_TO, x23, y23);
+          ADD_VERTEX(x23, y23);
           goto ret;
         }
 
@@ -480,13 +495,13 @@ realloc:
         {
           if (da1 > cuspLimit)
           {
-            ADD_VERTEX(PATH_CMD_LINE_TO, x2, y2);
+            ADD_VERTEX(x2, y2);
             goto ret;
           }
 
           if (da2 > cuspLimit)
           {
-            ADD_VERTEX(PATH_CMD_LINE_TO, x3, y3);
+            ADD_VERTEX(x3, y3);
             goto ret;
           }
         }
@@ -523,6 +538,10 @@ realloc:
 
       continue;
     }
+    else
+    {
+      if (isnan(x1234)) goto invalidNumber;
+    }
 
 ret:
     if (level == 0) break;
@@ -539,12 +558,39 @@ ret:
   }
 
   // Add end point.
-  ADD_VERTEX(PATH_CMD_LINE_TO, x4, y4);
+  ADD_VERTEX(x4, y4);
 
-  dst._d->length = (sysuint_t)(v - dst._d->data);
-  FOG_ASSERT(dst._d->capacity >= dst._d->length);
+  {
+    // Update dst length.
+    sysuint_t length = (sysuint_t)(curVertex - dst._d->vertices);
+    dst._d->length = length;
+
+    // Make sure we are not out of bounds.
+    FOG_ASSERT(dst._d->capacity >= length);
+
+    // Fill initial and MoveTo commands.
+    uint8_t* commands = dst._d->commands + initialLength;
+    sysuint_t i = length - initialLength;
+
+    if (i)
+    {
+      *commands++ = initialCommand;
+      i--;
+    }
+
+    while (i)
+    {
+      *commands++ = PATH_CMD_LINE_TO;
+      i--;
+    }
+  }
 
   return ERR_OK;
+
+invalidNumber:
+  // Purge dst length to its initial state.
+  if (dst._d->length != initialLength) dst._d->length = initialLength;
+  return ERR_PATH_INVALID;
 }
 
 #undef ADD_VERTEX
@@ -556,6 +602,13 @@ ret:
 // [Library Initializers]
 // ============================================================================
 
+// Decide whether pure C implementation is needed. In case that we are compiling
+// for SSE2-only machine, we can omit C implementation that will result in
+// smaller binary size of the library.
+#if !defined(FOG_HARDCODE_SSE2)
+# define FOG_PATHUTIL_INIT_C
+#endif // FOG_HARDCODE_SSE2
+
 #if defined(FOG_ARCH_X86) || defined(FOG_ARCH_X86_64)
 FOG_INIT_EXTERN void fog_pathutil_init_sse2(void);
 #endif // FOG_ARCH_X86 || FOG_ARCH_X86_64
@@ -564,24 +617,23 @@ FOG_INIT_DECLARE err_t fog_pathutil_init(void)
 {
   using namespace Fog;
 
+#if defined(FOG_PATHUTIL_INIT_C)
   // Install C optimized code (default).
-  PathUtil::fm.translateVertex = PathUtil::translateVertex;
-  PathUtil::fm.translateVertex2 = PathUtil::translateVertex2;
+  PathUtil::functionMap.translatePointsD = PathUtil::translatePointsD;
+  PathUtil::functionMap.transformPointsD = PathUtil::transformPointsD;
+#endif // FOG_PATHUTIL_INIT_C
 
-  PathUtil::fm.transformVertex = PathUtil::transformVertex;
-  PathUtil::fm.transformVertex2 = PathUtil::transformVertex2;
-
-  PathUtil::fm.approximateCurve3 = PathUtil::approximateCurve3;
-  PathUtil::fm.approximateCurve4 = PathUtil::approximateCurve4;
+  PathUtil::functionMap.approximateCurve3 = PathUtil::approximateCurve3;
+  PathUtil::functionMap.approximateCurve4 = PathUtil::approximateCurve4;
 
   // Install SSE2 optimized code if supported.
-#if defined(FOG_ARCH_X86) || defined(FOG_ARCH_X86_64)
-#if !defined(FOG_HARDCODE_SSE2)
-  if (cpuInfo->hasFeature(CpuInfo::FEATURE_SSE2)) fog_pathutil_init_sse2();
-#else
+#if defined(FOG_HARDCODE_SSE2)
   fog_pathutil_init_sse2();
-#endif
+#else
+#if (defined(FOG_ARCH_X86) || defined(FOG_ARCH_X86_64))
+  if (cpuInfo->hasFeature(CpuInfo::FEATURE_SSE2)) fog_pathutil_init_sse2();
 #endif // FOG_ARCH_X86 || FOG_ARCH_X86_64
+#endif // FOG_HARDCODE_SSE2
 
   return ERR_OK;
 }

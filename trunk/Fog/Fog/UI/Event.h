@@ -1,4 +1,4 @@
-// [Fog/UI Library - C++ API]
+// [Fog/UI Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -102,14 +102,14 @@ struct FOG_API ConfigureEvent : public Event
     CHANGED_ORIENTATION = (1 << 4)
   };
 
-  FOG_INLINE const Rect& rect() const { return _rect; }
-  FOG_INLINE uint32_t changed() const { return _changed; }
+  FOG_INLINE const Rect& getRect() const { return _rect; }
+  FOG_INLINE uint32_t getChangedFlags() const { return _changed; }
 
-  FOG_INLINE bool changedPosition() const { return (_changed & CHANGED_POSITION) != 0; }
-  FOG_INLINE bool changedSize() const { return (_changed & CHANGED_SIZE) != 0; }
-  FOG_INLINE bool changedWindowPosition() const { return (_changed & CHANGED_WINDOW_POSITION) != 0; }
-  FOG_INLINE bool changedWindowSize() const { return (_changed & CHANGED_WINDOW_SIZE) != 0; }
-  FOG_INLINE bool changedOrientation() const { return (_changed & CHANGED_ORIENTATION) != 0; }
+  FOG_INLINE bool isChangedPosition() const { return (_changed & CHANGED_POSITION) != 0; }
+  FOG_INLINE bool isChangedSize() const { return (_changed & CHANGED_SIZE) != 0; }
+  FOG_INLINE bool isChangedWindowPosition() const { return (_changed & CHANGED_WINDOW_POSITION) != 0; }
+  FOG_INLINE bool isChangedWindowSize() const { return (_changed & CHANGED_WINDOW_SIZE) != 0; }
+  FOG_INLINE bool isChangedOrientation() const { return (_changed & CHANGED_ORIENTATION) != 0; }
 
   // [Members]
 

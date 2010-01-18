@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - C++ API]
+// [Fog/Graphics Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -12,7 +12,7 @@
 #include <Fog/Core/Hash.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Graphics/Image.h>
-#include <Fog/Graphics/RasterUtil.h>
+#include <Fog/Graphics/RasterUtil_p.h>
 #include <Fog/Graphics/Reduce.h>
 
 #include <stdlib.h>

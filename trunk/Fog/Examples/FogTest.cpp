@@ -4,47 +4,9 @@
 #include <Fog/Svg.h>
 #include <Fog/Xml.h>
 
-using namespace Fog;
-
-/*
-// ============================================================================
-// [Specialized 4 vertex polygon rasterizer]
-// ============================================================================
-
-static void rasterize4v(ImageBuffer& buf, const PointD* points)
-{
-
-}
-
-static Image test4v()
-{
-  Image image(320, 200, PIXEL_FORMAT_PRGB32);
-  ImageBuffer ibuf;
-
-  ibuf.width = image.getWidth();
-  ibuf.height = image.getHeight();
-  ibuf.stride = image.getStride();
-  ibuf.format = image.getFormat();
-  ibuf.data = (uint8_t*)image.getData();
-
-  PointD points[4];
-  points[0].set(10.5, 10.5);
-  points[1].set(100.5, 20.5);
-  points[2].set(70.5, 100.5);
-  points[3].set(40.5, 40.5);
-
-  image.clear(Argb(0xFFFFFFFF));
-  rasterize4v(ibuf, points);
-}
-*/
-
-
-
-
-
-
-
 // This is for MY testing:)
+
+using namespace Fog;
 
 struct MyWindow : public Window
 {
@@ -105,12 +67,13 @@ MyWindow::MyWindow(uint32_t createFlags) :
   _shearY = 0.0;
   _scale = 1.0;
   _spread = SPREAD_REPEAT;
-
+/*
   Button* button = new Button();
   add(button);
   button->setRect(Rect(40, 40, 100, 20));
   button->setText(Ascii8("Push me"));
   button->show();
+*/
 }
 
 MyWindow::~MyWindow()
@@ -266,7 +229,7 @@ void MyWindow::onPaint(PaintEvent* e)
   p->rotate(_rotate);
   p->clear();
 */
-/*
+
   p->save();
   StrokeParams params;
   params.setLineWidth(40.0);
@@ -279,14 +242,16 @@ void MyWindow::onPaint(PaintEvent* e)
   p->setSource(Argb(0xFF000000));
 
   Path path;
+  //path.addRect(RectD(100., 100., 200., 200.));
+  //path.addRect(RectD(210., 210., 200., 200.));
   path.moveTo(50.0, 50.0);
   path.lineTo(200.0, 70.0);
   path.lineTo(145.0, 300.0);
-  path.lineTo(getWidth() - 30.0, getHeight() - 30.0);
+  path.curveTo(getWidth() - 30.0, getHeight() - 30.0, 100.0, 100.0);
   p->drawPath(path);
 
   p->restore();
-*/
+/*
 
   p->save();
   p->setOperator(OPERATOR_SRC_OVER);
@@ -298,7 +263,7 @@ void MyWindow::onPaint(PaintEvent* e)
   //p->setOperator(OPERATOR_SRC_OUT);
   //p->blitImage(PointD(0.0, 0.0), i[0]);
   p->restore();
-
+*/
 #endif
 
 #if 0

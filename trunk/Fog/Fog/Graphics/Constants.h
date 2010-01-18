@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - C++ API]
+// [Fog/Graphics Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -11,25 +11,6 @@
 #include <Fog/Build/Build.h>
 
 namespace Fog {
-
-// ============================================================================
-// [Fog::ALPHA_TYPE]
-// ============================================================================
-
-//! @brief Results from some color analyze functions.
-//!
-//! Usualy used to optimize image processing, because algorithm
-//! for full opaque image is always better that generic algorithm
-//! for image with alpha channel.
-enum ALPHA_TYPE
-{
-  //! @brief Alpha values are not constant.
-  ALPHA_VARIANT = -1,
-  //! @brief All alpha values are transparent (0).
-  ALPHA_TRANSPARENT = 0,
-  //! @brief All alpha values are opaque (255).
-  ALPHA_OPAQUE = 255
-};
 
 // ============================================================================
 // [Fog::ANTI_ALIASING_TYPE]
@@ -148,7 +129,7 @@ enum OPERATOR_TYPE
   //!   Dca' = Sca.m + Dca.(1 - m)
   //!   Da'  = Sa.m + Da.(1 - m)
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces (SRC):
+  //! Formulas for PRGB(dst), XRGB(src) colorspaces (SRC):
   //!   Dca' = Sc
   //!   Da'  = 1
   //!
@@ -157,14 +138,14 @@ enum OPERATOR_TYPE
   //!   Dca' = Sc.m + Dca.(1 - m)
   //!   Da'  = 1.m + Da.(1 - m)
   //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces (SRC):
+  //! Formulas for XRGB(dst), PRGB(src) colorspaces (SRC):
   //!   Dc'  = Sca
   //!
   //!   Msk:
   //!
   //!   Dc'  = Sca.m + Dc.(1 - m)
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces (SRC):
+  //! Formulas for XRGB(dst), XRGB(src) colorspaces (SRC):
   //!   Dc'  = Sc
   //!
   //!   Msk:
@@ -191,14 +172,14 @@ enum OPERATOR_TYPE
   //!   Dca' = Dca
   //!   Da'  = Da
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces (NOP):
+  //! Formulas for PRGB(dst), XRGB(src) colorspaces (NOP):
   //!   Dca' = Dca
   //!   Da'  = Da
   //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces (NOP):
+  //! Formulas for XRGB(dst), PRGB(src) colorspaces (NOP):
   //!   Dc'  = Dc
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces (NOP):
+  //! Formulas for XRGB(dst), XRGB(src) colorspaces (NOP):
   //!   Dc'  = Dc
   //!
   //! Formulas for A(dst), A(src) colorspaces (NOP):
@@ -225,7 +206,7 @@ enum OPERATOR_TYPE
   //!   Da'  = (Sa + Da.(1 - Sa)).m + Da .(1 - m)
   //!        = Sa.m + Da.(1 - Sa.m)
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces (SRC):
+  //! Formulas for PRGB(dst), XRGB(src) colorspaces (SRC):
   //!   Dca' = Sc
   //!   Da'  = 1
   //!
@@ -234,14 +215,14 @@ enum OPERATOR_TYPE
   //!   Dca' = Sc.m + Dca.(1 - m)
   //!   Da'  = 1.m + Da.(1 - m)
   //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces (SRC_OVER):
+  //! Formulas for XRGB(dst), PRGB(src) colorspaces (SRC_OVER):
   //!   Dc'  = Sca + Dc.(1 - Sa)
   //!
   //!   Msk:
   //!
   //!   Da'  = Sca.m + Dc.(1 - Sa.m)
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces (SRC):
+  //! Formulas for XRGB(dst), XRGB(src) colorspaces (SRC):
   //!   Dc'  = Sc
   //!
   //!   Msk:
@@ -278,7 +259,7 @@ enum OPERATOR_TYPE
   //!   Dca' = (Dca + Sca.(1 - Da)).m + Dca.(1 - m)   => Dca + Sca.(1 - Da).m
   //!   Da'  = (Da  + Sa .(1 - Da)).m + Da .(1 - m)   => Da  + Sa .(1 - Da).m
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces (DST_OVER):
+  //! Formulas for PRGB(dst), XRGB(src) colorspaces (DST_OVER):
   //!   Dca' = Dca + Sc.(1 - Da)
   //!   Da'  = 1
   //!
@@ -287,14 +268,14 @@ enum OPERATOR_TYPE
   //!   Dca' = Dca + Sc.m.(1 - Da)
   //!   Da'  = Da + m.(1 - Da)
   //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces (NOP):
+  //! Formulas for XRGB(dst), PRGB(src) colorspaces (NOP):
   //!   Dc'  = Dc
   //!
   //!   Msk:
   //!
   //!   Dc ' = Dc
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces (NOP):
+  //! Formulas for XRGB(dst), XRGB(src) colorspaces (NOP):
   //!   Dc'  = Dc
   //!
   //!   Msk:
@@ -328,7 +309,7 @@ enum OPERATOR_TYPE
   //!   Dca' = Sca.Da.m + Dca.(1 - m)
   //!   Da'  = Sa .Da.m + Da .(1 - m)
   //! 
-  //! Formulas for PRGB(dst), RGB(src) colorspaces (SRC_IN):
+  //! Formulas for PRGB(dst), XRGB(src) colorspaces (SRC_IN):
   //!   Dca' = Sc.Da
   //!   Da'  = Da
   //!
@@ -338,14 +319,14 @@ enum OPERATOR_TYPE
   //!   Da'  = 1 .Da.m + Da .(1 - m)
   //!        = Da
   //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces (SRC):
+  //! Formulas for XRGB(dst), PRGB(src) colorspaces (SRC):
   //!   Dc'  = Sca
   //!
   //!   Msk:
   //!
   //!   Dc'  = (Sca.m + Dc.(1 - m))
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces (SRC):
+  //! Formulas for XRGB(dst), XRGB(src) colorspaces (SRC):
   //!   Dc'  = Sc
   //!
   //!   Msk:
@@ -377,18 +358,18 @@ enum OPERATOR_TYPE
   //!   Dca' = Dca.Sa.m + Dca.(1 - m)
   //!   Da'  = Da.Sa.m + Da.(1 - m)
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces (NOP):
+  //! Formulas for PRGB(dst), XRGB(src) colorspaces (NOP):
   //!   Dca' = Dca
   //!   Da'  = Da
   //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces (DST_IN):
+  //! Formulas for XRGB(dst), PRGB(src) colorspaces (DST_IN):
   //!   Dc'  = Dc.Sa
   //!
   //!   Msk:
   //!
   //!   Dc'  = Dc.Sa.m + Dc.(m - 1)
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces (NOP):
+  //! Formulas for XRGB(dst), XRGB(src) colorspaces (NOP):
   //!   Dc'  = Dc
   //!
   //! Formulas for A(dst), A(src) colorspaces (MUL):
@@ -416,7 +397,7 @@ enum OPERATOR_TYPE
   //!   Dca' = Sca.(1 - Da).m + Dca.(1 - m)
   //!   Da'  = Sa.(1 - Da).m + Da.(1 - m)
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces (SRC_OUT):
+  //! Formulas for PRGB(dst), XRGB(src) colorspaces (SRC_OUT):
   //!   Dca' = Sc.(1 - Da)
   //!   Da'  = (1 - Da)
   //!
@@ -425,14 +406,14 @@ enum OPERATOR_TYPE
   //!   Dca' = Sc.(1 - Da).m + Dca.(1 - m)
   //!   Da'  = (1 - Da).m + Da.(m - 1)
   //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces (CLEAR):
+  //! Formulas for XRGB(dst), PRGB(src) colorspaces (CLEAR):
   //!   Dc'  = 0
   //!
   //!   Msk:
   //!
   //!   Dc'  = Dca.(1 - m)
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces (CLEAR):
+  //! Formulas for XRGB(dst), XRGB(src) colorspaces (CLEAR):
   //!   Dc'  = 0
   //!
   //!   Msk:
@@ -465,7 +446,7 @@ enum OPERATOR_TYPE
   //!   Da'  = Da.(1 - Sa).m + Da.(1 - m)
   //!        = Da.(1 - Sa.m)
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces (CLEAR):
+  //! Formulas for PRGB(dst), XRGB(src) colorspaces (CLEAR):
   //!   Dca' = 0
   //!   Da'  = 0
   //!
@@ -474,14 +455,14 @@ enum OPERATOR_TYPE
   //!   Dca' = Dca.(m - 1)
   //!   Da'  = Da.(m - 1)
   //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces (DST_OUT):
+  //! Formulas for XRGB(dst), PRGB(src) colorspaces (DST_OUT):
   //!   Dc'  = Dc.(1 - Sa)
   //!
   //!   Msk:
   //!
   //!   Dc'  = Dc.(1 - Sa.m)
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces (CLEAR):
+  //! Formulas for XRGB(dst), XRGB(src) colorspaces (CLEAR):
   //!   Dc'  = 0
   //!
   //!   Msk:
@@ -500,7 +481,7 @@ enum OPERATOR_TYPE
   //! @brief The part of the source lying inside of the destination is
   //! composited onto the destination. 
   //!
-  //! Formulas for PRGB(dst), PRGB(src) colorspaces (ATOP):
+  //! Formulas for PRGB(dst), PRGB(src) colorspaces (SRC_ATOP):
   //!   Dca' = Sca.Da + Dca.(1 - Sa)
   //!   Da'  = Sa.Da + Da.(1 - Sa) 
   //!        = Sa.Da + Da - Da.Sa
@@ -514,7 +495,7 @@ enum OPERATOR_TYPE
   //!   Da'  = Sa.Da.m + Da.(1 - Sa.m)
   //!        = Da
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces (SRC_IN):
+  //! Formulas for PRGB(dst), XRGB(src) colorspaces (SRC_IN):
   //!   Dca' = Sc.Da
   //!   Da'  = Da
   //!
@@ -527,14 +508,14 @@ enum OPERATOR_TYPE
   //!        = Da.m + Da.(1 - m)
   //!        = Da
   //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces (SRC_OVER):
+  //! Formulas for XRGB(dst), PRGB(src) colorspaces (SRC_OVER):
   //!   Dc'  = Sca + Dc.(1 - Sa)
   //!
   //!   Msk:
   //!
   //!   Dc'  = Sca.m + Dc.(1 - Sa.m)
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces (SRC):
+  //! Formulas for XRGB(dst), XRGB(src) colorspaces (SRC):
   //!   Dc'  = Sc
   //!
   //!   Msk:
@@ -563,7 +544,7 @@ enum OPERATOR_TYPE
   //!   Dca' = (Dca.Sa + Sca.(1 - Da)).m + Dca.(1 - m)
   //!   Da'  = (Da.Sa + Sa.(1 - Da)).m + Da.(1 - m)
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces (DST_OVER):
+  //! Formulas for PRGB(dst), XRGB(src) colorspaces (DST_OVER):
   //!   Dca' = Dca + Sc.(1 - Da)
   //!   Da'  = 1
   //!
@@ -572,14 +553,14 @@ enum OPERATOR_TYPE
   //!   Dca' = Dca + Sc.m.(1 - Da)
   //!   Da'  = Da + m.(1 - Da)
   //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces (DST_IN):
+  //! Formulas for XRGB(dst), PRGB(src) colorspaces (DST_IN):
   //!   Dc'  = Dc.Sa
   //!
   //!   Msk:
   //!
   //!   Dca' = Dc.Sa.m + Dc.(1 - m)
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces (NOP):
+  //! Formulas for XRGB(dst), XRGB(src) colorspaces (NOP):
   //!   Dc'  = Dc
   //!
   //! Formulas for A(dst), A(src) colorspaces (SRC):
@@ -607,7 +588,7 @@ enum OPERATOR_TYPE
   //!   Dca' = Sca.m.(1 - Da) + Dca.(1 - Sa.m)
   //!   Da'  = Sa.m.(1 - Da) + Da.(1 - Sa.m)
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces (SRC_OUT):
+  //! Formulas for PRGB(dst), XRGB(src) colorspaces (SRC_OUT):
   //!   Dca' = Sc.(1 - Da)
   //!   Da'  = (1 - Da)
   //!
@@ -616,14 +597,14 @@ enum OPERATOR_TYPE
   //!   Dca' = Sc.m.(1 - Da) + Dca.(1 - m)
   //!   Da'  = 1.m.(1 - Da) + Da.(1 - m)
   //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces (DST_OUT):
+  //! Formulas for XRGB(dst), PRGB(src) colorspaces (DST_OUT):
   //!   Dc'  = Dc.(1 - Sa)
   //!
   //!   Msk:
   //!
   //!   Dc'  = Dc.(1 - Sa.m)
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces (CLEAR):
+  //! Formulas for XRGB(dst), XRGB(src) colorspaces (CLEAR):
   //!   Dc'  = 0
   //!
   //! Formulas for A(dst), A(src) colorspaces (XOR):
@@ -645,7 +626,7 @@ enum OPERATOR_TYPE
   //!   Dca' = Dca.(1 - m)
   //!   Da'  = Da .(1 - m)
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces (CLEAR):
+  //! Formulas for PRGB(dst), XRGB(src) colorspaces (CLEAR):
   //!   Dca' = 0
   //!   Da'  = 0
   //!
@@ -654,14 +635,14 @@ enum OPERATOR_TYPE
   //!   Dca' = Dca.(1 - m)
   //!   Da'  = Da .(1 - m)
   //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces (CLEAR):
+  //! Formulas for XRGB(dst), PRGB(src) colorspaces (CLEAR):
   //!   Dc'  = 0
   //!
   //!   Msk:
   //!
   //!   Dc'  = Dc.(1 - m)
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces (CLEAR):
+  //! Formulas for XRGB(dst), XRGB(src) colorspaces (CLEAR):
   //!   Dc'  = 0
   //!
   //!   Msk:
@@ -676,51 +657,59 @@ enum OPERATOR_TYPE
   //!   Da'  = Da.(1 - m)
   OPERATOR_CLEAR,
 
+  // --------------------------------------------------------------------------
+  // [ADD]
+  // --------------------------------------------------------------------------
+
   //! @brief The source is added to the destination and replaces the destination.
   //!
   //! Formulas for PRGB(dst), PRGB(src) colorspaces (ADD):
   //!   Dca' = Sca.Da + Dca.Sa + Sca.(1 - Da) + Dca.(1 - Sa)
-  //!        = Sca + Dca
+  //!        = Dca + Sca
   //!   Da'  = Sa.Da + Da.Sa + Sa.(1 - Da) + Da.(1 - Sa)
-  //!        = Sa + Da
+  //!        = Da + Sa
   //!
   //!   Msk:
   //!
   //!   Dca' = Sca.m + Dca.m + Dca.(1 - m)
-  //!        = Sca.m + Dca
+  //!        = Dca + Sca.m
   //!   Da'  = Sa.m + Da.m + Da.(1 - m)
-  //!        = Sa.m + Da
+  //!        = Da + Sa.m
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces (ADD):
-  //!   Dca' = Sc + Dca
+  //! Formulas for PRGB(dst), XRGB(src) colorspaces (ADD):
+  //!   Dca' = Dca + Sc
   //!   Da'  = 1
   //!
   //!   Msk:
   //!
-  //!   Dca' = Sc.m + Dca
-  //!   Da'  = m + Da
+  //!   Dca' = Dca + Sc.m
+  //!   Da'  = Da + m
   //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces (ADD):
-  //!   Dc'  = Sca + Dc
-  //!
-  //!   Msk:
-  //!
-  //!   Dc'  = Sca.m + Dc
-  //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces (ADD):
-  //!   Dc'  = Sc + Dc
+  //! Formulas for XRGB(dst), PRGB(src) colorspaces (ADD):
+  //!   Dc'  = Dc + Sca
   //!
   //!   Msk:
   //!
-  //!   Dc'  = Sc.m + Dc
+  //!   Dc'  = Dc + Sca.m
+  //!
+  //! Formulas for XRGB(dst), XRGB(src) colorspaces (ADD):
+  //!   Dc'  = Dc + Sc
+  //!
+  //!   Msk:
+  //!
+  //!   Dc'  = Dc + Sc.m
   //!
   //! Formulas for A(dst), A(src) colorspaces (ADD):
-  //!   Da'  = Sa + Da
+  //!   Da'  = Da + Sa
   //!
   //!   Msk:
   //!
-  //!   Da'  = Sa.m + Da
+  //!   Da'  = Da + Sa.m
   OPERATOR_ADD,
+
+  // --------------------------------------------------------------------------
+  // [SUBTRACT]
+  // --------------------------------------------------------------------------
 
   //! @brief The source is subtracted from the destination and replaces 
   //! the destination.
@@ -737,14 +726,14 @@ enum OPERATOR_TYPE
   //!   Da'  = Da + Sa.m - Sa.m.Da
   //!        = Da + Sa.m - (1 - Da)
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces (SUBTRACT):
-  //!   Dca' = Dca - Sa
+  //! Formulas for PRGB(dst), XRGB(src) colorspaces (SUBTRACT):
+  //!   Dca' = Dca - Sc
   //!   Da'  = 1
   //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces (SUBTRACT):
+  //! Formulas for XRGB(dst), PRGB(src) colorspaces (SUBTRACT):
   //!   Dc'  = Dc - Sca
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces (SUBTRACT):
+  //! Formulas for XRGB(dst), XRGB(src) colorspaces (SUBTRACT):
   //!   Dc'  = Dc - Sc
   //!
   //! Formulas for A(dst), A(src) colorspaces (SRC_OVER):
@@ -755,8 +744,9 @@ enum OPERATOR_TYPE
   //!   Da'  = Da + Sa.m.(1 - Da)
   OPERATOR_SUBTRACT,
 
-#if 0
-  // TODO: Currently not supported!
+  // --------------------------------------------------------------------------
+  // [MULTIPLY]
+  // --------------------------------------------------------------------------
 
   //! @brief The source is multiplied by the destination and replaces 
   //! the destination.
@@ -776,7 +766,7 @@ enum OPERATOR_TYPE
   //!
   //!   Da'  = (Da.(Sa + 1 - Sa) + Sa.(1 - Da)).m + Da.(1 - m)
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces (MULTIPLY):
+  //! Formulas for PRGB(dst), XRGB(src) colorspaces (MULTIPLY):
   //!   Dca' = Sc.Dca + Sc.(1 - Da)
   //!   Da'  = 1
   //!
@@ -785,14 +775,14 @@ enum OPERATOR_TYPE
   //!   Dca' = (Sc.Dca + Sc.(1 - Da)).m + Dca.(1 - m)
   //!   Da'  = m + Da.(1 - m)
   //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces (MULTIPLY):
+  //! Formulas for XRGB(dst), PRGB(src) colorspaces (MULTIPLY):
   //!   Dc'  = Sca.Dc + Dc.(1 - Sa)
   //!
   //!   Msk:
   //!
   //!   Dc'  = Dc + Dc.(Sca.m - Sa.m)
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces (MULTIPLY):
+  //! Formulas for XRGB(dst), XRGB(src) colorspaces (MULTIPLY):
   //!   Dc'  = Sc.Dc
   //!
   //!   Msk:
@@ -807,7 +797,10 @@ enum OPERATOR_TYPE
   //!
   //!   Da'  = Da + Sa.m.(1 - Da)
   OPERATOR_MULTIPLY,
-#endif
+
+  // --------------------------------------------------------------------------
+  // [SCREEN]
+  // --------------------------------------------------------------------------
 
   //! @brief The source and destination are complemented and then multiplied 
   //! and then replace the destination.
@@ -821,7 +814,7 @@ enum OPERATOR_TYPE
   //!   Dca' = Sca.m + Dca.(1 - Sca.m)
   //!   Da'  = Sa.m + Da.(1 - Sa.m)
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces (SCREEN):
+  //! Formulas for PRGB(dst), XRGB(src) colorspaces (SCREEN):
   //!   Dca' = Sc + Dca.(1 - Sc)
   //!   Da'  = 1
   //!
@@ -830,14 +823,14 @@ enum OPERATOR_TYPE
   //!   Dca' = Sc.m + Dca.(1 - Sc.m)
   //!   Da'  = m + Da.(1 - m)
   //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces (SCREEN):
+  //! Formulas for XRGB(dst), PRGB(src) colorspaces (SCREEN):
   //!   Dc'  = Sca + Dc.(1 - Sca)
   //!
   //!   Msk:
   //!
   //!   Dca' = Sca.m + Dc.(1 - Sca.m)
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces (SCREEN):
+  //! Formulas for XRGB(dst), XRGB(src) colorspaces (SCREEN):
   //!   Dc'  = Sc + Dc.(1 - Sc)
   //!
   //!   Msk:
@@ -851,6 +844,10 @@ enum OPERATOR_TYPE
   //!
   //!   Da'  = Da + Sa.m.(1 - Da)
   OPERATOR_SCREEN,
+
+  // --------------------------------------------------------------------------
+  // [DARKEN]
+  // --------------------------------------------------------------------------
 
   //! @brief Selects the darker of the destination and source colors. The 
   //! destination is replaced with the source when the source is darker,
@@ -871,7 +868,7 @@ enum OPERATOR_TYPE
   //!   Da'  = (min(Sa.Da, Da.Sa) + Sa.(1 - Da) + Da.(1 - Sa)).m + Da.(1 - m)
   //!          min(Sa.Da.m, Da.Sa.m) + Sa.m.(1 - Da) +  Da.(1 - Sa.m)
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces (DARKEN):
+  //! Formulas for PRGB(dst), XRGB(src) colorspaces (DARKEN):
   //!   Dca' = min(Sc.Da, Dca) + Sc.(1 - Da)
   //!   Da'  = 1
   //!
@@ -880,14 +877,14 @@ enum OPERATOR_TYPE
   //!   Dca' = min(Da.m, Dca.m) + Sc.m.(1 - Da) +  Dca.(1 - m)
   //!   Da'  = min(Da.m, Da.m) + 1.m.(1 - Da) +  Da.(1 - m)
   //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces (DARKEN):
+  //! Formulas for XRGB(dst), PRGB(src) colorspaces (DARKEN):
   //!   Dc'  = min(Sca, Dc.Sa) + Dc.(1 - Sa)
   //!
   //!   Msk:
   //!
   //!   Dc'  = min(Sca.m, Dc.Sa.m) + Dc.(1 - Sa.m)
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces (DARKEN):
+  //! Formulas for XRGB(dst), XRGB(src) colorspaces (DARKEN):
   //!   Dc'  = min(Sc, Dc)
   //!
   //!   Msk:
@@ -901,6 +898,10 @@ enum OPERATOR_TYPE
   //!
   //!   Da'  = Da + Sa.m.(1 - Da)
   OPERATOR_DARKEN,
+
+  // --------------------------------------------------------------------------
+  // [LIGHTEN]
+  // --------------------------------------------------------------------------
 
   //! @brief Selects the lighter of the destination and source colors. The
   //! destination is replaced with the source when the source is lighter, 
@@ -921,7 +922,7 @@ enum OPERATOR_TYPE
   //!   Da'  = (max(Sa.Da, Da.Sa) + Sa.(1 - Da) + Da.(1 - Sa)).m + Da.(1 - m)
   //!          max(Sa.Da.m, Da.Sa.m) + Sa.m.(1 - Da) +  Da.(1 - Sa.m)
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces (LIGHTEN):
+  //! Formulas for PRGB(dst), XRGB(src) colorspaces (LIGHTEN):
   //!   Dca' = max(Sc.Da, Dca) + Sc.(1 - Da)
   //!   Da'  = 1
   //!
@@ -930,14 +931,14 @@ enum OPERATOR_TYPE
   //!   Dca' = max(Da.m, Dca.m) + Sc.m.(1 - Da) +  Dca.(1 - m)
   //!   Da'  = max(Da.m, Da.m) + 1.m.(1 - Da) +  Da.(1 - m)
   //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces (LIGHTEN):
+  //! Formulas for XRGB(dst), PRGB(src) colorspaces (LIGHTEN):
   //!   Dc'  = max(Sca, Dc.Sa) + Dc.(1 - Sa)
   //!
   //!   Msk:
   //!
   //!   Dc'  = max(Sca.m, Dc.Sa.m) + Dc.(1 - Sa.m)
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces (LIGHTEN):
+  //! Formulas for XRGB(dst), XRGB(src) colorspaces (LIGHTEN):
   //!   Dc'  = max(Sc, Dc)
   //!
   //!   Msk:
@@ -951,6 +952,10 @@ enum OPERATOR_TYPE
   //!
   //!   Da'  = Da + Sa.m.(1 - Da)
   OPERATOR_LIGHTEN,
+
+  // --------------------------------------------------------------------------
+  // [DIFFERENCE]
+  // --------------------------------------------------------------------------
 
   //! @brief Subtracts the darker of the two constituent colors from the 
   //! lighter. Painting with white inverts the destination color. Painting
@@ -973,7 +978,7 @@ enum OPERATOR_TYPE
   //!        = Da + (Sa - min(Sa.Da, Da.Sa)).m
   //!        = Da + Sa.m - min(Sa.Da.m, Da.Sa.m)
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces (DIFFERENCE):
+  //! Formulas for PRGB(dst), XRGB(src) colorspaces (DIFFERENCE):
   //!   Dca' = abs(Dca.Sa - Sc.Da) + Sca.(1 - Da) + Dca
   //!        = Dca + Sc - 2.min(Sc.Da, Dca.1)
   //!   Da'  = abs(Da.1 - 1.Da) + 1.(1 - Da) + Da
@@ -991,7 +996,7 @@ enum OPERATOR_TYPE
   //!        = Da + (Sa - 2.min(Sa.Da, Da.Sa)).m
   //!        = Da + Sa.m - 2.min(Sa.Da.m, Da.Sa.m)
   //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces (DIFFERENCE):
+  //! Formulas for XRGB(dst), PRGB(src) colorspaces (DIFFERENCE):
   //!   Dc'  = abs(Dc.Sa - Sca) + Dc.(1 - Sa)
   //!        = Sca + Dc - 2.min(Sca, Dc.Sa)
   //!
@@ -1002,7 +1007,7 @@ enum OPERATOR_TYPE
   //!   Dc'  = (Sca + Dc - 2.min(Sca, Dc.Sa)).m + Dc.(1 - m)
   //!        = Sca.m + Dc - 2.min(Sca.m, Dc.Sa.m)
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces (DIFFERENCE):
+  //! Formulas for XRGB(dst), XRGB(src) colorspaces (DIFFERENCE):
   //!   Dc'  = Dc + Sc - 2.min(Sc, Dc)
   //!        = abs(Dc - Sc)
   //!
@@ -1021,11 +1026,15 @@ enum OPERATOR_TYPE
   //!   Da'  = Da + Sa.m.(1 - Da)
   OPERATOR_DIFFERENCE,
 
+  // --------------------------------------------------------------------------
+  // [EXCLUSION]
+  // --------------------------------------------------------------------------
+
   //! @brief Produces an effect similar to that of 'difference', but appears
   //! as lower contrast. Painting with white inverts the destination color.
   //! Painting with black produces no change.
   //!
-  //! Formulas for PRGB(dst), PRGB(src) colorspaces:
+  //! Formulas for PRGB(dst), PRGB(src) colorspaces (EXCLUSION):
   //!   Dca' = Sca.Da + Dca - 2.Sca.Dca
   //!   Da'  = Sa + Da - Sa.Da
   //!
@@ -1034,7 +1043,7 @@ enum OPERATOR_TYPE
   //!   Dca' = Sca.m.Da + Dca - 2.Sca.m.Dca
   //!   Da'  = Sa.m + Da - Sa.m.Da
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces:
+  //! Formulas for PRGB(dst), XRGB(src) colorspaces (EXCLUSION):
   //!   Dca' = Sc.Da + Dca - 2.Sc.Dca
   //!   Da'  = 1
   //!
@@ -1043,14 +1052,14 @@ enum OPERATOR_TYPE
   //!   Dca' = Sc.m.Da + Dca - 2.Sc.m.Dca
   //!   Da'  = m + Da - m.Da
   //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces:
+  //! Formulas for XRGB(dst), PRGB(src) colorspaces (EXCLUSION):
   //!   Dc'  = Sca + Dc - 2.Sca.Dc
   //!
   //!   Msk:
   //!
   //!   Dc'  = Sca.m + Dc - 2.Sca.m.Dc
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces:
+  //! Formulas for XRGB(dst), XRGB(src) colorspaces (EXCLUSION):
   //!   Dc'  = Sc + Dc - 2.Sc.Dc
   //!
   //!   Msk:
@@ -1065,6 +1074,10 @@ enum OPERATOR_TYPE
   //!   Da'  = Da + Sa.m.(1 - Da)
   OPERATOR_EXCLUSION,
 
+  // --------------------------------------------------------------------------
+  // [INVERT]
+  // --------------------------------------------------------------------------
+
   //! @brief Invert.
   //!
   //! Formulas for PRGB(dst), PRGB(src) colorspaces (INVERT):
@@ -1077,7 +1090,7 @@ enum OPERATOR_TYPE
   //!        = (Da - Dca) * Sa.m + Dca.(1 - Sa.m)
   //!   Da'  = (1) * Sa.m + Da.(1 - Sa.m)
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces (INVERT):
+  //! Formulas for PRGB(dst), XRGB(src) colorspaces (INVERT):
   //!   Dca' = (Da - Dca)
   //!   Da'  = 1
   //!
@@ -1087,14 +1100,14 @@ enum OPERATOR_TYPE
   //!          Da.m - Dca.m + Dca.(1 - m)
   //!   Da'  = m - Da.(1 - m)
   //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces (INVERT):
+  //! Formulas for XRGB(dst), PRGB(src) colorspaces (INVERT):
   //!   Dc'  = (1 - Dc) * Sa + Dc.(1 - Sa)
   //!
   //!   Msk:
   //!
   //!   Dc'  = (1 - Dc).Sa.m + Dc.(1 - Sa.m)
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces (INVERT):
+  //! Formulas for XRGB(dst), XRGB(src) colorspaces (INVERT):
   //!   Dc'  = 1 - Dc
   //!
   //!   Msk:
@@ -1109,9 +1122,13 @@ enum OPERATOR_TYPE
   //!   Da'  = Da + Sa.m.(1 - Da)
   OPERATOR_INVERT,
 
+  // --------------------------------------------------------------------------
+  // [INVERT_RGB]
+  // --------------------------------------------------------------------------
+
   //! @brief Invert RGB.
   //!
-  //! Formulas for PRGB(dst), PRGB(src) colorspaces:
+  //! Formulas for PRGB(dst), PRGB(src) colorspaces (INVERT_RGB):
   //!   Dca' = (Da - Dca) * Sca + Dca.(1 - Sa)
   //!   Da'  = (1) * Sa + Da.(1 - Sa)
   //!
@@ -1120,7 +1137,7 @@ enum OPERATOR_TYPE
   //!   Dca' = (Da - Dca) * Sca.m + Dca.(1 - Sa.m)
   //!   Da'  = (1) * Sa.m + Da.(1 - Sa.m)
   //!
-  //! Formulas for PRGB(dst), RGB(src) colorspaces:
+  //! Formulas for PRGB(dst), XRGB(src) colorspaces (INVERT_RGB):
   //!   Dca' = (Da - Dca) * Sc
   //!   Da'  = 1
   //!
@@ -1129,14 +1146,14 @@ enum OPERATOR_TYPE
   //!   Dca' = (Da - Dca) * Sc.m + Dca.(1 - Sa.m)
   //!   Da'  = (1) * Sa.m + Da.(1 - Sa.m)
   //!
-  //! Formulas for RGB(dst), PRGB(src) colorspaces:
+  //! Formulas for XRGB(dst), PRGB(src) colorspaces (INVERT_RGB):
   //!   Dc'  = (1 - Dc) * Sca + Dc.(1 - Sa)
   //!
   //!   Msk:
   //!
   //!   Dc'  = (1 - Dc) * Sca.m + Dc.(1 - Sa.m)
   //!
-  //! Formulas for RGB(dst), RGB(src) colorspaces:
+  //! Formulas for XRGB(dst), XRGB(src) colorspaces (INVERT_RGB):
   //!   Dc'  = (1 - Dc) * Sc
   //!
   //!   Msk:
@@ -1151,38 +1168,12 @@ enum OPERATOR_TYPE
   //!   Da'  = Da + Sa.m.(1 - Da)
   OPERATOR_INVERT_RGB,
 
+  // --------------------------------------------------------------------------
+  // [...]
+  // --------------------------------------------------------------------------
+
   //! @brief Count of compositing operators (this is not a valid operator).
   OPERATOR_COUNT
-};
-
-// ============================================================================
-// [Fog::OPERATOR_CHARACTERISTICS]
-// ============================================================================
-
-//! @brief Operator characteristics (used internally by @c PaintEngine).
-//!
-//! Characteristics are always stored in bitfield.
-enum OPERATOR_CHARACTERISTICS
-{
-  //! @brief Operator uses destination color value.
-  OPERATOR_CHAR_DST_C_USED = (1 << 0),
-  //! @brief Operator uses destination alpha value.
-  OPERATOR_CHAR_DST_A_USED = (1 << 1),
-  //! @brief Operator uses source color value.
-  OPERATOR_CHAR_SRC_C_USED = (1 << 2),
-  //! @brief Operator uses source alpha value.
-  OPERATOR_CHAR_SRC_A_USED = (1 << 3),
-  //! @brief Operator is nop (@c OPERATOR_DST).
-  OPERATOR_CHAR_NOP = (1 << 4),
-  //! @brief Operator is bound.
-  //!
-  //! Bound operators means that it's possible to multiply pixel by weight value
-  //! and compositing operation will be still valid (this is related to
-  //! compositing using external mask).
-  //!
-  //! Typical bound operator is @c OPERATOR_SRC_OVER, but for example
-  //! @c OPERATOR_SRC is not bound.
-  OPERATOR_CHAR_BOUND = (1 << 5)
 };
 
 // ============================================================================
@@ -1752,27 +1743,37 @@ enum PAINTER_HINT
 };
 
 // ============================================================================
-// [Fog::PATH_CMD_TYPE]
+// [Fog::PATH_CMD_DATA]
 // ============================================================================
 
-enum PATH_CMD
+enum PATH_CMD_DATA
 {
-  PATH_CMD_STOP = 0,
-  PATH_CMD_MOVE_TO = 1,
-  PATH_CMD_LINE_TO = 2,
-  PATH_CMD_CURVE_3 = 3,
-  PATH_CMD_CURVE_4 = 4,
-  PATH_CMD_END = 0xF,
-  PATH_CMD_MASK = 0xF
+  PATH_CMD_STOP = 0x00,
+  PATH_CMD_MOVE_TO = 0x01,
+  PATH_CMD_LINE_TO = 0x02,
+  PATH_CMD_CURVE_3 = 0x04,
+  PATH_CMD_CURVE_4 = 0x06,
+  PATH_CMD_END = 0x08,
+
+  PATH_CMD_FLAG_NONE = 0,
+  PATH_CMD_FLAG_CLOSE = 0x10,
+  PATH_CMD_FLAG_CW = 0x20,
+  PATH_CMD_FLAG_CCW = 0x40,
+
+  PATH_CMD_TYPE_MASK = 0x0F,
+  PATH_CMD_VERTEX_MASK = 0x07,
+  PATH_CMD_CURVE_MASK = 0x04,
+  PATH_CMD_FLAG_MASK = 0xF0
 };
 
-enum PATH_CMD_FLAGS
+// ============================================================================
+// [Fog::PATH_DIRECTION]
+// ============================================================================
+
+enum PATH_DIRECTION
 {
-  PATH_CFLAG_NONE = 0,
-  PATH_CFLAG_CCW = 0x10,
-  PATH_CFLAG_CW = 0x20,
-  PATH_CFLAG_CLOSE = 0x40,
-  PATH_CFLAG_MASK = 0xF0
+  PATH_DIRECTION_CW = 1,
+  PATH_DIRECTION_CCW = -1
 };
 
 // ============================================================================

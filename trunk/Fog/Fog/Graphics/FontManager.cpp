@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - C++ API]
+// [Fog/Graphics Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -32,7 +32,7 @@
 #include <Fog/Graphics/FontEngine/FreeType.h>
 #endif // FOG_FONT_FREETYPE
 
-#include <Fog/Graphics/FontEngine/Null.h>
+#include <Fog/Graphics/FontEngine/Null_p.h>
 
 namespace Fog {
 

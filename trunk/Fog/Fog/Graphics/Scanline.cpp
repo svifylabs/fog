@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - C++ API]
+// [Fog/Graphics Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -42,7 +42,7 @@
 #include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Graphics/Constants.h>
-#include <Fog/Graphics/Scanline.h>
+#include <Fog/Graphics/Scanline_p.h>
 
 namespace Fog {
 

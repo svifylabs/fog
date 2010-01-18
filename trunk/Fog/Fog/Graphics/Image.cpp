@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - C++ API]
+// [Fog/Graphics Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -23,11 +23,10 @@
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/ImageFilter.h>
 #include <Fog/Graphics/ImageIO.h>
-#include <Fog/Graphics/RasterUtil.h>
+#include <Fog/Graphics/RasterUtil_p.h>
+#include <Fog/Graphics/RasterUtil/RasterUtil_Bresenham_p.h>
+#include <Fog/Graphics/RasterUtil/RasterUtil_C_p.h>
 #include <Fog/Graphics/Reduce.h>
-
-#include <Fog/Graphics/RasterUtil/RasterUtil_Bresenham.h>
-#include <Fog/Graphics/RasterUtil/RasterUtil_C.h>
 
 namespace Fog {
 
@@ -908,14 +907,14 @@ err_t Image::invert(Image& dst, const Image& src, uint32_t channels)
 typedef void (FOG_FASTCALL *MirrorFunc)(uint8_t*, uint8_t*, sysuint_t);
 
 static void FOG_FASTCALL mirror_copy_src_is_not_dst_32(uint8_t* dst, uint8_t* src, sysuint_t w)
-{ Memory::copy(dst, src, ByteUtil::mul4(w)); }
+{ Memory::copy(dst, src, w * 4); }
 
 static void FOG_FASTCALL mirror_copy_src_is_not_dst_8(uint8_t* dst, uint8_t* src, sysuint_t w)
 { Memory::copy(dst, src, w); }
 
 static void FOG_FASTCALL mirror_flip_src_is_not_dst_32(uint8_t* dst, uint8_t* src, sysuint_t w)
 {
-  src += ByteUtil::mul4(w - 1);
+  src += w * 4 - 4;
 
   sysuint_t x;
   for (x = w; x; x--, dst += 4, src -= 4) Memory::copy4B(dst, src);
@@ -930,7 +929,7 @@ static void FOG_FASTCALL mirror_flip_src_is_not_dst_8(uint8_t* dst, uint8_t* src
 
 static void FOG_FASTCALL mirror_copy_src_is_dst_32(uint8_t* dst, uint8_t* src, sysuint_t w)
 {
-  Memory::xchg(dst, src, ByteUtil::mul4(w));
+  Memory::xchg(dst, src, w * 4);
 }
 
 static void FOG_FASTCALL mirror_copy_src_is_dst_8(uint8_t* dst, uint8_t* src, sysuint_t w)
@@ -1582,7 +1581,7 @@ err_t Image::drawLine(const Point& pt0, const Point& pt1, Argb c0, bool lastPoin
     case PIXEL_FORMAT_PRGB32:
     case PIXEL_FORMAT_ARGB32:
     case PIXEL_FORMAT_XRGB32:
-      dstCur += ByteUtil::mul4(line.x);
+      dstCur += (uint)line.x * 4;
       Draw_BresenhamLine<RasterUtil::PixFmt_ARGB32>(dstCur, dstStride, c0, line, lastPoint);
       break;
 

@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - C++ API]
+// [Fog/Graphics Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -20,8 +20,8 @@
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/ImageIO.h>
-#include <Fog/Graphics/ImageIO/Structures.h>
-#include <Fog/Graphics/RasterUtil.h>
+#include <Fog/Graphics/ImageIO/Structures_p.h>
+#include <Fog/Graphics/RasterUtil_p.h>
 
 namespace Fog { 
 namespace ImageIO {

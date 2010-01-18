@@ -1,4 +1,4 @@
-// [Fog/Svg Library - C++ API]
+// [Fog/Svg Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -11,14 +11,20 @@
 #ifndef _FOG_SVG_H
 #define _FOG_SVG_H
 
-// [There is only documentation]
+// ============================================================================
+// [Fog/Svg Documentation]
+// ============================================================================
+
 #if defined(_DOXYGEN)
 //! @defgroup Fog_Svg Fog/Svg library API.
 //!
 //! Set of Fog/Svg library classes and their members.
 #endif // _DOXYGEN
 
-// [Fog/Svg Include Files]
+// ============================================================================
+// [Fog/Graphics Include Files]
+// ============================================================================
+
 #include <Fog/Build/Build.h>
 
 #include <Fog/Svg/Constants.h>

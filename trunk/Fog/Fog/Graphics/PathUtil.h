@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - C++ API]
+// [Fog/Graphics Library - Private API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -37,7 +37,30 @@ namespace Fog {
 
 struct Matrix;
 
+// ============================================================================
+// [Fog::PathUtil]
+// ============================================================================
+
 namespace PathUtil {
+
+// ============================================================================
+// [Fog::PathUtil::Structures]
+// ============================================================================
+
+struct ApproximateCurve3Data
+{
+  double x1, y1;
+  double x2, y2;
+  double x3, y3;
+};
+
+struct ApproximateCurve4Data
+{
+  double x1, y1;
+  double x2, y2;
+  double x3, y3;
+  double x4, y4;
+};
 
 // ============================================================================
 // [Fog::PathUtil::Constants]
@@ -60,6 +83,60 @@ static const double BEZIER_ARC_ANGLE_EPSILON = 0.01;
 static const double CURVE_DISTANCE_EPSILON = 1e-30;
 static const double CURVE_COLLINEARITY_EPSILON = 1e-30;
 static const double CURVE_ANGLE_TOLERANCE_EPSILON = 0.01;
+
+// ============================================================================
+// [Fog::PathUtil::Function Map]
+// ============================================================================
+
+struct FunctionMap
+{
+  typedef void (FOG_FASTCALL *TranslatePointsDFn)(PointD* dst, const PointD* src, sysuint_t count, const PointD* pt);
+  typedef void (FOG_FASTCALL *TransformPointsDFn)(PointD* dst, const PointD* src, sysuint_t count, const Matrix* matrix);
+
+  typedef err_t (FOG_FASTCALL *ApproximateCurve3Fn)(
+    Path& dst,
+    double x1, double y1,
+    double x2, double y2,
+    double x3, double y3,
+    uint8_t initialCommand,
+    double approximationScale,
+    double angleTolerance);
+
+  typedef err_t (FOG_FASTCALL *ApproximateCurve4Fn)(
+    Path& dst,
+    double x1, double y1,
+    double x2, double y2,
+    double x3, double y3,
+    double x4, double y4,
+    uint8_t initialCommand,
+    double approximationScale,
+    double angleTolerance,
+    double cuspLimit);
+
+  TranslatePointsDFn  translatePointsD;
+  TransformPointsDFn  transformPointsD;
+
+  ApproximateCurve3Fn approximateCurve3;
+  ApproximateCurve4Fn approximateCurve4;
+};
+
+extern FOG_API FunctionMap functionMap;
+
+// ============================================================================
+// [Fog::PathUtil::FunctionMap wrappers]
+// ============================================================================
+
+static FOG_INLINE void translatePoints(PointD* data, sysuint_t count, const PointD* pt)
+{ functionMap.translatePointsD(data, data, count, pt); }
+
+static FOG_INLINE void translatePoints(PointD* dst, const PointD* src, sysuint_t count, const PointD* pt)
+{ functionMap.translatePointsD(dst, src, count, pt); }
+
+static FOG_INLINE void transformPoints(PointD* data, sysuint_t count, const Matrix* matrix)
+{ functionMap.transformPointsD(data, data, count, matrix); }
+
+static FOG_INLINE void transformPoints(PointD* dst, const PointD* src, sysuint_t count, const Matrix* matrix)
+{ functionMap.transformPointsD(dst, src, count, matrix); }
 
 // ============================================================================
 // [Fog::PathUtil::Helpers]
@@ -104,67 +181,6 @@ static FOG_INLINE double crossProduct(
 {
   return (x - x2) * (y2 - y1) - (y - y2) * (x2 - x1);
 }
-
-// ============================================================================
-// [Fog::PathUtil::Structures]
-// ============================================================================
-
-struct ApproximateCurve3Data
-{
-  double x1, y1;
-  double x2, y2;
-  double x3, y3;
-};
-
-struct ApproximateCurve4Data
-{
-  double x1, y1;
-  double x2, y2;
-  double x3, y3;
-  double x4, y4;
-};
-
-// ============================================================================
-// [Fog::PathUtil::Function Map]
-// ============================================================================
-
-struct FunctionMap
-{
-  typedef void (FOG_FASTCALL *TranslateVertexFn)(PathVertex* data, sysuint_t count, const PointD* pt);
-  typedef void (FOG_FASTCALL *TranslateVertex2Fn)(PathVertex* dst, const PathVertex* src, sysuint_t count, const PointD* pt);
-
-  typedef void (FOG_FASTCALL *TransformVertexFn)(PathVertex* data, sysuint_t count, const Matrix* matrix);
-  typedef void (FOG_FASTCALL *TransformVertex2Fn)(PathVertex* dst, const PathVertex* src, sysuint_t count, const Matrix* matrix);
-
-  typedef err_t (FOG_FASTCALL *ApproximateCurve3Fn)(
-    Path& dst,
-    double x1, double y1,
-    double x2, double y2,
-    double x3, double y3,
-    double approximationScale,
-    double angleTolerance);
-
-  typedef err_t (FOG_FASTCALL *ApproximateCurve4Fn)(
-    Path& dst,
-    double x1, double y1,
-    double x2, double y2,
-    double x3, double y3,
-    double x4, double y4,
-    double approximationScale,
-    double angleTolerance,
-    double cuspLimit);
-
-  TranslateVertexFn translateVertex;
-  TranslateVertex2Fn translateVertex2;
-
-  TransformVertexFn transformVertex;
-  TransformVertex2Fn transformVertex2;
-
-  ApproximateCurve3Fn approximateCurve3;
-  ApproximateCurve4Fn approximateCurve4;
-};
-
-extern FOG_API FunctionMap fm;
 
 } // PathUtil namespace
 } // Fog namespace
