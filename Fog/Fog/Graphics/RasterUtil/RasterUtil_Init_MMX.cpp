@@ -20,19 +20,19 @@
 #include <Fog/Core/Math.h>
 #include <Fog/Core/Misc.h>
 #include <Fog/Graphics/Argb.h>
+#include <Fog/Graphics/ArgbAnalyzer_p.h>
 #include <Fog/Graphics/ArgbUtil.h>
 #include <Fog/Graphics/ByteUtil_p.h>
 #include <Fog/Graphics/ColorLut.h>
 #include <Fog/Graphics/ColorMatrix.h>
 #include <Fog/Graphics/Constants_p.h>
-#include <Fog/Graphics/DitherMatrix.h>
+#include <Fog/Graphics/DitherMatrix_p.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/ImageFilter.h>
 #include <Fog/Graphics/Matrix.h>
 #include <Fog/Graphics/Path.h>
 #include <Fog/Graphics/Pattern.h>
-#include <Fog/Graphics/RasterUtil.h>
-#include <Fog/Graphics/ArgbAnalyzer.h>
+#include <Fog/Graphics/RasterUtil_p.h>
 
 // [Raster_MMX]
 #include <Fog/Graphics/RasterUtil/RasterUtil_C_p.h>

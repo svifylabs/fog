@@ -1845,7 +1845,7 @@ __tryImage:
             break;
         }
 
-        if (_convertFunc)
+        if (!_convertFunc)
         {
           fog_stderr_msg("Fog::X11UIBackingStore", "resize",
             "Not available converter for %d bit depth", targetDepth);
@@ -1927,11 +1927,10 @@ void X11UIBackingStore::updateRects(const Box* rects, sysuint_t count)
 
       if (x1 >= x2 || y1 >= y2) continue;
 
-      int w = x2 - x1;
-      int h = y2 - y1;
+      uint w = (uint)(x2 - x1);
 
-      uint8_t* dstCur = dstBase + (sysint_t)y1 * dstStride + (sysint_t)x1 * dstxmul;
-      uint8_t* srcCur = srcBase + (sysint_t)y1 * srcStride + (sysint_t)x1 * srcxmul;
+      uint8_t* dstCur = dstBase + y1 * dstStride + x1 * dstxmul;
+      uint8_t* srcCur = srcBase + y1 * srcStride + x1 * srcxmul;
 
       switch (_convertDepth)
       {
@@ -1939,6 +1938,9 @@ void X11UIBackingStore::updateRects(const Box* rects, sysuint_t count)
           while (y1 < y2)
           {
             ((RasterUtil::Dither8Fn)_convertFunc)(dstCur, srcCur, w, Point(x1, y1), palConv);
+
+            dstCur += dstStride;
+            srcCur += srcStride;
             y1++;
           }
           break;
@@ -1946,6 +1948,9 @@ void X11UIBackingStore::updateRects(const Box* rects, sysuint_t count)
           while (y1 < y2)
           {
             ((RasterUtil::Dither16Fn)_convertFunc)(dstCur, srcCur, w, Point(x1, y1));
+
+            dstCur += dstStride;
+            srcCur += srcStride;
             y1++;
           }
           break;
@@ -1954,6 +1959,9 @@ void X11UIBackingStore::updateRects(const Box* rects, sysuint_t count)
           while (y1 < y2)
           {
             ((RasterUtil::VSpanFn)_convertFunc)(dstCur, srcCur, w, NULL);
+
+            dstCur += dstStride;
+            srcCur += srcStride;
             y1++;
           }
           break;
