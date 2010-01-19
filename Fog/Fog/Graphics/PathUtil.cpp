@@ -63,7 +63,7 @@ static void FOG_FASTCALL transformPointsD(PointD* dst, const PointD* src, sysuin
   for (sysuint_t i = length; i; i--, dst++, src++)
   {
     double x = src->x;
-    double y = src->x;
+    double y = src->y;
 
     dst->x = x * matrix->sx  + y * matrix->shx + matrix->tx;
     dst->y = x * matrix->shy + y * matrix->sy  + matrix->ty;
