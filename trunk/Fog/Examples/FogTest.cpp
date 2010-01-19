@@ -234,8 +234,8 @@ void MyWindow::onPaint(PaintEvent* e)
   StrokeParams params;
   params.setLineWidth(40.0);
   params.setLineJoin(LINE_JOIN_ROUND);
-  params.setStartCap(LINE_CAP_ROUND_REVERT);
-  params.setEndCap(LINE_CAP_ROUND);
+  params.setStartCap(LINE_CAP_TRIANGLE_REVERT);
+  params.setEndCap(LINE_CAP_TRIANGLE);
   //params.setInnerJoin(INNER_JOIN_ROUND);
   //params.setInnerLimit(111.9);
   p->setStrokeParams(params);

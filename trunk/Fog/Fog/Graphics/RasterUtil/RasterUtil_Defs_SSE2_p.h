@@ -51,9 +51,6 @@ namespace RasterUtil {
 //     - BLIT_SSE2_32x4_LARGE_BEGIN(dst) - Main loop begin.
 //     - BLIT_SSE2_32x4_LARGE_END(dst) - Main loop end.
 //
-// 24-bit entities:
-//   - TODO
-//
 // 8-bit entities:
 //   - 1 pixel at time:
 //     - BLIT_SSE2_8x16_SMALL_BEGIN(dst) - Small loop begin.

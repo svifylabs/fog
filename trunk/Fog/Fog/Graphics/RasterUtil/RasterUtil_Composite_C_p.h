@@ -1920,32 +1920,25 @@ struct CompositeSrcC /* : public CompositeBaseFuncsC32<CompositeSrcC> */
     FOG_ASSERT(w);
 
     uint32_t srcp = src->prgb;
+    uint32_t src0 = srcp;
 
-    ByteUtil::byte1x2 src0, src1;
-    ByteUtil::byte2x2_unpack_0213(src0, src1, srcp);
-
-    ByteUtil::byte1x2 dst0 = srcp, dst1;
-
-    dst0 = srcp;
     do {
       uint32_t msk0 = READ_8(msk);
-      uint32_t msk0inv;
+      uint32_t dst0;
 
       if (msk0 == 0x00) goto skip;
       if (msk0 == 0xFF) goto fill;
 
-      ByteUtil::byte2x2_unpack_0213(dst0, dst1, READ_32(dst));
+      dst0 = READ_32(dst);
+      src0 = ByteUtil::packed_muldiv255(src0, msk0);
+      dst0 = ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(msk0));
+      src0 += dst0;
 
-      msk0inv = msk0 ^ 0xFF;
-      ByteUtil::byte2x2_muldiv255_u_2x_add(
-        dst0, dst0, msk0inv, src0, msk0,
-        dst1, dst1, msk0inv, src1, msk0);
-      ByteUtil::byte2x2_pack_0213(dst0, dst0, dst1);
 fill:
-      ((uint32_t*)dst)[0] = dst0;
-      dst0 = srcp;
-skip:
+      ((uint32_t*)dst)[0] = src0;
+      src0 = srcp;
 
+skip:
       dst += 4;
       msk += 1;
     } while (--i);
@@ -1957,22 +1950,11 @@ skip:
     sysint_t i = w;
     FOG_ASSERT(w);
 
-    ByteUtil::byte1x2 src0, src1;
-
-    ByteUtil::byte2x2_unpack_0213(src0, src1, src->prgb);
-    ByteUtil::byte2x2_muldiv255_u(src0, src0, src1, src1, msk0);
-    ByteUtil::byte2x2_pack_0213(src0, src0, src1);
-
-    msk0 = ByteUtil::scalar_neg255(msk0);
+    uint32_t srcm = ByteUtil::packed_muldiv255(src->prgb, msk0);
+    uint32_t msk0inv = ByteUtil::scalar_neg255(msk0);
 
     do {
-      ByteUtil::byte1x2 dst0, dst1;
-
-      ByteUtil::byte2x2_unpack_0213(dst0, dst1, READ_32(dst));
-      ByteUtil::byte2x2_muldiv255_u(dst0, dst0, dst1, dst1, msk0);
-      ByteUtil::byte2x2_pack_0213(dst0, dst0, dst1);
-
-      ((uint32_t*)dst)[0] = dst0 + src0;
+      ((uint32_t*)dst)[0] = ByteUtil::packed_muldiv255(READ_32(dst), msk0inv) + srcm;
 
       dst += 4;
     } while (--i);
@@ -1981,21 +1963,21 @@ skip:
   static void FOG_FASTCALL prgb32_cspan_a8_scanline(
     uint8_t* dst, const Solid* src, const Scanline32::Span* spans, sysuint_t numSpans, const Closure* closure)
   {
-    BLIT_C_CSPAN_SCANLINE_STEP1_BEGIN(4)
-
     uint32_t srcp = src->prgb;
 
     ByteUtil::byte1x2 src0orig, src1orig;
     ByteUtil::byte2x2_unpack_0213(src0orig, src1orig, srcp);
 
+    BLIT_C_CSPAN_SCANLINE_STEP1_BEGIN(4)
+
     // Const mask.
     BLIT_C_CSPAN_SCANLINE_STEP2_CONST()
     {
+      sysint_t i = w;
+      FOG_ASSERT(w);
+
       if (msk0 == 255)
       {
-        sysint_t i = w;
-        FOG_ASSERT(w);
-
         do {
           ((uint32_t*)dst)[0] = srcp;
           dst += 4;
@@ -2003,24 +1985,11 @@ skip:
       }
       else
       {
-        sysint_t i = w;
-        FOG_ASSERT(w);
-
-        ByteUtil::byte1x2 src0, src1;
-
-        ByteUtil::byte2x2_muldiv255_u(src0, src0orig, src1, src1orig, msk0);
-        ByteUtil::byte2x2_pack_0213(src0, src0, src1);
-
-        msk0 = ByteUtil::scalar_neg255(msk0);
+        uint32_t srcm = ByteUtil::byte2x2_muldiv255_u_pack0213(src0orig, src1orig, msk0);
+        uint32_t msk0inv = ByteUtil::scalar_neg255(msk0);
 
         do {
-          ByteUtil::byte1x2 dst0, dst1;
-
-          ByteUtil::byte2x2_unpack_0213(dst0, dst1, READ_32(dst));
-          ByteUtil::byte2x2_muldiv255_u(dst0, dst0, dst1, dst1, msk0);
-          ByteUtil::byte2x2_pack_0213(dst0, dst0, dst1);
-
-          ((uint32_t*)dst)[0] = dst0 + src0;
+          ((uint32_t*)dst)[0] = ByteUtil::packed_muldiv255(READ_32(dst), msk0inv) + srcm;
 
           dst += 4;
         } while (--i);
@@ -2033,19 +2002,15 @@ skip:
       FOG_ASSERT(w);
 
       do {
-        ByteUtil::byte1x2 dst0, dst1;
         uint32_t msk0 = READ_8(msk);
-        uint32_t msk0inv;
+        uint32_t dst0;
+        uint32_t src0;
 
-        ByteUtil::byte2x2_unpack_0213(dst0, dst1, READ_32(dst));
+        dst0 = READ_32(dst);
+        src0 = ByteUtil::byte2x2_muldiv255_u_pack0213(src0orig, src1orig, msk0);
+        dst0 = ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(msk0));
 
-        msk0inv = msk0 ^ 0xFF;
-        ByteUtil::byte2x2_muldiv255_u_2x_add(
-          dst0, dst0, msk0inv, src0orig, msk0,
-          dst1, dst1, msk0inv, src1orig, msk0);
-        ByteUtil::byte2x2_pack_0213(dst0, dst0, dst1);
-
-        ((uint32_t*)dst)[0] = dst0;
+        ((uint32_t*)dst)[0] = src0 + dst0;
 
         dst += 4;
         msk += 1;
@@ -2061,21 +2026,23 @@ skip:
     FOG_ASSERT(w);
 
     do {
-      ByteUtil::byte1x2 dst0;
-      ByteUtil::byte1x2 src0 = READ_32(src);
+      uint32_t dst0;
+      uint32_t src0;
       uint32_t msk0 = READ_8(msk);
 
-      if (msk0 != 0x00)
-      {
-        if (msk0 != 0xFF)
-        {
-          dst0 = READ_32(dst);
-          src0 = ByteUtil::packed_muldiv255_2x_join(src0, ByteUtil::scalar_neg255(msk0), dst0, msk0);
-        }
+      if (msk0 == 0x00) goto skip;
 
-        ((uint32_t*)dst)[0] = src0;
-      }
+      src0 = READ_32(src);
+      if (msk0 == 0xFF) goto fill;
 
+      dst0 = READ_32(dst);
+      src0 = ByteUtil::packed_muldiv255(src0, msk0);
+      src0 += ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(msk0));
+
+fill:
+      ((uint32_t*)dst)[0] = src0;
+
+skip:
       dst += 4;
       src += 4;
       msk += 1;
@@ -2089,30 +2056,20 @@ skip:
     FOG_ASSERT(w);
 
     do {
-      ByteUtil::byte1x2 dst0;
-      ByteUtil::byte1x2 src0 = READ_32(src);
+      uint32_t dst0;
+      uint32_t src0;
       uint32_t msk0 = READ_8(msk);
 
-      if (msk0 != 0x00)
-      {
-        if (msk0 != 0xFF || !ArgbUtil::isAlpha0xFF(src0))
-        {
-          ByteUtil::byte1x2 dst1, src1;
-          dst0 = READ_32(dst);
+      if (msk0 == 0x00) goto skip;
 
-          ByteUtil::byte2x2_unpack_0213(dst0, dst1, dst0);
-          ByteUtil::byte2x2_unpack_0213(src0, src1, src0);
+      src0 = READ_32(src);
+      dst0 = READ_32(dst);
+      src0 = ByteUtil::packed_muldiv255(src0 | 0xFF000000, ByteUtil::scalar_muldiv255(msk0, (src0 >> 24)));
+      src0 += ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(msk0));
 
-          ByteUtil::byte2x2_muldiv255_u(src0, src0, src1, src1, ByteUtil::scalar_muldiv255(ByteUtil::byte1x2_hi(src1), msk0));
-          ByteUtil::byte2x2_muldiv255_u(dst0, dst0, dst1, dst1, ByteUtil::scalar_neg255(msk0));
+      ((uint32_t*)dst)[0] = src0;
 
-          ByteUtil::byte2x2_add_byte2x2(src0, src0, dst0, src1, src1, dst1);
-          ByteUtil::byte2x2_pack_0213(src0, src0, src1);
-        }
-
-        ((uint32_t*)dst)[0] = src0;
-      }
-
+skip:
       dst += 4;
       src += 4;
       msk += 1;
@@ -2126,21 +2083,23 @@ skip:
     FOG_ASSERT(w);
 
     do {
-      ByteUtil::byte1x2 dst0;
-      ByteUtil::byte1x2 src0 = READ_32(src) | 0xFF000000;
+      uint32_t dst0;
+      uint32_t src0;
       uint32_t msk0 = READ_8(msk);
 
-      if (msk0 != 0x00)
-      {
-        if (msk0 != 0xFF)
-        {
-          dst0 = READ_32(dst);
-          src0 = ByteUtil::packed_muldiv255_2x_join(src0, ByteUtil::scalar_neg255(msk0), dst0, msk0);
-        }
+      if (msk0 == 0x00) goto skip;
 
-        ((uint32_t*)dst)[0] = src0;
-      }
+      src0 = READ_32(src) | 0xFF000000;
+      if (msk0 == 0xFF) goto fill;
 
+      dst0 = READ_32(dst);
+      src0 = ByteUtil::packed_muldiv255(src0, msk0);
+      src0 += ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(msk0));
+
+fill:
+      ((uint32_t*)dst)[0] = src0;
+
+skip:
       dst += 4;
       src += 4;
       msk += 1;
@@ -2154,21 +2113,21 @@ skip:
     FOG_ASSERT(w);
 
     do {
-      ByteUtil::byte1x2 dst0;
-      ByteUtil::byte1x2 src0 = READ_8(src);
+      uint32_t dst0;
+      uint32_t src0;
       uint32_t msk0 = READ_8(msk);
 
-      if (msk0 != 0x00)
-      {
-        if (msk0 != 0xFF)
-        {
-          dst0 = READ_32(dst);
-          src0 = ByteUtil::packed_muldiv255_2x_join(src0, ByteUtil::scalar_neg255(msk0), dst0, msk0);
-        }
+      if (msk0 == 0x00) goto skip;
 
-        ((uint32_t*)dst)[0] = src0;
-      }
+      src0 = READ_8(src);
+      dst0 = READ_32(dst);
 
+      src0 = ByteUtil::scalar_muldiv255(src0, msk0) << 24;
+      src0 += ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(msk0));
+
+      ((uint32_t*)dst)[0] = src0;
+
+skip:
       dst += 4;
       src += 1;
       msk += 1;
@@ -2184,21 +2143,23 @@ skip:
     const Argb* pal = closure->srcPalette;
 
     do {
-      ByteUtil::byte1x2 dst0;
-      ByteUtil::byte1x2 src0 = pal[READ_8(src)];
+      uint32_t dst0;
+      uint32_t src0;
       uint32_t msk0 = READ_8(msk);
 
-      if (msk0 != 0x00)
-      {
-        if (msk0 != 0xFF)
-        {
-          dst0 = READ_32(dst);
-          src0 = ByteUtil::packed_muldiv255_2x_join(src0, ByteUtil::scalar_neg255(msk0), dst0, msk0);
-        }
+      if (msk0 == 0x00) goto skip;
 
-        ((uint32_t*)dst)[0] = src0;
-      }
+      src0 = pal[READ_8(src)];
+      if (msk0 == 0xFF) goto fill;
 
+      dst0 = READ_32(dst);
+      src0 = ByteUtil::packed_muldiv255(src0, msk0);
+      src0 += ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(msk0));
+
+fill:
+      ((uint32_t*)dst)[0] = src0;
+
+skip:
       dst += 4;
       src += 1;
       msk += 1;
@@ -2214,8 +2175,9 @@ skip:
     uint32_t msk0inv = ByteUtil::scalar_neg255(msk0);
 
     do {
-      ByteUtil::byte1x2 dst0 = READ_32(dst);
-      ByteUtil::byte1x2 src0 = READ_32(src);
+      uint32_t dst0 = READ_32(dst);
+      uint32_t src0 = READ_32(src);
+
       ((uint32_t*)dst)[0] = ByteUtil::packed_muldiv255_2x_join(src0, msk0, dst0, msk0inv);
 
       dst += 4;
@@ -2232,9 +2194,10 @@ skip:
     uint32_t msk0inv = ByteUtil::scalar_neg255(msk0);
 
     do {
-      ByteUtil::byte1x2 dst0 = READ_32(dst);
-      ByteUtil::byte1x2 src0 = READ_32(src);
-      ((uint32_t*)dst)[0] = ByteUtil::packed_muldiv255_2x_join(src0, ByteUtil::scalar_muldiv255(msk0, src0 >> 24), dst0, msk0inv);
+      uint32_t dst0 = READ_32(dst);
+      uint32_t src0 = READ_32(src);
+
+      ((uint32_t*)dst)[0] = ByteUtil::packed_muldiv255_2x_join(src0 | 0xFF000000, ByteUtil::scalar_muldiv255(msk0, src0 >> 24), dst0, msk0inv);
 
       dst += 4;
       src += 4;
@@ -2250,8 +2213,9 @@ skip:
     uint32_t msk0inv = ByteUtil::scalar_neg255(msk0);
 
     do {
-      ByteUtil::byte1x2 dst0 = READ_32(dst);
-      ByteUtil::byte1x2 src0 = READ_32(src) | 0xFF000000;
+      uint32_t dst0 = READ_32(dst);
+      uint32_t src0 = READ_32(src) | 0xFF000000;
+
       ((uint32_t*)dst)[0] = ByteUtil::packed_muldiv255_2x_join(src0, msk0, dst0, msk0inv);
 
       dst += 4;
@@ -2268,9 +2232,9 @@ skip:
     uint32_t msk0inv = ByteUtil::scalar_neg255(msk0);
 
     do {
-      ByteUtil::byte1x2 dst0 = READ_32(dst);
-      ByteUtil::byte1x2 src0 = READ_8(src);
-      ((uint32_t*)dst)[0] = ByteUtil::packed_muldiv255_2x_join(src0, msk0, dst0, msk0inv);
+      uint32_t dst0 = READ_32(dst);
+      uint32_t src0 = ByteUtil::scalar_muldiv255(READ_8(src), msk0) << 24;
+      ((uint32_t*)dst)[0] = src0 + ByteUtil::packed_muldiv255(dst0, msk0inv);
 
       dst += 4;
       src += 1;
@@ -2321,32 +2285,25 @@ skip:
     FOG_ASSERT(w);
 
     uint32_t srcp = src->prgb | 0xFF000000;
+    uint32_t src0 = srcp;
 
-    ByteUtil::byte1x2 src0, src1;
-    ByteUtil::byte2x2_unpack_0213(src0, src1, srcp);
-
-    ByteUtil::byte1x2 dst0 = srcp, dst1;
-
-    dst0 = srcp;
     do {
       uint32_t msk0 = READ_8(msk);
-      uint32_t msk0inv;
+      uint32_t dst0;
 
       if (msk0 == 0x00) goto skip;
       if (msk0 == 0xFF) goto fill;
 
-      ByteUtil::byte2x2_unpack_0213(dst0, dst1, READ_32(dst));
+      dst0 = READ_32(dst);
+      src0 = ByteUtil::packed_muldiv255(src0, msk0);
+      dst0 = ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(msk0));
+      src0 += dst0;
 
-      msk0inv = msk0 ^ 0xFF;
-      ByteUtil::byte2x2_muldiv255_u_2x_add(
-        dst0, dst0, msk0inv, src0, msk0,
-        dst1, dst1, msk0inv, src1, msk0);
-      ByteUtil::byte2x2_pack_0213(dst0, dst0, dst1);
 fill:
-      ((uint32_t*)dst)[0] = dst0;
-      dst0 = srcp;
-skip:
+      ((uint32_t*)dst)[0] = src0;
+      src0 = srcp;
 
+skip:
       dst += 4;
       msk += 1;
     } while (--i);
@@ -2358,22 +2315,11 @@ skip:
     sysint_t i = w;
     FOG_ASSERT(w);
 
-    ByteUtil::byte1x2 src0, src1;
-
-    ByteUtil::byte2x2_unpack_0213(src0, src1, src->prgb | 0xFF000000);
-    ByteUtil::byte2x2_muldiv255_u(src0, src0, src1, src1, msk0);
-    ByteUtil::byte2x2_pack_0213(src0, src0, src1);
-
-    msk0 = ByteUtil::scalar_neg255(msk0);
+    uint32_t srcm = ByteUtil::packed_muldiv255(src->prgb | 0xFF000000, msk0);
+    uint32_t msk0inv = ByteUtil::scalar_neg255(msk0);
 
     do {
-      ByteUtil::byte1x2 dst0, dst1;
-
-      ByteUtil::byte2x2_unpack_0213(dst0, dst1, READ_32(dst));
-      ByteUtil::byte2x2_muldiv255_u(dst0, dst0, dst1, dst1, msk0);
-      ByteUtil::byte2x2_pack_0213(dst0, dst0, dst1);
-
-      ((uint32_t*)dst)[0] = dst0 + src0;
+      ((uint32_t*)dst)[0] = ByteUtil::packed_muldiv255(READ_32(dst), msk0inv) + srcm;
 
       dst += 4;
     } while (--i);
@@ -2382,21 +2328,21 @@ skip:
   static void FOG_FASTCALL xrgb32_cspan_a8_scanline(
     uint8_t* dst, const Solid* src, const Scanline32::Span* spans, sysuint_t numSpans, const Closure* closure)
   {
-    BLIT_C_CSPAN_SCANLINE_STEP1_BEGIN(4)
-
     uint32_t srcp = src->prgb | 0xFF000000;
 
     ByteUtil::byte1x2 src0orig, src1orig;
     ByteUtil::byte2x2_unpack_0213(src0orig, src1orig, srcp);
 
+    BLIT_C_CSPAN_SCANLINE_STEP1_BEGIN(4)
+
     // Const mask.
     BLIT_C_CSPAN_SCANLINE_STEP2_CONST()
     {
+      sysint_t i = w;
+      FOG_ASSERT(w);
+
       if (msk0 == 255)
       {
-        sysint_t i = w;
-        FOG_ASSERT(w);
-
         do {
           ((uint32_t*)dst)[0] = srcp;
           dst += 4;
@@ -2404,24 +2350,11 @@ skip:
       }
       else
       {
-        sysint_t i = w;
-        FOG_ASSERT(w);
-
-        ByteUtil::byte1x2 src0, src1;
-
-        ByteUtil::byte2x2_muldiv255_u(src0, src0orig, src1, src1orig, msk0);
-        ByteUtil::byte2x2_pack_0213(src0, src0, src1);
-
-        msk0 = ByteUtil::scalar_neg255(msk0);
+        uint32_t srcm = ByteUtil::byte2x2_muldiv255_u_pack0213(src0orig, src1orig, msk0);
+        uint32_t msk0inv = ByteUtil::scalar_neg255(msk0);
 
         do {
-          ByteUtil::byte1x2 dst0, dst1;
-
-          ByteUtil::byte2x2_unpack_0213(dst0, dst1, READ_32(dst));
-          ByteUtil::byte2x2_muldiv255_u(dst0, dst0, dst1, dst1, msk0);
-          ByteUtil::byte2x2_pack_0213(dst0, dst0, dst1);
-
-          ((uint32_t*)dst)[0] = dst0 + src0;
+          ((uint32_t*)dst)[0] = ByteUtil::packed_muldiv255(READ_32(dst), msk0inv) + srcm;
 
           dst += 4;
         } while (--i);
@@ -2433,20 +2366,17 @@ skip:
       sysint_t i = w;
       FOG_ASSERT(w);
 
+      uint32_t src0 = srcp;
+
       do {
-        ByteUtil::byte1x2 dst0, dst1;
         uint32_t msk0 = READ_8(msk);
-        uint32_t msk0inv;
+        uint32_t dst0;
 
-        ByteUtil::byte2x2_unpack_0213(dst0, dst1, READ_32(dst));
+        dst0 = READ_32(dst);
+        src0 = ByteUtil::byte2x2_muldiv255_u_pack0213(src0orig, src1orig, msk0);
+        dst0 = ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(msk0));
 
-        msk0inv = msk0 ^ 0xFF;
-        ByteUtil::byte2x2_muldiv255_u_2x_add(
-          dst0, dst0, msk0inv, src0orig, msk0,
-          dst1, dst1, msk0inv, src1orig, msk0);
-        ByteUtil::byte2x2_pack_0213(dst0, dst0, dst1);
-
-        ((uint32_t*)dst)[0] = dst0;
+        ((uint32_t*)dst)[0] = src0 + dst0;
 
         dst += 4;
         msk += 1;
@@ -2462,21 +2392,23 @@ skip:
     FOG_ASSERT(w);
 
     do {
-      ByteUtil::byte1x2 dst0;
-      ByteUtil::byte1x2 src0 = READ_32(src) | 0xFF000000;
+      uint32_t dst0;
+      uint32_t src0;
       uint32_t msk0 = READ_8(msk);
 
-      if (msk0 != 0x00)
-      {
-        if (msk0 != 0xFF)
-        {
-          dst0 = READ_32(dst);
-          src0 = ByteUtil::packed_muldiv255_2x_join(src0, ByteUtil::scalar_neg255(msk0), dst0, msk0);
-        }
+      if (msk0 == 0x00) goto skip;
 
-        ((uint32_t*)dst)[0] = src0;
-      }
+      src0 = READ_32(src);
+      if (msk0 == 0xFF) goto fill;
 
+      dst0 = READ_32(dst);
+      src0 = ByteUtil::packed_muldiv255_Fxxx(src0, msk0);
+      src0 += ByteUtil::packed_muldiv255_0xxx(dst0, ByteUtil::scalar_neg255(msk0));
+
+fill:
+      ((uint32_t*)dst)[0] = src0;
+
+skip:
       dst += 4;
       src += 4;
       msk += 1;
@@ -2490,30 +2422,20 @@ skip:
     FOG_ASSERT(w);
 
     do {
-      ByteUtil::byte1x2 dst0;
-      ByteUtil::byte1x2 src0 = READ_32(src) | 0xFF000000;
+      uint32_t dst0;
+      uint32_t src0;
       uint32_t msk0 = READ_8(msk);
 
-      if (msk0 != 0x00)
-      {
-        if (msk0 != 0xFF || !ArgbUtil::isAlpha0xFF(src0))
-        {
-          ByteUtil::byte1x2 dst1, src1;
-          dst0 = READ_32(dst);
+      if (msk0 == 0x00) goto skip;
 
-          ByteUtil::byte2x2_unpack_0213(dst0, dst1, dst0);
-          ByteUtil::byte2x2_unpack_0213(src0, src1, src0);
+      src0 = READ_32(src);
+      dst0 = READ_32(dst);
+      src0 = ByteUtil::packed_muldiv255_Fxxx(src0, ByteUtil::scalar_muldiv255(msk0, (src0 >> 24)));
+      src0 += ByteUtil::packed_muldiv255_0xxx(dst0, ByteUtil::scalar_neg255(msk0));
 
-          ByteUtil::byte2x2_muldiv255_u(src0, src0, src1, src1, ByteUtil::scalar_muldiv255(ByteUtil::byte1x2_hi(src1), msk0));
-          ByteUtil::byte2x2_muldiv255_u(dst0, dst0, dst1, dst1, ByteUtil::scalar_neg255(msk0));
+      ((uint32_t*)dst)[0] = src0;
 
-          ByteUtil::byte2x2_add_byte2x2(src0, src0, dst0, src1, src1, dst1);
-          ByteUtil::byte2x2_pack_0213(src0, src0, src1);
-        }
-
-        ((uint32_t*)dst)[0] = src0;
-      }
-
+skip:
       dst += 4;
       src += 4;
       msk += 1;
@@ -2527,21 +2449,23 @@ skip:
     FOG_ASSERT(w);
 
     do {
-      ByteUtil::byte1x2 dst0;
-      ByteUtil::byte1x2 src0 = READ_32(src) | 0xFF000000;
+      uint32_t dst0;
+      uint32_t src0;
       uint32_t msk0 = READ_8(msk);
 
-      if (msk0 != 0x00)
-      {
-        if (msk0 != 0xFF)
-        {
-          dst0 = READ_32(dst);
-          src0 = ByteUtil::packed_muldiv255_2x_join(src0, ByteUtil::scalar_neg255(msk0), dst0, msk0);
-        }
+      if (msk0 == 0x00) goto skip;
 
-        ((uint32_t*)dst)[0] = src0;
-      }
+      src0 = READ_32(src) | 0xFF000000;
+      if (msk0 == 0xFF) goto fill;
 
+      dst0 = READ_32(dst);
+      src0 = ByteUtil::packed_muldiv255_Fxxx(src0, msk0);
+      src0 += ByteUtil::packed_muldiv255_0xxx(dst0, ByteUtil::scalar_neg255(msk0));
+
+fill:
+      ((uint32_t*)dst)[0] = src0;
+
+skip:
       dst += 4;
       src += 4;
       msk += 1;
@@ -2557,21 +2481,23 @@ skip:
     const Argb* pal = closure->srcPalette;
 
     do {
-      ByteUtil::byte1x2 dst0;
-      ByteUtil::byte1x2 src0 = pal[READ_8(src)] | 0xFF000000;
+      uint32_t dst0;
+      uint32_t src0;
       uint32_t msk0 = READ_8(msk);
 
-      if (msk0 != 0x00)
-      {
-        if (msk0 != 0xFF)
-        {
-          dst0 = READ_32(dst);
-          src0 = ByteUtil::packed_muldiv255_2x_join(src0, ByteUtil::scalar_neg255(msk0), dst0, msk0);
-        }
+      if (msk0 == 0x00) goto skip;
 
-        ((uint32_t*)dst)[0] = src0;
-      }
+      src0 = pal[READ_8(src)];
+      if (msk0 == 0xFF) goto fill;
 
+      dst0 = READ_32(dst);
+      src0 = ByteUtil::packed_muldiv255_Fxxx(src0, msk0);
+      src0 += ByteUtil::packed_muldiv255_0xxx(dst0, ByteUtil::scalar_neg255(msk0));
+
+fill:
+      ((uint32_t*)dst)[0] = src0;
+
+skip:
       dst += 4;
       src += 1;
       msk += 1;
@@ -2587,9 +2513,12 @@ skip:
     uint32_t msk0inv = ByteUtil::scalar_neg255(msk0);
 
     do {
-      ByteUtil::byte1x2 dst0 = READ_32(dst);
-      ByteUtil::byte1x2 src0 = READ_32(src) | 0xFF000000;
-      ((uint32_t*)dst)[0] = ByteUtil::packed_muldiv255_2x_join(src0, msk0, dst0, msk0inv);
+      uint32_t dst0 = READ_32(dst);
+      uint32_t src0 = READ_32(src);
+
+      ((uint32_t*)dst)[0] =
+        ByteUtil::packed_muldiv255_Fxxx(src0, msk0) +
+        ByteUtil::packed_muldiv255_0xxx(dst0, msk0inv);
 
       dst += 4;
       src += 4;
@@ -2605,9 +2534,12 @@ skip:
     uint32_t msk0inv = ByteUtil::scalar_neg255(msk0);
 
     do {
-      ByteUtil::byte1x2 dst0 = READ_32(dst);
-      ByteUtil::byte1x2 src0 = READ_32(src);
-      ((uint32_t*)dst)[0] = ByteUtil::packed_muldiv255_2x_join(src0, ByteUtil::scalar_muldiv255(msk0, src0 >> 24), dst0, msk0inv) | 0xFF000000;
+      uint32_t dst0 = READ_32(dst);
+      uint32_t src0 = READ_32(src);
+
+      ((uint32_t*)dst)[0] =
+        ByteUtil::packed_muldiv255_Fxxx(src0, ByteUtil::scalar_muldiv255(msk0, src0 >> 24)) +
+        ByteUtil::packed_muldiv255_0xxx(dst0, msk0inv);
 
       dst += 4;
       src += 4;
@@ -2623,9 +2555,12 @@ skip:
     uint32_t msk0inv = ByteUtil::scalar_neg255(msk0);
 
     do {
-      ByteUtil::byte1x2 dst0 = READ_32(dst);
-      ByteUtil::byte1x2 src0 = READ_32(src) | 0xFF000000;
-      ((uint32_t*)dst)[0] = ByteUtil::packed_muldiv255_2x_join(src0, msk0, dst0, msk0inv);
+      uint32_t dst0 = READ_32(dst);
+      uint32_t src0 = READ_32(src);
+
+      ((uint32_t*)dst)[0] = 
+        ByteUtil::packed_muldiv255_Fxxx(src0, msk0) +
+        ByteUtil::packed_muldiv255_0xxx(dst0, msk0inv);
 
       dst += 4;
       src += 4;
@@ -2638,19 +2573,62 @@ skip:
     sysint_t i = w;
     FOG_ASSERT(w);
 
-    const Argb* pal = closure->srcPalette;
     uint32_t msk0inv = ByteUtil::scalar_neg255(msk0);
+    const Argb* pal = closure->srcPalette;
 
     do {
       ByteUtil::byte1x2 dst0 = READ_32(dst);
-      ByteUtil::byte1x2 src0 = pal[READ_8(src)] | 0xFF000000;
-      ((uint32_t*)dst)[0] = ByteUtil::packed_muldiv255_2x_join(src0, msk0, dst0, msk0inv);
+      ByteUtil::byte1x2 src0 = pal[READ_8(src)];
+
+      ((uint32_t*)dst)[0] =
+        ByteUtil::packed_muldiv255_Fxxx(src0, msk0) +
+        ByteUtil::packed_muldiv255_0xxx(dst0, msk0inv);
 
       dst += 4;
       src += 1;
     } while (--i);
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // ============================================================================
 // [Fog::RasterUtil::C - Composite - Clear]
@@ -2693,44 +2671,979 @@ struct CompositeClearC : public CompositeBaseFuncsC32<CompositeClearC>
   }
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // ============================================================================
 // [Fog::RasterUtil::C - Composite - SrcOver]
 // ============================================================================
 
-struct CompositeSrcOverC : public CompositeBaseFuncsC32<CompositeSrcOverC>
+struct CompositeSrcOverC /* : public CompositeBaseFuncsC32<CompositeSrcOverC> */
 {
   enum { CHARACTERISTICS = OPERATOR_SRC_OVER };
 
-  static FOG_INLINE void prgb32_op_prgb32_32b(
-    ByteUtil::byte1x2& dst0, ByteUtil::byte1x2 a0, ByteUtil::byte1x2 b0,
-    ByteUtil::byte1x2& dst1, ByteUtil::byte1x2 a1, ByteUtil::byte1x2 b1)
+  // -------------------------------------------------------------------------
+  // [CompositeSrcC - PRGB32]
+  // -------------------------------------------------------------------------
+
+  static void FOG_FASTCALL prgb32_cspan(
+    uint8_t* dst, const Solid* src, sysint_t w, const Closure* closure)
   {
-    ByteUtil::byte2x2_muldiv255_u(a0, a0, a1, a1, ByteUtil::scalar_neg255(ByteUtil::byte1x2_hi(b1)));
-    ByteUtil::byte2x2_add_byte2x2(dst0, a0, b0, dst1, a1, b1);
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    uint32_t srcp = src->prgb;
+    if (ArgbUtil::isAlpha0xFF(srcp))
+    {
+      do {
+        ((uint32_t*)dst)[0] = srcp;
+        dst += 4;
+      } while (--i);
+    }
+    else
+    {
+      uint32_t srcainv = ByteUtil::scalar_neg255(srcp >> 24);
+
+      do {
+        ((uint32_t*)dst)[0] = ByteUtil::packed_muldiv255(READ_32(dst), srcainv) + srcp;
+        dst += 4;
+      } while (--i);
+    }
   }
 
-  static FOG_INLINE void prgb32_op_xrgb32_32b(
-    ByteUtil::byte1x2& dst0, ByteUtil::byte1x2 a0, ByteUtil::byte1x2 b0,
-    ByteUtil::byte1x2& dst1, ByteUtil::byte1x2 a1, ByteUtil::byte1x2 b1)
+  static void FOG_FASTCALL prgb32_cspan_a8(
+    uint8_t* dst, const Solid* src, const uint8_t* msk, sysint_t w, const Closure* closure)
   {
-    dst0 = b0;
-    dst1 = b1;
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    uint32_t srcp = src->prgb;
+
+    ByteUtil::byte1x2 src0orig, src1orig;
+    ByteUtil::byte2x2_unpack_0213(src0orig, src1orig, srcp);
+
+    if (ArgbUtil::isAlpha0xFF(srcp))
+    {
+      sysint_t i = w;
+      FOG_ASSERT(w);
+
+      uint32_t src0 = srcp;
+
+      do {
+        uint32_t msk0 = READ_8(msk);
+        uint32_t dst0;
+
+        if (msk0 == 0x00) goto opaqueSkip;
+        if (msk0 == 0xFF) goto opaqueFill;
+
+        dst0 = READ_32(dst);
+        src0 = ByteUtil::byte2x2_muldiv255_u_pack0213(src0orig, src1orig, msk0);
+        dst0 = ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(msk0));
+        src0 += dst0;
+
+opaqueFill:
+        ((uint32_t*)dst)[0] = src0;
+        src0 = srcp;
+
+opaqueSkip:
+        dst += 4;
+        msk += 1;
+      } while (--i);
+    }
+    else
+    {
+      uint32_t dst0 = srcp;
+
+      do {
+        uint32_t msk0 = READ_8(msk);
+        uint32_t srcm;
+
+        if (msk0 == 0x00) goto transSkip;
+
+        srcm = ByteUtil::byte2x2_muldiv255_u_pack0213(src0orig, src1orig, msk0);
+        if (srcm == 0x00000000) goto transSkip;
+
+        dst0 = ByteUtil::packed_muldiv255(READ_32(dst), ByteUtil::scalar_neg255(srcm >> 24));
+        dst0 += srcm;
+
+        ((uint32_t*)dst)[0] = dst0;
+
+transSkip:
+        dst += 4;
+        msk += 1;
+      } while (--i);
+    }
   }
 
-  static FOG_INLINE void xrgb32_op_prgb32_32b(
-    ByteUtil::byte1x2& dst0, ByteUtil::byte1x2 a0, ByteUtil::byte1x2 b0,
-    ByteUtil::byte1x2& dst1, ByteUtil::byte1x2 a1, ByteUtil::byte1x2 b1)
+  static void FOG_FASTCALL prgb32_cspan_a8_const(
+    uint8_t* dst, const Solid* src, uint32_t msk0, sysint_t w, const Closure* closure)
   {
-    ByteUtil::byte2x2_muldiv255_u(a0, a0, a1, a1, ByteUtil::scalar_neg255(ByteUtil::byte1x2_hi(b1)));
-    ByteUtil::byte2x2_add_byte2x2(dst0, a0, b0, dst1, a1, b1);
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    uint32_t src0 = ByteUtil::packed_muldiv255(src->prgb, msk0);
+    if (!src0) return;
+
+    msk0 = ByteUtil::scalar_neg255(src0 >> 24);
+
+    do {
+      ((uint32_t*)dst)[0] = ByteUtil::packed_muldiv255(READ_32(dst), msk0) + src0;
+
+      dst += 4;
+    } while (--i);
   }
 
-  static FOG_INLINE void xrgb32_op_xrgb32_32b(
-    ByteUtil::byte1x2& dst0, ByteUtil::byte1x2 a0, ByteUtil::byte1x2 b0,
-    ByteUtil::byte1x2& dst1, ByteUtil::byte1x2 a1, ByteUtil::byte1x2 b1)
+  static void FOG_FASTCALL prgb32_cspan_a8_scanline(
+    uint8_t* dst, const Solid* src, const Scanline32::Span* spans, sysuint_t numSpans, const Closure* closure)
   {
-    dst0 = b0;
-    dst1 = b1;
+    uint32_t srcp = src->prgb;
+
+    ByteUtil::byte1x2 src0orig, src1orig;
+    ByteUtil::byte2x2_unpack_0213(src0orig, src1orig, srcp);
+
+    if (ArgbUtil::isAlpha0xFF(srcp))
+    {
+      BLIT_C_CSPAN_SCANLINE_STEP1_BEGIN(4)
+
+      // Const mask.
+      BLIT_C_CSPAN_SCANLINE_STEP2_CONST()
+      {
+        sysint_t i = w;
+        FOG_ASSERT(w);
+
+        if (msk0 == 255)
+        {
+          do {
+            ((uint32_t*)dst)[0] = srcp;
+            dst += 4;
+          } while (--i);
+        }
+        else
+        {
+          uint32_t src0 = ByteUtil::packed_muldiv255(src->prgb, msk0);
+          if (!src0) return;
+
+          msk0 = ByteUtil::scalar_neg255(src0 >> 24);
+
+          do {
+            ((uint32_t*)dst)[0] = ByteUtil::packed_muldiv255(READ_32(dst), msk0) + src0;
+
+            dst += 4;
+          } while (--i);
+        }
+      }
+      // Variable mask.
+      BLIT_C_CSPAN_SCANLINE_STEP3_MASK()
+      {
+        sysint_t i = w;
+        FOG_ASSERT(w);
+
+        do {
+          uint32_t msk0 = READ_8(msk);
+          uint32_t dst0;
+          uint32_t src0;
+
+          dst0 = READ_32(dst);
+          src0 = ByteUtil::byte2x2_muldiv255_u_pack0213(src0orig, src1orig, msk0);
+          dst0 = ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(msk0));
+
+          ((uint32_t*)dst)[0] = src0 + dst0;
+
+          dst += 4;
+          msk += 1;
+        } while (--i);
+      }
+      BLIT_C_CSPAN_SCANLINE_STEP4_END()
+    }
+    else
+    {
+      BLIT_C_CSPAN_SCANLINE_STEP1_BEGIN(4)
+
+      // Const mask.
+      BLIT_C_CSPAN_SCANLINE_STEP2_CONST()
+      {
+        sysint_t i = w;
+        FOG_ASSERT(w);
+
+        uint32_t srcm = srcp;
+        if (msk0 != 0xFF) srcm = ByteUtil::byte2x2_muldiv255_u_pack0213(src0orig, src1orig, msk0);
+
+        msk0 = ByteUtil::scalar_neg255(srcm >> 24);
+
+        do {
+          ((uint32_t*)dst)[0] = ByteUtil::packed_muldiv255(READ_32(dst), msk0) + srcm;
+
+          dst += 4;
+        } while (--i);
+      }
+      // Variable mask.
+      BLIT_C_CSPAN_SCANLINE_STEP3_MASK()
+      {
+        sysint_t i = w;
+        FOG_ASSERT(w);
+
+        do {
+          uint32_t dst0 = READ_32(dst);
+          uint32_t src0;
+          uint32_t msk0 = READ_8(msk);
+
+          src0 = ByteUtil::byte2x2_muldiv255_u_pack0213(src0orig, src1orig, msk0);
+          dst0 = ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(src0 >> 24));
+
+          ((uint32_t*)dst)[0] = dst0 + src0;
+
+          dst += 4;
+          msk += 1;
+        } while (--i);
+      }
+      BLIT_C_CSPAN_SCANLINE_STEP4_END()
+    }
+  }
+
+  static void FOG_FASTCALL prgb32_vspan_prgb32(
+    uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
+  {
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    do {
+      uint32_t dst0;
+      uint32_t src0;
+
+      src0 = READ_32(src);
+      if (src0 == 0x00000000) goto skip;
+      if (ArgbUtil::isAlpha0xFF(src0)) goto fill;
+
+      dst0 = READ_32(dst);
+      dst0 = ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(src0 >> 24));
+
+      src0 += dst0;
+
+fill:
+      ((uint32_t*)dst)[0] = src0;
+
+skip:
+      dst += 4;
+      src += 4;
+    } while (--i);
+  }
+
+  static void FOG_FASTCALL prgb32_vspan_argb32(
+    uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
+  {
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    do {
+      uint32_t dst0;
+      uint32_t src0;
+      uint32_t srca;
+
+      src0 = READ_32(src);
+      if (ArgbUtil::isAlpha0x00(src0)) goto skip;
+      if (ArgbUtil::isAlpha0xFF(src0)) goto fill;
+
+      srca = src0 >> 24;
+      dst0 = READ_32(dst);
+
+      src0 = ByteUtil::packed_muldiv255_0xxx(src0, srca) | (srca << 24);
+      dst0 = ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(srca));
+
+      src0 += dst0;
+
+fill:
+      ((uint32_t*)dst)[0] = src0;
+
+skip:
+      dst += 4;
+      src += 4;
+    } while (--i);
+  }
+
+  static void FOG_FASTCALL prgb32_vspan_i8(
+    uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
+  {
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    const Argb* pal = closure->srcPalette;
+
+    do {
+      uint32_t dst0;
+      uint32_t src0;
+
+      src0 = pal[READ_8(src)];
+      if (src0 != 0x00000000) goto skip;
+      if (ArgbUtil::isAlpha0xFF(src0)) goto fill;
+
+      dst0 = READ_32(dst);
+      dst0 = ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(src0 >> 24));
+
+      src0 += dst0;
+
+fill:
+      ((uint32_t*)dst)[0] = src0;
+
+skip:
+      dst += 4;
+      src += 1;
+    } while (--i);
+  }
+
+  static void FOG_FASTCALL prgb32_vspan_prgb32_a8(
+    uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w, const Closure* closure)
+  {
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    do {
+      uint32_t dst0;
+      uint32_t src0;
+      uint32_t msk0 = READ_8(msk);
+
+      if (msk0 != 0x00) goto skip;
+
+      src0 = READ_32(src);
+      if (msk0 == 0xFF && ArgbUtil::isAlpha0xFF(src0)) goto fill;
+
+      dst0 = READ_32(dst);
+
+      src0 = ByteUtil::packed_muldiv255(src0, msk0);
+      dst0 = ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(src0 >> 24));
+
+      src0 += dst0;
+
+fill:
+      ((uint32_t*)dst)[0] = src0;
+
+skip:
+      dst += 4;
+      src += 4;
+      msk += 1;
+    } while (--i);
+  }
+
+  static void FOG_FASTCALL prgb32_vspan_argb32_a8(
+    uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w, const Closure* closure)
+  {
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    do {
+      uint32_t dst0;
+      uint32_t src0;
+      uint32_t msk0 = READ_8(msk);
+
+      if (msk0 != 0x00) goto skip;
+
+      src0 = READ_32(src);
+      if (msk0 == 0xFF && ArgbUtil::isAlpha0xFF(src0)) goto fill;
+
+      dst0 = READ_32(dst);
+
+      src0 = ByteUtil::packed_muldiv255(src0 | 0xFF000000, ByteUtil::scalar_muldiv255(src0 >> 24, msk0));
+      dst0 = ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(src0 >> 24));
+
+      src0 += dst0;
+
+fill:
+      ((uint32_t*)dst)[0] = src0;
+
+skip:
+      dst += 4;
+      src += 4;
+      msk += 1;
+    } while (--i);
+  }
+
+  static void FOG_FASTCALL prgb32_vspan_i8_a8(
+    uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w, const Closure* closure)
+  {
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    const Argb* pal = closure->srcPalette;
+
+    do {
+      uint32_t dst0;
+      uint32_t src0;
+      uint32_t msk0 = READ_8(msk);
+
+      if (msk0 != 0x00) goto skip;
+
+      src0 = pal[READ_8(src)];
+      if (msk0 == 0xFF && ArgbUtil::isAlpha0xFF(src0)) goto fill;
+
+      dst0 = READ_32(dst);
+
+      src0 = ByteUtil::packed_muldiv255(src0, msk0);
+      dst0 = ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(src0 >> 24));
+
+      src0 += dst0;
+
+fill:
+      ((uint32_t*)dst)[0] = src0;
+
+skip:
+      dst += 4;
+      src += 1;
+      msk += 1;
+    } while (--i);
+  }
+
+  static void FOG_FASTCALL prgb32_vspan_prgb32_a8_const(
+    uint8_t* dst, const uint8_t* src, uint32_t msk0, sysint_t w, const Closure* closure)
+  {
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    do {
+      uint32_t dst0 = READ_32(dst);
+      uint32_t src0 = READ_32(src);
+
+      src0 = ByteUtil::packed_muldiv255(src0, msk0);
+      dst0 = ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(src0 >> 24));
+      ((uint32_t*)dst)[0] = src0 + dst0;
+
+      dst += 4;
+      src += 4;
+    } while (--i);
+  }
+
+  static void FOG_FASTCALL prgb32_vspan_argb32_a8_const(
+    uint8_t* dst, const uint8_t* src, uint32_t msk0, sysint_t w, const Closure* closure)
+  {
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    do {
+      uint32_t dst0 = READ_32(dst);
+      uint32_t src0 = READ_32(src);
+      uint32_t srca = ByteUtil::scalar_muldiv255(src0 >> 24, msk0);
+
+      src0 = ByteUtil::packed_muldiv255_0xxx(src0, srca) | (srca << 24);
+      dst0 = ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(srca));
+      ((uint32_t*)dst)[0] = src0 + dst0;
+
+      dst += 4;
+      src += 4;
+    } while (--i);
+  }
+
+  static void FOG_FASTCALL prgb32_vspan_i8_a8_const(
+    uint8_t* dst, const uint8_t* src, uint32_t msk0, sysint_t w, const Closure* closure)
+  {
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    const Argb* pal = closure->srcPalette;
+
+    do {
+      uint32_t dst0 = READ_32(dst);
+      uint32_t src0 = pal[READ_8(src)];
+
+      src0 = ByteUtil::packed_muldiv255(src0, msk0);
+      dst0 = ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(src0 >> 24));
+      ((uint32_t*)dst)[0] = src0 + dst0;
+
+      dst += 4;
+      src += 1;
+    } while (--i);
+  }
+
+  // -------------------------------------------------------------------------
+  // [CompositeSrcC - XRGB32]
+  // -------------------------------------------------------------------------
+
+  static void FOG_FASTCALL xrgb32_cspan(
+    uint8_t* dst, const Solid* src, sysint_t w, const Closure* closure)
+  {
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    uint32_t srcp = src->prgb;
+    if (ArgbUtil::isAlpha0xFF(srcp))
+    {
+      do {
+        ((uint32_t*)dst)[0] = srcp;
+        dst += 4;
+      } while (--i);
+    }
+    else
+    {
+      uint32_t srcainv = ByteUtil::scalar_neg255(srcp >> 24);
+      srcp |= 0xFF000000;
+
+      do {
+        ((uint32_t*)dst)[0] = ByteUtil::packed_muldiv255(READ_32(dst), srcainv) + srcp;
+        dst += 4;
+      } while (--i);
+    }
+  }
+
+  static void FOG_FASTCALL xrgb32_cspan_a8(
+    uint8_t* dst, const Solid* src, const uint8_t* msk, sysint_t w, const Closure* closure)
+  {
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    uint32_t srcp = src->prgb;
+
+    ByteUtil::byte1x2 src0orig, src1orig;
+    ByteUtil::byte2x2_unpack_0213(src0orig, src1orig, srcp);
+
+    if (ArgbUtil::isAlpha0xFF(srcp))
+    {
+      sysint_t i = w;
+      FOG_ASSERT(w);
+
+      uint32_t src0 = srcp;
+
+      do {
+        uint32_t msk0 = READ_8(msk);
+        uint32_t dst0;
+
+        if (msk0 == 0x00) goto opaqueSkip;
+        if (msk0 == 0xFF) goto opaqueFill;
+
+        dst0 = READ_32(dst);
+        src0 = ByteUtil::byte2x2_muldiv255_u_pack0213(src0orig, src1orig, msk0);
+        dst0 = ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(msk0));
+        src0 += dst0;
+
+opaqueFill:
+        ((uint32_t*)dst)[0] = src0;
+        src0 = srcp;
+
+opaqueSkip:
+        dst += 4;
+        msk += 1;
+      } while (--i);
+    }
+    else
+    {
+      uint32_t dst0 = srcp;
+
+      do {
+        uint32_t msk0 = READ_8(msk);
+        uint32_t srcm;
+
+        if (msk0 == 0x00) goto transSkip;
+
+        srcm = ByteUtil::byte2x2_muldiv255_u_pack0213(src0orig, src1orig, msk0);
+        if (srcm == 0x00000000) goto transSkip;
+
+        dst0 = ByteUtil::packed_muldiv255(READ_32(dst), ByteUtil::scalar_neg255(srcm >> 24));
+        dst0 += srcm;
+        dst0 |= 0xFF000000;
+
+        ((uint32_t*)dst)[0] = dst0;
+
+transSkip:
+        dst += 4;
+        msk += 1;
+      } while (--i);
+    }
+  }
+
+  static void FOG_FASTCALL xrgb32_cspan_a8_const(
+    uint8_t* dst, const Solid* src, uint32_t msk0, sysint_t w, const Closure* closure)
+  {
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    uint32_t src0 = ByteUtil::packed_muldiv255(src->prgb, msk0);
+    if (!src0) return;
+
+    msk0 = ByteUtil::scalar_neg255(src0 >> 24);
+    src0 |= 0xFF000000;
+
+    do {
+      ((uint32_t*)dst)[0] = ByteUtil::packed_muldiv255_0xxx(READ_32(dst), msk0) + src0;
+
+      dst += 4;
+    } while (--i);
+  }
+
+  static void FOG_FASTCALL xrgb32_cspan_a8_scanline(
+    uint8_t* dst, const Solid* src, const Scanline32::Span* spans, sysuint_t numSpans, const Closure* closure)
+  {
+    uint32_t srcp = src->prgb;
+
+    ByteUtil::byte1x2 src0orig, src1orig;
+    ByteUtil::byte2x2_unpack_0213(src0orig, src1orig, srcp);
+
+    if (ArgbUtil::isAlpha0xFF(srcp))
+    {
+      BLIT_C_CSPAN_SCANLINE_STEP1_BEGIN(4)
+
+      // Const mask.
+      BLIT_C_CSPAN_SCANLINE_STEP2_CONST()
+      {
+        sysint_t i = w;
+        FOG_ASSERT(w);
+
+        if (msk0 == 255)
+        {
+          do {
+            ((uint32_t*)dst)[0] = srcp;
+            dst += 4;
+          } while (--i);
+        }
+        else
+        {
+          uint32_t src0 = ByteUtil::packed_muldiv255(src->prgb, msk0);
+          if (!src0) return;
+
+          msk0 = ByteUtil::scalar_neg255(src0 >> 24);
+
+          do {
+            ((uint32_t*)dst)[0] = ByteUtil::packed_muldiv255(READ_32(dst), msk0) + src0;
+
+            dst += 4;
+          } while (--i);
+        }
+      }
+      // Variable mask.
+      BLIT_C_CSPAN_SCANLINE_STEP3_MASK()
+      {
+        sysint_t i = w;
+        FOG_ASSERT(w);
+
+        do {
+          uint32_t msk0 = READ_8(msk);
+          uint32_t dst0;
+          uint32_t src0;
+
+          dst0 = READ_32(dst);
+          src0 = ByteUtil::byte2x2_muldiv255_u_pack0213(src0orig, src1orig, msk0);
+          dst0 = ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(msk0));
+
+          ((uint32_t*)dst)[0] = src0 + dst0;
+
+          dst += 4;
+          msk += 1;
+        } while (--i);
+      }
+      BLIT_C_CSPAN_SCANLINE_STEP4_END()
+    }
+    else
+    {
+      BLIT_C_CSPAN_SCANLINE_STEP1_BEGIN(4)
+
+      // Const mask.
+      BLIT_C_CSPAN_SCANLINE_STEP2_CONST()
+      {
+        sysint_t i = w;
+        FOG_ASSERT(w);
+
+        uint32_t srcm = srcp;
+        if (msk0 != 0xFF) srcm = ByteUtil::byte2x2_muldiv255_u_pack0213(src0orig, src1orig, msk0);
+
+        msk0 = ByteUtil::scalar_neg255(srcm >> 24);
+        srcm |= 0xFF000000;
+
+        do {
+          ((uint32_t*)dst)[0] = ByteUtil::packed_muldiv255_0xxx(READ_32(dst), msk0) + srcm;
+
+          dst += 4;
+        } while (--i);
+      }
+      // Variable mask.
+      BLIT_C_CSPAN_SCANLINE_STEP3_MASK()
+      {
+        sysint_t i = w;
+        FOG_ASSERT(w);
+
+        do {
+          uint32_t dst0 = READ_32(dst);
+          uint32_t src0;
+          uint32_t msk0 = READ_8(msk);
+
+          src0 = ByteUtil::byte2x2_muldiv255_u_pack0213(src0orig, src1orig, msk0);
+          dst0 = ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(src0 >> 24));
+
+          ((uint32_t*)dst)[0] = (dst0 + src0) | 0xFF000000;
+
+          dst += 4;
+          msk += 1;
+        } while (--i);
+      }
+      BLIT_C_CSPAN_SCANLINE_STEP4_END()
+    }
+  }
+
+  static void FOG_FASTCALL xrgb32_vspan_prgb32(
+    uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
+  {
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    do {
+      uint32_t dst0;
+      uint32_t src0;
+
+      src0 = READ_32(src);
+      if (src0 == 0x00000000) goto skip;
+      if (ArgbUtil::isAlpha0xFF(src0)) goto fill;
+
+      dst0 = READ_32(dst);
+      dst0 = ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(src0 >> 24));
+
+      src0 += dst0;
+      src0 |= 0xFF000000;
+
+fill:
+      ((uint32_t*)dst)[0] = src0;
+
+skip:
+      dst += 4;
+      src += 4;
+    } while (--i);
+  }
+
+  static void FOG_FASTCALL xrgb32_vspan_argb32(
+    uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
+  {
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    do {
+      uint32_t dst0;
+      uint32_t src0;
+      uint32_t srca;
+
+      src0 = READ_32(src);
+      if (ArgbUtil::isAlpha0x00(src0)) goto skip;
+      if (ArgbUtil::isAlpha0xFF(src0)) goto fill;
+
+      srca = src0 >> 24;
+      dst0 = READ_32(dst);
+
+      src0 = ByteUtil::packed_muldiv255_0xxx(src0, srca) | (srca << 24);
+      dst0 = ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(srca));
+
+      src0 += dst0;
+      src0 |= 0xFF000000;
+
+fill:
+      ((uint32_t*)dst)[0] = src0;
+
+skip:
+      dst += 4;
+      src += 4;
+    } while (--i);
+  }
+
+  static void FOG_FASTCALL xrgb32_vspan_i8(
+    uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
+  {
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    const Argb* pal = closure->srcPalette;
+
+    do {
+      uint32_t dst0;
+      uint32_t src0;
+
+      src0 = pal[READ_8(src)];
+      if (src0 != 0x00000000) goto skip;
+      if (ArgbUtil::isAlpha0xFF(src0)) goto fill;
+
+      dst0 = READ_32(dst);
+      dst0 = ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(src0 >> 24));
+
+      src0 += dst0;
+      src0 |= 0xFF000000;
+
+fill:
+      ((uint32_t*)dst)[0] = src0;
+
+skip:
+      dst += 4;
+      src += 1;
+    } while (--i);
+  }
+
+  static void FOG_FASTCALL xrgb32_vspan_prgb32_a8(
+    uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w, const Closure* closure)
+  {
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    do {
+      uint32_t dst0;
+      uint32_t src0;
+      uint32_t msk0 = READ_8(msk);
+
+      if (msk0 != 0x00) goto skip;
+
+      src0 = READ_32(src);
+      if (msk0 == 0xFF && ArgbUtil::isAlpha0xFF(src0)) goto fill;
+
+      dst0 = READ_32(dst);
+
+      src0 = ByteUtil::packed_muldiv255(src0, msk0);
+      dst0 = ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(src0 >> 24));
+
+      src0 += dst0;
+      src0 |= 0xFF000000;
+
+fill:
+      ((uint32_t*)dst)[0] = src0;
+
+skip:
+      dst += 4;
+      src += 4;
+      msk += 1;
+    } while (--i);
+  }
+
+  static void FOG_FASTCALL xrgb32_vspan_argb32_a8(
+    uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w, const Closure* closure)
+  {
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    do {
+      uint32_t dst0;
+      uint32_t src0;
+      uint32_t msk0 = READ_8(msk);
+
+      if (msk0 != 0x00) goto skip;
+
+      src0 = READ_32(src);
+      if (msk0 == 0xFF && ArgbUtil::isAlpha0xFF(src0)) goto fill;
+
+      dst0 = READ_32(dst);
+
+      src0 = ByteUtil::packed_muldiv255(src0 | 0xFF000000, ByteUtil::scalar_muldiv255(src0 >> 24, msk0));
+      dst0 = ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(src0 >> 24));
+
+      src0 += dst0;
+      src0 |= 0xFF000000;
+
+fill:
+      ((uint32_t*)dst)[0] = src0;
+
+skip:
+      dst += 4;
+      src += 4;
+      msk += 1;
+    } while (--i);
+  }
+
+  static void FOG_FASTCALL xrgb32_vspan_i8_a8(
+    uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w, const Closure* closure)
+  {
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    const Argb* pal = closure->srcPalette;
+
+    do {
+      uint32_t dst0;
+      uint32_t src0;
+      uint32_t msk0 = READ_8(msk);
+
+      if (msk0 != 0x00) goto skip;
+
+      src0 = pal[READ_8(src)];
+      if (msk0 == 0xFF && ArgbUtil::isAlpha0xFF(src0)) goto fill;
+
+      dst0 = READ_32(dst);
+
+      src0 = ByteUtil::packed_muldiv255(src0, msk0);
+      dst0 = ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(src0 >> 24));
+
+      src0 += dst0;
+      src0 |= 0xFF000000;
+
+fill:
+      ((uint32_t*)dst)[0] = src0;
+
+skip:
+      dst += 4;
+      src += 1;
+      msk += 1;
+    } while (--i);
+  }
+
+  static void FOG_FASTCALL xrgb32_vspan_prgb32_a8_const(
+    uint8_t* dst, const uint8_t* src, uint32_t msk0, sysint_t w, const Closure* closure)
+  {
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    do {
+      uint32_t dst0 = READ_32(dst);
+      uint32_t src0 = READ_32(src);
+
+      src0 = ByteUtil::packed_muldiv255(src0, msk0);
+      dst0 = ByteUtil::packed_muldiv255_0xxx(dst0, ByteUtil::scalar_neg255(src0 >> 24));
+      ((uint32_t*)dst)[0] = (src0 + dst0) | 0xFF000000;
+
+      dst += 4;
+      src += 4;
+    } while (--i);
+  }
+
+  static void FOG_FASTCALL xrgb32_vspan_argb32_a8_const(
+    uint8_t* dst, const uint8_t* src, uint32_t msk0, sysint_t w, const Closure* closure)
+  {
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    do {
+      uint32_t dst0 = READ_32(dst);
+      uint32_t src0 = READ_32(src);
+      uint32_t srca = ByteUtil::scalar_muldiv255(src0 >> 24, msk0);
+
+      src0 = ByteUtil::packed_muldiv255_Fxxx(src0, srca);
+      dst0 = ByteUtil::packed_muldiv255_0xxx(dst0, ByteUtil::scalar_neg255(srca));
+      ((uint32_t*)dst)[0] = src0 + dst0;
+
+      dst += 4;
+      src += 4;
+    } while (--i);
+  }
+
+  static void FOG_FASTCALL xrgb32_vspan_i8_a8_const(
+    uint8_t* dst, const uint8_t* src, uint32_t msk0, sysint_t w, const Closure* closure)
+  {
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    const Argb* pal = closure->srcPalette;
+
+    do {
+      uint32_t dst0 = READ_32(dst);
+      uint32_t src0 = pal[READ_8(src)];
+
+      src0 = ByteUtil::packed_muldiv255_Fxxx(src0, msk0);
+      dst0 = ByteUtil::packed_muldiv255_0xxx(dst0, ByteUtil::scalar_neg255(src0 >> 24));
+      ((uint32_t*)dst)[0] = src0 + dst0;
+
+      dst += 4;
+      src += 1;
+    } while (--i);
   }
 };
 
@@ -2954,16 +3867,91 @@ struct CompositeDstOutC : public CompositeBaseFuncsC32<CompositeDstOutC>
   {
     // TODO
   }
+
+  static void FOG_FASTCALL prgb32_vspan_a8(
+    uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
+  {
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    do {
+      uint32_t dst0;
+      uint32_t src0;
+      uint32_t srca;
+
+      srca = READ_8(src);
+
+      if (srca == 0x00) goto skip;
+      if (srca == 0xFF) goto fill;
+
+      src0 = srca << 24;
+      dst0 = READ_32(dst);
+
+      dst0 = ByteUtil::packed_muldiv255(dst0, ByteUtil::scalar_neg255(srca));
+      src0 += dst0;
+
+fill:
+      ((uint32_t*)dst)[0] = src0;
+
+skip:
+      dst += 4;
+      src += 1;
+    } while (--i);
+  }
+
   static void FOG_FASTCALL prgb32_vspan_prgb32_or_argb32_a8(
     uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w, const Closure* closure)
   {
     // TODO
   }
 
+  static void FOG_FASTCALL prgb32_vspan_a8_a8(
+    uint8_t* dst, const uint8_t* src, const uint8_t* msk, sysint_t w, const Closure* closure)
+  {
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    do {
+      ByteUtil::byte1x2 dst0;
+      ByteUtil::byte1x2 src0 = READ_8(src);
+      uint32_t msk0 = READ_8(msk);
+
+      if (msk0 == 0x00) goto skip;
+
+      dst0 = READ_32(dst);
+      msk0 = ByteUtil::scalar_neg255(ByteUtil::scalar_muldiv255(msk0, src0));
+
+      ((uint32_t*)dst)[0] = ByteUtil::packed_muldiv255(dst0, msk0);
+
+skip:
+      dst += 4;
+      src += 1;
+      msk += 1;
+    } while (--i);
+  }
+
   static void FOG_FASTCALL prgb32_vspan_prgb32_or_argb32_a8_const(
     uint8_t* dst, const uint8_t* src, uint32_t msk0, sysint_t w, const Closure* closure)
   {
     // TODO
+  }
+
+  static void FOG_FASTCALL prgb32_vspan_a8_a8_const(
+    uint8_t* dst, const uint8_t* src, uint32_t msk0, sysint_t w, const Closure* closure)
+  {
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    do {
+      ByteUtil::byte1x2 dst0 = READ_32(dst);
+      ByteUtil::byte1x2 src0 = READ_8(src);
+
+      uint32_t msk0inv = ByteUtil::scalar_neg255(ByteUtil::scalar_muldiv255(msk0, src0));
+      ((uint32_t*)dst)[0] = ByteUtil::packed_muldiv255(dst0, msk0inv);
+
+      dst += 4;
+      src += 1;
+    } while (--i);
   }
 };
 

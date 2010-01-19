@@ -4,8 +4,8 @@
 // MIT, See COPYING file in package
 
 // [Guard]
-#ifndef _FOG_XML_XMLENTITY_P_H
-#define _FOG_XML_XMLENTITY_P_H
+#ifndef _FOG_XML_XMLENTITY_H
+#define _FOG_XML_XMLENTITY_H
 
 // [Dependencies]
 #include <Fog/Build/Build.h>
@@ -73,4 +73,4 @@ struct FOG_HIDDEN XmlEntity
 //! @}
 
 // [Guard]
-#endif // _FOG_XML_XMLENTITY_P_H
+#endif // _FOG_XML_XMLENTITY_H
