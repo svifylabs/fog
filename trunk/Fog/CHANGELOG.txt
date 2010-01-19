@@ -1,5 +1,7 @@
 2010-01-19
 - SRC and SRC_OVER operators were optimized in pure C backend.
+- Fixed minor build issues (added INT_MIN, INT_MAX, ...).
+- Fixed X11 backend when using different bit-depth than 32.
 
 2010-01-18
 - Added operator characteristics, will be used later by raster paint engine.

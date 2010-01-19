@@ -767,6 +767,22 @@ typedef int64_t int48x16_t;
 # endif
 #endif
 
+#if !defined(INT_MIN)
+# define INT_MIN INT32_MIN
+#endif
+
+#if !defined(INT_MAX)
+# define INT_MAX INT32_MAX
+#endif
+
+#if !defined(UINT_MIN)
+# define UINT_MIN UINT32_MIN
+#endif
+
+#if !defined(UINT_MAX)
+# define UINT_MAX UINT32_MAX
+#endif
+
 #if !defined(LONG_MIN)
 # if FOG_SIZEOF_LONG == 4
 #  define LONG_MIN INT32_MIN
