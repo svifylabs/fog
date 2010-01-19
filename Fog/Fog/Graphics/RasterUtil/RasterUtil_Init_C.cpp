@@ -575,14 +575,20 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   m->composite[OPERATOR_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeSrcOverC::prgb32_vspan_prgb32;
   m->composite[OPERATOR_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeSrcOverC::prgb32_vspan_argb32;
   m->composite[OPERATOR_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = DibC::frgb32_from_xrgb32;
+  m->composite[OPERATOR_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_A8] = CompositeDstOutC::prgb32_vspan_a8;
+  m->composite[OPERATOR_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_I8] = CompositeSrcOverC::prgb32_vspan_i8;
 
   m->composite[OPERATOR_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeSrcOverC::prgb32_vspan_prgb32_a8;
   m->composite[OPERATOR_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeSrcOverC::prgb32_vspan_argb32_a8;
   m->composite[OPERATOR_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = CompositeSrcC::prgb32_vspan_xrgb32_a8;
+  m->composite[OPERATOR_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_A8] = CompositeDstOutC::prgb32_vspan_a8_a8;
+  m->composite[OPERATOR_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_I8] = CompositeSrcC::prgb32_vspan_i8_a8;
 
   m->composite[OPERATOR_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeSrcOverC::prgb32_vspan_prgb32_a8_const;
   m->composite[OPERATOR_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeSrcOverC::prgb32_vspan_argb32_a8_const;
   m->composite[OPERATOR_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = CompositeSrcC::prgb32_vspan_xrgb32_a8_const;
+  m->composite[OPERATOR_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_A8] = CompositeDstOutC::prgb32_vspan_a8_a8_const;
+  m->composite[OPERATOR_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_I8] = CompositeSrcC::prgb32_vspan_i8_a8_const;
 
   m->composite[OPERATOR_SRC_OVER][PIXEL_FORMAT_XRGB32].cspan = CompositeSrcOverC::xrgb32_cspan;
   m->composite[OPERATOR_SRC_OVER][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeSrcOverC::xrgb32_cspan_a8;
@@ -756,14 +762,17 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   m->composite[OPERATOR_DST_OUT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeDstOutC::prgb32_vspan_prgb32_or_argb32;
   m->composite[OPERATOR_DST_OUT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = CompositeDstOutC::prgb32_vspan_prgb32_or_argb32;
   m->composite[OPERATOR_DST_OUT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = (VSpanFn)CompositeClearC::prgb32_cspan;
+  m->composite[OPERATOR_DST_OUT][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_A8] = CompositeDstOutC::prgb32_vspan_a8;
 
   m->composite[OPERATOR_DST_OUT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = CompositeDstOutC::prgb32_vspan_prgb32_or_argb32_a8;
   m->composite[OPERATOR_DST_OUT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = CompositeDstOutC::prgb32_vspan_prgb32_or_argb32_a8;
   m->composite[OPERATOR_DST_OUT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = (VSpanMskFn)CompositeClearC::prgb32_cspan_a8;
+  m->composite[OPERATOR_DST_OUT][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_A8] = CompositeDstOutC::prgb32_vspan_a8_a8;
 
   m->composite[OPERATOR_DST_OUT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = CompositeDstOutC::prgb32_vspan_prgb32_or_argb32_a8_const;
   m->composite[OPERATOR_DST_OUT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = CompositeDstOutC::prgb32_vspan_prgb32_or_argb32_a8_const;
   m->composite[OPERATOR_DST_OUT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = (VSpanMskConstFn)CompositeClearC::prgb32_cspan_a8_const;
+  m->composite[OPERATOR_DST_OUT][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_A8] = CompositeDstOutC::prgb32_vspan_a8_a8_const;
 
   m->composite[OPERATOR_DST_OUT][PIXEL_FORMAT_XRGB32].cspan = CompositeDstOutC::prgb32_cspan;
   m->composite[OPERATOR_DST_OUT][PIXEL_FORMAT_XRGB32].cspan_a8 = CompositeDstOutC::prgb32_cspan_a8;

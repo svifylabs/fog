@@ -104,8 +104,7 @@ TODO P2
     [ ] SoftLight
     [ ] Overlay
     [ ] Arithmetic, with parameters!
-[ ] Specialize SRC_OVER and CLEAR operators in C implementation
-    (current generic implementation is very slow).
+[ ] Specialize CLEAR operator in C implementation
 
 TODO P3 - UI
 ============

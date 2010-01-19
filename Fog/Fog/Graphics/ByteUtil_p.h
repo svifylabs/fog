@@ -584,6 +584,20 @@ static FOG_INLINE void byte2x2_muldiv255_u(
   dst1 = a1 * u; dst1 = ((dst1 + ((dst1 >> 8) & BYTE_1x2MASK) + BYTE_1x2HALF) >> 8) & BYTE_1x2MASK;
 }
 
+// Result = pack((a0 * u) / 255, (a1 * u) / 255)
+static FOG_INLINE uint32_t byte2x2_muldiv255_u_pack0213(
+  byte1x2 a0,
+  byte1x2 a1, uint32_t u)
+{
+  a0 *= u;
+  a0 = ((a0 + ((a0 >> 8) & BYTE_1x2MASK) + BYTE_1x2HALF) >> 8) & 0x00FF00FF;
+
+  a1 *= u;
+  a1 = ((a1 + ((a1 >> 8) & BYTE_1x2MASK) + BYTE_1x2HALF)     ) & 0xFF00FF00;
+
+  return a0 | a1;
+}
+
 // dst0 = (a0 * u0) / 255
 // dst1 = (a1 * u1) / 255
 static FOG_INLINE void byte2x2_muldiv255_u(
@@ -592,6 +606,20 @@ static FOG_INLINE void byte2x2_muldiv255_u(
 {
   dst0 = a0 * u0; dst0 = ((dst0 + ((dst0 >> 8) & BYTE_1x2MASK) + BYTE_1x2HALF) >> 8) & BYTE_1x2MASK;
   dst1 = a1 * u1; dst1 = ((dst1 + ((dst1 >> 8) & BYTE_1x2MASK) + BYTE_1x2HALF) >> 8) & BYTE_1x2MASK;
+}
+
+// Result = pack((a0 * u0) / 255, (a1 * u1) / 255)
+static FOG_INLINE uint32_t byte2x2_muldiv255_u_pack0213(
+  byte1x2 a0, uint32_t u0,
+  byte1x2 a1, uint32_t u1)
+{
+  a0 *= u0;
+  a0 = ((a0 + ((a0 >> 8) & BYTE_1x2MASK) + BYTE_1x2HALF) >> 8) & 0x00FF00FF;
+
+  a1 *= u1;
+  a1 = ((a1 + ((a1 >> 8) & BYTE_1x2MASK) + BYTE_1x2HALF)     ) & 0xFF00FF00;
+
+  return a0 | a1;
 }
 
 // dst0 = saturate((a0 * b0) / 255 + c0)

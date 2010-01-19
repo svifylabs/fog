@@ -1,3 +1,6 @@
+2010-01-19
+- SRC and SRC_OVER operators were optimized in pure C backend.
+
 2010-01-18
 - Added operator characteristics, will be used later by raster paint engine.
 - Refactorized and rewritten Fog::ByteUtil.
