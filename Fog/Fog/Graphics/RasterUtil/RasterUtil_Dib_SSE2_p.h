@@ -671,6 +671,318 @@ struct FOG_HIDDEN DibSSE2
       src += 1;
     }
   }
+
+  // XXXXXXXX RRRRRRRR GGGGGGGG BBBBBBBB ->
+  //                   RRRRRGGG GGGBBBBB
+  static void FOG_FASTCALL rgb16_565_native_from_xrgb32(
+    uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
+  {
+    sysint_t i;
+    FOG_ASSERT(w);
+
+    // Align destination to 8 bytes.
+    while ((sysuint_t)dst & 7)
+    {
+      uint32_t pix0 = READ_32(src);
+      ((uint16_t*)dst)[0] = (uint16_t)(
+        ((pix0 >> 8) & 0xF800) |
+        ((pix0 >> 5) & 0x07E0) |
+        ((pix0 >> 3) & 0x001F));
+      if (--w == 0) return;
+
+      dst += 2;
+      src += 4;
+    }
+
+    for (i = w >> 3; i; i--, dst += 16, src += 32)
+    {
+      __m128i pix0xmmR, pix1xmmR;
+      __m128i pix0xmmG, pix1xmmG;
+      __m128i pix0xmmB, pix1xmmB;
+
+      pix_load16u(pix0xmmB, src);
+      pix_load16u(pix1xmmB, src + 16);
+
+      pix0xmmR = _mm_srli_epi32(pix0xmmB, 8);
+      pix1xmmR = _mm_srli_epi32(pix1xmmB, 8);
+
+      pix0xmmG = _mm_srli_epi32(pix0xmmB, 5);
+      pix1xmmG = _mm_srli_epi32(pix1xmmB, 5);
+
+      pix0xmmB = _mm_srli_epi32(pix0xmmB, 3);
+      pix1xmmB = _mm_srli_epi32(pix1xmmB, 3);
+
+      pix0xmmR = _mm_and_si128(pix0xmmR, Mask_F800F800F800F800_F800F800F800F800);
+      pix1xmmR = _mm_and_si128(pix1xmmR, Mask_F800F800F800F800_F800F800F800F800);
+
+      pix0xmmG = _mm_and_si128(pix0xmmG, Mask_07E007E007E007E0_07E007E007E007E0);
+      pix1xmmG = _mm_and_si128(pix1xmmG, Mask_07E007E007E007E0_07E007E007E007E0);
+
+      pix0xmmB = _mm_and_si128(pix0xmmB, Mask_001F001F001F001F_001F001F001F001F);
+      pix1xmmB = _mm_and_si128(pix1xmmB, Mask_001F001F001F001F_001F001F001F001F);
+
+      pix0xmmB = _mm_or_si128(pix0xmmB, pix0xmmR);
+      pix1xmmB = _mm_or_si128(pix1xmmB, pix1xmmR);
+
+      pix0xmmB = _mm_or_si128(pix0xmmB, pix0xmmG);
+      pix1xmmB = _mm_or_si128(pix1xmmB, pix1xmmG);
+
+      pix0xmmB = _mm_packs_epi32(pix0xmmB, pix0xmmB);
+      pix1xmmB = _mm_packs_epi32(pix1xmmB, pix1xmmB);
+
+      pix_store8(dst, pix0xmmB);
+      pix_store8(dst + 8, pix1xmmB);
+    }
+
+    for (i = w & 7; i; i--, dst += 2, src += 4)
+    {
+      uint32_t pix0 = READ_32(src);
+      ((uint16_t*)dst)[0] = (uint16_t)(
+        ((pix0 >> 8) & 0xF800) |
+        ((pix0 >> 5) & 0x07E0) |
+        ((pix0 >> 3) & 0x001F));
+    }
+  }
+
+  // XXXXXXXX RRRRRRRR GGGGGGGG BBBBBBBB ->
+  //                   GGGBBBBB RRRRRGGG
+  static void FOG_FASTCALL rgb16_565_swapped_from_xrgb32(
+    uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
+  {
+    sysint_t i;
+    FOG_ASSERT(w);
+
+    // Align destination to 8 bytes.
+    while ((sysuint_t)dst & 7)
+    {
+      uint32_t pix0 = READ_32(src);
+      ((uint16_t*)dst)[0] = (uint16_t)(
+        ((pix0 >> 16) & 0x00F8) |
+        ((pix0 >> 13) & 0x0007) |
+        ((pix0 <<  3) & 0xE000) |
+        ((pix0 <<  5) & 0x1F00));
+      if (--w == 0) return;
+
+      dst += 2;
+      src += 4;
+    }
+
+    for (i = w >> 3; i; i--, dst += 16, src += 32)
+    {
+      __m128i pix0xmmR0, pix1xmmR0;
+      __m128i pix0xmmG0, pix1xmmG0;
+      __m128i pix0xmmG1, pix1xmmG1;
+      __m128i pix0xmmB0, pix1xmmB0;
+
+      pix_load16u(pix0xmmB0, src);
+      pix_load16u(pix1xmmB0, src + 16);
+
+      pix0xmmR0 = _mm_srli_epi32(pix0xmmB0, 16);
+      pix1xmmR0 = _mm_srli_epi32(pix1xmmB0, 16);
+
+      pix0xmmG0 = _mm_srli_epi32(pix0xmmB0, 13);
+      pix1xmmG0 = _mm_srli_epi32(pix1xmmB0, 13);
+
+      pix0xmmG1 = _mm_slli_epi32(pix0xmmB0, 3);
+      pix1xmmG1 = _mm_slli_epi32(pix1xmmB0, 3);
+
+      pix0xmmB0 = _mm_slli_epi32(pix0xmmB0, 5);
+      pix1xmmB0 = _mm_slli_epi32(pix1xmmB0, 5);
+
+      pix0xmmR0 = _mm_and_si128(pix0xmmR0, Mask_00F800F800F800F8_00F800F800F800F8);
+      pix1xmmR0 = _mm_and_si128(pix1xmmR0, Mask_00F800F800F800F8_00F800F800F800F8);
+
+      pix0xmmG0 = _mm_and_si128(pix0xmmG0, Mask_0007000700070007_0007000700070007);
+      pix1xmmG0 = _mm_and_si128(pix1xmmG0, Mask_0007000700070007_0007000700070007);
+
+      pix0xmmG1 = _mm_and_si128(pix0xmmG1, Mask_E000E000E000E000_E000E000E000E000);
+      pix1xmmG1 = _mm_and_si128(pix1xmmG1, Mask_E000E000E000E000_E000E000E000E000);
+
+      pix0xmmB0 = _mm_and_si128(pix0xmmB0, Mask_1F001F001F001F00_1F001F001F001F00);
+      pix1xmmB0 = _mm_and_si128(pix1xmmB0, Mask_1F001F001F001F00_1F001F001F001F00);
+
+      pix0xmmB0 = _mm_or_si128(pix0xmmB0, pix0xmmR0);
+      pix1xmmB0 = _mm_or_si128(pix1xmmB0, pix1xmmR0);
+
+      pix0xmmB0 = _mm_or_si128(pix0xmmB0, pix0xmmG0);
+      pix1xmmB0 = _mm_or_si128(pix1xmmB0, pix1xmmG0);
+
+      pix0xmmB0 = _mm_or_si128(pix0xmmB0, pix0xmmG1);
+      pix1xmmB0 = _mm_or_si128(pix1xmmB0, pix1xmmG1);
+
+      pix0xmmB0 = _mm_packs_epi32(pix0xmmB0, pix0xmmB0);
+      pix1xmmB0 = _mm_packs_epi32(pix1xmmB0, pix1xmmB0);
+
+      pix_store8(dst, pix0xmmB0);
+      pix_store8(dst + 8, pix1xmmB0);
+    }
+
+    for (i = w & 7; i; i--, dst += 2, src += 4)
+    {
+      uint32_t pix0 = READ_32(src);
+      ((uint16_t*)dst)[0] = (uint16_t)(
+        ((pix0 >> 16) & 0x00F8) |
+        ((pix0 >> 13) & 0x0007) |
+        ((pix0 <<  3) & 0xE000) |
+        ((pix0 <<  5) & 0x1F00));
+    }
+  }
+
+  // XXXXXXXX RRRRRRRR GGGGGGGG BBBBBBBB ->
+  //                   XRRRRRGG GGGBBBBB
+  static void FOG_FASTCALL rgb16_555_native_from_xrgb32(
+    uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
+  {
+    sysint_t i;
+    FOG_ASSERT(w);
+
+    // Align destination to 8 bytes.
+    while ((sysuint_t)dst & 7)
+    {
+      uint32_t pix0 = READ_32(src);
+      ((uint16_t*)dst)[0] = (uint16_t)(
+        ((pix0 >> 3) & 0x001F) |
+        ((pix0 >> 6) & 0x03E0) |
+        ((pix0 >> 9) & 0x7C00));
+      if (--w == 0) return;
+
+      dst += 2;
+      src += 4;
+    }
+
+    for (i = w >> 3; i; i--, dst += 16, src += 32)
+    {
+      __m128i pix0xmmR, pix1xmmR;
+      __m128i pix0xmmG, pix1xmmG;
+      __m128i pix0xmmB, pix1xmmB;
+
+      pix_load16u(pix0xmmB, src);
+      pix_load16u(pix1xmmB, src + 16);
+
+      pix0xmmR = _mm_srli_epi32(pix0xmmB, 9);
+      pix1xmmR = _mm_srli_epi32(pix1xmmB, 9);
+
+      pix0xmmG = _mm_srli_epi32(pix0xmmB, 6);
+      pix1xmmG = _mm_srli_epi32(pix1xmmB, 6);
+
+      pix0xmmB = _mm_srli_epi32(pix0xmmB, 3);
+      pix1xmmB = _mm_srli_epi32(pix1xmmB, 3);
+
+      pix0xmmR = _mm_and_si128(pix0xmmR, Mask_7C007C007C007C00_7C007C007C007C00);
+      pix1xmmR = _mm_and_si128(pix1xmmR, Mask_7C007C007C007C00_7C007C007C007C00);
+
+      pix0xmmG = _mm_and_si128(pix0xmmG, Mask_03E003E003E003E0_03E003E003E003E0);
+      pix1xmmG = _mm_and_si128(pix1xmmG, Mask_03E003E003E003E0_03E003E003E003E0);
+
+      pix0xmmB = _mm_and_si128(pix0xmmB, Mask_001F001F001F001F_001F001F001F001F);
+      pix1xmmB = _mm_and_si128(pix1xmmB, Mask_001F001F001F001F_001F001F001F001F);
+
+      pix0xmmB = _mm_or_si128(pix0xmmB, pix0xmmR);
+      pix1xmmB = _mm_or_si128(pix1xmmB, pix1xmmR);
+
+      pix0xmmB = _mm_or_si128(pix0xmmB, pix0xmmG);
+      pix1xmmB = _mm_or_si128(pix1xmmB, pix1xmmG);
+
+      pix0xmmB = _mm_packs_epi32(pix0xmmB, pix0xmmB);
+      pix1xmmB = _mm_packs_epi32(pix1xmmB, pix1xmmB);
+
+      pix_store8(dst, pix0xmmB);
+      pix_store8(dst + 8, pix1xmmB);
+    }
+
+    for (i = w & 7; i; i--, dst += 2, src += 4)
+    {
+      uint32_t pix0 = READ_32(src);
+      ((uint16_t*)dst)[0] = (uint16_t)(
+        ((pix0 >> 3) & 0x001F) |
+        ((pix0 >> 6) & 0x03E0) |
+        ((pix0 >> 9) & 0x7C00));
+    }
+  }
+
+  // XXXXXXXX RRRRRRRR GGGGGGGG BBBBBBBB ->
+  //                   GGGBBBBB XRRRRRGG
+  static void FOG_FASTCALL rgb16_555_swapped_from_xrgb32(
+    uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
+  {
+    sysint_t i;
+    FOG_ASSERT(w);
+
+    // Align destination to 8 bytes.
+    while ((sysuint_t)dst & 7)
+    {
+      uint32_t pix0 = READ_32(src);
+      ((uint16_t*)dst)[0] = (uint16_t)(
+        ((pix0 >> 17) & 0x007C) |
+        ((pix0 >> 14) & 0x0003) |
+        ((pix0 <<  2) & 0xE000) |
+        ((pix0 <<  5) & 0x1F00));
+      if (--w == 0) return;
+
+      dst += 2;
+      src += 4;
+    }
+
+    for (i = w >> 3; i; i--, dst += 16, src += 32)
+    {
+      __m128i pix0xmmR0, pix1xmmR0;
+      __m128i pix0xmmG0, pix1xmmG0;
+      __m128i pix0xmmG1, pix1xmmG1;
+      __m128i pix0xmmB0, pix1xmmB0;
+
+      pix_load16u(pix0xmmB0, src);
+      pix_load16u(pix1xmmB0, src + 16);
+
+      pix0xmmR0 = _mm_srli_epi32(pix0xmmB0, 17);
+      pix1xmmR0 = _mm_srli_epi32(pix1xmmB0, 17);
+
+      pix0xmmG0 = _mm_srli_epi32(pix0xmmB0, 14);
+      pix1xmmG0 = _mm_srli_epi32(pix1xmmB0, 14);
+
+      pix0xmmG1 = _mm_slli_epi32(pix0xmmB0, 2);
+      pix1xmmG1 = _mm_slli_epi32(pix1xmmB0, 2);
+
+      pix0xmmB0 = _mm_slli_epi32(pix0xmmB0, 5);
+      pix1xmmB0 = _mm_slli_epi32(pix1xmmB0, 5);
+
+      pix0xmmR0 = _mm_and_si128(pix0xmmR0, Mask_007C007C007C007C_007C007C007C007C);
+      pix1xmmR0 = _mm_and_si128(pix1xmmR0, Mask_007C007C007C007C_007C007C007C007C);
+
+      pix0xmmG0 = _mm_and_si128(pix0xmmG0, Mask_0003000300030003_0003000300030003);
+      pix1xmmG0 = _mm_and_si128(pix1xmmG0, Mask_0003000300030003_0003000300030003);
+
+      pix0xmmG1 = _mm_and_si128(pix0xmmG1, Mask_E000E000E000E000_E000E000E000E000);
+      pix1xmmG1 = _mm_and_si128(pix1xmmG1, Mask_E000E000E000E000_E000E000E000E000);
+
+      pix0xmmB0 = _mm_and_si128(pix0xmmB0, Mask_1F001F001F001F00_1F001F001F001F00);
+      pix1xmmB0 = _mm_and_si128(pix1xmmB0, Mask_1F001F001F001F00_1F001F001F001F00);
+
+      pix0xmmB0 = _mm_or_si128(pix0xmmB0, pix0xmmR0);
+      pix1xmmB0 = _mm_or_si128(pix1xmmB0, pix1xmmR0);
+
+      pix0xmmB0 = _mm_or_si128(pix0xmmB0, pix0xmmG0);
+      pix1xmmB0 = _mm_or_si128(pix1xmmB0, pix1xmmG0);
+
+      pix0xmmB0 = _mm_or_si128(pix0xmmB0, pix0xmmG1);
+      pix1xmmB0 = _mm_or_si128(pix1xmmB0, pix1xmmG1);
+
+      pix0xmmB0 = _mm_packs_epi32(pix0xmmB0, pix0xmmB0);
+      pix1xmmB0 = _mm_packs_epi32(pix1xmmB0, pix1xmmB0);
+
+      pix_store8(dst, pix0xmmB0);
+      pix_store8(dst + 8, pix1xmmB0);
+    }
+
+    for (i = w & 7; i; i--, dst += 2, src += 4)
+    {
+      uint32_t pix0 = READ_32(src);
+      ((uint16_t*)dst)[0] = (uint16_t)(
+        ((pix0 >> 17) & 0x007C) |
+        ((pix0 >> 14) & 0x0003) |
+        ((pix0 <<  2) & 0xE000) |
+        ((pix0 <<  5) & 0x1F00));
+    }
+  }
 };
 
 } // RasterUtil namespace

@@ -1,3 +1,6 @@
+2010-01-20
+- Added rgb16_from_xrgb32 conversion using SSE2.
+
 2010-01-19
 - SRC and SRC_OVER operators were optimized in pure C backend.
 - Fixed minor build issues (added INT_MIN, INT_MAX, ...).
