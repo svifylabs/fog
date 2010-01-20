@@ -125,10 +125,11 @@ struct FOG_HIDDEN RGB16_565_SWAPPED_IO
 
   static FOG_INLINE void store(uint8_t* p, uint32_t pix0)
   {
-    ((uint16_t*)p)[0] = Memory::bswap16((uint16_t)(
-      ((pix0 >> 8) & 0xF800) |
-      ((pix0 >> 5) & 0x07E0) |
-      ((pix0 >> 3) & 0x001F)));
+    ((uint16_t*)p)[0] = (uint16_t)(
+      ((pix0 >> 16) & 0x00F8) |
+      ((pix0 >> 13) & 0x0007) |
+      ((pix0 <<  3) & 0xE000) |
+      ((pix0 <<  5) & 0x1F00));
   }
 };
 
@@ -165,10 +166,11 @@ struct FOG_HIDDEN RGB16_555_SWAPPED_IO
 
   static FOG_INLINE void store(uint8_t* p, uint32_t pix0)
   {
-    ((uint16_t*)p)[0] = Memory::bswap16((uint16_t)(
-      ((pix0 >> 3) & 0x001F) |
-      ((pix0 >> 6) & 0x03E0) |
-      ((pix0 >> 9) & 0x7C00)));
+    ((uint16_t*)p)[0] = (uint16_t)(
+      ((pix0 >> 17) & 0x007C) |
+      ((pix0 >> 14) & 0x0003) |
+      ((pix0 <<  2) & 0xE000) |
+      ((pix0 <<  5) & 0x1F00));
   }
 };
 

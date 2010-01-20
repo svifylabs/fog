@@ -42,7 +42,7 @@ TODO P1
         fonts can be very sensitive in small sizes.
 
 [ ] RasterUtil:
-    [ ] Write C composite functions for XRGB32 and PRGB32
+    [x] Write C composite functions for XRGB32 and PRGB32
     [ ] Write C composite functions for A8
     [ ] Write MMX composite functions for XRGB32 and PRGB32
     [ ] Write MMX composite functions for A8
