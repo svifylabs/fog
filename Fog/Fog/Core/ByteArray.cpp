@@ -893,7 +893,7 @@ err_t ByteArray::appendDouble(double d, int doubleForm, const FormatFlags& ff)
   // Decimal form
   if (doubleForm == DF_DECIMAL)
   {
-    StringUtil::dtoa(d, 2, precision, &out);
+    StringUtil::dtoa(d, 3, precision, &out);
 
     decpt = out.decpt;
     if (out.decpt == 9999) goto __InfOrNaN;
@@ -905,21 +905,21 @@ err_t ByteArray::appendDouble(double d, int doubleForm, const FormatFlags& ff)
     i = precision + 16;
     if (decpt > 0) i += (sysuint_t)decpt;
 
-    if ( (err = reserve(getLength() + i)) ) return err;
-    dest = getXData() + getLength();
+    dest = beginManipulation(i, OUTPUT_MODE_APPEND);
+    if (!dest) { err = ERR_RT_OUT_OF_MEMORY; goto __ret; }
 
     while (bufCur != bufEnd && decpt > 0) { *dest++ = *bufCur++; decpt--; }
     // Even if not in buffer
     while (decpt > 0) { *dest++ = '0'; decpt--; }
 
-    if ((fmt & FORMAT_ALTERNATE_FORM) != 0 || bufCur != bufEnd)
+    if ((fmt & FORMAT_ALTERNATE_FORM) != 0 || bufCur != bufEnd || precision > 0)
     {
       if (bufCur == out.result) *dest++ = '0';
       *dest++ = '.';
       while (decpt < 0 && precision > 0) { *dest++ = '0'; decpt++; precision--; }
 
       // Print rest of stuff
-      while (*bufCur && precision > 0) { *dest++ = *bufCur++; precision--; }
+      while (bufCur != bufEnd && precision > 0) { *dest++ = *bufCur++; precision--; }
       // And trailing zeros
       while (precision > 0) { *dest++ = '0'; precision--; }
     }
@@ -936,14 +936,17 @@ __exponentialForm:
     if (decpt == 9999) goto __InfOrNaN;
 
     // reserve some space for number, we need +X.{PRECISION}e+123
-    if ( (err = reserve(getLength() + precision + 10)) ) return err;
-    dest = getXData() + getLength();
+    dest = beginManipulation(precision + 10, OUTPUT_MODE_APPEND);
+    if (!dest) { err = ERR_RT_OUT_OF_MEMORY; goto __ret; }
 
     bufCur = out.result;
     bufEnd = bufCur + out.length;
 
     *dest++ = *bufCur++;
-    if ((fmt & FORMAT_ALTERNATE_FORM) != 0 || precision != 0) *dest++ = '.';
+    if ((fmt & FORMAT_ALTERNATE_FORM) != 0 || precision > 0)
+    {
+      if (bufCur != bufEnd || doubleForm == DF_EXPONENT) *dest++ = '.';
+    }
     while (bufCur != bufEnd && precision > 0)
     {
       *dest++ = *bufCur++;
@@ -951,26 +954,29 @@ __exponentialForm:
     }
 
     // Add trailing zeroes to fill out to ndigits unless this is
-    // DF_SignificantDigits
+    // DF_SIGNIFICANT_DIGITS.
     if (doubleForm == DF_EXPONENT)
     {
       for (i = precision; i; i--) *dest++ = '0';
     }
 
     // Add the exponent.
-    *dest++ = (ff.flags & FORMAT_CAPITALIZE_E_OR_X) ? 'E' : 'e';
-    decpt--;
-    if (decpt < 0)
-      { *dest++ = '-'; decpt = -decpt; }
-    else
-      *dest++ = '+';
+    if (doubleForm == DF_EXPONENT || decpt > 1)
+    {
+      *dest++ = (ff.flags & FORMAT_CAPITALIZE_E_OR_X) ? 'E' : 'e';
+      decpt--;
+      if (decpt < 0)
+        { *dest++ = '-'; decpt = -decpt; }
+      else
+        *dest++ = '+';
 
-    dest = append_exponent(dest, decpt, '0');
+      dest = append_exponent(dest, decpt, '0');
+    }
 
     xFinalize(dest);
   }
   // Significant digits form
-  else /* if (doubleForm == DF_SignificantDigits) */
+  else /* if (doubleForm == DF_SIGNIFICANT_DIGITS) */
   {
     char* save;
     if (d <= 0.0001 || d >= StringUtil::_mprec_log10(precision))
@@ -982,7 +988,7 @@ __exponentialForm:
     if (d < 1.0)
     {
       // what we want is ndigits after the point
-      StringUtil::dtoa(d, 3, ++precision, &out);
+      StringUtil::dtoa(d, 3, precision, &out);
     }
     else
     {
@@ -996,8 +1002,10 @@ __exponentialForm:
     i = precision + 16;
     if (decpt > 0) i += (sysuint_t)decpt;
 
-    if ( (err = reserve(getLength() + i)) ) return err;
-    dest = save = getXData() + getLength();
+    dest = beginManipulation(i, OUTPUT_MODE_APPEND);
+    if (!dest) { err = ERR_RT_OUT_OF_MEMORY; goto __ret; }
+
+    save = dest;
 
     bufCur = out.result;
     bufEnd = bufCur + out.length;
@@ -1015,7 +1023,7 @@ __exponentialForm:
       // Print rest of stuff
       while (bufCur != bufEnd && precision > 0){ *dest++ = *bufCur++; precision--; }
       // And trailing zeros
-      while (precision > 0) { *dest++ = '0'; precision--; }
+      // while (precision > 0) { *dest++ = '0'; precision--; }
     }
 
     xFinalize(dest);

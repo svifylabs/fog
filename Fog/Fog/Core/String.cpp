@@ -1064,7 +1064,7 @@ err_t String::appendDouble(double d, int doubleForm, const FormatFlags& ff, cons
   // Decimal form
   if (doubleForm == DF_DECIMAL)
   {
-    StringUtil::dtoa(d, 2, precision, &out);
+    StringUtil::dtoa(d, 3, precision, &out);
 
     decpt = out.decpt;
     if (out.decpt == 9999) goto __InfOrNaN;
@@ -1076,14 +1076,14 @@ err_t String::appendDouble(double d, int doubleForm, const FormatFlags& ff, cons
     i = precision + 16;
     if (decpt > 0) i += (sysuint_t)decpt;
 
-    if ( (err = reserve(getLength() + i)) ) return err;
-    dest = getXData() + getLength();
+    dest = beginManipulation(i, OUTPUT_MODE_APPEND);
+    if (!dest) { err = ERR_RT_OUT_OF_MEMORY; goto __ret; }
 
     while (bufCur != bufEnd && decpt > 0) { *dest++ = zero + Char(*bufCur++); decpt--; }
     // Even if not in buffer
     while (decpt > 0) { *dest++ = zero + Char('0'); decpt--; }
 
-    if ((fmt & FORMAT_ALTERNATE_FORM) != 0 || bufCur != bufEnd)
+    if ((fmt & FORMAT_ALTERNATE_FORM) != 0 || bufCur != bufEnd || precision > 0)
     {
       if (bufCur == reinterpret_cast<uint8_t*>(out.result)) *dest++ = zero + Char('0');
       *dest++ = l.getChar(LOCALE_CHAR_DECIMAL_POINT);
@@ -1107,15 +1107,18 @@ __exponentialForm:
     if (decpt == 9999) goto __InfOrNaN;
 
     // reserve some space for number, we need +X.{PRECISION}e+123
-    if ( (err = reserve(getLength() + precision + 10)) ) return err;
-    dest = getXData() + getLength();
+    dest = beginManipulation(precision + 10, OUTPUT_MODE_APPEND);
+    if (!dest) { err = ERR_RT_OUT_OF_MEMORY; goto __ret; }
 
     bufCur = reinterpret_cast<uint8_t*>(out.result);
     bufEnd = bufCur + out.length;
 
     *dest++ = zero + Char(*bufCur++);
-    if ((fmt & FORMAT_ALTERNATE_FORM) != 0 || precision != 0)
-      *dest++ = l.getChar(LOCALE_CHAR_DECIMAL_POINT);
+    if ((fmt & FORMAT_ALTERNATE_FORM) != 0 || precision > 0)
+    {
+      if (bufCur != bufEnd || doubleForm == DF_EXPONENT) 
+        *dest++ = l.getChar(LOCALE_CHAR_DECIMAL_POINT);
+    }
 
     while (bufCur != bufEnd && precision > 0)
     {
@@ -1124,26 +1127,29 @@ __exponentialForm:
     }
 
     // Add trailing zeroes to fill out to ndigits unless this is
-    // DF_SignificantDigits
+    // DF_SIGNIFICANT_DIGITS.
     if (doubleForm == DF_EXPONENT)
     {
       for (i = precision; i; i--) *dest++ = zero + Char('0');
     }
 
     // Add the exponent.
-    *dest++ = l.getChar(LOCALE_CHAR_EXPONENTIAL);
-    decpt--;
-    if (decpt < 0)
-      { *dest++ = l.getChar(LOCALE_CHAR_MINUS); decpt = -decpt; }
-    else
-      *dest++ = l.getChar(LOCALE_CHAR_PLUS);
+    if (doubleForm == DF_EXPONENT || decpt > 1)
+    {
+      *dest++ = l.getChar(LOCALE_CHAR_EXPONENTIAL);
+      decpt--;
+      if (decpt < 0)
+        { *dest++ = l.getChar(LOCALE_CHAR_MINUS); decpt = -decpt; }
+      else
+        *dest++ = l.getChar(LOCALE_CHAR_PLUS);
 
-    dest = append_exponent(dest, decpt, zero + Char('0'));
+      dest = append_exponent(dest, decpt, zero + Char('0'));
+    }
 
     xFinalize(dest);
   }
   // Significant digits form
-  else /* if (doubleForm == DF_SignificantDigits) */
+  else /* if (doubleForm == DF_SIGNIFICANT_DIGITS) */
   {
     Char* save;
     if (d <= 0.0001 || d >= StringUtil::_mprec_log10(precision))
@@ -1169,8 +1175,10 @@ __exponentialForm:
     i = precision + 16;
     if (decpt > 0) i += (sysuint_t)decpt;
 
-    if ( (err = reserve(getLength() + i)) ) return err;
-    dest = save = getXData() + getLength();
+    dest = beginManipulation(i, OUTPUT_MODE_APPEND);
+    if (!dest) { err = ERR_RT_OUT_OF_MEMORY; goto __ret; }
+
+    save = dest;
 
     bufCur = reinterpret_cast<uint8_t*>(out.result);
     bufEnd = bufCur + out.length;
