@@ -34,14 +34,15 @@ static Image _sprite[NUM_SPRITES];
 
 static void loadSprites()
 {
-  bool spritesNotFound = false;
-  const char* spriteNames[NUM_SPRITES] = {
+  static const char* spriteNames[NUM_SPRITES] =
+  {
     "babelfish.pcx",
     "blockdevice.pcx",
     "drop.pcx",
     "kweather.pcx"
   };
 
+  bool spritesNotFound = false;
   int i;
 
   for (i = 0; i < NUM_SPRITES; i++)
@@ -64,7 +65,7 @@ static void loadSprites()
     {
       fog_debug("  http://kobalicek.com/data/fog/sprites/%s", spriteNames[i]);
     }
-    fog_debug("\nImage tests will be incorrect!\n");
+    fog_debug("\nAll image based tests will be incorrect!\n");
   }
 }
 
@@ -296,7 +297,7 @@ void AbstractModule::save(int sw, int sh)
 
   fileName.set(Ascii8("Images/Bench - "));
   fileName.append(Ascii8(info.getData(), info.getLength()));
-  if (sw && sh) fileName.appendFormat(" [%dx%d]", sw, sh);
+  if (sw && sh) fileName.appendFormat(" [%0.3dx%0.3d]", sw, sh);
   fileName.append(Ascii8(".bmp"));
 
   Image t(screen);
@@ -341,7 +342,7 @@ FogModule::~FogModule()
 ByteArray FogModule::getEngine()
 {
   ByteArray info;
-  info.format("Fog (%s)", mt ? "mt" : "st");
+  info.format("Fog-%s", mt ? "mt" : "st");
   return info;
 }
 
@@ -1805,6 +1806,19 @@ ByteArray CairoModule_ImageAffine::getType()
 // [Bench]
 // ============================================================================
 
+static void printBenchmarkHeader(const char* name)
+{
+  fog_debug("%-22s|Size      |Time", name);
+  fog_debug("----------------------+----------+---------------");
+}
+
+static void printBenchmarkFooter(double t)
+{
+  fog_debug("---------------------------------+---------------");
+  fog_debug("Summary                          |%10.3f [ms]", t);
+  fog_debug("");
+}
+
 static TimeDelta bench(AbstractModule& mod, int sw, int sh, int quantity)
 {
   // Clear random seed (so all tests will behave identically)
@@ -1816,15 +1830,14 @@ static TimeDelta bench(AbstractModule& mod, int sw, int sh, int quantity)
   TimeDelta delta =  TimeTicks::highResNow() - ticks;
   mod.finish();
 
-  ByteArray s;
-  ByteArray info = mod.getInfo();
+  ByteArray type = mod.getType();
+  ByteArray size;
+  ByteArray time;
 
-  if (sw == 0 || sh == 0)
-    s.format("%-26s -> %.3f [ms]", info.getData(), delta.inMillisecondsF());
-  else
-    s.format("%-26s [%dx%d] -> %.3f [ms]", info.getData(), sw, sh, delta.inMillisecondsF());
+  if (sw != 0 && sh != 0) size.format("%dx%d", sw, sh);
+  time.format("%10.3f [ms]", delta.inMillisecondsF());
 
-  fog_debug(s.getData());
+  fog_debug("%-22s|%-10s|%s", type.getData(), size.getData(), time.getData());
   mod.save(sw, sh);
 
   return delta;
@@ -1835,10 +1848,11 @@ static void benchAll()
   int w = 640, h = 480;
   int quantity = 100000;
 
-  int engine;
-  int s;
-  Size sizes[] = {
-    Size(10, 10),
+  Size sizes[] =
+  {
+    Size(2, 2),
+    Size(4, 4),
+    Size(8, 8),
     Size(16, 16),
     Size(32, 32),
     Size(64, 64),
@@ -1853,9 +1867,11 @@ static void benchAll()
 
   static const char* yesno[2] = { "no", "yes" };
 
-  fog_debug("Surface=%dx%d, Quantity=%d", w, h, quantity);
-  fog_debug("%s (MMX=%s, SSE=%s, SSE2=%s, SSE3=%s, cores=%u)",
-    cpuInfo->brand,
+  fog_debug("Surface  :%dx%d", w, h);
+  fog_debug("Quantity :%d", quantity);
+  fog_debug("");
+  fog_debug("Processor:%s", cpuInfo->brand);
+  fog_debug("Features :MMX=%s, SSE=%s, SSE2=%s, SSE3=%s, cores=%u",
     yesno[cpuInfo->hasFeature(CpuInfo::FEATURE_MMX)],
     yesno[cpuInfo->hasFeature(CpuInfo::FEATURE_SSE)],
     yesno[cpuInfo->hasFeature(CpuInfo::FEATURE_SSE2)],
@@ -1864,11 +1880,27 @@ static void benchAll()
   fog_debug("");
 
   // --------------------------------------------------------------------------
+  // Working variables
+  // --------------------------------------------------------------------------
+
+  int engine;
+  int s;
+
+  // --------------------------------------------------------------------------
   // Fog
   // --------------------------------------------------------------------------
 
+  static const char* fogEngineName[] =
+  {
+    "",
+    "Fog (st)",
+    "Fog (mt)"
+  };
+
   for (engine = 1; engine < 3; engine++)
   {
+    printBenchmarkHeader(fogEngineName[engine]);
+
     for (s = 0; s < FOG_ARRAY_SIZE(sizes); s++)
     {
       // Fog - FillRect
@@ -1934,7 +1966,7 @@ static void benchAll()
       totalFog[engine] += bench(mod, 0, 0, quantity);
     }
 #endif
-    fog_debug("");
+    printBenchmarkFooter(totalFog[engine].inMillisecondsF());
   }
 
   // --------------------------------------------------------------------------
@@ -1943,6 +1975,7 @@ static void benchAll()
 
 #if defined(FOG_BENCH_GDIPLUS)
 
+  printBenchmarkHeader("Gdi+");
   TimeDelta totalGdiPlus;
 
   for (s = 0; s < FOG_ARRAY_SIZE(sizes); s++)
@@ -1997,7 +2030,7 @@ static void benchAll()
     }
   }
 
-  fog_debug("");
+  printBenchmarkFooter(totalGdiPlus.inMillisecondsF());
 #endif // FOG_BENCH_GDIPLUS
 
   // --------------------------------------------------------------------------
@@ -2005,6 +2038,8 @@ static void benchAll()
   // --------------------------------------------------------------------------
 
 #if defined(FOG_BENCH_CAIRO)
+
+  printBenchmarkHeader("Cairo");
   TimeDelta totalCairo;
 
   for (s = 0; s < FOG_ARRAY_SIZE(sizes); s++)
@@ -2057,19 +2092,7 @@ static void benchAll()
     }
   }
 
-  fog_debug("");
-#endif // FOG_BENCH_CAIRO
-
-  fog_debug("Summary:");
-  fog_debug("Fog (st)   - %.3f [ms]", totalFog[1].inMillisecondsF());
-  fog_debug("Fog (mt)   - %.3f [ms]", totalFog[2].inMillisecondsF());
-
-#if defined(FOG_BENCH_GDIPLUS)
-  fog_debug("GDI+       - %.3f [ms]", totalGdiPlus.inMillisecondsF());
-#endif // FOG_BENCH_GDIPLUS
-
-#if defined(FOG_BENCH_CAIRO)
-  fog_debug("Cairo      - %.3f [ms]", totalCairo.inMillisecondsF());
+  printBenchmarkFooter(totalCairo.inMillisecondsF());
 #endif // FOG_BENCH_CAIRO
 }
 
@@ -2079,7 +2102,7 @@ static void benchAll()
 #undef main
 int main(int argc, char* argv[])
 {
-  fog_debug("Fog benchmark tool v0.1\n");
+  fog_debug("Fog benchmark tool v0.2\n");
 
 #if defined(FOG_BENCH_GDIPLUS)
 	// Initialize GDI+
