@@ -1061,7 +1061,7 @@ err_t String::appendDouble(double d, int doubleForm, const FormatFlags& ff, cons
 
   if (sign) append(sign);
 
-  // Decimal form
+  // Decimal form.
   if (doubleForm == DF_DECIMAL)
   {
     StringUtil::dtoa(d, 3, precision, &out);
@@ -1072,7 +1072,7 @@ err_t String::appendDouble(double d, int doubleForm, const FormatFlags& ff, cons
     bufCur = reinterpret_cast<uint8_t*>(out.result);
     bufEnd = bufCur + out.length;
 
-    // reserve some space for number
+    // Reserve some space for number.
     i = precision + 16;
     if (decpt > 0) i += (sysuint_t)decpt;
 
@@ -1080,7 +1080,7 @@ err_t String::appendDouble(double d, int doubleForm, const FormatFlags& ff, cons
     if (!dest) { err = ERR_RT_OUT_OF_MEMORY; goto __ret; }
 
     while (bufCur != bufEnd && decpt > 0) { *dest++ = zero + Char(*bufCur++); decpt--; }
-    // Even if not in buffer
+    // Even if not in buffer.
     while (decpt > 0) { *dest++ = zero + Char('0'); decpt--; }
 
     if ((fmt & FORMAT_ALTERNATE_FORM) != 0 || bufCur != bufEnd || precision > 0)
@@ -1089,15 +1089,15 @@ err_t String::appendDouble(double d, int doubleForm, const FormatFlags& ff, cons
       *dest++ = l.getChar(LOCALE_CHAR_DECIMAL_POINT);
       while (decpt < 0 && precision > 0) { *dest++ = zero + Char('0'); decpt++; precision--; }
 
-      // Print rest of stuff
+      // Print rest of stuff.
       while (*bufCur && precision > 0) { *dest++ = zero + Char(*bufCur++); precision--; }
-      // And trailing zeros
+      // And trailing zeros.
       while (precision > 0) { *dest++ = zero + Char('0'); precision--; }
     }
 
     xFinalize(dest);
   }
-  // Exponential form
+  // Exponential form.
   else if (doubleForm == DF_EXPONENT)
   {
 __exponentialForm:
@@ -1106,7 +1106,7 @@ __exponentialForm:
     decpt = out.decpt;
     if (decpt == 9999) goto __InfOrNaN;
 
-    // reserve some space for number, we need +X.{PRECISION}e+123
+    // Reserve some space for number, we need +X.{PRECISION}e+123
     dest = beginManipulation(precision + 10, OUTPUT_MODE_APPEND);
     if (!dest) { err = ERR_RT_OUT_OF_MEMORY; goto __ret; }
 
@@ -1148,7 +1148,7 @@ __exponentialForm:
 
     xFinalize(dest);
   }
-  // Significant digits form
+  // Significant digits form.
   else /* if (doubleForm == DF_SIGNIFICANT_DIGITS) */
   {
     Char* save;
@@ -1160,7 +1160,7 @@ __exponentialForm:
 
     if (d < 1.0)
     {
-      // what we want is ndigits after the point
+      // What we want is ndigits after the point.
       StringUtil::dtoa(d, 3, ++precision, &out);
     }
     else
@@ -1171,7 +1171,7 @@ __exponentialForm:
     decpt = out.decpt;
     if (decpt == 9999) goto __InfOrNaN;
 
-    // reserve some space for number
+    // Reserve some space for number.
     i = precision + 16;
     if (decpt > 0) i += (sysuint_t)decpt;
 
@@ -1184,7 +1184,7 @@ __exponentialForm:
     bufEnd = bufCur + out.length;
 
     while (bufCur != bufEnd && decpt > 0) { *dest++ = zero + Char(*bufCur++); decpt--; precision--; }
-    // Even if not in buffer
+    // Even if not in buffer.
     while (decpt > 0 && precision > 0) { *dest++ = zero + Char('0'); decpt--; precision--; }
 
     if ((fmt & FORMAT_ALTERNATE_FORM) != 0 || bufCur != bufEnd)
@@ -1193,10 +1193,10 @@ __exponentialForm:
       *dest++ = l.getChar(LOCALE_CHAR_DECIMAL_POINT);
       while (decpt < 0 && precision > 0) { *dest++ = zero + Char('0'); decpt++; precision--; }
 
-      // Print rest of stuff
+      // Print rest of stuff.
       while (bufCur != bufEnd && precision > 0){ *dest++ = zero + Char(*bufCur++); precision--; }
-      // And trailing zeros
-      while (precision > 0) { *dest++ = zero + Char('0'); precision--; }
+      // And trailing zeros.
+      // while (precision > 0) { *dest++ = zero + Char('0'); precision--; }
     }
 
     xFinalize(dest);
@@ -1206,7 +1206,7 @@ __exponentialForm:
 __InfOrNaN:
   err |= append(Ascii8((const char*)out.result, out.length));
 __ret:
-  // Apply padding
+  // Apply padding.
   numberLength = _d->length - beginLength;
   if (width != (sysuint_t)-1 && width > numberLength)
   {

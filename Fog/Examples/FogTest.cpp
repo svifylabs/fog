@@ -247,7 +247,7 @@ void MyWindow::onPaint(PaintEvent* e)
   path.moveTo(50.0, 50.0);
   path.lineTo(200.0, 70.0);
   path.lineTo(145.0, 300.0);
-  path.curveTo(getWidth() - 30.0, getHeight() - 30.0, 100.0, 100.0);
+  path.curveTo(30.0, 30.0, 100.0 + _subx, 100.0 + _suby);
   p->drawPath(path);
 
   p->restore();
