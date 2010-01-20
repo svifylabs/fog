@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - Public API]
+// [Fog/Graphics Library - Private API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -14,7 +14,7 @@ namespace Fog {
 namespace RasterUtil {
 
 // ============================================================================
-// [Fog::Raster_SSE2 - Defines]
+// [Fog::RasterUtil::SSE2 - Defines]
 // ============================================================================
 
 // TODO: Duplicated, move to different location which will be shared.
@@ -313,7 +313,7 @@ group##_end: \
   }
 
 // ============================================================================
-// [Fog::Raster_SSE2 - Constants]
+// [Fog::RasterUtil::SSE2 - Constants]
 // ============================================================================
 
 // W masks
@@ -371,7 +371,7 @@ static __m128d MaskD_65536_0_65536_0;
 static __m128d MaskD_32768_0_32768_0;
 
 // ============================================================================
-// [Fog::Raster_SSE2 - Helpers]
+// [Fog::RasterUtil::SSE2 - Helpers]
 // ============================================================================
 
 static FOG_INLINE void sse2_mul_const_4D(__m128i& dst, const __m128i& a, const __m128i& b)

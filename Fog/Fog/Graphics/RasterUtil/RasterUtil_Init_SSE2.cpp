@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - Public API]
+// [Fog/Graphics Library - Private API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -30,6 +30,7 @@
 #include <Fog/Graphics/RasterUtil/RasterUtil_C_p.h>
 #include <Fog/Graphics/RasterUtil/RasterUtil_Defs_SSE2_p.h>
 #include <Fog/Graphics/RasterUtil/RasterUtil_Composite_SSE2_p.h>
+#include <Fog/Graphics/RasterUtil/RasterUtil_Dib_C_p.h>
 #include <Fog/Graphics/RasterUtil/RasterUtil_Dib_SSE2_p.h>
 #include <Fog/Graphics/RasterUtil/RasterUtil_Interpolate_SSE2_p.h>
 #include <Fog/Graphics/RasterUtil/RasterUtil_Pattern_SSE2_p.h>

@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - Public API]
+// [Fog/Graphics Library - Private API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -8,9 +8,8 @@
 
 #if defined(FOG_IDE)
 #include <Fog/Graphics/RasterUtil/RasterUtil_Defs_SSE2_p.h>
-#endif // FOG_IDE
-
 #include <Fog/Graphics/RasterUtil/RasterUtil_Dib_C_p.h>
+#endif // FOG_IDE
 
 namespace Fog {
 namespace RasterUtil {

@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - Public API]
+// [Fog/Graphics Library - Private API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -14,7 +14,7 @@ namespace Fog {
 namespace RasterUtil {
 
 // ============================================================================
-// [Fog::Raster - Defines]
+// [Fog::RasterUtil::C - Defines]
 // ============================================================================
 
 // TODO: Duplicated, move to different location which will be shared.
