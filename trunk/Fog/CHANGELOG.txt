@@ -2,6 +2,7 @@
 - Added rgb16_from_xrgb32 conversion using SSE2.
 - Added rgb16_from_xrgb32 conversion using MMX.
 - Fixed double to string conversion (both, String and ByteArray).
+- Updated FogBench output.
 
 2010-01-19
 - SRC and SRC_OVER operators were optimized in pure C backend.
