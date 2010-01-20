@@ -27,23 +27,23 @@ namespace RasterUtil {
 // ============================================================================
 
 // RGB16 masks
-static __m64 Mask_F800F800F800F800;
-static __m64 Mask_E000E000E000E000;
-static __m64 Mask_7C007C007C007C00;
-static __m64 Mask_1F001F001F001F00;
-static __m64 Mask_07E007E007E007E0;
-static __m64 Mask_03E003E003E003E0;
-static __m64 Mask_00F800F800F800F8;
-static __m64 Mask_007C007C007C007C;
-static __m64 Mask_001F001F001F001F;
-static __m64 Mask_0007000700070007;
-static __m64 Mask_0003000300030003;
+static __m64 Mask_0000F8000000F800;
+static __m64 Mask_0000E0000000E000;
+static __m64 Mask_00007C0000007C00;
+static __m64 Mask_00001F0000001F00;
+static __m64 Mask_000007E0000007E0;
+static __m64 Mask_000003E0000003E0;
+static __m64 Mask_000000F8000000F8;
+static __m64 Mask_0000007C0000007C;
+static __m64 Mask_0000001F0000001F;
+static __m64 Mask_0000000700000007;
+static __m64 Mask_0000000300000003;
 
 // ============================================================================
 // [Fog::RasterUtil::MMX - Helpers]
 // ============================================================================
 
-static FOG_INLINE __m128i mmx_create_mask_4x2W(uint16_t m0, uint16_t m1, uint16_t m2, uint16_t m3)
+static FOG_INLINE __m64 mmx_create_mask_4x2W(uint16_t m0, uint16_t m1, uint16_t m2, uint16_t m3)
 {
   mmx_t t;
 
@@ -58,7 +58,7 @@ static FOG_INLINE __m128i mmx_create_mask_4x2W(uint16_t m0, uint16_t m1, uint16_
 template<typename T>
 static FOG_INLINE void mmx_load8(__m64& dst, const T* src)
 {
-  return *reinterpret_cast<const __m64*>(src);
+  dst = reinterpret_cast<const __m64*>(src)[0];
 }
 
 template<typename T>

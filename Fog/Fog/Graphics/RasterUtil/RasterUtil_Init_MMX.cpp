@@ -50,18 +50,23 @@
 
 static void fog_raster_init_mmx_constants(void)
 {
+  using namespace Fog;
+  using namespace Fog::RasterUtil;
+
   // RGB16 masks
-  Mask_F800F800F800F800 = mmx_create_mask_4x2W(0xF800, 0xF800, 0xF800, 0xF800);
-  Mask_E000E000E000E000 = mmx_create_mask_4x2W(0xE000, 0xE000, 0xE000, 0xE000);
-  Mask_7C007C007C007C00 = mmx_create_mask_4x2W(0x7C00, 0x7C00, 0x7C00, 0x7C00);
-  Mask_1F001F001F001F00 = mmx_create_mask_4x2W(0x1F00, 0x1F00, 0x1F00, 0x1F00);
-  Mask_07E007E007E007E0 = mmx_create_mask_4x2W(0x07E0, 0x07E0, 0x07E0, 0x07E0);
-  Mask_03E003E003E003E0 = mmx_create_mask_4x2W(0x03E0, 0x03E0, 0x03E0, 0x03E0);
-  Mask_00F800F800F800F8 = mmx_create_mask_4x2W(0x00F8, 0x00F8, 0x00F8, 0x00F8);
-  Mask_007C007C007C007C = mmx_create_mask_4x2W(0x007C, 0x007C, 0x007C, 0x007C);
-  Mask_001F001F001F001F = mmx_create_mask_4x2W(0x001F, 0x001F, 0x001F, 0x001F);
-  Mask_0007000700070007 = mmx_create_mask_4x2W(0x0007, 0x0007, 0x0007, 0x0007);
-  Mask_0003000300030003 = mmx_create_mask_4x2W(0x0003, 0x0003, 0x0003, 0x0003);
+  Mask_0000F8000000F800 = mmx_create_mask_4x2W(0x0000, 0xF800, 0x0000, 0xF800);
+  Mask_0000E0000000E000 = mmx_create_mask_4x2W(0x0000, 0xE000, 0x0000, 0xE000);
+  Mask_00007C0000007C00 = mmx_create_mask_4x2W(0x0000, 0x7C00, 0x0000, 0x7C00);
+  Mask_00001F0000001F00 = mmx_create_mask_4x2W(0x0000, 0x1F00, 0x0000, 0x1F00);
+  Mask_000007E0000007E0 = mmx_create_mask_4x2W(0x0000, 0x07E0, 0x0000, 0x07E0);
+  Mask_000003E0000003E0 = mmx_create_mask_4x2W(0x0000, 0x03E0, 0x0000, 0x03E0);
+  Mask_000000F8000000F8 = mmx_create_mask_4x2W(0x0000, 0x00F8, 0x0000, 0x00F8);
+  Mask_0000007C0000007C = mmx_create_mask_4x2W(0x0000, 0x007C, 0x0000, 0x007C);
+  Mask_0000001F0000001F = mmx_create_mask_4x2W(0x0000, 0x001F, 0x0000, 0x001F);
+  Mask_0000000700000007 = mmx_create_mask_4x2W(0x0000, 0x0007, 0x0000, 0x0007);
+  Mask_0000000300000003 = mmx_create_mask_4x2W(0x0000, 0x0003, 0x0000, 0x0003);
+
+  _mm_empty();
 }
 
 FOG_INIT_DECLARE void fog_raster_init_mmx(void)
@@ -178,9 +183,9 @@ FOG_INIT_DECLARE void fog_raster_init_mmx(void)
 //m->dib.convert[DIB_FORMAT_RGB24_SWAPPED    ][PIXEL_FORMAT_A8    ] = DibMMX::zzz24_from_null;
 //m->dib.convert[DIB_FORMAT_RGB24_SWAPPED    ][PIXEL_FORMAT_I8    ] = DibMMX::rgb24_swapped_from_i8;
 
-//m->dib.convert[DIB_FORMAT_RGB16_565_NATIVE ][PIXEL_FORMAT_PRGB32] = DibMMX::rgb16_565_native_from_xrgb32;
+  m->dib.convert[DIB_FORMAT_RGB16_565_NATIVE ][PIXEL_FORMAT_PRGB32] = DibMMX::rgb16_565_native_from_xrgb32;
 //m->dib.convert[DIB_FORMAT_RGB16_565_NATIVE ][PIXEL_FORMAT_ARGB32] = DibMMX::rgb16_565_native_from_argb32;
-//m->dib.convert[DIB_FORMAT_RGB16_565_NATIVE ][PIXEL_FORMAT_XRGB32] = DibMMX::rgb16_565_native_from_xrgb32;
+  m->dib.convert[DIB_FORMAT_RGB16_565_NATIVE ][PIXEL_FORMAT_XRGB32] = DibMMX::rgb16_565_native_from_xrgb32;
 //m->dib.convert[DIB_FORMAT_RGB16_565_NATIVE ][PIXEL_FORMAT_A8    ] = DibMMX::zzz16_from_null;
 //m->dib.convert[DIB_FORMAT_RGB16_565_NATIVE ][PIXEL_FORMAT_I8    ] = DibMMX::rgb16_565_native_from_i8;
 
@@ -190,9 +195,9 @@ FOG_INIT_DECLARE void fog_raster_init_mmx(void)
 //m->dib.convert[DIB_FORMAT_RGB16_565_SWAPPED][PIXEL_FORMAT_A8    ] = DibMMX::zzz16_from_null;
 //m->dib.convert[DIB_FORMAT_RGB16_565_SWAPPED][PIXEL_FORMAT_I8    ] = DibMMX::rgb16_565_swapped_from_i8;
 
-//m->dib.convert[DIB_FORMAT_RGB16_555_NATIVE ][PIXEL_FORMAT_PRGB32] = DibMMX::rgb16_555_native_from_xrgb32;
+  m->dib.convert[DIB_FORMAT_RGB16_555_NATIVE ][PIXEL_FORMAT_PRGB32] = DibMMX::rgb16_555_native_from_xrgb32;
 //m->dib.convert[DIB_FORMAT_RGB16_555_NATIVE ][PIXEL_FORMAT_ARGB32] = DibMMX::rgb16_555_native_from_argb32;
-//m->dib.convert[DIB_FORMAT_RGB16_555_NATIVE ][PIXEL_FORMAT_XRGB32] = DibMMX::rgb16_555_native_from_xrgb32;
+  m->dib.convert[DIB_FORMAT_RGB16_555_NATIVE ][PIXEL_FORMAT_XRGB32] = DibMMX::rgb16_555_native_from_xrgb32;
 //m->dib.convert[DIB_FORMAT_RGB16_555_NATIVE ][PIXEL_FORMAT_A8    ] = DibMMX::zzz16_from_null;
 //m->dib.convert[DIB_FORMAT_RGB16_555_NATIVE ][PIXEL_FORMAT_I8    ] = DibMMX::rgb16_555_native_from_i8;
 
