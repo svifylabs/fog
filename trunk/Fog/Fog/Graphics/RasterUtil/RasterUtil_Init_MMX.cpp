@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - Public API]
+// [Fog/Graphics Library - Private API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -48,12 +48,167 @@
 // [Library Initializers]
 // ============================================================================
 
+static void fog_raster_init_mmx_constants(void)
+{
+  // RGB16 masks
+  Mask_F800F800F800F800 = mmx_create_mask_4x2W(0xF800, 0xF800, 0xF800, 0xF800);
+  Mask_E000E000E000E000 = mmx_create_mask_4x2W(0xE000, 0xE000, 0xE000, 0xE000);
+  Mask_7C007C007C007C00 = mmx_create_mask_4x2W(0x7C00, 0x7C00, 0x7C00, 0x7C00);
+  Mask_1F001F001F001F00 = mmx_create_mask_4x2W(0x1F00, 0x1F00, 0x1F00, 0x1F00);
+  Mask_07E007E007E007E0 = mmx_create_mask_4x2W(0x07E0, 0x07E0, 0x07E0, 0x07E0);
+  Mask_03E003E003E003E0 = mmx_create_mask_4x2W(0x03E0, 0x03E0, 0x03E0, 0x03E0);
+  Mask_00F800F800F800F8 = mmx_create_mask_4x2W(0x00F8, 0x00F8, 0x00F8, 0x00F8);
+  Mask_007C007C007C007C = mmx_create_mask_4x2W(0x007C, 0x007C, 0x007C, 0x007C);
+  Mask_001F001F001F001F = mmx_create_mask_4x2W(0x001F, 0x001F, 0x001F, 0x001F);
+  Mask_0007000700070007 = mmx_create_mask_4x2W(0x0007, 0x0007, 0x0007, 0x0007);
+  Mask_0003000300030003 = mmx_create_mask_4x2W(0x0003, 0x0003, 0x0003, 0x0003);
+}
+
 FOG_INIT_DECLARE void fog_raster_init_mmx(void)
 {
   using namespace Fog;
   using namespace Fog::RasterUtil;
 
+  // [Constants]
+
+  fog_raster_init_mmx_constants();
+
   FunctionMap* m = functionMap;
+
+  // [Dib - MemCpy]
+
+//m->dib.memcpy8 = DibMMX::memcpy8;
+//m->dib.memcpy16 = DibMMX::memcpy16;
+//m->dib.memcpy24 = DibMMX::memcpy24;
+//m->dib.memcpy32 = DibMMX::memcpy32;
+
+  // [Dib - Convert]
+
+//m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_PRGB32_NATIVE    ] = DibMMX::memcpy32;
+//m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_ARGB32_NATIVE    ] = DibMMX::prgb32_from_argb32;
+//m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_XRGB32_NATIVE    ] = DibMMX::frgb32_from_xrgb32;
+//m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_A8               ] = DibMMX::azzz32_from_a8;
+//m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_I8               ] = DibMMX::prgb32_from_i8;
+//m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_PRGB32_SWAPPED   ] = DibMMX::bswap32;
+//m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_ARGB32_SWAPPED   ] = DibMMX::prgb32_from_argb32_swapped;
+//m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_XRGB32_SWAPPED   ] = DibMMX::frgb32_from_xrgb32_swapped;
+//m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_RGB24_NATIVE     ] = DibMMX::frgb32_from_rgb24_native;
+//m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_RGB24_SWAPPED    ] = DibMMX::frgb32_from_rgb24_swapped;
+//m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_RGB16_565_NATIVE ] = DibMMX::frgb32_from_rgb16_565_native;
+//m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_RGB16_565_SWAPPED] = DibMMX::frgb32_from_rgb16_565_swapped;
+//m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_RGB16_555_NATIVE ] = DibMMX::frgb32_from_rgb16_555_native;
+//m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_RGB16_555_SWAPPED] = DibMMX::frgb32_from_rgb16_555_swapped;
+//m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_GREY8            ] = DibMMX::frgb32_from_grey8;
+
+//m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_PRGB32_NATIVE    ] = DibMMX::argb32_from_prgb32;
+//m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_ARGB32_NATIVE    ] = DibMMX::memcpy32;
+//m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_XRGB32_NATIVE    ] = DibMMX::frgb32_from_xrgb32;
+//m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_A8               ] = DibMMX::azzz32_from_a8;
+//m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_I8               ] = DibMMX::argb32_from_i8;
+//m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_PRGB32_SWAPPED   ] = DibMMX::argb32_from_prgb32_swapped;
+//m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_ARGB32_SWAPPED   ] = DibMMX::bswap32;
+//m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_XRGB32_SWAPPED   ] = DibMMX::frgb32_from_xrgb32_swapped;
+//m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_RGB24_NATIVE     ] = DibMMX::frgb32_from_rgb24_native;
+//m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_RGB24_SWAPPED    ] = DibMMX::frgb32_from_rgb24_swapped;
+//m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_RGB16_565_NATIVE ] = DibMMX::frgb32_from_rgb16_565_native;
+//m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_RGB16_565_SWAPPED] = DibMMX::frgb32_from_rgb16_565_swapped;
+//m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_RGB16_555_NATIVE ] = DibMMX::frgb32_from_rgb16_555_native;
+//m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_RGB16_555_SWAPPED] = DibMMX::frgb32_from_rgb16_555_swapped;
+//m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_GREY8            ] = DibMMX::frgb32_from_grey8;
+
+//m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_PRGB32_NATIVE    ] = DibMMX::frgb32_from_xrgb32;
+//m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_ARGB32_NATIVE    ] = DibMMX::frgb32_from_argb32;
+//m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_XRGB32_NATIVE    ] = DibMMX::frgb32_from_xrgb32;
+//m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_A8               ] = DibMMX::fzzz32_from_null;
+//m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_I8               ] = DibMMX::frgb32_from_i8;
+//m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_PRGB32_SWAPPED   ] = DibMMX::frgb32_from_xrgb32_swapped;
+//m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_ARGB32_SWAPPED   ] = DibMMX::frgb32_from_argb32_swapped;
+//m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_XRGB32_SWAPPED   ] = DibMMX::bswap32;
+//m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_RGB24_NATIVE     ] = DibMMX::frgb32_from_rgb24_native;
+//m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_RGB24_SWAPPED    ] = DibMMX::frgb32_from_rgb24_swapped;
+//m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_RGB16_565_NATIVE ] = DibMMX::frgb32_from_rgb16_565_native;
+//m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_RGB16_565_SWAPPED] = DibMMX::frgb32_from_rgb16_565_swapped;
+//m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_RGB16_555_NATIVE ] = DibMMX::frgb32_from_rgb16_555_native;
+//m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_RGB16_555_SWAPPED] = DibMMX::frgb32_from_rgb16_555_swapped;
+//m->dib.convert[PIXEL_FORMAT_XRGB32][DIB_FORMAT_GREY8            ] = DibMMX::frgb32_from_grey8;
+
+//m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_PRGB32_NATIVE    ] = DibMMX::a8_from_axxx32;
+//m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_ARGB32_NATIVE    ] = DibMMX::a8_from_axxx32;
+//m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_XRGB32_NATIVE    ] = DibMMX::f8_from_null;
+//m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_A8               ] = DibMMX::memcpy8;
+//m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_I8               ] = DibMMX::a8_from_i8;
+//m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_PRGB32_SWAPPED   ] = DibMMX::a8_from_axxx32_swapped;
+//m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_ARGB32_SWAPPED   ] = DibMMX::a8_from_axxx32_swapped;
+//m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_XRGB32_SWAPPED   ] = DibMMX::f8_from_null;
+//m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_RGB24_NATIVE     ] = DibMMX::f8_from_null;
+//m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_RGB24_SWAPPED    ] = DibMMX::f8_from_null;
+//m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_RGB16_565_NATIVE ] = DibMMX::f8_from_null;
+//m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_RGB16_565_SWAPPED] = DibMMX::f8_from_null;
+//m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_RGB16_555_NATIVE ] = DibMMX::f8_from_null;
+//m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_RGB16_555_SWAPPED] = DibMMX::f8_from_null;
+//m->dib.convert[PIXEL_FORMAT_A8    ][DIB_FORMAT_GREY8            ] = DibMMX::f8_from_null;
+
+//m->dib.convert[DIB_FORMAT_PRGB32_SWAPPED   ][PIXEL_FORMAT_PRGB32] = DibMMX::bswap32;
+//m->dib.convert[DIB_FORMAT_PRGB32_SWAPPED   ][PIXEL_FORMAT_ARGB32] = DibMMX::prgb32_swapped_from_argb32;
+//m->dib.convert[DIB_FORMAT_PRGB32_SWAPPED   ][PIXEL_FORMAT_XRGB32] = DibMMX::frgb32_swapped_from_xrgb32;
+//m->dib.convert[DIB_FORMAT_PRGB32_SWAPPED   ][PIXEL_FORMAT_A8    ] = DibMMX::azzz32_swapped_from_a8;
+//m->dib.convert[DIB_FORMAT_PRGB32_SWAPPED   ][PIXEL_FORMAT_I8    ] = DibMMX::prgb32_swapped_from_i8;
+
+//m->dib.convert[DIB_FORMAT_ARGB32_SWAPPED   ][PIXEL_FORMAT_PRGB32] = DibMMX::argb32_swapped_from_prgb32;
+//m->dib.convert[DIB_FORMAT_ARGB32_SWAPPED   ][PIXEL_FORMAT_ARGB32] = DibMMX::bswap32;
+//m->dib.convert[DIB_FORMAT_ARGB32_SWAPPED   ][PIXEL_FORMAT_XRGB32] = DibMMX::frgb32_swapped_from_xrgb32;
+//m->dib.convert[DIB_FORMAT_ARGB32_SWAPPED   ][PIXEL_FORMAT_A8    ] = DibMMX::azzz32_swapped_from_a8;
+//m->dib.convert[DIB_FORMAT_ARGB32_SWAPPED   ][PIXEL_FORMAT_I8    ] = DibMMX::argb32_swapped_from_i8;
+
+//m->dib.convert[DIB_FORMAT_XRGB32_SWAPPED   ][PIXEL_FORMAT_PRGB32] = DibMMX::frgb32_swapped_from_xrgb32;
+//m->dib.convert[DIB_FORMAT_XRGB32_SWAPPED   ][PIXEL_FORMAT_ARGB32] = DibMMX::frgb32_swapped_from_argb32;
+//m->dib.convert[DIB_FORMAT_XRGB32_SWAPPED   ][PIXEL_FORMAT_XRGB32] = DibMMX::frgb32_swapped_from_xrgb32;
+//m->dib.convert[DIB_FORMAT_XRGB32_SWAPPED   ][PIXEL_FORMAT_A8    ] = DibMMX::fzzz32_swapped_from_null;
+//m->dib.convert[DIB_FORMAT_XRGB32_SWAPPED   ][PIXEL_FORMAT_I8    ] = DibMMX::frgb32_swapped_from_i8;
+
+//m->dib.convert[DIB_FORMAT_RGB24_NATIVE     ][PIXEL_FORMAT_PRGB32] = DibMMX::rgb24_native_from_xrgb32;
+//m->dib.convert[DIB_FORMAT_RGB24_NATIVE     ][PIXEL_FORMAT_ARGB32] = DibMMX::rgb24_native_from_argb32;
+//m->dib.convert[DIB_FORMAT_RGB24_NATIVE     ][PIXEL_FORMAT_XRGB32] = DibMMX::rgb24_native_from_xrgb32;
+//m->dib.convert[DIB_FORMAT_RGB24_NATIVE     ][PIXEL_FORMAT_A8    ] = DibMMX::zzz24_from_null;
+//m->dib.convert[DIB_FORMAT_RGB24_NATIVE     ][PIXEL_FORMAT_I8    ] = DibMMX::rgb24_native_from_i8;
+
+//m->dib.convert[DIB_FORMAT_RGB24_SWAPPED    ][PIXEL_FORMAT_PRGB32] = DibMMX::rgb24_swapped_from_xrgb32;
+//m->dib.convert[DIB_FORMAT_RGB24_SWAPPED    ][PIXEL_FORMAT_ARGB32] = DibMMX::rgb24_swapped_from_argb32;
+//m->dib.convert[DIB_FORMAT_RGB24_SWAPPED    ][PIXEL_FORMAT_XRGB32] = DibMMX::rgb24_swapped_from_xrgb32;
+//m->dib.convert[DIB_FORMAT_RGB24_SWAPPED    ][PIXEL_FORMAT_A8    ] = DibMMX::zzz24_from_null;
+//m->dib.convert[DIB_FORMAT_RGB24_SWAPPED    ][PIXEL_FORMAT_I8    ] = DibMMX::rgb24_swapped_from_i8;
+
+//m->dib.convert[DIB_FORMAT_RGB16_565_NATIVE ][PIXEL_FORMAT_PRGB32] = DibMMX::rgb16_565_native_from_xrgb32;
+//m->dib.convert[DIB_FORMAT_RGB16_565_NATIVE ][PIXEL_FORMAT_ARGB32] = DibMMX::rgb16_565_native_from_argb32;
+//m->dib.convert[DIB_FORMAT_RGB16_565_NATIVE ][PIXEL_FORMAT_XRGB32] = DibMMX::rgb16_565_native_from_xrgb32;
+//m->dib.convert[DIB_FORMAT_RGB16_565_NATIVE ][PIXEL_FORMAT_A8    ] = DibMMX::zzz16_from_null;
+//m->dib.convert[DIB_FORMAT_RGB16_565_NATIVE ][PIXEL_FORMAT_I8    ] = DibMMX::rgb16_565_native_from_i8;
+
+//m->dib.convert[DIB_FORMAT_RGB16_565_SWAPPED][PIXEL_FORMAT_PRGB32] = DibMMX::rgb16_565_swapped_from_xrgb32;
+//m->dib.convert[DIB_FORMAT_RGB16_565_SWAPPED][PIXEL_FORMAT_ARGB32] = DibMMX::rgb16_565_swapped_from_argb32;
+//m->dib.convert[DIB_FORMAT_RGB16_565_SWAPPED][PIXEL_FORMAT_XRGB32] = DibMMX::rgb16_565_swapped_from_xrgb32;
+//m->dib.convert[DIB_FORMAT_RGB16_565_SWAPPED][PIXEL_FORMAT_A8    ] = DibMMX::zzz16_from_null;
+//m->dib.convert[DIB_FORMAT_RGB16_565_SWAPPED][PIXEL_FORMAT_I8    ] = DibMMX::rgb16_565_swapped_from_i8;
+
+//m->dib.convert[DIB_FORMAT_RGB16_555_NATIVE ][PIXEL_FORMAT_PRGB32] = DibMMX::rgb16_555_native_from_xrgb32;
+//m->dib.convert[DIB_FORMAT_RGB16_555_NATIVE ][PIXEL_FORMAT_ARGB32] = DibMMX::rgb16_555_native_from_argb32;
+//m->dib.convert[DIB_FORMAT_RGB16_555_NATIVE ][PIXEL_FORMAT_XRGB32] = DibMMX::rgb16_555_native_from_xrgb32;
+//m->dib.convert[DIB_FORMAT_RGB16_555_NATIVE ][PIXEL_FORMAT_A8    ] = DibMMX::zzz16_from_null;
+//m->dib.convert[DIB_FORMAT_RGB16_555_NATIVE ][PIXEL_FORMAT_I8    ] = DibMMX::rgb16_555_native_from_i8;
+
+//m->dib.convert[DIB_FORMAT_RGB16_555_SWAPPED][PIXEL_FORMAT_PRGB32] = DibMMX::rgb16_555_swapped_from_xrgb32;
+//m->dib.convert[DIB_FORMAT_RGB16_555_SWAPPED][PIXEL_FORMAT_ARGB32] = DibMMX::rgb16_555_swapped_from_argb32;
+//m->dib.convert[DIB_FORMAT_RGB16_555_SWAPPED][PIXEL_FORMAT_XRGB32] = DibMMX::rgb16_555_swapped_from_xrgb32;
+//m->dib.convert[DIB_FORMAT_RGB16_555_SWAPPED][PIXEL_FORMAT_A8    ] = DibMMX::zzz16_from_null;
+//m->dib.convert[DIB_FORMAT_RGB16_555_SWAPPED][PIXEL_FORMAT_I8    ] = DibMMX::rgb16_555_swapped_from_i8;
+
+//m->dib.convert[DIB_FORMAT_GREY8            ][PIXEL_FORMAT_PRGB32] = DibMMX::grey8_from_xrgb32;
+//m->dib.convert[DIB_FORMAT_GREY8            ][PIXEL_FORMAT_ARGB32] = DibMMX::grey8_from_argb32;
+//m->dib.convert[DIB_FORMAT_GREY8            ][PIXEL_FORMAT_XRGB32] = DibMMX::grey8_from_xrgb32;
+//m->dib.convert[DIB_FORMAT_GREY8            ][PIXEL_FORMAT_A8    ] = DibMMX::z8_from_null;
+//m->dib.convert[DIB_FORMAT_GREY8            ][PIXEL_FORMAT_I8    ] = DibMMX::grey8_from_i8;
+
+  // [Interpolate - Gradient]
 
   m->interpolate.gradient[PIXEL_FORMAT_ARGB32] = InterpolateMMX::gradient_argb32;
 }

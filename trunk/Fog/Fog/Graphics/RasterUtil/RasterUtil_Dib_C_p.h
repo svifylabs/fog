@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - Public API]
+// [Fog/Graphics Library - Private API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -135,6 +135,7 @@ struct FOG_HIDDEN RGB16_565_SWAPPED_IO
 
 struct FOG_HIDDEN RGB16_555_NATIVE_IO
 {
+  // TODO: Not correct
   static FOG_INLINE uint32_t fetch(const uint8_t* p)
   {
     uint32_t x = ((const uint16_t*)p)[0];
@@ -155,6 +156,7 @@ struct FOG_HIDDEN RGB16_555_NATIVE_IO
 
 struct FOG_HIDDEN RGB16_555_SWAPPED_IO
 {
+  // TODO: Not correct
   static FOG_INLINE uint32_t fetch(const uint8_t* p)
   {
     uint32_t x = Memory::bswap16(((const uint16_t*)p)[0]);
