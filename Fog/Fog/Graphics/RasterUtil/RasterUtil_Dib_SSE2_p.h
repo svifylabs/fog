@@ -679,8 +679,8 @@ struct FOG_HIDDEN DibSSE2
     sysint_t i;
     FOG_ASSERT(w);
 
-    // Align destination to 8 bytes.
-    while ((sysuint_t)dst & 7)
+    // Align destination to 16 bytes.
+    while ((sysuint_t)dst & 15)
     {
       uint32_t pix0 = READ_32(src);
       ((uint16_t*)dst)[0] = (uint16_t)(
@@ -702,8 +702,8 @@ struct FOG_HIDDEN DibSSE2
       pix_load16u(pix0xmmB, src);
       pix_load16u(pix1xmmB, src + 16);
 
-      pix0xmmR = _mm_srli_epi32(pix0xmmB, 8);
-      pix1xmmR = _mm_srli_epi32(pix1xmmB, 8);
+      pix0xmmR = _mm_srli_epi32(pix0xmmB, 9);
+      pix1xmmR = _mm_srli_epi32(pix1xmmB, 9);
 
       pix0xmmG = _mm_srli_epi32(pix0xmmB, 5);
       pix1xmmG = _mm_srli_epi32(pix1xmmB, 5);
@@ -711,26 +711,25 @@ struct FOG_HIDDEN DibSSE2
       pix0xmmB = _mm_srli_epi32(pix0xmmB, 3);
       pix1xmmB = _mm_srli_epi32(pix1xmmB, 3);
 
-      pix0xmmR = _mm_and_si128(pix0xmmR, Mask_F800F800F800F800_F800F800F800F800);
-      pix1xmmR = _mm_and_si128(pix1xmmR, Mask_F800F800F800F800_F800F800F800F800);
+      pix0xmmR = _mm_and_si128(pix0xmmR, Mask_00007C0000007C00_00007C0000007C00);
+      pix1xmmR = _mm_and_si128(pix1xmmR, Mask_00007C0000007C00_00007C0000007C00);
 
-      pix0xmmG = _mm_and_si128(pix0xmmG, Mask_07E007E007E007E0_07E007E007E007E0);
-      pix1xmmG = _mm_and_si128(pix1xmmG, Mask_07E007E007E007E0_07E007E007E007E0);
+      pix0xmmG = _mm_and_si128(pix0xmmG, Mask_000007E0000007E0_000007E0000007E0);
+      pix1xmmG = _mm_and_si128(pix1xmmG, Mask_000007E0000007E0_000007E0000007E0);
 
-      pix0xmmB = _mm_and_si128(pix0xmmB, Mask_001F001F001F001F_001F001F001F001F);
-      pix1xmmB = _mm_and_si128(pix1xmmB, Mask_001F001F001F001F_001F001F001F001F);
-
-      pix0xmmB = _mm_or_si128(pix0xmmB, pix0xmmR);
-      pix1xmmB = _mm_or_si128(pix1xmmB, pix1xmmR);
+      pix0xmmB = _mm_and_si128(pix0xmmB, Mask_0000001F0000001F_0000001F0000001F);
+      pix1xmmB = _mm_and_si128(pix1xmmB, Mask_0000001F0000001F_0000001F0000001F);
 
       pix0xmmB = _mm_or_si128(pix0xmmB, pix0xmmG);
       pix1xmmB = _mm_or_si128(pix1xmmB, pix1xmmG);
 
-      pix0xmmB = _mm_packs_epi32(pix0xmmB, pix0xmmB);
-      pix1xmmB = _mm_packs_epi32(pix1xmmB, pix1xmmB);
+      pix0xmmR = _mm_packs_epi32(pix0xmmR, pix0xmmR);
+      pix0xmmB = _mm_packs_epi32(pix0xmmB, pix1xmmB);
 
-      pix_store8(dst, pix0xmmB);
-      pix_store8(dst + 8, pix1xmmB);
+      pix0xmmR = _mm_slli_epi16(pix0xmmR, 1);
+      pix0xmmB = _mm_or_si128(pix0xmmB, pix0xmmR);
+
+      pix_store16a(dst, pix0xmmB);
     }
 
     for (i = w & 7; i; i--, dst += 2, src += 4)
@@ -751,8 +750,8 @@ struct FOG_HIDDEN DibSSE2
     sysint_t i;
     FOG_ASSERT(w);
 
-    // Align destination to 8 bytes.
-    while ((sysuint_t)dst & 7)
+    // Align destination to 16 bytes.
+    while ((sysuint_t)dst & 15)
     {
       uint32_t pix0 = READ_32(src);
       ((uint16_t*)dst)[0] = (uint16_t)(
@@ -782,38 +781,32 @@ struct FOG_HIDDEN DibSSE2
       pix0xmmG0 = _mm_srli_epi32(pix0xmmB0, 13);
       pix1xmmG0 = _mm_srli_epi32(pix1xmmB0, 13);
 
-      pix0xmmG1 = _mm_slli_epi32(pix0xmmB0, 3);
-      pix1xmmG1 = _mm_slli_epi32(pix1xmmB0, 3);
-
       pix0xmmB0 = _mm_slli_epi32(pix0xmmB0, 5);
       pix1xmmB0 = _mm_slli_epi32(pix1xmmB0, 5);
 
-      pix0xmmR0 = _mm_and_si128(pix0xmmR0, Mask_00F800F800F800F8_00F800F800F800F8);
-      pix1xmmR0 = _mm_and_si128(pix1xmmR0, Mask_00F800F800F800F8_00F800F800F800F8);
+      pix0xmmR0 = _mm_and_si128(pix0xmmR0, Mask_000000F8000000F8_000000F8000000F8);
+      pix1xmmR0 = _mm_and_si128(pix1xmmR0, Mask_000000F8000000F8_000000F8000000F8);
 
-      pix0xmmG0 = _mm_and_si128(pix0xmmG0, Mask_0007000700070007_0007000700070007);
-      pix1xmmG0 = _mm_and_si128(pix1xmmG0, Mask_0007000700070007_0007000700070007);
+      pix0xmmG0 = _mm_and_si128(pix0xmmG0, Mask_0000000700000007_0000000700000007);
+      pix1xmmG0 = _mm_and_si128(pix1xmmG0, Mask_0000000700000007_0000000700000007);
 
-      pix0xmmG1 = _mm_and_si128(pix0xmmG1, Mask_E000E000E000E000_E000E000E000E000);
-      pix1xmmG1 = _mm_and_si128(pix1xmmG1, Mask_E000E000E000E000_E000E000E000E000);
+      pix0xmmR0 = _mm_packs_epi32(pix0xmmR0, pix1xmmR0);
 
-      pix0xmmB0 = _mm_and_si128(pix0xmmB0, Mask_1F001F001F001F00_1F001F001F001F00);
-      pix1xmmB0 = _mm_and_si128(pix1xmmB0, Mask_1F001F001F001F00_1F001F001F001F00);
+      pix0xmmB0 = _mm_and_si128(pix0xmmB0, Mask_00001F0000001F00_00001F0000001F00);
+      pix1xmmB0 = _mm_and_si128(pix1xmmB0, Mask_00001F0000001F00_00001F0000001F00);
 
+      pix0xmmG1 = _mm_and_si128(pix0xmmG1, Mask_00001C0000001C00_00001C0000001C00);
+      pix1xmmG1 = _mm_and_si128(pix1xmmG1, Mask_00001C0000001C00_00001C0000001C00);
+
+      pix0xmmB0 = _mm_packs_epi32(pix0xmmB0, pix1xmmB0);
+      pix0xmmG0 = _mm_packs_epi32(pix0xmmG0, pix1xmmG0);
       pix0xmmB0 = _mm_or_si128(pix0xmmB0, pix0xmmR0);
-      pix1xmmB0 = _mm_or_si128(pix1xmmB0, pix1xmmR0);
-
+      pix0xmmG1 = _mm_packs_epi32(pix0xmmG1, pix1xmmG1);
       pix0xmmB0 = _mm_or_si128(pix0xmmB0, pix0xmmG0);
-      pix1xmmB0 = _mm_or_si128(pix1xmmB0, pix1xmmG0);
-
+      pix0xmmG1 = _mm_slli_epi16(pix0xmmG1, 3);
       pix0xmmB0 = _mm_or_si128(pix0xmmB0, pix0xmmG1);
-      pix1xmmB0 = _mm_or_si128(pix1xmmB0, pix1xmmG1);
 
-      pix0xmmB0 = _mm_packs_epi32(pix0xmmB0, pix0xmmB0);
-      pix1xmmB0 = _mm_packs_epi32(pix1xmmB0, pix1xmmB0);
-
-      pix_store8(dst, pix0xmmB0);
-      pix_store8(dst + 8, pix1xmmB0);
+      pix_store16a(dst, pix0xmmB0);
     }
 
     for (i = w & 7; i; i--, dst += 2, src += 4)
@@ -835,8 +828,8 @@ struct FOG_HIDDEN DibSSE2
     sysint_t i;
     FOG_ASSERT(w);
 
-    // Align destination to 8 bytes.
-    while ((sysuint_t)dst & 7)
+    // Align destination to 16 bytes.
+    while ((sysuint_t)dst & 15)
     {
       uint32_t pix0 = READ_32(src);
       ((uint16_t*)dst)[0] = (uint16_t)(
@@ -867,14 +860,14 @@ struct FOG_HIDDEN DibSSE2
       pix0xmmB = _mm_srli_epi32(pix0xmmB, 3);
       pix1xmmB = _mm_srli_epi32(pix1xmmB, 3);
 
-      pix0xmmR = _mm_and_si128(pix0xmmR, Mask_7C007C007C007C00_7C007C007C007C00);
-      pix1xmmR = _mm_and_si128(pix1xmmR, Mask_7C007C007C007C00_7C007C007C007C00);
+      pix0xmmR = _mm_and_si128(pix0xmmR, Mask_00007C0000007C00_00007C0000007C00);
+      pix1xmmR = _mm_and_si128(pix1xmmR, Mask_00007C0000007C00_00007C0000007C00);
 
-      pix0xmmG = _mm_and_si128(pix0xmmG, Mask_03E003E003E003E0_03E003E003E003E0);
-      pix1xmmG = _mm_and_si128(pix1xmmG, Mask_03E003E003E003E0_03E003E003E003E0);
+      pix0xmmG = _mm_and_si128(pix0xmmG, Mask_000003E0000003E0_000003E0000003E0);
+      pix1xmmG = _mm_and_si128(pix1xmmG, Mask_000003E0000003E0_000003E0000003E0);
 
-      pix0xmmB = _mm_and_si128(pix0xmmB, Mask_001F001F001F001F_001F001F001F001F);
-      pix1xmmB = _mm_and_si128(pix1xmmB, Mask_001F001F001F001F_001F001F001F001F);
+      pix0xmmB = _mm_and_si128(pix0xmmB, Mask_0000001F0000001F_0000001F0000001F);
+      pix1xmmB = _mm_and_si128(pix1xmmB, Mask_0000001F0000001F_0000001F0000001F);
 
       pix0xmmB = _mm_or_si128(pix0xmmB, pix0xmmR);
       pix1xmmB = _mm_or_si128(pix1xmmB, pix1xmmR);
@@ -882,11 +875,8 @@ struct FOG_HIDDEN DibSSE2
       pix0xmmB = _mm_or_si128(pix0xmmB, pix0xmmG);
       pix1xmmB = _mm_or_si128(pix1xmmB, pix1xmmG);
 
-      pix0xmmB = _mm_packs_epi32(pix0xmmB, pix0xmmB);
-      pix1xmmB = _mm_packs_epi32(pix1xmmB, pix1xmmB);
-
-      pix_store8(dst, pix0xmmB);
-      pix_store8(dst + 8, pix1xmmB);
+      pix0xmmB = _mm_packs_epi32(pix0xmmB, pix1xmmB);
+      pix_store16a(dst, pix0xmmB);
     }
 
     for (i = w & 7; i; i--, dst += 2, src += 4)
@@ -907,8 +897,8 @@ struct FOG_HIDDEN DibSSE2
     sysint_t i;
     FOG_ASSERT(w);
 
-    // Align destination to 8 bytes.
-    while ((sysuint_t)dst & 7)
+    // Align destination to 16 bytes.
+    while ((sysuint_t)dst & 15)
     {
       uint32_t pix0 = READ_32(src);
       ((uint16_t*)dst)[0] = (uint16_t)(
@@ -938,38 +928,32 @@ struct FOG_HIDDEN DibSSE2
       pix0xmmG0 = _mm_srli_epi32(pix0xmmB0, 14);
       pix1xmmG0 = _mm_srli_epi32(pix1xmmB0, 14);
 
-      pix0xmmG1 = _mm_slli_epi32(pix0xmmB0, 2);
-      pix1xmmG1 = _mm_slli_epi32(pix1xmmB0, 2);
-
       pix0xmmB0 = _mm_slli_epi32(pix0xmmB0, 5);
       pix1xmmB0 = _mm_slli_epi32(pix1xmmB0, 5);
 
-      pix0xmmR0 = _mm_and_si128(pix0xmmR0, Mask_007C007C007C007C_007C007C007C007C);
-      pix1xmmR0 = _mm_and_si128(pix1xmmR0, Mask_007C007C007C007C_007C007C007C007C);
+      pix0xmmR0 = _mm_and_si128(pix0xmmR0, Mask_000000F8000000F8_000000F8000000F8);
+      pix1xmmR0 = _mm_and_si128(pix1xmmR0, Mask_000000F8000000F8_000000F8000000F8);
 
-      pix0xmmG0 = _mm_and_si128(pix0xmmG0, Mask_0003000300030003_0003000300030003);
-      pix1xmmG0 = _mm_and_si128(pix1xmmG0, Mask_0003000300030003_0003000300030003);
+      pix0xmmG0 = _mm_and_si128(pix0xmmG0, Mask_0000000300000003_0000000300000003);
+      pix1xmmG0 = _mm_and_si128(pix1xmmG0, Mask_0000000300000003_0000000300000003);
 
-      pix0xmmG1 = _mm_and_si128(pix0xmmG1, Mask_E000E000E000E000_E000E000E000E000);
-      pix1xmmG1 = _mm_and_si128(pix1xmmG1, Mask_E000E000E000E000_E000E000E000E000);
+      pix0xmmR0 = _mm_packs_epi32(pix0xmmR0, pix1xmmR0);
 
-      pix0xmmB0 = _mm_and_si128(pix0xmmB0, Mask_1F001F001F001F00_1F001F001F001F00);
-      pix1xmmB0 = _mm_and_si128(pix1xmmB0, Mask_1F001F001F001F00_1F001F001F001F00);
+      pix0xmmB0 = _mm_and_si128(pix0xmmB0, Mask_00001F0000001F00_00001F0000001F00);
+      pix1xmmB0 = _mm_and_si128(pix1xmmB0, Mask_00001F0000001F00_00001F0000001F00);
 
+      pix0xmmG1 = _mm_and_si128(pix0xmmG1, Mask_0000380000003800_0000380000003800);
+      pix1xmmG1 = _mm_and_si128(pix1xmmG1, Mask_0000380000003800_0000380000003800);
+
+      pix0xmmB0 = _mm_packs_epi32(pix0xmmB0, pix1xmmB0);
+      pix0xmmG0 = _mm_packs_epi32(pix0xmmG0, pix1xmmG0);
       pix0xmmB0 = _mm_or_si128(pix0xmmB0, pix0xmmR0);
-      pix1xmmB0 = _mm_or_si128(pix1xmmB0, pix1xmmR0);
-
+      pix0xmmG1 = _mm_packs_epi32(pix0xmmG1, pix1xmmG1);
       pix0xmmB0 = _mm_or_si128(pix0xmmB0, pix0xmmG0);
-      pix1xmmB0 = _mm_or_si128(pix1xmmB0, pix1xmmG0);
-
+      pix0xmmG1 = _mm_slli_epi16(pix0xmmG1, 2);
       pix0xmmB0 = _mm_or_si128(pix0xmmB0, pix0xmmG1);
-      pix1xmmB0 = _mm_or_si128(pix1xmmB0, pix1xmmG1);
 
-      pix0xmmB0 = _mm_packs_epi32(pix0xmmB0, pix0xmmB0);
-      pix1xmmB0 = _mm_packs_epi32(pix1xmmB0, pix1xmmB0);
-
-      pix_store8(dst, pix0xmmB0);
-      pix_store8(dst + 8, pix1xmmB0);
+      pix_store16a(dst, pix0xmmB0);
     }
 
     for (i = w & 7; i; i--, dst += 2, src += 4)
