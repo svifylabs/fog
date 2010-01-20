@@ -1811,7 +1811,7 @@ __tryImage:
 
         switch (targetDepth)
         {
-          // 8-bit dithering
+          // 8-bit target.
           case 8:
             if (rMask == 0x60 && gMask == 0x1C && bMask == 0x03)
               _convertFunc = (void*)RasterUtil::functionMap->dib.i8rgb232_from_xrgb32_dither;
@@ -1820,8 +1820,24 @@ __tryImage:
             else if (rMask == 0x04 && gMask == 0x02 && bMask == 0x01)
               _convertFunc = (void*)RasterUtil::functionMap->dib.i8rgb111_from_xrgb32_dither;
             break;
-          // 16-bit dithering
+
+          // 16-bit target.
           case 16:
+            if (rMask == 0xF800 && gMask == 0x07E0 && bMask == 0x001F)
+            {
+              if (uiSystem->_displayInfo.is16BitSwapped)
+                _convertFunc = (void*)RasterUtil::functionMap->dib.convert[DIB_FORMAT_RGB16_565_NATIVE][PIXEL_FORMAT_XRGB32];
+              else
+                _convertFunc = (void*)RasterUtil::functionMap->dib.convert[DIB_FORMAT_RGB16_565_NATIVE][PIXEL_FORMAT_XRGB32];
+            }
+            else if (rMask == 0x7C00 && gMask == 0x03E0 && bMask == 0x001F)
+            {
+              if (uiSystem->_displayInfo.is16BitSwapped)
+                _convertFunc = (void*)RasterUtil::functionMap->dib.convert[DIB_FORMAT_RGB16_555_NATIVE][PIXEL_FORMAT_XRGB32];
+              else
+                _convertFunc = (void*)RasterUtil::functionMap->dib.convert[DIB_FORMAT_RGB16_555_NATIVE][PIXEL_FORMAT_XRGB32];
+            }
+#if 0
             if (rMask == 0x7C00 && gMask == 0x03E0 && bMask == 0x001F)
             {
               if (uiSystem->_displayInfo.is16BitSwapped)
@@ -1836,10 +1852,15 @@ __tryImage:
               else
                 _convertFunc = (void*)RasterUtil::functionMap->dib.rgb16_565_native_from_xrgb32_dither;
             }
+#endif
             break;
+
+          // 24-bit target.
           case 24:
             _convertFunc = (void*)RasterUtil::functionMap->dib.convert[DIB_FORMAT_RGB24_NATIVE][PIXEL_FORMAT_XRGB32];
             break;
+
+          // 32-bit target.
           case 32:
             _convertFunc = (void*)RasterUtil::functionMap->dib.memcpy32;
             break;
@@ -1945,9 +1966,19 @@ void X11UIBackingStore::updateRects(const Box* rects, sysuint_t count)
           }
           break;
         case 16:
+#if 0
           while (y1 < y2)
           {
             ((RasterUtil::Dither16Fn)_convertFunc)(dstCur, srcCur, w, Point(x1, y1));
+
+            dstCur += dstStride;
+            srcCur += srcStride;
+            y1++;
+          }
+#endif
+          while (y1 < y2)
+          {
+            ((RasterUtil::VSpanFn)_convertFunc)(dstCur, srcCur, w, NULL);
 
             dstCur += dstStride;
             srcCur += srcStride;
