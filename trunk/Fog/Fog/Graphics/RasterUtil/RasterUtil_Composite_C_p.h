@@ -310,13 +310,13 @@ struct CompositeBaseFuncsC32
   static void FOG_FASTCALL prgb32_cspan_a8_scanline(
     uint8_t* dst, const Solid* src, const Scanline32::Span* spans, sysuint_t numSpans, const Closure* closure)
   {
-    BLIT_C_CSPAN_SCANLINE_STEP1_BEGIN(4)
+    BLIT_CSPAN_SCANLINE_STEP1_BEGIN(4)
 
     ByteUtil::byte1x2 src0orig, src1orig;
     ByteUtil::byte2x2_unpack_0213(src0orig, src1orig, src->prgb);
 
     // Const mask.
-    BLIT_C_CSPAN_SCANLINE_STEP2_CONST()
+    BLIT_CSPAN_SCANLINE_STEP2_CONST()
     {
       sysint_t i = w;
       FOG_ASSERT(w);
@@ -409,7 +409,7 @@ struct CompositeBaseFuncsC32
       }
     }
     // Variable mask.
-    BLIT_C_CSPAN_SCANLINE_STEP3_MASK()
+    BLIT_CSPAN_SCANLINE_STEP3_MASK()
     {
       sysint_t i = w;
       FOG_ASSERT(w);
@@ -483,7 +483,7 @@ struct CompositeBaseFuncsC32
         } while (--i);
       }
     }
-    BLIT_C_CSPAN_SCANLINE_STEP4_END()
+    BLIT_CSPAN_SCANLINE_STEP4_END()
   }
 
   static void FOG_FASTCALL prgb32_vspan_prgb32(
@@ -1219,13 +1219,13 @@ struct CompositeBaseFuncsC32
   static void FOG_FASTCALL xrgb32_cspan_a8_scanline(
     uint8_t* dst, const Solid* src, const Scanline32::Span* spans, sysuint_t numSpans, const Closure* closure)
   {
-    BLIT_C_CSPAN_SCANLINE_STEP1_BEGIN(4)
+    BLIT_CSPAN_SCANLINE_STEP1_BEGIN(4)
 
     ByteUtil::byte1x2 src0orig, src1orig;
     ByteUtil::byte2x2_unpack_0213(src0orig, src1orig, src->prgb);
 
     // Const mask.
-    BLIT_C_CSPAN_SCANLINE_STEP2_CONST()
+    BLIT_CSPAN_SCANLINE_STEP2_CONST()
     {
       sysint_t i = w;
       FOG_ASSERT(w);
@@ -1318,7 +1318,7 @@ struct CompositeBaseFuncsC32
       }
     }
     // Variable mask.
-    BLIT_C_CSPAN_SCANLINE_STEP3_MASK()
+    BLIT_CSPAN_SCANLINE_STEP3_MASK()
     {
       sysint_t i = w;
       FOG_ASSERT(w);
@@ -1392,7 +1392,7 @@ struct CompositeBaseFuncsC32
         } while (--i);
       }
     }
-    BLIT_C_CSPAN_SCANLINE_STEP4_END()
+    BLIT_CSPAN_SCANLINE_STEP4_END()
   }
 
   static void FOG_FASTCALL xrgb32_vspan_prgb32(
@@ -1968,10 +1968,10 @@ skip:
     ByteUtil::byte1x2 src0orig, src1orig;
     ByteUtil::byte2x2_unpack_0213(src0orig, src1orig, srcp);
 
-    BLIT_C_CSPAN_SCANLINE_STEP1_BEGIN(4)
+    BLIT_CSPAN_SCANLINE_STEP1_BEGIN(4)
 
     // Const mask.
-    BLIT_C_CSPAN_SCANLINE_STEP2_CONST()
+    BLIT_CSPAN_SCANLINE_STEP2_CONST()
     {
       sysint_t i = w;
       FOG_ASSERT(w);
@@ -1996,7 +1996,7 @@ skip:
       }
     }
     // Variable mask.
-    BLIT_C_CSPAN_SCANLINE_STEP3_MASK()
+    BLIT_CSPAN_SCANLINE_STEP3_MASK()
     {
       sysint_t i = w;
       FOG_ASSERT(w);
@@ -2016,7 +2016,7 @@ skip:
         msk += 1;
       } while (--i);
     }
-    BLIT_C_CSPAN_SCANLINE_STEP4_END()
+    BLIT_CSPAN_SCANLINE_STEP4_END()
   }
 
   static void FOG_FASTCALL prgb32_vspan_prgb32_a8(
@@ -2333,10 +2333,10 @@ skip:
     ByteUtil::byte1x2 src0orig, src1orig;
     ByteUtil::byte2x2_unpack_0213(src0orig, src1orig, srcp);
 
-    BLIT_C_CSPAN_SCANLINE_STEP1_BEGIN(4)
+    BLIT_CSPAN_SCANLINE_STEP1_BEGIN(4)
 
     // Const mask.
-    BLIT_C_CSPAN_SCANLINE_STEP2_CONST()
+    BLIT_CSPAN_SCANLINE_STEP2_CONST()
     {
       sysint_t i = w;
       FOG_ASSERT(w);
@@ -2361,7 +2361,7 @@ skip:
       }
     }
     // Variable mask.
-    BLIT_C_CSPAN_SCANLINE_STEP3_MASK()
+    BLIT_CSPAN_SCANLINE_STEP3_MASK()
     {
       sysint_t i = w;
       FOG_ASSERT(w);
@@ -2382,7 +2382,7 @@ skip:
         msk += 1;
       } while (--i);
     }
-    BLIT_C_CSPAN_SCANLINE_STEP4_END()
+    BLIT_CSPAN_SCANLINE_STEP4_END()
   }
 
   static void FOG_FASTCALL xrgb32_vspan_prgb32_a8(
@@ -2819,10 +2819,10 @@ transSkip:
 
     if (ArgbUtil::isAlpha0xFF(srcp))
     {
-      BLIT_C_CSPAN_SCANLINE_STEP1_BEGIN(4)
+      BLIT_CSPAN_SCANLINE_STEP1_BEGIN(4)
 
       // Const mask.
-      BLIT_C_CSPAN_SCANLINE_STEP2_CONST()
+      BLIT_CSPAN_SCANLINE_STEP2_CONST()
       {
         sysint_t i = w;
         FOG_ASSERT(w);
@@ -2849,7 +2849,7 @@ transSkip:
         }
       }
       // Variable mask.
-      BLIT_C_CSPAN_SCANLINE_STEP3_MASK()
+      BLIT_CSPAN_SCANLINE_STEP3_MASK()
       {
         sysint_t i = w;
         FOG_ASSERT(w);
@@ -2869,14 +2869,14 @@ transSkip:
           msk += 1;
         } while (--i);
       }
-      BLIT_C_CSPAN_SCANLINE_STEP4_END()
+      BLIT_CSPAN_SCANLINE_STEP4_END()
     }
     else
     {
-      BLIT_C_CSPAN_SCANLINE_STEP1_BEGIN(4)
+      BLIT_CSPAN_SCANLINE_STEP1_BEGIN(4)
 
       // Const mask.
-      BLIT_C_CSPAN_SCANLINE_STEP2_CONST()
+      BLIT_CSPAN_SCANLINE_STEP2_CONST()
       {
         sysint_t i = w;
         FOG_ASSERT(w);
@@ -2893,7 +2893,7 @@ transSkip:
         } while (--i);
       }
       // Variable mask.
-      BLIT_C_CSPAN_SCANLINE_STEP3_MASK()
+      BLIT_CSPAN_SCANLINE_STEP3_MASK()
       {
         sysint_t i = w;
         FOG_ASSERT(w);
@@ -2912,7 +2912,7 @@ transSkip:
           msk += 1;
         } while (--i);
       }
-      BLIT_C_CSPAN_SCANLINE_STEP4_END()
+      BLIT_CSPAN_SCANLINE_STEP4_END()
     }
   }
 
@@ -3291,10 +3291,10 @@ transSkip:
 
     if (ArgbUtil::isAlpha0xFF(srcp))
     {
-      BLIT_C_CSPAN_SCANLINE_STEP1_BEGIN(4)
+      BLIT_CSPAN_SCANLINE_STEP1_BEGIN(4)
 
       // Const mask.
-      BLIT_C_CSPAN_SCANLINE_STEP2_CONST()
+      BLIT_CSPAN_SCANLINE_STEP2_CONST()
       {
         sysint_t i = w;
         FOG_ASSERT(w);
@@ -3321,7 +3321,7 @@ transSkip:
         }
       }
       // Variable mask.
-      BLIT_C_CSPAN_SCANLINE_STEP3_MASK()
+      BLIT_CSPAN_SCANLINE_STEP3_MASK()
       {
         sysint_t i = w;
         FOG_ASSERT(w);
@@ -3341,14 +3341,14 @@ transSkip:
           msk += 1;
         } while (--i);
       }
-      BLIT_C_CSPAN_SCANLINE_STEP4_END()
+      BLIT_CSPAN_SCANLINE_STEP4_END()
     }
     else
     {
-      BLIT_C_CSPAN_SCANLINE_STEP1_BEGIN(4)
+      BLIT_CSPAN_SCANLINE_STEP1_BEGIN(4)
 
       // Const mask.
-      BLIT_C_CSPAN_SCANLINE_STEP2_CONST()
+      BLIT_CSPAN_SCANLINE_STEP2_CONST()
       {
         sysint_t i = w;
         FOG_ASSERT(w);
@@ -3366,7 +3366,7 @@ transSkip:
         } while (--i);
       }
       // Variable mask.
-      BLIT_C_CSPAN_SCANLINE_STEP3_MASK()
+      BLIT_CSPAN_SCANLINE_STEP3_MASK()
       {
         sysint_t i = w;
         FOG_ASSERT(w);
@@ -3385,7 +3385,7 @@ transSkip:
           msk += 1;
         } while (--i);
       }
-      BLIT_C_CSPAN_SCANLINE_STEP4_END()
+      BLIT_CSPAN_SCANLINE_STEP4_END()
     }
   }
 

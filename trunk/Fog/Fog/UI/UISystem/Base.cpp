@@ -1243,15 +1243,20 @@ void BaseUIWindow::onMouseRelease(uint32_t button)
   e._button = button;
   e._modifiers = uiSystem->getKeyboardModifiers();
   e._position = uiSystem->_mouseStatus.position;
-  e._isOutside = (
+  e._isOutside = !(
     e._position.x >= 0 &&
     e._position.y >= 0 &&
     e._position.x < w->getWidth() &&
     e._position.y < w->getHeight());
   w->sendEvent(&e);
 
-  e._code = EV_CLICK;
-  w->sendEvent(&e);
+  // Send click event only if user did it (if mouse release is outside the 
+  // widget then used probably don't want to do the action).
+  if (!e._isOutside)
+  {
+    e._code = EV_CLICK;
+    w->sendEvent(&e);
+  }
 
   if (lastButtonRelease)
   {

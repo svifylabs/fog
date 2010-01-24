@@ -264,8 +264,11 @@
 //! @brief Expression in macro is expected to be false.
 //! @param exp Expression.
 
-//! @def FOG_ALIGN(n)
-//! @brief Aligns variable to @a n byte boundary
+//! @def FOG_ALIGN_BEGIN(n)
+//! @brief Aligns variable to @a n byte boundary (begin aligned variable declaration).
+
+//! @def FOG_ALIGN_END(n)
+//! @brief Aligns variable to @a n byte boundary (end of aligned variable declaration).
 
 //! @def FOG_API
 //! @brief Symbols with this attribute set on will be exported to dynamic symbols table.
@@ -301,7 +304,10 @@
 #define FOG_UNLIKELY(exp) (exp)
 
 #define FOG_UNUSED(a)
-#define FOG_ALIGN(__n__)
+#define FOG_ALIGN_BEGIN(__n__)
+#define FOG_ALIGN_END(__n__)
+#define FOG_ALIGNED_TYPE(__type__, __n__) __type__
+#define FOG_ALIGNED_VAR(__type__, __name__ __n__) __type__ __name__
 
 #define FOG_BEGIN_MACRO do {
 #define FOG_END_MACRO } while(0)
@@ -375,7 +381,10 @@
 #define FOG_UNUSED(a) (void)(a)
 
 // Align.
-#define FOG_ALIGN(__n__) __attribute__((aligned(__n__)))
+#define FOG_ALIGN_BEGIN(__n__)
+#define FOG_ALIGN_END(__n__) __attribute__((aligned(__n__)))
+#define FOG_ALIGNED_TYPE(__type__, __n__) __attribute__((aligned(__n__))) __type__
+#define FOG_ALIGNED_VAR(__type__, __name__, __n__) __type__ __attribute__((aligned(__n__))) __name__
 
 // Macro begin / end.
 #define FOG_BEGIN_MACRO ({
@@ -480,9 +489,15 @@
 
 // Align.
 #if defined(FOG_CC_MSVC)
-# define FOG_ALIGN(__n__) __declspec(align(__n__))
+# define FOG_ALIGN_BEGIN(__n__) __declspec(align(__n__))
+# define FOG_ALIGN_END(__n__)
+# define FOG_ALIGNED_TYPE(__type__, __n__) __declspec(align(__n__)) __type__
+# define FOG_ALIGNED_VAR(__type__, __name__, __n__) __declspec(align(__n__)) __type__ name
 #else // BORLAND
-# define FOG_ALIGN(__n__)
+# define FOG_ALIGN_BEGIN(__n__)
+# define FOG_ALIGN_END(__n__)
+# define FOG_ALIGNED_TYPE(__type__, __n__) __type__
+# define FOG_ALIGNED_VAR(__type__, __name__, __n__) __type__ name
 #endif
 
 // Macro begin / end.

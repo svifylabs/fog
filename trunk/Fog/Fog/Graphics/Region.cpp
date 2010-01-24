@@ -1619,14 +1619,9 @@ err_t Region::subtract(const Rect& r)
 err_t Region::subtract(const Box& r)
 {
   Data* td = _d;
-  err_t err = ERR_OK;
 
-  if (td->length == 0 || !r.isValid() || !td->extents.overlaps(r))
-    clear();
-  else
-    err = _subtractPrivate(this, td->rects, td->length, &r, 1, true);
-
-  return err;
+  if (td->length == 0 || !r.isValid() || !td->extents.overlaps(r)) return ERR_OK;
+  return _subtractPrivate(this, td->rects, td->length, &r, 1, true);
 }
 
 err_t Region::op(const Region& r, int _op)

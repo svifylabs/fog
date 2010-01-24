@@ -17,7 +17,6 @@ namespace RasterUtil {
 // [Fog::RasterUtil::C - Defines]
 // ============================================================================
 
-// TODO: Duplicated, move to different location which will be shared.
 #define READ_8(ptr)  (((const uint8_t *)(ptr))[0])
 #define READ_16(ptr) (((const uint16_t*)(ptr))[0])
 #define READ_32(ptr) (((const uint32_t*)(ptr))[0])
@@ -28,17 +27,17 @@ namespace RasterUtil {
 // is quite optimized so don't worry about it. You need only to create code
 // that will be added after:
 //
-//   BLIT_C_CSPAN_SCANLINE_STEP2_CONST and
-//   BLIT_C_CSPAN_SCANLINE_STEP3_MASK.
+//   BLIT_CSPAN_SCANLINE_STEP2_CONST and
+//   BLIT_CSPAN_SCANLINE_STEP3_MASK.
 //
 // Typical code looks like this:
 //
-//    BLIT_C_CSPAN_SCANLINE_STEP1_BEGIN(4)
+//    BLIT_CSPAN_SCANLINE_STEP1_BEGIN(4)
 //
 //    Initialize your code for filling, unpack pixels, etc...
 //
 //    // Const mask.
-//    BLIT_C_CSPAN_SCANLINE_STEP2_CONST()
+//    BLIT_CSPAN_SCANLINE_STEP2_CONST()
 //    {
 //      'dst'  - Destination pointer where to write pixels.
 //      'w'    - Count of pixels to write (width).
@@ -46,16 +45,16 @@ namespace RasterUtil {
 //               is 0xFF, never check for 0x00 - this never happens here).
 //    }
 //    // Variable mask.
-//    BLIT_C_CSPAN_SCANLINE_STEP3_MASK()
+//    BLIT_CSPAN_SCANLINE_STEP3_MASK()
 //    {
 //      'dst'  - Destination pointer where to write pixels.
 //      'w'    - Count of pixels to write (width).
 //      'msk'  - Pointer to mask array (A8 array). Omit checks for nulls and
 //               full opaque pixels here, this happens rarely.
 //    }
-//    BLIT_C_CSPAN_SCANLINE_STEP4_END()
+//    BLIT_CSPAN_SCANLINE_STEP4_END()
 
-#define BLIT_C_CSPAN_SCANLINE_STEP1_BEGIN(BPP) \
+#define BLIT_CSPAN_SCANLINE_STEP1_BEGIN(BPP) \
   const Scanline32::Span* span = spans; \
   uint8_t* dstBase = dst; \
   \
@@ -66,7 +65,7 @@ namespace RasterUtil {
     \
     dst = dstBase + (sysuint_t)x * BPP;
 
-#define BLIT_C_CSPAN_SCANLINE_STEP2_CONST() \
+#define BLIT_CSPAN_SCANLINE_STEP2_CONST() \
     if (FOG_UNLIKELY(w < 0)) \
     { \
       w = -w; \
@@ -74,7 +73,7 @@ namespace RasterUtil {
       \
       uint32_t msk0 = (uint32_t)*(span->covers);
 
-#define BLIT_C_CSPAN_SCANLINE_STEP3_MASK() \
+#define BLIT_CSPAN_SCANLINE_STEP3_MASK() \
       if (--numSpans == 0) break; \
       ++span; \
     } \
@@ -84,7 +83,7 @@ namespace RasterUtil {
       \
       const uint8_t* msk = span->covers;
 
-#define BLIT_C_CSPAN_SCANLINE_STEP4_END() \
+#define BLIT_CSPAN_SCANLINE_STEP4_END() \
       if (--numSpans == 0) break; \
       ++span; \
     } \

@@ -17,7 +17,7 @@
 
 namespace Fog {
 
-union FOG_ALIGN(8) mm3dnow_t
+union FOG_ALIGNED_TYPE(mm3dnow_t, 8)
 {
   __m64     m64;
   int64_t   sq[1];

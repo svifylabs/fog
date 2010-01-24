@@ -151,7 +151,7 @@ struct FOG_API Pattern
   // [Matrix]
   // --------------------------------------------------------------------------
 
-  FOG_INLINE const Matrix& getMatrix() const { return _d->matrix; }
+  FOG_INLINE Matrix getMatrix() const { return _d->matrix; }
   err_t setMatrix(const Matrix& matrix);
   err_t resetMatrix();
 
@@ -165,8 +165,8 @@ struct FOG_API Pattern
   // [Start Point / End Point]
   // --------------------------------------------------------------------------
 
-  FOG_INLINE const PointD& getStartPoint() const { return _d->points[0]; }
-  FOG_INLINE const PointD& getEndPoint() const { return _d->points[1]; }
+  FOG_INLINE PointD getStartPoint() const { return _d->points[0]; }
+  FOG_INLINE PointD getEndPoint() const { return _d->points[1]; }
 
   err_t setStartPoint(const Point& pt);
   err_t setStartPoint(const PointD& pt);

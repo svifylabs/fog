@@ -1318,7 +1318,7 @@ struct Box
   static FOG_INLINE bool intersect(Box& dest, const Box& src1, const Box& src2)
   {
 #if defined(FOG_HARDCODE_SSE2)
-    static const uint32_t FOG_ALIGN(16) c0[4] = { 0x00000000, 0x00000000, 0xFFFFFFFF, 0xFFFFFFFF };
+    static const FOG_ALIGNED_VAR(uint32_t, c0[4], 16) = { 0x00000000, 0x00000000, 0xFFFFFFFF, 0xFFFFFFFF };
 
     __m128i xmm0 = _mm_loadu_si128((__m128i *)(&src1));
     __m128i xmm1 = _mm_loadu_si128((__m128i *)(&src2));

@@ -408,34 +408,34 @@ struct FOG_API Object
 
   //! @brief Adds @c a Fog::Object* based function listener @a fn.
   template<class X, class Y, class Z>
-  FOG_INLINE bool addListener(uint32_t code, Y *target, void (X::*fn)(Z*))
+  FOG_INLINE bool addListener(uint32_t code, Y* target, void (X::*fn)(Z*))
   {
     Delegate1<Z*> del(target, fn);
-    return _addListener(code, target, (const void*)&del, DELEGATE_EVENT);
+    return _addListener(code, target, (const void*)&del, (uint32_t)DELEGATE_EVENT);
   }
 
   //! @overload
   template<class X, class Y>
-  FOG_INLINE bool addListener(uint32_t code, Y *target, void (X::*fn)())
+  FOG_INLINE bool addListener(uint32_t code, Y* target, void (X::*fn)())
   {
     Delegate0<> del(target, fn);
-    return _addListener(code, target, (const void*)&del, DELEGATE_VOID);
+    return _addListener(code, target, (const void*)&del, (uint32_t)DELEGATE_VOID);
   }
 
   //! @brief Removes a @c Fog::Object* based function listener @a fn.
   template<class X, class Y, class Z>
-  FOG_INLINE bool removeListener(uint32_t code, Y *target, void (X::*fn)(Z*))
+  FOG_INLINE bool removeListener(uint32_t code, Y* target, void (X::*fn)(Z*))
   {
     Delegate1<Z*> del(target, fn);
-    return _removeListener(code, target, (const void*)&del, DELEGATE_EVENT);
+    return _removeListener(code, target, (const void*)&del, (uint32_t)DELEGATE_EVENT);
   }
 
   //! @brief Removes a @c Fog::Object* based function listener @a fn.
   template<class X, class Y>
-  FOG_INLINE bool removeListener(uint32_t code, Y *target, void (X::*fn)())
+  FOG_INLINE bool removeListener(uint32_t code, Y* target, void (X::*fn)())
   {
     Delegate0<> del(target, fn);
-    return _removeListener(code, target, (const void*)&del, DELEGATE_VOID);
+    return _removeListener(code, target, (const void*)&del, (uint32_t)DELEGATE_VOID);
   }
 
   uint removeListener(Object* receiver);

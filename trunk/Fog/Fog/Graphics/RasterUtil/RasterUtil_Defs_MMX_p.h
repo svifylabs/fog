@@ -17,27 +17,22 @@ namespace RasterUtil {
 // [Fog::RasterUtil::MMX - Defines]
 // ============================================================================
 
-// TODO: Duplicated, move to different location which will be shared.
-#define READ_8(ptr)  (((const uint8_t *)(ptr))[0])
-#define READ_16(ptr) (((const uint16_t*)(ptr))[0])
-#define READ_32(ptr) (((const uint32_t*)(ptr))[0])
-
 // ============================================================================
 // [Fog::RasterUtil::MMX - Constants]
 // ============================================================================
 
 // RGB16 masks
-static __m64 Mask_0000F8000000F800;
-static __m64 Mask_0000E0000000E000;
-static __m64 Mask_00007C0000007C00;
-static __m64 Mask_00001F0000001F00;
-static __m64 Mask_000007E0000007E0;
-static __m64 Mask_000003E0000003E0;
-static __m64 Mask_000000F8000000F8;
-static __m64 Mask_0000007C0000007C;
-static __m64 Mask_0000001F0000001F;
-static __m64 Mask_0000000700000007;
-static __m64 Mask_0000000300000003;
+static __m64 SSE2_GET_CONST_PI(0000F8000000F800);
+static __m64 SSE2_GET_CONST_PI(0000E0000000E000);
+static __m64 SSE2_GET_CONST_PI(00007C0000007C00);
+static __m64 SSE2_GET_CONST_PI(00001F0000001F00);
+static __m64 SSE2_GET_CONST_PI(000007E0000007E0);
+static __m64 SSE2_GET_CONST_PI(000003E0000003E0);
+static __m64 SSE2_GET_CONST_PI(000000F8000000F8);
+static __m64 SSE2_GET_CONST_PI(0000007C0000007C);
+static __m64 SSE2_GET_CONST_PI(0000001F0000001F);
+static __m64 SSE2_GET_CONST_PI(0000000700000007);
+static __m64 SSE2_GET_CONST_PI(0000000300000003);
 
 // ============================================================================
 // [Fog::RasterUtil::MMX - Helpers]

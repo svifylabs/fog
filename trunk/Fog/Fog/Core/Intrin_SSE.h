@@ -14,12 +14,12 @@
 // MinGW workaround
 #if defined(__MINGW32__)
 // I can't understand why MinGW will not align data that uses FOG_ALIGN(16) attribute!
-#define FOG_DECLARE_ALIGNED_VARIABLE(type, name, align) \
+#define FOG_ALIGNED_VAR_(type, name, align) \
   int8_t name##_storage[sizeof(type) + align]; \
   type& name = *( (type *)(void *)( ((sysuint_t)(name##_storage) + align - 1) & ~(align - 1) ) )
 #else
-#define FOG_DECLARE_ALIGNED_VARIABLE(type, name, align) \
-  type FOG_ALIGN(align) name
+#define FOG_ALIGNED_VAR_(type, name, align) \
+  FOG_ALIGNED_VAR(type, name, align)
 #endif
 
 // [Guard]
