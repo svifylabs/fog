@@ -29,12 +29,12 @@ void draw3dRect(Painter* p, const Rect& r, Argb color1, Argb color2, bool checke
   p->setLineCaps(LINE_CAP_SQUARE);
 
   p->setSource(checked ? color2 : color1);
-  p->drawLine(PointD((double)x1   , (double)y1   ), PointD((double)x2   , (double)y1   ));
-  p->drawLine(PointD((double)x1   , (double)y1+1.), PointD((double)x1   , (double)y2-1.));
+  p->drawLine(PointD(x1   , y1    ), PointD(x2   , y1    ));
+  p->drawLine(PointD(x1   , y1+1.0), PointD(x1   , y2-1.0));
 
   p->setSource(checked ? color1 : color2);
-  p->drawLine(PointD((double)x2   , (double)y1+1.), PointD((double)x2   , (double)y2-1.));
-  p->drawLine(PointD((double)x1   , (double)y2   ), PointD((double)x2   , (double)y2   ));
+  p->drawLine(PointD(x2   , y1+1.0), PointD(x2   , y2-1.0));
+  p->drawLine(PointD(x1   , y2    ), PointD(x2   , y2    ));
 
   p->restore();
 }

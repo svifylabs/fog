@@ -18,7 +18,7 @@ namespace Fog {
 
 //! @brief MMX data type that can be used to store / load data to / from
 //! mm register.
-union FOG_ALIGN(8) mmx_t
+union FOG_ALIGNED_TYPE(mmx_t, 8)
 {
   __m64     m64;
   int64_t   sq[1];

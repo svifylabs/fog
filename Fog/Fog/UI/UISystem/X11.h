@@ -41,6 +41,12 @@ struct FOG_UISYSTEM_X11_API X11UISystem : public BaseUISystem
   FOG_DECLARE_OBJECT(X11UISystem, BaseUISystem)
 
   // --------------------------------------------------------------------------
+  // [Registration]
+  // --------------------------------------------------------------------------
+
+  static void registerUISystem();
+
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
   // --------------------------------------------------------------------------
 
@@ -171,11 +177,12 @@ struct FOG_UISYSTEM_X11_API X11UISystem : public BaseUISystem
     Atom_Count
   };
 
-  Atom _atoms[Atom_Count];
+  XAtom _atoms[Atom_Count];
+  const char** _atomNames;
 
-  FOG_INLINE Atom* getAtoms(void) const { return (Atom*)_atoms; }
+  FOG_INLINE XAtom* getAtoms(void) const { return (XAtom*)_atoms; }
 
-  FOG_INLINE Atom getAtom(int index) const
+  FOG_INLINE XAtom getAtom(int index) const
   {
     FOG_ASSERT(index < Atom_Count);
     return _atoms[index];
@@ -185,7 +192,7 @@ struct FOG_UISYSTEM_X11_API X11UISystem : public BaseUISystem
   // [X11 Driver]
   // --------------------------------------------------------------------------
 
-  Display* _display;
+  XDisplay* _display;
   int _fd;
   int _screen;
   XVisual* _visual;
@@ -201,7 +208,7 @@ struct FOG_UISYSTEM_X11_API X11UISystem : public BaseUISystem
 
   XIM _xim;
 
-  FOG_INLINE Display* getDisplay(void) const { return _display; }
+  FOG_INLINE XDisplay* getDisplay(void) const { return _display; }
   FOG_INLINE int getFd(void) const { return _fd; }
   FOG_INLINE int getScreen(void) const { return _screen; }
   FOG_INLINE XVisual* getVisual(void) const { return _visual; }
@@ -273,107 +280,107 @@ struct FOG_UISYSTEM_X11_API X11UISystem : public BaseUISystem
       XBool (*pXSupportsLocale)(void);
       char* (*pXSetLocaleModifiers)(const char* /* modifierList */);
 
-      Display* (*pXOpenDisplay)(const char*);
-      int (*pXCloseDisplay)(Display*);
+      XDisplay* (*pXOpenDisplay)(const char*);
+      int (*pXCloseDisplay)(XDisplay*);
 
       XErrorHandler (*pXSetErrorHandler)(XErrorHandler /* func */);
       XIOErrorHandler (*pXSetIOErrorHandler)(XIOErrorHandler /* func */);
-      int (*pXGetErrorText)(Display*, int /* code */, char* /* bufferReturn */, int /* bufferLength */);
+      int (*pXGetErrorText)(XDisplay*, int /* code */, char* /* bufferReturn */, int /* bufferLength */);
 
-      Atom (*pXInternAtom)(Display*, const char* /* atomName */, XBool /* onlyIfExists */);
-      XStatus (*pXInternAtoms)(Display*, char** /* names */, int /* count */, XBool /* onlyIfExists */, Atom* /* atomsReturn */);
+      XAtom (*pXInternAtom)(XDisplay*, const char* /* atomName */, XBool /* onlyIfExists */);
+      XStatus (*pXInternAtoms)(XDisplay*, char** /* names */, int /* count */, XBool /* onlyIfExists */, XAtom* /* atomsReturn */);
 
-      XID (*pXRootWindow)(Display*, int /* screenNumber */);
-      int (*pXDisplayWidth)(Display*, int /* screenNumber */);
-      int (*pXDisplayHeight)(Display*, int /* screenNumber */);
-      int (*pXDefaultScreen)(Display*);
-      XVisual* (*pXDefaultVisual)(Display*, int /* screenNumber */);
-      XColormap (*pXDefaultColormap)(Display*, int /* screenNumber */);
-      int (*pXDefaultDepth)(Display*, int /* screenNumber */);
+      XID (*pXRootWindow)(XDisplay*, int /* screenNumber */);
+      int (*pXDisplayWidth)(XDisplay*, int /* screenNumber */);
+      int (*pXDisplayHeight)(XDisplay*, int /* screenNumber */);
+      int (*pXDefaultScreen)(XDisplay*);
+      XVisual* (*pXDefaultVisual)(XDisplay*, int /* screenNumber */);
+      XColormap (*pXDefaultColormap)(XDisplay*, int /* screenNumber */);
+      int (*pXDefaultDepth)(XDisplay*, int /* screenNumber */);
 
-      int (*pXPending)(Display*);
-      int (*pXNextEvent)(Display*, XEvent* /* xEvent */);
-      XBool (*pXCheckTypedEvent)(Display*, int /* eventType */, XEvent* /* eventReturn */);
-      XBool (*pXCheckTypedWindowEvent)(Display*, XID /* window */, int /* eventType */, XEvent* /* eventReturn */);
-      XBool (*pXCheckWindowEvent)(Display*, XID /* window */, long /* eventMask */, XEvent* /* eventReturn */);
+      int (*pXPending)(XDisplay*);
+      int (*pXNextEvent)(XDisplay*, XEvent* /* xEvent */);
+      XBool (*pXCheckTypedEvent)(XDisplay*, int /* eventType */, XEvent* /* eventReturn */);
+      XBool (*pXCheckTypedWindowEvent)(XDisplay*, XID /* window */, int /* eventType */, XEvent* /* eventReturn */);
+      XBool (*pXCheckWindowEvent)(XDisplay*, XID /* window */, long /* eventMask */, XEvent* /* eventReturn */);
 
-      XIM (*pXOpenIM)(Display*, void* /* rdb */, char* /* resName */, char* /* resClass */);
+      XIM (*pXOpenIM)(XDisplay*, void* /* rdb */, char* /* resName */, char* /* resClass */);
       XStatus (*pXCloseIM)(XIM /* im */);
 
       XIC (*pXCreateIC)(XIM /* im */, ...);
       void (*pXDestroyIC)(XIC /* ic */);
       int (*pXRefreshKeyboardMapping)(XMappingEvent* /* eventMap */);
 
-      XID (*pXCreateWindow)(Display*, XID /* parent */, int /* x */, int /* y */, uint /* width */, uint /* height */, uint /* boderWidth */, int /* depth */, uint /* class */, XVisual* /* visual */, ulong /* valueMask */, XSetWindowAttributes* /* attributes */);
-      int (*pXDestroyWindow)(Display*, XID /* window */);
-      int (*pXMoveWindow)(Display*, XID /* window */, int /* x */, int /* y */);
-      int (*pXResizeWindow)(Display*, XID /* window */, uint /* w */, uint /* h */);
-      int (*pXMoveResizeWindow)(Display*, XID /* window */, int /* x */, int /* y */, uint /* w */, uint /* h */);
-      int (*pXMapWindow)(Display*, XID /* window */);
-      int (*pXUnmapWindow)(Display*, XID /* window */);
-      int (*pXRaiseWindow)(Display*, XID /* window */);
-      int (*pXLowerWindow)(Display*, XID /* window */);
-      int (*pXReparentWindow)(Display*, XID /* window */, XID /* parent */, int /* x */, int /* y */);
-      int (*pXChangeWindowAttributes)(Display*, XID /* window */, ulong /* valueMask */, XSetWindowAttributes* /* attributes */);
-      XStatus (*pXGetWindowAttributes)(Display*, XID /* window */, XWindowAttributes* /* attributesReturns */);
+      XID (*pXCreateWindow)(XDisplay*, XID /* parent */, int /* x */, int /* y */, uint /* width */, uint /* height */, uint /* boderWidth */, int /* depth */, uint /* class */, XVisual* /* visual */, ulong /* valueMask */, XSetWindowAttributes* /* attributes */);
+      int (*pXDestroyWindow)(XDisplay*, XID /* window */);
+      int (*pXMoveWindow)(XDisplay*, XID /* window */, int /* x */, int /* y */);
+      int (*pXResizeWindow)(XDisplay*, XID /* window */, uint /* w */, uint /* h */);
+      int (*pXMoveResizeWindow)(XDisplay*, XID /* window */, int /* x */, int /* y */, uint /* w */, uint /* h */);
+      int (*pXMapWindow)(XDisplay*, XID /* window */);
+      int (*pXUnmapWindow)(XDisplay*, XID /* window */);
+      int (*pXRaiseWindow)(XDisplay*, XID /* window */);
+      int (*pXLowerWindow)(XDisplay*, XID /* window */);
+      int (*pXReparentWindow)(XDisplay*, XID /* window */, XID /* parent */, int /* x */, int /* y */);
+      int (*pXChangeWindowAttributes)(XDisplay*, XID /* window */, ulong /* valueMask */, XSetWindowAttributes* /* attributes */);
+      XStatus (*pXGetWindowAttributes)(XDisplay*, XID /* window */, XWindowAttributes* /* attributesReturns */);
 
-      int (*pXSetInputFocus)(Display*, XID /* window */, int /* revert_to */, XTime /* time */);
-      int (*pXGetInputFocus)(Display*, XID* /* window_return */, int* /* revert_to_return */);
+      int (*pXSetInputFocus)(XDisplay*, XID /* window */, int /* revert_to */, XTime /* time */);
+      int (*pXGetInputFocus)(XDisplay*, XID* /* window_return */, int* /* revert_to_return */);
 
-      int (*pXSelectInput)(Display* , XID /* window */, long /* event mask */);
-      int (*pXSetNormalHints)(Display*, XID /* window */, XSizeHints* /* hints */);
+      int (*pXSelectInput)(XDisplay* , XID /* window */, long /* event mask */);
+      int (*pXSetNormalHints)(XDisplay*, XID /* window */, XSizeHints* /* hints */);
 
-      int (*pXSetWMProtocols)(Display*, XID /* window */, Atom* /* protocols */, int /* count */);
-      int (*pXGetWMProtocols)(Display*, XID /* window */, Atom** /* protocolsReturn */, int* /* countReturn */);
+      int (*pXSetWMProtocols)(XDisplay*, XID /* window */, XAtom* /* protocols */, int /* count */);
+      int (*pXGetWMProtocols)(XDisplay*, XID /* window */, XAtom** /* protocolsReturn */, int* /* countReturn */);
 
-      int (*pXSetWMProperties)(Display*, XID /* window */, XTextProperty* /* window_name*/, XTextProperty* icon_name, char** /* argv */, int /* argc */, XSizeHints* /* normal_hints*/, XWMHints* /* wm_hints */, XClassHint* /* class_hints */);
+      int (*pXSetWMProperties)(XDisplay*, XID /* window */, XTextProperty* /* window_name*/, XTextProperty* icon_name, char** /* argv */, int /* argc */, XSizeHints* /* normal_hints*/, XWMHints* /* wm_hints */, XClassHint* /* class_hints */);
 
-      int (*pXTranslateCoordinates)(Display*, XWindow /* src_w */, XWindow /* dest_w */, int /* src_x */, int /* src_y */, int* /* dest_x_return */, int* /* dest_y_return */, XWindow* /* child_return */);
-      int (*pXwcTextListToTextProperty)(Display*, wchar_t** /* list */, int /* count */, XICCEncodingStyle /* style */, XTextProperty* /* textPropertyReturn */);
+      int (*pXTranslateCoordinates)(XDisplay*, XWindow /* src_w */, XWindow /* dest_w */, int /* src_x */, int /* src_y */, int* /* dest_x_return */, int* /* dest_y_return */, XWindow* /* child_return */);
+      int (*pXwcTextListToTextProperty)(XDisplay*, wchar_t** /* list */, int /* count */, XICCEncodingStyle /* style */, XTextProperty* /* textPropertyReturn */);
 
-      int (*pXFlush)(Display*);
-      int (*pXSync)(Display*, XBool /* discard */);
+      int (*pXFlush)(XDisplay*);
+      int (*pXSync)(XDisplay*, XBool /* discard */);
 
-      GC (*pXCreateGC)(Display*, XID /* drawable */, ulong /* valueMask */, XGCValues* /* values */);
-      int (*pXFreeGC)(Display*, GC /* gc */);
+      GC (*pXCreateGC)(XDisplay*, XID /* drawable */, ulong /* valueMask */, XGCValues* /* values */);
+      int (*pXFreeGC)(XDisplay*, GC /* gc */);
 
-      KeySym (*pXKeycodeToKeysym)(Display*, uint /* keyCode */, int /* index */);
+      KeySym (*pXKeycodeToKeysym)(XDisplay*, uint /* keyCode */, int /* index */);
 
       int (*pXLookupString)(XKeyEvent* /* event */, char* /* bufferReturn */, int /* bufferLength */, KeySym* /* keySymReturn */, XComposeStatus* /* statusInOut */);
       int (*pXwcLookupString)(XIC /* ic */, XKeyPressedEvent* /* event */, wchar_t* /* bufferReturn*/, int /* wcharsBuffer */, KeySym* /* keysymReturn */, XStatus* /* statusReturn */);
 
-      int (*pXGrabPointer)(Display*, XID /* grabWindow */, XBool /* ownerEvents */, uint /* eventMask */, int /* pointerMode */, int /* keyboardMode */, XID /* confineTo */, Cursor /* cursor */, XTime /* time */);
-      int (*pXUngrabPointer)(Display*, XTime /* time */);
+      int (*pXGrabPointer)(XDisplay*, XID /* grabWindow */, XBool /* ownerEvents */, uint /* eventMask */, int /* pointerMode */, int /* keyboardMode */, XID /* confineTo */, Cursor /* cursor */, XTime /* time */);
+      int (*pXUngrabPointer)(XDisplay*, XTime /* time */);
 
-      int (*pXGetPointerMapping)(Display*, uchar* /* map_return*/, int /* namp*/);
+      int (*pXGetPointerMapping)(XDisplay*, uchar* /* map_return*/, int /* namp*/);
 
-      XID (*pXCreatePixmap)(Display*, XID /* drawable */, uint /* width */, uint /* height */, uint /* depth */);
-      int (*pXFreePixmap)(Display*, XID /* pixmap */);
-      int (*pXCopyArea)(Display*, Drawable /* src*/, XID /* dest*/, GC /* gc */, int /* srcX */, int /* srcY */, uint /* width */, uint /* height */, int /* destX */, int /* destY */);
+      XID (*pXCreatePixmap)(XDisplay*, XID /* drawable */, uint /* width */, uint /* height */, uint /* depth */);
+      int (*pXFreePixmap)(XDisplay*, XID /* pixmap */);
+      int (*pXCopyArea)(XDisplay*, Drawable /* src*/, XID /* dest*/, GC /* gc */, int /* srcX */, int /* srcY */, uint /* width */, uint /* height */, int /* destX */, int /* destY */);
       int (*pXFree)(void* /* data */);
 
-      XImage* (*pXCreateImage)(Display*, XVisual* /* visual */, uint /* depth */, int /* format */, int /* offset */, char* /* data */, uint /* width */, uint /* height */, int /* bitmapPad */, int /* bytesPerLine */);
+      XImage* (*pXCreateImage)(XDisplay*, XVisual* /* visual */, uint /* depth */, int /* format */, int /* offset */, char* /* data */, uint /* width */, uint /* height */, int /* bitmapPad */, int /* bytesPerLine */);
       int (*pXDestroyImage)(XImage* /* image */);
-      int (*pXPutImage)(Display*, XID /* drawable */, GC /* gc */, XImage* /* xImage */, int /* srcX */, int /* srcY */, int /* destX */, int /* destY */, uint /* width */, uint /* height */);
+      int (*pXPutImage)(XDisplay*, XID /* drawable */, GC /* gc */, XImage* /* xImage */, int /* srcX */, int /* srcY */, int /* destX */, int /* destY */, uint /* width */, uint /* height */);
 
-      XColormap (*pXCreateColormap)(Display*, XID /* window */, XVisual* /* visual */, int /* alloc */);
-      int (*pXFreeColormap)(Display*, XColormap /* colormap */);
+      XColormap (*pXCreateColormap)(XDisplay*, XID /* window */, XVisual* /* visual */, int /* alloc */);
+      int (*pXFreeColormap)(XDisplay*, XColormap /* colormap */);
 
-      XStatus (*pXAllocColor)(Display*, XColormap, XColor* /* screen_in_out */);
-      int (*pXFreeColors)(Display*, XColormap, ulong* /* pixels */, int /* npixels */, ulong /* planes*/);
+      XStatus (*pXAllocColor)(XDisplay*, XColormap, XColor* /* screen_in_out */);
+      int (*pXFreeColors)(XDisplay*, XColormap, ulong* /* pixels */, int /* npixels */, ulong /* planes*/);
 
-      XStatus (*pXMatchVisualInfo)(Display*, int /* screen */, int /* depth */, int /* class */, XVisualInfo* /* vinfo_return */);
+      XStatus (*pXMatchVisualInfo)(XDisplay*, int /* screen */, int /* depth */, int /* class */, XVisualInfo* /* vinfo_return */);
 
       // present in Xutil.h
-      void (*pXSetWMName)(Display*, XID /* window */, XTextProperty* /* textProperty */);
+      void (*pXSetWMName)(XDisplay*, XID /* window */, XTextProperty* /* textProperty */);
 
-      XStatus (*pXSendEvent)(Display*, XID /* window */, XBool, long, XEvent*);
-      void (*pXChangeProperty)(Display*, XID /*window */, Atom, Atom, int, int, unsigned char*, int);
-      void (*pXSetSelectionOwner)(Display*, Atom, XWindow, XTime);
-      char* (*pXGetAtomName)(Display*, Atom);
-      void (*pXConvertSelection)(Display*, Atom, Atom, Atom, XWindow, XTime);
-      int (*pXGetWindowProperty)(Display*, XWindow, Atom, long, long, XBool, Atom, Atom*, int*, unsigned long*, unsigned long*, unsigned char**);
-      void (*pXDeleteProperty)(Display*, XWindow, Atom);
+      XStatus (*pXSendEvent)(XDisplay*, XID /* window */, XBool, long, XEvent*);
+      void (*pXChangeProperty)(XDisplay*, XID /*window */, XAtom, XAtom, int, int, unsigned char*, int);
+      void (*pXSetSelectionOwner)(XDisplay*, XAtom, XWindow, XTime);
+      char* (*pXGetAtomName)(XDisplay*, XAtom);
+      void (*pXConvertSelection)(XDisplay*, XAtom, XAtom, XAtom, XWindow, XTime);
+      int (*pXGetWindowProperty)(XDisplay*, XWindow, XAtom, long, long, XBool, XAtom, XAtom*, int*, unsigned long*, unsigned long*, unsigned char**);
+      void (*pXDeleteProperty)(XDisplay*, XWindow, XAtom);
     };
 
     // Function pointers for loader
@@ -384,11 +391,11 @@ struct FOG_UISYSTEM_X11_API X11UISystem : public BaseUISystem
   {
     struct
     {
-      XBool (*pXShmQueryVersion)(Display*, int* /* majorVersion */, int* /* minorVersion */, XBool* /* sharedPixmaps */);
-      XStatus (*pXShmAttach)(Display*, XShmSegmentInfo* /* shmInfo */);
-      XStatus (*pXShmDetach)(Display*, XShmSegmentInfo* /* shmInfo */);
-      XImage* (*pXShmCreateImage)(Display*, XVisual* /* visual */, uint /* depth */, int /* format */, char* /* data */, XShmSegmentInfo* /* shmInfo */, uint /* width */, uint /* height */);
-      Pixmap (*pXShmCreatePixmap)(Display*, XID /* drawable */, char* /* data */, XShmSegmentInfo* /* shmInfo */, uint /* width */, uint /* height */, uint /* depth */);
+      XBool (*pXShmQueryVersion)(XDisplay*, int* /* majorVersion */, int* /* minorVersion */, XBool* /* sharedPixmaps */);
+      XStatus (*pXShmAttach)(XDisplay*, XShmSegmentInfo* /* shmInfo */);
+      XStatus (*pXShmDetach)(XDisplay*, XShmSegmentInfo* /* shmInfo */);
+      XImage* (*pXShmCreateImage)(XDisplay*, XVisual* /* visual */, uint /* depth */, int /* format */, char* /* data */, XShmSegmentInfo* /* shmInfo */, uint /* width */, uint /* height */);
+      Pixmap (*pXShmCreatePixmap)(XDisplay*, XID /* drawable */, char* /* data */, XShmSegmentInfo* /* shmInfo */, uint /* width */, uint /* height */, uint /* depth */);
     };
 
     // Function pointers for loader
@@ -399,19 +406,19 @@ struct FOG_UISYSTEM_X11_API X11UISystem : public BaseUISystem
   {
     struct
     {
-      XStatus (*pXRenderQueryVersion)(Display*, int* /* major */, int * /* minor */);
-      XStatus (*pXRenderQueryFormats)(Display*);
-      int (*pXRenderQuerySubpixelOrder)(Display*, int /* screen */);
-      XBool (*pXRenderSetSubpixelOrder)(Display*, int /* screen */, int /* subpixel */);
-      XRenderPictFormat* (*pXRenderFindVisualFormat)(Display*, _Xconst XVisual* visual);
-      XRenderPictFormat* (*pXRenderFindFormat)(Display*, unsigned long /* mask */, _Xconst XRenderPictFormat* /* templ */, int /* count */);
-      XRenderPictFormat* (*pXRenderFindStandardFormat)(Display*, int /* format */);
-      XPicture (*pXRenderCreatePicture)(Display*, XID /* drawable */, _Xconst XRenderPictFormat* /* format */, unsigned long /* valuemask */, _Xconst XRenderPictureAttributes* /* attributes */);
-      void (*pXRenderChangePicture)(Display*, XPicture /* picture */, unsigned long /* valuemask */, _Xconst XRenderPictureAttributes* /* attributes */);
-      void (*pXRenderSetPictureTransform)(Display*, XPicture /* picture */, XTransform* /* transform */);
-      void (*pXRenderFreePicture)(Display*, XPicture /* picture*/);
-      void (*pXRenderComposite)(Display*, int /* op */, XPicture /* src */, XPicture /* mask */, XPicture /* dest */, int /* srcX */, int /* srcY */, int /* maskX */, int /* maskY */, int /* destX */, int /* destY */, unsigned int /* width */, unsigned int /* height */);
-      Cursor (*pXRenderCreateCursor)(Display*, XPicture /* source */, unsigned int /* x */, unsigned int /* y */);
+      XStatus (*pXRenderQueryVersion)(XDisplay*, int* /* major */, int * /* minor */);
+      XStatus (*pXRenderQueryFormats)(XDisplay*);
+      int (*pXRenderQuerySubpixelOrder)(XDisplay*, int /* screen */);
+      XBool (*pXRenderSetSubpixelOrder)(XDisplay*, int /* screen */, int /* subpixel */);
+      XRenderPictFormat* (*pXRenderFindVisualFormat)(XDisplay*, _Xconst XVisual* visual);
+      XRenderPictFormat* (*pXRenderFindFormat)(XDisplay*, unsigned long /* mask */, _Xconst XRenderPictFormat* /* templ */, int /* count */);
+      XRenderPictFormat* (*pXRenderFindStandardFormat)(XDisplay*, int /* format */);
+      XPicture (*pXRenderCreatePicture)(XDisplay*, XID /* drawable */, _Xconst XRenderPictFormat* /* format */, unsigned long /* valuemask */, _Xconst XRenderPictureAttributes* /* attributes */);
+      void (*pXRenderChangePicture)(XDisplay*, XPicture /* picture */, unsigned long /* valuemask */, _Xconst XRenderPictureAttributes* /* attributes */);
+      void (*pXRenderSetPictureTransform)(XDisplay*, XPicture /* picture */, XTransform* /* transform */);
+      void (*pXRenderFreePicture)(XDisplay*, XPicture /* picture*/);
+      void (*pXRenderComposite)(XDisplay*, int /* op */, XPicture /* src */, XPicture /* mask */, XPicture /* dest */, int /* srcX */, int /* srcY */, int /* maskX */, int /* maskY */, int /* destX */, int /* destY */, unsigned int /* width */, unsigned int /* height */);
+      Cursor (*pXRenderCreateCursor)(XDisplay*, XPicture /* source */, unsigned int /* x */, unsigned int /* y */);
     };
 
     // Function pointers for loader

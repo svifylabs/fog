@@ -56,14 +56,14 @@ struct FOG_HIDDEN DibSSE2
 
           _mm_prefetch((const char*)(src + 64), _MM_HINT_T0);
 
-          pix_load16a(src0mm, src + 0);
-          pix_load16a(src1mm, src + 16);
-          pix_load16a(src2mm, src + 32);
-          pix_load16a(src3mm, src + 48);
-          pix_store16a(dst + 0, src0mm);
-          pix_store16a(dst + 16, src1mm);
-          pix_store16a(dst + 32, src2mm);
-          pix_store16a(dst + 48, src3mm);
+          sse2_load16a(src0mm, src + 0);
+          sse2_load16a(src1mm, src + 16);
+          sse2_load16a(src2mm, src + 32);
+          sse2_load16a(src3mm, src + 48);
+          sse2_store16a(dst + 0, src0mm);
+          sse2_store16a(dst + 16, src1mm);
+          sse2_store16a(dst + 32, src2mm);
+          sse2_store16a(dst + 48, src3mm);
 
           dst += 64;
           src += 64;
@@ -80,14 +80,14 @@ struct FOG_HIDDEN DibSSE2
 
           _mm_prefetch((const char*)(src + 64), _MM_HINT_T0);
 
-          pix_load16u(src0mm, src + 0);
-          pix_load16u(src1mm, src + 16);
-          pix_load16u(src2mm, src + 32);
-          pix_load16u(src3mm, src + 48);
-          pix_store16a(dst + 0, src0mm);
-          pix_store16a(dst + 16, src1mm);
-          pix_store16a(dst + 32, src2mm);
-          pix_store16a(dst + 48, src3mm);
+          sse2_load16u(src0mm, src + 0);
+          sse2_load16u(src1mm, src + 16);
+          sse2_load16u(src2mm, src + 32);
+          sse2_load16u(src3mm, src + 48);
+          sse2_store16a(dst + 0, src0mm);
+          sse2_store16a(dst + 16, src1mm);
+          sse2_store16a(dst + 32, src2mm);
+          sse2_store16a(dst + 48, src3mm);
 
           dst += 64;
           src += 64;
@@ -158,14 +158,14 @@ struct FOG_HIDDEN DibSSE2
 
         _mm_prefetch((const char*)(src + 64), _MM_HINT_T0);
 
-        pix_load16u(src0mm, src + 0);
-        pix_load16u(src1mm, src + 16);
-        pix_load16u(src2mm, src + 32);
-        pix_load16u(src3mm, src + 48);
-        pix_store16a(dst + 0, src0mm);
-        pix_store16a(dst + 16, src1mm);
-        pix_store16a(dst + 32, src2mm);
-        pix_store16a(dst + 48, src3mm);
+        sse2_load16u(src0mm, src + 0);
+        sse2_load16u(src1mm, src + 16);
+        sse2_load16u(src2mm, src + 32);
+        sse2_load16u(src3mm, src + 48);
+        sse2_store16a(dst + 0, src0mm);
+        sse2_store16a(dst + 16, src1mm);
+        sse2_store16a(dst + 32, src2mm);
+        sse2_store16a(dst + 48, src3mm);
 
         dst += 64;
         src += 64;
@@ -183,14 +183,14 @@ struct FOG_HIDDEN DibSSE2
 
         _mm_prefetch((const char*)(src + 64), _MM_HINT_T0);
 
-        pix_load16a(src0mm, src + 0);
-        pix_load16a(src1mm, src + 16);
-        pix_load16a(src2mm, src + 32);
-        pix_load16a(src3mm, src + 48);
-        pix_store16a(dst + 0, src0mm);
-        pix_store16a(dst + 16, src1mm);
-        pix_store16a(dst + 32, src2mm);
-        pix_store16a(dst + 48, src3mm);
+        sse2_load16a(src0mm, src + 0);
+        sse2_load16a(src1mm, src + 16);
+        sse2_load16a(src2mm, src + 32);
+        sse2_load16a(src3mm, src + 48);
+        sse2_store16a(dst + 0, src0mm);
+        sse2_store16a(dst + 16, src1mm);
+        sse2_store16a(dst + 32, src2mm);
+        sse2_store16a(dst + 48, src3mm);
 
         dst += 64;
         src += 64;
@@ -230,11 +230,11 @@ struct FOG_HIDDEN DibSSE2
     BLIT_SSE2_32x4_SMALL_BEGIN(blt)
       __m128i src0mm;
 
-      pix_load4(src0mm, src);
-      pix_unpack_1x1W(src0mm, src0mm);
-      pix_premultiply_1x1W(src0mm, src0mm);
-      pix_pack_1x1W(src0mm, src0mm);
-      pix_store4(dst, src0mm);
+      sse2_load4(src0mm, src);
+      sse2_unpack_1x1W(src0mm, src0mm);
+      sse2_premultiply_1x1W(src0mm, src0mm);
+      sse2_pack_1x1W(src0mm, src0mm);
+      sse2_store4(dst, src0mm);
 
       dst += 4;
       src += 4;
@@ -244,11 +244,11 @@ struct FOG_HIDDEN DibSSE2
       __m128i src0mm;
       __m128i src1mm;
 
-      pix_load16u(src0mm, src);
-      pix_unpack_2x2W(src0mm, src1mm, src0mm);
-      pix_premultiply_2x2W(src0mm, src0mm, src1mm, src1mm);
-      pix_pack_2x2W(src0mm, src0mm, src1mm);
-      pix_store16a(dst, src0mm);
+      sse2_load16u(src0mm, src);
+      sse2_unpack_2x2W(src0mm, src1mm, src0mm);
+      sse2_premultiply_2x2W(src0mm, src0mm, src1mm, src1mm);
+      sse2_pack_2x2W(src0mm, src0mm, src1mm);
+      sse2_store16a(dst, src0mm);
 
       dst += 16;
       src += 16;
@@ -263,9 +263,9 @@ struct FOG_HIDDEN DibSSE2
     BLIT_SSE2_32x4_SMALL_BEGIN(blt)
       __m128i src0mm;
 
-      pix_load4(src0mm, src);
-      src0mm = _mm_or_si128(src0mm, Mask_FF000000FF000000_FF000000FF000000);
-      pix_store4(dst, src0mm);
+      sse2_load4(src0mm, src);
+      src0mm = _mm_or_si128(src0mm, SSE2_GET_CONST_PI(FF000000FF000000_FF000000FF000000));
+      sse2_store4(dst, src0mm);
 
       src += 4;
       dst += 4;
@@ -274,9 +274,9 @@ struct FOG_HIDDEN DibSSE2
     BLIT_SSE2_32x4_LARGE_BEGIN(blt)
       __m128i src0mm;
 
-      pix_load16u(src0mm, src);
-      src0mm = _mm_or_si128(src0mm, Mask_FF000000FF000000_FF000000FF000000);
-      pix_store16a(dst, src0mm);
+      sse2_load16u(src0mm, src);
+      src0mm = _mm_or_si128(src0mm, SSE2_GET_CONST_PI(FF000000FF000000_FF000000FF000000));
+      sse2_store16a(dst, src0mm);
 
       src += 16;
       dst += 16;
@@ -298,11 +298,11 @@ struct FOG_HIDDEN DibSSE2
     BLIT_SSE2_32x4_LARGE_BEGIN(blt)
       __m128i pix0xmm;
 
-      pix_load4(pix0xmm, src);
-      pix_unpack_1x1D(pix0xmm, pix0xmm);
+      sse2_load4(pix0xmm, src);
+      sse2_unpack_1x1D(pix0xmm, pix0xmm);
       pix0xmm = _mm_srli_epi32(pix0xmm, 24);
 
-      pix_store16a(dst, pix0xmm);
+      sse2_store16a(dst, pix0xmm);
 
       dst += 16;
       src += 4;
@@ -319,8 +319,8 @@ struct FOG_HIDDEN DibSSE2
     BLIT_SSE2_32x4_SMALL_BEGIN(blt)
       __m128i src0mm;
 
-      pix_load_1xI8(src0mm, src, srcPal);
-      pix_store4(dst, src0mm);
+      sse2_load_1xI8(src0mm, src, srcPal);
+      sse2_store4(dst, src0mm);
 
       dst += 4;
       src += 1;
@@ -329,8 +329,8 @@ struct FOG_HIDDEN DibSSE2
     BLIT_SSE2_32x4_LARGE_BEGIN(blt)
       __m128i src0mm;
 
-      pix_load_4xI8(src0mm, src, srcPal);
-      pix_store16a(dst, src0mm);
+      sse2_load_4xI8(src0mm, src, srcPal);
+      sse2_store16a(dst, src0mm);
 
       dst += 16;
       src += 4;
@@ -345,12 +345,12 @@ struct FOG_HIDDEN DibSSE2
     BLIT_SSE2_32x4_SMALL_BEGIN(blt)
       __m128i src0mm;
 
-      pix_load4(src0mm, src);
-      pix_unpack_1x1W(src0mm, src0mm);
-      pix_swap_1x1W(src0mm, src0mm);
-      pix_premultiply_1x1W(src0mm, src0mm);
-      pix_pack_1x1W(src0mm, src0mm);
-      pix_store4(dst, src0mm);
+      sse2_load4(src0mm, src);
+      sse2_unpack_1x1W(src0mm, src0mm);
+      sse2_swap_1x1W(src0mm, src0mm);
+      sse2_premultiply_1x1W(src0mm, src0mm);
+      sse2_pack_1x1W(src0mm, src0mm);
+      sse2_store4(dst, src0mm);
 
       dst += 4;
       src += 4;
@@ -360,12 +360,12 @@ struct FOG_HIDDEN DibSSE2
       __m128i src0mm;
       __m128i src1mm;
 
-      pix_load16u(src0mm, src);
-      pix_unpack_2x2W(src0mm, src1mm, src0mm);
-      pix_swap_2x2W(src0mm, src0mm, src1mm, src1mm);
-      pix_premultiply_2x2W(src0mm, src0mm, src1mm, src1mm);
-      pix_pack_2x2W(src0mm, src0mm, src1mm);
-      pix_store16a(dst, src0mm);
+      sse2_load16u(src0mm, src);
+      sse2_unpack_2x2W(src0mm, src1mm, src0mm);
+      sse2_swap_2x2W(src0mm, src0mm, src1mm, src1mm);
+      sse2_premultiply_2x2W(src0mm, src0mm, src1mm, src1mm);
+      sse2_pack_2x2W(src0mm, src0mm, src1mm);
+      sse2_store16a(dst, src0mm);
 
       dst += 16;
       src += 16;
@@ -380,11 +380,11 @@ struct FOG_HIDDEN DibSSE2
     BLIT_SSE2_32x4_SMALL_BEGIN(blt)
       __m128i src0mm;
 
-      pix_load4(src0mm, src);
-      pix_unpack_1x1W(src0mm, src0mm);
-      pix_demultiply_1x1W_srcbuf(src0mm, src0mm, src);
-      pix_pack_1x1W(src0mm, src0mm);
-      pix_store4(dst, src0mm);
+      sse2_load4(src0mm, src);
+      sse2_unpack_1x1W(src0mm, src0mm);
+      sse2_demultiply_1x1W_srcbuf(src0mm, src0mm, src);
+      sse2_pack_1x1W(src0mm, src0mm);
+      sse2_store4(dst, src0mm);
 
       src += 4;
       dst += 4;
@@ -393,11 +393,11 @@ struct FOG_HIDDEN DibSSE2
     BLIT_SSE2_32x4_LARGE_BEGIN(blt)
       __m128i src0mm, src1mm;
 
-      pix_load16u(src0mm, src);
-      pix_unpack_2x2W(src0mm, src1mm, src0mm);
-      pix_demultiply_2x2W_srcbuf(src0mm, src0mm, src1mm, src1mm, src);
-      pix_pack_2x2W(src0mm, src0mm, src1mm);
-      pix_store16a(dst, src0mm);
+      sse2_load16u(src0mm, src);
+      sse2_unpack_2x2W(src0mm, src1mm, src0mm);
+      sse2_demultiply_2x2W_srcbuf(src0mm, src0mm, src1mm, src1mm, src);
+      sse2_pack_2x2W(src0mm, src0mm, src1mm);
+      sse2_store16a(dst, src0mm);
 
       src += 16;
       dst += 16;
@@ -414,8 +414,8 @@ struct FOG_HIDDEN DibSSE2
     BLIT_SSE2_32x4_SMALL_BEGIN(blt)
       __m128i src0mm;
 
-      pix_load_1xI8(src0mm, src, srcPal);
-      pix_store4(dst, src0mm);
+      sse2_load_1xI8(src0mm, src, srcPal);
+      sse2_store4(dst, src0mm);
 
       dst += 4;
       src += 1;
@@ -424,8 +424,8 @@ struct FOG_HIDDEN DibSSE2
     BLIT_SSE2_32x4_LARGE_BEGIN(blt)
       __m128i src0mm;
 
-      pix_load_4xI8(src0mm, src, srcPal);
-      pix_store16a(dst, src0mm);
+      sse2_load_4xI8(src0mm, src, srcPal);
+      sse2_store16a(dst, src0mm);
 
       dst += 16;
       src += 4;
@@ -449,12 +449,12 @@ struct FOG_HIDDEN DibSSE2
     BLIT_SSE2_32x4_SMALL_BEGIN(blt)
       __m128i src0mm;
 
-      pix_load4(src0mm, src);
-      pix_unpack_1x1W(src0mm, src0mm);
-      pix_premultiply_1x1W(src0mm, src0mm);
-      pix_pack_1x1W(src0mm, src0mm);
-      src0mm = _mm_or_si128(src0mm, Mask_FF000000FF000000_FF000000FF000000);
-      pix_store4(dst, src0mm);
+      sse2_load4(src0mm, src);
+      sse2_unpack_1x1W(src0mm, src0mm);
+      sse2_premultiply_1x1W(src0mm, src0mm);
+      sse2_pack_1x1W(src0mm, src0mm);
+      src0mm = _mm_or_si128(src0mm, SSE2_GET_CONST_PI(FF000000FF000000_FF000000FF000000));
+      sse2_store4(dst, src0mm);
 
       dst += 4;
       src += 4;
@@ -464,12 +464,12 @@ struct FOG_HIDDEN DibSSE2
       __m128i src0mm;
       __m128i src1mm;
 
-      pix_load16u(src0mm, src);
-      pix_unpack_2x2W(src0mm, src1mm, src0mm);
-      pix_premultiply_2x2W(src0mm, src0mm, src1mm, src1mm);
-      pix_pack_2x2W(src0mm, src0mm, src1mm);
-      src0mm = _mm_or_si128(src0mm, Mask_FF000000FF000000_FF000000FF000000);
-      pix_store16a(dst, src0mm);
+      sse2_load16u(src0mm, src);
+      sse2_unpack_2x2W(src0mm, src1mm, src0mm);
+      sse2_premultiply_2x2W(src0mm, src0mm, src1mm, src1mm);
+      sse2_pack_2x2W(src0mm, src0mm, src1mm);
+      src0mm = _mm_or_si128(src0mm, SSE2_GET_CONST_PI(FF000000FF000000_FF000000FF000000));
+      sse2_store16a(dst, src0mm);
 
       dst += 16;
       src += 16;
@@ -498,13 +498,13 @@ struct FOG_HIDDEN DibSSE2
     BLIT_SSE2_32x4_SMALL_BEGIN(blt)
       __m128i src0mm;
 
-      pix_load4(src0mm, src);
-      pix_unpack_1x1W(src0mm, src0mm);
-      pix_swap_1x1W(src0mm, src0mm);
-      pix_premultiply_1x1W(src0mm, src0mm);
-      pix_pack_1x1W(src0mm, src0mm);
-      src0mm = _mm_or_si128(src0mm, Mask_FF000000FF000000_FF000000FF000000);
-      pix_store4(dst, src0mm);
+      sse2_load4(src0mm, src);
+      sse2_unpack_1x1W(src0mm, src0mm);
+      sse2_swap_1x1W(src0mm, src0mm);
+      sse2_premultiply_1x1W(src0mm, src0mm);
+      sse2_pack_1x1W(src0mm, src0mm);
+      src0mm = _mm_or_si128(src0mm, SSE2_GET_CONST_PI(FF000000FF000000_FF000000FF000000));
+      sse2_store4(dst, src0mm);
 
       dst += 4;
       src += 4;
@@ -514,13 +514,13 @@ struct FOG_HIDDEN DibSSE2
       __m128i src0mm;
       __m128i src1mm;
 
-      pix_load16u(src0mm, src);
-      pix_unpack_2x2W(src0mm, src1mm, src0mm);
-      pix_swap_2x2W(src0mm, src0mm, src1mm, src1mm);
-      pix_premultiply_2x2W(src0mm, src0mm, src1mm, src1mm);
-      pix_pack_2x2W(src0mm, src0mm, src1mm);
-      src0mm = _mm_or_si128(src0mm, Mask_FF000000FF000000_FF000000FF000000);
-      pix_store16a(dst, src0mm);
+      sse2_load16u(src0mm, src);
+      sse2_unpack_2x2W(src0mm, src1mm, src0mm);
+      sse2_swap_2x2W(src0mm, src0mm, src1mm, src1mm);
+      sse2_premultiply_2x2W(src0mm, src0mm, src1mm, src1mm);
+      sse2_pack_2x2W(src0mm, src0mm, src1mm);
+      src0mm = _mm_or_si128(src0mm, SSE2_GET_CONST_PI(FF000000FF000000_FF000000FF000000));
+      sse2_store16a(dst, src0mm);
 
       dst += 16;
       src += 16;
@@ -545,9 +545,9 @@ struct FOG_HIDDEN DibSSE2
       __m128i src0mm;
       __m128i src1mm;
 
-      pix_fetch_rgb24_2x2W(src0mm, src1mm, src);
-      pix_pack_2x2W(src0mm, src0mm, src1mm);
-      pix_store16u(dst, src0mm);
+      sse2_fetch_rgb24_2x2W(src0mm, src1mm, src);
+      sse2_pack_2x2W(src0mm, src0mm, src1mm);
+      sse2_store16u(dst, src0mm);
       dst += 16;
       src += 12;
       i -= 4;
@@ -580,9 +580,9 @@ struct FOG_HIDDEN DibSSE2
       __m128i src0mm;
       __m128i src1mm;
 
-      pix_fetch_bgr24_2x2W(src0mm, src1mm, src);
-      pix_pack_2x2W(src0mm, src0mm, src1mm);
-      pix_store16u(dst, src0mm);
+      sse2_fetch_bgr24_2x2W(src0mm, src1mm, src);
+      sse2_pack_2x2W(src0mm, src0mm, src1mm);
+      sse2_store16u(dst, src0mm);
       dst += 16;
       src += 12;
       i -= 4;
@@ -605,12 +605,12 @@ struct FOG_HIDDEN DibSSE2
     BLIT_SSE2_32x4_SMALL_BEGIN(blt)
       __m128i src0mm;
 
-      pix_load4(src0mm, src);
-      pix_unpack_1x1W(src0mm, src0mm);
-      pix_premultiply_1x1W(src0mm, src0mm);
-      pix_swap_1x1W(src0mm, src0mm);
-      pix_pack_1x1W(src0mm, src0mm);
-      pix_store4(dst, src0mm);
+      sse2_load4(src0mm, src);
+      sse2_unpack_1x1W(src0mm, src0mm);
+      sse2_premultiply_1x1W(src0mm, src0mm);
+      sse2_swap_1x1W(src0mm, src0mm);
+      sse2_pack_1x1W(src0mm, src0mm);
+      sse2_store4(dst, src0mm);
 
       dst += 4;
       src += 4;
@@ -620,12 +620,12 @@ struct FOG_HIDDEN DibSSE2
       __m128i src0mm;
       __m128i src1mm;
 
-      pix_load16u(src0mm, src);
-      pix_unpack_2x2W(src0mm, src1mm, src0mm);
-      pix_premultiply_2x2W(src0mm, src0mm, src1mm, src1mm);
-      pix_swap_2x2W(src0mm, src0mm, src1mm, src1mm);
-      pix_pack_2x2W(src0mm, src0mm, src1mm);
-      pix_store16a(dst, src0mm);
+      sse2_load16u(src0mm, src);
+      sse2_unpack_2x2W(src0mm, src1mm, src0mm);
+      sse2_premultiply_2x2W(src0mm, src0mm, src1mm, src1mm);
+      sse2_swap_2x2W(src0mm, src0mm, src1mm, src1mm);
+      sse2_pack_2x2W(src0mm, src0mm, src1mm);
+      sse2_store16a(dst, src0mm);
 
       dst += 16;
       src += 16;
@@ -648,9 +648,9 @@ struct FOG_HIDDEN DibSSE2
       __m128i src0mm;
       __m128i src1mm;
 
-      pix_load_and_unpack_axxx32_64B(src0mm, src1mm, src);
-      pix_pack_2x2W(src0mm, src0mm, src1mm);
-      pix_store16a(dst, src0mm);
+      sse2_load_and_unpack_axxx32_64B(src0mm, src1mm, src);
+      sse2_pack_2x2W(src0mm, src0mm, src1mm);
+      sse2_store16a(dst, src0mm);
 
       dst += 16;
       src += 64;
@@ -699,8 +699,8 @@ struct FOG_HIDDEN DibSSE2
       __m128i pix0xmmG, pix1xmmG;
       __m128i pix0xmmB, pix1xmmB;
 
-      pix_load16u(pix0xmmB, src);
-      pix_load16u(pix1xmmB, src + 16);
+      sse2_load16u(pix0xmmB, src);
+      sse2_load16u(pix1xmmB, src + 16);
 
       pix0xmmR = _mm_srli_epi32(pix0xmmB, 9);
       pix1xmmR = _mm_srli_epi32(pix1xmmB, 9);
@@ -711,14 +711,14 @@ struct FOG_HIDDEN DibSSE2
       pix0xmmB = _mm_srli_epi32(pix0xmmB, 3);
       pix1xmmB = _mm_srli_epi32(pix1xmmB, 3);
 
-      pix0xmmR = _mm_and_si128(pix0xmmR, Mask_00007C0000007C00_00007C0000007C00);
-      pix1xmmR = _mm_and_si128(pix1xmmR, Mask_00007C0000007C00_00007C0000007C00);
+      pix0xmmR = _mm_and_si128(pix0xmmR, SSE2_GET_CONST_PI(00007C0000007C00_00007C0000007C00));
+      pix1xmmR = _mm_and_si128(pix1xmmR, SSE2_GET_CONST_PI(00007C0000007C00_00007C0000007C00));
 
-      pix0xmmG = _mm_and_si128(pix0xmmG, Mask_000007E0000007E0_000007E0000007E0);
-      pix1xmmG = _mm_and_si128(pix1xmmG, Mask_000007E0000007E0_000007E0000007E0);
+      pix0xmmG = _mm_and_si128(pix0xmmG, SSE2_GET_CONST_PI(000007E0000007E0_000007E0000007E0));
+      pix1xmmG = _mm_and_si128(pix1xmmG, SSE2_GET_CONST_PI(000007E0000007E0_000007E0000007E0));
 
-      pix0xmmB = _mm_and_si128(pix0xmmB, Mask_0000001F0000001F_0000001F0000001F);
-      pix1xmmB = _mm_and_si128(pix1xmmB, Mask_0000001F0000001F_0000001F0000001F);
+      pix0xmmB = _mm_and_si128(pix0xmmB, SSE2_GET_CONST_PI(0000001F0000001F_0000001F0000001F));
+      pix1xmmB = _mm_and_si128(pix1xmmB, SSE2_GET_CONST_PI(0000001F0000001F_0000001F0000001F));
 
       pix0xmmB = _mm_or_si128(pix0xmmB, pix0xmmG);
       pix1xmmB = _mm_or_si128(pix1xmmB, pix1xmmG);
@@ -729,7 +729,7 @@ struct FOG_HIDDEN DibSSE2
       pix0xmmR = _mm_slli_epi16(pix0xmmR, 1);
       pix0xmmB = _mm_or_si128(pix0xmmB, pix0xmmR);
 
-      pix_store16a(dst, pix0xmmB);
+      sse2_store16a(dst, pix0xmmB);
     }
 
     for (i = w & 7; i; i--, dst += 2, src += 4)
@@ -772,8 +772,8 @@ struct FOG_HIDDEN DibSSE2
       __m128i pix0xmmG1, pix1xmmG1;
       __m128i pix0xmmB0, pix1xmmB0;
 
-      pix_load16u(pix0xmmB0, src);
-      pix_load16u(pix1xmmB0, src + 16);
+      sse2_load16u(pix0xmmB0, src);
+      sse2_load16u(pix1xmmB0, src + 16);
 
       pix0xmmR0 = _mm_srli_epi32(pix0xmmB0, 16);
       pix1xmmR0 = _mm_srli_epi32(pix1xmmB0, 16);
@@ -784,19 +784,19 @@ struct FOG_HIDDEN DibSSE2
       pix0xmmB0 = _mm_slli_epi32(pix0xmmB0, 5);
       pix1xmmB0 = _mm_slli_epi32(pix1xmmB0, 5);
 
-      pix0xmmR0 = _mm_and_si128(pix0xmmR0, Mask_000000F8000000F8_000000F8000000F8);
-      pix1xmmR0 = _mm_and_si128(pix1xmmR0, Mask_000000F8000000F8_000000F8000000F8);
+      pix0xmmR0 = _mm_and_si128(pix0xmmR0, SSE2_GET_CONST_PI(000000F8000000F8_000000F8000000F8));
+      pix1xmmR0 = _mm_and_si128(pix1xmmR0, SSE2_GET_CONST_PI(000000F8000000F8_000000F8000000F8));
 
-      pix0xmmG0 = _mm_and_si128(pix0xmmG0, Mask_0000000700000007_0000000700000007);
-      pix1xmmG0 = _mm_and_si128(pix1xmmG0, Mask_0000000700000007_0000000700000007);
+      pix0xmmG0 = _mm_and_si128(pix0xmmG0, SSE2_GET_CONST_PI(0000000700000007_0000000700000007));
+      pix1xmmG0 = _mm_and_si128(pix1xmmG0, SSE2_GET_CONST_PI(0000000700000007_0000000700000007));
 
       pix0xmmR0 = _mm_packs_epi32(pix0xmmR0, pix1xmmR0);
 
-      pix0xmmB0 = _mm_and_si128(pix0xmmB0, Mask_00001F0000001F00_00001F0000001F00);
-      pix1xmmB0 = _mm_and_si128(pix1xmmB0, Mask_00001F0000001F00_00001F0000001F00);
+      pix0xmmB0 = _mm_and_si128(pix0xmmB0, SSE2_GET_CONST_PI(00001F0000001F00_00001F0000001F00));
+      pix1xmmB0 = _mm_and_si128(pix1xmmB0, SSE2_GET_CONST_PI(00001F0000001F00_00001F0000001F00));
 
-      pix0xmmG1 = _mm_and_si128(pix0xmmG1, Mask_00001C0000001C00_00001C0000001C00);
-      pix1xmmG1 = _mm_and_si128(pix1xmmG1, Mask_00001C0000001C00_00001C0000001C00);
+      pix0xmmG1 = _mm_and_si128(pix0xmmG1, SSE2_GET_CONST_PI(00001C0000001C00_00001C0000001C00));
+      pix1xmmG1 = _mm_and_si128(pix1xmmG1, SSE2_GET_CONST_PI(00001C0000001C00_00001C0000001C00));
 
       pix0xmmB0 = _mm_packs_epi32(pix0xmmB0, pix1xmmB0);
       pix0xmmG0 = _mm_packs_epi32(pix0xmmG0, pix1xmmG0);
@@ -806,7 +806,7 @@ struct FOG_HIDDEN DibSSE2
       pix0xmmG1 = _mm_slli_epi16(pix0xmmG1, 3);
       pix0xmmB0 = _mm_or_si128(pix0xmmB0, pix0xmmG1);
 
-      pix_store16a(dst, pix0xmmB0);
+      sse2_store16a(dst, pix0xmmB0);
     }
 
     for (i = w & 7; i; i--, dst += 2, src += 4)
@@ -848,8 +848,8 @@ struct FOG_HIDDEN DibSSE2
       __m128i pix0xmmG, pix1xmmG;
       __m128i pix0xmmB, pix1xmmB;
 
-      pix_load16u(pix0xmmB, src);
-      pix_load16u(pix1xmmB, src + 16);
+      sse2_load16u(pix0xmmB, src);
+      sse2_load16u(pix1xmmB, src + 16);
 
       pix0xmmR = _mm_srli_epi32(pix0xmmB, 9);
       pix1xmmR = _mm_srli_epi32(pix1xmmB, 9);
@@ -860,14 +860,14 @@ struct FOG_HIDDEN DibSSE2
       pix0xmmB = _mm_srli_epi32(pix0xmmB, 3);
       pix1xmmB = _mm_srli_epi32(pix1xmmB, 3);
 
-      pix0xmmR = _mm_and_si128(pix0xmmR, Mask_00007C0000007C00_00007C0000007C00);
-      pix1xmmR = _mm_and_si128(pix1xmmR, Mask_00007C0000007C00_00007C0000007C00);
+      pix0xmmR = _mm_and_si128(pix0xmmR, SSE2_GET_CONST_PI(00007C0000007C00_00007C0000007C00));
+      pix1xmmR = _mm_and_si128(pix1xmmR, SSE2_GET_CONST_PI(00007C0000007C00_00007C0000007C00));
 
-      pix0xmmG = _mm_and_si128(pix0xmmG, Mask_000003E0000003E0_000003E0000003E0);
-      pix1xmmG = _mm_and_si128(pix1xmmG, Mask_000003E0000003E0_000003E0000003E0);
+      pix0xmmG = _mm_and_si128(pix0xmmG, SSE2_GET_CONST_PI(000003E0000003E0_000003E0000003E0));
+      pix1xmmG = _mm_and_si128(pix1xmmG, SSE2_GET_CONST_PI(000003E0000003E0_000003E0000003E0));
 
-      pix0xmmB = _mm_and_si128(pix0xmmB, Mask_0000001F0000001F_0000001F0000001F);
-      pix1xmmB = _mm_and_si128(pix1xmmB, Mask_0000001F0000001F_0000001F0000001F);
+      pix0xmmB = _mm_and_si128(pix0xmmB, SSE2_GET_CONST_PI(0000001F0000001F_0000001F0000001F));
+      pix1xmmB = _mm_and_si128(pix1xmmB, SSE2_GET_CONST_PI(0000001F0000001F_0000001F0000001F));
 
       pix0xmmB = _mm_or_si128(pix0xmmB, pix0xmmR);
       pix1xmmB = _mm_or_si128(pix1xmmB, pix1xmmR);
@@ -876,7 +876,7 @@ struct FOG_HIDDEN DibSSE2
       pix1xmmB = _mm_or_si128(pix1xmmB, pix1xmmG);
 
       pix0xmmB = _mm_packs_epi32(pix0xmmB, pix1xmmB);
-      pix_store16a(dst, pix0xmmB);
+      sse2_store16a(dst, pix0xmmB);
     }
 
     for (i = w & 7; i; i--, dst += 2, src += 4)
@@ -919,8 +919,8 @@ struct FOG_HIDDEN DibSSE2
       __m128i pix0xmmG1, pix1xmmG1;
       __m128i pix0xmmB0, pix1xmmB0;
 
-      pix_load16u(pix0xmmB0, src);
-      pix_load16u(pix1xmmB0, src + 16);
+      sse2_load16u(pix0xmmB0, src);
+      sse2_load16u(pix1xmmB0, src + 16);
 
       pix0xmmR0 = _mm_srli_epi32(pix0xmmB0, 17);
       pix1xmmR0 = _mm_srli_epi32(pix1xmmB0, 17);
@@ -931,19 +931,19 @@ struct FOG_HIDDEN DibSSE2
       pix0xmmB0 = _mm_slli_epi32(pix0xmmB0, 5);
       pix1xmmB0 = _mm_slli_epi32(pix1xmmB0, 5);
 
-      pix0xmmR0 = _mm_and_si128(pix0xmmR0, Mask_000000F8000000F8_000000F8000000F8);
-      pix1xmmR0 = _mm_and_si128(pix1xmmR0, Mask_000000F8000000F8_000000F8000000F8);
+      pix0xmmR0 = _mm_and_si128(pix0xmmR0, SSE2_GET_CONST_PI(000000F8000000F8_000000F8000000F8));
+      pix1xmmR0 = _mm_and_si128(pix1xmmR0, SSE2_GET_CONST_PI(000000F8000000F8_000000F8000000F8));
 
-      pix0xmmG0 = _mm_and_si128(pix0xmmG0, Mask_0000000300000003_0000000300000003);
-      pix1xmmG0 = _mm_and_si128(pix1xmmG0, Mask_0000000300000003_0000000300000003);
+      pix0xmmG0 = _mm_and_si128(pix0xmmG0, SSE2_GET_CONST_PI(0000000300000003_0000000300000003));
+      pix1xmmG0 = _mm_and_si128(pix1xmmG0, SSE2_GET_CONST_PI(0000000300000003_0000000300000003));
 
       pix0xmmR0 = _mm_packs_epi32(pix0xmmR0, pix1xmmR0);
 
-      pix0xmmB0 = _mm_and_si128(pix0xmmB0, Mask_00001F0000001F00_00001F0000001F00);
-      pix1xmmB0 = _mm_and_si128(pix1xmmB0, Mask_00001F0000001F00_00001F0000001F00);
+      pix0xmmB0 = _mm_and_si128(pix0xmmB0, SSE2_GET_CONST_PI(00001F0000001F00_00001F0000001F00));
+      pix1xmmB0 = _mm_and_si128(pix1xmmB0, SSE2_GET_CONST_PI(00001F0000001F00_00001F0000001F00));
 
-      pix0xmmG1 = _mm_and_si128(pix0xmmG1, Mask_0000380000003800_0000380000003800);
-      pix1xmmG1 = _mm_and_si128(pix1xmmG1, Mask_0000380000003800_0000380000003800);
+      pix0xmmG1 = _mm_and_si128(pix0xmmG1, SSE2_GET_CONST_PI(0000380000003800_0000380000003800));
+      pix1xmmG1 = _mm_and_si128(pix1xmmG1, SSE2_GET_CONST_PI(0000380000003800_0000380000003800));
 
       pix0xmmB0 = _mm_packs_epi32(pix0xmmB0, pix1xmmB0);
       pix0xmmG0 = _mm_packs_epi32(pix0xmmG0, pix1xmmG0);
@@ -953,7 +953,7 @@ struct FOG_HIDDEN DibSSE2
       pix0xmmG1 = _mm_slli_epi16(pix0xmmG1, 2);
       pix0xmmB0 = _mm_or_si128(pix0xmmB0, pix0xmmG1);
 
-      pix_store16a(dst, pix0xmmB0);
+      sse2_store16a(dst, pix0xmmB0);
     }
 
     for (i = w & 7; i; i--, dst += 2, src += 4)

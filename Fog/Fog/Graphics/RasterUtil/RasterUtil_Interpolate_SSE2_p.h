@@ -61,7 +61,7 @@ struct FOG_HIDDEN InterpolateSSE2
       __m128i xmm2, xmm3;
       __m128i xmm4, xmm5;
 
-      FOG_DECLARE_ALIGNED_VARIABLE(sse2_t, tmpARGB, 16);
+      FOG_ALIGNED_VAR_(sse2_t, tmpARGB, 16);
 
       xmmz = _mm_setzero_si128();
       xmm0 = _mm_cvtsi32_si128((int)c0);           // xmm0 = [            ARGB] c0
@@ -105,7 +105,7 @@ struct FOG_HIDDEN InterpolateSSE2
         xmm2 = _mm_packus_epi16(xmm2, xmm2);       // xmm2 = [AxRxGxBxAxRxGxBx]
         xmm2 = _mm_srli_epi16(xmm2, 8);            // xmm2 = [0A0R0G0B0A0R0G0B]
         xmm2 = _mm_packus_epi16(xmm2, xmm2);       // xmm2 = [ARGBARGBARGBARGB]
-        pix_store4(dstCur, xmm2);
+        sse2_store4(dstCur, xmm2);
 
         dstCur += 4;
         if (--i == 0) goto interpolation_end;
@@ -132,7 +132,7 @@ struct FOG_HIDDEN InterpolateSSE2
         xmm4 = _mm_srli_epi16(xmm4, 8);            // xmm4 = [0A0R0G0B0A0R0G0B]
 
         xmm2 = _mm_packus_epi16(xmm2, xmm4);       // xmm2 = [ARGBARGBARGBARGB]
-        pix_store16a(dstCur, xmm2);
+        sse2_store16a(dstCur, xmm2);
 
         dstCur += 16;
         i -= 4;
@@ -147,7 +147,7 @@ struct FOG_HIDDEN InterpolateSSE2
         xmm2 = _mm_packus_epi16(xmm2, xmm2);       // xmm2 = [AxRxGxBxAxRxGxBx]
         xmm2 = _mm_srli_epi16(xmm2, 8);            // xmm2 = [0A0R0G0B0A0R0G0B]
         xmm2 = _mm_packus_epi16(xmm2, xmm2);       // xmm2 = [ARGBARGBARGBARGB]
-        pix_store4(dstCur, xmm2);
+        sse2_store4(dstCur, xmm2);
 
         dstCur += 4;
         i--;
@@ -205,7 +205,7 @@ struct FOG_HIDDEN InterpolateSSE2
       __m128i xmm2, xmm3;
       __m128i xmm4, xmm5;
 
-      FOG_DECLARE_ALIGNED_VARIABLE(sse2_t, tmpARGB, 16);
+      FOG_ALIGNED_VAR_(sse2_t, tmpARGB, 16);
 
       xmmz = _mm_setzero_si128();
       xmm0 = _mm_cvtsi32_si128((int)c0);           // xmm0 = [            ARGB] c0
@@ -248,9 +248,9 @@ struct FOG_HIDDEN InterpolateSSE2
 
         xmm2 = _mm_packus_epi16(xmm2, xmm2);       // xmm2 = [AxRxGxBxAxRxGxBx]
         xmm2 = _mm_srli_epi16(xmm2, 8);            // xmm2 = [0A0R0G0B0A0R0G0B]
-        pix_premultiply_1x1W(xmm2, xmm2);
+        sse2_premultiply_1x1W(xmm2, xmm2);
         xmm2 = _mm_packus_epi16(xmm2, xmm2);       // xmm2 = [ARGBARGBARGBARGB]
-        pix_store4(dstCur, xmm2);
+        sse2_store4(dstCur, xmm2);
 
         dstCur += 4;
         if (--i == 0) goto interpolation_end;
@@ -275,9 +275,9 @@ struct FOG_HIDDEN InterpolateSSE2
         xmm4 = _mm_packus_epi16(xmm4, xmm5);       // xmm4 = [AxRxGxBxAxRxGxBx]
         xmm2 = _mm_srli_epi16(xmm2, 8);            // xmm2 = [0A0R0G0B0A0R0G0B]
         xmm4 = _mm_srli_epi16(xmm4, 8);            // xmm4 = [0A0R0G0B0A0R0G0B]
-        pix_premultiply_2x2W(xmm2, xmm2, xmm4, xmm4);
+        sse2_premultiply_2x2W(xmm2, xmm2, xmm4, xmm4);
         xmm2 = _mm_packus_epi16(xmm2, xmm4);       // xmm2 = [ARGBARGBARGBARGB]
-        pix_store16a(dstCur, xmm2);
+        sse2_store16a(dstCur, xmm2);
 
         dstCur += 16;
         i -= 4;
@@ -291,9 +291,9 @@ struct FOG_HIDDEN InterpolateSSE2
 
         xmm2 = _mm_packus_epi16(xmm2, xmm2);       // xmm2 = [AxRxGxBxAxRxGxBx]
         xmm2 = _mm_srli_epi16(xmm2, 8);            // xmm2 = [0A0R0G0B0A0R0G0B]
-        pix_premultiply_1x1W(xmm2, xmm2);
+        sse2_premultiply_1x1W(xmm2, xmm2);
         xmm2 = _mm_packus_epi16(xmm2, xmm2);       // xmm2 = [ARGBARGBARGBARGB]
-        pix_store4(dstCur, xmm2);
+        sse2_store4(dstCur, xmm2);
 
         dstCur += 4;
         i--;

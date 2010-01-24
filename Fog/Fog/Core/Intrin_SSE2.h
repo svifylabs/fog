@@ -43,7 +43,7 @@ namespace Fog {
 
 //! @brief SSE2 data type that can be used to store / load data to / from
 //! xmm register.
-union FOG_ALIGN(16) sse2_t
+union FOG_ALIGNED_TYPE(sse2_t, 16)
 {
   __m128d m128d;
   __m128i m128i;

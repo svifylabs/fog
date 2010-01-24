@@ -164,9 +164,11 @@ end:
 struct FOG_HIDDEN Application_Local
 {
   typedef Hash<String, Application::EventLoopConstructor> ELHash;
+  typedef Hash<String, Application::UISystemConstructor> UIHash;
 
   Lock lock;
   ELHash elHash;
+  UIHash uiHash;
 
   String applicationExecutable;
   List<String> applicationArguments;
@@ -174,7 +176,9 @@ struct FOG_HIDDEN Application_Local
   Application_Local();
   ~Application_Local();
 
+  UISystem* createUISystem(const String& type);
   EventLoop* createEventLoop(const String& type);
+
   void applicationArgumentsWasSet();
 };
 
@@ -192,6 +196,20 @@ Application_Local::Application_Local()
 
 Application_Local::~Application_Local()
 {
+}
+
+UISystem* Application_Local::createUISystem(const String& type)
+{
+  if (type.startsWith(Ascii8("UI.")) && !Thread::isMainThread())
+  {
+    fog_debug("Fog::Application::createUiSystem() - Can't create UI system in non-main thread");
+    return NULL;
+  }
+
+  AutoLock locked(lock);
+
+  Application::UISystemConstructor ctor = uiHash.value(type, NULL);
+  return ctor ? ctor() : NULL;
 }
 
 EventLoop* Application_Local::createEventLoop(const String& type)
@@ -394,26 +412,10 @@ err_t Application::setWorkingDirectory(const String& dir)
 #endif // FOG_OS_POSIX
 
 // ============================================================================
-// [Fog::Application - Add / Remove Event Loop]
+// [Fog::Application - UISystem - Access]
 // ============================================================================
 
-bool Application::addEventLoopType(const String& type, EventLoopConstructor ctor)
-{
-  AutoLock locked(application_local->lock);
-  return application_local->elHash.put(type, ctor);
-}
-
-bool Application::removeEventLoopType(const String& type)
-{
-  AutoLock locked(application_local->lock);
-  return application_local->elHash.remove(type);
-}
-
-// ============================================================================
-// [Fog::Application - UI / UISystem]
-// ============================================================================
-
-String Application::detectUI()
+String Application::detectUISystem()
 {
 #if defined(FOG_OS_WINDOWS)
   return Ascii8("UI.Windows");
@@ -429,15 +431,13 @@ UISystem* Application::createUISystem(const String& _type)
   String type(_type);
 
   // First try to detect UISystem if not specified
-  if (type == Ascii8("UI")) type = detectUI();
+  if (type == Ascii8("UI")) type = detectUISystem();
 
-  // UI.Windows is built-in
-#if defined(FOG_OS_WINDOWS)
-  if (type == Ascii8("UI.Windows"))
-    return new(std::nothrow) WinUISystem();
-#endif // FOG_OS_WINDOWS
+  // Try to create registered UISystem.
+  UISystem* uis = application_local->createUISystem(type);
+  if (uis) return uis;
 
-  // All other UI systems are dynamic linked libraries
+  // Otherwise try to load dynamically linked library (based on the UISystem name).
   if (!type.startsWith(Ascii8("UI."))) return NULL;
   {
     Library lib;
@@ -447,7 +447,7 @@ UISystem* Application::createUISystem(const String& _type)
     UISystemConstructor ctor = (UISystemConstructor)lib.getSymbol(Ascii8("createUISystem"));
     if (!ctor) return NULL;
 
-    UISystem* uis = ctor();
+    uis = ctor();
     if (!uis) return NULL;
 
     // Success
@@ -456,12 +456,48 @@ UISystem* Application::createUISystem(const String& _type)
   }
 }
 
+// ============================================================================
+// [Fog::Application - UISystem - Register / Unregister]
+// ============================================================================
+
+bool Application::registerUISystem(const String& type, UISystemConstructor ctor)
+{
+  AutoLock locked(application_local->lock);
+  return application_local->uiHash.put(type, ctor);
+}
+
+bool Application::unregisterUISystem(const String& type)
+{
+  AutoLock locked(application_local->lock);
+  return application_local->uiHash.remove(type);
+}
+
+// ============================================================================
+// [Fog::Application - EventLoop - Register / Unregister]
+// ============================================================================
+
+bool Application::registerEventLoop(const String& type, EventLoopConstructor ctor)
+{
+  AutoLock locked(application_local->lock);
+  return application_local->elHash.put(type, ctor);
+}
+
+bool Application::unregisterEventLoop(const String& type)
+{
+  AutoLock locked(application_local->lock);
+  return application_local->elHash.remove(type);
+}
+
+// ============================================================================
+// [Fog::Application - EventLoop - Access]
+// ============================================================================
+
 EventLoop* Application::createEventLoop(const String &_type)
 {
   String type(_type);
 
   // First try to detect UISystem if not specified
-  if (type == Ascii8("UI")) type = detectUI();
+  if (type == Ascii8("UI")) type = detectUISystem();
 
   return application_local->createEventLoop(type);
 }
@@ -477,11 +513,14 @@ FOG_INIT_DECLARE err_t fog_application_init(void)
   using namespace Fog;
 
   application_local.init();
-
-  Application::addEventLoopTypeT<DefaultEventLoop>(Ascii8("Default"));
+  Application::registerEventLoopT<DefaultEventLoop>(Ascii8("Default"));
 
 #if defined(FOG_OS_WINDOWS)
-  Application::addEventLoopTypeT<WinUIEventLoop>(Ascii8("UI.Windows"));
+  {
+    String uiWindows(Ascii8("UI.Windows"));
+    Application::registerUISystemT<WinUISystem>(uiWindows);
+    Application::registerEventLoopT<WinUIEventLoop>(uiWindows);
+  }
 #endif // FOG_OS_WINDOWS
 
   return ERR_OK;

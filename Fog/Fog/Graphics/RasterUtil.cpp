@@ -75,8 +75,11 @@ FunctionMap* functionMap;
 // ============================================================================
 
 FOG_INIT_EXTERN void fog_raster_init_c(void);
+#if defined(FOG_ARCH_X86)
 FOG_INIT_EXTERN void fog_raster_init_mmx(void);
+#endif // FOG_ARCH_X86
 FOG_INIT_EXTERN void fog_raster_init_sse2(void);
+FOG_INIT_EXTERN void fog_raster_init_ssse3(void);
 
 FOG_INIT_DECLARE err_t fog_raster_init(void)
 {
@@ -91,15 +94,22 @@ FOG_INIT_DECLARE err_t fog_raster_init(void)
   // Install MMX optimized code if supported.
   //
   // Install it only if x86 architecture is used. In 64-bit mode the SSE2
-  // implementation is always available and better choice.
+  // implementation is always available and it's better choice.
 #if defined(FOG_ARCH_X86)
   if (cpuInfo->hasFeature(CpuInfo::FEATURE_MMX)) fog_raster_init_mmx();
 #endif // FOG_ARCH_X86
 
   // Install SSE2 optimized code if supported.
-#if defined(FOG_ARCH_X86) || defined(FOG_ARCH_X86_64)
+#if defined(FOG_HARDCODE_SSE2)
+  fog_raster_init_sse2();
+#elif defined(FOG_ARCH_X86) || defined(FOG_ARCH_X86_64)
   if (cpuInfo->hasFeature(CpuInfo::FEATURE_SSE2)) fog_raster_init_sse2();
-#endif // FOG_ARCH_X86 || FOG_ARCH_X86_64
+#endif // SSE2
+
+  // Install SSSE3 optimized code if supported.
+#if defined(FOG_ARCH_X86) || defined(FOG_ARCH_X86_64)
+  if (cpuInfo->hasFeature(CpuInfo::FEATURE_SSSE3)) fog_raster_init_ssse3();
+#endif // SSSE3
 
   return ERR_OK;
 }

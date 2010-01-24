@@ -382,7 +382,7 @@ struct FOG_HIDDEN PatternC
     if (d->obj.texture->isEmpty()) return functionMap->pattern.solid_init(ctx, 0x00000000);
 
     // Multiply pattern matrix with a given matrix (painter transformations).
-    Matrix m(pattern.getMatrix().multiplied(matrix));
+    Matrix m(pattern._d->matrix.multiplied(matrix));
 
     // Call texture_init_blit() which will initialize the context.
     return texture_init_blit(ctx, d->obj.texture.instance(), m, d->spread, interpolationType);
@@ -3203,7 +3203,7 @@ doFill_4:
 
     // FIXME: TODO: Not correct code
 #if 0
-    Matrix m(pattern.getMatrix().multiplied(matrix));
+    Matrix m(pattern._d->matrix.multiplied(matrix));
     PointD points[2];
 
     double f = (m.sx * m.sy) - (m.shy * m.shx);
@@ -3250,7 +3250,7 @@ doFill_4:
 
 
 #if 1
-    Matrix m(pattern.getMatrix().multiplied(matrix));
+    Matrix m(pattern._d->matrix.multiplied(matrix));
     PointD pts[2];
 
     double px = d->points[0].x;
@@ -3297,7 +3297,7 @@ doFill_4:
 
 
 #if 0
-    Matrix m(pattern.getMatrix().multiplied(matrix));
+    Matrix m(pattern._d->matrix.multiplied(matrix));
 
     double px = d->points[0].x;
     double py = d->points[0].y;
@@ -3708,7 +3708,7 @@ doFill_4:
       return functionMap->pattern.solid_init(ctx, ArgbUtil::premultiply(d->obj.stops->at(0).argb));
     }
 
-    Matrix m(pattern.getMatrix().multiplied(matrix));
+    Matrix m(pattern._d->matrix.multiplied(matrix));
 
     PointD points[2];
     m.transformPoints(points, d->points, 2);
@@ -3978,7 +3978,7 @@ doFill_4:
       return functionMap->pattern.solid_init(ctx, ArgbUtil::premultiply(d->obj.stops->at(0).argb));
     }
 
-    Matrix m(pattern.getMatrix().multiplied(matrix));
+    Matrix m(pattern._d->matrix.multiplied(matrix));
 
     PointD points[2];
     m.transformPoints(points, d->points, 2);

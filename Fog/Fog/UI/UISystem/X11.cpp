@@ -46,7 +46,7 @@ namespace Fog {
 // [Fog::X11UISystem - Error]
 // ============================================================================
 
-static int X11_IOErrorHandler(Display* d)
+static int X11_IOErrorHandler(XDisplay* d)
 {
   fog_fail("Fog::X11UISystem::IOErrorHandler() - Fatal error");
 
@@ -54,7 +54,7 @@ static int X11_IOErrorHandler(Display* d)
   return 0;
 }
 
-static int X11_ErrorHandler(Display* d, XErrorEvent* e)
+static int X11_ErrorHandler(XDisplay* d, XErrorEvent* e)
 {
   char buffer[256];
   UI_SYSTEM()->pXGetErrorText(d, e->error_code, buffer, 256);
@@ -309,6 +309,16 @@ static void X11UISystem_sendClientMessage(X11UISystem* uiSystem, XWindow win, lo
 }
 
 // ============================================================================
+// [Fog::X11UISystem - Registration]
+// ============================================================================
+
+void X11UISystem::registerUISystem()
+{
+  String uiX11(Ascii8("UI.X11"));
+  Application::registerUISystemT<X11UISystem>(uiX11);
+}
+
+// ============================================================================
 // [Fog::X11UISystem - Construction / Destruction]
 // ============================================================================
 
@@ -390,6 +400,7 @@ X11UISystem::X11UISystem()
   updateDisplayInfo();
 
   // Intern atoms.
+  _atomNames = X11_atomNames;
   pXInternAtoms(_display, (char **)X11_atomNames, Atom_Count, False, _atoms);
 
   // Alloc colormap for 4, 8 bit depth
@@ -408,8 +419,10 @@ X11UISystem::X11UISystem()
     int major, minor;
     XBool pixmaps;
 
-    pXShmQueryVersion(_display, &major, &minor, &pixmaps);
-    _xShm = pixmaps;
+    if (pXShmQueryVersion(_display, &major, &minor, &pixmaps))
+    {
+      _xShm = pixmaps;
+    }
   }
 
   initKeyboard();
@@ -417,7 +430,7 @@ X11UISystem::X11UISystem()
 
   // Finally add the event loop type into application. Event loop will be
   // instantiated by application after UISystem was properly constructed.
-  Application::addEventLoopTypeT<X11EventLoop>(Ascii8("UI.X11"));
+  Application::registerEventLoopT<X11EventLoop>(Ascii8("UI.X11"));
 
   _initialized = true;
   return;
@@ -429,7 +442,7 @@ fail:
 X11UISystem::~X11UISystem()
 {
   // We don't want that event loop is available after X11UISystem was destroyed.
-  Application::removeEventLoopType(Fog::Ascii8("UI.X11"));
+  Application::unregisterEventLoop(Fog::Ascii8("UI.X11"));
 
   // Close display and free X resources.
   if (_display)
@@ -451,6 +464,9 @@ X11UISystem::~X11UISystem()
 
 void X11UISystem::updateDisplayInfo()
 {
+  _displayInfo.width = pXDisplayWidth(_display, _screen);
+  _displayInfo.height = pXDisplayHeight(_display, _screen);
+
   _displayInfo.depth = pXDefaultDepth(_display, _screen);
   _displayInfo.rMask = _visual->red_mask;
   _displayInfo.gMask = _visual->green_mask;
@@ -946,8 +962,8 @@ err_t X11UIWindow::create(uint32_t createFlags)
 
   X11UISystem* uiSystem = UI_SYSTEM();
 
-  Display* display = uiSystem->getDisplay();
-  Atom* atoms = uiSystem->getAtoms();
+  XDisplay* display = uiSystem->getDisplay();
+  XAtom* atoms = uiSystem->getAtoms();
 
   int x = _widget->getX();
   int y = _widget->getY();
@@ -1013,7 +1029,7 @@ err_t X11UIWindow::create(uint32_t createFlags)
 
   // Window protocols.
   {
-    Atom protocols[2];
+    XAtom protocols[2];
 
     // WM_DELETE_WINDOW support.
     protocols[0] = atoms[X11UISystem::Atom_WM_DELETE_WINDOW];
@@ -1545,7 +1561,7 @@ __keyPressNoXIC:
         // WM_PROTOCOLS messages
         if (xe->xclient.message_type == uiSystem->getAtom(X11UISystem::Atom_WM_PROTOCOLS))
         {
-          Atom msg = (Atom)xe->xclient.data.l[0];
+          XAtom msg = (XAtom)xe->xclient.data.l[0];
 
           if (msg == uiSystem->getAtom(X11UISystem::Atom_WM_DELETE_WINDOW))
           {

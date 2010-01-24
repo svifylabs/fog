@@ -309,6 +309,7 @@ Set(FOG_CORE_LIB_HEADERS
   Fog/Core/Intrin_SSE.h
   Fog/Core/Intrin_SSE2.h
   Fog/Core/Intrin_SSE3.h
+  Fog/Core/Intrin_SSSE3.h
   Fog/Core/Lazy.h
   Fog/Core/Library.h
   Fog/Core/List.h
@@ -484,46 +485,61 @@ Set(FOG_GRAPHICS_RASTERUTIL_SOURCES
   Fog/Graphics/RasterUtil/RasterUtil_Init_C.cpp
   Fog/Graphics/RasterUtil/RasterUtil_Init_MMX.cpp
   Fog/Graphics/RasterUtil/RasterUtil_Init_SSE2.cpp
+  Fog/Graphics/RasterUtil/RasterUtil_Init_SSSE3.cpp
 )
 
 Set(FOG_GRAPHICS_RASTERUTIL_HEADERS
   Fog/Graphics/RasterUtil/RasterUtil_Composite_C_p.h
   Fog/Graphics/RasterUtil/RasterUtil_Composite_MMX_p.h
   Fog/Graphics/RasterUtil/RasterUtil_Composite_SSE2_p.h
+  Fog/Graphics/RasterUtil/RasterUtil_Composite_SSSE3_p.h
+
   Fog/Graphics/RasterUtil/RasterUtil_Defs_C_p.h
   Fog/Graphics/RasterUtil/RasterUtil_Defs_MMX_p.h
   Fog/Graphics/RasterUtil/RasterUtil_Defs_SSE2_p.h
+  Fog/Graphics/RasterUtil/RasterUtil_Defs_SSSE3_p.h
+
   Fog/Graphics/RasterUtil/RasterUtil_Dib_C_p.h
   Fog/Graphics/RasterUtil/RasterUtil_Dib_MMX_p.h
   Fog/Graphics/RasterUtil/RasterUtil_Dib_SSE2_p.h
+  Fog/Graphics/RasterUtil/RasterUtil_Dib_SSSE3_p.h
+
   Fog/Graphics/RasterUtil/RasterUtil_Filters_C_p.h
   Fog/Graphics/RasterUtil/RasterUtil_Filters_MMX_p.h
   Fog/Graphics/RasterUtil/RasterUtil_Filters_SSE2_p.h
+  Fog/Graphics/RasterUtil/RasterUtil_Filters_SSSE3_p.h
+
   Fog/Graphics/RasterUtil/RasterUtil_Interpolate_C_p.h
   Fog/Graphics/RasterUtil/RasterUtil_Interpolate_MMX_p.h
   Fog/Graphics/RasterUtil/RasterUtil_Interpolate_SSE2_p.h
+  Fog/Graphics/RasterUtil/RasterUtil_Interpolate_SSSE3_p.h
+
   Fog/Graphics/RasterUtil/RasterUtil_Pattern_C_p.h
   Fog/Graphics/RasterUtil/RasterUtil_Pattern_MMX_p.h
   Fog/Graphics/RasterUtil/RasterUtil_Pattern_SSE2_p.h
+  Fog/Graphics/RasterUtil/RasterUtil_Pattern_SSSE3_p.h
+
   Fog/Graphics/RasterUtil/RasterUtil_Scale_C_p.h
   Fog/Graphics/RasterUtil/RasterUtil_Scale_MMX_p.h
   Fog/Graphics/RasterUtil/RasterUtil_Scale_SSE2_p.h
+  Fog/Graphics/RasterUtil/RasterUtil_Scale_SSSE3_p.h
 
   Fog/Graphics/RasterUtil/RasterUtil_Bresenham_p.h
   Fog/Graphics/RasterUtil/RasterUtil_C_p.h
 )
 
 # Optimize specific files for speed
-Set_Source_Files_Properties(Fog/Graphics/Image.cpp                           PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
-Set_Source_Files_Properties(Fog/Graphics/PathUtil.cpp                        PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
-Set_Source_Files_Properties(Fog/Graphics/PathUtil_SSE2.cpp                   PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE2}")
-Set_Source_Files_Properties(Fog/Graphics/Rasterizer.cpp                      PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
-Set_Source_Files_Properties(Fog/Graphics/Region.cpp                          PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
-Set_Source_Files_Properties(Fog/Graphics/Scanline.cpp                        PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/Image.cpp                            PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/PathUtil.cpp                         PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/PathUtil_SSE2.cpp                    PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE2}")
+Set_Source_Files_Properties(Fog/Graphics/Rasterizer.cpp                       PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/Region.cpp                           PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/Scanline.cpp                         PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
 
-Set_Source_Files_Properties(Fog/Graphics/RasterUtil/RasterUtil_Init_C.cpp    PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
-Set_Source_Files_Properties(Fog/Graphics/RasterUtil/RasterUtil_Init_MMX.cpp  PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_MMX}")
-Set_Source_Files_Properties(Fog/Graphics/RasterUtil/RasterUtil_Init_SSE2.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE2}")
+Set_Source_Files_Properties(Fog/Graphics/RasterUtil/RasterUtil_Init_C.cpp     PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/RasterUtil/RasterUtil_Init_MMX.cpp   PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_MMX}")
+Set_Source_Files_Properties(Fog/Graphics/RasterUtil/RasterUtil_Init_SSE2.cpp  PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE2}")
+Set_Source_Files_Properties(Fog/Graphics/RasterUtil/RasterUtil_Init_SSSE3.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSSE3}")
 
 # Source groups
 SOURCE_GROUP(Graphics               FILES ${FOG_GRAPHICS_LIB_SOURCES}         ${FOG_GRAPHICS_LIB_HEADERS})
@@ -691,6 +707,8 @@ Set(FOG_ALL_HEADERS
   ${FOG_SVG_LIB_HEADERS}
   ${FOG_UI_LIB_HEADERS}
   ${FOG_UI_THEME_HEADERS}
+  ${FOG_UI_WIN_HEADERS}
+  ${FOG_UI_X11_HEADERS}
 )
 
 If(WIN32)

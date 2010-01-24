@@ -92,7 +92,7 @@ struct FOG_HIDDEN FilterSSE2
       __m128 pixt0, pixt1;
       __m128 result0, result1;
 
-      pix_load8(pix0, src);
+      sse2_load8(pix0, src);
 
       {
         __m128i xmmz = _mm_setzero_si128();
@@ -111,8 +111,8 @@ struct FOG_HIDDEN FilterSSE2
         __m128 demul1 = _mm_load_ss(&ArgbUtil::demultiply_reciprocal_table_f[src[ARGB32_ABYTE+4]]);
 
         // demul |= [1.0f, 0x0, 0x0, 0x0]
-        demul0 = _mm_castsi128_ps(_mm_or_si128(_mm_castps_si128(demul0), Mask_3F80000000000000_0000000000000000));
-        demul1 = _mm_castsi128_ps(_mm_or_si128(_mm_castps_si128(demul1), Mask_3F80000000000000_0000000000000000));
+        demul0 = _mm_castsi128_ps(_mm_or_si128(_mm_castps_si128(demul0), SSE2_GET_CONST_PI(3F80000000000000_0000000000000000)));
+        demul1 = _mm_castsi128_ps(_mm_or_si128(_mm_castps_si128(demul1), SSE2_GET_CONST_PI(3F80000000000000_0000000000000000)));
 
         demul0 = _mm_shuffle_ps(demul0, demul0, _MM_SHUFFLE(3, 0, 0, 0));
         demul1 = _mm_shuffle_ps(demul1, demul1, _MM_SHUFFLE(3, 0, 0, 0));
@@ -175,7 +175,7 @@ struct FOG_HIDDEN FilterSSE2
       pix0 = _mm_packus_epi16(pix0, pix1);
       pix0 = _mm_shuffle_epi32(pix0, _MM_SHUFFLE(2, 0, 2, 0));
 
-      pix_store8(dst, pix0);
+      sse2_store8(dst, pix0);
     }
 
     if (width & 1)
@@ -186,12 +186,12 @@ struct FOG_HIDDEN FilterSSE2
       __m128 demul;
       __m128 result;
 
-      pix_load4(pix, src);
-      pix_unpack_to_float(pixf, pix);
+      sse2_load4(pix, src);
+      sse2_unpack_to_float(pixf, pix);
 
       demul = _mm_load_ss(&ArgbUtil::demultiply_reciprocal_table_f[src[ARGB32_ABYTE]]);
       // demul |= [1.0f, 0x0, 0x0, 0x0]
-      demul = _mm_castsi128_ps(_mm_or_si128(_mm_castps_si128(demul), Mask_3F80000000000000_0000000000000000));
+      demul = _mm_castsi128_ps(_mm_or_si128(_mm_castps_si128(demul), SSE2_GET_CONST_PI(3F80000000000000_0000000000000000)));
       demul = _mm_shuffle_ps(demul, demul, _MM_SHUFFLE(3, 0, 0, 0));
       pixf = _mm_mul_ps(pixf, demul);
 
@@ -222,8 +222,8 @@ struct FOG_HIDDEN FilterSSE2
       pixf = _mm_add_ps(pixf, cf1div255add);
       result = _mm_mul_ps(result, pixf);
 
-      pix_pack_from_float(pix, result);
-      pix_store4(dst, pix);
+      sse2_pack_from_float(pix, result);
+      sse2_store4(dst, pix);
     }
   }
 
@@ -246,7 +246,7 @@ struct FOG_HIDDEN FilterSSE2
       __m128 pixt0, pixt1;
       __m128 result0, result1;
 
-      pix_load8(pix0, src);
+      sse2_load8(pix0, src);
 
       {
         __m128i xmmz = _mm_setzero_si128();
@@ -303,7 +303,7 @@ struct FOG_HIDDEN FilterSSE2
       pix0 = _mm_packus_epi16(pix0, pix1);
       pix0 = _mm_shuffle_epi32(pix0, _MM_SHUFFLE(2, 0, 2, 0));
 
-      pix_store8(dst, pix0);
+      sse2_store8(dst, pix0);
     }
 
     if (width & 1)
@@ -313,8 +313,8 @@ struct FOG_HIDDEN FilterSSE2
       __m128 pixt;
       __m128 result;
 
-      pix_load4(pix, src);
-      pix_unpack_to_float(pixf, pix);
+      sse2_load4(pix, src);
+      sse2_unpack_to_float(pixf, pix);
 
       result = pt;
 
@@ -337,8 +337,8 @@ struct FOG_HIDDEN FilterSSE2
       result = _mm_max_ps(result, cf0);
       result = _mm_min_ps(result, cf255);
 
-      pix_pack_from_float(pix, result);
-      pix_store4(dst, pix);
+      sse2_pack_from_float(pix, result);
+      sse2_store4(dst, pix);
     }
   }
 
@@ -363,8 +363,8 @@ struct FOG_HIDDEN FilterSSE2
       __m128 pixt0, pixt1;
       __m128 result0, result1;
 
-      pix_load8(pix0, src);
-      pix0 = _mm_or_si128(pix0, Mask_FF000000FF000000_FF000000FF000000);
+      sse2_load8(pix0, src);
+      pix0 = _mm_or_si128(pix0, SSE2_GET_CONST_PI(FF000000FF000000_FF000000FF000000));
 
       {
         __m128i xmmz = _mm_setzero_si128();
@@ -414,7 +414,7 @@ struct FOG_HIDDEN FilterSSE2
       pix0 = _mm_packus_epi16(pix0, pix1);
       pix0 = _mm_shuffle_epi32(pix0, _MM_SHUFFLE(2, 0, 2, 0));
 
-      pix_store8(dst, pix0);
+      sse2_store8(dst, pix0);
     }
 
     if (width & 1)
@@ -424,9 +424,9 @@ struct FOG_HIDDEN FilterSSE2
       __m128 pixt;
       __m128 result;
 
-      pix_load4(pix, src);
-      pix = _mm_or_si128(pix, Mask_FF000000FF000000_FF000000FF000000);
-      pix_unpack_to_float(pixf, pix);
+      sse2_load4(pix, src);
+      pix = _mm_or_si128(pix, SSE2_GET_CONST_PI(FF000000FF000000_FF000000FF000000));
+      sse2_unpack_to_float(pixf, pix);
 
       result = pt;
 
@@ -445,8 +445,8 @@ struct FOG_HIDDEN FilterSSE2
       result = _mm_max_ps(result, cf0);
       result = _mm_min_ps(result, cf255);
 
-      pix_pack_from_float(pix, result);
-      pix_store4(dst, pix);
+      sse2_pack_from_float(pix, result);
+      sse2_store4(dst, pix);
     }
   }
 
@@ -468,8 +468,8 @@ struct FOG_HIDDEN FilterSSE2
       __m128i pix;
       __m128 pixf;
 
-      pix_load4(pix, src);
-      pix_unpack_to_float(pixf, pix);
+      sse2_load4(pix, src);
+      sse2_unpack_to_float(pixf, pix);
 
       pixf = _mm_mul_ps(pixf, pa);
       pixf = _mm_add_ps(pixf, pt);
@@ -477,8 +477,8 @@ struct FOG_HIDDEN FilterSSE2
       pixf = _mm_max_ps(pixf, cf0);
       pixf = _mm_min_ps(pixf, cf255);
 
-      pix_pack_from_float(pix, pixf);
-      pix_store4(dst, pix);
+      sse2_pack_from_float(pix, pixf);
+      sse2_store4(dst, pix);
     }
 
     for (i = width & 3; i; i--, dst += 1, src += 1)
@@ -487,7 +487,7 @@ struct FOG_HIDDEN FilterSSE2
       __m128 pixf;
 
       pix = _mm_cvtsi32_si128(src[0]);
-      pix_unpack_to_float(pixf, pix);
+      sse2_unpack_to_float(pixf, pix);
 
       pixf = _mm_mul_ss(pixf, pa);
       pixf = _mm_add_ss(pixf, pt);
@@ -495,7 +495,7 @@ struct FOG_HIDDEN FilterSSE2
       pixf = _mm_max_ss(pixf, cf0);
       pixf = _mm_min_ss(pixf, cf255);
 
-      pix_pack_from_float(pix, pixf);
+      sse2_pack_from_float(pix, pixf);
       dst[0] = (uint8_t)_mm_cvtsi128_si32(pix);
     }
   }
@@ -534,7 +534,7 @@ struct FOG_HIDDEN FilterSSE2
 
     __m128i mmMul = _mm_cvtsi32_si128(getReciprocal(size));
     __m128i mmShr = _mm_cvtsi32_si128(16);
-    pix_expand_pixel_1x4B(mmMul, mmMul);
+    sse2_expand_pixel_lo_1x4B(mmMul, mmMul);
 
     uint32_t stack[512];
     uint32_t* stackEnd = stack + size;
@@ -562,7 +562,7 @@ struct FOG_HIDDEN FilterSSE2
       }
 
       pix32 = lBorderColor;
-      pix_unpack_1x1D(pix, pix32);
+      sse2_unpack_1x1D(pix, pix32);
 
       stackCur = stack;
 
@@ -578,7 +578,7 @@ struct FOG_HIDDEN FilterSSE2
       stackCur[0] = pix32;
       stackCur++;
 
-      pix_unpack_1x1D(pix, pix32);
+      sse2_unpack_1x1D(pix, pix32);
       sum = _mm_add_epi32(sum, pix);
 
       for (i = 1; i <= radius; i++)
@@ -596,7 +596,7 @@ struct FOG_HIDDEN FilterSSE2
         stackCur[0] = pix32;
         stackCur++;
 
-        pix_unpack_1x1D(pix, pix32);
+        sse2_unpack_1x1D(pix, pix32);
         sum = _mm_add_epi32(sum, pix);
       }
 
@@ -611,14 +611,14 @@ struct FOG_HIDDEN FilterSSE2
       {
         sse2_mul_const_4D(pix, sum, mmMul);
         pix = _mm_srl_epi32(pix, mmShr);
-        pix_pack_1x1D(pix, pix);
-        pix_store4(dstCur, pix);
+        sse2_pack_1x1D(pix, pix);
+        sse2_store4(dstCur, pix);
 
         dstCur += 4;
 
         pix32 = stackCur[0];
 
-        pix_unpack_1x1D(pix, pix32);
+        sse2_unpack_1x1D(pix, pix32);
         sum = _mm_sub_epi32(sum, pix);
 
         if (xp < max)
@@ -634,7 +634,7 @@ struct FOG_HIDDEN FilterSSE2
 
         stackCur[0] = pix32;
 
-        pix_unpack_1x1D(pix, pix32);
+        sse2_unpack_1x1D(pix, pix32);
         sum = _mm_add_epi32(sum, pix);
 
         stackCur += 1;
@@ -676,7 +676,7 @@ struct FOG_HIDDEN FilterSSE2
 
     __m128i mmMul = _mm_cvtsi32_si128(getReciprocal(size));
     __m128i mmShr = _mm_cvtsi32_si128(16);
-    pix_expand_pixel_1x4B(mmMul, mmMul);
+    sse2_expand_pixel_lo_1x4B(mmMul, mmMul);
 
     uint32_t stack[512];
     uint32_t* stackEnd = stack + size;
@@ -704,7 +704,7 @@ struct FOG_HIDDEN FilterSSE2
       }
 
       pix32 = lBorderColor;
-      pix_unpack_1x1D(pix, pix32);
+      sse2_unpack_1x1D(pix, pix32);
 
       stackCur = stack;
 
@@ -720,7 +720,7 @@ struct FOG_HIDDEN FilterSSE2
       stackCur[0] = pix32;
       stackCur++;
 
-      pix_unpack_1x1D(pix, pix32);
+      sse2_unpack_1x1D(pix, pix32);
       sum = _mm_add_epi32(sum, pix);
 
       for (i = 1; i <= radius; i++)
@@ -738,7 +738,7 @@ struct FOG_HIDDEN FilterSSE2
         stackCur[0] = pix32;
         stackCur++;
 
-        pix_unpack_1x1D(pix, pix32);
+        sse2_unpack_1x1D(pix, pix32);
         sum = _mm_add_epi32(sum, pix);
       }
 
@@ -753,15 +753,15 @@ struct FOG_HIDDEN FilterSSE2
       {
         sse2_mul_const_4D(pix, sum, mmMul);
         pix = _mm_srl_epi32(pix, mmShr);
-        pix_pack_1x1D(pix, pix);
-        pix = _mm_or_si128(pix, Mask_FF000000FF000000_FF000000FF000000);
-        pix_store4(dstCur, pix);
+        sse2_pack_1x1D(pix, pix);
+        pix = _mm_or_si128(pix, SSE2_GET_CONST_PI(FF000000FF000000_FF000000FF000000));
+        sse2_store4(dstCur, pix);
 
         dstCur += 4;
 
         pix32 = stackCur[0];
 
-        pix_unpack_1x1D(pix, pix32);
+        sse2_unpack_1x1D(pix, pix32);
         sum = _mm_sub_epi32(sum, pix);
 
         if (xp < max)
@@ -777,7 +777,7 @@ struct FOG_HIDDEN FilterSSE2
 
         stackCur[0] = pix32;
 
-        pix_unpack_1x1D(pix, pix32);
+        sse2_unpack_1x1D(pix, pix32);
         sum = _mm_add_epi32(sum, pix);
 
         stackCur += 1;
@@ -819,7 +819,7 @@ struct FOG_HIDDEN FilterSSE2
 
     __m128i mmMul = _mm_cvtsi32_si128(getReciprocal(size));
     __m128i mmShr = _mm_cvtsi32_si128(16);
-    pix_expand_pixel_1x4B(mmMul, mmMul);
+    sse2_expand_pixel_lo_1x4B(mmMul, mmMul);
 
     uint32_t stack[512];
     uint32_t* stackEnd = stack + size;
@@ -847,7 +847,7 @@ struct FOG_HIDDEN FilterSSE2
       }
 
       pix32 = lBorderColor;
-      pix_unpack_1x1D(pix, pix32);
+      sse2_unpack_1x1D(pix, pix32);
 
       stackCur = stack;
 
@@ -863,7 +863,7 @@ struct FOG_HIDDEN FilterSSE2
       stackCur[0] = pix32;
       stackCur++;
 
-      pix_unpack_1x1D(pix, pix32);
+      sse2_unpack_1x1D(pix, pix32);
       sum = _mm_add_epi32(sum, pix);
 
       for (i = 1; i <= radius; i++)
@@ -881,7 +881,7 @@ struct FOG_HIDDEN FilterSSE2
         stackCur[0] = pix32;
         stackCur++;
 
-        pix_unpack_1x1D(pix, pix32);
+        sse2_unpack_1x1D(pix, pix32);
         sum = _mm_add_epi32(sum, pix);
       }
 
@@ -896,14 +896,14 @@ struct FOG_HIDDEN FilterSSE2
       {
         sse2_mul_const_4D(pix, sum, mmMul);
         pix = _mm_srl_epi32(pix, mmShr);
-        pix_pack_1x1D(pix, pix);
-        pix_store4(dstCur, pix);
+        sse2_pack_1x1D(pix, pix);
+        sse2_store4(dstCur, pix);
 
         dstCur += dstStride;
 
         pix32 = stackCur[0];
 
-        pix_unpack_1x1D(pix, pix32);
+        sse2_unpack_1x1D(pix, pix32);
         sum = _mm_sub_epi32(sum, pix);
 
         if (xp < max)
@@ -919,7 +919,7 @@ struct FOG_HIDDEN FilterSSE2
 
         stackCur[0] = pix32;
 
-        pix_unpack_1x1D(pix, pix32);
+        sse2_unpack_1x1D(pix, pix32);
         sum = _mm_add_epi32(sum, pix);
 
         stackCur += 1;
@@ -961,7 +961,7 @@ struct FOG_HIDDEN FilterSSE2
 
     __m128i mmMul = _mm_cvtsi32_si128(getReciprocal(size));
     __m128i mmShr = _mm_cvtsi32_si128(16);
-    pix_expand_pixel_1x4B(mmMul, mmMul);
+    sse2_expand_pixel_lo_1x4B(mmMul, mmMul);
 
     uint32_t stack[512];
     uint32_t* stackEnd = stack + size;
@@ -989,7 +989,7 @@ struct FOG_HIDDEN FilterSSE2
       }
 
       pix32 = lBorderColor;
-      pix_unpack_1x1D(pix, pix32);
+      sse2_unpack_1x1D(pix, pix32);
 
       stackCur = stack;
 
@@ -1005,7 +1005,7 @@ struct FOG_HIDDEN FilterSSE2
       stackCur[0] = pix32;
       stackCur++;
 
-      pix_unpack_1x1D(pix, pix32);
+      sse2_unpack_1x1D(pix, pix32);
       sum = _mm_add_epi32(sum, pix);
 
       for (i = 1; i <= radius; i++)
@@ -1023,7 +1023,7 @@ struct FOG_HIDDEN FilterSSE2
         stackCur[0] = pix32;
         stackCur++;
 
-        pix_unpack_1x1D(pix, pix32);
+        sse2_unpack_1x1D(pix, pix32);
         sum = _mm_add_epi32(sum, pix);
       }
 
@@ -1038,15 +1038,15 @@ struct FOG_HIDDEN FilterSSE2
       {
         sse2_mul_const_4D(pix, sum, mmMul);
         pix = _mm_srl_epi32(pix, mmShr);
-        pix_pack_1x1D(pix, pix);
-        pix = _mm_or_si128(pix, Mask_FF000000FF000000_FF000000FF000000);
-        pix_store4(dstCur, pix);
+        sse2_pack_1x1D(pix, pix);
+        pix = _mm_or_si128(pix, SSE2_GET_CONST_PI(FF000000FF000000_FF000000FF000000));
+        sse2_store4(dstCur, pix);
 
         dstCur += dstStride;
 
         pix32 = stackCur[0];
 
-        pix_unpack_1x1D(pix, pix32);
+        sse2_unpack_1x1D(pix, pix32);
         sum = _mm_sub_epi32(sum, pix);
 
         if (xp < max)
@@ -1062,7 +1062,7 @@ struct FOG_HIDDEN FilterSSE2
 
         stackCur[0] = pix32;
 
-        pix_unpack_1x1D(pix, pix32);
+        sse2_unpack_1x1D(pix, pix32);
         sum = _mm_add_epi32(sum, pix);
 
         stackCur += 1;
@@ -1106,7 +1106,7 @@ struct FOG_HIDDEN FilterSSE2
 
     __m128i mmMul = _mm_cvtsi32_si128(linear_blur8_mul[radius]);
     __m128i mmShr = _mm_cvtsi32_si128(linear_blur8_shr[radius]);
-    pix_expand_pixel_1x4B(mmMul, mmMul);
+    sse2_expand_pixel_lo_1x4B(mmMul, mmMul);
 
     uint32_t stack[512];
     uint32_t* stackEnd = stack + (radius * 2 + 1);
@@ -1139,7 +1139,7 @@ struct FOG_HIDDEN FilterSSE2
       }
 
       pix32 = lBorderColor;
-      pix_unpack_1x1D(pix, pix32);
+      sse2_unpack_1x1D(pix, pix32);
       mi = pix;
 
       stackLeft = stack;
@@ -1155,13 +1155,13 @@ struct FOG_HIDDEN FilterSSE2
       }
 
       pix32 = READ_32(srcCur);
-      pix_unpack_1x1D(pix, pix32);
+      sse2_unpack_1x1D(pix, pix32);
 
       stackLeft[0] = pix32;
       stackLeft++;
 
-      pix_expand_mask_1x1D(mi, radius + 1);
-      pix_expand_mask_1x1D(m1, 1);
+      sse2_expand_mask_1x1D(mi, radius + 1);
+      sse2_expand_mask_1x1D(m1, 1);
 
       sumOut = _mm_add_epi32(sumOut, pix);
 
@@ -1183,7 +1183,7 @@ struct FOG_HIDDEN FilterSSE2
         stackLeft[0] = pix32;
         stackLeft++;
 
-        pix_unpack_1x1D(pix, pix32);
+        sse2_unpack_1x1D(pix, pix32);
 
         mi = _mm_sub_epi32(mi, m1);
         sumIn = _mm_add_epi32(sumIn, pix);
@@ -1203,14 +1203,14 @@ struct FOG_HIDDEN FilterSSE2
       {
         sse2_mul_const_4D(pix, sum, mmMul);
         pix = _mm_srl_epi32(pix, mmShr);
-        pix_pack_1x1D(pix, pix);
-        pix_store4(dstCur, pix);
+        sse2_pack_1x1D(pix, pix);
+        sse2_store4(dstCur, pix);
 
         dstCur += 4;
 
         sum = _mm_sub_epi32(sum, sumOut);
 
-        pix_unpack_1x1D(pix, stackLeft[0]);
+        sse2_unpack_1x1D(pix, stackLeft[0]);
         sumOut = _mm_sub_epi32(sumOut, pix);
 
         if (xp < max)
@@ -1225,7 +1225,7 @@ struct FOG_HIDDEN FilterSSE2
         }
 
         stackLeft[0] = pix32;
-        pix_unpack_1x1D(pix, pix32);
+        sse2_unpack_1x1D(pix, pix32);
 
         sumIn = _mm_add_epi32(sumIn, pix);
         sum = _mm_add_epi32(sum, sumIn);
@@ -1236,7 +1236,7 @@ struct FOG_HIDDEN FilterSSE2
         if (stackLeft == stackEnd) stackLeft = stack;
         if (stackRight == stackEnd) stackRight = stack;
 
-        pix_unpack_1x1D(pix, stackRight[0]);
+        sse2_unpack_1x1D(pix, stackRight[0]);
 
         sumOut = _mm_add_epi32(sumOut, pix);
         sumIn = _mm_sub_epi32(sumIn, pix);
@@ -1275,7 +1275,7 @@ struct FOG_HIDDEN FilterSSE2
 
     __m128i mmMul = _mm_cvtsi32_si128(linear_blur8_mul[radius]);
     __m128i mmShr = _mm_cvtsi32_si128(linear_blur8_shr[radius]);
-    pix_expand_pixel_1x4B(mmMul, mmMul);
+    sse2_expand_pixel_lo_1x4B(mmMul, mmMul);
 
     uint32_t stack[512];
     uint32_t* stackEnd = stack + (radius * 2 + 1);
@@ -1308,7 +1308,7 @@ struct FOG_HIDDEN FilterSSE2
       }
 
       pix32 = lBorderColor;
-      pix_unpack_1x1D(pix, pix32);
+      sse2_unpack_1x1D(pix, pix32);
       mi = pix;
 
       stackLeft = stack;
@@ -1324,13 +1324,13 @@ struct FOG_HIDDEN FilterSSE2
       }
 
       pix32 = READ_32(srcCur);
-      pix_unpack_1x1D(pix, pix32);
+      sse2_unpack_1x1D(pix, pix32);
 
       stackLeft[0] = pix32;
       stackLeft++;
 
-      pix_expand_mask_1x1D(mi, radius + 1);
-      pix_expand_mask_1x1D(m1, 1);
+      sse2_expand_mask_1x1D(mi, radius + 1);
+      sse2_expand_mask_1x1D(m1, 1);
 
       sumOut = _mm_add_epi32(sumOut, pix);
 
@@ -1352,7 +1352,7 @@ struct FOG_HIDDEN FilterSSE2
         stackLeft[0] = pix32;
         stackLeft++;
 
-        pix_unpack_1x1D(pix, pix32);
+        sse2_unpack_1x1D(pix, pix32);
 
         mi = _mm_sub_epi32(mi, m1);
         sumIn = _mm_add_epi32(sumIn, pix);
@@ -1372,14 +1372,14 @@ struct FOG_HIDDEN FilterSSE2
       {
         sse2_mul_const_4D(pix, sum, mmMul);
         pix = _mm_srl_epi32(pix, mmShr);
-        pix_pack_1x1D(pix, pix);
-        pix_store4(dstCur, pix);
+        sse2_pack_1x1D(pix, pix);
+        sse2_store4(dstCur, pix);
 
         dstCur += dstStride;
 
         sum = _mm_sub_epi32(sum, sumOut);
 
-        pix_unpack_1x1D(pix, stackLeft[0]);
+        sse2_unpack_1x1D(pix, stackLeft[0]);
         sumOut = _mm_sub_epi32(sumOut, pix);
 
         if (xp < max)
@@ -1394,7 +1394,7 @@ struct FOG_HIDDEN FilterSSE2
         }
 
         stackLeft[0] = pix32;
-        pix_unpack_1x1D(pix, pix32);
+        sse2_unpack_1x1D(pix, pix32);
 
         sumIn = _mm_add_epi32(sumIn, pix);
         sum = _mm_add_epi32(sum, sumIn);
@@ -1405,7 +1405,7 @@ struct FOG_HIDDEN FilterSSE2
         if (stackLeft == stackEnd) stackLeft = stack;
         if (stackRight == stackEnd) stackRight = stack;
 
-        pix_unpack_1x1D(pix, stackRight[0]);
+        sse2_unpack_1x1D(pix, stackRight[0]);
 
         sumOut = _mm_add_epi32(sumOut, pix);
         sumIn = _mm_sub_epi32(sumIn, pix);
@@ -1514,8 +1514,8 @@ struct FOG_HIDDEN FilterSSE2
           __m128 k = _mm_set1_ps(kernel[i]);
           __m128 pixf;
 
-          pix_load4(pixi, (uint8_t*)stackCur);
-          pix_unpack_to_float(pixf, pixi);
+          sse2_load4(pixi, (uint8_t*)stackCur);
+          sse2_unpack_to_float(pixf, pixi);
 
           pixf = _mm_mul_ps(pixf, k);
           z = _mm_add_ps(z, pixf);
@@ -1527,14 +1527,14 @@ struct FOG_HIDDEN FilterSSE2
         z = _mm_max_ps(z, const0);
         z = _mm_min_ps(z, const255);
 
-        pix_pack_from_float(pixi, z);
-        pix_store4(dstCur, pixi);
+        sse2_pack_from_float(pixi, z);
+        sse2_store4(dstCur, pixi);
         dstCur += 4;
 
         if (xp < dym1)
         {
-          pix_load4(pixi, srcCur);
-          pix_store4((uint8_t*)stackCur, pixi);
+          sse2_load4(pixi, srcCur);
+          sse2_store4((uint8_t*)stackCur, pixi);
           srcCur += 4;
           xp++;
         }
@@ -1646,8 +1646,8 @@ struct FOG_HIDDEN FilterSSE2
           __m128 k = _mm_set1_ps(kernel[i]);
           __m128 pixf;
 
-          pix_load4(pixi, (uint8_t*)stackCur);
-          pix_unpack_to_float(pixf, pixi);
+          sse2_load4(pixi, (uint8_t*)stackCur);
+          sse2_unpack_to_float(pixf, pixi);
 
           pixf = _mm_mul_ps(pixf, k);
           z = _mm_add_ps(z, pixf);
@@ -1659,14 +1659,14 @@ struct FOG_HIDDEN FilterSSE2
         z = _mm_max_ps(z, const0);
         z = _mm_min_ps(z, const255);
 
-        pix_pack_from_float(pixi, z);
-        pix_store4(dstCur, pixi);
+        sse2_pack_from_float(pixi, z);
+        sse2_store4(dstCur, pixi);
         dstCur += dstStride;
 
         if (xp < dym1)
         {
-          pix_load4(pixi, srcCur);
-          pix_store4((uint8_t*)stackCur, pixi);
+          sse2_load4(pixi, srcCur);
+          sse2_store4((uint8_t*)stackCur, pixi);
           srcCur += srcStride;
           xp++;
         }

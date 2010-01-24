@@ -75,16 +75,16 @@ namespace RasterUtil {
   __m128i __x0xmm; \
   __m128i __w0xmm; \
   \
-  pix_load8(__x0xmm, &COLORS[(int)(YY >> 16)]); \
+  sse2_load8(__x0xmm, &COLORS[(int)(YY >> 16)]); \
   \
   __w0xmm = _mm_cvtsi32_si128((int)YY); \
   __w0xmm = _mm_srli_epi16(__w0xmm, 8); \
   __w0xmm = _mm_shufflelo_epi16(__w0xmm, _MM_SHUFFLE(0, 0, 0, 0)); \
   __w0xmm = _mm_shuffle_epi32(__w0xmm, _MM_SHUFFLE(0, 0, 0, 0)); \
-  __w0xmm = _mm_xor_si128(__w0xmm, Mask_0000000000000000_FFFFFFFFFFFFFFFF); \
-  __w0xmm = _mm_add_epi16(__w0xmm, Mask_0000000000000000_0101010101010101); \
+  __w0xmm = _mm_xor_si128(__w0xmm, SSE2_GET_CONST_PI(0000000000000000_FFFFFFFFFFFFFFFF)); \
+  __w0xmm = _mm_add_epi16(__w0xmm, SSE2_GET_CONST_PI(0000000000000000_0101010101010101)); \
   \
-  pix_unpack_1x2W(__x0xmm, __x0xmm); \
+  sse2_unpack_1x2W(__x0xmm, __x0xmm); \
   \
   __x0xmm = _mm_mullo_epi16(__x0xmm, __w0xmm); \
   __w0xmm = _mm_shuffle_epi32(__x0xmm, _MM_SHUFFLE(1, 0, 3, 2)); \
@@ -92,8 +92,8 @@ namespace RasterUtil {
   __x0xmm = _mm_adds_epu16(__x0xmm, __w0xmm); \
   __x0xmm = _mm_srli_epi16(__x0xmm, 8); \
   \
-  pix_pack_1x1W(__x0xmm, __x0xmm); \
-  pix_store4(DST, __x0xmm); \
+  sse2_pack_1x1W(__x0xmm, __x0xmm); \
+  sse2_store4(DST, __x0xmm); \
 }
 
 #define GRADIENT_SSE2_INTERPOLATE_2_4X_INIT() \
@@ -134,27 +134,27 @@ namespace RasterUtil {
   \
   pos = (int)(yy >> 16); yy += ax; \
   COND \
-  pix_load8(__x0xmm, &colors[pos]); \
+  sse2_load8(__x0xmm, &colors[pos]); \
   \
   __w0xmm = _mm_srli_epi16(__w0xmm, 8); \
   \
   pos = (int)(yy >> 16); yy += ax; \
   COND \
-  pix_load8(__x1xmm, &colors[pos]); \
+  sse2_load8(__x1xmm, &colors[pos]); \
   \
-  __w0xmm = _mm_xor_si128(__w0xmm, Mask_0000000000000000_FFFFFFFFFFFFFFFF); \
-  __w0xmm = _mm_add_epi16(__w0xmm, Mask_0000000000000000_0101010101010101); \
+  __w0xmm = _mm_xor_si128(__w0xmm, SSE2_GET_CONST_PI(0000000000000000_FFFFFFFFFFFFFFFF)); \
+  __w0xmm = _mm_add_epi16(__w0xmm, SSE2_GET_CONST_PI(0000000000000000_0101010101010101)); \
   \
   pos = (int)(yy >> 16); yy += ax; \
   COND \
-  pix_load8(__x2xmm, &colors[pos]); \
+  sse2_load8(__x2xmm, &colors[pos]); \
   \
   /* INTERPOLATE [0] AND [1], AND SOME WEIGHT STUFF FOR [2] AND [3] PIXELS */ \
   __w1xmm = _mm_shuffle_epi32(__w0xmm, _MM_SHUFFLE(3, 3, 1, 1)); \
   __w0xmm = _mm_shuffle_epi32(__w0xmm, _MM_SHUFFLE(2, 2, 0, 0)); \
   \
-  pix_unpack_1x2W(__x0xmm, __x0xmm); \
-  pix_unpack_1x2W(__x1xmm, __x1xmm); \
+  sse2_unpack_1x2W(__x0xmm, __x0xmm); \
+  sse2_unpack_1x2W(__x1xmm, __x1xmm); \
   \
   __x0xmm = _mm_mullo_epi16(__x0xmm, __w0xmm); \
   __x1xmm = _mm_mullo_epi16(__x1xmm, __w1xmm); \
@@ -168,23 +168,23 @@ namespace RasterUtil {
   __w0xmm = _mm_srli_epi16(__w0xmm, 8); \
   \
   __x0xmm = _mm_srli_epi16(__x0xmm, 8); \
-  __w0xmm = _mm_xor_si128(__w0xmm, Mask_0000000000000000_FFFFFFFFFFFFFFFF); \
+  __w0xmm = _mm_xor_si128(__w0xmm, SSE2_GET_CONST_PI(0000000000000000_FFFFFFFFFFFFFFFF)); \
   __x1xmm = _mm_srli_epi16(__x1xmm, 8); \
-  __w0xmm = _mm_add_epi16(__w0xmm, Mask_0000000000000000_0101010101010101); \
+  __w0xmm = _mm_add_epi16(__w0xmm, SSE2_GET_CONST_PI(0000000000000000_0101010101010101)); \
   \
   __x0xmm = _mm_packus_epi16(__x0xmm, __x1xmm); \
   \
   /* LOAD PIXEL [3] */ \
   pos = (int)(yy >> 16); yy += ax; \
   COND \
-  pix_load8(__x1xmm, &colors[pos]); \
+  sse2_load8(__x1xmm, &colors[pos]); \
   \
   /* INTERPOLATE [2] AND [3] */ \
   __w1xmm = _mm_shuffle_epi32(__w0xmm, _MM_SHUFFLE(3, 3, 1, 1)); \
   __w0xmm = _mm_shuffle_epi32(__w0xmm, _MM_SHUFFLE(2, 2, 0, 0)); \
   \
-  pix_unpack_1x2W(__x2xmm, __x2xmm); \
-  pix_unpack_1x2W(__x1xmm, __x1xmm); \
+  sse2_unpack_1x2W(__x2xmm, __x2xmm); \
+  sse2_unpack_1x2W(__x1xmm, __x1xmm); \
   \
   __x2xmm = _mm_mullo_epi16(__x2xmm, __w0xmm); \
   __x1xmm = _mm_mullo_epi16(__x1xmm, __w1xmm); \
@@ -204,8 +204,8 @@ namespace RasterUtil {
   __x2xmm = _mm_shuffle_epi32(__x2xmm, _MM_SHUFFLE(2, 0, 2, 0)); \
   \
   /* STORE */ \
-  pix_store8(reinterpret_cast<char*>(DST)    , __x0xmm); \
-  pix_store8(reinterpret_cast<char*>(DST) + 8, __x2xmm); \
+  sse2_store8(reinterpret_cast<char*>(DST)    , __x0xmm); \
+  sse2_store8(reinterpret_cast<char*>(DST) + 8, __x2xmm); \
   \
   /* ADVANCE */ \
   __yypos = _mm_add_epi16(__yypos, __axinc); \
@@ -272,10 +272,10 @@ struct FOG_HIDDEN PatternSSE2
         {
           __m128i src0mm;
           __m128i src1mm;
-          pix_load16u(src0mm, srcCur +  0);
-          pix_load16u(src1mm, srcCur + 16);
-          pix_store16a(dstCur +  0, src0mm);
-          pix_store16a(dstCur + 16, src1mm);
+          sse2_load16u(src0mm, srcCur +  0);
+          sse2_load16u(src1mm, srcCur + 16);
+          sse2_store16a(dstCur +  0, src0mm);
+          sse2_store16a(dstCur + 16, src1mm);
 
           dstCur += 32;
           srcCur += 32;
@@ -360,12 +360,12 @@ struct FOG_HIDDEN PatternSSE2
 
             srcCur -= 32;
 
-            pix_load16u(src0mm, srcCur + 20);
-            pix_load16u(src1mm, srcCur + 4);
+            sse2_load16u(src0mm, srcCur + 20);
+            sse2_load16u(src1mm, srcCur + 4);
             src0mm = _mm_shuffle_epi32(src0mm, _MM_SHUFFLE(0, 1, 2, 3));
             src1mm = _mm_shuffle_epi32(src1mm, _MM_SHUFFLE(0, 1, 2, 3));
-            pix_store16a(dstCur +  0, src0mm);
-            pix_store16a(dstCur + 16, src1mm);
+            sse2_store16a(dstCur +  0, src0mm);
+            sse2_store16a(dstCur + 16, src1mm);
 
             dstCur += 32;
             i -= 8;
@@ -404,10 +404,10 @@ struct FOG_HIDDEN PatternSSE2
           {
             __m128i src0mm;
             __m128i src1mm;
-            pix_load16u(src0mm, srcCur +  0);
-            pix_load16u(src1mm, srcCur + 16);
-            pix_store16a(dstCur +  0, src0mm);
-            pix_store16a(dstCur + 16, src1mm);
+            sse2_load16u(src0mm, srcCur +  0);
+            sse2_load16u(src1mm, srcCur + 16);
+            sse2_store16a(dstCur +  0, src0mm);
+            sse2_store16a(dstCur + 16, src1mm);
 
             dstCur += 32;
             srcCur += 32;
@@ -449,15 +449,15 @@ struct FOG_HIDDEN PatternSSE2
 
   static FOG_INLINE void _vector_fetch_centered_sse2(__m128d& xy, int x, int y)
   {
-    xy = _mm_add_pd(_mm_cvtepi32_pd(_mm_set_epi32(0, 0, y, x)), MaskD_0_5_0_5);
+    xy = _mm_add_pd(_mm_cvtepi32_pd(_mm_set_epi32(0, 0, y, x)), SSE2_GET_CONST_PD(0_5_0_5));
   }
 
   static FOG_INLINE void _vector_fetch_transformed_sse2(__m128d& fxfy, int x, int y, const double* m)
   {
     _vector_fetch_centered_sse2(fxfy, x, y);
     _vector_affine_sse2(fxfy, m);
-    fxfy = _mm_mul_pd(fxfy, MaskD_65536_0_65536_0);
-    fxfy = _mm_sub_pd(fxfy, MaskD_32768_0_32768_0);
+    fxfy = _mm_mul_pd(fxfy, SSE2_GET_CONST_PD(65536_0_65536_0));
+    fxfy = _mm_sub_pd(fxfy, SSE2_GET_CONST_PD(32768_0_32768_0));
   }
 
   static FOG_INLINE void _vector_fetch_transformed_sse2(int& fx, int& fy, int x, int y, const double* m)
@@ -500,8 +500,8 @@ struct FOG_HIDDEN PatternSSE2
       int px0 = fx >> 16;
       int py0 = fy >> 16;
 
-      __m128i __pix_x01_y0;
-      __m128i __pix_x01_y1;
+      __m128i __sse2_x01_y0;
+      __m128i __sse2_x01_y1;
 
       __m128i __wx0;
       __m128i __wy0;
@@ -511,16 +511,16 @@ struct FOG_HIDDEN PatternSSE2
 
       if (FOG_UNLIKELY(((uint)py0 >= (uint)th) | ((uint)px0 >= (uint)tw)))
       {
-        __pix_x01_y0 = _mm_setzero_si128();
-        __pix_x01_y1 = _mm_setzero_si128();
+        __sse2_x01_y0 = _mm_setzero_si128();
+        __sse2_x01_y1 = _mm_setzero_si128();
 
         __wx0 = _mm_setzero_si128();
         __wy0 = _mm_setzero_si128();
 
         if ((uint)py0 <= (uint)th)
         {
-          if ((uint)px0     <= (uint)tw) pix_load4(__pix_x01_y0, src0    );
-          if ((uint)px0 + 1 <= (uint)tw) pix_load4(__wx0       , src0 + 4);
+          if ((uint)px0     <= (uint)tw) sse2_load4(__sse2_x01_y0, src0    );
+          if ((uint)px0 + 1 <= (uint)tw) sse2_load4(__wx0       , src0 + 4);
         }
 
         py0++;
@@ -528,24 +528,24 @@ struct FOG_HIDDEN PatternSSE2
 
         if ((uint)py0 <= (uint)th)
         {
-          if ((uint)px0     <= (uint)tw) pix_load4(__pix_x01_y1, src0    );
-          if ((uint)px0 + 1 <= (uint)tw) pix_load4(__wy0       , src0 + 4);
+          if ((uint)px0     <= (uint)tw) sse2_load4(__sse2_x01_y1, src0    );
+          if ((uint)px0 + 1 <= (uint)tw) sse2_load4(__wy0       , src0 + 4);
         }
 
         __wx0 = _mm_shuffle_epi32(__wx0, _MM_SHUFFLE(3, 2, 0, 1));
         __wy0 = _mm_shuffle_epi32(__wy0, _MM_SHUFFLE(3, 2, 0, 1));
 
-        __pix_x01_y0 = _mm_or_si128(__pix_x01_y0, __wx0);
-        __pix_x01_y1 = _mm_or_si128(__pix_x01_y1, __wy0);
+        __sse2_x01_y0 = _mm_or_si128(__sse2_x01_y0, __wx0);
+        __sse2_x01_y1 = _mm_or_si128(__sse2_x01_y1, __wy0);
       }
       else
       {
-        pix_load8(__pix_x01_y0, src0);
-        pix_load8(__pix_x01_y1, src0 + srcStride);
+        sse2_load8(__sse2_x01_y0, src0);
+        sse2_load8(__sse2_x01_y1, src0 + srcStride);
       }
 
-      __wx0 = _mm_shuffle_epi32(__pix_x01_y0, _MM_SHUFFLE(0, 1, 1, 0));
-      __wy0 = _mm_shuffle_epi32(__pix_x01_y1, _MM_SHUFFLE(1, 0, 1, 0));
+      __wx0 = _mm_shuffle_epi32(__sse2_x01_y0, _MM_SHUFFLE(0, 1, 1, 0));
+      __wy0 = _mm_shuffle_epi32(__sse2_x01_y1, _MM_SHUFFLE(1, 0, 1, 0));
       __wx0 = _mm_cmpeq_epi32(__wx0, __wy0);
       if (_mm_movemask_epi8(__wx0) == 0xFFFF) goto done;
 
@@ -559,33 +559,33 @@ struct FOG_HIDDEN PatternSSE2
       __wy0 = _mm_shuffle_epi32(__wy0, _MM_SHUFFLE(1, 0, 1, 0));
 
       __wx0 = _mm_srli_epi16(__wx0, 8);
-      pix_unpack_1x1W(__pix_x01_y0, __pix_x01_y0);
+      sse2_unpack_1x1W(__sse2_x01_y0, __sse2_x01_y0);
       __wy0 = _mm_srli_epi16(__wy0, 8);
-      __wx0 = _mm_xor_si128(__wx0, Mask_0000000000000000_FFFFFFFFFFFFFFFF);
-      pix_unpack_1x1W(__pix_x01_y1, __pix_x01_y1);
-      __wx0 = _mm_add_epi16(__wx0, Mask_0000000000000000_0101010101010101);
+      __wx0 = _mm_xor_si128(__wx0, SSE2_GET_CONST_PI(0000000000000000_FFFFFFFFFFFFFFFF));
+      sse2_unpack_1x1W(__sse2_x01_y1, __sse2_x01_y1);
+      __wx0 = _mm_add_epi16(__wx0, SSE2_GET_CONST_PI(0000000000000000_0101010101010101));
 
       __ww0 = _mm_mullo_epi16(__wx0, __wy0);
-      __wy0 = _mm_xor_si128(__wy0, Mask_FFFFFFFFFFFFFFFF_FFFFFFFFFFFFFFFF);
+      __wy0 = _mm_xor_si128(__wy0, SSE2_GET_CONST_PI(FFFFFFFFFFFFFFFF_FFFFFFFFFFFFFFFF));
       __ww0 = _mm_srli_epi16(__ww0, 8);
-      __wy0 = _mm_add_epi16(__wy0, Mask_0101010101010101_0101010101010101);
+      __wy0 = _mm_add_epi16(__wy0, SSE2_GET_CONST_PI(0101010101010101_0101010101010101));
 
       __wx0 = _mm_slli_epi16(__wx0, 4);
       __wy0 = _mm_slli_epi16(__wy0, 4);
 
-      __pix_x01_y1 = _mm_mullo_epi16(__pix_x01_y1, __ww0);
+      __sse2_x01_y1 = _mm_mullo_epi16(__sse2_x01_y1, __ww0);
       __wy0 = _mm_mulhi_epi16(__wy0, __wx0);
-      __pix_x01_y0 = _mm_mullo_epi16(__pix_x01_y0, __wy0);
+      __sse2_x01_y0 = _mm_mullo_epi16(__sse2_x01_y0, __wy0);
 
-      __pix_x01_y0 = _mm_add_epi16(__pix_x01_y0, __pix_x01_y1);
-      __pix_x01_y1 = _mm_shuffle_epi32(__pix_x01_y0, _MM_SHUFFLE(1, 0, 3, 2));
-      __pix_x01_y0 = _mm_add_epi16(__pix_x01_y0, __pix_x01_y1);
+      __sse2_x01_y0 = _mm_add_epi16(__sse2_x01_y0, __sse2_x01_y1);
+      __sse2_x01_y1 = _mm_shuffle_epi32(__sse2_x01_y0, _MM_SHUFFLE(1, 0, 3, 2));
+      __sse2_x01_y0 = _mm_add_epi16(__sse2_x01_y0, __sse2_x01_y1);
 
-      __pix_x01_y0 = _mm_srli_epi16(__pix_x01_y0, 8);
+      __sse2_x01_y0 = _mm_srli_epi16(__sse2_x01_y0, 8);
 
-      pix_pack_1x1W(__pix_x01_y0, __pix_x01_y0);
+      sse2_pack_1x1W(__sse2_x01_y0, __sse2_x01_y0);
 done:
-      pix_store4(dstCur, __pix_x01_y0);
+      sse2_store4(dstCur, __sse2_x01_y0);
       dstCur += 4;
 
       fx += dx;
@@ -625,8 +625,8 @@ done:
       int px0 = fx >> 16;
       int py0 = fy >> 16;
 
-      __m128i __pix_x01_y0;
-      __m128i __pix_x01_y1;
+      __m128i __sse2_x01_y0;
+      __m128i __sse2_x01_y1;
 
       __m128i __wx0;
       __m128i __wy0;
@@ -643,29 +643,29 @@ done:
         const uint8_t* src0;
 
         src0 = srcBits + (uint)py0 * srcStride;
-        pix_load4(__pix_x01_y0, src0    );
-        pix_load4(__wx0       , src0 + 4);
+        sse2_load4(__sse2_x01_y0, src0    );
+        sse2_load4(__wx0       , src0 + 4);
 
         src0 = srcBits + (uint)py1 * srcStride;
-        pix_load4(__pix_x01_y1, src0    );
-        pix_load4(__wy0       , src0 + 4);
+        sse2_load4(__sse2_x01_y1, src0    );
+        sse2_load4(__wy0       , src0 + 4);
 
         __wx0 = _mm_shuffle_epi32(__wx0, _MM_SHUFFLE(3, 2, 0, 1));
         __wy0 = _mm_shuffle_epi32(__wy0, _MM_SHUFFLE(3, 2, 0, 1));
 
-        __pix_x01_y0 = _mm_or_si128(__pix_x01_y0, __wx0);
-        __pix_x01_y1 = _mm_or_si128(__pix_x01_y1, __wy0);
+        __sse2_x01_y0 = _mm_or_si128(__sse2_x01_y0, __wx0);
+        __sse2_x01_y1 = _mm_or_si128(__sse2_x01_y1, __wy0);
       }
       else
       {
         const uint8_t* src0 = srcBits + py0 * srcStride + px0 * 4;
 
-        pix_load8(__pix_x01_y0, src0);
-        pix_load8(__pix_x01_y1, src0 + srcStride);
+        sse2_load8(__sse2_x01_y0, src0);
+        sse2_load8(__sse2_x01_y1, src0 + srcStride);
       }
 
-      __wx0 = _mm_shuffle_epi32(__pix_x01_y0, _MM_SHUFFLE(0, 1, 1, 0));
-      __wy0 = _mm_shuffle_epi32(__pix_x01_y1, _MM_SHUFFLE(1, 0, 1, 0));
+      __wx0 = _mm_shuffle_epi32(__sse2_x01_y0, _MM_SHUFFLE(0, 1, 1, 0));
+      __wy0 = _mm_shuffle_epi32(__sse2_x01_y1, _MM_SHUFFLE(1, 0, 1, 0));
       __wx0 = _mm_cmpeq_epi32(__wx0, __wy0);
       if (_mm_movemask_epi8(__wx0) == 0xFFFF) goto done;
 
@@ -679,33 +679,33 @@ done:
       __wy0 = _mm_shuffle_epi32(__wy0, _MM_SHUFFLE(1, 0, 1, 0));
 
       __wx0 = _mm_srli_epi16(__wx0, 8);
-      pix_unpack_1x1W(__pix_x01_y0, __pix_x01_y0);
+      sse2_unpack_1x1W(__sse2_x01_y0, __sse2_x01_y0);
       __wy0 = _mm_srli_epi16(__wy0, 8);
-      __wx0 = _mm_xor_si128(__wx0, Mask_0000000000000000_FFFFFFFFFFFFFFFF);
-      pix_unpack_1x1W(__pix_x01_y1, __pix_x01_y1);
-      __wx0 = _mm_add_epi16(__wx0, Mask_0000000000000000_0101010101010101);
+      __wx0 = _mm_xor_si128(__wx0, SSE2_GET_CONST_PI(0000000000000000_FFFFFFFFFFFFFFFF));
+      sse2_unpack_1x1W(__sse2_x01_y1, __sse2_x01_y1);
+      __wx0 = _mm_add_epi16(__wx0, SSE2_GET_CONST_PI(0000000000000000_0101010101010101));
 
       __ww0 = _mm_mullo_epi16(__wx0, __wy0);
-      __wy0 = _mm_xor_si128(__wy0, Mask_FFFFFFFFFFFFFFFF_FFFFFFFFFFFFFFFF);
+      __wy0 = _mm_xor_si128(__wy0, SSE2_GET_CONST_PI(FFFFFFFFFFFFFFFF_FFFFFFFFFFFFFFFF));
       __ww0 = _mm_srli_epi16(__ww0, 8);
-      __wy0 = _mm_add_epi16(__wy0, Mask_0101010101010101_0101010101010101);
+      __wy0 = _mm_add_epi16(__wy0, SSE2_GET_CONST_PI(0101010101010101_0101010101010101));
 
       __wx0 = _mm_slli_epi16(__wx0, 4);
       __wy0 = _mm_slli_epi16(__wy0, 4);
 
-      __pix_x01_y1 = _mm_mullo_epi16(__pix_x01_y1, __ww0);
+      __sse2_x01_y1 = _mm_mullo_epi16(__sse2_x01_y1, __ww0);
       __wy0 = _mm_mulhi_epi16(__wy0, __wx0);
-      __pix_x01_y0 = _mm_mullo_epi16(__pix_x01_y0, __wy0);
+      __sse2_x01_y0 = _mm_mullo_epi16(__sse2_x01_y0, __wy0);
 
-      __pix_x01_y0 = _mm_add_epi16(__pix_x01_y0, __pix_x01_y1);
-      __pix_x01_y1 = _mm_shuffle_epi32(__pix_x01_y0, _MM_SHUFFLE(1, 0, 3, 2));
-      __pix_x01_y0 = _mm_add_epi16(__pix_x01_y0, __pix_x01_y1);
+      __sse2_x01_y0 = _mm_add_epi16(__sse2_x01_y0, __sse2_x01_y1);
+      __sse2_x01_y1 = _mm_shuffle_epi32(__sse2_x01_y0, _MM_SHUFFLE(1, 0, 3, 2));
+      __sse2_x01_y0 = _mm_add_epi16(__sse2_x01_y0, __sse2_x01_y1);
 
-      __pix_x01_y0 = _mm_srli_epi16(__pix_x01_y0, 8);
+      __sse2_x01_y0 = _mm_srli_epi16(__sse2_x01_y0, 8);
 
-      pix_pack_1x1W(__pix_x01_y0, __pix_x01_y0);
+      sse2_pack_1x1W(__sse2_x01_y0, __sse2_x01_y0);
 done:
-      pix_store4(dstCur, __pix_x01_y0);
+      sse2_store4(dstCur, __sse2_x01_y0);
       dstCur += 4;
 
       fx += dx;
@@ -758,8 +758,8 @@ done:
       int px0 = fx >> 16;
       int py0 = fy >> 16;
 
-      __m128i __pix_x01_y0;
-      __m128i __pix_x01_y1;
+      __m128i __sse2_x01_y0;
+      __m128i __sse2_x01_y1;
 
       __m128i __wx0;
       __m128i __wy0;
@@ -774,34 +774,34 @@ done:
 
         if (px0 >= tw)
         {
-          pix_load4(__pix_x01_y0, src0 + (uint)px0 * 4);
-          pix_load4(__pix_x01_y1, src1 + (uint)px0 * 4);
+          sse2_load4(__sse2_x01_y0, src0 + (uint)px0 * 4);
+          sse2_load4(__sse2_x01_y1, src1 + (uint)px0 * 4);
 
-          pix_load4(__wx0, src0);
-          pix_load4(__wy0, src1);
+          sse2_load4(__wx0, src0);
+          sse2_load4(__wy0, src1);
 
           __wx0 = _mm_shuffle_epi32(__wx0, _MM_SHUFFLE(3, 2, 0, 1));
           __wy0 = _mm_shuffle_epi32(__wy0, _MM_SHUFFLE(3, 2, 0, 1));
 
-          __pix_x01_y0 = _mm_or_si128(__pix_x01_y0, __wx0);
-          __pix_x01_y1 = _mm_or_si128(__pix_x01_y1, __wy0);
+          __sse2_x01_y0 = _mm_or_si128(__sse2_x01_y0, __wx0);
+          __sse2_x01_y1 = _mm_or_si128(__sse2_x01_y1, __wy0);
         }
         else
         {
-          pix_load8(__pix_x01_y0, src0);
-          pix_load8(__pix_x01_y1, src1);
+          sse2_load8(__sse2_x01_y0, src0);
+          sse2_load8(__sse2_x01_y1, src1);
         }
       }
       else
       {
         src0 += (uint)px0 * 4;
 
-        pix_load8(__pix_x01_y0, src0);
-        pix_load8(__pix_x01_y1, src0 + srcStride);
+        sse2_load8(__sse2_x01_y0, src0);
+        sse2_load8(__sse2_x01_y1, src0 + srcStride);
       }
 
-      __wx0 = _mm_shuffle_epi32(__pix_x01_y0, _MM_SHUFFLE(0, 1, 1, 0));
-      __wy0 = _mm_shuffle_epi32(__pix_x01_y1, _MM_SHUFFLE(1, 0, 1, 0));
+      __wx0 = _mm_shuffle_epi32(__sse2_x01_y0, _MM_SHUFFLE(0, 1, 1, 0));
+      __wy0 = _mm_shuffle_epi32(__sse2_x01_y1, _MM_SHUFFLE(1, 0, 1, 0));
       __wx0 = _mm_cmpeq_epi32(__wx0, __wy0);
       if (_mm_movemask_epi8(__wx0) == 0xFFFF) goto done;
 
@@ -815,33 +815,33 @@ done:
       __wy0 = _mm_shuffle_epi32(__wy0, _MM_SHUFFLE(1, 0, 1, 0));
 
       __wx0 = _mm_srli_epi16(__wx0, 8);
-      pix_unpack_1x1W(__pix_x01_y0, __pix_x01_y0);
+      sse2_unpack_1x1W(__sse2_x01_y0, __sse2_x01_y0);
       __wy0 = _mm_srli_epi16(__wy0, 8);
-      __wx0 = _mm_xor_si128(__wx0, Mask_0000000000000000_FFFFFFFFFFFFFFFF);
-      pix_unpack_1x1W(__pix_x01_y1, __pix_x01_y1);
-      __wx0 = _mm_add_epi16(__wx0, Mask_0000000000000000_0101010101010101);
+      __wx0 = _mm_xor_si128(__wx0, SSE2_GET_CONST_PI(0000000000000000_FFFFFFFFFFFFFFFF));
+      sse2_unpack_1x1W(__sse2_x01_y1, __sse2_x01_y1);
+      __wx0 = _mm_add_epi16(__wx0, SSE2_GET_CONST_PI(0000000000000000_0101010101010101));
 
       __ww0 = _mm_mullo_epi16(__wx0, __wy0);
-      __wy0 = _mm_xor_si128(__wy0, Mask_FFFFFFFFFFFFFFFF_FFFFFFFFFFFFFFFF);
+      __wy0 = _mm_xor_si128(__wy0, SSE2_GET_CONST_PI(FFFFFFFFFFFFFFFF_FFFFFFFFFFFFFFFF));
       __ww0 = _mm_srli_epi16(__ww0, 8);
-      __wy0 = _mm_add_epi16(__wy0, Mask_0101010101010101_0101010101010101);
+      __wy0 = _mm_add_epi16(__wy0, SSE2_GET_CONST_PI(0101010101010101_0101010101010101));
 
       __wx0 = _mm_slli_epi16(__wx0, 4);
       __wy0 = _mm_slli_epi16(__wy0, 4);
 
-      __pix_x01_y1 = _mm_mullo_epi16(__pix_x01_y1, __ww0);
+      __sse2_x01_y1 = _mm_mullo_epi16(__sse2_x01_y1, __ww0);
       __wy0 = _mm_mulhi_epi16(__wy0, __wx0);
-      __pix_x01_y0 = _mm_mullo_epi16(__pix_x01_y0, __wy0);
+      __sse2_x01_y0 = _mm_mullo_epi16(__sse2_x01_y0, __wy0);
 
-      __pix_x01_y0 = _mm_add_epi16(__pix_x01_y0, __pix_x01_y1);
-      __pix_x01_y1 = _mm_shuffle_epi32(__pix_x01_y0, _MM_SHUFFLE(1, 0, 3, 2));
-      __pix_x01_y0 = _mm_add_epi16(__pix_x01_y0, __pix_x01_y1);
+      __sse2_x01_y0 = _mm_add_epi16(__sse2_x01_y0, __sse2_x01_y1);
+      __sse2_x01_y1 = _mm_shuffle_epi32(__sse2_x01_y0, _MM_SHUFFLE(1, 0, 3, 2));
+      __sse2_x01_y0 = _mm_add_epi16(__sse2_x01_y0, __sse2_x01_y1);
 
-      __pix_x01_y0 = _mm_srli_epi16(__pix_x01_y0, 8);
+      __sse2_x01_y0 = _mm_srli_epi16(__sse2_x01_y0, 8);
 
-      pix_pack_1x1W(__pix_x01_y0, __pix_x01_y0);
+      sse2_pack_1x1W(__sse2_x01_y0, __sse2_x01_y0);
 done:
-      pix_store4(dstCur, __pix_x01_y0);
+      sse2_store4(dstCur, __sse2_x01_y0);
       dstCur += 4;
 
       fx += dx;
@@ -869,15 +869,15 @@ done:
     __m128i m_fxmax_fymax;
     __m128i m_fxrew_fyrew;
 
-    pix_load8(m_dx_dy, &ctx->texture.dx);
-    pix_load8(m_fxmax_fymax, &ctx->texture.fxmax);
-    pix_load8(m_fxrew_fyrew, &ctx->texture.fxrewind);
+    sse2_load8(m_dx_dy, &ctx->texture.dx);
+    sse2_load8(m_fxmax_fymax, &ctx->texture.fxmax);
+    sse2_load8(m_fxrew_fyrew, &ctx->texture.fxrewind);
 
-    pix_expand_pixel_1x2W(m_dx_dy, m_dx_dy);
-    pix_expand_pixel_1x2W(m_fxmax_fymax, m_fxmax_fymax);
-    pix_expand_pixel_1x2W(m_fxrew_fyrew, m_fxrew_fyrew);
+    sse2_expand_pixel_lo_1x2W(m_dx_dy, m_dx_dy);
+    sse2_expand_pixel_lo_1x2W(m_fxmax_fymax, m_fxmax_fymax);
+    sse2_expand_pixel_lo_1x2W(m_fxrew_fyrew, m_fxrew_fyrew);
 
-    m_fxmax_fymax = _mm_sub_epi32(m_fxmax_fymax, Mask_0000000100000001_0000000100000001);
+    m_fxmax_fymax = _mm_sub_epi32(m_fxmax_fymax, SSE2_GET_CONST_PI(0000000100000001_0000000100000001));
 
     {
       __m128d m_x_y_d;
@@ -902,7 +902,7 @@ done:
       if (fy < 0) fy += fymax;
 
       m_x_y = _mm_set_epi32(fy, fx, fy, fx);
-      m_x_y = _mm_add_epi32(m_x_y, Mask_0001000000010000_0000000000000000);
+      m_x_y = _mm_add_epi32(m_x_y, SSE2_GET_CONST_PI(0001000000010000_0000000000000000));
 
       m_x_y = _mm_add_epi32(
         m_x_y,
@@ -928,26 +928,26 @@ done:
       sysuint_t px1 = (uint)(pos & 0xFFFF); pos >>= 16;
       sysuint_t py1 = (uint)(pos);
 
-      __m128i __pix_x01_y0;
-      __m128i __pix_x01_y1;
+      __m128i __sse2_x01_y0;
+      __m128i __sse2_x01_y1;
 
       __m128i __wx0;
       __m128i __wy0;
       __m128i __ww0;
 
       const uint8_t* src = srcBits + py0 * srcStride;
-      pix_load4(__pix_x01_y0, src + px0 * 4);
-      pix_load4(__wx0, src + px1 * 4);
+      sse2_load4(__sse2_x01_y0, src + px0 * 4);
+      sse2_load4(__wx0, src + px1 * 4);
 
       src = srcBits + py1 * srcStride;
-      pix_load4(__pix_x01_y1, src + px0 * 4);
-      pix_load4(__wy0, src + px1 * 4);
+      sse2_load4(__sse2_x01_y1, src + px0 * 4);
+      sse2_load4(__wy0, src + px1 * 4);
 
       __wx0 = _mm_shuffle_epi32(__wx0, _MM_SHUFFLE(3, 2, 0, 1));
       __wy0 = _mm_shuffle_epi32(__wy0, _MM_SHUFFLE(3, 2, 0, 1));
 
-      __pix_x01_y0 = _mm_or_si128(__pix_x01_y0, __wx0);
-      __pix_x01_y1 = _mm_or_si128(__pix_x01_y1, __wy0);
+      __sse2_x01_y0 = _mm_or_si128(__sse2_x01_y0, __wx0);
+      __sse2_x01_y1 = _mm_or_si128(__sse2_x01_y1, __wy0);
 
       __wx0 = _mm_shufflelo_epi16(m_x_y, _MM_SHUFFLE(0, 0, 0, 0));
       __wy0 = _mm_shufflelo_epi16(m_x_y, _MM_SHUFFLE(2, 2, 2, 2));
@@ -956,32 +956,32 @@ done:
       __wy0 = _mm_shuffle_epi32(__wy0, _MM_SHUFFLE(1, 0, 1, 0));
 
       __wx0 = _mm_srli_epi16(__wx0, 8);
-      pix_unpack_1x1W(__pix_x01_y0, __pix_x01_y0);
+      sse2_unpack_1x1W(__sse2_x01_y0, __sse2_x01_y0);
       __wy0 = _mm_srli_epi16(__wy0, 8);
-      __wx0 = _mm_xor_si128(__wx0, Mask_0000000000000000_FFFFFFFFFFFFFFFF);
-      pix_unpack_1x1W(__pix_x01_y1, __pix_x01_y1);
-      __wx0 = _mm_add_epi16(__wx0, Mask_0000000000000000_0101010101010101);
+      __wx0 = _mm_xor_si128(__wx0, SSE2_GET_CONST_PI(0000000000000000_FFFFFFFFFFFFFFFF));
+      sse2_unpack_1x1W(__sse2_x01_y1, __sse2_x01_y1);
+      __wx0 = _mm_add_epi16(__wx0, SSE2_GET_CONST_PI(0000000000000000_0101010101010101));
 
       __ww0 = _mm_mullo_epi16(__wx0, __wy0);
-      __wy0 = _mm_xor_si128(__wy0, Mask_FFFFFFFFFFFFFFFF_FFFFFFFFFFFFFFFF);
+      __wy0 = _mm_xor_si128(__wy0, SSE2_GET_CONST_PI(FFFFFFFFFFFFFFFF_FFFFFFFFFFFFFFFF));
       __ww0 = _mm_srli_epi16(__ww0, 8);
-      __wy0 = _mm_add_epi16(__wy0, Mask_0101010101010101_0101010101010101);
+      __wy0 = _mm_add_epi16(__wy0, SSE2_GET_CONST_PI(0101010101010101_0101010101010101));
 
       __wy0 = _mm_slli_epi16(__wy0, 4);
       __wx0 = _mm_slli_epi16(__wx0, 4);
 
-      __pix_x01_y1 = _mm_mullo_epi16(__pix_x01_y1, __ww0);
+      __sse2_x01_y1 = _mm_mullo_epi16(__sse2_x01_y1, __ww0);
       __wy0 = _mm_mulhi_epi16(__wy0, __wx0);
-      __pix_x01_y0 = _mm_mullo_epi16(__pix_x01_y0, __wy0);
+      __sse2_x01_y0 = _mm_mullo_epi16(__sse2_x01_y0, __wy0);
 
-      __pix_x01_y0 = _mm_add_epi16(__pix_x01_y0, __pix_x01_y1);
-      __pix_x01_y1 = _mm_shuffle_epi32(__pix_x01_y0, _MM_SHUFFLE(1, 0, 3, 2));
-      __pix_x01_y0 = _mm_add_epi16(__pix_x01_y0, __pix_x01_y1);
+      __sse2_x01_y0 = _mm_add_epi16(__sse2_x01_y0, __sse2_x01_y1);
+      __sse2_x01_y1 = _mm_shuffle_epi32(__sse2_x01_y0, _MM_SHUFFLE(1, 0, 3, 2));
+      __sse2_x01_y0 = _mm_add_epi16(__sse2_x01_y0, __sse2_x01_y1);
 
-      __pix_x01_y0 = _mm_srli_epi16(__pix_x01_y0, 8);
+      __sse2_x01_y0 = _mm_srli_epi16(__sse2_x01_y0, 8);
 
-      pix_pack_1x1W(__pix_x01_y0, __pix_x01_y0);
-      pix_store4(dstCur, __pix_x01_y0);
+      sse2_pack_1x1W(__sse2_x01_y0, __sse2_x01_y0);
+      sse2_store4(dstCur, __sse2_x01_y0);
 
       dstCur += 4;
 
@@ -1256,7 +1256,7 @@ done:
     // root for next 4 pixels while we are processing current ones.
     __m128 idxf;
 
-    idxf = _mm_and_ps(cc, Mask_7FFFFFFF7FFFFFFF_7FFFFFFF7FFFFFFF); // abs()
+    idxf = _mm_and_ps(cc, SSE2_GET_CONST_PS(7FFFFFFF7FFFFFFF_7FFFFFFF7FFFFFFF)); // abs()
     idxf = _mm_sqrt_ps(idxf);
 
     for (;;)
@@ -1287,7 +1287,7 @@ done:
 
       // This step is important, _mm_sqrt_ps() is last called and from now
       // this register will not be used.
-      idxf = _mm_and_ps(cc, Mask_7FFFFFFF7FFFFFFF_7FFFFFFF7FFFFFFF); // abs()
+      idxf = _mm_and_ps(cc, SSE2_GET_CONST_PS(7FFFFFFF7FFFFFFF_7FFFFFFF7FFFFFFF)); // abs()
       idxf = _mm_sqrt_ps(idxf);
 
       // Pixel #0

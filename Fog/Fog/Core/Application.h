@@ -45,42 +45,88 @@ struct UISystem;
 
 struct FOG_API Application : public Object
 {
+  // --------------------------------------------------------------------------
+  // [Construction / Destruction]
+  // --------------------------------------------------------------------------
+
   //! @brief Application constructor.
   Application(const String& type);
   //! @brief Application constructor that allows to set argc and argv[].
   Application(const String& type, int argc, char* argv[]);
 
+  virtual ~Application();
+
 private:
   void _init(const String& type);
 
 public:
-  virtual ~Application();
-
   virtual err_t run();
   virtual void quit();
 
-  //! @brief Return application event loop (can be NULL).
-  FOG_INLINE EventLoop* getEventLoop() const { return _eventLoop; }
+  static FOG_INLINE Application* getInstance() { return _instance; }
 
-  //! @brief Return application UI system (can be NULL).
-  FOG_INLINE UISystem* getUiSystem() const { return _uiSystem; }
-
+  // --------------------------------------------------------------------------
   // [Application Executable / Arguments]
+  // --------------------------------------------------------------------------
 
   static String getApplicationExecutable();
   static List<String> getApplicationArguments();
 
+  // --------------------------------------------------------------------------
   // [Working Directory]
+  // --------------------------------------------------------------------------
 
   static err_t getWorkingDirectory(String& dir);
   static err_t setWorkingDirectory(const String& dir);
 
-  // [Add / Remove Event Loop]
+  // --------------------------------------------------------------------------
+  // [UISystem - Access]
+  // --------------------------------------------------------------------------
+
+  //! @brief Return application UI system (can be NULL).
+  FOG_INLINE UISystem* getUiSystem() const { return _uiSystem; }
+
+  static String detectUISystem();
+  static UISystem* createUISystem(const String& type);
+
+  // --------------------------------------------------------------------------
+  // [UISystem - Register / Unregister]
+  // --------------------------------------------------------------------------
+
+  typedef UISystem* (*UISystemConstructor)();
+
+  static bool registerUISystem(const String& type, UISystemConstructor ctor);
+  static bool unregisterUISystem(const String& type);
+
+  template<typename UISystemT>
+  struct _UISystemCtorHelper
+  {
+    static UISystem* ctor() { return new(std::nothrow) UISystemT(); }
+  };
+
+  template<typename UISystemT>
+  static FOG_INLINE bool registerUISystemT(const String& type)
+  {
+    return registerUISystem(type, _UISystemCtorHelper<UISystemT>::ctor);
+  }
+
+  // --------------------------------------------------------------------------
+  // [EventLoop - Access]
+  // --------------------------------------------------------------------------
+
+  //! @brief Return application event loop (can be NULL).
+  FOG_INLINE EventLoop* getEventLoop() const { return _eventLoop; }
+
+  static EventLoop* createEventLoop(const String& type);
+
+  // --------------------------------------------------------------------------
+  // [EventLoop - Register / Unregister]
+  // --------------------------------------------------------------------------
 
   typedef EventLoop* (*EventLoopConstructor)();
 
-  static bool addEventLoopType(const String& type, EventLoopConstructor ctor);
-  static bool removeEventLoopType(const String& type);
+  static bool registerEventLoop(const String& type, EventLoopConstructor ctor);
+  static bool unregisterEventLoop(const String& type);
 
   template<typename EventLoopT>
   struct _EventLoopCtorHelper
@@ -89,20 +135,14 @@ public:
   };
 
   template<typename EventLoopT>
-  static FOG_INLINE bool addEventLoopTypeT(const String& type)
+  static FOG_INLINE bool registerEventLoopT(const String& type)
   {
-    return addEventLoopType(type, _EventLoopCtorHelper<EventLoopT>::ctor);
+    return registerEventLoop(type, _EventLoopCtorHelper<EventLoopT>::ctor);
   }
 
-  // [UI / UISystem]
-
-  static FOG_INLINE Application* getInstance() { return _instance; }
-
-  static String detectUI();
-  static UISystem* createUISystem(const String& type);
-  static EventLoop* createEventLoop(const String& type);
-
+  // --------------------------------------------------------------------------
   // [Members]
+  // --------------------------------------------------------------------------
 
 protected:
   static Application* _instance;
