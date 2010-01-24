@@ -5,6 +5,7 @@
 - Click events are now send only if user released button under the widget.
 - Added X11 engine explicit initialization mode.
 - Fixed some double-buffering stuff.
+- Fixed Region::subtract(Region, Rect) method.
 
 2010-01-21
 - Refactorized SSE2 code, naming conventions and constants
