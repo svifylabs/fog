@@ -348,7 +348,7 @@ static FOG_INLINE float cos(float rad) { return ::cosf(rad); }
 static FOG_INLINE double sin(double rad) { return ::sin(rad); }
 static FOG_INLINE double cos(double rad) { return ::cos(rad); }
 
-#if defined(FOG_CC_GNU)
+#if defined(FOG_CC_GNU) && !defined(FOG_OS_MAC)
 static FOG_INLINE void sincos(float rad, float* sinResult, float* cosResult)
 {
   ::sincosf(rad, sinResult, cosResult);
@@ -361,8 +361,8 @@ static FOG_INLINE void sincos(double rad, double* sinResult, double* cosResult)
 #else
 static FOG_INLINE void sincos(float rad, float* sinResult, float* cosResult)
 {
-  *sinResult = sin(rad);
-  *cosResult = cos(rad);
+  *sinResult = sinf(rad);
+  *cosResult = cosf(rad);
 }
 
 static FOG_INLINE void sincos(double rad, double* sinResult, double* cosResult)
