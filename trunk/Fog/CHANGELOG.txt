@@ -1,3 +1,7 @@
+2010-02-01
+- Fixed issue 9 - sincosf() and sincos() are not availble under Mac OS X
+  with GCC 4.2. GNU extension.
+
 2010-01-24
 - Added few SSSE3 alpha-blending functions (currently this is only used
   to experiment with new instructions).
