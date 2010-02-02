@@ -858,7 +858,7 @@ err_t String::appendUtf8(const char* str, sysuint_t length)
 
   while (i)
   {
-    uint32_t uc = *str;
+    uint32_t uc = (uint8_t)*str;
     uint32_t utf8Size = utf8LengthTable[uc];
 
     if (i < utf8Size)
@@ -877,21 +877,21 @@ err_t String::appendUtf8(const char* str, sysuint_t length)
         break;
       case 2:
         uc = ((uc - 192U) << 6U)
-           | (uint32_t(str[1]) - 128U);
+           | (uint32_t((uint8_t)str[1]) - 128U);
         break;
       case 3:
         // Remove UTF8-BOM (EFBBBF) - We don't want it.
-        if (uc == 0xEF && str[1] == 0xBB && str[2] == 0xBF) goto cont;
+        if (uc == 0xEF && (uint8_t)str[1] == 0xBB && (uint8_t)str[2] == 0xBF) goto cont;
 
         uc = ((uc - 224U) << 12U)
-           | ((uint32_t(str[1]) - 128U) << 6)
-           |  (uint32_t(str[2]) - 128U);
+           | ((uint32_t((uint8_t)str[1]) - 128U) << 6)
+           |  (uint32_t((uint8_t)str[2]) - 128U);
         break;
       case 4:
         uc = ((uc - 240U) << 24U)
-           | ((uint32_t(str[1]) - 128U) << 12)
-           | ((uint32_t(str[2]) - 128U) << 6)
-           |  (uint32_t(str[3]) - 128U);
+           | ((uint32_t((uint8_t)str[1]) - 128U) << 12)
+           | ((uint32_t((uint8_t)str[2]) - 128U) << 6)
+           |  (uint32_t((uint8_t)str[3]) - 128U);
         break;
       default:
         err = ERR_TEXT_INVALID_UTF8_SEQ;

@@ -444,8 +444,11 @@ err_t SvgStyleAttribute::setStyle(int styleId, const String& value)
       break;
 
     case SVG_STYLE_CLIP_RULE:
-      _clipRule = getSvgEnumId(value, svgEnumList_fillRule);
-      if (_clipRule == -1) err = ERR_SVG_INVALID_STYLE_VALUE;
+      i = getSvgEnumId(value, svgEnumList_fillRule);
+      if (i == -1)
+        err = ERR_SVG_INVALID_STYLE_VALUE;
+      else
+        _clipRule = (uint8_t)(uint)i;
       break;
 
     case SVG_STYLE_ENABLE_BACKGROUND:
@@ -454,7 +457,7 @@ err_t SvgStyleAttribute::setStyle(int styleId, const String& value)
       break;
 
     case SVG_STYLE_FILL:
-      _fillSource = (uint8_t)SvgUtil::parseColor(value, &_fillColor);
+      _fillSource = (uint8_t)(uint)SvgUtil::parseColor(value, &_fillColor);
       switch (_fillSource)
       {
         case SVG_SOURCE_NONE:
@@ -474,8 +477,11 @@ err_t SvgStyleAttribute::setStyle(int styleId, const String& value)
       break;
 
     case SVG_STYLE_FILL_RULE:
-      _fillRule = getSvgEnumId(value, svgEnumList_fillRule);
-      if (_fillRule == -1) err = ERR_SVG_INVALID_STYLE_VALUE;
+      i = getSvgEnumId(value, svgEnumList_fillRule);
+      if (i == -1)
+        err = ERR_SVG_INVALID_STYLE_VALUE;
+      else
+        _fillRule = (uint8_t)(uint)i;
       break;
 
     case SVG_STYLE_FILTER:
@@ -549,7 +555,7 @@ err_t SvgStyleAttribute::setStyle(int styleId, const String& value)
       if (i == -1)
         err = ERR_SVG_INVALID_STYLE_VALUE;
       else
-        _strokeLineCap = (uint8_t)i;
+        _strokeLineCap = (uint8_t)(uint)i;
       break;
 
     case SVG_STYLE_STROKE_LINE_JOIN:
@@ -557,7 +563,7 @@ err_t SvgStyleAttribute::setStyle(int styleId, const String& value)
       if (i == -1)
         err = ERR_SVG_INVALID_STYLE_VALUE;
       else
-        _strokeLineJoin = (uint8_t)i;
+        _strokeLineJoin = (uint8_t)(uint)i;
       break;
 
     case SVG_STYLE_STROKE_MITER_LIMIT:
