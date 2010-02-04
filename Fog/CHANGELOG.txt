@@ -1,3 +1,9 @@
+2010-02-04
+- Fixed SSSE3 blitter (OPERATOR_SRC_OVER)
+
+2010-02-02
+- Fixed some warnings.
+
 2010-02-01
 - Fixed issue 9 - sincosf() and sincos() are not availble under Mac OS X
   with GCC 4.2. GNU extension.
