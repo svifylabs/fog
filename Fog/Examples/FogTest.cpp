@@ -45,7 +45,7 @@ MyWindow::MyWindow(uint32_t createFlags) :
 
   i[0].convert(PIXEL_FORMAT_PRGB32);
   i[1].convert(PIXEL_FORMAT_PRGB32);
-
+/*
   {
     Painter p(i[0]);
 
@@ -53,7 +53,7 @@ MyWindow::MyWindow(uint32_t createFlags) :
     p.setOperator(OPERATOR_DST_OVER);
     p.clear();
   }
-
+*/
   // i[0].readFile(Ascii8("texture0.bmp"));
   //i[0].readFile(Ascii8("/my/upload/bmpsuite/g04.bmp"));
   //i[0].readFile(Ascii8("/my/upload/bmpsuite/icons_fullset.png"));
@@ -229,7 +229,7 @@ void MyWindow::onPaint(PaintEvent* e)
   p->rotate(_rotate);
   p->clear();
 */
-
+#if 0
   p->save();
   StrokeParams params;
   params.setLineWidth(40.0);
@@ -251,6 +251,7 @@ void MyWindow::onPaint(PaintEvent* e)
   p->drawPath(path);
 
   p->restore();
+#endif
 /*
 
   p->save();
@@ -266,7 +267,7 @@ void MyWindow::onPaint(PaintEvent* e)
 */
 #endif
 
-#if 0
+#if 1
   // Clear everything to white.
   p->setSource(Argb(0xFFFFFFFF));
   p->clear();
@@ -304,11 +305,11 @@ void MyWindow::onPaint(PaintEvent* e)
   p->drawPath(path);
 
   p->save();
-  Image img; img.readFile(Ascii8("babelfish.pcx"));
+  p->setOperator(OPERATOR_SRC_OVER);
   //p->translate(100, 100);
   p->rotate(_rotate);
   //p->translate(-100, -100);
-  p->blitImage(PointD(50.5, 50.5), img);
+  p->blitImage(PointD(50.5, 50.5), i[0]);
   p->restore();
 #endif
 
