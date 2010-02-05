@@ -1850,9 +1850,10 @@ static void benchAll()
 
   Size sizes[] =
   {
-    Size(2, 2),
-    Size(4, 4),
-    Size(8, 8),
+    //Size(2, 2),
+    //Size(4, 4),
+    //Size(8, 8),
+    Size(10, 10),
     Size(16, 16),
     Size(32, 32),
     Size(64, 64),
