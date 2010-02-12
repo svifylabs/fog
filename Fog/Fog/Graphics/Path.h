@@ -76,10 +76,10 @@ struct FOG_HIDDEN PathData
   //! @brief Path length (count of vertices used).
   sysuint_t length;
 
-  //! @brief Vertices data.
+  //! @brief Vertices data (aligned to 16 bytes).
   PointD* vertices;
-  //! @brief Commands data.
-  uint8_t commands[8];
+  //! @brief Commands data (space for aligning).
+  uint8_t commands[16];
 };
 
 // ============================================================================

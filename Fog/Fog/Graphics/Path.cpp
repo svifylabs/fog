@@ -65,7 +65,6 @@ static FOG_INLINE sysuint_t _getPathDataSize(sysuint_t capacity)
 {
   sysuint_t s = sizeof(PathData);
 
-  // Align to 8 bytes (we align pointer to PointD).
   s += capacity * sizeof(uint8_t);
   s += capacity * sizeof(PointD);
 
@@ -75,7 +74,7 @@ static FOG_INLINE sysuint_t _getPathDataSize(sysuint_t capacity)
 static FOG_INLINE void _updatePathDataPointers(PathData* d, sysuint_t capacity)
 {
   d->vertices = reinterpret_cast<PointD*>(
-    reinterpret_cast<uint8_t*>(d) + sizeof(PathData) + (((capacity + 7) & ~7) * sizeof(uint8_t)));
+    d->commands + (((capacity + 15) & ~15) * sizeof(uint8_t)));
 }
 
 PathData* Path::_allocData(sysuint_t capacity)
