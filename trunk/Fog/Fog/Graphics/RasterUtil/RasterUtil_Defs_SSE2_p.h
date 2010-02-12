@@ -253,7 +253,7 @@ group##_end: \
 // ============================================================================
 
 #define SSE2_DECLARE_CONST_PI8_VAR(name, val0, val1, val2, val3, val4, val5, val6, val7, val8, val9, val10, val11, val12, val13, val14, val15) \
-  static const FOG_ALIGNED_VAR(uint8_t, _sse2_const_##name[16], 16) = \
+  FOG_ALIGNED_VAR(static const uint8_t, _sse2_const_##name[16], 16) = \
   { \
     (uint8_t)(val15), \
     (uint8_t)(val14), \
@@ -274,7 +274,7 @@ group##_end: \
   }
 
 #define SSE2_DECLARE_CONST_PI8_SET(name, val0) \
-  static const FOG_ALIGNED_VAR(uint8_t, _sse2_const_##name[16], 16) = \
+  FOG_ALIGNED_VAR(static const uint8_t, _sse2_const_##name[16], 16) = \
   { \
     (uint8_t)(val0), \
     (uint8_t)(val0), \
@@ -295,7 +295,7 @@ group##_end: \
   }
 
 #define SSE2_DECLARE_CONST_PI16_VAR(name, val0, val1, val2, val3, val4, val5, val6, val7) \
-  static const FOG_ALIGNED_VAR(uint16_t, _sse2_const_##name[8], 16) = \
+  FOG_ALIGNED_VAR(static const uint16_t, _sse2_const_##name[8], 16) = \
   { \
     (uint16_t)(val7), \
     (uint16_t)(val6), \
@@ -308,7 +308,7 @@ group##_end: \
   }
 
 #define SSE2_DECLARE_CONST_PI16_SET(name, val0) \
-  static const FOG_ALIGNED_VAR(uint16_t, _sse2_const_##name[8], 16) = \
+  FOG_ALIGNED_VAR(static const uint16_t, _sse2_const_##name[8], 16) = \
   { \
     (uint16_t)(val0), \
     (uint16_t)(val0), \
@@ -321,7 +321,7 @@ group##_end: \
   }
 
 #define SSE2_DECLARE_CONST_PI32_VAR(name, val0, val1, val2, val3) \
-  static const FOG_ALIGNED_VAR(uint32_t, _sse2_const_##name[4], 16) = \
+  FOG_ALIGNED_VAR(static const uint32_t, _sse2_const_##name[4], 16) = \
   { \
     (uint32_t)(val3), \
     (uint32_t)(val2), \
@@ -330,7 +330,7 @@ group##_end: \
   }
 
 #define SSE2_DECLARE_CONST_PI32_SET(name, val0) \
-  static const FOG_ALIGNED_VAR(uint32_t, _sse2_const_##name[4], 16) = \
+  FOG_ALIGNED_VAR(static const uint32_t, _sse2_const_##name[4], 16) = \
   { \
     (uint32_t)(val0), \
     (uint32_t)(val0), \
@@ -339,21 +339,21 @@ group##_end: \
   }
 
 #define SSE2_DECLARE_CONST_PI64_VAR(name, val0, val1) \
-  static const FOG_ALIGNED_VAR(uint64_t, _sse2_const_##name[2], 16) = \
+  FOG_ALIGNED_VAR(static const uint64_t, _sse2_const_##name[2], 16) = \
   { \
-    (uint32_t)(val1), \
-    (uint32_t)(val0)  \
+    (uint64_t)(val1), \
+    (uint64_t)(val0)  \
   }
 
 #define SSE2_DECLARE_CONST_PI64_SET(name, val0) \
-  static const FOG_ALIGNED_VAR(uint64_t, _sse2_const_##name[2], 16) = \
+  FOG_ALIGNED_VAR(static const uint64_t, _sse2_const_##name[2], 16) = \
   { \
-    (uint32_t)(val0), \
-    (uint32_t)(val0)  \
+    (uint64_t)(val0), \
+    (uint64_t)(val0)  \
   }
 
 #define SSE2_DECLARE_CONST_PS_VAR(name, val0, val1, val2, val3) \
-  static const FOG_ALIGNED_VAR(float, _sse2_const_##name[4], 16) = \
+  FOG_ALIGNED_VAR(static const float, _sse2_const_##name[4], 16) = \
   { \
     (float)(val3), \
     (float)(val2), \
@@ -362,7 +362,7 @@ group##_end: \
   }
 
 #define SSE2_DECLARE_CONST_PS_SET(name, val0) \
-  static const FOG_ALIGNED_VAR(float, _sse2_const_##name[4], 16) = \
+  FOG_ALIGNED_VAR(static const float, _sse2_const_##name[4], 16) = \
   { \
     (float)(val0), \
     (float)(val0), \
@@ -371,14 +371,14 @@ group##_end: \
   }
 
 #define SSE2_DECLARE_CONST_PD_VAR(name, val0, val1) \
-  static const FOG_ALIGNED_VAR(double, _sse2_const_##name[2], 16) = \
+  FOG_ALIGNED_VAR(static const double, _sse2_const_##name[2], 16) = \
   { \
     val1, \
     val0  \
   }
 
 #define SSE2_DECLARE_CONST_PD_SET(name, val0) \
-  static const FOG_ALIGNED_VAR(double, _sse2_const_##name[2], 16) = \
+  FOG_ALIGNED_VAR(static const double, _sse2_const_##name[2], 16) = \
   { \
     val0, \
     val0  \

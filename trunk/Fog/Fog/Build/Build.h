@@ -492,12 +492,12 @@
 # define FOG_ALIGN_BEGIN(__n__) __declspec(align(__n__))
 # define FOG_ALIGN_END(__n__)
 # define FOG_ALIGNED_TYPE(__type__, __n__) __declspec(align(__n__)) __type__
-# define FOG_ALIGNED_VAR(__type__, __name__, __n__) __declspec(align(__n__)) __type__ name
+# define FOG_ALIGNED_VAR(__type__, __name__, __n__) __declspec(align(__n__)) __type__ __name__
 #else // BORLAND
 # define FOG_ALIGN_BEGIN(__n__)
 # define FOG_ALIGN_END(__n__)
 # define FOG_ALIGNED_TYPE(__type__, __n__) __type__
-# define FOG_ALIGNED_VAR(__type__, __name__, __n__) __type__ name
+# define FOG_ALIGNED_VAR(__type__, __name__, __n__) __type__ __name__
 #endif
 
 // Macro begin / end.
@@ -598,6 +598,8 @@ typedef int int32_t;
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
 typedef unsigned int uint32_t;
+typedef __int64 int64_t;
+typedef unsigned __int64 uint64_t;
 #else
 typedef __int8 int8_t;
 typedef __int16 int16_t;

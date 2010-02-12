@@ -222,7 +222,7 @@ realloc:
     }
     else
     {
-      if (isnan(x123)) goto invalidNumber;
+      if (Math::isNaN(x123)) goto invalidNumber;
     }
 
 ret:
@@ -540,7 +540,7 @@ realloc:
     }
     else
     {
-      if (isnan(x1234)) goto invalidNumber;
+      if (Math::isNaN(x1234)) goto invalidNumber;
     }
 
 ret:
