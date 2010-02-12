@@ -49,35 +49,10 @@
 // [Library Initializers]
 // ============================================================================
 
-static void fog_raster_init_mmx_constants(void)
-{
-  using namespace Fog;
-  using namespace Fog::RasterUtil;
-
-  // RGB16 masks
-  SSE2_GET_CONST_PI(0000F8000000F800) = mmx_create_mask_4x2W(0x0000, 0xF800, 0x0000, 0xF800);
-  SSE2_GET_CONST_PI(0000E0000000E000) = mmx_create_mask_4x2W(0x0000, 0xE000, 0x0000, 0xE000);
-  SSE2_GET_CONST_PI(00007C0000007C00) = mmx_create_mask_4x2W(0x0000, 0x7C00, 0x0000, 0x7C00);
-  SSE2_GET_CONST_PI(00001F0000001F00) = mmx_create_mask_4x2W(0x0000, 0x1F00, 0x0000, 0x1F00);
-  SSE2_GET_CONST_PI(000007E0000007E0) = mmx_create_mask_4x2W(0x0000, 0x07E0, 0x0000, 0x07E0);
-  SSE2_GET_CONST_PI(000003E0000003E0) = mmx_create_mask_4x2W(0x0000, 0x03E0, 0x0000, 0x03E0);
-  SSE2_GET_CONST_PI(000000F8000000F8) = mmx_create_mask_4x2W(0x0000, 0x00F8, 0x0000, 0x00F8);
-  SSE2_GET_CONST_PI(0000007C0000007C) = mmx_create_mask_4x2W(0x0000, 0x007C, 0x0000, 0x007C);
-  SSE2_GET_CONST_PI(0000001F0000001F) = mmx_create_mask_4x2W(0x0000, 0x001F, 0x0000, 0x001F);
-  SSE2_GET_CONST_PI(0000000700000007) = mmx_create_mask_4x2W(0x0000, 0x0007, 0x0000, 0x0007);
-  SSE2_GET_CONST_PI(0000000300000003) = mmx_create_mask_4x2W(0x0000, 0x0003, 0x0000, 0x0003);
-
-  _mm_empty();
-}
-
 FOG_INIT_DECLARE void fog_raster_init_mmx(void)
 {
   using namespace Fog;
   using namespace Fog::RasterUtil;
-
-  // [Constants]
-
-  fog_raster_init_mmx_constants();
 
   FunctionMap* m = functionMap;
 

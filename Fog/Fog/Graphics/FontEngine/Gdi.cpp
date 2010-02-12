@@ -254,7 +254,7 @@ static err_t decompose_win32_glyph_outline(const uint8_t* gbuf, unsigned size, b
 
   path.closePolygon();
 
-  if (mtx) path.applyMatrix(*mtx, subPathIndex, DETECT_LENGTH);
+  if (mtx) path.applyMatrix(*mtx, Range(subPathIndex, DETECT_LENGTH));
   return err;
 }
 

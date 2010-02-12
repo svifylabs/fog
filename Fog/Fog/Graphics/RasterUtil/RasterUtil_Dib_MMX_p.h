@@ -60,14 +60,14 @@ struct FOG_HIDDEN DibMMX
       pix0mmB = _mm_srli_pi32(pix0mmB, 3);
       pix1mmB = _mm_srli_pi32(pix1mmB, 3);
 
-      pix0mmR = _mm_and_si64(pix0mmR, SSE2_GET_CONST_PI(00007C0000007C00));
-      pix1mmR = _mm_and_si64(pix1mmR, SSE2_GET_CONST_PI(00007C0000007C00));
+      pix0mmR = _mm_and_si64(pix0mmR, MMX_GET_CONST(00007C0000007C00));
+      pix1mmR = _mm_and_si64(pix1mmR, MMX_GET_CONST(00007C0000007C00));
 
-      pix0mmG = _mm_and_si64(pix0mmG, SSE2_GET_CONST_PI(000007E0000007E0));
-      pix1mmG = _mm_and_si64(pix1mmG, SSE2_GET_CONST_PI(000007E0000007E0));
+      pix0mmG = _mm_and_si64(pix0mmG, MMX_GET_CONST(000007E0000007E0));
+      pix1mmG = _mm_and_si64(pix1mmG, MMX_GET_CONST(000007E0000007E0));
 
-      pix0mmB = _mm_and_si64(pix0mmB, SSE2_GET_CONST_PI(0000001F0000001F));
-      pix1mmB = _mm_and_si64(pix1mmB, SSE2_GET_CONST_PI(0000001F0000001F));
+      pix0mmB = _mm_and_si64(pix0mmB, MMX_GET_CONST(0000001F0000001F));
+      pix1mmB = _mm_and_si64(pix1mmB, MMX_GET_CONST(0000001F0000001F));
 
       pix0mmB = _mm_or_si64(pix0mmB, pix0mmG);
       pix1mmB = _mm_or_si64(pix1mmB, pix1mmG);
@@ -92,14 +92,14 @@ struct FOG_HIDDEN DibMMX
       pix0mmB = _mm_srli_pi32(pix0mmB, 3);
       pix1mmB = _mm_srli_pi32(pix1mmB, 3);
 
-      pix0mmR = _mm_and_si64(pix0mmR, SSE2_GET_CONST_PI(00007C0000007C00));
-      pix1mmR = _mm_and_si64(pix1mmR, SSE2_GET_CONST_PI(00007C0000007C00));
+      pix0mmR = _mm_and_si64(pix0mmR, MMX_GET_CONST(00007C0000007C00));
+      pix1mmR = _mm_and_si64(pix1mmR, MMX_GET_CONST(00007C0000007C00));
 
-      pix0mmG = _mm_and_si64(pix0mmG, SSE2_GET_CONST_PI(000007E0000007E0));
-      pix1mmG = _mm_and_si64(pix1mmG, SSE2_GET_CONST_PI(000007E0000007E0));
+      pix0mmG = _mm_and_si64(pix0mmG, MMX_GET_CONST(000007E0000007E0));
+      pix1mmG = _mm_and_si64(pix1mmG, MMX_GET_CONST(000007E0000007E0));
 
-      pix0mmB = _mm_and_si64(pix0mmB, SSE2_GET_CONST_PI(0000001F0000001F));
-      pix1mmB = _mm_and_si64(pix1mmB, SSE2_GET_CONST_PI(0000001F0000001F));
+      pix0mmB = _mm_and_si64(pix0mmB, MMX_GET_CONST(0000001F0000001F));
+      pix1mmB = _mm_and_si64(pix1mmB, MMX_GET_CONST(0000001F0000001F));
 
       pix0mmB = _mm_or_si64(pix0mmB, pix0mmG);
       pix1mmB = _mm_or_si64(pix1mmB, pix1mmG);
@@ -165,14 +165,14 @@ struct FOG_HIDDEN DibMMX
       pix0mmB = _mm_srli_pi32(pix0mmB, 3);
       pix1mmB = _mm_srli_pi32(pix1mmB, 3);
 
-      pix0mmR = _mm_and_si64(pix0mmR, SSE2_GET_CONST_PI(00007C0000007C00));
-      pix1mmR = _mm_and_si64(pix1mmR, SSE2_GET_CONST_PI(00007C0000007C00));
+      pix0mmR = _mm_and_si64(pix0mmR, MMX_GET_CONST(00007C0000007C00));
+      pix1mmR = _mm_and_si64(pix1mmR, MMX_GET_CONST(00007C0000007C00));
 
-      pix0mmG = _mm_and_si64(pix0mmG, SSE2_GET_CONST_PI(000003E0000003E0));
-      pix1mmG = _mm_and_si64(pix1mmG, SSE2_GET_CONST_PI(000003E0000003E0));
+      pix0mmG = _mm_and_si64(pix0mmG, MMX_GET_CONST(000003E0000003E0));
+      pix1mmG = _mm_and_si64(pix1mmG, MMX_GET_CONST(000003E0000003E0));
 
-      pix0mmB = _mm_and_si64(pix0mmB, SSE2_GET_CONST_PI(0000001F0000001F));
-      pix1mmB = _mm_and_si64(pix1mmB, SSE2_GET_CONST_PI(0000001F0000001F));
+      pix0mmB = _mm_and_si64(pix0mmB, MMX_GET_CONST(0000001F0000001F));
+      pix1mmB = _mm_and_si64(pix1mmB, MMX_GET_CONST(0000001F0000001F));
 
       pix0mmB = _mm_or_si64(pix0mmB, pix0mmR);
       pix1mmB = _mm_or_si64(pix1mmB, pix1mmR);
@@ -195,14 +195,14 @@ struct FOG_HIDDEN DibMMX
       pix0mmR = _mm_srli_pi32(pix0mmR, 9);
       pix1mmR = _mm_srli_pi32(pix1mmR, 9);
 
-      pix0mmR = _mm_and_si64(pix0mmR, SSE2_GET_CONST_PI(00007C0000007C00));
-      pix1mmR = _mm_and_si64(pix1mmR, SSE2_GET_CONST_PI(00007C0000007C00));
+      pix0mmR = _mm_and_si64(pix0mmR, MMX_GET_CONST(00007C0000007C00));
+      pix1mmR = _mm_and_si64(pix1mmR, MMX_GET_CONST(00007C0000007C00));
 
-      pix0mmG = _mm_and_si64(pix0mmG, SSE2_GET_CONST_PI(000003E0000003E0));
-      pix1mmG = _mm_and_si64(pix1mmG, SSE2_GET_CONST_PI(000003E0000003E0));
+      pix0mmG = _mm_and_si64(pix0mmG, MMX_GET_CONST(000003E0000003E0));
+      pix1mmG = _mm_and_si64(pix1mmG, MMX_GET_CONST(000003E0000003E0));
 
-      pix0mmB = _mm_and_si64(pix0mmB, SSE2_GET_CONST_PI(0000001F0000001F));
-      pix1mmB = _mm_and_si64(pix1mmB, SSE2_GET_CONST_PI(0000001F0000001F));
+      pix0mmB = _mm_and_si64(pix0mmB, MMX_GET_CONST(0000001F0000001F));
+      pix1mmB = _mm_and_si64(pix1mmB, MMX_GET_CONST(0000001F0000001F));
 
       pix0mmB = _mm_or_si64(pix0mmB, pix0mmR);
       pix1mmB = _mm_or_si64(pix1mmB, pix1mmR);

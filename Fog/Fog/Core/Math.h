@@ -12,6 +12,10 @@
 
 #include <math.h>
 
+#if defined(FOG_HAVE_FLOAT_H)
+#include <float.h>
+#endif // FOG_HAVE_FLOAT_H
+
 // ============================================================================
 // [Fog::Math - Constants]
 // ============================================================================
@@ -208,6 +212,28 @@ static FOG_INLINE const T& bound(const T& val, const T& min, const T& max)
 template<typename T>
 static FOG_INLINE T abs(const T& a)
 { return (a >= 0) ? a : -a; }
+
+// ============================================================================
+// [Fog::Math - Nan/Finite/Infinite]
+// ============================================================================
+
+static FOG_INLINE bool isNaN(float x)
+{
+#if defined (FOG_CC_MSVC)
+  return _isnan(x);
+#else
+  return isnan(x);
+#endif
+}
+
+static FOG_INLINE bool isNaN(double x)
+{
+#if defined (FOG_CC_MSVC)
+  return _isnan(x);
+#else
+  return isnan(x);
+#endif
+}
 
 // ============================================================================
 // [Fog::Math - Floating point ops with epsilon]

@@ -1872,11 +1872,12 @@ static void benchAll()
   fog_debug("Quantity :%d", quantity);
   fog_debug("");
   fog_debug("Processor:%s", cpuInfo->brand);
-  fog_debug("Features :MMX=%s, SSE=%s, SSE2=%s, SSE3=%s, cores=%u",
+  fog_debug("Features :MMX=%s, SSE=%s, SSE2=%s, SSE3=%s, SSSE3=%s, cores=%u",
     yesno[cpuInfo->hasFeature(CpuInfo::FEATURE_MMX)],
     yesno[cpuInfo->hasFeature(CpuInfo::FEATURE_SSE)],
     yesno[cpuInfo->hasFeature(CpuInfo::FEATURE_SSE2)],
     yesno[cpuInfo->hasFeature(CpuInfo::FEATURE_SSE3)],
+    yesno[cpuInfo->hasFeature(CpuInfo::FEATURE_SSSE3)],
     cpuInfo->numberOfProcessors);
   fog_debug("");
 

@@ -234,6 +234,14 @@ struct TypeCmp_Wrapper : public T {};
 // [FOG_DECLARE_TYPEINFO()]
 // ===========================================================================
 
+/*
+template<typename Type>
+struct TypeToType { typedef Type Self; };
+
+template<typename Base, typename A1>
+struct TypeToType1 { typedef Base< TypeToType<A1>::Self > Self; };
+*/
+
 //! @brief Use this macro to declare @c Fog::TypeInfo. 
 //!
 //! @c Fog::TypeInfo is template to resolve type at compile time. It's
@@ -249,13 +257,7 @@ namespace Fog { \
 template <T1 A1> \
 struct TypeInfo < __symbol__<A1> > : public TypeInfo_Wrapper< __symbol__<A1>, __typeinfo__ > {}; \
 }
-/*
-#define FOG_DECLARE_TYPEINFO_TEMPLATE1(__symbol__, T1, A1, __typeinfo__) \
-namespace Fog { \
-template <T1 A1> \
-struct TypeInfo < __symbol__<A1> > : public TypeInfo_Wrapper< __symbol__<A1>, __typeinfo__ > {}; \
-}
-*/
+
 #define FOG_DECLARE_TYPEINFO_TEMPLATE2(__symbol__, T1, A1, T2, A2, __typeinfo__) \
 namespace Fog { \
 template <T1 A1, T2 A2> \
