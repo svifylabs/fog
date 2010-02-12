@@ -1,6 +1,7 @@
 2010-02-12
 - Fixed compilation issues in Win32 and 32-bit Linux.
 - Added all configure scripts to Scripts directory.
+- Fixed Fog::Path memory problems (writing to non-allocated location in some cases).
 
 2010-02-04
 - Fixed SSSE3 blitter (OPERATOR_SRC_OVER).
