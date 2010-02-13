@@ -71,7 +71,7 @@ struct FOG_HIDDEN PngLibrary
       FOG_CDECL void (*write_info)(png_structp png_ptr, png_infop info_ptr);
       FOG_CDECL void (*write_rows)(png_structp png_ptr, png_bytepp row, png_uint_32 num_rows);
       FOG_CDECL void (*write_end)(png_structp png_ptr, png_infop info_ptr);
-      FOG_CDECL void (*set_gray_1_2_4_to_8)(png_structp png_ptr);
+      FOG_CDECL void (*set_expand_gray_1_2_4_to_8)(png_structp png_ptr);
       FOG_CDECL void (*set_gray_to_rgb)(png_structp png_ptr);
       FOG_CDECL void (*set_strip_16)(png_structp png_ptr);
       FOG_CDECL void (*set_swap_alpha)(png_structp png_ptr);
@@ -147,7 +147,7 @@ err_t PngLibrary::init()
     "png_write_info\0"
     "png_write_rows\0"
     "png_write_end\0"
-    "png_set_gray_1_2_4_to_8\0"
+    "png_set_expand_gray_1_2_4_to_8\0"
     "png_set_gray_to_rgb\0"
     "png_set_strip_16\0"
     "png_set_swap_alpha\0"
@@ -522,7 +522,7 @@ err_t PngDecoderDevice::readImage(Image& image)
       png.set_gray_to_rgb(_png_ptr);
       if (png.get_bit_depth(_png_ptr, _info_ptr) < 8)
       {
-        png.set_gray_1_2_4_to_8(_png_ptr);
+        png.set_expand_gray_1_2_4_to_8(_png_ptr);
       }
     }
   }
