@@ -1770,9 +1770,12 @@ enum PATH_CMD_DATA
 // [Fog::PATH_DIRECTION]
 // ============================================================================
 
+//! @brief Path or path object direction.
 enum PATH_DIRECTION
 {
+  //! @brief Clockwise direction.
   PATH_DIRECTION_CW = 1,
+  //! @brief Counter-clockwise direction.
   PATH_DIRECTION_CCW = -1
 };
 
@@ -1780,16 +1783,24 @@ enum PATH_DIRECTION
 // [Fog::PATTERN_TYPE]
 // ============================================================================
 
+//! @brief Type of pattern in the @c Pattern instance.
 enum PATTERN_TYPE
 {
+  //! @brief Null pattern (nothing will be paint using this pattern).
   PATTERN_NULL = 0x0,
+  //! @brief Solid color pattern.
   PATTERN_SOLID = 0x1,
+  //! @brief Texture pattern (@c Image).
   PATTERN_TEXTURE = 0x2,
 
+  //! @brief Mask for all gradient patterns.
   PATTERN_GRADIENT_MASK = 0x10,
 
+  //! @brief Linear gradient pattern.
   PATTERN_LINEAR_GRADIENT = PATTERN_GRADIENT_MASK | 0x0,
+  //! @brief Radial gradient pattern.
   PATTERN_RADIAL_GRADIENT = PATTERN_GRADIENT_MASK | 0x1,
+  //! @brief Conical gradient pattern.
   PATTERN_CONICAL_GRADIENT = PATTERN_GRADIENT_MASK | 0x2
 };
 
@@ -1797,7 +1808,7 @@ enum PATTERN_TYPE
 // [Fog::REGION_TYPE]
 // ============================================================================
 
-//! @brief Region type.
+//! @brief Type of @c Region.
 enum REGION_TYPE
 {
   //! @brief Region is empty.
@@ -1812,7 +1823,7 @@ enum REGION_TYPE
 // [Fog::REGION_OP]
 // ============================================================================
 
-//! @brief Region ops.
+//! @brief Region operators.
 enum REGION_OP
 {
   //! @brief Copy.*/
@@ -1826,14 +1837,17 @@ enum REGION_OP
   //! @brief eXclusive or (XOR).
   REGION_OP_XOR = 3,
   //! @brief Subtraction (Difference).
-  REGION_OP_SUBTRACT = 4
+  REGION_OP_SUBTRACT = 4,
+
+  //! @brief Count of region operators.
+  REGION_OP_COUNT
 };
 
 // ============================================================================
 // [Fog::REGION_HITTEST]
 // ============================================================================
 
-//! @brief Region hit-testing.
+//! @brief Region hit-test result.
 enum REGION_HITTEST
 {
   //! @brief Object isn't in region (point, rectangle or another region).
@@ -1848,12 +1862,19 @@ enum REGION_HITTEST
 // [Fog::SPREAD_TYPE]
 // ============================================================================
 
+//! @brief Spread of @c Pattern.
 enum SPREAD_TYPE
 {
+  //! @brief No spread (area outside the pattern definition is transparent).
   SPREAD_NONE = 0,
+  //! @brief Pad spread (area outside the pattern continues by border color).
   SPREAD_PAD = 1,
+  //! @brief Releat spread (pattern is repeated).
   SPREAD_REPEAT = 2,
+  //! @brief Reflect spread (pattern is reflected and then repeated).
   SPREAD_REFLECT = 3,
+
+  //! @brief Count of pattern spreads.
   SPREAD_COUNT = 4
 };
 
@@ -1920,6 +1941,9 @@ enum ERR_GRAPHICS_ENUM
 
   ERR_IMAGEIO_LIBPNG_NOT_LOADED,
   ERR_IMAGEIO_LIBPNG_ERROR,
+
+  ERR_IMAGEIO_GDIPLUS_NOT_LOADED,
+  ERR_IMAGEIO_GDIPLUS_ERROR,
 
   // Font Errors.
 

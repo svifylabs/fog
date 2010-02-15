@@ -24,7 +24,6 @@
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/ImageIO.h>
-#include <Fog/Graphics/ImageIO/Structures_p.h>
 #include <Fog/Graphics/RasterUtil_p.h>
 
 #include <string.h>
@@ -2527,16 +2526,6 @@ GifProvider::GifProvider()
   _features.decoder = true;
   _features.encoder = true;
 
-  _features.pal1 = true;
-  _features.pal4 = true;
-  _features.pal8 = true;
-  _features.rgb15 = false;
-  _features.rgb16 = false;
-  _features.rgb24 = false;
-  _features.argb32 = false;
-  _features.animations = true;
-  _features.keyAlpha = true;
-
   // Supported extensions.
   _extensions.reserve(1);
   _extensions.append(fog_strings->getString(STR_GRAPHICS_gif));
@@ -2578,6 +2567,7 @@ GifDecoderDevice::GifDecoderDevice(Provider* provider) :
   DecoderDevice(provider),
   _context(NULL)
 {
+  _imageType = IMAGEIO_FILE_GIF;
 }
 
 GifDecoderDevice::~GifDecoderDevice()
@@ -2758,6 +2748,7 @@ end:
 GifEncoderDevice::GifEncoderDevice(Provider* provider) :
   EncoderDevice(provider)
 {
+  _imageType = IMAGEIO_FILE_GIF;
 }
 
 GifEncoderDevice::~GifEncoderDevice()

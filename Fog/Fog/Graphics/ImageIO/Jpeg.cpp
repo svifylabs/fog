@@ -9,6 +9,10 @@
 #endif // FOG_PRECOMP
 
 // [Dependencies]
+#include <Fog/Build/Build.h>
+
+#if defined(FOG_HAVE_LIBJPEG)
+
 #include <Fog/Core/Constants.h>
 #include <Fog/Core/Library.h>
 #include <Fog/Core/ManagedString.h>
@@ -20,21 +24,12 @@
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/ImageIO.h>
-#include <Fog/Graphics/ImageIO/Structures_p.h>
+#include <Fog/Graphics/ImageIO/Jpeg_p.h>
 #include <Fog/Graphics/RasterUtil_p.h>
-
-#if defined(FOG_HAVE_JPEGLIB_H)
-#define FOG_HAVE_JPEG_HEADERS
-#endif // FOG_HAVE_JPEGLIB_H
-
-#if defined FOG_HAVE_JPEG_HEADERS
 
 #include <stdio.h>
 #include <string.h>
 #include <setjmp.h>
-
-#include <jpeglib.h>
-#include <jerror.h>
 
 namespace Fog {
 namespace ImageIO {
@@ -42,47 +37,6 @@ namespace ImageIO {
 // ===========================================================================
 // [Fog::ImageIO::JpegLibrary]
 // ===========================================================================
-
-struct FOG_HIDDEN JpegLibrary
-{
-  JpegLibrary();
-  ~JpegLibrary();
-
-  err_t prepare();
-  err_t init();
-  void close();
-
-  enum { NUM_SYMBOLS = 16 };
-  union
-  {
-    struct
-    {
-      FOG_CDECL JDIMENSION (*write_scanlines)(jpeg_compress_struct*, uint8_t**, unsigned int);
-      FOG_CDECL JDIMENSION (*read_scanlines)(jpeg_decompress_struct*, uint8_t**, unsigned int);
-      FOG_CDECL void (*set_defaults)(jpeg_compress_struct*);
-      FOG_CDECL void (*set_quality)(jpeg_compress_struct*, int /* quality */, int /* force_baseline*/);
-      FOG_CDECL struct jpeg_error_mgr* (*std_error)(jpeg_error_mgr*);
-      FOG_CDECL int (*read_header)(jpeg_decompress_struct*, int);
-      FOG_CDECL void (*calc_output_dimensions)(jpeg_decompress_struct*);
-      FOG_CDECL int (*start_compress)(jpeg_compress_struct*, int);
-      FOG_CDECL int (*start_decompress)(jpeg_decompress_struct*);
-      FOG_CDECL JDIMENSION (*create_compress)(jpeg_compress_struct*, int, size_t);
-      FOG_CDECL JDIMENSION (*create_decompress)(jpeg_decompress_struct*, int, size_t);
-      FOG_CDECL int (*finish_compress)(jpeg_compress_struct*);
-      FOG_CDECL int (*finish_decompress)(jpeg_decompress_struct*);
-      FOG_CDECL int (*resync_to_restart)(jpeg_decompress_struct*, int);
-      FOG_CDECL void (*destroy_compress)(jpeg_compress_struct*);
-      FOG_CDECL void (*destroy_decompress)(jpeg_decompress_struct*);
-    };
-    void *addr[NUM_SYMBOLS];
-  };
-
-  Library dll;
-  volatile err_t err;
-
-private:
-  FOG_DISABLE_COPY(JpegLibrary)
-};
 
 JpegLibrary::JpegLibrary() : err(0xFFFFFFFF)
 {
@@ -149,53 +103,6 @@ void JpegLibrary::close()
   err = 0xFFFFFFFF;
 }
 
-// ============================================================================
-// [Fog::ImageIO::JpegDecoderDevice]
-// ============================================================================
-
-struct FOG_HIDDEN JpegDecoderDevice : public DecoderDevice
-{
-  FOG_DECLARE_OBJECT(JpegDecoderDevice, DecoderDevice)
-
-  // [Construction / Destruction]
-
-  JpegDecoderDevice(Provider* provider);
-  virtual ~JpegDecoderDevice();
-
-  // [Virtuals]
-
-  virtual void reset();
-  virtual err_t readHeader();
-  virtual err_t readImage(Image& image);
-};
-
-// ============================================================================
-// [Fog::ImageIO::JpegEncoderDevice]
-// ============================================================================
-
-struct FOG_HIDDEN JpegEncoderDevice : public EncoderDevice
-{
-  FOG_DECLARE_OBJECT(JpegEncoderDevice, EncoderDevice)
-
-  // [Construction / Destruction]
-
-  JpegEncoderDevice(Provider* provider);
-  virtual ~JpegEncoderDevice();
-
-  // [Virtuals]
-
-  virtual void reset();
-  virtual err_t writeImage(const Image& image);
-
-  // [Properties]
-
-  virtual err_t getProperty(const ManagedString& name, Value& value) const;
-  virtual err_t setProperty(const ManagedString& name, const Value& value);
-
-private:
-  int _quality;
-};
-
 // ===========================================================================
 // [Fog::ImageIO::JpegProvider]
 // ===========================================================================
@@ -221,8 +128,6 @@ JpegProvider::JpegProvider()
   _features.decoder = true;
   _features.encoder = true;
 
-  _features.rgb24 = true;
-
   // Supported extensions.
   _extensions.reserve(4);
   _extensions.append(fog_strings->getString(STR_GRAPHICS_jpg));
@@ -239,9 +144,13 @@ uint32_t JpegProvider::check(const void* mem, sysuint_t length)
 {
   if (length == 0) return 0;
 
-  const uint8_t* m = reinterpret_cast<const uint8_t*>(mem);
+  // Mime data.
+  static const uint8_t mimeJPEG[2] = { 0xFF, 0xD8 };
 
-  if (length >= 2 && m[0] == 0xFF && m[1] == 0xD8) return 90;
+  // JPEG check.
+  sysuint_t i = Math::min<sysuint_t>(length, 2);
+  if (memcmp(mem, mimeJPEG, i) == 0)
+    return 15 + ((uint32_t)i * 40);
 
   return 0;
 }
@@ -355,6 +264,7 @@ static FOG_CDECL void MyJpegMessage(j_common_ptr cinfo)
 JpegDecoderDevice::JpegDecoderDevice(Provider* provider) :
   DecoderDevice(provider)
 {
+  _imageType = IMAGEIO_FILE_JPEG;
 }
 
 JpegDecoderDevice::~JpegDecoderDevice()
@@ -576,7 +486,7 @@ end:
 }
 
 // ===========================================================================
-// [Fog::ImageIO::JpegEncoder]
+// [Fog::ImageIO::JpegEncoderDevice]
 // ===========================================================================
 
 #define OUTPUT_BUF_SIZE 4096
@@ -629,11 +539,16 @@ JpegEncoderDevice::JpegEncoderDevice(Provider* provider) :
   EncoderDevice(provider),
   _quality(90)
 {
+  _imageType = IMAGEIO_FILE_JPEG;
 }
 
 JpegEncoderDevice::~JpegEncoderDevice()
 {
 }
+
+// ===========================================================================
+// [Fog::ImageIO::JpegEncoderDevice::reset]
+// ===========================================================================
 
 void JpegEncoderDevice::reset()
 {
@@ -642,6 +557,10 @@ void JpegEncoderDevice::reset()
   // Reset also quality settings.
   _quality = 90;
 }
+
+// ===========================================================================
+// [Fog::ImageIO::JpegEncoderDevice::writeImage]
+// ===========================================================================
 
 err_t JpegEncoderDevice::writeImage(const Image& image)
 {
@@ -807,7 +726,9 @@ end:
   return err;
 }
 
-// [Properties]
+// ===========================================================================
+// [Fog::ImageIO::JpegEncoderDevice::getProperty / setProperty]
+// ===========================================================================
 
 err_t JpegEncoderDevice::getProperty(const ManagedString& name, Value& value) const
 {
@@ -853,4 +774,4 @@ FOG_INIT_DECLARE void fog_imageio_init_jpeg(void)
 
 FOG_INIT_DECLARE void fog_imageio_init_jpeg(void) {}
 
-#endif // FOG_HAVE_JPEG_HEADERS
+#endif // FOG_HAVE_LIBJPEG

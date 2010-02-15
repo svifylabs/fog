@@ -94,7 +94,7 @@ struct FOG_HIDDEN FreeTypeLibrary
       FOG_CDECL FT_Error (*pFT_Load_Glyph)(FT_Face /* face */, FT_UInt /* glyph_index */, FT_Int32 /* load_flags */);
       FOG_CDECL FT_Error (*pFT_Render_Glyph)(FT_GlyphSlot /* slot */, FT_Render_Mode /* glyph_index */);
     };
-    void *addr[NUM_SYMBOLS];
+    void* addr[NUM_SYMBOLS];
   };
 
   Library dll;
@@ -220,7 +220,7 @@ struct FOG_HIDDEN FontConfigLibrary
       FcChar8* (*pFcStrListNext)(FcStrList* list);
       void (*pFcStrListDone)(FcStrList* list);
     };
-    void *addr[NUM_SYMBOLS];
+    void* addr[NUM_SYMBOLS];
   };
 
   Library dll;

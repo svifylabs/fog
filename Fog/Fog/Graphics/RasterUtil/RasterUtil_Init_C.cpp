@@ -357,28 +357,34 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   m->pattern.texture_fetch_transform_nearest[PIXEL_FORMAT_I8    ][SPREAD_REFLECT] = PatternC::texture_fetch_transform_nearest_reflect_32<PF_I8>;
 
   // TODO: Implement all in SSE2
-//#if defined(FOG_RASTERUTIL_INIT_C)
+#if defined(FOG_RASTERUTIL_INIT_C)
   m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_PRGB32][SPREAD_NONE] = PatternC::texture_fetch_transform_bilinear_none_32<PF_PRGB32>;
   m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_ARGB32][SPREAD_NONE] = PatternC::texture_fetch_transform_bilinear_none_32<PF_ARGB32>;
   m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_XRGB32][SPREAD_NONE] = PatternC::texture_fetch_transform_bilinear_none_32<PF_XRGB32>;
+#endif // FOG_RASTERUTIL_INIT_C
   m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_I8    ][SPREAD_NONE] = PatternC::texture_fetch_transform_bilinear_none_32<PF_I8>;
 
+#if defined(FOG_RASTERUTIL_INIT_C)
   m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_PRGB32][SPREAD_PAD] = PatternC::texture_fetch_transform_bilinear_pad_32<PF_PRGB32>;
   m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_ARGB32][SPREAD_PAD] = PatternC::texture_fetch_transform_bilinear_pad_32<PF_ARGB32>;
   m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_XRGB32][SPREAD_PAD] = PatternC::texture_fetch_transform_bilinear_pad_32<PF_PRGB32>;
+#endif // FOG_RASTERUTIL_INIT_C
   m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_I8    ][SPREAD_PAD] = PatternC::texture_fetch_transform_bilinear_pad_32<PF_I8>;
 
+#if defined(FOG_RASTERUTIL_INIT_C)
   m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_PRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_transform_bilinear_repeat_32<PF_PRGB32>;
   m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_ARGB32][SPREAD_REPEAT] = PatternC::texture_fetch_transform_bilinear_repeat_32<PF_ARGB32>;
   m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_XRGB32][SPREAD_REPEAT] = PatternC::texture_fetch_transform_bilinear_repeat_32<PF_PRGB32>;
+#endif // FOG_RASTERUTIL_INIT_C
   m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_A8    ][SPREAD_REPEAT] = PatternC::texture_fetch_transform_bilinear_repeat_a8;
   m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_I8    ][SPREAD_REPEAT] = PatternC::texture_fetch_transform_bilinear_repeat_32<PF_I8>;
 
+#if defined(FOG_RASTERUTIL_INIT_C)
   m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_PRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_transform_bilinear_reflect_32<PF_PRGB32>;
   m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_ARGB32][SPREAD_REFLECT] = PatternC::texture_fetch_transform_bilinear_reflect_32<PF_ARGB32>;
   m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_XRGB32][SPREAD_REFLECT] = PatternC::texture_fetch_transform_bilinear_reflect_32<PF_PRGB32>;
+#endif // FOG_RASTERUTIL_INIT_C
   m->pattern.texture_fetch_transform_bilinear[PIXEL_FORMAT_I8    ][SPREAD_REFLECT] = PatternC::texture_fetch_transform_bilinear_reflect_32<PF_I8>;
-//#endif // FOG_RASTERUTIL_INIT_C
 
   m->pattern.texture_fetch_scale_nearest[PIXEL_FORMAT_PRGB32] = ScaleC::texture_fetch_scale_argb32_nn;
   m->pattern.texture_fetch_scale_nearest[PIXEL_FORMAT_ARGB32] = ScaleC::texture_fetch_scale_argb32_nn;

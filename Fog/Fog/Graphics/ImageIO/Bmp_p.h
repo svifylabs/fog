@@ -4,11 +4,16 @@
 // MIT, See COPYING file in package
 
 // [Guard]
-#ifndef _FOG_GRAPHICS_IMAGEIO_STRUCTURES_P_H
-#define _FOG_GRAPHICS_IMAGEIO_STRUCTURES_P_H
+#ifndef _FOG_GRAPHICS_IMAGEIO_BMP_P_H
+#define _FOG_GRAPHICS_IMAGEIO_BMP_P_H
 
 // [Dependencies]
 #include <Fog/Build/Build.h>
+#include <Fog/Core/Constants.h>
+#include <Fog/Core/Stream.h>
+#include <Fog/Core/String.h>
+#include <Fog/Graphics/Image.h>
+#include <Fog/Graphics/ImageIO.h>
 
 namespace Fog {
 namespace ImageIO {
@@ -18,7 +23,7 @@ namespace ImageIO {
 // ============================================================================
 
 #include <Fog/Core/Pack.h>
-  
+
 //! @brief Bitmap file header (always 14 bytes in little endian format).
 //!
 //! @note Size of BmpFileHeader must be 14 bytes.
@@ -238,74 +243,86 @@ enum BMP_COLORSPACE_TYPE
 };
 
 // ============================================================================
-// [Fog::ImageIO::PcxHeader]
+// [Fog::ImageIO::BmpDecoderDevice]
 // ============================================================================
 
-#include <Fog/Core/Pack.h>
-
-struct FOG_PACKED PcxHeader
+struct FOG_HIDDEN BmpDecoderDevice : public DecoderDevice
 {
-  uint8_t manufacturer;
-  uint8_t version;
-  uint8_t encoding;
-  uint8_t bitsPerPixel;
-  int16_t xMin;
-  int16_t yMin;
-  int16_t xMax;
-  int16_t yMax;
-  int16_t horizontalDPI;
-  int16_t verticalDPI;
-  uint8_t colorMap[48];
-  uint8_t reserved;
-  uint8_t nPlanes;
-  int16_t bytesPerLine;
-  int16_t paletteInfo;
-  int16_t hScreenSize;
-  int16_t vScreenSize;
-  uint8_t unused[54];
+  FOG_DECLARE_OBJECT(BmpDecoderDevice, DecoderDevice)
+
+  BmpDecoderDevice(Provider* provider);
+  virtual ~BmpDecoderDevice();
+
+  virtual void reset();
+  virtual err_t readHeader();
+  virtual err_t readImage(Image& image);
+
+  // [Properties]
+
+  virtual err_t getProperty(const ManagedString& name, Value& value) const;
+  virtual err_t setProperty(const ManagedString& name, const Value& value);
+
+  // [Helpers]
+
+  // Clear everything.
+  FOG_INLINE void zeroall()
+  {
+    static const sysuint_t ddsize = sizeof(DecoderDevice);
+    Memory::zero((uint8_t*)this + ddsize, sizeof(BmpDecoderDevice) - ddsize);
+  }
+
+  // [Members]
+
+  int _skipFileHeader;
+
+  // Bitmap File Header (14 bytes).
+  BmpFileHeader bmpFileHeader;
+  BmpDataHeader bmpDataHeader;
+
+  // Bmp.
+  uint32_t bmpCompression;
+  uint32_t bmpImageSize;
+  uint32_t bmpStride;
+  // How many bytes to skip to get bitmap data.
+  uint32_t bmpSkipBytes;
+
+  // Argb masks / shifts.
+  uint32_t rMask;
+  uint32_t gMask;
+  uint32_t bMask;
+  uint32_t aMask;
+
+  uint32_t rShift;
+  uint32_t gShift;
+  uint32_t bShift;
+  uint32_t aShift;
+
+  // Rgb - only used by converter from 16 BPP.
+  uint32_t rLoss;
+  uint32_t gLoss;
+  uint32_t bLoss;
+  uint32_t aLoss;
+
+  // True if 16 bpp is byteswapped (big endian machine and 16/15 BPP format).
+  uint32_t isByteSwapped16;
 };
 
-#include <Fog/Core/Unpack.h>
-
 // ============================================================================
-// [Fog::ImageIO::IcoHeader]
+// [Fog::ImageIO::BmpEncoderDevice]
 // ============================================================================
 
-#include <Fog/Core/Pack.h>
-
-//! @brief Size of IcoHeader == 6
-struct FOG_PACKED IcoHeader
+struct FOG_HIDDEN BmpEncoderDevice : public EncoderDevice
 {
-  uint16_t reserved;
-  uint16_t type;
-  uint16_t count;
+  FOG_DECLARE_OBJECT(BmpEncoderDevice, EncoderDevice)
+
+  BmpEncoderDevice(Provider* provider);
+  virtual ~BmpEncoderDevice();
+
+  virtual err_t writeImage(const Image& image);
 };
 
-#include <Fog/Core/Unpack.h>
-
-// ============================================================================
-// [Fog::ImageIO::IcoEntry]
-// ============================================================================
-
-#include <Fog/Core/Pack.h>
-
-//! @brief Size of IcoEntry == 16.
-struct FOG_PACKED IcoEntry
-{
-  uint8_t width;
-  uint8_t height;
-  uint8_t colorCount;
-  uint8_t reserved;
-  uint16_t planes;
-  uint16_t bpp;
-  uint32_t size;
-  uint32_t offset;
-};
-
-#include <Fog/Core/Unpack.h>
-
-} // ImageIO namespace
-} // Fog namespace
+} // ImageIO
+} // Fog
 
 // ============================================================================
 // [Fog::TypeInfo<>]
@@ -318,10 +335,5 @@ FOG_DECLARE_TYPEINFO(Fog::ImageIO::BmpWinV4Header, Fog::TYPEINFO_PRIMITIVE)
 FOG_DECLARE_TYPEINFO(Fog::ImageIO::BmpWinV5Header, Fog::TYPEINFO_PRIMITIVE)
 FOG_DECLARE_TYPEINFO(Fog::ImageIO::BmpDataHeader, Fog::TYPEINFO_PRIMITIVE)
 
-FOG_DECLARE_TYPEINFO(Fog::ImageIO::PcxHeader, Fog::TYPEINFO_PRIMITIVE)
-
-FOG_DECLARE_TYPEINFO(Fog::ImageIO::IcoHeader, Fog::TYPEINFO_PRIMITIVE)
-FOG_DECLARE_TYPEINFO(Fog::ImageIO::IcoEntry, Fog::TYPEINFO_PRIMITIVE)
-
 // [Guard]
-#endif // _FOG_GRAPHICS_IMAGEIO_STRUCTURES_P_H
+#endif // _FOG_GRAPHICS_IMAGEIO_BMP_P_H

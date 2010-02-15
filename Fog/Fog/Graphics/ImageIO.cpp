@@ -36,6 +36,10 @@ FOG_CAPI_EXTERN void fog_imageio_init_jpeg(void);
 FOG_CAPI_EXTERN void fog_imageio_init_pcx(void);
 FOG_CAPI_EXTERN void fog_imageio_init_png(void);
 
+#if defined(FOG_OS_WINDOWS)
+FOG_INIT_DECLARE void fog_imageio_init_gdiplus(void);
+#endif // FOG_OS_WINDOWS
+
 FOG_IMPLEMENT_OBJECT(Fog::ImageIO::BaseDevice)
 FOG_IMPLEMENT_OBJECT(Fog::ImageIO::DecoderDevice)
 FOG_IMPLEMENT_OBJECT(Fog::ImageIO::EncoderDevice)
@@ -434,6 +438,8 @@ void BaseDevice::reset()
   _progress = 0.0f;
 
   _format = PIXEL_FORMAT_NULL;
+  _imageType = IMAGEIO_FILE_NONE;
+
   _palette.free();
   _comment.free();
 }
@@ -527,6 +533,10 @@ FOG_INIT_DECLARE err_t fog_imageio_init(void)
   fog_imageio_init_jpeg();
   fog_imageio_init_pcx();
   fog_imageio_init_png();
+
+#if defined(FOG_OS_WINDOWS)
+  fog_imageio_init_gdiplus();
+#endif // FOG_OS_WINDOWS
 
   return ERR_OK;
 }

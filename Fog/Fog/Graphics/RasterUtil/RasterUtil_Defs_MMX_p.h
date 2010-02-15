@@ -14,6 +14,75 @@ namespace Fog {
 namespace RasterUtil {
 
 // ============================================================================
+// [Fog::RasterUtil::MMX - Defines]
+// ============================================================================
+
+// These macros were designed to simplify blit functions. The idea is very simple.
+// There are usually three loops that you can see in blitters. One is align loop.
+// The align loop wants to align data into 8 bytes. When aligning is done, the
+// main loop is run and it usually uses 8 byte increments (so 2 ARGB pixels).
+// The reason for third loop (tail loop) is that it's needed to process remaining
+// pixel that can't fit into main loop.
+
+// There is idea to merge align and tail into one block. This will save some
+// library binary size (about 1/4 size of blitting functions) and simplify the
+// development. So to not repeat dirty stuff in each function there are macros
+// that will do everything for you.
+
+#define MMX_BLIT_32x2_INIT(_dst, _w) \
+  sysint_t _a = (sysint_t)(_dst); \
+  sysint_t _i = (sysint_t)_w;
+
+#define MMX_BLIT_32x2_SMALL_BEGIN(group) \
+  if (_a & 0x7) \
+  { \
+group##_small:
+
+#define MMX_BLIT_32x2_SMALL_END(group) \
+    if (--_i == 0) goto group##_end; \
+  }
+
+#define MMX_BLIT_32x2_LARGE_BEGIN(group) \
+  while ((_i -= 2) >= 0) \
+  { \
+
+#define MMX_BLIT_32x2_LARGE_END(group) \
+  } \
+  if ((_i += 2) != 0) goto group##_small; \
+group##_end: \
+  ;
+
+#define MMX_BLIT_TEST_1_PRGB_PIXEL(__src0mm, __tmp0mm, __L_fill, __L_away) \
+  __tmp0mm = MMX_GET_CONST(FFFFFFFF00000000); \
+  mmx_expand_pixel_lo_1x1B(__src0mm, __src0mm); \
+  __tmp0mm = _mm_cmpeq_pi8(__tmp0mm, __src0mm); \
+  \
+  { \
+    register uint __srcMsk0 = (uint)_mm_movemask_pi8(__tmp0mm); \
+    __srcMsk0 &= 0x88; \
+    \
+    if (__srcMsk0 == 0x08) goto __L_away; \
+    if (__srcMsk0 == 0x80) goto __L_fill; \
+  }
+
+#define MMX_BLIT_TEST_2_PRGB_PIXELS(__src0mm, __tmp0mm, __tmp1mm, __L_fill, __L_away) \
+  _mm_ext_fill_si64(__tmp0mm); \
+  __tmp1mm = _mm_setzero_si64(); \
+  \
+  __tmp0mm = _mm_cmpeq_pi8(__tmp0mm, __src0mm); \
+  __tmp1mm = _mm_cmpeq_pi8(__tmp1mm, __src0mm); \
+  \
+  { \
+    register uint __srcMsk0 = (uint)_mm_movemask_pi8(__tmp0mm); \
+    register uint __srcMsk1 = (uint)_mm_movemask_pi8(__tmp1mm); \
+    \
+    __srcMsk0 &= 0x88; \
+    \
+    if (__srcMsk1 == 0xFF) goto __L_away; \
+    if (__srcMsk0 == 0x88) goto __L_fill; \
+  }
+
+// ============================================================================
 // [Fog::RasterUtil::MMX - Constants]
 // ============================================================================
 
@@ -87,6 +156,15 @@ namespace RasterUtil {
 // [Fog::RasterUtil::MMX - Constants]
 // ============================================================================
 
+// MMX masks.
+MMX_DECLARE_CONST_PI16_VAR(00FF00FF00FF00FF, 0x00FF, 0x00FF, 0x00FF, 0x00FF);
+MMX_DECLARE_CONST_PI16_VAR(0080008000800080, 0x0080, 0x0080, 0x0080, 0x0080);
+MMX_DECLARE_CONST_PI16_VAR(0101010101010101, 0x0101, 0x0101, 0x0101, 0x0101);
+
+MMX_DECLARE_CONST_PI16_VAR(FF000000FF000000, 0xFF00, 0x0000, 0xFF00, 0x0000);
+MMX_DECLARE_CONST_PI16_VAR(00FF000000000000, 0x00FF, 0x0000, 0x0000, 0x0000);
+MMX_DECLARE_CONST_PI16_VAR(FFFFFFFF00000000, 0xFFFF, 0xFFFF, 0x0000, 0x0000);
+
 // RGB16 masks.
 MMX_DECLARE_CONST_PI16_VAR(0000F8000000F800, 0x0000, 0xF800, 0x0000, 0xF800);
 MMX_DECLARE_CONST_PI16_VAR(0000E0000000E000, 0x0000, 0xE000, 0x0000, 0xE000);
@@ -104,16 +182,258 @@ MMX_DECLARE_CONST_PI16_VAR(0000000300000003, 0x0000, 0x0003, 0x0000, 0x0003);
 // [Fog::RasterUtil::MMX - Helpers]
 // ============================================================================
 
+// Load.
+
 template<typename T>
-static FOG_INLINE void mmx_load8(__m64& dst, const T* src)
+static FOG_INLINE void mmx_load4(__m64& dst0, const T* srcp)
 {
-  dst = reinterpret_cast<const __m64*>(src)[0];
+  dst0 = _mm_cvtsi32_si64(((const uint32_t*)srcp)[0]);
 }
 
 template<typename T>
-static FOG_INLINE void mmx_store8(T* dst, __m64 src)
+static FOG_INLINE void mmx_load8(__m64& dst0, const T* srcp)
 {
-  reinterpret_cast<__m64*>(dst)[0] = src;
+  dst0 = reinterpret_cast<const __m64*>(srcp)[0];
+}
+
+// Store.
+
+template<typename T>
+static FOG_INLINE void mmx_store4(T* dstp, const __m64& src0)
+{
+  ((uint32_t*)dstp)[0] = _mm_cvtsi64_si32(src0);
+}
+
+template<typename T>
+static FOG_INLINE void mmx_store8(T* dstp, const __m64& src0)
+{
+  reinterpret_cast<__m64*>(dstp)[0] = src0;
+}
+
+// Unpack.
+
+static FOG_INLINE void mmx_unpack_1x1W(
+  __m64& dst0, const __m64& src0)
+{
+  __m64 mmz = _mm_setzero_si64();
+  dst0 = _mm_unpacklo_pi8(src0, mmz);
+}
+
+static FOG_INLINE void mmx_unpack_2x1W(
+  __m64& dst0,
+  __m64& dst1, const __m64& src0)
+{
+  __m64 mmz = _mm_setzero_si64();
+  dst1 = _mm_unpackhi_pi8(src0, mmz);
+  dst0 = _mm_unpacklo_pi8(src0, mmz);
+}
+
+// Pack.
+
+static FOG_INLINE void mmx_pack_1x1W(
+  __m64& dst0, const __m64& src0)
+{
+  dst0 = _mm_packs_pu16(src0, src0);
+}
+
+static FOG_INLINE void mmx_pack_2x1W(
+  __m64& dst0, const __m64& src0, const __m64& src1)
+{
+  dst0 = _mm_packs_pu16(src0, src1);
+}
+
+// Negate.
+
+static FOG_INLINE void mmx_negate_1x1W(
+  __m64& dst0, const __m64& src0)
+{
+  dst0 = _mm_xor_si64(src0, MMX_GET_CONST(00FF00FF00FF00FF));
+}
+
+static FOG_INLINE void mmx_negate_2x1W(
+  __m64& dst0, const __m64& src0,
+  __m64& dst1, const __m64& src1)
+{
+  dst0 = _mm_xor_si64(src0, MMX_GET_CONST(00FF00FF00FF00FF));
+  dst1 = _mm_xor_si64(src1, MMX_GET_CONST(00FF00FF00FF00FF));
+}
+
+// Swap.
+
+// Expand Pixel.
+
+static FOG_INLINE void mmx_expand_pixel_lo_1x1B(
+  __m64& dst0, const __m64& src0)
+{
+  dst0 = _mm_unpacklo_pi32(src0, src0);
+}
+
+static FOG_INLINE void mmx_expand_pixel_hi_1x1B(
+  __m64& dst0, const __m64& src0)
+{
+  dst0 = _mm_unpackhi_pi32(src0, src0);
+}
+
+#if defined(FOG_MMX_SSE_VARIANT)
+static FOG_INLINE void mmx_expand_pixel_lo_1x1B_SSE(
+  __m64& dst0, const __m64& src0)
+{
+  dst0 = _mm_shuffle_pi16(src0, _MM_SHUFFLE(1, 0, 1, 0));
+}
+
+static FOG_INLINE void mmx_expand_pixel_hi_1x1B_SSE(
+  __m64& dst0, const __m64& src0)
+{
+  dst0 = _mm_shuffle_pi16(src0, _MM_SHUFFLE(3, 2, 3, 2));
+}
+#endif // FOG_MMX_SSE_VARIANT
+
+// Expand Alpha.
+
+static FOG_INLINE void mmx_expand_alpha_1x1W(
+  __m64& dst0, const __m64& src0)
+{
+  dst0 = _mm_unpackhi_pi16(src0, src0);
+  dst0 = _mm_unpackhi_pi16(dst0, dst0);
+}
+
+static FOG_INLINE void mmx_expand_alpha_2x1W(
+  __m64& dst0, const __m64& src0,
+  __m64& dst1, const __m64& src1)
+{
+  dst0 = _mm_unpackhi_pi16(src0, src0);
+  dst1 = _mm_unpackhi_pi16(src1, src1);
+  dst0 = _mm_unpackhi_pi16(dst0, dst0);
+  dst1 = _mm_unpackhi_pi16(dst1, dst1);
+}
+
+#if defined(FOG_MMX_SSE_VARIANT)
+static FOG_INLINE void mmx_expand_alpha_1x1W_SSE(
+  __m64& dst0, const __m64& src0)
+{
+  dst0 = _mm_shuffle_pi16(src0, _MM_SHUFFLE(3, 3, 3, 3));
+}
+
+static FOG_INLINE void mmx_expand_alpha_1x2W_SSE(
+  __m64& dst0, const __m64& src0,
+  __m64& dst1, const __m64& src1)
+{
+  dst0 = _mm_shuffle_pi16(src0, _MM_SHUFFLE(3, 3, 3, 3));
+  dst1 = _mm_shuffle_pi16(src1, _MM_SHUFFLE(3, 3, 3, 3));
+}
+#endif // FOG_MMX_SSE_VARIANT
+
+// Add.
+
+static FOG_INLINE void mmx_adds_1x1W(
+  __m64& dst0, const __m64& a0, const __m64& b0)
+{
+  dst0 = _mm_adds_pu8(a0, b0);
+}
+
+static FOG_INLINE void mmx_adds_2x1W(
+  __m64& dst0, const __m64& a0, const __m64& b0,
+  __m64& dst1, const __m64& a1, const __m64& b1)
+{
+  dst0 = _mm_adds_pu8(a0, b0);
+  dst1 = _mm_adds_pu8(a1, b1);
+}
+
+// Sub.
+
+// Expand Mask.
+
+// Reverse.
+
+// Multiply.
+
+static FOG_INLINE void mmx_muldiv255_1x1W(
+  __m64& dst0, const __m64& a0, const __m64& b0)
+{
+  dst0 = _mm_mullo_pi16(a0, b0);
+  dst0 = _mm_adds_pu16(dst0, MMX_GET_CONST(0080008000800080));
+  __m64 t0 = _mm_srli_pi16(dst0, 8);
+  dst0 = _mm_adds_pu16(dst0, t0);
+  dst0 = _mm_srli_pi16(dst0, 8);
+}
+
+static FOG_INLINE void mmx_muldiv255_2x1W(
+  __m64& dst0, const __m64& a0, const __m64& b0,
+  __m64& dst1, const __m64& a1, const __m64& b1)
+{
+  dst0 = _mm_mullo_pi16(a0, b0);
+  dst1 = _mm_mullo_pi16(a1, b1);
+
+  dst0 = _mm_adds_pu16(dst0, MMX_GET_CONST(0080008000800080));
+  dst1 = _mm_adds_pu16(dst1, MMX_GET_CONST(0080008000800080));
+
+  __m64 t0 = _mm_srli_pi16(dst0, 8);
+  __m64 t1 = _mm_srli_pi16(dst1, 8);
+
+  dst0 = _mm_adds_pu16(dst0, t0);
+  dst1 = _mm_adds_pu16(dst1, t1);
+
+  dst0 = _mm_srli_pi16(dst0, 8);
+  dst1 = _mm_srli_pi16(dst1, 8);
+}
+
+#if defined(FOG_MMX_SSE_VARIANT)
+static FOG_INLINE void mmx_muldiv255_1x1W_SSE(
+  __m64& dst0, const __m64& a0, const __m64& b0)
+{
+  dst0 = _mm_mullo_pi16(a0, b0);
+  dst0 = _mm_adds_pu16(dst0, MMX_GET_CONST(0080008000800080));
+  dst0 = _mm_mulhi_pu16(dst0, MMX_GET_CONST(0101010101010101));
+}
+
+static FOG_INLINE void mmx_muldiv255_2x1W_SSE(
+  __m64& dst0, const __m64& a0, const __m64& b0,
+  __m64& dst1, const __m64& a1, const __m64& b1)
+{
+  dst0 = _mm_mullo_pi16(a0, b0);
+  dst1 = _mm_mullo_pi16(a1, b1);
+
+  dst0 = _mm_adds_pu16(dst0, MMX_GET_CONST(0080008000800080));
+  dst1 = _mm_adds_pu16(dst1, MMX_GET_CONST(0080008000800080));
+
+  dst0 = _mm_mulhi_pu16(dst0, MMX_GET_CONST(0101010101010101));
+  dst1 = _mm_mulhi_pu16(dst1, MMX_GET_CONST(0101010101010101));
+}
+#endif // FOG_MMX_SSE_VARIANT
+
+// Fill Alpha.
+
+static FOG_INLINE void mmx_fill_alpha_1x1B(
+  __m64& dst0)
+{
+  dst0 = _mm_or_si64(dst0, MMX_GET_CONST(FF000000FF000000));
+}
+
+static FOG_INLINE void mmx_fill_alpha_1x2B(
+  __m64& dst0)
+{
+  dst0 = _mm_or_si64(dst0, MMX_GET_CONST(FF000000FF000000));
+}
+
+static FOG_INLINE void mmx_fill_alpha_1x1W(
+  __m64& dst0)
+{
+  dst0 = _mm_or_si64(dst0, MMX_GET_CONST(00FF000000000000));
+}
+
+static FOG_INLINE void mmx_fill_alpha_2x1W(
+  __m64& dst0,
+  __m64& dst1)
+{
+  dst0 = _mm_or_si64(dst0, MMX_GET_CONST(00FF000000000000));
+  dst1 = _mm_or_si64(dst1, MMX_GET_CONST(00FF000000000000));
+}
+
+// End.
+
+static FOG_INLINE void mmx_end()
+{
+  _mm_empty();
 }
 
 } // RasterUtil namespace

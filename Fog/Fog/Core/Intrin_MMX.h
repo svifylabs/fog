@@ -11,6 +11,23 @@
 #include <Fog/Build/Build.h>
 #include <mmintrin.h>
 
+// #ifndef _MM_SHUFFLE
+// #define _MM_SHUFFLE(z, y, x, w) (((z) << 6) | ((y) << 4) | ((x) << 2) | (w))
+// #endif // _MM_SHUFFLE
+
+// Fix for stupid msvc debugger feature that will assert you if you want to fill
+// xmm register by ones using _mm_cmpeq_pi8() on currently uninitialized variable.
+//
+// In release mode it's ok so we add setzero() call only in debug builds.
+#if defined(_MSC_VER) && (defined(DEBUG) || defined(_DEBUG) || defined(FOG_DEBUG))
+# define _mm_ext_fill_si64(__var) \
+  __var = _mm_setzero_si64(); \
+  __var = _mm_cmpeq_pi8(__var, __var)
+#else
+# define _mm_ext_fill_si64(__var) \
+  __var = _mm_cmpeq_pi8(__var, __var)
+#endif
+
 //! @addtogroup Fog_Core
 //! @{
 

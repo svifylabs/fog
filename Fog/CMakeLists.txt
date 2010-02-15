@@ -190,17 +190,17 @@ EndIf(WIN32)
 # [JPEG support]
 # =============================================================================
 
-If(NOT FOG_HAVE_JPEGLIB_H)
-  Check_Include_Files(jconfig.h FOG_HAVE_JPEGLIB_H)
-EndIf(NOT FOG_HAVE_JPEGLIB_H)
+If(NOT FOG_HAVE_LIBJPEG)
+  Check_Include_Files(jconfig.h FOG_HAVE_LIBJPEG)
+EndIf(NOT FOG_HAVE_LIBJPEG)
 
 # =============================================================================
 # [PNG support]
 # =============================================================================
 
-If(NOT FOG_HAVE_PNG_H)
-  Check_Include_Files(png.h FOG_HAVE_PNG_H)
-EndIf(NOT FOG_HAVE_PNG_H)
+If(NOT FOG_HAVE_LIBPNG)
+  Check_Include_Files(png.h FOG_HAVE_LIBPNG)
+EndIf(NOT FOG_HAVE_LIBPNG)
 
 # =============================================================================
 # [Fog/Build]
@@ -275,6 +275,7 @@ Set(FOG_CORE_LIB_SOURCES
   Fog/Core/Timer.cpp
   Fog/Core/UserInfo.cpp
   Fog/Core/Value.cpp
+  Fog/Core/WinIStream.cpp
   Fog/Core/WinUtil.cpp
 )
 
@@ -347,6 +348,7 @@ Set(FOG_CORE_LIB_HEADERS
   Fog/Core/Unpack.h
   Fog/Core/UserInfo.h
   Fog/Core/Value.h
+  Fog/Core/WinIStream_p.h
   Fog/Core/WinUtil.h
 
   Fog/Core/Arch/Atomic_gcc_x86x64.h
@@ -448,6 +450,7 @@ Set(FOG_GRAPHICS_LIB_HEADERS
 
 Set(FOG_GRAPHICS_IMAGEIO_SOURCES
   Fog/Graphics/ImageIO/Bmp.cpp
+  Fog/Graphics/ImageIO/GdiPlus.cpp
   Fog/Graphics/ImageIO/Gif.cpp
   Fog/Graphics/ImageIO/Ico.cpp
   Fog/Graphics/ImageIO/Jpeg.cpp
@@ -456,7 +459,12 @@ Set(FOG_GRAPHICS_IMAGEIO_SOURCES
 )
 
 Set(FOG_GRAPHICS_IMAGEIO_HEADERS
-  Fog/Graphics/ImageIO/Structures_p.h
+  Fog/Graphics/ImageIO/Bmp_p.h
+  Fog/Graphics/ImageIO/GdiPlus_p.h
+  Fog/Graphics/ImageIO/Ico_p.h
+  Fog/Graphics/ImageIO/Jpeg_p.h
+  Fog/Graphics/ImageIO/Pcx_p.h
+  Fog/Graphics/ImageIO/Png_p.h
 )
 
 Set(FOG_GRAPHICS_FONTENGINE_SOURCES

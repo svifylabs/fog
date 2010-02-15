@@ -20,96 +20,17 @@
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/ImageIO.h>
-#include <Fog/Graphics/ImageIO/Structures_p.h>
+#include <Fog/Graphics/ImageIO/Bmp_p.h>
 #include <Fog/Graphics/RasterUtil_p.h>
 
 namespace Fog { 
 namespace ImageIO {
 
 // ============================================================================
-// [Fog::ImageIO::BmpDecoderDevice]
-// ============================================================================
-
-struct FOG_HIDDEN BmpDecoderDevice : public DecoderDevice
-{
-  FOG_DECLARE_OBJECT(BmpDecoderDevice, DecoderDevice)
-
-  BmpDecoderDevice(Provider* provider);
-  virtual ~BmpDecoderDevice();
-
-  virtual void reset();
-  virtual err_t readHeader();
-  virtual err_t readImage(Image& image);
-
-  // [Properties]
-
-  virtual err_t getProperty(const ManagedString& name, Value& value) const;
-  virtual err_t setProperty(const ManagedString& name, const Value& value);
-
-  // [Helpers]
-
-  // Clear everything.
-  FOG_INLINE void zeroall()
-  {
-    static const sysuint_t ddsize = sizeof(DecoderDevice);
-    Memory::zero((uint8_t*)this + ddsize, sizeof(BmpDecoderDevice) - ddsize);
-  }
-
-  // [Members]
-
-  int _skipFileHeader;
-
-  // Bitmap File Header (14 bytes).
-  BmpFileHeader bmpFileHeader;
-  BmpDataHeader bmpDataHeader;
-
-  // Bmp.
-  uint32_t bmpCompression;
-  uint32_t bmpImageSize;
-  uint32_t bmpStride;
-  // How many bytes to skip to get bitmap data.
-  uint32_t bmpSkipBytes;
-
-  // Argb masks / shifts.
-  uint32_t rMask;
-  uint32_t gMask;
-  uint32_t bMask;
-  uint32_t aMask;
-
-  uint32_t rShift;
-  uint32_t gShift;
-  uint32_t bShift;
-  uint32_t aShift;
-
-  // Rgb - only used by converter from 16 BPP.
-  uint32_t rLoss;
-  uint32_t gLoss;
-  uint32_t bLoss;
-  uint32_t aLoss;
-
-  // True if 16 bpp is byteswapped (big endian machine and 16/15 BPP format).
-  uint32_t isByteSwapped16;
-};
-
-// ============================================================================
-// [Fog::ImageIO::BmpEncoderDevice]
-// ============================================================================
-
-struct FOG_HIDDEN BmpEncoderDevice : public EncoderDevice
-{
-  FOG_DECLARE_OBJECT(BmpEncoderDevice, EncoderDevice)
-
-  BmpEncoderDevice(Provider* provider);
-  virtual ~BmpEncoderDevice();
-
-  virtual err_t writeImage(const Image& image);
-};
-
-// ============================================================================
 // [Fog::ImageIO::BmpProvider]
 // ============================================================================
 
-struct BmpProvider : public Provider
+struct FOG_HIDDEN BmpProvider : public Provider
 {
   BmpProvider();
   virtual ~BmpProvider();
@@ -127,19 +48,6 @@ BmpProvider::BmpProvider()
   // Supported features.
   _features.decoder = true;
   _features.encoder = true;
-
-  _features.mono = true;
-  _features.pal1 = true;
-  _features.pal4 = true;
-  _features.pal8 = true;
-  _features.rgb15 = true;
-  _features.rgb16 = true;
-  _features.rgb24 = true;
-  _features.argb32 = true;
-  _features.rle4 = true;
-  _features.rle8 = true;
-
-  _features.rgbAlpha = true;
 
   // Supported extensions.
   _extensions.reserve(2);
@@ -190,6 +98,7 @@ DecoderDevice* BmpProvider::createDecoder()
 BmpDecoderDevice::BmpDecoderDevice(Provider* provider) :
   DecoderDevice(provider)
 {
+  _imageType = IMAGEIO_FILE_BMP;
   zeroall();
 }
 
@@ -994,6 +903,7 @@ err_t BmpDecoderDevice::setProperty(const ManagedString& name, const Value& valu
 BmpEncoderDevice::BmpEncoderDevice(Provider* provider) :
   EncoderDevice(provider)
 {
+  _imageType = IMAGEIO_FILE_BMP;
 }
 
 BmpEncoderDevice::~BmpEncoderDevice()

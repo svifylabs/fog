@@ -1,3 +1,11 @@
+2010-02-15
+- Added support for GdiPlus image IO.
+- Added some MMX code.
+- Scripts moved to ./Scripts directory.
+- Added getSize() and setSize() virtuals to StreamDevice.
+- Added Fog::Stream <-> IStream bridge.
+- Improved SSE2_BLIT_ macros.
+
 2010-02-12
 - Fixed compilation issues in Win32 and 32-bit Linux.
 - Added all configure scripts to Scripts directory.

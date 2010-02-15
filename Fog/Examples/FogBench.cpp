@@ -6,6 +6,8 @@
 #define FOG_BENCH_CAIRO
 #endif
 
+#define FOG_BENCH_DONT_SAVE
+
 #if defined(FOG_BENCH_GDIPLUS)
 #include <windows.h>
 #include <gdiplus.h>
@@ -292,6 +294,7 @@ void AbstractModule::finish() {}
 
 void AbstractModule::save(int sw, int sh)
 {
+#if !defined(FOG_BENCH_DONT_SAVE)
   String fileName;
   ByteArray info = getInfo();
 
@@ -303,6 +306,7 @@ void AbstractModule::save(int sw, int sh)
   Image t(screen);
   t.forceFormat(PIXEL_FORMAT_XRGB32);
   t.writeFile(fileName);
+#endif
 }
 
 ByteArray AbstractModule::getInfo()

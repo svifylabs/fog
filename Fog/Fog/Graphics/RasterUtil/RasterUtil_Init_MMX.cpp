@@ -34,6 +34,10 @@
 #include <Fog/Graphics/Pattern.h>
 #include <Fog/Graphics/RasterUtil_p.h>
 
+#if defined(FOG_CC_MSVC)
+#pragma warning(disable:4799) // function '...' has no EMMS instruction.
+#endif // FOG_CC_MSVC
+
 // [Raster_MMX]
 #include <Fog/Graphics/RasterUtil/RasterUtil_C_p.h>
 #include <Fog/Graphics/RasterUtil/RasterUtil_Defs_C_p.h>
@@ -61,11 +65,11 @@ FOG_INIT_DECLARE void fog_raster_init_mmx(void)
 //m->dib.memcpy8 = DibMMX::memcpy8;
 //m->dib.memcpy16 = DibMMX::memcpy16;
 //m->dib.memcpy24 = DibMMX::memcpy24;
-//m->dib.memcpy32 = DibMMX::memcpy32;
+  m->dib.memcpy32 = DibMMX::memcpy32;
 
   // [Dib - Convert]
 
-//m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_PRGB32_NATIVE    ] = DibMMX::memcpy32;
+  m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_PRGB32_NATIVE    ] = DibMMX::memcpy32;
 //m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_ARGB32_NATIVE    ] = DibMMX::prgb32_from_argb32;
 //m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_XRGB32_NATIVE    ] = DibMMX::frgb32_from_xrgb32;
 //m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_A8               ] = DibMMX::azzz32_from_a8;
@@ -82,7 +86,7 @@ FOG_INIT_DECLARE void fog_raster_init_mmx(void)
 //m->dib.convert[PIXEL_FORMAT_PRGB32][DIB_FORMAT_GREY8            ] = DibMMX::frgb32_from_grey8;
 
 //m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_PRGB32_NATIVE    ] = DibMMX::argb32_from_prgb32;
-//m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_ARGB32_NATIVE    ] = DibMMX::memcpy32;
+  m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_ARGB32_NATIVE    ] = DibMMX::memcpy32;
 //m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_XRGB32_NATIVE    ] = DibMMX::frgb32_from_xrgb32;
 //m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_A8               ] = DibMMX::azzz32_from_a8;
 //m->dib.convert[PIXEL_FORMAT_ARGB32][DIB_FORMAT_I8               ] = DibMMX::argb32_from_i8;
@@ -191,7 +195,14 @@ FOG_INIT_DECLARE void fog_raster_init_mmx(void)
 
   // [Interpolate - Gradient]
 
+  m->interpolate.gradient[PIXEL_FORMAT_PRGB32] = InterpolateMMX::gradient_prgb32;
   m->interpolate.gradient[PIXEL_FORMAT_ARGB32] = InterpolateMMX::gradient_argb32;
+  m->interpolate.gradient[PIXEL_FORMAT_XRGB32] = InterpolateMMX::gradient_argb32;
+
+  // [Composite - SrcOver]
+
+  m->composite[OPERATOR_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeSrcOverMMX::prgb32_vspan_prgb32;
+  m->composite[OPERATOR_SRC_OVER][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = CompositeSrcOverMMX::prgb32_vspan_prgb32;
 }
 
 #endif // FOG_ARCH_X86
