@@ -39,80 +39,91 @@ namespace RasterUtil {
 //
 // 32-bit entities:
 //   - 1 pixel at time:
-//     - BLIT_SSE2_32x4_SMALL_BEGIN(dst) - Small loop begin.
-//     - BLIT_SSE2_32x4_SMALL_END(dst) - Small loop end.
+//     - SSE2_BLIT_32x4_SMALL_BEGIN(dst) - Small loop begin.
+//     - SSE2_BLIT_32x4_SMALL_END(dst) - Small loop end.
 //
 //   - 4 pixels at time:
-//     - BLIT_SSE2_32x4_LARGE_BEGIN(dst) - Main loop begin.
-//     - BLIT_SSE2_32x4_LARGE_END(dst) - Main loop end.
+//     - SSE2_BLIT_32x4_LARGE_BEGIN(dst) - Main loop begin.
+//     - SSE2_BLIT_32x4_LARGE_END(dst) - Main loop end.
 //
 // 8-bit entities:
 //   - 1 pixel at time:
-//     - BLIT_SSE2_8x16_SMALL_BEGIN(dst) - Small loop begin.
-//     - BLIT_SSE2_8x16_SMALL_END(dst) - Small loop end.
+//     - SSE2_BLIT_8x16_SMALL_BEGIN(dst) - Small loop begin.
+//     - SSE2_BLIT_8x16_SMALL_END(dst) - Small loop end.
 //
 //   - 16 pixels at time:
-//     - BLIT_SSE2_8x16_LARGE_BEGIN(dst) - Main loop begin.
-//     - BLIT_SSE2_8x16_LARGE_END(dst) - Main loop end.
+//     - SSE2_BLIT_8x16_LARGE_BEGIN(dst) - Main loop begin.
+//     - SSE2_BLIT_8x16_LARGE_END(dst) - Main loop end.
 //
 // Because compilers can be quite missed from our machinery, it's needed
 // to follow some rules to help them to optimize this code:
 // - declare temporary variables (mainly sse2 registers) in local loop scope.
-// - do not add anything between BLIT_SSE2_32x4_SMALL_END and BLIT_SSE2_32x4_LARGE_BEGIN.
+// - do not add anything between SSE2_BLIT_32x4_SMALL_END and SSE2_BLIT_32x4_LARGE_BEGIN.
+
+static const sysint_t __m32x4AlignBy[16] =
+{
+  0         , // 0x00
+  SYSINT_MAX, // 0x01
+  SYSINT_MAX, // 0x02
+  SYSINT_MAX, // 0x03
+  3         , // 0x04
+  SYSINT_MAX, // 0x05
+  SYSINT_MAX, // 0x06
+  SYSINT_MAX, // 0x07
+  2         , // 0x08
+  SYSINT_MAX, // 0x09
+  SYSINT_MAX, // 0x0A
+  SYSINT_MAX, // 0x0B
+  1         , // 0x0C
+  SYSINT_MAX, // 0x0D
+  SYSINT_MAX, // 0x0E
+  SYSINT_MAX  // 0x0F
+};
 
 // 32-bit entities:
 
-#define BLIT_SSE2_32x4_INIT(_dst, _w) \
-  sysuint_t _i = (sysuint_t)_w; \
-  sysuint_t _j = 0; \
+#define SSE2_BLIT_32x4_INIT(_dst, _w) \
+  sysuint_t _i = (sysuint_t)__m32x4AlignBy[(sysuint_t)_dst & 15]; \
+  sysuint_t _j; \
   \
-  if (_i >= 4 && ((_i = ((-(sysuint_t)(_dst)) & 15)) & 3) == 0x0) \
-  { \
-    _i >>= 2; \
-    _w -= (sysint_t)_i; \
-    _j = _w & 3; \
-    _w >>= 2; \
-    if (_w == 0) _i += _j; \
-  } \
-  else \
-  { \
-    _i = _w; \
-    _w = 0; \
-  }
+  if (_i > (sysuint_t)_w) _i = (sysuint_t)_w; \
+  _w -= _i; \
+  _j = _w & 3; \
+  if ((_w >>= 2) == 0) _i += _j;
 
-#define BLIT_SSE2_32x4_SMALL_BEGIN(group) \
+#define SSE2_BLIT_32x4_SMALL_BEGIN(group) \
   if (_i) \
   { \
 group: \
     do {
 
-#define BLIT_SSE2_32x4_SMALL_END(group) \
+#define SSE2_BLIT_32x4_SMALL_END(group) \
     } while (--_i); \
     if (!w) goto group##_end; \
   }
 
-#define BLIT_SSE2_32x4_LARGE_BEGIN(group) \
+#define SSE2_BLIT_32x4_LARGE_BEGIN(group) \
   do {
 
-#define BLIT_SSE2_32x4_LARGE_END(group) \
+#define SSE2_BLIT_32x4_LARGE_END(group) \
   } while (--w); \
   \
   if ((_i = _j)) goto group; \
 group##_end: \
   ;
 
-// Alternatives to 'BLIT_SSE2_32x4_SMALL_BEGIN'
-#define BLIT_SSE2_32x4_SMALL_PREPARE(group) \
+// Alternatives to 'SSE2_BLIT_32x4_SMALL_BEGIN'
+#define SSE2_BLIT_32x4_SMALL_PREPARE(group) \
   if (_i) \
   { \
 group:
 
-#define BLIT_SSE2_32x4_SMALL_DO(group) \
+#define SSE2_BLIT_32x4_SMALL_DO(group) \
     do {
 
 // 8-bit entities:
 
-#define BLIT_SSE2_8x4_INIT(_dst, _w) \
+#define SSE2_BLIT_8x4_INIT(_dst, _w) \
   sysuint_t _i = (sysuint_t)_w; \
   sysuint_t _j = 0; \
   \
@@ -137,28 +148,28 @@ group:
     _w = 0; \
   }
 
-#define BLIT_SSE2_8x4_SMALL_BEGIN(group) \
+#define SSE2_BLIT_8x4_SMALL_BEGIN(group) \
   if (_i) \
   { \
 group: \
     do {
 
-#define BLIT_SSE2_8x4_SMALL_END(group) \
+#define SSE2_BLIT_8x4_SMALL_END(group) \
     } while (--_i); \
     if (!w) goto group##_end; \
   } \
 
-#define BLIT_SSE2_8x4_LARGE_BEGIN(group) \
+#define SSE2_BLIT_8x4_LARGE_BEGIN(group) \
   do {
 
-#define BLIT_SSE2_8x4_LARGE_END(group) \
+#define SSE2_BLIT_8x4_LARGE_END(group) \
   } while (--w); \
   \
   if ((_i = _j)) goto group; \
 group##_end: \
   ;
 
-#define BLIT_SSE2_8x16_INIT(_dst, _w) \
+#define SSE2_BLIT_8x16_INIT(_dst, _w) \
   sysuint_t _i = (sysuint_t)_w; \
   sysuint_t _j = 0; \
   \
@@ -183,28 +194,28 @@ group##_end: \
     _w = 0; \
   }
 
-#define BLIT_SSE2_8x16_SMALL_BEGIN(group) \
+#define SSE2_BLIT_8x16_SMALL_BEGIN(group) \
   if (_i) \
   { \
 group: \
     do {
 
-#define BLIT_SSE2_8x16_SMALL_END(group) \
+#define SSE2_BLIT_8x16_SMALL_END(group) \
     } while (--_i); \
     if (!w) goto group##_end; \
   } \
 
-#define BLIT_SSE2_8x16_LARGE_BEGIN(group) \
+#define SSE2_BLIT_8x16_LARGE_BEGIN(group) \
   do {
 
-#define BLIT_SSE2_8x16_LARGE_END(group) \
+#define SSE2_BLIT_8x16_LARGE_END(group) \
   } while (--w); \
   \
   if ((_i = _j)) goto group; \
 group##_end: \
   ;
 
-#define BLIT_SSE2_GENERIC_END(group) \
+#define SSE2_BLIT_GENERIC_END(group) \
 group##_end: \
   ;
 
@@ -213,7 +224,7 @@ group##_end: \
 // this code was translated originally from BlitJit code generator. If C++
 // compiler is smart then this code is limit what you can do while using
 // 4-pixels per time.
-#define BLIT_SSE2_TEST_4_PRGB_PIXELS(__src0xmm, __tmp0xmm, __tmp1xmm, __L_fill, __L_away) \
+#define SSE2_BLIT_TEST_4_PRGB_PIXELS(__src0xmm, __tmp0xmm, __tmp1xmm, __L_fill, __L_away) \
   _mm_ext_fill_si128(__tmp0xmm); \
   __tmp1xmm = _mm_setzero_si128(); \
   \
@@ -230,7 +241,7 @@ group##_end: \
     if (__srcMsk0 == 0x8888) goto __L_fill; \
   }
 
-#define BLIT_SSE2_TEST_4_ARGB_PIXELS(__src0xmm, __tmp0xmm, __tmp1xmm, __L_fill, __L_away) \
+#define SSE2_BLIT_TEST_4_ARGB_PIXELS(__src0xmm, __tmp0xmm, __tmp1xmm, __L_fill, __L_away) \
   __tmp1xmm = _mm_setzero_si128(); \
   _mm_ext_fill_si128(__tmp0xmm); \
   \
@@ -1064,6 +1075,16 @@ static FOG_INLINE void sse2_premultiply_1x1W(
   sse2_expand_alpha_1x1W(alpha0, src0);
   sse2_fill_alpha_1x1W(alpha0);
   sse2_muldiv255_1x1W(dst0, src0, alpha0);
+}
+
+static FOG_INLINE void sse2_premultiply_1x2W(
+  __m128i& dst0, const __m128i& src0)
+{
+  __m128i alpha0;
+
+  sse2_expand_alpha_1x2W(alpha0, src0);
+  sse2_fill_alpha_1x2W(alpha0);
+  sse2_muldiv255_1x2W(dst0, src0, alpha0);
 }
 
 static FOG_INLINE void sse2_premultiply_2x2W(

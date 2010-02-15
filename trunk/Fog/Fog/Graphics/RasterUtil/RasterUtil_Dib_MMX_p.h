@@ -20,6 +20,62 @@ namespace RasterUtil {
 
 struct FOG_HIDDEN DibMMX
 {
+  // --------------------------------------------------------------------------
+  // [DibMMX - MemCpy]
+  // --------------------------------------------------------------------------
+
+  static void FOG_FASTCALL memcpy32(
+    uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
+  {
+    sysint_t i = w;
+    FOG_ASSERT(w);
+
+    if ((i -= 8) >= 0)
+    {
+      if ((sysuint_t)dst & 0x7)
+      {
+        copy4(dst, src); dst += 4; src += 4;
+        if (--i < 0) goto skip;
+      }
+
+      do {
+        __m64 m0, m1, m2, m3;
+
+        mmx_load8(m0, src     );
+        mmx_load8(m1, src + 8 );
+        mmx_store8(dst     , m0);
+        mmx_store8(dst + 8 , m1);
+
+        mmx_load8(m2, src + 16);
+        mmx_load8(m3, src + 24);
+        mmx_store8(dst + 16, m2);
+        mmx_store8(dst + 24, m3);
+
+        dst += 32;
+        src += 32;
+      } while ((i -= 8) >= 0);
+
+      mmx_end();
+    }
+skip:
+    i += 8;
+
+    switch (i)
+    {
+      case 7: copy4(dst, src); dst += 4; src += 4;
+      case 6: copy4(dst, src); dst += 4; src += 4;
+      case 5: copy4(dst, src); dst += 4; src += 4;
+      case 4: copy4(dst, src); dst += 4; src += 4;
+      case 3: copy4(dst, src); dst += 4; src += 4;
+      case 2: copy4(dst, src); dst += 4; src += 4;
+      case 1: copy4(dst, src); dst += 4; src += 4;
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // [DibMMX - Convert]
+  // --------------------------------------------------------------------------
+
   // XXXXXXXX RRRRRRRR GGGGGGGG BBBBBBBB ->
   //                   RRRRRGGG GGGBBBBB
   static void FOG_FASTCALL rgb16_565_native_from_xrgb32(
@@ -122,7 +178,7 @@ struct FOG_HIDDEN DibMMX
         ((pix0 >> 3) & 0x001F));
     }
 
-    _mm_empty();
+    mmx_end();
   }
 
   // XXXXXXXX RRRRRRRR GGGGGGGG BBBBBBBB ->
@@ -223,7 +279,7 @@ struct FOG_HIDDEN DibMMX
         ((pix0 >> 3) & 0x001F));
     }
 
-    _mm_empty();
+    mmx_end();
   }
 };
 

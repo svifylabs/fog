@@ -86,77 +86,8 @@ struct FOG_API Provider
     //! @brief Provider provides encoder.
     uint32_t encoder : 1;
 
-    // [Pixel format]
-
-    //! @brief Image file format supports 1 bit mono images.
-    uint32_t mono : 1;
-    //! @brief Image file format supports 1 bit palette based images.
-    uint32_t pal1 : 1;
-    //! @brief Image file format supports 4 bit palette based images.
-    uint32_t pal4 : 1;
-    //! @brief Image file format supports 8 bit palette based images.
-    uint32_t pal8 : 1;
-    //! @brief Image file format supports 15 bit RGB images.
-    uint32_t rgb15 : 1;
-    //! @brief Image file format supports 16 bit RGB images.
-    uint32_t rgb16 : 1;
-    //! @brief Image file format supports 24 bit RGB images.
-    uint32_t rgb24 : 1;
-    //! @brief Image file format supports 48 bit RGB images.
-    uint32_t rgb48 : 1;
-    //! @brief Image file format supports 96 bit floating point RGB images.
-    uint32_t rgbf : 1;
-    //! @brief Image file format supports 32 bit ARGB images.
-    uint32_t argb32 : 1;
-    //! @brief Image file format supports 64 bit ARGB images.
-    uint32_t argb64 : 1;
-    //! @brief Image file format supports 128 bit floating point ARGB images.
-    uint32_t argbf : 1;
-
-    // [Size]
-
-    //! @brief @c true if size of image or animation is limited or predefined (for example FLI).
-    uint32_t limitedSize : 1;
-
-    // [Animations]
-
-    //! @brief Image file format supports animations.
-    uint32_t animations : 1;
-
-    // [Opacity]
-
-    //! @brief Image file format supports opacity in rgb images.
-    uint32_t rgbAlpha : 1;
-
-    //! @brief Image file format supports opacity in palette based images.
-    uint32_t palAlpha : 1;
-
-    //! @brief Image file format supports key alpha (index in palette)
-    uint32_t keyAlpha : 1;
-
-    // [Compression / Quality]
-
-    //! @brief Image file format uses RLE compression for 1 bit depth.
-    uint32_t rle1 : 1;
-    //! @brief Image file format uses RLE compression for 4 bit depth.
-    uint32_t rle4 : 1;
-    //! @brief Image file format uses RLE compression for 8 bit depth.
-    uint32_t rle8 : 1;
-    //! @brief Image file format uses RLE compression for 15/16 bit depth.
-    uint32_t rle16 : 1;
-    //! @brief Image file format uses RLE compression for 24 bit depth.
-    uint32_t rle24 : 1;
-    //! @brief Image file format uses RLE compression for 32 bit depth.
-    uint32_t rle32 : 1;
-
-    //! @brief Image file format supports progressive rendering.
-    uint32_t progressive : 1;
-
-    //! @brief Image file format supports compression type adjustment.
-    uint32_t compressionTypeAdjust : 1;
-
-    //! @brief Image file format supports quality adjustment.
-    uint32_t qualityAdjust : 1;
+    //! @brief Provider is proxy provider for another library.
+    uint32_t proxy : 1;
   };
 
   // [Members access]
@@ -221,6 +152,7 @@ struct FOG_API BaseDevice : public Object
   FOG_INLINE Provider* getProvider() const { return _provider; }
   FOG_INLINE uint32_t getDeviceType() const { return _deviceType; }
   FOG_INLINE uint32_t getFlags() const { return _flags; }
+
   FOG_INLINE bool isNone() const { return _deviceType == IMAGEIO_DEVICE_NONE; }
   FOG_INLINE bool isEncoder() const { return (_deviceType & IMAGEIO_DEVICE_ENCODER) != 0; }
   FOG_INLINE bool isDecoder() const { return (_deviceType & IMAGEIO_DECIDE_DECODER) != 0; }
@@ -293,8 +225,11 @@ protected:
   //! @brief Count of frames.
   uint32_t _framesCount;
 
-  //! @brief Image format of target image.
+  //! @brief Pixel format of target image.
   int _format;
+  //! @brief Image format (see @c IMAGEIO_FILE_TYPE).
+  int _imageType;
+
   //! @brief Palette if reading / writing 8 bit or less images.
   //!
   //! This is image palette that can be contained in loaded image,

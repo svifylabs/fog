@@ -18,48 +18,11 @@
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/ImageIO.h>
-#include <Fog/Graphics/ImageIO/Structures_p.h>
+#include <Fog/Graphics/ImageIO/Pcx_p.h>
 #include <Fog/Graphics/RasterUtil_p.h>
 
 namespace Fog {
 namespace ImageIO {
-
-// ============================================================================
-// [Fog::ImageIO::PcxDecoderDevice]
-// ============================================================================
-
-struct FOG_HIDDEN PcxDecoderDevice : public DecoderDevice
-{
-  FOG_DECLARE_OBJECT(PcxDecoderDevice, DecoderDevice)
-
-  PcxDecoderDevice(Provider* provider);
-  virtual ~PcxDecoderDevice();
-
-  virtual void reset();
-  virtual err_t readHeader();
-  virtual err_t readImage(Image& image);
-
-  FOG_INLINE const PcxHeader& pcxFileHeader() const { return _pcxFileHeader; }
-
-  // Clear everything.
-  FOG_INLINE void zeroall() { Memory::zero(&_pcxFileHeader, sizeof(_pcxFileHeader)); }
-
-  PcxHeader _pcxFileHeader;
-};
-
-// ============================================================================
-// [Fog::ImageIO::PcxEncoderDevice]
-// ============================================================================
-
-struct FOG_HIDDEN PcxEncoderDevice : public EncoderDevice
-{
-  FOG_DECLARE_OBJECT(PcxEncoderDevice, EncoderDevice)
-
-  PcxEncoderDevice(Provider* provider);
-  virtual ~PcxEncoderDevice();
-
-  virtual err_t writeImage(const Image& image);
-};
 
 // ============================================================================
 // [Fog::ImageIO::PcxProvider]
@@ -83,17 +46,6 @@ PcxProvider::PcxProvider()
   // Supported features.
   _features.decoder = true;
   _features.encoder = true;
-
-  _features.mono = true;
-  _features.pal1 = true;
-  _features.pal4 = true;
-  _features.pal8 = true;
-  _features.rgb24 = true;
-  _features.argb32 = true;
-  _features.rle4 = true;
-  _features.rle8 = true;
-
-  _features.rgbAlpha = true;
 
   // Supported extensions.
   _extensions.reserve(1);
@@ -393,6 +345,7 @@ static void PCX_convertPaletteToPcx(uint8_t* dest, const uint8_t* src, sysuint_t
 PcxDecoderDevice::PcxDecoderDevice(Provider* provider) :
   DecoderDevice(provider)
 {
+  _imageType = IMAGEIO_FILE_PCX;
   zeroall();
 }
 
@@ -762,6 +715,7 @@ end:
 PcxEncoderDevice::PcxEncoderDevice(Provider* provider) :
   EncoderDevice(provider)
 {
+  _imageType = IMAGEIO_FILE_PCX;
 }
 
 PcxEncoderDevice::~PcxEncoderDevice()

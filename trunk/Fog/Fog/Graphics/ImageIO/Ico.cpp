@@ -19,32 +19,12 @@
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/ImageIO.h>
-#include <Fog/Graphics/ImageIO/Structures_p.h>
+#include <Fog/Graphics/ImageIO/Bmp_p.h>
+#include <Fog/Graphics/ImageIO/Ico_p.h>
 #include <Fog/Graphics/RasterUtil_p.h>
 
 namespace Fog { 
 namespace ImageIO {
-
-// ============================================================================
-// [Fog::ImageIO::IcoDecoderDevice]
-// ============================================================================
-
-struct FOG_HIDDEN IcoDecoderDevice : public DecoderDevice
-{
-  FOG_DECLARE_OBJECT(IcoDecoderDevice, DecoderDevice)
-
-  IcoDecoderDevice(Provider* provider);
-  virtual ~IcoDecoderDevice();
-
-  virtual void reset();
-  virtual err_t readHeader();
-  virtual err_t readImage(Image& image);
-
-private:
-  // For determining offsets/sizes of "frames" LE numbers are already
-  // converted to BE numbers on BE systems.
-  IcoEntry *_framesInfo;
-};
 
 // ============================================================================
 // [Fog::ImageIO::IcoProvider]
@@ -67,19 +47,6 @@ IcoProvider::IcoProvider()
   // Supported features.
   _features.decoder = true;
   _features.encoder = false;
-
-  _features.mono = true;
-  _features.pal1 = true;
-  _features.pal4 = true;
-  _features.pal8 = true;
-  _features.rgb15 = true;
-  _features.rgb16 = true;
-  _features.rgb24 = true;
-  _features.argb32 = true;
-  _features.rle4 = true;
-  _features.rle8 = true;
-
-  _features.rgbAlpha = true;
 
   // Supported extensions.
   _extensions.append(fog_strings->getString(STR_GRAPHICS_ico));
@@ -141,6 +108,7 @@ DecoderDevice* IcoProvider::createDecoder()
 IcoDecoderDevice::IcoDecoderDevice(Provider* provider) :
   DecoderDevice(provider)
 {
+  _imageType = IMAGEIO_FILE_ICO;
   _framesInfo = NULL;
 }
 

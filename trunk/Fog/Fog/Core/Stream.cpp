@@ -91,9 +91,15 @@ struct FOG_HIDDEN NullStreamDevice : public StreamDevice
 
   virtual int64_t seek(int64_t offset, int whence);
   virtual int64_t tell() const;
+
   virtual sysuint_t read(void* buffer, sysuint_t size);
   virtual sysuint_t write(const void* buffer, sysuint_t size);
+
+  virtual err_t getSize(int64_t* size);
+  virtual err_t setSize(int64_t size);
+
   virtual err_t truncate(int64_t offset);
+
   virtual void close();
 };
 
@@ -122,6 +128,20 @@ sysuint_t NullStreamDevice::write(const void* buffer, sysuint_t size)
   return 0;
 }
 
+err_t NullStreamDevice::getSize(int64_t* size)
+{
+  *size = 0;
+  return ERR_OK;
+}
+
+err_t NullStreamDevice::setSize(int64_t size)
+{
+  if (size == 0)
+    return ERR_OK;
+  else
+    return ERR_IO_CANT_RESIZE;
+}
+
 err_t NullStreamDevice::truncate(int64_t offset)
 {
   return ERR_IO_CANT_TRUNCATE;
@@ -132,63 +152,6 @@ void NullStreamDevice::close()
 }
 
 static Static<NullStreamDevice> streamdevice_null;
-
-// ============================================================================
-// [Fog::FILEStreamDevice]
-// ============================================================================
-
-struct FOG_HIDDEN FILEStreamDevice : public StreamDevice
-{
-  FILEStreamDevice(FILE* fp, uint32_t fflags);
-
-  virtual int64_t seek(int64_t offset, int whence);
-  virtual int64_t tell() const;
-  virtual sysuint_t read(void* buffer, sysuint_t size);
-  virtual sysuint_t write(const void* buffer, sysuint_t size);
-  virtual err_t truncate(int64_t offset);
-  virtual void close();
-
-  FILE* fp;
-};
-
-FILEStreamDevice::FILEStreamDevice(FILE* fp, uint32_t fflags) :
-  fp(fp)
-{
-  flags |= fflags | STREAM_IS_FILE | STREAM_IS_OPEN;
-}
-
-int64_t FILEStreamDevice::seek(int64_t offset, int whence)
-{
-  if (_fseeki64(fp, offset, whence) != 0)
-    return -1;
-  else
-    return _ftelli64(fp);
-}
-
-int64_t FILEStreamDevice::tell() const
-{
-  return _ftelli64(fp);
-}
-
-sysuint_t FILEStreamDevice::read(void* buffer, sysuint_t size)
-{
-  return fread(buffer, 1, size, fp);
-}
-
-sysuint_t FILEStreamDevice::write(const void* buffer, sysuint_t size)
-{
-  return fwrite(buffer, 1, size, fp);
-}
-
-err_t FILEStreamDevice::truncate(int64_t offset)
-{
-  return ERR_IO_CANT_TRUNCATE;
-}
-
-void FILEStreamDevice::close()
-{
-  if ((flags & STREAM_IS_CLOSABLE) != 0) fclose(fp);
-}
 
 // ============================================================================
 // [Fog::HANDLEStreamDevice]
@@ -204,9 +167,14 @@ struct FOG_HIDDEN HANDLEStreamDevice : public StreamDevice
 
   virtual int64_t seek(int64_t offset, int whence);
   virtual int64_t tell() const;
+
   virtual sysuint_t read(void* buffer, sysuint_t size);
   virtual sysuint_t write(const void* buffer, sysuint_t size);
+
+  virtual err_t getSize(int64_t* size);
+  virtual err_t setSize(int64_t size);
   virtual err_t truncate(int64_t offset);
+
   virtual void close();
 
   HANDLE hFile;
@@ -362,23 +330,61 @@ int64_t HANDLEStreamDevice::tell() const
 
 sysuint_t HANDLEStreamDevice::read(void* buffer, sysuint_t size)
 {
-  // TODO: 64 bit?
-  DWORD readedBytes;
+  DWORD bytesRead;
 
-  if (ReadFile(hFile, buffer, size, &readedBytes, NULL) == 0)
+#if FOG_ARCH_BITS == 64
+  bytesRead = 0;
+  while (size > 0)
+  {
+    DWORD size32 = Math::min<sysuint_t>(size, UINT32_MAX);
+    DWORD rd;
+
+    if (ReadFile(hFile, buffer, size32, &rd, NULL) == 0)
+    {
+      return (sysuint_t)-1;
+    }
+    else
+    {
+      bytesRead += rd;
+      if (rd != size32) break;
+
+      buffer = (char*)buffer + rd;
+      size -= size32;
+    }
+  }
+  return bytesRead;
+#else
+  if (ReadFile(hFile, buffer, size, &bytesRead, NULL) == 0)
     return (sysuint_t)-1;
   else
-    return readedBytes;
+    return bytesRead;
+#endif
 }
 
 sysuint_t HANDLEStreamDevice::write(const void* buffer, sysuint_t size)
 {
-  DWORD writtenBytes;
+  DWORD bytesWritten;
 
-  if (WriteFile(hFile, buffer, size, &writtenBytes, NULL) == 0)
+  if (WriteFile(hFile, buffer, size, &bytesWritten, NULL) == 0)
     return (sysuint_t)-1;
   else
-    return writtenBytes;
+    return bytesWritten;
+}
+
+err_t HANDLEStreamDevice::getSize(int64_t* size)
+{
+  FOG_ASSERT(size != NULL);
+
+  if (GetFileSizeEx(hFile, reinterpret_cast<LARGE_INTEGER*>(size)) == 0)
+    return GetLastError();
+  else
+    return ERR_OK;
+}
+
+err_t HANDLEStreamDevice::setSize(int64_t size)
+{
+  // TODO
+  return ERR_RT_NOT_IMPLEMENTED;
 }
 
 err_t HANDLEStreamDevice::truncate(int64_t offset)
@@ -414,9 +420,14 @@ struct FOG_HIDDEN FdStreamDevice : public StreamDevice
 
   virtual int64_t seek(int64_t offset, int whence);
   virtual int64_t tell() const;
+
   virtual sysuint_t read(void* buffer, sysuint_t size);
   virtual sysuint_t write(const void* buffer, sysuint_t size);
+
+  virtual err_t getSize(int64_t* size);
+  virtual err_t setSize(int64_t size);
   virtual err_t truncate(int64_t offset);
+
   virtual void close();
 
   int fd;
@@ -534,6 +545,34 @@ sysuint_t FdStreamDevice::write(const void* buffer, sysuint_t size)
     return (sysuint_t)n;
 }
 
+err_t FdStreamDevice::getSize(int64_t* size)
+{
+  FOG_ASSERT(size != NULL);
+
+#if defined(FOG_OS_WINDOWS)
+  _stati64 s;
+  if (_fstati64(fd, &s) == 0)
+#else
+  struct stat s;
+  if (fstat(fd, &s) == 0)
+#endif
+  {
+    *size = (int64_t)s.st_size;
+    return ERR_OK;
+  }
+  else
+  {
+    *size = 0;
+    return errno;
+  }
+}
+
+err_t FdStreamDevice::setSize(int64_t size)
+{
+  // TODO
+  return ERR_RT_NOT_IMPLEMENTED;
+}
+
 err_t FdStreamDevice::truncate(int64_t offset)
 {
   int result = ::ftruncate64(fd, offset);
@@ -557,9 +596,14 @@ struct FOG_HIDDEN MemoryStreamDevice : public StreamDevice
 
   virtual int64_t seek(int64_t offset, int whence);
   virtual int64_t tell() const;
+
   virtual sysuint_t read(void* buffer, sysuint_t size);
   virtual sysuint_t write(const void* buffer, sysuint_t size);
+
+  virtual err_t getSize(int64_t* size);
+  virtual err_t setSize(int64_t size);
   virtual err_t truncate(int64_t offset);
+
   virtual void close();
 
   virtual ByteArray getBuffer() const;
@@ -656,6 +700,19 @@ sysuint_t MemoryStreamDevice::write(const void* buffer, sysuint_t size)
   return size;
 }
 
+err_t MemoryStreamDevice::getSize(int64_t* size)
+{
+  FOG_ASSERT(size != NULL);
+  *size = (int64_t)this->size;
+  return ERR_OK;
+}
+
+err_t MemoryStreamDevice::setSize(int64_t size)
+{
+  if (size == (int64_t)this->size) return ERR_OK;
+  return ERR_IO_CANT_RESIZE;
+}
+
 err_t MemoryStreamDevice::truncate(int64_t offset)
 {
   return ERR_IO_CANT_TRUNCATE;
@@ -684,9 +741,14 @@ struct FOG_HIDDEN ByteArrayStreamDevice : public StreamDevice
 
   virtual int64_t seek(int64_t offset, int whence);
   virtual int64_t tell() const;
+
   virtual sysuint_t read(void* buffer, sysuint_t size);
   virtual sysuint_t write(const void* buffer, sysuint_t size);
+
+  virtual err_t getSize(int64_t* size);
+  virtual err_t setSize(int64_t size);
   virtual err_t truncate(int64_t offset);
+
   virtual void close();
 
   virtual ByteArray getBuffer() const;
@@ -784,6 +846,24 @@ sysuint_t ByteArrayStreamDevice::write(const void* buffer, sysuint_t size)
   return size;
 }
 
+err_t ByteArrayStreamDevice::getSize(int64_t* size)
+{
+  FOG_ASSERT(size != NULL);
+  *size = (int64_t)data.getLength();
+  return ERR_OK;
+}
+
+err_t ByteArrayStreamDevice::setSize(int64_t size)
+{
+  if (size < 0) return ERR_RT_INVALID_ARGUMENT;
+  if (size >= SYSINT_MAX) return ERR_RT_OUT_OF_MEMORY;
+
+  err_t err = data.resize((sysuint_t)size);
+  if (err) return err;
+
+  return ERR_OK;
+}
+
 err_t ByteArrayStreamDevice::truncate(int64_t offset)
 {
   if (offset >= (int64_t)data.getLength()) return ERR_OK;
@@ -861,14 +941,14 @@ void MMapStreamDevice::close()
 StreamDevice* Stream::sharedNull;
 
 Stream::Stream() :
-  _d(sharedNull->refAlways())
+  _d(sharedNull->ref())
 {
 }
 
 Stream::Stream(const Stream& other) :
   _d(other._d->ref())
 {
-  if (!_d) _d = sharedNull->refAlways();
+  if (!_d) _d = sharedNull->ref();
 }
 
 Stream::Stream(StreamDevice* d) :
@@ -942,25 +1022,8 @@ err_t Stream::openMMap(const String& fileName, bool loadOnFail)
   return ERR_OK;
 }
 
-err_t Stream::openFILE(FILE* fp, uint32_t openFlags, bool canClose)
-{
-  close();
-  if (fp == NULL) return ERR_RT_INVALID_ARGUMENT;
-
-  uint32_t fflags = STREAM_IS_SEEKABLE | STREAM_IS_GROWABLE;
-  if (openFlags & STREAM_OPEN_READ ) fflags |= STREAM_IS_READABLE;
-  if (openFlags & STREAM_OPEN_WRITE) fflags |= STREAM_IS_WRITABLE;
-  if (canClose) fflags |= STREAM_IS_CLOSABLE;
-
-  StreamDevice* newd = new(std::nothrow) FILEStreamDevice(fp, fflags);
-  if (!newd) return ERR_RT_OUT_OF_MEMORY;
-
-  atomicPtrXchg(&_d, newd)->deref();
-  return ERR_OK;
-}
-
 #if defined(FOG_OS_WINDOWS)
-err_t Stream::openHANDLE(HANDLE hFile, uint32_t openFlags, bool canClose)
+err_t Stream::openHandle(HANDLE hFile, uint32_t openFlags, bool canClose)
 {
   close();
 
@@ -1125,6 +1188,16 @@ sysuint_t Stream::write(const ByteArray& data)
   return _d->write((const void*)data.getData(), data.getLength());
 }
 
+err_t Stream::getSize(int64_t* size)
+{
+  return _d->getSize(size);
+}
+
+err_t Stream::setSize(int64_t size)
+{
+  return _d->setSize(size);
+}
+
 err_t Stream::truncate(int64_t offset)
 {
   return _d->truncate(offset);
@@ -1132,7 +1205,7 @@ err_t Stream::truncate(int64_t offset)
 
 void Stream::close()
 {
-  atomicPtrXchg(&_d, sharedNull->refAlways())->deref();
+  atomicPtrXchg(&_d, sharedNull->ref())->deref();
 }
 
 ByteArray Stream::getBuffer() const

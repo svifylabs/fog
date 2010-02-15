@@ -177,7 +177,7 @@ namespace RasterUtil {
 
 struct FOG_HIDDEN PF_XRGB32
 {
-  enum { BPP = 4 };
+  enum { BPP = 4, AS_IS = 1 };
 
   FOG_INLINE PF_XRGB32(const RasterUtil::PatternContext* ctx) {}
   FOG_INLINE uint32_t fetch(const uint8_t* p) { return READ_32(p) | 0xFF000000; }
@@ -185,7 +185,7 @@ struct FOG_HIDDEN PF_XRGB32
 
 struct FOG_HIDDEN PF_ARGB32
 {
-  enum { BPP = 4 };
+  enum { BPP = 4, AS_IS = 0 };
 
   FOG_INLINE PF_ARGB32(const RasterUtil::PatternContext* ctx) {}
   FOG_INLINE uint32_t fetch(const uint8_t* p) { return ArgbUtil::premultiply(READ_32(p)); }
@@ -193,7 +193,7 @@ struct FOG_HIDDEN PF_ARGB32
 
 struct FOG_HIDDEN PF_PRGB32
 {
-  enum { BPP = 4 };
+  enum { BPP = 4, AS_IS = 1 };
 
   FOG_INLINE PF_PRGB32(const RasterUtil::PatternContext* ctx) {}
   FOG_INLINE uint32_t fetch(const uint8_t* p) { return READ_32(p); }
@@ -201,7 +201,7 @@ struct FOG_HIDDEN PF_PRGB32
 
 struct FOG_HIDDEN PF_I8
 {
-  enum { BPP = 1 };
+  enum { BPP = 1, AS_IS = 0 };
 
   FOG_INLINE PF_I8(const RasterUtil::PatternContext* ctx) { pal = ctx->texture.pal; }
   FOG_INLINE uint32_t fetch(const uint8_t* p) { return pal[p[0]]; }
@@ -609,7 +609,7 @@ struct FOG_HIDDEN PatternC
       if (!w) return dst;
     }
     // Or return image buffer if span fits to it.
-    else if (x < tw && w < tw - x)
+    else if (PF::AS_IS && x < tw && w < tw - x)
     {
       return const_cast<uint8_t*>(srcCur);
     }
@@ -673,7 +673,7 @@ struct FOG_HIDDEN PatternC
       if (!w) return dst;
     }
     // Or return image buffer if span fits to it.
-    else if (x < tw && w < tw - x)
+    else if (PF::AS_IS && x < tw && w < tw - x)
     {
       return const_cast<uint8_t*>(srcCur);
     }
@@ -734,7 +734,7 @@ struct FOG_HIDDEN PatternC
     // Return image buffer if span fits to it (this is very efficient
     // optimization for short spans or large textures).
     i = Math::min(tw - x, w);
-    if (w < tw - x)
+    if (PF::AS_IS && w < tw - x)
       return const_cast<uint8_t*>(srcCur);
 
     for (;;)
@@ -855,7 +855,7 @@ struct FOG_HIDDEN PatternC
     const uint8_t* srcBase = ctx->texture.bits + y * ctx->texture.stride;
     const uint8_t* srcCur;
 
-    if (x >= 0 && x <= tw && w < tw - x)
+    if (PF::AS_IS && x >= 0 && x <= tw && w < tw - x)
       return const_cast<uint8_t*>(srcBase + x * PF::BPP);
 
     do {
@@ -2309,7 +2309,7 @@ doFill_4:
       int px0 = fx >> 16;
       int py0 = fy >> 16;
 
-      if (FOG_LIKELY(((uint)px0 < tw) & ((uint)py0) < th))
+      if (FOG_LIKELY(((uint)px0 < (uint)tw) & ((uint)py0 < (uint)th)))
       {
         c0 = pf.fetch(srcBits + (uint)py0 * srcStride + (uint)px0 * PF::BPP);
       }

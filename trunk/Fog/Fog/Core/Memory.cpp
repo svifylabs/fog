@@ -359,7 +359,7 @@ FOG_CAPI_DECLARE void* fog_memory_reallocf(void* addr, sysuint_t size)
   return r_addr;
 }
 
-FOG_CAPI_DECLARE void fog_memory_free(void *addr)
+FOG_CAPI_DECLARE void fog_memory_free(void* addr)
 {
   if (FOG_LIKELY(addr != NULL))
   {
@@ -370,7 +370,7 @@ FOG_CAPI_DECLARE void fog_memory_free(void *addr)
   }
 }
 
-FOG_CAPI_DECLARE void* fog_memory_dup(void *addr, sysuint_t size)
+FOG_CAPI_DECLARE void* fog_memory_dup(void* addr, sysuint_t size)
 {
   if (FOG_LIKELY(addr != NULL) && FOG_LIKELY(size))
   {
@@ -387,7 +387,7 @@ FOG_CAPI_DECLARE void* fog_memory_dup(void *addr, sysuint_t size)
     return NULL;
 }
 
-FOG_CAPI_DECLARE void* fog_memory_xdup(void *addr, sysuint_t size)
+FOG_CAPI_DECLARE void* fog_memory_xdup(void* addr, sysuint_t size)
 {
   void *dupAddr = fog_memory_dup(addr, size);
 

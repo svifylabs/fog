@@ -58,6 +58,8 @@ enum STR_ID
   STR_GRAPHICS_XBM,
   STR_GRAPHICS_XPM,
 
+  STR_GRAPHICS_GDIPLUS,
+
   // [Graphics - Image File Extensions]
 
   STR_GRAPHICS_ani,

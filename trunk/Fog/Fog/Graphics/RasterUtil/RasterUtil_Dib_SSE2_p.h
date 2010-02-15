@@ -225,9 +225,9 @@ struct FOG_HIDDEN DibSSE2
   static void FOG_FASTCALL prgb32_from_argb32(
     uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
   {
-    BLIT_SSE2_32x4_INIT(dst, w);
+    SSE2_BLIT_32x4_INIT(dst, w);
 
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
+    SSE2_BLIT_32x4_SMALL_BEGIN(blt)
       __m128i src0mm;
 
       sse2_load4(src0mm, src);
@@ -238,9 +238,9 @@ struct FOG_HIDDEN DibSSE2
 
       dst += 4;
       src += 4;
-    BLIT_SSE2_32x4_SMALL_END(blt)
+    SSE2_BLIT_32x4_SMALL_END(blt)
 
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
+    SSE2_BLIT_32x4_LARGE_BEGIN(blt)
       __m128i src0mm;
       __m128i src1mm;
 
@@ -252,15 +252,15 @@ struct FOG_HIDDEN DibSSE2
 
       dst += 16;
       src += 16;
-    BLIT_SSE2_32x4_LARGE_END(blt)
+    SSE2_BLIT_32x4_LARGE_END(blt)
   }
 
   static void FOG_FASTCALL frgb32_from_xrgb32(
     uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
   {
-    BLIT_SSE2_32x4_INIT(dst, w);
+    SSE2_BLIT_32x4_INIT(dst, w);
 
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
+    SSE2_BLIT_32x4_SMALL_BEGIN(blt)
       __m128i src0mm;
 
       sse2_load4(src0mm, src);
@@ -269,9 +269,9 @@ struct FOG_HIDDEN DibSSE2
 
       src += 4;
       dst += 4;
-    BLIT_SSE2_32x4_SMALL_END(blt)
+    SSE2_BLIT_32x4_SMALL_END(blt)
 
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
+    SSE2_BLIT_32x4_LARGE_BEGIN(blt)
       __m128i src0mm;
 
       sse2_load16u(src0mm, src);
@@ -280,22 +280,22 @@ struct FOG_HIDDEN DibSSE2
 
       src += 16;
       dst += 16;
-    BLIT_SSE2_32x4_LARGE_END(blt)
+    SSE2_BLIT_32x4_LARGE_END(blt)
   }
 
   static void FOG_FASTCALL azzz32_from_a8(
     uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
   {
-    BLIT_SSE2_32x4_INIT(dst, w);
+    SSE2_BLIT_32x4_INIT(dst, w);
 
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
+    SSE2_BLIT_32x4_SMALL_BEGIN(blt)
       ((uint32_t*)dst)[0] = src[0];
 
       dst += 4;
       src += 1;
-    BLIT_SSE2_32x4_SMALL_END(blt)
+    SSE2_BLIT_32x4_SMALL_END(blt)
 
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
+    SSE2_BLIT_32x4_LARGE_BEGIN(blt)
       __m128i pix0xmm;
 
       sse2_load4(pix0xmm, src);
@@ -306,7 +306,7 @@ struct FOG_HIDDEN DibSSE2
 
       dst += 16;
       src += 4;
-    BLIT_SSE2_32x4_LARGE_END(blt)
+    SSE2_BLIT_32x4_LARGE_END(blt)
   }
 
   static void FOG_FASTCALL prgb32_from_i8(
@@ -314,9 +314,9 @@ struct FOG_HIDDEN DibSSE2
   {
     const Argb* srcPal = closure->srcPalette + Palette::INDEX_PRGB32;
 
-    BLIT_SSE2_32x4_INIT(dst, w);
+    SSE2_BLIT_32x4_INIT(dst, w);
 
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
+    SSE2_BLIT_32x4_SMALL_BEGIN(blt)
       __m128i src0mm;
 
       sse2_load_1xI8(src0mm, src, srcPal);
@@ -324,9 +324,9 @@ struct FOG_HIDDEN DibSSE2
 
       dst += 4;
       src += 1;
-    BLIT_SSE2_32x4_SMALL_END(blt)
+    SSE2_BLIT_32x4_SMALL_END(blt)
 
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
+    SSE2_BLIT_32x4_LARGE_BEGIN(blt)
       __m128i src0mm;
 
       sse2_load_4xI8(src0mm, src, srcPal);
@@ -334,15 +334,15 @@ struct FOG_HIDDEN DibSSE2
 
       dst += 16;
       src += 4;
-    BLIT_SSE2_32x4_LARGE_END(blt)
+    SSE2_BLIT_32x4_LARGE_END(blt)
   }
 
   static void FOG_FASTCALL prgb32_from_argb32_swapped(
     uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
   {
-    BLIT_SSE2_32x4_INIT(dst, w);
+    SSE2_BLIT_32x4_INIT(dst, w);
 
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
+    SSE2_BLIT_32x4_SMALL_BEGIN(blt)
       __m128i src0mm;
 
       sse2_load4(src0mm, src);
@@ -354,9 +354,9 @@ struct FOG_HIDDEN DibSSE2
 
       dst += 4;
       src += 4;
-    BLIT_SSE2_32x4_SMALL_END(blt)
+    SSE2_BLIT_32x4_SMALL_END(blt)
 
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
+    SSE2_BLIT_32x4_LARGE_BEGIN(blt)
       __m128i src0mm;
       __m128i src1mm;
 
@@ -369,15 +369,15 @@ struct FOG_HIDDEN DibSSE2
 
       dst += 16;
       src += 16;
-    BLIT_SSE2_32x4_LARGE_END(blt)
+    SSE2_BLIT_32x4_LARGE_END(blt)
   }
   
   static void FOG_FASTCALL argb32_from_prgb32(
     uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
   {
-    BLIT_SSE2_32x4_INIT(dst, w);
+    SSE2_BLIT_32x4_INIT(dst, w);
 
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
+    SSE2_BLIT_32x4_SMALL_BEGIN(blt)
       __m128i src0mm;
 
       sse2_load4(src0mm, src);
@@ -388,9 +388,9 @@ struct FOG_HIDDEN DibSSE2
 
       src += 4;
       dst += 4;
-    BLIT_SSE2_32x4_SMALL_END(blt)
+    SSE2_BLIT_32x4_SMALL_END(blt)
 
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
+    SSE2_BLIT_32x4_LARGE_BEGIN(blt)
       __m128i src0mm, src1mm;
 
       sse2_load16u(src0mm, src);
@@ -401,7 +401,7 @@ struct FOG_HIDDEN DibSSE2
 
       src += 16;
       dst += 16;
-    BLIT_SSE2_32x4_LARGE_END(blt)
+    SSE2_BLIT_32x4_LARGE_END(blt)
   }
 
   static void FOG_FASTCALL argb32_from_i8(
@@ -409,9 +409,9 @@ struct FOG_HIDDEN DibSSE2
   {
     const Argb* srcPal = closure->srcPalette + Palette::INDEX_ARGB32;
 
-    BLIT_SSE2_32x4_INIT(dst, w);
+    SSE2_BLIT_32x4_INIT(dst, w);
 
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
+    SSE2_BLIT_32x4_SMALL_BEGIN(blt)
       __m128i src0mm;
 
       sse2_load_1xI8(src0mm, src, srcPal);
@@ -419,9 +419,9 @@ struct FOG_HIDDEN DibSSE2
 
       dst += 4;
       src += 1;
-    BLIT_SSE2_32x4_SMALL_END(blt)
+    SSE2_BLIT_32x4_SMALL_END(blt)
 
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
+    SSE2_BLIT_32x4_LARGE_BEGIN(blt)
       __m128i src0mm;
 
       sse2_load_4xI8(src0mm, src, srcPal);
@@ -429,7 +429,7 @@ struct FOG_HIDDEN DibSSE2
 
       dst += 16;
       src += 4;
-    BLIT_SSE2_32x4_LARGE_END(blt)
+    SSE2_BLIT_32x4_LARGE_END(blt)
   }
 
 
@@ -444,9 +444,9 @@ struct FOG_HIDDEN DibSSE2
   static void FOG_FASTCALL frgb32_from_argb32(
     uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
   {
-    BLIT_SSE2_32x4_INIT(dst, w);
+    SSE2_BLIT_32x4_INIT(dst, w);
 
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
+    SSE2_BLIT_32x4_SMALL_BEGIN(blt)
       __m128i src0mm;
 
       sse2_load4(src0mm, src);
@@ -458,9 +458,9 @@ struct FOG_HIDDEN DibSSE2
 
       dst += 4;
       src += 4;
-    BLIT_SSE2_32x4_SMALL_END(blt)
+    SSE2_BLIT_32x4_SMALL_END(blt)
 
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
+    SSE2_BLIT_32x4_LARGE_BEGIN(blt)
       __m128i src0mm;
       __m128i src1mm;
 
@@ -473,7 +473,7 @@ struct FOG_HIDDEN DibSSE2
 
       dst += 16;
       src += 16;
-    BLIT_SSE2_32x4_LARGE_END(blt)
+    SSE2_BLIT_32x4_LARGE_END(blt)
   }
 
   static void FOG_FASTCALL frgb32_from_i8(
@@ -493,9 +493,9 @@ struct FOG_HIDDEN DibSSE2
   static void FOG_FASTCALL frgb32_from_argb32_swapped(
     uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
   {
-    BLIT_SSE2_32x4_INIT(dst, w);
+    SSE2_BLIT_32x4_INIT(dst, w);
 
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
+    SSE2_BLIT_32x4_SMALL_BEGIN(blt)
       __m128i src0mm;
 
       sse2_load4(src0mm, src);
@@ -508,9 +508,9 @@ struct FOG_HIDDEN DibSSE2
 
       dst += 4;
       src += 4;
-    BLIT_SSE2_32x4_SMALL_END(blt)
+    SSE2_BLIT_32x4_SMALL_END(blt)
 
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
+    SSE2_BLIT_32x4_LARGE_BEGIN(blt)
       __m128i src0mm;
       __m128i src1mm;
 
@@ -524,7 +524,7 @@ struct FOG_HIDDEN DibSSE2
 
       dst += 16;
       src += 16;
-    BLIT_SSE2_32x4_LARGE_END(blt)
+    SSE2_BLIT_32x4_LARGE_END(blt)
   }
 
   static void FOG_FASTCALL frgb32_from_rgb24_native(
@@ -600,9 +600,9 @@ struct FOG_HIDDEN DibSSE2
   static void FOG_FASTCALL prgb32_swapped_from_argb32(
     uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
   {
-    BLIT_SSE2_32x4_INIT(dst, w);
+    SSE2_BLIT_32x4_INIT(dst, w);
 
-    BLIT_SSE2_32x4_SMALL_BEGIN(blt)
+    SSE2_BLIT_32x4_SMALL_BEGIN(blt)
       __m128i src0mm;
 
       sse2_load4(src0mm, src);
@@ -614,9 +614,9 @@ struct FOG_HIDDEN DibSSE2
 
       dst += 4;
       src += 4;
-    BLIT_SSE2_32x4_SMALL_END(blt)
+    SSE2_BLIT_32x4_SMALL_END(blt)
 
-    BLIT_SSE2_32x4_LARGE_BEGIN(blt)
+    SSE2_BLIT_32x4_LARGE_BEGIN(blt)
       __m128i src0mm;
       __m128i src1mm;
 
@@ -629,22 +629,22 @@ struct FOG_HIDDEN DibSSE2
 
       dst += 16;
       src += 16;
-    BLIT_SSE2_32x4_LARGE_END(blt)
+    SSE2_BLIT_32x4_LARGE_END(blt)
   }
 
   static void FOG_FASTCALL a8_from_axxx32(
     uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)
   {
-    BLIT_SSE2_8x16_INIT(dst, w);
+    SSE2_BLIT_8x16_INIT(dst, w);
 
-    BLIT_SSE2_8x16_SMALL_BEGIN(blt)
+    SSE2_BLIT_8x16_SMALL_BEGIN(blt)
       dst[0] = src[ARGB32_ABYTE];
 
       dst += 1;
       src += 4;
-    BLIT_SSE2_8x16_SMALL_END(blt)
+    SSE2_BLIT_8x16_SMALL_END(blt)
 
-    BLIT_SSE2_8x16_LARGE_BEGIN(blt)
+    SSE2_BLIT_8x16_LARGE_BEGIN(blt)
       __m128i src0mm;
       __m128i src1mm;
 
@@ -654,7 +654,7 @@ struct FOG_HIDDEN DibSSE2
 
       dst += 16;
       src += 64;
-    BLIT_SSE2_8x16_LARGE_END(blt)
+    SSE2_BLIT_8x16_LARGE_END(blt)
   }
 
   static void FOG_FASTCALL a8_from_i8(
@@ -780,6 +780,9 @@ struct FOG_HIDDEN DibSSE2
 
       pix0xmmG0 = _mm_srli_epi32(pix0xmmB0, 13);
       pix1xmmG0 = _mm_srli_epi32(pix1xmmB0, 13);
+
+      pix0xmmG1 = pix0xmmB0;
+      pix1xmmG1 = pix1xmmB0;
 
       pix0xmmB0 = _mm_slli_epi32(pix0xmmB0, 5);
       pix1xmmB0 = _mm_slli_epi32(pix1xmmB0, 5);
@@ -927,6 +930,9 @@ struct FOG_HIDDEN DibSSE2
 
       pix0xmmG0 = _mm_srli_epi32(pix0xmmB0, 14);
       pix1xmmG0 = _mm_srli_epi32(pix1xmmB0, 14);
+
+      pix0xmmG1 = pix0xmmB0;
+      pix1xmmG1 = pix1xmmB0;
 
       pix0xmmB0 = _mm_slli_epi32(pix0xmmB0, 5);
       pix1xmmB0 = _mm_slli_epi32(pix1xmmB0, 5);

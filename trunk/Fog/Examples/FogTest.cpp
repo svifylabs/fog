@@ -40,8 +40,8 @@ MyWindow::MyWindow(uint32_t createFlags) :
 {
   setWindowTitle(Ascii8("Testing..."));
 
-  i[0].readFile(Ascii8("babelfish.pcx"));
-  i[1].readFile(Ascii8("kweather.pcx"));
+  i[0].readFile(Ascii8("babelfish.png"));
+  i[1].readFile(Ascii8("kweather.png"));
 
   i[0].convert(PIXEL_FORMAT_PRGB32);
   i[1].convert(PIXEL_FORMAT_PRGB32);
