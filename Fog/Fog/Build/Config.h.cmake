@@ -79,6 +79,7 @@
 
 //! @brief Used for windows font subsystem.
 #cmakedefine FOG_FONT_WINDOWS
+
 //! @brief Used for fontconfig support (Unix/Linux).
 #cmakedefine FOG_HAVE_FONTCONFIG
 //! @brief Used if freetype library is located
@@ -86,13 +87,13 @@
 #cmakedefine FOG_FONT_FREETYPE
 
 // ============================================================================
-// [Fog/UI Backends]
+// [Fog/Gui Backends]
 // ============================================================================
 
 //! @brief Defined if we can use Windows GUI.
-#cmakedefine FOG_UI_WINDOWS
+#cmakedefine FOG_GUI_WINDOWS
 //! @brief Defined if we can use X Window System (this not means that we depend to it).
-#cmakedefine FOG_UI_X11
+#cmakedefine FOG_GUI_X11
 
 // ============================================================================
 // [MMX/SSE support]

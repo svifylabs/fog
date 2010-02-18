@@ -1,6 +1,6 @@
 #include <Fog/Core.h>
 #include <Fog/Graphics.h>
-#include <Fog/UI.h>
+#include <Fog/Gui.h>
 
 using namespace Fog;
 
@@ -143,9 +143,9 @@ void MyWindow::onTimer(TimerEvent* e)
 // [MAIN]
 // ============================================================================
 
-FOG_UI_MAIN()
+FOG_GUI_MAIN()
 {
-  Application app(Ascii8("UI"));
+  Application app(Ascii8("Gui"));
 
   MyWindow window;
   window.setSize(Size(515, 455));

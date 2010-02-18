@@ -31,7 +31,7 @@ public:
   // IUnknown Interface.
   virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void** ppvObject);
   virtual ULONG   STDMETHODCALLTYPE AddRef(void);
-  virtual ULONG   STDMETHODCALLTYPE Release(void); 
+  virtual ULONG   STDMETHODCALLTYPE Release(void);
 
   // ISequentialStream Interface
   virtual HRESULT STDMETHODCALLTYPE Read(void* pv, ULONG cb, ULONG* pcbRead);

@@ -33,10 +33,10 @@
 //! across many Fog/Graphics library classes. Using these classes in application
 //! is not recommended, but on the other side, they will probably stay forever.
 
-//! @namespace Fog::RasterUtil
+//! @namespace Fog::RasterEngine
 //! @brief Low level raster based functions namespace.
 //!
-//! RasterUtil namespace contains lowest level pixel manipulation library that is
+//! RasterEngine namespace contains lowest level pixel manipulation library that is
 //! used in Fog library.
 //!
 //! @section Pixel format conversion and definitions.

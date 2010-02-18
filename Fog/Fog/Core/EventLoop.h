@@ -447,14 +447,14 @@ protected:
 };
 
 // ============================================================================
-// [Fog::WinUIEventLoop]
+// [Fog::WinGuiEventLoop]
 // ============================================================================
 
-//! @brief Convenience class that sets event loop type to "UI.Windows". This
+//! @brief Convenience class that sets event loop type to "Gui.Windows". This
 //! event loop is also registered by application initializer.
-struct FOG_API WinUIEventLoop : public WinEventLoop
+struct FOG_API WinGuiEventLoop : public WinEventLoop
 {
-  WinUIEventLoop();
+  WinGuiEventLoop();
 };
 
 #endif // FOG_OS_WINDOWS

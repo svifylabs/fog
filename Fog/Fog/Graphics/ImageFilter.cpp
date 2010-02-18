@@ -17,7 +17,7 @@
 #include <Fog/Graphics/ColorLut.h>
 #include <Fog/Graphics/ColorMatrix.h>
 #include <Fog/Graphics/ImageFilter.h>
-#include <Fog/Graphics/RasterUtil_p.h>
+#include <Fog/Graphics/RasterEngine_p.h>
 
 namespace Fog {
 
@@ -151,7 +151,7 @@ ColorLutFilterEngine::ColorLutFilterEngine(const ColorLutData& lutData) :
 ColorFilterFn ColorLutFilterEngine::getColorFilterFn(int format) const
 {
   if ((uint)format >= PIXEL_FORMAT_COUNT) return NULL;
-  return (ColorFilterFn)RasterUtil::functionMap->filter.color_lut[format];
+  return (ColorFilterFn)RasterEngine::functionMap->filter.color_lut[format];
 }
 
 const void* ColorLutFilterEngine::getContext() const
@@ -213,7 +213,7 @@ ColorMatrixFilterEngine::ColorMatrixFilterEngine(const ColorMatrix& cm) :
 ColorFilterFn ColorMatrixFilterEngine::getColorFilterFn(int format) const
 {
   if ((uint)format >= PIXEL_FORMAT_COUNT) return NULL;
-  return (ColorFilterFn)RasterUtil::functionMap->filter.color_matrix[format];
+  return (ColorFilterFn)RasterEngine::functionMap->filter.color_matrix[format];
 }
 
 const void* ColorMatrixFilterEngine::getContext() const
@@ -305,19 +305,19 @@ ImageFilterFn BlurFilterEngine::getImageFilterFn(int format, int processing) con
   switch (params.blur)
   {
     case BLUR_BOX:
-      if (processing == IMAGE_FILTER_HORZ_PROCESSING) return (ImageFilterFn)RasterUtil::functionMap->filter.box_blur_h[format];
-      if (processing == IMAGE_FILTER_VERT_PROCESSING) return (ImageFilterFn)RasterUtil::functionMap->filter.box_blur_v[format];
+      if (processing == IMAGE_FILTER_HORZ_PROCESSING) return (ImageFilterFn)RasterEngine::functionMap->filter.box_blur_h[format];
+      if (processing == IMAGE_FILTER_VERT_PROCESSING) return (ImageFilterFn)RasterEngine::functionMap->filter.box_blur_v[format];
       break;
 
     case BLUR_LINEAR:
-      if (processing == IMAGE_FILTER_HORZ_PROCESSING) return (ImageFilterFn)RasterUtil::functionMap->filter.linear_blur_h[format];
-      if (processing == IMAGE_FILTER_VERT_PROCESSING) return (ImageFilterFn)RasterUtil::functionMap->filter.linear_blur_v[format];
+      if (processing == IMAGE_FILTER_HORZ_PROCESSING) return (ImageFilterFn)RasterEngine::functionMap->filter.linear_blur_h[format];
+      if (processing == IMAGE_FILTER_VERT_PROCESSING) return (ImageFilterFn)RasterEngine::functionMap->filter.linear_blur_v[format];
       break;
 
     case BLUR_GAUSSIAN:
     default:
-      if (processing == IMAGE_FILTER_HORZ_PROCESSING) return (ImageFilterFn)RasterUtil::functionMap->filter.symmetric_convolve_float_h[format];
-      if (processing == IMAGE_FILTER_VERT_PROCESSING) return (ImageFilterFn)RasterUtil::functionMap->filter.symmetric_convolve_float_v[format];
+      if (processing == IMAGE_FILTER_HORZ_PROCESSING) return (ImageFilterFn)RasterEngine::functionMap->filter.symmetric_convolve_float_h[format];
+      if (processing == IMAGE_FILTER_VERT_PROCESSING) return (ImageFilterFn)RasterEngine::functionMap->filter.symmetric_convolve_float_v[format];
       break;
   }
 

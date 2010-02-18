@@ -47,9 +47,6 @@ FOG_INIT_FUNC(fog_thread);
 FOG_INIT_FUNC(fog_object);
 FOG_INIT_FUNC(fog_application);
 
-// Fog/Xml
-FOG_INIT_FUNC(fog_xmlentity);
-
 // Fog/Graphics
 FOG_INIT_FUNC(fog_colormatrix);
 FOG_INIT_FUNC(fog_raster);
@@ -69,11 +66,14 @@ FOG_INIT_FUNC(fog_fontmanager);
 FOG_INIT_FUNC(fog_painter_null);
 FOG_INIT_FUNC(fog_painter_raster);
 
+// Fog/Gui
+// reserved...
+
 // Fog/Svg
 // reserved...
 
-// Fog/UI
-// reserved...
+// Fog/Xml
+FOG_INIT_FUNC(fog_xmlentity);
 
 // ============================================================================
 // [Fog::Init]
@@ -121,9 +121,6 @@ static const FogInitEntry fog_init_entries[] =
   INIT_ENTRY(fog_object),           // Depends to String
   INIT_ENTRY(fog_application),      // Depends to Many
 
-  // Fog/Xml
-  INIT_ENTRY(fog_xmlentity),
-
   // Fog/Graphics
   INIT_ENTRY(fog_colormatrix),
   INIT_ENTRY(fog_raster),
@@ -143,9 +140,12 @@ static const FogInitEntry fog_init_entries[] =
   INIT_ENTRY(fog_painter_null),
   INIT_ENTRY(fog_painter_raster),
 
-  // Fog/Svg
+  // Fog/Gui
 
-  // Fog/UI
+  // Fog/Xml
+  INIT_ENTRY(fog_xmlentity),
+
+  // Fog/Svg
 };
 
 FOG_CAPI_DECLARE err_t fog_init(void)

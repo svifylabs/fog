@@ -33,8 +33,8 @@
 #include <Fog/Graphics/PaintEngine/Raster_p.h>
 #include <Fog/Graphics/Painter.h>
 #include <Fog/Graphics/Rasterizer_p.h>
-#include <Fog/Graphics/RasterUtil_p.h>
-#include <Fog/Graphics/RasterUtil/RasterUtil_C_p.h>
+#include <Fog/Graphics/RasterEngine_p.h>
+#include <Fog/Graphics/RasterEngine/RasterEngine_C_p.h>
 #include <Fog/Graphics/Scanline_p.h>
 #include <Fog/Graphics/Stroker.h>
 
@@ -378,7 +378,7 @@ struct FOG_HIDDEN RasterPaintCapsState
   union
   {
     //! @brief Solid source data (if @c sourceType is @c PAINTER_SOURCE_SOLID).
-    RasterUtil::Solid solid;
+    RasterEngine::Solid solid;
     //! @brief Pattern source data (if @c sourceType is @c PAINTER_SOURCE_PATTERN).
     Static<Pattern> pattern;
     //! @brief Color filter data (if @c sourceType is @c PAINTER_SOURCE_COLOR_FILTER).
@@ -386,7 +386,7 @@ struct FOG_HIDDEN RasterPaintCapsState
   };
 
   //! @brief Pointer to compositing functions, see @c op.
-  RasterUtil::FunctionMap::CompositeFuncs* rops;
+  RasterEngine::FunctionMap::CompositeFuncs* rops;
 
   //! @brief Stroke parameters.
   StrokeParams strokeParams;
@@ -413,7 +413,7 @@ struct FOG_HIDDEN RasterPaintStoredState
 {
   RasterPaintClipState* clipState;
   RasterPaintCapsState* capsState;
-  RasterUtil::PatternContext* pctx;
+  RasterEngine::PatternContext* pctx;
 };
 
 // ============================================================================
@@ -451,10 +451,10 @@ struct FOG_HIDDEN RasterPaintContext
   RasterPaintCapsState* capsState;
 
   // Raster closure.
-  RasterUtil::Closure closure;
+  RasterEngine::Closure closure;
 
   // Pattern context.
-  RasterUtil::PatternContext* pctx;
+  RasterEngine::PatternContext* pctx;
 
   // Scanline rasterizer container.
   Scanline32 scanline;
@@ -498,7 +498,7 @@ struct RasterRenderImageAffineBound
 
   // [Members]
 
-  RasterUtil::PatternContext ictx;
+  RasterEngine::PatternContext ictx;
   PointD pts[4];
   int pty[4];
 
@@ -565,7 +565,7 @@ struct FOG_HIDDEN RasterPaintCmd : public RasterPaintAction
   RasterPaintClipState* clipState;
   RasterPaintCapsState* capsState;
 
-  RasterUtil::PatternContext* pctx;
+  RasterEngine::PatternContext* pctx;
 
   RasterPaintCalc* calculation;
 };
@@ -1025,7 +1025,7 @@ struct FOG_HIDDEN RasterPaintEngine : public PaintEngine
   void _setClipDefaults();
   void _setCapsDefaults();
 
-  RasterUtil::PatternContext* _getPatternRasterPaintContext();
+  RasterEngine::PatternContext* _getPatternRasterPaintContext();
   void _resetPatternRasterPaintContext();
 
   FOG_INLINE void _updateLineWidth()
@@ -1054,7 +1054,7 @@ struct FOG_HIDDEN RasterPaintEngine : public PaintEngine
   void _serializePath(const Path& path, bool stroke);
 
   template<typename T> FOG_INLINE T* _createCommand(sysuint_t size = sizeof(T));
-  template<typename T> FOG_INLINE T* _createCommand(sysuint_t size, RasterUtil::PatternContext* pctx);
+  template<typename T> FOG_INLINE T* _createCommand(sysuint_t size, RasterEngine::PatternContext* pctx);
   template<typename T> FOG_INLINE T* _createCalc(sysuint_t size = sizeof(T));
 
   void _postCommand(RasterPaintCmd* cmd, RasterPaintCalc* clc = NULL);
@@ -1472,7 +1472,7 @@ bool RasterRenderImageAffineBound::init(const Image& image, const Matrix& matrix
   xmax = bbox.x2;
   ymax = bbox.y2;
 
-  if (RasterUtil::functionMap->pattern.texture_init_blit(
+  if (RasterEngine::functionMap->pattern.texture_init_blit(
     &ictx, image, matrix, SPREAD_NONE, interpolationType) != ERR_OK)
   {
     return false;
@@ -1552,9 +1552,9 @@ void RasterRenderImageAffineBound::render(RasterPaintContext* ctx)
   uint8_t* pBase = layer->pixels;
   uint8_t* pCur = NULL;
 
-  RasterUtil::VSpanFn vspan = capsState->rops->vspan[(uint)ictx.format];
+  RasterEngine::VSpanFn vspan = capsState->rops->vspan[(uint)ictx.format];
 
-  RasterUtil::Closure closure;
+  RasterEngine::Closure closure;
   closure.dstPalette = NULL;
   closure.srcPalette = NULL;
 
@@ -2466,7 +2466,7 @@ void RasterPaintEngine::setOperator(int op)
 
   if (!(capsState = _detachCapsState())) return;
   capsState->op = op;
-  capsState->rops = RasterUtil::getRasterOps(ctx.layer->format, op);
+  capsState->rops = RasterEngine::getRasterOps(ctx.layer->format, op);
 }
 
 // ============================================================================
@@ -4111,7 +4111,7 @@ void RasterPaintEngine::_setCapsDefaults()
   capsState->solid.argb = 0xFF000000;
   capsState->solid.prgb = 0xFF000000;
 
-  capsState->rops = RasterUtil::getRasterOps(ctx.layer->format, OPERATOR_SRC_OVER);
+  capsState->rops = RasterEngine::getRasterOps(ctx.layer->format, OPERATOR_SRC_OVER);
 
   capsState->strokeParams.reset();
   capsState->transform.set(
@@ -4123,7 +4123,7 @@ void RasterPaintEngine::_setCapsDefaults()
   capsState->transformTranslateInt.set(clipState->workOrigin);
 }
 
-RasterUtil::PatternContext* RasterPaintEngine::_getPatternRasterPaintContext()
+RasterEngine::PatternContext* RasterPaintEngine::_getPatternRasterPaintContext()
 {
   RasterPaintCapsState* capsState = ctx.capsState;
 
@@ -4131,12 +4131,12 @@ RasterUtil::PatternContext* RasterPaintEngine::_getPatternRasterPaintContext()
   // allowed.
   FOG_ASSERT(capsState->sourceType == PAINTER_SOURCE_PATTERN);
 
-  RasterUtil::PatternContext* pctx = ctx.pctx;
+  RasterEngine::PatternContext* pctx = ctx.pctx;
   err_t err = ERR_OK;
 
   if (!pctx)
   {
-    pctx = ctx.pctx = (RasterUtil::PatternContext*)allocator.alloc(sizeof(RasterUtil::PatternContext));
+    pctx = ctx.pctx = (RasterEngine::PatternContext*)allocator.alloc(sizeof(RasterEngine::PatternContext));
     if (!pctx) return NULL;
 
     pctx->refCount.init(1);
@@ -4151,16 +4151,16 @@ RasterUtil::PatternContext* RasterPaintEngine::_getPatternRasterPaintContext()
     switch (pattern.getType())
     {
       case PATTERN_TEXTURE:
-        err = RasterUtil::functionMap->pattern.texture_init(pctx, pattern, matrix, capsState->imageInterpolation);
+        err = RasterEngine::functionMap->pattern.texture_init(pctx, pattern, matrix, capsState->imageInterpolation);
         break;
       case PATTERN_LINEAR_GRADIENT:
-        err = RasterUtil::functionMap->pattern.linear_gradient_init(pctx, pattern, matrix, capsState->gradientInterpolation);
+        err = RasterEngine::functionMap->pattern.linear_gradient_init(pctx, pattern, matrix, capsState->gradientInterpolation);
         break;
       case PATTERN_RADIAL_GRADIENT:
-        err = RasterUtil::functionMap->pattern.radial_gradient_init(pctx, pattern, matrix, capsState->gradientInterpolation);
+        err = RasterEngine::functionMap->pattern.radial_gradient_init(pctx, pattern, matrix, capsState->gradientInterpolation);
         break;
       case PATTERN_CONICAL_GRADIENT:
-        err = RasterUtil::functionMap->pattern.conical_gradient_init(pctx, pattern, matrix, capsState->gradientInterpolation);
+        err = RasterEngine::functionMap->pattern.conical_gradient_init(pctx, pattern, matrix, capsState->gradientInterpolation);
         break;
       default:
         FOG_ASSERT_NOT_REACHED();
@@ -4181,7 +4181,7 @@ RasterUtil::PatternContext* RasterPaintEngine::_getPatternRasterPaintContext()
 
 void RasterPaintEngine::_resetPatternRasterPaintContext()
 {
-  RasterUtil::PatternContext* pctx = ctx.pctx;
+  RasterEngine::PatternContext* pctx = ctx.pctx;
 
   // Ignore non-initialized context.
   if (pctx && pctx->initialized)
@@ -4381,12 +4381,12 @@ void RasterPaintEngine::_serializeImageAffine(const PointD& pt, const Image& ima
       {
         // Save current pattern context (it will be replaced by context created
         // for the image).
-        RasterUtil::PatternContext* oldpctx = ctx.pctx;
+        RasterEngine::PatternContext* oldpctx = ctx.pctx;
 
         // Create new pattern context (based on the image).
-        RasterUtil::PatternContext imagectx;
+        RasterEngine::PatternContext imagectx;
         imagectx.initialized = false;
-        RasterUtil::functionMap->pattern.texture_init_blit(
+        RasterEngine::functionMap->pattern.texture_init_blit(
           &imagectx, image, matrix, SPREAD_PAD, ctx.capsState->imageInterpolation);
         ctx.pctx = &imagectx;
 
@@ -4409,13 +4409,13 @@ void RasterPaintEngine::_serializeImageAffine(const PointD& pt, const Image& ima
       // with new pattern context (current context will not be replaced at all).
 
       // Create new pattern context (based on the image).
-      RasterUtil::PatternContext* imagectx =
-        reinterpret_cast<RasterUtil::PatternContext*>(
-          allocator.alloc(sizeof(RasterUtil::PatternContext)));
+      RasterEngine::PatternContext* imagectx =
+        reinterpret_cast<RasterEngine::PatternContext*>(
+          allocator.alloc(sizeof(RasterEngine::PatternContext)));
       if (!imagectx) return;
 
       imagectx->initialized = false;
-      RasterUtil::functionMap->pattern.texture_init_blit(
+      RasterEngine::functionMap->pattern.texture_init_blit(
         imagectx, image, matrix, SPREAD_PAD, ctx.capsState->imageInterpolation);
       imagectx->refCount.init(1);
 
@@ -4530,7 +4530,7 @@ FOG_INLINE T* RasterPaintEngine::_createCommand(sysuint_t size)
   // Initialize pattern context if source is pattern type.
   if (ctx.capsState->sourceType == PAINTER_SOURCE_PATTERN)
   {
-    RasterUtil::PatternContext* pctx = ctx.pctx;
+    RasterEngine::PatternContext* pctx = ctx.pctx;
     FOG_ASSERT(pctx && pctx->initialized);
     pctx->refCount.inc();
     command->pctx = pctx;
@@ -4540,7 +4540,7 @@ FOG_INLINE T* RasterPaintEngine::_createCommand(sysuint_t size)
 }
 
 template <typename T>
-FOG_INLINE T* RasterPaintEngine::_createCommand(sysuint_t size, RasterUtil::PatternContext* pctx)
+FOG_INLINE T* RasterPaintEngine::_createCommand(sysuint_t size, RasterEngine::PatternContext* pctx)
 {
   T* command = reinterpret_cast<T*>(workerManager->allocator.alloc(size));
   if (!command) return NULL;
@@ -4678,7 +4678,7 @@ void RasterPaintEngine::_renderBoxes(RasterPaintContext* ctx, const Box* box, sy
   sysint_t stride = layer->stride;
   sysint_t bpp = layer->bpp;
 
-  RasterUtil::Closure* closure = &ctx->closure;
+  RasterEngine::Closure* closure = &ctx->closure;
 
   int offset = ctx->offset;
   int delta = ctx->delta;
@@ -4689,8 +4689,8 @@ void RasterPaintEngine::_renderBoxes(RasterPaintContext* ctx, const Box* box, sy
     // Solid source type.
     case PAINTER_SOURCE_ARGB:
     {
-      const RasterUtil::Solid* source = &capsState->solid;
-      RasterUtil::CSpanFn cspan = capsState->rops->cspan;
+      const RasterEngine::Solid* source = &capsState->solid;
+      RasterEngine::CSpanFn cspan = capsState->rops->cspan;
 
       for (sysuint_t i = 0; i < count; i++)
       {
@@ -4717,12 +4717,12 @@ void RasterPaintEngine::_renderBoxes(RasterPaintContext* ctx, const Box* box, sy
     // Pattern source type.
     case PAINTER_SOURCE_PATTERN:
     {
-      RasterUtil::PatternContext* pctx = ctx->pctx;
+      RasterEngine::PatternContext* pctx = ctx->pctx;
       if (!pctx) return;
 
       int format = layer->format;
       int op = capsState->op;
-      RasterUtil::VSpanFn vspan = capsState->rops->vspan[pctx->format];
+      RasterEngine::VSpanFn vspan = capsState->rops->vspan[pctx->format];
 
       // Fastpath: Do not copy pattern to extra buffer, if compositing operation
       // is copy. We need to match pixel formats and make sure that operator is
@@ -4860,8 +4860,8 @@ void RasterPaintEngine::_renderImage(RasterPaintContext* ctx, const Rect& dst, c
     srcStride *= delta;
   }
 
-  RasterUtil::VSpanFn vspan = capsState->rops->vspan[image_d->format];
-  RasterUtil::Closure closure;
+  RasterEngine::VSpanFn vspan = capsState->rops->vspan[image_d->format];
+  RasterEngine::Closure closure;
 
   closure.dstPalette = NULL;
   closure.srcPalette = image._d->palette.getData();
@@ -4899,7 +4899,7 @@ void RasterPaintEngine::_renderGlyphSet(RasterPaintContext* ctx, const Point& pt
   sysint_t strideWithDelta = stride * delta;
   sysint_t bpp = layer->bpp;
 
-  RasterUtil::Closure closure;
+  RasterEngine::Closure closure;
   closure.dstPalette = NULL;
   closure.srcPalette = NULL;
 
@@ -4908,8 +4908,8 @@ void RasterPaintEngine::_renderGlyphSet(RasterPaintContext* ctx, const Point& pt
     // Solid source type.
     case PAINTER_SOURCE_ARGB:
     {
-      RasterUtil::CSpanMskFn cspan_a8 = capsState->rops->cspan_a8;
-      const RasterUtil::Solid* source = &capsState->solid;
+      RasterEngine::CSpanMskFn cspan_a8 = capsState->rops->cspan_a8;
+      const RasterEngine::Solid* source = &capsState->solid;
 
       for (sysuint_t i = 0; i < count; i++)
       {
@@ -4958,10 +4958,10 @@ void RasterPaintEngine::_renderGlyphSet(RasterPaintContext* ctx, const Point& pt
     // Pattern source type.
     case PAINTER_SOURCE_PATTERN:
     {
-      RasterUtil::PatternContext* pctx = ctx->pctx;
+      RasterEngine::PatternContext* pctx = ctx->pctx;
       if (!pctx) return;
 
-      RasterUtil::VSpanMskFn vspan_a8 = capsState->rops->vspan_a8[pctx->format];
+      RasterEngine::VSpanMskFn vspan_a8 = capsState->rops->vspan_a8[pctx->format];
 
       uint8_t* pbuf = ctx->getBuffer((uint)(clipState->clipBox.getWidth()) * 4);
       if (!pbuf) return;
@@ -5048,7 +5048,7 @@ void RasterPaintEngine::_renderPath(RasterPaintContext* ctx, Rasterizer* ras, bo
   uint8_t* pBase;
   uint8_t* pCur;
 
-  RasterUtil::Closure closure;
+  RasterEngine::Closure closure;
   closure.dstPalette = NULL;
   closure.srcPalette = NULL;
 
@@ -5058,8 +5058,8 @@ void RasterPaintEngine::_renderPath(RasterPaintContext* ctx, Rasterizer* ras, bo
     // Solid source type.
     case PAINTER_SOURCE_ARGB:
     {
-      RasterUtil::CSpanScanlineFn blitter = capsState->rops->cspan_a8_scanline;
-      const RasterUtil::Solid* source = &capsState->solid;
+      RasterEngine::CSpanScanlineFn blitter = capsState->rops->cspan_a8_scanline;
+      const RasterEngine::Solid* source = &capsState->solid;
 
       if (clipState->clipSimple)
       {
@@ -5129,15 +5129,15 @@ sourceArgbClipAdvance:
     // Pattern source type.
     case PAINTER_SOURCE_PATTERN:
     {
-      RasterUtil::PatternContext* pctx = ctx->pctx;
+      RasterEngine::PatternContext* pctx = ctx->pctx;
       if (!pctx) return;
 
       uint8_t* pBuf = ctx->getBuffer((uint)(clipState->clipBox.getWidth()) * 4);
       if (!pBuf) return;
 
-      RasterUtil::VSpanFn vspan = capsState->rops->vspan[pctx->format];
-      RasterUtil::VSpanMskFn vspan_a8 = capsState->rops->vspan_a8[pctx->format];
-      RasterUtil::VSpanMskConstFn vspan_a8_const = capsState->rops->vspan_a8_const[pctx->format];
+      RasterEngine::VSpanFn vspan = capsState->rops->vspan[pctx->format];
+      RasterEngine::VSpanMskFn vspan_a8 = capsState->rops->vspan_a8[pctx->format];
+      RasterEngine::VSpanMskConstFn vspan_a8_const = capsState->rops->vspan_a8_const[pctx->format];
 
       if (clipState->clipSimple)
       {
@@ -5289,10 +5289,10 @@ sourcePatternClipAdvance:
       const void* cfRasterPaintContext = cfEngine->getContext();
       ColorFilterFn cspan = cfEngine->getColorFilterFn(format);
 
-      RasterUtil::VSpanMskFn vspan_a8 =
-        RasterUtil::functionMap->composite[OPERATOR_SRC][format].vspan_a8[format];
-      RasterUtil::VSpanMskConstFn vspan_a8_const =
-        RasterUtil::functionMap->composite[OPERATOR_SRC][format].vspan_a8_const[format];
+      RasterEngine::VSpanMskFn vspan_a8 =
+        RasterEngine::functionMap->composite[OPERATOR_SRC][format].vspan_a8[format];
+      RasterEngine::VSpanMskConstFn vspan_a8_const =
+        RasterEngine::functionMap->composite[OPERATOR_SRC][format].vspan_a8_const[format];
 
       if (clipState->clipSimple)
       {
