@@ -1,6 +1,6 @@
 #include <Fog/Core.h>
 #include <Fog/Graphics.h>
-#include <Fog/UI.h>
+#include <Fog/Gui.h>
 #include <Fog/Svg.h>
 #include <Fog/Xml.h>
 
@@ -117,9 +117,9 @@ void MyWindow::paintImage(Painter* p, const Point& pos, const Image& im, const S
 // [MAIN]
 // ============================================================================
 
-FOG_UI_MAIN()
+FOG_GUI_MAIN()
 {
-  Application app(Ascii8("UI"));
+  Application app(Ascii8("Gui"));
 
   MyWindow window;
   window.setSize(Size(20 + 3 * 152 - 22, 20 + 3 * 152));

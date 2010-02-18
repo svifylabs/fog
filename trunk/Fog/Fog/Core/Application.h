@@ -24,7 +24,7 @@
 //! it will exist in future.
 //!
 //! This method is called automatically by @c FOG_CORE_MAIN and
-//! @c FOG_UI_MAIN macros.
+//! @c FOG_GUI_MAIN macros.
 FOG_API void fog_arguments_init(int argc, char* argv[]);
 
 namespace Fog {
@@ -36,8 +36,8 @@ namespace Fog {
 struct Application;
 struct EventLoop;
 
-// Declared in Fog/UI
-struct UISystem;
+// Declared in Fog/Gui
+struct GuiEngine;
 
 // ============================================================================
 // [Fog::Application]
@@ -80,44 +80,48 @@ public:
   static err_t setWorkingDirectory(const String& dir);
 
   // --------------------------------------------------------------------------
-  // [UISystem - Access]
+  // [GuiEngine - Access]
   // --------------------------------------------------------------------------
 
-  //! @brief Return application UI system (can be NULL).
-  FOG_INLINE UISystem* getUiSystem() const { return _uiSystem; }
+  //! @brief Get application @c GuiEngine (can be NULL if GUI is not used).
+  FOG_INLINE GuiEngine* getGuiEngine() const { return _nativeEngine; }
 
-  static String detectUISystem();
-  static UISystem* createUISystem(const String& type);
+  //! @brief Detect best @c GuiEngine for current platform and configuration.
+  static String detectGuiEngine();
+
+  //! @brief Create @c GuiEngine based on @a name.
+  static GuiEngine* createGuiEngine(const String& name);
 
   // --------------------------------------------------------------------------
-  // [UISystem - Register / Unregister]
+  // [GuiEngine - Register / Unregister]
   // --------------------------------------------------------------------------
 
-  typedef UISystem* (*UISystemConstructor)();
+  typedef GuiEngine* (*GuiEngineConstructor)();
 
-  static bool registerUISystem(const String& type, UISystemConstructor ctor);
-  static bool unregisterUISystem(const String& type);
+  static bool registerGuiEngine(const String& name, GuiEngineConstructor ctor);
+  static bool unregisterGuiEngine(const String& name);
 
-  template<typename UISystemT>
-  struct _UISystemCtorHelper
+  template<typename GuiEngineType>
+  struct _GuiEngineCtorHelper
   {
-    static UISystem* ctor() { return new(std::nothrow) UISystemT(); }
+    static GuiEngine* ctor() { return new(std::nothrow) GuiEngineType(); }
   };
 
-  template<typename UISystemT>
-  static FOG_INLINE bool registerUISystemT(const String& type)
+  template<typename GuiEngineType>
+  static FOG_INLINE bool registerGuiEngineType(const String& name)
   {
-    return registerUISystem(type, _UISystemCtorHelper<UISystemT>::ctor);
+    return registerGuiEngine(name, _GuiEngineCtorHelper<GuiEngineType>::ctor);
   }
 
   // --------------------------------------------------------------------------
   // [EventLoop - Access]
   // --------------------------------------------------------------------------
 
-  //! @brief Return application event loop (can be NULL).
+  //! @brief Get application event loop (can be NULL).
   FOG_INLINE EventLoop* getEventLoop() const { return _eventLoop; }
 
-  static EventLoop* createEventLoop(const String& type);
+  //! @brief Create event loop.
+  static EventLoop* createEventLoop(const String& name);
 
   // --------------------------------------------------------------------------
   // [EventLoop - Register / Unregister]
@@ -125,19 +129,19 @@ public:
 
   typedef EventLoop* (*EventLoopConstructor)();
 
-  static bool registerEventLoop(const String& type, EventLoopConstructor ctor);
-  static bool unregisterEventLoop(const String& type);
+  static bool registerEventLoop(const String& name, EventLoopConstructor ctor);
+  static bool unregisterEventLoop(const String& name);
 
-  template<typename EventLoopT>
+  template<typename EventLoopType>
   struct _EventLoopCtorHelper
   {
-    static EventLoop* ctor() { return new(std::nothrow) EventLoopT(); }
+    static EventLoop* ctor() { return new(std::nothrow) EventLoopType(); }
   };
 
-  template<typename EventLoopT>
-  static FOG_INLINE bool registerEventLoopT(const String& type)
+  template<typename EventLoopType>
+  static FOG_INLINE bool registerEventLoopType(const String& name)
   {
-    return registerEventLoop(type, _EventLoopCtorHelper<EventLoopT>::ctor);
+    return registerEventLoop(name, _EventLoopCtorHelper<EventLoopType>::ctor);
   }
 
   // --------------------------------------------------------------------------
@@ -145,10 +149,14 @@ public:
   // --------------------------------------------------------------------------
 
 protected:
-  static Application* _instance;
-
   EventLoop* _eventLoop;
-  UISystem* _uiSystem;
+  GuiEngine* _nativeEngine;
+
+  // --------------------------------------------------------------------------
+  // [Statics]
+  // --------------------------------------------------------------------------
+
+  static Application* _instance;
 
 private:
   FOG_DISABLE_COPY(Application)

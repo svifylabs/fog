@@ -966,22 +966,22 @@ struct fog_if<false, _Then, _Else> { typedef _Else ret; };
 #endif // FOG_HARDCODE_SSE2
 
 // Defined also in Fog/Core/Application.h. It's defined here to prevent
-// compilation errors when using FOG_CORE_MAIN() or FOG_UI_MAIN() and
+// compilation errors when using FOG_CORE_MAIN() or FOG_GUI_MAIN() and
 // this header file is not included.
 FOG_API void fog_arguments_init(int argc, char* argv[]);
 
 //! Usage:
 //!
-//! FOG_UI_MAIN()
+//! FOG_GUI_MAIN()
 //! {
 //!   // Your main() here ...
 //!   return Fog::ExitSuccess;
 //! }
 #if defined(FOG_OS_WINDOWS)
-#define FOG_UI_MAIN() \
+#define FOG_GUI_MAIN() \
 int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 #else
-#define FOG_UI_MAIN() \
+#define FOG_GUI_MAIN() \
 static int _fog_main(int argc, char* argv[]); \
 \
 int main(int argc, char* argv[]) \

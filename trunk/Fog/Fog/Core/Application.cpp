@@ -29,11 +29,11 @@
 #include <Fog/Core/TextCodec.h>
 #include <Fog/Core/Thread.h>
 #include <Fog/Core/WinUtil.h>
-#include <Fog/UI/UISystem.h>
+#include <Fog/Gui/GuiEngine.h>
 
 #if defined(FOG_OS_WINDOWS)
-# include <Fog/UI/UISystem/Win.h>
-// windows.h is already included in Fog/Build/Build.h
+# include <Fog/Gui/GuiEngine/Win.h>
+// windows.h is already included by Fog/Build/Build.h
 # include <io.h>
 #else
 # include <errno.h>
@@ -163,12 +163,13 @@ end:
 
 struct FOG_HIDDEN Application_Local
 {
-  typedef Hash<String, Application::EventLoopConstructor> ELHash;
-  typedef Hash<String, Application::UISystemConstructor> UIHash;
+  typedef Hash<String, Application::GuiEngineConstructor> GuiEngineHash;
+  typedef Hash<String, Application::EventLoopConstructor> EventLoopHash;
 
   Lock lock;
-  ELHash elHash;
-  UIHash uiHash;
+
+  GuiEngineHash guiEngineHash;
+  EventLoopHash eventLoopHash;
 
   String applicationExecutable;
   List<String> applicationArguments;
@@ -176,8 +177,8 @@ struct FOG_HIDDEN Application_Local
   Application_Local();
   ~Application_Local();
 
-  UISystem* createUISystem(const String& type);
-  EventLoop* createEventLoop(const String& type);
+  GuiEngine* createGuiEngine(const String& name);
+  EventLoop* createEventLoop(const String& name);
 
   void applicationArgumentsWasSet();
 };
@@ -198,31 +199,31 @@ Application_Local::~Application_Local()
 {
 }
 
-UISystem* Application_Local::createUISystem(const String& type)
+GuiEngine* Application_Local::createGuiEngine(const String& name)
 {
-  if (type.startsWith(Ascii8("UI.")) && !Thread::isMainThread())
+  if (name.startsWith(Ascii8("Gui.")) && !Thread::isMainThread())
   {
-    fog_debug("Fog::Application::createUiSystem() - Can't create UI system in non-main thread");
+    fog_debug("Fog::Application::createGuiEngine() - Gui engine can be created only by main thread.");
     return NULL;
   }
 
   AutoLock locked(lock);
 
-  Application::UISystemConstructor ctor = uiHash.value(type, NULL);
+  Application::GuiEngineConstructor ctor = guiEngineHash.value(name, NULL);
   return ctor ? ctor() : NULL;
 }
 
-EventLoop* Application_Local::createEventLoop(const String& type)
+EventLoop* Application_Local::createEventLoop(const String& name)
 {
-  if (type.startsWith(Ascii8("UI.")) && !Thread::isMainThread())
+  if (name.startsWith(Ascii8("Gui.")) && !Thread::isMainThread())
   {
-    fog_debug("Fog::Application::createEventLoop() - Can't create UI event loop in non-main thread");
+    fog_debug("Fog::Application::createEventLoop() - Gui event loop can be created only by main thread.");
     return NULL;
   }
 
   AutoLock locked(lock);
 
-  Application::EventLoopConstructor ctor = elHash.value(type, NULL);
+  Application::EventLoopConstructor ctor = eventLoopHash.value(name, NULL);
   return ctor ? ctor() : NULL;
 }
 
@@ -263,10 +264,10 @@ Application::Application(const String& type, int argc, char* argv[])
 void Application::_init(const String& type)
 {
   _eventLoop = NULL;
-  _uiSystem = NULL;
+  _nativeEngine = NULL;
 
-  // Create UISystem by type.
-  if (type.startsWith(Ascii8("UI"))) _uiSystem = createUISystem(type);
+  // Create UIEngine by type.
+  if (type.startsWith(Ascii8("Gui"))) _nativeEngine = createGuiEngine(type);
 
   // Create EventLoop by type.
   _eventLoop = createEventLoop(type);
@@ -281,17 +282,17 @@ void Application::_init(const String& type)
 
 Application::~Application()
 {
-  // We will unload library here, not by UISystem destructor, because 
-  // EventLoop may be also created by UISystem.
+  // We will unload library here, not by UIEngine destructor, because 
+  // EventLoop may be also created by UIEngine.
   Library uiToClose;
 
-  // Delete UISystem if associated.
-  if (_uiSystem)
+  // Delete UIEngine if associated.
+  if (_nativeEngine)
   {
-    uiToClose = _uiSystem->_library;
+    uiToClose = _nativeEngine->_library;
 
-    delete _uiSystem;
-    _uiSystem = NULL;
+    delete _nativeEngine;
+    _nativeEngine = NULL;
   }
 
   // Delete EventLoop if associated.
@@ -412,94 +413,91 @@ err_t Application::setWorkingDirectory(const String& dir)
 #endif // FOG_OS_POSIX
 
 // ============================================================================
-// [Fog::Application - UISystem - Access]
+// [Fog::Application - UIEngine - Access]
 // ============================================================================
 
-String Application::detectUISystem()
+String Application::detectGuiEngine()
 {
 #if defined(FOG_OS_WINDOWS)
-  return Ascii8("UI.Windows");
+  return Ascii8("Gui.Windows");
 #elif defined(FOG_OS_POSIX)
-  return Ascii8("UI.X11");
+  return Ascii8("Gui.X11");
 #endif // FOG_OS_POSIX
 }
 
-typedef UISystem* (*UISystemConstructor)(void);
-
-UISystem* Application::createUISystem(const String& _type)
+GuiEngine* Application::createGuiEngine(const String& _name)
 {
-  String type(_type);
+  String name(_name);
 
-  // First try to detect UISystem if not specified
-  if (type == Ascii8("UI")) type = detectUISystem();
+  // First try to detect UIEngine if not specified
+  if (name == Ascii8("Gui")) name = detectGuiEngine();
 
-  // Try to create registered UISystem.
-  UISystem* uis = application_local->createUISystem(type);
-  if (uis) return uis;
+  // Try to create registered native engine.
+  GuiEngine* ge = application_local->createGuiEngine(name);
+  if (ge) return ge;
 
-  // Otherwise try to load dynamically linked library (based on the UISystem name).
-  if (!type.startsWith(Ascii8("UI."))) return NULL;
-  {
-    Library lib;
-    err_t err = lib.openPlugin(Ascii8("FogUI"), type.substring(Range(3)));
-    if (err) return NULL;
+  // Otherwise try to load dynamically linked library (based on the gui engine name).
+  if (!name.startsWith(Ascii8("Gui."))) return NULL;
 
-    UISystemConstructor ctor = (UISystemConstructor)lib.getSymbol(Ascii8("createUISystem"));
-    if (!ctor) return NULL;
+  Library lib;
+  err_t err = lib.openPlugin(Ascii8("Fog_Gui"), name.substring(Range(4)));
+  if (err) return NULL;
 
-    uis = ctor();
-    if (!uis) return NULL;
+  GuiEngineConstructor ctor = (GuiEngineConstructor)lib.getSymbol(Ascii8("createGuiEngine"));
+  if (!ctor) return NULL;
 
-    // Success
-    uis->_library = lib;
-    return uis;
-  }
+  ge = ctor();
+  if (!ge) return NULL;
+
+  // Success
+  ge->_library = lib;
+  return ge;
 }
 
 // ============================================================================
-// [Fog::Application - UISystem - Register / Unregister]
+// [Fog::Application - UIEngine - Register / Unregister]
 // ============================================================================
 
-bool Application::registerUISystem(const String& type, UISystemConstructor ctor)
+bool Application::registerGuiEngine(const String& name, GuiEngineConstructor ctor)
 {
   AutoLock locked(application_local->lock);
-  return application_local->uiHash.put(type, ctor);
+  return application_local->guiEngineHash.put(name, ctor);
 }
 
-bool Application::unregisterUISystem(const String& type)
+bool Application::unregisterGuiEngine(const String& name)
 {
   AutoLock locked(application_local->lock);
-  return application_local->uiHash.remove(type);
+  return application_local->guiEngineHash.remove(name);
 }
 
 // ============================================================================
 // [Fog::Application - EventLoop - Register / Unregister]
 // ============================================================================
 
-bool Application::registerEventLoop(const String& type, EventLoopConstructor ctor)
+bool Application::registerEventLoop(const String& name, EventLoopConstructor ctor)
 {
   AutoLock locked(application_local->lock);
-  return application_local->elHash.put(type, ctor);
+  return application_local->eventLoopHash.put(name, ctor);
 }
 
-bool Application::unregisterEventLoop(const String& type)
+bool Application::unregisterEventLoop(const String& name)
 {
   AutoLock locked(application_local->lock);
-  return application_local->elHash.remove(type);
+  return application_local->eventLoopHash.remove(name);
 }
 
 // ============================================================================
 // [Fog::Application - EventLoop - Access]
 // ============================================================================
 
-EventLoop* Application::createEventLoop(const String &_type)
+EventLoop* Application::createEventLoop(const String &_name)
 {
-  String type(_type);
+  String name(_name);
 
-  // First try to detect UISystem if not specified
-  if (type == Ascii8("UI")) type = detectUISystem();
+  // First try to detect Gui event loop if not specified.
+  if (name == Ascii8("Gui")) name = detectGuiEngine();
 
-  return application_local->createEventLoop(type);
+  return application_local->createEventLoop(name);
 }
 
 } // Fog namespace
@@ -513,13 +511,13 @@ FOG_INIT_DECLARE err_t fog_application_init(void)
   using namespace Fog;
 
   application_local.init();
-  Application::registerEventLoopT<DefaultEventLoop>(Ascii8("Default"));
+  Application::registerEventLoopType<DefaultEventLoop>(Ascii8("Default"));
 
 #if defined(FOG_OS_WINDOWS)
   {
-    String uiWindows(Ascii8("UI.Windows"));
-    Application::registerUISystemT<WinUISystem>(uiWindows);
-    Application::registerEventLoopT<WinUIEventLoop>(uiWindows);
+    String winGuiEngineName(Ascii8("Gui.Windows"));
+    Application::registerGuiEngineType<WinGuiEngine>(winGuiEngineName);
+    Application::registerEventLoopType<WinGuiEventLoop>(winGuiEngineName);
   }
 #endif // FOG_OS_WINDOWS
 

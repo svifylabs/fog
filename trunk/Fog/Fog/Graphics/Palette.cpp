@@ -13,7 +13,7 @@
 #include <Fog/Core/Memory.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Graphics/Palette.h>
-#include <Fog/Graphics/RasterUtil_p.h>
+#include <Fog/Graphics/RasterEngine_p.h>
 
 namespace Fog {
 
@@ -89,13 +89,13 @@ err_t Palette::setArgb32(sysuint_t index, const Argb* pal, sysuint_t count)
   // Premultiply.
   if (newContainsAlpha)
   {
-    RasterUtil::functionMap->dib.convert[PIXEL_FORMAT_PRGB32][PIXEL_FORMAT_ARGB32](
+    RasterEngine::functionMap->dib.convert[PIXEL_FORMAT_PRGB32][PIXEL_FORMAT_ARGB32](
       reinterpret_cast<uint8_t*>(_d->data + INDEX_PRGB32 + index),
       reinterpret_cast<const uint8_t*>(pal), count, NULL);
   }
   else
   {
-    RasterUtil::functionMap->dib.memcpy32(
+    RasterEngine::functionMap->dib.memcpy32(
       reinterpret_cast<uint8_t*>(_d->data + INDEX_PRGB32 + index),
       reinterpret_cast<const uint8_t*>(pal), count, NULL);
   }
@@ -123,10 +123,10 @@ err_t Palette::setXrgb32(sysuint_t index, const Argb* pal, sysuint_t count)
   // Copy data to palette.
   uint32_t updateAlpha = _d->isAlphaUsed ? isAlphaUsed(_d->data + INDEX_ARGB32 + index, count) : 0;
 
-  RasterUtil::functionMap->dib.convert[PIXEL_FORMAT_ARGB32][PIXEL_FORMAT_XRGB32](
+  RasterEngine::functionMap->dib.convert[PIXEL_FORMAT_ARGB32][PIXEL_FORMAT_XRGB32](
     reinterpret_cast<uint8_t*>(_d->data + INDEX_ARGB32 + index),
     reinterpret_cast<const uint8_t*>(pal), count, NULL);
-  RasterUtil::functionMap->dib.convert[PIXEL_FORMAT_PRGB32][PIXEL_FORMAT_XRGB32](
+  RasterEngine::functionMap->dib.convert[PIXEL_FORMAT_PRGB32][PIXEL_FORMAT_XRGB32](
     reinterpret_cast<uint8_t*>(_d->data + INDEX_PRGB32 + index),
     reinterpret_cast<const uint8_t*>(pal), count, NULL);
 
@@ -164,13 +164,13 @@ void Palette::update()
   // Premultiply all.
   if (alpha)
   {
-    RasterUtil::functionMap->dib.convert[PIXEL_FORMAT_PRGB32][PIXEL_FORMAT_ARGB32](
+    RasterEngine::functionMap->dib.convert[PIXEL_FORMAT_PRGB32][PIXEL_FORMAT_ARGB32](
       (uint8_t*)(_d->data + INDEX_PRGB32),
       (uint8_t*)(_d->data + INDEX_ARGB32), 256, NULL);
   }
   else
   {
-    RasterUtil::functionMap->dib.memcpy32(
+    RasterEngine::functionMap->dib.memcpy32(
       (uint8_t*)(_d->data + INDEX_PRGB32),
       (uint8_t*)(_d->data + INDEX_ARGB32), 256, NULL);
   }

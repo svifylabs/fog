@@ -21,7 +21,7 @@
 #include <Fog/Graphics/ImageIO.h>
 #include <Fog/Graphics/ImageIO/Bmp_p.h>
 #include <Fog/Graphics/ImageIO/Ico_p.h>
-#include <Fog/Graphics/RasterUtil_p.h>
+#include <Fog/Graphics/RasterEngine_p.h>
 
 namespace Fog { 
 namespace ImageIO {

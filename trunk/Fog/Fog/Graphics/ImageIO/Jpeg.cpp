@@ -25,7 +25,7 @@
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/ImageIO.h>
 #include <Fog/Graphics/ImageIO/Jpeg_p.h>
-#include <Fog/Graphics/RasterUtil_p.h>
+#include <Fog/Graphics/RasterEngine_p.h>
 
 #include <stdio.h>
 #include <string.h>

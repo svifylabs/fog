@@ -1,6 +1,6 @@
 #include <Fog/Core.h>
 #include <Fog/Graphics.h>
-#include <Fog/UI.h>
+#include <Fog/Gui.h>
 #include <Fog/Svg.h>
 #include <Fog/Xml.h>
 
@@ -49,9 +49,9 @@ void MyWindow::onPaint(PaintEvent* e)
 // [MAIN]
 // ============================================================================
 
-FOG_UI_MAIN()
+FOG_GUI_MAIN()
 {
-  Application app(Ascii8("UI"));
+  Application app(Ascii8("Gui"));
 
   List<String> arguments = Application::getApplicationArguments();
   String fileName;

@@ -765,10 +765,10 @@ int WinEventLoop::_getCurrentDelay() const
 }
 
 // ============================================================================
-// [Fog::WinEventLoop]
+// [Fog::WinGuiEventLoop]
 // ============================================================================
 
-WinUIEventLoop::WinUIEventLoop() : WinEventLoop(Ascii8("UI.Windows"))
+WinGuiEventLoop::WinGuiEventLoop() : WinEventLoop(Ascii8("Gui.Windows"))
 {
 }
 
