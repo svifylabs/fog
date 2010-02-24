@@ -5,7 +5,7 @@
 
 #include <Fog/Build/Build.h>
 
-#if defined(FOG_UI_WINDOWS)
+#if defined(FOG_GUI_WINDOWS)
 
 // [Dependencies]
 #include <Fog/Core/Application.h>
@@ -1374,4 +1374,4 @@ void WinGuiBackBuffer::blitRects(HDC target, const Box* rects, sysuint_t count)
 
 } // Fog namespace
 
-#endif // FOG_OS_WINDOWS
+#endif // FOG_GUI_WINDOWS
