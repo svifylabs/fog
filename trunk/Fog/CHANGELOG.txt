@@ -5,6 +5,7 @@
 - Added getSize() and setSize() virtuals to StreamDevice.
 - Added Fog::Stream <-> IStream bridge.
 - Improved SSE2_BLIT_ macros.
+- Renamed Fog::RasterUtil to Fog::RasterEngine
 
 2010-02-12
 - Fixed compilation issues in Win32 and 32-bit Linux.
