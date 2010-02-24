@@ -393,7 +393,7 @@ Set(FOG_GRAPHICS_LIB_SOURCES
   Fog/Graphics/PathUtil.cpp
   Fog/Graphics/PathUtil_SSE2.cpp
   Fog/Graphics/Pattern.cpp
-  Fog/Graphics/RasterUtil.cpp
+  Fog/Graphics/RasterEngine.cpp
   Fog/Graphics/Rasterizer.cpp
   Fog/Graphics/Reduce.cpp
   Fog/Graphics/Region.cpp
@@ -439,7 +439,7 @@ Set(FOG_GRAPHICS_LIB_HEADERS
   Fog/Graphics/PathTransform.h
   Fog/Graphics/Pattern.h
   Fog/Graphics/Rasterizer_p.h
-  Fog/Graphics/RasterUtil_p.h
+  Fog/Graphics/RasterEngine_p.h
   Fog/Graphics/Reduce.h
   Fog/Graphics/Region.h
   Fog/Graphics/Scanline_p.h
@@ -490,50 +490,50 @@ Set(FOG_GRAPHICS_PAINTENGINE_HEADERS
 )
 
 Set(FOG_GRAPHICS_RASTERUTIL_SOURCES
-  Fog/Graphics/RasterUtil/RasterUtil_Init_C.cpp
-  Fog/Graphics/RasterUtil/RasterUtil_Init_MMX.cpp
-  Fog/Graphics/RasterUtil/RasterUtil_Init_SSE2.cpp
-  Fog/Graphics/RasterUtil/RasterUtil_Init_SSSE3.cpp
+  Fog/Graphics/RasterEngine/RasterEngine_Init_C.cpp
+  Fog/Graphics/RasterEngine/RasterEngine_Init_MMX.cpp
+  Fog/Graphics/RasterEngine/RasterEngine_Init_SSE2.cpp
+  Fog/Graphics/RasterEngine/RasterEngine_Init_SSSE3.cpp
 )
 
 Set(FOG_GRAPHICS_RASTERUTIL_HEADERS
-  Fog/Graphics/RasterUtil/RasterUtil_Composite_C_p.h
-  Fog/Graphics/RasterUtil/RasterUtil_Composite_MMX_p.h
-  Fog/Graphics/RasterUtil/RasterUtil_Composite_SSE2_p.h
-  Fog/Graphics/RasterUtil/RasterUtil_Composite_SSSE3_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Composite_C_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Composite_MMX_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Composite_SSE2_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Composite_SSSE3_p.h
 
-  Fog/Graphics/RasterUtil/RasterUtil_Defs_C_p.h
-  Fog/Graphics/RasterUtil/RasterUtil_Defs_MMX_p.h
-  Fog/Graphics/RasterUtil/RasterUtil_Defs_SSE2_p.h
-  Fog/Graphics/RasterUtil/RasterUtil_Defs_SSSE3_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Defs_C_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Defs_MMX_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Defs_SSE2_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Defs_SSSE3_p.h
 
-  Fog/Graphics/RasterUtil/RasterUtil_Dib_C_p.h
-  Fog/Graphics/RasterUtil/RasterUtil_Dib_MMX_p.h
-  Fog/Graphics/RasterUtil/RasterUtil_Dib_SSE2_p.h
-  Fog/Graphics/RasterUtil/RasterUtil_Dib_SSSE3_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Dib_C_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Dib_MMX_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Dib_SSE2_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Dib_SSSE3_p.h
 
-  Fog/Graphics/RasterUtil/RasterUtil_Filters_C_p.h
-  Fog/Graphics/RasterUtil/RasterUtil_Filters_MMX_p.h
-  Fog/Graphics/RasterUtil/RasterUtil_Filters_SSE2_p.h
-  Fog/Graphics/RasterUtil/RasterUtil_Filters_SSSE3_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Filters_C_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Filters_MMX_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Filters_SSE2_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Filters_SSSE3_p.h
 
-  Fog/Graphics/RasterUtil/RasterUtil_Interpolate_C_p.h
-  Fog/Graphics/RasterUtil/RasterUtil_Interpolate_MMX_p.h
-  Fog/Graphics/RasterUtil/RasterUtil_Interpolate_SSE2_p.h
-  Fog/Graphics/RasterUtil/RasterUtil_Interpolate_SSSE3_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Interpolate_C_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Interpolate_MMX_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Interpolate_SSE2_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Interpolate_SSSE3_p.h
 
-  Fog/Graphics/RasterUtil/RasterUtil_Pattern_C_p.h
-  Fog/Graphics/RasterUtil/RasterUtil_Pattern_MMX_p.h
-  Fog/Graphics/RasterUtil/RasterUtil_Pattern_SSE2_p.h
-  Fog/Graphics/RasterUtil/RasterUtil_Pattern_SSSE3_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Pattern_C_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Pattern_MMX_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Pattern_SSE2_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Pattern_SSSE3_p.h
 
-  Fog/Graphics/RasterUtil/RasterUtil_Scale_C_p.h
-  Fog/Graphics/RasterUtil/RasterUtil_Scale_MMX_p.h
-  Fog/Graphics/RasterUtil/RasterUtil_Scale_SSE2_p.h
-  Fog/Graphics/RasterUtil/RasterUtil_Scale_SSSE3_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Scale_C_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Scale_MMX_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Scale_SSE2_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Scale_SSSE3_p.h
 
-  Fog/Graphics/RasterUtil/RasterUtil_Bresenham_p.h
-  Fog/Graphics/RasterUtil/RasterUtil_C_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_Bresenham_p.h
+  Fog/Graphics/RasterEngine/RasterEngine_C_p.h
 )
 
 # Optimize specific files for speed
@@ -544,10 +544,10 @@ Set_Source_Files_Properties(Fog/Graphics/Rasterizer.cpp                       PR
 Set_Source_Files_Properties(Fog/Graphics/Region.cpp                           PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
 Set_Source_Files_Properties(Fog/Graphics/Scanline.cpp                         PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
 
-Set_Source_Files_Properties(Fog/Graphics/RasterUtil/RasterUtil_Init_C.cpp     PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
-Set_Source_Files_Properties(Fog/Graphics/RasterUtil/RasterUtil_Init_MMX.cpp   PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_MMX}")
-Set_Source_Files_Properties(Fog/Graphics/RasterUtil/RasterUtil_Init_SSE2.cpp  PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE2}")
-Set_Source_Files_Properties(Fog/Graphics/RasterUtil/RasterUtil_Init_SSSE3.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSSE3}")
+Set_Source_Files_Properties(Fog/Graphics/RasterEngine/RasterEngine_Init_C.cpp     PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/RasterEngine/RasterEngine_Init_MMX.cpp   PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_MMX}")
+Set_Source_Files_Properties(Fog/Graphics/RasterEngine/RasterEngine_Init_SSE2.cpp  PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE2}")
+Set_Source_Files_Properties(Fog/Graphics/RasterEngine/RasterEngine_Init_SSSE3.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSSE3}")
 
 # Source groups
 SOURCE_GROUP(Graphics               FILES ${FOG_GRAPHICS_LIB_SOURCES}         ${FOG_GRAPHICS_LIB_HEADERS})
@@ -606,62 +606,62 @@ SOURCE_GROUP(Svg FILES ${FOG_SVG_LIB_SOURCES} ${FOG_SVG_LIB_HEADERS})
 # =============================================================================
 
 Set(FOG_UI_LIB_SOURCES
-  Fog/UI/BoxLayout.cpp
-  Fog/UI/Button.cpp
-  Fog/UI/ButtonBase.cpp
-  Fog/UI/CheckBox.cpp
-  Fog/UI/Composite.cpp
-  Fog/UI/Event.cpp
-  Fog/UI/Layout.cpp
-  Fog/UI/LayoutItem.cpp
-  Fog/UI/Theme.cpp
-  Fog/UI/UISystem.cpp
-  Fog/UI/UISystem/Base.cpp
-  Fog/UI/Widget.cpp
-  Fog/UI/Window.cpp
+  Fog/Gui/BoxLayout.cpp
+  Fog/Gui/Button.cpp
+  Fog/Gui/ButtonBase.cpp
+  Fog/Gui/CheckBox.cpp
+  Fog/Gui/Composite.cpp
+  Fog/Gui/Event.cpp
+  Fog/Gui/Layout.cpp
+  Fog/Gui/LayoutItem.cpp
+  Fog/Gui/Theme.cpp
+  Fog/Gui/GuiEngine.cpp
+  Fog/Gui/GuiEngine/Base.cpp
+  Fog/Gui/Widget.cpp
+  Fog/Gui/Window.cpp
 )
 
 Set(FOG_UI_LIB_HEADERS
-  Fog/UI.h
-  Fog/UI/BoxLayout.h
-  Fog/UI/Button.h
-  Fog/UI/ButtonBase.h
-  Fog/UI/CheckBox.h
-  Fog/UI/Composite.h
-  Fog/UI/Constants.h
-  Fog/UI/Event.h
-  Fog/UI/Layout.h
-  Fog/UI/LayoutItem.h
-  Fog/UI/Theme.h
-  Fog/UI/UISystem.h
-  Fog/UI/UISystem/Base.h
-  Fog/UI/Widget.h
-  Fog/UI/Window.h
+  Fog/Gui.h
+  Fog/Gui/BoxLayout.h
+  Fog/Gui/Button.h
+  Fog/Gui/ButtonBase.h
+  Fog/Gui/CheckBox.h
+  Fog/Gui/Composite.h
+  Fog/Gui/Constants.h
+  Fog/Gui/Event.h
+  Fog/Gui/Layout.h
+  Fog/Gui/LayoutItem.h
+  Fog/Gui/Theme.h
+  Fog/Gui/GuiEngine.h
+  Fog/Gui/GuiEngine/Base.h
+  Fog/Gui/Widget.h
+  Fog/Gui/Window.h
 )
 
 Set(FOG_UI_THEME_SOURCES
-  Fog/UI/Theme/Default.cpp
+  Fog/Gui/Theme/Default.cpp
 )
 
 Set(FOG_UI_THEME_HEADERS
-  Fog/UI/Theme/Default.h
+  Fog/Gui/Theme/Default.h
 )
 
 Set(FOG_UI_WIN_SOURCES
-  Fog/UI/UISystem/Win.cpp
+  Fog/Gui/GuiEngine/Win.cpp
 )
 
 Set(FOG_UI_WIN_HEADERS
-  Fog/UI/UISystem/Win.h
+  Fog/Gui/GuiEngine/Win.h
 )
 
 Set(FOG_UI_X11_SOURCES
-  Fog/UI/UISystem/X11.cpp
+  Fog/Gui/GuiEngine/X11.cpp
 )
 
 Set(FOG_UI_X11_HEADERS
-  Fog/UI/UISystem/X11.h
-  Fog/UI/UISystem/X11Headers.h
+  Fog/Gui/GuiEngine/X11.h
+  Fog/Gui/GuiEngine/X11Headers.h
 )
 
 # Source groups
