@@ -31,13 +31,13 @@ Region - XOrg <http://www.x.org>.
 Rasterizer - AGG version 2.4 <http://www.antigrain.com>.
 Path - AGG version 2.4 <http://www.antigrain.com>.
 
-Fog/Svg
+Fog/Gui
 =======
 
 None.
 
-Fog/UI
-======
+Fog/Svg
+=======
 
 None.
 

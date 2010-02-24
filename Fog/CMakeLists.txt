@@ -6,9 +6,23 @@ Project(Fog C CXX)
 # [Configuration]
 # =============================================================================
 
-# Build options.
-Set(FOG_BUILD_EXAMPLES TRUE)
-# Set(FOG_BUILD_UISYSTEM_X11 TRUE)
+# Whether to build examples.
+# Set(FOG_BUILD_EXAMPLES TRUE)
+
+# Whether to build support for X11.
+# Set(FOG_BUILD_GUI_X11 TRUE)
+
+# =============================================================================
+# [Backward compatibility]
+# =============================================================================
+
+If(FOG_BUILD_UISYSTEM_X11)
+  Set(FOG_BUILD_GUI_X11 ${FOG_BUILD_UISYSTEM_X11})
+EndIf(FOG_BUILD_UISYSTEM_X11)
+
+# =============================================================================
+# [Basics]
+# =============================================================================
 
 Set(FOG_DIR ${CMAKE_SOURCE_DIR})
 Set(FOG_LIBRARIES "")
@@ -417,7 +431,6 @@ Set(FOG_GRAPHICS_LIB_HEADERS
   Fog/Graphics/Constants_p.h
   Fog/Graphics/ConvolutionMatrix.h
   Fog/Graphics/DitherMatrix_p.h
-  Fog/Graphics/Fixed_p.h
   Fog/Graphics/Font.h
   Fog/Graphics/FontEngine.h
   Fog/Graphics/FontManager.h
@@ -438,8 +451,8 @@ Set(FOG_GRAPHICS_LIB_HEADERS
   Fog/Graphics/PathUtil.h
   Fog/Graphics/PathTransform.h
   Fog/Graphics/Pattern.h
-  Fog/Graphics/Rasterizer_p.h
   Fog/Graphics/RasterEngine_p.h
+  Fog/Graphics/Rasterizer_p.h
   Fog/Graphics/Reduce.h
   Fog/Graphics/Region.h
   Fog/Graphics/Scanline_p.h
@@ -489,14 +502,14 @@ Set(FOG_GRAPHICS_PAINTENGINE_HEADERS
   Fog/Graphics/PaintEngine/Raster_p.h
 )
 
-Set(FOG_GRAPHICS_RASTERUTIL_SOURCES
+Set(FOG_GRAPHICS_RASTERENGINE_SOURCES
   Fog/Graphics/RasterEngine/RasterEngine_Init_C.cpp
   Fog/Graphics/RasterEngine/RasterEngine_Init_MMX.cpp
   Fog/Graphics/RasterEngine/RasterEngine_Init_SSE2.cpp
   Fog/Graphics/RasterEngine/RasterEngine_Init_SSSE3.cpp
 )
 
-Set(FOG_GRAPHICS_RASTERUTIL_HEADERS
+Set(FOG_GRAPHICS_RASTERENGINE_HEADERS
   Fog/Graphics/RasterEngine/RasterEngine_Composite_C_p.h
   Fog/Graphics/RasterEngine/RasterEngine_Composite_MMX_p.h
   Fog/Graphics/RasterEngine/RasterEngine_Composite_SSE2_p.h
@@ -537,12 +550,12 @@ Set(FOG_GRAPHICS_RASTERUTIL_HEADERS
 )
 
 # Optimize specific files for speed
-Set_Source_Files_Properties(Fog/Graphics/Image.cpp                            PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
-Set_Source_Files_Properties(Fog/Graphics/PathUtil.cpp                         PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
-Set_Source_Files_Properties(Fog/Graphics/PathUtil_SSE2.cpp                    PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE2}")
-Set_Source_Files_Properties(Fog/Graphics/Rasterizer.cpp                       PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
-Set_Source_Files_Properties(Fog/Graphics/Region.cpp                           PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
-Set_Source_Files_Properties(Fog/Graphics/Scanline.cpp                         PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/Image.cpp                                PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/PathUtil.cpp                             PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/PathUtil_SSE2.cpp                        PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE2}")
+Set_Source_Files_Properties(Fog/Graphics/Rasterizer.cpp                           PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/Region.cpp                               PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/Scanline.cpp                             PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
 
 Set_Source_Files_Properties(Fog/Graphics/RasterEngine/RasterEngine_Init_C.cpp     PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
 Set_Source_Files_Properties(Fog/Graphics/RasterEngine/RasterEngine_Init_MMX.cpp   PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_MMX}")
@@ -550,11 +563,11 @@ Set_Source_Files_Properties(Fog/Graphics/RasterEngine/RasterEngine_Init_SSE2.cpp
 Set_Source_Files_Properties(Fog/Graphics/RasterEngine/RasterEngine_Init_SSSE3.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSSE3}")
 
 # Source groups
-SOURCE_GROUP(Graphics               FILES ${FOG_GRAPHICS_LIB_SOURCES}         ${FOG_GRAPHICS_LIB_HEADERS})
-SOURCE_GROUP(Graphics_ImageIO       FILES ${FOG_GRAPHICS_IMAGEIO_SOURCES}     ${FOG_GRAPHICS_IMAGEIO_HEADERS})
-SOURCE_GROUP(Graphics_FontEngine    FILES ${FOG_GRAPHICS_FONTENGINE_SOURCES}  ${FOG_GRAPHICS_FONTENGINE_HEADERS})
-SOURCE_GROUP(Graphics_PaintEngine   FILES ${FOG_GRAPHICS_PAINTENGINE_SOURCES} ${FOG_GRAPHICS_PAINTENGINE_HEADERS})
-SOURCE_GROUP(Graphics_RasterUtil    FILES ${FOG_GRAPHICS_RASTERUTIL_SOURCES}  ${FOG_GRAPHICS_RASTERUTIL_HEADERS})
+SOURCE_GROUP(Graphics               FILES ${FOG_GRAPHICS_LIB_SOURCES}          ${FOG_GRAPHICS_LIB_HEADERS})
+SOURCE_GROUP(Graphics_ImageIO       FILES ${FOG_GRAPHICS_IMAGEIO_SOURCES}      ${FOG_GRAPHICS_IMAGEIO_HEADERS})
+SOURCE_GROUP(Graphics_FontEngine    FILES ${FOG_GRAPHICS_FONTENGINE_SOURCES}   ${FOG_GRAPHICS_FONTENGINE_HEADERS})
+SOURCE_GROUP(Graphics_PaintEngine   FILES ${FOG_GRAPHICS_PAINTENGINE_SOURCES}  ${FOG_GRAPHICS_PAINTENGINE_HEADERS})
+SOURCE_GROUP(Graphics_RasterEngine  FILES ${FOG_GRAPHICS_RASTERENGINE_SOURCES} ${FOG_GRAPHICS_RASTERENGINE_HEADERS})
 
 # =============================================================================
 # [Fog/Xml]
@@ -602,26 +615,26 @@ Set(FOG_SVG_LIB_HEADERS
 SOURCE_GROUP(Svg FILES ${FOG_SVG_LIB_SOURCES} ${FOG_SVG_LIB_HEADERS})
 
 # =============================================================================
-# [Fog/UI]
+# [Fog/Gui]
 # =============================================================================
 
-Set(FOG_UI_LIB_SOURCES
+Set(FOG_GUI_LIB_SOURCES
   Fog/Gui/BoxLayout.cpp
   Fog/Gui/Button.cpp
   Fog/Gui/ButtonBase.cpp
   Fog/Gui/CheckBox.cpp
   Fog/Gui/Composite.cpp
   Fog/Gui/Event.cpp
+  Fog/Gui/GuiEngine.cpp
+  Fog/Gui/GuiEngine/Base.cpp
   Fog/Gui/Layout.cpp
   Fog/Gui/LayoutItem.cpp
   Fog/Gui/Theme.cpp
-  Fog/Gui/GuiEngine.cpp
-  Fog/Gui/GuiEngine/Base.cpp
   Fog/Gui/Widget.cpp
   Fog/Gui/Window.cpp
 )
 
-Set(FOG_UI_LIB_HEADERS
+Set(FOG_GUI_LIB_HEADERS
   Fog/Gui.h
   Fog/Gui/BoxLayout.h
   Fog/Gui/Button.h
@@ -630,59 +643,59 @@ Set(FOG_UI_LIB_HEADERS
   Fog/Gui/Composite.h
   Fog/Gui/Constants.h
   Fog/Gui/Event.h
+  Fog/Gui/GuiEngine.h
+  Fog/Gui/GuiEngine/Base.h
   Fog/Gui/Layout.h
   Fog/Gui/LayoutItem.h
   Fog/Gui/Theme.h
-  Fog/Gui/GuiEngine.h
-  Fog/Gui/GuiEngine/Base.h
   Fog/Gui/Widget.h
+  Fog/Gui/Widget_p.h
   Fog/Gui/Window.h
 )
 
-Set(FOG_UI_THEME_SOURCES
-  Fog/Gui/Theme/Default.cpp
-)
-
-Set(FOG_UI_THEME_HEADERS
-  Fog/Gui/Theme/Default.h
-)
-
-Set(FOG_UI_WIN_SOURCES
+Set(FOG_GUI_WIN_SOURCES
   Fog/Gui/GuiEngine/Win.cpp
 )
 
-Set(FOG_UI_WIN_HEADERS
+Set(FOG_GUI_WIN_HEADERS
   Fog/Gui/GuiEngine/Win.h
 )
 
-Set(FOG_UI_X11_SOURCES
+Set(FOG_GUI_X11_SOURCES
   Fog/Gui/GuiEngine/X11.cpp
 )
 
-Set(FOG_UI_X11_HEADERS
+Set(FOG_GUI_X11_HEADERS
   Fog/Gui/GuiEngine/X11.h
   Fog/Gui/GuiEngine/X11Headers.h
 )
 
+Set(FOG_GUI_THEME_SOURCES
+  Fog/Gui/Theme/Default.cpp
+)
+
+Set(FOG_GUI_THEME_HEADERS
+  Fog/Gui/Theme/Default.h
+)
+
 # Source groups
-SOURCE_GROUP(UI FILES
-  ${FOG_UI_LIB_SOURCES} ${FOG_UI_LIB_HEADERS}
+SOURCE_GROUP(Gui FILES
+  ${FOG_GUI_LIB_SOURCES} ${FOG_GUI_LIB_HEADERS}
 )
 
-SOURCE_GROUP(UI_Theme FILES
-  ${FOG_UI_THEME_SOURCES} ${FOG_UI_THEME_HEADERS}
+SOURCE_GROUP(Gui_GuiEngine FILES
+  ${FOG_GUI_X11_SOURCES} ${FOG_GUI_X11_HEADERS}
+  ${FOG_GUI_WIN_SOURCES} ${FOG_GUI_WIN_HEADERS}
 )
-
-SOURCE_GROUP(UI_System FILES
-  ${FOG_UI_X11_SOURCES} ${FOG_UI_X11_HEADERS}
-  ${FOG_UI_WIN_SOURCES} ${FOG_UI_WIN_HEADERS}
+SOURCE_GROUP(Gui_Theme FILES
+  ${FOG_GUI_THEME_SOURCES} ${FOG_GUI_THEME_HEADERS}
 )
 
 # UI-Subsystem and Libraries
 If(WIN32)
-  Set(FOG_UI_WINDOWS 1)
+  Set(FOG_GUI_WINDOWS 1)
 Else(WIN32)
-  Set(FOG_UI_X11 1)
+  Set(FOG_GUI_X11 1)
 EndIf(WIN32)
 
 # =============================================================================
@@ -697,10 +710,10 @@ Set(FOG_ALL_SOURCES
   ${FOG_GRAPHICS_IMAGEIO_SOURCES}
   ${FOG_GRAPHICS_FONTENGINE_SOURCES}
   ${FOG_GRAPHICS_PAINTENGINE_SOURCES}
-  ${FOG_GRAPHICS_RASTERUTIL_SOURCES}
+  ${FOG_GRAPHICS_RASTERENGINE_SOURCES}
   ${FOG_SVG_LIB_SOURCES}
-  ${FOG_UI_LIB_SOURCES}
-  ${FOG_UI_THEME_SOURCES}
+  ${FOG_GUI_LIB_SOURCES}
+  ${FOG_GUI_THEME_SOURCES}
 )
 
 Set(FOG_ALL_HEADERS
@@ -711,17 +724,17 @@ Set(FOG_ALL_HEADERS
   ${FOG_GRAPHICS_IMAGEIO_HEADERS}
   ${FOG_GRAPHICS_FONTENGINE_HEADERS}
   ${FOG_GRAPHICS_PAINTENGINE_HEADERS}
-  ${FOG_GRAPHICS_RASTERUTIL_HEADERS}
+  ${FOG_GRAPHICS_RASTERENGINE_HEADERS}
   ${FOG_SVG_LIB_HEADERS}
-  ${FOG_UI_LIB_HEADERS}
-  ${FOG_UI_THEME_HEADERS}
-  ${FOG_UI_WIN_HEADERS}
-  ${FOG_UI_X11_HEADERS}
+  ${FOG_GUI_LIB_HEADERS}
+  ${FOG_GUI_THEME_HEADERS}
+  ${FOG_GUI_WIN_HEADERS}
+  ${FOG_GUI_X11_HEADERS}
 )
 
 If(WIN32)
-  Set(FOG_ALL_SOURCES ${FOG_ALL_SOURCES} ${FOG_UI_WIN_SOURCES})
-  Set(FOG_ALL_HEADERS ${FOG_ALL_HEADERS} ${FOG_UI_WIN_HEADERS})
+  Set(FOG_ALL_SOURCES ${FOG_ALL_SOURCES} ${FOG_GUI_WIN_SOURCES})
+  Set(FOG_ALL_HEADERS ${FOG_ALL_HEADERS} ${FOG_GUI_WIN_HEADERS})
 EndIf(WIN32)
 
 # Write CMAKE_ #defines into Fog/Build/Config.h files
@@ -745,11 +758,11 @@ Target_Link_Libraries(Fog ${FOG_LIBRARIES})
 Install(TARGETS Fog DESTINATION lib)
 
 # Build FogUI_X11 plugin.
-If(FOG_UI_X11 AND FOG_BUILD_UISYSTEM_X11)
-  Add_Library(FogUI_X11 SHARED ${FOG_UI_X11_SOURCES})
-  Target_Link_Libraries(FogUI_X11 Fog ${FOG_LIBRARIES})
-  Install(TARGETS FogUI_X11 DESTINATION lib)
-EndIf(FOG_UI_X11 AND FOG_BUILD_UISYSTEM_X11)
+If(FOG_GUI_X11 AND FOG_BUILD_GUI_X11)
+  Add_Library(Fog_Gui_X11 SHARED ${FOG_GUI_X11_SOURCES})
+  Target_Link_Libraries(Fog_Gui_X11 Fog ${FOG_LIBRARIES})
+  Install(TARGETS Fog_Gui_X11 DESTINATION lib)
+EndIf(FOG_GUI_X11 AND FOG_BUILD_GUI_X11)
 
 # Build examples.
 If(FOG_BUILD_EXAMPLES)
