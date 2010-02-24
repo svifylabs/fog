@@ -93,8 +93,8 @@ static void hwndGetRect(HWND handle, Rect* out)
 
 static LRESULT CALLBACK hwndWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-  WinUIWindow* window = 
-    reinterpret_cast<WinUIWindow*>(
+  WinGuiWindow* window = 
+    reinterpret_cast<WinGuiWindow*>(
       GUI_ENGINE()->handleToNative((void*)hwnd));
 
   if (window)
@@ -392,23 +392,23 @@ void WinGuiEngine::updateDisplayInfo()
 // [Fog::WinGuiEngine - Update]
 // ============================================================================
 
-void WinGuiEngine::doBlitWindow(UIWindow* window, const Box* rects, sysuint_t count)
+void WinGuiEngine::doBlitWindow(GuiWindow* window, const Box* rects, sysuint_t count)
 {
   HDC hdc = GetDC((HWND)window->getHandle());
-  reinterpret_cast<WinUIBackingStore*>(window->_backingStore)->blitRects(hdc, rects, count);
+  reinterpret_cast<WinGuiBackBuffer*>(window->_backingStore)->blitRects(hdc, rects, count);
   ReleaseDC((HWND)window->getHandle(), hdc);
 }
 
 // ============================================================================
-// [Fog::WinGuiEngine - UIWindow]
+// [Fog::WinGuiEngine - GuiWindow]
 // ============================================================================
 
-UIWindow* WinGuiEngine::createUIWindow(Widget* widget)
+GuiWindow* WinGuiEngine::createUIWindow(Widget* widget)
 {
-  return new(std::nothrow) WinUIWindow(widget);
+  return new(std::nothrow) WinGuiWindow(widget);
 }
 
-void WinGuiEngine::destroyUIWindow(UIWindow* native)
+void WinGuiEngine::destroyUIWindow(GuiWindow* native)
 {
   delete native;
 }
@@ -709,22 +709,22 @@ const char* WinGuiEngine::msgToStr(uint message)
 }
 
 // ============================================================================
-// [Fog::WinUIWindow]
+// [Fog::WinGuiWindow]
 // ============================================================================
 
-WinUIWindow::WinUIWindow(Widget* widget) : 
-  BaseUIWindow(widget)
+WinGuiWindow::WinGuiWindow(Widget* widget) : 
+  BaseGuiWindow(widget)
 {
-  _backingStore = new(std::nothrow) WinUIBackingStore();
+  _backingStore = new(std::nothrow) WinGuiBackBuffer();
 }
 
-WinUIWindow::~WinUIWindow()
+WinGuiWindow::~WinGuiWindow()
 {
   destroy();
   delete _backingStore;
 }
 
-err_t WinUIWindow::create(uint32_t flags)
+err_t WinGuiWindow::create(uint32_t flags)
 {
   if (_handle) return ERR_GUI_WINDOW_ALREADY_EXISTS;
 
@@ -738,7 +738,7 @@ err_t WinUIWindow::create(uint32_t flags)
   if (flags & CreatePopup)
   {
     dwStyle = WS_POPUP;
-    dwStyleEx = WS_EX_TOOLWINDOW;
+    dwStyleEx = 0;
     x = -1;
     y = -1;
     wndClass = L"Fog_Popup";
@@ -760,11 +760,11 @@ err_t WinUIWindow::create(uint32_t flags)
 
   if (_handle == NULL)
   {
-    fog_stderr_msg("Fog::WinUIWindow", "create", "CreateWindowExW() failed.");
+    fog_stderr_msg("Fog::WinGuiWindow", "create", "CreateWindowExW() failed.");
     goto fail;
   }
 
-  // Create HWND <-> UIWindow* connection.
+  // Create HWND <-> GuiWindow* connection.
   GUI_ENGINE()->mapHandle(_handle, this);
 
   // Windows are enabled by default.
@@ -785,11 +785,11 @@ fail:
   return ERR_GUI_CANT_CREATE_UIWINDOW;
 }
 
-err_t WinUIWindow::destroy()
+err_t WinGuiWindow::destroy()
 {
   if (!_handle) return ERR_RT_INVALID_HANDLE;
 
-  // Destroy HWND <-> UIWindow* connection.
+  // Destroy HWND <-> GuiWindow* connection.
   GUI_ENGINE()->unmapHandle(_handle);
 
   // Destroy HWND.
@@ -803,7 +803,7 @@ err_t WinUIWindow::destroy()
   return ERR_OK;
 }
 
-err_t WinUIWindow::enable()
+err_t WinGuiWindow::enable()
 {
   if (!_handle) return ERR_RT_INVALID_HANDLE;
 
@@ -811,7 +811,7 @@ err_t WinUIWindow::enable()
   return ERR_OK;
 }
 
-err_t WinUIWindow::disable()
+err_t WinGuiWindow::disable()
 {
   if (!_handle) return ERR_RT_INVALID_HANDLE;
 
@@ -819,15 +819,15 @@ err_t WinUIWindow::disable()
   return ERR_OK;
 }
 
-err_t WinUIWindow::show()
+err_t WinGuiWindow::show()
 {
   if (!_handle) return ERR_RT_INVALID_HANDLE;
 
-  if (!_visible) ShowWindow((HWND)_handle, SW_SHOWNA);
+  if (!_visible) ShowWindow((HWND)_handle, SW_SHOW);
   return ERR_OK;
 }
 
-err_t WinUIWindow::hide()
+err_t WinGuiWindow::hide()
 {
   if (!_handle) return ERR_RT_INVALID_HANDLE;
 
@@ -835,7 +835,7 @@ err_t WinUIWindow::hide()
   return ERR_OK;
 }
 
-err_t WinUIWindow::move(const Point& pt)
+err_t WinGuiWindow::move(const Point& pt)
 {
   if (!_handle) return ERR_RT_INVALID_HANDLE;
 
@@ -852,7 +852,7 @@ err_t WinUIWindow::move(const Point& pt)
   return ERR_OK;
 }
 
-err_t WinUIWindow::resize(const Size& size)
+err_t WinGuiWindow::resize(const Size& size)
 {
   if (!_handle) return ERR_RT_INVALID_HANDLE;
   if ((size.getWidth() <= 0) | (size.getHeight() <= 0)) return ERR_RT_INVALID_ARGUMENT;
@@ -870,7 +870,7 @@ err_t WinUIWindow::resize(const Size& size)
   return ERR_OK;
 }
 
-err_t WinUIWindow::reconfigure(const Rect& rect)
+err_t WinGuiWindow::reconfigure(const Rect& rect)
 {
   if (!_handle) return ERR_RT_INVALID_HANDLE;
   if (!rect.isValid()) return ERR_RT_INVALID_ARGUMENT;
@@ -888,7 +888,7 @@ err_t WinUIWindow::reconfigure(const Rect& rect)
   return ERR_OK;
 }
 
-err_t WinUIWindow::takeFocus()
+err_t WinGuiWindow::takeFocus()
 {
   if (!_handle) return ERR_RT_INVALID_HANDLE;
 
@@ -896,7 +896,7 @@ err_t WinUIWindow::takeFocus()
   return ERR_OK;
 }
 
-err_t WinUIWindow::setTitle(const String& title)
+err_t WinGuiWindow::setTitle(const String& title)
 {
   if (!_handle) return ERR_RT_INVALID_HANDLE;
 
@@ -906,7 +906,7 @@ err_t WinUIWindow::setTitle(const String& title)
   return ERR_OK;
 }
 
-err_t WinUIWindow::getTitle(String& title)
+err_t WinGuiWindow::getTitle(String& title)
 {
   if (!_handle) return ERR_RT_INVALID_HANDLE;
 
@@ -914,19 +914,19 @@ err_t WinUIWindow::getTitle(String& title)
   return ERR_OK;
 }
 
-err_t WinUIWindow::setIcon(const Image& icon)
+err_t WinGuiWindow::setIcon(const Image& icon)
 {
   if (!_handle) return ERR_RT_INVALID_HANDLE;
 
 }
 
-err_t WinUIWindow::getIcon(Image& icon)
+err_t WinGuiWindow::getIcon(Image& icon)
 {
   if (!_handle) return ERR_RT_INVALID_HANDLE;
 
 }
 
-err_t WinUIWindow::setSizeGranularity(const Point& pt)
+err_t WinGuiWindow::setSizeGranularity(const Point& pt)
 {
   if (!_handle) return ERR_RT_INVALID_HANDLE;
 
@@ -934,7 +934,7 @@ err_t WinUIWindow::setSizeGranularity(const Point& pt)
   return ERR_OK;
 }
 
-err_t WinUIWindow::getSizeGranularity(Point& pt)
+err_t WinGuiWindow::getSizeGranularity(Point& pt)
 {
   if (!_handle) return ERR_RT_INVALID_HANDLE;
 
@@ -942,7 +942,7 @@ err_t WinUIWindow::getSizeGranularity(Point& pt)
   return ERR_OK;
 }
 
-err_t WinUIWindow::worldToClient(Point* coords)
+err_t WinGuiWindow::worldToClient(Point* coords)
 {
   if (!_handle) return ERR_RT_INVALID_HANDLE;
 
@@ -951,7 +951,7 @@ err_t WinUIWindow::worldToClient(Point* coords)
     : (err_t)ERR_GUI_CANT_TRANSLETE_COORDINATES;
 }
 
-err_t WinUIWindow::clientToWorld(Point* coords)
+err_t WinGuiWindow::clientToWorld(Point* coords)
 {
   if (!_handle) return ERR_RT_INVALID_HANDLE;
 
@@ -960,7 +960,7 @@ err_t WinUIWindow::clientToWorld(Point* coords)
     : (err_t)ERR_GUI_CANT_TRANSLETE_COORDINATES;
 }
 
-void WinUIWindow::onMousePress(uint32_t button, bool repeated)
+void WinGuiWindow::onMousePress(uint32_t button, bool repeated)
 {
   WinGuiEngine* uiSystem = GUI_ENGINE();
   if (uiSystem->_systemMouseStatus.uiWindow != this) return;
@@ -973,7 +973,7 @@ void WinUIWindow::onMousePress(uint32_t button, bool repeated)
   base::onMousePress(button, repeated);
 }
 
-void WinUIWindow::onMouseRelease(uint32_t button)
+void WinGuiWindow::onMouseRelease(uint32_t button)
 {
   WinGuiEngine* uiSystem = GUI_ENGINE();
   if (uiSystem->_systemMouseStatus.uiWindow != this) return;
@@ -986,7 +986,7 @@ void WinUIWindow::onMouseRelease(uint32_t button)
   base::onMouseRelease(button);
 }
 
-LRESULT WinUIWindow::onWinMsg(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT WinGuiWindow::onWinMsg(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
   WinGuiEngine* uiSystem = GUI_ENGINE();
 
@@ -1148,7 +1148,7 @@ wheelUp:
       {
         BitBlt(
           hdc, 0, 0, rect.right-rect.left, rect.bottom-rect.top, 
-          reinterpret_cast<WinUIBackingStore*>(_backingStore)->getHdc(), 0, 0, 
+          reinterpret_cast<WinGuiBackBuffer*>(_backingStore)->getHdc(), 0, 0, 
           SRCCOPY);
       }
       else
@@ -1184,7 +1184,7 @@ defWindowProc:
   }
 }
 
-void WinUIWindow::getWindowRect(Rect* windowRect, Rect* clientRect)
+void WinGuiWindow::getWindowRect(Rect* windowRect, Rect* clientRect)
 {
   RECT wr;
   RECT cr;
@@ -1197,19 +1197,19 @@ void WinUIWindow::getWindowRect(Rect* windowRect, Rect* clientRect)
 }
 
 // ============================================================================
-// [Fog::WinUIBackingStore]
+// [Fog::WinGuiBackBuffer]
 // ============================================================================
 
-WinUIBackingStore::WinUIBackingStore()
+WinGuiBackBuffer::WinGuiBackBuffer()
 {
 }
 
-WinUIBackingStore::~WinUIBackingStore()
+WinGuiBackBuffer::~WinGuiBackBuffer()
 {
   destroy();
 }
 
-bool WinUIBackingStore::resize(int width, int height, bool cache)
+bool WinGuiBackBuffer::resize(int width, int height, bool cache)
 {
   int targetWidth = width;
   int targetHeight = height;
@@ -1277,7 +1277,7 @@ bool WinUIBackingStore::resize(int width, int height, bool cache)
     _hdc = CreateCompatibleDC(NULL);
     if (_hdc == NULL)
     {
-      fog_stderr_msg("Fog::WinUIBackingStore", "resize", "CreateCompatibleDC failed, WinError: %u\n", GetLastError());
+      fog_stderr_msg("Fog::WinGuiBackBuffer", "resize", "CreateCompatibleDC failed, WinError: %u\n", GetLastError());
       goto fail;
     }
 
@@ -1293,7 +1293,7 @@ bool WinUIBackingStore::resize(int width, int height, bool cache)
     _hBitmap = CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, (void**)&_pixelsPrimary, NULL, 0);
     if (_hBitmap == NULL) 
     {
-      fog_stderr_msg("Fog::WinUIBackingStore", "resize", "CreateDIBSection failed, request size %dx%d, WinError: %u\n", targetWidth, targetHeight, GetLastError());
+      fog_stderr_msg("Fog::WinGuiBackBuffer", "resize", "CreateDIBSection failed, request size %dx%d, WinError: %u\n", targetWidth, targetHeight, GetLastError());
       DeleteDC(_hdc);
       goto fail;
     }
@@ -1339,17 +1339,17 @@ fail:
   return false;
 }
 
-void WinUIBackingStore::destroy()
+void WinGuiBackBuffer::destroy()
 {
   resize(0, 0, false);
 }
 
-void WinUIBackingStore::updateRects(const Box* rects, sysuint_t count)
+void WinGuiBackBuffer::updateRects(const Box* rects, sysuint_t count)
 {
   // There is nothing to do (this is mainly for X11).
 }
 
-void WinUIBackingStore::blitRects(HDC target, const Box* rects, sysuint_t count)
+void WinGuiBackBuffer::blitRects(HDC target, const Box* rects, sysuint_t count)
 {
   sysuint_t i;
 
