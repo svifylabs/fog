@@ -363,7 +363,7 @@ Set(FOG_CORE_LIB_HEADERS
   Fog/Core/UserInfo.h
   Fog/Core/Value.h
   Fog/Core/WinIStream_p.h
-  Fog/Core/WinUtil.h
+  Fog/Core/WinUtil_p.h
 
   Fog/Core/Arch/Atomic_gcc_x86x64.h
   Fog/Core/Arch/Atomic_msc_intrin.h

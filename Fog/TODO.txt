@@ -11,6 +11,8 @@ TODO P1
     [ ] Fog::String/Fog::Locale - add support for group separators
     [ ] Temporary...<N>::free sometimes not frees the memory ?
     [ ] Complete Fog::BitArray
+	[ ] Text Streams (using TextCodec), including err(), out() and in().
+	[ ] Logging 
 
 [w] Fog/Xml:
     [w] XmlWriter
@@ -19,6 +21,8 @@ TODO P1
     [ ] Fix gradient rendering
 
 [ ] Painter:
+    [ ] Ability to paint to ARGB32 surface
+    [ ] Ability to paint to A8 surface.
     [ ] Set global opacity
     [w] Text transform
     [w] Text over path
@@ -41,13 +45,14 @@ TODO P1
     [ ] Increase granularity of X position in glyphs to 3 (0.00, 0.33, 0.66), because vector
         fonts can be very sensitive in small sizes.
 
-[ ] RasterUtil:
+[ ] RasterEngine:
     [x] Write C composite functions for XRGB32 and PRGB32
     [ ] Write C composite functions for A8
     [ ] Write MMX composite functions for XRGB32 and PRGB32
     [ ] Write MMX composite functions for A8
     [x] Write SSE2 composite functions for XRGB32 and PRGB32
     [ ] Write SSE2 composite functions for A8
+    [ ] Specialize CLEAR operator in C implementation (performance TODO)
 
 [ ] Path:
     [ ] Add fitTo(RectF)
@@ -104,10 +109,13 @@ TODO P2
     [ ] SoftLight
     [ ] Overlay
     [ ] Arithmetic, with parameters!
-[ ] Specialize CLEAR operator in C implementation
 
 TODO P3 - UI
 ============
 
 [ ] UI Toolkit
+    [ ] Make possibility to set transparent region in widget (not really 
+        transparent, but region where the background must be used first).
+        Introduce Widget::getPaintMode(), Widget::getBackgroundRegion().
+    [ ] Some widgets need to store background in separate buffer (Image).
     [ ] First make basic layouts working and define them

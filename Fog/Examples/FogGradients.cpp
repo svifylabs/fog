@@ -93,13 +93,13 @@ void MyWindow::paintPattern(Painter* p, const Point& pos, const SizeD& size, con
   double y = 10 + pos.y * (size.h + 20.0);
 
   p->setSource(0xFFFFFFFF);
-  p->drawText(Rect(x, y, size.w, 20), name, getFont(), TEXT_ALIGN_CENTER);
-  p->drawRect(Rect(x, y + 20, size.w + 2, size.h + 2));
+  p->drawText(Rect((int)x, (int)y, (int)size.w, 20), name, getFont(), TEXT_ALIGN_CENTER);
+  p->drawRect(Rect((int)x, (int)y + 20, (int)size.w + 2, (int)size.h + 2));
 
   Pattern copy(pattern);
   copy.translate(x + 1.0, y + 21.0);
   p->setSource(copy);
-  p->fillRect(Rect(x + 1.0, y + 21.0, size.w, size.h));
+  p->fillRect(Rect((int)x + 1, (int)y + 21, (int)size.w, (int)size.h));
 }
 
 // ============================================================================

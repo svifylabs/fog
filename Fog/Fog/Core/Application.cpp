@@ -28,7 +28,7 @@
 #include <Fog/Core/String.h>
 #include <Fog/Core/TextCodec.h>
 #include <Fog/Core/Thread.h>
-#include <Fog/Core/WinUtil.h>
+#include <Fog/Core/WinUtil_p.h>
 #include <Fog/Gui/GuiEngine.h>
 
 #if defined(FOG_OS_WINDOWS)

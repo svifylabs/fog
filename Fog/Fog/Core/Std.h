@@ -12,7 +12,7 @@
 
 #include <stdio.h>
 
-//! @addtogroup Fog_Core_CAPI
+//! @addtogroup Fog_Core_Private
 //! @{
 
 FOG_CVAR_EXTERN FILE* fog_stdout;
@@ -45,8 +45,6 @@ FOG_CAPI_EXTERN void FOG_NO_RETURN fog_out_of_memory_fatal_format(
   const char* format, ...);
 
 namespace Fog {
-
-// [Fog::Std::]
 namespace Std {
 
 FOG_API sysuint_t calcOptimalCapacity(sysuint_t sizeof_d, sysuint_t sizeof_element, sysuint_t before, sysuint_t after);
@@ -62,9 +60,7 @@ FOG_INLINE bool checkRange(sysuint_t length, sysuint_t index, sysuint_t *range)
   return true;
 }
 
-// [Fog::Std::]
-}
-
+} // Std namespace
 } // Fog namespace
 
 //! @}

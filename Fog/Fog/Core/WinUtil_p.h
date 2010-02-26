@@ -1,4 +1,4 @@
-// [Fog/Core Library - Public API]
+// [Fog/Core Library - Private API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -14,13 +14,16 @@
 
 #include <Fog/Core/String.h>
 
-//! @addtogroup Fog_Core
+//! @addtogroup Fog_Core_Private
 //! @{
 
 namespace Fog {
+
+//! @brief Namespace that contains various functions related to Windows OS
+//! development.
 namespace WinUtil {
 
-FOG_API err_t getModuleFileName(HMODULE hModule, String& dst);
+FOG_HIDDEN err_t getModuleFileName(HMODULE hModule, String& dst);
 
 } // WinUtil namespace
 } // Fog namespace
