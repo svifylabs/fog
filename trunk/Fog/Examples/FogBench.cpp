@@ -329,14 +329,14 @@ struct FogModule : public AbstractModule
   virtual ByteArray getEngine();
   void setEngine(int engine);
 
-  Painter p;
-  bool mt;
+  virtual void configurePainter(Painter& p);
+
+  int engine;
 };
 
 FogModule::FogModule(int w, int h) : AbstractModule(w, h)
 {
-  p.begin(screen);
-  setEngine(PAINTER_ENGINE_RASTER_ST);
+  engine = PAINTER_ENGINE_RASTER_ST;
 }
 
 FogModule::~FogModule()
@@ -346,13 +346,18 @@ FogModule::~FogModule()
 ByteArray FogModule::getEngine()
 {
   ByteArray info;
-  info.format("Fog-%s", mt ? "mt" : "st");
+  info.format("Fog-%s", 
+    engine == PAINTER_ENGINE_RASTER_MT ? "mt" : "st");
   return info;
 }
 
 void FogModule::setEngine(int engine)
 {
-  this->mt = (engine == PAINTER_ENGINE_RASTER_MT);
+  this->engine = engine;
+}
+
+void FogModule::configurePainter(Painter& p)
+{
   p.setEngine(engine);
 }
 
@@ -392,16 +397,14 @@ void FogModule_FillRect::finish()
 
 void FogModule_FillRect::bench(int quantity)
 {
-  p.save();
+  Painter p(screen, PAINTER_HINT_NO_MT);
+  configurePainter(p);
 
   for (int a = 0; a < quantity; a++)
   {
     p.setSource(r_argb.data[a]);
     p.fillRect(r_rect.data[a]);
   }
-
-  p.restore();
-  p.flush();
 }
 
 ByteArray FogModule_FillRect::getType()
@@ -427,7 +430,8 @@ FogModule_FillRectAffine::~FogModule_FillRectAffine() {}
 
 void FogModule_FillRectAffine::bench(int quantity)
 {
-  p.save();
+  Painter p(screen, PAINTER_HINT_NO_MT);
+  configurePainter(p);
 
   double cx = (double)w / 2.0;
   double cy = (double)h / 2.0;
@@ -444,9 +448,6 @@ void FogModule_FillRectAffine::bench(int quantity)
     p.setSource(r_argb.data[a]);
     p.fillRect(r_rect.data[a]);
   }
-
-  p.restore();
-  p.flush();
 }
 
 ByteArray FogModule_FillRectAffine::getType()
@@ -474,16 +475,14 @@ FogModule_FillRound::~FogModule_FillRound() {}
 
 void FogModule_FillRound::bench(int quantity)
 {
-  p.save();
+  Painter p(screen, PAINTER_HINT_NO_MT);
+  configurePainter(p);
 
   for (int a = 0; a < quantity; a++)
   {
     p.setSource(r_argb.data[a]);
     p.fillRound(r_rect.data[a], Point(8, 8));
   }
-
-  p.restore();
-  p.flush();
 }
 
 ByteArray FogModule_FillRound::getType()
@@ -527,14 +526,17 @@ void FogModule_FillPolygon::finish()
 
 void FogModule_FillPolygon::bench(int quantity)
 {
-  p.save();
+  Painter p(screen, PAINTER_HINT_NO_MT);
+  configurePainter(p);
+
   p.setFillMode(FILL_EVEN_ODD);
+  Path path;
 
   for (int a = 0; a < quantity; a++)
   {
     const PointD* polyData = &r_poly.data[a * 10];
 
-    Path path;
+    path.clear();
     for (int i = 0; i < 10; i++)
     {
       PointD c0 = polyData[i];
@@ -547,9 +549,6 @@ void FogModule_FillPolygon::bench(int quantity)
     p.setSource(r_argb.data[a]);
     p.fillPath(path);
   }
-
-  p.restore();
-  p.flush();
 }
 
 ByteArray FogModule_FillPolygon::getType()
@@ -619,16 +618,15 @@ void FogModule_FillPattern::setupPattern(int type)
 
 void FogModule_FillPattern::bench(int quantity)
 {
-  p.save();
+  Painter p(screen, PAINTER_HINT_NO_MT);
+  configurePainter(p);
+
   p.setSource(pattern);
 
   for (int a = 0; a < quantity; a++)
   {
     p.fillRect(r_rect.data[a]);
   }
-
-  p.restore();
-  p.flush();
 }
 
 ByteArray FogModule_FillPattern::getType()
@@ -687,15 +685,13 @@ void FogModule_Image::finish()
 
 void FogModule_Image::bench(int quantity)
 {
-  p.save();
+  Painter p(screen, PAINTER_HINT_NO_MT);
+  configurePainter(p);
 
   for (int a = 0; a < quantity; a++)
   {
     p.blitImage(r_rect.data[a].getPosition(), images[r_numb.data[a]]);
   }
-
-  p.restore();
-  p.flush();
 }
 
 ByteArray FogModule_Image::getType()
@@ -721,7 +717,8 @@ FogModule_ImageAffine::~FogModule_ImageAffine() {}
 
 void FogModule_ImageAffine::bench(int quantity)
 {
-  p.save();
+  Painter p(screen, PAINTER_HINT_NO_MT);
+  configurePainter(p);
 
   double cx = (double)w / 2.0;
   double cy = (double)h / 2.0;
@@ -737,9 +734,6 @@ void FogModule_ImageAffine::bench(int quantity)
     p.setMatrix(m);
     p.blitImage(r_rect.data[a].getPosition(), images[r_numb.data[a]]);
   }
-
-  p.restore();
-  p.flush();
 }
 
 ByteArray FogModule_ImageAffine::getType()
@@ -783,7 +777,8 @@ void FogModule_RasterText::finish()
 
 void FogModule_RasterText::bench(int quantity)
 {
-  p.save();
+  Painter p(screen, PAINTER_HINT_NO_MT);
+  configurePainter(p);
 
   String text(Ascii8("abcdef"));
   Font font;
@@ -793,9 +788,6 @@ void FogModule_RasterText::bench(int quantity)
     p.setSource(r_argb.data[a]);
     p.drawText(r_rect.data[a].getPosition(), text, font);
   }
-
-  p.restore();
-  p.flush();
 }
 
 ByteArray FogModule_RasterText::getType()
@@ -926,8 +918,8 @@ void GdiPlusModule_FillRectAffine::bench(int quantity)
 {
   Gdiplus::Graphics gr(screen_gdip);
 
-  float cx = (float)w / 2.0;
-  float cy = (float)h / 2.0;
+  float cx = (float)w / 2.0f;
+  float cy = (float)h / 2.0f;
   float rot = 0.0f;
 
   for (int a = 0; a < quantity; a++, rot += 0.01f)
@@ -1261,8 +1253,8 @@ void GdiPlusModule_ImageAffine::bench(int quantity)
   Gdiplus::Graphics gr(screen_gdip);
   gr.SetInterpolationMode(Gdiplus::InterpolationModeBilinear);
 
-  float cx = (float)w / 2.0;
-  float cy = (float)h / 2.0;
+  float cx = (float)w / 2.0f;
+  float cy = (float)h / 2.0f;
   float rot = 0.0f;
 
   for (int a = 0; a < quantity; a++, rot += 0.01f)

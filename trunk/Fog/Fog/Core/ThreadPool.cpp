@@ -151,17 +151,17 @@ void ThreadPool::releaseThread(Thread* thread, int workId)
     "Fog::ThreadPool::releaseThread() - Releasing thread (%p) that is not in thread list", thread);
 }
 
-int ThreadPool::minThreads() const
+int ThreadPool::getMinThreads() const
 {
   return _minThreads;
 }
 
-int ThreadPool::maxThreads() const
+int ThreadPool::getMaxThreads() const
 {
   return _maxThreads;
 }
 
-int ThreadPool::numThreads() const
+int ThreadPool::getNumThreads() const
 {
   return _numThreads;
 }

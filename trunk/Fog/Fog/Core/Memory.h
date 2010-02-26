@@ -14,7 +14,7 @@
 #pragma intrinsic (_byteswap_ushort, _byteswap_ulong, _byteswap_uint64)
 #endif // FOG_CC_MSVC
 
-//! @addtogroup Fog_Core_CAPI
+//! @addtogroup Fog_Core_Private
 //! @{
 
 // ============================================================================

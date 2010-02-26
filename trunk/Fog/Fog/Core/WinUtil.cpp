@@ -9,7 +9,7 @@
 #if defined(FOG_OS_WINDOWS)
 
 #include <Fog/Core/String.h>
-#include <Fog/Core/WinUtil.h>
+#include <Fog/Core/WinUtil_p.h>
 
 namespace Fog {
 namespace WinUtil {

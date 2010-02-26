@@ -11,11 +11,12 @@
 #pragma once
 #endif // _MSVC
 
+#if defined(_DOXYGEN)
+
 // ============================================================================
-// [Fog/Core Documentation]
+// [Fog/Core Main]
 // ============================================================================
 
-#if defined(_DOXYGEN)
 //! @mainpage Fog Library Documentation
 //!
 //! @section Main_Page_Intro Introduction
@@ -26,17 +27,16 @@
 //! library was created as an abstraction layer between Windows and 
 //! Unix like operating systems.
 
-//! @defgroup Fog_Core Fog/Core library API.
+// ============================================================================
+// [Fog/Core Groups]
+// ============================================================================
+
+//! @defgroup Fog_Core Fog/Core public API.
 //!
 //! Set of Fog/Core library classes and their members.
 
-//! @defgroup Fog_Core_Detail Fog/Core library implementation details.
+//! @defgroup Fog_Core_Private Fog/Core private API.
 //! @ingroup Fog_Core
-
-//! @defgroup Fog_Core_CAPI Fog/Core library C API.
-//! @ingroup Fog_Core
-//!
-//! Set of Fog/Core functions compatible with C calling convention.
 
 //! @defgroup Fog_Core_Macros Fog/Core macros.
 //! @ingroup Fog_Core
@@ -45,7 +45,7 @@
 //! applications.
 
 // ============================================================================
-// [Doxygen::]
+// [Fog/Core Shared]
 // ============================================================================
 
 //! @brief Namespace for shared documentation between classes.

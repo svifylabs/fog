@@ -11,11 +11,12 @@
 #ifndef _FOG_GUI_H
 #define _FOG_GUI_H
 
+#if defined(_DOXYGEN)
+
 // ============================================================================
-// [Fog/Gui Documentation]
+// [Fog/Gui Groups]
 // ============================================================================
 
-#if defined(_DOXYGEN)
 //! @defgroup Fog_Gui Fog/Gui library API.
 //!
 //! Set of Fog/Gui library classes and their members.
