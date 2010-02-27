@@ -70,6 +70,21 @@ private:
   FOG_DISABLE_COPY(JpegLibrary)
 };
 
+// ===========================================================================
+// [Fog::ImageIO::JpegProvider]
+// ===========================================================================
+
+struct FOG_HIDDEN JpegProvider : public Provider
+{
+  JpegProvider();
+  virtual ~JpegProvider();
+
+  virtual uint32_t checkSignature(const void* mem, sysuint_t length) const;
+  virtual err_t createDevice(uint32_t deviceType, BaseDevice** device) const;
+
+  JpegLibrary _jpegLibrary;
+};
+
 // ============================================================================
 // [Fog::ImageIO::JpegDecoderDevice]
 // ============================================================================

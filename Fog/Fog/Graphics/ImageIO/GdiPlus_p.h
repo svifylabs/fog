@@ -284,6 +284,59 @@ private:
 };
 
 // ============================================================================
+// [Fog::ImageIO::GdiPlusJpegParams]
+// ============================================================================
+
+struct GdiPlusJpegParams
+{
+  int quality;
+};
+
+// ============================================================================
+// [Fog::ImageIO::GdiPlusPngParams]
+// ============================================================================
+
+struct GdiPlusPngParams
+{
+  int dummy;
+};
+
+// ============================================================================
+// [Fog::ImageIO::GdiPlusTiffParams]
+// ============================================================================
+
+struct GdiPlusTiffParams
+{
+  int dummy;
+};
+
+// ============================================================================
+// [Fog::ImageIO::GdiPlusCommonParams]
+// ============================================================================
+
+union GdiPlusCommonParams
+{
+  GdiPlusJpegParams jpeg;
+  GdiPlusPngParams png;
+  GdiPlusTiffParams tiff;
+};
+
+// ============================================================================
+// [Fog::ImageIO::GdiPlusProvider]
+// ============================================================================
+
+struct FOG_HIDDEN GdiPlusProvider : public Provider
+{
+  GdiPlusProvider(uint32_t fileType);
+  virtual ~GdiPlusProvider();
+
+  virtual uint32_t checkSignature(const void* mem, sysuint_t length) const;
+  virtual err_t createDevice(uint32_t deviceType, BaseDevice** device) const;
+
+  const WCHAR* _gdipMime;
+};
+
+// ============================================================================
 // [Fog::ImageIO::GdiPlusDecoderDevice]
 // ============================================================================
 
@@ -315,10 +368,23 @@ struct FOG_HIDDEN GdiPlusDecoderDevice : public DecoderDevice
   virtual err_t readImage(Image& image);
 
   // --------------------------------------------------------------------------
+  // [Properties]
+  // --------------------------------------------------------------------------
+
+  virtual err_t getProperty(const ManagedString& name, Value& value) const;
+  virtual err_t setProperty(const ManagedString& name, const Value& value);
+
+  // --------------------------------------------------------------------------
   // [Members]
   // --------------------------------------------------------------------------
 
+  //! @brief JPEG, PNG or TIFF parameters.
+  GdiPlusCommonParams _params;
+
+  //! @brief IStream bridge.
   IStream* _istream;
+
+  //! @brief Gdi+ shadow image instance.
   GpImage* _gpImage;
 };
 
@@ -362,6 +428,10 @@ struct FOG_HIDDEN GdiPlusEncoderDevice : public EncoderDevice
   // [Members]
   // --------------------------------------------------------------------------
 
+  //! @brief JPEG, PNG or TIFF parameters.
+  GdiPlusCommonParams _params;
+
+  //! @brief IStream bridge.
   IStream* _istream;
 };
 

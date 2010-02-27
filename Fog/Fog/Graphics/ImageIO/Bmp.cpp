@@ -30,15 +30,6 @@ namespace ImageIO {
 // [Fog::ImageIO::BmpProvider]
 // ============================================================================
 
-struct FOG_HIDDEN BmpProvider : public Provider
-{
-  BmpProvider();
-  virtual ~BmpProvider();
-
-  virtual uint32_t checkSignature(const void* mem, sysuint_t length) const;
-  virtual err_t createDevice(uint32_t deviceType, BaseDevice** device) const;
-};
-
 BmpProvider::BmpProvider()
 {
   // Name of ImageIO Provider.
