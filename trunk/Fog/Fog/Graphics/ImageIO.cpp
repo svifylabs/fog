@@ -52,67 +52,115 @@ namespace Fog {
 
 struct ImageIO_Local
 {
-  // Critical section for accessing members
+  // Critical section for accessing members.
   Lock lock;
 
-  // List of providers
-  typedef List<ImageIO::Provider*> Providers;
-
-  Providers providers;
+  // List of decoder providers.
+  List<ImageIO::Provider*> decoderProviders;
+  // List of encoder providers.
+  List<ImageIO::Provider*> encoderProviders;
 };
 
 static Static<ImageIO_Local> imageio_local;
 
-// [Fog::ImageIO::]
 namespace ImageIO {
 
 // ============================================================================
-// [Fog::ImageIO - Functions]
+// [Fog::ImageIO::Provider API]
 // ============================================================================
 
-FOG_API bool addProvider(Provider* provider)
+FOG_API err_t addProvider(uint32_t deviceType, Provider* provider)
 {
+  if ((deviceType & (IMAGEIO_DEVICE_DECODER | IMAGEIO_DEVICE_ENCODER)) == 0)
+    return ERR_RT_INVALID_ARGUMENT;
+
+  err_t err = ERR_OK;
   AutoLock locked(imageio_local->lock);
 
-  if (imageio_local->providers.indexOf(provider) == INVALID_INDEX)
+  if ((deviceType & IMAGEIO_DEVICE_DECODER) && 
+      (imageio_local->decoderProviders.indexOf(provider) == INVALID_INDEX))
   {
-    imageio_local->providers.append(provider);
-    return true;
+    err |= imageio_local->decoderProviders.append(provider);
+    if (err) goto end;
+    provider->ref();
   }
-  else 
-    return false;
-}
 
-FOG_API bool removeProvider(Provider* provider)
-{
-  AutoLock locked(imageio_local->lock);
-  sysuint_t index = imageio_local->providers.indexOf(provider);
-
-  if (index != INVALID_INDEX)
+  if ((deviceType & IMAGEIO_DEVICE_ENCODER) && 
+      (imageio_local->encoderProviders.indexOf(provider) == INVALID_INDEX))
   {
-    imageio_local->providers.removeAt(index);
-    return true;
+    err |= imageio_local->encoderProviders.append(provider);
+    if (err) goto end;
+    provider->ref();
   }
-  else 
-    return false;
+
+end:
+  return err;
 }
 
-FOG_API bool hasProvider(Provider* provider)
+FOG_API err_t removeProvider(uint32_t deviceType, Provider* provider)
 {
+  if ((deviceType & (IMAGEIO_DEVICE_DECODER | IMAGEIO_DEVICE_ENCODER)) == 0)
+    return ERR_RT_INVALID_ARGUMENT;
+
+  err_t err = ERR_OK;
+  sysuint_t index;
   AutoLock locked(imageio_local->lock);
-  return imageio_local->providers.indexOf(provider) != INVALID_INDEX;
+
+  if ((deviceType & IMAGEIO_DEVICE_DECODER) && 
+      (index = imageio_local->decoderProviders.indexOf(provider)) != INVALID_INDEX)
+  {
+    err |= imageio_local->decoderProviders.removeAt(index);
+    if (err) goto end;
+    provider->deref();
+  }
+
+  if ((deviceType & IMAGEIO_DEVICE_ENCODER) && 
+      (index = imageio_local->encoderProviders.indexOf(provider)) != INVALID_INDEX)
+  {
+    err |= imageio_local->encoderProviders.removeAt(index);
+    if (err) goto end;
+    provider->deref();
+  }
+
+end:
+  return err;
 }
 
-FOG_API List<Provider*> getProviders()
+FOG_API bool hasProvider(uint32_t deviceType, Provider* provider)
 {
   AutoLock locked(imageio_local->lock);
-  return imageio_local->providers;
+
+  switch (deviceType & (IMAGEIO_DEVICE_DECODER | IMAGEIO_DEVICE_ENCODER))
+  {
+    case IMAGEIO_DEVICE_DECODER:
+      return imageio_local->decoderProviders.indexOf(provider) != INVALID_INDEX;
+    case IMAGEIO_DEVICE_ENCODER:
+      return imageio_local->encoderProviders.indexOf(provider) != INVALID_INDEX;
+    case IMAGEIO_DEVICE_DECODER | IMAGEIO_DEVICE_ENCODER:
+      return imageio_local->decoderProviders.indexOf(provider) != INVALID_INDEX &&
+             imageio_local->encoderProviders.indexOf(provider) != INVALID_INDEX;
+    default:
+      return false;
+  }
 }
 
-FOG_API Provider* getProviderByName(const String& name)
+FOG_API List<Provider*> getProviders(uint32_t deviceType)
 {
   AutoLock locked(imageio_local->lock);
-  ImageIO_Local::Providers::ConstIterator it(imageio_local->providers);
+
+  if ((deviceType & (IMAGEIO_DEVICE_DECODER | IMAGEIO_DEVICE_ENCODER)) == IMAGEIO_DEVICE_ENCODER)
+    return imageio_local->encoderProviders;
+
+  if ((deviceType & (IMAGEIO_DEVICE_DECODER | IMAGEIO_DEVICE_ENCODER)) == IMAGEIO_DEVICE_DECODER)
+    return imageio_local->decoderProviders;
+
+  return List<Provider*>();
+}
+
+FOG_API Provider* getProviderByName(uint32_t deviceType, const String& name)
+{
+  List<Provider*> providers = getProviders(deviceType);
+  List<Provider*>::ConstIterator it(providers);
 
   for (; it.isValid(); it.toNext())
   {
@@ -122,107 +170,137 @@ FOG_API Provider* getProviderByName(const String& name)
   return 0;
 }
 
-FOG_API Provider* getProviderByExtension(const String& extension)
+FOG_API Provider* getProviderByExtension(uint32_t deviceType, const String& extension)
 {
-  AutoLock locked(imageio_local->lock);
-  ImageIO_Local::Providers::ConstIterator it(imageio_local->providers);
+  List<Provider*> providers = getProviders(deviceType);
+  List<Provider*>::ConstIterator it(providers);
 
-  // Convert extension to lower case
-  TemporaryString<16> e;
-  e.set(extension);
+  // Convert extension to lower case.
+  TemporaryString<16> e(extension);
   e.lower();
 
   for (it.toStart(); it.isValid(); it.toNext())
   {
-    if (it.value()->getExtensions().indexOf(e) != INVALID_INDEX) return it.value();
+    if (it.value()->supportsImageExtension(e)) return it.value();
   }
 
-  return 0;
+  return NULL;
 }
 
-FOG_API Provider* getProviderByMime(void* mem, sysuint_t len)
+FOG_API Provider* getProviderBySignature(uint32_t deviceType, void* mem, sysuint_t len)
 {
-  if (!mem || len == 0) return 0;
+  if (!mem || len == 0) return NULL;
 
-  AutoLock locked(imageio_local->lock);
-  ImageIO_Local::Providers::ConstIterator it(imageio_local->providers);
+  List<Provider*> providers = getProviders(deviceType);
+  List<Provider*>::ConstIterator it(providers);
 
-  Provider* bestProvider = NULL;
   uint32_t bestScore = 0;
+  Provider* bestProvider = NULL;
 
   for (it.toStart(); it.isValid(); it.toNext())
   {
-    uint32_t score = it.value()->check(mem, len);
+    uint32_t score = it.value()->checkSignature(mem, len);
+
     if (score > bestScore)
     {
-      bestProvider = it.value();
       bestScore = score;
+      bestProvider = it.value();
     }
   }
 
   return bestProvider;
 }
 
-FOG_API DecoderDevice* createDecoderByName(const String& name, err_t* err_)
+// ============================================================================
+// [Fog::ImageIO::Decoder / Encoder API]
+// ============================================================================
+
+static err_t createBaseDeviceByName(uint32_t deviceType, const String& name, BaseDevice** device)
 {
   err_t err = ERR_OK;
-  Provider* provider = getProviderByName(name);
-  DecoderDevice* decoder = NULL;
+  if (device == NULL) return ERR_RT_INVALID_ARGUMENT;
 
-  if (!provider) { err = ERR_IMAGEIO_NOT_AVAILABLE_PROVIDER; goto end; }
+  Provider* provider = getProviderByName(deviceType, name);
 
-  decoder = provider->createDecoder();
-  if (!decoder) { err = ERR_IMAGEIO_NOT_AVAILABLE_DECODER; goto end; }
+  err = (!provider)
+    ? (deviceType == IMAGEIO_DEVICE_DECODER 
+      ? ERR_IMAGEIO_NO_DECODER
+      : ERR_IMAGEIO_NO_ENCODER)
+    : provider->createDevice(deviceType, device);
 
 end:
-  if (err_) *err_ = err;
-  return decoder;
+  return err;
 }
 
-FOG_API DecoderDevice* createDecoderByExtension(const String& extension, err_t* err_)
+FOG_API err_t createDecoderByName(const String& name, DecoderDevice** device)
+{
+  return createBaseDeviceByName(
+    IMAGEIO_DEVICE_DECODER, name, reinterpret_cast<BaseDevice**>(device));
+}
+
+FOG_API err_t createEncoderByName(const String& name, EncoderDevice** device)
+{
+  return createBaseDeviceByName(
+    IMAGEIO_DEVICE_ENCODER, name, reinterpret_cast<BaseDevice**>(device));
+}
+
+static err_t createBaseDeviceByExtension(uint32_t deviceType, const String& extension, BaseDevice** device)
 {
   err_t err = ERR_OK;
-  Provider* provider = getProviderByExtension(extension);
-  DecoderDevice* decoder = NULL;
+  if (device == NULL) return ERR_RT_INVALID_ARGUMENT;
 
-  if (!provider) { err = ERR_IMAGEIO_NOT_AVAILABLE_PROVIDER; goto end; }
+  Provider* provider = getProviderByExtension(deviceType, extension);
 
-  decoder = provider->createDecoder();
-  if (!decoder) { err = ERR_IMAGEIO_NOT_AVAILABLE_DECODER; goto end; }
+  err = (!provider)
+    ? (deviceType == IMAGEIO_DEVICE_DECODER 
+      ? ERR_IMAGEIO_NO_DECODER
+      : ERR_IMAGEIO_NO_ENCODER)
+    : provider->createDevice(deviceType, device);
 
 end:
-  if (err_) *err_ = err;
-  return decoder;
+  return err;
 }
 
-FOG_API DecoderDevice* createDecoderForFile(const String& fileName, err_t* err_)
+FOG_API err_t createDecoderByExtension(const String& extension, DecoderDevice** device)
 {
-  err_t err;
+  return createBaseDeviceByExtension(
+    IMAGEIO_DEVICE_DECODER, extension, reinterpret_cast<BaseDevice**>(device));
+}
+
+FOG_API err_t createEncoderByExtension(const String& extension, EncoderDevice** device)
+{
+  return createBaseDeviceByExtension(
+    IMAGEIO_DEVICE_ENCODER, extension, reinterpret_cast<BaseDevice**>(device));
+}
+
+FOG_API err_t createDecoderForFile(const String& fileName, DecoderDevice** device)
+{
+  if (device == NULL) return ERR_RT_INVALID_ARGUMENT;
 
   Stream stream;
   String extension;
-  DecoderDevice* decoder = NULL;
 
-  err = stream.openMMap(fileName, false);
-  // MMap failed?, try to open in by normal way...
+  err_t err = stream.openMMap(fileName, false);
+  // MMap failed? Try to open the file using standard stream.
   if (err != ERR_OK) err = stream.openFile(fileName, STREAM_OPEN_READ);
 
   // If err is not ERR_OK then file can't be open.
   if (err != ERR_OK) goto end;
 
-  // Extract extension to help opening from stream...
+  // Extract extension to help opening from stream.
   if ((err = FileUtil::extractExtension(extension, fileName)) || (err = extension.lower())) goto end;
 
-  // Finally, open device...
-  decoder = createDecoderForStream(stream, extension, &err);
+  // Finally create device.
+  err = createDecoderForStream(stream, extension, device);
 
 end:
-  if (err_) *err_ = err;
-  return decoder;
+  return err;
 }
 
-FOG_API DecoderDevice* createDecoderForStream(Stream& stream, const String& extension, err_t* err_)
+FOG_API err_t createDecoderForStream(Stream& stream, const String& extension, DecoderDevice** device)
 {
+  if (device == NULL) return ERR_RT_INVALID_ARGUMENT;
+
   err_t err = ERR_OK;
 
   Provider* provider = NULL;
@@ -230,7 +308,7 @@ FOG_API DecoderDevice* createDecoderForStream(Stream& stream, const String& exte
 
   int64_t pos;
 
-  // This is default, 128 bytes should be enough for any image file.
+  // This is default, 128 bytes should be enough for any image file type.
   uint8_t mime[128];
   sysuint_t readn;
 
@@ -241,56 +319,22 @@ FOG_API DecoderDevice* createDecoderForStream(Stream& stream, const String& exte
 
   if (stream.seek(pos, STREAM_SEEK_SET) == -1) { err =  ERR_IO_CANT_SEEK; goto end; }
 
-  // First try to use extension, if fail, fallback to readStream(Stream)
-  if (!extension.isEmpty()) provider = getProviderByExtension(extension);
+  // First try to use extension.
+  if (!extension.isEmpty()) provider = getProviderByExtension(IMAGEIO_DEVICE_DECODER, extension);
+  // Fallback to signature checking if extension match failed.
+  if (!provider) provider = getProviderBySignature(IMAGEIO_DEVICE_DECODER, mime, readn);
+  // Bail if signature checking failed too.
+  if (!provider) { err = ERR_IMAGEIO_NO_DECODER; goto end; }
 
-  if (!provider) provider = ImageIO::getProviderByMime(mime, readn);
-  if (!provider) { err = ERR_IMAGEIO_NOT_AVAILABLE_PROVIDER; goto end; }
-
-  decoder = provider->createDecoder();
-  if (!decoder) { err = ERR_IMAGEIO_NOT_AVAILABLE_DECODER; goto end; }
-
-  decoder->attachStream(stream);
+  err = provider->createDevice(IMAGEIO_DEVICE_DECODER, reinterpret_cast<BaseDevice**>(&decoder));
+  if (err == ERR_OK) decoder->attachStream(stream);
 
 end:
-  if (err_) *err_ = err;
-
   // Seek to begin if failed.
   if (err) stream.seek(pos, STREAM_SEEK_SET);
 
-  return decoder;
-}
-
-FOG_API EncoderDevice* createEncoderByName(const String& name, err_t* err_)
-{
-  err_t err = ERR_OK;
-  Provider* provider = getProviderByName(name);
-  EncoderDevice* decoder = NULL;
-
-  if (!provider) { err = ERR_IMAGEIO_NOT_AVAILABLE_PROVIDER; goto end; }
-
-  decoder = provider->createEncoder();
-  if (!decoder) { err = ERR_IMAGEIO_NOT_AVAILABLE_ENCODER; goto end; }
-
-end:
-  if (err_) *err_ = err;
-  return decoder;
-}
-
-FOG_API EncoderDevice* createEncoderByExtension(const String& extension, err_t* err_)
-{
-  err_t err = ERR_OK;
-  Provider* provider = getProviderByExtension(extension);
-  EncoderDevice* decoder = NULL;
-
-  if (!provider) { err = ERR_IMAGEIO_NOT_AVAILABLE_PROVIDER; goto end; }
-
-  decoder = provider->createEncoder();
-  if (!decoder) { err = ERR_IMAGEIO_NOT_AVAILABLE_ENCODER; goto end; }
-
-end:
-  if (err_) *err_ = err;
-  return decoder;
+  *device = decoder;
+  return err;
 }
 
 // ============================================================================
@@ -299,22 +343,30 @@ end:
 
 Provider::Provider()
 {
-  memset(&_features, 0, sizeof(_features));
-  _id = IMAGEIO_FILE_NONE;
+  _refCount.init(0);
+
+  _fileType = IMAGEIO_FILE_NONE;
+  _deviceType = IMAGEIO_DEVICE_NONE;
 }
 
 Provider::~Provider()
 {
 }
 
-EncoderDevice* Provider::createEncoder()
+Provider* Provider::ref() const
 {
-  return 0;
+  _refCount.inc();
+  return const_cast<Provider*>(this);
 }
 
-DecoderDevice* Provider::createDecoder()
+void Provider::deref()
 {
-  return 0;
+  if (_refCount.deref()) delete this;
+}
+
+bool Provider::supportsImageExtension(const String& extension) const
+{
+  return _imageExtensions.contains(extension);
 }
 
 // ============================================================================
@@ -323,6 +375,7 @@ DecoderDevice* Provider::createDecoder()
 
 BaseDevice::BaseDevice(Provider* provider) :
   _provider(provider),
+  _fileType(provider->getFileType()),
   _deviceType(IMAGEIO_DEVICE_NONE),
   _attachedOffset(FOG_UINT64_C(0)),
   _stream(),
@@ -340,7 +393,9 @@ BaseDevice::~BaseDevice()
 {
 }
 
-// [Properties]
+// ============================================================================
+// [Fog::ImageIO::BaseDevice - Properties]
+// ============================================================================
 
 err_t BaseDevice::getProperty(const ManagedString& name, Value& value) const
 {
@@ -371,7 +426,9 @@ err_t BaseDevice::setProperty(const ManagedString& name, const Value& value)
   return base::setProperty(name, value);
 }
 
-// [Progress]
+// ============================================================================
+// [Fog::ImageIO::BaseDevice - Progress]
+// ============================================================================
 
 void BaseDevice::updateProgress(float value)
 {
@@ -383,28 +440,20 @@ void BaseDevice::updateProgress(uint32_t y, uint32_t height)
   updateProgress((float)( (double)y / (double)height ));
 }
 
-// [Dimensions]
+// ============================================================================
+// [Fog::ImageIO::BaseDevice - Image Size]
+// ============================================================================
 
-bool BaseDevice::areDimensionsZero() const 
-{ 
-  return _width == 0 || _height == 0;
+bool BaseDevice::checkImageSize() const 
+{
+  return (
+    (_width  > 0) & (_width  <= IMAGE_MAX_WIDTH ) &
+    (_height > 0) & (_height <= IMAGE_MAX_HEIGHT) );
 }
 
-bool BaseDevice::areDimensionsTooLarge() const 
-{ 
-  // check individual coordinates
-  const uint32_t side = 256*256*128;
-  if (_width > side || _height > side) return true;
-
-  // check total count of pixels
-  uint64_t total = (uint64_t)_width * (uint64_t)_height;
-  if (total >= FOG_UINT64_C(1000000000)) return true;
-
-  // ok
-  return false;
-}
-
-// [Stream]
+// ============================================================================
+// [Fog::ImageIO::BaseDevice - Stream]
+// ============================================================================
 
 void BaseDevice::attachStream(Stream& stream)
 {
@@ -424,7 +473,9 @@ void BaseDevice::detachStream()
   }
 }
 
-// [Reset]
+// ============================================================================
+// [Fog::ImageIO::BaseDevice - Reset]
+// ============================================================================
 
 void BaseDevice::reset()
 {
@@ -438,7 +489,6 @@ void BaseDevice::reset()
   _progress = 0.0f;
 
   _format = PIXEL_FORMAT_NULL;
-  _imageType = IMAGEIO_FILE_NONE;
 
   _palette.free();
   _comment.free();
@@ -455,7 +505,7 @@ DecoderDevice::DecoderDevice(Provider* provider) :
   _headerResult(ERR_OK),
   _readerResult(ERR_OK)
 {
-  _deviceType = IMAGEIO_DECIDE_DECODER;
+  _deviceType = IMAGEIO_DEVICE_DECODER;
 }
 
 DecoderDevice::~DecoderDevice()
@@ -545,13 +595,18 @@ FOG_INIT_DECLARE void fog_imageio_shutdown(void)
 {
   using namespace Fog;
 
+  // Remove (and delete) all providers
+  //
   // Do not need to lock, because we are shutting down. All threads should
   // been already destroyed.
-  //
-  // Remove (and delete) all providers
   {
-    ImageIO_Local::Providers::ConstIterator it(imageio_local->providers);
-    for (it.toStart(); it.isValid(); it.toNext()) delete it.value();
+    List<ImageIO::Provider*>::ConstIterator it(imageio_local->decoderProviders);
+    for (it.toStart(); it.isValid(); it.toNext()) it.value()->deref();
+  }
+
+  {
+    List<ImageIO::Provider*>::ConstIterator it(imageio_local->encoderProviders);
+    for (it.toStart(); it.isValid(); it.toNext()) it.value()->deref();
   }
 
   // Shutdown imageio_local.

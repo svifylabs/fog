@@ -386,6 +386,7 @@ Set(FOG_GRAPHICS_LIB_SOURCES
   Fog/Graphics/Constants.cpp
   Fog/Graphics/ConvolutionMatrix.cpp
   Fog/Graphics/DitherMatrix.cpp
+  Fog/Graphics/Dpi.cpp
   Fog/Graphics/Font.cpp
   Fog/Graphics/FontEngine.cpp
   Fog/Graphics/FontManager.cpp
@@ -431,6 +432,7 @@ Set(FOG_GRAPHICS_LIB_HEADERS
   Fog/Graphics/Constants_p.h
   Fog/Graphics/ConvolutionMatrix.h
   Fog/Graphics/DitherMatrix_p.h
+  Fog/Graphics/Dpi.h
   Fog/Graphics/Font.h
   Fog/Graphics/FontEngine.h
   Fog/Graphics/FontManager.h
@@ -626,7 +628,6 @@ Set(FOG_GUI_LIB_SOURCES
   Fog/Gui/Composite.cpp
   Fog/Gui/Event.cpp
   Fog/Gui/GuiEngine.cpp
-  Fog/Gui/GuiEngine/Base.cpp
   Fog/Gui/Layout.cpp
   Fog/Gui/LayoutItem.cpp
   Fog/Gui/Theme.cpp
@@ -644,7 +645,6 @@ Set(FOG_GUI_LIB_HEADERS
   Fog/Gui/Constants.h
   Fog/Gui/Event.h
   Fog/Gui/GuiEngine.h
-  Fog/Gui/GuiEngine/Base.h
   Fog/Gui/Layout.h
   Fog/Gui/LayoutItem.h
   Fog/Gui/Theme.h
@@ -653,19 +653,27 @@ Set(FOG_GUI_LIB_HEADERS
   Fog/Gui/Window.h
 )
 
-Set(FOG_GUI_WIN_SOURCES
+Set(FOG_GUI_ENGINE_BASE_SOURCES
+  Fog/Gui/GuiEngine/Base.cpp
+)
+
+Set(FOG_GUI_ENGINE_BASE_HEADERS
+  Fog/Gui/GuiEngine/Base.h
+)
+
+Set(FOG_GUI_ENGINE_WIN_SOURCES
   Fog/Gui/GuiEngine/Win.cpp
 )
 
-Set(FOG_GUI_WIN_HEADERS
+Set(FOG_GUI_ENGINE_WIN_HEADERS
   Fog/Gui/GuiEngine/Win.h
 )
 
-Set(FOG_GUI_X11_SOURCES
+Set(FOG_GUI_ENGINE_X11_SOURCES
   Fog/Gui/GuiEngine/X11.cpp
 )
 
-Set(FOG_GUI_X11_HEADERS
+Set(FOG_GUI_ENGINE_X11_HEADERS
   Fog/Gui/GuiEngine/X11.h
   Fog/Gui/GuiEngine/X11Headers.h
 )
@@ -684,14 +692,16 @@ SOURCE_GROUP(Gui FILES
 )
 
 SOURCE_GROUP(Gui_GuiEngine FILES
-  ${FOG_GUI_X11_SOURCES} ${FOG_GUI_X11_HEADERS}
-  ${FOG_GUI_WIN_SOURCES} ${FOG_GUI_WIN_HEADERS}
+  ${FOG_GUI_ENGINE_BASE_SOURCES} ${FOG_GUI_ENGINE_BASE_HEADERS}
+  ${FOG_GUI_ENGINE_X11_SOURCES} ${FOG_GUI_ENGINE_X11_HEADERS}
+  ${FOG_GUI_ENGINE_WIN_SOURCES} ${FOG_GUI_ENGINE_WIN_HEADERS}
 )
+
 SOURCE_GROUP(Gui_Theme FILES
   ${FOG_GUI_THEME_SOURCES} ${FOG_GUI_THEME_HEADERS}
 )
 
-# UI-Subsystem and Libraries
+# Gui backends.
 If(WIN32)
   Set(FOG_GUI_WINDOWS 1)
 Else(WIN32)
@@ -713,6 +723,7 @@ Set(FOG_ALL_SOURCES
   ${FOG_GRAPHICS_RASTERENGINE_SOURCES}
   ${FOG_SVG_LIB_SOURCES}
   ${FOG_GUI_LIB_SOURCES}
+  ${FOG_GUI_ENGINE_BASE_SOURCES}
   ${FOG_GUI_THEME_SOURCES}
 )
 
@@ -727,15 +738,21 @@ Set(FOG_ALL_HEADERS
   ${FOG_GRAPHICS_RASTERENGINE_HEADERS}
   ${FOG_SVG_LIB_HEADERS}
   ${FOG_GUI_LIB_HEADERS}
+  ${FOG_GUI_ENGINE_BASE_HEADERS}
+  ${FOG_GUI_ENGINE_WIN_HEADERS}
+  ${FOG_GUI_ENGINE_X11_HEADERS}
   ${FOG_GUI_THEME_HEADERS}
-  ${FOG_GUI_WIN_HEADERS}
-  ${FOG_GUI_X11_HEADERS}
 )
 
-If(WIN32)
-  Set(FOG_ALL_SOURCES ${FOG_ALL_SOURCES} ${FOG_GUI_WIN_SOURCES})
-  Set(FOG_ALL_HEADERS ${FOG_ALL_HEADERS} ${FOG_GUI_WIN_HEADERS})
-EndIf(WIN32)
+If(FOG_GUI_WINDOWS)
+  Set(FOG_ALL_SOURCES ${FOG_ALL_SOURCES} ${FOG_GUI_ENGINE_WIN_SOURCES})
+  Set(FOG_ALL_HEADERS ${FOG_ALL_HEADERS} ${FOG_GUI_ENGINE_WIN_HEADERS})
+EndIf(FOG_GUI_WINDOWS)
+
+If(FOG_GUI_X11)
+  Set(FOG_ALL_SOURCES ${FOG_ALL_SOURCES} ${FOG_GUI_ENGINE_X11_SOURCES})
+  Set(FOG_ALL_HEADERS ${FOG_ALL_HEADERS} ${FOG_GUI_ENGINE_X11_HEADERS})
+EndIf(FOG_GUI_X11)
 
 # Write CMAKE_ #defines into Fog/Build/Config.h files
 Configure_File(${FOG_DIR}/Fog/Build/Config.h.cmake ${FOG_DIR}/Fog/Build/Config.h)
@@ -757,7 +774,7 @@ Add_Library(Fog SHARED ${FOG_ALL_SOURCES} ${FOG_ALL_HEADERS})
 Target_Link_Libraries(Fog ${FOG_LIBRARIES})
 Install(TARGETS Fog DESTINATION lib)
 
-# Build FogUI_X11 plugin.
+# Build Fog_Gui_X11 plugin.
 If(FOG_GUI_X11 AND FOG_BUILD_GUI_X11)
   Add_Library(Fog_Gui_X11 SHARED ${FOG_GUI_X11_SOURCES})
   Target_Link_Libraries(Fog_Gui_X11 Fog ${FOG_LIBRARIES})

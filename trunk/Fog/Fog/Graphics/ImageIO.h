@@ -32,98 +32,139 @@ struct EncoderDevice;
 struct Provider;
 
 // ============================================================================
-// [Functions]
+// [Fog::ImageIO::Provider API]
 // ============================================================================
 
-FOG_API bool addProvider(Provider* provider);
-FOG_API bool removeProvider(Provider* provider);
-FOG_API bool hasProvider(Provider* provider);
+//! @brief Add provider @a provider to the list.
+FOG_API err_t addProvider(uint32_t deviceType, Provider* provider);
+//! @brief Remove provider @a provider from the list.
+FOG_API err_t removeProvider(uint32_t deviceType, Provider* provider);
+//! @brief Get whether provider @a provider is in the list.
+FOG_API bool hasProvider(uint32_t deviceType, Provider* provider);
 
-FOG_API List<Provider*> getProviders();
+//! @brief Get list of image providers.
+FOG_API List<Provider*> getProviders(uint32_t deviceType);
 
-FOG_API Provider* getProviderByName(const String& name);
-FOG_API Provider* getProviderByExtension(const String& extension);
-FOG_API Provider* getProviderByMime(void* mem, sysuint_t len);
+//! @brief Get image provider by @a name.
+FOG_API Provider* getProviderByName(uint32_t deviceType, const String& name);
+//! @brief Get image provider by file @a extension.
+FOG_API Provider* getProviderByExtension(uint32_t deviceType, const String& extension);
+//! @brief Get image provider by signature.
+FOG_API Provider* getProviderBySignature(uint32_t deviceType, void* mem, sysuint_t len);
 
-FOG_API DecoderDevice* createDecoderByName(const String& name, err_t* err = NULL);
-FOG_API DecoderDevice* createDecoderByExtension(const String& extension, err_t* err = NULL);
+// ============================================================================
+// [Fog::ImageIO::Decoder / Encoder API]
+// ============================================================================
 
-FOG_API DecoderDevice* createDecoderForFile(const String& fileName, err_t* err = NULL);
-FOG_API DecoderDevice* createDecoderForStream(Stream& stream, const String& extension, err_t* err = NULL);
+//! @brief Create decoder device for a given provider @a name.
+FOG_API err_t createDecoderByName(const String& name, DecoderDevice** device);
+//! @brief Create encoder device for a given provider @a name.
+FOG_API err_t createEncoderByName(const String& name, EncoderDevice** device);
 
-FOG_API EncoderDevice* createEncoderByName(const String& name, err_t* err = NULL);
-FOG_API EncoderDevice* createEncoderByExtension(const String& extension, err_t* err = NULL);
+//! @brief Create decoder device for a given @a extension.
+FOG_API err_t createDecoderByExtension(const String& extension, DecoderDevice** device);
+//! @brief Create encoder device for a given @a extension.
+FOG_API err_t createEncoderByExtension(const String& extension, EncoderDevice** device);
+
+//! @brief Create decoder device for a file called @a fileName.
+//!
+//! This method is higher-level. It matches image extension, then tries to find
+//! suitable decoder device. It opens the file @a fileName and assigns the 
+//! stream to resulting decoder device.
+FOG_API err_t createDecoderForFile(const String& fileName, DecoderDevice** device);
+
+//! @brief Create decoder device for a stream, using @a extension to match
+//! suitable decoder or using raw image signature.
+FOG_API err_t createDecoderForStream(Stream& stream, const String& extension, DecoderDevice** device);
 
 // ============================================================================
 // [Fog::ImageIO::Provider]
 // ============================================================================
 
-//! @brief Image file encoder/decoder provider singleton.
+//! @brief Image file encoder/decoder provider (singleton).
 //!
 //! Providers are used to create image decoder and encoder devices and
-//! to check if image data can be readed by decoder.
+//! to check if image data (signature) can be readed by decoder.
 //!
 //! Befire image decoder is created, often is checked relevance by
 //! mime type data (first image file bytes)
 struct FOG_API Provider
 {
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
-  //! @brief Image file format Constructor.
+  //! @brief Provider constructor.
   Provider();
-  //! @brief Image file format descructor.
+  //! @brief Provider destructor (virtual).
   virtual ~Provider();
 
-  // [Features]
+  virtual Provider* ref() const;
+  virtual void deref();
 
-  //! @brief File format features.
-  struct Features
-  {
-    // [Devices]
+  // --------------------------------------------------------------------------
+  // [File Type]
+  // --------------------------------------------------------------------------
 
-    //! @brief Provider provides decoder.
-    uint32_t decoder : 1;
-    //! @brief Provider provides encoder.
-    uint32_t encoder : 1;
+  //! @brief Get image file type (see @c IMAGEIO_FILE_TYPE).
+  FOG_INLINE uint32_t getFileType() const { return _fileType; }
 
-    //! @brief Provider is proxy provider for another library.
-    uint32_t proxy : 1;
-  };
+  // --------------------------------------------------------------------------
+  // [Device Type]
+  // --------------------------------------------------------------------------
 
-  // [Members access]
+  //! @brief Get supported device flags.
+  FOG_INLINE uint32_t getDeviceType() const { return _deviceType; }
 
-  //! @brief Returns image file format name.
+  //! @brief Get whether image decoder decide can be created by the provider.
+  FOG_INLINE bool isDecoderType() const { return (_deviceType & IMAGEIO_DEVICE_DECODER) != 0; }
+  //! @brief Get whether image encoder decide can be created by the provider.
+  FOG_INLINE bool isEncoderType() const { return (_deviceType & IMAGEIO_DEVICE_ENCODER) != 0; }
+
+  // --------------------------------------------------------------------------
+  // [Data]
+  // --------------------------------------------------------------------------
+
+  //! @brief Get name of provider.
   FOG_INLINE const String& getName() const { return _name; }
-  //! @brief Returns image file format extensions.
-  FOG_INLINE const List<String>& getExtensions() const { return _extensions; }
-  //! @brief Returns image file format features.
-  FOG_INLINE const Features& getFeatures() const { return _features; }
+  //! @brief Get list of supported image extensions.
+  FOG_INLINE const List<String>& getImageExtensions() const { return _imageExtensions; }
 
+  //! @brief Get whether provider supports image file extension @a extension.
+  bool supportsImageExtension(const String& extension) const;
+
+  // --------------------------------------------------------------------------
   // [Virtuals]
+  // --------------------------------------------------------------------------
 
-  //! @brief Check mime type for this format and return it's relevance. 
+  //! @brief Check binary data signature (mime part of data) and return its score.
+  virtual uint32_t checkSignature(const void* data, sysuint_t length) const = 0;
+
+  //! @brief Create image decoder / encoder device.
   //!
-  //! @note Relevance is number between 0 to 100 in percents. Image
-  //! loader will use relevance for decoders.
-  virtual uint32_t check(const void* mem, sysuint_t length) = 0;
-  //! @overload
-  FOG_INLINE uint32_t check(const ByteArray& mem) { return check(mem.getData(), mem.getLength()); }
+  //! @param deviceType Requested device type, valid values are only 
+  //!        @c IMAGEIO_DEVICE_ENCODER or @c IMAGEIO_DEVICE_DECODER.
+  //! @param device Where to store pointer to the created device.
+  virtual err_t createDevice(uint32_t deviceType, BaseDevice** device) const = 0;
 
-  virtual EncoderDevice* createEncoder();
-  virtual DecoderDevice* createDecoder();
-
+  // --------------------------------------------------------------------------
   // [Members]
+  // --------------------------------------------------------------------------
 
 protected:
-  //! @brief Image file format name ("BMP", "JPEG", "PNG", ...) .
-  String _name;
-  //! @brief Image file format id.
-  uint32_t _id;
-  //! @brief Image file format extensions ("bmp", "jpg", "jpeg", ...).
-  List<String> _extensions;
+  mutable Atomic<sysuint_t> _refCount;
 
-  //! @brief Image file format features.
-  Features _features;
+  //! @brief Image file type (see @c IMAGEIO_FILE_TYPE).
+  uint32_t _fileType;
+
+  //! @brief Supported device flags (see @c IMAGEIO_DEVICE_TYPE).
+  uint32_t _deviceType;
+  
+  //! @brief Image provider name (for example "BMP", "PNG", "PNG[GDI+]", ...).
+  String _name;
+
+  //! @brief List of standard image file extensions.
+  List<String> _imageExtensions;
 
 private:
   FOG_DISABLE_COPY(Provider)
@@ -137,26 +178,31 @@ struct FOG_API BaseDevice : public Object
 {
   FOG_DECLARE_OBJECT(BaseDevice, Object)
 
+  // --------------------------------------------------------------------------
   // [Construction / Descruction]
+  // --------------------------------------------------------------------------
 
   BaseDevice(Provider* provider);
   virtual ~BaseDevice();
 
+  // --------------------------------------------------------------------------
   // [Properties]
+  // --------------------------------------------------------------------------
 
   virtual err_t getProperty(const ManagedString& name, Value& value) const;
   virtual err_t setProperty(const ManagedString& name, const Value& value);
 
-  // [Members access]
+  // --------------------------------------------------------------------------
+  // [Members Access]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE Provider* getProvider() const { return _provider; }
-  FOG_INLINE uint32_t getDeviceType() const { return _deviceType; }
-  FOG_INLINE uint32_t getFlags() const { return _flags; }
 
-  FOG_INLINE bool isNone() const { return _deviceType == IMAGEIO_DEVICE_NONE; }
+  FOG_INLINE uint32_t getFileType() const { return _fileType; }
+  FOG_INLINE uint32_t getDeviceType() const { return _deviceType; }
+
   FOG_INLINE bool isEncoder() const { return (_deviceType & IMAGEIO_DEVICE_ENCODER) != 0; }
-  FOG_INLINE bool isDecoder() const { return (_deviceType & IMAGEIO_DECIDE_DECODER) != 0; }
-  FOG_INLINE bool isProxy() const { return (_deviceType & IMAGEIO_DEVICE_PROXY) != 0; }
+  FOG_INLINE bool isDecoder() const { return (_deviceType & IMAGEIO_DEVICE_DECODER) != 0; }
 
   FOG_INLINE uint64_t attachedOffset() const { return _attachedOffset; }
   FOG_INLINE Stream& getStream() { return _stream; }
@@ -174,7 +220,9 @@ struct FOG_API BaseDevice : public Object
   FOG_INLINE const Palette& getPalette() const { return _palette; }
   FOG_INLINE const ByteArray& getComment() const { return _comment; }
 
+  // --------------------------------------------------------------------------
   // [Progress]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE float getProgress() const { return _progress; }
 
@@ -183,28 +231,37 @@ struct FOG_API BaseDevice : public Object
   //! @overload
   void updateProgress(uint32_t y, uint32_t height);
 
-  // [Dimensions checking]
+  // --------------------------------------------------------------------------
+  // [Image Size]
+  // --------------------------------------------------------------------------
 
-  bool areDimensionsZero() const;
-  bool areDimensionsTooLarge() const;
+  bool checkImageSize() const;
 
+  // --------------------------------------------------------------------------
   // [Stream]
+  // --------------------------------------------------------------------------
 
   virtual void attachStream(Stream& stream);
   virtual void detachStream();
 
-  // [Protected virtuals]
+  // --------------------------------------------------------------------------
+  // [Protected Virtuals]
+  // --------------------------------------------------------------------------
+
 protected:
   virtual void reset();
 
+  // --------------------------------------------------------------------------
   // [Members]
+  // --------------------------------------------------------------------------
 
   //! @brief Device provider.
   Provider* _provider;
-  //! @brief Device type.
+
+  //! @brief File format of target / source image (see @c IMAGEIO_FILE_TYPE).
+  uint32_t _fileType;
+  //! @brief Device type (see @c IMAGEIO_DEVICE_TYPE).
   uint32_t _deviceType;
-  //! @brief Flags.
-  uint32_t _flags;
 
   //! @brief Attached stream offset.
   uint64_t _attachedOffset;
@@ -225,10 +282,8 @@ protected:
   //! @brief Count of frames.
   uint32_t _framesCount;
 
-  //! @brief Pixel format of target image.
+  //! @brief Pixel format of target / source image.
   int _format;
-  //! @brief Image format (see @c IMAGEIO_FILE_TYPE).
-  int _imageType;
 
   //! @brief Palette if reading / writing 8 bit or less images.
   //!
@@ -255,28 +310,39 @@ struct FOG_API DecoderDevice : public BaseDevice
 {
   FOG_DECLARE_OBJECT(DecoderDevice, BaseDevice)
 
+  // --------------------------------------------------------------------------
   // [Construction / Descruction]
+  // --------------------------------------------------------------------------
 
   DecoderDevice(Provider* provider);
   virtual ~DecoderDevice();
 
+  // --------------------------------------------------------------------------
   // [Members access]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE bool isHeaderDone() const { return _headerDone; }
   FOG_INLINE bool isReaderDone() const { return _readerDone; }
   FOG_INLINE uint32_t getHeaderResult() const { return _headerResult; }
   FOG_INLINE uint32_t getReaderResult() const { return _readerResult; }
 
+  // --------------------------------------------------------------------------
   // [Virtuals]
+  // --------------------------------------------------------------------------
 
   virtual err_t readHeader() = 0;
   virtual err_t readImage(Image& image) = 0;
 
+  // --------------------------------------------------------------------------
   // [Protected virtuals]
+  // --------------------------------------------------------------------------
+
 protected:
   virtual void reset();
 
+  // --------------------------------------------------------------------------
   // [Members]
+  // --------------------------------------------------------------------------
 
   //! @brief @c true if header was read.
   uint32_t _headerDone : 1;
@@ -297,28 +363,40 @@ struct FOG_API EncoderDevice : public BaseDevice
 {
   FOG_DECLARE_OBJECT(EncoderDevice, BaseDevice)
 
+  // --------------------------------------------------------------------------
   // [Construction / Descruction]
+  // --------------------------------------------------------------------------
 
   EncoderDevice(Provider* provider);
   virtual ~EncoderDevice();
 
+  // --------------------------------------------------------------------------
   // [Members access]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE bool isHeaderDone() const { return _headerDone; }
   FOG_INLINE bool isWriterDone() const { return _writerDone; }
 
   FOG_INLINE void setComment(const ByteArray& comment) { _comment = comment; }
 
+  // --------------------------------------------------------------------------
   // [Virtuals]
+  // --------------------------------------------------------------------------
 
   virtual void detachStream();
   virtual err_t writeImage(const Image& image) = 0;
+
+  // --------------------------------------------------------------------------
+  // [Protected Virtuals]
+  // --------------------------------------------------------------------------
 
 protected:
   virtual void reset();
   virtual void finalize();
 
+  // --------------------------------------------------------------------------
   // [Members]
+  // --------------------------------------------------------------------------
 
   uint32_t _headerDone : 1;
   uint32_t _writerDone : 1;

@@ -89,16 +89,16 @@ err_t Image::create(int w, int h, int format)
   Data* d = _d;
 
   // Zero dimensions are like Image::free()
-  if (w <= 0 || h <= 0 || (uint)format >= PIXEL_FORMAT_COUNT)
+  if ((uint)format >= PIXEL_FORMAT_COUNT)
   {
     free();
     return ERR_RT_INVALID_ARGUMENT;
   }
 
-  if (w >= IMAGE_MAX_WIDTH || h >= IMAGE_MAX_HEIGHT)
+  if (w <= 0 || h <= 0 || w >= IMAGE_MAX_WIDTH || h >= IMAGE_MAX_HEIGHT)
   {
     free();
-    return ERR_IMAGE_TOO_LARGE;
+    return ERR_IMAGE_INVALID_SIZE;
   }
 
   // Always return a new detached and writable image.
@@ -2240,12 +2240,12 @@ err_t Image::fromHBITMAP(HBITMAP hBitmap)
 
 err_t Image::readFile(const String& fileName)
 {
-  err_t err;
-
-  ImageIO::DecoderDevice* decoder = ImageIO::createDecoderForFile(fileName, &err);
-  if (decoder == NULL) return err;
+  ImageIO::DecoderDevice* decoder = NULL;
+  err_t err = ImageIO::createDecoderForFile(fileName, &decoder);
+  if (err != ERR_OK) return err;
 
   err = decoder->readImage(*this);
+
   delete decoder;
   return err;
 }
@@ -2257,12 +2257,12 @@ err_t Image::readStream(Stream& stream)
 
 err_t Image::readStream(Stream& stream, const String& extension)
 {
-  err_t err;
-
-  ImageIO::DecoderDevice* decoder = ImageIO::createDecoderForStream(stream, extension, &err);
-  if (decoder == NULL) return err;
+  ImageIO::DecoderDevice* decoder = NULL;
+  err_t err = ImageIO::createDecoderForStream(stream, extension, &decoder);
+  if (err != ERR_OK) return err;
 
   err = decoder->readImage(*this);
+
   delete decoder;
   return err;
 }
@@ -2314,25 +2314,22 @@ err_t Image::writeFile(const String& fileName) const
 
 err_t Image::writeStream(Stream& stream, const String& extension) const
 {
-  ImageIO::Provider* provider;
-  ImageIO::EncoderDevice* encoder;
-
-  if ((provider = ImageIO::getProviderByExtension(extension)))
+  ImageIO::Provider* provider = ImageIO::getProviderByExtension(IMAGEIO_DEVICE_ENCODER, extension);
+  if (provider != NULL)
   {
-    if ((encoder = provider->createEncoder()))
-    {
-      err_t err;
+    ImageIO::EncoderDevice* encoder = NULL;
+    err_t err = provider->createDevice(IMAGEIO_DEVICE_ENCODER, 
+      reinterpret_cast<ImageIO::BaseDevice**>(&encoder));
+    if (err) return err;
 
-      encoder->attachStream(stream);
-      err = encoder->writeImage(*this);
-      delete encoder;
-      return err;
-    }
-    else
-      return ERR_IMAGEIO_NOT_AVAILABLE_ENCODER;
+    encoder->attachStream(stream);
+    err = encoder->writeImage(*this);
+
+    delete encoder;
+    return err;
   }
-  else
-    return ERR_IMAGEIO_NOT_AVAILABLE_PROVIDER;
+
+  return ERR_IMAGEIO_NO_ENCODER;
 }
 
 err_t Image::writeBuffer(ByteArray& buffer, const String& extension) const
@@ -2340,8 +2337,8 @@ err_t Image::writeBuffer(ByteArray& buffer, const String& extension) const
   Stream stream;
   err_t err = stream.openBuffer(buffer);
   if (err) return err;
-  stream.seek(buffer.getLength(), STREAM_SEEK_SET);
 
+  stream.seek(buffer.getLength(), STREAM_SEEK_SET);
   return writeStream(stream, extension);
 }
 
@@ -2379,14 +2376,14 @@ sysint_t Image::calcStride(int width, int depth)
       return 0;
   }
 
-  // Align to 32 bits boudary
+  // Align to 32 bits boudary.
   result += 3;
   result &= ~3;
 
-  // Overflow
+  // Overflow.
   if (result < width) return 0;
 
-  // Success
+  // Success.
   return result;
 }
 

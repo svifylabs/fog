@@ -126,6 +126,7 @@ err_t GdiPlusLibrary::init()
     "GdiplusStartup\0"
     "GdiplusShutdown\0"
     "GdipLoadImageFromStream\0"
+    "GdipSaveImageToStream\0"
     "GdipDisposeImage\0"
     "GdipGetImageType\0"
     "GdipGetImageWidth\0"
@@ -136,10 +137,13 @@ err_t GdiPlusLibrary::init()
     "GdipImageGetFrameCount\0"
     "GdipImageSelectActiveFrame\0"
     "GdipCreateBitmapFromScan0\0"
-    "GdipFlush\0"
     "GdipSetCompositingMode\0"
     "GdipDrawImageI\0"
+    "GdipFlush\0"
     "GdipDeleteGraphics\0"
+
+    "GdipGetImageEncoders\0"
+    "GdipGetImageEncodersSize\0"
     ;
 
   if (dll.open(Ascii8("gdiplus")) != ERR_OK)
@@ -188,54 +192,143 @@ void GdiPlusLibrary::close()
   err = 0xFFFFFFFF;
 }
 
+static Static<GdiPlusLibrary> _gdiPlusLibrary;
+static Atomic<sysint_t> _gdiPlusRefCount;
+
 // ===========================================================================
 // [Fog::ImageIO::GdiPlusProvider]
 // ===========================================================================
 
+static err_t getGdiPlusEncoderClsid(const WCHAR* mime, CLSID* clsid)
+{
+  GpStatus status;
+  GpImageCodecInfo* codecs = NULL;
+
+  UINT i;
+  UINT codecsCount;
+  UINT codecsDataSize;
+
+  err_t err = ERR_OK;
+
+  status = _gdiPlusLibrary->pGdipGetImageEncodersSize(&codecsCount, &codecsDataSize);
+  if (status != GpOk)
+  {
+    err = ERR_IMAGEIO_GDIPLUS_ERROR;
+    goto end;
+  }
+
+  codecs = reinterpret_cast<GpImageCodecInfo*>(Memory::alloc(codecsDataSize));
+  if (codecs == NULL)
+  {
+    err = ERR_RT_OUT_OF_MEMORY;
+    goto end;
+  }
+
+  status = _gdiPlusLibrary->pGdipGetImageEncoders(codecsCount, codecsDataSize, codecs);
+  if (status != GpOk)
+  {
+    err = ERR_IMAGEIO_GDIPLUS_ERROR;
+    goto end;
+  }
+
+  for (i = 0; i < codecsCount; i++)
+  {
+    if (wcscmp(codecs[i].MimeType, mime) == 0)
+    {
+      *clsid = codecs[i].Clsid;
+      goto end;
+    }
+  }
+
+  // Shouldn't happen.
+  err = ERR_IMAGEIO_INTERNAL_ERROR;
+
+end:
+  if (codecs) Memory::free(codecs);
+  return err;
+}
+
 struct FOG_HIDDEN GdiPlusProvider : public Provider
 {
-  GdiPlusProvider();
+  GdiPlusProvider(uint32_t fileType);
   virtual ~GdiPlusProvider();
 
-  virtual uint32_t check(const void* mem, sysuint_t length);
-  virtual EncoderDevice* createEncoder();
-  virtual DecoderDevice* createDecoder();
+  virtual uint32_t checkSignature(const void* mem, sysuint_t length) const;
+  virtual err_t createDevice(uint32_t deviceType, BaseDevice** device) const;
 
-  GdiPlusLibrary _gdiPlusLibrary;
+  const WCHAR* _gdipMime;
 };
 
-GdiPlusProvider::GdiPlusProvider()
+GdiPlusProvider::GdiPlusProvider(uint32_t fileType)
 {
-  // Name of ImageIO Provider.
-  _name = fog_strings->getString(STR_GRAPHICS_GDIPLUS);
+  // Initialize GdiPlusLibrary.
+  if (_gdiPlusRefCount.addXchg(1) == 0) _gdiPlusLibrary.init();
 
-  // Supported features.
-  _features.decoder = true;
-  _features.encoder = true;
-  _features.proxy = true;
+  const WCHAR* gdipMime = NULL;
+
+  // File type.
+  _fileType = fileType;
+
+  // Supported devices.
+  _deviceType = IMAGEIO_DEVICE_BOTH;
+
+  // Name of ImageIO Provider.
+  switch (_fileType)
+  {
+    case IMAGEIO_FILE_JPEG:
+      _name = fog_strings->getString(STR_GRAPHICS_JPEG);
+      _gdipMime = L"image/jpeg";
+      break;
+    case IMAGEIO_FILE_PNG:
+      _name = fog_strings->getString(STR_GRAPHICS_PNG);
+      _gdipMime = L"image/png";
+      break;
+    case IMAGEIO_FILE_TIFF:
+      _name = fog_strings->getString(STR_GRAPHICS_TIFF);
+      _gdipMime = L"image/tiff";
+      break;
+  }
+
+  // All GDI+ providers have with "[GDI+]" suffix.
+  _name.append(Ascii8("[GDI+]"));
 
   // Supported extensions.
-  _extensions.reserve(7);
-  _extensions.append(fog_strings->getString(STR_GRAPHICS_jpg));
-  _extensions.append(fog_strings->getString(STR_GRAPHICS_jpeg));
-  _extensions.append(fog_strings->getString(STR_GRAPHICS_jfi));
-  _extensions.append(fog_strings->getString(STR_GRAPHICS_jfif));
-  _extensions.append(fog_strings->getString(STR_GRAPHICS_png));
-  _extensions.append(fog_strings->getString(STR_GRAPHICS_tif));
-  _extensions.append(fog_strings->getString(STR_GRAPHICS_tiff));
+  switch (_fileType)
+  {
+    case IMAGEIO_FILE_JPEG:
+      _imageExtensions.reserve(4);
+      _imageExtensions.append(fog_strings->getString(STR_GRAPHICS_jpg));
+      _imageExtensions.append(fog_strings->getString(STR_GRAPHICS_jpeg));
+      _imageExtensions.append(fog_strings->getString(STR_GRAPHICS_jfi));
+      _imageExtensions.append(fog_strings->getString(STR_GRAPHICS_jfif));
+      break;
+    case IMAGEIO_FILE_PNG:
+      _imageExtensions.reserve(1);
+      _imageExtensions.append(fog_strings->getString(STR_GRAPHICS_png));
+      break;
+    case IMAGEIO_FILE_TIFF:
+      _imageExtensions.reserve(2);
+      _imageExtensions.append(fog_strings->getString(STR_GRAPHICS_tif));
+      _imageExtensions.append(fog_strings->getString(STR_GRAPHICS_tiff));
+      break;
+    default:
+      FOG_ASSERT_NOT_REACHED();
+  }
 }
 
 GdiPlusProvider::~GdiPlusProvider()
 {
+  // Shutdown GdiPlusLibrary.
+  if (_gdiPlusRefCount.deref()) _gdiPlusLibrary.destroy();
 }
 
-uint32_t GdiPlusProvider::check(const void* mem, sysuint_t length)
+uint32_t GdiPlusProvider::checkSignature(const void* mem, sysuint_t length) const
 {
-  // Note: GdiPlus proxy provider uses 14 as a base score. This is
-  // by one less than all other providers based on external 
-  // libraries (libpng, libjpeg, libtiff) and reason is that if
-  // available these external libraries are used instead.
-  if (length == 0) return 0;
+  // Note: GdiPlus proxy provider uses 14 as a base score. This
+  // is by one less than all other providers based on external 
+  // libraries (libpng, libjpeg, libtiff) and reason is that when
+  // these external libraries are available they are used instead.
+  if (!mem || length == 0) return 0;
 
   uint32_t score = 0;
   sysuint_t i;
@@ -246,33 +339,54 @@ uint32_t GdiPlusProvider::check(const void* mem, sysuint_t length)
   static const uint8_t mimeTIFF_LE[4] = { 0x49, 0x49, 0x00, 0x42 };
   static const uint8_t mimeTIFF_BE[4] = { 0x4D, 0x4D, 0x42, 0x00 };
 
-  // JPEG check.
-  i = Math::min<sysuint_t>(length, 2);
-  if (memcmp(mem, mimeJPEG, i) == 0)
-    score = Math::max<uint32_t>(score, 14 + ((uint32_t)i * 40));
+  // Mime check.
+  switch (_fileType)
+  {
+    case IMAGEIO_FILE_JPEG:
+      i = Math::min<sysuint_t>(length, 2);
+      if (memcmp(mem, mimeJPEG, i) == 0)
+        score = Math::max<uint32_t>(score, 14 + ((uint32_t)i * 40));
+      break;
+    case IMAGEIO_FILE_PNG:
+      i = Math::min<sysuint_t>(length, 8);
+      if (memcmp(mem, mimePNG, i) == 0)
+        score = Math::max<uint32_t>(score, 14 + ((uint32_t)i * 10));
+      break;
+    case IMAGEIO_FILE_TIFF:
+      i = Math::min<sysuint_t>(length, 4);
+      if (memcmp(mem, mimeTIFF_LE, i) == 0 || memcmp(mem, mimeTIFF_BE, i) == 0)
+        score = Math::max<uint32_t>(score, 14 + ((uint32_t)i * 20));
+      break;
+    default:
+      FOG_ASSERT_NOT_REACHED();
+  }
 
-  // PNG check.
-  i = Math::min<sysuint_t>(length, 8);
-  if (memcmp(mem, mimePNG, i) == 0)
-    score = Math::max<uint32_t>(score, 14 + ((uint32_t)i * 10));
-
-  // TIFF check.
-  i = Math::min<sysuint_t>(length, 4);
-
-  if (memcmp(mem, mimeTIFF_LE, i) == 0 || memcmp(mem, mimeTIFF_BE, i) == 0)
-    score = Math::max<uint32_t>(score, 14 + ((uint32_t)i * 20));
-
-  return 0;
+  return score;
 }
 
-EncoderDevice* GdiPlusProvider::createEncoder()
+err_t GdiPlusProvider::createDevice(uint32_t deviceType, BaseDevice** device) const
 {
-  return (_gdiPlusLibrary.prepare() == ERR_OK) ? new(std::nothrow) GdiPlusEncoderDevice(this) : NULL;
-}
+  BaseDevice* d = NULL;
 
-DecoderDevice* GdiPlusProvider::createDecoder()
-{
-  return (_gdiPlusLibrary.prepare() == ERR_OK) ? new(std::nothrow) GdiPlusDecoderDevice(this) : NULL;
+  err_t err = _gdiPlusLibrary->init();
+  if (err) return err;
+
+  switch (deviceType)
+  {
+    case IMAGEIO_DEVICE_DECODER:
+      d = new(std::nothrow) GdiPlusDecoderDevice(const_cast<GdiPlusProvider*>(this));
+      break;
+    case IMAGEIO_DEVICE_ENCODER:
+      d = new(std::nothrow) GdiPlusEncoderDevice(const_cast<GdiPlusProvider*>(this));
+      break;
+    default:
+      return ERR_RT_INVALID_ARGUMENT;
+  }
+
+  if (!d) return ERR_RT_OUT_OF_MEMORY;
+
+  *device = d;
+  return ERR_OK;
 }
 
 // ===========================================================================
@@ -303,11 +417,9 @@ void GdiPlusDecoderDevice::attachStream(Stream& stream)
 
 void GdiPlusDecoderDevice::detachStream()
 {
-  GdiPlusLibrary& gdp = reinterpret_cast<GdiPlusProvider*>(_provider)->_gdiPlusLibrary;
-
   if (_gpImage) 
   {
-    gdp.pGdipDisposeImage(_gpImage);
+    _gdiPlusLibrary->pGdipDisposeImage(_gpImage);
     _gpImage = NULL;
   }
 
@@ -339,17 +451,16 @@ err_t GdiPlusDecoderDevice::readHeader()
   if (_headerResult) return _headerResult;
 
   if (_istream == NULL) return ERR_RT_INVALID_HANDLE;
-  GdiPlusLibrary& gdp = reinterpret_cast<GdiPlusProvider*>(_provider)->_gdiPlusLibrary;
 
-  GpStatus status = gdp.pGdipLoadImageFromStream(_istream, &_gpImage);
+  GpStatus status = _gdiPlusLibrary->pGdipLoadImageFromStream(_istream, &_gpImage);
   if (status != GpOk) return (_headerResult = ERR_IMAGEIO_GDIPLUS_ERROR);
 
-  gdp.pGdipGetImageWidth(_gpImage, &_width);
-  gdp.pGdipGetImageHeight(_gpImage, &_height);
+  _gdiPlusLibrary->pGdipGetImageWidth(_gpImage, &_width);
+  _gdiPlusLibrary->pGdipGetImageHeight(_gpImage, &_height);
   _planes = 1;
 
   GpPixelFormat pf;
-  gdp.pGdipGetImagePixelFormat(_gpImage, &pf);
+  _gdiPlusLibrary->pGdipGetImagePixelFormat(_gpImage, &pf);
 
   _format = fogFormatFromGpFormat(pf);
   _depth = Image::formatToDepth(_format);
@@ -366,7 +477,6 @@ err_t GdiPlusDecoderDevice::readImage(Image& image)
   err_t err = ERR_OK;
 
   if (_istream == NULL) return ERR_RT_INVALID_HANDLE;
-  GdiPlusLibrary& gdp = reinterpret_cast<GdiPlusProvider*>(_provider)->_gdiPlusLibrary;
 
   GpBitmap* bm = NULL;
   GpGraphics* gr = NULL;
@@ -382,7 +492,7 @@ err_t GdiPlusDecoderDevice::readImage(Image& image)
   if ((err = image.create(_width, _height, _format)) != ERR_OK) return err;
 
   // Create GpBitmap that will share raster data with our image.
-  status = gdp.pGdipCreateBitmapFromScan0(
+  status = _gdiPlusLibrary->pGdipCreateBitmapFromScan0(
     (INT)image.getWidth(),
     (INT)image.getHeight(), 
     (INT)image.getStride(),
@@ -392,25 +502,25 @@ err_t GdiPlusDecoderDevice::readImage(Image& image)
   if (status != GpOk) { err = ERR_IMAGEIO_GDIPLUS_ERROR; goto end; }
 
   // Create GpGraphics context.
-  status = gdp.pGdipGetImageGraphicsContext((GpImage*)bm, &gr);
+  status = _gdiPlusLibrary->pGdipGetImageGraphicsContext((GpImage*)bm, &gr);
   if (status != GpOk) { err = ERR_IMAGEIO_GDIPLUS_ERROR; goto end; }
 
   // Set compositing to source copy (we want alpha bits).
-  status = gdp.pGdipSetCompositingMode(gr, GpCompositingModeSourceCopy);
+  status = _gdiPlusLibrary->pGdipSetCompositingMode(gr, GpCompositingModeSourceCopy);
   if (status != GpOk) { err = ERR_IMAGEIO_GDIPLUS_ERROR; goto end; }
 
   // Draw streamed image to GpGraphics context.
-  status = gdp.pGdipDrawImageI(gr, _gpImage, 0, 0);
+  status = _gdiPlusLibrary->pGdipDrawImageI(gr, _gpImage, 0, 0);
   if (status != GpOk) { err = ERR_IMAGEIO_GDIPLUS_ERROR; goto end; }
 
   // flush (this step is probably not necessary).
-  status = gdp.pGdipFlush(gr, GpFlushIntentionSync);
+  status = _gdiPlusLibrary->pGdipFlush(gr, GpFlushIntentionSync);
   if (status != GpOk) { err = ERR_IMAGEIO_GDIPLUS_ERROR; goto end; }
 
 end:
   // Delete created Gdi+ objects.
-  if (gr) gdp.pGdipDeleteGraphics(gr);
-  if (bm) gdp.pGdipDisposeImage((GpImage*)bm);
+  if (gr) _gdiPlusLibrary->pGdipDeleteGraphics(gr);
+  if (bm) _gdiPlusLibrary->pGdipDisposeImage((GpImage*)bm);
 
   if (err == ERR_OK) updateProgress(1.0);
   return (_readerResult = err);
@@ -466,9 +576,40 @@ void GdiPlusEncoderDevice::reset()
 
 err_t GdiPlusEncoderDevice::writeImage(const Image& image)
 {
-  
+  if (image.isEmpty()) return ERR_IMAGE_INVALID_SIZE;
 
-  return ERR_RT_NOT_IMPLEMENTED;
+  err_t err = ERR_OK;
+  if (_istream == NULL) return ERR_RT_INVALID_HANDLE;
+
+  GpBitmap* bm = NULL;
+  GpGraphics* gr = NULL;
+  GpStatus status;
+
+  CLSID encoderClsid;
+
+  // Get GDI+ encoder CLSID.
+  err = getGdiPlusEncoderClsid(
+    reinterpret_cast<GdiPlusProvider*>(getProvider())->_gdipMime, &encoderClsid);
+  if (err) goto end;
+
+  // Create GpBitmap that will share raster data with our image.
+  status = _gdiPlusLibrary->pGdipCreateBitmapFromScan0(
+    (INT)image.getWidth(),
+    (INT)image.getHeight(), 
+    (INT)image.getStride(),
+    gpFormatFromFogFormat(image.getFormat()),
+    (BYTE*)image.getData(),
+    &bm);
+  if (status != GpOk) { err = ERR_IMAGEIO_GDIPLUS_ERROR; goto end; }
+
+  status = _gdiPlusLibrary->pGdipSaveImageToStream((GpImage*)bm, _istream, &encoderClsid, NULL);
+
+end:
+  // Delete created Gdi+ objects.
+  if (bm) _gdiPlusLibrary->pGdipDisposeImage((GpImage*)bm);
+
+  if (err == ERR_OK) updateProgress(1.0);
+  return err;
 }
 
 // ===========================================================================
@@ -499,8 +640,17 @@ FOG_INIT_DECLARE void fog_imageio_init_gdiplus(void)
 {
   using namespace Fog;
 
-  ImageIO::GdiPlusProvider* provider = new(std::nothrow) ImageIO::GdiPlusProvider();
-  if (provider) ImageIO::addProvider(provider);
+  ImageIO::_gdiPlusRefCount.init(0);
+  ImageIO::GdiPlusProvider* provider;
+
+  provider = new(std::nothrow) ImageIO::GdiPlusProvider(IMAGEIO_FILE_PNG);
+  ImageIO::addProvider(IMAGEIO_DEVICE_BOTH, provider);
+
+  provider = new(std::nothrow) ImageIO::GdiPlusProvider(IMAGEIO_FILE_JPEG);
+  ImageIO::addProvider(IMAGEIO_DEVICE_BOTH, provider);
+
+  provider = new(std::nothrow) ImageIO::GdiPlusProvider(IMAGEIO_FILE_TIFF);
+  ImageIO::addProvider(IMAGEIO_DEVICE_BOTH, provider);
 }
 
 #endif // FOG_OS_WINDOWS

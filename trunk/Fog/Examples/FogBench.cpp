@@ -38,10 +38,10 @@ static void loadSprites()
 {
   static const char* spriteNames[NUM_SPRITES] =
   {
-    "babelfish.pcx",
-    "blockdevice.pcx",
-    "drop.pcx",
-    "kweather.pcx"
+    "babelfish.png",
+    "blockdevice.png",
+    "drop.png",
+    "kweather.png"
   };
 
   bool spritesNotFound = false;
@@ -359,6 +359,33 @@ void FogModule::setEngine(int engine)
 void FogModule::configurePainter(Painter& p)
 {
   p.setEngine(engine);
+}
+
+// ============================================================================
+// [FogModule_None]
+// ============================================================================
+
+struct FogModule_None : public FogModule
+{
+  FogModule_None();
+  virtual ~FogModule_None();
+
+  virtual void bench(int quantity);
+  virtual ByteArray getType();
+};
+
+FogModule_None::FogModule_None() : FogModule(0, 0) {}
+FogModule_None::~FogModule_None() {}
+
+void FogModule_None::bench(int quantity)
+{
+  Painter p(screen, PAINTER_HINT_NO_MT);
+  configurePainter(p);
+}
+
+ByteArray FogModule_None::getType()
+{
+  return ByteArray("None");
 }
 
 // ============================================================================
@@ -845,6 +872,32 @@ ByteArray GdiPlusModule::getEngine()
 }
 
 // ============================================================================
+// [GdiPlusModule_None]
+// ============================================================================
+
+struct GdiPlusModule_None : public GdiPlusModule
+{
+  GdiPlusModule_None();
+  virtual ~GdiPlusModule_None();
+
+  virtual void bench(int quantity);
+  virtual ByteArray getType();
+};
+
+GdiPlusModule_None::GdiPlusModule_None() : GdiPlusModule(0, 0) {}
+GdiPlusModule_None::~GdiPlusModule_None() {}
+
+void GdiPlusModule_None::bench(int quantity)
+{
+  Gdiplus::Graphics gr(screen_gdip);
+}
+
+ByteArray GdiPlusModule_None::getType()
+{
+  return ByteArray("None");
+}
+
+// ============================================================================
 // [GdiPlusModule_FillRect]
 // ============================================================================
 
@@ -1312,6 +1365,33 @@ CairoModule::~CairoModule()
 ByteArray CairoModule::getEngine()
 {
   return ByteArray("Cairo");
+}
+
+// ============================================================================
+// [CairoModule_None]
+// ============================================================================
+
+struct CairoModule_None : public CairoModule
+{
+  CairoModule_None();
+  virtual ~CairoModule_None();
+
+  virtual void bench(int quantity);
+  virtual ByteArray getType();
+};
+
+CairoModule_None::CairoModule_None() : CairoModule(0, 0) {}
+CairoModule_None::~CairoModule_None() {}
+
+void CairoModule_None::bench(int quantity)
+{
+  cairo_t* cr = cairo_create(screen_cairo);
+  cairo_destroy(cr);
+}
+
+ByteArray CairoModule_None::getType()
+{
+  return ByteArray("None");
 }
 
 // ============================================================================
@@ -1899,6 +1979,13 @@ static void benchAll()
   {
     printBenchmarkHeader(fogEngineName[engine]);
 
+    // Fog - None
+    {
+      FogModule_None mod;
+      mod.setEngine(engine);
+      totalFog[engine] += bench(mod, 0, 0, quantity);
+    }
+
     for (s = 0; s < FOG_ARRAY_SIZE(sizes); s++)
     {
       // Fog - FillRect
@@ -1976,6 +2063,12 @@ static void benchAll()
   printBenchmarkHeader("Gdi+");
   TimeDelta totalGdiPlus;
 
+  // GdiPlus - None
+  {
+    GdiPlusModule_None mod;
+    totalGdiPlus += bench(mod, 0, 0, quantity);
+  }
+
   for (s = 0; s < FOG_ARRAY_SIZE(sizes); s++)
   {
     // GdiPlus - FillRect
@@ -2039,6 +2132,12 @@ static void benchAll()
 
   printBenchmarkHeader("Cairo");
   TimeDelta totalCairo;
+
+  // Cairo - None
+  {
+    CairoModule_None mod;
+    totalCairo += bench(mod, 0, 0, quantity);
+  }
 
   for (s = 0; s < FOG_ARRAY_SIZE(sizes); s++)
   {

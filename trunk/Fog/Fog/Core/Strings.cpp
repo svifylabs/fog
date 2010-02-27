@@ -50,8 +50,6 @@ static const char fog_strings_data[] =
   "XBM\0"
   "XPM\0"
 
-  "GDI+\0"
-
   // [Graphics - Image File Extensions]
 
   "ani\0"
