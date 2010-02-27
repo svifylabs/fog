@@ -2511,9 +2511,8 @@ struct GifProvider : public Provider
   GifProvider();
   virtual ~GifProvider();
 
-  virtual uint32_t check(const void* mem, sysuint_t length);
-  virtual EncoderDevice* createEncoder();
-  virtual DecoderDevice* createDecoder();
+  virtual uint32_t checkSignature(const void* mem, sysuint_t length) const;
+  virtual err_t createDevice(uint32_t deviceType, BaseDevice** device) const;
 };
 
 
@@ -2522,22 +2521,24 @@ GifProvider::GifProvider()
   // Name of ImageIO Provider.
   _name = fog_strings->getString(STR_GRAPHICS_GIF);
 
-  // Supported features.
-  _features.decoder = true;
-  _features.encoder = true;
+  // File type.
+  _fileType = IMAGEIO_FILE_GIF;
+
+  // Supported devices.
+  _deviceType = IMAGEIO_DEVICE_DECODER;
 
   // Supported extensions.
-  _extensions.reserve(1);
-  _extensions.append(fog_strings->getString(STR_GRAPHICS_gif));
+  _imageExtensions.reserve(1);
+  _imageExtensions.append(fog_strings->getString(STR_GRAPHICS_gif));
 }
 
 GifProvider::~GifProvider()
 {
 }
 
-uint32_t GifProvider::check(const void* mem, sysuint_t length)
+uint32_t GifProvider::checkSignature(const void* mem, sysuint_t length) const
 {
-  if (length < 3) return 0;
+  if (!mem || length < 3) return 0;
 
   const uint8_t* m = (const uint8_t*)mem;
   if (memcmp(m, "GIF", 3) != 0) return 0;
@@ -2549,14 +2550,25 @@ uint32_t GifProvider::check(const void* mem, sysuint_t length)
   return 90;
 }
 
-EncoderDevice* GifProvider::createEncoder()
+err_t GifProvider::createDevice(uint32_t deviceType, BaseDevice** device) const
 {
-  return new(std::nothrow) GifEncoderDevice(this);
-}
+  BaseDevice* d = NULL;
 
-DecoderDevice* GifProvider::createDecoder()
-{
-  return new(std::nothrow) GifDecoderDevice(this);
+  switch (deviceType)
+  {
+    case IMAGEIO_DEVICE_DECODER:
+      d = new(std::nothrow) GifDecoderDevice(const_cast<GifProvider*>(this));
+      break;
+    case IMAGEIO_DEVICE_ENCODER:
+      return ERR_IMAGEIO_NO_ENCODER;
+    default:
+      return ERR_RT_INVALID_ARGUMENT;
+  }
+
+  if (!d) return ERR_RT_OUT_OF_MEMORY;
+
+  *device = d;
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -2567,7 +2579,6 @@ GifDecoderDevice::GifDecoderDevice(Provider* provider) :
   DecoderDevice(provider),
   _context(NULL)
 {
-  _imageType = IMAGEIO_FILE_GIF;
 }
 
 GifDecoderDevice::~GifDecoderDevice()
@@ -2748,7 +2759,6 @@ end:
 GifEncoderDevice::GifEncoderDevice(Provider* provider) :
   EncoderDevice(provider)
 {
-  _imageType = IMAGEIO_FILE_GIF;
 }
 
 GifEncoderDevice::~GifEncoderDevice()
@@ -2774,5 +2784,5 @@ FOG_IMPLEMENT_OBJECT(Fog::ImageIO::GifEncoderDevice)
 FOG_INIT_DECLARE void fog_imageio_init_gif(void)
 {
   using namespace Fog;
-  ImageIO::addProvider(new(std::nothrow) ImageIO::GifProvider());
+  ImageIO::addProvider(IMAGEIO_DEVICE_DECODER, new(std::nothrow) ImageIO::GifProvider());
 }

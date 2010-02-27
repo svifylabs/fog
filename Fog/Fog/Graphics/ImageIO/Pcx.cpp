@@ -33,9 +33,8 @@ struct PcxProvider : public Provider
   PcxProvider();
   virtual ~PcxProvider();
 
-  virtual uint32_t check(const void* mem, sysuint_t length);
-  virtual EncoderDevice* createEncoder();
-  virtual DecoderDevice* createDecoder();
+  virtual uint32_t checkSignature(const void* mem, sysuint_t length) const;
+  virtual err_t createDevice(uint32_t deviceType, BaseDevice** device) const;
 };
 
 PcxProvider::PcxProvider()
@@ -43,44 +42,58 @@ PcxProvider::PcxProvider()
   // Name of ImageIO Provider.
   _name = fog_strings->getString(STR_GRAPHICS_PCX);
 
-  // Supported features.
-  _features.decoder = true;
-  _features.encoder = true;
+  // File type.
+  _fileType = IMAGEIO_FILE_PCX;
+
+  // Supported devices.
+  _deviceType = IMAGEIO_DEVICE_BOTH;
 
   // Supported extensions.
-  _extensions.reserve(1);
-  _extensions.append(fog_strings->getString(STR_GRAPHICS_pcx));
+  _imageExtensions.reserve(1);
+  _imageExtensions.append(fog_strings->getString(STR_GRAPHICS_pcx));
 }
 
 PcxProvider::~PcxProvider()
 {
 }
 
-uint32_t PcxProvider::check(const void* mem, sysuint_t length)
+uint32_t PcxProvider::checkSignature(const void* mem, sysuint_t length) const
 {
-  if (length == 0) return 0;
+  if (!mem || length == 0) return 0;
 
   const uint8_t* m = (const uint8_t*)mem;
 
   if (length >= 3)
   {
-    // [0] == manufacturer (0x0A)
-    // [1] == version (0x05)
-    // [2] == encoding (0x01)
+    // [0] == Manufacturer (0x0A).
+    // [1] == Version      (0x05).
+    // [2] == Encoding     (0x01).
     if (m[0] == 0x0A && m[1] <= 0x05 && m[2] == 0x01) return 90;
   }
 
   return 0;
 }
 
-EncoderDevice* PcxProvider::createEncoder()
+err_t PcxProvider::createDevice(uint32_t deviceType, BaseDevice** device) const
 {
-  return new(std::nothrow) PcxEncoderDevice(this);
-}
+  BaseDevice* d = NULL;
 
-DecoderDevice* PcxProvider::createDecoder()
-{
-  return new(std::nothrow) PcxDecoderDevice(this);
+  switch (deviceType)
+  {
+    case IMAGEIO_DEVICE_DECODER:
+      d = new(std::nothrow) PcxDecoderDevice(const_cast<PcxProvider*>(this));
+      break;
+    case IMAGEIO_DEVICE_ENCODER:
+      d = new(std::nothrow) PcxEncoderDevice(const_cast<PcxProvider*>(this));
+      break;
+    default:
+      return ERR_RT_INVALID_ARGUMENT;
+  }
+
+  if (!d) return ERR_RT_OUT_OF_MEMORY;
+
+  *device = d;
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -345,7 +358,6 @@ static void PCX_convertPaletteToPcx(uint8_t* dest, const uint8_t* src, sysuint_t
 PcxDecoderDevice::PcxDecoderDevice(Provider* provider) :
   DecoderDevice(provider)
 {
-  _imageType = IMAGEIO_FILE_PCX;
   zeroall();
 }
 
@@ -406,16 +418,10 @@ err_t PcxDecoderDevice::readHeader()
   _depth  = (uint32_t)(pcxFileHeader().bitsPerPixel);
   _planes = (uint32_t)(pcxFileHeader().nPlanes);
 
-  // Check for zero dimensions.
-  if (areDimensionsZero())
+  // Check whether the image size is valid.
+  if (!checkImageSize())
   {
     return (_headerResult = ERR_IMAGE_INVALID_SIZE);
-  }
-
-  // Check for too large dimensions.
-  if (areDimensionsTooLarge())
-  {
-    return (_headerResult = ERR_IMAGE_TOO_LARGE);
   }
 
   // Pcx contains only one image.
@@ -715,7 +721,6 @@ end:
 PcxEncoderDevice::PcxEncoderDevice(Provider* provider) :
   EncoderDevice(provider)
 {
-  _imageType = IMAGEIO_FILE_PCX;
 }
 
 PcxEncoderDevice::~PcxEncoderDevice()
@@ -905,5 +910,5 @@ FOG_IMPLEMENT_OBJECT(Fog::ImageIO::PcxEncoderDevice)
 FOG_INIT_DECLARE void fog_imageio_init_pcx(void)
 {
   using namespace Fog;
-  ImageIO::addProvider(new(std::nothrow) ImageIO::PcxProvider());
+  ImageIO::addProvider(IMAGEIO_DEVICE_BOTH, new(std::nothrow) ImageIO::PcxProvider());
 }

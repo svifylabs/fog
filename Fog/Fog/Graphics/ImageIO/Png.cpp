@@ -131,9 +131,8 @@ struct FOG_HIDDEN PngProvider : public Provider
   PngProvider();
   virtual ~PngProvider();
 
-  virtual uint32_t check(const void* mem, sysuint_t length);
-  virtual EncoderDevice* createEncoder();
-  virtual DecoderDevice* createDecoder();
+  virtual uint32_t checkSignature(const void* mem, sysuint_t length) const;
+  virtual err_t createDevice(uint32_t deviceType, BaseDevice** device) const;
 
   PngLibrary _pngLibrary;
 };
@@ -143,22 +142,24 @@ PngProvider::PngProvider()
   // Name of ImageIO Provider.
   _name = fog_strings->getString(STR_GRAPHICS_PNG);
 
-  // Supported features.
-  _features.decoder = true;
-  _features.encoder = true;
+  // File type.
+  _fileType = IMAGEIO_FILE_PNG;
+
+  // Supported devices.
+  _deviceType = IMAGEIO_DEVICE_BOTH;
 
   // Supported extensions.
-  _extensions.reserve(1);
-  _extensions.append(fog_strings->getString(STR_GRAPHICS_png));
+  _imageExtensions.reserve(1);
+  _imageExtensions.append(fog_strings->getString(STR_GRAPHICS_png));
 }
 
 PngProvider::~PngProvider()
 {
 }
 
-uint32_t PngProvider::check(const void* mem, sysuint_t length)
+uint32_t PngProvider::checkSignature(const void* mem, sysuint_t length) const
 {
-  if (length == 0) return 0;
+  if (!mem || length == 0) return 0;
 
   // Mime data.
   static const uint8_t mimePNG[8] = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
@@ -171,17 +172,36 @@ uint32_t PngProvider::check(const void* mem, sysuint_t length)
   return 0;
 }
 
-EncoderDevice* PngProvider::createEncoder()
+err_t PngProvider::createDevice(uint32_t deviceType, BaseDevice** device) const
 {
-  return (_pngLibrary.prepare() == ERR_OK) ? new(std::nothrow) PngEncoderDevice(this) : NULL;
+  BaseDevice* d = NULL;
+
+  err_t err = _pngLibrary.prepare();
+  if (err) return err;
+
+  switch (deviceType)
+  {
+    case IMAGEIO_DEVICE_DECODER:
+      d = new(std::nothrow) PngDecoderDevice(const_cast<PngProvider*>(this));
+      break;
+    case IMAGEIO_DEVICE_ENCODER:
+      d = new(std::nothrow) PngEncoderDevice(const_cast<PngProvider*>(this));
+      break;
+    default:
+      return ERR_RT_INVALID_ARGUMENT;
+  }
+
+  if (!d) return ERR_RT_OUT_OF_MEMORY;
+
+  *device = d;
+  return ERR_OK;
 }
 
-DecoderDevice* PngProvider::createDecoder()
-{
-  return (_pngLibrary.prepare() == ERR_OK) ? new(std::nothrow) PngDecoderDevice(this) : NULL;
-}
+// ============================================================================
+// [Fog::ImageIO::Png Helpers]
+// ============================================================================
 
-static void user_read_data(png_structp png_ptr, png_bytep data, png_size_t length)
+static void png_user_read_data(png_structp png_ptr, png_bytep data, png_size_t length)
 {
   PngDecoderDevice* device = reinterpret_cast<PngDecoderDevice*>(png_ptr->io_ptr);
 
@@ -192,7 +212,7 @@ static void user_read_data(png_structp png_ptr, png_bytep data, png_size_t lengt
   }
 }
 
-static void user_write_data(png_structp png_ptr, png_bytep data, png_size_t length)
+static void png_user_write_data(png_structp png_ptr, png_bytep data, png_size_t length)
 {
   PngEncoderDevice* device = reinterpret_cast<PngEncoderDevice*>(png_ptr->io_ptr);
 
@@ -221,7 +241,6 @@ PngDecoderDevice::PngDecoderDevice(Provider* provider) :
   _png_ptr(NULL),
   _info_ptr(NULL)
 {
-  _imageType = IMAGEIO_FILE_PNG;
 }
 
 PngDecoderDevice::~PngDecoderDevice()
@@ -280,16 +299,10 @@ err_t PngDecoderDevice::readHeader()
   _depth = _png_bit_depth;
   _planes = 1;
 
-  // Check for zero dimensions.
-  if (areDimensionsZero())
+  // Check whether the image size is valid.
+  if (!checkImageSize())
   {
     return (_headerResult = ERR_IMAGE_INVALID_SIZE);
-  }
-
-  // Check for too large dimensions.
-  if (areDimensionsTooLarge())
-  {
-    return (_headerResult = ERR_IMAGE_TOO_LARGE);
   }
 
   // Png contains only one image.
@@ -450,7 +463,7 @@ uint32_t PngDecoderDevice::_createPngStream()
   }
 
   // Custom IO.
-  png.set_read_fn((png_structp)_png_ptr, this, (png_rw_ptr)user_read_data);
+  png.set_read_fn((png_structp)_png_ptr, this, (png_rw_ptr)png_user_read_data);
 
   // Success.
   return ERR_OK;
@@ -481,7 +494,6 @@ PngEncoderDevice::PngEncoderDevice(Provider* provider) :
   EncoderDevice(provider),
   _compression(9)
 {
-  _imageType = IMAGEIO_FILE_PNG;
 }
 
 PngEncoderDevice::~PngEncoderDevice()
@@ -538,7 +550,7 @@ err_t PngEncoderDevice::writeImage(const Image& image)
   }
 
   // Use custom I/O functions.
-  png.set_write_fn(png_ptr, this, (png_rw_ptr)user_write_data, (png_flush_ptr)user_flush_data);
+  png.set_write_fn(png_ptr, this, (png_rw_ptr)png_user_write_data, (png_flush_ptr)user_flush_data);
 
   png_color_8 sig_bit;
   memset(&sig_bit, 0, sizeof(sig_bit));
@@ -693,7 +705,7 @@ FOG_INIT_DECLARE void fog_imageio_init_png(void)
   using namespace Fog;
 
   ImageIO::PngProvider* provider = new(std::nothrow) ImageIO::PngProvider();
-  if (provider) ImageIO::addProvider(provider);
+  ImageIO::addProvider(IMAGEIO_DEVICE_BOTH, provider);
 }
 
 #else

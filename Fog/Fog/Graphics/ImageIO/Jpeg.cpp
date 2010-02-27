@@ -112,9 +112,8 @@ struct FOG_HIDDEN JpegProvider : public Provider
   JpegProvider();
   virtual ~JpegProvider();
 
-  virtual uint32_t check(const void* mem, sysuint_t length);
-  virtual EncoderDevice* createEncoder();
-  virtual DecoderDevice* createDecoder();
+  virtual uint32_t checkSignature(const void* mem, sysuint_t length) const;
+  virtual err_t createDevice(uint32_t deviceType, BaseDevice** device) const;
 
   JpegLibrary _jpegLibrary;
 };
@@ -124,25 +123,27 @@ JpegProvider::JpegProvider()
   // Name of ImageIO Provider.
   _name = fog_strings->getString(STR_GRAPHICS_JPEG);
 
-  // Supported features.
-  _features.decoder = true;
-  _features.encoder = true;
+  // File type.
+  _fileType = IMAGEIO_FILE_JPEG;
+
+  // Supported devices.
+  _deviceType = IMAGEIO_DEVICE_BOTH;
 
   // Supported extensions.
-  _extensions.reserve(4);
-  _extensions.append(fog_strings->getString(STR_GRAPHICS_jpg));
-  _extensions.append(fog_strings->getString(STR_GRAPHICS_jpeg));
-  _extensions.append(fog_strings->getString(STR_GRAPHICS_jfi));
-  _extensions.append(fog_strings->getString(STR_GRAPHICS_jfif));
+  _imageExtensions.reserve(4);
+  _imageExtensions.append(fog_strings->getString(STR_GRAPHICS_jpg));
+  _imageExtensions.append(fog_strings->getString(STR_GRAPHICS_jpeg));
+  _imageExtensions.append(fog_strings->getString(STR_GRAPHICS_jfi));
+  _imageExtensions.append(fog_strings->getString(STR_GRAPHICS_jfif));
 }
 
 JpegProvider::~JpegProvider()
 {
 }
 
-uint32_t JpegProvider::check(const void* mem, sysuint_t length)
+uint32_t JpegProvider::checkSignature(const void* mem, sysuint_t length) const
 {
-  if (length == 0) return 0;
+  if (!mem || length == 0) return 0;
 
   // Mime data.
   static const uint8_t mimeJPEG[2] = { 0xFF, 0xD8 };
@@ -155,14 +156,29 @@ uint32_t JpegProvider::check(const void* mem, sysuint_t length)
   return 0;
 }
 
-EncoderDevice* JpegProvider::createEncoder()
+err_t JpegProvider::createDevice(uint32_t deviceType, BaseDevice** device) const
 {
-  return (_jpegLibrary.prepare() == ERR_OK) ? new(std::nothrow) JpegEncoderDevice(this) : NULL;
-}
+  BaseDevice* d = NULL;
 
-DecoderDevice* JpegProvider::createDecoder()
-{
-  return (_jpegLibrary.prepare() == ERR_OK) ? new(std::nothrow) JpegDecoderDevice(this) : NULL;
+  err_t err = _jpegLibrary.prepare();
+  if (err) return err;
+
+  switch (deviceType)
+  {
+    case IMAGEIO_DEVICE_DECODER:
+      d = new(std::nothrow) JpegDecoderDevice(const_cast<JpegProvider*>(this));
+      break;
+    case IMAGEIO_DEVICE_ENCODER:
+      d = new(std::nothrow) JpegEncoderDevice(const_cast<JpegProvider*>(this));
+      break;
+    default:
+      return ERR_RT_INVALID_ARGUMENT;
+  }
+
+  if (!d) return ERR_RT_OUT_OF_MEMORY;
+
+  *device = d;
+  return ERR_OK;
 }
 
 // ===========================================================================
@@ -264,7 +280,6 @@ static FOG_CDECL void MyJpegMessage(j_common_ptr cinfo)
 JpegDecoderDevice::JpegDecoderDevice(Provider* provider) :
   DecoderDevice(provider)
 {
-  _imageType = IMAGEIO_FILE_JPEG;
 }
 
 JpegDecoderDevice::~JpegDecoderDevice()
@@ -341,10 +356,10 @@ err_t JpegDecoderDevice::readHeader()
       break;
   }
 
-  // Check for too large dimensions.
-  if (areDimensionsTooLarge())
+  // Check whether the image size is valid.
+  if (!checkImageSize())
   {
-    err = ERR_IMAGE_TOO_LARGE;
+    err = ERR_IMAGE_INVALID_SIZE;
     goto fail;
   }
 
@@ -408,8 +423,8 @@ err_t JpegDecoderDevice::readImage(Image& image)
   _actualFrame = 0;
   _framesCount = 1;
 
-  // Check for too large dimensions.
-  if (areDimensionsTooLarge())
+  // Check whether the image size is valid.
+  if (!checkImageSize())
   {
     err = ERR_IMAGE_TOO_LARGE;
     goto end;
@@ -539,7 +554,6 @@ JpegEncoderDevice::JpegEncoderDevice(Provider* provider) :
   EncoderDevice(provider),
   _quality(90)
 {
-  _imageType = IMAGEIO_FILE_JPEG;
 }
 
 JpegEncoderDevice::~JpegEncoderDevice()
@@ -767,7 +781,7 @@ FOG_INIT_DECLARE void fog_imageio_init_jpeg(void)
   using namespace Fog;
 
   ImageIO::JpegProvider* provider = new(std::nothrow) ImageIO::JpegProvider();
-  if (provider) ImageIO::addProvider(provider);
+  ImageIO::addProvider(IMAGEIO_DEVICE_BOTH, provider);
 }
 
 #else

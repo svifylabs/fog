@@ -1517,26 +1517,27 @@ enum IMAGE_FILTER_CHARACTERISTICS
 };
 
 // ============================================================================
-// [Fog::IMAGEIO_FILE_TYPE]
+// [Fog::IMAGEIO_DEVICE_TYPE]
 // ============================================================================
 
+//! @brief Type of @c ImageIO::BaseDevice class.
 enum IMAGEIO_DEVICE_TYPE
 {
-  //! @brief None, null codec or non initialized.
+  //! @brief None, null codec or non-initialized (shouldn't be used in public code).
   IMAGEIO_DEVICE_NONE = 0x0,
   //! @brief Image IO Encoder.
   IMAGEIO_DEVICE_ENCODER = 0x1,
   //! @brief Image IO Decoder.
-  IMAGEIO_DECIDE_DECODER = 0x2,
-  //! @brief Proxy for another image processing library.
-  IMAGEIO_DEVICE_PROXY = 0x4
+  IMAGEIO_DEVICE_DECODER = 0x2,
+  //! @brief Image IO Decoder and Encoder.
+  IMAGEIO_DEVICE_BOTH = 0x3
 };
 
 // ============================================================================
 // [Fog::IMAGEIO_FILE_TYPE]
 // ============================================================================
 
-//! @brief Image file IDs.
+//! @brief Image file type.
 enum IMAGEIO_FILE_TYPE
 {
   IMAGEIO_FILE_NONE = 0,
@@ -1917,15 +1918,13 @@ enum ERR_GRAPHICS_ENUM
 
   ERR_IMAGE_INVALID_SIZE,
   ERR_IMAGE_INVALID_FORMAT,
-  ERR_IMAGE_TOO_LARGE,
 
   ERR_IMAGE_UNSUPPORTED_FORMAT,
 
   ERR_IMAGEIO_INTERNAL_ERROR,
 
-  ERR_IMAGEIO_NOT_AVAILABLE_PROVIDER,
-  ERR_IMAGEIO_NOT_AVAILABLE_DECODER,
-  ERR_IMAGEIO_NOT_AVAILABLE_ENCODER,
+  ERR_IMAGEIO_NO_DECODER,
+  ERR_IMAGEIO_NO_ENCODER,
 
   ERR_IMAGEIO_UNSUPPORTED_FORMAT,
   ERR_IMAGEIO_TERMINATED,

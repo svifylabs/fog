@@ -191,14 +191,14 @@ struct GpGdiplusStartupInput
 
 struct GpGdiplusStartupOutput
 {
-  GpStatus (FOG_STDCALL *NotificationHookProc)(ULONG_PTR* token);
-  void (FOG_STDCALL *NotificationUnhookProc)(ULONG_PTR token);
+  GpStatus (FOG_STDCALL* NotificationHookProc)(ULONG_PTR* token);
+  void (FOG_STDCALL* NotificationUnhookProc)(ULONG_PTR token);
 };
 
 struct GpImageCodecInfo
 {
   CLSID Clsid;
-  GUID  FormatID;
+  GUID FormatID;
   const WCHAR* CodecName;
   const WCHAR* DllName;
   const WCHAR* FormatDescription;
@@ -244,7 +244,7 @@ struct FOG_HIDDEN GdiPlusLibrary
   err_t init();
   void close();
 
-  enum { NUM_SYMBOLS = 17 };
+  enum { NUM_SYMBOLS = 20 };
   union
   {
     struct
@@ -252,6 +252,7 @@ struct FOG_HIDDEN GdiPlusLibrary
       GpStatus (FOG_STDCALL* pGdiplusStartup)(ULONG_PTR* token, const GpGdiplusStartupInput* input, GpGdiplusStartupOutput *output);
       void (FOG_STDCALL* pGdiplusShutdown)(ULONG_PTR token);
       GpStatus (FOG_STDCALL* pGdipLoadImageFromStream)(IStream* stream, GpImage** image);
+      GpStatus (FOG_STDCALL* pGdipSaveImageToStream)(GpImage* image, IStream* stream, const CLSID* clsidEncoder, const GpEncoderParameters* encoderParams);
       GpStatus (FOG_STDCALL* pGdipDisposeImage)(GpImage* image);
       GpStatus (FOG_STDCALL* pGdipGetImageType)(GpImage* image, UINT* type);
       GpStatus (FOG_STDCALL* pGdipGetImageWidth)(GpImage* image, UINT* width);
@@ -262,10 +263,13 @@ struct FOG_HIDDEN GdiPlusLibrary
       GpStatus (FOG_STDCALL* pGdipImageGetFrameCount)(GpImage* image, const GUID* dimensionID, UINT* count);
       GpStatus (FOG_STDCALL* pGdipImageSelectActiveFrame)(GpImage* image, const GUID* dimensionID, UINT frameIndex);
       GpStatus (FOG_STDCALL* pGdipCreateBitmapFromScan0)(INT width, INT height, INT stride, GpPixelFormat format, BYTE* scan0, GpBitmap** bitmap);
-      GpStatus (FOG_STDCALL* pGdipFlush)(GpGraphics* graphics, GpFlushIntention intention);
       GpStatus (FOG_STDCALL* pGdipSetCompositingMode)(GpGraphics* graphics, GpCompositingMode compositingMode);
       GpStatus (FOG_STDCALL* pGdipDrawImageI)(GpGraphics* graphics, GpImage* image, INT x, INT y);
+      GpStatus (FOG_STDCALL* pGdipFlush)(GpGraphics* graphics, GpFlushIntention intention);
       GpStatus (FOG_STDCALL* pGdipDeleteGraphics)(GpGraphics* graphics);
+
+      GpStatus (FOG_STDCALL* pGdipGetImageEncoders)(UINT numEncoders, UINT size, GpImageCodecInfo* encoders);
+      GpStatus (FOG_STDCALL* pGdipGetImageEncodersSize)(UINT *numEncoders, UINT *size);
     };
     void* addr[NUM_SYMBOLS];
   };

@@ -11,14 +11,17 @@ TODO P1
     [ ] Fog::String/Fog::Locale - add support for group separators
     [ ] Temporary...<N>::free sometimes not frees the memory ?
     [ ] Complete Fog::BitArray
-	[ ] Text Streams (using TextCodec), including err(), out() and in().
-	[ ] Logging 
+	[ ] Text Streams (using TextCodec), including err(), out() and in()
+	[ ] Logging framework
 
 [w] Fog/Xml:
     [w] XmlWriter
 
 [ ] Fog/Svg:
     [ ] Fix gradient rendering
+
+[ ] Fog/Graphics
+    [ ] DPI (horz+vert) class (for svg module and painter)
 
 [ ] Painter:
     [ ] Ability to paint to ARGB32 surface

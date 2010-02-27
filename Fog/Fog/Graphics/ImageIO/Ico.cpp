@@ -35,8 +35,8 @@ struct FOG_HIDDEN IcoProvider : public Provider
   IcoProvider();
   virtual ~IcoProvider();
 
-  virtual uint32_t check(const void* mem, sysuint_t length);
-  virtual DecoderDevice* createDecoder();
+  virtual uint32_t checkSignature(const void* mem, sysuint_t length) const;
+  virtual err_t createDevice(uint32_t deviceType, BaseDevice** device) const;
 };
 
 IcoProvider::IcoProvider()
@@ -44,21 +44,24 @@ IcoProvider::IcoProvider()
   // Name of ImageIO Provider.
   _name = fog_strings->getString(STR_GRAPHICS_ICO);
 
-  // Supported features.
-  _features.decoder = true;
-  _features.encoder = false;
+  // File type.
+  _fileType = IMAGEIO_FILE_ICO;
+
+  // Supported devices.
+  _deviceType = IMAGEIO_DEVICE_BOTH;
 
   // Supported extensions.
-  _extensions.append(fog_strings->getString(STR_GRAPHICS_ico));
+  _imageExtensions.reserve(1);
+  _imageExtensions.append(fog_strings->getString(STR_GRAPHICS_ico));
 }
 
 IcoProvider::~IcoProvider()
 {
 }
 
-uint32_t IcoProvider::check(const void* mem, sysuint_t length)
+uint32_t IcoProvider::checkSignature(const void* mem, sysuint_t length) const
 {
-  if (length < sizeof(IcoHeader)) return 0;
+  if (!mem || length < sizeof(IcoHeader)) return 0;
 
   const uint8_t* m = (const uint8_t*)mem;
   
@@ -96,9 +99,25 @@ uint32_t IcoProvider::check(const void* mem, sysuint_t length)
   return Math::max(20, 80 - (count - entriesAvail) * 5);
 }
 
-DecoderDevice* IcoProvider::createDecoder()
+err_t IcoProvider::createDevice(uint32_t deviceType, BaseDevice** device) const
 {
-  return new(std::nothrow) IcoDecoderDevice(this);
+  BaseDevice* d = NULL;
+
+  switch (deviceType)
+  {
+    case IMAGEIO_DEVICE_DECODER:
+      d = new(std::nothrow) IcoDecoderDevice(const_cast<IcoProvider*>(this));
+      break;
+    case IMAGEIO_DEVICE_ENCODER:
+      return ERR_IMAGEIO_NO_ENCODER;
+    default:
+      return ERR_RT_INVALID_ARGUMENT;
+  }
+
+  if (!d) return ERR_RT_OUT_OF_MEMORY;
+
+  *device = d;
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -108,7 +127,6 @@ DecoderDevice* IcoProvider::createDecoder()
 IcoDecoderDevice::IcoDecoderDevice(Provider* provider) :
   DecoderDevice(provider)
 {
-  _imageType = IMAGEIO_FILE_ICO;
   _framesInfo = NULL;
 }
 
@@ -245,8 +263,8 @@ err_t IcoDecoderDevice::readImage(Image& image)
   {
     // Here I used createDecoderByExtension(), becuase I don't care which decoder
     // will be used for this (for example it's possible to use GDI+ under Windows).
-    decoder = createDecoderByExtension(fog_strings->getString(STR_GRAPHICS_png), &err);
-    if (!decoder) goto end;
+    err = createDecoderByExtension(fog_strings->getString(STR_GRAPHICS_png), &decoder);
+    if (err != ERR_OK) goto end;
 
     decoder->attachStream(_stream);
     err = decoder->readImage(image);
@@ -256,8 +274,8 @@ err_t IcoDecoderDevice::readImage(Image& image)
     // Here I used createDecoderByName(), because I want exactly BMP Decoder
     // from Fog. Note the property skipFileHeader that configures this decoder
     // to skip reading of bmp file header, this is important step.
-    decoder = createDecoderByName(fog_strings->getString(STR_GRAPHICS_BMP), &err);
-    if (!decoder) goto end;
+    err = createDecoderByName(fog_strings->getString(STR_GRAPHICS_BMP), &decoder);
+    if (err != ERR_OK) goto end;
 
     decoder->attachStream(_stream);
     decoder->setProperty(fog_strings->getString(STR_GRAPHICS_skipFileHeader), Value::fromInt32(1));
@@ -294,5 +312,5 @@ FOG_IMPLEMENT_OBJECT(Fog::ImageIO::IcoDecoderDevice)
 FOG_INIT_DECLARE void fog_imageio_init_ico(void)
 {
   using namespace Fog;
-  ImageIO::addProvider(new(std::nothrow) ImageIO::IcoProvider());
+  ImageIO::addProvider(IMAGEIO_DEVICE_DECODER, new(std::nothrow) ImageIO::IcoProvider());
 }

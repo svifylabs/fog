@@ -1,3 +1,7 @@
+2010-02-27
+- Write support in GdiPlus image IO backend.
+- Reorganized ImageIO, modified few things.
+
 2010-02-15
 - Added support for GdiPlus image IO.
 - Added some MMX code.

@@ -35,9 +35,8 @@ struct FOG_HIDDEN BmpProvider : public Provider
   BmpProvider();
   virtual ~BmpProvider();
 
-  virtual uint32_t check(const void* mem, sysuint_t length);
-  virtual EncoderDevice* createEncoder();
-  virtual DecoderDevice* createDecoder();
+  virtual uint32_t checkSignature(const void* mem, sysuint_t length) const;
+  virtual err_t createDevice(uint32_t deviceType, BaseDevice** device) const;
 };
 
 BmpProvider::BmpProvider()
@@ -45,31 +44,33 @@ BmpProvider::BmpProvider()
   // Name of ImageIO Provider.
   _name = fog_strings->getString(STR_GRAPHICS_BMP);
 
-  // Supported features.
-  _features.decoder = true;
-  _features.encoder = true;
+  // File type.
+  _fileType = IMAGEIO_FILE_BMP;
+
+  // Supported devices.
+  _deviceType = IMAGEIO_DEVICE_BOTH;
 
   // Supported extensions.
-  _extensions.reserve(2);
-  _extensions.append(fog_strings->getString(STR_GRAPHICS_bmp));
-  _extensions.append(fog_strings->getString(STR_GRAPHICS_ras));
+  _imageExtensions.reserve(2);
+  _imageExtensions.append(fog_strings->getString(STR_GRAPHICS_bmp));
+  _imageExtensions.append(fog_strings->getString(STR_GRAPHICS_ras));
 }
 
 BmpProvider::~BmpProvider()
 {
 }
 
-uint32_t BmpProvider::check(const void* mem, sysuint_t length)
+uint32_t BmpProvider::checkSignature(const void* mem, sysuint_t length) const
 {
-  if (length == 0) return 0;
+  if (!mem || length == 0) return 0;
 
   const uint8_t* m = (const uint8_t*)mem;
 
-  // Check for 'BM' mime
+  // Check for 'BM' mime.
   if (length >= 1 && m[0] != (uint8_t)'B') return 0;
   if (length >= 2 && m[1] != (uint8_t)'M') return 0;
 
-  // Check for correct header size
+  // Check for correct header size.
   if (length >= 18)
   {
     uint32_t headerSize = Memory::bswap32le( *(const uint32_t *)(m + 14) );
@@ -81,14 +82,26 @@ uint32_t BmpProvider::check(const void* mem, sysuint_t length)
     return 75;
 }
 
-EncoderDevice* BmpProvider::createEncoder()
+err_t BmpProvider::createDevice(uint32_t deviceType, BaseDevice** device) const
 {
-  return new(std::nothrow) BmpEncoderDevice(this);
-}
+  BaseDevice* d = NULL;
 
-DecoderDevice* BmpProvider::createDecoder()
-{
-  return new(std::nothrow) BmpDecoderDevice(this);
+  switch (deviceType)
+  {
+    case IMAGEIO_DEVICE_DECODER:
+      d = new(std::nothrow) BmpDecoderDevice(const_cast<BmpProvider*>(this));
+      break;
+    case IMAGEIO_DEVICE_ENCODER:
+      d = new(std::nothrow) BmpEncoderDevice(const_cast<BmpProvider*>(this));
+      break;
+    default:
+      return ERR_RT_INVALID_ARGUMENT;
+  }
+
+  if (!d) return ERR_RT_OUT_OF_MEMORY;
+
+  *device = d;
+  return ERR_OK;
 }
 
 // ============================================================================
@@ -98,7 +111,6 @@ DecoderDevice* BmpProvider::createDecoder()
 BmpDecoderDevice::BmpDecoderDevice(Provider* provider) :
   DecoderDevice(provider)
 {
-  _imageType = IMAGEIO_FILE_BMP;
   zeroall();
 }
 
@@ -278,16 +290,10 @@ err_t BmpDecoderDevice::readHeader()
       return (_headerResult = ERR_IMAGEIO_UNSUPPORTED_FORMAT);
   }
 
-  // Check for zero dimensions.
-  if (areDimensionsZero())
+  // Check whether the image size is valid.
+  if (!checkImageSize())
   {
     return (_headerResult = ERR_IMAGE_INVALID_SIZE);
-  }
-
-  // Check for too large dimensions.
-  if (areDimensionsTooLarge())
-  {
-    return (_headerResult = ERR_IMAGE_TOO_LARGE);
   }
 
   // Bmp contains only one image.
@@ -903,7 +909,6 @@ err_t BmpDecoderDevice::setProperty(const ManagedString& name, const Value& valu
 BmpEncoderDevice::BmpEncoderDevice(Provider* provider) :
   EncoderDevice(provider)
 {
-  _imageType = IMAGEIO_FILE_BMP;
 }
 
 BmpEncoderDevice::~BmpEncoderDevice()
@@ -1117,5 +1122,5 @@ FOG_IMPLEMENT_OBJECT(Fog::ImageIO::BmpEncoderDevice)
 FOG_INIT_DECLARE void fog_imageio_init_bmp(void)
 {
   using namespace Fog;
-  ImageIO::addProvider(new(std::nothrow) ImageIO::BmpProvider());
+  ImageIO::addProvider(IMAGEIO_DEVICE_BOTH, new(std::nothrow) ImageIO::BmpProvider());
 }
