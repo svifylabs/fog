@@ -57,6 +57,19 @@ struct FOG_PACKED IcoEntry
 #include <Fog/Core/Unpack.h>
 
 // ============================================================================
+// [Fog::ImageIO::IcoProvider]
+// ============================================================================
+
+struct FOG_HIDDEN IcoProvider : public Provider
+{
+  IcoProvider();
+  virtual ~IcoProvider();
+
+  virtual uint32_t checkSignature(const void* mem, sysuint_t length) const;
+  virtual err_t createDevice(uint32_t deviceType, BaseDevice** device) const;
+};
+
+// ============================================================================
 // [Fog::ImageIO::IcoDecoderDevice]
 // ============================================================================
 

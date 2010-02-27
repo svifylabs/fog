@@ -49,6 +49,19 @@ struct FOG_PACKED PcxHeader
 #include <Fog/Core/Unpack.h>
 
 // ============================================================================
+// [Fog::ImageIO::PcxProvider]
+// ============================================================================
+
+struct FOG_HIDDEN PcxProvider : public Provider
+{
+  PcxProvider();
+  virtual ~PcxProvider();
+
+  virtual uint32_t checkSignature(const void* mem, sysuint_t length) const;
+  virtual err_t createDevice(uint32_t deviceType, BaseDevice** device) const;
+};
+
+// ============================================================================
 // [Fog::ImageIO::PcxDecoderDevice]
 // ============================================================================
 

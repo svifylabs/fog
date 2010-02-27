@@ -16,6 +16,7 @@
 #include <Fog/Core/Constants.h>
 #include <Fog/Core/Library.h>
 #include <Fog/Core/ManagedString.h>
+#include <Fog/Core/Math.h>
 #include <Fog/Core/Misc.h>
 #include <Fog/Core/Static.h>
 #include <Fog/Core/Stream.h>
@@ -32,10 +33,10 @@ namespace Fog {
 namespace ImageIO {
 
 // ===========================================================================
-// [Fog::ImageIO::GdiPlus - Helpers]
+// [Fog::ImageIO::GdiPlus - Format - Helpers]
 // ===========================================================================
 
-static uint32_t fogFormatFromGpFormat(GpPixelFormat gpFormat)
+static uint32_t GdiPlus_fogFormatFromGpFormat(GpPixelFormat gpFormat)
 {
   switch (gpFormat)
   {
@@ -78,7 +79,7 @@ static uint32_t fogFormatFromGpFormat(GpPixelFormat gpFormat)
   }
 }
 
-static GpPixelFormat gpFormatFromFogFormat(int fogFormat)
+static GpPixelFormat gdiPlus_gpFormatFromFogFormat(int fogFormat)
 {
   switch (fogFormat)
   {
@@ -91,6 +92,84 @@ static GpPixelFormat gpFormatFromFogFormat(int fogFormat)
     default:
       return GpPixelFormatUndefined;
   }
+}
+
+// ===========================================================================
+// [Fog::ImageIO::GdiPlus - Params - GUID]
+// ===========================================================================
+
+#define MY_GUID(name, l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) \
+  static const GUID name = { l, w1, w2, { b1, b2, b3, b4, b5, b6, b7, b8 } }
+
+MY_GUID(GpEncoderQuality, 0x1d5be4b5, 0xfa4a, 0x452d, 0x9c, 0xdd, 0x5d, 0xb3, 0x51, 0x05, 0xe7, 0xeb);
+
+#undef MU_GUID
+
+// ===========================================================================
+// [Fog::ImageIO::GdiPlus - Params - Helpers]
+// ===========================================================================
+
+static void GdiPlus_clearCommonParameters(GdiPlusCommonParams* params, uint32_t fileType)
+{
+  memset(params, 0, sizeof(GdiPlusCommonParams));
+
+  switch (fileType)
+  {
+    case IMAGEIO_FILE_JPEG:
+      params->jpeg.quality = 90;
+      break;
+    case IMAGEIO_FILE_PNG:
+      break;
+    case IMAGEIO_FILE_TIFF:
+      break;
+  }
+}
+
+static err_t GdiPlus_getCommonParameter(const GdiPlusCommonParams* params, uint32_t fileType, const ManagedString& name, Value& value)
+{
+  // This means to continue property processing calling superclass.
+  err_t err = (err_t)0xFFFFFFFF;
+
+  switch (fileType)
+  {
+    case IMAGEIO_FILE_JPEG:
+      if (name == fog_strings->getString(STR_GRAPHICS_quality))
+      {
+        return value.setInt32(params->jpeg.quality);
+      }
+      break;
+    case IMAGEIO_FILE_PNG:
+      break;
+    case IMAGEIO_FILE_TIFF:
+      break;
+  }
+
+  return err;
+}
+
+static err_t GdiPlus_setCommonParameter(GdiPlusCommonParams* params, uint32_t fileType, const ManagedString& name, const Value& value)
+{
+  // This means to continue property processing calling superclass.
+  err_t err = (err_t)0xFFFFFFFF;
+
+  switch (fileType)
+  {
+    case IMAGEIO_FILE_JPEG:
+      if (name == fog_strings->getString(STR_GRAPHICS_quality))
+      {
+        int i;
+        if ((err = value.getInt32(&i)) == ERR_OK)
+          params->jpeg.quality = Math::bound(i, 0, 100);
+        return ERR_OK;
+      }
+      break;
+    case IMAGEIO_FILE_PNG:
+      break;
+    case IMAGEIO_FILE_TIFF:
+      break;
+  }
+
+  return err;
 }
 
 // ===========================================================================
@@ -248,17 +327,6 @@ end:
   return err;
 }
 
-struct FOG_HIDDEN GdiPlusProvider : public Provider
-{
-  GdiPlusProvider(uint32_t fileType);
-  virtual ~GdiPlusProvider();
-
-  virtual uint32_t checkSignature(const void* mem, sysuint_t length) const;
-  virtual err_t createDevice(uint32_t deviceType, BaseDevice** device) const;
-
-  const WCHAR* _gdipMime;
-};
-
 GdiPlusProvider::GdiPlusProvider(uint32_t fileType)
 {
   // Initialize GdiPlusLibrary.
@@ -390,7 +458,7 @@ err_t GdiPlusProvider::createDevice(uint32_t deviceType, BaseDevice** device) co
 }
 
 // ===========================================================================
-// [Fog::ImageIO::GdiPlusDecoderDevice]
+// [Fog::ImageIO::GdiPlusDecoderDevice - Construction / Destruction]
 // ===========================================================================
 
 GdiPlusDecoderDevice::GdiPlusDecoderDevice(Provider* provider) :
@@ -398,6 +466,7 @@ GdiPlusDecoderDevice::GdiPlusDecoderDevice(Provider* provider) :
   _istream(NULL),
   _gpImage(NULL)
 {
+  GdiPlus_clearCommonParameters(&_params, _fileType);
 }
 
 GdiPlusDecoderDevice::~GdiPlusDecoderDevice()
@@ -405,7 +474,7 @@ GdiPlusDecoderDevice::~GdiPlusDecoderDevice()
 }
 
 // ===========================================================================
-// [Fog::ImageIO::GdiPlusDecoderDevice::attachStream / detachStream]
+// [Fog::ImageIO::GdiPlusDecoderDevice - AttachStream / DetachStream]
 // ===========================================================================
 
 void GdiPlusDecoderDevice::attachStream(Stream& stream)
@@ -433,16 +502,17 @@ void GdiPlusDecoderDevice::detachStream()
 }
 
 // ===========================================================================
-// [Fog::ImageIO::GdiPlusDecoderDevice::reset]
+// [Fog::ImageIO::GdiPlusDecoderDevice - Reset]
 // ===========================================================================
 
 void GdiPlusDecoderDevice::reset()
 {
+  GdiPlus_clearCommonParameters(&_params, _fileType);
   DecoderDevice::reset();
 }
 
 // ===========================================================================
-// [Fog::ImageIO::GdiPlusDecoderDevice::readHeader]
+// [Fog::ImageIO::GdiPlusDecoderDevice - ReadHeader]
 // ===========================================================================
 
 err_t GdiPlusDecoderDevice::readHeader()
@@ -462,14 +532,14 @@ err_t GdiPlusDecoderDevice::readHeader()
   GpPixelFormat pf;
   _gdiPlusLibrary->pGdipGetImagePixelFormat(_gpImage, &pf);
 
-  _format = fogFormatFromGpFormat(pf);
+  _format = GdiPlus_fogFormatFromGpFormat(pf);
   _depth = Image::formatToDepth(_format);
 
   return ERR_OK;
 }
 
 // ===========================================================================
-// [Fog::ImageIO::GdiPlusDecoderDevice::readImage]
+// [Fog::ImageIO::GdiPlusDecoderDevice - ReadImage]
 // ===========================================================================
 
 err_t GdiPlusDecoderDevice::readImage(Image& image)
@@ -496,7 +566,7 @@ err_t GdiPlusDecoderDevice::readImage(Image& image)
     (INT)image.getWidth(),
     (INT)image.getHeight(), 
     (INT)image.getStride(),
-    gpFormatFromFogFormat(image.getFormat()),
+    gdiPlus_gpFormatFromFogFormat(image.getFormat()),
     (BYTE*)image.getMData(),
     &bm);
   if (status != GpOk) { err = ERR_IMAGEIO_GDIPLUS_ERROR; goto end; }
@@ -527,12 +597,33 @@ end:
 }
 
 // ===========================================================================
-// [Fog::ImageIO::GdiPlusEncoderDevice]
+// [Fog::ImageIO::GdiPlusDecoderDevice - GetProperty / SetProperty]
+// ===========================================================================
+
+err_t GdiPlusDecoderDevice::getProperty(const ManagedString& name, Value& value) const
+{
+  err_t err = GdiPlus_getCommonParameter(&_params, _fileType, name, value);
+  if (err != (err_t)0xFFFFFFFF) return err;
+
+  return base::getProperty(name, value);
+}
+
+err_t GdiPlusDecoderDevice::setProperty(const ManagedString& name, const Value& value)
+{
+  err_t err = GdiPlus_setCommonParameter(&_params, _fileType, name, value);
+  if (err != (err_t)0xFFFFFFFF) return err;
+
+  return base::setProperty(name, value);
+}
+
+// ===========================================================================
+// [Fog::ImageIO::GdiPlusEncoderDevice - Construction / Destruction]
 // ===========================================================================
 
 GdiPlusEncoderDevice::GdiPlusEncoderDevice(Provider* provider) :
   EncoderDevice(provider)
 {
+  GdiPlus_clearCommonParameters(&_params, _fileType);
 }
 
 GdiPlusEncoderDevice::~GdiPlusEncoderDevice()
@@ -540,7 +631,7 @@ GdiPlusEncoderDevice::~GdiPlusEncoderDevice()
 }
 
 // ===========================================================================
-// [Fog::ImageIO::GdiPlusEncoderDevice::attachStream / detachStream]
+// [Fog::ImageIO::GdiPlusEncoderDevice - AttachStream / DetachStream]
 // ===========================================================================
 
 void GdiPlusEncoderDevice::attachStream(Stream& stream)
@@ -562,16 +653,17 @@ void GdiPlusEncoderDevice::detachStream()
 }
 
 // ===========================================================================
-// [Fog::ImageIO::GdiPlusEncoderDevice::reset]
+// [Fog::ImageIO::GdiPlusEncoderDevice - Reset]
 // ===========================================================================
 
 void GdiPlusEncoderDevice::reset()
 {
+  GdiPlus_clearCommonParameters(&_params, _fileType);
   EncoderDevice::reset();
 }
 
 // ===========================================================================
-// [Fog::ImageIO::GdiPlusEncoderDevice::writeImage]
+// [Fog::ImageIO::GdiPlusEncoderDevice - WriteImage]
 // ===========================================================================
 
 err_t GdiPlusEncoderDevice::writeImage(const Image& image)
@@ -597,12 +689,34 @@ err_t GdiPlusEncoderDevice::writeImage(const Image& image)
     (INT)image.getWidth(),
     (INT)image.getHeight(), 
     (INT)image.getStride(),
-    gpFormatFromFogFormat(image.getFormat()),
+    gdiPlus_gpFormatFromFogFormat(image.getFormat()),
     (BYTE*)image.getData(),
     &bm);
   if (status != GpOk) { err = ERR_IMAGEIO_GDIPLUS_ERROR; goto end; }
 
-  status = _gdiPlusLibrary->pGdipSaveImageToStream((GpImage*)bm, _istream, &encoderClsid, NULL);
+  // Encoder parameters.
+  uint8_t paramsData[sizeof(GpEncoderParameters)];
+  GpEncoderParameters* params = reinterpret_cast<GpEncoderParameters*>(paramsData);
+
+  params->Count = 0;
+
+  switch (_fileType)
+  {
+    case IMAGEIO_FILE_JPEG:
+      params->Count = 1;
+      params->Parameter[0].Guid = GpEncoderQuality;
+      params->Parameter[0].Type = GpEncoderParameterValueTypeLong;
+      params->Parameter[0].NumberOfValues = 1;
+      params->Parameter[0].Value = &_params.jpeg.quality;
+      break;
+  }
+
+  status = _gdiPlusLibrary->pGdipSaveImageToStream(
+    (GpImage*)bm, _istream, &encoderClsid,
+    // If there are no parameters then NULL pointer must be used instead.
+    // This information can be found on MSDN. Windows Vista and Win7 will
+    // return an error if (params.Count == 0).
+    params->Count > 0 ? params : NULL);
 
 end:
   // Delete created Gdi+ objects.
@@ -613,16 +727,22 @@ end:
 }
 
 // ===========================================================================
-// [Fog::ImageIO::GdiPlusEncoderDevice::getProperty / setProperty]
+// [Fog::ImageIO::GdiPlusEncoderDevice - GetProperty / SetProperty]
 // ===========================================================================
 
 err_t GdiPlusEncoderDevice::getProperty(const ManagedString& name, Value& value) const
 {
+  err_t err = GdiPlus_getCommonParameter(&_params, _fileType, name, value);
+  if (err != (err_t)0xFFFFFFFF) return err;
+
   return base::getProperty(name, value);
 }
 
 err_t GdiPlusEncoderDevice::setProperty(const ManagedString& name, const Value& value)
 {
+  err_t err = GdiPlus_setCommonParameter(&_params, _fileType, name, value);
+  if (err != (err_t)0xFFFFFFFF) return err;
+
   return base::setProperty(name, value);
 }
 

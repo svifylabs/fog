@@ -95,6 +95,21 @@ private:
 };
 
 // ============================================================================
+// [Fog::ImageIO::PngProvider]
+// ============================================================================
+
+struct FOG_HIDDEN PngProvider : public Provider
+{
+  PngProvider();
+  virtual ~PngProvider();
+
+  virtual uint32_t checkSignature(const void* mem, sysuint_t length) const;
+  virtual err_t createDevice(uint32_t deviceType, BaseDevice** device) const;
+
+  PngLibrary _pngLibrary;
+};
+
+// ============================================================================
 // [Fog::ImageIO::PngDecoderDevice]
 // ============================================================================
 

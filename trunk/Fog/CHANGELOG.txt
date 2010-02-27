@@ -1,5 +1,6 @@
 2010-02-27
 - Write support in GdiPlus image IO backend.
+- Added support to set jpeg output quality (GDI+ backend).
 - Reorganized ImageIO, modified few things.
 
 2010-02-15
