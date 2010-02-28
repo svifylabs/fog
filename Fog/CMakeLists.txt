@@ -53,6 +53,7 @@ Include_Directories(${FOG_DIR})
 
 Set(FOG_CFLAGS_OPTIMIZE "")
 Set(FOG_CFLAGS_MMX "")
+Set(FOG_CFLAGS_3DNOW "")
 Set(FOG_CFLAGS_SSE "")
 Set(FOG_CFLAGS_SSE2 "")
 Set(FOG_CFLAGS_SSE3 "")
@@ -65,6 +66,7 @@ If(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
     Set(FOG_CFLAGS_OPTIMIZE "-O2")
   EndIf(NOT ${CMAKE_BUILD_TYPE} MATCHES "Debug")
   Set(FOG_CFLAGS_MMX "${FOG_CFLAGS_OPTIMIZE} -mmmx")
+  Set(FOG_CFLAGS_3DNOW "${FOG_CFLAGS_OPTIMIZE} -mmmx -m3dnow")
   Set(FOG_CFLAGS_SSE "${FOG_CFLAGS_OPTIMIZE} -msse")
   Set(FOG_CFLAGS_SSE2 "${FOG_CFLAGS_OPTIMIZE} -msse2")
   Set(FOG_CFLAGS_SSE3 "${FOG_CFLAGS_OPTIMIZE} -msse3")
@@ -75,6 +77,7 @@ If(MSVC)
   Set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Oi /Oy /GF /GS- /GR-")
   Set(FOG_CFLAGS_OPTIMIZE "/Ot")
   Set(FOG_CFLAGS_MMX "${FOG_CFLAGS_OPTIMIZE}")
+  Set(FOG_CFLAGS_3DNOW "${FOG_CFLAGS_OPTIMIZE}")
   Set(FOG_CFLAGS_SSE "${FOG_CFLAGS_OPTIMIZE} /arch:SSE")
   Set(FOG_CFLAGS_SSE2 "${FOG_CFLAGS_OPTIMIZE} /arch:SSE2")
   Set(FOG_CFLAGS_SSE3 "${FOG_CFLAGS_OPTIMIZE} /arch:SSE2")
@@ -507,6 +510,8 @@ Set(FOG_GRAPHICS_PAINTENGINE_HEADERS
 Set(FOG_GRAPHICS_RASTERENGINE_SOURCES
   Fog/Graphics/RasterEngine/RasterEngine_Init_C.cpp
   Fog/Graphics/RasterEngine/RasterEngine_Init_MMX.cpp
+  Fog/Graphics/RasterEngine/RasterEngine_Init_MMX3dNow.cpp
+  Fog/Graphics/RasterEngine/RasterEngine_Init_MMXSSE.cpp
   Fog/Graphics/RasterEngine/RasterEngine_Init_SSE2.cpp
   Fog/Graphics/RasterEngine/RasterEngine_Init_SSSE3.cpp
 )
@@ -552,17 +557,19 @@ Set(FOG_GRAPHICS_RASTERENGINE_HEADERS
 )
 
 # Optimize specific files for speed
-Set_Source_Files_Properties(Fog/Graphics/Image.cpp                                PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
-Set_Source_Files_Properties(Fog/Graphics/PathUtil.cpp                             PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
-Set_Source_Files_Properties(Fog/Graphics/PathUtil_SSE2.cpp                        PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE2}")
-Set_Source_Files_Properties(Fog/Graphics/Rasterizer.cpp                           PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
-Set_Source_Files_Properties(Fog/Graphics/Region.cpp                               PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
-Set_Source_Files_Properties(Fog/Graphics/Scanline.cpp                             PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/Image.cpp                                   PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/PathUtil.cpp                                PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/PathUtil_SSE2.cpp                           PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE2}")
+Set_Source_Files_Properties(Fog/Graphics/Rasterizer.cpp                              PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/Region.cpp                                  PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/Scanline.cpp                                PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
 
-Set_Source_Files_Properties(Fog/Graphics/RasterEngine/RasterEngine_Init_C.cpp     PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
-Set_Source_Files_Properties(Fog/Graphics/RasterEngine/RasterEngine_Init_MMX.cpp   PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_MMX}")
-Set_Source_Files_Properties(Fog/Graphics/RasterEngine/RasterEngine_Init_SSE2.cpp  PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE2}")
-Set_Source_Files_Properties(Fog/Graphics/RasterEngine/RasterEngine_Init_SSSE3.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSSE3}")
+Set_Source_Files_Properties(Fog/Graphics/RasterEngine/RasterEngine_Init_C.cpp        PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/RasterEngine/RasterEngine_Init_MMX.cpp      PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_MMX}")
+Set_Source_Files_Properties(Fog/Graphics/RasterEngine/RasterEngine_Init_MMX3dNow.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_3DNOW}")
+Set_Source_Files_Properties(Fog/Graphics/RasterEngine/RasterEngine_Init_MMXSSE.cpp   PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE}")
+Set_Source_Files_Properties(Fog/Graphics/RasterEngine/RasterEngine_Init_SSE2.cpp     PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE2}")
+Set_Source_Files_Properties(Fog/Graphics/RasterEngine/RasterEngine_Init_SSSE3.cpp    PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSSE3}")
 
 # Source groups
 SOURCE_GROUP(Graphics               FILES ${FOG_GRAPHICS_LIB_SOURCES}          ${FOG_GRAPHICS_LIB_HEADERS})

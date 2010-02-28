@@ -260,7 +260,7 @@ FOG_INLINE int iround(float v)
   __asm {
     fld dword ptr [v]
     fistp dword ptr [t]
-    mov eax, dword ptr [t]
+    //mov eax, dword ptr [t]
   }
   return t;
 }
@@ -271,7 +271,7 @@ FOG_INLINE uint uround(float v)
   __asm {
     fld dword ptr [v]
     fistp dword ptr [t]
-    mov eax, dword ptr [t]
+    //mov eax, dword ptr [t]
   }
   return t;
 }
@@ -282,7 +282,7 @@ FOG_INLINE int iround(double v)
   __asm {
     fld qword ptr [v]
     fistp dword ptr [t]
-    mov eax, dword ptr [t]
+    //mov eax, dword ptr [t]
   }
   return t;
 }
@@ -293,7 +293,7 @@ FOG_INLINE uint uround(double v)
   __asm {
     fld qword ptr [v]
     fistp dword ptr [t]
-    mov eax, dword ptr [t]
+    //mov eax, dword ptr [t]
   }
   return t;
 }
@@ -387,14 +387,14 @@ static FOG_INLINE void sincos(double rad, double* sinResult, double* cosResult)
 #else
 static FOG_INLINE void sincos(float rad, float* sinResult, float* cosResult)
 {
-  *sinResult = sinf(rad);
-  *cosResult = cosf(rad);
+  *sinResult = ::sinf(rad);
+  *cosResult = ::cosf(rad);
 }
 
 static FOG_INLINE void sincos(double rad, double* sinResult, double* cosResult)
 {
-  *sinResult = sin(rad);
-  *cosResult = cos(rad);
+  *sinResult = ::sin(rad);
+  *cosResult = ::cos(rad);
 }
 #endif
 

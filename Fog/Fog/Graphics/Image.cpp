@@ -68,7 +68,7 @@ err_t Image::_detach()
     return ERR_OK;
   }
 
-  if (d->refCount.get() > 1 || d->flags & Data::IsReadOnly)
+  if (d->refCount.get() > 1 || (d->flags & Data::IsReadOnly))
   {
     Data* newd = Data::copy(d);
     if (!newd) return ERR_RT_OUT_OF_MEMORY;

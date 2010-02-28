@@ -18,7 +18,7 @@ namespace RasterEngine {
 // [Fog::RasterEngine::MMX - Composite - Src]
 // ============================================================================
 
-struct FOG_HIDDEN CompositeSrcOverMMX
+struct FOG_HIDDEN MMX_SYM(CompositeSrcOver)
 {
   static void FOG_FASTCALL prgb32_vspan_prgb32(
     uint8_t* dst, const uint8_t* src, sysint_t w, const Closure* closure)

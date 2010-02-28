@@ -1,3 +1,9 @@
+2010-02-28
+- Added 3dNow optimized color matrix filter for 32-bit pixel formats.
+- Updated color matrix class to fit the Fog-Framework syntax.
+- Static members in ColorMatrix are now const.
+- Added MMX/3dNow and MMX/SSE raster engine functions.
+
 2010-02-27
 - Write support in GdiPlus image IO backend.
 - Added support to set jpeg output quality (GDI+ backend).

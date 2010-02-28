@@ -41,29 +41,34 @@ struct Argb;
 //! The idea is like affine transformations for vector painter coordinates.
 struct FOG_API ColorMatrix
 {
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE ColorMatrix()
   {
-    _copyData(this->m, Identity.m);
+    _copyData(getData(), IDENTITY.getData());
   }
 
   FOG_INLINE ColorMatrix(const float src[5][5])
   {
-    _copyData(this->m, src);
+    _copyData(getData(), reinterpret_cast<const float*>(src));
   }
 
   FOG_INLINE ColorMatrix(const float src[25])
   {
-    _copyData(this->m, src);
+    _copyData(getData(), src);
   }
 
   FOG_INLINE ColorMatrix(const ColorMatrix& other)
   {
-    _copyData(this->m, other.m);
+    _copyData(getData(), other.getData());
   }
 
-  FOG_INLINE ColorMatrix(_DONT_INITIALIZE _linkerInitialized) { FOG_UNUSED(_linkerInitialized); }
+  FOG_INLINE ColorMatrix(_DONT_INITIALIZE _dontInitialize) 
+  {
+    FOG_UNUSED(_dontInitialize);
+  }
 
   FOG_INLINE ColorMatrix(
     float m00, float m01, float m02, float m03, float m04,
@@ -79,7 +84,9 @@ struct FOG_API ColorMatrix
     m[4][0] = m40; m[4][1] = m41; m[4][2] = m42; m[4][3] = m43; m[4][4] = m44;
   }
 
+  // --------------------------------------------------------------------------
   // [Type]
+  // --------------------------------------------------------------------------
 
   //! @brief Characteristics of color matrix.
   //!
@@ -224,25 +231,30 @@ struct FOG_API ColorMatrix
   //! returns type value that can be used by optimized blitters.
   //!
   //! @see @c Type for type possibilities and its descriptions.
-  int type() const;
+  int getType() const;
 
+  FOG_INLINE float* getData() { return reinterpret_cast<float*>(m); }
+  FOG_INLINE const float* getData() const { return reinterpret_cast<const float*>(m); }
+
+  // --------------------------------------------------------------------------
   // [Operations]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE ColorMatrix& set(const float src[5][5])
   {
-    _copyData(this->m, src);
+    _copyData(getData(), reinterpret_cast<const float*>(src));
     return *this;
   }
 
   FOG_INLINE ColorMatrix& set(const float src[25])
   {
-    _copyData(this->m, src);
+    _copyData(getData(), src);
     return *this;
   }
 
   FOG_INLINE ColorMatrix& set(const ColorMatrix& other)
   {
-    _copyData(this->m, other.m);
+    _copyData(getData(), other.getData());
     return *this;
   }
 
@@ -334,7 +346,11 @@ struct FOG_API ColorMatrix
   // [Operator Overload]
 
   //! @brief Assignment operator.
-  FOG_INLINE ColorMatrix& operator=(const ColorMatrix& other) { _copyData(this->m, other.m); return *this; }
+  FOG_INLINE ColorMatrix& operator=(const ColorMatrix& other)
+  {
+    _copyData(getData(), other.getData());
+    return *this;
+  }
 
   bool eq(const ColorMatrix& other, float epsilon = Math::DEFAULT_EPSILON) const;
 
@@ -367,24 +383,32 @@ struct FOG_API ColorMatrix
     return m[row];
   }
 
+  // --------------------------------------------------------------------------
   // [Members]
+  // --------------------------------------------------------------------------
 
-  union
-  {
-    float m[5][5];
-    float arr[25];
-  };
+  float m[5][5];
 
+  // --------------------------------------------------------------------------
   // [Statics]
+  // --------------------------------------------------------------------------
 
-  static ColorMatrix Greyscale;
-  static ColorMatrix Identity;
-  static ColorMatrix White;
-  static ColorMatrix Zero;
-  static ColorMatrix PreHue;
-  static ColorMatrix PostHue;
+  //! @brief Grayscale color matrix is modified from the GDI+ FAQ (submitted
+  //! by Gilles Khouzam) to use the NTSC color values. The version in the FAQ
+  //! used 0.3, 0.59, and 0.11, so it was close.
+  static ColorMatrix GREYSCALE;
 
+  //! @brief Identity matrix.
+  static ColorMatrix IDENTITY;
+  static ColorMatrix WHITE;
+  static ColorMatrix ZERO;
+
+  static ColorMatrix PRE_HUE;
+  static ColorMatrix POST_HUE;
+
+  // --------------------------------------------------------------------------
   // [Private]
+  // --------------------------------------------------------------------------
 
 private:
   //! @brief Rotate the matrix about a color axis.
@@ -396,7 +420,7 @@ private:
   ColorMatrix& _shearColor(int x, int y1, float col1, int y2, float col2, int order = MATRIX_PREPEND);
 
   //! @brief Copy matrix data from @a srt to @a dst.
-  static void _copyData(void* dst, const void* src);
+  static void _copyData(float* dst, const float* src);
 };
 
 } // Fog namespace

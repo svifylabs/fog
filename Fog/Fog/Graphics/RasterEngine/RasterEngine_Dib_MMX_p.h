@@ -18,7 +18,7 @@ namespace RasterEngine {
 // [Fog::RasterEngine::MMX - Dib]
 // ============================================================================
 
-struct FOG_HIDDEN DibMMX
+struct FOG_HIDDEN MMX_SYM(Dib)
 {
   // --------------------------------------------------------------------------
   // [DibMMX - MemCpy]

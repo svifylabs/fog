@@ -24,15 +24,15 @@ namespace Fog {
 
 // The luminance color weights are close to the values of the NTSC color
 // weights, but these values are preferable.
-static const float lumR = 0.3086f;
-static const float lumG = 0.6094f;
-static const float lumB = 0.0820f;
+static const float LUM_R = 0.3086f;
+static const float LUM_G = 0.6094f;
+static const float LUM_B = 0.0820f;
 
 // ============================================================================
 // [Fog::ColorMatrix]
 // ============================================================================
 
-int ColorMatrix::type() const
+int ColorMatrix::getType() const
 {
   int parts = 0;
 
@@ -119,14 +119,14 @@ int ColorMatrix::type() const
 ColorMatrix& ColorMatrix::add(const ColorMatrix& other)
 {
   for (sysuint_t i = 0; i < 25; i++)
-    arr[i] += other.arr[i];
+    getData()[i] += other.getData()[i];
   return *this;
 }
 
 ColorMatrix& ColorMatrix::subtract(const ColorMatrix& other)
 {
   for (sysuint_t i = 0; i < 25; i++)
-    arr[i] -= other.arr[i];
+    getData()[i] -= other.getData()[i];
   return *this;
 }
 
@@ -134,8 +134,8 @@ ColorMatrix& ColorMatrix::multiply(const ColorMatrix& other, int order)
 {
   ColorMatrix save(*this);
 
-  const ColorMatrix* FOG_RESTRICT mat1 = &save;
-  const ColorMatrix* FOG_RESTRICT mat2 = &other;
+  const ColorMatrix* mat1 = &save;
+  const ColorMatrix* mat2 = &other;
 
   if (order == MATRIX_APPEND)
   {
@@ -179,7 +179,7 @@ ColorMatrix& ColorMatrix::multiply(const ColorMatrix& other, int order)
 ColorMatrix& ColorMatrix::multiply(float scalar)
 {
   for (sysuint_t i = 0; i < 25; i++)
-    arr[i] *= scalar;
+    getData()[i] *= scalar;
   return *this;
 }
 
@@ -248,7 +248,7 @@ void ColorMatrix::transformAlpha(uint8_t* a) const
 
 ColorMatrix& ColorMatrix::scale(float sa, float sr, float sg, float sb, int order)
 {
-  ColorMatrix mod;
+  ColorMatrix mod(ColorMatrix::IDENTITY);
   mod[0][0] = sr;
   mod[1][1] = sg;
   mod[2][2] = sb;
@@ -258,7 +258,7 @@ ColorMatrix& ColorMatrix::scale(float sa, float sr, float sg, float sb, int orde
 
 ColorMatrix& ColorMatrix::translate(float ta, float tr, float tg, float tb, int order)
 {
-  ColorMatrix mod;
+  ColorMatrix mod(ColorMatrix::IDENTITY);
   mod[4][0] = tr;
   mod[4][1] = tg;
   mod[4][2] = tb;
@@ -271,9 +271,9 @@ ColorMatrix& ColorMatrix::setSaturation(float sat, int order)
   // If the saturation is 1.0, then this matrix remains unchanged.
   // If the saturation is 0.0, each color is scaled by its luminance
   float satComplement  = 1.0f - sat;
-  float satComplementR = lumR * satComplement;
-  float satComplementG = lumG * satComplement;
-  float satComplementB = lumB * satComplement;
+  float satComplementR = LUM_R * satComplement;
+  float satComplementG = LUM_G * satComplement;
+  float satComplementB = LUM_B * satComplement;
 
   // Create the matrix:
   ColorMatrix mod(
@@ -295,13 +295,13 @@ ColorMatrix& ColorMatrix::setTint(float phi, float amount)
 ColorMatrix& ColorMatrix::rotateHue(float phi)
 {
   // Rotate the gray vector to the blue axis and rotate around the blue axis.
-  return multiply(PreHue).rotateBlue(phi).multiply(PostHue);
+  return multiply(PRE_HUE).rotateBlue(phi).multiply(POST_HUE);
 }
 
 bool ColorMatrix::eq(const ColorMatrix& other, float epsilon) const
 {
   for (sysuint_t i = 0; i < 25; i++)
-    if (!Math::feq(arr[i], other.arr[i], epsilon)) return false;
+    if (!Math::feq(getData()[i], other.getData()[i], epsilon)) return false;
 
   return true;
 }
@@ -312,7 +312,7 @@ ColorMatrix& ColorMatrix::_rotateColor(float phi, int x, int y, int order)
   float phiCos;
   Math::sincos(phi, &phiSin, &phiCos);
 
-  ColorMatrix mod;
+  ColorMatrix mod(ColorMatrix::IDENTITY);
   mod.m[x][x] =  phiCos;
   mod.m[x][y] = -phiSin;
   mod.m[y][x] =  phiSin;
@@ -322,67 +322,82 @@ ColorMatrix& ColorMatrix::_rotateColor(float phi, int x, int y, int order)
 
 ColorMatrix& ColorMatrix::_shearColor(int x, int y1, float col1, int y2, float col2, int order)
 {
-  ColorMatrix mod;
+  ColorMatrix mod(ColorMatrix::IDENTITY);
   mod.m[y1][x] = col1;
   mod.m[y2][x] = col2;
   return multiply(mod, order);
 }
 
-void ColorMatrix::_copyData(void *_dst, const void *_src)
+void ColorMatrix::_copyData(float* _dst, const float* _src)
 {
   memcpy(_dst, _src, sizeof(float) * 25);
 }
 
-ColorMatrix ColorMatrix::Greyscale(DONT_INITIALIZE);
-ColorMatrix ColorMatrix::Identity(DONT_INITIALIZE);
-ColorMatrix ColorMatrix::White(DONT_INITIALIZE);
-ColorMatrix ColorMatrix::Zero(DONT_INITIALIZE);
-ColorMatrix ColorMatrix::PreHue(DONT_INITIALIZE);
-ColorMatrix ColorMatrix::PostHue(DONT_INITIALIZE);
-
-} // Fog namespace
-
 // ============================================================================
-// [Library Initializers]
+// [Fog::ColorMatrix - Statics]
 // ============================================================================
 
-FOG_INIT_DECLARE err_t fog_colormatrix_init(void)
+ColorMatrix ColorMatrix::GREYSCALE(
+  LUM_R, LUM_R, LUM_R, 0.0f, 0.0f,
+  LUM_G, LUM_G, LUM_G, 0.0f, 0.0f,
+  LUM_B, LUM_B, LUM_B, 0.0f, 0.0f,
+  0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+  0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+
+ColorMatrix ColorMatrix::IDENTITY(
+  1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+  0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+  0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+  0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+  0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+
+ColorMatrix ColorMatrix::WHITE(
+  1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+  1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+  1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+  0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+  0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+
+ColorMatrix ColorMatrix::ZERO(
+  0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+  0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+  0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+  0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+  0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+
+ColorMatrix ColorMatrix::PRE_HUE(
+  0.8164966106f, 0.0f, 0.5345109105f, 0.0f, 0.0f,
+  -0.4082482755f, 0.7071067691f, 1.055511713f, 0.0f, 0.0f,
+  -0.4082482755f, -0.7071067691f, 0.1420281678f, 0.0f, 0.0f,
+  0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+  0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+
+ColorMatrix ColorMatrix::POST_HUE(
+  0.8467885852f, -0.3779562712f, -0.3779562712f, 0.0f, 0.0f,
+  -0.3729280829f, 0.3341786563f, -1.080034852f, 0.0f, 0.0f,
+  0.5773502588f, 0.5773502588f, 0.5773502588f, 0.0f, 0.0f,
+  0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+  0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+
+// Code to generate PRE_HUE and POST_HUE matrices.
+#if 0
+static void dumpColorMatrix(const ColorMatrix& cm)
 {
-  using namespace Fog;
+  for (int i = 0; i < 5; i++)
+  {
+    printf("%.10gf, %.10gf, %.10gf, %.10gf, %.10gf,\n", 
+      cm.m[i][0],
+      cm.m[i][1],
+      cm.m[i][2],
+      cm.m[i][3],
+      cm.m[i][4]);
+  }
+}
 
-  // Grayscale color matrix is modified from the GDI+ FAQ (submitted by
-  // Gilles Khouzam) to use the NTSC color values.  The version in the FAQ
-  // used 0.3, 0.59, and 0.11, so it was close...
-  ColorMatrix::Greyscale.set(
-    lumR, lumR, lumR, 0.0f, 0.0f,
-    lumG, lumG, lumG, 0.0f, 0.0f,
-    lumB, lumB, lumB, 0.0f, 0.0f,
-    0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-    0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
-
-  ColorMatrix::Identity.set(
-    1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-    0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-    0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-    0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-    0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
-
-  ColorMatrix::White.set(
-    1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-    1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-    1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-    0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-    0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
-
-  ColorMatrix::Zero.set(
-    0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-    0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-    0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-    0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-    0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
-
-  ColorMatrix::PreHue = ColorMatrix::Identity;
-  ColorMatrix::PostHue = ColorMatrix::Identity;
+static void dumpPreHueAndPostHue()
+{
+  ColorMatrix preHue(ColorMatrix::IDENTITY);
+  ColorMatrix postHue(ColorMatrix::IDENTITY);
 
   // [CMD 2006-02-22]
   //
@@ -401,36 +416,36 @@ FOG_INIT_DECLARE err_t fog_colormatrix_init(void)
 
   // Prepare the preHue matrix
   // Rotate the gray vector in the red plane:
-  ColorMatrix::PreHue.rotateRed(Math::deg2rad(45.0f));
+  preHue.rotateRed(Math::deg2rad(45.0f));
 
   // Rotate again in the green plane so it coinsides with the
   // blue axis:
-  ColorMatrix::PreHue.rotateGreen(-greenRotation);
+  preHue.rotateGreen(-greenRotation);
 
   // Shear the blue plane, in order to keep the color luminance
   // constant:
-  float lum[4] = { lumR, lumG, lumB, 1.0f };
+  float lum[4] = { LUM_R, LUM_G, LUM_B, 1.0f };
 
   // Transform by the luminance vector:
-  ColorMatrix::PreHue.transformVector(lum);
+  preHue.transformVector(lum);
 
   // Calculate the red and green factors:
-  float shearRcp = 1.0f / lum[2];
+  float shearRcp   = 1.0f / lum[2];
   float shearRed   = lum[0] * shearRcp;
   float shearGreen = lum[1] * shearRcp;
 
   // Shear the blue plane:
-  ColorMatrix::PreHue.shearBlue(shearRed, shearGreen);
+  preHue.shearBlue(shearRed, shearGreen);
 
   // Prepare the postHue matrix, which is actually the inverse of the
   // preHue matrix
-  ColorMatrix::PostHue.shearBlue(-shearRed, -shearGreen);
-  ColorMatrix::PostHue.rotateGreen(greenRotation);
-  ColorMatrix::PostHue.rotateRed(Math::deg2rad(-45.0f));
+  postHue.shearBlue(-shearRed, -shearGreen);
+  postHue.rotateGreen(greenRotation);
+  postHue.rotateRed(Math::deg2rad(-45.0f));
 
-  return ERR_OK;
+  dumpColorMatrix(preHue);
+  dumpColorMatrix(postHue);
 }
+#endif
 
-FOG_INIT_DECLARE void fog_colormatrix_shutdown(void)
-{
-}
+} // Fog namespace
