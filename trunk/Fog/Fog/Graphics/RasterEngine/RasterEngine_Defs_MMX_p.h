@@ -14,6 +14,35 @@ namespace Fog {
 namespace RasterEngine {
 
 // ============================================================================
+// [Fog::RasterEngine::MMX - Core]
+// ============================================================================
+
+// These macros were designed to simplify implementation of raster engine for:
+// - MMX      - MMX without 3dNow or SSE support.
+// - MMX3dNow - MMX with some 3dNow code.
+// - MMXSSE   - MMX using SSE extensions (mainly shuffling, different muldiv255)
+
+// Check if possible specializations are correct.
+#if defined(FOG_RASTER_MMX3DNOW) && defined(FOG_RASTER_MMXSSE)
+#error "Fog::RasterEngine - Multiple specialization declarations"
+#endif
+
+// MMX.
+#define MMX_SYM(symbol) symbol##MMX
+
+// MMX3dNow.
+#if defined(FOG_RASTER_MMX3DNOW)
+#undef MMX_SYM
+#define MMX_SYM(symbol) symbol##MMX3dNow
+#endif
+
+// MMXSSE.
+#if defined(FOG_RASTER_MMXSSE)
+#undef MMX_SYM
+#define MMX_SYM(symbol) symbol##MMXSSE
+#endif
+
+// ============================================================================
 // [Fog::RasterEngine::MMX - Defines]
 // ============================================================================
 
@@ -150,6 +179,20 @@ group##_end: \
     (uint64_t)(val0)  \
   }
 
+#define MMX_DECLARE_CONST_PF_SET(name, val0) \
+  FOG_ALIGNED_VAR(static const float, _mmx_const_##name[2], 8) = \
+  { \
+    (float)(val0), \
+    (float)(val0)  \
+  }
+
+#define MMX_DECLARE_CONST_PF_VAR(name, val0, val1) \
+  FOG_ALIGNED_VAR(static const float, _mmx_const_##name[2], 8) = \
+  { \
+    (float)(val1), \
+    (float)(val0)  \
+  }
+
 #define MMX_GET_CONST(name) (*(const __m64*)_mmx_const_##name)
 
 // ============================================================================
@@ -274,19 +317,22 @@ static FOG_INLINE void mmx_expand_pixel_hi_1x1B(
   dst0 = _mm_unpackhi_pi32(src0, src0);
 }
 
-#if defined(FOG_MMX_SSE_VARIANT)
-static FOG_INLINE void mmx_expand_pixel_lo_1x1B_SSE(
+#if defined(FOG_RASTER_MMXSSE)
+static FOG_INLINE void mmx_expand_pixel_lo_1x1B_MMXSSE(
   __m64& dst0, const __m64& src0)
 {
   dst0 = _mm_shuffle_pi16(src0, _MM_SHUFFLE(1, 0, 1, 0));
 }
 
-static FOG_INLINE void mmx_expand_pixel_hi_1x1B_SSE(
+static FOG_INLINE void mmx_expand_pixel_hi_1x1B_MMXSSE(
   __m64& dst0, const __m64& src0)
 {
   dst0 = _mm_shuffle_pi16(src0, _MM_SHUFFLE(3, 2, 3, 2));
 }
-#endif // FOG_MMX_SSE_VARIANT
+
+#define mmx_expand_pixel_lo_1x1B mmx_expand_pixel_lo_1x1B_MMXSSE
+#define mmx_expand_pixel_hi_1x1B mmx_expand_pixel_hi_1x1B_MMXSSE
+#endif // FOG_RASTER_MMXSSE
 
 // Expand Alpha.
 
@@ -307,21 +353,24 @@ static FOG_INLINE void mmx_expand_alpha_2x1W(
   dst1 = _mm_unpackhi_pi16(dst1, dst1);
 }
 
-#if defined(FOG_MMX_SSE_VARIANT)
-static FOG_INLINE void mmx_expand_alpha_1x1W_SSE(
+#if defined(FOG_RASTER_MMXSSE)
+static FOG_INLINE void mmx_expand_alpha_1x1W_MMXSSE(
   __m64& dst0, const __m64& src0)
 {
   dst0 = _mm_shuffle_pi16(src0, _MM_SHUFFLE(3, 3, 3, 3));
 }
 
-static FOG_INLINE void mmx_expand_alpha_1x2W_SSE(
+static FOG_INLINE void mmx_expand_alpha_1x2W_MMXSSE(
   __m64& dst0, const __m64& src0,
   __m64& dst1, const __m64& src1)
 {
   dst0 = _mm_shuffle_pi16(src0, _MM_SHUFFLE(3, 3, 3, 3));
   dst1 = _mm_shuffle_pi16(src1, _MM_SHUFFLE(3, 3, 3, 3));
 }
-#endif // FOG_MMX_SSE_VARIANT
+
+#define mmx_expand_alpha_1x1W mmx_expand_alpha_1x1W_MMXSSE
+#define mmx_expand_alpha_1x2W mmx_expand_alpha_1x2W_MMXSSE
+#endif // FOG_RASTER_MMXSSE
 
 // Add.
 
@@ -377,8 +426,8 @@ static FOG_INLINE void mmx_muldiv255_2x1W(
   dst1 = _mm_srli_pi16(dst1, 8);
 }
 
-#if defined(FOG_MMX_SSE_VARIANT)
-static FOG_INLINE void mmx_muldiv255_1x1W_SSE(
+#if defined(FOG_RASTER_MMXSSE)
+static FOG_INLINE void mmx_muldiv255_1x1W_MMXSSE(
   __m64& dst0, const __m64& a0, const __m64& b0)
 {
   dst0 = _mm_mullo_pi16(a0, b0);
@@ -386,7 +435,7 @@ static FOG_INLINE void mmx_muldiv255_1x1W_SSE(
   dst0 = _mm_mulhi_pu16(dst0, MMX_GET_CONST(0101010101010101));
 }
 
-static FOG_INLINE void mmx_muldiv255_2x1W_SSE(
+static FOG_INLINE void mmx_muldiv255_2x1W_MMXSSE(
   __m64& dst0, const __m64& a0, const __m64& b0,
   __m64& dst1, const __m64& a1, const __m64& b1)
 {
@@ -399,7 +448,10 @@ static FOG_INLINE void mmx_muldiv255_2x1W_SSE(
   dst0 = _mm_mulhi_pu16(dst0, MMX_GET_CONST(0101010101010101));
   dst1 = _mm_mulhi_pu16(dst1, MMX_GET_CONST(0101010101010101));
 }
-#endif // FOG_MMX_SSE_VARIANT
+
+#define mmx_muldiv255_1x1W mmx_muldiv255_1x1W_MMXSSE
+#define mmx_muldiv255_2x1W mmx_muldiv255_2x1W_MMXSSE
+#endif // FOG_RASTER_MMXSSE
 
 // Fill Alpha.
 
@@ -435,6 +487,15 @@ static FOG_INLINE void mmx_end()
 {
   _mm_empty();
 }
+
+#if defined(FOG_RASTER_MMX3DNOW)
+static FOG_INLINE void mmx_end_MMX3dNow()
+{
+  _m_femms();
+}
+
+#define mmx_end mmx_end_MMX3dNow
+#endif
 
 } // RasterEngine namespace
 } // Fog namespace

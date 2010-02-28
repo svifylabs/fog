@@ -18,7 +18,7 @@ namespace RasterEngine {
 // [Fog::RasterEngine::MMX - Pattern]
 // ============================================================================
 
-struct FOG_HIDDEN PatternMMX
+struct FOG_HIDDEN MMX_SYM(Pattern)
 {
   // --------------------------------------------------------------------------
   // [Texture - Transform - Bilinear - Helpers]

@@ -18,7 +18,7 @@ namespace RasterEngine {
 // [Fog::RasterEngine::MMX - Interpolate]
 // ============================================================================
 
-struct FOG_HIDDEN InterpolateMMX
+struct FOG_HIDDEN MMX_SYM(Interpolate)
 {
   // --------------------------------------------------------------------------
   // [Gradient]

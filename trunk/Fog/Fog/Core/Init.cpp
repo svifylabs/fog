@@ -48,7 +48,6 @@ FOG_INIT_FUNC(fog_object);
 FOG_INIT_FUNC(fog_application);
 
 // Fog/Graphics
-FOG_INIT_FUNC(fog_colormatrix);
 FOG_INIT_FUNC(fog_raster);
 FOG_INIT_FUNC(fog_rasterizer);
 FOG_INIT_FUNC(fog_palette);
@@ -96,7 +95,6 @@ struct FogInitEntry
 #define INIT_ENTRY(entry) { entry##_init, entry##_shutdown }
 #endif
 
-// NOTE: Fog::Locale must be initialized before Fog::TextCodec
 static const FogInitEntry fog_init_entries[] =
 {
   // Fog/Core
@@ -122,7 +120,6 @@ static const FogInitEntry fog_init_entries[] =
   INIT_ENTRY(fog_application),      // Depends to Many
 
   // Fog/Graphics
-  INIT_ENTRY(fog_colormatrix),
   INIT_ENTRY(fog_raster),
   INIT_ENTRY(fog_rasterizer),
   INIT_ENTRY(fog_palette),
@@ -143,7 +140,7 @@ static const FogInitEntry fog_init_entries[] =
   // Fog/Gui
 
   // Fog/Xml
-  INIT_ENTRY(fog_xmlentity),
+  INIT_ENTRY(fog_xmlentity)
 
   // Fog/Svg
 };
