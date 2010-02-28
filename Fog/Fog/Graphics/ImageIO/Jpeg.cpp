@@ -149,7 +149,7 @@ err_t JpegProvider::createDevice(uint32_t deviceType, BaseDevice** device) const
 {
   BaseDevice* d = NULL;
 
-  err_t err = _jpegLibrary.prepare();
+  err_t err = const_cast<JpegProvider*>(this)->_jpegLibrary.prepare();
   if (err) return err;
 
   switch (deviceType)
@@ -415,7 +415,7 @@ err_t JpegDecoderDevice::readImage(Image& image)
   // Check whether the image size is valid.
   if (!checkImageSize())
   {
-    err = ERR_IMAGE_TOO_LARGE;
+    err = ERR_IMAGE_INVALID_SIZE;
     goto end;
   }
 

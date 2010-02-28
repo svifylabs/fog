@@ -165,7 +165,7 @@ err_t PngProvider::createDevice(uint32_t deviceType, BaseDevice** device) const
 {
   BaseDevice* d = NULL;
 
-  err_t err = _pngLibrary.prepare();
+  err_t err = const_cast<PngProvider*>(this)->_pngLibrary.prepare();
   if (err) return err;
 
   switch (deviceType)
