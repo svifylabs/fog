@@ -3,6 +3,11 @@
 - Updated color matrix class to fit the Fog-Framework syntax.
 - Static members in ColorMatrix are now const.
 - Added MMX/3dNow and MMX/SSE raster engine functions.
+- Added simple SRC_OVER CSPAN fillers.
+- Removed painter initializers, Null painter class moved to Null_p.h
+- Removed private thread pool instance from raster painter.
+- Added global thread pool instance, see ThreadPool::getInstance().
+- Added macros to help code readibility in RasterPaintEngine.
 
 2010-02-27
 - Write support in GdiPlus image IO backend.

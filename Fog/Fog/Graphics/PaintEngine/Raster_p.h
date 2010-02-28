@@ -8,6 +8,10 @@
 #define _FOG_GRAPHICS_PAINTERENGINE_RASTER_P_H
 
 // [Dependencies]
+#include <Fog/Core/Lock.h>
+#include <Fog/Core/Task.h>
+#include <Fog/Core/Thread.h>
+#include <Fog/Core/ThreadCondition.h>
 #include <Fog/Graphics/ImageFilter.h>
 #include <Fog/Graphics/PaintEngine.h>
 #include <Fog/Graphics/RasterEngine_p.h>
@@ -19,6 +23,28 @@
 //! @{
 
 namespace Fog {
+
+// ============================================================================
+// [Configuration]
+// ============================================================================
+
+// Debugging.
+// #define FOG_DEBUG_RASTER_SYNCHRONIZATION
+// #define FOG_DEBUG_RASTER_COMMANDS
+
+// Minimum size to set multithreading on.
+enum { RASTER_MIN_SIZE_THRESHOLD = 256*256 };
+
+// Maximum number of threads to use for rendering.
+enum { RASTER_MAX_WORKERS = 16 };
+// Maximum commands and calculations to accumulate in buffer.
+#if defined(FOG_DEBUG_RASTER_SYNCHRONIZATION)
+enum { RASTER_MAX_COMMANDS = 32 };     // For debugging it's better to have only minimal
+enum { RASTER_MAX_CALCULATIONS = 32 }; // buffer size for the commands and calculations.
+#else
+enum { RASTER_MAX_COMMANDS = 1024 };
+enum { RASTER_MAX_CALCULATIONS = 1024 };
+#endif // FOG_DEBUG_RASTER_SYNCHRONIZATION
 
 // ============================================================================
 // [Forward Declarations]
@@ -39,6 +65,23 @@ struct RasterPaintEngine;
 // ============================================================================
 // [Constants]
 // ============================================================================
+
+//! @brief Type of current painter layer
+enum LAYER_TYPE
+{
+  //! @brief Native layer and compositing (PRGB32, XRGB32, A8).
+  //!
+  //! This layer is te most efficient layer - direct compositing is used.
+  LAYER_TYPE_NATIVE = 0,
+
+  //! @brief Non-premultiplied ARGB layer.
+  //!
+  //! This layer type is for @c PIXEL_FORMAT_ARGB32 format where alpha
+  //! component is not premultiplied. Because premultiply / demultiply
+  //! operation can be costly, painter will premultiply part of image
+  //! and demultiply it back only when finished (or by flush() call).
+  LAYER_TYPE_ARGB = 1
+};
 
 //! @brief Type of current transform in raster paint engine.
 enum TRANSFORM_TYPE
@@ -188,9 +231,11 @@ FOG_INLINE void MemoryAllocator::free(void* ptr)
 //! @brief Raster paint engine layer.
 struct FOG_HIDDEN RasterPaintLayer
 {
-  //! @brief Data to first raster scanline.
+  //! @brief Pointer to first raster scanline.
   uint8_t* pixels;
 
+  //! @brief Type of layer.
+  int type;
   //! @brief Layer width.
   int width;
   //! @brief Layer height.
@@ -198,7 +243,7 @@ struct FOG_HIDDEN RasterPaintLayer
   //! @brief Layer format.
   int format;
 
-  //! @brief Layer stride (bytes per width including padding).
+  //! @brief Layer stride (bytes per line including padding).
   sysint_t stride;
   //! @brief Layer bytes per pixel.
   sysint_t bpp;
@@ -292,26 +337,31 @@ struct FOG_HIDDEN RasterPaintCapsState
     struct
     {
       //! @brief Compositing operator, see @c OPERATOR_TYPE.
-      uint8_t op;
+      uint32_t op : 8;
 
       //! @brief Type of source, see @c PAINTER_SOURCE_TYPE.
-      uint8_t sourceType;
+      uint32_t sourceType : 8;
+
+      //! @brief Type of transform, see @c TRANSFORM_TYPE.
+      uint32_t transformType : 8;
 
       //! @brief Fill mode, see @c FILL_MODE.
-      uint8_t fillMode;
+      uint32_t fillMode : 8;
 
-      //! @brief Anti-aliasing type/quality, see @c ANTI_ALIASING_TYPE.
-      uint8_t aaQuality;
-      //! @brief Image interpolation type/quality, see @c INTERPOLATION_TYPE.
-      uint8_t imageInterpolation;
-      //! @brief Gradient interpolation type/quality, see @c INTERPOLATION_TYPE.
-      uint8_t gradientInterpolation;
+      //! @brief Anti-aliasing type / quality, see @c ANTI_ALIASING_TYPE.
+      uint32_t aaQuality : 4;
+
+      //! @brief Image interpolation type / quality, see @c INTERPOLATION_TYPE.
+      uint32_t imageInterpolation : 4;
+
+      //! @brief Gradient interpolation type / quality, see @c INTERPOLATION_TYPE.
+      uint32_t gradientInterpolation : 4;
+
+      //! @brief Whether to force vector text.
+      uint32_t forceVectorText : 4;
 
       //! @brief Whether line is simple (one pixel width and default caps).
-      uint8_t lineIsSimple;
-      //! @brief Whether complex transformation is used (complex transform means
-      //! that 2x2 matrix is not identity, translation is not considered).
-      uint8_t transformType;
+      uint32_t lineIsSimple : 1;
     };
 
     //! @brief All packed data in one array (for fast copy).
@@ -537,8 +587,8 @@ struct FOG_HIDDEN RasterPaintCmd : public RasterPaintAction
 
   //! @brief This method destroys only general @c RasterPaintCmd data.
   //!
-  //! Within this method the @c RasterPaintAction::_free() is called, so
-  //! never call it again
+  //! Within this method the @c RasterPaintAction::_free() is not called, so
+  //! make sure you call _free() after _releaseObjects().
   FOG_INLINE void _releaseObjects();
 
   // --------------------------------------------------------------------------
@@ -735,10 +785,384 @@ struct FOG_HIDDEN RasterPaintCalcPath : public RasterPaintCalc
 };
 
 // ============================================================================
-// [API]
+// [Fog::RasterPaintTask]
 // ============================================================================
 
-FOG_HIDDEN PaintEngine* _getRasterPaintEngine(const ImageBuffer& buffer, int hints);
+// This is task created per painter thread that contains all variables needed
+// to process painter commands in parallel. The goal is that condition variable
+// is shared across all painter threads so one signal will wake them all.
+struct FOG_HIDDEN RasterPaintTask : public Task
+{
+  RasterPaintTask(Lock* condLock);
+  virtual ~RasterPaintTask();
+
+  virtual void run();
+  virtual void destroy();
+
+  // State
+  enum STATE
+  {
+    RUNNING,
+    WAITING,
+    DONE
+  };
+
+  Atomic<int> state;
+
+  // True if worker should quit from main loop.
+  Atomic<int> shouldQuit;
+
+  // Commands and calculations.
+  volatile sysint_t calcCurrent;
+  volatile sysint_t cmdCurrent;
+
+  // Worker context.
+  RasterPaintContext ctx;
+
+  // Worker condition.
+  ThreadCondition cond;
+};
+
+// ============================================================================
+// [Fog::RasterPaintWorkerManager]
+// ============================================================================
+
+// Structure shared across all workers (threads).
+struct FOG_HIDDEN RasterPaintWorkerManager
+{
+  // [Construction / Destruction]
+
+  RasterPaintWorkerManager();
+  ~RasterPaintWorkerManager();
+
+  // [Methods]
+
+  // To call the lock must be locked!
+  RasterPaintTask* wakeUpScheduled(RasterPaintTask* calledFrom);
+  RasterPaintTask* wakeUpSleeping(RasterPaintTask* calledFrom);
+  bool isCompleted();
+
+  // [Members]
+
+  sysuint_t numWorkers;               // Count of workers used in engine.
+
+  Atomic<sysuint_t> finishedWorkers;  // Count of workers finished (used to quit).
+  Atomic<sysuint_t> waitingWorkers;   // Count of workers waiting (for calculation).
+
+  Lock lock;                          // Lock for synchronization primitives.
+  ThreadCondition allFinishedCondition;
+  ThreadEvent* releaseEvent;
+
+  Thread* threads[RASTER_MAX_WORKERS];
+  Static<RasterPaintTask> tasks[RASTER_MAX_WORKERS];
+
+  // Commands and calculations allocator.
+  MemoryAllocator allocator;
+
+  // Commands manager.
+  volatile sysint_t cmdPosition;
+  RasterPaintCmd* volatile cmdData[RASTER_MAX_COMMANDS];
+
+  // Calculations manager.
+  volatile sysint_t calcPosition;
+  RasterPaintCalc* volatile calcData[RASTER_MAX_CALCULATIONS];
+};
+
+// ============================================================================
+// [Fog::RasterPaintEngine]
+// ============================================================================
+
+struct FOG_HIDDEN RasterPaintEngine : public PaintEngine
+{
+  // --------------------------------------------------------------------------
+  // [Construction / Destruction]
+  // --------------------------------------------------------------------------
+
+  RasterPaintEngine(const ImageBuffer& buffer, uint32_t initFlags);
+  virtual ~RasterPaintEngine();
+
+  // --------------------------------------------------------------------------
+  // [Width / Height / Format]
+  // --------------------------------------------------------------------------
+
+  virtual int getWidth() const;
+  virtual int getHeight() const;
+  virtual int getFormat() const;
+
+  // --------------------------------------------------------------------------
+  // [Engine / Flush]
+  // --------------------------------------------------------------------------
+
+  virtual uint32_t getEngine() const;
+  virtual void setEngine(uint32_t engine, uint32_t cores = 0);
+
+  virtual void flush(uint32_t flags);
+  void flushWithQuit();
+
+  // --------------------------------------------------------------------------
+  // [Hints]
+  // --------------------------------------------------------------------------
+
+  virtual int getHint(uint32_t hint) const;
+  virtual void setHint(uint32_t hint, int value);
+
+  // --------------------------------------------------------------------------
+  // [Meta]
+  // --------------------------------------------------------------------------
+
+  virtual void setMetaVariables(
+    const Point& metaOrigin,
+    const Region& metaRegion,
+    bool useMetaRegion,
+    bool reset);
+
+  virtual void setMetaOrigin(const Point& pt);
+  virtual void setUserOrigin(const Point& pt);
+
+  virtual void translateMetaOrigin(const Point& pt);
+  virtual void translateUserOrigin(const Point& pt);
+
+  virtual void setUserRegion(const Rect& r);
+  virtual void setUserRegion(const Region& r);
+
+  virtual void resetMetaVars();
+  virtual void resetUserVars();
+
+  virtual Point getMetaOrigin() const;
+  virtual Point getUserOrigin() const;
+
+  virtual Region getMetaRegion() const;
+  virtual Region getUserRegion() const;
+
+  virtual bool isMetaRegionUsed() const;
+  virtual bool isUserRegionUsed() const;
+
+  // --------------------------------------------------------------------------
+  // [Operator]
+  // --------------------------------------------------------------------------
+
+  virtual uint32_t getOperator() const;
+  virtual void setOperator(uint32_t op);
+
+  // --------------------------------------------------------------------------
+  // [Source]
+  // --------------------------------------------------------------------------
+
+  virtual uint32_t getSourceType() const;
+
+  virtual err_t getSourceArgb(Argb& argb) const;
+  virtual err_t getSourcePattern(Pattern& pattern) const;
+
+  virtual void setSource(Argb argb);
+  virtual void setSource(const Pattern& pattern);
+  virtual void setSource(const ColorFilter& colorFilter);
+
+  // --------------------------------------------------------------------------
+  // [Fill Parameters]
+  // --------------------------------------------------------------------------
+
+  virtual uint32_t getFillMode() const;
+  virtual void setFillMode(uint32_t mode);
+
+  // --------------------------------------------------------------------------
+  // [Stroke Parameters]
+  // --------------------------------------------------------------------------
+
+  virtual void getStrokeParams(StrokeParams& strokeParams) const;
+  virtual void setStrokeParams(const StrokeParams& strokeParams);
+
+  virtual double getLineWidth() const;
+  virtual void setLineWidth(double lineWidth);
+
+  virtual uint32_t getStartCap() const;
+  virtual void setStartCap(uint32_t startCap);
+
+  virtual uint32_t getEndCap() const;
+  virtual void setEndCap(uint32_t endCap);
+
+  virtual void setLineCaps(uint32_t lineCaps);
+
+  virtual uint32_t getLineJoin() const;
+  virtual void setLineJoin(uint32_t lineJoin);
+
+  virtual double getMiterLimit() const;
+  virtual void setMiterLimit(double miterLimit);
+
+  virtual List<double> getDashes() const;
+  virtual void setDashes(const double* dashes, sysuint_t count);
+  virtual void setDashes(const List<double>& dashes);
+
+  virtual double getDashOffset() const;
+  virtual void setDashOffset(double offset);
+
+  // --------------------------------------------------------------------------
+  // [Transformations]
+  // --------------------------------------------------------------------------
+
+  virtual Matrix getMatrix() const;
+  virtual void setMatrix(const Matrix& m);
+  virtual void resetMatrix();
+
+  virtual void rotate(double angle, int order);
+  virtual void scale(double sx, double sy, int order);
+  virtual void skew(double sx, double sy, int order);
+  virtual void translate(double x, double y, int order);
+  virtual void transform(const Matrix& m, int order);
+
+  virtual void worldToScreen(PointD* pt) const;
+  virtual void screenToWorld(PointD* pt) const;
+
+  virtual void alignPoint(PointD* pt) const;
+
+  // --------------------------------------------------------------------------
+  // [State]
+  // --------------------------------------------------------------------------
+
+  virtual void save();
+  virtual void restore();
+
+  // --------------------------------------------------------------------------
+  // [Raster Drawing]
+  // --------------------------------------------------------------------------
+
+  virtual void clear();
+  virtual void drawPoint(const Point& p);
+  virtual void drawLine(const Point& start, const Point& end);
+  virtual void drawRect(const Rect& r);
+  virtual void drawRound(const Rect& r, const Point& radius);
+  virtual void fillRect(const Rect& r);
+  virtual void fillRects(const Rect* r, sysuint_t count);
+  virtual void fillRound(const Rect& r, const Point& radius);
+  virtual void fillRegion(const Region& region);
+
+  // --------------------------------------------------------------------------
+  // [Vector Drawing]
+  // --------------------------------------------------------------------------
+
+  virtual void drawPoint(const PointD& p);
+  virtual void drawLine(const PointD& start, const PointD& end);
+  virtual void drawLine(const PointD* pts, sysuint_t count);
+  virtual void drawPolygon(const PointD* pts, sysuint_t count);
+  virtual void drawRect(const RectD& r);
+  virtual void drawRects(const RectD* r, sysuint_t count);
+  virtual void drawRound(const RectD& r, const PointD& radius);
+  virtual void drawEllipse(const PointD& cp, const PointD& r);
+  virtual void drawArc(const PointD& cp, const PointD& r, double start, double sweep);
+  virtual void drawPath(const Path& path);
+
+  virtual void fillPolygon(const PointD* pts, sysuint_t count);
+  virtual void fillRect(const RectD& r);
+  virtual void fillRects(const RectD* r, sysuint_t count);
+  virtual void fillRound(const RectD& r, const PointD& radius);
+  virtual void fillEllipse(const PointD& cp, const PointD& r);
+  virtual void fillArc(const PointD& cp, const PointD& r, double start, double sweep);
+  virtual void fillPath(const Path& path);
+
+  // --------------------------------------------------------------------------
+  // [Glyph / Text Drawing]
+  // --------------------------------------------------------------------------
+
+  virtual void drawGlyph(const Point& pt, const Glyph& glyph, const Rect* clip);
+  virtual void drawGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip);
+
+  virtual void drawText(const Point& p, const String& text, const Font& font, const Rect* clip);
+  virtual void drawText(const Rect& r, const String& text, const Font& font, uint32_t align, const Rect* clip);
+
+  // --------------------------------------------------------------------------
+  // [Image drawing]
+  // --------------------------------------------------------------------------
+
+  virtual void blitImage(const Point& p, const Image& image, const Rect* irect);
+  virtual void blitImage(const PointD& p, const Image& image, const Rect* irect);
+
+  // --------------------------------------------------------------------------
+  // [Helpers]
+  // --------------------------------------------------------------------------
+
+  void _updateWorkRegion();
+  void _updateTransform(bool translationOnly);
+
+  void _setClipDefaults();
+  void _setCapsDefaults();
+
+  RasterEngine::PatternContext* _getPatternRasterPaintContext();
+  void _resetPatternRasterPaintContext();
+
+  FOG_INLINE void _updateLineWidth()
+  {
+    ctx.capsState->lineIsSimple = (
+      ctx.capsState->strokeParams.getLineWidth() == 1.0 &&
+      ctx.capsState->strokeParams.getDashes().getLength() == 0);
+  }
+
+  RasterPaintCapsState* _detachCapsState();
+  RasterPaintClipState* _detachClipState();
+
+  FOG_INLINE void _derefClipState(RasterPaintClipState* clipState);
+  FOG_INLINE void _derefCapsState(RasterPaintCapsState* capsState);
+
+  void _deleteStates();
+
+  // --------------------------------------------------------------------------
+  // [Serializers]
+  // --------------------------------------------------------------------------
+
+  // Serializers are always called from painter thread.
+  void _serializeBoxes(const Box* box, sysuint_t count);
+  void _serializeImage(const Rect& dst, const Image& image, const Rect& src);
+  void _serializeImageAffine(const PointD& pt, const Image& image, const Rect* irect);
+  void _serializeGlyphSet(const Point& pt, const GlyphSet& glyphSet, const Rect* clip);
+  void _serializePath(const Path& path, bool stroke);
+
+  template<typename T> FOG_INLINE T* _createCommand(sysuint_t size = sizeof(T));
+  template<typename T> FOG_INLINE T* _createCommand(sysuint_t size, RasterEngine::PatternContext* pctx);
+  template<typename T> FOG_INLINE T* _createCalc(sysuint_t size = sizeof(T));
+
+  void _postCommand(RasterPaintCmd* cmd, RasterPaintCalc* clc = NULL);
+
+  // --------------------------------------------------------------------------
+  // [Rasterization]
+  // --------------------------------------------------------------------------
+
+  static bool _rasterizePath(RasterPaintContext* ctx, Rasterizer* ras, const Path& path, bool stroke);
+
+  // --------------------------------------------------------------------------
+  // [Renderering]
+  // --------------------------------------------------------------------------
+
+  static void _renderBoxes(RasterPaintContext* ctx, const Box* box, sysuint_t count);
+  static void _renderImage(RasterPaintContext* ctx, const Rect& dst, const Image& image, const Rect& src);
+  static void _renderImageAffineBound(RasterPaintContext* ctx, const PointD& pt, const Image& image);
+  static void _renderGlyphSet(RasterPaintContext* ctx, const Point& pt, const GlyphSet& glyphSet, const Box& boundingBox);
+  static void _renderPath(RasterPaintContext* ctx, Rasterizer* ras, bool textureBlit);
+
+  // --------------------------------------------------------------------------
+  // [Members]
+  // --------------------------------------------------------------------------
+
+  RasterPaintLayer main;
+
+  MemoryAllocator allocator;
+
+  // Temporary path.
+  Path tmpPath;
+
+  // Temporary glyph set.
+  GlyphSet tmpGlyphSet;
+
+  // RasterPaintContext that is used by single-threaded painter.
+  RasterPaintContext ctx;
+
+  // RasterPaintContext states LIFO buffer (for save() and restore() methods)
+  List<RasterPaintStoredState> states;
+
+  // If we are running in single-core environment it's better to use one
+  // rasterizer for everythging.
+  Rasterizer* ras;
+
+  // Multithreading
+  RasterPaintWorkerManager* workerManager;
+};
 
 } // Fog namespace
 

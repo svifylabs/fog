@@ -700,8 +700,7 @@ void BaseGuiEngine::doUpdateWindow(GuiWindow* window)
     buffer.stride = window->_backingStore->getStride();
     buffer.format = window->_backingStore->getFormat();
 
-    // FIXME: Remove that hint, it's only for current testing.
-    painter.begin(buffer, 0 | PAINTER_HINT_NO_MT);
+    painter.begin(buffer, NO_FLAGS /* PAINTER_INIT_MT */);
   }
 
   if ((uflags & Widget::UFlagUpdateAll) != 0)

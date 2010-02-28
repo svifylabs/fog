@@ -45,6 +45,7 @@ MyWindow::MyWindow(uint32_t createFlags) :
 
   i[0].convert(PIXEL_FORMAT_PRGB32);
   i[1].convert(PIXEL_FORMAT_PRGB32);
+
 /*
   {
     Painter p(i[0]);
@@ -148,10 +149,6 @@ void MyWindow::onPaint(PaintEvent* e)
 
   p->setOperator(OPERATOR_SRC);
 
-  p->setSource(0xFF3F3FFF);
-  p->clear();
-
-  p->setOperator(OPERATOR_SRC);
 /*
   Region reg;
   reg.unite(Rect(0, 0, 200, 25));
@@ -272,6 +269,9 @@ void MyWindow::onPaint(PaintEvent* e)
   p->setSource(Argb(0xFFFFFFFF));
   p->clear();
 
+  p->setSource(Argb(0xFF000000));
+  p->drawRect(Rect(15, 30, getWidth() - 15, getHeight() - 35));
+
   // These coordinates describe boundary of object we want to paint.
   double x = 40.5;
   double y = 40.5;
@@ -309,7 +309,15 @@ void MyWindow::onPaint(PaintEvent* e)
   //p->translate(100, 100);
   p->rotate(_rotate);
   //p->translate(-100, -100);
-  p->blitImage(PointD(50.5, 50.5), i[0]);
+  {
+    Image im(i[0]);
+    ColorMatrix cm;
+    cm.rotateHue((float)_rotate * 3.0f);
+    im.filter(cm);
+    p->blitImage(PointD(50.0, 50.0), im);
+
+    p->blitImage(PointD(250.0, 50.0), i[0]);
+  }
   p->restore();
 #endif
 
@@ -440,7 +448,7 @@ void MyWindow::onPaint(PaintEvent* e)
   svg.onRender(&context);
 */
 
-  p->flush();
+  p->flush(PAINTER_FLUSH_SYNC);
 
   TimeDelta delta = TimeTicks::highResNow() - ticks;
 

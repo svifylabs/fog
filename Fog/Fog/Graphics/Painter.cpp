@@ -22,6 +22,7 @@ namespace Fog {
 // [Fog::Painter]
 // ============================================================================
 
+static Static<NullPaintEngine> _nullPaintEngine;
 PaintEngine* Painter::sharedNull;
 
 Painter::Painter()
@@ -29,10 +30,10 @@ Painter::Painter()
   _engine = sharedNull;
 }
 
-Painter::Painter(Image& image, int hints)
+Painter::Painter(Image& image, uint32_t initFlags)
 {
   _engine = sharedNull;
-  begin(image, hints);
+  begin(image, initFlags);
 }
 
 Painter::~Painter()
@@ -40,7 +41,7 @@ Painter::~Painter()
   if (_engine != sharedNull) delete _engine;
 }
 
-err_t Painter::begin(Image& image, int hints)
+err_t Painter::begin(Image& image, uint32_t initFlags)
 {
   end();
 
@@ -62,14 +63,14 @@ err_t Painter::begin(Image& image, int hints)
   buffer.stride = image_d->stride;
   buffer.data = image_d->first;
 
-  PaintEngine* d = _getRasterPaintEngine(buffer, hints);
+  PaintEngine* d = new(std::nothrow) RasterPaintEngine(buffer, initFlags);
   if (!d) return ERR_RT_OUT_OF_MEMORY;
 
   _engine = d;
   return ERR_OK;
 }
 
-err_t Painter::begin(const ImageBuffer& buffer, int hints)
+err_t Painter::begin(const ImageBuffer& buffer, uint32_t initFlags)
 {
   end();
 
@@ -83,7 +84,7 @@ err_t Painter::begin(const ImageBuffer& buffer, int hints)
   if ((uint)buffer.format >= PIXEL_FORMAT_COUNT) return ERR_RT_INVALID_ARGUMENT;
   if ((uint)buffer.format == PIXEL_FORMAT_I8) return ERR_IMAGE_UNSUPPORTED_FORMAT;
 
-  PaintEngine* d = _getRasterPaintEngine(buffer, hints);
+  PaintEngine* d = new(std::nothrow) RasterPaintEngine(buffer, initFlags);
   if (!d) return ERR_RT_OUT_OF_MEMORY;
 
   _engine = d;
@@ -97,3 +98,25 @@ void Painter::end()
 }
 
 } // Fog namespace
+
+// ============================================================================
+// [Library Initializers]
+// ============================================================================
+
+FOG_INIT_DECLARE err_t fog_painter_init(void)
+{
+  using namespace Fog;
+
+  _nullPaintEngine.init();
+  Painter::sharedNull = _nullPaintEngine.instancep();
+
+  return ERR_OK;
+}
+
+FOG_INIT_DECLARE void fog_painter_shutdown(void)
+{
+  using namespace Fog;
+
+  _nullPaintEngine.destroy();
+  Painter::sharedNull = NULL;
+}

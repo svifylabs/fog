@@ -48,7 +48,9 @@ struct StrokerPrivate;
 
 struct FOG_HIDDEN StrokeParams
 {
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE StrokeParams() :
     _lineWidth(LINE_WIDTH_DEFAULT),
@@ -77,7 +79,9 @@ struct FOG_HIDDEN StrokeParams
   {
   }
 
+  // --------------------------------------------------------------------------
   // [Operator Overload]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE StrokeParams& operator=(const StrokeParams& other)
   {
@@ -91,7 +95,9 @@ struct FOG_HIDDEN StrokeParams
     return *this;
   }
 
+  // --------------------------------------------------------------------------
   // [Reset]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE void reset()
   {
@@ -106,16 +112,18 @@ struct FOG_HIDDEN StrokeParams
     _dashOffset = DASH_OFFSET_DEFAULT;
   }
 
+  // --------------------------------------------------------------------------
   // [Getters / Setters]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE double getLineWidth() const { return _lineWidth; }
   FOG_INLINE double getMiterLimit() const { return _miterLimit; }
 
-  FOG_INLINE int getStartCap() const { return (int)_startCap; }
-  FOG_INLINE int getEndCap() const { return (int)_endCap; }
+  FOG_INLINE uint32_t getStartCap() const { return _startCap; }
+  FOG_INLINE uint32_t getEndCap() const { return _endCap; }
 
-  FOG_INLINE int getLineJoin() const { return (int)_lineJoin; }
-  FOG_INLINE int getInnerJoin() const { return (int)_innerJoin; }
+  FOG_INLINE uint32_t getLineJoin() const { return _lineJoin; }
+  FOG_INLINE uint32_t getInnerJoin() const { return _innerJoin; }
 
   FOG_INLINE const List<double>& getDashes() const { return _dashes; }
   FOG_INLINE double getDashOffset() const { return _dashOffset; }
@@ -124,12 +132,12 @@ struct FOG_HIDDEN StrokeParams
   FOG_INLINE void setMiterLimit(double miterLimit) { _miterLimit = miterLimit; }
   FOG_INLINE void setInnerLimit(double innerLimit) { _innerLimit = innerLimit; }
 
-  FOG_INLINE void setStartCap(int startCap) { _startCap = (uint8_t)startCap; }
-  FOG_INLINE void setEndCap(int endCap) { _endCap = (uint8_t)endCap; }
-  FOG_INLINE void setLineCaps(int lineCaps) { _startCap = _endCap = (uint8_t)lineCaps; }
+  FOG_INLINE void setStartCap(uint32_t startCap) { _startCap = (uint8_t)startCap; }
+  FOG_INLINE void setEndCap(uint32_t endCap) { _endCap = (uint8_t)endCap; }
+  FOG_INLINE void setLineCaps(uint32_t lineCaps) { _startCap = _endCap = (uint8_t)lineCaps; }
 
-  FOG_INLINE void setLineJoin(int lineJoin) { _lineJoin = (uint8_t)lineJoin; }
-  FOG_INLINE void setInnerJoin(int innerJoin) { _innerJoin = (uint8_t)innerJoin; }
+  FOG_INLINE void setLineJoin(uint32_t lineJoin) { _lineJoin = (uint8_t)lineJoin; }
+  FOG_INLINE void setInnerJoin(uint32_t innerJoin) { _innerJoin = (uint8_t)innerJoin; }
 
   FOG_INLINE void setDashes(const List<double>& dashes) { _dashes = dashes; }
   FOG_INLINE void setDashes(const double* dashes, sysuint_t length)
@@ -139,7 +147,9 @@ struct FOG_HIDDEN StrokeParams
   }
   FOG_INLINE void setDashOffset(double dashOffset) { _dashOffset = dashOffset; }
 
+  // --------------------------------------------------------------------------
   // [Members]
+  // --------------------------------------------------------------------------
 
   double _lineWidth;
   double _miterLimit;
@@ -168,13 +178,17 @@ struct FOG_HIDDEN StrokeParams
 
 struct FOG_API Stroker
 {
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   Stroker();
   Stroker(const StrokeParams& params, double approximationScale = 1.0);
   ~Stroker();
 
+  // --------------------------------------------------------------------------
   // [Getters / Setters]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE const StrokeParams& getParams() const { return _params; }
   FOG_INLINE double getApproximationScale() const { return _approximationScale; }
@@ -182,12 +196,16 @@ struct FOG_API Stroker
   void setParams(const StrokeParams& params);
   void setApproximationScale(double approximationScale);
 
+  // --------------------------------------------------------------------------
   // [Stroking]
+  // --------------------------------------------------------------------------
 
   err_t stroke(Path& dst) const;
   err_t stroke(Path& dst, const Path& src) const;
 
+  // --------------------------------------------------------------------------
   // [Members]
+  // --------------------------------------------------------------------------
 
 protected:
   void _update();

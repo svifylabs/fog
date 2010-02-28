@@ -70,7 +70,7 @@ struct FOG_API Painter
   Painter();
 
   //! @brief Create painter instance for a given image @a image.
-  Painter(Image& image, int hints = 0);
+  Painter(Image& image, uint32_t initFlags = NO_FLAGS);
 
   //! @brief Destroy painter instance.
   //!
@@ -82,8 +82,8 @@ struct FOG_API Painter
   // [Begin / End]
   // --------------------------------------------------------------------------
 
-  err_t begin(Image& image, int hints = 0);
-  err_t begin(const ImageBuffer& buffer, int hints = 0);
+  err_t begin(Image& image, uint32_t initFlags = NO_FLAGS);
+  err_t begin(const ImageBuffer& buffer, uint32_t initFlags = NO_FLAGS);
   void end();
 
   // --------------------------------------------------------------------------
@@ -91,11 +91,52 @@ struct FOG_API Painter
   // --------------------------------------------------------------------------
 
   //! @brief Get painter width in pixels (width returned is width passed to @c begin() method).
-  FOG_INLINE int getWidth() const { return _engine->getWidth(); }
+  FOG_INLINE int getWidth() const
+  { return _engine->getWidth(); }
+
   //! @brief Get painter heigh in pixels (height returned is height passed to @c begin() method).
-  FOG_INLINE int getHeight() const { return _engine->getHeight(); }
+  FOG_INLINE int getHeight() const
+  { return _engine->getHeight(); }
+
   //! @brief Get painter format  (format returned is format passed to @c begin() method).
-  FOG_INLINE int getFormat() const { return _engine->getFormat(); }
+  FOG_INLINE int getFormat() const
+  { return _engine->getFormat(); }
+
+  // --------------------------------------------------------------------------
+  // [Engine / Flush]
+  // --------------------------------------------------------------------------
+
+  //! @brief Get painter engine ID, see @c PAINTER_ENGINE.
+  FOG_INLINE uint32_t getEngine() const
+  { return _engine->getEngine(); }
+
+  //! @brief Set Painter engine ID, see @c PAINTER_ENGINE.
+  //!
+  //! @param engine The engine ID to use.
+  //! @param cores If the demanded engine is multithreaded then @a core 
+  //! specifies number of threads to use.
+  FOG_INLINE void setEngine(uint32_t engine, uint32_t cores = 0)
+  { _engine->setEngine(engine, cores); }
+
+  //! @brief Flush painter, see @c PAINTER_FLUSH_FLAGS.
+  FOG_INLINE void flush(uint32_t flags)
+  { _engine->flush(flags); }
+
+  // --------------------------------------------------------------------------
+  // [Hints]
+  // --------------------------------------------------------------------------
+
+  //! @brief Get painter hint, see @c PAINTER_HINT.
+  //!
+  //! Painter hints can be used to control quality and behavior of painting.
+  FOG_INLINE int getHint(uint32_t hint) const
+  { return _engine->getHint(hint); }
+
+  //! @brief Set painter hint, see @c PAINTER_HINT.
+  //!
+  //! Painter hints can be used to control quality and behavior of painting.
+  FOG_INLINE void setHint(uint32_t hint, int value)
+  { _engine->setHint(hint, value); }
 
   // --------------------------------------------------------------------------
   // [Meta]
@@ -159,55 +200,55 @@ struct FOG_API Painter
   //! @brief Get compositing operator.
   //!
   //! See @c OPERATOR_TYPE enumeration for operators and their descriptions.
-  FOG_INLINE int getOperator() const { return _engine->getOperator(); }
+  FOG_INLINE uint32_t getOperator() const { return _engine->getOperator(); }
 
   //! @brief Set compositing operator.
   //!
   //! See @c OPERATOR_TYPE enumeration for operators and their descriptions.
-  FOG_INLINE void setOperator(int op) { _engine->setOperator(op); }
+  FOG_INLINE void setOperator(uint32_t op) { _engine->setOperator(op); }
 
   // --------------------------------------------------------------------------
   // [Source]
   // --------------------------------------------------------------------------
 
   //! @brief Get source type, see @c PAINTER_SOURCE_TYPE.
-  FOG_INLINE int getSourceType() const { return _engine->getSourceType(); }
+  FOG_INLINE uint32_t getSourceType() const
+  { return _engine->getSourceType(); }
 
   //! @brief Get source color as @c Argb instance.
   //!
   //! If current source isn't solid color, the @c Argb(0x00000000) color is
   //! returned.
-  FOG_INLINE err_t getSourceArgb(Argb& argb) const { return _engine->getSourceArgb(argb); }
+  FOG_INLINE err_t getSourceArgb(Argb& argb) const
+  { return _engine->getSourceArgb(argb); }
+
   //! @brief Get source pattern.
   //!
   //! If source color was set through @c setSource(Argb argb) method,
-  //! pattern is auto-created.
-  FOG_INLINE err_t getSourcePattern(Pattern& pattern) const { return _engine->getSourcePattern(pattern); }
+  //! pattern is created automatically.
+  FOG_INLINE err_t getSourcePattern(Pattern& pattern) const
+  { return _engine->getSourcePattern(pattern); }
 
   //! @brief Set source as solid @a rgba color.
-  FOG_INLINE void setSource(Argb argb) { _engine->setSource(argb); }
+  FOG_INLINE void setSource(Argb argb)
+  { _engine->setSource(argb); }
+
   //! @brief Set source as pattern @a pattern.
-  FOG_INLINE void setSource(const Pattern& pattern) { _engine->setSource(pattern); }
+  FOG_INLINE void setSource(const Pattern& pattern)
+  { _engine->setSource(pattern); }
+
   //! @brief Set source as color filter @a colorFilter.
-  FOG_INLINE void setSource(const ColorFilter& colorFilter) { _engine->setSource(colorFilter); }
-
-  // --------------------------------------------------------------------------
-  // [Hints]
-  // --------------------------------------------------------------------------
-
-  //! @brief Get painter hint, see @c PAINTER_HINT.
-  FOG_INLINE int getHint(int hint) const { return _engine->getHint(hint); }
-  //! @brief Set painter hint, see @c PAINTER_HINT.
-  FOG_INLINE void setHint(int hint, int value) { _engine->setHint(hint, value); }
+  FOG_INLINE void setSource(const ColorFilter& colorFilter)
+  { _engine->setSource(colorFilter); }
 
   // --------------------------------------------------------------------------
   // [Fill Parameters]
   // --------------------------------------------------------------------------
 
   //! @brief Get fill mode, see @c FillMode enumeration.
-  FOG_INLINE int getFillMode() const { return _engine->getFillMode(); }
+  FOG_INLINE uint32_t getFillMode() const { return _engine->getFillMode(); }
   //! @brief Set fill mode, see @c FillMode enumeration.
-  FOG_INLINE void setFillMode(int mode) { _engine->setFillMode(mode); }
+  FOG_INLINE void setFillMode(uint32_t mode) { _engine->setFillMode(mode); }
 
   // --------------------------------------------------------------------------
   // [Stroke Parameters]
@@ -226,22 +267,22 @@ struct FOG_API Painter
   FOG_INLINE void setLineWidth(double lineWidth) { _engine->setLineWidth(lineWidth); }
 
   //! @brief Get line start cap.
-  FOG_INLINE int getStartCap() const { return _engine->getStartCap(); }
+  FOG_INLINE uint32_t getStartCap() const { return _engine->getStartCap(); }
   //! @brief Set line start cap.
-  FOG_INLINE void setStartCap(int startCap) { _engine->setStartCap(startCap);}
+  FOG_INLINE void setStartCap(uint32_t startCap) { _engine->setStartCap(startCap);}
 
   //! @brief Get line end cap.
-  FOG_INLINE int getEndCap() const { return _engine->getEndCap(); }
+  FOG_INLINE uint32_t getEndCap() const { return _engine->getEndCap(); }
   //! @brief Set line end cap.
-  FOG_INLINE void setEndCap(int endCap) { _engine->setEndCap(endCap);}
+  FOG_INLINE void setEndCap(uint32_t endCap) { _engine->setEndCap(endCap);}
 
   //! @brief Set line start and end caps.
-  FOG_INLINE void setLineCaps(int lineCaps) { _engine->setLineCaps(lineCaps);}
+  FOG_INLINE void setLineCaps(uint32_t lineCaps) { _engine->setLineCaps(lineCaps);}
 
   //! @brief Get line join.
-  FOG_INLINE int getLineJoin() const { return _engine->getLineJoin(); }
+  FOG_INLINE uint32_t getLineJoin() const { return _engine->getLineJoin(); }
   //! @brief Set line join.
-  FOG_INLINE void setLineJoin(int lineJoin) { _engine->setLineJoin(lineJoin); }
+  FOG_INLINE void setLineJoin(uint32_t lineJoin) { _engine->setLineJoin(lineJoin); }
 
   //! @brief Get line miter limit.
   FOG_INLINE double getMiterLimit() const { return _engine->getMiterLimit(); }
@@ -300,10 +341,15 @@ struct FOG_API Painter
   FOG_INLINE void restore() { _engine->restore(); }
 
   // --------------------------------------------------------------------------
-  // [Raster Drawing]
+  // [Clear]
   // --------------------------------------------------------------------------
 
   FOG_INLINE void clear() { _engine->clear(); }
+
+  // --------------------------------------------------------------------------
+  // [Raster Drawing]
+  // --------------------------------------------------------------------------
+
   FOG_INLINE void drawPoint(const Point& p) { _engine->drawPoint(p); }
   FOG_INLINE void drawLine(const Point& start, const Point& end) { _engine->drawLine(start, end); }
   FOG_INLINE void drawRect(const Rect& r) { _engine->drawRect(r); }
@@ -367,20 +413,13 @@ struct FOG_API Painter
   { _engine->blitImage(p, image, irect); }
 
   // --------------------------------------------------------------------------
-  // [Multithreading]
-  // --------------------------------------------------------------------------
-
-  FOG_INLINE int getEngine() const { return _engine->getEngine(); }
-  FOG_INLINE void setEngine(int mode, int cores = 0) { _engine->setEngine(mode, cores); }
-
-  FOG_INLINE void flush() { _engine->flush(); }
-
-  // --------------------------------------------------------------------------
   // [Members]
   // --------------------------------------------------------------------------
 
+  //! @brief Paint engine instance.
   PaintEngine* _engine;
 
+  //! @brief Null paint engine used for non-initialized painters.
   static PaintEngine* sharedNull;
 
 private:

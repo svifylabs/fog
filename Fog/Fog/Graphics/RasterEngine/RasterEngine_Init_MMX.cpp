@@ -225,6 +225,54 @@ FOG_INIT_DECLARE void MMX_INIT_NAME(void)
   m->filter.color_matrix[PIXEL_FORMAT_XRGB32] = MMX_SYM(Filter)::color_matrix_xrgb32;
 #endif // FOG_RASTER_MMX3DNOW
 
+  // [Composite - Src]
+
+  m->composite[OPERATOR_SRC][PIXEL_FORMAT_PRGB32].cspan = MMX_SYM(CompositeSrc)::prgb32_cspan;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_PRGB32].cspan_a8 = MMX_SYM(CompositeSrc)::prgb32_cspan_a8;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_PRGB32].cspan_a8_const = MMX_SYM(CompositeSrc)::prgb32_cspan_a8_const;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_PRGB32].cspan_a8_scanline = MMX_SYM(CompositeSrc)::prgb32_cspan_a8_scanline;
+
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = DibSSE2::memcpy32;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32] = DibSSE2::prgb32_from_argb32;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = DibSSE2::frgb32_from_xrgb32;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_A8] = DibSSE2::azzz32_from_a8;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_I8] = DibSSE2::prgb32_from_i8;
+
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = MMX_SYM(CompositeSrc)::prgb32_vspan_prgb32_a8;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = MMX_SYM(CompositeSrc)::prgb32_vspan_argb32_a8;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = MMX_SYM(CompositeSrc)::prgb32_vspan_xrgb32_a8;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_A8] = MMX_SYM(CompositeSrc)::prgb32_vspan_a8_a8;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_I8] = MMX_SYM(CompositeSrc)::prgb32_vspan_i8_a8;
+
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = MMX_SYM(CompositeSrc)::prgb32_vspan_prgb32_a8_const;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = MMX_SYM(CompositeSrc)::prgb32_vspan_argb32_a8_const;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = MMX_SYM(CompositeSrc)::prgb32_vspan_xrgb32_a8_const;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_A8] = MMX_SYM(CompositeSrc)::prgb32_vspan_a8_a8_const;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_PRGB32].vspan_a8_const[PIXEL_FORMAT_I8] = MMX_SYM(CompositeSrc)::prgb32_vspan_i8_a8_const;
+
+  m->composite[OPERATOR_SRC][PIXEL_FORMAT_XRGB32].cspan = MMX_SYM(CompositeSrc)::xrgb32_cspan;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_XRGB32].cspan_a8 = MMX_SYM(CompositeSrc)::xrgb32_cspan_a8;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_XRGB32].cspan_a8_const = MMX_SYM(CompositeSrc)::xrgb32_cspan_a8_const;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_XRGB32].cspan_a8_scanline = MMX_SYM(CompositeSrc)::xrgb32_cspan_a8_scanline;
+
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_PRGB32] = DibSSE2::frgb32_from_xrgb32;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_ARGB32] = DibSSE2::frgb32_from_argb32;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_XRGB32] = DibSSE2::memcpy32;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_A8] = (VSpanFn)CompositeClearSSE2::xrgb32_cspan;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_I8] = DibSSE2::frgb32_from_i8;
+ 
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_PRGB32] = MMX_SYM(CompositeSrc)::xrgb32_vspan_xrgb32_a8;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_ARGB32] = MMX_SYM(CompositeSrc)::xrgb32_vspan_argb32_a8;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = MMX_SYM(CompositeSrc)::xrgb32_vspan_xrgb32_a8;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_A8] = (VSpanMskFn)CompositeClearSSE2::xrgb32_cspan_a8;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_I8] = MMX_SYM(CompositeSrc)::xrgb32_vspan_i8_a8;
+
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_PRGB32] = MMX_SYM(CompositeSrc)::xrgb32_vspan_xrgb32_a8_const;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_ARGB32] = MMX_SYM(CompositeSrc)::xrgb32_vspan_argb32_a8_const;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = MMX_SYM(CompositeSrc)::xrgb32_vspan_xrgb32_a8_const;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_A8] = (VSpanMskConstFn)CompositeClearSSE2::xrgb32_cspan_a8_const;
+//m->composite[OPERATOR_SRC][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_I8] = MMX_SYM(CompositeSrc)::xrgb32_vspan_i8_a8_const;
+
   // [Composite - SrcOver]
 
   m->composite[OPERATOR_SRC_OVER][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_PRGB32] = MMX_SYM(CompositeSrcOver)::prgb32_vspan_prgb32;

@@ -14,8 +14,135 @@
 namespace Fog {
 namespace RasterEngine {
 
+// How many pixels are needed to use MMX in very simple fills.
+#define MMX_FILL_THRESHOLD 9
+
+// ############################################################################
+// Implementation starts from here.
+// ############################################################################
+
 // ============================================================================
 // [Fog::RasterEngine::MMX - Composite - Src]
+// ============================================================================
+
+struct FOG_HIDDEN MMX_SYM(CompositeSrc)
+{
+  // -------------------------------------------------------------------------
+  // [CompositeSrcMMX - PRGB32]
+  // -------------------------------------------------------------------------
+
+  static void FOG_FASTCALL prgb32_cspan(
+    uint8_t* dst, const Solid* src, sysint_t w, const Closure* closure)
+  {
+    sysint_t i = w;
+
+    if (i >= MMX_FILL_THRESHOLD)
+    {
+      __m64 src0mm;
+
+      mmx_load4(src0mm, &src->prgb);
+      mmx_expand_pixel_lo_1x1B(src0mm, src0mm);
+
+      if ((sysuint_t)dst & 0x07)
+      {
+        mmx_store4(dst, src0mm);
+        dst += 4;
+        i--;
+      }
+
+      while ((i -= 8) >= 0)
+      {
+        mmx_store8(dst     , src0mm);
+        mmx_store8(dst + 8 , src0mm);
+        mmx_store8(dst + 16, src0mm);
+        mmx_store8(dst + 24, src0mm);
+        dst += 32;
+      }
+      i += 8;
+
+      while ((i -= 2) >= 0)
+      {
+        mmx_store8(dst, src0mm);
+        dst += 8;
+      }
+      i += 2;
+
+      if (i) mmx_store4(dst, src0mm);
+
+      mmx_end();
+    }
+    else
+    {
+      // If span is very small then it's better to not use MMX
+      // (EMMS is expensive).
+      uint32_t src0 = src->prgb;
+      do {
+        ((uint32_t*)dst)[0] = src0;
+        dst += 4;
+      } while (--i);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // [CompositeSrcMMX - XRGB32]
+  // -------------------------------------------------------------------------
+
+  static void FOG_FASTCALL xrgb32_cspan(
+    uint8_t* dst, const Solid* src, sysint_t w, const Closure* closure)
+  {
+    sysint_t i = w;
+
+    if (i >= MMX_FILL_THRESHOLD)
+    {
+      __m64 src0mm;
+
+      mmx_load4(src0mm, &src->prgb);
+      mmx_fill_alpha_1x1B(src0mm);
+      mmx_expand_pixel_lo_1x1B(src0mm, src0mm);
+
+      if ((sysuint_t)dst & 0x07)
+      {
+        mmx_store4(dst, src0mm);
+        dst += 4;
+        i--;
+      }
+
+      while ((i -= 8) >= 0)
+      {
+        mmx_store8(dst     , src0mm);
+        mmx_store8(dst + 8 , src0mm);
+        mmx_store8(dst + 16, src0mm);
+        mmx_store8(dst + 24, src0mm);
+        dst += 32;
+      }
+      i += 8;
+
+      while ((i -= 2) >= 0)
+      {
+        mmx_store8(dst, src0mm);
+        dst += 8;
+      }
+      i += 2;
+
+      if (i) mmx_store4(dst, src0mm);
+
+      mmx_end();
+    }
+    else
+    {
+      // If span is very small then it's better to not use MMX
+      // (EMMS is expensive).
+      uint32_t src0 = src->prgb | 0xFF000000;
+      do {
+        ((uint32_t*)dst)[0] = src0;
+        dst += 4;
+      } while (--i);
+    }
+  }
+};
+
+// ============================================================================
+// [Fog::RasterEngine::MMX - Composite - SrcOver]
 // ============================================================================
 
 struct FOG_HIDDEN MMX_SYM(CompositeSrcOver)
