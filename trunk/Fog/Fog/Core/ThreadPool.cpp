@@ -20,6 +20,8 @@ namespace Fog {
 // [Fog::ThreadPool]
 // ============================================================================
 
+static Static<ThreadPool> threadpool_global;
+
 ThreadPool::ThreadPool() :
   // Safe defaults
   _minThreads(1),
@@ -172,6 +174,11 @@ err_t ThreadPool::setMaxThreads(int maxThreads)
   return ERR_OK;
 }
 
+ThreadPool* ThreadPool::getInstance()
+{
+  return threadpool_global.instancep();
+}
+
 Thread* ThreadPool::_createThread()
 {
   String threadName;
@@ -207,3 +214,20 @@ void ThreadPool::releaseAllAvailable()
 }
 
 } // Fog namespace
+
+FOG_INIT_DECLARE err_t fog_threadpool_init(void)
+{
+  using namespace Fog;
+
+  // Init global thread pool instance.
+  threadpool_global.init();
+
+  return ERR_OK;
+}
+
+FOG_INIT_DECLARE void fog_threadpool_shutdown(void)
+{
+  using namespace Fog;
+
+  threadpool_global.destroy();
+}

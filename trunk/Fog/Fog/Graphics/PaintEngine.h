@@ -57,6 +57,22 @@ struct FOG_API PaintEngine
   virtual int getFormat() const = 0;
 
   // --------------------------------------------------------------------------
+  // [Engine / Flush]
+  // --------------------------------------------------------------------------
+
+  virtual uint32_t getEngine() const = 0;
+  virtual void setEngine(uint32_t engine, uint32_t cores = 0) = 0;
+
+  virtual void flush(uint32_t flags) = 0;
+
+  // --------------------------------------------------------------------------
+  // [Hints]
+  // --------------------------------------------------------------------------
+
+  virtual int getHint(uint32_t hint) const = 0;
+  virtual void setHint(uint32_t hint, int value) = 0;
+
+  // --------------------------------------------------------------------------
   // [Meta]
   // --------------------------------------------------------------------------
 
@@ -91,14 +107,14 @@ struct FOG_API PaintEngine
   // [Operator]
   // --------------------------------------------------------------------------
 
-  virtual int getOperator() const = 0;
-  virtual void setOperator(int op) = 0;
+  virtual uint32_t getOperator() const = 0;
+  virtual void setOperator(uint32_t op) = 0;
 
   // --------------------------------------------------------------------------
   // [Source]
   // --------------------------------------------------------------------------
 
-  virtual int getSourceType() const = 0;
+  virtual uint32_t getSourceType() const = 0;
 
   virtual err_t getSourceArgb(Argb& argb) const = 0;
   virtual err_t getSourcePattern(Pattern& pattern) const = 0;
@@ -108,18 +124,11 @@ struct FOG_API PaintEngine
   virtual void setSource(const ColorFilter& colorFilter) = 0;
 
   // --------------------------------------------------------------------------
-  // [Hints]
-  // --------------------------------------------------------------------------
-
-  virtual int getHint(int hint) const = 0;
-  virtual void setHint(int hint, int value) = 0;
-
-  // --------------------------------------------------------------------------
   // [Fill Parameters]
   // --------------------------------------------------------------------------
 
-  virtual int getFillMode() const = 0;
-  virtual void setFillMode(int mode) = 0;
+  virtual uint32_t getFillMode() const = 0;
+  virtual void setFillMode(uint32_t mode) = 0;
 
   // --------------------------------------------------------------------------
   // [Stroke Parameters]
@@ -131,16 +140,16 @@ struct FOG_API PaintEngine
   virtual double getLineWidth() const = 0;
   virtual void setLineWidth(double lineWidth) = 0;
 
-  virtual int getStartCap() const = 0;
-  virtual void setStartCap(int startCap) = 0;
+  virtual uint32_t getStartCap() const = 0;
+  virtual void setStartCap(uint32_t startCap) = 0;
 
-  virtual int getEndCap() const = 0;
-  virtual void setEndCap(int endCap) = 0;
+  virtual uint32_t getEndCap() const = 0;
+  virtual void setEndCap(uint32_t endCap) = 0;
 
-  virtual void setLineCaps(int lineCap) = 0;
+  virtual void setLineCaps(uint32_t lineCap) = 0;
 
-  virtual int getLineJoin() const = 0;
-  virtual void setLineJoin(int lineJoin) = 0;
+  virtual uint32_t getLineJoin() const = 0;
+  virtual void setLineJoin(uint32_t lineJoin) = 0;
 
   virtual double getMiterLimit() const = 0;
   virtual void setMiterLimit(double miterLimit) = 0;
@@ -179,10 +188,15 @@ struct FOG_API PaintEngine
   virtual void restore() = 0;
 
   // --------------------------------------------------------------------------
-  // [Raster Drawing]
+  // [Clear]
   // --------------------------------------------------------------------------
 
   virtual void clear() = 0;
+
+  // --------------------------------------------------------------------------
+  // [Raster Drawing]
+  // --------------------------------------------------------------------------
+
   virtual void drawPoint(const Point& p) = 0;
   virtual void drawLine(const Point& start, const Point& end) = 0;
   virtual void drawRect(const Rect& r) = 0;
@@ -231,15 +245,6 @@ struct FOG_API PaintEngine
 
   virtual void blitImage(const Point& p, const Image& image, const Rect* irect) = 0;
   virtual void blitImage(const PointD& p, const Image& image, const Rect* irect) = 0;
-
-  // --------------------------------------------------------------------------
-  // [Multithreading]
-  // --------------------------------------------------------------------------
-
-  virtual int getEngine() const = 0;
-  virtual void setEngine(int engine, int cores = 0) = 0;
-
-  virtual void flush() = 0;
 
 private:
   FOG_DISABLE_COPY(PaintEngine)

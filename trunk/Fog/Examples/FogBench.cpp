@@ -379,7 +379,7 @@ FogModule_None::~FogModule_None() {}
 
 void FogModule_None::bench(int quantity)
 {
-  Painter p(screen, PAINTER_HINT_NO_MT);
+  Painter p(screen, NO_FLAGS);
   configurePainter(p);
 }
 
@@ -424,7 +424,7 @@ void FogModule_FillRect::finish()
 
 void FogModule_FillRect::bench(int quantity)
 {
-  Painter p(screen, PAINTER_HINT_NO_MT);
+  Painter p(screen, NO_FLAGS);
   configurePainter(p);
 
   for (int a = 0; a < quantity; a++)
@@ -457,7 +457,7 @@ FogModule_FillRectAffine::~FogModule_FillRectAffine() {}
 
 void FogModule_FillRectAffine::bench(int quantity)
 {
-  Painter p(screen, PAINTER_HINT_NO_MT);
+  Painter p(screen, NO_FLAGS);
   configurePainter(p);
 
   double cx = (double)w / 2.0;
@@ -502,7 +502,7 @@ FogModule_FillRound::~FogModule_FillRound() {}
 
 void FogModule_FillRound::bench(int quantity)
 {
-  Painter p(screen, PAINTER_HINT_NO_MT);
+  Painter p(screen, NO_FLAGS);
   configurePainter(p);
 
   for (int a = 0; a < quantity; a++)
@@ -553,7 +553,7 @@ void FogModule_FillPolygon::finish()
 
 void FogModule_FillPolygon::bench(int quantity)
 {
-  Painter p(screen, PAINTER_HINT_NO_MT);
+  Painter p(screen, NO_FLAGS);
   configurePainter(p);
 
   p.setFillMode(FILL_EVEN_ODD);
@@ -645,7 +645,7 @@ void FogModule_FillPattern::setupPattern(int type)
 
 void FogModule_FillPattern::bench(int quantity)
 {
-  Painter p(screen, PAINTER_HINT_NO_MT);
+  Painter p(screen, NO_FLAGS);
   configurePainter(p);
 
   p.setSource(pattern);
@@ -712,7 +712,7 @@ void FogModule_Image::finish()
 
 void FogModule_Image::bench(int quantity)
 {
-  Painter p(screen, PAINTER_HINT_NO_MT);
+  Painter p(screen, NO_FLAGS);
   configurePainter(p);
 
   for (int a = 0; a < quantity; a++)
@@ -744,7 +744,7 @@ FogModule_ImageAffine::~FogModule_ImageAffine() {}
 
 void FogModule_ImageAffine::bench(int quantity)
 {
-  Painter p(screen, PAINTER_HINT_NO_MT);
+  Painter p(screen, NO_FLAGS);
   configurePainter(p);
 
   double cx = (double)w / 2.0;
@@ -804,7 +804,7 @@ void FogModule_RasterText::finish()
 
 void FogModule_RasterText::bench(int quantity)
 {
-  Painter p(screen, PAINTER_HINT_NO_MT);
+  Painter p(screen, NO_FLAGS);
   configurePainter(p);
 
   String text(Ascii8("abcdef"));

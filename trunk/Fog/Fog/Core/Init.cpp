@@ -44,6 +44,7 @@ FOG_INIT_FUNC(fog_library);
 FOG_INIT_FUNC(fog_os);
 FOG_INIT_FUNC(fog_stream);
 FOG_INIT_FUNC(fog_thread);
+FOG_INIT_FUNC(fog_threadpool);
 FOG_INIT_FUNC(fog_object);
 FOG_INIT_FUNC(fog_application);
 
@@ -62,8 +63,7 @@ FOG_INIT_FUNC(fog_glyphset);
 FOG_INIT_FUNC(fog_pattern);
 FOG_INIT_FUNC(fog_font);
 FOG_INIT_FUNC(fog_fontmanager);
-FOG_INIT_FUNC(fog_painter_null);
-FOG_INIT_FUNC(fog_painter_raster);
+FOG_INIT_FUNC(fog_painter);
 
 // Fog/Gui
 // reserved...
@@ -116,6 +116,7 @@ static const FogInitEntry fog_init_entries[] =
   INIT_ENTRY(fog_os),               // Depends to String and TextCodec
   INIT_ENTRY(fog_stream),           // No dependency
   INIT_ENTRY(fog_thread),           // No dependency
+  INIT_ENTRY(fog_threadpool),       // No dependency
   INIT_ENTRY(fog_object),           // Depends to String
   INIT_ENTRY(fog_application),      // Depends to Many
 
@@ -134,8 +135,7 @@ static const FogInitEntry fog_init_entries[] =
   INIT_ENTRY(fog_pattern),
   INIT_ENTRY(fog_font),
   INIT_ENTRY(fog_fontmanager),
-  INIT_ENTRY(fog_painter_null),
-  INIT_ENTRY(fog_painter_raster),
+  INIT_ENTRY(fog_painter),
 
   // Fog/Gui
 

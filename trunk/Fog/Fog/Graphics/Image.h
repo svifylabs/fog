@@ -36,15 +36,20 @@ struct ImageFilter;
 // [Fog::ImageBuffer]
 // ============================================================================
 
-//! @brief Structure that holds information about raster image.
+//! @brief Structure that holds information about raster image buffer.
 //!
-//! Use it together with @c Image::adopt() or by @c Painter::begin() methods.
+//! Use it together with @c Image::adopt() or @c Painter::begin() methods.
 struct ImageBuffer
 {
+  //! @brief Image buffer width.
   int width;
+  //! @brief Image buffer height.
   int height;
+  //! @brief Image buffer format.
   int format;
+  //! @brief Image buffer stride (bytes per line).
   sysint_t stride;
+  //! @brief Pointer to first image scanline.
   uint8_t* data;
 };
 

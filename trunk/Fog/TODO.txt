@@ -122,3 +122,8 @@ TODO P3 - UI
         Introduce Widget::getPaintMode(), Widget::getBackgroundRegion().
     [ ] Some widgets need to store background in separate buffer (Image).
     [ ] First make basic layouts working and define them
+
+TODO NOTES
+==========
+
+Image::formatToBytesPerPixel -> Image::getBytesPerPixelFromFormat()

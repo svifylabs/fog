@@ -1692,7 +1692,7 @@ enum INNER_JOIN
 };
 
 // ============================================================================
-// [Fog::PAINTER]
+// [Fog::PAINTER_SOURCE_TYPE]
 // ============================================================================
 
 //! @brief Type of source assigned in @c Painter or @c PaintEngine.
@@ -1713,40 +1713,81 @@ enum PAINTER_SOURCE_TYPE
 //! @brief Type of painter engine.
 enum PAINTER_ENGINE
 {
-  //! @brief Null painter engine.
+  //! @brief Null painter engine (painter is not initialized or invalid).
   PAINTER_ENGINE_NULL = 0,
 
   //! @brief Singlethreaded raster painter engine.
   PAINTER_ENGINE_RASTER_ST = 1,
+
   //! @brief Multithreaded raster painter engine.
   PAINTER_ENGINE_RASTER_MT = 2
+};
+
+// ============================================================================
+// [Fog::PAINTER_INIT]
+// ============================================================================
+
+//! @brief Painter initialization flags.
+enum PAINTER_INIT_FLAGS
+{
+  //! @brief Initialize multithreading if it makes sense.
+  //! 
+  //! If this option is true, painter first check if image size is not too 
+  //! small (painting to small images are singlethreaded by default). Then
+  //! CPU detection is used to check if machine contains more CPU units.
+  PAINTER_INIT_MT = 0x0001
 };
 
 // ============================================================================
 // [Fog::PAINTER_HINT]
 // ============================================================================
 
-//! @brief Painter hints that can be set during painter initialization.
-//!
-//! Currently this is mainly to turn multithreading off.
-enum PAINTER_HINT_OLD
-{
-  //! @brief Do not use multithreading.
-  PAINTER_HINT_NO_MT = 0x0001
-};
-
+//! @brief Painter hint.
 enum PAINTER_HINT
 {
+  //! @brief No hint.
   PAINTER_HINT_NONE = 0,
+
+  //! @brief Anti-aliasing type (quality), see @c ANTI_ALIASING_TYPE.
   PAINTER_HINT_ANTIALIASING_QUALITY = 1,
+
+  //! @brief Image interpolation type (quality), see @c INTERPOLATION_TYPE.
   PAINTER_HINT_IMAGE_INTERPOLATION = 2,
-  PAINTER_HINT_GRADIENT_INTERPOLATION = 3
+
+  //! @brief Gradient interpolation type (quality), see @c INTERPOLATION_TYPE.
+  PAINTER_HINT_GRADIENT_INTERPOLATION = 3,
+
+  //! @brief Whether to render text only using paths (vectors).
+  //!
+  //! If font do not support vector data then bitmaps are used. This flag makes
+  //! sense mainly if you are using true-type fonts and text transformaions.
+  PAINTER_HINT_VECTOR_TEXT = 4
+};
+
+// ============================================================================
+// [Fog::PAINTER_FLUSH_FLAGS]
+// ============================================================================
+
+//! @brief Painter flush flags.
+enum PAINTER_FLUSH_FLAGS
+{
+  //! @brief Flush all painter commands and wait for completition. Use this
+  //! command if you want to access painter data after the flush() function
+  //! call.
+  PAINTER_FLUSH_SYNC = 0x0001,
+
+  //! @brief Do not demultiply data in the buffer if the target surface is
+  //! not premultiplied.
+  //!
+  //! @internal
+  PAINTER_FLUSH_NO_DEMULTIPLY = 0x0002
 };
 
 // ============================================================================
 // [Fog::PATH_CMD_DATA]
 // ============================================================================
 
+//! @brief Command data type and flags.
 enum PATH_CMD_DATA
 {
   PATH_CMD_STOP = 0x00,
