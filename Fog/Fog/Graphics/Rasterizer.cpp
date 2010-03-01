@@ -1697,131 +1697,82 @@ uint AnalyticRasterizer::sweepScanline(Scanline32* scanline, int y, const Box* c
   clipStartX = clip->x1;
   FOG_ASSERT(cellX < clipEndX);
 
+#define SWEEP(CALCULATE, BAIL) \
+  for (;;) \
+  { \
+    x = cellX; \
+    area = cell->area; \
+    cover += cell->cover; \
+    \
+    /* Accumulate all cells with the same X. */ \
+    while (--numCells) \
+    { \
+      cell++; \
+      if ((cellX = cell->x) != x) break; \
+      area  += cell->area; \
+      cover += cell->cover; \
+    } \
+    \
+    int coversh = cover << (POLY_SUBPIXEL_SHIFT + 1); \
+    if (area) \
+    { \
+      /* Here we are always in clip pointer. */ \
+      if (clipStartX <= x && (alpha = CALCULATE(coversh - area))) \
+      { \
+        scanline->addCell(x, alpha); \
+      } \
+      if (++x == clipEndX) \
+      { \
+        if (++clip == clipEnd) goto BAIL; \
+        clipEndX = clip->x2; \
+        clipStartX = clip->x1; \
+        x = clip->x1; \
+      } \
+    } \
+    if (!numCells) break; \
+    \
+    if (x < clipStartX) x = clipStartX; \
+    if (cellX > x && (alpha = CALCULATE(coversh))) \
+    { \
+      for (;;) \
+      { \
+        int slen = Math::min(cellX, clipEndX) - x; \
+        scanline->addSpan(x, (uint)slen, alpha); \
+        x += slen; \
+        if (x == clipEndX) \
+        { \
+          if (++clip == clipEnd) goto BAIL; \
+          clipEndX = clip->x2; \
+          clipStartX = clip->x1; \
+          if (clipStartX < cellX) \
+          { \
+            x = clipStartX; \
+            continue; \
+          } \
+        } \
+        break; \
+      } \
+    } \
+    \
+    /* Advance clip pointer. */ \
+    while (cellX >= clipEndX) \
+    { \
+      if (++clip == clipEnd) goto BAIL; \
+      clipEndX = clip->x2; \
+      clipStartX = clip->x1; \
+    } \
+  }
+
   if (_fillRule == FILL_NON_ZERO)
   {
-    for (;;)
-    {
-      x = cellX;
-      area = cell->area;
-      cover += cell->cover;
-
-      // Accumulate all cells with the same X.
-      while (--numCells)
-      {
-        cell++;
-        if ((cellX = cell->x) != x) break;
-        area  += cell->area;
-        cover += cell->cover;
-      }
-
-      int coversh = cover << (POLY_SUBPIXEL_SHIFT + 1);
-      if (area)
-      {
-        if (clipStartX <= x && (alpha = calculateAlphaNonZero(coversh - area)))
-        {
-          scanline->addCell(x, alpha);
-        }
-        if (++x == clipEndX)
-        {
-          if (++clip == clipEnd) goto end;
-          clipEndX = clip->x2;
-          clipStartX = clip->x1;
-          x = clip->x1;
-        }
-      }
-      if (!numCells) break;
-
-      if (x < clipStartX) x = clipStartX;
-      if (cellX > x && (alpha = calculateAlphaNonZero(coversh)))
-      {
-        for (;;)
-        {
-          int slen = Math::min(cellX, clipEndX) - x;
-          scanline->addSpan(x, (uint)slen, alpha);
-          x += slen;
-          if (x == clipEndX)
-          {
-            if (++clip == clipEnd) goto end;
-            clipEndX = clip->x2;
-            clipStartX = clip->x1;
-            if (clipStartX <= cellX) { x = clipStartX; continue; }
-          }
-          break;
-        }
-      }
-
-      // Advance clip pointer.
-      while (cellX >= clipEndX)
-      {
-        if (++clip == clipEnd) goto end;
-        clipEndX = clip->x2;
-        clipStartX = clip->x1;
-      }
-    }
+    SWEEP(calculateAlphaNonZero, end)
   }
   else
   {
-    for (;;)
-    {
-      x = cellX;
-      area = cell->area;
-      cover += cell->cover;
-
-      // Accumulate all cells with the same X.
-      while (--numCells)
-      {
-        cell++;
-        if ((cellX = cell->x) != x) break;
-        area  += cell->area;
-        cover += cell->cover;
-      }
-
-      int coversh = cover << (POLY_SUBPIXEL_SHIFT + 1);
-      if (area)
-      {
-        // Here we are always in clip pointer.
-        if (clipStartX <= x && (alpha = calculateAlphaEvenOdd(coversh - area)))
-        {
-          scanline->addCell(x, alpha);
-        }
-        if (++x == clipEndX)
-        {
-          if (++clip == clipEnd) goto end;
-          clipEndX = clip->x2;
-          clipStartX = clip->x1;
-          x = clip->x1;
-        }
-      }
-      if (!numCells) break;
-
-      if (x < clipStartX) x = clipStartX;
-      if (cellX > x && (alpha = calculateAlphaEvenOdd(coversh)))
-      {
-        for (;;)
-        {
-          int slen = Math::min(cellX, clipEndX) - x;
-          scanline->addSpan(x, (uint)slen, alpha);
-          x += slen;
-          if (x == clipEndX)
-          {
-            if (++clip == clipEnd) goto end;
-            clipEndX = clip->x2;
-            clipStartX = clip->x1;
-            if (clipStartX <= cellX) { x = clipStartX; continue; }
-          }
-          break;
-        }
-      }
-
-      // Advance clip pointer.
-      while (cellX >= clipEndX)
-      {
-        if (++clip == clipEnd) goto end;
-        clipEndX = clip->x2;
-        clipStartX = clip->x1;
-      }
-    }
+    SWEEP(calculateAlphaEvenOdd, end)
   }
+
+#undef SWEEP
 
 end:
   return scanline->finalize(y);

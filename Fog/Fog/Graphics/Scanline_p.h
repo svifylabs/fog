@@ -108,6 +108,7 @@ struct FOG_HIDDEN Scanline32
   FOG_INLINE void addSpan(int x, uint len, uint cover)
   {
     FOG_ASSERT(_coversData != NULL);
+    FOG_ASSERT(len > 0);
 
     if (x == _xEnd)
     {

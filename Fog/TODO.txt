@@ -11,8 +11,8 @@ TODO P1
     [ ] Fog::String/Fog::Locale - add support for group separators
     [ ] Temporary...<N>::free sometimes not frees the memory ?
     [ ] Complete Fog::BitArray
-	[ ] Text Streams (using TextCodec), including err(), out() and in()
-	[ ] Logging framework
+    [ ] Text Streams (using TextCodec), including err(), out() and in()
+    [ ] Logging framework
 
 [w] Fog/Xml:
     [w] XmlWriter
@@ -123,7 +123,8 @@ TODO P3 - UI
     [ ] Some widgets need to store background in separate buffer (Image).
     [ ] First make basic layouts working and define them
 
-TODO NOTES
-==========
+TODO P4 - REFACTOR, OTHERS
+==========================
 
-Image::formatToBytesPerPixel -> Image::getBytesPerPixelFromFormat()
+[ ] Image::formatToBytesPerPixel -> Image::getBytesPerPixelFromFormat()
+

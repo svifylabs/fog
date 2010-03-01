@@ -370,18 +370,6 @@ uint8_t* RasterPaintContext::getBuffer(sysint_t size)
 // [Fog::RasterRenderImageAffineBound]
 // ============================================================================
 
-FOG_INLINE RasterRenderImageAffineBound::RasterRenderImageAffineBound()
-{
-  // Mark as non-initialized.
-  ictx.initialized = false;
-}
-
-FOG_INLINE RasterRenderImageAffineBound::~RasterRenderImageAffineBound()
-{
-  // Destroy if initialized.
-  if (ictx.initialized) ictx.destroy(&ictx);
-}
-
 bool RasterRenderImageAffineBound::init(const Image& image, const Matrix& matrix, const Box& clipBox, int interpolationType)
 {
   // Don't call init() after it was initialized.
@@ -1243,7 +1231,7 @@ RasterPaintEngine::RasterPaintEngine(const ImageBuffer& buffer, uint32_t initFla
   main.height = buffer.height;
   main.format = buffer.format;
   main.stride = buffer.stride;
-  main.bpp = Image::formatToBytesPerPixel(buffer.format);
+  main.bytesPerPixel = Image::formatToBytesPerPixel(buffer.format);
 
   // Setup primary rasterizer.
   ras = Rasterizer::getRasterizer();
@@ -3646,7 +3634,7 @@ void RasterPaintEngine::_postCommand(RasterPaintCmd* cmd, RasterPaintCalc* clc)
 }
 
 // ============================================================================
-// [Fog::RasterPaintEngine - Renderers - AntiGrain]
+// [Fog::RasterPaintEngine - Rasterizer]
 // ============================================================================
 
 bool RasterPaintEngine::_rasterizePath(RasterPaintContext* ctx, Rasterizer* ras, const Path& path, bool stroke)
@@ -3702,12 +3690,13 @@ bool RasterPaintEngine::_rasterizePath(RasterPaintContext* ctx, Rasterizer* ras,
 }
 
 // ============================================================================
-// [Fog::RasterPaintEngine - Renderers]
+// [Fog::RasterPaintEngine - Renderer]
 // ============================================================================
 
-// Fill rectangles aligned to pixel grid (no floating point math at all). 
-// Caller must ensure to clip all boxes agains clip state relative to the
-// painting operation.
+// Fill rectangles aligned to a pixel grid.
+//
+// Input data characteristics:
+// - Already clipped to SIMPLE or COMPLEX clip region.
 void RasterPaintEngine::_renderBoxes(RasterPaintContext* ctx, const Box* box, sysuint_t count)
 {
 #define RENDER_LOOP(NAME, CODE) \
@@ -3723,7 +3712,9 @@ void RasterPaintEngine::_renderBoxes(RasterPaintContext* ctx, const Box* box, sy
     if (delta != 1) y1 = alignToDelta(y1, offset, delta); \
     if (y1 >= y2) continue; \
     \
-    uint8_t* pCur = pixels + (uint)y1 * stride + (uint)x1 * bpp; \
+    uint8_t* pCur = pixels + \
+                    (sysint_t)(uint)y1 * stride + \
+                    (sysint_t)(uint)x1 * bpp; \
     do { \
       CODE \
       \
@@ -3739,7 +3730,7 @@ void RasterPaintEngine::_renderBoxes(RasterPaintContext* ctx, const Box* box, sy
 
   uint8_t* pixels = layer->pixels;
   sysint_t stride = layer->stride;
-  sysint_t bpp = layer->bpp;
+  sysint_t bpp = layer->bytesPerPixel;
 
   RasterEngine::Closure* closure = &ctx->closure;
 
@@ -3770,13 +3761,16 @@ void RasterPaintEngine::_renderBoxes(RasterPaintContext* ctx, const Box* box, sy
 
       int format = layer->format;
       int op = capsState->op;
-      RasterEngine::VSpanFn vspan = capsState->rops->vspan[pctx->format];
+
+      RasterEngine::VSpanFn vspan;
 
       // Fastpath: Do not copy pattern to extra buffer if compositing operation
       // is OPERATOR_SRC. We need to match pixel formats and make sure that operator
       // is OPERATOR_SRC or OPERATOR_SRC_OVER without alpha channel (opaque).
       if (format == pctx->format && (op == OPERATOR_SRC || (op == OPERATOR_SRC_OVER && format == PIXEL_FORMAT_XRGB32)))
       {
+        vspan = RasterEngine::functionMap->composite[OPERATOR_SRC][format].vspan[pctx->format];
+
         RENDER_LOOP(bltPatternFast,
         {
           uint8_t* f = pctx->fetch(pctx, pCur, x1, y1, w);
@@ -3785,6 +3779,8 @@ void RasterPaintEngine::_renderBoxes(RasterPaintContext* ctx, const Box* box, sy
       }
       else
       {
+        vspan = capsState->rops->vspan[pctx->format];
+
         uint8_t* pBuf = ctx->getBuffer((uint)(ctx->clipState->clipBox.getWidth()) * 4);
         if (!pBuf) return;
 
@@ -3816,55 +3812,281 @@ void RasterPaintEngine::_renderBoxes(RasterPaintContext* ctx, const Box* box, sy
 #undef RENDER_LOOP
 }
 
+// Blit image aligned to a pixel grid.
+//
+// Input data characteristics:
+// - Already clipped to SIMPLE clip rectangle. If clip region is COMPLEX,
+//   additional clipping must be performed by callee (here).
 void RasterPaintEngine::_renderImage(RasterPaintContext* ctx, const Rect& dst, const Image& image, const Rect& src)
 {
+#define RENDER_LOOP(NAME, CODE) \
+  /* Simple clip. */ \
+  if (FOG_LIKELY(clipState->clipSimple)) \
+  { \
+    int x = dst.x; \
+    \
+    uint8_t* dstCur = layer->pixels + (sysint_t)(uint)(x) * layer->bytesPerPixel; \
+    const uint8_t* srcCur = image_d->first + (sysint_t)(uint)(src.x) * image_d->bytesPerPixel; \
+    \
+    /* Singlethreaded rendering (delta == 1, offset == 0). */ \
+    if (FOG_LIKELY(delta == 1)) \
+    { \
+      dstCur += (sysint_t)(uint)(y) * dstStride; \
+      srcCur += (sysint_t)(uint)(src.y) * srcStride; \
+    } \
+    /* Multithreaded rendering (delta == X, offset == X). */ \
+    else \
+    { \
+      int offset = ctx->offset; \
+      y = alignToDelta(y, offset, delta); \
+      if (y >= yMax) return; \
+       \
+      dstCur += (sysint_t)(uint)(y) * dstStride; \
+      srcCur += (sysint_t)(uint)(src.y + y - dst.y) * srcStride; \
+      \
+      dstStride *= delta; \
+      srcStride *= delta; \
+    } \
+    \
+    sysint_t w = dst.w; \
+    \
+    do { \
+      CODE \
+      \
+      dstCur += dstStride; \
+      srcCur += srcStride; \
+      y += delta; \
+    } while (y < yMax); \
+  } \
+  /* Complex clip. */ \
+  else \
+  { \
+    const Box* clipCur = clipState->workRegion.getData(); \
+    const Box* clipTo; \
+    const Box* clipNext; \
+    const Box* clipEnd = clipCur + clipState->workRegion.getLength(); \
+    \
+    uint8_t* dstBase; \
+    const uint8_t* srcBase; \
+    \
+    int xMin = dst.x; \
+    int xMax = xMin + dst.w; \
+    \
+    if (delta == 1) \
+    { \
+      /* Advance clip pointer. */ \
+NAME##_nodelta_advance: \
+      while (clipCur->y2 <= y) \
+      { \
+        if (++clipCur == clipEnd) goto NAME##_end; \
+      } \
+      \
+      /* Advance to end of the current span list (same y1, y2). */ \
+      clipNext = clipCur + 1; \
+      if (clipNext != clipEnd && clipCur->y1 == clipNext->y1) clipNext++; \
+      \
+      /* Skip some rows if needed. */ \
+      if (y < clipCur->y1) y = clipCur->y1; \
+      \
+      /* Fix clip width (subtract clip rects if some spans are outside the paint) */ \
+      while (clipCur->x2 <= xMin) \
+      { \
+        if (++clipCur == clipNext) \
+        { \
+          if (clipCur == clipEnd) \
+            goto NAME##_end; \
+          else \
+            goto NAME##_nodelta_advance; \
+        } \
+      } \
+      \
+      clipTo = clipNext - 1; \
+      while (clipTo->x1 >= xMax) \
+      { \
+        if (clipTo == clipCur) \
+        { \
+          if (clipNext == clipEnd) \
+            goto NAME##_end; \
+          else \
+            goto NAME##_nodelta_advance; \
+        } \
+        clipTo--; \
+      } \
+      \
+      dstBase = layer->pixels + (sysint_t)(uint)(y) * dstStride; \
+      srcBase = image_d->first + (sysint_t)(uint)(y + src.y - dst.y) * srcStride; \
+      \
+      for (; y < yMax; y++, dstBase += dstStride, srcBase += srcStride) \
+      { \
+        /* Advance clip pointer if needed. */ \
+        if (FOG_UNLIKELY(y >= clipCur->y2)) \
+        { \
+          clipCur = clipNext; \
+          if (clipCur == clipEnd) goto NAME##_end; \
+          goto NAME##_nodelta_advance; \
+        } \
+        \
+        const Box* cbox = clipCur; \
+        int x1 = cbox->x1; \
+        if (x1 < xMin) x1 = xMin; \
+        \
+        uint8_t* dstCur = dstBase + (sysint_t)(uint)(x1) * layer->bytesPerPixel; \
+        const uint8_t* srcCur = srcBase + (sysint_t)(uint)(x1 + src.x - dst.x) * image_d->bytesPerPixel; \
+        \
+        while (cbox != clipTo) \
+        { \
+          sysint_t w = cbox->x2 - x1; \
+          FOG_ASSERT(w > 0); \
+          \
+          CODE \
+          \
+          cbox++; \
+          \
+          uint adv = (uint)(cbox->x1 - x1); \
+          x1 += adv; \
+          \
+          dstCur += adv * layer->bytesPerPixel; \
+          srcCur += adv * image_d->bytesPerPixel; \
+        } \
+        \
+        int x2 = cbox->x2; \
+        if (x2 > xMax) x2 = xMax; \
+        { \
+          sysint_t w = x2 - x1; \
+          FOG_ASSERT(w > 0); \
+          \
+          CODE \
+        } \
+      } \
+    } \
+    else \
+    { \
+      sysint_t srcStrideWithDelta = srcStride * delta; \
+      sysint_t dstStrideWithDelta = dstStride * delta; \
+      \
+      /* Advance clip pointer. */ \
+NAME##_delta_advance: \
+      while (clipCur->y2 <= y) \
+      { \
+        if (++clipCur == clipEnd) goto NAME##_end; \
+      } \
+      \
+      /* Advance to end of the current span list (same y1, y2). */ \
+      clipNext = clipCur + 1; \
+      if (clipNext != clipEnd && clipCur->y1 == clipNext->y1) clipNext++; \
+      \
+      /* Skip some rows if needed. */ \
+      if (y < clipCur->y1) \
+      { \
+        y = alignToDelta(clipCur->y1, ctx->offset, delta); \
+        if (y >= clipCur->y2) \
+        { \
+          clipCur = clipNext; \
+          if (clipCur == clipEnd) goto NAME##_end; \
+          goto NAME##_delta_advance; \
+        } \
+      } \
+      \
+      /* Fix clip width (subtract clip rects if some spans are outside the paint) */ \
+      while (clipCur->x2 <= xMin) \
+      { \
+        if (++clipCur == clipNext) \
+        { \
+          if (clipCur == clipEnd) \
+            goto NAME##_end; \
+          else \
+            goto NAME##_delta_advance; \
+        } \
+      } \
+      \
+      clipTo = clipNext - 1; \
+      while (clipTo->x1 >= xMax) \
+      { \
+        if (clipTo == clipCur) \
+        { \
+          if (clipNext == clipEnd) \
+            goto NAME##_end; \
+          else \
+            goto NAME##_delta_advance; \
+        } \
+        clipTo--; \
+      } \
+      \
+      dstBase = layer->pixels + (sysint_t)(uint)(y) * dstStride; \
+      srcBase = image_d->first + (sysint_t)(uint)(y + src.y - dst.y) * srcStride; \
+      \
+      for (; y < yMax; y += delta, dstBase += dstStrideWithDelta, srcBase += srcStrideWithDelta) \
+      { \
+        /* Advance clip pointer if needed. */ \
+        if (FOG_UNLIKELY(y >= clipCur->y2)) \
+        { \
+          clipCur = clipNext; \
+          if (clipCur == clipEnd) goto NAME##_end; \
+          goto NAME##_delta_advance; \
+        } \
+        \
+        const Box* cbox = clipCur; \
+        int x1 = cbox->x1; \
+        if (x1 < xMin) x1 = xMin; \
+        \
+        uint8_t* dstCur = dstBase + (sysint_t)(uint)(x1) * layer->bytesPerPixel; \
+        const uint8_t* srcCur = srcBase + (sysint_t)(uint)(x1 + src.x - dst.x) * image_d->bytesPerPixel; \
+        \
+        while (cbox != clipTo) \
+        { \
+          sysint_t w = cbox->x2 - x1; \
+          FOG_ASSERT(w > 0); \
+          \
+          CODE \
+          \
+          cbox++; \
+          \
+          uint adv = (uint)(cbox->x1 - x1); \
+          x1 += adv; \
+          \
+          dstCur += adv * layer->bytesPerPixel; \
+          srcCur += adv * image_d->bytesPerPixel; \
+        } \
+        \
+        int x2 = cbox->x2; \
+        if (x2 > xMax) x2 = xMax; \
+        { \
+          sysint_t w = x2 - x1; \
+          FOG_ASSERT(w > 0); \
+          \
+          CODE \
+        } \
+      } \
+    } \
+  } \
+NAME##_end: \
+  ; \
+
   RasterPaintLayer* layer = ctx->layer;
+
+  RasterPaintClipState* clipState = ctx->clipState;
   RasterPaintCapsState* capsState = ctx->capsState;
 
   Image::Data* image_d = image._d;
+  RasterEngine::VSpanFn vspan = capsState->rops->vspan[image_d->format];
+
   sysint_t dstStride = layer->stride;
   sysint_t srcStride = image_d->stride;
 
-  int x = dst.x;
-  int w = dst.w;
-
-  int y1 = dst.y;
-  int y2 = dst.y + dst.h;
-
-  uint8_t* dstCur = layer->pixels + (sysint_t)x * layer->bpp;
-  const uint8_t* srcCur = image_d->first + (sysint_t)src.x * image_d->bytesPerPixel;
-
-  int delta = ctx->delta;
-  if (delta == 1)
-  {
-    dstCur += (sysint_t)y1 * dstStride;
-    srcCur += (sysint_t)src.y * srcStride;
-  }
-  else
-  {
-    int offset = ctx->offset;
-    y1 = alignToDelta(y1, offset, delta);
-    if (y1 >= y2) return;
-
-    dstCur += (sysint_t)y1 * dstStride;
-    srcCur += ((sysint_t)src.y + y1 - dst.y) * srcStride;
-
-    dstStride *= delta;
-    srcStride *= delta;
-  }
-
-  RasterEngine::VSpanFn vspan = capsState->rops->vspan[image_d->format];
   RasterEngine::Closure closure;
-
   closure.dstPalette = NULL;
   closure.srcPalette = image._d->palette.getData();
 
-  do {
-    vspan(dstCur, srcCur, (sysuint_t)w, &closure);
-    dstCur += dstStride;
-    srcCur += srcStride;
-    y1 += delta;
-  } while (y1 < y2);
+  int y = dst.y;
+  int yMax = dst.y + dst.h;
+  int delta = ctx->delta;
+
+  RENDER_LOOP(blt,
+  {
+    vspan(dstCur, srcCur, w, &closure);
+  })
+
+#undef RENDER_LOOP
 }
 
 void RasterPaintEngine::_renderGlyphSet(RasterPaintContext* ctx, const Point& pt, const GlyphSet& glyphSet, const Box& boundingBox)
@@ -3885,10 +4107,10 @@ void RasterPaintEngine::_renderGlyphSet(RasterPaintContext* ctx, const Point& pt
     \
     px += glyphd->advance; \
     \
-    int x1 = px1; if (x1 < boundingBox.getX1()) x1 = boundingBox.getX1(); \
-    int y1 = py1; if (y1 < boundingBox.getY1()) y1 = boundingBox.getY1(); \
-    int x2 = px2; if (x2 > boundingBox.getX2()) x2 = boundingBox.getX2(); \
-    int y2 = py2; if (y2 > boundingBox.getY2()) y2 = boundingBox.getY2(); \
+    int x1 = px1; if (x1 < boundingBox.x1) x1 = boundingBox.x1; \
+    int y1 = py1; if (y1 < boundingBox.y1) y1 = boundingBox.y1; \
+    int x2 = px2; if (x2 > boundingBox.x2) x2 = boundingBox.x2; \
+    int y2 = py2; if (y2 > boundingBox.y2) y2 = boundingBox.y2; \
     \
     if (delta != 1) y1 = alignToDelta(y1, offset, delta); \
     \
@@ -3934,7 +4156,7 @@ void RasterPaintEngine::_renderGlyphSet(RasterPaintContext* ctx, const Point& pt
   uint8_t* pixels = layer->pixels;
   sysint_t stride = layer->stride;
   sysint_t strideWithDelta = stride * delta;
-  sysint_t bpp = layer->bpp;
+  sysint_t bpp = layer->bytesPerPixel;
 
   RasterEngine::Closure closure;
   closure.dstPalette = NULL;
@@ -3987,6 +4209,7 @@ void RasterPaintEngine::_renderGlyphSet(RasterPaintContext* ctx, const Point& pt
 void RasterPaintEngine::_renderPath(RasterPaintContext* ctx, Rasterizer* ras, bool textureBlit)
 {
 #define RENDER_LOOP(NAME, CODE) \
+  /* Simple clip. */ \
   if (clipState->clipSimple) \
   { \
     pBase = layer->pixels + y * stride; \
@@ -3998,6 +4221,7 @@ void RasterPaintEngine::_renderPath(RasterPaintContext* ctx, Rasterizer* ras, bo
       CODE \
     } \
   } \
+  /* Complex clip. */ \
   else \
   { \
     const Box* clipCur = clipState->workRegion.getData(); \
@@ -4009,7 +4233,7 @@ void RasterPaintEngine::_renderPath(RasterPaintContext* ctx, Rasterizer* ras, bo
 NAME##_advance: \
     while (clipCur->y2 <= y) \
     { \
-      if (++clipCur == clipEnd) return; \
+      if (++clipCur == clipEnd) goto NAME##_end; \
     } \
     /* Advance to end of the current span list (same y1, y2). */ \
     clipTo = clipCur + 1; \
@@ -4026,7 +4250,7 @@ NAME##_advance: \
         if (y >= clipCur->y2) \
         { \
           clipCur = clipTo; \
-          if (clipCur == clipEnd) return; \
+          if (clipCur == clipEnd) goto NAME##_end; \
           goto NAME##_advance; \
         } \
       } \
@@ -4036,10 +4260,10 @@ NAME##_advance: \
     for (; y < y_end; y += delta, pBase += strideWithDelta) \
     { \
       /* Advance clip pointer if needed. */ \
-      if (y >= clipCur->y2) \
+      if (FOG_UNLIKELY(y >= clipCur->y2)) \
       { \
         clipCur = clipTo; \
-        if (clipCur == clipEnd) return; \
+        if (clipCur == clipEnd) goto NAME##_end; \
         goto NAME##_advance; \
       } \
       \
@@ -4048,7 +4272,9 @@ NAME##_advance: \
       \
       CODE \
     } \
-  }
+  } \
+NAME##_end: \
+  ;
 
   RasterPaintLayer* layer = ctx->layer;
   RasterPaintClipState* clipState = ctx->clipState;
@@ -4069,7 +4295,7 @@ NAME##_advance: \
 
   sysint_t stride = layer->stride;
   sysint_t strideWithDelta = stride * delta;
-  sysint_t bpp = layer->bpp;
+  sysint_t bpp = layer->bytesPerPixel;
 
   uint8_t* pBase;
   uint8_t* pCur;
@@ -4148,148 +4374,10 @@ NAME##_advance: \
           ++span;
         }
       });
-
-#if 0
-      if (clipState->clipSimple)
-      {
-        pBase = layer->pixels + y * stride;
-        for (; y < y_end; y += delta, pBase += strideWithDelta)
-        {
-          uint numSpans = ras->sweepScanline(scanline, y);
-          if (numSpans == 0) continue;
-
-          const Scanline32::Span* span = scanline->getSpansData();
-
-          for (;;)
-          {
-            int x = span->x;
-            int len = span->len;
-
-            pCur = pBase + x * bpp;
-
-            if (len > 0)
-            {
-              vspan_a8(pCur,
-                pctx->fetch(pctx, pBuf, x, y, len),
-                span->covers, len, &closure);
-            }
-            else
-            {
-              len = -len;
-              FOG_ASSERT(len > 0);
-
-              uint32_t cover = (uint32_t)*(span->covers);
-              if (cover == 0xFF)
-              {
-                vspan(pCur,
-                  pctx->fetch(pctx, pBuf, x, y, len),
-                  len, &closure);
-              }
-              else
-              {
-                vspan_a8_const(pCur,
-                  pctx->fetch(pctx, pBuf, x, y, len),
-                  cover, len, &closure);
-              }
-            }
-
-            if (--numSpans == 0) break;
-            ++span;
-          }
-        }
-      }
-      else
-      {
-        const Box* clipCur = clipState->workRegion.getData();
-        const Box* clipTo;
-        const Box* clipEnd = clipCur + clipState->workRegion.getLength();
-        sysuint_t clipLen;
-
-        // Advance clip pointer.
-sourcePatternClipAdvance:
-        while (clipCur->y2 <= y)
-        {
-          if (++clipCur == clipEnd) return;
-        }
-        // Advance to end of the current span list (same y1, y2).
-        clipTo = clipCur + 1;
-        if (clipTo != clipEnd && clipCur->y1 == clipTo->y1) clipTo++;
-        clipLen = (sysuint_t)(clipTo - clipCur);
-
-        // Skip some rows if needed.
-        if (y < clipCur->y1)
-        {
-          y = clipCur->y1;
-          if (ctx->id != -1)
-          {
-            y = alignToDelta(y, ctx->offset, delta);
-            if (y >= clipCur->y2)
-            {
-              clipCur = clipTo;
-              if (clipCur == clipEnd) return;
-              goto sourcePatternClipAdvance;
-            }
-          }
-        }
-
-        pBase = layer->pixels + y * stride;
-        for (; y < y_end; y += delta, pBase += strideWithDelta)
-        {
-          // Advance clip pointer if needed.
-          if (y >= clipCur->y2)
-          {
-            clipCur = clipTo;
-            if (clipCur == clipEnd) return;
-            goto sourcePatternClipAdvance;
-          }
-
-          uint numSpans = ras->sweepScanline(scanline, y, clipCur, clipLen);
-          if (numSpans == 0) continue;
-
-          const Scanline32::Span* span = scanline->getSpansData();
-
-          for (;;)
-          {
-            int x = span->x;
-            int len = span->len;
-
-            pCur = pBase + x * bpp;
-
-            if (len > 0)
-            {
-              vspan_a8(pCur,
-                pctx->fetch(pctx, pBuf, x, y, len),
-                span->covers, len, &closure);
-            }
-            else
-            {
-              len = -len;
-              FOG_ASSERT(len > 0);
-
-              uint32_t cover = (uint32_t)*(span->covers);
-              if (cover == 0xFF)
-              {
-                vspan(pCur,
-                  pctx->fetch(pctx, pBuf, x, y, len),
-                  len, &closure);
-              }
-              else
-              {
-                vspan_a8_const(pCur,
-                  pctx->fetch(pctx, pBuf, x, y, len),
-                  cover, len, &closure);
-              }
-            }
-
-            if (--numSpans == 0) break;
-            ++span;
-          }
-        }
-      }
-#endif
       break;
     }
 
+    // Color filter source type.
     case PAINTER_SOURCE_COLOR_FILTER:
     {
       uint8_t* pBuf = ctx->getBuffer((uint)(clipState->clipBox.getWidth()) * 4);
@@ -4344,137 +4432,6 @@ sourcePatternClipAdvance:
         }
       });
 
-#if 0
-      if (clipState->clipSimple)
-      {
-        pBase = layer->pixels + y * stride;
-        for (; y < y_end; y += delta, pBase += strideWithDelta)
-        {
-          uint numSpans = ras->sweepScanline(scanline, y);
-          if (numSpans == 0) continue;
-
-          const Scanline32::Span* span = scanline->getSpansData();
-
-          for (;;)
-          {
-            int x = span->x;
-            int len = span->len;
-
-            pCur = pBase + x * bpp;
-
-            if (len > 0)
-            {
-              cspan(pBuf, pCur, len, cfRasterPaintContext);
-              vspan_a8(pCur, pBuf, span->covers, len, &closure);
-            }
-            else
-            {
-              len = -len;
-              FOG_ASSERT(len > 0);
-
-              uint32_t cover = (uint32_t)*(span->covers);
-              if (cover == 0xFF)
-              {
-                cspan(pCur, pCur, len, cfRasterPaintContext);
-              }
-              else
-              {
-                cspan(pBuf, pCur, len, cfRasterPaintContext);
-                vspan_a8_const(pCur, pBuf, cover, len, &closure);
-              }
-            }
-
-            if (--numSpans == 0) break;
-            ++span;
-          }
-        }
-      }
-      else
-      {
-        const Box* clipCur = clipState->workRegion.getData();
-        const Box* clipTo;
-        const Box* clipEnd = clipCur + clipState->workRegion.getLength();
-        sysuint_t clipLen;
-
-        // Advance clip pointer.
-sourceColorFilterClipAdvance:
-        while (clipCur->y2 <= y)
-        {
-          if (++clipCur == clipEnd) goto sourceColorFilterClipEnd;
-        }
-        // Advance to end of the current span list (same y1, y2).
-        clipTo = clipCur + 1;
-        if (clipTo != clipEnd && clipCur->y1 == clipTo->y1) clipTo++;
-        clipLen = (sysuint_t)(clipTo - clipCur);
-
-        // Skip some rows if needed.
-        if (y < clipCur->y1)
-        {
-          y = clipCur->y1;
-          if (ctx->id != -1)
-          {
-            y = alignToDelta(y, ctx->offset, delta);
-            if (y >= clipCur->y2)
-            {
-              clipCur = clipTo;
-              if (clipCur == clipEnd) goto sourceColorFilterClipEnd;
-              goto sourceColorFilterClipAdvance;
-            }
-          }
-        }
-
-        pBase = layer->pixels + y * stride;
-        for (; y < y_end; y += delta, pBase += strideWithDelta)
-        {
-          // Advance clip pointer if needed.
-          if (y >= clipCur->y2)
-          {
-            clipCur = clipTo;
-            if (clipCur == clipEnd) goto sourceColorFilterClipEnd;
-            goto sourceColorFilterClipAdvance;
-          }
-
-          uint numSpans = ras->sweepScanline(scanline, y, clipCur, clipLen);
-          if (numSpans == 0) continue;
-
-          const Scanline32::Span* span = scanline->getSpansData();
-
-          for (;;)
-          {
-            int x = span->x;
-            int len = span->len;
-
-            pCur = pBase + x * bpp;
-
-            if (len > 0)
-            {
-              cspan(pBuf, pCur, len, cfRasterPaintContext);
-              vspan_a8(pCur, pBuf, span->covers, len, &closure);
-            }
-            else
-            {
-              len = -len;
-              FOG_ASSERT(len > 0);
-
-              uint32_t cover = (uint32_t)*(span->covers);
-              if (cover == 0xFF)
-              {
-                cspan(pCur, pCur, len, cfRasterPaintContext);
-              }
-              else
-              {
-                cspan(pBuf, pCur, len, cfRasterPaintContext);
-                vspan_a8_const(pCur, pBuf, cover, len, &closure);
-              }
-            }
-
-            if (--numSpans == 0) break;
-            ++span;
-          }
-        }
-      }
-#endif
-sourceColorFilterClipEnd:
       cfEngine->releaseContext(cfRasterPaintContext);
       break;
     }
