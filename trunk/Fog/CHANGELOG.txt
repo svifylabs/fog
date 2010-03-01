@@ -1,3 +1,7 @@
+2010-03-01
+- Fixed Rasterizer::sweepScanline() when used with multiple clip rectangles
+- Added clipping to RasterPaintEngine::_renderImage()
+
 2010-02-28
 - Added 3dNow optimized color matrix filter for 32-bit pixel formats.
 - Updated color matrix class to fit the Fog-Framework syntax.

@@ -246,7 +246,7 @@ struct FOG_HIDDEN RasterPaintLayer
   //! @brief Layer stride (bytes per line including padding).
   sysint_t stride;
   //! @brief Layer bytes per pixel.
-  sysint_t bpp;
+  sysint_t bytesPerPixel;
 };
 
 // ============================================================================
@@ -477,8 +477,17 @@ struct RasterRenderImageAffineBound
 {
   // [Construction / Destruction]
 
-  FOG_INLINE RasterRenderImageAffineBound();
-  FOG_INLINE ~RasterRenderImageAffineBound();
+  FOG_INLINE RasterRenderImageAffineBound()
+  {
+    // Mark as non-initialized.
+    ictx.initialized = false;
+  }
+
+  FOG_INLINE ~RasterRenderImageAffineBound()
+  {
+    // Destroy if initialized.
+    if (ictx.initialized) ictx.destroy(&ictx);
+  }
 
   // [Init]
 

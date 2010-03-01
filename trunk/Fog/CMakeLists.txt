@@ -59,6 +59,11 @@ Set(FOG_CFLAGS_SSE2 "")
 Set(FOG_CFLAGS_SSE3 "")
 Set(FOG_CFLAGS_SSSE3 "")
 
+# GCC flags we can try in future:
+# * -fno-keep-static-consts
+# * -merge-all-constants
+# * -fpredictive-commoning
+
 If(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
   ## Set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions -fvisibility-inlines-hidden -fstrict-aliasing -fno-math-errno -Winline -Wstrict-aliasing")
   Set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions -fno-rtti -fvisibility-inlines-hidden -fstrict-aliasing -fno-math-errno -Winline")
