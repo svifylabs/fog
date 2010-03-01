@@ -3883,12 +3883,12 @@ NAME##_nodelta_advance: \
       \
       /* Advance to end of the current span list (same y1, y2). */ \
       clipNext = clipCur + 1; \
-      if (clipNext != clipEnd && clipCur->y1 == clipNext->y1) clipNext++; \
+      while (clipNext != clipEnd && clipCur->y1 == clipNext->y1) clipNext++; \
       \
       /* Skip some rows if needed. */ \
       if (y < clipCur->y1) y = clipCur->y1; \
       \
-      /* Fix clip width (subtract clip rects if some spans are outside the paint) */ \
+      /* Fix clip width (subtract clip rects if some rects are outside the paint) */ \
       while (clipCur->x2 <= xMin) \
       { \
         if (++clipCur == clipNext) \
@@ -3973,7 +3973,7 @@ NAME##_delta_advance: \
       \
       /* Advance to end of the current span list (same y1, y2). */ \
       clipNext = clipCur + 1; \
-      if (clipNext != clipEnd && clipCur->y1 == clipNext->y1) clipNext++; \
+      while (clipNext != clipEnd && clipCur->y1 == clipNext->y1) clipNext++; \
       \
       /* Skip some rows if needed. */ \
       if (y < clipCur->y1) \
@@ -3987,7 +3987,7 @@ NAME##_delta_advance: \
         } \
       } \
       \
-      /* Fix clip width (subtract clip rects if some spans are outside the paint) */ \
+      /* Fix clip width (subtract clip rects if some rects are outside the paint) */ \
       while (clipCur->x2 <= xMin) \
       { \
         if (++clipCur == clipNext) \
@@ -4237,7 +4237,7 @@ NAME##_advance: \
     } \
     /* Advance to end of the current span list (same y1, y2). */ \
     clipTo = clipCur + 1; \
-    if (clipTo != clipEnd && clipCur->y1 == clipTo->y1) clipTo++; \
+    while (clipTo != clipEnd && clipCur->y1 == clipTo->y1) clipTo++; \
     clipLen = (sysuint_t)(clipTo - clipCur); \
     \
     /* Skip some rows if needed. */ \
