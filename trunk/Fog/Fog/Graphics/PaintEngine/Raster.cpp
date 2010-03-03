@@ -512,8 +512,10 @@ void RasterRenderImageAffineBound::render(RasterPaintContext* ctx)
   if (!pBuf) return;
 
   // Rasterize it using dda algorithm that matches image boundary with
-  // antialiasing (we don't need to antialias here, because compositing
-  // operator is bound so the pattern fetched will do it - SPREAD_NONE).
+  // antialiasing.
+  //
+  // (We don't need to antialias here, because compositing operator is bound so
+  // the pattern fetched will be already antialiased - SPREAD_NONE).
 
   // Current vertices (index).
   int iLeft = leftStart;
@@ -563,6 +565,7 @@ void RasterRenderImageAffineBound::render(RasterPaintContext* ctx)
   closure.dstPalette = NULL;
   closure.srcPalette = NULL;
 
+  // Singlethreaded.
   if (ctx->id == -1)
   {
     pCur = pBase + (sysint_t)ymin * stride;
@@ -676,6 +679,7 @@ void RasterRenderImageAffineBound::render(RasterPaintContext* ctx)
       reconfigureRight = (yStop == y2RightAligned);
     }
   }
+  // Multithreaded.
   else
   {
     int offset = ctx->offset;
@@ -1454,7 +1458,8 @@ void RasterPaintEngine::setEngine(uint32_t engine, uint32_t cores)
 
 void RasterPaintEngine::flush(uint32_t flags)
 {
-  if (workerManager == NULL || workerManager->cmdPosition == 0) return;
+  if (isSingleThreaded()) return;
+  if (workerManager->cmdPosition == 0) return;
 
   // TODO: flags ignored, it will always wait.
   {
@@ -3306,7 +3311,7 @@ void RasterPaintEngine::_serializeBoxes(const Box* box, sysuint_t count)
   if (ctx.capsState->sourceType == PAINTER_SOURCE_PATTERN && !_getPatternRasterPaintContext()) return;
 
   // Singlethreaded.
-  if (workerManager == NULL)
+  if (isSingleThreaded())
   {
     _renderBoxes(&ctx, box, count);
   }
@@ -3332,7 +3337,7 @@ void RasterPaintEngine::_serializeBoxes(const Box* box, sysuint_t count)
 void RasterPaintEngine::_serializeImage(const Rect& dst, const Image& image, const Rect& src)
 {
   // Singlethreaded.
-  if (workerManager == NULL)
+  if (isSingleThreaded())
   {
     _renderImage(&ctx, dst, image, src);
   }
@@ -3368,7 +3373,7 @@ void RasterPaintEngine::_serializeImageAffine(const PointD& pt, const Image& ima
     // with target buffer.
 
     // Singlethreaded.
-    if (workerManager == NULL)
+    if (isSingleThreaded())
     {
       RasterRenderImageAffineBound renderer;
       if (!renderer.init(image, matrix, ctx.clipState->clipBox, ctx.capsState->imageInterpolation)) return;
@@ -3401,7 +3406,7 @@ void RasterPaintEngine::_serializeImageAffine(const PointD& pt, const Image& ima
     tmpPath.addRect(RectD(pt.x, pt.y, (double)image.getWidth(), (double)image.getHeight()));
 
     // Singlethreaded.
-    if (workerManager == NULL)
+    if (isSingleThreaded())
     {
       if (_rasterizePath(&ctx, ras, tmpPath, false))
       {
@@ -3488,7 +3493,7 @@ void RasterPaintEngine::_serializeGlyphSet(const Point& pt, const GlyphSet& glyp
   if (ctx.capsState->sourceType == PAINTER_SOURCE_PATTERN && !_getPatternRasterPaintContext()) return;
 
   // Singlethreaded.
-  if (workerManager == NULL)
+  if (isSingleThreaded())
   {
     _renderGlyphSet(&ctx, pt, glyphSet, boundingBox);
   }
@@ -3511,7 +3516,7 @@ void RasterPaintEngine::_serializePath(const Path& path, bool stroke)
   if (ctx.capsState->sourceType == PAINTER_SOURCE_PATTERN && !_getPatternRasterPaintContext()) return;
 
   // Singlethreaded.
-  if (workerManager == NULL)
+  if (isSingleThreaded())
   {
     if (_rasterizePath(&ctx, ras, path, stroke)) _renderPath(&ctx, ras, false);
   }
@@ -3693,6 +3698,30 @@ bool RasterPaintEngine::_rasterizePath(RasterPaintContext* ctx, Rasterizer* ras,
 // [Fog::RasterPaintEngine - Renderer]
 // ============================================================================
 
+static const int pixelFormatGroupId[] =
+{
+   1, /* PIXEL_FORMAT_PRGB32 */
+  -1, /* PIXEL_FORMAT_ARGB32 */
+   1, /* PIXEL_FORMAT_XRGB32 */
+  -2, /* PIXEL_FORMAT_A8 */
+  -3  /* PIXEL_FORMAT_I8 */
+};
+
+// Get whether blit of two pixel formats is fully opaque operation (dst pixel
+// is not needed in this case). This method is used to optimize some fast paths.
+static FOG_INLINE bool isRawOpaqueBlit(uint32_t dstFormat, uint32_t srcFormat, uint32_t op)
+{
+  if ((op == OPERATOR_SRC || (op == OPERATOR_SRC_OVER && srcFormat == PIXEL_FORMAT_XRGB32)) &&
+      (pixelFormatGroupId[dstFormat] == pixelFormatGroupId[srcFormat]))
+  {
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+
 // Fill rectangles aligned to a pixel grid.
 //
 // Input data characteristics:
@@ -3759,16 +3788,22 @@ void RasterPaintEngine::_renderBoxes(RasterPaintContext* ctx, const Box* box, sy
       RasterEngine::PatternContext* pctx = ctx->pctx;
       if (!pctx) return;
 
-      int format = layer->format;
-      int op = capsState->op;
+      uint32_t format = layer->format;
 
       RasterEngine::VSpanFn vspan;
 
-      // Fastpath: Do not copy pattern to extra buffer if compositing operation
+      // FastPath: Do not copy pattern to extra buffer if compositing operation
       // is OPERATOR_SRC. We need to match pixel formats and make sure that operator
       // is OPERATOR_SRC or OPERATOR_SRC_OVER without alpha channel (opaque).
-      if (format == pctx->format && (op == OPERATOR_SRC || (op == OPERATOR_SRC_OVER && format == PIXEL_FORMAT_XRGB32)))
+      if (isRawOpaqueBlit(format, pctx->format, capsState->op))
       {
+        // NOTE: isRawOpaqueBlit can return true for PRGB <- XRGB operation, but
+        // texture fetchers always set alpha byte to 0xFF. In case that fetcher
+        // not return the buffer we provided (aka DO-NOT-COPY fast path) we must
+        // use blitter to copy these data to the raster.
+        //
+        // Vspan function ensures that alpha byte will be set to 0xFF on alpha
+        // enabled pixel formats.
         vspan = RasterEngine::functionMap->composite[OPERATOR_SRC][format].vspan[pctx->format];
 
         RENDER_LOOP(bltPatternFast,
@@ -3802,7 +3837,7 @@ void RasterPaintEngine::_renderBoxes(RasterPaintContext* ctx, const Box* box, sy
 
       RENDER_LOOP(bltColorFilter,
       {
-        cspan(pCur, pCur, (sysuint_t)w, cfRasterPaintContext);
+        cspan(cfRasterPaintContext, pCur, pCur, (sysuint_t)w);
       });
 
       cfEngine->releaseContext(cfRasterPaintContext);
@@ -3886,7 +3921,11 @@ NAME##_nodelta_advance: \
       while (clipNext != clipEnd && clipCur->y1 == clipNext->y1) clipNext++; \
       \
       /* Skip some rows if needed. */ \
-      if (y < clipCur->y1) y = clipCur->y1; \
+      if (y < clipCur->y1) \
+      { \
+        y = clipCur->y1; \
+        if (y >= yMax) goto NAME##_end; \
+      } \
       \
       /* Fix clip width (subtract clip rects if some rects are outside the paint) */ \
       while (clipCur->x2 <= xMin) \
@@ -3905,7 +3944,8 @@ NAME##_nodelta_advance: \
       { \
         if (clipTo == clipCur) \
         { \
-          if (clipNext == clipEnd) \
+          clipCur = clipNext; \
+          if (clipCur == clipEnd) \
             goto NAME##_end; \
           else \
             goto NAME##_nodelta_advance; \
@@ -3964,6 +4004,8 @@ NAME##_nodelta_advance: \
       sysint_t srcStrideWithDelta = srcStride * delta; \
       sysint_t dstStrideWithDelta = dstStride * delta; \
       \
+      y = alignToDelta(y, ctx->offset, delta); \
+      \
       /* Advance clip pointer. */ \
 NAME##_delta_advance: \
       while (clipCur->y2 <= y) \
@@ -3979,6 +4021,7 @@ NAME##_delta_advance: \
       if (y < clipCur->y1) \
       { \
         y = alignToDelta(clipCur->y1, ctx->offset, delta); \
+        if (y >= yMax) goto NAME##_end; \
         if (y >= clipCur->y2) \
         { \
           clipCur = clipNext; \
@@ -4004,7 +4047,8 @@ NAME##_delta_advance: \
       { \
         if (clipTo == clipCur) \
         { \
-          if (clipNext == clipEnd) \
+          clipCur = clipNext; \
+          if (clipCur == clipEnd) \
             goto NAME##_end; \
           else \
             goto NAME##_delta_advance; \
@@ -4118,14 +4162,14 @@ void RasterPaintEngine::_renderGlyphSet(RasterPaintContext* ctx, const Point& pt
     int h = y2 - y1; if (h <= 0) continue; \
     \
     uint8_t* pCur = pixels; \
-    pCur += (uint)y1 * stride; \
-    pCur += (uint)x1 * bpp; \
+    pCur += (sysint_t)(uint)y1 * stride; \
+    pCur += (sysint_t)(uint)x1 * bpp; \
     \
     sysint_t glyphStride = bitmapd->stride; \
     const uint8_t* pGlyph = bitmapd->first; \
     \
-    pGlyph += (sysint_t)(y1 - py1) * glyphStride; \
-    pGlyph += (sysint_t)(x1 - px1); \
+    pGlyph += (sysint_t)(uint)(y1 - py1) * glyphStride; \
+    pGlyph += (sysint_t)(uint)(x1 - px1); \
     \
     if (delta != 1) glyphStride *= delta; \
     \
@@ -4407,7 +4451,7 @@ NAME##_end: \
 
           if (len > 0)
           {
-            cspan(pBuf, pCur, len, cfRasterPaintContext);
+            cspan(cfRasterPaintContext, pBuf, pCur, len);
             vspan_a8(pCur, pBuf, span->covers, len, &closure);
           }
           else
@@ -4418,11 +4462,11 @@ NAME##_end: \
             uint32_t cover = (uint32_t)*(span->covers);
             if (cover == 0xFF)
             {
-              cspan(pCur, pCur, len, cfRasterPaintContext);
+              cspan(cfRasterPaintContext, pCur, pCur, len);
             }
             else
             {
-              cspan(pBuf, pCur, len, cfRasterPaintContext);
+              cspan(cfRasterPaintContext, pBuf, pCur, len);
               vspan_a8_const(pCur, pBuf, cover, len, &closure);
             }
           }

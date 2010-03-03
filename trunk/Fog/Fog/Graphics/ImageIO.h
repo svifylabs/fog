@@ -106,7 +106,7 @@ struct FOG_API Provider
   // [File Type]
   // --------------------------------------------------------------------------
 
-  //! @brief Get image file type (see @c IMAGEIO_FILE_TYPE).
+  //! @brief Get image file type (see @c IMAGE_IO_FILE_TYPE).
   FOG_INLINE uint32_t getFileType() const { return _fileType; }
 
   // --------------------------------------------------------------------------
@@ -117,9 +117,9 @@ struct FOG_API Provider
   FOG_INLINE uint32_t getDeviceType() const { return _deviceType; }
 
   //! @brief Get whether image decoder decide can be created by the provider.
-  FOG_INLINE bool isDecoderType() const { return (_deviceType & IMAGEIO_DEVICE_DECODER) != 0; }
+  FOG_INLINE bool isDecoderType() const { return (_deviceType & IMAGE_IO_DEVICE_DECODER) != 0; }
   //! @brief Get whether image encoder decide can be created by the provider.
-  FOG_INLINE bool isEncoderType() const { return (_deviceType & IMAGEIO_DEVICE_ENCODER) != 0; }
+  FOG_INLINE bool isEncoderType() const { return (_deviceType & IMAGE_IO_DEVICE_ENCODER) != 0; }
 
   // --------------------------------------------------------------------------
   // [Data]
@@ -143,7 +143,7 @@ struct FOG_API Provider
   //! @brief Create image decoder / encoder device.
   //!
   //! @param deviceType Requested device type, valid values are only 
-  //!        @c IMAGEIO_DEVICE_ENCODER or @c IMAGEIO_DEVICE_DECODER.
+  //!        @c IMAGE_IO_DEVICE_ENCODER or @c IMAGE_IO_DEVICE_DECODER.
   //! @param device Where to store pointer to the created device.
   virtual err_t createDevice(uint32_t deviceType, BaseDevice** device) const = 0;
 
@@ -154,10 +154,10 @@ struct FOG_API Provider
 protected:
   mutable Atomic<sysuint_t> _refCount;
 
-  //! @brief Image file type (see @c IMAGEIO_FILE_TYPE).
+  //! @brief Image file type (see @c IMAGE_IO_FILE_TYPE).
   uint32_t _fileType;
 
-  //! @brief Supported device flags (see @c IMAGEIO_DEVICE_TYPE).
+  //! @brief Supported device flags (see @c IMAGE_IO_DEVICE_TYPE).
   uint32_t _deviceType;
   
   //! @brief Image provider name (for example "BMP", "PNG", "PNG[GDI+]", ...).
@@ -201,8 +201,8 @@ struct FOG_API BaseDevice : public Object
   FOG_INLINE uint32_t getFileType() const { return _fileType; }
   FOG_INLINE uint32_t getDeviceType() const { return _deviceType; }
 
-  FOG_INLINE bool isEncoder() const { return (_deviceType & IMAGEIO_DEVICE_ENCODER) != 0; }
-  FOG_INLINE bool isDecoder() const { return (_deviceType & IMAGEIO_DEVICE_DECODER) != 0; }
+  FOG_INLINE bool isEncoder() const { return (_deviceType & IMAGE_IO_DEVICE_ENCODER) != 0; }
+  FOG_INLINE bool isDecoder() const { return (_deviceType & IMAGE_IO_DEVICE_DECODER) != 0; }
 
   FOG_INLINE uint64_t attachedOffset() const { return _attachedOffset; }
   FOG_INLINE Stream& getStream() { return _stream; }
@@ -258,9 +258,9 @@ protected:
   //! @brief Device provider.
   Provider* _provider;
 
-  //! @brief File format of target / source image (see @c IMAGEIO_FILE_TYPE).
+  //! @brief File format of target / source image (see @c IMAGE_IO_FILE_TYPE).
   uint32_t _fileType;
-  //! @brief Device type (see @c IMAGEIO_DEVICE_TYPE).
+  //! @brief Device type (see @c IMAGE_IO_DEVICE_TYPE).
   uint32_t _deviceType;
 
   //! @brief Attached stream offset.

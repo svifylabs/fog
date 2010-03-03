@@ -1,4 +1,4 @@
-// [Fog/Graphics library - Public API]
+// [Fog/Graphics library - Private API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -16,6 +16,9 @@
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/Path.h>
 #include <Fog/Graphics/Scanline_p.h>
+
+//! @addtogroup Fog_Graphics_Private
+//! @{
 
 namespace Fog {
 
@@ -544,6 +547,8 @@ FOG_INLINE FunctionMap::CompositeFuncs* getRasterOps(int format, int op)
 
 } // RasterUtil namespace
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_GRAPHICS_RASTERUTIL_P_H

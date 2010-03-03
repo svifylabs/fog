@@ -435,8 +435,8 @@ struct FOG_HIDDEN GdiPlusEncoderDevice : public EncoderDevice
   IStream* _istream;
 };
 
-} // ImageIO
-} // Fog
+} // ImageIO namespace
+} // Fog namespace
 
 // [Guard]
 #endif // _FOG_GRAPHICS_IMAGEIO_GDIPLUS_P_H

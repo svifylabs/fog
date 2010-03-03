@@ -11,7 +11,7 @@
 #include <Fog/Build/Build.h>
 #include <Fog/Graphics/Constants.h>
 
-//! @addtogroup Fog_Graphics
+//! @addtogroup Fog_Graphics_Private
 //! @{
 
 namespace Fog {

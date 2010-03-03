@@ -1,3 +1,9 @@
+2010-03-03
+- Refactorized Fog-Gui stuff, reorganized constants, etc...
+- Refactorized Fog-Graphics, reorganized constants, preparing 
+  for improved image filtering API.
+- Fog::Reduce is now private class and it's not exported.
+
 2010-03-01
 - Fixed Rasterizer::sweepScanline() when used with multiple clip rectangles
 - Added clipping to RasterPaintEngine::_renderImage()
@@ -124,3 +130,4 @@
 2010-01-01
 - Welcome to 2010.
 - Changelog started.
+

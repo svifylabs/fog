@@ -14,6 +14,9 @@
 #include <Fog/Graphics/Path.h>
 #include <Fog/Graphics/Scanline_p.h>
 
+//! @addtogroup Fog_Graphics_Private
+//! @{
+
 namespace Fog {
 
 // ============================================================================
@@ -313,6 +316,8 @@ private:
 };
 
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_GRAPHICS_RASTERIZER_P_H

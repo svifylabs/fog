@@ -568,7 +568,7 @@ private:
 //! make sure that threads are working with own data the @c run() method must
 //! use worker delta and offset variables.
 //!
-//! Commands are executed in LILO (last-in, last-out) order for each thread,
+//! Commands are executed in FIFO (first-in, first-out) order for each thread,
 //! but threads are not synchronized. It means that threads may process different
 //! commands in parallel, but one-by-one.
 //!
@@ -907,6 +907,8 @@ struct FOG_HIDDEN RasterPaintEngine : public PaintEngine
 
   virtual void flush(uint32_t flags);
   void flushWithQuit();
+
+  FOG_INLINE bool isSingleThreaded() const { return workerManager == NULL; }
 
   // --------------------------------------------------------------------------
   // [Hints]

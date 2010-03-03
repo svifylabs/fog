@@ -94,7 +94,7 @@ MyWindow::MyWindow(uint32_t createFlags) :
   clr.randomize();
 
   timer.setInterval(TimeDelta::fromMilliseconds(20));
-  timer.addListener(EV_TIMER, this, &MyWindow::onTimer);
+  timer.addListener(EVENT_TIMER, this, &MyWindow::onTimer);
   timer.start();
 }
 
@@ -136,7 +136,7 @@ void MyWindow::onTimer(TimerEvent* e)
   for (sysuint_t i = 0; i < NumPoints; i++) mp[i].move(bounds);
   clr.move();
 
-  repaint(RepaintWidget);
+  repaint(WIDGET_REPAINT_AREA);
 }
 
 // ============================================================================
@@ -150,7 +150,7 @@ FOG_GUI_MAIN()
   MyWindow window;
   window.setSize(Size(515, 455));
   window.show();
-  window.addListener(EV_CLOSE, &app, &Application::quit);
+  window.addListener(EVENT_CLOSE, &app, &Application::quit);
 
   return app.run();
 }

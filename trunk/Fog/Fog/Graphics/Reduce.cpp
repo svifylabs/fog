@@ -13,7 +13,7 @@
 #include <Fog/Core/Memory.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/RasterEngine_p.h>
-#include <Fog/Graphics/Reduce.h>
+#include <Fog/Graphics/Reduce_p.h>
 
 #include <stdlib.h>
 

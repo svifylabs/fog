@@ -11,7 +11,7 @@
 #include <Fog/Core/List.h>
 #include <Fog/Graphics/Argb.h>
 
-//! @addtogroup Fog_Graphics
+//! @addtogroup Fog_Graphics_Private
 //! @{
 
 namespace Fog {

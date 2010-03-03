@@ -1,10 +1,15 @@
-#ifndef _FOG_GRAPHICS_REDUCE_H
-#define _FOG_GRAPHICS_REDUCE_H
+// [Fog/Graphics Library - Private API]
+//
+// [Licence]
+// MIT, See COPYING file in package
+
+#ifndef _FOG_GRAPHICS_REDUCE_P_H
+#define _FOG_GRAPHICS_REDUCE_P_H
 
 #include <Fog/Core/Hash.h>
 #include <Fog/Graphics/Image.h>
 
-//! @addtogroup Fog_Graphics
+//! @addtogroup Fog_Graphics_Private
 //! @{
 
 namespace Fog {
@@ -21,7 +26,7 @@ namespace Fog {
 //!
 //! If count of colors are larger than 256, operation is stopped and count
 //! of colors are set to zero. Zero means "not able to reduce depth".
-struct FOG_API Reduce
+struct FOG_HIDDEN Reduce
 {
   // [Construction / Destruction]
 
@@ -67,4 +72,4 @@ private:
 
 //! @}
 
-#endif // _FOG_GRAPHICS_REDUCE_H
+#endif // _FOG_GRAPHICS_REDUCE_P_H

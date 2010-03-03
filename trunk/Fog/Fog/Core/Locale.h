@@ -105,7 +105,7 @@ struct FOG_API Locale
   bool set(const String& name);
   bool set(const Locale& other);
 
-  // [Getters / Setters]
+  // [Accessors]
 
   FOG_INLINE Char getChar(int id) const
   {

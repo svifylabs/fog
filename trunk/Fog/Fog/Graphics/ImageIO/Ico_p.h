@@ -16,6 +16,9 @@
 #include <Fog/Graphics/ImageIO.h>
 #include <Fog/Graphics/ImageIO/Bmp_p.h>
 
+//! @addtogroup Fog_Graphics_Private
+//! @{
+
 namespace Fog {
 namespace ImageIO {
 
@@ -90,8 +93,10 @@ private:
   IcoEntry *_framesInfo;
 };
 
-} // ImageIO
-} // Fog
+} // ImageIO namespace
+} // Fog namespace
+
+//! @}
 
 // ============================================================================
 // [Fog::TypeInfo<>]

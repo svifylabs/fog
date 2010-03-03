@@ -36,10 +36,10 @@ IcoProvider::IcoProvider()
   _name = fog_strings->getString(STR_GRAPHICS_ICO);
 
   // File type.
-  _fileType = IMAGEIO_FILE_ICO;
+  _fileType = IMAGE_IO_FILE_ICO;
 
   // Supported devices.
-  _deviceType = IMAGEIO_DEVICE_BOTH;
+  _deviceType = IMAGE_IO_DEVICE_BOTH;
 
   // Supported extensions.
   _imageExtensions.reserve(1);
@@ -96,10 +96,10 @@ err_t IcoProvider::createDevice(uint32_t deviceType, BaseDevice** device) const
 
   switch (deviceType)
   {
-    case IMAGEIO_DEVICE_DECODER:
+    case IMAGE_IO_DEVICE_DECODER:
       d = new(std::nothrow) IcoDecoderDevice(const_cast<IcoProvider*>(this));
       break;
-    case IMAGEIO_DEVICE_ENCODER:
+    case IMAGE_IO_DEVICE_ENCODER:
       return ERR_IMAGEIO_NO_ENCODER;
     default:
       return ERR_RT_INVALID_ARGUMENT;
@@ -303,5 +303,5 @@ FOG_IMPLEMENT_OBJECT(Fog::ImageIO::IcoDecoderDevice)
 FOG_INIT_DECLARE void fog_imageio_init_ico(void)
 {
   using namespace Fog;
-  ImageIO::addProvider(IMAGEIO_DEVICE_DECODER, new(std::nothrow) ImageIO::IcoProvider());
+  ImageIO::addProvider(IMAGE_IO_DEVICE_DECODER, new(std::nothrow) ImageIO::IcoProvider());
 }

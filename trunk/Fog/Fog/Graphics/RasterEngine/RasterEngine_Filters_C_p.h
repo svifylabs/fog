@@ -71,15 +71,17 @@ struct FOG_HIDDEN FilterC
   // --------------------------------------------------------------------------
 
   static void FOG_FASTCALL color_lut_prgb32(
-    uint8_t* dst, const uint8_t* src, sysuint_t width, const ColorLutData* lut)
+    const ColorLutData* lut,
+    uint8_t* dst, const uint8_t* src, sysuint_t width)
   {
     functionMap->dib.convert[PIXEL_FORMAT_ARGB32][PIXEL_FORMAT_PRGB32](dst, src, width, NULL);
-    functionMap->filter.color_lut[PIXEL_FORMAT_ARGB32](dst, dst, width, lut);
+    functionMap->filter.color_lut[PIXEL_FORMAT_ARGB32](lut, dst, dst, width);
     functionMap->dib.convert[PIXEL_FORMAT_PRGB32][PIXEL_FORMAT_ARGB32](dst, dst, width, NULL);
   }
 
   static void FOG_FASTCALL color_lut_argb32(
-    uint8_t* dst, const uint8_t* src, sysuint_t width, const ColorLutData* lut)
+    const ColorLutData* lut,
+    uint8_t* dst, const uint8_t* src, sysuint_t width)
   {
     const uint8_t* rLut = lut->r;
     const uint8_t* gLut = lut->g;
@@ -96,7 +98,8 @@ struct FOG_HIDDEN FilterC
   }
 
   static void FOG_FASTCALL color_lut_xrgb32(
-    uint8_t* dst, const uint8_t* src, sysuint_t width, const ColorLutData* lut)
+    const ColorLutData* lut,
+    uint8_t* dst, const uint8_t* src, sysuint_t width)
   {
     const uint8_t* rLut = lut->r;
     const uint8_t* gLut = lut->g;
@@ -112,7 +115,8 @@ struct FOG_HIDDEN FilterC
   }
 
   static void FOG_FASTCALL color_lut_a8(
-    uint8_t* dst, const uint8_t* src, sysuint_t width, const ColorLutData* lut)
+    const ColorLutData* lut,
+    uint8_t* dst, const uint8_t* src, sysuint_t width)
   {
     const uint8_t* aLut = lut->a;
     for (sysuint_t i = width; i; i--, dst += 1, src += 1) dst[0] = aLut[src[0]];
@@ -123,7 +127,8 @@ struct FOG_HIDDEN FilterC
   // --------------------------------------------------------------------------
 
   static void FOG_FASTCALL color_matrix_prgb32(
-    uint8_t* dst, const uint8_t* src, sysuint_t width, const ColorMatrix* cm)
+    const ColorMatrix* cm,
+    uint8_t* dst, const uint8_t* src, sysuint_t width)
   {
     float dr = cm->m[4][0] * 255.0f + 0.5f;
     float dg = cm->m[4][1] * 255.0f + 0.5f;
@@ -155,7 +160,8 @@ struct FOG_HIDDEN FilterC
   }
 
   static void FOG_FASTCALL color_matrix_argb32(
-    uint8_t* dst, const uint8_t* src, sysuint_t width, const ColorMatrix* cm)
+    const ColorMatrix* cm,
+    uint8_t* dst, const uint8_t* src, sysuint_t width)
   {
     float dr = cm->m[4][0] * 255.0f + 0.5f;
     float dg = cm->m[4][1] * 255.0f + 0.5f;
@@ -184,7 +190,8 @@ struct FOG_HIDDEN FilterC
   }
 
   static void FOG_FASTCALL color_matrix_xrgb32(
-    uint8_t* dst, const uint8_t* src, sysuint_t width, const ColorMatrix* cm)
+    const ColorMatrix* cm,
+    uint8_t* dst, const uint8_t* src, sysuint_t width)
   {
     float dr = (cm->m[3][0] + cm->m[4][0]) * 255.0f + 0.5f;
     float dg = (cm->m[3][1] + cm->m[4][1]) * 255.0f + 0.5f;
@@ -209,7 +216,8 @@ struct FOG_HIDDEN FilterC
   }
 
   static void FOG_FASTCALL color_matrix_a8(
-    uint8_t* dst, const uint8_t* src, sysuint_t width, const ColorMatrix* cm)
+    const ColorMatrix* cm,
+    uint8_t* dst, const uint8_t* src, sysuint_t width)
   {
     float da = cm->m[4][3] * 255.0f + 0.5f;
     float xa = cm->m[3][3];
@@ -227,8 +235,10 @@ struct FOG_HIDDEN FilterC
   // --------------------------------------------------------------------------
 
   static void FOG_FASTCALL copy_area_32(
-    uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
-    sysuint_t width, sysuint_t height, sysint_t offset, const void* context)
+    const void* context,
+    uint8_t* dst, sysint_t dstStride,
+    const uint8_t* src, sysint_t srcStride,
+    sysuint_t width, sysuint_t height, sysint_t offset)
   {
     if (dst == src) return;
 
@@ -254,8 +264,10 @@ struct FOG_HIDDEN FilterC
   }
 
   static void FOG_FASTCALL copy_area_24(
-    uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
-    sysuint_t width, sysuint_t height, sysint_t offset, const void* context)
+    const void* context,
+    uint8_t* dst, sysint_t dstStride,
+    const uint8_t* src, sysint_t srcStride,
+    sysuint_t width, sysuint_t height, sysint_t offset)
   {
     if (dst == src) return;
 
@@ -281,8 +293,10 @@ struct FOG_HIDDEN FilterC
   }
 
   static void FOG_FASTCALL copy_area_8(
-    uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
-    sysuint_t width, sysuint_t height, sysint_t offset, const void* context)
+    const void* context,
+    uint8_t* dst, sysint_t dstStride,
+    const uint8_t* src, sysint_t srcStride,
+    sysuint_t width, sysuint_t height, sysint_t offset)
   {
     if (dst == src) return;
 
@@ -312,14 +326,16 @@ struct FOG_HIDDEN FilterC
   // --------------------------------------------------------------------------
 
   static void FOG_FASTCALL box_blur_h_argb32(
-    uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
-    sysuint_t width, sysuint_t height, sysint_t offset, const BlurParams* params)
+    const BlurParams* params,
+    uint8_t* dst, sysint_t dstStride,
+    const uint8_t* src, sysint_t srcStride,
+    sysuint_t width, sysuint_t height, sysint_t offset)
   {
     int radius = Math::min<int>((int)params->hRadius, 254);
 
     if (radius == 0 || width < 2)
     {
-      functionMap->filter.copy_area[PIXEL_FORMAT_ARGB32](dst, dstStride, src, srcStride, width, height, offset, NULL);
+      functionMap->filter.copy_area[PIXEL_FORMAT_ARGB32](NULL, dst, dstStride, src, srcStride, width, height, offset);
       return;
     }
 
@@ -489,14 +505,16 @@ struct FOG_HIDDEN FilterC
   }
 
   static void FOG_FASTCALL box_blur_v_argb32(
-    uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
-    sysuint_t width, sysuint_t height, sysint_t offset, const BlurParams* params)
+    const BlurParams* params,
+    uint8_t* dst, sysint_t dstStride,
+    const uint8_t* src, sysint_t srcStride,
+    sysuint_t width, sysuint_t height, sysint_t offset)
   {
     int radius = Math::min<int>((int)params->vRadius, 254);
 
     if (radius == 0 || height < 2)
     {
-      functionMap->filter.copy_area[PIXEL_FORMAT_ARGB32](dst, dstStride, src, srcStride, width, height, offset, NULL);
+      functionMap->filter.copy_area[PIXEL_FORMAT_ARGB32](NULL, dst, dstStride, src, srcStride, width, height, offset);
       return;
     }
 
@@ -666,14 +684,16 @@ struct FOG_HIDDEN FilterC
   }
 
   static void FOG_FASTCALL box_blur_h_xrgb32(
-    uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
-    sysuint_t width, sysuint_t height, sysint_t offset, const BlurParams* params)
+    const BlurParams* params,
+    uint8_t* dst, sysint_t dstStride,
+    const uint8_t* src, sysint_t srcStride,
+    sysuint_t width, sysuint_t height, sysint_t offset)
   {
     int radius = Math::min<int>((int)params->hRadius, 254);
 
     if (radius == 0 || width < 2)
     {
-      functionMap->filter.copy_area[PIXEL_FORMAT_XRGB32](dst, dstStride, src, srcStride, width, height, offset, NULL);
+      functionMap->filter.copy_area[PIXEL_FORMAT_XRGB32](NULL, dst, dstStride, src, srcStride, width, height, offset);
       return;
     }
 
@@ -831,14 +851,16 @@ struct FOG_HIDDEN FilterC
   }
 
   static void FOG_FASTCALL box_blur_v_xrgb32(
-    uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
-    sysuint_t width, sysuint_t height, sysint_t offset, const BlurParams* params)
+    const BlurParams* params,
+    uint8_t* dst, sysint_t dstStride,
+    const uint8_t* src, sysint_t srcStride,
+    sysuint_t width, sysuint_t height, sysint_t offset)
   {
     int radius = Math::min<int>((int)params->vRadius, 254);
 
     if (radius == 0 || height < 2)
     {
-      functionMap->filter.copy_area[PIXEL_FORMAT_XRGB32](dst, dstStride, src, srcStride, width, height, offset, NULL);
+      functionMap->filter.copy_area[PIXEL_FORMAT_XRGB32](NULL, dst, dstStride, src, srcStride, width, height, offset);
       return;
     }
 
@@ -996,14 +1018,16 @@ struct FOG_HIDDEN FilterC
   }
 
   static void FOG_FASTCALL box_blur_h_a8(
-    uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
-    sysuint_t width, sysuint_t height, sysint_t offset, const BlurParams* params)
+    const BlurParams* params,
+    uint8_t* dst, sysint_t dstStride,
+    const uint8_t* src, sysint_t srcStride,
+    sysuint_t width, sysuint_t height, sysint_t offset)
   {
     int radius = Math::min<int>((int)params->hRadius, 254);
 
     if (radius == 0 || width < 2)
     {
-      functionMap->filter.copy_area[PIXEL_FORMAT_A8](dst, dstStride, src, srcStride, width, height, offset, NULL);
+      functionMap->filter.copy_area[PIXEL_FORMAT_A8](NULL, dst, dstStride, src, srcStride, width, height, offset);
       return;
     }
 
@@ -1120,14 +1144,16 @@ struct FOG_HIDDEN FilterC
   }
 
   static void FOG_FASTCALL box_blur_v_a8(
-    uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
-    sysuint_t width, sysuint_t height, sysint_t offset, const BlurParams* params)
+    const BlurParams* params,
+    uint8_t* dst, sysint_t dstStride,
+    const uint8_t* src, sysint_t srcStride,
+    sysuint_t width, sysuint_t height, sysint_t offset)
   {
     int radius = Math::min<int>((int)params->vRadius, 254);
 
     if (radius == 0 || height < 2)
     {
-      functionMap->filter.copy_area[PIXEL_FORMAT_A8](dst, dstStride, src, srcStride, width, height, offset, NULL);
+      functionMap->filter.copy_area[PIXEL_FORMAT_A8](NULL, dst, dstStride, src, srcStride, width, height, offset);
       return;
     }
 
@@ -1247,14 +1273,16 @@ struct FOG_HIDDEN FilterC
   // --------------------------------------------------------------------------
 
   static void FOG_FASTCALL linear_blur_h_argb32(
-    uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
-    sysuint_t width, sysuint_t height, sysint_t offset, const BlurParams* params)
+    const BlurParams* params,
+    uint8_t* dst, sysint_t dstStride,
+    const uint8_t* src, sysint_t srcStride,
+    sysuint_t width, sysuint_t height, sysint_t offset)
   {
     int radius = Math::min<int>((int)params->hRadius, 254);
 
     if (radius == 0 || width < 2)
     {
-      functionMap->filter.copy_area[PIXEL_FORMAT_ARGB32](dst, dstStride, src, srcStride, width, height, offset, NULL);
+      functionMap->filter.copy_area[PIXEL_FORMAT_ARGB32](NULL, dst, dstStride, src, srcStride, width, height, offset);
       return;
     }
 
@@ -1473,14 +1501,16 @@ struct FOG_HIDDEN FilterC
   }
 
   static void FOG_FASTCALL linear_blur_v_argb32(
-    uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
-    sysuint_t width, sysuint_t height, sysint_t offset, const BlurParams* params)
+    const BlurParams* params,
+    uint8_t* dst, sysint_t dstStride,
+    const uint8_t* src, sysint_t srcStride,
+    sysuint_t width, sysuint_t height, sysint_t offset)
   {
     int radius = Math::min<int>((int)params->vRadius, 254);
 
     if (radius == 0 || height < 2)
     {
-      functionMap->filter.copy_area[PIXEL_FORMAT_ARGB32](dst, dstStride, src, srcStride, width, height, offset, NULL);
+      functionMap->filter.copy_area[PIXEL_FORMAT_ARGB32](NULL, dst, dstStride, src, srcStride, width, height, offset);
       return;
     }
 
@@ -1699,14 +1729,16 @@ struct FOG_HIDDEN FilterC
   }
 
   static void FOG_FASTCALL linear_blur_h_a8(
-    uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
-    sysuint_t width, sysuint_t height, sysint_t offset, const BlurParams* params)
+    const BlurParams* params,
+    uint8_t* dst, sysint_t dstStride,
+    const uint8_t* src, sysint_t srcStride,
+    sysuint_t width, sysuint_t height, sysint_t offset)
   {
     int radius = Math::min<int>((int)params->hRadius, 254);
 
     if (radius == 0 || width < 2)
     {
-      functionMap->filter.copy_area[PIXEL_FORMAT_A8](dst, dstStride, src, srcStride, width, height, offset, NULL);
+      functionMap->filter.copy_area[PIXEL_FORMAT_A8](NULL, dst, dstStride, src, srcStride, width, height, offset);
       return;
     }
 
@@ -1840,14 +1872,16 @@ struct FOG_HIDDEN FilterC
   }
 
   static void FOG_FASTCALL linear_blur_v_a8(
-    uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
-    sysuint_t width, sysuint_t height, sysint_t offset, const BlurParams* params)
+    const BlurParams* params,
+    uint8_t* dst, sysint_t dstStride,
+    const uint8_t* src, sysint_t srcStride,
+    sysuint_t width, sysuint_t height, sysint_t offset)
   {
     int radius = Math::min<int>((int)params->vRadius, 254);
 
     if (radius == 0 || height < 2)
     {
-      functionMap->filter.copy_area[PIXEL_FORMAT_A8](dst, dstStride, src, srcStride, width, height, offset, NULL);
+      functionMap->filter.copy_area[PIXEL_FORMAT_A8](NULL, dst, dstStride, src, srcStride, width, height, offset);
       return;
     }
 
@@ -1990,15 +2024,17 @@ struct FOG_HIDDEN FilterC
   // --------------------------------------------------------------------------
 
   static void FOG_FASTCALL symmetric_convolve_float_h_argb32(
-    uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
-    sysuint_t width, sysuint_t height, sysint_t offset, const SymmetricConvolveParamsF* params)
+    const SymmetricConvolveParamsF* params,
+    uint8_t* dst, sysint_t dstStride,
+    const uint8_t* src, sysint_t srcStride,
+    sysuint_t width, sysuint_t height, sysint_t offset)
   {
     const float* kernel = params->hMatrix.getData();
     sysint_t size = params->hMatrix.getLength();
 
     if (size == 0 || width < 2)
     {
-      functionMap->filter.copy_area[PIXEL_FORMAT_ARGB32](dst, dstStride, src, srcStride, width, height, offset, NULL);
+      functionMap->filter.copy_area[PIXEL_FORMAT_ARGB32](NULL, dst, dstStride, src, srcStride, width, height, offset);
       return;
     }
 
@@ -2119,15 +2155,17 @@ struct FOG_HIDDEN FilterC
   }
 
   static void FOG_FASTCALL symmetric_convolve_float_v_argb32(
-    uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
-    sysuint_t width, sysuint_t height, sysint_t offset, const SymmetricConvolveParamsF* params)
+    const SymmetricConvolveParamsF* params,
+    uint8_t* dst, sysint_t dstStride,
+    const uint8_t* src, sysint_t srcStride,
+    sysuint_t width, sysuint_t height, sysint_t offset)
   {
     const float* kernel = params->vMatrix.getData();
     sysint_t size = params->vMatrix.getLength();
 
     if (size == 0 || height < 2)
     {
-      functionMap->filter.copy_area[PIXEL_FORMAT_ARGB32](dst, dstStride, src, srcStride, width, height, offset, NULL);
+      functionMap->filter.copy_area[PIXEL_FORMAT_ARGB32](NULL, dst, dstStride, src, srcStride, width, height, offset);
       return;
     }
 
@@ -2248,15 +2286,17 @@ struct FOG_HIDDEN FilterC
   }
 
   static void FOG_FASTCALL symmetric_convolve_float_h_a8(
-    uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
-    sysuint_t width, sysuint_t height, sysint_t offset, const SymmetricConvolveParamsF* params)
+    const SymmetricConvolveParamsF* params,
+    uint8_t* dst, sysint_t dstStride,
+    const uint8_t* src, sysint_t srcStride,
+    sysuint_t width, sysuint_t height, sysint_t offset)
   {
     const float* kernel = params->hMatrix.getData();
     sysint_t size = params->hMatrix.getLength();
 
     if (size == 0 || width < 2)
     {
-      functionMap->filter.copy_area[PIXEL_FORMAT_ARGB32](dst, dstStride, src, srcStride, width, height, offset, NULL);
+      functionMap->filter.copy_area[PIXEL_FORMAT_ARGB32](NULL, dst, dstStride, src, srcStride, width, height, offset);
       return;
     }
 
@@ -2366,15 +2406,17 @@ struct FOG_HIDDEN FilterC
   }
 
   static void FOG_FASTCALL symmetric_convolve_float_v_a8(
-    uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
-    sysuint_t width, sysuint_t height, sysint_t offset, const SymmetricConvolveParamsF* params)
+    const SymmetricConvolveParamsF* params,
+    uint8_t* dst, sysint_t dstStride,
+    const uint8_t* src, sysint_t srcStride,
+    sysuint_t width, sysuint_t height, sysint_t offset)
   {
     const float* kernel = params->vMatrix.getData();
     sysint_t size = params->vMatrix.getLength();
 
     if (size == 0 || height < 2)
     {
-      functionMap->filter.copy_area[PIXEL_FORMAT_ARGB32](dst, dstStride, src, srcStride, width, height, offset, NULL);
+      functionMap->filter.copy_area[PIXEL_FORMAT_ARGB32](NULL, dst, dstStride, src, srcStride, width, height, offset);
       return;
     }
 

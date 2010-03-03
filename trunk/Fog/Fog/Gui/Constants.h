@@ -16,6 +16,79 @@
 namespace Fog {
 
 // ============================================================================
+// [Fog::WIDGET_LIMITS]
+// ============================================================================
+
+enum WIDGET_LIMITS
+{
+  WIDGET_MIN_SIZE = 0,
+  WIDGET_MAX_SIZE = 0xFFFFFF
+};
+
+// ============================================================================
+// [Fog::WIDGET_UPDATE_FLAGS]
+// ============================================================================
+
+enum WIDGET_UPDATE_FLAGS
+{
+  //! @brief Something needs update (set if something needs update).
+  WIDGET_UPDATE_SOMETHING = (1 << 0),
+
+  //! @brief Some child needs update (has generic update flag set).
+  WIDGET_UPDATE_CHILD = (1 << 1),
+
+  //! @brief Update the widget geometry.
+  WIDGET_UPDATE_GEOMETRY = (1 << 2),
+
+  //! @brief Update everything for the widget and all children.
+  WIDGET_UPDATE_ALL = (1 << 31)
+
+  // Repaint flags starts at (1 << 16).
+};
+
+// ============================================================================
+// [Fog::WIDGET_REPAINT_FLAGS]
+// ============================================================================
+
+//! @brief Flags used by @c Widget::repaint() method.
+enum WIDGET_REPAINT_FLAGS
+{
+  //! @brief Repaint whole widget area (repaints the widget).
+  WIDGET_REPAINT_AREA  = (1 << 16),
+
+  //! @brief Repaint only caret.
+  WIDGET_REPAINT_CARET = (1 << 17),
+
+  //! @brief Repaint everything, including caret.
+  //!
+  //! Combination of @c WIDGET_REPAINT_AREA and @c WIDGET_REPAINT_CARET
+  WIDGET_REPAINT_ALL = WIDGET_REPAINT_AREA | WIDGET_REPAINT_CARET
+};
+
+// ============================================================================
+// [Fog::WIDGET_PAINT_HINT]
+// ============================================================================
+
+//! @brief Paint hint that can be returned by @c Widget::getPaintMode().
+enum WIDGET_PAINT_HINT
+{
+  //! @brief Widget paint event will repaint the whole widget (default).
+  //!
+  //! This is the default and most optimized mode, fast themes should use this
+  //! for most controls.
+  WIDGET_PAINT_SCREEN = 0x0000,
+
+  //! @brief Widget paint event will not repaint whole widget, in some regions
+  //! the parent content is propagated.
+  //!
+  //! This flag must be returned by @c Widget::getPaintHint() if widget want
+  //! to base content on parent, otherwise the result of painting is undefined
+  //! (there can be some garbage pixels from previous painting or just random
+  //! bytes from previous data in the buffer).
+  WIDGET_PAINT_PROPAGATE = 0x0001
+};
+
+// ============================================================================
 // [Fog::WIDGET_STATE]
 // ============================================================================
 
@@ -29,7 +102,6 @@ enum WIDGET_STATE
   //! @brief Widget is enabled and it parent too.
   WIDGET_ENABLED = 2
 };
-
 // ============================================================================
 // [Fog::WIDGET_VISIBILITY]
 // ============================================================================
@@ -89,6 +161,33 @@ enum LAYOUT_POLICY
 {
   LAYOUT_EXPANDING_WIDTH = 0x01,
   LAYOUT_EXPANDING_HEIGHT = 0x10
+};
+
+// ============================================================================
+// [Fog::WINDOW_FLAGS]
+// ============================================================================
+
+//! @brief GuiWindow create flags (used also by @c Widget).
+enum WINDOW_FLAGS
+{
+  //! @brief Create GuiWindow (this flag is used in Fog::Widget).
+  WINDOW_NATIVE = (1 << 0),
+
+  //! @brief Create popup like window instead of normal one.
+  //!
+  //! Created popup window hasn't native borders and decoration, use
+  //! border style to set these borders.
+  WINDOW_POPUP = (1 << 16),
+
+  //! @brief Create X11 window that listens only for XPropertyChange events.
+  //!
+  //! X11GuiEngine dependent and non-portable flag.
+  WINDOW_X11_PROPERTY_ONLY = (1 << 20),
+
+  //! @brief Override redirection from window managers under X11.
+  //!
+  //! X11GuiEngine dependent and non-portable flag.
+  WINDOW_X11_OVERRIDE_REDIRECT = (1 << 21)
 };
 
 // ============================================================================
@@ -256,27 +355,43 @@ enum KEY_CODE
 //! @brief Key modifier codes.
 enum MODIFIER_CODE
 {
-  MODIFIER_LEFT_SHIFT      = 0x0001, //!< @brief Left shift.
-  MODIFIER_RIGHT_SHIFT     = 0x0002, //!< @brief Right shift.
-  MODIFIER_SHIFT           = 0x0003, //!< @brief Left or right shift, use if (mod & MODIFIER_SHIFT).
+  //! @brief Left shift.
+  MODIFIER_LEFT_SHIFT      = 0x0001,
+  //! @brief Right shift.
+  MODIFIER_RIGHT_SHIFT     = 0x0002,
+  //! @brief Left or right shift, use if (mod & MODIFIER_SHIFT).
+  MODIFIER_SHIFT           = 0x0003,
 
-  MODIFIER_LEFT_CTRL       = 0x0004, //!< @brief Left control.
-  MODIFIER_RIGHT_CTRL      = 0x0008, //!< @brief Right control.
-  MODIFIER_CTRL            = 0x000C, //!< @brief Left or right control.
+  //! @brief Left control.
+  MODIFIER_LEFT_CTRL       = 0x0004,
+  //! @brief Right control.
+  MODIFIER_RIGHT_CTRL      = 0x0008,
+  //! @brief Left or right control.
+  MODIFIER_CTRL            = 0x000C,
 
-  MODIFIER_LEFT_ALT        = 0x0010, //!< @brief Left alt.
-  MODIFIER_RIGHT_ALT       = 0x0020, //!< @brief Right alt.
-  MODIFIER_ALT             = 0x0030, //!< @brief Left or right alt.
+  //! @brief Left alt.
+  MODIFIER_LEFT_ALT        = 0x0010,
+  //! @brief Right alt.
+  MODIFIER_RIGHT_ALT       = 0x0020,
+  //! @brief Left or right alt.
+  MODIFIER_ALT             = 0x0030,
 
-  MODIFIER_LEFT_META       = 0x0040, //!< @brief Left meta.
-  MODIFIER_RIGHT_META      = 0x0080, //!< @brief Right meta.
-  MODIFIER_META            = 0x00C0, //!< @brief Left or right meta.
+  //! @brief Left meta.
+  MODIFIER_LEFT_META       = 0x0040,
+  //! @brief Right meta.
+  MODIFIER_RIGHT_META      = 0x0080,
+  //! @brief Left or right meta.
+  MODIFIER_META            = 0x00C0,
 
-  MODIFIER_MASK            = 0x00FF, //!< @brief Left, Shift, Alt and Meta masks.
+  //! @brief Left, Shift, Alt and Meta masks.
+  MODIFIER_MASK            = 0x00FF,
 
-  MODIFIER_NUM             = 0x1000, //!< @brief Num lock.
-  MODIFIER_CAPS            = 0x2000, //!< @brief Caps lock.
-  MODIFIER_MODE            = 0x4000  //!< @brief Mode.
+  //! @brief Num lock.
+  MODIFIER_NUM             = 0x1000,
+  //! @brief Caps lock.
+  MODIFIER_CAPS            = 0x2000,
+  //! @brief Mode.
+  MODIFIER_MODE            = 0x4000
 };
 
 static FOG_INLINE bool isClearMod   (uint32_t mod) { return (mod & MODIFIER_MASK  ) == 0; }
@@ -342,8 +457,8 @@ enum FOCUS_REASON
   FOCUS_REASON_NONE = 0,
   FOCUS_REASON_MOUSE,
   FOCUS_REASON_WHEEL,
-  FOCUS_REASON_TAB,
-  FOCUS_REASON_BACK_TAB
+  FOCUS_REASON_TAB_FORWARD,
+  FOCUS_REASON_TAB_BACKWARD
 };
 
 // ============================================================================
@@ -361,98 +476,133 @@ enum CHECKED_STATE
 // [Fog::Event IDs]
 // ============================================================================
 
-enum EV_GUI_ENUM
+enum EVENT_GUI_ENUM
 {
+  // --------------------------------------------------------------------------
   // [ChildEvent]
+  // --------------------------------------------------------------------------
 
-  EV_CHILD_ADD = 100,
-  EV_CHILD_REMOVE,
+  EVENT_CHILD_ADD = 100,
+  EVENT_CHILD_REMOVE,
 
+  // --------------------------------------------------------------------------
   // [LayoutEvent]
+  // --------------------------------------------------------------------------
 
-  EV_LAYOUT_SET,
-  EV_LAYOUT_REMOVE,
+  EVENT_LAYOUT_SET,
+  EVENT_LAYOUT_REMOVE,
 
-  EV_LAYOUT_ITEM_ADD,
-  EV_LAYOUT_ITEM_REMOVE,
+  EVENT_LAYOUT_ITEM_ADD,
+  EVENT_LAYOUT_ITEM_REMOVE,
 
+  // --------------------------------------------------------------------------
   // [StateEvent]
+  // --------------------------------------------------------------------------
 
-  EV_ENABLE,
-  EV_DISABLE,
-  EV_DISABLE_BY_PARENT,
+  EVENT_ENABLE,
+  EVENT_DISABLE,
+  EVENT_DISABLE_BY_PARENT,
 
+  // --------------------------------------------------------------------------
   // [VisibilityEvent]
+  // --------------------------------------------------------------------------
 
-  EV_SHOW,
-  EV_HIDE,
-  EV_HIDE_BY_PARENT,
+  EVENT_SHOW,
+  EVENT_HIDE,
+  EVENT_HIDE_BY_PARENT,
 
+  // --------------------------------------------------------------------------
   // [ConfigureEvent]
+  // --------------------------------------------------------------------------
 
-  EV_CONFIGURE,
+  EVENT_CONFIGURE,
 
+  // --------------------------------------------------------------------------
   // [OriginEvent]
+  // --------------------------------------------------------------------------
 
-  EV_ORIGIN,
+  EVENT_ORIGIN,
 
+  // --------------------------------------------------------------------------
   // [FocusEvent]
+  // --------------------------------------------------------------------------
 
-  EV_FOCUS_IN,
-  EV_FOCUS_OUT,
+  EVENT_FOCUS_IN,
+  EVENT_FOCUS_OUT,
 
+  // --------------------------------------------------------------------------
   // [KeyEvent]
+  // --------------------------------------------------------------------------
 
-  EV_KEY_PRESS,
-  EV_KEY_RELEASE,
+  EVENT_KEY_PRESS,
+  EVENT_KEY_RELEASE,
 
+  // --------------------------------------------------------------------------
   // [MouseEvent]
+  // --------------------------------------------------------------------------
 
-  EV_MOUSE_IN,
-  EV_MOUSE_OUT,
-  EV_MOUSE_MOVE,
-  EV_MOUSE_PRESS,
-  EV_MOUSE_RELEASE,
-  EV_CLICK,
-  EV_DOUBLE_CLICK,
-  EV_WHEEL,
+  EVENT_MOUSE_IN,
+  EVENT_MOUSE_OUT,
+  EVENT_MOUSE_MOVE,
+  EVENT_MOUSE_PRESS,
+  EVENT_MOUSE_RELEASE,
+  EVENT_CLICK,
+  EVENT_DOUBLE_CLICK,
+  EVENT_WHEEL,
 
+  // --------------------------------------------------------------------------
   // [SelectionEvent]
+  // --------------------------------------------------------------------------
 
-  EV_CLEAR_SELECTION,
-  EV_SELECTION_REQUIRED,
+  EVENT_CLEAR_SELECTION,
+  EVENT_SELECTION_REQUIRED,
 
+  // --------------------------------------------------------------------------
   // [PaintEvent]
+  // --------------------------------------------------------------------------
 
-  EV_PAINT,
+  EVENT_PAINT,
 
+  // --------------------------------------------------------------------------
   // [CloseEvent]
+  // --------------------------------------------------------------------------
 
-  EV_CLOSE,
+  EVENT_CLOSE,
 
+  // --------------------------------------------------------------------------
   // [CheckEvent]
+  // --------------------------------------------------------------------------
 
-  EV_CHECK,
-  EV_UNCHECK,
+  EVENT_CHECK,
+  EVENT_UNCHECK,
 
+  // --------------------------------------------------------------------------
   // [ThemeEvent]
+  // --------------------------------------------------------------------------
 
-  EV_THEME
+  EVENT_THEME
 };
 
 // ============================================================================
-// [Fog::ERR_GUI]
+// [Fog::ERR_GUI_ENUM]
 // ============================================================================
 
 //! @brief Error codes used in Fog/Gui.
 enum ERR_GUI_ENUM
 {
-  // Errors Range.
+  // --------------------------------------------------------------------------
+  // [Gui Error Range]
+  // --------------------------------------------------------------------------
+
   ERR_GUI_START = 0x00011200,
   ERR_GUI_LAST  = 0x000112FF,
 
-  // UI Errors.
-  ERR_GUI_NOT_INITIALIZED = ERR_GUI_START,
+  // --------------------------------------------------------------------------
+  // [Gui Error Codes]
+  // --------------------------------------------------------------------------
+
+  //! @brief There is no gui engine available.
+  ERR_GUI_NO_ENGINE = ERR_GUI_START,
   ERR_GUI_INTERNAL_ERROR,
 
   ERR_GUI_CANT_CREATE_UIENGINE,

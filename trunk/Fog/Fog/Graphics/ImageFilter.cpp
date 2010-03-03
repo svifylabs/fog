@@ -99,7 +99,7 @@ private:
 };
 
 NullFilterEngine::NullFilterEngine() :
-  ImageFilterEngine(IMAGE_FILTER_NONE)
+  ImageFilterEngine(IMAGE_FILTER_TYPE_NONE)
 {
 }
 
@@ -138,14 +138,14 @@ private:
 };
 
 ColorLutFilterEngine::ColorLutFilterEngine(const ColorLutData& lutData) :
-  ImageFilterEngine(IMAGE_FILTER_COLORLUT)
+  ImageFilterEngine(IMAGE_FILTER_TYPE_COLORLUT)
 {
   setColorLut(lutData);
 
   characteristics |=
-    IMAGE_FILTER_SUPPORTS_ARGB32 | 
-    IMAGE_FILTER_SUPPORTS_XRGB32 |
-    IMAGE_FILTER_SUPPORTS_A8     ;
+    IMAGE_FILTER_CHAR_SUPPORTS_ARGB32 |
+    IMAGE_FILTER_CHAR_SUPPORTS_XRGB32 |
+    IMAGE_FILTER_CHAR_SUPPORTS_A8     ;
 }
 
 ColorFilterFn ColorLutFilterEngine::getColorFilterFn(int format) const
@@ -189,25 +189,25 @@ struct FOG_HIDDEN ColorMatrixFilterEngine : public ImageFilterEngine
 };
 
 ColorMatrixFilterEngine::ColorMatrixFilterEngine(const ColorMatrixFilterEngine& other) :
-  ImageFilterEngine(IMAGE_FILTER_COLORMATRIX),
+  ImageFilterEngine(IMAGE_FILTER_TYPE_COLORMATRIX),
   cm(other.cm)
 {
   characteristics |=
-    IMAGE_FILTER_SUPPORTS_PRGB32 |
-    IMAGE_FILTER_SUPPORTS_ARGB32 |
-    IMAGE_FILTER_SUPPORTS_XRGB32 |
-    IMAGE_FILTER_SUPPORTS_A8     ;
+    IMAGE_FILTER_CHAR_SUPPORTS_PRGB32 |
+    IMAGE_FILTER_CHAR_SUPPORTS_ARGB32 |
+    IMAGE_FILTER_CHAR_SUPPORTS_XRGB32 |
+    IMAGE_FILTER_CHAR_SUPPORTS_A8     ;
 }
 
 ColorMatrixFilterEngine::ColorMatrixFilterEngine(const ColorMatrix& cm) :
-  ImageFilterEngine(IMAGE_FILTER_COLORMATRIX),
+  ImageFilterEngine(IMAGE_FILTER_TYPE_COLORMATRIX),
   cm(cm)
 {
   characteristics |=
-    IMAGE_FILTER_SUPPORTS_PRGB32 |
-    IMAGE_FILTER_SUPPORTS_ARGB32 |
-    IMAGE_FILTER_SUPPORTS_XRGB32 |
-    IMAGE_FILTER_SUPPORTS_A8     ;
+    IMAGE_FILTER_CHAR_SUPPORTS_PRGB32 |
+    IMAGE_FILTER_CHAR_SUPPORTS_ARGB32 |
+    IMAGE_FILTER_CHAR_SUPPORTS_XRGB32 |
+    IMAGE_FILTER_CHAR_SUPPORTS_A8     ;
 }
 
 ColorFilterFn ColorMatrixFilterEngine::getColorFilterFn(int format) const
@@ -293,7 +293,7 @@ private:
 };
 
 BlurFilterEngine::BlurFilterEngine(const BlurParams& params) :
-  ImageFilterEngine(IMAGE_FILTER_COLORLUT), params(params)
+  ImageFilterEngine(IMAGE_FILTER_TYPE_COLORLUT), params(params)
 {
   update();
 }
@@ -305,19 +305,19 @@ ImageFilterFn BlurFilterEngine::getImageFilterFn(int format, int processing) con
   switch (params.blur)
   {
     case BLUR_BOX:
-      if (processing == IMAGE_FILTER_HORZ_PROCESSING) return (ImageFilterFn)RasterEngine::functionMap->filter.box_blur_h[format];
-      if (processing == IMAGE_FILTER_VERT_PROCESSING) return (ImageFilterFn)RasterEngine::functionMap->filter.box_blur_v[format];
+      if (processing == IMAGE_FILTER_CHAR_HORZ_PROCESSING) return (ImageFilterFn)RasterEngine::functionMap->filter.box_blur_h[format];
+      if (processing == IMAGE_FILTER_CHAR_VERT_PROCESSING) return (ImageFilterFn)RasterEngine::functionMap->filter.box_blur_v[format];
       break;
 
     case BLUR_LINEAR:
-      if (processing == IMAGE_FILTER_HORZ_PROCESSING) return (ImageFilterFn)RasterEngine::functionMap->filter.linear_blur_h[format];
-      if (processing == IMAGE_FILTER_VERT_PROCESSING) return (ImageFilterFn)RasterEngine::functionMap->filter.linear_blur_v[format];
+      if (processing == IMAGE_FILTER_CHAR_HORZ_PROCESSING) return (ImageFilterFn)RasterEngine::functionMap->filter.linear_blur_h[format];
+      if (processing == IMAGE_FILTER_CHAR_VERT_PROCESSING) return (ImageFilterFn)RasterEngine::functionMap->filter.linear_blur_v[format];
       break;
 
     case BLUR_GAUSSIAN:
     default:
-      if (processing == IMAGE_FILTER_HORZ_PROCESSING) return (ImageFilterFn)RasterEngine::functionMap->filter.symmetric_convolve_float_h[format];
-      if (processing == IMAGE_FILTER_VERT_PROCESSING) return (ImageFilterFn)RasterEngine::functionMap->filter.symmetric_convolve_float_v[format];
+      if (processing == IMAGE_FILTER_CHAR_HORZ_PROCESSING) return (ImageFilterFn)RasterEngine::functionMap->filter.symmetric_convolve_float_h[format];
+      if (processing == IMAGE_FILTER_CHAR_VERT_PROCESSING) return (ImageFilterFn)RasterEngine::functionMap->filter.symmetric_convolve_float_v[format];
       break;
   }
 
@@ -355,14 +355,14 @@ void BlurFilterEngine::update()
   params.hRadius = Math::min<double>(Math::abs(params.hRadius), BLUR_MAX_RADIUS);
   params.vRadius = Math::min<double>(Math::abs(params.vRadius), BLUR_MAX_RADIUS);
 
-  characteristics = IMAGE_FILTER_CAN_EXTEND;
+  characteristics = IMAGE_FILTER_CHAR_CAN_EXTEND;
 
   switch (params.blur)
   {
     case BLUR_BOX:
     case BLUR_LINEAR:
-      if (params.hRadius >= 1.0) characteristics |= IMAGE_FILTER_HORZ_PROCESSING | IMAGE_FILTER_HORZ_MEM_EQUAL;
-      if (params.vRadius >= 1.0) characteristics |= IMAGE_FILTER_VERT_PROCESSING | IMAGE_FILTER_VERT_MEM_EQUAL;
+      if (params.hRadius >= 1.0) characteristics |= IMAGE_FILTER_CHAR_HORZ_PROCESSING | IMAGE_FILTER_CHAR_HORZ_MEM_EQUAL;
+      if (params.vRadius >= 1.0) characteristics |= IMAGE_FILTER_CHAR_VERT_PROCESSING | IMAGE_FILTER_CHAR_VERT_MEM_EQUAL;
 
       convolve.hMatrix.free();
       convolve.vMatrix.free();
@@ -370,8 +370,8 @@ void BlurFilterEngine::update()
 
     case BLUR_GAUSSIAN:
     default:
-      if (params.hRadius > 0.63) characteristics |= IMAGE_FILTER_HORZ_PROCESSING | IMAGE_FILTER_HORZ_MEM_EQUAL;
-      if (params.vRadius > 0.63) characteristics |= IMAGE_FILTER_VERT_PROCESSING | IMAGE_FILTER_VERT_MEM_EQUAL;
+      if (params.hRadius > 0.63) characteristics |= IMAGE_FILTER_CHAR_HORZ_PROCESSING | IMAGE_FILTER_CHAR_HORZ_MEM_EQUAL;
+      if (params.vRadius > 0.63) characteristics |= IMAGE_FILTER_CHAR_VERT_PROCESSING | IMAGE_FILTER_CHAR_VERT_MEM_EQUAL;
 
       makeGaussianBlurKernel(convolve.hMatrix, params.hRadius);
       makeGaussianBlurKernel(convolve.vMatrix, params.vRadius);
@@ -384,9 +384,9 @@ void BlurFilterEngine::update()
 
   // Supported pixel formats - Note there is not PRGB32.
   characteristics |=
-    IMAGE_FILTER_SUPPORTS_ARGB32 |
-    IMAGE_FILTER_SUPPORTS_XRGB32 |
-    IMAGE_FILTER_SUPPORTS_A8     ;
+    IMAGE_FILTER_CHAR_SUPPORTS_ARGB32 |
+    IMAGE_FILTER_CHAR_SUPPORTS_XRGB32 |
+    IMAGE_FILTER_CHAR_SUPPORTS_A8     ;
 }
 
 // ============================================================================
@@ -427,14 +427,14 @@ ImageFilterBase::~ImageFilterBase()
 
 err_t ImageFilterBase::getColorLut(ColorLut& colorLut) const
 {
-  if (_d->type != IMAGE_FILTER_COLORLUT) return ERR_RT_INVALID_CONTEXT;
+  if (_d->type != IMAGE_FILTER_TYPE_COLORLUT) return ERR_RT_INVALID_CONTEXT;
 
   return colorLut.setData(&reinterpret_cast<ColorLutFilterEngine*>(_d)->lut);
 }
 
 err_t ImageFilterBase::getColorMatrix(ColorMatrix& colorMatrix) const
 {
-  if (_d->type != IMAGE_FILTER_COLORMATRIX) return ERR_RT_INVALID_CONTEXT;
+  if (_d->type != IMAGE_FILTER_TYPE_COLORMATRIX) return ERR_RT_INVALID_CONTEXT;
 
   colorMatrix = reinterpret_cast<ColorMatrixFilterEngine*>(_d)->cm;
   return ERR_OK;
@@ -442,7 +442,7 @@ err_t ImageFilterBase::getColorMatrix(ColorMatrix& colorMatrix) const
 
 err_t ImageFilterBase::getBlur(BlurParams& params) const
 {
-  if (_d->type != IMAGE_FILTER_BLUR) return ERR_RT_INVALID_CONTEXT;
+  if (_d->type != IMAGE_FILTER_TYPE_BLUR) return ERR_RT_INVALID_CONTEXT;
 
   params = reinterpret_cast<BlurFilterEngine*>(_d)->params;
   return ERR_OK;
@@ -450,7 +450,7 @@ err_t ImageFilterBase::getBlur(BlurParams& params) const
 
 err_t ImageFilterBase::setColorLut(const ColorLut& colorLut)
 {
-  if (_d->type == IMAGE_FILTER_COLORLUT && _d->refCount.get() == 1)
+  if (_d->type == IMAGE_FILTER_TYPE_COLORLUT && _d->refCount.get() == 1)
   {
     // Not needed to create new ColorLutFilterEngine instance.
     reinterpret_cast<ColorLutFilterEngine *>(_d)->setColorLut(*colorLut.getData());
@@ -468,7 +468,7 @@ err_t ImageFilterBase::setColorLut(const ColorLut& colorLut)
 
 err_t ImageFilterBase::setColorMatrix(const ColorMatrix& colorMatrix)
 {
-  if (_d->type == IMAGE_FILTER_COLORLUT && _d->refCount.get() == 1)
+  if (_d->type == IMAGE_FILTER_TYPE_COLORLUT && _d->refCount.get() == 1)
   {
     // Not needed to create new ColorMatrixFilterEngine instance.
     reinterpret_cast<ColorMatrixFilterEngine *>(_d)->setColorMatrix(colorMatrix);
@@ -486,7 +486,7 @@ err_t ImageFilterBase::setColorMatrix(const ColorMatrix& colorMatrix)
 
 err_t ImageFilterBase::setBlur(const BlurParams& params)
 {
-  if (_d->type == IMAGE_FILTER_BLUR && _d->refCount.get() == 1)
+  if (_d->type == IMAGE_FILTER_TYPE_BLUR && _d->refCount.get() == 1)
   {
     // Not needed to create new BlurFilterEngine instance.
     reinterpret_cast<BlurFilterEngine *>(_d)->setParams(params);

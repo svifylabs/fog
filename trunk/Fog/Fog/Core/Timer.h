@@ -45,7 +45,7 @@ struct FOG_API Timer : public Object
   virtual void onTimer(TimerEvent* e);
 
   FOG_EVENT_BEGIN()
-    FOG_EVENT_DEF(EV_TIMER, onTimer, TimerEvent, OVERRIDE)
+    FOG_EVENT_DEF(EVENT_TIMER, onTimer, TimerEvent, OVERRIDE)
   FOG_EVENT_END()
 
 protected:

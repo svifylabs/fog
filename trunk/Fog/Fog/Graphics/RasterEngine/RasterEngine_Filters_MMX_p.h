@@ -41,7 +41,8 @@ struct FOG_HIDDEN MMX_SYM(Filter)
   static FOG_INLINE __m64 color_matrix_load_ba(const float* row) { return *(__m64 *)(&row[2]); }
 
   static void FOG_FASTCALL color_matrix_prgb32(
-    uint8_t* dst, const uint8_t* src, sysuint_t width, const ColorMatrix* cm)
+    const ColorMatrix* cm,
+    uint8_t* dst, const uint8_t* src, sysuint_t width)
   {
     FOG_ASSERT(width != 0);
 
@@ -167,7 +168,8 @@ struct FOG_HIDDEN MMX_SYM(Filter)
   }
 
   static void FOG_FASTCALL color_matrix_argb32(
-    uint8_t* dst, const uint8_t* src, sysuint_t width, const ColorMatrix* cm)
+    const ColorMatrix* cm,
+    uint8_t* dst, const uint8_t* src, sysuint_t width)
   {
     FOG_ASSERT(width != 0);
 
@@ -275,7 +277,8 @@ struct FOG_HIDDEN MMX_SYM(Filter)
   }
 
   static void FOG_FASTCALL color_matrix_xrgb32(
-    uint8_t* dst, const uint8_t* src, sysuint_t width, const ColorMatrix* cm)
+    const ColorMatrix* cm,
+    uint8_t* dst, const uint8_t* src, sysuint_t width)
   {
     FOG_ASSERT(width != 0);
 

@@ -36,7 +36,7 @@ struct GuiEngine;
 struct GuiWindow;
 
 // ============================================================================
-// [Fog::UIEngine]
+// [Fog::GuiEngine]
 // ============================================================================
 
 //! @brief Base for @c Fog::Widget or @c Fog::Layout classes.
@@ -47,7 +47,9 @@ struct FOG_API GuiEngine : public Object
 {
   FOG_DECLARE_OBJECT(GuiEngine, Object)
 
+  // --------------------------------------------------------------------------
   // [Structures]
+  // --------------------------------------------------------------------------
 
   //! @brief Display information.
   struct DisplayInfo
@@ -131,39 +133,53 @@ struct FOG_API GuiEngine : public Object
     CancelableTask* task;
   };
 
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   GuiEngine();
   virtual ~GuiEngine();
 
+  // --------------------------------------------------------------------------
   // [Lock]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE Lock& lock() { return _lock; }
 
-  // [ID <-> UIWindow]
+  // --------------------------------------------------------------------------
+  // [ID <-> GuiWindow]
+  // --------------------------------------------------------------------------
 
   virtual bool mapHandle(void* handle, GuiWindow* w) = 0;
   virtual bool unmapHandle(void* handle) = 0;
   virtual GuiWindow* handleToNative(void* handle) const = 0;
 
+  // --------------------------------------------------------------------------
   // [Display]
+  // --------------------------------------------------------------------------
 
   virtual err_t getDisplayInfo(DisplayInfo* out) const = 0;
   virtual err_t getPaletteInfo(PaletteInfo* out) const = 0;
 
   virtual void updateDisplayInfo() = 0;
 
+  // --------------------------------------------------------------------------
   // [Caret]
+  // --------------------------------------------------------------------------
 
   virtual err_t getCaretStatus(CaretStatus* out) const = 0;
 
+  // --------------------------------------------------------------------------
   // [Keyboard]
+  // --------------------------------------------------------------------------
 
   virtual err_t getKeyboardStatus(KeyboardStatus* out) const = 0;
   virtual uint32_t getKeyboardModifiers() const = 0;
   virtual uint32_t keyToModifier(uint32_t key) const;
 
+  // --------------------------------------------------------------------------
   // [Mouse]
+  // --------------------------------------------------------------------------
 
   virtual err_t getMouseStatus(MouseStatus* out) const = 0;
   virtual err_t getSystemMouseStatus(SystemMouseStatus* out) const = 0;
@@ -179,18 +195,24 @@ struct FOG_API GuiEngine : public Object
   virtual bool stopButtonRepeat(uint32_t button) = 0;
   virtual void clearButtonRepeat() = 0;
 
+  // --------------------------------------------------------------------------
   // [Wheel]
+  // --------------------------------------------------------------------------
 
   virtual int getWheelLines() const = 0;
   virtual void setWheelLines(int count) = 0;
 
+  // --------------------------------------------------------------------------
   // [Timing]
+  // --------------------------------------------------------------------------
 
   virtual TimeDelta getRepeatingDelay() const = 0;
   virtual TimeDelta getRepeatingInterval() const = 0;
   virtual TimeDelta getDoubleClickInterval() const = 0;
 
+  // --------------------------------------------------------------------------
   // [Windowing System]
+  // --------------------------------------------------------------------------
 
   virtual void dispatchEnabled(Widget* w, bool enabled) = 0;
   virtual void dispatchVisibility(Widget* w, bool visible) = 0;
@@ -199,7 +221,9 @@ struct FOG_API GuiEngine : public Object
   //! @brief Called by widget destructor to erase all links to the widget from UIEngine.
   virtual void widgetDestroyed(Widget* w) = 0;
 
+  // --------------------------------------------------------------------------
   // [Update]
+  // --------------------------------------------------------------------------
 
   //! Tells application that some widget needs updating. This is key feature
   //! in the library that updating is in one place, so widgets can update()
@@ -216,12 +240,16 @@ struct FOG_API GuiEngine : public Object
   //! @brief Blits window content into screen. Called usually from @c doUpdateWindow().
   virtual void doBlitWindow(GuiWindow* window, const Box* rects, sysuint_t count) = 0;
 
-  // [UIWindow Create / Destroy]
+  // --------------------------------------------------------------------------
+  // [GuiWindow Create / Destroy]
+  // --------------------------------------------------------------------------
 
-  virtual GuiWindow* createUIWindow(Widget* widget) = 0;
-  virtual void destroyUIWindow(GuiWindow* native) = 0;
+  virtual GuiWindow* createGuiWindow(Widget* widget) = 0;
+  virtual void destroyGuiWindow(GuiWindow* native) = 0;
 
+  // --------------------------------------------------------------------------
   // [Members]
+  // --------------------------------------------------------------------------
 
 protected:
   //! @brief Lock.
@@ -233,44 +261,28 @@ protected:
   //! @brief Whether UIEngine is correctly initialized.
   bool _initialized;
 
+private:
   friend struct Application;
 };
 
 // ============================================================================
-// [Fog::UIWindow]
+// [Fog::GuiWindow]
 // ============================================================================
 
 struct FOG_API GuiWindow : public Object
 {
   FOG_DECLARE_OBJECT(GuiWindow, Object)
 
-  // [Create Flags]
-
-  //! @brief Native create flags.
-  enum CreateFlags
-  {
-    //! @brief Create UIWindow (this flag is used in Fog::Widget).
-    CreateUIWindow = (1 << 0),
-
-    //! @brief Create popup like window instead of normal one
-    //!
-    //! Created popup window hasn't native borders and decoration, use
-    //! border style to set these borders.
-    CreatePopup = (1 << 16),
-
-    //! @brief Create X11 window that listens only for PropertyChange events.
-    X11OnlyPropertyChangeMask = (1 << 20),
-
-    //! @brief Override redirection from window managers under X11.
-    X11OverrideRedirect = (1 << 21)
-  };
-
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   GuiWindow(Widget* widget);
   virtual ~GuiWindow();
 
+  // --------------------------------------------------------------------------
   // [Window Manipulation]
+  // --------------------------------------------------------------------------
 
   virtual err_t create(uint32_t flags) = 0;
   virtual err_t destroy() = 0;
@@ -298,7 +310,9 @@ struct FOG_API GuiWindow : public Object
   virtual err_t worldToClient(Point* coords) = 0;
   virtual err_t clientToWorld(Point* coords) = 0;
 
+  // --------------------------------------------------------------------------
   // [Windowing System]
+  // --------------------------------------------------------------------------
 
   virtual void onEnabled(bool enabled) = 0;
   virtual void onVisibility(bool visible) = 0;
@@ -321,18 +335,26 @@ struct FOG_API GuiWindow : public Object
   virtual void clearFocus() = 0;
   virtual void setFocus(Widget* w, uint32_t reason) = 0;
 
+  // --------------------------------------------------------------------------
   // [Dirty]
+  // --------------------------------------------------------------------------
 
   virtual void setDirty() = 0;
 
-  // [Getters]
+  // --------------------------------------------------------------------------
+  // [Accessors]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE Widget* getWidget() const { return _widget; }
   FOG_INLINE void* getHandle() const { return _handle; }
-  FOG_INLINE GuiBackBuffer* getBackingStore() const { return _backingStore; }
+  FOG_INLINE GuiBackBuffer* getBackBuffer() const { return _backingStore; }
 
   FOG_INLINE bool isDirty() const { return _isDirty; }
   FOG_INLINE bool hasFocus() const { return _hasFocus; }
+
+  // --------------------------------------------------------------------------
+  // [Members]
+  // --------------------------------------------------------------------------
 
   //! @brief Widget.
   Widget* _widget;
@@ -363,76 +385,116 @@ struct FOG_API GuiWindow : public Object
 };
 
 // ============================================================================
-// [Fog::UIBackingStore]
+// [Fog::GuiBackBuffer]
 // ============================================================================
 
-//! @brief Provides cacheable backing store for system windows (@c UIWindow).
+//! @brief Provides cacheable backing store for system windows (@c GuiWindow).
 struct FOG_API GuiBackBuffer
 {
+  // --------------------------------------------------------------------------
+  // [Construction / Destruction]
+  // --------------------------------------------------------------------------
+
   GuiBackBuffer();
   virtual ~GuiBackBuffer();
+
+  // --------------------------------------------------------------------------
+  // [Interface Methods]
+  // --------------------------------------------------------------------------
 
   virtual bool resize(int width, int height, bool cache) = 0;
   virtual void destroy() = 0;
   virtual void updateRects(const Box* rects, sysuint_t count) = 0;
 
-  void _clear();
+  // --------------------------------------------------------------------------
+  // [Generic Methods]
+  // --------------------------------------------------------------------------
 
+  void _clear();
   bool expired(TimeTicks now) const;
 
+  // --------------------------------------------------------------------------
+  // [Accessors]
+  // --------------------------------------------------------------------------
+
   FOG_INLINE uint32_t getType() const { return _type; }
-
-  FOG_INLINE uint8_t* getPixels() const { return _pixels; }
-  FOG_INLINE int getWidth() const { return _width; }
-  FOG_INLINE int getHeight() const { return _height; }
-  FOG_INLINE int getFormat() const { return _format; }
   FOG_INLINE int getDepth() const { return _depth; }
-  FOG_INLINE sysint_t getStride() const { return _stride; }
 
-  FOG_INLINE int getWidthOrig() const { return _widthOrig; }
-  FOG_INLINE int getHeightOrig() const { return _heightOrig; }
+  FOG_INLINE ImageBuffer& getBuffer() { return _buffer; }
 
-  FOG_INLINE uint8_t* getPixelsPrimary() const { return _pixelsPrimary; }
-  FOG_INLINE sysint_t getStridePrimary() const { return _stridePrimary; }
+  FOG_INLINE uint8_t* getPixels() const { return _buffer.data; }
+  FOG_INLINE int getWidth() const { return _buffer.width; }
+  FOG_INLINE int getHeight() const { return _buffer.height; }
+  FOG_INLINE int getFormat() const { return _buffer.format; }
+  FOG_INLINE sysint_t getStride() const { return _buffer.stride; }
 
-  FOG_INLINE uint8_t* getPixelsSecondary() const { return _pixelsSecondary; }
-  FOG_INLINE sysint_t getStrideSecondary() const { return _strideSecondary; }
+  FOG_INLINE int getCachedWidth() const { return _cachedWidth; }
+  FOG_INLINE int getCachedHeight() const { return _cachedHeight; }
+
+  FOG_INLINE uint8_t* getPrimaryPixels() const { return _primaryPixels; }
+  FOG_INLINE sysint_t getPrimaryStride() const { return _primaryStride; }
+
+  FOG_INLINE uint8_t* getSecondaryPixels() const { return _secondaryPixels; }
+  FOG_INLINE sysint_t getSecondaryStride() const { return _secondaryStride; }
 
   FOG_INLINE void* getConvertFunc() const { return _convertFunc; }
   FOG_INLINE TimeTicks getCreatedTime() const { return _createdTime; }
   FOG_INLINE TimeTicks getExpireTime() const { return _expireTime; }
 
+  // --------------------------------------------------------------------------
+  // [Type]
+  // --------------------------------------------------------------------------
+
+  enum TYPE
+  {
+    TYPE_NONE = 0,
+
+    TYPE_WIN_DIB = 1,
+
+    TYPE_X11_XSHM_PIXMAP = 2,
+    TYPE_X11_XIMAGE = 3,
+    TYPE_X11_XIMAGE_WITH_PIXMAP = 4
+  };
+
+  // --------------------------------------------------------------------------
+  // [Members]
+  // --------------------------------------------------------------------------
+
+  //! @brief Type of back buffer.
   uint32_t _type;
-
-  // primary or secondary buffer, these parameters are used for painting, 
-  // they aren't cached. So if window has 320x200 size it will be equal to 
-  // _width and _height.
-  uint8_t* _pixels;
-  int _width;
-  int _height;
-  int _format;
+  //! @brief Depth of back buffer.
   int _depth;
-  sysint_t _stride;
 
-  // original cached width and height, can be greater or equal than _width 
-  // or _height
-  int _widthOrig;
-  int _heightOrig;
+  //! @brief Main painting back-buffer as @c ImageBuffer structure.
+  //!
+  //! These parameters are used for creating a painter, they aren't cached.
+  //! Note that image stride can be larger than aligned (width * bytesPerPixel).
+  ImageBuffer _buffer;
 
-  // 24 or 32 bit double buffer parameters, parameters are cached.
-  uint8_t* _pixelsPrimary;
-  sysint_t _stridePrimary;
+  //! @brief Cached width, can be greater or equal to @c _buffer.width.
+  int _cachedWidth;
+  //! @brief Cached height, can be greater or equal to @c _buffer.height.
+  int _cachedHeight;
 
-  // 4/8/16/24/32 bit conversion buffer (only created when needed).
-  // Parameters are cached.
-  uint8_t* _pixelsSecondary;
-  sysint_t _strideSecondary;
+  //! @brief Cached 32-bit double buffer pixel data.
+  uint8_t* _primaryPixels;
+  //! @brief Cached 32-bit double buffer stride.
+  sysint_t _primaryStride;
 
+  //! @brief Cached 4/8/16/24/32 bit buffer pixel data (only created when needed).
+  uint8_t* _secondaryPixels;
+  //! @brief Cached 4/8/16/24/32 bit buffer stride (only created when needed).
+  sysint_t _secondaryStride;
+
+  //! @brief Converter used to convert pixels from secondary buffer to primary
+  //! one.
   void* _convertFunc;
+  //! @brief Converter depth.
   int _convertDepth;
 
-  // Time when the backing store wes created (for caching)
+  //! @brief Time when the backing store wes created (for caching).
   TimeTicks _createdTime;
+  //! @brief Time when cached backing store will be expired.
   TimeTicks _expireTime;
 };
 

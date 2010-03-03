@@ -205,32 +205,32 @@ enum LOCALE_CHAR
 };
 
 // ============================================================================
-// [Fog::EV_CORE]
+// [Fog::EVENT_CORE]
 // ============================================================================
 
 //! @brief Core event IDs.
-enum EV_CORE_ENUM
+enum EVENT_CORE_ENUM
 {
   // [0 is reserved]
 
-  EV_NULL = 0,
+  EVENT_NULL = 0,
 
   // [Object events]
 
-  EV_CREATE,
-  EV_DESTROY,
-  EV_DELETE,
-  EV_TIMER,
-  EV_CHANGE_PROPERTY = 10,
+  EVENT_CREATE,
+  EVENT_DESTROY,
+  EVENT_DELETE,
+  EVENT_TIMER,
+  EVENT_CHANGE_PROPERTY = 10,
 
   //! @brief First user event.
-  EV_USER = 65536,
+  EVENT_USER = 65536,
 
   //! @brief Last event that can be used by all libraries.
   //!
   //! This number is first retrieved by Fog::Event::uid() and incremented
   //! each time that function is called.
-  EV_UID = 10000000
+  EVENT_UID = 10000000
 };
 
 // ============================================================================

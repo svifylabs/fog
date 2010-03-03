@@ -403,12 +403,12 @@ void WinGuiEngine::doBlitWindow(GuiWindow* window, const Box* rects, sysuint_t c
 // [Fog::WinGuiEngine - GuiWindow]
 // ============================================================================
 
-GuiWindow* WinGuiEngine::createUIWindow(Widget* widget)
+GuiWindow* WinGuiEngine::createGuiWindow(Widget* widget)
 {
   return new(std::nothrow) WinGuiWindow(widget);
 }
 
-void WinGuiEngine::destroyUIWindow(GuiWindow* native)
+void WinGuiEngine::destroyGuiWindow(GuiWindow* native)
 {
   delete native;
 }
@@ -735,7 +735,7 @@ err_t WinGuiWindow::create(uint32_t flags)
   int y;
   WCHAR* wndClass;
 
-  if (flags & CreatePopup)
+  if (flags & WINDOW_POPUP)
   {
     dwStyle = WS_POPUP;
     dwStyleEx = 0;
@@ -1213,8 +1213,6 @@ bool WinGuiBackBuffer::resize(int width, int height, bool cache)
 {
   int targetWidth = width;
   int targetHeight = height;
-  sysint_t targetSize;
-  sysint_t targetStride;
 
   bool destroyImage = false;
   bool createImage = false;
@@ -1227,22 +1225,19 @@ bool WinGuiBackBuffer::resize(int width, int height, bool cache)
   {
     if (cache)
     {
-      if (width <= _widthOrig && height <= _heightOrig)
+      if (width <= _cachedWidth && height <= _cachedHeight)
       {
-        // Cached, here can be debug counter to create
-        // statistics about usability of that
-        _width = width;
-        _height = height;
+        // Cached.
+        _buffer.width = width;
+        _buffer.height = height;
         return true;
       }
 
       // Don't create smaller buffer that previous!
-      targetWidth  = width;
-      targetHeight = height;
+      targetWidth  = Math::max<int>(width, _cachedWidth);
+      targetHeight = Math::max<int>(height, _cachedHeight);
 
-      if (targetWidth  < _width)  targetWidth  = _width;
-      if (targetHeight < _height) targetHeight = _height;
-
+      // Cache using 128x128 blocks.
       targetWidth  = (targetWidth  + 127) & ~127;
       targetHeight = (targetHeight + 127) & ~127;
     }
@@ -1277,23 +1272,23 @@ bool WinGuiBackBuffer::resize(int width, int height, bool cache)
     _hdc = CreateCompatibleDC(NULL);
     if (_hdc == NULL)
     {
-      fog_stderr_msg("Fog::WinGuiBackBuffer", "resize", "CreateCompatibleDC failed, WinError: %u\n", GetLastError());
+      fog_stderr_msg("Fog::WinGuiBackBuffer", "resize", "CreateCompatibleDC() failed, WinError: %u\n", GetLastError());
       goto fail;
     }
 
     Fog::Memory::zero(&bmi, sizeof(bmi));
     bmi.bmiHeader.biSize        = sizeof(bmi.bmiHeader);
-    bmi.bmiHeader.biWidth       = (int)targetWidth;
-    bmi.bmiHeader.biHeight      = -((int)targetHeight);
+    bmi.bmiHeader.biWidth       = targetWidth;
+    bmi.bmiHeader.biHeight      = -targetHeight;
     bmi.bmiHeader.biPlanes      = 1;
     bmi.bmiHeader.biBitCount    = targetBPP;
     bmi.bmiHeader.biCompression = BI_RGB;
 
-    _pixelsPrimary = NULL;
-    _hBitmap = CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, (void**)&_pixelsPrimary, NULL, 0);
+    _primaryPixels = NULL;
+    _hBitmap = CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, (void**)&_primaryPixels, NULL, 0);
     if (_hBitmap == NULL) 
     {
-      fog_stderr_msg("Fog::WinGuiBackBuffer", "resize", "CreateDIBSection failed, request size %dx%d, WinError: %u\n", targetWidth, targetHeight, GetLastError());
+      fog_stderr_msg("Fog::WinGuiBackBuffer", "resize", "CreateDIBSection() failed, request size %dx%d, WinError: %u\n", targetWidth, targetHeight, GetLastError());
       DeleteDC(_hdc);
       goto fail;
     }
@@ -1301,37 +1296,34 @@ bool WinGuiBackBuffer::resize(int width, int height, bool cache)
     // Select bitmap to DC.
     SelectObject(_hdc, _hBitmap);
 
-    // We need stride, windows should use 32 bit alignment, but be safe.
+    // We need stride, Windows should use 32-bit alignment, but we should
+    // be safe and check for stride used by Windows.
     DIBSECTION info;
     GetObjectW(_hBitmap, sizeof(DIBSECTION), &info);
-    targetStride = info.dsBm.bmWidthBytes;
-    targetSize = targetStride * targetHeight;
+
     _type = TYPE_WIN_DIB;
+    _primaryStride = info.dsBm.bmWidthBytes;
 
-    if (_type != TYPE_NONE)
-    {
-      _createdTime = TimeTicks::now();
-      _expireTime = _createdTime + TimeDelta::fromSeconds(15);
+    _buffer.data = _primaryPixels;
+    _buffer.width = width;
+    _buffer.height = height;
+    _buffer.format = PIXEL_FORMAT_XRGB32;
+    _buffer.stride = _primaryStride;
 
-      _format = PIXEL_FORMAT_XRGB32;
+    _cachedWidth = targetWidth;
+    _cachedHeight = targetHeight;
 
-      _stridePrimary = targetStride;
-      _widthOrig = targetWidth;
-      _heightOrig = targetHeight;
+    // Secondary buffer not used on this platform.
+    _secondaryPixels = NULL;
+    _secondaryStride = 0;
 
-      // Extra buffer not needed.
-      _pixelsSecondary = NULL;
-      _strideSecondary = 0;
+    _createdTime = TimeTicks::now();
+    _expireTime = _createdTime + TimeDelta::fromSeconds(15);
 
-      _convertFunc = NULL;
-      _convertDepth = 0;
+    _convertFunc = NULL;
+    _convertDepth = 0;
 
-      _pixels = _pixelsPrimary;
-      _width = width;
-      _height = height;
-      _stride = _stridePrimary;
-      return true;
-    }
+    return true;
   }
 
 fail:

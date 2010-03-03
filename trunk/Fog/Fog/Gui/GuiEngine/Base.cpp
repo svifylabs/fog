@@ -15,7 +15,7 @@
 #include <Fog/Graphics/Region.h>
 #include <Fog/Gui/Event.h>
 #include <Fog/Gui/GuiEngine/Base.h>
-#include <Fog/Gui/Widget.h>
+#include <Fog/Gui/Widget_p.h>
 
 FOG_IMPLEMENT_OBJECT(Fog::BaseGuiEngine)
 FOG_IMPLEMENT_OBJECT(Fog::BaseGuiWindow)
@@ -64,9 +64,9 @@ BaseGuiEngine::BaseGuiEngine()
   _repeatingInterval   = TimeDelta::fromMilliseconds(50);
   _doubleClickInterval = TimeDelta::fromMilliseconds(200);
 
-  _buttonRepeat[0].addListener(EV_TIMER, this, &BaseGuiEngine::_onButtonRepeatTimeOut);
-  _buttonRepeat[1].addListener(EV_TIMER, this, &BaseGuiEngine::_onButtonRepeatTimeOut);
-  _buttonRepeat[2].addListener(EV_TIMER, this, &BaseGuiEngine::_onButtonRepeatTimeOut);
+  _buttonRepeat[0].addListener(EVENT_TIMER, this, &BaseGuiEngine::_onButtonRepeatTimeOut);
+  _buttonRepeat[1].addListener(EVENT_TIMER, this, &BaseGuiEngine::_onButtonRepeatTimeOut);
+  _buttonRepeat[2].addListener(EVENT_TIMER, this, &BaseGuiEngine::_onButtonRepeatTimeOut);
 
   memset(&_updateStatus, 0, sizeof(_updateStatus));
 }
@@ -77,7 +77,7 @@ BaseGuiEngine::~BaseGuiEngine()
 }
 
 // ============================================================================
-// [Fog::BaseGuiEngine - ID <-> UIWindow]
+// [Fog::BaseGuiEngine - ID <-> GuiWindow]
 // ============================================================================
 
 bool BaseGuiEngine::mapHandle(void* handle, GuiWindow* native)
@@ -181,7 +181,7 @@ void BaseGuiEngine::changeMouseStatus(Widget* w, const Point& pos)
     // Send MouseOut to widget where mouse was before
     if (before)
     {
-      MouseEvent e(EV_MOUSE_OUT);
+      MouseEvent e(EVENT_MOUSE_OUT);
       e._button = BUTTON_INVALID;
       e._modifiers = getKeyboardModifiers();
       e._position = pos;
@@ -190,7 +190,7 @@ void BaseGuiEngine::changeMouseStatus(Widget* w, const Point& pos)
     }
 
     {
-      MouseEvent e(EV_MOUSE_IN);
+      MouseEvent e(EVENT_MOUSE_IN);
       e._button = BUTTON_INVALID;
       e._modifiers = getKeyboardModifiers();
       e._position = pos;
@@ -223,10 +223,10 @@ void BaseGuiEngine::changeMouseStatus(Widget* w, const Point& pos)
 
     switch (hoverChange)
     {
-      case HOVER_CHANGE_OUTSIDE_MOVE: code = EV_MOUSE_MOVE; break;
-      case HOVER_CHANGE_OUT:          code = EV_MOUSE_OUT ; break;
-      case HOVER_CHANGE_IN:           code = EV_MOUSE_IN  ; break;
-      case HOVER_CHANGE_INSIDE_MOVE:  code = EV_MOUSE_MOVE; break;
+      case HOVER_CHANGE_OUTSIDE_MOVE: code = EVENT_MOUSE_MOVE; break;
+      case HOVER_CHANGE_OUT:          code = EVENT_MOUSE_OUT ; break;
+      case HOVER_CHANGE_IN:           code = EVENT_MOUSE_IN  ; break;
+      case HOVER_CHANGE_INSIDE_MOVE:  code = EVENT_MOUSE_MOVE; break;
     }
 
     _mouseStatus.position = pos;
@@ -243,9 +243,9 @@ void BaseGuiEngine::changeMouseStatus(Widget* w, const Point& pos)
 
     // Generate MouseMove events if generated event was MouseOut and widget is
     // in dragging state.
-    if (_mouseStatus.buttons && code == EV_MOUSE_OUT)
+    if (_mouseStatus.buttons && code == EVENT_MOUSE_OUT)
     {
-      MouseEvent e(EV_MOUSE_MOVE);
+      MouseEvent e(EVENT_MOUSE_MOVE);
       e._button = BUTTON_INVALID;
       e._modifiers = getKeyboardModifiers();
       e._position = pos;
@@ -349,11 +349,11 @@ void BaseGuiEngine::dispatchEnabled(Widget* w, bool enabled)
   if (enabled)
   {
     if (state == WIDGET_ENABLED) return;
-    if (state == WIDGET_DISABLED_BY_PARENT && !w->isUIWindow()) return;
+    if (state == WIDGET_DISABLED_BY_PARENT && !w->isGuiWindow()) return;
 
     w->_state = WIDGET_ENABLED;
 
-    StateEvent e(EV_ENABLE);
+    StateEvent e(EVENT_ENABLE);
     w->sendEvent(&e);
 
     FOG_WIDGET_TREE_ITERATOR(i1, w, true,
@@ -370,7 +370,7 @@ void BaseGuiEngine::dispatchEnabled(Widget* w, bool enabled)
       }
     );
 
-    w->update(Widget::UFlagUpdateAll);
+    w->update(WIDGET_UPDATE_ALL);
   }
   // Dispatch 'Disable'.
   else
@@ -383,12 +383,12 @@ void BaseGuiEngine::dispatchEnabled(Widget* w, bool enabled)
     //StateEvent e(toState == Widget::Disabled
     //  ? EvDisable
     //  : EvDisableByParent);
-    StateEvent e(EV_DISABLE);
+    StateEvent e(EVENT_DISABLE);
     w->sendEvent(&e);
 
     if (state != WIDGET_ENABLED) return;
 
-    e._code = EV_DISABLE_BY_PARENT;
+    e._code = EVENT_DISABLE_BY_PARENT;
 
     FOG_WIDGET_TREE_ITERATOR(i2, w, true,
       // before traverse
@@ -409,7 +409,7 @@ void BaseGuiEngine::dispatchEnabled(Widget* w, bool enabled)
       }
     );
 
-    w->update(Widget::UFlagUpdateAll);
+    w->update(WIDGET_UPDATE_ALL);
   }
 }
 
@@ -421,11 +421,11 @@ void BaseGuiEngine::dispatchVisibility(Widget* w, bool visible)
   if (visible)
   {
     if (visibility == WIDGET_VISIBLE) return;
-    if (visibility == WIDGET_HIDDEN_BY_PARENT && !w->isUIWindow()) return;
+    if (visibility == WIDGET_HIDDEN_BY_PARENT && !w->isGuiWindow()) return;
 
     w->_visibility = WIDGET_VISIBLE;
 
-    VisibilityEvent e(EV_SHOW);
+    VisibilityEvent e(EVENT_SHOW);
     w->sendEvent(&e);
 
     FOG_WIDGET_TREE_ITERATOR(i1, w, true,
@@ -441,7 +441,7 @@ void BaseGuiEngine::dispatchVisibility(Widget* w, bool visible)
       {}
     );
 
-    w->update(Widget::UFlagUpdateAll);
+    w->update(WIDGET_UPDATE_ALL);
   }
   // Dispatch 'Hidden'.
   else
@@ -449,12 +449,12 @@ void BaseGuiEngine::dispatchVisibility(Widget* w, bool visible)
     if (visibility == WIDGET_HIDDEN) return;
     w->_visibility = WIDGET_HIDDEN;
 
-    VisibilityEvent e(EV_HIDE);
+    VisibilityEvent e(EVENT_HIDE);
     w->sendEvent(&e);
 
     if (visibility == WIDGET_VISIBLE)
     {
-      e._code = EV_HIDE_BY_PARENT;
+      e._code = EVENT_HIDE_BY_PARENT;
 
       FOG_WIDGET_TREE_ITERATOR(i2, w, true,
         // before traverse
@@ -476,7 +476,7 @@ void BaseGuiEngine::dispatchVisibility(Widget* w, bool visible)
       );
 
       Widget* p = w->getParent();
-      if (p) p->update(Widget::UFlagUpdateAll);
+      if (p) p->update(WIDGET_UPDATE_ALL);
     }
   }
 }
@@ -497,20 +497,20 @@ void BaseGuiEngine::dispatchConfigure(Widget* w, const Rect& rect, bool changedO
   if (!changed) return;
 
   ConfigureEvent e;
-  e._rect = rect;
+  e._geometry = rect;
   e._changed = changed;
 
-  w->_rect = rect;
+  w->_geometry = rect;
   w->sendEvent(&e);
 
   Widget* p = w->getParent();
   if (p)
   {
-    if (w->getVisibility() == WIDGET_VISIBLE) p->update(Widget::UFlagUpdateAll);
+    if (w->getVisibility() == WIDGET_VISIBLE) p->update(WIDGET_UPDATE_ALL);
   }
   else if (changed & ConfigureEvent::CHANGED_SIZE)
   {
-    w->update(Widget::UFlagUpdateAll);
+    w->update(WIDGET_UPDATE_ALL);
   }
 }
 
@@ -603,9 +603,10 @@ void BaseGuiEngine::doUpdate()
 
 void BaseGuiEngine::doUpdateWindow(GuiWindow* window)
 {
+  // Clear dirty flag
   window->_isDirty = false;
 
-  // UIWindow widget.
+  // GuiWindow widget.
   Widget* top = window->_widget;
 
   // Hidden windows won't be updated.
@@ -648,24 +649,21 @@ void BaseGuiEngine::doUpdateWindow(GuiWindow* window)
   // Paint helper variables.
   uint topBytesPerPixel;
 
-  if ((int)window->_backingStore->getWidth()  < topSize.getWidth() ||
-      (int)window->_backingStore->getHeight() < topSize.getHeight())
+  if (window->_backingStore->getWidth()  != topSize.getWidth() ||
+      window->_backingStore->getHeight() != topSize.getHeight())
   {
-    window->_backingStore->resize((uint)topSize.getWidth(), (uint)topSize.getHeight(), true);
+    window->_backingStore->resize(topSize.getWidth(), topSize.getHeight(), true);
 
     // We can omit updating here, because if window size was changed,
-    // all uflags are already set.
+    // all uflags have to be already set.
 
     // It should already be set, but nobody knows...
-    uflags |= Widget::UFlagUpdateAll;
+    uflags |= WIDGET_UPDATE_ALL;
   }
-  else if ((
-      (int)window->_backingStore->getWidth() != topSize.getWidth() ||
-      (int)window->_backingStore->getHeight() != topSize.getHeight()) &&
-      window->_backingStore->expired(now))
+  else if (window->_backingStore->expired(now))
   {
     window->_backingStore->resize(topSize.getWidth(), topSize.getHeight(), false);
-    uflags |= Widget::UFlagUpdateAll;
+    uflags |= WIDGET_UPDATE_ALL;
   }
 
   topBytesPerPixel = window->_backingStore->getDepth() >> 3;
@@ -677,12 +675,12 @@ void BaseGuiEngine::doUpdateWindow(GuiWindow* window)
   // if there is nothing to do, continue. It's checked here,
   // because next steps needs to create drawing context, etc...
   if ((uflags & (
-      Widget::UFlagUpdate         |
-      Widget::UFlagUpdateChild    |
-      Widget::UFlagUpdateAll      |
-      Widget::UFlagUpdateGeometry |
-      Widget::UFlagRepaintWidget  |
-      Widget::UFlagRepaintCaret   )) == 0)
+      WIDGET_UPDATE_SOMETHING |
+      WIDGET_UPDATE_CHILD     |
+      WIDGET_UPDATE_ALL       |
+      WIDGET_UPDATE_GEOMETRY  |
+      WIDGET_REPAINT_AREA     |
+      WIDGET_REPAINT_CARET   )) == 0)
   {
     return;
   }
@@ -695,30 +693,29 @@ void BaseGuiEngine::doUpdateWindow(GuiWindow* window)
   {
     ImageBuffer buffer;
     buffer.data = window->_backingStore->getPixels();
-    buffer.width = Math::min(window->_backingStore->getWidth(), topSize.getWidth());
-    buffer.height = Math::min(window->_backingStore->getHeight(), topSize.getHeight());
-    buffer.stride = window->_backingStore->getStride();
+    buffer.width = Math::min<int>(window->_backingStore->getWidth(), topSize.getWidth());
+    buffer.height = Math::min<int>(window->_backingStore->getHeight(), topSize.getHeight());
     buffer.format = window->_backingStore->getFormat();
+    buffer.stride = window->_backingStore->getStride();
 
-    painter.begin(buffer, NO_FLAGS /* PAINTER_INIT_MT */);
+    painter.begin(buffer, NO_FLAGS /* | PAINTER_INIT_MT */);
   }
 
-  if ((uflags & Widget::UFlagUpdateAll) != 0)
+  if ((uflags & WIDGET_UPDATE_ALL) != 0)
   {
     implicitFlags |=
-      Widget::UFlagUpdate         |
-      Widget::UFlagUpdateChild    |
-      Widget::UFlagUpdateGeometry |
-      Widget::UFlagRepaintWidget  ;
+      WIDGET_UPDATE_SOMETHING |
+      WIDGET_UPDATE_CHILD     |
+      WIDGET_UPDATE_GEOMETRY  |
+      WIDGET_REPAINT_AREA     ;
   }
 
   uflags |= implicitFlags;
 
-  if ((uflags & Widget::UFlagRepaintWidget) != 0)
+  if ((uflags & WIDGET_REPAINT_AREA) != 0)
   {
-    e._code = EV_PAINT;
+    e._code = EVENT_PAINT;
     e._receiver = top;
-    e._isParentPainted = 0;
 
     painter.setMetaVariables(
       Point(0, 0),
@@ -728,10 +725,10 @@ void BaseGuiEngine::doUpdateWindow(GuiWindow* window)
     top->sendEvent(&e);
 
     uflags |=
-      Widget::UFlagUpdateChild    ;
+      WIDGET_UPDATE_CHILD  ;
     implicitFlags |=
-      Widget::UFlagUpdateChild    |
-      Widget::UFlagRepaintWidget  ;
+      WIDGET_UPDATE_CHILD  |
+      WIDGET_REPAINT_AREA  ;
 
     blitFull = true;
     paintAll = true;
@@ -741,16 +738,16 @@ void BaseGuiEngine::doUpdateWindow(GuiWindow* window)
   // Update children.
   // =======================================================
 
-  if (top->hasChildren() && (uflags & Widget::UFlagUpdateChild) != 0)
+  if (top->hasChildren() && (uflags & WIDGET_UPDATE_CHILD) != 0)
   {
     LocalStack<1024> stack;
     err_t stackerr;
 
-    // manual object iterator
+    // Manual object iterator.
     Widget* const* ocur;
     Widget* const* oend;
 
-    // parent and child widgets
+    // Parent and child widgets.
     Widget* parent;
     Widget* child;
 
@@ -780,23 +777,23 @@ __pushed:
       childRec.uflags = child->_uflags;
       childRec.implicitFlags = parentRec.implicitFlags;
 
-      if ((childRec.uflags & Widget::UFlagUpdateAll) != 0)
+      if ((childRec.uflags & WIDGET_UPDATE_ALL) != 0)
       {
         childRec.implicitFlags |=
-          Widget::UFlagUpdate         |
-          Widget::UFlagUpdateChild    |
-          Widget::UFlagUpdateGeometry |
-          Widget::UFlagRepaintWidget  ;
+          WIDGET_UPDATE_SOMETHING |
+          WIDGET_UPDATE_CHILD     |
+          WIDGET_UPDATE_GEOMETRY  |
+          WIDGET_REPAINT_AREA     ;
       }
       childRec.uflags |= childRec.implicitFlags;
 
       if ((childRec.uflags & (
-        Widget::UFlagUpdate         |
-        Widget::UFlagUpdateChild    |
-        Widget::UFlagUpdateGeometry |
-        Widget::UFlagRepaintWidget  |
-        Widget::UFlagRepaintCaret   |
-        Widget::UFlagUpdateAll)) == 0)
+        WIDGET_UPDATE_SOMETHING |
+        WIDGET_UPDATE_CHILD     |
+        WIDGET_UPDATE_GEOMETRY  |
+        WIDGET_REPAINT_AREA     |
+        WIDGET_REPAINT_CARET    |
+        WIDGET_UPDATE_ALL)) == 0)
       {
         goto __next;
       }
@@ -814,11 +811,10 @@ __pushed:
       if (childRec.visible)
       {
         // paint client area / caret
-        if ((childRec.uflags & (Widget::UFlagRepaintWidget  | Widget::UFlagRepaintCaret)) != 0)
+        if ((childRec.uflags & (WIDGET_REPAINT_AREA  | WIDGET_REPAINT_CARET)) != 0)
         {
-          e._code = EV_PAINT;
+          e._code = EVENT_PAINT;
           e._receiver = child;
-          e._isParentPainted = parentRec.painted | (!!(child->_uflags & Widget::UFlagPaintParentDone));
 
 #if 0
           if (child->children().count() > 0 && child->children().getLength() <= 16)
@@ -834,12 +830,12 @@ __pushed:
               Widget* cw = core_object_cast<Widget*>(ci.value());
               if (cw && cw->visibility() == Widget::Visible)
               {
-                if ((cw->_uflags & Widget::UFlagPaintParentRequired))
+                if ((cw->_uflags & WIDGET_REPAINT_PARENT_REQUIRED))
                 {
                   // this is simple optimization. If widget will call
                   // Widget::paintParent(), we will simply do it
                   // earlier.
-                  cw->_uflags |= Widget::UFlagPaintParentDone;
+                  cw->_uflags |= Widget::paintParent;
                 }
                 else
                 {
@@ -867,8 +863,8 @@ __pushed:
             true,
             true);
 
-          // FIXME: Repaint caret repaints whole control
-          if ((childRec.uflags & (Widget::UFlagRepaintWidget | Widget::UFlagRepaintCaret)) != 0)
+          // FIXME: Repaint caret repaints the whole widget.
+          if ((childRec.uflags & (WIDGET_REPAINT_AREA | WIDGET_REPAINT_CARET)) != 0)
           {
             child->sendEvent(&e);
             //blitFull = true;
@@ -885,20 +881,17 @@ __pushed:
           }
           */
 
-          parentRec.implicitFlags |=
-            Widget::UFlagUpdate         |
-            Widget::UFlagUpdateChild    |
-            Widget::UFlagRepaintWidget  ;
-          childRec.uflags |=
-            Widget::UFlagUpdateChild    ;
-          childRec.implicitFlags |=
-            Widget::UFlagUpdate         |
-            Widget::UFlagUpdateChild    |
-            Widget::UFlagRepaintWidget  ;
+          parentRec.implicitFlags |= WIDGET_UPDATE_SOMETHING |
+                                     WIDGET_UPDATE_CHILD     |
+                                     WIDGET_REPAINT_AREA     ;
+          childRec.uflags         |= WIDGET_UPDATE_CHILD     ;
+          childRec.implicitFlags  |= WIDGET_UPDATE_SOMETHING |
+                                     WIDGET_UPDATE_CHILD     |
+                                     WIDGET_REPAINT_AREA     ;
         }
       }
 
-      if ((childRec.uflags & Widget::UFlagUpdateChild) != 0 && child->_children.getLength())
+      if ((childRec.uflags & WIDGET_UPDATE_CHILD) != 0 && child->_children.getLength())
       {
         stackerr = ERR_OK;
         stackerr |= stack.push(parent);
@@ -920,19 +913,17 @@ __pop:
         stack.pop(parent);
       }
 
-      // clear update uflags
+      // Clear update flags.
       child->_uflags &= ~(
-        Widget::UFlagUpdate         |
-        Widget::UFlagUpdateChild    |
-        Widget::UFlagUpdateAll      |
-        Widget::UFlagUpdateGeometry |
-        Widget::UFlagRepaintWidget  |
-        Widget::UFlagRepaintCaret   |
-        // clear if this was set
-        Widget::UFlagPaintParentDone);
+        WIDGET_UPDATE_SOMETHING |
+        WIDGET_UPDATE_CHILD     |
+        WIDGET_UPDATE_ALL       |
+        WIDGET_UPDATE_GEOMETRY  |
+        WIDGET_REPAINT_AREA     |
+        WIDGET_REPAINT_CARET    );
 
 __next:
-      // go to next child or to parent
+      // Go to next child or to parent.
       if (++ocur == oend)
       {
         if (!stack.isEmpty())
@@ -974,14 +965,12 @@ end:
 
   // Clear update flags.
   top->_uflags &= ~(
-    Widget::UFlagUpdate         |
-    Widget::UFlagUpdateChild    |
-    Widget::UFlagUpdateAll      |
-    Widget::UFlagUpdateGeometry |
-    Widget::UFlagRepaintWidget  |
-    Widget::UFlagRepaintCaret   |
-    // clear if this was set
-    Widget::UFlagPaintParentDone);
+    WIDGET_UPDATE_SOMETHING |
+    WIDGET_UPDATE_CHILD     |
+    WIDGET_UPDATE_ALL       |
+    WIDGET_UPDATE_GEOMETRY  |
+    WIDGET_REPAINT_AREA     |
+    WIDGET_REPAINT_CARET    );
 
   // Clear blit flag.
   window->_needBlit = false;
@@ -1013,7 +1002,7 @@ void BaseGuiEngine::_onButtonRepeatTimeOut(TimerEvent* e)
 }
 
 // ============================================================================
-// [Fog::BaseUIWindow]
+// [Fog::BaseGuiWindow]
 // ============================================================================
 
 BaseGuiWindow::BaseGuiWindow(Widget* widget) :
@@ -1028,20 +1017,20 @@ BaseGuiWindow::~BaseGuiWindow()
 {
   BaseGuiEngine* uiSystem = GUI_ENGINE();
 
-  // Remove UIWindow from system mouse status.
+  // Remove GuiWindow from system mouse status.
   if (uiSystem->_systemMouseStatus.uiWindow == this)
   {
     uiSystem->clearSystemMouseStatus();
     uiSystem->clearButtonRepeat();
   }
 
-  // Remove 'UIWindow's from dirty list.
+  // Remove GuiWindow's from dirty list.
   sysuint_t i = uiSystem->_dirtyList.indexOf(this);
   if (i != INVALID_INDEX) uiSystem->_dirtyList.set(i, NULL);
 }
 
 // ============================================================================
-// [Fog::BaseUIWindow - Windowing System]
+// [Fog::BaseGuiWindow - Windowing System]
 // ============================================================================
 
 void BaseGuiWindow::onEnabled(bool enabled)
@@ -1141,7 +1130,7 @@ __repeat:
     for (it.toEnd(); it.isValid(); it.toPrevious())
     {
       Widget* current = it.value();
-      if (current->getVisibility() == WIDGET_VISIBLE && current->_rect.contains(p))
+      if (current->getVisibility() == WIDGET_VISIBLE && current->_geometry.contains(p))
       {
         w = current;
         p -= w->getPosition();
@@ -1172,7 +1161,7 @@ void BaseGuiWindow::onMouseLeave(int x, int y)
 
     if (w)
     {
-      MouseEvent e(EV_MOUSE_OUT);
+      MouseEvent e(EVENT_MOUSE_OUT);
       e._position.set(-1, -1);
 
       w->sendEvent(&e);
@@ -1196,7 +1185,7 @@ void BaseGuiWindow::onMousePress(uint32_t button, bool repeated)
   if (!repeated) uiSystem->startButtonRepeat(
     button, true, uiSystem->_repeatingDelay, uiSystem->_repeatingInterval);
 
-  MouseEvent e(EV_MOUSE_PRESS);
+  MouseEvent e(EVENT_MOUSE_PRESS);
   e._button = button;
   e._modifiers = uiSystem->getKeyboardModifiers();
   e._position  = uiSystem->_mouseStatus.position;
@@ -1213,7 +1202,7 @@ void BaseGuiWindow::onMousePress(uint32_t button, bool repeated)
   if (!repeated && (now - uiSystem->_buttonTime[buttonId]) <= uiSystem->_doubleClickInterval)
   {
     uiSystem->_buttonTime[buttonId].clear();
-    e._code = EV_DOUBLE_CLICK;
+    e._code = EVENT_DOUBLE_CLICK;
     w->sendEvent(&e);
   }
   else
@@ -1237,7 +1226,7 @@ void BaseGuiWindow::onMouseRelease(uint32_t button)
 
   bool lastButtonRelease = (uiSystem->_mouseStatus.buttons == 0);
 
-  MouseEvent e(EV_MOUSE_RELEASE);
+  MouseEvent e(EVENT_MOUSE_RELEASE);
   e._button = button;
   e._modifiers = uiSystem->getKeyboardModifiers();
   e._position = uiSystem->_mouseStatus.position;
@@ -1252,7 +1241,7 @@ void BaseGuiWindow::onMouseRelease(uint32_t button)
   // widget then used probably don't want to do the action).
   if (!e._isOutside)
   {
-    e._code = EV_CLICK;
+    e._code = EVENT_CLICK;
     w->sendEvent(&e);
   }
 
@@ -1271,7 +1260,7 @@ void BaseGuiWindow::onMouseWheel(uint32_t wheel)
   Widget* w = uiSystem->_mouseStatus.widget;
   if (!w) return;
 
-  MouseEvent e(EV_WHEEL);
+  MouseEvent e(EVENT_WHEEL);
   e._button = wheel;
   e._modifiers = uiSystem->getKeyboardModifiers();
   e._position = uiSystem->_mouseStatus.position;
@@ -1288,7 +1277,7 @@ void BaseGuiWindow::onFocus(bool focus)
     Widget* w = _widget->_findFocus();
     if (!w->_hasFocus)
     {
-      FocusEvent e(EV_FOCUS_IN);
+      FocusEvent e(EVENT_FOCUS_IN);
       _widget->_hasFocus = true;
       _widget->sendEvent(&e);
     }
@@ -1303,7 +1292,7 @@ bool BaseGuiWindow::onKeyPress(uint32_t key, uint32_t modifier, uint32_t systemC
 {
   BaseGuiEngine* uiSystem = GUI_ENGINE();
 
-  KeyEvent e(EV_KEY_PRESS);
+  KeyEvent e(EVENT_KEY_PRESS);
   e._key = key;
   e._modifiers = uiSystem->getKeyboardModifiers();
   e._systemCode = systemCode;
@@ -1331,7 +1320,7 @@ bool BaseGuiWindow::onKeyRelease(uint32_t key, uint32_t modifier, uint32_t syste
   BaseGuiEngine* uiSystem = GUI_ENGINE();
   uiSystem->_keyboardStatus.modifiers &= ~modifier;
 
-  KeyEvent e(EV_KEY_RELEASE);
+  KeyEvent e(EVENT_KEY_RELEASE);
   e._key = key;
   e._modifiers = uiSystem->getKeyboardModifiers();
   e._systemCode = systemCode;
@@ -1360,7 +1349,7 @@ void BaseGuiWindow::clearFocus()
   if (w->_hasFocus)
   {
     w->_hasFocus = false;
-    FocusEvent e(EV_FOCUS_OUT);
+    FocusEvent e(EVENT_FOCUS_OUT);
     w->sendEvent(&e);
   }
 }
@@ -1380,13 +1369,13 @@ void BaseGuiWindow::setFocus(Widget* w, uint32_t reason)
 
   if (!_hasFocus) takeFocus();
 
-  FocusEvent e(EV_FOCUS_IN, reason);
+  FocusEvent e(EVENT_FOCUS_IN, reason);
   w->_hasFocus = true;
   w->sendEvent(&e);
 }
 
 // ============================================================================
-// [BaseUIWindow - Dirty]
+// [BaseGuiWindow - Dirty]
 // ============================================================================
 
 void BaseGuiWindow::setDirty()

@@ -2522,10 +2522,10 @@ GifProvider::GifProvider()
   _name = fog_strings->getString(STR_GRAPHICS_GIF);
 
   // File type.
-  _fileType = IMAGEIO_FILE_GIF;
+  _fileType = IMAGE_IO_FILE_GIF;
 
   // Supported devices.
-  _deviceType = IMAGEIO_DEVICE_DECODER;
+  _deviceType = IMAGE_IO_DEVICE_DECODER;
 
   // Supported extensions.
   _imageExtensions.reserve(1);
@@ -2556,10 +2556,10 @@ err_t GifProvider::createDevice(uint32_t deviceType, BaseDevice** device) const
 
   switch (deviceType)
   {
-    case IMAGEIO_DEVICE_DECODER:
+    case IMAGE_IO_DEVICE_DECODER:
       d = new(std::nothrow) GifDecoderDevice(const_cast<GifProvider*>(this));
       break;
-    case IMAGEIO_DEVICE_ENCODER:
+    case IMAGE_IO_DEVICE_ENCODER:
       return ERR_IMAGEIO_NO_ENCODER;
     default:
       return ERR_RT_INVALID_ARGUMENT;
@@ -2784,5 +2784,5 @@ FOG_IMPLEMENT_OBJECT(Fog::ImageIO::GifEncoderDevice)
 FOG_INIT_DECLARE void fog_imageio_init_gif(void)
 {
   using namespace Fog;
-  ImageIO::addProvider(IMAGEIO_DEVICE_DECODER, new(std::nothrow) ImageIO::GifProvider());
+  ImageIO::addProvider(IMAGE_IO_DEVICE_DECODER, new(std::nothrow) ImageIO::GifProvider());
 }

@@ -72,8 +72,8 @@ VisibilityEvent::~VisibilityEvent()
 // ============================================================================
 
 ConfigureEvent::ConfigureEvent() : 
-  Event(EV_CONFIGURE),
-  _rect(0, 0, 0, 0),
+  Event(EVENT_CONFIGURE),
+  _geometry(0, 0, 0, 0),
   _changed(0)
 {
 }
@@ -87,7 +87,7 @@ ConfigureEvent::~ConfigureEvent()
 // ============================================================================
 
 OriginEvent::OriginEvent() :
-  Event(EV_ORIGIN),
+  Event(EVENT_ORIGIN),
   _origin(0, 0)
 {
 }
@@ -164,8 +164,7 @@ SelectionEvent::~SelectionEvent()
 
 PaintEvent::PaintEvent(uint32_t code) : 
   Event(code),
-  _painter(NULL),
-  _isParentPainted(0)
+  _painter(NULL)
 {
 }
 
@@ -178,7 +177,7 @@ PaintEvent::~PaintEvent()
 // ============================================================================
 
 CloseEvent::CloseEvent() : 
-  Event(EV_CLOSE)
+  Event(EVENT_CLOSE)
 {
 }
 
@@ -192,7 +191,7 @@ CloseEvent::~CloseEvent()
 
 CheckEvent::CheckEvent(uint32_t code) : 
   Event(code),
-  _status(code == EV_CHECK)
+  _status(code == EVENT_CHECK)
 {
 }
 

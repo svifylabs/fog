@@ -38,6 +38,9 @@ TODO P1
     [w] High-quality downscaling (transformation / scaling down)
     [ ] irect is not used when serializing images using affine transform.
         This rectangle should be also added to pattern (texture).
+    [ ] Glyph rendering must be two pass based
+        1. Apply glyph metrics, advance, etc, serialize to X, Y, ImageData array
+        2. Render using not GlyphSet, but ImageSet.
 
 [ ] Font:
     [w] Ability to render to 'Path'
@@ -123,8 +126,14 @@ TODO P3 - UI
     [ ] Some widgets need to store background in separate buffer (Image).
     [ ] First make basic layouts working and define them
 
+    [ ] Add client rectangle to the window (this is really needed, I though 
+        that it's not).
+    [ ] Each widget will contain widgets in client rectangle and hidden widgets
+        outside of it (for scrollbars, list/grid headers, footers, etc).
+
 TODO P4 - REFACTOR, OTHERS
 ==========================
 
-[ ] Image::formatToBytesPerPixel -> Image::getBytesPerPixelFromFormat()
+[ ] Fog::Image::formatToBytesPerPixel -> Fog::Image::getBytesPerPixelFromFormat()
+[ ] Fog::RasterPaintEngine - Use binary search to find first region if complex clipping is used.
 

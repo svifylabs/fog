@@ -43,7 +43,7 @@ void ButtonBase::setText(const String& text)
   _text = text;
 
   invalidateLayout();
-  repaint(RepaintWidget);
+  repaint(WIDGET_REPAINT_AREA);
 }
 
 int ButtonBase::getChecked() const
@@ -58,7 +58,7 @@ void ButtonBase::setChecked(int value)
 
   _checked = value;
 
-  CheckEvent e(value ? EV_CHECK : EV_UNCHECK);
+  CheckEvent e(value ? EVENT_CHECK : EVENT_UNCHECK);
   sendEvent(&e);
 }
 
@@ -92,7 +92,7 @@ void ButtonBase::onFocusOut(FocusEvent* e)
   if (_isSpaceDown)
   {
     _isSpaceDown = false;
-    repaint(RepaintWidget);
+    repaint(WIDGET_REPAINT_AREA);
   }
 
   base::onFocusOut(e);
@@ -103,7 +103,7 @@ void ButtonBase::onKeyPress(KeyEvent* e)
   if ((e->getKey() & KEY_MASK) == KEY_SPACE)
   {
     _isSpaceDown = true;
-    repaint(RepaintWidget);
+    repaint(WIDGET_REPAINT_AREA);
     e->accept();
     return;
   }
@@ -116,7 +116,7 @@ void ButtonBase::onKeyRelease(KeyEvent* e)
   if ((e->getKey() & KEY_MASK) == KEY_SPACE)
   {
     _isSpaceDown = false;
-    repaint(RepaintWidget);
+    repaint(WIDGET_REPAINT_AREA);
     e->accept();
     return;
   }
@@ -127,7 +127,7 @@ void ButtonBase::onKeyRelease(KeyEvent* e)
 void ButtonBase::onMouseIn(MouseEvent* e)
 {
   _isMouseOver = true;
-  repaint(RepaintWidget);
+  repaint(WIDGET_REPAINT_AREA);
 
   base::onMouseIn(e);
 }
@@ -135,7 +135,7 @@ void ButtonBase::onMouseIn(MouseEvent* e)
 void ButtonBase::onMouseOut(MouseEvent* e)
 {
   _isMouseOver = false;
-  repaint(RepaintWidget);
+  repaint(WIDGET_REPAINT_AREA);
 
   base::onMouseOut(e);
 }
@@ -145,7 +145,7 @@ void ButtonBase::onMousePress(MouseEvent* e)
   if (e->getButton() == BUTTON_LEFT)
   {
     _isMouseDown = true;
-    repaint(RepaintWidget);
+    repaint(WIDGET_REPAINT_AREA);
   }
 
   base::onMousePress(e);
@@ -156,7 +156,7 @@ void ButtonBase::onMouseRelease(MouseEvent* e)
   if (e->getButton() == BUTTON_LEFT)
   {
     _isMouseDown = false;
-    repaint(RepaintWidget);
+    repaint(WIDGET_REPAINT_AREA);
   }
 
   base::onMouseRelease(e);

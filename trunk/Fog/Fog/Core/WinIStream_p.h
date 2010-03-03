@@ -15,7 +15,7 @@
 #include <Fog/Core/Stream.h>
 #include <Objidl.h>
 
-//! @addtogroup Fog_Private
+//! @addtogroup Fog_Core_Private
 //! @{
 
 namespace Fog {

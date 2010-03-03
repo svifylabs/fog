@@ -115,12 +115,12 @@ static void GdiPlus_clearCommonParameters(GdiPlusCommonParams* params, uint32_t 
 
   switch (fileType)
   {
-    case IMAGEIO_FILE_JPEG:
+    case IMAGE_IO_FILE_JPEG:
       params->jpeg.quality = 90;
       break;
-    case IMAGEIO_FILE_PNG:
+    case IMAGE_IO_FILE_PNG:
       break;
-    case IMAGEIO_FILE_TIFF:
+    case IMAGE_IO_FILE_TIFF:
       break;
   }
 }
@@ -132,15 +132,15 @@ static err_t GdiPlus_getCommonParameter(const GdiPlusCommonParams* params, uint3
 
   switch (fileType)
   {
-    case IMAGEIO_FILE_JPEG:
+    case IMAGE_IO_FILE_JPEG:
       if (name == fog_strings->getString(STR_GRAPHICS_quality))
       {
         return value.setInt32(params->jpeg.quality);
       }
       break;
-    case IMAGEIO_FILE_PNG:
+    case IMAGE_IO_FILE_PNG:
       break;
-    case IMAGEIO_FILE_TIFF:
+    case IMAGE_IO_FILE_TIFF:
       break;
   }
 
@@ -154,7 +154,7 @@ static err_t GdiPlus_setCommonParameter(GdiPlusCommonParams* params, uint32_t fi
 
   switch (fileType)
   {
-    case IMAGEIO_FILE_JPEG:
+    case IMAGE_IO_FILE_JPEG:
       if (name == fog_strings->getString(STR_GRAPHICS_quality))
       {
         int i;
@@ -163,9 +163,9 @@ static err_t GdiPlus_setCommonParameter(GdiPlusCommonParams* params, uint32_t fi
         return ERR_OK;
       }
       break;
-    case IMAGEIO_FILE_PNG:
+    case IMAGE_IO_FILE_PNG:
       break;
-    case IMAGEIO_FILE_TIFF:
+    case IMAGE_IO_FILE_TIFF:
       break;
   }
 
@@ -338,20 +338,20 @@ GdiPlusProvider::GdiPlusProvider(uint32_t fileType)
   _fileType = fileType;
 
   // Supported devices.
-  _deviceType = IMAGEIO_DEVICE_BOTH;
+  _deviceType = IMAGE_IO_DEVICE_BOTH;
 
   // Name of ImageIO Provider.
   switch (_fileType)
   {
-    case IMAGEIO_FILE_JPEG:
+    case IMAGE_IO_FILE_JPEG:
       _name = fog_strings->getString(STR_GRAPHICS_JPEG);
       _gdipMime = L"image/jpeg";
       break;
-    case IMAGEIO_FILE_PNG:
+    case IMAGE_IO_FILE_PNG:
       _name = fog_strings->getString(STR_GRAPHICS_PNG);
       _gdipMime = L"image/png";
       break;
-    case IMAGEIO_FILE_TIFF:
+    case IMAGE_IO_FILE_TIFF:
       _name = fog_strings->getString(STR_GRAPHICS_TIFF);
       _gdipMime = L"image/tiff";
       break;
@@ -363,18 +363,18 @@ GdiPlusProvider::GdiPlusProvider(uint32_t fileType)
   // Supported extensions.
   switch (_fileType)
   {
-    case IMAGEIO_FILE_JPEG:
+    case IMAGE_IO_FILE_JPEG:
       _imageExtensions.reserve(4);
       _imageExtensions.append(fog_strings->getString(STR_GRAPHICS_jpg));
       _imageExtensions.append(fog_strings->getString(STR_GRAPHICS_jpeg));
       _imageExtensions.append(fog_strings->getString(STR_GRAPHICS_jfi));
       _imageExtensions.append(fog_strings->getString(STR_GRAPHICS_jfif));
       break;
-    case IMAGEIO_FILE_PNG:
+    case IMAGE_IO_FILE_PNG:
       _imageExtensions.reserve(1);
       _imageExtensions.append(fog_strings->getString(STR_GRAPHICS_png));
       break;
-    case IMAGEIO_FILE_TIFF:
+    case IMAGE_IO_FILE_TIFF:
       _imageExtensions.reserve(2);
       _imageExtensions.append(fog_strings->getString(STR_GRAPHICS_tif));
       _imageExtensions.append(fog_strings->getString(STR_GRAPHICS_tiff));
@@ -410,17 +410,17 @@ uint32_t GdiPlusProvider::checkSignature(const void* mem, sysuint_t length) cons
   // Mime check.
   switch (_fileType)
   {
-    case IMAGEIO_FILE_JPEG:
+    case IMAGE_IO_FILE_JPEG:
       i = Math::min<sysuint_t>(length, 2);
       if (memcmp(mem, mimeJPEG, i) == 0)
         score = Math::max<uint32_t>(score, 14 + ((uint32_t)i * 40));
       break;
-    case IMAGEIO_FILE_PNG:
+    case IMAGE_IO_FILE_PNG:
       i = Math::min<sysuint_t>(length, 8);
       if (memcmp(mem, mimePNG, i) == 0)
         score = Math::max<uint32_t>(score, 14 + ((uint32_t)i * 10));
       break;
-    case IMAGEIO_FILE_TIFF:
+    case IMAGE_IO_FILE_TIFF:
       i = Math::min<sysuint_t>(length, 4);
       if (memcmp(mem, mimeTIFF_LE, i) == 0 || memcmp(mem, mimeTIFF_BE, i) == 0)
         score = Math::max<uint32_t>(score, 14 + ((uint32_t)i * 20));
@@ -441,10 +441,10 @@ err_t GdiPlusProvider::createDevice(uint32_t deviceType, BaseDevice** device) co
 
   switch (deviceType)
   {
-    case IMAGEIO_DEVICE_DECODER:
+    case IMAGE_IO_DEVICE_DECODER:
       d = new(std::nothrow) GdiPlusDecoderDevice(const_cast<GdiPlusProvider*>(this));
       break;
-    case IMAGEIO_DEVICE_ENCODER:
+    case IMAGE_IO_DEVICE_ENCODER:
       d = new(std::nothrow) GdiPlusEncoderDevice(const_cast<GdiPlusProvider*>(this));
       break;
     default:
@@ -702,7 +702,7 @@ err_t GdiPlusEncoderDevice::writeImage(const Image& image)
 
   switch (_fileType)
   {
-    case IMAGEIO_FILE_JPEG:
+    case IMAGE_IO_FILE_JPEG:
       params->Count = 1;
       params->Parameter[0].Guid = GpEncoderQuality;
       params->Parameter[0].Type = GpEncoderParameterValueTypeLong;
@@ -763,14 +763,14 @@ FOG_INIT_DECLARE void fog_imageio_init_gdiplus(void)
   ImageIO::_gdiPlusRefCount.init(0);
   ImageIO::GdiPlusProvider* provider;
 
-  provider = new(std::nothrow) ImageIO::GdiPlusProvider(IMAGEIO_FILE_PNG);
-  ImageIO::addProvider(IMAGEIO_DEVICE_BOTH, provider);
+  provider = new(std::nothrow) ImageIO::GdiPlusProvider(IMAGE_IO_FILE_PNG);
+  ImageIO::addProvider(IMAGE_IO_DEVICE_BOTH, provider);
 
-  provider = new(std::nothrow) ImageIO::GdiPlusProvider(IMAGEIO_FILE_JPEG);
-  ImageIO::addProvider(IMAGEIO_DEVICE_BOTH, provider);
+  provider = new(std::nothrow) ImageIO::GdiPlusProvider(IMAGE_IO_FILE_JPEG);
+  ImageIO::addProvider(IMAGE_IO_DEVICE_BOTH, provider);
 
-  provider = new(std::nothrow) ImageIO::GdiPlusProvider(IMAGEIO_FILE_TIFF);
-  ImageIO::addProvider(IMAGEIO_DEVICE_BOTH, provider);
+  provider = new(std::nothrow) ImageIO::GdiPlusProvider(IMAGE_IO_FILE_TIFF);
+  ImageIO::addProvider(IMAGE_IO_DEVICE_BOTH, provider);
 }
 
 #endif // FOG_OS_WINDOWS
