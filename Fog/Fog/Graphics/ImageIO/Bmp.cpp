@@ -36,10 +36,10 @@ BmpProvider::BmpProvider()
   _name = fog_strings->getString(STR_GRAPHICS_BMP);
 
   // File type.
-  _fileType = IMAGEIO_FILE_BMP;
+  _fileType = IMAGE_IO_FILE_BMP;
 
   // Supported devices.
-  _deviceType = IMAGEIO_DEVICE_BOTH;
+  _deviceType = IMAGE_IO_DEVICE_BOTH;
 
   // Supported extensions.
   _imageExtensions.reserve(2);
@@ -79,10 +79,10 @@ err_t BmpProvider::createDevice(uint32_t deviceType, BaseDevice** device) const
 
   switch (deviceType)
   {
-    case IMAGEIO_DEVICE_DECODER:
+    case IMAGE_IO_DEVICE_DECODER:
       d = new(std::nothrow) BmpDecoderDevice(const_cast<BmpProvider*>(this));
       break;
-    case IMAGEIO_DEVICE_ENCODER:
+    case IMAGE_IO_DEVICE_ENCODER:
       d = new(std::nothrow) BmpEncoderDevice(const_cast<BmpProvider*>(this));
       break;
     default:
@@ -1113,5 +1113,5 @@ FOG_IMPLEMENT_OBJECT(Fog::ImageIO::BmpEncoderDevice)
 FOG_INIT_DECLARE void fog_imageio_init_bmp(void)
 {
   using namespace Fog;
-  ImageIO::addProvider(IMAGEIO_DEVICE_BOTH, new(std::nothrow) ImageIO::BmpProvider());
+  ImageIO::addProvider(IMAGE_IO_DEVICE_BOTH, new(std::nothrow) ImageIO::BmpProvider());
 }

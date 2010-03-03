@@ -39,7 +39,7 @@ uint32_t GuiEngine::keyToModifier(uint32_t key) const
 }
 
 // ============================================================================
-// [Fog::UIWindow]
+// [Fog::GuiWindow]
 // ============================================================================
 
 GuiWindow::GuiWindow(Widget* widget) :
@@ -59,7 +59,7 @@ GuiWindow::~GuiWindow()
 }
 
 // ============================================================================
-// [Fog::UIBackingStore]
+// [Fog::GuiBackBuffer]
 // ============================================================================
 
 GuiBackBuffer::GuiBackBuffer()
@@ -74,21 +74,22 @@ GuiBackBuffer::~GuiBackBuffer()
 void GuiBackBuffer::_clear()
 {
   _type = 0;
-  _pixels = NULL;
-  _width = 0;
-  _height = 0;
-  _format = PIXEL_FORMAT_NULL;
   _depth = 0;
-  _stride = 0;
 
-  _widthOrig = 0;
-  _heightOrig = 0;
+  _buffer.data = NULL;
+  _buffer.width = 0;
+  _buffer.height = 0;
+  _buffer.format = PIXEL_FORMAT_NULL;
+  _buffer.stride = 0;
 
-  _pixelsPrimary = NULL;
-  _stridePrimary = 0;
+  _cachedWidth = 0;
+  _cachedHeight = 0;
 
-  _pixelsSecondary = NULL;
-  _strideSecondary = 0;
+  _primaryPixels = NULL;
+  _primaryStride = 0;
+
+  _secondaryPixels = NULL;
+  _secondaryStride = 0;
 
   _convertFunc = NULL;
   _convertDepth = 0;
@@ -99,7 +100,7 @@ void GuiBackBuffer::_clear()
 
 bool GuiBackBuffer::expired(TimeTicks now) const
 {
-  return (_width != _widthOrig || _height != _heightOrig) && (now >= _expireTime);
+  return (_buffer.width != _cachedWidth || _buffer.height != _cachedHeight) && (now >= _expireTime);
 }
 
 } // Fog namespace

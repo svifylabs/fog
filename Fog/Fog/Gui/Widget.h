@@ -21,7 +21,7 @@
 #include <Fog/Graphics/Painter.h>
 #include <Fog/Gui/Constants.h>
 #include <Fog/Gui/Event.h>
-#include <Fog/Gui/LayoutItem.h>
+#include <Fog/Gui/Layout/LayoutItem.h>
 
 //! @addtogroup Fog_Gui
 //! @{
@@ -85,101 +85,140 @@ struct FOG_API Widget : public LayoutItem
 {
   FOG_DECLARE_OBJECT(Widget, LayoutItem)
 
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   Widget(uint32_t createFlags = 0);
   virtual ~Widget();
 
+  // --------------------------------------------------------------------------
   // [Hierarchy]
+  // --------------------------------------------------------------------------
 
-  //! @brief Returns @c true if element is root.
+  //! @brief Get whether the widget is root.
   FOG_INLINE bool isRoot() const { return _parent == NULL; }
 
-  //! @brief Returns @c true if element has parent.
+  //! @brief Get whether the widget has parent.
   FOG_INLINE bool hasParent() const { return _parent != NULL; }
 
-  //! @brief Returns @c true if element has children.
+  //! @brief Get whether the widget has children.
   FOG_INLINE bool hasChildren() const { return !_children.isEmpty(); }
 
-  FOG_INLINE List<Widget*> getChildren() const { return _children; }
+  //! @brief Get widget parent.
   FOG_INLINE Widget* getParent() const { return _parent; }
 
+  //! @brief Get widget children.
+  FOG_INLINE List<Widget*> getChildren() const { return _children; }
+
+  //! @brief Set parent of this widget to @a p.
   bool setParent(Widget* p);
+  //! @brief Add widget @a w into the widget.
   bool add(Widget* w);
+  //! @brief Remove widget @a w from the widget.
   bool remove(Widget* w);
 
+  //! @brief Add widget at specified index.
+  //!
+  //! This method can be overriden to improve child widgets management. It can
+  //! be called throught @c setParent(), @a add() and @c remove() methods.
   virtual bool _add(sysuint_t index, Widget* w);
+
+  //! @brief Remove widget at specified index.
+  //!
+  //! This method can be overriden to improve child widgets management. It can
+  //! be called throught @c setParent(), @a add() and @c remove() methods.
   virtual bool _remove(sysuint_t index, Widget* w);
 
-  // [UIWindow]
+  // --------------------------------------------------------------------------
+  // [GuiWindow]
+  // --------------------------------------------------------------------------
 
-  FOG_INLINE bool isUIWindow() const { return _uiWindow != NULL; }
-  FOG_INLINE GuiWindow* getUIWindow() const { return _uiWindow; }
+  //! @brief Get whether widget has native gui window (@c GuiWindow).
+  FOG_INLINE bool isGuiWindow() const { return _guiWindow != NULL; }
 
-  GuiWindow* getClosestUIWindow() const;
+  //! @brief Get native gui window (only for top-level widgets).
+  FOG_INLINE GuiWindow* getGuiWindow() const { return _guiWindow; }
 
+  //! @brief Get closest native gui window.
+  //!
+  //! Returns gui window associated with this widget. If this widget hasn't
+  //! gui window then all parents are traversed until it's found, otherwise
+  //! @c NULL is returned.
+  GuiWindow* getClosestGuiWindow() const;
+
+  //! @brief Create native gui window.
   err_t createWindow(uint32_t createFlags = 0);
+  //! @brief Destroy native gui window.
   err_t destroyWindow();
 
+  //! @brief Get native gui window title.
   String getWindowTitle() const;
+  //! @brief Set native gui window title.
   err_t setWindowTitle(const String& title);
 
+  //! @brief Get native gui window icon.
   Image getWindowIcon() const;
+  //! @brief Set native gui window icon.
   err_t setWindowIcon(const Image& icon);
 
+  //! @brief Get native gui window resize granularity.
   Point getWindowGranularity() const;
+  //! @brief Set native gui window resize granularity.
   err_t setWindowGranularity(const Point& pt);
 
+  // --------------------------------------------------------------------------
   // [Geometry]
+  // --------------------------------------------------------------------------
 
   //! @brief Get widget position relative to parent.
-  FOG_INLINE const Point& getPosition() const { return _rect.getPosition(); }
+  FOG_INLINE const Point& getPosition() const { return _geometry.getPosition(); }
   //! @brief Get widget size.
-  FOG_INLINE const Size& getSize() const { return _rect.getSize(); }
+  FOG_INLINE const Size& getSize() const { return _geometry.getSize(); }
   //! @brief Get widget bounding rectangle.
-  FOG_INLINE const Rect& getRect() const { return _rect; }
+  FOG_INLINE const Rect& getGeometry() const { return _geometry; }
   //! @brief Get widget origin.
   FOG_INLINE const Point& getOrigin() const { return _origin; }
 
   //! @brief Get widget left position, this method is equal to @c left().
-  FOG_INLINE int getX() const { return _rect.x; }
+  FOG_INLINE int getX() const { return _geometry.x; }
   //! @brief Get widget top position, this method is equal to @c top().
-  FOG_INLINE int getY() const { return _rect.y; }
+  FOG_INLINE int getY() const { return _geometry.y; }
   //! @brief Get widget width.
-  FOG_INLINE int getWidth() const { return _rect.w; }
+  FOG_INLINE int getWidth() const { return _geometry.w; }
   //! @brief Get widget height.
-  FOG_INLINE int getHeight() const { return _rect.h; }
+  FOG_INLINE int getHeight() const { return _geometry.h; }
 
   //! @brief Get widget left position, this method is equal to @c left().
-  FOG_INLINE int getX1() const { return _rect.x; }
+  FOG_INLINE int getX1() const { return _geometry.x; }
   //! @brief Get widget top position, this method is equal to @c top().
-  FOG_INLINE int getY1() const { return _rect.y; }
+  FOG_INLINE int getY1() const { return _geometry.y; }
   //! @brief Get widget right position, this method is equal to @c right().
-  FOG_INLINE int getX2() const { return _rect.x + _rect.w; }
+  FOG_INLINE int getX2() const { return _geometry.x + _geometry.w; }
   //! @brief Get widget bottom position, this method is equal to @c bottom().
-  FOG_INLINE int getY2() const { return _rect.y + _rect.h; }
+  FOG_INLINE int getY2() const { return _geometry.y + _geometry.h; }
 
   //! @brief Get widget left position, this method is equal to @c x1().
-  FOG_INLINE int getLeft() const { return _rect.x; }
+  FOG_INLINE int getLeft() const { return _geometry.x; }
   //! @brief Get widget top position, this method is equal to @c y1().
-  FOG_INLINE int getTop() const { return _rect.y; }
+  FOG_INLINE int getTop() const { return _geometry.y; }
   //! @brief Get widget right position, this method is equal to @c x2().
-  FOG_INLINE int getRight() const { return _rect.x + _rect.w; }
+  FOG_INLINE int getRight() const { return _geometry.x + _geometry.w; }
   //! @brief Get widget bottom position, this method is equal to @c y2().
-  FOG_INLINE int getBottom() const { return _rect.y + _rect.h; }
+  FOG_INLINE int getBottom() const { return _geometry.y + _geometry.h; }
 
   //! @brief Set widget position to @a pt.
   //!
-  //! @note To set widget position and size together use @c setRect().
+  //! @note To set widget position and size together use @c setGeometry().
   void setPosition(const Point& pt);
 
   //! @brief Set the widget size to @a sz.
   //!
-  //! @note To set widget position and size together use @c setRect().
+  //! @note To set widget position and size together use @c setGeometry().
   void setSize(const Size& size);
 
   //! @brief Set widget position and size to @a rect.
-  void setRect(const Rect& rect);
+  void setGeometry(const Rect& rect);
 
   //! @brief Set widget origin to @a pt.
   void setOrigin(const Point& pt);
@@ -194,50 +233,73 @@ struct FOG_API Widget : public LayoutItem
   //! This method is similar to @c setSize().
   FOG_INLINE void resize(const Size& size) { setSize(size); }
 
-  bool worldToClient(Point* coords) const;
-  bool clientToWorld(Point* coords) const;
+  //! @brief Translate world coordinate @a coord into client (relative to the
+  //! widget).
+  bool worldToClient(Point* coord) const;
+  //! @brief Translate client coordinate @a coord into world (relative to the
+  //! screen).
+  bool clientToWorld(Point* coord) const;
+
+  //! @brief Translate coordinates between two widgets.
   static bool translateCoordinates(Widget* to, Widget* from, Point* coords);
 
+  // --------------------------------------------------------------------------
   // [Hit Testing]
+  // --------------------------------------------------------------------------
 
   Widget* hitTest(const Point& pt) const;
   Widget* getChildAt(const Point& pt, bool recursive = false) const;
 
+  // --------------------------------------------------------------------------
   // [Layout Of Widget]
+  // --------------------------------------------------------------------------
 
+  //! @brief Get widget layout manager.
   FOG_INLINE Layout* getLayout() const { return _layout; }
 
+  //! @brief Set widget layout manager.
   void setLayout(Layout* layout);
+
+  //! @brief Delete widget layout manager (will first disconnects children).
   void deleteLayout();
+
+  //! @brief Take widget layout manager (will not disconnect children).
   Layout* takeLayout();
 
+  // --------------------------------------------------------------------------
   // [Layout Hints]
+  // --------------------------------------------------------------------------
 
-  virtual Size getSizeHint() const;
-  virtual void setSizeHint(const Size& sizeHint);
+  virtual const LayoutHint& getLayoutHint() const;
+  virtual void setLayoutHint(const LayoutHint& layoutHint);
 
-  virtual Size getMinimumSize() const;
-  virtual void setMinimumSize(const Size& minSize);
+  virtual const LayoutHint& getComputedLayoutHint() const;
+  virtual void computeLayoutHint();
 
-  virtual Size getMaximumSize() const;
-  virtual void setMaximumSize(const Size& maxSize);
-
+  // --------------------------------------------------------------------------
   // [Layout Policy]
+  // --------------------------------------------------------------------------
 
   virtual uint32_t getLayoutPolicy() const;
   virtual void setLayoutPolicy(uint32_t policy);
 
+  // --------------------------------------------------------------------------
   // [Layout Height For Width]
+  // --------------------------------------------------------------------------
 
   virtual bool hasHeightForWidth() const;
   virtual int getHeightForWidth(int width) const;
 
+  // --------------------------------------------------------------------------
   // [Layout State]
+  // --------------------------------------------------------------------------
 
   virtual bool isLayoutDirty() const;
   virtual void invalidateLayout() const;
 
-  // [State]
+  // --------------------------------------------------------------------------
+  // [Widget State]
+  // --------------------------------------------------------------------------
 
   //! @brief Get widget state, see @c WIDGET_STATE.
   FOG_INLINE uint32_t getState() const { return _state; }
@@ -254,7 +316,9 @@ struct FOG_API Widget : public LayoutItem
   //! @brief Set widget state to @c WIDGET_DISABLED.
   FOG_INLINE void disable() { setEnabled(false); }
 
-  // [Visibility]
+  // --------------------------------------------------------------------------
+  // [Widget Visibility]
+  // --------------------------------------------------------------------------
 
   //! @brief Returns widget visibility, see @c Visibility_Enum.
   FOG_INLINE uint32_t getVisibility() const { return _visibility; }
@@ -272,7 +336,9 @@ struct FOG_API Widget : public LayoutItem
   //! @brief Show widget (set it's visibility to false).
   FOG_INLINE void hide() { setVisible(false); }
 
-  // [Orientation]
+  // --------------------------------------------------------------------------
+  // [Widget Orientation]
+  // --------------------------------------------------------------------------
 
   //! @brief Returns widget orientation, see @c OrientationEnum.
   FOG_INLINE uint32_t orientation() const { return _orientation; }
@@ -292,13 +358,17 @@ struct FOG_API Widget : public LayoutItem
   //! @brief Sets widget orientation to vertical (@c OrientationVertical).
   FOG_INLINE void setVertical()  { setOrientation(ORIENTATION_VERTICAL); }
 
+  // --------------------------------------------------------------------------
   // [Caret]
+  // --------------------------------------------------------------------------
 
   // bool showCaret();
   // bool showCaret(const CaretProperties& properties);
   // bool hideCaret();
 
+  // --------------------------------------------------------------------------
   // [Tab Order]
+  // --------------------------------------------------------------------------
 
   //! @brief Returns widget tab order.
   FOG_INLINE int getTabOrder() const { return _tabOrder; }
@@ -306,7 +376,9 @@ struct FOG_API Widget : public LayoutItem
   //! @brief Sets widget tab order.
   void setTabOrder(int tabOrder);
 
+  // --------------------------------------------------------------------------
   // [Focus]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE uint32_t getFocusPolicy() const { return _focusPolicy; }
 
@@ -324,7 +396,9 @@ struct FOG_API Widget : public LayoutItem
 
   Widget* _findFocus() const;
 
+  // --------------------------------------------------------------------------
   // [Font]
+  // --------------------------------------------------------------------------
 
   //! @brief Get widget font.
   FOG_INLINE Font getFont() const { return _font; }
@@ -332,50 +406,53 @@ struct FOG_API Widget : public LayoutItem
   //! @brief Set widget font.
   void setFont(const Font& font);
 
+  // --------------------------------------------------------------------------
   // [Update]
+  // --------------------------------------------------------------------------
 
-  enum UFlags
-  {
-    // [Widget Hierarchy]
-
-    //! @brief Generic unspecified update flag.
-    UFlagUpdate = (1 << 0),
-    //! @brief Some child needs update (has generic update flag set).
-    UFlagUpdateChild = (1 << 1),
-    //! @brief Specifies to update everything for me and all children.
-    UFlagUpdateAll = (1 << 2),
-
-    // [Widget Geometry]
-
-    UFlagUpdateGeometry = (1 << 3),
-
-    // [Widget Screen]
-
-    //! @brief Widget needs repaint.
-    UFlagRepaintWidget = (1 << 4),
-    //! @brief Caret needs repaint
-    UFlagRepaintCaret = (1 << 5),
-
-    //! @brief This flag is set if the widget will call @c Widget::paintParent().
-    UFlagPaintParentRequired = (1 << 30),
-    //! @Brief Internal flag used together with UFlagPaintParentRequired. Do not use.
-    UFlagPaintParentDone = (1 << 31)
-  };
-
+  //! @brief Update widget (see @c WIDGET_UPDATE_FLAGS).
   void update(uint32_t updateFlags);
 
-  // [Repaint]
+  // --------------------------------------------------------------------------
+  // [Painting]
+  // --------------------------------------------------------------------------
 
-  enum RepaintFlags
-  {
-    RepaintWidget    = UFlagRepaintWidget,
-    RepaintCaret     = UFlagRepaintCaret,
-    RepaintAll       = RepaintWidget | RepaintCaret
-  };
-
+  //! @brief Repaint widget, see @c WIDGET_REPAINT_FLAGS.
   void repaint(uint32_t repaintFlags);
 
+  //! @brief Get paint hints, see @c WIDGET_PAINT_MODE.
+  //!
+  //! Paint hints are used to optimize widget repainting process. Each widget
+  //! must be paint when it's displayed on the screen. There are widgets that
+  //! usually repaint the entire area (@c TextBox, @c TextArea, @c ToolBar, etc)
+  //! and there are widgets that in most cases need the background provided by
+  //! parent (very good example is @c Label).
+  //!
+  //! Use @c getPaintHint() to tell Fog/Gui how the widget will be updated.
+  //! Default return value is @c WIDGET_PAINT_SCREEN which means that entire
+  //! widget will be updated (result is not based on parent content). If you
+  //! need to draw rounded corners or to content paint previously by parent,
+  //! use @c WIDGET_PAINT_PROPAGATED hint.
+  //!
+  //! If you return @c WIDGET_PAINT_PROPAGATED then the gui engine always call
+  //! the @c Widget::getPropagatedRegion() method to get which region will be
+  //! propagated. You don't need to reimplement this method (it will return the
+  //! whole widget region by default). If you want to draw only rounded corners
+  //! or something that will overpaint only very small area, you can reimplement
+  //! this method to optimize painting process.
+  virtual uint32_t getPaintHint() const;
+
+  //! @brief Get region that will be propagated from parent to the @c onPaint()
+  //! event handler.
+  //!
+  //! Default action is to return the entire widget region. If an error is
+  //! returned then gui engine will generate the whole region automatically
+  //! (but never return just error, it will be probably logged to stderr).
+  virtual err_t getPropagatedRegion(Region* dst) const;
+
+  // --------------------------------------------------------------------------
   // [Event Handlers]
+  // --------------------------------------------------------------------------
 
   //! @brief Child event handler.
   virtual void onChildAdd(ChildEvent* e);
@@ -430,64 +507,83 @@ struct FOG_API Widget : public LayoutItem
   //! @brief @c LayoutItem event handler.
   virtual void onLayout(LayoutEvent* e);
 
+  // --------------------------------------------------------------------------
   // [Event Map]
+  // --------------------------------------------------------------------------
 
   FOG_EVENT_BEGIN()
-    FOG_EVENT_DEF(EV_CHILD_ADD           , onChildAdd        , ChildEvent     , OVERRIDE)
-    FOG_EVENT_DEF(EV_CHILD_REMOVE        , onChildRemove     , ChildEvent     , OVERRIDE)
-    FOG_EVENT_DEF(EV_ENABLE              , onEnable          , StateEvent     , OVERRIDE)
-    FOG_EVENT_DEF(EV_DISABLE             , onDisable         , StateEvent     , OVERRIDE)
-    FOG_EVENT_DEF(EV_DISABLE_BY_PARENT   , onDisable         , StateEvent     , OVERRIDE)
-    FOG_EVENT_DEF(EV_SHOW                , onShow            , VisibilityEvent, OVERRIDE)
-    FOG_EVENT_DEF(EV_HIDE                , onHide            , VisibilityEvent, OVERRIDE)
-    FOG_EVENT_DEF(EV_HIDE_BY_PARENT      , onHide            , VisibilityEvent, OVERRIDE)
-    FOG_EVENT_DEF(EV_CONFIGURE           , onConfigure       , ConfigureEvent , OVERRIDE)
-    FOG_EVENT_DEF(EV_FOCUS_IN            , onFocusIn         , FocusEvent     , OVERRIDE)
-    FOG_EVENT_DEF(EV_FOCUS_OUT           , onFocusOut        , FocusEvent     , OVERRIDE)
-    FOG_EVENT_DEF(EV_KEY_PRESS           , onKeyPress        , KeyEvent       , OVERRIDE)
-    FOG_EVENT_DEF(EV_KEY_RELEASE         , onKeyRelease      , KeyEvent       , OVERRIDE)
-    FOG_EVENT_DEF(EV_MOUSE_IN            , onMouseIn         , MouseEvent     , OVERRIDE)
-    FOG_EVENT_DEF(EV_MOUSE_OUT           , onMouseOut        , MouseEvent     , OVERRIDE)
-    FOG_EVENT_DEF(EV_MOUSE_MOVE          , onMouseMove       , MouseEvent     , OVERRIDE)
-    FOG_EVENT_DEF(EV_MOUSE_PRESS         , onMousePress      , MouseEvent     , OVERRIDE)
-    FOG_EVENT_DEF(EV_MOUSE_RELEASE       , onMouseRelease    , MouseEvent     , OVERRIDE)
-    FOG_EVENT_DEF(EV_CLICK               , onClick           , MouseEvent     , OVERRIDE)
-    FOG_EVENT_DEF(EV_DOUBLE_CLICK        , onDoubleClick     , MouseEvent     , OVERRIDE)
-    FOG_EVENT_DEF(EV_WHEEL               , onWheel           , MouseEvent     , OVERRIDE)
-    FOG_EVENT_DEF(EV_CLEAR_SELECTION     , onSelection       , SelectionEvent , OVERRIDE)
-    FOG_EVENT_DEF(EV_SELECTION_REQUIRED  , onSelection       , SelectionEvent , OVERRIDE)
-    FOG_EVENT_DEF(EV_PAINT               , onPaint           , PaintEvent     , OVERRIDE)
-    FOG_EVENT_DEF(EV_CLOSE               , onClose           , CloseEvent     , OVERRIDE)
-    FOG_EVENT_DEF(EV_THEME               , onThemeChange     , ThemeEvent     , OVERRIDE)
-    FOG_EVENT_DEF(EV_LAYOUT_SET          , onLayout          , LayoutEvent    , OVERRIDE)
-    FOG_EVENT_DEF(EV_LAYOUT_REMOVE       , onLayout          , LayoutEvent    , OVERRIDE)
+    FOG_EVENT_DEF(EVENT_CHILD_ADD           , onChildAdd        , ChildEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EVENT_CHILD_REMOVE        , onChildRemove     , ChildEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EVENT_ENABLE              , onEnable          , StateEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EVENT_DISABLE             , onDisable         , StateEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EVENT_DISABLE_BY_PARENT   , onDisable         , StateEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EVENT_SHOW                , onShow            , VisibilityEvent, OVERRIDE)
+    FOG_EVENT_DEF(EVENT_HIDE                , onHide            , VisibilityEvent, OVERRIDE)
+    FOG_EVENT_DEF(EVENT_HIDE_BY_PARENT      , onHide            , VisibilityEvent, OVERRIDE)
+    FOG_EVENT_DEF(EVENT_CONFIGURE           , onConfigure       , ConfigureEvent , OVERRIDE)
+    FOG_EVENT_DEF(EVENT_FOCUS_IN            , onFocusIn         , FocusEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EVENT_FOCUS_OUT           , onFocusOut        , FocusEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EVENT_KEY_PRESS           , onKeyPress        , KeyEvent       , OVERRIDE)
+    FOG_EVENT_DEF(EVENT_KEY_RELEASE         , onKeyRelease      , KeyEvent       , OVERRIDE)
+    FOG_EVENT_DEF(EVENT_MOUSE_IN            , onMouseIn         , MouseEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EVENT_MOUSE_OUT           , onMouseOut        , MouseEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EVENT_MOUSE_MOVE          , onMouseMove       , MouseEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EVENT_MOUSE_PRESS         , onMousePress      , MouseEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EVENT_MOUSE_RELEASE       , onMouseRelease    , MouseEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EVENT_CLICK               , onClick           , MouseEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EVENT_DOUBLE_CLICK        , onDoubleClick     , MouseEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EVENT_WHEEL               , onWheel           , MouseEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EVENT_CLEAR_SELECTION     , onSelection       , SelectionEvent , OVERRIDE)
+    FOG_EVENT_DEF(EVENT_SELECTION_REQUIRED  , onSelection       , SelectionEvent , OVERRIDE)
+    FOG_EVENT_DEF(EVENT_PAINT               , onPaint           , PaintEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EVENT_CLOSE               , onClose           , CloseEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EVENT_THEME               , onThemeChange     , ThemeEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EVENT_LAYOUT_SET          , onLayout          , LayoutEvent    , OVERRIDE)
+    FOG_EVENT_DEF(EVENT_LAYOUT_REMOVE       , onLayout          , LayoutEvent    , OVERRIDE)
   FOG_EVENT_END()
 
-  // [Imaging]
+  // --------------------------------------------------------------------------
+  // [Members]
+  // --------------------------------------------------------------------------
 
 protected:
   Widget* _parent;
+
   List<Widget*> _children;
 
   //! @brief Native window data.
-  GuiWindow* _uiWindow;
+  GuiWindow* _guiWindow;
 
   //! @brief Widget bounds.
-  Rect _rect;
+  Rect _geometry;
   //! @brief Widget origin.
   Point _origin;
+
+  //! @brief Font (used to draw text in widget).
+  Font _font;
 
   //! @brief Layout.
   Layout* _layout;
 
+  //! @brief Layout hints.
+  LayoutHint _layoutHint;
+
+  //! @brief Layout policy.
   uint8_t _layoutPolicy;
+  //! @brief Whether the widget can trade height for width.
   bool _hasHeightForWidth;
+  //! @brief Whether the layout is dirty (must be recalculated for this widget
+  //! and all descendents).
   mutable bool _isLayoutDirty;
+
+  //! @brief Tab order.
+  int _tabOrder;
 
   //! @brief Link to child that was last focus.
   Widget* _lastFocus;
   Widget* _focusLink;
 
+  //! @brief Update flags.
   uint32_t _uflags;
 
   //! @brief Widget state.
@@ -500,89 +596,23 @@ protected:
   uint32_t _hasFocus : 1;
   //! @brief Widget orientation
   uint32_t _orientation : 1;
-  //! @brief Reserved.
+  //! @brief Reserved for future use.
   uint32_t _reserved : 22;
-
-  //! @brief Tab order.
-  int _tabOrder;
-
-  //! @brief Font (used to draw text in widget).
-  Font _font;
 
 private:
   friend struct Application;
-  friend struct Window;
-  friend struct GuiWindow;
+  friend struct BaseGuiEngine;
   friend struct BaseGuiWindow;
   friend struct GuiEngine;
-  friend struct BaseGuiEngine;
+  friend struct GuiWindow;
+  friend struct Window;
+
+  FOG_DISABLE_COPY(Widget)
 };
 
 } // Fog namespace
 
 //! @}
-
-// ============================================================================
-// [Private Widget Iterator used in GUI library]
-//
-// These macros are used internally, so don't use them in production code,
-// please
-// ============================================================================
-
-#define FOG_WIDGET_TREE_ITERATOR(__name__, __basewidget__, __conditional__, __before_traverse__, __after_traverse__) \
-        FOG_WIDGET_TREE_ITERATOR_EX(__name__, __basewidget__, __conditional__, __before_traverse__, __after_traverse__, {}, {})
-
-#define FOG_WIDGET_TREE_ITERATOR_EX(__name__, __basewidget__, __conditional__, __before_traverse__, __after_traverse__, __push__, __pop__) \
-  if ((__basewidget__)->_children.getLength()) \
-  { \
-    Fog::LocalStack<512> stack; \
-    Fog::Widget** childCur = (Fog::Widget** )( __basewidget__->_children.getData() ); \
-    Fog::Widget** childEnd = childCur + ( __basewidget__->_children.getLength() ); \
-    Fog::Widget* child; \
-    \
-    for (;;) \
-    { \
-      child = *childCur; \
-      \
-      __before_traverse__ \
-      \
-      if (child->_children.getLength() && (__conditional__)) \
-      { \
-        \
-        __push__ \
-        \
-        stack.push(childCur); \
-        stack.push(childEnd); \
-        \
-        childCur = (Fog::Widget** )child->_children.getData(); \
-        childEnd = childCur + child->_children.getLength(); \
-        \
-        continue; \
-      } \
-      \
-__name__##_after: \
-      \
-      __after_traverse__ \
-      \
-__name__##_next: \
-      \
-      childCur++; \
-      \
-      if (FOG_UNLIKELY(childCur == childEnd)) \
-      { \
-        if (FOG_UNLIKELY(stack.isEmpty())) break; \
-        \
-        stack.pop(childEnd); \
-        stack.pop(childCur); \
-        \
-        __pop__ \
-        \
-        goto __name__##_after; \
-      } \
-    } \
-  }
-
-#define FOG_WIDGET_TREE_ITERATOR_NEXT(__name__) goto __name__##_next
 
 // [Guard]
 #endif // _FOG_GUI_WIDGET_H

@@ -47,11 +47,11 @@ struct FOG_API WinGuiEngine : public BaseGuiEngine
   virtual void doBlitWindow(GuiWindow* window, const Box* rects, sysuint_t count);
 
   // --------------------------------------------------------------------------
-  // [UIWindow]
+  // [GuiWindow]
   // --------------------------------------------------------------------------
 
-  virtual GuiWindow* createUIWindow(Widget* widget);
-  virtual void destroyUIWindow(GuiWindow* native);
+  virtual GuiWindow* createGuiWindow(Widget* widget);
+  virtual void destroyGuiWindow(GuiWindow* native);
 
   // --------------------------------------------------------------------------
   // [Windows Specific]
@@ -80,7 +80,7 @@ struct FOG_API WinGuiEngine : public BaseGuiEngine
 };
 
 // ============================================================================
-// [Fog::WinUIWindow]
+// [Fog::WinGuiWindow]
 // ============================================================================
 
 struct FOG_API WinGuiWindow : public BaseGuiWindow
@@ -142,33 +142,46 @@ struct FOG_API WinGuiWindow : public BaseGuiWindow
 };
 
 // ============================================================================
-// [Fog::WinUIBackingStore]
+// [Fog::WinGuiBackBuffer]
 // ============================================================================
 
 //! @brief Provides cacheable buffer for widgets.
 struct FOG_API WinGuiBackBuffer : public GuiBackBuffer
 {
+  // --------------------------------------------------------------------------
+  // [Construction / Destruction]
+  // --------------------------------------------------------------------------
+
   WinGuiBackBuffer();
   virtual ~WinGuiBackBuffer();
+
+  // --------------------------------------------------------------------------
+  // [Interface]
+  // --------------------------------------------------------------------------
 
   virtual bool resize(int width, int height, bool cache);
   virtual void destroy();
   virtual void updateRects(const Box* rects, sysuint_t count);
 
+  // --------------------------------------------------------------------------
+  // [Helpers]
+  // --------------------------------------------------------------------------
+
   void blitRects(HDC target, const Box* rects, sysuint_t count);
+
+  // --------------------------------------------------------------------------
+  // [Accessors]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE HBITMAP getHBitmap() const { return _hBitmap; }
   FOG_INLINE HDC getHdc() const { return _hdc; }
 
+  // --------------------------------------------------------------------------
+  // [Members]
+  // --------------------------------------------------------------------------
+
   HBITMAP _hBitmap;
   HDC _hdc;
-
-  // Type
-  enum TYPE
-  {
-    TYPE_NONE = 0,
-    TYPE_WIN_DIB = 1
-  };
 };
 
 } // Fog namespace

@@ -66,11 +66,11 @@ struct FOG_GUIENGINE_X11_API X11GuiEngine : public BaseGuiEngine
   virtual void doBlitWindow(GuiWindow* window, const Box* rects, sysuint_t count);
 
   // --------------------------------------------------------------------------
-  // [UIWindow]
+  // [GuiWindow]
   // --------------------------------------------------------------------------
 
-  virtual GuiWindow* createUIWindow(Widget* widget);
-  virtual void destroyUIWindow(GuiWindow* native);
+  virtual GuiWindow* createGuiWindow(Widget* widget);
+  virtual void destroyGuiWindow(GuiWindow* native);
 
   // --------------------------------------------------------------------------
   // [X11 Atoms]
@@ -540,18 +540,6 @@ struct FOG_GUIENGINE_X11_API X11GuiBackBuffer : public GuiBackBuffer
 
   FOG_INLINE Pixmap getPixmap() const { return _pixmap; }
   FOG_INLINE XImage* getXImage() const { return _ximage; }
-
-  // --------------------------------------------------------------------------
-  // [Types]
-  // --------------------------------------------------------------------------
-
-  enum TYPE
-  {
-    TYPE_NONE = 0,
-    TYPE_XSHM_PIXMAP = 1,
-    TYPE_XIMAGE = 2,
-    TYPE_XIMAGE_WITH_PIXMAP = TYPE_XSHM_PIXMAP | TYPE_XIMAGE
-  };
 
   // --------------------------------------------------------------------------
   // [Members]

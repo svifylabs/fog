@@ -1,11 +1,11 @@
-// [Fog/Graphics library - Public API]
+// [Fog/Graphics library - Private API]
 //
 // [Licence]
 // MIT, See COPYING file in package
 
 // [Guard]
-#ifndef _FOG_GRAPHICS_RASTERUTIL_P_H
-#define _FOG_GRAPHICS_RASTERUTIL_P_H
+#ifndef _FOG_GRAPHICS_RASTERENGINE_P_H
+#define _FOG_GRAPHICS_RASTERENGINE_P_H
 
 // [Dependencies]
 #include <Fog/Build/Build.h>
@@ -16,6 +16,9 @@
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/Path.h>
 #include <Fog/Graphics/Scanline_p.h>
+
+//! @addtogroup Fog_Graphics_Private
+//! @{
 
 namespace Fog {
 
@@ -94,26 +97,36 @@ typedef err_t (FOG_FASTCALL *GradientInitFn)(
 // ============================================================================
 
 typedef void (FOG_FASTCALL *ColorLutFn)(
-  uint8_t* dst, const uint8_t* src, sysuint_t width, const ColorLutData* lut);
+  const ColorLutData* lut,
+  uint8_t* dst, const uint8_t* src, sysuint_t width);
 
 typedef void (FOG_FASTCALL *ColorMatrixFn)(
-  uint8_t* dst, const uint8_t* src, sysuint_t width, const ColorMatrix* cm);
+  const ColorMatrix* cm,
+  uint8_t* dst, const uint8_t* src, sysuint_t width);
 
 typedef void (FOG_FASTCALL *CopyAreaFn)(
-  uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
-  sysuint_t w, sysuint_t h, sysint_t offset, const void* context);
+  const void* context,
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  sysuint_t w, sysuint_t h, sysint_t offset);
 
 typedef void (FOG_FASTCALL *BlurFn)(
-  uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
-  sysuint_t w, sysuint_t h, sysint_t offset, const BlurParams* params);
+  const BlurParams* params,
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  sysuint_t w, sysuint_t h, sysint_t offset);
 
 typedef void (FOG_FASTCALL *SymmetricConvolveFloatFn)(
-  uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
-  sysuint_t w, sysuint_t h, sysint_t offset, const SymmetricConvolveParamsF* params);
+  const SymmetricConvolveParamsF* params,
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  sysuint_t w, sysuint_t h, sysint_t offset);
 
 typedef void (FOG_FASTCALL *SymmetricConvolveIntFn)(
-  uint8_t* dst, sysint_t dstStride, const uint8_t* src, sysint_t srcStride,
-  sysuint_t w, sysuint_t h, sysint_t offset, const SymmetricConvolveParamsI* params);
+  const SymmetricConvolveParamsI* params,
+  uint8_t* dst, sysint_t dstStride,
+  const uint8_t* src, sysint_t srcStride,
+  sysuint_t w, sysuint_t h, sysint_t offset);
 
 // ============================================================================
 // [Fog::RasterEngine - Prototypes - Composite]
@@ -545,5 +558,7 @@ FOG_INLINE FunctionMap::CompositeFuncs* getRasterOps(int format, int op)
 } // RasterEngine namespace
 } // Fog namespace
 
+//! @}
+
 // [Guard]
-#endif // _FOG_GRAPHICS_RASTERUTIL_P_H
+#endif // _FOG_GRAPHICS_RASTERENGINE_P_H

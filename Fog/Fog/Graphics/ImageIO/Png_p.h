@@ -21,6 +21,9 @@
 
 #include <png.h>
 
+//! @addtogroup Fog_Graphics_Private
+//! @{
+
 namespace Fog {
 namespace ImageIO {
 
@@ -157,8 +160,10 @@ struct FOG_HIDDEN PngEncoderDevice : public EncoderDevice
   int _compression;
 };
 
-} // ImageIO
-} // Fog
+} // ImageIO namespace
+} // Fog namespace
+
+//! @}
 
 #endif // FOG_HAVE_LIBPNG
 

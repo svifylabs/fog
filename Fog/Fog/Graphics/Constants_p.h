@@ -11,6 +11,9 @@
 #include <Fog/Build/Build.h>
 #include <Fog/Graphics/Constants.h>
 
+//! @addtogroup Fog_Graphics_Private
+//! @{
+
 namespace Fog {
 
 // ============================================================================
@@ -142,6 +145,8 @@ enum OPERATOR_CHAR_STATIC
 extern FOG_HIDDEN uint32_t OperatorCharacteristics[OPERATOR_COUNT];
 
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_GRAPHICS_CONSTANTS_P_H

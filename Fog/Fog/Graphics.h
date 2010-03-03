@@ -80,7 +80,6 @@
 #include <Fog/Graphics/PathTransform.h>
 #include <Fog/Graphics/PathUtil.h>
 #include <Fog/Graphics/Pattern.h>
-#include <Fog/Graphics/Reduce.h>
 #include <Fog/Graphics/Region.h>
 #include <Fog/Graphics/Stroker.h>
 #include <Fog/Graphics/TextLayout.h>

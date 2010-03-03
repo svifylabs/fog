@@ -71,8 +71,8 @@ struct FOG_API ButtonBase : public Widget
   // [Event Map]
 
   FOG_EVENT_BEGIN()
-    FOG_EVENT_DEF(EV_CHECK            , onCheck           , CheckEvent     , OVERRIDE)
-    FOG_EVENT_DEF(EV_UNCHECK          , onUncheck         , CheckEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EVENT_CHECK            , onCheck           , CheckEvent     , OVERRIDE)
+    FOG_EVENT_DEF(EVENT_UNCHECK          , onUncheck         , CheckEvent     , OVERRIDE)
   FOG_EVENT_END()
 
 protected:

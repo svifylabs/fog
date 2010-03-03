@@ -449,10 +449,10 @@ void Object::onEvent(Event* e)
 {
   switch (e->getCode())
   {
-    case Fog::EV_CREATE:
+    case Fog::EVENT_CREATE:
       onCreate(reinterpret_cast<CreateEvent*>(e));
       break;
-    case Fog::EV_DESTROY:
+    case Fog::EVENT_DESTROY:
       onDestroy(reinterpret_cast<DestroyEvent*>(e));
       break;
   }

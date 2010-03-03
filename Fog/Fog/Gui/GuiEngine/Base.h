@@ -47,10 +47,10 @@ struct FOG_API BaseGuiEngine : public GuiEngine
   virtual ~BaseGuiEngine();
 
   // --------------------------------------------------------------------------
-  // [ID <-> UIWindow]
+  // [ID <-> GuiWindow]
   // --------------------------------------------------------------------------
 
-  //! Widget mapper (ID <-> UIWindow)
+  //! Widget mapper (ID <-> GuiWindow)
   typedef Hash<void*, GuiWindow*> WidgetMapper;
 
   virtual bool mapHandle(void* handle, GuiWindow* w);
@@ -130,11 +130,11 @@ struct FOG_API BaseGuiEngine : public GuiEngine
   virtual void doUpdateWindow(GuiWindow* window);
 
   // --------------------------------------------------------------------------
-  // [UIWindow Create / Destroy]
+  // [GuiWindow Create / Destroy]
   // --------------------------------------------------------------------------
 
-  virtual GuiWindow* createUIWindow(Widget* widget) = 0;
-  virtual void destroyUIWindow(GuiWindow* native) = 0;
+  virtual GuiWindow* createGuiWindow(Widget* widget) = 0;
+  virtual void destroyGuiWindow(GuiWindow* native) = 0;
 
   // --------------------------------------------------------------------------
   // [Event Handlers]
@@ -146,7 +146,7 @@ struct FOG_API BaseGuiEngine : public GuiEngine
   // [Members]
   // --------------------------------------------------------------------------
 
-  //! @brief ID <-> UIWindow mapper.
+  //! @brief ID <-> GuiWindow mapper.
   WidgetMapper _widgetMapper;
 
   //! @brief Circular list of dirty windows.
@@ -187,7 +187,7 @@ struct FOG_API BaseGuiEngine : public GuiEngine
 };
 
 // ============================================================================
-// [Fog::BaseUIWindow]
+// [Fog::BaseGuiWindow]
 // ============================================================================
 
 struct FOG_API BaseGuiWindow : public GuiWindow

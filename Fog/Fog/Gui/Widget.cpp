@@ -16,8 +16,8 @@
 #include <Fog/Graphics/Region.h>
 #include <Fog/Gui/Constants.h>
 #include <Fog/Gui/GuiEngine.h>
-#include <Fog/Gui/Layout.h>
-#include <Fog/Gui/LayoutItem.h>
+#include <Fog/Gui/Layout/Layout.h>
+#include <Fog/Gui/Layout/LayoutItem.h>
 #include <Fog/Gui/Widget_p.h>
 
 FOG_IMPLEMENT_OBJECT(Fog::Widget)
@@ -30,8 +30,8 @@ namespace Fog {
 
 Widget::Widget(uint32_t createFlags) :
   _parent(NULL),
-  _uiWindow(NULL),
-  _rect(0, 0, 0, 0),
+  _guiWindow(NULL),
+  _geometry(0, 0, 0, 0),
   _origin(0, 0),
   _layout(NULL),
   _layoutPolicy(0),
@@ -53,7 +53,7 @@ Widget::Widget(uint32_t createFlags) :
   // TODO ?
   _focusLink = NULL;
 
-  if (createFlags & GuiWindow::CreateUIWindow)
+  if (createFlags & WINDOW_NATIVE)
   {
     createWindow(createFlags);
   }
@@ -62,7 +62,7 @@ Widget::Widget(uint32_t createFlags) :
 Widget::~Widget()
 {
   deleteLayout();
-  if (_uiWindow) destroyWindow();
+  if (_guiWindow) destroyWindow();
 }
 
 // ============================================================================
@@ -123,14 +123,14 @@ bool Widget::_remove(sysuint_t index, Widget* w)
 }
 
 // ============================================================================
-// [Fog::Widget - UIWindow]
+// [Fog::Widget - GuiWindow]
 // ============================================================================
 
-GuiWindow* Widget::getClosestUIWindow() const
+GuiWindow* Widget::getClosestGuiWindow() const
 {
   Widget* w = const_cast<Widget*>(this);
   do {
-    if (w->_uiWindow) return w->_uiWindow;
+    if (w->_guiWindow) return w->_guiWindow;
     w = w->_parent;
   } while (w);
 
@@ -139,14 +139,14 @@ GuiWindow* Widget::getClosestUIWindow() const
 
 err_t Widget::createWindow(uint32_t createFlags)
 {
-  if (_uiWindow) return ERR_GUI_WINDOW_ALREADY_EXISTS;
+  if (_guiWindow) return ERR_GUI_WINDOW_ALREADY_EXISTS;
 
   GuiEngine* ge = Application::getInstance()->getGuiEngine();
-  if (ge == NULL) return ERR_GUI_NOT_INITIALIZED;
+  if (ge == NULL) return ERR_GUI_NO_ENGINE;
 
-  _uiWindow = ge->createUIWindow(this);
+  _guiWindow = ge->createGuiWindow(this);
 
-  err_t err = _uiWindow->create(createFlags);
+  err_t err = _guiWindow->create(createFlags);
   if (err) destroyWindow();
 
   return err;
@@ -154,50 +154,50 @@ err_t Widget::createWindow(uint32_t createFlags)
 
 err_t Widget::destroyWindow()
 {
-  if (!_uiWindow) return ERR_RT_INVALID_HANDLE;
+  if (!_guiWindow) return ERR_RT_INVALID_HANDLE;
 
-  delete _uiWindow;
-  _uiWindow = NULL;
+  delete _guiWindow;
+  _guiWindow = NULL;
   return true;
 }
 
 String Widget::getWindowTitle() const
 {
   String title;
-  if (_uiWindow) _uiWindow->getTitle(title);
+  if (_guiWindow) _guiWindow->getTitle(title);
   return title;
 }
 
 err_t Widget::setWindowTitle(const String& title)
 {
-  if (!_uiWindow) return ERR_RT_INVALID_HANDLE;
-  return _uiWindow->setTitle(title);
+  if (!_guiWindow) return ERR_RT_INVALID_HANDLE;
+  return _guiWindow->setTitle(title);
 }
 
 Image Widget::getWindowIcon() const
 {
   Image i;
-  if (_uiWindow) _uiWindow->getIcon(i);
+  if (_guiWindow) _guiWindow->getIcon(i);
   return i;
 }
 
 err_t Widget::setWindowIcon(const Image& icon)
 {
-  if (!_uiWindow) return ERR_RT_INVALID_HANDLE;
-  return _uiWindow->setIcon(icon);
+  if (!_guiWindow) return ERR_RT_INVALID_HANDLE;
+  return _guiWindow->setIcon(icon);
 }
 
 Point Widget::getWindowGranularity() const
 {
   Point sz(0, 0);
-  if (_uiWindow) _uiWindow->getSizeGranularity(sz);
+  if (_guiWindow) _guiWindow->getSizeGranularity(sz);
   return sz;
 }
 
 err_t Widget::setWindowGranularity(const Point& pt)
 {
-  if (!_uiWindow) return ERR_RT_INVALID_HANDLE;
-  return _uiWindow->setSizeGranularity(pt);
+  if (!_guiWindow) return ERR_RT_INVALID_HANDLE;
+  return _guiWindow->setSizeGranularity(pt);
 }
 
 // ============================================================================
@@ -206,11 +206,11 @@ err_t Widget::setWindowGranularity(const Point& pt)
 
 void Widget::setPosition(const Point& pt)
 {
-  if (_rect.getPosition() == pt) return;
+  if (_geometry.getPosition() == pt) return;
 
-  if (_uiWindow)
+  if (_guiWindow)
   {
-    _uiWindow->move(pt);
+    _guiWindow->move(pt);
   }
   else
   {
@@ -223,11 +223,11 @@ void Widget::setPosition(const Point& pt)
 
 void Widget::setSize(const Size& sz)
 {
-  if (_rect.getSize() == sz) return;
+  if (_geometry.getSize() == sz) return;
 
-  if (_uiWindow)
+  if (_guiWindow)
   {
-    _uiWindow->resize(sz);
+    _guiWindow->resize(sz);
   }
   else
   {
@@ -238,13 +238,13 @@ void Widget::setSize(const Size& sz)
   }
 }
 
-void Widget::setRect(const Rect& rect)
+void Widget::setGeometry(const Rect& rect)
 {
-  if (_rect == rect) return;
+  if (_geometry == rect) return;
 
-  if (_uiWindow)
+  if (_guiWindow)
   {
-    _uiWindow->reconfigure(rect);
+    _guiWindow->reconfigure(rect);
   }
   else
   {
@@ -265,7 +265,7 @@ void Widget::setOrigin(const Point& pt)
   _origin = pt;
   sendEvent(&e);
 
-  update(Widget::UFlagUpdateAll);
+  update(WIDGET_UPDATE_ALL);
 }
 
 bool Widget::worldToClient(Point* coords) const
@@ -274,7 +274,7 @@ bool Widget::worldToClient(Point* coords) const
 
   do {
     coords->translate(w->getOrigin());
-    if (w->_uiWindow) return w->_uiWindow->worldToClient(coords);
+    if (w->_guiWindow) return w->_guiWindow->worldToClient(coords);
     coords->translate(w->getPosition().negated());
     w = w->_parent;
   } while (w);
@@ -288,7 +288,7 @@ bool Widget::clientToWorld(Point* coords) const
 
   do {
     coords->translate(w->getOrigin());
-    if (w->_uiWindow) return w->_uiWindow->clientToWorld(coords);
+    if (w->_guiWindow) return w->_guiWindow->clientToWorld(coords);
     coords->translate(w->getPosition());
     w = w->_parent;
   } while (w);
@@ -305,15 +305,15 @@ bool Widget::translateCoordinates(Widget* to, Widget* from, Point* coords)
 
   // Traverse 'from' -> 'to'.
   w = from;
-  x = coords->getX();
-  y = coords->getY();
+  x = coords->x;
+  y = coords->y;
 
   while (w->_parent)
   {
-    x += w->getOrigin().getX();
-    y += w->getOrigin().getY();
-    x += w->getRect().getX();
-    y += w->getRect().getY();
+    x += w->_origin.x;
+    y += w->_origin.y;
+    x += w->_geometry.x;
+    y += w->_geometry.y;
 
     w = w->_parent;
 
@@ -326,15 +326,15 @@ bool Widget::translateCoordinates(Widget* to, Widget* from, Point* coords)
 
   // Traverse 'to' -> 'from'.
   w = to;
-  x = coords->getX();
-  y = coords->getY();
+  x = coords->x;
+  y = coords->y;
 
   while (w->_parent)
   {
-    x -= w->getOrigin().getX();
-    y -= w->getOrigin().getY();
-    x -= w->getRect().getX();
-    y -= w->getRect().getY();
+    x -= w->_origin.x;
+    y -= w->_origin.y;
+    x -= w->_geometry.x;
+    y -= w->_geometry.y;
 
     w = w->_parent;
 
@@ -358,12 +358,12 @@ Widget* Widget::hitTest(const Point& pt) const
   int x = pt.getX();
   int y = pt.getY();
 
-  if (x < 0 || y < 0 || x > _rect.getWidth() || y > _rect.getHeight()) return NULL;
+  if (x < 0 || y < 0 || x > _geometry.w || y > _geometry.h) return NULL;
 
   List<Widget*>::ConstIterator it(_children);
   for (it.toEnd(); it.isValid(); it.toPrevious())
   {
-    if (it.value()->_rect.contains(pt)) return it.value();
+    if (it.value()->_geometry.contains(pt)) return it.value();
   }
 
   return const_cast<Widget*>(this);
@@ -374,7 +374,7 @@ Widget* Widget::getChildAt(const Point& pt, bool recursive) const
   int x = pt.getX();
   int y = pt.getY();
 
-  if (x < 0 || y < 0 || x > _rect.getWidth() || y > _rect.getHeight()) return NULL;
+  if (x < 0 || y < 0 || x > _geometry.w || y > _geometry.h) return NULL;
 
   Widget* current = const_cast<Widget*>(this);
 
@@ -383,7 +383,7 @@ repeat:
     List<Widget*>::ConstIterator it(current->_children);
     for (it.toEnd(); it.isValid(); it.toPrevious())
     {
-      if (it.value()->_rect.contains(pt))
+      if (it.value()->_geometry.contains(pt))
       {
         current = it.value();
         x -= current->getX();
@@ -417,7 +417,7 @@ void Widget::setLayout(Layout* lay)
     _layout = lay;
     lay->_parentItem = this;
 
-    LayoutEvent e(EV_LAYOUT_SET);
+    LayoutEvent e(EVENT_LAYOUT_SET);
     this->sendEvent(&e);
     lay->sendEvent(&e);
 
@@ -442,7 +442,7 @@ Layout* Widget::takeLayout()
 
     invalidateLayout();
 
-    LayoutEvent e(EV_LAYOUT_REMOVE);
+    LayoutEvent e(EVENT_LAYOUT_REMOVE);
     lay->sendEvent(&e);
     this->sendEvent(&e);
   }
@@ -454,31 +454,34 @@ Layout* Widget::takeLayout()
 // [Layout Hints]
 // ============================================================================
 
-Size Widget::getSizeHint() const
+const LayoutHint& Widget::getLayoutHint() const
 {
-  return Size(-1, -1);
+  return (_layout) ? _layout->getLayoutHint() : _layoutHint;
 }
 
-void Widget::setSizeHint(const Size& sizeHint)
+void Widget::setLayoutHint(const LayoutHint& layoutHint)
 {
+  // GUI TODO:
+  if (_layout)
+  {
+    _layout->setLayoutHint(layoutHint);
+  }
+  else
+  {
+    if (_layoutHint == layoutHint) return;
+    _layoutHint = layoutHint;
+    invalidateLayout();
+  }
 }
 
-Size Widget::getMinimumSize() const
+const LayoutHint& Widget::getComputedLayoutHint() const
 {
-  return Size(-1, -1);
+  return _layout ? _layout->getComputedLayoutHint() : _layoutHint;
 }
 
-void Widget::setMinimumSize(const Size& minSize)
+void Widget::computeLayoutHint()
 {
-}
-
-Size Widget::getMaximumSize() const
-{
-  return Size(-1, -1);
-}
-
-void Widget::setMaximumSize(const Size& maxSize)
-{
+  if (_layout) _layout->computeLayoutHint();
 }
 
 // ============================================================================
@@ -549,12 +552,12 @@ void Widget::setEnabled(bool val)
   if ( val && _state != WIDGET_DISABLED) return;
   if (!val && _state == WIDGET_DISABLED) return;
 
-  if (_uiWindow)
+  if (_guiWindow)
   {
     if (val)
-      _uiWindow->enable();
+      _guiWindow->enable();
     else
-      _uiWindow->disable();
+      _guiWindow->disable();
   }
   else
   {
@@ -574,12 +577,12 @@ void Widget::setVisible(bool val)
   if ( val && _visibility != WIDGET_HIDDEN) return;
   if (!val && _visibility == WIDGET_HIDDEN) return;
 
-  if (_uiWindow)
+  if (_guiWindow)
   {
     if (val)
-      _uiWindow->show();
+      _guiWindow->show();
     else
-      _uiWindow->hide();
+      _guiWindow->hide();
   }
   else
   {
@@ -603,7 +606,7 @@ void Widget::setOrientation(uint32_t val)
   GuiEngine* ge = Application::getInstance()->getGuiEngine();
   if (!ge) return;
 
-  ge->dispatchConfigure(this, _rect, true);
+  ge->dispatchConfigure(this, _geometry, true);
 }
 
 // ============================================================================
@@ -685,7 +688,7 @@ Widget* Widget::_findFocus() const
 void Widget::setFont(const Font& font)
 {
   _font = font;
-  update(UFlagRepaintWidget | UFlagUpdateGeometry);
+  update(WIDGET_UPDATE_GEOMETRY | WIDGET_REPAINT_ALL);
 }
 
 // ============================================================================
@@ -695,27 +698,27 @@ void Widget::setFont(const Font& font)
 void Widget::update(uint32_t updateFlags)
 {
   uint32_t u = _uflags;
-  if ((u & updateFlags) == updateFlags || (u & UFlagUpdateAll)) return;
+  if ((u & updateFlags) == updateFlags || (u & WIDGET_UPDATE_ALL)) return;
 
-  _uflags |= updateFlags | UFlagUpdate;
+  _uflags |= updateFlags | WIDGET_UPDATE_SOMETHING;
 
-  if (u & UFlagUpdate) return;
+  if (u & WIDGET_UPDATE_SOMETHING) return;
 
-  if (_uiWindow)
+  if (_guiWindow)
   {
-    if (!_uiWindow->isDirty()) _uiWindow->setDirty();
+    if (!_guiWindow->isDirty()) _guiWindow->setDirty();
     return;
   }
 
-  // No UFlagUpdate nor UIWindow, traverse all parents up to UIWindow and
+  // No UFlagUpdate nor GuiWindow, traverse all parents up to GuiWindow and
   // set UFlagUpdateChild to all parents.
   Widget* w = _parent;
-  while (w && !(w->_uflags & (UFlagUpdateChild | UFlagUpdateAll)))
+  while (w && !(w->_uflags & (WIDGET_UPDATE_CHILD | WIDGET_UPDATE_ALL)))
   {
-    w->_uflags |= UFlagUpdateChild;
-    if (w->_uiWindow)
+    w->_uflags |= WIDGET_UPDATE_CHILD;
+    if (w->_guiWindow)
     {
-      if (!w->_uiWindow->isDirty()) w->_uiWindow->setDirty();
+      if (!w->_guiWindow->isDirty()) w->_guiWindow->setDirty();
       return;
     }
     w = w->_parent;
@@ -729,6 +732,16 @@ void Widget::update(uint32_t updateFlags)
 void Widget::repaint(uint32_t repaintFlags)
 {
   update(repaintFlags);
+}
+
+uint32_t Widget::getPaintHint() const
+{
+  return WIDGET_PAINT_SCREEN;
+}
+
+err_t Widget::getPropagatedRegion(Region* dst) const
+{
+  return dst->set(Box(0, 0, getWidth(), getHeight()));
 }
 
 // ============================================================================

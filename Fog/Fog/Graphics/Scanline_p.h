@@ -12,6 +12,9 @@
 #include <Fog/Core/Assert.h>
 #include <Fog/Graphics/Constants.h>
 
+//! @addtogroup Fog_Graphics_Private
+//! @{
+
 namespace Fog {
 
 // ============================================================================
@@ -175,6 +178,8 @@ private:
 };
 
 } // Fog namespace
+
+//! @}
 
 // [Guard]
 #endif // _FOG_GRAPHICS_SCANLINE_P_H

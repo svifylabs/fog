@@ -30,16 +30,22 @@ struct Painter;
 
 struct FOG_API ChildEvent : public Event
 {
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   ChildEvent(uint32_t code = 0, Widget* child = NULL);
   virtual ~ChildEvent();
 
+  // --------------------------------------------------------------------------
   // [Methods]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE Widget* child() const { return _child; }
 
+  // --------------------------------------------------------------------------
   // [Members]
+  // --------------------------------------------------------------------------
 
   Widget* _child;
 };
@@ -50,7 +56,9 @@ struct FOG_API ChildEvent : public Event
 
 struct FOG_API LayoutEvent : public Event
 {
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   LayoutEvent(uint32_t code = 0);
   virtual ~LayoutEvent();
@@ -62,7 +70,9 @@ struct FOG_API LayoutEvent : public Event
 
 struct FOG_API StateEvent : public Event
 {
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   StateEvent(uint32_t code = 0);
   virtual ~StateEvent();
@@ -74,7 +84,9 @@ struct FOG_API StateEvent : public Event
 
 struct FOG_API VisibilityEvent : public Event
 {
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   VisibilityEvent(uint32_t code = 0);
   virtual ~VisibilityEvent();
@@ -86,12 +98,16 @@ struct FOG_API VisibilityEvent : public Event
 
 struct FOG_API ConfigureEvent : public Event
 {
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   ConfigureEvent();
   virtual ~ConfigureEvent();
 
+  // --------------------------------------------------------------------------
   // [Methods]
+  // --------------------------------------------------------------------------
 
   enum CHANGED_FLAGS
   {
@@ -102,7 +118,7 @@ struct FOG_API ConfigureEvent : public Event
     CHANGED_ORIENTATION = (1 << 4)
   };
 
-  FOG_INLINE const Rect& getRect() const { return _rect; }
+  FOG_INLINE const Rect& getGeometry() const { return _geometry; }
   FOG_INLINE uint32_t getChangedFlags() const { return _changed; }
 
   FOG_INLINE bool isChangedPosition() const { return (_changed & CHANGED_POSITION) != 0; }
@@ -111,10 +127,12 @@ struct FOG_API ConfigureEvent : public Event
   FOG_INLINE bool isChangedWindowSize() const { return (_changed & CHANGED_WINDOW_SIZE) != 0; }
   FOG_INLINE bool isChangedOrientation() const { return (_changed & CHANGED_ORIENTATION) != 0; }
 
+  // --------------------------------------------------------------------------
   // [Members]
+  // --------------------------------------------------------------------------
 
   // TODO: Is this needed?
-  Rect _rect;
+  Rect _geometry;
   uint32_t _changed;
 };
 
@@ -124,16 +142,22 @@ struct FOG_API ConfigureEvent : public Event
 
 struct FOG_API OriginEvent : public Event
 {
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   OriginEvent();
   virtual ~OriginEvent();
 
+  // --------------------------------------------------------------------------
   // [Methods]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE const Point& getOrigin() const { return _origin; }
 
+  // --------------------------------------------------------------------------
   // [Members]
+  // --------------------------------------------------------------------------
 
   Point _origin;
 };
@@ -144,16 +168,22 @@ struct FOG_API OriginEvent : public Event
 
 struct FOG_API FocusEvent : public Event
 {
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   FocusEvent(uint32_t code = 0, uint32_t reason = FOCUS_REASON_NONE);
   virtual ~FocusEvent();
 
+  // --------------------------------------------------------------------------
   // [Members]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE uint32_t getReason() const { return _reason; }
 
+  // --------------------------------------------------------------------------
   // [Methods]
+  // --------------------------------------------------------------------------
 
   uint32_t _reason;
 };
@@ -164,12 +194,16 @@ struct FOG_API FocusEvent : public Event
 
 struct FOG_API KeyEvent : public Event
 {
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   KeyEvent(uint32_t code = 0);
   virtual ~KeyEvent();
 
+  // --------------------------------------------------------------------------
   // [Methods]
+  // --------------------------------------------------------------------------
 
   //! @brief Returns key code. See @c KEY_CODE enum for possible ones.
   FOG_INLINE uint32_t getKey() const { return _key; }
@@ -186,7 +220,9 @@ struct FOG_API KeyEvent : public Event
   //! @brief Get whether key was repeated by timer.
   FOG_INLINE bool isRepeated() const { return _isRepeated; }
 
+  // --------------------------------------------------------------------------
   // [Members]
+  // --------------------------------------------------------------------------
 
   //! @brief Key code.
   uint32_t _key;
@@ -206,12 +242,16 @@ struct FOG_API KeyEvent : public Event
 
 struct FOG_API MouseEvent : public Event
 {
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   MouseEvent(uint32_t code = 0);
   virtual ~MouseEvent();
 
+  // --------------------------------------------------------------------------
   // [Methods]
+  // --------------------------------------------------------------------------
 
   //! @brief Returns mouse button that was pressed or released.
   FOG_INLINE uint32_t getButton() const { return _button; }
@@ -229,7 +269,9 @@ struct FOG_API MouseEvent : public Event
   //! @brief Get whether key was repeated by timer.
   FOG_INLINE bool isRepeated() const { return _isRepeated; }
 
+  // --------------------------------------------------------------------------
   // [Members]
+  // --------------------------------------------------------------------------
 
   //! @brief Mouse button that was pressed or released. 
   //!
@@ -255,7 +297,9 @@ struct FOG_API MouseEvent : public Event
 
 struct FOG_API SelectionEvent : public Event
 {
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   SelectionEvent(uint32_t code = 0);
   virtual ~SelectionEvent();
@@ -267,20 +311,24 @@ struct FOG_API SelectionEvent : public Event
 
 struct FOG_API PaintEvent : public Event
 {
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   PaintEvent(uint32_t code = 0);
   virtual ~PaintEvent();
 
+  // --------------------------------------------------------------------------
   // [Methods]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE Painter* getPainter() const { return _painter; }
-  FOG_INLINE bool isParentPainted() const { return _isParentPainted; }
 
+  // --------------------------------------------------------------------------
   // [Members]
+  // --------------------------------------------------------------------------
 
   Painter* _painter;
-  bool _isParentPainted;
 };
 
 // ============================================================================
@@ -289,7 +337,9 @@ struct FOG_API PaintEvent : public Event
 
 struct FOG_API CloseEvent : public Event
 {
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   CloseEvent();
   virtual ~CloseEvent();
@@ -301,9 +351,11 @@ struct FOG_API CloseEvent : public Event
 
 struct FOG_API CheckEvent : public Event
 {
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
-  CheckEvent(uint32_t code = EV_CHECK);
+  CheckEvent(uint32_t code = EVENT_CHECK);
   virtual ~CheckEvent();
 
   // [Methods]
@@ -321,7 +373,9 @@ struct FOG_API CheckEvent : public Event
 
 struct FOG_API ThemeEvent : public Event
 {
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   ThemeEvent(uint32_t code);
   virtual ~ThemeEvent();

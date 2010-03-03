@@ -55,7 +55,7 @@ void MyWindow::onKeyPress(KeyEvent* e)
       break;
   }
 
-  repaint(RepaintWidget);
+  repaint(WIDGET_REPAINT_AREA);
   base::onKeyPress(e);
 }
 
@@ -127,7 +127,7 @@ FOG_GUI_MAIN()
   MyWindow window;
   window.setSize(Size(20 + 6 * 152 - 22, 20 + 4 * 152));
   window.show();
-  window.addListener(EV_CLOSE, &app, &Application::quit);
+  window.addListener(EVENT_CLOSE, &app, &Application::quit);
 
   return app.run();
 }

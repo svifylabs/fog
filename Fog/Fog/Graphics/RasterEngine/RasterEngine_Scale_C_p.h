@@ -36,7 +36,7 @@ struct FOG_HIDDEN ScaleC
   // [Scale]
   // --------------------------------------------------------------------------
 
-  static uint32_t** calcYPoints(uint32_t* src, int sw, int sh, int dh)
+  static FOG_NO_INLINE uint32_t** calcYPoints(uint32_t* src, int sw, int sh, int dh)
   {
     uint32_t** p;
     int i;
@@ -76,7 +76,7 @@ struct FOG_HIDDEN ScaleC
     return p;
   }
 
-  static int* calcXPoints(int sw, int dw)
+  static FOG_NO_INLINE int* calcXPoints(int sw, int dw)
   {
     int* p;
     int i;
@@ -116,7 +116,7 @@ struct FOG_HIDDEN ScaleC
     return p;
   }
 
-  static int* calcAPoints(int s, int d, int up)
+  static FOG_NO_INLINE int* calcAPoints(int s, int d, int up)
   {
     int* p;
     int i;

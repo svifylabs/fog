@@ -21,7 +21,7 @@ namespace Fog {
 // [Fog::Event]
 // ============================================================================
 
-static Atomic<uint32_t> uid_val = FOG_ATOMIC_SET(EV_UID);
+static Atomic<uint32_t> uid_val = FOG_ATOMIC_SET(EVENT_UID);
 
 void Event::run()
 {
@@ -77,7 +77,7 @@ uint32_t Event::uid()
 // [Fog::CreateEvent]
 // ============================================================================
 
-CreateEvent::CreateEvent() : Event(EV_CREATE)
+CreateEvent::CreateEvent() : Event(EVENT_CREATE)
 {
 }
 
@@ -85,7 +85,7 @@ CreateEvent::CreateEvent() : Event(EV_CREATE)
 // [Fog::DestroyEvent]
 // ============================================================================
 
-DestroyEvent::DestroyEvent()  : Event(EV_DESTROY)
+DestroyEvent::DestroyEvent()  : Event(EVENT_DESTROY)
 {
 }
 
@@ -99,7 +99,7 @@ void DestroyEvent::run()
 // ============================================================================
 
 TimerEvent::TimerEvent(Timer* timer) : 
-  Event(EV_TIMER),
+  Event(EVENT_TIMER),
   _timer(timer)
 {
 }
@@ -114,7 +114,7 @@ Event* TimerEvent::clone()
 // ============================================================================
 
 PropertyChangedEvent::PropertyChangedEvent(const String& name) :
-  Event(EV_CHANGE_PROPERTY),
+  Event(EVENT_CHANGE_PROPERTY),
   _name(name)
 {
 }

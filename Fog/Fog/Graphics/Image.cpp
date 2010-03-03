@@ -26,7 +26,7 @@
 #include <Fog/Graphics/RasterEngine_p.h>
 #include <Fog/Graphics/RasterEngine/RasterEngine_Bresenham_p.h>
 #include <Fog/Graphics/RasterEngine/RasterEngine_C_p.h>
-#include <Fog/Graphics/Reduce.h>
+#include <Fog/Graphics/Reduce_p.h>
 
 namespace Fog {
 
@@ -1296,7 +1296,7 @@ static err_t applyColorFilter(Image& im, const Box& box, ColorFilterFn fn, const
   sysuint_t y;
 
   uint8_t* cur = imData + (sysint_t)y1 * imStride + (sysint_t)x1 * imBpp;
-  for (y = (uint)h; y; y--, cur += imStride) fn(cur, cur, w, context);
+  for (y = (uint)h; y; y--, cur += imStride) fn(context, cur, cur, w);
 
   return ERR_OK;
 }
@@ -1345,7 +1345,7 @@ err_t Image::filter(const ColorMatrix& cm, const Rect* area)
 static err_t applyImageFilter(Image& im, const Box& box, const ImageFilter& filter)
 {
   // Never call applyImageFilter() with color filter, see applyColorFilter().
-  FOG_ASSERT((filter.getCharacteristics() & IMAGE_FILTER_COLOR_TRANSFORM) == 0);
+  FOG_ASSERT((filter.getCharacteristics() & IMAGE_FILTER_CHAR_COLOR_TRANSFORM) == 0);
 
   // Clip.
   int imgw = im.getWidth();
@@ -1365,7 +1365,7 @@ static err_t applyImageFilter(Image& im, const Box& box, const ImageFilter& filt
   int filterFormat = imgf;
   int filterCharacteristics = filter.getCharacteristics();
 
-  if ((filterCharacteristics & (IMAGE_FILTER_HV_PROCESSING | IMAGE_FILTER_ENTIRE_PROCESSING)) == 0)
+  if ((filterCharacteristics & (IMAGE_FILTER_CHAR_HV_PROCESSING | IMAGE_FILTER_CHAR_ENTIRE_PROCESSING)) == 0)
   {
     // NOP.
     return ERR_OK;
@@ -1385,7 +1385,7 @@ static err_t applyImageFilter(Image& im, const Box& box, const ImageFilter& filt
   uint8_t* imCur = imBegin;
 
   // Demultiply if needed.
-  if (imgf == PIXEL_FORMAT_PRGB32 && (filterCharacteristics & IMAGE_FILTER_SUPPORTS_PRGB32) == 0)
+  if (imgf == PIXEL_FORMAT_PRGB32 && (filterCharacteristics & IMAGE_FILTER_CHAR_SUPPORTS_PRGB32) == 0)
   {
     RasterEngine::VSpanFn conv = RasterEngine::functionMap->dib.convert[PIXEL_FORMAT_ARGB32][PIXEL_FORMAT_PRGB32];
     for (int y = h; y; y--, imCur += imStride) conv(imCur, imCur, w, NULL);
@@ -1395,45 +1395,45 @@ static err_t applyImageFilter(Image& im, const Box& box, const ImageFilter& filt
   }
 
   // Vertical & Horizontal processing.
-  if ((filterCharacteristics & IMAGE_FILTER_HV_PROCESSING) == IMAGE_FILTER_HV_PROCESSING)
+  if ((filterCharacteristics & IMAGE_FILTER_CHAR_HV_PROCESSING) == IMAGE_FILTER_CHAR_HV_PROCESSING)
   {
-    fn = filter.getEngine()->getImageFilterFn(filterFormat, IMAGE_FILTER_VERT_PROCESSING);
+    fn = filter.getEngine()->getImageFilterFn(filterFormat, IMAGE_FILTER_CHAR_VERT_PROCESSING);
     if (!fn) { err = ERR_IMAGE_UNSUPPORTED_FORMAT; goto end; }
 
-    fn(imCur, imStride, imCur, imStride, w, h, -1, context);
+    fn(context, imCur, imStride, imCur, imStride, w, h, -1);
 
-    fn = filter.getEngine()->getImageFilterFn(filterFormat, IMAGE_FILTER_HORZ_PROCESSING);
+    fn = filter.getEngine()->getImageFilterFn(filterFormat, IMAGE_FILTER_CHAR_HORZ_PROCESSING);
     if (!fn) { err = ERR_IMAGE_UNSUPPORTED_FORMAT; goto end; }
 
-    fn(imCur, imStride, imCur, imStride, w, h, -1, context);
+    fn(context, imCur, imStride, imCur, imStride, w, h, -1);
   }
   // Vertical processing only (one pass).
-  else if ((filterCharacteristics & IMAGE_FILTER_VERT_PROCESSING) != 0)
+  else if ((filterCharacteristics & IMAGE_FILTER_CHAR_VERT_PROCESSING) != 0)
   {
-    fn = filter.getEngine()->getImageFilterFn(filterFormat, IMAGE_FILTER_VERT_PROCESSING);
+    fn = filter.getEngine()->getImageFilterFn(filterFormat, IMAGE_FILTER_CHAR_VERT_PROCESSING);
     if (!fn) { err = ERR_IMAGE_UNSUPPORTED_FORMAT; goto end; }
 
-    fn(imCur, imStride, imCur, imStride, w, h, -1, context);
+    fn(context, imCur, imStride, imCur, imStride, w, h, -1);
   }
   // Horizontal processing only (one pass).
-  else if ((filterCharacteristics & IMAGE_FILTER_HORZ_PROCESSING) != 0)
+  else if ((filterCharacteristics & IMAGE_FILTER_CHAR_HORZ_PROCESSING) != 0)
   {
-    fn = filter.getEngine()->getImageFilterFn(filterFormat, IMAGE_FILTER_HORZ_PROCESSING);
+    fn = filter.getEngine()->getImageFilterFn(filterFormat, IMAGE_FILTER_CHAR_HORZ_PROCESSING);
     if (!fn) { err = ERR_IMAGE_UNSUPPORTED_FORMAT; goto end; }
 
-    fn(imCur, imStride, imCur, imStride, w, h, -1, context);
+    fn(context, imCur, imStride, imCur, imStride, w, h, -1);
   }
   // Entire processing (one pass).
-  else if ((filterCharacteristics & IMAGE_FILTER_ENTIRE_PROCESSING) != 0)
+  else if ((filterCharacteristics & IMAGE_FILTER_CHAR_ENTIRE_PROCESSING) != 0)
   {
-    fn = filter.getEngine()->getImageFilterFn(filterFormat, IMAGE_FILTER_ENTIRE_PROCESSING);
+    fn = filter.getEngine()->getImageFilterFn(filterFormat, IMAGE_FILTER_CHAR_ENTIRE_PROCESSING);
     if (!fn) { err = ERR_IMAGE_UNSUPPORTED_FORMAT; goto end; }
 
-    fn(imCur, imStride, imCur, imStride, w, h, -1, context);
+    fn(context, imCur, imStride, imCur, imStride, w, h, -1);
   }
 
   // Premultiply if demultiplied.
-  if (imgf == PIXEL_FORMAT_PRGB32 && (filterCharacteristics & IMAGE_FILTER_SUPPORTS_PRGB32) == 0)
+  if (imgf == PIXEL_FORMAT_PRGB32 && (filterCharacteristics & IMAGE_FILTER_CHAR_SUPPORTS_PRGB32) == 0)
   {
     RasterEngine::VSpanFn conv = RasterEngine::functionMap->dib.convert[PIXEL_FORMAT_PRGB32][PIXEL_FORMAT_ARGB32];
     for (int y = h; y; y--, imCur += imStride) conv(imCur, imCur, w, NULL);
@@ -1447,7 +1447,7 @@ end:
 err_t Image::filter(const ImageFilter& f, const Rect* area)
 {
   // Use optimized way for ColorFilter if image doest color transform.
-  if (f.getCharacteristics() & IMAGE_FILTER_COLOR_TRANSFORM)
+  if (f.getCharacteristics() & IMAGE_FILTER_CHAR_COLOR_TRANSFORM)
   {
     return filter(reinterpret_cast<const ColorFilter&>(f), area);
   }
@@ -2314,11 +2314,11 @@ err_t Image::writeFile(const String& fileName) const
 
 err_t Image::writeStream(Stream& stream, const String& extension) const
 {
-  ImageIO::Provider* provider = ImageIO::getProviderByExtension(IMAGEIO_DEVICE_ENCODER, extension);
+  ImageIO::Provider* provider = ImageIO::getProviderByExtension(IMAGE_IO_DEVICE_ENCODER, extension);
   if (provider != NULL)
   {
     ImageIO::EncoderDevice* encoder = NULL;
-    err_t err = provider->createDevice(IMAGEIO_DEVICE_ENCODER, 
+    err_t err = provider->createDevice(IMAGE_IO_DEVICE_ENCODER, 
       reinterpret_cast<ImageIO::BaseDevice**>(&encoder));
     if (err) return err;
 

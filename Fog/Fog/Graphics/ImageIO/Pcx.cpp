@@ -34,10 +34,10 @@ PcxProvider::PcxProvider()
   _name = fog_strings->getString(STR_GRAPHICS_PCX);
 
   // File type.
-  _fileType = IMAGEIO_FILE_PCX;
+  _fileType = IMAGE_IO_FILE_PCX;
 
   // Supported devices.
-  _deviceType = IMAGEIO_DEVICE_BOTH;
+  _deviceType = IMAGE_IO_DEVICE_BOTH;
 
   // Supported extensions.
   _imageExtensions.reserve(1);
@@ -71,10 +71,10 @@ err_t PcxProvider::createDevice(uint32_t deviceType, BaseDevice** device) const
 
   switch (deviceType)
   {
-    case IMAGEIO_DEVICE_DECODER:
+    case IMAGE_IO_DEVICE_DECODER:
       d = new(std::nothrow) PcxDecoderDevice(const_cast<PcxProvider*>(this));
       break;
-    case IMAGEIO_DEVICE_ENCODER:
+    case IMAGE_IO_DEVICE_ENCODER:
       d = new(std::nothrow) PcxEncoderDevice(const_cast<PcxProvider*>(this));
       break;
     default:
@@ -901,5 +901,5 @@ FOG_IMPLEMENT_OBJECT(Fog::ImageIO::PcxEncoderDevice)
 FOG_INIT_DECLARE void fog_imageio_init_pcx(void)
 {
   using namespace Fog;
-  ImageIO::addProvider(IMAGEIO_DEVICE_BOTH, new(std::nothrow) ImageIO::PcxProvider());
+  ImageIO::addProvider(IMAGE_IO_DEVICE_BOTH, new(std::nothrow) ImageIO::PcxProvider());
 }

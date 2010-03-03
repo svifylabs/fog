@@ -113,10 +113,10 @@ JpegProvider::JpegProvider()
   _name = fog_strings->getString(STR_GRAPHICS_JPEG);
 
   // File type.
-  _fileType = IMAGEIO_FILE_JPEG;
+  _fileType = IMAGE_IO_FILE_JPEG;
 
   // Supported devices.
-  _deviceType = IMAGEIO_DEVICE_BOTH;
+  _deviceType = IMAGE_IO_DEVICE_BOTH;
 
   // Supported extensions.
   _imageExtensions.reserve(4);
@@ -154,10 +154,10 @@ err_t JpegProvider::createDevice(uint32_t deviceType, BaseDevice** device) const
 
   switch (deviceType)
   {
-    case IMAGEIO_DEVICE_DECODER:
+    case IMAGE_IO_DEVICE_DECODER:
       d = new(std::nothrow) JpegDecoderDevice(const_cast<JpegProvider*>(this));
       break;
-    case IMAGEIO_DEVICE_ENCODER:
+    case IMAGE_IO_DEVICE_ENCODER:
       d = new(std::nothrow) JpegEncoderDevice(const_cast<JpegProvider*>(this));
       break;
     default:
@@ -770,7 +770,7 @@ FOG_INIT_DECLARE void fog_imageio_init_jpeg(void)
   using namespace Fog;
 
   ImageIO::JpegProvider* provider = new(std::nothrow) ImageIO::JpegProvider();
-  ImageIO::addProvider(IMAGEIO_DEVICE_BOTH, provider);
+  ImageIO::addProvider(IMAGE_IO_DEVICE_BOTH, provider);
 }
 
 #else

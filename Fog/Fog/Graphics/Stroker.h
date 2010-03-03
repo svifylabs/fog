@@ -113,7 +113,7 @@ struct FOG_HIDDEN StrokeParams
   }
 
   // --------------------------------------------------------------------------
-  // [Getters / Setters]
+  // [Accessors]
   // --------------------------------------------------------------------------
 
   FOG_INLINE double getLineWidth() const { return _lineWidth; }
@@ -187,7 +187,7 @@ struct FOG_API Stroker
   ~Stroker();
 
   // --------------------------------------------------------------------------
-  // [Getters / Setters]
+  // [Accessors]
   // --------------------------------------------------------------------------
 
   FOG_INLINE const StrokeParams& getParams() const { return _params; }

@@ -31,7 +31,7 @@ FOG_IMPLEMENT_OBJECT(Fog::X11GuiEngine)
 FOG_IMPLEMENT_OBJECT(Fog::X11GuiWindow)
 
 // Enabled by default.
-#define FOG_UIBACKINGSTORE_FORCE_PIXMAP
+#define FOG_X11BACKBUFFER_FORCE_PIXMAP
 
 namespace Fog {
 
@@ -43,12 +43,12 @@ namespace Fog {
   reinterpret_cast<X11GuiEngine*>(Application::getInstance()->getGuiEngine())
 
 // ============================================================================
-// [Fog::X11UIEngine - Error]
+// [Fog::X11GuiEngine - Error]
 // ============================================================================
 
 static int X11_IOErrorHandler(XDisplay* d)
 {
-  fog_fail("Fog::X11UIEngine::IOErrorHandler() - Fatal error");
+  fog_fail("Fog::X11GuiEngine::IOErrorHandler() - Fatal error");
 
   // be quite
   return 0;
@@ -64,7 +64,7 @@ static int X11_ErrorHandler(XDisplay* d, XErrorEvent* e)
 }
 
 // ============================================================================
-// [Fog::X11UIEngine - Functions in libX11, libXext, libXrender]
+// [Fog::X11GuiEngine - Functions in libX11, libXext, libXrender]
 // ============================================================================
 
 // Function names in libX
@@ -178,7 +178,7 @@ static const char X11_xrenderFunctionNames[] =
 };
 
 // ============================================================================
-// [Fog::X11UIEngine - Atoms]
+// [Fog::X11GuiEngine - Atoms]
 // ============================================================================
 
 // XAtom names, order specified in Wde/Gui/Application.h
@@ -288,10 +288,10 @@ static const char *X11_atomNames[X11GuiEngine::Atom_Count] =
 };
 
 // ============================================================================
-// [Fog::X11UIEngine - Helpers]
+// [Fog::X11GuiEngine - Helpers]
 // ============================================================================
 
-static void X11UIEngine_sendClientMessage(X11GuiEngine* uiSystem, XWindow win, long mask, long l0, long l1, long l2, long l3, long l4)
+static void X11GuiEngine_sendClientMessage(X11GuiEngine* uiSystem, XWindow win, long mask, long l0, long l1, long l2, long l3, long l4)
 {
   XClientMessageEvent xe;
 
@@ -309,7 +309,7 @@ static void X11UIEngine_sendClientMessage(X11GuiEngine* uiSystem, XWindow win, l
 }
 
 // ============================================================================
-// [Fog::X11UIEngine - Registration]
+// [Fog::X11GuiEngine - Registration]
 // ============================================================================
 
 void X11GuiEngine::registerGuiEngine()
@@ -319,7 +319,7 @@ void X11GuiEngine::registerGuiEngine()
 }
 
 // ============================================================================
-// [Fog::X11UIEngine - Construction / Destruction]
+// [Fog::X11GuiEngine - Construction / Destruction]
 // ============================================================================
 
 X11GuiEngine::X11GuiEngine()
@@ -349,27 +349,27 @@ X11GuiEngine::X11GuiEngine()
   // Open X11, Xext and Xrender libraries.
   if ( (err = loadLibraries()) )
   {
-    fog_stderr_msg("Fog::X11UIEngine", "X11UIEngine", "Can't load X11 libraries.");
+    fog_stderr_msg("Fog::X11GuiEngine", "X11GuiEngine", "Can't load X11 libraries.");
     return;
   }
 
   // X locale support.
   if (!pXSupportsLocale())
   {
-    fog_stderr_msg("Fog::X11UIEngine", "X11UIEngine", "X does not support locale.");
+    fog_stderr_msg("Fog::X11GuiEngine", "X11GuiEngine", "X does not support locale.");
   }
   else
   {
     char* localeModifiers;
     if ( !(localeModifiers = pXSetLocaleModifiers("")) )
     {
-      fog_stderr_msg("Fog::X11UIEngine", "X11UIEngine", "Can't set X locale modifiers.");
+      fog_stderr_msg("Fog::X11GuiEngine", "X11GuiEngine", "Can't set X locale modifiers.");
     }
   }
 
   if ((_display = pXOpenDisplay("")) == NULL)
   {
-    fog_stderr_msg("Fog::X11UIEngine", "X11UIEngine", "Can't open display.");
+    fog_stderr_msg("Fog::X11GuiEngine", "X11GuiEngine", "Can't open display.");
     err = ERR_GUI_CANT_OPEN_DISPLAY;
     return;
   }
@@ -390,7 +390,7 @@ X11GuiEngine::X11GuiEngine()
   // Create wakeup pipe.
   if (pipe(_wakeUpPipe) < 0)
   {
-    fog_debug("Fog::X11UIEngine::X11UIEngine() - Can't create wakeup pipe (errno=%d).", errno);
+    fog_debug("Fog::X11GuiEngine::X11GuiEngine() - Can't create wakeup pipe (errno=%d).", errno);
     err = ERR_GUI_CANT_CREATE_PIPE;
     goto fail;
   }
@@ -406,7 +406,7 @@ X11GuiEngine::X11GuiEngine()
   // Alloc colormap for 4, 8 bit depth
   if (_displayInfo.depth <= 8 && !createColormap())
   {
-    fog_debug("Fog::X11UIEngine::X11UIEngine() - Can't create colormap.");
+    fog_debug("Fog::X11GuiEngine::X11GuiEngine() - Can't create colormap.");
     err = ERR_GUI_CANT_CREATE_COLORMAP;
     goto fail;
   }
@@ -429,7 +429,7 @@ X11GuiEngine::X11GuiEngine()
   initMouse();
 
   // Finally add the event loop type into application. Event loop will be
-  // instantiated by application after UIEngine was properly constructed.
+  // instantiated by application after GuiEngine was properly constructed.
   Application::registerEventLoopType<X11GuiEventLoop>(Ascii8("Gui.X11"));
 
   _initialized = true;
@@ -441,7 +441,7 @@ fail:
 
 X11GuiEngine::~X11GuiEngine()
 {
-  // We don't want that event loop is available after X11UIEngine was destroyed.
+  // We don't want that event loop is available after X11GuiEngine was destroyed.
   Application::unregisterEventLoop(Fog::Ascii8("Gui.X11"));
 
   // Close display and free X resources.
@@ -459,7 +459,7 @@ X11GuiEngine::~X11GuiEngine()
 }
 
 // ============================================================================
-// [Fog::X11UIEngine - Display]
+// [Fog::X11GuiEngine - Display]
 // ============================================================================
 
 void X11GuiEngine::updateDisplayInfo()
@@ -475,7 +475,7 @@ void X11GuiEngine::updateDisplayInfo()
 }
 
 // ============================================================================
-// [Fog::X11UIEngine - Update]
+// [Fog::X11GuiEngine - Update]
 // ============================================================================
 
 void X11GuiEngine::doUpdate()
@@ -491,7 +491,7 @@ void X11GuiEngine::doBlitWindow(GuiWindow* window, const Box* rects, sysuint_t c
 }
 
 // ============================================================================
-// [Fog::X11UIEngine - X11 Keyboard]
+// [Fog::X11GuiEngine - X11 Keyboard]
 // ============================================================================
 
 void X11GuiEngine::initKeyboard()
@@ -669,7 +669,7 @@ uint32_t X11GuiEngine::translateXSym(KeySym xsym) const
 }
 
 // ============================================================================
-// [Fog::X11UIEngine - X11 Mouse]
+// [Fog::X11GuiEngine - X11 Mouse]
 // ============================================================================
 
 void X11GuiEngine::initMouse()
@@ -702,7 +702,7 @@ uint32_t X11GuiEngine::translateButton(uint x11Button) const
 }
 
 // ============================================================================
-// [Fog::X11UIEngine - X11 ColorMap]
+// [Fog::X11GuiEngine - X11 ColorMap]
 // ============================================================================
 
 bool X11GuiEngine::createColormap()
@@ -857,21 +857,21 @@ void X11GuiEngine::freeRGB(XColormap colormap, const uint8_t* palconv, uint coun
 }
 
 // ============================================================================
-// [Fog::X11UIEngine - UIWindow]
+// [Fog::X11GuiEngine - GuiWindow]
 // ============================================================================
 
-GuiWindow* X11GuiEngine::createUIWindow(Widget* widget)
+GuiWindow* X11GuiEngine::createGuiWindow(Widget* widget)
 {
   return new(std::nothrow) X11GuiWindow(widget);
 }
 
-void X11GuiEngine::destroyUIWindow(GuiWindow* native)
+void X11GuiEngine::destroyGuiWindow(GuiWindow* native)
 {
   delete native;
 }
 
 // ============================================================================
-// [Fog::X11UIEngine - X11 API]
+// [Fog::X11GuiEngine - X11 API]
 // ============================================================================
 
 err_t X11GuiEngine::loadLibraries()
@@ -916,7 +916,7 @@ err_t X11GuiEngine::loadLibraries()
 }
 
 // ============================================================================
-// [Fog::X11UIEngine - WM Support]
+// [Fog::X11GuiEngine - WM Support]
 // ============================================================================
 
 XID X11GuiEngine::getWmClientLeader()
@@ -937,7 +937,7 @@ XID X11GuiEngine::getWmClientLeader()
 }
 
 // ============================================================================
-// [Fog::X11UIWindow]
+// [Fog::X11GuiWindow]
 // ============================================================================
 
 X11GuiWindow::X11GuiWindow(Widget* widget) :
@@ -975,16 +975,16 @@ err_t X11GuiWindow::create(uint32_t createFlags)
 
   XSetWindowAttributes attr;
 
-  if ((createFlags & GuiWindow::X11OnlyPropertyChangeMask) == 0)
+  if ((createFlags & WINDOW_X11_PROPERTY_ONLY) == 0)
   {
     ulong attr_mask;
 
     attr.backing_store = NotUseful;
-    attr.override_redirect = (createFlags & GuiWindow::X11OverrideRedirect) != 0;
+    attr.override_redirect = (createFlags & WINDOW_X11_OVERRIDE_REDIRECT) != 0;
     attr.colormap = uiSystem->getColormap();
     attr.border_pixel = 0;
     attr.background_pixel = XNone;
-    attr.save_under = (createFlags & GuiWindow::CreatePopup) != 0;
+    attr.save_under = (createFlags & WINDOW_POPUP) != 0;
     attr.event_mask =
       StructureNotifyMask      | ButtonPressMask    |
       ButtonReleaseMask        | PointerMotionMask  |
@@ -1024,7 +1024,7 @@ err_t X11GuiWindow::create(uint32_t createFlags)
     _inputOnly = true;
   }
 
-  // Create XID <-> UIWindow* connection.
+  // Create XID <-> GuiWindow* connection.
   uiSystem->mapHandle(_handle, this);
 
   // Window protocols.
@@ -1112,7 +1112,7 @@ err_t X11GuiWindow::destroy()
   uiSystem->pXDestroyIC(_xic);
   uiSystem->pXDestroyWindow(uiSystem->getDisplay(), (XID)getHandle());
 
-  // Destroy XID <-> UIWindow* connection.
+  // Destroy XID <-> GuiWindow* connection.
   uiSystem->unmapHandle(_handle);
 
   // Clear all variables.
@@ -1355,10 +1355,10 @@ void X11GuiWindow::onX11Event(XEvent* xe)
   switch (xe->xany.type)
   {
     case XCreateNotify:
-      fog_debug("Fog::X11UIWindow::onX11Event() - Create notify");
+      fog_debug("Fog::X11GuiWindow::onX11Event() - Create notify");
       break;
     case XDestroyNotify:
-      fog_debug("Fog::X11UIWindow::onX11Event() - Destroy notify");
+      fog_debug("Fog::X11GuiWindow::onX11Event() - Destroy notify");
       break;
 
     case XMapNotify:
@@ -1377,7 +1377,7 @@ void X11GuiWindow::onX11Event(XEvent* xe)
       break;
 
     case XConfigureRequest:
-      fog_debug("Fog::X11UIWindow::onX11Event() - Configure request: %d %d", xe->xconfigurerequest.x, xe->xconfigurerequest.y);
+      fog_debug("Fog::X11GuiWindow::onX11Event() - Configure request: %d %d", xe->xconfigurerequest.x, xe->xconfigurerequest.y);
       break;
 
     case XConfigureNotify:
@@ -1432,7 +1432,7 @@ void X11GuiWindow::onX11Event(XEvent* xe)
         switch (status)
         {
           case XBufferOverflow:
-            fog_debug("Fog::X11UIWindow::onX11Event() - 'KeyPress', Buffer too small (XIC)");
+            fog_debug("Fog::X11GuiWindow::onX11Event() - 'KeyPress', Buffer too small (XIC)");
             // I don't know if this is possible when we have
             // buffer for 31 characters, if this error occurs,
             // we will skip this event.
@@ -1572,7 +1572,7 @@ __keyPressNoXIC:
           {
             if (xe->xclient.window != uiSystem->_root)
             {
-              X11UIEngine_sendClientMessage(
+              X11GuiEngine_sendClientMessage(
                 uiSystem, uiSystem->_root,
                 SubstructureNotifyMask | SubstructureRedirectMask,
                 xe->xclient.data.l[0],
@@ -1604,7 +1604,7 @@ void X11GuiWindow::setMoveableHints()
   uiSystem->pXSetNormalHints(uiSystem->getDisplay(), (XID)getHandle(), &hints);
 }
 // ============================================================================
-// [Fog::X11UIBackingStore]
+// [Fog::X11GuiBackBuffer]
 // ============================================================================
 
 X11GuiBackBuffer::X11GuiBackBuffer()
@@ -1639,22 +1639,19 @@ bool X11GuiBackBuffer::resize(int width, int height, bool cache)
   {
     if (cache)
     {
-      if (width <= _widthOrig && height <= _heightOrig)
+      if (width <= _cachedWidth && height <= _cachedHeight)
       {
-        // Cached, here can be debug counter to create
-        // statistics about usability of that
-        _width = width;
-        _height = height;
+        // Cached.
+        _buffer.width = width;
+        _buffer.height = height;
         return true;
       }
 
-      // Don't create smaller buffer that previous!
-      targetWidth  = width;
-      targetHeight = height;
+      // Don't create smaller buffer than previous was!
+      targetWidth  = Math::max<int>(width, _cachedWidth);
+      targetHeight = Math::max<int>(height, _cachedHeight);
 
-      if (targetWidth  < _width)  targetWidth  = _width;
-      if (targetHeight < _height) targetHeight = _height;
-
+      // Cache using 128x128 blocks.
       targetWidth  = (targetWidth  + 127) & ~127;
       targetHeight = (targetHeight + 127) & ~127;
     }
@@ -1671,7 +1668,7 @@ bool X11GuiBackBuffer::resize(int width, int height, bool cache)
       case TYPE_NONE:
         break;
 
-      case TYPE_XSHM_PIXMAP:
+      case TYPE_X11_XSHM_PIXMAP:
         uiSystem->pXShmDetach(uiSystem->getDisplay(), &_shmi);
         uiSystem->pXSync(uiSystem->getDisplay(), False);
 
@@ -1680,23 +1677,23 @@ bool X11GuiBackBuffer::resize(int width, int height, bool cache)
 
         uiSystem->pXFreePixmap(uiSystem->getDisplay(), _pixmap);
 
-        if (_pixelsSecondary) Memory::free(_pixelsSecondary);
+        if (_secondaryPixels) Memory::free(_secondaryPixels);
         break;
 
-      case TYPE_XIMAGE:
-      case TYPE_XIMAGE_WITH_PIXMAP:
+      case TYPE_X11_XIMAGE:
+      case TYPE_X11_XIMAGE_WITH_PIXMAP:
         // We want to free image data ourselves
-        Memory::free(_pixelsPrimary);
+        Memory::free(_primaryPixels);
         _ximage->data = NULL;
 
         uiSystem->pXDestroyImage(_ximage);
-#if defined(FOG_UIBACKINGSTORE_FORCE_PIXMAP)
-        if (_type == TYPE_XIMAGE_WITH_PIXMAP)
+#if defined(FOG_X11BACKBUFFER_FORCE_PIXMAP)
+        if (_type == TYPE_X11_XIMAGE_WITH_PIXMAP)
         {
           uiSystem->pXFreePixmap(uiSystem->getDisplay(), _pixmap);
         }
 #endif
-        if (_pixelsSecondary) Memory::free(_pixelsSecondary);
+        if (_secondaryPixels) Memory::free(_secondaryPixels);
         break;
     }
   }
@@ -1718,13 +1715,13 @@ bool X11GuiBackBuffer::resize(int width, int height, bool cache)
     {
       if ((_shmi.shmid = shmget(IPC_PRIVATE, targetSize, IPC_CREAT | IPC_EXCL | 0666)) < 0)
       {
-        fog_stderr_msg("Fog::X11UIBackingStore", "resize", "shmget() failed: %s", strerror(errno));
+        fog_stderr_msg("Fog::X11GuiBackBuffer", "resize", "shmget() failed: %s", strerror(errno));
         goto __tryImage;
       }
 
       if ((_shmi.shmaddr = (char *)shmat(_shmi.shmid, NULL, 0)) == NULL)
       {
-        fog_stderr_msg("Fog::X11UIBackingStore", "resize", "shmat() failed: %s", strerror(errno));
+        fog_stderr_msg("Fog::X11GuiBackBuffer", "resize", "shmat() failed: %s", strerror(errno));
         shmctl(_shmi.shmid, IPC_RMID, NULL);
         goto __tryImage;
       }
@@ -1743,8 +1740,8 @@ bool X11GuiBackBuffer::resize(int width, int height, bool cache)
         targetWidth, targetHeight,
         uiSystem->_displayInfo.depth);
 
-      _type = TYPE_XSHM_PIXMAP;
-      _pixelsPrimary = (uint8_t*)_shmi.shmaddr;
+      _type = TYPE_X11_XSHM_PIXMAP;
+      _primaryPixels = (uint8_t*)_shmi.shmaddr;
     }
 
     // TypeXImage
@@ -1752,10 +1749,10 @@ bool X11GuiBackBuffer::resize(int width, int height, bool cache)
     {
 __tryImage:
       // try to alloc image data
-      _pixelsPrimary = (uint8_t*)Memory::alloc(targetSize);
-      if (!_pixelsPrimary)
+      _primaryPixels = (uint8_t*)Memory::alloc(targetSize);
+      if (!_primaryPixels)
       {
-        fog_stderr_msg("Fog::X11UIBackingStore", "resize", "Memory allocation error %s", strerror(errno));
+        fog_stderr_msg("Fog::X11GuiBackBuffer", "resize", "Memory allocation error %s", strerror(errno));
         goto fail;
       }
 
@@ -1764,17 +1761,17 @@ __tryImage:
         uiSystem->getDisplay(),
         uiSystem->getVisual(),
         uiSystem->_displayInfo.depth,
-        ZPixmap, 0, (char *)_pixelsPrimary,
+        ZPixmap, 0, (char *)_primaryPixels,
         targetWidth, targetHeight,
         32, targetStride);
 
       if (!_ximage)
       {
-        fog_stderr_msg("Fog::X11UIBackingStore", "resize", "XCreateImage() failed");
-        Memory::free(_pixelsPrimary);
+        fog_stderr_msg("Fog::X11GuiBackBuffer", "resize", "XCreateImage() failed");
+        Memory::free(_primaryPixels);
         goto fail;
       }
-#if defined(FOG_UIBACKINGSTORE_FORCE_PIXMAP)
+#if defined(FOG_X11BACKBUFFER_FORCE_PIXMAP)
       // this step should be optional, but can increase performance
       // on remote machines (local machines should use XSHM extension)
       _pixmap = uiSystem->pXCreatePixmap(
@@ -1784,10 +1781,10 @@ __tryImage:
         uiSystem->_displayInfo.depth);
 
       if (_pixmap)
-        _type = TYPE_XIMAGE_WITH_PIXMAP;
+        _type = TYPE_X11_XIMAGE_WITH_PIXMAP;
       else
 #endif
-        _type = TYPE_XIMAGE;
+        _type = TYPE_X11_XIMAGE;
     }
 
     if (_type != TYPE_NONE)
@@ -1795,11 +1792,11 @@ __tryImage:
       _createdTime = TimeTicks::now();
       _expireTime = _createdTime + TimeDelta::fromSeconds(15);
 
-      _format = PIXEL_FORMAT_XRGB32;
+      _buffer.format = PIXEL_FORMAT_XRGB32;
 
-      _stridePrimary = targetStride;
-      _widthOrig = targetWidth;
-      _heightOrig = targetHeight;
+      _primaryStride = targetStride;
+      _cachedWidth = targetWidth;
+      _cachedHeight = targetHeight;
 
       // Now image is created and we must check if we have correct
       // depth and pixel format, if not, we must create secondary
@@ -1809,13 +1806,12 @@ __tryImage:
       if (targetStride != secondaryStride)
       {
         // Alloc extra buffer.
-        _pixelsSecondary = (uint8_t*)Memory::alloc(secondaryStride * targetHeight);
-        _strideSecondary = secondaryStride;
+        _secondaryPixels = (uint8_t*)Memory::alloc(secondaryStride * targetHeight);
+        _secondaryStride = secondaryStride;
 
-        if (!_pixelsSecondary)
+        if (!_secondaryPixels)
         {
-          fog_stderr_msg("Fog::X11UIBackingStore", "resize",
-            "Can't create secondary backing store buffer");
+          fog_stderr_msg("Fog::X11GuiBackBuffer", "resize", "Can't create secondary backing store buffer");
         }
 
         _convertFunc = NULL;
@@ -1884,28 +1880,28 @@ __tryImage:
 
         if (!_convertFunc)
         {
-          fog_stderr_msg("Fog::X11UIBackingStore", "resize",
-            "Not available converter for %d bit depth", targetDepth);
+          fog_stderr_msg("Fog::X11GuiBackBuffer", "resize", "Not available converter for %d bit depth", targetDepth);
         }
 
-        _pixels = _pixelsSecondary;
-        _width = width;
-        _height = height;
-        _stride = _strideSecondary;
+        _buffer.data = _secondaryPixels;
+        _buffer.width = width;
+        _buffer.height = height;
+        _buffer.stride = _secondaryStride;
+
         return true;
       }
       else
       {
-        // Extra buffer not used.
-        _pixelsSecondary = NULL;
-        _strideSecondary = 0;
-
         _convertFunc = NULL;
 
-        _pixels = _pixelsPrimary;
-        _width = width;
-        _height = height;
-        _stride = _stridePrimary;
+        _buffer.data = _primaryPixels;
+        _buffer.width = width;
+        _buffer.height = height;
+        _buffer.stride = _primaryStride;
+
+        // Secondary buffer not used.
+        _secondaryPixels = NULL;
+        _secondaryStride = 0;
 
         return true;
       }
@@ -1930,18 +1926,18 @@ void X11GuiBackBuffer::updateRects(const Box* rects, sysuint_t count)
 
   // If there is secondary buffer, we need to convert it to primary
   // one that has same depth and pixel format as X display.
-  if (_pixelsSecondary && _convertFunc)
+  if (_secondaryPixels && _convertFunc)
   {
     sysuint_t i;
 
     int bufw = getWidth();
     int bufh = getHeight();
 
-    sysint_t dstStride = _stridePrimary;
-    sysint_t srcStride = _strideSecondary;
+    sysint_t dstStride = _primaryStride;
+    sysint_t srcStride = _secondaryStride;
 
-    uint8_t* dstBase = _pixelsPrimary;
-    uint8_t* srcBase = _pixelsSecondary;
+    uint8_t* dstBase = _primaryPixels;
+    uint8_t* srcBase = _secondaryPixels;
 
     const uint8_t* palConv = uiSystem->_paletteInfo.palConv;
 
@@ -2019,7 +2015,7 @@ void X11GuiBackBuffer::updateRects(const Box* rects, sysuint_t count)
   // Possible secondary step is to put XImage to Pixmap here, because
   // it can increase performance on remote machines. Idea is to do
   // put XImage here instead in blitRects() method.
-  if (_type == TYPE_XIMAGE_WITH_PIXMAP)
+  if (_type == TYPE_X11_XIMAGE_WITH_PIXMAP)
   {
     for (sysuint_t i = 0; i != count; i++)
     {
@@ -2051,8 +2047,8 @@ void X11GuiBackBuffer::blitRects(XID target, const Box* rects, sysuint_t count)
       break;
 
     // These ones uses pixmap as X resource
-    case TYPE_XSHM_PIXMAP:
-    case TYPE_XIMAGE_WITH_PIXMAP:
+    case TYPE_X11_XSHM_PIXMAP:
+    case TYPE_X11_XIMAGE_WITH_PIXMAP:
       for (i = 0; i != count; i++)
       {
         int x = rects[i].getX();
@@ -2071,7 +2067,7 @@ void X11GuiBackBuffer::blitRects(XID target, const Box* rects, sysuint_t count)
       }
       break;
 
-    case TYPE_XIMAGE:
+    case TYPE_X11_XIMAGE:
       for (i = 0; i != count; i++)
       {
         int x = rects[i].getX();

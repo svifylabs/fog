@@ -463,7 +463,7 @@ Set(FOG_GRAPHICS_LIB_HEADERS
   Fog/Graphics/Pattern.h
   Fog/Graphics/RasterEngine_p.h
   Fog/Graphics/Rasterizer_p.h
-  Fog/Graphics/Reduce.h
+  Fog/Graphics/Reduce_p.h
   Fog/Graphics/Region.h
   Fog/Graphics/Scanline_p.h
   Fog/Graphics/Stroker.h
@@ -633,15 +633,16 @@ SOURCE_GROUP(Svg FILES ${FOG_SVG_LIB_SOURCES} ${FOG_SVG_LIB_HEADERS})
 # =============================================================================
 
 Set(FOG_GUI_LIB_SOURCES
-  Fog/Gui/BoxLayout.cpp
   Fog/Gui/Button.cpp
   Fog/Gui/ButtonBase.cpp
   Fog/Gui/CheckBox.cpp
   Fog/Gui/Composite.cpp
   Fog/Gui/Event.cpp
   Fog/Gui/GuiEngine.cpp
-  Fog/Gui/Layout.cpp
-  Fog/Gui/LayoutItem.cpp
+  Fog/Gui/Layout/BoxLayout.cpp
+  Fog/Gui/Layout/Layout.cpp
+  Fog/Gui/Layout/LayoutHint.cpp
+  Fog/Gui/Layout/LayoutItem.cpp
   Fog/Gui/Theme.cpp
   Fog/Gui/Widget.cpp
   Fog/Gui/Window.cpp
@@ -649,7 +650,6 @@ Set(FOG_GUI_LIB_SOURCES
 
 Set(FOG_GUI_LIB_HEADERS
   Fog/Gui.h
-  Fog/Gui/BoxLayout.h
   Fog/Gui/Button.h
   Fog/Gui/ButtonBase.h
   Fog/Gui/CheckBox.h
@@ -657,8 +657,10 @@ Set(FOG_GUI_LIB_HEADERS
   Fog/Gui/Constants.h
   Fog/Gui/Event.h
   Fog/Gui/GuiEngine.h
-  Fog/Gui/Layout.h
-  Fog/Gui/LayoutItem.h
+  Fog/Gui/Layout/BoxLayout.h
+  Fog/Gui/Layout/Layout.h
+  Fog/Gui/Layout/LayoutHint.h
+  Fog/Gui/Layout/LayoutItem.h
   Fog/Gui/Theme.h
   Fog/Gui/Widget.h
   Fog/Gui/Widget_p.h
@@ -817,3 +819,4 @@ If(FOG_BUILD_BENCH)
     Target_Link_Libraries(FogBench cairo)
   EndIf(NOT WIN32)
 EndIf(FOG_BUILD_BENCH)
+

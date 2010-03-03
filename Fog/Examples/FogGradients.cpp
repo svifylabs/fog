@@ -34,7 +34,7 @@ MyWindow::~MyWindow()
 
 void MyWindow::onPaint(PaintEvent* e)
 {
-  static const char* spread_names[] = { "pad", "repeat", "reflect" };
+  static const char* spread_names[] = { "none", "pad", "repeat", "reflect" };
 
   Painter* p = e->getPainter();
 
@@ -53,7 +53,7 @@ void MyWindow::onPaint(PaintEvent* e)
   pat.addStop(ArgbStop(0.5, 0xFFFFFF00));
   pat.addStop(ArgbStop(1.0, 0xFF000000));
 
-  for (int y = 0; y < 3; y++)
+  for (int y = 0; y < 4; y++)
   {
     pat.setType(PATTERN_LINEAR_GRADIENT);
     pat.setSpread(y);
@@ -111,9 +111,9 @@ FOG_GUI_MAIN()
   Application app(Ascii8("Gui"));
 
   MyWindow window;
-  window.setSize(Size(800, 500));
+  window.setSize(Size(800, 640));
   window.show();
-  window.addListener(EV_CLOSE, &app, &Application::quit);
+  window.addListener(EVENT_CLOSE, &app, &Application::quit);
 
   return app.run();
 }

@@ -22,6 +22,9 @@
 #include <jpeglib.h>
 #include <jerror.h>
 
+//! @addtogroup Fog_Graphics_Private
+//! @{
+
 namespace Fog {
 namespace ImageIO {
 
@@ -132,8 +135,10 @@ private:
   int _quality;
 };
 
-} // ImageIO
-} // Fog
+} // ImageIO namespace
+} // Fog namespace
+
+//! @}
 
 #endif // FOG_HAVE_LIBJPEG
 

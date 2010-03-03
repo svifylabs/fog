@@ -11,7 +11,7 @@
 #include <Fog/Graphics/PaintEngine.h>
 #include <Fog/Graphics/Stroker.h>
 
-//! @addtogroup Fog_Graphics
+//! @addtogroup Fog_Graphics_Private
 //! @{
 
 namespace Fog {

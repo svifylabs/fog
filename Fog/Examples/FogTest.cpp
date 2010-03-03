@@ -138,7 +138,7 @@ void MyWindow::onKeyPress(KeyEvent* e)
       break;
   }
 
-  repaint(RepaintWidget);
+  repaint(WIDGET_REPAINT_AREA);
   base::onKeyPress(e);
 }
 
@@ -149,24 +149,28 @@ void MyWindow::onPaint(PaintEvent* e)
 
   p->setOperator(OPERATOR_SRC);
 
+  // Clear everything to white.
+  p->setSource(Argb(0xFFFFFFFF));
+  p->clear();
+
 /*
   Region reg;
-  reg.unite(Rect(0, 0, 200, 25));
-  reg.unite(Rect(0, 50, 200, 25));
-  reg.unite(Rect(0, 100, 200, 25));
-  reg.unite(Rect(0, 150, 200, 25));
-  reg.unite(Rect(0, 200, 200, 25));
-  reg.unite(Rect(0, 250, 200, 25));
-  reg.unite(Rect(0, 300, 200, 25));
-  reg.unite(Rect(220, 0, 200, 25));
-  reg.unite(Rect(220, 50, 200, 25));
-  reg.unite(Rect(220, 100, 200, 25));
-  reg.unite(Rect(220, 150, 200, 25));
-  reg.unite(Rect(220, 200, 200, 25));
-  reg.unite(Rect(220, 250, 200, 25));
-  reg.unite(Rect(220, 300, 200, 25));
+  {
+    for (int y = 0; y < getHeight(); y += 10)
+    {
+      for (int x = (y % 20) == 10 ? 10 : 0; x < getWidth(); x += 20)
+      {
+        reg.unite(Rect(x, y, 10, 10));
+      }
+    }
+  }
   p->setUserRegion(reg);
 
+  p->setSource(Argb(0xFF00007F));
+  p->clear();
+*/
+
+/*
   Pattern pattern;
   pattern.setTexture(i[0]);
   pattern.setSpread(_spread);
@@ -265,12 +269,9 @@ void MyWindow::onPaint(PaintEvent* e)
 #endif
 
 #if 1
-  // Clear everything to white.
-  p->setSource(Argb(0xFFFFFFFF));
-  p->clear();
 
-  p->setSource(Argb(0xFF000000));
-  p->drawRect(Rect(15, 30, getWidth() - 15, getHeight() - 35));
+//  p->setSource(Argb(0xFF0000FF));
+//  p->drawRect(Rect(15, 30, getWidth() - 15, getHeight() - 35));
 
   // These coordinates describe boundary of object we want to paint.
   double x = 40.5;
@@ -453,9 +454,9 @@ void MyWindow::onPaint(PaintEvent* e)
   TimeDelta delta = TimeTicks::highResNow() - ticks;
 
   p->setOperator(OPERATOR_SRC_OVER);
-  p->setSource(0xFFFFFFFF);
-  p->fillRect(Rect(0, 0, 2000, getFont().getHeight()));
   p->setSource(0xFF000000);
+  p->fillRect(Rect(0, 0, 2000, getFont().getHeight()));
+  p->setSource(0xFFFF0000);
 
   String s;
   s.format("Size: %d %d, time %g, [PARAMS: %g %g]", getWidth(), getHeight(), delta.inMillisecondsF(), _subx, _suby);
@@ -483,7 +484,7 @@ FOG_GUI_MAIN()
   MyWindow window;
   window.setSize(Size(500, 400));
 
-  window.addListener(EV_CLOSE, &app, &Application::quit);
+  window.addListener(EVENT_CLOSE, &app, &Application::quit);
   window.show();
 
   return app.run();

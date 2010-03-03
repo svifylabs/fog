@@ -362,30 +362,33 @@ void FogModule::configurePainter(Painter& p)
 }
 
 // ============================================================================
-// [FogModule_None]
+// [FogModule_CreateDestroy]
 // ============================================================================
 
-struct FogModule_None : public FogModule
+struct FogModule_CreateDestroy : public FogModule
 {
-  FogModule_None();
-  virtual ~FogModule_None();
+  FogModule_CreateDestroy();
+  virtual ~FogModule_CreateDestroy();
 
   virtual void bench(int quantity);
   virtual ByteArray getType();
 };
 
-FogModule_None::FogModule_None() : FogModule(0, 0) {}
-FogModule_None::~FogModule_None() {}
+FogModule_CreateDestroy::FogModule_CreateDestroy() : FogModule(0, 0) {}
+FogModule_CreateDestroy::~FogModule_CreateDestroy() {}
 
-void FogModule_None::bench(int quantity)
+void FogModule_CreateDestroy::bench(int quantity)
 {
-  Painter p(screen, NO_FLAGS);
-  configurePainter(p);
+  for (int a = 0; a < quantity; a++)
+  {
+    Painter p(screen, NO_FLAGS);
+    configurePainter(p);
+  }
 }
 
-ByteArray FogModule_None::getType()
+ByteArray FogModule_CreateDestroy::getType()
 {
-  return ByteArray("None");
+  return ByteArray("Create/Destroy");
 }
 
 // ============================================================================
@@ -872,29 +875,32 @@ ByteArray GdiPlusModule::getEngine()
 }
 
 // ============================================================================
-// [GdiPlusModule_None]
+// [GdiPlusModule_CreateDestroy]
 // ============================================================================
 
-struct GdiPlusModule_None : public GdiPlusModule
+struct GdiPlusModule_CreateDestroy : public GdiPlusModule
 {
-  GdiPlusModule_None();
-  virtual ~GdiPlusModule_None();
+  GdiPlusModule_CreateDestroy();
+  virtual ~GdiPlusModule_CreateDestroy();
 
   virtual void bench(int quantity);
   virtual ByteArray getType();
 };
 
-GdiPlusModule_None::GdiPlusModule_None() : GdiPlusModule(0, 0) {}
-GdiPlusModule_None::~GdiPlusModule_None() {}
+GdiPlusModule_CreateDestroy::GdiPlusModule_CreateDestroy() : GdiPlusModule(0, 0) {}
+GdiPlusModule_CreateDestroy::~GdiPlusModule_CreateDestroy() {}
 
-void GdiPlusModule_None::bench(int quantity)
+void GdiPlusModule_CreateDestroy::bench(int quantity)
 {
-  Gdiplus::Graphics gr(screen_gdip);
+  for (int a = 0; a < quantity; a++)
+  {
+    Gdiplus::Graphics gr(screen_gdip);
+  }
 }
 
-ByteArray GdiPlusModule_None::getType()
+ByteArray GdiPlusModule_CreateDestroy::getType()
 {
-  return ByteArray("None");
+  return ByteArray("Create/Destroy");
 }
 
 // ============================================================================
@@ -1368,30 +1374,33 @@ ByteArray CairoModule::getEngine()
 }
 
 // ============================================================================
-// [CairoModule_None]
+// [CairoModule_CreateDestroy]
 // ============================================================================
 
-struct CairoModule_None : public CairoModule
+struct CairoModule_CreateDestroy : public CairoModule
 {
-  CairoModule_None();
-  virtual ~CairoModule_None();
+  CairoModule_CreateDestroy();
+  virtual ~CairoModule_CreateDestroy();
 
   virtual void bench(int quantity);
   virtual ByteArray getType();
 };
 
-CairoModule_None::CairoModule_None() : CairoModule(0, 0) {}
-CairoModule_None::~CairoModule_None() {}
+CairoModule_CreateDestroy::CairoModule_CreateDestroy() : CairoModule(0, 0) {}
+CairoModule_CreateDestroy::~CairoModule_CreateDestroy() {}
 
-void CairoModule_None::bench(int quantity)
+void CairoModule_CreateDestroy::bench(int quantity)
 {
-  cairo_t* cr = cairo_create(screen_cairo);
-  cairo_destroy(cr);
+  for (int a = 0; a < quantity; a++)
+  {
+    cairo_t* cr = cairo_create(screen_cairo);
+    cairo_destroy(cr);
+  }
 }
 
-ByteArray CairoModule_None::getType()
+ByteArray CairoModule_CreateDestroy::getType()
 {
-  return ByteArray("None");
+  return ByteArray("Create/Destroy");
 }
 
 // ============================================================================
@@ -1944,17 +1953,21 @@ static void benchAll()
 
   static const char* yesno[2] = { "no", "yes" };
 
-  fog_debug("Surface  :%dx%d", w, h);
-  fog_debug("Quantity :%d", quantity);
+  fog_debug("Surface  : %dx%d", w, h);
+  fog_debug("Quantity : %d", quantity);
   fog_debug("");
-  fog_debug("Processor:%s", cpuInfo->brand);
-  fog_debug("Features :MMX=%s, SSE=%s, SSE2=%s, SSE3=%s, SSSE3=%s, cores=%u",
+  fog_debug("Processor: %s", cpuInfo->brand);
+  fog_debug("Features1: MMX=%s, MMXExt=%s, 3dNow=%s, 3dNowExt=%s, SSE=%s",
     yesno[cpuInfo->hasFeature(CpuInfo::FEATURE_MMX)],
-    yesno[cpuInfo->hasFeature(CpuInfo::FEATURE_SSE)],
+    yesno[cpuInfo->hasFeature(CpuInfo::FEATURE_MMXExt)],
+    yesno[cpuInfo->hasFeature(CpuInfo::FEATURE_3dNow)],
+    yesno[cpuInfo->hasFeature(CpuInfo::FEATURE_3dNowExt)],
+    yesno[cpuInfo->hasFeature(CpuInfo::FEATURE_SSE)]);
+  fog_debug("Features2: SSE2=%s, SSE3=%s, SSSE3=%s",
     yesno[cpuInfo->hasFeature(CpuInfo::FEATURE_SSE2)],
     yesno[cpuInfo->hasFeature(CpuInfo::FEATURE_SSE3)],
-    yesno[cpuInfo->hasFeature(CpuInfo::FEATURE_SSSE3)],
-    cpuInfo->numberOfProcessors);
+    yesno[cpuInfo->hasFeature(CpuInfo::FEATURE_SSSE3)]);
+  fog_debug("CPU count: %u", cpuInfo->numberOfProcessors);
   fog_debug("");
 
   // --------------------------------------------------------------------------
@@ -1979,9 +1992,9 @@ static void benchAll()
   {
     printBenchmarkHeader(fogEngineName[engine]);
 
-    // Fog - None
+    // Fog - CreateDestroy
     {
-      FogModule_None mod;
+      FogModule_CreateDestroy mod;
       mod.setEngine(engine);
       totalFog[engine] += bench(mod, 0, 0, quantity);
     }
@@ -2063,9 +2076,9 @@ static void benchAll()
   printBenchmarkHeader("Gdi+");
   TimeDelta totalGdiPlus;
 
-  // GdiPlus - None
+  // GdiPlus - CreateDestroy
   {
-    GdiPlusModule_None mod;
+    GdiPlusModule_CreateDestroy mod;
     totalGdiPlus += bench(mod, 0, 0, quantity);
   }
 
@@ -2133,9 +2146,9 @@ static void benchAll()
   printBenchmarkHeader("Cairo");
   TimeDelta totalCairo;
 
-  // Cairo - None
+  // Cairo - CreateDestroy
   {
-    CairoModule_None mod;
+    CairoModule_CreateDestroy mod;
     totalCairo += bench(mod, 0, 0, quantity);
   }
 

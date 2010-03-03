@@ -77,7 +77,7 @@ FOG_GUI_MAIN()
 
   window.setSize(Size(w, h));
   window.show();
-  window.addListener(EV_CLOSE, &app, &Application::quit);
+  window.addListener(EVENT_CLOSE, &app, &Application::quit);
 
   return app.run();
 }

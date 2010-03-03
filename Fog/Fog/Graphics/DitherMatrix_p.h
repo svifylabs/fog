@@ -10,7 +10,7 @@
 // [Dependencies]
 #include <Fog/Build/Build.h>
 
-//! @addtogroup Fog_Graphics
+//! @addtogroup Fog_Graphics_Private
 //! @{
 
 namespace Fog {
@@ -29,6 +29,9 @@ namespace Fog {
 //! @note Dithering can be configured to use small dithering tables
 //! instead of large ones that can save 16kb of library size. Default
 //! are large dithering tables that produces better images.
+//!
+//! @note Dithering tables were stolen from EVAS - High performance canvas
+//! library. Evas is BSD licensed, main developer is rasterman <www.rasterman.com>
 struct FOG_HIDDEN DitherMatrix
 {
   // [Constants]

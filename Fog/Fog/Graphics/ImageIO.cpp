@@ -71,13 +71,13 @@ namespace ImageIO {
 
 FOG_API err_t addProvider(uint32_t deviceType, Provider* provider)
 {
-  if ((deviceType & (IMAGEIO_DEVICE_DECODER | IMAGEIO_DEVICE_ENCODER)) == 0)
+  if ((deviceType & (IMAGE_IO_DEVICE_DECODER | IMAGE_IO_DEVICE_ENCODER)) == 0)
     return ERR_RT_INVALID_ARGUMENT;
 
   err_t err = ERR_OK;
   AutoLock locked(imageio_local->lock);
 
-  if ((deviceType & IMAGEIO_DEVICE_DECODER) && 
+  if ((deviceType & IMAGE_IO_DEVICE_DECODER) && 
       (imageio_local->decoderProviders.indexOf(provider) == INVALID_INDEX))
   {
     err |= imageio_local->decoderProviders.append(provider);
@@ -85,7 +85,7 @@ FOG_API err_t addProvider(uint32_t deviceType, Provider* provider)
     provider->ref();
   }
 
-  if ((deviceType & IMAGEIO_DEVICE_ENCODER) && 
+  if ((deviceType & IMAGE_IO_DEVICE_ENCODER) && 
       (imageio_local->encoderProviders.indexOf(provider) == INVALID_INDEX))
   {
     err |= imageio_local->encoderProviders.append(provider);
@@ -99,14 +99,14 @@ end:
 
 FOG_API err_t removeProvider(uint32_t deviceType, Provider* provider)
 {
-  if ((deviceType & (IMAGEIO_DEVICE_DECODER | IMAGEIO_DEVICE_ENCODER)) == 0)
+  if ((deviceType & (IMAGE_IO_DEVICE_DECODER | IMAGE_IO_DEVICE_ENCODER)) == 0)
     return ERR_RT_INVALID_ARGUMENT;
 
   err_t err = ERR_OK;
   sysuint_t index;
   AutoLock locked(imageio_local->lock);
 
-  if ((deviceType & IMAGEIO_DEVICE_DECODER) && 
+  if ((deviceType & IMAGE_IO_DEVICE_DECODER) && 
       (index = imageio_local->decoderProviders.indexOf(provider)) != INVALID_INDEX)
   {
     err |= imageio_local->decoderProviders.removeAt(index);
@@ -114,7 +114,7 @@ FOG_API err_t removeProvider(uint32_t deviceType, Provider* provider)
     provider->deref();
   }
 
-  if ((deviceType & IMAGEIO_DEVICE_ENCODER) && 
+  if ((deviceType & IMAGE_IO_DEVICE_ENCODER) && 
       (index = imageio_local->encoderProviders.indexOf(provider)) != INVALID_INDEX)
   {
     err |= imageio_local->encoderProviders.removeAt(index);
@@ -130,13 +130,13 @@ FOG_API bool hasProvider(uint32_t deviceType, Provider* provider)
 {
   AutoLock locked(imageio_local->lock);
 
-  switch (deviceType & (IMAGEIO_DEVICE_DECODER | IMAGEIO_DEVICE_ENCODER))
+  switch (deviceType & (IMAGE_IO_DEVICE_DECODER | IMAGE_IO_DEVICE_ENCODER))
   {
-    case IMAGEIO_DEVICE_DECODER:
+    case IMAGE_IO_DEVICE_DECODER:
       return imageio_local->decoderProviders.indexOf(provider) != INVALID_INDEX;
-    case IMAGEIO_DEVICE_ENCODER:
+    case IMAGE_IO_DEVICE_ENCODER:
       return imageio_local->encoderProviders.indexOf(provider) != INVALID_INDEX;
-    case IMAGEIO_DEVICE_DECODER | IMAGEIO_DEVICE_ENCODER:
+    case IMAGE_IO_DEVICE_DECODER | IMAGE_IO_DEVICE_ENCODER:
       return imageio_local->decoderProviders.indexOf(provider) != INVALID_INDEX &&
              imageio_local->encoderProviders.indexOf(provider) != INVALID_INDEX;
     default:
@@ -148,10 +148,10 @@ FOG_API List<Provider*> getProviders(uint32_t deviceType)
 {
   AutoLock locked(imageio_local->lock);
 
-  if ((deviceType & (IMAGEIO_DEVICE_DECODER | IMAGEIO_DEVICE_ENCODER)) == IMAGEIO_DEVICE_ENCODER)
+  if ((deviceType & (IMAGE_IO_DEVICE_DECODER | IMAGE_IO_DEVICE_ENCODER)) == IMAGE_IO_DEVICE_ENCODER)
     return imageio_local->encoderProviders;
 
-  if ((deviceType & (IMAGEIO_DEVICE_DECODER | IMAGEIO_DEVICE_ENCODER)) == IMAGEIO_DEVICE_DECODER)
+  if ((deviceType & (IMAGE_IO_DEVICE_DECODER | IMAGE_IO_DEVICE_ENCODER)) == IMAGE_IO_DEVICE_DECODER)
     return imageio_local->decoderProviders;
 
   return List<Provider*>();
@@ -223,7 +223,7 @@ static err_t createBaseDeviceByName(uint32_t deviceType, const String& name, Bas
   Provider* provider = getProviderByName(deviceType, name);
 
   err = (!provider)
-    ? (deviceType == IMAGEIO_DEVICE_DECODER 
+    ? (deviceType == IMAGE_IO_DEVICE_DECODER 
       ? ERR_IMAGEIO_NO_DECODER
       : ERR_IMAGEIO_NO_ENCODER)
     : provider->createDevice(deviceType, device);
@@ -235,13 +235,13 @@ end:
 FOG_API err_t createDecoderByName(const String& name, DecoderDevice** device)
 {
   return createBaseDeviceByName(
-    IMAGEIO_DEVICE_DECODER, name, reinterpret_cast<BaseDevice**>(device));
+    IMAGE_IO_DEVICE_DECODER, name, reinterpret_cast<BaseDevice**>(device));
 }
 
 FOG_API err_t createEncoderByName(const String& name, EncoderDevice** device)
 {
   return createBaseDeviceByName(
-    IMAGEIO_DEVICE_ENCODER, name, reinterpret_cast<BaseDevice**>(device));
+    IMAGE_IO_DEVICE_ENCODER, name, reinterpret_cast<BaseDevice**>(device));
 }
 
 static err_t createBaseDeviceByExtension(uint32_t deviceType, const String& extension, BaseDevice** device)
@@ -252,7 +252,7 @@ static err_t createBaseDeviceByExtension(uint32_t deviceType, const String& exte
   Provider* provider = getProviderByExtension(deviceType, extension);
 
   err = (!provider)
-    ? (deviceType == IMAGEIO_DEVICE_DECODER 
+    ? (deviceType == IMAGE_IO_DEVICE_DECODER 
       ? ERR_IMAGEIO_NO_DECODER
       : ERR_IMAGEIO_NO_ENCODER)
     : provider->createDevice(deviceType, device);
@@ -264,13 +264,13 @@ end:
 FOG_API err_t createDecoderByExtension(const String& extension, DecoderDevice** device)
 {
   return createBaseDeviceByExtension(
-    IMAGEIO_DEVICE_DECODER, extension, reinterpret_cast<BaseDevice**>(device));
+    IMAGE_IO_DEVICE_DECODER, extension, reinterpret_cast<BaseDevice**>(device));
 }
 
 FOG_API err_t createEncoderByExtension(const String& extension, EncoderDevice** device)
 {
   return createBaseDeviceByExtension(
-    IMAGEIO_DEVICE_ENCODER, extension, reinterpret_cast<BaseDevice**>(device));
+    IMAGE_IO_DEVICE_ENCODER, extension, reinterpret_cast<BaseDevice**>(device));
 }
 
 FOG_API err_t createDecoderForFile(const String& fileName, DecoderDevice** device)
@@ -320,13 +320,13 @@ FOG_API err_t createDecoderForStream(Stream& stream, const String& extension, De
   if (stream.seek(pos, STREAM_SEEK_SET) == -1) { err =  ERR_IO_CANT_SEEK; goto end; }
 
   // First try to use extension.
-  if (!extension.isEmpty()) provider = getProviderByExtension(IMAGEIO_DEVICE_DECODER, extension);
+  if (!extension.isEmpty()) provider = getProviderByExtension(IMAGE_IO_DEVICE_DECODER, extension);
   // Fallback to signature checking if extension match failed.
-  if (!provider) provider = getProviderBySignature(IMAGEIO_DEVICE_DECODER, mime, readn);
+  if (!provider) provider = getProviderBySignature(IMAGE_IO_DEVICE_DECODER, mime, readn);
   // Bail if signature checking failed too.
   if (!provider) { err = ERR_IMAGEIO_NO_DECODER; goto end; }
 
-  err = provider->createDevice(IMAGEIO_DEVICE_DECODER, reinterpret_cast<BaseDevice**>(&decoder));
+  err = provider->createDevice(IMAGE_IO_DEVICE_DECODER, reinterpret_cast<BaseDevice**>(&decoder));
   if (err == ERR_OK) decoder->attachStream(stream);
 
 end:
@@ -345,8 +345,8 @@ Provider::Provider()
 {
   _refCount.init(0);
 
-  _fileType = IMAGEIO_FILE_NONE;
-  _deviceType = IMAGEIO_DEVICE_NONE;
+  _fileType = IMAGE_IO_FILE_NONE;
+  _deviceType = IMAGE_IO_DEVICE_NONE;
 }
 
 Provider::~Provider()
@@ -376,7 +376,7 @@ bool Provider::supportsImageExtension(const String& extension) const
 BaseDevice::BaseDevice(Provider* provider) :
   _provider(provider),
   _fileType(provider->getFileType()),
-  _deviceType(IMAGEIO_DEVICE_NONE),
+  _deviceType(IMAGE_IO_DEVICE_NONE),
   _attachedOffset(FOG_UINT64_C(0)),
   _stream(),
   _width(0),
@@ -505,7 +505,7 @@ DecoderDevice::DecoderDevice(Provider* provider) :
   _headerResult(ERR_OK),
   _readerResult(ERR_OK)
 {
-  _deviceType = IMAGEIO_DEVICE_DECODER;
+  _deviceType = IMAGE_IO_DEVICE_DECODER;
 }
 
 DecoderDevice::~DecoderDevice()
@@ -534,7 +534,7 @@ EncoderDevice::EncoderDevice(Provider* provider) :
   _headerDone(false),
   _writerDone(false)
 {
-  _deviceType = IMAGEIO_DEVICE_ENCODER;
+  _deviceType = IMAGE_IO_DEVICE_ENCODER;
 }
 
 EncoderDevice::~EncoderDevice()

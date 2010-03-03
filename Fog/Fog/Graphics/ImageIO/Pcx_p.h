@@ -15,6 +15,9 @@
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/ImageIO.h>
 
+//! @addtogroup Fog_Graphics_Private
+//! @{
+
 namespace Fog {
 namespace ImageIO {
 
@@ -98,8 +101,10 @@ struct FOG_HIDDEN PcxEncoderDevice : public EncoderDevice
   virtual err_t writeImage(const Image& image);
 };
 
-} // ImageIO
-} // Fog
+} // ImageIO namespace
+} // Fog namespace
+
+//! @}
 
 // ============================================================================
 // [Fog::TypeInfo<>]

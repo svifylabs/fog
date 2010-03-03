@@ -132,10 +132,10 @@ PngProvider::PngProvider()
   _name = fog_strings->getString(STR_GRAPHICS_PNG);
 
   // File type.
-  _fileType = IMAGEIO_FILE_PNG;
+  _fileType = IMAGE_IO_FILE_PNG;
 
   // Supported devices.
-  _deviceType = IMAGEIO_DEVICE_BOTH;
+  _deviceType = IMAGE_IO_DEVICE_BOTH;
 
   // Supported extensions.
   _imageExtensions.reserve(1);
@@ -170,10 +170,10 @@ err_t PngProvider::createDevice(uint32_t deviceType, BaseDevice** device) const
 
   switch (deviceType)
   {
-    case IMAGEIO_DEVICE_DECODER:
+    case IMAGE_IO_DEVICE_DECODER:
       d = new(std::nothrow) PngDecoderDevice(const_cast<PngProvider*>(this));
       break;
-    case IMAGEIO_DEVICE_ENCODER:
+    case IMAGE_IO_DEVICE_ENCODER:
       d = new(std::nothrow) PngEncoderDevice(const_cast<PngProvider*>(this));
       break;
     default:
@@ -694,7 +694,7 @@ FOG_INIT_DECLARE void fog_imageio_init_png(void)
   using namespace Fog;
 
   ImageIO::PngProvider* provider = new(std::nothrow) ImageIO::PngProvider();
-  ImageIO::addProvider(IMAGEIO_DEVICE_BOTH, provider);
+  ImageIO::addProvider(IMAGE_IO_DEVICE_BOTH, provider);
 }
 
 #else

@@ -19,9 +19,12 @@ namespace Fog {
 //! @brief Anti-aliasing type.
 enum ANTI_ALIASING_TYPE
 {
+  //! @brief No anti-aliasing.
   ANTI_ALIASING_NONE = 0,
+  //! @brief Smooth anti-aliasing (default).
   ANTI_ALIASING_SMOOTH = 1,
 
+  //! @brief Count of anti-aliasing types (for error checking).
   ANTI_ALIASING_COUNT = 2
 };
 
@@ -50,11 +53,11 @@ enum BLUR_TYPE
   //! slowest blur in Fog library, but the quality is excellent.
   BLUR_GAUSSIAN = 2,
 
-  //! @brief Used to catch invalid arguments.
+  //! @brief Count of blur types (for error checking).
   BLUR_COUNT
 };
 
-static double BLUR_MAX_RADIUS = 255.0;
+static const float BLUR_MAX_RADIUS = 255.0f;
 
 // ============================================================================
 // [Fog::BORDER_EXTEND_MODE]
@@ -75,7 +78,7 @@ enum BORDER_EXTEND_MODE
   //! @brief Borders are extended by custom single color.
   BORDER_EXTEND_COLOR = 3,
 
-  //! @brief Used to catch invalid arguments.
+  //! @brief Count of border extend types (for error checking).
   BORDER_EXTEND_COUNT = 4
 };
 
@@ -1172,7 +1175,7 @@ enum OPERATOR_TYPE
   // [...]
   // --------------------------------------------------------------------------
 
-  //! @brief Count of compositing operators (this is not a valid operator).
+  //! @brief Count of compositing operators (for error checking).
   OPERATOR_COUNT
 };
 
@@ -1424,143 +1427,157 @@ enum IMAGE_ROTATE_MODE
 enum IMAGE_FILTER_TYPE
 {
   //! @brief Image filter is null (NOP).
-  IMAGE_FILTER_NONE = 0,
+  IMAGE_FILTER_TYPE_NONE = 0,
 
   // [ColorFilter filters]
 
   //! @brief @c ColorLut image filter.
-  IMAGE_FILTER_COLORLUT = 1,
+  IMAGE_FILTER_TYPE_COLORLUT = 1,
   //! @brief @c ColorMatrix image filter.
-  IMAGE_FILTER_COLORMATRIX = 2,
+  IMAGE_FILTER_TYPE_COLORMATRIX = 2,
 
   // [ImageFilter filters]
 
   //! @brief Image filter is box blur.
-  IMAGE_FILTER_BLUR = 3,
+  IMAGE_FILTER_TYPE_BLUR = 3,
   //! @brief Image filter is convolution.
-  IMAGE_FILTER_CONVOLUTION = 4
+  IMAGE_FILTER_TYPE_CONVOLUTION = 4
 };
 
 // ============================================================================
-// [Fog::IMAGE_FILTER_CHARACTERISTICS]
+// [Fog::IMAGE_FILTER_CHAR]
 // ============================================================================
 
 //! @brief Characteristics of image filter.
 //!
 //! Characteristics can be used to improve performance of filters by @c Painter.
-enum IMAGE_FILTER_CHARACTERISTICS
+enum IMAGE_FILTER_CHAR
 {
   //! @brief Image filter does only color transformations.
   //!
   //! This flag must set all color filter, because it's very useful hint that
-  //! enables very good code optimizations inside @c Painter and @c Image classes.
-  IMAGE_FILTER_COLOR_TRANSFORM = 0x0001,
+  //! enables very good code optimizations inside @c Painter and @c Image
+  //! classes.
+  IMAGE_FILTER_CHAR_COLOR_TRANSFORM = 0x0001,
 
-  //! @brief Image filter can extend image boundary (blur and convolution filters).
-  IMAGE_FILTER_CAN_EXTEND = 0x0002,
+  //! @brief Image filter can extend image boundary (blur and convolution
+  //! filters).
+  IMAGE_FILTER_CHAR_CAN_EXTEND = 0x0002,
 
   //! @brief Image filter constains standard processing mechanism - one pass.
-  IMAGE_FILTER_ENTIRE_PROCESSING = 0x0004,
+  IMAGE_FILTER_CHAR_ENTIRE_PROCESSING = 0x0004,
 
   //! @brief When doing entire processing the destination and source buffers
   //! can be shared (dst and src pointers can point to same location).
-  IMAGE_FILTER_ENTIRE_MEM_EQUAL = 0x0008,
+  IMAGE_FILTER_CHAR_ENTIRE_MEM_EQUAL = 0x0008,
 
   //! @brief Image filter does vertical processing of image.
   //!
-  //! This bit is set for all blur/convolution filters. Performance of filter is
-  //! usually degraded, because filter processing function needs to access pixels
-  //! in different scanlines (cache misses, etc...).
+  //! This bit is set for all blur/convolution filters. Performance of filter
+  //! is usually degraded, because filter processing function needs to access
+  //!  pixels in different scanlines (cache misses, etc...).
   //!
   //! @note Vertical processing can be combined with horizontal processing and
   //! painter tries to make this combination efficient.
-  IMAGE_FILTER_VERT_PROCESSING = 0x0010,
+  IMAGE_FILTER_CHAR_VERT_PROCESSING = 0x0010,
 
   //! @brief When doing vertical processing the destination and source buffers
   //! can be shared (dst and src pointers can point to same location).
-  IMAGE_FILTER_VERT_MEM_EQUAL = 0x0020,
+  IMAGE_FILTER_CHAR_VERT_MEM_EQUAL = 0x0020,
 
   //! @brief Image filter does horizontal processing of image.
   //!
-  //! If filter needs only horizontal (no IMAGE_FILTER_VERT_PROCESSING bit is set)
-  //! then processing it can be very efficient in multithreaded painter engine.
-  IMAGE_FILTER_HORZ_PROCESSING = 0x0040,
+  //! If filter needs only horizontal (no IMAGE_FILTER_VERT_PROCESSING bit is
+  //! set) then processing it can be very efficient in multithreaded painter
+  //! engine.
+  IMAGE_FILTER_CHAR_HORZ_PROCESSING = 0x0040,
 
   //! @brief When doing vertical processing the destination and source buffers
   //! can be shared (dst and src pointers can point to same location).
-  IMAGE_FILTER_HORZ_MEM_EQUAL = 0x0080,
+  IMAGE_FILTER_CHAR_HORZ_MEM_EQUAL = 0x0080,
 
-  //! @brief Contains both, @c IMAGE_FILTER_VERT_PROCESSING and @c IMAGE_FILTER_HORZ_PROCESSING
-  //! flags.
-  IMAGE_FILTER_HV_PROCESSING = IMAGE_FILTER_VERT_PROCESSING | IMAGE_FILTER_HORZ_PROCESSING ,
+  //! @brief Contains both, @c IMAGE_FILTER_VERT_PROCESSING and
+  //! @c IMAGE_FILTER_HORZ_PROCESSING flags.
+  IMAGE_FILTER_CHAR_HV_PROCESSING =
+    IMAGE_FILTER_CHAR_VERT_PROCESSING |
+    IMAGE_FILTER_CHAR_HORZ_PROCESSING ,
 
   //! @brief Image filter supports @c PIXEL_FORMAT_PRGB32.
   //!
   //! If filters not supports this format the image data must be first converted
   //! to @c PIXEL_FORMAT_ARGB32, processed and then converted back.
-  IMAGE_FILTER_SUPPORTS_PRGB32 = 0x0100,
+  IMAGE_FILTER_CHAR_SUPPORTS_PRGB32 = 0x0100,
 
   //! @brief Image filter supports @c PIXEL_FORMAT_ARGB32.
   //!
-  //! @note This flag should be always set (or at least IMAGE_FILTER_FORMAT_PRGB32)!
-  IMAGE_FILTER_SUPPORTS_ARGB32 = 0x0200,
+  //! @note This flag should be always set (or at least 
+  //! @c IMAGE_FILTER_FORMAT_PRGB32)!
+  IMAGE_FILTER_CHAR_SUPPORTS_ARGB32 = 0x0200,
 
   //! @brief Image filter supports @c PIXEL_FORMAT_XRGB32.
   //!
   //! @note This flag should be always set!
-  IMAGE_FILTER_SUPPORTS_XRGB32 = 0x0400,
+  IMAGE_FILTER_CHAR_SUPPORTS_XRGB32 = 0x0400,
 
   //! @brief Image filter supports @c PIXEL_FORMAT_A8.
   //!
   //! @note This flag should be always set!
-  IMAGE_FILTER_SUPPORTS_A8 = 0x0800
+  IMAGE_FILTER_CHAR_SUPPORTS_A8 = 0x0800,
+
+  //! @brief Image filter supports alpha-channel promotion. This means that
+  //! source image without alpha-channel can be converted to image with
+  //! alpha-channel.
+  //!
+  //! This operation is supported by all blur-filters (and should be supported
+  //! generally by all filters that extend image boundary).
+  IMAGE_FILTER_CHAR_PROMOTE_ALPHA = 0x1000
 };
 
 // ============================================================================
-// [Fog::IMAGEIO_DEVICE_TYPE]
+// [Fog::IMAGE_IO_DEVICE_TYPE]
 // ============================================================================
 
 //! @brief Type of @c ImageIO::BaseDevice class.
-enum IMAGEIO_DEVICE_TYPE
+enum IMAGE_IO_DEVICE_TYPE
 {
   //! @brief None, null codec or non-initialized (shouldn't be used in public code).
-  IMAGEIO_DEVICE_NONE = 0x0,
+  IMAGE_IO_DEVICE_NONE = 0x0,
   //! @brief Image IO Encoder.
-  IMAGEIO_DEVICE_ENCODER = 0x1,
+  IMAGE_IO_DEVICE_ENCODER = 0x1,
   //! @brief Image IO Decoder.
-  IMAGEIO_DEVICE_DECODER = 0x2,
+  IMAGE_IO_DEVICE_DECODER = 0x2,
   //! @brief Image IO Decoder and Encoder.
-  IMAGEIO_DEVICE_BOTH = 0x3
+  IMAGE_IO_DEVICE_BOTH = 0x3
 };
 
 // ============================================================================
-// [Fog::IMAGEIO_FILE_TYPE]
+// [Fog::IMAGE_IO_FILE_TYPE]
 // ============================================================================
 
 //! @brief Image file type.
-enum IMAGEIO_FILE_TYPE
+enum IMAGE_IO_FILE_TYPE
 {
-  IMAGEIO_FILE_NONE = 0,
+  IMAGE_IO_FILE_NONE = 0,
 
-  IMAGEIO_FILE_ANI,
-  IMAGEIO_FILE_APNG,
-  IMAGEIO_FILE_BMP,
-  IMAGEIO_FILE_FLI,
-  IMAGEIO_FILE_FLC,
-  IMAGEIO_FILE_GIF,
-  IMAGEIO_FILE_ICO,
-  IMAGEIO_FILE_JPEG,
-  IMAGEIO_FILE_LBM,
-  IMAGEIO_FILE_MNG,
-  IMAGEIO_FILE_PCX,
-  IMAGEIO_FILE_PNG,
-  IMAGEIO_FILE_PNM,
-  IMAGEIO_FILE_TGA,
-  IMAGEIO_FILE_TIFF,
-  IMAGEIO_FILE_XBM,
-  IMAGEIO_FILE_XPM,
+  IMAGE_IO_FILE_ANI,
+  IMAGE_IO_FILE_APNG,
+  IMAGE_IO_FILE_BMP,
+  IMAGE_IO_FILE_FLI,
+  IMAGE_IO_FILE_FLC,
+  IMAGE_IO_FILE_GIF,
+  IMAGE_IO_FILE_ICO,
+  IMAGE_IO_FILE_JPEG,
+  IMAGE_IO_FILE_LBM,
+  IMAGE_IO_FILE_MNG,
+  IMAGE_IO_FILE_PCX,
+  IMAGE_IO_FILE_PNG,
+  IMAGE_IO_FILE_PNM,
+  IMAGE_IO_FILE_TGA,
+  IMAGE_IO_FILE_TIFF,
+  IMAGE_IO_FILE_XBM,
+  IMAGE_IO_FILE_XPM,
 
-  IMAGEIO_FILE_CUSTOM = 65536
+  IMAGE_IO_FILE_CUSTOM = 65536
 };
 
 // ============================================================================
