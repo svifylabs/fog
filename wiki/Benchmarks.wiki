@@ -185,7 +185,7 @@ Note that there is only one record, because benchmark tool was changed and will 
 
 =Other Results=
 
-I'd like to see results from FogBench running on different machines. One person working on Cairo sent me results from his Intel-Atom and Cairo was faster in FillRect benchmark (actually only these results he sent me). So if you are interested you can run FogBench and paste results to special in [http://groups.google.com/group/fog-dev/browse_thread/thread/867d50829f98f470 FogBench] topic.
+I'd like to see results from FogBench running on different machines. One person working on Cairo sent me results from his Intel-Atom and Cairo was faster in FillRect benchmark (actually only these results he sent me). So if you are interested you can run FogBench and paste results to special in [http://groups.google.com/group/fog-dev/browse_thread/thread/867d50829f98f470 Benchmarks] topic.
 
 =Conclusion=
 
