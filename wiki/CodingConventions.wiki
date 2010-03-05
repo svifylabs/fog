@@ -1,4 +1,4 @@
-#summary How to write code for Fog.
+#summary How to write code for Fog-Framework.
 #labels Phase-Implementation,Featured
 
 =Identation, Braces, Position of Keywords=
@@ -51,12 +51,12 @@ Use "*struct*" instead of "*class*". <br>
 
 Comments should always start with a //. 
 
-*Doxygen* is used by Fog in order to document the source code. Doxygen comments should look like `//!`. 
+*Doxygen* is used by Fog-Framework in order to document the source code. Doxygen comments should look like `//!`. 
 Now, doxygen markups (e.g. `@verbatim`) can be used. For more information see Doxygen documentation. 
 
 *File comments* should be at the top of each file. They should look like the following: 
 {{{
-    // [Fog/<MODULE> Library - C++ API]
+    // [Fog-<MODULE> Library - C++ API]
     //
     // [Licence] 
     // MIT, See COPYING file in package
@@ -128,7 +128,7 @@ Everything, which belongs the Fog has to be declared inside the *Fog namespace*,
     Lock* _target;
 }}}
 
-Sometimes private variables are declared as public, but contains underscore. Reason is that there are many C functions inside Fog library (for example C implementation, SSE2 implementation, etc...) and these functions need access to class members.
+Sometimes private variables are declared as public, but contains underscore. Reason is that there are many C functions inside Fog-Framework (for example C implementation, SSE2 implementation, etc...) and these functions need access to class members.
 
 =`0`, `0.0`, `NULL` and `\0`=
 `0` is used for integers, `0.0` is used for reals, `NULL` is used for pointers, `\0` or `Char('\0')` is used for chars.
