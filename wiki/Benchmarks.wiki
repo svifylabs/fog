@@ -177,12 +177,16 @@ Cairo                            |245491.804 [ms]
 
 =Discussion=
 
-You can see that Fog-Framework is really fast compared to others, but can be even faster in future. The performance of filling aligned rectangles and blitting images to aligned pixel grid is near the borders. But performance of path rasterization and pattern rendering could be improved in the future. Currently performance can be improved by better memory management and rewriting some algorithms to use SSE2.
+You can see that Fog-Framework is really fast compared to others, but can be even faster in future. The performance of filling aligned rectangles and blitting images to aligned pixel grid is near the borders. But performance of path rasterization and pattern rendering could be improved. Currently performance can be improved by better memory management and rewriting some algorithms to use SSE2.
 
-There is also evidence that multithreading helps mainly with painting larger objects. Most tests where size of object is small (about 16x16 pixels) were faster in singlethreaded mode. There is currently no way how to detect it and paint small objects singlethreaded, because multithreading is asynchronous and cost of synchronizing may be more expensive than just paint some smaller objects by less efficient way.
+There is also evidence that multithreading helps mainly with painting larger objects. Most tests where size of object is small (about 16x16 pixels and less) were faster in singlethreaded mode. There is currently no way how to detect it and paint small objects singlethreaded, because multithreading is asynchronous and cost of synchronizing may be more expensive than just paint some smaller objects by less efficient way. It will be investigated how to improve this issue in the future.
 
-*Note*: Currently there is only one record, because benchmark tool was changed and will be changed in near future again. Radial gradient rendering was also removed, because there is no similar test in GDI+ and Cairo was terribly slow.
+Note that there is only one record, because benchmark tool was changed and will be changed in near future again (probably more tests will be included). Radial gradient rendering was also removed, because there is no similar test in GDI+ and Cairo was terribly slow.
+
+=Other Results=
+
+I'd like to see results from FogBench running on different machines. One person working on Cairo sent me results from his Intel-Atom and Cairo was faster in FillRect benchmark (actually only these results he sent me). So if you are interested you can run FogBench and paste results to special in [http://groups.google.com/group/fog-dev/browse_thread/thread/867d50829f98f470 FogBench] topic.
 
 =Conclusion=
 
-Fog-Framework is currently fastest library than all other tested libraries! GDI+ is faster in only one test (see ImageAffine results) and Cairo is so slow to win at least one test.
+Fog-Framework is currently fastest library than all other tested libraries! GDI+ is faster in only one test (see ImageAffine results) and Cairo is so slow to win at least one test (this is not true on some machines where Cairo can win FillRect test, I need more benchmarks on these machines).
