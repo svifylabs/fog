@@ -1,4 +1,4 @@
-// [Fog/Gui Library - Public API]
+// [Fog-Gui Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -14,24 +14,24 @@
 #if defined(_DOXYGEN)
 
 // ============================================================================
-// [Fog/Gui Groups]
+// [Fog-Gui Groups]
 // ============================================================================
 
-//! @defgroup Fog_Gui Fog/Gui library API.
+//! @defgroup Fog_Gui Fog-Gui library API.
 //!
-//! Set of Fog/Gui library classes and their members.
+//! Set of Fog-Gui library classes and their members.
 
-//! @defgroup Fog_Gui_Win Fog/Gui Windows module API.
+//! @defgroup Fog_Gui_Win Fog-Gui Windows module API.
 //!
 //! This module contains specific part of UI system for Windows.
 
-//! @defgroup Fog_Gui_X11 Fog/Gui X11 module API.
+//! @defgroup Fog_Gui_X11 Fog-Gui X11 module API.
 //!
 //! This module contains specific part of UI system for X Window System (xlib).
 #endif // _DOXYGEN
 
 // ============================================================================
-// [Fog/Gui Include Files]
+// [Fog-Gui Include Files]
 // ============================================================================
 
 #include <Fog/Build/Build.h>

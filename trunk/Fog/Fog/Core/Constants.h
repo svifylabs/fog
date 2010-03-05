@@ -1,4 +1,4 @@
-// [Fog/Core Library - Public API]
+// [Fog-Core Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -244,7 +244,7 @@ enum ERR_OK_ENUM
   ERR_OK = 0
 };
 
-//! @brief Error codes used in Fog/Core.
+//! @brief Error codes used in Fog-Core.
 enum ERR_CORE_ENUM
 {
   // Errors Range.

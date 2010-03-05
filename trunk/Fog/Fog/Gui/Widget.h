@@ -1,4 +1,4 @@
-// [Fog/Gui Library - Public API]
+// [Fog-Gui Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -428,7 +428,7 @@ struct FOG_API Widget : public LayoutItem
   //! and there are widgets that in most cases need the background provided by
   //! parent (very good example is @c Label).
   //!
-  //! Use @c getPaintHint() to tell Fog/Gui how the widget will be updated.
+  //! Use @c getPaintHint() to tell Fog-Gui how the widget will be updated.
   //! Default return value is @c WIDGET_PAINT_SCREEN which means that entire
   //! widget will be updated (result is not based on parent content). If you
   //! need to draw rounded corners or to content paint previously by parent,

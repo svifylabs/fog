@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - Public API]
+// [Fog-Graphics Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -1961,7 +1961,7 @@ enum TEXT_ALIGN
 // [Fog::ERR_GRAPHICS]
 // ============================================================================
 
-//! @brief Error codes used in Fog/Graphics.
+//! @brief Error codes used in Fog-Graphics.
 enum ERR_GRAPHICS_ENUM
 {
   // [Errors Range]

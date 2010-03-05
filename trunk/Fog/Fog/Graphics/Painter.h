@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - Public API]
+// [Fog-Graphics Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -47,7 +47,7 @@ namespace Fog {
 //! be used to affect painter origin and clipping. First region and origin 
 //! informations are stored as meta region and meta origin. These variables
 //! shouldn't be changed during rendering and are used usually by windowing
-//! system to set correct origin and window clipping. If you are using Fog/Gui
+//! system to set correct origin and window clipping. If you are using Fog-Gui
 //! library, never change these variables in @c Widget::onPaint() event.
 //!
 //! Second region and origin information are stored as user region and user

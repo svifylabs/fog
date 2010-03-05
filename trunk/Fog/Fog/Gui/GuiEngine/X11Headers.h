@@ -1,4 +1,4 @@
-// [Fog/Gui Library - Public API]
+// [Fog-Gui Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -14,7 +14,7 @@
 #if defined(FOG_GUI_X11)
 
 #ifdef _XLIB_H
-#error "You must include Fog/Gui/UIEngine/X11Headers.h before xlib.h"
+#error "You must include Fog-Gui/UIEngine/X11Headers.h before xlib.h"
 #endif
 
 // redefine some critical things
@@ -318,7 +318,7 @@ const int XVisibilityNotify = VisibilityNotify;
 #endif // index
 
 #else
-#warning "Fog::X11 - Including Fog/Gui/UIEngine/X11Headers on non-x11 plaform"
+#warning "Fog::X11 - Including Fog-Gui/UIEngine/X11Headers on non-x11 plaform"
 #endif // FOG_GUI_X11
 
 // [Guard]

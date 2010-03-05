@@ -1,4 +1,4 @@
-// [Fog/Gui Library - Private API]
+// [Fog-Gui Library - Private API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -13,7 +13,7 @@
 namespace Fog {
 
 // ============================================================================
-// [Private Widget Iterator used in Fog/Gui library]
+// [Private Widget Iterator used in Fog-Gui library]
 //
 // These macros are used internally, so don't use them outside if Fog library.
 // ============================================================================

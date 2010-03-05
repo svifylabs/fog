@@ -1,4 +1,4 @@
-// [Fog/Core Library - Public API]
+// [Fog-Core Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -14,7 +14,7 @@
 #if defined(_DOXYGEN)
 
 // ============================================================================
-// [Fog/Core Main]
+// [Fog-Core Main]
 // ============================================================================
 
 //! @mainpage Fog Library Documentation
@@ -28,24 +28,24 @@
 //! Unix like operating systems.
 
 // ============================================================================
-// [Fog/Core Groups]
+// [Fog-Core Groups]
 // ============================================================================
 
-//! @defgroup Fog_Core Fog/Core public API.
+//! @defgroup Fog_Core Fog-Core public API.
 //!
-//! Set of Fog/Core library classes and their members.
+//! Set of Fog-Core library classes and their members.
 
-//! @defgroup Fog_Core_Private Fog/Core private API.
+//! @defgroup Fog_Core_Private Fog-Core private API.
 //! @ingroup Fog_Core
 
-//! @defgroup Fog_Core_Macros Fog/Core macros.
+//! @defgroup Fog_Core_Macros Fog-Core macros.
 //! @ingroup Fog_Core
 //!
 //! Very low level macros, but needed for compiling Core library and
 //! applications.
 
 // ============================================================================
-// [Fog/Core Shared]
+// [Fog-Core Shared]
 // ============================================================================
 
 //! @brief Namespace for shared documentation between classes.
@@ -134,7 +134,7 @@ struct Implicit
 #endif // _DOXYGEN
 
 // ============================================================================
-// [Fog/Core Include Files]
+// [Fog-Core Include Files]
 // ============================================================================
 
 #include <Fog/Build/Build.h>

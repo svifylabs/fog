@@ -1,4 +1,4 @@
-// [Fog/Core Library - Public API]
+// [Fog-Core Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -8,7 +8,7 @@
 
 // [Guard]
 #if !defined(FOG_IDE) && !defined(_FOG_CORE_ATOMIC_H)
-#error "Fog::Atomic::GCC_X86_X64 - Only Fog/Core/Atomic.h can include this file."
+#error "Fog::Atomic::GCC_X86_X64 - Only Fog-Core/Atomic.h can include this file."
 #else
 
 namespace Fog {

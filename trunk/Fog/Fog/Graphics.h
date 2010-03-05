@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - Public API]
+// [Fog-Graphics Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -14,25 +14,25 @@
 #if defined(_DOXYGEN)
 
 // ============================================================================
-// [Fog/Graphics Groups]
+// [Fog-Graphics Groups]
 // ============================================================================
 
-//! @defgroup Fog_Graphics Fog/Graphics public API.
+//! @defgroup Fog_Graphics Fog-Graphics public API.
 //!
-//! Set of Fog/Graphics library classes and their members.
+//! Set of Fog-Graphics library classes and their members.
 
-//! @defgroup Fog_Graphics_Private Fog/Graphics private API.
+//! @defgroup Fog_Graphics_Private Fog-Graphics private API.
 //! @ingroup Fog_Graphics
 //!
 //! This module contains classes related to specific ImageIO plugins.
 
-//! @defgroup Fog_Graphics_ImageIO Fog/Graphics ImageIO API.
+//! @defgroup Fog_Graphics_ImageIO Fog-Graphics ImageIO API.
 //! @ingroup Fog_Graphics
 //!
 //! This module contains classes related to specific ImageIO plugins.
 
 // ============================================================================
-// [Fog/Graphics Namespaces]
+// [Fog-Graphics Namespaces]
 // ============================================================================
 
 //! @namespace Fog::RasterEngine
@@ -51,7 +51,7 @@
 #endif // _DOXYGEN
 
 // ============================================================================
-// [Fog/Graphics Include Files]
+// [Fog-Graphics Include Files]
 // ============================================================================
 
 #include <Fog/Build/Build.h>

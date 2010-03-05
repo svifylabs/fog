@@ -1,4 +1,4 @@
-// [Fog/Gui Library - Public API]
+// [Fog-Gui Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -587,7 +587,7 @@ enum EVENT_GUI_ENUM
 // [Fog::ERR_GUI_ENUM]
 // ============================================================================
 
-//! @brief Error codes used in Fog/Gui.
+//! @brief Error codes used in Fog-Gui.
 enum ERR_GUI_ENUM
 {
   // --------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-// [Fog/Core Library - Public API]
+// [Fog-Core Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -40,7 +40,7 @@ struct ManagedStringCache;
 //! Why to introduce another string class?
 //!
 //! It's easy - performance and easy to use API. If you want to see the code that
-//! is using managed strings in detail, you should look at Fog/Xml API. For all
+//! is using managed strings in detail, you should look at Fog-Xml API. For all
 //! XML tags and attributes are used managed strings. The idea is very simple -
 //! XML tag name and attribute names are very unlikely to change, but they can
 //! be processed many times. This means that we need very often to compare tag

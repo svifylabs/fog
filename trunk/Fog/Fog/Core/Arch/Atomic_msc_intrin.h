@@ -1,4 +1,4 @@
-// [Fog/Core Library - Public API]
+// [Fog-Core Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -8,7 +8,7 @@
 
 // [Guard]
 #if !defined(FOG_IDE) && !defined(_FOG_CORE_ATOMIC_H)
-#error "Fog::Atomic::MSC_INTRIN - Only Fog/Core/Atomic.h can include this file."
+#error "Fog::Atomic::MSC_INTRIN - Only Fog-Core/Atomic.h can include this file."
 #else
 
 // Always use compiler intrinsics if available.

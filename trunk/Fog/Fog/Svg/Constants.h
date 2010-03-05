@@ -1,4 +1,4 @@
-// [Fog/Svg Library - Public API]
+// [Fog-Svg Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -81,8 +81,8 @@ enum SVG_PAINT_TYPE
 
 enum SVG_STYLE_ID
 {
-  // When adding value here, it's important to add value to Fog/Core/Strings.h
-  // and Fog/Core/Strings.cpp. There are static strings for style names.
+  // When adding value here, it's important to add value to Fog-Core/Strings.h
+  // and Fog-Core/Strings.cpp. There are static strings for style names.
   SVG_STYLE_CLIP_PATH = 0,
   SVG_STYLE_CLIP_RULE,
   SVG_STYLE_ENABLE_BACKGROUND,
@@ -136,7 +136,7 @@ enum SVG_PATTERN_UNITS
 // [Fog::ERR_SVG]
 // ============================================================================
 
-//! @brief Error codes used in Fog/Svg.
+//! @brief Error codes used in Fog-Svg.
 enum ERR_SVG_ENUM
 {
   // Errors Range.

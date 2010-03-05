@@ -965,7 +965,7 @@ struct fog_if<false, _Then, _Else> { typedef _Else ret; };
 # include <emmintrin.h>
 #endif // FOG_HARDCODE_SSE2
 
-// Defined also in Fog/Core/Application.h. It's defined here to prevent
+// Defined also in Fog-Core/Application.h. It's defined here to prevent
 // compilation errors when using FOG_CORE_MAIN() or FOG_GUI_MAIN() and
 // this header file is not included.
 FOG_API void fog_arguments_init(int argc, char* argv[]);
