@@ -16,6 +16,7 @@ Usually the benchmarks for Cairo are run under Linux, and bechmarks fog GDI+ und
 
 There are several tests that should show performance of invididual graphics operations.
 
+  * *CreateDestroy* - Time which is needed to create and destroy painting context. This benchmark is only informative, you really don't need to create and destroy thousands of painting contexts per repaint.
   * *FillRect* - Fill rectangles aligned to pixel grid by single color. These rectangle fills are often optimized as special fast-paths, so this test will show how these special cases are optimized in tested libraries.
   * *FillRectAffine* - Similar to *FillRect* test, but each rectangle is rotated. This test should reveal cost of creating rasterizer and rasterizing the convex polygon.
   * *FillRound* - Fill rounded rectangles by single color. Rectangles are aligned to the pixel grid, but rounds are anti-aliased. This test should reveal the cost of using rasterizer and path flattening pipeline.
