@@ -1,4 +1,4 @@
-// [Fog/Graphics Library - Private API]
+// [Fog-Graphics Library - Private API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -19,7 +19,7 @@
 //! @addtogroup Fog_Graphics_Raster
 //! @{
 
-// This file is included from all Fog/Graphics/RasterEngine/RasterEngine_.h includes and
+// This file is included from all Fog-Graphics/RasterEngine/RasterEngine_.h includes and
 // .cpp files, so in future it may contain generic code for these modules.
 
 namespace Fog {

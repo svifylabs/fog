@@ -23,7 +23,7 @@
   FOG_INIT_EXTERN err_t entry##_init(void); \
   FOG_INIT_EXTERN void entry##_shutdown(void)
 
-// Fog/Core
+// Fog-Core
 FOG_INIT_FUNC(fog_std);
 
 FOG_INIT_FUNC(fog_cpuinfo);
@@ -48,7 +48,7 @@ FOG_INIT_FUNC(fog_threadpool);
 FOG_INIT_FUNC(fog_object);
 FOG_INIT_FUNC(fog_application);
 
-// Fog/Graphics
+// Fog-Graphics
 FOG_INIT_FUNC(fog_raster);
 FOG_INIT_FUNC(fog_rasterizer);
 FOG_INIT_FUNC(fog_palette);
@@ -65,13 +65,13 @@ FOG_INIT_FUNC(fog_font);
 FOG_INIT_FUNC(fog_fontmanager);
 FOG_INIT_FUNC(fog_painter);
 
-// Fog/Gui
+// Fog-Gui
 // reserved...
 
-// Fog/Svg
+// Fog-Svg
 // reserved...
 
-// Fog/Xml
+// Fog-Xml
 FOG_INIT_FUNC(fog_xmlentity);
 
 // ============================================================================
@@ -97,7 +97,7 @@ struct FogInitEntry
 
 static const FogInitEntry fog_init_entries[] =
 {
-  // Fog/Core
+  // Fog-Core
   INIT_ENTRY(fog_cpuinfo),          // No dependency
   INIT_ENTRY(fog_lock),             // No dependency
   INIT_ENTRY(fog_memory),           // Depends to Cpu and Lock
@@ -120,7 +120,7 @@ static const FogInitEntry fog_init_entries[] =
   INIT_ENTRY(fog_object),           // Depends to String
   INIT_ENTRY(fog_application),      // Depends to Many
 
-  // Fog/Graphics
+  // Fog-Graphics
   INIT_ENTRY(fog_raster),
   INIT_ENTRY(fog_rasterizer),
   INIT_ENTRY(fog_palette),
@@ -137,12 +137,12 @@ static const FogInitEntry fog_init_entries[] =
   INIT_ENTRY(fog_fontmanager),
   INIT_ENTRY(fog_painter),
 
-  // Fog/Gui
+  // Fog-Gui
 
-  // Fog/Xml
+  // Fog-Xml
   INIT_ENTRY(fog_xmlentity)
 
-  // Fog/Svg
+  // Fog-Svg
 };
 
 FOG_CAPI_DECLARE err_t fog_init(void)

@@ -229,7 +229,7 @@ If(NOT FOG_HAVE_LIBPNG)
 EndIf(NOT FOG_HAVE_LIBPNG)
 
 # =============================================================================
-# [Fog/Build]
+# [Fog-Build]
 # =============================================================================
 
 Set(FOG_BUILD_SOURCES
@@ -245,7 +245,7 @@ SOURCE_GROUP(Build FILES
 )
 
 # =============================================================================
-# [Fog/Core]
+# [Fog-Core]
 # =============================================================================
 
 Set(FOG_CORE_LIB_SOURCES
@@ -386,7 +386,7 @@ Set(FOG_CORE_LIB_HEADERS
 SOURCE_GROUP(Core FILES ${FOG_CORE_LIB_SOURCES} ${FOG_CORE_LIB_HEADERS})
 
 # =============================================================================
-# [Fog/Graphics]
+# [Fog-Graphics]
 # =============================================================================
 
 Set(FOG_GRAPHICS_LIB_SOURCES
@@ -588,7 +588,7 @@ SOURCE_GROUP(Graphics_PaintEngine   FILES ${FOG_GRAPHICS_PAINTENGINE_SOURCES}  $
 SOURCE_GROUP(Graphics_RasterEngine  FILES ${FOG_GRAPHICS_RASTERENGINE_SOURCES} ${FOG_GRAPHICS_RASTERENGINE_HEADERS})
 
 # =============================================================================
-# [Fog/Xml]
+# [Fog-Xml]
 # =============================================================================
 
 Set(FOG_XML_LIB_SOURCES
@@ -610,7 +610,7 @@ Set(FOG_XML_LIB_HEADERS
 SOURCE_GROUP(Xml FILES ${FOG_XML_LIB_SOURCES} ${FOG_XML_LIB_HEADERS})
 
 # =============================================================================
-# [Fog/Svg]
+# [Fog-Svg]
 # =============================================================================
 
 Set(FOG_SVG_LIB_SOURCES
@@ -633,7 +633,7 @@ Set(FOG_SVG_LIB_HEADERS
 SOURCE_GROUP(Svg FILES ${FOG_SVG_LIB_SOURCES} ${FOG_SVG_LIB_HEADERS})
 
 # =============================================================================
-# [Fog/Gui]
+# [Fog-Gui]
 # =============================================================================
 
 Set(FOG_GUI_LIB_SOURCES

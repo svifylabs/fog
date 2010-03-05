@@ -1,4 +1,4 @@
-// [Fog/Svg Library - Public API]
+// [Fog-Svg Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package

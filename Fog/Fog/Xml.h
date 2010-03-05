@@ -1,4 +1,4 @@
-// [Fog/Xml Library - Public API]
+// [Fog-Xml Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -12,17 +12,17 @@
 #define _FOG_XML_H
 
 // ============================================================================
-// [Fog/Xml Documentation]
+// [Fog-Xml Documentation]
 // ============================================================================
 
 #if defined(_DOXYGEN)
-//! @defgroup Fog_Xml Fog/Xml library API.
+//! @defgroup Fog_Xml Fog-Xml library API.
 //!
-//! Set of Fog/Xml library classes and their members.
+//! Set of Fog-Xml library classes and their members.
 #endif // _DOXYGEN
 
 // ============================================================================
-// [Fog/Xml Include Files]
+// [Fog-Xml Include Files]
 // ============================================================================
 
 #include <Fog/Build/Build.h>

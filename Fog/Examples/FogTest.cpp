@@ -147,11 +147,15 @@ void MyWindow::onPaint(PaintEvent* e)
   TimeTicks ticks = TimeTicks::highResNow();
   Painter* p = e->getPainter();
 
+  p->save();
   p->setOperator(OPERATOR_SRC);
 
   // Clear everything to white.
   p->setSource(Argb(0xFFFFFFFF));
   p->clear();
+  
+  p->setSource(Argb(0xFF000000));
+  p->drawRect(Rect(15, 15, getWidth() - 25, getHeight() - 25));
 
 /*
   Region reg;
@@ -194,11 +198,9 @@ void MyWindow::onPaint(PaintEvent* e)
   pattern.addStop(ArgbStop(0.0, Argb(0xFF000000)));
   pattern.addStop(ArgbStop(1.0, Argb(0xFFFF0000)));
 
-  p->save();
+  p->translate((double)getWidth()/2, (double)getHeight()/2);
   p->rotate(_rotate);
-
-  p->setSource(0xFF000000);
-  p->fillRect(Rect(200, 200, 128, 128));
+  p->translate(-(double)getWidth()/2, -(double)getHeight()/2);
 
   // Fill path with linear gradient we created.
   p->setSource(pattern);
@@ -217,13 +219,12 @@ void MyWindow::onPaint(PaintEvent* e)
     ColorMatrix cm;
     cm.rotateHue((float)_rotate * 3.0f);
     im.filter(cm);
-    //p->blitImage(PointD(50.0, 50.0), im);
-
-    //p->blitImage(PointD(250.0, 50.0), i[0]);
+    p->blitImage(PointD(50.0, 50.0), im);
+    p->blitImage(PointD(250.0, 50.0), i[0]);
   }
-  p->restore();
 #endif
 
+  p->restore();
   p->flush(PAINTER_FLUSH_SYNC);
 
   TimeDelta delta = TimeTicks::highResNow() - ticks;

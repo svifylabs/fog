@@ -1,4 +1,4 @@
-// [Fog/Xml Library - Public API]
+// [Fog-Xml Library - Public API]
 //
 // [Licence]
 // MIT, See COPYING file in package
@@ -55,7 +55,7 @@ enum XML_FLAGS
 // [Fog::ERR_XML]
 // ============================================================================
 
-//! @brief Error codes used in Fog/Xml.
+//! @brief Error codes used in Fog-Xml.
 enum ERR_XML_ENUM
 {
   // Errors Range.
