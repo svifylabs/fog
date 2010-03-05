@@ -61,7 +61,7 @@ Set(FOG_CFLAGS_SSSE3 "")
 
 # GCC flags we can try in future:
 # * -fno-keep-static-consts
-# * -merge-all-constants
+# * -fmerge-all-constants
 # * -fpredictive-commoning
 
 If(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
@@ -88,6 +88,10 @@ If(MSVC)
   Set(FOG_CFLAGS_SSE3 "${FOG_CFLAGS_OPTIMIZE} /arch:SSE2")
   Set(FOG_CFLAGS_SSSE3 "${FOG_CFLAGS_OPTIMIZE} /arch:SSE2")
 EndIf(MSVC)
+
+If(${CMAKE_BUILD_TYPE} MATCHES "Debug")
+  Set(FOG_DEBUG TRUE)
+EndIf(${CMAKE_BUILD_TYPE} MATCHES "Debug")
 
 # =============================================================================
 # [Endianness]

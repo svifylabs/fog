@@ -38,3 +38,4 @@ Linux/BSD:
   - Freetype2  (direct   - runtime loading)
 - Fog/UI
   - X11        (optional - runtime loading)
+

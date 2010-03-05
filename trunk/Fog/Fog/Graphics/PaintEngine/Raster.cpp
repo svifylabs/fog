@@ -660,7 +660,6 @@ void RasterRenderImageAffineBound::render(RasterPaintContext* ctx)
         {
           int w = xiRight - xiLeft;
           // Fetch pattern and composite.
-          // capsState->rops->cspan(pCur + (uint)xiLeft * 4, &capsState->solid, w, NULL);
           vspan(pCur + (uint)xiLeft * 4,
             ictx.fetch(&ictx, pBuf, xiLeft, y, w),
             (sysuint_t)w, &closure);

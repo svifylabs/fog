@@ -408,6 +408,7 @@ struct FOG_HIDDEN AnalyticRasterizer : public Rasterizer
   FOG_INLINE void renderHLine(int ey, int24x8_t x1, int24x8_t y1, int24x8_t x2, int24x8_t y2);
 
   FOG_INLINE void addCurCell();
+  FOG_INLINE void addCurCell_Always();
   FOG_INLINE void setCurCell(int x, int y);
 
   bool nextCellBuffer();
@@ -450,12 +451,14 @@ struct FOG_HIDDEN AnalyticRasterizer : public Rasterizer
   //! one, but this is not condition if rasterizer was reused).
   CellXYBuffer* _bufferCurrent;
 
-  //! @brief Current cell in buffer (_cells).
+  //! @brief Current cell in the buffer (_cells).
   CellXY* _curCell;
-  //! @brief End cell in buffer (this cell is first invalid cell in that buffer).
+  //! @brief End cell in the buffer (this cell is first invalid cell in that buffer).
   CellXY* _endCell;
 
-  CellXY _cell;
+  //! @brief Invalid cell. It is set to _curCell and _endCell if memory
+  //! allocation failed. It prevents to dereference the @c NULL pointer.
+  CellXY _invalidCell;
 
 private:
   FOG_DISABLE_COPY(AnalyticRasterizer)
@@ -667,28 +670,11 @@ void AnalyticRasterizer::reset()
 
   _bufferCurrent = _bufferFirst;
 
-  if (_bufferCurrent)
-  {
-    _curCell = _bufferCurrent->cells;
-    _endCell = _bufferCurrent->cells + _bufferCurrent->capacity;
-  }
-  else
-  {
-    _curCell = NULL;
-    _endCell = NULL;
-  }
+  _curCell = &_invalidCell;
+  _endCell = _curCell + 1;
 
   _cellsCount = 0; 
-
-  _cell.x = 0x7FFFFFFF;
-  _cell.y = 0x7FFFFFFF;
-  _cell.area = 0;
-  _cell.cover = 0;
-
-  _cellsBounds.x1 =  0x7FFFFFFF;
-  _cellsBounds.y1 =  0x7FFFFFFF;
-  _cellsBounds.x2 = -0x7FFFFFFF;
-  _cellsBounds.y2 = -0x7FFFFFFF;
+  _cellsBounds.set(0x7FFFFFFF, 0x7FFFFFFF, -0x7FFFFFFF, -0x7FFFFFFF);
 }
 
 // ============================================================================
@@ -712,7 +698,7 @@ void AnalyticRasterizer::resetClipBox()
 }
 
 // ============================================================================
-// [Fog::AnalyticRasterizer - Commands]
+// [Fog::AnalyticRasterizer - Error]
 // ============================================================================
 
 void AnalyticRasterizer::setError(err_t error)
@@ -731,6 +717,8 @@ void AnalyticRasterizer::resetError()
 
 void AnalyticRasterizer::addPath(const Path& path)
 {
+  FOG_ASSERT(_finalized == false);
+
   sysuint_t i = path.getLength();
   if (!i) return;
 
@@ -998,16 +986,18 @@ void AnalyticRasterizer::renderLine(int24x8_t x1, int24x8_t y1, int24x8_t x2, in
 
   int dx = x2 - x1;
 
-  if (dx >= DXLimit || dx <= -DXLimit)
+  if (FOG_UNLIKELY((dx >= DXLimit) | (dx <= -DXLimit)))
   {
     int cx = (x1 + x2) >> 1;
     int cy = (y1 + y2) >> 1;
 
     AnalyticRasterizer::renderLine(x1, y1, cx, cy);
     AnalyticRasterizer::renderLine(cx, cy, x2, y2);
+    return;
   }
 
   int dy = y2 - y1;
+
   int ex1 = x1 >> POLY_SUBPIXEL_SHIFT;
   int ex2 = x2 >> POLY_SUBPIXEL_SHIFT;
   int ey1 = y1 >> POLY_SUBPIXEL_SHIFT;
@@ -1027,7 +1017,22 @@ void AnalyticRasterizer::renderLine(int24x8_t x1, int24x8_t y1, int24x8_t x2, in
   if (ey2 < _cellsBounds.y1) _cellsBounds.y1 = ey2;
   if (ey2 > _cellsBounds.y2) _cellsBounds.y2 = ey2;
 
-  setCurCell(ex1, ey1);
+  // Prepare the first cell (_invalidCell can be set also on out of memory).
+  if (FOG_UNLIKELY(_curCell == &_invalidCell))
+  {
+    if (_error != ERR_OK) return;
+
+    nextCellBuffer();
+    _curCell->setCell(ex1, ey1, 0, 0);
+  }
+  // If current cell position is different than [ex1, ey1] we have to create
+  // new cell.
+  else
+  {
+    setCurCell(ex1, ey1);
+  }
+
+  FOG_ASSERT(_curCell->x == ex1 && _curCell->y == ey1);
 
   // Everything is on a single hline.
   if (ey1 == ey2)
@@ -1036,49 +1041,41 @@ void AnalyticRasterizer::renderLine(int24x8_t x1, int24x8_t y1, int24x8_t x2, in
     return;
   }
 
-  // Vertical line - we have to calculate start and end cells,
-  // and then - the common values of the area and coverage for
-  // all cells of the line. We know exactly there's only one 
-  // cell, so, we don't have to call renderHLine().
+  // Vertical line - we have to calculate start and end cells, and then - the
+  // common values of the area and coverage for all cells of the line. We know
+  // exactly there's only one cell, so, we don't have to call renderHLine().
   incr = 1;
   if (dx == 0)
   {
-    int ex = x1 >> POLY_SUBPIXEL_SHIFT;
-    int two_fx = (x1 - (ex << POLY_SUBPIXEL_SHIFT)) << 1;
+    int two_fx = (x1 - (ex1 << POLY_SUBPIXEL_SHIFT)) << 1;
     int area;
 
     first = POLY_SUBPIXEL_SCALE;
     if (dy < 0) { first = 0; incr  = -1; }
 
-    x_from = x1;
-
-    // renderHLine(ey1, x_from, fy1, x_from, first);
     delta = first - fy1;
-    _cell.cover += delta;
-    _cell.area  += two_fx * delta;
 
+    _curCell->addCovers(delta, two_fx * delta);
+    addCurCell();
     ey1 += incr;
-    setCurCell(ex, ey1);
 
     delta = first + first - POLY_SUBPIXEL_SCALE;
     area = two_fx * delta;
+
     while (ey1 != ey2)
     {
-      // renderHLine(ey1, x_from, PolySubpixelScale - first, x_from, first);
-      _cell.cover = delta;
-      _cell.area  = area;
+      _curCell->setCell(ex1, ey1, delta, area);
+      addCurCell_Always();
       ey1 += incr;
-      setCurCell(ex, ey1);
     }
-    // renderHLine(ey1, x_from, PolySubpixelScale - first, x_from, fy2);
-    delta = fy2 - POLY_SUBPIXEL_SCALE + first;
-    _cell.cover += delta;
-    _cell.area  += two_fx * delta;
+
+    delta = first + fy2 - POLY_SUBPIXEL_SCALE;
+    _curCell->setCell(ex1, ey1, delta, two_fx * delta);
     return;
   }
 
-  // ERR_OK, we have to render several hlines.
-  p     = (POLY_SUBPIXEL_SCALE - fy1) * dx;
+  // Ok, we have to render several hlines.
+  p = (POLY_SUBPIXEL_SCALE - fy1) * dx;
   first = POLY_SUBPIXEL_SCALE;
 
   if (dy < 0)
@@ -1098,7 +1095,8 @@ void AnalyticRasterizer::renderLine(int24x8_t x1, int24x8_t y1, int24x8_t x2, in
   renderHLine(ey1, x1, fy1, x_from, first);
 
   ey1 += incr;
-  setCurCell(x_from >> POLY_SUBPIXEL_SHIFT, ey1);
+  addCurCell();
+  _curCell->setCell(x_from >> POLY_SUBPIXEL_SHIFT, ey1, 0, 0);
 
   if (ey1 != ey2)
   {
@@ -1120,21 +1118,29 @@ void AnalyticRasterizer::renderLine(int24x8_t x1, int24x8_t y1, int24x8_t x2, in
       x_from = x_to;
 
       ey1 += incr;
-      setCurCell(x_from >> POLY_SUBPIXEL_SHIFT, ey1);
+
+      addCurCell();
+      _curCell->setCell(x_from >> POLY_SUBPIXEL_SHIFT, ey1, 0, 0);
     }
   }
+
   renderHLine(ey1, x_from, POLY_SUBPIXEL_SCALE - first, x2, fy2);
 }
 
 FOG_INLINE void AnalyticRasterizer::renderHLine(int ey, int24x8_t x1, int24x8_t y1, int24x8_t x2, int24x8_t y2)
 {
-  int ex1 = x1 >> POLY_SUBPIXEL_SHIFT;
-  int ex2 = x2 >> POLY_SUBPIXEL_SHIFT;
-  int fx1 = x1 & POLY_SUBPIXEL_MASK;
-  int fx2 = x2 & POLY_SUBPIXEL_MASK;
+  int ex1;
+  int ex2;
+  int fx1;
+  int fx2;
 
   int delta, p, first, dx;
   int incr, lift, mod, rem;
+
+  ex1 = x1 >> POLY_SUBPIXEL_SHIFT;
+  ex2 = x2 >> POLY_SUBPIXEL_SHIFT;
+
+  FOG_ASSERT(_curCell->x == ex1 && _curCell->y == ey);
 
   // Trivial case. Happens often.
   if (y1 == y2)
@@ -1143,16 +1149,18 @@ FOG_INLINE void AnalyticRasterizer::renderHLine(int ey, int24x8_t x1, int24x8_t 
     return;
   }
 
+  fx1 = x1 & POLY_SUBPIXEL_MASK;
+  fx2 = x2 & POLY_SUBPIXEL_MASK;
+
   // Everything is located in a single cell. That is easy!
   if (ex1 == ex2)
   {
     delta = y2 - y1;
-    _cell.cover += delta;
-    _cell.area  += (fx1 + fx2) * delta;
+    _curCell->addCovers(delta, (fx1 + fx2) * delta);
     return;
   }
 
-  // ERR_OK, we'll have to render a run of adjacent cells on the same hline...
+  // Ok, we'll have to render a run of adjacent cells on the same hline...
   p     = (POLY_SUBPIXEL_SCALE - fx1) * (y2 - y1);
   first = POLY_SUBPIXEL_SCALE;
   incr  = 1;
@@ -1172,12 +1180,11 @@ FOG_INLINE void AnalyticRasterizer::renderHLine(int ey, int24x8_t x1, int24x8_t 
 
   if (mod < 0) { mod += dx; delta--; }
 
-  _cell.cover += delta;
-  _cell.area  += (fx1 + first) * delta;
+  _curCell->addCovers(delta, (fx1 + first) * delta);
+  addCurCell();
 
   ex1 += incr;
-  setCurCell(ex1, ey);
-  y1  += delta;
+  y1 += delta;
 
   if (ex1 != ex2)
   {
@@ -1188,91 +1195,90 @@ FOG_INLINE void AnalyticRasterizer::renderHLine(int ey, int24x8_t x1, int24x8_t 
     if (rem < 0) { lift--; rem += dx; }
     mod -= dx;
 
-    while (ex1 != ex2)
-    {
+    do {
       delta = lift;
       mod  += rem;
       if (mod >= 0) { mod -= dx; delta++; }
 
-      _cell.cover += delta;
-      _cell.area  += POLY_SUBPIXEL_SCALE * delta;
+      if (delta)
+      {
+        _curCell->setCell(ex1, ey, delta, POLY_SUBPIXEL_SCALE * delta);
+        addCurCell_Always();
+      }
+
       y1  += delta;
       ex1 += incr;
-      setCurCell(ex1, ey);
-    }
+    } while (ex1 != ex2);
   }
 
   delta = y2 - y1;
-  _cell.cover += delta;
-  _cell.area  += (fx2 + POLY_SUBPIXEL_SCALE - first) * delta;
+  _curCell->setCell(ex1, ey, delta, (fx2 + POLY_SUBPIXEL_SCALE - first) * delta);
 }
 
 FOG_INLINE void AnalyticRasterizer::addCurCell()
 {
-  if (_cell.area | _cell.cover)
-  {
-    // If we are at the end of the cell buffer we have to use and initialize 
-    // new one.
-    if (_curCell == _endCell && !nextCellBuffer()) return;
+  if (!_curCell->hasCovers()) return;
+  if (FOG_UNLIKELY(++_curCell == _endCell)) nextCellBuffer();
+}
 
-    *_curCell++ = _cell;
-  }
+FOG_INLINE void AnalyticRasterizer::addCurCell_Always()
+{
+  FOG_ASSERT(_curCell->hasCovers());
+  if (FOG_UNLIKELY(++_curCell == _endCell)) nextCellBuffer();
 }
 
 FOG_INLINE void AnalyticRasterizer::setCurCell(int x, int y)
 {
-  if (!_cell.equalPos(x, y))
-  {
-    addCurCell();
-    _cell.x     = x;
-    _cell.y     = y;
-    _cell.cover = 0;
-    _cell.area  = 0;
-  }
+  if (_curCell->hasPosition(x, y)) return;
+
+  addCurCell();
+  _curCell->setCell(x, y, 0, 0);
 }
 
 bool AnalyticRasterizer::nextCellBuffer()
 {
   // If there is no buffer we quietly do nothing.
-  if (!_bufferCurrent) goto error;
+  if (FOG_UNLIKELY(!_bufferCurrent)) goto error;
+
+  // If we are starting filling we just return true.
+  if (_curCell == &_invalidCell) goto init;
 
   // Finalize current buffer.
   _bufferCurrent->count = _bufferCurrent->capacity;
   _cellsCount += _bufferCurrent->count;
 
-  // Try to get next buffer. First try link in current buffer, otherwise
-  // use rasterizer's pool.
+  // Try to get next buffer. First try link in current buffer, otherwise use
+  // rasterizer's pool.
   if (_bufferCurrent->next)
   {
     _bufferCurrent = _bufferCurrent->next;
-    _curCell = _bufferCurrent->cells;
-    _endCell = _bufferCurrent->cells + _bufferCurrent->capacity;
-    return true;
+    goto init;
   }
 
+  // Next buffer not found, try to get cell buffer from pool (getCellXYBuffer
+  // can also allocate new buffer if the pool is empty).
   _bufferCurrent = Rasterizer::getCellXYBuffer();
-
   if (_bufferCurrent)
   {
     // Link
     _bufferLast->next = _bufferCurrent;
     _bufferCurrent->prev = _bufferLast;
     _bufferLast = _bufferCurrent;
-
-    // Initialize cell pointers.
-    _curCell = _bufferCurrent->cells;
-    _endCell = _bufferCurrent->cells + _bufferCurrent->capacity;
-    return true;
+    goto init;
   }
 
-  // Initialize cell pointers to NULLs.
-  _curCell = NULL;
-  _endCell = NULL;
-
-  // Set error to out of memory, rasterization is over.
 error:
+  // Initialize cell pointers to _invalidCell.
+  _curCell = &_invalidCell;
+  _endCell = _curCell + 1;
+
   if (_error != ERR_RT_OUT_OF_MEMORY) setError(ERR_RT_OUT_OF_MEMORY);
   return false;
+
+init:
+  _curCell = _bufferCurrent->cells;
+  _endCell = _curCell + _bufferCurrent->capacity;
+  return true;
 }
 
 bool AnalyticRasterizer::finalizeCellBuffer()
@@ -1283,6 +1289,10 @@ bool AnalyticRasterizer::finalizeCellBuffer()
   _bufferCurrent->count = (sysuint_t)(_curCell - _bufferCurrent->cells);
   _cellsCount += _bufferCurrent->count;
 
+  // Clear cell pointers (after finalize the access to cells is forbidden).
+  _curCell = &_invalidCell;
+  _endCell = _curCell + 1;
+
   return true;
 }
 
@@ -1290,7 +1300,7 @@ void AnalyticRasterizer::freeXYCellBuffers(bool all)
 {
   if (_bufferFirst != NULL)
   {
-    // Release all cell buffers except first.
+    // Release all cell buffers except the first one.
     CellXYBuffer* candidate = (all) ? _bufferFirst : _bufferFirst->next;
     if (!candidate) return;
 
@@ -1305,7 +1315,7 @@ void AnalyticRasterizer::freeXYCellBuffers(bool all)
       // First cell is now last cell.
       _bufferLast = _bufferFirst;
 
-      // Zero links.
+      // Clear links.
       _bufferFirst->next = NULL;
       _bufferFirst->prev = NULL;
     }
@@ -1439,14 +1449,9 @@ void AnalyticRasterizer::finalize()
   if (_finalized) return;
 
   if (_autoClose) closePolygon();
+  if (_curCell == &_invalidCell) return;
 
-  addCurCell();
-
-  _cell.x     = 0x7FFFFFFF;
-  _cell.y     = 0x7FFFFFFF;
-  _cell.cover = 0;
-  _cell.area  = 0;
-
+  if (_curCell->hasCovers()) _curCell++;
   if (!finalizeCellBuffer() || !_cellsCount) return;
 
   // DBG: Check to see if min/max works well.
@@ -1462,7 +1467,7 @@ void AnalyticRasterizer::finalize()
   //   }
   // }
 
-  // Normalize bounding box to our standard, x2/y2 coordinates are invalid.
+  // Normalize bounding box to our standard, x2/y2 coordinates are outside.
   _cellsBounds.x2++;
   _cellsBounds.y2++;
 
@@ -1585,6 +1590,7 @@ FOG_INLINE uint AnalyticRasterizer::calculateAlphaEvenOdd(int area) const
 
 uint AnalyticRasterizer::sweepScanline(Scanline32* scanline, int y)
 {
+  FOG_ASSERT(_finalized);
   if (y >= _cellsBounds.y2) return 0;
 
   const RowInfo& ri = _rowsInfo[y - _cellsBounds.y1];
@@ -1601,70 +1607,64 @@ uint AnalyticRasterizer::sweepScanline(Scanline32* scanline, int y)
   int area;
   uint alpha;
 
-  if (_fillRule == FILL_NON_ZERO)
+#define SWEEP(CALCULATE, SUFFIX) \
+  for (;;) \
+  { \
+    x = cellX; \
+    area = cell->area; \
+    cover += cell->cover; \
+    \
+    /* Accumulate all cells with the same X. */ \
+    while (--numCells) \
+    { \
+      cell++; \
+      if ((cellX = cell->x) != x) break; \
+      area  += cell->area; \
+      cover += cell->cover; \
+    } \
+    \
+    int coversh = cover << (POLY_SUBPIXEL_SHIFT + 1); \
+    if (area) \
+    { \
+      if ((alpha = CALCULATE(coversh - area))) scanline->addCell##SUFFIX(x, alpha); \
+      x++; \
+    } \
+    if (!numCells) break; \
+    \
+    int slen = cellX - x; \
+    if (slen > 0 && (alpha = CALCULATE(coversh))) scanline->addSpan##SUFFIX(x, (uint)slen, alpha); \
+  }
+
+  if (numCells * 2 < scanline->getSpansCapacity())
   {
-    for (;;)
+    if (_fillRule == FILL_NON_ZERO)
     {
-      x = cellX;
-      area = cell->area;
-      cover += cell->cover;
-
-      // Accumulate all cells with the same X.
-      while (--numCells)
-      {
-        cell++;
-        if ((cellX = cell->x) != x) break;
-        area  += cell->area;
-        cover += cell->cover;
-      }
-
-      int coversh = cover << (POLY_SUBPIXEL_SHIFT + 1);
-      if (area)
-      {
-        if ((alpha = calculateAlphaNonZero(coversh - area))) scanline->addCell(x, alpha);
-        x++;
-      }
-      if (!numCells) break;
-
-      int slen = cellX - x;
-      if (slen > 0 && (alpha = calculateAlphaNonZero(coversh))) scanline->addSpan(x, (uint)slen, alpha);
+      SWEEP(calculateAlphaNonZero, _NoCheck);
+    }
+    else
+    {
+      SWEEP(calculateAlphaEvenOdd, _NoCheck);
     }
   }
   else
   {
-    for (;;)
+    if (_fillRule == FILL_NON_ZERO)
     {
-      x = cellX;
-      area = cell->area;
-      cover += cell->cover;
-
-      // Accumulate all cells with the same X.
-      while (--numCells)
-      {
-        cell++;
-        if ((cellX = cell->x) != x) break;
-        area  += cell->area;
-        cover += cell->cover;
-      }
-
-      int coversh = cover << (POLY_SUBPIXEL_SHIFT + 1);
-      if (area)
-      {
-        if ((alpha = calculateAlphaEvenOdd(coversh - area))) scanline->addCell(x, alpha);
-        x++;
-      }
-      if (!numCells) break;
-
-      int slen = cellX - x;
-      if (slen > 0 && (alpha = calculateAlphaEvenOdd(coversh))) scanline->addSpan(x, (uint)slen, alpha);
+      SWEEP(calculateAlphaNonZero, _Check);
+    }
+    else
+    {
+      SWEEP(calculateAlphaEvenOdd, _Check);
     }
   }
 
   return scanline->finalize(y);
+#undef SWEEP
 }
 
 uint AnalyticRasterizer::sweepScanline(Scanline32* scanline, int y, const Box* clip, sysuint_t count)
 {
+  FOG_ASSERT(_finalized);
   if (y >= _cellsBounds.y2) return 0;
 
   const RowInfo& ri = _rowsInfo[y - _cellsBounds.y1];
@@ -1697,7 +1697,7 @@ uint AnalyticRasterizer::sweepScanline(Scanline32* scanline, int y, const Box* c
   clipStartX = clip->x1;
   FOG_ASSERT(cellX < clipEndX);
 
-#define SWEEP(CALCULATE, BAIL) \
+#define SWEEP(CALCULATE, SUFFIX, BAIL) \
   for (;;) \
   { \
     x = cellX; \
@@ -1719,7 +1719,7 @@ uint AnalyticRasterizer::sweepScanline(Scanline32* scanline, int y, const Box* c
       /* Here we are always in clip pointer. */ \
       if (clipStartX <= x && (alpha = CALCULATE(coversh - area))) \
       { \
-        scanline->addCell(x, alpha); \
+        scanline->addCell##SUFFIX(x, alpha); \
       } \
       if (++x == clipEndX) \
       { \
@@ -1737,7 +1737,7 @@ uint AnalyticRasterizer::sweepScanline(Scanline32* scanline, int y, const Box* c
       for (;;) \
       { \
         int slen = Math::min(cellX, clipEndX) - x; \
-        scanline->addSpan(x, (uint)slen, alpha); \
+        scanline->addSpan##SUFFIX(x, (uint)slen, alpha); \
         x += slen; \
         if (x == clipEndX) \
         { \
@@ -1765,11 +1765,11 @@ uint AnalyticRasterizer::sweepScanline(Scanline32* scanline, int y, const Box* c
 
   if (_fillRule == FILL_NON_ZERO)
   {
-    SWEEP(calculateAlphaNonZero, end)
+    SWEEP(calculateAlphaNonZero, _Check, end)
   }
   else
   {
-    SWEEP(calculateAlphaEvenOdd, end)
+    SWEEP(calculateAlphaEvenOdd, _Check, end)
   }
 
 #undef SWEEP

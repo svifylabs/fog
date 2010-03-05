@@ -110,10 +110,10 @@ void MyWindow::onKeyPress(KeyEvent* e)
       _suby += 5;
       break;
     case KEY_Q:
-      _rotate -= 0.01;
+      _rotate -= 0.005;
       break;
     case KEY_W:
-      _rotate += 0.01;
+      _rotate += 0.005;
       break;
     case KEY_E:
       _shearX -= 0.01;
@@ -170,108 +170,7 @@ void MyWindow::onPaint(PaintEvent* e)
   p->clear();
 */
 
-/*
-  Pattern pattern;
-  pattern.setTexture(i[0]);
-  pattern.setSpread(_spread);
-  pattern.setMatrix(Matrix::fromTranslation(_subx, _suby));
-  pattern.translate(300, 300);
-  pattern.rotate(_rotate);
-  pattern.skew(_shearX, _shearY);
-  pattern.scale(_scale);
-  pattern.translate(-300, -300);
-
-  p->setSource(pattern);
-  p->clear();
-
-  {
-    p->save();
-    p->resetMatrix();
-
-    ColorMatrix cm;
-    cm.rotateHue(1.0);
-    p->setSource(ColorFilter(cm));
-    //p->setSource(0xFFFFFFFF);
-    p->setFillMode(FILL_NON_ZERO);
-    p->fillRound(Rect(50, 50, 300, 300), Point(100, 100));
-    p->restore();
-  }
-*/
-/*
-  p->setSource(0xFF000000);
-  Path a;
-  a.moveTo(100, 100);
-  a.lineTo(200, 200);
-  a.lineTo(100, 200);
-  a.closePolygon();
-  p->drawPath(a);
-  //p->drawRound(Rect(100, 100, 200, 200), Point(50, 50));
-*/
 #if 1
-/*
-  Pattern pat;
-  pat.setTexture(i[0]);
-  pat.setSpread(_spread);
-  pat.translate(200, 200);
-  pat.rotate(_rotate);
-  pat.translate(_subx, _suby);
-  // p->setHint(PAINTER_HINT_IMAGE_INTERPOLATION, INTERPOLATION_NEAREST);
-  p->setSource(pat);
-  p->clear();
-*/
-/*
-  Pattern pat;
-  List<ArgbStop> stops;
-  stops.append(ArgbStop(0.0, 0xFFFFFFFF));
-  stops.append(ArgbStop(1.0, 0xFFFF0000));
-  Gradient gradient(PATTERN_LINEAR_GRADIENT, _spread, PointD(100.0, 100.0), PointD(200.0, 200.0), stops);
-  pat.setGradient(gradient);
-  p->setSource(pat);
-  p->rotate(_rotate);
-  p->clear();
-*/
-#if 0
-  p->save();
-  StrokeParams params;
-  params.setLineWidth(40.0);
-  params.setLineJoin(LINE_JOIN_ROUND);
-  params.setStartCap(LINE_CAP_TRIANGLE_REVERT);
-  params.setEndCap(LINE_CAP_TRIANGLE);
-  //params.setInnerJoin(INNER_JOIN_ROUND);
-  //params.setInnerLimit(111.9);
-  p->setStrokeParams(params);
-  p->setSource(Argb(0xFF000000));
-
-  Path path;
-  //path.addRect(RectD(100., 100., 200., 200.));
-  //path.addRect(RectD(210., 210., 200., 200.));
-  path.moveTo(50.0, 50.0);
-  path.lineTo(200.0, 70.0);
-  path.lineTo(145.0, 300.0);
-  path.curveTo(30.0, 30.0, 100.0 + _subx, 100.0 + _suby);
-  p->drawPath(path);
-
-  p->restore();
-#endif
-/*
-
-  p->save();
-  p->setOperator(OPERATOR_SRC_OVER);
-  p->setSource(Argb(0xFFFF0000));
-  p->translate(170 + _subx, 170 + _suby);
-  p->rotate(_rotate);
-  p->blitImage(PointD(0.0, 0.0), i[0]);
-
-  //p->setOperator(OPERATOR_SRC_OUT);
-  //p->blitImage(PointD(0.0, 0.0), i[0]);
-  p->restore();
-*/
-#endif
-
-#if 1
-
-//  p->setSource(Argb(0xFF0000FF));
-//  p->drawRect(Rect(15, 30, getWidth() - 15, getHeight() - 35));
 
   // These coordinates describe boundary of object we want to paint.
   double x = 40.5;
@@ -283,7 +182,6 @@ void MyWindow::onPaint(PaintEvent* e)
 
   // Create path that will contain rounded rectangle.
   Path path;
-  //path.addRound(RectD(x, y, w, h), PointD(50.0, 50.0));
   path.moveTo(100, 100);
   path.cubicTo(150, 120, 180, 100, 200, 200);
   path.lineTo(50, 230);
@@ -293,8 +191,14 @@ void MyWindow::onPaint(PaintEvent* e)
   Pattern pattern;
   pattern.setType(PATTERN_LINEAR_GRADIENT);
   pattern.setPoints(PointD(x, y), PointD(x + w, y + h));
-  pattern.addStop(ArgbStop(0.0, Argb(0xFFFFFF00)));
+  pattern.addStop(ArgbStop(0.0, Argb(0xFF000000)));
   pattern.addStop(ArgbStop(1.0, Argb(0xFFFF0000)));
+
+  p->save();
+  p->rotate(_rotate);
+
+  p->setSource(0xFF000000);
+  p->fillRect(Rect(200, 200, 128, 128));
 
   // Fill path with linear gradient we created.
   p->setSource(pattern);
@@ -305,149 +209,20 @@ void MyWindow::onPaint(PaintEvent* e)
   p->setLineWidth(2);
   p->drawPath(path);
 
-  p->save();
   p->setOperator(OPERATOR_SRC_OVER);
   //p->translate(100, 100);
-  p->rotate(_rotate);
   //p->translate(-100, -100);
   {
     Image im(i[0]);
     ColorMatrix cm;
     cm.rotateHue((float)_rotate * 3.0f);
     im.filter(cm);
-    p->blitImage(PointD(50.0, 50.0), im);
+    //p->blitImage(PointD(50.0, 50.0), im);
 
-    p->blitImage(PointD(250.0, 50.0), i[0]);
+    //p->blitImage(PointD(250.0, 50.0), i[0]);
   }
   p->restore();
 #endif
-
-/*
-  p->setOperator(OPERATOR_SRC_OVER);
-  p->setSource(0xFFFFFFFF);
-
-  PointD points[2];
-  points[0].set(0, 0);
-  points[1].set(getWidth(), getHeight());
-
-  Pattern pattern;
-  pattern.setType(PATTERN_LINEAR_GRADIENT);
-  pattern.setSpread(SPREAD_REFLECT);
-  pattern.setPoints(PointD(points[0]), PointD(points[1].y, points[0].x));
-
-  pattern.addStop(ArgbStop(0.0, 0xFFFFFFFF));
-  pattern.addStop(ArgbStop(1.0, 0xFFFF0000));
-
-  p->rotate(_rotate);
-  p->translate(300, 300);
-  p->setSource(pattern);
-  p->clear();
-
-  //pattern.resetStops();
-  //pattern.addStop(ArgbStop(0.0, 0xFF000000));
-  //pattern.addStop(ArgbStop(1.0, 0xFFFF0000));
-  //p->setSource(pattern);
-  p->scale(0.1, 0.1);
-
-  p->fillRect(RectD(
-    points[0].x,
-    points[0].y,
-    points[1].x - points[0].x,
-    points[1].y - points[0].y));
-*/
-/*
-  int y = 0;
-  int x;
-  double radius;
-  String s;
-
-  y++;
-
-  for (x = 0, radius = _baseRadius; x < 6; x++, radius += 1.0)
-  {
-    Image im(i[0]);
-    ColorMatrix cm;
-    cm.rotateHue(radius * 0.08);
-    im.filter(cm);
-    s.format("ColorMatrix");
-    paintImage(p, Point(x, y), im, s);
-  }
-*/
-/*
-  y++;
-
-  for (x = 0, radius = _baseRadius; x < 6; x++, radius += 1.0)
-  {
-    Image im(i[0]);
-
-    s.format("ColorLut");
-    paintImage(p, Point(x, y), im, s);
-  }
-*/
-  //p->drawText(Point(mp[0].posx, mp[0].posy), Ascii8("TEST"), Font());
-/*
-  p->setOperator(OPERATOR_SRC);
-  p->setSource(0xFF000000);
-  p->clear();
-
-  p->setOperator(OPERATOR_SRC_OVER);
-  p->setSource(0xFFFFFFFF);
-
-  Font font;
-  font.setSize(14);
-  p->drawText(Point(100, 10), Ascii8("Test test"), font);
-
-  Path path;
-  font.getOutline(Ascii8("Test test"), path);
-  //path.scale(0.05, 0.05);
-  path.translate(100, 40.8);
-  //p->rotate(0.09);
-  for (int i = 0; i < 10; i++)
-  {
-    p->fillPath(path);
-    path.translate(0, 20);
-    path.scale(1.17, 1.17, true);
-  }
-*/
-/*
-  Image ii;
-  ImageIO::DecoderDevice* decoder = ImageIO::createDecoderForFile(Ascii8("/my/upload/bmpsuite/ICO/camera.ico"));
-  if (decoder)
-  {
-    int x = 10, y = 10;
-    while (decoder->readImage(ii) == ERR_OK)
-    {
-      ii.convert(PIXEL_FORMAT_PRGB32);
-      p->blitImage(Point(x, y), ii);
-      y += ii.getHeight();
-    }
-    delete decoder;
-  }
-*/
-
-/*
-  for (int i = 0; i < 1; i++)
-  {
-    Path path;
-    Font font;
-    font.setSize(10);
-    p->setSource(0xFF000000 | (rand()*65535+rand()));
-    p->drawText(Point(rand() % getWidth(), rand() % getHeight()), Ascii8("Test test"), font);
-    //font.getOutline(Ascii8("Test test"), path);
-    //path.translate(rand() % getWidth(), rand() % getHeight());
-    //p->fillPath(path);
-  }
-*/
-
-/*
-  p->setOperator(OPERATOR_SRC_OVER);
-  p->translate(mp[0].posx, mp[0].posy);
-
-  SvgDocument svg;
-  svg.readFile(Ascii8("/my/upload/svg/tiger.svg"));
-  SvgContext context(p);
-  svg.onRender(&context);
-*/
 
   p->flush(PAINTER_FLUSH_SYNC);
 
@@ -455,7 +230,7 @@ void MyWindow::onPaint(PaintEvent* e)
 
   p->setOperator(OPERATOR_SRC_OVER);
   p->setSource(0xFF000000);
-  p->fillRect(Rect(0, 0, 2000, getFont().getHeight()));
+  p->fillRect(Rect(0, 0, getWidth(), getFont().getHeight()));
   p->setSource(0xFFFF0000);
 
   String s;

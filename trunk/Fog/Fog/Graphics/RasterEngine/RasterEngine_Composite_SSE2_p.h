@@ -5328,7 +5328,7 @@ struct FOG_HIDDEN CompositeSrcOverSSE2
 
     sse2_load4(src0orig, &src->prgb);
     sse2_expand_pixel_lo_1x4B(src0orig, src0orig);
-    sse2_unpack_1x1W(src0orig, src0orig);
+    sse2_unpack_1x1W(src0xmm, src0orig);
 
     SSE2_BLIT_32x4_INIT(dst, w);
 
@@ -5353,10 +5353,9 @@ struct FOG_HIDDEN CompositeSrcOverSSE2
         sse2_load4(dst0xmm, dst);
         sse2_expand_mask_1x1W(msk0xmm, msk0);
         sse2_unpack_1x1W(dst0xmm, dst0xmm);
-        sse2_expand_pixel_1x1W(msk0xmm, msk0xmm);
-        dst0xmm = _mm_or_si128(dst0xmm, src0xmm);
         sse2_expand_pixel_lo_1x2W(msk0xmm, msk0xmm);
-        sse2_negate_1x2W_hi(msk0xmm, msk0xmm);
+        dst0xmm = _mm_or_si128(dst0xmm, src0xmm);
+        sse2_negate_1x2W_lo(msk0xmm, msk0xmm);
         sse2_muldiv255_1x2W(dst0xmm, dst0xmm, msk0xmm);
         sse2_reverse_1x2W(msk0xmm, dst0xmm);
         sse2_adds_1x1W(dst0xmm, dst0xmm, msk0xmm);
@@ -5606,75 +5605,56 @@ bltOpaqueSkip4:
 
       if (alphaTest == -255)
       {
-          __m128i dst0xmm;
+        __m128i dst0xmm;
 
-          // Dca' = Sca.m + Dca.(1 - m)
-          // Da'  = Sa.m + Da.(1 - m)
-          SSE2_BLIT_32x4_SMALL_PREPARE(bltOpaqueMsk)
+        SSE2_BLIT_32x4_SMALL_PREPARE(bltOpaqueMsk)
 
-          dst0xmm = src0orig;
-          sse2_zero_pixel_lo_1x1W(src0xmm, src0xmm);
+        sse2_zero_pixel_lo_1x1W(src0xmm, src0xmm);
 
-          SSE2_BLIT_32x4_SMALL_DO(bltOpaqueMsk)
-            __m128i msk0xmm;
+        // Dca' = Sca.m + Dca.(1 - m)
+        // Da'  = Sa.m + Da.(1 - m)
+        SSE2_BLIT_32x4_SMALL_DO(bltOpaqueMsk)
+          __m128i msk0xmm;
 
-            uint32_t msk0 = READ_8(msk);
-            if (msk0 == 0x00) goto bltOpaqueMskSkip1;
-            if (msk0 == 0xFF) goto bltOpaqueMskStore1;
+          sse2_load4(dst0xmm, dst);
+          sse2_expand_mask_1x1W(msk0xmm, READ_8(msk));
+          sse2_unpack_1x1W(dst0xmm, dst0xmm);
+          sse2_expand_pixel_lo_1x2W(msk0xmm, msk0xmm);
+          dst0xmm = _mm_or_si128(dst0xmm, src0xmm);
+          sse2_negate_1x2W_lo(msk0xmm, msk0xmm);
+          sse2_muldiv255_1x2W(dst0xmm, dst0xmm, msk0xmm);
+          sse2_reverse_1x2W(msk0xmm, dst0xmm);
+          sse2_adds_1x1W(dst0xmm, dst0xmm, msk0xmm);
+          sse2_pack_1x1W(dst0xmm, dst0xmm);
+          sse2_store4(dst, dst0xmm);
 
-            sse2_load4(dst0xmm, dst);
-            sse2_expand_mask_1x1W(msk0xmm, msk0);
-            sse2_unpack_1x1W(dst0xmm, dst0xmm);
-            sse2_expand_pixel_1x1W(msk0xmm, msk0xmm);
-            dst0xmm = _mm_or_si128(dst0xmm, src0xmm);
-            sse2_expand_pixel_lo_1x2W(msk0xmm, msk0xmm);
-            sse2_negate_1x2W_hi(msk0xmm, msk0xmm);
-            sse2_muldiv255_1x2W(dst0xmm, dst0xmm, msk0xmm);
-            sse2_reverse_1x2W(msk0xmm, dst0xmm);
-            sse2_adds_1x1W(dst0xmm, dst0xmm, msk0xmm);
-            sse2_pack_1x1W(dst0xmm, dst0xmm);
+          dst += 4;
+          msk += 1;
+        SSE2_BLIT_32x4_SMALL_END(bltOpaqueMsk)
 
-bltOpaqueMskStore1:
-            sse2_store4(dst, dst0xmm);
-            dst0xmm = src0orig;
+        sse2_expand_pixel_hi_1x2W(src0xmm, src0xmm);
 
-bltOpaqueMskSkip1:
-            dst += 4;
-            msk += 1;
-          SSE2_BLIT_32x4_SMALL_END(bltOpaqueMsk)
+        SSE2_BLIT_32x4_LARGE_BEGIN(bltOpaqueMsk)
+          __m128i dst1xmm;
+          __m128i msk0xmm, msk1xmm;
+          __m128i mskinv0xmm, mskinv1xmm;
 
-          dst0xmm = src0orig;
-          sse2_expand_pixel_hi_1x2W(src0xmm, src0xmm);
+          sse2_load4(msk0xmm, msk);
+          sse2_load16a(dst0xmm, dst);
+          sse2_expand_mask_2x2W(msk0xmm, msk1xmm, msk0xmm);
+          sse2_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
+          sse2_negate_2x2W(mskinv0xmm, msk0xmm, mskinv1xmm, msk1xmm);
+          sse2_muldiv255_2x2W(msk0xmm, msk0xmm, src0xmm, msk1xmm, msk1xmm, src0xmm);
+          sse2_expand_alpha_2x2W(mskinv0xmm, mskinv0xmm, mskinv1xmm, mskinv1xmm);
+          sse2_muldiv255_2x2W(dst0xmm, dst0xmm, mskinv0xmm, dst1xmm, dst1xmm, mskinv1xmm);
+          sse2_adds_2x2W(dst0xmm, dst0xmm, msk0xmm, dst1xmm, dst1xmm, msk1xmm);
+          sse2_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
 
-          SSE2_BLIT_32x4_LARGE_BEGIN(bltOpaqueMsk)
-            __m128i dst1xmm;
-            __m128i msk0xmm, msk1xmm;
-            __m128i mskinv0xmm, mskinv1xmm;
+          sse2_store16a(dst, dst0xmm);
 
-            uint32_t msk0 = READ_32(msk);
-            if (msk0 == 0x00000000) goto bltOpaqueMskSkip4;
-            if (msk0 == 0xFFFFFFFF) goto bltOpaqueMskStore4;
-
-            sse2_load16a(dst0xmm, dst);
-            sse2_expand_mask_2x2W(msk0xmm, msk1xmm, msk0);
-            sse2_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
-            sse2_negate_2x2W(mskinv0xmm, msk0xmm, mskinv1xmm, msk1xmm);
-            sse2_muldiv255_2x2W(msk0xmm, msk0xmm, src0xmm, msk1xmm, msk1xmm, src0xmm);
-            sse2_expand_alpha_2x2W(mskinv0xmm, mskinv0xmm, mskinv1xmm, mskinv1xmm);
-            sse2_muldiv255_2x2W(dst0xmm, dst0xmm, mskinv0xmm, dst1xmm, dst1xmm, mskinv1xmm);
-            sse2_adds_2x2W(dst0xmm, dst0xmm, msk0xmm, dst1xmm, dst1xmm, msk1xmm);
-            sse2_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
-
-bltOpaqueMskStore4:
-            sse2_store16a(dst, dst0xmm);
-            dst0xmm = src0orig;
-bltOpaqueMskSkip4:
-
-            dst += 16;
-            msk += 4;
-          SSE2_BLIT_32x4_LARGE_END(bltOpaqueMsk)
-
-          sse2_expand_pixel_hi_1x2W(src0xmm, src0xmm);
+          dst += 16;
+          msk += 4;
+        SSE2_BLIT_32x4_LARGE_END(bltOpaqueMsk)
       }
       else
       {
@@ -5683,20 +5663,16 @@ bltOpaqueMskSkip4:
           __m128i msk0xmm;
           __m128i mskinv0xmm;
 
-          uint32_t msk0 = READ_8(msk);
-          if (msk0 != 0x00)
-          {
-            sse2_load4(dst0xmm, dst);
-            sse2_expand_mask_1x1W(msk0xmm, msk0);
-            sse2_unpack_1x1W(dst0xmm, dst0xmm);
-            sse2_muldiv255_1x1W(msk0xmm, msk0xmm, src0xmm);
-            sse2_negate_1x1W(mskinv0xmm, msk0xmm);
-            sse2_expand_alpha_1x1W(mskinv0xmm, mskinv0xmm);
-            sse2_muldiv255_1x1W(dst0xmm, dst0xmm, mskinv0xmm);
-            sse2_adds_1x1W(dst0xmm, dst0xmm, msk0xmm);
-            sse2_pack_1x1W(dst0xmm, dst0xmm);
-            sse2_store4(dst, dst0xmm);
-          }
+          sse2_load4(dst0xmm, dst);
+          sse2_expand_mask_1x1W(msk0xmm, READ_8(msk));
+          sse2_unpack_1x1W(dst0xmm, dst0xmm);
+          sse2_muldiv255_1x1W(msk0xmm, msk0xmm, src0xmm);
+          sse2_negate_1x1W(mskinv0xmm, msk0xmm);
+          sse2_expand_alpha_1x1W(mskinv0xmm, mskinv0xmm);
+          sse2_muldiv255_1x1W(dst0xmm, dst0xmm, mskinv0xmm);
+          sse2_adds_1x1W(dst0xmm, dst0xmm, msk0xmm);
+          sse2_pack_1x1W(dst0xmm, dst0xmm);
+          sse2_store4(dst, dst0xmm);
 
           dst += 4;
           msk += 1;
@@ -5761,32 +5737,24 @@ bltOpaqueMskSkip4:
     SSE2_BLIT_32x4_LARGE_BEGIN(blt)
       __m128i dst0xmm, dst1xmm;
       __m128i src0xmm, src1xmm;
-      __m128i a0xmm, a1xmm;
+      __m128i msk0xmm, msk1xmm;
 
       sse2_load16u(src0xmm, src);
-      uint32_t src0a = sse2_pack_alpha_to_uint32(src0xmm);
-      if (src0a != 0x00000000)
-      {
-        if (src0a != 0xFFFFFFFF)
-        {
-          sse2_load16a(dst0xmm, dst);
 
-          sse2_unpack_2x2W(src0xmm, src1xmm, src0xmm);
-          sse2_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
-          sse2_expand_alpha_2x2W(a0xmm, src0xmm, a1xmm, src1xmm);
-          sse2_fill_alpha_2x2W(src0xmm, src1xmm);
-          sse2_muldiv255_2x2W(src0xmm, src0xmm, a0xmm, src1xmm, src1xmm, a1xmm);
+      SSE2_BLIT_TEST_4_ARGB_PIXELS(src0xmm, dst0xmm, dst1xmm, blt_fill, blt_away)
 
-          sse2_over_2x2W(dst0xmm, src0xmm, a0xmm, dst1xmm, src1xmm, a1xmm);
-          sse2_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
-
-          sse2_store16a(dst, dst0xmm);
-        }
-        else
-        {
-          sse2_store16a(dst, src0xmm);
-        }
-      }
+      sse2_load16a(dst0xmm, dst);
+      sse2_unpack_2x2W(src0xmm, src1xmm, src0xmm);
+      sse2_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
+      sse2_expand_alpha_2x2W(msk0xmm, src0xmm, msk1xmm, src1xmm);
+      sse2_fill_alpha_2x2W(src0xmm, src1xmm);
+      sse2_muldiv255_2x2W(src0xmm, src0xmm, msk0xmm, src1xmm, src1xmm, msk1xmm);
+      sse2_negate_2x2W(msk0xmm, msk0xmm, msk1xmm, msk1xmm);
+      sse2_muldiv255_2x2W(dst0xmm, dst0xmm, msk0xmm, dst1xmm, dst1xmm, msk1xmm);
+      sse2_adds_2x2W(src0xmm, src0xmm, dst0xmm, src1xmm, src1xmm, dst1xmm);
+blt_fill:
+      sse2_store16a(dst, src0xmm);
+blt_away:
 
       dst += 16;
       src += 16;
@@ -6668,30 +6636,37 @@ blt_away:
     BLIT_CSPAN_SCANLINE_STEP3_MASK()
     {
       SSE2_BLIT_32x4_INIT(dst, w);
-
       if (alphaTest == -255)
       {
-        SSE2_BLIT_32x4_SMALL_BEGIN(bltMaskLerp)
+        __m128i dst0xmm;
+
+        SSE2_BLIT_32x4_SMALL_PREPARE(bltMaskLerp)
+
+        sse2_zero_pixel_lo_1x1W(src0xmm, src0xmm);
+
+        SSE2_BLIT_32x4_SMALL_DO(bltMaskLerp)
           __m128i dst0xmm;
           __m128i msk0xmm;
           __m128i mskinv0xmm;
 
-          uint32_t msk0 = READ_8(msk);
           sse2_load4(dst0xmm, dst);
-          sse2_fill_alpha_1x1B(dst0xmm);
+          sse2_expand_mask_1x1W(msk0xmm, READ_8(msk));
           sse2_unpack_1x1W(dst0xmm, dst0xmm);
-          sse2_expand_mask_1x1W(msk0xmm, msk0);
-          sse2_negate_1x1W(mskinv0xmm, msk0xmm);
-          sse2_muldiv255_1x1W(msk0xmm, msk0xmm, src0xmm);
-          sse2_expand_alpha_1x1W(mskinv0xmm, mskinv0xmm);
-          sse2_muldiv255_1x1W(dst0xmm, dst0xmm, mskinv0xmm);
+          sse2_expand_pixel_lo_1x2W(msk0xmm, msk0xmm);
+          dst0xmm = _mm_or_si128(dst0xmm, src0xmm);
+          sse2_negate_1x2W_lo(msk0xmm, msk0xmm);
+          sse2_muldiv255_1x2W(dst0xmm, dst0xmm, msk0xmm);
+          sse2_reverse_1x2W(msk0xmm, dst0xmm);
           sse2_adds_1x1W(dst0xmm, dst0xmm, msk0xmm);
           sse2_pack_1x1W(dst0xmm, dst0xmm);
+          sse2_fill_alpha_1x1B(dst0xmm);
           sse2_store4(dst, dst0xmm);
 
           dst += 4;
           msk += 1;
         SSE2_BLIT_32x4_SMALL_END(bltMaskLerp)
+
+        sse2_expand_pixel_hi_1x2W(src0xmm, src0xmm);
 
         SSE2_BLIT_32x4_LARGE_BEGIN(bltMaskLerp)
           __m128i dst0xmm, dst1xmm;
@@ -6722,21 +6697,17 @@ blt_away:
           __m128i msk0xmm;
           __m128i mskinv0xmm;
 
-          uint32_t msk0 = READ_8(msk);
-          if (msk0 != 0x00)
-          {
-            sse2_load4(dst0xmm, dst);
-            sse2_fill_alpha_1x1B(dst0xmm);
-            sse2_unpack_1x1W(dst0xmm, dst0xmm);
-            sse2_expand_mask_1x1W(msk0xmm, msk0);
-            sse2_muldiv255_1x1W(msk0xmm, msk0xmm, src0xmm);
-            sse2_negate_1x1W(mskinv0xmm, msk0xmm);
-            sse2_expand_alpha_1x1W(mskinv0xmm, mskinv0xmm);
-            sse2_muldiv255_1x1W(dst0xmm, dst0xmm, mskinv0xmm);
-            sse2_adds_1x1W(dst0xmm, dst0xmm, msk0xmm);
-            sse2_pack_1x1W(dst0xmm, dst0xmm);
-            sse2_store4(dst, dst0xmm);
-          }
+          sse2_load4(dst0xmm, dst);
+          sse2_fill_alpha_1x1B(dst0xmm);
+          sse2_unpack_1x1W(dst0xmm, dst0xmm);
+          sse2_expand_mask_1x1W(msk0xmm, READ_8(msk));
+          sse2_muldiv255_1x1W(msk0xmm, msk0xmm, src0xmm);
+          sse2_negate_1x1W(mskinv0xmm, msk0xmm);
+          sse2_expand_alpha_1x1W(mskinv0xmm, mskinv0xmm);
+          sse2_muldiv255_1x1W(dst0xmm, dst0xmm, mskinv0xmm);
+          sse2_adds_1x1W(dst0xmm, dst0xmm, msk0xmm);
+          sse2_pack_1x1W(dst0xmm, dst0xmm);
+          sse2_store4(dst, dst0xmm);
 
           dst += 4;
           msk += 1;
@@ -6810,34 +6781,25 @@ blt_away:
     SSE2_BLIT_32x4_LARGE_BEGIN(blt)
       __m128i dst0xmm, dst1xmm;
       __m128i src0xmm, src1xmm;
-      __m128i a0xmm, a1xmm;
+      __m128i msk0xmm, msk1xmm;
 
       sse2_load16u(src0xmm, src);
-      uint32_t src0a = sse2_pack_alpha_to_uint32(src0xmm);
-      if (src0a != 0x00000000)
-      {
-        if (src0a == 0xFFFFFFFF)
-        {
-          sse2_store16a(dst, src0xmm);
-        }
-        else
-        {
-          sse2_load16a(dst0xmm, dst);
-          sse2_fill_alpha_1x4B(dst0xmm);
 
-          sse2_unpack_2x2W(src0xmm, src1xmm, src0xmm);
-          sse2_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
-          sse2_expand_alpha_2x2W(a0xmm, src0xmm, a1xmm, src1xmm);
-          sse2_fill_alpha_2x2W(src0xmm, src1xmm);
-          sse2_muldiv255_2x2W(src0xmm, src0xmm, a0xmm, src1xmm, src1xmm, a1xmm);
+      SSE2_BLIT_TEST_4_ARGB_PIXELS(src0xmm, dst0xmm, dst1xmm, blt_fill, blt_away)
 
-          sse2_over_2x2W(dst0xmm, src0xmm, a0xmm, dst1xmm, src1xmm, a1xmm);
-          sse2_pack_2x2W(dst0xmm, dst0xmm, dst1xmm);
-
-          sse2_store16a(dst, dst0xmm);
-        }
-      }
-
+      sse2_load16a(dst0xmm, dst);
+      sse2_fill_alpha_1x4B(dst0xmm);
+      sse2_unpack_2x2W(src0xmm, src1xmm, src0xmm);
+      sse2_unpack_2x2W(dst0xmm, dst1xmm, dst0xmm);
+      sse2_expand_alpha_2x2W(msk0xmm, src0xmm, msk1xmm, src1xmm);
+      sse2_fill_alpha_2x2W(src0xmm, src1xmm);
+      sse2_muldiv255_2x2W(src0xmm, src0xmm, msk0xmm, src1xmm, src1xmm, msk1xmm);
+      sse2_negate_2x2W(msk0xmm, msk0xmm, msk1xmm, msk1xmm);
+      sse2_muldiv255_2x2W(dst0xmm, dst0xmm, msk0xmm, dst1xmm, dst1xmm, msk1xmm);
+      sse2_adds_2x2W(src0xmm, src0xmm, dst0xmm, src1xmm, src1xmm, dst1xmm);
+blt_fill:
+      sse2_store16a(dst, src0xmm);
+blt_away:
       dst += 16;
       src += 16;
     SSE2_BLIT_32x4_LARGE_END(blt)
