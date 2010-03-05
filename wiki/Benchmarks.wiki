@@ -3,14 +3,14 @@
 
 =Introduction=
 
-This page contains output from Fog benchmark tool. Fog benchmark tool was written to tune Fog-Framework and to see other libraries in action. The benchmarks are very synthetic and long.
+This page contains output from Fog-Framework benchmark tool. The benchmark tool was written to tune Fog-Framework and to see other libraries in action. The benchmarks are very synthetic and long (they are often called as micro-benchmarks).
 
 Benchmarks are designed to check speed of:
   * Fog (singlethreaded and multithreaded) - These two benchmarks should reveal differences between singlethreaded and multithreaded renderer.
   * GDI+ - To compare Fog with GDI+.
   * Cairo - To compare Fog with Cairo.
 
-Usually the benchmarks for Cairo are run under Linux, and bechmarks fog GDI+ under Windows. You can also try the benchmark by configuring fog using 'configure-bench' command. It will build 'FogBench' file that can be run to do the tests.
+Usually the benchmarks of Cairo are run under Linux and benchmarks of GDI+ under Windows. You can also try the benchmark by configuring fog using 'configure-bench' command. It will build 'FogBench' file that can be run to do the tests.
 
 =Benchmark Tests=
 
