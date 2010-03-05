@@ -24,13 +24,13 @@ Fog-Framework is different. When library was in designing state the main and mos
 
 Fog-Framework currently contains these libraries:
 
-  * Fog/Core - Platform abstraction library.
-  * Fog/Graphics - 2d graphics API.
-  * Fog/UI - Platform independent UI toolkit.
-  * Fog/Svg - SVG DOM, parser and renderer.
-  * Fog/Xml - XML DOM, parser and writer.
+  * Fog-Core - Platform abstraction library.
+  * Fog-Graphics - 2d graphics API.
+  * Fog-Gui - Platform independent UI toolkit.
+  * Fog-Svg - SVG DOM, parser and renderer.
+  * Fog-Xml - XML DOM, parser and writer.
 
-Because Fog-Framework is not pure graphics library and it contains platform specific code and code not related to graphics at all, there is also requirement that it can't depend to X11 (this is solved by UI/X11 plugin). This enables to use Fog-Framework as server-side rendering engine.
+Because Fog-Framework is not pure graphics library and it contains platform specific code and code not related to graphics at all, there is also requirement that it can't depend to X11 (this is solved by Fog-Gui-X11 plugin). This enables to use Fog-Framework as server-side rendering framework without needing to install X Window System.
 
 =Maturity / Stability=
 
@@ -38,8 +38,8 @@ Fog-Framework is currently not mature library, but last few months huge amount o
 
 =License=
 
-Fog-Framework is distributed under MIT license. This means that any project can use Fog source code and you can for example create your graphics library based on Fog. This means that Fog-Framework is not only ideal for open-source projects, but it's also ideal for commercial products (there are no licensing issues).
+Fog-Framework is distributed under MIT license. This means that any project can use Fog source code and you can for example create your own graphics library based on Fog-Framework. This means that Fog-Framework is not only ideal for open-source projects, but it's also ideal for commercial products (there are no licensing issues).
 
 =Help wanted=
 
-Currently I'm only developer of Fog-Framework. I'm working hard on this library and my dream is to release stable, full-featured version without TODO items in list. If you feel that you can help me with this work, please let me know.
+Currently I'm only developer of Fog-Framework. I'm working hard on this library and my dream is to release stable, full-featured version without too much items in the TODO list. If you feel that you can help me with this work, please let me know.
