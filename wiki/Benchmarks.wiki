@@ -34,7 +34,6 @@ Summary could be found in [BenchmarkSummaryTable Summary Table]
 ==Intel Quad Q6600 4x2.4GHz, 8GB RAM, Gentoo Linux 64-bit (dev-cpu)==
 
 {{{
-dark@amalthea /my/devel/cpp/Fog/Build $ ./FogBench
 Fog benchmark tool v0.2
 
 Surface  : 640x480
