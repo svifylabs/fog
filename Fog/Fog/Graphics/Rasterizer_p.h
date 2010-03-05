@@ -70,8 +70,15 @@ struct FOG_HIDDEN Rasterizer
     int cover;
     int area;
 
-    FOG_INLINE void set(int _x, int _y, int _cover, int _area) { x = _x; y = _y; cover = _cover; area = _area; }
-    FOG_INLINE bool equalPos(int ex, int ey) const { return ((ex - x) | (ey - y)) == 0; }
+    FOG_INLINE void setCell(int _x, int _y, int _cover, int _area) { x = _x; y = _y; cover = _cover; area = _area; }
+    FOG_INLINE void setCell(const CellXY& other) { x = other.x; y = other.y; cover = other.cover; area = other.area; }
+
+    FOG_INLINE void setPosition(int _x, int _y) { x = _x, y = _y; }
+    FOG_INLINE bool hasPosition(int _x, int _y) const { return ((_x - x) | (_y - y)) == 0; }
+
+    FOG_INLINE void setCovers(int _cover, int _area) { cover = _cover; area = _area; }
+    FOG_INLINE void addCovers(int _cover, int _area) { cover += _cover; area += _area; }
+    FOG_INLINE bool hasCovers() const { return (cover | area) != 0; }
   };
 #include <Fog/Core/Unpack.h>
 

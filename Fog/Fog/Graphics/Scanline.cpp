@@ -80,7 +80,7 @@ err_t Scanline32::init(int x1, int x2)
   _y = COORD_INIT;
 
   cap = Math::max(x2 - x1 + 3, 512);
-  if (cap > _coversCapacity)
+  if (FOG_UNLIKELY(cap > _coversCapacity))
   {
     if (_coversData) Memory::free(_coversData);
     _coversData = (uint8_t*)Memory::alloc(cap * sizeof(uint8_t));
@@ -88,8 +88,8 @@ err_t Scanline32::init(int x1, int x2)
     _coversCapacity = cap;
   }
 
-  cap = 32;
-  if (cap > _spansCapacity)
+  cap = 256;
+  if (FOG_UNLIKELY(cap > _spansCapacity))
   {
     if (_spansData) Memory::free(_spansData - 1);
     _spansData = (Span*)Memory::alloc((cap + 1) * sizeof(Span));

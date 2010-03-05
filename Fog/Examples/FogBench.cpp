@@ -388,7 +388,7 @@ void FogModule_CreateDestroy::bench(int quantity)
 
 ByteArray FogModule_CreateDestroy::getType()
 {
-  return ByteArray("Create/Destroy");
+  return ByteArray("Create-Destroy");
 }
 
 // ============================================================================
@@ -900,7 +900,7 @@ void GdiPlusModule_CreateDestroy::bench(int quantity)
 
 ByteArray GdiPlusModule_CreateDestroy::getType()
 {
-  return ByteArray("Create/Destroy");
+  return ByteArray("Create-Destroy");
 }
 
 // ============================================================================
@@ -1400,7 +1400,7 @@ void CairoModule_CreateDestroy::bench(int quantity)
 
 ByteArray CairoModule_CreateDestroy::getType()
 {
-  return ByteArray("Create/Destroy");
+  return ByteArray("Create-Destroy");
 }
 
 // ============================================================================
@@ -1938,6 +1938,7 @@ static void benchAll()
     //Size(2, 2),
     //Size(4, 4),
     //Size(8, 8),
+    
     Size(10, 10),
     Size(16, 16),
     Size(32, 32),

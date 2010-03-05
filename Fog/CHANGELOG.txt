@@ -1,3 +1,7 @@
+2010-03-05
+- Fixed bugs related to PRGB32 compositing (it's here probably long time).
+- Improved analytic rasterizer, it's more optimized now.
+
 2010-03-03
 - Refactorized Fog-Gui stuff, reorganized constants, etc...
 - Refactorized Fog-Graphics, reorganized constants, preparing 
