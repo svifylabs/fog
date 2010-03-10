@@ -44,7 +44,7 @@ struct MyColor
     for (int i = 0; i < 3; i++)
     {
       c[i] = (double)(rand() % 255);
-      step[i] = (double)(5.0 - (rand() % 100) / 20.0);
+      step[i] = (double)(2.5 - (double)(rand() % 100) / 20.0);
     }
   }
 
@@ -124,7 +124,7 @@ void MyWindow::onPaint(PaintEvent* e)
   p->fillPath(path);
 
   p->setOperator(OPERATOR_SUBTRACT);
-  p->setSource(0x0280FF8F);
+  p->setSource(0x01FFFFFF);
   p->fillRect(Rect(0, 0, getWidth(), getHeight()));
 }
 

@@ -36,7 +36,7 @@ struct FOG_API Theme : public Object
 
   static Theme* _instance;
 
-  static FOG_INLINE Theme* instance() { return _instance; }
+  static FOG_INLINE Theme* getInstance() { return _instance; }
 };
 
 } // Fog namespace

@@ -178,7 +178,7 @@ void BaseGuiEngine::changeMouseStatus(Widget* w, const Point& pos)
     _mouseStatus.buttons = 0;
     _mouseStatus.valid = true;
 
-    // Send MouseOut to widget where mouse was before
+    // Send MouseOut to widget where the mouse was before.
     if (before)
     {
       MouseEvent e(EVENT_MOUSE_OUT);
@@ -210,8 +210,8 @@ void BaseGuiEngine::changeMouseStatus(Widget* w, const Point& pos)
     hoverChange = (!!_mouseStatus.hover) |
                   ((!(pos.getX() < 0 || 
                       pos.getY() < 0 ||
-                      pos.getX() >= w->getWidth() ||
-                      pos.getY() >= w->getHeight())) << 1);
+                      pos.getX() >= w->_geometry.w ||
+                      pos.getY() >= w->_geometry.h)) << 1);
 
     enum HOVER_CHANGE
     {
@@ -501,6 +501,7 @@ void BaseGuiEngine::dispatchConfigure(Widget* w, const Rect& rect, bool changedO
   e._changed = changed;
 
   w->_geometry = rect;
+  w->_clientGeometry.set(0, 0, rect.w, rect.h);
   w->sendEvent(&e);
 
   Widget* p = w->getParent();
@@ -798,8 +799,8 @@ __pushed:
         goto __next;
       }
 
-      childRec.bounds.x1 = parentRec.bounds.getX1() + child->getX1();
-      childRec.bounds.y1 = parentRec.bounds.getY1() + child->getY1();
+      childRec.bounds.x1 = parentRec.bounds.getX1() + child->getX();
+      childRec.bounds.y1 = parentRec.bounds.getY1() + child->getY();
       childRec.bounds.x2 = childRec.bounds.getX1() + child->getWidth();
       childRec.bounds.y2 = childRec.bounds.getY1() + child->getHeight();
 
