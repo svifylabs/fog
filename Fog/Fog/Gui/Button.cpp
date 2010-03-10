@@ -33,8 +33,9 @@ Button::~Button()
 void Button::onPaint(PaintEvent* e)
 {
   Painter* p = e->getPainter();
+  Size s = getClientSize();
 
-  Rect bounds(0, 0, getWidth(), getHeight());
+  Rect bounds(0, 0, s.w, s.h);
   PaintUtil::draw3dRect(p, bounds, 0xFFFFFFFF, 0xFF000000, isDown());
 
   bounds.shrink(1);
@@ -46,11 +47,11 @@ void Button::onPaint(PaintEvent* e)
   if (!isDown())
   {
     pat.setStartPoint(Point(0, 0));
-    pat.setEndPoint(Point(0, getHeight()));
+    pat.setEndPoint(Point(0, s.h));
   }
   else
   {
-    pat.setStartPoint(Point(0, getHeight()));
+    pat.setStartPoint(Point(0, s.h));
     pat.setEndPoint(Point(0, 0));
   }
 

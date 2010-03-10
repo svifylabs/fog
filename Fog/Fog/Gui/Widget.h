@@ -171,14 +171,12 @@ struct FOG_API Widget : public LayoutItem
   // [Geometry]
   // --------------------------------------------------------------------------
 
+  //! @brief Get widget geometry.
+  FOG_INLINE const Rect& getGeometry() const { return _geometry; }
   //! @brief Get widget position relative to parent.
   FOG_INLINE const Point& getPosition() const { return _geometry.getPosition(); }
   //! @brief Get widget size.
   FOG_INLINE const Size& getSize() const { return _geometry.getSize(); }
-  //! @brief Get widget bounding rectangle.
-  FOG_INLINE const Rect& getGeometry() const { return _geometry; }
-  //! @brief Get widget origin.
-  FOG_INLINE const Point& getOrigin() const { return _origin; }
 
   //! @brief Get widget left position, this method is equal to @c left().
   FOG_INLINE int getX() const { return _geometry.x; }
@@ -189,23 +187,27 @@ struct FOG_API Widget : public LayoutItem
   //! @brief Get widget height.
   FOG_INLINE int getHeight() const { return _geometry.h; }
 
-  //! @brief Get widget left position, this method is equal to @c left().
-  FOG_INLINE int getX1() const { return _geometry.x; }
-  //! @brief Get widget top position, this method is equal to @c top().
-  FOG_INLINE int getY1() const { return _geometry.y; }
-  //! @brief Get widget right position, this method is equal to @c right().
-  FOG_INLINE int getX2() const { return _geometry.x + _geometry.w; }
-  //! @brief Get widget bottom position, this method is equal to @c bottom().
-  FOG_INLINE int getY2() const { return _geometry.y + _geometry.h; }
+  //! @brief Get widget client geometry.
+  FOG_INLINE const Rect& getClientGeometry() const { return _clientGeometry; }
+  //! @brief Get widget position relative to parent.
+  FOG_INLINE const Point& getClientPosition() const { return _clientGeometry.getPosition(); }
+  //! @brief Get widget size.
+  FOG_INLINE const Size& getClientSize() const { return _clientGeometry.getSize(); }
 
-  //! @brief Get widget left position, this method is equal to @c x1().
-  FOG_INLINE int getLeft() const { return _geometry.x; }
-  //! @brief Get widget top position, this method is equal to @c y1().
-  FOG_INLINE int getTop() const { return _geometry.y; }
-  //! @brief Get widget right position, this method is equal to @c x2().
-  FOG_INLINE int getRight() const { return _geometry.x + _geometry.w; }
-  //! @brief Get widget bottom position, this method is equal to @c y2().
-  FOG_INLINE int getBottom() const { return _geometry.y + _geometry.h; }
+  //! @brief Get widget left position, this method is equal to @c left().
+  FOG_INLINE int getClientX() const { return _clientGeometry.x; }
+  //! @brief Get widget top position, this method is equal to @c top().
+  FOG_INLINE int getClientY() const { return _clientGeometry.y; }
+  //! @brief Get widget width.
+  FOG_INLINE int getClientWidth() const { return _clientGeometry.w; }
+  //! @brief Get widget height.
+  FOG_INLINE int getClientHeight() const { return _clientGeometry.h; }
+
+  //! @brief Get widget origin.
+  FOG_INLINE const Point& getOrigin() const { return _origin; }
+
+  //! @brief Set widget position and size to @a geometry.
+  void setGeometry(const Rect& geometry);
 
   //! @brief Set widget position to @a pt.
   //!
@@ -216,9 +218,6 @@ struct FOG_API Widget : public LayoutItem
   //!
   //! @note To set widget position and size together use @c setGeometry().
   void setSize(const Size& size);
-
-  //! @brief Set widget position and size to @a rect.
-  void setGeometry(const Rect& rect);
 
   //! @brief Set widget origin to @a pt.
   void setOrigin(const Point& pt);
@@ -236,6 +235,7 @@ struct FOG_API Widget : public LayoutItem
   //! @brief Translate world coordinate @a coord into client (relative to the
   //! widget).
   bool worldToClient(Point* coord) const;
+
   //! @brief Translate client coordinate @a coord into world (relative to the
   //! screen).
   bool clientToWorld(Point* coord) const;
@@ -554,9 +554,11 @@ protected:
   //! @brief Native window data.
   GuiWindow* _guiWindow;
 
-  //! @brief Widget bounds.
+  //! @brief Main geometry (geometry relative to widget parent or screen).
   Rect _geometry;
-  //! @brief Widget origin.
+  //! @brief Client area geometry (geometry within the widget).
+  Rect _clientGeometry;
+  //! @brief Client origin.
   Point _origin;
 
   //! @brief Font (used to draw text in widget).

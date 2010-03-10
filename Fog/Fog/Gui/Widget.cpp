@@ -32,6 +32,7 @@ Widget::Widget(uint32_t createFlags) :
   _parent(NULL),
   _guiWindow(NULL),
   _geometry(0, 0, 0, 0),
+  _clientGeometry(0, 0, 0, 0),
   _origin(0, 0),
   _layout(NULL),
   _layoutPolicy(0),
@@ -204,6 +205,23 @@ err_t Widget::setWindowGranularity(const Point& pt)
 // [Fog::Widget - Geometry]
 // ============================================================================
 
+void Widget::setGeometry(const Rect& geometry)
+{
+  if (_geometry == geometry) return;
+
+  if (_guiWindow)
+  {
+    _guiWindow->reconfigure(geometry);
+  }
+  else
+  {
+    GuiEngine* ge = Application::getInstance()->getGuiEngine();
+    if (!ge) return;
+
+    ge->dispatchConfigure(this, geometry, false);
+  }
+}
+
 void Widget::setPosition(const Point& pt)
 {
   if (_geometry.getPosition() == pt) return;
@@ -217,7 +235,8 @@ void Widget::setPosition(const Point& pt)
     GuiEngine* ge = Application::getInstance()->getGuiEngine();
     if (!ge) return;
 
-    ge->dispatchConfigure(this, Rect(pt.getX(), pt.getY(), getWidth(), getHeight()), false);
+    Size size = getSize();
+    ge->dispatchConfigure(this, Rect(pt.x, pt.y, size.w, size.h), false);
   }
 }
 
@@ -234,24 +253,7 @@ void Widget::setSize(const Size& sz)
     GuiEngine* ge = Application::getInstance()->getGuiEngine();
     if (!ge) return;
 
-    ge->dispatchConfigure(this, Rect(getX1(), getY1(), sz.getWidth(), sz.getHeight()), false);
-  }
-}
-
-void Widget::setGeometry(const Rect& rect)
-{
-  if (_geometry == rect) return;
-
-  if (_guiWindow)
-  {
-    _guiWindow->reconfigure(rect);
-  }
-  else
-  {
-    GuiEngine* ge = Application::getInstance()->getGuiEngine();
-    if (!ge) return;
-
-    ge->dispatchConfigure(this, rect, false);
+    ge->dispatchConfigure(this, Rect(_geometry.x, _geometry.y, sz.w, sz.h), false);
   }
 }
 
@@ -273,9 +275,11 @@ bool Widget::worldToClient(Point* coords) const
   Widget* w = const_cast<Widget*>(this);
 
   do {
-    coords->translate(w->getOrigin());
+    // TODO, disable origin here?
+    // coords->translate(w->getOrigin());
+
     if (w->_guiWindow) return w->_guiWindow->worldToClient(coords);
-    coords->translate(w->getPosition().negated());
+    coords->translate(-(w->_geometry.x), -(w->_geometry.y));
     w = w->_parent;
   } while (w);
 
@@ -289,7 +293,7 @@ bool Widget::clientToWorld(Point* coords) const
   do {
     coords->translate(w->getOrigin());
     if (w->_guiWindow) return w->_guiWindow->clientToWorld(coords);
-    coords->translate(w->getPosition());
+    coords->translate(w->_geometry.x, w->_geometry.y);
     w = w->_parent;
   } while (w);
 

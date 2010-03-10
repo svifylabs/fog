@@ -43,9 +43,10 @@ void CheckBox::onClick(MouseEvent* e)
 void CheckBox::onPaint(PaintEvent* e)
 {
   Painter* p = e->getPainter();
+  Size s = getClientSize();
 
-  Rect bounds(0, 0, getWidth(), getHeight());
-  Rect chrect(1, (getHeight() - 13) / 2, 13, 13);
+  Rect bounds(0, 0, s.w, s.h);
+  Rect chrect(1, (s.h - 13) / 2, 13, 13);
 
   p->setSource(0xFF000000);
   p->drawRect(chrect);
@@ -57,12 +58,14 @@ void CheckBox::onPaint(PaintEvent* e)
 
   if (getChecked())
   {
-    p->setSource(0xFF000000);
+    double c = (double)(s.h / 2);
+
     Path path;
-    double c = (double)(getHeight() / 2);
     path.moveTo(3.5, c - 1.5);
     path.lineTo(6.5, c + 3.5);
     path.lineTo(11.5, c - 4.5);
+
+    p->setSource(0xFF000000);
     p->drawPath(path);
   }
 
