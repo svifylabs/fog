@@ -237,7 +237,7 @@ struct FOG_HIDDEN BlurParams
   // [Members]
   // --------------------------------------------------------------------------
 
-  //! @brief Blur type, see @c BLUR_TYPE.
+  //! @brief Blur type, see @c IMAGE_FILTER_BLUR_TYPE.
   uint32_t blur;
 
   //! @brief Horizontal blur radius.
