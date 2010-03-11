@@ -206,7 +206,7 @@ struct FOG_HIDDEN BlurParams
   // --------------------------------------------------------------------------
 
   FOG_INLINE BlurParams() :
-    blur(BLUR_LINEAR),
+    blur(IMAGE_FILTER_BLUR_LINEAR),
     hRadius(1.0),
     vRadius(1.0),
     borderExtend(IMAGE_FILTER_EXTEND_PAD),
