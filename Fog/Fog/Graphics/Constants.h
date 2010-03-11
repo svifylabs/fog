@@ -29,60 +29,6 @@ enum ANTI_ALIASING_TYPE
 };
 
 // ============================================================================
-// [Fog::BLUR_TYPE]
-// ============================================================================
-
-//! @brief Type of blur, see @c ImageFilter.
-enum BLUR_TYPE
-{
-  //! @brief Box blur type.
-  //!
-  //! Box blur is very bad looking blur, but it's fastest blur implemented
-  //! in Fog library. Fog small radius it's quite good looking one. Box blur
-  //! result looks very agressive.
-  BLUR_BOX = 0,
-
-  //! @brief Linear blur (the default one).
-  //!
-  //! Linear blur provides very good looking blur with optimal performance.
-  BLUR_LINEAR = 1,
-
-  //! @brief Gaussian blur type.
-  //!
-  //! Gaussian blur uses gaussian function to setup convolution matrix. It's
-  //! slowest blur in Fog library, but the quality is excellent.
-  BLUR_GAUSSIAN = 2,
-
-  //! @brief Count of blur types (for error checking).
-  BLUR_COUNT
-};
-
-static const float BLUR_MAX_RADIUS = 255.0f;
-
-// ============================================================================
-// [Fog::BORDER_EXTEND_MODE]
-// ============================================================================
-
-//! @brief Border extend mode used in image filtering (convolution and blurs).
-enum BORDER_EXTEND_MODE
-{
-  //! @brief Borders are extended using pad.
-  BORDER_EXTEND_PAD = 0,
-
-  //! @brief Borders are extended using repead.
-  BORDER_EXTEND_REPEAT = 1,
-
-  //! @brief Borders are extended using reflect.
-  BORDER_EXTEND_REFLECT = 2,
-
-  //! @brief Borders are extended by custom single color.
-  BORDER_EXTEND_COLOR = 3,
-
-  //! @brief Count of border extend types (for error checking).
-  BORDER_EXTEND_COUNT = 4
-};
-
-// ============================================================================
 // [Fog::COLOR_CHANNEL_TYPE]
 // ============================================================================
 
@@ -1531,6 +1477,61 @@ enum IMAGE_FILTER_CHAR
   //! This operation is supported by all blur-filters (and should be supported
   //! generally by all filters that extend image boundary).
   IMAGE_FILTER_CHAR_PROMOTE_ALPHA = 0x1000
+};
+
+// ============================================================================
+// [Fog::IMAGE_FILTER_BLUR_TYPE]
+// ============================================================================
+
+//! @brief Type of blur, see @c ImageFilter.
+enum IMAGE_FILTER_BLUR_TYPE
+{
+  //! @brief Box blur type.
+  //!
+  //! Box blur is very bad looking blur, but it's fastest blur implemented
+  //! in Fog library. Fog small radius it's quite good looking one. Box blur
+  //! result looks very agressive.
+  IMAGE_FILTER_BLUR_BOX = 0,
+
+  //! @brief Linear blur (the default one).
+  //!
+  //! Linear blur provides very good looking blur with optimal performance.
+  IMAGE_FILTER_BLUR_LINEAR = 1,
+
+  //! @brief Gaussian blur type.
+  //!
+  //! Gaussian blur uses gaussian function to setup convolution matrix. It's
+  //! slowest blur in Fog library, but the quality is excellent.
+  IMAGE_FILTER_BLUR_GAUSSIAN = 2,
+
+  //! @brief Count of blur types (for error checking).
+  IMAGE_FILTER_BLUR_COUNT
+};
+
+//! @brief Maximum blur radius.
+static const float IMAGE_FILTER_BLUR_MAX_RADIUS = 255.0f;
+
+// ============================================================================
+// [Fog::IMAGE_FILTER_EXTEND_TYPE]
+// ============================================================================
+
+//! @brief Border extend mode used in image filtering (convolution and blurs).
+enum IMAGE_FILTER_EXTEND_TYPE
+{
+  //! @brief Borders are extended using pad.
+  IMAGE_FILTER_EXTEND_PAD = 0,
+
+  //! @brief Borders are extended using repead.
+  IMAGE_FILTER_EXTEND_REPEAT = 1,
+
+  //! @brief Borders are extended using reflect.
+  IMAGE_FILTER_EXTEND_REFLECT = 2,
+
+  //! @brief Borders are extended by custom single color.
+  IMAGE_FILTER_EXTEND_COLOR = 3,
+
+  //! @brief Count of border extend types (for error checking).
+  IMAGE_FILTER_EXTEND_COUNT = 4
 };
 
 // ============================================================================

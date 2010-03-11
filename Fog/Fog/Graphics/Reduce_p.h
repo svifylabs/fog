@@ -18,22 +18,27 @@ namespace Fog {
 // [Fog::Reduce]
 // ============================================================================
 
-//! @brief Class used to get information about colors in image.
+//! @brief Class used to get information about colors in an image.
 //!
 //! It's designed for tasks where it's needed or optional to reduce color
 //! depth, so this class can calculate count of colors and generate palette 
 //! for you.
 //!
-//! If count of colors are larger than 256, operation is stopped and count
-//! of colors are set to zero. Zero means "not able to reduce depth".
+//! If count of colors is larger than 256, operation is stopped and count
+//! of colors is set to zero. Zero means "not able to reduce depth without
+//! quantization".
 struct FOG_HIDDEN Reduce
 {
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   Reduce();
   ~Reduce();
 
+  // --------------------------------------------------------------------------
   // [Entity]
+  // --------------------------------------------------------------------------
 
   //! @brief Argb entity with usage information.
   struct Entity
@@ -42,7 +47,9 @@ struct FOG_HIDDEN Reduce
     uint64_t usage;
   };
 
+  // --------------------------------------------------------------------------
   // [Methods]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE const Hash<uint32_t, uint8_t>& getIndexes() const { return _indexes; }
   FOG_INLINE const Entity* getEntities() const { return _entities; }
@@ -54,6 +61,10 @@ struct FOG_HIDDEN Reduce
   uint32_t traslate(uint32_t key) const;
 
   Palette toPalette();
+
+  // --------------------------------------------------------------------------
+  // [Members]
+  // --------------------------------------------------------------------------
 
 private:
   //! @brief Color to index hash.

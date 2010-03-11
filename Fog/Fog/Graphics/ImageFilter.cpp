@@ -22,68 +22,6 @@
 namespace Fog {
 
 // ============================================================================
-// [Fog::ImageFilterEngine - Construction / Destruction]
-// ============================================================================
-
-ImageFilterEngine::ImageFilterEngine(int type) :
-  type(type),
-  characteristics(0)
-{
-  refCount.init(1);
-}
-
-ImageFilterEngine::~ImageFilterEngine()
-{
-}
-
-// ============================================================================
-// [Fog::ImageFilterEngine - Interface - Basics]
-// ============================================================================
-
-bool ImageFilterEngine::isNop() const
-{
-  return false;
-}
-
-err_t ImageFilterEngine::getExtendedRect(Rect& rect) const
-{
-  // Default is no extents.
-  FOG_UNUSED(rect);
-  return ERR_OK;
-}
-
-// ============================================================================
-// [Fog::ImageFilterEngine - Interface - Context]
-// ============================================================================
-
-const void* ImageFilterEngine::getContext() const
-{
-  return NULL;
-}
-
-void ImageFilterEngine::releaseContext(const void* context) const
-{
-  FOG_UNUSED(context);
-}
-
-// ============================================================================
-// [Fog::ImageFilterEngine - Interface - Filtering]
-// ============================================================================
-
-ColorFilterFn ImageFilterEngine::getColorFilterFn(int format) const
-{
-  FOG_UNUSED(format);
-  return NULL;
-}
-
-ImageFilterFn ImageFilterEngine::getImageFilterFn(int format, int processing) const
-{
-  FOG_UNUSED(format);
-  FOG_UNUSED(processing);
-  return NULL;
-}
-
-// ============================================================================
 // [Fog::NullFilterEngine]
 // ============================================================================
 
@@ -304,17 +242,17 @@ ImageFilterFn BlurFilterEngine::getImageFilterFn(int format, int processing) con
 
   switch (params.blur)
   {
-    case BLUR_BOX:
+    case IMAGE_FILTER_BLUR_BOX:
       if (processing == IMAGE_FILTER_CHAR_HORZ_PROCESSING) return (ImageFilterFn)RasterEngine::functionMap->filter.box_blur_h[format];
       if (processing == IMAGE_FILTER_CHAR_VERT_PROCESSING) return (ImageFilterFn)RasterEngine::functionMap->filter.box_blur_v[format];
       break;
 
-    case BLUR_LINEAR:
+    case IMAGE_FILTER_BLUR_LINEAR:
       if (processing == IMAGE_FILTER_CHAR_HORZ_PROCESSING) return (ImageFilterFn)RasterEngine::functionMap->filter.linear_blur_h[format];
       if (processing == IMAGE_FILTER_CHAR_VERT_PROCESSING) return (ImageFilterFn)RasterEngine::functionMap->filter.linear_blur_v[format];
       break;
 
-    case BLUR_GAUSSIAN:
+    case IMAGE_FILTER_BLUR_GAUSSIAN:
     default:
       if (processing == IMAGE_FILTER_CHAR_HORZ_PROCESSING) return (ImageFilterFn)RasterEngine::functionMap->filter.symmetric_convolve_float_h[format];
       if (processing == IMAGE_FILTER_CHAR_VERT_PROCESSING) return (ImageFilterFn)RasterEngine::functionMap->filter.symmetric_convolve_float_v[format];
@@ -328,12 +266,12 @@ const void* BlurFilterEngine::getContext() const
 {
   switch (params.blur)
   {
-    case BLUR_BOX:
-    case BLUR_LINEAR:
+    case IMAGE_FILTER_BLUR_BOX:
+    case IMAGE_FILTER_BLUR_LINEAR:
       return reinterpret_cast<const void*>(&params);
       return reinterpret_cast<const void*>(&params);
 
-    case BLUR_GAUSSIAN:
+    case IMAGE_FILTER_BLUR_GAUSSIAN:
     default:
       return reinterpret_cast<const void*>(&convolve);
   }
@@ -352,15 +290,15 @@ void BlurFilterEngine::setParams(const BlurParams& params)
 
 void BlurFilterEngine::update()
 {
-  params.hRadius = Math::min<double>(Math::abs(params.hRadius), BLUR_MAX_RADIUS);
-  params.vRadius = Math::min<double>(Math::abs(params.vRadius), BLUR_MAX_RADIUS);
+  params.hRadius = Math::min<float>(Math::abs(params.hRadius), IMAGE_FILTER_BLUR_MAX_RADIUS);
+  params.vRadius = Math::min<float>(Math::abs(params.vRadius), IMAGE_FILTER_BLUR_MAX_RADIUS);
 
   characteristics = IMAGE_FILTER_CHAR_CAN_EXTEND;
 
   switch (params.blur)
   {
-    case BLUR_BOX:
-    case BLUR_LINEAR:
+    case IMAGE_FILTER_BLUR_BOX:
+    case IMAGE_FILTER_BLUR_LINEAR:
       if (params.hRadius >= 1.0) characteristics |= IMAGE_FILTER_CHAR_HORZ_PROCESSING | IMAGE_FILTER_CHAR_HORZ_MEM_EQUAL;
       if (params.vRadius >= 1.0) characteristics |= IMAGE_FILTER_CHAR_VERT_PROCESSING | IMAGE_FILTER_CHAR_VERT_MEM_EQUAL;
 
@@ -368,7 +306,7 @@ void BlurFilterEngine::update()
       convolve.vMatrix.free();
       break;
 
-    case BLUR_GAUSSIAN:
+    case IMAGE_FILTER_BLUR_GAUSSIAN:
     default:
       if (params.hRadius > 0.63) characteristics |= IMAGE_FILTER_CHAR_HORZ_PROCESSING | IMAGE_FILTER_CHAR_HORZ_MEM_EQUAL;
       if (params.vRadius > 0.63) characteristics |= IMAGE_FILTER_CHAR_VERT_PROCESSING | IMAGE_FILTER_CHAR_VERT_MEM_EQUAL;
