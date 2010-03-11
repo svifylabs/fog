@@ -57,7 +57,12 @@ struct FOG_HIDDEN FilterC
 
   static FOG_INLINE int clamp255(int val)
   {
-    return (val > 255) ? 255 : val < 0 ? 0 : val;
+    // Value in range [0, 255] including is common, so the first check is for 
+    // that range.
+    if (FOG_LIKELY((uint)val < 256))
+      return val;
+    else
+      return (val > 255) ? 255 : 0;
   }
 
   // Get reciprocal for 16-bit value @a val.
@@ -360,7 +365,7 @@ struct FOG_HIDDEN FilterC
     uint32_t* stackEnd = stack + size;
     uint32_t* stackCur;
 
-    int borderExtend = params->borderExtend;
+    uint32_t borderExtend = params->borderExtend;
     uint32_t lBorderColor = params->borderColor;
     uint32_t rBorderColor = params->borderColor;
 
@@ -379,7 +384,7 @@ struct FOG_HIDDEN FilterC
 
       srcCur = src;
 
-      if (borderExtend == BORDER_EXTEND_PAD)
+      if (borderExtend == IMAGE_FILTER_EXTEND_PAD)
       {
         lBorderColor = READ_32(srcCur);
         rBorderColor = READ_32(srcCur + end);
@@ -539,7 +544,7 @@ struct FOG_HIDDEN FilterC
     uint32_t* stackEnd = stack + size;
     uint32_t* stackCur;
 
-    int borderExtend = params->borderExtend;
+    uint32_t borderExtend = params->borderExtend;
     uint32_t lBorderColor = params->borderColor;
     uint32_t rBorderColor = params->borderColor;
 
@@ -558,7 +563,7 @@ struct FOG_HIDDEN FilterC
 
       srcCur = src;
 
-      if (borderExtend == BORDER_EXTEND_PAD)
+      if (borderExtend == IMAGE_FILTER_EXTEND_PAD)
       {
         lBorderColor = READ_32(srcCur);
         rBorderColor = READ_32(srcCur + end);
@@ -718,7 +723,7 @@ struct FOG_HIDDEN FilterC
     uint32_t* stackEnd = stack + size;
     uint32_t* stackCur;
 
-    int borderExtend = params->borderExtend;
+    uint32_t borderExtend = params->borderExtend;
     uint32_t lBorderColor = params->borderColor;
     uint32_t rBorderColor = params->borderColor;
 
@@ -735,7 +740,7 @@ struct FOG_HIDDEN FilterC
 
       srcCur = src;
 
-      if (borderExtend == BORDER_EXTEND_PAD)
+      if (borderExtend == IMAGE_FILTER_EXTEND_PAD)
       {
         lBorderColor = READ_32(srcCur);
         rBorderColor = READ_32(srcCur + end);
@@ -885,7 +890,7 @@ struct FOG_HIDDEN FilterC
     uint32_t* stackEnd = stack + size;
     uint32_t* stackCur;
 
-    int borderExtend = params->borderExtend;
+    uint32_t borderExtend = params->borderExtend;
     uint32_t lBorderColor = params->borderColor;
     uint32_t rBorderColor = params->borderColor;
 
@@ -902,7 +907,7 @@ struct FOG_HIDDEN FilterC
 
       srcCur = src;
 
-      if (borderExtend == BORDER_EXTEND_PAD)
+      if (borderExtend == IMAGE_FILTER_EXTEND_PAD)
       {
         lBorderColor = READ_32(srcCur);
         rBorderColor = READ_32(srcCur + end);
@@ -1052,7 +1057,7 @@ struct FOG_HIDDEN FilterC
     uint8_t* stackEnd = stack + size;
     uint8_t* stackCur;
 
-    int borderExtend = params->borderExtend;
+    uint32_t borderExtend = params->borderExtend;
     uint32_t lBorderColor = params->borderColor;
     uint32_t rBorderColor = params->borderColor;
 
@@ -1063,7 +1068,7 @@ struct FOG_HIDDEN FilterC
 
       srcCur = src;
 
-      if (borderExtend == BORDER_EXTEND_PAD)
+      if (borderExtend == IMAGE_FILTER_EXTEND_PAD)
       {
         lBorderColor = srcCur[0];
         rBorderColor = srcCur[end];
@@ -1178,7 +1183,7 @@ struct FOG_HIDDEN FilterC
     uint8_t* stackEnd = stack + size;
     uint8_t* stackCur;
 
-    int borderExtend = params->borderExtend;
+    uint32_t borderExtend = params->borderExtend;
     uint32_t lBorderColor = params->borderColor;
     uint32_t rBorderColor = params->borderColor;
 
@@ -1189,7 +1194,7 @@ struct FOG_HIDDEN FilterC
 
       srcCur = src;
 
-      if (borderExtend == BORDER_EXTEND_PAD)
+      if (borderExtend == IMAGE_FILTER_EXTEND_PAD)
       {
         lBorderColor = srcCur[0];
         rBorderColor = srcCur[end];
@@ -1306,7 +1311,7 @@ struct FOG_HIDDEN FilterC
     uint32_t* stackLeft;
     uint32_t* stackRight;
 
-    int borderExtend = params->borderExtend;
+    uint32_t borderExtend = params->borderExtend;
     uint32_t lBorderColor = params->borderColor;
     uint32_t rBorderColor = params->borderColor;
 
@@ -1335,7 +1340,7 @@ struct FOG_HIDDEN FilterC
 
       srcCur = src;
 
-      if (borderExtend == BORDER_EXTEND_PAD)
+      if (borderExtend == IMAGE_FILTER_EXTEND_PAD)
       {
         lBorderColor = READ_32(srcCur);
         rBorderColor = READ_32(srcCur + end);
@@ -1534,7 +1539,7 @@ struct FOG_HIDDEN FilterC
     uint32_t* stackLeft;
     uint32_t* stackRight;
 
-    int borderExtend = params->borderExtend;
+    uint32_t borderExtend = params->borderExtend;
     uint32_t lBorderColor = params->borderColor;
     uint32_t rBorderColor = params->borderColor;
 
@@ -1563,7 +1568,7 @@ struct FOG_HIDDEN FilterC
 
       srcCur = src;
 
-      if (borderExtend == BORDER_EXTEND_PAD)
+      if (borderExtend == IMAGE_FILTER_EXTEND_PAD)
       {
         lBorderColor = READ_32(srcCur);
         rBorderColor = READ_32(srcCur + end);
@@ -1762,7 +1767,7 @@ struct FOG_HIDDEN FilterC
     uint8_t* stackLeft;
     uint8_t* stackRight;
 
-    int borderExtend = params->borderExtend;
+    uint32_t borderExtend = params->borderExtend;
     uint32_t lBorderColor = params->borderColor;
     uint32_t rBorderColor = params->borderColor;
 
@@ -1775,7 +1780,7 @@ struct FOG_HIDDEN FilterC
 
       srcCur = src;
 
-      if (borderExtend == BORDER_EXTEND_PAD)
+      if (borderExtend == IMAGE_FILTER_EXTEND_PAD)
       {
         lBorderColor = srcCur[0];
         rBorderColor = srcCur[end];
@@ -1905,7 +1910,7 @@ struct FOG_HIDDEN FilterC
     uint8_t* stackLeft;
     uint8_t* stackRight;
 
-    int borderExtend = params->borderExtend;
+    uint32_t borderExtend = params->borderExtend;
     uint32_t borderColor = params->borderColor;
 
     uint32_t lBorderColor = params->borderColor;
@@ -1920,7 +1925,7 @@ struct FOG_HIDDEN FilterC
 
       srcCur = src;
 
-      if (borderExtend == BORDER_EXTEND_PAD)
+      if (borderExtend == IMAGE_FILTER_EXTEND_PAD)
       {
         lBorderColor = srcCur[0];
         rBorderColor = srcCur[end];
@@ -2059,7 +2064,7 @@ struct FOG_HIDDEN FilterC
 
     if (!stack) return;
 
-    int borderExtend = params->borderExtend;
+    uint32_t borderExtend = params->borderExtend;
     uint32_t lBorderColor = params->borderColor;
     uint32_t rBorderColor = params->borderColor;
 
@@ -2071,7 +2076,7 @@ struct FOG_HIDDEN FilterC
       srcCur = src;
       stackCur = stack;
 
-      if (borderExtend == BORDER_EXTEND_PAD)
+      if (borderExtend == IMAGE_FILTER_EXTEND_PAD)
       {
         lBorderColor = READ_32(srcCur);
         rBorderColor = READ_32(srcCur + end);
@@ -2190,7 +2195,7 @@ struct FOG_HIDDEN FilterC
 
     if (!stack) return;
 
-    int borderExtend = params->borderExtend;
+    uint32_t borderExtend = params->borderExtend;
     uint32_t lBorderColor = params->borderColor;
     uint32_t rBorderColor = params->borderColor;
 
@@ -2202,7 +2207,7 @@ struct FOG_HIDDEN FilterC
       srcCur = src;
       stackCur = stack;
 
-      if (borderExtend == BORDER_EXTEND_PAD)
+      if (borderExtend == IMAGE_FILTER_EXTEND_PAD)
       {
         lBorderColor = READ_32(srcCur);
         rBorderColor = READ_32(srcCur + end);
@@ -2321,7 +2326,7 @@ struct FOG_HIDDEN FilterC
 
     if (!stack) return;
 
-    int borderExtend = params->borderExtend;
+    uint32_t borderExtend = params->borderExtend;
     uint8_t lBorderColor = params->borderColor;
     uint8_t rBorderColor = params->borderColor;
 
@@ -2333,7 +2338,7 @@ struct FOG_HIDDEN FilterC
       srcCur = src;
       stackCur = stack;
 
-      if (borderExtend == BORDER_EXTEND_PAD)
+      if (borderExtend == IMAGE_FILTER_EXTEND_PAD)
       {
         lBorderColor = srcCur[0];
         rBorderColor = srcCur[end];
@@ -2441,7 +2446,7 @@ struct FOG_HIDDEN FilterC
 
     if (!stack) return;
 
-    int borderExtend = params->borderExtend;
+    uint32_t borderExtend = params->borderExtend;
     uint8_t lBorderColor = params->borderColor;
     uint8_t rBorderColor = params->borderColor;
 
@@ -2453,7 +2458,7 @@ struct FOG_HIDDEN FilterC
       srcCur = src;
       stackCur = stack;
 
-      if (borderExtend == BORDER_EXTEND_PAD)
+      if (borderExtend == IMAGE_FILTER_EXTEND_PAD)
       {
         lBorderColor = srcCur[0];
         rBorderColor = srcCur[end];

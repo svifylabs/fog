@@ -17,6 +17,7 @@
 #include <Fog/Graphics/Constants.h>
 #include <Fog/Graphics/ConvolutionMatrix.h>
 #include <Fog/Graphics/Image.h>
+#include <Fog/Graphics/ImageFilterEngine.h>
 
 //! @addtogroup Fog_Graphics
 //! @{
@@ -34,141 +35,8 @@ struct ColorMatrix;
 struct ConvolveParams;
 struct ImageFilter;
 struct ImageFilterBase;
-struct ImageFilterEngine;
 struct Rect;
 struct ScanlineConvolveParams;
-
-// ============================================================================
-// [Typedefs]
-// ============================================================================
-
-//! @brief The color filter function prototype.
-//!
-//! This function is used to filter individual pixels. Each color filter have
-//! functions for all major pixel formats. Context pointer is pointer returned
-//! by @c ImageFilterEngine::getContext() method.
-typedef void (FOG_FASTCALL *ColorFilterFn)(
-  const void* context,
-  uint8_t* dst,
-  const uint8_t* src,
-  sysuint_t w);
-
-//! @brief The image filter function prototype.
-//!
-//! This function is used to filter entire image data. Each image filter have
-//! functions for all major pixel formats. Context pointer is pointer returned
-//! by @c ImageFilterEngine::getContext() method.
-typedef void (FOG_FASTCALL *ImageFilterFn)(
-  const void* context,
-  uint8_t* dst, sysint_t dstStride,
-  const uint8_t* src, sysint_t srcStride,
-  sysuint_t w, sysuint_t h, sysint_t offset);
-
-// ============================================================================
-// [Fog::ImageFilterEngine]
-// ============================================================================
-
-//! @brief Image filter engine.
-//!
-//! Purpose of this class is to enable sharing of image filtering concepts
-//! between color filters and image filters (but there are big differences
-//! anyway).
-struct FOG_API ImageFilterEngine
-{
-  // --------------------------------------------------------------------------
-  // [Construction / Destruction]
-  // --------------------------------------------------------------------------
-
-  ImageFilterEngine(int type);
-  virtual ~ImageFilterEngine();
-
-  // --------------------------------------------------------------------------
-  // [Interface - Basics]
-  // --------------------------------------------------------------------------
-
-  //! @brief Get whether current filter combination is NOP (no operation).
-  virtual bool isNop() const;
-
-  //! @brief Extend a given rectangle by number of pixels needed to successfully
-  //! apply this filter to image. This is mainly for convolution type filters
-  //! like blurs where resulting image can be larger than source.
-  //!
-  //! @note For color filters this is always NOP (no extends).
-  virtual err_t getExtendedRect(Rect& rect) const;
-
-  // --------------------------------------------------------------------------
-  // [Interface - Context]
-  // --------------------------------------------------------------------------
-
-  //! @brief Get or create context that will be used as an argument for filter
-  //! functions. You must release it using @c releaseContext() method.
-  virtual const void* getContext() const;
-  //! @brief Release context returned by @c getContext() method.
-  virtual void releaseContext(const void* context) const;
-
-  // --------------------------------------------------------------------------
-  // [Interface - Filtering]
-  // --------------------------------------------------------------------------
-
-  //! @brief Get color filter function for a given @a format.
-  //!
-  //! @param format Pixel format of data that will be processed.
-  //!
-  //! @note This is valid only for color filters, otherwise NULL is returned.
-  virtual ColorFilterFn getColorFilterFn(int format) const;
-
-  //! @brief Get image filter function for a given @a format.
-  //!
-  //! @param format Pixel format of data that will be processed.
-  //! @param processing Processing flag, see @c IMAGE_FILTER_CHAR.
-  //!
-  //! Possible processing values are:
-  //! - @c IMAGE_FILTER_ENTIRE_PROCESSING - Entire processing (default).
-  //! - @c IMAGE_FILTER_VERT_PROCESSING - Vertical processing.
-  //! - @c IMAGE_FILTER_HORZ_PROCESSING - Horizontal processing.
-  //!
-  //! @note This is valid only for image filters, otherwise NULL is returned.
-  virtual ImageFilterFn getImageFilterFn(int format, int processing) const;
-
-  // --------------------------------------------------------------------------
-  // [Reference Counting]
-  // --------------------------------------------------------------------------
-
-  //! @brief Reference the image filter.
-  FOG_INLINE ImageFilterEngine* ref() const
-  {
-    refCount.inc();
-    return const_cast<ImageFilterEngine*>(this);
-  }
-
-  //! @brief Dereference the image filter. If reference count is decreased to
-  //! zero the object is destroyed.
-  FOG_INLINE void deref()
-  {
-    if (refCount.deref()) delete this;
-  }
-
-  //! @brief Clone filter with all arguments.
-  virtual ImageFilterEngine* clone() const = 0;
-
-  // --------------------------------------------------------------------------
-  // [Members]
-  // --------------------------------------------------------------------------
-
-  //! @brief Reference count.
-  mutable Atomic<sysuint_t> refCount;
-  //! @brief filter type, see @c IMAGE_FILTER_TYPE.
-  int type;
-  //! @brief Filter characteristics, see @c IMAGE_FILTER_CHAR.
-  int characteristics;
-
-private:
-  FOG_DISABLE_COPY(ImageFilterEngine)
-};
-
-// ============================================================================
-// [Fog::ImageFilterBase]
-// ============================================================================
 
 //! @brief Base class for @c ImageFilter and @c ColorFilter.
 //!
@@ -245,7 +113,8 @@ protected:
   // [Operator Overload]
   // --------------------------------------------------------------------------
 
-  FOG_INLINE ImageFilterBase& operator=(const ImageFilterBase& other) { setOther(other); return *this; }
+  FOG_INLINE ImageFilterBase& operator=(const ImageFilterBase& other)
+  { setOther(other); return *this; }
 
 public:
   FOG_INLINE ImageFilterBase& operator=(const ColorFilter& colorFilter) { setColorFilter(colorFilter); return *this; }
@@ -340,16 +209,16 @@ struct FOG_HIDDEN BlurParams
     blur(BLUR_LINEAR),
     hRadius(1.0),
     vRadius(1.0),
-    borderExtend(BORDER_EXTEND_PAD),
+    borderExtend(IMAGE_FILTER_EXTEND_PAD),
     borderColor(0x00000000)
   {
   }
 
   FOG_INLINE BlurParams(
-    int blur,
+    uint32_t blur,
     float hRadius,
     float vRadius,
-    int borderExtend = BORDER_EXTEND_PAD,
+    uint32_t borderExtend = IMAGE_FILTER_EXTEND_PAD,
     uint32_t borderColor = 0x00000000)
     :
     blur(blur),
@@ -369,15 +238,15 @@ struct FOG_HIDDEN BlurParams
   // --------------------------------------------------------------------------
 
   //! @brief Blur type, see @c BLUR_TYPE.
-  int blur;
+  uint32_t blur;
 
   //! @brief Horizontal blur radius.
   float hRadius;
   //! @brief Vertical blur radius.
   float vRadius;
 
-  //! @brief Border extend mode, see @c BORDER_EXTEND_MODE.
-  int borderExtend;
+  //! @brief Border extend mode, see @c IMAGE_FILTER_EXTEND_TYPE.
+  uint32_t borderExtend;
   //! @brief Border color (non-premultiplied).
   uint32_t borderColor;
 };
@@ -393,7 +262,7 @@ struct FOG_HIDDEN SymmetricConvolveParamsF
   // --------------------------------------------------------------------------
 
   FOG_INLINE SymmetricConvolveParamsF() :
-    borderExtend(BORDER_EXTEND_PAD),
+    borderExtend(IMAGE_FILTER_EXTEND_PAD),
     borderColor(0x00000000)
   {
   }
@@ -409,12 +278,12 @@ struct FOG_HIDDEN SymmetricConvolveParamsF
   FOG_INLINE SymmetricConvolveParamsF(
     const List<float>& hMatrix,
     const List<float>& vMatrix,
-    int borderExtend = BORDER_EXTEND_PAD,
+    uint32_t borderExtend = IMAGE_FILTER_EXTEND_PAD,
     uint32_t borderColor = 0x00000000)
     :
     hMatrix(hMatrix),
     vMatrix(vMatrix),
-    borderExtend(BORDER_EXTEND_PAD),
+    borderExtend(IMAGE_FILTER_EXTEND_PAD),
     borderColor(0x00000000)
   {
   }
@@ -423,7 +292,7 @@ struct FOG_HIDDEN SymmetricConvolveParamsF
   {
   }
 
-  SymmetricConvolveParamsF& operator=(const SymmetricConvolveParamsF& other)
+  FOG_NO_INLINE SymmetricConvolveParamsF& operator=(const SymmetricConvolveParamsF& other)
   {
     hMatrix = other.hMatrix;
     vMatrix = other.vMatrix;
@@ -438,8 +307,8 @@ struct FOG_HIDDEN SymmetricConvolveParamsF
   List<float> hMatrix;
   List<float> vMatrix;
 
-  //! @brief Border extend mode, see @c BORDER_EXTEND_MODE.
-  int borderExtend;
+  //! @brief Border extend mode, see @c IMAGE_FILTER_EXTEND_TYPE.
+  uint32_t borderExtend;
   //! @brief Border color (non-premultiplied).
   uint32_t borderColor;
 };

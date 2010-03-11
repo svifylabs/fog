@@ -77,7 +77,7 @@ void MyWindow::onPaint(PaintEvent* e)
   for (x = 0, radius = _baseRadius; x < 3; x++, radius += 5.0)
   {
     Image im(i[0]);
-    im.filter(ImageFilter(BlurParams(BLUR_BOX, radius, radius, BORDER_EXTEND_COLOR, 0x00000000)));
+    im.filter(ImageFilter(BlurParams(IMAGE_FILTER_BLUR_BOX, radius, radius, IMAGE_FILTER_EXTEND_COLOR, 0x00000000)));
     s.format("Box blur %g", radius);
     paintImage(p, Point(x, y), im, s);
   }
@@ -87,7 +87,7 @@ void MyWindow::onPaint(PaintEvent* e)
   for (x = 0, radius = _baseRadius; x < 3; x++, radius += 5.0)
   {
     Image im(i[0]);
-    im.filter(ImageFilter(BlurParams(BLUR_LINEAR, radius, radius, BORDER_EXTEND_COLOR, 0x00000000)));
+    im.filter(ImageFilter(BlurParams(IMAGE_FILTER_BLUR_LINEAR, radius, radius, IMAGE_FILTER_EXTEND_COLOR, 0x00000000)));
     s.format("Linear blur %g", radius);
     paintImage(p, Point(x, y), im, s);
   }
@@ -97,7 +97,7 @@ void MyWindow::onPaint(PaintEvent* e)
   for (x = 0, radius = _baseRadius; x < 3; x++, radius += 5.0)
   {
     Image im(i[0]);
-    im.filter(ImageFilter(BlurParams(BLUR_GAUSSIAN, radius, radius, BORDER_EXTEND_COLOR, 0x00000000)));
+    im.filter(ImageFilter(BlurParams(IMAGE_FILTER_BLUR_GAUSSIAN, radius, radius, IMAGE_FILTER_EXTEND_COLOR, 0x00000000)));
     s.format("Gaussian blur %g", radius);
     paintImage(p, Point(x, y), im, s);
   }

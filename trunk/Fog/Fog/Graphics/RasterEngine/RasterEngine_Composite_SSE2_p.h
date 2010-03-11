@@ -6638,8 +6638,6 @@ blt_away:
       SSE2_BLIT_32x4_INIT(dst, w);
       if (alphaTest == -255)
       {
-        __m128i dst0xmm;
-
         SSE2_BLIT_32x4_SMALL_PREPARE(bltMaskLerp)
 
         sse2_zero_pixel_lo_1x1W(src0xmm, src0xmm);
@@ -6647,7 +6645,6 @@ blt_away:
         SSE2_BLIT_32x4_SMALL_DO(bltMaskLerp)
           __m128i dst0xmm;
           __m128i msk0xmm;
-          __m128i mskinv0xmm;
 
           sse2_load4(dst0xmm, dst);
           sse2_expand_mask_1x1W(msk0xmm, READ_8(msk));

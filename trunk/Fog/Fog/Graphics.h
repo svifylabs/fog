@@ -70,6 +70,7 @@
 #include <Fog/Graphics/GlyphSet.h>
 #include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/ImageFilter.h>
+#include <Fog/Graphics/ImageFilterEngine.h>
 #include <Fog/Graphics/ImageIO.h>
 #include <Fog/Graphics/Matrix.h>
 #include <Fog/Graphics/Painter.h>

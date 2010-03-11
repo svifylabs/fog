@@ -25,7 +25,9 @@ namespace Fog {
 
 struct FOG_API Region
 {
+  // --------------------------------------------------------------------------
   // [Data]
+  // --------------------------------------------------------------------------
 
   struct FOG_API Data
   {
@@ -94,7 +96,9 @@ struct FOG_API Region
 
   static Fog::Static<Data> sharedNull;
 
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
   Region();
   Region(const Region& other);
@@ -103,7 +107,9 @@ struct FOG_API Region
   FOG_INLINE explicit Region(Data* d) : _d(d) {}
   ~Region();
 
+  // --------------------------------------------------------------------------
   // [Implicit Sharing]
+  // --------------------------------------------------------------------------
 
   //! @copydoc Doxygen::Implicit::refCount().
   FOG_INLINE sysuint_t refCount() const { return _d->refCount.get(); }
@@ -116,7 +122,9 @@ struct FOG_API Region
   //! @copydoc Doxygen::Implicit::free().
   void free();
 
+  // --------------------------------------------------------------------------
   // [Flags]
+  // --------------------------------------------------------------------------
 
   //! @copydoc Doxygen::Implicit::getFlags().
   FOG_INLINE uint32_t getFlags() const { return _d->flags; }
@@ -132,7 +140,9 @@ struct FOG_API Region
   err_t setSharable(bool val);
   err_t setStrong(bool val);
 
+  // --------------------------------------------------------------------------
   // [Data]
+  // --------------------------------------------------------------------------
 
   //! @brief Get const pointer to region data.
   FOG_INLINE const Box* getData() const  { return _d->rects; }
@@ -147,7 +157,9 @@ struct FOG_API Region
     return _d->rects; 
   }
 
+  // --------------------------------------------------------------------------
   // [Container]
+  // --------------------------------------------------------------------------
 
   //! @brief Returns capacity of region in rectangles.
   FOG_INLINE sysuint_t getCapacity() const  { return _d->capacity; }
@@ -168,7 +180,9 @@ struct FOG_API Region
   //! @brief Get type of region, see @c REGION_TYPE enum for possible values.
   uint32_t getType() const;
 
+  // --------------------------------------------------------------------------
   // [Contains]
+  // --------------------------------------------------------------------------
 
   //! @brief Tests if a given point is in region, see @c REGION_HITTEST enum.
   int hitTest(const Point& pt) const;
@@ -177,8 +191,16 @@ struct FOG_API Region
   int hitTest(const Rect& r) const;
   int hitTest(const Box& r) const;
 
+  // --------------------------------------------------------------------------
+  // [Clear]
+  // --------------------------------------------------------------------------
+
   //! @brief Removes all rectagnels from region.
   void clear();
+
+  // --------------------------------------------------------------------------
+  // [Operations]
+  // --------------------------------------------------------------------------
 
   err_t set(const Region& r);
   err_t set(const Rect& r);
@@ -254,7 +276,9 @@ struct FOG_API Region
 
   static err_t translateAndClip(Region& dst, const Region& src1Region, const Point& pt, const Box& clip);
 
-  // Overloaded operators
+  // --------------------------------------------------------------------------
+  // [Operator Overload]
+  // --------------------------------------------------------------------------
 
   FOG_INLINE Region& operator=(const Region& r) { set(r); return *this; }
   FOG_INLINE Region& operator=(const Rect& r) { set(r); return *this; }
@@ -280,12 +304,18 @@ struct FOG_API Region
   FOG_INLINE Region& operator-=(const Rect& r) { subtract(r); return *this; }
   FOG_INLINE Region& operator-=(const Box& r) { subtract(r); return *this; }
 
+  // --------------------------------------------------------------------------
+  // [Windows Specific]
+  // --------------------------------------------------------------------------
+
 #if defined(FOG_OS_WINDOWS)
   HRGN toHRGN() const;
   err_t fromHRGN(HRGN hrgn);
 #endif // FOG_OS_WINDOWS
 
+  // --------------------------------------------------------------------------
   // [Members]
+  // --------------------------------------------------------------------------
 
   FOG_DECLARE_D(Data)
 };
