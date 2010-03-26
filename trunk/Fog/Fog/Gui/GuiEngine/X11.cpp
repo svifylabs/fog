@@ -10,7 +10,7 @@
 #include <Fog/Core/Math.h>
 #include <Fog/Core/TextCodec.h>
 #include <Fog/Graphics/RasterEngine_p.h>
-#include <Fog/Graphics/RasterEngine/RasterEngine_C_p.h>
+#include <Fog/Graphics/RasterEngine/C_p.h>
 #include <Fog/Gui/Constants.h>
 #include <Fog/Gui/GuiEngine/X11.h>
 #include <Fog/Gui/Widget.h>

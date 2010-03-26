@@ -154,6 +154,8 @@ struct FOG_API Stream
   FOG_INLINE bool isMemory()   const { return (_d->flags & STREAM_IS_MEMORY  ) != 0; }
   FOG_INLINE bool isGrowable() const { return (_d->flags & STREAM_IS_GROWABLE) != 0; }
 
+  void setSeekable(bool seekable);
+
   // --------------------------------------------------------------------------
   // [Open]
   // --------------------------------------------------------------------------

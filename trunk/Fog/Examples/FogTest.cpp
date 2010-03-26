@@ -43,8 +43,8 @@ MyWindow::MyWindow(uint32_t createFlags) :
   i[0].readFile(Ascii8("babelfish.png"));
   i[1].readFile(Ascii8("kweather.png"));
 
-  i[0].convert(PIXEL_FORMAT_PRGB32);
-  i[1].convert(PIXEL_FORMAT_PRGB32);
+  i[0].convert(PIXEL_FORMAT_ARGB32);
+  i[1].convert(PIXEL_FORMAT_ARGB32);
 
 /*
   {

@@ -18,6 +18,7 @@ Project(Fog C CXX)
 
 If(FOG_BUILD_UISYSTEM_X11)
   Set(FOG_BUILD_GUI_X11 ${FOG_BUILD_UISYSTEM_X11})
+  Message("Warning: FOG_BUILD_UISYSTEM_X11 is deprecated, use FOG_BUILD_GUI_X11 instead!")
 EndIf(FOG_BUILD_UISYSTEM_X11)
 
 # =============================================================================
@@ -410,6 +411,7 @@ Set(FOG_GRAPHICS_LIB_SOURCES
   Fog/Graphics/Image.cpp
   Fog/Graphics/ImageFilter.cpp
   Fog/Graphics/ImageFilterEngine.cpp
+  Fog/Graphics/ImageFilterParams.cpp
   Fog/Graphics/ImageIO.cpp
   Fog/Graphics/Matrix.cpp
   Fog/Graphics/Painter.cpp
@@ -457,6 +459,7 @@ Set(FOG_GRAPHICS_LIB_HEADERS
   Fog/Graphics/Image.h
   Fog/Graphics/ImageFilter.h
   Fog/Graphics/ImageFilterEngine.h
+  Fog/Graphics/ImageFilterParams.h
   Fog/Graphics/ImageIO.h
   Fog/Graphics/Matrix.h
   Fog/Graphics/Painter.h
@@ -519,68 +522,68 @@ Set(FOG_GRAPHICS_PAINTENGINE_HEADERS
 )
 
 Set(FOG_GRAPHICS_RASTERENGINE_SOURCES
-  Fog/Graphics/RasterEngine/RasterEngine_Init_C.cpp
-  Fog/Graphics/RasterEngine/RasterEngine_Init_MMX.cpp
-  Fog/Graphics/RasterEngine/RasterEngine_Init_MMX3dNow.cpp
-  Fog/Graphics/RasterEngine/RasterEngine_Init_MMXSSE.cpp
-  Fog/Graphics/RasterEngine/RasterEngine_Init_SSE2.cpp
-  Fog/Graphics/RasterEngine/RasterEngine_Init_SSSE3.cpp
+  Fog/Graphics/RasterEngine/Init_C.cpp
+  Fog/Graphics/RasterEngine/Init_MMX.cpp
+  Fog/Graphics/RasterEngine/Init_MMX3dNow.cpp
+  Fog/Graphics/RasterEngine/Init_MMXSSE.cpp
+  Fog/Graphics/RasterEngine/Init_SSE2.cpp
+  Fog/Graphics/RasterEngine/Init_SSSE3.cpp
 )
 
 Set(FOG_GRAPHICS_RASTERENGINE_HEADERS
-  Fog/Graphics/RasterEngine/RasterEngine_Composite_C_p.h
-  Fog/Graphics/RasterEngine/RasterEngine_Composite_MMX_p.h
-  Fog/Graphics/RasterEngine/RasterEngine_Composite_SSE2_p.h
-  Fog/Graphics/RasterEngine/RasterEngine_Composite_SSSE3_p.h
+  Fog/Graphics/RasterEngine/Composite_C_p.h
+  Fog/Graphics/RasterEngine/Composite_MMX_p.h
+  Fog/Graphics/RasterEngine/Composite_SSE2_p.h
+  Fog/Graphics/RasterEngine/Composite_SSSE3_p.h
 
-  Fog/Graphics/RasterEngine/RasterEngine_Defs_C_p.h
-  Fog/Graphics/RasterEngine/RasterEngine_Defs_MMX_p.h
-  Fog/Graphics/RasterEngine/RasterEngine_Defs_SSE2_p.h
-  Fog/Graphics/RasterEngine/RasterEngine_Defs_SSSE3_p.h
+  Fog/Graphics/RasterEngine/Defs_C_p.h
+  Fog/Graphics/RasterEngine/Defs_MMX_p.h
+  Fog/Graphics/RasterEngine/Defs_SSE2_p.h
+  Fog/Graphics/RasterEngine/Defs_SSSE3_p.h
 
-  Fog/Graphics/RasterEngine/RasterEngine_Dib_C_p.h
-  Fog/Graphics/RasterEngine/RasterEngine_Dib_MMX_p.h
-  Fog/Graphics/RasterEngine/RasterEngine_Dib_SSE2_p.h
-  Fog/Graphics/RasterEngine/RasterEngine_Dib_SSSE3_p.h
+  Fog/Graphics/RasterEngine/Dib_C_p.h
+  Fog/Graphics/RasterEngine/Dib_MMX_p.h
+  Fog/Graphics/RasterEngine/Dib_SSE2_p.h
+  Fog/Graphics/RasterEngine/Dib_SSSE3_p.h
 
-  Fog/Graphics/RasterEngine/RasterEngine_Filters_C_p.h
-  Fog/Graphics/RasterEngine/RasterEngine_Filters_MMX_p.h
-  Fog/Graphics/RasterEngine/RasterEngine_Filters_SSE2_p.h
-  Fog/Graphics/RasterEngine/RasterEngine_Filters_SSSE3_p.h
+  Fog/Graphics/RasterEngine/Filters_C_p.h
+  Fog/Graphics/RasterEngine/Filters_MMX_p.h
+  Fog/Graphics/RasterEngine/Filters_SSE2_p.h
+  Fog/Graphics/RasterEngine/Filters_SSSE3_p.h
 
-  Fog/Graphics/RasterEngine/RasterEngine_Interpolate_C_p.h
-  Fog/Graphics/RasterEngine/RasterEngine_Interpolate_MMX_p.h
-  Fog/Graphics/RasterEngine/RasterEngine_Interpolate_SSE2_p.h
-  Fog/Graphics/RasterEngine/RasterEngine_Interpolate_SSSE3_p.h
+  Fog/Graphics/RasterEngine/Interpolate_C_p.h
+  Fog/Graphics/RasterEngine/Interpolate_MMX_p.h
+  Fog/Graphics/RasterEngine/Interpolate_SSE2_p.h
+  Fog/Graphics/RasterEngine/Interpolate_SSSE3_p.h
 
-  Fog/Graphics/RasterEngine/RasterEngine_Pattern_C_p.h
-  Fog/Graphics/RasterEngine/RasterEngine_Pattern_MMX_p.h
-  Fog/Graphics/RasterEngine/RasterEngine_Pattern_SSE2_p.h
-  Fog/Graphics/RasterEngine/RasterEngine_Pattern_SSSE3_p.h
+  Fog/Graphics/RasterEngine/Pattern_C_p.h
+  Fog/Graphics/RasterEngine/Pattern_MMX_p.h
+  Fog/Graphics/RasterEngine/Pattern_SSE2_p.h
+  Fog/Graphics/RasterEngine/Pattern_SSSE3_p.h
 
-  Fog/Graphics/RasterEngine/RasterEngine_Scale_C_p.h
-  Fog/Graphics/RasterEngine/RasterEngine_Scale_MMX_p.h
-  Fog/Graphics/RasterEngine/RasterEngine_Scale_SSE2_p.h
-  Fog/Graphics/RasterEngine/RasterEngine_Scale_SSSE3_p.h
+  Fog/Graphics/RasterEngine/Scale_C_p.h
+  Fog/Graphics/RasterEngine/Scale_MMX_p.h
+  Fog/Graphics/RasterEngine/Scale_SSE2_p.h
+  Fog/Graphics/RasterEngine/Scale_SSSE3_p.h
 
-  Fog/Graphics/RasterEngine/RasterEngine_Bresenham_p.h
-  Fog/Graphics/RasterEngine/RasterEngine_C_p.h
+  Fog/Graphics/RasterEngine/Bresenham_p.h
+  Fog/Graphics/RasterEngine/C_p.h
 )
 
 # Optimize specific files for speed
-Set_Source_Files_Properties(Fog/Graphics/Image.cpp                                   PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
-Set_Source_Files_Properties(Fog/Graphics/PathUtil.cpp                                PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
-Set_Source_Files_Properties(Fog/Graphics/PathUtil_SSE2.cpp                           PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE2}")
-Set_Source_Files_Properties(Fog/Graphics/Rasterizer.cpp                              PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
-Set_Source_Files_Properties(Fog/Graphics/Region.cpp                                  PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
-Set_Source_Files_Properties(Fog/Graphics/Scanline.cpp                                PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/Image.cpp                             PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/PathUtil.cpp                          PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/PathUtil_SSE2.cpp                     PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE2}")
+Set_Source_Files_Properties(Fog/Graphics/Rasterizer.cpp                        PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/Region.cpp                            PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/Scanline.cpp                          PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
 
-Set_Source_Files_Properties(Fog/Graphics/RasterEngine/RasterEngine_Init_C.cpp        PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
-Set_Source_Files_Properties(Fog/Graphics/RasterEngine/RasterEngine_Init_MMX.cpp      PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_MMX}")
-Set_Source_Files_Properties(Fog/Graphics/RasterEngine/RasterEngine_Init_MMX3dNow.cpp PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_3DNOW}")
-Set_Source_Files_Properties(Fog/Graphics/RasterEngine/RasterEngine_Init_MMXSSE.cpp   PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE}")
-Set_Source_Files_Properties(Fog/Graphics/RasterEngine/RasterEngine_Init_SSE2.cpp     PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE2}")
-Set_Source_Files_Properties(Fog/Graphics/RasterEngine/RasterEngine_Init_SSSE3.cpp    PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSSE3}")
+Set_Source_Files_Properties(Fog/Graphics/RasterEngine/Init_C.cpp               PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_OPTIMIZE}")
+Set_Source_Files_Properties(Fog/Graphics/RasterEngine/Init_MMX.cpp             PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_MMX}")
+Set_Source_Files_Properties(Fog/Graphics/RasterEngine/Init_MMX3dNow.cpp        PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_3DNOW}")
+Set_Source_Files_Properties(Fog/Graphics/RasterEngine/Init_MMXSSE.cpp          PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE}")
+Set_Source_Files_Properties(Fog/Graphics/RasterEngine/Init_SSE2.cpp            PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSE2}")
+Set_Source_Files_Properties(Fog/Graphics/RasterEngine/Init_SSSE3.cpp           PROPERTIES COMPILE_FLAGS "${FOG_CFLAGS_SSSE3}")
 
 # Source groups
 SOURCE_GROUP(Graphics               FILES ${FOG_GRAPHICS_LIB_SOURCES}          ${FOG_GRAPHICS_LIB_HEADERS})

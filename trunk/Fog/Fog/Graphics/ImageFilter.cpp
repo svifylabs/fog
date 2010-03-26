@@ -17,6 +17,8 @@
 #include <Fog/Graphics/ColorLut.h>
 #include <Fog/Graphics/ColorMatrix.h>
 #include <Fog/Graphics/ImageFilter.h>
+#include <Fog/Graphics/ImageFilterEngine.h>
+#include <Fog/Graphics/ImageFilterParams.h>
 #include <Fog/Graphics/RasterEngine_p.h>
 
 namespace Fog {

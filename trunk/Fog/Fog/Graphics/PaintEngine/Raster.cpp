@@ -34,7 +34,7 @@
 #include <Fog/Graphics/Painter.h>
 #include <Fog/Graphics/Rasterizer_p.h>
 #include <Fog/Graphics/RasterEngine_p.h>
-#include <Fog/Graphics/RasterEngine/RasterEngine_C_p.h>
+#include <Fog/Graphics/RasterEngine/C_p.h>
 #include <Fog/Graphics/Scanline_p.h>
 #include <Fog/Graphics/Stroker.h>
 
@@ -209,6 +209,10 @@ RasterPaintClipState& RasterPaintClipState::operator=(const RasterPaintClipState
 
 RasterPaintCapsState::RasterPaintCapsState()
 {
+  // We assume that size of data is QWORD and we like to know if this is not
+  // true.
+  FOG_ASSERT(sizeof(data) == 8);
+
   refCount.init(1);
   sourceType = PAINTER_SOURCE_ARGB;
 }
@@ -501,6 +505,10 @@ void RasterRenderImageAffineBound::render(RasterPaintContext* ctx)
   //   1. Unlike other rasterizers, sorting is not needed here.
   //   2. It's pretty fast and it can run in parallel.
   //
+  // Disadventages:
+  //
+  //   1. It uses floating point math at this time.
+  //
   // If there is better solution, please contact me!
 
   RasterPaintLayer* layer = ctx->layer;
@@ -564,6 +572,9 @@ void RasterRenderImageAffineBound::render(RasterPaintContext* ctx)
   RasterEngine::Closure closure;
   closure.dstPalette = NULL;
   closure.srcPalette = NULL;
+
+// TODO
+// #define RENDER_LOOP()
 
   // Singlethreaded.
   if (ctx->id == -1)
@@ -1213,28 +1224,21 @@ bool RasterPaintWorkerManager::isCompleted()
 // [Fog::RasterPaintEngine - Construction / Destruction]
 // ============================================================================
 
-static uint32_t layerTypeFromPixelFormat(uint32_t format)
-{
-  return format == PIXEL_FORMAT_ARGB32 
-    ? LAYER_TYPE_ARGB
-    : LAYER_TYPE_NATIVE;
-}
-
 RasterPaintEngine::RasterPaintEngine(const ImageBuffer& buffer, uint32_t initFlags) :
   workerManager(NULL)
 {
   // Setup primary context.
   ctx.engine = this;
-  ctx.layer = &main;
 
   // Setup primary layer.
   main.pixels = buffer.data;
-  main.type = layerTypeFromPixelFormat(buffer.format);
   main.width = buffer.width;
   main.height = buffer.height;
   main.format = buffer.format;
   main.stride = buffer.stride;
-  main.bytesPerPixel = Image::formatToBytesPerPixel(buffer.format);
+
+  ctx.layer = &main;
+  _setupLayer(&main);
 
   // Setup primary rasterizer.
   ras = Rasterizer::getRasterizer();
@@ -1743,7 +1747,7 @@ void RasterPaintEngine::setOperator(uint32_t op)
 
   if (!(capsState = _detachCapsState())) return;
   capsState->op = op;
-  capsState->rops = RasterEngine::getRasterOps(ctx.layer->format, op);
+  capsState->rops = RasterEngine::getCompositeFuncs(ctx.layer->format, op);
 }
 
 // ============================================================================
@@ -3114,7 +3118,7 @@ void RasterPaintEngine::_setCapsDefaults()
   // Caller must ensure this.
   FOG_ASSERT(capsState->refCount.get() == 1);
 
-  switch(capsState->sourceType)
+  switch (capsState->sourceType)
   {
     case PAINTER_SOURCE_ARGB:
       break;
@@ -3141,7 +3145,7 @@ void RasterPaintEngine::_setCapsDefaults()
   capsState->solid.argb = 0xFF000000;
   capsState->solid.prgb = 0xFF000000;
 
-  capsState->rops = RasterEngine::getRasterOps(ctx.layer->format, OPERATOR_SRC_OVER);
+  capsState->rops = RasterEngine::getCompositeFuncs(ctx.layer->format, OPERATOR_SRC_OVER);
 
   capsState->strokeParams.reset();
   capsState->transform.set(
@@ -3298,6 +3302,50 @@ void RasterPaintEngine::_deleteStates()
   }
 
   states.clear();
+}
+
+// ============================================================================
+// [Fog::RasterPaintEngine - Layer]
+// ============================================================================
+
+void RasterPaintEngine::_setupLayer(RasterPaintLayer* layer)
+{
+  switch (layer->format)
+  {
+    case PIXEL_FORMAT_PRGB32:
+    case PIXEL_FORMAT_XRGB32:
+      // Direct rendering in all cases, nothing to setup.
+      layer->type = LAYER_TYPE_DIRECT32;
+      layer->bytesPerPixel = 4;
+
+      layer->secondaryFormat = PIXEL_FORMAT_NULL;
+      layer->toSecondary = NULL;
+      layer->fromSecondary = NULL;
+      break;
+
+    case PIXEL_FORMAT_ARGB32:
+      // Direct rendering if possible, bail to PRGB32 if ARGB32 is not
+      // implemented for particular task.
+      layer->type = LAYER_TYPE_DIRECT32;
+      layer->bytesPerPixel = 4;
+
+      layer->secondaryFormat = PIXEL_FORMAT_NULL;
+      layer->toSecondary = RasterEngine::functionMap->composite
+        [OPERATOR_SRC][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_ARGB32];
+      layer->fromSecondary = RasterEngine::functionMap->composite
+        [OPERATOR_SRC][PIXEL_FORMAT_ARGB32].vspan[PIXEL_FORMAT_PRGB32];
+      break;
+
+    case PIXEL_FORMAT_A8:
+      // TODO: Not implemented.
+      FOG_ASSERT(0);
+      break;
+
+    case PIXEL_FORMAT_I8:
+      // I8 format is not supported by Fog::Painter.
+    default:
+      FOG_ASSERT_NOT_REACHED();
+  }
 }
 
 // ============================================================================
@@ -3699,11 +3747,11 @@ bool RasterPaintEngine::_rasterizePath(RasterPaintContext* ctx, Rasterizer* ras,
 
 static const int pixelFormatGroupId[] =
 {
-   1, /* PIXEL_FORMAT_PRGB32 */
-  -1, /* PIXEL_FORMAT_ARGB32 */
-   1, /* PIXEL_FORMAT_XRGB32 */
-  -2, /* PIXEL_FORMAT_A8 */
-  -3  /* PIXEL_FORMAT_I8 */
+   1, // PIXEL_FORMAT_PRGB32
+  -1, // PIXEL_FORMAT_ARGB32
+   1, // PIXEL_FORMAT_XRGB32
+  -2, // PIXEL_FORMAT_A8
+  -3  // PIXEL_FORMAT_I8
 };
 
 // Get whether blit of two pixel formats is fully opaque operation (dst pixel
@@ -3727,7 +3775,7 @@ static FOG_INLINE bool isRawOpaqueBlit(uint32_t dstFormat, uint32_t srcFormat, u
 // - Already clipped to SIMPLE or COMPLEX clip region.
 void RasterPaintEngine::_renderBoxes(RasterPaintContext* ctx, const Box* box, sysuint_t count)
 {
-#define RENDER_LOOP(NAME, CODE) \
+#define RENDER_LOOP(NAME, BPP, CODE) \
   for (sysuint_t i = 0; i < count; i++) \
   { \
     int x1 = box[i].getX1(); \
@@ -3742,7 +3790,7 @@ void RasterPaintEngine::_renderBoxes(RasterPaintContext* ctx, const Box* box, sy
     \
     uint8_t* pCur = pixels + \
                     (sysint_t)(uint)y1 * stride + \
-                    (sysint_t)(uint)x1 * bpp; \
+                    (sysint_t)(uint)x1 * BPP; \
     do { \
       CODE \
       \
@@ -3758,7 +3806,6 @@ void RasterPaintEngine::_renderBoxes(RasterPaintContext* ctx, const Box* box, sy
 
   uint8_t* pixels = layer->pixels;
   sysint_t stride = layer->stride;
-  sysint_t bpp = layer->bytesPerPixel;
 
   RasterEngine::Closure* closure = &ctx->closure;
 
@@ -3774,10 +3821,34 @@ void RasterPaintEngine::_renderBoxes(RasterPaintContext* ctx, const Box* box, sy
       const RasterEngine::Solid* source = &capsState->solid;
       RasterEngine::CSpanFn cspan = capsState->rops->cspan;
 
-      RENDER_LOOP(bltOpaque,
+      switch (layer->type)
       {
-        cspan(pCur, source, (sysuint_t)w, closure);
-      });
+        case LAYER_TYPE_DIRECT32:
+        case LAYER_TYPE_INDIRECT32:
+          if (cspan != NULL)
+          {
+            RENDER_LOOP(bltOpaque, 4,
+            {
+              cspan(pCur, source, (sysuint_t)w, closure);
+            });
+          }
+          else
+          {
+            cspan = RasterEngine::getCompositeFuncs(
+              layer->secondaryFormat, capsState->op)->cspan;
+
+            RENDER_LOOP(bltOpaque, 4,
+            {
+              layer->toSecondary(pCur, pCur, w, NULL);
+              cspan(pCur, source, (sysuint_t)w, closure);
+              layer->fromSecondary(pCur, pCur, w, NULL);
+            });
+          }
+          break;
+
+        default:
+          FOG_ASSERT_NOT_REACHED();
+      }
       break;
     }
 
@@ -3791,9 +3862,9 @@ void RasterPaintEngine::_renderBoxes(RasterPaintContext* ctx, const Box* box, sy
 
       RasterEngine::VSpanFn vspan;
 
-      // FastPath: Do not copy pattern to extra buffer if compositing operation
-      // is OPERATOR_SRC. We need to match pixel formats and make sure that operator
-      // is OPERATOR_SRC or OPERATOR_SRC_OVER without alpha channel (opaque).
+      // FastPath: Do not copy pattern to extra buffer if compositing operator
+      // is OPERATOR_SRC. We need to match pixel formats and make sure that
+      // operator is OPERATOR_SRC or OPERATOR_SRC_OVER without alpha channel.
       if (isRawOpaqueBlit(format, pctx->format, capsState->op))
       {
         // NOTE: isRawOpaqueBlit can return true for PRGB <- XRGB operation, but
@@ -3803,13 +3874,34 @@ void RasterPaintEngine::_renderBoxes(RasterPaintContext* ctx, const Box* box, sy
         //
         // Vspan function ensures that alpha byte will be set to 0xFF on alpha
         // enabled pixel formats.
-        vspan = RasterEngine::functionMap->composite[OPERATOR_SRC][format].vspan[pctx->format];
+        vspan = RasterEngine::getCompositeFuncs(
+          format, OPERATOR_SRC)->vspan[pctx->format];
 
-        RENDER_LOOP(bltPatternFast,
+        // OPERATOR_SRC vspan must be always supported for any format
+        // combination.
+        FOG_ASSERT(vspan != NULL);
+
+        switch (layer->type)
         {
-          uint8_t* f = pctx->fetch(pctx, pCur, x1, y1, w);
-          if (f != pCur) vspan(pCur, f, w, closure);
-        })
+          case LAYER_TYPE_DIRECT32:
+            RENDER_LOOP(bltPatternFastDirect32, 4,
+            {
+              uint8_t* f = pctx->fetch(pctx, pCur, x1, y1, w);
+              if (f != pCur) vspan(pCur, f, w, closure);
+            })
+            break;
+
+          case LAYER_TYPE_INDIRECT32:
+            RENDER_LOOP(bltPatternFastIndirect32, 4,
+            {
+              uint8_t* f = pctx->fetch(pctx, pCur, x1, y1, w);
+              vspan(pCur, f, w, closure);
+            })
+            break;
+
+          default:
+            FOG_ASSERT_NOT_REACHED();
+        }
       }
       else
       {
@@ -3818,15 +3910,41 @@ void RasterPaintEngine::_renderBoxes(RasterPaintContext* ctx, const Box* box, sy
         uint8_t* pBuf = ctx->getBuffer((uint)(ctx->clipState->clipBox.getWidth()) * 4);
         if (!pBuf) return;
 
-        RENDER_LOOP(bltPatternCommon,
+        switch (layer->type)
         {
-          uint8_t* f = pctx->fetch(pctx, pBuf, x1, y1, w);
-          vspan(pCur, f, w, closure);
-        });
+          case LAYER_TYPE_DIRECT32:
+          case LAYER_TYPE_INDIRECT32:
+            if (vspan != NULL)
+            {
+              RENDER_LOOP(bltPatternCommonDirect32, 4,
+              {
+                uint8_t* f = pctx->fetch(pctx, pBuf, x1, y1, w);
+                vspan(pCur, f, w, closure);
+              });
+            }
+            else
+            {
+              vspan = RasterEngine::getCompositeFuncs(
+                layer->secondaryFormat, capsState->op)->vspan[pctx->format];
+
+              RENDER_LOOP(bltPatternCommonIndirect32, 4,
+              {
+                uint8_t* f = pctx->fetch(pctx, pBuf, x1, y1, w);
+                layer->toSecondary(pCur, pCur, w, NULL);
+                vspan(pCur, f, w, closure);
+                layer->fromSecondary(pCur, pCur, w, NULL);
+              });
+            }
+            break;
+
+          default:
+            FOG_ASSERT_NOT_REACHED();
+        }
       }
       break;
     }
 
+#if 0
     // Color filter.
     case PAINTER_SOURCE_COLOR_FILTER:
     {
@@ -3834,7 +3952,7 @@ void RasterPaintEngine::_renderBoxes(RasterPaintContext* ctx, const Box* box, sy
       const void* cfRasterPaintContext = cfEngine->getContext();
       ColorFilterFn cspan = cfEngine->getColorFilterFn(layer->format);
 
-      RENDER_LOOP(bltColorFilter,
+      RENDER_LOOP(bltColorFilter, 4,
       {
         cspan(cfRasterPaintContext, pCur, pCur, (sysuint_t)w);
       });
@@ -3842,6 +3960,7 @@ void RasterPaintEngine::_renderBoxes(RasterPaintContext* ctx, const Box* box, sy
       cfEngine->releaseContext(cfRasterPaintContext);
       break;
     }
+#endif
   }
 #undef RENDER_LOOP
 }
@@ -3853,13 +3972,13 @@ void RasterPaintEngine::_renderBoxes(RasterPaintContext* ctx, const Box* box, sy
 //   additional clipping must be performed by callee (here).
 void RasterPaintEngine::_renderImage(RasterPaintContext* ctx, const Rect& dst, const Image& image, const Rect& src)
 {
-#define RENDER_LOOP(NAME, CODE) \
+#define RENDER_LOOP(NAME, BPP, CODE) \
   /* Simple clip. */ \
   if (FOG_LIKELY(clipState->clipSimple)) \
   { \
     int x = dst.x; \
     \
-    uint8_t* dstCur = layer->pixels + (sysint_t)(uint)(x) * layer->bytesPerPixel; \
+    uint8_t* dstCur = layer->pixels + (sysint_t)(uint)(x) * BPP; \
     const uint8_t* srcCur = image_d->first + (sysint_t)(uint)(src.x) * image_d->bytesPerPixel; \
     \
     /* Singlethreaded rendering (delta == 1, offset == 0). */ \
@@ -3969,7 +4088,7 @@ NAME##_nodelta_advance: \
         int x1 = cbox->x1; \
         if (x1 < xMin) x1 = xMin; \
         \
-        uint8_t* dstCur = dstBase + (sysint_t)(uint)(x1) * layer->bytesPerPixel; \
+        uint8_t* dstCur = dstBase + (sysint_t)(uint)(x1) * BPP; \
         const uint8_t* srcCur = srcBase + (sysint_t)(uint)(x1 + src.x - dst.x) * image_d->bytesPerPixel; \
         \
         while (cbox != clipTo) \
@@ -3984,7 +4103,7 @@ NAME##_nodelta_advance: \
           uint adv = (uint)(cbox->x1 - x1); \
           x1 += adv; \
           \
-          dstCur += adv * layer->bytesPerPixel; \
+          dstCur += adv * BPP; \
           srcCur += adv * image_d->bytesPerPixel; \
         } \
         \
@@ -4072,7 +4191,7 @@ NAME##_delta_advance: \
         int x1 = cbox->x1; \
         if (x1 < xMin) x1 = xMin; \
         \
-        uint8_t* dstCur = dstBase + (sysint_t)(uint)(x1) * layer->bytesPerPixel; \
+        uint8_t* dstCur = dstBase + (sysint_t)(uint)(x1) * BPP; \
         const uint8_t* srcCur = srcBase + (sysint_t)(uint)(x1 + src.x - dst.x) * image_d->bytesPerPixel; \
         \
         while (cbox != clipTo) \
@@ -4087,7 +4206,7 @@ NAME##_delta_advance: \
           uint adv = (uint)(cbox->x1 - x1); \
           x1 += adv; \
           \
-          dstCur += adv * layer->bytesPerPixel; \
+          dstCur += adv * BPP; \
           srcCur += adv * image_d->bytesPerPixel; \
         } \
         \
@@ -4124,10 +4243,34 @@ NAME##_end: \
   int yMax = dst.y + dst.h;
   int delta = ctx->delta;
 
-  RENDER_LOOP(blt,
+  switch (layer->type)
   {
-    vspan(dstCur, srcCur, w, &closure);
-  })
+    case LAYER_TYPE_DIRECT32:
+    case LAYER_TYPE_INDIRECT32:
+      if (vspan != NULL)
+      {
+        RENDER_LOOP(bltImageDirect32, 4,
+        {
+          vspan(dstCur, srcCur, w, &closure);
+        })
+      }
+      else
+      {
+        vspan = RasterEngine::getCompositeFuncs(
+          layer->secondaryFormat, capsState->op)->vspan[image_d->format];
+
+        RENDER_LOOP(bltImageIndirect32, 4,
+        {
+          layer->toSecondary(dstCur, dstCur, w, NULL);
+          vspan(dstCur, srcCur, w, &closure);
+          layer->fromSecondary(dstCur, dstCur, w, NULL);
+        })
+      }
+      break;
+
+    default:
+      FOG_ASSERT_NOT_REACHED();
+  }
 
 #undef RENDER_LOOP
 }
@@ -4137,7 +4280,7 @@ void RasterPaintEngine::_renderGlyphSet(RasterPaintContext* ctx, const Point& pt
   // TODO: Hardcoded to A8 glyph format.
   // TODO: Clipping.
 
-#define RENDER_LOOP(NAME, CODE) \
+#define RENDER_LOOP(NAME, BPP, CODE) \
   for (sysuint_t i = 0; i < count; i++) \
   { \
     Glyph::Data* glyphd = glyphs[i]._d; \
@@ -4162,7 +4305,7 @@ void RasterPaintEngine::_renderGlyphSet(RasterPaintContext* ctx, const Point& pt
     \
     uint8_t* pCur = pixels; \
     pCur += (sysint_t)(uint)y1 * stride; \
-    pCur += (sysint_t)(uint)x1 * bpp; \
+    pCur += (sysint_t)(uint)x1 * BPP; \
     \
     sysint_t glyphStride = bitmapd->stride; \
     const uint8_t* pGlyph = bitmapd->first; \
@@ -4199,7 +4342,6 @@ void RasterPaintEngine::_renderGlyphSet(RasterPaintContext* ctx, const Point& pt
   uint8_t* pixels = layer->pixels;
   sysint_t stride = layer->stride;
   sysint_t strideWithDelta = stride * delta;
-  sysint_t bpp = layer->bytesPerPixel;
 
   RasterEngine::Closure closure;
   closure.dstPalette = NULL;
@@ -4213,10 +4355,34 @@ void RasterPaintEngine::_renderGlyphSet(RasterPaintContext* ctx, const Point& pt
       RasterEngine::CSpanMskFn cspan_a8 = capsState->rops->cspan_a8;
       const RasterEngine::Solid* source = &capsState->solid;
 
-      RENDER_LOOP(bltSolid,
+      switch (layer->type)
       {
-        cspan_a8(pCur, source, pGlyph, w, &closure);
-      })
+        case LAYER_TYPE_DIRECT32:
+        case LAYER_TYPE_INDIRECT32:
+          if (FOG_LIKELY(cspan_a8 != NULL))
+          {
+            RENDER_LOOP(bltSolidDirect32, 4,
+            {
+              cspan_a8(pCur, source, pGlyph, w, &closure);
+            })
+          }
+          else
+          {
+            cspan_a8 = RasterEngine::getCompositeFuncs(
+              layer->secondaryFormat, capsState->op)->cspan_a8;
+
+            RENDER_LOOP(bltSolidIndirect32, 4,
+            {
+              layer->toSecondary(pCur, pCur, w, NULL);
+              cspan_a8(pCur, source, pGlyph, w, &closure);
+              layer->fromSecondary(pCur, pCur, w, NULL);
+            })
+          }
+          break;
+
+        default:
+          FOG_ASSERT_NOT_REACHED();
+      }
       break;
     }
 
@@ -4228,30 +4394,61 @@ void RasterPaintEngine::_renderGlyphSet(RasterPaintContext* ctx, const Point& pt
 
       RasterEngine::VSpanMskFn vspan_a8 = capsState->rops->vspan_a8[pctx->format];
 
-      uint8_t* pbuf = ctx->getBuffer((uint)(clipState->clipBox.getWidth()) * 4);
-      if (!pbuf) return;
-
-      RENDER_LOOP(bltPattern,
+      switch (layer->type)
       {
-        uint8_t* f = pctx->fetch(pctx, pbuf, x1, y1, w);
-        vspan_a8(pCur, f, pGlyph, w, &closure);
-      })
+        case LAYER_TYPE_DIRECT32:
+        case LAYER_TYPE_INDIRECT32:
+        {
+          uint8_t* pbuf = ctx->getBuffer((uint)(clipState->clipBox.getWidth()) * 4);
+          if (!pbuf) return;
+
+          if (FOG_LIKELY(vspan_a8 != NULL))
+          {
+            RENDER_LOOP(bltPatternDirect32, 4,
+            {
+              uint8_t* f = pctx->fetch(pctx, pbuf, x1, y1, w);
+              vspan_a8(pCur, f, pGlyph, w, &closure);
+            })
+          }
+          else
+          {
+            vspan_a8 = RasterEngine::getCompositeFuncs(
+              layer->secondaryFormat, capsState->op)->vspan_a8[pctx->format];
+
+            RENDER_LOOP(bltPatternIndirect32, 4,
+            {
+              uint8_t* f = pctx->fetch(pctx, pbuf, x1, y1, w);
+
+              layer->toSecondary(pCur, pCur, w, NULL);
+              vspan_a8(pCur, f, pGlyph, w, &closure);
+              layer->fromSecondary(pCur, pCur, w, NULL);
+            })
+          }
+          break;
+        }
+
+        default:
+          FOG_ASSERT_NOT_REACHED();
+      }
+
       break;
     }
 
+#if 0
     // Color filter.
     case PAINTER_SOURCE_COLOR_FILTER:
     {
       // TODO:
       break;
     }
+#endif
   }
 #undef RENDER_LOOP
 }
 
 void RasterPaintEngine::_renderPath(RasterPaintContext* ctx, Rasterizer* ras, bool textureBlit)
 {
-#define RENDER_LOOP(NAME, CODE) \
+#define RENDER_LOOP(NAME, BPP, CODE) \
   /* Simple clip. */ \
   if (clipState->clipSimple) \
   { \
@@ -4338,7 +4535,6 @@ NAME##_end: \
 
   sysint_t stride = layer->stride;
   sysint_t strideWithDelta = stride * delta;
-  sysint_t bpp = layer->bytesPerPixel;
 
   uint8_t* pBase;
   uint8_t* pCur;
@@ -4348,18 +4544,73 @@ NAME##_end: \
   closure.srcPalette = NULL;
 
   uint sourceType = textureBlit ? PAINTER_SOURCE_PATTERN : capsState->sourceType;
+  const RasterEngine::FunctionMap::CompositeFuncs* rops = capsState->rops;
+
   switch (sourceType)
   {
     // Solid source type.
     case PAINTER_SOURCE_ARGB:
     {
-      RasterEngine::CSpanScanlineFn blitter = capsState->rops->cspan_a8_scanline;
       const RasterEngine::Solid* source = &capsState->solid;
 
-      RENDER_LOOP(bltSolid,
+      switch (layer->type)
       {
-        blitter(pBase, source, scanline->getSpansData(), numSpans, &closure);
-      });
+        case LAYER_TYPE_DIRECT32:
+        case LAYER_TYPE_INDIRECT32:
+          if (rops->cspan_a8_scanline)
+          {
+            RENDER_LOOP(bltSolidDirect32, 4,
+            {
+              rops->cspan_a8_scanline(pBase, source, scanline->getSpansData(), numSpans, &closure);
+            });
+          }
+          else
+          {
+            rops = RasterEngine::getCompositeFuncs(
+              layer->secondaryFormat, OPERATOR_SRC);
+
+            RENDER_LOOP(bltSolidIndirect32, 4,
+            {
+              const Scanline32::Span* span = scanline->getSpansData();
+
+              for (;;)
+              {
+                int x = span->x;
+                int len = span->len;
+
+                pCur = pBase + (uint)x * 4;
+
+                if (len > 0)
+                {
+                  layer->toSecondary(pCur, pCur, len, NULL);
+                  rops->cspan_a8(pCur, source, span->covers, len, &closure);
+                  layer->fromSecondary(pCur, pCur, len, NULL);
+                }
+                else
+                {
+                  len = -len;
+                  FOG_ASSERT(len > 0);
+
+                  uint32_t cover = (uint32_t)*(span->covers);
+
+                  layer->toSecondary(pCur, pCur, len, NULL);
+                  if (cover == 0xFF)
+                    rops->cspan(pCur, source, len, &closure);
+                  else
+                    rops->cspan_a8_const(pCur, source, cover, len, &closure);
+                  layer->fromSecondary(pCur, pCur, len, NULL);
+                }
+
+                if (--numSpans == 0) break;
+                ++span;
+              }
+            });
+          }
+          break;
+
+        default:
+          FOG_ASSERT_NOT_REACHED();
+      }
       break;
     }
 
@@ -4372,54 +4623,120 @@ NAME##_end: \
       uint8_t* pBuf = ctx->getBuffer((uint)(clipState->clipBox.getWidth()) * 4);
       if (!pBuf) return;
 
-      RasterEngine::VSpanFn vspan = capsState->rops->vspan[pctx->format];
-      RasterEngine::VSpanMskFn vspan_a8 = capsState->rops->vspan_a8[pctx->format];
-      RasterEngine::VSpanMskConstFn vspan_a8_const = capsState->rops->vspan_a8_const[pctx->format];
+      RasterEngine::VSpanFn vspan;
+      RasterEngine::VSpanMskFn vspan_a8;
+      RasterEngine::VSpanMskConstFn vspan_a8_const;
 
-      RENDER_LOOP(bltPattern,
+      vspan = rops->vspan[pctx->format];
+      vspan_a8 = rops->vspan_a8[pctx->format];
+      vspan_a8_const = rops->vspan_a8_const[pctx->format];
+
+      switch (layer->type)
       {
-        const Scanline32::Span* span = scanline->getSpansData();
-
-        for (;;)
-        {
-          int x = span->x;
-          int len = span->len;
-
-          pCur = pBase + x * bpp;
-
-          if (len > 0)
+        case LAYER_TYPE_DIRECT32:
+        case LAYER_TYPE_INDIRECT32:
+          if (vspan          != NULL &&
+              vspan_a8       != NULL &&
+              vspan_a8_const != NULL)
           {
-            vspan_a8(pCur,
-              pctx->fetch(pctx, pBuf, x, y, len),
-              span->covers, len, &closure);
+            RENDER_LOOP(bltPatternDirect32, 4,
+            {
+              const Scanline32::Span* span = scanline->getSpansData();
+
+              for (;;)
+              {
+                int x = span->x;
+                int len = span->len;
+
+                pCur = pBase + (uint)x * 4;
+
+                if (len > 0)
+                {
+                  uint8_t* f = pctx->fetch(pctx, pBuf, x, y, len);
+                  vspan_a8(pCur, f, span->covers, len, &closure);
+                }
+                else
+                {
+                  len = -len;
+                  FOG_ASSERT(len > 0);
+
+                  uint32_t cover = (uint32_t)*(span->covers);
+                  uint8_t* f = pctx->fetch(pctx, pBuf, x, y, len);
+
+                  if (cover == 0xFF)
+                    vspan(pCur, f, len, &closure);
+                  else
+                    vspan_a8_const(pCur, f, cover, len, &closure);
+                }
+
+                if (--numSpans == 0) break;
+                ++span;
+              }
+            });
           }
           else
           {
-            len = -len;
-            FOG_ASSERT(len > 0);
+            rops = RasterEngine::getCompositeFuncs(
+              layer->secondaryFormat, OPERATOR_SRC);
 
-            uint32_t cover = (uint32_t)*(span->covers);
-            if (cover == 0xFF)
+            vspan = rops->vspan[pctx->format];
+            vspan_a8 = rops->vspan_a8[pctx->format];
+            vspan_a8_const = rops->vspan_a8_const[pctx->format];
+
+            RENDER_LOOP(bltPatternIndirect32, 4,
             {
-              vspan(pCur,
-                pctx->fetch(pctx, pBuf, x, y, len),
-                len, &closure);
-            }
-            else
-            {
-              vspan_a8_const(pCur,
-                pctx->fetch(pctx, pBuf, x, y, len),
-                cover, len, &closure);
-            }
+              const Scanline32::Span* span = scanline->getSpansData();
+
+              for (;;)
+              {
+                int x = span->x;
+                int len = span->len;
+
+                pCur = pBase + (uint)x * 4;
+
+                if (len > 0)
+                {
+                  layer->toSecondary(pCur, pCur, len, NULL);
+                  uint8_t* f = pctx->fetch(pctx, pBuf, x, y, len);
+                  vspan_a8(pCur, f, span->covers, len, &closure);
+                  layer->fromSecondary(pCur, pCur, len, NULL);
+                }
+                else
+                {
+                  len = -len;
+                  FOG_ASSERT(len > 0);
+
+                  uint32_t cover = (uint32_t)*(span->covers);
+                  uint8_t* f = pctx->fetch(pctx, pBuf, x, y, len);
+
+                  layer->toSecondary(pCur, pCur, len, NULL);
+
+                  if (cover == 0xFF)
+                  {
+                    vspan(pCur, f, len, &closure);
+                  }
+                  else
+                  {
+                    vspan_a8_const(pCur, f, cover, len, &closure);
+                  }
+
+                  layer->fromSecondary(pCur, pCur, len, NULL);
+                }
+
+                if (--numSpans == 0) break;
+                ++span;
+              }
+            });
           }
+          break;
 
-          if (--numSpans == 0) break;
-          ++span;
-        }
-      });
+        default:
+          FOG_ASSERT_NOT_REACHED();
+      }
       break;
     }
 
+#if 0
     // Color filter source type.
     case PAINTER_SOURCE_COLOR_FILTER:
     {
@@ -4478,7 +4795,7 @@ NAME##_end: \
       cfEngine->releaseContext(cfRasterPaintContext);
       break;
     }
-
+#endif
   }
 #undef RENDER_LOOP
 }
