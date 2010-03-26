@@ -148,3 +148,9 @@ Currently there is only support to per pixel alpha blending. It would be useful 
 ==Renaming Fog-Graphics to Fog-Graphics2d==
 
 Just idea, if some day the opengl rendering will be added, we can extend the framework to use some 3d data types. I'd like to see this in different library than Fog-Graphics.
+
+==Adding support for more pixel formats==
+
+Currently there are only few libraries that allows to use 16-bit or floating point colors. It shouldn't be hard task to extend current architecture except for blitters - there are so many blitters and implementing each for 16-bit or 32-bit floating point colors will be wasting of binary space.
+
+But other hand, it can be useful for people that need rendering with extra precision.
