@@ -138,3 +138,7 @@ SRC = Source pixel
 
 DST = (DST original) LERP(SRC) (DST filtered by color filter)
 }}}
+
+==Geometry suffixes==
+
+Currently there are two suffixes used inside Fog geometry classes - F and D. F is shorthand for float and D for double. I'm thinking about adding I suffix also to Rect, Point and Box structures.
