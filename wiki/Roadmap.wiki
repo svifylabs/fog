@@ -3,7 +3,7 @@
 
 =Introduction=
 
-This page contains Fog-Framework roadmap, editable my project members. Initial items were copied from project TODO.
+This page contains Fog-Framework roadmap, editable by project members. Initial items were copied from project TODO.
 
 =Legend=
 
