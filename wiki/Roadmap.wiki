@@ -146,3 +146,7 @@ Currently there are two suffixes used inside Fog geometry classes - F and D. F i
 ==Per component alpha blending==
 
 Currently there is only support to per pixel alpha blending. It would be useful to add per component alpha blending. This is hard task, because each blender must be extended.
+
+==Renaming Fog-Graphics to Fog-Graphics2d==
+
+Just idea, if some day the opengl rendering will be added, we can extend the framework to use some 3d data types. I'd like to see this in different library than Fog-Graphics.
