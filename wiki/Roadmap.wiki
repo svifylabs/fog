@@ -17,7 +17,7 @@ This page contains Fog-Framework roadmap, editable by project members. Initial i
 
   * ( ) Fog::RegExp - use TRex
   * ( ) Fog::String/Fog::Locale - add support for group separators
-  * ( ) Temporary...&lt;N&gt;::free sometimes not frees the memory ?
+  * ( ) `Temporary...<N>::free` sometimes not frees the memory ?
   * ( ) Complete Fog::BitArray
   * ( ) Text Streams (using TextCodec), including err(), out() and in()
   * ( ) Logging framework
