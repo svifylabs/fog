@@ -13,24 +13,18 @@ This page contains Fog-Framework roadmap, editable my project members. Initial i
 (w) Working
 }}}
 
-=P1=
+=TODO - Fog-Core=
 
-  * ( ) Fog/Core:
-    * ( ) Fog::RegExp - use TRex
-    * ( ) Fog::String/Fog::Locale - add support for group separators
-    * ( ) Temporary...&lt;N&gt;::free sometimes not frees the memory ?
-    * ( ) Complete Fog::BitArray
-    * ( ) Text Streams (using TextCodec), including err(), out() and in()
-    * ( ) Logging framework
+  * ( ) Fog::RegExp - use TRex
+  * ( ) Fog::String/Fog::Locale - add support for group separators
+  * ( ) Temporary...&lt;N&gt;::free sometimes not frees the memory ?
+  * ( ) Complete Fog::BitArray
+  * ( ) Text Streams (using TextCodec), including err(), out() and in()
+  * ( ) Logging framework
 
-  * (w) Fog/Xml:
-    * (w) XmlWriter
+=TODO - Fog-Graphics=
 
-  * ( ) Fog/Svg:
-    * ( ) Fix gradient rendering
-
-  * ( ) Fog/Graphics
-    * ( ) DPI (horz+vert) class (for svg module and painter)
+  * ( ) DPI (horz+vert) class (for svg module and painter)
 
   * ( ) Painter:
     * ( ) Ability to paint to A8 surface.
@@ -95,8 +89,6 @@ This page contains Fog-Framework roadmap, editable my project members. Initial i
   * ( ) Default color in Svg gradient should be 0.0:black, 1.0:white if no stops are provided
   * ( ) Add innerLimit and innerJoin to painter, paint engine, and all related (PROBABLY NOT NEEDED).
 
-=P2 (Graphics, future...)=
-
   * ( ) Add rest of compositing operators (defined by SVG)
     * ( ) ColorBurn
     * ( ) ColorDodge
@@ -105,16 +97,24 @@ This page contains Fog-Framework roadmap, editable my project members. Initial i
     * ( ) Overlay
     * ( ) Arithmetic, with parameters!
 
-=P3 (Mainly GUI)=
+=TODO - Fog-Xml=
 
-  * ( ) UI Toolkit
-    * ( ) Make possibility to set transparent region in widget (not really transparent, but region where the background must be used first). Introduce Widget::getPaintMode(), Widget::getBackgroundRegion().
-    * ( ) Some widgets need to store background in separate buffer (Image).
-    * ( ) First make basic layouts working and define them
-    * ( ) Add client rectangle to the window (this is really needed, I though that it's not).
-    * ( ) Each widget will contain widgets in client rectangle and hidden widgets outside of it (for scrollbars, list/grid headers, footers, etc).
+  * (w) XmlWriter
 
-=P4 (Refactorization, Ideas)=
+=TODO - Fog-Svg=
+
+  * ( ) Fix gradient rendering
+
+=TODO - Fog-Gui=
+
+  * ( ) Make possibility to set transparent region in widget (not really transparent, but region where the background must be used first). Introduce Widget::getPaintMode(), Widget::getBackgroundRegion().
+  * ( ) Double buffering of child widgets (transparency, animations, effects).
+  * ( ) Some widgets need to store background in separate buffer (Image).
+  * ( ) First make basic layouts working and define them
+  * ( ) Add client rectangle to the window (this is really needed, I though that it's not).
+  * ( ) Each widget will contain widgets in client rectangle and hidden widgets outside of it (for scrollbars, list/grid headers, footers, etc).
+
+=TODO - Refactorization, Ideas=
 
   * ( ) Fog::Image::formatToBytesPerPixel -> Fog::Image::getBytesPerPixelFromFormat()
   * ( ) Fog::RasterPaintEngine - Use binary search to find first region if complex clipping is used.
@@ -142,3 +142,7 @@ DST = (DST original) LERP(SRC) (DST filtered by color filter)
 ==Geometry suffixes==
 
 Currently there are two suffixes used inside Fog geometry classes - F and D. F is shorthand for float and D for double. I'm thinking about adding I suffix also to Rect, Point and Box structures.
+
+==Per component alpha blending==
+
+Currently there is only support to per pixel alpha blending. It would be useful to add per component alpha blending. This is hard task, because each blender must be extended.
