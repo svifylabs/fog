@@ -33,7 +33,6 @@ This page contains Fog-Framework roadmap, editable my project members. Initial i
     * ( ) DPI (horz+vert) class (for svg module and painter)
 
   * ( ) Painter:
-    * ( ) Ability to paint to ARGB32 surface
     * ( ) Ability to paint to A8 surface.
     * ( ) Set global opacity
     * (w) Text transform
@@ -59,6 +58,7 @@ This page contains Fog-Framework roadmap, editable my project members. Initial i
     * ( ) Increase granularity of X position in glyphs to 3 (0.00, 0.33, 0.66), because vector fonts can be very sensitive in small sizes.
 
   * ( ) RasterEngine:
+    * ( ) Write some basic C/MMX/SSE2 composite functions for ARGB32
     * (x) Write C composite functions for XRGB32 and PRGB32
     * ( ) Write C composite functions for A8
     * ( ) Write MMX composite functions for XRGB32 and PRGB32
