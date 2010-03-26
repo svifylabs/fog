@@ -24,8 +24,6 @@ This page contains Fog-Framework roadmap, editable my project members. Initial i
 
 =TODO - Fog-Graphics=
 
-  * ( ) DPI (horz+vert) class (for svg module and painter)
-
   * ( ) Painter:
     * ( ) Ability to paint to A8 surface.
     * ( ) Set global opacity
