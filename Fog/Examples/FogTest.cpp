@@ -68,13 +68,13 @@ MyWindow::MyWindow(uint32_t createFlags) :
   _shearY = 0.0;
   _scale = 1.0;
   _spread = SPREAD_REPEAT;
-/*
+
   Button* button = new Button();
   add(button);
-  button->setRect(Rect(40, 40, 100, 20));
+  button->setGeometry(Rect(40, 40, 100, 20));
   button->setText(Ascii8("Push me"));
   button->show();
-*/
+
 }
 
 MyWindow::~MyWindow()

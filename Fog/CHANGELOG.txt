@@ -1,7 +1,11 @@
+2010-03-27
+- Implemented path to image - Fog::Image::makeFromPath().
+
 2010-03-26
 - Added support for ARGB32 pixel format in Painter.
 - Refactorized RasterEngine file names.
 - Small raster bugfix related to PRGB32 SRC_OVER ARGB32 blitter.
+- Added Fog::Dpi class
 
 2010-03-05
 - Fixed bugs related to PRGB32 compositing (it's here probably long time).

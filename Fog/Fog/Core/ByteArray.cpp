@@ -138,6 +138,7 @@ void ByteArray::setIsSharable(bool val)
 {
   if (isSharable() == val) return;
 
+  // TODO: Return error?
   detach();
 
   if (val)
@@ -150,6 +151,7 @@ void ByteArray::setIsStrong(bool val)
 {
   if (isStrong() == val) return;
 
+  // TODO: Return error?
   detach();
 
   if (val)
@@ -358,7 +360,8 @@ void ByteArray::free()
 
 char* ByteArray::getMData()
 {
-  detach();
+  if (detach() != ERR_OK) return NULL;
+
   _d->hashCode = 0;
   return _d->data;
 }
@@ -1892,9 +1895,7 @@ caseSensitiveReplace:
       rstart = (sysuint_t)(strCur - d->data);
       rlen = (sysuint_t)(strEnd - strCur);
 
-      err_t err;
-      if ((err = detach())) return err;
-
+      FOG_RETURN_ON_ERROR(detach());
       d = _d;
 
       strCur = d->data + rstart;
@@ -1927,9 +1928,7 @@ caseInsensitiveReplace:
       rstart = (sysuint_t)(strCur - d->data);
       rlen = (sysuint_t)(strEnd - strCur);
 
-      err_t err;
-      if ((err = detach())) return err;
-
+      FOG_RETURN_ON_ERROR(detach());
       d = _d;
 
       strCur = d->data + rstart;
@@ -2102,9 +2101,7 @@ modify:
   {
     sysuint_t n = (sysuint_t)(strCur - d->data);
 
-    err_t err;
-    if ((err = detach())) return err;
-
+    FOG_RETURN_ON_ERROR(detach());
     d = _d;
 
     strCur = d->data + n;
@@ -2133,9 +2130,7 @@ modify:
   {
     sysuint_t n = (sysuint_t)(strCur - d->data);
 
-    err_t err;
-    if ((err = detach())) return err;
-
+    FOG_RETURN_ON_ERROR(detach());
     d = _d;
 
     strCur = d->data + n;

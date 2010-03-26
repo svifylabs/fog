@@ -31,6 +31,7 @@ struct ColorFilter;
 struct ColorLut;
 struct ColorMatrix;
 struct ImageFilter;
+struct Path;
 
 // ============================================================================
 // [Fog::ImageBuffer]
@@ -401,6 +402,8 @@ struct FOG_API Image
   { 
     return (uint)pt.x < (uint)getWidth() && (uint)pt.y < (uint)getHeight(); 
   }
+
+  static err_t glyphFromPath(Image& glyph, Point& offset, const Path& path);
 
   // [WinAPI functions]
 #if defined(FOG_OS_WINDOWS)

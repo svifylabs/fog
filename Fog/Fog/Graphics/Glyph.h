@@ -20,92 +20,127 @@
 namespace Fog {
 
 // ============================================================================
+// [Fog::GlyphData]
+// ============================================================================
+
+struct FOG_API GlyphData
+{
+  // --------------------------------------------------------------------------
+  // [Construction / Destruction]
+  // --------------------------------------------------------------------------
+
+  GlyphData();
+  explicit GlyphData(const GlyphData* other);
+  ~GlyphData();
+
+  // --------------------------------------------------------------------------
+  // [Ref / Deref]
+  // --------------------------------------------------------------------------
+
+  FOG_INLINE GlyphData* ref() const
+  {
+    refCount.inc();
+    return const_cast<GlyphData*>(this);
+  }
+
+  FOG_INLINE void deref()
+  {
+    if (refCount.deref()) delete this;
+  }
+
+  // --------------------------------------------------------------------------
+  // [Members]
+  // --------------------------------------------------------------------------
+
+  //! @brief Reference count.
+  mutable Atomic<sysuint_t> refCount;
+
+  //! @brief Glyph bitmap data, supported formats are only A8 for now.
+  Image bitmap;
+  //! @brief Bitmap offset.
+  Point offset;
+
+  //! @brief Begin width.
+  int beginWidth;
+  //! @brief End width.
+  int endWidth;
+  //! @brief Glyph advance.
+  int advance;
+
+private:
+  FOG_DISABLE_COPY(GlyphData)
+};
+
+// ============================================================================
 // [Fog::Glyph]
 // ============================================================================
 
 struct FOG_API Glyph
 {
-  // [Data]
-
-  struct FOG_API Data
-  {
-    // [Construction / Destruction]
-
-    Data();
-    ~Data();
-
-    // [Ref / Deref]
-
-    FOG_INLINE Data* ref() const
-    {
-      refCount.inc();
-      return const_cast<Data*>(this);
-    }
-
-    FOG_INLINE void deref()
-    {
-      if (refCount.deref()) delete this;
-    }
-
-    // [Members]
-
-    //! @brief Reference count.
-    mutable Atomic<sysuint_t> refCount;
-
-    //! @brief Glyph bitmap data, supported formats are only A8 for now.
-    Image bitmap;
-    //! @brief Bitmap X offset.
-    int bitmapX;
-    //! @brief Bitmap Y offset.
-    int bitmapY;
-
-    //! @brief Begin width.
-    int beginWidth;
-    //! @brief End width.
-    int endWidth;
-    //! @brief Glyph advance.
-    int advance;
-
-  private:
-    FOG_DISABLE_COPY(Data)
-  };
-
-  // [Flags]
-
-  static Static<Data> sharedNull;
-
+  // --------------------------------------------------------------------------
   // [Construction / Destruction]
+  // --------------------------------------------------------------------------
 
-  FOG_INLINE Glyph() : _d(sharedNull.instancep()->ref())  {}
-  FOG_INLINE Glyph(const Glyph& other) : _d(other._d->ref())  {}
+  FOG_INLINE Glyph() : _d(sharedNull->ref()) {}
+  FOG_INLINE Glyph(const Glyph& other) : _d(other._d->ref()) {}
 
-  FOG_INLINE explicit Glyph(Data* d) : _d(d)  {}
+  FOG_INLINE explicit Glyph(GlyphData* d) : _d(d) {}
 
   FOG_INLINE ~Glyph() { _d->deref(); }
 
+  // --------------------------------------------------------------------------
   // [Implicit Sharing]
+  // --------------------------------------------------------------------------
 
+  //! @copydoc Doxygen::Implicit::refCount().
   FOG_INLINE sysuint_t refCount() const { return _d->refCount.get(); }
+  //! @copydoc Doxygen::Implicit::isDetached().
+  FOG_INLINE bool isDetached() const { return _d->refCount.get() == 1; }
+  //! @copydoc Doxygen::Implicit::detach().
+  FOG_INLINE err_t detach() { return isDetached() ? ERR_OK : _detach(); }
+
+  //! @copydoc Doxygen::Implicit::_detach().
+  err_t _detach();
+
+  // --------------------------------------------------------------------------
+  // [Flags]
+  // --------------------------------------------------------------------------
+
   FOG_INLINE bool isNull() const { return _d == sharedNull.instancep(); }
 
-  // [Getters]
+  // --------------------------------------------------------------------------
+  // [Accessors]
+  // --------------------------------------------------------------------------
+
+  FOG_INLINE const GlyphData* getData() const { return _d; }
 
   FOG_INLINE const Image& getBitmap() const { return _d->bitmap; }
-  FOG_INLINE int getBitmapX() const { return _d->bitmapX; }
-  FOG_INLINE int getBitmapY() const { return _d->bitmapY; }
+  FOG_INLINE const Point& getOffset() const { return _d->offset; }
 
   FOG_INLINE int getBeginWidth() const { return _d->beginWidth; }
   FOG_INLINE int getEndWidth() const { return _d->endWidth; }
   FOG_INLINE int getAdvance() const { return _d->advance; }
 
+  err_t setBitmap(const Image& bitmap);
+  err_t setOffset(const Point& offset);
+
+  // --------------------------------------------------------------------------
   // [Operator Overload]
+  // --------------------------------------------------------------------------
 
-  FOG_INLINE Glyph& operator=(const Glyph& other)
-  { atomicPtrXchg(&_d, other._d->ref())->deref(); return *this; }
+  Glyph& operator=(const Glyph& other);
 
+  // --------------------------------------------------------------------------
+  // [Statics]
+  // --------------------------------------------------------------------------
+
+  static Static<GlyphData> sharedNull;
+
+  // --------------------------------------------------------------------------
   // [Members]
+  // --------------------------------------------------------------------------
 
-  FOG_DECLARE_D(Data)
+  FOG_DECLARE_D(GlyphData)
 };
 
 } // Fog namespace

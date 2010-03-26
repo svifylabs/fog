@@ -159,10 +159,10 @@ err_t GlyphSet::end()
 
   for (i = 0; i < len; i++)
   {
-    Glyph::Data* gd = _d->glyphs()[i]._d;
+    GlyphData* gd = _d->glyphs()[i]._d;
 
-    int gx1 = advanceX + gd->bitmapX;
-    int gy1 = advanceY + gd->bitmapY;
+    int gx1 = advanceX + gd->offset.x;
+    int gy1 = advanceY + gd->offset.y;
     int gx2 = gx1 + gd->bitmap.getWidth();
     int gy2 = gy1 + gd->bitmap.getHeight();
 

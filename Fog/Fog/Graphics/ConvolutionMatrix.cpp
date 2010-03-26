@@ -136,8 +136,7 @@ err_t ConvolutionMatrixI::setCell(int x, int y, int val)
 {
   if ((uint)x >= (uint)getWidth() || (uint)y >= (uint)getHeight()) return ERR_OK;
 
-  err_t err = detach();
-  if (err != ERR_OK) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   Data* d = _d;
   d->m[y * d->width + x] = val;
@@ -155,8 +154,7 @@ err_t ConvolutionMatrixI::fill(const Rect& rect, ValueType value)
 
   if (x1 >= x2 || y1 >= y2) return ERR_OK;
 
-  err_t err = detach();
-  if (err != ERR_OK) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   int width = getWidth();
   ValueType* cur = &_d->m[y1 * width + x1];
@@ -186,7 +184,7 @@ ConvolutionMatrixI::ValueType* ConvolutionMatrixI::operator[](int y)
 
   if (FOG_UNLIKELY(!isDetached()))
   {
-    if (_detach()) return NULL;
+    if (_detach() != ERR_OK) return NULL;
     d = _d;
   }
 

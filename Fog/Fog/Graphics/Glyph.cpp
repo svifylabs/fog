@@ -17,15 +17,14 @@ namespace Fog {
 // [Fog::Glyph]
 // ============================================================================
 
-Static<Glyph::Data> Glyph::sharedNull;
+Static<GlyphData> Glyph::sharedNull;
 
 // ============================================================================
-// [Fog::Glyph::Data]
+// [Fog::GlyphData]
 // ============================================================================
 
-Glyph::Data::Data() :
-  bitmapX(0),
-  bitmapY(0),
+GlyphData::GlyphData() :
+  offset(0, 0),
   beginWidth(0),
   endWidth(0),
   advance(0)
@@ -33,8 +32,54 @@ Glyph::Data::Data() :
   refCount.init(1);
 }
 
-Glyph::Data::~Data()
+GlyphData::GlyphData(const GlyphData* other) :
+  bitmap(other->bitmap),
+  offset(other->offset),
+  beginWidth(other->beginWidth),
+  endWidth(other->endWidth),
+  advance(other->advance)
 {
+  refCount.init(1);
+}
+
+GlyphData::~GlyphData()
+{
+}
+
+// ============================================================================
+// [Fog::Glyph]
+// ============================================================================
+
+err_t Glyph::_detach()
+{
+  if (isDetached()) return ERR_OK;
+
+  GlyphData* newd = new(std::nothrow) GlyphData(_d);
+  if (newd == NULL) return ERR_RT_OUT_OF_MEMORY;
+
+  atomicPtrXchg(&_d, newd)->deref();
+  return ERR_OK;
+}
+
+err_t Glyph::setBitmap(const Image& bitmap)
+{
+  FOG_RETURN_ON_ERROR(detach());
+
+  return _d->bitmap.set(bitmap);
+}
+
+err_t Glyph::setOffset(const Point& offset)
+{
+  FOG_RETURN_ON_ERROR(detach());
+
+  _d->offset = offset;
+  return ERR_OK;
+}
+
+Glyph& Glyph::operator=(const Glyph& other)
+{
+  atomicPtrXchg(&_d, other._d->ref())->deref();
+  return *this;
 }
 
 } // Fog namespace

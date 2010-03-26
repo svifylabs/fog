@@ -407,9 +407,7 @@ Glyph::Data* WinFontFace::renderGlyph(HDC hdc, uint32_t uc)
   // Whitespace?
   if (dataSize == 0) gm.gmBlackBoxX = gm.gmBlackBoxY = 0;
 
-  glyphd->bitmapX = gm.gmptGlyphOrigin.x;
-  glyphd->bitmapY = metrics.ascent - gm.gmptGlyphOrigin.y;
-
+  glyphd->offset.set(gm.gmptGlyphOrigin.x, metrics.ascent - gm.gmptGlyphOrigin.y);
   glyphd->beginWidth = 0;
   glyphd->endWidth = 0;
 

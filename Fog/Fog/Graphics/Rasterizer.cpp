@@ -43,7 +43,10 @@
 #include <Fog/Core/Math.h>
 #include <Fog/Core/Memory.h>
 #include <Fog/Graphics/Constants.h>
+#include <Fog/Graphics/Image.h>
 #include <Fog/Graphics/Rasterizer_p.h>
+
+#include "Image.h"
 
 namespace Fog {
 

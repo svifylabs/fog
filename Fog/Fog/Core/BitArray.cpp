@@ -513,9 +513,7 @@ err_t BitArray::setBit(sysuint_t index)
     if ((d->data[byteIndex] & byteMask) != 0) return ERR_OK;
 
     // Detach, if bit array data is shared (and update 'd', because it will be in new address).
-    err_t err = _detach();
-    if (err) return err;
-
+    FOG_RETURN_ON_ERROR(_detach());
     d = _d;
   }
 
@@ -542,9 +540,7 @@ err_t BitArray::setBit(sysuint_t index, uint32_t bit)
     if (!!(d->data[byteIndex] & byteMask) == bit) return ERR_OK;
 
     // Detach, if bit array data is shared (and update 'd', because it will be in new address).
-    err_t err = _detach();
-    if (err) return err;
-
+    FOG_RETURN_ON_ERROR(_detach());
     d = _d;
   }
 
@@ -574,9 +570,7 @@ err_t BitArray::resetBit(sysuint_t index)
     if ((d->data[byteIndex] & byteMask) == 0) return ERR_OK;
 
     // Detach, if bit array data is shared (and update 'd', because it will be in new address).
-    err_t err = _detach();
-    if (err) return err;
-
+    FOG_RETURN_ON_ERROR(_detach());
     d = _d;
   }
 
@@ -588,33 +582,23 @@ err_t BitArray::resetBit(sysuint_t index)
 
 err_t BitArray::invertBit(sysuint_t index)
 {
-  Data* d = _d;
+  // Bail out if index is out of bounds.
+  if (index >= _d->length) return ERR_RT_OVERFLOW;
 
-  // If index is out of bounds, return.
-  if (index >= d->length) return ERR_RT_OVERFLOW;
+  FOG_RETURN_ON_ERROR(detach());
 
   sysuint_t byteIndex = index >> 3;
   uint8_t byteMask = 1 << (index & 7);
 
-  // Detach, if bit array data is shared (and update 'd', because it will be in new address).
-  if (d->refCount.get() > 1)
-  {
-    err_t err = _detach();
-    if (err) return err;
-
-    d = _d;
-  }
-
   // Xor bit in data.
-  d->data[byteIndex] ^= byteMask;
+  _d->data[byteIndex] ^= byteMask;
 
   return ERR_OK;
 }
 
 err_t BitArray::fill(uint32_t bit)
 {
-  err_t err = detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   memset(_d->data, bit ? 0xFF : 0x00, (getLength() + 7) >> 3);
   return ERR_OK;
@@ -629,9 +613,7 @@ err_t BitArray::fillAt(sysuint_t index, sysuint_t count, uint32_t bit)
   if (length - index < count) count = length - index;
 
   if (count == 0) return ERR_OK;
-
-  err_t err = detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   _setBits(_d->data, index, bit, count);
   return ERR_OK;
@@ -639,8 +621,7 @@ err_t BitArray::fillAt(sysuint_t index, sysuint_t count, uint32_t bit)
 
 err_t BitArray::invert()
 {
-  err_t err = detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   uint8_t* bits = _d->data;
   sysuint_t i, count_div8 = (_d->length + 7) >> 3;
@@ -658,9 +639,7 @@ err_t BitArray::invertAt(sysuint_t index, sysuint_t count)
   if (length - index < count) count = length - index;
 
   if (count == 0) return ERR_OK;
-
-  err_t err = detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   _xorBits(_d->data, index, count);
 
