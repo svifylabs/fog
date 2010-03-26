@@ -7,9 +7,11 @@ This page contains Fog-Framework roadmap, editable my project members. Initial i
 
 =Legend=
 
+{{{
 ( ) Incomplete
 (x) Completed
 (w) Working
+}}}
 
 =P1=
 
@@ -120,3 +122,19 @@ This page contains Fog-Framework roadmap, editable my project members. Initial i
   * (w) Make sure that all classes are using correct getXXX() methods
   * (w) Some methods named clear() should be renamed to reset(), audit this (this not applies to containers, strings, etc...)
   * (w) All enums and constants should be UPPERCASED.
+
+=Concepts and Discussion=
+
+There are several things that need to be solved:
+
+==ColorFilter in painter==
+
+Currently there is possibility to set color filter in painter, but this feature needs to be rewritten from the ground. Actual concept is based on source replacement (source is replaces by the color filter), but it's wrong. New concept must be based on compositing, so color filter will be alternative to compositing operators and will be set by setOperator() method.
+
+Color filter action:
+{{{
+DST = Destination pixel
+SRC = Source pixel
+
+DST = (DST original) LERP(SRC) (DST filtered by color filter)
+}}}
