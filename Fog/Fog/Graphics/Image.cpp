@@ -24,8 +24,8 @@
 #include <Fog/Graphics/ImageFilter.h>
 #include <Fog/Graphics/ImageIO.h>
 #include <Fog/Graphics/RasterEngine_p.h>
-#include <Fog/Graphics/RasterEngine/RasterEngine_Bresenham_p.h>
-#include <Fog/Graphics/RasterEngine/RasterEngine_C_p.h>
+#include <Fog/Graphics/RasterEngine/Bresenham_p.h>
+#include <Fog/Graphics/RasterEngine/C_p.h>
 #include <Fog/Graphics/Reduce_p.h>
 
 namespace Fog {
@@ -248,7 +248,7 @@ err_t Image::convert(int format)
   int h = d->height;
   int y;
 
-  RasterEngine::FunctionMap::CompositeFuncs* ops = RasterEngine::getRasterOps(targetFormat, OPERATOR_SRC);
+  RasterEngine::FunctionMap::CompositeFuncs* ops = RasterEngine::getCompositeFuncs(targetFormat, OPERATOR_SRC);
   RasterEngine::VSpanFn blitter = ops->vspan[sourceFormat];
 
   RasterEngine::Closure closure;
@@ -1616,7 +1616,7 @@ err_t Image::fillRect(const Rect& r, Argb c0, int op)
   if (x2 > w) x2 = w;
   if (y2 > h) y2 = h;
 
-  RasterEngine::FunctionMap::CompositeFuncs* ops = RasterEngine::getRasterOps(fmt, op);
+  RasterEngine::FunctionMap::CompositeFuncs* ops = RasterEngine::getCompositeFuncs(fmt, op);
   if (ops == NULL) return ERR_RT_NOT_IMPLEMENTED;
 
   if ((w = x2 - x1) <= 0) return ERR_OK;
@@ -1679,7 +1679,7 @@ err_t Image::fillQGradient(const Rect& r, Argb c0, Argb c1, Argb c2, Argb c3, in
   if (x2 > w) x2 = w;
   if (y2 > h) y2 = h;
 
-  RasterEngine::FunctionMap::CompositeFuncs* ops = RasterEngine::getRasterOps(fmt, op);
+  RasterEngine::FunctionMap::CompositeFuncs* ops = RasterEngine::getCompositeFuncs(fmt, op);
   if (ops == NULL) return ERR_RT_NOT_IMPLEMENTED;
 
   if ((w = x2 - x1) <= 0) return ERR_OK;
@@ -1771,7 +1771,7 @@ err_t Image::fillHGradient(const Rect& r, Argb c0, Argb c1, int op)
   if (x2 > w) x2 = w;
   if (y2 > h) y2 = h;
 
-  RasterEngine::FunctionMap::CompositeFuncs* ops = RasterEngine::getRasterOps(fmt, op);
+  RasterEngine::FunctionMap::CompositeFuncs* ops = RasterEngine::getCompositeFuncs(fmt, op);
   if (ops == NULL) return ERR_RT_NOT_IMPLEMENTED;
 
   if ((w = x2 - x1) <= 0) return ERR_OK;
@@ -1831,7 +1831,7 @@ err_t Image::fillVGradient(const Rect& r, Argb c0, Argb c1, int op)
   if (x2 > w) x2 = w;
   if (y2 > h) y2 = h;
 
-  RasterEngine::FunctionMap::CompositeFuncs* ops = RasterEngine::getRasterOps(fmt, op);
+  RasterEngine::FunctionMap::CompositeFuncs* ops = RasterEngine::getCompositeFuncs(fmt, op);
   if (ops == NULL) return ERR_RT_NOT_IMPLEMENTED;
 
   if ((w = x2 - x1) <= 0) return ERR_OK;
@@ -1902,7 +1902,7 @@ static err_t _blitImage(
   dstPixels += dstX * dstD->bytesPerPixel;
   srcPixels += srcX * srcD->bytesPerPixel;
 
-  RasterEngine::FunctionMap::CompositeFuncs* ops = RasterEngine::getRasterOps(dstD->format, op);
+  RasterEngine::FunctionMap::CompositeFuncs* ops = RasterEngine::getCompositeFuncs(dstD->format, op);
 
   RasterEngine::Closure closure;
   closure.dstPalette = dstD->palette.getData();

@@ -20,8 +20,11 @@ struct MyPoint
     posx = rand() % w;
     posy = rand() % h;
 
-    stepx = (double)(rand() % 300) / 150.0 + 1.5;
-    stepy = (double)(rand() % 300) / 150.0 + 1.5;
+    stepx = (double)(rand() % 300) / 150.0 + 1.0;
+    stepy = (double)(rand() % 300) / 150.0 + 1.0;
+
+    if (rand() % 1000 > 500) stepx = -stepx;
+    if (rand() % 1000 > 500) stepy = -stepy;
   }
 
   void move(const RectD& bounds)
@@ -118,14 +121,15 @@ void MyWindow::onPaint(PaintEvent* e)
   path.curveTo(mp[0].posx, mp[0].posy);
   path.closePolygon();
 
-  p->setSource((clr.toArgb() & 0x00FFFFFF) | 0x0F000000);
-  p->setOperator(OPERATOR_SCREEN);
-  p->setFillMode(FILL_EVEN_ODD);
-  p->fillPath(path);
-
   p->setOperator(OPERATOR_SUBTRACT);
   p->setSource(0x01FFFFFF);
   p->fillRect(Rect(0, 0, getWidth(), getHeight()));
+
+  p->setSource((clr.toArgb() & 0x00FFFFFF) | 0x0F000000);
+  p->setOperator(OPERATOR_SCREEN);
+  p->setFillMode(FILL_EVEN_ODD);
+  p->setLineWidth(3.0);
+  p->drawPath(path);
 }
 
 void MyWindow::onTimer(TimerEvent* e)

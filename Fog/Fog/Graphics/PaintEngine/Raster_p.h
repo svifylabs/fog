@@ -69,18 +69,24 @@ struct RasterPaintEngine;
 //! @brief Type of current painter layer
 enum LAYER_TYPE
 {
-  //! @brief Native layer and compositing (PRGB32, XRGB32, A8).
+  //! @brief Direct 32-bit painting and compositing (PRGB32, XRGB32).
   //!
-  //! This layer is te most efficient layer - direct compositing is used.
-  LAYER_TYPE_NATIVE = 0,
+  //! This layer is te most efficient layer in Fog-Framework.
+  //!
+  //! Pixel format summary:
+  //! - @c PIXEL_FORMAT_PRGB32
+  //! - @c PIXEL_FORMAT_XRGB32
+  LAYER_TYPE_DIRECT32 = 0,
 
-  //! @brief Non-premultiplied ARGB layer.
+  //! @brief Indirect 32-bit painting and compositing (ARGB32).
   //!
-  //! This layer type is for @c PIXEL_FORMAT_ARGB32 format where alpha
-  //! component is not premultiplied. Because premultiply / demultiply
-  //! operation can be costly, painter will premultiply part of image
-  //! and demultiply it back only when finished (or by flush() call).
-  LAYER_TYPE_ARGB = 1
+  //! This layer is less efficient than @c LAYER_TYPE_DIRECT32, because each
+  //! pixel needs to be premultiplied before compositing and demultiplied back
+  //! after it has been processed.
+  //!
+  //! Pixel format summary:
+  //! - @c PIXEL_FORMAT_ARGB32
+  LAYER_TYPE_INDIRECT32 = 1
 };
 
 //! @brief Type of current transform in raster paint engine.
@@ -234,19 +240,27 @@ struct FOG_HIDDEN RasterPaintLayer
   //! @brief Pointer to first raster scanline.
   uint8_t* pixels;
 
-  //! @brief Type of layer.
-  int type;
   //! @brief Layer width.
-  int width;
+  uint32_t width;
   //! @brief Layer height.
-  int height;
-  //! @brief Layer format.
-  int format;
-
+  uint32_t height;
+  //! @brief Layer primary format - format of @c pixels.
+  uint32_t format;
+  //! @brief Layer bytes per pixel.
+  uint32_t bytesPerPixel;
   //! @brief Layer stride (bytes per line including padding).
   sysint_t stride;
-  //! @brief Layer bytes per pixel.
-  sysint_t bytesPerPixel;
+
+  //! @brief Type of layer.
+  uint32_t type;
+  //! @brief Layer secondary format - format of @c pixels converted by
+  //! @c toSecondary() method.
+  uint32_t secondaryFormat;
+
+  //! @brief Convert pixels from primary format to pixels in secondary format.
+  RasterEngine::VSpanFn toSecondary;
+  //! @brief Convert pixels from secondary format to pixels in primary format.
+  RasterEngine::VSpanFn fromSecondary;
 };
 
 // ============================================================================
@@ -1114,6 +1128,15 @@ struct FOG_HIDDEN RasterPaintEngine : public PaintEngine
 
   void _deleteStates();
 
+  // --------------------------------------------------------------------------
+  // [Layer]
+  // --------------------------------------------------------------------------
+
+  //! @brief Setup layer.
+  //!
+  //! Fills layer secondaryFormat, toSecondary and fromSecondary members.
+  void _setupLayer(RasterPaintLayer* layer);
+ 
   // --------------------------------------------------------------------------
   // [Serializers]
   // --------------------------------------------------------------------------

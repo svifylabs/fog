@@ -328,7 +328,11 @@ struct FOG_API Painter
   //! @brief Convert screen coordinate into world one (using transformation matrix).
   FOG_INLINE void screenToWorld(PointD* pt) const { _engine->screenToWorld(pt); }
 
-  //! @brief Align point to center (X.5, Y.5) after applied all transformations.
+  //! @brief Align point to center of the raster (X.5, Y.5), after after all
+  //! transformations were applied.
+  //!
+  //! This method is useful when you need to paint really sharp lines or other
+  //! primitives.
   FOG_INLINE void alignPoint(PointD* pt) const { _engine->alignPoint(pt); }
 
   // --------------------------------------------------------------------------

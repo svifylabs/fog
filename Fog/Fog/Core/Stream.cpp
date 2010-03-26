@@ -961,6 +961,16 @@ Stream::~Stream()
   _d->deref();
 }
 
+void Stream::setSeekable(bool seekable)
+{
+  if (_d == sharedNull) return;
+
+  if (seekable)
+    _d->flags |= STREAM_IS_SEEKABLE;
+  else
+    _d->flags &= ~STREAM_IS_SEEKABLE;
+}
+
 err_t Stream::openFile(const String& fileName, uint32_t openFlags)
 {
   static uint32_t CREATE_PATH_FLAGS =
@@ -1129,18 +1139,25 @@ sysuint_t Stream::readAll(ByteArray& dst, int64_t maxBytes)
 {
   dst.clear();
 
-  int64_t curPosition = tell();
-  int64_t endPosition = seek(0, STREAM_SEEK_END);
+  int64_t curPosition = -1;
+  int64_t endPosition = -1;
+
+  // If stream is not seekable we shouldn't seek.
+  if (!isSeekable()) goto nonSeekable;
+
+  curPosition = tell();
+  endPosition = seek(0, STREAM_SEEK_END);
 
   if (curPosition == 0 && endPosition == 0)
   {
+nonSeekable:
     // This happen for example in /proc/ or in virtual files. We will try to
     // read everything we can.
     uint64_t remain = (maxBytes < 0) ? UINT64_MAX : (uint64_t)maxBytes;
 
     for (;;)
     {
-      sysuint_t count = 4096;
+      sysuint_t count = 1024 * 1024; // 1 MB.
       sysuint_t done;
 
       if ((uint64_t)count > remain) count = (sysuint_t)remain;
@@ -1149,7 +1166,7 @@ sysuint_t Stream::readAll(ByteArray& dst, int64_t maxBytes)
       err_t err = dst.reserve(len + (sysuint_t)count);
       if (err) break;
 
-      done = read(dst.getMData(), count);
+      done = read(dst.getMData() + len, count);
       dst.resize(len + done);
 
       if (done != count) break;

@@ -547,7 +547,7 @@ extern FOG_API FunctionMap* functionMap;
 // [Fog::RasterEngine - getRasterOps]
 // ============================================================================
 
-FOG_INLINE FunctionMap::CompositeFuncs* getRasterOps(int format, int op)
+FOG_INLINE FunctionMap::CompositeFuncs* getCompositeFuncs(uint32_t format, uint32_t op)
 {
   FOG_ASSERT((uint)format < PIXEL_FORMAT_COUNT);
   FOG_ASSERT((uint)op < OPERATOR_COUNT);
