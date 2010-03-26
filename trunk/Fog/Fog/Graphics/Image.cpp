@@ -26,7 +26,9 @@
 #include <Fog/Graphics/RasterEngine_p.h>
 #include <Fog/Graphics/RasterEngine/Bresenham_p.h>
 #include <Fog/Graphics/RasterEngine/C_p.h>
+#include <Fog/Graphics/Rasterizer_p.h>
 #include <Fog/Graphics/Reduce_p.h>
+#include <Fog/Graphics/Scanline_p.h>
 
 namespace Fog {
 
@@ -483,21 +485,15 @@ err_t Image::forceFormat(int format)
   if (_d->format == format)
     return ERR_OK;
 
-  if (!isDetached())
-  {
-    err_t err = detach();
-    if (err) return err;
-  }
+  FOG_RETURN_ON_ERROR(detach());
 
   _d->format = format;
-
   return ERR_OK;
 }
 
 err_t Image::setPalette(const Palette& palette)
 {
-  err_t err = detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   _d->palette = palette;
   return ERR_OK;
@@ -507,8 +503,7 @@ err_t Image::setPalette(sysuint_t index, const Argb* rgba, sysuint_t count)
 {
   if (count == 0) return ERR_OK;
 
-  err_t err = detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   return _d->palette.setArgb32(index, rgba, count);
 }
@@ -544,9 +539,7 @@ err_t Image::getDib(int x, int y, uint w, int dibFormat, void* dst) const
 
 err_t Image::setDib(int x, int y, uint w, int dibFormat, const void* src)
 {
-  if (_d->refCount.get() > 1 && _detach() != ERR_OK)
-    return ERR_RT_OUT_OF_MEMORY;
-
+  FOG_RETURN_ON_ERROR(detach());
   Data* d = _d;
 
   if ((uint)dibFormat >= DIB_FORMAT_COUNT)
@@ -579,8 +572,7 @@ err_t Image::swapRgb()
   if (isEmpty()) return ERR_OK;
   if (getFormat() == PIXEL_FORMAT_A8) return ERR_OK;
 
-  err_t err = detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   Data* d = _d;
 
@@ -638,8 +630,7 @@ err_t Image::swapArgb()
   // These formats have only alpha values
   if (getFormat() == PIXEL_FORMAT_A8) return ERR_OK;
 
-  err_t err = detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   Data* d = _d;
 
@@ -723,12 +714,9 @@ err_t Image::invert(Image& dst, const Image& src, uint32_t channels)
   }
 
   // Destination and source can share same data.
-  err_t err;
-  if (dst._d != src._d)
-    err = dst.create(src.getWidth(), src.getHeight(), format);
-  else
-    err = dst.detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(dst._d != src._d
+    ? dst.create(src.getWidth(), src.getHeight(), format)
+    : dst.detach());
 
   // Prepare data.
   Data* dst_d = dst._d;
@@ -998,12 +986,9 @@ err_t Image::mirror(Image& dst, const Image& src, uint32_t mirrorMode)
 
   int format = src.getFormat();
 
-  err_t err;
-  if (dst._d != src._d)
-    err = dst.create(src.getWidth(), src.getHeight(), format);
-  else
-    err = dst.detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(dst._d != src._d
+    ? dst.create(src.getWidth(), src.getHeight(), format)
+    : dst.detach());
 
   Data* dst_d = dst._d;
   Data* src_d = src._d;
@@ -1286,8 +1271,7 @@ static err_t applyColorFilter(Image& im, const Box& box, ColorFilterFn fn, const
   int w = x2 - x1;
   int h = y2 - y1;
 
-  err_t err = im.detach();
-  if (err != ERR_OK) return err;
+  FOG_RETURN_ON_ERROR(im.detach());
 
   uint8_t* imData = im.getXData();
   sysint_t imStride = im.getStride();
@@ -1371,8 +1355,7 @@ static err_t applyImageFilter(Image& im, const Box& box, const ImageFilter& filt
     return ERR_OK;
   }
 
-  err_t err = im.detach();
-  if (err != ERR_OK) return err;
+  FOG_RETURN_ON_ERROR(im.detach());
 
   const void* context = filter.getEngine()->getContext();
   ImageFilterFn fn;
@@ -1393,6 +1376,8 @@ static err_t applyImageFilter(Image& im, const Box& box, const ImageFilter& filt
     imCur = imBegin;
     filterFormat = PIXEL_FORMAT_ARGB32;
   }
+
+  err_t err = ERR_OK;
 
   // Vertical & Horizontal processing.
   if ((filterCharacteristics & IMAGE_FILTER_CHAR_HV_PROCESSING) == IMAGE_FILTER_CHAR_HV_PROCESSING)
@@ -1506,8 +1491,7 @@ err_t Image::drawPixel(const Point& pt, Argb c0)
   if ((uint)pt.x >= (uint)getWidth() || (uint)pt.y >= (uint)getHeight())
     return ERR_OK;
 
-  err_t err = detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   uint8_t* dstCur = _d->first + pt.y * _d->stride;
 
@@ -1570,8 +1554,7 @@ err_t Image::drawLine(const Point& pt0, const Point& pt1, Argb c0, bool lastPoin
   if (!line.initAndClip(pt0.getX(), pt0.getY(), pt1.getX(), pt1.getY(), 0, 0, getWidth()-1, getHeight()-1))
     return ERR_OK;
 
-  err_t err = detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   sysint_t dstStride = _d->stride;
   uint8_t* dstCur = _d->first + line.y * dstStride;
@@ -1622,8 +1605,7 @@ err_t Image::fillRect(const Rect& r, Argb c0, int op)
   if ((w = x2 - x1) <= 0) return ERR_OK;
   if ((h = y2 - y1) <= 0) return ERR_OK;
 
-  err_t err = detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   sysint_t dstStride = _d->stride;
   uint8_t* dstCur = _d->first + y1 * dstStride + x1 * getBytesPerPixel();
@@ -1685,8 +1667,7 @@ err_t Image::fillQGradient(const Rect& r, Argb c0, Argb c1, Argb c2, Argb c3, in
   if ((w = x2 - x1) <= 0) return ERR_OK;
   if ((h = y2 - y1) <= 0) return ERR_OK;
 
-  err_t err = detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   sysint_t dstStride = _d->stride;
   uint8_t* dstCur = _d->first + y1 * dstStride + x1 * getBytesPerPixel();
@@ -1777,8 +1758,7 @@ err_t Image::fillHGradient(const Rect& r, Argb c0, Argb c1, int op)
   if ((w = x2 - x1) <= 0) return ERR_OK;
   if ((h = y2 - y1) <= 0) return ERR_OK;
 
-  err_t err = detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   sysint_t dstStride = _d->stride;
   uint8_t* dstCur = _d->first + y1 * dstStride + x1 * getBytesPerPixel();
@@ -1837,8 +1817,7 @@ err_t Image::fillVGradient(const Rect& r, Argb c0, Argb c1, int op)
   if ((w = x2 - x1) <= 0) return ERR_OK;
   if ((h = y2 - y1) <= 0) return ERR_OK;
 
-  err_t err = detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   sysint_t dstStride = _d->stride;
   uint8_t* dstCur = _d->first + y1 * dstStride + x1 * getBytesPerPixel();
@@ -1990,8 +1969,7 @@ err_t Image::blitImage(const Point& pt, const Image& src, uint32_t op, uint32_t 
 
   if (x1 >= x2 || y1 >= y2) return ERR_OK;
 
-  err_t err = detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   return _blitImage(_d, x1, y1, src_d, x1 - pt.getX(), y1 - pt.getY(), x2 - x1, y2 - y1, op, opacity);
 }
@@ -2030,8 +2008,7 @@ err_t Image::blitImage(const Point& pt, const Image& src, const Rect& srcRect, u
 
   if (dstX1 >= dstX2 || dstY1 >= dstY2) return ERR_OK;
 
-  err_t err = detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   return _blitImage(_d, dstX1, dstY1, src_d, srcX1, srcY1, dstX2 - dstX1, dstY2 - dstY1, op, opacity);
 }
@@ -2074,8 +2051,7 @@ err_t Image::scroll(int scrollX, int scrollY, const Rect& r)
 
   if (absX >= scrollW || absY >= scrollH) return ERR_OK;
 
-  err_t err = detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   if (scrollX < 0) { srcX = absX; dstX = 0; } else { srcX = 0; dstX = absX; }
   if (scrollY < 0) { srcY = absY; dstY = 0; } else { srcY = 0; dstY = absY; }
@@ -2104,6 +2080,96 @@ err_t Image::scroll(int scrollX, int scrollY, const Rect& r)
     memmove(dstPixels, srcPixels, size);
 
   return ERR_OK;
+}
+
+// ============================================================================
+// [Fog::Image - Misc]
+// ============================================================================
+
+err_t Image::glyphFromPath(Image& glyph, Point& offset, const Path& path)
+{
+  if (path.isEmpty())
+  {
+    glyph.free();
+    offset.clear();
+    return ERR_OK;
+  }
+
+  Rasterizer* rasterizer = Rasterizer::getRasterizer();
+  if (rasterizer == NULL) return ERR_RT_OUT_OF_MEMORY;
+
+  err_t err = ERR_OK;
+
+  if (path.isFlat())
+  {
+    rasterizer->addPath(path);
+  }
+  else
+  {
+    Path temp;
+
+    err = temp.flattenTo(temp, NULL, 1.0);
+    if (err != ERR_OK) goto end;
+
+    rasterizer->addPath(temp);
+  }
+
+  rasterizer->finalize();
+
+  if (rasterizer->hasCells())
+  {
+    Box bounds(rasterizer->getCellsBounds());
+
+    Scanline32 scanline;
+
+    err = scanline.init(bounds.x1, bounds.x2);
+    if (err != ERR_OK) goto end;
+
+    int w = bounds.getWidth();
+    int h = bounds.getHeight();
+
+    err = glyph.create(w, h, PIXEL_FORMAT_A8);
+    if (err != ERR_OK) goto end;
+
+    uint8_t* glyphData = glyph.getXData();
+    sysint_t glyphStride = glyph.getStride();
+
+    int y;
+    for (y = 0; y < h; y++, glyphData += glyphStride)
+    {
+      rasterizer->sweepScanline(&scanline, y + bounds.y1);
+
+      const Scanline32::Span* span = scanline.getSpansData();
+      sysuint_t count = scanline.getSpansCount();
+
+      Memory::zero(glyphData, glyphStride);
+      for (sysuint_t i = 0; i < count; i++, span++)
+      {
+        uint8_t* p = glyphData + (uint)(span->x - bounds.x1);
+        int len = span->len;
+
+        if (len > 0)
+          memcpy(p, span->covers, (uint)len);
+        else
+          memset(p, span->covers[0], (uint)(-len));
+      }
+    }
+  }
+  else
+  {
+    goto empty;
+  }
+
+end:
+  if (err != ERR_OK)
+  {
+empty:
+    glyph.free();
+    offset.clear();
+  }
+
+  Rasterizer::releaseRasterizer(rasterizer);
+  return err;
 }
 
 // ============================================================================
@@ -2354,6 +2420,7 @@ sysint_t Image::calcStride(int width, int depth)
   {
     case   1: result = (width + 7) >> 3; break;
     case   4: result = (width + 1) >> 1; break;
+
     // X server can be configured for these!
     case   5:
     case   6:
@@ -2376,7 +2443,7 @@ sysint_t Image::calcStride(int width, int depth)
       return 0;
   }
 
-  // Align to 32 bits boudary.
+  // Align to 32-bit boudary.
   result += 3;
   result &= ~3;
 

@@ -25,7 +25,7 @@ GlyphCache::GlyphCache() :
 
 GlyphCache::~GlyphCache()
 {
-  free();
+  reset();
 }
 
 bool GlyphCache::set(uint32_t uc, Entity data)
@@ -58,7 +58,7 @@ bool GlyphCache::set(uint32_t uc, Entity data)
   return true;
 }
 
-void GlyphCache::free()
+void GlyphCache::reset()
 {
   sysuint_t i, j;
   sysuint_t count = _count;

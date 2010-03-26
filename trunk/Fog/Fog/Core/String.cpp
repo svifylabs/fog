@@ -146,6 +146,7 @@ void String::setIsSharable(bool val)
 {
   if (isSharable() == val) return;
 
+  // TODO: Return error ?
   detach();
 
   if (val)
@@ -158,6 +159,7 @@ void String::setIsStrong(bool val)
 {
   if (isStrong() == val) return;
 
+  // TODO: Return error?
   detach();
 
   if (val)
@@ -366,7 +368,8 @@ void String::free()
 
 Char* String::getMData()
 {
-  detach();
+  if (detach() != ERR_OK) return NULL;
+
   _d->hashCode = 0;
   return _d->data;
 }
@@ -2077,9 +2080,7 @@ caseSensitiveReplace:
       rstart = (sysuint_t)(strCur - d->data);
       rlen = (sysuint_t)(strEnd - strCur);
 
-      err_t err;
-      if ((err = detach())) return err;
-
+      FOG_RETURN_ON_ERROR(_detach());
       d = _d;
 
       strCur = d->data + rstart;
@@ -2112,9 +2113,7 @@ caseInsensitiveReplace:
       rstart = (sysuint_t)(strCur - d->data);
       rlen = (sysuint_t)(strEnd - strCur);
 
-      err_t err;
-      if ((err = detach())) return err;
-
+      FOG_RETURN_ON_ERROR(_detach());
       d = _d;
 
       strCur = d->data + rstart;
@@ -2287,12 +2286,10 @@ err_t String::lower()
 
 modify:
   {
-    sysuint_t n = (sysuint_t)(strCur - d->data);
-
-    err_t err;
-    if ((err = detach())) return err;
-
+    FOG_RETURN_ON_ERROR(detach());
     d = _d;
+
+    sysuint_t n = (sysuint_t)(strCur - d->data);
 
     strCur = d->data + n;
     strEnd = d->data + d->length;
@@ -2321,12 +2318,10 @@ err_t String::upper()
 
 modify:
   {
-    sysuint_t n = (sysuint_t)(strCur - d->data);
-
-    err_t err;
-    if ((err = detach())) return err;
-
+    FOG_RETURN_ON_ERROR(detach());
     d = _d;
+
+    sysuint_t n = (sysuint_t)(strCur - d->data);
 
     strCur = d->data + n;
     strEnd = d->data + d->length;
@@ -3110,8 +3105,7 @@ err_t String::bswap()
 {
   if (getLength() == 0) return ERR_OK;
 
-  err_t err;
-  if ((err = detach())) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   sysuint_t i, len = getLength();
   Char* ch = _d->data;

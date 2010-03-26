@@ -103,7 +103,7 @@ Locale::~Locale()
 
 err_t Locale::_detach()
 {
-  if (_d->refCount.get() == 1) return ERR_OK;
+  if (isDetached()) return ERR_OK;
 
   Data* newd = new(std::nothrow) Data(*_d);
   if (!newd) return ERR_RT_OUT_OF_MEMORY;
@@ -152,8 +152,7 @@ err_t Locale::setValue(int id, uint32_t value)
   if ((uint)id >= (uint)LOCALE_CHAR_INVALID) return ERR_RT_INVALID_ARGUMENT;
   if (_d->data[id] == value) return ERR_OK;
 
-  err_t err;
-  if ((err = detach())) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   _d->data[id] = value;
   return ERR_OK;

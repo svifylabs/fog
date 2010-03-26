@@ -28,7 +28,7 @@ namespace Fog {
 //! Address for glyph 'ch' is row[ch >> 8][ch & 255]
 struct FOG_API GlyphCache
 {
-  typedef Glyph::Data* Entity;
+  typedef GlyphData* Entity;
 
   GlyphCache();
   ~GlyphCache();
@@ -42,9 +42,9 @@ struct FOG_API GlyphCache
     return ucRow < _count && (row = _rows[ucRow]) ? row[uc & 0xFF] : 0;
   }
 
-  void free();
+  void reset();
 
-private:
+protected:
   //! @brief Pointers to glyphs
   Entity** _rows;
   //! @brief Count of first rows pointer. Initial value is 0

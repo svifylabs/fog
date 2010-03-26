@@ -4283,11 +4283,11 @@ void RasterPaintEngine::_renderGlyphSet(RasterPaintContext* ctx, const Point& pt
 #define RENDER_LOOP(NAME, BPP, CODE) \
   for (sysuint_t i = 0; i < count; i++) \
   { \
-    Glyph::Data* glyphd = glyphs[i]._d; \
+    GlyphData* glyphd = glyphs[i]._d; \
     Image::Data* bitmapd = glyphd->bitmap._d; \
     \
-    int px1 = px + glyphd->bitmapX; \
-    int py1 = py + glyphd->bitmapY; \
+    int px1 = px + glyphd->offset.x; \
+    int py1 = py + glyphd->offset.y; \
     int px2 = px1 + bitmapd->width; \
     int py2 = py1 + bitmapd->height; \
     \

@@ -1108,33 +1108,27 @@ void Region::free()
 
 err_t Region::setSharable(bool val)
 {
-  if (isSharable() != val)
-  {
-    err_t err = detach();
-    if (err) return err;
+  if (isSharable() == val) return ERR_OK;
 
-    if (val)
-      _d->flags |= Data::IsSharable;
-    else
-      _d->flags &= ~Data::IsSharable;
-  }
+  FOG_RETURN_ON_ERROR(detach());
 
+  if (val)
+    _d->flags |= Data::IsSharable;
+  else
+    _d->flags &= ~Data::IsSharable;
   return ERR_OK;
 }
 
 err_t Region::setStrong(bool val)
 {
-  if (isSharable() != val)
-  {
-    err_t err = detach();
-    if (err) return err;
+  if (isSharable() == val) return ERR_OK;
 
-    if (val)
-      _d->flags |= Data::IsStrong;
-    else
-      _d->flags &= ~Data::IsStrong;
-  }
+  FOG_RETURN_ON_ERROR(detach());
 
+  if (val)
+    _d->flags |= Data::IsStrong;
+  else
+    _d->flags &= ~Data::IsStrong;
   return ERR_OK;
 }
 

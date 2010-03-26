@@ -53,7 +53,6 @@ void Pattern::free()
 
 err_t Pattern::setType(int type)
 {
-  err_t err;
   if (_d->type == type) return ERR_OK;
 
   if (!((uint)type <= 0x2U || (type >= PATTERN_LINEAR_GRADIENT && type <= PATTERN_CONICAL_GRADIENT)))
@@ -62,7 +61,7 @@ err_t Pattern::setType(int type)
   // Optimize gradient switching.
   if ((_d->type & PATTERN_GRADIENT_MASK) != 0 && (type & PATTERN_GRADIENT_MASK) != 0)
   {
-    if ( (err = detach()) ) return err;
+    FOG_RETURN_ON_ERROR(detach());
     _d->type = type;
     return ERR_OK;
   }
@@ -127,8 +126,7 @@ err_t Pattern::setSpread(int spread)
   if (_d->spread == spread) return ERR_OK;
   if ((uint)spread >= SPREAD_COUNT) return ERR_RT_INVALID_ARGUMENT;
 
-  err_t err;
-  if ( (err = detach()) ) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   _d->spread = spread;
   return ERR_OK;
@@ -136,8 +134,7 @@ err_t Pattern::setSpread(int spread)
 
 err_t Pattern::setMatrix(const Matrix& matrix)
 {
-  err_t err;
-  if ( (err = detach()) ) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   _d->matrix = matrix;
   return ERR_OK;
@@ -145,8 +142,7 @@ err_t Pattern::setMatrix(const Matrix& matrix)
 
 err_t Pattern::resetMatrix()
 {
-  err_t err;
-  if ( (err = detach()) ) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   _d->matrix.reset();
   return ERR_OK;
@@ -154,8 +150,7 @@ err_t Pattern::resetMatrix()
 
 err_t Pattern::translate(double x, double y, int order)
 {
-  err_t err;
-  if ( (err = detach()) ) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   _d->matrix.translate(x, y, order);
   return ERR_OK;
@@ -163,8 +158,7 @@ err_t Pattern::translate(double x, double y, int order)
 
 err_t Pattern::rotate(double a, int order)
 {
-  err_t err;
-  if ( (err = detach()) ) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   _d->matrix.rotate(a, order);
   return ERR_OK;
@@ -172,8 +166,7 @@ err_t Pattern::rotate(double a, int order)
 
 err_t Pattern::scale(double x, double y, int order)
 {
-  err_t err;
-  if ( (err = detach()) ) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   _d->matrix.scale(x, y, order);
   return ERR_OK;
@@ -181,8 +174,7 @@ err_t Pattern::scale(double x, double y, int order)
 
 err_t Pattern::skew(double x, double y, int order)
 {
-  err_t err;
-  if ( (err = detach()) ) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   _d->matrix.skew(x, y, order);
   return ERR_OK;
@@ -190,8 +182,7 @@ err_t Pattern::skew(double x, double y, int order)
 
 err_t Pattern::transform(const Matrix& m, int order)
 {
-  err_t err;
-  if ( (err = detach()) ) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   _d->matrix.multiply(m, order);
   return ERR_OK;
@@ -207,8 +198,7 @@ err_t Pattern::setStartPoint(const PointD& pt)
 {
   if (_d->points[0] == pt) return ERR_OK;
 
-  err_t err;
-  if ( (err = detach()) ) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   _d->points[0] = pt;
   return ERR_OK;
@@ -224,8 +214,7 @@ err_t Pattern::setEndPoint(const PointD& pt)
 {
   if (_d->points[1] == pt) return ERR_OK;
 
-  err_t err;
-  if ( (err = detach()) ) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   _d->points[1] = pt;
   return ERR_OK;
@@ -242,8 +231,7 @@ err_t Pattern::setPoints(const PointD& startPt, const PointD& endPt)
 {
   if (_d->points[0] == startPt && _d->points[1] == endPt) return ERR_OK;
 
-  err_t err;
-  if ( (err = detach()) ) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   _d->points[0] = startPt;
   _d->points[1] = endPt;
@@ -264,12 +252,10 @@ Argb Pattern::getColor() const
 
 err_t Pattern::setColor(const Argb& argb)
 {
-  err_t err;
-
   if (isSolid())
   {
     if (_d->obj.argb.instance() == argb) return ERR_OK;
-    if ( (err = detach()) ) return err;
+    FOG_RETURN_ON_ERROR(detach());
 
     _d->obj.argb->set(argb);
     return ERR_OK;
@@ -353,11 +339,9 @@ Gradient Pattern::getGradient() const
 
 err_t Pattern::setGradient(const Gradient& gradient)
 {
-  err_t err;
-
   if (isGradient())
   {
-    if ( (err = detach()) ) return err;
+    FOG_RETURN_ON_ERROR(detach());
 
     _d->type = gradient._type;
     _d->spread = gradient._spread;
@@ -390,8 +374,7 @@ err_t Pattern::setRadius(double r)
   if (!isGradient()) return ERR_RT_INVALID_CONTEXT;
   if (_d->radius == r) return ERR_OK;
 
-  err_t err;
-  if ( (err = detach()) ) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   _d->radius = r;
   return ERR_OK;
@@ -409,8 +392,7 @@ err_t Pattern::setStops(const List<ArgbStop>& stops)
   if (!isGradient()) return ERR_RT_INVALID_CONTEXT;
   if (_d->obj.stops->_d == stops._d) return ERR_OK;
 
-  err_t err;
-  if ( (err = detach()) ) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   _d->obj.stops.instance() = stops;
   return _d->obj.stops->sort();
@@ -428,8 +410,7 @@ err_t Pattern::addStop(const ArgbStop& stop)
 {
   if (!isGradient()) return ERR_RT_INVALID_CONTEXT;
 
-  err_t err;
-  if ( (err = detach()) ) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   ArgbStop s(stop);
   s.normalize();

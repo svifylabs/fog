@@ -51,8 +51,7 @@ err_t Painter::begin(Image& image, uint32_t initFlags)
   int format = image.getFormat();
   if (format == PIXEL_FORMAT_I8) return ERR_IMAGE_UNSUPPORTED_FORMAT;
 
-  err_t err = image.detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(image.detach());
 
   Image::Data* image_d = image._d;
   ImageBuffer buffer;

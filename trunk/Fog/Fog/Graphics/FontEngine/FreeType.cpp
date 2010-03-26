@@ -1059,7 +1059,7 @@ err_t FTFontFace::getGlyphSet(const Char* str, sysuint_t length, GlyphSet& glyph
   if ((err = glyphSet.begin(length))) return err;
 
   AutoLock locked(lock);
-  Glyph::Data* glyphd;
+  GlyphData* glyphd;
 
   sysuint_t remain = length;
   do {
@@ -1081,7 +1081,8 @@ err_t FTFontFace::getGlyphSet(const Char* str, sysuint_t length, GlyphSet& glyph
     glyphd = glyphCache.get(uc);
     if (FOG_UNLIKELY(!glyphd))
     {
-      if ((glyphd = renderGlyph(uc))) glyphCache.set(uc, glyphd);
+      glyphd = renderGlyph(uc);
+      if (glyphd != NULL) glyphCache.set(uc, glyphd);
     }
 
     if (FOG_LIKELY(glyphd)) glyphSet._add(glyphd->ref());
@@ -1143,9 +1144,9 @@ err_t FTFontFace::getTextExtents(const Char* str, sysuint_t length, TextExtents&
   }
 }
 
-Glyph::Data* FTFontFace::renderGlyph(uint32_t uc)
+GlyphData* FTFontFace::renderGlyph(uint32_t uc)
 {
-  Glyph::Data* glyphd = NULL;
+  GlyphData* glyphd = NULL;
 
   // If glyph is not in cache, it's needed to render it.
   FT_GlyphSlot slot;
@@ -1212,7 +1213,7 @@ Glyph::Data* FTFontFace::renderGlyph(uint32_t uc)
 
     width += slot->bitmap.width;
 
-    glyphd = new(std::nothrow) Glyph::Data();
+    glyphd = new(std::nothrow) GlyphData();
     if (glyphd == NULL) goto end;
 
     if (width != 0 && glyphd->bitmap.create(width, slot->bitmap.rows, PIXEL_FORMAT_A8) != ERR_OK)
@@ -1222,8 +1223,7 @@ Glyph::Data* FTFontFace::renderGlyph(uint32_t uc)
       goto end;
     }
 
-    glyphd->bitmapX = offsetX;
-    glyphd->bitmapY = offsetY;
+    glyphd->offset.set(offsetX, offsetY);
     glyphd->beginWidth = 0;
     glyphd->endWidth = 0;
     glyphd->advance = advance;

@@ -29,8 +29,7 @@ static err_t _setFace(Font* self, FontFace* face)
   if (!face) return ERR_FONT_INVALID_FACE;
   if (self->_d->face == face) return ERR_OK;
 
-  err_t err = self->detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(self->detach());
 
   if (self->_d->face) self->_d->face->deref();
   self->_d->face = face;

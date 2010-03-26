@@ -153,7 +153,7 @@ struct FOG_API GlyphSet
   //! @brief Add glyph to glyph set.
   //!
   //! This method can be only called within @begin() and @end().
-  FOG_INLINE err_t add(Glyph::Data* gd)
+  FOG_INLINE err_t add(GlyphData* gd)
   {
     err_t err;
     if ((_d->refCount.get() != 1 || _d->length == _d->capacity) && (err = grow(1)))
@@ -164,7 +164,7 @@ struct FOG_API GlyphSet
   }
 
   //! @brief Add glyph to glyph set 
-  FOG_INLINE void _add(Glyph::Data* gd)
+  FOG_INLINE void _add(GlyphData* gd)
   {
     FOG_ASSERT(_d->length < _d->capacity);
     FOG_ASSERT(_d->refCount.get() == 1);

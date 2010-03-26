@@ -50,7 +50,7 @@ struct FOG_API FTFontFace : public FontFace
   FTFontFile* file;
 
 private:
-  Glyph::Data* renderGlyph(uint32_t uc);
+  GlyphData* renderGlyph(uint32_t uc);
 
   FOG_DISABLE_COPY(FTFontFace)
 };

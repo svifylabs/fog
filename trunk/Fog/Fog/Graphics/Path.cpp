@@ -981,8 +981,7 @@ err_t Path::flipX(double x1, double x2)
   sysuint_t i = _d->length;
   if (!i) return ERR_OK;
 
-  err_t err = detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   double x = x1 + x2;
   PointD* vertices = _d->vertices;
@@ -1000,8 +999,7 @@ err_t Path::flipY(double y1, double y2)
   sysuint_t i = _d->length;
   if (!i) return ERR_OK;
 
-  err_t err = detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   double y = y1 + y2;
   PointD* vertices = _d->vertices;
@@ -1023,8 +1021,7 @@ err_t Path::translate(double dx, double dy)
   sysuint_t i = _d->length;
   if (!i) return ERR_OK;
 
-  err_t err = detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   PointD* vertices = _d->vertices;
 
@@ -1043,8 +1040,7 @@ err_t Path::translateSubPath(sysuint_t subPathId, double dx, double dy)
   sysuint_t i = _d->length;
   if (!i) return ERR_OK;
 
-  err_t err = detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   uint8_t* commands = _d->commands;
   PointD* vertices = _d->vertices;
@@ -1069,8 +1065,7 @@ err_t Path::scale(double sx, double sy, bool keepStartPos)
   sysuint_t i = _d->length;
   if (!i) return ERR_OK;
 
-  err_t err = detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   PointD* vertices = _d->vertices;
 
@@ -1120,8 +1115,7 @@ err_t Path::applyMatrix(const Matrix& matrix)
 {
   if (!_d->length) return ERR_OK;
 
-  err_t err = detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   PathUtil::transformPoints(_d->vertices, _d->length, &matrix);
   return ERR_OK;
@@ -1132,8 +1126,7 @@ err_t Path::applyMatrix(const Matrix& matrix, const Range& range)
   sysuint_t length = _d->length;
   if (range.index >= length) return ERR_OK;
 
-  err_t err = detach();
-  if (err) return err;
+  FOG_RETURN_ON_ERROR(detach());
 
   PathUtil::transformPoints(_d->vertices + range.index, Math::min(range.length, length - range.index), &matrix);
   return ERR_OK;
