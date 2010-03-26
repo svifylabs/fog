@@ -49,7 +49,7 @@
 // [Library Initializers]
 // ============================================================================
 
-static void fog_raster_set_nops(Fog::RasterEngine::FunctionMap::CompositeFuncs* ops)
+static void fog_rasterengine_set_nops(Fog::RasterEngine::FunctionMap::CompositeFuncs* ops)
 {
   using namespace Fog;
   using namespace Fog::RasterEngine;
@@ -78,7 +78,7 @@ static void fog_raster_set_nops(Fog::RasterEngine::FunctionMap::CompositeFuncs* 
   ops->vspan_a8_const[PIXEL_FORMAT_I8] = (VSpanMskConstFn)CompositeNopC::cspan_a8_const;
 }
 
-FOG_INIT_DECLARE void fog_raster_init_c(void)
+FOG_INIT_DECLARE void fog_rasterengine_init_c(void)
 {
   using namespace Fog;
   using namespace Fog::RasterEngine;
@@ -489,13 +489,13 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
 
   // [Composite - NOPS]
 
-  fog_raster_set_nops(&m->composite[OPERATOR_DST][PIXEL_FORMAT_ARGB32]);
-  fog_raster_set_nops(&m->composite[OPERATOR_DST][PIXEL_FORMAT_PRGB32]);
-  fog_raster_set_nops(&m->composite[OPERATOR_DST][PIXEL_FORMAT_XRGB32]);
-  fog_raster_set_nops(&m->composite[OPERATOR_DST][PIXEL_FORMAT_A8]);
-  fog_raster_set_nops(&m->composite[OPERATOR_DST][PIXEL_FORMAT_I8]);
+  fog_rasterengine_set_nops(&m->composite[OPERATOR_DST][PIXEL_FORMAT_ARGB32]);
+  fog_rasterengine_set_nops(&m->composite[OPERATOR_DST][PIXEL_FORMAT_PRGB32]);
+  fog_rasterengine_set_nops(&m->composite[OPERATOR_DST][PIXEL_FORMAT_XRGB32]);
+  fog_rasterengine_set_nops(&m->composite[OPERATOR_DST][PIXEL_FORMAT_A8]);
+  fog_rasterengine_set_nops(&m->composite[OPERATOR_DST][PIXEL_FORMAT_I8]);
 
-  fog_raster_set_nops(&m->composite[OPERATOR_DST_OVER][PIXEL_FORMAT_XRGB32]);
+  fog_rasterengine_set_nops(&m->composite[OPERATOR_DST_OVER][PIXEL_FORMAT_XRGB32]);
 
   m->composite[OPERATOR_DST_IN][PIXEL_FORMAT_PRGB32].vspan[PIXEL_FORMAT_XRGB32] = (VSpanFn)CompositeNopC::cspan;
   m->composite[OPERATOR_DST_IN][PIXEL_FORMAT_PRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = (VSpanMskFn)CompositeNopC::cspan_a8;
@@ -509,7 +509,7 @@ FOG_INIT_DECLARE void fog_raster_init_c(void)
   m->composite[OPERATOR_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_XRGB32] = (VSpanMskFn)CompositeNopC::cspan_a8;
   m->composite[OPERATOR_DST_ATOP][PIXEL_FORMAT_XRGB32].vspan_a8_const[PIXEL_FORMAT_XRGB32] = (VSpanMskConstFn)CompositeNopC::cspan_a8_const;
 
-  fog_raster_set_nops(&m->composite[OPERATOR_DST_ATOP][PIXEL_FORMAT_A8]);
+  fog_rasterengine_set_nops(&m->composite[OPERATOR_DST_ATOP][PIXEL_FORMAT_A8]);
 
   m->composite[OPERATOR_ADD][PIXEL_FORMAT_XRGB32].vspan[PIXEL_FORMAT_A8] = (VSpanFn)CompositeNopC::cspan;
   m->composite[OPERATOR_ADD][PIXEL_FORMAT_XRGB32].vspan_a8[PIXEL_FORMAT_A8] = (VSpanMskFn)CompositeNopC::cspan_a8;

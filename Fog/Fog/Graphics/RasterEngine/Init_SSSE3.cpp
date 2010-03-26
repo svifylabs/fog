@@ -51,7 +51,7 @@
 // [Library Initializers]
 // ============================================================================
 
-FOG_INIT_DECLARE void fog_raster_init_ssse3(void)
+FOG_INIT_DECLARE void fog_rasterengine_init_ssse3(void)
 {
   using namespace Fog;
   using namespace Fog::RasterEngine;
@@ -68,7 +68,7 @@ FOG_INIT_DECLARE void fog_raster_init_ssse3(void)
 
 #else
 
-FOG_INIT_DECLARE void fog_raster_init_ssse3(void)
+FOG_INIT_DECLARE void fog_rasterengine_init_ssse3(void)
 {
   // Nothing
 }
