@@ -928,14 +928,11 @@ typedef int64_t int48x16_t;
                ((uint64_t)(byte0) << 56) )
 #endif
 
-/*
-//! @brief Templated if.
-template <bool _Condition, class _Then, class _Else>
-struct fog_if { typedef _Then ret; };
-
-template <class _Then, class _Else>
-struct fog_if<false, _Then, _Else> { typedef _Else ret; };
-*/
+#define FOG_RETURN_ON_ERROR(expression) \
+  FOG_BEGIN_MACRO \
+    err_t __err_inside = (expression); \
+    if (__err_inside != ::Fog::ERR_OK) return __err_inside; \
+  FOG_END_MACRO
 
 // ============================================================================
 // [Noop]

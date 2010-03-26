@@ -28,7 +28,6 @@ FOG_CAPI_EXTERN void* fog_memory_reallocf(void* addr, sysuint_t size);
 FOG_CAPI_EXTERN void fog_memory_free(void* addr);
 
 FOG_CAPI_EXTERN void* fog_memory_dup(void* addr, sysuint_t size);
-FOG_CAPI_EXTERN void* fog_memory_xdup(void* addr, sysuint_t size);
 
 FOG_CVAR_EXTERN void (*fog_memory_copy)(void* dst, const void* src, sysuint_t size);
 FOG_CVAR_EXTERN void (*fog_memory_move)(void* dst, const void* src, sysuint_t size);
@@ -109,11 +108,6 @@ struct FOG_HIDDEN Memory
   static FOG_INLINE void* dup(void* addr, sysuint_t size)
   {
     return fog_memory_dup(addr, size);
-  }
-
-  static FOG_INLINE void* xdup(void* addr, sysuint_t size)
-  {
-    return fog_memory_xdup(addr, size);
   }
 
   static FOG_INLINE void copy(void* dst, const void* src, sysuint_t size)

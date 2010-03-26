@@ -387,20 +387,6 @@ FOG_CAPI_DECLARE void* fog_memory_dup(void* addr, sysuint_t size)
     return NULL;
 }
 
-FOG_CAPI_DECLARE void* fog_memory_xdup(void* addr, sysuint_t size)
-{
-  void *dupAddr = fog_memory_dup(addr, size);
-
-  if (FOG_LIKELY(dupAddr != NULL))
-  {
-    return dupAddr;
-  }
-  else
-  {
-    fog_out_of_memory_fatal_format("Fog::Memory", "xdup", "Couldn't allocate memory block at size %llu", (uint64_t)size);
-  }
-}
-
 static void fog_memory_copy_C(void* dst, const void* src, sysuint_t size)
 {
   memcpy(dst, src, size);

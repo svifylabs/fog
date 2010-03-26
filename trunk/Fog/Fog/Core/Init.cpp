@@ -49,8 +49,8 @@ FOG_INIT_FUNC(fog_object);
 FOG_INIT_FUNC(fog_application);
 
 // Fog-Graphics
-FOG_INIT_FUNC(fog_raster);
 FOG_INIT_FUNC(fog_rasterizer);
+FOG_INIT_FUNC(fog_rasterengine);
 FOG_INIT_FUNC(fog_palette);
 FOG_INIT_FUNC(fog_path);
 FOG_INIT_FUNC(fog_pathutil);
@@ -121,8 +121,8 @@ static const FogInitEntry fog_init_entries[] =
   INIT_ENTRY(fog_application),      // Depends to Many
 
   // Fog-Graphics
-  INIT_ENTRY(fog_raster),
   INIT_ENTRY(fog_rasterizer),
+  INIT_ENTRY(fog_rasterengine),
   INIT_ENTRY(fog_palette),
   INIT_ENTRY(fog_path),
   INIT_ENTRY(fog_pathutil),

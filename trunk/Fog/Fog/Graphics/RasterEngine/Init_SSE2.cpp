@@ -44,7 +44,7 @@
 // [Library Initializers]
 // ============================================================================
 
-FOG_INIT_DECLARE void fog_raster_init_sse2(void)
+FOG_INIT_DECLARE void fog_rasterengine_init_sse2(void)
 {
   using namespace Fog;
   using namespace Fog::RasterEngine;

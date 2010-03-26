@@ -49,6 +49,7 @@ enum SVG_ELEMENT_TYPE
 // [Fog::SVG_UNIT_TYPE]
 // ============================================================================
 
+// TODO: Deprecated, use DPI_VALUE_TYPE and DPI class.
 enum SVG_UNIT_TYPE
 {
   SVG_UNIT_NONE = 0,

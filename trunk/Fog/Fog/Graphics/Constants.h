@@ -46,6 +46,26 @@ enum COLOR_CHANNEL_TYPE
 };
 
 // ============================================================================
+// [Fog::DPI_VALUE_TYPE]
+// ============================================================================
+
+//! @brief Type of values that can be used together by the @c Dpi class.
+enum DPI_VALUE_TYPE
+{
+  DPI_VALUE_CM = 0,
+  DPI_VALUE_EM,
+  DPI_VALUE_EX,
+  DPI_VALUE_IN,
+  DPI_VALUE_MM,
+  DPI_VALUE_PC,
+  DPI_VALUE_PT,
+  DPI_VALUE_PX,
+
+  //! @brief Count of DPI value units.
+  DPI_VALUE_COUNT
+};
+
+// ============================================================================
 // [Fog::OPERATOR_TYPE]
 // ============================================================================
 

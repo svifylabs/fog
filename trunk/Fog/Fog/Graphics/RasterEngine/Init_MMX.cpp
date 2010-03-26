@@ -61,16 +61,16 @@
 // [Library Initializers]
 // ============================================================================
 
-#define MMX_INIT_NAME fog_raster_init_mmx
+#define MMX_INIT_NAME fog_rasterengine_init_mmx
 
 #if defined(FOG_RASTER_MMX3DNOW)
 #undef MMX_INIT_NAME
-#define MMX_INIT_NAME fog_raster_init_mmx3dnow
+#define MMX_INIT_NAME fog_rasterengine_init_mmx3dnow
 #endif
 
 #if defined(FOG_RASTER_MMXSSE)
 #undef MMX_INIT_NAME
-#define MMX_INIT_NAME fog_raster_init_mmxsse
+#define MMX_INIT_NAME fog_rasterengine_init_mmxsse
 #endif
 
 FOG_INIT_DECLARE void MMX_INIT_NAME(void)
