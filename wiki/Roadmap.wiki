@@ -15,11 +15,11 @@ This page contains Fog-Framework roadmap, editable by project members. Initial i
 
 =TODO - Fog-Core=
 
-  * ( ) Fog::RegExp - use TRex
-  * ( ) Fog::String/Fog::Locale - add support for group separators
+  * ( ) `Fog::RegExp` - use TRex
+  * ( ) `Fog::String`/`Fog::Locale` - add support for group separators
   * ( ) `Temporary...<N>::free` sometimes not frees the memory ?
-  * ( ) Complete Fog::BitArray
-  * ( ) Text Streams (using TextCodec), including err(), out() and in()
+  * ( ) Complete `Fog::BitArray`
+  * ( ) Text Streams (using `TextCodec`), including `err()`, `out()` and `in()
   * ( ) Logging framework
 
 =TODO - Fog-Graphics=
@@ -33,13 +33,13 @@ This page contains Fog-Framework roadmap, editable by project members. Initial i
       * ( ) Linear Gradient Transform
       * ( ) Radial Gradient Transform
       * ( ) Conical Gradient Transform
-    * ( ) Introduce setClipPath() / resetClipPath()
-    * (w) Introduce setColorFilter(), resetColorFilter()
+    * ( ) Introduce `setClipPath()` / `resetClipPath()`
+    * (w) Introduce `setColorFilter()`, `resetColorFilter()`
     * (w) High-quality downscaling (transformation / scaling down)
     * ( ) irect is not used when serializing images using affine transform. This rectangle should be also added to pattern (texture).
     * ( ) Glyph rendering must be two pass based
-      * 1. Apply glyph metrics, advance, etc, serialize to X, Y, ImageData array
-      * 2. Render using not GlyphSet, but ImageSet.
+      * 1. Apply glyph metrics, advance, etc, serialize to X, Y, `ImageData` array
+      * 2. Render using not `GlyphSet`, but `ImageSet`.
 
   * ( ) Font:
     * (w) Ability to render to 'Path'
@@ -60,22 +60,22 @@ This page contains Fog-Framework roadmap, editable by project members. Initial i
     * ( ) Specialize CLEAR operator in C implementation (performance TODO)
 
   * ( ) Path:
-    * ( ) Add fitTo(RectF)
-    * ( ) Add addText(Font, String32) to path
+    * ( ) Add `fitTo(RectF)`
+    * ( ) Add `addText(Font, String32)` to path
     * ( ) What about warp?
 
   * ( ) Image filtering:
-    * ( ) Image filters (Blur, Sharpen, ...) should be grouped and result should be ImageFilter class that will be able to do any image based transformations.
+    * ( ) Image filters (Blur, Sharpen, ...) should be grouped and result should be `ImageFilter` class that will be able to do any image based transformations.
     * ( ) Each effect should contain opacity value that will define blend factor of modified image into source image (this can be used by UI animations).
     * ( ) Sharpen
     * ( ) Convolve
 
   * ( ) Colors:
-    * ( ) Add ArgbUtil.h, ArgbUtil.cpp and implement here basic compositing (blending, ...)
-    * ( ) Add rgbToHsv, hsvToRgb
+    * ( ) Add `ArgbUtil.h`, `ArgbUtil.cpp` and implement here basic compositing (blending, ...)
+    * ( ) Add `rgbToHsv`, `hsvToRgb`
 
   * ( ) Region:
-    * (w) Remove polygon() and round() generators, use Fog::Path() and rasterizer instead.
+    * (w) Remove `polygon()` and `round()` generators, use `Fog::Path()` and rasterizer instead.
     * (w) If Path generator will be implemented, we can implement transform operations (Region to path, path to region).
 
   * (w) Improve quality of gradient rendering, current is ok except PAD gradients where it looks really bad (unaliased).
@@ -105,7 +105,7 @@ This page contains Fog-Framework roadmap, editable by project members. Initial i
 
 =TODO - Fog-Gui=
 
-  * ( ) Make possibility to set transparent region in widget (not really transparent, but region where the background must be used first). Introduce Widget::getPaintMode(), Widget::getBackgroundRegion().
+  * ( ) Make possibility to set transparent region in widget (not really transparent, but region where the background must be used first). Introduce `Widget::getPaintMode()`, `Widget::getBackgroundRegion()`.
   * ( ) Double buffering of child widgets (transparency, animations, effects).
   * ( ) Some widgets need to store background in separate buffer (Image).
   * ( ) First make basic layouts working and define them
@@ -114,12 +114,12 @@ This page contains Fog-Framework roadmap, editable by project members. Initial i
 
 =TODO - Refactorization, Ideas=
 
-  * ( ) Fog::Image::formatToBytesPerPixel -> Fog::Image::getBytesPerPixelFromFormat()
-  * ( ) Fog::RasterPaintEngine - Use binary search to find first region if complex clipping is used.
-  * (w) All getters (get() methods) should be declared before setters (set() methods)
-  * (w) Make sure that all classes are using correct getXXX() methods
-  * (w) Some methods named clear() should be renamed to reset(), audit this (this not applies to containers, strings, etc...)
-  * (w) All enums and constants should be UPPERCASED.
+  * ( ) `Fog::Image::formatToBytesPerPixel` -> `Fog::Image::getBytesPerPixelFromFormat()`
+  * ( ) `Fog::RasterPaintEngine` - Use binary search to find first region if complex clipping is used.
+  * (w) All getters (`get()` methods) should be declared before setters (`set()` methods)
+  * (w) Make sure that all classes are using correct `getXXX()` methods
+  * (w) Some methods named `clear()` should be renamed to `reset()`, audit this (this not applies to containers, strings, etc...)
+  * (w) All enums and constants should be `UPPERCASED`.
 
 =Concepts and Discussion=
 
