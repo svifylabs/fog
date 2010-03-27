@@ -7,7 +7,7 @@ This page contains Fog-Framework roadmap and goals, editable by project members.
 
 There are many libraries for computer graphics and GUI development.. Each developer that want to create an application with user interface or visualization must choose set of libraries that will be used to do the job. Today's computers are so powerful and difference between slow and fast code is day by day smaller. This is reason why some libraries are terrible slow and there is nobody working on optimizations.
 
-Fog-Framework is different. When library was in designing state (currently it still is) the main and most important requirement was performance, integration and easy-of-use API. This is reason why Fog-Framework contains many classes not strictly related to computer graphics. Low-level stuff is usually not exported so developers using Fog-Framework are using high-level classes resulting in low-level performance.
+Fog-Framework is different. When library was in designing state (currently it still is) the main and most important requirement was performance, integration and easy-of-use API. This is reason why Fog-Framework contains many classes not strictly related to computer graphics. Low-level stuff is usually not exported so developers using Fog-Framework are using high-level classes resulting in excellent performance.
 
 =Framework Libraries=
 
