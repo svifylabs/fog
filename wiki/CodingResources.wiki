@@ -27,6 +27,11 @@ This page contains collection of links to other open-source projects related to 
   * [http://mlab.taik.fi/~kkallio/antialiasing/ Scanline Edge-Flag Algorithm For Antialiasing] (BSD)
     * Very good rasterizer including quality settings, faster than antigrain.
 
+  * [http://code.google.com/p/skia/ Skia] (Apache)
+    * Graphics library for desktop and embedded devices.
+    * Possibility to not use floating point (fixed point instead).
+    * Floats, gradient rendering, bilinear filtering, perspective transformations.
+
 =Graphics (GUI Frameworks)=
  
   * [http://www.clanlib.org/ ClanLib] (BSD)
