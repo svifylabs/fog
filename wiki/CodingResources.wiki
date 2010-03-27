@@ -19,6 +19,11 @@ This page contains collection of links to other open-source projects related to 
     * Doubles, gradient rendering, bilinear filtering, affine transformations.
     * PDF/Postscript output.
 
+  * [http://www.freetype.org/ FreeType] (MIT)
+    * Font rendering library.
+    * Analytic rasterizer used by Antigrain and Fog.
+    * LCD subpixel antialiasing.
+
   * [http://cgit.freedesktop.org/pixman/ Pixman] (MIT)
     * Pixel manipulation library.
     * Fixed point, gradient rendering, bilinear filtering, perspective transformations.
