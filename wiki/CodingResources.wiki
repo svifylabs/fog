@@ -24,6 +24,9 @@ This page contains collection of links to other open-source projects related to 
     * Analytic rasterizer used by Antigrain and Fog.
     * LCD subpixel antialiasing.
 
+  * [http://www.graphicsmagick.org/ GraphicsMagick] (MIT)
+    * Image processing library.
+
   * [http://cgit.freedesktop.org/pixman/ Pixman] (MIT)
     * Pixel manipulation library.
     * Fixed point, gradient rendering, bilinear filtering, perspective transformations.
