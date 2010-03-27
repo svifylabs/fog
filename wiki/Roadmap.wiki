@@ -66,6 +66,13 @@ This page contains Fog-Framework roadmap, editable by project members. Initial i
       * ( ) Write SSE2 composite functions for A8
       * ( ) Specialize CLEAR operator in C implementation (performance TODO)
     * ( ) Add innerLimit and innerJoin to painter, paint engine, and all related - INVALID, we should throw away innerLimit and innerJoin.
+    * ( ) Add per/component alpha blending.
+    
+    * ( ) Rewrite ColorFilter in Painter:
+
+      Currently there is possibility to set color filter in painter, but this feature needs to be rewritten from the ground. Actual concept is based on source replacement (source is replaces by the color filter), but it's wrong. New concept must be based on compositing, so color filter will be alternative to compositing operators and will be set by setOperator() method.
+
+      DST = (DST original) LERP(SRC) (DST filtered by color filter)
 
   * Font and Text Rendering:
     * (w) Ability to render to 'Path'
@@ -166,27 +173,11 @@ This page contains Fog-Framework roadmap, editable by project members. Initial i
 
 =Concepts and Discussion=
 
-There are several things that need to be solved:
-
-==ColorFilter in painter==
-
-Currently there is possibility to set color filter in painter, but this feature needs to be rewritten from the ground. Actual concept is based on source replacement (source is replaces by the color filter), but it's wrong. New concept must be based on compositing, so color filter will be alternative to compositing operators and will be set by setOperator() method.
-
-Color filter action:
-{{{
-DST = Destination pixel
-SRC = Source pixel
-
-DST = (DST original) LERP(SRC) (DST filtered by color filter)
-}}}
+New concepts / discussion here.
 
 ==Geometry suffixes==
 
 Currently there are two suffixes used inside Fog geometry classes - F and D. F is shorthand for float and D for double. I'm thinking about adding I suffix also to Rect, Point and Box structures.
-
-==Per component alpha blending==
-
-Currently there is only support to per pixel alpha blending. It would be useful to add per component alpha blending. This is hard task, because each blender must be extended.
 
 ==Renaming Fog-Graphics to Fog-Graphics2d==
 
