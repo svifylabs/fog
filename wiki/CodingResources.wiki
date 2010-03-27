@@ -24,10 +24,13 @@ This page contains collection of links to other open-source projects related to 
     * Fixed point, gradient rendering, bilinear filtering, perspective transformations.
     * MMX/SSE/SSE2/ARM optimizations.
 
-  * [http://mlab.taik.fi/~kkallio/antialiasing/ Scanline Edge-Flag Algorithm For Antialiasing]
+  * [http://mlab.taik.fi/~kkallio/antialiasing/ Scanline Edge-Flag Algorithm For Antialiasing] (BSD)
     * Very good rasterizer including quality settings, faster than antigrain.
 
 =Graphics (GUI Frameworks)=
+ 
+  * [http://www.clanlib.org/ ClanLib] (BSD)
+    * Game / GUI toolkit.
 
   * [http://www.enlightenment.org/ Enlightenment and EFL] (BSD, LGPL)
     * Core and GUI framework and graphics libraries useful in desktop and embedded devices.
@@ -51,6 +54,10 @@ This page contains collection of links to other open-source projects related to 
     * Vector graphics library with perspective transformations.
     * MMX/SSE/ARM optimizations.
     * Widgets and theming.
+
+  * [http://www.libsdl.org/ SDL] (LGPL)
+    * Gaming low-level library.
+    * Additions like SDLImage, SDLgfx and others.
 
   * [http://ultimatepp.org Ultimate++] (BSD)
     * Core and GUI framework.
