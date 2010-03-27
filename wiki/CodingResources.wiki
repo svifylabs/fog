@@ -1,4 +1,4 @@
-#summary Resources on the Internet that can help solving problems.
+#summary Useful external resources (Libraries, Articles, ...)
 #labels Phase-Implementation
 
 =Overview=
