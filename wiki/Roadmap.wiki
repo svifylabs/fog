@@ -3,9 +3,35 @@
 
 =Introduction=
 
-This page contains Fog-Framework roadmap, editable by project members. Initial items were copied from project TODO.
+This page contains Fog-Framework roadmap and goals, editable by project members. Initial items were copied from project TODO.
 
-=Legend=
+There are many libraries for computer graphics and GUI development.. Each developer that want to create an application with user interface or visualization must choose set of libraries that will be used to do the job. Today's computers are so powerful and difference between slow and fast code is day by day smaller. This is reason why some libraries are terrible slow and there is nobody working on optimizations.
+
+Fog-Framework is different. When library was in designing state (currently it still is) the main and most important requirement was performance, integration and easy-of-use API. This is reason why Fog-Framework contains many classes not strictly related to computer graphics. Low-level stuff is usually not exported so developers using Fog-Framework are using high-level classes resulting in low-level performance.
+
+=Framework Libraries=
+
+Fog-Framework currently contains these libraries:
+
+  * Fog-Core - Platform abstraction library.
+  * Fog-Graphics - 2d graphics API.
+  * Fog-Gui - Platform independent UI toolkit.
+  * Fog-Svg - SVG DOM, parser and renderer.
+  * Fog-Xml - XML DOM, parser and writer.
+
+=Design Notes=
+
+Fog-Framework design notes (in points):
+
+ * Library depends only to libraries that are installed on target operating system by default.
+   * Under Windows only WinAPI is used (other libraries like libpng can be used too, but you must first install them and enable them by build system).
+   * Under Linux/BSD/MAC only freetype2, libjpeg and libpng libraries are needed (and libjpeg and libpng support can be disabled). By default Fog also tries to use fontconfig.
+ * Do not use C++ stl library.
+ * Do not use RTTI (no dynamic casts) or exceptions.
+ * Critical code should support modern CPU extensions (MMX, SSE2).
+ * Do not depend to X11 under Linux/BSD.
+
+=TODO - Legend=
 
 {{{
 ( ) Incomplete
