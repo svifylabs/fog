@@ -15,21 +15,29 @@ This page contains Fog-Framework roadmap, editable by project members. Initial i
 
 =TODO - Fog-Core=
 
-  * ( ) `Fog::RegExp` - use TRex
-  * ( ) `Fog::String`/`Fog::Locale` - add support for group separators
-  * ( ) `Temporary...<N>::free` sometimes not frees the memory ?
-  * ( ) Complete `Fog::BitArray`
-  * ( ) Text Streams (using `TextCodec`), including `err()`, `out()` and `in()
-  * ( ) Logging framework
+  * Object and MetaClass:
+    * ( ) Fog::Object memory management should be hierarchy based. Allow adding Objects to Object, Widget will use different storage for added widgets. Introduce ChildEvent in Fog::Object.
+
+  * String:
+    * ( ) `Fog::RegExp` - use TRex
+    * ( ) `Fog::String`/`Fog::Locale` - add support for group separators
+    * ( ) `Temporary...<N>::free` sometimes not frees the memory? Investigate and remove this.
+
+  * Classes:
+    * ( ) Complete `Fog::BitArray`
+    * ( ) Text Streams (using `TextCodec`), including `err()`, `out()` and `in()
+
+  * Logging framework:
+    * ( ) Make minimalist and extensible logging framework, sometimes it's really needed to write something somewhere, but current API is not supporting it
 
 =TODO - Fog-Graphics=
 
-  * ( ) Painter:
+  * Painter and RasterEngine:
     * ( ) Ability to paint to A8 surface.
     * ( ) Set global opacity
     * (w) Text transform
     * (w) Text over path
-    * ( ) Patterns transform
+    * (w) Patterns transform
       * ( ) Linear Gradient Transform
       * ( ) Radial Gradient Transform
       * ( ) Conical Gradient Transform
@@ -37,80 +45,115 @@ This page contains Fog-Framework roadmap, editable by project members. Initial i
     * (w) Introduce `setColorFilter()`, `resetColorFilter()`
     * (w) High-quality downscaling (transformation / scaling down)
     * ( ) irect is not used when serializing images using affine transform. This rectangle should be also added to pattern (texture).
+    * (w) Improve quality of gradient rendering, current is ok except PAD gradients where it looks really bad (unaliased).
     * ( ) Glyph rendering must be two pass based
-      * 1. Apply glyph metrics, advance, etc, serialize to X, Y, `ImageData` array
-      * 2. Render using not `GlyphSet`, but `ImageSet`.
+      * ( ) Apply glyph metrics, advance, etc, serialize to X, Y, `ImageData` array
+      * ( ) Render using not `GlyphSet`, but `ImageSet`.
+    * ( ) Raster Engine
+      * ( ) ColorBurn (SVG operator)
+      * ( ) ColorDodge (SVG operator)
+      * ( ) HardLight (SVG operator)
+      * ( ) SoftLight (SVG operator)
+      * ( ) Overlay (SVG operator)
+      * ( ) Arithmetic, with parameters! (SVG operator)
+      * ( ) Allow possibility for operator plugins
+      * ( ) Write some basic C/MMX/SSE2 composite functions for ARGB32
+      * (x) Write C composite functions for XRGB32 and PRGB32
+      * ( ) Write C composite functions for A8
+      * ( ) Write MMX composite functions for XRGB32 and PRGB32
+      * ( ) Write MMX composite functions for A8
+      * (x) Write SSE2 composite functions for XRGB32 and PRGB32
+      * ( ) Write SSE2 composite functions for A8
+      * ( ) Specialize CLEAR operator in C implementation (performance TODO)
+    * ( ) Add innerLimit and innerJoin to painter, paint engine, and all related - INVALID, we should throw away innerLimit and innerJoin.
 
-  * ( ) Font:
+  * Font and Text Rendering:
     * (w) Ability to render to 'Path'
       * (x) Win32
       * (w) Freetype2
       * (w) Fix it - Kerning, Hinting
     * ( ) Cache size control
     * ( ) Increase granularity of X position in glyphs to 3 (0.00, 0.33, 0.66), because vector fonts can be very sensitive in small sizes.
+    * ( ) Text Iterator, retrieving glyph metrics, text metrics, individual glyphs and glyph sets.
 
-  * ( ) RasterEngine:
-    * ( ) Write some basic C/MMX/SSE2 composite functions for ARGB32
-    * (x) Write C composite functions for XRGB32 and PRGB32
-    * ( ) Write C composite functions for A8
-    * ( ) Write MMX composite functions for XRGB32 and PRGB32
-    * ( ) Write MMX composite functions for A8
-    * (x) Write SSE2 composite functions for XRGB32 and PRGB32
-    * ( ) Write SSE2 composite functions for A8
-    * ( ) Specialize CLEAR operator in C implementation (performance TODO)
-
-  * ( ) Path:
+  * Path and Vector Processing:
     * ( ) Add `fitTo(RectF)`
     * ( ) Add `addText(Font, String32)` to path
     * ( ) What about warp?
 
-  * ( ) Image filtering:
+  * Color Utilities / Conversion:
+    * ( ) Add `ArgbUtil.h`, `ArgbUtil.cpp` and implement here basic compositing (blending, ...)
+    * ( ) Add `rgbToHsv`, `hsvToRgb`
+
+  * Region:
+    * (w) Remove `polygon()` and `round()` generators, use `Fog::Path()` and rasterizer instead.
+    * (w) If Path generator will be implemented, we can implement transform operations (Region to path, path to region).
+
+  * Image Filtering:
     * ( ) Image filters (Blur, Sharpen, ...) should be grouped and result should be `ImageFilter` class that will be able to do any image based transformations.
     * ( ) Each effect should contain opacity value that will define blend factor of modified image into source image (this can be used by UI animations).
     * ( ) Sharpen
     * ( ) Convolve
 
-  * ( ) Colors:
-    * ( ) Add `ArgbUtil.h`, `ArgbUtil.cpp` and implement here basic compositing (blending, ...)
-    * ( ) Add `rgbToHsv`, `hsvToRgb`
-
-  * ( ) Region:
-    * (w) Remove `polygon()` and `round()` generators, use `Fog::Path()` and rasterizer instead.
-    * (w) If Path generator will be implemented, we can implement transform operations (Region to path, path to region).
-
-  * (w) Improve quality of gradient rendering, current is ok except PAD gradients where it looks really bad (unaliased).
-  * ( ) Fix ICO reader (BMP / PNG)
-  * ( ) Add ICO writer (BMP / PNG)
-  * ( ) Add GIF writer, rewrite GIF support
-  * ( ) Fix BMP transparency detection (impossible?)
-
-  * ( ) Default color in Svg gradient should be 0.0:black, 1.0:white if no stops are provided
-  * ( ) Add innerLimit and innerJoin to painter, paint engine, and all related (PROBABLY NOT NEEDED).
-
-  * ( ) Add rest of compositing operators (defined by SVG)
-    * ( ) ColorBurn
-    * ( ) ColorDodge
-    * ( ) HardLight
-    * ( ) SoftLight
-    * ( ) Overlay
-    * ( ) Arithmetic, with parameters!
+  * Image IO:
+    * ( ) Fix ICO reader (BMP / PNG)
+    * ( ) Add ICO writer (BMP / PNG)
+    * ( ) Add GIF writer, rewrite GIF support
+    * ( ) Fix BMP transparency detection (impossible?)
 
 =TODO - Fog-Xml=
 
-  * (w) XmlWriter
+  * XML Core:
+    * (w) XmlWriter
 
 =TODO - Fog-Svg=
 
-  * ( ) Fix gradient rendering
+  * SVG Core:
+    * ( ) Fix gradient rendering
+    * ( ) Default color in Svg gradient should be 0.0:black, 1.0:white if no stops are provided
 
 =TODO - Fog-Gui=
 
-  * ( ) Make possibility to set transparent region in widget (not really transparent, but region where the background must be used first). Introduce `Widget::getPaintMode()`, `Widget::getBackgroundRegion()`.
-  * ( ) Double buffering of child widgets (transparency, animations, effects).
-  * ( ) Some widgets need to store background in separate buffer (Image).
-  * ( ) First make basic layouts working and define them
-  * ( ) Add client rectangle to the window (this is really needed, I though that it's not).
-  * ( ) Each widget will contain widgets in client rectangle and hidden widgets outside of it (for scrollbars, list/grid headers, footers, etc).
+  * Top level window management:
+    * ( ) ability to create normal windows (resizeable/moveable, thick frame)
+    * ( ) ability to create non-resizeable windows (dialogs)
+    * ( ) ability to create tool-windows (the one with the small caption and only the "x"-button) for floating windows
+    * ( ) ability to handle min/max/close-button (turn on/off)
+    * ( ) ability to control system menu (click on icon on topleft of caption -> allow/disallow)
+    * ( ) ability to create frameless windows (perhaps ability to create nonrect-windows, too)
+    * ( ) ability to set/restore fullscreen mode
+    * ( ) ability to provide a way to draw own frame/caption (complete themeable)
+    * ( ) ability to allow/disallow window-movements
+    * ( ) ability to use directdraw/opengl as a backend (with flipping backend handler!)
+    * ( ) also some grouping methods for multiwindow-system would be cool.
+    * ( ) handling of Application::quit if last window was closed. Introducing EVENT_LAST_WINDOW_CLOSED and connecting it to Application::quit()?
+
+  * Layout Core:
+    * ( ) First define the API, what layout will do, what is expected that widget can calculate, how algorithms will be used to set / reset / recalculate the layout.
+    * ( ) Purpose of LayoutEvent
+    * ( ) CanvasLayout
+    * ( ) FlowLayout
+    * ( ) HBoxLayout/VBoxLayout
+    * ( ) GridLayout
+    * ( ) DockLayout
+
+  * Widgets Low Level Management (DoubleBuffer, Clipping):
+    * ( ) Make possibility to set transparent region in widget (not really transparent, but region where the background must be used first). Introduce `Widget::getPaintMode()`, `Widget::getBackgroundRegion()`.
+    * ( ) Double buffering of child widgets (transparency, animations, effects).
+    * ( ) Some widgets need to store background in separate buffer (Image).
+    * ( ) Add client rectangle to the window (this is really needed, I though that it's not).
+    * ( ) Each widget will contain widgets in client rectangle and hidden widgets outside of it (for scrollbars, list/grid headers, footers, etc).
+
+  * Widgets Core:
+    * ( ) Widget updating process is too complex, simplify it or document why it's complex. Is recursive alternative good to switch? (Petr, Stefan)
+
+  * Theming:
+    * ( ) What theming model to use. Currently the Windows-Theming-Model will be probably used with few extensions / additions.
+    * ( ) Drawing themed component shouldn't depend to component instance.
+    * ( ) Theming should be state based, animations must be possible.
+    * ( ) Theme switch must be allowed.
+    * ( ) Using different themes in the application should be possible by simply calling myWidget->setTheme(theme).
+    * ( ) Theme may define also fonts, but the behavior should be configurable. For example I like themes, but I like to keeping my font settings for each. This means that the Widget::getFont() and Widget::setFont() family methods should be extended. For example introducing Widget::getThemeFont() / Widget::getActiveFont() methods ?
 
 =TODO - Refactorization, Ideas=
 
