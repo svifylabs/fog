@@ -30,7 +30,8 @@ The tests are usually configured to do 100.000 operations and result is time in 
 In the future there will be probably more tests. Current tests were designed to tune Fog library, not to compete with others (this is also reason for gradient fills, image blitting and other tests that was used to tune raster pipeline).
 
 =Benchmark Results=
-Summary could be found in [BenchmarkSummaryTable Summary Table]
+
+Results of running FogBench tool on various hardware and platforms.
 
 ==Intel Quad Q6600 4x2.4GHz, 8GB RAM, Gentoo Linux 64-bit (dev-cpu)==
 
