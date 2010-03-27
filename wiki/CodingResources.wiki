@@ -1,4 +1,4 @@
-#summary Useful external resources (Libraries, Articles, ...)
+#summary Useful external resources (frameworks, libraries, articles, ...)
 #labels Phase-Implementation
 
 =Overview=
