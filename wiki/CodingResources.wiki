@@ -1,0 +1,62 @@
+#summary Resources on the Internet that can help solving problems.
+#labels Phase-Implementation
+
+=Overview=
+
+This page contains collection of links to other open-source projects related to platform abstraction, painting, networking and GUI development.
+
+=Graphics (Strict)=
+
+  * [http://www.antigrain.com/ AntiGrain] (Public Domain)
+    * Template based C++ graphics toolkit.
+    * Vector operations, rasterizers, containers, gradients, affine and perspective transformations.
+    * Image filtering, bilinear, bicubic and more.
+    * Gouraud shading. 
+    * *Recommended*, always use Version 2.4 which is public domain licensed.
+
+  * [http://cairographics.org/ Cairo] (first version BSD, LGPL)
+    * Vector graphics library.
+    * Doubles, gradient rendering, bilinear filtering, affine transformations.
+    * PDF/Postscript output.
+
+  * [http://cgit.freedesktop.org/pixman/ Pixman] (MIT)
+    * Pixel manipulation library.
+    * Fixed point, gradient rendering, bilinear filtering, perspective transformations.
+    * MMX/SSE/SSE2/ARM optimizations.
+
+  * [http://mlab.taik.fi/~kkallio/antialiasing/ Scanline Edge-Flag Algorithm For Antialiasing]
+    * Very good rasterizer including quality settings, faster than antigrain.
+
+=Graphics (GUI Frameworks)=
+
+  * [http://www.enlightenment.org/ Enlightenment and EFL] (BSD, LGPL)
+    * Core and GUI framework and graphics libraries useful in desktop and embedded devices.
+    * EVAS - Unique canvas library.
+    * Imlib2 - Image reading / writing library with some basic rendering.
+    * MMX/SSE optimizations.
+
+  * [http://www.fltk.org/ FlTk] (LGPL)
+    * GUI toolkit.
+    * Very simple, no specific optimizations, but contains useful components and it's very small.
+    * No theming, simple graphics.
+
+  * [http://www.gtk.org/ Gtk+] (LGPL)
+    * GUI toolkit.
+    * PixBuf image library supporting image reading / writing.
+    * Widgets and theming.
+
+  * [http://qt.nokia.com/products Qt] (LGPL, Commercial)
+    * Core and GUI framework (one of best ones).
+    * Layout containers.
+    * Vector graphics library with perspective transformations.
+    * MMX/SSE/ARM optimizations.
+    * Widgets and theming.
+
+  * [http://ultimatepp.org Ultimate++] (BSD)
+    * Core and GUI framework.
+    * Layout containers.
+    * Widgets and theming.
+
+  * [http://wasabi.t0x.org/ Wasabi] (ZLIB)
+    * Core and GUI framework.
+    * MMX/SSE optimizations.
