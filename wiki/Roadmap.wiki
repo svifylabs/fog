@@ -154,6 +154,7 @@ Fog-Framework design notes (in points):
     * ( ) ability to handle min/max/close-button (turn on/off)
     * ( ) ability to control system menu (click on icon on topleft of caption -> allow/disallow)
     * ( ) ability to create frameless windows (perhaps ability to create nonrect-windows, too)
+    * ( ) ability to allow/disallow window-movements 
     * ( ) ability to set/restore fullscreen mode
     * ( ) ability to provide a way to draw own frame/caption (complete themeable)
     * ( ) ability to allow/disallow window-movements
@@ -214,3 +215,5 @@ Just idea, if some day the opengl rendering will be added, we can extend the fra
 Currently there are only few libraries that allows to use 16-bit or floating point colors. It shouldn't be hard task to extend current architecture except for blitters - there are so many blitters and implementing each for 16-bit or 32-bit floating point colors will be wasting of binary space.
 
 But other hand, it can be useful for people that need rendering with extra precision.
+
+==
