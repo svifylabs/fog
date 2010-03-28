@@ -42,7 +42,7 @@ Fog-Framework design notes (in points):
 =TODO - Fog-Core=
 
   * Object and MetaClass:
-    * ( ) Fog::Object memory management should be hierarchy based. Allow adding Objects to Object, Widget will use different storage for added widgets. Introduce ChildEvent in Fog::Object.
+    * ( ) `Fog::Object` memory management should be hierarchy based. Allow adding Objects to Object, Widget will use different storage for added widgets. Introduce ChildEvent in `Fog::Object`.
 
   * String:
     * ( ) `Fog::RegExp` - use TRex
@@ -51,7 +51,7 @@ Fog-Framework design notes (in points):
 
   * Classes:
     * ( ) Complete `Fog::BitArray`
-    * ( ) Text Streams (using `TextCodec`), including `err()`, `out()` and `in()
+    * ( ) Text Streams (using `TextCodec`), including `err()`, `out()` and `in()`
 
   * Logging framework:
     * ( ) Make minimalist and extensible logging framework, sometimes it's really needed to write something somewhere, but current API is not supporting it
@@ -157,7 +157,6 @@ Fog-Framework design notes (in points):
     * ( ) ability to allow/disallow window-movements 
     * ( ) ability to set/restore fullscreen mode
     * ( ) ability to provide a way to draw own frame/caption (complete themeable)
-    * ( ) ability to allow/disallow window-movements
     * ( ) ability to use directdraw/opengl as a backend (with flipping backend handler!)
     * ( ) also some grouping methods for multiwindow-system would be cool.
     * ( ) handling of Application::quit if last window was closed. Introducing EVENT_LAST_WINDOW_CLOSED and connecting it to Application::quit()?
