@@ -81,7 +81,7 @@ This page contains collection of links to other open-source projects related to 
     * Core and GUI framework.
     * MMX/SSE optimizations.
 
-=Other(Libraries for Core)=
+=Other (Libraries for Core)=
 
   * [http://calvados.di.unipi.it/dokuwiki/doku.php?id=ffnamespace:about FastFlow] (LGPLv3)
     * Interessting threading library
@@ -92,4 +92,3 @@ This page contains collection of links to other open-source projects related to 
 
   * [http://www.pantheios.org/ Pantheios] (BSD)
     * good looking logging library
-
