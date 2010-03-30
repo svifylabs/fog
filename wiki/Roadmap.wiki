@@ -148,21 +148,22 @@ Fog-Framework design notes (in points):
 =TODO - Fog-Gui=
 
   * Top level window management:
-    * ( ) ability to create normal windows (resizeable/moveable, thick frame)
-    * ( ) ability to create non-resizeable windows (dialogs)
-    * ( ) ability to create tool-windows (the one with the small caption and only the "x"-button) for floating windows
-    * ( ) ability to handle min/max/close-button (turn on/off)
-    * ( ) ability to control system menu (click on icon on topleft of caption -> allow/disallow)
-    * ( ) ability to create frameless windows (perhaps ability to create nonrect-windows, too)
-    * ( ) ability to allow/disallow window-movements 
+    * (x) ability to create normal windows (resizeable/moveable, thick frame)
+    * (x) ability to create non-resizeable windows (dialogs)
+    * (x) ability to create tool-windows (the one with the small caption and only the "x"-button) for floating windows
+    * (x) ability to handle min/max-button (turn on/off)
+    * (x) ability to control system menu (click on icon on topleft of caption -> allow/disallow)
+    * (x) ability to create frameless windows (popup)
+    * (w) perhaps ability to create nonrect-windows, too
+    * (x) ability to allow/disallow window-movements 
     * ( ) ability to set/restore fullscreen mode
     * ( ) ability to provide a way to draw own frame/caption (complete themeable)
     * ( ) ability to use directdraw/opengl as a backend (with flipping backend handler!)
     * ( ) also some grouping methods for multiwindow-system would be cool.
-    * ( ) handling of Application::quit if last window was closed. Introducing EVENT_LAST_WINDOW_CLOSED and connecting it to Application::quit()?
+    * (w) handling of Application::quit if last window was closed. Introducing EVENT_LAST_WINDOW_CLOSED and connecting it to Application::quit()?
 
   * Layout Core:
-    * ( ) First define the API, what layout will do, what is expected that widget can calculate, how algorithms will be used to set / reset / recalculate the layout.
+    * (w) First define the API, what layout will do, what is expected that widget can calculate, how algorithms will be used to set / reset / recalculate the layout.
     * ( ) Purpose of LayoutEvent
     * ( ) CanvasLayout
     * ( ) FlowLayout
