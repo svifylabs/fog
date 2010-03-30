@@ -92,3 +92,7 @@ This page contains collection of links to other open-source projects related to 
 
   * [http://www.pantheios.org/ Pantheios] (BSD)
     * good looking logging library
+
+  * [http://judy.sourceforge.net/doc/index.html JudyArray] (LGPL!)
+    * interessting Data Structure (but LGPL) :-(
+    * faster as hash in normal situations with lesser memory usage
