@@ -80,3 +80,16 @@ This page contains collection of links to other open-source projects related to 
   * [http://wasabi.t0x.org/ Wasabi] (ZLIB)
     * Core and GUI framework.
     * MMX/SSE optimizations.
+
+=Other(Libraries for Core)=
+
+  * [http://calvados.di.unipi.it/dokuwiki/doku.php?id=ffnamespace:about FastFlow] (LGPLv3)
+    * Interessting threading library
+
+  * [http://www.fastformat.org/ FastFormat] (BSD?)
+    * cool and fast formatting library
+    * typesafe, threadsafe, performant
+
+  * [http://www.pantheios.org/ Pantheios] (BSD)
+    * good looking logging library
+
