@@ -48,6 +48,7 @@ Fog-Framework design notes (in points):
     * ( ) `Fog::RegExp` - use TRex
     * ( ) `Fog::String`/`Fog::Locale` - add support for group separators
     * ( ) `Temporary...<N>::free` sometimes not frees the memory? Investigate and remove this.
+    * ( ) Introduce StringBuilder class / concept.
 
   * Classes:
     * ( ) Complete `Fog::BitArray`
@@ -61,6 +62,7 @@ Fog-Framework design notes (in points):
     * ( ) Introduce LinkedHash, LinkedSet.
     * ( ) Introduce SortedHash, SortedSet.
     * ( ) Introduce hash table that is able to use custom accessor in get / put / contains methods. See FontManager.cpp TODO entry.
+    * ( ) Add ability to use owned-containers (no implicit sharing) to List / Hash and Set ones.
 
 =TODO - Fog-Graphics=
 
