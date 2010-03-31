@@ -78,7 +78,6 @@ Fog-Framework design notes (in points):
     * ( ) Introduce `setClipPath()` / `resetClipPath()`
     * (w) Introduce `setColorFilter()`, `resetColorFilter()`
     * (w) High-quality downscaling (transformation / scaling down)
-    * ( ) irect is not used when serializing images using affine transform. This rectangle should be also added to pattern (texture).
     * (w) Improve quality of gradient rendering, current is ok except PAD gradients where it looks really bad (unaliased).
     * ( ) Glyph rendering must be two pass based
       * ( ) Apply glyph metrics, advance, etc, serialize to X, Y, `ImageData` array
