@@ -58,7 +58,7 @@ Fog-Framework design notes (in points):
     * ( ) Make minimalist and extensible logging framework, sometimes it's really needed to write something somewhere, but current API is not supporting it
 
   * Containers
-    * ( ) Rename Hash to UnorderedHash, add UnorderedSet.
+    * (x) Rename Hash to UnorderedHash, add UnorderedSet.
     * ( ) Introduce LinkedHash, LinkedSet.
     * ( ) Introduce SortedHash, SortedSet.
     * ( ) Introduce hash table that is able to use custom accessor in get / put / contains methods. See FontManager.cpp TODO entry.
