@@ -58,7 +58,7 @@ Now, doxygen markups (e.g. `@verbatim`) can be used. For more information see Do
 {{{
     // [Fog-<MODULE> Library - C++ API]
     //
-    // [Licence] 
+    // [License] 
     // MIT, See COPYING file in package
 }}}
 Always also insert copyright notices if you use other open source code.
