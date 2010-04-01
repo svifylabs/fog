@@ -117,6 +117,7 @@ Fog-Framework design notes (in points):
     * ( ) Text Iterator, retrieving glyph metrics, text metrics, individual glyphs and glyph sets.
 
   * Path and Vector Processing:
+    * ( ) PathToRegion, RegionToPath
     * ( ) Add `fitTo(RectF)`
     * ( ) Add `addText(Font, String32)` to path
     * ( ) What about warp?
@@ -124,10 +125,6 @@ Fog-Framework design notes (in points):
   * Color Utilities / Conversion:
     * ( ) Add `ArgbUtil.h`, `ArgbUtil.cpp` and implement here basic compositing (blending, ...)
     * ( ) Add `rgbToHsv`, `hsvToRgb`
-
-  * Region:
-    * (w) Remove `polygon()` and `round()` generators, use `Fog::Path()` and rasterizer instead.
-    * (w) If Path generator will be implemented, we can implement transform operations (Region to path, path to region).
 
   * Image Filtering:
     * ( ) Image filters (Blur, Sharpen, ...) should be grouped and result should be `ImageFilter` class that will be able to do any image based transformations.
