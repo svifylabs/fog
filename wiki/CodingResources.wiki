@@ -5,6 +5,22 @@
 
 This page contains collection of links to other open-source projects related to platform abstraction, painting, networking and GUI development.
 
+=Core=
+
+  * [http://calvados.di.unipi.it/dokuwiki/doku.php?id=ffnamespace:about FastFlow] (LGPLv3)
+    * Interesting threading library
+
+  * [http://www.fastformat.org/ FastFormat] (BSD?)
+    * cool and fast formatting library
+    * typesafe, threadsafe, performant
+
+  * [http://www.pantheios.org/ Pantheios] (BSD)
+    * good looking logging library
+
+  * [http://judy.sourceforge.net/doc/index.html JudyArray] (LGPL)
+    * interesting Data Structure (but LGPL) :-(
+    * faster as hash in normal situations with lesser memory usage
+
 =Graphics (Strict)=
 
   * [http://www.antigrain.com/ AntiGrain] (Public Domain)
@@ -77,22 +93,6 @@ This page contains collection of links to other open-source projects related to 
     * Layout containers.
     * Widgets and theming.
 
-  * [http://wasabi.t0x.org/ Wasabi] (ZLIB)
+  * [http://wasabidev.svn.sourceforge.net/viewvc/wasabidev/ Wasabi] (ZLIB)
     * Core and GUI framework.
     * MMX/SSE optimizations.
-
-=Other (Libraries for Core)=
-
-  * [http://calvados.di.unipi.it/dokuwiki/doku.php?id=ffnamespace:about FastFlow] (LGPLv3)
-    * Interessting threading library
-
-  * [http://www.fastformat.org/ FastFormat] (BSD?)
-    * cool and fast formatting library
-    * typesafe, threadsafe, performant
-
-  * [http://www.pantheios.org/ Pantheios] (BSD)
-    * good looking logging library
-
-  * [http://judy.sourceforge.net/doc/index.html JudyArray] (LGPL!)
-    * interessting Data Structure (but LGPL) :-(
-    * faster as hash in normal situations with lesser memory usage
