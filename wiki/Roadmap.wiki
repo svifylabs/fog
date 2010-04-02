@@ -206,10 +206,6 @@ Fog-Framework design notes (in points):
 
 New concepts / discussion here.
 
-==Geometry suffixes==
-
-Currently there are two suffixes used inside Fog geometry classes - F and D. F is shorthand for float and D for double. I'm thinking about adding I suffix also to Rect, Point and Box structures.
-
 ==Renaming Fog-Graphics to Fog-Graphics2d==
 
 Just idea, if some day the opengl rendering will be added, we can extend the framework to use some 3d data types. I'd like to see this in different library than Fog-Graphics.
@@ -218,6 +214,6 @@ Just idea, if some day the opengl rendering will be added, we can extend the fra
 
 Currently there are only few libraries that allows to use 16-bit or floating point colors. It shouldn't be hard task to extend current architecture except for blitters - there are so many blitters and implementing each for 16-bit or 32-bit floating point colors will be wasting of binary space.
 
-But other hand, it can be useful for people that need rendering with extra precision.
+But ont the other hand, it can be useful for people that need rendering with extra precision.
 
 ==
