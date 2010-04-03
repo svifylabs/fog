@@ -77,7 +77,7 @@ This page contains collection of links to other open-source projects related to 
     * PixBuf image library supporting image reading / writing.
     * Widgets and theming.
 
-  * [http://qt.nokia.com/products Qt] (LGPL, Commercial)
+  * [http://qt.nokia.com/products Qt] ((L)GPL, Commercial)
     * Core and GUI framework (one of best ones).
     * Layout containers.
     * Vector graphics library with perspective transformations.
