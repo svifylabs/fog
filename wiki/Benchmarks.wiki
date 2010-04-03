@@ -451,6 +451,143 @@ ImageAffine           |128x128   | 25726.867 [ms]
 Summary                          |151215.283 [ms]
 }}}
 
+==Intel Pentium M 1x1.7GHz, 1 GB RAM, Windows XP 32-bit==
+
+{{{
+Fog benchmark tool v0.2
+
+Surface  : 640x480
+Quantity : 100000
+
+Processor:  Intel(R) Pentium(R) M processor 1.70GHz
+Features1: MMX=yes, MMXExt=yes, 3dNow=no, 3dNowExt=no, SSE=yes
+Features2: SSE2=yes, SSE3=no, SSSE3=no
+CPU count: 1
+
+Fog (st)              |Size      |Time
+----------------------+----------+---------------
+Create-Destroy        |          |     3.060 [ms]
+FillRect              |10x10     |    96.194 [ms]
+FillRectAffine        |10x10     |   945.204 [ms]
+FillRound             |10x10     |  1452.374 [ms]
+FillPolygon           |10x10     |  1066.139 [ms]
+LinearGradient        |10x10     |   189.147 [ms]
+Image                 |10x10     |   114.992 [ms]
+ImageAffine           |10x10     |   915.335 [ms]
+FillRect              |16x16     |   176.633 [ms]
+FillRectAffine        |16x16     |  1272.683 [ms]
+FillRound             |16x16     |  1902.739 [ms]
+FillPolygon           |16x16     |  1668.145 [ms]
+LinearGradient        |16x16     |   376.759 [ms]
+Image                 |16x16     |   227.152 [ms]
+ImageAffine           |16x16     |  1660.846 [ms]
+FillRect              |32x32     |   488.039 [ms]
+FillRectAffine        |32x32     |  2540.300 [ms]
+FillRound             |32x32     |  2524.448 [ms]
+FillPolygon           |32x32     |  3391.150 [ms]
+LinearGradient        |32x32     |  1213.013 [ms]
+Image                 |32x32     |   673.076 [ms]
+ImageAffine           |32x32     |  4747.009 [ms]
+FillRect              |64x64     |  1587.123 [ms]
+FillRectAffine        |64x64     |  5536.478 [ms]
+FillRound             |64x64     |  4185.787 [ms]
+FillPolygon           |64x64     |  6736.133 [ms]
+LinearGradient        |64x64     |  4288.330 [ms]
+Image                 |64x64     |  2366.458 [ms]
+ImageAffine           |64x64     | 15885.480 [ms]
+FillRect              |128x128   |  5574.592 [ms]
+FillRectAffine        |128x128   | 13498.239 [ms]
+FillRound             |128x128   |  9312.494 [ms]
+FillPolygon           |128x128   | 13989.021 [ms]
+LinearGradient        |128x128   | 15530.325 [ms]
+Image                 |128x128   |  7267.468 [ms]
+ImageAffine           |128x128   | 58895.894 [ms]
+---------------------------------+---------------
+Summary                          |192298,259 [ms]
+
+Fog (mt)              |Size      |Time
+----------------------+----------+---------------
+Create-Destroy        |          |     3.031 [ms]
+FillRect              |10x10     |   156.747 [ms]
+FillRectAffine        |10x10     |  1348.523 [ms]
+FillRound             |10x10     |  2433.337 [ms]
+FillPolygon           |10x10     |  1693.459 [ms]
+LinearGradient        |10x10     |   219.166 [ms]
+Image                 |10x10     |   160.078 [ms]
+ImageAffine           |10x10     |  1049.539 [ms]
+FillRect              |16x16     |   240.202 [ms]
+FillRectAffine        |16x16     |  1876.640 [ms]
+FillRound             |16x16     |  2923.033 [ms]
+FillPolygon           |16x16     |  2417.536 [ms]
+LinearGradient        |16x16     |   401.055 [ms]
+Image                 |16x16     |   268.676 [ms]
+ImageAffine           |16x16     |  1815.109 [ms]
+FillRect              |32x32     |   557.782 [ms]
+FillRectAffine        |32x32     |  3414.281 [ms]
+FillRound             |32x32     |  3755.988 [ms]
+FillPolygon           |32x32     |  4488.470 [ms]
+LinearGradient        |32x32     |  1202.162 [ms]
+Image                 |32x32     |   735.027 [ms]
+ImageAffine           |32x32     |  4950.377 [ms]
+FillRect              |64x64     |  1650.667 [ms]
+FillRectAffine        |64x64     |  6977.577 [ms]
+FillRound             |64x64     |  5580.484 [ms]
+FillPolygon           |64x64     |  8603.830 [ms]
+LinearGradient        |64x64     |  4209.814 [ms]
+Image                 |64x64     |  2405.796 [ms]
+ImageAffine           |64x64     | 16118.382 [ms]
+FillRect              |128x128   |  5617.722 [ms]
+FillRectAffine        |128x128   | 15989.201 [ms]
+FillRound             |128x128   | 11214.580 [ms]
+FillPolygon           |128x128   | 17255.080 [ms]
+LinearGradient        |128x128   | 15581.112 [ms]
+Image                 |128x128   |  7300.372 [ms]
+ImageAffine           |128x128   | 59127.963 [ms]
+---------------------------------+---------------
+Summary                          |213742,798 [ms]
+
+Gdi+                  |Size      |Time
+----------------------+----------+---------------
+Create-Destroy        |          |    14.138 [ms]
+FillRect              |10x10     |   482.381 [ms]
+FillRectAffine        |10x10     |   793.501 [ms]
+FillRound             |10x10     |  2552.766 [ms]
+FillPolygon           |10x10     |  1832.046 [ms]
+LinearGradient        |10x10     |   890.462 [ms]
+Image                 |10x10     |   734.252 [ms]
+ImageAffine           |10x10     |  1138.979 [ms]
+FillRect              |16x16     |   731.144 [ms]
+FillRectAffine        |16x16     |  1081.321 [ms]
+FillRound             |16x16     |  2949.552 [ms]
+FillPolygon           |16x16     |  2636.062 [ms]
+LinearGradient        |16x16     |  1088.865 [ms]
+Image                 |16x16     |   974.072 [ms]
+ImageAffine           |16x16     |  1703.804 [ms]
+FillRect              |32x32     |  1850.156 [ms]
+FillRectAffine        |32x32     |  2258.314 [ms]
+FillRound             |32x32     |  4520.728 [ms]
+FillPolygon           |32x32     |  4535.561 [ms]
+LinearGradient        |32x32     |  1930.081 [ms]
+Image                 |32x32     |  1928.902 [ms]
+ImageAffine           |32x32     |  4105.360 [ms]
+FillRect              |64x64     |  6085.550 [ms]
+FillRectAffine        |64x64     |  6516.393 [ms]
+FillRound             |64x64     |  9847.295 [ms]
+FillPolygon           |64x64     |  8735.327 [ms]
+LinearGradient        |64x64     |  5008.239 [ms]
+Image                 |64x64     |  5336.257 [ms]
+ImageAffine           |64x64     | 12992.639 [ms]
+FillRect              |128x128   | 20607.264 [ms]
+FillRectAffine        |128x128   | 21616.447 [ms]
+FillRound             |128x128   | 26873.979 [ms]
+FillPolygon           |128x128   | 18585.236 [ms]
+LinearGradient        |128x128   | 17077.987 [ms]
+Image                 |128x128   | 14500.994 [ms]
+ImageAffine           |128x128   | 46451.978 [ms]
+---------------------------------+---------------
+Summary                          |260968,032 [ms]
+}}}
+
 =Discussion=
 
 You can see that Fog-Framework is really fast compared to others, but can be even faster in future. The performance of filling aligned rectangles and blitting images to aligned pixel grid is near the borders. But performance of path rasterization and pattern rendering could be improved. Currently performance can be improved using better memory management, rewriting the rest of algorithms to use SSE2 or trying different rasterizers.
