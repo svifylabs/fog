@@ -51,6 +51,10 @@ This page contains collection of links to other open-source projects related to 
   * [http://mlab.taik.fi/~kkallio/antialiasing/ Scanline Edge-Flag Algorithm For Antialiasing] (BSD)
     * Very good rasterizer including quality settings, faster than antigrain.
 
+  * [http://www.libsdl.org/ SDL] (LGPL)
+    * Gaming low-level library.
+    * Additions like SDLImage, SDLgfx and others.
+
   * [http://code.google.com/p/skia/ Skia] (Apache)
     * Graphics library for desktop and embedded devices.
     * Possibility to not use floating point (fixed point instead).
@@ -84,9 +88,6 @@ This page contains collection of links to other open-source projects related to 
     * MMX/SSE/ARM optimizations.
     * Widgets and theming.
 
-  * [http://www.libsdl.org/ SDL] (LGPL)
-    * Gaming low-level library.
-    * Additions like SDLImage, SDLgfx and others.
 
   * [http://ultimatepp.org Ultimate++] (BSD)
     * Core and GUI framework.
