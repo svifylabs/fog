@@ -51,14 +51,12 @@ Fog-Framework design notes (in points):
     * ( ) Introduce StringBuilder class / concept.
 
   * Classes:
-    * ( ) Complete `Fog::BitArray`
     * ( ) Text Streams (using `TextCodec`), including `err()`, `out()` and `in()`
 
   * Logging framework:
     * ( ) Make minimalist and extensible logging framework, sometimes it's really needed to write something somewhere, but current API is not supporting it
 
   * Containers
-    * (x) Rename Hash to UnorderedHash, add UnorderedSet.
     * ( ) Introduce LinkedHash, LinkedSet.
     * ( ) Introduce SortedHash, SortedSet.
     * ( ) Introduce hash table that is able to use custom accessor in get / put / contains methods. See FontManager.cpp TODO entry.
@@ -67,21 +65,20 @@ Fog-Framework design notes (in points):
 =TODO - Fog-Graphics=
 
   * Painter and RasterEngine:
-    * ( ) Ability to paint to A8 surface.
-    * ( ) Set global opacity
+    * (w) Ability to paint to A8 surface.
+    * (w) Set global opacity
     * (w) Text transform
-    * (w) Text over path
+    * ( ) Text over path
     * (w) Patterns transform
-      * ( ) Linear Gradient Transform
-      * ( ) Radial Gradient Transform
-      * ( ) Conical Gradient Transform
-    * ( ) Introduce `setClipPath()` / `resetClipPath()`
-    * (w) Introduce `setColorFilter()`, `resetColorFilter()`
+      * (w) Linear Gradient Transform
+      * (w) Radial Gradient Transform
+      * (w) Conical Gradient Transform
+    * (w) Introduce `setClipPath()` / `resetClipPath()`
     * (w) High-quality downscaling (transformation / scaling down)
     * (w) Improve quality of gradient rendering, current is ok except PAD gradients where it looks really bad (unaliased).
-    * ( ) Glyph rendering must be two pass based
-      * ( ) Apply glyph metrics, advance, etc, serialize to X, Y, `ImageData` array
-      * ( ) Render using not `GlyphSet`, but `ImageSet`.
+    * (w) Glyph rendering must be two pass based
+      * (w) Apply glyph metrics, advance, etc, serialize to X, Y, `ImageData` array
+      * (w) Render using not `GlyphSet`, but `ImageSet`.
     * ( ) Raster Engine
       * ( ) ColorBurn (SVG operator)
       * ( ) ColorDodge (SVG operator)
@@ -98,14 +95,7 @@ Fog-Framework design notes (in points):
       * (x) Write SSE2 composite functions for XRGB32 and PRGB32
       * ( ) Write SSE2 composite functions for A8
       * ( ) Specialize CLEAR operator in C implementation (performance TODO)
-    * ( ) Add innerLimit and innerJoin to painter, paint engine, and all related - INVALID, we should throw away innerLimit and innerJoin.
     * ( ) Add per/component alpha blending.
-    
-    * ( ) Rewrite ColorFilter in Painter:
-
-      Currently there is possibility to set color filter in painter, but this feature needs to be rewritten from the ground. Actual concept is based on source replacement (source is replaces by the color filter), but it's wrong. New concept must be based on compositing, so color filter will be alternative to compositing operators and will be set by setOperator() method.
-
-      DST = (DST original) LERP(SRC) (DST filtered by color filter)
 
   * Font and Text Rendering:
     * (w) Ability to render to 'Path'
@@ -114,7 +104,7 @@ Fog-Framework design notes (in points):
       * (w) Fix it - Kerning, Hinting
     * ( ) Cache size control
     * ( ) Increase granularity of X position in glyphs to 3 (0.00, 0.33, 0.66), because vector fonts can be very sensitive in small sizes.
-    * ( ) Text Iterator, retrieving glyph metrics, text metrics, individual glyphs and glyph sets.
+    * (w) Text Iterator, retrieving glyph metrics, text metrics, individual glyphs and glyph sets.
 
   * Path and Vector Processing:
     * ( ) PathToRegion, RegionToPath
