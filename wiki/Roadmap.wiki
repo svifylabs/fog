@@ -157,7 +157,14 @@ Fog-Framework design notes (in points):
     * ( ) ability to provide a way to draw own frame/caption (complete themeable)
     * ( ) ability to use directdraw/opengl as a backend (with flipping backend handler!)
     * ( ) also some grouping methods for multiwindow-system would be cool.
-    * (w) handling of Application::quit if last window was closed. Introducing EVENT_LAST_WINDOW_CLOSED and connecting it to Application::quit()?
+    * (x) handling of Application::quit if last window was closed. Introducing EVENT_LAST_WINDOW_CLOSED and connecting it to Application::quit()?
+
+
+  * Animation Support:
+    * (w) introduce simple animation support to Fog. 
+    * (w) possible to add fixed time animations (e.g. 200ms)
+    * (w) possible to add fixed step animations (e.g. 20 Steps)
+    * (w) add animation parameter to different widget-methods (show,hide,opacity...)
 
   * Layout Core:
     * (w) First define the API, what layout will do, what is expected that widget can calculate, how algorithms will be used to set / reset / recalculate the layout.
