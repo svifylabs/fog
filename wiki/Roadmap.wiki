@@ -150,7 +150,10 @@ Fog-Framework design notes (in points):
     * (x) ability to create frameless windows (popup)
     * (w) perhaps ability to create nonrect-windows, too
     * (x) ability to allow/disallow window-movements 
-    * ( ) ability to set/restore fullscreen mode
+    * (x) ability to set/restore fullscreen mode
+    * (w) modal windows support
+    * (x) support for per pixel alpha blended windows 
+    * (x) support for global transparency on windows
     * ( ) ability to provide a way to draw own frame/caption (complete themeable)
     * ( ) ability to use directdraw/opengl as a backend (with flipping backend handler!)
     * ( ) also some grouping methods for multiwindow-system would be cool.
