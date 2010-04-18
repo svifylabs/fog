@@ -507,8 +507,8 @@ There is also evidence that multithreading helps mainly with painting larger obj
 
 =Other Results=
 
-I'd like to see results from FogBench running on different machines. One person working on Cairo sent me results from his Intel-Atom and Cairo was faster in FillRect benchmark (actually only these results he sent me). So if you are interested you can run FogBench and paste results to special in [http://groups.google.com/group/fog-dev/browse_thread/thread/867d50829f98f470 Benchmarks] topic.
+I'd like to see results from FogBench running on different machines. One person working on Cairo sent me results from his Intel-Atom and Cairo was faster in FillRect benchmark (actually only these results he sent me). So if you are interested you can run FogBench and paste results to special [http://groups.google.com/group/fog-dev/browse_thread/thread/867d50829f98f470 Benchmarks topic].
 
 =Conclusion=
 
-Fog-Framework is currently fastest library than all other tested libraries! GDI+ is faster in only one test (not shown here, on some machines ImageAffine is faster using GDI+) and Cairo is so slow to win at least one test (again, this is not true on some machines where Cairo can win FillRect test, I need more benchmarks on these machines to found the bottleneck).
+Fog-Framework is currently fastest library than all other tested libraries! GDI+ is faster in only one test (not shown here, on some machines ImageAffine is faster using GDI+) and Cairo is so slow to win at least one test.
