@@ -108,7 +108,7 @@ Fog-Framework design notes (in points):
 
   * Path and Vector Processing:
     * ( ) PathToRegion, RegionToPath
-    * ( ) Add `fitTo(RectF)`
+    * (x) Add `fitTo(RectF)`
     * ( ) Add `addText(Font, String32)` to path
     * ( ) What about warp?
 
