@@ -65,15 +65,15 @@ Fog-Framework design notes (in points):
 =TODO - Fog-Graphics=
 
   * Painter and RasterEngine:
-    * (w) Ability to paint to A8 surface.
-    * (w) Set global opacity
+    * (w) Ability to paint to A8 surface
+    * (x) Set global opacity
     * (w) Text transform
     * ( ) Text over path
     * (w) Patterns transform
       * (w) Linear Gradient Transform
       * (w) Radial Gradient Transform
       * (w) Conical Gradient Transform
-    * (w) Introduce `setClipPath()` / `resetClipPath()`
+    * (x) Introduce clipping to paths (antialiased clipping)
     * (w) High-quality downscaling (transformation / scaling down)
     * (w) Improve quality of gradient rendering, current is ok except PAD gradients where it looks really bad (unaliased).
     * (w) Glyph rendering must be two pass based
@@ -94,7 +94,7 @@ Fog-Framework design notes (in points):
       * ( ) Write MMX composite functions for A8
       * (x) Write SSE2 composite functions for XRGB32 and PRGB32
       * ( ) Write SSE2 composite functions for A8
-      * ( ) Specialize CLEAR operator in C implementation (performance TODO)
+      * (x) Specialize CLEAR operator in C implementation (performance TODO)
     * ( ) Add per/component alpha blending.
 
   * Font and Text Rendering:
