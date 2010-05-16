@@ -117,7 +117,7 @@ struct (FOG_API) SomeClass;
 FOG_INLINE void* allocMyObject(sysuint_t size);
 }}}
 
-*Macros* should always be uppercase. Every macro should start with a FOG_.
+*Macros* should always be uppercase. Every macro should start with a `FOG_`.
 
 *Private member variables* always start with with a leading underscore, for example: 
 {{{
@@ -128,7 +128,7 @@ private:
 
 Sometimes private variables are declared as public, but contains underscore. Reason is that there are many C functions inside Fog-Framework (for example C implementation, SSE2 implementation, etc...) and these functions need access to class members.
 
-*Implementation* is always in .cpp file, except for inline methods which must be in headers. The convention is that everything that must be exported into shared library *must* be placed in the .cpp file. Everything that should be inlined and not exported should be in headers. Private classes are declared in header files containing _p suffix, for example SomeClass_p.h and implemented in standard SomeClass.cpp file. Private and non-exported classes must be declared using FOG_HIDDEN attribute.
+*Implementation* is always in .cpp file, except for inline methods which must be in headers. The convention is that everything that must be exported into shared library *must* be placed in the .cpp file. Everything that should be inlined and not exported should be in headers. Private classes are declared in header files containing `_p` suffix, for example `SomeClass_p.h` and implemented in standard `SomeClass.cpp` file. Private and non-exported classes must be declared using `FOG_HIDDEN` attribute.
 
 =`0`, `0.0`, `NULL` and `\0`=
 
