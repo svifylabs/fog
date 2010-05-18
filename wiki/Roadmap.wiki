@@ -117,8 +117,6 @@ Fog-Framework design notes (in points):
     * ( ) What about warp?
 
   * Color Utilities / Conversion:
-    * ( ) Add `ColorUtil.h`, `ColorUtil.cpp`
-    * ( ) Add `argbToAhsv`, `ahsvToArgb` (ColorUtil)
     * ( ) Add basic compositing also to Argb so we can use some color transformations when drawing widgets.
 
   * Image / filtering:
