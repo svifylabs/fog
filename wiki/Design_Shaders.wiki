@@ -24,7 +24,7 @@ Vector variable types:
     * [1] - y, g
     * [2] - z, b
     * [3] - w, a
-  * Notice that here for compatibility with opengl shaders we are using RGBA, in all Fog API the ARGB notation is used instead.
+  * Notice that for compatibility with opengl shaders we are using RGBA, in standard Fog API the ARGB notation is used instead.
 
 Structures:
 
