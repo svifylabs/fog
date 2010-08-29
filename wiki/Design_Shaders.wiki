@@ -5,6 +5,20 @@
 
 This document contains design and implementation notes of incoming 2d shaders module. It should cover the shader language, all functionality and possibility for future extensions to improve the performance.
 
+=Shader Assembly Language=
+
+Their are many variations of shader assembly language:
+  * !!ARBvp
+  * !!NVvp
+  * !!ARBcp
+  * !!NVfp
+  * !!NVgp4
+  * others
+
+We are starting with the !!ARBfp1.0 syntax.
+
+We imagine that shaders may be built with assembly, or generated via Cg.
+
 =Language=
 
 Scalar variable types:
@@ -25,6 +39,10 @@ Vector variable types:
     * [2] - z, b
     * [3] - w, a
   * Notice that for compatibility with opengl shaders we are using RGBA, in standard Fog API the ARGB notation is used instead.
+
+Mike: I am not sure if the array braces syntax is available for !!ARBfp1.0.  I now think that the array braces are used exclusively for PARAM array and program variable access operations.
+
+[http://www.renderguild.com/gpuguide.pdf Shader Assembly Language Quick Reference Guild].
 
 Structures:
 
@@ -83,3 +101,26 @@ pixel4 source()
 =Portability with OpenGL=
 
 This document should reveal all portability issues. The Fog-SL is defined to be shader language for 2d graphics, so for example we don't work with full 3d (4x4 matrix) transformations. The Fog-SL should be directly compilable into any language which can be executed by the GPU, so, this is reason why there are similar types and why there isn't loops.
+
+=Create Shader with Cg=
+
+Using the Windows or Linux Cg SDK:
+{{{
+CGprogram   myCgFragmentProgram;
+myCgFragmentProgram = cgCreateProgram(
+    myCgContext,                /* Cg runtime context */
+    CG_SOURCE,                  /* Program in human-readable form */
+    pcszCode,                   /* Cg Code */
+    CG_PROFILE_ARBFP1,          /* Profile: ARBfp1.0 */
+    pcszFuncName,               /* Entry function name */
+    NULL);                      /* No extra compiler options */
+    
+const char *pcszARB = cgGetProgramString(myCgFragmentProgram, CG_COMPILED_PROGRAM);
+
+// pcszARB now points to string of ARBfp1 Assembly Language
+
+// Use the Code
+
+// Cleanup
+cgDestroyProgram(myCgFragmentProgram);
+}}}
