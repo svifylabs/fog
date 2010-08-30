@@ -73,7 +73,32 @@ The clip/draw/fill methods can be joined together. This idea is similar to Cairo
 
 =Design - Filtering=
 
+  * setFillFilter() - Set filter to shape being filled
+  * setStrokeFilter() - Set filter to shape being stroked
+  * setImageFilter() - Set filter applied to rendered images.
+
+  * filter chain - Ability to create chain of filters which may be applied to a rendering object
   * Ability to assign an image filter to a painter
   * Usable to create blur / shadow to any rendered shape
   * Pixel-based image filtering supported by painter and can run multithreaded
   * efficient
+
+=Design - Features=
+
+  * Ability to create and work with 16-bit (64-bit ARGB or 48-bit RGB) images (int entities)
+  * Ability to create and work with 32-bit (128-bit ARGB or 96-bit RGB) images (float entities)
+  * JIT compilation for x86 and x64 platform using AsmJit.
+  * Smaller library, because pipeline will be JIT compiled by runtime and not by the C++ ocmpiler using templates and macros.
+
+=Design - Target=
+
+  * Ability to create a PDF document (volunteers?)
+  * Ability to create a SVG document (for testing)
+
+=Estimated Time=
+
+End of this year.
+
+=Notes=
+
+...
