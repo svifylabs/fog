@@ -1,0 +1,79 @@
+#summary Design and implementation of Fog-Painter
+#labels Phase-Design
+
+=Introduction=
+
+I have some ideas how to improve painting. The main idea here is to decrease count of methods exposed by the painter. The secondary idea is to add more features and possibilities into it.
+
+Current design is based on this schema:
+
+  * clip methods
+  * draw methods (stroke)
+  * fill methods
+  * image methods
+  * text methods
+
+The clip/draw/fill methods can be joined together. This idea is similar to Cairo graphics library, but I have plans to make it optimized and extremely flexible.
+
+=Design - Source=
+
+  * Source pattern or color will be different to operation that will be performed:
+    * Fill source pattern, color or shader - setFillSource() / getFillSource()
+    * Stroke source pattern, color or shader - setStrokeSource() / getStrokeSource()
+    * Image for image only command - image().
+
+  * The difference is needed to operation called fillAndStroke().
+  * Default text/glyph operation is fill (this is how fonts are designed), allowing also to stroke them.
+  * Raster based glyph cannot be stroked.
+
+=Design - Transformation=
+
+  * Current transformation matrix (CTM) approach.
+  * Painter methods will be similar to methods in Matrix.
+  * 3x3 matrices to allow perspective transformations.
+  * Each command is relative to CTM, when CTM is changed the already serialized vertices are not transformed, they remains.
+  * Pattern transformation matrix is created during setFillSource() or setStrokeSource() calls, it's not changed when changing CTM.
+
+=Design - Serialization=
+
+  * Painter is a state machine, where CTX (current transformation matrix) will be applied into each incoming vertex. This means that we can transform immediately after painter command is being serialized (it'd like to implement this using SSE2 if possible).
+
+  * Serialize methods will be related only to shape, not to operation. So for example methods may look like:
+    * Painter::moveTo(const DoublePoint&)
+    * Painter::lineTo(const DoublePoint&)
+    * Painter::arcTo(const DoublePoint&)
+    * Painter::addLine(), addRect(), ...
+    * Similar to Path() methods.
+
+=Design - Painting=
+
+  * After shape serialization the operation is needed:
+    * fill() - Performs a fill using fillSource.
+    * stroke() - Performs a stroke using strokeSource.
+    * fillAndStroke() - Performs a fill and then stroke, using fillSource and strokeSource.
+      * Possibility to tell painter to fill and stroke in extra surface and composite the result back (will be implemented efficiently).
+  * Several operations are also possible without a shape:
+    * Paint image - using paintImage()
+    * Paint glyph - using paintGlyph()
+    * Paint object - using paintObject()
+      * Can be a simple shape which can use fillColor or strokeColor)
+      * Can be a mesh (triangular or tensor product)
+      * We can add more objects in the future
+
+=Design - State=
+
+  * Like current design, save() / restore()
+  * Ability to use bit-flags (to save only something you need)
+
+=Design - clipping=
+
+  * clip() - Performs a clip (CLIP_OP_REPLACE, CLIP_OP_INTERSECT=default)
+  * Clipping always intersects with previous clip region or replaces it
+  * Ability to save a clipping state using save() / restore(), see the Design-State
+
+=Design - Filtering=
+
+  * Ability to assign an image filter to a painter
+  * Usable to create blur / shadow to any rendered shape
+  * Pixel-based image filtering supported by painter and can run multithreaded
+  * efficient
