@@ -129,4 +129,4 @@ cgDestroyProgram(myCgFragmentProgram);
 
 This module (library) requires AsmJit for the code generator.  The parser is built with yard (a public domain template based parsing library).
 
-[ARB module design]
+[[ARB module design]]
