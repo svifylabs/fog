@@ -136,23 +136,27 @@ Yard is a templated parser.  It is very easy to use, and understand.  It is also
 The Yard Parser library uses RTTI to discover what rule resolved by the parser.  I decided to change this to remove the RTTI.  Now, I use a static const int to identify the rule.
 
 Some of the rules used:
-
+{{{
 struct ARBComment;
 
 struct NewLine
 : Or<CharSeq<'\r', '\n'>, CharSeq<'\n'> >
 {		
-};	
+};
+}}}	
 
 This will match '\r\n' or '\n'.
 
+{{{
 struct WhiteSpace
 : Star<Or<Char<' '>, Char<'\t'>, NewLine, ARBComment, Char<'\r'>, Char<'\v'>, Char<'\f'> > >
 {
 };
+}}}
 
 Note: these don't have a const int because I don't process them.
 
+{{{
 struct DecNumber
 : Seq<Opt<Char<'-'> >, Plus<Digit>, Opt<Seq<Char<'.'>, Star<Digit> > >, NotAlphaNum, WhiteSpace>
 {
@@ -162,6 +166,7 @@ RULE_TYPE(ARB_DecNumber);
 #define RULE_TYPE(p) \
 	static const int eType_ = p; \
 	static int type() { return eType_; }	
+}}}
 
 This uses an enum with the rule names.  In the Match method, this is used to figure out what rule satisfied the input.
 
