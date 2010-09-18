@@ -1,0 +1,73 @@
+#summary Design and implementation of Fog-Canvas.
+#labels Phase-Design
+
+=Introduction=
+
+This document covers design and implementation notes of Fog-Canvas library. Library used to manage and work with axis-aligned rectangular elements. Canvas module is designed to solve several problems always needed to work with user interfaces or canvases.
+
+  * Canvas is object where can be added canvas elements.
+  * Canvas is root object and can be interpreted as canvas root element.
+  * Each element contains axis-aligned coordinates [X, Y, W, H].
+  * Elements implement keyboard and mouse handling through single delegate (can be called low-level canvas event).
+  * Canvas can optionally work with float elements, but each element needs to define its bounding box (at the lowest level integer coordinates are used for blitting and rectangle management).
+  * Canvas must efficiently CLIP canvas objects and solve collisions.
+
+=Design - Coordinates=
+
+Canvas sub-system is implemented using several objects
+ 
+  * CanvasElement - Lightweight canvas element.
+  * CanvasRoot - Root element.
+
+CanvasElement contains:
+
+  * IntRect coordinates - element bounding box.
+  * float alpha - element alpha (0.0 to 1.0, inclusive).
+  * uint32_t flags - element flags.
+  * CanvasElement* parent - link to parent
+  * CanvasElement* children[] - array of children elements.
+
+CanvasRoot contains:
+
+  * Based and compatible to canvas element.
+  * Support for keyboard and mouse handling.
+  * Support for native windowing system (manage top-level windows, through GuiEngine).
+  * Each canvas contains pixel-buffer.
+
+Canvas is in many ways simplified and optimized to work with GUI. Only operation that can be used to blit children element to the parent is SRC or SRC_OVER. If child element is not using alpha-channel the SRC is used, otherwise SRC_OVER. If canvas alpha-channel is used, element acts as semi-transparent (parent need to be fully rendered).
+
+A little optimization which can be used when rendering children is to create a set of rectangles which can be used as a clipping region by Painter. Canvas subsystem must decide when to use clipping region and when to use element owned buffer. There are several scenarios:
+
+  * Canvas element is fully opaque - clipping-region is used. Canvas element shares buffer with its parent element. Parent element rendering is clipped. The order of rendering (parent vs child) not matters since each element owns different pixels in main pixel-buffer.
+
+  * Canvas element is semi-transparent - Canvas element uses own pixel-buffer. It's possible and optionally to share this buffer with parent element, but only if canvas element has no other children. This is cheap memory optimization.
+
+=Design - Clipping and Collision detection=
+
+Each canvas element need information about the position and list of elements which are in collision. Collision means that some area of element is shared between other element. In GUI development the collision between GUI elements is rare, because elements are usually structured by layout containers (box, grid, flow, ...). Only exception is adding elements to do some effect (may collide with others) and stack-layouts (stack containers, tabs, etc). Stack layouts should normally hide elements thats in collision.
+
+This means that we need algorithm that is able to:
+
+  * Very fast clip elements thats outside of parent bounds. This is needed and widely used for scroll-area based widgets (use fantasy here, text documents, complex table widgets, etc...). This means that there should be array of visible elements and others (clipped, hidden, etc...).
+  * Very fast retrieval of elements in collision (sorting elements in Y direction is probably answer).
+  * Decision whether to use pixel-buffer for element or not. Based on element size and properties.
+
+Algorithm implementation (proposal):
+
+  * We need to sort canvas elements in Y direction then in X direction. I don't know if sorting in X direction is not overkill, but it will definitelly make algorithm robust.
+  * There is possibility to use binary space partitioning, but I don't know if it's good for GUI, because we know that there will be not so much elements in collision (or we can introduce some heuristic to switch between two algorithms). Not used for now.
+  * We need array (double-linked list is meant here) for visible canvas elements. This list can be also sorted by Y direction, it makes perfect sense. To improve memory footprint of canvas elements the list for visible and hidden elements can be shared (because these elements will be in different sets).
+  * Algorithm should mark elements dirty when something happens and main code should run all-at-once (updating all elements using one update() call). This ensures that advanced manipulation can be done without wasting CPU cycles for calculating something which will be modified again before rendering.
+
+TODO
+
+This is not completes and I need help with design and implementation.
+
+=External Resources=
+
+Where to look for existing implementation?
+
+  * XServer contains windowing system implementation. Maybe we should look to algorithm.
+  * TWM - Simple window toolkit (not the window manager project).
+  * Other GUI libraries, which ones?
+  * EVAS - Canvas library from enlightenment project.
