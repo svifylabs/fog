@@ -57,11 +57,11 @@ Algorithm implementation (proposal):
   * We need to sort canvas elements in Y direction then in X direction. I don't know if sorting in X direction is not overkill, but it will definitelly make algorithm robust.
   * There is possibility to use binary space partitioning, but I don't know if it's good for GUI, because we know that there will be not so much elements in collision (or we can introduce some heuristic to switch between two algorithms). Not used for now.
   * We need array (double-linked list is meant here) for visible canvas elements. This list can be also sorted by Y direction, it makes perfect sense. To improve memory footprint of canvas elements the list for visible and hidden elements can be shared (because these elements will be in different sets).
-  * Algorithm should mark elements dirty when something happens and main code should run all-at-once (updating all elements using one update() call). This ensures that advanced manipulation can be done without wasting CPU cycles for calculating something which will be modified again before rendering.
+  * Algorithm should mark elements dirty when something happens and main code should run all-at-once (updating all elements using one update() call). This ensures that advanced manipulation can be done without wasting CPU cycles for calculating something which will be modified later before rendering.
 
 TODO
 
-This is not completes and I need help with design and implementation.
+This is not complete, perfect or implemented.
 
 =External Resources=
 
