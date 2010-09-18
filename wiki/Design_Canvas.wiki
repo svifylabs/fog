@@ -24,8 +24,8 @@ CanvasElement contains:
   * IntRect coordinates - element bounding box.
   * float alpha - element alpha (0.0 to 1.0, inclusive).
   * uint32_t flags - element flags.
-  * CanvasElement* parent - link to parent
-  * CanvasElement* children[] - array of children elements.
+  * CanvasElement`*` parent - link to parent
+  * CanvasElement`*` children`[]` - array of children elements.
 
 CanvasRoot contains:
 
