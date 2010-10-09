@@ -417,6 +417,332 @@ ImageAffine           |128x128   | 56252.680 [ms] | 56774.577 [ms] | 44778.119 [
 Summary                          |180808.472 [ms] |200476.837 [ms] |251569.534 [ms] 
 }}}
 
+===Intel(R) Core(TM) i7 CPU Q720@1.60GHz, Windows 7 64-bit===
+
+{{{
+FogBench - Fog-Framework performance suite (version 0.3)
+
+Surface  : 640x480
+Quantity : 1000
+
+Processor: Intel(R) Core(TM) i7 CPU Q 720 @ 1.60GHz
+
+Features1: MMX=yes, MMXExt=yes, 3dNow=no, 3dNowExt=no, SSE=yes
+Features2: SSE2=yes, SSE3=yes, SSSE3=yes
+CPU count: 8
+
+Test                    |Size      |Fog-st     |Fog-mt     |Gdi+
+------------------------+----------+-----------+-----------+-----------
+Create-Destroy          |          |     2.248 |   232.388 |     1.990
+FillRect-Argb-Copy      |8x8       |     0.249 |     0.674 |     5.634
+FillRect-Argb-Over      |8x8       |     0.369 |     0.592 |     6.151
+FillRect-Grad-Copy      |8x8       |     1.833 |     1.883 |    14.128
+FillRect-Grad-Over      |8x8       |     2.219 |     1.596 |     9.498
+FillRectSubPX-Argb-Copy |8x8       |     1.248 |     7.259 |     3.663
+FillRectSubPX-Argb-Over |8x8       |     1.335 |     6.269 |     4.033
+FillRectSubPX-Grad-Copy |8x8       |     3.249 |     6.656 |     9.133
+FillRectSubPX-Grad-Over |8x8       |     3.145 |     6.291 |     9.569
+FillRectAffine-Argb-Copy|8x8       |     4.023 |     6.123 |     5.817
+FillRectAffine-Argb-Over|8x8       |     3.956 |     6.978 |     6.163
+FillRectAffine-Grad-Copy|8x8       |     4.935 |     9.102 |    10.852
+FillRectAffine-Grad-Over|8x8       |     6.002 |     7.093 |    11.199
+FillRound-Argb-Copy     |8x8       |     5.997 |     7.841 |    12.152
+FillRound-Argb-Over     |8x8       |     5.207 |     7.983 |    12.374
+FillRound-Grad-Copy     |8x8       |     6.895 |     7.353 |    17.966
+FillRound-Grad-Over     |8x8       |     6.986 |     6.909 |    21.479
+FillPolygon-Argb-Copy   |8x8       |     4.429 |     7.786 |     9.406
+FillPolygon-Argb-Over   |8x8       |     4.564 |     7.320 |     9.962
+FillPolygon-Grad-Copy   |8x8       |     5.422 |     8.477 |    15.007
+FillPolygon-Grad-Over   |8x8       |     6.569 |     7.756 |    15.429
+Image-Copy              |8x8       |     0.232 |     0.535 |     4.783
+Image-Over              |8x8       |     0.269 |     0.496 |     5.119
+ImageAffine-Copy        |8x8       |     3.991 |     7.111 |     6.441
+ImageAffine-Over        |8x8       |     4.538 |     7.506 |     7.019
+FillRect-Argb-Copy      |16x16     |     0.312 |     0.397 |     6.049
+FillRect-Argb-Over      |16x16     |     0.548 |     0.558 |     7.746
+FillRect-Grad-Copy      |16x16     |     2.390 |     1.809 |    12.238
+FillRect-Grad-Over      |16x16     |     2.471 |     1.648 |    13.091
+FillRectSubPX-Argb-Copy |16x16     |     1.545 |     7.289 |     5.788
+FillRectSubPX-Argb-Over |16x16     |     1.972 |     5.925 |     6.712
+FillRectSubPX-Grad-Copy |16x16     |     3.040 |     7.597 |    12.126
+FillRectSubPX-Grad-Over |16x16     |     3.351 |     8.152 |    13.357
+FillRectAffine-Argb-Copy|16x16     |     4.377 |     8.224 |     9.095
+FillRectAffine-Argb-Over|16x16     |     4.532 |     7.527 |    11.107
+FillRectAffine-Grad-Copy|16x16     |     6.368 |     8.263 |    15.435
+FillRectAffine-Grad-Over|16x16     |     6.434 |     8.627 |    15.574
+FillRound-Argb-Copy     |16x16     |     6.417 |     8.294 |    14.758
+FillRound-Argb-Over     |16x16     |     6.829 |     8.425 |    15.469
+FillRound-Grad-Copy     |16x16     |     8.178 |     8.975 |    20.624
+FillRound-Grad-Over     |16x16     |    10.144 |     8.945 |    24.612
+FillPolygon-Argb-Copy   |16x16     |     9.566 |     8.734 |    15.309
+FillPolygon-Argb-Over   |16x16     |     9.098 |     8.682 |    15.552
+FillPolygon-Grad-Copy   |16x16     |    10.656 |     9.328 |    24.333
+FillPolygon-Grad-Over   |16x16     |    10.015 |     9.502 |    22.207
+Image-Copy              |16x16     |     0.685 |     0.469 |     6.135
+Image-Over              |16x16     |     0.655 |     0.622 |     7.926
+ImageAffine-Copy        |16x16     |     8.082 |     9.494 |    10.285
+ImageAffine-Over        |16x16     |     8.444 |     9.584 |    12.151
+FillRect-Argb-Copy      |32x32     |     0.890 |     0.511 |    10.232
+FillRect-Argb-Over      |32x32     |     1.448 |     0.739 |    16.936
+FillRect-Grad-Copy      |32x32     |     3.072 |     1.795 |    19.972
+FillRect-Grad-Over      |32x32     |     4.766 |     2.497 |    21.444
+FillRectSubPX-Argb-Copy |32x32     |     2.879 |     8.538 |    11.054
+FillRectSubPX-Argb-Over |32x32     |     3.766 |     7.022 |    14.225
+FillRectSubPX-Grad-Copy |32x32     |     6.241 |    10.569 |    16.896
+FillRectSubPX-Grad-Over |32x32     |     7.727 |     9.983 |    21.184
+FillRectAffine-Argb-Copy|32x32     |     8.477 |    10.727 |    17.744
+FillRectAffine-Argb-Over|32x32     |     9.268 |     9.187 |    22.522
+FillRectAffine-Grad-Copy|32x32     |    12.330 |    11.322 |    24.996
+FillRectAffine-Grad-Over|32x32     |    13.543 |    12.684 |    25.695
+FillRound-Argb-Copy     |32x32     |     9.469 |     9.944 |    17.712
+FillRound-Argb-Over     |32x32     |     9.091 |     8.432 |    21.851
+FillRound-Grad-Copy     |32x32     |    11.080 |     9.007 |    24.683
+FillRound-Grad-Over     |32x32     |    14.147 |    11.735 |    28.484
+FillPolygon-Argb-Copy   |32x32     |    16.831 |    10.769 |    26.067
+FillPolygon-Argb-Over   |32x32     |    15.724 |    10.674 |    26.640
+FillPolygon-Grad-Copy   |32x32     |    17.302 |    13.568 |    36.837
+FillPolygon-Grad-Over   |32x32     |    20.774 |    13.078 |    33.076
+Image-Copy              |32x32     |     1.544 |     0.582 |     9.121
+Image-Over              |32x32     |     1.715 |     1.031 |    13.848
+ImageAffine-Copy        |32x32     |    22.943 |    13.876 |    20.009
+ImageAffine-Over        |32x32     |    20.345 |    13.963 |    22.007
+FillRect-Argb-Copy      |64x64     |     2.725 |     0.748 |    25.234
+FillRect-Argb-Over      |64x64     |     5.256 |     1.602 |    51.221
+FillRect-Grad-Copy      |64x64     |     8.070 |     3.796 |    37.806
+FillRect-Grad-Over      |64x64     |    13.905 |     6.780 |    49.804
+FillRectSubPX-Argb-Copy |64x64     |     5.547 |    10.218 |    19.799
+FillRectSubPX-Argb-Over |64x64     |     9.353 |    11.452 |    36.341
+FillRectSubPX-Grad-Copy |64x64     |    14.535 |    13.769 |    35.740
+FillRectSubPX-Grad-Over |64x64     |    19.557 |    15.483 |    48.894
+FillRectAffine-Argb-Copy|64x64     |    21.183 |    14.252 |    36.423
+FillRectAffine-Argb-Over|64x64     |    22.407 |    15.066 |    53.883
+FillRectAffine-Grad-Copy|64x64     |    26.545 |    17.082 |    42.705
+FillRectAffine-Grad-Over|64x64     |    31.814 |    16.742 |    64.223
+FillRound-Argb-Copy     |64x64     |    11.124 |     8.929 |    26.612
+FillRound-Argb-Over     |64x64     |    17.054 |     9.445 |    42.683
+FillRound-Grad-Copy     |64x64     |    22.495 |    12.817 |    45.085
+FillRound-Grad-Over     |64x64     |    23.827 |    15.273 |    61.023
+FillPolygon-Argb-Copy   |64x64     |    27.862 |    16.595 |    51.677
+FillPolygon-Argb-Over   |64x64     |    28.815 |    14.614 |    55.414
+FillPolygon-Grad-Copy   |64x64     |    33.543 |    16.572 |    53.708
+FillPolygon-Grad-Over   |64x64     |    42.496 |    21.466 |    64.433
+Image-Copy              |64x64     |     3.051 |     0.869 |    13.409
+Image-Over              |64x64     |     6.847 |     2.084 |    30.459
+ImageAffine-Copy        |64x64     |    55.490 |    19.591 |    51.355
+ImageAffine-Over        |64x64     |    54.393 |    22.085 |    64.079
+FillRect-Argb-Copy      |128x128   |     7.730 |     1.452 |    45.915
+FillRect-Argb-Over      |128x128   |    16.791 |     4.739 |   107.772
+FillRect-Grad-Copy      |128x128   |    26.197 |    11.188 |    85.055
+FillRect-Grad-Over      |128x128   |    57.254 |    19.888 |   145.214
+FillRectSubPX-Argb-Copy |128x128   |    13.335 |    10.063 |    39.612
+FillRectSubPX-Argb-Over |128x128   |    23.649 |    11.829 |   107.963
+FillRectSubPX-Grad-Copy |128x128   |    38.392 |    19.771 |    74.856
+FillRectSubPX-Grad-Over |128x128   |    58.411 |    25.961 |   146.076
+FillRectAffine-Argb-Copy|128x128   |    35.179 |    12.396 |    71.639
+FillRectAffine-Argb-Over|128x128   |    51.982 |    15.915 |   127.809
+FillRectAffine-Grad-Copy|128x128   |    71.922 |    25.652 |    97.547
+FillRectAffine-Grad-Over|128x128   |    90.866 |    32.899 |   163.197
+FillRound-Argb-Copy     |128x128   |    20.200 |    10.172 |    50.576
+FillRound-Argb-Over     |128x128   |    32.379 |    13.815 |   113.795
+FillRound-Grad-Copy     |128x128   |    49.371 |    20.235 |    88.505
+FillRound-Grad-Over     |128x128   |    63.342 |    27.661 |   155.034
+FillPolygon-Argb-Copy   |128x128   |    58.393 |    17.393 |    84.009
+FillPolygon-Argb-Over   |128x128   |    54.007 |    17.855 |   108.052
+FillPolygon-Grad-Copy   |128x128   |    65.055 |    22.616 |    99.190
+FillPolygon-Grad-Over   |128x128   |    72.230 |    24.181 |   125.092
+Image-Copy              |128x128   |     7.769 |     2.775 |    29.998
+Image-Over              |128x128   |    21.784 |     7.117 |    76.823
+ImageAffine-Copy        |128x128   |   159.133 |    60.862 |   178.649
+ImageAffine-Over        |128x128   |   183.329 |    67.562 |   240.365
+FillRect-Argb-Copy      |256x256   |    28.969 |     5.266 |    95.002
+FillRect-Argb-Over      |256x256   |    49.319 |    17.299 |   374.387
+FillRect-Grad-Copy      |256x256   |    82.554 |    40.343 |   222.644
+FillRect-Grad-Over      |256x256   |   187.193 |    72.537 |   496.109
+FillRectSubPX-Argb-Copy |256x256   |    36.042 |    20.306 |    85.034
+FillRectSubPX-Argb-Over |256x256   |    66.761 |    31.417 |   358.735
+FillRectSubPX-Grad-Copy |256x256   |   135.172 |    58.163 |   221.165
+FillRectSubPX-Grad-Over |256x256   |   201.091 |    82.200 |   488.025
+FillRectAffine-Argb-Copy|256x256   |    73.938 |    29.857 |   129.152
+FillRectAffine-Argb-Over|256x256   |   116.295 |    38.914 |   389.631
+FillRectAffine-Grad-Copy|256x256   |   184.315 |    72.106 |   249.507
+FillRectAffine-Grad-Over|256x256   |   254.240 |    97.362 |   532.285
+FillRound-Argb-Copy     |256x256   |    43.947 |    19.988 |    87.812
+FillRound-Argb-Over     |256x256   |    77.729 |    31.472 |   370.410
+FillRound-Grad-Copy     |256x256   |   135.800 |    61.686 |   209.620
+FillRound-Grad-Over     |256x256   |   241.330 |    82.238 |   495.004
+FillPolygon-Argb-Copy   |256x256   |   122.424 |    31.737 |   168.998
+FillPolygon-Argb-Over   |256x256   |   110.187 |    35.743 |   228.083
+FillPolygon-Grad-Copy   |256x256   |   137.957 |    44.635 |   213.123
+FillPolygon-Grad-Over   |256x256   |   149.754 |    52.715 |   262.742
+Image-Copy              |256x256   |    29.832 |    13.252 |    67.811
+Image-Over              |256x256   |    73.386 |    28.696 |   227.285
+ImageAffine-Copy        |256x256   |   584.469 |   270.689 |   711.654
+ImageAffine-Over        |256x256   |   630.413 |   244.954 |   853.357
+-----------------------------------+-----------+-----------+-----------
+Summary                            |  5991.057 |  2984.182 | 12218.146}}}
+
+===Intel(R) Core(TM)2 Duo CPU P8600 @2.40GHz, Windows Vista 64-bit===
+
+{{{
+FogBench - Fog-Framework performance suite (version 0.3)
+
+Surface  : 640x480
+Quantity : 1000
+
+Processor: Intel(R) Core(TM)2 Duo CPU P8600 @ 2.40GHz
+Features1: MMX=yes, MMXExt=yes, 3dNow=no, 3dNowExt=no, SSE=yes
+Features2: SSE2=yes, SSE3=yes, SSSE3=yes
+CPU count: 2
+Test                    |Size      |Fog-st     |Fog-mt     |Gdi+
+------------------------+----------+-----------+-----------+----------
+Create-Destroy          |          |     2.035 |    31.945 |     2.105
+FillRect-Argb-Copy      |8x8       |     0.160 |     0.249 |     5.029
+FillRect-Argb-Over      |8x8       |     0.256 |     0.429 |     5.689
+FillRect-Grad-Copy      |8x8       |     1.902 |     1.305 |    11.232
+FillRect-Grad-Over      |8x8       |     2.199 |     1.286 |    11.143
+FillRectSubPX-Argb-Copy |8x8       |     0.856 |     2.685 |     5.219
+FillRectSubPX-Argb-Over |8x8       |     1.045 |     2.163 |     5.168
+FillRectSubPX-Grad-Copy |8x8       |     3.043 |     3.808 |    10.475
+FillRectSubPX-Grad-Over |8x8       |     3.067 |     6.106 |    11.103
+FillRectAffine-Argb-Copy|8x8       |     3.241 |     2.870 |     7.162
+FillRectAffine-Argb-Over|8x8       |     3.201 |     2.741 |     7.115
+FillRectAffine-Grad-Copy|8x8       |     4.816 |     4.465 |    12.469
+FillRectAffine-Grad-Over|8x8       |     4.916 |     4.514 |    12.392
+FillRound-Argb-Copy     |8x8       |     6.779 |     5.575 |    14.223
+FillRound-Argb-Over     |8x8       |     6.206 |     5.959 |    15.263
+FillRound-Grad-Copy     |8x8       |     8.356 |     7.461 |    20.833
+FillRound-Grad-Over     |8x8       |     8.463 |     9.648 |    20.663
+FillPolygon-Argb-Copy   |8x8       |     4.822 |     3.783 |    10.652
+FillPolygon-Argb-Over   |8x8       |     4.832 |     4.706 |    11.177
+FillPolygon-Grad-Copy   |8x8       |     6.276 |     5.199 |    16.849
+FillPolygon-Grad-Over   |8x8       |     6.621 |     5.602 |    17.464
+Image-Copy              |8x8       |     0.182 |     0.367 |     4.528
+Image-Over              |8x8       |     0.309 |     0.370 |     4.961
+ImageAffine-Copy        |8x8       |     4.799 |     5.624 |     6.474
+ImageAffine-Over        |8x8       |     5.387 |     3.980 |     7.093
+FillRect-Argb-Copy      |16x16     |     0.241 |     0.310 |     7.316
+FillRect-Argb-Over      |16x16     |     0.530 |     0.502 |     8.473
+FillRect-Grad-Copy      |16x16     |     3.581 |     1.333 |    14.051
+FillRect-Grad-Over      |16x16     |     3.137 |     2.087 |    15.431
+FillRectSubPX-Argb-Copy |16x16     |     1.461 |     4.974 |     7.264
+FillRectSubPX-Argb-Over |16x16     |     1.739 |     2.678 |     7.773
+FillRectSubPX-Grad-Copy |16x16     |     4.899 |     4.612 |    13.389
+FillRectSubPX-Grad-Over |16x16     |     4.799 |     4.784 |    14.714
+FillRectAffine-Argb-Copy|16x16     |     5.341 |     3.816 |    10.682
+FillRectAffine-Argb-Over|16x16     |     5.279 |     4.330 |    11.505
+FillRectAffine-Grad-Copy|16x16     |     7.817 |     5.852 |    17.349
+FillRectAffine-Grad-Over|16x16     |     8.723 |     6.162 |    17.938
+FillRound-Argb-Copy     |16x16     |     9.042 |     8.757 |    17.353
+FillRound-Argb-Over     |16x16     |     8.672 |     6.972 |    18.241
+FillRound-Grad-Copy     |16x16     |    11.195 |     9.519 |    24.206
+FillRound-Grad-Over     |16x16     |    11.724 |    10.598 |    25.806
+FillPolygon-Argb-Copy   |16x16     |     8.615 |     5.588 |    16.996
+FillPolygon-Argb-Over   |16x16     |     8.864 |     6.780 |    17.998
+FillPolygon-Grad-Copy   |16x16     |    10.906 |     8.176 |    23.698
+FillPolygon-Grad-Over   |16x16     |    10.998 |     7.494 |    24.299
+Image-Copy              |16x16     |     0.390 |     0.537 |     5.969
+Image-Over              |16x16     |     0.839 |     0.722 |     6.321
+ImageAffine-Copy        |16x16     |    10.271 |     8.293 |     9.410
+ImageAffine-Over        |16x16     |    11.381 |     6.472 |    11.129
+FillRect-Argb-Copy      |32x32     |     0.552 |     0.533 |    13.904
+FillRect-Argb-Over      |32x32     |     1.358 |     0.846 |    17.482
+FillRect-Grad-Copy      |32x32     |     3.682 |     2.790 |    21.963
+FillRect-Grad-Over      |32x32     |     7.755 |     4.166 |    25.598
+FillRectSubPX-Argb-Copy |32x32     |     2.735 |     3.758 |    13.260
+FillRectSubPX-Argb-Over |32x32     |     3.348 |     3.891 |    16.692
+FillRectSubPX-Grad-Copy |32x32     |     7.201 |     6.358 |    20.788
+FillRectSubPX-Grad-Over |32x32     |     9.095 |     9.211 |    24.887
+FillRectAffine-Argb-Copy|32x32     |    10.151 |     6.134 |    19.076
+FillRectAffine-Argb-Over|32x32     |    10.735 |     8.220 |    22.384
+FillRectAffine-Grad-Copy|32x32     |    15.535 |    11.065 |    26.576
+FillRectAffine-Grad-Over|32x32     |    16.377 |     9.560 |    29.783
+FillRound-Argb-Copy     |32x32     |    10.776 |     7.609 |    23.337
+FillRound-Argb-Over     |32x32     |    11.573 |     9.445 |    26.385
+FillRound-Grad-Copy     |32x32     |    15.356 |    12.076 |    31.077
+FillRound-Grad-Over     |32x32     |    17.525 |    13.228 |    34.291
+FillPolygon-Argb-Copy   |32x32     |    16.439 |     9.262 |    28.053
+FillPolygon-Argb-Over   |32x32     |    16.799 |     9.615 |    29.444
+FillPolygon-Grad-Copy   |32x32     |    20.224 |    12.671 |    35.443
+FillPolygon-Grad-Over   |32x32     |    20.640 |    12.967 |    36.841
+Image-Copy              |32x32     |     0.990 |     0.725 |     8.684
+Image-Over              |32x32     |     2.456 |     1.645 |    11.029
+ImageAffine-Copy        |32x32     |    22.774 |    14.649 |    21.083
+ImageAffine-Over        |32x32     |    24.689 |    15.458 |    23.178
+FillRect-Argb-Copy      |64x64     |     1.508 |     1.323 |    33.212
+FillRect-Argb-Over      |64x64     |     4.038 |     3.277 |    44.437
+FillRect-Grad-Copy      |64x64     |     8.673 |     5.137 |    46.707
+FillRect-Grad-Over      |64x64     |    18.607 |    12.088 |    57.735
+FillRectSubPX-Argb-Copy |64x64     |     6.070 |     6.014 |    31.135
+FillRectSubPX-Argb-Over |64x64     |     8.255 |     6.848 |    42.297
+FillRectSubPX-Grad-Copy |64x64     |    17.629 |    12.831 |    43.673
+FillRectSubPX-Grad-Over |64x64     |    24.245 |    16.455 |    56.282
+FillRectAffine-Argb-Copy|64x64     |    17.984 |    12.453 |    41.733
+FillRectAffine-Argb-Over|64x64     |    20.602 |    14.015 |    53.295
+FillRectAffine-Grad-Copy|64x64     |    28.948 |    18.842 |    56.375
+FillRectAffine-Grad-Over|64x64     |    36.114 |    21.296 |    66.168
+FillRound-Argb-Copy     |64x64     |    13.443 |    11.992 |    40.033
+FillRound-Argb-Over     |64x64     |    16.979 |    12.779 |    52.144
+FillRound-Grad-Copy     |64x64     |    24.763 |    17.795 |    51.344
+FillRound-Grad-Over     |64x64     |    31.818 |    20.603 |    65.003
+FillPolygon-Argb-Copy   |64x64     |    29.758 |    18.087 |    50.465
+FillPolygon-Argb-Over   |64x64     |    31.122 |    18.854 |    56.351
+FillPolygon-Grad-Copy   |64x64     |    37.047 |    21.706 |    62.157
+FillPolygon-Grad-Over   |64x64     |    39.481 |    23.105 |    66.183
+Image-Copy              |64x64     |     3.051 |     3.267 |    20.859
+Image-Over              |64x64     |     9.129 |     4.900 |    27.211
+ImageAffine-Copy        |64x64     |    62.433 |    34.794 |    61.675
+ImageAffine-Over        |64x64     |    67.718 |    38.887 |    69.433
+FillRect-Argb-Copy      |128x128   |     5.024 |     4.232 |    88.934
+FillRect-Argb-Over      |128x128   |    14.142 |     7.381 |   130.818
+FillRect-Grad-Copy      |128x128   |    27.239 |    14.973 |   124.876
+FillRect-Grad-Over      |128x128   |    65.125 |    33.636 |   167.802
+FillRectSubPX-Argb-Copy |128x128   |    13.484 |    12.559 |    84.857
+FillRectSubPX-Argb-Over |128x128   |    22.193 |    17.334 |   129.029
+FillRectSubPX-Grad-Copy |128x128   |    47.657 |    29.124 |   121.874
+FillRectSubPX-Grad-Over |128x128   |    98.343 |    42.088 |   164.753
+FillRectAffine-Argb-Copy|128x128   |    42.889 |    22.941 |   106.879
+FillRectAffine-Argb-Over|128x128   |    47.142 |    27.426 |   148.728
+FillRectAffine-Grad-Copy|128x128   |    70.477 |    40.426 |   144.144
+FillRectAffine-Grad-Over|128x128   |    97.337 |    53.769 |   183.260
+FillRound-Argb-Copy     |128x128   |    21.179 |    16.387 |    92.488
+FillRound-Argb-Over     |128x128   |    31.918 |    32.001 |   138.076
+FillRound-Grad-Copy     |128x128   |    54.839 |    30.501 |   128.017
+FillRound-Grad-Over     |128x128   |    82.626 |    44.978 |   174.441
+FillPolygon-Argb-Copy   |128x128   |    56.841 |    31.866 |   101.275
+FillPolygon-Argb-Over   |128x128   |    58.963 |    33.521 |   112.040
+FillPolygon-Grad-Copy   |128x128   |    71.626 |    40.002 |   118.212
+FillPolygon-Grad-Over   |128x128   |    79.543 |    43.669 |   129.318
+Image-Copy              |128x128   |    10.901 |     6.827 |    62.024
+Image-Over              |128x128   |    29.904 |    39.563 |    79.001
+ImageAffine-Copy        |128x128   |   218.544 |   139.418 |   226.579
+ImageAffine-Over        |128x128   |   221.621 |   130.686 |   246.687
+FillRect-Argb-Copy      |256x256   |    19.075 |    20.321 |   272.726
+FillRect-Argb-Over      |256x256   |    51.581 |    28.549 |   434.811
+FillRect-Grad-Copy      |256x256   |    94.863 |    67.853 |   404.622
+FillRect-Grad-Over      |256x256   |   238.583 |   135.051 |   634.811
+FillRectSubPX-Argb-Copy |256x256   |    34.393 |    28.090 |   262.877
+FillRectSubPX-Argb-Over |256x256   |    68.797 |    46.947 |   435.928
+FillRectSubPX-Grad-Copy |256x256   |   146.726 |    84.537 |   385.832
+FillRectSubPX-Grad-Over |256x256   |   256.983 |   156.329 |   562.098
+FillRectAffine-Argb-Copy|256x256   |    81.222 |    44.070 |   308.966
+FillRectAffine-Argb-Over|256x256   |   114.263 |    62.879 |   466.875
+FillRectAffine-Grad-Copy|256x256   |   192.169 |   103.135 |   450.722
+FillRectAffine-Grad-Over|256x256   |   297.214 |   162.918 |   592.715
+FillRound-Argb-Copy     |256x256   |    45.056 |    30.971 |   269.489
+FillRound-Argb-Over     |256x256   |    83.734 |    45.152 |   437.375
+FillRound-Grad-Copy     |256x256   |   154.097 |    93.156 |   392.833
+FillRound-Grad-Over     |256x256   |   262.642 |   147.512 |   563.896
+FillPolygon-Argb-Copy   |256x256   |   107.618 |    59.445 |   208.963
+FillPolygon-Argb-Over   |256x256   |   115.078 |    67.077 |   249.392
+FillPolygon-Grad-Copy   |256x256   |   143.114 |    92.099 |   253.874
+FillPolygon-Grad-Over   |256x256   |   166.474 |    94.124 |   321.766
+Image-Copy              |256x256   |    42.469 |    24.797 |   244.699
+Image-Over              |256x256   |   107.666 |    55.198 |   296.873
+ImageAffine-Copy        |256x256   |   734.442 |   388.719 |  1014.373
+ImageAffine-Over        |256x256   |   805.478 |   427.692 |   961.094
+-----------------------------------+-----------+-----------+----------
+Summary                            |  6925.435 |  4149.185 | 15992.605}}}
+
 =Discussion=
 
 You can see that Fog-Framework is really fast compared to others, but can be even faster in future. The performance of filling aligned rectangles and blitting images to aligned pixel grid is near the borders. But performance of path rasterization and pattern rendering could be improved. Currently performance can be improved using better memory management, rewriting the rest of algorithms to use SSE2 or trying different rasterizers.
