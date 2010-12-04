@@ -180,3 +180,7 @@ The column length should always be 80 characters. If your code uses many inlines
 =Infinite Loops=
 
 When using infinite loops, they should start with `for (;;)`.
+
+=Exceptions, STL and RTTI=
+
+Exceptions, STL and RTTI are forbidden to use (by `-fno-exceptions` and `-fno-rtti'). Since excpetions and RTTI bloat binary size, Fog is instead using error codes. 
