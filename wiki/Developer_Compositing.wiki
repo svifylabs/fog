@@ -1,8 +1,25 @@
 #summary Compositing operators and their formulas for combined image formats.
+#labels Phase-Implementation
 
 =Specifications=
 
   * [http://dev.w3.org/SVG/modules/compositing/master/SVGCompositingPrimer.html SVG-Specification]
+
+=Base=
+{{{
+  Dca' = CompositeC(Dca, Da, Sca, Sa)
+  Da'  = CompositeA(Dca, Da, Sca, Sa)
+
+  Msk (A):
+
+  Dca' = CompositeC(Dca, Da, Sca, Sa).Ma + Dca.(1 - Ma)
+  Da'  = CompositeA(Dca, Da, Sca, Sa).Ma + Dca.(1 - Ma)
+
+  Msk (ARGB):
+
+  Dca' = CompositeC(Dca, Da, Sca, Sa).Mc + Dca.(1 - Mc)
+  Da'  = CompositeA(Dca, Da, Sca, Sa).Ma + Dca.(1 - Ma)
+}}}
 
 =SRC=
 {{{
@@ -434,7 +451,16 @@ Formulas for A(dst), A(src) colorspaces (XOR):
 }}}
 =CLEAR=
 {{{
-Formulas for PRGB(dst), PRGB(src) colorspaces (CLEAR):
+Formulas for ARGB(dst) colorspace (CLEAR):
+  Dc'  = 0
+  Da'  = 0
+
+  Msk:
+
+  Dca' = Dc
+  Da'  = Da.(1 - m)
+
+Formulas for PRGB(dst) colorspace (CLEAR):
   Dca' = 0
   Da'  = 0
 
@@ -443,30 +469,14 @@ Formulas for PRGB(dst), PRGB(src) colorspaces (CLEAR):
   Dca' = Dca.(1 - m)
   Da'  = Da .(1 - m)
 
-Formulas for PRGB(dst), XRGB(src) colorspaces (CLEAR):
-  Dca' = 0
-  Da'  = 0
-
-  Msk:
-
-  Dca' = Dca.(1 - m)
-  Da'  = Da .(1 - m)
-
-Formulas for XRGB(dst), PRGB(src) colorspaces (CLEAR):
+Formulas for XRGB(dst) colorspace (CLEAR):
   Dc'  = 0
 
   Msk:
 
   Dc'  = Dc.(1 - m)
 
-Formulas for XRGB(dst), XRGB(src) colorspaces (CLEAR):
-  Dc'  = 0
-
-  Msk:
-
-  Dc'  = Dc.(1 - m)
-
-Formulas for A(dst), A(src) colorspaces (CLEAR):
+Formulas for A(dst) colorspace (CLEAR):
   Da'  = 0
 
   Msk:
