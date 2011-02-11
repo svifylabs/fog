@@ -16,7 +16,8 @@ struct SomeStruct
 };
 }}}
 
-If the statement inside a loop or an `if`-statement merely consists of one line, it should be all written in the same line. <br>
+If the statement inside a loop or an `if`-statement merely consists of one line, it should be all written in the same line.  
+
 Behind the *if-, for-, while-keywords* is always a whitespace.
 
 {{{
@@ -28,32 +29,40 @@ for (;;)
 }
 }}}
 
-The *const-Keyword* should always appear before the value type, for example: <br>
-`const Char* s = string->getData();`
+The *const-Keyword* should always appear before the value type, for example:  
+{{{
+const Char* s = string->getData();
+}}}
 
-The *reference/pointer indicating character* should always appear immidiatly behind the value type, for example: <br>
-`EventLoop* createEventLoop(const String& type)`
+The *`&` / `*` indicating a reference / pointer type* should always appear immidiatly behind the value type:
+{{{
+EventLoop* createEventLoop(const String& type);
+}}}
 
-*Passing parameters to functions*:<br>
-Instead of passing values to function, you should prefer a constant reference if the value‘s type is bigger than 4-8 bytes or it's not POD type.
-Example: <br>
-`EventLoop* createEventLoop(const String& type);` instead of <br>
-`EventLopp* createEventLoop(String type);`. <br>
-But you should although use: <br>
-`err_t setInt(int32_t n, int base)`, and not: <br>
-`err_t setInt(const int32_t& n, const int& base)`. <br>
+*Passing parameters*: Instead of passing values to function, you should prefer a constant reference if the value‘s type is bigger than 4-8 bytes or it's not POD type. 
+{{{
+EventLoop* createEventLoop(const String& type);
+EventLoop* createEventLoop(String type); //< This is bad.
+}}}
+  
+But nevertheless:  
+{{{
+err_t setInt(int32_t n, int base); 
+err_t setInt(const int32_t& n, const int& base); //< This is bad
+}}}   
 
-Notice that for example 'Argb' is always passed as value, because it's just uint32_t wrapped in a structure, but ArgbStop is always passed as reference (it's primitive type, but it's too long to pass it as value).
+Notice that for example `Argb` is always passed as value, because it's just `uint32_t` wrapped in a structure, but `ArgbStop` is always passed as reference (it's primitive type, but it's too long to pass it as value).  
 
-Use "*struct*" instead of "*class*". <br>
+Use `struct` instead of `class`.  
+
 
 =Comments=
 
-Comments should always start with a //. 
+Comments should always start with a `//`. 
 
 *Doxygen* is used by Fog-Framework in order to document the source code. Doxygen comments should look like `//!`. Now, doxygen markups (e.g. `@verbatim`) can be used. For more information see the Doxygen documentation. 
 
-*File comments* should be at the top of each file. They should look like the following: 
+There should be standard *file comment* at the top of each file: 
 {{{
 // [Fog-<MODULE> Library - C++ API]
 //
@@ -88,7 +97,7 @@ In order to *name sections* of code, what should actually be done very often, wr
   
 =Naming Conventions=
 
-*C++ source files* always end with `.cpp`. Headers end with `.h`. Both are always starting with an upper case letter and use camel case notation, for example: <br>
+*C++ source files* always end with `.cpp`. Headers end with `.h`. Both are always starting with an upper case letter and use camel case notation, for example:  
 {{{
 SomeClass.h
 SomeClass.cpp
@@ -105,7 +114,8 @@ All headers should start with an *include guard*, in order to prevent multiple i
 #endif // _FOG_MODULE_SOMECLASS_H
 }}}
 
-Everything, which belongs the Fog has to be declared inside the *Fog namespace*, but there are some typedefs which are not. For example Fog system types `sysint_t` and `sysuint_t` thats used similarly as `size_t` and `ssize_t` are declared inside global namespace. The `err_t` type is also declared in global namespace. <br> 
+Everything, which belongs the Fog has to be declared inside the *Fog namespace*, but there are some typedefs which are not. For example Fog system types `sysint_t` and `sysuint_t` thats used similarly as `size_t` and `ssize_t` are declared inside global namespace. The `err_t` type is also declared in global namespace.   
+
 
 *Structs* start with an uppercase letter and use camel case notation, for example:
 {{{
@@ -130,7 +140,7 @@ Sometimes private variables are declared as public, but contains underscore. Rea
 
 *Implementation* is always in .cpp file, except for inline methods which must be in headers. The convention is that everything that must be exported into shared library *must* be placed in the .cpp file. Everything that should be inlined and not exported should be in headers. Private classes are declared in header files containing `_p` suffix, for example `SomeClass_p.h` and implemented in standard `SomeClass.cpp` file. Private and non-exported classes must be declared using `FOG_HIDDEN` attribute.
 
-=`0`, `0.0`, `NULL` and `\0`=
+=0, NULL etc.=
 
 `0` is used for integers, `0.0` is used for reals, `NULL` is used for pointers, `\0` or `Char('\0')` is used for chars.
 
@@ -139,8 +149,7 @@ Sometimes private variables are declared as public, but contains underscore. Rea
 In order to inline functions, use the `FOG_INLINE` macro. Notice that `FOG_INLINE` macro expands to compiler dependent way how to tell compiler to always inline a given code. If you don't want to inline code, but you want to declare it in header (for example in template) use `FOG_NO_INLINE` macro.
 
 =Parameter order=
-If possible: first destination parameter, then source parameter.<br>
-For example:
+If possible: first destination parameter, then source parameter. For example:
 {{{
     static void pathFromCGPath(ApplyInfo& dst, CGPathRef src);
 }}}
@@ -162,14 +171,14 @@ Example:
 
 use standard C++ integer typedef as they are declared in the stdint header, which means:<br>
 `int8_t` instead of `signed char`, <br>
-`uint8_t` instead of `unsigned char`, <br>
+`uint8_t` instead of `unsigned char`  
 
 `int16_t` instead of `short`, <br>
-`uint16_t` instead of `unsigned short`, <br><br>
+`uint16_t` instead of `unsigned short`  
 
 `sysint_t` instead of `int`, <br>
 `sysuint_t` instead of `unsigned int`, <br>
-(`sysint_t` decides between 32- and 64-bit) <br>
+(`sysint_t` decides between 32- and 64-bit)  
 
 `sysint_t` and `sysuint_t` are Fog types that have same role as ssize_t and size_t types. They are used in places where you normally use size_t (string length, array length, ...).
 
@@ -183,4 +192,4 @@ When using infinite loops, they should start with `for (;;)`.
 
 =Exceptions, STL and RTTI=
 
-Exceptions, STL and RTTI are forbidden to use (by `-fno-exceptions` and `-fno-rtti'). Since excpetions and RTTI bloat binary size, Fog is instead using error codes. 
+Exceptions, STL and RTTI are forbidden to use (by `-fno-exceptions` and `-fno-rtti`). Since excpetions and RTTI bloat binary size, Fog is instead using error codes. 
