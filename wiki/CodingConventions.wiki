@@ -154,18 +154,34 @@ If possible: first destination parameter, then source parameter. For example:
     static void pathFromCGPath(ApplyInfo& dst, CGPathRef src);
 }}}
 
-=OS Determining=
+=Error Handling=
+Fog uses error codes in the form of `ERR_XXX`, e.g.  `ERR_OK` or `ERR_RT_OUT_OF_MEMORY`. They are defined in the `Constants.h` header.  
 
-There are macros available, which can be used in order to determine the current operating system at compile-time.
-These are in the format `FOG_OS_<PLATFORM>`. `PLATFORM` can be: `WINDOWS`, `POSIX`, `LINUX`, `FREEBSD`, `OPENBSD`, `NETBSD`, `HPUX` or `MAC`. <br>
-Example: 
+There is a nice macro which makes error handling easy: RETURN_ON_ERROR. 
+
+Instead of
 {{{
-    #if defined(FOG_OS_WINDOWS)
-     // do some windows stuff here
-    #else
-     // do some posix stuff here
-    #endif
+  err_t err;
+
+  if ((err = result.set(Fog::Ascii8("Hello World"))) != Fog::ERR_OK) return err;
+  if ((err = result.append(Fog::Char('!'))) != Fog::ERR_OK) return err;
+
+  return Fog::ERR_OK;
 }}}
+
+You can write
+{{{
+  RETURN_ON_ERROR( result.set(Fog::Ascii8("Hello World")) );
+  RETURN_ON_ERROR( result.append(Fog::Char('!')) );
+
+  return Fog::ERR_OK;
+}}}
+Use it!
+
+Exceptions (and RTTI) are forbidden to use (by `-fno-exceptions` and `-fno-rtti`), since:
+- resulting binary size is bigger
+- It's not needed to write exception-safe code.
+- error codes are lightweight and enough.
 
 =Integer typedefs=
 
@@ -186,10 +202,19 @@ use standard C++ integer typedef as they are declared in the stdint header, whic
 
 The column length should always be 80 characters. If your code uses many inlines and code is bigger (for example 90-100 characters), keep in in one line.
 
+=Determine OS=
+
+There are macros available, which can be used in order to determine the current operating system at compile-time.
+These are in the format `FOG_OS_<PLATFORM>`. `PLATFORM` can be: `WINDOWS`, `POSIX`, `LINUX`, `FREEBSD`, `OPENBSD`, `NETBSD`, `HPUX` or `MAC`. <br>
+Example: 
+{{{
+    #if defined(FOG_OS_WINDOWS)
+     // do some windows stuff here
+    #else
+     // do some posix stuff here
+    #endif
+}}}
+
 =Infinite Loops=
 
 When using infinite loops, they should start with `for (;;)`.
-
-=Exceptions, STL and RTTI=
-
-Exceptions, STL and RTTI are forbidden to use (by `-fno-exceptions` and `-fno-rtti`). Since excpetions and RTTI bloat binary size, Fog is instead using error codes. 
