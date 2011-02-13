@@ -3,7 +3,7 @@
 
 =Identation, Braces, Position of Keywords=
 
-*Code Indentation* Code inside `{}`-Braces should be indented for 2 whitespaces. Do not use tabs! 
+*Code Indentation*: Code inside `{}` braces should be indented for 2 whitespaces except for class visibilty (`public`, `private` etc) and `goto` labels. Do not use tabs! 
 
 *Braces* should always have there own line, for example: 
 {{{
@@ -18,7 +18,7 @@ struct SomeStruct
 
 If the statement inside a loop or an `if`-statement merely consists of one line, it should be all written in the same line.  
 
-Behind the *if-, for-, while-keywords* is always a whitespace.
+*Control keywords* like `if`, `for`, `while` are always followed by a single whitespace.
 
 {{{
 if (object.isNull()) return ERR_SOMETHING;
@@ -29,7 +29,7 @@ for (;;)
 }
 }}}
 
-The *const-Keyword* should always appear before the value type, for example:  
+The *`const` keyword* should always appear before the value type, for example:  
 {{{
 const Char* s = string->getData();
 }}}
@@ -140,10 +140,6 @@ Sometimes private variables are declared as public, but contains underscore. Rea
 
 *Implementation* is always in .cpp file, except for inline methods which must be in headers. The convention is that everything that must be exported into shared library *must* be placed in the .cpp file. Everything that should be inlined and not exported should be in headers. Private classes are declared in header files containing `_p` suffix, for example `SomeClass_p.h` and implemented in standard `SomeClass.cpp` file. Private and non-exported classes must be declared using `FOG_HIDDEN` attribute.
 
-=0, NULL etc.=
-
-`0` is used for integers, `0.0` is used for reals, `NULL` is used for pointers, `\0` or `Char('\0')` is used for chars.
-
 =Inlining=
 
 In order to inline functions, use the `FOG_INLINE` macro. Notice that `FOG_INLINE` macro expands to compiler dependent way how to tell compiler to always inline a given code. If you don't want to inline code, but you want to declare it in header (for example in template) use `FOG_NO_INLINE` macro.
@@ -151,7 +147,7 @@ In order to inline functions, use the `FOG_INLINE` macro. Notice that `FOG_INLIN
 =Parameter order=
 If possible: first destination parameter, then source parameter. For example:
 {{{
-    static void pathFromCGPath(ApplyInfo& dst, CGPathRef src);
+static void pathFromCGPath(ApplyInfo& dst, CGPathRef src);
 }}}
 
 =Error Handling=
@@ -161,31 +157,32 @@ There is a nice macro which makes error handling easy: RETURN_ON_ERROR.
 
 Instead of
 {{{
-  err_t err;
+err_t err;
 
-  if ((err = result.set(Fog::Ascii8("Hello World"))) != Fog::ERR_OK) return err;
-  if ((err = result.append(Fog::Char('!'))) != Fog::ERR_OK) return err;
+if ((err = result.set(Fog::Ascii8("Hello World"))) != Fog::ERR_OK) return err;
+if ((err = result.append(Fog::Char('!'))) != Fog::ERR_OK) return err;
 
-  return Fog::ERR_OK;
+return Fog::ERR_OK;
 }}}
 
 You can write
 {{{
-  RETURN_ON_ERROR( result.set(Fog::Ascii8("Hello World")) );
-  RETURN_ON_ERROR( result.append(Fog::Char('!')) );
+RETURN_ON_ERROR( result.set(Fog::Ascii8("Hello World")) );
+RETURN_ON_ERROR( result.append(Fog::Char('!')) );
 
-  return Fog::ERR_OK;
+return Fog::ERR_OK;
 }}}
 Use it!
 
-Exceptions (and RTTI) are forbidden to use (by `-fno-exceptions` and `-fno-rtti`), since:
-- resulting binary size is bigger
-- It's not needed to write exception-safe code.
-- error codes are lightweight and enough.
+Exceptions are forbidden to use (by `-fno-exceptions` flag). This has some advantages:
+  *  Resulting binary size is bigger
+  *  It's not needed to write exception-safe code.
+  *  Error codes are lightweight and enough.
 
 =Integer typedefs=
 
-use standard C++ integer typedef as they are declared in the stdint header, which means:<br>
+use standard C++ integer typedef as they are declared in the stdint header, which means:  
+
 `int8_t` instead of `signed char`, <br>
 `uint8_t` instead of `unsigned char`  
 
@@ -198,6 +195,10 @@ use standard C++ integer typedef as they are declared in the stdint header, whic
 
 `sysint_t` and `sysuint_t` are Fog types that have same role as ssize_t and size_t types. They are used in places where you normally use size_t (string length, array length, ...).
 
+=0, NULL etc.=
+
+`0` is used for integers, `0.0` is used for reals, `NULL` is used for pointers, `\0` or `Char('\0')` is used for chars.
+
 =Column length of files=
 
 The column length should always be 80 characters. If your code uses many inlines and code is bigger (for example 90-100 characters), keep in in one line.
@@ -205,14 +206,17 @@ The column length should always be 80 characters. If your code uses many inlines
 =Determine OS=
 
 There are macros available, which can be used in order to determine the current operating system at compile-time.
-These are in the format `FOG_OS_<PLATFORM>`. `PLATFORM` can be: `WINDOWS`, `POSIX`, `LINUX`, `FREEBSD`, `OPENBSD`, `NETBSD`, `HPUX` or `MAC`. <br>
-Example: 
+These are in the format `FOG_OS_<PLATFORM>`. `PLATFORM` can be: `WINDOWS`, `POSIX`, `LINUX`, `FREEBSD`, `OPENBSD`, `NETBSD`, `HPUX` or `MAC`.  
+
+Example:
 {{{
-    #if defined(FOG_OS_WINDOWS)
-     // do some windows stuff here
-    #else
-     // do some posix stuff here
-    #endif
+#if defined(FOG_OS_WINDOWS)
+// Windows code …
+#elif defined(FOG_OS_MAC)
+// Mac code …
+#else
+// POSIX code …
+#endif
 }}}
 
 =Infinite Loops=
