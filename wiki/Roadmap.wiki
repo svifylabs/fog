@@ -13,9 +13,9 @@ Fog-Framework is different. When library was in designing state (currently it st
 
 Fog-Framework currently contains these libraries:
 
-  * Fog-Core - Platform abstraction library.
-  * Fog-Graphics - 2d graphics API.
-  * Fog-Gui - Platform independent UI toolkit.
+  * Fog-Core - Platform abstraction and tools.
+  * Fog-G2d - 2d graphics API.
+  * Fog-UI - UI toolkit.
   * Fog-Svg - SVG DOM, parser and renderer.
   * Fog-Xml - XML DOM, parser and writer.
 
@@ -27,9 +27,9 @@ Fog-Framework design notes (in points):
    * Under Windows only WinAPI is used (other libraries like libpng can be used too, but you must first install them and enable them by build system).
    * Under Linux/BSD/MAC only freetype2, libjpeg and libpng libraries are needed (and libjpeg and libpng support can be disabled). By default Fog also tries to use fontconfig.
  * Do not use C++ stl library.
- * Do not use RTTI (no dynamic casts) or exceptions.
+ * Do not use C++ RTTI (no dynamic casts) and C++ exceptions.
  * Critical code should support modern CPU extensions (MMX, SSE2).
- * Do not depend to X11 under Linux/BSD.
+ * Do not depend to X11 under Linux/BSD unless static linking is enabled.
 
 =TODO - Legend=
 
@@ -41,20 +41,28 @@ Fog-Framework design notes (in points):
 
 =TODO - Fog-Core=
 
+  * Container refactorization
+    * ( ) Rewrite containers in the following way, each container needs to have two variants - implicitly shared and private (non-shared). Add generic API for swapping the two containers, using the Fog::swap() function, remove swapWith() method. Use swapItems() in List / Hash to swap two items.
+
   * Object and MetaClass:
     * ( ) `Fog::Object` memory management should be hierarchy based. Allow adding Objects to Object, Widget will use different storage for added widgets. Introduce ChildEvent in `Fog::Object`.
+    * ( ) `Fog::Component` should be created and hierarchy based, make `Fog::Object` as lightweight as possible, because it might be used in many places in the future.
 
   * String:
+    * ( ) Refactorize string API, join String and ByteArray, algorithms are duplicated in many places which is not good. It's possible to introduce new naming for string classes - StringA / StringU? Is it ugly?
+    * ( ) Use SSE2/SSSE3 optimized functions in string.
+    * ( ) Make naming convention more strict when using Ascii8(), Local8(), Utf8(), Utf16() and Utf32().
     * ( ) `Fog::RegExp` - use TRex
     * ( ) `Fog::String`/`Fog::Locale` - add support for group separators
     * ( ) `Temporary...<N>::free` sometimes not frees the memory? Investigate and remove this.
     * ( ) Introduce StringBuilder class / concept.
 
-  * Classes:
+  * Streaming:
     * ( ) Text Streams (using `TextCodec`), including `err()`, `out()` and `in()`
 
   * Error framework:
     * ( ) Error framework that can translate ERR messages into string so we can display them.
+    * ( ) Create some script which can extract names from header files and which can produce the error msg table.
 
   * Logging framework:
     * ( ) Make minimalist and extensible logging framework, sometimes it's really needed to write something somewhere, but current API is not supporting it
@@ -68,47 +76,37 @@ Fog-Framework design notes (in points):
 =TODO - Fog-Graphics=
 
   * Painter and RasterEngine:
-    * (w) Ability to paint to A8 surface
+    * ( ) Ability to paint to A8 surface
     * ( ) Text transform
     * ( ) Text over path
-    * ( ) Inside PaintEngine_Raster_DoPaint, Use the 'second format' paint version more carefully, there is ability to use this second loop for something more, we can call helper function that can do the job the loop currently does and also something else (for example do postprocessing using shaders, the new class being prepared).
     * Gradients
-      * (w) Improve quality of gradient rendering, current is ok except PAD gradients where it looks really bad (unaliased).
-      * (w) Linear Gradient Transform
-      * (w) Radial Gradient Transform
-      * (w) Conical Gradient Transform
+      * (w) Better quality settings (low should use current algorithm, normal should use bilinear filtering and high should use bilinear filtering and super-sampling)
     * (w) High-quality downscaling (transformation / scaling down)
       * ( ) Write MMX version
       * ( ) Write SSE2 version
       * ( ) Use in painter when suitable
-    * (w) Glyph rendering must be two pass based
-      * (w) Apply glyph metrics, advance, etc, serialize to X, Y, `ImageData` array
-      * (w) Render using not `GlyphSet`, but `ImageSet`.
-    * ( ) Raster Engine
+    * ( ) Glyph rendering must be two pass based
+      * ( ) Apply glyph metrics, advance, etc, serialize to X, Y, `ImageData` array
+      * ( ) Render using not `GlyphSet`, but `ImageSet`.
+    * ( ) Compositing operators
       * ( ) ColorBurn (SVG operator)
       * ( ) ColorDodge (SVG operator)
       * ( ) HardLight (SVG operator)
       * ( ) SoftLight (SVG operator)
       * ( ) Overlay (SVG operator)
-      * ( ) Arithmetic, with parameters! (SVG operator)
-      * ( ) Allow possibility for operator plugins
+      * ( ) Operator plugins (shaders and C++)
       * ( ) Write some basic C/MMX/SSE2 composite functions for ARGB32
       * ( ) Write MMX composite functions for XRGB32 and PRGB32
       * ( ) Write C composite functions for A8
       * ( ) Write MMX composite functions for A8
       * ( ) Write SSE2 composite functions for A8
-    * ( ) Implement ARGB (LCD) component alpha blending.
     * ( ) Implement ARGB (LCD) path rasterizer.
 
   * Font and Text Rendering:
-    * (w) Ability to render to 'Path'
-      * (x) Win32
-      * (w) Freetype2
-      * (w) Fix it - Kerning, Hinting
+    * ( ) Work on fonts and typography
     * ( ) Cache size control
     * ( ) Increase granularity of X position in glyphs to 3 (0.00, 0.33, 0.66), because vector fonts can be very sensitive in small sizes.
-    * (w) Text Iterator, retrieving glyph metrics, text metrics, individual glyphs and glyph sets.
-    * ( ) What about DPI? Currently it's not used and font size is just size in pixels.
+    * ( ) Text Iterator, retrieving glyph metrics, text metrics, individual glyphs and glyph sets.
 
   * Path and Vector Processing:
     * ( ) PathToRegion
@@ -122,18 +120,26 @@ Fog-Framework design notes (in points):
   * Image / filtering:
     * ( ) Image filters (Blur, Sharpen, ...) should be grouped and result should be `ImageFilter` class that will be able to do any image based transformations.
     * ( ) Each effect should contain opacity value that will define blend factor of modified image into source image (this can be used by UI animations).
+    * ( ) Blur
+    * ( ) ColorMatrix
+    * ( ) ComponentTransfer
     * ( ) Sharpen
     * ( ) Convolve
     * ( ) Add new image resampler (scale)
     * ( ) Redesign Image::scale(), use ROI concept
-    * ( ) Image pixels isn't good, remove the virtual interface and make it usable
-    * ( ) Delete many "painting" methods in Image, painter is now preferred way
 
   * Image IO:
     * ( ) Fix ICO reader (BMP / PNG)
     * ( ) Add ICO writer (BMP / PNG)
     * ( ) Add GIF writer, rewrite GIF support
     * ( ) Fix BMP transparency detection (impossible?)
+
+  * Geometry:
+    * ( ) Curve-to-curve stroking
+    * ( ) Curve dashing
+    * ( ) Path stroke cache (not path stroke, but path curve properties, like length, inflection points, etc...)
+    * ( ) Add more path mixing methods PathF::addPath(const PathD& other) and other (simpler api)
+    * ( ) TransformD should allow transformation of single-precision (F) data
 
 =TODO - Fog-Xml=
 
@@ -143,29 +149,20 @@ Fog-Framework design notes (in points):
 =TODO - Fog-Svg=
 
   * SVG Core:
-    * ( ) Fix gradient rendering
     * ( ) Default color in Svg gradient should be 0.0:black, 1.0:white if no stops are provided
 
-=TODO - Fog-Gui=
+=TODO - Fog-UI=
+
+  * New vector UI framework (Canvas)
+    * ( ) Define the canvas API and completely delete the raster based UI.
+    * ( ) ...
 
   * Top level window management:
-    * (x) ability to create normal windows (resizeable/moveable, thick frame)
-    * (x) ability to create non-resizeable windows (dialogs)
-    * (x) ability to create tool-windows (the one with the small caption and only the "x"-button) for floating windows
-    * (x) ability to handle min/max-button (turn on/off)
-    * (x) ability to control system menu (click on icon on topleft of caption -> allow/disallow)
-    * (x) ability to create frameless windows (popup)
     * (w) perhaps ability to create nonrect-windows, too
-    * (x) ability to allow/disallow window-movements 
-    * (x) ability to set/restore fullscreen mode
     * (w) modal windows support
-    * (x) support for per pixel alpha blended windows 
-    * (x) support for global transparency on windows
     * ( ) ability to provide a way to draw own frame/caption (complete themeable)
     * ( ) ability to use directdraw/opengl as a backend (with flipping backend handler!)
     * ( ) also some grouping methods for multiwindow-system would be cool.
-    * (x) handling of Application::quit if last window was closed. Introducing EVENT_LAST_WINDOW_CLOSED and connecting it to Application::quit()?
-
 
   * Animation Support:
     * (w) introduce simple animation support to Fog. 
@@ -211,15 +208,3 @@ Fog-Framework design notes (in points):
 =Concepts and Discussion=
 
 New concepts / discussion here.
-
-==Renaming Fog-Graphics to Fog-Graphics2d==
-
-Just idea, if some day the opengl rendering will be added, we can extend the framework to use some 3d data types. I'd like to see this in different library than Fog-Graphics.
-
-==Adding support for more pixel formats==
-
-Currently there are only few libraries that allows to use 16-bit or floating point colors. It shouldn't be hard task to extend current architecture except for blitters - there are so many blitters and implementing each for 16-bit or 32-bit floating point colors will be wasting of binary space.
-
-But ont the other hand, it can be useful for people that need rendering with extra precision.
-
-==
