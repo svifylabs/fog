@@ -44,7 +44,7 @@ Fog-Framework design notes (in points):
   * Container refactorization
     * ( ) Rewrite containers in the following way, each container needs to have two variants - implicitly shared and non-shared. Add generic API for swapping the two containers, using the Fog::swap() function, remove swapWith() method. Use swapItems() in List / Hash to swap two items.
     * ( ) Add possibility to any container to use statically based temporary storage, but simplify the design of these classes.
-    * ( ) Add flag CONTAINER_DATA_STATIC (instead of DYNAMIC which is the default), but don't use this flag when making reference to the data. Developer MUST ensure that the statically allocated container will not be shared when the instance is destroyed. This will be ensured by making these containers private (used only by Fog to optimize certain places, but visible to consumers).
+    * ( ) Add flag CONTAINER_DATA_STATIC (instead of DYNAMIC which is the default), but don't use this flag when making reference to the data. Developer MUST ensure that the statically allocated container will not be shared when the instance is destroyed. This will be ensured by making these containers private (used only by Fog to optimize certain places, but invisible to consumers).
 
   * Object and MetaClass:
     * ( ) `Fog::Object` memory management should be hierarchy based. Allow adding Objects to Object, Widget will use different storage for added widgets. Introduce ChildEvent in `Fog::Object`.
@@ -52,7 +52,7 @@ Fog-Framework design notes (in points):
 
   * String:
     * ( ) Refactorize string API, join String and ByteArray, algorithms are duplicated in many places which is not good. It's possible to introduce new naming for string classes - StringA / StringU? Is it ugly?
-    * ( ) Rename beginManipulation() to _prepare() and create similar interface for the most container classes.
+    * ( ) Rename beginManipulation() to `_prepare()` and create similar interface for the most container classes.
     * ( ) Use SSE2/SSSE3 optimized functions in string.
     * ( ) Make naming convention more strict when using Ascii8(), Local8(), Utf8(), Utf16() and Utf32().
     * ( ) `Fog::RegExp` - use TRex
