@@ -1,4 +1,5 @@
 #summary Fog-G2d - Compositing Operators
+#labels Phase-Implementation
 
 =Introduction=
 
