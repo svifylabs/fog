@@ -1,4 +1,4 @@
-#summary How to write code for Fog-Framework.
+#summary Fog-Core - Coding Conventions
 #labels Phase-Implementation
 
 =Identation, Braces, Position of Keywords=
