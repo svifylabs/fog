@@ -1,5 +1,5 @@
 #summary Fog-Core - Collection
-#labels Phase-Development
+#labels Phase-Implementation
 
 =Fog-Core - Collections=
 
