@@ -84,8 +84,8 @@ Item-Management (`Any`):
   p[7] = Char('g');
 
   // Now it's highly probable that the capacity of string is larger 
-  // than 8 characters. When methods like _add() are called, the
-  // container always reserve more space for data to prevent frequent
+  // than 11 characters. When methods like _add() are called, the
+  // container always reserves more space for data to prevent frequent
   // memory reallocation. If the string will not be modified in the 
   // near future then it's safe to compact it using squeeze() method.
   //
