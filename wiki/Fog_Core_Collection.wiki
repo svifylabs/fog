@@ -21,7 +21,7 @@ Memory-Management (`Shared`):
 
   <b>`bool isDetached() const`</b> -  Get whether the container data is detached (not shared between another container). Note, isDetached() returns `true` when `getReference() == 1` in most cases, however, some classes which allow to adopt read-only data (for example `Image`) can return `false` is such case, informing user that the data is not ready for modification.
 
-  <b>`err_t detach()`</b> - Detach container data, making them available for modification. For performance reasons the `err_t detach()` method is usually inline function which calls `err_t _detach()` method in case that container is not already detached (`isDetached()` returns false).
+  <b>`err_t detach()`</b> - Detach container data, making them available for modification. For performance reasons the `err_t detach()` method is usually inline method which calls `err_t _detach()` in case that the container is not already detached (`isDetached()` returns false). It's not guaranteed that capacity of detached container will be the same as before `detach()` was called. In fact, it's always shrink. Detach is primarily designed to modify the existing content, not to prepare container for adding new items.
 
 Memory-Management (`Any`):
 
@@ -93,4 +93,4 @@ Item-Management (`Any`):
   string.squeeze();
   }}}
 
-  Please note that this example can be rewritten to one or two lines of code. It's here only to show the design of collection classes inside the Fog-Framework.
+  Please note that this example can be rewritten into few lines of code. It's here only to show the design of collection classes inside the Fog-Framework.
