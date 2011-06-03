@@ -1,4 +1,4 @@
-#summary Fog-Core - Coding Conventions
+#summary Fog-Core - Conventions
 #labels Phase-Implementation
 
 =Identation, Braces, Position of Keywords=
