@@ -83,7 +83,7 @@ Item-Management (`Any`):
   // but characters are not initialized (they might contain garbage).
   Char* p;
 
-  p = string._prepare(3, CONTAINER_OP_REPLACE);
+  p = string._prepare(CONTAINER_OP_REPLACE, 3);
   if (FOG_IS_NULL(p)) { /* Handle the error condition. */ }
 
   p[0] = Char('F');
