@@ -5,15 +5,9 @@
 
 This section applies to Fog-Framework containers, including collections (Fog/Core/Collection), tools (Fog/Core/Tools) and all other container-based classes (Fog/G2d/Geometry). The base API for all containers should be similar, although it is possible to have differences caused by use-cases of specialized containers.
 
-==Container Types==
+==Shared Containers==
 
-There are generally two types of containers:
-
-  <b>`Shared`</b> - Container using implicit data sharing and COW (copy-on-wrote) technique. These containers are intended for general use. They can be weak-copied (it's possible to return an instance from a function), modified (using copy-on-write technique), and swapped (using `swap<>`).
-
-  <b>`Owned`</b> - Container which has only one owner and it's never implicitly shared between another instance - for example a class member which is never returned, copied or modified outside of the class. The reason why these containers exist is performance and the fact that these containers are always mutable by design. These containers include `MemBuffer`.
-
-===List of Shared Containers:===
+Container using implicit data sharing and COW (copy-on-wrote) technique. These containers are intended for general use. They can be weak-copied (it's possible to return an instance from a function), modified (using copy-on-write technique), and swapped (using `swap<>`).
 
   * `ColorStopList`
   * `Font`
@@ -35,7 +29,9 @@ There are generally two types of containers:
   * `TextCodec`
   * `Var`
 
-===List of Owned Containers:===
+==Owned Containers==
+
+Container which has only one owner and it's never implicitly shared between another instance - for example a class member which is never returned, copied or modified outside of the class. The reason why these containers exist is performance and the fact that these containers are always mutable by design. These containers include `MemBuffer`.
 
   * `MemBuffer`
 
