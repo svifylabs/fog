@@ -43,6 +43,11 @@ Fog-Framework design notes (in points):
   * Container refactorization
     * ( ) Rewrite containers in the following way, each container needs to have two variants - implicitly shared and non-shared.
     * ( ) Add possibility to any container to use statically based temporary storage, but simplify the design of these classes.
+    * ( ) Introduce `Map<>`.
+    * ( ) Introduce `HashSet<>`
+    * ( ) Introduce `MapSet<>`
+    * ( ) Introduce hash table that is able to use custom accessor in get / put / contains methods. See FontManager.cpp TODO entry.
+    * ( ) Add ability to use owned-containers (no implicit sharing) to List / Hash.
 
   * Object and MetaClass:
     * ( ) `Fog::Object` memory management should be hierarchy based. Allow adding Objects to Object, Widget will use different storage for added widgets. Introduce ChildEvent in `Fog::Object`.
@@ -63,13 +68,6 @@ Fog-Framework design notes (in points):
 
   * Logging framework:
     * ( ) Make minimalist and extensible logging framework, sometimes it's really needed to write something somewhere, but current API is not supporting it
-
-  * Containers
-    * ( ) Introduce `Map<>`.
-    * ( ) Introduce `HashSet<>`
-    * ( ) Introduce `MapSet<>`
-    * ( ) Introduce hash table that is able to use custom accessor in get / put / contains methods. See FontManager.cpp TODO entry.
-    * ( ) Add ability to use owned-containers (no implicit sharing) to List / Hash.
 
 =TODO - Fog-Graphics=
 
