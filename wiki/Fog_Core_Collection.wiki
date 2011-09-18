@@ -67,9 +67,9 @@ Item-Management (`Any`):
 
   The difference between `clear()` and `reset()` is that `reset()` frees all memory associated with the container. This means that `clear()` should be used in case that container will be reused, otherwise the `reset()` is preferred. The `reset()` is internally similar to container destructor, except the container is not destroyed, but set to the construction state.
 
-  <b>`ItemT* _prepare(size_t count, uint32_t cntOp)`</b> - Used to reserve space for items being added to the container. The operation is defined by cntOp which can be `CONTAINER_OP_REPLACE` to replace the content of the container or `CONTAINER_OP_APPEND` to append a content at the end of the container. In case that `CONTAINER_OP_REPLACE` is used the behavior should be identical to `ElementT* _add(size_t count)` method.
+  <b>`ItemT* _prepare(uint32_t cntOp, size_t length)`</b> - Used to reserve space for items being added to the container. The operation is defined by cntOp which can be `CONTAINER_OP_REPLACE` to replace the content of the container or `CONTAINER_OP_APPEND` to append a content at the end of the container. In case that `CONTAINER_OP_REPLACE` is used the behavior should be identical to `ElementT* _add(size_t length)` method.
 
-  <b>`ItemT* _add(size_t count)`</b> - Used to reserve space for items being added to the container. This method can return index instead of `ElementT*` in case that there are more arrays stored in the container (for example `Path[F|D]` classes).
+  <b>`ItemT* _add(size_t length)`</b> - Used to reserve space for items being added to the container. This method can return index instead of `ElementT*` in case that there are more arrays stored in the container (for example `PathF` and `PathD` containers).
 
   Note that `_prepare()` or `_add()` methods can fail. In such case the `NULL` pointer is returned. The caller is responsible to catch the error and propagate it as `ERR_RT_OUT_OF_MEMORY`. When succeeded, the container length has been modified.
 
