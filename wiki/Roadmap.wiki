@@ -49,6 +49,8 @@ Fog-Framework design notes (in points):
     * ( ) Introduce `MapSet<>`
     * ( ) Introduce hash table that is able to use custom accessor in get / put / contains methods. See FontManager.cpp TODO entry.
     * ( ) Add ability to use owned-containers (no implicit sharing) to List / Hash.
+    * ( ) `Fog::List<Fog::String>`::indexOf - Case insensitivity.
+    * ( ) `Fog::List<>` and `Fog::Hash` - Filter.
 
   * Object and MetaClass:
     * ( ) `Fog::Object` should be lightweight object that supports properties, events, and signal&slot mechanism.
