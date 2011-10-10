@@ -23,19 +23,20 @@ Fog-Framework currently contains these libraries:
 
 Fog-Framework design notes (in points):
 
- * Library depends only to libraries that are installed on target operating system by default.
+ * Library depends only on libraries that are provided by target operating system.
    * Under Windows only WinAPI is used (other libraries like libpng can be used too, but you must first install them and enable them by build system).
    * Under Linux/BSD/MAC only freetype2, libjpeg and libpng libraries are needed (and libjpeg and libpng support can be disabled). By default Fog also tries to use fontconfig.
- * Do not use C++ stl library.
+   * Under MAC also Cocoa is used and there is some code written in Objective-C. 
+ * Do not use C++ STL library.
  * Do not use C++ RTTI (no dynamic casts) and C++ exceptions.
  * Critical code should support modern CPU extensions (MMX, SSE2).
- * Do not depend to X11 under Linux/BSD unless static linking is enabled.
+ * Do not depend on X11 under Linux/BSD unless static linking is enabled (not default).
 
 =TODO - Legend=
 
 {{{
-( ) Incomplete
-(w) Working
+( ) Incomplete,
+(x) Complete, removed from the list.
 }}}
 
 =TODO - Fog-Core=
@@ -50,8 +51,8 @@ Fog-Framework design notes (in points):
     * ( ) Add ability to use owned-containers (no implicit sharing) to List / Hash.
 
   * Object and MetaClass:
-    * ( ) `Fog::Object` memory management should be hierarchy based. Allow adding Objects to Object, Widget will use different storage for added widgets. Introduce ChildEvent in `Fog::Object`.
-    * ( ) `Fog::Component` should be created and hierarchy based, make `Fog::Object` as lightweight as possible, because it might be used in many places in the future.
+    * ( ) `Fog::Object` should be lightweight object that supports properties, events, and signal&slot mechanism.
+    * ( ) `Fog::Component` should be based on Fog::Object, and improved to support hierarchy based memory management, but as lightweight as possible.
 
   * String:
     * ( ) Use SSE2/SSSE3 optimized functions in string.
@@ -59,25 +60,27 @@ Fog-Framework design notes (in points):
     * ( ) `Fog::String`/`Fog::Locale` - add support for group separators
     * ( ) `Temporary...<N>::free` sometimes not frees the memory? Investigate and remove this.
 
+  * Locale:
+    * ( ) Improve Locale, base the design of the class on Java Locale specification.
+
   * Streaming:
     * ( ) Text Streams (using `TextCodec`), including `err()`, `out()` and `in()`
 
   * Error framework:
     * ( ) Error framework that can translate ERR messages into string so we can display them.
-    * ( ) Create some script which can extract names from header files and which can produce the error msg table.
 
   * Logging framework:
-    * ( ) Make minimalist and extensible logging framework, sometimes it's really needed to write something somewhere, but current API is not supporting it
+    * ( ) Make minimalist and extensible logging framework, sometimes it's really needed to write something somewhere, but current API doesn't support it.
 
-=TODO - Fog-Graphics=
+=TODO - Fog-G2d=
 
   * Painter and RasterEngine:
     * ( ) Ability to paint to A8 surface
     * ( ) Text transform
     * ( ) Text over path
     * Gradients
-      * (w) Better quality settings (low should use current algorithm, normal should use bilinear filtering and high should use bilinear filtering and super-sampling)
-    * (w) High-quality downscaling (transformation / scaling down)
+      * ( ) Better quality settings (low should use current algorithm, normal should use bilinear filtering and high should use bilinear filtering and super-sampling)
+    * ( ) High-quality downscaling (transformation / scaling down)
       * ( ) Write MMX version
       * ( ) Write SSE2 version
       * ( ) Use in painter when suitable
@@ -85,17 +88,16 @@ Fog-Framework design notes (in points):
       * ( ) Apply glyph metrics, advance, etc, serialize to X, Y, `ImageData` array
       * ( ) Render using not `GlyphSet`, but `ImageSet`.
     * ( ) Compositing operators
+      * ( ) Implement CompositeExt operators
       * ( ) ColorBurn (SVG operator)
       * ( ) ColorDodge (SVG operator)
       * ( ) HardLight (SVG operator)
       * ( ) SoftLight (SVG operator)
       * ( ) Overlay (SVG operator)
       * ( ) Operator plugins (shaders and C++)
-      * ( ) Write some basic C/MMX/SSE2 composite functions for ARGB32
-      * ( ) Write MMX composite functions for XRGB32 and PRGB32
-      * ( ) Write C composite functions for A8
-      * ( ) Write MMX composite functions for A8
-      * ( ) Write SSE2 composite functions for A8
+      * ( ) Compositing operators using MMX
+      * ( ) Compositing operators using SSE2
+      * ( ) Compositing operators using SSSE3
     * ( ) Implement ARGB (LCD) path rasterizer.
 
   * Font and Text Rendering:
@@ -108,39 +110,37 @@ Fog-Framework design notes (in points):
     * ( ) PathToRegion
     * ( ) RegionToPath (current implementation simply adds rectangles from region, do we need something better?
     * ( ) Add `addText()` to path
-    * ( ) What about warp?
 
   * Color Utilities / Conversion:
     * ( ) Add basic compositing also to Argb so we can use some color transformations when drawing widgets.
 
   * Image / filtering:
-    * ( ) Image filters (Blur, Sharpen, ...) should be grouped and result should be `ImageFilter` class that will be able to do any image based transformations.
     * ( ) Each effect should contain opacity value that will define blend factor of modified image into source image (this can be used by UI animations).
-    * ( ) Blur
-    * ( ) ColorMatrix
-    * ( ) ComponentTransfer
-    * ( ) Sharpen
-    * ( ) Convolve
+    * ( ) FeBlur
+    * ( ) FeColorMatrix
+    * ( ) FeComponentTransfer
+    * ( ) FeSharpen
+    * ( ) FeConvolveMatrix / FeConvolveSeparable
     * ( ) Add new image resampler (scale)
     * ( ) Redesign Image::scale(), use ROI concept
 
   * Image IO:
     * ( ) Fix ICO reader (BMP / PNG)
     * ( ) Add ICO writer (BMP / PNG)
-    * ( ) Add GIF writer, rewrite GIF support
+    * ( ) Rewrite completely GIF support
     * ( ) Fix BMP transparency detection (impossible?)
 
   * Geometry:
     * ( ) Curve-to-curve stroking
     * ( ) Curve dashing
-    * ( ) Path stroke cache (not path stroke, but path curve properties, like length, inflection points, etc...)
     * ( ) Add more path mixing methods PathF::addPath(const PathD& other) and other (simpler api)
     * ( ) TransformD should allow transformation of single-precision (F) data
 
 =TODO - Fog-Xml=
 
   * XML Core:
-    * (w) XmlWriter
+    * ( ) Xml entities should be supported / processed
+    * ( ) Xml SAX/DOM writer is still not implemented
 
 =TODO - Fog-Svg=
 
