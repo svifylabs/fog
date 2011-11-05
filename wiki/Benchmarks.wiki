@@ -1,6 +1,10 @@
 #summary Performance of Fog vs. other libraries.
 #labels Featured
 
+=Outdated=
+
+Node, this page will be updated in the future. Currently the benchmarks are more than 1 year old.
+
 =Introduction=
 
 This page contains output from Fog-Framework benchmark tool. The benchmark tool was written to tune Fog-Framework and to see other libraries in action. The benchmarks are very synthetic and long (they are often called as micro-benchmarks).
