@@ -83,22 +83,22 @@ Item-Management (`Any`):
 
   Note that `_prepare()` or `_add()` methods can fail. In such case the `NULL` pointer is returned. The caller is responsible to catch the error and propagate it as `ERR_RT_OUT_OF_MEMORY`. When succeeded, the container length has been modified.
 
-  Please see the example which demonstrates the behavior of containers on ``String`` class:
+  Please see the example which demonstrates the behavior of containers on ``StringW`` class:
 
   {{{
   // The initial length of newly created String instance is always zero.
-  String string;
+  StringW string;
   
   // Using _prepare() with CONTAINER_OP_REPLACE, the length is set to 3,
   // but characters are not initialized (they might contain garbage).
-  Char* p;
+  CharW* p;
 
   p = string._prepare(CONTAINER_OP_REPLACE, 3);
   if (FOG_IS_NULL(p)) { /* Handle the error condition. */ }
 
-  p[0] = Char('F');
-  p[1] = Char('o');
-  p[2] = Char('g');
+  p[0] = CharW('F');
+  p[1] = CharW('o');
+  p[2] = CharW('g');
 
   // To append another data the _prepare() with CONTAINER_OP_APPEND
   // or _add() methods can be used. The function increases the length
@@ -106,14 +106,14 @@ Item-Management (`Any`):
   p = string._add(8);
   if (FOG_IS_NULL(p)) { /* Handle the error condition. */ }
 
-  p[0] = Char(':');
-  p[1] = Char(':');
-  p[2] = Char('S');
-  p[3] = Char('t');
-  p[4] = Char('r');
-  p[5] = Char('i');
-  p[6] = Char('n');
-  p[7] = Char('g');
+  p[0] = CharW(':');
+  p[1] = CharW(':');
+  p[2] = CharW('S');
+  p[3] = CharW('t');
+  p[4] = CharW('r');
+  p[5] = CharW('i');
+  p[6] = CharW('n');
+  p[7] = CharW('g');
 
   // Now it's highly probable that the capacity of string is larger 
   // than 11 characters. When methods like _add() are called, the
