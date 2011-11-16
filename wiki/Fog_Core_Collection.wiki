@@ -9,29 +9,39 @@ This section applies to Fog-Framework containers, including collections (Fog/Cor
 
 Container using implicit data sharing and COW (copy-on-wrote) technique. These containers are intended for general use. They can be weak-copied (it's possible to return an instance from a function), modified (using copy-on-write technique), and swapped (using `swap<>`).
 
-  * `ColorStopList`
-  * `Font`
-  * `Hash<KeyT, ItemT>`
-  * `Image`
-  * `ImagePalette`
-  * `List<ItemT>`
-  * `Locale`
-  * `Map<KeyT, ItemT>`
-  * `Matrix`
+List of shared containers:
+
+  * `ColorStopList`,
+  * `FileInfo`,
+  * `FileMapping`,
+  * `Font`,
+  * `Hash<KeyT, ItemT>`,
+  * `Image`,
+  * `ImageConverter`,
+  * `ImageFilter`,
+  * `ImagePalette`,
+  * `List<ItemT>`,
+  * `Locale`,
+  * `ManagedStringW`,
+  * `Map<KeyT, ItemT>`,
+  * `MatrixF`,
+  * `MatrixD`,
   * `PathF`,
-  * `PathD`
-  * `Pattern`
-  * `RegExpA`
-  * `RegExpW`
-  * `Region`
+  * `PathD`,
+  * `Pattern`,
+  * `RegExpA`,
+  * `RegExpW`,
+  * `Region`,
   * `StringA`,
-  * `StringW`
-  * `TextCodec`
-  * `Var`
+  * `StringW`,
+  * `TextCodec`,
+  * `Var`.
 
 ==Owned Containers==
 
-Container which has only one owner and it's never implicitly shared between another instance - for example a class member which is never returned, copied or modified outside of the class. The reason why these containers exist is performance and the fact that these containers are always mutable by design. These containers include `MemBuffer`.
+Container which has only one owner and it's never implicitly shared between another instance - for example a class member which is never returned, copied or modified outside of the class. The reason why these containers exist is performance and the fact that these containers are always mutable by design.
+
+List of owned containers:
 
   * `MemBuffer`
 
