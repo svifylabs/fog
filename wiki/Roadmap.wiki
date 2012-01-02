@@ -5,19 +5,18 @@
 
 This page contains Fog-Framework roadmap and goals, editable by project members. Initial items were copied from project TODO.
 
-There are many libraries for computer graphics and GUI development.. Each developer that want to create an application with user interface or visualization must choose set of libraries that will be used to do the job. Today's computers are so powerful and difference between slow and fast code is day by day smaller. This is reason why some libraries are terrible slow and there is nobody working on optimizations.
+There are many libraries for computer graphics and UI. Each developer that want to create an application with user interface or visualization must choose set of libraries that will be used to do the job. Today's computers are so powerful and difference between slow and fast code is day by day smaller. This is reason why some libraries are terribly slow and there is nobody working on optimizations.
 
-Fog-Framework is different. When library was in designing state (currently it still is) the main and most important requirement was performance, integration and easy-of-use API. This is reason why Fog-Framework contains many classes not strictly related to computer graphics. Low-level stuff is usually not exported so developers using Fog-Framework are using high-level classes resulting in excellent performance.
+Fog-Framework is different. When library was in designing state (currently it still is) the main and most important requirement was high performance, integration and easy-of-use API. This is reason why Fog-Framework contains many classes not strictly related to computer graphics.
 
 =Framework Libraries=
 
 Fog-Framework currently contains these libraries:
 
-  * Fog-Core - Platform abstraction and tools.
-  * Fog-G2d - 2d graphics API.
-  * Fog-UI - UI toolkit.
+  * Fog-Core - Platform Abstraction and Tools.
+  * Fog-G2d - Vector 2d and Imaging.
+  * Fog-UI - Vector User Interface.
   * Fog-Svg - SVG DOM, parser and renderer.
-  * Fog-Xml - XML DOM, parser and writer.
 
 =Design Notes=
 
@@ -49,18 +48,16 @@ Fog-Framework design notes (in points):
     * ( ) Introduce `MapSet<>`
     * ( ) Introduce hash table that is able to use custom accessor in get / put / contains methods. See FontManager.cpp TODO entry.
     * ( ) Add ability to use owned-containers (no implicit sharing) to List / Hash.
-    * ( ) `Fog::List<Fog::String>`::indexOf - Case insensitivity.
+    * ( ) `Fog::List<Fog::String>`::indexOf - Case sensitivity.
     * ( ) `Fog::List<>` and `Fog::Hash` - Filter.
 
   * Object and MetaClass:
     * ( ) `Fog::Object` should be lightweight object that supports properties, events, and signal&slot mechanism.
-    * ( ) `Fog::Component` should be based on Fog::Object, and improved to support hierarchy based memory management, but as lightweight as possible.
 
   * String:
-    * ( ) Use SSE2/SSSE3 optimized functions in string.
-    * ( ) `Fog::RegExp` - use TRex
-    * ( ) `Fog::String`/`Fog::Locale` - add support for group separators
-    * ( ) `Temporary...<N>::free` sometimes not frees the memory? Investigate and remove this.
+    * ( ) Use SSE2/SSSE3 optimized functions in StringA/StringW.
+    * ( ) `Fog::RegExp` - use TRex.
+    * ( ) `Fog::String`/`Fog::Locale` - add support for group separators.
 
   * Locale:
     * ( ) Improve Locale, base the design of the class on Java Locale specification.
@@ -69,10 +66,11 @@ Fog-Framework design notes (in points):
     * ( ) Text Streams (using `TextCodec`), including `err()`, `out()` and `in()`
 
   * Error framework:
-    * ( ) Error framework that can translate ERR messages into string so we can display them.
+    * ( ) Error framework that can translate ERR messages into string so we can display message instead of code.
 
-  * Logging framework:
-    * ( ) Make minimalist and extensible logging framework, sometimes it's really needed to write something somewhere, but current API doesn't support it.
+  * XML Core:
+    * ( ) Xml entities should be supported / processed
+    * ( ) Xml SAX/DOM writer is still not implemented
 
 =TODO - Fog-G2d=
 
@@ -82,7 +80,7 @@ Fog-Framework design notes (in points):
     * ( ) Text over path
     * Gradients
       * ( ) Better quality settings (low should use current algorithm, normal should use bilinear filtering and high should use bilinear filtering and super-sampling)
-    * ( ) High-quality downscaling (transformation / scaling down)
+    * (x) High-quality downscaling (transformation / scaling down)
       * ( ) Write MMX version
       * ( ) Write SSE2 version
       * ( ) Use in painter when suitable
@@ -138,12 +136,6 @@ Fog-Framework design notes (in points):
     * ( ) Add more path mixing methods PathF::addPath(const PathD& other) and other (simpler api)
     * ( ) TransformD should allow transformation of single-precision (F) data
 
-=TODO - Fog-Xml=
-
-  * XML Core:
-    * ( ) Xml entities should be supported / processed
-    * ( ) Xml SAX/DOM writer is still not implemented
-
 =TODO - Fog-Svg=
 
   * SVG Core:
@@ -162,47 +154,6 @@ Fog-Framework design notes (in points):
     * ( ) ability to use directdraw/opengl as a backend (with flipping backend handler!)
     * ( ) also some grouping methods for multiwindow-system would be cool.
 
-  * Animation Support:
-    * (w) introduce simple animation support to Fog. 
-    * (w) possible to add fixed time animations (e.g. 200ms)
-    * (w) possible to add fixed step animations (e.g. 20 Steps)
-    * (w) add animation parameter to different widget-methods (show,hide,opacity...)
+=TODO - Refactorization=
 
-  * Layout Core:
-    * (w) First define the API, what layout will do, what is expected that widget can calculate, how algorithms will be used to set / reset / recalculate the layout.
-    * ( ) Purpose of LayoutEvent
-    * ( ) CanvasLayout
-    * (x) FlowLayout
-    * (x) HBoxLayout/VBoxLayout
-    * (x) GridLayout
-    * ( ) DockLayout
-
-  * Widgets Low Level Management (DoubleBuffer, Clipping):
-    * ( ) Make possibility to set transparent region in widget (not really transparent, but region where the background must be used first). Introduce `Widget::getPaintMode()`, `Widget::getBackgroundRegion()`.
-    * ( ) Double buffering of child widgets (transparency, animations, effects).
-    * ( ) Some widgets need to store background in separate buffer (Image).
-    * ( ) Add client rectangle to the window (this is really needed, I though that it's not).
-    * ( ) Each widget will contain widgets in client rectangle and hidden widgets outside of it (for scrollbars, list/grid headers, footers, etc).
-
-  * Widgets Core:
-    * ( ) Widget updating process is too complex, simplify it or document why it's complex. Is recursive alternative good to switch? (Petr, Stefan)
-
-  * Theming:
-    * ( ) What theming model to use. Currently the Windows-Theming-Model will be probably used with few extensions / additions.
-    * ( ) Drawing themed component shouldn't depend to component instance.
-    * ( ) Theming should be state based, animations must be possible.
-    * ( ) Theme switch must be allowed.
-    * ( ) Using different themes in the application should be possible by simply calling myWidget->setTheme(theme).
-    * ( ) Theme may define also fonts, but the behavior should be configurable. For example I like themes, but I like to keeping my font settings for each. This means that the Widget::getFont() and Widget::setFont() family methods should be extended. For example introducing Widget::getThemeFont() / Widget::getActiveFont() methods ?
-
-=TODO - Refactorization, Ideas=
-
-  * ( ) `Fog::RasterPaintEngine` - Use binary search to find first region if complex clipping is used.
-  * (w) All getters (`get()` methods) should be declared before setters (`set()` methods)
-  * (w) Make sure that all classes are using correct `getXXX()` methods
-  * (w) Some methods named `clear()` should be renamed to `reset()`, audit this (this not applies to containers, strings, etc...)
-  * (w) All enums and constants should be `UPPERCASED`.
-
-=Concepts and Discussion=
-
-New concepts / discussion here.
+  * (w) Some methods named `clear()` should be renamed to `reset()`, audit this (this doesn't apply to containers, strings, etc...)
