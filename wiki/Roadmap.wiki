@@ -136,23 +136,13 @@ Fog-Framework design notes (in points):
     * ( ) Add more path mixing methods PathF::addPath(const PathD& other) and other (simpler api)
     * ( ) TransformD should allow transformation of single-precision (F) data
 
-=TODO - Fog-Svg=
-
-  * SVG Core:
+  * SVG:
     * ( ) Default color in Svg gradient should be 0.0:black, 1.0:white if no stops are provided
 
 =TODO - Fog-UI=
 
   * New vector UI framework (Canvas)
-    * ( ) Define the canvas API and completely delete the raster based UI.
-    * ( ) ...
-
-  * Top level window management:
-    * (w) perhaps ability to create nonrect-windows, too
-    * (w) modal windows support
-    * ( ) ability to provide a way to draw own frame/caption (complete themeable)
-    * ( ) ability to use directdraw/opengl as a backend (with flipping backend handler!)
-    * ( ) also some grouping methods for multiwindow-system would be cool.
+    * ( ) Define the canvas API
 
 =TODO - Refactorization=
 
