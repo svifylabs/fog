@@ -1,7 +1,0 @@
-#summary Fog documentation project.
-#labels Featured,Phase-Implementation
-
-  * [http://kobalicek.com/data/articles/Fog-Index.html Index]
-    * [http://kobalicek.com/data/articles/Fog-Core.html Core]
-    * [http://kobalicek.com/data/articles/Fog-Graphics.html Graphics]
-    * [http://kobalicek.com/data/articles/Fog-Gui.html Gui]
