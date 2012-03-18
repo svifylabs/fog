@@ -1,7 +1,7 @@
 #summary Examples
 #labels Featured
 
-=Image Compositing=
+=Compositing=
 
 Image compositing is the process of mixing two pixels to produce the final pixel. The first pixel is usually pixel stored in destination buffer and the second pixel is usually a source, which can be solid or generated. Fog-Framework implements several compositing operators required by SVG and PDF standards, and used by other open source or commercial libraries (or applications). Compositing can be applied to fill, stroke, or blit operation.
 
