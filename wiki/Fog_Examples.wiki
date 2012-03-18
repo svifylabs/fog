@@ -19,9 +19,9 @@ The image above shows combinations or various gradients and spreads.
 
 =Groups=
 
-Groups are temporary images which are used to paint a bunch of paint operations before the final composition. After rendering to a group is complete; you can use composite it to the parent group or apply filters.
+Groups are temporary images which are used to paint a bunch of paint operations before the final composition. After rendering to a group is complete you can composite the group to the parent. It is also possible to apply filters to a group; and groups can be nested.
 
 <img src="http://fog.googlecode.com/svn/wiki/images/groups.png" alt="Groups" />
 
-The image above shows difference between grouped painting (left) and painting without group (right) using an half opacity.
+The image above shows difference between grouped painting (left) and painting without group (right) using half opacity.
 
