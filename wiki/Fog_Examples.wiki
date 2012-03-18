@@ -16,3 +16,12 @@ Source in Fog-Framework describes pixels which will be used in fill or stroke op
 <img src="http://fog.googlecode.com/svn/wiki/images/gradients.png" alt="Gradients" />
 
 The image above shows combinations or various gradients and spreads.
+
+=Groups=
+
+Groups are temporary images which are used to paint a bunch of paint operations before the final composition. After rendering to a group is complete; you can use composite it to the parent group or apply filters.
+
+<img src="http://fog.googlecode.com/svn/wiki/images/groups.png" alt="Groups" />
+
+The image above shows difference between grouped painting (left) and painting without group (right) using an half opacity.
+
