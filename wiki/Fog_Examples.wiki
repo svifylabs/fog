@@ -3,11 +3,16 @@
 
 =Image Compositing=
 
-Image compositing is mixing destination image with source image. Fog-Framework implements several 
-compositing operators required by SVG and PDF. Compositing can be applied to images or any paint operation.
+Image compositing is the process of mixing two pixels to produce the final pixel. The first pixel is usually pixel stored in destination buffer and the second pixel is usually a source, which can be solid or generated. Fog-Framework implements several compositing operators required by SVG and PDF standards, and used by other open source or commercial libraries (or applications). Compositing can be applied to fill, stroke, or blit operation.
 
 [http://fog.googlecode.com/svn/wiki/images/compositing.png]
 
+The image above shows result of compositing two images using various compositing operators.
+
 =Source=
 
+Source in Fog-Framework describes pixels which will be used in fill or stroke operations. Fog-Framework currently supports solid, gradient, texture, and filtered fill or stroke.
+
 [http://fog.googlecode.com/svn/wiki/images/gradients.png]
+
+The image above shows combinations or various gradients and spreads.
