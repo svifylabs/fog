@@ -114,9 +114,8 @@ All headers should start with an *include guard*, in order to prevent multiple i
 #endif // _FOG_MODULE_SOMECLASS_H
 }}}
 
-Everything, which belongs the Fog has to be declared inside the *Fog namespace*, but there are some typedefs which are not. For example Fog system types `sysint_t` and `sysuint_t` thats used similarly as `size_t` and `ssize_t` are declared inside global namespace. The `err_t` type is also declared in global namespace.   
+Everything, which belongs the Fog has to be declared inside the *Fog namespace*. There is only one type which is declared in global namespace - `err_t`.
 
-
 *Structs* start with an uppercase letter and use camel case notation, for example:
 {{{
 struct (FOG_API) SomeClass;
@@ -166,18 +165,20 @@ return Fog::ERR_OK;
 }}}
 
 You can write
+
 {{{
 RETURN_ON_ERROR( result.set(Fog::Ascii8("Hello World")) );
 RETURN_ON_ERROR( result.append(Fog::Char('!')) );
 
 return Fog::ERR_OK;
 }}}
+
 Use it!
 
 Exceptions are forbidden to use (by `-fno-exceptions` flag). This has some advantages:
-  *  Resulting binary size is bigger
-  *  It's not needed to write exception-safe code.
-  *  Error codes are lightweight and enough.
+  *  Resulting binary is always smaller.
+  *  All code is exception safe by default.
+  *  Error codes are lightweight and sufficient.
 
 =Integer typedefs=
 
@@ -189,11 +190,8 @@ use standard C++ integer typedef as they are declared in the stdint header, whic
 `int16_t` instead of `short`, <br>
 `uint16_t` instead of `unsigned short`  
 
-`sysint_t` instead of `int`, <br>
-`sysuint_t` instead of `unsigned int`, <br>
-(`sysint_t` decides between 32- and 64-bit)  
-
-`sysint_t` and `sysuint_t` are Fog types that have same role as ssize_t and size_t types. They are used in places where you normally use size_t (string length, array length, ...).
+`ssize_t` instead of non-portable `long`, <br>
+`size_t` instead of non-portable `unsigned long`, <br>
 
 =0, NULL etc.=
 
@@ -201,7 +199,7 @@ use standard C++ integer typedef as they are declared in the stdint header, whic
 
 =Column length of files=
 
-The column length should always be 80 characters. If your code uses many inlines and code is bigger (for example 90-100 characters), keep in in one line.
+The column length should always be 80 characters. If your code uses many inlines and code is bigger (for example 90-100 characters), keep it on one line. You should decide whether to use one or more lines visually - if the code looks good on one line, always keep it.
 
 =Determine OS=
 
@@ -214,11 +212,13 @@ Example:
 // Windows code …
 #elif defined(FOG_OS_MAC)
 // Mac code …
-#else
+#elif defined(FOG_OS_POSIX)
 // POSIX code …
+#else
+// I don't know.
 #endif
 }}}
 
 =Infinite Loops=
 
-When using infinite loops, they should start with `for (;;)`.
+Standard syntax for infinite loops is `for (;;)`.
