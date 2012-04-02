@@ -14,9 +14,8 @@ Fog-Framework is different. When library was in designing state (currently it st
 Fog-Framework currently contains these libraries:
 
   * Fog-Core - Platform Abstraction and Tools.
-  * Fog-G2d - Vector 2d and Imaging.
+  * Fog-G2d - 2d vector graphics including SVG.
   * Fog-UI - Vector User Interface.
-  * Fog-Svg - SVG DOM, parser and renderer.
 
 =Design Notes=
 
@@ -79,14 +78,11 @@ Fog-Framework design notes (in points):
     * ( ) Text transform
     * ( ) Text over path
     * Gradients
-      * ( ) Better quality settings (low should use current algorithm, normal should use bilinear filtering and high should use bilinear filtering and super-sampling)
+      * ( ) Better quality settings ('normal' should use current algorithm and 'high' should use super-sampling)
     * (x) High-quality downscaling (transformation / scaling down)
       * ( ) Write MMX version
       * ( ) Write SSE2 version
       * ( ) Use in painter when suitable
-    * ( ) Glyph rendering must be two pass based
-      * ( ) Apply glyph metrics, advance, etc, serialize to X, Y, `ImageData` array
-      * ( ) Render using not `GlyphSet`, but `ImageSet`.
     * ( ) Compositing operators
       * ( ) Operator plugins in C++.
       * ( ) Operator plugins in Shader form.
@@ -99,7 +95,6 @@ Fog-Framework design notes (in points):
     * ( ) Work on fonts and typography
     * ( ) Cache size control
     * ( ) Increase granularity of X position in glyphs to 3 (0.00, 0.33, 0.66), because vector fonts can be very sensitive in small sizes.
-    * ( ) Text Iterator, retrieving glyph metrics, text metrics, individual glyphs and glyph sets.
 
   * Path and Vector Processing:
     * ( ) PathToRegion
