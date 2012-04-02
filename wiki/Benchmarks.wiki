@@ -38,7 +38,16 @@ List of tests:
   * *BlitImageI* - Blit image (aligned to pixels and not scaled).
   * *BlitImageF* - Blit image (not aligned, but not scaled).
   * *BlitImageR* - Blit image (rotated).
-List of tests:
+
+List of source-types:
+
+  * *Solid* - Solid color is used as a source.
+  * *LinGr* - Linear gradient of 3 color stops is used as a source.
+
+List of operators:
+
+  * *Copy* - Source operator.
+  * *Over* - Source-Over operator.
 
 The tests are usually configured to do 10.000 operations and result is time in [ms] for each. Size of destination image is usually 640x480. FogBench allows to test more pixel formats, so if there are more pixel formats supported by the engine, they are usually tested.
 
